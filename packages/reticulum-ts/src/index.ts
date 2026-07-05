@@ -4,7 +4,7 @@ export { PureCryptoProvider } from "./crypto/pure.js";
 export { rnsHkdf } from "./crypto/hkdf.js";
 export { Token, TOKEN_OVERHEAD } from "./crypto/token.js";
 export { pkcs7Pad, pkcs7Unpad } from "./crypto/pkcs7.js";
-export { hashBytes, hexToBytes, bytesToHex } from "./crypto/bytes.js";
+export { hashBytes, hexToBytes, bytesToHex, equalBytes } from "./crypto/bytes.js";
 export {
   Identity,
   IDENTITY_KEY_SIZE,
@@ -14,7 +14,7 @@ export {
   RATCHET_SIZE,
   RATCHET_EXPIRY_SECONDS
 } from "./identity.js";
-export type { DecryptOptions, DecryptResult, EncryptOptions, RatchetRecord } from "./identity.js";
+export type { DecryptOptions, DecryptResult, EncryptOptions, KnownDestinationRecord, RatchetRecord } from "./identity.js";
 export { Destination, DestinationDirection, DestinationType } from "./destination.js";
 export type { DestinationDirectionValue, DestinationOptions, DestinationTypeValue } from "./destination.js";
 export {
@@ -43,16 +43,49 @@ export {
   encodeHdlcFrame
 } from "./interfaces/framing.js";
 export type { HdlcDecodeResult, HdlcDecodeState } from "./interfaces/framing.js";
-export { AbstractPacketInterface } from "./interfaces/interface.js";
+export {
+  AbstractPacketInterface,
+  HdlcPacketInterface,
+  RawPacketInterface
+} from "./interfaces/interface.js";
 export type { PacketInterface, ReticulumInterfaceOptions } from "./interfaces/interface.js";
 export { PipeInterface } from "./interfaces/pipe.js";
 export type { PipeInterfaceOptions } from "./interfaces/pipe.js";
+export {
+  TcpClientInterface,
+  TcpServerInterface,
+  TCP_HW_MTU,
+  TCP_INITIAL_CONNECT_TIMEOUT_MS,
+  TCP_RECONNECT_WAIT_MS,
+  isTcpClientInterface,
+  isTcpServerInterface
+} from "./interfaces/tcp.js";
+export type { SpawnedInterfaceHandler, TcpClientInterfaceOptions, TcpServerInterfaceOptions } from "./interfaces/tcp.js";
+export { UdpInterface, UDP_HW_MTU } from "./interfaces/udp.js";
+export type { UdpInterfaceOptions } from "./interfaces/udp.js";
 export type {
+  BoundDatagramSocket,
   Clock,
-  DatagramSocket,
+  DatagramPacket,
   DuplexConnection,
   KeyValueStore,
   Runtime,
-  Timer
+  TcpConnectOptions,
+  TcpFactory,
+  TcpListener,
+  Timer,
+  UdpFactory
 } from "./runtime/runtime.js";
 export { nodeRuntime } from "./runtime/node/runtime.js";
+export { RegisteredDestination, DestinationProofStrategy } from "./registered-destination.js";
+export type { RegisteredDestinationOptions } from "./registered-destination.js";
+export {
+  LeafTransport,
+  PATHFINDER_EXPIRY_SECONDS,
+  PATHFINDER_MAX_HOPS
+} from "./transport/node.js";
+export type { AnnounceHandler, LeafTransportOptions, LocalDestination, PathEntry, ReceivedAnnounceInfo } from "./transport/node.js";
+export { PacketReceipt, PacketReceiptStatus, EXPLICIT_PROOF_LENGTH, IMPLICIT_PROOF_LENGTH } from "./packet-receipt.js";
+export type { PacketReceiptCallbacks, PacketReceiptStatusValue } from "./packet-receipt.js";
+export { Reticulum, RETICULUM_MTU } from "./reticulum.js";
+export type { ReticulumOptions } from "./reticulum.js";

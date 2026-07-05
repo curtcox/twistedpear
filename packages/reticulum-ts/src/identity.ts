@@ -17,6 +17,13 @@ export interface RatchetRecord {
   readonly received: number;
 }
 
+export interface KnownDestinationRecord {
+  readonly timestamp: number;
+  readonly receivedFrom: Uint8Array;
+  readonly publicKey: Uint8Array;
+  readonly appData: Uint8Array | null;
+}
+
 export interface EncryptOptions {
   /** X25519 public key bytes for ratchet-targeted encryption. Mirrors RNS Identity.encrypt(ratchet=...). */
   readonly ratchetPublicKey?: Uint8Array;
@@ -37,6 +44,7 @@ export interface DecryptResult {
 
 export class Identity {
   private static readonly knownRatchets = new Map<string, Uint8Array>();
+  private static readonly knownDestinations = new Map<string, KnownDestinationRecord>();
 
   private prvBytes: Uint8Array | null = null;
   private sigPrvBytes: Uint8Array | null = null;
@@ -119,6 +127,36 @@ export class Identity {
 
     Identity.knownRatchets.set(key, Uint8Array.from(record.ratchet));
     return record.ratchet;
+  }
+
+  static rememberDestination(
+    destinationHash: Uint8Array,
+    receivedFrom: Uint8Array,
+    publicKey: Uint8Array,
+    appData: Uint8Array | null,
+    timestamp = Date.now() / 1000
+  ): void {
+    Identity.knownDestinations.set(bytesToHex(destinationHash), {
+      timestamp,
+      receivedFrom: Uint8Array.from(receivedFrom),
+      publicKey: Uint8Array.from(publicKey),
+      appData: appData === null ? null : Uint8Array.from(appData)
+    });
+  }
+
+  static recall(provider: CryptoProvider, destinationHash: Uint8Array): Identity | null {
+    const record = Identity.knownDestinations.get(bytesToHex(destinationHash));
+    if (record === undefined) {
+      return null;
+    }
+
+    const identity = new Identity(provider, false);
+    return identity.loadPublicKey(record.publicKey) ? identity : null;
+  }
+
+  static recallAppData(destinationHash: Uint8Array): Uint8Array | null {
+    const record = Identity.knownDestinations.get(bytesToHex(destinationHash));
+    return record?.appData ?? null;
   }
 
   get hash(): Uint8Array {
@@ -238,6 +276,17 @@ export class Identity {
     }
 
     return { plaintext, ratchetId };
+  }
+
+  prove(
+    packetHash: Uint8Array,
+    proofDestinationHash: Uint8Array,
+    sendProof: (destinationHash: Uint8Array, proofData: Uint8Array) => Promise<void>,
+    useImplicitProof = true
+  ): Promise<void> {
+    const signature = this.sign(packetHash);
+    const proofData = useImplicitProof ? signature : concatBytes(packetHash, signature);
+    return sendProof(proofDestinationHash, proofData);
   }
 
   private updatePublicMaterial(): void {

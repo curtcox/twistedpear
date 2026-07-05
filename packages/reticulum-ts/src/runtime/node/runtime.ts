@@ -1,4 +1,5 @@
 import type { Clock, KeyValueStore, Runtime, Timer } from "../runtime.js";
+import { nodeTcpFactory, nodeUdpFactory } from "./sockets.js";
 
 class NodeTimer implements Timer {
   constructor(private readonly timeout: NodeJS.Timeout) {}
@@ -38,6 +39,8 @@ class MemoryKeyValueStore implements KeyValueStore {
 export function nodeRuntime(): Runtime {
   return {
     clock: new NodeClock(),
-    store: new MemoryKeyValueStore()
+    store: new MemoryKeyValueStore(),
+    tcp: nodeTcpFactory,
+    udp: nodeUdpFactory
   };
 }

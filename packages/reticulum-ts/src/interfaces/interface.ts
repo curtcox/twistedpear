@@ -5,12 +5,17 @@ export interface ReticulumInterfaceOptions {
   readonly name: string;
   readonly mtu?: number;
   readonly bitrate?: number | null;
+  /** Whether this interface may send outbound packets. Mirrors RNS interface `outgoing` config. */
+  readonly outgoing?: boolean;
 }
 
 export interface PacketInterface {
   readonly name: string;
   readonly mtu: number;
   readonly bitrate: number | null;
+  readonly incoming: boolean;
+  readonly outgoing: boolean;
+  readonly online: boolean;
   readonly packets: AsyncIterable<Packet>;
   send(packet: Packet): Promise<void>;
   close(): Promise<void>;
@@ -20,12 +25,14 @@ export abstract class AbstractPacketInterface implements PacketInterface {
   readonly name: string;
   readonly mtu: number;
   readonly bitrate: number | null;
+  readonly incoming: boolean;
+  readonly outgoing: boolean;
+  online = false;
 
   private readonly queue = new AsyncPacketQueue();
-  private decodeState: HdlcDecodeState = {};
   private closed = false;
 
-  protected constructor(options: ReticulumInterfaceOptions) {
+  protected constructor(options: ReticulumInterfaceOptions, incoming = true, outgoing = options.outgoing ?? true) {
     if (options.name.length === 0) {
       throw new Error("Interface name cannot be empty");
     }
@@ -33,6 +40,8 @@ export abstract class AbstractPacketInterface implements PacketInterface {
     this.name = options.name;
     this.mtu = options.mtu ?? 500;
     this.bitrate = options.bitrate ?? null;
+    this.incoming = incoming;
+    this.outgoing = outgoing;
   }
 
   get packets(): AsyncIterable<Packet> {
@@ -44,11 +53,15 @@ export abstract class AbstractPacketInterface implements PacketInterface {
       throw new Error(`Interface ${this.name} is closed`);
     }
 
+    if (!this.outgoing) {
+      throw new Error(`Interface ${this.name} is not configured for outbound traffic`);
+    }
+
     if (packet.raw.length > this.mtu) {
       throw new Error(`Packet exceeds interface MTU (${packet.raw.length} > ${this.mtu})`);
     }
 
-    await this.writeFrame(encodeHdlcFrame(packet.raw));
+    await this.writeBytes(this.encodeOutgoing(packet.raw));
   }
 
   async close(): Promise<void> {
@@ -57,22 +70,17 @@ export abstract class AbstractPacketInterface implements PacketInterface {
     }
 
     this.closed = true;
+    this.online = false;
     this.queue.close();
     await this.closeInterface();
   }
 
-  protected receiveFramedBytes(bytes: Uint8Array): void {
+  protected receiveBytes(bytes: Uint8Array): void {
     if (this.closed) {
       return;
     }
 
-    const decoded = decodeHdlcFrames(bytes, this.decodeState);
-    this.decodeState = {
-      buffer: decoded.buffer,
-      inEscape: decoded.inEscape
-    };
-
-    for (const frame of decoded.frames) {
+    for (const frame of this.decodeIncoming(bytes)) {
       const packet = this.decodePacket(frame);
       if (packet !== null) {
         this.queue.push(packet);
@@ -81,8 +89,37 @@ export abstract class AbstractPacketInterface implements PacketInterface {
   }
 
   protected abstract decodePacket(frame: Uint8Array): Packet | null;
-  protected abstract writeFrame(frame: Uint8Array): Promise<void>;
+  protected abstract encodeOutgoing(raw: Uint8Array): Uint8Array;
+  protected abstract decodeIncoming(bytes: Uint8Array): ReadonlyArray<Uint8Array>;
+  protected abstract writeBytes(bytes: Uint8Array): Promise<void>;
   protected abstract closeInterface(): Promise<void>;
+}
+
+export abstract class HdlcPacketInterface extends AbstractPacketInterface {
+  private decodeState: HdlcDecodeState = {};
+
+  protected override encodeOutgoing(raw: Uint8Array): Uint8Array {
+    return encodeHdlcFrame(raw);
+  }
+
+  protected override decodeIncoming(bytes: Uint8Array): ReadonlyArray<Uint8Array> {
+    const decoded = decodeHdlcFrames(bytes, this.decodeState);
+    this.decodeState = {
+      buffer: decoded.buffer,
+      inEscape: decoded.inEscape
+    };
+    return decoded.frames;
+  }
+}
+
+export abstract class RawPacketInterface extends AbstractPacketInterface {
+  protected override encodeOutgoing(raw: Uint8Array): Uint8Array {
+    return raw;
+  }
+
+  protected override decodeIncoming(bytes: Uint8Array): ReadonlyArray<Uint8Array> {
+    return bytes.length > 0 ? [bytes] : [];
+  }
 }
 
 class AsyncPacketQueue implements AsyncIterable<Packet> {
