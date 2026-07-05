@@ -77,8 +77,52 @@ export type {
   UdpFactory
 } from "./runtime/runtime.js";
 export { nodeRuntime } from "./runtime/node/runtime.js";
-export { RegisteredDestination, DestinationProofStrategy } from "./registered-destination.js";
-export type { RegisteredDestinationOptions } from "./registered-destination.js";
+export {
+  Link,
+  LINK_ECPUB_SIZE,
+  LINK_KEY_SIZE,
+  LINK_KEEPALIVE,
+  LINK_KEEPALIVE_MIN,
+  LINK_MTU_SIZE,
+  LINK_SIGNATURE_SIZE,
+  LINK_STALE_GRACE,
+  LinkStatus,
+  LinkTeardownReason
+} from "./link.js";
+export type { InitiatorLinkOptions, LinkCallbacks, LinkRequestOptions, LinkSendContextResult, LinkStatusValue, LinkTeardownReasonValue } from "./link.js";
+export {
+  LinkRequestReceipt,
+  RequestReceiptStatus
+} from "./link-request-receipt.js";
+export type { LinkRequestReceiptOptions, RequestReceiptCallbacks, RequestReceiptStatusValue } from "./link-request-receipt.js";
+export {
+  Channel,
+  ChannelException,
+  ChannelExceptionType,
+  LinkChannelOutlet,
+  MessageState
+} from "./channel.js";
+export type { ChannelMessage, ChannelMessageConstructor, ChannelMessageHandler, ChannelOutlet, ChannelPacket } from "./channel.js";
+export {
+  Buffer,
+  RawChannelReader,
+  RawChannelWriter,
+  StreamDataMessage,
+  SystemMessageTypes
+} from "./buffer.js";
+export type { StreamReadyCallback } from "./buffer.js";
+export {
+  msgpackPackRequest,
+  msgpackPackResponse,
+  msgpackUnpackRequest,
+  msgpackUnpackResponse
+} from "./msgpack.js";
+export {
+  DestinationAllowPolicy,
+  RegisteredDestination,
+  DestinationProofStrategy
+} from "./registered-destination.js";
+export type { RegisteredDestinationOptions, RequestHandler, DestinationAllowPolicyValue } from "./registered-destination.js";
 export {
   LeafTransport,
   PATHFINDER_EXPIRY_SECONDS,
@@ -89,13 +133,3 @@ export { PacketReceipt, PacketReceiptStatus, EXPLICIT_PROOF_LENGTH, IMPLICIT_PRO
 export type { PacketReceiptCallbacks, PacketReceiptStatusValue } from "./packet-receipt.js";
 export { Reticulum, RETICULUM_MTU } from "./reticulum.js";
 export type { ReticulumOptions } from "./reticulum.js";
-export {
-  Link,
-  LINK_ECPUB_SIZE,
-  LINK_KEY_SIZE,
-  LINK_KEEPALIVE,
-  LINK_MTU_SIZE,
-  LINK_SIGNATURE_SIZE,
-  LinkStatus
-} from "./link.js";
-export type { InitiatorLinkOptions, LinkCallbacks, LinkStatusValue } from "./link.js";

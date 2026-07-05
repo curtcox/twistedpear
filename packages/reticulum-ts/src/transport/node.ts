@@ -13,6 +13,7 @@ import {
   PacketType,
   TransportType
 } from "../packet.js";
+import type { Clock } from "../runtime/runtime.js";
 
 /** Mirrors RNS/Transport.py path table constants for leaf mode. */
 export const PATHFINDER_MAX_HOPS = 128;
@@ -66,6 +67,7 @@ export interface LocalDestination {
 export interface LeafTransportOptions {
   readonly provider: CryptoProvider;
   readonly transportIdentity: Identity;
+  readonly clock: Clock;
   readonly useImplicitProof?: boolean;
 }
 
@@ -84,6 +86,10 @@ export class LeafTransport {
 
   constructor(private readonly options: LeafTransportOptions) {
     this.useImplicitProof = options.useImplicitProof ?? true;
+  }
+
+  get clock(): Clock {
+    return this.options.clock;
   }
 
   registerInterface(iface: PacketInterface): void {

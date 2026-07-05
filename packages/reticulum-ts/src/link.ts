@@ -1,9 +1,18 @@
 import type { CryptoProvider } from "./crypto/provider.js";
 import { rnsHkdf } from "./crypto/hkdf.js";
 import { Token } from "./crypto/token.js";
+import { Channel, LinkChannelOutlet } from "./channel.js";
+import { equalBytes } from "./crypto/bytes.js";
 import { DestinationDirection, DestinationType } from "./destination.js";
-import { Identity } from "./identity.js";
+import { Identity, IDENTITY_KEY_SIZE } from "./identity.js";
 import type { PacketInterface } from "./interfaces/interface.js";
+import { LinkRequestReceipt } from "./link-request-receipt.js";
+import {
+  msgpackPackRequest,
+  msgpackPackResponse,
+  msgpackUnpackRequest,
+  msgpackUnpackResponse
+} from "./msgpack.js";
 import {
   Packet,
   PacketContext,
@@ -11,8 +20,11 @@ import {
   PacketType,
   TransportType
 } from "./packet.js";
+import type { PacketReceipt } from "./packet-receipt.js";
 import type { RegisteredDestination } from "./registered-destination.js";
+import { DestinationAllowPolicy } from "./registered-destination.js";
 import { RETICULUM_MTU } from "./reticulum.js";
+import type { Clock } from "./runtime/runtime.js";
 import type { LeafTransport } from "./transport/node.js";
 import { PATHFINDER_MAX_HOPS } from "./transport/node.js";
 
@@ -22,6 +34,15 @@ export const LINK_KEY_SIZE = 32;
 export const LINK_MTU_SIZE = 3;
 export const LINK_SIGNATURE_SIZE = 64;
 export const LINK_KEEPALIVE = 360;
+export const LINK_KEEPALIVE_MIN = 5;
+export const LINK_KEEPALIVE_MAX_RTT = 1.75;
+export const LINK_STALE_FACTOR = 2;
+export const LINK_STALE_GRACE = 5;
+export const LINK_TRAFFIC_TIMEOUT_FACTOR = 6;
+export const LINK_KEEPALIVE_TIMEOUT_FACTOR = 4;
+export const LINK_WATCHDOG_MAX_SLEEP_MS = 5000;
+export const LINK_ESTABLISHMENT_TIMEOUT_PER_HOP = 6;
+export const LINK_RESPONSE_MAX_GRACE_TIME = 5;
 
 export const LinkStatus = {
   PENDING: 0x00,
@@ -33,10 +54,19 @@ export const LinkStatus = {
 
 export type LinkStatusValue = (typeof LinkStatus)[keyof typeof LinkStatus];
 
+export const LinkTeardownReason = {
+  TIMEOUT: 0x01,
+  INITIATOR_CLOSED: 0x02,
+  DESTINATION_CLOSED: 0x03
+} as const;
+
+export type LinkTeardownReasonValue = (typeof LinkTeardownReason)[keyof typeof LinkTeardownReason];
+
 export interface LinkCallbacks {
   linkEstablished?: (link: Link) => void;
   linkClosed?: (link: Link) => void;
   packet?: (data: Uint8Array, packet: Packet) => void;
+  remoteIdentified?: (link: Link, identity: Identity) => void;
 }
 
 export interface InitiatorLinkOptions {
@@ -44,6 +74,17 @@ export interface InitiatorLinkOptions {
   readonly transport: LeafTransport;
   readonly linkMtuDiscovery?: boolean;
   readonly callbacks?: LinkCallbacks;
+}
+
+export interface LinkRequestOptions {
+  readonly response?: (receipt: LinkRequestReceipt) => void;
+  readonly failed?: (receipt: LinkRequestReceipt) => void;
+  readonly timeout?: number;
+}
+
+export interface LinkSendContextResult {
+  readonly raw: Uint8Array;
+  readonly receipt: PacketReceipt | null;
 }
 
 /** Mirrors RNS/Link.py link establishment and encrypted sessions. */
@@ -66,19 +107,32 @@ export class Link {
   requestTime = 0;
   activatedAt: number | null = null;
   lastInbound = 0;
+  lastOutbound = 0;
+  lastKeepalive = 0;
+  lastData = 0;
+  keepalive = LINK_KEEPALIVE;
+  staleTime = LINK_KEEPALIVE * LINK_STALE_FACTOR;
+  establishmentTimeout = LINK_ESTABLISHMENT_TIMEOUT_PER_HOP + LINK_KEEPALIVE;
+  teardownReason: LinkTeardownReasonValue | null = null;
+  remoteIdentity: Identity | null = null;
 
   private readonly provider: CryptoProvider;
   private readonly transport: LeafTransport;
+  private readonly clock: Clock;
+  private readonly pendingRequests: LinkRequestReceipt[] = [];
   private privateKey: Uint8Array | null = null;
   private publicKeyBytes: Uint8Array | null = null;
   private peerPublicKeyBytes: Uint8Array | null = null;
   private peerSignaturePublicKeyBytes: Uint8Array | null = null;
   private derivedKey: Uint8Array | null = null;
   private token: Token | null = null;
+  private channel: Channel | null = null;
+  private watchdogTimer: ReturnType<Clock["setTimeout"]> | null = null;
 
   private constructor(
     provider: CryptoProvider,
     transport: LeafTransport,
+    clock: Clock,
     options: {
       readonly initiator: boolean;
       readonly owner: RegisteredDestination | null;
@@ -88,6 +142,7 @@ export class Link {
   ) {
     this.provider = provider;
     this.transport = transport;
+    this.clock = clock;
     this.initiator = options.initiator;
     this.owner = options.owner;
     this.destination = options.destination;
@@ -101,7 +156,7 @@ export class Link {
     }
 
     const provider = destination.cryptoProvider;
-    const link = new Link(provider, options.transport, {
+    const link = new Link(provider, options.transport, options.transport.clock, {
       initiator: true,
       owner: null,
       destination,
@@ -114,6 +169,8 @@ export class Link {
     const signaturePublicKeyBytes = provider.ed25519PublicFromPrivate(signaturePrivateKey);
     link.expectedHops = options.transport.hopsTo(destination.hash);
     link.requestTime = Date.now() / 1000;
+    link.establishmentTimeout =
+      LINK_ESTABLISHMENT_TIMEOUT_PER_HOP * Math.max(1, link.expectedHops ?? 1) + LINK_KEEPALIVE;
 
     let mtuBytes = new Uint8Array(0);
     if (options.linkMtuDiscovery !== false) {
@@ -139,8 +196,9 @@ export class Link {
     link.setLinkId(packet);
     link.establishmentCost += packet.raw.length;
     options.transport.registerLink(link);
+    link.startWatchdog();
     void options.transport.sendPacket(packet).then(() => {
-      link.hadOutbound();
+      link.hadOutbound(false);
     });
 
     return link;
@@ -163,7 +221,7 @@ export class Link {
 
     try {
       const provider = owner.cryptoProvider;
-      const link = new Link(provider, transport, {
+      const link = new Link(provider, transport, transport.clock, {
         initiator: false,
         owner,
         destination: null
@@ -187,7 +245,10 @@ export class Link {
       link.handshake();
       link.requestTime = Date.now() / 1000;
       link.lastInbound = link.requestTime;
+      link.establishmentTimeout =
+        LINK_ESTABLISHMENT_TIMEOUT_PER_HOP * Math.max(1, packet.hops) + LINK_KEEPALIVE;
       transport.registerLink(link);
+      link.startWatchdog();
       void link.prove();
       return link;
     } catch {
@@ -280,7 +341,7 @@ export class Link {
     await this.transport.sendPacket(proofPacket, {
       attachedInterface: this.attachedInterface
     });
-    this.hadOutbound();
+    this.hadOutbound(false);
   }
 
   async validateProof(packet: Packet, iface: PacketInterface): Promise<void> {
@@ -321,6 +382,7 @@ export class Link {
       this.attachedInterface = iface;
       this.mtu = confirmedMtu ?? RETICULUM_MTU;
       this.updateMdu();
+      this.updateKeepalive();
       this.status = LinkStatus.ACTIVE;
       this.activatedAt = Date.now() / 1000;
       this.establishmentCost += packet.raw.length;
@@ -336,7 +398,7 @@ export class Link {
         data: this.encrypt(msgpackEncodeFloat(this.rtt))
       });
       await this.transport.sendPacket(rttPacket, { attachedInterface: this.attachedInterface });
-      this.hadOutbound();
+      this.hadOutbound(false);
       this.callbacks.linkEstablished?.(this);
     } catch {
       this.status = LinkStatus.CLOSED;
@@ -357,6 +419,7 @@ export class Link {
 
       const remoteRtt = msgpackDecodeFloat(plaintext);
       this.rtt = Math.max(measuredRtt, remoteRtt);
+      this.updateKeepalive();
       this.status = LinkStatus.ACTIVE;
       this.activatedAt = Date.now() / 1000;
       this.callbacks.linkEstablished?.(this);
@@ -370,24 +433,164 @@ export class Link {
       return;
     }
 
+    if (
+      this.initiator &&
+      packet.context === PacketContext.KEEPALIVE &&
+      packet.data.length === 1 &&
+      packet.data[0] === 0xff
+    ) {
+      return;
+    }
+
     if (this.attachedInterface !== null && iface !== this.attachedInterface) {
       return;
     }
 
     this.lastInbound = Date.now() / 1000;
+    if (packet.context !== PacketContext.KEEPALIVE) {
+      this.lastData = this.lastInbound;
+    }
 
-    if (packet.packetType === PacketType.DATA) {
-      if (packet.context === PacketContext.LRRTT) {
-        await this.handleRttPacket(packet);
-        return;
-      }
+    if (this.status === LinkStatus.STALE) {
+      this.status = LinkStatus.ACTIVE;
+    }
 
-      if (packet.context === PacketContext.NONE) {
-        const plaintext = this.decrypt(packet.data);
-        if (plaintext !== null) {
-          this.callbacks.packet?.(plaintext, packet);
-        }
+    if (packet.packetType !== PacketType.DATA) {
+      return;
+    }
+
+    if (packet.context === PacketContext.LRRTT) {
+      await this.handleRttPacket(packet);
+      return;
+    }
+
+    if (packet.context === PacketContext.KEEPALIVE) {
+      if (!this.initiator && packet.data.length === 1 && packet.data[0] === 0xff) {
+        await this.sendKeepaliveReply();
       }
+      return;
+    }
+
+    if (packet.context === PacketContext.LINKCLOSE) {
+      await this.handleTeardownPacket(packet);
+      return;
+    }
+
+    if (packet.context === PacketContext.LINKIDENTIFY) {
+      await this.handleIdentifyPacket(packet);
+      return;
+    }
+
+    if (packet.context === PacketContext.REQUEST) {
+      await this.handleRequestPacket(packet);
+      return;
+    }
+
+    if (packet.context === PacketContext.RESPONSE) {
+      await this.handleResponsePacket(packet);
+      return;
+    }
+
+    if (packet.context === PacketContext.CHANNEL) {
+      await this.handleChannelPacket(packet);
+      return;
+    }
+
+    if (packet.context === PacketContext.NONE) {
+      const plaintext = this.decrypt(packet.data);
+      if (plaintext !== null) {
+        this.callbacks.packet?.(plaintext, packet);
+      }
+    }
+  }
+
+  identify(identity: Identity): void {
+    if (!this.initiator || this.status !== LinkStatus.ACTIVE || identity === null) {
+      return;
+    }
+
+    const signedData = concatBytes(this.linkId, identity.getPublicKey());
+    const signature = identity.sign(signedData);
+    const proofData = concatBytes(identity.getPublicKey(), signature);
+    void this.sendContext(PacketContext.LINKIDENTIFY, proofData);
+  }
+
+  getRemoteIdentity(): Identity | null {
+    return this.remoteIdentity;
+  }
+
+  async request(
+    path: string,
+    data: Uint8Array | null = null,
+    options: LinkRequestOptions = {}
+  ): Promise<LinkRequestReceipt | false> {
+    if (this.status !== LinkStatus.ACTIVE || this.rtt === null) {
+      return false;
+    }
+
+    const pathHash = Identity.truncatedHash(this.provider, new TextEncoder().encode(path));
+    const packedRequest = msgpackPackRequest(Date.now() / 1000, pathHash, data);
+    const timeout =
+      options.timeout ?? this.rtt * LINK_TRAFFIC_TIMEOUT_FACTOR + LINK_RESPONSE_MAX_GRACE_TIME * 1.125;
+
+    if (packedRequest.length > this.mdu) {
+      return false;
+    }
+
+    const packet = Packet.fromFields(this.provider, {
+      headerType: PacketHeaderType.HEADER_1,
+      transportType: TransportType.BROADCAST,
+      destinationType: DestinationType.LINK,
+      packetType: PacketType.DATA,
+      destinationHash: this.linkId,
+      context: PacketContext.REQUEST,
+      data: this.encrypt(packedRequest)
+    });
+
+    const pending = new LinkRequestReceipt({
+      link: this,
+      requestId: packet.truncatedHash(),
+      timeout,
+      requestSize: packedRequest.length,
+      callbacks: {
+        ...(options.response === undefined ? {} : { response: options.response }),
+        ...(options.failed === undefined ? {} : { failed: options.failed })
+      }
+    });
+
+    const sentReceipt = await this.transport.sendPacket(packet, {
+      attachedInterface: this.attachedInterface,
+      createReceipt: true
+    });
+    this.hadOutbound(false);
+
+    if (sentReceipt === null) {
+      this.unregisterPendingRequest(pending);
+      return false;
+    }
+
+    pending.attachPacketReceipt(sentReceipt);
+    return pending;
+  }
+
+  getChannel(): Channel {
+    if (this.channel === null) {
+      this.channel = new Channel(new LinkChannelOutlet(this));
+    }
+
+    return this.channel;
+  }
+
+  registerPendingRequest(receipt: LinkRequestReceipt): void {
+    if (!this.pendingRequests.includes(receipt)) {
+      this.pendingRequests.push(receipt);
+    }
+  }
+
+  unregisterPendingRequest(receipt: LinkRequestReceipt): void {
+    const index = this.pendingRequests.indexOf(receipt);
+    if (index >= 0) {
+      this.pendingRequests.splice(index, 1);
     }
   }
 
@@ -404,6 +607,14 @@ export class Link {
   }
 
   async send(data: Uint8Array): Promise<void> {
+    await this.sendContext(PacketContext.NONE, data);
+  }
+
+  async sendContext(
+    context: number,
+    data: Uint8Array,
+    options: { createReceipt?: boolean } = {}
+  ): Promise<LinkSendContextResult> {
     if (this.status !== LinkStatus.ACTIVE) {
       throw new Error("Cannot send on inactive link");
     }
@@ -414,12 +625,30 @@ export class Link {
       destinationType: DestinationType.LINK,
       packetType: PacketType.DATA,
       destinationHash: this.linkId,
-      context: PacketContext.NONE,
+      context,
       data: this.encrypt(data)
     });
 
-    await this.transport.sendPacket(packet, { attachedInterface: this.attachedInterface });
-    this.hadOutbound();
+    const receipt = await this.transport.sendPacket(packet, {
+      attachedInterface: this.attachedInterface,
+      createReceipt: options.createReceipt ?? false
+    });
+    this.hadOutbound(context === PacketContext.KEEPALIVE);
+    return { raw: packet.raw, receipt };
+  }
+
+  async resendPacket(raw: Uint8Array, options: { createReceipt?: boolean } = {}): Promise<LinkSendContextResult | null> {
+    const packet = Packet.decode(this.provider, raw);
+    if (packet === null || this.attachedInterface === null) {
+      return null;
+    }
+
+    const receipt = await this.transport.sendPacket(packet, {
+      attachedInterface: this.attachedInterface,
+      createReceipt: options.createReceipt ?? false
+    });
+
+    return { raw, receipt };
   }
 
   async teardown(): Promise<void> {
@@ -428,26 +657,20 @@ export class Link {
       return;
     }
 
-    const packet = Packet.fromFields(this.provider, {
-      headerType: PacketHeaderType.HEADER_1,
-      transportType: TransportType.BROADCAST,
-      destinationType: DestinationType.LINK,
-      packetType: PacketType.DATA,
-      destinationHash: this.linkId,
-      context: PacketContext.LINKCLOSE,
-      data: this.encrypt(this.linkId)
-    });
-
-    await this.transport.sendPacket(packet, { attachedInterface: this.attachedInterface });
+    await this.sendTeardownPacket();
+    this.teardownReason = this.initiator ? LinkTeardownReason.INITIATOR_CLOSED : LinkTeardownReason.DESTINATION_CLOSED;
     this.close();
   }
 
   close(): void {
+    this.stopWatchdog();
     this.status = LinkStatus.CLOSED;
     this.privateKey = null;
     this.publicKeyBytes = null;
     this.derivedKey = null;
     this.token = null;
+    this.channel?.shutdown();
+    this.channel = null;
     this.transport.unregisterLink(this);
     this.callbacks.linkClosed?.(this);
   }
@@ -460,8 +683,15 @@ export class Link {
       Math.floor((this.mtu - ifacMin - headerMax - 48) / blockSize) * blockSize - 1;
   }
 
-  hadOutbound(): void {
-    this.lastInbound = Date.now() / 1000;
+  hadOutbound(isKeepalive = false): void {
+    const now = Date.now() / 1000;
+    this.lastOutbound = now;
+    this.lastInbound = now;
+    if (isKeepalive) {
+      this.lastKeepalive = now;
+    } else {
+      this.lastData = now;
+    }
   }
 
   hopsMatch(packet: Packet): boolean {
@@ -470,6 +700,214 @@ export class Link {
     }
 
     return packet.hops === this.expectedHops || this.expectedHops === PATHFINDER_MAX_HOPS;
+  }
+
+  private async handleIdentifyPacket(packet: Packet): Promise<void> {
+    if (this.initiator) {
+      return;
+    }
+
+    const plaintext = this.decrypt(packet.data);
+    if (plaintext === null || plaintext.length !== IDENTITY_KEY_SIZE + LINK_SIGNATURE_SIZE) {
+      return;
+    }
+
+    const publicKey = plaintext.subarray(0, IDENTITY_KEY_SIZE);
+    const signature = plaintext.subarray(IDENTITY_KEY_SIZE, IDENTITY_KEY_SIZE + LINK_SIGNATURE_SIZE);
+    const identity = Identity.fromPublicKey(this.provider, publicKey);
+    const signedData = concatBytes(this.linkId, publicKey);
+    if (!identity.validate(signature, signedData)) {
+      return;
+    }
+
+    this.remoteIdentity = identity;
+    this.callbacks.remoteIdentified?.(this, identity);
+  }
+
+  private async handleRequestPacket(packet: Packet): Promise<void> {
+    const requestId = packet.truncatedHash();
+    const plaintext = this.decrypt(packet.data);
+    if (plaintext === null) {
+      return;
+    }
+
+    try {
+      const [requestedAt, pathHash, requestData] = msgpackUnpackRequest(plaintext);
+      const handlerDestination = this.owner ?? this.destination;
+      if (handlerDestination === null) {
+        return;
+      }
+
+      const handler = handlerDestination.getRequestHandler(pathHash);
+      if (handler === undefined) {
+        return;
+      }
+
+      let allowed = false;
+      if (handler.allow !== DestinationAllowPolicy.ALLOW_NONE) {
+        if (handler.allow === DestinationAllowPolicy.ALLOW_LIST) {
+          allowed =
+            this.remoteIdentity !== null &&
+            handler.allowedList.some((entry) => equalBytes(entry, this.remoteIdentity!.hash));
+        } else if (handler.allow === DestinationAllowPolicy.ALLOW_ALL) {
+          allowed = true;
+        }
+      }
+
+      if (!allowed) {
+        return;
+      }
+
+      const response = await handler.responseGenerator(
+        handler.path,
+        requestData,
+        requestId,
+        this.linkId,
+        this.remoteIdentity,
+        requestedAt
+      );
+
+      if (response === null) {
+        return;
+      }
+
+      const packedResponse = msgpackPackResponse(requestId, response);
+      if (packedResponse.length <= this.mdu) {
+        await this.sendContext(PacketContext.RESPONSE, packedResponse);
+      }
+    } catch {
+      // Ignore malformed requests.
+    }
+  }
+
+  private async handleResponsePacket(packet: Packet): Promise<void> {
+    const plaintext = this.decrypt(packet.data);
+    if (plaintext === null) {
+      return;
+    }
+
+    try {
+      const [requestId, responseData] = msgpackUnpackResponse(plaintext);
+      for (const pendingRequest of [...this.pendingRequests]) {
+        if (pendingRequest.matchesRequestId(requestId)) {
+          pendingRequest.responseReceived(responseData);
+          return;
+        }
+      }
+    } catch {
+      // Ignore malformed responses.
+    }
+  }
+
+  private async handleChannelPacket(packet: Packet): Promise<void> {
+    const plaintext = this.decrypt(packet.data);
+    if (plaintext === null) {
+      return;
+    }
+
+    this.getChannel().receive(plaintext);
+  }
+
+  private async handleTeardownPacket(packet: Packet): Promise<void> {
+    const plaintext = this.decrypt(packet.data);
+    if (plaintext === null || !equalLinkId(plaintext, this.linkId)) {
+      return;
+    }
+
+    this.teardownReason = this.initiator
+      ? LinkTeardownReason.DESTINATION_CLOSED
+      : LinkTeardownReason.INITIATOR_CLOSED;
+    this.close();
+  }
+
+  private async sendTeardownPacket(): Promise<void> {
+    await this.sendContext(PacketContext.LINKCLOSE, this.linkId);
+  }
+
+  private async sendKeepalive(): Promise<void> {
+    await this.sendContext(PacketContext.KEEPALIVE, new Uint8Array([0xff]));
+  }
+
+  private async sendKeepaliveReply(): Promise<void> {
+    await this.sendContext(PacketContext.KEEPALIVE, new Uint8Array([0xfe]));
+  }
+
+  private updateKeepalive(): void {
+    if (this.rtt === null) {
+      return;
+    }
+
+    this.keepalive = Math.max(
+      Math.min(this.rtt * (LINK_KEEPALIVE / LINK_KEEPALIVE_MAX_RTT), LINK_KEEPALIVE),
+      LINK_KEEPALIVE_MIN
+    );
+    this.staleTime = this.keepalive * LINK_STALE_FACTOR;
+  }
+
+  private startWatchdog(): void {
+    this.scheduleWatchdog(25);
+  }
+
+  private stopWatchdog(): void {
+    this.watchdogTimer?.cancel();
+    this.watchdogTimer = null;
+  }
+
+  private scheduleWatchdog(delayMs: number): void {
+    this.watchdogTimer?.cancel();
+    this.watchdogTimer = this.clock.setTimeout(() => {
+      this.watchdogTick();
+    }, delayMs);
+  }
+
+  private watchdogTick(): void {
+    if (this.status === LinkStatus.CLOSED) {
+      return;
+    }
+
+    const now = Date.now() / 1000;
+
+    if (this.status === LinkStatus.PENDING || this.status === LinkStatus.HANDSHAKE) {
+      if (now >= this.requestTime + this.establishmentTimeout) {
+        this.teardownReason = LinkTeardownReason.TIMEOUT;
+        this.close();
+        return;
+      }
+
+      this.scheduleWatchdog(Math.max((this.requestTime + this.establishmentTimeout - now) * 1000, 25));
+      return;
+    }
+
+    if (this.status === LinkStatus.ACTIVE || this.status === LinkStatus.STALE) {
+      const activatedAt = this.activatedAt ?? 0;
+      const lastInbound = Math.max(this.lastInbound, activatedAt);
+
+      if (this.status === LinkStatus.STALE) {
+        void this.sendTeardownPacket();
+        this.teardownReason = LinkTeardownReason.TIMEOUT;
+        this.close();
+        return;
+      }
+
+      if (now >= lastInbound + this.keepalive) {
+        if (this.initiator && now >= this.lastKeepalive + this.keepalive) {
+          void this.sendKeepalive();
+        }
+
+        if (now >= lastInbound + this.staleTime) {
+          this.status = LinkStatus.STALE;
+          this.scheduleWatchdog(Math.max((this.rtt ?? 0.025) * LINK_KEEPALIVE_TIMEOUT_FACTOR * 1000 + LINK_STALE_GRACE * 1000, 25));
+          return;
+        }
+
+        this.scheduleWatchdog(Math.min(this.keepalive * 1000, LINK_WATCHDOG_MAX_SLEEP_MS));
+        return;
+      }
+
+      this.scheduleWatchdog(
+        Math.min(Math.max((lastInbound + this.keepalive - now) * 1000, 25), LINK_WATCHDOG_MAX_SLEEP_MS)
+      );
+    }
   }
 
   private tokenInstance(): Token {
@@ -518,4 +956,8 @@ function msgpackDecodeFloat(bytes: Uint8Array): number {
   }
 
   throw new Error("Expected msgpack float");
+}
+
+function equalLinkId(left: Uint8Array, right: Uint8Array): boolean {
+  return equalBytes(left, right);
 }

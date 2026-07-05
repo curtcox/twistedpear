@@ -36,6 +36,7 @@ export class Reticulum {
     this.transport = new LeafTransport({
       provider: options.provider,
       transportIdentity: this.transportIdentity,
+      clock: options.runtime.clock,
       ...(options.useImplicitProof === undefined ? {} : { useImplicitProof: options.useImplicitProof })
     });
   }

@@ -15,8 +15,11 @@ export type PacketReceiptStatusValue = (typeof PacketReceiptStatus)[keyof typeof
 export const EXPLICIT_PROOF_LENGTH = 32 + 64;
 export const IMPLICIT_PROOF_LENGTH = 64;
 
+import type { Timer } from "./runtime/runtime.js";
+
 export interface PacketReceiptCallbacks {
   delivery?: (receipt: PacketReceipt) => void;
+  timeout?: (receipt: PacketReceipt) => void;
 }
 
 export class PacketReceipt {
@@ -29,7 +32,10 @@ export class PacketReceipt {
   status: PacketReceiptStatusValue = PacketReceiptStatus.SENT;
   concludedAt: number | null = null;
   proofPacket: Packet | null = null;
+  timeout: number | null = null;
   readonly callbacks: PacketReceiptCallbacks = {};
+  private timeoutTimer: Timer | null = null;
+  private timeoutAt: number | null = null;
 
   constructor(
     readonly packetHash: Uint8Array,
@@ -83,5 +89,52 @@ export class PacketReceipt {
     }
 
     return this.validateProof(proofPacket.data, identity);
+  }
+
+  getStatus(): PacketReceiptStatusValue {
+    return this.status;
+  }
+
+  setTimeout(seconds: number): void {
+    this.timeout = seconds;
+    this.timeoutAt = Date.now() / 1000 + seconds;
+  }
+
+  setTimeoutCallback(callback: ((receipt: PacketReceipt) => void) | null): void {
+    if (callback === null) {
+      delete this.callbacks.timeout;
+      return;
+    }
+
+    this.callbacks.timeout = callback;
+  }
+
+  setDeliveryCallback(callback: ((receipt: PacketReceipt) => void) | null): void {
+    if (callback === null) {
+      delete this.callbacks.delivery;
+      return;
+    }
+
+    this.callbacks.delivery = callback;
+  }
+
+  checkTimeout(nowSeconds = Date.now() / 1000): boolean {
+    if (this.status === PacketReceiptStatus.DELIVERED || this.status === PacketReceiptStatus.FAILED) {
+      return false;
+    }
+
+    if (this.timeoutAt !== null && nowSeconds >= this.timeoutAt) {
+      this.status = PacketReceiptStatus.FAILED;
+      this.concludedAt = nowSeconds;
+      this.callbacks.timeout?.(this);
+      return true;
+    }
+
+    return false;
+  }
+
+  cancelTimeoutTimer(): void {
+    this.timeoutTimer?.cancel();
+    this.timeoutTimer = null;
   }
 }

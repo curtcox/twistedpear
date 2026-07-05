@@ -66,6 +66,11 @@ export class Identity {
     return identity.loadPrivateKey(privateKeyBytes) ? identity : null;
   }
 
+  static fromPublicKey(provider: CryptoProvider, publicKeyBytes: Uint8Array): Identity | null {
+    const identity = new Identity(provider, false);
+    return identity.loadPublicKey(publicKeyBytes) ? identity : null;
+  }
+
   static fullHash(provider: CryptoProvider, data: Uint8Array): Uint8Array {
     return provider.sha256(data);
   }

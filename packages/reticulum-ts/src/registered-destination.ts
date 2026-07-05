@@ -7,6 +7,8 @@ import {
 } from "./destination.js";
 import type { PacketInterface } from "./interfaces/interface.js";
 import { Announce } from "./announce.js";
+import { bytesToHex } from "./crypto/bytes.js";
+import { Identity } from "./identity.js";
 import { Link, type LinkCallbacks } from "./link.js";
 import {
   Packet,
@@ -26,6 +28,31 @@ export interface RegisteredDestinationOptions extends DestinationOptions {
   readonly provider: CryptoProvider;
 }
 
+export { DestinationProofStrategy };
+
+export const DestinationAllowPolicy = {
+  ALLOW_NONE: 0x00,
+  ALLOW_ALL: 0x01,
+  ALLOW_LIST: 0x02
+} as const;
+
+export type DestinationAllowPolicyValue = (typeof DestinationAllowPolicy)[keyof typeof DestinationAllowPolicy];
+
+export interface RequestHandler {
+  readonly path: string;
+  readonly pathHash: Uint8Array;
+  readonly responseGenerator: (
+    path: string,
+    data: Uint8Array | null,
+    requestId: Uint8Array,
+    linkId: Uint8Array,
+    remoteIdentity: Identity | null,
+    requestedAt: number
+  ) => Uint8Array | null | Promise<Uint8Array | null>;
+  readonly allow: DestinationAllowPolicyValue;
+  readonly allowedList: ReadonlyArray<Uint8Array>;
+}
+
 export class RegisteredDestination extends Destination {
   readonly cryptoProvider: CryptoProvider;
   private packetCallback: ((data: Uint8Array, packet: Packet) => void) | null = null;
@@ -33,6 +60,7 @@ export class RegisteredDestination extends Destination {
   proofStrategy: DestinationProofStrategyValue = DestinationProofStrategy.PROVE_NONE;
   acceptLinkRequests = true;
   private readonly links: Link[] = [];
+  private readonly requestHandlers = new Map<string, RequestHandler>();
   private transport: LeafTransport | null = null;
 
   get activeLinks(): readonly Link[] {
@@ -63,6 +91,35 @@ export class RegisteredDestination extends Destination {
 
   setAcceptLinkRequests(accept: boolean): void {
     this.acceptLinkRequests = accept;
+  }
+
+  registerRequestHandler(
+    path: string,
+    responseGenerator: RequestHandler["responseGenerator"],
+    allow: DestinationAllowPolicyValue = DestinationAllowPolicy.ALLOW_NONE,
+    allowedList: ReadonlyArray<Uint8Array> = []
+  ): void {
+    if (path.length === 0) {
+      throw new Error("Invalid path specified");
+    }
+
+    const pathHash = Identity.truncatedHash(this.cryptoProvider, new TextEncoder().encode(path));
+    this.requestHandlers.set(bytesToHex(pathHash), {
+      path,
+      pathHash,
+      responseGenerator,
+      allow,
+      allowedList
+    });
+  }
+
+  deregisterRequestHandler(path: string): boolean {
+    const pathHash = Identity.truncatedHash(this.cryptoProvider, new TextEncoder().encode(path));
+    return this.requestHandlers.delete(bytesToHex(pathHash));
+  }
+
+  getRequestHandler(pathHash: Uint8Array): RequestHandler | undefined {
+    return this.requestHandlers.get(bytesToHex(pathHash));
   }
 
   requestLink(callbacks?: LinkCallbacks): Link {
@@ -167,5 +224,3 @@ export class RegisteredDestination extends Destination {
     });
   }
 }
-
-export { DestinationProofStrategy };
