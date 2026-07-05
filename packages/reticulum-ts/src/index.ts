@@ -35,6 +35,18 @@ export type {
 } from "./packet.js";
 export { Announce, ANNOUNCE_RANDOM_HASH_SIZE, ANNOUNCE_SIGNATURE_SIZE } from "./announce.js";
 export type { AnnounceBuildOptions, ParsedAnnounce } from "./announce.js";
+export {
+  HDLC_ESCAPE,
+  HDLC_ESCAPE_MASK,
+  HDLC_FLAG,
+  decodeHdlcFrames,
+  encodeHdlcFrame
+} from "./interfaces/framing.js";
+export type { HdlcDecodeResult, HdlcDecodeState } from "./interfaces/framing.js";
+export { AbstractPacketInterface } from "./interfaces/interface.js";
+export type { PacketInterface, ReticulumInterfaceOptions } from "./interfaces/interface.js";
+export { PipeInterface } from "./interfaces/pipe.js";
+export type { PipeInterfaceOptions } from "./interfaces/pipe.js";
 export type {
   Clock,
   DatagramSocket,

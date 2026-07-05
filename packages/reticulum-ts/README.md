@@ -8,6 +8,8 @@ compatibility with Python RNS 0.9.4.
 - **M0** — monorepo scaffolding, conformance harness, crypto golden vectors
 - **M1** — `CryptoProvider` (node + pure), Token, Identity (keygen, sign/verify,
   encrypt/decrypt, ratchet handling)
+- **M2/M3 in progress** — packet/destination/announce vectors, HDLC framing, Pipe
+  interface
 
 ## Development
 
