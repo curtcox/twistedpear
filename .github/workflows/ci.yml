@@ -41,6 +41,45 @@ jobs:
       - run: npm ci
       - run: npm run test:bare-smoke
 
+  bare-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:bare-runtime
+
+  interfaces:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test -- packages/reticulum-interfaces/test
+
+  bare-interop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build leaf-echo
+      - run: npm run test:bare-interop
+      - if: always()
+        run: docker compose -f conformance/docker/docker-compose.yml down
+
   interop:
     runs-on: ubuntu-latest
     steps:

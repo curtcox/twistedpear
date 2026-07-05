@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "TwistedPear Harness",
+    "slug": "harness-mobile",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "scheme": "twistedpear-harness",
+    "plugins": [
+      "expo-dev-client",
+      "./modules/multicast/app.plugin.js",
+      "./modules/ble-bridge/app.plugin.js",
+      "./modules/usb-serial/app.plugin.js",
+      "./modules/node-service/app.plugin.js"
+    ],
+    "android": {
+      "package": "network.twistedpear.harness"
+    },
+    "ios": {
+      "bundleIdentifier": "network.twistedpear.harness",
+      "supportsTablet": false
+    }
+  }
+}

@@ -6,6 +6,9 @@
     },
     {
       "path": "./packages/lxmf-ts"
+    },
+    {
+      "path": "./packages/reticulum-interfaces"
     }
   ]
 }

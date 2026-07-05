@@ -11,12 +11,17 @@
     "test": "vitest run",
     "test:interop": "INTEROP=1 vitest run packages/reticulum-ts/test/interop.test.ts packages/lxmf-ts/test/interop.test.ts",
     "test:bare-smoke": "npm run build && node conformance/bare-smoke/run.mjs",
+    "test:bare-runtime": "npm run build && bare conformance/bare-runtime/run.mjs",
+    "test:bare-interop": "npm run build && bare conformance/bare-interop/run.mjs",
     "lint": "tsc -b --pretty false",
     "vectors:generate": "python3 conformance/vectors/generate.py"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "bare": "^1.18.6",
+    "bare-dgram": "^1.0.1",
+    "bare-fs": "^4.7.3",
+    "bare-tcp": "^2.5.1",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }

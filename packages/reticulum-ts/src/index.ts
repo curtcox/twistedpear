@@ -77,6 +77,8 @@ export type {
   UdpFactory
 } from "./runtime/runtime.js";
 export { nodeRuntime } from "./runtime/node/runtime.js";
+export { bareRuntime } from "./runtime/bare/runtime.js";
+export type { BareRuntimeOptions } from "./runtime/bare/runtime.js";
 export {
   Link,
   LINK_ECPUB_SIZE,
