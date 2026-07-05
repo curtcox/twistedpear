@@ -34,3 +34,18 @@ services:
       timeout: 2s
       retries: 15
       start_period: 3s
+
+  link-echo:
+    build:
+      context: ../..
+      dockerfile: conformance/docker/Dockerfile
+    working_dir: /conformance/scenarios/python
+    command: python link_echo.py
+    ports:
+      - "4244:4242"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 3s

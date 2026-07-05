@@ -7,8 +7,10 @@ compatibility with Python RNS 0.9.4.
 
 - **M0–M3** — scaffolding, crypto/identity vectors, packets/destinations/announces,
   HDLC framing, Pipe/TCP/UDP interfaces, leaf transport
+- **M2** — capture-diff announce corpus tests, negative-path parser tests, pure-provider
+  smoke job (`npm run test:bare-smoke`)
 - **M4** — links with AES-256-CBC mode signalling, request/response,
-  identification, keepalive, Channel + Buffer
+  identification, keepalive, Channel + Buffer; docker interop with Python link echo
 - **M5** — Resource transfer (advertisement, requests, parts, proof) over links
 - **M6** — transport-node announce rebroadcast, packet/link/proof relay, path requests/replies, announce rate limiting
 - **M3 docker interop** — leaf node over TCP against pinned Python RNS peer (`npm run test:interop`)

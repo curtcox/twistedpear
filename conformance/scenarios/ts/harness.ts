@@ -7,6 +7,7 @@ export const INTEROP_ENABLED = process.env.INTEROP === "1";
 
 export const LEAF_ECHO_PORT = Number.parseInt(process.env.LEAF_ECHO_PORT ?? "4242", 10);
 export const LXMF_ECHO_PORT = Number.parseInt(process.env.LXMF_ECHO_PORT ?? "4243", 10);
+export const LINK_ECHO_PORT = Number.parseInt(process.env.LINK_ECHO_PORT ?? "4244", 10);
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 export const COMPOSE_FILE = join(REPO_ROOT, "conformance/docker/docker-compose.yml");

@@ -30,6 +30,17 @@ jobs:
       - run: npm ci
       - run: npm test -- packages/reticulum-ts/test/golden-vectors.test.ts packages/reticulum-ts/test/interfaces.test.ts packages/lxmf-ts/test/golden-vectors.test.ts
 
+  bare-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run test:bare-smoke
+
   interop:
     runs-on: ubuntu-latest
     steps:

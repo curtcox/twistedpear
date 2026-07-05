@@ -15,6 +15,8 @@ Start a Python peer:
 ```sh
 docker compose -f conformance/docker/docker-compose.yml up --build leaf-echo
 # or
+docker compose -f conformance/docker/docker-compose.yml up --build link-echo
+# or
 docker compose -f conformance/docker/docker-compose.yml up --build lxmf-echo
 ```
 
@@ -24,15 +26,16 @@ Run the matching TypeScript interop tests:
 npm run test:interop
 ```
 
-The tests connect to `127.0.0.1:4242` (leaf echo) and `127.0.0.1:4243` (LXMF echo) by default.
-Override with `LEAF_ECHO_PORT` / `LXMF_ECHO_PORT` if needed.
+The tests connect to `127.0.0.1:4242` (leaf echo), `127.0.0.1:4244` (link echo), and
+`127.0.0.1:4243` (LXMF echo) by default. Override with `LEAF_ECHO_PORT` / `LINK_ECHO_PORT` /
+`LXMF_ECHO_PORT` if needed.
 
 ## Layout
 
 | Path | Purpose |
 |---|---|
 | `config/` | Reticulum configs for Python peers |
-| `python/` | Python scenario drivers (leaf echo, LXMF echo) |
+| `python/` | Python scenario drivers (leaf echo, link echo, LXMF echo) |
 | `ts/harness.ts` | Shared docker/compose helpers for Vitest |
 
 Python peers print `READY <destination_hash_hex>` once their inbound destination has announced.

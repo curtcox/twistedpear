@@ -14,6 +14,12 @@ Regenerate it with:
 npm run vectors:generate
 ```
 
+Run the pure-provider smoke subset (built `dist/`, no Vitest or `node:crypto`):
+
+```sh
+npm run test:bare-smoke
+```
+
 Identity and token vectors require Python RNS 0.9.4 (for example
 `.venv-rns/bin/pip install rns==0.9.4` then
 `.venv-rns/bin/python3 conformance/vectors/generate.py`). The committed

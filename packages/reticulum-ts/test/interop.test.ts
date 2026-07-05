@@ -7,6 +7,7 @@ import {
   DestinationProofStrategy,
   DestinationType,
   Identity,
+  LinkStatus,
   NodeCryptoProvider,
   PacketReceiptStatus,
   Reticulum,
@@ -15,6 +16,7 @@ import {
 } from "../src/index.js";
 import {
   LEAF_ECHO_PORT,
+  LINK_ECHO_PORT,
   interopReady,
   sleep,
   withComposeService
@@ -115,6 +117,53 @@ describe.runIf(interopReady())("docker interop — leaf node over TCP", () => {
 
       await sleep(200);
       expect(receipt!.status).toBe(PacketReceiptStatus.DELIVERED);
+    });
+  }, 120_000);
+});
+
+describe.runIf(interopReady())("docker interop — link over TCP", () => {
+  it("establishes a link with Python and echoes encrypted payloads", async () => {
+    await withComposeService("link-echo", LINK_ECHO_PORT, async () => {
+      const bob = loadIdentity("bob");
+
+      const reticulum = Reticulum.create({ provider, runtime });
+      reticulum.start();
+
+      await reticulum.addTcpClientInterface({
+        name: "python-link-echo",
+        targetHost: "127.0.0.1",
+        targetPort: LINK_ECHO_PORT
+      });
+
+      const bobOut = reticulum.registerDestination({
+        provider,
+        identity: bob,
+        direction: DestinationDirection.OUT,
+        type: DestinationType.SINGLE,
+        appName: "example",
+        aspects: ["link"]
+      });
+
+      await waitForPath(reticulum, bobOut.hash);
+
+      const link = bobOut.requestLink();
+      const deadline = Date.now() + 15_000;
+      while (Date.now() < deadline && link.status !== LinkStatus.ACTIVE) {
+        await sleep(100);
+      }
+
+      expect(link.status).toBe(LinkStatus.ACTIVE);
+
+      const received = new Promise<string>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("link echo timeout")), 10_000);
+        link.callbacks.packet = (data) => {
+          clearTimeout(timer);
+          resolve(new TextDecoder().decode(data));
+        };
+      });
+
+      await link.send(new TextEncoder().encode("link ping"));
+      await expect(received).resolves.toBe("link ping");
     });
   }, 120_000);
 });
