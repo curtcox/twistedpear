@@ -2,15 +2,24 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  Destination,
+  DestinationDirection,
+  DestinationType,
   Identity,
   NodeCryptoProvider,
+  Packet,
+  PacketContextFlagValue,
+  PacketHeaderTypeValue,
+  PacketTypeValue,
   PureCryptoProvider,
   Token,
+  TransportTypeValue,
   bytesToHex,
   hexToBytes,
   hashBytes,
   rnsHkdf,
-  type CryptoProvider
+  type CryptoProvider,
+  type DestinationTypeValue
 } from "../src/index.js";
 
 interface GoldenCryptoVectors {
@@ -88,11 +97,43 @@ interface GoldenIdentityVectors {
   }>;
 }
 
+interface GoldenPacketVectors {
+  readonly upstream: {
+    readonly reticulumVersion: string;
+  };
+  readonly destinations: ReadonlyArray<{
+    readonly name: string;
+    readonly identityHashHex: string;
+    readonly appName: string;
+    readonly aspects: ReadonlyArray<string>;
+    readonly expandedName: string;
+    readonly nameHashHex: string;
+    readonly destinationHashHex: string;
+  }>;
+  readonly packets: ReadonlyArray<{
+    readonly name: string;
+    readonly headerType: PacketHeaderTypeValue;
+    readonly contextFlag: PacketContextFlagValue;
+    readonly transportType: TransportTypeValue;
+    readonly destinationType: DestinationTypeValue;
+    readonly packetType: PacketTypeValue;
+    readonly hops: number;
+    readonly transportIdHex?: string;
+    readonly destinationHashHex: string;
+    readonly context: number;
+    readonly dataHex: string;
+    readonly rawHex: string;
+    readonly hashablePartHex: string;
+    readonly packetHashHex: string;
+  }>;
+}
+
 const vectorsRoot = resolve(import.meta.dirname, "../../../conformance/vectors");
 const cryptoVectors = JSON.parse(readFileSync(resolve(vectorsRoot, "crypto.json"), "utf8")) as GoldenCryptoVectors;
 const identityVectors = JSON.parse(
   readFileSync(resolve(vectorsRoot, "identity.json"), "utf8")
 ) as GoldenIdentityVectors;
+const packetVectors = JSON.parse(readFileSync(resolve(vectorsRoot, "packet.json"), "utf8")) as GoldenPacketVectors;
 
 const providers: ReadonlyArray<CryptoProvider> = [new NodeCryptoProvider(), new PureCryptoProvider()];
 
@@ -256,3 +297,67 @@ describe("provider cross-check", () => {
     expect(alice.identityHashHex).toBeTruthy();
   });
 });
+
+describe.each(providers.map((provider) => [provider.name, provider] as const))(
+  "golden packet and destination vectors (%s provider)",
+  (_name, provider) => {
+    it("records the pinned Python reference version", () => {
+      expect(packetVectors.upstream.reticulumVersion).toBe("0.9.4");
+    });
+
+    it.each(packetVectors.destinations)("derives destination hash for $name", (vector) => {
+      const identityHash = hexToBytes(vector.identityHashHex);
+      expect(Destination.expandName(identityHash, vector.appName, ...vector.aspects)).toBe(vector.expandedName);
+      expect(bytesToHex(Destination.nameHash(provider, vector.appName, ...vector.aspects))).toBe(
+        vector.nameHashHex
+      );
+      expect(bytesToHex(Destination.hash(provider, identityHash, vector.appName, ...vector.aspects))).toBe(
+        vector.destinationHashHex
+      );
+
+      const destination = new Destination(provider, {
+        identity: identityHash,
+        direction: DestinationDirection.OUT,
+        type: DestinationType.SINGLE,
+        appName: vector.appName,
+        aspects: vector.aspects
+      });
+      expect(destination.name).toBe(vector.expandedName);
+      expect(bytesToHex(destination.nameHash)).toBe(vector.nameHashHex);
+      expect(destination.hexhash).toBe(vector.destinationHashHex);
+    });
+
+    it.each(packetVectors.packets)("encodes, decodes and hashes packet vector $name", (vector) => {
+      const packet = Packet.fromFields(provider, {
+        headerType: vector.headerType,
+        contextFlag: vector.contextFlag,
+        transportType: vector.transportType,
+        destinationType: vector.destinationType,
+        packetType: vector.packetType,
+        hops: vector.hops,
+        transportId: vector.transportIdHex === undefined ? undefined : hexToBytes(vector.transportIdHex),
+        destinationHash: hexToBytes(vector.destinationHashHex),
+        context: vector.context,
+        data: hexToBytes(vector.dataHex)
+      });
+
+      expect(bytesToHex(packet.raw)).toBe(vector.rawHex);
+      expect(bytesToHex(packet.hashablePart())).toBe(vector.hashablePartHex);
+      expect(bytesToHex(packet.hash())).toBe(vector.packetHashHex);
+
+      const decoded = Packet.decode(provider, hexToBytes(vector.rawHex));
+      expect(decoded).not.toBeNull();
+      expect(decoded!.headerType).toBe(vector.headerType);
+      expect(decoded!.contextFlag).toBe(vector.contextFlag);
+      expect(decoded!.transportType).toBe(vector.transportType);
+      expect(decoded!.destinationType).toBe(vector.destinationType);
+      expect(decoded!.packetType).toBe(vector.packetType);
+      expect(decoded!.hops).toBe(vector.hops);
+      expect(bytesToHex(decoded!.destinationHash)).toBe(vector.destinationHashHex);
+      expect(decoded!.transportId === null ? undefined : bytesToHex(decoded!.transportId)).toBe(vector.transportIdHex);
+      expect(decoded!.context).toBe(vector.context);
+      expect(bytesToHex(decoded!.data)).toBe(vector.dataHex);
+      expect(bytesToHex(decoded!.hash())).toBe(vector.packetHashHex);
+    });
+  }
+);

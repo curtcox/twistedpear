@@ -78,6 +78,113 @@ def base_crypto_corpus() -> dict:
     }
 
 
+def base_packet_corpus() -> dict:
+    identity_hash = bytes.fromhex("14ae36c9c3feac7be58c027babc87580")
+
+    def destination_entry(name: str, app_name: str, aspects: list[str]) -> dict:
+        expanded_without_identity = ".".join([app_name] + aspects)
+        expanded = expanded_without_identity + "." + identity_hash.hex()
+        name_hash = hashlib.sha256(expanded_without_identity.encode("utf-8")).digest()[:10]
+        destination_hash = hashlib.sha256(name_hash + identity_hash).digest()[:16]
+        return {
+            "name": name,
+            "identityHashHex": identity_hash.hex(),
+            "appName": app_name,
+            "aspects": aspects,
+            "expandedName": expanded,
+            "nameHashHex": name_hash.hex(),
+            "destinationHashHex": destination_hash.hex(),
+        }
+
+    def packet_entry(
+        name: str,
+        header_type: int,
+        context_flag: int,
+        transport_type: int,
+        destination_type: int,
+        packet_type: int,
+        hops: int,
+        destination_hash: bytes,
+        context: int,
+        data: bytes,
+        transport_id: bytes | None = None,
+    ) -> dict:
+        flags = (
+            (header_type << 6)
+            | (context_flag << 5)
+            | (transport_type << 4)
+            | (destination_type << 2)
+            | packet_type
+        )
+        if header_type == 1:
+            if transport_id is None:
+                raise ValueError("HEADER_2 packet vectors require transport_id")
+            raw = bytes([flags, hops]) + transport_id + destination_hash + bytes([context]) + data
+            hashable = bytes([raw[0] & 0x0F]) + raw[18:]
+        else:
+            raw = bytes([flags, hops]) + destination_hash + bytes([context]) + data
+            hashable = bytes([raw[0] & 0x0F]) + raw[2:]
+
+        entry = {
+            "name": name,
+            "headerType": header_type,
+            "contextFlag": context_flag,
+            "transportType": transport_type,
+            "destinationType": destination_type,
+            "packetType": packet_type,
+            "hops": hops,
+            "destinationHashHex": destination_hash.hex(),
+            "context": context,
+            "dataHex": data.hex(),
+            "rawHex": raw.hex(),
+            "hashablePartHex": hashable.hex(),
+            "packetHashHex": hashlib.sha256(hashable).hexdigest(),
+        }
+        if transport_id is not None:
+            entry["transportIdHex"] = transport_id.hex()
+        return entry
+
+    destination_hash = bytes.fromhex("086b1879b803be27667b9f1e6b7d0c43")
+
+    return {
+        "upstream": {
+            "reticulumVersion": "0.9.4",
+            "generatedBy": "conformance/vectors/generate.py",
+        },
+        "destinations": [
+            destination_entry("single-example-chat", "example", ["chat"]),
+            destination_entry("single-example-announce", "example", ["announce"]),
+        ],
+        "packets": [
+            packet_entry(
+                "header1-group-data-request",
+                header_type=0,
+                context_flag=0,
+                transport_type=0,
+                destination_type=1,
+                packet_type=0,
+                hops=2,
+                destination_hash=destination_hash,
+                context=9,
+                data=b"hello packet",
+            ),
+            packet_entry(
+                "header2-announce-path-response",
+                header_type=1,
+                context_flag=0,
+                transport_type=1,
+                destination_type=0,
+                packet_type=1,
+                hops=3,
+                transport_id=bytes.fromhex("00112233445566778899aabbccddeeff"),
+                destination_hash=destination_hash,
+                context=11,
+                data=b"announce",
+            ),
+        ],
+    }
+
+
 def rns_identity_corpus() -> dict:
     import RNS
     from RNS.Cryptography import Token, X25519PrivateKey
@@ -226,6 +333,7 @@ def rns_identity_corpus() -> dict:
 
 def main() -> None:
     (ROOT / "crypto.json").write_text(json.dumps(base_crypto_corpus(), indent=2) + "\n")
+    (ROOT / "packet.json").write_text(json.dumps(base_packet_corpus(), indent=2) + "\n")
 
     try:
         identity_corpus = rns_identity_corpus()

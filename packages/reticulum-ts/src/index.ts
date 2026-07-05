@@ -15,6 +15,23 @@ export {
   RATCHET_EXPIRY_SECONDS
 } from "./identity.js";
 export type { DecryptOptions, DecryptResult, EncryptOptions, RatchetRecord } from "./identity.js";
+export { Destination, DestinationDirection, DestinationType } from "./destination.js";
+export type { DestinationDirectionValue, DestinationOptions, DestinationTypeValue } from "./destination.js";
+export {
+  Packet,
+  PacketContext,
+  PacketContextFlag,
+  PacketHeaderType,
+  PacketType,
+  TransportType
+} from "./packet.js";
+export type {
+  PacketContextFlagValue,
+  PacketFields,
+  PacketHeaderTypeValue,
+  PacketTypeValue,
+  TransportTypeValue
+} from "./packet.js";
 export type {
   Clock,
   DatagramSocket,

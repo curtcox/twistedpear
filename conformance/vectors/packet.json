@@ -1,0 +1,63 @@
+{
+  "upstream": {
+    "reticulumVersion": "0.9.4",
+    "generatedBy": "conformance/vectors/generate.py"
+  },
+  "destinations": [
+    {
+      "name": "single-example-chat",
+      "identityHashHex": "14ae36c9c3feac7be58c027babc87580",
+      "appName": "example",
+      "aspects": [
+        "chat"
+      ],
+      "expandedName": "example.chat.14ae36c9c3feac7be58c027babc87580",
+      "nameHashHex": "3f25bdabca5283cf3349",
+      "destinationHashHex": "922a5ea5cf83a56dd93aca5e435d58dd"
+    },
+    {
+      "name": "single-example-announce",
+      "identityHashHex": "14ae36c9c3feac7be58c027babc87580",
+      "appName": "example",
+      "aspects": [
+        "announce"
+      ],
+      "expandedName": "example.announce.14ae36c9c3feac7be58c027babc87580",
+      "nameHashHex": "5ffb8cc6571b34ebef3c",
+      "destinationHashHex": "86f004d27cea4234b10624259d44386f"
+    }
+  ],
+  "packets": [
+    {
+      "name": "header1-group-data-request",
+      "headerType": 0,
+      "contextFlag": 0,
+      "transportType": 0,
+      "destinationType": 1,
+      "packetType": 0,
+      "hops": 2,
+      "destinationHashHex": "086b1879b803be27667b9f1e6b7d0c43",
+      "context": 9,
+      "dataHex": "68656c6c6f207061636b6574",
+      "rawHex": "0402086b1879b803be27667b9f1e6b7d0c430968656c6c6f207061636b6574",
+      "hashablePartHex": "04086b1879b803be27667b9f1e6b7d0c430968656c6c6f207061636b6574",
+      "packetHashHex": "2353f4a10b216e53b74d011010d86e70dcd056a81a0ce3eae62e9424cdad134f"
+    },
+    {
+      "name": "header2-announce-path-response",
+      "headerType": 1,
+      "contextFlag": 0,
+      "transportType": 1,
+      "destinationType": 0,
+      "packetType": 1,
+      "hops": 3,
+      "destinationHashHex": "086b1879b803be27667b9f1e6b7d0c43",
+      "context": 11,
+      "dataHex": "616e6e6f756e6365",
+      "rawHex": "510300112233445566778899aabbccddeeff086b1879b803be27667b9f1e6b7d0c430b616e6e6f756e6365",
+      "hashablePartHex": "01086b1879b803be27667b9f1e6b7d0c430b616e6e6f756e6365",
+      "packetHashHex": "1500ea9d54fccb677e4f4ad58b818e31e54840ec8779622a3ac4839a5ba4f3ad",
+      "transportIdHex": "00112233445566778899aabbccddeeff"
+    }
+  ]
+}
