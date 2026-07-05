@@ -56,6 +56,7 @@ export interface RequestHandler {
 export class RegisteredDestination extends Destination {
   readonly cryptoProvider: CryptoProvider;
   private packetCallback: ((data: Uint8Array, packet: Packet) => void) | null = null;
+  private linkEstablishedCallback: ((link: Link) => void) | null = null;
   private proofRequestedCallback: ((packet: Packet) => boolean) | null = null;
   proofStrategy: DestinationProofStrategyValue = DestinationProofStrategy.PROVE_NONE;
   acceptLinkRequests = true;
@@ -79,6 +80,10 @@ export class RegisteredDestination extends Destination {
 
   setPacketCallback(callback: (data: Uint8Array, packet: Packet) => void): void {
     this.packetCallback = callback;
+  }
+
+  setLinkEstablishedCallback(callback: (link: Link) => void): void {
+    this.linkEstablishedCallback = callback;
   }
 
   setProofRequestedCallback(callback: (packet: Packet) => boolean): void {
@@ -141,6 +146,15 @@ export class RegisteredDestination extends Destination {
 
     const link = Link.validateRequest(this, this.transport!, packet, iface);
     if (link !== null) {
+      if (this.linkEstablishedCallback !== null) {
+        const callback = this.linkEstablishedCallback;
+        const existing = link.callbacks.linkEstablished;
+        link.callbacks.linkEstablished = (establishedLink) => {
+          existing?.(establishedLink);
+          callback(establishedLink);
+        };
+      }
+
       this.links.push(link);
     }
   }

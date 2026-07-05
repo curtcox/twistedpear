@@ -1,0 +1,24 @@
+# lxmf-ts
+
+TypeScript LXMF client for Reticulum, targeting interoperability with Python LXMF 0.7.0
+and clients such as Sideband, MeshChat, and `lxmd`.
+
+## Status (Phase 1)
+
+- **M7 (in progress)** — LXMessage encode/decode/sign/verify, opportunistic and direct
+  delivery via `LXMFRouter`, propagation-node client sync (list/download/delete)
+
+## Development
+
+```sh
+npm ci
+npm test
+npm run build
+```
+
+Golden vectors live in `conformance/vectors/lxmf.json`.
+
+## Reference
+
+Implementation mirrors Python LXMF at pinned version 0.7.0 — see
+`conformance/UPSTREAM.md`.

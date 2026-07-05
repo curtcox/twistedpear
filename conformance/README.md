@@ -5,7 +5,8 @@ Phase 1 starts with the harness, then grows protocol coverage behind it.
 ## Golden vectors
 
 The committed M0 corpus lives in `conformance/vectors/crypto.json` and is consumed by the
-`reticulum-ts` Vitest suite.
+`reticulum-ts` Vitest suite. LXMF message vectors live in `conformance/vectors/lxmf.json`
+and are consumed by the `lxmf-ts` Vitest suite.
 
 Regenerate it with:
 

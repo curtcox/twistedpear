@@ -3,6 +3,9 @@
   "references": [
     {
       "path": "./packages/reticulum-ts"
+    },
+    {
+      "path": "./packages/lxmf-ts"
     }
   ]
 }
