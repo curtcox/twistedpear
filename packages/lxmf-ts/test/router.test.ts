@@ -170,6 +170,34 @@ describe("LXMFRouter delivery", () => {
     expect(result.state).toBe(PropagationTransferState.COMPLETE);
     await expect(received).resolves.toBe("Propagated hello");
   });
+
+  it("discovers propagation nodes from lxmf.propagation announces", async () => {
+    const nodeIdentity = new Identity(provider);
+    const alice = loadIdentity(ALICE_KEY);
+
+    const aliceReticulum = Reticulum.create({ provider, runtime });
+    const nodeReticulum = Reticulum.create({ provider, runtime });
+    aliceReticulum.start();
+    nodeReticulum.start();
+
+    const [alicePipe, nodePipe] = PipeInterface.pair(provider);
+    aliceReticulum.registerInterface(alicePipe);
+    nodeReticulum.registerInterface(nodePipe);
+
+    const aliceRouter = new LXMFRouter({ reticulum: aliceReticulum, provider });
+    aliceRouter.registerDeliveryIdentity(alice);
+    const nodePropagation = createPropagationDestination(provider, nodeReticulum, nodeIdentity);
+
+    const discovered = new Promise<string>((resolve) => {
+      aliceRouter.watchPropagationNodes((destinationHash) => {
+        resolve(Buffer.from(destinationHash).toString("hex"));
+      });
+    });
+
+    await nodePropagation.announce();
+    await expect(discovered).resolves.toBe(nodePropagation.hexhash);
+    expect(Buffer.from(aliceRouter.outboundPropagationNodeHash!).toString("hex")).toBe(nodePropagation.hexhash);
+  });
 });
 
 describe("PropagationClient sync", () => {

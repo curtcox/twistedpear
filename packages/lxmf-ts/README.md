@@ -5,9 +5,9 @@ and clients such as Sideband, MeshChat, and `lxmd`.
 
 ## Status (Phase 1)
 
-- **M7 (in progress)** — LXMessage encode/decode/sign/verify, opportunistic, direct, and
-  propagated delivery via `LXMFRouter`, propagation-node client sync (list/download/delete),
-  propagation-node ingress for tests
+- **M7** — LXMessage encode/decode/sign/verify, opportunistic, direct, and propagated
+  delivery via `LXMFRouter`, propagation-node client sync (list/download/delete),
+  propagation-node ingress for tests; docker interop with Python LXMF echo peer
 
 ## Development
 

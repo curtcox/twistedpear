@@ -4,3 +4,33 @@ services:
       context: ../..
       dockerfile: conformance/docker/Dockerfile
     command: python -c "import RNS; print('RNS reference peer placeholder ready')"
+
+  leaf-echo:
+    build:
+      context: ../..
+      dockerfile: conformance/docker/Dockerfile
+    working_dir: /conformance/scenarios/python
+    command: python leaf_echo.py
+    ports:
+      - "4242:4242"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 3s
+
+  lxmf-echo:
+    build:
+      context: ../..
+      dockerfile: conformance/docker/Dockerfile
+    working_dir: /conformance/scenarios/python
+    command: python lxmf_echo.py
+    ports:
+      - "4243:4242"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 3s

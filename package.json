@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc -b",
     "test": "vitest run",
+    "test:interop": "INTEROP=1 vitest run packages/reticulum-ts/test/interop.test.ts packages/lxmf-ts/test/interop.test.ts",
     "lint": "tsc -b --pretty false",
     "vectors:generate": "python3 conformance/vectors/generate.py"
   },

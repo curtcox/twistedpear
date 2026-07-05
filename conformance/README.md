@@ -36,4 +36,5 @@ docker compose -f conformance/docker/docker-compose.yml up reference
 Live interop scenarios are added per milestone under `conformance/scenarios`.
 
 M3 (leaf node over TCP/UDP/Pipe) is exercised locally via `packages/reticulum-ts/test/transport.test.ts`
-(pipe + TCP loopback). Dockerized Python peer scenarios land in `conformance/scenarios` next.
+(pipe + TCP loopback). Dockerized Python peer scenarios live in `conformance/scenarios/` — run
+with `npm run test:interop` (requires Docker).
