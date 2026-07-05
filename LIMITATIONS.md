@@ -1,0 +1,112 @@
+# Limitations, Compromises, and Restrictions
+
+Companion to [PLAN.md](PLAN.md). Reticulum compatibility is the only hard constraint;
+everything below is a known cost of the chosen design or of the platforms involved.
+
+## 1. Reticulum implementation
+
+- **No production JS implementation exists.** The reference RNS is Python. The only JS
+  implementation, `rns.js` (v0.0.4), is self-described as extremely limited: no transport-node
+  routing, no ratchets, no Resources, no link heartbeats, no UDP interface, no LXMF signature
+  validation, no rate limiting. We are committing to building and maintaining
+  `reticulum-ts` — a substantial, ongoing engineering effort, not an integration task.
+- **Wire-format chase.** Reticulum evolves (ratchets were added relatively recently). Every
+  protocol change in the reference must be re-implemented and re-verified; until parity is
+  reached, some network features may silently not work with newer Python peers.
+- **Crypto parity risk.** We must match X25519/Ed25519/AES-256-CBC/HMAC-SHA256 semantics
+  byte-for-byte. Any deviation is a security bug, not just an interop bug. JS crypto is also
+  slower than the C-backed Python primitives; older phones may see slow link setup and
+  hashing (mitigated by libsodium native bindings in Bare, unverified until Phase 0).
+
+## 2. Expo Go — sacrificed
+
+- The system requires native modules (bare-kit worklet, BLE central+peripheral, IPv6
+  multicast, foreground service, USB serial). **Expo Go cannot load custom native modules,
+  so the host app will not run in Expo Go.**
+- Compromise: keep the Expo toolchain but use **development builds** (`expo-dev-client`)
+  and config plugins. Developers get most of the Expo DX; they just install a custom dev
+  client instead of Expo Go. *Mini-app* developers are unaffected (pure JS against our SDK).
+
+## 3. Bluetooth
+
+- **Reticulum has no phone-to-phone Bluetooth interface today.** Official BLE support is
+  only for connecting to RNode LoRa hardware. Our phone-to-phone BLE interface is a custom
+  interface we define. Reticulum explicitly supports custom interfaces (≥5 bps, 500-byte
+  MTU), so it is protocol-legal — but until other implementations adopt our spec, BLE
+  meshing only works host-app-to-host-app.
+- **BLE is slow.** Practical GATT throughput is tens of kbps at best; fine for messaging
+  and announces, marginal for app installs (a 1 MB mini-app can take minutes). MTU ~185–512
+  bytes forces fragmentation/reassembly below Reticulum's 500-byte MTU.
+- **No Bluetooth Classic on iOS** (no SPP for arbitrary apps); BLE only. Android OEM BLE
+  stacks vary wildly; peripheral mode is unsupported on some older/cheap devices.
+- Simultaneous central+peripheral roles, background advertising limits (iOS rotates/strips
+  advertisement data in background), and pairing UX are all sources of flakiness.
+
+## 4. iOS restrictions (most constrained platform)
+
+- **Background execution:** iOS will suspend the app; there is no equivalent of Android's
+  foreground service for a general network daemon. An iPhone cannot be a reliable
+  always-on Reticulum transport node. Compromise: opportunistic connectivity (foreground,
+  brief background windows, BLE background modes) and reliance on desktop/Android peers
+  for routing.
+- **Multicast entitlement:** AutoInterface peer discovery uses IPv6 multicast, which
+  requires `com.apple.developer.networking.multicast` — granted by Apple on application,
+  with lead time and no guarantee. Fallback: LAN discovery via Bonjour + direct UDP,
+  or manual/TCP peers.
+- **Downloaded code (App Review 3.3.2):** mini-apps are downloaded JS. Apple permits
+  downloaded JS executed by Apple frameworks when it doesn't change the app's core
+  purpose — an app *store inside an app* is exactly the gray zone Apple scrutinizes.
+  Compromises: declarative UI whitelist (host renders, mini-apps don't ship arbitrary UI
+  code paths), curated capability model, and acceptance that **the iOS build may need a
+  reduced distribution feature set** or TestFlight/enterprise/EU-alternative-distribution
+  channels.
+- **No sideloading escape hatch** outside the EU. If Apple rejects the concept, iOS becomes
+  a client (messaging, using apps already vetted) rather than a full open platform.
+
+## 5. Android restrictions
+
+- Persistent mesh participation requires a **foreground service** with a permanent
+  notification; Doze and OEM battery managers can still throttle networking. Battery cost
+  of always-on BLE + multicast is real and must be budgeted/opt-in.
+- **Google Play policy** restricts apps that download executable code. Interpreted JS in a
+  sandbox is a recognized carve-out, but a P2P app store pushes the boundary. Escape hatch
+  (which iOS lacks): distribute the host APK directly / via F-Droid — itself fitting the
+  project's P2P ethos.
+- Wi-Fi Direct / Aware are inconsistent across OEMs; plan treats them as future
+  opportunistic interfaces, not committed ones. LAN AutoInterface + BLE are the committed
+  local transports.
+
+## 6. Pears stack scope
+
+- **Hyperswarm/Hyperdrive require IP connectivity** (UDX over UDP, DHT access). They do not
+  run over Reticulum. Off-grid (LoRa/BLE-only) distribution therefore falls back to
+  Reticulum Resource transfer, which is orders of magnitude slower — a mini-app must be
+  assumed installable at LoRa speeds only if it is very small. Compromise: size budgets for
+  bundles, delta updates, and LAN/desktop seeding as the primary bulk path.
+- Holepunch's DHT bootstrap nodes are an external dependency; fully-sovereign deployments
+  need self-hosted bootstrap or LAN-only swarm mode.
+- The Pears components are the most replaceable part of the design (per the constraint
+  hierarchy): if bare-kit or Hyperdrive proves unworkable on mobile, fallbacks are Node
+  (nodejs-mobile) + plain RNS Resources for distribution.
+
+## 7. Mini-app model
+
+- Mini-apps are **not native apps**: no arbitrary native modules, no background autonomy,
+  capabilities only via the host SDK. Some app categories (games needing native perf,
+  apps needing exotic hardware) won't fit; the tiered-APK channel was deliberately deferred.
+- JS sandboxing inside one runtime is a real attack surface. Until the Phase 7 security
+  review, mini-app installation should be treated as trusting the developer key.
+- No central registry means **no central moderation**: discovery is by announce/registry
+  subscription, and malicious-app defense rests on signatures, capability grants, and
+  user/community trust — an explicit design stance, but a restriction worth stating.
+
+## 8. General
+
+- **Anonymity/privacy caveats:** BLE MAC addresses, WiFi multicast presence, and always-on
+  radios are locally observable even though Reticulum payloads are encrypted and packets
+  carry no source address. Physical-layer observability is out of scope for the stack.
+- **Time-to-usefulness:** a mesh platform is only as useful as its peer density; early
+  deployments depend on desktop transport nodes and TCP testnet links, not pure phone
+  meshes.
+- Amateur-radio carriers (AX.25/KISS) carry legal restrictions (no encryption on ham bands
+  in most jurisdictions) — supported by Reticulum but out of scope for this app's defaults.
