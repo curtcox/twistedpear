@@ -106,7 +106,7 @@ conformance/
 fallback (LIMITATIONS §Fallbacks).
 
 ### Phase 1 — `reticulum-ts`: a real Reticulum implementation in TypeScript
-The single biggest workstream. `rns.js` (v0.0.4) is a learning project missing: transport
+Detailed plan: [PHASE1.md](PHASE1.md). The single biggest workstream. `rns.js` (v0.0.4) is a learning project missing: transport
 node routing, ratchets, Resources, link heartbeats, UDP, signature validation, rate
 limiting. Plan:
 - Fork rns.js for its wire-format bootstrapping; rewrite into typed modules.
