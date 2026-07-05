@@ -32,6 +32,8 @@ export type {
   PacketTypeValue,
   TransportTypeValue
 } from "./packet.js";
+export { Announce, ANNOUNCE_RANDOM_HASH_SIZE, ANNOUNCE_SIGNATURE_SIZE } from "./announce.js";
+export type { AnnounceBuildOptions, ParsedAnnounce } from "./announce.js";
 export type {
   Clock,
   DatagramSocket,

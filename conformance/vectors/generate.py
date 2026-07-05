@@ -185,6 +185,56 @@ def base_packet_corpus() -> dict:
     }
 
 
+def rns_packet_corpus() -> dict:
+    import RNS
+
+    x25519_a = bytes(range(1, 33))
+    ed_a = bytes(range(33, 65))
+    alice = RNS.Identity.from_bytes(x25519_a + ed_a)
+    name_hash = hashlib.sha256(b"example.announce").digest()[:10]
+    destination_hash = hashlib.sha256(name_hash + alice.hash).digest()[:16]
+    random_hash = bytes.fromhex("0102030405060708090a")
+    app_data = b"announce app data"
+    ratchet_private = bytes([0x22] * 32)
+    ratchet_public = RNS.Identity._ratchet_public_bytes(ratchet_private)
+
+    def announce_entry(name: str, ratchet: bytes = b"") -> dict:
+        signed_data = destination_hash + alice.get_public_key() + name_hash + random_hash + ratchet + app_data
+        signature = alice.sign(signed_data)
+        data = alice.get_public_key() + name_hash + random_hash + ratchet + signature + app_data
+        flags = (
+            (RNS.Packet.HEADER_1 << 6)
+            | ((RNS.Packet.FLAG_SET if ratchet else RNS.Packet.FLAG_UNSET) << 5)
+            | (0 << 4)
+            | (RNS.Destination.SINGLE << 2)
+            | RNS.Packet.ANNOUNCE
+        )
+        raw = bytes([flags, 0]) + destination_hash + bytes([RNS.Packet.NONE]) + data
+        return {
+            "name": name,
+            "destinationHashHex": destination_hash.hex(),
+            "nameHashHex": name_hash.hex(),
+            "publicKeyHex": alice.get_public_key().hex(),
+            "randomHashHex": random_hash.hex(),
+            "ratchetPublicKeyHex": ratchet.hex() if ratchet else None,
+            "appDataHex": app_data.hex(),
+            "signatureHex": signature.hex(),
+            "dataHex": data.hex(),
+            "rawHex": raw.hex(),
+        }
+
+    corpus = base_packet_corpus()
+    corpus["upstream"] = {
+        "reticulumVersion": RNS.__version__ if hasattr(RNS, "__version__") else "0.9.4",
+        "generatedBy": "conformance/vectors/generate.py (RNS)",
+    }
+    corpus["announces"] = [
+        announce_entry("alice-example-announce-app-data"),
+        announce_entry("alice-example-announce-ratchet", ratchet_public),
+    ]
+    return corpus
+
+
 def rns_identity_corpus() -> dict:
     import RNS
     from RNS.Cryptography import Token, X25519PrivateKey
@@ -333,15 +383,16 @@ def rns_identity_corpus() -> dict:
 
 def main() -> None:
     (ROOT / "crypto.json").write_text(json.dumps(base_crypto_corpus(), indent=2) + "\n")
-    (ROOT / "packet.json").write_text(json.dumps(base_packet_corpus(), indent=2) + "\n")
 
     try:
         identity_corpus = rns_identity_corpus()
     except ImportError:
+        (ROOT / "packet.json").write_text(json.dumps(base_packet_corpus(), indent=2) + "\n")
         print("RNS not installed; skipping identity.json generation")
         return
 
     (ROOT / "identity.json").write_text(json.dumps(identity_corpus, indent=2) + "\n")
+    (ROOT / "packet.json").write_text(json.dumps(rns_packet_corpus(), indent=2) + "\n")
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ import {
   Destination,
   DestinationDirection,
   DestinationType,
+  Announce,
   Identity,
   NodeCryptoProvider,
   Packet,
@@ -125,6 +126,18 @@ interface GoldenPacketVectors {
     readonly rawHex: string;
     readonly hashablePartHex: string;
     readonly packetHashHex: string;
+  }>;
+  readonly announces?: ReadonlyArray<{
+    readonly name: string;
+    readonly destinationHashHex: string;
+    readonly nameHashHex: string;
+    readonly publicKeyHex: string;
+    readonly randomHashHex: string;
+    readonly ratchetPublicKeyHex: string | null;
+    readonly appDataHex: string;
+    readonly signatureHex: string;
+    readonly dataHex: string;
+    readonly rawHex: string;
   }>;
 }
 
@@ -358,6 +371,58 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
       expect(decoded!.context).toBe(vector.context);
       expect(bytesToHex(decoded!.data)).toBe(vector.dataHex);
       expect(bytesToHex(decoded!.hash())).toBe(vector.packetHashHex);
+    });
+
+    it.each(packetVectors.announces ?? [])("builds and validates announce vector $name", (vector) => {
+      const alice = identityByName("alice");
+      const identity = Identity.fromBytes(provider, hexToBytes(alice.privateKeyHex));
+      expect(identity).not.toBeNull();
+
+      const destination = new Destination(provider, {
+        identity: identity!,
+        direction: DestinationDirection.IN,
+        type: DestinationType.SINGLE,
+        appName: "example",
+        aspects: ["announce"]
+      });
+
+      const packet = Announce.buildPacket(provider, destination, {
+        randomHash: hexToBytes(vector.randomHashHex),
+        appData: hexToBytes(vector.appDataHex),
+        ...(vector.ratchetPublicKeyHex === null
+          ? {}
+          : { ratchetPublicKey: hexToBytes(vector.ratchetPublicKeyHex) })
+      });
+
+      expect(bytesToHex(packet.raw)).toBe(vector.rawHex);
+      expect(bytesToHex(packet.data)).toBe(vector.dataHex);
+      expect(Announce.validate(provider, packet)).toBe(true);
+
+      const parsed = Announce.parse(packet);
+      expect(parsed).not.toBeNull();
+      expect(bytesToHex(parsed!.destinationHash)).toBe(vector.destinationHashHex);
+      expect(bytesToHex(parsed!.publicKey)).toBe(vector.publicKeyHex);
+      expect(bytesToHex(parsed!.nameHash)).toBe(vector.nameHashHex);
+      expect(bytesToHex(parsed!.randomHash)).toBe(vector.randomHashHex);
+      expect(parsed!.ratchetPublicKey === null ? null : bytesToHex(parsed!.ratchetPublicKey)).toBe(
+        vector.ratchetPublicKeyHex
+      );
+      expect(bytesToHex(parsed!.signature)).toBe(vector.signatureHex);
+      expect(parsed!.appData === null ? "" : bytesToHex(parsed!.appData)).toBe(vector.appDataHex);
+
+      const decoded = Packet.decode(provider, hexToBytes(vector.rawHex));
+      expect(decoded).not.toBeNull();
+      expect(Announce.validate(provider, decoded!)).toBe(true);
+    });
+
+    it("rejects announces with tampered signed data", () => {
+      const vector = packetVectors.announces?.[0];
+      expect(vector).toBeDefined();
+      const raw = hexToBytes(vector!.rawHex);
+      raw[raw.length - 1] = raw[raw.length - 1]! ^ 0x01;
+      const decoded = Packet.decode(provider, raw);
+      expect(decoded).not.toBeNull();
+      expect(Announce.validate(provider, decoded!)).toBe(false);
     });
   }
 );
