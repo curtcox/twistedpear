@@ -1,39 +1,39 @@
 #!/usr/bin/env node
 /**
  * Desktop Bare interop runner (Phase 2 M1).
- * Runs the TCP leaf-echo interop scenario using the Bare runtime adapter.
+ * Runs leaf-echo and link-echo scenarios using the Bare runtime adapter.
  */
 
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   DestinationDirection,
   DestinationProofStrategy,
   DestinationType,
   Identity,
-  PacketReceiptStatus,
+  LinkStatus,
   PureCryptoProvider,
   Reticulum,
   bareRuntime,
   hexToBytes
 } from "../../packages/reticulum-ts/dist/index.js";
+import {
+  INTEROP_HOST,
+  LEAF_ECHO_PORT,
+  LINK_ECHO_PORT,
+  PacketReceiptStatus,
+  bytesToAscii,
+  expectReceipt,
+  loadIdentityVectors,
+  repoRoot,
+  sleep,
+  waitForPath
+} from "../scenarios/bare/helpers.mjs";
 
-const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const provider = new PureCryptoProvider();
-const runtime = bareRuntime({ storePath: join(repoRoot, ".bare-interop-store") });
+const runtime = bareRuntime({ storePath: `${repoRoot}/.bare-interop-store` });
 
-const LEAF_ECHO_PORT = Number.parseInt(process.env.LEAF_ECHO_PORT ?? "4242", 10);
-const INTEROP_HOST = process.env.INTEROP_HOST ?? "127.0.0.1";
-
-const identityVectors = JSON.parse(
-  readFileSync(join(repoRoot, "conformance/vectors/identity.json"), "utf8")
-) as {
-  identities: ReadonlyArray<{ name: string; privateKeyHex: string }>;
-};
-
-function loadIdentity(name: string): Identity {
-  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
+function loadIdentity(name) {
+  const vectors = loadIdentityVectors();
+  const entry = vectors.identities.find((candidate) => candidate.name === name);
   if (entry === undefined) {
     throw new Error(`Missing identity vector: ${name}`);
   }
@@ -46,24 +46,7 @@ function loadIdentity(name: string): Identity {
   return identity;
 }
 
-async function sleep(ms: number): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function waitForPath(reticulum: Reticulum, destinationHash: Uint8Array, timeoutMs = 15_000): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (reticulum.hasPath(destinationHash)) {
-      return;
-    }
-
-    await sleep(100);
-  }
-
-  throw new Error("Timed out waiting for path to peer");
-}
-
-async function main() {
+async function runLeafEcho() {
   const alice = loadIdentity("alice");
   const bob = loadIdentity("bob");
 
@@ -98,7 +81,7 @@ async function main() {
   await aliceIn.announce();
   await waitForPath(reticulum, bobOut.hash);
 
-  const received = new Map<string, Uint8Array>();
+  const received = new Map();
   aliceIn.setPacketCallback((data) => {
     received.set(bytesToAscii(data), data);
   });
@@ -116,17 +99,64 @@ async function main() {
     throw new Error("Bare interop echo was not received");
   }
 
+  reticulum.stop();
   console.log("bare-interop: leaf echo passed on Bare runtime");
 }
 
-function bytesToAscii(bytes) {
-  return Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
+async function runLinkEcho() {
+  const bob = loadIdentity("bob");
+
+  const reticulum = Reticulum.create({ provider, runtime });
+  reticulum.start();
+
+  await reticulum.addTcpClientInterface({
+    name: "python-link-echo-bare",
+    targetHost: INTEROP_HOST,
+    targetPort: LINK_ECHO_PORT
+  });
+
+  const bobOut = reticulum.registerDestination({
+    provider,
+    identity: bob,
+    direction: DestinationDirection.OUT,
+    type: DestinationType.SINGLE,
+    appName: "example",
+    aspects: ["link"]
+  });
+
+  await waitForPath(reticulum, bobOut.hash);
+
+  const link = bobOut.requestLink();
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline && link.status !== LinkStatus.ACTIVE) {
+    await sleep(100);
+  }
+
+  if (link.status !== LinkStatus.ACTIVE) {
+    throw new Error("Bare interop link did not become active");
+  }
+
+  const received = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("link echo timeout")), 10_000);
+    link.callbacks.packet = (data) => {
+      clearTimeout(timer);
+      resolve(bytesToAscii(data));
+    };
+  });
+
+  await link.send(new TextEncoder().encode("link ping"));
+  const echoed = await received;
+  if (echoed !== "link ping") {
+    throw new Error(`Unexpected link echo payload: ${echoed}`);
+  }
+
+  reticulum.stop();
+  console.log("bare-interop: link echo passed on Bare runtime");
 }
 
-function expectReceipt(actual: number, expected: number): void {
-  if (actual !== expected) {
-    throw new Error(`Expected receipt status ${expected}, got ${actual}`);
-  }
+async function main() {
+  await runLeafEcho();
+  await runLinkEcho();
 }
 
 main().catch((error) => {

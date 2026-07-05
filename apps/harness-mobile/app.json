@@ -7,6 +7,7 @@
     "scheme": "twistedpear-harness",
     "plugins": [
       "expo-dev-client",
+      "expo-bare-kit",
       "./modules/multicast/app.plugin.js",
       "./modules/ble-bridge/app.plugin.js",
       "./modules/usb-serial/app.plugin.js",

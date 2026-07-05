@@ -5,8 +5,9 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "noEmit": true,
+    "skipLibCheck": true,
     "strict": true,
     "target": "ES2023"
   },
-  "include": ["./**/*.ts", "./**/*.tsx"]
+  "include": ["./**/*.ts", "./**/*.tsx", "./types/**/*.d.ts"]
 }
