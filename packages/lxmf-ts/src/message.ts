@@ -22,7 +22,7 @@ import {
   type LXMessageUnverifiedReasonValue,
   APP_NAME
 } from "./constants.js";
-import { msgpackPackLxmPayload, msgpackUnpackLxmPayload } from "./msgpack.js";
+import { msgpackPackLxmPayload, msgpackPackPropagationEnvelope, msgpackUnpackLxmPayload } from "./msgpack.js";
 
 /** Mirrors RNS/Packet.py encrypted MDU with LXMF timestamp allowance. */
 export const ENCRYPTED_PACKET_MDU = 391;
@@ -63,6 +63,8 @@ export class LXMessage {
   signature: Uint8Array | null = null;
   hash: Uint8Array | null = null;
   packed: Uint8Array | null = null;
+  propagationPacked: Uint8Array | null = null;
+  transientId: Uint8Array | null = null;
   stamp: Uint8Array | null = null;
   state: LXMessageStateValue = LXMessageState.GENERATING;
   method: LXMessageMethodValue = LXMessageMethod.DIRECT;
@@ -226,7 +228,7 @@ export class LXMessage {
     this.stamp = stamp;
 
     this.packed = concatBytes(this.destination.hash, this.source.hash, this.signature, payload);
-    this.selectDeliveryParameters();
+    this.selectDeliveryParameters(provider);
   }
 
   titleAsString(): string {
@@ -245,7 +247,7 @@ export class LXMessage {
     return this.packed.subarray(DESTINATION_LENGTH);
   }
 
-  private selectDeliveryParameters(): void {
+  private selectDeliveryParameters(provider: CryptoProvider): void {
     if (this.packed === null) {
       return;
     }
@@ -272,6 +274,28 @@ export class LXMessage {
         contentSize <= LINK_PACKET_MAX_CONTENT
           ? LXMessageRepresentation.PACKET
           : LXMessageRepresentation.RESOURCE;
+      return;
+    }
+
+    if (desiredMethod === LXMessageMethod.PROPAGATED) {
+      if (this.destination === null || this.destination.identity === null) {
+        throw new Error("PROPAGATED LXMF requires destination identity");
+      }
+
+      const encryptedPayload = this.destination.identity.encrypt(this.packed.subarray(DESTINATION_LENGTH));
+      const lxmfData = concatBytes(this.destination.hash, encryptedPayload);
+      this.transientId = Identity.fullHash(provider, lxmfData);
+      this.propagationPacked = msgpackPackPropagationEnvelope(this.timestamp ?? Date.now() / 1000, [lxmfData]);
+
+      const propagationSize = this.propagationPacked.length;
+      if (propagationSize > LINK_PACKET_MAX_CONTENT) {
+        this.method = LXMessageMethod.PROPAGATED;
+        this.representation = LXMessageRepresentation.RESOURCE;
+        return;
+      }
+
+      this.method = LXMessageMethod.PROPAGATED;
+      this.representation = LXMessageRepresentation.PACKET;
     }
   }
 }

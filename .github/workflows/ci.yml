@@ -28,4 +28,4 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - run: npm test -- packages/reticulum-ts/test/golden-vectors.test.ts packages/reticulum-ts/test/interfaces.test.ts
+      - run: npm test -- packages/reticulum-ts/test/golden-vectors.test.ts packages/reticulum-ts/test/interfaces.test.ts packages/lxmf-ts/test/golden-vectors.test.ts

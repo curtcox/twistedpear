@@ -394,6 +394,84 @@ def main() -> None:
     (ROOT / "identity.json").write_text(json.dumps(identity_corpus, indent=2) + "\n")
     (ROOT / "packet.json").write_text(json.dumps(rns_packet_corpus(), indent=2) + "\n")
 
+    try:
+        lxmf_corpus = lxmf_message_corpus(identity_corpus)
+        (ROOT / "lxmf.json").write_text(json.dumps(lxmf_corpus, indent=2) + "\n")
+    except ImportError:
+        print("LXMF not installed; skipping lxmf.json generation")
+
+
+def lxmf_message_corpus(identity_corpus: dict) -> dict:
+    import LXMF
+    import RNS
+
+    identities = {
+        entry["name"]: load_identity_from_vector(entry)
+        for entry in identity_corpus["identities"]
+    }
+
+    alice = identities["alice"]
+    bob = identities["bob"]
+
+    alice_delivery = RNS.Destination(
+        alice, RNS.Destination.IN, RNS.Destination.SINGLE, "lxmf", "delivery"
+    )
+    bob_delivery = RNS.Destination(
+        bob, RNS.Destination.OUT, RNS.Destination.SINGLE, "lxmf", "delivery"
+    )
+
+    def message_entry(name: str, title: str, content: str, fields: dict | None = None) -> dict:
+        fields = fields or {}
+        message = LXMF.LXMessage(
+            bob_delivery,
+            alice_delivery,
+            content,
+            title,
+            desired_method=LXMF.LXMessage.DIRECT,
+        )
+        message.timestamp = 1700000000.0
+        message.defer_stamp = True
+        message.pack()
+
+        return {
+            "name": name,
+            "timestamp": message.timestamp,
+            "title": title,
+            "content": content,
+            "fieldsHex": {hex(key): value.hex() for key, value in fields.items()},
+            "destinationHashHex": message.destination_hash.hex(),
+            "sourceHashHex": message.source_hash.hex(),
+            "messageHashHex": message.hash.hex(),
+            "signatureHex": message.signature.hex(),
+            "packedHex": message.packed.hex(),
+        }
+
+    return {
+        "upstream": {
+            "lxmfVersion": getattr(LXMF, "__version__", "0.7.0"),
+            "generatedBy": f"python lxmf {getattr(LXMF, '__version__', '0.7.0')}",
+        },
+        "messages": [
+            message_entry("empty-fields", "", ""),
+            message_entry("hello-world", "Hello", "World"),
+            message_entry(
+                "with-fields",
+                "Test",
+                "Body",
+                {LXMF.FIELD_THREAD: b"thread-id-123"},
+            ),
+        ],
+    }
+
+
+def load_identity_from_vector(entry: dict):
+    import RNS
+
+    private_key = bytes.fromhex(entry["privateKeyHex"])
+    identity = RNS.Identity(create_keys=False)
+    identity.load_private_key(private_key)
+    return identity
+
 
 if __name__ == "__main__":
     main()

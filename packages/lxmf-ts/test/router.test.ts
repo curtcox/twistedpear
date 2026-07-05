@@ -16,6 +16,7 @@ import {
   PropagationTransferState,
   createPropagationDestination
 } from "../src/index.js";
+import { msgpackUnpackPropagationEnvelope } from "../src/msgpack.js";
 
 const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
@@ -106,6 +107,69 @@ describe("LXMFRouter delivery", () => {
 
     await expect(received).resolves.toBe("Direct hello");
   });
+
+  it("delivers propagated messages via a propagation node over PipeInterface", async () => {
+    const nodeIdentity = new Identity(provider);
+    const alice = loadIdentity(ALICE_KEY);
+    const bob = loadIdentity(BOB_KEY);
+
+    const aliceReticulum = Reticulum.create({ provider, runtime });
+    const nodeReticulum = Reticulum.create({ provider, runtime });
+    const bobReticulum = Reticulum.create({ provider, runtime });
+    aliceReticulum.start();
+    nodeReticulum.start();
+    bobReticulum.start();
+
+    const [alicePipe, nodeLeftPipe] = PipeInterface.pair(provider);
+    const [nodeRightPipe, bobPipe] = PipeInterface.pair(provider);
+    aliceReticulum.registerInterface(alicePipe);
+    nodeReticulum.registerInterface(nodeLeftPipe);
+    nodeReticulum.registerInterface(nodeRightPipe);
+    bobReticulum.registerInterface(bobPipe);
+
+    const aliceRouter = new LXMFRouter({ reticulum: aliceReticulum, provider });
+    const nodeRouter = new LXMFRouter({ reticulum: nodeReticulum, provider });
+    const bobRouter = new LXMFRouter({ reticulum: bobReticulum, provider });
+
+    const aliceDelivery = aliceRouter.registerDeliveryIdentity(alice);
+    nodeRouter.registerDeliveryIdentity(nodeIdentity);
+    const bobDelivery = bobRouter.registerDeliveryIdentity(bob);
+    const nodePropagation = createPropagationDestination(provider, nodeReticulum, nodeIdentity);
+
+    const store = new PropagationNodeStore(provider);
+    store.registerHandlers(nodePropagation);
+
+    await aliceDelivery.announce();
+    await nodePropagation.announce();
+    await bobDelivery.announce();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    aliceRouter.setOutboundPropagationNode(nodePropagation.hash);
+
+    const received = new Promise<string>((resolve) => {
+      bobRouter.onDelivery((message) => resolve(message.contentAsString()));
+    });
+
+    const bobOut = aliceRouter.createOutboundDestination(bob);
+    await aliceRouter.packAndSend({
+      destination: bobOut,
+      source: aliceDelivery,
+      title: "Offline",
+      content: "Propagated hello",
+      desiredMethod: LXMessageMethod.PROPAGATED,
+      deferStamp: true,
+      timestamp: 1700000004
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const client = new PropagationClient({ router: bobRouter, provider });
+    client.setPropagationNode(nodePropagation.hash);
+
+    const result = await client.syncMessages();
+    expect(result.state).toBe(PropagationTransferState.COMPLETE);
+    await expect(received).resolves.toBe("Propagated hello");
+  });
 });
 
 describe("PropagationClient sync", () => {
@@ -143,11 +207,15 @@ describe("PropagationClient sync", () => {
       source: nodeDelivery,
       title: "Offline",
       content: "Queued for propagation",
-      desiredMethod: LXMessageMethod.DIRECT,
+      desiredMethod: LXMessageMethod.PROPAGATED,
       deferStamp: true,
       timestamp: 1700000003
     });
-    store.store(packed.packed!);
+    const [queuedMessage] = msgpackUnpackPropagationEnvelope(packed.propagationPacked!);
+    if (queuedMessage === undefined) {
+      throw new Error("Missing propagation payload");
+    }
+    store.storePropagationData(queuedMessage);
 
     const client = new PropagationClient({ router: clientRouter, provider });
     client.setPropagationNode(nodePropagation.hash);

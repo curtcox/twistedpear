@@ -21,6 +21,7 @@ import {
   msgpackPackPropagationRequest,
   msgpackUnpack,
   msgpackUnpackMessageList,
+  msgpackUnpackPropagationEnvelope,
   msgpackUnpackPropagationRequest,
   msgpackUnpackTransientIdList
 } from "./msgpack.js";
@@ -40,7 +41,7 @@ export interface PropagationSyncResult {
 interface StoredPropagationMessage {
   readonly transientId: Uint8Array;
   readonly destinationHash: Uint8Array;
-  readonly lxmfBytes: Uint8Array;
+  readonly lxmfData: Uint8Array;
 }
 
 /** Minimal propagation-node client. Mirrors LXMF/LXMRouter.py download flow. */
@@ -146,12 +147,13 @@ export class PropagationClient {
 
     const messages: LXMessage[] = [];
     const haves: Uint8Array[] = [];
-    for (const lxmfBytes of downloaded) {
-      if (this.router.deliver(lxmfBytes)) {
-        messages.push(LXMessage.unpackFromBytes(lxmfBytes, { provider: this.provider }));
+    for (const lxmfData of downloaded) {
+      const message = this.router.handlePropagationData(lxmfData);
+      if (message !== null) {
+        messages.push(message);
       }
 
-      haves.push(RnsIdentity.fullHash(this.provider, lxmfBytes));
+      haves.push(RnsIdentity.fullHash(this.provider, lxmfData));
     }
 
     if (haves.length > 0) {
@@ -216,19 +218,24 @@ export class PropagationClient {
   }
 }
 
-/** Minimal propagation-node store for tests. Mirrors LXMF/LXMRouter.message_get_request. */
+/** Minimal propagation-node store for tests. Mirrors LXMF/LXMRouter propagation ingress. */
 export class PropagationNodeStore {
   private readonly entries = new Map<string, StoredPropagationMessage>();
 
   constructor(private readonly provider: CryptoProvider) {}
 
+  /** Store fully packed LXMF bytes (test helper). */
   store(lxmfBytes: Uint8Array): Uint8Array {
-    const transientId = RnsIdentity.fullHash(this.provider, lxmfBytes);
-    const destinationHash = lxmfBytes.subarray(0, 16);
+    return this.storePropagationData(lxmfBytes);
+  }
+
+  storePropagationData(lxmfData: Uint8Array): Uint8Array {
+    const transientId = RnsIdentity.fullHash(this.provider, lxmfData);
+    const destinationHash = lxmfData.subarray(0, 16);
     this.entries.set(Buffer.from(transientId).toString("hex"), {
       transientId,
       destinationHash,
-      lxmfBytes: Uint8Array.from(lxmfBytes)
+      lxmfData: Uint8Array.from(lxmfData)
     });
     return transientId;
   }
@@ -240,20 +247,49 @@ export class PropagationNodeStore {
   registerHandlers(destination: RegisteredDestination): void {
     destination.registerRequestHandler(
       MESSAGE_GET_PATH,
-      (_path, data) => this.handleGetRequest(data),
+      (_path, data, _requestId, _linkId, remoteIdentity) => this.handleGetRequest(data, remoteIdentity),
       DestinationAllowPolicy.ALLOW_ALL
     );
+
+    destination.setLinkEstablishedCallback((link) => {
+      this.handlePropagationLink(link);
+    });
   }
 
-  private handleGetRequest(data: Uint8Array | null): Uint8Array | null {
+  private handlePropagationLink(link: Link): void {
+    link.callbacks.packet = (data) => {
+      try {
+        const messages = msgpackUnpackPropagationEnvelope(data);
+        for (const lxmfData of messages) {
+          this.storePropagationData(lxmfData);
+        }
+      } catch {
+        // Ignore malformed propagation envelopes.
+      }
+    };
+  }
+
+  private handleGetRequest(data: Uint8Array | null, remoteIdentity: Identity | null): Uint8Array | null {
     if (data === null) {
       return null;
     }
 
     const [wants, haves] = msgpackUnpackPropagationRequest(data);
+    const remoteDeliveryHash =
+      remoteIdentity === null
+        ? null
+        : new Destination(this.provider, {
+            identity: remoteIdentity,
+            direction: DestinationDirection.OUT,
+            type: DestinationType.SINGLE,
+            appName: APP_NAME,
+            aspects: ["delivery"]
+          }).hash;
 
     if (wants === null && haves === null) {
-      const ids = [...this.entries.values()].map((entry) => entry.transientId);
+      const ids = [...this.entries.values()]
+        .filter((entry) => remoteDeliveryHash === null || equalDestinationHash(entry.destinationHash, remoteDeliveryHash))
+        .map((entry) => entry.transientId);
       return msgpackPackArray(ids.map((id) => msgpackPackBin(id)));
     }
 
@@ -268,11 +304,20 @@ export class PropagationNodeStore {
     }
 
     const messages = wants
-      .map((transientId) => this.entries.get(Buffer.from(transientId).toString("hex"))?.lxmfBytes ?? null)
-      .filter((entry): entry is Uint8Array => entry !== null);
+      .map((transientId) => this.entries.get(Buffer.from(transientId).toString("hex")) ?? null)
+      .filter(
+        (entry): entry is StoredPropagationMessage =>
+          entry !== null &&
+          (remoteDeliveryHash === null || equalDestinationHash(entry.destinationHash, remoteDeliveryHash))
+      )
+      .map((entry) => entry.lxmfData);
 
     return msgpackPackArray(messages.map((message) => msgpackPackBin(message)));
   }
+}
+
+function equalDestinationHash(left: Uint8Array, right: Uint8Array): boolean {
+  return Buffer.from(left).equals(Buffer.from(right));
 }
 
 export function createPropagationDestination(

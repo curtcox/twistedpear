@@ -1,6 +1,16 @@
-import type { CryptoProvider, Identity, Link, Packet, PacketReceipt, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
-import { Destination, DestinationDirection, DestinationType, DestinationProofStrategy, LinkStatus, PacketReceiptStatus } from "@twistedpear/reticulum-ts";
-import { APP_NAME, LXMessageMethod, LXMessageState, type LXMessageMethodValue } from "./constants.js";
+import type { CryptoProvider, Link, Packet, PacketReceipt, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
+import {
+  Destination,
+  DestinationDirection,
+  DestinationType,
+  DestinationProofStrategy,
+  equalBytes,
+  Identity,
+  LinkStatus,
+  PacketContext,
+  PacketReceiptStatus
+} from "@twistedpear/reticulum-ts";
+import { APP_NAME, DESTINATION_LENGTH, LXMessageMethod, LXMessageRepresentation, LXMessageState, type LXMessageMethodValue } from "./constants.js";
 import { LXMessage, rememberMessage, type LXMessagePackOptions } from "./message.js";
 import { msgpackUnpack } from "./msgpack.js";
 
@@ -18,6 +28,8 @@ export class LXMFRouter {
   private deliveryCallback: DeliveryCallback | null = null;
   private readonly directLinks = new Map<string, Link>();
   private readonly seenMessages = new Set<string>();
+  private outboundPropagationNode: Uint8Array | null = null;
+  private outboundPropagationLink: Link | null = null;
 
   constructor(options: LXMFRouterOptions) {
     this.reticulum = options.reticulum;
@@ -63,6 +75,28 @@ export class LXMFRouter {
     this.deliveryCallback = callback;
   }
 
+  setOutboundPropagationNode(destinationHash: Uint8Array): void {
+    this.outboundPropagationNode = Uint8Array.from(destinationHash);
+    if (this.outboundPropagationLink !== null) {
+      this.outboundPropagationLink.teardown();
+      this.outboundPropagationLink = null;
+    }
+  }
+
+  get outboundPropagationNodeHash(): Uint8Array | null {
+    return this.outboundPropagationNode;
+  }
+
+  watchPropagationNodes(callback?: (destinationHash: Uint8Array) => void): void {
+    this.reticulum.registerAnnounceHandler({
+      aspectFilter: `${APP_NAME}.propagation`,
+      receivedAnnounce: (info) => {
+        this.setOutboundPropagationNode(info.destinationHash);
+        callback?.(info.destinationHash);
+      }
+    });
+  }
+
   createOutboundDestination(recipientIdentity: Identity): Destination {
     return new Destination(this.provider, {
       identity: recipientIdentity,
@@ -87,6 +121,11 @@ export class LXMFRouter {
 
     if (message.method === LXMessageMethod.DIRECT) {
       await this.sendDirect(message);
+      return;
+    }
+
+    if (message.method === LXMessageMethod.PROPAGATED) {
+      await this.sendPropagated(message);
       return;
     }
 
@@ -172,6 +211,76 @@ export class LXMFRouter {
     message.progress = 1;
   }
 
+  private async sendPropagated(message: LXMessage): Promise<void> {
+    if (this.outboundPropagationNode === null) {
+      throw new Error("No outbound propagation node configured");
+    }
+
+    if (message.propagationPacked === null) {
+      throw new Error("PROPAGATED LXMF requires propagationPacked");
+    }
+
+    if (message.representation !== LXMessageRepresentation.PACKET) {
+      throw new Error("Large propagated LXMF via resource is not implemented");
+    }
+
+    const link = await this.ensureOutboundPropagationLink();
+    message.state = LXMessageState.SENDING;
+
+    const result = await link.sendContext(PacketContext.NONE, message.propagationPacked, {
+      createReceipt: true
+    });
+
+    message.progress = 0.5;
+    if (result.receipt !== null) {
+      await pollDeliveryReceipt(result.receipt);
+      if (result.receipt.status === PacketReceiptStatus.DELIVERED) {
+        message.state = LXMessageState.SENT;
+        message.progress = 1;
+        return;
+      }
+    }
+
+    message.state = LXMessageState.FAILED;
+  }
+
+  private async ensureOutboundPropagationLink(): Promise<Link> {
+    if (this.outboundPropagationLink !== null && this.outboundPropagationLink.status === LinkStatus.ACTIVE) {
+      return this.outboundPropagationLink;
+    }
+
+    if (this.outboundPropagationNode === null) {
+      throw new Error("No outbound propagation node configured");
+    }
+
+    const nodeIdentity = Identity.recall(this.provider, this.outboundPropagationNode);
+    if (nodeIdentity === null) {
+      throw new Error("Propagation node identity is unknown");
+    }
+
+    const outbound = this.reticulum.registerDestination({
+      provider: this.provider,
+      identity: nodeIdentity,
+      direction: DestinationDirection.OUT,
+      type: DestinationType.SINGLE,
+      appName: APP_NAME,
+      aspects: ["propagation"]
+    });
+
+    const link = await new Promise<Link>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("Propagation link timeout")), 5000);
+      outbound.requestLink({
+        linkEstablished(establishLink) {
+          clearTimeout(timer);
+          resolve(establishLink);
+        }
+      });
+    });
+
+    this.outboundPropagationLink = link;
+    return link;
+  }
+
   handleDeliveryPacket(data: Uint8Array, packet: Packet, method: LXMessageMethodValue): boolean {
     const lxmfData =
       method === LXMessageMethod.OPPORTUNISTIC
@@ -188,6 +297,47 @@ export class LXMFRouter {
   }
 
   deliver(lxmfData: Uint8Array, method: LXMessageMethodValue = LXMessageMethod.DIRECT): boolean {
+    const message = this.unpackDeliverable(lxmfData, method);
+    if (message === null) {
+      return false;
+    }
+
+    this.deliveryCallback?.(message);
+    return true;
+  }
+
+  /** Mirrors LXMF/LXMRouter.lxmf_propagation local-delivery branch. */
+  handlePropagationData(lxmfData: Uint8Array): LXMessage | null {
+    if (lxmfData.length < DESTINATION_LENGTH) {
+      return null;
+    }
+
+    const destinationHash = lxmfData.subarray(0, DESTINATION_LENGTH);
+    const deliveryDestination = this.deliveryDestination;
+    if (deliveryDestination === null || !equalBytes(deliveryDestination.hash, destinationHash)) {
+      return null;
+    }
+
+    const decrypted = deliveryDestination.decrypt(lxmfData.subarray(DESTINATION_LENGTH));
+    if (decrypted === null) {
+      return null;
+    }
+
+    const deliveryData = concatBytes(destinationHash, decrypted);
+    const message = this.unpackDeliverable(deliveryData, LXMessageMethod.PROPAGATED);
+    if (message !== null) {
+      this.deliveryCallback?.(message);
+    }
+
+    return message;
+  }
+
+  trackDirectLink(destinationHash: Uint8Array, link: Link): void {
+    this.directLinks.set(Buffer.from(destinationHash).toString("hex"), link);
+    this.handleDeliveryLink(link);
+  }
+
+  private unpackDeliverable(lxmfData: Uint8Array, method: LXMessageMethodValue): LXMessage | null {
     try {
       const message = LXMessage.unpackFromBytes(lxmfData, {
         provider: this.provider,
@@ -195,13 +345,13 @@ export class LXMFRouter {
       });
 
       if (!message.signatureValidated) {
-        return false;
+        return null;
       }
 
       if (message.hash !== null) {
         const key = Buffer.from(message.hash).toString("hex");
         if (this.seenMessages.has(key)) {
-          return false;
+          return null;
         }
 
         rememberMessage(this.seenMessages, message);
@@ -209,16 +359,10 @@ export class LXMFRouter {
 
       message.method = method;
       message.state = LXMessageState.DELIVERED;
-      this.deliveryCallback?.(message);
-      return true;
+      return message;
     } catch {
-      return false;
+      return null;
     }
-  }
-
-  trackDirectLink(destinationHash: Uint8Array, link: Link): void {
-    this.directLinks.set(Buffer.from(destinationHash).toString("hex"), link);
-    this.handleDeliveryLink(link);
   }
 }
 
