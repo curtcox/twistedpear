@@ -13,9 +13,10 @@ Regenerate it with:
 npm run vectors:generate
 ```
 
-M1 and M2 should extend `conformance/vectors/generate.py` to run inside the pinned Python
-RNS container and emit identity, destination, packet, announce, and link transcript
-vectors. Committed vectors keep normal CI independent of Docker.
+Identity and token vectors require Python RNS 0.9.4 (for example
+`.venv-rns/bin/pip install rns==0.9.4` then
+`.venv-rns/bin/python3 conformance/vectors/generate.py`). The committed
+`identity.json` keeps CI independent of Python.
 
 ## Python reference peer
 

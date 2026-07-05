@@ -1,10 +1,36 @@
 # reticulum-ts
 
-TypeScript implementation of the Reticulum Network Stack for TwistedPear.
+TypeScript implementation of the Reticulum Network Stack, targeting byte-exact
+compatibility with Python RNS 0.9.4.
 
-Phase 1 is conformance-first: every protocol feature is added with golden vectors or a
-live interop scenario against the pinned Python RNS reference. The current M0 scaffold
-contains the package shell, runtime adapter contracts, Node crypto primitives, and the
-first committed vector-consuming test.
+## Status (Phase 1)
 
-Reference pins and harness commands live in `../../conformance`.
+- **M0** — monorepo scaffolding, conformance harness, crypto golden vectors
+- **M1** — `CryptoProvider` (node + pure), Token, Identity (keygen, sign/verify,
+  encrypt/decrypt, ratchet handling)
+
+## Development
+
+```sh
+npm ci
+npm test
+npm run build
+```
+
+Golden vectors live in `conformance/vectors/`. Regenerate with
+`npm run vectors:generate` (identity vectors require a local RNS install; see
+`conformance/README.md`).
+
+## Crypto providers
+
+| Provider | Implementation |
+|---|---|
+| `node` | `node:crypto` (AES/HKDF/HMAC/SHA-256) + `sodium-native` (X25519/Ed25519) |
+| `pure` | `@noble/curves`, `@noble/ciphers`, `@noble/hashes` |
+
+Every crypto test runs against both providers and asserts identical output.
+
+## Reference
+
+Implementation mirrors Python RNS at pinned version 0.9.4 — see
+`conformance/UPSTREAM.md`.

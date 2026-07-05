@@ -1,9 +1,19 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { bytesToHex, hexToBytes, hashBytes, NodeCryptoProvider } from "../src/index.js";
+import {
+  Identity,
+  NodeCryptoProvider,
+  PureCryptoProvider,
+  Token,
+  bytesToHex,
+  hexToBytes,
+  hashBytes,
+  rnsHkdf,
+  type CryptoProvider
+} from "../src/index.js";
 
-interface GoldenVectors {
+interface GoldenCryptoVectors {
   readonly upstream: {
     readonly reticulumVersion: string;
   };
@@ -28,33 +38,221 @@ interface GoldenVectors {
   }>;
 }
 
-const vectorsPath = resolve(import.meta.dirname, "../../../conformance/vectors/crypto.json");
-const vectors = JSON.parse(readFileSync(vectorsPath, "utf8")) as GoldenVectors;
-const provider = new NodeCryptoProvider();
+interface GoldenIdentityVectors {
+  readonly upstream: {
+    readonly reticulumVersion: string;
+  };
+  readonly identities: ReadonlyArray<{
+    readonly name: string;
+    readonly privateKeyHex: string;
+    readonly publicKeyHex: string;
+    readonly identityHashHex: string;
+  }>;
+  readonly token: ReadonlyArray<{
+    readonly name: string;
+    readonly keyHex: string;
+    readonly ivHex: string;
+    readonly plaintextHex: string;
+    readonly ciphertextHex: string;
+  }>;
+  readonly signatures: ReadonlyArray<{
+    readonly name: string;
+    readonly identity: string;
+    readonly messageHex: string;
+    readonly signatureHex: string;
+  }>;
+  readonly hkdf: ReadonlyArray<{
+    readonly name: string;
+    readonly deriveFromHex: string;
+    readonly saltIdentity: string;
+    readonly contextHex: string;
+    readonly length: number;
+    readonly outputHex: string;
+  }>;
+  readonly encryption: ReadonlyArray<{
+    readonly name: string;
+    readonly sender: string;
+    readonly recipient: string;
+    readonly plaintextHex: string;
+    readonly ephemeralPrivateKeyHex: string;
+    readonly tokenIvHex: string;
+    readonly ratchetPrivateKeyHex?: string;
+    readonly ratchetPublicKeyHex?: string;
+    readonly ciphertextHex: string;
+  }>;
+  readonly ratchets: ReadonlyArray<{
+    readonly name: string;
+    readonly privateKeyHex: string;
+    readonly publicKeyHex: string;
+    readonly ratchetIdHex: string;
+  }>;
+}
 
-describe("golden crypto vectors", () => {
-  it("records the pinned Python reference version", () => {
-    expect(vectors.upstream.reticulumVersion).toBe("0.9.4");
-  });
+const vectorsRoot = resolve(import.meta.dirname, "../../../conformance/vectors");
+const cryptoVectors = JSON.parse(readFileSync(resolve(vectorsRoot, "crypto.json"), "utf8")) as GoldenCryptoVectors;
+const identityVectors = JSON.parse(
+  readFileSync(resolve(vectorsRoot, "identity.json"), "utf8")
+) as GoldenIdentityVectors;
 
-  it.each(vectors.sha256)("matches sha256 vector $name", (vector) => {
-    expect(hashBytes(provider, hexToBytes(vector.inputHex))).toBe(vector.digestHex);
-  });
+const providers: ReadonlyArray<CryptoProvider> = [new NodeCryptoProvider(), new PureCryptoProvider()];
 
-  it.each(vectors.hmacSha256)("matches hmac-sha256 vector $name", (vector) => {
-    const digest = provider.hmacSha256(hexToBytes(vector.keyHex), hexToBytes(vector.inputHex));
-    expect(bytesToHex(digest)).toBe(vector.digestHex);
-  });
+function identityByName(name: string): GoldenIdentityVectors["identities"][number] {
+  const identity = identityVectors.identities.find((entry) => entry.name === name);
+  if (identity === undefined) {
+    throw new Error(`Missing identity vector: ${name}`);
+  }
 
-  it.each(vectors.hkdfSha256)("matches hkdf-sha256 vector $name", (vector) => {
-    const output = provider.hkdf({
-      hash: "sha256",
-      keyMaterial: hexToBytes(vector.keyMaterialHex),
-      salt: hexToBytes(vector.saltHex),
-      info: hexToBytes(vector.infoHex),
-      length: vector.length
+  return identity;
+}
+
+describe.each(providers.map((provider) => [provider.name, provider] as const))(
+  "golden crypto vectors (%s provider)",
+  (_name, provider) => {
+    it("records the pinned Python reference version", () => {
+      expect(cryptoVectors.upstream.reticulumVersion).toBe("0.9.4");
     });
 
-    expect(bytesToHex(output)).toBe(vector.outputHex);
+    it.each(cryptoVectors.sha256)("matches sha256 vector $name", (vector) => {
+      expect(hashBytes(provider, hexToBytes(vector.inputHex))).toBe(vector.digestHex);
+    });
+
+    it.each(cryptoVectors.hmacSha256)("matches hmac-sha256 vector $name", (vector) => {
+      const digest = provider.hmacSha256(hexToBytes(vector.keyHex), hexToBytes(vector.inputHex));
+      expect(bytesToHex(digest)).toBe(vector.digestHex);
+    });
+
+    it.each(cryptoVectors.hkdfSha256)("matches hkdf-sha256 vector $name", (vector) => {
+      const output = provider.hkdf({
+        hash: "sha256",
+        keyMaterial: hexToBytes(vector.keyMaterialHex),
+        salt: hexToBytes(vector.saltHex),
+        info: hexToBytes(vector.infoHex),
+        length: vector.length
+      });
+
+      expect(bytesToHex(output)).toBe(vector.outputHex);
+    });
+  }
+);
+
+describe.each(providers.map((provider) => [provider.name, provider] as const))(
+  "golden identity vectors (%s provider)",
+  (_name, provider) => {
+    it("records the pinned Python reference version", () => {
+      expect(identityVectors.upstream.reticulumVersion).toBe("0.9.4");
+    });
+
+    it.each(identityVectors.identities)("derives identity hash for $name", (vector) => {
+      const identity = Identity.fromBytes(provider, hexToBytes(vector.privateKeyHex));
+      expect(identity).not.toBeNull();
+      expect(bytesToHex(identity!.getPublicKey())).toBe(vector.publicKeyHex);
+      expect(bytesToHex(identity!.hash)).toBe(vector.identityHashHex);
+    });
+
+    it.each(identityVectors.token)("matches token vector $name", (vector) => {
+      const token = new Token(provider, hexToBytes(vector.keyHex));
+      const ciphertext = token.encrypt(hexToBytes(vector.plaintextHex), {
+        iv: hexToBytes(vector.ivHex)
+      });
+      expect(bytesToHex(ciphertext)).toBe(vector.ciphertextHex);
+      expect(bytesToHex(token.decrypt(ciphertext))).toBe(vector.plaintextHex);
+    });
+
+    it.each(identityVectors.signatures)("matches signature vector $name", (vector) => {
+      const source = identityByName(vector.identity);
+      const identity = Identity.fromBytes(provider, hexToBytes(source.privateKeyHex));
+      expect(identity).not.toBeNull();
+
+      const message = hexToBytes(vector.messageHex);
+      expect(bytesToHex(identity!.sign(message))).toBe(vector.signatureHex);
+      expect(identity!.validate(hexToBytes(vector.signatureHex), message)).toBe(true);
+    });
+
+    it.each(identityVectors.hkdf)("matches hkdf vector $name", (vector) => {
+      const saltIdentity = identityByName(vector.saltIdentity);
+      const output = rnsHkdf(
+        provider,
+        vector.length,
+        hexToBytes(vector.deriveFromHex),
+        hexToBytes(saltIdentity.identityHashHex),
+        hexToBytes(vector.contextHex)
+      );
+      expect(bytesToHex(output)).toBe(vector.outputHex);
+    });
+
+    it.each(identityVectors.encryption)("matches encryption vector $name", (vector) => {
+      const recipient = identityByName(vector.recipient);
+      const decryptor = Identity.fromBytes(provider, hexToBytes(recipient.privateKeyHex));
+      const encryptor = new Identity(provider, false);
+      encryptor.loadPublicKey(hexToBytes(recipient.publicKeyHex));
+
+      const encryptOptions = {
+        ephemeralPrivateKey: hexToBytes(vector.ephemeralPrivateKeyHex),
+        tokenIv: hexToBytes(vector.tokenIvHex),
+        ...(vector.ratchetPublicKeyHex === undefined
+          ? {}
+          : { ratchetPublicKey: hexToBytes(vector.ratchetPublicKeyHex) })
+      };
+
+      const ciphertext = encryptor.encrypt(hexToBytes(vector.plaintextHex), encryptOptions);
+      expect(bytesToHex(ciphertext)).toBe(vector.ciphertextHex);
+
+      const decryptOptions =
+        vector.ratchetPrivateKeyHex === undefined
+          ? {}
+          : { ratchets: [hexToBytes(vector.ratchetPrivateKeyHex)] };
+
+      const result = decryptor!.decrypt(ciphertext, decryptOptions);
+      expect(result.plaintext).not.toBeNull();
+      expect(bytesToHex(result.plaintext!)).toBe(vector.plaintextHex);
+    });
+
+    it.each(identityVectors.ratchets)("derives ratchet id for $name", (vector) => {
+      const publicKey = hexToBytes(vector.publicKeyHex);
+      expect(bytesToHex(Identity.ratchetPublicBytes(provider, hexToBytes(vector.privateKeyHex)))).toBe(
+        vector.publicKeyHex
+      );
+      expect(bytesToHex(Identity.ratchetId(provider, publicKey))).toBe(vector.ratchetIdHex);
+    });
+  }
+);
+
+describe("provider cross-check", () => {
+  const [nodeProvider, pureProvider] = providers;
+
+  it("produces identical token ciphertext for fixed inputs", () => {
+    const key = hexToBytes("00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff");
+    const iv = hexToBytes("aabbccddeeff00112233445566778899");
+    const plaintext = hexToBytes("68656c6c6f207265746963756c756d");
+
+    const nodeToken = new Token(nodeProvider!, hexToBytes(key));
+    const pureToken = new Token(pureProvider!, hexToBytes(key));
+
+    expect(bytesToHex(nodeToken.encrypt(plaintext, { iv }))).toBe(
+      bytesToHex(pureToken.encrypt(plaintext, { iv }))
+    );
+  });
+
+  it("produces identical identity encryption for fixed keys", () => {
+    const alice = identityByName("alice");
+    const bob = identityByName("bob");
+    const ephemeral = hexToBytes("1111111111111111111111111111111111111111111111111111111111111111");
+
+    for (const providerPair of [
+      [nodeProvider, pureProvider] as const,
+      [pureProvider, nodeProvider] as const
+    ]) {
+      const encryptor = new Identity(providerPair[0]!, false);
+      encryptor.loadPublicKey(hexToBytes(bob.publicKeyHex));
+      const ciphertext = encryptor.encrypt(hexToBytes("616c69636520746f20626f"), {
+        ephemeralPrivateKey: ephemeral
+      });
+
+      const decryptor = Identity.fromBytes(providerPair[1]!, hexToBytes(bob.privateKeyHex));
+      const result = decryptor!.decrypt(ciphertext);
+      expect(bytesToHex(result.plaintext!)).toBe("616c69636520746f20626f");
+    }
+
+    expect(alice.identityHashHex).toBeTruthy();
   });
 });

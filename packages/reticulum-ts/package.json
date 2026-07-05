@@ -14,5 +14,14 @@
   "scripts": {
     "build": "tsc -b",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@noble/ciphers": "^1.3.0",
+    "@noble/curves": "^1.9.7",
+    "@noble/hashes": "^1.8.0",
+    "sodium-native": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/sodium-native": "^2.3.9"
   }
 }
