@@ -102,6 +102,41 @@ describe("Resource transfer over PipeInterface", () => {
     const data = await received;
     expect(new TextDecoder().decode(data)).toBe(new TextDecoder().decode(payload));
   });
+
+  it("transfers bytes from responder to initiator", async () => {
+    const { leftLink, rightLink } = await connectPeers();
+    const payload = new TextEncoder().encode("reverse resource payload");
+
+    const received = new Promise<Uint8Array>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("resource timeout")), 8000);
+      leftLink.callbacks.resourceConcluded = (resource) => {
+        clearTimeout(timer);
+        resolve(resource.data ?? new Uint8Array(0));
+      };
+    });
+
+    Resource.send(rightLink, payload, { advertise: true });
+    const data = await received;
+    expect(new TextDecoder().decode(data)).toBe(new TextDecoder().decode(payload));
+  });
+
+  it("transfers a multi-part payload", async () => {
+    const { leftLink, rightLink } = await connectPeers();
+    const payload = new TextEncoder().encode("large resource " + "y".repeat(8192));
+
+    const received = new Promise<Uint8Array>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("resource timeout")), 10000);
+      rightLink.callbacks.resourceConcluded = (resource) => {
+        clearTimeout(timer);
+        resolve(resource.data ?? new Uint8Array(0));
+      };
+    });
+
+    Resource.send(leftLink, payload, { advertise: true });
+    const data = await received;
+    expect(data.length).toBe(payload.length);
+    expect(new TextDecoder().decode(data)).toBe(new TextDecoder().decode(payload));
+  });
 });
 
 describe("Buffer streaming over PipeInterface", () => {

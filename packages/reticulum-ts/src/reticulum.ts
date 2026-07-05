@@ -11,6 +11,7 @@ import {
   type AnnounceHandler,
   type LeafTransportOptions
 } from "./transport/node.js";
+import { TransportNode } from "./transport/transport.js";
 
 /** Mirrors RNS/Reticulum.py MTU default. */
 export const RETICULUM_MTU = 500;
@@ -20,6 +21,7 @@ export interface ReticulumOptions {
   readonly runtime: Runtime;
   readonly transportIdentity?: Identity;
   readonly useImplicitProof?: boolean;
+  readonly transportEnabled?: boolean;
 }
 
 export class Reticulum {
@@ -33,12 +35,14 @@ export class Reticulum {
     this.provider = options.provider;
     this.runtime = options.runtime;
     this.transportIdentity = options.transportIdentity ?? new Identity(options.provider);
-    this.transport = new LeafTransport({
+    const transportOptions: LeafTransportOptions = {
       provider: options.provider,
       transportIdentity: this.transportIdentity,
       clock: options.runtime.clock,
       ...(options.useImplicitProof === undefined ? {} : { useImplicitProof: options.useImplicitProof })
-    });
+    };
+    this.transport =
+      options.transportEnabled === true ? new TransportNode(transportOptions) : new LeafTransport(transportOptions);
   }
 
   static create(options: ReticulumOptions): Reticulum {
@@ -116,6 +120,10 @@ export class Reticulum {
 
   hopsTo(destinationHash: Uint8Array): number | null {
     return this.transport.hopsTo(destinationHash);
+  }
+
+  get isTransportEnabled(): boolean {
+    return this.transport instanceof TransportNode;
   }
 }
 

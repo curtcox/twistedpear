@@ -2,7 +2,7 @@ import type { CryptoProvider } from "../crypto/provider.js";
 import { Announce, type ParsedAnnounce } from "../announce.js";
 import { equalBytes } from "../crypto/bytes.js";
 import { Destination, DestinationDirection, DestinationType, type DestinationTypeValue, type DestinationDirectionValue } from "../destination.js";
-import { Identity } from "../identity.js";
+import { Identity, TRUNCATED_HASH_LENGTH } from "../identity.js";
 import type { PacketInterface } from "../interfaces/interface.js";
 import type { Link } from "../link.js";
 import { PacketReceipt, PacketReceiptStatus } from "../packet-receipt.js";
@@ -18,6 +18,7 @@ import type { Clock } from "../runtime/runtime.js";
 /** Mirrors RNS/Transport.py path table constants for leaf mode. */
 export const PATHFINDER_MAX_HOPS = 128;
 export const PATHFINDER_EXPIRY_SECONDS = 60 * 60 * 24 * 7;
+export const TRUNCATED_HASH_BYTES = TRUNCATED_HASH_LENGTH / 8;
 
 export interface PathEntry {
   readonly timestamp: number;
@@ -73,23 +74,31 @@ export interface LeafTransportOptions {
 
 /** Leaf-mode transport: path table, announce ingestion, and packet routing. Mirrors RNS/Transport.py subset. */
 export class LeafTransport {
-  private readonly pathTable = new Map<string, PathEntry>();
-  private readonly packetHashes = new Set<string>();
-  private readonly receipts: PacketReceipt[] = [];
-  private readonly destinations: LocalDestination[] = [];
-  private readonly announceHandlers: AnnounceHandler[] = [];
-  private readonly interfaces: PacketInterface[] = [];
+  protected readonly pathTable = new Map<string, PathEntry>();
+  protected readonly packetHashes = new Set<string>();
+  protected readonly receipts: PacketReceipt[] = [];
+  protected readonly destinations: LocalDestination[] = [];
+  protected readonly announceHandlers: AnnounceHandler[] = [];
+  protected readonly interfaces: PacketInterface[] = [];
   private readonly interfaceTasks = new Map<PacketInterface, Promise<void>>();
-  private readonly pendingLinks: Link[] = [];
-  private readonly activeLinks: Link[] = [];
-  private readonly useImplicitProof: boolean;
+  protected readonly pendingLinks: Link[] = [];
+  protected readonly activeLinks: Link[] = [];
+  protected readonly useImplicitProof: boolean;
 
-  constructor(private readonly options: LeafTransportOptions) {
+  constructor(protected readonly options: LeafTransportOptions) {
     this.useImplicitProof = options.useImplicitProof ?? true;
   }
 
   get clock(): Clock {
     return this.options.clock;
+  }
+
+  get transportIdentity(): Identity {
+    return this.options.transportIdentity;
+  }
+
+  get provider(): CryptoProvider {
+    return this.options.provider;
   }
 
   registerInterface(iface: PacketInterface): void {
@@ -142,6 +151,10 @@ export class LeafTransport {
 
   nextHopInterfaceMtu(destinationHash: Uint8Array): number | null {
     return this.pathTable.get(hashKey(destinationHash))?.receivedInterface.mtu ?? null;
+  }
+
+  getPathEntry(destinationHash: Uint8Array): PathEntry | undefined {
+    return this.pathTable.get(hashKey(destinationHash));
   }
 
   registerLink(link: Link): void {
@@ -215,7 +228,7 @@ export class LeafTransport {
     return receipt;
   }
 
-  private async inbound(packet: Packet, iface: PacketInterface): Promise<void> {
+  protected async inbound(packet: Packet, iface: PacketInterface): Promise<void> {
     const workingPacket = cloneWithHops(this.options.provider, packet, packet.hops + 1);
 
     if (!this.packetFilter(workingPacket)) {
@@ -249,7 +262,7 @@ export class LeafTransport {
     }
   }
 
-  private async handleLinkRequest(packet: Packet, iface: PacketInterface): Promise<void> {
+  protected async handleLinkRequest(packet: Packet, iface: PacketInterface): Promise<void> {
     for (const destination of this.destinations) {
       if (
         equalBytes(destination.hash, packet.destinationHash) &&
@@ -262,7 +275,7 @@ export class LeafTransport {
     }
   }
 
-  private async handleLinkData(packet: Packet, iface: PacketInterface): Promise<void> {
+  protected async handleLinkData(packet: Packet, iface: PacketInterface): Promise<void> {
     for (const link of this.activeLinks) {
       if (equalBytes(link.linkId, packet.destinationHash)) {
         await link.receive(packet, iface);
@@ -278,7 +291,7 @@ export class LeafTransport {
     }
   }
 
-  private async handleAnnounce(packet: Packet, iface: PacketInterface): Promise<void> {
+  protected async handleAnnounce(packet: Packet, iface: PacketInterface): Promise<void> {
     if (!Announce.validate(this.options.provider, packet)) {
       return;
     }
@@ -378,7 +391,7 @@ export class LeafTransport {
     }
   }
 
-  private async handleData(packet: Packet, iface: PacketInterface): Promise<void> {
+  protected async handleData(packet: Packet, iface: PacketInterface): Promise<void> {
     const destination = this.destinations.find(
       (entry) => equalBytes(entry.hash, packet.destinationHash) && entry.type === packet.destinationType
     );
@@ -403,7 +416,7 @@ export class LeafTransport {
     }
   }
 
-  private async handleProof(packet: Packet, iface: PacketInterface): Promise<void> {
+  protected async handleProof(packet: Packet, iface: PacketInterface): Promise<void> {
     if (packet.context === PacketContext.LRPROOF) {
       for (const link of this.pendingLinks) {
         if (equalBytes(link.linkId, packet.destinationHash) && link.hopsMatch(packet)) {
@@ -443,7 +456,7 @@ export class LeafTransport {
     }
   }
 
-  private async sendProof(destination: LocalDestination, packet: Packet, iface: PacketInterface): Promise<void> {
+  protected async sendProof(destination: LocalDestination, packet: Packet, iface: PacketInterface): Promise<void> {
     if (destination.identity === null) {
       return;
     }
@@ -467,7 +480,7 @@ export class LeafTransport {
     );
   }
 
-  private async outbound(packet: Packet, attachedInterface: PacketInterface | null): Promise<boolean> {
+  protected async outbound(packet: Packet, attachedInterface: PacketInterface | null): Promise<boolean> {
     const path = this.pathTable.get(hashKey(packet.destinationHash));
 
     if (
@@ -506,7 +519,7 @@ export class LeafTransport {
     return sent;
   }
 
-  private packetFilter(packet: Packet): boolean {
+  protected packetFilter(packet: Packet): boolean {
     if (packet.transportId !== null && packet.packetType !== PacketType.ANNOUNCE) {
       if (!equalBytes(packet.transportId, this.options.transportIdentity.hash)) {
         return false;
@@ -522,11 +535,11 @@ export class LeafTransport {
   }
 }
 
-function hashKey(bytes: Uint8Array): string {
+export function hashKey(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString("hex");
 }
 
-function cloneWithHops(provider: CryptoProvider, packet: Packet, hops: number): Packet {
+export function cloneWithHops(provider: CryptoProvider, packet: Packet, hops: number): Packet {
   return Packet.fromFields(provider, {
     headerType: packet.headerType,
     contextFlag: packet.contextFlag,
@@ -541,7 +554,7 @@ function cloneWithHops(provider: CryptoProvider, packet: Packet, hops: number): 
   });
 }
 
-function announceEmittedFromRandomBlob(randomBlob: Uint8Array): number {
+export function announceEmittedFromRandomBlob(randomBlob: Uint8Array): number {
   if (randomBlob.length < 10) {
     return 0;
   }
@@ -554,7 +567,7 @@ function announceEmittedFromRandomBlob(randomBlob: Uint8Array): number {
   return value;
 }
 
-function timebaseFromRandomBlobs(randomBlobs: ReadonlyArray<Uint8Array>): number {
+export function timebaseFromRandomBlobs(randomBlobs: ReadonlyArray<Uint8Array>): number {
   let latest = 0;
   for (const blob of randomBlobs) {
     latest = Math.max(latest, announceEmittedFromRandomBlob(blob));
@@ -563,7 +576,7 @@ function timebaseFromRandomBlobs(randomBlobs: ReadonlyArray<Uint8Array>): number
   return latest;
 }
 
-function wrapTransportPacket(packet: Packet, nextHop: Uint8Array): Uint8Array {
+export function wrapTransportPacket(packet: Packet, nextHop: Uint8Array): Uint8Array {
   const flags =
     (PacketHeaderType.HEADER_2 << 6) | (TransportType.TRANSPORT << 4) | (packet.packedFlags() & 0x0f);
   const header = new Uint8Array([flags, packet.hops]);
@@ -573,4 +586,58 @@ function wrapTransportPacket(packet: Packet, nextHop: Uint8Array): Uint8Array {
   wrapped.set(nextHop, header.length);
   wrapped.set(rest, header.length + nextHop.length);
   return wrapped;
+}
+
+export function stripTransportHeaders(raw: Uint8Array): Uint8Array {
+  const flags = ((raw[0]! & 0b00001111) | (PacketHeaderType.HEADER_1 << 6) | (TransportType.BROADCAST << 4)) & 0xff;
+  const output = new Uint8Array(raw.length - TRUNCATED_HASH_BYTES);
+  output[0] = flags;
+  output[1] = raw[1]!;
+  output.set(raw.subarray(2 + TRUNCATED_HASH_BYTES), 2);
+  return output;
+}
+
+export function relayTransportPacket(
+  packet: Packet,
+  remainingHops: number,
+  nextHop: Uint8Array
+): Uint8Array {
+  if (remainingHops > 1) {
+    const raw = new Uint8Array(packet.raw.length);
+    raw[0] = packet.raw[0]!;
+    raw[1] = packet.hops;
+    raw.set(nextHop, 2);
+    raw.set(packet.raw.subarray(2 + TRUNCATED_HASH_BYTES), 2 + TRUNCATED_HASH_BYTES);
+    return raw;
+  }
+
+  if (remainingHops === 1) {
+    return stripTransportHeaders(packet.raw);
+  }
+
+  const raw = new Uint8Array(packet.raw.length - TRUNCATED_HASH_BYTES);
+  raw[0] = packet.raw[0]!;
+  raw[1] = packet.hops;
+  raw.set(packet.raw.subarray(2 + TRUNCATED_HASH_BYTES), 2);
+  return raw;
+}
+
+export function buildTransportAnnounce(
+  provider: CryptoProvider,
+  source: Packet,
+  transportIdentity: Identity,
+  hops: number
+): Packet {
+  return Packet.fromFields(provider, {
+    headerType: PacketHeaderType.HEADER_2,
+    contextFlag: source.contextFlag,
+    transportType: TransportType.TRANSPORT,
+    destinationType: source.destinationType,
+    packetType: PacketType.ANNOUNCE,
+    hops,
+    destinationHash: source.destinationHash,
+    context: source.context,
+    data: source.data,
+    transportId: transportIdentity.hash
+  });
 }

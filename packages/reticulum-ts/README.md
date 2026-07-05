@@ -7,9 +7,12 @@ compatibility with Python RNS 0.9.4.
 
 - **M0–M3** — scaffolding, crypto/identity vectors, packets/destinations/announces,
   HDLC framing, Pipe/TCP/UDP interfaces, leaf transport
-- **M4 (in progress)** — links with AES-256-CBC mode signalling, request/response,
+- **M4** — links with AES-256-CBC mode signalling, request/response,
   identification, keepalive, Channel + Buffer
-- **M5 (started)** — Resource transfer (advertisement, requests, parts, proof) over links
+- **M5 (in progress)** — Resource transfer (advertisement, requests, parts, proof) over links
+- **M6 (started)** — transport-node announce rebroadcast, packet/link/proof relay, announce rate limiting
+
+Enable transport-node mode with `Reticulum.create({ transportEnabled: true, ... })`.
 
 ## Development
 

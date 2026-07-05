@@ -140,6 +140,10 @@ export {
   PATHFINDER_MAX_HOPS
 } from "./transport/node.js";
 export type { AnnounceHandler, LeafTransportOptions, LocalDestination, PathEntry, ReceivedAnnounceInfo } from "./transport/node.js";
+export { AnnounceRateLimiter } from "./transport/rate.js";
+export type { AnnounceRateEntry, AnnounceRateOptions } from "./transport/rate.js";
+export { TransportNode, LOCAL_REBROADCASTS_MAX, PATH_REQUEST_MIN_INTERVAL } from "./transport/transport.js";
+export type { TransportNodeOptions } from "./transport/transport.js";
 export { PacketReceipt, PacketReceiptStatus, EXPLICIT_PROOF_LENGTH, IMPLICIT_PROOF_LENGTH } from "./packet-receipt.js";
 export type { PacketReceiptCallbacks, PacketReceiptStatusValue } from "./packet-receipt.js";
 export { Reticulum, RETICULUM_MTU } from "./reticulum.js";
