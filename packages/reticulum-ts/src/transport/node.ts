@@ -14,6 +14,16 @@ import {
   TransportType
 } from "../packet.js";
 import type { Clock } from "../runtime/runtime.js";
+import {
+  PATH_REQUEST_GRACE_MS,
+  PATH_REQUEST_MIN_INTERVAL,
+  PATH_REQUEST_TIMEOUT_SECONDS,
+  buildPathRequestData,
+  parsePathRequestData,
+  pathRequestDestinationHash,
+  pathRequestTagKey,
+  shouldAnswerPathRequest
+} from "./path.js";
 
 /** Mirrors RNS/Transport.py path table constants for leaf mode. */
 export const PATHFINDER_MAX_HOPS = 128;
@@ -28,6 +38,7 @@ export interface PathEntry {
   readonly randomBlobs: ReadonlyArray<Uint8Array>;
   readonly receivedInterface: PacketInterface;
   readonly packetHash: Uint8Array;
+  readonly announceRaw: Uint8Array;
 }
 
 export interface ReceivedAnnounceInfo {
@@ -63,6 +74,7 @@ export interface LocalDestination {
   dispatchPacket(data: Uint8Array, packet: Packet): void;
   shouldProve(packet: Packet): boolean;
   handleLinkRequest?(packet: Packet, iface: PacketInterface): void;
+  answerPathRequest?(iface: PacketInterface): Promise<void>;
 }
 
 export interface LeafTransportOptions {
@@ -70,6 +82,7 @@ export interface LeafTransportOptions {
   readonly transportIdentity: Identity;
   readonly clock: Clock;
   readonly useImplicitProof?: boolean;
+  readonly transportEnabled?: boolean;
 }
 
 /** Leaf-mode transport: path table, announce ingestion, and packet routing. Mirrors RNS/Transport.py subset. */
@@ -84,9 +97,15 @@ export class LeafTransport {
   protected readonly pendingLinks: Link[] = [];
   protected readonly activeLinks: Link[] = [];
   protected readonly useImplicitProof: boolean;
+  protected readonly transportEnabled: boolean;
+  protected readonly pathRequestHash: Uint8Array;
+  protected readonly pathRequests = new Map<string, number>();
+  protected readonly discoveryPrTags = new Set<string>();
 
   constructor(protected readonly options: LeafTransportOptions) {
     this.useImplicitProof = options.useImplicitProof ?? true;
+    this.transportEnabled = options.transportEnabled ?? false;
+    this.pathRequestHash = pathRequestDestinationHash(options.provider);
   }
 
   get clock(): Clock {
@@ -155,6 +174,56 @@ export class LeafTransport {
 
   getPathEntry(destinationHash: Uint8Array): PathEntry | undefined {
     return this.pathTable.get(hashKey(destinationHash));
+  }
+
+  requestPath(destinationHash: Uint8Array, onInterface: PacketInterface | null = null): void {
+    const key = hashKey(destinationHash);
+    const now = Date.now() / 1000;
+    const lastRequest = this.pathRequests.get(key) ?? 0;
+    if (now - lastRequest < PATH_REQUEST_MIN_INTERVAL) {
+      return;
+    }
+
+    const tag = Identity.getRandomHash(this.provider).subarray(0, TRUNCATED_HASH_BYTES);
+    const requestData = buildPathRequestData(
+      destinationHash,
+      this.transportEnabled ? this.transportIdentity.hash : null,
+      tag
+    );
+
+    const packet = Packet.fromFields(this.provider, {
+      headerType: PacketHeaderType.HEADER_1,
+      transportType: TransportType.BROADCAST,
+      destinationType: DestinationType.PLAIN,
+      packetType: PacketType.DATA,
+      destinationHash: this.pathRequestHash,
+      context: PacketContext.NONE,
+      data: requestData
+    });
+
+    void this.sendPacket(packet, { attachedInterface: onInterface });
+    this.pathRequests.set(key, now);
+  }
+
+  async awaitPath(
+    destinationHash: Uint8Array,
+    timeoutSeconds = PATH_REQUEST_TIMEOUT_SECONDS
+  ): Promise<boolean> {
+    if (this.hasPath(destinationHash)) {
+      return true;
+    }
+
+    this.requestPath(destinationHash);
+    const deadline = Date.now() + timeoutSeconds * 1000;
+    while (Date.now() < deadline) {
+      if (this.hasPath(destinationHash)) {
+        return true;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+
+    return this.hasPath(destinationHash);
   }
 
   registerLink(link: Link): void {
@@ -345,7 +414,8 @@ export class LeafTransport {
       expires: now + PATHFINDER_EXPIRY_SECONDS,
       randomBlobs,
       receivedInterface: iface,
-      packetHash: packet.hash()
+      packetHash: packet.hash(),
+      announceRaw: Uint8Array.from(packet.raw)
     };
     this.pathTable.set(hashKey(packet.destinationHash), entry);
 
@@ -392,6 +462,14 @@ export class LeafTransport {
   }
 
   protected async handleData(packet: Packet, iface: PacketInterface): Promise<void> {
+    if (
+      packet.destinationType === DestinationType.PLAIN &&
+      equalBytes(packet.destinationHash, this.pathRequestHash)
+    ) {
+      await this.handlePathRequest(packet, iface);
+      return;
+    }
+
     const destination = this.destinations.find(
       (entry) => equalBytes(entry.hash, packet.destinationHash) && entry.type === packet.destinationType
     );
@@ -519,6 +597,62 @@ export class LeafTransport {
     return sent;
   }
 
+  protected async handlePathRequest(packet: Packet, iface: PacketInterface): Promise<void> {
+    const parsed = parsePathRequestData(packet.data);
+    if (parsed === null || parsed.tag === null) {
+      return;
+    }
+
+    const tagKey = pathRequestTagKey(parsed.destinationHash, parsed.tag);
+    if (this.discoveryPrTags.has(tagKey)) {
+      return;
+    }
+
+    this.discoveryPrTags.add(tagKey);
+
+    const localDestination = this.destinations.find(
+      (entry) =>
+        equalBytes(entry.hash, parsed.destinationHash) && entry.direction === DestinationDirection.IN
+    );
+    if (localDestination?.answerPathRequest !== undefined) {
+      await localDestination.answerPathRequest(iface);
+      return;
+    }
+
+    if (!this.transportEnabled) {
+      return;
+    }
+
+    const path = this.pathTable.get(hashKey(parsed.destinationHash));
+    if (path === undefined) {
+      return;
+    }
+
+    if (!shouldAnswerPathRequest(path.nextHop, parsed.requestorTransportId)) {
+      return;
+    }
+
+    await this.sendPathResponse(path, iface);
+  }
+
+  protected async sendPathResponse(path: PathEntry, iface: PacketInterface): Promise<void> {
+    await new Promise<void>((resolve) => {
+      this.clock.setTimeout(() => {
+        void (async () => {
+          const cached = Packet.decode(this.provider, path.announceRaw);
+          if (cached === null) {
+            resolve();
+            return;
+          }
+
+          const response = buildPathResponseAnnounce(this.provider, cached, this.transportIdentity, path.hops);
+          await this.outbound(response, iface);
+          resolve();
+        })();
+      }, PATH_REQUEST_GRACE_MS);
+    });
+  }
+
   protected packetFilter(packet: Packet): boolean {
     if (packet.transportId !== null && packet.packetType !== PacketType.ANNOUNCE) {
       if (!equalBytes(packet.transportId, this.options.transportIdentity.hash)) {
@@ -637,6 +771,26 @@ export function buildTransportAnnounce(
     hops,
     destinationHash: source.destinationHash,
     context: source.context,
+    data: source.data,
+    transportId: transportIdentity.hash
+  });
+}
+
+export function buildPathResponseAnnounce(
+  provider: CryptoProvider,
+  source: Packet,
+  transportIdentity: Identity,
+  hops: number
+): Packet {
+  return Packet.fromFields(provider, {
+    headerType: PacketHeaderType.HEADER_2,
+    contextFlag: source.contextFlag,
+    transportType: TransportType.TRANSPORT,
+    destinationType: source.destinationType,
+    packetType: PacketType.ANNOUNCE,
+    hops,
+    destinationHash: source.destinationHash,
+    context: PacketContext.PATH_RESPONSE,
     data: source.data,
     transportId: transportIdentity.hash
   });

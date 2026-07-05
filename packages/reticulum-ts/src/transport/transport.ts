@@ -12,18 +12,26 @@ import {
 import {
   LeafTransport,
   type LeafTransportOptions,
+  buildPathResponseAnnounce,
   buildTransportAnnounce,
   cloneWithHops,
   hashKey,
   relayTransportPacket,
   type PathEntry
 } from "./node.js";
+import {
+  PATH_REQUEST_TIMEOUT_SECONDS,
+  buildPathRequestData,
+  parsePathRequestData,
+  pathRequestTagKey,
+  shouldAnswerPathRequest
+} from "./path.js";
 import { AnnounceRateLimiter } from "./rate.js";
 
 /** Mirrors RNS/Transport.py transport-node constants. */
 export const LOCAL_REBROADCASTS_MAX = 2;
 export const REVERSE_TIMEOUT_SECONDS = 8 * 60;
-export const PATH_REQUEST_MIN_INTERVAL = 20;
+export { PATH_REQUEST_MIN_INTERVAL } from "./path.js";
 
 export interface TransportNodeOptions extends LeafTransportOptions {
   readonly announceRateLimiter?: AnnounceRateLimiter;
@@ -45,14 +53,20 @@ interface ReverseTableEntry {
   readonly timestamp: number;
 }
 
+interface DiscoveryPathRequest {
+  readonly timeout: number;
+  readonly requestingInterface: PacketInterface;
+}
+
 /** Transport-node mode: rebroadcast, relay, and path forwarding. Mirrors RNS/Transport.py transport subset. */
 export class TransportNode extends LeafTransport {
   private readonly linkTable = new Map<string, LinkTableEntry>();
   private readonly reverseTable = new Map<string, ReverseTableEntry>();
   private readonly announceRateLimiter: AnnounceRateLimiter;
+  private readonly discoveryPathRequests = new Map<string, DiscoveryPathRequest>();
 
   constructor(options: TransportNodeOptions) {
-    super(options);
+    super({ ...options, transportEnabled: true });
     this.announceRateLimiter = options.announceRateLimiter ?? new AnnounceRateLimiter();
   }
 
@@ -129,7 +143,58 @@ export class TransportNode extends LeafTransport {
     }
 
     await super.handleAnnounce(packet, iface);
+    await this.fulfillDiscoveryPathRequest(packet, iface);
     await this.rebroadcastAnnounce(packet, iface);
+  }
+
+  protected override async handlePathRequest(packet: Packet, iface: PacketInterface): Promise<void> {
+    const parsed = parsePathRequestData(packet.data);
+    if (parsed === null || parsed.tag === null) {
+      return;
+    }
+
+    const tagKey = pathRequestTagKey(parsed.destinationHash, parsed.tag);
+    if (this.discoveryPrTags.has(tagKey)) {
+      return;
+    }
+
+    this.discoveryPrTags.add(tagKey);
+
+    const localDestination = this.destinations.find(
+      (entry) =>
+        equalBytes(entry.hash, parsed.destinationHash) && entry.direction === DestinationDirection.IN
+    );
+    if (localDestination?.answerPathRequest !== undefined) {
+      await localDestination.answerPathRequest(iface);
+      return;
+    }
+
+    const path = this.pathTable.get(hashKey(parsed.destinationHash));
+    if (path !== undefined) {
+      if (!shouldAnswerPathRequest(path.nextHop, parsed.requestorTransportId)) {
+        return;
+      }
+
+      await this.sendPathResponse(path, iface);
+      return;
+    }
+
+    if (this.discoveryPathRequests.has(hashKey(parsed.destinationHash))) {
+      return;
+    }
+
+    this.discoveryPathRequests.set(hashKey(parsed.destinationHash), {
+      timeout: Date.now() / 1000 + PATH_REQUEST_TIMEOUT_SECONDS,
+      requestingInterface: iface
+    });
+
+    for (const outbound of this.interfaces) {
+      if (!outbound.outgoing || outbound === iface) {
+        continue;
+      }
+
+      this.forwardPathRequest(parsed.destinationHash, parsed.tag, outbound);
+    }
   }
 
   private shouldAcceptPacket(packet: Packet): boolean {
@@ -268,6 +333,37 @@ export class TransportNode extends LeafTransport {
       this.packetHashes.add(hashKey(rebroadcast.hash()));
       await this.transmit(outbound, rebroadcast.raw);
     }
+  }
+
+  private async fulfillDiscoveryPathRequest(packet: Packet, iface: PacketInterface): Promise<void> {
+    const destinationKey = hashKey(packet.destinationHash);
+    const pending = this.discoveryPathRequests.get(destinationKey);
+    if (pending === undefined) {
+      return;
+    }
+
+    this.discoveryPathRequests.delete(destinationKey);
+    const response = buildPathResponseAnnounce(this.provider, packet, this.transportIdentity, packet.hops);
+    await this.transmit(pending.requestingInterface, response.raw);
+  }
+
+  private forwardPathRequest(
+    destinationHash: Uint8Array,
+    tag: Uint8Array,
+    iface: PacketInterface
+  ): void {
+    const requestData = buildPathRequestData(destinationHash, this.transportIdentity.hash, tag);
+    const packet = Packet.fromFields(this.provider, {
+      headerType: PacketHeaderType.HEADER_1,
+      transportType: TransportType.BROADCAST,
+      destinationType: DestinationType.PLAIN,
+      packetType: PacketType.DATA,
+      destinationHash: this.pathRequestHash,
+      context: PacketContext.NONE,
+      data: requestData
+    });
+
+    void this.transmit(iface, packet.raw);
   }
 
   private touchPathEntry(destinationHash: Uint8Array): void {

@@ -12,6 +12,7 @@ import {
   type LeafTransportOptions
 } from "./transport/node.js";
 import { TransportNode } from "./transport/transport.js";
+import { PATH_REQUEST_TIMEOUT_SECONDS } from "./transport/path.js";
 
 /** Mirrors RNS/Reticulum.py MTU default. */
 export const RETICULUM_MTU = 500;
@@ -42,7 +43,9 @@ export class Reticulum {
       ...(options.useImplicitProof === undefined ? {} : { useImplicitProof: options.useImplicitProof })
     };
     this.transport =
-      options.transportEnabled === true ? new TransportNode(transportOptions) : new LeafTransport(transportOptions);
+      options.transportEnabled === true
+        ? new TransportNode({ ...transportOptions, transportEnabled: true })
+        : new LeafTransport(transportOptions);
   }
 
   static create(options: ReticulumOptions): Reticulum {
@@ -120,6 +123,17 @@ export class Reticulum {
 
   hopsTo(destinationHash: Uint8Array): number | null {
     return this.transport.hopsTo(destinationHash);
+  }
+
+  requestPath(destinationHash: Uint8Array, onInterface?: PacketInterface | null): void {
+    this.transport.requestPath(destinationHash, onInterface ?? null);
+  }
+
+  async awaitPath(destinationHash: Uint8Array, timeoutSeconds?: number): Promise<boolean> {
+    return this.transport.awaitPath(
+      destinationHash,
+      timeoutSeconds ?? PATH_REQUEST_TIMEOUT_SECONDS
+    );
   }
 
   get isTransportEnabled(): boolean {

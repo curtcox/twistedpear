@@ -169,7 +169,13 @@ export class RegisteredDestination extends Destination {
     return this.identity.decrypt(ciphertext).plaintext;
   }
 
-  async announce(options: { appData?: Uint8Array; attachedInterface?: PacketInterface | null } = {}): Promise<void> {
+  async announce(
+    options: {
+      appData?: Uint8Array;
+      attachedInterface?: PacketInterface | null;
+      pathResponse?: boolean;
+    } = {}
+  ): Promise<void> {
     if (this.transport === null) {
       throw new Error("Destination is not attached to a Reticulum instance");
     }
@@ -183,11 +189,16 @@ export class RegisteredDestination extends Destination {
     }
 
     const packet = Announce.buildPacket(this.cryptoProvider, this, {
-      ...(options.appData === undefined ? {} : { appData: options.appData })
+      ...(options.appData === undefined ? {} : { appData: options.appData }),
+      ...(options.pathResponse === true ? { pathResponse: true } : {})
     });
     await this.transport.sendPacket(packet, {
       attachedInterface: options.attachedInterface ?? null
     });
+  }
+
+  async answerPathRequest(iface: PacketInterface): Promise<void> {
+    await this.announce({ pathResponse: true, attachedInterface: iface });
   }
 
   async send(

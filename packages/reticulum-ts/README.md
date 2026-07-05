@@ -10,7 +10,7 @@ compatibility with Python RNS 0.9.4.
 - **M4** — links with AES-256-CBC mode signalling, request/response,
   identification, keepalive, Channel + Buffer
 - **M5 (in progress)** — Resource transfer (advertisement, requests, parts, proof) over links
-- **M6 (started)** — transport-node announce rebroadcast, packet/link/proof relay, announce rate limiting
+- **M6 (in progress)** — transport-node announce rebroadcast, packet/link/proof relay, path requests/replies, announce rate limiting
 
 Enable transport-node mode with `Reticulum.create({ transportEnabled: true, ... })`.
 

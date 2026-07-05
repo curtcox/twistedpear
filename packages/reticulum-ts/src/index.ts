@@ -142,8 +142,19 @@ export {
 export type { AnnounceHandler, LeafTransportOptions, LocalDestination, PathEntry, ReceivedAnnounceInfo } from "./transport/node.js";
 export { AnnounceRateLimiter } from "./transport/rate.js";
 export type { AnnounceRateEntry, AnnounceRateOptions } from "./transport/rate.js";
-export { TransportNode, LOCAL_REBROADCASTS_MAX, PATH_REQUEST_MIN_INTERVAL } from "./transport/transport.js";
+export {
+  TRANSPORT_APP_NAME,
+  PATH_REQUEST_TIMEOUT_SECONDS,
+  PATH_REQUEST_GRACE_MS,
+  PATH_REQUEST_MIN_INTERVAL,
+  pathRequestDestinationHash,
+  buildPathRequestData,
+  parsePathRequestData
+} from "./transport/path.js";
+export type { ParsedPathRequest } from "./transport/path.js";
+export { TransportNode, LOCAL_REBROADCASTS_MAX } from "./transport/transport.js";
 export type { TransportNodeOptions } from "./transport/transport.js";
+export { buildPathResponseAnnounce } from "./transport/node.js";
 export { PacketReceipt, PacketReceiptStatus, EXPLICIT_PROOF_LENGTH, IMPLICIT_PROOF_LENGTH } from "./packet-receipt.js";
 export type { PacketReceiptCallbacks, PacketReceiptStatusValue } from "./packet-receipt.js";
 export { Reticulum, RETICULUM_MTU } from "./reticulum.js";

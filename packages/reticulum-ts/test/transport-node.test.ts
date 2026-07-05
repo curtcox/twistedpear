@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  AnnounceRateLimiter,
   DestinationDirection,
   DestinationProofStrategy,
   DestinationType,
@@ -205,4 +206,153 @@ describe("TransportNode link and resource relay", () => {
     const data = await received;
     expect(new TextDecoder().decode(data)).toBe(new TextDecoder().decode(payload));
   }, 15000);
+});
+
+describe("TransportNode path requests", () => {
+  it("answers path requests from cached announces after a peer joins late", async () => {
+    const transport = Reticulum.create({ provider, runtime, transportEnabled: true });
+    const right = Reticulum.create({ provider, runtime });
+    transport.start();
+    right.start();
+
+    const [transportRightPipe, rightPipe] = PipeInterface.pair(provider);
+    transport.registerInterface(transportRightPipe);
+    right.registerInterface(rightPipe);
+
+    const rightIn = right.registerDestination({
+      provider,
+      identity: new Identity(provider),
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "example",
+      aspects: ["late"]
+    });
+
+    await rightIn.announce();
+    await waitFor(() => (transport.hasPath(rightIn.hash) ? true : null));
+
+    const left = Reticulum.create({ provider, runtime });
+    left.start();
+    const [leftPipe, transportLeftPipe] = PipeInterface.pair(provider);
+    left.registerInterface(leftPipe);
+    transport.registerInterface(transportLeftPipe);
+
+    expect(left.hasPath(rightIn.hash)).toBe(false);
+    const discovered = await left.awaitPath(rightIn.hash, 8);
+    expect(discovered).toBe(true);
+    expect(left.hopsTo(rightIn.hash)).toBe(2);
+  });
+
+  it("forwards path requests for unknown destinations and fulfills them on announce", async () => {
+    const left = Reticulum.create({ provider, runtime });
+    const transport = Reticulum.create({ provider, runtime, transportEnabled: true });
+    const right = Reticulum.create({ provider, runtime });
+    left.start();
+    transport.start();
+    right.start();
+
+    const [leftPipe, transportLeftPipe] = PipeInterface.pair(provider);
+    const [transportRightPipe, rightPipe] = PipeInterface.pair(provider);
+    left.registerInterface(leftPipe);
+    transport.registerInterface(transportLeftPipe);
+    transport.registerInterface(transportRightPipe);
+    right.registerInterface(rightPipe);
+
+    const rightIn = right.registerDestination({
+      provider,
+      identity: new Identity(provider),
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "example",
+      aspects: ["discover"]
+    });
+
+    expect(left.hasPath(rightIn.hash)).toBe(false);
+    expect(transport.hasPath(rightIn.hash)).toBe(false);
+
+    const discovery = left.awaitPath(rightIn.hash, 8);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await rightIn.announce();
+
+    expect(await discovery).toBe(true);
+    expect(left.hopsTo(rightIn.hash)).toBe(2);
+    expect(transport.hasPath(rightIn.hash)).toBe(true);
+  });
+});
+
+describe("TransportNode three-hop topology", () => {
+  it("routes packets across two transport nodes", async () => {
+    const left = Reticulum.create({ provider, runtime });
+    const transportA = Reticulum.create({ provider, runtime, transportEnabled: true });
+    const transportB = Reticulum.create({ provider, runtime, transportEnabled: true });
+    const right = Reticulum.create({ provider, runtime });
+    left.start();
+    transportA.start();
+    transportB.start();
+    right.start();
+
+    const [leftPipe, transportALeftPipe] = PipeInterface.pair(provider);
+    const [transportAMidPipe, transportBMidPipe] = PipeInterface.pair(provider);
+    const [transportBRightPipe, rightPipe] = PipeInterface.pair(provider);
+
+    left.registerInterface(leftPipe);
+    transportA.registerInterface(transportALeftPipe);
+    transportA.registerInterface(transportAMidPipe);
+    transportB.registerInterface(transportBMidPipe);
+    transportB.registerInterface(transportBRightPipe);
+    right.registerInterface(rightPipe);
+
+    const rightIn = right.registerDestination({
+      provider,
+      identity: new Identity(provider),
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "example",
+      aspects: ["far"]
+    });
+
+    await rightIn.announce();
+    await waitFor(() => (left.hasPath(rightIn.hash) ? true : null));
+
+    expect(left.hopsTo(rightIn.hash)).toBe(3);
+    expect(transportA.hopsTo(rightIn.hash)).toBe(2);
+    expect(transportB.hopsTo(rightIn.hash)).toBe(1);
+
+    const leftOut = left.registerDestination({
+      provider,
+      identity: rightIn.identity,
+      direction: DestinationDirection.OUT,
+      type: DestinationType.SINGLE,
+      appName: "example",
+      aspects: ["far"]
+    });
+
+    rightIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
+
+    const received = new Promise<Uint8Array>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("three-hop timeout")), 5000);
+      rightIn.setPacketCallback((data) => {
+        clearTimeout(timer);
+        resolve(data);
+      });
+    });
+
+    await leftOut.send(new TextEncoder().encode("three hops"));
+    const payload = await received;
+    expect(new TextDecoder().decode(payload)).toBe("three hops");
+  });
+});
+
+describe("TransportNode announce rate limiting", () => {
+  it("uses the same limiter contract that transport-node announce ingress relies on", () => {
+    const limiter = new AnnounceRateLimiter({ rateTarget: 0.2, rateGrace: 0, ratePenalty: 10 });
+    const noisyKey = "deadbeef";
+    const quietKey = "cafebabe";
+
+    expect(limiter.record(noisyKey, 100)).toBe(false);
+    expect(limiter.record(noisyKey, 100.1)).toBe(true);
+    expect(limiter.isBlocked(noisyKey, 100.1)).toBe(true);
+    expect(limiter.record(quietKey, 200)).toBe(false);
+    expect(limiter.isBlocked(quietKey, 200)).toBe(false);
+  });
 });
