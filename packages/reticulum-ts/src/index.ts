@@ -86,10 +86,13 @@ export {
   LINK_MTU_SIZE,
   LINK_SIGNATURE_SIZE,
   LINK_STALE_GRACE,
+  LinkMode,
+  LINK_MODE_DEFAULT,
+  LinkResourceStrategy,
   LinkStatus,
   LinkTeardownReason
 } from "./link.js";
-export type { InitiatorLinkOptions, LinkCallbacks, LinkRequestOptions, LinkSendContextResult, LinkStatusValue, LinkTeardownReasonValue } from "./link.js";
+export type { InitiatorLinkOptions, LinkCallbacks, LinkRequestOptions, LinkSendContextResult, LinkModeValue, LinkResourceStrategyValue, LinkStatusValue, LinkTeardownReasonValue } from "./link.js";
 export {
   LinkRequestReceipt,
   RequestReceiptStatus
@@ -114,9 +117,17 @@ export type { StreamReadyCallback } from "./buffer.js";
 export {
   msgpackPackRequest,
   msgpackPackResponse,
+  msgpackPackMap,
+  msgpackPackUInt,
   msgpackUnpackRequest,
   msgpackUnpackResponse
 } from "./msgpack.js";
+export {
+  Resource,
+  ResourceAdvertisement,
+  ResourceStatus
+} from "./resource.js";
+export type { ResourceCallbacks, ResourceOptions, ResourceStatusValue } from "./resource.js";
 export {
   DestinationAllowPolicy,
   RegisteredDestination,

@@ -82,4 +82,16 @@ export class NodeCryptoProvider implements CryptoProvider {
     decipher.setAutoPadding(false);
     return toUint8Array(Buffer.concat([decipher.update(ciphertext), decipher.final()]));
   }
+
+  aes256CbcEncrypt(plaintext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
+    const cipher = createCipheriv("aes-256-cbc", key, iv);
+    cipher.setAutoPadding(false);
+    return toUint8Array(Buffer.concat([cipher.update(plaintext), cipher.final()]));
+  }
+
+  aes256CbcDecrypt(ciphertext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
+    const decipher = createDecipheriv("aes-256-cbc", key, iv);
+    decipher.setAutoPadding(false);
+    return toUint8Array(Buffer.concat([decipher.update(ciphertext), decipher.final()]));
+  }
 }

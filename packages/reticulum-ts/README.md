@@ -5,11 +5,11 @@ compatibility with Python RNS 0.9.4.
 
 ## Status (Phase 1)
 
-- **M0** — monorepo scaffolding, conformance harness, crypto golden vectors
-- **M1** — `CryptoProvider` (node + pure), Token, Identity (keygen, sign/verify,
-  encrypt/decrypt, ratchet handling)
-- **M2/M3 in progress** — packet/destination/announce vectors, HDLC framing, Pipe
-  interface
+- **M0–M3** — scaffolding, crypto/identity vectors, packets/destinations/announces,
+  HDLC framing, Pipe/TCP/UDP interfaces, leaf transport
+- **M4 (in progress)** — links with AES-256-CBC mode signalling, request/response,
+  identification, keepalive, Channel + Buffer
+- **M5 (started)** — Resource transfer (advertisement, requests, parts, proof) over links
 
 ## Development
 

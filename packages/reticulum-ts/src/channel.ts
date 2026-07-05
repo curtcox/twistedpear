@@ -1,5 +1,4 @@
 import { equalBytes } from "./crypto/bytes.js";
-import { equalBytes } from "./crypto/bytes.js";
 import type { Link } from "./link.js";
 import { LinkStatus } from "./link.js";
 import { Packet, PacketContext } from "./packet.js";
@@ -468,11 +467,14 @@ export class Channel {
 
   private updatePacketTimeouts(): void {
     for (const envelope of this.txRing) {
-      if (envelope.packet?.receipt?.timeout !== null && envelope.packet?.receipt !== null && envelope.packet.receipt !== undefined) {
-        const updatedTimeout = this.getPacketTimeoutTime(envelope.tries);
-        if (envelope.packet.receipt.timeout !== null && updatedTimeout > envelope.packet.receipt.timeout) {
-          envelope.packet.receipt.setTimeout(updatedTimeout);
-        }
+      const receipt = envelope.packet?.receipt;
+      if (receipt === null || receipt === undefined) {
+        continue;
+      }
+
+      const updatedTimeout = this.getPacketTimeoutTime(envelope.tries);
+      if (receipt.timeout !== null && updatedTimeout > receipt.timeout) {
+        receipt.setTimeout(updatedTimeout);
       }
     }
   }

@@ -27,6 +27,21 @@ import { RETICULUM_MTU } from "./reticulum.js";
 import type { Clock } from "./runtime/runtime.js";
 import type { LeafTransport } from "./transport/node.js";
 import { PATHFINDER_MAX_HOPS } from "./transport/node.js";
+import { Resource, ResourceAdvertisement } from "./resource.js";
+
+/** Mirrors RNS/Link.py link mode constants (RNS 0.9.4). */
+export const LinkMode = {
+  MODE_AES128_CBC: 0x00,
+  MODE_AES256_CBC: 0x01,
+  MODE_AES256_GCM: 0x02
+} as const;
+
+export type LinkModeValue = (typeof LinkMode)[keyof typeof LinkMode];
+
+export const LINK_MODE_DEFAULT = LinkMode.MODE_AES256_CBC;
+export const LINK_ENABLED_MODES: ReadonlyArray<LinkModeValue> = [LinkMode.MODE_AES256_CBC];
+export const LINK_MTU_BYTEMASK = 0x1fffff;
+export const LINK_MODE_BYTEMASK = 0xe0;
 
 /** Mirrors RNS/Link.py constants (RNS 0.9.4). */
 export const LINK_ECPUB_SIZE = 64;
@@ -62,11 +77,21 @@ export const LinkTeardownReason = {
 
 export type LinkTeardownReasonValue = (typeof LinkTeardownReason)[keyof typeof LinkTeardownReason];
 
+export const LinkResourceStrategy = {
+  ACCEPT_NONE: 0x00,
+  ACCEPT_ALL: 0x01,
+  ACCEPT_APP: 0x02
+} as const;
+
+export type LinkResourceStrategyValue = (typeof LinkResourceStrategy)[keyof typeof LinkResourceStrategy];
+
 export interface LinkCallbacks {
   linkEstablished?: (link: Link) => void;
   linkClosed?: (link: Link) => void;
   packet?: (data: Uint8Array, packet: Packet) => void;
   remoteIdentified?: (link: Link, identity: Identity) => void;
+  resource?: (advertisement: ResourceAdvertisement) => boolean;
+  resourceConcluded?: (resource: Resource) => void;
 }
 
 export interface InitiatorLinkOptions {
@@ -115,6 +140,11 @@ export class Link {
   establishmentTimeout = LINK_ESTABLISHMENT_TIMEOUT_PER_HOP + LINK_KEEPALIVE;
   teardownReason: LinkTeardownReasonValue | null = null;
   remoteIdentity: Identity | null = null;
+  mode: LinkModeValue = LINK_MODE_DEFAULT;
+  resourceStrategy: LinkResourceStrategyValue = LinkResourceStrategy.ACCEPT_ALL;
+
+  private readonly outgoingResourcesList: Resource[] = [];
+  private readonly incomingResourcesList: Resource[] = [];
 
   private readonly provider: CryptoProvider;
   private readonly transport: LeafTransport;
@@ -172,17 +202,22 @@ export class Link {
     link.establishmentTimeout =
       LINK_ESTABLISHMENT_TIMEOUT_PER_HOP * Math.max(1, link.expectedHops ?? 1) + LINK_KEEPALIVE;
 
-    let mtuBytes = new Uint8Array(0);
+    let mtu = RETICULUM_MTU;
     if (options.linkMtuDiscovery !== false) {
       const nextHopMtu = options.transport.nextHopInterfaceMtu(destination.hash);
-      if (nextHopMtu !== null && nextHopMtu !== RETICULUM_MTU) {
-        link.mtu = nextHopMtu;
-        mtuBytes = Uint8Array.from(Link.mtuBytes(nextHopMtu));
+      if (nextHopMtu !== null) {
+        mtu = nextHopMtu;
       }
     }
 
+    link.mtu = mtu;
+    link.mode = LINK_MODE_DEFAULT;
     link.updateMdu();
-    const requestData = concatBytes(link.publicKeyBytes, signaturePublicKeyBytes, mtuBytes);
+    const requestData = concatBytes(
+      link.publicKeyBytes,
+      signaturePublicKeyBytes,
+      Link.signallingBytes(mtu, link.mode)
+    );
     const packet = Packet.fromFields(provider, {
       headerType: PacketHeaderType.HEADER_1,
       transportType: TransportType.BROADCAST,
@@ -239,6 +274,11 @@ export class Link {
         link.mtu = Link.mtuFromLrPacket(packet) ?? RETICULUM_MTU;
       }
 
+      link.mode = Link.modeFromLrPacket(packet);
+      if (!LINK_ENABLED_MODES.includes(link.mode)) {
+        return null;
+      }
+
       link.updateMdu();
       link.attachedInterface = iface;
       link.establishmentCost += packet.raw.length;
@@ -266,6 +306,35 @@ export class Link {
     return Identity.truncatedHash(provider, hashablePart);
   }
 
+  static signallingBytes(mtu: number, mode: LinkModeValue): Uint8Array {
+    if (!LINK_ENABLED_MODES.includes(mode)) {
+      throw new Error(`Requested link mode ${mode} is not enabled`);
+    }
+
+    const signallingValue = (mtu & LINK_MTU_BYTEMASK) + (((mode << 5) & LINK_MODE_BYTEMASK) << 16);
+    const buffer = new ArrayBuffer(4);
+    const view = new DataView(buffer);
+    view.setUint32(0, signallingValue, false);
+    return new Uint8Array(buffer).subarray(1);
+  }
+
+  static modeFromLrPacket(packet: Packet): LinkModeValue {
+    if (packet.data.length > LINK_ECPUB_SIZE) {
+      return ((packet.data[LINK_ECPUB_SIZE]! & LINK_MODE_BYTEMASK) >> 5) as LinkModeValue;
+    }
+
+    return LINK_MODE_DEFAULT;
+  }
+
+  static modeFromLpPacket(packet: Packet): LinkModeValue {
+    const base = LINK_SIGNATURE_SIZE + LINK_ECPUB_SIZE / 2;
+    if (packet.data.length > base) {
+      return ((packet.data[base]! & LINK_MODE_BYTEMASK) >> 5) as LinkModeValue;
+    }
+
+    return LINK_MODE_DEFAULT;
+  }
+
   static mtuBytes(mtu: number): Uint8Array {
     const value = mtu & 0xffffff;
     return new Uint8Array([(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff]);
@@ -278,9 +347,10 @@ export class Link {
 
     const offset = LINK_ECPUB_SIZE;
     return (
-      (packet.data[offset]! << 16) |
-      (packet.data[offset + 1]! << 8) |
-      packet.data[offset + 2]!
+      ((packet.data[offset]! << 16) |
+        (packet.data[offset + 1]! << 8) |
+        packet.data[offset + 2]!) &
+      LINK_MTU_BYTEMASK
     );
   }
 
@@ -291,7 +361,7 @@ export class Link {
     }
 
     const mtuBytes = packet.data.subarray(base, base + LINK_MTU_SIZE);
-    return (mtuBytes[0]! << 16) | (mtuBytes[1]! << 8) | mtuBytes[2]!;
+    return ((mtuBytes[0]! << 16) | (mtuBytes[1]! << 8) | mtuBytes[2]!) & LINK_MTU_BYTEMASK;
   }
 
   setLinkId(packet: Packet): void {
@@ -311,7 +381,8 @@ export class Link {
 
     this.status = LinkStatus.HANDSHAKE;
     const sharedKey = this.provider.x25519SharedSecret(this.privateKey, this.peerPublicKeyBytes);
-    this.derivedKey = rnsHkdf(this.provider, 32, sharedKey, this.linkId, null);
+    const derivedKeyLength = this.mode === LinkMode.MODE_AES256_CBC ? 64 : 32;
+    this.derivedKey = rnsHkdf(this.provider, derivedKeyLength, sharedKey, this.linkId, null);
   }
 
   async prove(): Promise<void> {
@@ -319,14 +390,14 @@ export class Link {
       throw new Error("Responder link is missing owner or key material");
     }
 
-    const mtuBytes = this.mtu === RETICULUM_MTU ? new Uint8Array(0) : Link.mtuBytes(this.mtu);
+    const signallingBytes = Link.signallingBytes(this.mtu, this.mode);
     const ownerSigPublicKey = this.owner.identity.getPublicKey().subarray(
       LINK_ECPUB_SIZE / 2,
       LINK_ECPUB_SIZE
     );
-    const signedData = concatBytes(this.linkId, this.publicKeyBytes, ownerSigPublicKey, mtuBytes);
+    const signedData = concatBytes(this.linkId, this.publicKeyBytes, ownerSigPublicKey, signallingBytes);
     const signature = this.owner.identity.sign(signedData);
-    const proofData = concatBytes(signature, this.publicKeyBytes, mtuBytes);
+    const proofData = concatBytes(signature, this.publicKeyBytes, signallingBytes);
     const proofPacket = Packet.fromFields(this.provider, {
       headerType: PacketHeaderType.HEADER_1,
       transportType: TransportType.BROADCAST,
@@ -350,13 +421,18 @@ export class Link {
     }
 
     try {
+      const mode = Link.modeFromLpPacket(packet);
+      if (mode !== this.mode) {
+        throw new Error(`Invalid link mode ${mode} in link request proof`);
+      }
+
       let proofData = packet.data;
-      let mtuBytes = new Uint8Array(0);
+      let signallingBytes = new Uint8Array(0);
       let confirmedMtu: number | null = null;
 
       if (proofData.length === LINK_SIGNATURE_SIZE + LINK_ECPUB_SIZE / 2 + LINK_MTU_SIZE) {
         confirmedMtu = Link.mtuFromLpPacket(packet);
-        mtuBytes = Uint8Array.from(Link.mtuBytes(confirmedMtu ?? RETICULUM_MTU));
+        signallingBytes = Uint8Array.from(Link.signallingBytes(confirmedMtu ?? RETICULUM_MTU, mode));
         proofData = proofData.subarray(0, LINK_SIGNATURE_SIZE + LINK_ECPUB_SIZE / 2);
       }
 
@@ -372,7 +448,7 @@ export class Link {
       this.loadPeer(peerPublicKey, peerSignaturePublicKey);
       this.handshake();
 
-      const signedData = concatBytes(this.linkId, this.peerPublicKeyBytes!, peerSignaturePublicKey, mtuBytes);
+      const signedData = concatBytes(this.linkId, this.peerPublicKeyBytes!, peerSignaturePublicKey, signallingBytes);
       const signature = proofData.subarray(0, LINK_SIGNATURE_SIZE);
       if (!this.destination.identity!.validate(signature, signedData)) {
         throw new Error("Invalid link proof signature");
@@ -496,6 +572,36 @@ export class Link {
       return;
     }
 
+    if (packet.context === PacketContext.RESOURCE_ADV) {
+      await this.handleResourceAdvertisementPacket(packet);
+      return;
+    }
+
+    if (packet.context === PacketContext.RESOURCE_REQ) {
+      await this.handleResourceRequestPacket(packet);
+      return;
+    }
+
+    if (packet.context === PacketContext.RESOURCE_HMU) {
+      await this.handleResourceHashmapUpdatePacket(packet);
+      return;
+    }
+
+    if (packet.context === PacketContext.RESOURCE_ICL) {
+      await this.handleResourceCancelPacket(packet, true);
+      return;
+    }
+
+    if (packet.context === PacketContext.RESOURCE_RCL) {
+      await this.handleResourceCancelPacket(packet, false);
+      return;
+    }
+
+    if (packet.context === PacketContext.RESOURCE) {
+      await this.handleResourcePartPacket(packet);
+      return;
+    }
+
     if (packet.context === PacketContext.NONE) {
       const plaintext = this.decrypt(packet.data);
       if (plaintext !== null) {
@@ -517,6 +623,35 @@ export class Link {
 
   getRemoteIdentity(): Identity | null {
     return this.remoteIdentity;
+  }
+
+  get cryptoProvider(): CryptoProvider {
+    return this.provider;
+  }
+
+  get linkTransport(): LeafTransport {
+    return this.transport;
+  }
+
+  get incomingResources(): readonly Resource[] {
+    return this.incomingResourcesList;
+  }
+
+  get outgoingResources(): readonly Resource[] {
+    return this.outgoingResourcesList;
+  }
+
+  async sendProof(context: number, data: Uint8Array): Promise<void> {
+    const packet = Packet.fromFields(this.provider, {
+      headerType: PacketHeaderType.HEADER_1,
+      transportType: TransportType.BROADCAST,
+      destinationType: DestinationType.LINK,
+      packetType: PacketType.PROOF,
+      destinationHash: this.linkId,
+      context,
+      data
+    });
+    await this.transport.sendPacket(packet, { attachedInterface: this.attachedInterface });
   }
 
   async request(
@@ -581,6 +716,46 @@ export class Link {
     return this.channel;
   }
 
+  readyForNewResource(): boolean {
+    return this.outgoingResourcesList.length === 0;
+  }
+
+  registerOutgoingResource(resource: Resource): void {
+    if (!this.outgoingResourcesList.includes(resource)) {
+      this.outgoingResourcesList.push(resource);
+    }
+  }
+
+  registerIncomingResource(resource: Resource): void {
+    if (!this.incomingResourcesList.includes(resource)) {
+      this.incomingResourcesList.push(resource);
+    }
+  }
+
+  hasIncomingResource(resource: Resource): boolean {
+    return this.incomingResourcesList.some((incoming) => equalBytes(incoming.hash, resource.hash));
+  }
+
+  resourceConcluded(resource: Resource): void {
+    const outgoingIndex = this.outgoingResourcesList.indexOf(resource);
+    if (outgoingIndex >= 0) {
+      this.outgoingResourcesList.splice(outgoingIndex, 1);
+    }
+
+    const incomingIndex = this.incomingResourcesList.indexOf(resource);
+    if (incomingIndex >= 0) {
+      this.incomingResourcesList.splice(incomingIndex, 1);
+    }
+  }
+
+  setResourceStrategy(strategy: LinkResourceStrategyValue): void {
+    this.resourceStrategy = strategy;
+  }
+
+  get trafficTimeoutFactor(): number {
+    return LINK_TRAFFIC_TIMEOUT_FACTOR;
+  }
+
   registerPendingRequest(receipt: LinkRequestReceipt): void {
     if (!this.pendingRequests.includes(receipt)) {
       this.pendingRequests.push(receipt);
@@ -613,12 +788,13 @@ export class Link {
   async sendContext(
     context: number,
     data: Uint8Array,
-    options: { createReceipt?: boolean } = {}
+    options: { createReceipt?: boolean; encrypt?: boolean } = {}
   ): Promise<LinkSendContextResult> {
     if (this.status !== LinkStatus.ACTIVE) {
       throw new Error("Cannot send on inactive link");
     }
 
+    const payload = options.encrypt === false ? data : this.encrypt(data);
     const packet = Packet.fromFields(this.provider, {
       headerType: PacketHeaderType.HEADER_1,
       transportType: TransportType.BROADCAST,
@@ -626,7 +802,7 @@ export class Link {
       packetType: PacketType.DATA,
       destinationHash: this.linkId,
       context,
-      data: this.encrypt(data)
+      data: payload
     });
 
     const receipt = await this.transport.sendPacket(packet, {
@@ -635,6 +811,10 @@ export class Link {
     });
     this.hadOutbound(context === PacketContext.KEEPALIVE);
     return { raw: packet.raw, receipt };
+  }
+
+  async sendResourcePart(data: Uint8Array): Promise<void> {
+    await this.sendContext(PacketContext.RESOURCE, data, { encrypt: false });
   }
 
   async resendPacket(raw: Uint8Array, options: { createReceipt?: boolean } = {}): Promise<LinkSendContextResult | null> {
@@ -671,6 +851,11 @@ export class Link {
     this.token = null;
     this.channel?.shutdown();
     this.channel = null;
+    for (const resource of [...this.incomingResourcesList, ...this.outgoingResourcesList]) {
+      resource.cancel();
+    }
+    this.incomingResourcesList.length = 0;
+    this.outgoingResourcesList.length = 0;
     this.transport.unregisterLink(this);
     this.callbacks.linkClosed?.(this);
   }
@@ -715,6 +900,10 @@ export class Link {
     const publicKey = plaintext.subarray(0, IDENTITY_KEY_SIZE);
     const signature = plaintext.subarray(IDENTITY_KEY_SIZE, IDENTITY_KEY_SIZE + LINK_SIGNATURE_SIZE);
     const identity = Identity.fromPublicKey(this.provider, publicKey);
+    if (identity === null) {
+      return;
+    }
+
     const signedData = concatBytes(this.linkId, publicKey);
     if (!identity.validate(signature, signedData)) {
       return;
@@ -806,6 +995,102 @@ export class Link {
     }
 
     this.getChannel().receive(plaintext);
+  }
+
+  private async handleResourceAdvertisementPacket(packet: Packet): Promise<void> {
+    const plaintext = this.decrypt(packet.data);
+    if (plaintext === null) {
+      return;
+    }
+
+    if (ResourceAdvertisement.isRequest(plaintext)) {
+      Resource.accept(this, plaintext, packet, {
+        callback: (resource) => this.callbacks.resourceConcluded?.(resource)
+      });
+      return;
+    }
+
+    if (this.resourceStrategy === LinkResourceStrategy.ACCEPT_NONE) {
+      return;
+    }
+
+    if (this.resourceStrategy === LinkResourceStrategy.ACCEPT_APP) {
+      try {
+        const advertisement = ResourceAdvertisement.unpack(plaintext);
+        if (this.callbacks.resource?.(advertisement) !== true) {
+          Resource.reject(this, plaintext);
+          return;
+        }
+      } catch {
+        return;
+      }
+    }
+
+    Resource.accept(this, plaintext, packet, {
+      callback: (resource) => this.callbacks.resourceConcluded?.(resource)
+    });
+  }
+
+  private async handleResourceRequestPacket(packet: Packet): Promise<void> {
+    const plaintext = this.decrypt(packet.data);
+    if (plaintext === null) {
+      return;
+    }
+
+    const resourceHash = Resource.readRequestHash(plaintext);
+    for (const resource of this.outgoingResourcesList) {
+      if (equalBytes(resource.hash, resourceHash) && !resource.hasSeenRequest(packet)) {
+        resource.trackRequest(packet);
+        await resource.handleRequest(plaintext);
+        return;
+      }
+    }
+  }
+
+  private async handleResourceHashmapUpdatePacket(packet: Packet): Promise<void> {
+    const plaintext = this.decrypt(packet.data);
+    if (plaintext === null) {
+      return;
+    }
+
+    const resourceHash = plaintext.subarray(0, 32);
+    for (const resource of this.incomingResourcesList) {
+      if (equalBytes(resource.hash, resourceHash)) {
+        resource.hashmapUpdatePacket(plaintext);
+        return;
+      }
+    }
+  }
+
+  private async handleResourceCancelPacket(packet: Packet, incoming: boolean): Promise<void> {
+    const plaintext = this.decrypt(packet.data);
+    if (plaintext === null) {
+      return;
+    }
+
+    const resources = incoming ? this.incomingResourcesList : this.outgoingResourcesList;
+    for (const resource of resources) {
+      if (equalBytes(resource.hash, plaintext.subarray(0, 32))) {
+        resource.cancel();
+        return;
+      }
+    }
+  }
+
+  async handleResourceProof(packet: Packet): Promise<void> {
+    const resourceHash = packet.data.subarray(0, 32);
+    for (const resource of this.outgoingResourcesList) {
+      if (equalBytes(resource.hash, resourceHash)) {
+        resource.validateProof(packet.data);
+        return;
+      }
+    }
+  }
+
+  private async handleResourcePartPacket(packet: Packet): Promise<void> {
+    for (const resource of this.incomingResourcesList) {
+      resource.receivePart(packet);
+    }
   }
 
   private async handleTeardownPacket(packet: Packet): Promise<void> {

@@ -71,6 +71,10 @@ export class Identity {
     return identity.loadPublicKey(publicKeyBytes) ? identity : null;
   }
 
+  static getRandomHash(provider: CryptoProvider): Uint8Array {
+    return provider.randomBytes(TRUNCATED_HASH_LENGTH / 8);
+  }
+
   static fullHash(provider: CryptoProvider, data: Uint8Array): Uint8Array {
     return provider.sha256(data);
   }

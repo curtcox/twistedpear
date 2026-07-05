@@ -414,6 +414,16 @@ export class LeafTransport {
       return;
     }
 
+    if (packet.context === PacketContext.RESOURCE_PRF) {
+      for (const link of this.activeLinks) {
+        if (equalBytes(link.linkId, packet.destinationHash)) {
+          await link.handleResourceProof(packet);
+          return;
+        }
+      }
+      return;
+    }
+
     for (const receipt of [...this.receipts]) {
       if (!equalBytes(packet.destinationHash, receipt.truncatedHash)) {
         continue;

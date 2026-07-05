@@ -19,4 +19,6 @@ export interface CryptoProvider {
   ed25519Verify(publicKey: Uint8Array, message: Uint8Array, signature: Uint8Array): boolean;
   aes128CbcEncrypt(plaintext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array;
   aes128CbcDecrypt(ciphertext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array;
+  aes256CbcEncrypt(plaintext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array;
+  aes256CbcDecrypt(ciphertext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array;
 }

@@ -8,7 +8,10 @@ export interface TokenEncryptOptions {
   readonly iv?: Uint8Array;
 }
 
+type TokenMode = "aes128" | "aes256";
+
 export class Token {
+  private readonly mode: TokenMode;
   private readonly signingKey: Uint8Array;
   private readonly encryptionKey: Uint8Array;
 
@@ -16,12 +19,17 @@ export class Token {
     private readonly provider: CryptoProvider,
     key: Uint8Array
   ) {
-    if (key.length !== 32) {
-      throw new Error(`Token key must be 32 bytes, not ${key.length}`);
+    if (key.length === 32) {
+      this.mode = "aes128";
+      this.signingKey = key.subarray(0, 16);
+      this.encryptionKey = key.subarray(16, 32);
+    } else if (key.length === 64) {
+      this.mode = "aes256";
+      this.signingKey = key.subarray(0, 32);
+      this.encryptionKey = key.subarray(32, 64);
+    } else {
+      throw new Error(`Token key must be 32 or 64 bytes, not ${key.length}`);
     }
-
-    this.signingKey = key.subarray(0, 16);
-    this.encryptionKey = key.subarray(16, 32);
   }
 
   static generateKey(provider: CryptoProvider): Uint8Array {
@@ -57,11 +65,10 @@ export class Token {
       throw new Error("Token IV must be 16 bytes");
     }
 
-    const ciphertext = this.provider.aes128CbcEncrypt(
-      pkcs7Pad(data),
-      this.encryptionKey,
-      iv
-    );
+    const ciphertext =
+      this.mode === "aes256"
+        ? this.provider.aes256CbcEncrypt(pkcs7Pad(data), this.encryptionKey, iv)
+        : this.provider.aes128CbcEncrypt(pkcs7Pad(data), this.encryptionKey, iv);
     const signedParts = concatBytes(iv, ciphertext);
     const hmac = this.provider.hmacSha256(this.signingKey, signedParts);
     return concatBytes(signedParts, hmac);
@@ -80,9 +87,11 @@ export class Token {
     const ciphertext = token.subarray(16, token.length - 32);
 
     try {
-      const plaintext = pkcs7Unpad(
-        this.provider.aes128CbcDecrypt(ciphertext, this.encryptionKey, iv)
-      );
+      const decrypted =
+        this.mode === "aes256"
+          ? this.provider.aes256CbcDecrypt(ciphertext, this.encryptionKey, iv)
+          : this.provider.aes128CbcDecrypt(ciphertext, this.encryptionKey, iv);
+      const plaintext = pkcs7Unpad(decrypted);
       return plaintext;
     } catch {
       throw new Error("Could not decrypt token");

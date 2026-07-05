@@ -57,4 +57,12 @@ export class PureCryptoProvider implements CryptoProvider {
   aes128CbcDecrypt(ciphertext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
     return cbc(key, iv, { disablePadding: true }).decrypt(ciphertext);
   }
+
+  aes256CbcEncrypt(plaintext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
+    return cbc(key, iv, { disablePadding: true }).encrypt(plaintext);
+  }
+
+  aes256CbcDecrypt(ciphertext: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
+    return cbc(key, iv, { disablePadding: true }).decrypt(ciphertext);
+  }
 }
