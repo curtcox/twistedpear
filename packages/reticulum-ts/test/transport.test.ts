@@ -207,4 +207,115 @@ describe("TCP loopback interface", () => {
 
     await server.close();
   });
+
+  it("reconnects after the server restarts", async () => {
+    const left = Reticulum.create({ provider, runtime });
+    const right = Reticulum.create({ provider, runtime });
+    left.start();
+    right.start();
+
+    const server = await right.addTcpServerInterface({
+      name: "server",
+      listenHost: "127.0.0.1",
+      listenPort: 0
+    });
+
+    const port = server.address?.port;
+    expect(port).toBeGreaterThan(0);
+
+    const client = await left.addTcpClientInterface({
+      name: "client",
+      targetHost: "127.0.0.1",
+      targetPort: port!,
+      reconnectWaitMs: 50
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(client.online).toBe(true);
+    expect(server.clients.length).toBe(1);
+
+    await server.close();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(client.online).toBe(false);
+
+    const server2 = await right.addTcpServerInterface({
+      name: "server-2",
+      listenHost: "127.0.0.1",
+      listenPort: port!
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(client.online).toBe(true);
+    expect(server2.clients.length).toBe(1);
+
+    await server2.close();
+  });
+});
+
+describe("UDP loopback interface", () => {
+  it("discovers announces and exchanges data packets", async () => {
+    const left = Reticulum.create({ provider, runtime });
+    const right = Reticulum.create({ provider, runtime });
+    left.start();
+    right.start();
+
+    const rightBind = await runtime.udp.bind("127.0.0.1", 0);
+    const leftBind = await runtime.udp.bind("127.0.0.1", 0);
+    const rightPort = rightBind.address.port;
+    const leftPort = leftBind.address.port;
+    await rightBind.close();
+    await leftBind.close();
+
+    const rightUdp = await right.addUdpInterface({
+      name: "right-udp",
+      listenHost: "127.0.0.1",
+      listenPort: rightPort,
+      forwardHost: "127.0.0.1",
+      forwardPort: leftPort
+    });
+
+    const leftUdp = await left.addUdpInterface({
+      name: "left-udp",
+      listenHost: "127.0.0.1",
+      listenPort: leftPort,
+      forwardHost: "127.0.0.1",
+      forwardPort: rightPort
+    });
+
+    const rightIn = right.registerDestination({
+      provider,
+      identity: new Identity(provider),
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "udp",
+      aspects: ["server"]
+    });
+
+    await rightIn.announce();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(left.hasPath(rightIn.hash)).toBe(true);
+
+    const leftOut = left.registerDestination({
+      provider,
+      identity: rightIn.identity,
+      direction: DestinationDirection.OUT,
+      type: DestinationType.SINGLE,
+      appName: "udp",
+      aspects: ["server"]
+    });
+
+    const received = new Promise<Uint8Array>((resolve) => {
+      rightIn.setPacketCallback((data) => resolve(data));
+    });
+
+    await leftOut.send(new TextEncoder().encode("udp hello"));
+    const payload = await Promise.race([
+      received,
+      new Promise<Uint8Array>((_, reject) => setTimeout(() => reject(new Error("timeout")), 500))
+    ]);
+    expect(new TextDecoder().decode(payload)).toBe("udp hello");
+
+    await leftUdp.close();
+    await rightUdp.close();
+  });
 });

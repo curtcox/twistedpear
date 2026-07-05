@@ -43,6 +43,10 @@ export class UdpInterface extends RawPacketInterface {
     this.readTask = this.readLoop();
   }
 
+  get address(): { readonly host: string; readonly port: number } | null {
+    return this.socket?.address ?? null;
+  }
+
   protected decodePacket(frame: Uint8Array): Packet | null {
     return Packet.decode(this.provider, frame);
   }

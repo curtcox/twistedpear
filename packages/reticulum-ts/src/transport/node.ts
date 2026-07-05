@@ -4,6 +4,7 @@ import { equalBytes } from "../crypto/bytes.js";
 import { Destination, DestinationDirection, DestinationType, type DestinationTypeValue, type DestinationDirectionValue } from "../destination.js";
 import { Identity } from "../identity.js";
 import type { PacketInterface } from "../interfaces/interface.js";
+import type { Link } from "../link.js";
 import { PacketReceipt, PacketReceiptStatus } from "../packet-receipt.js";
 import {
   Packet,
@@ -59,6 +60,7 @@ export interface LocalDestination {
   decrypt(ciphertext: Uint8Array): Uint8Array | null;
   dispatchPacket(data: Uint8Array, packet: Packet): void;
   shouldProve(packet: Packet): boolean;
+  handleLinkRequest?(packet: Packet, iface: PacketInterface): void;
 }
 
 export interface LeafTransportOptions {
@@ -76,6 +78,8 @@ export class LeafTransport {
   private readonly announceHandlers: AnnounceHandler[] = [];
   private readonly interfaces: PacketInterface[] = [];
   private readonly interfaceTasks = new Map<PacketInterface, Promise<void>>();
+  private readonly pendingLinks: Link[] = [];
+  private readonly activeLinks: Link[] = [];
   private readonly useImplicitProof: boolean;
 
   constructor(private readonly options: LeafTransportOptions) {
@@ -130,6 +134,46 @@ export class LeafTransport {
     return this.pathTable.get(hashKey(destinationHash))?.hops ?? null;
   }
 
+  nextHopInterfaceMtu(destinationHash: Uint8Array): number | null {
+    return this.pathTable.get(hashKey(destinationHash))?.receivedInterface.mtu ?? null;
+  }
+
+  registerLink(link: Link): void {
+    if (link.initiator) {
+      if (!this.pendingLinks.includes(link)) {
+        this.pendingLinks.push(link);
+      }
+      return;
+    }
+
+    if (!this.activeLinks.includes(link)) {
+      this.activeLinks.push(link);
+    }
+  }
+
+  activateLink(link: Link): void {
+    const index = this.pendingLinks.indexOf(link);
+    if (index >= 0) {
+      this.pendingLinks.splice(index, 1);
+    }
+
+    if (!this.activeLinks.includes(link)) {
+      this.activeLinks.push(link);
+    }
+  }
+
+  unregisterLink(link: Link): void {
+    const pendingIndex = this.pendingLinks.indexOf(link);
+    if (pendingIndex >= 0) {
+      this.pendingLinks.splice(pendingIndex, 1);
+    }
+
+    const activeIndex = this.activeLinks.indexOf(link);
+    if (activeIndex >= 0) {
+      this.activeLinks.splice(activeIndex, 1);
+    }
+  }
+
   async transmit(iface: PacketInterface, raw: Uint8Array): Promise<void> {
     const packet = Packet.decode(this.options.provider, raw);
     if (packet === null) {
@@ -179,13 +223,52 @@ export class LeafTransport {
       return;
     }
 
+    if (workingPacket.packetType === PacketType.LINKREQUEST) {
+      await this.handleLinkRequest(workingPacket, iface);
+      return;
+    }
+
     if (workingPacket.packetType === PacketType.DATA) {
+      if (workingPacket.destinationType === DestinationType.LINK) {
+        await this.handleLinkData(workingPacket, iface);
+        return;
+      }
+
       await this.handleData(workingPacket, iface);
       return;
     }
 
     if (workingPacket.packetType === PacketType.PROOF) {
-      this.handleProof(workingPacket);
+      await this.handleProof(workingPacket, iface);
+    }
+  }
+
+  private async handleLinkRequest(packet: Packet, iface: PacketInterface): Promise<void> {
+    for (const destination of this.destinations) {
+      if (
+        equalBytes(destination.hash, packet.destinationHash) &&
+        destination.type === packet.destinationType &&
+        destination.handleLinkRequest !== undefined
+      ) {
+        destination.handleLinkRequest(packet, iface);
+        return;
+      }
+    }
+  }
+
+  private async handleLinkData(packet: Packet, iface: PacketInterface): Promise<void> {
+    for (const link of this.activeLinks) {
+      if (equalBytes(link.linkId, packet.destinationHash)) {
+        await link.receive(packet, iface);
+        return;
+      }
+    }
+
+    for (const link of this.pendingLinks) {
+      if (equalBytes(link.linkId, packet.destinationHash)) {
+        await link.receive(packet, iface);
+        return;
+      }
     }
   }
 
@@ -314,7 +397,17 @@ export class LeafTransport {
     }
   }
 
-  private handleProof(packet: Packet): void {
+  private async handleProof(packet: Packet, iface: PacketInterface): Promise<void> {
+    if (packet.context === PacketContext.LRPROOF) {
+      for (const link of this.pendingLinks) {
+        if (equalBytes(link.linkId, packet.destinationHash) && link.hopsMatch(packet)) {
+          await link.validateProof(packet, iface);
+          return;
+        }
+      }
+      return;
+    }
+
     for (const receipt of [...this.receipts]) {
       if (!equalBytes(packet.destinationHash, receipt.truncatedHash)) {
         continue;

@@ -152,8 +152,11 @@ class NodeTcpFactory implements TcpFactory {
 class NodeBoundDatagramSocket implements BoundDatagramSocket {
   private readonly queue = new AsyncDatagramQueue();
   private closed = false;
+  readonly address: { readonly host: string; readonly port: number };
 
   constructor(private readonly socket: UdpSocket) {
+    const address = socket.address();
+    this.address = { host: address.address, port: address.port };
     socket.on("message", (message, remote) => {
       this.queue.push({
         data: Uint8Array.from(message),

@@ -89,3 +89,13 @@ export { PacketReceipt, PacketReceiptStatus, EXPLICIT_PROOF_LENGTH, IMPLICIT_PRO
 export type { PacketReceiptCallbacks, PacketReceiptStatusValue } from "./packet-receipt.js";
 export { Reticulum, RETICULUM_MTU } from "./reticulum.js";
 export type { ReticulumOptions } from "./reticulum.js";
+export {
+  Link,
+  LINK_ECPUB_SIZE,
+  LINK_KEY_SIZE,
+  LINK_KEEPALIVE,
+  LINK_MTU_SIZE,
+  LINK_SIGNATURE_SIZE,
+  LinkStatus
+} from "./link.js";
+export type { InitiatorLinkOptions, LinkCallbacks, LinkStatusValue } from "./link.js";

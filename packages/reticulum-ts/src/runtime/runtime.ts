@@ -48,6 +48,7 @@ export interface DatagramPacket {
 }
 
 export interface BoundDatagramSocket {
+  readonly address: { readonly host: string; readonly port: number };
   readonly packets: AsyncIterable<DatagramPacket>;
   send(data: Uint8Array, host: string, port: number): Promise<void>;
   close(): Promise<void>;

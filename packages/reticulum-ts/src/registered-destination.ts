@@ -7,6 +7,7 @@ import {
 } from "./destination.js";
 import type { PacketInterface } from "./interfaces/interface.js";
 import { Announce } from "./announce.js";
+import { Link, type LinkCallbacks } from "./link.js";
 import {
   Packet,
   PacketContext,
@@ -26,11 +27,17 @@ export interface RegisteredDestinationOptions extends DestinationOptions {
 }
 
 export class RegisteredDestination extends Destination {
-  private readonly cryptoProvider: CryptoProvider;
+  readonly cryptoProvider: CryptoProvider;
   private packetCallback: ((data: Uint8Array, packet: Packet) => void) | null = null;
   private proofRequestedCallback: ((packet: Packet) => boolean) | null = null;
   proofStrategy: DestinationProofStrategyValue = DestinationProofStrategy.PROVE_NONE;
+  acceptLinkRequests = true;
+  private readonly links: Link[] = [];
   private transport: LeafTransport | null = null;
+
+  get activeLinks(): readonly Link[] {
+    return this.links;
+  }
 
   constructor(options: RegisteredDestinationOptions) {
     super(options.provider, options);
@@ -52,6 +59,33 @@ export class RegisteredDestination extends Destination {
 
   setProofStrategy(strategy: DestinationProofStrategyValue): void {
     this.proofStrategy = strategy;
+  }
+
+  setAcceptLinkRequests(accept: boolean): void {
+    this.acceptLinkRequests = accept;
+  }
+
+  requestLink(callbacks?: LinkCallbacks): Link {
+    if (this.transport === null) {
+      throw new Error("Destination is not attached to a Reticulum instance");
+    }
+
+    return Link.request({
+      destination: this,
+      transport: this.transport,
+      ...(callbacks === undefined ? {} : { callbacks })
+    });
+  }
+
+  handleLinkRequest(packet: Packet, iface: PacketInterface): void {
+    if (!this.acceptLinkRequests || this.direction !== DestinationDirection.IN) {
+      return;
+    }
+
+    const link = Link.validateRequest(this, this.transport!, packet, iface);
+    if (link !== null) {
+      this.links.push(link);
+    }
   }
 
   dispatchPacket(data: Uint8Array, packet: Packet): void {
