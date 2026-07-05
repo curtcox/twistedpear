@@ -2,6 +2,9 @@ import type { CryptoProvider } from "./crypto/provider.js";
 import { DestinationType, type DestinationTypeValue } from "./destination.js";
 import { Identity, TRUNCATED_HASH_LENGTH } from "./identity.js";
 
+const FULL_HASH_SIZE = 32;
+const SIGNATURE_SIZE = 64;
+
 /** Mirrors RNS/Packet.py packet and header wire constants. */
 export const PacketType = {
   DATA: 0x00,
@@ -70,6 +73,10 @@ export interface PacketFields {
   readonly transportId?: Uint8Array;
 }
 
+export interface PacketProofOptions {
+  readonly explicit?: boolean;
+}
+
 export class Packet {
   readonly headerType: PacketHeaderTypeValue;
   readonly contextFlag: PacketContextFlagValue;
@@ -108,6 +115,26 @@ export class Packet {
   }
 
   static fromFields(provider: CryptoProvider, fields: PacketFields): Packet {
+    if (!isHeaderType(fields.headerType)) {
+      throw new Error(`Unknown packet header type: ${fields.headerType}`);
+    }
+
+    if (!isContextFlag(fields.contextFlag ?? PacketContextFlag.UNSET)) {
+      throw new Error(`Unknown packet context flag: ${fields.contextFlag}`);
+    }
+
+    if (!isTransportType(fields.transportType)) {
+      throw new Error(`Unknown packet transport type: ${fields.transportType}`);
+    }
+
+    if (!isDestinationType(fields.destinationType)) {
+      throw new Error(`Unknown packet destination type: ${fields.destinationType}`);
+    }
+
+    if (!isPacketType(fields.packetType)) {
+      throw new Error(`Unknown packet type: ${fields.packetType}`);
+    }
+
     validateHash(fields.destinationHash, "destination hash");
     if (fields.headerType === PacketHeaderType.HEADER_2) {
       if (fields.transportId === undefined) {
@@ -145,7 +172,13 @@ export class Packet {
       const hops = raw[1]!;
       const hashLength = TRUNCATED_HASH_LENGTH / 8;
 
-      if (!isHeaderType(headerType) || !isDestinationType(destinationType) || !isPacketType(packetType)) {
+      if (
+        !isHeaderType(headerType) ||
+        !isContextFlag(contextFlag) ||
+        !isTransportType(transportType) ||
+        !isDestinationType(destinationType) ||
+        !isPacketType(packetType)
+      ) {
         return null;
       }
 
@@ -205,6 +238,34 @@ export class Packet {
     return Identity.truncatedHash(this.provider, this.hashablePart());
   }
 
+  proofDestinationHash(): Uint8Array {
+    return this.hash().subarray(0, TRUNCATED_HASH_LENGTH / 8);
+  }
+
+  createProof(identity: Identity, options: PacketProofOptions = {}): Uint8Array {
+    const packetHash = this.hash();
+    const signature = identity.sign(packetHash);
+    return options.explicit === false ? signature : concatBytes(packetHash, signature);
+  }
+
+  validateProof(identity: Identity, proof: Uint8Array): boolean {
+    const packetHash = this.hash();
+    if (proof.length === FULL_HASH_SIZE + SIGNATURE_SIZE) {
+      const proofHash = proof.subarray(0, FULL_HASH_SIZE);
+      if (!equalBytes(proofHash, packetHash)) {
+        return false;
+      }
+
+      return identity.validate(proof.subarray(FULL_HASH_SIZE), packetHash);
+    }
+
+    if (proof.length === SIGNATURE_SIZE) {
+      return identity.validate(proof, packetHash);
+    }
+
+    return false;
+  }
+
   hashablePart(): Uint8Array {
     const maskedFlags = new Uint8Array([this.raw[0]! & 0b00001111]);
     if (this.headerType === PacketHeaderType.HEADER_2) {
@@ -251,6 +312,14 @@ function isHeaderType(value: number): value is PacketHeaderTypeValue {
   return value === PacketHeaderType.HEADER_1 || value === PacketHeaderType.HEADER_2;
 }
 
+function isContextFlag(value: number): value is PacketContextFlagValue {
+  return value === PacketContextFlag.UNSET || value === PacketContextFlag.SET;
+}
+
+function isTransportType(value: number): value is TransportTypeValue {
+  return value === TransportType.BROADCAST || value === TransportType.TRANSPORT;
+}
+
 function isDestinationType(value: number): value is DestinationTypeValue {
   return (
     value === DestinationType.SINGLE ||
@@ -267,6 +336,19 @@ function isPacketType(value: number): value is PacketTypeValue {
     value === PacketType.LINKREQUEST ||
     value === PacketType.PROOF
   );
+}
+
+function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  let diff = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    diff |= left[index]! ^ right[index]!;
+  }
+
+  return diff === 0;
 }
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {

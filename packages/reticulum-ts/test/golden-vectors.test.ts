@@ -373,6 +373,44 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
       expect(bytesToHex(decoded!.hash())).toBe(vector.packetHashHex);
     });
 
+    it("creates and validates explicit and implicit packet proofs", () => {
+      const vector = packetVectors.packets[0]!;
+      const identityVector = identityByName("alice");
+      const identity = Identity.fromBytes(provider, hexToBytes(identityVector.privateKeyHex));
+      expect(identity).not.toBeNull();
+
+      const packet = Packet.decode(provider, hexToBytes(vector.rawHex));
+      expect(packet).not.toBeNull();
+
+      const explicitProof = packet!.createProof(identity!);
+      expect(bytesToHex(explicitProof.subarray(0, 32))).toBe(vector.packetHashHex);
+      expect(packet!.validateProof(identity!, explicitProof)).toBe(true);
+
+      const implicitProof = packet!.createProof(identity!, { explicit: false });
+      expect(implicitProof.length).toBe(64);
+      expect(packet!.validateProof(identity!, implicitProof)).toBe(true);
+
+      const tamperedProof = Uint8Array.from(explicitProof);
+      tamperedProof[0] = tamperedProof[0]! ^ 0x01;
+      expect(packet!.validateProof(identity!, tamperedProof)).toBe(false);
+      expect(packet!.validateProof(identity!, explicitProof.subarray(0, 12))).toBe(false);
+      expect(bytesToHex(packet!.proofDestinationHash())).toBe(vector.packetHashHex.slice(0, 32));
+    });
+
+    it("rejects invalid enum values during construction", () => {
+      const vector = packetVectors.packets[0]!;
+      expect(() =>
+        Packet.fromFields(provider, {
+          headerType: vector.headerType,
+          contextFlag: 2 as PacketContextFlagValue,
+          transportType: vector.transportType,
+          destinationType: vector.destinationType,
+          packetType: vector.packetType,
+          destinationHash: hexToBytes(vector.destinationHashHex)
+        })
+      ).toThrow("Unknown packet context flag");
+    });
+
     it.each(packetVectors.announces ?? [])("builds and validates announce vector $name", (vector) => {
       const alice = identityByName("alice");
       const identity = Identity.fromBytes(provider, hexToBytes(alice.privateKeyHex));

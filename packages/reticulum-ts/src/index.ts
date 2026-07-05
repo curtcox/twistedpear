@@ -29,6 +29,7 @@ export type {
   PacketContextFlagValue,
   PacketFields,
   PacketHeaderTypeValue,
+  PacketProofOptions,
   PacketTypeValue,
   TransportTypeValue
 } from "./packet.js";
