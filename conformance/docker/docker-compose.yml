@@ -1,0 +1,6 @@
+services:
+  reference:
+    build:
+      context: ../..
+      dockerfile: conformance/docker/Dockerfile
+    command: python -c "import RNS; print('RNS reference peer placeholder ready')"
