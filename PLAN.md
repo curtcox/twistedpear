@@ -120,6 +120,8 @@ limiting. Plan:
 - Track upstream RNS releases; wire format changes are our problem to chase.
 
 ### Phase 2 — Interface layer on-device
+Detailed plan: [PHASE2.md](PHASE2.md). Absorbs the Phase 0 spikes (S1/S4 as its opening
+milestone, S3 as the first BLE hardware task), since they were not run separately.
 - TCPClient/TCPServer and UDP interfaces via bare-tcp/bare-udp.
 - **AutoInterface** (IPv6 link-local multicast peer discovery + UDP transport) — needs a
   native multicast bridge on mobile; Android multicast lock; iOS multicast entitlement.
