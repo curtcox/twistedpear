@@ -36,6 +36,7 @@
     "test:examples": "npm run build && node conformance/examples/run.mjs",
     "test:miniapp-soak": "npm run build && node conformance/miniapp-soak/run.mjs",
     "test:miniapp-benchmark": "npm run build && node conformance/miniapp-benchmark/run.mjs",
+    "test:bonjour-interop": "npm run build && node conformance/bonjour-interop/run.mjs",
     "test:ios-sim": "npm run build && node conformance/ios-sim/run.mjs",
     "test:ios-sim:required": "npm run build && node conformance/ios-sim/run.mjs --require-xcode",
     "test:ios-soak": "npm run build && node conformance/ios-sim/soak.mjs",

@@ -97,6 +97,7 @@ soak are nightly/device-gated per [PHASE4.md](../PHASE4.md) §7 and [PHASE4-HARD
 | iOS lifecycle quiesce/reconnect | `conformance/ios-sim/lifecycle.mjs` in `test:ios-sim` (requires `leaf-echo`) | M2 |
 | USB serial iOS probe | `conformance/ios-sim/usb-probe.mjs` in `test:ios-sim` | M1 |
 | Discovery provider policy | `npm test -- packages/reticulum-interfaces/test/auto-discovery.test.ts` | M3 |
+| Bonjour Node ⇄ Bare interop | `npm run test:bonjour-interop` | M3 |
 | Store posture refusal | exercised by `conformance/ios-sim/store-posture.mjs` in `test:ios-sim` | M5 |
 | Store posture bundle guard | `TWISTEDPEAR_STORE_POSTURE=store npm run build:worklet` | M5 |
 | iOS simulator soak | `npm run test:ios-soak:required` nightly with `leaf-echo` | M6 |

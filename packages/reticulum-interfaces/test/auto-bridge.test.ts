@@ -93,6 +93,23 @@ describe("AutoInterfaceBridge", () => {
     await auto.close();
   });
 
+  it("spawns a peer when notifyPeerDiscovered is called (Bonjour path)", async () => {
+    const provider = new PureCryptoProvider();
+    const bridge = new MockMulticastBridge();
+    const auto = await AutoInterfaceBridge.open(provider, {
+      name: "auto-bridge-bonjour-test",
+      provider,
+      runtime: {} as never,
+      bridge,
+      peeringTimeoutMs: 5_000
+    });
+
+    auto.notifyPeerDiscovered("fe80::cafe", "mock0");
+    expect(auto.peerInterfaces.length).toBe(1);
+    expect(auto.peerInterfaces[0]?.peerAddress).toBe("fe80::cafe");
+    await auto.close();
+  });
+
   it("expires stale peers after the peering timeout", async () => {
     const provider = new PureCryptoProvider();
     const bridge = new MockMulticastBridge();
