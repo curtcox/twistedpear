@@ -99,5 +99,24 @@ jobs:
       - run: npm run test:ios-sim:required
         env:
           IOS_SIM_TCP_REQUIRED: "1"
+          IOS_LIFECYCLE_CYCLES: "10"
+      - if: always()
+        run: docker compose -f conformance/docker/docker-compose.yml down
+
+  ios-soak:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build leaf-echo
+      - run: npm run test:ios-soak:required
+        env:
+          SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
+          IOS_LIFECYCLE_CYCLES: "100"
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down

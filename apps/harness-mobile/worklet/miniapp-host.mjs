@@ -23,7 +23,7 @@ export function createWorkletMiniappHost(options) {
   const beeReady = beeBackend.ready();
 
   const host = new MiniappHost({
-    backend: createSandboxBackend("bare-worker"),
+    backend: createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
     grantStore,
     kvBackend: kvStore,
     beeBackend: {
@@ -135,7 +135,7 @@ export function createWorkletMiniappHost(options) {
       throw new Error(`Archive missing at ${record.archivePath}`);
     }
 
-    const unpacked = unpackPackage(archive);
+    const unpacked = unpackPackage(options.provider, archive);
     const entry = record.manifest.entry;
     const bundle = unpacked.files.get(entry);
     if (bundle === undefined) {

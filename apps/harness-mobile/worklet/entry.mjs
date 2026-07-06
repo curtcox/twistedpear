@@ -149,6 +149,7 @@ function ensureDevChannel() {
 function ensureMiniappHost() {
   if (miniappHost === null) {
     miniappHost = createWorkletMiniappHost({
+      provider,
       kvStore: runtimeKeyValueStore(),
       beeStoragePath: "miniapp-bee-store",
       getPresenceSnapshot: () => status,

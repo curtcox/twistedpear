@@ -1,6 +1,7 @@
 import { requireNativeModule, type EventSubscription } from "expo-modules-core";
 import { Platform } from "react-native";
 import type { SerialPipe, SerialPipeEvents } from "@twistedpear/reticulum-interfaces";
+import { resolveUsbSerialCapability } from "./capability.mjs";
 
 export interface UsbSerialDeviceInfo {
   readonly deviceId: number;
@@ -55,8 +56,9 @@ export type UsbSerialCapability =
   | { readonly supported: false; readonly reason: "unsupported-on-ios" | "native-module-unavailable" };
 
 export function getUsbSerialCapability(): UsbSerialCapability {
-  if (Platform.OS === "ios") {
-    return { supported: false, reason: "unsupported-on-ios" };
+  const base = resolveUsbSerialCapability(Platform.OS);
+  if (!base.supported) {
+    return base;
   }
 
   if (NativeUsbSerial === null) {

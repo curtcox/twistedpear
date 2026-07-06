@@ -4,6 +4,9 @@ import { readFileSync } from "node:fs";
 import { platform } from "node:os";
 import { runStorePostureChecks } from "./store-posture.mjs";
 import { runIosTcpSlice } from "./tcp-slice.mjs";
+import { runIosFullLoop } from "./full-loop.mjs";
+import { runIosLifecycleSlice } from "./lifecycle.mjs";
+import { runUsbSerialProbe } from "./usb-probe.mjs";
 
 const requireXcode = process.argv.includes("--require-xcode") || process.env.IOS_SIM_REQUIRED === "1";
 const requirePeer = process.argv.includes("--require-peer") || process.env.IOS_SIM_TCP_REQUIRED === "1";
@@ -84,6 +87,24 @@ if (!bleSpecTests.ok) {
 }
 
 try {
+  runUsbSerialProbe();
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
+}
+
+try {
+  await runIosFullLoop();
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
+}
+
+try {
+  await runIosLifecycleSlice({ requirePeer });
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
+}
+
+try {
   await runStorePostureChecks();
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
@@ -95,4 +116,4 @@ try {
   fail(error instanceof Error ? error.message : String(error));
 }
 
-console.log("[ios-sim] toolchain smoke passed: simctl available, dev/store worklets bundle, discovery policy green, BLE spec tests green, store-posture refusal green");
+console.log("[ios-sim] toolchain smoke passed: simctl available, dev/store worklets bundle, usb probe, full loop, discovery policy, BLE spec tests, store-posture refusal" + (requirePeer ? ", tcp slice, lifecycle quiesce" : " (tcp/lifecycle skipped without leaf-echo peer)"));
