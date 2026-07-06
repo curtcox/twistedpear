@@ -27,6 +27,9 @@ export interface AutoInterfaceOptions extends ReticulumInterfaceOptions {
   readonly dataPort?: number;
   readonly allowedDevices?: ReadonlyArray<string>;
   readonly ignoredDevices?: ReadonlyArray<string>;
+  readonly peeringTimeoutMs?: number;
+  readonly onPeerSpawn?: (peer: AutoInterfacePeerHandle) => void;
+  readonly onPeerDetach?: (peer: AutoInterfacePeerHandle) => void;
 }
 
 interface AdoptedInterface {
@@ -107,6 +110,7 @@ export class AutoInterface extends RawPacketInterface {
   private dataSockets = new Map<string, Awaited<ReturnType<Runtime["udp"]["bind"]>>>();
   private announceTimer: ReturnType<typeof setInterval> | null = null;
   private peerJobTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly peeringTimeoutMs: number;
   private finalInitDone = false;
 
   constructor(
@@ -121,6 +125,7 @@ export class AutoInterface extends RawPacketInterface {
     this.dataPort = options.dataPort ?? AUTO_DEFAULT_DATA_PORT;
     this.unicastDiscoveryPort = this.discoveryPort + 1;
     this.multicastAddress = deriveMulticastAddress(this.provider, this.groupIdBytes, SCOPE_LINK, MULTICAST_TEMPORARY);
+    this.peeringTimeoutMs = options.peeringTimeoutMs ?? AUTO_PEERING_TIMEOUT_MS;
   }
 
   static async open(provider: CryptoProvider, runtime: Runtime, options: AutoInterfaceOptions): Promise<AutoInterface> {
@@ -301,6 +306,7 @@ export class AutoInterface extends RawPacketInterface {
     }
 
     this.spawned.set(address, peer);
+    this.options.onPeerSpawn?.(peer);
   }
 
   private async readDataSocket(ifname: string, socket: Awaited<ReturnType<Runtime["udp"]["bind"]>>): Promise<void> {
@@ -364,10 +370,11 @@ export class AutoInterface extends RawPacketInterface {
   private runPeerJobs(): void {
     const now = Date.now();
     for (const [address, peer] of this.peers.entries()) {
-      if (now > peer.lastHeard + AUTO_PEERING_TIMEOUT_MS) {
+      if (now > peer.lastHeard + this.peeringTimeoutMs) {
         this.peers.delete(address);
         const spawned = this.spawned.get(address);
         if (spawned !== undefined) {
+          this.options.onPeerDetach?.(spawned);
           spawned.detach();
           void spawned.close();
           this.spawned.delete(address);

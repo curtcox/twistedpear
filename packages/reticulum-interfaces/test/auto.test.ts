@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Identity, PureCryptoProvider } from "@twistedpear/reticulum-ts";
+import { Identity, PureCryptoProvider, nodeRuntime } from "@twistedpear/reticulum-ts";
+import { AutoInterface } from "../src/auto.js";
 
 function deriveMulticastAddress(groupId: string): string {
   const provider = new PureCryptoProvider();
@@ -30,4 +31,48 @@ describe("AutoInterface helpers", () => {
     expect(first.startsWith("ff12:")).toBe(true);
     expect(other).not.toBe(first);
   });
+
+  it("expires stale peers after the peering timeout", async () => {
+    const provider = new PureCryptoProvider();
+    const runtime = nodeRuntime();
+    let detached = 0;
+
+    let auto;
+    try {
+      auto = await AutoInterface.open(provider, runtime, {
+        name: "auto-expiry-test",
+        provider,
+        runtime,
+        peeringTimeoutMs: 200,
+        onPeerSpawn: () => {},
+        onPeerDetach: () => {
+          detached += 1;
+        }
+      });
+    } catch {
+      return;
+    }
+
+    if (auto.peerInterfaces.length === 0 && !auto.online) {
+      await auto.close();
+      return;
+    }
+
+    const adopted = (auto as unknown as { adopted: ReadonlyArray<{ name: string }> }).adopted;
+    const ifname = adopted[0]?.name;
+    if (ifname === undefined) {
+      await auto.close();
+      return;
+    }
+
+    const addPeer = (auto as unknown as { addPeer: (address: string, name: string) => void }).addPeer;
+    addPeer("fe80::dead:beef", ifname);
+    expect(auto.peerInterfaces.length).toBe(1);
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(auto.peerInterfaces.length).toBe(0);
+    expect(detached).toBe(1);
+
+    await auto.close();
+  }, 5_000);
 });

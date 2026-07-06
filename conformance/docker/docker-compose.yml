@@ -49,3 +49,17 @@ services:
       timeout: 2s
       retries: 15
       start_period: 3s
+
+  auto-echo:
+    build:
+      context: ../..
+      dockerfile: conformance/docker/Dockerfile
+    working_dir: /conformance/scenarios/python
+    command: python auto_echo.py
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('auto-echo-ready')"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s

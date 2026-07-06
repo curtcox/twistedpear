@@ -2,8 +2,8 @@
  * Bare worklet entry (bundled with bare-pack for react-native-bare-kit).
  * Runs reticulum-ts with the Bare runtime adapter and reports status over IPC.
  */
+import { bytesToHex } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { PureCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/pure.js";
-import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { Identity } from "../../../packages/reticulum-ts/dist/identity.js";
 import { DestinationDirection, DestinationType } from "../../../packages/reticulum-ts/dist/destination.js";
 import { DestinationProofStrategy } from "../../../packages/reticulum-ts/dist/registered-destination.js";
@@ -14,12 +14,15 @@ const { IPC } = BareKit;
 
 const provider = new PureCryptoProvider();
 const runtime = bareRuntime({ storePath: "reticulum-store" });
+const IDENTITY_STORE_KEY = "harness-identity";
 
 /** @type {import("./protocol.ts").WorkletStatus} */
 const status = {
   running: false,
   linkOnline: false,
-  announcesSeen: 0
+  announcesSeen: 0,
+  identityHash: null,
+  identityPersisted: false
 };
 
 /** @type {Reticulum | null} */
@@ -28,9 +31,8 @@ let reticulum = null;
 let iface = null;
 /** @type {ReturnType<typeof setInterval> | null} */
 let statusTimer = null;
-
-const ALICE_PRIVATE_KEY_HEX =
-  "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40";
+/** @type {Identity | null} */
+let activeIdentity = null;
 
 function send(message) {
   IPC.write(Buffer.from(`${JSON.stringify(message)}\n`));
@@ -61,6 +63,55 @@ function stopStatusTimer() {
   statusTimer = null;
 }
 
+function updateIdentityStatus(identity) {
+  activeIdentity = identity;
+  status.identityHash = bytesToHex(identity.hash);
+  status.identityPersisted = true;
+  pushStatus();
+}
+
+async function loadPersistedIdentity() {
+  const stored = await runtime.store.get(IDENTITY_STORE_KEY);
+  if (stored === undefined) {
+    status.identityHash = null;
+    status.identityPersisted = false;
+    pushStatus();
+    return null;
+  }
+
+  const identity = Identity.fromBytes(provider, stored);
+  if (identity === null) {
+    await runtime.store.delete(IDENTITY_STORE_KEY);
+    status.identityHash = null;
+    status.identityPersisted = false;
+    pushStatus();
+    return null;
+  }
+
+  updateIdentityStatus(identity);
+  return identity;
+}
+
+async function persistIdentity(identity) {
+  await runtime.store.set(IDENTITY_STORE_KEY, identity.getPrivateKey());
+  updateIdentityStatus(identity);
+}
+
+async function createIdentity() {
+  const identity = new Identity(provider);
+  await persistIdentity(identity);
+  log(`Created harness identity ${status.identityHash}`);
+}
+
+async function resetIdentity() {
+  await runtime.store.delete(IDENTITY_STORE_KEY);
+  activeIdentity = null;
+  status.identityHash = null;
+  status.identityPersisted = false;
+  pushStatus();
+  log("Harness identity cleared");
+}
+
 async function stopNode() {
   stopStatusTimer();
   status.running = false;
@@ -78,8 +129,27 @@ async function stopNode() {
   }
 }
 
+async function resolveIdentity() {
+  if (activeIdentity !== null) {
+    return activeIdentity;
+  }
+
+  const loaded = await loadPersistedIdentity();
+  if (loaded !== null) {
+    return loaded;
+  }
+
+  await createIdentity();
+  return activeIdentity;
+}
+
 async function startNode(targetHost, targetPort) {
   await stopNode();
+
+  const identity = await resolveIdentity();
+  if (identity === null) {
+    throw new Error("Failed to resolve harness identity");
+  }
 
   log(`Starting Reticulum node (target ${targetHost}:${targetPort})`);
   reticulum = Reticulum.create({ provider, runtime });
@@ -92,11 +162,6 @@ async function startNode(targetHost, targetPort) {
     targetHost,
     targetPort
   });
-
-  const identity = Identity.fromBytes(provider, hexToBytes(ALICE_PRIVATE_KEY_HEX));
-  if (identity === null) {
-    throw new Error("Failed to load harness identity");
-  }
 
   const inbound = reticulum.registerDestination({
     provider,
@@ -161,6 +226,16 @@ async function handleHostMessage(raw) {
     log("Worklet stopped");
     return;
   }
+
+  if (message.type === "create-identity") {
+    await createIdentity();
+    return;
+  }
+
+  if (message.type === "reset-identity") {
+    await resetIdentity();
+    return;
+  }
 }
 
 IPC.on("data", (data) => {
@@ -170,5 +245,6 @@ IPC.on("data", (data) => {
   });
 });
 
+void loadPersistedIdentity();
 pushStatus();
 log("Harness worklet ready");

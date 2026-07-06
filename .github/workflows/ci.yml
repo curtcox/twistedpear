@@ -80,6 +80,21 @@ jobs:
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down
 
+  auto-interop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build auto-echo
+      - run: npm run test:auto-interop
+      - if: always()
+        run: docker compose -f conformance/docker/docker-compose.yml down
+
   bare-device:
     runs-on: ubuntu-latest
     steps:

@@ -4,11 +4,15 @@ export interface WorkletStatus {
   readonly running: boolean;
   readonly linkOnline: boolean;
   readonly announcesSeen: number;
+  readonly identityHash: string | null;
+  readonly identityPersisted: boolean;
 }
 
 export type HostToWorkletMessage =
   | { readonly type: "start"; readonly targetHost: string; readonly targetPort: number }
-  | { readonly type: "stop" };
+  | { readonly type: "stop" }
+  | { readonly type: "create-identity" }
+  | { readonly type: "reset-identity" };
 
 export type WorkletToHostMessage =
   | { readonly type: "status"; readonly status: WorkletStatus }

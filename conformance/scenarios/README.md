@@ -24,11 +24,16 @@ Run the matching TypeScript interop tests:
 
 ```sh
 npm run test:interop
+npm run test:bare-interop
+npm run test:auto-interop
 ```
 
 The tests connect to `127.0.0.1:4242` (leaf echo), `127.0.0.1:4244` (link echo), and
 `127.0.0.1:4243` (LXMF echo) by default. Override with `LEAF_ECHO_PORT` / `LINK_ECHO_PORT` /
 `LXMF_ECHO_PORT` if needed.
+
+AutoInterface interop uses `docker compose ... up auto-echo` with `network_mode: host` so the
+Python peer shares the runner's link-local IPv6 interfaces.
 
 ## Layout
 

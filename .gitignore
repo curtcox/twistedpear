@@ -4,3 +4,10 @@ coverage/
 *.tsbuildinfo
 .DS_Store
 .venv-rns/
+.bare-interop-store/
+.bare-device-store/
+.bare-runtime-smoke-store/
+.bare-benchmark-store/
+conformance/bare-interop/bare-interop.bundle
+conformance/bare-interop/bare-interop.bundle.mjs
+conformance/bare-interop/imports.generated.json

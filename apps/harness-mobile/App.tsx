@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Worklet } from "react-native-bare-kit";
 import b4a from "b4a";
@@ -19,13 +19,15 @@ const LOCAL_HOST = "127.0.0.1";
 const initialStatus: WorkletStatus = {
   running: false,
   linkOnline: false,
-  announcesSeen: 0
+  announcesSeen: 0,
+  identityHash: null,
+  identityPersisted: false
 };
 
 export default function App() {
   const [status, setStatus] = useState<WorkletStatus>(initialStatus);
   const [logLines, setLogLines] = useState<ReadonlyArray<string>>([
-    "Harness UI ready. Toggle TCP to start the worklet."
+    "Harness UI ready. Create an identity, then toggle TCP to start the worklet."
   ]);
   const [tcpEnabled, setTcpEnabled] = useState(false);
   const [autoEnabled, setAutoEnabled] = useState(false);
@@ -62,7 +64,11 @@ export default function App() {
     sendToWorklet({ type: "stop" });
     workletRef.current?.terminate();
     workletRef.current = null;
-    setStatus(initialStatus);
+    setStatus((current) => ({
+      ...current,
+      running: false,
+      linkOnline: false
+    }));
   }, [sendToWorklet]);
 
   const startWorklet = useCallback(() => {
@@ -110,9 +116,29 @@ export default function App() {
         <Text>Worklet: {status.running ? "running" : "stopped"}</Text>
         <Text>Link: {status.linkOnline ? "online" : "offline"}</Text>
         <Text>Announces seen: {status.announcesSeen}</Text>
+        <Text>Identity: {status.identityHash ?? "none"}</Text>
+        <Text>Persisted: {status.identityPersisted ? "yes" : "no"}</Text>
       </View>
 
       <View style={styles.card}>
+        <View style={styles.buttonRow}>
+          <ActionButton
+            label="Create identity"
+            onPress={() => {
+              if (workletRef.current === null) {
+                startWorklet();
+                setTimeout(() => sendToWorklet({ type: "create-identity" }), 250);
+                return;
+              }
+
+              sendToWorklet({ type: "create-identity" });
+            }}
+          />
+          <ActionButton
+            label="Reset identity"
+            onPress={() => sendToWorklet({ type: "reset-identity" })}
+          />
+        </View>
         <Row label="TCP client" value={tcpEnabled} onChange={setTcpEnabled} />
         <Row
           label="AutoInterface"
@@ -164,6 +190,20 @@ function Row({
   );
 }
 
+function ActionButton({
+  label,
+  onPress
+}: {
+  readonly label: string;
+  readonly onPress: () => void;
+}) {
+  return (
+    <Pressable style={styles.button} onPress={onPress}>
+      <Text style={styles.buttonLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -194,6 +234,21 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     color: "#f4f7fb"
+  },
+  buttonRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 4
+  },
+  button: {
+    backgroundColor: "#2b3645",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  buttonLabel: {
+    color: "#f4f7fb",
+    fontSize: 13
   },
   log: {
     flex: 1,

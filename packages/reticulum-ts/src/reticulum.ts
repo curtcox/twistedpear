@@ -78,6 +78,10 @@ export class Reticulum {
     this.transport.registerInterface(iface);
   }
 
+  unregisterInterface(iface: PacketInterface): void {
+    this.transport.unregisterInterface(iface);
+  }
+
   async addPipeInterface(options: Omit<PipeInterfaceOptions, "provider">): Promise<PipeInterface> {
     const iface = new PipeInterface(this.provider, { ...options, provider: this.provider });
     this.registerInterface(iface);
