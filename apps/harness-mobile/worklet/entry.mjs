@@ -550,7 +550,7 @@ async function startTcpInterface(targetHost, targetPort) {
 
   log(`Starting TCP client to ${targetHost}:${targetPort}`);
   tcpIface = await node.addTcpClientInterface({
-    name: "docker-peer",
+    name: "harness-tcp",
     targetHost,
     targetPort
   });

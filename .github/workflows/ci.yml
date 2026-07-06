@@ -306,3 +306,48 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:interop
+
+  ios-sim:
+    if: github.event_name == 'pull_request'
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            ios:
+              - 'apps/harness-mobile/**'
+              - 'packages/reticulum-interfaces/**'
+              - 'conformance/ios-sim/**'
+              - '.github/workflows/ci.yml'
+      - uses: actions/setup-node@v4
+        if: steps.changes.outputs.ios == 'true'
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+        if: steps.changes.outputs.ios == 'true'
+      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build leaf-echo
+        if: steps.changes.outputs.ios == 'true'
+      - run: npm run test:ios-sim:required
+        if: steps.changes.outputs.ios == 'true'
+        env:
+          IOS_SIM_TCP_REQUIRED: "1"
+          IOS_LIFECYCLE_CYCLES: "10"
+      - if: always() && steps.changes.outputs.ios == 'true'
+        run: docker compose -f conformance/docker/docker-compose.yml down
+
+  demo-phase5:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run demo:phase5

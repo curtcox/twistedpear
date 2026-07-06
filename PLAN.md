@@ -191,7 +191,8 @@ Detailed plan: [PHASE5.md](PHASE5.md).
 - **Device lab:** 2+ Android phones (BLE pair, LAN pair), 1 iPhone, 1 RNode pair, 1 desktop
   transport node; scripted end-to-end: publish app on desktop → discover and install on
   phone over BLE only → grant capabilities → launch and use the mini-app (see
-  [PHASE4-HARDWARE.md](PHASE4-HARDWARE.md)).
+  [PHASE4-HARDWARE.md](PHASE4-HARDWARE.md) for Android exits and
+  [PHASE5-HARDWARE.md](PHASE5-HARDWARE.md) for the iPhone leg).
 
 ## 7. Top risks (ranked)
 

@@ -100,11 +100,27 @@ soak are nightly/device-gated per [PHASE4.md](../PHASE4.md) §7 and [PHASE4-HARD
 | Store posture refusal | exercised by `conformance/ios-sim/store-posture.mjs` in `test:ios-sim` | M5 |
 | Store posture bundle guard | `TWISTEDPEAR_STORE_POSTURE=store npm run build:worklet` | M5 |
 | iOS simulator soak | `npm run test:ios-soak:required` nightly with `leaf-echo` | M6 |
+| iOS dev loop | `conformance/ios-sim/dev-loop.mjs` in `test:ios-sim` | M1 |
+| iOS hostile smoke | `conformance/ios-sim/hostile-smoke.mjs` in `test:ios-sim` | M1 |
+| iOS interface policy | `conformance/ios-sim/interface-policy.mjs` in `test:ios-sim` | M6 |
+| iOS crypto decision | `conformance/ios-sim/crypto-benchmark.mjs` in `test:ios-sim` | M0 |
 | Phase 5 demo | `npm run demo:phase5` | M6 |
 
 `npm run test:ios-sim` skips on non-macOS hosts. CI jobs that are meant to validate
 the simulator lane use `test:ios-sim:required` so missing Xcode or simulator runtime is
-a hard failure.
+a hard failure. Pull requests that touch harness-mobile, reticulum-interfaces, or
+`conformance/ios-sim/` run the macOS `ios-sim` job in CI.
+
+### Device lab runbook (Phase 5 §7)
+
+Hardware-deferred exits; full procedures in [PHASE5-HARDWARE.md](../PHASE5-HARDWARE.md):
+
+1. **H12 (Apple Developer account):** file multicast entitlement; record outcome in
+   `LIMITATIONS.md` §4.
+2. **H13 (iPhone dev build):** TCP slice, full Phase 3/4 loop, measured background windows.
+3. **H14 (iPhone + Android BLE):** 1 h BLE-only LXMF including iOS-backgrounded stretch.
+4. **H15 (real LAN):** Bonjour discovery + LXMF on WiFi; multicast if entitlement granted.
+5. **H16 (iPhone + RNode):** BLE RNode and LoRa end-to-end to desktop.
 
 ### Device lab runbook (Phase 4 §7)
 
