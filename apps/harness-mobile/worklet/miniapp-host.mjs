@@ -51,6 +51,21 @@ export function createWorkletMiniappHost(options) {
         preferredInterface: options.getPresenceSnapshot?.().preferredInterface ?? null
       })
     },
+    resourceBackend: {
+      fetch: async (_appId, request) => {
+        const key = `miniapp-resource:${request.resourceId}`;
+        const bytes = await kvStore.get(key);
+        if (bytes === null) {
+          throw new Error(`Resource not found: ${request.resourceId}`);
+        }
+
+        if (request.budgetBytes !== undefined && bytes.length > request.budgetBytes) {
+          throw new Error(`Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`);
+        }
+
+        return bytes;
+      }
+    },
     callbacks: {
       onWidgetTree: () => pushRuntime(),
       onLog: (entry) => options.send({ type: "miniapp-log", appId: entry.appId, line: entry.line }),

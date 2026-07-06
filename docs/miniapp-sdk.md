@@ -7,7 +7,7 @@ private keys, sockets, filesystems, and Bare APIs are never exposed to app code.
 
 - `identity`: app-scoped destination hash and brokered signing.
 - `lxmf`: `send()` and `receive()` through the host LXMF router.
-- `announce`: publish or subscribe in the app namespace.
+- `announce`: publish or subscribe in the app namespace (`publish(appData, namespace?)`).
 - `storage.kv`: local per-app key/value storage.
 - `storage.bee`: local-only Hyperbee CRUD (`get`, `put`, `del`, `list`); replication is future work.
 - `resource.fetch()`: host-budgeted Resource fetch.

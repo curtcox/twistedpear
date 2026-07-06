@@ -9,22 +9,22 @@ export interface AnnounceEvent {
 }
 
 export interface AnnounceBackend {
-  publish(appId: string, appData?: Uint8Array): Promise<void>;
+  publish(appId: string, appData?: Uint8Array, namespace?: string): Promise<void>;
   subscribe(appId: string, namespace: string): Promise<ReadonlyArray<AnnounceEvent>>;
 }
 
 export class AnnounceService implements AnnounceBackend {
   private readonly events = new Map<string, AnnounceEvent[]>();
 
-  async publish(appId: string, appData?: Uint8Array): Promise<void> {
-    const namespace = this.namespaceFor(appId);
-    const bucket = this.events.get(namespace) ?? [];
+  async publish(appId: string, appData?: Uint8Array, namespace?: string): Promise<void> {
+    const key = namespace ?? this.namespaceFor(appId);
+    const bucket = this.events.get(key) ?? [];
     bucket.push({
       destination: appId,
       appData: appData ?? new Uint8Array(),
       receivedAt: Date.now()
     });
-    this.events.set(namespace, bucket);
+    this.events.set(key, bucket);
   }
 
   async subscribe(_appId: string, namespace: string): Promise<ReadonlyArray<AnnounceEvent>> {

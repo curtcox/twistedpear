@@ -1,16 +1,36 @@
-import { storage, ui } from "@twistedpear/miniapp-sdk";
+import { resource, storage, ui } from "@twistedpear/miniapp-sdk";
 
-await storage.kv.set("last-opened", new TextEncoder().encode(String(Date.now())));
+let status = "Tap fetch to load offer:demo through host budget checks.";
 
-await ui.render({
-  root: {
-    id: "root",
-    type: "view",
-    style: { padding: 16, gap: 12 },
-    children: [
-      { id: "title", type: "text", props: { value: "File Drop" }, style: { fontSize: 20, fontWeight: "bold" } },
-      { id: "body", type: "text", props: { value: "Fetches shared resources through host budget checks." } },
-      { id: "fetch", type: "button", props: { label: "Fetch offer", event: "resource.fetch" } }
-    ]
+async function render() {
+  await ui.render({
+    root: {
+      id: "root",
+      type: "view",
+      style: { padding: 16, gap: 12 },
+      children: [
+        { id: "title", type: "text", props: { value: "File Drop" }, style: { fontSize: 20, fontWeight: "bold" } },
+        { id: "body", type: "text", props: { value: status } },
+        { id: "fetch", type: "button", props: { label: "Fetch offer", event: "resource.fetch" } }
+      ]
+    }
+  });
+}
+
+ui.onEvent(async ({ event }) => {
+  if (event !== "resource.fetch") {
+    return;
   }
+
+  try {
+    const bytes = await resource.fetch({ resourceId: "offer:demo", budgetBytes: 4096 });
+    await storage.kv.set("last-fetch", bytes);
+    status = `Fetched ${bytes.length} bytes for offer:demo`;
+  } catch (error) {
+    status = error instanceof Error ? error.message : "Fetch failed";
+  }
+
+  await render();
 });
+
+await render();

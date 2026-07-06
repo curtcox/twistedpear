@@ -143,4 +143,50 @@ describe("mini-app host", () => {
     expect(denied.ok).toBe(false);
     expect(denied.error?.code).toBe("CAPABILITY_DENIED");
   });
+
+  it("delivers UI events into the sandbox", async () => {
+    const interactiveBundle = new TextEncoder().encode(`import { ui } from "@twistedpear/miniapp-sdk";
+
+let label = "waiting";
+
+async function paint() {
+  await ui.render({
+    root: {
+      id: "root",
+      type: "view",
+      children: [
+        { id: "tap", type: "button", props: { label, event: "demo.tap" } }
+      ]
+    }
+  });
+}
+
+ui.onEvent(async ({ event }) => {
+  if (event === "demo.tap") {
+    label = "tapped";
+    await paint();
+  }
+});
+
+await paint();
+`);
+
+    const store = new MemoryStore();
+    const host = new MiniappHost({
+      backend: new NodeWorkerSandboxBackend(),
+      grantStore: new GrantStore(store),
+      kvBackend: store
+    });
+
+    await host.launch(manifest, interactiveBundle);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await host.handleUiEvent("tap", "demo.tap");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const tree = host.snapshot().widgetTree;
+    await host.stop();
+
+    const button = tree?.root.children?.find((node) => node.id === "tap");
+    expect(button?.props?.label).toBe("tapped");
+  });
 });

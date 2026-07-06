@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const fixtureDir = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages");
+const examplesDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/examples");
 const outputDir = resolve(dirname(fileURLToPath(import.meta.url)));
 const outputPath = join(outputDir, "measured.json");
 
@@ -59,7 +60,12 @@ async function main() {
 
   const packages = [
     { name: "tiny", bytes: tinyBytes.length, description: "Budget hello-world bundle" },
-    { name: "example-app", bytes: exampleBytes.length, description: "Typical minimal mini-app" }
+    { name: "example-app", bytes: exampleBytes.length, description: "Typical minimal mini-app" },
+    ...["chat", "file-drop", "board"].map((name) => ({
+      name,
+      bytes: readFileSync(join(examplesDir, name, "bundle.js")).length,
+      description: `Phase 4 example app: ${name}`
+    }))
   ];
 
   const measured = {

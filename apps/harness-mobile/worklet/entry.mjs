@@ -22,6 +22,7 @@ import { DriveManager, PackageResourceClient, assessFetchBudget, createSwarm, fe
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { HOST_API_VERSION, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/index.js";
 import { createWorkletMiniappHost } from "./miniapp-host.mjs";
+import { createDevChannelClient } from "./dev-channel.mjs";
 
 const { IPC } = BareKit;
 
@@ -101,6 +102,37 @@ const PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
 
 /** @type {ReturnType<typeof createWorkletMiniappHost> | null} */
 let miniappHost = null;
+/** @type {ReturnType<typeof createDevChannelClient> | null} */
+let devChannel = null;
+
+function ensureDevChannel() {
+  if (devChannel === null) {
+    devChannel = createDevChannelClient({
+      isDeveloperMode: () => ensureMiniappHost().isDeveloperMode(),
+      onConnected: (address) => {
+        send({ type: "dev-channel", state: "connected", detail: address });
+        log(`Dev channel connected to ${address}`);
+      },
+      onDisconnected: () => {
+        send({ type: "dev-channel", state: "disconnected" });
+        log("Dev channel disconnected");
+      },
+      onBundleLoaded: (name) => {
+        send({ type: "dev-channel", state: "loaded", detail: name });
+        log(`Dev side-loaded ${name}`);
+      },
+      onError: (message) => {
+        send({ type: "dev-channel", state: "error", detail: message });
+        log(`Dev channel error: ${message}`);
+      },
+      onBundle: async (manifest, bundleBytes) => {
+        await ensureMiniappHost().devSideLoad(manifest, bundleBytes);
+      }
+    });
+  }
+
+  return devChannel;
+}
 
 function ensureMiniappHost() {
   if (miniappHost === null) {
@@ -929,6 +961,25 @@ async function handleHostMessage(raw) {
     } catch (error) {
       log(`Dev side-load failed: ${error instanceof Error ? error.message : String(error)}`);
     }
+    return;
+  }
+
+  if (message.type === "connect-dev-channel") {
+    try {
+      await ensureDevChannel().connect(message.host, message.port);
+    } catch (error) {
+      send({
+        type: "dev-channel",
+        state: "error",
+        detail: error instanceof Error ? error.message : String(error)
+      });
+      log(`Dev channel connect failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "disconnect-dev-channel") {
+    await ensureDevChannel().disconnect();
     return;
   }
 

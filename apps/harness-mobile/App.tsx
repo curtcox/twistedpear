@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -42,6 +43,7 @@ import type { WidgetTree } from "@twistedpear/miniapp-runtime";
 const DEFAULT_DOCKER_PORT = 4_242;
 const ANDROID_EMULATOR_HOST = "10.0.2.2";
 const LOCAL_HOST = "127.0.0.1";
+const DEFAULT_DEV_PORT = 34_987;
 const MAX_ANNOUNCES = 50;
 
 async function requestBlePermissions(): Promise<void> {
@@ -107,6 +109,9 @@ export default function App() {
   const [miniappRuntime, setMiniappRuntime] = useState<MiniappRuntimeView | null>(null);
   const [miniappLogs, setMiniappLogs] = useState<ReadonlyArray<string>>([]);
   const [developerMode, setDeveloperMode] = useState(false);
+  const [devChannelDetail, setDevChannelDetail] = useState<string | null>(null);
+  const [devHost, setDevHost] = useState(Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST);
+  const [devPort, setDevPort] = useState(String(DEFAULT_DEV_PORT));
 
   const workletRef = useRef<Worklet | null>(null);
   const ipcBufferRef = useRef("");
@@ -190,6 +195,12 @@ export default function App() {
     if (message.type === "miniapp-log") {
       setMiniappLogs((current) => [...current.slice(-100), `${message.appId}: ${message.line}`]);
       appendLog(`[miniapp] ${message.line}`);
+      return;
+    }
+
+    if (message.type === "dev-channel") {
+      setDevChannelDetail(message.detail ?? message.state);
+      appendLog(`[dev] ${message.state}${message.detail ? `: ${message.detail}` : ""}`);
     }
   }, [appendLog, sendToWorklet]);
 
@@ -379,8 +390,51 @@ export default function App() {
           onChange={(enabled) => {
             setDeveloperMode(enabled);
             sendToWorklet({ type: "set-developer-mode", enabled });
+            if (!enabled) {
+              sendToWorklet({ type: "disconnect-dev-channel" });
+              setDevChannelDetail(null);
+            }
           }}
         />
+        {developerMode ? (
+          <View style={styles.devChannel}>
+            <Text style={styles.muted}>Dev side-load channel (localhost / adb reverse only)</Text>
+            <TextInput
+              style={styles.input}
+              value={devHost}
+              onChangeText={setDevHost}
+              autoCapitalize="none"
+              placeholder="Dev server host"
+            />
+            <TextInput
+              style={styles.input}
+              value={devPort}
+              onChangeText={setDevPort}
+              keyboardType="number-pad"
+              placeholder="Port"
+            />
+            <View style={styles.buttonRow}>
+              <ActionButton
+                label="Connect tp dev"
+                onPress={() =>
+                  sendToWorklet({
+                    type: "connect-dev-channel",
+                    host: devHost,
+                    port: Number(devPort) || DEFAULT_DEV_PORT
+                  })
+                }
+              />
+              <ActionButton
+                label="Disconnect"
+                onPress={() => {
+                  sendToWorklet({ type: "disconnect-dev-channel" });
+                  setDevChannelDetail(null);
+                }}
+              />
+            </View>
+            {devChannelDetail ? <Text style={styles.muted}>Dev channel: {devChannelDetail}</Text> : null}
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.card}>
@@ -718,6 +772,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     marginBottom: 4
+  },
+  devChannel: {
+    marginTop: 8,
+    gap: 8
+  },
+  input: {
+    backgroundColor: "#0f141b",
+    color: "#f4f7fb",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 13
   },
   button: {
     backgroundColor: "#2b3645",

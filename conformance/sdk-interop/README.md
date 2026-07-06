@@ -1,4 +1,17 @@
 # SDK Interop
 
-This suite will run sandboxed apps against real Reticulum peers. The v1 target matrix is
-identity, LXMF, announce, KV storage, Resource fetch, presence, and cross-app isolation.
+Exercises the Phase 4 broker namespaces against two logical app identities in one
+process:
+
+- identity, LXMF, KV storage, Hyperbee, announce, resource fetch, presence
+- cross-app inbox and storage isolation
+- deny-by-default grants and broker rate limits
+
+Docker peer scenarios against the Python transport stack are layered on top of this
+matrix in nightly jobs; the checked-in runner is the fast per-PR gate.
+
+Run with:
+
+```bash
+npm run test:sdk-interop
+```

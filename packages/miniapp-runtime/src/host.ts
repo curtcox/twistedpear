@@ -276,6 +276,16 @@ export class MiniappHost {
 
     this.broker.register("ui", "subscribe", null, async () => ({ subscribed: true }));
 
+    this.broker.register("ui", "event", null, async (request) => {
+      if (this.active === null) {
+        throw new Error("No mini-app is running");
+      }
+
+      const payload = request.payload as { nodeId: string; event: string; value?: unknown };
+      await this.active.lifecycle.deliverUiEvent(payload);
+      return { delivered: true };
+    });
+
     this.broker.register("identity", "destinationHash", "identity", async (_request, context) =>
       this.identityService.destinationHash(context.appId, context.publisherPublicKey)
     );
@@ -345,8 +355,8 @@ export class MiniappHost {
       this.lxmfService.receive(context.appId)
     );
     this.broker.register("announce", "publish", "announce:publish", async (request, context) => {
-      const appData = (request.payload as { appData?: Uint8Array } | undefined)?.appData;
-      await this.announceService.publish(context.appId, appData);
+      const payload = request.payload as { appData?: Uint8Array; namespace?: string } | undefined;
+      await this.announceService.publish(context.appId, payload?.appData, payload?.namespace);
       return { published: true };
     });
     this.broker.register("announce", "subscribe", "announce:subscribe", async (request, context) => {

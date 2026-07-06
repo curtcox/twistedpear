@@ -145,6 +145,7 @@ function createBareBootstrapSource(): string {
 const pending = new Map();
 let requestId = 0;
 let alive = true;
+let uiEventHandler = null;
 
 function callHost(namespace, method, payload, capability) {
   return new Promise((resolve, reject) => {
@@ -155,10 +156,14 @@ function callHost(namespace, method, payload, capability) {
 }
 
 const sdk = {
-  ui: { render: (tree) => callHost('ui', 'render', { tree }), subscribeEvents: (id) => callHost('ui', 'subscribe', { handlerId: id }) },
+  ui: {
+    render: (tree) => callHost('ui', 'render', { tree }),
+    subscribeEvents: (id) => callHost('ui', 'subscribe', { handlerId: id }),
+    onEvent: (handler) => { uiEventHandler = handler; }
+  },
   identity: { destinationHash: () => callHost('identity', 'destinationHash', undefined, 'identity'), sign: (payload) => callHost('identity', 'sign', { payload }, 'identity') },
   lxmf: { send: (request) => callHost('lxmf', 'send', request, 'lxmf:send'), receive: () => callHost('lxmf', 'receive', undefined, 'lxmf:receive') },
-  announce: { publish: (appData) => callHost('announce', 'publish', { appData }, 'announce:publish'), subscribe: (namespace) => callHost('announce', 'subscribe', { namespace }, 'announce:subscribe') },
+  announce: { publish: (appData, namespace) => callHost('announce', 'publish', { appData, namespace }, 'announce:publish'), subscribe: (namespace) => callHost('announce', 'subscribe', { namespace }, 'announce:subscribe') },
   storage: { kv: { get: (key) => callHost('storage.kv', 'get', { key }, 'storage:kv'), set: (key, value) => callHost('storage.kv', 'set', { key, value }, 'storage:kv'), delete: (key) => callHost('storage.kv', 'delete', { key }, 'storage:kv') }, bee: { open: () => callHost('storage.bee', 'open', undefined, 'storage:hyperbee'), get: (key) => callHost('storage.bee', 'get', { key }, 'storage:hyperbee'), put: (key, value) => callHost('storage.bee', 'put', { key, value }, 'storage:hyperbee'), del: (key) => callHost('storage.bee', 'del', { key }, 'storage:hyperbee'), list: (options) => callHost('storage.bee', 'list', options ?? {}, 'storage:hyperbee') } },
   resource: { fetch: (request) => callHost('resource', 'fetch', request, 'resource:fetch') },
   presence: { snapshot: () => callHost('presence', 'snapshot', undefined, 'presence') }
@@ -181,6 +186,9 @@ self.onmessage = (event) => {
   if (message.type === 'kill') {
     alive = false;
     self.close();
+  }
+  if (message.type === 'ui-event' && uiEventHandler !== null) {
+    void Promise.resolve(uiEventHandler({ nodeId: message.nodeId, event: message.event, value: message.value }));
   }
 };
 

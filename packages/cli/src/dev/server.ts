@@ -58,7 +58,8 @@ export async function startDevServer(options: DevServerOptions): Promise<DevServ
 
   const boundPort = address.port;
 
-  const watcher = watch(options.appDir, { recursive: false }, () => {
+  const entryPath = join(options.appDir, options.manifest.entry);
+  const watcher = watch(entryPath, () => {
     if (activeSocket !== null && !activeSocket.destroyed) {
       pushBundle(activeSocket, options);
       console.log("Hot reload: pushed updated bundle");

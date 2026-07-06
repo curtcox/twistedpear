@@ -1,15 +1,32 @@
 #!/usr/bin/env node
 /**
- * Phase 4 dev-loop conformance: create template, serve bundle, receive over TCP.
+ * Phase 4 dev-loop conformance: create template, serve bundle, receive over TCP, hot reload.
  */
 
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createConnection } from "node:net";
 import { runCreate } from "../../packages/cli/dist/commands/index.js";
 import { startDevServer } from "../../packages/cli/dist/dev/server.js";
-import { readFileSync } from "node:fs";
+
+function readDevPayload(socket) {
+  return new Promise((resolve, reject) => {
+    let buffer = "";
+    const onData = (chunk) => {
+      buffer += chunk.toString();
+      const newline = buffer.indexOf("\n");
+      if (newline >= 0) {
+        socket.off("data", onData);
+        resolve(JSON.parse(buffer.slice(0, newline)));
+      }
+    };
+
+    socket.on("data", onData);
+    socket.on("error", reject);
+    setTimeout(() => reject(new Error("dev server timeout")), 5_000);
+  });
+}
 
 async function main() {
   const workDir = mkdtempSync(join(tmpdir(), "tp-dev-loop-"));
@@ -35,28 +52,30 @@ async function main() {
       }
     });
 
-    const payload = await new Promise((resolve, reject) => {
-      const socket = createConnection({ host: "127.0.0.1", port: 34988 });
-      let buffer = "";
-      socket.on("data", (chunk) => {
-        buffer += chunk.toString();
-        const newline = buffer.indexOf("\n");
-        if (newline >= 0) {
-          resolve(JSON.parse(buffer.slice(0, newline)));
-          socket.end();
-        }
-      });
-      socket.on("error", reject);
-      setTimeout(() => reject(new Error("dev server timeout")), 5_000);
+    const socket = createConnection({ host: "127.0.0.1", port: 34988 });
+    await new Promise((resolve, reject) => {
+      socket.once("connect", resolve);
+      socket.once("error", reject);
     });
 
-    await server.close();
-
-    if (payload.type !== "dev-bundle" || typeof payload.bundleHex !== "string") {
-      throw new Error("unexpected dev payload");
+    const first = await readDevPayload(socket);
+    if (first.type !== "dev-bundle" || typeof first.bundleHex !== "string") {
+      throw new Error("unexpected initial dev payload");
     }
 
-    console.log("dev-loop: create → dev server → bundle push passed");
+    const bundlePath = join(appDir, "bundle.js");
+    const edited = `${readFileSync(bundlePath, "utf8")}\n// hot reload marker\n`;
+    writeFileSync(bundlePath, edited);
+
+    const second = await readDevPayload(socket);
+    socket.end();
+    await server.close();
+
+    if (second.type !== "dev-bundle" || second.bundleHex === first.bundleHex) {
+      throw new Error("hot reload did not push an updated bundle");
+    }
+
+    console.log("dev-loop: create → dev server → bundle push → hot reload passed");
   } finally {
     rmSync(workDir, { recursive: true, force: true });
   }

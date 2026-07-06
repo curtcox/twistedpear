@@ -82,6 +82,14 @@ export class MiniappLifecycle {
     return this.snapshot();
   }
 
+  async deliverUiEvent(event: { readonly nodeId: string; readonly event: string; readonly value?: unknown }): Promise<void> {
+    if (this.instance === null) {
+      throw new Error("No sandbox instance is running");
+    }
+
+    await this.instance.postMessage({ type: "ui-event", ...event });
+  }
+
   async watchdogPing(): Promise<MiniappLifecycleSnapshot> {
     if (this.instance === null) {
       return this.snapshot();
