@@ -73,4 +73,11 @@ if (!tests.ok) {
   fail(`discovery provider tests failed\n${tests.stdout}\n${tests.stderr}`);
 }
 
-console.log("[ios-sim] toolchain smoke passed: simctl available, dev/store worklets bundle, discovery policy green");
+const bleSpecTests = run("swift", ["test"], {
+  cwd: new URL("../../apps/harness-mobile/modules/ble-bridge", import.meta.url)
+});
+if (!bleSpecTests.ok) {
+  fail(`BLE bridge spec tests failed\n${bleSpecTests.stdout}\n${bleSpecTests.stderr}`);
+}
+
+console.log("[ios-sim] toolchain smoke passed: simctl available, dev/store worklets bundle, discovery policy green, BLE spec tests green");
