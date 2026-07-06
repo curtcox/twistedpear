@@ -1,6 +1,12 @@
 import { GrantStore } from "./capabilities.js";
 import { MiniappBroker, type BrokerContext, type BrokerRequest, type BrokerResponse } from "./broker.js";
 import { MiniappLifecycle } from "./lifecycle.js";
+import { AnnounceService } from "./services/announce.js";
+import { AppIdentityService, type IdentityBackend } from "./services/identity.js";
+import { NamespacedLxmfService } from "./services/lxmf.js";
+import { PresenceService, type PresenceBackend } from "./services/presence.js";
+import { ResourceService, type ResourceFetchBackend } from "./services/resource.js";
+import type { StorageBeeBackend } from "./services/storage-bee.js";
 import { NamespacedKvService, type MiniappKvStoreBackend } from "./services/storage-kv.js";
 import type { GrantRecord } from "./capabilities.js";
 import type { SandboxBackend } from "./sandbox/backend.js";
@@ -40,6 +46,12 @@ export interface MiniappHostOptions {
   readonly backend: SandboxBackend;
   readonly grantStore: GrantStore;
   readonly kvBackend: MiniappKvStoreBackend;
+  readonly beeBackend?: StorageBeeBackend;
+  readonly identityBackend?: IdentityBackend;
+  readonly lxmfBackend?: MiniappKvStoreBackend;
+  readonly announceService?: AnnounceService;
+  readonly resourceBackend?: ResourceFetchBackend;
+  readonly presenceBackend?: PresenceBackend;
   readonly callbacks?: MiniappHostCallbacks;
   readonly deriveDestinationHash?: (appId: string, publisherPublicKey: string) => Promise<string>;
   readonly kvQuotaBytes?: number;
@@ -62,9 +74,32 @@ export class MiniappHost {
     }
   });
 
+  private readonly identityService: AppIdentityService;
+  private readonly lxmfService: NamespacedLxmfService;
+  private readonly announceService: AnnounceService;
+  private readonly resourceService: ResourceService | null;
+  private readonly presenceService: PresenceService | null;
+
   private active: ActiveApp | null = null;
 
   constructor(private readonly options: MiniappHostOptions) {
+    const identityBackend: IdentityBackend =
+      options.identityBackend ??
+      ({
+        deriveDestinationHash: async (appId, publisherPublicKey) =>
+          options.deriveDestinationHash !== undefined
+            ? options.deriveDestinationHash(appId, publisherPublicKey)
+            : `app:${appId}:${publisherPublicKey.slice(0, 16)}`,
+        sign: async (_appId, _publisherPublicKey, payload) =>
+          new TextEncoder().encode(`signed:${new TextDecoder().decode(payload)}`)
+      } satisfies IdentityBackend);
+
+    this.identityService = new AppIdentityService(identityBackend);
+    this.lxmfService = new NamespacedLxmfService(options.lxmfBackend ?? options.kvBackend);
+    this.announceService = options.announceService ?? new AnnounceService();
+    this.resourceService = options.resourceBackend === undefined ? null : new ResourceService(options.resourceBackend);
+    this.presenceService =
+      options.presenceBackend === undefined ? null : new PresenceService(options.presenceBackend);
     this.registerHandlers();
   }
 
@@ -241,17 +276,13 @@ export class MiniappHost {
 
     this.broker.register("ui", "subscribe", null, async () => ({ subscribed: true }));
 
-    this.broker.register("identity", "destinationHash", "identity", async (_request, context) => {
-      if (this.options.deriveDestinationHash !== undefined) {
-        return this.options.deriveDestinationHash(context.appId, context.publisherPublicKey);
-      }
+    this.broker.register("identity", "destinationHash", "identity", async (_request, context) =>
+      this.identityService.destinationHash(context.appId, context.publisherPublicKey)
+    );
 
-      return `app:${context.appId}:${context.publisherPublicKey.slice(0, 16)}`;
-    });
-
-    this.broker.register("identity", "sign", "identity", async (request) => {
+    this.broker.register("identity", "sign", "identity", async (request, context) => {
       const payload = (request.payload as { payload: Uint8Array }).payload;
-      return new TextEncoder().encode(`signed:${new TextDecoder().decode(payload)}`);
+      return this.identityService.sign(context.appId, context.publisherPublicKey, payload);
     });
 
     this.broker.register("storage.kv", "get", "storage:kv", async (request, context) => {
@@ -274,19 +305,72 @@ export class MiniappHost {
       return { ok: true };
     });
 
-    this.broker.register("storage.bee", "open", "storage:hyperbee", async () => {
-      throw new Error("Hyperbee storage is not implemented yet");
-    });
+    const beeBackend = this.options.beeBackend;
+    if (beeBackend !== undefined) {
+      this.broker.register("storage.bee", "open", "storage:hyperbee", async (_request, context) =>
+        beeBackend.descriptor(context.appId)
+      );
 
-    this.broker.register("lxmf", "send", "lxmf:send", async (request) => request.payload);
-    this.broker.register("lxmf", "receive", "lxmf:receive", async () => []);
-    this.broker.register("announce", "publish", "announce:publish", async () => ({ published: true }));
-    this.broker.register("announce", "subscribe", "announce:subscribe", async () => ({ subscribed: true }));
-    this.broker.register("resource", "fetch", "resource:fetch", async (request) => request.payload);
-    this.broker.register("presence", "snapshot", "presence", async () => ({
-      peersOnline: 0,
-      interfacesOnline: 0
-    }));
+      this.broker.register("storage.bee", "get", "storage:hyperbee", async (request, context) => {
+        const key = (request.payload as { key: string }).key;
+        return beeBackend.get(context.appId, key);
+      });
+
+      this.broker.register("storage.bee", "put", "storage:hyperbee", async (request, context) => {
+        const { key, value } = request.payload as { key: string; value: Uint8Array };
+        await beeBackend.put(context.appId, key, value);
+        return { ok: true };
+      });
+
+      this.broker.register("storage.bee", "del", "storage:hyperbee", async (request, context) => {
+        const key = (request.payload as { key: string }).key;
+        await beeBackend.del(context.appId, key);
+        return { ok: true };
+      });
+
+      this.broker.register("storage.bee", "list", "storage:hyperbee", async (request, context) => {
+        const options = (request.payload as { gte?: string; lt?: string; limit?: number }) ?? {};
+        return beeBackend.list(context.appId, options);
+      });
+    } else {
+      this.broker.register("storage.bee", "open", "storage:hyperbee", async () => {
+        throw new Error("Hyperbee storage is not configured on this host");
+      });
+    }
+
+    this.broker.register("lxmf", "send", "lxmf:send", async (request, context) =>
+      this.lxmfService.send(context.appId, request.payload as never)
+    );
+    this.broker.register("lxmf", "receive", "lxmf:receive", async (_request, context) =>
+      this.lxmfService.receive(context.appId)
+    );
+    this.broker.register("announce", "publish", "announce:publish", async (request, context) => {
+      const appData = (request.payload as { appData?: Uint8Array } | undefined)?.appData;
+      await this.announceService.publish(context.appId, appData);
+      return { published: true };
+    });
+    this.broker.register("announce", "subscribe", "announce:subscribe", async (request, context) => {
+      const namespace = (request.payload as { namespace: string }).namespace;
+      return this.announceService.subscribe(context.appId, namespace);
+    });
+    this.broker.register("resource", "fetch", "resource:fetch", async (request, context) => {
+      if (this.resourceService === null) {
+        throw new Error("Resource fetch is not configured on this host");
+      }
+
+      return this.resourceService.fetch(context.appId, request.payload as never);
+    });
+    this.broker.register("presence", "snapshot", "presence", async () => {
+      if (this.presenceService === null) {
+        return {
+          peers: 0,
+          onlineInterfaces: 0,
+          preferredInterface: null
+        };
+      }
+
+      return this.presenceService.snapshot();
+    });
   }
 
   private logActive(appId: string, line: string): void {

@@ -11,6 +11,10 @@
       "import": "./dist/index.js"
     }
   },
+  "dependencies": {
+    "corestore": "^7.9.2",
+    "hyperbee": "^2.27.3"
+  },
   "scripts": {
     "build": "tsc -b",
     "test": "vitest run"

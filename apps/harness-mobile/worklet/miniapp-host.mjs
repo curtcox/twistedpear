@@ -1,5 +1,6 @@
 import {
   CAPABILITY_DEFINITIONS,
+  CorestoreBeeBackend,
   GrantStore,
   MiniappHost,
   createSandboxBackend,
@@ -17,11 +18,39 @@ export function createWorkletMiniappHost(options) {
   const grantStore = new GrantStore(kvStore);
   let developerMode = false;
   let watchdogTimer = null;
+  const beeBackend = new CorestoreBeeBackend(options.beeStoragePath ?? "miniapp-bee-store");
+  const beeReady = beeBackend.ready();
 
   const host = new MiniappHost({
     backend: createSandboxBackend("bare-worker"),
     grantStore,
     kvBackend: kvStore,
+    beeBackend: {
+      descriptor: (appId) => beeBackend.descriptor(appId),
+      get: async (appId, key) => {
+        await beeReady;
+        return beeBackend.get(appId, key);
+      },
+      put: async (appId, key, value) => {
+        await beeReady;
+        return beeBackend.put(appId, key, value);
+      },
+      del: async (appId, key) => {
+        await beeReady;
+        return beeBackend.del(appId, key);
+      },
+      list: async (appId, listOptions) => {
+        await beeReady;
+        return beeBackend.list(appId, listOptions);
+      }
+    },
+    presenceBackend: {
+      snapshot: async () => ({
+        peers: options.getPresenceSnapshot?.().autoPeers ?? 0,
+        onlineInterfaces: options.getPresenceSnapshot?.().onlineInterfaces ?? 0,
+        preferredInterface: options.getPresenceSnapshot?.().preferredInterface ?? null
+      })
+    },
     callbacks: {
       onWidgetTree: () => pushRuntime(),
       onLog: (entry) => options.send({ type: "miniapp-log", appId: entry.appId, line: entry.line }),

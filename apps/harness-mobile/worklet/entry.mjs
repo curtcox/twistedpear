@@ -106,6 +106,8 @@ function ensureMiniappHost() {
   if (miniappHost === null) {
     miniappHost = createWorkletMiniappHost({
       kvStore: runtimeKeyValueStore(),
+      beeStoragePath: "miniapp-bee-store",
+      getPresenceSnapshot: () => status,
       send,
       onDeveloperModeChange(enabled) {
         status.developerMode = enabled;

@@ -9,7 +9,7 @@ private keys, sockets, filesystems, and Bare APIs are never exposed to app code.
 - `lxmf`: `send()` and `receive()` through the host LXMF router.
 - `announce`: publish or subscribe in the app namespace.
 - `storage.kv`: local per-app key/value storage.
-- `storage.bee()`: local-only Hyperbee descriptor; replication is future work.
+- `storage.bee`: local-only Hyperbee CRUD (`get`, `put`, `del`, `list`); replication is future work.
 - `resource.fetch()`: host-budgeted Resource fetch.
 - `presence.snapshot()`: coarse peer/interface state.
 - `ui.render()`: submit a validated widget tree.

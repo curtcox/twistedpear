@@ -1,6 +1,6 @@
 import { announce, storage, ui } from "@twistedpear/miniapp-sdk";
 
-await storage.bee();
+await storage.bee.open();
 await announce.subscribe("board");
 
 await ui.render({
