@@ -51,6 +51,7 @@ export interface MiniappRuntimeView {
   readonly version: string | null;
   readonly state: string;
   readonly widgetTree: unknown | null;
+  readonly devBadge?: boolean;
 }
 
 export interface WorkletStatus {
@@ -107,6 +108,8 @@ export type HostToWorkletMessage =
   | { readonly type: "revoke-grant"; readonly appId: string; readonly publisherPublicKey: string; readonly capability: string; readonly declaredCapabilities: ReadonlyArray<string> }
   | { readonly type: "launch-miniapp"; readonly appId: string }
   | { readonly type: "stop-miniapp" }
+  | { readonly type: "suspend-miniapp" }
+  | { readonly type: "resume-miniapp" }
   | { readonly type: "miniapp-ui-event"; readonly nodeId: string; readonly event: string; readonly value?: unknown }
   | { readonly type: "dev-side-load"; readonly manifest: Record<string, unknown>; readonly bundleHex: string }
   | { readonly type: "connect-dev-channel"; readonly host: string; readonly port: number }

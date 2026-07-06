@@ -189,4 +189,58 @@ await paint();
     const button = tree?.root.children?.find((node) => node.id === "tap");
     expect(button?.props?.label).toBe("tapped");
   });
+
+  it("rejects UI events for nodes that were never rendered", async () => {
+    const store = new MemoryStore();
+    const host = new MiniappHost({
+      backend: new NodeWorkerSandboxBackend(),
+      grantStore: new GrantStore(store),
+      kvBackend: store
+    });
+
+    await host.launch(manifest, helloBundle);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await expect(host.handleUiEvent("missing-node", "tap")).rejects.toThrow("Unknown widget node");
+    await host.stop();
+  });
+
+  it("computes widget patches between renders", async () => {
+    const patches: unknown[] = [];
+    const store = new MemoryStore();
+    const host = new MiniappHost({
+      backend: new NodeWorkerSandboxBackend(),
+      grantStore: new GrantStore(store),
+      kvBackend: store,
+      callbacks: {
+        onWidgetTree: (_tree, nextPatches) => {
+          patches.push(nextPatches);
+        }
+      }
+    });
+
+    await host.launch(manifest, helloBundle);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await host.dispatchRaw(
+      {
+        id: "render-2",
+        namespace: "ui",
+        method: "render",
+        payload: {
+          tree: {
+            root: {
+              id: "root",
+              type: "view",
+              children: [{ id: "title", type: "text", props: { value: "Updated" } }]
+            }
+          }
+        }
+      },
+      manifest,
+      []
+    );
+    await host.stop();
+
+    expect(patches.length).toBeGreaterThanOrEqual(2);
+    expect(patches.some((entry) => Array.isArray(entry) && entry.length > 0)).toBe(true);
+  });
 });

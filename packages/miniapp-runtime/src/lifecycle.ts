@@ -95,6 +95,13 @@ export class MiniappLifecycle {
       return this.snapshot();
     }
 
+    if (!this.instance.isAlive()) {
+      await this.instance.kill("sandbox-exit");
+      this.instance = null;
+      this.transition("crashed", "sandbox-exit");
+      return this.snapshot();
+    }
+
     const timeoutMs = this.options.watchdogMs ?? 1_000;
     const ping = this.instance.ping(timeoutMs);
     const timeout = new Promise<false>((resolve) => {

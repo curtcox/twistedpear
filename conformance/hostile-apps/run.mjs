@@ -157,7 +157,12 @@ async function main() {
         { root: { id: "root", type: "view", children: Array.from({ length: 5_001 }, (_, index) => wideNode(index)) } },
         { maxNodes: 5_000 }
       ),
-    () => validateWidgetTree({ root: { id: "root", type: "text", props: { html: "<b>x</b>" } } })
+    () => validateWidgetTree({ root: { id: "root", type: "text", props: { html: "<b>x</b>" } } }),
+    () =>
+      validateWidgetTree(
+        { root: { id: "root", type: "text", props: { value: "x".repeat(300_000) } } },
+        { maxBytes: 256 * 1024 }
+      )
   ];
 
   for (const reject of uiRejections) {
@@ -185,7 +190,92 @@ async function main() {
     await cycleLifecycle.stop(`cycle-${cycle}`);
   }
 
-  console.log("hostile-apps: sandbox, escape, broker flood, UI rejection, and launch/stop cycles passed");
+  const memoryBackend = new NodeWorkerSandboxBackend();
+  const memoryLifecycle = new MiniappLifecycle(
+    memoryBackend,
+    {
+      appId: "memory-bomb",
+      version: "1.0.0",
+      entryPath: "bundle.js",
+      bundle: new TextEncoder().encode(`
+const chunks = [];
+while (true) {
+  chunks.push(new Uint8Array(1024 * 1024));
+}
+`),
+      limits: { memoryBytes: 16 * 1024 * 1024 },
+      brokerEndpoint: { request: async (request) => ({ id: request.id, ok: true }) }
+    },
+    { watchdogMs: 500 }
+  );
+  await memoryLifecycle.launch();
+  let memoryKilled = false;
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const snapshot = await memoryLifecycle.watchdogPing();
+    if (snapshot.state === "crashed") {
+      memoryKilled = true;
+      break;
+    }
+  }
+  if (!memoryKilled) {
+    throw new Error("allocation bomb was not killed by memory ceiling");
+  }
+  await memoryLifecycle.stop("cleanup");
+
+  const oversizedBroker = new MiniappBroker({ maxMessageBytes: 128 });
+  oversizedBroker.register("ui", "render", null, () => "ok");
+  const oversized = await oversizedBroker.dispatch(
+    {
+      id: "big",
+      namespace: "ui",
+      method: "render",
+      payload: { tree: { root: { id: "root", type: "text", props: { value: "x".repeat(512) } } } }
+    },
+    {
+      appId: "oversized",
+      publisherPublicKey: "publisher",
+      declaredCapabilities: [],
+      grantedCapabilities: []
+    }
+  );
+  if (oversized.error?.code !== "MESSAGE_TOO_LARGE") {
+    throw new Error("oversized broker message was not rejected");
+  }
+
+  const forgeryHost = new MiniappHost({
+    backend: new NodeWorkerSandboxBackend(),
+    grantStore: new GrantStore(store),
+    kvBackend: store
+  });
+  await forgeryHost.launch(
+    {
+      name: "forgery",
+      version: "1.0.0",
+      entry: "bundle.js",
+      capabilities: [],
+      publisherPublicKey: "publisher"
+    },
+    helloBundle
+  );
+  let forgeryTree = forgeryHost.snapshot().widgetTree;
+  for (let attempt = 0; attempt < 20 && forgeryTree === null; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    forgeryTree = forgeryHost.snapshot().widgetTree;
+  }
+  try {
+    await forgeryHost.handleUiEvent("never-rendered", "tap");
+    throw new Error("event forgery was not rejected");
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.includes("Unknown widget node")) {
+      throw error;
+    }
+  }
+  await forgeryHost.stop();
+
+  console.log(
+    "hostile-apps: sandbox, escape, broker flood, UI rejection, memory bomb, oversized message, event forgery, and launch/stop cycles passed"
+  );
 }
 
 main().catch((error) => {

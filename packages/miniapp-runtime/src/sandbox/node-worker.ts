@@ -60,16 +60,26 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
 
   async spawn(options: SandboxSpawnOptions): Promise<SandboxInstance> {
     const source = prepareBundleSource(new TextDecoder().decode(options.bundle));
+    const resourceLimits =
+      options.limits?.memoryBytes !== undefined
+        ? { maxOldGenerationSizeMb: Math.max(1, Math.floor(options.limits.memoryBytes / (1024 * 1024))) }
+        : undefined;
     const worker = new Worker(WORKER_BOOTSTRAP, {
       eval: true,
       workerData: {
         appId: options.appId,
         bundleSource: source
-      }
+      },
+      resourceLimits
     });
 
     const pending = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
     let killed = false;
+    let alive = true;
+
+    worker.on("exit", () => {
+      alive = false;
+    });
 
     worker.on("message", (message: { type: string; id?: string; ok?: boolean; result?: unknown; error?: { message: string } }) => {
       if (message.type === "broker-request" && message.id !== undefined) {
@@ -115,6 +125,7 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
     });
 
     worker.on("error", (error) => {
+      alive = false;
       for (const [, waiter] of pending) {
         waiter.reject(error);
       }
@@ -123,6 +134,9 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
 
     return {
       id: options.appId,
+      isAlive(): boolean {
+        return alive && !killed;
+      },
       async postMessage(message: unknown): Promise<void> {
         if (killed) {
           return;
@@ -161,6 +175,7 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
         }
 
         killed = true;
+        alive = false;
         worker.postMessage({ type: "kill", reason });
         await worker.terminate();
       }

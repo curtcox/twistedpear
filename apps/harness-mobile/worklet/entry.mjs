@@ -945,6 +945,16 @@ async function handleHostMessage(raw) {
     return;
   }
 
+  if (message.type === "suspend-miniapp") {
+    await ensureMiniappHost().suspend();
+    return;
+  }
+
+  if (message.type === "resume-miniapp") {
+    await ensureMiniappHost().resume();
+    return;
+  }
+
   if (message.type === "miniapp-ui-event") {
     try {
       await ensureMiniappHost().handleUiEvent(message.nodeId, message.event, message.value);

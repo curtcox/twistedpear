@@ -28,6 +28,8 @@ function readDevPayload(socket) {
   });
 }
 
+import { createDevChannelClient } from "../../apps/harness-mobile/worklet/dev-channel.mjs";
+
 async function main() {
   const workDir = mkdtempSync(join(tmpdir(), "tp-dev-loop-"));
   try {
@@ -76,6 +78,21 @@ async function main() {
     }
 
     console.log("dev-loop: create → dev server → bundle push → hot reload passed");
+
+    const blocked = createDevChannelClient({
+      isDeveloperMode: () => false,
+      onBundle: async () => {}
+    });
+    try {
+      await blocked.connect("127.0.0.1", 34988);
+      throw new Error("dev channel connected while developer mode was disabled");
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.includes("Developer mode is disabled")) {
+        throw error;
+      }
+    }
+
+    console.log("dev-loop: dev channel refuses connections when developer mode is off");
   } finally {
     rmSync(workDir, { recursive: true, force: true });
   }

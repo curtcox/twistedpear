@@ -36,6 +36,7 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
 
     const pending = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
     let killed = false;
+    let alive = true;
 
     worker.onmessage = (event: { data: unknown }) => {
       const message = event.data as {
@@ -95,6 +96,9 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
 
     return {
       id: options.appId,
+      isAlive(): boolean {
+        return alive && !killed;
+      },
       async postMessage(message: unknown): Promise<void> {
         if (killed) {
           return;
@@ -133,6 +137,7 @@ export class BareWorkerSandboxBackend implements SandboxBackend {
         }
 
         killed = true;
+        alive = false;
         worker.postMessage({ type: "kill", reason });
         worker.terminate();
       }

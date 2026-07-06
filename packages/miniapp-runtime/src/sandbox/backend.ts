@@ -16,6 +16,7 @@ export interface SandboxInstance {
   readonly id: string;
   postMessage(message: unknown): Promise<void>;
   ping(timeoutMs: number): Promise<boolean>;
+  isAlive(): boolean;
   kill(reason: string): Promise<void>;
 }
 

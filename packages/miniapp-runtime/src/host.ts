@@ -10,7 +10,8 @@ import type { StorageBeeBackend } from "./services/storage-bee.js";
 import { NamespacedKvService, type MiniappKvStoreBackend } from "./services/storage-kv.js";
 import type { GrantRecord } from "./capabilities.js";
 import type { SandboxBackend } from "./sandbox/backend.js";
-import type { WidgetTree } from "./ui/schema.js";
+import type { WidgetNode, WidgetTree } from "./ui/schema.js";
+import { diffWidgetTrees, type WidgetPatch } from "./ui/diff.js";
 import { validateWidgetTree } from "./ui/validate.js";
 
 export interface LaunchManifest {
@@ -36,7 +37,7 @@ export interface MiniappHostSnapshot {
 }
 
 export interface MiniappHostCallbacks {
-  readonly onWidgetTree?: (tree: WidgetTree) => void;
+  readonly onWidgetTree?: (tree: WidgetTree, patches: ReadonlyArray<WidgetPatch>) => void;
   readonly onEvent?: (event: { readonly nodeId: string; readonly event: string; readonly value?: unknown }) => void;
   readonly onLog?: (entry: MiniappHostLogEntry) => void;
   readonly onLifecycle?: (snapshot: ReturnType<MiniappLifecycle["snapshot"]>) => void;
@@ -229,6 +230,11 @@ export class MiniappHost {
       throw new Error("No mini-app is running");
     }
 
+    const tree = this.active.widgetTree;
+    if (tree === null || findWidgetNode(tree.root, nodeId) === null) {
+      throw new Error(`Unknown widget node: ${nodeId}`);
+    }
+
     this.options.callbacks?.onEvent?.({ nodeId, event, value });
     await this.dispatch(
       {
@@ -266,12 +272,17 @@ export class MiniappHost {
     this.broker.register("ui", "render", null, async (request) => {
       const tree = (request.payload as { tree: WidgetTree }).tree;
       validateWidgetTree(tree);
+      let patches: ReadonlyArray<WidgetPatch> = [];
       if (this.active !== null) {
+        patches = diffWidgetTrees(this.active.widgetTree, tree);
         this.active.widgetTree = tree;
+        if (patches.length > 0) {
+          this.logActive(this.active.manifest.name, `ui ${patches.length} patch(es)`);
+        }
       }
 
-      this.options.callbacks?.onWidgetTree?.(tree);
-      return { accepted: true };
+      this.options.callbacks?.onWidgetTree?.(tree, patches);
+      return { accepted: true, patchCount: patches.length };
     });
 
     this.broker.register("ui", "subscribe", null, async () => ({ subscribed: true }));
@@ -394,4 +405,19 @@ export class MiniappHost {
 
     this.options.callbacks?.onLog?.(entry);
   }
+}
+
+function findWidgetNode(root: WidgetNode, nodeId: string): WidgetNode | null {
+  if (root.id === nodeId) {
+    return root;
+  }
+
+  for (const child of root.children ?? []) {
+    const found = findWidgetNode(child, nodeId);
+    if (found !== null) {
+      return found;
+    }
+  }
+
+  return null;
 }

@@ -17,6 +17,7 @@ export function createWorkletMiniappHost(options) {
   const kvStore = options.kvStore;
   const grantStore = new GrantStore(kvStore);
   let developerMode = false;
+  let devBadge = false;
   let watchdogTimer = null;
   const beeBackend = new CorestoreBeeBackend(options.beeStoragePath ?? "miniapp-bee-store");
   const beeReady = beeBackend.ready();
@@ -84,7 +85,8 @@ export function createWorkletMiniappHost(options) {
         appId: snapshot.appId,
         version: snapshot.version,
         state: snapshot.state,
-        widgetTree: snapshot.widgetTree
+        widgetTree: snapshot.widgetTree,
+        devBadge
       }
     });
   }
@@ -176,6 +178,7 @@ export function createWorkletMiniappHost(options) {
     },
 
     async launch(installedStore, runtime, appId) {
+      devBadge = false;
       const { record, bundle } = await loadBundleForApp(installedStore, runtime, appId);
       const grants = await grantStore.get(record.appId, record.manifest.publisherPublicKey);
       if (grants === null || grants.granted.length === 0) {
@@ -209,7 +212,18 @@ export function createWorkletMiniappHost(options) {
         watchdogTimer = null;
       }
 
+      devBadge = false;
       await host.stop();
+      pushRuntime();
+    },
+
+    async suspend(reason = "host-suspended") {
+      await host.suspend(reason);
+      pushRuntime();
+    },
+
+    async resume() {
+      await host.resume();
       pushRuntime();
     },
 
@@ -223,6 +237,7 @@ export function createWorkletMiniappHost(options) {
       }
 
       validateManifestCapabilities(manifest.capabilities ?? []);
+      devBadge = true;
       await host.launch(
         {
           name: manifest.name,

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AppState,
   PermissionsAndroid,
   Platform,
   Pressable,
@@ -203,6 +204,22 @@ export default function App() {
       appendLog(`[dev] ${message.state}${message.detail ? `: ${message.detail}` : ""}`);
     }
   }, [appendLog, sendToWorklet]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (!status.miniappRunning) {
+        return;
+      }
+
+      if (nextState === "background" || nextState === "inactive") {
+        sendToWorklet({ type: "suspend-miniapp" });
+      } else if (nextState === "active") {
+        sendToWorklet({ type: "resume-miniapp" });
+      }
+    });
+
+    return () => subscription.remove();
+  }, [sendToWorklet, status.miniappRunning]);
 
   const pushInterfaceConfig = useCallback((next: {
     tcp: boolean;
@@ -440,6 +457,9 @@ export default function App() {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Mini-app surface</Text>
         <Text style={styles.muted}>
+          {miniappRuntime?.devBadge ? (
+            <Text style={styles.devBadge}>DEV </Text>
+          ) : null}
           {miniappRuntime?.appId ?? "none"} · {miniappRuntime?.state ?? "stopped"}
           {status.miniappRunning ? " · foreground" : ""}
         </Text>
@@ -855,5 +875,10 @@ const styles = StyleSheet.create({
     fontFamily: "Menlo",
     fontSize: 12,
     marginBottom: 6
+  },
+  devBadge: {
+    color: "#f5a623",
+    fontWeight: "700",
+    fontSize: 12
   }
 });

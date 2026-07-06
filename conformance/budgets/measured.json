@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-07-06T12:48:16.906Z",
+  "measuredAt": "2026-07-06T15:47:04.605Z",
   "bitrates": {
     "lan": 8388608,
     "ble": 24576,
@@ -41,6 +41,63 @@
         "rnode": {
           "seconds": 6,
           "human": "6s"
+        }
+      }
+    },
+    {
+      "name": "chat",
+      "bytes": 1871,
+      "description": "Phase 4 example app: chat",
+      "estimates": {
+        "lan": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "ble": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "rnode": {
+          "seconds": 13,
+          "human": "13s"
+        }
+      }
+    },
+    {
+      "name": "file-drop",
+      "bytes": 1020,
+      "description": "Phase 4 example app: file-drop",
+      "estimates": {
+        "lan": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "ble": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "rnode": {
+          "seconds": 7,
+          "human": "7s"
+        }
+      }
+    },
+    {
+      "name": "board",
+      "bytes": 1362,
+      "description": "Phase 4 example app: board",
+      "estimates": {
+        "lan": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "ble": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "rnode": {
+          "seconds": 10,
+          "human": "10s"
         }
       }
     }
