@@ -200,6 +200,29 @@ jobs:
       - run: npm run build
       - run: npm run test:budgets
 
+  harness-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:harness-install
+
+  demo-phase3:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run demo:phase3
+
   bare-benchmark:
     runs-on: ubuntu-latest
     steps:

@@ -175,7 +175,10 @@ async function fetchByPath(path: FetchPath, options: FetchPackageOptions): Promi
         throw new Error("hyperdrive path unavailable");
       }
 
-      await options.driveManager.openDrive(options.entry.driveKey);
+      if (options.driveManager.activeDrive === null) {
+        await options.driveManager.openDrive(options.entry.driveKey);
+      }
+
       return options.driveManager.fetchVersion(options.version);
     }
 
