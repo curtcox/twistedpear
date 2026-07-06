@@ -161,9 +161,13 @@ Detailed plan: [PHASE4.md](PHASE4.md).
   storage, Resource fetch, peer presence.
 
 ### Phase 5 — iOS host
+Detailed plan: [PHASE5.md](PHASE5.md).
 - Same worklet code; the work is native: CoreBluetooth central+peripheral, multicast
   entitlement application, background-mode strategy (accept degraded always-on behavior),
   App Review posture for downloaded JS (guideline 3.3.2). Details in LIMITATIONS.
+- Exit bar: device-proven dev build + submission dossier; actual store submission
+  deferred. Bonjour + unicast-UDP discovery fallback built regardless of the
+  entitlement outcome.
 
 ### Phase 6 — Desktop host + network health
 - Pear/Electron host with the identical worklet core; desktops default to
