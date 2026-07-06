@@ -16,6 +16,13 @@ import bundle from "../worklet/worklet.bundle.mjs";
 import { isNodeServiceRunning, startNodeService, stopNodeService } from "@twistedpear/node-service";
 import { HostMulticastIpc } from "./host/multicast-ipc";
 import { HostBleIpc } from "./host/ble-ipc";
+import { HostUsbIpc } from "./host/usb-ipc";
+import {
+  hasUsbSerialPermission,
+  listUsbSerialDevices,
+  requestUsbSerialPermission,
+  type UsbSerialDeviceInfo
+} from "@twistedpear/usb-serial";
 import {
   decodeMessages,
   encodeMessage,
@@ -57,6 +64,9 @@ const initialStatus: WorkletStatus = {
   autoEnabled: false,
   bleEnabled: false,
   bleConnected: false,
+  rnodeEnabled: false,
+  rnodeConnected: false,
+  rnodeDeviceName: null,
   cryptoProvider: "unknown",
   autoPeers: 0
 };
@@ -71,11 +81,15 @@ export default function App() {
   const [tcpEnabled, setTcpEnabled] = useState(false);
   const [autoEnabled, setAutoEnabled] = useState(false);
   const [bleEnabled, setBleEnabled] = useState(false);
+  const [rnodeEnabled, setRnodeEnabled] = useState(false);
+  const [usbDevices, setUsbDevices] = useState<ReadonlyArray<UsbSerialDeviceInfo>>([]);
+  const [selectedUsbDeviceId, setSelectedUsbDeviceId] = useState<number | null>(null);
 
   const workletRef = useRef<Worklet | null>(null);
   const ipcBufferRef = useRef("");
   const multicastIpcRef = useRef<HostMulticastIpc | null>(null);
   const bleIpcRef = useRef<HostBleIpc | null>(null);
+  const usbIpcRef = useRef<HostUsbIpc | null>(null);
 
   const appendLog = useCallback((line: string) => {
     setLogLines((current) => [...current.slice(-200), line]);
@@ -101,6 +115,11 @@ export default function App() {
       return;
     }
 
+    if (usbIpcRef.current?.isSerialMessage(message)) {
+      void usbIpcRef.current.handleWorkletMessage(message);
+      return;
+    }
+
     if (message.type === "status") {
       setStatus(message.status);
       return;
@@ -116,7 +135,13 @@ export default function App() {
     }
   }, [appendLog]);
 
-  const pushInterfaceConfig = useCallback((next: { tcp: boolean; auto: boolean; ble: boolean }) => {
+  const pushInterfaceConfig = useCallback((next: {
+    tcp: boolean;
+    auto: boolean;
+    ble: boolean;
+    rnode: boolean;
+    rnodeDeviceId?: number | null;
+  }) => {
     sendToWorklet({ type: "set-interfaces", ...next });
   }, [sendToWorklet]);
 
@@ -124,6 +149,7 @@ export default function App() {
     sendToWorklet({ type: "stop" });
     void multicastIpcRef.current?.stop();
     void bleIpcRef.current?.stop();
+    void usbIpcRef.current?.stop();
     workletRef.current?.terminate();
     workletRef.current = null;
     setStatus((current) => ({
@@ -142,6 +168,7 @@ export default function App() {
     worklet.start("/app.bundle", bundle);
     multicastIpcRef.current = new HostMulticastIpc(sendToWorklet);
     bleIpcRef.current = new HostBleIpc(sendToWorklet);
+    usbIpcRef.current = new HostUsbIpc(sendToWorklet);
 
     ipcBufferRef.current = "";
     worklet.IPC.on("data", (data) => {
@@ -156,12 +183,18 @@ export default function App() {
     workletRef.current = worklet;
     const targetHost = Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST;
     sendToWorklet({ type: "start", targetHost, targetPort: DEFAULT_DOCKER_PORT });
-    pushInterfaceConfig({ tcp: tcpEnabled, auto: autoEnabled, ble: bleEnabled });
+    pushInterfaceConfig({
+      tcp: tcpEnabled,
+      auto: autoEnabled,
+      ble: bleEnabled,
+      rnode: rnodeEnabled,
+      rnodeDeviceId: selectedUsbDeviceId
+    });
     appendLog(`Worklet started (target ${targetHost}:${DEFAULT_DOCKER_PORT})`);
-  }, [appendLog, autoEnabled, bleEnabled, handleWorkletMessage, pushInterfaceConfig, sendToWorklet, tcpEnabled]);
+  }, [appendLog, autoEnabled, bleEnabled, rnodeEnabled, selectedUsbDeviceId, handleWorkletMessage, pushInterfaceConfig, sendToWorklet, tcpEnabled]);
 
   useEffect(() => {
-    const shouldRun = tcpEnabled || autoEnabled || bleEnabled;
+    const shouldRun = tcpEnabled || autoEnabled || bleEnabled || rnodeEnabled;
     if (shouldRun) {
       if (bleEnabled) {
         void requestBlePermissions().then(() => startWorklet());
@@ -172,22 +205,42 @@ export default function App() {
     }
 
     stopWorklet();
-  }, [tcpEnabled, autoEnabled, bleEnabled, startWorklet, stopWorklet]);
+  }, [tcpEnabled, autoEnabled, bleEnabled, rnodeEnabled, startWorklet, stopWorklet]);
 
   useEffect(() => {
     if (workletRef.current === null) {
       return;
     }
 
-    pushInterfaceConfig({ tcp: tcpEnabled, auto: autoEnabled, ble: bleEnabled });
-  }, [tcpEnabled, autoEnabled, bleEnabled, pushInterfaceConfig]);
+    pushInterfaceConfig({
+      tcp: tcpEnabled,
+      auto: autoEnabled,
+      ble: bleEnabled,
+      rnode: rnodeEnabled,
+      rnodeDeviceId: selectedUsbDeviceId
+    });
+  }, [tcpEnabled, autoEnabled, bleEnabled, rnodeEnabled, selectedUsbDeviceId, pushInterfaceConfig]);
 
   useEffect(() => {
     if (Platform.OS !== "android") {
       return;
     }
 
-    const nodeActive = status.running && (tcpEnabled || autoEnabled || bleEnabled);
+    const refreshDevices = () => {
+      setUsbDevices(listUsbSerialDevices());
+    };
+
+    refreshDevices();
+    const timer = setInterval(refreshDevices, 2_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "android") {
+      return;
+    }
+
+    const nodeActive = status.running && (tcpEnabled || autoEnabled || bleEnabled || rnodeEnabled);
     if (!nodeActive) {
       void stopNodeService().then(() => setServiceRunning(isNodeServiceRunning()));
       return;
@@ -201,7 +254,7 @@ export default function App() {
       await startNodeService();
       setServiceRunning(isNodeServiceRunning());
     })();
-  }, [status.running, tcpEnabled, autoEnabled, bleEnabled]);
+  }, [status.running, tcpEnabled, autoEnabled, bleEnabled, rnodeEnabled]);
 
   useEffect(() => () => {
     stopWorklet();
@@ -223,6 +276,13 @@ export default function App() {
         <Text>Announces seen: {status.announcesSeen}</Text>
         <Text>Auto peers: {status.autoPeers}</Text>
         <Text>BLE: {status.bleConnected ? "connected" : status.bleEnabled ? "waiting" : "off"}</Text>
+        <Text>
+          RNode: {status.rnodeConnected
+            ? `connected (${status.rnodeDeviceName ?? "usb"})`
+            : status.rnodeEnabled
+              ? "waiting"
+              : "off"}
+        </Text>
         <Text>Identity: {status.identityHash ?? "none"}</Text>
         <Text>Persisted: {status.identityPersisted ? "yes" : "no"}</Text>
         {Platform.OS === "android" ? (
@@ -252,7 +312,48 @@ export default function App() {
         <Row label="TCP client" value={tcpEnabled} onChange={setTcpEnabled} />
         <Row label="AutoInterface" value={autoEnabled} onChange={setAutoEnabled} />
         <Row label="BLE interface" value={bleEnabled} onChange={setBleEnabled} />
+        <Row label="RNode (USB)" value={rnodeEnabled} onChange={setRnodeEnabled} />
       </View>
+
+      {Platform.OS === "android" ? (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>USB serial devices</Text>
+          {usbDevices.length === 0 ? (
+            <Text style={styles.muted}>No CDC ACM USB devices attached.</Text>
+          ) : (
+            usbDevices.map((device) => (
+              <Pressable
+                key={device.deviceId}
+                style={[
+                  styles.deviceRow,
+                  selectedUsbDeviceId === device.deviceId ? styles.deviceRowSelected : null
+                ]}
+                onPress={() => {
+                  void (async () => {
+                    if (!device.hasPermission && !hasUsbSerialPermission(device.deviceId)) {
+                      const granted = await requestUsbSerialPermission(device.deviceId);
+                      if (!granted) {
+                        appendLog(`USB permission denied for device ${device.deviceId}`);
+                        return;
+                      }
+                    }
+
+                    setSelectedUsbDeviceId(device.deviceId);
+                    appendLog(`Selected USB device ${device.deviceId} (${device.vendorId.toString(16)}:${device.productId.toString(16)})`);
+                  })();
+                }}
+              >
+                <Text style={styles.deviceLabel}>
+                  {device.deviceName ?? `usb-${device.deviceId}`} · {device.isCdcAcm ? "CDC ACM" : "unknown"}
+                </Text>
+                <Text style={styles.deviceMeta}>
+                  {device.hasPermission ? "permission granted" : "tap to request permission"}
+                </Text>
+              </Pressable>
+            ))
+          )}
+        </View>
+      ) : null}
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Announce browser</Text>
@@ -368,6 +469,25 @@ const styles = StyleSheet.create({
   buttonLabel: {
     color: "#f4f7fb",
     fontSize: 13
+  },
+  deviceRow: {
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: "#141a22",
+    marginBottom: 6
+  },
+  deviceRowSelected: {
+    borderWidth: 1,
+    borderColor: "#4a90d9"
+  },
+  deviceLabel: {
+    color: "#f4f7fb",
+    fontSize: 13
+  },
+  deviceMeta: {
+    color: "#9aa7b8",
+    fontSize: 11,
+    marginTop: 2
   },
   log: {
     flex: 1,

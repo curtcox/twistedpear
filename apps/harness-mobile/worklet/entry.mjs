@@ -14,6 +14,8 @@ import { AutoInterfaceBridge } from "../../../packages/reticulum-interfaces/dist
 import { BleInterface } from "../../../packages/reticulum-interfaces/dist/ble/interface.js";
 import { createIpcMulticastBridge } from "./ipc-multicast-bridge.mjs";
 import { createIpcBleBridge } from "./ipc-ble-bridge.mjs";
+import { createIpcSerialBridge } from "./ipc-serial-bridge.mjs";
+import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 
 const { IPC } = BareKit;
 
@@ -40,6 +42,9 @@ const status = {
   autoEnabled: false,
   bleEnabled: false,
   bleConnected: false,
+  rnodeEnabled: false,
+  rnodeConnected: false,
+  rnodeDeviceName: null,
   cryptoProvider: provider.name,
   autoPeers: 0
 };
@@ -56,6 +61,14 @@ let multicastBridge = null;
 let bleBridge = null;
 /** @type {BleInterface | null} */
 let bleIface = null;
+/** @type {ReturnType<typeof createIpcSerialBridge> | null} */
+let serialBridge = null;
+/** @type {RNodeInterface | null} */
+let rnodeIface = null;
+/** @type {number | null} */
+let pendingRnodeDeviceId = null;
+/** @type {number} */
+let pendingRnodeBaudRate = 115_200;
 /** @type {ReturnType<typeof setInterval> | null} */
 let statusTimer = null;
 /** @type {Identity | null} */
@@ -159,6 +172,25 @@ async function stopBleInterface() {
   status.bleConnected = false;
 }
 
+async function stopRnodeInterface() {
+  if (rnodeIface !== null) {
+    if (reticulum !== null) {
+      reticulum.unregisterInterface(rnodeIface);
+    }
+
+    await rnodeIface.close();
+    rnodeIface = null;
+  }
+
+  if (serialBridge !== null) {
+    await serialBridge.close();
+    serialBridge = null;
+  }
+
+  status.rnodeConnected = false;
+  status.rnodeDeviceName = null;
+}
+
 async function stopAutoInterface() {
   if (autoIface !== null) {
     await autoIface.close();
@@ -191,6 +223,7 @@ async function stopNode() {
   await stopTcpInterface();
   await stopAutoInterface();
   await stopBleInterface();
+  await stopRnodeInterface();
 
   if (reticulum !== null) {
     reticulum.stop();
@@ -370,8 +403,43 @@ async function startBleInterface() {
   pushStatus();
 }
 
+async function startRnodeInterface() {
+  const node = await ensureReticulum();
+  if (rnodeIface !== null) {
+    status.rnodeConnected = serialBridge?.connected ?? false;
+    pushStatus();
+    return;
+  }
+
+  if (pendingRnodeDeviceId === null) {
+    log("RNode requires a USB device (select one in the harness UI)");
+    status.rnodeEnabled = false;
+    pushStatus();
+    return;
+  }
+
+  log(`Starting RNode interface over USB device ${pendingRnodeDeviceId}`);
+  serialBridge = createIpcSerialBridge(pendingRnodeDeviceId, pendingRnodeBaudRate);
+  rnodeIface = await RNodeInterface.open(provider, {
+    name: "harness-rnode",
+    provider,
+    pipe: serialBridge
+  });
+  node.registerInterface(rnodeIface);
+
+  status.rnodeConnected = serialBridge.connected;
+  status.rnodeDeviceName = status.rnodeConnected ? `usb-${pendingRnodeDeviceId}` : null;
+  if (rnodeIface.online) {
+    log(`RNode interface online (firmware: ${rnodeIface.rnodeStatus.firmwareVersion ?? "unknown"})`);
+  } else {
+    log("RNode interface started; waiting for USB serial connection from host");
+  }
+
+  pushStatus();
+}
+
 async function applyInterfaceConfig() {
-  if (!status.tcpEnabled && !status.autoEnabled && !status.bleEnabled) {
+  if (!status.tcpEnabled && !status.autoEnabled && !status.bleEnabled && !status.rnodeEnabled) {
     await stopNode();
     log("All interfaces disabled; node stopped");
     return;
@@ -387,6 +455,12 @@ async function applyInterfaceConfig() {
     await startBleInterface();
   } else {
     await stopBleInterface();
+  }
+
+  if (status.rnodeEnabled) {
+    await startRnodeInterface();
+  } else {
+    await stopRnodeInterface();
   }
 
   if (status.tcpEnabled) {
@@ -450,6 +524,9 @@ async function handleHostMessage(raw) {
     status.tcpEnabled = message.tcp;
     status.autoEnabled = message.auto;
     status.bleEnabled = message.ble;
+    status.rnodeEnabled = message.rnode;
+    pendingRnodeDeviceId = message.rnodeDeviceId ?? null;
+    pendingRnodeBaudRate = message.rnodeBaudRate ?? 115_200;
     pushStatus();
     await applyInterfaceConfig();
     return;
@@ -472,6 +549,29 @@ async function handleHostMessage(raw) {
       pushStatus();
     } else if (message.type === "ble-error") {
       log(`BLE pipe error: ${message.message}`);
+    }
+    return;
+  }
+
+  if (serialBridge !== null && (
+    message.type === "serial-data" ||
+    message.type === "serial-connect" ||
+    message.type === "serial-disconnect" ||
+    message.type === "serial-error"
+  )) {
+    serialBridge.handleHostMessage(message);
+    if (message.type === "serial-connect") {
+      status.rnodeConnected = true;
+      status.rnodeDeviceName = message.deviceName;
+      log(`RNode USB serial connected (${message.deviceName})`);
+      pushStatus();
+    } else if (message.type === "serial-disconnect") {
+      status.rnodeConnected = false;
+      status.rnodeDeviceName = null;
+      log("RNode USB serial disconnected");
+      pushStatus();
+    } else if (message.type === "serial-error") {
+      log(`RNode USB serial error: ${message.message}`);
     }
   }
 }

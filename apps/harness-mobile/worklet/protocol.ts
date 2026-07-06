@@ -17,6 +17,9 @@ export interface WorkletStatus {
   readonly autoEnabled: boolean;
   readonly bleEnabled: boolean;
   readonly bleConnected: boolean;
+  readonly rnodeEnabled: boolean;
+  readonly rnodeConnected: boolean;
+  readonly rnodeDeviceName: string | null;
   readonly cryptoProvider: string;
   readonly autoPeers: number;
 }
@@ -31,13 +34,25 @@ export type HostToWorkletMessage =
   | { readonly type: "stop" }
   | { readonly type: "create-identity" }
   | { readonly type: "reset-identity" }
-  | { readonly type: "set-interfaces"; readonly tcp: boolean; readonly auto: boolean; readonly ble: boolean }
+  | {
+      readonly type: "set-interfaces";
+      readonly tcp: boolean;
+      readonly auto: boolean;
+      readonly ble: boolean;
+      readonly rnode: boolean;
+      readonly rnodeDeviceId?: number | null;
+      readonly rnodeBaudRate?: number;
+    }
   | { readonly type: "multicast-packet"; readonly ifname: string; readonly dataHex: string; readonly sourceAddress: string; readonly port: number }
   | { readonly type: "multicast-interfaces"; readonly interfaces: ReadonlyArray<MulticastNetworkInfo> }
   | { readonly type: "ble-data"; readonly dataHex: string }
   | { readonly type: "ble-connect"; readonly mtu: number }
   | { readonly type: "ble-disconnect" }
-  | { readonly type: "ble-error"; readonly message: string };
+  | { readonly type: "ble-error"; readonly message: string }
+  | { readonly type: "serial-data"; readonly dataHex: string }
+  | { readonly type: "serial-connect"; readonly deviceName: string }
+  | { readonly type: "serial-disconnect" }
+  | { readonly type: "serial-error"; readonly message: string };
 
 export type WorkletToHostMessage =
   | { readonly type: "status"; readonly status: WorkletStatus }
@@ -51,7 +66,10 @@ export type WorkletToHostMessage =
   | { readonly type: "multicast-unicast"; readonly ifname: string; readonly targetAddress: string; readonly port: number; readonly dataHex: string }
   | { readonly type: "ble-start"; readonly identityHashHex: string }
   | { readonly type: "ble-stop" }
-  | { readonly type: "ble-write"; readonly dataHex: string };
+  | { readonly type: "ble-write"; readonly dataHex: string }
+  | { readonly type: "serial-start"; readonly deviceId: number; readonly baudRate: number }
+  | { readonly type: "serial-stop" }
+  | { readonly type: "serial-write"; readonly dataHex: string };
 
 export function encodeMessage(message: HostToWorkletMessage | WorkletToHostMessage): string {
   return `${JSON.stringify(message)}\n`;

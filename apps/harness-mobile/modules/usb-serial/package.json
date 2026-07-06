@@ -5,9 +5,7 @@
   "main": "src/index.ts",
   "peerDependencies": {
     "expo": "*",
-    "expo-modules-core": "*"
-  },
-  "dependencies": {
+    "expo-modules-core": "*",
     "@twistedpear/reticulum-interfaces": "0.0.0"
   }
 }

@@ -20,13 +20,13 @@ emulator, the worklet targets `10.0.2.2:4242` (host loopback).
 ## Features (M2)
 
 - Identity create/reset with bare-fs persistence in the worklet
-- Per-interface toggles (TCP, AutoInterface, and BLE via native IPC bridge)
+- Per-interface toggles (TCP, AutoInterface, BLE, and RNode/USB via native IPC bridges)
 - Live log view and announce browser (destination hash + hop count)
 - Android foreground service (`@twistedpear/node-service`) while any interface is enabled
 
 ## Foreground service and Doze
 
-When TCP, Auto, or BLE is enabled, the harness starts `NodeForegroundService` on
+When TCP, Auto, BLE, or RNode is enabled, the harness starts `NodeForegroundService` on
 Android. The service:
 
 - Shows a low-importance ongoing notification (`POST_NOTIFICATIONS` on API 33+)
@@ -58,8 +58,8 @@ Real-world caveats (see [LIMITATIONS.md](../../LIMITATIONS.md) §5):
 Newline-delimited JSON between RN shell and worklet — see
 [worklet/protocol.ts](./worklet/protocol.ts).
 
-Host → worklet: `start`, `stop`, `create-identity`, `reset-identity`, `set-interfaces`, `multicast-*`, `ble-*`
+Host → worklet: `start`, `stop`, `create-identity`, `reset-identity`, `set-interfaces`, `multicast-*`, `ble-*`, `serial-*`
 
-Worklet → host: `status`, `log`, `announce`, `multicast-*`, `ble-start`, `ble-stop`, `ble-write`
+Worklet → host: `status`, `log`, `announce`, `multicast-*`, `ble-*`, `serial-*`
 
 Rebuild after worklet changes: `npm run build:worklet` from repo root.
