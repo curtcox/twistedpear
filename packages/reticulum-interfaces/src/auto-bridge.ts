@@ -24,6 +24,7 @@ import type { MulticastBridge, MulticastNetworkInfo } from "./pipes.js";
 
 export interface AutoInterfaceBridgeOptions extends AutoInterfaceOptions {
   readonly bridge: MulticastBridge;
+  readonly onAdvertiseInterface?: (iface: { readonly name: string; readonly linkLocalAddress: string }) => Promise<void> | void;
 }
 
 interface AdoptedInterface {
@@ -128,6 +129,26 @@ export class AutoInterfaceBridge extends RawPacketInterface {
     return [...this.spawned.values()];
   }
 
+  /** Register a peer discovered by an alternate provider (for example Bonjour). */
+  notifyPeerDiscovered(address: string, ifname: string): void {
+    if (!this.finalInitDone) {
+      return;
+    }
+
+    if (this.isLocalAddress(address)) {
+      return;
+    }
+
+    this.addPeer(descopeLinkLocal(address), ifname);
+  }
+
+  /** Advertise the current link-local interfaces on alternate discovery providers. */
+  async advertiseDiscovery(): Promise<void> {
+    for (const iface of this.adopted) {
+      await this.options.onAdvertiseInterface?.(iface);
+    }
+  }
+
   async start(): Promise<void> {
     this.bridge.setEvents({
       onPacket: (ifname, data, sourceAddress, port) => {
@@ -213,6 +234,8 @@ export class AutoInterfaceBridge extends RawPacketInterface {
       await this.bridge.bindPort(iface.name, this.unicastDiscoveryPort);
       await this.bridge.bindPort(iface.name, this.dataPort);
     }
+
+    await this.advertiseDiscovery();
   }
 
   private handleBridgePacket(ifname: string, data: Uint8Array, sourceAddress: string, port: number): void {

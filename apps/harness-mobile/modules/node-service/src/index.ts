@@ -1,5 +1,9 @@
-import { requireNativeModule } from "expo-modules-core";
+import { requireNativeModule, type EventSubscription } from "expo-modules-core";
 import { Platform } from "react-native";
+
+export interface NodeLifecycleChangeEvent {
+  readonly state: NodeLifecycleState;
+}
 
 interface NodeServiceNative {
   start(): Promise<boolean>;
@@ -7,6 +11,7 @@ interface NodeServiceNative {
   isRunning(): boolean;
   getLifecycleState?(): string;
   requestBackgroundRefresh?(): Promise<boolean>;
+  addListener(event: "onLifecycleChange", listener: (event: NodeLifecycleChangeEvent) => void): EventSubscription;
 }
 
 const NativeNodeService = Platform.OS === "android" || Platform.OS === "ios"
@@ -67,4 +72,15 @@ export async function requestNodeBackgroundRefresh(): Promise<boolean> {
   }
 
   return NativeNodeService.requestBackgroundRefresh();
+}
+
+/** Subscribe to iOS lifecycle transitions (foreground, grace window, suspended). */
+export function addNodeLifecycleListener(
+  listener: (event: NodeLifecycleChangeEvent) => void
+): EventSubscription | null {
+  if (NativeNodeService === null || Platform.OS !== "ios" || NativeNodeService.addListener === undefined) {
+    return null;
+  }
+
+  return NativeNodeService.addListener("onLifecycleChange", listener);
 }

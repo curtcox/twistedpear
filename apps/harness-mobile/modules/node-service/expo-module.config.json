@@ -1,6 +1,9 @@
 {
-  "platforms": ["android"],
+  "platforms": ["android", "ios"],
   "android": {
     "modules": ["expo.modules.twistedpear.nodeservice.NodeServiceModule"]
+  },
+  "ios": {
+    "modules": ["TwistedPearNodeServiceModule"]
   }
 }

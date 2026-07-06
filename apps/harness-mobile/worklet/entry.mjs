@@ -11,8 +11,11 @@ import { DestinationProofStrategy } from "../../../packages/reticulum-ts/dist/re
 import { Reticulum } from "../../../packages/reticulum-ts/dist/reticulum.js";
 import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
 import { AutoInterfaceBridge } from "../../../packages/reticulum-interfaces/dist/auto-bridge.js";
+import { AUTO_DEFAULT_DATA_PORT } from "../../../packages/reticulum-interfaces/dist/auto.js";
+import { selectDiscoveryProviders } from "../../../packages/reticulum-interfaces/dist/auto-discovery.js";
 import { BleInterface } from "../../../packages/reticulum-interfaces/dist/ble/interface.js";
 import { createIpcMulticastBridge } from "./ipc-multicast-bridge.mjs";
+import { createIpcBonjourBridge } from "./ipc-bonjour-bridge.mjs";
 import { createIpcBleBridge } from "./ipc-ble-bridge.mjs";
 import { createIpcSerialBridge } from "./ipc-serial-bridge.mjs";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
@@ -72,6 +75,14 @@ let tcpIface = null;
 let autoIface = null;
 /** @type {ReturnType<typeof createIpcMulticastBridge> | null} */
 let multicastBridge = null;
+/** @type {ReturnType<typeof createIpcBonjourBridge> | null} */
+let bonjourBridge = null;
+/** @type {boolean} */
+let bonjourDiscoveryEnabled = true;
+/** @type {boolean} */
+let multicastEntitled = true;
+/** @type {boolean} */
+let nodeSuspended = false;
 /** @type {ReturnType<typeof createIpcBleBridge> | null} */
 let bleBridge = null;
 /** @type {BleInterface | null} */
@@ -404,6 +415,11 @@ async function stopAutoInterface() {
     multicastBridge = null;
   }
 
+  if (bonjourBridge !== null) {
+    await bonjourBridge.stop();
+    bonjourBridge = null;
+  }
+
   status.autoPeers = 0;
 }
 
@@ -420,6 +436,7 @@ async function stopNode() {
   stopStatusTimer();
   status.running = false;
   status.linkOnline = false;
+  nodeSuspended = false;
   pushStatus();
 
   await stopTcpInterface();
@@ -431,6 +448,24 @@ async function stopNode() {
     reticulum.stop();
     reticulum = null;
   }
+}
+
+async function quiesceInterfaces() {
+  log("Quiescing interfaces for iOS background transition");
+  await stopTcpInterface();
+  await stopAutoInterface();
+  await stopBleInterface();
+  await stopRnodeInterface();
+  pushStatus();
+}
+
+async function resumeInterfaces() {
+  if (!status.running) {
+    return;
+  }
+
+  log("Resuming interfaces after iOS foreground transition");
+  await applyInterfaceConfig();
 }
 
 async function resolveIdentity() {
@@ -554,11 +589,29 @@ async function startAutoInterface() {
 
   log("Starting AutoInterface (native multicast bridge via IPC)");
   multicastBridge = createIpcMulticastBridge();
+  const discovery = selectDiscoveryProviders({
+    multicastAvailable: true,
+    multicastEntitled,
+    bonjourAvailable: bonjourDiscoveryEnabled,
+    allowConcurrent: multicastEntitled
+  });
+
+  if (discovery.active.includes("bonjour")) {
+    bonjourBridge = createIpcBonjourBridge();
+    await bonjourBridge.start();
+    log("Bonjour discovery provider enabled");
+  }
+
   autoIface = await AutoInterfaceBridge.open(provider, {
     name: "harness-auto",
     provider,
     runtime,
     bridge: multicastBridge,
+    onAdvertiseInterface: async (iface) => {
+      if (bonjourBridge !== null) {
+        await bonjourBridge.advertise(iface.name, iface.linkLocalAddress, AUTO_DEFAULT_DATA_PORT);
+      }
+    },
     onPeerSpawn: (peer) => {
       node.registerInterface(peer);
       status.autoPeers = autoIface?.peerInterfaces.length ?? 0;
@@ -654,6 +707,11 @@ async function startRnodeInterface() {
 }
 
 async function applyInterfaceConfig() {
+  if (nodeSuspended) {
+    log("Interface restart deferred while node is suspended");
+    return;
+  }
+
   if (!status.tcpEnabled && !status.autoEnabled && !status.bleEnabled && !status.rnodeEnabled) {
     await stopNode();
     log("All interfaces disabled; node stopped");
@@ -711,11 +769,33 @@ async function handleHostMessage(raw) {
 
   if (message.type === "start") {
     pendingTarget = { targetHost: message.targetHost, targetPort: message.targetPort };
+    multicastEntitled = message.multicastEntitled !== false;
+    bonjourDiscoveryEnabled = message.bonjourEnabled !== false;
     if (status.tcpEnabled) {
       await applyInterfaceConfig();
     } else {
       log(`Target set to ${message.targetHost}:${message.targetPort} (enable TCP to connect)`);
     }
+    return;
+  }
+
+  if (message.type === "suspend-node") {
+    if (nodeSuspended) {
+      return;
+    }
+
+    nodeSuspended = true;
+    await quiesceInterfaces();
+    return;
+  }
+
+  if (message.type === "resume-node") {
+    if (!nodeSuspended) {
+      return;
+    }
+
+    nodeSuspended = false;
+    await resumeInterfaces();
     return;
   }
 
@@ -1051,6 +1131,19 @@ async function handleHostMessage(raw) {
 
   if (multicastBridge !== null && (message.type === "multicast-packet" || message.type === "multicast-interfaces")) {
     multicastBridge.handleHostMessage(message);
+    return;
+  }
+
+  if (bonjourBridge !== null && message.type === "bonjour-peer") {
+    autoIface?.notifyPeerDiscovered(message.address, message.ifname);
+    status.autoPeers = autoIface?.peerInterfaces.length ?? status.autoPeers;
+    pushStatus();
+    log(`Bonjour peer discovered: ${message.address}`);
+    return;
+  }
+
+  if (bonjourBridge !== null && message.type === "bonjour-interfaces") {
+    bonjourBridge.handleHostMessage(message);
     return;
   }
 

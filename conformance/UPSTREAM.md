@@ -10,7 +10,7 @@ The Reticulum reference implementation is the Phase 1 wire-format specification.
 | Corestore | 7.9.2 | Hyperdrive storage factory |
 | Hyperbee | 2.27.3 | Per-app ordered local storage for mini-apps |
 | Hyperswarm | 4.13.0 | DHT peer discovery for Hyperdrive replication |
-| multicast-dns | TBD | Desktop/Bare Bonjour fallback for Phase 5 iOS LAN discovery |
+| multicast-dns | 7.2.5 | Desktop/Bare Bonjour fallback for Phase 5 iOS LAN discovery |
 
 Changing either pin is a reviewed protocol event. A bump must include:
 

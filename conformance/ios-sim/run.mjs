@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { platform } from "node:os";
 
 const requireXcode = process.argv.includes("--require-xcode") || process.env.IOS_SIM_REQUIRED === "1";
@@ -57,7 +58,15 @@ if (!postureBuild.ok) {
   fail(`store posture worklet bundle failed\n${postureBuild.stdout}\n${postureBuild.stderr}`);
 }
 
-const tests = run("npm", ["test", "--", "packages/reticulum-interfaces/test/auto-discovery.test.ts"], {
+const storePosture = readFileSync(
+  new URL("../../apps/harness-mobile/worklet/store-posture.generated.mjs", import.meta.url),
+  "utf8"
+);
+if (!storePosture.includes('"store"') || !storePosture.includes("STORE_VARIANT = true")) {
+  fail("store posture worklet metadata was not generated correctly");
+}
+
+const tests = run("npm", ["test", "--", "packages/reticulum-interfaces/test/auto-discovery.test.ts", "packages/reticulum-interfaces/test/bonjour-mdns.test.ts"], {
   cwd: new URL("../../", import.meta.url)
 });
 if (!tests.ok) {

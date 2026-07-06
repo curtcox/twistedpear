@@ -84,8 +84,16 @@ export interface MulticastNetworkInfo {
 }
 
 export type HostToWorkletMessage =
-  | { readonly type: "start"; readonly targetHost: string; readonly targetPort: number }
+  | {
+      readonly type: "start";
+      readonly targetHost: string;
+      readonly targetPort: number;
+      readonly multicastEntitled?: boolean;
+      readonly bonjourEnabled?: boolean;
+    }
   | { readonly type: "stop" }
+  | { readonly type: "suspend-node" }
+  | { readonly type: "resume-node" }
   | { readonly type: "create-identity" }
   | { readonly type: "reset-identity" }
   | {
@@ -116,6 +124,8 @@ export type HostToWorkletMessage =
   | { readonly type: "disconnect-dev-channel" }
   | { readonly type: "multicast-packet"; readonly ifname: string; readonly dataHex: string; readonly sourceAddress: string; readonly port: number }
   | { readonly type: "multicast-interfaces"; readonly interfaces: ReadonlyArray<MulticastNetworkInfo> }
+  | { readonly type: "bonjour-peer"; readonly ifname: string; readonly address: string; readonly port: number }
+  | { readonly type: "bonjour-interfaces"; readonly interfaces: ReadonlyArray<MulticastNetworkInfo> }
   | { readonly type: "ble-data"; readonly dataHex: string }
   | { readonly type: "ble-connect"; readonly mtu: number }
   | { readonly type: "ble-disconnect" }
@@ -142,6 +152,9 @@ export type WorkletToHostMessage =
   | { readonly type: "multicast-bind"; readonly ifname: string; readonly port: number }
   | { readonly type: "multicast-send"; readonly ifname: string; readonly groupAddress: string; readonly port: number; readonly dataHex: string }
   | { readonly type: "multicast-unicast"; readonly ifname: string; readonly targetAddress: string; readonly port: number; readonly dataHex: string }
+  | { readonly type: "bonjour-start" }
+  | { readonly type: "bonjour-stop" }
+  | { readonly type: "bonjour-advertise"; readonly ifname: string; readonly address: string; readonly port: number }
   | { readonly type: "ble-start"; readonly identityHashHex: string }
   | { readonly type: "ble-stop" }
   | { readonly type: "ble-write"; readonly dataHex: string }

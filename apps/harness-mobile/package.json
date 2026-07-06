@@ -11,6 +11,7 @@
     "build:worklet": "node scripts/build-worklet.mjs"
   },
     "dependencies": {
+    "@twistedpear/bonjour": "file:./modules/bonjour",
     "@twistedpear/multicast": "file:./modules/multicast",
     "@twistedpear/ble-bridge": "file:./modules/ble-bridge",
     "@twistedpear/miniapp-runtime": "0.1.0",

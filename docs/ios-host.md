@@ -16,8 +16,9 @@ Status: Phase 5 simulator-first baseline.
 
 iOS has no foreground-service equivalent. The host therefore treats backgrounding as a
 state transition, not as a hidden daemon mode. On background, the native lifecycle module
-enters a grace window and the worklet receives suspend/quiesce signals; on foreground,
-interfaces re-open, re-announce, and mini-app UI state resumes.
+enters a grace window and the worklet receives `suspend-node` IPC to quiesce interfaces;
+on foreground, `resume-node` restarts them. The harness status screen shows the current
+lifecycle state, including an explicit "node suspended by iOS" message.
 
 ## Permission Flows
 

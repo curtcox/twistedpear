@@ -15,8 +15,9 @@ import { StatusBar } from "expo-status-bar";
 import { Worklet } from "react-native-bare-kit";
 import b4a from "b4a";
 import bundle from "../worklet/worklet.bundle.mjs";
-import { getNodeLifecycleState, isNodeServiceRunning, startNodeService, stopNodeService, type NodeLifecycleState } from "@twistedpear/node-service";
+import { getNodeLifecycleState, isNodeServiceRunning, startNodeService, stopNodeService, addNodeLifecycleListener, type NodeLifecycleState } from "@twistedpear/node-service";
 import { HostMulticastIpc } from "./host/multicast-ipc";
+import { HostBonjourIpc } from "./host/bonjour-ipc";
 import { HostBleIpc } from "./host/ble-ipc";
 import { HostUsbIpc } from "./host/usb-ipc";
 import {
@@ -119,6 +120,7 @@ export default function App() {
   const workletRef = useRef<Worklet | null>(null);
   const ipcBufferRef = useRef("");
   const multicastIpcRef = useRef<HostMulticastIpc | null>(null);
+  const bonjourIpcRef = useRef<HostBonjourIpc | null>(null);
   const bleIpcRef = useRef<HostBleIpc | null>(null);
   const usbIpcRef = useRef<HostUsbIpc | null>(null);
 
@@ -138,6 +140,11 @@ export default function App() {
   const handleWorkletMessage = useCallback((message: WorkletToHostMessage) => {
     if (multicastIpcRef.current?.isMulticastMessage(message)) {
       void multicastIpcRef.current.handleWorkletMessage(message);
+      return;
+    }
+
+    if (bonjourIpcRef.current?.isBonjourMessage(message)) {
+      void bonjourIpcRef.current.handleWorkletMessage(message);
       return;
     }
 
@@ -209,19 +216,30 @@ export default function App() {
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
-      if (!status.miniappRunning) {
+      if (nextState === "background" || nextState === "inactive") {
+        if (status.miniappRunning) {
+          sendToWorklet({ type: "suspend-miniapp" });
+        }
+
+        if (Platform.OS === "ios" && status.running) {
+          sendToWorklet({ type: "suspend-node" });
+        }
         return;
       }
 
-      if (nextState === "background" || nextState === "inactive") {
-        sendToWorklet({ type: "suspend-miniapp" });
-      } else if (nextState === "active") {
-        sendToWorklet({ type: "resume-miniapp" });
+      if (nextState === "active") {
+        if (status.miniappRunning) {
+          sendToWorklet({ type: "resume-miniapp" });
+        }
+
+        if (Platform.OS === "ios" && status.running) {
+          sendToWorklet({ type: "resume-node" });
+        }
       }
     });
 
     return () => subscription.remove();
-  }, [sendToWorklet, status.miniappRunning]);
+  }, [sendToWorklet, status.miniappRunning, status.running]);
 
   const pushInterfaceConfig = useCallback((next: {
     tcp: boolean;
@@ -255,6 +273,7 @@ export default function App() {
     const worklet = new Worklet();
     worklet.start("/app.bundle", bundle);
     multicastIpcRef.current = new HostMulticastIpc(sendToWorklet);
+    bonjourIpcRef.current = Platform.OS === "ios" ? new HostBonjourIpc(sendToWorklet) : null;
     bleIpcRef.current = new HostBleIpc(sendToWorklet);
     usbIpcRef.current = getUsbSerialCapability().supported ? new HostUsbIpc(sendToWorklet) : null;
 
@@ -270,7 +289,13 @@ export default function App() {
 
     workletRef.current = worklet;
     const targetHost = Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST;
-    sendToWorklet({ type: "start", targetHost, targetPort: DEFAULT_DOCKER_PORT });
+    sendToWorklet({
+      type: "start",
+      targetHost,
+      targetPort: DEFAULT_DOCKER_PORT,
+      multicastEntitled: Platform.OS !== "ios",
+      bonjourEnabled: true
+    });
     pushInterfaceConfig({
       tcp: tcpEnabled,
       auto: autoEnabled,
@@ -348,6 +373,23 @@ export default function App() {
     })();
   }, [status.running, tcpEnabled, autoEnabled, bleEnabled, rnodeEnabled]);
 
+  useEffect(() => {
+    if (Platform.OS !== "ios") {
+      return;
+    }
+
+    const subscription = addNodeLifecycleListener((event) => {
+      setLifecycleState(event.state);
+      if (event.state === "background-grace" && status.running) {
+        sendToWorklet({ type: "suspend-node" });
+      } else if (event.state === "foreground" && status.running) {
+        sendToWorklet({ type: "resume-node" });
+      }
+    });
+
+    return () => subscription?.remove();
+  }, [sendToWorklet, status.running]);
+
   useEffect(() => () => {
     stopWorklet();
     if (Platform.OS === "android" || Platform.OS === "ios") {
@@ -383,7 +425,10 @@ export default function App() {
           <Text>Foreground service: {serviceRunning ? "running" : "stopped"}</Text>
         ) : null}
         {Platform.OS === "ios" ? (
-          <Text>iOS lifecycle: {lifecycleState}</Text>
+          <Text>
+            iOS lifecycle: {lifecycleState}
+            {lifecycleState === "suspended" ? " (node suspended by iOS)" : ""}
+          </Text>
         ) : null}
       </View>
 
