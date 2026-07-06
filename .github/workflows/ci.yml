@@ -384,3 +384,32 @@ jobs:
       - run: INTEROP=1 npm run test:desktop-lifecycle
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down
+
+  desktop-macos:
+    if: github.event_name == 'pull_request'
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            desktop:
+              - 'apps/host-desktop/**'
+              - 'packages/host-core/**'
+              - 'conformance/desktop/**'
+              - '.github/workflows/ci.yml'
+      - uses: actions/setup-node@v4
+        if: steps.changes.outputs.desktop == 'true'
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+        if: steps.changes.outputs.desktop == 'true'
+      - run: npm run test:desktop
+        if: steps.changes.outputs.desktop == 'true'
+      - run: npm run test:widget-parity
+        if: steps.changes.outputs.desktop == 'true'

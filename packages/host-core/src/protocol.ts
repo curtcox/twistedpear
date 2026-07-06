@@ -73,6 +73,8 @@ export interface WorkletStatus {
   readonly onlineInterfaces: number;
   readonly pathTableCount: number;
   readonly activeLinkCount: number;
+  readonly bandwidthBytesIn?: number;
+  readonly bandwidthBytesOut?: number;
   readonly transportEnabled: boolean;
   readonly propagationEnabled: boolean;
   readonly propagationStoreBytes: number;
@@ -100,6 +102,7 @@ export type HostToWorkletMessage =
   | { readonly type: "stop" }
   | { readonly type: "suspend-node" }
   | { readonly type: "resume-node" }
+  | { readonly type: "network-change" }
   | { readonly type: "create-identity" }
   | { readonly type: "reset-identity" }
   | {

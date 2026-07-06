@@ -101,6 +101,8 @@ export class LeafTransport {
   protected readonly pathRequestHash: Uint8Array;
   protected readonly pathRequests = new Map<string, number>();
   protected readonly discoveryPrTags = new Set<string>();
+  private bytesIn = 0;
+  private bytesOut = 0;
 
   constructor(protected readonly options: LeafTransportOptions) {
     this.useImplicitProof = options.useImplicitProof ?? true;
@@ -131,6 +133,7 @@ export class LeafTransport {
       (async () => {
         try {
           for await (const packet of iface.packets) {
+            this.bytesIn += packet.raw.length;
             await this.inbound(packet, iface);
           }
         } catch {
@@ -186,6 +189,14 @@ export class LeafTransport {
 
   get activeLinkCount(): number {
     return this.activeLinks.length;
+  }
+
+  get bandwidthBytesIn(): number {
+    return this.bytesIn;
+  }
+
+  get bandwidthBytesOut(): number {
+    return this.bytesOut;
   }
 
   requestPath(destinationHash: Uint8Array, onInterface: PacketInterface | null = null): void {
@@ -275,6 +286,7 @@ export class LeafTransport {
   }
 
   async transmit(iface: PacketInterface, raw: Uint8Array): Promise<void> {
+    this.bytesOut += raw.length;
     const packet = Packet.decode(this.options.provider, raw);
     if (packet === null) {
       throw new Error("Cannot transmit invalid packet bytes");

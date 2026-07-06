@@ -343,6 +343,60 @@ describe("TransportNode three-hop topology", () => {
   });
 });
 
+describe("TransportNode bandwidth counters", () => {
+  it("tracks ingress and egress bytes on routed traffic", async () => {
+    const left = Reticulum.create({ provider, runtime });
+    const transport = Reticulum.create({ provider, runtime, transportEnabled: true });
+    const right = Reticulum.create({ provider, runtime });
+    left.start();
+    transport.start();
+    right.start();
+
+    const [leftPipe, transportLeftPipe] = PipeInterface.pair(provider);
+    const [transportRightPipe, rightPipe] = PipeInterface.pair(provider);
+    left.registerInterface(leftPipe);
+    transport.registerInterface(transportLeftPipe);
+    transport.registerInterface(transportRightPipe);
+    right.registerInterface(rightPipe);
+
+    const rightIn = right.registerDestination({
+      provider,
+      identity: new Identity(provider),
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "example",
+      aspects: ["stats"]
+    });
+    rightIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
+
+    await rightIn.announce();
+    await waitFor(() => (left.hasPath(rightIn.hash) ? true : null));
+
+    const leftOut = left.registerDestination({
+      provider,
+      identity: rightIn.identity,
+      direction: DestinationDirection.OUT,
+      type: DestinationType.SINGLE,
+      appName: "example",
+      aspects: ["stats"]
+    });
+
+    const received = new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("bandwidth stats timeout")), 5000);
+      rightIn.setPacketCallback(() => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+
+    await leftOut.send(new TextEncoder().encode("count me"));
+    await received;
+
+    expect(transport.bandwidthBytesIn).toBeGreaterThan(0);
+    expect(transport.bandwidthBytesOut).toBeGreaterThan(0);
+  });
+});
+
 describe("TransportNode announce rate limiting", () => {
   it("uses the same limiter contract that transport-node announce ingress relies on", () => {
     const limiter = new AnnounceRateLimiter({ rateTarget: 0.2, rateGrace: 0, ratePenalty: 10 });

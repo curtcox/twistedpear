@@ -54,8 +54,6 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
   const identity = await loadOrCreateIdentity(provider, config.identityPath);
   const startedAt = Date.now();
   let announcesSeen = 0;
-  let bytesIn = 0;
-  let bytesOut = 0;
 
   reticulum.registerAnnounceHandler({
     receivedAnnounce() {
@@ -161,8 +159,8 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
       propagationEvictions: propagationServer?.stats.evictions ?? 0,
       pathTableCount: reticulum.pathTableCount,
       activeLinkCount: reticulum.activeLinkCount,
-      bandwidthBytesOut: bytesOut,
-      bandwidthBytesIn: bytesIn
+      bandwidthBytesOut: reticulum.bandwidthBytesOut,
+      bandwidthBytesIn: reticulum.bandwidthBytesIn
     };
   };
 

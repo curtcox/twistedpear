@@ -120,3 +120,32 @@ jobs:
           IOS_LIFECYCLE_CYCLES: "100"
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down
+
+  desktop-soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:desktop-soak
+        env:
+          DESKTOP_SOAK_CYCLES: "5"
+
+  desktop-macos:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:desktop
+      - run: npm run test:widget-parity

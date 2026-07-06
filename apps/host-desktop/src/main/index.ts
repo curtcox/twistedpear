@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, powerMonitor, Tray, Menu, nativeImage } from "electron";
+import { networkInterfaces } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { WorkletStatus, WorkletToHostMessage } from "@twistedpear/host-core/protocol";
@@ -12,6 +13,18 @@ let supervisor: WorkletSupervisor | null = null;
 let bridges: HostDesktopBridges | null = null;
 let latestStatus: WorkletStatus | null = null;
 let quitToTray = true;
+let networkSnapshot = JSON.stringify(networkInterfaces());
+let networkPollTimer: ReturnType<typeof setInterval> | null = null;
+
+function checkNetworkChange(): void {
+  const next = JSON.stringify(networkInterfaces());
+  if (next === networkSnapshot) {
+    return;
+  }
+
+  networkSnapshot = next;
+  supervisor?.send({ type: "network-change" });
+}
 
 function broadcast(channel: string, payload: unknown): void {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -121,6 +134,8 @@ app.whenReady().then(() => {
   powerMonitor.on("resume", () => {
     supervisor?.send({ type: "resume-node" });
   });
+
+  networkPollTimer = setInterval(checkNetworkChange, 5_000);
 });
 
 app.on("window-all-closed", () => {
@@ -134,6 +149,11 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  if (networkPollTimer !== null) {
+    clearInterval(networkPollTimer);
+    networkPollTimer = null;
+  }
+
   void bridges?.stop();
   supervisor?.stop();
 });

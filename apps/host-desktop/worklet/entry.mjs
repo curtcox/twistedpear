@@ -72,6 +72,8 @@ const status = {
   onlineInterfaces: 0,
   pathTableCount: 0,
   activeLinkCount: 0,
+  bandwidthBytesIn: 0,
+  bandwidthBytesOut: 0,
   transportEnabled: IS_DESKTOP_HOST,
   propagationEnabled: false,
   propagationStoreBytes: 0,
@@ -390,12 +392,16 @@ function pushStatus() {
     status.onlineInterfaces = interfaces.filter((iface) => iface.online).length;
     status.pathTableCount = reticulum.pathTableCount;
     status.activeLinkCount = reticulum.activeLinkCount;
+    status.bandwidthBytesIn = reticulum.bandwidthBytesIn;
+    status.bandwidthBytesOut = reticulum.bandwidthBytesOut;
     status.transportEnabled = reticulum.isTransportEnabled;
   } else {
     status.preferredInterface = null;
     status.onlineInterfaces = 0;
     status.pathTableCount = 0;
     status.activeLinkCount = 0;
+    status.bandwidthBytesIn = 0;
+    status.bandwidthBytesOut = 0;
   }
 
   if (propagationServer !== null) {
@@ -822,6 +828,16 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function reconnectTcpAfterNetworkChange() {
+  if (nodeSuspended || !status.running || !status.tcpEnabled || pendingTarget === null) {
+    return;
+  }
+
+  log("Network change detected; reconnecting TCP interface");
+  await stopTcpInterface();
+  await startTcpInterface(pendingTarget.targetHost, pendingTarget.targetPort);
+}
+
 async function handleHostMessage(raw) {
   const line = raw.toString().trim();
   if (line.length === 0) {
@@ -865,6 +881,16 @@ async function handleHostMessage(raw) {
 
     nodeSuspended = false;
     await resumeInterfaces();
+    return;
+  }
+
+  if (message.type === "network-change") {
+    if (status.autoEnabled) {
+      await stopAutoInterface();
+      await startAutoInterface();
+    }
+
+    await reconnectTcpAfterNetworkChange();
     return;
   }
 
@@ -1212,7 +1238,20 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  if (multicastBridge !== null && (message.type === "multicast-packet" || message.type === "multicast-interfaces")) {
+  if (message.type === "multicast-interfaces" || message.type === "bonjour-interfaces") {
+    if (multicastBridge !== null && message.type === "multicast-interfaces") {
+      multicastBridge.handleHostMessage(message);
+    }
+
+    if (bonjourBridge !== null && message.type === "bonjour-interfaces") {
+      bonjourBridge.handleHostMessage(message);
+    }
+
+    await reconnectTcpAfterNetworkChange();
+    return;
+  }
+
+  if (multicastBridge !== null && message.type === "multicast-packet") {
     multicastBridge.handleHostMessage(message);
     return;
   }
@@ -1222,11 +1261,6 @@ async function handleHostMessage(raw) {
     status.autoPeers = autoIface?.peerInterfaces.length ?? status.autoPeers;
     pushStatus();
     log(`Bonjour peer discovered: ${message.address}`);
-    return;
-  }
-
-  if (bonjourBridge !== null && message.type === "bonjour-interfaces") {
-    bonjourBridge.handleHostMessage(message);
     return;
   }
 

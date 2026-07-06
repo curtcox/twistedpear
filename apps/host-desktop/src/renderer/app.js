@@ -55,6 +55,8 @@ function renderStatus(status) {
     ["Online interfaces", String(status.onlineInterfaces)],
     ["Path table", String(status.pathTableCount ?? 0)],
     ["Active links", String(status.activeLinkCount ?? 0)],
+    ["Bandwidth in", formatBytes(status.bandwidthBytesIn ?? 0)],
+    ["Bandwidth out", formatBytes(status.bandwidthBytesOut ?? 0)],
     ["Preferred", status.preferredInterface ?? "—"],
     ["Announces", String(status.announcesSeen)],
     ["Propagation store", formatBytes(status.propagationStoreBytes ?? 0)],

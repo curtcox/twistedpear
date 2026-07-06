@@ -133,6 +133,14 @@ export class Reticulum {
     return this.transport.activeLinkCount;
   }
 
+  get bandwidthBytesIn(): number {
+    return this.transport.bandwidthBytesIn;
+  }
+
+  get bandwidthBytesOut(): number {
+    return this.transport.bandwidthBytesOut;
+  }
+
   hopsTo(destinationHash: Uint8Array): number | null {
     return this.transport.hopsTo(destinationHash);
   }

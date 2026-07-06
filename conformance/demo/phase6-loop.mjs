@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Phase 6 demo: host-core transport TCP slice + propagation server boot.
- * Full mesh demo (publish → seed-install → offline LXMF) needs INTEROP docker peers.
+ * Phase 6 demo: host-core transport TCP slice, propagation server boot, and
+ * localhost status endpoint with bandwidth counters.
  */
 
 import { readFileSync } from "node:fs";
@@ -104,48 +104,65 @@ async function runTransportSlice(session) {
   throw new Error("phase6 demo: TCP slice did not complete");
 }
 
+async function assertStatusEndpoint(expected) {
+  const response = await fetch("http://127.0.0.1:9473/status");
+  if (!response.ok) {
+    throw new Error(`status endpoint returned ${response.status}`);
+  }
+
+  const json = await response.json();
+  for (const [key, value] of Object.entries(expected)) {
+    if (json[key] !== value) {
+      throw new Error(`status endpoint expected ${key}=${String(value)}, got ${String(json[key])}`);
+    }
+  }
+
+  if (typeof json.bandwidthBytesIn !== "number" || typeof json.bandwidthBytesOut !== "number") {
+    throw new Error("status endpoint missing bandwidth counters");
+  }
+
+  return json;
+}
+
+async function runFullRolesBoot(dataDir, options = {}) {
+  const session = await createNodeHost({
+    config: resolveHostConfig({
+      dataDir,
+      overrides: {
+        roles: {
+          transport: options.transport ?? true,
+          seeder: options.seeder ?? true,
+          propagation: options.propagation ?? true,
+          attachRnsd: null
+        },
+        interfaces: options.interfaces ?? {
+          tcp: { enabled: false, mode: "client" },
+          auto: { enabled: false, multicast: false, bonjour: false },
+          i2p: { enabled: false },
+          rnode: { enabled: false }
+        },
+        statusEndpoint: true
+      }
+    })
+  });
+
+  const status = session.getStatus();
+  console.log(
+    `phase6 demo: host up identity=${status.identityHash} transport=${status.transportEnabled} seeder=${status.seederEnabled} propagation=${status.propagationEnabled}`
+  );
+
+  await assertStatusEndpoint({
+    seederEnabled: options.seeder ?? true,
+    propagationEnabled: options.propagation ?? true
+  });
+
+  return session;
+}
+
 async function runHeadlessBoot() {
   const dataDir = mkdtempSync(join(tmpdir(), "tp-phase6-"));
   try {
-    const session = await createNodeHost({
-      config: resolveHostConfig({
-        dataDir,
-        overrides: {
-          roles: { transport: true, seeder: true, propagation: true, attachRnsd: null },
-          interfaces: {
-            tcp: { enabled: false, mode: "client" },
-            auto: { enabled: false, multicast: false, bonjour: false },
-            i2p: { enabled: false },
-            rnode: { enabled: false }
-          },
-          statusEndpoint: true
-        }
-      })
-    });
-
-    const status = session.getStatus();
-    console.log(
-      `phase6 demo: host up identity=${status.identityHash} transport=${status.transportEnabled} seeder=${status.seederEnabled} propagation=${status.propagationEnabled}`
-    );
-
-    if (!status.seederEnabled) {
-      throw new Error("phase6 demo: seeder role not enabled");
-    }
-
-    const response = await fetch("http://127.0.0.1:9473/status");
-    if (!response.ok) {
-      throw new Error(`status endpoint returned ${response.status}`);
-    }
-
-    const json = await response.json();
-    if (json.propagationEnabled !== true) {
-      throw new Error("status endpoint missing propagation flag");
-    }
-
-    if (json.seederEnabled !== true) {
-      throw new Error("status endpoint missing seeder flag");
-    }
-
+    const session = await runFullRolesBoot(dataDir);
     await session.stop();
   } finally {
     rmSync(dataDir, { recursive: true, force: true });
@@ -156,24 +173,46 @@ if (interopReady()) {
   const dataDir = mkdtempSync(join(tmpdir(), "tp-phase6-interop-"));
   try {
     await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
-      const session = await createNodeHost({
-        config: resolveHostConfig({
-          dataDir,
-          overrides: {
-            roles: { transport: true, seeder: false, propagation: false, attachRnsd: null },
-            interfaces: {
-              tcp: { enabled: true, mode: "client", targetHost: "127.0.0.1", targetPort: LEAF_ECHO_PORT },
-              auto: { enabled: false, multicast: false, bonjour: false },
-              i2p: { enabled: false },
-              rnode: { enabled: false }
-            }
-          }
-        })
+      const session = await runFullRolesBoot(dataDir, {
+        transport: true,
+        seeder: false,
+        propagation: false,
+        interfaces: {
+          tcp: { enabled: true, mode: "client", targetHost: "127.0.0.1", targetPort: LEAF_ECHO_PORT },
+          auto: { enabled: false, multicast: false, bonjour: false },
+          i2p: { enabled: false },
+          rnode: { enabled: false }
+        }
       });
 
       await runTransportSlice(session);
-      console.log("phase6 demo: transport TCP slice passed");
+      const status = session.getStatus();
+      if (status.bandwidthBytesIn === 0 && status.bandwidthBytesOut === 0) {
+        throw new Error("phase6 demo: expected non-zero bandwidth counters after TCP slice");
+      }
+
+      console.log(
+        `phase6 demo: transport TCP slice passed (in=${status.bandwidthBytesIn} out=${status.bandwidthBytesOut})`
+      );
       await session.stop();
+
+      const propagationDir = mkdtempSync(join(tmpdir(), "tp-phase6-prop-"));
+      try {
+        const propagationSession = await runFullRolesBoot(propagationDir, {
+          transport: false,
+          seeder: false,
+          propagation: true
+        });
+        const propagationStatus = propagationSession.getStatus();
+        if (!propagationStatus.propagationEnabled) {
+          throw new Error("phase6 demo: propagation role not enabled");
+        }
+
+        console.log("phase6 demo: propagation server boot passed");
+        await propagationSession.stop();
+      } finally {
+        rmSync(propagationDir, { recursive: true, force: true });
+      }
     });
   } finally {
     rmSync(dataDir, { recursive: true, force: true });

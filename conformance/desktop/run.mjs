@@ -82,6 +82,8 @@ async function testStatusEndpointLocalhostOnly() {
     assert(typeof body.uptimeMs === "number", "status schema includes uptimeMs");
     assert(typeof body.pathTableCount === "number", "status schema includes pathTableCount");
     assert(typeof body.activeLinkCount === "number", "status schema includes activeLinkCount");
+    assert(typeof body.bandwidthBytesIn === "number", "status schema includes bandwidthBytesIn");
+    assert(typeof body.bandwidthBytesOut === "number", "status schema includes bandwidthBytesOut");
     await session.stop();
   } finally {
     rmSync(dataDir, { recursive: true, force: true });
