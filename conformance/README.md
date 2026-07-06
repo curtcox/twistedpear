@@ -79,7 +79,9 @@ exit checklist before closing Phase 3.
 | SDK interop | `npm run test:sdk-interop` | M3 |
 | Dev loop | `npm run test:dev-loop` | M6 |
 | Example apps | `npm run test:examples` | M7 |
+| Mini-app soak | `npm run test:miniapp-soak` | M8 |
+| Isolation benchmark (desktop) | `npm run test:miniapp-benchmark` | M0 |
 | Phase 4 demo | `npm run demo:phase4` | M8 |
 
 Peer-to-peer example interop (two sandboxed apps on two hosts) and 24 h launch/suspend/kill
-soak are nightly/device-gated per [PHASE4.md](../PHASE4.md) §7.
+soak are nightly/device-gated per [PHASE4.md](../PHASE4.md) §7 and [PHASE4-HARDWARE.md](../PHASE4-HARDWARE.md).

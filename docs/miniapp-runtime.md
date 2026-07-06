@@ -6,29 +6,43 @@ that value.
 
 ## Isolation ADR
 
-Decision: code to the `SandboxBackend` interface and select a Bare Worker per app for
+Decision: code to the `SandboxBackend` interface and select a **Bare Worker per app** for
 device execution. The hardened in-worklet compartment remains as a documented fallback
 stub because it cannot satisfy the M0 killability requirement for a hostile busy loop
 without restarting the full worklet.
 
-The current repository implementation includes the backend interface plus explicit
-stubs for both candidates. Device measurements remain hardware debt for the Phase 4
-runbook; the runtime surface is intentionally backend-agnostic so those measurements do
-not leak into SDK or broker code.
+| Backend | Role | Kill busy loop without worklet restart? |
+|---|---|---|
+| `BareWorkerSandboxBackend` | Device winner | Yes (terminate worker) |
+| `NodeWorkerSandboxBackend` | Desktop CI / dev | Yes (worker thread kill) |
+| `CompartmentSandboxBackend` | Losing M0 spike stub | No — retained for documentation only |
+
+Desktop measurements (Node worker backend, `npm run test:miniapp-benchmark`):
+
+| Metric | Desktop CI (Node worker) |
+|---|---|
+| Spawn latency | sub-ms typical |
+| Stop/kill latency | ~3 ms typical |
+| Busy-loop kill | ~300 ms (watchdog) |
+
+Android Bare Worker measurements remain hardware debt; record them per
+[PHASE4-HARDWARE.md](../PHASE4-HARDWARE.md) E5 when emulator/device is available.
 
 ## Capability Model
 
 Known v1 capabilities are:
 
-- `identity`
-- `presence`
-- `announce:subscribe`
-- `announce:publish`
-- `lxmf:send`
-- `lxmf:receive`
-- `storage:kv`
-- `storage:hyperbee`
-- `resource:fetch`
+| Capability | Grant-screen wording |
+|---|---|
+| `identity` | Use an app-scoped identity for signing and addressing. |
+| `presence` | Read coarse peer and interface presence. |
+| `announce:subscribe` | Receive announces in the app namespace. |
+| `announce:publish` | Publish the app destination. |
+| `lxmf:send` | Send LXMF messages from the app destination. |
+| `lxmf:receive` | Receive LXMF messages for the app destination. |
+| `storage:kv` | Store local key/value data for this app. |
+| `storage:hyperbee` | Store ordered local Hyperbee data for this app. |
+| `resource:fetch` | Fetch package resources through host budget rules. |
 
 Unknown strings block install with guidance to update `minHostApi`. Grants are keyed by
 `appId + publisherPublicKey`, survive updates signed by the same publisher, and are
@@ -41,6 +55,18 @@ The broker is the only host doorway. It validates request size, per-app message 
 declared capabilities, active grants, and registered methods before invoking a service.
 Failures are typed and catchable by SDK callers.
 
+Default enforcement limits (configurable per host):
+
+| Limit | Default |
+|---|---|
+| Broker message size | 256 KiB |
+| Broker messages per second | 60 per app |
+| Widget tree nodes | 5,000 |
+| Widget tree depth | 32 |
+| Widget tree message size | 256 KiB |
+| KV quota per app | host-configured (counts in Phase 3 storage view) |
+| Hyperbee quota per app | shared pool with KV; history counts |
+
 ## Lifecycle
 
 The lifecycle state machine is:
@@ -50,19 +76,50 @@ The lifecycle state machine is:
 Crashes and watchdog kills transition to `crashed`. Updating an installed package while
 it runs does not replace live code; the new version activates on the next launch.
 
+Watchdog: an unresponsive sandbox (ping timeout) is killed. Memory ceilings are enforced
+by the sandbox backend where supported.
+
 ## UI
 
 Mini-apps submit widget trees as data. The validator enforces a closed component,
 property, and style allowlist; caps default to 5,000 nodes, depth 32, and 256 KiB per
-tree message.
+tree message. The host diffs trees for incremental updates.
+
+UI requires no capability grant — it is the app's surface, not a host service — but obeys
+the same rate/size enforcement as every broker call.
+
+## Threat Model (Pre–Phase 7)
+
+**Trust assumptions:**
+
+- Package signatures authenticate the *publisher*, not behavior.
+- Users grant capabilities at install; revocation takes effect on the next broker call.
+- Mini-app code is treated as hostile input.
+
+**Mitigations in v1:**
+
+- Single broker chokepoint; no ambient `require`, filesystem, sockets, or Bare APIs.
+- Deny-by-default capability enforcement.
+- Data-only widget trees (host renders; no arbitrary UI code).
+- Sandbox backends with kill semantics for runaway apps.
+- Hostile-input conformance (`npm run test:hostile-apps`).
+
+**Known gaps (explicit non-promises):**
+
+- No completed adversarial security review or parser fuzzing (Phase 7).
+- JS-level isolation may not resist determined escape on all hardware.
+- Watchdog thresholds may false-positive on low-end devices (H11).
+- Dev side-loading is localhost/adb-only, off by default, badged **DEV**.
+- One foreground mini-app at a time; no background execution.
 
 ## Non-promises Before Phase 7
 
 This is not a completed adversarial security review. The current implementation
 provides the broker chokepoint, deny-by-default capability enforcement, data-only UI,
-hostile-input conformance (`npm run test:hostile-apps`), and example-app exercise
-(`npm run test:examples`). Phase 7 will audit and fuzz the sandbox surface.
+hostile-input conformance (`npm run test:hostile-apps`), example-app exercise
+(`npm run test:examples`), and mini-app soak (`npm run test:miniapp-soak`). Phase 7
+will audit and fuzz the sandbox surface.
 
-Device measurements for the M0 isolation ADR (Bare Worker spawn latency, kill semantics
-on Android) remain hardware debt; the runtime codes to `SandboxBackend` so those numbers
-do not leak into SDK or broker code.
+Device measurements for the M0 isolation ADR on Android remain hardware debt; the runtime
+codes to `SandboxBackend` so those numbers do not leak into SDK or broker code. See
+[PHASE4-HARDWARE.md](../PHASE4-HARDWARE.md).

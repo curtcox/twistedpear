@@ -34,6 +34,8 @@
     "test:dev-loop": "npm run build && node conformance/dev-loop/run.mjs",
     "test:sdk-interop": "npm run build && node conformance/sdk-interop/run.mjs",
     "test:examples": "npm run build && node conformance/examples/run.mjs",
+    "test:miniapp-soak": "npm run build && node conformance/miniapp-soak/run.mjs",
+    "test:miniapp-benchmark": "npm run build && node conformance/miniapp-benchmark/run.mjs",
     "demo:phase3": "npm run build && node conformance/demo/publish-install.mjs",
     "demo:phase4": "npm run build && node conformance/demo/phase4-loop.mjs",
     "build:worklet": "npm run build && npm run build:worklet --workspace=harness-mobile",

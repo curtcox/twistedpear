@@ -315,7 +315,7 @@ loads unverified bytes, so the tests can't normalize a bypass.
 ## 7. Hardware-debt register (Phase 4 additions)
 
 Same discipline as Phases 2–3; cleared before phase exit, runbook procedures written in
-M8.
+M8. Full procedures: [PHASE4-HARDWARE.md](PHASE4-HARDWARE.md).
 
 | # | Needs | Deferred criterion |
 |---|---|---|

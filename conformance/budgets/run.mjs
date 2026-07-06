@@ -4,7 +4,7 @@
  * Writes conformance/budgets/measured.json for LIMITATIONS §6 reference.
  */
 
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, cpSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runInit, runPack } from "../../packages/cli/dist/commands/index.js";
@@ -43,6 +43,7 @@ async function main() {
   const cwd = mkdtempSync(join(tmpdir(), "tp-budgets-"));
 
   let exampleBytes;
+  const examplePackages = [];
   try {
     await runInit({ cwd, args: [] });
     const packCode = await runPack({
@@ -54,6 +55,35 @@ async function main() {
     }
 
     exampleBytes = readFileSync(join(cwd, "example.tpkg"));
+
+    for (const name of ["chat", "file-drop", "board"]) {
+      const exampleCwd = mkdtempSync(join(tmpdir(), `tp-budgets-${name}-`));
+      const appDir = join(exampleCwd, name);
+      cpSync(join(examplesDir, name), appDir, { recursive: true });
+
+      try {
+        const initCode = await runInit({ cwd: exampleCwd, args: [] });
+        if (initCode !== 0) {
+          throw new Error(`tp init failed for ${name}`);
+        }
+
+        const packed = await runPack({
+          cwd: exampleCwd,
+          args: [name, "--out", `${name}.tpkg`]
+        });
+        if (packed !== 0) {
+          throw new Error(`tp pack failed for ${name}`);
+        }
+
+        examplePackages.push({
+          name,
+          bytes: readFileSync(join(exampleCwd, `${name}.tpkg`)).length,
+          description: `Phase 4 example app: ${name}`
+        });
+      } finally {
+        rmSync(exampleCwd, { recursive: true, force: true });
+      }
+    }
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }
@@ -61,11 +91,7 @@ async function main() {
   const packages = [
     { name: "tiny", bytes: tinyBytes.length, description: "Budget hello-world bundle" },
     { name: "example-app", bytes: exampleBytes.length, description: "Typical minimal mini-app" },
-    ...["chat", "file-drop", "board"].map((name) => ({
-      name,
-      bytes: readFileSync(join(examplesDir, name, "bundle.js")).length,
-      description: `Phase 4 example app: ${name}`
-    }))
+    ...examplePackages
   ];
 
   const measured = {
