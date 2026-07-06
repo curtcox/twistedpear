@@ -12,6 +12,7 @@
   },
     "dependencies": {
     "@twistedpear/multicast": "file:./modules/multicast",
+    "@twistedpear/ble-bridge": "file:./modules/ble-bridge",
     "@twistedpear/node-service": "file:./modules/node-service",
     "@twistedpear/reticulum-interfaces": "0.0.0",
     "@twistedpear/reticulum-ts": "0.0.0",

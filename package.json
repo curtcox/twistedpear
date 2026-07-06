@@ -18,6 +18,7 @@
     "test:bare-interop": "npm run build && node conformance/bare-interop/run.mjs",
     "test:bare-interop-bundle": "npm run build && node conformance/bare-interop/build.mjs && bare conformance/bare-interop/bare-interop.bundle",
     "test:auto-interop": "npm run build && node conformance/auto-interop/run.mjs",
+    "test:i2p-interop": "npm run build && node conformance/i2p-interop/run.mjs",
     "test:bare-device": "npm run build && node conformance/bare-device/run.mjs",
     "test:bare-hyperswarm": "npm run build && bare conformance/bare-hyperswarm/run.mjs",
     "build:worklet": "npm run build && npm run build:worklet --workspace=harness-mobile",

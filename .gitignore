@@ -12,3 +12,4 @@ conformance/bare-interop/bare-interop.bundle
 conformance/bare-interop/bare-interop.bundle.mjs
 conformance/bare-interop/imports.generated.json
 apps/harness-mobile/worklet/imports.generated.json
+conformance/scenarios/state/

@@ -63,3 +63,32 @@ services:
       timeout: 2s
       retries: 15
       start_period: 5s
+
+  i2pd:
+    image: purplei2p/i2pd:latest
+    command:
+      - --sam.enabled=true
+      - --sam.address=0.0.0.0
+      - --sam.port=7656
+      - --loglevel=info
+    ports:
+      - "7656:7656"
+
+  i2p-interop:
+    build:
+      context: ../..
+      dockerfile: conformance/docker/Dockerfile
+    depends_on:
+      - i2pd
+    environment:
+      I2P_SAM_ADDRESS: i2pd:7656
+    working_dir: /conformance/scenarios/python
+    command: python i2p_interop.py
+    volumes:
+      - ../scenarios/state:/conformance/scenarios/state
+    healthcheck:
+      test: ["CMD", "python", "-c", "from pathlib import Path; raise SystemExit(0 if Path('/conformance/scenarios/state/i2p-b32.txt').is_file() else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 36
+      start_period: 30s

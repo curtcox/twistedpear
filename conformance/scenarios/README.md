@@ -26,6 +26,7 @@ Run the matching TypeScript interop tests:
 npm run test:interop
 npm run test:bare-interop
 npm run test:auto-interop
+npm run test:i2p-interop
 ```
 
 The tests connect to `127.0.0.1:4242` (leaf echo), `127.0.0.1:4244` (link echo), and
@@ -35,6 +36,11 @@ The tests connect to `127.0.0.1:4242` (leaf echo), `127.0.0.1:4244` (link echo),
 AutoInterface interop uses `docker compose ... up auto-interop` with `network_mode: host` so the
 Python peer shares the runner's link-local IPv6 interfaces. The combined peer exercises echo,
 link, and LXMF delivery over AutoInterface discovery.
+
+I2P interop uses `docker compose ... up i2pd i2p-interop`. The Python peer writes its `.b32.i2p`
+destination to `conformance/scenarios/state/i2p-b32.txt` once the I2P tunnel is online. The
+TypeScript runner connects through the host-mapped SAM bridge on `127.0.0.1:7656`. Tunnel build
+can take a few minutes on a cold start; override `I2P_READY_TIMEOUT_MS` if needed.
 
 ## Layout
 

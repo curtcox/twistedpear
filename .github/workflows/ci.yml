@@ -95,6 +95,23 @@ jobs:
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down
 
+  i2p-interop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: mkdir -p conformance/scenarios/state
+      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build i2pd i2p-interop
+      - run: npm run test:i2p-interop
+      - if: always()
+        run: docker compose -f conformance/docker/docker-compose.yml down
+
   bare-device:
     runs-on: ubuntu-latest
     steps:
