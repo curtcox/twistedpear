@@ -95,4 +95,9 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build leaf-echo
       - run: npm run test:ios-sim:required
+        env:
+          IOS_SIM_TCP_REQUIRED: "1"
+      - if: always()
+        run: docker compose -f conformance/docker/docker-compose.yml down

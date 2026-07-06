@@ -26,7 +26,7 @@ import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js"
 import { HOST_API_VERSION, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/index.js";
 import { createWorkletMiniappHost } from "./miniapp-host.mjs";
 import { createDevChannelClient } from "./dev-channel.mjs";
-import { STORE_POSTURE, STORE_VARIANT } from "./store-posture.generated.mjs";
+import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
 
 const { IPC } = BareKit;
 
@@ -273,18 +273,8 @@ function log(line) {
   send({ type: "log", line });
 }
 
-function refuseStorePosture(action) {
-  if (!STORE_VARIANT) {
-    return false;
-  }
-
-  log(`${action} refused in store posture variant`);
-  send({
-    type: "dev-channel",
-    state: "error",
-    detail: `${action} is disabled in ${STORE_POSTURE} posture`
-  });
-  return true;
+function refuseStoreAction(action) {
+  return refuseStorePosture(action, send);
 }
 
 function pushStatus() {
@@ -821,7 +811,7 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "install-app") {
-    if (refuseStorePosture("Catalog install")) {
+    if (refuseStoreAction("Catalog install")) {
       send({
         type: "install-progress",
         progress: {
@@ -1006,7 +996,7 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "set-developer-mode") {
-    if (STORE_VARIANT && message.enabled) {
+    if (shouldRefuseDeveloperMode(message.enabled)) {
       log("Developer mode refused in store posture variant");
       ensureMiniappHost().setDeveloperMode(false);
       return;
@@ -1081,7 +1071,7 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "dev-side-load") {
-    if (refuseStorePosture("Dev side-load")) {
+    if (refuseStoreAction("Dev side-load")) {
       return;
     }
 
@@ -1095,7 +1085,7 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "connect-dev-channel") {
-    if (refuseStorePosture("Dev channel")) {
+    if (refuseStoreAction("Dev channel")) {
       return;
     }
 

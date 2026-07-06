@@ -40,6 +40,6 @@ catalog installs, dev side-load, developer mode, and dev-channel connections.
 ## Simulator Notes
 
 The simulator is useful for worklet boot, TCP/localhost flows, config-plugin output, and
-store-posture refusal tests. It does not validate BLE, real background timing, multicast
+store-posture refusal tests (`conformance/ios-sim/store-posture.mjs`). It does not validate BLE, real background timing, multicast
 entitlement enforcement, or realistic LAN discovery. Those exits are tracked in
 `PHASE5-HARDWARE.md`.

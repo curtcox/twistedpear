@@ -2,8 +2,11 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { platform } from "node:os";
+import { runStorePostureChecks } from "./store-posture.mjs";
+import { runIosTcpSlice } from "./tcp-slice.mjs";
 
 const requireXcode = process.argv.includes("--require-xcode") || process.env.IOS_SIM_REQUIRED === "1";
+const requirePeer = process.argv.includes("--require-peer") || process.env.IOS_SIM_TCP_REQUIRED === "1";
 
 function run(cmd, args, options = {}) {
   const result = spawnSync(cmd, args, {
@@ -80,4 +83,16 @@ if (!bleSpecTests.ok) {
   fail(`BLE bridge spec tests failed\n${bleSpecTests.stdout}\n${bleSpecTests.stderr}`);
 }
 
-console.log("[ios-sim] toolchain smoke passed: simctl available, dev/store worklets bundle, discovery policy green, BLE spec tests green");
+try {
+  await runStorePostureChecks();
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
+}
+
+try {
+  await runIosTcpSlice({ requirePeer });
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
+}
+
+console.log("[ios-sim] toolchain smoke passed: simctl available, dev/store worklets bundle, discovery policy green, BLE spec tests green, store-posture refusal green");

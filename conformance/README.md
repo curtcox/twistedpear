@@ -92,7 +92,9 @@ soak are nightly/device-gated per [PHASE4.md](../PHASE4.md) §7 and [PHASE4-HARD
 | Suite | Command | Milestone |
 |---|---|---|
 | iOS simulator toolchain smoke | `npm run test:ios-sim:required` on macOS CI | M0 |
+| iOS TCP slice vs Python RNS | `IOS_SIM_TCP_REQUIRED=1 npm run test:ios-sim:required` with `leaf-echo` docker peer | M0 |
 | Discovery provider policy | `npm test -- packages/reticulum-interfaces/test/auto-discovery.test.ts` | M3 |
+| Store posture refusal | exercised by `conformance/ios-sim/store-posture.mjs` in `test:ios-sim` | M5 |
 | Store posture bundle guard | `TWISTEDPEAR_STORE_POSTURE=store npm run build:worklet` | M5 |
 
 `npm run test:ios-sim` skips on non-macOS hosts. CI jobs that are meant to validate
