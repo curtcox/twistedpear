@@ -352,3 +352,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run demo:phase5
+
+  desktop-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:desktop
+      - run: npm run test:widget-parity
+      - run: npm run demo:phase6

@@ -8,9 +8,11 @@ coverage/
 .bare-device-store/
 .bare-runtime-smoke-store/
 .bare-benchmark-store/
+miniapp-bee-store/
 conformance/bare-interop/bare-interop.bundle
 conformance/bare-interop/bare-interop.bundle.mjs
 conformance/bare-interop/imports.generated.json
 apps/harness-mobile/worklet/imports.generated.json
+apps/host-desktop/worklet/imports.generated.json
 apps/harness-mobile/modules/**/.build/
 conformance/scenarios/state/

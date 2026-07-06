@@ -1,0 +1,59 @@
+# TwistedPear Desktop Host
+
+The desktop host is the always-on peer that carries transport routing, package seeding, and optional LXMF propagation for the mobile mesh.
+
+## Architecture
+
+- **Electron shell** (`apps/host-desktop`): tray, power events, native multicast/Bonjour bridges, crash supervision.
+- **Bare worklet child**: identical protocol stack to mobile — Reticulum, catalog/install, mini-app runtime.
+- **`host-core`** (`packages/host-core`): runtime-neutral node engine shared by Electron and headless `tp node` / `tp seed`.
+
+## Roles (defaults)
+
+| Role | Default | Notes |
+|------|---------|-------|
+| Transport node | on | Disabled when `--attach-rnsd` is set |
+| Seeder / LAN mirror | on | Quota'd archive + Hyperdrive serving |
+| Propagation server | off | Enable with `--propagation` or UI toggle |
+| rnsd attach | off | `--attach-rnsd host:port` leaf mode |
+
+## Headless usage
+
+```bash
+tp node --data-dir ~/.local/share/twistedpear/host
+tp seed --transport --state-dir .tp/seeder
+tp node --attach-rnsd 127.0.0.1:4242 --no-transport
+tp node --propagation --status-endpoint
+```
+
+Localhost status JSON (opt-in): `http://127.0.0.1:9473/status`
+
+## Security posture
+
+- Renderer: `contextIsolation`, sandbox on, `nodeIntegration` off, strict CSP.
+- Widget trees cross the IPC boundary as validated data only (Phase 4 broker chokepoint unchanged).
+- Status endpoint binds localhost only.
+
+## Lifecycle
+
+- **Suspend**: Electron sends `suspend-node`; worklet quiesces interfaces (Phase 5 semantics).
+- **Resume**: `resume-node` reconnects and re-announces.
+- **Crash**: supervisor restarts worklet with exponential backoff.
+
+## Config
+
+Platform data directory:
+
+- macOS: `~/Library/Application Support/TwistedPear/host`
+- Linux: `~/.local/share/twistedpear/host`
+- Windows: `%APPDATA%/TwistedPear/host`
+
+Config file: `<data-dir>/config.json` — roles, interfaces, quotas.
+
+## Quotas (conservative defaults)
+
+- Seed storage: 2 GiB
+- Propagation store: 256 MiB / 10k messages
+- Bandwidth cap: 512 KiB/s (surfaced in status; enforcement expands in soak tuning)
+
+See [LIMITATIONS.md](../LIMITATIONS.md) for Windows build-only status (H17) and hardware register rows H18–H20.

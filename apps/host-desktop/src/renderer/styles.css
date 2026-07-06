@@ -1,0 +1,78 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  background: #0f1419;
+  color: #e7ecf3;
+}
+
+header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #2a3441;
+}
+
+main {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 1.5rem 2rem;
+}
+
+.panel {
+  background: #151b23;
+  border: 1px solid #2a3441;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: 12rem 1fr;
+  gap: 0.35rem 1rem;
+}
+
+dt {
+  color: #9aa7b8;
+}
+
+pre {
+  max-height: 12rem;
+  overflow: auto;
+  background: #0b1016;
+  padding: 0.75rem;
+  border-radius: 6px;
+}
+
+.widget-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.widget-button {
+  background: #2f6fed;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+
+.widget-input {
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #2a3441;
+  background: #0b1016;
+  color: inherit;
+}
+
+.widget-muted {
+  color: #9aa7b8;
+}
+
+.widget-divider {
+  border-top: 1px solid #2a3441;
+  margin: 0.25rem 0;
+}
+
+.widget-spacer {
+  height: 0.5rem;
+}

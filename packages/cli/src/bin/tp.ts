@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-import { runCreate, runDev, runInit, runPack, runPublish, runSeed, runSign, runUpdate, printHelp } from "../commands/index.js";
+import { runCreate, runDev, runInit, runNode, runPack, runPublish, runSeed, runSign, runUpdate, printHelp } from "../commands/index.js";
 
 const [command, ...args] = process.argv.slice(2);
 
 if (command === undefined || command === "--help" || command === "-h") {
   console.log("tp — TwistedPear publish tooling");
-  console.log("Commands: init, create, dev, pack, sign, publish, update, seed");
+  console.log("Commands: init, create, dev, pack, sign, publish, update, seed, node");
   process.exit(0);
 }
 
@@ -17,7 +17,8 @@ const handlers: Record<string, (ctx: { cwd: string; args: string[] }) => Promise
   sign: runSign,
   publish: runPublish,
   update: runUpdate,
-  seed: runSeed
+  seed: runSeed,
+  node: runNode
 };
 
 const handler = handlers[command];

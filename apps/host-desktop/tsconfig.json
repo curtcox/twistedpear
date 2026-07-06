@@ -4,7 +4,7 @@
     "declaration": true,
     "declarationMap": true,
     "exactOptionalPropertyTypes": true,
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "DOM"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "noFallthroughCasesInSwitch": true,
@@ -20,10 +20,7 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
-    { "path": "../reticulum-ts" },
-    { "path": "../miniapp-runtime" },
-    { "path": "../app-registry" },
-    { "path": "../bridge-hyper" },
-    { "path": "../host-core" }
+    { "path": "../../packages/host-core" },
+    { "path": "../../packages/reticulum-interfaces" }
   ]
 }

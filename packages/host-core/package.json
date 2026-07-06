@@ -1,6 +1,6 @@
 {
-  "name": "@twistedpear/lxmf-ts",
-  "version": "0.2.0",
+  "name": "@twistedpear/host-core",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./protocol": {
+      "types": "./dist/protocol.d.ts",
+      "import": "./dist/protocol.js"
     }
   },
   "scripts": {
@@ -16,6 +20,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@twistedpear/app-registry": "0.1.0",
+    "@twistedpear/bridge-hyper": "0.1.0",
+    "@twistedpear/lxmf-ts": "*",
+    "@twistedpear/reticulum-interfaces": "0.2.0",
     "@twistedpear/reticulum-ts": "*"
   }
 }

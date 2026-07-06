@@ -112,6 +112,11 @@ everything below is a known cost of the chosen design or of the platforms involv
 - The Pears components are the most replaceable part of the design (per the constraint
   hierarchy): if bare-kit or Hyperdrive proves unworkable on mobile, fallbacks are Node
   (nodejs-mobile) + plain RNS Resources for distribution.
+- **Desktop host (Phase 6):** `apps/host-desktop` runs the same Bare worklet as mobile under
+  Electron supervision (stdio IPC, not in-process Node). Windows NSIS artifacts are built in
+  CI but not verified until register **H17**. Propagation node-to-node peering is a stretch
+  goal — client sync against `lxmd` is implemented; meshed multi-node stores should use
+  `lxmd` until peering ships.
 
 ## 7. Mini-app model
 
@@ -137,6 +142,7 @@ everything below is a known cost of the chosen design or of the platforms involv
   carry no source address. Physical-layer observability is out of scope for the stack.
 - **Time-to-usefulness:** a mesh platform is only as useful as its peer density; early
   deployments depend on desktop transport nodes and TCP testnet links, not pure phone
-  meshes.
+  meshes. Phase 6 adds always-on desktop peers (`tp node`, `host-desktop`) with transport +
+  seeding on by default; measured always-on quota behavior is tracked in register **H20**.
 - Amateur-radio carriers (AX.25/KISS) carry legal restrictions (no encryption on ham bands
   in most jurisdictions) — supported by Reticulum but out of scope for this app's defaults.

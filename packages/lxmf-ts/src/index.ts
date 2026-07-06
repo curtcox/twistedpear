@@ -41,3 +41,10 @@ export {
   propagationDestinationForIdentity
 } from "./propagation.js";
 export type { PropagationClientOptions, PropagationSyncResult } from "./propagation.js";
+export {
+  PropagationServer,
+  DEFAULT_PROPAGATION_QUOTAS,
+  decodePropagationPeerError,
+  type PropagationServerQuotas,
+  type PropagationServerStats
+} from "./propagation-server.js";

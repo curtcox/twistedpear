@@ -42,7 +42,8 @@ export function printHelp(command: string): void {
     sign: "tp sign <file.tpkg>  Re-sign an existing package archive",
     publish: "tp publish <app-dir>  Pack, sign, publish to Hyperdrive",
     update: "tp update <app-dir> --version <semver>  Bump version and republish",
-    seed: "tp seed [--state-dir <path>] [--transport]  Run headless mirror/resource seeder"
+    seed: "tp seed [--state-dir <path>] [--transport] [--propagation] [--attach-rnsd host:port]  Run headless seeder",
+    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--status-endpoint]  Run desktop-class host node"
   };
 
   console.log(help[command] ?? `tp ${command}`);
@@ -474,10 +475,47 @@ export async function runSeed(ctx: CommandContext): Promise<number> {
   const { runSeeder } = await import("../seed/daemon.js");
   const stateDir = parseFlag(ctx.args, "--state-dir") ?? ".tp/seeder";
   const transport = hasFlag(ctx.args, "--transport");
+  const propagation = hasFlag(ctx.args, "--propagation");
+  const attachRnsd = parseFlag(ctx.args, "--attach-rnsd");
   await runSeeder({
     cwd: ctx.cwd,
     stateDir: resolveFromCwd(ctx.cwd, stateDir),
-    transport
+    transport,
+    propagation,
+    attachRnsd,
+    statusEndpoint: hasFlag(ctx.args, "--status-endpoint")
   });
+  return 0;
+}
+
+export async function runNode(ctx: CommandContext): Promise<number> {
+  const { resolveHostConfig } = await import("@twistedpear/host-core");
+  const { runNodeHost } = await import("@twistedpear/host-core");
+  const dataDir = parseFlag(ctx.args, "--data-dir");
+  const attachRnsd = parseFlag(ctx.args, "--attach-rnsd");
+  const config = resolveHostConfig({
+    ...(dataDir === null ? {} : { dataDir: resolveFromCwd(ctx.cwd, dataDir) }),
+    overrides: {
+      roles: {
+        transport: !hasFlag(ctx.args, "--no-transport") && attachRnsd === null,
+        seeder: !hasFlag(ctx.args, "--no-seeder"),
+        propagation: hasFlag(ctx.args, "--propagation"),
+        attachRnsd:
+          attachRnsd === null
+            ? null
+            : (() => {
+                const [host, portText] = attachRnsd.split(":");
+                if (host === undefined || portText === undefined) {
+                  throw new Error(`Invalid --attach-rnsd value: ${attachRnsd}`);
+                }
+
+                return { host, port: Number.parseInt(portText, 10) };
+              })()
+      },
+      statusEndpoint: hasFlag(ctx.args, "--status-endpoint")
+    }
+  });
+
+  await runNodeHost({ config });
   return 0;
 }

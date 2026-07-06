@@ -21,9 +21,9 @@
   "include": ["src/**/*.ts"],
   "references": [
     { "path": "../reticulum-ts" },
-    { "path": "../miniapp-runtime" },
-    { "path": "../app-registry" },
+    { "path": "../reticulum-interfaces" },
+    { "path": "../lxmf-ts" },
     { "path": "../bridge-hyper" },
-    { "path": "../host-core" }
+    { "path": "../app-registry" }
   ]
 }
