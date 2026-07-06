@@ -421,7 +421,24 @@ export default function App() {
           </Text>
         ) : null}
         {installed.length > 0 ? (
-          <Text style={styles.muted}>Installed: {installed.map((pkg) => `${pkg.appId}@${pkg.version}`).join(", ")}</Text>
+          installed.map((pkg) => (
+            <View key={pkg.appId} style={styles.catalogRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.catalogName}>{pkg.appId}</Text>
+                <Text style={styles.muted}>
+                  active v{pkg.activeVersion} · {pkg.packageHash.slice(0, 12)}…
+                </Text>
+              </View>
+              {pkg.rollbackAvailable ? (
+                <Pressable
+                  style={styles.smallButton}
+                  onPress={() => sendToWorklet({ type: "rollback-package", appId: pkg.appId })}
+                >
+                  <Text style={styles.buttonLabel}>Rollback</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ))
         ) : null}
         <ActionButton label="Refresh catalog" onPress={() => sendToWorklet({ type: "list-catalog" })} />
       </View>

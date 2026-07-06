@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, unwatchFile, watchFile, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   DestinationDirection,
@@ -9,8 +9,14 @@ import {
   nodeRuntime
 } from "@twistedpear/reticulum-ts";
 import { DriveManager, attachPackageResourceServer, createSwarm } from "@twistedpear/bridge-hyper";
-import { ensureDir } from "../config.js";
-import { isSeederStateDir, loadSeederState } from "./register.js";
+import { ensureDir, loadConfig } from "../config.js";
+import {
+  listSeederArchives,
+  loadSeederState,
+  readSeederArchive,
+  type SeederState
+} from "./register.js";
+import { attachSeederDrives } from "./sync.js";
 
 export interface SeederOptions {
   readonly cwd: string;
@@ -18,10 +24,15 @@ export interface SeederOptions {
   readonly transport: boolean;
 }
 
-export async function runSeeder(options: SeederOptions): Promise<void> {
+export interface SeederSession {
+  readonly stop: () => Promise<void>;
+}
+
+export async function startSeeder(options: SeederOptions): Promise<SeederSession> {
   ensureDir(options.stateDir);
   const provider = new NodeCryptoProvider();
   const runtime = nodeRuntime();
+  const config = loadConfig(options.cwd);
   const reticulum = Reticulum.create({
     provider,
     runtime,
@@ -29,9 +40,8 @@ export async function runSeeder(options: SeederOptions): Promise<void> {
   });
   reticulum.start();
 
-  const state = loadSeederState(options.stateDir);
-
-  const swarm = createSwarm();
+  let state = loadSeederState(options.stateDir);
+  const swarm = createSwarm({ bootstrap: config.bootstrap });
   const driveManager = new DriveManager({ storagePath: join(options.stateDir, "drives"), swarm });
   await driveManager.ready();
 
@@ -49,34 +59,72 @@ export async function runSeeder(options: SeederOptions): Promise<void> {
     identity,
     direction: DestinationDirection.IN,
     type: DestinationType.SINGLE,
-    appName: "tp.seeder",
-    aspects: ["resource"]
+    appName: "tp",
+    aspects: ["seeder", "resource"]
   });
+
+  const resourceState = () => loadSeederState(options.stateDir);
 
   attachPackageResourceServer(destination, {
     async listVersions() {
-      return driveManager.listVersions();
+      return listSeederArchives(resourceState()).map((entry) => ({
+        version: entry.version,
+        packageHash: entry.packageHash,
+        size: entry.size
+      }));
     },
     async fetchArchive(version) {
-      return driveManager.fetchVersion(version);
+      return readSeederArchive(options.stateDir, resourceState(), version);
     }
   });
 
-  for (const drive of state.drives) {
-    await driveManager.openDrive(drive.driveKey);
-    console.log(`seeder: mirroring drive ${drive.driveKey} (${Object.keys(drive.versions).length} version(s))`);
-  }
+  const syncDrives = async (next: SeederState) => {
+    for (const drive of next.drives) {
+      if (state.drives.some((existing) => existing.driveKey === drive.driveKey)) {
+        continue;
+      }
 
-  const persist = () => {
-    writeFileSync(join(options.stateDir, "state.json"), `${JSON.stringify(state, null, 2)}\n`);
+      await driveManager.openDrive(drive.driveKey, { serve: true });
+      console.log(
+        `seeder: attached drive ${drive.driveKey} (${Object.keys(drive.versions).length} version(s))`
+      );
+    }
+
+    state = next;
   };
 
-  process.on("SIGINT", async () => {
-    persist();
-    await driveManager.close();
-    await swarm.destroy();
-    await reticulum.stop();
-    process.exit(0);
+  await attachSeederDrives(driveManager, state);
+
+  const statePath = join(options.stateDir, "state.json");
+  watchFile(statePath, { interval: 500 }, () => {
+    void syncDrives(loadSeederState(options.stateDir)).catch((error) => {
+      console.error("seeder: state reload failed:", error instanceof Error ? error.message : error);
+    });
+  });
+
+  const persist = () => {
+    writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
+  };
+
+  return {
+    async stop() {
+      unwatchFile(statePath);
+      persist();
+      await driveManager.close();
+      await swarm.destroy();
+      await reticulum.stop();
+      if (typeof swarm.swarm.removeAllListeners === "function") {
+        swarm.swarm.removeAllListeners();
+      }
+    }
+  };
+}
+
+export async function runSeeder(options: SeederOptions): Promise<void> {
+  const session = await startSeeder(options);
+
+  process.on("SIGINT", () => {
+    void session.stop().then(() => process.exit(0));
   });
 
   console.log("tp seed: running (stdout logs, state dir:", options.stateDir, ")");

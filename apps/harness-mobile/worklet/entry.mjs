@@ -176,12 +176,19 @@ function pushCatalog() {
   send({ type: "catalog", entries: catalog.list().map(catalogEntryView) });
   send({
     type: "installed",
-    packages: installed.list().map((record) => ({
-      appId: record.appId,
-      version: record.version,
-      packageHash: record.packageHash,
-      installedAt: record.installedAt
-    }))
+    packages: [...new Set(installed.list().map((record) => record.appId))].map((appId) => {
+      const active = installed.activeVersion(appId);
+      const record = active === null ? null : installed.get(appId, active);
+      const previous = installed.previousVersion(appId);
+      return {
+        appId,
+        version: record?.version ?? active ?? "",
+        activeVersion: active ?? "",
+        packageHash: record?.packageHash ?? "",
+        installedAt: record?.installedAt ?? 0,
+        rollbackAvailable: previous !== null && active !== null && active !== previous
+      };
+    })
   });
 }
 
@@ -809,6 +816,20 @@ async function handleHostMessage(raw) {
     installed.remove(message.appId, message.version, 0);
     void persistCatalogState();
     pushCatalog();
+    return;
+  }
+
+  if (message.type === "rollback-package") {
+    const { installedStore: installed } = ensureCatalog();
+    const rolledBack = installed.rollback(message.appId);
+    if (rolledBack === null) {
+      log(`Rollback failed: no previous version for ${message.appId}`);
+      return;
+    }
+
+    void persistCatalogState();
+    pushCatalog();
+    log(`Rolled back ${message.appId} to v${rolledBack}`);
     return;
   }
 

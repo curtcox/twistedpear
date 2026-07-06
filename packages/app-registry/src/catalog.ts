@@ -247,6 +247,7 @@ export interface InstalledPackageRecord {
 export class InstalledPackageStore {
   private readonly packages = new Map<string, InstalledPackageRecord>();
   private readonly versionsByApp = new Map<string, string[]>();
+  private readonly activeVersions = new Map<string, string>();
 
   constructor(
     readonly quotaBytes: number,
@@ -259,6 +260,10 @@ export class InstalledPackageStore {
 
   get(appId: string, version: string): InstalledPackageRecord | null {
     return this.packages.get(installedPackageKey(appId, version)) ?? null;
+  }
+
+  activeVersion(appId: string): string | null {
+    return this.activeVersions.get(appId) ?? this.latestVersion(appId);
   }
 
   latestVersion(appId: string): string | null {
@@ -304,6 +309,17 @@ export class InstalledPackageStore {
     versions.push(record.version);
     versions.sort(compareSemver);
     this.versionsByApp.set(record.appId, versions);
+    this.activeVersions.set(record.appId, record.version);
+  }
+
+  rollback(appId: string): string | null {
+    const previous = this.previousVersion(appId);
+    if (previous === null) {
+      return null;
+    }
+
+    this.activeVersions.set(appId, previous);
+    return previous;
   }
 
   remove(appId: string, version: string, sizeBytes: number): boolean {
@@ -318,8 +334,13 @@ export class InstalledPackageStore {
     const versions = (this.versionsByApp.get(appId) ?? []).filter((entry) => entry !== version);
     if (versions.length === 0) {
       this.versionsByApp.delete(appId);
+      this.activeVersions.delete(appId);
     } else {
       this.versionsByApp.set(appId, versions);
+      const active = this.activeVersions.get(appId);
+      if (active === version) {
+        this.activeVersions.set(appId, versions[versions.length - 1] ?? version);
+      }
     }
 
     return true;
@@ -346,6 +367,7 @@ export class InstalledPackageStore {
         JSON.stringify({
           packages: [...this.packages.entries()],
           versionsByApp: [...this.versionsByApp.entries()],
+          activeVersions: [...this.activeVersions.entries()],
           usedBytes: this.usedBytes
         })
       )
@@ -361,11 +383,13 @@ export class InstalledPackageStore {
     const payload = JSON.parse(new TextDecoder().decode(raw)) as {
       packages: ReadonlyArray<[string, InstalledPackageRecord]>;
       versionsByApp: ReadonlyArray<[string, string[]]>;
+      activeVersions?: ReadonlyArray<[string, string]>;
       usedBytes: number;
     };
 
     this.packages.clear();
     this.versionsByApp.clear();
+    this.activeVersions.clear();
 
     for (const [key, value] of payload.packages) {
       this.packages.set(key, value);
@@ -373,6 +397,10 @@ export class InstalledPackageStore {
 
     for (const [key, value] of payload.versionsByApp) {
       this.versionsByApp.set(key, value);
+    }
+
+    for (const [key, value] of payload.activeVersions ?? []) {
+      this.activeVersions.set(key, value);
     }
 
     this.usedBytes = payload.usedBytes;

@@ -359,6 +359,9 @@ describe("installed package store", () => {
 
     expect(store.latestVersion("pub:app")).toBe("2.0.0");
     expect(store.previousVersion("pub:app")).toBe("1.0.0");
+    expect(store.activeVersion("pub:app")).toBe("2.0.0");
+    expect(store.rollback("pub:app")).toBe("1.0.0");
+    expect(store.activeVersion("pub:app")).toBe("1.0.0");
   });
 });
 

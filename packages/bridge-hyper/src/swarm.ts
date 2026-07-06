@@ -26,8 +26,16 @@ export function createSwarm(options: SwarmOptions = {}): SwarmSession {
   const replicators = new Set<{ replicate: (isInitiator: boolean) => { pipe<T>(destination: T): T } }>();
 
   swarm.on("connection", (socket, peerInfo) => {
+    const connection = socket as { on?(event: string, listener: () => void): void };
+    connection.on?.("error", () => {
+      // Peers disconnect during replication; ignore reset errors.
+    });
+
     for (const store of replicators) {
-      const stream = store.replicate(peerInfo.client);
+      const stream = store.replicate(peerInfo.client) as { on?(event: string, listener: () => void): void; pipe<T>(destination: T): T };
+      stream.on?.("error", () => {
+        // Ignore stream errors from transient peers.
+      });
       socket.pipe(stream).pipe(socket);
     }
   });

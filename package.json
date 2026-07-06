@@ -24,6 +24,7 @@
     "test:bare-hyperswarm": "npm run build && bare conformance/bare-hyperswarm/run.mjs",
     "test:dist-interop": "npm run build && node conformance/dist-interop/run.mjs",
     "test:bare-hyperdrive": "npm run build && node conformance/bare-hyperdrive/run.mjs",
+    "test:seeder": "npm run build && node conformance/seeder/run.mjs",
     "demo:phase3": "npm run build && node conformance/demo/publish-install.mjs",
     "build:worklet": "npm run build && npm run build:worklet --workspace=harness-mobile",
     "lint": "tsc -b --pretty false",

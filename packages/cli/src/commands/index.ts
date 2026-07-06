@@ -298,7 +298,7 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
       keyHex,
       published.version,
       published.packageHash,
-      archive.length
+      archive
     );
     console.log(`Registered drive with seeder at ${config.seederAddress}`);
   }

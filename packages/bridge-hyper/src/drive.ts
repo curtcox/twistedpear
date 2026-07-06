@@ -51,11 +51,14 @@ export class DriveManager {
     return { drive: this.drive, keyHex: bytesToHex(this.drive.key) };
   }
 
-  async openDrive(keyHex: string): Promise<Hyperdrive> {
+  async openDrive(keyHex: string, options: { readonly serve?: boolean } = {}): Promise<Hyperdrive> {
     this.drive = new Hyperdrive(this.store, b4a.from(keyHex, "hex"));
     await this.drive.ready();
     this.options.swarm?.replicate(this.store);
-    await this.options.swarm?.join(driveTopic(this.drive.key), { server: false, client: true });
+    await this.options.swarm?.join(driveTopic(this.drive.key), {
+      server: options.serve ?? false,
+      client: true
+    });
     return this.drive;
   }
 

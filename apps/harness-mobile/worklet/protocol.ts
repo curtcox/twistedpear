@@ -30,8 +30,10 @@ export interface InstallProgress {
 export interface InstalledPackageView {
   readonly appId: string;
   readonly version: string;
+  readonly activeVersion: string;
   readonly packageHash: string;
   readonly installedAt: number;
+  readonly rollbackAvailable: boolean;
 }
 
 export interface WorkletStatus {
@@ -79,6 +81,7 @@ export type HostToWorkletMessage =
   | { readonly type: "list-installed" }
   | { readonly type: "install-app"; readonly appId: string; readonly forcePath?: "hyperdrive" | "lan-mirror" | "resource"; readonly archiveHex?: string }
   | { readonly type: "delete-package"; readonly appId: string; readonly version: string }
+  | { readonly type: "rollback-package"; readonly appId: string }
   | { readonly type: "multicast-packet"; readonly ifname: string; readonly dataHex: string; readonly sourceAddress: string; readonly port: number }
   | { readonly type: "multicast-interfaces"; readonly interfaces: ReadonlyArray<MulticastNetworkInfo> }
   | { readonly type: "ble-data"; readonly dataHex: string }
