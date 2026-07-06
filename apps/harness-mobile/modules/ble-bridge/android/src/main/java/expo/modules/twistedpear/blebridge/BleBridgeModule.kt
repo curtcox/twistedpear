@@ -13,7 +13,8 @@ class BleBridgeModule : Module() {
     Events("onData", "onConnect", "onDisconnect", "onError", "onPeerDiscovered")
 
     AsyncFunction("start") { identityHash: ByteArray ->
-      val active = bridge ?: BleBridge().also { bridge = it }
+      val context = appContext.reactContext?.applicationContext ?: return@AsyncFunction false
+      val active = bridge ?: BleBridge(context).also { bridge = it }
 
       active.setIdentityHash(identityHash)
       active.setListener(object : BleBridge.Listener {
