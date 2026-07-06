@@ -27,6 +27,9 @@
     },
     {
       "path": "./packages/host-core"
+    },
+    {
+      "path": "./apps/host-desktop"
     }
   ]
 }

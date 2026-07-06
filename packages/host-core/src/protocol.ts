@@ -103,6 +103,7 @@ export type HostToWorkletMessage =
       readonly ble: boolean;
       readonly rnode: boolean;
       readonly rnodeDeviceId?: number | null;
+      readonly rnodePortPath?: string | null;
       readonly rnodeBaudRate?: number;
     }
   | { readonly type: "set-developer-mode"; readonly enabled: boolean }
@@ -158,7 +159,7 @@ export type WorkletToHostMessage =
   | { readonly type: "ble-start"; readonly identityHashHex: string }
   | { readonly type: "ble-stop" }
   | { readonly type: "ble-write"; readonly dataHex: string }
-  | { readonly type: "serial-start"; readonly deviceId: number; readonly baudRate: number }
+  | { readonly type: "serial-start"; readonly baudRate: number; readonly deviceId?: number; readonly portPath?: string }
   | { readonly type: "serial-stop" }
   | { readonly type: "serial-write"; readonly dataHex: string };
 

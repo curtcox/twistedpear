@@ -12,6 +12,10 @@ import { spawnSync } from "node:child_process";
 import { createNodeHost } from "../../packages/host-core/dist/node-host.js";
 import { decodeMessages, encodeMessage } from "../../packages/host-core/dist/protocol.js";
 import { defaultHostConfig } from "../../packages/host-core/dist/types.js";
+import { runDesktopFullLoop } from "./full-loop.mjs";
+import { runDesktopHostileSmoke } from "./hostile-smoke.mjs";
+import { runDesktopDevLoop } from "./dev-loop.mjs";
+import { runDesktopCrashRestart } from "./crash-restart.mjs";
 
 function assert(condition, message) {
   if (!condition) {
@@ -120,6 +124,10 @@ async function main() {
   await testSerialportOptionalLoad();
   testWorkletBundleBuild();
   testElectronSecurityPosture();
+  await runDesktopFullLoop();
+  await runDesktopHostileSmoke();
+  await runDesktopDevLoop();
+  await runDesktopCrashRestart();
   console.log("desktop-smoke: all checks passed");
 }
 

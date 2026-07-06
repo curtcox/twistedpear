@@ -14,6 +14,8 @@ import { AUTO_DEFAULT_DATA_PORT } from "../../../packages/reticulum-interfaces/d
 import { selectDiscoveryProviders } from "../../../packages/reticulum-interfaces/dist/auto-discovery.js";
 import { createIpcMulticastBridge } from "./ipc-multicast-bridge.mjs";
 import { createIpcBonjourBridge } from "./ipc-bonjour-bridge.mjs";
+import { createIpcSerialBridge } from "./ipc-serial-bridge.mjs";
+import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
 import { DriveManager, PackageResourceClient, assessFetchBudget, createSwarm, fetchPackage } from "../../../packages/bridge-hyper/dist/index.js";
@@ -96,6 +98,8 @@ let serialBridge = null;
 let rnodeIface = null;
 /** @type {number | null} */
 let pendingRnodeDeviceId = null;
+/** @type {string | null} */
+let pendingRnodePortPath = null;
 /** @type {number} */
 let pendingRnodeBaudRate = 115_200;
 /** @type {ReturnType<typeof setInterval> | null} */
@@ -371,6 +375,20 @@ async function stopBleInterface() {
 }
 
 async function stopRnodeInterface() {
+  if (rnodeIface !== null) {
+    if (reticulum !== null) {
+      reticulum.unregisterInterface(rnodeIface);
+    }
+
+    await rnodeIface.close();
+    rnodeIface = null;
+  }
+
+  if (serialBridge !== null) {
+    await serialBridge.close();
+    serialBridge = null;
+  }
+
   status.rnodeConnected = false;
   status.rnodeDeviceName = null;
 }
@@ -618,9 +636,38 @@ async function startBleInterface() {
 }
 
 async function startRnodeInterface() {
-  status.rnodeEnabled = false;
+  const node = await ensureReticulum();
+  if (rnodeIface !== null) {
+    status.rnodeConnected = serialBridge?.connected ?? false;
+    pushStatus();
+    return;
+  }
+
+  if (pendingRnodePortPath === null) {
+    log("RNode requires a serial port path (configure in host settings)");
+    status.rnodeEnabled = false;
+    pushStatus();
+    return;
+  }
+
+  log(`Starting RNode interface over ${pendingRnodePortPath}`);
+  serialBridge = createIpcSerialBridge(pendingRnodePortPath, pendingRnodeBaudRate);
+  rnodeIface = await RNodeInterface.open(provider, {
+    name: "host-rnode",
+    provider,
+    pipe: serialBridge
+  });
+  node.registerInterface(rnodeIface);
+
+  status.rnodeConnected = serialBridge.connected;
+  status.rnodeDeviceName = status.rnodeConnected ? pendingRnodePortPath : null;
+  if (rnodeIface.online) {
+    log(`RNode interface online (firmware: ${rnodeIface.rnodeStatus.firmwareVersion ?? "unknown"})`);
+  } else {
+    log("RNode interface started; waiting for USB serial connection from host");
+  }
+
   pushStatus();
-  log("RNode USB is configured from the desktop host shell, not the worklet");
 }
 
 async function applyInterfaceConfig() {
@@ -1040,6 +1087,7 @@ async function handleHostMessage(raw) {
     status.bleEnabled = message.ble;
     status.rnodeEnabled = message.rnode;
     pendingRnodeDeviceId = message.rnodeDeviceId ?? null;
+    pendingRnodePortPath = message.rnodePortPath ?? null;
     pendingRnodeBaudRate = message.rnodeBaudRate ?? 115_200;
     pushStatus();
     await applyInterfaceConfig();
@@ -1061,6 +1109,16 @@ async function handleHostMessage(raw) {
 
   if (bonjourBridge !== null && message.type === "bonjour-interfaces") {
     bonjourBridge.handleHostMessage(message);
+    return;
+  }
+
+  if (serialBridge !== null && (
+    message.type === "serial-data" ||
+    message.type === "serial-connect" ||
+    message.type === "serial-disconnect" ||
+    message.type === "serial-error"
+  )) {
+    serialBridge.handleHostMessage(message);
   }
 }
 

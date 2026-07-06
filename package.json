@@ -43,6 +43,7 @@
     "test:ios-soak:required": "npm run build && node conformance/ios-sim/soak.mjs --require-peer",
     "test:desktop": "npm run build && node conformance/desktop/run.mjs",
     "test:desktop-lifecycle": "npm run build && node conformance/desktop/lifecycle.mjs",
+    "test:desktop-soak": "npm run build && node conformance/desktop-soak/run.mjs",
     "test:widget-parity": "npm run build && node conformance/widget-parity/run.mjs",
     "test:propagation-interop": "npm run build && node conformance/propagation-interop/run.mjs",
     "test:transport-role": "npm run build && node conformance/transport-role/run.mjs",

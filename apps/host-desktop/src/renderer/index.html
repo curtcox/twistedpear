@@ -21,6 +21,30 @@
         <dl id="status-grid"></dl>
       </section>
       <section class="panel">
+        <h2>Catalog</h2>
+        <ul id="catalog-list" class="item-list"></ul>
+      </section>
+      <section class="panel">
+        <h2>Installed</h2>
+        <ul id="installed-list" class="item-list"></ul>
+      </section>
+      <section class="panel">
+        <h2>Grants</h2>
+        <div id="grants-panel" class="grants-panel"></div>
+      </section>
+      <section class="panel">
+        <h2>Settings</h2>
+        <div class="settings-grid">
+          <label><input type="checkbox" id="setting-developer" /> Developer mode</label>
+          <label><input type="checkbox" id="setting-tcp" checked /> TCP client</label>
+          <label><input type="checkbox" id="setting-auto" checked /> Auto (LAN)</label>
+          <label>
+            RNode port
+            <input type="text" id="setting-rnode-port" placeholder="/dev/ttyUSB0" class="setting-input" />
+          </label>
+        </div>
+      </section>
+      <section class="panel">
         <h2>Mini-app</h2>
         <div id="widget-root"></div>
       </section>

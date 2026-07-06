@@ -1,6 +1,8 @@
 import { createMdnsBonjourBridge } from "@twistedpear/reticulum-interfaces/bonjour-mdns";
 import { createNodeMulticastBridge } from "@twistedpear/reticulum-interfaces/multicast-node";
+import { createSerialNodePipe } from "@twistedpear/reticulum-interfaces/serial-node";
 import { BONJOUR_RETICULUM_SERVICE } from "@twistedpear/reticulum-interfaces";
+import type { SerialPipe } from "@twistedpear/reticulum-interfaces";
 import type { HostToWorkletMessage, WorkletToHostMessage } from "@twistedpear/host-core/protocol";
 
 function bytesToHex(bytes: Uint8Array): string {
@@ -15,6 +17,7 @@ function hexToBytes(hex: string): Uint8Array {
 export class HostDesktopBridges {
   private readonly multicast = createNodeMulticastBridge();
   private readonly bonjour = createMdnsBonjourBridge();
+  private serialPipe: SerialPipe | null = null;
 
   constructor(private readonly sendToWorklet: (message: HostToWorkletMessage) => void) {
     this.multicast.setEvents({
@@ -95,14 +98,74 @@ export class HostDesktopBridges {
         host: message.address,
         port: message.port
       });
+      return;
+    }
+
+    if (message.type === "serial-start") {
+      await this.startSerial(message.portPath ?? "", message.baudRate);
+      return;
+    }
+
+    if (message.type === "serial-stop") {
+      await this.stopSerial();
+      return;
+    }
+
+    if (message.type === "serial-write") {
+      await this.serialPipe?.write(hexToBytes(message.dataHex));
     }
   }
 
+  private async startSerial(portPath: string, baudRate: number): Promise<void> {
+    if (this.serialPipe !== null || portPath.length === 0) {
+      return;
+    }
+
+    const pipe = createSerialNodePipe({ path: portPath, baudRate });
+    pipe.setEvents({
+      onData: (data) => {
+        this.sendToWorklet({ type: "serial-data", dataHex: bytesToHex(data) });
+      },
+      onConnect: () => {
+        this.sendToWorklet({ type: "serial-connect", deviceName: portPath });
+      },
+      onDisconnect: () => {
+        this.sendToWorklet({ type: "serial-disconnect" });
+      },
+      onError: (error) => {
+        this.sendToWorklet({ type: "serial-error", message: error.message });
+      }
+    });
+
+    try {
+      await pipe.open();
+      this.serialPipe = pipe;
+      if (pipe.connected) {
+        this.sendToWorklet({ type: "serial-connect", deviceName: portPath });
+      }
+    } catch (error) {
+      this.sendToWorklet({
+        type: "serial-error",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  private async stopSerial(): Promise<void> {
+    if (this.serialPipe === null) {
+      return;
+    }
+
+    await this.serialPipe.close();
+    this.serialPipe = null;
+  }
+
   isBridgeMessage(message: WorkletToHostMessage): boolean {
-    return message.type.startsWith("multicast-") || message.type.startsWith("bonjour-");
+    return message.type.startsWith("multicast-") || message.type.startsWith("bonjour-") || message.type.startsWith("serial-");
   }
 
   async stop(): Promise<void> {
+    await this.stopSerial();
     await this.multicast.stop();
     await this.bonjour.stop();
   }

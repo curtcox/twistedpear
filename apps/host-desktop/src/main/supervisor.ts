@@ -65,4 +65,9 @@ export class WorkletSupervisor {
     this.stopping = true;
     this.child?.kill("SIGKILL");
   }
+
+  /** Kill the child without disabling auto-restart (supervision tests). */
+  simulateCrash(): void {
+    this.child?.kill("SIGKILL");
+  }
 }
