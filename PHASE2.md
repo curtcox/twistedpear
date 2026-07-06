@@ -253,7 +253,8 @@ jobs prove flaky they move to nightly-plus-pre-merge-label rather than being del
 
 ## 7. Hardware-debt register
 
-Deferred device exits, cleared in order when hardware arrives (target: before M9 ends):
+Deferred device exits, cleared in order when hardware arrives (target: before M9 ends).
+**Device runbook:** [PHASE2-HARDWARE.md](PHASE2-HARDWARE.md).
 
 | # | Needs | Deferred criterion |
 |---|---|---|
@@ -272,7 +273,7 @@ Deferred device exits, cleared in order when hardware arrives (target: before M9
 - `apps/harness-mobile`: Expo dev-build harness with multicast, BLE, USB-serial, and
   foreground-service native modules — the seed of Phase 3's host app.
 - iOS multicast entitlement application submitted; iOS simulator build of the worklet.
-- Hardware-debt register (§7) fully cleared, with measured BLE/RNode numbers folded into
-  LIMITATIONS §§3–5.
+- Hardware-debt register (§7) fully cleared — see [PHASE2-HARDWARE.md](PHASE2-HARDWARE.md) for
+  device runbook; measured BLE/RNode numbers folded into LIMITATIONS §§3–5.
 - Phase 3 inputs: proven Hyperswarm-on-Bare (M0), a running on-device node to build
   distribution on, and interface selection policy for the fetch-strategy work.

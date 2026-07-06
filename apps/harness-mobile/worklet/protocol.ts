@@ -22,6 +22,8 @@ export interface WorkletStatus {
   readonly rnodeDeviceName: string | null;
   readonly cryptoProvider: string;
   readonly autoPeers: number;
+  readonly preferredInterface: string | null;
+  readonly onlineInterfaces: number;
 }
 
 export interface MulticastNetworkInfo {

@@ -148,6 +148,10 @@ export class LeafTransport {
     this.interfaceTasks.delete(iface);
   }
 
+  listInterfaces(): ReadonlyArray<PacketInterface> {
+    return [...this.interfaces];
+  }
+
   registerDestination(destination: LocalDestination): void {
     if (!this.destinations.includes(destination)) {
       this.destinations.push(destination);

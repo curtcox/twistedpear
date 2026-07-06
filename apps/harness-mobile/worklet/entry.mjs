@@ -16,6 +16,7 @@ import { createIpcMulticastBridge } from "./ipc-multicast-bridge.mjs";
 import { createIpcBleBridge } from "./ipc-ble-bridge.mjs";
 import { createIpcSerialBridge } from "./ipc-serial-bridge.mjs";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
+import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 
 const { IPC } = BareKit;
 
@@ -46,7 +47,9 @@ const status = {
   rnodeConnected: false,
   rnodeDeviceName: null,
   cryptoProvider: provider.name,
-  autoPeers: 0
+  autoPeers: 0,
+  preferredInterface: null,
+  onlineInterfaces: 0
 };
 
 /** @type {Reticulum | null} */
@@ -85,6 +88,16 @@ function log(line) {
 }
 
 function pushStatus() {
+  if (reticulum !== null) {
+    const interfaces = reticulum.listInterfaces();
+    const preferred = selectPreferredInterface(interfaces);
+    status.preferredInterface = preferred?.name ?? null;
+    status.onlineInterfaces = interfaces.filter((iface) => iface.online).length;
+  } else {
+    status.preferredInterface = null;
+    status.onlineInterfaces = 0;
+  }
+
   send({ type: "status", status: { ...status } });
 }
 

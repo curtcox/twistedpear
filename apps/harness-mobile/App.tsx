@@ -68,7 +68,9 @@ const initialStatus: WorkletStatus = {
   rnodeConnected: false,
   rnodeDeviceName: null,
   cryptoProvider: "unknown",
-  autoPeers: 0
+  autoPeers: 0,
+  preferredInterface: null,
+  onlineInterfaces: 0
 };
 
 export default function App() {
@@ -275,6 +277,8 @@ export default function App() {
         <Text>Crypto: {status.cryptoProvider}</Text>
         <Text>Announces seen: {status.announcesSeen}</Text>
         <Text>Auto peers: {status.autoPeers}</Text>
+        <Text>Preferred interface: {status.preferredInterface ?? "—"}</Text>
+        <Text>Online interfaces: {status.onlineInterfaces}</Text>
         <Text>BLE: {status.bleConnected ? "connected" : status.bleEnabled ? "waiting" : "off"}</Text>
         <Text>
           RNode: {status.rnodeConnected

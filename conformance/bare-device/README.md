@@ -1,25 +1,47 @@
 # Phase 2 hardware-debt register
 
-Deferred device exits from [PHASE2.md](../PHASE2.md) §7. Clear in order when hardware arrives.
+Deferred device exits from [PHASE2.md](../PHASE2.md) §7. **Full runbook:**
+[PHASE2-HARDWARE.md](../../PHASE2-HARDWARE.md).
 
-| # | Needs | Deferred criterion | Runbook |
+| # | Needs | Deferred criterion | Runbook section |
 |---|---|---|---|
-| H1 | 1 Android phone | M0 slice + M1 benchmarks + M2 backgrounding on real device | `apps/harness-mobile`: dev build, worklet TCP to docker peer on host LAN; benchmark script TBD |
-| H2 | 2 Android phones | M3 AutoInterface on real WiFi; M5 S3 throughput + BLE-only LXMF hour | Same WiFi, no manual peer config; BLE-only LXMF 1 h with foreground service |
-| H3 | aggressive-OEM phone | M2 service survival under OEM battery manager | Background 8 h with screen off; verify foreground service + link hold |
-| H4 | RNode pair | M6 USB + BLE RNode tests, LoRa end-to-end | USB via `usb-serial` module (CDC ACM, permission flow); BLE via Nordic UART pipe; announce + LXMF via LoRa |
-| H5 | iPhone (borrowed OK) | none required in Phase 2 | iOS simulator build only |
+| H1 | 1 Android phone | M0 slice + M1 benchmarks + M2 backgrounding | H1-A/B/C |
+| H2 | 2 Android phones | M3 AutoInterface; M5 S3 + BLE-only LXMF hour | H2-A/B/C |
+| H3 | aggressive-OEM phone | M2 service survival under battery manager | H3 |
+| H4 | RNode pair | M6 USB + BLE RNode, LoRa end-to-end | H4-A/B/C |
+| H5 | iPhone (borrowed OK) | none required in Phase 2 | H5 |
 
 ## iOS multicast entitlement (M8)
 
 - Bundle ID: `network.twistedpear.harness`
 - Entitlement: `com.apple.developer.networking.multicast`
-- Use case: IPv6 link-local AutoInterface peer discovery on local WiFi/Ethernet
+- Application draft: [docs/ios-multicast-entitlement.md](../../docs/ios-multicast-entitlement.md)
+- **Action:** submit to Apple (calendar-time; record outcome in LIMITATIONS §4)
 - Fallback if rejected: Bonjour discovery + unicast UDP variant (Phase 5)
 
-## Emulator CI
+## CI (no hardware)
 
-- `conformance/bare-device/run.mjs`: builds the harness worklet bundle and runs the TCP slice on desktop Bare.
-- Android emulator: toggle TCP in the harness UI; target host `10.0.2.2` reaches docker on the dev machine. Foreground service starts automatically while an interface is enabled.
-- Background 8 h soak + process-death restart: device-gated (H3); emulator instrumentation deferred until a dedicated CI runner is available.
-- Multicast/BLE conformance stays on desktop/docker per PHASE2.md §5.
+| Script | What it verifies |
+|---|---|
+| `conformance/bare-device/run.mjs` | Worklet bundle build + TCP slice (bidirectional) on Bare CLI + docker |
+| `conformance/bare-interop/tests.mjs` | Leaf/link/LXMF + UDP loopback on Bare runtime |
+| `conformance/bare-runtime/record-benchmark.mjs --compare` | Crypto benchmark vs `baseline-node.json` |
+| `conformance/auto-interop/run.mjs` | AutoInterface vs Python RNS (desktop docker) |
+| `packages/reticulum-interfaces/test/*` | Simulated BLE, RNode transcripts, integration soak |
+
+## Emulator manual check
+
+- Android emulator: toggle TCP in harness UI; target `10.0.2.2:4242` reaches docker on dev machine
+- Foreground service starts when any interface is enabled
+- Background 8 h soak + process-death restart: **device-gated** (H3); no KVM emulator CI yet
+
+## Device benchmark recording
+
+When H1 hardware is available:
+
+```bash
+# Record device results (create baseline-device.json alongside baseline-node.json)
+npm run test:bare-benchmark-bare   # on device via worklet dev hook, or adb
+```
+
+Compare against `conformance/bare-runtime/baseline-node.json` (Node pure provider, 200 iterations).

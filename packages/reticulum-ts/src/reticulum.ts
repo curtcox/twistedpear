@@ -143,6 +143,10 @@ export class Reticulum {
   get isTransportEnabled(): boolean {
     return this.transport instanceof TransportNode;
   }
+
+  listInterfaces(): ReadonlyArray<PacketInterface> {
+    return this.transport.listInterfaces();
+  }
 }
 
 export type { AnnounceHandler, LeafTransportOptions };

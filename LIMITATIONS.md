@@ -51,8 +51,9 @@ everything below is a known cost of the chosen design or of the platforms involv
   for routing.
 - **Multicast entitlement:** AutoInterface peer discovery uses IPv6 multicast, which
   requires `com.apple.developer.networking.multicast` — granted by Apple on application,
-  with lead time and no guarantee. Fallback: LAN discovery via Bonjour + direct UDP,
-  or manual/TCP peers.
+  with lead time and no guarantee. Application draft prepared (Phase 2 M8); **status:
+  not yet submitted** — see [docs/ios-multicast-entitlement.md](docs/ios-multicast-entitlement.md).
+  Fallback: LAN discovery via Bonjour + direct UDP, or manual/TCP peers.
 - **Downloaded code (App Review 3.3.2):** mini-apps are downloaded JS. Apple permits
   downloaded JS executed by Apple frameworks when it doesn't change the app's core
   purpose — an app *store inside an app* is exactly the gray zone Apple scrutinizes.

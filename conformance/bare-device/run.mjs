@@ -107,12 +107,20 @@ async function runTcpSlice() {
   expectReceipt(receipt.status, PacketReceiptStatus.DELIVERED);
 
   const deadline = Date.now() + 10_000;
-  while (!received.has("bare-device-ping") && Date.now() < deadline) {
+  while (Date.now() < deadline) {
+    if (received.has("bare-device-ping") && received.has("hello from python leaf echo")) {
+      break;
+    }
+
     await sleep(100);
   }
 
   if (!received.has("bare-device-ping")) {
     throw new Error("Bare device TCP slice echo was not received");
+  }
+
+  if (!received.has("hello from python leaf echo")) {
+    throw new Error("Bare device TCP slice did not receive Python greeting (reverse direction)");
   }
 
   await iface.close();

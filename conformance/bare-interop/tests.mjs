@@ -219,8 +219,87 @@ async function runLxmfEcho() {
   console.log("bare-interop: LXMF echo passed on Bare runtime");
 }
 
+async function runUdpLoopback() {
+  const leftIdentity = loadIdentity("alice");
+  const rightIdentity = loadIdentity("bob");
+
+  const left = Reticulum.create({ provider, runtime });
+  const right = Reticulum.create({ provider, runtime });
+  left.start();
+  right.start();
+
+  const rightBind = await runtime.udp.bind("127.0.0.1", 0);
+  const leftBind = await runtime.udp.bind("127.0.0.1", 0);
+  const rightPort = rightBind.address.port;
+  const leftPort = leftBind.address.port;
+  await rightBind.close();
+  await leftBind.close();
+
+  const rightUdp = await right.addUdpInterface({
+    name: "bare-interop-right-udp",
+    listenHost: "127.0.0.1",
+    listenPort: rightPort,
+    forwardHost: "127.0.0.1",
+    forwardPort: leftPort
+  });
+
+  const leftUdp = await left.addUdpInterface({
+    name: "bare-interop-left-udp",
+    listenHost: "127.0.0.1",
+    listenPort: leftPort,
+    forwardHost: "127.0.0.1",
+    forwardPort: rightPort
+  });
+
+  const rightIn = right.registerDestination({
+    provider,
+    identity: rightIdentity,
+    direction: DestinationDirection.IN,
+    type: DestinationType.SINGLE,
+    appName: "udp",
+    aspects: ["bare-interop"]
+  });
+
+  await rightIn.announce();
+  await sleep(100);
+  if (!left.hasPath(rightIn.hash)) {
+    throw new Error("Bare UDP loopback did not learn path from announce");
+  }
+
+  const leftOut = left.registerDestination({
+    provider,
+    identity: rightIdentity,
+    direction: DestinationDirection.OUT,
+    type: DestinationType.SINGLE,
+    appName: "udp",
+    aspects: ["bare-interop"]
+  });
+
+  const received = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Bare UDP loopback timeout")), 5_000);
+    rightIn.setPacketCallback((data) => {
+      clearTimeout(timer);
+      resolve(bytesToAscii(data));
+    });
+  });
+
+  const receipt = await leftOut.send(new TextEncoder().encode("bare-udp-ping"), { createReceipt: true });
+  expectReceipt(receipt.status, PacketReceiptStatus.DELIVERED);
+  const echoed = await received;
+  if (echoed !== "bare-udp-ping") {
+    throw new Error(`Unexpected Bare UDP payload: ${echoed}`);
+  }
+
+  await leftUdp.close();
+  await rightUdp.close();
+  left.stop();
+  right.stop();
+  console.log("bare-interop: UDP loopback passed on Bare runtime");
+}
+
 export async function runBareInterop() {
   await runLeafEcho();
   await runLinkEcho();
   await runLxmfEcho();
+  await runUdpLoopback();
 }
