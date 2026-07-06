@@ -19,10 +19,5 @@
     "verbatimModuleSyntax": true
   },
   "include": ["src/**/*.ts"],
-  "references": [
-    { "path": "../reticulum-ts" },
-    { "path": "../miniapp-runtime" },
-    { "path": "../app-registry" },
-    { "path": "../bridge-hyper" }
-  ]
+  "references": [{ "path": "../miniapp-runtime" }]
 }

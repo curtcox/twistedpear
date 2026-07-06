@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { HOST_API_VERSION, validateManifestCapabilities } from "@twistedpear/miniapp-runtime";
 import {
   buildAppAnnounceSummary,
   buildUnsignedManifest,
@@ -34,6 +35,8 @@ export interface CommandContext {
 export function printHelp(command: string): void {
   const help: Record<string, string> = {
     init: "tp init [--force]  Create/load publisher Reticulum identity",
+    create: "tp create <hello|chat-min> [app-dir]  Scaffold a mini-app template",
+    dev: "tp dev <app-dir> [--host 127.0.0.1:34987]  Build and side-load to a dev-mode host",
     pack: "tp pack <app-dir> [--out <file.tpkg>]  Build unsigned package archive",
     sign: "tp sign <file.tpkg>  Re-sign an existing package archive",
     publish: "tp publish <app-dir>  Pack, sign, publish to Hyperdrive",
@@ -43,6 +46,49 @@ export function printHelp(command: string): void {
 
   console.log(help[command] ?? `tp ${command}`);
 }
+
+const TEMPLATE_SOURCES = {
+  hello: {
+    name: "hello-miniapp",
+    capabilities: [],
+    entry: `import { ui } from "@twistedpear/miniapp-sdk";
+
+await ui.render({
+  root: {
+    id: "root",
+    type: "view",
+    style: { padding: 16, gap: 12 },
+    children: [
+      { id: "title", type: "text", props: { value: "Hello from TwistedPear" }, style: { fontSize: 20, fontWeight: "bold" } },
+      { id: "body", type: "text", props: { value: "This widget tree is rendered by the host." } }
+    ]
+  }
+});
+`
+  },
+  "chat-min": {
+    name: "chat-min",
+    capabilities: ["identity", "lxmf:send", "lxmf:receive"],
+    entry: `import { identity, lxmf, ui } from "@twistedpear/miniapp-sdk";
+
+const destination = await identity.destinationHash();
+await ui.render({
+  root: {
+    id: "root",
+    type: "view",
+    style: { padding: 16, gap: 12 },
+    children: [
+      { id: "title", type: "text", props: { value: "Chat" }, style: { fontSize: 20, fontWeight: "bold" } },
+      { id: "me", type: "text", props: { value: \`Destination: \${destination}\` } },
+      { id: "refresh", type: "button", props: { label: "Check inbox", event: "inbox.refresh" } }
+    ]
+  }
+});
+
+await lxmf.receive();
+`
+  }
+} as const;
 
 function parseFlag(args: ReadonlyArray<string>, flag: string): string | null {
   const index = args.indexOf(flag);
@@ -102,6 +148,31 @@ function readAppManifest(appDir: string) {
     icon?: string | null;
     minHostApi?: string;
   };
+}
+
+function writeTemplate(appDir: string, templateName: keyof typeof TEMPLATE_SOURCES): void {
+  if (existsSync(appDir)) {
+    throw new Error(`Refusing to overwrite existing directory: ${appDir}`);
+  }
+
+  const template = TEMPLATE_SOURCES[templateName];
+  ensureDir(appDir);
+  writeFileSync(
+    join(appDir, "app.manifest.json"),
+    `${JSON.stringify(
+      {
+        name: template.name,
+        version: "0.1.0",
+        entry: "bundle.js",
+        capabilities: template.capabilities,
+        icon: null,
+        minHostApi: HOST_API_VERSION
+      },
+      null,
+      2
+    )}\n`
+  );
+  writeFileSync(join(appDir, "bundle.js"), template.entry);
 }
 
 function writePublishMetadata(
@@ -183,6 +254,36 @@ export async function runInit(ctx: CommandContext): Promise<number> {
   return 0;
 }
 
+export async function runCreate(ctx: CommandContext): Promise<number> {
+  const templateName = ctx.args[0];
+  if (templateName !== "hello" && templateName !== "chat-min") {
+    printHelp("create");
+    return 1;
+  }
+
+  const appDir = resolveFromCwd(ctx.cwd, ctx.args[1] ?? TEMPLATE_SOURCES[templateName].name);
+  writeTemplate(appDir, templateName);
+  console.log(`Created ${templateName} mini-app at ${appDir}`);
+  return 0;
+}
+
+export async function runDev(ctx: CommandContext): Promise<number> {
+  const appDir = ctx.args[0];
+  if (appDir === undefined) {
+    printHelp("dev");
+    return 1;
+  }
+
+  const resolvedAppDir = resolveFromCwd(ctx.cwd, appDir);
+  const app = readAppManifest(resolvedAppDir);
+  validateManifestCapabilities(app.capabilities ?? []);
+  const host = parseFlag(ctx.args, "--host") ?? "127.0.0.1:34987";
+  console.log(`Dev side-load prepared for ${app.name} (${app.version})`);
+  console.log(`Host channel: ${host}`);
+  console.log("Developer mode must be enabled on the harness host; hot reload transport is implemented by the Phase 4 mobile surface.");
+  return 0;
+}
+
 export async function runPack(ctx: CommandContext): Promise<number> {
   const appDir = ctx.args[0];
   if (appDir === undefined) {
@@ -191,6 +292,7 @@ export async function runPack(ctx: CommandContext): Promise<number> {
   }
 
   const app = readAppManifest(resolveFromCwd(ctx.cwd, appDir));
+  validateManifestCapabilities(app.capabilities ?? []);
   const provider = new NodeCryptoProvider();
   const config = loadConfig(ctx.cwd);
   const identity = loadIdentity(provider, resolveFromCwd(ctx.cwd, config.identityPath));
@@ -207,7 +309,7 @@ export async function runPack(ctx: CommandContext): Promise<number> {
       entry: app.entry,
       capabilities: app.capabilities ?? [],
       icon: app.icon ?? null,
-      minHostApi: app.minHostApi ?? "0.1.0",
+      minHostApi: app.minHostApi ?? HOST_API_VERSION,
       driveKey,
       publisherPublicKey: bytesToHex(identity.getPublicKey()),
       files

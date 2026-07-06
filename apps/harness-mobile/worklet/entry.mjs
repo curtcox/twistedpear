@@ -20,6 +20,7 @@ import { selectPreferredInterface } from "../../../packages/reticulum-interfaces
 import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
 import { DriveManager, PackageResourceClient, assessFetchBudget, createSwarm, fetchPackage } from "../../../packages/bridge-hyper/dist/index.js";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
+import { HOST_API_VERSION, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/index.js";
 
 const { IPC } = BareKit;
 
@@ -94,7 +95,6 @@ let packageDriveManager = null;
 /** @type {ReturnType<typeof createSwarm> | null} */
 let packageSwarm = null;
 const PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
-const HOST_API_VERSION = "0.1.0";
 
 function runtimeKeyValueStore() {
   return {
@@ -712,6 +712,7 @@ async function handleHostMessage(raw) {
         hostApiVersion: HOST_API_VERSION,
         minVersion: installed.latestVersion(entry.appId) ?? undefined
       });
+      validateManifestCapabilities(verified.manifest.capabilities);
       const archivePath = `packages/${entry.appId}/${verified.manifest.version}.tpkg`;
       await runtime.store.set(archivePath, archive);
       installed.install(

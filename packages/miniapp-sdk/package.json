@@ -1,11 +1,8 @@
 {
-  "name": "@twistedpear/cli",
+  "name": "@twistedpear/miniapp-sdk",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "bin": {
-    "tp": "./dist/bin/tp.js"
-  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -19,9 +16,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@twistedpear/app-registry": "0.1.0",
-    "@twistedpear/bridge-hyper": "0.1.0",
-    "@twistedpear/miniapp-runtime": "0.1.0",
-    "@twistedpear/reticulum-ts": "0.0.0"
+    "@twistedpear/miniapp-runtime": "0.1.0"
   }
 }

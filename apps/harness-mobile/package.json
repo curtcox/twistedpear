@@ -13,6 +13,7 @@
     "dependencies": {
     "@twistedpear/multicast": "file:./modules/multicast",
     "@twistedpear/ble-bridge": "file:./modules/ble-bridge",
+    "@twistedpear/miniapp-runtime": "0.1.0",
     "@twistedpear/node-service": "file:./modules/node-service",
     "@twistedpear/usb-serial": "file:./modules/usb-serial",
     "@twistedpear/reticulum-interfaces": "0.0.0",
