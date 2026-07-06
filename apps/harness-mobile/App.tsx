@@ -15,6 +15,7 @@ import b4a from "b4a";
 import bundle from "../worklet/worklet.bundle.mjs";
 import { isNodeServiceRunning, startNodeService, stopNodeService } from "@twistedpear/node-service";
 import { HostMulticastIpc } from "./host/multicast-ipc";
+import { HostBleIpc } from "./host/ble-ipc";
 import {
   decodeMessages,
   encodeMessage,
@@ -29,6 +30,23 @@ const ANDROID_EMULATOR_HOST = "10.0.2.2";
 const LOCAL_HOST = "127.0.0.1";
 const MAX_ANNOUNCES = 50;
 
+async function requestBlePermissions(): Promise<void> {
+  if (Platform.OS !== "android") {
+    return;
+  }
+
+  if (Number(Platform.Version) >= 31) {
+    await PermissionsAndroid.requestMultiple([
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE
+    ]);
+    return;
+  }
+
+  await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+}
+
 const initialStatus: WorkletStatus = {
   running: false,
   linkOnline: false,
@@ -38,6 +56,7 @@ const initialStatus: WorkletStatus = {
   tcpEnabled: false,
   autoEnabled: false,
   bleEnabled: false,
+  bleConnected: false,
   cryptoProvider: "unknown",
   autoPeers: 0
 };
@@ -56,6 +75,7 @@ export default function App() {
   const workletRef = useRef<Worklet | null>(null);
   const ipcBufferRef = useRef("");
   const multicastIpcRef = useRef<HostMulticastIpc | null>(null);
+  const bleIpcRef = useRef<HostBleIpc | null>(null);
 
   const appendLog = useCallback((line: string) => {
     setLogLines((current) => [...current.slice(-200), line]);
@@ -73,6 +93,11 @@ export default function App() {
   const handleWorkletMessage = useCallback((message: WorkletToHostMessage) => {
     if (multicastIpcRef.current?.isMulticastMessage(message)) {
       void multicastIpcRef.current.handleWorkletMessage(message);
+      return;
+    }
+
+    if (bleIpcRef.current?.isBleMessage(message)) {
+      void bleIpcRef.current.handleWorkletMessage(message);
       return;
     }
 
@@ -98,6 +123,7 @@ export default function App() {
   const stopWorklet = useCallback(() => {
     sendToWorklet({ type: "stop" });
     void multicastIpcRef.current?.stop();
+    void bleIpcRef.current?.stop();
     workletRef.current?.terminate();
     workletRef.current = null;
     setStatus((current) => ({
@@ -115,6 +141,7 @@ export default function App() {
     const worklet = new Worklet();
     worklet.start("/app.bundle", bundle);
     multicastIpcRef.current = new HostMulticastIpc(sendToWorklet);
+    bleIpcRef.current = new HostBleIpc(sendToWorklet);
 
     ipcBufferRef.current = "";
     worklet.IPC.on("data", (data) => {
@@ -136,7 +163,11 @@ export default function App() {
   useEffect(() => {
     const shouldRun = tcpEnabled || autoEnabled || bleEnabled;
     if (shouldRun) {
-      startWorklet();
+      if (bleEnabled) {
+        void requestBlePermissions().then(() => startWorklet());
+      } else {
+        startWorklet();
+      }
       return;
     }
 
@@ -191,6 +222,7 @@ export default function App() {
         <Text>Crypto: {status.cryptoProvider}</Text>
         <Text>Announces seen: {status.announcesSeen}</Text>
         <Text>Auto peers: {status.autoPeers}</Text>
+        <Text>BLE: {status.bleConnected ? "connected" : status.bleEnabled ? "waiting" : "off"}</Text>
         <Text>Identity: {status.identityHash ?? "none"}</Text>
         <Text>Persisted: {status.identityPersisted ? "yes" : "no"}</Text>
         {Platform.OS === "android" ? (

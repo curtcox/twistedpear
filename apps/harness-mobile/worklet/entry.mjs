@@ -11,7 +11,9 @@ import { DestinationProofStrategy } from "../../../packages/reticulum-ts/dist/re
 import { Reticulum } from "../../../packages/reticulum-ts/dist/reticulum.js";
 import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
 import { AutoInterfaceBridge } from "../../../packages/reticulum-interfaces/dist/auto-bridge.js";
+import { BleInterface } from "../../../packages/reticulum-interfaces/dist/ble/interface.js";
 import { createIpcMulticastBridge } from "./ipc-multicast-bridge.mjs";
+import { createIpcBleBridge } from "./ipc-ble-bridge.mjs";
 
 const { IPC } = BareKit;
 
@@ -37,6 +39,7 @@ const status = {
   tcpEnabled: false,
   autoEnabled: false,
   bleEnabled: false,
+  bleConnected: false,
   cryptoProvider: provider.name,
   autoPeers: 0
 };
@@ -49,6 +52,10 @@ let tcpIface = null;
 let autoIface = null;
 /** @type {ReturnType<typeof createIpcMulticastBridge> | null} */
 let multicastBridge = null;
+/** @type {ReturnType<typeof createIpcBleBridge> | null} */
+let bleBridge = null;
+/** @type {BleInterface | null} */
+let bleIface = null;
 /** @type {ReturnType<typeof setInterval> | null} */
 let statusTimer = null;
 /** @type {Identity | null} */
@@ -134,6 +141,24 @@ async function resetIdentity() {
   log("Harness identity cleared");
 }
 
+async function stopBleInterface() {
+  if (bleIface !== null) {
+    if (reticulum !== null) {
+      reticulum.unregisterInterface(bleIface);
+    }
+
+    await bleIface.close();
+    bleIface = null;
+  }
+
+  if (bleBridge !== null) {
+    await bleBridge.stop();
+    bleBridge = null;
+  }
+
+  status.bleConnected = false;
+}
+
 async function stopAutoInterface() {
   if (autoIface !== null) {
     await autoIface.close();
@@ -165,6 +190,7 @@ async function stopNode() {
 
   await stopTcpInterface();
   await stopAutoInterface();
+  await stopBleInterface();
 
   if (reticulum !== null) {
     reticulum.stop();
@@ -309,6 +335,41 @@ async function startAutoInterface() {
   pushStatus();
 }
 
+async function startBleInterface() {
+  const node = await ensureReticulum();
+  if (bleIface !== null) {
+    status.bleConnected = bleBridge?.connected ?? false;
+    pushStatus();
+    return;
+  }
+
+  const identity = await resolveIdentity();
+  if (identity === null) {
+    log("BLE requires an identity (create one first)");
+    status.bleEnabled = false;
+    pushStatus();
+    return;
+  }
+
+  log("Starting BLE interface (native GATT bridge via IPC)");
+  bleBridge = createIpcBleBridge(identity.hash);
+  bleIface = await BleInterface.open(provider, {
+    name: "harness-ble",
+    provider,
+    pipe: bleBridge
+  });
+  node.registerInterface(bleIface);
+
+  status.bleConnected = bleBridge.connected;
+  if (bleIface.online) {
+    log("BLE interface online");
+  } else {
+    log("BLE interface started; waiting for GATT connection from host");
+  }
+
+  pushStatus();
+}
+
 async function applyInterfaceConfig() {
   if (!status.tcpEnabled && !status.autoEnabled && !status.bleEnabled) {
     await stopNode();
@@ -323,9 +384,9 @@ async function applyInterfaceConfig() {
   }
 
   if (status.bleEnabled) {
-    log("BLE interface requires M5 ble-bridge native module (not wired yet)");
-    status.bleEnabled = false;
-    pushStatus();
+    await startBleInterface();
+  } else {
+    await stopBleInterface();
   }
 
   if (status.tcpEnabled) {
@@ -397,6 +458,21 @@ async function handleHostMessage(raw) {
   if (multicastBridge !== null && (message.type === "multicast-packet" || message.type === "multicast-interfaces")) {
     multicastBridge.handleHostMessage(message);
     return;
+  }
+
+  if (bleBridge !== null && (message.type === "ble-data" || message.type === "ble-connect" || message.type === "ble-disconnect" || message.type === "ble-error")) {
+    bleBridge.handleHostMessage(message);
+    if (message.type === "ble-connect") {
+      status.bleConnected = true;
+      log("BLE pipe connected");
+      pushStatus();
+    } else if (message.type === "ble-disconnect") {
+      status.bleConnected = false;
+      log("BLE pipe disconnected");
+      pushStatus();
+    } else if (message.type === "ble-error") {
+      log(`BLE pipe error: ${message.message}`);
+    }
   }
 }
 

@@ -20,7 +20,7 @@ emulator, the worklet targets `10.0.2.2:4242` (host loopback).
 ## Features (M2)
 
 - Identity create/reset with bare-fs persistence in the worklet
-- Per-interface toggles (TCP and AutoInterface live; BLE module scaffolded for M5)
+- Per-interface toggles (TCP, AutoInterface, and BLE via native IPC bridge)
 - Live log view and announce browser (destination hash + hop count)
 - Android foreground service (`@twistedpear/node-service`) while any interface is enabled
 
@@ -50,7 +50,7 @@ Real-world caveats (see [LIMITATIONS.md](../../LIMITATIONS.md) §5):
 |---|---|---|
 | `node-service` | M2 | Foreground service (Android) |
 | `multicast` | M3 | IPv6 multicast + MulticastLock (Android); IPC bridge to worklet |
-| `ble-bridge` | M5 | Expo module + GATT spec constants; device GATT wiring device-gated (H2) |
+| `ble-bridge` | M5 | GATT central + peripheral; IPC bridge to worklet |
 | `usb-serial` | M6 | Config plugin stub |
 
 ## Worklet IPC
@@ -58,8 +58,8 @@ Real-world caveats (see [LIMITATIONS.md](../../LIMITATIONS.md) §5):
 Newline-delimited JSON between RN shell and worklet — see
 [worklet/protocol.ts](./worklet/protocol.ts).
 
-Host → worklet: `start`, `stop`, `create-identity`, `reset-identity`, `set-interfaces`
+Host → worklet: `start`, `stop`, `create-identity`, `reset-identity`, `set-interfaces`, `multicast-*`, `ble-*`
 
-Worklet → host: `status`, `log`, `announce`
+Worklet → host: `status`, `log`, `announce`, `multicast-*`, `ble-start`, `ble-stop`, `ble-write`
 
 Rebuild after worklet changes: `npm run build:worklet` from repo root.

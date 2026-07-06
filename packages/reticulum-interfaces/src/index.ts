@@ -85,3 +85,15 @@ export {
   type SamClientOptions,
   type SamSessionInfo
 } from "./i2p.js";
+
+export {
+  DEFAULT_INTERFACE_BITRATES,
+  DEFAULT_INTERFACE_PRIORITY,
+  InterfaceKind,
+  inferInterfaceKind,
+  rankOutgoingInterfaces,
+  selectPreferredInterface,
+  type InterfaceKindValue,
+  type InterfacePolicyOptions,
+  type RankedInterface
+} from "./policy.js";
