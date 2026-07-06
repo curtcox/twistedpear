@@ -1,0 +1,56 @@
+{
+  "measuredAt": "2026-07-06T03:11:58.199Z",
+  "bitrates": {
+    "lan": 8388608,
+    "ble": 24576,
+    "rnode": 1200
+  },
+  "packages": [
+    {
+      "name": "tiny",
+      "bytes": 894,
+      "description": "Budget hello-world bundle",
+      "estimates": {
+        "lan": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "ble": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "rnode": {
+          "seconds": 6,
+          "human": "6s"
+        }
+      }
+    },
+    {
+      "name": "example-app",
+      "bytes": 781,
+      "description": "Typical minimal mini-app",
+      "estimates": {
+        "lan": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "ble": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "rnode": {
+          "seconds": 6,
+          "human": "6s"
+        }
+      }
+    }
+  ],
+  "guidance": {
+    "bleBudgetBytes": 262144,
+    "rnodeBulkBlockBytes": 65536,
+    "rnodeWarningBytes": 32768,
+    "underOneMinuteLanMaxBytes": 62914560,
+    "underOneMinuteBleMaxBytes": 184320,
+    "underOneMinuteRnodeMaxBytes": 9000
+  }
+}

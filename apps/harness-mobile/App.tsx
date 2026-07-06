@@ -297,7 +297,7 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="auto" />
       <Text style={styles.title}>TwistedPear Harness</Text>
-      <Text style={styles.subtitle}>Reticulum node dev shell (Phase 2)</Text>
+      <Text style={styles.subtitle}>Reticulum node + app catalog (Phase 3)</Text>
 
       <View style={styles.card}>
         <Text>Worklet: {status.running ? "running" : "stopped"}</Text>
@@ -417,14 +417,17 @@ export default function App() {
         {installProgress !== null ? (
           <Text style={styles.muted}>
             Install {installProgress.appId}: {installProgress.phase}
-            {installProgress.verified ? " (verified)" : ""}
+            {installProgress.verified ? " ✓ verified" : ""}
+            {installProgress.path !== null ? ` via ${installProgress.path}` : ""}
           </Text>
         ) : null}
         {installed.length > 0 ? (
           installed.map((pkg) => (
             <View key={pkg.appId} style={styles.catalogRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.catalogName}>{pkg.appId}</Text>
+                <Text style={styles.catalogName}>
+                  {pkg.appId} {pkg.activeVersion === pkg.version ? "✓" : ""}
+                </Text>
                 <Text style={styles.muted}>
                   active v{pkg.activeVersion} · {pkg.packageHash.slice(0, 12)}…
                 </Text>
@@ -437,6 +440,18 @@ export default function App() {
                   <Text style={styles.buttonLabel}>Rollback</Text>
                 </Pressable>
               ) : null}
+              <Pressable
+                style={styles.smallButton}
+                onPress={() =>
+                  sendToWorklet({
+                    type: "delete-package",
+                    appId: pkg.appId,
+                    version: pkg.activeVersion
+                  })
+                }
+              >
+                <Text style={styles.buttonLabel}>Delete</Text>
+              </Pressable>
             </View>
           ))
         ) : null}

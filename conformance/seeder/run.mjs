@@ -28,8 +28,9 @@ import {
 import { parseListResponse, sendPackageResourceRequest } from "../../packages/bridge-hyper/dist/resource-server.js";
 import { runInit, runPublish } from "../../packages/cli/dist/commands/index.js";
 import { listSeederArchives, loadSeederState, readSeederArchive } from "../../packages/cli/dist/seed/register.js";
+import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
-const fixtureApp = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
+const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
 
 async function sleep(ms) {
   await new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
@@ -90,6 +91,7 @@ async function main() {
     );
 
     await runInit({ cwd: publisherDir, args: [] });
+    const fixtureApp = stageExampleApp(publisherDir, fixtureAppSource);
 
     const publishCode = await runPublish({ cwd: publisherDir, args: [fixtureApp] });
     if (publishCode !== 0) {

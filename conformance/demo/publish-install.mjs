@@ -15,15 +15,17 @@ import {
   unpackPackage
 } from "../../packages/app-registry/dist/index.js";
 import { DriveManager, createSwarm } from "../../packages/bridge-hyper/dist/index.js";
-import { runInit, runPack, runPublish } from "../../packages/cli/dist/commands/index.js";
+import { runInit, runPack, runPublish, runUpdate } from "../../packages/cli/dist/commands/index.js";
+import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
-const fixtureApp = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
+const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
 
 async function main() {
   const cwd = mkdtempSync(join(tmpdir(), "tp-demo-"));
 
   try {
     process.chdir(cwd);
+    const fixtureApp = stageExampleApp(cwd, fixtureAppSource);
     const initCode = await runInit({ cwd, args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed");
@@ -80,7 +82,44 @@ async function main() {
 
     await drives.close();
     await swarm.destroy();
-    console.log(`phase3-demo: published ${entry.name} v${entry.version} (${entry.packageHash.slice(0, 16)}…)`);
+
+    const updateCode = await runUpdate({ cwd, args: [fixtureApp, "--version", "2.0.0"] });
+    if (updateCode !== 0) {
+      throw new Error("tp update failed");
+    }
+
+    const metaV2 = JSON.parse(readFileSync(join(cwd, ".tp/publish.json"), "utf8"));
+    const v2Archive = new Uint8Array(readFileSync(join(cwd, ".tp/last.tpkg")));
+    const v2 = unpackPackage(provider, v2Archive);
+    const v2Summary = buildAppAnnounceSummary(provider, identity, {
+      manifest: v2.manifest,
+      packageSize: v2Archive.length,
+      packageHash: v2.packageHash,
+      resourceAvailable: true
+    });
+    const v2Entry = catalog.ingest({
+      destinationHash: "demo-v2",
+      appData: encodeAppAnnounceData(v2Summary),
+      manifest: v2.manifest,
+      packageHash: v2.packageHash
+    });
+    if (v2Entry === null || v2Entry.version !== "2.0.0") {
+      throw new Error("catalog v2 ingest failed");
+    }
+
+    const swarmV2 = createSwarm();
+    const drivesV2 = new DriveManager({ storagePath: join(cwd, ".tp/storage"), swarm: swarmV2 });
+    await drivesV2.ready();
+    await drivesV2.openDrive(metaV2.driveKey);
+    const fetchedV2 = await drivesV2.fetchVersion(metaV2.version);
+    const verifiedV2 = unpackPackage(provider, fetchedV2);
+    if (verifiedV2.packageHash !== v2.packageHash) {
+      throw new Error("drive v2 fetch hash mismatch");
+    }
+
+    await drivesV2.close();
+    await swarmV2.destroy();
+    console.log(`phase3-demo: published ${entry.name} v${entry.version} → v${v2Entry.version} (${v2Entry.packageHash.slice(0, 16)}…)`);
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }

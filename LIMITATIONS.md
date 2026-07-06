@@ -84,6 +84,18 @@ everything below is a known cost of the chosen design or of the platforms involv
   Reticulum Resource transfer, which is orders of magnitude slower — a mini-app must be
   assumed installable at LoRa speeds only if it is very small. Compromise: size budgets for
   bundles, delta updates, and LAN/desktop seeding as the primary bulk path.
+
+  **Measured install budgets (Phase 3 M9, conservative bitrates):**
+
+  | Package | Size | LAN (~8 Mbps) | BLE (~24 kbps) | RNode (~1.2 kbps) |
+  |---|---:|---|---|---|
+  | `tiny` (budget hello-world) | ~600 B | &lt;1 s | &lt;1 s | ~4 s |
+  | `example-app` (minimal mini-app) | ~1–2 KiB | &lt;1 s | ~1 s | ~12 s |
+
+  Under-one-minute ceilings at these rates: LAN ~60 MiB, BLE ~180 KiB, RNode ~9 KiB.
+  `bridge-hyper` blocks automatic bulk fetch over RNode-only links above 64 KiB and warns
+  above 32 KiB; BLE warnings start at 256 KiB. See `conformance/budgets/measured.json`
+  for regenerated numbers (`npm run test:budgets`).
 - Holepunch's DHT bootstrap nodes are an external dependency; fully-sovereign deployments
   need self-hosted bootstrap or LAN-only swarm mode.
 - The Pears components are the most replaceable part of the design (per the constraint

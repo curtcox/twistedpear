@@ -29,6 +29,19 @@ import {
 
 const FIXTURE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../../../conformance/fixtures/packages");
 
+/** Stable publisher key for conformance fixtures (must not change across test runs). */
+const FIXTURE_IDENTITY_PRIVATE_KEY =
+  "04264798bb32f059dad1fa5eeb624195d9d698eecbf173a17535774e254f4132ac8f933df951884d7c826861a215cbd5b71db024632c620e893b98702a3b3072";
+
+function fixtureIdentity(provider: CryptoProvider): Identity {
+  const identity = Identity.fromBytes(provider, hexToBytes(FIXTURE_IDENTITY_PRIVATE_KEY));
+  if (identity === null) {
+    throw new Error("invalid fixture identity key");
+  }
+
+  return identity;
+}
+
 function providers(): CryptoProvider[] {
   return [new NodeCryptoProvider(), new PureCryptoProvider()];
 }
@@ -368,7 +381,7 @@ describe("installed package store", () => {
 describe("golden fixtures", () => {
   it("writes tiny fixture for conformance", () => {
     const provider = new NodeCryptoProvider();
-    const identity = new Identity(provider);
+    const identity = fixtureIdentity(provider);
     const packed = buildSignedPackage(provider, identity);
     const summary = buildAppAnnounceSummary(provider, identity, {
       manifest: packed.manifest,
