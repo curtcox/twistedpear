@@ -46,7 +46,7 @@ Rebuild after worklet changes: `npm run build:worklet` from repo root.
 **CI exit:** bundle build + desktop Bare/device TCP slice (`npm run test:bare-device`);
 distribution suites (`npm run test:dist-interop`, `npm run test:updates`).
 
-**Device exit (hardware register H6/H7):** LAN install from desktop seeder; BLE-only
-install of a budget-sized package between two phones.
+**Device exit (hardware register H6/H7/H8):** LAN install from desktop seeder; BLE-only
+install of a budget-sized package between two phones; live RNode budget rule.
 
-See [PHASE3.md](../../PHASE3.md) §7 and [LIMITATIONS.md](../../LIMITATIONS.md).
+See [PHASE3-HARDWARE.md](../../PHASE3-HARDWARE.md) for full runbook procedures.

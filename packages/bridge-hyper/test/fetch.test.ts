@@ -129,4 +129,56 @@ describe("fetchPackage path selection", () => {
     expect(result.path).toBe("resource");
     expect(result.verified.packageHash).toBe(packed.packageHash);
   });
+
+  it("uses lan-mirror when hyperdrive fails", async () => {
+    const provider = new PureCryptoProvider();
+    const identity = new Identity(provider);
+    const files = [{ path: "bundle.js", content: new TextEncoder().encode("lan-mirror-test") }];
+    const unsigned = buildUnsignedManifest(
+      {
+        name: "fetch.lan",
+        version: "1.0.0",
+        entry: "bundle.js",
+        driveKey: "c".repeat(64),
+        publisherPublicKey: bytesToHex(identity.getPublicKey()),
+        files
+      },
+      provider
+    );
+    const manifest = signManifest(provider, identity, unsigned);
+    const packed = packPackage(provider, { ...manifest, signature: manifest.signature, files });
+
+    const driveManager = {
+      activeDrive: null,
+      openDrive: vi.fn(async () => {}),
+      fetchVersion: vi.fn(async () => packed.archiveBytes),
+      mirrorFrom: vi.fn(async () => {})
+    } as unknown as DriveManager;
+
+    const result = await fetchPackage(provider, {
+      entry: {
+        appId: "pub:fetch.lan",
+        publisherPublicKey: manifest.publisherPublicKey,
+        name: "fetch.lan",
+        version: "1.0.0",
+        packageSize: packed.archiveBytes.length,
+        packageHash: packed.packageHash,
+        driveKey: manifest.driveKey,
+        resourceAvailable: false,
+        destinationHash: "dest",
+        receivedAt: 0,
+        expiresAt: 0,
+        manifest: packed.manifest
+      },
+      version: "1.0.0",
+      interfaces: [mockIface("tcp", true)],
+      driveManager,
+      lanMirrorKeyHex: "d".repeat(64),
+      forcePath: "lan-mirror"
+    });
+
+    expect(result.path).toBe("lan-mirror");
+    expect(driveManager.mirrorFrom).toHaveBeenCalledWith("d".repeat(64));
+    expect(result.verified.packageHash).toBe(packed.packageHash);
+  });
 });

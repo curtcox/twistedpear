@@ -59,7 +59,7 @@ Live interop scenarios are added per milestone under `conformance/scenarios`.
 
 ### Device lab runbook (Phase 3 §7)
 
-Hardware-deferred exits; run when equipment is available:
+Hardware-deferred exits; full procedures in [PHASE3-HARDWARE.md](../PHASE3-HARDWARE.md):
 
 1. **H6 (LAN seeder install):** Desktop runs `tp seed` on LAN; phone harness enables AutoInterface;
    publish with `tp publish`; confirm catalog entry and Hyperswarm install completes with verified badge.
@@ -68,4 +68,5 @@ Hardware-deferred exits; run when equipment is available:
 3. **H8 (RNode budget):** RNode pair from Phase 2 H4; confirm bulk fetch blocked over LoRa for
    packages &gt; 64 KiB; tiny package Resource fetch succeeds.
 
-Record results in the phase exit checklist before closing Phase 3.
+Emulator-lab and 24 h soak procedures are also in that document. Record results in the phase
+exit checklist before closing Phase 3.
