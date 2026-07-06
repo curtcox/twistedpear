@@ -170,10 +170,15 @@ Detailed plan: [PHASE5.md](PHASE5.md).
   entitlement outcome.
 
 ### Phase 6 — Desktop host + network health
-- Pear/Electron host with the identical worklet core; desktops default to
-  **transport-node + rebroadcast + package-seeding** roles, because phones are bad
-  always-on peers. This is what makes the mobile mesh actually work.
-- Optional interop mode: connect to a local reference `rnsd` instead of the built-in stack
+Detailed plan: [PHASE6.md](PHASE6.md).
+- Electron host (decided 2026-07; was "Pear/Electron") with the identical worklet core;
+  desktops default to **transport-node + rebroadcast + package-seeding** roles, because
+  phones are bad always-on peers. This is what makes the mobile mesh actually work.
+- LXMF propagation-node **server** role (opt-in) — the store-and-forward leg Phase 1
+  built only the client for.
+- Full mini-app runtime parity on desktop (deferred from Phase 4): DOM widget renderer,
+  install/grant/launch loop, `tp dev` target.
+- Interop mode: connect to a local reference `rnsd` instead of the built-in stack
   (belt-and-suspenders against reticulum-ts bugs; also a migration path).
 
 ### Phase 7 — Hardening
