@@ -6,6 +6,7 @@ import {
   DestinationDirection,
   DestinationType,
   Announce,
+  BareCryptoProvider,
   Identity,
   NodeCryptoProvider,
   Packet,
@@ -148,7 +149,11 @@ const identityVectors = JSON.parse(
 ) as GoldenIdentityVectors;
 const packetVectors = JSON.parse(readFileSync(resolve(vectorsRoot, "packet.json"), "utf8")) as GoldenPacketVectors;
 
-const providers: ReadonlyArray<CryptoProvider> = [new NodeCryptoProvider(), new PureCryptoProvider()];
+const providers: ReadonlyArray<CryptoProvider> = [
+  new NodeCryptoProvider(),
+  new PureCryptoProvider(),
+  new BareCryptoProvider()
+];
 
 function identityByName(name: string): GoldenIdentityVectors["identities"][number] {
   const identity = identityVectors.identities.find((entry) => entry.name === name);

@@ -1,22 +1,35 @@
 /** Newline-delimited JSON messages over bare-kit IPC. */
 
+export interface AnnounceEntry {
+  readonly destinationHash: string;
+  readonly hops: number;
+  readonly receivedAt: number;
+  readonly appDataHex: string | null;
+}
+
 export interface WorkletStatus {
   readonly running: boolean;
   readonly linkOnline: boolean;
   readonly announcesSeen: number;
   readonly identityHash: string | null;
   readonly identityPersisted: boolean;
+  readonly tcpEnabled: boolean;
+  readonly autoEnabled: boolean;
+  readonly bleEnabled: boolean;
+  readonly cryptoProvider: string;
 }
 
 export type HostToWorkletMessage =
   | { readonly type: "start"; readonly targetHost: string; readonly targetPort: number }
   | { readonly type: "stop" }
   | { readonly type: "create-identity" }
-  | { readonly type: "reset-identity" };
+  | { readonly type: "reset-identity" }
+  | { readonly type: "set-interfaces"; readonly tcp: boolean; readonly auto: boolean; readonly ble: boolean };
 
 export type WorkletToHostMessage =
   | { readonly type: "status"; readonly status: WorkletStatus }
-  | { readonly type: "log"; readonly line: string };
+  | { readonly type: "log"; readonly line: string }
+  | { readonly type: "announce"; readonly entry: AnnounceEntry };
 
 export function encodeMessage(message: HostToWorkletMessage | WorkletToHostMessage): string {
   return `${JSON.stringify(message)}\n`;

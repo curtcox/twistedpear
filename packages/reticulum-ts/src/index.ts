@@ -1,4 +1,5 @@
 export type { CryptoProvider, HkdfInput } from "./crypto/provider.js";
+export { BareCryptoProvider } from "./crypto/bare.js";
 export { NodeCryptoProvider } from "./crypto/node.js";
 export { PureCryptoProvider } from "./crypto/pure.js";
 export { rnsHkdf } from "./crypto/hkdf.js";

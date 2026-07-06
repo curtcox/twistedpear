@@ -19,6 +19,7 @@ Deferred device exits from [PHASE2.md](../PHASE2.md) §7. Clear in order when ha
 
 ## Emulator CI
 
-- `conformance/bare-device/run.mjs`: builds the harness worklet bundle and runs the TCP slice on desktop Bare (emulator instrumentation deferred to M2).
-- Android emulator: toggle TCP in the harness UI; target host `10.0.2.2` reaches docker on the dev machine.
+- `conformance/bare-device/run.mjs`: builds the harness worklet bundle and runs the TCP slice on desktop Bare.
+- Android emulator: toggle TCP in the harness UI; target host `10.0.2.2` reaches docker on the dev machine. Foreground service starts automatically while an interface is enabled.
+- Background 8 h soak + process-death restart: device-gated (H3); emulator instrumentation deferred until a dedicated CI runner is available.
 - Multicast/BLE conformance stays on desktop/docker per PHASE2.md §5.
