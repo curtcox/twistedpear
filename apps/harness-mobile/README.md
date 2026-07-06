@@ -51,7 +51,7 @@ Real-world caveats (see [LIMITATIONS.md](../../LIMITATIONS.md) §5):
 | `node-service` | M2 | Foreground service (Android) |
 | `multicast` | M3 | IPv6 multicast + MulticastLock (Android); IPC bridge to worklet |
 | `ble-bridge` | M5 | GATT central + peripheral (Kotlin); IPC bridge to worklet |
-| `usb-serial` | M6 | Config plugin stub |
+| `usb-serial` | M6 | CDC ACM USB-serial byte-pipe (Kotlin); SerialPipe for RNodeInterface |
 
 ## Worklet IPC
 
