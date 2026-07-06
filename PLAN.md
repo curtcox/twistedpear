@@ -134,6 +134,7 @@ milestone, S3 as the first BLE hardware task), since they were not run separatel
 - Android: persistent foreground service so the node keeps routing with the app backgrounded.
 
 ### Phase 3 — Distribution system
+Detailed plan: [PHASE3.md](PHASE3.md).
 - **Package format:** manifest (name, version, entry point, capability requests, icon) +
   JS bundle + assets; Ed25519-signed with the developer's Reticulum identity, so publisher
   identity and network identity are the same trust root.
