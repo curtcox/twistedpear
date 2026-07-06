@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * CI-tier end-to-end demo: init → pack → publish metadata → catalog ingest → verify.
+ * CI-tier end-to-end demo: init → pack → publish → catalog → drive fetch → install →
+ * update → v2 fetch-verify (Phase 3 M9).
  */
 
 import { mkdtempSync, rmSync, readFileSync } from "node:fs";
@@ -10,15 +11,46 @@ import { fileURLToPath } from "node:url";
 import { Identity, NodeCryptoProvider, bytesToHex } from "../../packages/reticulum-ts/dist/index.js";
 import {
   CatalogStore,
+  InstalledPackageStore,
   buildAppAnnounceSummary,
   encodeAppAnnounceData,
-  unpackPackage
+  unpackPackage,
+  verifyPackage
 } from "../../packages/app-registry/dist/index.js";
 import { DriveManager, createSwarm } from "../../packages/bridge-hyper/dist/index.js";
 import { runInit, runPack, runPublish, runUpdate } from "../../packages/cli/dist/commands/index.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
 const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
+const HOST_API_VERSION = "0.1.0";
+
+async function sleep(ms) {
+  await new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+}
+
+async function waitFor(evaluate, timeoutMs = 20_000) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const value = await evaluate();
+    if (value !== null && value !== undefined) {
+      return value;
+    }
+
+    await sleep(100);
+  }
+
+  throw new Error("waitFor timeout");
+}
+
+async function fetchWithRetry(driveManager, version) {
+  return waitFor(async () => {
+    try {
+      return await driveManager.fetchVersion(version);
+    } catch {
+      return null;
+    }
+  });
+}
 
 async function main() {
   const cwd = mkdtempSync(join(tmpdir(), "tp-demo-"));
@@ -74,11 +106,24 @@ async function main() {
     const drives = new DriveManager({ storagePath: join(cwd, ".tp/storage"), swarm });
     await drives.ready();
     await drives.openDrive(meta.driveKey);
-    const fetched = await drives.fetchVersion(meta.version);
-    const verified = unpackPackage(provider, fetched);
+    const fetched = await fetchWithRetry(drives, meta.version);
+    const verified = verifyPackage(provider, fetched, { hostApiVersion: HOST_API_VERSION });
     if (verified.packageHash !== unpacked.packageHash) {
       throw new Error("drive fetch hash mismatch");
     }
+
+    const installed = new InstalledPackageStore(64 * 1024 * 1024);
+    installed.install(
+      {
+        appId: entry.appId,
+        version: verified.manifest.version,
+        packageHash: verified.packageHash,
+        installedAt: Date.now(),
+        manifest: verified.manifest,
+        archivePath: `packages/${entry.appId}/${verified.manifest.version}.tpkg`
+      },
+      archive.length
+    );
 
     await drives.close();
     await swarm.destroy();
@@ -111,15 +156,33 @@ async function main() {
     const drivesV2 = new DriveManager({ storagePath: join(cwd, ".tp/storage"), swarm: swarmV2 });
     await drivesV2.ready();
     await drivesV2.openDrive(metaV2.driveKey);
-    const fetchedV2 = await drivesV2.fetchVersion(metaV2.version);
-    const verifiedV2 = unpackPackage(provider, fetchedV2);
+    const fetchedV2 = await fetchWithRetry(drivesV2, metaV2.version);
+    const verifiedV2 = verifyPackage(provider, fetchedV2, { hostApiVersion: HOST_API_VERSION });
     if (verifiedV2.packageHash !== v2.packageHash) {
       throw new Error("drive v2 fetch hash mismatch");
     }
 
+    installed.install(
+      {
+        appId: v2Entry.appId,
+        version: verifiedV2.manifest.version,
+        packageHash: verifiedV2.packageHash,
+        installedAt: Date.now(),
+        manifest: verifiedV2.manifest,
+        archivePath: `packages/${v2Entry.appId}/${verifiedV2.manifest.version}.tpkg`
+      },
+      v2Archive.length
+    );
+
+    if (installed.activeVersion(v2Entry.appId) !== "2.0.0") {
+      throw new Error("v2 not active after OTA install");
+    }
+
     await drivesV2.close();
     await swarmV2.destroy();
-    console.log(`phase3-demo: published ${entry.name} v${entry.version} → v${v2Entry.version} (${v2Entry.packageHash.slice(0, 16)}…)`);
+    console.log(
+      `phase3-demo: published ${entry.name} v${entry.version} → v${v2Entry.version}, installed and verified (${v2Entry.packageHash.slice(0, 16)}…)`
+    );
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }

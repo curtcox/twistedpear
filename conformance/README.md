@@ -49,10 +49,12 @@ Live interop scenarios are added per milestone under `conformance/scenarios`.
 | Bare Hyperdrive | `npm run test:bare-hyperdrive` | M1 |
 | Dist interop | `npm run test:dist-interop` | M2/M3 |
 | Fetch strategy | `npm test -- packages/bridge-hyper/test/fetch.test.ts` | M4 |
+| CLI e2e | `npm run test:cli` | M5 |
 | Harness install | `npm run test:harness-install` | M7 |
 | Seeder | `npm run test:seeder` | M6 |
 | Updates / rollback | `npm run test:updates` | M8 |
 | Size budgets | `npm run test:budgets` | M9 |
+| Distribution soak | `npm run test:dist-soak` | M9 |
 | End-to-end demo | `npm run demo:phase3` | M9 |
 
 ### Device lab runbook (Phase 3 §7)

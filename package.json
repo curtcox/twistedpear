@@ -28,6 +28,8 @@
     "test:updates": "npm run build && node conformance/updates/run.mjs",
     "test:budgets": "npm run build && node conformance/budgets/run.mjs",
     "test:harness-install": "npm run build && node conformance/harness-install/run.mjs",
+    "test:cli": "npm run build && node conformance/cli/run.mjs",
+    "test:dist-soak": "npm run build && node conformance/dist-soak/run.mjs",
     "demo:phase3": "npm run build && node conformance/demo/publish-install.mjs",
     "build:worklet": "npm run build && npm run build:worklet --workspace=harness-mobile",
     "lint": "tsc -b --pretty false",

@@ -212,6 +212,30 @@ jobs:
       - run: npm run build
       - run: npm run test:harness-install
 
+  cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:cli
+
+  dist-soak:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:dist-soak
+
   demo-phase3:
     runs-on: ubuntu-latest
     steps:

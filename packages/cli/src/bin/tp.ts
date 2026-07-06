@@ -25,6 +25,11 @@ if (handler === undefined) {
   process.exit(1);
 }
 
+if (args.includes("--help") || args.includes("-h")) {
+  printHelp(command);
+  process.exit(0);
+}
+
 handler({ cwd: process.cwd(), args })
   .then((code) => process.exit(code))
   .catch((error) => {
