@@ -50,3 +50,5 @@ export { WidgetValidationError, validateWidgetTree } from "./ui/validate.js";
 export type { WidgetValidationOptions } from "./ui/validate.js";
 export { diffWidgetTrees } from "./ui/diff.js";
 export type { WidgetPatch } from "./ui/diff.js";
+export { describeWidgetTree } from "./ui/describe.js";
+export type { RenderedWidgetNode } from "./ui/describe.js";

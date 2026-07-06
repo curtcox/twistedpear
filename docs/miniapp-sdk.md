@@ -51,6 +51,11 @@ excessive nodes, and oversized messages.
 Events flow from host to app via `ui.onEvent`. The app must have rendered the target
 node; event forgery for unknown nodes is rejected.
 
+Golden render-model fixtures live in `conformance/fixtures/widget-trees/` and are
+checked by `packages/miniapp-runtime/test/ui-golden.test.ts` (`describeWidgetTree`).
+The harness renderer in `apps/harness-mobile/host/miniapp-renderer.tsx` must stay aligned
+with that model.
+
 ### Example
 
 ```javascript

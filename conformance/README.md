@@ -75,6 +75,7 @@ exit checklist before closing Phase 3.
 
 | Suite | Command | Milestone |
 |---|---|---|
+| UI golden (render model) | `npm test -- packages/miniapp-runtime/test/ui-golden.test.ts` | M4 |
 | Hostile apps | `npm run test:hostile-apps` | M2 |
 | SDK interop | `npm run test:sdk-interop` | M3 |
 | Dev loop | `npm run test:dev-loop` | M6 |
