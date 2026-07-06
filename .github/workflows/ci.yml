@@ -236,6 +236,18 @@ jobs:
       - run: npm run test:hostile-apps
       - run: npm run test:sdk-interop
       - run: npm run test:dev-loop
+      - run: npm run test:examples
+
+  demo-phase4:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run demo:phase4
 
   dist-soak:
     runs-on: ubuntu-latest

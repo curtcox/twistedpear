@@ -97,7 +97,11 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
         }
 
         void endpoint.request(message).then(
-          (response) => worker.postMessage({ type: "broker-response", ...(response as object) }),
+          (response) =>
+            worker.postMessage({
+              type: "broker-response",
+              ...normalizeBrokerResponse(response as BrokerWireResponse)
+            }),
           (error: Error) =>
             worker.postMessage({
               type: "broker-response",
@@ -181,4 +185,38 @@ export class NodeWorkerSandboxBackend implements SandboxBackend {
       }
     };
   }
+}
+
+interface BrokerWireResponse {
+  readonly id?: string;
+  readonly ok?: boolean;
+  readonly result?: unknown;
+  readonly error?: { readonly message: string };
+}
+
+function normalizeBrokerResponse(response: BrokerWireResponse): BrokerWireResponse {
+  if (!response.ok || response.result === undefined) {
+    return response;
+  }
+
+  return { ...response, result: normalizeWireValue(response.result) };
+}
+
+function normalizeWireValue(value: unknown): unknown {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return new Uint8Array(value);
+  }
+
+  if (value !== null && typeof value === "object") {
+    const record = value as { type?: string; data?: ReadonlyArray<number> };
+    if (record.type === "Buffer" && Array.isArray(record.data)) {
+      return new Uint8Array(record.data);
+    }
+  }
+
+  return value;
 }

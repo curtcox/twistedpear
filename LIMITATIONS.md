@@ -109,6 +109,12 @@ everything below is a known cost of the chosen design or of the platforms involv
   apps needing exotic hardware) won't fit; the tiered-APK channel was deliberately deferred.
 - JS sandboxing inside one runtime is a real attack surface. Until the Phase 7 security
   review, mini-app installation should be treated as trusting the developer key.
+- Phase 4 ships a broker chokepoint, deny-by-default capability grants, data-only widget
+  trees, and hostile-input conformance tests — but **not** a completed adversarial audit.
+  The sandbox does not yet promise resistance to determined escape on weak hardware; watchdog
+  thresholds may false-positive on low-end devices (see Phase 4 hardware register H11).
+- One foreground mini-app at a time in v1; no background execution. Dev side-loading is
+  localhost/adb-only, off by default, and badged **DEV** in the UI.
 - No central registry means **no central moderation**: discovery is by announce/registry
   subscription, and malicious-app defense rests on signatures, capability grants, and
   user/community trust — an explicit design stance, but a restriction worth stating.

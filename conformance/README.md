@@ -70,3 +70,16 @@ Hardware-deferred exits; full procedures in [PHASE3-HARDWARE.md](../PHASE3-HARDW
 
 Emulator-lab and 24 h soak procedures are also in that document. Record results in the phase
 exit checklist before closing Phase 3.
+
+## Phase 4 mini-app runtime
+
+| Suite | Command | Milestone |
+|---|---|---|
+| Hostile apps | `npm run test:hostile-apps` | M2 |
+| SDK interop | `npm run test:sdk-interop` | M3 |
+| Dev loop | `npm run test:dev-loop` | M6 |
+| Example apps | `npm run test:examples` | M7 |
+| Phase 4 demo | `npm run demo:phase4` | M8 |
+
+Peer-to-peer example interop (two sandboxed apps on two hosts) and 24 h launch/suspend/kill
+soak are nightly/device-gated per [PHASE4.md](../PHASE4.md) §7.

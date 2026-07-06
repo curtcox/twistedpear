@@ -60,4 +60,9 @@ tree message.
 
 This is not a completed adversarial security review. The current implementation
 provides the broker chokepoint, deny-by-default capability enforcement, data-only UI,
-and hostile-input test hooks that Phase 7 will audit and fuzz.
+hostile-input conformance (`npm run test:hostile-apps`), and example-app exercise
+(`npm run test:examples`). Phase 7 will audit and fuzz the sandbox surface.
+
+Device measurements for the M0 isolation ADR (Bare Worker spawn latency, kill semantics
+on Android) remain hardware debt; the runtime codes to `SandboxBackend` so those numbers
+do not leak into SDK or broker code.
