@@ -48,17 +48,38 @@ export interface PropagationServerStats {
   readonly evictions: number;
 }
 
+export interface PropagationStoredEntry {
+  readonly transientId: Uint8Array;
+  readonly lxmfData: Uint8Array;
+  readonly storedAt: number;
+}
+
+export interface PropagationPersistence {
+  load(): ReadonlyArray<PropagationStoredEntry>;
+  save(entries: ReadonlyArray<PropagationStoredEntry>): void;
+}
+
 /** Production propagation-node server with quotas and eviction. */
 export class PropagationServer {
   private readonly entries = new Map<string, StoredPropagationMessage>();
   private usedBytes = 0;
   private evictions = 0;
   private readonly clientBuckets = new Map<string, { count: number; windowStart: number }>();
+  private readonly persistence: PropagationPersistence | null;
+  private persistTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private readonly provider: CryptoProvider,
-    private readonly quotas: PropagationServerQuotas = DEFAULT_PROPAGATION_QUOTAS
-  ) {}
+    private readonly quotas: PropagationServerQuotas = DEFAULT_PROPAGATION_QUOTAS,
+    options: { readonly persistence?: PropagationPersistence } = {}
+  ) {
+    this.persistence = options.persistence ?? null;
+    if (this.persistence !== null) {
+      for (const entry of this.persistence.load()) {
+        this.restoreEntry(entry);
+      }
+    }
+  }
 
   get stats(): PropagationServerStats {
     return {
@@ -109,14 +130,16 @@ export class PropagationServer {
     }
 
     const destinationHash = lxmfData.subarray(0, 16);
+    const storedAt = Date.now();
     this.entries.set(key, {
       transientId,
       destinationHash,
       lxmfData: Uint8Array.from(lxmfData),
-      storedAt: Date.now(),
+      storedAt,
       size: lxmfData.length
     });
     this.usedBytes += lxmfData.length;
+    this.schedulePersist();
     return transientId;
   }
 
@@ -129,7 +152,52 @@ export class PropagationServer {
 
     this.entries.delete(key);
     this.usedBytes -= entry.size;
+    this.schedulePersist();
     return true;
+  }
+
+  private restoreEntry(entry: PropagationStoredEntry): void {
+    if (entry.lxmfData.length > this.quotas.maxMessageBytes) {
+      return;
+    }
+
+    const key = Buffer.from(entry.transientId).toString("hex");
+    if (this.entries.has(key)) {
+      return;
+    }
+
+    const destinationHash = entry.lxmfData.subarray(0, 16);
+    this.entries.set(key, {
+      transientId: Uint8Array.from(entry.transientId),
+      destinationHash,
+      lxmfData: Uint8Array.from(entry.lxmfData),
+      storedAt: entry.storedAt,
+      size: entry.lxmfData.length
+    });
+    this.usedBytes += entry.lxmfData.length;
+  }
+
+  private schedulePersist(): void {
+    if (this.persistence === null) {
+      return;
+    }
+
+    if (this.persistTimer !== null) {
+      clearTimeout(this.persistTimer);
+    }
+
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null;
+      this.persistence?.save(this.snapshotEntries());
+    }, 250);
+  }
+
+  private snapshotEntries(): ReadonlyArray<PropagationStoredEntry> {
+    return [...this.entries.values()].map((entry) => ({
+      transientId: entry.transientId,
+      lxmfData: entry.lxmfData,
+      storedAt: entry.storedAt
+    }));
   }
 
   private evictOldest(): boolean {

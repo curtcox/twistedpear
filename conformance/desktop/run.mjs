@@ -80,6 +80,8 @@ async function testStatusEndpointLocalhostOnly() {
     const body = await ok.json();
     assert(typeof body.identityHash === "string", "status schema includes identityHash");
     assert(typeof body.uptimeMs === "number", "status schema includes uptimeMs");
+    assert(typeof body.pathTableCount === "number", "status schema includes pathTableCount");
+    assert(typeof body.activeLinkCount === "number", "status schema includes activeLinkCount");
     await session.stop();
   } finally {
     rmSync(dataDir, { recursive: true, force: true });

@@ -125,6 +125,9 @@ export interface HostStatus {
   readonly seedStorageQuotaBytes: number;
   readonly propagationStoreBytes: number;
   readonly propagationMessageCount: number;
+  readonly propagationEvictions: number;
+  readonly pathTableCount: number;
+  readonly activeLinkCount: number;
   readonly bandwidthBytesOut: number;
   readonly bandwidthBytesIn: number;
 }

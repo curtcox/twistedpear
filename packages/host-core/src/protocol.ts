@@ -71,6 +71,12 @@ export interface WorkletStatus {
   readonly autoPeers: number;
   readonly preferredInterface: string | null;
   readonly onlineInterfaces: number;
+  readonly pathTableCount: number;
+  readonly activeLinkCount: number;
+  readonly transportEnabled: boolean;
+  readonly propagationEnabled: boolean;
+  readonly propagationStoreBytes: number;
+  readonly propagationMessageCount: number;
   readonly catalogEntries: number;
   readonly installedPackages: number;
   readonly storageUsedBytes: number;
@@ -107,6 +113,7 @@ export type HostToWorkletMessage =
       readonly rnodeBaudRate?: number;
     }
   | { readonly type: "set-developer-mode"; readonly enabled: boolean }
+  | { readonly type: "set-propagation"; readonly enabled: boolean }
   | { readonly type: "list-catalog" }
   | { readonly type: "list-installed" }
   | { readonly type: "install-app"; readonly appId: string; readonly forcePath?: "hyperdrive" | "lan-mirror" | "resource"; readonly archiveHex?: string }

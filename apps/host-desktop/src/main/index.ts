@@ -11,7 +11,7 @@ let tray: Tray | null = null;
 let supervisor: WorkletSupervisor | null = null;
 let bridges: HostDesktopBridges | null = null;
 let latestStatus: WorkletStatus | null = null;
-let quitToTray = false;
+let quitToTray = true;
 
 function broadcast(channel: string, payload: unknown): void {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -29,6 +29,15 @@ function createWindow(): void {
       nodeIntegration: false,
       sandbox: true
     }
+  });
+
+  mainWindow.on("close", (event) => {
+    if (!quitToTray) {
+      return;
+    }
+
+    event.preventDefault();
+    mainWindow?.hide();
   });
 
   mainWindow.loadFile(join(hostRoot, "src/renderer/index.html"));

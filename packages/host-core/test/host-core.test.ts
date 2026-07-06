@@ -3,6 +3,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createNodeHost } from "../src/node-host.js";
+import { createFilePropagationPersistence } from "../src/propagation-persistence.js";
+import { PropagationServer, DEFAULT_PROPAGATION_QUOTAS } from "@twistedpear/lxmf-ts";
+import { NodeCryptoProvider } from "@twistedpear/reticulum-ts";
 import { decodeMessages, encodeMessage } from "../src/protocol.js";
 import { defaultHostConfig } from "../src/types.js";
 
@@ -47,6 +50,27 @@ describe("host-core status endpoint", () => {
       expect(status.running).toBe(true);
       expect(status.transportEnabled).toBe(false);
       await session.stop();
+    } finally {
+      rmSync(dataDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("host-core propagation persistence", () => {
+  it("writes propagation store to disk and reloads it", async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), "tp-prop-persist-"));
+    try {
+      const storePath = join(dataDir, "propagation", "store.json");
+      const provider = new NodeCryptoProvider();
+      const persistence = createFilePropagationPersistence(storePath);
+      const first = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, { persistence });
+      const payload = new Uint8Array(32);
+      payload[0] = 7;
+      first.storePropagationData(payload);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const restarted = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, { persistence });
+      expect(restarted.stats.messageCount).toBe(1);
     } finally {
       rmSync(dataDir, { recursive: true, force: true });
     }

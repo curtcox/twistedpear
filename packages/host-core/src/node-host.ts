@@ -1,6 +1,7 @@
 import { createServer, type Server as HttpServer } from "node:http";
 import { join } from "node:path";
 import type { CryptoProvider, Identity, Reticulum, TcpClientInterface, TcpServerInterface } from "@twistedpear/reticulum-ts";
+import { createFilePropagationPersistence } from "./propagation-persistence.js";
 import {
   NodeCryptoProvider,
   Reticulum as Rns,
@@ -84,11 +85,17 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
 
   if (config.roles.propagation) {
     lxmfRouter = new LXMFRouter({ reticulum, provider });
-    propagationServer = new PropagationServer(provider, {
-      ...DEFAULT_PROPAGATION_QUOTAS,
-      maxBytes: config.quotas.propagationStoreBytes,
-      maxMessages: config.quotas.propagationMessageCount
-    });
+    propagationServer = new PropagationServer(
+      provider,
+      {
+        ...DEFAULT_PROPAGATION_QUOTAS,
+        maxBytes: config.quotas.propagationStoreBytes,
+        maxMessages: config.quotas.propagationMessageCount
+      },
+      {
+        persistence: createFilePropagationPersistence(join(config.dataDir, "propagation", "store.json"))
+      }
+    );
     const propagationDestination = createPropagationDestination(provider, reticulum, identity);
     propagationServer.registerHandlers(propagationDestination);
     await propagationDestination.announce();
@@ -151,6 +158,9 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
       seedStorageQuotaBytes: config.quotas.seedStorageBytes,
       propagationStoreBytes: propagationServer?.stats.usedBytes ?? 0,
       propagationMessageCount: propagationServer?.stats.messageCount ?? 0,
+      propagationEvictions: propagationServer?.stats.evictions ?? 0,
+      pathTableCount: reticulum.pathTableCount,
+      activeLinkCount: reticulum.activeLinkCount,
       bandwidthBytesOut: bytesOut,
       bandwidthBytesIn: bytesIn
     };

@@ -180,6 +180,14 @@ export class LeafTransport {
     return this.pathTable.get(hashKey(destinationHash));
   }
 
+  get pathTableCount(): number {
+    return this.pathTable.size;
+  }
+
+  get activeLinkCount(): number {
+    return this.activeLinks.length;
+  }
+
   requestPath(destinationHash: Uint8Array, onInterface: PacketInterface | null = null): void {
     const key = hashKey(destinationHash);
     const now = Date.now() / 1000;

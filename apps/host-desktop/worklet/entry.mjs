@@ -21,6 +21,11 @@ import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPacka
 import { DriveManager, PackageResourceClient, assessFetchBudget, createSwarm, fetchPackage } from "../../../packages/bridge-hyper/dist/index.js";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { HOST_API_VERSION, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/index.js";
+import {
+  PropagationServer,
+  createPropagationDestination,
+  DEFAULT_PROPAGATION_QUOTAS
+} from "../../../packages/lxmf-ts/dist/index.js";
 import { createWorkletMiniappHost } from "./miniapp-host.mjs";
 import { createDevChannelClient } from "./dev-channel.mjs";
 import { IPC } from "./ipc-stdio.mjs";
@@ -65,6 +70,12 @@ const status = {
   autoPeers: 0,
   preferredInterface: null,
   onlineInterfaces: 0,
+  pathTableCount: 0,
+  activeLinkCount: 0,
+  transportEnabled: IS_DESKTOP_HOST,
+  propagationEnabled: false,
+  propagationStoreBytes: 0,
+  propagationMessageCount: 0,
   catalogEntries: 0,
   installedPackages: 0,
   storageUsedBytes: 0,
@@ -118,6 +129,12 @@ let packageDriveManager = null;
 /** @type {ReturnType<typeof createSwarm> | null} */
 let packageSwarm = null;
 const PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
+const PROPAGATION_STORE_KEY = "propagation-store";
+
+/** @type {PropagationServer | null} */
+let propagationServer = null;
+/** @type {import("@twistedpear/lxmf-ts").RegisteredDestination | null} */
+let propagationDestination = null;
 
 /** @type {ReturnType<typeof createWorkletMiniappHost> | null} */
 let miniappHost = null;
@@ -273,6 +290,81 @@ function pushCatalog() {
   });
 }
 
+/** @type {{ entries: ReadonlyArray<{ transientIdHex: string; lxmfDataHex: string; storedAt: number }> } | null} */
+let propagationStoreCache = null;
+
+async function loadPropagationCache() {
+  const raw = await runtime.store.get(PROPAGATION_STORE_KEY);
+  if (raw === undefined) {
+    propagationStoreCache = { entries: [] };
+    return;
+  }
+
+  propagationStoreCache = JSON.parse(new TextDecoder().decode(raw));
+}
+
+function createWorkletPropagationPersistence() {
+  return {
+    load() {
+      return (propagationStoreCache?.entries ?? []).map((entry) => ({
+        transientId: hexToBytes(entry.transientIdHex),
+        lxmfData: hexToBytes(entry.lxmfDataHex),
+        storedAt: entry.storedAt
+      }));
+    },
+    save(entries) {
+      propagationStoreCache = {
+        entries: entries.map((entry) => ({
+          transientIdHex: bytesToHex(entry.transientId),
+          lxmfDataHex: bytesToHex(entry.lxmfData),
+          storedAt: entry.storedAt
+        }))
+      };
+      void runtime.store.set(
+        PROPAGATION_STORE_KEY,
+        new TextEncoder().encode(JSON.stringify(propagationStoreCache))
+      );
+    }
+  };
+}
+
+async function startPropagation() {
+  if (propagationServer !== null) {
+    return;
+  }
+
+  const node = await ensureReticulum();
+  const identity = await resolveIdentity();
+  if (identity === null) {
+    throw new Error("Propagation requires a host identity");
+  }
+
+  await loadPropagationCache();
+  propagationServer = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
+    persistence: createWorkletPropagationPersistence()
+  });
+  propagationDestination = createPropagationDestination(provider, node, identity);
+  propagationServer.registerHandlers(propagationDestination);
+  await propagationDestination.announce();
+  status.propagationEnabled = true;
+  log("Propagation node enabled");
+  pushStatus();
+}
+
+async function stopPropagation() {
+  if (propagationServer === null) {
+    status.propagationEnabled = false;
+    pushStatus();
+    return;
+  }
+
+  propagationServer = null;
+  propagationDestination = null;
+  status.propagationEnabled = false;
+  log("Propagation node disabled");
+  pushStatus();
+}
+
 function send(message) {
   IPC.write(Buffer.from(`${JSON.stringify(message)}\n`));
 }
@@ -296,9 +388,22 @@ function pushStatus() {
     const preferred = selectPreferredInterface(interfaces);
     status.preferredInterface = preferred?.name ?? null;
     status.onlineInterfaces = interfaces.filter((iface) => iface.online).length;
+    status.pathTableCount = reticulum.pathTableCount;
+    status.activeLinkCount = reticulum.activeLinkCount;
+    status.transportEnabled = reticulum.isTransportEnabled;
   } else {
     status.preferredInterface = null;
     status.onlineInterfaces = 0;
+    status.pathTableCount = 0;
+    status.activeLinkCount = 0;
+  }
+
+  if (propagationServer !== null) {
+    status.propagationStoreBytes = propagationServer.stats.usedBytes;
+    status.propagationMessageCount = propagationServer.stats.messageCount;
+  } else {
+    status.propagationStoreBytes = 0;
+    status.propagationMessageCount = 0;
   }
 
   send({ type: "status", status: { ...status } });
@@ -978,6 +1083,19 @@ async function handleHostMessage(raw) {
 
     ensureMiniappHost().setDeveloperMode(message.enabled);
     log(`Developer mode ${message.enabled ? "enabled" : "disabled"}`);
+    return;
+  }
+
+  if (message.type === "set-propagation") {
+    if (message.enabled) {
+      try {
+        await startPropagation();
+      } catch (error) {
+        log(`Propagation enable failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    } else {
+      await stopPropagation();
+    }
     return;
   }
 

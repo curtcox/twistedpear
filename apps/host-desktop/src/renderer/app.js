@@ -8,6 +8,7 @@ const logEl = document.querySelector("#log");
 const widgetRoot = document.querySelector("#widget-root");
 
 const settingDeveloper = document.querySelector("#setting-developer");
+const settingPropagation = document.querySelector("#setting-propagation");
 const settingTcp = document.querySelector("#setting-tcp");
 const settingAuto = document.querySelector("#setting-auto");
 const settingRnodePort = document.querySelector("#setting-rnode-port");
@@ -44,14 +45,20 @@ function renderStatus(status) {
   const rows = [
     ["Running", String(status.running)],
     ["Identity", status.identityHash ?? "—"],
+    ["Transport", String(status.transportEnabled ?? false)],
     ["TCP", String(status.tcpEnabled)],
     ["Auto", String(status.autoEnabled)],
     ["RNode", String(status.rnodeEnabled)],
+    ["Propagation", String(status.propagationEnabled ?? false)],
     ["Link online", String(status.linkOnline)],
     ["Auto peers", String(status.autoPeers)],
     ["Online interfaces", String(status.onlineInterfaces)],
+    ["Path table", String(status.pathTableCount ?? 0)],
+    ["Active links", String(status.activeLinkCount ?? 0)],
     ["Preferred", status.preferredInterface ?? "—"],
     ["Announces", String(status.announcesSeen)],
+    ["Propagation store", formatBytes(status.propagationStoreBytes ?? 0)],
+    ["Propagation msgs", String(status.propagationMessageCount ?? 0)],
     ["Catalog", String(status.catalogEntries)],
     ["Installed", String(status.installedPackages)],
     ["Storage used", formatBytes(status.storageUsedBytes ?? 0)],
@@ -229,6 +236,10 @@ if (!host) {
     host.send({ type: "set-developer-mode", enabled: settingDeveloper.checked });
   });
 
+  settingPropagation?.addEventListener("change", () => {
+    host.send({ type: "set-propagation", enabled: settingPropagation.checked });
+  });
+
   for (const element of [settingTcp, settingAuto, settingRnodePort]) {
     element?.addEventListener("change", applyInterfaceSettings);
   }
@@ -238,6 +249,9 @@ if (!host) {
       renderStatus(message.status);
       if (settingDeveloper) {
         settingDeveloper.checked = Boolean(message.status.developerMode);
+      }
+      if (settingPropagation) {
+        settingPropagation.checked = Boolean(message.status.propagationEnabled);
       }
     }
 

@@ -46,5 +46,7 @@ export {
   DEFAULT_PROPAGATION_QUOTAS,
   decodePropagationPeerError,
   type PropagationServerQuotas,
-  type PropagationServerStats
+  type PropagationServerStats,
+  type PropagationPersistence,
+  type PropagationStoredEntry
 } from "./propagation-server.js";

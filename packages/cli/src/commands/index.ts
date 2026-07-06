@@ -25,7 +25,8 @@ import {
   nodeRuntime
 } from "@twistedpear/reticulum-ts";
 import { ensureDir, loadConfig, readBytes, resolveFromCwd, saveConfig, writeBytes } from "../config.js";
-import { isSeederStateDir, registerDriveWithSeeder } from "../seed/register.js";
+import { isSeederStateDir, registerDriveWithSeederQuota } from "../seed/register.js";
+import { DEFAULT_QUOTAS } from "@twistedpear/host-core";
 import { startDevServer } from "../dev/server.js";
 
 export interface CommandContext {
@@ -426,14 +427,17 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
   });
 
   if (isSeederStateDir(config.seederAddress)) {
-    registerDriveWithSeeder(
+    const evicted = registerDriveWithSeederQuota(
       resolveFromCwd(ctx.cwd, config.seederAddress),
       keyHex,
       published.version,
       published.packageHash,
-      archive
+      archive,
+      DEFAULT_QUOTAS.seedStorageBytes
     );
-    console.log(`Registered drive with seeder at ${config.seederAddress}`);
+    console.log(
+      `Registered drive with seeder at ${config.seederAddress}${evicted > 0 ? ` (evicted ${evicted} archive(s) over quota)` : ""}`
+    );
   }
 
   writePublishMetadata(ctx.cwd, {

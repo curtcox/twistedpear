@@ -10,6 +10,7 @@ import {
   listSeederArchives,
   loadSeederState,
   readSeederArchive,
+  evictSeederToQuota,
   type SeederState
 } from "../seeder-state.js";
 import type { HostQuotas } from "../types.js";
@@ -63,6 +64,8 @@ export async function startSeederRole(options: SeederRoleOptions): Promise<Seede
   });
 
   const syncDrives = async (next: SeederState) => {
+    evictSeederToQuota(options.stateDir, options.quotas.seedStorageBytes);
+
     for (const drive of next.drives) {
       if (state.drives.some((existing) => existing.driveKey === drive.driveKey)) {
         continue;

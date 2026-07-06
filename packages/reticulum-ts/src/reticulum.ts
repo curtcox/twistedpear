@@ -125,6 +125,14 @@ export class Reticulum {
     return this.transport.hasPath(destinationHash);
   }
 
+  get pathTableCount(): number {
+    return this.transport.pathTableCount;
+  }
+
+  get activeLinkCount(): number {
+    return this.transport.activeLinkCount;
+  }
+
   hopsTo(destinationHash: Uint8Array): number | null {
     return this.transport.hopsTo(destinationHash);
   }

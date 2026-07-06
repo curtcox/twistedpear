@@ -165,7 +165,34 @@ async function runLxmfOpportunisticOverTcp() {
   console.log("propagation-interop: LXMF opportunistic over TCP passed");
 }
 
+async function runPropagationStoreRestart() {
+  const dataDir = mkdtempSync(join(tmpdir(), "tp-prop-restart-"));
+  try {
+    const { createFilePropagationPersistence } = await import("../../packages/host-core/dist/propagation-persistence.js");
+    const { PropagationServer, DEFAULT_PROPAGATION_QUOTAS } = await import("../../packages/lxmf-ts/dist/index.js");
+    const { NodeCryptoProvider } = await import("../../packages/reticulum-ts/dist/index.js");
+    const storePath = join(dataDir, "store.json");
+    const provider = new NodeCryptoProvider();
+    const persistence = createFilePropagationPersistence(storePath);
+    const first = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, { persistence });
+    const payload = new Uint8Array(32);
+    payload[0] = 99;
+    first.storePropagationData(payload);
+    await sleep(400);
+
+    const restarted = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, { persistence });
+    if (restarted.stats.messageCount !== 1) {
+      throw new Error(`propagation store restart expected 1 message, got ${restarted.stats.messageCount}`);
+    }
+  } finally {
+    rmSync(dataDir, { recursive: true, force: true });
+  }
+
+  console.log("propagation-interop: store survives restart");
+}
+
 await runInProcessPropagationSync();
 await runHostCorePropagationBoot();
+await runPropagationStoreRestart();
 await runLxmfOpportunisticOverTcp();
 console.log("propagation-interop: passed");
