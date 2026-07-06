@@ -24,12 +24,14 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
   };
 
   switch (node.type) {
-    case "view":
+    case "view": {
+      const children = describeChildren(node);
       return {
         ...base,
         component: "View",
-        children: describeChildren(node)
+        ...(children === undefined ? {} : { children })
       };
+    }
     case "text":
       return {
         ...base,
@@ -64,12 +66,14 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
           ...(typeof node.props?.event === "string" ? { event: node.props.event } : {})
         }
       };
-    case "scroll":
+    case "scroll": {
+      const children = describeChildren(node);
       return {
         ...base,
         component: "ScrollView",
-        children: describeChildren(node)
+        ...(children === undefined ? {} : { children })
       };
+    }
     case "divider":
       return {
         ...base,

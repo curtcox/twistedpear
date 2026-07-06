@@ -86,3 +86,17 @@ exit checklist before closing Phase 3.
 
 Peer-to-peer example interop (two sandboxed apps on two hosts) and 24 h launch/suspend/kill
 soak are nightly/device-gated per [PHASE4.md](../PHASE4.md) §7 and [PHASE4-HARDWARE.md](../PHASE4-HARDWARE.md).
+
+### Device lab runbook (Phase 4 §7)
+
+Hardware-deferred exits; full procedures in [PHASE4-HARDWARE.md](../PHASE4-HARDWARE.md):
+
+1. **H9 (BLE chat):** Two phones with foreground service; publish `chat` example; grant
+   identity + LXMF capabilities; exchange LXMF messages over BLE-only with both apps sandboxed.
+2. **H10 (file-drop AutoInterface):** Phone + desktop on same LAN; bidirectional Resource
+   transfer via file-drop; confirm budget warning for an oversized file.
+3. **H11 (weak-phone watchdog):** Mid/low-tier Android phone; three examples survive normal
+   use without false-positive kills; hostile fixtures from `conformance/hostile-apps/` still killed.
+
+Emulator-lab (E1–E5), Bare Worker Android measurements, and 24 h soak (S1) are also in that
+document. Record results in the phase exit checklist before closing Phase 4.
