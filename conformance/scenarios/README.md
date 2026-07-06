@@ -32,8 +32,9 @@ The tests connect to `127.0.0.1:4242` (leaf echo), `127.0.0.1:4244` (link echo),
 `127.0.0.1:4243` (LXMF echo) by default. Override with `LEAF_ECHO_PORT` / `LINK_ECHO_PORT` /
 `LXMF_ECHO_PORT` if needed.
 
-AutoInterface interop uses `docker compose ... up auto-echo` with `network_mode: host` so the
-Python peer shares the runner's link-local IPv6 interfaces.
+AutoInterface interop uses `docker compose ... up auto-interop` with `network_mode: host` so the
+Python peer shares the runner's link-local IPv6 interfaces. The combined peer exercises echo,
+link, and LXMF delivery over AutoInterface discovery.
 
 ## Layout
 

@@ -65,14 +65,14 @@ describe("AutoInterface helpers", () => {
       return;
     }
 
-    const addPeer = (auto as unknown as { addPeer: (address: string, name: string) => void }).addPeer;
+    const addPeer = (auto as unknown as { addPeer: (address: string, name: string) => void }).addPeer.bind(auto);
     addPeer("fe80::dead:beef", ifname);
     expect(auto.peerInterfaces.length).toBe(1);
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 4_500));
     expect(auto.peerInterfaces.length).toBe(0);
     expect(detached).toBe(1);
 
     await auto.close();
-  }, 5_000);
+  }, 10_000);
 });

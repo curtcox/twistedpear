@@ -90,7 +90,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build auto-echo
+      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build auto-interop
       - run: npm run test:auto-interop
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down

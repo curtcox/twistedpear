@@ -92,4 +92,31 @@ describe("AutoInterfaceBridge", () => {
     expect(auto.peerInterfaces.length).toBe(1);
     await auto.close();
   });
+
+  it("expires stale peers after the peering timeout", async () => {
+    const provider = new PureCryptoProvider();
+    const bridge = new MockMulticastBridge();
+    let detached = 0;
+
+    const auto = await AutoInterfaceBridge.open(provider, {
+      name: "auto-bridge-expiry-test",
+      provider,
+      runtime: {} as never,
+      bridge,
+      peeringTimeoutMs: 200,
+      onPeerDetach: () => {
+        detached += 1;
+      }
+    });
+
+    const addPeer = (auto as unknown as { addPeer: (address: string, ifname: string) => void }).addPeer.bind(auto);
+    addPeer("fe80::dead:beef", "mock0");
+    expect(auto.peerInterfaces.length).toBe(1);
+
+    await new Promise((resolve) => setTimeout(resolve, 4_500));
+    expect(auto.peerInterfaces.length).toBe(0);
+    expect(detached).toBe(1);
+
+    await auto.close();
+  }, 10_000);
 });
