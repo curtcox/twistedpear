@@ -150,6 +150,7 @@ Detailed plan: [PHASE3.md](PHASE3.md).
   version.
 
 ### Phase 4 — Mini-app runtime & SDK
+Detailed plan: [PHASE4.md](PHASE4.md).
 - Each mini-app runs in an isolated JS context inside the Bare worklet; no direct access
   to native modules, filesystem, or raw sockets.
 - Capability model: manifest requests (e.g. `lxmf:send`, `storage`, `resource:fetch`),
