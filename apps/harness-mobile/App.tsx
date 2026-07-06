@@ -27,13 +27,17 @@ import {
   decodeMessages,
   encodeMessage,
   type AnnounceEntry,
+  type CapabilityGrantView,
   type CatalogEntryView,
   type HostToWorkletMessage,
   type InstallProgress,
   type InstalledPackageView,
+  type MiniappRuntimeView,
   type WorkletStatus,
   type WorkletToHostMessage
 } from "./worklet/protocol";
+import { MiniappWidgetTree } from "./host/miniapp-renderer";
+import type { WidgetTree } from "@twistedpear/miniapp-runtime";
 
 const DEFAULT_DOCKER_PORT = 4_242;
 const ANDROID_EMULATOR_HOST = "10.0.2.2";
@@ -76,7 +80,9 @@ const initialStatus: WorkletStatus = {
   onlineInterfaces: 0,
   catalogEntries: 0,
   installedPackages: 0,
-  storageUsedBytes: 0
+  storageUsedBytes: 0,
+  developerMode: false,
+  miniappRunning: false
 };
 
 export default function App() {
@@ -96,6 +102,11 @@ export default function App() {
   const [usbDevices, setUsbDevices] = useState<ReadonlyArray<UsbSerialDeviceInfo>>([]);
   const [selectedUsbDeviceId, setSelectedUsbDeviceId] = useState<number | null>(null);
   const [selectedCatalogAppId, setSelectedCatalogAppId] = useState<string | null>(null);
+  const [selectedInstalledAppId, setSelectedInstalledAppId] = useState<string | null>(null);
+  const [grantCapabilities, setGrantCapabilities] = useState<ReadonlyArray<CapabilityGrantView>>([]);
+  const [miniappRuntime, setMiniappRuntime] = useState<MiniappRuntimeView | null>(null);
+  const [miniappLogs, setMiniappLogs] = useState<ReadonlyArray<string>>([]);
+  const [developerMode, setDeveloperMode] = useState(false);
 
   const workletRef = useRef<Worklet | null>(null);
   const ipcBufferRef = useRef("");
@@ -163,6 +174,22 @@ export default function App() {
       if (message.progress.phase === "complete") {
         sendToWorklet({ type: "list-installed" });
       }
+      return;
+    }
+
+    if (message.type === "grants") {
+      setGrantCapabilities(message.capabilities);
+      return;
+    }
+
+    if (message.type === "miniapp-runtime") {
+      setMiniappRuntime(message.runtime);
+      return;
+    }
+
+    if (message.type === "miniapp-log") {
+      setMiniappLogs((current) => [...current.slice(-100), `${message.appId}: ${message.line}`]);
+      appendLog(`[miniapp] ${message.line}`);
     }
   }, [appendLog, sendToWorklet]);
 
@@ -298,7 +325,7 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="auto" />
       <Text style={styles.title}>TwistedPear Harness</Text>
-      <Text style={styles.subtitle}>Reticulum node + app catalog (Phase 3)</Text>
+      <Text style={styles.subtitle}>Reticulum node + mini-app runtime (Phase 4)</Text>
 
       <View style={styles.card}>
         <Text>Worklet: {status.running ? "running" : "stopped"}</Text>
@@ -346,6 +373,34 @@ export default function App() {
         <Row label="AutoInterface" value={autoEnabled} onChange={setAutoEnabled} />
         <Row label="BLE interface" value={bleEnabled} onChange={setBleEnabled} />
         <Row label="RNode (USB)" value={rnodeEnabled} onChange={setRnodeEnabled} />
+        <Row
+          label="Developer mode"
+          value={developerMode}
+          onChange={(enabled) => {
+            setDeveloperMode(enabled);
+            sendToWorklet({ type: "set-developer-mode", enabled });
+          }}
+        />
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Mini-app surface</Text>
+        <Text style={styles.muted}>
+          {miniappRuntime?.appId ?? "none"} · {miniappRuntime?.state ?? "stopped"}
+          {status.miniappRunning ? " · foreground" : ""}
+        </Text>
+        <MiniappWidgetTree
+          tree={(miniappRuntime?.widgetTree as WidgetTree | null) ?? null}
+          onEvent={(nodeId, event, value) =>
+            sendToWorklet({ type: "miniapp-ui-event", nodeId, event, value })
+          }
+        />
+        {miniappRuntime?.appId ? (
+          <ActionButton label="Stop mini-app" onPress={() => sendToWorklet({ type: "stop-miniapp" })} />
+        ) : null}
+        {miniappLogs.length > 0 ? (
+          <Text style={styles.muted}>{miniappLogs[miniappLogs.length - 1]}</Text>
+        ) : null}
       </View>
 
       {Platform.OS === "android" ? (
@@ -478,14 +533,28 @@ export default function App() {
         {installed.length > 0 ? (
           installed.map((pkg) => (
             <View key={pkg.appId} style={styles.catalogRow}>
-              <View style={{ flex: 1 }}>
+              <Pressable style={{ flex: 1 }} onPress={() => {
+                setSelectedInstalledAppId(pkg.appId);
+                sendToWorklet({
+                  type: "get-grants",
+                  appId: pkg.appId,
+                  publisherPublicKey: pkg.publisherPublicKey ?? "",
+                  declaredCapabilities: pkg.capabilities ?? []
+                });
+              }}>
                 <Text style={styles.catalogName}>
                   {pkg.appId} {pkg.activeVersion === pkg.version ? "✓" : ""}
                 </Text>
                 <Text style={styles.muted}>
                   active v{pkg.activeVersion} · {pkg.packageHash.slice(0, 12)}…
                 </Text>
-              </View>
+              </Pressable>
+              <Pressable
+                style={styles.smallButton}
+                onPress={() => sendToWorklet({ type: "launch-miniapp", appId: pkg.appId })}
+              >
+                <Text style={styles.buttonLabel}>Launch</Text>
+              </Pressable>
               {pkg.rollbackAvailable ? (
                 <Pressable
                   style={styles.smallButton}
@@ -508,6 +577,39 @@ export default function App() {
               </Pressable>
             </View>
           ))
+        ) : null}
+        {selectedInstalledAppId !== null && grantCapabilities.length > 0 ? (
+          <View style={styles.detailCard}>
+            <Text style={styles.catalogName}>Grants for {selectedInstalledAppId}</Text>
+            {grantCapabilities.filter((cap) => cap.declared).map((cap) => (
+              <View key={cap.id} style={styles.row}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowLabel}>{cap.id}</Text>
+                  <Text style={styles.muted}>{cap.description}</Text>
+                </View>
+                <Switch
+                  value={cap.granted}
+                  onValueChange={(granted) => {
+                    const pkg = installed.find((entry) => entry.appId === selectedInstalledAppId);
+                    if (pkg === undefined) {
+                      return;
+                    }
+
+                    const next = grantCapabilities
+                      .filter((entry) => entry.declared && (entry.id === cap.id ? granted : entry.granted))
+                      .map((entry) => entry.id);
+                    sendToWorklet({
+                      type: "set-grants",
+                      appId: pkg.appId,
+                      publisherPublicKey: pkg.publisherPublicKey ?? "",
+                      declaredCapabilities: pkg.capabilities ?? [],
+                      grantedCapabilities: next
+                    });
+                  }}
+                />
+              </View>
+            ))}
+          </View>
         ) : null}
         <ActionButton label="Refresh catalog" onPress={() => sendToWorklet({ type: "list-catalog" })} />
       </View>

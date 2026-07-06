@@ -21,6 +21,7 @@ import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPacka
 import { DriveManager, PackageResourceClient, assessFetchBudget, createSwarm, fetchPackage } from "../../../packages/bridge-hyper/dist/index.js";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { HOST_API_VERSION, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/index.js";
+import { createWorkletMiniappHost } from "./miniapp-host.mjs";
 
 const { IPC } = BareKit;
 
@@ -56,7 +57,9 @@ const status = {
   onlineInterfaces: 0,
   catalogEntries: 0,
   installedPackages: 0,
-  storageUsedBytes: 0
+  storageUsedBytes: 0,
+  developerMode: false,
+  miniappRunning: false
 };
 
 /** @type {Reticulum | null} */
@@ -95,6 +98,28 @@ let packageDriveManager = null;
 /** @type {ReturnType<typeof createSwarm> | null} */
 let packageSwarm = null;
 const PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
+
+/** @type {ReturnType<typeof createWorkletMiniappHost> | null} */
+let miniappHost = null;
+
+function ensureMiniappHost() {
+  if (miniappHost === null) {
+    miniappHost = createWorkletMiniappHost({
+      kvStore: runtimeKeyValueStore(),
+      send,
+      onDeveloperModeChange(enabled) {
+        status.developerMode = enabled;
+        pushStatus();
+      },
+      onMiniappStateChange(running) {
+        status.miniappRunning = running;
+        pushStatus();
+      }
+    });
+  }
+
+  return miniappHost;
+}
 
 function runtimeKeyValueStore() {
   return {
@@ -186,7 +211,9 @@ function pushCatalog() {
         activeVersion: active ?? "",
         packageHash: record?.packageHash ?? "",
         installedAt: record?.installedAt ?? 0,
-        rollbackAvailable: previous !== null && active !== null && active !== previous
+        rollbackAvailable: previous !== null && active !== null && active !== previous,
+        capabilities: record?.manifest.capabilities ?? [],
+        publisherPublicKey: record?.manifest.publisherPublicKey ?? ""
       };
     })
   });
@@ -831,6 +858,75 @@ async function handleHostMessage(raw) {
     void persistCatalogState();
     pushCatalog();
     log(`Rolled back ${message.appId} to v${rolledBack}`);
+    return;
+  }
+
+  if (message.type === "set-developer-mode") {
+    ensureMiniappHost().setDeveloperMode(message.enabled);
+    log(`Developer mode ${message.enabled ? "enabled" : "disabled"}`);
+    return;
+  }
+
+  if (message.type === "get-grants") {
+    await ensureMiniappHost().getGrants(message.appId, message.publisherPublicKey, message.declaredCapabilities);
+    return;
+  }
+
+  if (message.type === "set-grants") {
+    await ensureMiniappHost().setGrants(
+      message.appId,
+      message.publisherPublicKey,
+      message.declaredCapabilities,
+      message.grantedCapabilities
+    );
+    log(`Saved grants for ${message.appId}`);
+    return;
+  }
+
+  if (message.type === "revoke-grant") {
+    await ensureMiniappHost().revokeGrant(
+      message.appId,
+      message.publisherPublicKey,
+      message.capability,
+      message.declaredCapabilities
+    );
+    log(`Revoked ${message.capability} for ${message.appId}`);
+    return;
+  }
+
+  if (message.type === "launch-miniapp") {
+    const { installedStore: installed } = ensureCatalog();
+    try {
+      await ensureMiniappHost().launch(installed, runtime, message.appId);
+      log(`Launched mini-app ${message.appId}`);
+    } catch (error) {
+      log(`Launch failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "stop-miniapp") {
+    await ensureMiniappHost().stop();
+    log("Stopped mini-app");
+    return;
+  }
+
+  if (message.type === "miniapp-ui-event") {
+    try {
+      await ensureMiniappHost().handleUiEvent(message.nodeId, message.event, message.value);
+    } catch (error) {
+      log(`UI event failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "dev-side-load") {
+    try {
+      await ensureMiniappHost().devSideLoad(message.manifest, hexToBytes(message.bundleHex));
+      log(`Dev side-loaded ${message.manifest.name ?? "mini-app"}`);
+    } catch (error) {
+      log(`Dev side-load failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
     return;
   }
 

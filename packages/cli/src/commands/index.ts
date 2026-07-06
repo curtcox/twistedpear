@@ -26,6 +26,7 @@ import {
 } from "@twistedpear/reticulum-ts";
 import { ensureDir, loadConfig, readBytes, resolveFromCwd, saveConfig, writeBytes } from "../config.js";
 import { isSeederStateDir, registerDriveWithSeeder } from "../seed/register.js";
+import { startDevServer } from "../dev/server.js";
 
 export interface CommandContext {
   readonly cwd: string;
@@ -277,10 +278,39 @@ export async function runDev(ctx: CommandContext): Promise<number> {
   const resolvedAppDir = resolveFromCwd(ctx.cwd, appDir);
   const app = readAppManifest(resolvedAppDir);
   validateManifestCapabilities(app.capabilities ?? []);
-  const host = parseFlag(ctx.args, "--host") ?? "127.0.0.1:34987";
-  console.log(`Dev side-load prepared for ${app.name} (${app.version})`);
-  console.log(`Host channel: ${host}`);
-  console.log("Developer mode must be enabled on the harness host; hot reload transport is implemented by the Phase 4 mobile surface.");
+  const host = parseFlag(ctx.args, "--host") ?? "127.0.0.1";
+  const port = Number(parseFlag(ctx.args, "--port") ?? "34987");
+  const config = loadConfig(ctx.cwd);
+  const provider = new NodeCryptoProvider();
+  const identityPath = resolveFromCwd(ctx.cwd, config.identityPath);
+  const publisherPublicKey = existsSync(identityPath)
+    ? bytesToHex(loadIdentity(provider, identityPath).getPublicKey())
+    : "dev";
+
+  const server = await startDevServer({
+    appDir: resolvedAppDir,
+    host,
+    port,
+    manifest: {
+      name: app.name,
+      version: app.version,
+      entry: app.entry,
+      capabilities: app.capabilities ?? [],
+      publisherPublicKey,
+      minHostApi: app.minHostApi ?? HOST_API_VERSION
+    }
+  });
+
+  console.log(`Dev side-load ready for ${app.name} (${app.version})`);
+  console.log(`Connect harness developer mode to ${server.url}`);
+  console.log("Press Ctrl+C to stop.");
+
+  await new Promise<void>((resolve) => {
+    process.on("SIGINT", () => resolve());
+    process.on("SIGTERM", () => resolve());
+  });
+
+  await server.close();
   return 0;
 }
 

@@ -18,6 +18,17 @@ export type { MiniappLifecycleSnapshot, MiniappLifecycleState, LifecycleOptions 
 export type { SandboxBackend, SandboxInstance, SandboxLimits, SandboxSpawnOptions } from "./sandbox/backend.js";
 export { BareWorkerSandboxBackend, WorkerBackendUnavailableError } from "./sandbox/worker.js";
 export { HardenedCompartmentSandboxBackend, CompartmentBackendUnavailableError } from "./sandbox/compartment.js";
+export { NodeWorkerSandboxBackend } from "./sandbox/node-worker.js";
+export { createSandboxBackend } from "./sandbox/factory.js";
+export { prepareBundleSource } from "./sandbox/prepare-bundle.js";
+export { MiniappHost } from "./host.js";
+export type {
+  LaunchManifest,
+  MiniappHostCallbacks,
+  MiniappHostLogEntry,
+  MiniappHostOptions,
+  MiniappHostSnapshot
+} from "./host.js";
 export { NamespacedKvService, MiniappKvQuotaError } from "./services/storage-kv.js";
 export type { MiniappKvStoreBackend } from "./services/storage-kv.js";
 export { storageBeeDescriptor } from "./services/storage-bee.js";

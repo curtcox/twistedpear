@@ -35,6 +35,22 @@ export interface InstalledPackageView {
   readonly packageHash: string;
   readonly installedAt: number;
   readonly rollbackAvailable: boolean;
+  readonly capabilities?: ReadonlyArray<string>;
+  readonly publisherPublicKey?: string;
+}
+
+export interface CapabilityGrantView {
+  readonly id: string;
+  readonly description: string;
+  readonly declared: boolean;
+  readonly granted: boolean;
+}
+
+export interface MiniappRuntimeView {
+  readonly appId: string | null;
+  readonly version: string | null;
+  readonly state: string;
+  readonly widgetTree: unknown | null;
 }
 
 export interface WorkletStatus {
@@ -57,6 +73,8 @@ export interface WorkletStatus {
   readonly catalogEntries: number;
   readonly installedPackages: number;
   readonly storageUsedBytes: number;
+  readonly developerMode?: boolean;
+  readonly miniappRunning?: boolean;
 }
 
 export interface MulticastNetworkInfo {
@@ -78,11 +96,19 @@ export type HostToWorkletMessage =
       readonly rnodeDeviceId?: number | null;
       readonly rnodeBaudRate?: number;
     }
+  | { readonly type: "set-developer-mode"; readonly enabled: boolean }
   | { readonly type: "list-catalog" }
   | { readonly type: "list-installed" }
   | { readonly type: "install-app"; readonly appId: string; readonly forcePath?: "hyperdrive" | "lan-mirror" | "resource"; readonly archiveHex?: string }
   | { readonly type: "delete-package"; readonly appId: string; readonly version: string }
   | { readonly type: "rollback-package"; readonly appId: string }
+  | { readonly type: "get-grants"; readonly appId: string; readonly publisherPublicKey: string; readonly declaredCapabilities: ReadonlyArray<string> }
+  | { readonly type: "set-grants"; readonly appId: string; readonly publisherPublicKey: string; readonly declaredCapabilities: ReadonlyArray<string>; readonly grantedCapabilities: ReadonlyArray<string> }
+  | { readonly type: "revoke-grant"; readonly appId: string; readonly publisherPublicKey: string; readonly capability: string; readonly declaredCapabilities: ReadonlyArray<string> }
+  | { readonly type: "launch-miniapp"; readonly appId: string }
+  | { readonly type: "stop-miniapp" }
+  | { readonly type: "miniapp-ui-event"; readonly nodeId: string; readonly event: string; readonly value?: unknown }
+  | { readonly type: "dev-side-load"; readonly manifest: Record<string, unknown>; readonly bundleHex: string }
   | { readonly type: "multicast-packet"; readonly ifname: string; readonly dataHex: string; readonly sourceAddress: string; readonly port: number }
   | { readonly type: "multicast-interfaces"; readonly interfaces: ReadonlyArray<MulticastNetworkInfo> }
   | { readonly type: "ble-data"; readonly dataHex: string }
@@ -101,6 +127,9 @@ export type WorkletToHostMessage =
   | { readonly type: "catalog"; readonly entries: ReadonlyArray<CatalogEntryView> }
   | { readonly type: "installed"; readonly packages: ReadonlyArray<InstalledPackageView> }
   | { readonly type: "install-progress"; readonly progress: InstallProgress }
+  | { readonly type: "grants"; readonly appId: string; readonly capabilities: ReadonlyArray<CapabilityGrantView> }
+  | { readonly type: "miniapp-runtime"; readonly runtime: MiniappRuntimeView }
+  | { readonly type: "miniapp-log"; readonly appId: string; readonly line: string }
   | { readonly type: "multicast-start" }
   | { readonly type: "multicast-stop" }
   | { readonly type: "multicast-join"; readonly ifname: string; readonly groupAddress: string; readonly port: number }

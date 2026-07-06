@@ -19,13 +19,15 @@ export class MiniappLifecycle {
   private instance: SandboxInstance | null = null;
   private state: MiniappLifecycleState = "installed";
   private reason: string | null = null;
-  private updatedAt = this.now();
+  private updatedAt: number;
 
   constructor(
     private readonly backend: SandboxBackend,
     private readonly spawnOptions: Omit<SandboxSpawnOptions, "brokerEndpoint"> & { readonly brokerEndpoint?: unknown },
     private readonly options: LifecycleOptions = {}
-  ) {}
+  ) {
+    this.updatedAt = this.now();
+  }
 
   snapshot(): MiniappLifecycleSnapshot {
     return {
