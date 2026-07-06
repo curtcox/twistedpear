@@ -18,7 +18,7 @@ import {
   interopReady,
   sleep,
   withComposeService
-} from "../../../conformance/scenarios/ts/harness.js";
+} from "../../../conformance/scenarios/ts/harness.mjs";
 
 const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();

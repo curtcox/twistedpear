@@ -11,6 +11,7 @@ let tray: Tray | null = null;
 let supervisor: WorkletSupervisor | null = null;
 let bridges: HostDesktopBridges | null = null;
 let latestStatus: WorkletStatus | null = null;
+let quitToTray = false;
 
 function broadcast(channel: string, payload: unknown): void {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -80,6 +81,10 @@ function ensureSupervisor(): WorkletSupervisor {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === "darwin" || process.platform === "win32") {
+    app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
+  }
+
   createWindow();
   ensureSupervisor();
 
@@ -92,6 +97,7 @@ app.whenReady().then(() => {
       {
         label: "Quit",
         click: () => {
+          quitToTray = false;
           supervisor?.stop();
           app.quit();
         }
@@ -109,7 +115,11 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
+  if (process.platform === "darwin") {
+    return;
+  }
+
+  if (!quitToTray) {
     app.quit();
   }
 });
@@ -118,6 +128,12 @@ app.on("before-quit", () => {
   void bridges?.stop();
   supervisor?.stop();
 });
+
+if (process.platform === "darwin") {
+  app.on("activate", () => {
+    mainWindow?.show();
+  });
+}
 
 ipcMain.handle("host:get-status", () => latestStatus);
 ipcMain.handle("host:send", (_event, message) => {

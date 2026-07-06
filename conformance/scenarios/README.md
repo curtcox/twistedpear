@@ -48,7 +48,7 @@ can take a few minutes on a cold start; override `I2P_READY_TIMEOUT_MS` if neede
 |---|---|
 | `config/` | Reticulum configs for Python peers |
 | `python/` | Python scenario drivers (leaf echo, link echo, LXMF echo) |
-| `ts/harness.ts` | Shared docker/compose helpers for Vitest |
+| `ts/harness.mjs` | Shared docker/compose helpers for interop runners |
 
 Python peers print `READY <destination_hash_hex>` once their inbound destination has announced.
 

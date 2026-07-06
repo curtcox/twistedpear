@@ -366,3 +366,21 @@ jobs:
       - run: npm run test:desktop
       - run: npm run test:widget-parity
       - run: npm run demo:phase6
+
+  desktop-interop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build leaf-echo lxmf-echo
+      - run: INTEROP=1 npm run test:transport-role
+      - run: INTEROP=1 npm run test:rnsd-mode
+      - run: INTEROP=1 npm run test:propagation-interop
+      - run: INTEROP=1 npm run test:desktop-lifecycle
+      - if: always()
+        run: docker compose -f conformance/docker/docker-compose.yml down

@@ -1,14 +1,62 @@
 #!/usr/bin/env node
+/**
+ * Desktop host as transport node: TCP slice against docker leaf-echo with transport routing on.
+ */
+
+import { readFileSync } from "node:fs";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createNodeHost } from "../../packages/host-core/dist/node-host.js";
 import { resolveHostConfig } from "../../packages/host-core/dist/config.js";
-import { interopReady, withComposeService, LEAF_ECHO_PORT } from "../scenarios/ts/harness.js";
+import {
+  DestinationDirection,
+  DestinationProofStrategy,
+  DestinationType,
+  Identity,
+  PacketReceiptStatus,
+  hexToBytes
+} from "../../packages/reticulum-ts/dist/index.js";
+import { interopReady, sleep, withComposeService, LEAF_ECHO_PORT } from "../scenarios/ts/harness.mjs";
 
 if (!interopReady()) {
   console.log("transport-role: skipped (set INTEROP=1 with docker)");
   process.exit(0);
+}
+
+const identityVectors = JSON.parse(
+  readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8")
+);
+
+function loadIdentity(provider, name) {
+  const entry = identityVectors.identities.find((candidate) => candidate.name === name);
+  if (entry === undefined) {
+    throw new Error(`Missing identity vector: ${name}`);
+  }
+
+  const identity = Identity.fromBytes(provider, hexToBytes(entry.privateKeyHex));
+  if (identity === null) {
+    throw new Error(`Could not load identity vector: ${name}`);
+  }
+
+  return identity;
+}
+
+async function waitForPath(reticulum, destinationHash, timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (reticulum.hasPath(destinationHash)) {
+      return;
+    }
+
+    await sleep(100);
+  }
+
+  throw new Error("Timed out waiting for path to peer");
+}
+
+function bytesToAscii(bytes) {
+  return Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
 }
 
 const dataDir = mkdtempSync(join(tmpdir(), "tp-transport-"));
@@ -38,6 +86,60 @@ try {
     const status = session.getStatus();
     if (!status.transportEnabled) {
       throw new Error("transport role not enabled");
+    }
+
+    const provider = session.reticulum.provider;
+    const alice = loadIdentity(provider, "alice");
+    const bob = loadIdentity(provider, "bob");
+
+    const aliceIn = session.reticulum.registerDestination({
+      provider,
+      identity: alice,
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "example",
+      aspects: ["echo"]
+    });
+    aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
+
+    const bobOut = session.reticulum.registerDestination({
+      provider,
+      identity: bob,
+      direction: DestinationDirection.OUT,
+      type: DestinationType.SINGLE,
+      appName: "example",
+      aspects: ["echo"]
+    });
+
+    await aliceIn.announce();
+    await waitForPath(session.reticulum, bobOut.hash);
+
+    const received = new Map();
+    aliceIn.setPacketCallback((data) => {
+      received.set(bytesToAscii(data), data);
+    });
+
+    const payload = new TextEncoder().encode("transport-role-ping");
+    const receipt = await bobOut.send(payload);
+    if (receipt.status !== PacketReceiptStatus.DELIVERED) {
+      throw new Error(`Expected delivered receipt, got ${receipt.status}`);
+    }
+
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      if (received.has("transport-role-ping") && received.has("hello from python leaf echo")) {
+        break;
+      }
+
+      await sleep(100);
+    }
+
+    if (!received.has("transport-role-ping")) {
+      throw new Error("transport-role: outbound echo was not received");
+    }
+
+    if (!received.has("hello from python leaf echo")) {
+      throw new Error("transport-role: Python greeting was not received");
     }
 
     await session.stop();

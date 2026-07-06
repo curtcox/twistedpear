@@ -6,7 +6,7 @@ import {
   PropagationServer,
   createPropagationDestination
 } from "../../packages/lxmf-ts/dist/index.js";
-import { interopReady, withComposeService, LXMF_ECHO_PORT } from "../scenarios/ts/harness.js";
+import { interopReady, withComposeService, LXMF_ECHO_PORT } from "../scenarios/ts/harness.mjs";
 
 if (!interopReady()) {
   console.log("propagation-interop: skipped (set INTEROP=1 with docker)");

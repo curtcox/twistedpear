@@ -136,3 +136,27 @@ Hardware-deferred exits; full procedures in [PHASE4-HARDWARE.md](../PHASE4-HARDW
 
 Emulator-lab (E1–E5), Bare Worker Android measurements, and 24 h soak (S1) are also in that
 document. Record results in the phase exit checklist before closing Phase 4.
+
+## Phase 6 desktop host
+
+| Suite | Command | Milestone |
+|---|---|---|
+| Desktop smoke | `npm run test:desktop` | M0 |
+| Widget parity (RN ⇄ DOM contract) | `npm run test:widget-parity` | M4 |
+| Transport role vs Python leaf | `INTEROP=1 npm run test:transport-role` | M1 |
+| rnsd attach mode | `INTEROP=1 npm run test:rnsd-mode` | M5 |
+| Propagation interop | `INTEROP=1 npm run test:propagation-interop` | M3 |
+| host-core unit tests | `npm test -- packages/host-core/test` | M0 |
+| Phase 6 demo | `npm run demo:phase6` | M7 |
+
+CI runs `desktop-smoke` on every push; `desktop-interop` runs transport/rnsd/propagation
+suites against dockerized Python peers when `INTEROP=1`.
+
+### Device lab runbook (Phase 6 §7)
+
+Hardware-deferred exits; full procedures in [PHASE6-HARDWARE.md](../PHASE6-HARDWARE.md):
+
+1. **H17 (Windows 10/11):** NSIS artifact install, TCP slice, full app loop.
+2. **H18 (real WiFi LAN):** Bonjour/multicast discovery, desktop seed install, transport routing.
+3. **H19 (RNode USB):** Desktop LoRa gateway end-to-end.
+4. **H20 (always-on Linux):** 2-week `tp node` soak with status monitoring.
