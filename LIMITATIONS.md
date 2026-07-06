@@ -52,15 +52,23 @@ everything below is a known cost of the chosen design or of the platforms involv
 - **Multicast entitlement:** AutoInterface peer discovery uses IPv6 multicast, which
   requires `com.apple.developer.networking.multicast` — granted by Apple on application,
   with lead time and no guarantee. Application draft prepared (Phase 2 M8); **status:
-  not yet submitted** — see [docs/ios-multicast-entitlement.md](docs/ios-multicast-entitlement.md).
-  Fallback: LAN discovery via Bonjour + direct UDP, or manual/TCP peers.
+  not yet submitted / H12 pending** — see
+  [docs/ios-multicast-entitlement.md](docs/ios-multicast-entitlement.md) and
+  [PHASE5-HARDWARE.md](PHASE5-HARDWARE.md). Fallback: LAN discovery via Bonjour
+  (`_reticulum._udp`) + direct UDP, or manual/TCP peers.
+- **Bonjour fallback gap:** an un-entitled iPhone can discover TS nodes that advertise
+  `_reticulum._udp`, but cannot discover stock Python RNS AutoInterface peers through
+  Bonjour. Reaching those peers requires the multicast entitlement, a TCP link, or a TS
+  peer relaying as a transport node.
 - **Downloaded code (App Review 3.3.2):** mini-apps are downloaded JS. Apple permits
   downloaded JS executed by Apple frameworks when it doesn't change the app's core
   purpose — an app *store inside an app* is exactly the gray zone Apple scrutinizes.
   Compromises: declarative UI whitelist (host renders, mini-apps don't ship arbitrary UI
   code paths), curated capability model, and acceptance that **the iOS build may need a
   reduced distribution feature set** or TestFlight/enterprise/EU-alternative-distribution
-  channels.
+  channels. Phase 5 adds a store-posture build flag and dossier in
+  [docs/ios-submission.md](docs/ios-submission.md); no submission is attempted in this
+  phase.
 - **No sideloading escape hatch** outside the EU. If Apple rejects the concept, iOS becomes
   a client (messaging, using apps already vetted) rather than a full open platform.
 

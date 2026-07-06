@@ -1,8 +1,8 @@
-const { withAndroidManifest, AndroidConfig } = require("expo/config-plugins");
+const { withAndroidManifest, withEntitlementsPlist, withInfoPlist } = require("expo/config-plugins");
 
 /** Expo config plugin for IPv6 multicast + Android MulticastLock (M3). */
 module.exports = function withMulticast(config) {
-  return withAndroidManifest(config, (config) => {
+  config = withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
     const usesPermission = manifest["uses-permission"] ?? [];
     const permissions = new Set(
@@ -23,4 +23,23 @@ module.exports = function withMulticast(config) {
     manifest["uses-permission"] = usesPermission;
     return config;
   });
+
+  config = withInfoPlist(config, (config) => {
+    config.modResults.NSLocalNetworkUsageDescription =
+      config.modResults.NSLocalNetworkUsageDescription ??
+      "TwistedPear discovers nearby Reticulum peers on your local network.";
+    config.modResults.NSBonjourServices = Array.from(new Set([
+      ...(config.modResults.NSBonjourServices ?? []),
+      "_reticulum._udp"
+    ]));
+    return config;
+  });
+
+  config = withEntitlementsPlist(config, (config) => {
+    config.modResults["com.apple.developer.networking.multicast"] =
+      config.modResults["com.apple.developer.networking.multicast"] ?? false;
+    return config;
+  });
+
+  return config;
 };

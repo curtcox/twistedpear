@@ -14,6 +14,7 @@ const entry = join(harnessRoot, "worklet/entry.mjs");
 const output = join(harnessRoot, "worklet/worklet.bundle.mjs");
 const nobleCrypto = join(repoRoot, "conformance/bare-interop/noble-crypto.mjs");
 const importsPath = join(harnessRoot, "worklet/imports.generated.json");
+const posturePath = join(harnessRoot, "worklet/store-posture.generated.mjs");
 
 writeFileSync(
   importsPath,
@@ -26,6 +27,12 @@ writeFileSync(
     null,
     2
   )}\n`
+);
+
+const storePosture = process.env.TWISTEDPEAR_STORE_POSTURE === "store" ? "store" : "dev";
+writeFileSync(
+  posturePath,
+  `export const STORE_POSTURE = ${JSON.stringify(storePosture)};\nexport const STORE_VARIANT = ${JSON.stringify(storePosture === "store")};\n`
 );
 
 const result = spawnSync(
@@ -45,6 +52,8 @@ const result = spawnSync(
     "node:path",
     "--defer",
     "node:os",
+    "--defer",
+    "node:worker_threads",
     "--imports",
     importsPath,
     "--target",
@@ -63,3 +72,4 @@ if (result.status !== 0) {
 }
 
 console.log(`worklet bundle written to ${output}`);
+console.log(`store posture: ${storePosture}`);

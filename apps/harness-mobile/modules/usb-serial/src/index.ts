@@ -50,10 +50,26 @@ const NativeUsbSerial = Platform.OS === "android"
   ? requireNativeModule<UsbSerialNative>("TwistedPearUsbSerial")
   : null;
 
+export type UsbSerialCapability =
+  | { readonly supported: true; readonly reason: null }
+  | { readonly supported: false; readonly reason: "unsupported-on-ios" | "native-module-unavailable" };
+
+export function getUsbSerialCapability(): UsbSerialCapability {
+  if (Platform.OS === "ios") {
+    return { supported: false, reason: "unsupported-on-ios" };
+  }
+
+  if (NativeUsbSerial === null) {
+    return { supported: false, reason: "native-module-unavailable" };
+  }
+
+  return { supported: true, reason: null };
+}
+
 /** Wrap the Android USB-serial bridge as a SerialPipe for RNodeInterface. */
 export function createNativeSerialPipe(deviceId: number, baudRate = 115_200): SerialPipe {
   if (NativeUsbSerial === null) {
-    throw new Error("USB serial bridge is only available on Android");
+    throw new Error(Platform.OS === "ios" ? "USB serial is unsupported on iOS; use BLE RNode instead" : "USB serial bridge is only available in native Android builds");
   }
 
   let events: SerialPipeEvents = {};
@@ -150,7 +166,7 @@ export function listUsbSerialDevices(): ReadonlyArray<UsbSerialDeviceInfo> {
 
 export async function requestUsbSerialPermission(deviceId: number): Promise<boolean> {
   if (NativeUsbSerial === null) {
-    throw new Error("USB serial bridge is only available on Android");
+    throw new Error(Platform.OS === "ios" ? "USB serial is unsupported on iOS; use BLE RNode instead" : "USB serial bridge is only available in native Android builds");
   }
 
   return NativeUsbSerial.requestPermission(deviceId);

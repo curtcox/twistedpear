@@ -1,8 +1,8 @@
-const { withAndroidManifest } = require("expo/config-plugins");
+const { withAndroidManifest, withInfoPlist } = require("expo/config-plugins");
 
 /** Expo config plugin for BLE central + peripheral byte-pipe (M5). */
 module.exports = function withBleBridge(config) {
-  return withAndroidManifest(config, (config) => {
+  config = withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
     const usesPermission = manifest["uses-permission"] ?? [];
     const permissions = new Set(
@@ -41,4 +41,18 @@ module.exports = function withBleBridge(config) {
     manifest["uses-feature"] = usesFeature;
     return config;
   });
+
+  config = withInfoPlist(config, (config) => {
+    config.modResults.NSBluetoothAlwaysUsageDescription =
+      config.modResults.NSBluetoothAlwaysUsageDescription ??
+      "TwistedPear uses Bluetooth to exchange Reticulum packets with nearby peers and RNodes.";
+    config.modResults.UIBackgroundModes = Array.from(new Set([
+      ...(config.modResults.UIBackgroundModes ?? []),
+      "bluetooth-central",
+      "bluetooth-peripheral"
+    ]));
+    return config;
+  });
+
+  return config;
 };

@@ -8,6 +8,6 @@
     "expo-modules-core": "*"
   },
   "dependencies": {
-    "@twistedpear/reticulum-interfaces": "0.0.0"
+    "@twistedpear/reticulum-interfaces": "0.2.0"
   }
 }

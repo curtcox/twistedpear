@@ -1,6 +1,7 @@
 const {
   withAndroidManifest,
-  AndroidConfig
+  AndroidConfig,
+  withInfoPlist
 } = require("expo/config-plugins");
 
 const SERVICE_CLASS = "network.twistedpear.harness.NodeForegroundService";
@@ -54,6 +55,20 @@ module.exports = function withNodeService(config) {
     }
 
     manifest["uses-permission"] = usesPermission;
+    return config;
+  });
+
+  config = withInfoPlist(config, (config) => {
+    config.modResults.UIBackgroundModes = Array.from(new Set([
+      ...(config.modResults.UIBackgroundModes ?? []),
+      "fetch",
+      "processing"
+    ]));
+    config.modResults.BGTaskSchedulerPermittedIdentifiers = Array.from(new Set([
+      ...(config.modResults.BGTaskSchedulerPermittedIdentifiers ?? []),
+      "network.twistedpear.harness.refresh",
+      "network.twistedpear.harness.processing"
+    ]));
     return config;
   });
 

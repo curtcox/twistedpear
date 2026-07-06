@@ -33,14 +33,26 @@ export interface BlePeerDiscoveredEvent {
   readonly deviceAddress: string;
 }
 
-const NativeBleBridge = Platform.OS === "android"
+const NativeBleBridge = Platform.OS === "android" || Platform.OS === "ios"
   ? requireNativeModule<BleBridgeNative>("TwistedPearBleBridge")
   : null;
+
+export function getBleBridgeCapability(): { readonly supported: boolean; readonly reason: string | null; readonly backgroundModesRequired: boolean } {
+  if (NativeBleBridge === null) {
+    return { supported: false, reason: "native BLE bridge unavailable", backgroundModesRequired: false };
+  }
+
+  return {
+    supported: true,
+    reason: null,
+    backgroundModesRequired: Platform.OS === "ios"
+  };
+}
 
 /** Wrap the Android BLE bridge as a BlePipe for BleInterface. */
 export function createNativeBlePipe(identityHash: Uint8Array): BlePipe {
   if (NativeBleBridge === null) {
-    throw new Error("BLE bridge is only available on Android");
+    throw new Error("BLE bridge is only available in native Android and iOS builds");
   }
 
   if (identityHash.length !== 16) {
@@ -133,7 +145,7 @@ export function createNativeBlePipe(identityHash: Uint8Array): BlePipe {
 
 export function shouldActAsCentral(localHash: Uint8Array, peerHash: Uint8Array): boolean {
   if (NativeBleBridge === null) {
-    throw new Error("BLE bridge is only available on Android");
+    throw new Error("BLE bridge is only available in native Android and iOS builds");
   }
 
   return NativeBleBridge.shouldActAsCentral(localHash, peerHash);

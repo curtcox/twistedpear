@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@twistedpear/app-registry": "0.1.0",
-    "@twistedpear/reticulum-interfaces": "0.0.0",
+    "@twistedpear/reticulum-interfaces": "0.2.0",
     "@twistedpear/reticulum-ts": "0.0.0",
     "b4a": "^1.6.7",
     "corestore": "^7.9.2",

@@ -10,6 +10,25 @@ export type {
 } from "./pipes.js";
 
 export {
+  BONJOUR_RETICULUM_SERVICE,
+  MulticastDiscoveryProvider,
+  selectDiscoveryProviders,
+  type DiscoveryPeer,
+  type DiscoveryProvider,
+  type DiscoveryProviderEvents,
+  type DiscoveryProviderKind,
+  type DiscoverySelection
+} from "./auto-discovery.js";
+
+export {
+  BonjourDiscoveryProvider,
+  serviceRecordToPeer,
+  type BonjourBridge,
+  type BonjourBridgeEvents,
+  type BonjourServiceRecord
+} from "./bonjour.js";
+
+export {
   AUTO_ANNOUNCE_INTERVAL_MS,
   AUTO_BITRATE_GUESS,
   AUTO_DEFAULT_DATA_PORT,

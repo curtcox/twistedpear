@@ -116,3 +116,25 @@ An implementation MUST:
 
 Device-level throughput targets are recorded in `LIMITATIONS.md` §3 after
 hardware measurement (Phase 2 M5).
+
+## 10. iOS Appendix
+
+CoreBluetooth supports central and peripheral roles, but background advertising is not
+equivalent to Android foreground BLE. When an iOS app is backgrounded, the local name is
+not advertised and service UUIDs may move into the overflow area, which only other iOS
+devices can scan. Policy consequence for Phase 5:
+
+- iOS prefers central role toward non-iOS peers.
+- Foreground-established links may be maintained when the OS permits.
+- iOS ⇄ iOS keeps the normal dual-role policy.
+- Android centrals should not rely on discovering a backgrounded iPhone peripheral.
+
+The H14 device runbook records the measured visibility matrix:
+
+| Scanner | Advertiser | iPhone foreground | iPhone background |
+|---|---|---|---|
+| Android | iPhone | H14 pending | H14 pending |
+| iPhone | iPhone | H14 pending | H14 pending |
+| iPhone | Android | H14 pending | Android policy dependent |
+
+RNode on iOS uses BLE only; USB serial is not available to third-party iOS apps.

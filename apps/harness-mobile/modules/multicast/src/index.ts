@@ -25,14 +25,26 @@ export interface MulticastNetworkChangeEvent {
   readonly interfaces: ReadonlyArray<MulticastNetworkInfo>;
 }
 
-const NativeMulticast = Platform.OS === "android"
+const NativeMulticast = Platform.OS === "android" || Platform.OS === "ios"
   ? requireNativeModule<MulticastNative>("TwistedPearMulticast")
   : null;
+
+export function getMulticastCapability(): { readonly supported: boolean; readonly reason: string | null; readonly entitlementRequired: boolean } {
+  if (NativeMulticast === null) {
+    return { supported: false, reason: "native multicast bridge unavailable", entitlementRequired: false };
+  }
+
+  return {
+    supported: true,
+    reason: null,
+    entitlementRequired: Platform.OS === "ios"
+  };
+}
 
 /** Wrap the Android native multicast bridge as a MulticastBridge for AutoInterfaceBridge. */
 export function createNativeMulticastBridge(): MulticastBridge {
   if (NativeMulticast === null) {
-    throw new Error("Multicast bridge is only available on Android");
+    throw new Error("Multicast bridge is only available in native Android and iOS builds");
   }
 
   let events: MulticastBridgeEvents = {};

@@ -15,12 +15,13 @@ import { StatusBar } from "expo-status-bar";
 import { Worklet } from "react-native-bare-kit";
 import b4a from "b4a";
 import bundle from "../worklet/worklet.bundle.mjs";
-import { isNodeServiceRunning, startNodeService, stopNodeService } from "@twistedpear/node-service";
+import { getNodeLifecycleState, isNodeServiceRunning, startNodeService, stopNodeService, type NodeLifecycleState } from "@twistedpear/node-service";
 import { HostMulticastIpc } from "./host/multicast-ipc";
 import { HostBleIpc } from "./host/ble-ipc";
 import { HostUsbIpc } from "./host/usb-ipc";
 import {
   hasUsbSerialPermission,
+  getUsbSerialCapability,
   listUsbSerialDevices,
   requestUsbSerialPermission,
   type UsbSerialDeviceInfo
@@ -95,6 +96,7 @@ export default function App() {
   const [installed, setInstalled] = useState<ReadonlyArray<InstalledPackageView>>([]);
   const [installProgress, setInstallProgress] = useState<InstallProgress | null>(null);
   const [serviceRunning, setServiceRunning] = useState(false);
+  const [lifecycleState, setLifecycleState] = useState<NodeLifecycleState>("unsupported");
   const [logLines, setLogLines] = useState<ReadonlyArray<string>>([
     "Harness UI ready. Create an identity, then toggle TCP to start the worklet."
   ]);
@@ -228,7 +230,7 @@ export default function App() {
     rnode: boolean;
     rnodeDeviceId?: number | null;
   }) => {
-    sendToWorklet({ type: "set-interfaces", ...next });
+    sendToWorklet({ type: "set-interfaces", ...next, rnode: Platform.OS === "ios" ? false : next.rnode });
   }, [sendToWorklet]);
 
   const stopWorklet = useCallback(() => {
@@ -254,7 +256,7 @@ export default function App() {
     worklet.start("/app.bundle", bundle);
     multicastIpcRef.current = new HostMulticastIpc(sendToWorklet);
     bleIpcRef.current = new HostBleIpc(sendToWorklet);
-    usbIpcRef.current = new HostUsbIpc(sendToWorklet);
+    usbIpcRef.current = getUsbSerialCapability().supported ? new HostUsbIpc(sendToWorklet) : null;
 
     ipcBufferRef.current = "";
     worklet.IPC.on("data", (data) => {
@@ -308,7 +310,7 @@ export default function App() {
   }, [tcpEnabled, autoEnabled, bleEnabled, rnodeEnabled, selectedUsbDeviceId, pushInterfaceConfig]);
 
   useEffect(() => {
-    if (Platform.OS !== "android") {
+    if (!getUsbSerialCapability().supported) {
       return;
     }
 
@@ -322,29 +324,33 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (Platform.OS !== "android") {
+    if (Platform.OS !== "android" && Platform.OS !== "ios") {
       return;
     }
 
     const nodeActive = status.running && (tcpEnabled || autoEnabled || bleEnabled || rnodeEnabled);
     if (!nodeActive) {
-      void stopNodeService().then(() => setServiceRunning(isNodeServiceRunning()));
+      void stopNodeService().then(() => {
+        setServiceRunning(isNodeServiceRunning());
+        setLifecycleState(getNodeLifecycleState());
+      });
       return;
     }
 
     void (async () => {
-      if (Number(Platform.Version) >= 33) {
+      if (Platform.OS === "android" && Number(Platform.Version) >= 33) {
         await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
       }
 
       await startNodeService();
       setServiceRunning(isNodeServiceRunning());
+      setLifecycleState(getNodeLifecycleState());
     })();
   }, [status.running, tcpEnabled, autoEnabled, bleEnabled, rnodeEnabled]);
 
   useEffect(() => () => {
     stopWorklet();
-    if (Platform.OS === "android") {
+    if (Platform.OS === "android" || Platform.OS === "ios") {
       void stopNodeService();
     }
   }, [stopWorklet]);
@@ -353,7 +359,7 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="auto" />
       <Text style={styles.title}>TwistedPear Harness</Text>
-      <Text style={styles.subtitle}>Reticulum node + mini-app runtime (Phase 4)</Text>
+      <Text style={styles.subtitle}>Reticulum node + mini-app runtime (Phase 5 iOS host)</Text>
 
       <View style={styles.card}>
         <Text>Worklet: {status.running ? "running" : "stopped"}</Text>
@@ -375,6 +381,9 @@ export default function App() {
         <Text>Persisted: {status.identityPersisted ? "yes" : "no"}</Text>
         {Platform.OS === "android" ? (
           <Text>Foreground service: {serviceRunning ? "running" : "stopped"}</Text>
+        ) : null}
+        {Platform.OS === "ios" ? (
+          <Text>iOS lifecycle: {lifecycleState}</Text>
         ) : null}
       </View>
 
@@ -400,7 +409,19 @@ export default function App() {
         <Row label="TCP client" value={tcpEnabled} onChange={setTcpEnabled} />
         <Row label="AutoInterface" value={autoEnabled} onChange={setAutoEnabled} />
         <Row label="BLE interface" value={bleEnabled} onChange={setBleEnabled} />
-        <Row label="RNode (USB)" value={rnodeEnabled} onChange={setRnodeEnabled} />
+        <Row
+          label={Platform.OS === "ios" ? "RNode (BLE)" : "RNode (USB)"}
+          value={Platform.OS === "ios" ? false : rnodeEnabled}
+          onChange={(enabled) => {
+            if (Platform.OS === "ios") {
+              setRnodeEnabled(false);
+              appendLog("RNode on iOS uses BLE and is device-gated for Phase 5 hardware validation.");
+              return;
+            }
+
+            setRnodeEnabled(enabled);
+          }}
+        />
         <Row
           label="Developer mode"
           value={developerMode}
@@ -477,7 +498,7 @@ export default function App() {
         ) : null}
       </View>
 
-      {Platform.OS === "android" ? (
+      {getUsbSerialCapability().supported ? (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>USB serial devices</Text>
           {usbDevices.length === 0 ? (
@@ -514,6 +535,11 @@ export default function App() {
               </Pressable>
             ))
           )}
+        </View>
+      ) : Platform.OS === "ios" ? (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>USB serial devices</Text>
+          <Text style={styles.muted}>USB serial is unsupported on iOS. RNode paths use BLE.</Text>
         </View>
       ) : null}
 

@@ -87,6 +87,18 @@ exit checklist before closing Phase 3.
 Peer-to-peer example interop (two sandboxed apps on two hosts) and 24 h launch/suspend/kill
 soak are nightly/device-gated per [PHASE4.md](../PHASE4.md) §7 and [PHASE4-HARDWARE.md](../PHASE4-HARDWARE.md).
 
+## Phase 5 iOS host
+
+| Suite | Command | Milestone |
+|---|---|---|
+| iOS simulator toolchain smoke | `npm run test:ios-sim:required` on macOS CI | M0 |
+| Discovery provider policy | `npm test -- packages/reticulum-interfaces/test/auto-discovery.test.ts` | M3 |
+| Store posture bundle guard | `TWISTEDPEAR_STORE_POSTURE=store npm run build:worklet` | M5 |
+
+`npm run test:ios-sim` skips on non-macOS hosts. CI jobs that are meant to validate
+the simulator lane use `test:ios-sim:required` so missing Xcode or simulator runtime is
+a hard failure.
+
 ### Device lab runbook (Phase 4 §7)
 
 Hardware-deferred exits; full procedures in [PHASE4-HARDWARE.md](../PHASE4-HARDWARE.md):
