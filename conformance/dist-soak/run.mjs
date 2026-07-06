@@ -17,6 +17,7 @@ import {
 import { DriveManager, createSwarm, fetchPackage } from "../../packages/bridge-hyper/dist/index.js";
 import { hexToBytes, NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import { runInit, runPublish, runUpdate } from "../../packages/cli/dist/commands/index.js";
+import { loadSeederState, readSeederArchive } from "../../packages/cli/dist/seed/register.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
 const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
@@ -164,13 +165,23 @@ async function main() {
 
       const online = cycle % 2 === 0;
       const interfaces = [mockInterface("lan", online), mockInterface("rnode", !online)];
+      const seederState = loadSeederState(seederStateDir);
+      const resourceClient = online
+        ? undefined
+        : {
+            async fetchVersion(version) {
+              const archiveBytes = readSeederArchive(seederStateDir, seederState, version);
+              return unpackPackage(provider, archiveBytes);
+            }
+          };
 
       const fetchResult = await fetchPackage(provider, {
         entry,
         version: entry.version,
         interfaces,
         driveManager: consumerDrive,
-        forcePath: "hyperdrive"
+        resourceClient,
+        ...(online ? { forcePath: "hyperdrive" } : {})
       });
       const installVerified = verifyPackage(provider, fetchResult.archiveBytes, {
         hostApiVersion: HOST_API_VERSION

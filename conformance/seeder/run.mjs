@@ -148,6 +148,22 @@ async function main() {
     await seedSwarm.destroy();
     seedSwarm = null;
 
+    const restartedSeedSwarm = createSwarm();
+    const restartedSeedDrive = new DriveManager({
+      storagePath: join(seederStateDir, "drives"),
+      swarm: restartedSeedSwarm
+    });
+    await restartedSeedDrive.ready();
+    await restartedSeedDrive.openDrive(meta.driveKey, { serve: true });
+    const restartedFetched = await fetchWithRetry(restartedSeedDrive, meta.version);
+    const restartedVerified = unpackPackage(provider, restartedFetched);
+    if (restartedVerified.packageHash !== unpacked.packageHash) {
+      throw new Error("seeder restart hyperdrive fetch hash mismatch");
+    }
+
+    await restartedSeedDrive.close();
+    await restartedSeedSwarm.destroy();
+
     const { left, right } = await connectPeers(provider, nodeRuntime());
     const seederIdentity = Identity.fromBytes(
       provider,
@@ -219,7 +235,7 @@ async function main() {
     await left.stop();
     await right.stop();
 
-    console.log("seeder: archive persist, hyperdrive mirror, resource fetch passed");
+    console.log("seeder: archive persist, hyperdrive mirror, restart resume, resource fetch passed");
   } finally {
     if (publisherDrive !== null) {
       await publisherDrive.close();

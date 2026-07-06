@@ -95,6 +95,7 @@ export default function App() {
   const [rnodeEnabled, setRnodeEnabled] = useState(false);
   const [usbDevices, setUsbDevices] = useState<ReadonlyArray<UsbSerialDeviceInfo>>([]);
   const [selectedUsbDeviceId, setSelectedUsbDeviceId] = useState<number | null>(null);
+  const [selectedCatalogAppId, setSelectedCatalogAppId] = useState<string | null>(null);
 
   const workletRef = useRef<Worklet | null>(null);
   const ipcBufferRef = useRef("");
@@ -398,13 +399,17 @@ export default function App() {
         ) : (
           catalog.slice(0, 6).map((entry) => (
             <View key={entry.appId} style={styles.catalogRow}>
-              <View style={{ flex: 1 }}>
+              <Pressable style={{ flex: 1 }} onPress={() => setSelectedCatalogAppId(entry.appId)}>
                 <Text style={styles.catalogName}>{entry.name}</Text>
                 <Text style={styles.muted}>
                   v{entry.version} · {Math.round(entry.packageSize / 1024)} KiB ·{" "}
                   {entry.publisherPublicKey.slice(0, 12)}…
                 </Text>
-              </View>
+                <Text style={styles.muted}>
+                  drive {entry.driveKey.slice(0, 12)}… ·{" "}
+                  {entry.resourceAvailable ? "Resource + DHT" : "DHT only"}
+                </Text>
+              </Pressable>
               <Pressable
                 style={styles.smallButton}
                 onPress={() => sendToWorklet({ type: "install-app", appId: entry.appId })}
@@ -414,6 +419,55 @@ export default function App() {
             </View>
           ))
         )}
+        {selectedCatalogAppId !== null ? (
+          (() => {
+            const detail = catalog.find((entry) => entry.appId === selectedCatalogAppId);
+            if (detail === undefined) {
+              return null;
+            }
+
+            return (
+              <View style={styles.detailCard}>
+                <Text style={styles.catalogName}>{detail.name}</Text>
+                <Text style={styles.muted}>appId {detail.appId}</Text>
+                <Text style={styles.muted}>version {detail.version}</Text>
+                <Text style={styles.muted}>hash {detail.packageHash.slice(0, 24)}…</Text>
+                <Text style={styles.muted}>drive {detail.driveKey}</Text>
+                <Text style={styles.muted}>
+                  publisher {detail.publisherPublicKey.slice(0, 32)}…
+                </Text>
+                <View style={styles.detailActions}>
+                  <Pressable
+                    style={styles.smallButton}
+                    onPress={() =>
+                      sendToWorklet({
+                        type: "install-app",
+                        appId: detail.appId,
+                        forcePath: "hyperdrive"
+                      })
+                    }
+                  >
+                    <Text style={styles.buttonLabel}>DHT</Text>
+                  </Pressable>
+                  {detail.resourceAvailable ? (
+                    <Pressable
+                      style={styles.smallButton}
+                      onPress={() =>
+                        sendToWorklet({
+                          type: "install-app",
+                          appId: detail.appId,
+                          forcePath: "resource"
+                        })
+                      }
+                    >
+                      <Text style={styles.buttonLabel}>Resource</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
+            );
+          })()
+        ) : null}
         {installProgress !== null ? (
           <Text style={styles.muted}>
             Install {installProgress.appId}: {installProgress.phase}
@@ -597,6 +651,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginBottom: 8
+  },
+  detailCard: {
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "#121820",
+    gap: 4
+  },
+  detailActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 8
   },
   catalogName: {
     color: "#f4f7fb",

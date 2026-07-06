@@ -65,9 +65,18 @@ export function attachPackageResourceServer(destination: RegisteredDestination, 
   });
 }
 
-export async function sendPackageResourceRequest(link: Link, request: PackageResourceRequest): Promise<Uint8Array> {
+export interface PackageResourceRequestOptions {
+  readonly timeoutMs?: number;
+}
+
+export async function sendPackageResourceRequest(
+  link: Link,
+  request: PackageResourceRequest,
+  options: PackageResourceRequestOptions = {}
+): Promise<Uint8Array> {
+  const timeoutMs = options.timeoutMs ?? 120_000;
   return new Promise<Uint8Array>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("package resource request timed out")), 120_000);
+    const timer = setTimeout(() => reject(new Error("package resource request timed out")), timeoutMs);
     link.callbacks.resourceConcluded = (resource) => {
       clearTimeout(timer);
       resolve(resource.data ?? new Uint8Array(0));

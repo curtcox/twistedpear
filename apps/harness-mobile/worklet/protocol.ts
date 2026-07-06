@@ -14,6 +14,7 @@ export interface CatalogEntryView {
   readonly publisherPublicKey: string;
   readonly packageSize: number;
   readonly packageHash: string;
+  readonly driveKey: string;
   readonly resourceAvailable: boolean;
   readonly receivedAt: number;
 }

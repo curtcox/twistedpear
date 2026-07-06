@@ -50,10 +50,28 @@ export class PackageResourceClient {
     return parseListResponse(response);
   }
 
-  async fetchVersion(version: string) {
-    const link = await this.openLink();
-    const archive = await sendPackageResourceRequest(link, { type: "fetch", version });
-    return unpackPackage(this.options.provider, archive);
+  async fetchVersion(
+    version: string,
+    options: { readonly maxAttempts?: number; readonly requestTimeoutMs?: number } = {}
+  ) {
+    const maxAttempts = options.maxAttempts ?? 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        const link = await this.openLink();
+        const archive = await sendPackageResourceRequest(
+          link,
+          { type: "fetch", version },
+          options.requestTimeoutMs === undefined ? {} : { timeoutMs: options.requestTimeoutMs }
+        );
+        return unpackPackage(this.options.provider, archive);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+      }
+    }
+
+    throw lastError ?? new Error("package resource fetch failed");
   }
 
   private async openLink() {
