@@ -1,6 +1,6 @@
 {
-  "name": "@twistedpear/reticulum-interfaces",
-  "version": "0.0.0",
+  "name": "@twistedpear/app-registry",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -17,8 +17,5 @@
   },
   "dependencies": {
     "@twistedpear/reticulum-ts": "0.0.0"
-  },
-  "devDependencies": {
-    "@twistedpear/lxmf-ts": "0.0.0"
   }
 }

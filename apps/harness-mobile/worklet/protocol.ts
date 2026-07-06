@@ -7,6 +7,33 @@ export interface AnnounceEntry {
   readonly appDataHex: string | null;
 }
 
+export interface CatalogEntryView {
+  readonly appId: string;
+  readonly name: string;
+  readonly version: string;
+  readonly publisherPublicKey: string;
+  readonly packageSize: number;
+  readonly packageHash: string;
+  readonly resourceAvailable: boolean;
+  readonly receivedAt: number;
+}
+
+export interface InstallProgress {
+  readonly appId: string;
+  readonly phase: "starting" | "downloading" | "verifying" | "complete" | "failed";
+  readonly bytesReceived: number;
+  readonly totalBytes: number;
+  readonly path: string | null;
+  readonly verified: boolean;
+}
+
+export interface InstalledPackageView {
+  readonly appId: string;
+  readonly version: string;
+  readonly packageHash: string;
+  readonly installedAt: number;
+}
+
 export interface WorkletStatus {
   readonly running: boolean;
   readonly linkOnline: boolean;
@@ -24,6 +51,9 @@ export interface WorkletStatus {
   readonly autoPeers: number;
   readonly preferredInterface: string | null;
   readonly onlineInterfaces: number;
+  readonly catalogEntries: number;
+  readonly installedPackages: number;
+  readonly storageUsedBytes: number;
 }
 
 export interface MulticastNetworkInfo {
@@ -45,6 +75,10 @@ export type HostToWorkletMessage =
       readonly rnodeDeviceId?: number | null;
       readonly rnodeBaudRate?: number;
     }
+  | { readonly type: "list-catalog" }
+  | { readonly type: "list-installed" }
+  | { readonly type: "install-app"; readonly appId: string; readonly forcePath?: "hyperdrive" | "lan-mirror" | "resource"; readonly archiveHex?: string }
+  | { readonly type: "delete-package"; readonly appId: string; readonly version: string }
   | { readonly type: "multicast-packet"; readonly ifname: string; readonly dataHex: string; readonly sourceAddress: string; readonly port: number }
   | { readonly type: "multicast-interfaces"; readonly interfaces: ReadonlyArray<MulticastNetworkInfo> }
   | { readonly type: "ble-data"; readonly dataHex: string }
@@ -60,6 +94,9 @@ export type WorkletToHostMessage =
   | { readonly type: "status"; readonly status: WorkletStatus }
   | { readonly type: "log"; readonly line: string }
   | { readonly type: "announce"; readonly entry: AnnounceEntry }
+  | { readonly type: "catalog"; readonly entries: ReadonlyArray<CatalogEntryView> }
+  | { readonly type: "installed"; readonly packages: ReadonlyArray<InstalledPackageView> }
+  | { readonly type: "install-progress"; readonly progress: InstallProgress }
   | { readonly type: "multicast-start" }
   | { readonly type: "multicast-stop" }
   | { readonly type: "multicast-join"; readonly ifname: string; readonly groupAddress: string; readonly port: number }

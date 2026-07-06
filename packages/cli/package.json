@@ -1,8 +1,11 @@
 {
-  "name": "@twistedpear/reticulum-interfaces",
-  "version": "0.0.0",
+  "name": "@twistedpear/cli",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "tp": "./dist/bin/tp.js"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -16,9 +19,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@twistedpear/app-registry": "0.1.0",
+    "@twistedpear/bridge-hyper": "0.1.0",
     "@twistedpear/reticulum-ts": "0.0.0"
-  },
-  "devDependencies": {
-    "@twistedpear/lxmf-ts": "0.0.0"
   }
 }

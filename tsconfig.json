@@ -9,6 +9,15 @@
     },
     {
       "path": "./packages/reticulum-interfaces"
+    },
+    {
+      "path": "./packages/app-registry"
+    },
+    {
+      "path": "./packages/bridge-hyper"
+    },
+    {
+      "path": "./packages/cli"
     }
   ]
 }

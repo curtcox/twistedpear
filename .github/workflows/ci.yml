@@ -139,6 +139,31 @@ jobs:
       - run: npm run build
       - run: npm run test:bare-hyperswarm
 
+  dist-interop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test -- packages/app-registry/test/package.test.ts
+      - run: npm run test:dist-interop
+
+  bare-hyperdrive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:bare-hyperdrive
+
   bare-benchmark:
     runs-on: ubuntu-latest
     steps:

@@ -1,6 +1,6 @@
 {
-  "name": "@twistedpear/reticulum-interfaces",
-  "version": "0.0.0",
+  "name": "@twistedpear/bridge-hyper",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -16,9 +16,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@twistedpear/reticulum-ts": "0.0.0"
-  },
-  "devDependencies": {
-    "@twistedpear/lxmf-ts": "0.0.0"
+    "@twistedpear/app-registry": "0.1.0",
+    "@twistedpear/reticulum-interfaces": "0.0.0",
+    "@twistedpear/reticulum-ts": "0.0.0",
+    "b4a": "^1.6.7",
+    "corestore": "^7.9.2",
+    "hyperdrive": "^13.3.2",
+    "hyperswarm": "^4.13.0"
   }
 }

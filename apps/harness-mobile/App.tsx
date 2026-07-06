@@ -27,7 +27,10 @@ import {
   decodeMessages,
   encodeMessage,
   type AnnounceEntry,
+  type CatalogEntryView,
   type HostToWorkletMessage,
+  type InstallProgress,
+  type InstalledPackageView,
   type WorkletStatus,
   type WorkletToHostMessage
 } from "./worklet/protocol";
@@ -70,12 +73,18 @@ const initialStatus: WorkletStatus = {
   cryptoProvider: "unknown",
   autoPeers: 0,
   preferredInterface: null,
-  onlineInterfaces: 0
+  onlineInterfaces: 0,
+  catalogEntries: 0,
+  installedPackages: 0,
+  storageUsedBytes: 0
 };
 
 export default function App() {
   const [status, setStatus] = useState<WorkletStatus>(initialStatus);
   const [announces, setAnnounces] = useState<ReadonlyArray<AnnounceEntry>>([]);
+  const [catalog, setCatalog] = useState<ReadonlyArray<CatalogEntryView>>([]);
+  const [installed, setInstalled] = useState<ReadonlyArray<InstalledPackageView>>([]);
+  const [installProgress, setInstallProgress] = useState<InstallProgress | null>(null);
   const [serviceRunning, setServiceRunning] = useState(false);
   const [logLines, setLogLines] = useState<ReadonlyArray<string>>([
     "Harness UI ready. Create an identity, then toggle TCP to start the worklet."
@@ -134,8 +143,27 @@ export default function App() {
 
     if (message.type === "announce") {
       setAnnounces((current) => [message.entry, ...current].slice(0, MAX_ANNOUNCES));
+      sendToWorklet({ type: "list-catalog" });
+      return;
     }
-  }, [appendLog]);
+
+    if (message.type === "catalog") {
+      setCatalog(message.entries);
+      return;
+    }
+
+    if (message.type === "installed") {
+      setInstalled(message.packages);
+      return;
+    }
+
+    if (message.type === "install-progress") {
+      setInstallProgress(message.progress);
+      if (message.progress.phase === "complete") {
+        sendToWorklet({ type: "list-installed" });
+      }
+    }
+  }, [appendLog, sendToWorklet]);
 
   const pushInterfaceConfig = useCallback((next: {
     tcp: boolean;
@@ -360,6 +388,45 @@ export default function App() {
       ) : null}
 
       <View style={styles.card}>
+        <Text style={styles.sectionTitle}>App catalog</Text>
+        <Text style={styles.muted}>
+          {status.catalogEntries} discovered · {status.installedPackages} installed ·{" "}
+          {Math.round(status.storageUsedBytes / 1024)} KiB used
+        </Text>
+        {catalog.length === 0 ? (
+          <Text style={styles.muted}>No apps in catalog yet.</Text>
+        ) : (
+          catalog.slice(0, 6).map((entry) => (
+            <View key={entry.appId} style={styles.catalogRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.catalogName}>{entry.name}</Text>
+                <Text style={styles.muted}>
+                  v{entry.version} · {Math.round(entry.packageSize / 1024)} KiB ·{" "}
+                  {entry.publisherPublicKey.slice(0, 12)}…
+                </Text>
+              </View>
+              <Pressable
+                style={styles.smallButton}
+                onPress={() => sendToWorklet({ type: "install-app", appId: entry.appId })}
+              >
+                <Text style={styles.buttonLabel}>Install</Text>
+              </Pressable>
+            </View>
+          ))
+        )}
+        {installProgress !== null ? (
+          <Text style={styles.muted}>
+            Install {installProgress.appId}: {installProgress.phase}
+            {installProgress.verified ? " (verified)" : ""}
+          </Text>
+        ) : null}
+        {installed.length > 0 ? (
+          <Text style={styles.muted}>Installed: {installed.map((pkg) => `${pkg.appId}@${pkg.version}`).join(", ")}</Text>
+        ) : null}
+        <ActionButton label="Refresh catalog" onPress={() => sendToWorklet({ type: "list-catalog" })} />
+      </View>
+
+      <View style={styles.card}>
         <Text style={styles.sectionTitle}>Announce browser</Text>
         {announces.length === 0 ? (
           <Text style={styles.muted}>No announces received yet.</Text>
@@ -492,6 +559,23 @@ const styles = StyleSheet.create({
     color: "#9aa7b8",
     fontSize: 11,
     marginTop: 2
+  },
+  catalogRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8
+  },
+  catalogName: {
+    color: "#f4f7fb",
+    fontSize: 14,
+    fontWeight: "600"
+  },
+  smallButton: {
+    backgroundColor: "#2b3645",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6
   },
   log: {
     flex: 1,
