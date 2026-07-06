@@ -13,10 +13,6 @@ import { createNodeHost } from "../../packages/host-core/dist/node-host.js";
 import { decodeMessages, encodeMessage } from "../../packages/host-core/dist/protocol.js";
 import { defaultHostConfig } from "../../packages/host-core/dist/types.js";
 
-async function sleep(ms) {
-  await new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -94,6 +90,10 @@ function testWorkletBundleBuild() {
   });
 
   assert(result.status === 0, `worklet bundle build failed\n${result.stdout}\n${result.stderr}`);
+
+  const bundlePath = join(dirname(fileURLToPath(import.meta.url)), "../../apps/host-desktop/worklet/worklet.bundle");
+  const bundle = readFileSync(bundlePath);
+  assert(bundle.length > 1024, "worklet bundle is non-empty");
 }
 
 function testElectronSecurityPosture() {

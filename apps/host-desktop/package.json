@@ -27,7 +27,7 @@
     "productName": "TwistedPear Host",
     "files": [
       "dist/**/*",
-      "worklet/worklet.bundle.mjs",
+      "worklet/worklet.bundle",
       "src/renderer/**/*"
     ],
     "directories": {

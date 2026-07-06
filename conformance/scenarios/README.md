@@ -18,6 +18,8 @@ docker compose -f conformance/docker/docker-compose.yml up --build leaf-echo
 docker compose -f conformance/docker/docker-compose.yml up --build link-echo
 # or
 docker compose -f conformance/docker/docker-compose.yml up --build lxmf-echo
+# or (Phase 6 transport hub — leaves attach as TCP clients to host:4250)
+docker compose -f conformance/docker/docker-compose.yml up --build transport-leaf-bob transport-leaf-alice
 ```
 
 Run the matching TypeScript interop tests:
@@ -47,7 +49,7 @@ can take a few minutes on a cold start; override `I2P_READY_TIMEOUT_MS` if neede
 | Path | Purpose |
 |---|---|
 | `config/` | Reticulum configs for Python peers |
-| `python/` | Python scenario drivers (leaf echo, link echo, LXMF echo) |
+| `python/` | Python scenario drivers (leaf echo, link echo, LXMF echo, transport hub leaves) |
 | `ts/harness.mjs` | Shared docker/compose helpers for interop runners |
 
 Python peers print `READY <destination_hash_hex>` once their inbound destination has announced.

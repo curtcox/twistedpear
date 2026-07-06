@@ -143,7 +143,7 @@ document. Record results in the phase exit checklist before closing Phase 4.
 |---|---|---|
 | Desktop smoke | `npm run test:desktop` | M0 |
 | Widget parity (RN ⇄ DOM contract) | `npm run test:widget-parity` | M4 |
-| Transport role vs Python leaf | `INTEROP=1 npm run test:transport-role` | M1 |
+| Transport role vs Python leaf + two-leaf hub | `INTEROP=1 npm run test:transport-role` | M1 |
 | rnsd attach mode | `INTEROP=1 npm run test:rnsd-mode` | M5 |
 | Propagation interop | `INTEROP=1 npm run test:propagation-interop` | M3 |
 | host-core unit tests | `npm test -- packages/host-core/test` | M0 |

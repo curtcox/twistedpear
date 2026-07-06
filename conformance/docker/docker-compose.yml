@@ -74,6 +74,42 @@ services:
     ports:
       - "7656:7656"
 
+  transport-leaf-bob:
+    build:
+      context: ../..
+      dockerfile: conformance/docker/Dockerfile
+    working_dir: /conformance/scenarios/python
+    command: python transport_leaf.py --role echo
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      TRANSPORT_HUB_HOST: host.docker.internal
+      TRANSPORT_HUB_PORT: "4250"
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('transport-leaf-bob-ready')"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  transport-leaf-alice:
+    build:
+      context: ../..
+      dockerfile: conformance/docker/Dockerfile
+    working_dir: /conformance/scenarios/python
+    command: python transport_leaf.py --role pinger
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      TRANSPORT_HUB_HOST: host.docker.internal
+      TRANSPORT_HUB_PORT: "4250"
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('transport-leaf-alice-ready')"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
   i2p-interop:
     build:
       context: ../..

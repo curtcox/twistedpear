@@ -7,8 +7,9 @@ import { fileURLToPath } from "node:url";
 const hostRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(hostRoot, "../..");
 const entry = join(hostRoot, "worklet/entry.mjs");
-const output = join(hostRoot, "worklet/worklet.bundle.mjs");
+const output = join(hostRoot, "worklet/worklet.bundle");
 const nobleCrypto = join(repoRoot, "conformance/bare-interop/noble-crypto.mjs");
+const nodeCryptoStub = join(repoRoot, "conformance/bare-interop/node-crypto-stub.mjs");
 const importsPath = join(hostRoot, "worklet/imports.generated.json");
 
 writeFileSync(
@@ -17,7 +18,8 @@ writeFileSync(
     {
       "@noble/hashes/crypto": nobleCrypto,
       "@noble/ciphers/crypto": nobleCrypto,
-      "@noble/curves/crypto": nobleCrypto
+      "@noble/curves/crypto": nobleCrypto,
+      "node:crypto": nodeCryptoStub
     },
     null,
     2

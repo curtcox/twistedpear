@@ -111,7 +111,7 @@ async function runHeadlessBoot() {
       config: resolveHostConfig({
         dataDir,
         overrides: {
-          roles: { transport: true, seeder: false, propagation: true, attachRnsd: null },
+          roles: { transport: true, seeder: true, propagation: true, attachRnsd: null },
           interfaces: {
             tcp: { enabled: false, mode: "client" },
             auto: { enabled: false, multicast: false, bonjour: false },
@@ -125,8 +125,12 @@ async function runHeadlessBoot() {
 
     const status = session.getStatus();
     console.log(
-      `phase6 demo: host up identity=${status.identityHash} transport=${status.transportEnabled} propagation=${status.propagationEnabled}`
+      `phase6 demo: host up identity=${status.identityHash} transport=${status.transportEnabled} seeder=${status.seederEnabled} propagation=${status.propagationEnabled}`
     );
+
+    if (!status.seederEnabled) {
+      throw new Error("phase6 demo: seeder role not enabled");
+    }
 
     const response = await fetch("http://127.0.0.1:9473/status");
     if (!response.ok) {
@@ -136,6 +140,10 @@ async function runHeadlessBoot() {
     const json = await response.json();
     if (json.propagationEnabled !== true) {
       throw new Error("status endpoint missing propagation flag");
+    }
+
+    if (json.seederEnabled !== true) {
+      throw new Error("status endpoint missing seeder flag");
     }
 
     await session.stop();

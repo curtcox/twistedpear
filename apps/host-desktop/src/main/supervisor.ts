@@ -1,12 +1,11 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { decodeMessages, encodeMessage, type HostToWorkletMessage, type WorkletToHostMessage } from "@twistedpear/host-core/protocol";
 
-const require = createRequire(import.meta.url);
 const hostRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const workletBundle = join(hostRoot, "worklet/worklet.bundle.mjs");
+const workletBundle = join(hostRoot, "worklet/worklet.bundle");
+const bareBin = join(hostRoot, "../../node_modules/bare/bin/bare");
 
 export interface WorkletSupervisorOptions {
   readonly onMessage: (message: WorkletToHostMessage) => void;
@@ -23,7 +22,6 @@ export class WorkletSupervisor {
 
   start(): void {
     this.stopping = false;
-    const bareBin = require.resolve("bare/bin");
     this.child = spawn(bareBin, [workletBundle], {
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env, TWISTEDPEAR_HOST_DESKTOP: "1" }

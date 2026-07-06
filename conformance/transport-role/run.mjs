@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Desktop host as transport node: TCP slice against docker leaf-echo with transport routing on.
+ * Desktop host as transport node: leaf-echo TCP slice + two-leaf hub topology.
  */
 
 import { readFileSync } from "node:fs";
@@ -17,7 +17,15 @@ import {
   PacketReceiptStatus,
   hexToBytes
 } from "../../packages/reticulum-ts/dist/index.js";
-import { interopReady, sleep, withComposeService, LEAF_ECHO_PORT } from "../scenarios/ts/harness.mjs";
+import {
+  interopReady,
+  sleep,
+  withComposeService,
+  withTransportHubLeaves,
+  waitForReadyLine,
+  LEAF_ECHO_PORT,
+  TRANSPORT_HUB_PORT
+} from "../scenarios/ts/harness.mjs";
 
 if (!interopReady()) {
   console.log("transport-role: skipped (set INTEROP=1 with docker)");
@@ -55,97 +63,168 @@ async function waitForPath(reticulum, destinationHash, timeoutMs = 15_000) {
   throw new Error("Timed out waiting for path to peer");
 }
 
+async function waitForPeerInterfaces(reticulum, minimum, timeoutMs = 30_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const online = reticulum.listInterfaces().filter((iface) => iface.online).length;
+    if (online >= minimum) {
+      return online;
+    }
+
+    await sleep(250);
+  }
+
+  throw new Error(`Timed out waiting for ${minimum} online transport interface(s)`);
+}
+
 function bytesToAscii(bytes) {
   return Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
 }
 
-const dataDir = mkdtempSync(join(tmpdir(), "tp-transport-"));
+async function runEchoSlice(session, pingLabel, greetingText) {
+  const provider = session.reticulum.provider;
+  const alice = loadIdentity(provider, "alice");
+  const bob = loadIdentity(provider, "bob");
 
-try {
-  await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
-    const session = await createNodeHost({
-      config: resolveHostConfig({
-        dataDir,
-        overrides: {
-          interfaces: {
-            tcp: { enabled: true, mode: "client", targetHost: "127.0.0.1", targetPort: LEAF_ECHO_PORT },
-            auto: { enabled: false, multicast: false, bonjour: false },
-            i2p: { enabled: false },
-            rnode: { enabled: false }
-          },
-          roles: {
-            transport: true,
-            seeder: false,
-            propagation: false,
-            attachRnsd: null
-          }
-        }
-      })
-    });
-
-    const status = session.getStatus();
-    if (!status.transportEnabled) {
-      throw new Error("transport role not enabled");
-    }
-
-    const provider = session.reticulum.provider;
-    const alice = loadIdentity(provider, "alice");
-    const bob = loadIdentity(provider, "bob");
-
-    const aliceIn = session.reticulum.registerDestination({
-      provider,
-      identity: alice,
-      direction: DestinationDirection.IN,
-      type: DestinationType.SINGLE,
-      appName: "example",
-      aspects: ["echo"]
-    });
-    aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
-
-    const bobOut = session.reticulum.registerDestination({
-      provider,
-      identity: bob,
-      direction: DestinationDirection.OUT,
-      type: DestinationType.SINGLE,
-      appName: "example",
-      aspects: ["echo"]
-    });
-
-    await aliceIn.announce();
-    await waitForPath(session.reticulum, bobOut.hash);
-
-    const received = new Map();
-    aliceIn.setPacketCallback((data) => {
-      received.set(bytesToAscii(data), data);
-    });
-
-    const payload = new TextEncoder().encode("transport-role-ping");
-    const receipt = await bobOut.send(payload);
-    if (receipt.status !== PacketReceiptStatus.DELIVERED) {
-      throw new Error(`Expected delivered receipt, got ${receipt.status}`);
-    }
-
-    const deadline = Date.now() + 10_000;
-    while (Date.now() < deadline) {
-      if (received.has("transport-role-ping") && received.has("hello from python leaf echo")) {
-        break;
-      }
-
-      await sleep(100);
-    }
-
-    if (!received.has("transport-role-ping")) {
-      throw new Error("transport-role: outbound echo was not received");
-    }
-
-    if (!received.has("hello from python leaf echo")) {
-      throw new Error("transport-role: Python greeting was not received");
-    }
-
-    await session.stop();
+  const aliceIn = session.reticulum.registerDestination({
+    provider,
+    identity: alice,
+    direction: DestinationDirection.IN,
+    type: DestinationType.SINGLE,
+    appName: "example",
+    aspects: ["echo"]
   });
-} finally {
-  rmSync(dataDir, { recursive: true, force: true });
+  aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
+
+  const bobOut = session.reticulum.registerDestination({
+    provider,
+    identity: bob,
+    direction: DestinationDirection.OUT,
+    type: DestinationType.SINGLE,
+    appName: "example",
+    aspects: ["echo"]
+  });
+
+  await aliceIn.announce();
+  await waitForPath(session.reticulum, bobOut.hash);
+
+  const received = new Map();
+  aliceIn.setPacketCallback((data) => {
+    received.set(bytesToAscii(data), data);
+  });
+
+  const receipt = await bobOut.send(new TextEncoder().encode(pingLabel));
+  if (receipt.status !== PacketReceiptStatus.DELIVERED) {
+    throw new Error(`Expected delivered receipt, got ${receipt.status}`);
+  }
+
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    if (received.has(pingLabel) && received.has(greetingText)) {
+      return;
+    }
+
+    await sleep(100);
+  }
+
+  if (!received.has(pingLabel)) {
+    throw new Error(`transport-role: outbound echo was not received (${pingLabel})`);
+  }
+
+  if (!received.has(greetingText)) {
+    throw new Error(`transport-role: greeting was not received (${greetingText})`);
+  }
 }
 
+async function runLeafEchoSlice() {
+  const dataDir = mkdtempSync(join(tmpdir(), "tp-transport-leaf-"));
+  try {
+    await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
+      const session = await createNodeHost({
+        config: resolveHostConfig({
+          dataDir,
+          overrides: {
+            interfaces: {
+              tcp: { enabled: true, mode: "client", targetHost: "127.0.0.1", targetPort: LEAF_ECHO_PORT },
+              auto: { enabled: false, multicast: false, bonjour: false },
+              i2p: { enabled: false },
+              rnode: { enabled: false }
+            },
+            roles: {
+              transport: true,
+              seeder: false,
+              propagation: false,
+              attachRnsd: null
+            }
+          }
+        })
+      });
+
+      if (!session.getStatus().transportEnabled) {
+        throw new Error("transport role not enabled");
+      }
+
+      await runEchoSlice(session, "transport-role-ping", "hello from python leaf echo");
+      await session.stop();
+    });
+  } finally {
+    rmSync(dataDir, { recursive: true, force: true });
+  }
+
+  console.log("transport-role: leaf-echo slice passed");
+}
+
+async function runTransportHubSlice() {
+  const dataDir = mkdtempSync(join(tmpdir(), "tp-transport-hub-"));
+  try {
+    await withTransportHubLeaves(async () => {
+      const session = await createNodeHost({
+        config: resolveHostConfig({
+          dataDir,
+          overrides: {
+            interfaces: {
+              tcp: { enabled: true, mode: "server", listenPort: TRANSPORT_HUB_PORT },
+              auto: { enabled: false, multicast: false, bonjour: false },
+              i2p: { enabled: false },
+              rnode: { enabled: false }
+            },
+            roles: {
+              transport: true,
+              seeder: false,
+              propagation: false,
+              attachRnsd: null
+            }
+          }
+        })
+      });
+
+      if (!session.getStatus().transportEnabled) {
+        throw new Error("transport hub role not enabled");
+      }
+
+      await waitForReadyLine("transport-leaf-bob", 45_000);
+      await waitForPeerInterfaces(session.reticulum, 2, 45_000);
+
+      await runEchoSlice(
+        session,
+        "transport-hub-ping",
+        "hello from python transport leaf"
+      );
+
+      const online = session.reticulum.listInterfaces().filter((iface) => iface.online).length;
+      if (online < 2) {
+        throw new Error(`transport hub expected two leaf interfaces, saw ${online}`);
+      }
+
+      await session.stop();
+    });
+  } finally {
+    rmSync(dataDir, { recursive: true, force: true });
+  }
+
+  console.log("transport-role: two-leaf hub topology passed");
+}
+
+await runLeafEchoSlice();
+await runTransportHubSlice();
 console.log("transport-role: passed");
