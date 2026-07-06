@@ -99,7 +99,30 @@ describe("app-registry package format", () => {
     const tampered = new Uint8Array(packed.archiveBytes);
     tampered[tampered.length - 5] ^= 0xff;
 
-    expect(() => unpackPackage(provider, tampered)).toThrow(PackageError);
+    expect(() => unpackPackage(provider, tampered)).toThrowError(
+      expect.objectContaining({ code: expect.stringMatching(/FILE_HASH_MISMATCH|SIGNATURE_INVALID|TRUNCATED/) })
+    );
+    });
+
+    it(`${label}: rejects truncated archive`, () => {
+    const identity = new Identity(provider);
+    const packed = buildSignedPackage(provider, identity);
+    const truncated = packed.archiveBytes.subarray(0, packed.archiveBytes.length - 20);
+
+    expect(() => unpackPackage(provider, truncated)).toThrowError(
+      expect.objectContaining({ code: "TRUNCATED" })
+    );
+    });
+
+    it(`${label}: rejects invalid magic`, () => {
+    const identity = new Identity(provider);
+    const packed = buildSignedPackage(provider, identity);
+    const badMagic = new Uint8Array(packed.archiveBytes);
+    badMagic[0] = 0x00;
+
+    expect(() => unpackPackage(provider, badMagic)).toThrowError(
+      expect.objectContaining({ code: "INVALID_MAGIC" })
+    );
     });
 
     it(`${label}: rejects wrong signing key`, () => {
@@ -222,6 +245,74 @@ describe("catalog", () => {
     const restored = new CatalogStore(provider);
     await restored.load(kv);
     expect(restored.list()).toHaveLength(1);
+  });
+
+  it("rejects mis-signed announces", () => {
+    const provider = new NodeCryptoProvider();
+    const identity = new Identity(provider);
+    const other = new Identity(provider);
+    const packed = buildSignedPackage(provider, identity);
+    const summary = buildAppAnnounceSummary(provider, other, {
+      manifest: packed.manifest,
+      packageSize: packed.archiveBytes.length,
+      packageHash: packed.packageHash,
+      resourceAvailable: true
+    });
+
+    const catalog = new CatalogStore(provider);
+    expect(
+      catalog.ingest({
+        destinationHash: "abc",
+        appData: encodeAppAnnounceData(summary),
+        manifest: packed.manifest,
+        packageHash: packed.packageHash
+      })
+    ).toBeNull();
+  });
+
+  it("caps entries per publisher without evicting others", () => {
+    const provider = new NodeCryptoProvider();
+    const catalog = new CatalogStore(provider, { maxPerPublisher: 2, maxEntries: 10 });
+    const identity = new Identity(provider);
+
+    for (let index = 0; index < 3; index += 1) {
+      const appName = `app-${index}`;
+      const unsigned = buildUnsignedManifest(
+        {
+          name: appName,
+          version: "1.0.0",
+          entry: "bundle.js",
+          capabilities: ["lxmf:send"],
+          icon: "icon.png",
+          minHostApi: "0.1.0",
+          driveKey: "a".repeat(64),
+          publisherPublicKey: bytesToHex(identity.getPublicKey()),
+          files: sampleFiles()
+        },
+        provider
+      );
+      const manifest = signManifest(provider, identity, unsigned);
+      const packed = packPackage(provider, {
+        ...manifest,
+        signature: manifest.signature,
+        files: sampleFiles()
+      });
+      const summary = buildAppAnnounceSummary(provider, identity, {
+        manifest: packed.manifest,
+        packageSize: packed.archiveBytes.length,
+        packageHash: packed.packageHash,
+        resourceAvailable: false
+      });
+
+      catalog.ingest({
+        destinationHash: `dest-${index}`,
+        appData: encodeAppAnnounceData(summary),
+        manifest: packed.manifest,
+        packageHash: packed.packageHash
+      });
+    }
+
+    expect(catalog.list()).toHaveLength(2);
   });
 });
 

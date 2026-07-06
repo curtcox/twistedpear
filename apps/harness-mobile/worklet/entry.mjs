@@ -17,7 +17,8 @@ import { createIpcBleBridge } from "./ipc-ble-bridge.mjs";
 import { createIpcSerialBridge } from "./ipc-serial-bridge.mjs";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
-import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPackage } from "../../../packages/app-registry/dist/index.js";
+import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
+import { DriveManager, PackageResourceClient, assessFetchBudget, createSwarm, fetchPackage } from "../../../packages/bridge-hyper/dist/index.js";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 
 const { IPC } = BareKit;
@@ -88,7 +89,57 @@ let pendingTarget = null;
 let catalogStore = null;
 /** @type {InstalledPackageStore | null} */
 let installedStore = null;
+/** @type {DriveManager | null} */
+let packageDriveManager = null;
+/** @type {ReturnType<typeof createSwarm> | null} */
+let packageSwarm = null;
 const PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
+const HOST_API_VERSION = "0.1.0";
+
+function runtimeKeyValueStore() {
+  return {
+    async get(key) {
+      const value = await runtime.store.get(key);
+      return value === undefined ? null : value;
+    },
+    async set(key, value) {
+      await runtime.store.set(key, value);
+    },
+    async delete(key) {
+      await runtime.store.delete(key);
+    },
+    async list() {
+      return [];
+    }
+  };
+}
+
+async function persistCatalogState() {
+  const { catalogStore: catalog, installedStore: installed } = ensureCatalog();
+  const kv = runtimeKeyValueStore();
+  await catalog.save(kv);
+  await installed.save(kv);
+}
+
+async function loadCatalogState() {
+  const { catalogStore: catalog, installedStore: installed } = ensureCatalog();
+  const kv = runtimeKeyValueStore();
+  await catalog.load(kv);
+  await installed.load(kv);
+}
+
+async function ensurePackageDriveManager() {
+  if (packageDriveManager === null) {
+    packageSwarm = createSwarm();
+    packageDriveManager = new DriveManager({
+      storagePath: "hyper-storage",
+      swarm: packageSwarm
+    });
+    await packageDriveManager.ready();
+  }
+
+  return packageDriveManager;
+}
 
 function ensureCatalog() {
   if (catalogStore === null) {
@@ -110,6 +161,7 @@ function catalogEntryView(entry) {
     publisherPublicKey: entry.publisherPublicKey,
     packageSize: entry.packageSize,
     packageHash: entry.packageHash,
+    driveKey: entry.driveKey,
     resourceAvailable: entry.resourceAvailable,
     receivedAt: entry.receivedAt
   };
@@ -339,6 +391,7 @@ function registerAnnounceHandler() {
         });
         if (ingested !== null) {
           log(`Catalog: ${ingested.name} v${ingested.version}`);
+          void persistCatalogState();
           pushCatalog();
         }
       }
@@ -612,6 +665,17 @@ async function handleHostMessage(raw) {
       return;
     }
 
+    const interfaces = reticulum?.listInterfaces() ?? [];
+    const budget = assessFetchBudget(entry, interfaces);
+    if (!budget.allowed) {
+      log(`Install blocked: ${budget.blockedReason}`);
+      return;
+    }
+
+    if (budget.warning !== null) {
+      log(budget.warning);
+    }
+
     send({
       type: "install-progress",
       progress: {
@@ -624,63 +688,118 @@ async function handleHostMessage(raw) {
       }
     });
 
-    if (message.archiveHex) {
-      try {
-        const archive = hexToBytes(message.archiveHex);
-        send({
-          type: "install-progress",
-          progress: {
-            appId: entry.appId,
-            phase: "verifying",
-            bytesReceived: archive.length,
-            totalBytes: archive.length,
-            path: message.forcePath ?? "resource",
-            verified: false
-          }
-        });
-        const verified = unpackPackage(provider, archive);
-        const archivePath = `packages/${entry.appId}/${verified.manifest.version}.tpkg`;
-        await runtime.store.set(archivePath, archive);
-        installed.install(
-          {
-            appId: entry.appId,
-            version: verified.manifest.version,
-            packageHash: verified.packageHash,
-            installedAt: Date.now(),
-            manifest: verified.manifest,
-            archivePath
-          },
-          archive.length
-        );
-        send({
-          type: "install-progress",
-          progress: {
-            appId: entry.appId,
-            phase: "complete",
-            bytesReceived: archive.length,
-            totalBytes: archive.length,
-            path: message.forcePath ?? "resource",
-            verified: true
-          }
-        });
-        pushCatalog();
-        log(`Installed ${entry.name} v${verified.manifest.version} (verified)`);
-      } catch (error) {
-        send({
-          type: "install-progress",
-          progress: {
-            appId: entry.appId,
-            phase: "failed",
-            bytesReceived: 0,
-            totalBytes: entry.packageSize,
-            path: message.forcePath ?? null,
-            verified: false
-          }
-        });
-        log(`Install verify failed: ${error instanceof Error ? error.message : String(error)}`);
+    const installVerifiedPackage = async (archive, path) => {
+      send({
+        type: "install-progress",
+        progress: {
+          appId: entry.appId,
+          phase: "verifying",
+          bytesReceived: archive.length,
+          totalBytes: archive.length,
+          path,
+          verified: false
+        }
+      });
+
+      const verified = verifyPackage(provider, archive, {
+        hostApiVersion: HOST_API_VERSION,
+        minVersion: installed.latestVersion(entry.appId) ?? undefined
+      });
+      const archivePath = `packages/${entry.appId}/${verified.manifest.version}.tpkg`;
+      await runtime.store.set(archivePath, archive);
+      installed.install(
+        {
+          appId: entry.appId,
+          version: verified.manifest.version,
+          packageHash: verified.packageHash,
+          installedAt: Date.now(),
+          manifest: verified.manifest,
+          archivePath
+        },
+        archive.length
+      );
+      await persistCatalogState();
+      send({
+        type: "install-progress",
+        progress: {
+          appId: entry.appId,
+          phase: "complete",
+          bytesReceived: archive.length,
+          totalBytes: archive.length,
+          path,
+          verified: true
+        }
+      });
+      pushCatalog();
+      log(`Installed ${entry.name} v${verified.manifest.version} via ${path} (verified)`);
+    };
+
+    try {
+      if (message.archiveHex) {
+        await installVerifiedPackage(hexToBytes(message.archiveHex), message.forcePath ?? "resource");
+        return;
       }
-    } else {
-      log(`Install queued for ${entry.name} — host must supply archive bytes (fetch path: ${message.forcePath ?? "auto"})`);
+
+      const identity = await resolveIdentity();
+      if (identity === null) {
+        throw new Error("No harness identity available for fetch");
+      }
+
+      const driveManager = await ensurePackageDriveManager();
+      let resourceClient = null;
+      const publisherPublicKeyHex =
+        entry.manifest?.publisherPublicKey ?? (entry.publisherPublicKey.length === 128 ? entry.publisherPublicKey : null);
+      if (publisherPublicKeyHex !== null) {
+        resourceClient = new PackageResourceClient({
+          provider,
+          runtime,
+          publisherPublicKeyHex,
+          appName: entry.name,
+          identity
+        });
+        await resourceClient.start();
+      }
+
+      const result = await fetchPackage(provider, {
+        entry,
+        version: entry.version,
+        interfaces,
+        driveManager,
+        resourceClient: resourceClient ?? undefined,
+        forcePath: message.forcePath,
+        onProgress(progress) {
+          send({
+            type: "install-progress",
+            progress: {
+              appId: entry.appId,
+              phase: progress.phase === "verifying" ? "verifying" : progress.phase === "complete" ? "complete" : "downloading",
+              bytesReceived: progress.bytesReceived,
+              totalBytes: progress.totalBytes,
+              path: progress.path,
+              verified: progress.phase === "complete"
+            }
+          });
+        }
+      });
+
+      if (resourceClient !== null) {
+        await resourceClient.stop();
+      }
+
+      await installVerifiedPackage(result.archiveBytes, result.path);
+    } catch (error) {
+      send({
+        type: "install-progress",
+        progress: {
+          appId: entry.appId,
+          phase: "failed",
+          bytesReceived: 0,
+          totalBytes: entry.packageSize,
+          path: message.forcePath ?? null,
+          verified: false
+        }
+      });
+      log(`Install failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     return;
   }
@@ -688,6 +807,7 @@ async function handleHostMessage(raw) {
   if (message.type === "delete-package") {
     const { installedStore: installed } = ensureCatalog();
     installed.remove(message.appId, message.version, 0);
+    void persistCatalogState();
     pushCatalog();
     return;
   }
@@ -755,6 +875,6 @@ IPC.on("data", (data) => {
   });
 });
 
-void loadPersistedIdentity();
+void loadPersistedIdentity().then(() => loadCatalogState().then(pushCatalog));
 pushStatus();
 log(`Harness worklet ready (crypto: ${provider.name})`);

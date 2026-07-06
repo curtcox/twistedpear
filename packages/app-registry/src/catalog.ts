@@ -1,5 +1,5 @@
 import type { CryptoProvider, KeyValueStore } from "@twistedpear/reticulum-ts";
-import { Identity, hexToBytes } from "@twistedpear/reticulum-ts";
+import { Identity, hexToBytes, bytesToHex } from "@twistedpear/reticulum-ts";
 import type { AppAnnounceSummary } from "./announce.js";
 import { decodeAppAnnounceData, verifyAppAnnounceSummary } from "./announce.js";
 import { compareSemver, type AppManifest } from "./manifest.js";
@@ -108,7 +108,7 @@ export class CatalogStore {
 
     const existing = this.entries.get(appId);
     if (existing !== undefined) {
-      if (existing.publisherPublicKey !== summary.publisherKeyHash) {
+      if (entryPublisherKeyHash(this.provider, existing.publisherPublicKey) !== summary.publisherKeyHash) {
         return null;
       }
 
@@ -126,7 +126,8 @@ export class CatalogStore {
 
     const entry: CatalogEntry = {
       appId,
-      publisherPublicKey: summary.publisherKeyHash,
+      publisherPublicKey:
+        options.manifest?.publisherPublicKey ?? existing?.publisherPublicKey ?? summary.publisherKeyHash,
       name: summary.name,
       version: summary.version,
       packageSize: summary.packageSize,
@@ -220,6 +221,14 @@ export class CatalogStore {
 
 export function catalogEntryKey(entry: CatalogEntry): string {
   return entry.appId;
+}
+
+function entryPublisherKeyHash(provider: CryptoProvider, publisherPublicKey: string): string {
+  if (publisherPublicKey.length === 16) {
+    return publisherPublicKey;
+  }
+
+  return bytesToHex(provider.sha256(hexToBytes(publisherPublicKey)).slice(0, 8));
 }
 
 export function installedPackageKey(appId: string, version: string): string {

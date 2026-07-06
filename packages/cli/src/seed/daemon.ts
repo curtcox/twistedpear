@@ -10,15 +10,12 @@ import {
 } from "@twistedpear/reticulum-ts";
 import { DriveManager, attachPackageResourceServer, createSwarm } from "@twistedpear/bridge-hyper";
 import { ensureDir } from "../config.js";
+import { isSeederStateDir, loadSeederState } from "./register.js";
 
 export interface SeederOptions {
   readonly cwd: string;
   readonly stateDir: string;
   readonly transport: boolean;
-}
-
-interface SeederState {
-  readonly drives: ReadonlyArray<{ driveKey: string; versions: Record<string, { packageHash: string; archivePath: string }> }>;
 }
 
 export async function runSeeder(options: SeederOptions): Promise<void> {
@@ -32,10 +29,7 @@ export async function runSeeder(options: SeederOptions): Promise<void> {
   });
   reticulum.start();
 
-  const statePath = join(options.stateDir, "state.json");
-  const state: SeederState = existsSync(statePath)
-    ? (JSON.parse(readFileSync(statePath, "utf8")) as SeederState)
-    : { drives: [] };
+  const state = loadSeederState(options.stateDir);
 
   const swarm = createSwarm();
   const driveManager = new DriveManager({ storagePath: join(options.stateDir, "drives"), swarm });
@@ -61,8 +55,7 @@ export async function runSeeder(options: SeederOptions): Promise<void> {
 
   attachPackageResourceServer(destination, {
     async listVersions() {
-      const versions = await driveManager.listVersions();
-      return versions.map((version) => ({ version, packageHash: "", size: 0 }));
+      return driveManager.listVersions();
     },
     async fetchArchive(version) {
       return driveManager.fetchVersion(version);
@@ -71,11 +64,11 @@ export async function runSeeder(options: SeederOptions): Promise<void> {
 
   for (const drive of state.drives) {
     await driveManager.openDrive(drive.driveKey);
-    console.log(`seeder: mirroring drive ${drive.driveKey}`);
+    console.log(`seeder: mirroring drive ${drive.driveKey} (${Object.keys(drive.versions).length} version(s))`);
   }
 
   const persist = () => {
-    writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
+    writeFileSync(join(options.stateDir, "state.json"), `${JSON.stringify(state, null, 2)}\n`);
   };
 
   process.on("SIGINT", async () => {

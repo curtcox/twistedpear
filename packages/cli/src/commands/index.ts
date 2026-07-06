@@ -1,15 +1,30 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  buildAppAnnounceSummary,
   buildUnsignedManifest,
+  encodeAppAnnounceData,
   packPackage,
   signManifest,
   unpackPackage,
   type PackageFile
 } from "@twistedpear/app-registry";
-import { DriveManager, createSwarm } from "@twistedpear/bridge-hyper";
-import { Identity, NodeCryptoProvider, bytesToHex } from "@twistedpear/reticulum-ts";
+import {
+  DriveManager,
+  attachPackageResourceServer,
+  createSwarm
+} from "@twistedpear/bridge-hyper";
+import {
+  DestinationDirection,
+  DestinationType,
+  Identity,
+  NodeCryptoProvider,
+  Reticulum,
+  bytesToHex,
+  nodeRuntime
+} from "@twistedpear/reticulum-ts";
 import { ensureDir, loadConfig, readBytes, resolveFromCwd, saveConfig, writeBytes } from "../config.js";
+import { isSeederStateDir, registerDriveWithSeeder } from "../seed/register.js";
 
 export interface CommandContext {
   readonly cwd: string;
@@ -89,9 +104,65 @@ function readAppManifest(appDir: string) {
   };
 }
 
-function writePublishMetadata(cwd: string, metadata: { driveKey: string; version: string; packageHash: string }) {
+function writePublishMetadata(
+  cwd: string,
+  metadata: {
+    driveKey: string;
+    version: string;
+    packageHash: string;
+    destinationName?: string;
+    appDataHex?: string;
+  }
+) {
   ensureDir(resolveFromCwd(cwd, ".tp"));
   writeFileSync(join(cwd, ".tp", "publish.json"), `${JSON.stringify(metadata, null, 2)}\n`);
+}
+
+async function announcePublishedApp(options: {
+  readonly identity: Identity;
+  readonly manifest: ReturnType<typeof unpackPackage>["manifest"];
+  readonly packageHash: string;
+  readonly archiveBytes: Uint8Array;
+  readonly driveManager: DriveManager;
+}): Promise<{ destinationName: string; appDataHex: string }> {
+  const provider = new NodeCryptoProvider();
+  const runtime = nodeRuntime();
+  const reticulum = Reticulum.create({ provider, runtime });
+  reticulum.start();
+
+  const publisherHash = bytesToHex(provider.sha256(options.identity.getPublicKey()).slice(0, 8));
+  const nameHash = bytesToHex(provider.sha256(new TextEncoder().encode(options.manifest.name)).slice(0, 8));
+
+  const destination = reticulum.registerDestination({
+    provider,
+    identity: options.identity,
+    direction: DestinationDirection.IN,
+    type: DestinationType.SINGLE,
+    appName: "tp",
+    aspects: ["app", publisherHash, nameHash]
+  });
+
+  attachPackageResourceServer(destination, {
+    async listVersions() {
+      return options.driveManager.listVersions();
+    },
+    async fetchArchive(version) {
+      return options.driveManager.fetchVersion(version);
+    }
+  });
+
+  const summary = buildAppAnnounceSummary(provider, options.identity, {
+    manifest: options.manifest,
+    packageSize: options.archiveBytes.length,
+    packageHash: options.packageHash,
+    resourceAvailable: true
+  });
+  const appData = encodeAppAnnounceData(summary);
+  await destination.announce({ appData });
+
+  const destinationName = `tp.app.${publisherHash}.${nameHash}`;
+  await reticulum.stop();
+  return { destinationName, appDataHex: bytesToHex(appData) };
 }
 
 export async function runInit(ctx: CommandContext): Promise<number> {
@@ -192,6 +263,7 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
 
   const provider = new NodeCryptoProvider();
   const config = loadConfig(ctx.cwd);
+  const identity = loadIdentity(provider, resolveFromCwd(ctx.cwd, config.identityPath));
   const archive = readBytes(resolveFromCwd(ctx.cwd, ".tp/last.tpkg"));
   const unpacked = unpackPackage(provider, archive);
 
@@ -211,13 +283,36 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
   }
 
   const published = await drives.publishVersion(unpacked.manifest.version, archive, unpacked.packageHash);
+
+  const announce = await announcePublishedApp({
+    identity,
+    manifest: unpacked.manifest,
+    packageHash: unpacked.packageHash,
+    archiveBytes: archive,
+    driveManager: drives
+  });
+
+  if (isSeederStateDir(config.seederAddress)) {
+    registerDriveWithSeeder(
+      resolveFromCwd(ctx.cwd, config.seederAddress),
+      keyHex,
+      published.version,
+      published.packageHash,
+      archive.length
+    );
+    console.log(`Registered drive with seeder at ${config.seederAddress}`);
+  }
+
   writePublishMetadata(ctx.cwd, {
     driveKey: keyHex,
     version: published.version,
-    packageHash: published.packageHash
+    packageHash: published.packageHash,
+    destinationName: announce.destinationName,
+    appDataHex: announce.appDataHex
   });
 
   console.log(`Published ${published.version} to drive ${keyHex}`);
+  console.log(`Announced ${announce.destinationName}`);
   await drives.close();
   await swarm.destroy();
   return 0;

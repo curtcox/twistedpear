@@ -19,6 +19,20 @@ export interface PublishedVersion {
 const MANIFEST_PATH = "/manifest.json";
 const PACKAGE_PATH_PREFIX = "/packages/";
 
+interface DriveManifest {
+  readonly latestVersion: string;
+  readonly versions: Record<string, { readonly packageHash: string; readonly archivePath: string; readonly size?: number }>;
+}
+
+async function readDriveManifest(drive: Hyperdrive): Promise<DriveManifest> {
+  const raw = await drive.get(MANIFEST_PATH);
+  if (raw === null) {
+    return { latestVersion: "", versions: {} };
+  }
+
+  return JSON.parse(new TextDecoder().decode(raw)) as DriveManifest;
+}
+
 export class DriveManager {
   private readonly store: Corestore;
   private drive: Hyperdrive | null = null;
@@ -56,15 +70,20 @@ export class DriveManager {
 
     const archivePath = `${PACKAGE_PATH_PREFIX}${version}.tpkg`;
     await this.drive.put(archivePath, archiveBytes);
+
+    const manifest = await readDriveManifest(this.drive);
+    const versions = {
+      ...manifest.versions,
+      [version]: { packageHash, archivePath, size: archiveBytes.length }
+    };
+
     await this.drive.put(
       MANIFEST_PATH,
       new TextEncoder().encode(
         JSON.stringify(
           {
             latestVersion: version,
-            versions: {
-              [version]: { packageHash, archivePath }
-            }
+            versions
           },
           null,
           2
@@ -79,17 +98,19 @@ export class DriveManager {
     return { version, packageHash, archivePath };
   }
 
-  async listVersions(): Promise<ReadonlyArray<string>> {
+  async listVersions(): Promise<ReadonlyArray<{ version: string; packageHash: string; size: number }>> {
     if (this.drive === null) {
       throw new Error("Drive not initialized");
     }
 
-    const versions: string[] = [];
-    for await (const entry of this.drive.list(PACKAGE_PATH_PREFIX)) {
-      versions.push(entry.key.replace(PACKAGE_PATH_PREFIX, "").replace(".tpkg", ""));
-    }
-
-    return versions.sort();
+    const manifest = await readDriveManifest(this.drive);
+    return Object.entries(manifest.versions)
+      .map(([version, info]) => ({
+        version,
+        packageHash: info.packageHash,
+        size: info.size ?? 0
+      }))
+      .sort((left, right) => left.version.localeCompare(right.version));
   }
 
   async fetchVersion(version: string): Promise<Uint8Array> {

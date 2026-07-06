@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * Hyperdrive publish/fetch smoke (Phase 3 M1).
+ * Publishes v1, fetches on peer B, publishes v2, verifies B can fetch the update.
  */
 
 import { mkdtempSync, rmSync } from "node:fs";
@@ -19,23 +20,38 @@ async function sleep(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function main() {
-  const provider = new PureCryptoProvider();
-  const identity = new Identity(provider);
-  const files = [{ path: "bundle.js", content: new TextEncoder().encode("bare-hyperdrive-ok") }];
+function buildPackage(provider, identity, version, driveKey) {
+  const files = [{ path: "bundle.js", content: new TextEncoder().encode(`bare-hyperdrive-${version}`) }];
   const unsigned = buildUnsignedManifest(
     {
       name: "bare.test",
-      version: "1.0.0",
+      version,
       entry: "bundle.js",
-      driveKey: "0".repeat(64),
+      driveKey,
       publisherPublicKey: bytesToHex(identity.getPublicKey()),
       files
     },
     provider
   );
   const manifest = signManifest(provider, identity, unsigned);
-  const packed = packPackage(provider, { ...manifest, signature: manifest.signature, files });
+  return packPackage(provider, { ...manifest, signature: manifest.signature, files });
+}
+
+async function fetchWithRetry(driveManager, version) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    try {
+      return await driveManager.fetchVersion(version);
+    } catch {
+      await sleep(500);
+    }
+  }
+
+  throw new Error(`peer fetch timed out for ${version}`);
+}
+
+async function main() {
+  const provider = new PureCryptoProvider();
+  const identity = new Identity(provider);
 
   const publisherDir = mkdtempSync(join(tmpdir(), "tp-pub-"));
   const consumerDir = mkdtempSync(join(tmpdir(), "tp-con-"));
@@ -45,12 +61,14 @@ async function main() {
     const pubDrive = new DriveManager({ storagePath: publisherDir, swarm: pubSwarm });
     await pubDrive.ready();
     const { keyHex } = await pubDrive.createDrive();
-    await pubDrive.publishVersion("1.0.0", packed.archiveBytes, packed.packageHash);
+
+    const v1 = buildPackage(provider, identity, "1.0.0", keyHex);
+    await pubDrive.publishVersion("1.0.0", v1.archiveBytes, v1.packageHash);
 
     const local = await pubDrive.fetchVersion("1.0.0");
     const localVerified = unpackPackage(provider, local);
-    if (localVerified.packageHash !== packed.packageHash) {
-      throw new Error("local round-trip hash mismatch");
+    if (localVerified.packageHash !== v1.packageHash) {
+      throw new Error("local v1 round-trip hash mismatch");
     }
 
     const conSwarm = createSwarm();
@@ -58,30 +76,31 @@ async function main() {
     await conDrive.ready();
     await conDrive.openDrive(keyHex);
 
-    let fetched = null;
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      try {
-        fetched = await conDrive.fetchVersion("1.0.0");
-        break;
-      } catch {
-        await sleep(500);
-      }
+    const fetchedV1 = await fetchWithRetry(conDrive, "1.0.0");
+    const verifiedV1 = unpackPackage(provider, fetchedV1);
+    if (verifiedV1.packageHash !== v1.packageHash) {
+      throw new Error("peer v1 fetch hash mismatch");
     }
 
-    if (fetched === null) {
-      throw new Error("peer fetch timed out");
+    const v2 = buildPackage(provider, identity, "2.0.0", keyHex);
+    await pubDrive.publishVersion("2.0.0", v2.archiveBytes, v2.packageHash);
+
+    const fetchedV2 = await fetchWithRetry(conDrive, "2.0.0");
+    const verifiedV2 = unpackPackage(provider, fetchedV2);
+    if (verifiedV2.packageHash !== v2.packageHash) {
+      throw new Error("peer v2 fetch hash mismatch");
     }
 
-    const verified = unpackPackage(provider, fetched);
-    if (verified.packageHash !== packed.packageHash) {
-      throw new Error("peer fetch hash mismatch");
+    const versions = await pubDrive.listVersions();
+    if (versions.length !== 2) {
+      throw new Error(`expected 2 versions, got ${versions.length}`);
     }
 
     await pubDrive.close();
     await conDrive.close();
     await pubSwarm.destroy();
     await conSwarm.destroy();
-    console.log("bare-hyperdrive: publish/fetch/verify passed");
+    console.log("bare-hyperdrive: publish/fetch/update/verify passed");
   } finally {
     rmSync(publisherDir, { recursive: true, force: true });
     rmSync(consumerDir, { recursive: true, force: true });
