@@ -23,6 +23,11 @@ export {
 } from "./auto.js";
 
 export {
+  AutoInterfaceBridge,
+  type AutoInterfaceBridgeOptions
+} from "./auto-bridge.js";
+
+export {
   BLE_DEFAULT_PIPE_MTU,
   BLE_FLAG_ACK_REQ,
   BLE_FLAG_IDENTITY,

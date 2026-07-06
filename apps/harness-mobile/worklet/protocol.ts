@@ -17,6 +17,12 @@ export interface WorkletStatus {
   readonly autoEnabled: boolean;
   readonly bleEnabled: boolean;
   readonly cryptoProvider: string;
+  readonly autoPeers: number;
+}
+
+export interface MulticastNetworkInfo {
+  readonly name: string;
+  readonly linkLocalAddress: string;
 }
 
 export type HostToWorkletMessage =
@@ -24,12 +30,20 @@ export type HostToWorkletMessage =
   | { readonly type: "stop" }
   | { readonly type: "create-identity" }
   | { readonly type: "reset-identity" }
-  | { readonly type: "set-interfaces"; readonly tcp: boolean; readonly auto: boolean; readonly ble: boolean };
+  | { readonly type: "set-interfaces"; readonly tcp: boolean; readonly auto: boolean; readonly ble: boolean }
+  | { readonly type: "multicast-packet"; readonly ifname: string; readonly dataHex: string; readonly sourceAddress: string; readonly port: number }
+  | { readonly type: "multicast-interfaces"; readonly interfaces: ReadonlyArray<MulticastNetworkInfo> };
 
 export type WorkletToHostMessage =
   | { readonly type: "status"; readonly status: WorkletStatus }
   | { readonly type: "log"; readonly line: string }
-  | { readonly type: "announce"; readonly entry: AnnounceEntry };
+  | { readonly type: "announce"; readonly entry: AnnounceEntry }
+  | { readonly type: "multicast-start" }
+  | { readonly type: "multicast-stop" }
+  | { readonly type: "multicast-join"; readonly ifname: string; readonly groupAddress: string; readonly port: number }
+  | { readonly type: "multicast-bind"; readonly ifname: string; readonly port: number }
+  | { readonly type: "multicast-send"; readonly ifname: string; readonly groupAddress: string; readonly port: number; readonly dataHex: string }
+  | { readonly type: "multicast-unicast"; readonly ifname: string; readonly targetAddress: string; readonly port: number; readonly dataHex: string };
 
 export function encodeMessage(message: HostToWorkletMessage | WorkletToHostMessage): string {
   return `${JSON.stringify(message)}\n`;

@@ -10,8 +10,10 @@
     "lint": "tsc --noEmit",
     "build:worklet": "node scripts/build-worklet.mjs"
   },
-  "dependencies": {
+    "dependencies": {
+    "@twistedpear/multicast": "file:./modules/multicast",
     "@twistedpear/node-service": "file:./modules/node-service",
+    "@twistedpear/reticulum-interfaces": "0.0.0",
     "@twistedpear/reticulum-ts": "0.0.0",
     "b4a": "^1.6.7",
     "expo": "~52.0.0",

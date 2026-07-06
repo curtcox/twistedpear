@@ -1,7 +1,17 @@
-import { networkInterfaces } from "node:os";
-import { createSocket, type Socket as DgramSocket } from "node:dgram";
-import type { CryptoProvider, PacketInterface, Runtime } from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, PacketInterface } from "@twistedpear/reticulum-ts";
 import { Identity, Packet, RawPacketInterface, TRUNCATED_HASH_LENGTH, type ReticulumInterfaceOptions } from "@twistedpear/reticulum-ts";
+import {
+  AUTO_ANNOUNCE_INTERVAL_MS,
+  AUTO_BITRATE_GUESS,
+  AUTO_DEFAULT_DATA_PORT,
+  AUTO_DEFAULT_DISCOVERY_PORT,
+  AUTO_DEFAULT_GROUP_ID,
+  AUTO_HW_MTU,
+  AUTO_PEERING_TIMEOUT_MS,
+  AUTO_REVERSE_PEERING_INTERVAL_MS,
+  type AutoInterfaceOptions,
+  type AutoInterfacePeerHandle
+} from "./auto.js";
 import {
   concatBytes,
   deriveMulticastAddress,
@@ -10,32 +20,10 @@ import {
   MULTICAST_TEMPORARY,
   SCOPE_LINK
 } from "./auto-common.js";
+import type { MulticastBridge, MulticastNetworkInfo } from "./pipes.js";
 
-/** Mirrors RNS/Interfaces/AutoInterface.py constants. */
-export const AUTO_HW_MTU = 1_196;
-export const AUTO_DEFAULT_DISCOVERY_PORT = 29_716;
-export const AUTO_DEFAULT_DATA_PORT = 42_671;
-export const AUTO_DEFAULT_GROUP_ID = "reticulum";
-export const AUTO_PEERING_TIMEOUT_MS = 22_000;
-export const AUTO_ANNOUNCE_INTERVAL_MS = 1_600;
-export const AUTO_PEER_JOB_INTERVAL_MS = 4_000;
-export const AUTO_REVERSE_PEERING_INTERVAL_MS = AUTO_ANNOUNCE_INTERVAL_MS * 3.25;
-export const AUTO_BITRATE_GUESS = 10_000_000;
-
-const ANDROID_IGNORE_IFS = new Set(["dummy0", "lo", "tun0"]);
-const ALL_IGNORE_IFS = new Set(["lo0"]);
-
-export interface AutoInterfaceOptions extends ReticulumInterfaceOptions {
-  readonly provider: CryptoProvider;
-  readonly runtime: Runtime;
-  readonly groupId?: string;
-  readonly discoveryPort?: number;
-  readonly dataPort?: number;
-  readonly allowedDevices?: ReadonlyArray<string>;
-  readonly ignoredDevices?: ReadonlyArray<string>;
-  readonly peeringTimeoutMs?: number;
-  readonly onPeerSpawn?: (peer: AutoInterfacePeerHandle) => void;
-  readonly onPeerDetach?: (peer: AutoInterfacePeerHandle) => void;
+export interface AutoInterfaceBridgeOptions extends AutoInterfaceOptions {
+  readonly bridge: MulticastBridge;
 }
 
 interface AdoptedInterface {
@@ -47,10 +35,6 @@ interface PeerRecord {
   readonly ifname: string;
   lastHeard: number;
   lastOutbound: number;
-}
-
-export interface AutoInterfacePeerHandle extends PacketInterface {
-  readonly peerAddress: string;
 }
 
 class AutoInterfacePeer extends RawPacketInterface implements AutoInterfacePeerHandle {
@@ -103,7 +87,8 @@ class AutoInterfacePeer extends RawPacketInterface implements AutoInterfacePeerH
   }
 }
 
-export class AutoInterface extends RawPacketInterface {
+/** AutoInterface backed by a native MulticastBridge (Android/mobile). */
+export class AutoInterfaceBridge extends RawPacketInterface {
   private readonly groupIdBytes: Uint8Array;
   private readonly discoveryPort: number;
   private readonly dataPort: number;
@@ -112,17 +97,16 @@ export class AutoInterface extends RawPacketInterface {
   private readonly adopted: AdoptedInterface[] = [];
   private readonly peers = new Map<string, PeerRecord>();
   private readonly spawned = new Map<string, AutoInterfacePeer>();
-  private discoverySockets: DgramSocket[] = [];
-  private dataSockets = new Map<string, Awaited<ReturnType<Runtime["udp"]["bind"]>>>();
   private announceTimer: ReturnType<typeof setInterval> | null = null;
   private peerJobTimer: ReturnType<typeof setInterval> | null = null;
   private readonly peeringTimeoutMs: number;
   private finalInitDone = false;
+  private bridgeStarted = false;
 
   constructor(
     private readonly provider: CryptoProvider,
-    private readonly runtime: Runtime,
-    private readonly options: AutoInterfaceOptions
+    private readonly bridge: MulticastBridge,
+    private readonly options: AutoInterfaceBridgeOptions
   ) {
     super({ ...options, mtu: options.mtu ?? AUTO_HW_MTU, bitrate: options.bitrate ?? AUTO_BITRATE_GUESS }, true, options.outgoing ?? false);
     const groupId = options.groupId ?? AUTO_DEFAULT_GROUP_ID;
@@ -134,8 +118,8 @@ export class AutoInterface extends RawPacketInterface {
     this.peeringTimeoutMs = options.peeringTimeoutMs ?? AUTO_PEERING_TIMEOUT_MS;
   }
 
-  static async open(provider: CryptoProvider, runtime: Runtime, options: AutoInterfaceOptions): Promise<AutoInterface> {
-    const iface = new AutoInterface(provider, runtime, options);
+  static async open(provider: CryptoProvider, options: AutoInterfaceBridgeOptions): Promise<AutoInterfaceBridge> {
+    const iface = new AutoInterfaceBridge(provider, options.bridge, options);
     await iface.start();
     return iface;
   }
@@ -145,16 +129,23 @@ export class AutoInterface extends RawPacketInterface {
   }
 
   async start(): Promise<void> {
-    this.adopted.push(...enumerateInterfaces(this.options.allowedDevices ?? [], this.options.ignoredDevices ?? []));
-    if (this.adopted.length === 0) {
-      return;
+    this.bridge.setEvents({
+      onPacket: (ifname, data, sourceAddress, port) => {
+        this.handleBridgePacket(ifname, data, sourceAddress, port);
+      },
+      onNetworkChange: (interfaces) => {
+        void this.syncInterfaces(interfaces);
+      }
+    });
+
+    if (!this.bridgeStarted) {
+      await this.bridge.start();
+      this.bridgeStarted = true;
     }
 
-    for (const iface of this.adopted) {
-      await this.startDiscoverySockets(iface);
-      const dataSocket = await this.runtime.udp.bind(iface.linkLocalAddress, this.dataPort);
-      this.dataSockets.set(iface.name, dataSocket);
-      void this.readDataSocket(iface.name, dataSocket);
+    await this.syncInterfaces(this.bridge.interfaces);
+    if (this.adopted.length === 0) {
+      return;
     }
 
     this.announceTimer = setInterval(() => {
@@ -165,7 +156,7 @@ export class AutoInterface extends RawPacketInterface {
 
     this.peerJobTimer = setInterval(() => {
       this.runPeerJobs();
-    }, AUTO_PEER_JOB_INTERVAL_MS);
+    }, 4_000);
 
     await new Promise((resolve) => setTimeout(resolve, AUTO_ANNOUNCE_INTERVAL_MS * 1.2));
     this.finalInitDone = true;
@@ -197,58 +188,52 @@ export class AutoInterface extends RawPacketInterface {
 
     this.spawned.clear();
     this.peers.clear();
+    this.adopted.length = 0;
 
-    for (const socket of this.discoverySockets) {
-      socket.close();
+    if (this.bridgeStarted) {
+      await this.bridge.stop();
+      this.bridgeStarted = false;
     }
 
-    this.discoverySockets = [];
-
-    for (const socket of this.dataSockets.values()) {
-      await socket.close();
-    }
-
-    this.dataSockets.clear();
     this.online = false;
   }
 
-  private async startDiscoverySockets(iface: AdoptedInterface): Promise<void> {
-    const multicastSocket = createSocket({ type: "udp6", reuseAddr: true });
-    multicastSocket.on("message", (data, remote) => {
-      this.handleDiscoveryPacket(data, remote.address, iface.name);
-    });
+  private async syncInterfaces(interfaces: ReadonlyArray<MulticastNetworkInfo>): Promise<void> {
+    const next = interfaces.map((iface) => ({ name: iface.name, linkLocalAddress: descopeLinkLocal(iface.linkLocalAddress) }));
+    const previous = new Set(this.adopted.map((iface) => iface.name));
+    this.adopted.length = 0;
+    this.adopted.push(...next);
 
-    await new Promise<void>((resolve, reject) => {
-      multicastSocket.once("error", reject);
-      multicastSocket.bind(this.discoveryPort, () => {
-        try {
-          multicastSocket.addMembership(this.multicastAddress, iface.linkLocalAddress);
-        } catch {
-          // Some hosts cannot join multicast on all interfaces.
-        }
+    for (const iface of next) {
+      if (previous.has(iface.name)) {
+        continue;
+      }
 
-        multicastSocket.off("error", reject);
-        resolve();
-      });
-    });
-
-    const unicastSocket = createSocket({ type: "udp6", reuseAddr: true });
-    unicastSocket.on("message", (data, remote) => {
-      this.handleDiscoveryPacket(data, remote.address, iface.name, false);
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      unicastSocket.once("error", reject);
-      unicastSocket.bind(this.unicastDiscoveryPort, iface.linkLocalAddress, () => {
-        unicastSocket.off("error", reject);
-        resolve();
-      });
-    });
-
-    this.discoverySockets.push(multicastSocket, unicastSocket);
+      await this.bridge.joinGroup(iface.name, this.multicastAddress, this.discoveryPort);
+      await this.bridge.bindPort(iface.name, this.unicastDiscoveryPort);
+      await this.bridge.bindPort(iface.name, this.dataPort);
+    }
   }
 
-  private handleDiscoveryPacket(data: Buffer, sourceAddress: string, ifname: string, announce = true): void {
+  private handleBridgePacket(ifname: string, data: Uint8Array, sourceAddress: string, port: number): void {
+    if (port === this.discoveryPort || port === this.unicastDiscoveryPort) {
+      this.handleDiscoveryPacket(data, sourceAddress, ifname, port === this.discoveryPort);
+      return;
+    }
+
+    if (port === this.dataPort) {
+      const peer = this.spawned.get(descopeLinkLocal(sourceAddress));
+      if (peer !== undefined) {
+        peer.receiveFromPeer(data);
+      } else {
+        this.addPeer(descopeLinkLocal(sourceAddress), ifname);
+        const spawned = this.spawned.get(descopeLinkLocal(sourceAddress));
+        spawned?.receiveFromPeer(data);
+      }
+    }
+  }
+
+  private handleDiscoveryPacket(data: Uint8Array, sourceAddress: string, ifname: string, announce = true): void {
     if (!this.finalInitDone) {
       return;
     }
@@ -268,9 +253,9 @@ export class AutoInterface extends RawPacketInterface {
       return;
     }
 
-    this.addPeer(sourceAddress, ifname);
+    this.addPeer(descopeLinkLocal(sourceAddress), ifname);
     if (!announce) {
-      void this.reverseAnnounce(ifname, sourceAddress);
+      void this.reverseAnnounce(ifname, descopeLinkLocal(sourceAddress));
     }
   }
 
@@ -289,13 +274,8 @@ export class AutoInterface extends RawPacketInterface {
     const peer = new AutoInterfacePeer(
       this.provider,
       address,
-      async (data) => {
-        const socket = this.dataSockets.get(ifname);
-        if (socket === undefined) {
-          throw new Error(`Missing data socket for ${ifname}`);
-        }
-
-        await socket.send(data, address, this.dataPort);
+      async (payload) => {
+        await this.bridge.sendUnicast(ifname, address, this.dataPort, payload);
       },
       () => {
         const record = this.peers.get(address);
@@ -315,37 +295,13 @@ export class AutoInterface extends RawPacketInterface {
     this.options.onPeerSpawn?.(peer);
   }
 
-  private async readDataSocket(ifname: string, socket: Awaited<ReturnType<Runtime["udp"]["bind"]>>): Promise<void> {
-    for await (const packet of socket.packets) {
-      const peer = this.spawned.get(packet.host);
-      if (peer !== undefined) {
-        peer.receiveFromPeer(packet.data);
-      } else {
-        this.addPeer(packet.host, ifname);
-        const spawned = this.spawned.get(packet.host);
-        spawned?.receiveFromPeer(packet.data);
-      }
-    }
-  }
-
   private async peerAnnounce(iface: AdoptedInterface): Promise<void> {
     const token = Identity.truncatedHash(
       this.provider,
       concatBytes(this.groupIdBytes, new TextEncoder().encode(iface.linkLocalAddress))
     );
 
-    await new Promise<void>((resolve, reject) => {
-      const socket = createSocket({ type: "udp6" });
-      socket.once("error", reject);
-      socket.send(token, this.discoveryPort, this.multicastAddress, (error) => {
-        socket.close();
-        if (error === undefined || error === null) {
-          resolve();
-        } else {
-          reject(error);
-        }
-      });
-    });
+    await this.bridge.send(iface.name, this.multicastAddress, this.discoveryPort, token);
   }
 
   private async reverseAnnounce(ifname: string, peerAddress: string): Promise<void> {
@@ -359,18 +315,7 @@ export class AutoInterface extends RawPacketInterface {
       concatBytes(this.groupIdBytes, new TextEncoder().encode(adopted.linkLocalAddress))
     );
 
-    await new Promise<void>((resolve, reject) => {
-      const socket = createSocket({ type: "udp6" });
-      socket.once("error", reject);
-      socket.send(token, this.unicastDiscoveryPort, peerAddress, (error) => {
-        socket.close();
-        if (error === undefined || error === null) {
-          resolve();
-        } else {
-          reject(error);
-        }
-      });
-    });
+    await this.bridge.sendUnicast(ifname, peerAddress, this.unicastDiscoveryPort, token);
   }
 
   private runPeerJobs(): void {
@@ -399,35 +344,4 @@ export class AutoInterface extends RawPacketInterface {
   private isLocalAddress(address: string): boolean {
     return this.adopted.some((iface) => iface.linkLocalAddress === descopeLinkLocal(address));
   }
-}
-
-function enumerateInterfaces(allowed: ReadonlyArray<string>, ignored: ReadonlyArray<string>): AdoptedInterface[] {
-  const allowedSet = new Set(allowed);
-  const ignoredSet = new Set([...ignored, ...ANDROID_IGNORE_IFS, ...ALL_IGNORE_IFS]);
-  const interfaces: AdoptedInterface[] = [];
-
-  for (const [name, addresses] of Object.entries(networkInterfaces())) {
-    if (addresses === undefined) {
-      continue;
-    }
-
-    if (ignoredSet.has(name)) {
-      continue;
-    }
-
-    if (allowedSet.size > 0 && !allowedSet.has(name)) {
-      continue;
-    }
-
-    for (const address of addresses) {
-      if (address.family !== "IPv6" || !address.address.startsWith("fe80:")) {
-        continue;
-      }
-
-      interfaces.push({ name, linkLocalAddress: descopeLinkLocal(address.address) });
-      break;
-    }
-  }
-
-  return interfaces;
 }

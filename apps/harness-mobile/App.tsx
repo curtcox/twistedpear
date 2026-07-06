@@ -14,6 +14,7 @@ import { Worklet } from "react-native-bare-kit";
 import b4a from "b4a";
 import bundle from "../worklet/worklet.bundle.mjs";
 import { isNodeServiceRunning, startNodeService, stopNodeService } from "@twistedpear/node-service";
+import { HostMulticastIpc } from "./host/multicast-ipc";
 import {
   decodeMessages,
   encodeMessage,
@@ -37,7 +38,8 @@ const initialStatus: WorkletStatus = {
   tcpEnabled: false,
   autoEnabled: false,
   bleEnabled: false,
-  cryptoProvider: "unknown"
+  cryptoProvider: "unknown",
+  autoPeers: 0
 };
 
 export default function App() {
@@ -53,12 +55,27 @@ export default function App() {
 
   const workletRef = useRef<Worklet | null>(null);
   const ipcBufferRef = useRef("");
+  const multicastIpcRef = useRef<HostMulticastIpc | null>(null);
 
   const appendLog = useCallback((line: string) => {
     setLogLines((current) => [...current.slice(-200), line]);
   }, []);
 
+  const sendToWorklet = useCallback((message: HostToWorkletMessage) => {
+    const worklet = workletRef.current;
+    if (worklet === null) {
+      return;
+    }
+
+    worklet.IPC.write(b4a.from(encodeMessage(message)));
+  }, []);
+
   const handleWorkletMessage = useCallback((message: WorkletToHostMessage) => {
+    if (multicastIpcRef.current?.isMulticastMessage(message)) {
+      void multicastIpcRef.current.handleWorkletMessage(message);
+      return;
+    }
+
     if (message.type === "status") {
       setStatus(message.status);
       return;
@@ -74,21 +91,13 @@ export default function App() {
     }
   }, [appendLog]);
 
-  const sendToWorklet = useCallback((message: HostToWorkletMessage) => {
-    const worklet = workletRef.current;
-    if (worklet === null) {
-      return;
-    }
-
-    worklet.IPC.write(b4a.from(encodeMessage(message)));
-  }, []);
-
   const pushInterfaceConfig = useCallback((next: { tcp: boolean; auto: boolean; ble: boolean }) => {
     sendToWorklet({ type: "set-interfaces", ...next });
   }, [sendToWorklet]);
 
   const stopWorklet = useCallback(() => {
     sendToWorklet({ type: "stop" });
+    void multicastIpcRef.current?.stop();
     workletRef.current?.terminate();
     workletRef.current = null;
     setStatus((current) => ({
@@ -105,6 +114,7 @@ export default function App() {
 
     const worklet = new Worklet();
     worklet.start("/app.bundle", bundle);
+    multicastIpcRef.current = new HostMulticastIpc(sendToWorklet);
 
     ipcBufferRef.current = "";
     worklet.IPC.on("data", (data) => {
@@ -180,6 +190,7 @@ export default function App() {
         <Text>Link: {status.linkOnline ? "online" : "offline"}</Text>
         <Text>Crypto: {status.cryptoProvider}</Text>
         <Text>Announces seen: {status.announcesSeen}</Text>
+        <Text>Auto peers: {status.autoPeers}</Text>
         <Text>Identity: {status.identityHash ?? "none"}</Text>
         <Text>Persisted: {status.identityPersisted ? "yes" : "no"}</Text>
         {Platform.OS === "android" ? (

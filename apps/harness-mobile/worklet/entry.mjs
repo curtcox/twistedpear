@@ -10,6 +10,8 @@ import { DestinationDirection, DestinationType } from "../../../packages/reticul
 import { DestinationProofStrategy } from "../../../packages/reticulum-ts/dist/registered-destination.js";
 import { Reticulum } from "../../../packages/reticulum-ts/dist/reticulum.js";
 import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
+import { AutoInterfaceBridge } from "../../../packages/reticulum-interfaces/dist/auto-bridge.js";
+import { createIpcMulticastBridge } from "./ipc-multicast-bridge.mjs";
 
 const { IPC } = BareKit;
 
@@ -35,13 +37,18 @@ const status = {
   tcpEnabled: false,
   autoEnabled: false,
   bleEnabled: false,
-  cryptoProvider: provider.name
+  cryptoProvider: provider.name,
+  autoPeers: 0
 };
 
 /** @type {Reticulum | null} */
 let reticulum = null;
 /** @type {import("@twistedpear/reticulum-ts").TcpClientInterface | null} */
 let tcpIface = null;
+/** @type {AutoInterfaceBridge | null} */
+let autoIface = null;
+/** @type {ReturnType<typeof createIpcMulticastBridge> | null} */
+let multicastBridge = null;
 /** @type {ReturnType<typeof setInterval> | null} */
 let statusTimer = null;
 /** @type {Identity | null} */
@@ -127,6 +134,20 @@ async function resetIdentity() {
   log("Harness identity cleared");
 }
 
+async function stopAutoInterface() {
+  if (autoIface !== null) {
+    await autoIface.close();
+    autoIface = null;
+  }
+
+  if (multicastBridge !== null) {
+    await multicastBridge.stop();
+    multicastBridge = null;
+  }
+
+  status.autoPeers = 0;
+}
+
 async function stopTcpInterface() {
   if (tcpIface !== null) {
     await tcpIface.close();
@@ -143,6 +164,7 @@ async function stopNode() {
   pushStatus();
 
   await stopTcpInterface();
+  await stopAutoInterface();
 
   if (reticulum !== null) {
     reticulum.stop();
@@ -248,6 +270,45 @@ async function startTcpInterface(targetHost, targetPort) {
   log("Timed out waiting for TCP interface (peer may be unreachable)");
 }
 
+async function startAutoInterface() {
+  const node = await ensureReticulum();
+  if (autoIface !== null) {
+    status.autoPeers = autoIface.peerInterfaces.length;
+    pushStatus();
+    return;
+  }
+
+  log("Starting AutoInterface (native multicast bridge via IPC)");
+  multicastBridge = createIpcMulticastBridge();
+  autoIface = await AutoInterfaceBridge.open(provider, {
+    name: "harness-auto",
+    provider,
+    runtime,
+    bridge: multicastBridge,
+    onPeerSpawn: (peer) => {
+      node.registerInterface(peer);
+      status.autoPeers = autoIface?.peerInterfaces.length ?? 0;
+      pushStatus();
+      log(`AutoInterface peer online: ${peer.peerAddress}`);
+    },
+    onPeerDetach: (peer) => {
+      node.unregisterInterface(peer);
+      status.autoPeers = autoIface?.peerInterfaces.length ?? 0;
+      pushStatus();
+      log(`AutoInterface peer detached: ${peer.peerAddress}`);
+    }
+  });
+
+  status.autoPeers = autoIface.peerInterfaces.length;
+  if (autoIface.online) {
+    log(`AutoInterface online (${status.autoPeers} peer(s))`);
+  } else {
+    log("AutoInterface started; waiting for link-local interfaces from host");
+  }
+
+  pushStatus();
+}
+
 async function applyInterfaceConfig() {
   if (!status.tcpEnabled && !status.autoEnabled && !status.bleEnabled) {
     await stopNode();
@@ -256,16 +317,16 @@ async function applyInterfaceConfig() {
   }
 
   if (status.autoEnabled) {
-    log("AutoInterface requires M3 multicast native module (not wired yet)");
-    status.autoEnabled = false;
+    await startAutoInterface();
+  } else {
+    await stopAutoInterface();
   }
 
   if (status.bleEnabled) {
     log("BLE interface requires M5 ble-bridge native module (not wired yet)");
     status.bleEnabled = false;
+    pushStatus();
   }
-
-  pushStatus();
 
   if (status.tcpEnabled) {
     if (pendingTarget === null) {
@@ -330,6 +391,11 @@ async function handleHostMessage(raw) {
     status.bleEnabled = message.ble;
     pushStatus();
     await applyInterfaceConfig();
+    return;
+  }
+
+  if (multicastBridge !== null && (message.type === "multicast-packet" || message.type === "multicast-interfaces")) {
+    multicastBridge.handleHostMessage(message);
     return;
   }
 }

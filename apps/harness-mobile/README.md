@@ -20,7 +20,7 @@ emulator, the worklet targets `10.0.2.2:4242` (host loopback).
 ## Features (M2)
 
 - Identity create/reset with bare-fs persistence in the worklet
-- Per-interface toggles (TCP live; Auto/BLE log until M3/M5 native bridges land)
+- Per-interface toggles (TCP and AutoInterface live; BLE log until M5 native bridge lands)
 - Live log view and announce browser (destination hash + hop count)
 - Android foreground service (`@twistedpear/node-service`) while any interface is enabled
 
@@ -49,7 +49,7 @@ Real-world caveats (see [LIMITATIONS.md](../../LIMITATIONS.md) §5):
 | Module | Milestone | Status |
 |---|---|---|
 | `node-service` | M2 | Foreground service (Android) |
-| `multicast` | M3 | Config plugin stub |
+| `multicast` | M3 | IPv6 multicast + MulticastLock (Android); IPC bridge to worklet |
 | `ble-bridge` | M5 | Config plugin stub |
 | `usb-serial` | M6 | Config plugin stub |
 
