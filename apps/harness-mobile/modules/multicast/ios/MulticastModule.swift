@@ -1,9 +1,8 @@
 import ExpoModulesCore
 import Foundation
-import Network
 
 public final class TwistedPearMulticastModule: Module {
-  private var interfaces: [[String: String]] = []
+  private var bridge: MulticastBridge?
 
   public func definition() -> ModuleDefinition {
     Name("TwistedPearMulticast")
@@ -11,80 +10,91 @@ public final class TwistedPearMulticastModule: Module {
     Events("onPacket", "onNetworkChange")
 
     AsyncFunction("start") { () -> Bool in
-      self.refreshInterfaces()
-      self.sendEvent("onNetworkChange", ["interfaces": self.interfaces])
+      let active = self.bridge ?? MulticastBridge()
+      self.bridge = active
+
+      active.listener = BridgeListener(module: self)
+      active.start()
+
+      let interfaces = active.getInterfaces().map { iface in
+        [
+          "name": iface.name,
+          "linkLocalAddress": iface.linkLocalAddress
+        ]
+      }
+
+      self.sendEvent("onNetworkChange", ["interfaces": interfaces])
       return true
     }
 
     AsyncFunction("stop") { () -> Bool in
-      self.interfaces = []
+      self.bridge?.stop()
+      self.bridge?.listener = nil
+      self.bridge = nil
       return true
     }
 
     Function("getInterfaces") { () -> [[String: String]] in
-      self.refreshInterfaces()
-      return self.interfaces
+      self.bridge?.getInterfaces().map { iface in
+        [
+          "name": iface.name,
+          "linkLocalAddress": iface.linkLocalAddress
+        ]
+      } ?? []
     }
 
-    AsyncFunction("joinGroup") { (_ ifname: String, _ groupAddress: String, _ port: Int) -> Bool in
+    AsyncFunction("joinGroup") { (ifname: String, groupAddress: String, port: Int) -> Bool in
+      self.bridge?.joinGroup(ifname: ifname, groupAddress: groupAddress, port: port)
       return true
     }
 
-    AsyncFunction("bindPort") { (_ ifname: String, _ port: Int) -> Bool in
+    AsyncFunction("bindPort") { (ifname: String, port: Int) -> Bool in
+      self.bridge?.bindPort(ifname: ifname, port: port)
       return true
     }
 
-    AsyncFunction("send") { (_ ifname: String, _ groupAddress: String, _ port: Int, _ data: Data) -> Bool in
+    AsyncFunction("send") { (ifname: String, groupAddress: String, port: Int, data: Data) -> Bool in
+      self.bridge?.send(ifname: ifname, groupAddress: groupAddress, port: port, data: data)
       return true
     }
 
-    AsyncFunction("sendUnicast") { (_ ifname: String, _ targetAddress: String, _ port: Int, _ data: Data) -> Bool in
+    AsyncFunction("sendUnicast") { (ifname: String, targetAddress: String, port: Int, data: Data) -> Bool in
+      self.bridge?.sendUnicast(ifname: ifname, targetAddress: targetAddress, port: port, data: data)
       return true
     }
   }
 
-  private func refreshInterfaces() {
-    var next: [[String: String]] = []
-    var addresses: UnsafeMutablePointer<ifaddrs>?
+  private final class BridgeListener: MulticastBridge.Listener {
+    private weak var module: TwistedPearMulticastModule?
 
-    guard getifaddrs(&addresses) == 0, let first = addresses else {
-      interfaces = []
-      return
+    init(module: TwistedPearMulticastModule) {
+      self.module = module
     }
 
-    defer { freeifaddrs(addresses) }
-
-    var cursor: UnsafeMutablePointer<ifaddrs>? = first
-    while let entry = cursor?.pointee {
-      defer { cursor = entry.ifa_next }
-      guard entry.ifa_addr.pointee.sa_family == UInt8(AF_INET6), let cName = entry.ifa_name else {
-        continue
-      }
-
-      let name = String(cString: cName)
-      if name == "lo0" {
-        continue
-      }
-
-      var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-      let result = getnameinfo(
-        entry.ifa_addr,
-        socklen_t(entry.ifa_addr.pointee.sa_len),
-        &host,
-        socklen_t(host.count),
-        nil,
-        0,
-        NI_NUMERICHOST
+    func onPacket(ifname: String, data: Data, sourceAddress: String, port: Int) {
+      module?.sendEvent(
+        "onPacket",
+        [
+          "ifname": ifname,
+          "data": data,
+          "sourceAddress": sourceAddress,
+          "port": port
+        ]
       )
-
-      if result == 0 {
-        let address = String(cString: host)
-        if address.hasPrefix("fe80:") {
-          next.append(["name": name, "linkLocalAddress": address.components(separatedBy: "%").first ?? address])
-        }
-      }
     }
 
-    interfaces = next
+    func onNetworkChange(interfaces: [MulticastNetworkInfo]) {
+      module?.sendEvent(
+        "onNetworkChange",
+        [
+          "interfaces": interfaces.map { iface in
+            [
+              "name": iface.name,
+              "linkLocalAddress": iface.linkLocalAddress
+            ]
+          }
+        ]
+      )
+    }
   }
 }

@@ -4,10 +4,14 @@ import Foundation
 import UIKit
 
 public final class TwistedPearNodeServiceModule: Module {
+  private static let refreshTaskId = "network.twistedpear.harness.refresh"
+  private static let processingTaskId = "network.twistedpear.harness.processing"
+
   private var running = false
   private var lifecycleState = "stopped"
   private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
   private var observers: [NSObjectProtocol] = []
+  private var tasksRegistered = false
 
   public func definition() -> ModuleDefinition {
     Name("TwistedPearNodeService")
@@ -16,6 +20,7 @@ public final class TwistedPearNodeServiceModule: Module {
 
     OnCreate {
       self.installLifecycleObservers()
+      self.registerBackgroundTasks()
     }
 
     OnDestroy {
@@ -46,15 +51,91 @@ public final class TwistedPearNodeServiceModule: Module {
     }
 
     AsyncFunction("requestBackgroundRefresh") { () -> Bool in
-      let request = BGAppRefreshTaskRequest(identifier: "network.twistedpear.harness.refresh")
-      request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
-      do {
-        try BGTaskScheduler.shared.submit(request)
-        return true
-      } catch {
-        return false
-      }
+      return self.scheduleBackgroundTasks()
     }
+  }
+
+  private func registerBackgroundTasks() {
+    guard !tasksRegistered else {
+      return
+    }
+
+    BGTaskScheduler.shared.register(
+      forTaskWithIdentifier: Self.refreshTaskId,
+      using: nil
+    ) { [weak self] task in
+      self?.handleBackgroundRefresh(task: task as! BGAppRefreshTask)
+    }
+
+    BGTaskScheduler.shared.register(
+      forTaskWithIdentifier: Self.processingTaskId,
+      using: nil
+    ) { [weak self] task in
+      self?.handleBackgroundProcessing(task: task as! BGProcessingTask)
+    }
+
+    tasksRegistered = true
+  }
+
+  private func scheduleBackgroundTasks() -> Bool {
+    let refreshRequest = BGAppRefreshTaskRequest(identifier: Self.refreshTaskId)
+    refreshRequest.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
+
+    let processingRequest = BGProcessingTaskRequest(identifier: Self.processingTaskId)
+    processingRequest.requiresNetworkConnectivity = true
+    processingRequest.earliestBeginDate = Date(timeIntervalSinceNow: 30 * 60)
+
+    do {
+      try BGTaskScheduler.shared.submit(refreshRequest)
+      try BGTaskScheduler.shared.submit(processingRequest)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  private func handleBackgroundRefresh(task: BGAppRefreshTask) {
+    scheduleBackgroundTasks()
+
+    task.expirationHandler = { [weak self] in
+      self?.finishBackgroundWake()
+    }
+
+    guard running else {
+      task.setTaskCompleted(success: false)
+      return
+    }
+
+    setLifecycleState("background-wake")
+    task.setTaskCompleted(success: true)
+    finishBackgroundWake()
+  }
+
+  private func handleBackgroundProcessing(task: BGProcessingTask) {
+    scheduleBackgroundTasks()
+
+    task.expirationHandler = { [weak self] in
+      self?.finishBackgroundWake()
+    }
+
+    guard running else {
+      task.setTaskCompleted(success: false)
+      return
+    }
+
+    setLifecycleState("background-wake")
+    task.setTaskCompleted(success: true)
+    finishBackgroundWake()
+  }
+
+  private func finishBackgroundWake() {
+    guard running else {
+      setLifecycleState("stopped")
+      return
+    }
+
+    let next = UIApplication.shared.applicationState == .active ? "foreground" : "suspended"
+    setLifecycleState(next)
   }
 
   private func installLifecycleObservers() {
@@ -67,6 +148,7 @@ public final class TwistedPearNodeServiceModule: Module {
     ) { [weak self] _ in
       guard let self, self.running else { return }
       self.beginBackgroundGrace()
+      _ = self.scheduleBackgroundTasks()
     })
 
     observers.append(center.addObserver(

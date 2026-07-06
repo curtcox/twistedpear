@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./bonjour-mdns": {
+      "types": "./dist/bonjour-mdns.d.ts",
+      "import": "./dist/bonjour-mdns.js"
     }
   },
   "scripts": {

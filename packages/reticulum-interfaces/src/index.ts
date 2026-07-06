@@ -28,8 +28,6 @@ export {
   type BonjourServiceRecord
 } from "./bonjour.js";
 
-export { createMdnsBonjourBridge, type MdnsBonjourBridgeOptions } from "./bonjour-mdns.js";
-
 export {
   AUTO_ANNOUNCE_INTERVAL_MS,
   AUTO_BITRATE_GUESS,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createMdnsBonjourBridge } from "../src/bonjour-mdns.js";
+import { createMdnsBonjourBridge } from "@twistedpear/reticulum-interfaces/bonjour-mdns";
 
 describe("createMdnsBonjourBridge", () => {
   it("starts, advertises, and stops without throwing", async () => {

@@ -13,7 +13,7 @@ interface BonjourNative {
   getInterfaces(): ReadonlyArray<{ readonly name: string; readonly linkLocalAddress: string }>;
   advertise(record: BonjourServiceRecord): Promise<boolean>;
   addListener(event: "onServiceFound", listener: (event: BonjourServiceRecord) => void): EventSubscription;
-  addListener(event: "onServiceLost", listener: (event: { readonly message: string }) => void): EventSubscription;
+  addListener(event: "onServiceLost", listener: (event: { readonly id?: string; readonly message?: string }) => void): EventSubscription;
   addListener(event: "onNetworkChange", listener: (event: { readonly interfaces: ReadonlyArray<{ readonly name: string; readonly linkLocalAddress: string }> }) => void): EventSubscription;
 }
 
@@ -64,7 +64,11 @@ export function createNativeBonjourBridge(): BonjourBridge {
       });
 
       lostSubscription = NativeBonjour.addListener("onServiceLost", (event) => {
-        events.onError?.(event.message);
+        if ("id" in event && typeof event.id === "string") {
+          events.onServiceLost?.(event.id);
+        } else if ("message" in event && typeof event.message === "string") {
+          events.onError?.(event.message);
+        }
       });
 
       await NativeBonjour.start(serviceType);

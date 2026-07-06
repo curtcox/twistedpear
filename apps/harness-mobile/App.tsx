@@ -380,9 +380,9 @@ export default function App() {
 
     const subscription = addNodeLifecycleListener((event) => {
       setLifecycleState(event.state);
-      if (event.state === "background-grace" && status.running) {
+      if ((event.state === "background-grace" || event.state === "suspended") && status.running) {
         sendToWorklet({ type: "suspend-node" });
-      } else if (event.state === "foreground" && status.running) {
+      } else if ((event.state === "foreground" || event.state === "background-wake") && status.running) {
         sendToWorklet({ type: "resume-node" });
       }
     });
