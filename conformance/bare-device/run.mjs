@@ -11,22 +11,18 @@
 
 import { spawnSync } from "node:child_process";
 import { access } from "node:fs/promises";
-import {
-  DestinationDirection,
-  DestinationProofStrategy,
-  DestinationType,
-  Identity,
-  PureCryptoProvider,
-  Reticulum,
-  bareRuntime
-} from "../../packages/reticulum-ts/dist/index.js";
+import { hexToBytes } from "../../packages/reticulum-ts/dist/crypto/bytes.js";
+import { PureCryptoProvider } from "../../packages/reticulum-ts/dist/crypto/pure.js";
+import { DestinationDirection, DestinationProofStrategy, DestinationType } from "../../packages/reticulum-ts/dist/destination.js";
+import { Identity } from "../../packages/reticulum-ts/dist/identity.js";
+import { bareRuntime } from "../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
+import { Reticulum } from "../../packages/reticulum-ts/dist/reticulum.js";
 import {
   INTEROP_HOST,
   LEAF_ECHO_PORT,
   PacketReceiptStatus,
   bytesToAscii,
   expectReceipt,
-  hexToBytes,
   loadIdentityVectors,
   repoRoot,
   sleep,

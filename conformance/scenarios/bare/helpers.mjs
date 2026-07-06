@@ -6,11 +6,12 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PacketReceiptStatus } from "../../packages/reticulum-ts/dist/index.js";
+import { PacketReceiptStatus } from "../../packages/reticulum-ts/dist/packet-receipt.js";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
 export const LEAF_ECHO_PORT = Number.parseInt(process.env.LEAF_ECHO_PORT ?? "4242", 10);
+export const LXMF_ECHO_PORT = Number.parseInt(process.env.LXMF_ECHO_PORT ?? "4243", 10);
 export const LINK_ECHO_PORT = Number.parseInt(process.env.LINK_ECHO_PORT ?? "4244", 10);
 export const INTEROP_HOST = process.env.INTEROP_HOST ?? "127.0.0.1";
 

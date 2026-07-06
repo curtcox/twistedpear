@@ -4,21 +4,20 @@
  * Runs leaf-echo and link-echo scenarios using the Bare runtime adapter.
  */
 
-import {
-  DestinationDirection,
-  DestinationProofStrategy,
-  DestinationType,
-  Identity,
-  LinkStatus,
-  PureCryptoProvider,
-  Reticulum,
-  bareRuntime,
-  hexToBytes
-} from "../../packages/reticulum-ts/dist/index.js";
+import { hexToBytes } from "../../packages/reticulum-ts/dist/crypto/bytes.js";
+import { PureCryptoProvider } from "../../packages/reticulum-ts/dist/crypto/pure.js";
+import { DestinationDirection, DestinationProofStrategy, DestinationType } from "../../packages/reticulum-ts/dist/destination.js";
+import { Identity } from "../../packages/reticulum-ts/dist/identity.js";
+import { LinkStatus } from "../../packages/reticulum-ts/dist/link.js";
+import { bareRuntime } from "../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
+import { Reticulum } from "../../packages/reticulum-ts/dist/reticulum.js";
+import { LXMessageMethod } from "../../packages/lxmf-ts/dist/constants.js";
+import { LXMFRouter } from "../../packages/lxmf-ts/dist/router.js";
 import {
   INTEROP_HOST,
   LEAF_ECHO_PORT,
   LINK_ECHO_PORT,
+  LXMF_ECHO_PORT,
   PacketReceiptStatus,
   bytesToAscii,
   expectReceipt,
@@ -154,9 +153,57 @@ async function runLinkEcho() {
   console.log("bare-interop: link echo passed on Bare runtime");
 }
 
+async function runLxmfEcho() {
+  const alice = loadIdentity("alice");
+  const bob = loadIdentity("bob");
+
+  const reticulum = Reticulum.create({ provider, runtime });
+  reticulum.start();
+
+  await reticulum.addTcpClientInterface({
+    name: "python-lxmf-echo-bare",
+    targetHost: INTEROP_HOST,
+    targetPort: LXMF_ECHO_PORT
+  });
+
+  const router = new LXMFRouter({ reticulum, provider });
+  const aliceDelivery = router.registerDeliveryIdentity(alice);
+  const bobOut = router.createOutboundDestination(bob);
+
+  await aliceDelivery.announce();
+  await waitForPath(reticulum, bobOut.hash, 30_000);
+
+  const received = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("LXMF echo timeout")), 30_000);
+    router.onDelivery((message) => {
+      clearTimeout(timer);
+      resolve(message.contentAsString());
+    });
+  });
+
+  await router.packAndSend({
+    destination: bobOut,
+    source: aliceDelivery,
+    title: "Bare interop",
+    content: "Hello Python LXMF from Bare",
+    desiredMethod: LXMessageMethod.OPPORTUNISTIC,
+    deferStamp: true,
+    timestamp: 1_700_000_100
+  });
+
+  const echoed = await received;
+  if (echoed !== "Hello Python LXMF from Bare") {
+    throw new Error(`Unexpected LXMF echo payload: ${echoed}`);
+  }
+
+  reticulum.stop();
+  console.log("bare-interop: LXMF echo passed on Bare runtime");
+}
+
 async function main() {
   await runLeafEcho();
   await runLinkEcho();
+  await runLxmfEcho();
 }
 
 main().catch((error) => {

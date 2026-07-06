@@ -17,5 +17,8 @@
   },
   "dependencies": {
     "@twistedpear/reticulum-ts": "0.0.0"
+  },
+  "devDependencies": {
+    "@twistedpear/lxmf-ts": "0.0.0"
   }
 }
