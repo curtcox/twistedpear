@@ -241,6 +241,29 @@ jobs:
       - run: npm run test:dev-loop
       - run: npm run test:examples
 
+  devstudio-loop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run test:devstudio-loop
+
+  devstudio-loop-macos:
+    runs-on: macos-14
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run test:devstudio-loop
+
   miniapp-soak:
     runs-on: ubuntu-latest
     steps:

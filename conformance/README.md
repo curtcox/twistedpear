@@ -85,6 +85,7 @@ exit checklist before closing Phase 3.
 | Mini-app soak | `npm run test:miniapp-soak` | M8 |
 | Isolation benchmark (desktop) | `npm run test:miniapp-benchmark` | M0 |
 | Phase 4 demo | `npm run demo:phase4` | M8 |
+| DevStudio two-instance loop | `npm run test:devstudio-loop` | — |
 
 Peer-to-peer example interop (two sandboxed apps on two hosts) and 24 h launch/suspend/kill
 soak are nightly/device-gated per [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) (H9–H11).
