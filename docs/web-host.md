@@ -1,6 +1,6 @@
 # Web Host: a full TwistedPear host in the browser (plan)
 
-Status: **in progress** (Phase W1 complete; W-S2 landed) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed; `WebSandboxBackend` + W-S2 adversarial isolation spike landed.
+Status: **in progress** (Phase W1 complete; W-S2 + W-S3 landed) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed; `WebSandboxBackend` + W-S2 adversarial isolation spike landed; `packages/widget-renderer-rn` + W-S3 RNW widget preview landed.
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase W.
 
 The web host is a browser tab (React Native for Web via Expo web) that runs the
@@ -106,7 +106,8 @@ A first-class interface, not a private control channel: any in-browser
 - Host confirmation channel renders in RNW host chrome, outside the widget
   surface; unchanged guarantees since widget trees are validated data.
 - Extract the RN widget renderer from `apps/harness-mobile/host/miniapp-renderer.tsx`
-  into `packages/widget-renderer-rn`, consumed by mobile (RN) and web (RNW).
+  into `packages/widget-renderer-rn`, consumed by mobile (RN) and web (RNW). **W-S3 landed:**
+  shared package + harness re-export + `App.web.tsx` widget preview + Playwright render tests.
   The Electron DOM renderer (`apps/host-desktop/src/renderer/widgets.js`) can
   migrate to it later; not a prerequisite.
 
@@ -142,7 +143,7 @@ A first-class interface, not a private control channel: any in-browser
 |---|---|---|
 | W-S1 | `reticulum-ts` in a browser bundle + WS interface | Browser links to dockerized Python RNS through a `tp node` gateway; announce/link/packet golden parity |
 | W-S2 | Web sandbox isolation | Hostile bundle in sandboxed-iframe worker: no ambient storage, no network, busy loop killed < 1 s without reloading the tab | **Done (CI tier)** — `WebSandboxBackend` + `test:web-sandbox` (Playwright) |
-| W-S3 | RNW UI path | Harness UI + extracted widget renderer running under `expo start --web`, examples' widget trees render correctly |
+| W-S3 | RNW UI path | Harness UI + extracted widget renderer running under `expo start --web`, examples' widget trees render correctly | **Done (CI tier)** — `packages/widget-renderer-rn` + `test:web-widget-renderer` (Playwright) + `App.web.tsx` preview |
 | W-S4 | Browser storage | Install an example `.tpkg` into OPFS/IndexedDB CAS; survives reload; quota surfaced |
 
 ### Phase W1 — Reticulum leaf peer in the tab

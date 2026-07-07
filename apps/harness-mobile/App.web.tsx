@@ -1,11 +1,47 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { validateWidgetTree, type WidgetTree } from "@twistedpear/miniapp-runtime";
+import { MiniappWidgetTree } from "@twistedpear/widget-renderer-rn";
 import { createWebCoreBridge } from "./host/web-core-bridge";
 import type { AnnounceEntry, HostToWorkletMessage, WorkletStatus, WorkletToHostMessage } from "./worklet/protocol";
 
 const DEFAULT_PASSPHRASE = "harness-web-dev";
 const MAX_ANNOUNCES = 50;
+
+const helloWidgetTree = validateWidgetTree({
+  root: {
+    id: "root",
+    type: "view",
+    style: { padding: 16, gap: 8 },
+    children: [
+      { id: "title", type: "text", props: { value: "Hello" }, style: { fontSize: 20, fontWeight: "bold" } },
+      { id: "go", type: "button", props: { label: "Tap me", event: "hello.tap" } }
+    ]
+  }
+});
+
+const chatWidgetTree = validateWidgetTree({
+  root: {
+    id: "root",
+    type: "view",
+    style: { padding: 16, gap: 12 },
+    children: [
+      { id: "title", type: "text", props: { value: "Chat" }, style: { fontSize: 20, fontWeight: "bold" } },
+      {
+        id: "peer-input",
+        type: "text-input",
+        props: { value: "", placeholder: "Peer app id", event: "chat.peer" }
+      },
+      { id: "send", type: "button", props: { label: "Send hello", event: "chat.send" } },
+      {
+        id: "inbox-scroll",
+        type: "scroll",
+        children: [{ id: "inbox", type: "text", props: { value: "No messages yet" } }]
+      }
+    ]
+  }
+});
 
 const initialStatus: WorkletStatus = {
   running: false,
@@ -50,6 +86,17 @@ export default function App() {
   const [gatewayUrl, setGatewayUrl] = useState(defaultGatewayUrl());
   const [sharedToken, setSharedToken] = useState("");
   const [wsEnabled, setWsEnabled] = useState(false);
+  const [previewTree, setPreviewTree] = useState<WidgetTree>(helloWidgetTree);
+  const [lastWidgetEvent, setLastWidgetEvent] = useState<string | null>(null);
+
+  const previewOptions = useMemo(
+    () =>
+      [
+        { id: "hello", label: "Hello", tree: helloWidgetTree },
+        { id: "chat", label: "Chat panel", tree: chatWidgetTree }
+      ] as const,
+    []
+  );
 
   const bridgeRef = useRef<ReturnType<typeof createWebCoreBridge> | null>(null);
 
@@ -133,7 +180,7 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="auto" />
       <Text style={styles.title}>TwistedPear Web Host</Text>
-      <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W1)</Text>
+      <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W1 · W-S3 widget preview)</Text>
 
       <View style={styles.card}>
         <Text>Core worker: {status.running ? "running" : "stopped"}</Text>
@@ -185,6 +232,34 @@ export default function App() {
         </View>
         <Text style={styles.muted}>
           Identity keys are encrypted in IndexedDB under passphrase `{DEFAULT_PASSPHRASE}` (dev harness only).
+        </Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Widget preview (W-S3)</Text>
+        <Text style={styles.muted}>
+          Shared `@twistedpear/widget-renderer-rn` via react-native-web — same renderer as mobile harness.
+        </Text>
+        <View style={styles.buttonRow}>
+          {previewOptions.map((option) => (
+            <ActionButton
+              key={option.id}
+              testID={`widget-preview-${option.id}`}
+              label={option.label}
+              onPress={() => setPreviewTree(option.tree)}
+            />
+          ))}
+        </View>
+        <MiniappWidgetTree
+          tree={previewTree}
+          onEvent={(nodeId, event, value) => {
+            const detail =
+              value === undefined ? `${nodeId}:${event}` : `${nodeId}:${event}:${JSON.stringify(value)}`;
+            setLastWidgetEvent(detail);
+          }}
+        />
+        <Text testID="widget-last-event" style={styles.muted}>
+          Last event: {lastWidgetEvent ?? "none"}
         </Text>
       </View>
 

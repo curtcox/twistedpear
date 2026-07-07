@@ -89,7 +89,7 @@ node; event forgery for unknown nodes is rejected.
 
 Golden render-model fixtures live in `conformance/fixtures/widget-trees/` and are
 checked by `packages/miniapp-runtime/test/ui-golden.test.ts` (`describeWidgetTree`).
-The harness renderer in `apps/harness-mobile/host/miniapp-renderer.tsx` must stay aligned
+The harness renderer in `packages/widget-renderer-rn` must stay aligned
 with that model.
 
 ### Example

@@ -2,7 +2,7 @@ import type { WidgetNode, WidgetStyle, WidgetTree } from "./schema.js";
 
 /**
  * Canonical host render model for widget trees. Golden tests compare this structure
- * against committed fixtures; harness-mobile/miniapp-renderer.tsx must stay aligned.
+ * against committed fixtures; @twistedpear/widget-renderer-rn must stay aligned.
  */
 export interface RenderedWidgetNode {
   readonly component: string;

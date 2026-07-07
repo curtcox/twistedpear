@@ -180,7 +180,7 @@ Full plan: [docs/web-host.md](docs/web-host.md). Everything here runs on a dev m
 |---|---|---|
 | W-S1: browser `reticulum-ts` + WebSocket interface to Python RNS via gateway | web-host §W0 | **Done (CI tier)** — `test:web-interop` + `test:web-interop-browser` (Playwright) + `test:web-runtime` bundle guard |
 | W-S2: web sandbox isolation spike (opaque-origin iframe + worker, killability) | web-host §W0 | **Done (CI tier)** — `WebSandboxBackend` + `test:web-sandbox` (Playwright) + `measured-web.json` |
-| W-S3: Expo web UI + shared RNW widget renderer | web-host §W0 | Not started |
+| W-S3: Expo web UI + shared RNW widget renderer | web-host §W0 | **Done (CI tier)** — `packages/widget-renderer-rn` + `test:web-widget-renderer` (Playwright) + `App.web.tsx` preview |
 | W-S4: OPFS/IndexedDB CAS install of example `.tpkg` | web-host §W0 | Not started |
 | W1: leaf peer in the tab (runtime/web, WS interfaces, `tp node --ws-listen/--serve-web`, LXMF) | web-host §W1 | **Done (software tier)** — runtime/web, WS interfaces, gateway CLI, W-S1 interop, browser identity persistence, Playwright packet+LXMF, `createWebLeafHost` + FetchPlane, Expo web tab UI + `build:web-host` |
 | W2: mini-app runtime (`WebSandboxBackend`, broker/confirm, `widget-renderer-rn` extraction) | web-host §W2 | Not started |
@@ -223,4 +223,5 @@ Full plan: [docs/web-host.md](docs/web-host.md). Everything here runs on a dev m
 | `npm run test:web-interop` | W-S1: WS leaf peer → gateway → dockerized Python RNS |
 | `npm run test:web-interop-browser` | W-S1/W1: Playwright browser tab packet + LXMF echo through gateway |
 | `npm run test:web-sandbox` | W-S2: opaque-origin iframe worker isolation + busy-loop kill (Playwright) |
+| `npm run test:web-widget-renderer` | W-S3: RNW widget renderer golden trees + event wiring (Playwright) |
 | `npm run build:web-host` | Static Expo web bundle + core worker for `tp node --serve-web` |

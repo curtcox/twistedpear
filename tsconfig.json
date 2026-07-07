@@ -32,6 +32,9 @@
       "path": "./packages/host-core"
     },
     {
+      "path": "./packages/widget-renderer-rn"
+    },
+    {
       "path": "./apps/host-desktop"
     }
   ]
