@@ -32,7 +32,8 @@ The `interfaces` job runs `npm run test:integration-soak` (default 12 s; configu
 | Job | Command | Notes |
 |---|---|---|
 | `web` | `npm run test:web-runtime` | Browser bundle guard + `runtime/web` unit tests |
-| `interop` (lane) | `INTEROP=1 npm run test:web-interop` | W-S1: WS leaf → gateway → dockerized Python RNS |
+| `interop` (lane) | `INTEROP=1 npm run test:web-interop` | W-S1: WS leaf → gateway → dockerized Python RNS (Node orchestrator) |
+| `interop` (lane) | `INTEROP=1 npm run test:web-interop-browser` | W-S1/W1: Playwright browser tab packet + LXMF echo through gateway |
 
 `test:web-runtime` builds `@twistedpear/reticulum-ts/web` with esbuild (`--platform=browser`)
 and asserts no Node/Bare-only imports leak into the bundle.

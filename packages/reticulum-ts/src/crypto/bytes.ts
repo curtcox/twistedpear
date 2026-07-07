@@ -1,7 +1,7 @@
 import type { CryptoProvider } from "./provider.js";
 
 export function bytesToHex(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString("hex");
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 export function hexToBytes(hex: string): Uint8Array {
@@ -9,7 +9,12 @@ export function hexToBytes(hex: string): Uint8Array {
     throw new Error("Hex strings must contain an even number of characters");
   }
 
-  return Uint8Array.from(Buffer.from(hex, "hex"));
+  const output = new Uint8Array(hex.length / 2);
+  for (let index = 0; index < output.length; index += 1) {
+    output[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+  }
+
+  return output;
 }
 
 export function hashBytes(provider: CryptoProvider, bytes: Uint8Array): string {

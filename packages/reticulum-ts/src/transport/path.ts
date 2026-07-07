@@ -62,8 +62,10 @@ export function pathRequestTagKey(destinationHash: Uint8Array, tag: Uint8Array):
   return hashKey(destinationHash) + hashKey(tag);
 }
 
+import { bytesToHex } from "../crypto/bytes.js";
+
 function hashKey(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString("hex");
+  return bytesToHex(bytes);
 }
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {

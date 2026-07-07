@@ -340,6 +340,8 @@ jobs:
           path: conformance/link-benchmark/measured.json
       - run: npm run test:interop
       - run: INTEROP=1 npm run test:web-interop
+      - run: npx playwright install chromium --with-deps
+      - run: INTEROP=1 npm run test:web-interop-browser
 
   web:
     runs-on: ubuntu-latest

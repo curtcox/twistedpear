@@ -73,3 +73,5 @@ export {
 } from "./resource.js";
 export type { ResourceCallbacks, ResourceOptions, ResourceStatusValue } from "./resource.js";
 export { hashBytes, hexToBytes, bytesToHex, equalBytes } from "./crypto/bytes.js";
+export { loadOrCreateWebIdentity, persistWebIdentity } from "./web-identity.js";
+export type { WebIdentityOptions, WebIdentityUnlockOptions } from "./web-identity.js";

@@ -4,6 +4,7 @@ import {
   DestinationDirection,
   DestinationType,
   DestinationProofStrategy,
+  bytesToHex,
   equalBytes,
   Identity,
   LinkStatus,
@@ -179,7 +180,7 @@ export class LXMFRouter {
     }
 
     const recipientIdentity = destination.identity;
-    const destinationKey = Buffer.from(destination.hash).toString("hex");
+    const destinationKey = bytesToHex(destination.hash);
     let link = this.directLinks.get(destinationKey) ?? null;
     if (link === null || link.status !== LinkStatus.ACTIVE) {
       const outbound = this.reticulum.registerDestination({
@@ -333,7 +334,7 @@ export class LXMFRouter {
   }
 
   trackDirectLink(destinationHash: Uint8Array, link: Link): void {
-    this.directLinks.set(Buffer.from(destinationHash).toString("hex"), link);
+    this.directLinks.set(bytesToHex(destinationHash), link);
     this.handleDeliveryLink(link);
   }
 
@@ -349,7 +350,7 @@ export class LXMFRouter {
       }
 
       if (message.hash !== null) {
-        const key = Buffer.from(message.hash).toString("hex");
+        const key = bytesToHex(message.hash);
         if (this.seenMessages.has(key)) {
           return null;
         }

@@ -1,6 +1,6 @@
 import type { CryptoProvider } from "../crypto/provider.js";
 import { Announce, type ParsedAnnounce } from "../announce.js";
-import { equalBytes } from "../crypto/bytes.js";
+import { bytesToHex, equalBytes } from "../crypto/bytes.js";
 import { Destination, DestinationDirection, DestinationType, type DestinationTypeValue, type DestinationDirectionValue } from "../destination.js";
 import { Identity, TRUNCATED_HASH_LENGTH } from "../identity.js";
 import type { PacketInterface } from "../interfaces/interface.js";
@@ -694,7 +694,7 @@ export class LeafTransport {
 }
 
 export function hashKey(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString("hex");
+  return bytesToHex(bytes);
 }
 
 export function cloneWithHops(provider: CryptoProvider, packet: Packet, hops: number): Packet {

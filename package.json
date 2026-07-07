@@ -61,6 +61,7 @@
     "test:serialport-load": "npm run build && node conformance/serialport-load/run.mjs",
     "test:web-runtime": "node conformance/web-runtime/run.mjs",
     "test:web-interop": "npm run build && INTEROP=1 node conformance/web-interop/run.mjs",
+    "test:web-interop-browser": "npm run build && INTEROP=1 node conformance/web-interop-browser/run.mjs",
     "test:fuzz": "vitest run packages/reticulum-ts/test/fuzz.test.ts packages/lxmf-ts/test/fuzz.test.ts",
     "docs:reticulum-ts": "npm run docs --workspace=@twistedpear/reticulum-ts",
     "test:transport-role": "npm run build && node conformance/transport-role/run.mjs",
@@ -83,6 +84,7 @@
     "bare-pack": "^1.5.0",
     "bare-tcp": "^2.5.1",
     "hyperswarm": "^4.13.0",
+    "playwright": "^1.49.1",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }

@@ -4,6 +4,7 @@ import {
   DestinationDirection,
   DestinationType,
   Identity,
+  bytesToHex,
   equalBytes
 } from "@twistedpear/reticulum-ts";
 import {
@@ -329,7 +330,7 @@ export function rememberMessage(seen: Set<string>, message: LXMessage): void {
     return;
   }
 
-  seen.add(Buffer.from(message.hash).toString("hex"));
+  seen.add(bytesToHex(message.hash));
 }
 
 export function messagesEqual(left: LXMessage, right: LXMessage): boolean {

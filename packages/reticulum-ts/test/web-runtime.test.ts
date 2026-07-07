@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PureCryptoProvider, Reticulum, webRuntime } from "../src/web.js";
+import { PureCryptoProvider, Reticulum, bytesToHex, loadOrCreateWebIdentity, persistWebIdentity, webRuntime } from "../src/web.js";
 
 type IndexedDbRequest<T> = {
   readonly result: T;
@@ -132,5 +132,44 @@ describe("webRuntime", () => {
     reticulum.start();
     expect(reticulum.isStarted).toBe(true);
     expect(reticulum.isTransportEnabled).toBe(false);
+  });
+});
+
+describe("web identity", () => {
+  it("creates, persists, and reloads an encrypted identity", async () => {
+    const provider = new PureCryptoProvider();
+    const indexedDB = new MemoryIndexedDb();
+    const options = { indexedDB, storeName: "test-web-identity", passphrase: "phase-w-test" };
+
+    const created = await loadOrCreateWebIdentity(provider, options);
+    const createdHash = bytesToHex(created.hash);
+    await persistWebIdentity(created, options);
+
+    const reloaded = await loadOrCreateWebIdentity(provider, options);
+    expect(bytesToHex(reloaded.hash)).toBe(createdHash);
+    expect(reloaded.getPrivateKey()).toEqual(created.getPrivateKey());
+  });
+
+  it("rejects the wrong unlock passphrase", async () => {
+    const provider = new PureCryptoProvider();
+    const indexedDB = new MemoryIndexedDb();
+    const created = await loadOrCreateWebIdentity(provider, {
+      indexedDB,
+      storeName: "test-web-identity-wrong-pass",
+      passphrase: "correct-passphrase"
+    });
+    await persistWebIdentity(created, {
+      indexedDB,
+      storeName: "test-web-identity-wrong-pass",
+      passphrase: "correct-passphrase"
+    });
+
+    await expect(
+      loadOrCreateWebIdentity(provider, {
+        indexedDB,
+        storeName: "test-web-identity-wrong-pass",
+        passphrase: "wrong-passphrase"
+      })
+    ).rejects.toThrow();
   });
 });

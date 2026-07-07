@@ -284,8 +284,8 @@ describe("provider cross-check", () => {
     const iv = hexToBytes("aabbccddeeff00112233445566778899");
     const plaintext = hexToBytes("68656c6c6f207265746963756c756d");
 
-    const nodeToken = new Token(nodeProvider!, hexToBytes(key));
-    const pureToken = new Token(pureProvider!, hexToBytes(key));
+    const nodeToken = new Token(nodeProvider!, key);
+    const pureToken = new Token(pureProvider!, key);
 
     expect(bytesToHex(nodeToken.encrypt(plaintext, { iv }))).toBe(
       bytesToHex(pureToken.encrypt(plaintext, { iv }))
