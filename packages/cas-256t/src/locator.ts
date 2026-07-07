@@ -100,8 +100,26 @@ function locatorSigningPayload(locator: Omit<CasLocator, "signature">): Uint8Arr
     size,
     hexToBytes(locator.packageHash),
     hexToBytes(locator.driveKey),
-    writeString(locator.publisherPublicKey)
+    writeBytes(hexToBytes(locator.publisherPublicKey))
   );
+}
+
+// Raw length-prefixed bytes: the publisher key as hex text would blow the
+// Reticulum announce MTU (announce overhead + app_data must stay under 500).
+function writeBytes(bytes: Uint8Array): Uint8Array {
+  if (bytes.length > 255) {
+    throw new T256Error("INVALID_ID", "Locator byte field exceeds 255 bytes");
+  }
+
+  const out = new Uint8Array(1 + bytes.length);
+  out[0] = bytes.length;
+  out.set(bytes, 1);
+  return out;
+}
+
+function readBytes(bytes: Uint8Array, offset: number): { value: Uint8Array; offset: number } {
+  const length = bytes[offset]!;
+  return { value: Uint8Array.from(bytes.subarray(offset + 1, offset + 1 + length)), offset: offset + 1 + length };
 }
 
 export function signCasLocator(
@@ -182,7 +200,7 @@ export function decodeCasLocator(bytes: Uint8Array): CasLocator {
   const driveKey = bytesToHex(bytes.subarray(offset, offset + 32));
   offset += 32;
 
-  const publisherPublicKey = readString(bytes, offset);
+  const publisherPublicKey = readBytes(bytes, offset);
   offset = publisherPublicKey.offset;
 
   const signature = bytesToHex(bytes.subarray(offset, offset + 64));
@@ -195,7 +213,7 @@ export function decodeCasLocator(bytes: Uint8Array): CasLocator {
     driveKey,
     packageHash,
     packageSize,
-    publisherPublicKey: publisherPublicKey.value,
+    publisherPublicKey: bytesToHex(publisherPublicKey.value),
     signature
   };
 }
