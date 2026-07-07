@@ -1,4 +1,4 @@
-export type ConfirmationKind = "package" | "publish" | "install" | "trust-import";
+export type ConfirmationKind = "package" | "publish" | "install" | "preview" | "trust-import";
 
 export interface ConfirmationRequest {
   readonly token: string;

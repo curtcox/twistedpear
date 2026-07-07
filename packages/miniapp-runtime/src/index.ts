@@ -64,6 +64,15 @@ export { createOpenRouterBackend } from "./services/ai-openrouter.js";
 export type { OpenRouterBackendOptions } from "./services/ai-openrouter.js";
 export { DEFAULT_WORKSPACE_LIMITS, WorkspaceError, WorkspaceService, validateWorkspacePath } from "./services/workspace.js";
 export type { WorkspaceFileInfo, WorkspaceLimits } from "./services/workspace.js";
+export { AppsService, AppsServiceError } from "./services/apps.js";
+export type {
+  AppManifestDraft,
+  AppsBackend,
+  AppsInstallResult,
+  AppsPackageResult,
+  AppsPublishResult
+} from "./services/apps.js";
+export type { CasShareBackend } from "./host.js";
 export {
   CODE_EDITOR_LANGUAGES,
   MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH,

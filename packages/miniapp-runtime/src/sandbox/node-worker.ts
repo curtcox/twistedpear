@@ -212,7 +212,13 @@ function normalizeWireValue(value: unknown): unknown {
   }
 
   if (Array.isArray(value)) {
-    return new Uint8Array(value);
+    // Only all-numeric arrays are byte payloads; structured results
+    // (e.g. workspace.list) must survive as arrays of objects.
+    if (value.length > 0 && value.every((item) => typeof item === "number")) {
+      return new Uint8Array(value);
+    }
+
+    return value.map(normalizeWireValue);
   }
 
   if (value !== null && typeof value === "object") {

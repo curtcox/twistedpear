@@ -8,6 +8,7 @@ import { NamespacedLxmfService } from "./services/lxmf.js";
 import { PresenceService, type PresenceBackend } from "./services/presence.js";
 import { ResourceService, type ResourceFetchBackend } from "./services/resource.js";
 import { AiService, AiServiceError, type AiChatBackend, type AiChatRequest } from "./services/ai.js";
+import { AppsService, AppsServiceError, type AppsBackend } from "./services/apps.js";
 import { WorkspaceService, type WorkspaceLimits } from "./services/workspace.js";
 import type { StorageBeeBackend } from "./services/storage-bee.js";
 import { NamespacedKvService, type MiniappKvStoreBackend } from "./services/storage-kv.js";
@@ -62,6 +63,13 @@ export interface MiniappHostOptions {
   readonly confirmationChannel?: HostConfirmationChannel;
   readonly aiBackend?: AiChatBackend;
   readonly workspaceLimits?: Partial<WorkspaceLimits>;
+  readonly appsBackend?: AppsBackend;
+  readonly casBackend?: CasShareBackend;
+}
+
+export interface CasShareBackend {
+  put(appId: string, content: Uint8Array): Promise<{ t256: string; size: number }>;
+  get(appId: string, t256: string): Promise<Uint8Array | null>;
 }
 
 export interface ResourceLimitUpdate {
@@ -107,6 +115,7 @@ export class MiniappHost {
   private readonly resourceService: ResourceService | null;
   private readonly presenceService: PresenceService | null;
   private readonly aiService: AiService | null;
+  private readonly appsService: AppsService | null;
   readonly workspace: WorkspaceService;
 
   private active: ActiveApp | null = null;
@@ -131,6 +140,8 @@ export class MiniappHost {
     this.presenceService =
       options.presenceBackend === undefined ? null : new PresenceService(options.presenceBackend);
     this.aiService = options.aiBackend === undefined ? null : new AiService(options.aiBackend);
+    this.appsService =
+      options.appsBackend === undefined ? null : new AppsService(options.appsBackend, options.confirmationChannel);
     this.workspace = new WorkspaceService(options.kvBackend, options.workspaceLimits);
     this.registerHandlers();
   }
@@ -500,6 +511,60 @@ export class MiniappHost {
       }
 
       return this.aiService.chat(context.appId, request.payload as AiChatRequest);
+    });
+
+    const appsService = () => {
+      if (this.appsService === null) {
+        throw new AppsServiceError("APPS_UNCONFIGURED", "App packaging is not configured on this host");
+      }
+
+      return this.appsService;
+    };
+
+    this.broker.register("apps", "package", "apps:package", async (request, context) =>
+      appsService().package(context, request.payload as { projectPrefix: string; manifest: unknown })
+    );
+
+    this.broker.register("apps", "publish", "apps:publish", async (request, context) =>
+      appsService().publish(context, request.payload as { t256: unknown })
+    );
+
+    this.broker.register("apps", "install", "apps:install", async (request, context) =>
+      appsService().install(context, request.payload as { t256: unknown })
+    );
+
+    this.broker.register("apps", "preview", "apps:preview", async (request, context) =>
+      appsService().preview(context, request.payload as { projectPrefix: string; manifest: unknown; grants: unknown })
+    );
+
+    this.broker.register("apps", "stopPreview", "apps:preview", async (_request, context) => {
+      await appsService().stopPreview(context);
+      return { ok: true };
+    });
+
+    this.broker.register("share.cas", "put", "share:cas", async (request, context) => {
+      const casBackend = this.options.casBackend;
+      if (casBackend === undefined) {
+        throw new Error("Content-addressed sharing is not configured on this host");
+      }
+
+      const content = (request.payload as { content: string }).content;
+      if (typeof content !== "string") {
+        throw new Error("share.cas content must be a string");
+      }
+
+      return casBackend.put(context.appId, new TextEncoder().encode(content));
+    });
+
+    this.broker.register("share.cas", "get", "share:cas", async (request, context) => {
+      const casBackend = this.options.casBackend;
+      if (casBackend === undefined) {
+        throw new Error("Content-addressed sharing is not configured on this host");
+      }
+
+      const t256 = (request.payload as { t256: string }).t256;
+      const bytes = await casBackend.get(context.appId, t256);
+      return { content: bytes === null ? null : new TextDecoder().decode(bytes) };
     });
 
     this.broker.register("presence", "snapshot", "presence", async () => {
