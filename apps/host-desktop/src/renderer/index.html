@@ -43,6 +43,18 @@
             RNode port
             <input type="text" id="setting-rnode-port" placeholder="/dev/ttyUSB0" class="setting-input" />
           </label>
+          <label>
+            AI endpoint (OpenRouter-compatible)
+            <input type="text" id="setting-ai-url" placeholder="https://openrouter.ai/api/v1" class="setting-input" />
+          </label>
+          <label>
+            AI API key
+            <input type="password" id="setting-ai-key" class="setting-input" />
+          </label>
+          <label>
+            AI model
+            <input type="text" id="setting-ai-model" placeholder="anthropic/claude-sonnet-5" class="setting-input" />
+          </label>
         </div>
       </section>
       <section class="panel">
@@ -50,10 +62,37 @@
         <div id="widget-root"></div>
       </section>
       <section class="panel">
+        <h2>Runtime controls</h2>
+        <div id="limits-panel" class="settings-grid">
+          <p id="limits-app" class="muted">No mini-app selected</p>
+          <label>
+            Broker messages/second
+            <input type="number" id="limit-rate" min="1" class="setting-input" />
+          </label>
+          <label>
+            KV quota (bytes)
+            <input type="number" id="limit-kv" min="0" class="setting-input" />
+          </label>
+          <label>
+            Memory (bytes, applies on next launch)
+            <input type="number" id="limit-memory" min="1" class="setting-input" />
+          </label>
+          <p id="limits-note" class="muted"></p>
+          <div class="item-row">
+            <button id="limits-apply">Apply limits</button>
+            <button id="force-quit" class="danger">Force quit</button>
+          </div>
+        </div>
+      </section>
+      <section class="panel">
         <h2>Log</h2>
         <pre id="log"></pre>
       </section>
     </main>
+    <div id="host-modal-overlay" class="modal-overlay" hidden>
+      <div id="host-modal" class="modal" role="dialog" aria-modal="true"></div>
+    </div>
+    <script src="./vendor/qrcode.js"></script>
     <script type="module" src="./app.js"></script>
   </body>
 </html>

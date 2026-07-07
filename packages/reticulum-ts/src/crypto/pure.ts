@@ -3,6 +3,7 @@ import { ed25519, x25519 } from "@noble/curves/ed25519.js";
 import { hmac } from "@noble/hashes/hmac.js";
 import { hkdf as nobleHkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha256.js";
+import { sha512 } from "@noble/hashes/sha512.js";
 import { randomBytes } from "@noble/hashes/utils.js";
 import type { CryptoProvider, HkdfInput } from "./provider.js";
 
@@ -16,6 +17,10 @@ export class PureCryptoProvider implements CryptoProvider {
 
   sha256(data: Uint8Array): Uint8Array {
     return sha256(data);
+  }
+
+  sha512(data: Uint8Array): Uint8Array {
+    return sha512(data);
   }
 
   hmacSha256(key: Uint8Array, data: Uint8Array): Uint8Array {

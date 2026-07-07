@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@twistedpear/host-core": "0.1.0",
-    "@twistedpear/reticulum-interfaces": "0.2.0"
+    "@twistedpear/reticulum-interfaces": "0.2.0",
+    "qrcode-generator": "^1.5.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -35,13 +36,21 @@
     },
     "mac": {
       "category": "public.app-category.utilities",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "linux": {
-      "target": ["AppImage", "deb"]
+      "target": [
+        "AppImage",
+        "deb"
+      ]
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     }
   }
 }

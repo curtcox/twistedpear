@@ -53,6 +53,13 @@ export interface HostInterfaceConfig {
   readonly rnode: RnodeInterfaceConfig;
 }
 
+export interface HostAiConfig {
+  readonly baseUrl: string;
+  readonly apiKey: string;
+  readonly model: string;
+  readonly allowedModels?: ReadonlyArray<string>;
+}
+
 export interface HostConfig {
   readonly dataDir: string;
   readonly identityPath: string;
@@ -61,6 +68,7 @@ export interface HostConfig {
   readonly interfaces: HostInterfaceConfig;
   readonly quotas: HostQuotas;
   readonly statusEndpoint: boolean;
+  readonly ai: HostAiConfig | null;
 }
 
 export const DEFAULT_QUOTAS: HostQuotas = {
@@ -104,7 +112,8 @@ export function defaultHostConfig(overrides: Partial<HostConfig> = {}): HostConf
     roles: overrides.roles ?? DEFAULT_DESKTOP_ROLES,
     interfaces: overrides.interfaces ?? DEFAULT_INTERFACE_CONFIG,
     quotas: overrides.quotas ?? DEFAULT_QUOTAS,
-    statusEndpoint: overrides.statusEndpoint ?? false
+    statusEndpoint: overrides.statusEndpoint ?? false,
+    ai: overrides.ai ?? null
   };
 }
 

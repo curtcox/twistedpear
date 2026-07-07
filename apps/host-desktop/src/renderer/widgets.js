@@ -1,16 +1,16 @@
 /** DOM widget renderer — mirrors harness-mobile MiniappWidgetTree contract. */
 
-export function renderWidgetTree(root, container, onEvent) {
+export function renderWidgetTree(root, container, onEvent, options = {}) {
   container.replaceChildren();
   if (!root?.root) {
     container.textContent = "No widget tree";
     return;
   }
 
-  container.appendChild(renderNode(root.root, onEvent));
+  container.appendChild(renderNode(root.root, onEvent, options));
 }
 
-function renderNode(node, onEvent) {
+function renderNode(node, onEvent, options = {}) {
   const style = node.style ?? {};
 
   switch (node.type) {
@@ -19,7 +19,7 @@ function renderNode(node, onEvent) {
       element.className = "widget-view";
       applyStyle(element, style);
       for (const child of node.children ?? []) {
-        element.appendChild(renderNode(child, onEvent));
+        element.appendChild(renderNode(child, onEvent, options));
       }
       return element;
     }
@@ -72,7 +72,7 @@ function renderNode(node, onEvent) {
       const element = document.createElement("div");
       applyStyle(element, style);
       for (const child of node.children ?? []) {
-        element.appendChild(renderNode(child, onEvent));
+        element.appendChild(renderNode(child, onEvent, options));
       }
       return element;
     }
@@ -105,6 +105,84 @@ function renderNode(node, onEvent) {
       const element = document.createElement("p");
       element.className = "widget-muted";
       element.textContent = `Image: ${String(node.props?.asset ?? "")}`;
+      return element;
+    }
+    case "code-editor": {
+      const element = document.createElement("textarea");
+      element.className = "widget-input widget-code-editor";
+      element.spellcheck = false;
+      element.readOnly = Boolean(node.props?.readOnly);
+      const documentId = String(node.props?.documentId ?? "");
+      element.dataset.documentId = documentId;
+      applyStyle(element, style);
+
+      // Content-by-reference: the tree carries only a documentId; the host
+      // resolves file content itself, so app state stays in the workspace.
+      if (typeof options.readDocument === "function" && documentId.length > 0) {
+        void options.readDocument(documentId).then(
+          (content) => {
+            if (typeof content === "string" && document.activeElement !== element) {
+              element.value = content;
+            }
+          },
+          () => {
+            element.placeholder = `Unable to load ${documentId}`;
+          }
+        );
+      }
+
+      let debounce = null;
+      element.addEventListener("input", () => {
+        const event = node.props?.event;
+        if (typeof event !== "string") {
+          return;
+        }
+
+        if (debounce !== null) {
+          clearTimeout(debounce);
+        }
+        debounce = setTimeout(() => {
+          debounce = null;
+          onEvent?.(node.id, event, { documentId, text: element.value });
+        }, 300);
+      });
+      return element;
+    }
+    case "qr-code": {
+      const element = document.createElement("figure");
+      element.className = "widget-qr";
+      const value = String(node.props?.value ?? "");
+      const qrFactory = globalThis.qrcode;
+      if (typeof qrFactory === "function") {
+        try {
+          const qr = qrFactory(0, "M");
+          qr.addData(value);
+          qr.make();
+          const svgHost = document.createElement("div");
+          svgHost.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
+          const svg = svgHost.firstElementChild;
+          if (svg !== null) {
+            const size = typeof node.props?.size === "number" ? node.props.size : 192;
+            svg.setAttribute("width", String(size));
+            svg.setAttribute("height", String(size));
+            element.appendChild(svg);
+          }
+        } catch {
+          // fall through to the copyable string below
+        }
+      }
+
+      const text = document.createElement("figcaption");
+      text.className = "widget-qr-value";
+      text.textContent = value;
+      element.appendChild(text);
+
+      if (typeof node.props?.caption === "string") {
+        const caption = document.createElement("p");
+        caption.className = "widget-muted";
+        caption.textContent = node.props.caption;
+        element.appendChild(caption);
+      }
       return element;
     }
     default: {

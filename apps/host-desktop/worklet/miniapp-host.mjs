@@ -5,9 +5,11 @@ import {
   MiniappHost,
   createSandboxBackend,
   describeCapability,
+  generateConfirmationToken,
   isMiniappCapability,
   validateManifestCapabilities
 } from "../../../packages/miniapp-runtime/dist/index.js";
+import { createOpenRouterBackend } from "../../../packages/miniapp-runtime/dist/index.js";
 import { unpackPackage } from "../../../packages/app-registry/dist/index.js";
 
 /**
@@ -19,6 +21,8 @@ export function createWorkletMiniappHost(options) {
   let developerMode = false;
   let devBadge = false;
   let watchdogTimer = null;
+  /** @type {{baseUrl: string, apiKey: string, model: string, allowedModels?: string[]} | null} */
+  let aiConfig = options.aiConfig ?? null;
   const beeBackend = new CorestoreBeeBackend(options.beeStoragePath ?? "miniapp-bee-store");
   const beeReady = beeBackend.ready();
 
@@ -26,6 +30,23 @@ export function createWorkletMiniappHost(options) {
     backend: createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
     grantStore,
     kvBackend: kvStore,
+    confirmationChannel:
+      options.requestUserConfirmation === undefined
+        ? undefined
+        : { confirm: (request) => options.requestUserConfirmation(request) },
+    aiBackend:
+      options.aiBackend ??
+      {
+        // Config can arrive after construction; resolve it per call. The key
+        // stays in the worklet — only sanitized request/response cross the broker.
+        chat: async (appId, request) => {
+          if (aiConfig === null || !aiConfig.baseUrl || !aiConfig.apiKey) {
+            throw new Error("AI is not configured on this host (set it in Settings)");
+          }
+
+          return createOpenRouterBackend(aiConfig).chat(appId, request);
+        }
+      },
     beeBackend: {
       descriptor: (appId) => beeBackend.descriptor(appId),
       get: async (appId, key) => {
@@ -177,9 +198,34 @@ export function createWorkletMiniappHost(options) {
       await grantStore.delete(appId, publisherPublicKey);
     },
 
-    async launch(installedStore, runtime, appId) {
+    async launch(installedStore, runtime, appId, launchOptions = {}) {
       devBadge = false;
       const { record, bundle } = await loadBundleForApp(installedStore, runtime, appId);
+
+      if (launchOptions.skipReview !== true && options.requestLaunchReview !== undefined) {
+        const declared = validateManifestCapabilities(record.manifest.capabilities);
+        const preGranted = new Set((await grantStore.get(record.appId, record.manifest.publisherPublicKey))?.granted ?? []);
+        const reply = await options.requestLaunchReview({
+          token: generateConfirmationToken(),
+          appId: record.appId,
+          publisherPublicKey: record.manifest.publisherPublicKey,
+          version: record.manifest.version,
+          capabilities: declared.map((id) => ({
+            id,
+            description: describeCapability(id),
+            granted: preGranted.has(id)
+          }))
+        });
+        if (reply === null || reply.accept !== true) {
+          throw new Error("Launch cancelled at capability review");
+        }
+
+        if (Array.isArray(reply.grants)) {
+          await grantStore.set(record.appId, record.manifest.publisherPublicKey, record.manifest.capabilities, reply.grants);
+          pushGrants(record.appId, record.manifest.publisherPublicKey, record.manifest.capabilities);
+        }
+      }
+
       const grants = await grantStore.get(record.appId, record.manifest.publisherPublicKey);
       if (grants === null || grants.granted.length === 0) {
         throw new Error("Grant at least one declared capability before launch");
@@ -206,15 +252,40 @@ export function createWorkletMiniappHost(options) {
       pushRuntime();
     },
 
-    async stop() {
+    async stop(reason = "stopped") {
       if (watchdogTimer !== null) {
         clearInterval(watchdogTimer);
         watchdogTimer = null;
       }
 
       devBadge = false;
-      await host.stop();
+      await host.stop(reason);
       pushRuntime();
+    },
+
+    setAiConfig(config) {
+      aiConfig = config ?? null;
+    },
+
+    async readWorkspaceFile(documentId) {
+      const snapshot = host.snapshot();
+      if (snapshot.appId === null) {
+        throw new Error("No mini-app is running");
+      }
+
+      return host.workspace.read(snapshot.appId, documentId);
+    },
+
+    setLimits(appId, update) {
+      const limits = host.setResourceLimits(appId, update);
+      options.send({ type: "limits", limits });
+      return limits;
+    },
+
+    getLimits(appId) {
+      const limits = host.getResourceLimits(appId);
+      options.send({ type: "limits", limits });
+      return limits;
     },
 
     async suspend(reason = "host-suspended") {

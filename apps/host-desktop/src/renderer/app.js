@@ -7,7 +7,20 @@ const grantsPanel = document.querySelector("#grants-panel");
 const logEl = document.querySelector("#log");
 const widgetRoot = document.querySelector("#widget-root");
 
+const modalOverlay = document.querySelector("#host-modal-overlay");
+const modalEl = document.querySelector("#host-modal");
+const limitsApp = document.querySelector("#limits-app");
+const limitRate = document.querySelector("#limit-rate");
+const limitKv = document.querySelector("#limit-kv");
+const limitMemory = document.querySelector("#limit-memory");
+const limitsNote = document.querySelector("#limits-note");
+const limitsApply = document.querySelector("#limits-apply");
+const forceQuit = document.querySelector("#force-quit");
+
 const settingDeveloper = document.querySelector("#setting-developer");
+const settingAiUrl = document.querySelector("#setting-ai-url");
+const settingAiKey = document.querySelector("#setting-ai-key");
+const settingAiModel = document.querySelector("#setting-ai-model");
 const settingPropagation = document.querySelector("#setting-propagation");
 const settingTcp = document.querySelector("#setting-tcp");
 const settingAuto = document.querySelector("#setting-auto");
@@ -19,6 +32,130 @@ let catalogEntries = [];
 let installedPackages = [];
 /** @type {string | null} */
 let selectedAppId = null;
+/** @type {string | null} */
+let runningAppId = null;
+/** @type {Map<string, {resolve: (content: string) => void, reject: (error: Error) => void}>} */
+const pendingWorkspaceReads = new Map();
+let workspaceReadCounter = 0;
+
+function readWorkspaceDocument(documentId) {
+  return new Promise((resolve, reject) => {
+    const token = `ws-${workspaceReadCounter++}`;
+    const timer = setTimeout(() => {
+      pendingWorkspaceReads.delete(token);
+      reject(new Error("Workspace read timed out"));
+    }, 10_000);
+    pendingWorkspaceReads.set(token, {
+      resolve: (content) => {
+        clearTimeout(timer);
+        resolve(content);
+      },
+      reject: (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    });
+    host?.send({ type: "workspace-read", token, documentId });
+  });
+}
+
+function closeHostModal() {
+  if (modalOverlay) {
+    modalOverlay.hidden = true;
+  }
+  modalEl?.replaceChildren();
+}
+
+/**
+ * Host-chrome modal. Lives outside #widget-root so a mini-app widget tree can
+ * never draw or dismiss it; identity fields come from the worklet message.
+ */
+function showHostModal({ title, fingerprint, rows = [], capabilities = null, confirmLabel, onDone }) {
+  if (!modalOverlay || !modalEl) {
+    onDone(false, null);
+    return;
+  }
+
+  modalEl.replaceChildren();
+  const heading = document.createElement("h3");
+  heading.textContent = title;
+  modalEl.appendChild(heading);
+
+  if (fingerprint) {
+    const fp = document.createElement("p");
+    fp.className = "fingerprint";
+    fp.textContent = `Publisher key: ${fingerprint}`;
+    modalEl.appendChild(fp);
+  }
+
+  for (const [label, value] of rows) {
+    const row = document.createElement("p");
+    row.innerHTML = `<span class="muted">${label}:</span> `;
+    row.appendChild(document.createTextNode(String(value)));
+    modalEl.appendChild(row);
+  }
+
+  /** @type {HTMLInputElement[]} */
+  const capabilityInputs = [];
+  if (capabilities !== null) {
+    for (const capability of capabilities) {
+      const label = document.createElement("label");
+      label.className = "grant-row";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = capability.granted;
+      input.dataset.capabilityId = capability.id;
+      capabilityInputs.push(input);
+      const text = document.createElement("span");
+      text.textContent = `${capability.id} — ${capability.description || ""}`;
+      label.append(input, text);
+      modalEl.appendChild(label);
+    }
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "modal-actions";
+  const cancel = document.createElement("button");
+  cancel.textContent = "Cancel";
+  cancel.addEventListener("click", () => {
+    closeHostModal();
+    onDone(false, null);
+  });
+  const approve = document.createElement("button");
+  approve.className = "primary";
+  approve.textContent = confirmLabel;
+  approve.addEventListener("click", () => {
+    const grants = capabilityInputs
+      .filter((input) => input.checked)
+      .map((input) => input.dataset.capabilityId)
+      .filter((id) => typeof id === "string");
+    closeHostModal();
+    onDone(true, capabilities === null ? null : grants);
+  });
+  actions.append(cancel, approve);
+  modalEl.appendChild(actions);
+  modalOverlay.hidden = false;
+}
+
+function renderLimits(limits) {
+  if (limitsApp) {
+    limitsApp.textContent = `Limits for ${limits.appId}`;
+  }
+  if (limitRate) {
+    limitRate.value = String(limits.maxMessagesPerSecond);
+  }
+  if (limitKv) {
+    limitKv.value = limits.kvQuotaBytes === null ? "" : String(limits.kvQuotaBytes);
+  }
+  if (limitMemory) {
+    limitMemory.value = limits.memoryBytes === null ? "" : String(limits.memoryBytes);
+  }
+  if (limitsNote) {
+    limitsNote.textContent = limits.memoryPendingRestart
+      ? "Memory limit change takes effect at next launch."
+      : "";
+  }
+}
 
 function appendLog(line) {
   logEl.textContent = `${logEl.textContent}${line}\n`.slice(-8000);
@@ -246,6 +383,32 @@ if (!host) {
     element?.addEventListener("change", applyInterfaceSettings);
   }
 
+  const applyAiSettings = () => {
+    const config = {
+      baseUrl: settingAiUrl?.value.trim() ?? "",
+      apiKey: settingAiKey?.value.trim() ?? "",
+      model: settingAiModel?.value.trim() ?? ""
+    };
+    localStorage.setItem("tp-ai-config", JSON.stringify({ baseUrl: config.baseUrl, model: config.model }));
+    host.send({ type: "set-ai-config", config: config.baseUrl && config.apiKey ? config : null });
+  };
+
+  try {
+    const savedAi = JSON.parse(localStorage.getItem("tp-ai-config") ?? "{}");
+    if (settingAiUrl && savedAi.baseUrl) {
+      settingAiUrl.value = savedAi.baseUrl;
+    }
+    if (settingAiModel && savedAi.model) {
+      settingAiModel.value = savedAi.model;
+    }
+  } catch {
+    // ignore malformed saved settings
+  }
+
+  for (const element of [settingAiUrl, settingAiKey, settingAiModel]) {
+    element?.addEventListener("change", applyAiSettings);
+  }
+
   host.onWorkletMessage((message) => {
     if (message.type === "status") {
       renderStatus(message.status);
@@ -284,10 +447,87 @@ if (!host) {
     }
 
     if (message.type === "miniapp-runtime") {
-      renderWidgetTree(message.runtime.widgetTree, widgetRoot, (nodeId, event, value) => {
-        host.send({ type: "miniapp-ui-event", nodeId, event, value });
+      runningAppId = message.runtime.appId;
+      if (runningAppId !== null) {
+        host.send({ type: "get-limits", appId: runningAppId });
+      }
+      renderWidgetTree(
+        message.runtime.widgetTree,
+        widgetRoot,
+        (nodeId, event, value) => {
+          host.send({ type: "miniapp-ui-event", nodeId, event, value });
+        },
+        { readDocument: readWorkspaceDocument }
+      );
+    }
+
+    if (message.type === "workspace-file") {
+      const waiter = pendingWorkspaceReads.get(message.token);
+      pendingWorkspaceReads.delete(message.token);
+      if (waiter) {
+        if (message.error) {
+          waiter.reject(new Error(message.error));
+        } else {
+          waiter.resolve(message.content);
+        }
+      }
+    }
+
+    if (message.type === "confirm-request") {
+      const kindTitles = {
+        package: "Package and sign an app?",
+        publish: "Publish an app to other users?",
+        install: "Install an app?",
+        "trust-import": "Trust a new publisher?"
+      };
+      showHostModal({
+        title: kindTitles[message.kind] ?? `Confirm ${message.kind}?`,
+        fingerprint: message.publisherPublicKey,
+        rows: [["Requested by", message.appId], ...Object.entries(message.summary ?? {})],
+        confirmLabel: "Approve",
+        onDone: (approved) => {
+          host.send({ type: "confirm-response", token: message.token, approved });
+        }
       });
     }
+
+    if (message.type === "launch-review") {
+      showHostModal({
+        title: `Run ${message.appId} v${message.version}?`,
+        fingerprint: message.publisherPublicKey,
+        rows: [["Capabilities requested", message.capabilities.length]],
+        capabilities: message.capabilities,
+        confirmLabel: "Run",
+        onDone: (accept, grants) => {
+          host.send({ type: "launch-confirm", token: message.token, accept, grants });
+        }
+      });
+    }
+
+    if (message.type === "limits") {
+      renderLimits(message.limits);
+    }
+  });
+
+  limitsApply?.addEventListener("click", () => {
+    const appId = runningAppId ?? selectedAppId;
+    if (appId === null) {
+      appendLog("No mini-app selected for limits");
+      return;
+    }
+
+    const limits = {};
+    if (limitRate?.value) {
+      limits.maxMessagesPerSecond = Number(limitRate.value);
+    }
+    limits.kvQuotaBytes = limitKv?.value ? Number(limitKv.value) : null;
+    limits.memoryBytes = limitMemory?.value ? Number(limitMemory.value) : null;
+    host.send({ type: "set-limits", appId, limits });
+  });
+
+  forceQuit?.addEventListener("click", () => {
+    host.send({ type: "stop-miniapp", reason: "user-forced" });
+    appendLog("Force quit requested");
   });
 
   host.onWorkletExit((detail) => {

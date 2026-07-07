@@ -107,6 +107,27 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
         component: "Image",
         props: { asset: String(node.props?.asset ?? "") }
       };
+    case "code-editor":
+      return {
+        ...base,
+        component: "CodeEditor",
+        props: {
+          documentId: String(node.props?.documentId ?? ""),
+          language: typeof node.props?.language === "string" ? node.props.language : "text",
+          readOnly: Boolean(node.props?.readOnly),
+          ...(typeof node.props?.event === "string" ? { event: node.props.event } : {})
+        }
+      };
+    case "qr-code":
+      return {
+        ...base,
+        component: "QrCode",
+        props: {
+          value: String(node.props?.value ?? ""),
+          ...(typeof node.props?.size === "number" ? { size: node.props.size } : {}),
+          ...(typeof node.props?.caption === "string" ? { caption: node.props.caption } : {})
+        }
+      };
     default:
       return {
         ...base,

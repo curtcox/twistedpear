@@ -21,6 +21,10 @@ export class NodeCryptoProvider implements CryptoProvider {
     return toUint8Array(createHash("sha256").update(data).digest());
   }
 
+  sha512(data: Uint8Array): Uint8Array {
+    return toUint8Array(createHash("sha512").update(data).digest());
+  }
+
   hmacSha256(key: Uint8Array, data: Uint8Array): Uint8Array {
     return toUint8Array(createHmac("sha256", key).update(data).digest());
   }

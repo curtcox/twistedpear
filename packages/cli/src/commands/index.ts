@@ -2,14 +2,24 @@ import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "
 import { join } from "node:path";
 import { HOST_API_VERSION, validateManifestCapabilities } from "@twistedpear/miniapp-runtime";
 import {
+  TrustStore,
   buildAppAnnounceSummary,
   buildUnsignedManifest,
+  decodePublisherIdentity256t,
   encodeAppAnnounceData,
+  encodePublisherIdentity256t,
   packPackage,
   signManifest,
   unpackPackage,
   type PackageFile
 } from "@twistedpear/app-registry";
+import {
+  casAnnounceAspects,
+  encode256t,
+  encodeCasLocator,
+  signCasLocator,
+  type CasLocator
+} from "@twistedpear/cas-256t";
 import {
   DriveManager,
   attachPackageResourceServer,
@@ -44,7 +54,8 @@ export function printHelp(command: string): void {
     publish: "tp publish <app-dir>  Pack, sign, publish to Hyperdrive",
     update: "tp update <app-dir> --version <semver>  Bump version and republish",
     seed: "tp seed [--state-dir <path>] [--transport] [--propagation] [--attach-rnsd host:port]  Run headless seeder",
-    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--status-endpoint]  Run desktop-class host node"
+    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--status-endpoint]  Run desktop-class host node",
+    trust: "tp trust <list|show|add <256t> --label <name>|remove <key-or-256t>>  Manage trusted publishers"
   };
 
   console.log(help[command] ?? `tp ${command}`);
@@ -186,6 +197,7 @@ function writePublishMetadata(
     packageHash: string;
     destinationName?: string;
     appDataHex?: string;
+    t256?: string;
   }
 ) {
   ensureDir(resolveFromCwd(cwd, ".tp"));
@@ -198,6 +210,7 @@ async function announcePublishedApp(options: {
   readonly packageHash: string;
   readonly archiveBytes: Uint8Array;
   readonly driveManager: DriveManager;
+  readonly casLocator?: CasLocator;
 }): Promise<{ destinationName: string; appDataHex: string }> {
   const provider = new NodeCryptoProvider();
   const runtime = nodeRuntime();
@@ -233,6 +246,18 @@ async function announcePublishedApp(options: {
   });
   const appData = encodeAppAnnounceData(summary);
   await destination.announce({ appData });
+
+  if (options.casLocator !== undefined) {
+    const casDestination = reticulum.registerDestination({
+      provider,
+      identity: options.identity,
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "tp",
+      aspects: casAnnounceAspects(options.casLocator.t256)
+    });
+    await casDestination.announce({ appData: encodeCasLocator(options.casLocator) });
+  }
 
   const destinationName = `tp.app.${publisherHash}.${nameHash}`;
   await reticulum.stop();
@@ -418,12 +443,23 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
 
   const published = await drives.publishVersion(unpacked.manifest.version, archive, unpacked.packageHash);
 
+  const t256 = encode256t(archive, (data) => provider.sha512(data));
+  const casLocator = signCasLocator(identity, {
+    t256,
+    appId: unpacked.manifest.name,
+    version: unpacked.manifest.version,
+    driveKey: keyHex,
+    packageHash: unpacked.packageHash,
+    packageSize: archive.length
+  });
+
   const announce = await announcePublishedApp({
     identity,
     manifest: unpacked.manifest,
     packageHash: unpacked.packageHash,
     archiveBytes: archive,
-    driveManager: drives
+    driveManager: drives,
+    casLocator
   });
 
   if (isSeederStateDir(config.seederAddress)) {
@@ -445,11 +481,13 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
     version: published.version,
     packageHash: published.packageHash,
     destinationName: announce.destinationName,
-    appDataHex: announce.appDataHex
+    appDataHex: announce.appDataHex,
+    t256
   });
 
   console.log(`Published ${published.version} to drive ${keyHex}`);
   console.log(`Announced ${announce.destinationName}`);
+  console.log(`256t: ${t256}`);
   await drives.close();
   await swarm.destroy();
   return 0;
@@ -490,6 +528,92 @@ export async function runSeed(ctx: CommandContext): Promise<number> {
     statusEndpoint: hasFlag(ctx.args, "--status-endpoint")
   });
   return 0;
+}
+
+function cliTrustStore(cwd: string): TrustStore {
+  const path = resolveFromCwd(cwd, ".tp/trust.json");
+  return new TrustStore({
+    async get(key) {
+      if (!existsSync(path)) {
+        return null;
+      }
+
+      const parsed = JSON.parse(readFileSync(path, "utf8")) as Record<string, string>;
+      const value = parsed[key];
+      return value === undefined ? null : new TextEncoder().encode(value);
+    },
+    async set(key, value) {
+      ensureDir(resolveFromCwd(cwd, ".tp"));
+      const parsed = existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as Record<string, string>) : {};
+      parsed[key] = new TextDecoder().decode(value);
+      writeFileSync(path, `${JSON.stringify(parsed, null, 2)}\n`);
+    },
+    async delete(key) {
+      if (!existsSync(path)) {
+        return;
+      }
+
+      const parsed = JSON.parse(readFileSync(path, "utf8")) as Record<string, string>;
+      delete parsed[key];
+      writeFileSync(path, `${JSON.stringify(parsed, null, 2)}\n`);
+    }
+  });
+}
+
+export async function runTrust(ctx: CommandContext): Promise<number> {
+  const [subcommand, ...rest] = ctx.args;
+  const store = cliTrustStore(ctx.cwd);
+
+  if (subcommand === "list") {
+    const entries = await store.list();
+    if (entries.length === 0) {
+      console.log("No trusted publishers");
+      return 0;
+    }
+
+    for (const entry of entries) {
+      console.log(`${entry.label}\t${entry.publisherPublicKey}`);
+    }
+    return 0;
+  }
+
+  if (subcommand === "show") {
+    const provider = new NodeCryptoProvider();
+    const config = loadConfig(ctx.cwd);
+    const identity = loadIdentity(provider, resolveFromCwd(ctx.cwd, config.identityPath));
+    console.log(encodePublisherIdentity256t(identity.getPublicKey()));
+    return 0;
+  }
+
+  if (subcommand === "add") {
+    const identityString = rest[0];
+    const label = parseFlag(rest, "--label");
+    if (identityString === undefined || label === null) {
+      printHelp("trust");
+      return 1;
+    }
+
+    const publisherPublicKey = decodePublisherIdentity256t(identityString);
+    await store.add({ publisherPublicKey, label, addedAt: Date.now(), source: "paste" });
+    console.log(`Trusted ${label} (${publisherPublicKey.slice(0, 16)}…)`);
+    return 0;
+  }
+
+  if (subcommand === "remove") {
+    const target = rest[0];
+    if (target === undefined) {
+      printHelp("trust");
+      return 1;
+    }
+
+    const publisherPublicKey = target.length === 94 ? decodePublisherIdentity256t(target) : target;
+    await store.remove(publisherPublicKey);
+    console.log(`Removed ${publisherPublicKey.slice(0, 16)}…`);
+    return 0;
+  }
+
+  printHelp("trust");
+  return 1;
 }
 
 export async function runNode(ctx: CommandContext): Promise<number> {

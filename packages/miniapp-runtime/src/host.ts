@@ -1,11 +1,14 @@
 import { GrantStore } from "./capabilities.js";
 import { MiniappBroker, type BrokerContext, type BrokerRequest, type BrokerResponse } from "./broker.js";
+import type { HostConfirmationChannel } from "./confirm.js";
 import { MiniappLifecycle } from "./lifecycle.js";
 import { AnnounceService } from "./services/announce.js";
 import { AppIdentityService, type IdentityBackend } from "./services/identity.js";
 import { NamespacedLxmfService } from "./services/lxmf.js";
 import { PresenceService, type PresenceBackend } from "./services/presence.js";
 import { ResourceService, type ResourceFetchBackend } from "./services/resource.js";
+import { AiService, AiServiceError, type AiChatBackend, type AiChatRequest } from "./services/ai.js";
+import { WorkspaceService, type WorkspaceLimits } from "./services/workspace.js";
 import type { StorageBeeBackend } from "./services/storage-bee.js";
 import { NamespacedKvService, type MiniappKvStoreBackend } from "./services/storage-kv.js";
 import type { GrantRecord } from "./capabilities.js";
@@ -56,12 +59,35 @@ export interface MiniappHostOptions {
   readonly callbacks?: MiniappHostCallbacks;
   readonly deriveDestinationHash?: (appId: string, publisherPublicKey: string) => Promise<string>;
   readonly kvQuotaBytes?: number;
+  readonly confirmationChannel?: HostConfirmationChannel;
+  readonly aiBackend?: AiChatBackend;
+  readonly workspaceLimits?: Partial<WorkspaceLimits>;
+}
+
+export interface ResourceLimitUpdate {
+  readonly maxMessagesPerSecond?: number | null;
+  readonly kvQuotaBytes?: number | null;
+  readonly memoryBytes?: number | null;
+}
+
+export interface ResourceLimitsSnapshot {
+  readonly appId: string;
+  readonly maxMessagesPerSecond: number;
+  readonly kvQuotaBytes: number | null;
+  readonly memoryBytes: number | null;
+  readonly memoryPendingRestart: boolean;
+}
+
+interface LimitOverrides {
+  kvQuotaBytes?: number;
+  memoryBytes?: number;
 }
 
 interface ActiveApp {
   readonly manifest: LaunchManifest;
   readonly grants: GrantRecord;
   readonly lifecycle: MiniappLifecycle;
+  readonly launchedMemoryBytes: number | null;
   widgetTree: WidgetTree | null;
   readonly logs: MiniappHostLogEntry[];
 }
@@ -80,8 +106,11 @@ export class MiniappHost {
   private readonly announceService: AnnounceService;
   private readonly resourceService: ResourceService | null;
   private readonly presenceService: PresenceService | null;
+  private readonly aiService: AiService | null;
+  readonly workspace: WorkspaceService;
 
   private active: ActiveApp | null = null;
+  private readonly limitOverrides = new Map<string, LimitOverrides>();
 
   constructor(private readonly options: MiniappHostOptions) {
     const identityBackend: IdentityBackend =
@@ -101,6 +130,8 @@ export class MiniappHost {
     this.resourceService = options.resourceBackend === undefined ? null : new ResourceService(options.resourceBackend);
     this.presenceService =
       options.presenceBackend === undefined ? null : new PresenceService(options.presenceBackend);
+    this.aiService = options.aiBackend === undefined ? null : new AiService(options.aiBackend);
+    this.workspace = new WorkspaceService(options.kvBackend, options.workspaceLimits);
     this.registerHandlers();
   }
 
@@ -140,6 +171,55 @@ export class MiniappHost {
     await this.options.grantStore.delete(appId, publisherPublicKey);
   }
 
+  setResourceLimits(appId: string, update: ResourceLimitUpdate): ResourceLimitsSnapshot {
+    if (update.maxMessagesPerSecond !== undefined) {
+      this.broker.setRateLimit(appId, update.maxMessagesPerSecond);
+    }
+
+    const overrides = this.limitOverrides.get(appId) ?? {};
+    if (update.kvQuotaBytes !== undefined) {
+      if (update.kvQuotaBytes === null) {
+        delete overrides.kvQuotaBytes;
+      } else if (!Number.isFinite(update.kvQuotaBytes) || update.kvQuotaBytes < 0) {
+        throw new RangeError(`Invalid kv quota: ${update.kvQuotaBytes}`);
+      } else {
+        overrides.kvQuotaBytes = Math.floor(update.kvQuotaBytes);
+      }
+    }
+
+    if (update.memoryBytes !== undefined) {
+      if (update.memoryBytes === null) {
+        delete overrides.memoryBytes;
+      } else if (!Number.isFinite(update.memoryBytes) || update.memoryBytes < 1) {
+        throw new RangeError(`Invalid memory limit: ${update.memoryBytes}`);
+      } else {
+        overrides.memoryBytes = Math.floor(update.memoryBytes);
+      }
+    }
+
+    if (Object.keys(overrides).length === 0) {
+      this.limitOverrides.delete(appId);
+    } else {
+      this.limitOverrides.set(appId, overrides);
+    }
+
+    this.logActive(appId, "resource limits updated");
+    return this.getResourceLimits(appId);
+  }
+
+  getResourceLimits(appId: string): ResourceLimitsSnapshot {
+    const overrides = this.limitOverrides.get(appId) ?? {};
+    const memoryBytes = overrides.memoryBytes ?? null;
+    const running = this.active !== null && this.active.manifest.name === appId;
+    return {
+      appId,
+      maxMessagesPerSecond: this.broker.getRateLimit(appId),
+      kvQuotaBytes: overrides.kvQuotaBytes ?? this.options.kvQuotaBytes ?? null,
+      memoryBytes,
+      memoryPendingRestart: running && memoryBytes !== null && memoryBytes !== this.active?.launchedMemoryBytes
+    };
+  }
+
   async launch(manifest: LaunchManifest, bundle: Uint8Array): Promise<MiniappHostSnapshot> {
     if (this.active !== null) {
       await this.stop("superseded");
@@ -147,12 +227,14 @@ export class MiniappHost {
 
     const grants = await this.options.grantStore.get(manifest.name, manifest.publisherPublicKey);
     const grantedCapabilities = grants?.granted ?? [];
+    const memoryBytes = this.limitOverrides.get(manifest.name)?.memoryBytes ?? null;
 
     const lifecycle = new MiniappLifecycle(this.options.backend, {
       appId: manifest.name,
       version: manifest.version,
       entryPath: manifest.entry,
       bundle,
+      ...(memoryBytes !== null ? { limits: { memoryBytes } } : {}),
       brokerEndpoint: {
         request: (request: BrokerRequest) => this.dispatch(request, manifest, grantedCapabilities)
       }
@@ -167,6 +249,7 @@ export class MiniappHost {
         updatedAt: 0
       },
       lifecycle,
+      launchedMemoryBytes: memoryBytes,
       widgetTree: null,
       logs: []
     };
@@ -313,20 +396,20 @@ export class MiniappHost {
 
     this.broker.register("storage.kv", "get", "storage:kv", async (request, context) => {
       const key = (request.payload as { key: string }).key;
-      const service = new NamespacedKvService(this.options.kvBackend, context.appId, this.options.kvQuotaBytes);
+      const service = new NamespacedKvService(this.options.kvBackend, context.appId, this.kvQuotaFor(context.appId));
       return service.get(key);
     });
 
     this.broker.register("storage.kv", "set", "storage:kv", async (request, context) => {
       const { key, value } = request.payload as { key: string; value: Uint8Array };
-      const service = new NamespacedKvService(this.options.kvBackend, context.appId, this.options.kvQuotaBytes);
+      const service = new NamespacedKvService(this.options.kvBackend, context.appId, this.kvQuotaFor(context.appId));
       await service.set(key, value);
       return { ok: true };
     });
 
     this.broker.register("storage.kv", "delete", "storage:kv", async (request, context) => {
       const key = (request.payload as { key: string }).key;
-      const service = new NamespacedKvService(this.options.kvBackend, context.appId, this.options.kvQuotaBytes);
+      const service = new NamespacedKvService(this.options.kvBackend, context.appId, this.kvQuotaFor(context.appId));
       await service.delete(key);
       return { ok: true };
     });
@@ -386,6 +469,39 @@ export class MiniappHost {
 
       return this.resourceService.fetch(context.appId, request.payload as never);
     });
+    this.broker.register("workspace", "list", "workspace", async (request, context) => {
+      const prefix = (request.payload as { prefix?: string } | undefined)?.prefix ?? "";
+      return this.workspace.list(context.appId, prefix);
+    });
+
+    this.broker.register("workspace", "read", "workspace", async (request, context) => {
+      const path = (request.payload as { path: string }).path;
+      return { path, content: await this.workspace.read(context.appId, path) };
+    });
+
+    this.broker.register("workspace", "write", "workspace", async (request, context) => {
+      const { path, content } = request.payload as { path: string; content: string };
+      if (typeof content !== "string") {
+        throw new Error("Workspace content must be a string");
+      }
+
+      return this.workspace.write(context.appId, path, content);
+    });
+
+    this.broker.register("workspace", "delete", "workspace", async (request, context) => {
+      const path = (request.payload as { path: string }).path;
+      await this.workspace.delete(context.appId, path);
+      return { ok: true };
+    });
+
+    this.broker.register("ai", "chat", "ai:chat", async (request, context) => {
+      if (this.aiService === null) {
+        throw new AiServiceError("AI_UNCONFIGURED", "AI is not configured on this host");
+      }
+
+      return this.aiService.chat(context.appId, request.payload as AiChatRequest);
+    });
+
     this.broker.register("presence", "snapshot", "presence", async () => {
       if (this.presenceService === null) {
         return {
@@ -397,6 +513,10 @@ export class MiniappHost {
 
       return this.presenceService.snapshot();
     });
+  }
+
+  private kvQuotaFor(appId: string): number | undefined {
+    return this.limitOverrides.get(appId)?.kvQuotaBytes ?? this.options.kvQuotaBytes;
   }
 
   private logActive(appId: string, line: string): void {

@@ -27,8 +27,22 @@ export type {
   MiniappHostCallbacks,
   MiniappHostLogEntry,
   MiniappHostOptions,
-  MiniappHostSnapshot
+  MiniappHostSnapshot,
+  ResourceLimitUpdate,
+  ResourceLimitsSnapshot
 } from "./host.js";
+export {
+  ConfirmationError,
+  DEFAULT_CONFIRMATION_TIMEOUT_MS,
+  generateConfirmationToken,
+  requestHostConfirmation
+} from "./confirm.js";
+export type {
+  ConfirmationKind,
+  ConfirmationRequest,
+  ConfirmationResult,
+  HostConfirmationChannel
+} from "./confirm.js";
 export { NamespacedKvService, MiniappKvQuotaError } from "./services/storage-kv.js";
 export type { MiniappKvStoreBackend } from "./services/storage-kv.js";
 export { CorestoreBeeBackend } from "./services/storage-bee-corestore.js";
@@ -44,7 +58,20 @@ export { PresenceService } from "./services/presence.js";
 export type { PresenceBackend, PresenceSnapshot } from "./services/presence.js";
 export { ResourceService } from "./services/resource.js";
 export type { ResourceFetchBackend, ResourceFetchProgress, ResourceFetchRequest } from "./services/resource.js";
-export { WIDGET_PROP_KEYS, WIDGET_STYLE_KEYS, WIDGET_TYPES } from "./ui/schema.js";
+export { AiService, AiServiceError, DEFAULT_AI_SERVICE_LIMITS } from "./services/ai.js";
+export type { AiChatBackend, AiChatMessage, AiChatRequest, AiChatResponse, AiChatRole, AiChatUsage, AiServiceLimits } from "./services/ai.js";
+export { createOpenRouterBackend } from "./services/ai-openrouter.js";
+export type { OpenRouterBackendOptions } from "./services/ai-openrouter.js";
+export { DEFAULT_WORKSPACE_LIMITS, WorkspaceError, WorkspaceService, validateWorkspacePath } from "./services/workspace.js";
+export type { WorkspaceFileInfo, WorkspaceLimits } from "./services/workspace.js";
+export {
+  CODE_EDITOR_LANGUAGES,
+  MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH,
+  MAX_QR_CODE_VALUE_LENGTH,
+  WIDGET_PROP_KEYS,
+  WIDGET_STYLE_KEYS,
+  WIDGET_TYPES
+} from "./ui/schema.js";
 export type { WidgetNode, WidgetStyle, WidgetTree, WidgetType } from "./ui/schema.js";
 export { WidgetValidationError, validateWidgetTree } from "./ui/validate.js";
 export type { WidgetValidationOptions } from "./ui/validate.js";

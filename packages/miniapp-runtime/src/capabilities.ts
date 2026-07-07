@@ -7,7 +7,14 @@ export type MiniappCapability =
   | "lxmf:receive"
   | "storage:kv"
   | "storage:hyperbee"
-  | "resource:fetch";
+  | "resource:fetch"
+  | "workspace"
+  | "ai:chat"
+  | "apps:package"
+  | "apps:publish"
+  | "apps:install"
+  | "apps:preview"
+  | "share:cas";
 
 export interface CapabilityDefinition {
   readonly id: MiniappCapability;
@@ -23,7 +30,14 @@ export const CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
   { id: "lxmf:receive", description: "Receive LXMF messages for the app destination." },
   { id: "storage:kv", description: "Store local key/value data for this app." },
   { id: "storage:hyperbee", description: "Store ordered local Hyperbee data for this app." },
-  { id: "resource:fetch", description: "Fetch package resources through host budget rules." }
+  { id: "resource:fetch", description: "Fetch package resources through host budget rules." },
+  { id: "workspace", description: "Read and write project source files in this app's private workspace." },
+  { id: "ai:chat", description: "Send prompts to the host-configured AI service; prompts may include workspace content." },
+  { id: "apps:package", description: "Package and sign apps under this device's publisher identity (asks each time)." },
+  { id: "apps:publish", description: "Publish signed apps so other users can find and install them (asks each time)." },
+  { id: "apps:install", description: "Ask the host to install apps from a 256t id (asks each time, with capability review)." },
+  { id: "apps:preview", description: "Run a built app in the host's sandboxed dev-preview slot." },
+  { id: "share:cas", description: "Store and retrieve bounded content-addressed data shared by 256t id." }
 ];
 
 const CAPABILITY_IDS = new Set<string>(CAPABILITY_DEFINITIONS.map((definition) => definition.id));

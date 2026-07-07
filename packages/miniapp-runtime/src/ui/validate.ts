@@ -1,4 +1,13 @@
-import { WIDGET_PROP_KEYS, WIDGET_STYLE_KEYS, WIDGET_TYPES, type WidgetNode, type WidgetTree } from "./schema.js";
+import {
+  CODE_EDITOR_LANGUAGES,
+  MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH,
+  MAX_QR_CODE_VALUE_LENGTH,
+  WIDGET_PROP_KEYS,
+  WIDGET_STYLE_KEYS,
+  WIDGET_TYPES,
+  type WidgetNode,
+  type WidgetTree
+} from "./schema.js";
 
 export interface WidgetValidationOptions {
   readonly maxNodes?: number;
@@ -48,6 +57,25 @@ export function validateWidgetTree(tree: WidgetTree, options: WidgetValidationOp
     for (const prop of Object.keys(node.props ?? {})) {
       if (allowedProps === undefined || !allowedProps.has(prop)) {
         throw new WidgetValidationError("INVALID_WIDGET", `Unsupported ${node.type} prop: ${prop}`);
+      }
+    }
+
+    if (node.type === "code-editor") {
+      const documentId = node.props?.documentId;
+      if (typeof documentId !== "string" || documentId.length === 0 || documentId.length > MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH) {
+        throw new WidgetValidationError("INVALID_WIDGET", "code-editor requires a documentId of 1-256 characters");
+      }
+
+      const language = node.props?.language;
+      if (language !== undefined && (typeof language !== "string" || !CODE_EDITOR_LANGUAGES.has(language))) {
+        throw new WidgetValidationError("INVALID_WIDGET", `Unsupported code-editor language: ${String(language)}`);
+      }
+    }
+
+    if (node.type === "qr-code") {
+      const value = node.props?.value;
+      if (typeof value !== "string" || value.length === 0 || value.length > MAX_QR_CODE_VALUE_LENGTH) {
+        throw new WidgetValidationError("INVALID_WIDGET", "qr-code requires a value of 1-512 characters");
       }
     }
 

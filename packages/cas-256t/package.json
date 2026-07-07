@@ -1,5 +1,5 @@
 {
-  "name": "@twistedpear/app-registry",
+  "name": "@twistedpear/cas-256t",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@twistedpear/reticulum-ts": "0.0.0",
-    "@twistedpear/cas-256t": "0.1.0"
+    "@twistedpear/reticulum-ts": "0.0.0"
   }
 }

@@ -11,6 +11,9 @@
       "path": "./packages/reticulum-interfaces"
     },
     {
+      "path": "./packages/cas-256t"
+    },
+    {
       "path": "./packages/app-registry"
     },
     {

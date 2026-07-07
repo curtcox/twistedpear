@@ -7,3 +7,7 @@ export * as storage from "./storage.js";
 export * as resource from "./resource.js";
 export * as presence from "./presence.js";
 export * as identity from "./identity.js";
+export * as workspace from "./workspace.js";
+export * as ai from "./ai.js";
+export * as apps from "./apps.js";
+export * as share from "./share.js";

@@ -132,3 +132,95 @@ pre {
   align-items: center;
   gap: 0.5rem;
 }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 8, 12, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: #151b23;
+  border: 1px solid #3a4656;
+  border-radius: 10px;
+  padding: 1.25rem;
+  max-width: 32rem;
+  width: 90%;
+  max-height: 80vh;
+  overflow: auto;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.modal h3 {
+  margin: 0;
+}
+
+.modal .fingerprint {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: #9aa7b8;
+  word-break: break-all;
+}
+
+.modal .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.modal button {
+  background: #2a3441;
+  color: inherit;
+  border: 1px solid #3a4656;
+  border-radius: 6px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+}
+
+.modal button.primary {
+  background: #2f6fed;
+  border-color: #2f6fed;
+  color: white;
+}
+
+.widget-code-editor {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.45;
+  min-height: 16rem;
+  width: 100%;
+  resize: vertical;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.widget-qr {
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.widget-qr svg {
+  background: white;
+  border-radius: 6px;
+}
+
+.widget-qr-value {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  word-break: break-all;
+  color: #9aa7b8;
+  user-select: all;
+}
+
+button.danger {
+  background: #7a2430 !important;
+  border-color: #a03442 !important;
+  color: white;
+}

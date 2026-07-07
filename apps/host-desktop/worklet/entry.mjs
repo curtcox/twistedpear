@@ -172,6 +172,24 @@ function ensureDevChannel() {
   return devChannel;
 }
 
+/** @type {Map<string, (reply: any) => void>} */
+const pendingRendererReplies = new Map();
+
+function requestRendererReply(message, timeoutMs = 120_000) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      pendingRendererReplies.delete(message.token);
+      resolve(null);
+    }, timeoutMs);
+    pendingRendererReplies.set(message.token, (reply) => {
+      clearTimeout(timer);
+      pendingRendererReplies.delete(message.token);
+      resolve(reply);
+    });
+    send(message);
+  });
+}
+
 function ensureMiniappHost() {
   if (miniappHost === null) {
     miniappHost = createWorkletMiniappHost({
@@ -180,6 +198,27 @@ function ensureMiniappHost() {
       beeStoragePath: "miniapp-bee-store",
       getPresenceSnapshot: () => status,
       send,
+      async requestUserConfirmation(request) {
+        const reply = await requestRendererReply({
+          type: "confirm-request",
+          token: request.token,
+          kind: request.kind,
+          appId: request.appId,
+          publisherPublicKey: request.publisherPublicKey,
+          summary: request.summary
+        });
+        return { approved: reply?.approved === true, detail: reply?.detail };
+      },
+      async requestLaunchReview(review) {
+        return requestRendererReply({
+          type: "launch-review",
+          token: review.token,
+          appId: review.appId,
+          publisherPublicKey: review.publisherPublicKey,
+          version: review.version,
+          capabilities: review.capabilities
+        });
+      },
       onDeveloperModeChange(enabled) {
         status.developerMode = enabled;
         pushStatus();
@@ -1164,8 +1203,49 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "stop-miniapp") {
-    await ensureMiniappHost().stop();
-    log("Stopped mini-app");
+    await ensureMiniappHost().stop(message.reason ?? "stopped");
+    log(`Stopped mini-app${message.reason ? ` (${message.reason})` : ""}`);
+    return;
+  }
+
+  if (message.type === "confirm-response" || message.type === "launch-confirm") {
+    pendingRendererReplies.get(message.token)?.(message);
+    return;
+  }
+
+  if (message.type === "set-limits") {
+    try {
+      ensureMiniappHost().setLimits(message.appId, message.limits);
+      log(`Updated resource limits for ${message.appId}`);
+    } catch (error) {
+      log(`Set limits failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "get-limits") {
+    ensureMiniappHost().getLimits(message.appId);
+    return;
+  }
+
+  if (message.type === "workspace-read") {
+    try {
+      const content = await ensureMiniappHost().readWorkspaceFile(message.documentId);
+      send({ type: "workspace-file", token: message.token, documentId: message.documentId, content });
+    } catch (error) {
+      send({
+        type: "workspace-file",
+        token: message.token,
+        documentId: message.documentId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+    return;
+  }
+
+  if (message.type === "set-ai-config") {
+    ensureMiniappHost().setAiConfig(message.config ?? null);
+    log("AI configuration updated");
     return;
   }
 

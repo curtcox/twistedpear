@@ -1,0 +1,204 @@
+import { describe, expect, it } from "vitest";
+import {
+  AiService,
+  AiServiceError,
+  WorkspaceError,
+  WorkspaceService,
+  createOpenRouterBackend,
+  validateManifestCapabilities,
+  validateWidgetTree,
+  validateWorkspacePath,
+  type AiChatRequest,
+  type GrantKeyValueStore
+} from "../src/index.js";
+
+class MemoryStore implements GrantKeyValueStore {
+  readonly values = new Map<string, Uint8Array>();
+
+  async get(key: string): Promise<Uint8Array | null> {
+    return this.values.get(key) ?? null;
+  }
+
+  async set(key: string, value: Uint8Array): Promise<void> {
+    this.values.set(key, value);
+  }
+
+  async delete(key: string): Promise<void> {
+    this.values.delete(key);
+  }
+
+  async list(prefix: string): Promise<ReadonlyArray<string>> {
+    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
+  }
+}
+
+describe("workspace service", () => {
+  it("round-trips files and lists per app", async () => {
+    const service = new WorkspaceService(new MemoryStore());
+    await service.write("devstudio", "hello/bundle.js", "export {};\n");
+    await service.write("devstudio", "hello/app.manifest.json", "{}");
+    await service.write("other-app", "hello/bundle.js", "// other\n");
+
+    expect(await service.read("devstudio", "hello/bundle.js")).toBe("export {};\n");
+    const files = await service.list("devstudio", "hello/");
+    expect(files.map((file) => file.path)).toEqual(["hello/app.manifest.json", "hello/bundle.js"]);
+
+    await service.delete("devstudio", "hello/bundle.js");
+    await expect(service.read("devstudio", "hello/bundle.js")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(await service.read("other-app", "hello/bundle.js")).toBe("// other\n");
+  });
+
+  it.each(["../escape", "a/../b", "/abs", "a//b", "a\\b", ".hidden", "", "a/./b"])(
+    "rejects path %j",
+    (path) => {
+      expect(() => validateWorkspacePath(path)).toThrow(WorkspaceError);
+    }
+  );
+
+  it("enforces file, count, and total quotas", async () => {
+    const service = new WorkspaceService(new MemoryStore(), {
+      maxFileBytes: 16,
+      maxTotalBytes: 24,
+      maxFiles: 2
+    });
+
+    await expect(service.write("app", "big.js", "x".repeat(17))).rejects.toMatchObject({
+      code: "FILE_TOO_LARGE"
+    });
+
+    await service.write("app", "a.js", "x".repeat(12));
+    await expect(service.write("app", "b.js", "x".repeat(13))).rejects.toMatchObject({
+      code: "WORKSPACE_FULL"
+    });
+
+    await service.write("app", "b.js", "x".repeat(12));
+    await expect(service.write("app", "c.js", "x")).rejects.toMatchObject({ code: "WORKSPACE_FULL" });
+  });
+});
+
+describe("ai service", () => {
+  const request: AiChatRequest = { messages: [{ role: "user", content: "hi" }] };
+
+  it("clamps token and temperature budgets", async () => {
+    let seen: AiChatRequest | null = null;
+    const service = new AiService({
+      chat: async (_appId, sanitized) => {
+        seen = sanitized;
+        return { message: { role: "assistant", content: "ok" }, model: "m", usage: null };
+      }
+    });
+
+    await service.chat("app", { ...request, maxTokens: 1_000_000, temperature: 9 });
+    expect(seen?.maxTokens).toBe(8_192);
+    expect(seen?.temperature).toBe(2);
+  });
+
+  it("rejects malformed requests", async () => {
+    const service = new AiService({ chat: async () => ({ message: { role: "assistant", content: "" }, model: "m", usage: null }) });
+    await expect(service.chat("app", { messages: [] })).rejects.toMatchObject({ code: "AI_BAD_REQUEST" });
+    await expect(
+      service.chat("app", { messages: [{ role: "root" as never, content: "hi" }] })
+    ).rejects.toMatchObject({ code: "AI_BAD_REQUEST" });
+  });
+
+  it("allows only one in-flight request per app", async () => {
+    let release: (() => void) | null = null;
+    const service = new AiService({
+      chat: () =>
+        new Promise((resolve) => {
+          release = () =>
+            resolve({ message: { role: "assistant", content: "done" }, model: "m", usage: null });
+        })
+    });
+
+    const first = service.chat("app", request);
+    await expect(service.chat("app", request)).rejects.toMatchObject({ code: "AI_BUSY" });
+    release?.();
+    await first;
+
+    const second = service.chat("app", request);
+    release?.();
+    await expect(second).resolves.toBeDefined();
+  });
+
+  it("openrouter backend enforces the model allowlist and translates the wire shape", async () => {
+    const calls: Array<{ url: string; body: Record<string, unknown>; auth: string | undefined }> = [];
+    const fetchImpl = (async (url: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({
+        url: String(url),
+        body: JSON.parse(String(init?.body)),
+        auth: (init?.headers as Record<string, string>)?.authorization
+      });
+      return new Response(
+        JSON.stringify({
+          model: "test/model",
+          choices: [{ message: { content: "patched" } }],
+          usage: { prompt_tokens: 3, completion_tokens: 5 }
+        }),
+        { status: 200 }
+      );
+    }) as typeof fetch;
+
+    const backend = createOpenRouterBackend({
+      baseUrl: "https://example.test/api/v1/",
+      apiKey: "secret",
+      model: "test/model",
+      fetchImpl
+    });
+
+    const response = await backend.chat("app", { ...request, maxTokens: 32 });
+    expect(response.message.content).toBe("patched");
+    expect(response.usage).toEqual({ promptTokens: 3, completionTokens: 5 });
+    expect(calls[0]?.url).toBe("https://example.test/api/v1/chat/completions");
+    expect(calls[0]?.auth).toBe("Bearer secret");
+    expect(calls[0]?.body.max_tokens).toBe(32);
+
+    await expect(backend.chat("app", { ...request, model: "other/model" })).rejects.toMatchObject({
+      code: "AI_BAD_REQUEST"
+    });
+  });
+
+  it("exposes a typed error", () => {
+    expect(new AiServiceError("AI_BUSY", "busy").name).toBe("AiServiceError");
+  });
+});
+
+describe("new widgets", () => {
+  it("accepts a valid code-editor and qr-code", () => {
+    expect(() =>
+      validateWidgetTree({
+        root: {
+          id: "root",
+          type: "view",
+          children: [
+            { id: "editor", type: "code-editor", props: { documentId: "hello/bundle.js", language: "javascript", event: "edit" } },
+            { id: "qr", type: "qr-code", props: { value: "A".repeat(94), caption: "Scan to install" } }
+          ]
+        }
+      })
+    ).not.toThrow();
+  });
+
+  it("rejects invalid code-editor and qr-code props", () => {
+    expect(() =>
+      validateWidgetTree({ root: { id: "e", type: "code-editor", props: { documentId: "" } } })
+    ).toThrow(/documentId/);
+    expect(() =>
+      validateWidgetTree({
+        root: { id: "e", type: "code-editor", props: { documentId: "a.js", language: "cobol" } }
+      })
+    ).toThrow(/language/);
+    expect(() =>
+      validateWidgetTree({ root: { id: "q", type: "qr-code", props: { value: "x".repeat(513) } } })
+    ).toThrow(/qr-code/);
+    expect(() =>
+      validateWidgetTree({ root: { id: "e", type: "code-editor", props: { documentId: "a.js", content: "x" } } })
+    ).toThrow(/prop/);
+  });
+
+  it("keeps the new capabilities in the manifest validator", () => {
+    expect(() =>
+      validateManifestCapabilities(["workspace", "ai:chat", "apps:package", "apps:publish", "apps:install", "apps:preview", "share:cas"])
+    ).not.toThrow();
+  });
+});

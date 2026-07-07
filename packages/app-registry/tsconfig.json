@@ -4,7 +4,9 @@
     "declaration": true,
     "declarationMap": true,
     "exactOptionalPropertyTypes": true,
-    "lib": ["ES2023"],
+    "lib": [
+      "ES2023"
+    ],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "noFallthroughCasesInSwitch": true,
@@ -18,6 +20,15 @@
     "target": "ES2023",
     "verbatimModuleSyntax": true
   },
-  "include": ["src/**/*.ts"],
-  "references": [{ "path": "../reticulum-ts" }]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../reticulum-ts"
+    },
+    {
+      "path": "../cas-256t"
+    }
+  ]
 }

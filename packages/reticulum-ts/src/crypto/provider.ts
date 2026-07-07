@@ -10,6 +10,7 @@ export interface CryptoProvider {
   readonly name: string;
   randomBytes(length: number): Uint8Array;
   sha256(data: Uint8Array): Uint8Array;
+  sha512(data: Uint8Array): Uint8Array;
   hmacSha256(key: Uint8Array, data: Uint8Array): Uint8Array;
   hkdf(input: HkdfInput): Uint8Array;
   x25519PublicFromPrivate(privateKey: Uint8Array): Uint8Array;

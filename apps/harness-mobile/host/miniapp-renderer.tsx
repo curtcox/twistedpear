@@ -103,6 +103,37 @@ function WidgetNodeView({
       );
     case "image":
       return <Text style={style}>image:{String(node.props?.asset ?? "")}</Text>;
+    case "code-editor":
+      // v1 fallback: plain multiline editor keyed by documentId; the app owns
+      // persistence via workspace.write on the emitted event.
+      return (
+        <TextInput
+          style={[styles.input, styles.codeEditor, style]}
+          multiline
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!node.props?.readOnly}
+          placeholder={String(node.props?.documentId ?? "")}
+          onChangeText={(text) => {
+            const event = node.props?.event;
+            if (typeof event === "string") {
+              onEvent?.(node.id, event, { documentId: String(node.props?.documentId ?? ""), text });
+            }
+          }}
+        />
+      );
+    case "qr-code":
+      // v1 fallback: copyable string (parity flag: desktop renders a scannable QR).
+      return (
+        <View style={style}>
+          <Text selectable style={styles.muted}>
+            {String(node.props?.value ?? "")}
+          </Text>
+          {typeof node.props?.caption === "string" ? (
+            <Text style={styles.muted}>{node.props.caption}</Text>
+          ) : null}
+        </View>
+      );
     default:
       return null;
   }
@@ -152,6 +183,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8
+  },
+  codeEditor: {
+    fontFamily: "monospace",
+    minHeight: 220,
+    textAlignVertical: "top"
   },
   divider: {
     height: 1,

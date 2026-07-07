@@ -57,3 +57,10 @@ export type {
   CatalogStoreOptions,
   InstalledPackageRecord
 } from "./catalog.js";
+export {
+  TrustStore,
+  TrustStoreError,
+  decodePublisherIdentity256t,
+  encodePublisherIdentity256t
+} from "./trust.js";
+export type { TrustKeyValueStore, TrustedPublisher } from "./trust.js";

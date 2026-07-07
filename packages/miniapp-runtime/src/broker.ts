@@ -62,8 +62,26 @@ export class BrokerError extends Error {
 export class MiniappBroker {
   private readonly handlers = new Map<string, { capability: MiniappCapability | null; handler: BrokerHandler }>();
   private readonly buckets = new Map<string, RateBucket>();
+  private readonly rateOverrides = new Map<string, number>();
 
   constructor(private readonly options: BrokerOptions = {}) {}
+
+  setRateLimit(appId: string, maxMessagesPerSecond: number | null): void {
+    if (maxMessagesPerSecond === null) {
+      this.rateOverrides.delete(appId);
+      return;
+    }
+
+    if (!Number.isFinite(maxMessagesPerSecond) || maxMessagesPerSecond < 1) {
+      throw new RangeError(`Invalid rate limit: ${maxMessagesPerSecond}`);
+    }
+
+    this.rateOverrides.set(appId, Math.floor(maxMessagesPerSecond));
+  }
+
+  getRateLimit(appId: string): number {
+    return this.rateOverrides.get(appId) ?? this.options.maxMessagesPerSecond ?? 128;
+  }
 
   register(namespace: string, method: string, capability: MiniappCapability | null, handler: BrokerHandler): void {
     this.handlers.set(`${namespace}.${method}`, { capability, handler });
@@ -136,7 +154,7 @@ export class MiniappBroker {
       throw new BrokerError("MESSAGE_TOO_LARGE", `Broker message exceeds ${maxBytes} bytes`);
     }
 
-    const maxRate = this.options.maxMessagesPerSecond ?? 128;
+    const maxRate = this.getRateLimit(context.appId);
     const now = this.now();
     const bucket = this.buckets.get(context.appId);
     if (bucket === undefined || now - bucket.windowStartedAt >= 1_000) {
