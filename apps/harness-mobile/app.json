@@ -20,6 +20,10 @@
     "ios": {
       "bundleIdentifier": "network.twistedpear.harness",
       "supportsTablet": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
     }
   }
 }

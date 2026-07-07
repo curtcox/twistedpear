@@ -1,6 +1,6 @@
 # Web Host: a full TwistedPear host in the browser (plan)
 
-Status: **in progress** (Phase W1) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed.
+Status: **in progress** (Phase W1) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed.
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase W.
 
 The web host is a browser tab (React Native for Web via Expo web) that runs the
@@ -117,6 +117,9 @@ A first-class interface, not a private control channel: any in-browser
   capability-unavailable, and an `expo-bare-kit` replacement that talks to the
   core Web Worker over the same RPC protocol. Graduate to a separate
   `apps/host-web` only if divergence makes the forks messy.
+- **W1 landed:** `App.web.tsx`, `host/web-core-bridge.ts`, and
+  `worklet/web-entry.mjs` (bundled to `public/web-core.worker.js`). Build static
+  assets with `npm run build:web-host` → `dist/web-host` for `tp node --serve-web`.
 - PWA shell (offline app-shell, install prompt) is Phase W4 polish.
 
 ## Workstream F — security posture

@@ -38,6 +38,8 @@ The `interfaces` job runs `npm run test:integration-soak` (default 12 s; configu
 `test:web-runtime` builds `@twistedpear/reticulum-ts/web` and `@twistedpear/host-core/web` with esbuild (`--platform=browser`)
 and asserts no Node/Bare/Hyperdrive imports leak into the bundles.
 
+`npm run build:web-host` produces `dist/web-host/` (Expo web UI + `web-core.worker.js`) for `tp node --serve-web`.
+
 ## Nightly schedule (nightly.yml)
 
 Cron `0 6 * * *` UTC plus `workflow_dispatch` for extended soaks.

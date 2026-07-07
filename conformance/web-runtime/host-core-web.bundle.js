@@ -8025,6 +8025,10 @@ async function openIdentityStore(options) {
     async set(key, value) {
       const request = database.transaction(IDENTITY_OBJECT_STORE, "readwrite").objectStore(IDENTITY_OBJECT_STORE).put(Uint8Array.from(value), key);
       await requestToPromise(request);
+    },
+    async delete(key) {
+      const request = database.transaction(IDENTITY_OBJECT_STORE, "readwrite").objectStore(IDENTITY_OBJECT_STORE).delete(key);
+      await requestToPromise(request);
     }
   };
 }

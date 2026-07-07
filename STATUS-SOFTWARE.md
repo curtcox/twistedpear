@@ -182,7 +182,7 @@ Full plan: [docs/web-host.md](docs/web-host.md). Everything here runs on a dev m
 | W-S2: web sandbox isolation spike (opaque-origin iframe + worker, killability) | web-host §W0 | Not started |
 | W-S3: Expo web UI + shared RNW widget renderer | web-host §W0 | Not started |
 | W-S4: OPFS/IndexedDB CAS install of example `.tpkg` | web-host §W0 | Not started |
-| W1: leaf peer in the tab (runtime/web, WS interfaces, `tp node --ws-listen/--serve-web`, LXMF) | web-host §W1 | **Partial** — runtime/web, WS interfaces, gateway CLI, W-S1 interop, browser identity persistence, Playwright packet+LXMF, `createWebLeafHost` + FetchPlane; Expo web tab UI remains |
+| W1: leaf peer in the tab (runtime/web, WS interfaces, `tp node --ws-listen/--serve-web`, LXMF) | web-host §W1 | **Done (software tier)** — runtime/web, WS interfaces, gateway CLI, W-S1 interop, browser identity persistence, Playwright packet+LXMF, `createWebLeafHost` + FetchPlane, Expo web tab UI + `build:web-host` |
 | W2: mini-app runtime (`WebSandboxBackend`, broker/confirm, `widget-renderer-rn` extraction) | web-host §W2 | Not started |
 | W3: distribution (256t install, grants UI, DevStudio on web) | web-host §W3 | Not started |
 | W4: Hyperdrive via WS DHT relay, PWA shell, soaks; WebSerial RNode stretch | web-host §W4 | Not started |
@@ -222,3 +222,4 @@ Full plan: [docs/web-host.md](docs/web-host.md). Everything here runs on a dev m
 | `npm run test:web-runtime` | Browser bundle guard (`reticulum-ts/web` + `host-core/web`) + `runtime/web` unit tests |
 | `npm run test:web-interop` | W-S1: WS leaf peer → gateway → dockerized Python RNS |
 | `npm run test:web-interop-browser` | W-S1/W1: Playwright browser tab packet + LXMF echo through gateway |
+| `npm run build:web-host` | Static Expo web bundle + core worker for `tp node --serve-web` |

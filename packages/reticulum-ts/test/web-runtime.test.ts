@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PureCryptoProvider, Reticulum, bytesToHex, loadOrCreateWebIdentity, persistWebIdentity, webRuntime } from "../src/web.js";
+import { PureCryptoProvider, Reticulum, bytesToHex, hasWebIdentity, loadOrCreateWebIdentity, persistWebIdentity, resetWebIdentity, webRuntime } from "../src/web.js";
 
 type IndexedDbRequest<T> = {
   readonly result: T;
@@ -171,5 +171,21 @@ describe("web identity", () => {
         passphrase: "wrong-passphrase"
       })
     ).rejects.toThrow();
+  });
+
+  it("reports presence and clears stored identity", async () => {
+    const provider = new PureCryptoProvider();
+    const indexedDB = new MemoryIndexedDb();
+    const options = { indexedDB, storeName: "test-web-identity-reset", passphrase: "phase-w-reset" };
+
+    expect(await hasWebIdentity(options)).toBe(false);
+    const created = await loadOrCreateWebIdentity(provider, options);
+    expect(await hasWebIdentity(options)).toBe(true);
+
+    await resetWebIdentity(options);
+    expect(await hasWebIdentity(options)).toBe(false);
+
+    const recreated = await loadOrCreateWebIdentity(provider, options);
+    expect(bytesToHex(recreated.hash)).not.toBe(bytesToHex(created.hash));
   });
 });

@@ -86,6 +86,8 @@ export interface WorkletStatus {
   readonly storageUsedBytes: number;
   readonly developerMode?: boolean;
   readonly miniappRunning?: boolean;
+  readonly wsEnabled?: boolean;
+  readonly gatewayUrl?: string | null;
 }
 
 export interface MulticastNetworkInfo {
@@ -98,6 +100,9 @@ export type HostToWorkletMessage =
       readonly type: "start";
       readonly targetHost: string;
       readonly targetPort: number;
+      readonly gatewayUrl?: string;
+      readonly sharedToken?: string;
+      readonly identityPassphrase?: string;
       readonly multicastEntitled?: boolean;
       readonly bonjourEnabled?: boolean;
     }

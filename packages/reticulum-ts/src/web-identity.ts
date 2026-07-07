@@ -46,6 +46,16 @@ export async function persistWebIdentity(identity: Identity, options: WebIdentit
   await store.set(IDENTITY_RECORD_KEY, encrypted);
 }
 
+export async function hasWebIdentity(options: WebIdentityOptions): Promise<boolean> {
+  const store = await openIdentityStore(options);
+  return (await store.get(IDENTITY_RECORD_KEY)) !== undefined;
+}
+
+export async function resetWebIdentity(options: WebIdentityOptions): Promise<void> {
+  const store = await openIdentityStore(options);
+  await store.delete(IDENTITY_RECORD_KEY);
+}
+
 async function encryptPrivateKey(privateKey: Uint8Array, options: WebIdentityUnlockOptions): Promise<Uint8Array> {
   const subtle = requireSubtle(options);
   const salt = cryptoRandomBytes(SALT_BYTES);
@@ -102,6 +112,7 @@ async function deriveKey(subtle: WebCryptoSubtle, passphrase: string, salt: Uint
 interface IdentityKeyValueStore {
   get(key: string): Promise<Uint8Array | undefined>;
   set(key: string, value: Uint8Array): Promise<void>;
+  delete(key: string): Promise<void>;
 }
 
 async function openIdentityStore(options: WebIdentityOptions): Promise<IdentityKeyValueStore> {
@@ -134,6 +145,13 @@ async function openIdentityStore(options: WebIdentityOptions): Promise<IdentityK
         .transaction(IDENTITY_OBJECT_STORE, "readwrite")
         .objectStore(IDENTITY_OBJECT_STORE)
         .put(Uint8Array.from(value), key);
+      await requestToPromise(request);
+    },
+    async delete(key) {
+      const request = database
+        .transaction(IDENTITY_OBJECT_STORE, "readwrite")
+        .objectStore(IDENTITY_OBJECT_STORE)
+        .delete(key);
       await requestToPromise(request);
     }
   };
@@ -178,6 +196,7 @@ interface WebIdentityTransaction {
 interface WebIdentityObjectStore {
   get(key: string): WebIdentityRequest<Uint8Array | ArrayBuffer | undefined>;
   put(value: Uint8Array, key: string): WebIdentityRequest<unknown>;
+  delete(key: string): WebIdentityRequest<unknown>;
 }
 
 interface WebIdentityRequest<T> {
