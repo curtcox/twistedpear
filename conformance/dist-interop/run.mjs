@@ -460,6 +460,12 @@ async function testSimulatedBleResourceFetch(provider, runtime, archive, unpacke
     throw new Error("simulated BLE resource fetch hash mismatch");
   }
 
+  for (const link of publisher.activeLinks.slice()) {
+    link.teardown();
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
   await resourceClient.stop();
   await publisherBle.close();
   await consumerBle.close();

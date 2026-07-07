@@ -87,7 +87,7 @@ jobs:
 
   ios-sim:
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -99,7 +99,23 @@ jobs:
       - run: npm run test:ios-sim:required
         env:
           IOS_SIM_TCP_REQUIRED: "1"
-          IOS_LIFECYCLE_CYCLES: "10"
+          IOS_LIFECYCLE_CYCLES: "100"
+      - if: always()
+        run: docker compose -f conformance/docker/docker-compose.yml down
+
+  upstream-interop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: docker compose -f conformance/docker/docker-compose.yml build --build-arg UNPINNED=1 leaf-echo lxmf-echo link-echo udp-echo resource-echo propagation-lxmd
+      - run: INTEROP=1 npm run test:interop
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down
 

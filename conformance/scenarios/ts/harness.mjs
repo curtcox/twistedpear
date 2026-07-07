@@ -8,6 +8,11 @@ export const INTEROP_ENABLED = process.env.INTEROP === "1";
 export const LEAF_ECHO_PORT = Number.parseInt(process.env.LEAF_ECHO_PORT ?? "4242", 10);
 export const LXMF_ECHO_PORT = Number.parseInt(process.env.LXMF_ECHO_PORT ?? "4243", 10);
 export const LINK_ECHO_PORT = Number.parseInt(process.env.LINK_ECHO_PORT ?? "4244", 10);
+export const PROPAGATION_LXMD_PORT = Number.parseInt(process.env.PROPAGATION_LXMD_PORT ?? "4245", 10);
+export const UDP_TS_PORT = Number.parseInt(process.env.UDP_TS_PORT ?? "4246", 10);
+export const UDP_ECHO_PORT = Number.parseInt(process.env.UDP_ECHO_PORT ?? "4247", 10);
+export const RESOURCE_ECHO_PORT = Number.parseInt(process.env.RESOURCE_ECHO_PORT ?? "4248", 10);
+export const PROPAGATION_TS_PORT = Number.parseInt(process.env.PROPAGATION_TS_PORT ?? "4249", 10);
 export const TRANSPORT_HUB_PORT = Number.parseInt(process.env.TRANSPORT_HUB_PORT ?? "4250", 10);
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -111,4 +116,30 @@ export function spawnComposeService(service) {
     cwd: REPO_ROOT,
     stdio: ["ignore", "pipe", "pipe"]
   });
+}
+
+export function composeRun(service, args = [], env = {}) {
+  return execSync(
+    `docker compose -f "${COMPOSE_FILE}" --profile tools run --rm ${service} ${args.map((arg) => JSON.stringify(arg)).join(" ")}`,
+    {
+      encoding: "utf8",
+      cwd: REPO_ROOT,
+      env: { ...process.env, ...env }
+    }
+  );
+}
+
+export async function waitForLogLine(service, pattern, timeoutMs = 30_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const logs = composeLogs(service, 40);
+    const match = logs.match(pattern);
+    if (match !== null) {
+      return match;
+    }
+
+    await sleep(500);
+  }
+
+  throw new Error(`Timed out waiting for ${pattern} from ${service}. Logs:\n${composeLogs(service, 100)}`);
 }

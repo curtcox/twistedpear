@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,9 +8,11 @@ import {
   DestinationProofStrategy,
   DestinationType,
   Identity,
+  LinkResourceStrategy,
   LinkStatus,
   NodeCryptoProvider,
   PacketReceiptStatus,
+  Resource,
   Reticulum,
   hexToBytes,
   nodeRuntime
@@ -17,6 +20,9 @@ import {
 import {
   LEAF_ECHO_PORT,
   LINK_ECHO_PORT,
+  RESOURCE_ECHO_PORT,
+  UDP_ECHO_PORT,
+  UDP_TS_PORT,
   interopReady,
   sleep,
   withComposeService
@@ -166,4 +172,131 @@ describe.runIf(interopReady())("docker interop — link over TCP", () => {
       await expect(received).resolves.toBe("link ping");
     });
   }, 120_000);
+});
+
+describe.runIf(interopReady())("docker interop — leaf node over UDP", () => {
+  it("discovers Python announces and exchanges data packets over UDP", async () => {
+    await withComposeService("udp-echo", UDP_ECHO_PORT, async () => {
+      const alice = loadIdentity("alice");
+      const bob = loadIdentity("bob");
+
+      const reticulum = Reticulum.create({ provider, runtime });
+      reticulum.start();
+
+      await reticulum.addUdpInterface({
+        name: "python-udp-echo",
+        listenHost: "127.0.0.1",
+        listenPort: UDP_TS_PORT,
+        forwardHost: "127.0.0.1",
+        forwardPort: UDP_ECHO_PORT
+      });
+
+      const aliceIn = reticulum.registerDestination({
+        provider,
+        identity: alice,
+        direction: DestinationDirection.IN,
+        type: DestinationType.SINGLE,
+        appName: "example",
+        aspects: ["echo"]
+      });
+      aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
+
+      const bobOut = reticulum.registerDestination({
+        provider,
+        identity: bob,
+        direction: DestinationDirection.OUT,
+        type: DestinationType.SINGLE,
+        appName: "example",
+        aspects: ["echo"]
+      });
+
+      await aliceIn.announce();
+      await waitForPath(reticulum, bobOut.hash);
+
+      const received = new Map<string, Uint8Array>();
+      aliceIn.setPacketCallback((data) => {
+        received.set(new TextDecoder().decode(data), data);
+      });
+
+      await bobOut.send(new TextEncoder().encode("udp ping"));
+      const deadline = Date.now() + 15_000;
+      while (Date.now() < deadline) {
+        if (received.has("udp ping") && received.has("hello from python udp echo")) {
+          break;
+        }
+
+        await sleep(100);
+      }
+
+      expect(received.get("udp ping")).toBeDefined();
+      expect(received.get("hello from python udp echo")).toBeDefined();
+    });
+  }, 120_000);
+});
+
+function resourceSizes(): number[] {
+  const raw = process.env.RESOURCE_INTEROP_SIZES ?? "1024,1048576";
+  return raw.split(",").map((entry) => Number.parseInt(entry.trim(), 10)).filter((size) => size > 0);
+}
+
+describe.runIf(interopReady())("docker interop — Resource transfer over TCP", () => {
+  it.each(resourceSizes().map((size) => [size]))(
+    "transfers %i bytes to Python and receives echo",
+    async (size) => {
+      await withComposeService("resource-echo", RESOURCE_ECHO_PORT, async () => {
+        const bob = loadIdentity("bob");
+
+        const reticulum = Reticulum.create({ provider, runtime });
+        reticulum.start();
+
+        await reticulum.addTcpClientInterface({
+          name: "python-resource-echo",
+          targetHost: "127.0.0.1",
+          targetPort: RESOURCE_ECHO_PORT
+        });
+
+        const bobOut = reticulum.registerDestination({
+          provider,
+          identity: bob,
+          direction: DestinationDirection.OUT,
+          type: DestinationType.SINGLE,
+          appName: "example",
+          aspects: ["resource"]
+        });
+
+        await waitForPath(reticulum, bobOut.hash);
+
+        const link = bobOut.requestLink();
+        const linkDeadline = Date.now() + 15_000;
+        while (Date.now() < linkDeadline && link.status !== LinkStatus.ACTIVE) {
+          await sleep(100);
+        }
+
+        expect(link.status).toBe(LinkStatus.ACTIVE);
+        link.setResourceStrategy(LinkResourceStrategy.ACCEPT_ALL);
+
+        const payload = new Uint8Array(size);
+        for (let index = 0; index < size; index += 1) {
+          payload[index] = index & 0xff;
+        }
+
+        const expectedDigest = createHash("sha256").update(payload).digest("hex");
+
+        const received = new Promise<Uint8Array>((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error("resource echo timeout")), 120_000);
+          link.callbacks.resourceConcluded = (resource) => {
+            clearTimeout(timer);
+            resolve(resource.data ?? new Uint8Array(0));
+          };
+        });
+
+        Resource.send(link, payload, { advertise: true });
+        const echoed = await received;
+        const actualDigest = createHash("sha256").update(echoed).digest("hex");
+        expect(echoed.length).toBe(size);
+        expect(actualDigest).toBe(expectedDigest);
+      });
+    },
+    180_000
+  );
 });

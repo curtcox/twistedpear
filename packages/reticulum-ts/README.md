@@ -29,6 +29,9 @@ Golden vectors live in `conformance/vectors/`. Regenerate with
 `npm run vectors:generate` (identity vectors require a local RNS install; see
 `conformance/README.md`).
 
+API reference: `npm run docs --workspace=@twistedpear/reticulum-ts` (output in
+`packages/reticulum-ts/docs/api/`).
+
 ## Crypto providers
 
 | Provider | Implementation |

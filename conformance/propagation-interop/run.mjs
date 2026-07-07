@@ -11,13 +11,25 @@ import { createNodeHost } from "../../packages/host-core/dist/node-host.js";
 import { resolveHostConfig } from "../../packages/host-core/dist/config.js";
 import { NodeCryptoProvider, Reticulum, nodeRuntime, Identity, hexToBytes } from "../../packages/reticulum-ts/dist/index.js";
 import {
-  LXMFRouter,
+  LXMessage,
   LXMessageMethod,
+  LXMFRouter,
   PropagationClient,
   PropagationServer,
-  createPropagationDestination
+  PropagationTransferState,
+  createPropagationDestination,
+  msgpackUnpackPropagationEnvelope
 } from "../../packages/lxmf-ts/dist/index.js";
-import { interopReady, sleep, withComposeService, LXMF_ECHO_PORT } from "../scenarios/ts/harness.mjs";
+import {
+  interopReady,
+  sleep,
+  withComposeService,
+  LXMF_ECHO_PORT,
+  PROPAGATION_LXMD_PORT,
+  PROPAGATION_TS_PORT,
+  composeRun,
+  waitForLogLine
+} from "../scenarios/ts/harness.mjs";
 
 if (!interopReady()) {
   console.log("propagation-interop: skipped (set INTEROP=1 with docker)");
@@ -165,6 +177,140 @@ async function runLxmfOpportunisticOverTcp() {
   console.log("propagation-interop: LXMF opportunistic over TCP passed");
 }
 
+async function runTsPropagationServerPythonClientSync() {
+  const provider = new NodeCryptoProvider();
+  const runtime = nodeRuntime();
+  const alice = loadIdentity(provider, "alice");
+  const bob = loadIdentity(provider, "bob");
+
+  const reticulum = Reticulum.create({ provider, runtime });
+  reticulum.start();
+
+  await reticulum.addTcpServerInterface({
+    name: "propagation-ts-server",
+    listenHost: "0.0.0.0",
+    listenPort: PROPAGATION_TS_PORT
+  });
+
+  const router = new LXMFRouter({ reticulum, provider });
+  const nodeDelivery = router.registerDeliveryIdentity(bob);
+  const nodePropagation = createPropagationDestination(provider, reticulum, bob);
+  const server = new PropagationServer(provider);
+  server.registerHandlers(nodePropagation);
+
+  await nodeDelivery.announce();
+  await nodePropagation.announce();
+  await sleep(500);
+
+  const aliceOut = router.createOutboundDestination(alice);
+  const packed = LXMessage.pack({
+    provider,
+    destination: aliceOut,
+    source: nodeDelivery,
+    title: "Offline",
+    content: "TS propagation server seed",
+    desiredMethod: LXMessageMethod.PROPAGATED,
+    deferStamp: true,
+    timestamp: 1_700_000_200
+  });
+  const [queuedMessage] = msgpackUnpackPropagationEnvelope(packed.propagationPacked);
+  if (queuedMessage === undefined) {
+    throw new Error("Missing propagation payload for TS server seed");
+  }
+
+  server.storePropagationData(queuedMessage);
+
+  const propagationHash = Buffer.from(nodePropagation.hash).toString("hex");
+  const syncOutput = composeRun(
+    "propagation-tools",
+    [
+      "propagation_sync.py",
+      "--target-host",
+      "host.docker.internal",
+      "--target-port",
+      String(PROPAGATION_TS_PORT),
+      "--propagation-hash",
+      propagationHash,
+      "--recipient",
+      "alice"
+    ],
+    {}
+  );
+
+  if (!syncOutput.includes("SYNC_OK TS propagation server seed")) {
+    throw new Error(`Python propagation sync failed: ${syncOutput}`);
+  }
+
+  await reticulum.stop();
+  console.log("propagation-interop: TS server → Python client sync passed");
+}
+
+async function runLxmdServerTsClientSync() {
+  await withComposeService("propagation-lxmd", PROPAGATION_LXMD_PORT, async () => {
+    const match = await waitForLogLine("propagation-lxmd", /READY ([0-9a-f]+)/i);
+    const propagationHash = match[1];
+
+    composeRun(
+      "propagation-tools",
+      [
+        "propagation_publish.py",
+        "--target-host",
+        "host.docker.internal",
+        "--target-port",
+        String(PROPAGATION_LXMD_PORT),
+        "--propagation-hash",
+        propagationHash,
+        "--content",
+        "Hello from lxmd publisher"
+      ],
+      {}
+    );
+    await sleep(1500);
+
+    const provider = new NodeCryptoProvider();
+    const runtime = nodeRuntime();
+    const alice = loadIdentity(provider, "alice");
+
+    const reticulum = Reticulum.create({ provider, runtime });
+    reticulum.start();
+
+    await reticulum.addTcpClientInterface({
+      name: "python-lxmd",
+      targetHost: "127.0.0.1",
+      targetPort: PROPAGATION_LXMD_PORT
+    });
+
+    const router = new LXMFRouter({ reticulum, provider });
+    const aliceDelivery = router.registerDeliveryIdentity(alice);
+    await aliceDelivery.announce();
+    await waitForPath(reticulum, hexToBytes(propagationHash));
+
+    const received = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("lxmd sync delivery timeout")), 20_000);
+      router.onDelivery((message) => {
+        clearTimeout(timer);
+        resolve(message.contentAsString());
+      });
+    });
+
+    const client = new PropagationClient({ router, provider });
+    client.setPropagationNode(hexToBytes(propagationHash));
+    const result = await client.syncMessages();
+    if (result.state !== PropagationTransferState.COMPLETE && result.state !== PropagationTransferState.IDLE) {
+      throw new Error(`lxmd client sync failed: ${result.state}`);
+    }
+
+    const content = await received;
+    if (content !== "Hello from lxmd publisher") {
+      throw new Error(`unexpected lxmd sync content: ${content}`);
+    }
+
+    await reticulum.stop();
+  });
+
+  console.log("propagation-interop: lxmd server → TS client sync passed");
+}
+
 async function runPropagationStoreRestart() {
   const dataDir = mkdtempSync(join(tmpdir(), "tp-prop-restart-"));
   try {
@@ -195,4 +341,6 @@ await runInProcessPropagationSync();
 await runHostCorePropagationBoot();
 await runPropagationStoreRestart();
 await runLxmfOpportunisticOverTcp();
+await runTsPropagationServerPythonClientSync();
+await runLxmdServerTsClientSync();
 console.log("propagation-interop: passed");

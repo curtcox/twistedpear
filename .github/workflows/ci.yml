@@ -306,7 +306,51 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - run: npm run build
       - run: npm run test:interop
+
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:fuzz
+        env:
+          FUZZ_ITERATIONS: "512"
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run docs:reticulum-ts
+
+  electron-pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run pack --workspace=host-desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: host-desktop-linux
+          path: apps/host-desktop/release
+          if-no-files-found: error
 
   ios-sim:
     if: github.event_name == 'pull_request'
@@ -338,7 +382,7 @@ jobs:
         if: steps.changes.outputs.ios == 'true'
         env:
           IOS_SIM_TCP_REQUIRED: "1"
-          IOS_LIFECYCLE_CYCLES: "10"
+          IOS_LIFECYCLE_CYCLES: "100"
       - if: always() && steps.changes.outputs.ios == 'true'
         run: docker compose -f conformance/docker/docker-compose.yml down
 
@@ -377,11 +421,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build leaf-echo lxmf-echo
+      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build leaf-echo lxmf-echo propagation-lxmd
       - run: INTEROP=1 npm run test:transport-role
       - run: INTEROP=1 npm run test:rnsd-mode
       - run: INTEROP=1 npm run test:propagation-interop
       - run: INTEROP=1 npm run test:desktop-lifecycle
+        env:
+          DESKTOP_LIFECYCLE_CYCLES: "100"
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down
 

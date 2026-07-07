@@ -50,6 +50,64 @@ services:
       retries: 15
       start_period: 3s
 
+  udp-echo:
+    build:
+      context: ../..
+      dockerfile: conformance/docker/Dockerfile
+    working_dir: /conformance/scenarios/python
+    command: python udp_echo.py
+    ports:
+      - "4247:4247/udp"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('udp-echo-ready')"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 3s
+
+  resource-echo:
+    build:
+      context: ../..
+      dockerfile: conformance/docker/Dockerfile
+    working_dir: /conformance/scenarios/python
+    command: python resource_echo.py
+    ports:
+      - "4248:4242"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 3s
+
+  propagation-lxmd:
+    build:
+      context: ../..
+      dockerfile: conformance/docker/Dockerfile
+    working_dir: /conformance/scenarios/python
+    command: python propagation_lxmd.py
+    ports:
+      - "4245:4242"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',4242),1); s.close()"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  propagation-tools:
+    build:
+      context: ../..
+      dockerfile: conformance/docker/Dockerfile
+    working_dir: /conformance/scenarios/python
+    profiles:
+      - tools
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    entrypoint: ["python"]
+
   auto-interop:
     build:
       context: ../..

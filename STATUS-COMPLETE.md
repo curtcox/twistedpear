@@ -103,12 +103,18 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 | TS ⇄ Python LXMF opportunistic over TCP | `packages/lxmf-ts/test/interop.test.ts` | `INTEROP=1 npm run test:interop` |
 | Bare LXMF interop | `conformance/bare-interop/tests.mjs` | `npm run test:bare-interop` |
 
-### M8 — Partial (software items done; see STATUS-SOFTWARE.md for gaps)
+### M8 — Partial (software items done; see STATUS-SOFTWARE.md for soak/tag gaps)
 
 | Item | Evidence | Verify |
 |---|---|---|
 | Negative-path conformance (malformed input) | `packages/reticulum-ts/test/negative-path.test.ts` | `npm test -- packages/reticulum-ts/test/negative-path.test.ts` |
+| Structure-aware fuzz (packet/announce + LXMF msgpack) | `packages/reticulum-ts/test/fuzz.test.ts`, `packages/lxmf-ts/test/fuzz.test.ts` | `npm run test:fuzz` (CI: `fuzz`) |
+| Generated API docs (typedoc) | `packages/reticulum-ts/typedoc.json` | `npm run docs:reticulum-ts` (CI: `docs`) |
+| Weekly upstream interop (unpinned RNS/LXMF) | `.github/workflows/nightly.yml` `upstream-interop` | Nightly job |
 | Crypto benchmarks recorded | `conformance/bare-runtime/baseline-node.json`, `record-benchmark.mjs` | `npm run test:bare-benchmark-compare` |
+| TS ⇄ Python over **UDP** | `conformance/scenarios/python/udp_echo.py`, `interop.test.ts` | `INTEROP=1 npm run test:interop` |
+| Resource transfer TS ⇄ Python (scaled) | `conformance/scenarios/python/resource_echo.py`, `interop.test.ts` | `INTEROP=1 npm run test:interop` (`RESOURCE_INTEROP_SIZES`) |
+| LXMF propagation via **lxmd** docker | `conformance/scenarios/python/propagation_lxmd.py`, `propagation-interop/run.mjs` | `INTEROP=1 npm run test:propagation-interop` |
 
 ---
 
@@ -354,7 +360,7 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 
 | Item | Evidence | Verify |
 |---|---|---|
-| Quiesce/reconnect lifecycle slice | `conformance/ios-sim/lifecycle.mjs` | `IOS_SIM_TCP_REQUIRED=1 npm run test:ios-sim:required` |
+| Quiesce/reconnect lifecycle slice (**100 cycles** in PR CI) | `conformance/ios-sim/lifecycle.mjs` | `IOS_LIFECYCLE_CYCLES=100 npm run test:ios-sim:required` |
 | Degraded-state matrix draft | [docs/ios-host.md](docs/ios-host.md) | — |
 | `node-service/ios/NodeLifecycle.swift` | `apps/harness-mobile/modules/node-service/ios/` | builds |
 
@@ -415,12 +421,13 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 |---|---|---|
 | Drive mirroring + Resource serve in host | `host-core/src/roles/seeder.ts` | `test:seeder` |
 
-### M3 — Propagation server (partial; lxmd bidirectional deferred)
+### M3 — Propagation server
 
 | Item | Evidence | Verify |
 |---|---|---|
 | `PropagationServer` implementation | `packages/lxmf-ts/src/propagation-server.ts` | `propagation-server.test.ts` |
 | In-process sync + store restart | `conformance/propagation-interop/run.mjs` | `INTEROP=1 npm run test:propagation-interop` |
+| **lxmd** server → TS client + TS server → Python client | `propagation_lxmd.py`, `propagation_publish.py`, `propagation_sync.py` | same |
 | Host-core propagation role boot | same | same |
 | Ops guide | [docs/propagation-node.md](docs/propagation-node.md) | — |
 
@@ -452,7 +459,9 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 
 | Item | Evidence | Verify |
 |---|---|---|
-| electron-builder config | `apps/host-desktop/package.json` | local `npm run package` |
+| electron-builder config | `apps/host-desktop/package.json` | local `npm run dist` |
+| **Linux electron-pack CI artifact** | `.github/workflows/ci.yml` `electron-pack` | CI artifacts |
+| Desktop lifecycle **100 cycles** in CI | `conformance/desktop/lifecycle.mjs` | `DESKTOP_LIFECYCLE_CYCLES=100 npm run test:desktop-lifecycle` |
 | Phase 6 demo script | root `demo:phase6` | `npm run demo:phase6` (CI: `desktop-smoke`) |
 | Short desktop soak | `conformance/desktop-soak/run.mjs` | `npm run test:desktop-soak` (nightly) |
 | Desktop host docs | [docs/desktop-host.md](docs/desktop-host.md) | — |

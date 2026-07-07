@@ -16,3 +16,6 @@ apps/harness-mobile/worklet/imports.generated.json
 apps/host-desktop/worklet/imports.generated.json
 apps/harness-mobile/modules/**/.build/
 conformance/scenarios/state/
+packages/reticulum-ts/docs/api/
+conformance/scenarios/config/lxmd-runtime/
+conformance/scenarios/config/propagation-client/
