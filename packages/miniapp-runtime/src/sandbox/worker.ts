@@ -201,7 +201,6 @@ self.onmessage = (event) => {
   }
 };
 
-const data = self.name ? undefined : undefined;
 const bundleSource = (typeof workerData !== 'undefined' ? workerData.bundleSource : self.bootstrapBundle);
 const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
 new AsyncFunction('sdk', bundleSource)(sdk).catch((error) => self.postMessage({ type: 'app-error', message: String(error) }));

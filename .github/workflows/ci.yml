@@ -352,7 +352,10 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - run: npm run build
       - run: npm run test:web-runtime
+      - run: npx playwright install chromium --with-deps
+      - run: npm run test:web-sandbox
 
   fuzz:
     runs-on: ubuntu-latest

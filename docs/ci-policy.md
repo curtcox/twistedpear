@@ -32,11 +32,14 @@ The `interfaces` job runs `npm run test:integration-soak` (default 12 s; configu
 | Job | Command | Notes |
 |---|---|---|
 | `web` | `npm run test:web-runtime` | Browser bundle guard (`reticulum-ts/web` + `host-core/web`) + `runtime/web` unit tests |
+| `web` | `npm run test:web-sandbox` | W-S2: Playwright opaque-origin iframe worker isolation + busy-loop kill benchmark |
 | `interop` (lane) | `INTEROP=1 npm run test:web-interop` | W-S1: WS leaf → gateway → dockerized Python RNS (Node orchestrator) |
 | `interop` (lane) | `INTEROP=1 npm run test:web-interop-browser` | W-S1/W1: Playwright browser tab packet + LXMF echo through gateway |
 
 `test:web-runtime` builds `@twistedpear/reticulum-ts/web` and `@twistedpear/host-core/web` with esbuild (`--platform=browser`)
 and asserts no Node/Bare/Hyperdrive imports leak into the bundles.
+
+`test:web-sandbox` runs Playwright (Chromium) adversarial isolation + busy-loop kill checks for `WebSandboxBackend`.
 
 `npm run build:web-host` produces `dist/web-host/` (Expo web UI + `web-core.worker.js`) for `tp node --serve-web`.
 

@@ -1,6 +1,6 @@
 # Web Host: a full TwistedPear host in the browser (plan)
 
-Status: **in progress** (Phase W1) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed.
+Status: **in progress** (Phase W1 complete; W-S2 landed) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed; `WebSandboxBackend` + W-S2 adversarial isolation spike landed.
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase W.
 
 The web host is a browser tab (React Native for Web via Expo web) that runs the
@@ -96,7 +96,7 @@ A first-class interface, not a private control channel: any in-browser
 
 ## Workstream D — mini-app runtime on web
 
-- **`WebSandboxBackend`** implementing `SandboxBackend`: each app runs in a
+- **`WebSandboxBackend`** implementing `SandboxBackend` (**W-S2 landed**): each app runs in a
   Worker inside a **sandboxed iframe with an opaque origin**, so it gets no
   ambient IndexedDB/OPFS and no same-origin fetch; iframe CSP
   (`connect-src 'none'` etc.) closes cross-origin fetch. The broker
@@ -141,7 +141,7 @@ A first-class interface, not a private control channel: any in-browser
 | Spike | Proves | Exit criteria |
 |---|---|---|
 | W-S1 | `reticulum-ts` in a browser bundle + WS interface | Browser links to dockerized Python RNS through a `tp node` gateway; announce/link/packet golden parity |
-| W-S2 | Web sandbox isolation | Hostile bundle in sandboxed-iframe worker: no ambient storage, no network, busy loop killed < 1 s without reloading the tab |
+| W-S2 | Web sandbox isolation | Hostile bundle in sandboxed-iframe worker: no ambient storage, no network, busy loop killed < 1 s without reloading the tab | **Done (CI tier)** — `WebSandboxBackend` + `test:web-sandbox` (Playwright) |
 | W-S3 | RNW UI path | Harness UI + extracted widget renderer running under `expo start --web`, examples' widget trees render correctly |
 | W-S4 | Browser storage | Install an example `.tpkg` into OPFS/IndexedDB CAS; survives reload; quota surfaced |
 

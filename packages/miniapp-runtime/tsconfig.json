@@ -4,7 +4,7 @@
     "declaration": true,
     "declarationMap": true,
     "exactOptionalPropertyTypes": true,
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "DOM"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "noFallthroughCasesInSwitch": true,
