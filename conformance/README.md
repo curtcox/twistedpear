@@ -55,6 +55,7 @@ Live interop scenarios are added per milestone under `conformance/scenarios`.
 | Updates / rollback | `npm run test:updates` | M8 |
 | Size budgets | `npm run test:budgets` | M9 |
 | Distribution soak | `npm run test:dist-soak` | M9 |
+| Mixed-network two-peer soak | `npm run test:mixed-network-soak` | M9 |
 | End-to-end demo | `npm run demo:phase3` | M9 |
 
 ### Device lab runbook (Phase 3 §7)
@@ -68,7 +69,8 @@ Hardware-deferred exits; full procedures in [STATUS-HARDWARE.md](../STATUS-HARDW
 3. **H8 (RNode budget):** RNode pair from Phase 2 H4; confirm bulk fetch blocked over LoRa for
    packages &gt; 64 KiB; tiny package Resource fetch succeeds.
 
-Emulator-lab and 24 h soak procedures are also in that document. Record results in the phase
+Emulator-lab and 24 h soak procedures are also in [docs/android-emulator-lab.md](../docs/android-emulator-lab.md)
+and [STATUS-HARDWARE.md](../STATUS-HARDWARE.md). Record results in the phase
 exit checklist before closing Phase 3.
 
 ## Phase 4 mini-app runtime
@@ -109,8 +111,9 @@ soak are nightly/device-gated per [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) (H
 
 `npm run test:ios-sim` skips on non-macOS hosts. CI jobs that are meant to validate
 the simulator lane use `test:ios-sim:required` so missing Xcode or simulator runtime is
-a hard failure. Pull requests that touch harness-mobile, reticulum-interfaces, or
-`conformance/ios-sim/` run the macOS `ios-sim` job in CI.
+a hard failure. Pull requests and pushes to `main` that touch harness-mobile, dependent
+packages, or `conformance/ios-sim/` run the macOS `ios-sim` job — see
+[docs/ci-policy.md](../docs/ci-policy.md).
 
 ### Device lab runbook (Phase 5 §7)
 

@@ -106,7 +106,7 @@ the same rate/size enforcement as every broker call.
 
 **Known gaps (explicit non-promises):**
 
-- No completed adversarial security review or parser fuzzing (Phase 7).
+- No completed adversarial security review (Phase 7); continuous parser fuzzing runs in CI (`npm run test:fuzz`).
 - JS-level isolation may not resist determined escape on all hardware.
 - Watchdog thresholds may false-positive on low-end devices (H11).
 - Dev side-loading is localhost/adb-only, off by default, badged **DEV**.
@@ -117,8 +117,9 @@ the same rate/size enforcement as every broker call.
 This is not a completed adversarial security review. The current implementation
 provides the broker chokepoint, deny-by-default capability enforcement, data-only UI,
 hostile-input conformance (`npm run test:hostile-apps`), example-app exercise
-(`npm run test:examples`), and mini-app soak (`npm run test:miniapp-soak`). Phase 7
-will audit and fuzz the sandbox surface.
+(`npm run test:examples`), mini-app soak (`npm run test:miniapp-soak`), and structure-aware
+packet/resource/link fuzzing (`npm run test:fuzz`). Phase 7 will complete the adversarial
+audit of the sandbox surface.
 
 Device measurements for the M0 isolation ADR on Android remain hardware debt; the runtime
 codes to `SandboxBackend` so those numbers do not leak into SDK or broker code. See

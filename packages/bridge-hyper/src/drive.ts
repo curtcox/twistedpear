@@ -130,20 +130,35 @@ export class DriveManager {
     return this.drive.get(archivePath) as Promise<Uint8Array>;
   }
 
-  async mirrorFrom(keyHex: string): Promise<void> {
+  async mirrorFrom(keyHex: string, timeoutMs = 30_000): Promise<void> {
     const remote = await this.openDrive(keyHex);
     const mirror = new Hyperdrive(this.store);
     await mirror.ready();
 
-    for await (const entry of remote.list("/")) {
-      const content = await remote.get(entry.key);
-      if (content !== null) {
-        await mirror.put(entry.key, content);
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      await remote.update();
+      const manifestRaw = await remote.get(MANIFEST_PATH);
+      if (manifestRaw !== null) {
+        const manifest = JSON.parse(new TextDecoder().decode(manifestRaw)) as DriveManifest;
+        await mirror.put(MANIFEST_PATH, manifestRaw);
+
+        for (const info of Object.values(manifest.versions)) {
+          const content = await remote.get(info.archivePath);
+          if (content !== null) {
+            await mirror.put(info.archivePath, content);
+          }
+        }
+
+        await mirror.update();
+        this.drive = mirror;
+        return;
       }
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
 
-    await mirror.update();
-    this.drive = mirror;
+    throw new Error("mirrorFrom timeout");
   }
 
   async close(): Promise<void> {

@@ -25,8 +25,8 @@ import {
 const provider = new PureCryptoProvider();
 const runtime = nodeRuntime();
 
-const SOAK_DURATION_MS = 12_000;
-const FLAP_INTERVAL_MS = 2_000;
+const SOAK_DURATION_MS = Number.parseInt(process.env.SOAK_DURATION_MS ?? "12000", 10);
+const FLAP_INTERVAL_MS = Number.parseInt(process.env.INTEGRATION_SOAK_FLAP_MS ?? "2000", 10);
 
 async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));

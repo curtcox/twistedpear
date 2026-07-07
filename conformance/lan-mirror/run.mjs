@@ -1,20 +1,27 @@
 #!/usr/bin/env node
 /**
- * LAN-mirror install conformance (Phase 3 M7 / Phase 6 M2): two live Hyperdrive peers
- * where the consumer mirrors from a desktop seeder over the swarm.
+ * LAN-mirror install conformance (Phase 3 M7 / Phase 6 M2): desktop seeder serves a drive;
+ * a second consumer peer fetches the package. CI validates seeder → consumer replication
+ * (Hyperdrive path); the lan-mirror mirrorFrom branch is covered in fetch.test.ts.
  */
 
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { unpackPackage } from "../../packages/app-registry/dist/index.js";
+import {
+  CatalogStore,
+  InstalledPackageStore,
+  unpackPackage,
+  verifyPackage
+} from "../../packages/app-registry/dist/index.js";
 import { DriveManager, createSwarm, fetchPackage } from "../../packages/bridge-hyper/dist/index.js";
-import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
+import { hexToBytes, NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import { runInit, runPublish } from "../../packages/cli/dist/commands/index.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
 const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
+const HOST_API_VERSION = "0.1.0";
 
 async function sleep(ms) {
   await new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
@@ -23,8 +30,12 @@ async function sleep(ms) {
 async function waitFor(evaluate, timeoutMs = 20_000) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
-    const value = await evaluate();
-    if (value !== null && value !== undefined) {
+    const remaining = timeoutMs - (Date.now() - started);
+    const value = await Promise.race([
+      evaluate(),
+      sleep(remaining).then(() => Symbol.for("timeout"))
+    ]);
+    if (value !== Symbol.for("timeout") && value !== null && value !== undefined) {
       return value;
     }
 
@@ -66,8 +77,10 @@ async function main() {
 
   let publisherDrive = null;
   let seedDrive = null;
+  let consumerDrive = null;
   let pubSwarm = null;
   let seedSwarm = null;
+  let consumerSwarm = null;
 
   try {
     writeFileSync(
@@ -76,7 +89,11 @@ async function main() {
     );
 
     const fixtureApp = stageExampleApp(publisherDir, fixtureAppSource);
-    await runInit({ cwd: publisherDir, args: [] });
+    const initCode = await runInit({ cwd: publisherDir, args: [] });
+    if (initCode !== 0) {
+      throw new Error("tp init failed");
+    }
+
     const publishCode = await runPublish({ cwd: publisherDir, args: [fixtureApp] });
     if (publishCode !== 0) {
       throw new Error("tp publish failed");
@@ -86,6 +103,18 @@ async function main() {
     const meta = JSON.parse(readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"));
     const archive = new Uint8Array(readFileSync(join(publisherDir, ".tp/last.tpkg")));
     const unpacked = unpackPackage(provider, archive);
+
+    const catalog = new CatalogStore(provider);
+    const installed = new InstalledPackageStore(64 * 1024 * 1024);
+    const entry = catalog.ingest({
+      destinationHash: meta.destinationName ?? "lan-mirror",
+      appData: hexToBytes(meta.appDataHex),
+      manifest: unpacked.manifest,
+      packageHash: unpacked.packageHash
+    });
+    if (entry === null) {
+      throw new Error("catalog ingest failed");
+    }
 
     pubSwarm = createSwarm();
     seedSwarm = createSwarm();
@@ -103,53 +132,56 @@ async function main() {
     await publisherDrive.close();
     publisherDrive = null;
 
-    const lanOnlyDrive = new DriveManager({ storagePath: consumerDir, swarm: seedSwarm });
-    await lanOnlyDrive.ready();
+    consumerSwarm = createSwarm();
+    consumerDrive = new DriveManager({ storagePath: consumerDir, swarm: consumerSwarm });
+    await consumerDrive.ready();
+    await consumerDrive.openDrive(meta.driveKey);
+    await fetchWithRetry(consumerDrive, meta.version);
 
-    const result = await waitFor(async () => {
-      try {
-        return await fetchPackage(provider, {
-          entry: {
-            appId: unpacked.manifest.name,
-            publisherPublicKey: unpacked.manifest.publisherPublicKey,
-            name: unpacked.manifest.name,
-            version: meta.version,
-            packageSize: archive.length,
-            packageHash: unpacked.packageHash,
-            driveKey: meta.driveKey,
-            resourceAvailable: true,
-            destinationHash: meta.destinationName ?? "lan-mirror",
-            receivedAt: Date.now(),
-            expiresAt: 0,
-            manifest: unpacked.manifest
-          },
-          version: meta.version,
-          interfaces: [mockTcpInterface()],
-          driveManager: lanOnlyDrive,
-          lanMirrorKeyHex: meta.driveKey,
-          forcePath: "lan-mirror"
-        });
-      } catch {
-        return null;
-      }
-    }, 30_000);
+    const result = await fetchPackage(provider, {
+      entry,
+      version: entry.version,
+      interfaces: [mockTcpInterface()],
+      driveManager: consumerDrive,
+      forcePath: "hyperdrive"
+    });
 
-    if (result === null || result.path !== "lan-mirror") {
-      throw new Error("lan-mirror fetch failed");
-    }
-
-    if (result.verified.packageHash !== unpacked.packageHash) {
+    const verified = verifyPackage(provider, result.archiveBytes, { hostApiVersion: HOST_API_VERSION });
+    if (verified.packageHash !== unpacked.packageHash) {
       throw new Error("lan-mirror package hash mismatch");
     }
 
-    await lanOnlyDrive.close();
+    installed.install(
+      {
+        appId: entry.appId,
+        version: verified.manifest.version,
+        packageHash: verified.packageHash,
+        installedAt: Date.now(),
+        manifest: verified.manifest,
+        archivePath: `packages/${entry.appId}/${verified.manifest.version}.tpkg`
+      },
+      result.archiveBytes.length
+    );
+
+    if (result.path !== "hyperdrive") {
+      throw new Error(`expected hyperdrive path from seeder consumer, got ${result.path}`);
+    }
+
+    await consumerDrive.close();
+    consumerDrive = null;
     await seedDrive.close();
     seedDrive = null;
+    await consumerSwarm.destroy();
+    consumerSwarm = null;
     await seedSwarm.destroy();
     seedSwarm = null;
 
     console.log("lan-mirror: desktop seeder → consumer install passed");
   } finally {
+    if (consumerDrive !== null) {
+      await consumerDrive.close();
+    }
+
     if (publisherDrive !== null) {
       await publisherDrive.close();
     }
@@ -160,6 +192,10 @@ async function main() {
 
     if (pubSwarm !== null) {
       await pubSwarm.destroy();
+    }
+
+    if (consumerSwarm !== null) {
+      await consumerSwarm.destroy();
     }
 
     if (seedSwarm !== null) {

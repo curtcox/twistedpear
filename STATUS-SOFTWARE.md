@@ -19,17 +19,19 @@ Last audited: 2026-07-07.
 | Area | Open items | Blocking hardware? |
 |---|---|---|
 | Phase 1 release hardening (M8) | 72 h soak at plan duration, 0.1.0 tag, LIMITATIONS §1 measurements | No (needs dedicated server time) |
-| Phase 2 long soaks | 24 h integration soak at plan duration; KVM emulator CI | No |
-| Phase 3 emulator lab + long soaks | KVM emulator CI, E1–E5 automation, 24 h seeder/mixed-network soak | No |
-| Phase 4 emulator lab + long soaks | E1–E5, 24 h mini-app soak, Android emulator Worker metrics | No (emulator) |
-| Phase 5 simulator gaps | 24 h ios-sim soak at plan duration; full-loop on every PR | No |
-| Phase 6 interop + packaging | 72 h desktop soak at plan duration; macOS notarization | No (soak needs server; notarization needs Apple account) |
-| Phase 7 (plan only) | security review, battery/bandwidth policy with device data | No |
+| Phase 2 long soaks | 24 h integration soak at plan duration; 8 h emulator background | No (soak needs server; emulator UI manual) |
+| Phase 3 emulator lab + long soaks | E1–E5 UI on emulator, 24 h seeder/mixed-network soak at plan duration | No (soak needs server; E1–E3 UI manual) |
+| Phase 4 emulator lab + long soaks | E5 Worker metrics on emulator, 24 h mini-app soak at plan duration | No (emulator metrics manual; soak needs server) |
+| Phase 5 simulator gaps | 24 h ios-sim soak at plan duration | No (soak needs server) |
+| Phase 6 interop + packaging | 72 h desktop soak at plan duration; macOS notarization run | No (soak needs server; notarization needs Apple account) |
+| Phase 7 (plan only) | security review adversarial audit; device battery/bandwidth numbers | No |
 
 **Recently closed (2026-07-07):** resource resume-after-flap interop, 100 MB resource nightly,
-link/transport-node soak scripts + nightly CI tier, LAN-mirror multi-peer conformance,
-macOS dmg CI artifact, serialport/RNode load test, fuzz corpus expansion (resource + link
-contexts). See [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
+link/transport-node soak scripts + nightly CI tier, LAN-mirror + mixed-network soak conformance,
+macOS dmg CI artifact, serialport/RNode load test, fuzz corpus expansion, integration-soak
+nightly tier, expanded ios-sim PR path filter, CI policy doc, Android emulator lab doc +
+headless `emulator.yml` workflow, macOS notarization procedure, battery/bandwidth policy draft,
+`mirrorFrom` polling fix. See [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
 
 ---
 
@@ -56,8 +58,8 @@ contexts). See [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
 
 | Item | Plan reference | What's missing | Suggested action | Verify when done |
 |---|---|---|---|---|
-| 24 h emulator/integration soak | PHASE2 M9 | `integration-soak.test.ts` runs 12 s; nightly uses 5 min | Run `SOAK_DURATION_MS=86400000` on a server with interface flapping mock | Flat RSS, no deadlocked interfaces |
-| 8 h background soak (emulator) | PHASE2 M2 CI exit | No KVM emulator CI | Automate Android emulator job (KVM runner) or document manual emulator procedure | Emulator instrumentation test green |
+| 24 h emulator/integration soak | PHASE2 M9 | **CI tier done** — `test:integration-soak` (nightly + `interfaces` job); plan 24 h via `SOAK_DURATION_MS=86400000` on server | Flat RSS, no deadlocked interfaces |
+| 8 h background soak (emulator) | PHASE2 M2 CI exit | Headless proxy in `emulator.yml`; UI path documented | [docs/android-emulator-lab.md](docs/android-emulator-lab.md) E3 |
 | `reticulum-interfaces` 0.1.0 tag note | PHASE2 M9 | Shipped as **0.2.0** early | Intentional skip: interfaces layer reached M9 scope before `reticulum-ts` 0.1.0; no retag planned | `packages/reticulum-interfaces/package.json` |
 | LIMITATIONS §§2–5 measured facts | PHASE2 M9 | Radio numbers wait for hardware | Partial: desktop/docker measurements in LIMITATIONS §6; BLE/RNode throughput in H11+ | LIMITATIONS |
 
@@ -65,7 +67,7 @@ contexts). See [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
 
 | Item | What's missing | Suggested action |
 |---|---|---|
-| Harness on Android **emulator** (UI path) | CI uses headless `bare-device` only | Manual or scripted: `npx expo run:android`, TCP to `10.0.2.2:4242` — see STATUS-HARDWARE emulator lab E1 |
+| Harness on Android **emulator** (UI path) | CI uses headless `bare-device` only | Documented — [docs/android-emulator-lab.md](docs/android-emulator-lab.md) E1; headless proxy `emulator.yml` |
 | Foreground service on emulator | Not in CI | Emulator instrumentation: background 30–60 min, confirm notification + link survival |
 | iOS entitlement **draft** only | Filing needs Apple account (hardware-adjacent) | Software: ensure `docs/ios-multicast-entitlement.md` stays current; filing is H12 in STATUS-HARDWARE |
 
@@ -76,8 +78,8 @@ contexts). See [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
 | Item | Plan reference | What's missing | Suggested action | Verify when done |
 |---|---|---|---|---|
 | 24 h seeder soak | PHASE3 M6/M9 | Nightly 5 min CI tier | `SOAK_DURATION_MS=86400000 npm run test:dist-soak` on a server | Flat RSS, fetches succeed after publisher exit |
-| 24 h mixed-network soak | PHASE3 M9 | Same shortening | Seeder + 2 desktop peers + headless harness-install churn | Zero corrupt installs |
-| KVM Android emulator in CI | PHASE3 M7, PHASE3-HARDWARE E1–E3 | Hosted CI has no emulator job | Add optional workflow or document local emulator lab | Emulator discovers/installs over TCP |
+| 24 h mixed-network soak | PHASE3 M9 | **CI tier done** — `test:mixed-network-soak` (nightly); plan 24 h on server | `npm run test:mixed-network-soak` |
+| KVM Android emulator in CI | PHASE3 M7, PHASE3-HARDWARE E1–E3 | Headless proxy workflow + local lab doc | [docs/android-emulator-lab.md](docs/android-emulator-lab.md), `.github/workflows/emulator.yml` |
 | Hyperdrive on **Android worklet** (emulator) | PHASE3-HARDWARE E5 | Proven on desktop Bare only | Emulator E5: DHT install path, watch Corestore logs | Pass or document Resources-only fallback |
 | LAN-mirror install via desktop seed | PHASE3 M7 | — | **Done** — `conformance/lan-mirror/run.mjs` (nightly `lan-mirror` job) | `npm run test:lan-mirror` |
 
@@ -93,7 +95,7 @@ Runnable today with Android SDK emulator + docker on dev machine:
 | E4 — OTA v1→v2 + rollback | PHASE3-HARDWARE | `tp update`, harness rollback |
 | E5 — Hyperdrive on device worklet | PHASE3-HARDWARE | DHT path on emulator; log watch |
 
-Automating E1–E4 in CI (KVM) is software work; running them locally closes the gap until hardware arrives.
+Automating E1–E4 UI in KVM CI remains open; headless proxies and local lab procedures close the gap until hardware arrives. See [docs/android-emulator-lab.md](docs/android-emulator-lab.md).
 
 ---
 
@@ -104,7 +106,7 @@ Automating E1–E4 in CI (KVM) is software work; running them locally closes the
 | 24 h mini-app soak | PHASE4 M8 | Nightly 5 min CI tier | `SOAK_DURATION_MS=86400000 npm run test:miniapp-soak` on a server | Zero worklet restarts |
 | Bare Worker metrics on **emulator** | PHASE4 M0, PHASE4-HARDWARE E5 | Desktop Node worker only in ADR | Run E5 on emulator: spawn/kill latency, busy-loop kill | Update `docs/miniapp-runtime.md` ADR |
 | React reconciler stretch | PHASE4 M8 | Explicitly non-blocking backlog | Optional; skip unless DX priority | — |
-| LIMITATIONS §7 sandbox promises | PHASE4 M8 | Pre–Phase 7 review | Document explicit non-promises (partially done) | `docs/miniapp-runtime.md` |
+| LIMITATIONS §7 sandbox promises | PHASE4 M8 | **Done** — explicit non-promises in `docs/miniapp-runtime.md` | — |
 
 ---
 
@@ -113,7 +115,7 @@ Automating E1–E4 in CI (KVM) is software work; running them locally closes the
 | Item | Plan reference | What's missing | Suggested action | Verify when done |
 |---|---|---|---|---|
 | 24 h ios-sim soak | PHASE5 M6 | Nightly 5 min default | `SOAK_DURATION_MS=86400000 IOS_LIFECYCLE_CYCLES=100 npm run test:ios-soak:required` on server | Flat RSS, zero worklet restarts |
-| Full ios-sim on every PR | PHASE5 §5 | Path-filtered macOS job only | Expand path filter or nightly-plus-label policy | CI policy doc |
+| Full ios-sim on every PR | PHASE5 §5 | **Done** — expanded path filter + push to `main`; policy in [docs/ci-policy.md](docs/ci-policy.md) | CI policy doc |
 | Bonjour on real LAN | PHASE5 M3 device exit | Needs WiFi + devices | **STATUS-HARDWARE** H15 | — |
 | Multicast entitlement filing | PHASE5 M0(a) | Draft only | Needs paid account — **STATUS-HARDWARE** H12 | — |
 | Measured background windows | PHASE5 M2 device exit | Simulator lifecycle is approximate | Partial: extend simulator lifecycle tests; device numbers in H13 | `docs/ios-host.md` |
@@ -127,7 +129,7 @@ Automating E1–E4 in CI (KVM) is software work; running them locally closes the
 | Node-to-node propagation peering | PHASE6 M3 stretch | Documented stretch goal | Use `lxmd` for meshed stores until implemented | `docs/propagation-node.md` |
 | 72 h desktop soak | PHASE6 M7 | Nightly 5-cycle CI tier | `DESKTOP_SOAK_CYCLES` + `SOAK_DURATION_MS` on server | Flat RSS, roles intact |
 | macOS **dmg** artifact in CI | PHASE6 M7 | — | **Done** — `electron-pack-macos` (CI path-filtered + nightly) | Artifact uploaded |
-| macOS notarization | PHASE6 M7 | Conditional on H12 Apple account | Document procedure; run when account exists | LIMITATIONS |
+| macOS notarization | PHASE6 M7 | Procedure documented; needs H12 Apple account to run | [docs/macos-notarization.md](docs/macos-notarization.md) |
 | Windows verification | PHASE6 M7 | Build-only | **STATUS-HARDWARE** H17 | — |
 | Real LAN desktop⇄desktop routing | PHASE6 / H18 | Docker only today | **STATUS-HARDWARE** H18 | — |
 | `serialport` in Electron **and** Bare CI load | PHASE6 M5 | — | **Done** — `test:serialport-load` (simulated RNode + Node import; CI `serialport-load` + `desktop-macos`) | CI job |
@@ -140,7 +142,7 @@ Automating E1–E4 in CI (KVM) is software work; running them locally closes the
 |---|---|---|
 | Security review sandbox + capabilities | PLAN §7 | Open — adversarial review of broker chokepoint |
 | Fuzz packet parsers (continuous) | PLAN §7, PHASE1 M8 | **CI tier done** — resource adv + link-context fuzz in `fuzz.test.ts`; expand corpus over time |
-| Battery/bandwidth policy | PLAN §7 | Policy draft can start on desktop; device data needed for numbers |
+| Battery/bandwidth policy | PLAN §7 | **Draft done** — [docs/battery-bandwidth-policy.md](docs/battery-bandwidth-policy.md); device numbers pending | H3, H11, H13 |
 | Docs + upstream publication | PLAN §7 | `reticulum-ts` API docs in CI; BLE spec published |
 | Example apps polish | PLAN §7 | Already exist; expand as needed |
 
@@ -148,11 +150,11 @@ Automating E1–E4 in CI (KVM) is software work; running them locally closes the
 
 ## Recommended software-only execution order
 
-1. **Long soaks at plan duration** — dist, miniapp, ios-sim, desktop, transport-node on a dedicated server (`workflow_dispatch` inputs in nightly.yml)
-2. **Emulator automation** — Android KVM CI for harness-install E1–E4
+1. **Long soaks at plan duration** — dist, miniapp, ios-sim, desktop, transport-node, integration, mixed-network on a dedicated server (`workflow_dispatch` in nightly.yml; see [docs/ci-policy.md](docs/ci-policy.md))
+2. **Emulator UI automation** — KVM CI for harness E1–E4 (headless proxy done in `emulator.yml`)
 3. **Phase 1 M8 release** — 0.1.0 tag after soaks, LIMITATIONS measurements
-4. **Emulator labs** — Phase 3/4 E1–E5 locally until CI catches up
-5. **Phase 7** — security review when feature-complete
+4. **Emulator labs** — Phase 3/4 E1–E5 locally per [docs/android-emulator-lab.md](docs/android-emulator-lab.md)
+5. **Phase 7** — adversarial security review when feature-complete
 
 ---
 
@@ -168,5 +170,7 @@ Automating E1–E4 in CI (KVM) is software work; running them locally closes the
 | `npm run test:dist-soak` | Distribution soak (`SOAK_DURATION_MS`) |
 | `npm run test:miniapp-soak` | Mini-app soak (`SOAK_DURATION_MS`) |
 | `npm run test:ios-soak:required` | iOS simulator soak |
+| `npm run test:integration-soak` | Interface flapping soak (`SOAK_DURATION_MS`) |
+| `npm run test:mixed-network-soak` | Two-peer seeder soak (`SOAK_DURATION_MS`) |
 | `npm run test:desktop-soak` | Desktop churn soak |
 | `npm run test:fuzz` | Structure-aware packet/resource/link fuzz |

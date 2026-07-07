@@ -21,7 +21,7 @@ on:
 jobs:
   dist-soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 1500
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -69,7 +69,7 @@ jobs:
 
   miniapp-soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 1500
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -105,6 +105,36 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test:lan-mirror
+
+  integration-soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1500
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:integration-soak
+        env:
+          SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
+
+  mixed-network-soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1500
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:mixed-network-soak
+        env:
+          SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
 
   ios-sim:
     runs-on: macos-15
@@ -142,7 +172,7 @@ jobs:
 
   ios-soak:
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 1500
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -160,7 +190,7 @@ jobs:
 
   desktop-soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 4500
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -208,7 +238,7 @@ jobs:
 
   link-soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 1500
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -223,7 +253,7 @@ jobs:
 
   transport-node-soak:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 4500
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

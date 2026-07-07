@@ -198,6 +198,7 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 | Item | Evidence | Verify |
 |---|---|---|
 | Interface prioritization policy | `packages/reticulum-interfaces/src/policy.ts` | `policy.test.ts`, `integration-soak.test.ts` |
+| Interface integration soak (CI tier) | `conformance/integration-soak/run.mjs` | `npm run test:integration-soak` (CI: `interfaces`, nightly `integration-soak`) |
 | `reticulum-interfaces` 0.2.0 | `packages/reticulum-interfaces/package.json` | — |
 
 ---
@@ -270,6 +271,7 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 | Size budgets (desktop estimates) | `conformance/budgets/measured.json`, [LIMITATIONS.md](LIMITATIONS.md) §6 | `npm run test:budgets` |
 | End-to-end demo (CI tier) | `conformance/dist-interop/`, root `demo:phase3` | `npm run demo:phase3` (nightly) |
 | Short distribution soak | `conformance/dist-soak/run.mjs` | `npm run test:dist-soak` (nightly, 5 min default) |
+| Mixed-network two-peer soak | `conformance/mixed-network-soak/run.mjs` | `npm run test:mixed-network-soak` (nightly `mixed-network-soak`) |
 
 ---
 
@@ -492,3 +494,17 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 | `apps/harness-mobile` | — | Mobile dev harness (seed of host app) |
 | `apps/host-desktop` | 0.1.0 | Electron desktop host |
 | `apps/examples` | — | chat, file-drop, board |
+
+---
+
+## Cross-cutting software (2026-07-07)
+
+| Item | Evidence | Verify |
+|---|---|---|
+| CI policy (soak tiers, path filters) | [docs/ci-policy.md](docs/ci-policy.md) | — |
+| Android emulator lab (E1–E5) | [docs/android-emulator-lab.md](docs/android-emulator-lab.md) | — |
+| Emulator headless CI proxy | `.github/workflows/emulator.yml` | `gh workflow run emulator.yml` |
+| macOS notarization procedure | [docs/macos-notarization.md](docs/macos-notarization.md) | — |
+| Battery/bandwidth policy draft | [docs/battery-bandwidth-policy.md](docs/battery-bandwidth-policy.md) | — |
+| iOS full-loop PR path filter | `.github/workflows/ci.yml` `ios-sim` | touch `packages/miniapp-runtime/**` etc. |
+| `mirrorFrom` polling timeout | `packages/bridge-hyper/src/drive.ts` | `npm test -- packages/bridge-hyper/test` |

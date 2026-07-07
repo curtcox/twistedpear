@@ -1,0 +1,26 @@
+name: Android Emulator Lab
+
+on:
+  workflow_dispatch:
+
+# Headless proxies for emulator lab E1/E2/E4. Full E1–E4 UI path: docs/android-emulator-lab.md
+
+jobs:
+  headless-proxy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build leaf-echo
+      - run: npm run test:harness-install
+      - run: npm run test:lan-mirror
+      - run: npm run test:bare-device
+      - run: npm run test:updates
+      - if: always()
+        run: docker compose -f conformance/docker/docker-compose.yml down

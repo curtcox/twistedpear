@@ -65,6 +65,7 @@ jobs:
       - run: npm run build
       - run: npm test -- packages/reticulum-interfaces/test
       - run: npm run test:bonjour-interop
+      - run: npm run test:integration-soak
 
   bare-interop:
     runs-on: ubuntu-latest
@@ -403,7 +404,7 @@ jobs:
           if-no-files-found: error
 
   ios-sim:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: macos-15
     timeout-minutes: 30
     steps:
@@ -416,7 +417,14 @@ jobs:
           filters: |
             ios:
               - 'apps/harness-mobile/**'
+              - 'apps/examples/**'
               - 'packages/reticulum-interfaces/**'
+              - 'packages/reticulum-ts/**'
+              - 'packages/app-registry/**'
+              - 'packages/bridge-hyper/**'
+              - 'packages/miniapp-runtime/**'
+              - 'packages/miniapp-sdk/**'
+              - 'packages/cli/**'
               - 'conformance/ios-sim/**'
               - '.github/workflows/ci.yml'
       - uses: actions/setup-node@v4
