@@ -10,6 +10,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./web": {
+      "types": "./dist/web.d.ts",
+      "import": "./dist/web.js"
+    },
     "./protocol": {
       "types": "./dist/protocol.d.ts",
       "import": "./dist/protocol.js"

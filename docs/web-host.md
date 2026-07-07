@@ -1,6 +1,6 @@
 # Web Host: a full TwistedPear host in the browser (plan)
 
-Status: **in progress** (Phase W0/W1) — Workstreams A/B landed; W-S1 interop + Playwright CI wired; browser identity persistence landed.
+Status: **in progress** (Phase W1) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed.
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase W.
 
 The web host is a browser tab (React Native for Web via Expo web) that runs the

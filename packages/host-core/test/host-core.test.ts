@@ -2,12 +2,36 @@ import { describe, expect, it } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  buildUnsignedManifest,
+  appDestinationName,
+  packPackage,
+  signManifest,
+  unpackPackage
+} from "@twistedpear/app-registry";
+import { attachPackageResourceServer } from "@twistedpear/bridge-hyper";
+import {
+  DestinationDirection,
+  DestinationType,
+  Identity,
+  NodeCryptoProvider,
+  PipeInterface,
+  Reticulum,
+  bytesToHex,
+  nodeRuntime
+} from "@twistedpear/reticulum-ts";
+import { createBridgeHyperFetchPlane } from "../src/fetch-plane-bridge-hyper.js";
+import { createResourceFetchPlane } from "../src/fetch-plane-resource.js";
 import { createNodeHost } from "../src/node-host.js";
 import { createFilePropagationPersistence } from "../src/propagation-persistence.js";
 import { PropagationServer, DEFAULT_PROPAGATION_QUOTAS } from "@twistedpear/lxmf-ts";
-import { NodeCryptoProvider } from "@twistedpear/reticulum-ts";
 import { decodeMessages, encodeMessage } from "../src/protocol.js";
-import { defaultHostConfig } from "../src/types.js";
+import {
+  DEFAULT_WEB_LEAF_ROLES,
+  assertWebLeafRoles,
+  defaultHostConfig,
+  defaultWebLeafConfig
+} from "../src/types.js";
 
 describe("host-core protocol", () => {
   it("round-trips newline-delimited JSON", () => {
@@ -23,6 +47,20 @@ describe("host-core config", () => {
     const config = defaultHostConfig();
     expect(config.roles.transport).toBe(true);
     expect(config.roles.seeder).toBe(true);
+  });
+
+  it("defaults web leaf roles with transport and seeder off", () => {
+    const config = defaultWebLeafConfig();
+    expect(config.roles).toEqual(DEFAULT_WEB_LEAF_ROLES);
+    expect(config.interfaces.auto.enabled).toBe(false);
+    expect(config.interfaces.websocket.enabled).toBe(false);
+  });
+
+  it("rejects non-leaf roles for web host", () => {
+    expect(() => assertWebLeafRoles(DEFAULT_WEB_LEAF_ROLES)).not.toThrow();
+    expect(() =>
+      assertWebLeafRoles({ transport: true, seeder: false, propagation: false, attachRnsd: null })
+    ).toThrow(/leaf-only/);
   });
 });
 
@@ -101,5 +139,93 @@ describe("host-core propagation persistence", () => {
     } finally {
       rmSync(dataDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("host-core fetch plane", () => {
+  it("fetches a package over the resource path", async () => {
+    const provider = new NodeCryptoProvider();
+    const runtime = nodeRuntime();
+    const publisher = new Identity(provider);
+    const files = [{ path: "index.js", content: new TextEncoder().encode("ok") }];
+    const unsigned = buildUnsignedManifest(
+      {
+        name: "fetch-plane-test",
+        version: "1.0.0",
+        entry: "index.js",
+        driveKey: "a".repeat(64),
+        publisherPublicKey: bytesToHex(publisher.getPublicKey()),
+        capabilities: [],
+        files
+      },
+      provider
+    );
+    const manifest = signManifest(provider, publisher, unsigned);
+    const packed = packPackage(provider, { ...manifest, signature: manifest.signature, files });
+    const unpacked = unpackPackage(provider, packed.archiveBytes);
+
+    const publisherNode = Reticulum.create({ provider, runtime });
+    publisherNode.start();
+    const clientNode = Reticulum.create({ provider, runtime });
+    clientNode.start();
+
+    const [leftPipe, rightPipe] = PipeInterface.pair(provider);
+    publisherNode.registerInterface(leftPipe);
+    clientNode.registerInterface(rightPipe);
+
+    const publisherKeyHex = bytesToHex(publisher.getPublicKey());
+    const destinationParts = appDestinationName(provider, publisherKeyHex, "fetch-plane-test").split(".");
+
+    const destination = publisherNode.registerDestination({
+      provider,
+      identity: publisher,
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: destinationParts[0] ?? "tp",
+      aspects: destinationParts.slice(1)
+    });
+
+    attachPackageResourceServer(destination, {
+      async listVersions() {
+        return [{ version: "1.0.0", packageHash: unpacked.packageHash, size: packed.archiveBytes.length }];
+      },
+      async fetchArchive() {
+        return packed.archiveBytes;
+      }
+    });
+
+    const fetchPlane = createResourceFetchPlane({ reticulum: clientNode, provider });
+    const entry = {
+      appId: "fetch-plane-test",
+      publisherPublicKey: bytesToHex(publisher.getPublicKey()),
+      name: "fetch-plane-test",
+      version: "1.0.0",
+      packageSize: packed.archiveBytes.length,
+      packageHash: unpacked.packageHash,
+      driveKey: unpacked.manifest.driveKey,
+      resourceAvailable: true,
+      destinationHash: "",
+      receivedAt: Date.now(),
+      expiresAt: Date.now() + 60_000,
+      manifest: unpacked.manifest
+    };
+
+    const result = await fetchPlane.fetchPackage(provider, {
+      entry,
+      version: "1.0.0",
+      interfaces: clientNode.listInterfaces()
+    });
+
+    expect(result.path).toBe("resource");
+    expect(result.packageHash).toBe(unpacked.packageHash);
+    expect(unpackPackage(provider, result.archiveBytes).manifest.name).toBe("fetch-plane-test");
+
+    await clientNode.stop();
+    await publisherNode.stop();
+  });
+
+  it("creates a bridge-hyper fetch plane adapter", () => {
+    const plane = createBridgeHyperFetchPlane({});
+    expect(typeof plane.fetchPackage).toBe("function");
   });
 });

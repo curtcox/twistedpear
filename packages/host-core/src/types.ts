@@ -1,5 +1,8 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { DEFAULT_WEB_LEAF_ROLES, assertWebLeafRoles, type WebLeafHostStatus } from "./leaf-roles.js";
+
+export { DEFAULT_WEB_LEAF_ROLES, assertWebLeafRoles, type WebLeafHostStatus } from "./leaf-roles.js";
 
 export interface HostQuotas {
   readonly seedStorageBytes: number;
@@ -153,6 +156,20 @@ export function defaultHostConfig(overrides: HostConfigOverrides = {}): HostConf
     statusEndpoint: overrides.statusEndpoint ?? false,
     ai: overrides.ai ?? null
   };
+}
+
+export function defaultWebLeafConfig(overrides: HostConfigOverrides = {}): HostConfig {
+  return defaultHostConfig({
+    ...overrides,
+    roles: { ...DEFAULT_WEB_LEAF_ROLES, ...overrides.roles },
+    interfaces: {
+      tcp: { enabled: false, mode: "client", ...overrides.interfaces?.tcp },
+      websocket: { enabled: false, ...overrides.interfaces?.websocket },
+      auto: { enabled: false, multicast: false, bonjour: false, ...overrides.interfaces?.auto },
+      i2p: { enabled: false, ...overrides.interfaces?.i2p },
+      rnode: { enabled: false, ...overrides.interfaces?.rnode }
+    }
+  });
 }
 
 export interface HostStatus {

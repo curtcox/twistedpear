@@ -4,6 +4,7 @@ import {
   Identity,
   LinkStatus,
   Reticulum,
+  hexToBytes,
   type CryptoProvider,
   type Runtime
 } from "@twistedpear/reticulum-ts";
@@ -75,7 +76,7 @@ export class PackageResourceClient {
   }
 
   private async openLink() {
-    const publisherKey = Uint8Array.from(Buffer.from(this.options.publisherPublicKeyHex, "hex"));
+    const publisherKey = hexToBytes(this.options.publisherPublicKeyHex);
     const publisherIdentity = Identity.fromPublicKey(this.options.provider, publisherKey);
     if (publisherIdentity === null) {
       throw new Error("Invalid publisher public key");

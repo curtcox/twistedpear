@@ -33,4 +33,12 @@ if (guard.status !== 0) {
   process.exit(guard.status ?? 1);
 }
 
+const hostCoreGuard = spawnSync("node", ["conformance/web-runtime/host-core-web-build.mjs"], {
+  cwd: root,
+  stdio: "inherit"
+});
+if (hostCoreGuard.status !== 0) {
+  process.exit(hostCoreGuard.status ?? 1);
+}
+
 console.log("web-runtime: passed");

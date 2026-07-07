@@ -1,9 +1,10 @@
 /**
- * Browser-side W-S1 + W1 interop: packet echo and LXMF echo through a WS gateway.
+ * Browser-side W-S1 + W1 interop: packet echo, LXMF echo, and web leaf host smoke.
  * Bundled for Playwright; reports status on window.__WEB_INTEROP__.
  */
 
 import identityVectors from "../vectors/identity.json" with { type: "json" };
+import { createWebLeafHost } from "../../packages/host-core/dist/web.js";
 import {
   DestinationDirection,
   DestinationProofStrategy,
@@ -51,6 +52,52 @@ async function waitForPath(reticulum, destinationHash, timeoutMs = 30_000) {
 
 function bytesToAscii(bytes) {
   return Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
+}
+
+async function runWebLeafHostSmoke(wsUrl) {
+  const first = await createWebLeafHost({
+    gatewayUrl: wsUrl,
+    identity: {
+      storeName: "twistedpear-web-interop-identity",
+      passphrase: "web-interop-browser-passphrase"
+    }
+  });
+
+  const firstStatus = first.getStatus();
+  if (firstStatus.identityHash.length === 0) {
+    throw new Error("web leaf host smoke: expected identity hash");
+  }
+
+  let linkOnline = false;
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    if (first.getStatus().linkOnline) {
+      linkOnline = true;
+      break;
+    }
+
+    await sleep(100);
+  }
+
+  if (!linkOnline) {
+    throw new Error("web leaf host smoke: gateway link did not come online");
+  }
+
+  await first.stop();
+
+  const second = await createWebLeafHost({
+    gatewayUrl: wsUrl,
+    identity: {
+      storeName: "twistedpear-web-interop-identity",
+      passphrase: "web-interop-browser-passphrase"
+    }
+  });
+
+  if (second.getStatus().identityHash !== firstStatus.identityHash) {
+    throw new Error("web leaf host smoke: identity hash changed after reload");
+  }
+
+  await second.stop();
 }
 
 async function runPacketEcho(wsUrl) {
@@ -181,7 +228,15 @@ async function main() {
     throw new Error("Missing ?ws= query parameter");
   }
 
-  globalThis.__WEB_INTEROP__ = { status: "running", packet: null, lxmf: null };
+  globalThis.__WEB_INTEROP__ = {
+    status: "running",
+    webLeafHost: null,
+    packet: null,
+    lxmf: null
+  };
+
+  await runWebLeafHostSmoke(wsUrl);
+  globalThis.__WEB_INTEROP__.webLeafHost = "ok";
 
   await runPacketEcho(wsUrl);
   globalThis.__WEB_INTEROP__.packet = "ok";
@@ -194,6 +249,7 @@ async function main() {
 main().catch((error) => {
   globalThis.__WEB_INTEROP__ = {
     status: "error",
+    webLeafHost: globalThis.__WEB_INTEROP__?.webLeafHost ?? null,
     packet: globalThis.__WEB_INTEROP__?.packet ?? null,
     lxmf: globalThis.__WEB_INTEROP__?.lxmf ?? null,
     message: error instanceof Error ? error.message : String(error)

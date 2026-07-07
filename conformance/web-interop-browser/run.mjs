@@ -213,7 +213,7 @@ async function runPlaywright(pageUrl) {
     }
 
     const result = await page.evaluate(() => globalThis.__WEB_INTEROP__);
-    if (result?.packet !== "ok" || result?.lxmf !== "ok") {
+    if (result?.webLeafHost !== "ok" || result?.packet !== "ok" || result?.lxmf !== "ok") {
       throw new Error(`browser interop incomplete: ${JSON.stringify(result)}`);
     }
   } finally {
