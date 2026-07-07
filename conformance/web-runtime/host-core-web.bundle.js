@@ -8073,6 +8073,48 @@ var SEMVER_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\
 function isValidSemver(version) {
   return SEMVER_RE.test(version);
 }
+function compareSemver(left, right) {
+  if (!isValidSemver(left) || !isValidSemver(right)) {
+    throw new Error(`Invalid semver: ${left} or ${right}`);
+  }
+  const parse = (value) => {
+    const match = SEMVER_RE.exec(value);
+    if (match === null) {
+      throw new Error(`Invalid semver: ${value}`);
+    }
+    return [
+      Number(match[1]),
+      Number(match[2]),
+      Number(match[3]),
+      match[4] ?? "",
+      match[5] ?? ""
+    ];
+  };
+  const [lMajor, lMinor, lPatch, lPre, lBuild] = parse(left);
+  const [rMajor, rMinor, rPatch, rPre, rBuild] = parse(right);
+  if (lMajor !== rMajor) {
+    return lMajor - rMajor;
+  }
+  if (lMinor !== rMinor) {
+    return lMinor - rMinor;
+  }
+  if (lPatch !== rPatch) {
+    return lPatch - rPatch;
+  }
+  if (lPre === "" && rPre !== "") {
+    return 1;
+  }
+  if (lPre !== "" && rPre === "") {
+    return -1;
+  }
+  if (lPre !== rPre) {
+    return lPre < rPre ? -1 : 1;
+  }
+  if (lBuild !== rBuild) {
+    return lBuild < rBuild ? -1 : 1;
+  }
+  return 0;
+}
 function canonicalizeJson(value) {
   if (value === null || typeof value !== "object") {
     return value;
@@ -8267,6 +8309,26 @@ function unpackPackage(provider, archiveBytes) {
     archiveBytes
   };
 }
+function verifyPackage(provider, archiveBytes, options = {}) {
+  const result = unpackPackage(provider, archiveBytes);
+  if (options.expectedPublisherKey !== void 0) {
+    const publisherKey = hexToBytes2(result.manifest.publisherPublicKey);
+    if (!equalBytes3(publisherKey, options.expectedPublisherKey)) {
+      throw new PackageError("WRONG_KEY", "Publisher public key does not match expected key");
+    }
+  }
+  if (options.minVersion !== void 0) {
+    if (compareSemver(result.manifest.version, options.minVersion) < 0) {
+      throw new PackageError("DOWNGRADE", `Package version ${result.manifest.version} is older than minimum ${options.minVersion}`);
+    }
+  }
+  if (options.hostApiVersion !== void 0) {
+    if (compareSemver(options.hostApiVersion, result.manifest.minHostApi) < 0) {
+      throw new PackageError("MIN_HOST_API", `Host API ${options.hostApiVersion} does not satisfy minHostApi ${result.manifest.minHostApi}`);
+    }
+  }
+  return result;
+}
 
 // packages/app-registry/dist/announce.js
 function appDestinationName(provider, publisherPublicKeyHex, appName) {
@@ -8278,11 +8340,350 @@ var APP_ANNOUNCE_MAGIC = new Uint8Array([84, 80, 65, 68, 1]);
 
 // packages/app-registry/dist/catalog.js
 var DEFAULT_CATALOG_ENTRY_TTL_MS = 7 * 24 * 60 * 60 * 1e3;
+function installedPackageKey(appId, version) {
+  return `installed:${appId}:${version}`;
+}
+var InstalledPackageStore = class {
+  quotaBytes;
+  usedBytes;
+  packages = /* @__PURE__ */ new Map();
+  versionsByApp = /* @__PURE__ */ new Map();
+  activeVersions = /* @__PURE__ */ new Map();
+  constructor(quotaBytes, usedBytes = 0) {
+    this.quotaBytes = quotaBytes;
+    this.usedBytes = usedBytes;
+  }
+  list() {
+    return [...this.packages.values()].sort((left, right) => right.installedAt - left.installedAt);
+  }
+  get(appId, version) {
+    return this.packages.get(installedPackageKey(appId, version)) ?? null;
+  }
+  activeVersion(appId) {
+    return this.activeVersions.get(appId) ?? this.latestVersion(appId);
+  }
+  latestVersion(appId) {
+    const versions = this.versionsByApp.get(appId);
+    if (versions === void 0 || versions.length === 0) {
+      return null;
+    }
+    return versions[versions.length - 1] ?? null;
+  }
+  previousVersion(appId) {
+    const versions = this.versionsByApp.get(appId);
+    if (versions === void 0 || versions.length < 2) {
+      return null;
+    }
+    return versions[versions.length - 2] ?? null;
+  }
+  canInstall(sizeBytes) {
+    return this.usedBytes + sizeBytes <= this.quotaBytes;
+  }
+  storageUsedBytes() {
+    return this.usedBytes;
+  }
+  install(record, sizeBytes) {
+    const key = installedPackageKey(record.appId, record.version);
+    const existing = this.packages.get(key);
+    if (existing !== void 0) {
+      return;
+    }
+    while (!this.canInstall(sizeBytes) && this.packages.size > 0) {
+      this.evictOldest();
+    }
+    if (!this.canInstall(sizeBytes)) {
+      throw new Error("Storage quota exceeded");
+    }
+    this.packages.set(key, record);
+    this.usedBytes += sizeBytes;
+    const versions = this.versionsByApp.get(record.appId) ?? [];
+    versions.push(record.version);
+    versions.sort(compareSemver);
+    this.versionsByApp.set(record.appId, versions);
+    this.activeVersions.set(record.appId, record.version);
+  }
+  rollback(appId) {
+    const previous = this.previousVersion(appId);
+    if (previous === null) {
+      return null;
+    }
+    this.activeVersions.set(appId, previous);
+    return previous;
+  }
+  remove(appId, version, sizeBytes) {
+    const key = installedPackageKey(appId, version);
+    const existing = this.packages.get(key);
+    if (existing === void 0) {
+      return false;
+    }
+    this.packages.delete(key);
+    this.usedBytes = Math.max(0, this.usedBytes - sizeBytes);
+    const versions = (this.versionsByApp.get(appId) ?? []).filter((entry) => entry !== version);
+    if (versions.length === 0) {
+      this.versionsByApp.delete(appId);
+      this.activeVersions.delete(appId);
+    } else {
+      this.versionsByApp.set(appId, versions);
+      const active = this.activeVersions.get(appId);
+      if (active === version) {
+        this.activeVersions.set(appId, versions[versions.length - 1] ?? version);
+      }
+    }
+    return true;
+  }
+  evictOldest() {
+    let oldest = null;
+    for (const record of this.packages.values()) {
+      if (oldest === null || record.installedAt < oldest.installedAt) {
+        oldest = record;
+      }
+    }
+    if (oldest !== null) {
+      this.remove(oldest.appId, oldest.version, 0);
+    }
+  }
+  async save(store) {
+    await store.set("installed-packages", new TextEncoder().encode(JSON.stringify({
+      packages: [...this.packages.entries()],
+      versionsByApp: [...this.versionsByApp.entries()],
+      activeVersions: [...this.activeVersions.entries()],
+      usedBytes: this.usedBytes
+    })));
+  }
+  async load(store) {
+    const raw = await store.get("installed-packages");
+    if (raw === null || raw === void 0) {
+      return;
+    }
+    const payload = JSON.parse(new TextDecoder().decode(raw));
+    this.packages.clear();
+    this.versionsByApp.clear();
+    this.activeVersions.clear();
+    for (const [key, value] of payload.packages) {
+      this.packages.set(key, value);
+    }
+    for (const [key, value] of payload.versionsByApp) {
+      this.versionsByApp.set(key, value);
+    }
+    for (const [key, value] of payload.activeVersions ?? []) {
+      this.activeVersions.set(key, value);
+    }
+    this.usedBytes = payload.usedBytes;
+  }
+};
 
 // packages/cas-256t/dist/codec.js
+var T256_ID_LENGTH = 94;
+var T256_LENGTH_PREFIX_CHARS = 8;
+var T256_INLINE_MAX_BYTES = 64;
 var T256_MAX_CONTENT_BYTES = 2 ** 48 - 1;
 var ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 var CHAR_TO_VALUE = new Map([...ALPHABET].map((char, index) => [char, index]));
+var T256Error = class extends Error {
+  code;
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+    this.name = "T256Error";
+  }
+};
+function base64UrlEncode(bytes) {
+  let out = "";
+  for (let index = 0; index < bytes.length; index += 3) {
+    const b0 = bytes[index];
+    const b1 = index + 1 < bytes.length ? bytes[index + 1] : 0;
+    const b2 = index + 2 < bytes.length ? bytes[index + 2] : 0;
+    out += ALPHABET[b0 >> 2];
+    out += ALPHABET[(b0 & 3) << 4 | b1 >> 4];
+    if (index + 1 < bytes.length) {
+      out += ALPHABET[(b1 & 15) << 2 | b2 >> 6];
+    }
+    if (index + 2 < bytes.length) {
+      out += ALPHABET[b2 & 63];
+    }
+  }
+  return out;
+}
+function base64UrlDecode(text, expectedBytes) {
+  const out = new Uint8Array(expectedBytes);
+  let outIndex = 0;
+  let buffer = 0;
+  let bits = 0;
+  for (const char of text) {
+    const value = CHAR_TO_VALUE.get(char);
+    if (value === void 0) {
+      throw new T256Error("INVALID_ID", `Invalid base64url character: ${char}`);
+    }
+    buffer = buffer << 6 | value;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      if (outIndex < expectedBytes) {
+        out[outIndex] = buffer >> bits & 255;
+        outIndex += 1;
+      }
+    }
+  }
+  if (outIndex !== expectedBytes) {
+    throw new T256Error("INVALID_ID", `Expected ${expectedBytes} bytes, decoded ${outIndex}`);
+  }
+  if (bits > 0 && (buffer & (1 << bits) - 1) !== 0) {
+    throw new T256Error("INVALID_ID", "Non-canonical base64url tail bits");
+  }
+  return out;
+}
+function encodeLengthPrefix(length) {
+  const bytes = new Uint8Array(6);
+  let remaining = length;
+  for (let index = 5; index >= 0; index -= 1) {
+    bytes[index] = remaining % 256;
+    remaining = Math.floor(remaining / 256);
+  }
+  return base64UrlEncode(bytes);
+}
+function encode256tParts(length, field) {
+  if (!Number.isInteger(length) || length < 0 || length > T256_MAX_CONTENT_BYTES) {
+    throw new T256Error("CONTENT_TOO_LARGE", `Content length out of range: ${length}`);
+  }
+  if (field.length !== 64) {
+    throw new T256Error("INVALID_ID", `256t field must be 64 bytes, got ${field.length}`);
+  }
+  return `${encodeLengthPrefix(length)}${base64UrlEncode(field)}`;
+}
+function encode256t(content, sha5123) {
+  if (content.length <= T256_INLINE_MAX_BYTES) {
+    const field = new Uint8Array(64);
+    field.set(content, 0);
+    return encode256tParts(content.length, field);
+  }
+  const digest = sha5123(content);
+  if (digest.length !== 64) {
+    throw new T256Error("INVALID_ID", "sha512 function must return 64 bytes");
+  }
+  return encode256tParts(content.length, digest);
+}
+function decode256t(id) {
+  if (typeof id !== "string" || id.length !== T256_ID_LENGTH) {
+    throw new T256Error("INVALID_ID", `256t id must be ${T256_ID_LENGTH} characters`);
+  }
+  const lengthBytes = base64UrlDecode(id.slice(0, T256_LENGTH_PREFIX_CHARS), 6);
+  let length = 0;
+  for (const byte of lengthBytes) {
+    length = length * 256 + byte;
+  }
+  const field = base64UrlDecode(id.slice(T256_LENGTH_PREFIX_CHARS), 64);
+  if (length <= T256_INLINE_MAX_BYTES) {
+    for (let index = length; index < 64; index += 1) {
+      if (field[index] !== 0) {
+        throw new T256Error("INVALID_ID", "Inline 256t content has non-zero padding");
+      }
+    }
+    return { length, inline: field.slice(0, length), sha512: null };
+  }
+  return { length, inline: null, sha512: field };
+}
+function verify256t(id, content, sha5123) {
+  let decoded;
+  try {
+    decoded = decode256t(id);
+  } catch {
+    return false;
+  }
+  if (decoded.length !== content.length) {
+    return false;
+  }
+  if (decoded.inline !== null) {
+    return equalBytes6(decoded.inline, content);
+  }
+  return decoded.sha512 !== null && equalBytes6(decoded.sha512, sha5123(content));
+}
+function equalBytes6(a, b) {
+  if (a.length !== b.length) {
+    return false;
+  }
+  let diff = 0;
+  for (let index = 0; index < a.length; index += 1) {
+    diff |= a[index] ^ b[index];
+  }
+  return diff === 0;
+}
+
+// packages/cas-256t/dist/store.js
+var CasQuotaError = class extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "CasQuotaError";
+  }
+};
+var KEY_PREFIX = "cas:";
+var CasStore = class {
+  backend;
+  sha512;
+  maxBlobBytes;
+  maxTotalBytes;
+  constructor(backend, sha5123, options = {}) {
+    this.backend = backend;
+    this.sha512 = sha5123;
+    this.maxBlobBytes = options.maxBlobBytes ?? 16 * 1024 * 1024;
+    this.maxTotalBytes = options.maxTotalBytes ?? 256 * 1024 * 1024;
+  }
+  async put(content) {
+    const id = encode256t(content, this.sha512);
+    const decoded = decode256t(id);
+    if (decoded.inline !== null) {
+      return id;
+    }
+    if (content.length > this.maxBlobBytes) {
+      throw new CasQuotaError(`CAS blob exceeds ${this.maxBlobBytes} bytes`);
+    }
+    const key = this.key(id);
+    if (await this.backend.get(key) !== null) {
+      return id;
+    }
+    const keys = await this.backend.list(KEY_PREFIX);
+    let total = content.length;
+    for (const existing of keys) {
+      total += (await this.backend.get(existing))?.length ?? 0;
+    }
+    if (total > this.maxTotalBytes) {
+      throw new CasQuotaError(`CAS store exceeds ${this.maxTotalBytes} bytes`);
+    }
+    await this.backend.set(key, content);
+    return id;
+  }
+  async get(id) {
+    const decoded = decode256t(id);
+    if (decoded.inline !== null) {
+      return decoded.inline;
+    }
+    const stored = await this.backend.get(this.key(id));
+    if (stored === null) {
+      return null;
+    }
+    if (!verify256t(id, stored, this.sha512)) {
+      throw new T256Error("HASH_MISMATCH", "Stored CAS content does not match its 256t id");
+    }
+    return stored;
+  }
+  async has(id) {
+    const decoded = decode256t(id);
+    if (decoded.inline !== null) {
+      return true;
+    }
+    return await this.backend.get(this.key(id)) !== null;
+  }
+  async delete(id) {
+    const decoded = decode256t(id);
+    if (decoded.inline !== null) {
+      return;
+    }
+    await this.backend.delete(this.key(id));
+  }
+  key(id) {
+    const hex = [...decode256t(id).sha512].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    return `${KEY_PREFIX}${hex}`;
+  }
+};
 
 // packages/cas-256t/dist/locator.js
 var CAS_LOCATOR_MAGIC = new Uint8Array([84, 80, 67, 76, 1]);
@@ -9195,12 +9596,265 @@ async function createWebLeafHost(options) {
     }
   };
 }
+
+// packages/host-core/dist/web-package-storage.js
+var DEFAULT_DB_NAME = "twistedpear-web-packages";
+var DEFAULT_PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
+var DEFAULT_HOST_API_VERSION = "0.1.0";
+var KV_OBJECT_STORE = "kv";
+var IndexedDbBlobStore = class {
+  dbName;
+  ready;
+  constructor(indexedDB, dbName) {
+    this.dbName = dbName;
+    this.ready = new Promise((resolve, reject) => {
+      const request = indexedDB.open(dbName, 1);
+      request.onupgradeneeded = (event) => {
+        event.target?.result.createObjectStore(KV_OBJECT_STORE);
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error(`Failed to open IndexedDB ${dbName}`));
+    });
+  }
+  async get(key) {
+    const result = await this.request((store) => store.get(key), "readonly");
+    if (result === void 0) {
+      return null;
+    }
+    return result instanceof Uint8Array ? Uint8Array.from(result) : new Uint8Array(result);
+  }
+  async set(key, value) {
+    await this.request((store) => store.put(Uint8Array.from(value), key), "readwrite");
+  }
+  async delete(key) {
+    await this.request((store) => store.delete(key), "readwrite");
+  }
+  async list(prefix) {
+    const keys = await this.request((store) => store.getAllKeys(), "readonly");
+    return keys.filter((key) => key.startsWith(prefix));
+  }
+  async request(makeRequest, mode) {
+    const database = await this.ready;
+    const request = makeRequest(database.transaction(KV_OBJECT_STORE, mode).objectStore(KV_OBJECT_STORE));
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error("IndexedDB request failed"));
+    });
+  }
+};
+var IndexedDbArchiveStore = class {
+  kv;
+  archivePrefix = "archive:";
+  constructor(kv) {
+    this.kv = kv;
+  }
+  async write(path, bytes) {
+    await this.kv.set(this.key(path), bytes);
+  }
+  async read(path) {
+    return this.kv.get(this.key(path));
+  }
+  key(path) {
+    return `${this.archivePrefix}${path}`;
+  }
+};
+var OpfsArchiveStore = class {
+  root;
+  constructor(root) {
+    this.root = root;
+  }
+  async write(path, bytes) {
+    const segments = path.split("/").filter((segment) => segment.length > 0);
+    const fileName = segments.pop();
+    if (fileName === void 0) {
+      throw new Error(`Invalid archive path: ${path}`);
+    }
+    let directory = this.root;
+    for (const segment of segments) {
+      directory = await directory.getDirectoryHandle(segment, { create: true });
+    }
+    const fileHandle = await directory.getFileHandle(fileName, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(bytes);
+    await writable.close();
+  }
+  async read(path) {
+    try {
+      const segments = path.split("/").filter((segment) => segment.length > 0);
+      const fileName = segments.pop();
+      if (fileName === void 0) {
+        return null;
+      }
+      let directory = this.root;
+      for (const segment of segments) {
+        directory = await directory.getDirectoryHandle(segment);
+      }
+      const fileHandle = await directory.getFileHandle(fileName);
+      const file = await fileHandle.getFile();
+      return new Uint8Array(await file.arrayBuffer());
+    } catch {
+      return null;
+    }
+  }
+};
+function packageArchivePath(appId, version) {
+  return `packages/${appId}/${version}.tpkg`;
+}
+function resolveBrowserStorage(options) {
+  return options.storage ?? globalThis.navigator?.storage;
+}
+function resolveIndexedDb(options) {
+  const indexedDB = options.indexedDB ?? globalThis.indexedDB;
+  if (indexedDB === void 0) {
+    throw new Error("IndexedDB is required for web package storage");
+  }
+  return indexedDB;
+}
+async function createArchiveStore(options, kv) {
+  const storage = resolveBrowserStorage(options);
+  if (storage?.getDirectory !== void 0) {
+    try {
+      const root = await storage.getDirectory();
+      return { store: new OpfsArchiveStore(root), backend: "opfs" };
+    } catch {
+    }
+  }
+  return { store: new IndexedDbArchiveStore(kv), backend: "indexeddb" };
+}
+function catalogKeyValueAdapter(kv) {
+  return {
+    async get(key) {
+      const value = await kv.get(key);
+      return value ?? void 0;
+    },
+    async set(key, value) {
+      await kv.set(key, value);
+    },
+    async delete(key) {
+      await kv.delete(key);
+    }
+  };
+}
+var WebPackageStorage = class {
+  archiveBackend;
+  provider;
+  hostApiVersion;
+  installedStore;
+  casStore;
+  archiveStore;
+  storage;
+  catalogKv;
+  constructor(options, kv, archive, installedStore) {
+    this.provider = options.provider ?? new PureCryptoProvider();
+    this.hostApiVersion = options.hostApiVersion ?? DEFAULT_HOST_API_VERSION;
+    this.installedStore = installedStore;
+    this.archiveStore = archive.store;
+    this.archiveBackend = archive.backend;
+    this.storage = resolveBrowserStorage(options);
+    this.catalogKv = catalogKeyValueAdapter(kv);
+    this.casStore = new CasStore(kv, (data) => this.provider.sha512(data));
+  }
+  async installArchive(archiveBytes) {
+    const verified = verifyPackage(this.provider, archiveBytes, {
+      hostApiVersion: this.hostApiVersion
+    });
+    const appId = verified.manifest.name;
+    const version = verified.manifest.version;
+    const archivePath = packageArchivePath(appId, version);
+    const existing = this.installedStore.get(appId, version);
+    if (existing !== null) {
+      const stored = await this.archiveStore.read(archivePath);
+      if (stored !== null && stored.length === archiveBytes.length) {
+        return {
+          appId,
+          version,
+          packageHash: existing.packageHash,
+          t256: encode256t(archiveBytes, (data) => this.provider.sha512(data)),
+          archivePath,
+          archiveBytes: stored.length
+        };
+      }
+    }
+    const t256 = await this.casStore.put(archiveBytes);
+    await this.archiveStore.write(archivePath, archiveBytes);
+    this.installedStore.install({
+      appId,
+      version,
+      packageHash: verified.packageHash,
+      installedAt: Date.now(),
+      manifest: verified.manifest,
+      archivePath
+    }, archiveBytes.length);
+    await this.installedStore.save(this.catalogKv);
+    return {
+      appId,
+      version,
+      packageHash: verified.packageHash,
+      t256,
+      archivePath,
+      archiveBytes: archiveBytes.length
+    };
+  }
+  async readArchive(appId, version) {
+    const record = this.installedStore.get(appId, version);
+    if (record === null) {
+      return null;
+    }
+    return this.archiveStore.read(record.archivePath);
+  }
+  listInstalled() {
+    return this.installedStore.list();
+  }
+  activeVersion(appId) {
+    return this.installedStore.activeVersion(appId);
+  }
+  getPackageUsedBytes() {
+    return this.installedStore.storageUsedBytes();
+  }
+  async getQuotaInfo() {
+    const estimate = await this.storage?.estimate?.() ?? {};
+    const persisted = await this.storage?.persisted?.() ?? false;
+    return {
+      usageBytes: estimate.usage ?? null,
+      quotaBytes: estimate.quota ?? null,
+      persisted,
+      packageUsedBytes: this.getPackageUsedBytes(),
+      packageQuotaBytes: this.installedStore.quotaBytes,
+      archiveBackend: this.archiveBackend
+    };
+  }
+  async requestPersistence() {
+    if (this.storage?.persist === void 0) {
+      return false;
+    }
+    return this.storage.persist();
+  }
+};
+async function createWebPackageStorage(options = {}) {
+  const dbName = options.dbName ?? DEFAULT_DB_NAME;
+  const kv = new IndexedDbBlobStore(resolveIndexedDb(options), dbName);
+  const archive = await createArchiveStore(options, kv);
+  const installedStore = new InstalledPackageStore(options.packageQuotaBytes ?? DEFAULT_PACKAGE_QUOTA_BYTES);
+  await installedStore.load(catalogKeyValueAdapter(kv));
+  return new WebPackageStorage(options, kv, archive, installedStore);
+}
+async function resetWebPackageStorage(options = {}) {
+  const dbName = options.dbName ?? DEFAULT_DB_NAME;
+  const indexedDB = resolveIndexedDb(options);
+  await new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(dbName);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error ?? new Error("Failed to delete web package DB"));
+  });
+}
 export {
   DEFAULT_WEB_LEAF_ROLES,
   assertWebLeafRoles,
   createResourceFetchPlane,
   createWebLeafHost,
-  listResourceVersions
+  createWebPackageStorage,
+  listResourceVersions,
+  resetWebPackageStorage
 };
 /*! Bundled license information:
 

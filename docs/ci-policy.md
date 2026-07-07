@@ -36,6 +36,7 @@ The `interfaces` job runs `npm run test:integration-soak` (default 12 s; configu
 | `web` | `npm run test:web-widget-renderer` | W-S3: Playwright RNW widget renderer golden trees + event wiring |
 | `interop` (lane) | `INTEROP=1 npm run test:web-interop` | W-S1: WS leaf → gateway → dockerized Python RNS (Node orchestrator) |
 | `interop` (lane) | `INTEROP=1 npm run test:web-interop-browser` | W-S1/W1: Playwright browser tab packet + LXMF echo through gateway |
+| `web` | `npm run test:web-storage` | W-S4: Playwright OPFS/IndexedDB CAS install of `tiny.tpkg`, reload persistence, quota surfacing |
 
 `test:web-runtime` builds `@twistedpear/reticulum-ts/web` and `@twistedpear/host-core/web` with esbuild (`--platform=browser`)
 and asserts no Node/Bare/Hyperdrive imports leak into the bundles.
@@ -43,6 +44,8 @@ and asserts no Node/Bare/Hyperdrive imports leak into the bundles.
 `test:web-sandbox` runs Playwright (Chromium) adversarial isolation + busy-loop kill checks for `WebSandboxBackend`.
 
 `test:web-widget-renderer` runs Playwright (Chromium) RNW render checks for `@twistedpear/widget-renderer-rn` (hello + chat golden trees).
+
+`test:web-storage` runs Playwright (Chromium) OPFS/IndexedDB CAS install of `conformance/fixtures/packages/tiny.tpkg`, reload persistence, and `navigator.storage` quota surfacing via `createWebPackageStorage`.
 
 `npm run build:web-host` produces `dist/web-host/` (Expo web UI + `web-core.worker.js`) for `tp node --serve-web`.
 

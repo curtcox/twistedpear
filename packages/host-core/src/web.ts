@@ -13,3 +13,14 @@ export { createResourceFetchPlane, listResourceVersions } from "./fetch-plane-re
 export type { ResourceFetchPlaneOptions } from "./fetch-plane-resource.js";
 export { createWebLeafHost } from "./web-leaf-host.js";
 export type { WebLeafHostOptions, WebLeafHostSession } from "./web-leaf-host.js";
+export { createWebPackageStorage, resetWebPackageStorage } from "./web-package-storage.js";
+export type {
+  WebOpfsDirectoryHandle,
+  WebOpfsFileHandle,
+  WebOpfsRootDirectory,
+  WebPackageInstallResult,
+  WebPackageStorageOptions,
+  WebPackageStorageSession,
+  WebStorageManager,
+  WebStorageQuotaInfo
+} from "./web-package-storage.js";

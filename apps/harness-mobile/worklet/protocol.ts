@@ -64,6 +64,15 @@ export interface MiniappBenchmarkResult {
   readonly busyLoopKilled: boolean;
 }
 
+export interface WebStorageQuotaView {
+  readonly usageBytes: number | null;
+  readonly quotaBytes: number | null;
+  readonly persisted: boolean;
+  readonly packageUsedBytes: number;
+  readonly packageQuotaBytes: number;
+  readonly archiveBackend: "opfs" | "indexeddb";
+}
+
 export interface WorkletStatus {
   readonly running: boolean;
   readonly linkOnline: boolean;
@@ -123,6 +132,7 @@ export type HostToWorkletMessage =
   | { readonly type: "set-developer-mode"; readonly enabled: boolean }
   | { readonly type: "list-catalog" }
   | { readonly type: "list-installed" }
+  | { readonly type: "refresh-storage" }
   | { readonly type: "install-app"; readonly appId: string; readonly forcePath?: "hyperdrive" | "lan-mirror" | "resource"; readonly archiveHex?: string }
   | { readonly type: "delete-package"; readonly appId: string; readonly version: string }
   | { readonly type: "rollback-package"; readonly appId: string }
@@ -157,6 +167,7 @@ export type WorkletToHostMessage =
   | { readonly type: "announce"; readonly entry: AnnounceEntry }
   | { readonly type: "catalog"; readonly entries: ReadonlyArray<CatalogEntryView> }
   | { readonly type: "installed"; readonly packages: ReadonlyArray<InstalledPackageView> }
+  | { readonly type: "storage-quota"; readonly quota: WebStorageQuotaView }
   | { readonly type: "install-progress"; readonly progress: InstallProgress }
   | { readonly type: "grants"; readonly appId: string; readonly capabilities: ReadonlyArray<CapabilityGrantView> }
   | { readonly type: "miniapp-runtime"; readonly runtime: MiniappRuntimeView }

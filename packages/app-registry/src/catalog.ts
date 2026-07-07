@@ -288,6 +288,10 @@ export class InstalledPackageStore {
     return this.usedBytes + sizeBytes <= this.quotaBytes;
   }
 
+  storageUsedBytes(): number {
+    return this.usedBytes;
+  }
+
   install(record: InstalledPackageRecord, sizeBytes: number): void {
     const key = installedPackageKey(record.appId, record.version);
     const existing = this.packages.get(key);
@@ -376,7 +380,7 @@ export class InstalledPackageStore {
 
   async load(store: KeyValueStore): Promise<void> {
     const raw = await store.get("installed-packages");
-    if (raw === null) {
+    if (raw === null || raw === undefined) {
       return;
     }
 

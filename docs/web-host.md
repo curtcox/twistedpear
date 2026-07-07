@@ -1,6 +1,6 @@
 # Web Host: a full TwistedPear host in the browser (plan)
 
-Status: **in progress** (Phase W1 complete; W-S2 + W-S3 landed) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed; `WebSandboxBackend` + W-S2 adversarial isolation spike landed; `packages/widget-renderer-rn` + W-S3 RNW widget preview landed.
+Status: **in progress** (Phase W1 complete; W-S2 + W-S3 + W-S4 landed) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed; `WebSandboxBackend` + W-S2 adversarial isolation spike landed; `packages/widget-renderer-rn` + W-S3 RNW widget preview landed; `createWebPackageStorage` + W-S4 OPFS/IndexedDB CAS install spike landed.
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase W.
 
 The web host is a browser tab (React Native for Web via Expo web) that runs the
@@ -92,7 +92,9 @@ A first-class interface, not a private control channel: any in-browser
   that already exists for non-IP scenarios.
 - Role config hard-locks leaf mode on web (no transport/seed/propagation).
 - CAS + installed packages in OPFS (fall back to IndexedDB), with
-  `navigator.storage.persist()` and quota surfacing in host UI.
+  `navigator.storage.persist()` and quota surfacing in host UI. **W-S4 landed:**
+  `createWebPackageStorage` in `@twistedpear/host-core/web` + `test:web-storage` (Playwright) +
+  harness quota card in `App.web.tsx`.
 
 ## Workstream D — mini-app runtime on web
 
@@ -144,7 +146,7 @@ A first-class interface, not a private control channel: any in-browser
 | W-S1 | `reticulum-ts` in a browser bundle + WS interface | Browser links to dockerized Python RNS through a `tp node` gateway; announce/link/packet golden parity |
 | W-S2 | Web sandbox isolation | Hostile bundle in sandboxed-iframe worker: no ambient storage, no network, busy loop killed < 1 s without reloading the tab | **Done (CI tier)** — `WebSandboxBackend` + `test:web-sandbox` (Playwright) |
 | W-S3 | RNW UI path | Harness UI + extracted widget renderer running under `expo start --web`, examples' widget trees render correctly | **Done (CI tier)** — `packages/widget-renderer-rn` + `test:web-widget-renderer` (Playwright) + `App.web.tsx` preview |
-| W-S4 | Browser storage | Install an example `.tpkg` into OPFS/IndexedDB CAS; survives reload; quota surfaced |
+| W-S4 | Browser storage | Install an example `.tpkg` into OPFS/IndexedDB CAS; survives reload; quota surfaced | **Done (CI tier)** — `createWebPackageStorage` + `test:web-storage` (Playwright) |
 
 ### Phase W1 — Reticulum leaf peer in the tab
 `runtime/web`; `WebSocketClientInterface` + `WebSocketServerInterface`;

@@ -4,6 +4,7 @@
  */
 
 import { createWebLeafHost } from "../../../packages/host-core/dist/web.js";
+import { createWebPackageStorage } from "../../../packages/host-core/dist/web.js";
 import {
   Identity,
   PureCryptoProvider,
@@ -15,6 +16,7 @@ import {
 } from "../../../packages/reticulum-ts/dist/web.js";
 
 const IDENTITY_STORE_NAME = "twistedpear-harness-web-identity";
+const PACKAGE_STORE_NAME = "twistedpear-harness-web-packages";
 const DEFAULT_PASSPHRASE = "harness-web-dev";
 
 /** @type {import("./protocol.ts").WorkletStatus} */
@@ -52,6 +54,8 @@ let webConfig = {
 
 /** @type {Awaited<ReturnType<typeof createWebLeafHost>> | null} */
 let hostSession = null;
+/** @type {Awaited<ReturnType<typeof createWebPackageStorage>> | null} */
+let packageStorage = null;
 /** @type {ReturnType<typeof setInterval> | null} */
 let statusTimer = null;
 
@@ -81,7 +85,32 @@ function pushStatus() {
     status.gatewayUrl = hostStatus.gatewayUrl;
   }
 
+  if (packageStorage !== null) {
+    status.installedPackages = packageStorage.listInstalled().length;
+    status.storageUsedBytes = packageStorage.getPackageUsedBytes();
+  }
+
   send({ type: "status", status: { ...status } });
+}
+
+async function ensurePackageStorage() {
+  if (packageStorage !== null) {
+    return packageStorage;
+  }
+
+  packageStorage = await createWebPackageStorage({ dbName: PACKAGE_STORE_NAME });
+  await packageStorage.requestPersistence();
+  status.installedPackages = packageStorage.listInstalled().length;
+  return packageStorage;
+}
+
+async function refreshStorageStatus() {
+  const storage = await ensurePackageStorage();
+  const quota = await storage.getQuotaInfo();
+  status.installedPackages = storage.listInstalled().length;
+  status.storageUsedBytes = quota.packageUsedBytes;
+  pushStatus();
+  return quota;
 }
 
 function startStatusTimer() {
@@ -259,8 +288,37 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "list-catalog" || message.type === "list-installed") {
+    const storage = await ensurePackageStorage();
     send({ type: "catalog", entries: [] });
-    send({ type: "installed", packages: [] });
+    send({
+      type: "installed",
+      packages: storage.listInstalled().map((record) => ({
+        appId: record.appId,
+        version: record.version,
+        activeVersion: storage.activeVersion(record.appId) ?? record.version,
+        packageHash: record.packageHash,
+        installedAt: record.installedAt,
+        rollbackAvailable: false,
+        capabilities: record.manifest.capabilities,
+        publisherPublicKey: record.manifest.publisherPublicKey
+      }))
+    });
+    return;
+  }
+
+  if (message.type === "refresh-storage") {
+    const quota = await refreshStorageStatus();
+    send({
+      type: "storage-quota",
+      quota: {
+        usageBytes: quota.usageBytes,
+        quotaBytes: quota.quotaBytes,
+        persisted: quota.persisted,
+        packageUsedBytes: quota.packageUsedBytes,
+        packageQuotaBytes: quota.packageQuotaBytes,
+        archiveBackend: quota.archiveBackend
+      }
+    });
     return;
   }
 
@@ -281,4 +339,7 @@ self.onmessage = (event) => {
 };
 
 pushStatus();
+refreshStorageStatus().catch((error) => {
+  log(`Web package storage unavailable: ${error instanceof Error ? error.message : String(error)}`);
+});
 log("Web core worker ready");

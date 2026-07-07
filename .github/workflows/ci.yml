@@ -357,6 +357,7 @@ jobs:
       - run: npx playwright install chromium --with-deps
       - run: npm run test:web-sandbox
       - run: npm run test:web-widget-renderer
+      - run: npm run test:web-storage
 
   fuzz:
     runs-on: ubuntu-latest

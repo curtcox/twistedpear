@@ -4,7 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { validateWidgetTree, type WidgetTree } from "@twistedpear/miniapp-runtime";
 import { MiniappWidgetTree } from "@twistedpear/widget-renderer-rn";
 import { createWebCoreBridge } from "./host/web-core-bridge";
-import type { AnnounceEntry, HostToWorkletMessage, WorkletStatus, WorkletToHostMessage } from "./worklet/protocol";
+import type { AnnounceEntry, HostToWorkletMessage, WebStorageQuotaView, WorkletStatus, WorkletToHostMessage } from "./worklet/protocol";
 
 const DEFAULT_PASSPHRASE = "harness-web-dev";
 const MAX_ANNOUNCES = 50;
@@ -88,6 +88,7 @@ export default function App() {
   const [wsEnabled, setWsEnabled] = useState(false);
   const [previewTree, setPreviewTree] = useState<WidgetTree>(helloWidgetTree);
   const [lastWidgetEvent, setLastWidgetEvent] = useState<string | null>(null);
+  const [storageQuota, setStorageQuota] = useState<WebStorageQuotaView | null>(null);
 
   const previewOptions = useMemo(
     () =>
@@ -122,6 +123,11 @@ export default function App() {
 
       if (message.type === "announce") {
         setAnnounces((current) => [message.entry, ...current].slice(0, MAX_ANNOUNCES));
+        return;
+      }
+
+      if (message.type === "storage-quota") {
+        setStorageQuota(message.quota);
         return;
       }
     },
@@ -159,6 +165,11 @@ export default function App() {
 
   useEffect(() => {
     ensureBridge();
+    sendToWorker({ type: "refresh-storage" });
+  }, [ensureBridge, sendToWorker]);
+
+  useEffect(() => {
+    ensureBridge();
     sendToWorker({
       type: "set-interfaces",
       tcp: wsEnabled,
@@ -180,7 +191,7 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="auto" />
       <Text style={styles.title}>TwistedPear Web Host</Text>
-      <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W1 · W-S3 widget preview)</Text>
+      <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W1 · W-S3 preview · W-S4 storage)</Text>
 
       <View style={styles.card}>
         <Text>Core worker: {status.running ? "running" : "stopped"}</Text>
@@ -191,6 +202,34 @@ export default function App() {
         <Text>Identity: {status.identityHash ?? "none"}</Text>
         <Text>Persisted: {status.identityPersisted ? "yes" : "no"}</Text>
         <Text>Gateway: {status.gatewayUrl ?? gatewayUrl}</Text>
+        <Text>Installed packages: {status.installedPackages}</Text>
+        <Text>Package storage: {formatBytes(status.storageUsedBytes)}</Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Browser storage (W-S4)</Text>
+        <Text style={styles.muted}>
+          Package archives in OPFS (IndexedDB fallback) · CAS blobs in IndexedDB · quota from{" "}
+          <Text style={styles.mono}>navigator.storage</Text>.
+        </Text>
+        <View style={styles.buttonRow}>
+          <ActionButton label="Refresh quota" onPress={() => sendToWorker({ type: "refresh-storage" })} />
+        </View>
+        {storageQuota === null ? (
+          <Text style={styles.muted}>Quota not loaded yet.</Text>
+        ) : (
+          <>
+            <Text>Archive backend: {storageQuota.archiveBackend}</Text>
+            <Text>Persisted: {storageQuota.persisted ? "yes" : "no"}</Text>
+            <Text>
+              Package quota: {formatBytes(storageQuota.packageUsedBytes)} /{" "}
+              {formatBytes(storageQuota.packageQuotaBytes)}
+            </Text>
+            <Text>
+              Browser estimate: {formatBytes(storageQuota.usageBytes)} / {formatBytes(storageQuota.quotaBytes)}
+            </Text>
+          </>
+        )}
       </View>
 
       <View style={styles.card}>
@@ -294,6 +333,22 @@ export default function App() {
   );
 }
 
+function formatBytes(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) {
+    return "unknown";
+  }
+
+  if (value < 1024) {
+    return `${value} B`;
+  }
+
+  if (value < 1024 * 1024) {
+    return `${(value / 1024).toFixed(1)} KiB`;
+  }
+
+  return `${(value / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
 function Row({
   label,
   value,
@@ -360,6 +415,9 @@ const styles = StyleSheet.create({
   muted: {
     color: "#9aa7b8",
     fontSize: 13
+  },
+  mono: {
+    fontFamily: Platform.OS === "web" ? "monospace" : "Menlo"
   },
   announceLine: {
     color: "#c5d0dc",

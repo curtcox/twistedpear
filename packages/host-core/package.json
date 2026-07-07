@@ -24,6 +24,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@twistedpear/cas-256t": "0.1.0",
     "@twistedpear/app-registry": "0.1.0",
     "@twistedpear/bridge-hyper": "0.1.0",
     "@twistedpear/lxmf-ts": "*",

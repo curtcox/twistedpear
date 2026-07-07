@@ -20,6 +20,7 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
+    { "path": "../cas-256t" },
     { "path": "../reticulum-ts" },
     { "path": "../reticulum-interfaces" },
     { "path": "../lxmf-ts" },
