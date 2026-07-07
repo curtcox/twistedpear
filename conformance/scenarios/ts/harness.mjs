@@ -70,6 +70,20 @@ export function composeDown() {
   });
 }
 
+export function composePause(service) {
+  execSync(`docker compose -f "${COMPOSE_FILE}" pause ${service}`, {
+    stdio: "inherit",
+    cwd: REPO_ROOT
+  });
+}
+
+export function composeUnpause(service) {
+  execSync(`docker compose -f "${COMPOSE_FILE}" unpause ${service}`, {
+    stdio: "inherit",
+    cwd: REPO_ROOT
+  });
+}
+
 export function composeLogs(service, tail = 50) {
   return execSync(`docker compose -f "${COMPOSE_FILE}" logs --tail=${tail} ${service}`, {
     encoding: "utf8",

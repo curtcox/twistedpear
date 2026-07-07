@@ -9,6 +9,14 @@ on:
         description: "SOAK_DURATION_MS for distribution soak"
         required: false
         default: "300000"
+      link_soak_duration_ms:
+        description: "LINK_SOAK_DURATION_MS (3600000 = 1 h plan exit)"
+        required: false
+        default: "300000"
+      transport_soak_duration_ms:
+        description: "TRANSPORT_SOAK_DURATION_MS (259200000 = 72 h plan exit)"
+        required: false
+        default: "300000"
 
 jobs:
   dist-soak:
@@ -85,6 +93,19 @@ jobs:
       - run: npm run build
       - run: npm run test:harness-install
 
+  lan-mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:lan-mirror
+
   ios-sim:
     runs-on: macos-15
     timeout-minutes: 45
@@ -151,6 +172,7 @@ jobs:
       - run: npm run test:desktop-soak
         env:
           DESKTOP_SOAK_CYCLES: "5"
+          SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
 
   desktop-macos:
     runs-on: macos-15
@@ -165,3 +187,71 @@ jobs:
       - run: npm run build
       - run: npm run test:desktop
       - run: npm run test:widget-parity
+
+  resource-interop-100mb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build resource-echo
+      - run: INTEROP=1 npm run test:interop -- --testNamePattern="Resource transfer"
+        env:
+          RESOURCE_INTEROP_SIZES: "104857600"
+      - if: always()
+        run: docker compose -f conformance/docker/docker-compose.yml down
+
+  link-soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: INTEROP=1 npm run test:link-soak
+        env:
+          LINK_SOAK_DURATION_MS: ${{ github.event.inputs.link_soak_duration_ms || '300000' }}
+
+  transport-node-soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: INTEROP=1 npm run test:transport-node-soak
+        env:
+          TRANSPORT_SOAK_DURATION_MS: ${{ github.event.inputs.transport_soak_duration_ms || '300000' }}
+
+  electron-pack-macos:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run dist --workspace=host-desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: host-desktop-macos
+          path: apps/host-desktop/release
+          if-no-files-found: error

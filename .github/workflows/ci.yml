@@ -323,6 +323,56 @@ jobs:
         env:
           FUZZ_ITERATIONS: "512"
 
+  serialport-load:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:serialport-load
+        env:
+          SERIAL_LOAD_ITERATIONS: "128"
+
+  electron-pack-macos:
+    if: github.event_name == 'pull_request'
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            desktop:
+              - 'apps/host-desktop/**'
+              - 'packages/host-core/**'
+              - '.github/workflows/ci.yml'
+      - uses: actions/setup-node@v4
+        if: steps.changes.outputs.desktop == 'true'
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+        if: steps.changes.outputs.desktop == 'true'
+      - run: npm run build
+        if: steps.changes.outputs.desktop == 'true'
+      - run: npm run dist --workspace=host-desktop
+        if: steps.changes.outputs.desktop == 'true'
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        if: steps.changes.outputs.desktop == 'true'
+        with:
+          name: host-desktop-macos
+          path: apps/host-desktop/release
+          if-no-files-found: error
+
   docs:
     runs-on: ubuntu-latest
     steps:
@@ -458,4 +508,6 @@ jobs:
       - run: npm run test:desktop
         if: steps.changes.outputs.desktop == 'true'
       - run: npm run test:widget-parity
+        if: steps.changes.outputs.desktop == 'true'
+      - run: npm run test:serialport-load
         if: steps.changes.outputs.desktop == 'true'

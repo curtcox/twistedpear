@@ -8,6 +8,7 @@ import {
   Packet,
   PacketHeaderType,
   PureCryptoProvider,
+  ResourceAdvertisement,
   hexToBytes,
   type CryptoProvider
 } from "../src/index.js";
@@ -76,6 +77,36 @@ describe.each(providers.map((provider) => [provider.name, provider] as const))(
         const material = new Uint8Array(length);
         material.fill(0xff);
         expect(Identity.fromBytes(provider, material)).toBeNull();
+      }
+    });
+
+    it(`survives ${FUZZ_ITERATIONS} resource advertisement wire mutations without throwing`, () => {
+      for (let iteration = 0; iteration < FUZZ_ITERATIONS; iteration += 1) {
+        const frame = new Uint8Array(16 + (iteration % 256));
+        frame.fill(iteration & 0xff);
+
+        try {
+          ResourceAdvertisement.unpack(frame);
+        } catch {
+          // Malformed resource advertisements must fail closed.
+        }
+
+        expect(() => ResourceAdvertisement.isRequest(frame)).not.toThrow();
+      }
+    });
+
+    it(`survives ${FUZZ_ITERATIONS} link-context packet mutations without throwing`, () => {
+      const linkContexts = [0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff];
+      const seeds = packetVectors.packets.map((vector) => hexToBytes(vector.rawHex));
+
+      for (let iteration = 0; iteration < FUZZ_ITERATIONS; iteration += 1) {
+        const base = seeds[iteration % seeds.length]!;
+        const mutated = Uint8Array.from(base);
+        if (mutated.length > 4) {
+          mutated[3] = linkContexts[iteration % linkContexts.length]!;
+        }
+
+        expect(() => Packet.decode(provider, mutated)).not.toThrow();
       }
     });
   }

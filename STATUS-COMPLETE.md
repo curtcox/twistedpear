@@ -6,7 +6,7 @@ by automated tests or conformance suites in CI. Each item cites the evidence to 
 **Goal context:** finish everything in [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md) before acquiring
 hardware for [STATUS-HARDWARE.md](STATUS-HARDWARE.md).
 
-Last audited: 2026-07-06.
+Last audited: 2026-07-07.
 
 ---
 
@@ -108,12 +108,16 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 | Item | Evidence | Verify |
 |---|---|---|
 | Negative-path conformance (malformed input) | `packages/reticulum-ts/test/negative-path.test.ts` | `npm test -- packages/reticulum-ts/test/negative-path.test.ts` |
-| Structure-aware fuzz (packet/announce + LXMF msgpack) | `packages/reticulum-ts/test/fuzz.test.ts`, `packages/lxmf-ts/test/fuzz.test.ts` | `npm run test:fuzz` (CI: `fuzz`) |
+| Structure-aware fuzz (packet/announce + LXMF msgpack + resource/link wire) | `packages/reticulum-ts/test/fuzz.test.ts`, `packages/lxmf-ts/test/fuzz.test.ts` | `npm run test:fuzz` (CI: `fuzz`) |
 | Generated API docs (typedoc) | `packages/reticulum-ts/typedoc.json` | `npm run docs:reticulum-ts` (CI: `docs`) |
 | Weekly upstream interop (unpinned RNS/LXMF) | `.github/workflows/nightly.yml` `upstream-interop` | Nightly job |
 | Crypto benchmarks recorded | `conformance/bare-runtime/baseline-node.json`, `record-benchmark.mjs` | `npm run test:bare-benchmark-compare` |
 | TS ⇄ Python over **UDP** | `conformance/scenarios/python/udp_echo.py`, `interop.test.ts` | `INTEROP=1 npm run test:interop` |
 | Resource transfer TS ⇄ Python (scaled) | `conformance/scenarios/python/resource_echo.py`, `interop.test.ts` | `INTEROP=1 npm run test:interop` (`RESOURCE_INTEROP_SIZES`) |
+| Resource transfer **resume after TCP flap** | `interop.test.ts`, `harness.mjs` `composePause` | `INTEROP=1 npm run test:interop` |
+| Resource **100 MB** interop (nightly) | `.github/workflows/nightly.yml` `resource-interop-100mb` | Nightly job |
+| Link keepalive soak (CI tier) | `conformance/link-soak/run.mjs` | `INTEROP=1 npm run test:link-soak` (nightly `link-soak`) |
+| Transport-node soak (CI tier) | `conformance/transport-node-soak/run.mjs` | `INTEROP=1 npm run test:transport-node-soak` (nightly) |
 | LXMF propagation via **lxmd** docker | `conformance/scenarios/python/propagation_lxmd.py`, `propagation-interop/run.mjs` | `INTEROP=1 npm run test:propagation-interop` |
 
 ---
@@ -251,6 +255,7 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 |---|---|---|
 | Harness catalog/install UI + worklet wiring | `apps/harness-mobile/` | dev build |
 | Headless install stack simulation | `conformance/harness-install/run.mjs` | `npm run test:harness-install` |
+| LAN-mirror install (two Hyperdrive peers) | `conformance/lan-mirror/run.mjs` | `npm run test:lan-mirror` (nightly `lan-mirror`) |
 
 ### M8 — Updates, pinning, rollback
 
@@ -420,6 +425,7 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 | Item | Evidence | Verify |
 |---|---|---|
 | Drive mirroring + Resource serve in host | `host-core/src/roles/seeder.ts` | `test:seeder` |
+| LAN-mirror fetch path (live peers) | `conformance/lan-mirror/run.mjs` | `npm run test:lan-mirror` |
 
 ### M3 — Propagation server
 
@@ -446,6 +452,7 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 |---|---|---|
 | `--attach-rnsd` preset | `packages/host-core/`, `packages/cli/` | `INTEROP=1 npm run test:rnsd-mode` |
 | Desktop `serial-node.ts` + mocked pipe | `packages/reticulum-interfaces/src/serial-node.ts` | `rnode-*` unit tests |
+| Simulated RNode load + Node serialport import | `conformance/serialport-load/run.mjs` | `npm run test:serialport-load` (CI: `serialport-load`, `desktop-macos`) |
 
 ### M6 — Citizenship + dashboard (partial; full cycle count deferred)
 
@@ -461,6 +468,7 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 |---|---|---|
 | electron-builder config | `apps/host-desktop/package.json` | local `npm run dist` |
 | **Linux electron-pack CI artifact** | `.github/workflows/ci.yml` `electron-pack` | CI artifacts |
+| **macOS dmg CI artifact** | `.github/workflows/ci.yml` + `nightly.yml` `electron-pack-macos` | CI artifacts (`CSC_IDENTITY_AUTO_DISCOVERY=false`) |
 | Desktop lifecycle **100 cycles** in CI | `conformance/desktop/lifecycle.mjs` | `DESKTOP_LIFECYCLE_CYCLES=100 npm run test:desktop-lifecycle` |
 | Phase 6 demo script | root `demo:phase6` | `npm run demo:phase6` (CI: `desktop-smoke`) |
 | Short desktop soak | `conformance/desktop-soak/run.mjs` | `npm run test:desktop-soak` (nightly) |

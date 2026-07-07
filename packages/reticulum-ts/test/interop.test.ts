@@ -23,8 +23,13 @@ import {
   RESOURCE_ECHO_PORT,
   UDP_ECHO_PORT,
   UDP_TS_PORT,
+  composeDown,
+  composePause,
+  composeUnpause,
+  composeUp,
   interopReady,
   sleep,
+  waitForTcp,
   withComposeService
 } from "../../../conformance/scenarios/ts/harness.mjs";
 
@@ -299,4 +304,81 @@ describe.runIf(interopReady())("docker interop — Resource transfer over TCP", 
     },
     180_000
   );
+});
+
+describe.runIf(interopReady())("docker interop — Resource transfer resume", () => {
+  it("resumes after mid-transfer TCP flap", async () => {
+    const flapSize = Number.parseInt(process.env.RESOURCE_FLAP_SIZE ?? "1048576", 10);
+    composeUp("resource-echo");
+    try {
+      await waitForTcp("127.0.0.1", RESOURCE_ECHO_PORT);
+
+      const bob = loadIdentity("bob");
+      const reticulum = Reticulum.create({ provider, runtime });
+      reticulum.start();
+
+      await reticulum.addTcpClientInterface({
+        name: "python-resource-echo",
+        targetHost: "127.0.0.1",
+        targetPort: RESOURCE_ECHO_PORT,
+        reconnectWaitMs: 500
+      });
+
+      const bobOut = reticulum.registerDestination({
+        provider,
+        identity: bob,
+        direction: DestinationDirection.OUT,
+        type: DestinationType.SINGLE,
+        appName: "example",
+        aspects: ["resource"]
+      });
+
+      await waitForPath(reticulum, bobOut.hash);
+
+      const link = bobOut.requestLink();
+      const linkDeadline = Date.now() + 15_000;
+      while (Date.now() < linkDeadline && link.status !== LinkStatus.ACTIVE) {
+        await sleep(100);
+      }
+
+      expect(link.status).toBe(LinkStatus.ACTIVE);
+      link.setResourceStrategy(LinkResourceStrategy.ACCEPT_ALL);
+
+      const payload = new Uint8Array(flapSize);
+      for (let index = 0; index < flapSize; index += 1) {
+        payload[index] = index & 0xff;
+      }
+
+      const expectedDigest = createHash("sha256").update(payload).digest("hex");
+
+      const received = new Promise<Uint8Array>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("resource echo timeout after flap")), 180_000);
+        link.callbacks.resourceConcluded = (resource) => {
+          clearTimeout(timer);
+          resolve(resource.data ?? new Uint8Array(0));
+        };
+      });
+
+      const outgoing = Resource.send(link, payload, { advertise: true });
+
+      const flapDeadline = Date.now() + 60_000;
+      while (Date.now() < flapDeadline && outgoing.progress <= 0) {
+        await sleep(50);
+      }
+
+      expect(outgoing.progress).toBeGreaterThan(0);
+
+      composePause("resource-echo");
+      await sleep(2_000);
+      composeUnpause("resource-echo");
+      await waitForTcp("127.0.0.1", RESOURCE_ECHO_PORT, 30_000);
+
+      const echoed = await received;
+      const actualDigest = createHash("sha256").update(echoed).digest("hex");
+      expect(echoed.length).toBe(flapSize);
+      expect(actualDigest).toBe(expectedDigest);
+    } finally {
+      composeDown();
+    }
+  }, 300_000);
 });
