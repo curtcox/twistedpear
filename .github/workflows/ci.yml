@@ -308,6 +308,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - run: INTEROP=1 npm run test:link-benchmark
       - run: npm run test:interop
 
   fuzz:

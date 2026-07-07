@@ -72,8 +72,8 @@ client to `10.0.2.2:4242` when running on emulator.
 
 **Pass:** notification visible during background; install succeeds after foreground.
 
-**Note:** Full 8 h OEM battery-manager soak remains device-gated (H3). Emulator target is
-30–60 min or one complete mid-download cycle.
+**Note:** Full 8 h OEM battery-manager soak remains device-gated (H3). Emulator CI tier is
+`npm run test:android-emulator:e3` (notification + `NodeForegroundService` after Home).
 
 ---
 
@@ -89,6 +89,9 @@ client to `10.0.2.2:4242` when running on emulator.
 **Pass:** v2 installs over v1; rollback restores v1 manifest and launches.
 
 **Headless proxy:** `npm run test:updates`
+
+**CI automation:** `workflow_dispatch` → `.github/workflows/emulator.yml` → `emulator-ui` job
+(Maestro E1/E2/E4 + E3 adb). Local: `npm run test:android-emulator` (requires adb device + maestro CLI).
 
 ---
 
@@ -118,9 +121,15 @@ LIMITATIONS §6.
 ## Optional CI workflow
 
 The optional [`.github/workflows/emulator.yml`](../.github/workflows/emulator.yml) workflow
-runs headless distribution proxies and Android native-module JVM unit tests (`npm run
-test:android-native`) on every manual dispatch. Full E1–E4 UI instrumentation requires a
-local emulator per this document until KVM runner capacity is expanded.
+runs on `workflow_dispatch`:
+
+| Job | Command / scope |
+|---|---|
+| `headless-proxy` | `test:harness-install`, `test:lan-mirror`, `test:bare-device`, `test:updates` |
+| `android-native` | `npm run test:android-native` |
+| `emulator-ui` | KVM API 34 emulator — Maestro E1/E2/E4 + E3 adb (`conformance/android-emulator/ci.sh`) |
+
+Local UI lab: `npm run test:android-emulator` (Maestro + docker leaf-echo + host peer).
 
 ---
 
@@ -130,9 +139,10 @@ local emulator per this document until KVM runner capacity is expanded.
 |---|---|
 | E1 TCP install | `npm run test:harness-install` |
 | E2 Resource install | `npm run test:harness-install` |
-| E3 Background service | manual emulator |
-| E4 OTA/rollback | `npm run test:updates` |
+| E3 Background service | `npm run test:android-emulator:e3` + manual emulator |
+| E4 OTA/rollback | `npm run test:updates` + Maestro `.maestro/e4-ota-rollback.yaml` |
 | E5 Hyperdrive + Worker | `npm run test:bare-hyperdrive` + manual E5 |
+| Full emulator UI lab | `npm run test:android-emulator` |
 | Native bridge JVM tests | `npm run test:android-native` |
 
 Record outcomes in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) phase exit checklists.

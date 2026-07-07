@@ -60,13 +60,17 @@ Monitor RSS flatness and zero crashes as exit criteria per phase plans.
 
 ## Optional emulator workflow (emulator.yml)
 
-`workflow_dispatch` only. Runs headless distribution proxies and Android native-module JVM
-unit tests. Full E1–E4 UI path: [android-emulator-lab.md](android-emulator-lab.md).
+`workflow_dispatch` only. Runs headless distribution proxies, Android native-module JVM
+unit tests, and optional KVM Maestro UI lab.
 
 | Job | Command |
 |---|---|
 | `headless-proxy` | `test:harness-install`, `test:lan-mirror`, `test:bare-device`, `test:updates` |
 | `android-native` | `npm run test:android-native` |
+| `emulator-ui` | KVM API 34 — Maestro E1/E2/E4 + E3 adb (`conformance/android-emulator/ci.sh`) |
+
+Full E1–E4 UI path locally: [android-emulator-lab.md](android-emulator-lab.md),
+`npm run test:android-emulator`.
 
 ## What CI does not cover (hardware or account)
 

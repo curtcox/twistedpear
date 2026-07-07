@@ -6,7 +6,7 @@ by automated tests or conformance suites in CI. Each item cites the evidence to 
 **Goal context:** finish everything in [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md) before acquiring
 hardware for [STATUS-HARDWARE.md](STATUS-HARDWARE.md).
 
-Last audited: 2026-07-07.
+Last audited: 2026-07-08.
 
 ---
 
@@ -497,13 +497,16 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 
 ---
 
-## Cross-cutting software (2026-07-07)
+## Cross-cutting software (2026-07-07 – 2026-07-08)
 
 | Item | Evidence | Verify |
 |---|---|---|
 | CI policy (soak tiers, path filters) | [docs/ci-policy.md](docs/ci-policy.md) | — |
 | Android emulator lab (E1–E5) | [docs/android-emulator-lab.md](docs/android-emulator-lab.md) | — |
-| Emulator headless CI proxy | `.github/workflows/emulator.yml` | `gh workflow run emulator.yml` |
+| Emulator headless CI proxy | `.github/workflows/emulator.yml` `headless-proxy` | `gh workflow run emulator.yml` |
+| Emulator UI automation (E1–E4) | `.maestro/`, `conformance/android-emulator/`, `emulator.yml` `emulator-ui` | `npm run test:android-emulator` |
+| E3 foreground-service adb check | `conformance/android-emulator/e3-foreground.mjs` | `npm run test:android-emulator:e3` |
+| Link handshake latency benchmark | `conformance/link-benchmark/run.mjs` | `INTEROP=1 npm run test:link-benchmark` |
 | macOS notarization procedure | [docs/macos-notarization.md](docs/macos-notarization.md) | — |
 | Battery/bandwidth policy draft | [docs/battery-bandwidth-policy.md](docs/battery-bandwidth-policy.md) | — |
 | Phase 7 broker security review | [docs/security-review.md](docs/security-review.md) | `npm run test:hostile-apps` |

@@ -435,6 +435,7 @@ export default function App() {
       <View style={styles.card}>
         <View style={styles.buttonRow}>
           <ActionButton
+            testID="create-identity"
             label="Create identity"
             onPress={() => {
               if (workletRef.current === null) {
@@ -451,9 +452,9 @@ export default function App() {
             onPress={() => sendToWorklet({ type: "reset-identity" })}
           />
         </View>
-        <Row label="TCP client" value={tcpEnabled} onChange={setTcpEnabled} />
-        <Row label="AutoInterface" value={autoEnabled} onChange={setAutoEnabled} />
-        <Row label="BLE interface" value={bleEnabled} onChange={setBleEnabled} />
+        <Row testID="tcp-client-switch" label="TCP client" value={tcpEnabled} onChange={setTcpEnabled} />
+        <Row testID="auto-interface-switch" label="AutoInterface" value={autoEnabled} onChange={setAutoEnabled} />
+        <Row testID="ble-interface-switch" label="BLE interface" value={bleEnabled} onChange={setBleEnabled} />
         <Row
           label={Platform.OS === "ios" ? "RNode (BLE)" : "RNode (USB)"}
           value={Platform.OS === "ios" ? false : rnodeEnabled}
@@ -611,6 +612,7 @@ export default function App() {
                 </Text>
               </Pressable>
               <Pressable
+                testID={`install-${entry.appId}`}
                 style={styles.smallButton}
                 onPress={() => sendToWorklet({ type: "install-app", appId: entry.appId })}
               >
@@ -638,6 +640,7 @@ export default function App() {
                 </Text>
                 <View style={styles.detailActions}>
                   <Pressable
+                    testID={`install-dht-${detail.appId}`}
                     style={styles.smallButton}
                     onPress={() =>
                       sendToWorklet({
@@ -651,6 +654,7 @@ export default function App() {
                   </Pressable>
                   {detail.resourceAvailable ? (
                     <Pressable
+                      testID={`install-resource-${detail.appId}`}
                       style={styles.smallButton}
                       onPress={() =>
                         sendToWorklet({
@@ -669,7 +673,7 @@ export default function App() {
           })()
         ) : null}
         {installProgress !== null ? (
-          <Text style={styles.muted}>
+          <Text testID="install-progress" style={styles.muted}>
             Install {installProgress.appId}: {installProgress.phase}
             {installProgress.verified ? " ✓ verified" : ""}
             {installProgress.path !== null ? ` via ${installProgress.path}` : ""}
@@ -695,6 +699,7 @@ export default function App() {
                 </Text>
               </Pressable>
               <Pressable
+                testID={`launch-${pkg.appId}`}
                 style={styles.smallButton}
                 onPress={() => sendToWorklet({ type: "launch-miniapp", appId: pkg.appId })}
               >
@@ -702,6 +707,7 @@ export default function App() {
               </Pressable>
               {pkg.rollbackAvailable ? (
                 <Pressable
+                  testID={`rollback-${pkg.appId}`}
                   style={styles.smallButton}
                   onPress={() => sendToWorklet({ type: "rollback-package", appId: pkg.appId })}
                 >
@@ -786,29 +792,33 @@ export default function App() {
 function Row({
   label,
   value,
-  onChange
+  onChange,
+  testID
 }: {
   readonly label: string;
   readonly value: boolean;
   readonly onChange: (next: boolean) => void;
+  readonly testID?: string;
 }) {
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
-      <Switch value={value} onValueChange={onChange} />
+      <Switch testID={testID} value={value} onValueChange={onChange} />
     </View>
   );
 }
 
 function ActionButton({
   label,
-  onPress
+  onPress,
+  testID
 }: {
   readonly label: string;
   readonly onPress: () => void;
+  readonly testID?: string;
 }) {
   return (
-    <Pressable style={styles.button} onPress={onPress}>
+    <Pressable testID={testID} style={styles.button} onPress={onPress}>
       <Text style={styles.buttonLabel}>{label}</Text>
     </Pressable>
   );

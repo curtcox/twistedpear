@@ -3,7 +3,7 @@ name: Android Emulator Lab
 on:
   workflow_dispatch:
 
-# Headless proxies for emulator lab E1/E2/E4. Full E1–E4 UI path: docs/android-emulator-lab.md
+# Headless proxies for emulator lab E1/E2/E4. Full E1–E4 UI: emulator-ui job (Maestro + adb E3).
 
 jobs:
   headless-proxy:
@@ -41,3 +41,25 @@ jobs:
       - uses: android-actions/setup-android@v3
       - run: npm ci
       - run: npm run test:android-native
+
+  emulator-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: chmod +x conformance/android-emulator/ci.sh && conformance/android-emulator/ci.sh

@@ -1,0 +1,22 @@
+appId: network.twistedpear.harness
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "com.twistedpear.example"
+    timeout: 30000
+- tapOn:
+    text: "Install"
+    index: 0
+- extendedWaitUntil:
+    visible: "complete"
+    timeout: 120000
+- tapOn:
+    text: "Launch"
+- extendedWaitUntil:
+    visible: "running"
+    timeout: 30000
+- tapOn:
+    text: "Rollback"
+- extendedWaitUntil:
+    visible: "1.0.0"
+    timeout: 30000

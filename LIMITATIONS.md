@@ -30,8 +30,9 @@ everything below is a known cost of the chosen design or of the platforms involv
   | sha256-resource-chunk | 206,950 |
 
   Source: `conformance/bare-runtime/baseline-node.json` (`npm run test:bare-benchmark-compare`).
-  Bare `sodium-native` provider on-device numbers remain open until H11; link-setup latency
-  after plan-duration soaks is tracked in Phase 1 M8.
+  Bare `sodium-native` provider on-device numbers remain open until H11. Link-setup latency
+  (Node pure, docker link-echo peer): see `conformance/link-benchmark/measured.json`
+  (`INTEROP=1 npm run test:link-benchmark`; record with `LINK_BENCHMARK_RECORD=1`).
 
 ## 2. Expo Go — sacrificed
 

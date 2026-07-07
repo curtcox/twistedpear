@@ -1,0 +1,12 @@
+{
+  "measuredAt": "2026-07-07",
+  "runtime": "node",
+  "provider": "pure",
+  "peer": "127.0.0.1:4244",
+  "iterations": 20,
+  "setupMs": [],
+  "setupP50Ms": 0,
+  "setupP95Ms": 0,
+  "setupMaxMs": 0,
+  "note": "Regenerate with docker link-echo peer: INTEROP=1 npm run test:link-benchmark -- --record"
+}

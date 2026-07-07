@@ -10,7 +10,7 @@ simulator, local Android emulator).
 
 Verified work is in [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
 
-Last audited: 2026-07-07 (evening).
+Last audited: 2026-07-08.
 
 ---
 
@@ -19,14 +19,19 @@ Last audited: 2026-07-07 (evening).
 | Area | Open items | Blocking hardware? |
 |---|---|---|
 | Phase 1 release hardening (M8) | 72 h soak at plan duration, 0.1.0 tag | No (needs dedicated server time) |
-| Phase 2 long soaks | 24 h integration soak at plan duration; 8 h emulator background UI | No (soak needs server; E3 UI manual) |
-| Phase 3 emulator lab + long soaks | E1–E5 UI on emulator, 24 h seeder soak at plan duration | No (soak needs server; E1–E3 UI manual) |
+| Phase 2 long soaks | 24 h integration soak at plan duration; 8 h emulator background (OEM) | No (soak needs server; 8 h is H3) |
+| Phase 3 emulator lab + long soaks | E5 Hyperdrive on worklet; 24 h seeder soak at plan duration | No (E5 manual; soak needs server) |
 | Phase 4 emulator lab + long soaks | E5 Worker metrics on emulator, 24 h mini-app soak at plan duration | No (emulator metrics manual; soak needs server) |
 | Phase 5 simulator gaps | 24 h ios-sim soak at plan duration | No (soak needs server) |
 | Phase 6 interop + packaging | 72 h desktop soak at plan duration; macOS notarization run | No (soak needs server; notarization needs Apple account) |
 | Phase 7 (plan only) | Community BLE spec submission; device battery/bandwidth numbers | No |
 
-**Recently closed (2026-07-07 evening):** Android native JVM tests in `emulator.yml`
+**Recently closed (2026-07-08):** KVM emulator UI automation E1–E4 in `emulator.yml` (`emulator-ui` job +
+Maestro flows + `test:android-emulator`), E3 foreground-service adb check (`test:android-emulator:e3`),
+link-setup latency benchmark (`test:link-benchmark`), harness `testID` hooks for Maestro. See
+[STATUS-COMPLETE.md](STATUS-COMPLETE.md).
+
+**Previously closed (2026-07-07 evening):** Android native JVM tests in `emulator.yml`
 (`test:android-native`), node-service prebuild fix, lifecycle reconnect metrics +
 `measured-lifecycle.json`, LIMITATIONS §1 crypto benchmark table, upstream publication
 checklist ([docs/upstream-publication.md](docs/upstream-publication.md)), ios-host measured
@@ -47,7 +52,7 @@ headless `emulator.yml` workflow, macOS notarization procedure, battery/bandwidt
 |---|---|---|---|---|
 | 72 h transport-node soak | PHASE1 M8 | CI tier only (5 min nightly); plan duration not yet run | `TRANSPORT_SOAK_DURATION_MS=259200000` on dedicated server | Flat RSS, zero crashes over 72 h |
 | `reticulum-ts` 0.1.0 release | PHASE1 M8 | Package still `0.0.0` | Tag after plan-duration soaks; update LIMITATIONS §1 | `packages/reticulum-ts/package.json` |
-| LIMITATIONS §1 measured gaps | PHASE1 M8 | **Partial** — Node pure-provider crypto benchmarks in §1; Bare on-device + link-setup latency after soak | `LIMITATIONS.md` §1, `conformance/bare-runtime/baseline-node.json` |
+| LIMITATIONS §1 measured gaps | PHASE1 M8 | **Partial** — Node crypto + link-setup benchmark in §1; Bare on-device pending H11 | `LIMITATIONS.md` §1, `conformance/link-benchmark/measured.json` |
 
 ### Phase 1 — Python interop depth (docker, no hardware)
 
@@ -65,17 +70,17 @@ headless `emulator.yml` workflow, macOS notarization procedure, battery/bandwidt
 | Item | Plan reference | What's missing | Suggested action | Verify when done |
 |---|---|---|---|---|
 | 24 h emulator/integration soak | PHASE2 M9 | **CI tier done** — `test:integration-soak` (nightly + `interfaces` job); plan 24 h via `SOAK_DURATION_MS=86400000` on server | Flat RSS, no deadlocked interfaces |
-| 8 h background soak (emulator) | PHASE2 M2 CI exit | Headless proxy in `emulator.yml`; UI path documented | [docs/android-emulator-lab.md](docs/android-emulator-lab.md) E3 |
+| 8 h background soak (emulator) | PHASE2 M2 CI exit | **Partial** — E3 foreground-service adb tier in CI; 8 h OEM soak is H3 | `npm run test:android-emulator:e3`, [docs/android-emulator-lab.md](docs/android-emulator-lab.md) E3 |
 | `reticulum-interfaces` 0.1.0 tag note | PHASE2 M9 | Shipped as **0.2.0** early | Intentional skip: interfaces layer reached M9 scope before `reticulum-ts` 0.1.0; no retag planned | `packages/reticulum-interfaces/package.json` |
 | LIMITATIONS §§2–5 measured facts | PHASE2 M9 | Radio numbers wait for hardware | Partial: desktop/docker measurements in LIMITATIONS §6; BLE/RNode throughput in H11+ | LIMITATIONS |
 
-### Phase 2 — Simulator/emulator verification gaps (no hardware, not yet automated)
+### Phase 2 — Simulator/emulator verification gaps (no hardware)
 
-| Item | What's missing | Suggested action |
+| Item | Status | Evidence |
 |---|---|---|
-| Harness on Android **emulator** (UI path) | CI uses headless `bare-device` only | Documented — [docs/android-emulator-lab.md](docs/android-emulator-lab.md) E1; headless proxy `emulator.yml` |
-| Foreground service on emulator | Not in CI | Emulator instrumentation: background 30–60 min, confirm notification + link survival |
-| iOS entitlement **draft** only | Filing needs Apple account (hardware-adjacent) | Software: ensure `docs/ios-multicast-entitlement.md` stays current; filing is H12 in STATUS-HARDWARE |
+| Harness on Android **emulator** (UI path) | **Done (CI tier)** — Maestro E1/E2/E4 + `emulator-ui` job | `.maestro/`, `npm run test:android-emulator` |
+| Foreground service on emulator | **Done (CI tier)** — E3 adb notification + service check | `npm run test:android-emulator:e3` |
+| iOS entitlement **draft** only | Draft current; filing is H12 | `docs/ios-multicast-entitlement.md` |
 
 ---
 
@@ -85,7 +90,7 @@ headless `emulator.yml` workflow, macOS notarization procedure, battery/bandwidt
 |---|---|---|---|---|
 | 24 h seeder soak | PHASE3 M6/M9 | Nightly 5 min CI tier | `SOAK_DURATION_MS=86400000 npm run test:dist-soak` on a server | Flat RSS, fetches succeed after publisher exit |
 | 24 h mixed-network soak | PHASE3 M9 | **CI tier done** — `test:mixed-network-soak` (nightly); plan 24 h on server | `npm run test:mixed-network-soak` |
-| KVM Android emulator in CI | PHASE3 M7, PHASE3-HARDWARE E1–E3 | **Partial** — headless proxy + JVM tests in `emulator.yml`; E1–E4 UI automation open | `npm run test:android-native`, [docs/android-emulator-lab.md](docs/android-emulator-lab.md) |
+| KVM Android emulator in CI | PHASE3 M7, PHASE3-HARDWARE E1–E4 | **Done (UI tier)** — `emulator-ui` job + Maestro; E5 Hyperdrive on worklet open | `emulator.yml`, `npm run test:android-emulator` |
 | Hyperdrive on **Android worklet** (emulator) | PHASE3-HARDWARE E5 | Proven on desktop Bare only | Emulator E5: DHT install path, watch Corestore logs | Pass or document Resources-only fallback |
 | LAN-mirror install via desktop seed | PHASE3 M7 | — | **Done** — `conformance/lan-mirror/run.mjs` (nightly `lan-mirror` job) | `npm run test:lan-mirror` |
 
@@ -101,7 +106,9 @@ Runnable today with Android SDK emulator + docker on dev machine:
 | E4 — OTA v1→v2 + rollback | PHASE3-HARDWARE | `tp update`, harness rollback |
 | E5 — Hyperdrive on device worklet | PHASE3-HARDWARE | DHT path on emulator; log watch |
 
-Automating E1–E4 UI in KVM CI remains open; headless proxies and local lab procedures close the gap until hardware arrives. See [docs/android-emulator-lab.md](docs/android-emulator-lab.md).
+Automating E1–E4 UI in KVM CI is wired via `emulator.yml` (`workflow_dispatch` → `emulator-ui`).
+E5 Hyperdrive on device worklet remains a manual emulator lab step until hardware. See
+[docs/android-emulator-lab.md](docs/android-emulator-lab.md).
 
 ---
 
@@ -157,10 +164,9 @@ Automating E1–E4 UI in KVM CI remains open; headless proxies and local lab pro
 ## Recommended software-only execution order
 
 1. **Long soaks at plan duration** — dist, miniapp, ios-sim, desktop, transport-node, integration, mixed-network on a dedicated server (`workflow_dispatch` in nightly.yml; see [docs/ci-policy.md](docs/ci-policy.md))
-2. **Emulator UI automation** — KVM CI for harness E1–E4 (headless proxy done in `emulator.yml`)
-3. **Phase 1 M8 release** — 0.1.0 tag after soaks, LIMITATIONS measurements
-4. **Emulator labs** — Phase 3/4 E1–E5 locally per [docs/android-emulator-lab.md](docs/android-emulator-lab.md)
-5. **Phase 7** — Bare Worker hostile parity on device when hardware arrives (H11)
+2. **Phase 1 M8 release** — 0.1.0 tag after soaks; record link-benchmark baseline (`LINK_BENCHMARK_RECORD=1`)
+3. **Emulator lab E5** — Hyperdrive + Bare Worker metrics on emulator (manual; headless desktop proxies in CI)
+4. **Phase 7 community** — BLE spec submission; device battery/bandwidth numbers when hardware arrives
 
 ---
 
@@ -180,4 +186,7 @@ Automating E1–E4 UI in KVM CI remains open; headless proxies and local lab pro
 | `npm run test:mixed-network-soak` | Two-peer seeder soak (`SOAK_DURATION_MS`) |
 | `npm run test:desktop-soak` | Desktop churn soak |
 | `npm run test:fuzz` | Structure-aware packet/resource/link fuzz |
+| `npm run test:link-benchmark` | Link handshake latency (`LINK_BENCHMARK_RECORD=1` to record) |
 | `npm run test:android-native` | Android bridge JVM unit tests (BLE, multicast, USB) |
+| `npm run test:android-emulator` | Local Maestro E1–E4 + E3 adb (skips without device/maestro) |
+| `npm run test:android-emulator:e3` | E3 foreground-service adb check only |
