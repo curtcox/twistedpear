@@ -1046,6 +1046,20 @@ async function handleHostMessage(raw) {
     return;
   }
 
+  if (message.type === "benchmark-miniapp") {
+    try {
+      const result = await ensureMiniappHost().benchmark();
+      send({ type: "miniapp-benchmark", result });
+      log(
+        `Bare worker benchmark: spawn ${result.spawnMs}ms, kill ${result.killMs}ms, ` +
+          `busy-loop ${result.busyLoopKillMs}ms`
+      );
+    } catch (error) {
+      log(`Benchmark failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
   if (message.type === "stop-miniapp") {
     await ensureMiniappHost().stop();
     log("Stopped mini-app");

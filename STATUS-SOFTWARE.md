@@ -10,7 +10,7 @@ simulator, local Android emulator).
 
 Verified work is in [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
 
-Last audited: 2026-07-08.
+Last audited: 2026-07-09.
 
 ---
 
@@ -20,13 +20,17 @@ Last audited: 2026-07-08.
 |---|---|---|
 | Phase 1 release hardening (M8) | 72 h soak at plan duration, 0.1.0 tag | No (needs dedicated server time) |
 | Phase 2 long soaks | 24 h integration soak at plan duration; 8 h emulator background (OEM) | No (soak needs server; 8 h is H3) |
-| Phase 3 emulator lab + long soaks | E5 Hyperdrive on worklet; 24 h seeder soak at plan duration | No (E5 manual; soak needs server) |
-| Phase 4 emulator lab + long soaks | E5 Worker metrics on emulator, 24 h mini-app soak at plan duration | No (emulator metrics manual; soak needs server) |
+| Phase 3 emulator lab + long soaks | 24 h seeder soak at plan duration | No (soak needs server) |
+| Phase 4 emulator lab + long soaks | 24 h mini-app soak at plan duration | No (soak needs server) |
 | Phase 5 simulator gaps | 24 h ios-sim soak at plan duration | No (soak needs server) |
 | Phase 6 interop + packaging | 72 h desktop soak at plan duration; macOS notarization run | No (soak needs server; notarization needs Apple account) |
 | Phase 7 (plan only) | Community BLE spec submission; device battery/bandwidth numbers | No |
 
-**Recently closed (2026-07-08):** KVM emulator UI automation E1–E4 in `emulator.yml` (`emulator-ui` job +
+**Recently closed (2026-07-09):** E5 Hyperdrive path assertion (E1) + Bare Worker benchmark on emulator
+(`test:android-emulator:e5`, `benchmark-miniapp` IPC, `measured-worker.json`), E4 grant-before-launch fix.
+See [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
+
+**Previously closed (2026-07-08):** KVM emulator UI automation E1–E4 in `emulator.yml` (`emulator-ui` job +
 Maestro flows + `test:android-emulator`), E3 foreground-service adb check (`test:android-emulator:e3`),
 link-setup latency benchmark (`test:link-benchmark`), harness `testID` hooks for Maestro. See
 [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
@@ -90,8 +94,8 @@ headless `emulator.yml` workflow, macOS notarization procedure, battery/bandwidt
 |---|---|---|---|---|
 | 24 h seeder soak | PHASE3 M6/M9 | Nightly 5 min CI tier | `SOAK_DURATION_MS=86400000 npm run test:dist-soak` on a server | Flat RSS, fetches succeed after publisher exit |
 | 24 h mixed-network soak | PHASE3 M9 | **CI tier done** — `test:mixed-network-soak` (nightly); plan 24 h on server | `npm run test:mixed-network-soak` |
-| KVM Android emulator in CI | PHASE3 M7, PHASE3-HARDWARE E1–E4 | **Done (UI tier)** — `emulator-ui` job + Maestro; E5 Hyperdrive on worklet open | `emulator.yml`, `npm run test:android-emulator` |
-| Hyperdrive on **Android worklet** (emulator) | PHASE3-HARDWARE E5 | Proven on desktop Bare only | Emulator E5: DHT install path, watch Corestore logs | Pass or document Resources-only fallback |
+| KVM Android emulator in CI | PHASE3 M7, PHASE3-HARDWARE E1–E5 | **Done (UI tier)** — `emulator-ui` job + Maestro E1–E5 | `emulator.yml`, `npm run test:android-emulator` |
+| Hyperdrive on **Android worklet** (emulator) | PHASE3-HARDWARE E5 | **Done (CI tier)** — E1 DHT install asserts `hyperdrive` path | `.maestro/e1-tcp-install.yaml` |
 | LAN-mirror install via desktop seed | PHASE3 M7 | — | **Done** — `conformance/lan-mirror/run.mjs` (nightly `lan-mirror` job) | `npm run test:lan-mirror` |
 
 ### Phase 3 — Emulator lab (local, no new hardware)
@@ -106,9 +110,8 @@ Runnable today with Android SDK emulator + docker on dev machine:
 | E4 — OTA v1→v2 + rollback | PHASE3-HARDWARE | `tp update`, harness rollback |
 | E5 — Hyperdrive on device worklet | PHASE3-HARDWARE | DHT path on emulator; log watch |
 
-Automating E1–E4 UI in KVM CI is wired via `emulator.yml` (`workflow_dispatch` → `emulator-ui`).
-E5 Hyperdrive on device worklet remains a manual emulator lab step until hardware. See
-[docs/android-emulator-lab.md](docs/android-emulator-lab.md).
+Automating E1–E5 UI in KVM CI is wired via `emulator.yml` (`workflow_dispatch` → `emulator-ui`).
+See [docs/android-emulator-lab.md](docs/android-emulator-lab.md).
 
 ---
 
@@ -117,7 +120,7 @@ E5 Hyperdrive on device worklet remains a manual emulator lab step until hardwar
 | Item | Plan reference | What's missing | Suggested action | Verify when done |
 |---|---|---|---|---|
 | 24 h mini-app soak | PHASE4 M8 | Nightly 5 min CI tier | `SOAK_DURATION_MS=86400000 npm run test:miniapp-soak` on a server | Zero worklet restarts |
-| Bare Worker metrics on **emulator** | PHASE4 M0, PHASE4-HARDWARE E5 | Desktop Node worker only in ADR | Run E5 on emulator: spawn/kill latency, busy-loop kill | Update `docs/miniapp-runtime.md` ADR |
+| Bare Worker metrics on **emulator** | PHASE4 M0, PHASE4-HARDWARE E5 | **Done (CI tier)** — `benchmark-miniapp` IPC + `test:android-emulator:e5` | `conformance/android-emulator/measured-worker.json` |
 | React reconciler stretch | PHASE4 M8 | Explicitly non-blocking backlog | Optional; skip unless DX priority | — |
 | LIMITATIONS §7 sandbox promises | PHASE4 M8 | **Done** — explicit non-promises in `docs/miniapp-runtime.md` | — |
 
@@ -165,8 +168,7 @@ E5 Hyperdrive on device worklet remains a manual emulator lab step until hardwar
 
 1. **Long soaks at plan duration** — dist, miniapp, ios-sim, desktop, transport-node, integration, mixed-network on a dedicated server (`workflow_dispatch` in nightly.yml; see [docs/ci-policy.md](docs/ci-policy.md))
 2. **Phase 1 M8 release** — 0.1.0 tag after soaks; record link-benchmark baseline (`LINK_BENCHMARK_RECORD=1`)
-3. **Emulator lab E5** — Hyperdrive + Bare Worker metrics on emulator (manual; headless desktop proxies in CI)
-4. **Phase 7 community** — BLE spec submission; device battery/bandwidth numbers when hardware arrives
+3. **Phase 7 community** — BLE spec submission; device battery/bandwidth numbers when hardware arrives
 
 ---
 
@@ -188,5 +190,6 @@ E5 Hyperdrive on device worklet remains a manual emulator lab step until hardwar
 | `npm run test:fuzz` | Structure-aware packet/resource/link fuzz |
 | `npm run test:link-benchmark` | Link handshake latency (`LINK_BENCHMARK_RECORD=1` to record) |
 | `npm run test:android-native` | Android bridge JVM unit tests (BLE, multicast, USB) |
-| `npm run test:android-emulator` | Local Maestro E1–E4 + E3 adb (skips without device/maestro) |
+| `npm run test:android-emulator` | Local Maestro E1–E5 + E3 adb (skips without device/maestro) |
 | `npm run test:android-emulator:e3` | E3 foreground-service adb check only |
+| `npm run test:android-emulator:e5` | E5 Bare Worker benchmark on emulator |

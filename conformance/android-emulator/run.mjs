@@ -11,6 +11,7 @@ import { spawn, spawnSync } from "node:child_process";
 import {
   maestro,
   maestroAvailable,
+  maestroWithFixtureEnv,
   requireDevice,
   waitForBootComplete
 } from "./helpers.mjs";
@@ -82,7 +83,7 @@ async function main() {
 
     maestro(["test", ".maestro/e1-tcp-install.yaml"]);
     maestro(["test", ".maestro/e2-resource-install.yaml"]);
-    maestro(["test", ".maestro/e4-ota-rollback.yaml"]);
+    maestroWithFixtureEnv(".maestro/e4-ota-rollback.yaml");
 
     const e3 = spawnSync("node", ["conformance/android-emulator/e3-foreground.mjs"], {
       cwd: repoRoot,
@@ -93,7 +94,16 @@ async function main() {
       throw new Error("e3-foreground failed");
     }
 
-    console.log("android-emulator: E1–E4 UI flows passed");
+    const e5 = spawnSync("node", ["conformance/android-emulator/e5-worker.mjs"], {
+      cwd: repoRoot,
+      stdio: "inherit",
+      env: { ...process.env, ANDROID_SERIAL: deviceSerial }
+    });
+    if (e5.status !== 0) {
+      throw new Error("e5-worker failed");
+    }
+
+    console.log("android-emulator: E1–E5 UI flows passed");
   } finally {
     hostPeer.kill("SIGTERM");
     spawnSync("docker", ["compose", "-f", "conformance/docker/docker-compose.yml", "down"], {

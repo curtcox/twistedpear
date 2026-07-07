@@ -17,6 +17,9 @@ appId: network.twistedpear.harness
 - tapOn:
     text: "DHT"
 - extendedWaitUntil:
+    visible: "hyperdrive"
+    timeout: 120000
+- extendedWaitUntil:
     visible: "complete"
     timeout: 120000
 - assertVisible:

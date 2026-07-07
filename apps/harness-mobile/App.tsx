@@ -37,6 +37,7 @@ import {
   type InstallProgress,
   type InstalledPackageView,
   type MiniappRuntimeView,
+  type MiniappBenchmarkResult,
   type WorkletStatus,
   type WorkletToHostMessage
 } from "./worklet/protocol";
@@ -111,6 +112,7 @@ export default function App() {
   const [selectedInstalledAppId, setSelectedInstalledAppId] = useState<string | null>(null);
   const [grantCapabilities, setGrantCapabilities] = useState<ReadonlyArray<CapabilityGrantView>>([]);
   const [miniappRuntime, setMiniappRuntime] = useState<MiniappRuntimeView | null>(null);
+  const [miniappBenchmark, setMiniappBenchmark] = useState<MiniappBenchmarkResult | null>(null);
   const [miniappLogs, setMiniappLogs] = useState<ReadonlyArray<string>>([]);
   const [developerMode, setDeveloperMode] = useState(false);
   const [devChannelDetail, setDevChannelDetail] = useState<string | null>(null);
@@ -199,6 +201,11 @@ export default function App() {
 
     if (message.type === "miniapp-runtime") {
       setMiniappRuntime(message.runtime);
+      return;
+    }
+
+    if (message.type === "miniapp-benchmark") {
+      setMiniappBenchmark(message.result);
       return;
     }
 
@@ -523,7 +530,7 @@ export default function App() {
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Mini-app surface</Text>
-        <Text style={styles.muted}>
+        <Text testID="miniapp-state" style={styles.muted}>
           {miniappRuntime?.devBadge ? (
             <Text style={styles.devBadge}>DEV </Text>
           ) : null}
@@ -537,7 +544,25 @@ export default function App() {
           }
         />
         {miniappRuntime?.appId ? (
-          <ActionButton label="Stop mini-app" onPress={() => sendToWorklet({ type: "stop-miniapp" })} />
+          <ActionButton
+            testID="stop-miniapp"
+            label="Stop mini-app"
+            onPress={() => sendToWorklet({ type: "stop-miniapp" })}
+          />
+        ) : null}
+        <ActionButton
+          testID="benchmark-miniapp"
+          label="Benchmark Bare worker"
+          onPress={() => {
+            setMiniappBenchmark(null);
+            sendToWorklet({ type: "benchmark-miniapp" });
+          }}
+        />
+        {miniappBenchmark !== null ? (
+          <Text testID="benchmark-results" style={styles.muted}>
+            spawn {miniappBenchmark.spawnMs}ms · kill {miniappBenchmark.killMs}ms · busy-loop{" "}
+            {miniappBenchmark.busyLoopKillMs}ms ({miniappBenchmark.backend})
+          </Text>
         ) : null}
         {miniappLogs.length > 0 ? (
           <Text style={styles.muted}>{miniappLogs[miniappLogs.length - 1]}</Text>
@@ -682,7 +707,10 @@ export default function App() {
         {installed.length > 0 ? (
           installed.map((pkg) => (
             <View key={pkg.appId} style={styles.catalogRow}>
-              <Pressable style={{ flex: 1 }} onPress={() => {
+              <Pressable
+                testID={`installed-${pkg.appId}`}
+                style={{ flex: 1 }}
+                onPress={() => {
                 setSelectedInstalledAppId(pkg.appId);
                 sendToWorklet({
                   type: "get-grants",
@@ -739,6 +767,7 @@ export default function App() {
                   <Text style={styles.muted}>{cap.description}</Text>
                 </View>
                 <Switch
+                  testID={`grant-${cap.id.replace(/:/g, "-")}`}
                   value={cap.granted}
                   onValueChange={(granted) => {
                     const pkg = installed.find((entry) => entry.appId === selectedInstalledAppId);

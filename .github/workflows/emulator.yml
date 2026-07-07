@@ -3,7 +3,7 @@ name: Android Emulator Lab
 on:
   workflow_dispatch:
 
-# Headless proxies for emulator lab E1/E2/E4. Full E1–E4 UI: emulator-ui job (Maestro + adb E3).
+# Headless proxies for emulator lab E1/E2/E4. Full E1–E5 UI: emulator-ui job (Maestro + adb E3/E5).
 
 jobs:
   headless-proxy:

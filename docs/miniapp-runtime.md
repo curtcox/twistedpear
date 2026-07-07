@@ -25,8 +25,13 @@ Desktop measurements (Node worker backend, `npm run test:miniapp-benchmark`):
 | Stop/kill latency | ~3 ms typical |
 | Busy-loop kill | ~300 ms (watchdog) |
 
-Android Bare Worker measurements remain hardware debt; record them per
-[STATUS-HARDWARE.md](../STATUS-HARDWARE.md) H11 / emulator lab E5 when available.
+Android emulator measurements (Bare worker backend, `npm run test:android-emulator:e5`):
+
+| Metric | Source |
+|---|---|
+| Spawn / kill / busy-loop | `conformance/android-emulator/measured-worker.json` |
+
+Physical device numbers remain hardware debt; record per [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) H11 when available.
 
 ## Capability Model
 
@@ -119,8 +124,9 @@ Software-tier adversarial review is complete ([security-review.md](../docs/secur
 The implementation provides the broker chokepoint, deny-by-default capability enforcement,
 data-only UI, hostile-input conformance (`npm run test:hostile-apps`), example-app exercise
 (`npm run test:examples`), mini-app soak (`npm run test:miniapp-soak`), and structure-aware
-packet/resource/link fuzzing (`npm run test:fuzz`). **Bare Worker measurements and hostile
-parity on Android remain hardware debt** (H11).
+packet/resource/link fuzzing (`npm run test:fuzz`). **Bare Worker hostile parity on physical
+device remains hardware debt** (H11); emulator spawn/kill/busy-loop in
+`conformance/android-emulator/measured-worker.json`.
 
 Device measurements for the M0 isolation ADR on Android remain hardware debt; the runtime
 codes to `SandboxBackend` so those numbers do not leak into SDK or broker code. See

@@ -67,7 +67,7 @@ unit tests, and optional KVM Maestro UI lab.
 |---|---|
 | `headless-proxy` | `test:harness-install`, `test:lan-mirror`, `test:bare-device`, `test:updates` |
 | `android-native` | `npm run test:android-native` |
-| `emulator-ui` | KVM API 34 — Maestro E1/E2/E4 + E3 adb (`conformance/android-emulator/ci.sh`) |
+| `emulator-ui` | KVM API 34 — Maestro E1–E5 + E3 adb (`conformance/android-emulator/ci.sh`) |
 
 Full E1–E4 UI path locally: [android-emulator-lab.md](android-emulator-lab.md),
 `npm run test:android-emulator`.

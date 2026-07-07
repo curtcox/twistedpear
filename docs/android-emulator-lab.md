@@ -100,21 +100,21 @@ client to `10.0.2.2:4242` when running on emulator.
 **Clears:** Phase 3 M1 Bare Hyperdrive on Android; Phase 4 M0 Bare Worker metrics.
 
 1. Ensure DHT/Hyperswarm path is reachable (host seeder + consumer on `10.0.2.2`).
-2. Install via default Hyperswarm path (not Resource-only).
-3. Watch worklet logs (`adb logcat` or in-app log view) for Corestore/DHT errors.
-4. For Phase 4: launch a mini-app; record spawn/kill latency and busy-loop kill time.
+2. Install via default Hyperswarm path (E1 asserts `hyperdrive` in install progress).
+3. Tap **Benchmark Bare worker** in the harness mini-app surface.
+4. Confirm results show spawn, kill, and busy-loop timings.
 
-**Pass:** sparse Hyperdrive fetch completes; or document Resources-only fallback in
-LIMITATIONS §6.
+**Pass:** sparse Hyperdrive fetch completes (E1); Bare Worker benchmark reports all three metrics.
 
-**Headless proxy:** `npm run test:bare-hyperdrive` (desktop Bare).
+**CI automation:** `npm run test:android-emulator:e5` (after E1 in full lab). Record with
+`ANDROID_BENCHMARK_RECORD=1`.
 
 | Metric | Record in |
 |---|---|
-| Hyperdrive install success/fallback | LIMITATIONS §6 |
-| Bare Worker spawn latency | `docs/miniapp-runtime.md` ADR |
-| Bare Worker kill latency | `docs/miniapp-runtime.md` ADR |
-| Busy-loop watchdog kill | `docs/miniapp-runtime.md` ADR |
+| Hyperdrive install success/fallback | E1 maestro (`hyperdrive` in install progress) |
+| Bare Worker spawn latency | `conformance/android-emulator/measured-worker.json` |
+| Bare Worker kill latency | same |
+| Busy-loop watchdog kill | same |
 
 ---
 
@@ -127,7 +127,7 @@ runs on `workflow_dispatch`:
 |---|---|
 | `headless-proxy` | `test:harness-install`, `test:lan-mirror`, `test:bare-device`, `test:updates` |
 | `android-native` | `npm run test:android-native` |
-| `emulator-ui` | KVM API 34 emulator — Maestro E1/E2/E4 + E3 adb (`conformance/android-emulator/ci.sh`) |
+| `emulator-ui` | KVM API 34 emulator — Maestro E1–E5 + E3 adb (`conformance/android-emulator/ci.sh`) |
 
 Local UI lab: `npm run test:android-emulator` (Maestro + docker leaf-echo + host peer).
 
@@ -141,7 +141,7 @@ Local UI lab: `npm run test:android-emulator` (Maestro + docker leaf-echo + host
 | E2 Resource install | `npm run test:harness-install` |
 | E3 Background service | `npm run test:android-emulator:e3` + manual emulator |
 | E4 OTA/rollback | `npm run test:updates` + Maestro `.maestro/e4-ota-rollback.yaml` |
-| E5 Hyperdrive + Worker | `npm run test:bare-hyperdrive` + manual E5 |
+| E5 Hyperdrive + Worker | `npm run test:android-emulator:e5` + `npm run test:bare-hyperdrive` |
 | Full emulator UI lab | `npm run test:android-emulator` |
 | Native bridge JVM tests | `npm run test:android-native` |
 

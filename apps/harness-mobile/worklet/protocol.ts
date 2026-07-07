@@ -54,6 +54,16 @@ export interface MiniappRuntimeView {
   readonly devBadge?: boolean;
 }
 
+export interface MiniappBenchmarkResult {
+  readonly backend: string;
+  readonly runtime: "bare";
+  readonly iterations: number;
+  readonly spawnMs: number;
+  readonly killMs: number;
+  readonly busyLoopKillMs: number | null;
+  readonly busyLoopKilled: boolean;
+}
+
 export interface WorkletStatus {
   readonly running: boolean;
   readonly linkOnline: boolean;
@@ -115,6 +125,7 @@ export type HostToWorkletMessage =
   | { readonly type: "set-grants"; readonly appId: string; readonly publisherPublicKey: string; readonly declaredCapabilities: ReadonlyArray<string>; readonly grantedCapabilities: ReadonlyArray<string> }
   | { readonly type: "revoke-grant"; readonly appId: string; readonly publisherPublicKey: string; readonly capability: string; readonly declaredCapabilities: ReadonlyArray<string> }
   | { readonly type: "launch-miniapp"; readonly appId: string }
+  | { readonly type: "benchmark-miniapp" }
   | { readonly type: "stop-miniapp" }
   | { readonly type: "suspend-miniapp" }
   | { readonly type: "resume-miniapp" }
@@ -144,6 +155,7 @@ export type WorkletToHostMessage =
   | { readonly type: "install-progress"; readonly progress: InstallProgress }
   | { readonly type: "grants"; readonly appId: string; readonly capabilities: ReadonlyArray<CapabilityGrantView> }
   | { readonly type: "miniapp-runtime"; readonly runtime: MiniappRuntimeView }
+  | { readonly type: "miniapp-benchmark"; readonly result: MiniappBenchmarkResult }
   | { readonly type: "miniapp-log"; readonly appId: string; readonly line: string }
   | { readonly type: "dev-channel"; readonly state: "connected" | "disconnected" | "loaded" | "error"; readonly detail?: string }
   | { readonly type: "multicast-start" }

@@ -52,9 +52,12 @@ node conformance/android-emulator/publish-update.mjs
 sleep 5
 
 echo "[android-emulator/ci] run maestro E4 OTA + rollback"
-maestro test .maestro/e4-ota-rollback.yaml
+maestro test -e "APP_ID=$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('conformance/android-emulator/fixture-meta.json','utf8')).appId)")" .maestro/e4-ota-rollback.yaml
 
 echo "[android-emulator/ci] run E3 foreground-service check"
 node conformance/android-emulator/e3-foreground.mjs
+
+echo "[android-emulator/ci] run E5 Bare worker benchmark"
+node conformance/android-emulator/e5-worker.mjs
 
 echo "[android-emulator/ci] emulator UI lab passed"

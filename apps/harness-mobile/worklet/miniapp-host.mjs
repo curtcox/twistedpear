@@ -3,12 +3,106 @@ import {
   CorestoreBeeBackend,
   GrantStore,
   MiniappHost,
+  MiniappLifecycle,
   createSandboxBackend,
   describeCapability,
   isMiniappCapability,
   validateManifestCapabilities
 } from "../../../packages/miniapp-runtime/dist/index.js";
 import { unpackPackage } from "../../../packages/app-registry/dist/index.js";
+
+const BENCHMARK_ITERATIONS = 5;
+const BENCHMARK_WATCHDOG_MS = 250;
+
+const helloBenchmarkBundle = new TextEncoder().encode(`import { ui } from "@twistedpear/miniapp-sdk";
+
+await ui.render({
+  root: {
+    id: "root",
+    type: "view",
+    children: [{ id: "title", type: "text", props: { value: "Bench" } }]
+  }
+});
+`);
+
+const busyLoopBenchmarkBundle = new TextEncoder().encode("while (true) {}");
+
+function benchmarkNowMs() {
+  return performance.now();
+}
+
+function benchmarkAverage(values) {
+  return Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1));
+}
+
+async function benchmarkSleep(ms) {
+  await new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+}
+
+async function measureSpawnKill(backend, bundle, iterations) {
+  const spawnLatencies = [];
+  const killLatencies = [];
+
+  for (let index = 0; index < iterations; index += 1) {
+    const lifecycle = new MiniappLifecycle(backend, {
+      appId: "bench",
+      version: "1.0.0",
+      entryPath: "bundle.js",
+      bundle,
+      brokerEndpoint: {
+        request: async (request) => ({ id: request.id, ok: true, result: "ok" })
+      }
+    });
+
+    const spawnStarted = benchmarkNowMs();
+    await lifecycle.launch();
+    spawnLatencies.push(benchmarkNowMs() - spawnStarted);
+
+    const killStarted = benchmarkNowMs();
+    await lifecycle.stop("bench");
+    killLatencies.push(benchmarkNowMs() - killStarted);
+  }
+
+  return {
+    spawnMs: benchmarkAverage(spawnLatencies),
+    killMs: benchmarkAverage(killLatencies)
+  };
+}
+
+async function measureBusyLoopKill(backend) {
+  const lifecycle = new MiniappLifecycle(
+    backend,
+    {
+      appId: "busy-loop",
+      version: "1.0.0",
+      entryPath: "bundle.js",
+      bundle: busyLoopBenchmarkBundle,
+      brokerEndpoint: {
+        request: async (request) => ({ id: request.id, ok: true })
+      }
+    },
+    { watchdogMs: BENCHMARK_WATCHDOG_MS }
+  );
+
+  const started = benchmarkNowMs();
+  await lifecycle.launch();
+
+  let killed = false;
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    await benchmarkSleep(50);
+    const snapshot = await lifecycle.watchdogPing();
+    if (snapshot.state === "crashed") {
+      killed = true;
+      break;
+    }
+  }
+
+  await lifecycle.stop("cleanup");
+  return {
+    busyLoopKilled: killed,
+    busyLoopKillMs: killed ? Math.round(benchmarkNowMs() - started) : null
+  };
+}
 
 /**
  * Worklet-side mini-app host wrapper. Keeps Phase 4 runtime wiring out of entry.mjs.
@@ -249,6 +343,26 @@ export function createWorkletMiniappHost(options) {
         bundleBytes
       );
       pushRuntime();
+    },
+
+    async benchmark() {
+      const backend = createSandboxBackend(options.sandboxBackend ?? "bare-worker");
+      const spawnKill = await measureSpawnKill(backend, helloBenchmarkBundle, BENCHMARK_ITERATIONS);
+      const busyLoop = await measureBusyLoopKill(backend);
+
+      if (!busyLoop.busyLoopKilled) {
+        throw new Error("busy-loop app was not killed by watchdog");
+      }
+
+      return {
+        backend: backend.name,
+        runtime: "bare",
+        iterations: BENCHMARK_ITERATIONS,
+        spawnMs: spawnKill.spawnMs,
+        killMs: spawnKill.killMs,
+        busyLoopKillMs: busyLoop.busyLoopKillMs,
+        busyLoopKilled: busyLoop.busyLoopKilled
+      };
     }
   };
 }

@@ -1,0 +1,16 @@
+appId: network.twistedpear.harness
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "com.twistedpear.example"
+    timeout: 30000
+- tapOn:
+    id: "benchmark-miniapp"
+- extendedWaitUntil:
+    visible:
+      id: "benchmark-results"
+    timeout: 120000
+- assertVisible:
+    text: "spawn"
+- assertVisible:
+    text: "busy-loop"

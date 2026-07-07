@@ -11,9 +11,13 @@ appId: network.twistedpear.harness
     visible: "complete"
     timeout: 120000
 - tapOn:
-    text: "Launch"
+    id: "installed-${APP_ID}"
+- tapOn:
+    id: "grant-lxmf-send"
+- tapOn:
+    id: "launch-${APP_ID}"
 - extendedWaitUntil:
-    visible: "running"
+    visible: "· running"
     timeout: 30000
 - tapOn:
     text: "Rollback"

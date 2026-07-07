@@ -2,7 +2,12 @@
  * Shared adb helpers for Android emulator lab automation.
  */
 
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+
+const labDir = dirname(fileURLToPath(import.meta.url));
 
 export const PACKAGE_ID = "network.twistedpear.harness";
 export const FOREGROUND_SERVICE = "network.twistedpear.harness.NodeForegroundService";
@@ -88,4 +93,18 @@ export function maestro(args) {
 export function maestroAvailable() {
   const result = spawnSync("maestro", ["--version"], { encoding: "utf8" });
   return result.status === 0;
+}
+
+export function readFixtureAppId() {
+  const meta = JSON.parse(readFileSync(join(labDir, "fixture-meta.json"), "utf8"));
+  if (typeof meta.appId !== "string" || meta.appId.length === 0) {
+    throw new Error("fixture-meta.json missing appId (start host-peer first)");
+  }
+
+  return meta.appId;
+}
+
+export function maestroWithFixtureEnv(flowPath) {
+  const appId = readFixtureAppId();
+  maestro(["test", "-e", `APP_ID=${appId}`, flowPath]);
 }

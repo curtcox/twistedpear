@@ -121,8 +121,10 @@ everything below is a known cost of the chosen design or of the platforms involv
 
   Under-one-minute ceilings at these rates: LAN ~60 MiB, BLE ~180 KiB, RNode ~9 KiB.
   `bridge-hyper` blocks automatic bulk fetch over RNode-only links above 64 KiB and warns
-  above 32 KiB; BLE warnings start at 256 KiB. See `conformance/budgets/measured.json`
+  above 32 KiB; BLE warnings start at 256 KiB. See   `conformance/budgets/measured.json`
   for regenerated numbers (`npm run test:budgets`).
+- Android emulator Bare Worker spawn/kill/busy-loop metrics: `conformance/android-emulator/measured-worker.json`
+  (`ANDROID_BENCHMARK_RECORD=1 npm run test:android-emulator:e5` on KVM emulator).
 - Holepunch's DHT bootstrap nodes are an external dependency; fully-sovereign deployments
   need self-hosted bootstrap or LAN-only swarm mode.
 - The Pears components are the most replaceable part of the design (per the constraint

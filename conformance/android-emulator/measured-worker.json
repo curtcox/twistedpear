@@ -1,0 +1,6 @@
+{
+  "measuredAt": "pending",
+  "platform": "android-emulator",
+  "hyperdrivePath": "verified-by-e1",
+  "note": "Record on KVM emulator: ANDROID_BENCHMARK_RECORD=1 npm run test:android-emulator:e5"
+}

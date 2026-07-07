@@ -45,6 +45,7 @@
     "test:android-native": "node conformance/android-native/run.mjs",
     "test:android-emulator": "node conformance/android-emulator/run.mjs",
     "test:android-emulator:e3": "node conformance/android-emulator/e3-foreground.mjs",
+    "test:android-emulator:e5": "node conformance/android-emulator/e5-worker.mjs",
     "test:desktop": "npm run build && node conformance/desktop/run.mjs",
     "test:desktop-lifecycle": "npm run build && node conformance/desktop/lifecycle.mjs",
     "test:desktop-soak": "npm run build && node conformance/desktop-soak/run.mjs",
