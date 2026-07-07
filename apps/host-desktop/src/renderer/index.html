@@ -23,6 +23,15 @@
       <section class="panel">
         <h2>Catalog</h2>
         <ul id="catalog-list" class="item-list"></ul>
+        <div class="settings-grid">
+          <label>
+            Install from 256t string
+            <input type="text" id="install-256t-input" placeholder="94-character 256t id" class="setting-input" />
+          </label>
+          <div class="item-row">
+            <button id="install-256t">Install</button>
+          </div>
+        </div>
       </section>
       <section class="panel">
         <h2>Installed</h2>
@@ -31,6 +40,25 @@
       <section class="panel">
         <h2>Grants</h2>
         <div id="grants-panel" class="grants-panel"></div>
+      </section>
+      <section class="panel">
+        <h2>Trusted publishers</h2>
+        <ul id="trust-list" class="item-list"></ul>
+        <div class="settings-grid">
+          <label>
+            Publisher identity (94-char 256t string)
+            <input type="text" id="trust-identity-input" class="setting-input" />
+          </label>
+          <label>
+            Label
+            <input type="text" id="trust-label-input" placeholder="Alice" class="setting-input" />
+          </label>
+          <div class="item-row">
+            <button id="trust-add">Trust publisher</button>
+            <button id="trust-show">Show my identity</button>
+          </div>
+          <div id="trust-identity-view"></div>
+        </div>
       </section>
       <section class="panel">
         <h2>Settings</h2>
@@ -60,6 +88,13 @@
       <section class="panel">
         <h2>Mini-app</h2>
         <div id="widget-root"></div>
+      </section>
+      <section class="panel">
+        <h2>Dev preview</h2>
+        <div class="item-row">
+          <button id="stop-preview">Stop preview</button>
+        </div>
+        <div id="preview-root"></div>
       </section>
       <section class="panel">
         <h2>Runtime controls</h2>

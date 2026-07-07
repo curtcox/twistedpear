@@ -206,7 +206,8 @@ pre {
   justify-items: start;
 }
 
-.widget-qr svg {
+.widget-qr svg,
+.widget-qr-svg {
   background: white;
   border-radius: 6px;
 }

@@ -6,6 +6,10 @@ const installedList = document.querySelector("#installed-list");
 const grantsPanel = document.querySelector("#grants-panel");
 const logEl = document.querySelector("#log");
 const widgetRoot = document.querySelector("#widget-root");
+const previewRoot = document.querySelector("#preview-root");
+const stopPreview = document.querySelector("#stop-preview");
+const install256tInput = document.querySelector("#install-256t-input");
+const install256t = document.querySelector("#install-256t");
 
 const modalOverlay = document.querySelector("#host-modal-overlay");
 const modalEl = document.querySelector("#host-modal");
@@ -16,6 +20,13 @@ const limitMemory = document.querySelector("#limit-memory");
 const limitsNote = document.querySelector("#limits-note");
 const limitsApply = document.querySelector("#limits-apply");
 const forceQuit = document.querySelector("#force-quit");
+
+const trustList = document.querySelector("#trust-list");
+const trustIdentityInput = document.querySelector("#trust-identity-input");
+const trustLabelInput = document.querySelector("#trust-label-input");
+const trustAdd = document.querySelector("#trust-add");
+const trustShow = document.querySelector("#trust-show");
+const trustIdentityView = document.querySelector("#trust-identity-view");
 
 const settingDeveloper = document.querySelector("#setting-developer");
 const settingAiUrl = document.querySelector("#setting-ai-url");
@@ -135,6 +146,75 @@ function showHostModal({ title, fingerprint, rows = [], capabilities = null, con
   actions.append(cancel, approve);
   modalEl.appendChild(actions);
   modalOverlay.hidden = false;
+}
+
+function renderTrustList(entries) {
+  if (!trustList) {
+    return;
+  }
+
+  trustList.replaceChildren(
+    ...entries.map((entry) => {
+      const item = document.createElement("li");
+      item.className = "item-row";
+      const label = document.createElement("strong");
+      label.textContent = entry.label;
+      const key = document.createElement("span");
+      key.className = "muted";
+      key.textContent = `${entry.publisherPublicKey.slice(0, 16)}…`;
+      const remove = document.createElement("button");
+      remove.textContent = "Remove";
+      remove.addEventListener("click", () => {
+        host?.send({ type: "trust-remove", publisherPublicKey: entry.publisherPublicKey });
+      });
+      item.append(label, key, remove);
+      return item;
+    })
+  );
+
+  if (entries.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "muted";
+    empty.textContent = "No trusted publishers yet";
+    trustList.replaceChildren(empty);
+  }
+}
+
+function renderOwnIdentity(identity256t) {
+  if (!trustIdentityView) {
+    return;
+  }
+
+  trustIdentityView.replaceChildren();
+  if (!identity256t) {
+    trustIdentityView.textContent = "No host identity yet — start the node first.";
+    return;
+  }
+
+  const qrFactory = globalThis.qrcode;
+  if (typeof qrFactory === "function") {
+    try {
+      const qr = qrFactory(0, "M");
+      qr.addData(identity256t);
+      qr.make();
+      const svgHost = document.createElement("div");
+      svgHost.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
+      const svg = svgHost.firstElementChild;
+      if (svg !== null) {
+        svg.setAttribute("width", "192");
+        svg.setAttribute("height", "192");
+        svg.classList.add("widget-qr-svg");
+        trustIdentityView.appendChild(svg);
+      }
+    } catch {
+      // string fallback below
+    }
+  }
+
+  const text = document.createElement("p");
+  text.className = "widget-qr-value";
+  text.textContent = identity256t;
+  trustIdentityView.appendChild(text);
 }
 
 function renderLimits(limits) {
@@ -447,18 +527,52 @@ if (!host) {
     }
 
     if (message.type === "miniapp-runtime") {
-      runningAppId = message.runtime.appId;
-      if (runningAppId !== null) {
-        host.send({ type: "get-limits", appId: runningAppId });
+      if (message.slot === "preview") {
+        if (previewRoot) {
+          renderWidgetTree(message.runtime?.widgetTree ?? null, previewRoot, (nodeId, event, value) => {
+            host.send({ type: "miniapp-ui-event", slot: "preview", nodeId, event, value });
+          });
+        }
+      } else {
+        runningAppId = message.runtime.appId;
+        if (runningAppId !== null) {
+          host.send({ type: "get-limits", appId: runningAppId });
+        }
+        renderWidgetTree(
+          message.runtime.widgetTree,
+          widgetRoot,
+          (nodeId, event, value) => {
+            host.send({ type: "miniapp-ui-event", nodeId, event, value });
+          },
+          { readDocument: readWorkspaceDocument }
+        );
       }
-      renderWidgetTree(
-        message.runtime.widgetTree,
-        widgetRoot,
-        (nodeId, event, value) => {
-          host.send({ type: "miniapp-ui-event", nodeId, event, value });
-        },
-        { readDocument: readWorkspaceDocument }
+    }
+
+    if (message.type === "install-review") {
+      showHostModal({
+        title: message.trusted
+          ? `Install ${message.appId} v${message.version} from trusted publisher "${message.trustedLabel ?? "?"}"?`
+          : `Install ${message.appId} v${message.version} from UNTRUSTED publisher?`,
+        fingerprint: message.publisherPublicKey,
+        rows: [["Capabilities requested", message.capabilities.length]],
+        capabilities: message.capabilities,
+        confirmLabel: "Install",
+        onDone: (accept, grants) => {
+          host.send({ type: "install-confirm", token: message.token, accept, grants });
+        }
+      });
+    }
+
+    if (message.type === "install-256t-result") {
+      appendLog(
+        message.ok
+          ? `Installed ${message.appId} v${message.version} (trusted: ${message.trusted})`
+          : `256t install failed: ${message.error}`
       );
+      if (message.ok) {
+        host.send({ type: "list-installed" });
+      }
     }
 
     if (message.type === "workspace-file") {
@@ -507,6 +621,37 @@ if (!host) {
     if (message.type === "limits") {
       renderLimits(message.limits);
     }
+
+    if (message.type === "trust") {
+      renderTrustList(message.entries);
+    }
+
+    if (message.type === "trust-identity") {
+      renderOwnIdentity(message.identity256t);
+    }
+  });
+
+  host.send({ type: "trust-list" });
+
+  trustAdd?.addEventListener("click", () => {
+    const identityString = trustIdentityInput?.value.trim() ?? "";
+    if (identityString.length === 0) {
+      appendLog("Paste a 94-character identity string first");
+      return;
+    }
+
+    host.send({
+      type: "trust-add",
+      identityString,
+      label: trustLabelInput?.value.trim() || "Unnamed publisher"
+    });
+    if (trustIdentityInput) {
+      trustIdentityInput.value = "";
+    }
+  });
+
+  trustShow?.addEventListener("click", () => {
+    host.send({ type: "trust-show" });
   });
 
   limitsApply?.addEventListener("click", () => {
@@ -528,6 +673,21 @@ if (!host) {
   forceQuit?.addEventListener("click", () => {
     host.send({ type: "stop-miniapp", reason: "user-forced" });
     appendLog("Force quit requested");
+  });
+
+  stopPreview?.addEventListener("click", () => {
+    host.send({ type: "stop-preview-miniapp" });
+  });
+
+  install256t?.addEventListener("click", () => {
+    const t256 = install256tInput?.value.trim() ?? "";
+    if (t256.length !== 94) {
+      appendLog("Paste a 94-character 256t string first");
+      return;
+    }
+
+    host.send({ type: "install-from-256t", t256 });
+    appendLog("Resolving 256t id…");
   });
 
   host.onWorkletExit((detail) => {
