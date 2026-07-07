@@ -293,6 +293,11 @@ export class MiniappHost {
       }
 
       const payload = request.payload as { nodeId: string; event: string; value?: unknown };
+      const tree = this.active.widgetTree;
+      if (tree === null || findWidgetNode(tree.root, payload.nodeId) === null) {
+        throw new Error(`Unknown widget node: ${payload.nodeId}`);
+      }
+
       await this.active.lifecycle.deliverUiEvent(payload);
       return { delivered: true };
     });

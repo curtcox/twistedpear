@@ -24,14 +24,15 @@ Last audited: 2026-07-07.
 | Phase 4 emulator lab + long soaks | E5 Worker metrics on emulator, 24 h mini-app soak at plan duration | No (emulator metrics manual; soak needs server) |
 | Phase 5 simulator gaps | 24 h ios-sim soak at plan duration | No (soak needs server) |
 | Phase 6 interop + packaging | 72 h desktop soak at plan duration; macOS notarization run | No (soak needs server; notarization needs Apple account) |
-| Phase 7 (plan only) | security review adversarial audit; device battery/bandwidth numbers | No |
+| Phase 7 (plan only) | device battery/bandwidth numbers | No |
 
 **Recently closed (2026-07-07):** resource resume-after-flap interop, 100 MB resource nightly,
 link/transport-node soak scripts + nightly CI tier, LAN-mirror + mixed-network soak conformance,
 macOS dmg CI artifact, serialport/RNode load test, fuzz corpus expansion, integration-soak
 nightly tier, expanded ios-sim PR path filter, CI policy doc, Android emulator lab doc +
 headless `emulator.yml` workflow, macOS notarization procedure, battery/bandwidth policy draft,
-`mirrorFrom` polling fix. See [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
+`mirrorFrom` polling fix, Phase 7 broker adversarial review + capability/event fixes. See
+[STATUS-COMPLETE.md](STATUS-COMPLETE.md).
 
 ---
 
@@ -140,7 +141,7 @@ Automating E1–E4 UI in KVM CI remains open; headless proxies and local lab pro
 
 | Item | Plan reference | Status |
 |---|---|---|
-| Security review sandbox + capabilities | PLAN §7 | Open — adversarial review of broker chokepoint |
+| Security review sandbox + capabilities | PLAN §7 | **Done (software tier)** — [docs/security-review.md](docs/security-review.md); F1/F2 fixes in broker + host |
 | Fuzz packet parsers (continuous) | PLAN §7, PHASE1 M8 | **CI tier done** — resource adv + link-context fuzz in `fuzz.test.ts`; expand corpus over time |
 | Battery/bandwidth policy | PLAN §7 | **Draft done** — [docs/battery-bandwidth-policy.md](docs/battery-bandwidth-policy.md); device numbers pending | H3, H11, H13 |
 | Docs + upstream publication | PLAN §7 | `reticulum-ts` API docs in CI; BLE spec published |
@@ -154,7 +155,7 @@ Automating E1–E4 UI in KVM CI remains open; headless proxies and local lab pro
 2. **Emulator UI automation** — KVM CI for harness E1–E4 (headless proxy done in `emulator.yml`)
 3. **Phase 1 M8 release** — 0.1.0 tag after soaks, LIMITATIONS measurements
 4. **Emulator labs** — Phase 3/4 E1–E5 locally per [docs/android-emulator-lab.md](docs/android-emulator-lab.md)
-5. **Phase 7** — adversarial security review when feature-complete
+5. **Phase 7** — Bare Worker hostile parity on device when hardware arrives (H11)
 
 ---
 

@@ -37,7 +37,7 @@ Cron `0 6 * * *` UTC plus `workflow_dispatch` for extended soaks.
 | `mixed-network-soak` | 5 min | 24 h |
 | `miniapp-soak` | 5 min | 24 h |
 | `ios-soak` | 5 min + 100 lifecycle cycles | 24 h |
-| `desktop-soak` | 5 cycles × 5 min | 72 h (`SOAK_DURATION_MS=259200000`, `DESKTOP_SOAK_CYCLES` high) |
+| `desktop-soak` | 5 cycles × 5 min | 72 h (`SOAK_DURATION_MS=300000`, `desktop_soak_cycles=864`) |
 | `integration-soak` | 5 min | 24 h |
 | `link-soak` | 5 min | 1 h (`LINK_SOAK_DURATION_MS=3600000`) |
 | `transport-node-soak` | 5 min | 72 h (`TRANSPORT_SOAK_DURATION_MS=259200000`) |
@@ -50,6 +50,7 @@ runs complete within the default tier.
 ```bash
 gh workflow run nightly.yml \
   -f soak_duration_ms=86400000 \
+  -f desktop_soak_cycles=864 \
   -f link_soak_duration_ms=3600000 \
   -f transport_soak_duration_ms=259200000
 ```
@@ -71,4 +72,4 @@ unit tests. Full E1–E4 UI path: [android-emulator-lab.md](android-emulator-lab
 | macOS notarization | [macos-notarization.md](macos-notarization.md) |
 | Windows install verification | H17 |
 | 8 h Android background (OEM battery) | H3 |
-| Adversarial security review | Phase 7 |
+| Bare Worker hostile parity on device | H11 |

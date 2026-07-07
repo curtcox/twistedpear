@@ -271,10 +271,62 @@ while (true) {
       throw error;
     }
   }
+
+  const brokerForgery = await forgeryHost.dispatchRaw(
+    {
+      id: "broker-forge",
+      namespace: "ui",
+      method: "event",
+      payload: { nodeId: "never-rendered", event: "tap" }
+    },
+    {
+      name: "forgery",
+      version: "1.0.0",
+      entry: "bundle.js",
+      capabilities: [],
+      publisherPublicKey: "publisher"
+    },
+    []
+  );
+  if (brokerForgery.ok) {
+    throw new Error("broker ui.event forgery was not rejected");
+  }
+
+  const capabilitySwapHost = new MiniappHost({
+    backend: new NodeWorkerSandboxBackend(),
+    grantStore: new GrantStore(store),
+    kvBackend: store
+  });
+  await capabilitySwapHost.setGrants("swap", "publisher", ["storage:kv"], []);
+  const capabilitySwap = await capabilitySwapHost.dispatchRaw(
+    {
+      id: "swap",
+      namespace: "storage.kv",
+      method: "get",
+      capability: "identity",
+      payload: { key: "probe" }
+    },
+    {
+      name: "swap",
+      version: "1.0.0",
+      entry: "bundle.js",
+      capabilities: ["storage:kv"],
+      publisherPublicKey: "publisher"
+    },
+    ["identity"]
+  );
+  if (capabilitySwap.ok) {
+    throw new Error("capability substitution was not rejected");
+  }
+  if (capabilitySwap.error?.code !== "CAPABILITY_MISMATCH") {
+    throw new Error(`expected CAPABILITY_MISMATCH, got ${capabilitySwap.error?.code}`);
+  }
+  await capabilitySwapHost.stop();
+
   await forgeryHost.stop();
 
   console.log(
-    "hostile-apps: sandbox, escape, broker flood, UI rejection, memory bomb, oversized message, event forgery, and launch/stop cycles passed"
+    "hostile-apps: sandbox, escape, broker flood, UI rejection, memory bomb, oversized message, event forgery, capability substitution, and launch/stop cycles passed"
   );
 }
 

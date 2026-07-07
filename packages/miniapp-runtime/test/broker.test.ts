@@ -42,4 +42,42 @@ describe("mini-app broker", () => {
     now = 2_001;
     expect((await broker.dispatch({ id: "3", namespace: "ui", method: "render" }, context)).ok).toBe(true);
   });
+
+  it("rejects capability substitution on protected methods", async () => {
+    const broker = new MiniappBroker();
+    broker.register("storage.kv", "get", "storage:kv", () => "secret");
+
+    const substituted = await broker.dispatch(
+      {
+        id: "1",
+        namespace: "storage.kv",
+        method: "get",
+        capability: "identity",
+        payload: { key: "x" }
+      },
+      {
+        ...context,
+        declaredCapabilities: ["identity", "storage:kv"],
+        grantedCapabilities: ["identity"]
+      }
+    );
+    expect(substituted.ok).toBe(false);
+    expect(substituted.error?.code).toBe("CAPABILITY_MISMATCH");
+  });
+
+  it("enforces the registered capability even when the request omits it", async () => {
+    const broker = new MiniappBroker();
+    broker.register("storage.kv", "get", "storage:kv", () => "secret");
+
+    const denied = await broker.dispatch(
+      { id: "1", namespace: "storage.kv", method: "get", payload: { key: "x" } },
+      {
+        ...context,
+        declaredCapabilities: ["storage:kv"],
+        grantedCapabilities: []
+      }
+    );
+    expect(denied.ok).toBe(false);
+    expect(denied.error?.code).toBe("CAPABILITY_DENIED");
+  });
 });

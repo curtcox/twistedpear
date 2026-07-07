@@ -50,7 +50,10 @@ interface RateBucket {
 }
 
 export class BrokerError extends Error {
-  constructor(readonly code: "UNKNOWN_METHOD" | "MESSAGE_TOO_LARGE" | "RATE_LIMITED", message: string) {
+  constructor(
+    readonly code: "UNKNOWN_METHOD" | "MESSAGE_TOO_LARGE" | "RATE_LIMITED" | "CAPABILITY_MISMATCH",
+    message: string
+  ) {
     super(message);
     this.name = "BrokerError";
   }
@@ -74,7 +77,18 @@ export class MiniappBroker {
         throw new BrokerError("UNKNOWN_METHOD", `Unknown broker method ${request.namespace}.${request.method}`);
       }
 
-      const capability = request.capability ?? registered.capability;
+      const capability = registered.capability;
+      if (
+        request.capability !== undefined &&
+        request.capability !== capability &&
+        !(request.capability === null && capability === null)
+      ) {
+        throw new BrokerError(
+          "CAPABILITY_MISMATCH",
+          `Broker capability mismatch for ${request.namespace}.${request.method}`
+        );
+      }
+
       if (capability !== null) {
         assertCapabilityAllowed({
           capability,

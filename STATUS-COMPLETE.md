@@ -506,5 +506,6 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 | Emulator headless CI proxy | `.github/workflows/emulator.yml` | `gh workflow run emulator.yml` |
 | macOS notarization procedure | [docs/macos-notarization.md](docs/macos-notarization.md) | — |
 | Battery/bandwidth policy draft | [docs/battery-bandwidth-policy.md](docs/battery-bandwidth-policy.md) | — |
+| Phase 7 broker security review | [docs/security-review.md](docs/security-review.md) | `npm run test:hostile-apps` |
 | iOS full-loop PR path filter | `.github/workflows/ci.yml` `ios-sim` | touch `packages/miniapp-runtime/**` etc. |
 | `mirrorFrom` polling timeout | `packages/bridge-hyper/src/drive.ts` | `npm test -- packages/bridge-hyper/test` |
