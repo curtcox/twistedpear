@@ -37,6 +37,7 @@ The `interfaces` job runs `npm run test:integration-soak` (default 12 s; configu
 | `interop` (lane) | `INTEROP=1 npm run test:web-interop` | W-S1: WS leaf → gateway → dockerized Python RNS (Node orchestrator) |
 | `interop` (lane) | `INTEROP=1 npm run test:web-interop-browser` | W-S1/W1: Playwright browser tab packet + LXMF echo through gateway |
 | `web` | `npm run test:web-storage` | W-S4: Playwright OPFS/IndexedDB CAS install of `tiny.tpkg`, reload persistence, quota surfacing |
+| `web` | `npm run test:web-miniapp` | W2: Playwright core worker mini-app runtime + main-thread sandbox relay (hello dev side-load + UI event) |
 
 `test:web-runtime` builds `@twistedpear/reticulum-ts/web` and `@twistedpear/host-core/web` with esbuild (`--platform=browser`)
 and asserts no Node/Bare/Hyperdrive imports leak into the bundles.

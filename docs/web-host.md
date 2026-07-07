@@ -1,6 +1,6 @@
 # Web Host: a full TwistedPear host in the browser (plan)
 
-Status: **in progress** (Phase W1 complete; W-S2 + W-S3 + W-S4 landed) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed; `WebSandboxBackend` + W-S2 adversarial isolation spike landed; `packages/widget-renderer-rn` + W-S3 RNW widget preview landed; `createWebPackageStorage` + W-S4 OPFS/IndexedDB CAS install spike landed.
+Status: **in progress** (Phase W1 complete; W-S2 + W-S3 + W-S4 landed; W2 software tier landed) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed; `WebSandboxBackend` + W-S2 adversarial isolation spike landed; `packages/widget-renderer-rn` + W-S3 RNW widget preview landed; `createWebPackageStorage` + W-S4 OPFS/IndexedDB CAS install spike landed; `WebSandboxProxyBackend` + main-thread sandbox relay + `test:web-miniapp` (W2 hello dev side-load).
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase W.
 
 The web host is a browser tab (React Native for Web via Expo web) that runs the
@@ -105,6 +105,8 @@ A first-class interface, not a private control channel: any in-browser
   `MessageChannel` is the only capability surface — same chokepoint as native.
   `Worker.terminate()` / iframe removal satisfies busy-loop killability;
   benchmark to `measured-web.json` alongside the desktop/emulator numbers.
+  **W2:** `WebSandboxProxyBackend` delegates spawn to the main-thread relay
+  (`host/web-sandbox-relay.ts`) so the core worker can run `MiniappHost` without `document`.
 - Host confirmation channel renders in RNW host chrome, outside the widget
   surface; unchanged guarantees since widget trees are validated data.
 - Extract the RN widget renderer from `apps/harness-mobile/host/miniapp-renderer.tsx`
@@ -156,7 +158,9 @@ send/receive from the browser; playwright conformance job in CI.
 ### Phase W2 — mini-app runtime
 `WebSandboxBackend` + adversarial isolation tests; broker + confirmation
 channel on web; `packages/widget-renderer-rn` extraction; chat/file-drop/board
-examples run end-to-end in the tab.
+examples run end-to-end in the tab. **W2 (software tier) landed:** `WebSandboxProxyBackend` +
+main-thread sandbox relay + `createWebWorkletMiniappHost` + harness `App.web.tsx` mini-app
+panel + `test:web-miniapp` (Playwright hello dev side-load + UI event).
 
 ### Phase W3 — distribution
 Install from pasted/scanned 256t string via Resource fetch; capability review

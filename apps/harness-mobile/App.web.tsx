@@ -4,7 +4,16 @@ import { StatusBar } from "expo-status-bar";
 import { validateWidgetTree, type WidgetTree } from "@twistedpear/miniapp-runtime";
 import { MiniappWidgetTree } from "@twistedpear/widget-renderer-rn";
 import { createWebCoreBridge } from "./host/web-core-bridge";
-import type { AnnounceEntry, HostToWorkletMessage, WebStorageQuotaView, WorkletStatus, WorkletToHostMessage } from "./worklet/protocol";
+import type {
+  AnnounceEntry,
+  CapabilityGrantView,
+  HostToWorkletMessage,
+  InstalledPackageView,
+  MiniappRuntimeView,
+  WebStorageQuotaView,
+  WorkletStatus,
+  WorkletToHostMessage
+} from "./worklet/protocol";
 
 const DEFAULT_PASSPHRASE = "harness-web-dev";
 const MAX_ANNOUNCES = 50;
@@ -89,6 +98,11 @@ export default function App() {
   const [previewTree, setPreviewTree] = useState<WidgetTree>(helloWidgetTree);
   const [lastWidgetEvent, setLastWidgetEvent] = useState<string | null>(null);
   const [storageQuota, setStorageQuota] = useState<WebStorageQuotaView | null>(null);
+  const [installed, setInstalled] = useState<ReadonlyArray<InstalledPackageView>>([]);
+  const [selectedInstalledAppId, setSelectedInstalledAppId] = useState<string | null>(null);
+  const [grantCapabilities, setGrantCapabilities] = useState<ReadonlyArray<CapabilityGrantView>>([]);
+  const [miniappRuntime, setMiniappRuntime] = useState<MiniappRuntimeView | null>(null);
+  const [developerMode, setDeveloperMode] = useState(false);
 
   const previewOptions = useMemo(
     () =>
@@ -130,6 +144,26 @@ export default function App() {
         setStorageQuota(message.quota);
         return;
       }
+
+      if (message.type === "installed") {
+        setInstalled(message.packages);
+        return;
+      }
+
+      if (message.type === "grants") {
+        setGrantCapabilities(message.capabilities);
+        return;
+      }
+
+      if (message.type === "miniapp-runtime") {
+        setMiniappRuntime(message.runtime);
+        return;
+      }
+
+      if (message.type === "miniapp-log") {
+        appendLog(`[miniapp] ${message.line}`);
+        return;
+      }
     },
     [appendLog]
   );
@@ -166,7 +200,13 @@ export default function App() {
   useEffect(() => {
     ensureBridge();
     sendToWorker({ type: "refresh-storage" });
+    sendToWorker({ type: "list-installed" });
   }, [ensureBridge, sendToWorker]);
+
+  useEffect(() => {
+    ensureBridge();
+    sendToWorker({ type: "set-developer-mode", enabled: developerMode });
+  }, [developerMode, ensureBridge, sendToWorker]);
 
   useEffect(() => {
     ensureBridge();
@@ -191,7 +231,7 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="auto" />
       <Text style={styles.title}>TwistedPear Web Host</Text>
-      <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W1 · W-S3 preview · W-S4 storage)</Text>
+      <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W1 · W2 mini-app runtime)</Text>
 
       <View style={styles.card}>
         <Text>Core worker: {status.running ? "running" : "stopped"}</Text>
@@ -275,6 +315,118 @@ export default function App() {
       </View>
 
       <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Mini-app runtime (W2)</Text>
+        <Text style={styles.muted}>
+          Sandbox runs in an opaque-origin iframe on the main thread; broker and lifecycle stay in the core worker.
+        </Text>
+        <Row
+          testID="developer-mode-switch"
+          label="Developer mode"
+          value={developerMode}
+          onChange={setDeveloperMode}
+        />
+        <View style={styles.buttonRow}>
+          <ActionButton
+            testID="dev-side-load-hello"
+            label="Dev: load hello"
+            onPress={() => sendToWorker({ type: "dev-side-load-hello" })}
+          />
+          <ActionButton
+            label="Stop mini-app"
+            onPress={() => sendToWorker({ type: "stop-miniapp" })}
+          />
+        </View>
+        <Text>
+          Runtime: {miniappRuntime?.state ?? "stopped"}
+          {miniappRuntime?.appId ? ` · ${miniappRuntime.appId}@${miniappRuntime.version ?? "?"}` : ""}
+        </Text>
+        {miniappRuntime?.widgetTree ? (
+          <View testID="miniapp-live-tree">
+            <MiniappWidgetTree
+              tree={miniappRuntime.widgetTree as WidgetTree}
+              onEvent={(nodeId, event, value) => {
+                sendToWorker({
+                  type: "miniapp-ui-event",
+                  nodeId,
+                  event,
+                  ...(value === undefined ? {} : { value })
+                });
+              }}
+            />
+          </View>
+        ) : (
+          <Text style={styles.muted}>No live mini-app widget tree yet.</Text>
+        )}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Installed packages</Text>
+        <View style={styles.buttonRow}>
+          <ActionButton label="Refresh" onPress={() => sendToWorker({ type: "list-installed" })} />
+        </View>
+        {installed.length === 0 ? (
+          <Text style={styles.muted}>No packages installed yet (W-S4 storage is wired; catalog install is Phase W3).</Text>
+        ) : (
+          installed.map((pkg) => (
+            <View key={`${pkg.appId}-${pkg.version}`} style={styles.packageRow}>
+              <Pressable
+                testID={`installed-${pkg.appId}`}
+                onPress={() => {
+                  setSelectedInstalledAppId(pkg.appId);
+                  sendToWorker({
+                    type: "get-grants",
+                    appId: pkg.appId,
+                    publisherPublicKey: pkg.publisherPublicKey ?? "",
+                    declaredCapabilities: pkg.capabilities ?? []
+                  });
+                }}
+              >
+                <Text style={styles.packageTitle}>
+                  {pkg.appId}@{pkg.version}
+                </Text>
+              </Pressable>
+              <ActionButton
+                label="Launch"
+                onPress={() => sendToWorker({ type: "launch-miniapp", appId: pkg.appId })}
+              />
+            </View>
+          ))
+        )}
+        {selectedInstalledAppId !== null && grantCapabilities.length > 0 ? (
+          <>
+            <Text style={styles.muted}>Grants for {selectedInstalledAppId}</Text>
+            {grantCapabilities
+              .filter((capability) => capability.declared)
+              .map((capability) => (
+                <Row
+                  key={capability.id}
+                  testID={`grant-${capability.id}`}
+                  label={capability.id}
+                  value={capability.granted}
+                  onChange={(granted) => {
+                    const selected = installed.find((pkg) => pkg.appId === selectedInstalledAppId);
+                    if (selected === undefined) {
+                      return;
+                    }
+
+                    const nextGranted = grantCapabilities
+                      .filter((entry) => entry.declared && (entry.id === capability.id ? granted : entry.granted))
+                      .map((entry) => entry.id);
+                    sendToWorker({
+                      type: "set-grants",
+                      appId: selected.appId,
+                      publisherPublicKey: selected.publisherPublicKey ?? "",
+                      declaredCapabilities: selected.capabilities ?? [],
+                      grantedCapabilities: nextGranted
+                    });
+                  }}
+                />
+              ))}
+          </>
+        ) : null}
+      </View>
+
+      <View style={styles.card}>
         <Text style={styles.sectionTitle}>Widget preview (W-S3)</Text>
         <Text style={styles.muted}>
           Shared `@twistedpear/widget-renderer-rn` via react-native-web — same renderer as mobile harness.
@@ -303,10 +455,10 @@ export default function App() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Unavailable on web (Phase W1)</Text>
+        <Text style={styles.sectionTitle}>Unavailable on web</Text>
         <Text style={styles.muted}>AutoInterface / multicast / Bonjour — not available in browser tabs.</Text>
         <Text style={styles.muted}>BLE / USB RNode — requires native host bridges.</Text>
-        <Text style={styles.muted}>Mini-app runtime / catalog — Phase W2.</Text>
+        <Text style={styles.muted}>Catalog install from network — Phase W3.</Text>
       </View>
 
       <View style={styles.card}>
@@ -454,6 +606,17 @@ const styles = StyleSheet.create({
   buttonLabel: {
     color: "#f4f7fb",
     fontSize: 13
+  },
+  packageRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8
+  },
+  packageTitle: {
+    color: "#c5d0dc",
+    fontFamily: Platform.OS === "web" ? "monospace" : "Menlo",
+    fontSize: 12
   },
   log: {
     flex: 1,

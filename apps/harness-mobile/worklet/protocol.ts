@@ -133,6 +133,10 @@ export type HostToWorkletMessage =
   | { readonly type: "list-catalog" }
   | { readonly type: "list-installed" }
   | { readonly type: "refresh-storage" }
+  | { readonly type: "sandbox-spawned"; readonly requestId: string; readonly instanceId: string }
+  | { readonly type: "sandbox-spawn-failed"; readonly requestId: string; readonly message: string }
+  | { readonly type: "sandbox-ping-result"; readonly requestId: string; readonly alive: boolean }
+  | { readonly type: "sandbox-broker-request"; readonly requestId: string; readonly instanceId: string; readonly request: unknown }
   | { readonly type: "install-app"; readonly appId: string; readonly forcePath?: "hyperdrive" | "lan-mirror" | "resource"; readonly archiveHex?: string }
   | { readonly type: "delete-package"; readonly appId: string; readonly version: string }
   | { readonly type: "rollback-package"; readonly appId: string }
@@ -146,6 +150,7 @@ export type HostToWorkletMessage =
   | { readonly type: "resume-miniapp" }
   | { readonly type: "miniapp-ui-event"; readonly nodeId: string; readonly event: string; readonly value?: unknown }
   | { readonly type: "dev-side-load"; readonly manifest: Record<string, unknown>; readonly bundleHex: string }
+  | { readonly type: "dev-side-load-hello" }
   | { readonly type: "connect-dev-channel"; readonly host: string; readonly port: number }
   | { readonly type: "disconnect-dev-channel" }
   | { readonly type: "multicast-packet"; readonly ifname: string; readonly dataHex: string; readonly sourceAddress: string; readonly port: number }
@@ -168,6 +173,19 @@ export type WorkletToHostMessage =
   | { readonly type: "catalog"; readonly entries: ReadonlyArray<CatalogEntryView> }
   | { readonly type: "installed"; readonly packages: ReadonlyArray<InstalledPackageView> }
   | { readonly type: "storage-quota"; readonly quota: WebStorageQuotaView }
+  | {
+      readonly type: "sandbox-spawn";
+      readonly requestId: string;
+      readonly instanceId: string;
+      readonly appId: string;
+      readonly version: string;
+      readonly entryPath: string;
+      readonly bundleHex: string;
+    }
+  | { readonly type: "sandbox-post"; readonly instanceId: string; readonly payload: unknown }
+  | { readonly type: "sandbox-ping"; readonly requestId: string; readonly instanceId: string; readonly timeoutMs: number }
+  | { readonly type: "sandbox-kill"; readonly instanceId: string; readonly reason: string }
+  | { readonly type: "sandbox-broker-response"; readonly requestId: string; readonly response: unknown }
   | { readonly type: "install-progress"; readonly progress: InstallProgress }
   | { readonly type: "grants"; readonly appId: string; readonly capabilities: ReadonlyArray<CapabilityGrantView> }
   | { readonly type: "miniapp-runtime"; readonly runtime: MiniappRuntimeView }

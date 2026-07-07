@@ -183,7 +183,7 @@ Full plan: [docs/web-host.md](docs/web-host.md). Everything here runs on a dev m
 | W-S3: Expo web UI + shared RNW widget renderer | web-host §W0 | **Done (CI tier)** — `packages/widget-renderer-rn` + `test:web-widget-renderer` (Playwright) + `App.web.tsx` preview |
 | W-S4: OPFS/IndexedDB CAS install of example `.tpkg` | web-host §W0 | **Done (CI tier)** — `createWebPackageStorage` + `test:web-storage` (Playwright) + harness quota UI |
 | W1: leaf peer in the tab (runtime/web, WS interfaces, `tp node --ws-listen/--serve-web`, LXMF) | web-host §W1 | **Done (software tier)** — runtime/web, WS interfaces, gateway CLI, W-S1 interop, browser identity persistence, Playwright packet+LXMF, `createWebLeafHost` + FetchPlane, Expo web tab UI + `build:web-host` |
-| W2: mini-app runtime (`WebSandboxBackend`, broker/confirm, `widget-renderer-rn` extraction) | web-host §W2 | Not started |
+| W2: mini-app runtime (`WebSandboxBackend`, broker/confirm, `widget-renderer-rn` extraction) | web-host §W2 | **Partial (software tier)** — proxy sandbox relay + broker + harness mini-app panel + `test:web-miniapp`; example apps e2e + confirmation UI remain |
 | W3: distribution (256t install, grants UI, DevStudio on web) | web-host §W3 | Not started |
 | W4: Hyperdrive via WS DHT relay, PWA shell, soaks; WebSerial RNode stretch | web-host §W4 | Not started |
 
@@ -225,4 +225,5 @@ Full plan: [docs/web-host.md](docs/web-host.md). Everything here runs on a dev m
 | `npm run test:web-sandbox` | W-S2: opaque-origin iframe worker isolation + busy-loop kill (Playwright) |
 | `npm run test:web-widget-renderer` | W-S3: RNW widget renderer golden trees + event wiring (Playwright) |
 | `npm run test:web-storage` | W-S4: OPFS/IndexedDB CAS install + reload persistence + quota (Playwright) |
+| `npm run test:web-miniapp` | W2: core worker mini-app runtime + sandbox relay hello dev side-load (Playwright) |
 | `npm run build:web-host` | Static Expo web bundle + core worker for `tp node --serve-web` |

@@ -20,6 +20,11 @@ export { BareWorkerSandboxBackend, WorkerBackendUnavailableError } from "./sandb
 export { HardenedCompartmentSandboxBackend, CompartmentBackendUnavailableError } from "./sandbox/compartment.js";
 export { NodeWorkerSandboxBackend } from "./sandbox/node-worker.js";
 export { WebSandboxBackend, WebSandboxBackendUnavailableError } from "./sandbox/web.js";
+export {
+  createWebSandboxProxyBackend,
+  type WebSandboxProxyController,
+  type WebSandboxProxyOutbound
+} from "./sandbox/web-proxy.js";
 export { createSandboxBackend } from "./sandbox/factory.js";
 export { prepareBundleSource } from "./sandbox/prepare-bundle.js";
 export { MiniappHost } from "./host.js";
@@ -47,6 +52,7 @@ export type {
 export { NamespacedKvService, MiniappKvQuotaError } from "./services/storage-kv.js";
 export type { MiniappKvStoreBackend } from "./services/storage-kv.js";
 export { CorestoreBeeBackend } from "./services/storage-bee-corestore.js";
+export { KvStorageBeeBackend } from "./services/storage-bee-kv.js";
 export { StorageBeeQuotaError, storageBeeDescriptor } from "./services/storage-bee.js";
 export type { StorageBeeBackend, StorageBeeDescriptor, StorageBeeEntry, StorageBeeListOptions } from "./services/storage-bee.js";
 export { AppIdentityService } from "./services/identity.js";

@@ -358,6 +358,7 @@ jobs:
       - run: npm run test:web-sandbox
       - run: npm run test:web-widget-renderer
       - run: npm run test:web-storage
+      - run: npm run test:web-miniapp
 
   fuzz:
     runs-on: ubuntu-latest

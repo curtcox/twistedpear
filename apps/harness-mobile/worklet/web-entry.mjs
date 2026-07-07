@@ -1,6 +1,5 @@
 /**
- * Browser core Web Worker (Phase W1). Leaf peer via createWebLeafHost + WS gateway.
- * Uses the same newline-delimited JSON IPC protocol as the Bare worklet.
+ * Browser core Web Worker (Phase W1/W2). Leaf peer + mini-app runtime via main-thread sandbox relay.
  */
 
 import { createWebLeafHost } from "../../../packages/host-core/dist/web.js";
@@ -14,10 +13,43 @@ import {
   persistWebIdentity,
   resetWebIdentity
 } from "../../../packages/reticulum-ts/dist/web.js";
+import { createWebWorkletMiniappHost, hexToBytes } from "./web-miniapp-host.mjs";
 
 const IDENTITY_STORE_NAME = "twistedpear-harness-web-identity";
 const PACKAGE_STORE_NAME = "twistedpear-harness-web-packages";
+const MINIAPP_KV_STORE_NAME = "twistedpear-harness-web-miniapp-kv";
 const DEFAULT_PASSPHRASE = "harness-web-dev";
+const KV_OBJECT_STORE = "kv";
+
+const helloDevBundle = new TextEncoder().encode(`import { ui } from "@twistedpear/miniapp-sdk";
+
+await ui.render({
+  root: {
+    id: "root",
+    type: "view",
+    style: { padding: 16, gap: 8 },
+    children: [
+      { id: "title", type: "text", props: { value: "Hello from web sandbox" }, style: { fontSize: 20, fontWeight: "bold" } },
+      { id: "go", type: "button", props: { label: "Tap me", event: "hello.tap" } }
+    ]
+  }
+});
+
+ui.onEvent(async ({ event }) => {
+  if (event === "hello.tap") {
+    await ui.render({
+      root: {
+        id: "root",
+        type: "view",
+        style: { padding: 16, gap: 8 },
+        children: [
+          { id: "title", type: "text", props: { value: "Tapped!" }, style: { fontSize: 20, fontWeight: "bold" } }
+        ]
+      }
+    });
+  }
+});
+`);
 
 /** @type {import("./protocol.ts").WorkletStatus} */
 const status = {
@@ -56,8 +88,12 @@ let webConfig = {
 let hostSession = null;
 /** @type {Awaited<ReturnType<typeof createWebPackageStorage>> | null} */
 let packageStorage = null;
+/** @type {ReturnType<typeof createWebWorkletMiniappHost> | null} */
+let miniappHost = null;
 /** @type {ReturnType<typeof setInterval> | null} */
 let statusTimer = null;
+/** @type {ReturnType<typeof createMiniappKvStore> | null} */
+let miniappKvStore = null;
 
 function identityOptions() {
   return {
@@ -91,6 +127,79 @@ function pushStatus() {
   }
 
   send({ type: "status", status: { ...status } });
+}
+
+function createMiniappKvStore(dbName) {
+  const ready = new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName, 1);
+    request.onupgradeneeded = (event) => {
+      event.target.result.createObjectStore(KV_OBJECT_STORE);
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error(`Failed to open IndexedDB ${dbName}`));
+  });
+
+  async function withStore(mode, run) {
+    const database = await ready;
+    const transaction = database.transaction(KV_OBJECT_STORE, mode);
+    const store = transaction.objectStore(KV_OBJECT_STORE);
+    return new Promise((resolve, reject) => {
+      const request = run(store);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error("IndexedDB request failed"));
+    });
+  }
+
+  return {
+    async get(key) {
+      const value = await withStore("readonly", (store) => store.get(key));
+      if (value === undefined) {
+        return null;
+      }
+
+      return value instanceof Uint8Array ? Uint8Array.from(value) : new Uint8Array(value);
+    },
+    async set(key, value) {
+      await withStore("readwrite", (store) => store.put(Uint8Array.from(value), key));
+    },
+    async delete(key) {
+      await withStore("readwrite", (store) => store.delete(key));
+    },
+    async list(prefix) {
+      const keys = await withStore("readonly", (store) => store.getAllKeys());
+      return keys.filter((key) => typeof key === "string" && key.startsWith(prefix));
+    }
+  };
+}
+
+function ensureMiniappKvStore() {
+  if (miniappKvStore === null) {
+    miniappKvStore = createMiniappKvStore(MINIAPP_KV_STORE_NAME);
+  }
+
+  return miniappKvStore;
+}
+
+function ensureMiniappHost() {
+  if (miniappHost === null) {
+    const provider = new PureCryptoProvider();
+    miniappHost = createWebWorkletMiniappHost({
+      provider,
+      kvStore: ensureMiniappKvStore(),
+      getPresenceSnapshot: () => status,
+      send,
+      onDeveloperModeChange(enabled) {
+        status.developerMode = enabled;
+        pushStatus();
+      },
+      onMiniappStateChange(running) {
+        status.miniappRunning = running;
+        pushStatus();
+      }
+    });
+  }
+
+  return miniappHost;
 }
 
 async function ensurePackageStorage() {
@@ -221,6 +330,28 @@ async function resetIdentity() {
   log("Web identity cleared");
 }
 
+function handleSandboxHostMessage(message) {
+  const controller = ensureMiniappHost().sandboxController;
+  if (message.type === "sandbox-spawned") {
+    controller.handleSpawned(message.requestId, message.instanceId);
+    return;
+  }
+
+  if (message.type === "sandbox-spawn-failed") {
+    controller.handleSpawnFailed(message.requestId, message.message);
+    return;
+  }
+
+  if (message.type === "sandbox-ping-result") {
+    controller.handlePingResult(message.requestId, message.alive);
+    return;
+  }
+
+  if (message.type === "sandbox-broker-request") {
+    controller.handleBrokerRequest(message.requestId, message.instanceId, message.request);
+  }
+}
+
 async function handleHostMessage(raw) {
   const line = raw.trim();
   if (line.length === 0) {
@@ -232,6 +363,16 @@ async function handleHostMessage(raw) {
     message = JSON.parse(line);
   } catch {
     log(`Ignored host message: ${line}`);
+    return;
+  }
+
+  if (
+    message.type === "sandbox-spawned" ||
+    message.type === "sandbox-spawn-failed" ||
+    message.type === "sandbox-ping-result" ||
+    message.type === "sandbox-broker-request"
+  ) {
+    handleSandboxHostMessage(message);
     return;
   }
 
@@ -322,7 +463,106 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  log(`Web worker: unsupported message ${message.type} (Phase W2)`);
+  if (message.type === "set-developer-mode") {
+    ensureMiniappHost().setDeveloperMode(message.enabled);
+    log(`Developer mode ${message.enabled ? "enabled" : "disabled"}`);
+    return;
+  }
+
+  if (message.type === "get-grants") {
+    await ensureMiniappHost().getGrants(message.appId, message.publisherPublicKey, message.declaredCapabilities);
+    return;
+  }
+
+  if (message.type === "set-grants") {
+    await ensureMiniappHost().setGrants(
+      message.appId,
+      message.publisherPublicKey,
+      message.declaredCapabilities,
+      message.grantedCapabilities
+    );
+    log(`Saved grants for ${message.appId}`);
+    return;
+  }
+
+  if (message.type === "revoke-grant") {
+    await ensureMiniappHost().revokeGrant(
+      message.appId,
+      message.publisherPublicKey,
+      message.capability,
+      message.declaredCapabilities
+    );
+    log(`Revoked ${message.capability} for ${message.appId}`);
+    return;
+  }
+
+  if (message.type === "launch-miniapp") {
+    const storage = await ensurePackageStorage();
+    try {
+      await ensureMiniappHost().launch(storage, message.appId);
+      log(`Launched mini-app ${message.appId}`);
+    } catch (error) {
+      log(`Launch failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "stop-miniapp") {
+    await ensureMiniappHost().stop();
+    log("Stopped mini-app");
+    return;
+  }
+
+  if (message.type === "suspend-miniapp") {
+    await ensureMiniappHost().suspend();
+    return;
+  }
+
+  if (message.type === "resume-miniapp") {
+    await ensureMiniappHost().resume();
+    return;
+  }
+
+  if (message.type === "miniapp-ui-event") {
+    try {
+      await ensureMiniappHost().handleUiEvent(message.nodeId, message.event, message.value);
+    } catch (error) {
+      log(`UI event failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "dev-side-load") {
+    try {
+      await ensureMiniappHost().devSideLoad(message.manifest, hexToBytes(message.bundleHex));
+      log(`Dev side-loaded ${message.manifest.name ?? "mini-app"}`);
+    } catch (error) {
+      log(`Dev side-load failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "dev-side-load-hello") {
+    try {
+      ensureMiniappHost().setDeveloperMode(true);
+      await ensureMiniappHost().devSideLoad(
+        {
+          name: "hello-web",
+          version: "0.0.1",
+          entry: "bundle.js",
+          capabilities: [],
+          publisherPublicKey: "dev"
+        },
+        helloDevBundle
+      );
+      log("Dev side-loaded hello-web");
+    } catch (error) {
+      log(`Hello dev side-load failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  log(`Web worker: unsupported message ${message.type}`);
 }
 
 self.onmessage = (event) => {
@@ -342,4 +582,4 @@ pushStatus();
 refreshStorageStatus().catch((error) => {
   log(`Web package storage unavailable: ${error instanceof Error ? error.message : String(error)}`);
 });
-log("Web core worker ready");
+log("Web core worker ready (Phase W2 mini-app runtime)");

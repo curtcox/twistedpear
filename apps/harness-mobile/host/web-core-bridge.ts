@@ -3,6 +3,7 @@
  */
 
 import { decodeMessages, encodeMessage, type HostToWorkletMessage, type WorkletToHostMessage } from "../worklet/protocol";
+import { createWebSandboxRelay } from "./web-sandbox-relay";
 
 const WORKER_URL = "/web-core.worker.js";
 
@@ -64,11 +65,25 @@ export function createWebCoreBridge() {
   const worklet = new WebCoreWorklet();
   let buffer = "";
   let onMessage: ((message: WorkletToHostMessage) => void) | null = null;
+  const sandboxRelay = createWebSandboxRelay((message) => {
+    worklet.IPC.write(new TextEncoder().encode(encodeMessage(message)));
+  });
 
   worklet.IPC.on("data", (data) => {
     const decoded = decodeMessages(`${buffer}${new TextDecoder().decode(data)}`);
     buffer = decoded.remainder;
     for (const message of decoded.messages) {
+      if (
+        message.type === "sandbox-spawn" ||
+        message.type === "sandbox-post" ||
+        message.type === "sandbox-ping" ||
+        message.type === "sandbox-kill" ||
+        message.type === "sandbox-broker-response"
+      ) {
+        void sandboxRelay.handleWorkerMessage(message);
+        continue;
+      }
+
       onMessage?.(message);
     }
   });
@@ -82,6 +97,7 @@ export function createWebCoreBridge() {
       worklet.IPC.write(new TextEncoder().encode(encodeMessage(message)));
     },
     stop() {
+      sandboxRelay.dispose();
       worklet.terminate();
       buffer = "";
     }
