@@ -64,6 +64,27 @@ export {
 export type { SpawnedInterfaceHandler, TcpClientInterfaceOptions, TcpServerInterfaceOptions } from "./interfaces/tcp.js";
 export { UdpInterface, UDP_HW_MTU } from "./interfaces/udp.js";
 export type { UdpInterfaceOptions } from "./interfaces/udp.js";
+export {
+  WebSocketClientInterface,
+  WEBSOCKET_HW_MTU,
+  WEBSOCKET_INITIAL_CONNECT_TIMEOUT_MS,
+  WEBSOCKET_RECONNECT_WAIT_MS
+} from "./interfaces/websocket-client.js";
+export type {
+  WebSocketClientInterfaceOptions,
+  WebSocketFactory,
+  WebSocketLike,
+  WebSocketMessageEvent
+} from "./interfaces/websocket-client.js";
+export {
+  WebSocketServerInterface,
+  isWebSocketClientInterface,
+  isWebSocketServerInterface
+} from "./interfaces/websocket-server.js";
+export type {
+  WebSocketServerInterfaceOptions,
+  WebSocketSpawnedInterfaceHandler
+} from "./interfaces/websocket-server.js";
 export type {
   BoundDatagramSocket,
   Clock,
@@ -80,6 +101,8 @@ export type {
 export { nodeRuntime } from "./runtime/node/runtime.js";
 export { bareRuntime } from "./runtime/bare/runtime.js";
 export type { BareRuntimeOptions } from "./runtime/bare/runtime.js";
+export { webRuntime } from "./runtime/web/runtime.js";
+export type { WebIndexedDB, WebRuntimeOptions } from "./runtime/web/runtime.js";
 export {
   Link,
   LINK_ECPUB_SIZE,

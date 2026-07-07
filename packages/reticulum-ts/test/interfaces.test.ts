@@ -11,9 +11,12 @@ import {
   PacketType,
   PipeInterface,
   TransportType,
+  WebSocketClientInterface,
+  WebSocketServerInterface,
   decodeHdlcFrames,
   encodeHdlcFrame,
-  hexToBytes
+  hexToBytes,
+  nodeRuntime
 } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();
@@ -104,5 +107,75 @@ describe("PipeInterface", () => {
 
     const result = await iterator.next();
     expect(result.done).toBe(true);
+  });
+});
+
+describe("WebSocket interfaces", () => {
+  it("delivers raw Reticulum packets across a WebSocket gateway", async () => {
+    const runtime = nodeRuntime();
+    const server = new WebSocketServerInterface(provider, runtime, {
+      name: "ws-server",
+      provider,
+      runtime,
+      listenHost: "127.0.0.1",
+      listenPort: 0
+    });
+    const spawned = new Promise<WebSocketClientInterface>((resolve) => {
+      server.setSpawnHandler(resolve);
+    });
+
+    await server.start();
+    const address = server.address;
+    expect(address).not.toBeNull();
+
+    const client = await WebSocketClientInterface.connect(provider, runtime, {
+      name: "ws-client",
+      provider,
+      runtime,
+      url: `ws://127.0.0.1:${address!.port}`
+    });
+    const accepted = await spawned;
+
+    const outgoing = packet(new Uint8Array([0x01, HDLC_FLAG, 0x02, HDLC_ESCAPE, 0x03]));
+    await client.send(outgoing);
+
+    const incoming = await nextPacket(accepted.packets);
+    expect(Buffer.from(incoming.raw).toString("hex")).toBe(Buffer.from(outgoing.raw).toString("hex"));
+
+    await accepted.send(outgoing);
+    const echoed = await nextPacket(client.packets);
+    expect(Buffer.from(echoed.raw).toString("hex")).toBe(Buffer.from(outgoing.raw).toString("hex"));
+
+    await client.close();
+    await server.close();
+  });
+
+  it("accepts shared-token WebSocket gateways through a subprotocol", async () => {
+    const runtime = nodeRuntime();
+    const server = new WebSocketServerInterface(provider, runtime, {
+      name: "ws-private",
+      provider,
+      runtime,
+      listenHost: "127.0.0.1",
+      listenPort: 0,
+      sharedToken: "secret"
+    });
+
+    await server.start();
+    const address = server.address;
+    expect(address).not.toBeNull();
+
+    const client = await WebSocketClientInterface.connect(provider, runtime, {
+      name: "ws-client",
+      provider,
+      runtime,
+      url: `ws://127.0.0.1:${address!.port}`,
+      sharedToken: "secret"
+    });
+
+    expect(client.online).toBe(true);
+
+    await client.close();
+    await server.close();
   });
 });
