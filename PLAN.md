@@ -91,6 +91,14 @@ conformance/
 
 ## 5. Workstreams and phases
 
+**Status tracking** (replaces per-phase plan documents):
+
+| Document | Contents |
+|---|---|
+| [STATUS-COMPLETE.md](STATUS-COMPLETE.md) | Verified complete steps with test/CI references |
+| [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md) | Incomplete work that needs no additional hardware |
+| [STATUS-HARDWARE.md](STATUS-HARDWARE.md) | Incomplete work that requires devices, LAN, or Apple account |
+
 ### Phase 0 — Feasibility spikes (de-risk before committing)
 - **S1:** Run `rns.js` inside a Bare worklet on an Android device via
   `react-native-bare-kit`; establish a link to a Python RNS testnet node over
@@ -106,7 +114,7 @@ conformance/
 fallback (LIMITATIONS §Fallbacks).
 
 ### Phase 1 — `reticulum-ts`: a real Reticulum implementation in TypeScript
-Detailed plan: [PHASE1.md](PHASE1.md). The single biggest workstream. `rns.js` (v0.0.4) is a learning project missing: transport
+The single biggest workstream. `rns.js` (v0.0.4) is a learning project missing: transport
 node routing, ratchets, Resources, link heartbeats, UDP, signature validation, rate
 limiting. Plan:
 - Fork rns.js for its wire-format bootstrapping; rewrite into typed modules.
@@ -120,7 +128,7 @@ limiting. Plan:
 - Track upstream RNS releases; wire format changes are our problem to chase.
 
 ### Phase 2 — Interface layer on-device
-Detailed plan: [PHASE2.md](PHASE2.md). Absorbs the Phase 0 spikes (S1/S4 as its opening
+Absorbs the Phase 0 spikes (S1/S4 as its opening
 milestone, S3 as the first BLE hardware task), since they were not run separately.
 - TCPClient/TCPServer and UDP interfaces via bare-tcp/bare-udp.
 - **AutoInterface** (IPv6 link-local multicast peer discovery + UDP transport) — needs a
@@ -134,7 +142,6 @@ milestone, S3 as the first BLE hardware task), since they were not run separatel
 - Android: persistent foreground service so the node keeps routing with the app backgrounded.
 
 ### Phase 3 — Distribution system
-Detailed plan: [PHASE3.md](PHASE3.md).
 - **Package format:** manifest (name, version, entry point, capability requests, icon) +
   JS bundle + assets; Ed25519-signed with the developer's Reticulum identity, so publisher
   identity and network identity are the same trust root.
@@ -150,7 +157,6 @@ Detailed plan: [PHASE3.md](PHASE3.md).
   version.
 
 ### Phase 4 — Mini-app runtime & SDK
-Detailed plan: [PHASE4.md](PHASE4.md).
 - Each mini-app runs in an isolated JS context inside the Bare worklet; no direct access
   to native modules, filesystem, or raw sockets.
 - Capability model: manifest requests (e.g. `lxmf:send`, `storage`, `resource:fetch`),
@@ -161,7 +167,6 @@ Detailed plan: [PHASE4.md](PHASE4.md).
   storage, Resource fetch, peer presence.
 
 ### Phase 5 — iOS host
-Detailed plan: [PHASE5.md](PHASE5.md).
 - Same worklet code; the work is native: CoreBluetooth central+peripheral, multicast
   entitlement application, background-mode strategy (accept degraded always-on behavior),
   App Review posture for downloaded JS (guideline 3.3.2). Details in LIMITATIONS.
@@ -170,7 +175,6 @@ Detailed plan: [PHASE5.md](PHASE5.md).
   entitlement outcome.
 
 ### Phase 6 — Desktop host + network health
-Detailed plan: [PHASE6.md](PHASE6.md).
 - Electron host (decided 2026-07; was "Pear/Electron") with the identical worklet core;
   desktops default to **transport-node + rebroadcast + package-seeding** roles, because
   phones are bad always-on peers. This is what makes the mobile mesh actually work.
@@ -196,8 +200,7 @@ Detailed plan: [PHASE6.md](PHASE6.md).
 - **Device lab:** 2+ Android phones (BLE pair, LAN pair), 1 iPhone, 1 RNode pair, 1 desktop
   transport node; scripted end-to-end: publish app on desktop → discover and install on
   phone over BLE only → grant capabilities → launch and use the mini-app (see
-  [PHASE4-HARDWARE.md](PHASE4-HARDWARE.md) for Android exits and
-  [PHASE5-HARDWARE.md](PHASE5-HARDWARE.md) for the iPhone leg).
+  [STATUS-HARDWARE.md](STATUS-HARDWARE.md) register H7 + H9 for Android and H13–H16 for iOS).
 
 ## 7. Top risks (ranked)
 

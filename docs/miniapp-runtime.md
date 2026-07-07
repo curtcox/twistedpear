@@ -26,7 +26,7 @@ Desktop measurements (Node worker backend, `npm run test:miniapp-benchmark`):
 | Busy-loop kill | ~300 ms (watchdog) |
 
 Android Bare Worker measurements remain hardware debt; record them per
-[PHASE4-HARDWARE.md](../PHASE4-HARDWARE.md) E5 when emulator/device is available.
+[STATUS-HARDWARE.md](../STATUS-HARDWARE.md) H11 / emulator lab E5 when available.
 
 ## Capability Model
 
@@ -122,4 +122,4 @@ will audit and fuzz the sandbox surface.
 
 Device measurements for the M0 isolation ADR on Android remain hardware debt; the runtime
 codes to `SandboxBackend` so those numbers do not leak into SDK or broker code. See
-[PHASE4-HARDWARE.md](../PHASE4-HARDWARE.md).
+[STATUS-HARDWARE.md](../STATUS-HARDWARE.md).

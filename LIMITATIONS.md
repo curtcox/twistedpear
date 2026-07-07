@@ -54,7 +54,7 @@ everything below is a known cost of the chosen design or of the platforms involv
   with lead time and no guarantee. Application draft prepared (Phase 2 M8); **status:
   not yet submitted / H12 pending** — see
   [docs/ios-multicast-entitlement.md](docs/ios-multicast-entitlement.md) and
-  [PHASE5-HARDWARE.md](PHASE5-HARDWARE.md). Fallback: LAN discovery via Bonjour
+  [STATUS-HARDWARE.md](STATUS-HARDWARE.md) (H12–H15). Fallback: LAN discovery via Bonjour
   (`_reticulum._udp`) + direct UDP, or manual/TCP peers.
 - **Bonjour fallback gap:** an un-entitled iPhone can discover TS nodes that advertise
   `_reticulum._udp`, but cannot discover stock Python RNS AutoInterface peers through
@@ -128,7 +128,7 @@ everything below is a known cost of the chosen design or of the platforms involv
 - Phase 4 ships a broker chokepoint, deny-by-default capability grants, data-only widget
   trees, and hostile-input conformance tests — but **not** a completed adversarial audit.
   The sandbox does not yet promise resistance to determined escape on weak hardware; watchdog
-  thresholds may false-positive on low-end devices (see [PHASE4-HARDWARE.md](PHASE4-HARDWARE.md) H11).
+  thresholds may false-positive on low-end devices (see [STATUS-HARDWARE.md](STATUS-HARDWARE.md) H11).
 - One foreground mini-app at a time in v1; no background execution. Dev side-loading is
   localhost/adb-only, off by default, and badged **DEV** in the UI.
 - No central registry means **no central moderation**: discovery is by announce/registry

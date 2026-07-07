@@ -59,7 +59,7 @@ Live interop scenarios are added per milestone under `conformance/scenarios`.
 
 ### Device lab runbook (Phase 3 §7)
 
-Hardware-deferred exits; full procedures in [PHASE3-HARDWARE.md](../PHASE3-HARDWARE.md):
+Hardware-deferred exits; full procedures in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) (H6–H8):
 
 1. **H6 (LAN seeder install):** Desktop runs `tp seed` on LAN; phone harness enables AutoInterface;
    publish with `tp publish`; confirm catalog entry and Hyperswarm install completes with verified badge.
@@ -85,7 +85,7 @@ exit checklist before closing Phase 3.
 | Phase 4 demo | `npm run demo:phase4` | M8 |
 
 Peer-to-peer example interop (two sandboxed apps on two hosts) and 24 h launch/suspend/kill
-soak are nightly/device-gated per [PHASE4.md](../PHASE4.md) §7 and [PHASE4-HARDWARE.md](../PHASE4-HARDWARE.md).
+soak are nightly/device-gated per [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) (H9–H11).
 
 ## Phase 5 iOS host
 
@@ -114,7 +114,7 @@ a hard failure. Pull requests that touch harness-mobile, reticulum-interfaces, o
 
 ### Device lab runbook (Phase 5 §7)
 
-Hardware-deferred exits; full procedures in [PHASE5-HARDWARE.md](../PHASE5-HARDWARE.md):
+Hardware-deferred exits; full procedures in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) (H12–H16):
 
 1. **H12 (Apple Developer account):** file multicast entitlement; record outcome in
    `LIMITATIONS.md` §4.
@@ -125,7 +125,7 @@ Hardware-deferred exits; full procedures in [PHASE5-HARDWARE.md](../PHASE5-HARDW
 
 ### Device lab runbook (Phase 4 §7)
 
-Hardware-deferred exits; full procedures in [PHASE4-HARDWARE.md](../PHASE4-HARDWARE.md):
+Hardware-deferred exits; full procedures in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) (H9–H11):
 
 1. **H9 (BLE chat):** Two phones with foreground service; publish `chat` example; grant
    identity + LXMF capabilities; exchange LXMF messages over BLE-only with both apps sandboxed.
@@ -155,7 +155,7 @@ suites against dockerized Python peers when `INTEROP=1`.
 
 ### Device lab runbook (Phase 6 §7)
 
-Hardware-deferred exits; full procedures in [PHASE6-HARDWARE.md](../PHASE6-HARDWARE.md):
+Hardware-deferred exits; full procedures in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) (H17–H20):
 
 1. **H17 (Windows 10/11):** NSIS artifact install, TCP slice, full app loop.
 2. **H18 (real WiFi LAN):** Bonjour/multicast discovery, desktop seed install, transport routing.

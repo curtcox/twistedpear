@@ -8,4 +8,4 @@ npm run test:examples
 ```
 
 Peer-to-peer docker interop (two hosts exchanging LXMF/Resource traffic) is nightly and
-device-gated per [PHASE4.md](../../PHASE4.md) §7.
+device-gated per [STATUS-HARDWARE.md](../../STATUS-HARDWARE.md) (H9–H10).

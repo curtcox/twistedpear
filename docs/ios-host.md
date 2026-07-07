@@ -44,4 +44,4 @@ store-posture refusal tests (`conformance/ios-sim/store-posture.mjs`), the Phase
 loop (`conformance/ios-sim/full-loop.mjs`), and lifecycle quiesce slices
 (`conformance/ios-sim/lifecycle.mjs`). It does not validate BLE, real background timing, multicast
 entitlement enforcement, or realistic LAN discovery. Those exits are tracked in
-`PHASE5-HARDWARE.md`.
+[STATUS-HARDWARE.md](../STATUS-HARDWARE.md) (H13–H15).

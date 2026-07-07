@@ -61,9 +61,9 @@ mini-app conformance (`npm run test:hostile-apps`, `npm run test:examples`,
 
 **Device exit (Phase 3 hardware register H6/H7/H8):** LAN install from desktop seeder;
 BLE-only install of a budget-sized package between two phones; live RNode budget rule.
-See [PHASE3-HARDWARE.md](../../PHASE3-HARDWARE.md).
+See [STATUS-HARDWARE.md](../../STATUS-HARDWARE.md) (H6–H8).
 
 **Device exit (Phase 4 hardware register H9/H10/H11):** chat over BLE-only between two
 phones; file-drop phone↔desktop over AutoInterface; watchdog/memory limits on a weak phone.
 Emulator-lab procedures (install → grant → launch, dev hot reload, update-on-relaunch) are
-in [PHASE4-HARDWARE.md](../../PHASE4-HARDWARE.md).
+in [STATUS-HARDWARE.md](../../STATUS-HARDWARE.md) (H9–H11).

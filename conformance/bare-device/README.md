@@ -1,7 +1,7 @@
 # Phase 2 hardware-debt register
 
-Deferred device exits from [PHASE2.md](../PHASE2.md) §7. **Full runbook:**
-[PHASE2-HARDWARE.md](../../PHASE2-HARDWARE.md).
+Deferred device exits from Phase 2. **Full runbook:**
+[STATUS-HARDWARE.md](../../STATUS-HARDWARE.md) (register H1–H5).
 
 | # | Needs | Deferred criterion | Runbook section |
 |---|---|---|---|

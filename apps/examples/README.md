@@ -28,4 +28,4 @@ All three examples are under the 180 KiB BLE install budget (see
 [conformance/budgets/measured.json](../../conformance/budgets/measured.json)).
 
 Peer-to-peer exercise (two hosts over docker/BLE) is device-gated; see
-[PHASE4-HARDWARE.md](../../PHASE4-HARDWARE.md).
+[STATUS-HARDWARE.md](../../STATUS-HARDWARE.md) (H9–H10).
