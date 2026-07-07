@@ -13,7 +13,8 @@ export {
   type I2pInterfaceConfig,
   type RnodeInterfaceConfig,
   type RnsdAttachConfig,
-  type TcpInterfaceConfig
+  type TcpInterfaceConfig,
+  type WebSocketInterfaceConfig
 } from "./types.js";
 export {
   ensureDir,

@@ -54,7 +54,7 @@ export function printHelp(command: string): void {
     publish: "tp publish <app-dir>  Pack, sign, publish to Hyperdrive",
     update: "tp update <app-dir> --version <semver>  Bump version and republish",
     seed: "tp seed [--state-dir <path>] [--transport] [--propagation] [--attach-rnsd host:port]  Run headless seeder",
-    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--status-endpoint]  Run desktop-class host node",
+    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--ws-listen [host:]port] [--ws-token <token>] [--serve-web [dir]] [--status-endpoint]  Run desktop-class host node",
     trust: "tp trust <list|show|add <256t> --label <name>|remove <key-or-256t>>  Manage trusted publishers"
   };
 
@@ -621,6 +621,9 @@ export async function runNode(ctx: CommandContext): Promise<number> {
   const { runNodeHost } = await import("@twistedpear/host-core");
   const dataDir = parseFlag(ctx.args, "--data-dir");
   const attachRnsd = parseFlag(ctx.args, "--attach-rnsd");
+  const wsListen = parseOptionalFlag(ctx.args, "--ws-listen");
+  const wsToken = parseFlag(ctx.args, "--ws-token");
+  const serveWeb = parseOptionalFlag(ctx.args, "--serve-web");
   const config = resolveHostConfig({
     ...(dataDir === null ? {} : { dataDir: resolveFromCwd(ctx.cwd, dataDir) }),
     overrides: {
@@ -640,10 +643,62 @@ export async function runNode(ctx: CommandContext): Promise<number> {
                 return { host, port: Number.parseInt(portText, 10) };
               })()
       },
+      interfaces: {
+        ...(wsListen === null && serveWeb === null && wsToken === null
+          ? {}
+          : {
+              websocket: {
+                enabled: true,
+                ...(wsListen === null ? {} : parseWsListenArg(wsListen)),
+                ...(wsToken === null ? {} : { sharedToken: wsToken }),
+                ...(serveWeb === null
+                  ? {}
+                  : { staticRoot: serveWeb === "" ? resolveFromCwd(ctx.cwd, "dist/web-host") : resolveFromCwd(ctx.cwd, serveWeb) })
+              }
+            })
+      },
       statusEndpoint: hasFlag(ctx.args, "--status-endpoint")
     }
   });
 
   await runNodeHost({ config });
   return 0;
+}
+
+function parseOptionalFlag(args: ReadonlyArray<string>, name: string): string | null {
+  const index = args.indexOf(name);
+  if (index === -1) {
+    return null;
+  }
+
+  const next = args[index + 1];
+  if (next === undefined || next.startsWith("--")) {
+    return "";
+  }
+
+  return next;
+}
+
+function parseWsListenArg(value: string): { listenHost: string; listenPort: number } {
+  if (value === "") {
+    return { listenHost: "127.0.0.1", listenPort: 9480 };
+  }
+
+  const colonIndex = value.lastIndexOf(":");
+  if (colonIndex === -1) {
+    const port = Number.parseInt(value, 10);
+    if (!Number.isFinite(port)) {
+      throw new Error(`Invalid --ws-listen port: ${value}`);
+    }
+
+    return { listenHost: "127.0.0.1", listenPort: port };
+  }
+
+  const host = value.slice(0, colonIndex);
+  const port = Number.parseInt(value.slice(colonIndex + 1), 10);
+  if (host === "" || !Number.isFinite(port)) {
+    throw new Error(`Invalid --ws-listen value: ${value} (expected [host:]port)`);
+  }
+
+  return { listenHost: host, listenPort: port };
 }

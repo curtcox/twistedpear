@@ -59,6 +59,8 @@
     "test:integration-soak": "npm run build && node conformance/integration-soak/run.mjs",
     "test:mixed-network-soak": "npm run build && node conformance/mixed-network-soak/run.mjs",
     "test:serialport-load": "npm run build && node conformance/serialport-load/run.mjs",
+    "test:web-runtime": "node conformance/web-runtime/run.mjs",
+    "test:web-interop": "npm run build && INTEROP=1 node conformance/web-interop/run.mjs",
     "test:fuzz": "vitest run packages/reticulum-ts/test/fuzz.test.ts packages/lxmf-ts/test/fuzz.test.ts",
     "docs:reticulum-ts": "npm run docs --workspace=@twistedpear/reticulum-ts",
     "test:transport-role": "npm run build && node conformance/transport-role/run.mjs",

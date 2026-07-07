@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   DestinationType,
   HDLC_ESCAPE,
@@ -176,6 +178,29 @@ describe("WebSocket interfaces", () => {
     expect(client.online).toBe(true);
 
     await client.close();
+    await server.close();
+  });
+
+  it("serves static assets from the gateway HTTP listener", async () => {
+    const runtime = nodeRuntime();
+    const staticRoot = join(dirname(fileURLToPath(import.meta.url)), "fixtures", "web-static");
+    const server = new WebSocketServerInterface(provider, runtime, {
+      name: "ws-static",
+      provider,
+      runtime,
+      listenHost: "127.0.0.1",
+      listenPort: 0,
+      staticRoot
+    });
+
+    await server.start();
+    const address = server.address;
+    expect(address).not.toBeNull();
+
+    const response = await fetch(`http://127.0.0.1:${address!.port}/index.html`);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("web-host placeholder");
+
     await server.close();
   });
 });

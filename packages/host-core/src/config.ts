@@ -42,6 +42,11 @@ export function resolveHostConfig(options: {
         ...fromFile.interfaces?.tcp,
         ...options.overrides?.interfaces?.tcp
       },
+      websocket: {
+        ...defaultHostConfig().interfaces.websocket,
+        ...fromFile.interfaces?.websocket,
+        ...options.overrides?.interfaces?.websocket
+      },
       auto: {
         ...defaultHostConfig().interfaces.auto,
         ...fromFile.interfaces?.auto,

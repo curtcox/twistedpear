@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
+import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { extname, join, normalize, sep } from "node:path";
 import type { Duplex } from "node:stream";
 import type { CryptoProvider } from "../crypto/provider.js";
+import type { Reticulum } from "../reticulum.js";
 import type { Runtime } from "../runtime/runtime.js";
 import type { PacketInterface, ReticulumInterfaceOptions } from "./interface.js";
 import {
@@ -18,6 +21,8 @@ export interface WebSocketServerInterfaceOptions extends ReticulumInterfaceOptio
   readonly listenPort: number;
   readonly path?: string;
   readonly sharedToken?: string;
+  /** When set, non-WebSocket GET requests serve files from this directory. */
+  readonly staticRoot?: string;
 }
 
 export type WebSocketSpawnedInterfaceHandler = (iface: WebSocketClientInterface) => void;
@@ -53,10 +58,7 @@ export class WebSocketServerInterface {
   }
 
   async start(): Promise<void> {
-    this.server = createServer((_request: IncomingMessage, response: ServerResponse) => {
-      response.writeHead(404);
-      response.end();
-    });
+    this.server = createServer((request, response) => this.handleHttpRequest(request, response));
     this.server.on("upgrade", (request, socket) => this.handleUpgrade(request, socket));
 
     await new Promise<void>((resolve, reject) => {
@@ -108,6 +110,23 @@ export class WebSocketServerInterface {
       });
       this.server = null;
     }
+  }
+
+  private handleHttpRequest(request: IncomingMessage, response: ServerResponse): void {
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      response.writeHead(405);
+      response.end();
+      return;
+    }
+
+    const staticRoot = this.options.staticRoot;
+    if (staticRoot === undefined) {
+      response.writeHead(404);
+      response.end();
+      return;
+    }
+
+    serveStaticFile(staticRoot, request.url ?? "/", request.method === "HEAD", response);
   }
 
   private handleUpgrade(request: IncomingMessage, socket: Duplex): void {
@@ -361,4 +380,76 @@ export function isWebSocketClientInterface(value: PacketInterface): value is Web
 
 export function isWebSocketServerInterface(value: unknown): value is WebSocketServerInterface {
   return value instanceof WebSocketServerInterface;
+}
+
+export async function registerWebSocketServerInterface(
+  reticulum: Reticulum,
+  options: Omit<WebSocketServerInterfaceOptions, "provider" | "runtime">
+): Promise<WebSocketServerInterface> {
+  const server = new WebSocketServerInterface(reticulum.provider, reticulum.runtime, {
+    ...options,
+    provider: reticulum.provider,
+    runtime: reticulum.runtime
+  });
+  server.setSpawnHandler((client) => {
+    reticulum.registerInterface(client);
+  });
+  await server.start();
+  return server;
+}
+
+function serveStaticFile(
+  staticRoot: string,
+  requestPath: string,
+  headOnly: boolean,
+  response: ServerResponse
+): void {
+  const pathname = new URL(requestPath, "http://localhost").pathname;
+  const relativePath = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
+  const resolvedRoot = normalize(staticRoot);
+  const resolvedPath = normalize(join(resolvedRoot, relativePath));
+
+  if (!resolvedPath.startsWith(resolvedRoot + sep) && resolvedPath !== resolvedRoot) {
+    response.writeHead(403);
+    response.end();
+    return;
+  }
+
+  if (!existsSync(resolvedPath) || !statSync(resolvedPath).isFile()) {
+    response.writeHead(404);
+    response.end();
+    return;
+  }
+
+  const contentType = staticContentType(extname(resolvedPath));
+  response.writeHead(200, { "content-type": contentType });
+  if (headOnly) {
+    response.end();
+    return;
+  }
+
+  createReadStream(resolvedPath).pipe(response);
+}
+
+function staticContentType(extension: string): string {
+  switch (extension) {
+    case ".html":
+      return "text/html; charset=utf-8";
+    case ".js":
+      return "text/javascript; charset=utf-8";
+    case ".css":
+      return "text/css; charset=utf-8";
+    case ".json":
+      return "application/json; charset=utf-8";
+    case ".wasm":
+      return "application/wasm";
+    case ".png":
+      return "image/png";
+    case ".svg":
+      return "image/svg+xml";
+    case ".ico":
+      return "image/x-icon";
+    default:
+      return "application/octet-stream";
+  }
 }

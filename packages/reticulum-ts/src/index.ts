@@ -79,7 +79,8 @@ export type {
 export {
   WebSocketServerInterface,
   isWebSocketClientInterface,
-  isWebSocketServerInterface
+  isWebSocketServerInterface,
+  registerWebSocketServerInterface
 } from "./interfaces/websocket-server.js";
 export type {
   WebSocketServerInterfaceOptions,

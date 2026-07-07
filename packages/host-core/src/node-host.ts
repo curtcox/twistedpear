@@ -1,12 +1,13 @@
 import { createServer, type Server as HttpServer } from "node:http";
 import { join } from "node:path";
-import type { CryptoProvider, Identity, Reticulum, TcpClientInterface, TcpServerInterface } from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, Identity, Reticulum, TcpClientInterface, TcpServerInterface, WebSocketServerInterface } from "@twistedpear/reticulum-ts";
 import { createFilePropagationPersistence } from "./propagation-persistence.js";
 import {
   NodeCryptoProvider,
   Reticulum as Rns,
   bytesToHex,
   nodeRuntime,
+  registerWebSocketServerInterface,
   type Runtime
 } from "@twistedpear/reticulum-ts";
 import { AutoInterface } from "@twistedpear/reticulum-interfaces";
@@ -63,6 +64,7 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
 
   let tcpClient: TcpClientInterface | null = null;
   let tcpServer: TcpServerInterface | null = null;
+  let wsServer: WebSocketServerInterface | null = null;
   let autoIface: AutoInterface | null = null;
   let bonjourBridge = createMdnsBonjourBridge();
   let seederSession: Awaited<ReturnType<typeof startSeederRole>> | null = null;
@@ -135,6 +137,21 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
     }
   }
 
+  if (config.interfaces.websocket.enabled) {
+    wsServer = await registerWebSocketServerInterface(reticulum, {
+      name: "host-ws-gateway",
+      listenHost: config.interfaces.websocket.listenHost ?? "127.0.0.1",
+      listenPort: config.interfaces.websocket.listenPort ?? 9480,
+      ...(config.interfaces.websocket.path === undefined ? {} : { path: config.interfaces.websocket.path }),
+      ...(config.interfaces.websocket.sharedToken === undefined
+        ? {}
+        : { sharedToken: config.interfaces.websocket.sharedToken }),
+      ...(config.interfaces.websocket.staticRoot === undefined
+        ? {}
+        : { staticRoot: config.interfaces.websocket.staticRoot })
+    });
+  }
+
   const buildStatus = (): HostStatus => {
     const interfaces = reticulum.listInterfaces();
     const preferred = selectPreferredInterface(interfaces);
@@ -157,6 +174,7 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
       propagationStoreBytes: propagationServer?.stats.usedBytes ?? 0,
       propagationMessageCount: propagationServer?.stats.messageCount ?? 0,
       propagationEvictions: propagationServer?.stats.evictions ?? 0,
+      websocketGatewayPort: wsServer?.address?.port ?? null,
       pathTableCount: reticulum.pathTableCount,
       activeLinkCount: reticulum.activeLinkCount,
       bandwidthBytesOut: reticulum.bandwidthBytesOut,
@@ -214,6 +232,10 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
 
       if (tcpServer !== null) {
         await tcpServer.close();
+      }
+
+      if (wsServer !== null) {
+        await wsServer.close();
       }
 
       if (lxmfRouter !== null) {

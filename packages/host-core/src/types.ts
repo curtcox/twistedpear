@@ -28,6 +28,16 @@ export interface TcpInterfaceConfig {
   readonly listenPort?: number;
 }
 
+export interface WebSocketInterfaceConfig {
+  readonly enabled: boolean;
+  readonly listenHost?: string;
+  readonly listenPort?: number;
+  readonly path?: string;
+  readonly sharedToken?: string;
+  /** Directory of built web-host static assets (`--serve-web`). */
+  readonly staticRoot?: string;
+}
+
 export interface AutoInterfaceConfig {
   readonly enabled: boolean;
   readonly multicast: boolean;
@@ -48,6 +58,7 @@ export interface RnodeInterfaceConfig {
 
 export interface HostInterfaceConfig {
   readonly tcp: TcpInterfaceConfig;
+  readonly websocket: WebSocketInterfaceConfig;
   readonly auto: AutoInterfaceConfig;
   readonly i2p: I2pInterfaceConfig;
   readonly rnode: RnodeInterfaceConfig;
@@ -87,6 +98,7 @@ export const DEFAULT_DESKTOP_ROLES: HostRoleConfig = {
 
 export const DEFAULT_INTERFACE_CONFIG: HostInterfaceConfig = {
   tcp: { enabled: false, mode: "client", targetHost: "127.0.0.1", targetPort: 4242 },
+  websocket: { enabled: false, listenHost: "127.0.0.1", listenPort: 9480 },
   auto: { enabled: true, multicast: true, bonjour: true },
   i2p: { enabled: false },
   rnode: { enabled: false, baudRate: 115_200 }
@@ -135,6 +147,7 @@ export interface HostStatus {
   readonly propagationStoreBytes: number;
   readonly propagationMessageCount: number;
   readonly propagationEvictions: number;
+  readonly websocketGatewayPort: number | null;
   readonly pathTableCount: number;
   readonly activeLinkCount: number;
   readonly bandwidthBytesOut: number;
