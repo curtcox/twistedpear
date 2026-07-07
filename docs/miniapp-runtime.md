@@ -49,10 +49,34 @@ Known v1 capabilities are:
 | `storage:hyperbee` | Store ordered local Hyperbee data for this app. |
 | `resource:fetch` | Fetch package resources through host budget rules. |
 
+Host API `0.2.0` adds the dev-environment capabilities `workspace`, `ai:chat`,
+`apps:package`, `apps:publish`, `apps:install`, `apps:preview`, and `share:cas`
+(see [miniapp-sdk.md](miniapp-sdk.md) for wording).
+
 Unknown strings block install with guidance to update `minHostApi`. Grants are keyed by
 `appId + publisherPublicKey`, survive updates signed by the same publisher, and are
 deleted on uninstall. Runtime calls are denied unless the capability is both declared
 in the signed manifest and granted by the user.
+
+**Pre-launch capability review.** Before every non-dev launch, the host shows the
+declared capabilities with their grant state and per-capability toggles; the user
+can run the app with any subset (or cancel). Subset enforcement reuses
+`GrantStore.set`, which rejects grants not declared in the signed manifest.
+
+**Host confirmations.** Dangerous operations a mini-app initiates — `apps:package`,
+`apps:publish`, `apps:install`, `apps:preview`, and trust imports — additionally pass
+a `HostConfirmationChannel` (`src/confirm.ts`). Anti-spoof properties: tokens are
+generated host-side and never transit the broker; the dialog renders in host chrome
+outside the mini-app widget container, which has no component capable of drawing over
+or acknowledging it; the displayed app id and publisher fingerprint come from the
+broker context, never from app payloads. No configured channel means auto-deny, and
+unanswered dialogs deny after 60 s.
+
+**Dev preview slot.** `apps:preview` launches a workspace project in a second,
+independent `MiniappHost` (own broker, own in-memory grant store under a
+`dev-preview:` publisher key) so the requesting app keeps running. The preview app is
+fully sandboxed and capability-gated by the grants approved in the confirmation
+dialog, which must be a subset of its declared capabilities.
 
 ## Broker
 
@@ -71,6 +95,16 @@ Default enforcement limits (configurable per host):
 | Widget tree message size | 256 KiB |
 | KV quota per app | host-configured (counts in Phase 3 storage view) |
 | Hyperbee quota per app | shared pool with KV; history counts |
+| Workspace files per app | 256 KiB/file, 4 MiB total, 512 files |
+| AI chat | 1 in-flight request/app; ≤ 64 messages; `maxTokens` clamped to 8,192 |
+
+**Dynamic resource limits.** Hosts can adjust limits per app before or while it runs
+via `MiniappHost.setResourceLimits(appId, { maxMessagesPerSecond?, kvQuotaBytes?,
+memoryBytes? })` (desktop: the Runtime controls panel; worklet message `set-limits`).
+Message rate and KV quota apply immediately to the next call; `memoryBytes` maps to
+worker spawn limits and applies at the next launch (`memoryPendingRestart` in the
+snapshot). Limits are host-initiated only — there is deliberately no broker method a
+mini-app could call to change them.
 
 ## Lifecycle
 
@@ -83,6 +117,9 @@ it runs does not replace live code; the new version activates on the next launch
 
 Watchdog: an unresponsive sandbox (ping timeout) is killed. Memory ceilings are enforced
 by the sandbox backend where supported.
+
+Force-quit is always available: `stop("user-forced")` terminates the worker outright
+(busy-loop-proof) and is surfaced as a Force quit button in the desktop host.
 
 ## UI
 

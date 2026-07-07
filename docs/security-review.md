@@ -80,6 +80,32 @@ rejects unknown types, props, and styles before render.
 Per-app rate limit (default 128 msg/s, policy doc cites 60 msg/s target) and 256 KiB
 message ceiling. `hostile-apps` exercises both.
 
+### F8 — Dev-environment surface (host API 0.2.0, reviewed at design time)
+
+The `workspace`, `ai:chat`, `apps:*`, and `share:cas` capabilities widen what a granted
+mini-app can ask the host to do. Posture:
+
+- **Consent double-gate.** `apps:package/publish/install/preview` and trust imports
+  require a `HostConfirmationChannel` approval per operation in addition to the grant.
+  Tokens are host-generated and never transit the broker; the dialog lives in host
+  chrome outside the widget surface, and identity fields come from the broker context.
+  No channel configured ⇒ auto-deny; timeout ⇒ deny.
+- **AI output is untrusted text.** Completions are written to the app's workspace and
+  only ever execute inside a sandbox after an explicit preview/package + capability
+  review, so the existing hostile-bytecode posture covers AI-authored code. The API
+  key lives host-side; sandboxes see only sanitized request/response. Prompt content
+  necessarily flows to the configured endpoint — reflected in the `ai:chat` grant
+  wording.
+- **Preview is not an escalation.** Preview grants must be a subset of the previewed
+  manifest's declared capabilities (validated before the confirmation), and the
+  preview app runs in its own `MiniappHost` with an isolated grant store.
+- **Limits are host-only.** No broker method exists to change resource limits.
+- **256t installs verify twice** (SHA-512 of the archive against the id, SHA-256
+  against the signed locator) before the standard `verifyPackage` + capability review.
+
+Exercised end-to-end by `npm run test:devstudio-loop` (two-instance loop, including a
+confirmation-count audit and a subset-grant denial check).
+
 ## Recommendations (future)
 
 1. **Bare Worker parity:** run `hostile-apps` against `BareWorkerSandboxBackend` on

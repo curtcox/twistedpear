@@ -168,6 +168,14 @@ everything below is a known cost of the chosen design or of the platforms involv
 - No central registry means **no central moderation**: discovery is by announce/registry
   subscription, and malicious-app defense rests on signatures, capability grants, and
   user/community trust — an explicit design stance, but a restriction worth stating.
+- **Dev environment (DevStudio) v1 limits:** projects are single-file bundles (no
+  in-host bundler); workspace files are capped at 256 KiB (the `code-editor` widget has
+  no delta protocol yet); AI editing is non-streaming whole-file replacement through an
+  OpenRouter-compatible endpoint configured host-side; one dev-preview slot; desktop
+  QR support renders codes but accepts pasted 256t strings only (camera scan is a
+  mobile-host follow-up); memory-limit changes apply at the next launch, while rate
+  and storage-quota changes apply live; 256t locator announces must have been received
+  before an install can resolve (no locator re-request yet).
 
 ## 8. General
 

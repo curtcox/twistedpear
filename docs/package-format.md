@@ -7,6 +7,12 @@ Signed mini-app packages for P2P distribution over Hyperdrive and Reticulum Reso
 - The **publisher's Reticulum identity** (Ed25519 signing key) is the sole trust root.
 - App identity = publisher public key + app name (`name` field).
 - Updates must be signed by the same key (first-seen key pinning).
+- A host-level **trust store** (`packages/app-registry/src/trust.ts`) lists publishers
+  the user explicitly trusts, imported via inline 256t identity strings (QR/paste; see
+  [256t-distribution.md](256t-distribution.md)). Trust gates acceptance UX only —
+  a trusted key gets a one-confirmation install with a "Trusted" badge while untrusted
+  keys get the full warning flow; the capability review is always shown, and first-seen
+  pinning stays authoritative against key swaps.
 - **Out of scope (v1):** key rotation, revocation, multi-maintainer apps.
 
 ### Threats addressed
@@ -99,7 +105,18 @@ All paths deliver the same canonical archive; verification is identical.
 
 See [LIMITATIONS.md](../LIMITATIONS.md) §6. Catalog and CLI warn before large transfers on constrained interfaces.
 
-## 7. Future work
+## 7. 256t identifiers and CAS locator announces
+
+Alongside the SHA-256 package hash, every published archive has a 94-character
+**256t id** — the SHA-512 of the canonical archive per [256t.org](https://256t.org/) —
+shareable as a QR code or pasted string. A signed compact locator (`TPCL\x01`,
+≤ 383-byte `app_data`, announced on `tp.cas.<first-8-bytes-of-sha512-hex>`) maps the id
+onto a `CatalogEntry`-shaped record, so resolution reuses the §5 fetch paths
+unchanged; receivers verify the SHA-512, the SHA-256, and the manifest signature.
+Format and flow: [256t-distribution.md](256t-distribution.md); implementation:
+`packages/cas-256t`.
+
+## 8. Future work
 
 - Publisher key rotation with signed succession statements
 - Revocation lists (Autobase feeds)
