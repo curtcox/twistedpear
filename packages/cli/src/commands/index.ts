@@ -443,7 +443,7 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
 
   const published = await drives.publishVersion(unpacked.manifest.version, archive, unpacked.packageHash);
 
-  const t256 = encode256t(archive, (data) => provider.sha512(data));
+  const t256 = encode256t(archive, (data: Uint8Array) => provider.sha512(data));
   const casLocator = signCasLocator(identity, {
     t256,
     appId: unpacked.manifest.name,

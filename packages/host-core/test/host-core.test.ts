@@ -56,6 +56,33 @@ describe("host-core status endpoint", () => {
   });
 });
 
+describe("host-core websocket gateway", () => {
+  it("starts a WebSocket gateway and reports the listen port", async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), "tp-host-ws-"));
+    try {
+      const session = await createNodeHost({
+        config: defaultHostConfig({
+          dataDir,
+          roles: { transport: false, seeder: false, propagation: false, attachRnsd: null },
+          interfaces: {
+            tcp: { enabled: false, mode: "client" },
+            websocket: { enabled: true, listenHost: "127.0.0.1", listenPort: 0 },
+            auto: { enabled: false, multicast: false, bonjour: false },
+            i2p: { enabled: false },
+            rnode: { enabled: false }
+          }
+        })
+      });
+
+      const status = session.getStatus();
+      expect(status.websocketGatewayPort).toBeGreaterThan(0);
+      await session.stop();
+    } finally {
+      rmSync(dataDir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("host-core propagation persistence", () => {
   it("writes propagation store to disk and reloads it", async () => {
     const dataDir = mkdtempSync(join(tmpdir(), "tp-prop-persist-"));

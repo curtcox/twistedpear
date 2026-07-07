@@ -38,22 +38,30 @@ export async function sleep(ms) {
 export async function waitForTcp(host, port, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    try {
-      await new Promise((resolve, reject) => {
-        const socket = connect({ host, port }, () => {
-          socket.end();
-          resolve();
-        });
-        socket.on("error", reject);
-        socket.setTimeout(1000);
-      });
+    if (await isTcpReady(host, port)) {
       return;
-    } catch {
-      await sleep(250);
     }
+
+    await sleep(250);
   }
 
   throw new Error(`Timed out waiting for ${host}:${port}`);
+}
+
+async function isTcpReady(host, port) {
+  try {
+    await new Promise((resolve, reject) => {
+      const socket = connect({ host, port }, () => {
+        socket.end();
+        resolve();
+      });
+      socket.on("error", reject);
+      socket.setTimeout(1000);
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function composeUp(service) {
@@ -61,6 +69,15 @@ export function composeUp(service) {
     stdio: "inherit",
     cwd: REPO_ROOT
   });
+}
+
+export function tryComposeUp(service) {
+  try {
+    composeUp(service);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function composeDown() {
@@ -107,12 +124,19 @@ export async function waitForReadyLine(service, timeoutMs = 30_000) {
 }
 
 export async function withComposeService(service, port, run) {
-  composeUp(service);
+  const startedCompose = tryComposeUp(service);
+  if (!startedCompose && !(await isTcpReady("127.0.0.1", port))) {
+    throw new Error(`Failed to start ${service} and no peer is listening on 127.0.0.1:${port}`);
+  }
+
+  await waitForTcp("127.0.0.1", port);
+
   try {
-    await waitForTcp("127.0.0.1", port);
     return await run();
   } finally {
-    composeDown();
+    if (startedCompose) {
+      composeDown();
+    }
   }
 }
 

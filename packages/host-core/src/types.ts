@@ -82,6 +82,25 @@ export interface HostConfig {
   readonly ai: HostAiConfig | null;
 }
 
+export type HostInterfaceOverrides = {
+  readonly tcp?: Partial<TcpInterfaceConfig>;
+  readonly websocket?: Partial<WebSocketInterfaceConfig>;
+  readonly auto?: Partial<AutoInterfaceConfig>;
+  readonly i2p?: Partial<I2pInterfaceConfig>;
+  readonly rnode?: Partial<RnodeInterfaceConfig>;
+};
+
+export type HostConfigOverrides = {
+  readonly dataDir?: string;
+  readonly identityPath?: string;
+  readonly bootstrap?: ReadonlyArray<string>;
+  readonly roles?: Partial<HostRoleConfig>;
+  readonly interfaces?: HostInterfaceOverrides;
+  readonly quotas?: Partial<HostQuotas>;
+  readonly statusEndpoint?: boolean;
+  readonly ai?: HostAiConfig | null;
+};
+
 export const DEFAULT_QUOTAS: HostQuotas = {
   seedStorageBytes: 2 * 1024 * 1024 * 1024,
   propagationStoreBytes: 256 * 1024 * 1024,
@@ -115,15 +134,22 @@ export function defaultHostDataDir(platform: NodeJS.Platform = process.platform)
   }
 }
 
-export function defaultHostConfig(overrides: Partial<HostConfig> = {}): HostConfig {
+export function defaultHostConfig(overrides: HostConfigOverrides = {}): HostConfig {
   const dataDir = overrides.dataDir ?? defaultHostDataDir();
+  const baseInterfaces = DEFAULT_INTERFACE_CONFIG;
   return {
     dataDir,
     identityPath: overrides.identityPath ?? join(dataDir, "identity"),
     bootstrap: overrides.bootstrap ?? [],
-    roles: overrides.roles ?? DEFAULT_DESKTOP_ROLES,
-    interfaces: overrides.interfaces ?? DEFAULT_INTERFACE_CONFIG,
-    quotas: overrides.quotas ?? DEFAULT_QUOTAS,
+    roles: { ...DEFAULT_DESKTOP_ROLES, ...overrides.roles },
+    interfaces: {
+      tcp: { ...baseInterfaces.tcp, ...overrides.interfaces?.tcp },
+      websocket: { ...baseInterfaces.websocket, ...overrides.interfaces?.websocket },
+      auto: { ...baseInterfaces.auto, ...overrides.interfaces?.auto },
+      i2p: { ...baseInterfaces.i2p, ...overrides.interfaces?.i2p },
+      rnode: { ...baseInterfaces.rnode, ...overrides.interfaces?.rnode }
+    },
+    quotas: { ...DEFAULT_QUOTAS, ...overrides.quotas },
     statusEndpoint: overrides.statusEndpoint ?? false,
     ai: overrides.ai ?? null
   };

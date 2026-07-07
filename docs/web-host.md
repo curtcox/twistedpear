@@ -1,6 +1,6 @@
 # Web Host: a full TwistedPear host in the browser (plan)
 
-Status: **plan only** — revises the PLAN.md §2 decision "No web target initially".
+Status: **in progress** (Phase W0/W1) — Workstreams A/B landed; W-S1 interop + CI wired.
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase W.
 
 The web host is a browser tab (React Native for Web via Expo web) that runs the

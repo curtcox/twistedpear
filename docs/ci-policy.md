@@ -27,6 +27,16 @@ packages that feed the iOS full loop.
 The `interfaces` job runs `npm run test:integration-soak` (default 12 s; configurable via
 `SOAK_DURATION_MS` in nightly).
 
+### Web host (Phase W)
+
+| Job | Command | Notes |
+|---|---|---|
+| `web` | `npm run test:web-runtime` | Browser bundle guard + `runtime/web` unit tests |
+| `interop` (lane) | `INTEROP=1 npm run test:web-interop` | W-S1: WS leaf → gateway → dockerized Python RNS |
+
+`test:web-runtime` builds `@twistedpear/reticulum-ts/web` with esbuild (`--platform=browser`)
+and asserts no Node/Bare-only imports leak into the bundle.
+
 ## Nightly schedule (nightly.yml)
 
 Cron `0 6 * * *` UTC plus `workflow_dispatch` for extended soaks.

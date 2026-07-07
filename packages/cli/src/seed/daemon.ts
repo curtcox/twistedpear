@@ -42,6 +42,7 @@ export async function runSeeder(options: SeederOptions): Promise<void> {
             : { targetHost: attachRnsd.host, targetPort: attachRnsd.port })
         },
         auto: { enabled: attachRnsd === null, multicast: true, bonjour: true },
+        websocket: { enabled: false },
         i2p: { enabled: false },
         rnode: { enabled: false }
       },

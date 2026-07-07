@@ -63,7 +63,7 @@ await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
   const provider = new NodeCryptoProvider();
   const runtime = nodeRuntime();
 
-  const gateway = Reticulum.create({ provider, runtime, transportEnabled: false });
+  const gateway = Reticulum.create({ provider, runtime, transportEnabled: true });
   gateway.start();
   await gateway.addTcpClientInterface({
     name: "python-leaf-echo",
@@ -147,6 +147,7 @@ await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
 
   await wsClient.close();
   await wsServer.close();
+  await leaf.stop();
   await gateway.stop();
 });
 

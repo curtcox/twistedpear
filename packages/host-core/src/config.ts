@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { HostConfig } from "./types.js";
+import type { HostConfig, HostConfigOverrides } from "./types.js";
 import { defaultHostConfig } from "./types.js";
 
 export function ensureDir(path: string): void {
@@ -23,7 +23,7 @@ export function saveHostConfigFile(configPath: string, config: HostConfig): void
 export function resolveHostConfig(options: {
   readonly dataDir?: string;
   readonly configPath?: string;
-  readonly overrides?: Partial<HostConfig>;
+  readonly overrides?: HostConfigOverrides;
 }): HostConfig {
   const dataDir = options.dataDir ?? defaultHostConfig().dataDir;
   const configPath = options.configPath ?? join(dataDir, "config.json");

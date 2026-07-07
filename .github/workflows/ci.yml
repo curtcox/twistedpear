@@ -28,7 +28,7 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - run: npm test -- packages/reticulum-ts/test/golden-vectors.test.ts packages/reticulum-ts/test/interfaces.test.ts packages/lxmf-ts/test/golden-vectors.test.ts
+      - run: npm test -- packages/reticulum-ts/test/golden-vectors.test.ts packages/reticulum-ts/test/interfaces.test.ts packages/reticulum-ts/test/web-runtime.test.ts packages/lxmf-ts/test/golden-vectors.test.ts
 
   bare-smoke:
     runs-on: ubuntu-latest
@@ -339,6 +339,18 @@ jobs:
           name: link-benchmark-measured
           path: conformance/link-benchmark/measured.json
       - run: npm run test:interop
+      - run: INTEROP=1 npm run test:web-interop
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run test:web-runtime
 
   fuzz:
     runs-on: ubuntu-latest
