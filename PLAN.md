@@ -24,7 +24,7 @@ Known compromises are tracked in [LIMITATIONS.md](LIMITATIONS.md).
 | Question | Decision |
 |---|---|
 | Reticulum runtime | JS/TS implementation running on Bare (extend/replace `rns.js`), validated against the Python reference |
-| Platforms | Android first → iOS → Desktop (Pear runtime). No web target initially |
+| Platforms | Android first → iOS → Desktop (Pear runtime) → Web (browser leaf host via react-native-web; see [docs/web-host.md](docs/web-host.md)) |
 | Distribution unit | Mini-apps (JS bundles) inside one installed host app |
 | Expo Go | Desirable but sacrificed — native modules are unavoidable; use Expo **dev builds** instead (see LIMITATIONS) |
 
@@ -84,6 +84,7 @@ packages/
 apps/
   host-mobile/         React Native (Expo dev-build) host app
   host-desktop/        Pear/Electron host (also runs as always-on transport node)
+  host-web/            browser leaf host (react-native-web; plan: docs/web-host.md)
   examples/            demo mini-apps (chat, file drop, board)
 conformance/
   python-rns harness, interop matrix, packet-level golden tests

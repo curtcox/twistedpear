@@ -25,6 +25,7 @@ Last audited: 2026-07-07.
 | Phase 5 simulator gaps | 24 h ios-sim soak at plan duration | No (soak needs server) |
 | Phase 6 interop + packaging | 72 h desktop soak at plan duration; macOS notarization run | No (soak needs server; notarization needs Apple account) |
 | Phase 7 (plan only) | Community BLE spec submission; device battery/bandwidth numbers | No |
+| Phase W — web host (plan only) | All of [docs/web-host.md](docs/web-host.md): spikes W-S1–W-S4, then W1–W4 | No |
 
 **Recently closed (2026-07-07):** Docker interop image fix (`rns==0.9.5` for `lxmf==0.7.0`),
 RNS 0.9.5 `Destination.send` → `RNS.Packet` shim in Python peers, link-benchmark READY
@@ -167,6 +168,24 @@ See [docs/android-emulator-lab.md](docs/android-emulator-lab.md).
 | Battery/bandwidth policy | PLAN §7 | **Draft done** — [docs/battery-bandwidth-policy.md](docs/battery-bandwidth-policy.md); device numbers pending | H3, H11, H13 |
 | Docs + upstream publication | PLAN §7 | **Done (software tier)** — API docs in CI; BLE spec draft + publication checklist in [docs/upstream-publication.md](docs/upstream-publication.md); community submission manual |
 | Example apps polish | PLAN §7 | **Done** — chat, file-drop, board exercised in `test:examples` |
+
+---
+
+## Phase W — Web host port (plan only; all software)
+
+Full plan: [docs/web-host.md](docs/web-host.md). Everything here runs on a dev machine
+(browser + docker); no hardware dependency.
+
+| Item | Plan reference | Status |
+|---|---|---|
+| W-S1: browser `reticulum-ts` + WebSocket interface to Python RNS via gateway | web-host §W0 | Not started |
+| W-S2: web sandbox isolation spike (opaque-origin iframe + worker, killability) | web-host §W0 | Not started |
+| W-S3: Expo web UI + shared RNW widget renderer | web-host §W0 | Not started |
+| W-S4: OPFS/IndexedDB CAS install of example `.tpkg` | web-host §W0 | Not started |
+| W1: leaf peer in the tab (runtime/web, WS interfaces, `tp node --ws-listen/--serve-web`, LXMF) | web-host §W1 | Not started |
+| W2: mini-app runtime (`WebSandboxBackend`, broker/confirm, `widget-renderer-rn` extraction) | web-host §W2 | Not started |
+| W3: distribution (256t install, grants UI, DevStudio on web) | web-host §W3 | Not started |
+| W4: Hyperdrive via WS DHT relay, PWA shell, soaks; WebSerial RNode stretch | web-host §W4 | Not started |
 
 ---
 

@@ -177,7 +177,28 @@ everything below is a known cost of the chosen design or of the platforms involv
   and storage-quota changes apply live; 256t locator announces must have been received
   before an install can resolve (no locator re-request yet).
 
-## 8. General
+## 8. Web platform (planned target; see [docs/web-host.md](docs/web-host.md))
+
+- **Leaf-only, gateway-dependent:** browsers cannot accept inbound connections or open raw
+  TCP/UDP sockets, so the web host reaches Reticulum only through the WebSocket interface
+  of a gateway node it can dial. No transport-node, seeder, or propagation roles — ever,
+  on this target.
+- **No radios:** Web Bluetooth is central-only (cannot run the peripheral GATT stream), and
+  there is no multicast/AutoInterface. RNode over WebSerial (Chromium-only) is a stretch
+  goal, not a commitment.
+- **Weaker key custody:** identity keys sit in IndexedDB encrypted under a WebCrypto key —
+  no hardware keystore equivalent. The serving origin is part of the TCB: whoever serves
+  the page bytes can substitute them. Default posture is self-serving from the user's own
+  node (`tp node --serve-web`).
+- **Sandbox mechanism differs:** mini-app isolation rests on opaque-origin sandboxed
+  iframes + workers and CSP rather than OS processes; it must pass the same adversarial
+  review as the native backends before any web release.
+- **Bulk plane degraded:** Hyperswarm/Hyperdrive do not run in browsers; package fetch
+  falls back to Reticulum Resource transfer until (optional) WS DHT-relay support lands.
+- **Storage is evictable:** OPFS/IndexedDB live under browser quota and can be cleared by
+  the user agent; `navigator.storage.persist()` mitigates but does not guarantee.
+
+## 9. General
 
 - **Anonymity/privacy caveats:** BLE MAC addresses, WiFi multicast presence, and always-on
   radios are locally observable even though Reticulum payloads are encrypted and packets

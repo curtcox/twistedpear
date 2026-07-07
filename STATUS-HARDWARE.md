@@ -390,7 +390,7 @@ tp node --propagation --status-endpoint
 ```
 
 Linux spare machine; monitor RSS, path-table size, store growth via `/status` cron; weekly log
-review → LIMITATIONS §8 quota defaults.
+review → LIMITATIONS §9 quota defaults.
 
 ---
 
