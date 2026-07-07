@@ -8,5 +8,5 @@
   "setupP50Ms": 0,
   "setupP95Ms": 0,
   "setupMaxMs": 0,
-  "note": "Regenerate with docker link-echo peer: INTEROP=1 npm run test:link-benchmark -- --record"
+  "note": "Populated by CI interop job (artifact link-benchmark-measured) or INTEROP=1 LINK_BENCHMARK_RECORD=1 npm run test:link-benchmark"
 }

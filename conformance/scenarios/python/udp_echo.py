@@ -9,6 +9,7 @@ from pathlib import Path
 import RNS
 
 from load_identity import load_identity
+from send_packet import send_packet
 
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "config" / "udp-echo"
 APP_NAME = "example"
@@ -38,7 +39,7 @@ def main() -> int:
             APP_NAME,
             ASPECT,
         )
-        outbound.send(data)
+        send_packet(outbound, data)
 
     inbound.set_packet_callback(packet_handler)
     inbound.announce()
@@ -51,7 +52,7 @@ def main() -> int:
         APP_NAME,
         ASPECT,
     )
-    outbound.send(GREETING)
+    send_packet(outbound, GREETING)
 
     while True:
         time.sleep(1)

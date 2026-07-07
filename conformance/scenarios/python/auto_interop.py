@@ -14,6 +14,7 @@ import LXMF
 import RNS
 
 from load_identity import load_identity
+from send_packet import send_packet
 
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "config" / "auto-interop"
 APP_NAME = "example"
@@ -45,7 +46,7 @@ def main() -> int:
             APP_NAME,
             ECHO_ASPECT,
         )
-        outbound.send(data)
+        send_packet(outbound, data)
 
     echo_in.set_packet_callback(echo_handler)
     echo_in.announce()
@@ -93,7 +94,7 @@ def main() -> int:
         APP_NAME,
         ECHO_ASPECT,
     )
-    outbound.send(GREETING)
+    send_packet(outbound, GREETING)
 
     while True:
         time.sleep(1)

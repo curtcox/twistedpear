@@ -10,7 +10,7 @@ simulator, local Android emulator).
 
 Verified work is in [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
 
-Last audited: 2026-07-09.
+Last audited: 2026-07-07.
 
 ---
 
@@ -26,7 +26,13 @@ Last audited: 2026-07-09.
 | Phase 6 interop + packaging | 72 h desktop soak at plan duration; macOS notarization run | No (soak needs server; notarization needs Apple account) |
 | Phase 7 (plan only) | Community BLE spec submission; device battery/bandwidth numbers | No |
 
-**Recently closed (2026-07-09):** E5 Hyperdrive path assertion (E1) + Bare Worker benchmark on emulator
+**Recently closed (2026-07-07):** Docker interop image fix (`rns==0.9.5` for `lxmf==0.7.0`),
+RNS 0.9.5 `Destination.send` → `RNS.Packet` shim in Python peers, link-benchmark READY
+wait, Bare sodium-native baseline (`baseline-bare.json`, `test:bare-benchmark-bare-compare`),
+desktop mini-app benchmark baseline (`measured-desktop.json`), emulator-ui E5 recording in CI.
+See [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
+
+**Previously closed (2026-07-09):** E5 Hyperdrive path assertion (E1) + Bare Worker benchmark on emulator
 (`test:android-emulator:e5`, `benchmark-miniapp` IPC, `measured-worker.json`), E4 grant-before-launch fix.
 See [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
 
@@ -56,7 +62,7 @@ headless `emulator.yml` workflow, macOS notarization procedure, battery/bandwidt
 |---|---|---|---|---|
 | 72 h transport-node soak | PHASE1 M8 | CI tier only (5 min nightly); plan duration not yet run | `TRANSPORT_SOAK_DURATION_MS=259200000` on dedicated server | Flat RSS, zero crashes over 72 h |
 | `reticulum-ts` 0.1.0 release | PHASE1 M8 | Package still `0.0.0` | Tag after plan-duration soaks; update LIMITATIONS §1 | `packages/reticulum-ts/package.json` |
-| LIMITATIONS §1 measured gaps | PHASE1 M8 | **Partial** — Node crypto + link-setup benchmark in §1; Bare on-device pending H11 | `LIMITATIONS.md` §1, `conformance/link-benchmark/measured.json` |
+| LIMITATIONS §1 measured gaps | PHASE1 M8 | **Done (host tier)** — Node pure + sodium-native baselines + link-benchmark CI record; Bare worklet on-device in H11 | `LIMITATIONS.md` §1, `conformance/link-benchmark/measured.json` |
 
 ### Phase 1 — Python interop depth (docker, no hardware)
 
@@ -167,7 +173,7 @@ See [docs/android-emulator-lab.md](docs/android-emulator-lab.md).
 ## Recommended software-only execution order
 
 1. **Long soaks at plan duration** — dist, miniapp, ios-sim, desktop, transport-node, integration, mixed-network on a dedicated server (`workflow_dispatch` in nightly.yml; see [docs/ci-policy.md](docs/ci-policy.md))
-2. **Phase 1 M8 release** — 0.1.0 tag after soaks; record link-benchmark baseline (`LINK_BENCHMARK_RECORD=1`)
+2. **Phase 1 M8 release** — 0.1.0 tag after soaks; link-benchmark baseline recorded in CI `interop` job
 3. **Phase 7 community** — BLE spec submission; device battery/bandwidth numbers when hardware arrives
 
 ---
@@ -189,6 +195,7 @@ See [docs/android-emulator-lab.md](docs/android-emulator-lab.md).
 | `npm run test:desktop-soak` | Desktop churn soak |
 | `npm run test:fuzz` | Structure-aware packet/resource/link fuzz |
 | `npm run test:link-benchmark` | Link handshake latency (`LINK_BENCHMARK_RECORD=1` to record) |
+| `npm run test:bare-benchmark-bare-compare` | Bare sodium-native crypto vs baseline |
 | `npm run test:android-native` | Android bridge JVM unit tests (BLE, multicast, USB) |
 | `npm run test:android-emulator` | Local Maestro E1–E5 + E3 adb (skips without device/maestro) |
 | `npm run test:android-emulator:e3` | E3 foreground-service adb check only |

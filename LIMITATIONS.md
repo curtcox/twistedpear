@@ -30,9 +30,22 @@ everything below is a known cost of the chosen design or of the platforms involv
   | sha256-resource-chunk | 206,950 |
 
   Source: `conformance/bare-runtime/baseline-node.json` (`npm run test:bare-benchmark-compare`).
-  Bare `sodium-native` provider on-device numbers remain open until H11. Link-setup latency
+
+  **Measured sodium-native provider on host Node (200 iterations, CI baseline):**
+
+  | Operation | ops/s (sodium-native) |
+  |---|---:|
+  | x25519-keygen | 50,000 |
+  | x25519-shared-secret | 25,000 |
+  | hkdf-link-key | 28,571 |
+  | aes-256-cbc-encrypt-512 | 50,000 |
+  | ed25519-sign-64 | 33,333 |
+  | sha256-resource-chunk | 200,000 |
+
+  Source: `conformance/bare-runtime/baseline-bare.json` (`npm run test:bare-benchmark-bare-compare`).
+  Bare worklet on-device numbers remain open until H11. Link-setup latency
   (Node pure, docker link-echo peer): see `conformance/link-benchmark/measured.json`
-  (`INTEROP=1 npm run test:link-benchmark`; record with `LINK_BENCHMARK_RECORD=1`).
+  (`INTEROP=1 npm run test:link-benchmark`; CI `interop` job records with `LINK_BENCHMARK_RECORD=1`).
 
 ## 2. Expo Go — sacrificed
 
@@ -148,6 +161,8 @@ everything below is a known cost of the chosen design or of the platforms involv
   trees, and hostile-input conformance tests. Capability substitution and broker UI-event
   forgery gaps found in review are fixed; **Bare Worker hostile parity on device** remains
   open (H11). Watchdog thresholds may false-positive on low-end devices.
+- Desktop Node Worker sandbox metrics: `conformance/miniapp-benchmark/measured-desktop.json`
+  (`npm run test:miniapp-benchmark`; record with `MINIAPP_BENCHMARK_RECORD=1`).
 - One foreground mini-app at a time in v1; no background execution. Dev side-loading is
   localhost/adb-only, off by default, and badged **DEV** in the UI.
 - No central registry means **no central moderation**: discovery is by announce/registry

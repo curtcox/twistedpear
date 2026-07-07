@@ -58,6 +58,6 @@ echo "[android-emulator/ci] run E3 foreground-service check"
 node conformance/android-emulator/e3-foreground.mjs
 
 echo "[android-emulator/ci] run E5 Bare worker benchmark"
-node conformance/android-emulator/e5-worker.mjs
+ANDROID_BENCHMARK_RECORD=1 node conformance/android-emulator/e5-worker.mjs
 
 echo "[android-emulator/ci] emulator UI lab passed"

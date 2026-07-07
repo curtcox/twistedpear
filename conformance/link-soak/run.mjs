@@ -19,7 +19,8 @@ import {
   interopReady,
   sleep,
   withComposeService,
-  LINK_ECHO_PORT
+  LINK_ECHO_PORT,
+  waitForReadyLine
 } from "../scenarios/ts/harness.mjs";
 
 if (!interopReady()) {
@@ -48,7 +49,7 @@ function loadIdentity(provider, name) {
   return identity;
 }
 
-async function waitForPath(reticulum, destinationHash, timeoutMs = 15_000) {
+async function waitForPath(reticulum, destinationHash, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (reticulum.hasPath(destinationHash)) {
@@ -63,6 +64,8 @@ async function waitForPath(reticulum, destinationHash, timeoutMs = 15_000) {
 
 async function main() {
   await withComposeService("link-echo", LINK_ECHO_PORT, async () => {
+    await waitForReadyLine("link-echo", 45_000);
+
     const provider = new NodeCryptoProvider();
     const runtime = nodeRuntime();
     const bob = loadIdentity(provider, "bob");

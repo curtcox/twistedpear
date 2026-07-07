@@ -297,6 +297,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test:bare-benchmark-compare
+      - run: npm run test:bare-benchmark-bare-compare
 
   interop:
     runs-on: ubuntu-latest
@@ -308,7 +309,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: INTEROP=1 npm run test:link-benchmark
+      - run: INTEROP=1 LINK_BENCHMARK_RECORD=1 npm run test:link-benchmark
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: link-benchmark-measured
+          path: conformance/link-benchmark/measured.json
       - run: npm run test:interop
 
   fuzz:

@@ -4,12 +4,18 @@
  * Records spawn latency, kill latency, broker round-trip throughput, and busy-loop killability.
  */
 
+import { readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   MiniappLifecycle,
   NodeWorkerSandboxBackend
 } from "../../packages/miniapp-runtime/dist/index.js";
 
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const measuredPath = join(repoRoot, "conformance/miniapp-benchmark/measured-desktop.json");
 const ITERATIONS = Number.parseInt(process.env.BENCHMARK_ITERATIONS ?? "20", 10);
+const record = process.env.MINIAPP_BENCHMARK_RECORD === "1";
 
 function nowMs() {
   return performance.now();
@@ -133,6 +139,8 @@ async function main() {
   }
 
   const summary = {
+    measuredAt: new Date().toISOString().slice(0, 10),
+    platform: "desktop-node",
     backend: backend.name,
     runtime: "node",
     iterations: ITERATIONS,
@@ -141,6 +149,21 @@ async function main() {
     watchdogPingsPerSecond: throughput.watchdogPingsPerSecond,
     busyLoopKillMs: busyLoop.killMs
   };
+
+  if (record) {
+    writeFileSync(measuredPath, `${JSON.stringify(summary, null, 2)}\n`);
+    console.log(`miniapp-benchmark: recorded ${measuredPath}`);
+  } else {
+    const baseline = JSON.parse(readFileSync(measuredPath, "utf8"));
+    if (baseline.spawnMs > 0) {
+      const spawnRatio = summary.spawnMs / baseline.spawnMs;
+      if (spawnRatio > 3) {
+        throw new Error(
+          `miniapp spawn regression: ${summary.spawnMs}ms vs baseline ${baseline.spawnMs}ms`
+        );
+      }
+    }
+  }
 
   console.log(`miniapp-benchmark: ${JSON.stringify(summary)}`);
 }

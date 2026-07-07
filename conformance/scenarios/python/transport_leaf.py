@@ -16,6 +16,7 @@ from pathlib import Path
 import RNS
 
 from load_identity import load_identity
+from send_packet import send_packet
 
 APP_NAME = "example"
 ECHO_ASPECT = "echo"
@@ -67,7 +68,7 @@ def run_echo_leaf(target_host: str, target_port: int) -> int:
             APP_NAME,
             ECHO_ASPECT,
         )
-        outbound.send(data)
+        send_packet(outbound, data)
 
     inbound.set_packet_callback(packet_handler)
     inbound.announce()
@@ -107,7 +108,7 @@ def run_alice_leaf(target_host: str, target_port: int) -> int:
     deadline = time.time() + 30
     while time.time() < deadline:
         if reticulum.get_path_to(outbound.hash) is not None:
-            outbound.send(GREETING)
+            send_packet(outbound, GREETING)
             break
         time.sleep(0.25)
 

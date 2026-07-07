@@ -4,7 +4,8 @@ The Reticulum reference implementation is the Phase 1 wire-format specification.
 
 | Component | Version | Purpose |
 |---|---:|---|
-| Python RNS | 0.9.4 | Reticulum reference peer and vector generation |
+| Python RNS | 0.9.4 | Golden vector generation (`conformance/vectors/`) |
+| Python RNS (docker peers) | 0.9.5 | Minimum for `lxmf==0.7.0` in `conformance/docker/Dockerfile` |
 | LXMF | 0.7.0 | LXMF interop from M7 onward |
 | Hyperdrive | 13.3.2 | Versioned app package bulk distribution |
 | Corestore | 7.9.2 | Hyperdrive storage factory |
