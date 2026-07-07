@@ -507,5 +507,9 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 | macOS notarization procedure | [docs/macos-notarization.md](docs/macos-notarization.md) | — |
 | Battery/bandwidth policy draft | [docs/battery-bandwidth-policy.md](docs/battery-bandwidth-policy.md) | — |
 | Phase 7 broker security review | [docs/security-review.md](docs/security-review.md) | `npm run test:hostile-apps` |
+| Android native JVM tests | `conformance/android-native/run.mjs`, `.github/workflows/emulator.yml` | `npm run test:android-native` |
+| Upstream publication checklist | [docs/upstream-publication.md](docs/upstream-publication.md) | — |
+| iOS lifecycle reconnect metrics | `conformance/ios-sim/measured-lifecycle.json`, `lifecycle-slice.mjs` | `node conformance/ios-sim/lifecycle.mjs --require-peer` |
+| LIMITATIONS §1 crypto benchmarks | [LIMITATIONS.md](LIMITATIONS.md) §1, `conformance/bare-runtime/baseline-node.json` | `npm run test:bare-benchmark-compare` |
 | iOS full-loop PR path filter | `.github/workflows/ci.yml` `ios-sim` | touch `packages/miniapp-runtime/**` etc. |
 | `mirrorFrom` polling timeout | `packages/bridge-hyper/src/drive.ts` | `npm test -- packages/bridge-hyper/test` |

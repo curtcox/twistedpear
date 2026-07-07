@@ -24,3 +24,20 @@ jobs:
       - run: npm run test:updates
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down
+
+  android-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: npm run test:android-native

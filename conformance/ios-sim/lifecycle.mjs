@@ -46,8 +46,11 @@ export async function runIosLifecycleSlice(options = {}) {
     return;
   }
 
-  await runBareLifecycleSlice({ label: "ios-sim", cycles });
-  console.log(`[ios-sim/lifecycle] ${cycles} quiesce/reconnect cycles passed against Python RNS peer`);
+  const summary = await runBareLifecycleSlice({ label: "ios-sim", cycles });
+  console.log(
+    `[ios-sim/lifecycle] ${cycles} quiesce/reconnect cycles passed against Python RNS peer ` +
+      `(p50 reconnect ${summary.reconnectP50Ms}ms, p95 ${summary.reconnectP95Ms}ms, max ${summary.reconnectMaxMs}ms)`
+  );
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {

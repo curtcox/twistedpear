@@ -42,6 +42,7 @@
     "test:ios-sim:required": "npm run build && node conformance/ios-sim/run.mjs --require-xcode",
     "test:ios-soak": "npm run build && node conformance/ios-sim/soak.mjs",
     "test:ios-soak:required": "npm run build && node conformance/ios-sim/soak.mjs --require-peer",
+    "test:android-native": "node conformance/android-native/run.mjs",
     "test:desktop": "npm run build && node conformance/desktop/run.mjs",
     "test:desktop-lifecycle": "npm run build && node conformance/desktop/lifecycle.mjs",
     "test:desktop-soak": "npm run build && node conformance/desktop-soak/run.mjs",

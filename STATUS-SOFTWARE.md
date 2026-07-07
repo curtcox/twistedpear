@@ -10,7 +10,7 @@ simulator, local Android emulator).
 
 Verified work is in [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
 
-Last audited: 2026-07-07.
+Last audited: 2026-07-07 (evening).
 
 ---
 
@@ -18,21 +18,26 @@ Last audited: 2026-07-07.
 
 | Area | Open items | Blocking hardware? |
 |---|---|---|
-| Phase 1 release hardening (M8) | 72 h soak at plan duration, 0.1.0 tag, LIMITATIONS §1 measurements | No (needs dedicated server time) |
-| Phase 2 long soaks | 24 h integration soak at plan duration; 8 h emulator background | No (soak needs server; emulator UI manual) |
-| Phase 3 emulator lab + long soaks | E1–E5 UI on emulator, 24 h seeder/mixed-network soak at plan duration | No (soak needs server; E1–E3 UI manual) |
+| Phase 1 release hardening (M8) | 72 h soak at plan duration, 0.1.0 tag | No (needs dedicated server time) |
+| Phase 2 long soaks | 24 h integration soak at plan duration; 8 h emulator background UI | No (soak needs server; E3 UI manual) |
+| Phase 3 emulator lab + long soaks | E1–E5 UI on emulator, 24 h seeder soak at plan duration | No (soak needs server; E1–E3 UI manual) |
 | Phase 4 emulator lab + long soaks | E5 Worker metrics on emulator, 24 h mini-app soak at plan duration | No (emulator metrics manual; soak needs server) |
 | Phase 5 simulator gaps | 24 h ios-sim soak at plan duration | No (soak needs server) |
 | Phase 6 interop + packaging | 72 h desktop soak at plan duration; macOS notarization run | No (soak needs server; notarization needs Apple account) |
-| Phase 7 (plan only) | device battery/bandwidth numbers | No |
+| Phase 7 (plan only) | Community BLE spec submission; device battery/bandwidth numbers | No |
 
-**Recently closed (2026-07-07):** resource resume-after-flap interop, 100 MB resource nightly,
+**Recently closed (2026-07-07 evening):** Android native JVM tests in `emulator.yml`
+(`test:android-native`), node-service prebuild fix, lifecycle reconnect metrics +
+`measured-lifecycle.json`, LIMITATIONS §1 crypto benchmark table, upstream publication
+checklist ([docs/upstream-publication.md](docs/upstream-publication.md)), ios-host measured
+reconnect section. See [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
+
+**Previously closed (2026-07-07):** resource resume-after-flap interop, 100 MB resource nightly,
 link/transport-node soak scripts + nightly CI tier, LAN-mirror + mixed-network soak conformance,
 macOS dmg CI artifact, serialport/RNode load test, fuzz corpus expansion, integration-soak
 nightly tier, expanded ios-sim PR path filter, CI policy doc, Android emulator lab doc +
 headless `emulator.yml` workflow, macOS notarization procedure, battery/bandwidth policy draft,
-`mirrorFrom` polling fix, Phase 7 broker adversarial review + capability/event fixes. See
-[STATUS-COMPLETE.md](STATUS-COMPLETE.md).
+`mirrorFrom` polling fix, Phase 7 broker adversarial review + capability/event fixes.
 
 ---
 
@@ -42,7 +47,7 @@ headless `emulator.yml` workflow, macOS notarization procedure, battery/bandwidt
 |---|---|---|---|---|
 | 72 h transport-node soak | PHASE1 M8 | CI tier only (5 min nightly); plan duration not yet run | `TRANSPORT_SOAK_DURATION_MS=259200000` on dedicated server | Flat RSS, zero crashes over 72 h |
 | `reticulum-ts` 0.1.0 release | PHASE1 M8 | Package still `0.0.0` | Tag after plan-duration soaks; update LIMITATIONS §1 | `packages/reticulum-ts/package.json` |
-| LIMITATIONS §1 measured gaps | PHASE1 M8 | Some entries still assumed | Record benchmark + interop measurements after soak | LIMITATIONS updated |
+| LIMITATIONS §1 measured gaps | PHASE1 M8 | **Partial** — Node pure-provider crypto benchmarks in §1; Bare on-device + link-setup latency after soak | `LIMITATIONS.md` §1, `conformance/bare-runtime/baseline-node.json` |
 
 ### Phase 1 — Python interop depth (docker, no hardware)
 
@@ -80,7 +85,7 @@ headless `emulator.yml` workflow, macOS notarization procedure, battery/bandwidt
 |---|---|---|---|---|
 | 24 h seeder soak | PHASE3 M6/M9 | Nightly 5 min CI tier | `SOAK_DURATION_MS=86400000 npm run test:dist-soak` on a server | Flat RSS, fetches succeed after publisher exit |
 | 24 h mixed-network soak | PHASE3 M9 | **CI tier done** — `test:mixed-network-soak` (nightly); plan 24 h on server | `npm run test:mixed-network-soak` |
-| KVM Android emulator in CI | PHASE3 M7, PHASE3-HARDWARE E1–E3 | Headless proxy workflow + local lab doc | [docs/android-emulator-lab.md](docs/android-emulator-lab.md), `.github/workflows/emulator.yml` |
+| KVM Android emulator in CI | PHASE3 M7, PHASE3-HARDWARE E1–E3 | **Partial** — headless proxy + JVM tests in `emulator.yml`; E1–E4 UI automation open | `npm run test:android-native`, [docs/android-emulator-lab.md](docs/android-emulator-lab.md) |
 | Hyperdrive on **Android worklet** (emulator) | PHASE3-HARDWARE E5 | Proven on desktop Bare only | Emulator E5: DHT install path, watch Corestore logs | Pass or document Resources-only fallback |
 | LAN-mirror install via desktop seed | PHASE3 M7 | — | **Done** — `conformance/lan-mirror/run.mjs` (nightly `lan-mirror` job) | `npm run test:lan-mirror` |
 
@@ -119,7 +124,7 @@ Automating E1–E4 UI in KVM CI remains open; headless proxies and local lab pro
 | Full ios-sim on every PR | PHASE5 §5 | **Done** — expanded path filter + push to `main`; policy in [docs/ci-policy.md](docs/ci-policy.md) | CI policy doc |
 | Bonjour on real LAN | PHASE5 M3 device exit | Needs WiFi + devices | **STATUS-HARDWARE** H15 | — |
 | Multicast entitlement filing | PHASE5 M0(a) | Draft only | Needs paid account — **STATUS-HARDWARE** H12 | — |
-| Measured background windows | PHASE5 M2 device exit | Simulator lifecycle is approximate | Partial: extend simulator lifecycle tests; device numbers in H13 | `docs/ios-host.md` |
+| Measured background windows | PHASE5 M2 device exit | **Partial (software tier)** — lifecycle reconnect metrics in CI slice; device grace duration in H13 | `conformance/ios-sim/measured-lifecycle.json`, [docs/ios-host.md](docs/ios-host.md) |
 
 ---
 
@@ -144,8 +149,8 @@ Automating E1–E4 UI in KVM CI remains open; headless proxies and local lab pro
 | Security review sandbox + capabilities | PLAN §7 | **Done (software tier)** — [docs/security-review.md](docs/security-review.md); F1/F2 fixes in broker + host |
 | Fuzz packet parsers (continuous) | PLAN §7, PHASE1 M8 | **CI tier done** — resource adv + link-context fuzz in `fuzz.test.ts`; expand corpus over time |
 | Battery/bandwidth policy | PLAN §7 | **Draft done** — [docs/battery-bandwidth-policy.md](docs/battery-bandwidth-policy.md); device numbers pending | H3, H11, H13 |
-| Docs + upstream publication | PLAN §7 | `reticulum-ts` API docs in CI; BLE spec published |
-| Example apps polish | PLAN §7 | Already exist; expand as needed |
+| Docs + upstream publication | PLAN §7 | **Done (software tier)** — API docs in CI; BLE spec draft + publication checklist in [docs/upstream-publication.md](docs/upstream-publication.md); community submission manual |
+| Example apps polish | PLAN §7 | **Done** — chat, file-drop, board exercised in `test:examples` |
 
 ---
 
@@ -175,3 +180,4 @@ Automating E1–E4 UI in KVM CI remains open; headless proxies and local lab pro
 | `npm run test:mixed-network-soak` | Two-peer seeder soak (`SOAK_DURATION_MS`) |
 | `npm run test:desktop-soak` | Desktop churn soak |
 | `npm run test:fuzz` | Structure-aware packet/resource/link fuzz |
+| `npm run test:android-native` | Android bridge JVM unit tests (BLE, multicast, USB) |

@@ -1,0 +1,12 @@
+{
+  "measuredAt": "2026-07-07",
+  "runtime": "bare-worklet-slice",
+  "peer": "127.0.0.1:4242",
+  "label": "ios-sim",
+  "cycles": 10,
+  "reconnectMs": [],
+  "reconnectP50Ms": 0,
+  "reconnectP95Ms": 0,
+  "reconnectMaxMs": 0,
+  "note": "Regenerate with docker leaf-echo peer: INTEROP=1 npm run test:ios-sim (lifecycle slice) or IOS_LIFECYCLE_CYCLES=10 node conformance/ios-sim/lifecycle.mjs --require-peer"
+}

@@ -63,6 +63,11 @@ Monitor RSS flatness and zero crashes as exit criteria per phase plans.
 `workflow_dispatch` only. Runs headless distribution proxies and Android native-module JVM
 unit tests. Full E1–E4 UI path: [android-emulator-lab.md](android-emulator-lab.md).
 
+| Job | Command |
+|---|---|
+| `headless-proxy` | `test:harness-install`, `test:lan-mirror`, `test:bare-device`, `test:updates` |
+| `android-native` | `npm run test:android-native` |
+
 ## What CI does not cover (hardware or account)
 
 | Gap | Tracker |

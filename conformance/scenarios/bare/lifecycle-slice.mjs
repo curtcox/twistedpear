@@ -4,6 +4,8 @@
  * Simulates iOS suspend-node (close interfaces) and resume-node (reconnect + re-announce).
  */
 
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { PureCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/pure.js";
 import { DestinationDirection, DestinationType } from "../../../packages/reticulum-ts/dist/destination.js";
@@ -21,6 +23,8 @@ import {
   sleep,
   waitForPath
 } from "./helpers.mjs";
+
+const defaultMetricsPath = join(repoRoot, "conformance/ios-sim/measured-lifecycle.json");
 
 async function waitForPathLoss(reticulum, destinationHash, timeoutMs = 10_000) {
   const deadline = Date.now() + timeoutMs;
@@ -40,8 +44,11 @@ export async function runBareLifecycleSlice(options = {}) {
     label = "lifecycle",
     storePath = `${repoRoot}/.lifecycle-slice-store`,
     cycles = 10,
-    reconnectTimeoutMs = 10_000
+    reconnectTimeoutMs = 10_000,
+    metricsPath = process.env.IOS_LIFECYCLE_METRICS_PATH ?? null
   } = options;
+
+  const cycleMetrics = [];
 
   const vectors = loadIdentityVectors();
   const aliceEntry = vectors.identities.find((entry) => entry.name === "alice");
@@ -106,7 +113,10 @@ export async function runBareLifecycleSlice(options = {}) {
     await aliceIn.announce();
     await waitForPath(reticulum, bobOut.hash, reconnectTimeoutMs);
 
-    if (Date.now() - resumedAt > reconnectTimeoutMs) {
+    const reconnectMs = Date.now() - resumedAt;
+    cycleMetrics.push({ cycle, reconnectMs });
+
+    if (reconnectMs > reconnectTimeoutMs) {
       throw new Error(`${label}: reconnect exceeded ${reconnectTimeoutMs}ms on cycle ${cycle}`);
     }
 
@@ -116,4 +126,43 @@ export async function runBareLifecycleSlice(options = {}) {
 
   await iface.close();
   reticulum.stop();
+
+  const reconnectMs = cycleMetrics.map((entry) => entry.reconnectMs);
+  const summary = {
+    label,
+    cycles: cycleMetrics.length,
+    reconnectMs,
+    reconnectP50Ms: percentile(reconnectMs, 50),
+    reconnectP95Ms: percentile(reconnectMs, 95),
+    reconnectMaxMs: reconnectMs.length > 0 ? Math.max(...reconnectMs) : 0
+  };
+
+  const outputPath = metricsPath ?? defaultMetricsPath;
+  if (outputPath) {
+    writeFileSync(
+      outputPath,
+      `${JSON.stringify(
+        {
+          measuredAt: new Date().toISOString(),
+          runtime: "bare-worklet-slice",
+          peer: `${INTEROP_HOST}:${LEAF_ECHO_PORT}`,
+          ...summary
+        },
+        null,
+        2
+      )}\n`
+    );
+  }
+
+  return summary;
+}
+
+function percentile(values, p) {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  const sorted = [...values].sort((left, right) => left - right);
+  const index = Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1);
+  return sorted[index];
 }

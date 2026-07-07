@@ -16,7 +16,22 @@ everything below is a known cost of the chosen design or of the platforms involv
 - **Crypto parity risk.** We must match X25519/Ed25519/AES-256-CBC/HMAC-SHA256 semantics
   byte-for-byte. Any deviation is a security bug, not just an interop bug. JS crypto is also
   slower than the C-backed Python primitives; older phones may see slow link setup and
-  hashing (mitigated by libsodium native bindings in Bare, unverified until Phase 0).
+  hashing (mitigated by libsodium native bindings in Bare).
+
+  **Measured Node pure-provider throughput (200 iterations, CI baseline):**
+
+  | Operation | ops/s (Node pure) |
+  |---|---:|
+  | x25519-keygen | 1,134 |
+  | x25519-shared-secret | 1,158 |
+  | hkdf-link-key | 31,470 |
+  | aes-256-cbc-encrypt-512 | 57,823 |
+  | ed25519-sign-64 | 2,807 |
+  | sha256-resource-chunk | 206,950 |
+
+  Source: `conformance/bare-runtime/baseline-node.json` (`npm run test:bare-benchmark-compare`).
+  Bare `sodium-native` provider on-device numbers remain open until H11; link-setup latency
+  after plan-duration soaks is tracked in Phase 1 M8.
 
 ## 2. Expo Go — sacrificed
 

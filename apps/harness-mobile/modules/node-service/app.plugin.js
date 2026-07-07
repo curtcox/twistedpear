@@ -7,11 +7,36 @@ const {
 const SERVICE_CLASS = "network.twistedpear.harness.NodeForegroundService";
 const SERVICE_NAME = "TwistedPear Node Service";
 
+function getOrCreateMainApplication(manifest) {
+  let application = AndroidConfig.Manifest.getMainApplication(manifest);
+  if (application) {
+    return application;
+  }
+
+  if (!Array.isArray(manifest.application)) {
+    manifest.application = [];
+  }
+
+  application = {
+    $: {
+      "android:name": ".MainApplication",
+      "android:label": "@string/app_name",
+      "android:icon": "@mipmap/ic_launcher",
+      "android:allowBackup": "true",
+      "android:theme": "@style/AppTheme",
+      "android:supportsRtl": "true"
+    },
+    service: []
+  };
+  manifest.application.push(application);
+  return application;
+}
+
 /** Expo config plugin for Android foreground service (M2). */
 module.exports = function withNodeService(config) {
   config = withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
-    const application = AndroidConfig.Manifest.getMainApplicationOrThrow(manifest);
+    const application = getOrCreateMainApplication(manifest);
 
     AndroidConfig.Manifest.addMetaDataItemToMainApplication(
       application,

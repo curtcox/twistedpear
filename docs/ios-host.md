@@ -45,3 +45,19 @@ loop (`conformance/ios-sim/full-loop.mjs`), and lifecycle quiesce slices
 (`conformance/ios-sim/lifecycle.mjs`). It does not validate BLE, real background timing, multicast
 entitlement enforcement, or realistic LAN discovery. Those exits are tracked in
 [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) (H13–H15).
+
+### Measured simulator reconnect windows
+
+The lifecycle slice (`conformance/scenarios/bare/lifecycle-slice.mjs`) records TCP
+quiesce/reconnect timing against the docker `leaf-echo` peer. Results are written to
+`conformance/ios-sim/measured-lifecycle.json` when the peer is reachable.
+
+| Metric | Simulator tier (CI) | Device target (H13) |
+|---|---|---|
+| Quiesce/reconnect cycles | 10–100 per run | Same procedure on dev build |
+| Reconnect p50 | recorded in measured JSON | compare vs simulator |
+| Reconnect p95 | recorded in measured JSON | compare vs simulator |
+| Background grace duration | not simulated | measured on iPhone |
+
+Regenerate: `IOS_LIFECYCLE_CYCLES=10 node conformance/ios-sim/lifecycle.mjs --require-peer`
+(with `docker compose ... leaf-echo` running).

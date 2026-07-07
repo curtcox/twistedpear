@@ -117,10 +117,10 @@ LIMITATIONS §6.
 
 ## Optional CI workflow
 
-The optional [`.github/workflows/emulator.yml`](../.github/workflows/emulator.yml) job
-runs headless distribution proxies and Android native-module JVM tests on every manual
-dispatch. Full E1–E4 UI instrumentation requires a local emulator per this document until
-KVM runner capacity is expanded.
+The optional [`.github/workflows/emulator.yml`](../.github/workflows/emulator.yml) workflow
+runs headless distribution proxies and Android native-module JVM unit tests (`npm run
+test:android-native`) on every manual dispatch. Full E1–E4 UI instrumentation requires a
+local emulator per this document until KVM runner capacity is expanded.
 
 ---
 
@@ -133,5 +133,6 @@ KVM runner capacity is expanded.
 | E3 Background service | manual emulator |
 | E4 OTA/rollback | `npm run test:updates` |
 | E5 Hyperdrive + Worker | `npm run test:bare-hyperdrive` + manual E5 |
+| Native bridge JVM tests | `npm run test:android-native` |
 
 Record outcomes in [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) phase exit checklists.
