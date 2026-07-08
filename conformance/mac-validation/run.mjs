@@ -11,7 +11,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { createWriteStream, existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const androidHome = process.env.ANDROID_HOME ?? join(homedir(), "Library/Android/sdk");
@@ -19,7 +19,7 @@ const defaultLogDir = join(repoRoot, ".tmp/mac-validation", new Date().toISOStri
 const java17Token = "__MAC_VALIDATION_JAVA_HOME_17__";
 const java17Display = `"$(/usr/libexec/java_home -V 2>&1 | awk '/^[[:space:]]*17([.[:space:]]|$)/ { for (i=1; i<=NF; i++) if ($i ~ /^\\//) { print $i; exit } }')"`;
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const options = {
     dryRun: false,
     list: false,
@@ -128,7 +128,7 @@ function docker(args, opts = {}) {
   };
 }
 
-function buildStages(options) {
+export function buildStages(options) {
   const stage8Default = [
     npmScript("test:link-soak"),
     npmScript("test:integration-soak"),
@@ -296,7 +296,7 @@ function java17Env() {
   };
 }
 
-function selectedStages(options) {
+export function selectedStages(options) {
   if (options.stages.length > 0) return uniqueSorted(options.stages);
   if (options.from !== undefined || options.through !== undefined) {
     const from = options.from ?? 1;
@@ -310,6 +310,14 @@ function selectedStages(options) {
 
 function uniqueSorted(values) {
   return [...new Set(values)].sort((a, b) => a - b);
+}
+
+export function runStagesForOptions(options, stages = buildStages(options)) {
+  const chosen = selectedStages(options);
+  const runStages = options.skipDoctor || chosen.includes(0) ? chosen : [0, ...chosen];
+  const invalid = runStages.filter((stage) => !stages.has(stage));
+  if (invalid.length > 0) throw new Error(`unknown stage(s): ${invalid.join(", ")}`);
+  return runStages;
 }
 
 function mergedEnv(extra = {}) {
@@ -379,7 +387,7 @@ async function startAndroidEmulator(context) {
   if (bootWait !== 0) throw new Error("emulator did not report sys.boot_completed=1");
 }
 
-function commandLine(command) {
+export function commandLine(command) {
   const env = command.env ? `${Object.entries(command.env).map(([key, value]) => `${key}=${quoteEnvValue(value)}`).join(" ")} ` : "";
   return `${env}${command.cmd} ${command.args.map(quote).join(" ")}`.trim();
 }
@@ -449,7 +457,7 @@ async function appendLog(path, text) {
   await new Promise((resolveEnd) => log.end(resolveEnd));
 }
 
-function logFileFor(logDir, stage, index, label) {
+export function logFileFor(logDir, stage, index, label) {
   const safe = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
   return join(logDir, `stage-${stage}-${String(index + 1).padStart(2, "0")}-${safe || "command"}.log`);
 }
@@ -501,10 +509,7 @@ async function main() {
     return;
   }
 
-  const chosen = selectedStages(options);
-  const runStages = options.skipDoctor || chosen.includes(0) ? chosen : [0, ...chosen];
-  const invalid = runStages.filter((stage) => !stages.has(stage));
-  if (invalid.length > 0) throw new Error(`unknown stage(s): ${invalid.join(", ")}`);
+  const runStages = runStagesForOptions(options, stages);
 
   console.log(`[mac-validation] stages: ${runStages.join(", ")}`);
   console.log(`[mac-validation] logs: ${options.logDir}`);
@@ -564,7 +569,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.stack : String(error));
-  process.exit(1);
-});
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.stack : String(error));
+    process.exit(1);
+  });
+}

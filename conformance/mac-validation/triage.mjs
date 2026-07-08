@@ -8,12 +8,12 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const defaultValidationRoot = join(repoRoot, ".tmp/mac-validation");
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const options = {
     all: false,
     maxLogBytes: 12000,
@@ -77,7 +77,7 @@ function latestValidationLogDir() {
   return dirs[0];
 }
 
-function readLogEntries(logDir) {
+export function readLogEntries(logDir) {
   return readdirSync(logDir)
     .filter((name) => name.endsWith(".log"))
     .sort()
@@ -87,10 +87,10 @@ function readLogEntries(logDir) {
       const command = matchFirst(text, /^\[mac-validation\] command: (.+)$/m) ?? basename(path, ".log");
       const cwd = matchFirst(text, /^\[mac-validation\] cwd: (.+)$/m) ?? repoRoot;
       const exitText = matchFirst(text, /^\[mac-validation\] exit: (.+)$/m);
-      const exitCode = exitText === undefined ? undefined : Number.parseInt(exitText, 10);
+      const exitCode = exitText !== undefined && /^\d+$/.test(exitText) ? Number.parseInt(exitText, 10) : undefined;
       const stage = matchFirst(name, /^stage-(\d+)-/);
       const script = matchFirst(command, /\bnpm run ([^ ]+)/);
-      return { path, name, text, command, cwd, exitCode, stage, script };
+      return { path, name, text, command, cwd, exitCode, exitStatus: exitText ?? "unknown", stage, script };
     });
 }
 
@@ -98,7 +98,7 @@ function matchFirst(text, regex) {
   return regex.exec(text)?.[1];
 }
 
-function statusCandidates(statusPath, entries) {
+export function statusCandidates(statusPath, entries) {
   if (!existsSync(statusPath)) return [];
 
   const status = readFileSync(statusPath, "utf8");
@@ -122,7 +122,7 @@ function statusCandidates(statusPath, entries) {
   return [...new Set(matches)].slice(0, 80);
 }
 
-function tailText(text, maxBytes) {
+export function tailText(text, maxBytes) {
   const bytes = Buffer.from(text);
   if (bytes.length <= maxBytes) return text;
 
@@ -133,8 +133,12 @@ function fenced(text) {
   return `\`\`\`text\n${text.replace(/```/g, "`\u200b``")}\n\`\`\``;
 }
 
-function renderPackage({ logDir, entries, included, statusRows, maxLogBytes }) {
-  const failures = entries.filter((entry) => entry.exitCode !== 0);
+export function isFailedEntry(entry) {
+  return entry.exitStatus !== "0";
+}
+
+export function renderPackage({ logDir, entries, included, statusRows, maxLogBytes }) {
+  const failures = entries.filter(isFailedEntry);
   const lines = [
     "# TwistedPear mac-validation triage package",
     "",
@@ -157,7 +161,7 @@ function renderPackage({ logDir, entries, included, statusRows, maxLogBytes }) {
   ];
 
   for (const entry of entries) {
-    lines.push(`| ${entry.stage ?? ""} | ${entry.exitCode ?? "unknown"} | ${entry.script ?? ""} | \`${entry.command.replaceAll("|", "\\|")}\` | \`${entry.path}\` |`);
+    lines.push(`| ${entry.stage ?? ""} | ${entry.exitStatus} | ${entry.script ?? ""} | \`${entry.command.replaceAll("|", "\\|")}\` | \`${entry.path}\` |`);
   }
 
   if (statusRows.length > 0) {
@@ -174,7 +178,7 @@ function renderPackage({ logDir, entries, included, statusRows, maxLogBytes }) {
         `### ${entry.name}`,
         "",
         `- Stage: ${entry.stage ?? "unknown"}`,
-        `- Exit: ${entry.exitCode ?? "unknown"}`,
+        `- Exit: ${entry.exitStatus}`,
         `- CWD: ${entry.cwd}`,
         `- Command: \`${entry.command}\``,
         "",
@@ -187,7 +191,7 @@ function renderPackage({ logDir, entries, included, statusRows, maxLogBytes }) {
   return `${lines.join("\n")}\n`;
 }
 
-function main() {
+export function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
     printHelp();
@@ -200,7 +204,7 @@ function main() {
   }
 
   const entries = readLogEntries(logDir);
-  const included = options.all ? entries : entries.filter((entry) => entry.exitCode !== 0);
+  const included = options.all ? entries : entries.filter(isFailedEntry);
   const statusRows = statusCandidates(options.statusPath, included.length > 0 ? included : entries);
   const out = options.out ?? join(logDir, "triage-package.md");
   const markdown = renderPackage({
@@ -217,4 +221,6 @@ function main() {
   console.log(`[mac-validation] included ${included.length} of ${entries.length} log(s)`);
 }
 
-main();
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  main();
+}
