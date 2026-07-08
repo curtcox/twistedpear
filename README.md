@@ -41,6 +41,8 @@ Start with the platform docs in [docs](docs/):
   [iOS host strategy](docs/ios-host.md) for implementation-specific behavior.
 - [WebSocket interface](docs/websocket-interface.md), [BLE interface](docs/ble-interface.md),
   and [propagation node](docs/propagation-node.md) for transport and network roles.
+- [Single-Mac validation plan](docs/mac-validation.md) for running the full
+  software-tier validation matrix locally (`npm run doctor:mac` checks the toolchain).
 - [Security review](docs/security-review.md), [CI policy](docs/ci-policy.md),
   [Android emulator lab](docs/android-emulator-lab.md), and
   [hardware](STATUS-HARDWARE.md) / [software](STATUS-SOFTWARE.md) status for validation status.
