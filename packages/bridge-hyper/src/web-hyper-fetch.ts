@@ -44,6 +44,7 @@ export async function fetchDriveVersionViaRelay(options: WebHyperFetchOptions): 
     async createDht() {
       const socket = await openRelaySocket(options.relayUrl, Math.min(options.timeoutMs ?? 15_000, 15_000));
       const dht = new DHT(new WsStream(true, socket));
+      await dht.ready();
       const destroy = dht.destroy.bind(dht);
       dht.destroy = async () => {
         await destroy();

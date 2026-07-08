@@ -25,7 +25,8 @@ const build = spawnSync(
     "--workspace=@twistedpear/host-core",
     "--workspace=@twistedpear/miniapp-runtime",
     "--workspace=@twistedpear/app-registry",
-    "--workspace=@twistedpear/cas-256t"
+    "--workspace=@twistedpear/cas-256t",
+    "--workspace=@twistedpear/reticulum-interfaces"
   ],
   { cwd: repoRoot, stdio: "inherit" }
 );
@@ -49,6 +50,7 @@ buildSync({
     "@twistedpear/miniapp-runtime": join(repoRoot, "packages/miniapp-runtime/dist/host.js"),
     "@twistedpear/app-registry": join(repoRoot, "packages/app-registry/dist/index.js"),
     "@twistedpear/cas-256t": join(repoRoot, "packages/cas-256t/dist/index.js"),
+    "@twistedpear/reticulum-interfaces": join(repoRoot, "packages/reticulum-interfaces/dist/index.js"),
     "@twistedpear/bridge-hyper/resource-server": join(repoRoot, "packages/bridge-hyper/dist/resource-server.js")
   },
   external: ["@twistedpear/miniapp-sdk"],

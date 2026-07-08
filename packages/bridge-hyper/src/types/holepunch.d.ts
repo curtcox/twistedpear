@@ -59,6 +59,7 @@ declare module "@hyperswarm/dht-relay" {
 
   export default class DHT {
     constructor(stream: Duplex);
+    ready(): Promise<void>;
     destroy(): Promise<void>;
   }
 

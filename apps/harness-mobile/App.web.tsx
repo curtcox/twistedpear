@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { validateWidgetTree, type WidgetTree } from "@twistedpear/miniapp-runtime/ui";
 import { MiniappWidgetTree } from "@twistedpear/widget-renderer-rn";
 import { createWebCoreBridge } from "./host/web-core-bridge";
+import { webSerialSupported } from "./host/web-serial-relay";
 import type {
   AnnounceEntry,
   CapabilityGrantView,
@@ -103,6 +104,8 @@ export default function App() {
   const [gatewayUrl, setGatewayUrl] = useState(defaultGatewayUrl());
   const [sharedToken, setSharedToken] = useState("");
   const [wsEnabled, setWsEnabled] = useState(false);
+  const [rnodeEnabled, setRnodeEnabled] = useState(false);
+  const [webSerialAvailable] = useState(() => webSerialSupported());
   const [previewTree, setPreviewTree] = useState<WidgetTree>(helloWidgetTree);
   const [lastWidgetEvent, setLastWidgetEvent] = useState<string | null>(null);
   const [storageQuota, setStorageQuota] = useState<WebStorageQuotaView | null>(null);
@@ -315,9 +318,20 @@ export default function App() {
       tcp: wsEnabled,
       auto: false,
       ble: false,
-      rnode: false
+      rnode: rnodeEnabled
     });
-  }, [ensureBridge, sendToWorker, wsEnabled]);
+  }, [ensureBridge, sendToWorker, wsEnabled, rnodeEnabled]);
+
+  const connectWebSerialRnode = useCallback(async () => {
+    try {
+      const bridge = ensureBridge();
+      await bridge.requestWebSerialPort();
+      setRnodeEnabled(true);
+      appendLog("Web Serial port opened; enable RNode to bring the interface online.");
+    } catch (error) {
+      appendLog(`Web Serial connect failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }, [appendLog, ensureBridge]);
 
   useEffect(
     () => () => {
@@ -452,6 +466,41 @@ export default function App() {
           value={wsEnabled}
           onChange={setWsEnabled}
         />
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>RNode (WebSerial)</Text>
+        <Text style={styles.muted}>
+          Chromium-only stretch path: connect a USB RNode via the Web Serial API (no gateway required for the radio).
+        </Text>
+        <Text>
+          RNode:{" "}
+          {status.rnodeConnected
+            ? `connected (${status.rnodeDeviceName ?? "webserial"})`
+            : status.rnodeEnabled
+              ? "waiting for serial"
+              : "offline"}
+        </Text>
+        <View style={styles.buttonRow}>
+          <ActionButton
+            testID="webserial-connect"
+            label="Connect Web Serial"
+            onPress={() => {
+              void connectWebSerialRnode();
+            }}
+            disabled={!webSerialAvailable}
+          />
+        </View>
+        <Row
+          testID="rnode-switch"
+          label="RNode interface"
+          value={rnodeEnabled}
+          onChange={setRnodeEnabled}
+          disabled={!webSerialAvailable}
+        />
+        {!webSerialAvailable ? (
+          <Text style={styles.muted}>Web Serial API is unavailable in this browser.</Text>
+        ) : null}
       </View>
 
       <View style={styles.card}>
@@ -719,7 +768,10 @@ export default function App() {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Unavailable on web</Text>
         <Text style={styles.muted}>AutoInterface / multicast / Bonjour — not available in browser tabs.</Text>
-        <Text style={styles.muted}>BLE / USB RNode — requires native host bridges.</Text>
+        <Text style={styles.muted}>BLE — requires native host bridges.</Text>
+        <Text style={styles.muted}>
+          USB RNode on web uses Web Serial (Chromium); native Android/iOS USB paths stay on mobile harness.
+        </Text>
         <Text style={styles.muted}>
           Hyperdrive fetch via gateway DHT relay when available; Resource + 256t install always supported.
         </Text>
@@ -769,17 +821,19 @@ function Row({
   label,
   value,
   onChange,
-  testID
+  testID,
+  disabled = false
 }: {
   readonly label: string;
   readonly value: boolean;
   readonly onChange: (next: boolean) => void;
   readonly testID?: string;
+  readonly disabled?: boolean;
 }) {
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
-      <Switch testID={testID} value={value} onValueChange={onChange} />
+      <Switch testID={testID} value={value} onValueChange={onChange} disabled={disabled} />
     </View>
   );
 }
@@ -787,14 +841,16 @@ function Row({
 function ActionButton({
   label,
   onPress,
-  testID
+  testID,
+  disabled = false
 }: {
   readonly label: string;
   readonly onPress: () => void;
   readonly testID?: string;
+  readonly disabled?: boolean;
 }) {
   return (
-    <Pressable testID={testID} style={styles.button} onPress={onPress}>
+    <Pressable testID={testID} style={[styles.button, disabled ? styles.buttonDisabled : null]} onPress={onPress} disabled={disabled}>
       <Text style={styles.buttonLabel}>{label}</Text>
     </Pressable>
   );
@@ -986,6 +1042,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8
+  },
+  buttonDisabled: {
+    opacity: 0.45
   },
   buttonLabel: {
     color: "#f4f7fb",

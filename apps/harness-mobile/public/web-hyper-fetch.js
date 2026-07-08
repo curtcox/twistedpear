@@ -42780,6 +42780,7 @@ async function fetchDriveVersionViaRelay(options) {
     async createDht() {
       const socket = await openRelaySocket(options.relayUrl, Math.min(options.timeoutMs ?? 15e3, 15e3));
       const dht = new import_dht_relay.default(new import_ws.default(true, socket));
+      await dht.ready();
       const destroy = dht.destroy.bind(dht);
       dht.destroy = async () => {
         await destroy();

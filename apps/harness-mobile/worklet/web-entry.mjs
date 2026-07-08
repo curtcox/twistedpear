@@ -7,15 +7,19 @@ import { createWebPackageStorage } from "../../../packages/host-core/dist/web.js
 import {
   Identity,
   PureCryptoProvider,
+  Reticulum,
   bytesToHex,
   hasWebIdentity,
   loadOrCreateWebIdentity,
   persistWebIdentity,
-  resetWebIdentity
+  resetWebIdentity,
+  webRuntime
 } from "../../../packages/reticulum-ts/dist/web.js";
 import { createWebWorkletMiniappHost, hexToBytes } from "./web-miniapp-host.mjs";
 import { createWebInstallService } from "./web-install.mjs";
 import { createWebPublishService } from "./web-publish.mjs";
+import { createWebSerialPipe } from "./web-serial-pipe.mjs";
+import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import {
   decodePublisherIdentity256t,
   encodePublisherIdentity256t
@@ -94,6 +98,8 @@ let webConfig = {
 
 /** @type {Awaited<ReturnType<typeof createWebLeafHost>> | null} */
 let hostSession = null;
+/** @type {import("../../../packages/reticulum-ts/dist/web.js").Reticulum | null} */
+let standaloneReticulum = null;
 /** @type {Awaited<ReturnType<typeof createWebPackageStorage>> | null} */
 let packageStorage = null;
 /** @type {ReturnType<typeof createWebWorkletMiniappHost> | null} */
@@ -102,6 +108,12 @@ let miniappHost = null;
 let installService = null;
 /** @type {ReturnType<typeof createWebPublishService> | null} */
 let publishService = null;
+/** @type {ReturnType<typeof createWebSerialPipe> | null} */
+let serialBridge = null;
+/** @type {import("../../../packages/reticulum-interfaces/dist/rnode/interface.js").RNodeInterface | null} */
+let rnodeIface = null;
+/** @type {number} */
+let pendingRnodeBaudRate = 115_200;
 /** @type {Promise<{ fetchDriveVersionViaRelay: Function; dhtRelayUrlFromGateway: Function }> | null} */
 let hyperFetchModule = null;
 /** @type {PureCryptoProvider} */
@@ -153,6 +165,9 @@ function pushStatus() {
     status.identityPersisted = hostStatus.identityPersisted;
     status.onlineInterfaces = hostStatus.onlineInterfaces;
     status.gatewayUrl = hostStatus.gatewayUrl;
+  } else if (standaloneReticulum !== null) {
+    status.running = true;
+    status.onlineInterfaces = standaloneReticulum.listInterfaces().filter((iface) => iface.online).length;
   }
 
   if (packageStorage !== null) {
@@ -221,6 +236,132 @@ async function loadHyperFetch() {
   }
 
   return hyperFetchModule;
+}
+
+function emitHostMessage(message) {
+  send(message);
+}
+
+async function ensureReticulumForInterfaces() {
+  if (hostSession !== null) {
+    return hostSession.reticulum;
+  }
+
+  if (standaloneReticulum === null) {
+    standaloneReticulum = Reticulum.create({
+      provider: cryptoProvider,
+      runtime: webRuntime(identityOptions())
+    });
+    standaloneReticulum.start();
+    status.running = true;
+    startStatusTimer();
+  }
+
+  return standaloneReticulum;
+}
+
+async function stopStandaloneReticulumIfIdle() {
+  if (hostSession !== null || standaloneReticulum === null) {
+    return;
+  }
+
+  if (!status.rnodeEnabled) {
+    await standaloneReticulum.stop();
+    standaloneReticulum = null;
+    status.running = false;
+    stopStatusTimer();
+    pushStatus();
+  }
+}
+
+async function stopRnodeInterface() {
+  if (rnodeIface !== null) {
+    const reticulum = hostSession?.reticulum ?? standaloneReticulum;
+    if (reticulum !== null && reticulum !== undefined) {
+      try {
+        reticulum.unregisterInterface(rnodeIface);
+      } catch {
+        // Interface may already be unregistered.
+      }
+    }
+
+    await rnodeIface.close();
+    rnodeIface = null;
+  }
+
+  if (serialBridge !== null) {
+    await serialBridge.close();
+    serialBridge = null;
+  }
+
+  status.rnodeConnected = false;
+  status.rnodeDeviceName = null;
+  await stopStandaloneReticulumIfIdle();
+  pushStatus();
+}
+
+async function startRnodeInterface() {
+  const reticulum = await ensureReticulumForInterfaces();
+
+  if (rnodeIface !== null) {
+    status.rnodeConnected = serialBridge?.connected ?? false;
+    pushStatus();
+    return;
+  }
+
+  log("Starting RNode interface over Web Serial");
+  serialBridge = createWebSerialPipe(emitHostMessage, pendingRnodeBaudRate);
+  rnodeIface = await RNodeInterface.open(cryptoProvider, {
+    name: "web-rnode",
+    provider: cryptoProvider,
+    pipe: serialBridge
+  });
+  reticulum.registerInterface(rnodeIface);
+
+  status.rnodeConnected = serialBridge.connected;
+  status.rnodeDeviceName = status.rnodeConnected ? "webserial" : null;
+  if (rnodeIface.online) {
+    log(`RNode interface online (firmware: ${rnodeIface.rnodeStatus.firmwareVersion ?? "unknown"})`);
+  } else {
+    log("RNode interface started; waiting for Web Serial connection from host");
+  }
+
+  pushStatus();
+}
+
+async function applyInterfaceConfig() {
+  if (status.rnodeEnabled) {
+    await startRnodeInterface();
+  } else {
+    await stopRnodeInterface();
+  }
+}
+
+function handleSerialHostMessage(message) {
+  if (serialBridge === null) {
+    return;
+  }
+
+  serialBridge.handleHostMessage(message);
+  if (message.type === "serial-connect") {
+    status.rnodeConnected = true;
+    status.rnodeDeviceName = message.deviceName;
+    log(`RNode Web Serial connected (${message.deviceName})`);
+    pushStatus();
+    return;
+  }
+
+  if (message.type === "serial-disconnect") {
+    status.rnodeConnected = false;
+    status.rnodeDeviceName = null;
+    log("RNode Web Serial disconnected");
+    pushStatus();
+    return;
+  }
+
+  if (message.type === "serial-error") {
+    log(`RNode Web Serial error: ${message.message}`);
+  }
 }
 
 function ensurePublishService() {
@@ -372,17 +513,19 @@ function stopStatusTimer() {
 }
 
 async function stopHostSession() {
-  stopStatusTimer();
   if (hostSession !== null) {
     await hostSession.stop();
     hostSession = null;
   }
 
-  status.running = false;
   status.linkOnline = false;
-  status.onlineInterfaces = 0;
   status.wsEnabled = false;
   status.tcpEnabled = false;
+  if (standaloneReticulum === null && !status.rnodeEnabled) {
+    stopStatusTimer();
+    status.running = false;
+    status.onlineInterfaces = 0;
+  }
   pushStatus();
 }
 
@@ -523,6 +666,16 @@ async function handleHostMessage(raw) {
     return;
   }
 
+  if (
+    message.type === "serial-data" ||
+    message.type === "serial-connect" ||
+    message.type === "serial-disconnect" ||
+    message.type === "serial-error"
+  ) {
+    handleSerialHostMessage(message);
+    return;
+  }
+
   if (message.type === "start") {
     if (message.gatewayUrl !== undefined) {
       webConfig = {
@@ -572,15 +725,17 @@ async function handleHostMessage(raw) {
     status.autoEnabled = message.auto;
     status.bleEnabled = message.ble;
     status.rnodeEnabled = message.rnode;
+    pendingRnodeBaudRate = message.rnodeBaudRate ?? 115_200;
     pushStatus();
 
     if (message.tcp) {
       await startHostSession();
-      return;
+    } else {
+      await stopHostSession();
+      log("WS gateway disabled");
     }
 
-    await stopHostSession();
-    log("WS gateway disabled");
+    await applyInterfaceConfig();
     return;
   }
 
@@ -837,4 +992,4 @@ pushStatus();
 refreshStorageStatus().catch((error) => {
   log(`Web package storage unavailable: ${error instanceof Error ? error.message : String(error)}`);
 });
-log("Web core worker ready (Phase W4 Hyperdrive-over-relay install)");
+log("Web core worker ready (Phase W4 WebSerial RNode + Hyperdrive-over-relay install)");

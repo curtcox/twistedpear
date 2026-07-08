@@ -4,6 +4,7 @@
 
 import { decodeMessages, encodeMessage, type HostToWorkletMessage, type WorkletToHostMessage } from "../worklet/protocol";
 import { createWebSandboxRelay } from "./web-sandbox-relay";
+import { createWebSerialRelay } from "./web-serial-relay";
 
 const WORKER_URL = "/web-core.worker.js";
 
@@ -68,6 +69,9 @@ export function createWebCoreBridge() {
   const sandboxRelay = createWebSandboxRelay((message) => {
     worklet.IPC.write(new TextEncoder().encode(encodeMessage(message)));
   });
+  const serialRelay = createWebSerialRelay((message) => {
+    worklet.IPC.write(new TextEncoder().encode(encodeMessage(message)));
+  });
 
   worklet.IPC.on("data", (data) => {
     const decoded = decodeMessages(`${buffer}${new TextDecoder().decode(data)}`);
@@ -84,6 +88,20 @@ export function createWebCoreBridge() {
         continue;
       }
 
+      if (serialRelay.isSerialMessage(message)) {
+        void serialRelay.handleWorkerMessage(message).catch((error) => {
+          worklet.IPC.write(
+            new TextEncoder().encode(
+              encodeMessage({
+                type: "serial-error",
+                message: error instanceof Error ? error.message : String(error)
+              })
+            )
+          );
+        });
+        continue;
+      }
+
       onMessage?.(message);
     }
   });
@@ -96,7 +114,11 @@ export function createWebCoreBridge() {
     send(message: HostToWorkletMessage) {
       worklet.IPC.write(new TextEncoder().encode(encodeMessage(message)));
     },
+    async requestWebSerialPort(baudRate = 115_200) {
+      await serialRelay.requestPortAndOpen(baudRate);
+    },
     stop() {
+      void serialRelay.dispose();
       sandboxRelay.dispose();
       worklet.terminate();
       buffer = "";

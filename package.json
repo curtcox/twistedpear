@@ -73,6 +73,7 @@
     "test:web-pwa": "npm run build && node conformance/web-pwa/run.mjs",
     "test:web-hyperdrive": "npm run build && node conformance/web-hyperdrive/run.mjs",
     "test:web-hyperdrive-browser": "npm run build && node conformance/web-hyperdrive-browser/run.mjs",
+    "test:web-rnode": "npm run build && node conformance/web-rnode/run.mjs",
     "test:fuzz": "vitest run packages/reticulum-ts/test/fuzz.test.ts packages/lxmf-ts/test/fuzz.test.ts",
     "docs:reticulum-ts": "npm run docs --workspace=@twistedpear/reticulum-ts",
     "test:transport-role": "npm run build && node conformance/transport-role/run.mjs",

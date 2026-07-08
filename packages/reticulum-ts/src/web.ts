@@ -66,6 +66,8 @@ export type {
 } from "./link.js";
 export { PacketReceipt, PacketReceiptStatus } from "./packet-receipt.js";
 export type { PacketReceiptCallbacks, PacketReceiptStatusValue } from "./packet-receipt.js";
+export { RawPacketInterface } from "./interfaces/interface.js";
+export type { PacketInterface, ReticulumInterfaceOptions } from "./interfaces/interface.js";
 export {
   Resource,
   ResourceAdvertisement,

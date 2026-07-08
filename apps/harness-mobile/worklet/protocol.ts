@@ -298,6 +298,7 @@ export type WorkletToHostMessage =
   | { readonly type: "ble-stop" }
   | { readonly type: "ble-write"; readonly dataHex: string }
   | { readonly type: "serial-start"; readonly deviceId: number; readonly baudRate: number }
+  | { readonly type: "serial-web-start"; readonly baudRate: number }
   | { readonly type: "serial-stop" }
   | { readonly type: "serial-write"; readonly dataHex: string };
 
