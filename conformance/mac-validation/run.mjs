@@ -319,7 +319,7 @@ function mergedEnv(extra = {}) {
   const env = { ...process.env, ANDROID_HOME: androidHome, PATH: pathParts.join(":") };
 
   for (const [key, value] of Object.entries(extra)) {
-    env[key] = value.includes("$(") ? shellEval(value) : value;
+    env[key] = shellEval(value);
   }
 
   return env;
