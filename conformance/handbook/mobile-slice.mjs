@@ -123,9 +123,21 @@ async function tap(host, nodeId, event, value) {
   await sleep(300);
 }
 
+function assertGrantIntroShowsGranted(tree) {
+  if (!treeContainsText(tree, "Capabilities at install")) {
+    return;
+  }
+  const texts = collectTextValues(tree.root);
+  if (!texts.some((value) => value.includes("✓ granted"))) {
+    throw new Error("grant intro missing granted markers from host.info().grantedCapabilities");
+  }
+}
+
 async function dismissGrantIntroIfNeeded(host) {
   const tree = host.snapshot().widgetTree;
   if (tree !== null && treeContainsText(tree, "Capabilities at install")) {
+    assertGrantIntroShowsGranted(tree);
+    console.log("handbook-mobile: grant intro shows live granted status");
     await tap(host, "grant-intro-continue", "hb.grantintro.dismiss");
     await waitForTreeText(host, "Contents");
     console.log("handbook-mobile: grant intro dismissed");
@@ -402,7 +414,7 @@ export async function runHandbookMobileSlice(options) {
       return null;
     }
     const texts = collectTextValues(tree.root);
-    const identityRow = texts.find((value) => value.startsWith("identity-hash:"));
+    const identityRow = texts.find((value) => /\bidentity-hash:\s*PASS\b/i.test(value));
     if (identityRow !== undefined && identityRow.toUpperCase().includes("PASS")) {
       return identityRow;
     }
@@ -414,7 +426,7 @@ export async function runHandbookMobileSlice(options) {
     const tree = host.snapshot().widgetTree;
     const rowText = tree === null
       ? ""
-      : collectTextValues(tree.root).find((value) => value.startsWith(`${applet.id}:`)) ?? "";
+      : collectTextValues(tree.root).find((value) => new RegExp(`\\b${applet.id}:`).test(value)) ?? "";
     const status = rowText.split(":").pop()?.trim().toLowerCase() ?? "missing";
 
     if (DEVICE_GATED_APPLET_IDS.has(applet.id)) {

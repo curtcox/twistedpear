@@ -235,6 +235,10 @@ async function ensureToc(send, getRuntime) {
     runtime?.widgetTree !== null &&
     treeContainsText(runtime.widgetTree, "Capabilities at install")
   ) {
+    const texts = collectTextValues(runtime.widgetTree.root);
+    if (!texts.some((value) => value.includes("✓ granted"))) {
+      throw new Error("grant intro missing granted markers from host.info().grantedCapabilities");
+    }
     await tap(send, getRuntime, "grant-intro-continue", "hb.grantintro.dismiss");
     await waitForRuntime(getRuntime, (next) => treeContainsText(next.widgetTree, "Contents"));
     return;

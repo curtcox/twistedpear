@@ -200,7 +200,7 @@ register in STATUS-HARDWARE once D3 starts.
 |---|---|---|
 | D0: scaffold + content pipeline + TOC/chapters + one applet E2E | handbook §D0 | **Done (node + web)** — `apps/handbook`, `npm run build:handbook`, `npm run test:handbook`, `npm run test:web-handbook` |
 | D1: applet framework + full Part III SDK tour + coverage gate | handbook §D1 | **Done (node + web)** — 14 applets covering every `CAPABILITY_DEFINITIONS` id + widget gallery; strict coverage gate; handbook row in `conformance/budgets` (~71 KiB, exceeds BLE example budget by design); web exercise via `test:web-handbook` |
-| D2: `host.info()` + run-all diagnostics + report share/diff | handbook §D2 | **Done (node + web)** — `HOST_API_VERSION` 0.3.0 `host.info()`; Diagnostics run-all / `share.put`+QR / compare matrix; Part II difference matrix; `npm run test:handbook-report`; web report export in `test:web-handbook` |
+| D2: `host.info()` + run-all diagnostics + report share/diff | handbook §D2 | **Done (node + web)** — `HOST_API_VERSION` 0.4.0 `host.info()` with `grantedCapabilities`; Diagnostics run-all / `share.put`+QR / compare matrix; Part II difference matrix; `npm run test:handbook-report`; web report export in `test:web-handbook` |
 | D3: Android emulator + iOS sim Handbook flows | handbook §D3 | **Done (software tier)** — device-gated applets + `test:handbook-mobile`; slices in `test:ios-sim:required` + `test:android-emulator` (headless); real-device report compare in STATUS-HARDWARE |
 | D4: Parts I & V, publish, default seed | handbook §D4 | **Done (software tier)** — Part I/V chapters; Open in DevStudio handoff; desktop bundled seed (`build-bundled-catalog.mjs`); `test:handbook` handoff round-trip |
 

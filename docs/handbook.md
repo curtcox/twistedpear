@@ -231,6 +231,10 @@ packaging chapter); `host.info().grantedCapabilities` at `HOST_API_VERSION`
 `0.4.0` for live grant status on the intro screen; compare matrix grouped by
 diagnostic area.
 
+**Conformance (2026-07-08):** `test:handbook` exercises preview-slot launch/stop
+and grant-intro granted markers; `test:handbook-mobile` and `test:web-handbook`
+assert grant-intro live status.
+
 ## Testing strategy
 
 - `test:handbook` (D0–D1): headless chapter render + all applets on Node backend.

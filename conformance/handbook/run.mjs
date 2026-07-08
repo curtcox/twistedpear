@@ -121,13 +121,51 @@ async function tap(host, nodeId, event, value) {
   await sleep(300);
 }
 
+function assertGrantIntroShowsGranted(tree) {
+  if (!treeContainsText(tree, "Capabilities at install")) {
+    return;
+  }
+  const texts = collectTextValues(tree.root);
+  if (!texts.some((value) => value.includes("✓ granted"))) {
+    throw new Error("grant intro missing granted markers from host.info().grantedCapabilities");
+  }
+  if (!texts.some((value) => value.includes("identity") && value.includes("✓ granted"))) {
+    throw new Error("grant intro missing identity granted marker");
+  }
+}
+
 async function dismissGrantIntroIfNeeded(host) {
   const tree = host.snapshot().widgetTree;
   if (tree !== null && treeContainsText(tree, "Capabilities at install")) {
+    assertGrantIntroShowsGranted(tree);
+    console.log("handbook: grant intro shows live granted status");
     await tap(host, "grant-intro-continue", "hb.grantintro.dismiss");
     await waitForTreeText(host, "Contents");
     console.log("handbook: grant intro dismissed");
   }
+}
+
+async function assertPreviewSlot(host, appsBackend) {
+  const tree = host.snapshot().widgetTree;
+  if (tree === null || !treeContainsText(tree, "Contents")) {
+    await tap(host, "back-toc", "hb.toc");
+    await waitForTreeText(host, "Contents");
+  }
+
+  await tap(host, "ch-sdk-apps-package", "hb.openchapter");
+  await waitForTreeText(host, "Run as real app");
+  await tap(host, "applet-preview-apps-package-preview", "hb.runpreview");
+  await waitForTreeText(host, "PASS");
+  if (!appsBackend.previewActive) {
+    throw new Error("preview slot did not activate apps backend");
+  }
+  await waitForTreeText(host, "Preview is running in the host dev-preview slot");
+  await tap(host, "applet-stoppreview-apps-package-preview", "hb.stoppreview");
+  await waitForTreeText(host, "Preview stopped");
+  if (appsBackend.previewActive) {
+    throw new Error("preview slot did not deactivate after stop");
+  }
+  console.log("handbook: preview slot passed");
 }
 
 function launchManifest(app, publisherPublicKey) {
@@ -327,6 +365,7 @@ async function main() {
     new TextEncoder().encode("handbook-resource-probe-payload")
   );
   const casBackend = makeCasBackend();
+  const appsBackend = makeAppsBackend();
 
   const host = new MiniappHost({
     backend: new NodeWorkerSandboxBackend(),
@@ -364,7 +403,7 @@ async function main() {
       }
     },
     casBackend,
-    appsBackend: makeAppsBackend(),
+    appsBackend,
     confirmationChannel: {
       confirm: async () => ({ approved: true })
     },
@@ -431,6 +470,8 @@ async function main() {
         await sleep(200);
       }
     }
+
+    await assertPreviewSlot(host, appsBackend);
 
     const resultRecord = {
       appletId: "identity-hash",
@@ -560,6 +601,14 @@ async function main() {
     );
     if (!infoSmoke.ok || infoSmoke.result?.platform !== "node") {
       throw new Error(`host.info smoke failed: ${JSON.stringify(infoSmoke)}`);
+    }
+    if (
+      !Array.isArray(infoSmoke.result?.grantedCapabilities) ||
+      infoSmoke.result.grantedCapabilities.length === 0
+    ) {
+      throw new Error(
+        `host.info missing grantedCapabilities: ${JSON.stringify(infoSmoke.result)}`
+      );
     }
     console.log("handbook: host.info smoke passed");
 
