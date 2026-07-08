@@ -226,6 +226,11 @@ reference; difference-matrix prose companion. **36 chapters** total.
 intro screen; diagnostics grouped by area (crypto / interfaces / storage /
 distribution / runtime).
 
+**Expanded (2026-07-08):** Preview-slot execution mode (`Run as real app` on
+packaging chapter); `host.info().grantedCapabilities` at `HOST_API_VERSION`
+`0.4.0` for live grant status on the intro screen; compare matrix grouped by
+diagnostic area.
+
 ## Testing strategy
 
 - `test:handbook` (D0–D1): headless chapter render + all applets on Node backend.

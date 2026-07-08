@@ -597,11 +597,12 @@ export class MiniappHost {
       return this.presenceService.snapshot();
     });
 
-    this.broker.register("host", "info", "presence", async (): Promise<HostInfo> => {
+    this.broker.register("host", "info", "presence", async (_request, context): Promise<HostInfo> => {
       const info = await this.hostInfoService.info();
       return {
         ...info,
-        hostApiVersion: info.hostApiVersion || HOST_API_VERSION
+        hostApiVersion: info.hostApiVersion || HOST_API_VERSION,
+        grantedCapabilities: [...context.grantedCapabilities]
       };
     });
   }

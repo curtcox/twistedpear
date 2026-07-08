@@ -53,6 +53,15 @@ let compareInput = "";
 let compareState = { local: null, remote: null, rows: [], error: null };
 /** @type {Record<string, { t256: string, project: string }>} */
 let devstudioHandoffs = {};
+/** @type {boolean} */
+let previewRunning = false;
+/** @type {string | null} */
+let previewAppletId = null;
+
+function appletSupportsMode(applet, mode) {
+  const modes = applet.executionModes ?? ["inline"];
+  return modes.includes(mode);
+}
 
 function makeSdk() {
   return {
@@ -160,14 +169,18 @@ function explainStatus(status) {
 }
 
 function renderTableBlock(bid, block, children) {
-  const lines = [block.headers.join(" · ")];
-  for (const row of block.rows) {
-    lines.push(row.join(" — "));
-  }
-  children.push(textNode(bid, lines.join("\n")));
+  children.push(
+    textNode(`${bid}-header`, block.headers.join(" · "), { fontWeight: "bold" })
+  );
+  const items = block.rows.map((row) => row.join(" — "));
+  children.push({
+    id: `${bid}-rows`,
+    type: "list",
+    props: { items }
+  });
 }
 
-function renderGrantIntro(children) {
+async function renderGrantIntro(children) {
   children.push(
     textNode("grant-intro-title", "Capabilities at install", { fontSize: 20, fontWeight: "bold" })
   );
@@ -178,12 +191,27 @@ function renderGrantIntro(children) {
     )
   );
 
+  /** @type {Set<string>} */
+  let granted = new Set();
+  try {
+    const info = await host.info();
+    if (Array.isArray(info.grantedCapabilities)) {
+      granted = new Set(info.grantedCapabilities);
+    }
+  } catch {
+    // presence withheld — list manifest capabilities without live grant status
+  }
+
   const caps = CATALOG.manifestCapabilities ?? [];
   for (let i = 0; i < caps.length; i += 1) {
     const cap = caps[i];
-    children.push(
-      textNode(`grant-cap-${i}`, `• ${cap.id} — ${cap.description}`)
-    );
+    const status =
+      granted.size === 0
+        ? ""
+        : granted.has(cap.id)
+          ? " ✓ granted"
+          : " ✗ withheld";
+    children.push(textNode(`grant-cap-${i}`, `• ${cap.id} — ${cap.description}${status}`));
   }
 
   children.push(
@@ -245,6 +273,22 @@ function renderAppletBlock(appletId, children) {
   children.push(
     widgetButton(`applet-run-${appletId}`, "Run applet", "hb.runapplet")
   );
+  if (appletSupportsMode(applet, "preview") && applet.preview !== null) {
+    children.push(
+      widgetButton(`applet-preview-${appletId}`, "Run as real app", "hb.runpreview")
+    );
+    if (previewRunning && previewAppletId === appletId) {
+      children.push(
+        widgetButton(`applet-stoppreview-${appletId}`, "Stop preview", "hb.stoppreview")
+      );
+      children.push(
+        textNode(
+          `applet-preview-active-${appletId}`,
+          "Preview is running in the host dev-preview slot. Stop preview to return here."
+        )
+      );
+    }
+  }
   children.push(
     widgetButton(`applet-devstudio-${appletId}`, "Open in DevStudio", "hb.devstudio")
   );
@@ -488,14 +532,34 @@ function renderDiagnostics(children) {
         `Local host: ${localPlat}  ·  Remote host: ${remotePlat}`
       )
     );
-    for (const row of compareState.rows) {
-      const mark = row.same ? "=" : "≠";
+    const grouped = appletsByDiagnosticGroup();
+    for (const group of DIAGNOSTIC_GROUP_ORDER) {
+      const applets = grouped[group];
+      if (applets === undefined || applets.length === 0) {
+        continue;
+      }
+      const groupRows = compareState.rows.filter((row) =>
+        applets.some((applet) => applet.id === row.appletId)
+      );
+      if (groupRows.length === 0) {
+        continue;
+      }
       children.push(
         textNode(
-          `diag-diff-${row.appletId}`,
-          `${mark} ${row.appletId}: ${row.local} / ${row.remote}`
+          `diag-compare-group-${group}`,
+          DIAGNOSTIC_GROUP_LABELS[group] ?? group,
+          { fontSize: 14, fontWeight: "bold" }
         )
       );
+      for (const row of groupRows) {
+        const mark = row.same ? "=" : "≠";
+        children.push(
+          textNode(
+            `diag-diff-${row.appletId}`,
+            `  ${mark} ${row.appletId}: ${row.local} / ${row.remote}`
+          )
+        );
+      }
     }
   }
 }
@@ -514,7 +578,7 @@ async function render() {
   }
 
   if (view === "grant-intro") {
-    renderGrantIntro(children);
+    await renderGrantIntro(children);
   } else if (view === "toc") {
     children.push(textNode("toc-heading", "Contents", { fontSize: 20, fontWeight: "bold" }));
     children.push(
@@ -713,6 +777,88 @@ async function runAppletInline(appletId, options = {}) {
     await render();
   }
   return { appletId, ...reported };
+}
+
+async function seedPreviewProject(preview) {
+  const project = preview.project;
+  for (const [name, content] of Object.entries(preview.files)) {
+    await workspace.write(`${project}/${name}`, content);
+  }
+}
+
+async function runAppletPreviewSlot(appletId) {
+  const applet = findApplet(appletId);
+  if (applet === null || applet.preview === null || !appletSupportsMode(applet, "preview")) {
+    statusLine = `Preview not available for: ${appletId}`;
+    await render();
+    return;
+  }
+
+  if (previewRunning) {
+    statusLine = "Stop the current preview before starting another.";
+    await render();
+    return;
+  }
+
+  const preview = applet.preview;
+  statusLine = `Launching preview for ${applet.title}…`;
+  await render();
+
+  const started = Date.now();
+  try {
+    await seedPreviewProject(preview);
+    const packed = await apps.packageProject(preview.project, preview.manifest);
+    if (packed === null || typeof packed.t256 !== "string") {
+      throw new Error(`Package failed: ${JSON.stringify(packed)}`);
+    }
+
+    const launched = await apps.preview(preview.project, preview.manifest, preview.grants);
+    if (launched === null || launched.launched !== true) {
+      throw new Error(`Preview did not launch: ${JSON.stringify(launched)}`);
+    }
+
+    previewRunning = true;
+    previewAppletId = appletId;
+    appletResults[appletId] = {
+      status: "pass",
+      details: `Preview running (${packed.t256.slice(0, 12)}…). Use Stop preview when finished.`,
+      timings: { ms: Date.now() - started }
+    };
+    statusLine = `${applet.title}: preview slot active`;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const notGranted = /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
+    const unavailable = /not configured|UNCONFIGURED|CONFIRMATION_UNAVAILABLE|unavailable/i.test(
+      message
+    );
+    appletResults[appletId] = {
+      status: notGranted ? "not-granted" : unavailable ? "unavailable" : "fail",
+      details: message,
+      timings: { ms: Date.now() - started }
+    };
+    statusLine = `${applet.title}: preview failed`;
+  }
+
+  await render();
+}
+
+async function stopAppletPreview() {
+  if (!previewRunning) {
+    return;
+  }
+
+  try {
+    await apps.stopPreview();
+  } catch (error) {
+    statusLine = `Stop preview failed: ${error instanceof Error ? error.message : String(error)}`;
+    await render();
+    return;
+  }
+
+  previewRunning = false;
+  previewAppletId = null;
+  statusLine = "Preview stopped";
+  await render();
 }
 
 async function runAllDiagnostics() {
@@ -981,6 +1127,16 @@ function appletIdFromDevStudioNode(nodeId) {
   return null;
 }
 
+function appletIdFromPreviewNode(nodeId) {
+  if (nodeId.startsWith("applet-preview-")) {
+    return nodeId.slice("applet-preview-".length);
+  }
+  if (nodeId.startsWith("applet-stoppreview-")) {
+    return nodeId.slice("applet-stoppreview-".length);
+  }
+  return null;
+}
+
 async function handleEvent({ nodeId, event, value }) {
   if (event === "hb.grantintro.dismiss") {
     await dismissGrantIntro();
@@ -1010,6 +1166,19 @@ async function handleEvent({ nodeId, event, value }) {
     if (id !== null) {
       await runAppletInline(id);
     }
+    return;
+  }
+
+  if (event === "hb.runpreview") {
+    const id = appletIdFromPreviewNode(nodeId);
+    if (id !== null) {
+      await runAppletPreviewSlot(id);
+    }
+    return;
+  }
+
+  if (event === "hb.stoppreview") {
+    await stopAppletPreview();
     return;
   }
 

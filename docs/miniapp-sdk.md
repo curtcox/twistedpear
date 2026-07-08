@@ -48,7 +48,8 @@ mini-app cannot draw over or acknowledge (see
 - `resource.fetch({ resourceId, budgetBytes? })` — host-budgeted Resource fetch.
 - `presence.snapshot()` — coarse peer/interface state.
 - `host.info()` — platform id, host version, `HOST_API_VERSION`, enabled roles,
-  available interface types, and quota snapshot (requires `presence`).
+  available interface types, quota snapshot, and `grantedCapabilities` for the
+  calling app (requires `presence`).
 - `ui.render(tree)` — submit a validated widget tree.
 - `ui.onEvent(handler)` — subscribe to host UI events (tap, input change, etc.).
 - `workspace.list/read/write/remove(path)` — per-app project source files

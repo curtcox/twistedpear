@@ -27,10 +27,11 @@ export async function run(sdk, report) {
     const api = typeof info.hostApiVersion === "string" ? info.hostApiVersion : "?";
     const roles = info.roles ?? {};
     const interfaces = Array.isArray(info.interfaceTypes) ? info.interfaceTypes.join(",") : "";
+    const grants = Array.isArray(info.grantedCapabilities) ? info.grantedCapabilities.length : 0;
 
     report({
       status: "pass",
-      details: `platform=${platform} api=${api} transport=${roles.transport === true} seeder=${roles.seeder === true} interfaces=[${interfaces}]`,
+      details: `platform=${platform} api=${api} grants=${grants} transport=${roles.transport === true} seeder=${roles.seeder === true} interfaces=[${interfaces}]`,
       timings: { ms: Date.now() - started }
     });
   } catch (error) {

@@ -71,7 +71,8 @@ describe("host.info", () => {
       hostVersion: "1.2.3",
       hostApiVersion: HOST_API_VERSION,
       roles: { transport: true, seeder: true, propagation: false },
-      interfaceTypes: ["tcp", "auto"]
+      interfaceTypes: ["tcp", "auto"],
+      grantedCapabilities: ["presence"]
     });
   });
 

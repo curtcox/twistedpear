@@ -29,6 +29,7 @@ const catalogOutPath = join(generatedDir, "catalog.json");
 
 const EXPECTATION_VALUES = new Set(["pass", "unavailable", "device-gated", "fail"]);
 const DIAGNOSTIC_GROUPS = new Set(["crypto", "interfaces", "storage", "distribution", "runtime"]);
+const EXECUTION_MODES = new Set(["inline", "preview"]);
 
 function isTableSeparator(line) {
   return /^\|?[\s:-]+\|[\s|:-]+\|?$/.test(line.trim());
@@ -235,6 +236,33 @@ function loadApplets() {
     if (meta.group !== undefined && !DIAGNOSTIC_GROUPS.has(meta.group)) {
       fail(`Applet ${entry} has invalid diagnostic group "${meta.group}"`);
     }
+    const executionModes = meta.executionModes ?? ["inline"];
+    if (!Array.isArray(executionModes) || executionModes.length === 0) {
+      fail(`Applet ${entry} must declare executionModes (default inline)`);
+    }
+    for (const mode of executionModes) {
+      if (!EXECUTION_MODES.has(mode)) {
+        fail(`Applet ${entry} has invalid execution mode "${mode}"`);
+      }
+    }
+    if (executionModes.includes("preview")) {
+      const preview = meta.preview;
+      if (preview === undefined || typeof preview !== "object") {
+        fail(`Applet ${entry} with preview mode must declare preview config`);
+      }
+      if (typeof preview.project !== "string" || preview.project.length === 0) {
+        fail(`Applet ${entry} preview.project is required`);
+      }
+      if (preview.manifest === undefined || typeof preview.manifest !== "object") {
+        fail(`Applet ${entry} preview.manifest is required`);
+      }
+      if (!Array.isArray(preview.grants)) {
+        fail(`Applet ${entry} preview.grants must be an array`);
+      }
+      if (preview.files === undefined || typeof preview.files !== "object") {
+        fail(`Applet ${entry} preview.files is required`);
+      }
+    }
     for (const [platform, expectation] of Object.entries(meta.expectations)) {
       if (!EXPECTATION_VALUES.has(expectation)) {
         fail(`Applet ${entry} has invalid expectation "${expectation}" for ${platform}`);
@@ -250,6 +278,8 @@ function loadApplets() {
       id: meta.id,
       title: meta.title,
       group: meta.group ?? "runtime",
+      executionModes,
+      preview: meta.preview ?? null,
       capabilities: meta.capabilities,
       surfaces: meta.surfaces ?? [],
       expectations: meta.expectations,
@@ -678,6 +708,8 @@ async function build() {
           id: applet.id,
           title: applet.title,
           group: applet.group,
+          executionModes: applet.executionModes,
+          preview: applet.preview,
           capabilities: applet.capabilities,
           surfaces: applet.surfaces,
           expectations: applet.expectations

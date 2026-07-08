@@ -20,6 +20,8 @@ export interface HostInfo {
   readonly roles: HostRolesInfo;
   readonly interfaceTypes: ReadonlyArray<string>;
   readonly quotas: HostQuotaSnapshot;
+  /** Capabilities granted to the calling app at install (HOST_API 0.4.0+). */
+  readonly grantedCapabilities?: ReadonlyArray<string>;
 }
 
 export interface HostInfoBackend {

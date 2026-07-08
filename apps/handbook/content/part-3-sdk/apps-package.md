@@ -17,4 +17,9 @@ await apps.stopPreview();
 
 ## Live probe
 
+Use **Run applet** for the automated inline probe (package → preview → stop, used in CI).
+
+Use **Run as real app** to launch the sample in the host dev-preview slot — the full
+sandbox/grant/launch loop with host confirmation. Stop preview when finished.
+
 {{applet:apps-package-preview}}
