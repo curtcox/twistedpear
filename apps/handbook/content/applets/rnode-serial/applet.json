@@ -1,0 +1,13 @@
+{
+  "id": "rnode-serial",
+  "title": "RNode serial / LoRa path",
+  "capabilities": ["presence"],
+  "surfaces": ["host.info", "presence.snapshot"],
+  "expectations": {
+    "android": "device-gated",
+    "ios": "device-gated",
+    "desktop": "device-gated",
+    "web": "device-gated",
+    "node": "unavailable"
+  }
+}

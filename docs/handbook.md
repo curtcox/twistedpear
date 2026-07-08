@@ -1,12 +1,14 @@
 # Handbook: interactive diagnostic documentation for every host (plan)
 
 Status: **in progress** — Phase D0–D2 landed on Node; web host Handbook CI
-(`test:web-handbook`) closed the D0/D2 web exercise. D3–D4 open.
+(`test:web-handbook`) closed the D0/D2 web exercise. D3 landed (mobile harness
+slices + device-gated probes); D4 open.
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase D;
 device-gated rows will go to [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
 
 Verify: `npm run build:handbook` · `npm run test:handbook` ·
-`npm run test:handbook-report` · `npm run test:web-handbook`
+`npm run test:handbook-report` · `npm run test:web-handbook` ·
+`npm run test:handbook-mobile`
 
 The Handbook is the platform's documentation delivered **as a mini-app** — the same
 posture as [DevStudio](devstudio.md): a signed, SDK-only bundle running in the standard
@@ -189,6 +191,13 @@ round-trip + seeded web-status diff). Web Playwright Handbook CI:
 - Exit: software-tier suite passes on all four hosts; hardware rows registered, not
   blocking.
 
+**Landed (2026-07-08, mobile harness slices):** four device-gated applets +
+`device-gated-probes` chapter; `conformance/handbook/mobile-slice.mjs` (iOS +
+Android platform ids, Bare worklet path with node-worker fallback);
+`npm run test:handbook-mobile`; wired into `test:ios-sim:required` and
+`test:android-emulator` (headless slice before Maestro). Real-device report
+comparison rows deferred to STATUS-HARDWARE.
+
 ### Phase D4 — Parts I & V, publish, seed
 - Concepts and reference chapters (reference pages generated from runtime sources);
   final editorial pass; "Open in DevStudio" integration.
@@ -203,6 +212,7 @@ round-trip + seeded web-status diff). Web Playwright Handbook CI:
 - `test:handbook` (D0–D1): headless chapter render + all applets on Node backend.
 - `test:handbook-report` (D2): report generation, share round-trip, diff detection.
 - Web (`conformance/web-*` pattern), Android emulator, iOS sim runs (D3).
+- `test:handbook-mobile` (D3): iOS + Android platform slices on worklet sandbox path.
 - The coverage gate makes documentation part of the definition of done for any new
   SDK surface.
 

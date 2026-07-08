@@ -107,6 +107,11 @@
           "id": "running-diagnostics",
           "title": "Running diagnostics",
           "file": "part-4-diagnostics/running-diagnostics.md"
+        },
+        {
+          "id": "device-gated-probes",
+          "title": "Device-gated probes",
+          "file": "part-4-diagnostics/device-gated-probes.md"
         }
       ]
     }

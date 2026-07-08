@@ -1,0 +1,13 @@
+{
+  "id": "camera-qr-scan",
+  "title": "Camera QR scan",
+  "capabilities": ["presence"],
+  "surfaces": ["host.info"],
+  "expectations": {
+    "android": "device-gated",
+    "ios": "device-gated",
+    "desktop": "unavailable",
+    "web": "unavailable",
+    "node": "unavailable"
+  }
+}

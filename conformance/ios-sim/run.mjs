@@ -9,6 +9,7 @@ import { runIosLifecycleSlice } from "./lifecycle.mjs";
 import { runUsbSerialProbe } from "./usb-probe.mjs";
 import { runIosDevLoop } from "./dev-loop.mjs";
 import { runIosHostileSmoke } from "./hostile-smoke.mjs";
+import { runIosHandbookSlice } from "./handbook.mjs";
 import { runIosInterfacePolicy } from "./interface-policy.mjs";
 import { runIosCryptoBenchmark } from "./crypto-benchmark.mjs";
 import { runBonjourInterop } from "../bonjour-interop/run.mjs";
@@ -122,6 +123,12 @@ try {
 }
 
 try {
+  await runIosHandbookSlice();
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
+}
+
+try {
   await runIosDevLoop();
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
@@ -151,4 +158,4 @@ try {
   fail(error instanceof Error ? error.message : String(error));
 }
 
-console.log("[ios-sim] toolchain smoke passed: simctl available, dev/store worklets bundle, usb probe, bonjour interop, crypto decision, interface policy, hostile smoke, dev loop, full loop, discovery policy, BLE spec tests, store-posture refusal" + (requirePeer ? ", tcp slice, lifecycle quiesce" : " (tcp/lifecycle skipped without leaf-echo peer)"));
+console.log("[ios-sim] toolchain smoke passed: simctl available, dev/store worklets bundle, usb probe, bonjour interop, crypto decision, interface policy, hostile smoke, handbook slice, dev loop, full loop, discovery policy, BLE spec tests, store-posture refusal" + (requirePeer ? ", tcp slice, lifecycle quiesce" : " (tcp/lifecycle skipped without leaf-echo peer)"));

@@ -26,6 +26,13 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const handbookDir = join(root, "apps/handbook");
 const RESULT_STATUSES = new Set(["pass", "fail", "unavailable", "not-granted", "skipped"]);
 
+const DEVICE_GATED_APPLET_IDS = new Set([
+  "ble-peer",
+  "rnode-serial",
+  "multicast-auto",
+  "camera-qr-scan"
+]);
+
 const APPLET_CHAPTER = {
   "host-info": "difference-matrix",
   "identity-hash": "sdk-identity",
@@ -40,7 +47,11 @@ const APPLET_CHAPTER = {
   "apps-package-preview": "sdk-apps-package",
   "apps-publish-install": "sdk-apps-publish",
   "ai-chat": "sdk-ai-chat",
-  "widget-gallery": "sdk-widget-gallery"
+  "widget-gallery": "sdk-widget-gallery",
+  "ble-peer": "device-gated-probes",
+  "rnode-serial": "device-gated-probes",
+  "multicast-auto": "device-gated-probes",
+  "camera-qr-scan": "device-gated-probes"
 };
 
 class MemoryStore {
@@ -388,6 +399,10 @@ async function main() {
         }
         const texts = collectTextValues(next.root);
         const hit = texts.find((value) => value.startsWith("PASS"));
+        const unavailable = texts.find((value) => value.startsWith("UNAVAILABLE"));
+        if (DEVICE_GATED_APPLET_IDS.has(applet.id)) {
+          return unavailable ?? null;
+        }
         return hit ?? null;
       }, 20_000);
       console.log(`handbook: applet passed — ${applet.id}`);

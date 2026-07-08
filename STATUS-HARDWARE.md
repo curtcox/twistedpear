@@ -23,6 +23,8 @@ Last audited: 2026-07-06.
 | 6 | 2nd desktop/laptop for LAN tests | low | H18 |
 | 7 | Windows 10/11 machine | low | H17 |
 | 8 | Spare Linux box (home server) | low | H20 |
+| 9 | Phone + desktop on LAN (Handbook) | low | H21 |
+| 10 | RNode + phone (Handbook) | moderate | H22 |
 
 ---
 
@@ -50,6 +52,8 @@ Last audited: 2026-07-06.
 | H18 | 2 desktops + phone (+ iPhone) on WiFi | 6 | Real LAN discovery, desktop seed install, transport routing |
 | H19 | RNode pair + desktop USB | 6 | Desktop USB serial gateway, LoRa E2E |
 | H20 | Always-on Linux server | 6 | 2-week unattended `tp node` run |
+| H21 | 1 Android phone + desktop | D | Handbook device-gated probes (BLE / AutoInterface) + cross-device report diff |
+| H22 | RNode pair + phone | D | Handbook RNode serial applet pass on hardware |
 
 ---
 
@@ -474,3 +478,26 @@ CI uses shortened soaks. Full phase exits call for 24–72 h runs — can use an
 | 8 h Android background | — | H3 |
 | Flagship BLE-only install | simulated BLE in dist-interop | H7 |
 | PLAN §6 flagship (publish → BLE install → launch) | partial CI | H7 + H9 |
+| Handbook software tier | `test:handbook`, `test:handbook-mobile`, `test:web-handbook` | H21, H22 |
+
+---
+
+## H21 — Handbook device-gated probes (phone + desktop)
+
+**Clears:** Phase D Handbook device-gated applet pass on real hardware + cross-device report diff.
+
+1. Install Handbook on phone and desktop (or export reports from each).
+2. On phone: open **Device-gated probes** → run BLE peer and AutoInterface applets with a second peer on LAN.
+3. Export diagnostic report on each host (Diagnostics → Export report).
+4. Paste the other device's 256t id into Compare report — confirm matrix shows expected platform differences.
+
+**Pass:** BLE / AutoInterface applets report `pass` with peer visible; compare view renders both hosts.
+
+## H22 — Handbook RNode probe (phone + RNode)
+
+**Clears:** Phase D `rnode-serial` applet on hardware.
+
+1. Connect RNode per host docs; enable RNode interface.
+2. Open Handbook → **Device-gated probes** → **RNode serial / LoRa path** → Run applet.
+
+**Pass:** applet reports `pass` with RNode path online.

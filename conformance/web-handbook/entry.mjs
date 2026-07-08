@@ -10,6 +10,13 @@ import {
 } from "../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 import { HANDBOOK_FIXTURE } from "./fixtures.mjs";
 
+const DEVICE_GATED_APPLET_IDS = new Set([
+  "ble-peer",
+  "rnode-serial",
+  "multicast-auto",
+  "camera-qr-scan"
+]);
+
 const APPLET_CHAPTER = {
   "host-info": "difference-matrix",
   "identity-hash": "sdk-identity",
@@ -24,7 +31,11 @@ const APPLET_CHAPTER = {
   "apps-package-preview": "sdk-apps-package",
   "apps-publish-install": "sdk-apps-publish",
   "ai-chat": "sdk-ai-chat",
-  "widget-gallery": "sdk-widget-gallery"
+  "widget-gallery": "sdk-widget-gallery",
+  "ble-peer": "device-gated-probes",
+  "rnode-serial": "device-gated-probes",
+  "multicast-auto": "device-gated-probes",
+  "camera-qr-scan": "device-gated-probes"
 };
 
 const T256_PATTERN = /^[A-Za-z0-9_-]{94}$/;
@@ -449,7 +460,11 @@ async function main() {
           /^(PASS|FAIL|UNAVAILABLE|NOT-GRANTED|SKIPPED)\b/.test(value) ||
           value.startsWith("Error:")
       ) ?? "";
-    if (!resultLine.startsWith("PASS")) {
+    if (DEVICE_GATED_APPLET_IDS.has(appletId)) {
+      if (!resultLine.startsWith("UNAVAILABLE") && !resultLine.startsWith("SKIPPED")) {
+        throw new Error(`device-gated applet ${appletId} expected unavailable: ${resultLine}`);
+      }
+    } else if (!resultLine.startsWith("PASS")) {
       throw new Error(`applet ${appletId} did not pass: ${resultLine}`);
     }
     passedApplets.push(appletId);

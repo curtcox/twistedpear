@@ -12,12 +12,13 @@ distribution conformance, mini-app hostile/examples, and desktop smoke.
 
 | Job | Trigger | Paths |
 |---|---|---|
-| `ios-sim` | PR and push to `main` | `apps/harness-mobile/**`, `packages/reticulum-interfaces/**`, `packages/reticulum-ts/**`, `packages/app-registry/**`, `packages/bridge-hyper/**`, `packages/miniapp-runtime/**`, `packages/miniapp-sdk/**`, `packages/cli/**`, `apps/examples/**`, `conformance/ios-sim/**`, `.github/workflows/ci.yml` |
+| `ios-sim` | PR and push to `main` | `apps/harness-mobile/**`, `apps/handbook/**`, `packages/reticulum-interfaces/**`, `packages/reticulum-ts/**`, `packages/app-registry/**`, `packages/bridge-hyper/**`, `packages/miniapp-runtime/**`, `packages/miniapp-sdk/**`, `packages/cli/**`, `apps/examples/**`, `conformance/ios-sim/**`, `conformance/handbook/**`, `.github/workflows/ci.yml` |
 | `desktop-macos` | PR only | `apps/host-desktop/**`, `packages/host-core/**`, `conformance/desktop/**`, `.github/workflows/ci.yml` |
 
 The `ios-sim` job runs `test:ios-sim:required` with `IOS_SIM_TCP_REQUIRED=1` and
 `IOS_LIFECYCLE_CYCLES=100`, exercising the full host loop (catalog → install → grant →
-launch → update → rollback) on the Bare worklet path plus simulator toolchain smoke.
+launch → update → rollback) on the Bare worklet path plus simulator toolchain smoke,
+including the Handbook D3 mobile slice (`conformance/ios-sim/handbook.mjs`).
 
 Label `ios-sim-full` on a PR is not required — the expanded path filter covers all
 packages that feed the iOS full loop.

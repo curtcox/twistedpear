@@ -15,6 +15,7 @@ import {
   requireDevice,
   waitForBootComplete
 } from "./helpers.mjs";
+import { runAndroidHandbookSlice } from "./handbook.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const labDir = dirname(fileURLToPath(import.meta.url));
@@ -40,6 +41,8 @@ async function startHostPeer() {
 }
 
 async function main() {
+  await runAndroidHandbookSlice();
+
   let deviceSerial;
   try {
     deviceSerial = requireDevice();

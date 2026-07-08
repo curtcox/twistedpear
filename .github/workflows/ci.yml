@@ -241,6 +241,7 @@ jobs:
       - run: npm run test:dev-loop
       - run: npm run test:examples
       - run: npm run test:handbook
+      - run: npm run test:handbook-mobile
 
   devstudio-loop:
     runs-on: ubuntu-latest
@@ -477,6 +478,7 @@ jobs:
           filters: |
             ios:
               - 'apps/harness-mobile/**'
+              - 'apps/handbook/**'
               - 'apps/examples/**'
               - 'packages/reticulum-interfaces/**'
               - 'packages/reticulum-ts/**'
@@ -486,6 +488,7 @@ jobs:
               - 'packages/miniapp-sdk/**'
               - 'packages/cli/**'
               - 'conformance/ios-sim/**'
+              - 'conformance/handbook/**'
               - '.github/workflows/ci.yml'
       - uses: actions/setup-node@v4
         if: steps.changes.outputs.ios == 'true'

@@ -31,4 +31,6 @@ Open an SDK chapter and tap **Run applet** for a single probe.
 - AI chat — `ai:chat`
 - Widget gallery — widget protocol
 
-Device-gated probes (BLE peer, RNode, multicast, camera QR) land in Phase D3.
+Device-gated probes (BLE peer, RNode, multicast, camera QR) live in
+[Device-gated probes](chapter:device-gated-probes) — they report `unavailable` in CI
+and simulators with guided procedures for real hardware.
