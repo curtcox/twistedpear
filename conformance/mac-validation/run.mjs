@@ -466,14 +466,22 @@ function startCaffeinate(logDir) {
   const logPath = join(logDir, "plan-duration-caffeinate.log");
   const log = createWriteStream(logPath, { flags: "a" });
   let loggedExit = false;
+  let stopping = false;
+  let exited = false;
+  let resolveStopped;
+  const stopped = new Promise((resolve) => {
+    resolveStopped = resolve;
+  });
   const finishLog = (status) => {
     if (loggedExit) return;
     loggedExit = true;
     log.write(`\n[mac-validation] exit: ${status}\n`);
-    log.end();
+    log.end(resolveStopped);
   };
 
+  log.write(`[mac-validation] cwd: ${repoRoot}\n`);
   log.write("[mac-validation] command: caffeinate -dimsu\n\n");
+  log.write("[mac-validation] helper: caffeinate\n");
   const child = spawn("caffeinate", ["-dimsu"], {
     cwd: repoRoot,
     env: process.env,
@@ -483,15 +491,24 @@ function startCaffeinate(logDir) {
   child.stderr.on("data", (chunk) => log.write(chunk));
   child.on("error", (error) => {
     log.write(`\n[mac-validation] spawn failed: ${error.message}\n`);
+    exited = true;
     finishLog(1);
     console.error(`[mac-validation] failed to start caffeinate: ${error.message}`);
   });
   child.on("close", (code, signal) => {
-    finishLog(code ?? signal ?? 0);
+    exited = true;
+    finishLog(stopping && signal === "SIGTERM" ? 0 : code ?? signal ?? 0);
   });
 
   console.log(`[mac-validation] keeping macOS awake with caffeinate -dimsu (log: ${logPath})`);
-  return child;
+  return {
+    child,
+    async stop() {
+      stopping = true;
+      if (!exited) child.kill("SIGTERM");
+      await stopped;
+    }
+  };
 }
 
 async function main() {
@@ -564,7 +581,7 @@ async function main() {
   } finally {
     if (caffeinate) {
       console.log("[mac-validation] stopping caffeinate");
-      caffeinate.kill("SIGTERM");
+      await caffeinate.stop();
     }
   }
 }

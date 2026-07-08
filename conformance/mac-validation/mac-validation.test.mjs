@@ -108,6 +108,39 @@ describe("mac-validation triage package", () => {
     ]);
   });
 
+  it("does not treat expected caffeinate helper shutdown as a suite failure", () => {
+    const dir = tempDir();
+    writeLog(dir, "plan-duration-caffeinate.log", [
+      "[mac-validation] cwd: /repo",
+      "[mac-validation] command: caffeinate -dimsu",
+      "",
+      "[mac-validation] exit: SIGTERM",
+      ""
+    ].join("\n"));
+    writeLog(dir, "stage-8-01-caffeinate-wrapper.log", [
+      "[mac-validation] cwd: /repo",
+      "[mac-validation] command: caffeinate -dimsu",
+      "",
+      "[mac-validation] helper: caffeinate",
+      "[mac-validation] exit: 0",
+      ""
+    ].join("\n"));
+    writeLog(dir, "stage-8-02-soak.log", [
+      "[mac-validation] cwd: /repo",
+      "[mac-validation] command: npm run test:integration-soak",
+      "",
+      "boom",
+      "[mac-validation] exit: 1",
+      ""
+    ].join("\n"));
+
+    const entries = readLogEntries(dir);
+
+    expect(entries.filter(isFailedEntry).map((entry) => entry.name)).toEqual([
+      "stage-8-02-soak.log"
+    ]);
+  });
+
   it("matches status rows and renders bounded evidence", () => {
     const dir = tempDir();
     const status = join(dir, "STATUS-SOFTWARE.md");

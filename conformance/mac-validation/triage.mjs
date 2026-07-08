@@ -90,7 +90,8 @@ export function readLogEntries(logDir) {
       const exitCode = exitText !== undefined && /^\d+$/.test(exitText) ? Number.parseInt(exitText, 10) : undefined;
       const stage = matchFirst(name, /^stage-(\d+)-/);
       const script = matchFirst(command, /\bnpm run ([^ ]+)/);
-      return { path, name, text, command, cwd, exitCode, exitStatus: exitText ?? "unknown", stage, script };
+      const helper = matchFirst(text, /^\[mac-validation\] helper: (.+)$/m);
+      return { path, name, text, command, cwd, exitCode, exitStatus: exitText ?? "unknown", stage, script, helper };
     });
 }
 
@@ -134,6 +135,10 @@ function fenced(text) {
 }
 
 export function isFailedEntry(entry) {
+  if (entry.helper === "caffeinate" || entry.name === "plan-duration-caffeinate.log") {
+    return !["0", "SIGTERM"].includes(entry.exitStatus);
+  }
+
   return entry.exitStatus !== "0";
 }
 
