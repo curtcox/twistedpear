@@ -116,7 +116,7 @@ cat <<EOF
   export PATH="\$ANDROID_HOME/platform-tools:\$ANDROID_HOME/emulator:\$HOME/.maestro/bin:\$PATH"
   export JAVA_HOME="\$(/usr/libexec/java_home -v 17)"   # for Android Gradle tasks
   # export ANTHROPIC_API_KEY=...   # Stage 9 AI layers
-  # export OPENAI_API_KEY=...      # Stage 9 cross-model judge
+  # export OPENAI_API_KEY=...      # Stage 9 OpenAI fallback/judge layers
 EOF
 
 log "running doctor"

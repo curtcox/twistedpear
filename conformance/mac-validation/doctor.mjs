@@ -157,7 +157,7 @@ check("ANTHROPIC_API_KEY", false, () => {
 check("OPENAI_API_KEY", false, () => {
   if (!process.env.OPENAI_API_KEY) throw new Error("not set");
   return "set";
-}, "export OPENAI_API_KEY=... (Stage 9 cross-model judge)");
+}, "export OPENAI_API_KEY=... (Stage 9 OpenAI fallback/judge layers)");
 
 async function httpCheck(name, url, headers, fix) {
   try {

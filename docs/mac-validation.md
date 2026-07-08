@@ -21,12 +21,16 @@ Two scripts implement this stage:
 
 | Script | Purpose |
 |---|---|
-| `conformance/mac-validation/setup.sh` | Idempotent installer for every missing tool. Safe to re-run. |
+| `conformance/mac-validation/setup.sh` | Idempotent installer for repo deps, Playwright Chromium, CocoaPods, JDK 17, Android SDK/AVD, Maestro, the conformance Docker image, and optional vector venv. Safe to re-run. |
 | `conformance/mac-validation/doctor.mjs` (`npm run doctor:mac`) | Verifies every tool is present, correctly versioned, and functional. Exits non-zero with per-check fix hints on failure. `--ai` additionally makes live (free) key-verification calls to the Anthropic and OpenAI APIs. |
 
 Run order: `bash conformance/mac-validation/setup.sh` then `npm run doctor:mac`.
 The doctor is the gate for every later stage — do not start a stage whose
 required checks are failing.
+
+Prerequisites that `setup.sh` does not install: Homebrew, Node 22+, Docker
+Desktop, Xcode with an iOS runtime, `gh` authentication, and API keys. The
+doctor checks these and prints the fix, but they require account or GUI steps.
 
 ### Tool inventory
 
@@ -46,8 +50,8 @@ required checks are failing.
 | Python 3 | `vectors:generate` (optional — vectors are committed) | already installed | `python3 --version` |
 | `.venv-rns` with `rns==0.9.4` | regenerating identity/token vectors (optional) | `python3 -m venv .venv-rns && .venv-rns/bin/pip install rns==0.9.4` (setup.sh `--with-vectors`) | `.venv-rns/bin/python3 -c "import RNS"` |
 | `gh` CLI | dispatching plan-duration soaks to CI as an alternative to local runs | already installed | `gh auth status` |
-| Anthropic API access | Stage 9 triage/agentic/judge layers | `export ANTHROPIC_API_KEY=...` in shell profile (or `ant auth login`) | `GET https://api.anthropic.com/v1/models` with `x-api-key` + `anthropic-version: 2023-06-01` returns 200 (free — no tokens consumed) |
-| OpenAI API access | Stage 9 cross-model judge | `export OPENAI_API_KEY=...` | `GET https://api.openai.com/v1/models` with `Authorization: Bearer` returns 200 (free) |
+| Anthropic API access | optional Stage 9 triage/agentic/judge layers | `export ANTHROPIC_API_KEY=...` in shell profile (or provider CLI login) | `GET https://api.anthropic.com/v1/models` with `x-api-key` + `anthropic-version: 2023-06-01` returns 200 (free — no tokens consumed) |
+| OpenAI API access | scripted Stage 9 triage, Agents SDK harnesses, and independent judge | `export OPENAI_API_KEY=...` | `GET https://api.openai.com/v1/models` with `Authorization: Bearer` returns 200 (free) |
 
 Disk budget: allow ~30 GB free (Android SDK + system image ~12 GB, Xcode
 simulator runtime already present, Docker images ~3 GB, node_modules +
@@ -256,47 +260,76 @@ After the 72 h transport-node soak passes, tag `reticulum-ts` 0.1.0
 
 ## Stage 9 — AI-assisted validation layers
 
-These use the available Anthropic and OpenAI accounts. Verify both keys with
-`npm run doctor:mac -- --ai` before starting. Model: `claude-opus-4-8`
-(Anthropic) for triage and agentic work; the OpenAI account's current
-flagship model as the independent judge.
+These use whichever AI accounts are available. Verify configured keys with
+`npm run doctor:mac -- --ai` before starting. Prefer two independent model
+families when judging ambiguous evidence. Do not gate this plan on a hardcoded
+model slug: use the best available coding/reasoning model in the provider
+account and record the exact model used in the validation notes.
 
-### 9a. Failure triage & reporting (Anthropic)
+If Anthropic tools are unavailable, degraded, or blocked by account policy,
+use OpenAI tooling for the same layer:
+
+| Layer | Primary path | OpenAI fallback |
+|---|---|---|
+| Failure triage | Claude Code or Anthropic API over captured logs | Codex in this repo, or a small script against the OpenAI Responses API |
+| Exploratory browser testing | Claude browser tooling or Playwright | Codex app/browser tooling, Codex CLI with Playwright, or an OpenAI Agents SDK harness that drives Playwright |
+| Exploratory desktop testing | Claude computer-use tooling | Codex app computer/browser tooling if available; otherwise run manual Electron exploration and use OpenAI only for log/screenshot analysis |
+| Ambiguous verdicts | Anthropic + OpenAI agreement | Two materially different OpenAI models/prompts, followed by human review on disagreement |
+
+OpenAI API keys and Codex access are separate auth paths. `doctor:mac -- --ai`
+only verifies the API-key path for scripted calls. If using Codex app/CLI as
+the fallback, first verify the tool is signed in and can see this repository.
+
+### 9a. Failure triage & reporting
 
 Wrap any stage in a log-capturing runner (`script -q <log> npm run <suite>`
 or `... 2>&1 | tee`). On failure, feed the tail of the log plus the suite
-name and the relevant STATUS-SOFTWARE row to the Claude API and ask for:
+name and the relevant STATUS-SOFTWARE row to the AI tool and ask for:
 (1) failure classification — product bug / flaky test / environment /
 toolchain, (2) the most likely responsible file(s), (3) a drafted
 STATUS-SOFTWARE.md row update. Batch all failures from a pass into one
-request so clustering works across suites. Simplest harness: Claude Code
-itself pointed at the log directory ("triage these suite logs"); a scripted
-alternative is a small Node script using `@anthropic-ai/sdk` with
-`model: "claude-opus-4-8"` and streaming.
+request so clustering works across suites.
 
-### 9b. Agentic exploratory UI testing (Anthropic)
+Simplest harness: point Codex or Claude Code at the log directory with the
+brief "triage these suite logs". Scripted alternatives are small Node scripts
+using the Anthropic SDK or OpenAI Responses API. Keep the prompt provider
+neutral so the same evidence package can be sent to either model:
+
+```text
+You are triaging TwistedPear mac-validation failures. Use only the attached
+logs and repository context. For each failed suite, classify the failure as
+product bug, flaky test, environment, or toolchain; identify likely files;
+propose the next verification command; draft any STATUS-SOFTWARE.md update.
+Do not mark a plan-duration soak complete unless the requested duration ran.
+```
+
+### 9b. Agentic exploratory UI testing
 
 Beyond the scripted Maestro/Playwright flows, run periodic exploratory
 sessions:
 
 - **Web host + Handbook:** start `tp node --serve-web` (after
-  `npm run build:web-host`), then drive Chromium via Claude Code's browser
-  tooling (claude-in-chrome MCP or Playwright) with an open-ended brief:
+  `npm run build:web-host`), then drive Chromium via Claude Code, Codex
+  browser tooling, or a Playwright harness with an open-ended brief:
   install an app from a 256t, exercise every Handbook applet, try to break
   grants/install review. Artifacts: screenshots + a written findings list.
 - **Desktop host:** launch `npm run start --workspace=host-desktop` and use
-  computer-use tooling for the same brief on the Electron surface.
+  available desktop-control tooling for the same brief on the Electron
+  surface. If no reliable desktop-control tool is available, do the clicks
+  manually and feed the logs/screenshots to Claude or OpenAI for analysis.
 
 These sessions are exploratory, not gating — file findings as issues or
 STATUS rows; promote reproducible ones into scripted conformance tests.
 
-### 9c. Cross-model judge (OpenAI)
+### 9c. Cross-model judge
 
 For ambiguous, judgment-shaped results — Handbook report diffs
 (`test:handbook-report` compare matrix), benchmark regressions near
 tolerance, soak RSS curves that are "mostly flat" — send the same evidence
-to both Claude and the OpenAI model with the same rubric and compare
-verdicts. Agreement → accept; disagreement → human review. This is cheap
+to both Anthropic and OpenAI with the same rubric and compare verdicts.
+Agreement → accept; disagreement → human review. If Anthropic is unavailable,
+send the evidence to two different OpenAI models or two independent OpenAI
+prompt passes and require human review for any split decision. This is cheap
 insurance against a single model rationalizing a regression away.
 
 Key hygiene: keys live in the shell profile or keychain, never in the repo;
