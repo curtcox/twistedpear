@@ -27,6 +27,31 @@
       "title": "Part II — The hosts",
       "chapters": [
         {
+          "id": "host-android",
+          "title": "Android host",
+          "file": "part-2-hosts/host-android.md"
+        },
+        {
+          "id": "host-ios",
+          "title": "iOS host",
+          "file": "part-2-hosts/host-ios.md"
+        },
+        {
+          "id": "host-desktop",
+          "title": "Desktop host",
+          "file": "part-2-hosts/host-desktop.md"
+        },
+        {
+          "id": "host-web",
+          "title": "Web host",
+          "file": "part-2-hosts/host-web.md"
+        },
+        {
+          "id": "host-headless",
+          "title": "Headless node & seeder",
+          "file": "part-2-hosts/host-headless.md"
+        },
+        {
           "id": "difference-matrix",
           "title": "Live difference matrix",
           "file": "part-2-hosts/difference-matrix.md"
@@ -143,6 +168,21 @@
           "id": "ref-packages",
           "title": "Package format",
           "file": "part-5-reference/packages.md"
+        },
+        {
+          "id": "ref-interfaces",
+          "title": "Network interfaces",
+          "file": "part-5-reference/interfaces.md"
+        },
+        {
+          "id": "ref-quotas",
+          "title": "Quotas & limits",
+          "file": "part-5-reference/quotas.md"
+        },
+        {
+          "id": "ref-cli",
+          "title": "CLI commands",
+          "file": "part-5-reference/cli.md"
         }
       ]
     }

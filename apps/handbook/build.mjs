@@ -234,6 +234,13 @@ async function generateReferenceChapters() {
   let hostApiVersion = "0.3.0";
   let hostApiChangelog = [];
   let workspaceLimits = { maxFileBytes: 256 * 1024, maxTotalBytes: 4 * 1024 * 1024, maxFiles: 512 };
+  let aiLimits = { maxMessages: 64, maxTokensCap: 8192 };
+  let hostQuotas = {
+    seedStorageBytes: 2 * 1024 * 1024 * 1024,
+    propagationStoreBytes: 256 * 1024 * 1024,
+    propagationMessageCount: 10_000,
+    bandwidthBytesPerSecond: 512 * 1024
+  };
 
   try {
     const runtimeCaps = await import("../../packages/miniapp-runtime/dist/capabilities.js");
@@ -248,6 +255,10 @@ async function generateReferenceChapters() {
     hostApiChangelog = hostApi.HOST_API_CHANGELOG;
     const workspace = await import("../../packages/miniapp-runtime/dist/services/workspace.js");
     workspaceLimits = workspace.DEFAULT_WORKSPACE_LIMITS;
+    const ai = await import("../../packages/miniapp-runtime/dist/services/ai.js");
+    aiLimits = ai.DEFAULT_AI_SERVICE_LIMITS;
+    const hostCore = await import("../../packages/host-core/dist/types.js");
+    hostQuotas = hostCore.DEFAULT_QUOTAS;
   } catch {
     capabilityDefinitions = [
       { id: "identity", description: "Use an app-scoped identity for signing and addressing." },
@@ -373,10 +384,110 @@ async function generateReferenceChapters() {
     "256t distribution: [docs/256t-distribution.md](../../../docs/256t-distribution.md)."
   ].join("\n");
 
+  const interfacesMd = [
+    "# Network interfaces",
+    "",
+    "Reticulum peers attach through typed **PacketInterface** implementations.",
+    "The [live difference matrix](chapter:difference-matrix) lists which types",
+    "`host.info()` reports for **this** host.",
+    "",
+    "## WebSocket (browser gateway)",
+    "",
+    "- **Leaf client** — browser tab or CI harness dials `ws://` / `wss://` on a gateway.",
+    "- **Gateway** — desktop host or `tp node --ws-listen [host:]port`.",
+    "- **Framing** — one Reticulum wire packet per binary WebSocket message.",
+    "- **Auth** — optional shared token (`--ws-token`).",
+    "",
+    "Full spec: [docs/websocket-interface.md](../../../docs/websocket-interface.md).",
+    "Web host chapter: [Web host](chapter:host-web).",
+    "",
+    "## TCP / AutoInterface / Bonjour",
+    "",
+    "Desktop and mobile worklets enable TCP client mode, LAN multicast (AutoInterface),",
+    "and Bonjour discovery when the platform permits. iOS multicast requires the",
+    "networking multicast entitlement; web hosts omit these entirely.",
+    "",
+    "## BLE phone pipe",
+    "",
+    "Android and iOS expose a BLE GATT byte stream for peer links. Web Bluetooth is",
+    "central-only and not used for the phone-pipe role. Device-gated Handbook probes:",
+    "[Device-gated probes](chapter:device-gated-probes).",
+    "",
+    "## RNode serial",
+    "",
+    "USB serial on desktop/Android; BLE-only on iOS. WebSerial (Chromium) is optional.",
+    "LoRa bandwidth budgets apply — see [LIMITATIONS.md](../../../LIMITATIONS.md) §6."
+  ].join("\n");
+
+  const quotasMd = [
+    "# Quotas & limits",
+    "",
+    "Generated from `DEFAULT_QUOTAS` (`host-core`) and miniapp-runtime defaults.",
+    "`host.info()` includes a quota snapshot for diagnostics.",
+    "",
+    "## Host node quotas (desktop / `tp node`)",
+    "",
+    `- Seed storage: ${hostQuotas.seedStorageBytes} bytes`,
+    `- Propagation store: ${hostQuotas.propagationStoreBytes} bytes`,
+    `- Propagation messages: ${hostQuotas.propagationMessageCount}`,
+    `- Bandwidth cap: ${hostQuotas.bandwidthBytesPerSecond} bytes/s`,
+    "",
+    "Override in `<data-dir>/config.json` — see [Desktop host](chapter:host-desktop).",
+    "",
+    "## Mini-app workspace (`workspace` capability)",
+    "",
+    `- ${workspaceLimits.maxFileBytes} bytes per file`,
+    `- ${workspaceLimits.maxTotalBytes} bytes total per app`,
+    `- ${workspaceLimits.maxFiles} files per app`,
+    "",
+    "## Widget & AI limits",
+    "",
+    "- Widget tree JSON: 256 KiB (default validator)",
+    `- AI chat: ${aiLimits.maxMessages} messages, ${aiLimits.maxTokensCap} max tokens cap`,
+    "",
+    "## Transport budgets",
+    "",
+    "BLE install budgets (~180 KiB at measured rates) and Resource fetch caps are",
+    "enforced per link type. See [Resource fetch](chapter:sdk-resource-fetch) and",
+    "`conformance/budgets/measured.json`."
+  ].join("\n");
+
+  const cliMd = [
+    "# CLI commands",
+    "",
+    "The `tp` CLI scaffolds, packs, publishes, and runs headless peers. Publisher",
+    "identity comes from `tp init` (Reticulum keypair in the project or data dir).",
+    "",
+    "## Project workflow",
+    "",
+    "- `tp init [--force]` — create or load publisher identity",
+    "- `tp create <hello|chat-min> [app-dir]` — scaffold a mini-app template",
+    "- `tp dev <app-dir> [--host host:port]` — build and side-load to a dev-mode host",
+    "- `tp pack <app-dir> [--out file.tpkg]` — build unsigned `.tpkg` archive",
+    "- `tp sign <file.tpkg>` — re-sign an existing package",
+    "- `tp publish <app-dir>` — pack, sign, publish to Hyperdrive",
+    "- `tp update <app-dir> --version <semver>` — bump version and republish",
+    "",
+    "## Headless hosts",
+    "",
+    "- `tp node` — transport/seeder/propagation peer (`--ws-listen`, `--serve-web`, …)",
+    "- `tp seed` — headless Hyperdrive seeder (`--transport`, `--state-dir`)",
+    "",
+    "## Trust",
+    "",
+    "- `tp trust list|show|add|remove` — manage trusted publisher keys",
+    "",
+    "Handbook packaging in CI: `npm run build:handbook` then `tp pack` in a temp dir.",
+    "Tutorial: [Packaging & preview](chapter:sdk-apps-package)."
+  ].join("\n");
+
   writeText(join(refDir, "capabilities.md"), `${capabilitiesMd}\n`);
   writeText(join(refDir, "widgets.md"), `${widgetsMd}\n`);
   writeText(join(refDir, "host-api.md"), `${hostApiMd}\n`);
   writeText(join(refDir, "packages.md"), `${packagesMd}\n`);
+  writeText(join(refDir, "interfaces.md"), `${interfacesMd}\n`);
+  writeText(join(refDir, "quotas.md"), `${quotasMd}\n`);
+  writeText(join(refDir, "cli.md"), `${cliMd}\n`);
 }
 
 async function build() {

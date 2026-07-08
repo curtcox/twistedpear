@@ -25,4 +25,5 @@ renderer. Chapters later add interactive applets that probe live capabilities.
 
 Open **Diagnostics** from the table of contents to run every probe, export a
 report, or compare against another device. Reference pages in Part V are
-generated from the same runtime sources the host uses.
+generated from the same runtime sources the host uses. Host-specific behavior:
+[Part II — The hosts](chapter:host-desktop).

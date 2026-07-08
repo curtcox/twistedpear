@@ -20,4 +20,4 @@ pass / fail / not-granted.
 {{applet:identity-hash}}
 
 Use **Open in DevStudio** on any applet to copy the sample into a DevStudio
-project via `share:cas`. See also [What TwistedPear is](chapter:what-is-twistedpear).
+project via `share:cas`. Concept overview: [Concepts in practice](chapter:concepts-in-practice).

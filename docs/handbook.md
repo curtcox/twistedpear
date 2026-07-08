@@ -213,6 +213,11 @@ DevStudio import; desktop first-boot bundled catalog (`handbook`, `devstudio`,
 (`conformance/vectors/identity.json` alice); `test:handbook` exercises handoff
 round-trip.
 
+**Expanded (2026-07-08):** Part II per-host chapters (Android, iOS, desktop, web,
+headless `tp node`/`tp seed`) + Part V interfaces, quotas, and CLI reference
+(generated from `host-core` / runtime defaults). **31 chapters** total;
+`test:handbook` renders all.
+
 ## Testing strategy
 
 - `test:handbook` (D0–D1): headless chapter render + all applets on Node backend.

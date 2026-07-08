@@ -1,9 +1,14 @@
 # Live difference matrix
 
 Hosts share one SDK and widget protocol, but platform sandboxes and entitlements
-shape what is actually available. `host.info()` returns the facts for **this**
-host — platform id, host / API versions, enabled roles, interface types, and
-quota snapshot — instead of asserting differences in stale prose.
+shape what is actually available. Per-host chapters describe architecture and
+lifecycle; `host.info()` returns the facts for **this** host — platform id, host /
+API versions, enabled roles, interface types, and quota snapshot — instead of
+asserting differences in stale prose.
+
+- [Android host](chapter:host-android) · [iOS host](chapter:host-ios) ·
+  [Desktop host](chapter:host-desktop) · [Web host](chapter:host-web) ·
+  [Headless node & seeder](chapter:host-headless)
 
 ## Probe
 
