@@ -28,6 +28,21 @@ Run order: `bash conformance/mac-validation/setup.sh` then `npm run doctor:mac`.
 The doctor is the gate for every later stage — do not start a stage whose
 required checks are failing.
 
+The Stage 1–8 command matrix is implemented by
+`conformance/mac-validation/run.mjs`:
+
+```sh
+npm run validate:mac                 # doctor + Stages 1–5 (CI-parity local pass)
+npm run validate:mac:full            # doctor + Stages 1–8 (mobile + default soaks)
+npm run validate:mac -- --dry-run    # print the selected commands
+npm run validate:mac -- --stage 7 --start-android-emulator
+```
+
+Each suite is logged under `.tmp/mac-validation/<timestamp>/`. Use
+`--continue-on-failure` to gather all failures from a pass, `--ai` to include
+live API-key doctor checks, and `--plan-duration` when running Stage 8's
+overnight/weekend soak durations instead of the default tier.
+
 Prerequisites that `setup.sh` does not install: Homebrew, Node 22+, Docker
 Desktop, Xcode with an iOS runtime, `gh` authentication, and API keys. The
 doctor checks these and prints the fix, but they require account or GUI steps.

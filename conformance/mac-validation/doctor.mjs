@@ -24,6 +24,7 @@ function run(cmd, args, opts = {}) {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     timeout: opts.timeout ?? 30000,
+    cwd: opts.cwd,
     env: { ...process.env, ...opts.env }
   }).trim();
 }
@@ -68,7 +69,11 @@ check("playwright chromium browser", true, () => {
   const cache = join(homedir(), "Library/Caches/ms-playwright");
   const hit = existsSync(cache) && readdirSync(cache).some((d) => d.startsWith("chromium"));
   if (!hit) throw new Error("no chromium in ms-playwright cache");
-  return "chromium payload installed";
+  run("node", ["--input-type=module", "-e", "import { chromium } from 'playwright'; const browser = await chromium.launch({ headless: true }); await browser.close();"], {
+    cwd: repoRoot,
+    timeout: 60000
+  });
+  return "chromium launches headless";
 }, "npx playwright install chromium");
 
 check("docker daemon", true, () => {
@@ -128,13 +133,7 @@ check("AVD Pixel_8_API_34", true, () => {
 }, setupHint);
 
 check("maestro", true, () => {
-  const candidates = ["maestro", join(homedir(), ".maestro/bin/maestro")];
-  for (const bin of candidates) {
-    try {
-      return `maestro ${run(bin, ["--version"], { timeout: 60000 })}`;
-    } catch { /* try next */ }
-  }
-  throw new Error("maestro not on PATH or in ~/.maestro/bin");
+  return `maestro ${run("maestro", ["--version"], { timeout: 60000 })}`;
 }, "curl -fsSL https://get.maestro.mobile.dev | bash");
 
 check("python3", true, () => run("python3", ["--version"]), "brew install python3");

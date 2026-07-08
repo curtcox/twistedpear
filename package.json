@@ -90,6 +90,8 @@
     "build:worklet": "npm run build && npm run build:worklet --workspace=harness-mobile",
     "build:web-host": "npm run build && npm run build:web-host --workspace=harness-mobile",
     "doctor:mac": "node conformance/mac-validation/doctor.mjs",
+    "validate:mac": "node conformance/mac-validation/run.mjs",
+    "validate:mac:full": "node conformance/mac-validation/run.mjs --full",
     "lint": "tsc -b --pretty false",
     "vectors:generate": "python3 conformance/vectors/generate.py"
   },
