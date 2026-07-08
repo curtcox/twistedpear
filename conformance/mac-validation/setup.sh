@@ -30,6 +30,13 @@ for arg in "$@"; do
 done
 
 log() { printf '\n[setup] %s\n' "$*"; }
+yes_to() {
+  set +o pipefail
+  yes | "$@"
+  local command_status=${PIPESTATUS[1]}
+  set -o pipefail
+  return "$command_status"
+}
 
 command -v brew >/dev/null || { echo "[setup] Homebrew is required: https://brew.sh" >&2; exit 1; }
 
@@ -56,7 +63,7 @@ fi
 # --- JDK 17 for Android Gradle ----------------------------------------------
 # java_home -v can treat the version as a minimum, so parse -V for an exact 17.x
 # entry before deciding whether the Android Gradle JDK is installed.
-JH17="$(/usr/libexec/java_home -V 2>&1 | awk '/^[[:space:]]*17([.[:space:]]|$)/ { for (i=1; i<=NF; i++) if ($i ~ /^\//) { print $i; exit } }')"
+JH17="$(/usr/libexec/java_home -V 2>&1 | awk '/^[[:space:]]*17([.[:space:]]|$)/ { for (i=1; i<=NF; i++) if ($i ~ /^\//) { print $i; exit } }' || true)"
 if [[ -z "$JH17" ]] || ! "$JH17/bin/java" --version 2>/dev/null | grep -q ' 17\.'; then
   log "brew install --cask temurin@17"
   brew install --cask temurin@17
@@ -76,12 +83,12 @@ if [[ ! -x "$SDKMANAGER" ]]; then
   log "seeding cmdline-tools into $ANDROID_HOME"
   mkdir -p "$ANDROID_HOME/cmdline-tools"
   # Install a self-contained copy under the SDK root (expected layout: cmdline-tools/latest)
-  yes | "$BREW_TOOLS/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" \
+  yes_to "$BREW_TOOLS/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" \
     "cmdline-tools;latest"
 fi
 
 log "accepting Android SDK licenses"
-yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
+yes_to "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
 
 SYS_IMAGE="system-images;android-34;google_apis;arm64-v8a"
 [[ "$(uname -m)" == "x86_64" ]] && SYS_IMAGE="system-images;android-34;google_apis;x86_64"
