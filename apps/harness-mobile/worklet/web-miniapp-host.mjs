@@ -5,6 +5,7 @@ import {
   isMiniappCapability,
   validateManifestCapabilities
 } from "../../../packages/miniapp-runtime/dist/capabilities.js";
+import { generateConfirmationToken } from "../../../packages/miniapp-runtime/dist/confirm.js";
 import { MiniappHost } from "../../../packages/miniapp-runtime/dist/host.js";
 import { createWebSandboxProxyBackend } from "../../../packages/miniapp-runtime/dist/sandbox/web-proxy.js";
 import { KvStorageBeeBackend } from "../../../packages/miniapp-runtime/dist/services/storage-bee-kv.js";
@@ -63,6 +64,22 @@ export function createWebWorkletMiniappHost(options) {
     grantStore,
     kvBackend: kvStore,
     beeBackend,
+    confirmationChannel:
+      options.requestHostReply === undefined
+        ? undefined
+        : {
+            confirm: async (request) => {
+              const reply = await options.requestHostReply({
+                type: "confirm-request",
+                token: request.token,
+                kind: request.kind,
+                appId: request.appId,
+                publisherPublicKey: request.publisherPublicKey,
+                summary: request.summary
+              });
+              return { approved: reply?.approved === true, detail: reply?.detail };
+            }
+          },
     presenceBackend: {
       snapshot: async () => ({
         peers: options.getPresenceSnapshot?.().autoPeers ?? 0,
@@ -193,9 +210,42 @@ export function createWebWorkletMiniappHost(options) {
       pushGrants(appId, publisherPublicKey, declaredCapabilities);
     },
 
-    async launch(packageStorage, appId) {
+    async launch(packageStorage, appId, launchOptions = {}) {
       devBadge = false;
       const { record, bundle } = await loadBundleForApp(packageStorage, appId);
+
+      if (launchOptions.skipReview !== true && options.requestHostReply !== undefined) {
+        const declared = validateManifestCapabilities(record.manifest.capabilities);
+        const preGranted = new Set(
+          (await grantStore.get(record.appId, record.manifest.publisherPublicKey))?.granted ?? []
+        );
+        const reply = await options.requestHostReply({
+          type: "launch-review",
+          token: generateConfirmationToken(),
+          appId: record.appId,
+          publisherPublicKey: record.manifest.publisherPublicKey,
+          version: record.manifest.version,
+          capabilities: declared.map((id) => ({
+            id,
+            description: describeCapability(id),
+            granted: preGranted.has(id)
+          }))
+        });
+        if (reply === null || reply.accept !== true) {
+          throw new Error("Launch cancelled at capability review");
+        }
+
+        if (Array.isArray(reply.grants)) {
+          await grantStore.set(
+            record.appId,
+            record.manifest.publisherPublicKey,
+            record.manifest.capabilities,
+            reply.grants
+          );
+          pushGrants(record.appId, record.manifest.publisherPublicKey, record.manifest.capabilities);
+        }
+      }
+
       const grants = await grantStore.get(record.appId, record.manifest.publisherPublicKey);
       if (grants === null || grants.granted.length === 0) {
         throw new Error("Grant at least one declared capability before launch");

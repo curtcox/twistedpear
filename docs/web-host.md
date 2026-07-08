@@ -1,6 +1,6 @@
 # Web Host: a full TwistedPear host in the browser (plan)
 
-Status: **in progress** (Phase W1 complete; W-S2 + W-S3 + W-S4 landed; W2 software tier landed) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed; `WebSandboxBackend` + W-S2 adversarial isolation spike landed; `packages/widget-renderer-rn` + W-S3 RNW widget preview landed; `createWebPackageStorage` + W-S4 OPFS/IndexedDB CAS install spike landed; `WebSandboxProxyBackend` + main-thread sandbox relay + `test:web-miniapp` (W2 hello dev side-load).
+Status: **in progress** (Phase W1 complete; W-S2 + W-S3 + W-S4 landed; W2 software tier landed) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed; `WebSandboxBackend` + W-S2 adversarial isolation spike landed; `packages/widget-renderer-rn` + W-S3 RNW widget preview landed; `createWebPackageStorage` + W-S4 OPFS/IndexedDB CAS install spike landed; `WebSandboxProxyBackend` + main-thread sandbox relay + `test:web-miniapp` + `test:web-examples` + host confirmation modal (W2 hello + example apps e2e).
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase W.
 
 The web host is a browser tab (React Native for Web via Expo web) that runs the
@@ -160,7 +160,8 @@ send/receive from the browser; playwright conformance job in CI.
 channel on web; `packages/widget-renderer-rn` extraction; chat/file-drop/board
 examples run end-to-end in the tab. **W2 (software tier) landed:** `WebSandboxProxyBackend` +
 main-thread sandbox relay + `createWebWorkletMiniappHost` + harness `App.web.tsx` mini-app
-panel + `test:web-miniapp` (Playwright hello dev side-load + UI event).
+panel + host confirmation modal + `test:web-miniapp` (hello dev side-load + UI event) +
+`test:web-examples` (chat/file-drop/board install + launch + exercise).
 
 ### Phase W3 — distribution
 Install from pasted/scanned 256t string via Resource fetch; capability review

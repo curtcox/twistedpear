@@ -46,6 +46,30 @@ export interface CapabilityGrantView {
   readonly granted: boolean;
 }
 
+export type ConfirmationKind = "package" | "publish" | "install" | "preview" | "trust-import";
+
+export interface HostConfirmationRequestView {
+  readonly token: string;
+  readonly kind: ConfirmationKind;
+  readonly appId: string;
+  readonly publisherPublicKey: string;
+  readonly summary: Readonly<Record<string, string>>;
+}
+
+export interface LaunchReviewCapabilityView {
+  readonly id: string;
+  readonly description: string;
+  readonly granted: boolean;
+}
+
+export interface LaunchReviewRequestView {
+  readonly token: string;
+  readonly appId: string;
+  readonly publisherPublicKey: string;
+  readonly version: string;
+  readonly capabilities: ReadonlyArray<LaunchReviewCapabilityView>;
+}
+
 export interface MiniappRuntimeView {
   readonly appId: string | null;
   readonly version: string | null;
@@ -137,7 +161,10 @@ export type HostToWorkletMessage =
   | { readonly type: "sandbox-spawn-failed"; readonly requestId: string; readonly message: string }
   | { readonly type: "sandbox-ping-result"; readonly requestId: string; readonly alive: boolean }
   | { readonly type: "sandbox-broker-request"; readonly requestId: string; readonly instanceId: string; readonly request: unknown }
+  | { readonly type: "confirm-response"; readonly token: string; readonly approved: boolean; readonly detail?: unknown }
+  | { readonly type: "launch-confirm"; readonly token: string; readonly accept: boolean; readonly grants?: ReadonlyArray<string> }
   | { readonly type: "install-app"; readonly appId: string; readonly forcePath?: "hyperdrive" | "lan-mirror" | "resource"; readonly archiveHex?: string }
+  | { readonly type: "seed-miniapp-kv"; readonly key: string; readonly valueHex: string }
   | { readonly type: "delete-package"; readonly appId: string; readonly version: string }
   | { readonly type: "rollback-package"; readonly appId: string }
   | { readonly type: "get-grants"; readonly appId: string; readonly publisherPublicKey: string; readonly declaredCapabilities: ReadonlyArray<string> }
@@ -191,6 +218,22 @@ export type WorkletToHostMessage =
   | { readonly type: "miniapp-runtime"; readonly runtime: MiniappRuntimeView }
   | { readonly type: "miniapp-benchmark"; readonly result: MiniappBenchmarkResult }
   | { readonly type: "miniapp-log"; readonly appId: string; readonly line: string }
+  | {
+      readonly type: "confirm-request";
+      readonly token: string;
+      readonly kind: ConfirmationKind;
+      readonly appId: string;
+      readonly publisherPublicKey: string;
+      readonly summary: Readonly<Record<string, string>>;
+    }
+  | {
+      readonly type: "launch-review";
+      readonly token: string;
+      readonly appId: string;
+      readonly publisherPublicKey: string;
+      readonly version: string;
+      readonly capabilities: ReadonlyArray<LaunchReviewCapabilityView>;
+    }
   | { readonly type: "dev-channel"; readonly state: "connected" | "disconnected" | "loaded" | "error"; readonly detail?: string }
   | { readonly type: "multicast-start" }
   | { readonly type: "multicast-stop" }

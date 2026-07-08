@@ -95,6 +95,24 @@ let statusTimer = null;
 /** @type {ReturnType<typeof createMiniappKvStore> | null} */
 let miniappKvStore = null;
 
+/** @type {Map<string, (reply: unknown) => void>} */
+const pendingHostReplies = new Map();
+
+function requestHostReply(message, timeoutMs = 120_000) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      pendingHostReplies.delete(message.token);
+      resolve(null);
+    }, timeoutMs);
+    pendingHostReplies.set(message.token, (reply) => {
+      clearTimeout(timer);
+      pendingHostReplies.delete(message.token);
+      resolve(reply);
+    });
+    send(message);
+  });
+}
+
 function identityOptions() {
   return {
     storeName: IDENTITY_STORE_NAME,
@@ -188,6 +206,7 @@ function ensureMiniappHost() {
       kvStore: ensureMiniappKvStore(),
       getPresenceSnapshot: () => status,
       send,
+      requestHostReply,
       onDeveloperModeChange(enabled) {
         status.developerMode = enabled;
         pushStatus();
@@ -428,6 +447,11 @@ async function handleHostMessage(raw) {
     return;
   }
 
+  if (message.type === "confirm-response" || message.type === "launch-confirm") {
+    pendingHostReplies.get(message.token)?.(message);
+    return;
+  }
+
   if (message.type === "list-catalog" || message.type === "list-installed") {
     const storage = await ensurePackageStorage();
     send({ type: "catalog", entries: [] });
@@ -460,6 +484,44 @@ async function handleHostMessage(raw) {
         archiveBackend: quota.archiveBackend
       }
     });
+    return;
+  }
+
+  if (message.type === "install-app") {
+    const storage = await ensurePackageStorage();
+    if (message.archiveHex === undefined || message.archiveHex.length === 0) {
+      log("Web install requires archiveHex (catalog fetch is Phase W3)");
+      return;
+    }
+
+    try {
+      const installed = await storage.installArchive(hexToBytes(message.archiveHex));
+      status.installedPackages = storage.listInstalled().length;
+      status.storageUsedBytes = storage.getPackageUsedBytes();
+      pushStatus();
+      send({
+        type: "installed",
+        packages: storage.listInstalled().map((record) => ({
+          appId: record.appId,
+          version: record.version,
+          activeVersion: storage.activeVersion(record.appId) ?? record.version,
+          packageHash: record.packageHash,
+          installedAt: record.installedAt,
+          rollbackAvailable: false,
+          capabilities: record.manifest.capabilities,
+          publisherPublicKey: record.manifest.publisherPublicKey
+        }))
+      });
+      log(`Installed ${installed.appId} v${installed.version} (${installed.archiveBytes} bytes)`);
+    } catch (error) {
+      log(`Install failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "seed-miniapp-kv") {
+    await ensureMiniappKvStore().set(message.key, hexToBytes(message.valueHex));
+    log(`Seeded mini-app KV key ${message.key}`);
     return;
   }
 

@@ -7,8 +7,12 @@ import { createWebCoreBridge } from "./host/web-core-bridge";
 import type {
   AnnounceEntry,
   CapabilityGrantView,
+  ConfirmationKind,
+  HostConfirmationRequestView,
   HostToWorkletMessage,
   InstalledPackageView,
+  LaunchReviewCapabilityView,
+  LaunchReviewRequestView,
   MiniappRuntimeView,
   WebStorageQuotaView,
   WorkletStatus,
@@ -103,6 +107,11 @@ export default function App() {
   const [grantCapabilities, setGrantCapabilities] = useState<ReadonlyArray<CapabilityGrantView>>([]);
   const [miniappRuntime, setMiniappRuntime] = useState<MiniappRuntimeView | null>(null);
   const [developerMode, setDeveloperMode] = useState(false);
+  const [hostModal, setHostModal] = useState<
+    | { readonly kind: "confirm"; readonly request: HostConfirmationRequestView }
+    | { readonly kind: "launch"; readonly review: LaunchReviewRequestView; readonly grants: ReadonlyArray<string> }
+    | null
+  >(null);
 
   const previewOptions = useMemo(
     () =>
@@ -162,6 +171,35 @@ export default function App() {
 
       if (message.type === "miniapp-log") {
         appendLog(`[miniapp] ${message.line}`);
+        return;
+      }
+
+      if (message.type === "confirm-request") {
+        setHostModal({
+          kind: "confirm",
+          request: {
+            token: message.token,
+            kind: message.kind,
+            appId: message.appId,
+            publisherPublicKey: message.publisherPublicKey,
+            summary: message.summary
+          }
+        });
+        return;
+      }
+
+      if (message.type === "launch-review") {
+        setHostModal({
+          kind: "launch",
+          review: {
+            token: message.token,
+            appId: message.appId,
+            publisherPublicKey: message.publisherPublicKey,
+            version: message.version,
+            capabilities: message.capabilities
+          },
+          grants: message.capabilities.filter((capability) => capability.granted).map((capability) => capability.id)
+        });
         return;
       }
     },
@@ -230,6 +268,47 @@ export default function App() {
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
+      {hostModal !== null ? (
+        <HostConfirmationModal
+          modal={hostModal}
+          onClose={() => setHostModal(null)}
+          onConfirmResponse={(approved) => {
+            if (hostModal.kind !== "confirm") {
+              return;
+            }
+
+            sendToWorker({
+              type: "confirm-response",
+              token: hostModal.request.token,
+              approved
+            });
+            setHostModal(null);
+          }}
+          onLaunchConfirm={(accept, grants) => {
+            if (hostModal.kind !== "launch") {
+              return;
+            }
+
+            sendToWorker({
+              type: "launch-confirm",
+              token: hostModal.review.token,
+              accept,
+              ...(grants === undefined ? {} : { grants })
+            });
+            setHostModal(null);
+          }}
+          onGrantToggle={(capabilityId, granted) => {
+            if (hostModal.kind !== "launch") {
+              return;
+            }
+
+            const next = granted
+              ? [...hostModal.grants, capabilityId]
+              : hostModal.grants.filter((entry) => entry !== capabilityId);
+            setHostModal({ ...hostModal, grants: next });
+          }}
+        />
+      ) : null}
       <Text style={styles.title}>TwistedPear Web Host</Text>
       <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W1 · W2 mini-app runtime)</Text>
 
@@ -536,6 +615,91 @@ function ActionButton({
   );
 }
 
+const CONFIRM_KIND_TITLES: Readonly<Record<ConfirmationKind, string>> = {
+  package: "Package and sign an app?",
+  publish: "Publish an app to other users?",
+  install: "Install an app?",
+  preview: "Preview an app in the host sandbox?",
+  "trust-import": "Trust a new publisher?"
+};
+
+function HostConfirmationModal({
+  modal,
+  onClose,
+  onConfirmResponse,
+  onLaunchConfirm,
+  onGrantToggle
+}: {
+  readonly modal:
+    | { readonly kind: "confirm"; readonly request: HostConfirmationRequestView }
+    | { readonly kind: "launch"; readonly review: LaunchReviewRequestView; readonly grants: ReadonlyArray<string> };
+  readonly onClose: () => void;
+  readonly onConfirmResponse: (approved: boolean) => void;
+  readonly onLaunchConfirm: (accept: boolean, grants?: ReadonlyArray<string>) => void;
+  readonly onGrantToggle: (capabilityId: string, granted: boolean) => void;
+}) {
+  const title =
+    modal.kind === "confirm"
+      ? (CONFIRM_KIND_TITLES[modal.request.kind] ?? `Confirm ${modal.request.kind}?`)
+      : `Run ${modal.review.appId} v${modal.review.version}?`;
+
+  const fingerprint =
+    modal.kind === "confirm" ? modal.request.publisherPublicKey : modal.review.publisherPublicKey;
+
+  return (
+    <View testID="host-confirmation-modal" style={styles.modalOverlay}>
+      <View style={styles.modalCard}>
+        <Text style={styles.modalTitle}>{title}</Text>
+        <Text style={styles.muted}>Publisher key: {fingerprint}</Text>
+        {modal.kind === "confirm" ? (
+          <>
+            <Text style={styles.muted}>Requested by: {modal.request.appId}</Text>
+            {Object.entries(modal.request.summary).map(([label, value]) => (
+              <Text key={label} style={styles.muted}>
+                {label}: {value}
+              </Text>
+            ))}
+            <View style={styles.buttonRow}>
+              <ActionButton
+                testID="host-confirm-deny"
+                label="Deny"
+                onPress={() => onConfirmResponse(false)}
+              />
+              <ActionButton
+                testID="host-confirm-approve"
+                label="Approve"
+                onPress={() => onConfirmResponse(true)}
+              />
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.muted}>Capabilities requested: {modal.review.capabilities.length}</Text>
+            {modal.review.capabilities.map((capability: LaunchReviewCapabilityView) => (
+              <Row
+                key={capability.id}
+                testID={`launch-grant-${capability.id}`}
+                label={capability.id}
+                value={modal.grants.includes(capability.id)}
+                onChange={(granted) => onGrantToggle(capability.id, granted)}
+              />
+            ))}
+            <View style={styles.buttonRow}>
+              <ActionButton testID="host-launch-cancel" label="Cancel" onPress={() => onLaunchConfirm(false)} />
+              <ActionButton
+                testID="host-launch-run"
+                label="Run"
+                onPress={() => onLaunchConfirm(true, modal.grants)}
+              />
+            </View>
+          </>
+        )}
+        <ActionButton label="Dismiss" onPress={onClose} />
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -631,5 +795,27 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "web" ? "monospace" : "Menlo",
     fontSize: 12,
     marginBottom: 6
+  },
+  modalOverlay: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.72)",
+    zIndex: 100,
+    justifyContent: "center",
+    paddingHorizontal: 20
+  },
+  modalCard: {
+    backgroundColor: "#1a212b",
+    borderRadius: 12,
+    padding: 20,
+    gap: 10
+  },
+  modalTitle: {
+    color: "#f4f7fb",
+    fontSize: 18,
+    fontWeight: "700"
   }
 });

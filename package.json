@@ -66,6 +66,7 @@
     "test:web-widget-renderer": "npm run build && node conformance/web-widget-renderer/run.mjs",
     "test:web-storage": "npm run build && node conformance/web-storage/run.mjs",
     "test:web-miniapp": "npm run build && node conformance/web-miniapp/run.mjs",
+    "test:web-examples": "npm run build && node conformance/web-examples/run.mjs",
     "test:fuzz": "vitest run packages/reticulum-ts/test/fuzz.test.ts packages/lxmf-ts/test/fuzz.test.ts",
     "docs:reticulum-ts": "npm run docs --workspace=@twistedpear/reticulum-ts",
     "test:transport-role": "npm run build && node conformance/transport-role/run.mjs",
