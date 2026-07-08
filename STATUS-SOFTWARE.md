@@ -10,7 +10,7 @@ simulator, local Android emulator).
 
 Verified work is in [STATUS-COMPLETE.md](STATUS-COMPLETE.md).
 
-Last audited: 2026-07-07.
+Last audited: 2026-07-08.
 
 ---
 

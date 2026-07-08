@@ -6,7 +6,7 @@ by automated tests or conformance suites in CI. Each item cites the evidence to 
 **Goal context:** finish everything in [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md) before acquiring
 hardware for [STATUS-HARDWARE.md](STATUS-HARDWARE.md).
 
-Last audited: 2026-07-09.
+Last audited: 2026-07-08.
 
 ---
 
@@ -404,6 +404,27 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 
 ---
 
+## Phase W — Web host (software tier)
+
+Full plan: [docs/web-host.md](docs/web-host.md). Real USB RNode LoRa from Chrome remains
+device-gated ([STATUS-HARDWARE.md](STATUS-HARDWARE.md)).
+
+| Item | Evidence | Verify |
+|---|---|---|
+| W-S1: browser `reticulum-ts` + WS → Python RNS via gateway | `conformance/web-interop/`, `conformance/web-interop-browser/` | `INTEROP=1 npm run test:web-interop`; `INTEROP=1 npm run test:web-interop-browser` |
+| W-S2: opaque-origin sandbox isolation + kill | `WebSandboxBackend`, `conformance/web-sandbox/`, `measured-web.json` | `npm run test:web-sandbox` |
+| W-S3: shared RNW widget renderer | `packages/widget-renderer-rn`, `conformance/web-widget-renderer/` | `npm run test:web-widget-renderer` |
+| W-S4: OPFS/IndexedDB CAS + quota | `createWebPackageStorage`, `conformance/web-storage/` | `npm run test:web-storage` |
+| W1: leaf peer (runtime/web, WS, identity, LXMF, Expo web tab) | `runtime/web`, WS interfaces, `createWebLeafHost`, `build:web-host` | `npm run test:web-runtime`; interop commands above |
+| W2: mini-app runtime + examples | `WebSandboxProxyBackend`, harness mini-app panel | `npm run test:web-miniapp`; `npm run test:web-examples` |
+| W3: 256t install + DevStudio on web | `createWebInstallService`, `createWebPublishService` | `npm run test:web-distribution`; `npm run test:web-devstudio` |
+| W4: PWA + soak + Hyperdrive gateway + WebSerial stretch | `build:web-host`, `/dht-relay`, `/bulk-fetch`, `web-serial-relay` | `npm run test:web-pwa`; `npm run test:web-soak`; `npm run test:web-hyperdrive`; `npm run test:web-hyperdrive-browser`; `npm run test:web-rnode` |
+| WebSocket interface spec draft | [docs/websocket-interface.md](docs/websocket-interface.md) | — |
+
+CI: `web` + `interop` jobs per [docs/ci-policy.md](docs/ci-policy.md).
+
+---
+
 ## Phase 6 — Desktop host + network health
 
 ### M0 — Shell spike + host-core + CI
@@ -491,9 +512,10 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 | `cli` | 0.2.0 | `tp` tooling |
 | `miniapp-runtime` / `miniapp-sdk` | 0.1.0 | Sandbox + SDK |
 | `host-core` | 0.1.0 | Shared node/role engine |
-| `apps/harness-mobile` | — | Mobile dev harness (seed of host app) |
+| `apps/harness-mobile` | — | Mobile + Expo web leaf host (`build:web-host`) |
 | `apps/host-desktop` | 0.1.0 | Electron desktop host |
 | `apps/examples` | — | chat, file-drop, board |
+| `widget-renderer-rn` | — | Shared RN/RNW widget tree renderer |
 
 ---
 

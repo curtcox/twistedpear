@@ -183,9 +183,10 @@ everything below is a known cost of the chosen design or of the platforms involv
   TCP/UDP sockets, so the web host reaches Reticulum only through the WebSocket interface
   of a gateway node it can dial. No transport-node, seeder, or propagation roles — ever,
   on this target.
-- **No radios:** Web Bluetooth is central-only (cannot run the peripheral GATT stream), and
-  there is no multicast/AutoInterface. RNode over WebSerial (Chromium-only) is a stretch
-  goal, not a commitment.
+- **No radios (gateway path):** Web Bluetooth is central-only (cannot run the peripheral
+  GATT stream), and there is no multicast/AutoInterface. RNode over WebSerial
+  (Chromium-only) is implemented as a stretch path with simulated-serial CI
+  (`test:web-rnode`); real USB LoRa E2E remains device-gated.
 - **Weaker key custody:** identity keys sit in IndexedDB encrypted under a WebCrypto key —
   no hardware keystore equivalent. The serving origin is part of the TCB: whoever serves
   the page bytes can substitute them. Default posture is self-serving from the user's own

@@ -74,8 +74,9 @@ A first-class interface, not a private control channel: any in-browser
   trusted node. Public hosting of the bundle is possible but the served origin
   must be treated as part of the TCB (LIMITATIONS §9).
 - **Interop:** the gateway is our own node, so Python RNS needs no changes;
-  conformance runs browser ↔ gateway ↔ dockerized Python RNS. Publish the
-  interface spec upstream per [upstream-publication.md](upstream-publication.md).
+  conformance runs browser ↔ gateway ↔ dockerized Python RNS. Spec draft:
+  [websocket-interface.md](websocket-interface.md); publish upstream per
+  [upstream-publication.md](upstream-publication.md).
 
 ## Workstream B — `runtime/web` in reticulum-ts
 
