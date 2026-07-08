@@ -438,6 +438,29 @@ function ensureMiniappHost() {
       kvStore: runtimeKeyValueStore(),
       beeStoragePath: "miniapp-bee-store",
       getPresenceSnapshot: () => status,
+      getHostInfoSnapshot: () => {
+        const interfaceTypes = [];
+        if (status.tcpEnabled) interfaceTypes.push("tcp");
+        if (status.autoEnabled) interfaceTypes.push("auto");
+        if (status.bleEnabled) interfaceTypes.push("ble");
+        if (status.rnodeEnabled) interfaceTypes.push("rnode");
+        return {
+          platform: "desktop",
+          hostVersion: HOST_API_VERSION,
+          roles: {
+            transport: status.transportEnabled === true,
+            seeder: true,
+            propagation: status.propagationEnabled === true
+          },
+          interfaceTypes,
+          quotas: {
+            kvQuotaBytes: null,
+            seedStorageUsedBytes: status.storageUsedBytes ?? null,
+            seedStorageQuotaBytes: null,
+            memoryBytes: null
+          }
+        };
+      },
       send,
       getPublisherIdentity: () => resolveIdentity(),
       publishArchive: publishArchiveFromWorklet,

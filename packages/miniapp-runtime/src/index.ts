@@ -63,6 +63,14 @@ export { NamespacedLxmfService } from "./services/lxmf.js";
 export type { LxmfBackend, LxmfDelivery, LxmfInboxMessage, LxmfSendRequest } from "./services/lxmf.js";
 export { PresenceService } from "./services/presence.js";
 export type { PresenceBackend, PresenceSnapshot } from "./services/presence.js";
+export { HostInfoService, defaultHostInfo } from "./services/host-info.js";
+export type {
+  HostInfo,
+  HostInfoBackend,
+  HostPlatformId,
+  HostQuotaSnapshot,
+  HostRolesInfo
+} from "./services/host-info.js";
 export { ResourceService } from "./services/resource.js";
 export type { ResourceFetchBackend, ResourceFetchProgress, ResourceFetchRequest } from "./services/resource.js";
 export { AiService, AiServiceError, DEFAULT_AI_SERVICE_LIMITS } from "./services/ai.js";

@@ -37,6 +37,7 @@
     "test:sdk-interop": "npm run build && node conformance/sdk-interop/run.mjs",
     "test:examples": "npm run build && node conformance/examples/run.mjs",
     "test:handbook": "npm run build && node conformance/handbook/run.mjs",
+    "test:handbook-report": "npm run build && node conformance/handbook/report.mjs",
     "build:handbook": "node apps/handbook/build.mjs",
     "test:miniapp-soak": "npm run build && node conformance/miniapp-soak/run.mjs",
     "test:miniapp-benchmark": "npm run build && node conformance/miniapp-benchmark/run.mjs",

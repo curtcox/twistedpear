@@ -1,9 +1,22 @@
 # Running diagnostics
 
 Each applet reports `{ appletId, status, details, timings }` with first-class
-`unavailable` and `not-granted` outcomes. Open an SDK chapter and tap
-**Run applet**, or work through the probes listed here.
+`unavailable` and `not-granted` outcomes.
 
+## On this screen
+
+From the Handbook **Contents**, use:
+
+- **Run all diagnostics** — runs every catalog applet inline on this host
+- **Export report** — packs host info + results into JSON, stores via `share.put`,
+  shows a 256t id / QR
+- **Compare report** — paste another device's report id to render a status matrix
+
+Open an SDK chapter and tap **Run applet** for a single probe.
+
+## Software-tier probes
+
+- Host info — `host.info` (`presence`)
 - App destination hash — `identity`
 - Presence snapshot — `presence`
 - KV round-trip — `storage:kv`
@@ -18,4 +31,4 @@ Each applet reports `{ appletId, status, details, timings }` with first-class
 - AI chat — `ai:chat`
 - Widget gallery — widget protocol
 
-Full “run all + export report” lands in Phase D2 once `host.info()` is available.
+Device-gated probes (BLE peer, RNode, multicast, camera QR) land in Phase D3.

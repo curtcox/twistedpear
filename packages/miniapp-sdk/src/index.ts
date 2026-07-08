@@ -6,6 +6,7 @@ export * as announce from "./announce.js";
 export * as storage from "./storage.js";
 export * as resource from "./resource.js";
 export * as presence from "./presence.js";
+export * as host from "./host.js";
 export * as identity from "./identity.js";
 export * as workspace from "./workspace.js";
 export * as ai from "./ai.js";

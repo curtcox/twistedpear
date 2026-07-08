@@ -1,11 +1,12 @@
 # Handbook: interactive diagnostic documentation for every host (plan)
 
-Status: **in progress** — Phase D0 + D1 landed on Node (full Part III SDK tour,
-widget gallery, strict coverage gate, budgets row). D2–D4 open.
+Status: **in progress** — Phase D0–D2 landed on Node (`host.info()`, run-all,
+report share/diff, Part II difference matrix). D3–D4 open.
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase D;
 device-gated rows will go to [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
 
-Verify: `npm run build:handbook` · `npm run test:handbook`
+Verify: `npm run build:handbook` · `npm run test:handbook` ·
+`npm run test:handbook-report`
 
 The Handbook is the platform's documentation delivered **as a mini-app** — the same
 posture as [DevStudio](devstudio.md): a signed, SDK-only bundle running in the standard
@@ -169,6 +170,12 @@ Preview-mode chapter still uses inline packaging probes (confirmation-backed).
   view detects a seeded expectation difference.
 - Exit: two CI hosts produce reports that round-trip through `share:cas` and diff
   correctly.
+
+**Landed (2026-07-08, node harness):** `host.info()` at `HOST_API_VERSION` `0.3.0`
+(desktop / mobile / web worklets + node default); Handbook Diagnostics screen
+(run-all, `share.put` export + QR, compare/diff matrix); Part II live difference
+matrix chapter + `host-info` applet; `npm run test:handbook-report` (node report
+round-trip + seeded web-status diff). Web Playwright Handbook CI still open with D3.
 
 ### Phase D3 — Mobile hosts + device-gated content
 - Run Handbook on Android emulator and iOS simulator harnesses (extend the existing

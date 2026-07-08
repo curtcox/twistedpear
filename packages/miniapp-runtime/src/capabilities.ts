@@ -23,7 +23,7 @@ export interface CapabilityDefinition {
 
 export const CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
   { id: "identity", description: "Use an app-scoped identity for signing and addressing." },
-  { id: "presence", description: "Read coarse peer and interface presence." },
+  { id: "presence", description: "Read coarse peer/interface presence and host info." },
   { id: "announce:subscribe", description: "Receive announces in the app namespace." },
   { id: "announce:publish", description: "Publish the app destination." },
   { id: "lxmf:send", description: "Send LXMF messages from the app destination." },

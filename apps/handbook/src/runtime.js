@@ -2,6 +2,7 @@ import {
   ai,
   apps,
   announce,
+  host,
   identity,
   lxmf,
   presence,
@@ -12,14 +13,16 @@ import {
   workspace
 } from "@twistedpear/miniapp-sdk";
 
-// Handbook runtime — TOC, chapter renderer, inline applet runner, reading position.
+// Handbook runtime — TOC, chapter renderer, inline applet runner, diagnostics.
 // CATALOG is injected by build.mjs immediately above this file in bundle.js.
 
 const POSITION_KEY = "handbook:position";
 const SEEDED_KEY = "handbook:seeded";
 const SEED_VERSION_KEY = "handbook:seed-version";
+const LAST_REPORT_KEY = "handbook:last-report";
+const REPORT_SCHEMA_VERSION = 1;
 
-/** @type {"toc" | "chapter"} */
+/** @type {"toc" | "chapter" | "diagnostics"} */
 let view = "toc";
 /** @type {string | null} */
 let chapterId = null;
@@ -29,11 +32,20 @@ let appletResults = {};
 let statusLine = null;
 /** @type {boolean} */
 let seeding = false;
+/** @type {boolean} */
+let runningAll = false;
+/** @type {{ reportId: string | null, generatedAt: string | null, json: string | null }} */
+let exportState = { reportId: null, generatedAt: null, json: null };
+/** @type {string} */
+let compareInput = "";
+/** @type {{ local: object | null, remote: object | null, rows: Array<object>, error: string | null }} */
+let compareState = { local: null, remote: null, rows: [], error: null };
 
 function makeSdk() {
   return {
     identity,
     presence,
+    host,
     announce,
     lxmf,
     storage,
@@ -219,6 +231,168 @@ function renderChapterBlocks(chapter, children) {
   }
 }
 
+async function fetchHostInfoSafe() {
+  try {
+    return await host.info();
+  } catch (error) {
+    return {
+      platform: "unknown",
+      hostVersion: "unknown",
+      hostApiVersion: "unknown",
+      roles: { transport: false, seeder: false, propagation: false },
+      interfaceTypes: [],
+      quotas: {
+        kvQuotaBytes: null,
+        seedStorageUsedBytes: null,
+        seedStorageQuotaBytes: null,
+        memoryBytes: null
+      },
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
+function buildReportDocument(hostInfo) {
+  const results = CATALOG.applets.map((applet) => {
+    const result = appletResults[applet.id];
+    if (result === undefined) {
+      return {
+        appletId: applet.id,
+        status: "skipped",
+        details: "Not run",
+        timings: { ms: 0 }
+      };
+    }
+    return {
+      appletId: applet.id,
+      status: result.status,
+      details: result.details,
+      timings: result.timings ?? { ms: 0 }
+    };
+  });
+
+  return {
+    schemaVersion: REPORT_SCHEMA_VERSION,
+    handbookVersion: CATALOG.version,
+    generatedAt: new Date().toISOString(),
+    host: hostInfo,
+    results
+  };
+}
+
+function diffReports(localReport, remoteReport) {
+  const remoteById = new Map(
+    (remoteReport.results ?? []).map((row) => [row.appletId, row])
+  );
+  const rows = [];
+  for (const local of localReport.results ?? []) {
+    const remote = remoteById.get(local.appletId);
+    rows.push({
+      appletId: local.appletId,
+      local: local.status,
+      remote: remote?.status ?? "missing",
+      same: remote !== undefined && remote.status === local.status
+    });
+  }
+  return rows;
+}
+
+function renderDiagnostics(children) {
+  children.push(widgetButton("back-toc-diag", "← Contents", "hb.toc"));
+  children.push({ id: "diag-sep", type: "divider" });
+  children.push(textNode("diag-title", "Diagnostics", { fontSize: 20, fontWeight: "bold" }));
+  children.push(
+    textNode(
+      "diag-blurb",
+      "Run every applet on this host, export a shareable report, or paste another report’s 256t id to compare."
+    )
+  );
+
+  children.push(
+    widgetButton(
+      "diag-run-all",
+      runningAll ? "Running all…" : "Run all diagnostics",
+      "hb.runall"
+    )
+  );
+
+  const counts = { pass: 0, fail: 0, unavailable: 0, "not-granted": 0, skipped: 0 };
+  for (const applet of CATALOG.applets) {
+    const result = appletResults[applet.id];
+    const status = result?.status ?? "skipped";
+    if (counts[status] !== undefined) {
+      counts[status] += 1;
+    }
+    children.push(
+      textNode(
+        `diag-row-${applet.id}`,
+        `${applet.id}: ${(result?.status ?? "skipped").toUpperCase()}`
+      )
+    );
+  }
+  children.push(
+    textNode(
+      "diag-summary",
+      `Summary — pass ${counts.pass}, fail ${counts.fail}, unavailable ${counts.unavailable}, not-granted ${counts["not-granted"]}, skipped ${counts.skipped}`
+    )
+  );
+
+  children.push({ id: "diag-export-sep", type: "divider" });
+  children.push(widgetButton("diag-export", "Export report (share.put)", "hb.export"));
+  if (exportState.reportId !== null) {
+    children.push(
+      textNode(
+        "diag-export-meta",
+        `Exported ${exportState.generatedAt ?? ""}\n${exportState.reportId}`
+      )
+    );
+    children.push({
+      id: "diag-export-qr",
+      type: "qr-code",
+      props: {
+        value: exportState.reportId,
+        caption: "Scan or copy report 256t id"
+      }
+    });
+  }
+
+  children.push({ id: "diag-compare-sep", type: "divider" });
+  children.push(textNode("diag-compare-label", "Compare with remote report id:"));
+  children.push({
+    id: "diag-compare-input",
+    type: "text-input",
+    props: {
+      value: compareInput,
+      placeholder: "Paste 256t id",
+      event: "hb.compare.input"
+    }
+  });
+  children.push(widgetButton("diag-compare", "Compare report", "hb.compare"));
+
+  if (compareState.error !== null) {
+    children.push(textNode("diag-compare-error", compareState.error));
+  }
+  if (compareState.rows.length > 0) {
+    const localPlat = compareState.local?.host?.platform ?? "?";
+    const remotePlat = compareState.remote?.host?.platform ?? "?";
+    children.push(
+      textNode(
+        "diag-compare-hosts",
+        `Local host: ${localPlat}  ·  Remote host: ${remotePlat}`
+      )
+    );
+    for (const row of compareState.rows) {
+      const mark = row.same ? "=" : "≠";
+      children.push(
+        textNode(
+          `diag-diff-${row.appletId}`,
+          `${mark} ${row.appletId}: ${row.local} / ${row.remote}`
+        )
+      );
+    }
+  }
+}
+
 async function render() {
   const children = [
     textNode("brand", CATALOG.title, { fontSize: 24, fontWeight: "bold" })
@@ -240,6 +414,7 @@ async function render() {
         "Interactive diagnostic documentation. Open a chapter, then run embedded applets on this host."
       )
     );
+    children.push(widgetButton("open-diag", "Diagnostics · run all / export / compare", "hb.diagnostics"));
 
     for (const part of CATALOG.parts) {
       children.push({ id: `part-sep-${part.id}`, type: "divider" });
@@ -251,6 +426,8 @@ async function render() {
         );
       }
     }
+  } else if (view === "diagnostics") {
+    renderDiagnostics(children);
   } else if (view === "chapter") {
     const chapter = findChapter(chapterId);
     children.push(widgetButton("back-toc", "← Contents", "hb.toc"));
@@ -306,22 +483,33 @@ async function openToc() {
   await render();
 }
 
+async function openDiagnostics() {
+  view = "diagnostics";
+  statusLine = null;
+  await render();
+}
+
 function stripAppletExports(source) {
   return source
     .replace(/export\s+async\s+function\s+run\s*/, "async function run ")
     .replace(/export\s+\{[^}]+\}\s*;?/g, "");
 }
 
-async function runAppletInline(appletId) {
+async function runAppletInline(appletId, options = {}) {
+  const { quiet = false } = options;
   const applet = findApplet(appletId);
   if (applet === null) {
-    statusLine = `Unknown applet: ${appletId}`;
-    await render();
-    return;
+    if (!quiet) {
+      statusLine = `Unknown applet: ${appletId}`;
+      await render();
+    }
+    return null;
   }
 
-  statusLine = `Running ${applet.title}…`;
-  await render();
+  if (!quiet) {
+    statusLine = `Running ${applet.title}…`;
+    await render();
+  }
 
   let source;
   try {
@@ -331,13 +519,16 @@ async function runAppletInline(appletId) {
   }
 
   if (typeof source !== "string" || source.length === 0) {
-    appletResults[appletId] = {
+    const failed = {
       status: "fail",
       details: "Applet source not found in workspace seeds."
     };
-    statusLine = null;
-    await render();
-    return;
+    appletResults[appletId] = failed;
+    if (!quiet) {
+      statusLine = null;
+      await render();
+    }
+    return { appletId, ...failed };
   }
 
   const started = Date.now();
@@ -375,7 +566,123 @@ async function runAppletInline(appletId) {
   }
 
   appletResults[appletId] = reported;
-  statusLine = `${applet.title}: ${reported.status}`;
+  if (!quiet) {
+    statusLine = `${applet.title}: ${reported.status}`;
+    await render();
+  }
+  return { appletId, ...reported };
+}
+
+async function runAllDiagnostics() {
+  if (runningAll) {
+    return;
+  }
+  runningAll = true;
+  statusLine = "Running all diagnostics…";
+  view = "diagnostics";
+  await render();
+
+  try {
+    for (const applet of CATALOG.applets) {
+      statusLine = `Running ${applet.title}…`;
+      await render();
+      await runAppletInline(applet.id, { quiet: true });
+      // Restore Handbook chrome after applets that call ui.render (e.g. widget gallery).
+      statusLine = `Finished ${applet.title}: ${appletResults[applet.id]?.status ?? "?"}`;
+      await render();
+    }
+    statusLine = `All diagnostics finished (${CATALOG.applets.length} applets)`;
+  } finally {
+    runningAll = false;
+    await render();
+  }
+}
+
+async function exportReport() {
+  statusLine = "Building diagnostic report…";
+  await render();
+
+  const hostInfo = await fetchHostInfoSafe();
+  const document = buildReportDocument(hostInfo);
+  const json = JSON.stringify(document);
+
+  try {
+    const put = await share.put(json);
+    exportState = {
+      reportId: put.t256,
+      generatedAt: document.generatedAt,
+      json
+    };
+    await kvSetText(LAST_REPORT_KEY, json);
+    compareState = { ...compareState, local: document };
+    statusLine = `Report exported (${put.t256.slice(0, 12)}…)`;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    exportState = { reportId: null, generatedAt: document.generatedAt, json };
+    await kvSetText(LAST_REPORT_KEY, json);
+    compareState = { ...compareState, local: document };
+    statusLine = `Report built locally but share.put failed: ${message}`;
+  }
+
+  view = "diagnostics";
+  await render();
+}
+
+async function compareReport() {
+  const t256 = compareInput.trim();
+  if (t256.length === 0) {
+    compareState = { local: compareState.local, remote: null, rows: [], error: "Paste a report 256t id first." };
+    await render();
+    return;
+  }
+
+  statusLine = "Fetching remote report…";
+  await render();
+
+  let local = compareState.local;
+  if (local === null) {
+    const cached = await kvGetText(LAST_REPORT_KEY);
+    if (cached !== null) {
+      try {
+        local = JSON.parse(cached);
+      } catch {
+        local = null;
+      }
+    }
+  }
+  if (local === null) {
+    const hostInfo = await fetchHostInfoSafe();
+    local = buildReportDocument(hostInfo);
+  }
+
+  try {
+    const remoteJson = await share.get(t256);
+    if (typeof remoteJson !== "string" || remoteJson.length === 0) {
+      compareState = {
+        local,
+        remote: null,
+        rows: [],
+        error: "Remote report not found (null content)."
+      };
+      statusLine = null;
+      await render();
+      return;
+    }
+    const remote = JSON.parse(remoteJson);
+    const rows = diffReports(local, remote);
+    compareState = { local, remote, rows, error: null };
+    statusLine = `Compared ${rows.length} applet row(s)`;
+  } catch (error) {
+    compareState = {
+      local,
+      remote: null,
+      rows: [],
+      error: error instanceof Error ? error.message : String(error)
+    };
+    statusLine = null;
+  }
+
+  view = "diagnostics";
   await render();
 }
 
@@ -385,9 +692,6 @@ function chapterIdFromNode(nodeId) {
   }
   if (nodeId.startsWith("link-")) {
     const rest = nodeId.slice("link-".length);
-    const cut = rest.lastIndexOf("-");
-    // link-${chapterId}-${bid} — chapter ids may contain hyphens; bid starts with chapter id.
-    // Prefer matching known chapter ids by longest prefix.
     let best = null;
     for (const chapter of CATALOG.chapters) {
       const prefix = `${chapter.id}-`;
@@ -407,9 +711,14 @@ function appletIdFromRunNode(nodeId) {
   return null;
 }
 
-async function handleEvent({ nodeId, event }) {
+async function handleEvent({ nodeId, event, value }) {
   if (event === "hb.toc") {
     await openToc();
+    return;
+  }
+
+  if (event === "hb.diagnostics") {
+    await openDiagnostics();
     return;
   }
 
@@ -426,6 +735,26 @@ async function handleEvent({ nodeId, event }) {
     if (id !== null) {
       await runAppletInline(id);
     }
+    return;
+  }
+
+  if (event === "hb.runall") {
+    await runAllDiagnostics();
+    return;
+  }
+
+  if (event === "hb.export") {
+    await exportReport();
+    return;
+  }
+
+  if (event === "hb.compare.input") {
+    compareInput = typeof value === "string" ? value : String(value ?? "");
+    return;
+  }
+
+  if (event === "hb.compare") {
+    await compareReport();
   }
 }
 
@@ -444,6 +773,15 @@ if (saved !== null && findChapter(saved) !== null) {
   view = "chapter";
 } else {
   view = "toc";
+}
+
+const cachedReport = await kvGetText(LAST_REPORT_KEY);
+if (cachedReport !== null) {
+  try {
+    compareState = { ...compareState, local: JSON.parse(cachedReport) };
+  } catch {
+    // ignore corrupt cache
+  }
 }
 
 await render();

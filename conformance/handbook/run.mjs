@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Phase D0/D1: headless Handbook install + chapter render + applet execution
+ * Phase D0/D1/D2: headless Handbook install + chapter render + applet execution
  * on the Node sandbox backend, plus report/result schema checks.
  */
 
@@ -16,6 +16,7 @@ import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import { runInit, runPack } from "../../packages/cli/dist/commands/index.js";
 import {
   GrantStore,
+  HOST_API_VERSION,
   KvStorageBeeBackend,
   MiniappHost,
   NodeWorkerSandboxBackend
@@ -26,6 +27,7 @@ const handbookDir = join(root, "apps/handbook");
 const RESULT_STATUSES = new Set(["pass", "fail", "unavailable", "not-granted", "skipped"]);
 
 const APPLET_CHAPTER = {
+  "host-info": "difference-matrix",
   "identity-hash": "sdk-identity",
   "presence-snapshot": "sdk-presence",
   "storage-kv": "sdk-storage-kv",
@@ -149,7 +151,7 @@ async function packHandbook() {
 
     const provider = new NodeCryptoProvider();
     const archive = new Uint8Array(readFileSync(join(cwd, "handbook.tpkg")));
-    const verified = verifyPackage(provider, archive, { hostApiVersion: "0.2.0" });
+    const verified = verifyPackage(provider, archive, { hostApiVersion: HOST_API_VERSION });
     const bundle = verified.files.get(verified.manifest.entry);
     if (bundle === undefined) {
       throw new Error("Handbook entry bundle missing");
@@ -200,8 +202,22 @@ function makeCasBackend() {
     },
     async get(_appId, t256) {
       return blobs.get(t256) ?? null;
-    }
+    },
+    blobs
   };
+}
+
+function findNodeById(node, id) {
+  if (node.id === id) {
+    return node;
+  }
+  for (const child of node.children ?? []) {
+    const found = findNodeById(child, id);
+    if (found !== null) {
+      return found;
+    }
+  }
+  return null;
 }
 
 function makeAppsBackend() {
@@ -282,6 +298,7 @@ async function main() {
     "miniapp-resource:handbook:probe",
     new TextEncoder().encode("handbook-resource-probe-payload")
   );
+  const casBackend = makeCasBackend();
 
   const host = new MiniappHost({
     backend: new NodeWorkerSandboxBackend(),
@@ -290,6 +307,21 @@ async function main() {
     beeBackend: new KvStorageBeeBackend(store),
     presenceBackend: {
       snapshot: async () => ({ onlineInterfaces: 0, preferredInterface: null, peers: 0 })
+    },
+    hostInfoBackend: {
+      info: async () => ({
+        platform: "node",
+        hostVersion: "test",
+        hostApiVersion: HOST_API_VERSION,
+        roles: { transport: false, seeder: false, propagation: false },
+        interfaceTypes: [],
+        quotas: {
+          kvQuotaBytes: null,
+          seedStorageUsedBytes: null,
+          seedStorageQuotaBytes: null,
+          memoryBytes: null
+        }
+      })
     },
     resourceBackend: {
       fetch: async (_appId, request) => {
@@ -303,7 +335,7 @@ async function main() {
         return bytes;
       }
     },
-    casBackend: makeCasBackend(),
+    casBackend,
     appsBackend: makeAppsBackend(),
     confirmationChannel: {
       confirm: async () => ({ approved: true })
@@ -382,13 +414,129 @@ async function main() {
     }
     console.log(`handbook: reading position persisted (${new TextDecoder().decode(position)})`);
 
+    // —— Phase D2: export + share round-trip + seeded diff ——
+    // Leave whatever chapter/applet view we are on and get back to TOC.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const tree = host.snapshot().widgetTree;
+      if (tree !== null && findNodeById(tree.root, "open-diag") !== null) {
+        break;
+      }
+      try {
+        await tap(host, "back-toc", "hb.toc");
+      } catch {
+        try {
+          await tap(host, "back-toc-diag", "hb.toc");
+        } catch {
+          // ignore
+        }
+      }
+      await sleep(200);
+    }
+    await waitFor(async () => {
+      const next = host.snapshot().widgetTree;
+      if (next !== null && findNodeById(next.root, "open-diag") !== null) {
+        return next;
+      }
+      return null;
+    }, 20_000);
+
+    await tap(host, "open-diag", "hb.diagnostics");
+    await waitFor(async () => {
+      const next = host.snapshot().widgetTree;
+      if (next !== null && findNodeById(next.root, "diag-run-all") !== null) {
+        return next;
+      }
+      return null;
+    }, 20_000);
+    console.log("handbook: diagnostics view open");
+
+    await tap(host, "diag-export", "hb.export");
+    const exportTree = await waitFor(async () => {
+      const tree = host.snapshot().widgetTree;
+      if (tree === null) {
+        return null;
+      }
+      const qr = findNodeById(tree.root, "diag-export-qr");
+      if (qr !== null && typeof qr.props?.value === "string" && qr.props.value.length === 94) {
+        return { t256: qr.props.value };
+      }
+      return null;
+    }, 20_000);
+    console.log(`handbook: report exported ${exportTree.t256.slice(0, 12)}…`);
+
+    const localBytes = casBackend.blobs.get(exportTree.t256);
+    if (localBytes === undefined) {
+      throw new Error("exported report missing from CAS");
+    }
+    const localReport = JSON.parse(new TextDecoder().decode(localBytes));
+    if (localReport.schemaVersion !== 1) {
+      throw new Error(`unexpected schemaVersion ${localReport.schemaVersion}`);
+    }
+    if (localReport.host?.platform !== "node") {
+      throw new Error(`expected platform node, got ${localReport.host?.platform}`);
+    }
+    const hostInfoResult = localReport.results?.find((row) => row.appletId === "host-info");
+    if (hostInfoResult?.status !== "pass") {
+      throw new Error(`expected host-info pass in report, got ${JSON.stringify(hostInfoResult)}`);
+    }
+
+    const remoteReport = {
+      ...localReport,
+      generatedAt: new Date().toISOString(),
+      host: {
+        ...localReport.host,
+        platform: "web",
+        roles: { transport: false, seeder: false, propagation: false },
+        interfaceTypes: ["websocket"]
+      },
+      results: localReport.results.map((row) =>
+        row.appletId === "host-info"
+          ? { ...row, status: "unavailable", details: "seeded web difference" }
+          : row
+      )
+    };
+    const remotePut = await casBackend.put(
+      "handbook",
+      new TextEncoder().encode(JSON.stringify(remoteReport))
+    );
+
+    await tap(host, "diag-compare-input", "hb.compare.input", remotePut.t256);
+    await tap(host, "diag-compare", "hb.compare");
+    await waitFor(async () => {
+      const tree = host.snapshot().widgetTree;
+      if (tree === null) {
+        return null;
+      }
+      if (
+        treeContainsText(tree, "≠ host-info:") ||
+        treeContainsText(tree, "host-info: pass / unavailable")
+      ) {
+        return tree;
+      }
+      return null;
+    }, 20_000);
+    if (!treeContainsText(host.snapshot().widgetTree, "Remote host: web")) {
+      throw new Error("compare view did not show remote host platform");
+    }
+    console.log("handbook: report diff matrix detected seed difference");
+
+    const infoSmoke = await host.dispatchRaw(
+      { id: "host-info-smoke", namespace: "host", method: "info", capability: "presence" },
+      manifest,
+      manifest.capabilities
+    );
+    if (!infoSmoke.ok || infoSmoke.result?.platform !== "node") {
+      throw new Error(`host.info smoke failed: ${JSON.stringify(infoSmoke)}`);
+    }
+    console.log("handbook: host.info smoke passed");
+
     await host.stop();
   } finally {
     // host stop covers worker teardown
   }
 
   console.log(
-    `handbook: ${catalog.chapters.length} chapter(s) + ${catalog.applets.length} applet(s) passed on Node sandbox`
+    `handbook: ${catalog.chapters.length} chapter(s) + ${catalog.applets.length} applet(s) + report/diff passed on Node sandbox`
   );
 }
 

@@ -18,6 +18,17 @@
       ]
     },
     {
+      "id": "part-2-hosts",
+      "title": "Part II — The hosts",
+      "chapters": [
+        {
+          "id": "difference-matrix",
+          "title": "Live difference matrix",
+          "file": "part-2-hosts/difference-matrix.md"
+        }
+      ]
+    },
+    {
       "id": "part-3-sdk",
       "title": "Part III — Developing mini-apps",
       "chapters": [

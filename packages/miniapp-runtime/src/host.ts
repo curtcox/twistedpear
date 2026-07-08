@@ -6,7 +6,14 @@ import { AnnounceService } from "./services/announce.js";
 import { AppIdentityService, type IdentityBackend } from "./services/identity.js";
 import { NamespacedLxmfService } from "./services/lxmf.js";
 import { PresenceService, type PresenceBackend } from "./services/presence.js";
+import {
+  HostInfoService,
+  defaultHostInfo,
+  type HostInfo,
+  type HostInfoBackend
+} from "./services/host-info.js";
 import { ResourceService, type ResourceFetchBackend } from "./services/resource.js";
+import { HOST_API_VERSION } from "./host-api.js";
 import { AiService, AiServiceError, type AiChatBackend, type AiChatRequest } from "./services/ai.js";
 import { AppsService, AppsServiceError, type AppsBackend } from "./services/apps.js";
 import { WorkspaceService, type WorkspaceLimits } from "./services/workspace.js";
@@ -57,6 +64,7 @@ export interface MiniappHostOptions {
   readonly announceService?: AnnounceService;
   readonly resourceBackend?: ResourceFetchBackend;
   readonly presenceBackend?: PresenceBackend;
+  readonly hostInfoBackend?: HostInfoBackend;
   readonly callbacks?: MiniappHostCallbacks;
   readonly deriveDestinationHash?: (appId: string, publisherPublicKey: string) => Promise<string>;
   readonly kvQuotaBytes?: number;
@@ -114,6 +122,7 @@ export class MiniappHost {
   private readonly announceService: AnnounceService;
   private readonly resourceService: ResourceService | null;
   private readonly presenceService: PresenceService | null;
+  private readonly hostInfoService: HostInfoService;
   private readonly aiService: AiService | null;
   private readonly appsService: AppsService | null;
   readonly workspace: WorkspaceService;
@@ -139,6 +148,15 @@ export class MiniappHost {
     this.resourceService = options.resourceBackend === undefined ? null : new ResourceService(options.resourceBackend);
     this.presenceService =
       options.presenceBackend === undefined ? null : new PresenceService(options.presenceBackend);
+    this.hostInfoService = new HostInfoService(
+      options.hostInfoBackend ?? {
+        info: async () =>
+          defaultHostInfo({
+            hostApiVersion: HOST_API_VERSION,
+            hostVersion: HOST_API_VERSION
+          })
+      }
+    );
     this.aiService = options.aiBackend === undefined ? null : new AiService(options.aiBackend);
     this.appsService =
       options.appsBackend === undefined ? null : new AppsService(options.appsBackend, options.confirmationChannel);
@@ -577,6 +595,14 @@ export class MiniappHost {
       }
 
       return this.presenceService.snapshot();
+    });
+
+    this.broker.register("host", "info", "presence", async (): Promise<HostInfo> => {
+      const info = await this.hostInfoService.info();
+      return {
+        ...info,
+        hostApiVersion: info.hostApiVersion || HOST_API_VERSION
+      };
     });
   }
 

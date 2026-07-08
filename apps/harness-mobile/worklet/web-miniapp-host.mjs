@@ -13,6 +13,7 @@ import {
   validateManifestCapabilities
 } from "../../../packages/miniapp-runtime/dist/capabilities.js";
 import { generateConfirmationToken } from "../../../packages/miniapp-runtime/dist/confirm.js";
+import { HOST_API_VERSION } from "../../../packages/miniapp-runtime/dist/host-api.js";
 import { MiniappHost } from "../../../packages/miniapp-runtime/dist/host.js";
 import { createWebSandboxProxyBackend } from "../../../packages/miniapp-runtime/dist/sandbox/web-proxy.js";
 import { KvStorageBeeBackend } from "../../../packages/miniapp-runtime/dist/services/storage-bee-kv.js";
@@ -101,6 +102,28 @@ export function createWebWorkletMiniappHost(options) {
         onlineInterfaces: options.getPresenceSnapshot?.().onlineInterfaces ?? 0,
         preferredInterface: options.getPresenceSnapshot?.().preferredInterface ?? null
       })
+    },
+    hostInfoBackend: {
+      info: async () => {
+        const snap = options.getHostInfoSnapshot?.() ?? {};
+        return {
+          platform: snap.platform ?? "web",
+          hostVersion: snap.hostVersion ?? "0.0.0",
+          hostApiVersion: HOST_API_VERSION,
+          roles: {
+            transport: snap.roles?.transport ?? false,
+            seeder: snap.roles?.seeder ?? false,
+            propagation: snap.roles?.propagation ?? false
+          },
+          interfaceTypes: Array.isArray(snap.interfaceTypes) ? snap.interfaceTypes : [],
+          quotas: {
+            kvQuotaBytes: snap.quotas?.kvQuotaBytes ?? null,
+            seedStorageUsedBytes: snap.quotas?.seedStorageUsedBytes ?? null,
+            seedStorageQuotaBytes: snap.quotas?.seedStorageQuotaBytes ?? null,
+            memoryBytes: snap.quotas?.memoryBytes ?? null
+          }
+        };
+      }
     },
     resourceBackend: {
       fetch: async (_appId, request) => {

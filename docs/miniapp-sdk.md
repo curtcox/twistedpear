@@ -11,7 +11,7 @@ grant screen renders the descriptions below (from `CAPABILITY_DEFINITIONS` in th
 | Capability | User-facing description |
 |---|---|
 | `identity` | Use an app-scoped identity for signing and addressing. |
-| `presence` | Read coarse peer and interface presence. |
+| `presence` | Read coarse peer/interface presence and host info. |
 | `announce:subscribe` | Receive announces in the app namespace. |
 | `announce:publish` | Publish the app destination. |
 | `lxmf:send` | Send LXMF messages from the app destination. |
@@ -28,7 +28,7 @@ grant screen renders the descriptions below (from `CAPABILITY_DEFINITIONS` in th
 | `share:cas` | Store and retrieve bounded content-addressed data shared by 256t id. |
 
 Unknown capability strings block install. Adding a capability bumps `HOST_API_VERSION` minor
-(the dev-environment capabilities above shipped in `0.2.0`).
+(the dev-environment capabilities above shipped in `0.2.0`; `host.info()` shipped in `0.3.0`).
 
 The `apps:*` capabilities are double-gated: beyond the grant, every package,
 publish, install, and preview call raises a host-chrome confirmation dialog the
@@ -47,6 +47,8 @@ mini-app cannot draw over or acknowledge (see
 - `storage.bee.open/get/put/del/list` — local-only Hyperbee CRUD.
 - `resource.fetch({ resourceId, budgetBytes? })` — host-budgeted Resource fetch.
 - `presence.snapshot()` — coarse peer/interface state.
+- `host.info()` — platform id, host version, `HOST_API_VERSION`, enabled roles,
+  available interface types, and quota snapshot (requires `presence`).
 - `ui.render(tree)` — submit a validated widget tree.
 - `ui.onEvent(handler)` — subscribe to host UI events (tap, input change, etc.).
 - `workspace.list/read/write/remove(path)` — per-app project source files

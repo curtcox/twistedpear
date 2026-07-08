@@ -2,6 +2,7 @@ import {
   CAPABILITY_DEFINITIONS,
   CorestoreBeeBackend,
   GrantStore,
+  HOST_API_VERSION,
   MiniappHost,
   createSandboxBackend,
   describeCapability,
@@ -82,6 +83,28 @@ export function createWorkletMiniappHost(options) {
         onlineInterfaces: options.getPresenceSnapshot?.().onlineInterfaces ?? 0,
         preferredInterface: options.getPresenceSnapshot?.().preferredInterface ?? null
       })
+    },
+    hostInfoBackend: {
+      info: async () => {
+        const snap = options.getHostInfoSnapshot?.() ?? {};
+        return {
+          platform: snap.platform ?? "desktop",
+          hostVersion: snap.hostVersion ?? "0.0.0",
+          hostApiVersion: HOST_API_VERSION,
+          roles: {
+            transport: snap.roles?.transport ?? false,
+            seeder: snap.roles?.seeder ?? false,
+            propagation: snap.roles?.propagation ?? false
+          },
+          interfaceTypes: Array.isArray(snap.interfaceTypes) ? snap.interfaceTypes : [],
+          quotas: {
+            kvQuotaBytes: snap.quotas?.kvQuotaBytes ?? null,
+            seedStorageUsedBytes: snap.quotas?.seedStorageUsedBytes ?? null,
+            seedStorageQuotaBytes: snap.quotas?.seedStorageQuotaBytes ?? null,
+            memoryBytes: snap.quotas?.memoryBytes ?? null
+          }
+        };
+      }
     },
     resourceBackend: {
       fetch: async (_appId, request) => {

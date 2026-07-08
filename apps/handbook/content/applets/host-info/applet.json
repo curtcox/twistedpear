@@ -1,0 +1,13 @@
+{
+  "id": "host-info",
+  "title": "Host info probe",
+  "capabilities": ["presence"],
+  "surfaces": ["host.info"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  }
+}

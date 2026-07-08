@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-07-08T13:41:11.589Z",
+  "measuredAt": "2026-07-08T14:17:51.815Z",
   "bitrates": {
     "lan": 8388608,
     "ble": 24576,
@@ -103,7 +103,7 @@
     },
     {
       "name": "handbook",
-      "bytes": 71227,
+      "bytes": 86848,
       "description": "Phase D Handbook (full docs + applets; exceeds BLE example budget by design)",
       "estimates": {
         "lan": {
@@ -111,12 +111,12 @@
           "human": "1s"
         },
         "ble": {
-          "seconds": 24,
-          "human": "24s"
+          "seconds": 29,
+          "human": "29s"
         },
         "rnode": {
-          "seconds": 475,
-          "human": "7m 55s"
+          "seconds": 579,
+          "human": "9m 39s"
         }
       }
     }

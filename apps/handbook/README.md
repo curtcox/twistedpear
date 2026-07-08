@@ -6,8 +6,9 @@ Plan: [docs/handbook.md](../../docs/handbook.md).
 ## Develop
 
 ```bash
-npm run build:handbook   # content → catalog + bundle.js
-npm run test:handbook    # pack → launch on Node sandbox → chapters + applet
+npm run build:handbook        # content → catalog + bundle.js
+npm run test:handbook         # pack → launch on Node sandbox → chapters + applets
+npm run test:handbook-report  # run-all → share.put → seeded report diff
 ```
 
 Author chapters under `content/` (markdown subset) and applets under

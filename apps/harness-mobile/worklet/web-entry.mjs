@@ -384,6 +384,27 @@ function ensureMiniappHost() {
       provider: cryptoProvider,
       kvStore: ensureMiniappKvStore(),
       getPresenceSnapshot: () => status,
+      getHostInfoSnapshot: () => {
+        const interfaceTypes = [];
+        if (status.wsEnabled) interfaceTypes.push("websocket");
+        if (status.rnodeEnabled) interfaceTypes.push("rnode");
+        return {
+          platform: "web",
+          hostVersion: HOST_API_VERSION,
+          roles: {
+            transport: false,
+            seeder: false,
+            propagation: false
+          },
+          interfaceTypes,
+          quotas: {
+            kvQuotaBytes: null,
+            seedStorageUsedBytes: status.storageUsedBytes ?? null,
+            seedStorageQuotaBytes: null,
+            memoryBytes: null
+          }
+        };
+      },
       send,
       requestHostReply,
       getPublisherIdentity: async () => {
