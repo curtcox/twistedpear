@@ -1,12 +1,13 @@
 import DHT from "@hyperswarm/dht-relay";
 import WsStream from "@hyperswarm/dht-relay/ws";
+import Corestore from "corestore";
+import RAM from "random-access-memory";
 import { fetchDriveVersionViaRelayedDht } from "./relay-hyper-fetch.js";
 
 export interface WebHyperFetchOptions {
   readonly relayUrl: string;
   readonly driveKeyHex: string;
   readonly version: string;
-  readonly storagePath: string;
   readonly timeoutMs?: number;
 }
 
@@ -34,8 +35,12 @@ export async function fetchDriveVersionViaRelay(options: WebHyperFetchOptions): 
   return fetchDriveVersionViaRelayedDht({
     driveKeyHex: options.driveKeyHex,
     version: options.version,
-    storagePath: options.storagePath,
     ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
+    async createStore() {
+      const store = new Corestore(RAM);
+      await store.ready();
+      return store;
+    },
     async createDht() {
       const socket = await openRelaySocket(options.relayUrl, Math.min(options.timeoutMs ?? 15_000, 15_000));
       const dht = new DHT(new WsStream(true, socket));

@@ -77,4 +77,12 @@ if (hits.length > 0) {
   throw new Error(`web-core worker bundle guard failed: forbidden imports leaked (${hits.join(", ")})`);
 }
 
+const hyperFetchBuild = spawnSync("node", ["scripts/build-web-hyper-fetch.mjs"], {
+  cwd: harnessRoot,
+  stdio: "inherit"
+});
+if (hyperFetchBuild.status !== 0) {
+  process.exit(hyperFetchBuild.status ?? 1);
+}
+
 console.log(`web-core worker bundle written to ${output}`);

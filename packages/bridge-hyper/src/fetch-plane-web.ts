@@ -31,7 +31,6 @@ export interface WebFetchPlane {
 export interface WebCompositeFetchPlaneOptions {
   readonly resourcePlane: WebFetchPlane;
   readonly relayUrl: string;
-  readonly storagePath: string;
 }
 
 export function createWebCompositeFetchPlane(options: WebCompositeFetchPlaneOptions): WebFetchPlane {
@@ -49,8 +48,7 @@ export function createWebCompositeFetchPlane(options: WebCompositeFetchPlaneOpti
           const archiveBytes = await fetchDriveVersionViaRelay({
             relayUrl: options.relayUrl,
             driveKeyHex: request.entry.driveKey,
-            version: request.version,
-            storagePath: options.storagePath
+            version: request.version
           });
 
           request.onProgress?.({

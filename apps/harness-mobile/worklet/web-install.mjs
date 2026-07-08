@@ -65,7 +65,7 @@ export function createWebInstallService(options) {
     }
 
     if (decoded.inline !== null) {
-      return Uint8Array.from(decoded.inline);
+      return { archive: Uint8Array.from(decoded.inline), fetchPath: "inline" };
     }
 
     if (options.getHostSession === undefined) {
@@ -102,7 +102,7 @@ export function createWebInstallService(options) {
             path: "hyperdrive",
             verified: true
           });
-          return hyperArchive;
+          return { archive: hyperArchive, fetchPath: "hyperdrive" };
         }
       } catch {
         sendProgress?.({
@@ -142,7 +142,7 @@ export function createWebInstallService(options) {
       throw new Error("Fetched archive does not match its 256t id");
     }
 
-    return archive;
+    return { archive, fetchPath: result.path ?? "resource" };
   }
 
   async function installFromT256(t256) {
@@ -162,13 +162,13 @@ export function createWebInstallService(options) {
     };
 
     try {
-      const archive = await resolveArchiveBytes(normalized, sendProgress);
+      const { archive, fetchPath } = await resolveArchiveBytes(normalized, sendProgress);
       appId = unpackPackage(options.provider, archive).manifest.name;
       sendProgress({
         phase: "verifying",
         bytesReceived: archive.length,
         totalBytes: archive.length,
-        path: "resource",
+        path: fetchPath === "inline" ? "resource" : fetchPath,
         verified: false
       });
 
@@ -213,7 +213,7 @@ export function createWebInstallService(options) {
         phase: "complete",
         bytesReceived: archive.length,
         totalBytes: archive.length,
-        path: "resource",
+        path: fetchPath === "inline" ? "resource" : fetchPath,
         verified: true
       });
 
@@ -230,8 +230,8 @@ export function createWebInstallService(options) {
       }
 
       options.pushInstalled?.();
-      options.log?.(`Installed ${installed.appId} v${installed.version} from 256t (trusted: ${trusted})`);
-      return { appId: installed.appId, version: installed.version, trusted };
+      options.log?.(`Installed ${installed.appId} v${installed.version} from 256t via ${fetchPath} (trusted: ${trusted})`);
+      return { appId: installed.appId, version: installed.version, trusted, fetchPath };
     } catch (error) {
       sendProgress({
         phase: "failed",

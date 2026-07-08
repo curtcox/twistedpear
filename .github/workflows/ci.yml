@@ -365,6 +365,7 @@ jobs:
       - run: npm run test:web-soak
       - run: npm run test:web-pwa
       - run: npm run test:web-hyperdrive
+      - run: npm run test:web-hyperdrive-browser
 
   fuzz:
     runs-on: ubuntu-latest

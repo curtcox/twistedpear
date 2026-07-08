@@ -1,5 +1,4 @@
 import b4a from "b4a";
-import Corestore from "corestore";
 import Hyperdrive from "hyperdrive";
 import Hyperswarm from "hyperswarm";
 import { driveTopic } from "./swarm.js";
@@ -10,12 +9,18 @@ export interface RelayedDht {
   destroy(): Promise<void>;
 }
 
+export interface RelayStore {
+  ready(): Promise<void>;
+  replicate(isInitiator: boolean): { pipe<T>(destination: T): T };
+  close(): Promise<void>;
+}
+
 export interface RelayHyperFetchOptions {
   readonly driveKeyHex: string;
   readonly version: string;
-  readonly storagePath: string;
   readonly timeoutMs?: number;
   readonly createDht: () => Promise<RelayedDht>;
+  readonly createStore: () => Promise<RelayStore>;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -27,8 +32,7 @@ export async function fetchDriveVersionViaRelayedDht(options: RelayHyperFetchOpt
   const dht = await options.createDht();
 
   const swarm = new Hyperswarm({ dht: dht as never });
-  const store = new Corestore(options.storagePath);
-  await store.ready();
+  const store = await options.createStore();
 
   const drive = new Hyperdrive(store, b4a.from(options.driveKeyHex, "hex"));
   await drive.ready();

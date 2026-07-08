@@ -34,5 +34,6 @@ if (exportResult.status !== 0) {
 }
 
 cpSync(join(harnessRoot, "public/web-core.worker.js"), join(outputDir, "web-core.worker.js"));
+cpSync(join(harnessRoot, "public/web-hyper-fetch.js"), join(outputDir, "web-hyper-fetch.js"));
 applyPwaShell(outputDir);
 console.log(`web-host static bundle written to ${outputDir}`);

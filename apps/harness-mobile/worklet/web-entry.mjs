@@ -102,6 +102,8 @@ let miniappHost = null;
 let installService = null;
 /** @type {ReturnType<typeof createWebPublishService> | null} */
 let publishService = null;
+/** @type {Promise<{ fetchDriveVersionViaRelay: Function; dhtRelayUrlFromGateway: Function }> | null} */
+let hyperFetchModule = null;
 /** @type {PureCryptoProvider} */
 const cryptoProvider = new PureCryptoProvider();
 /** @type {ReturnType<typeof setInterval> | null} */
@@ -212,6 +214,15 @@ function ensureMiniappKvStore() {
   return miniappKvStore;
 }
 
+async function loadHyperFetch() {
+  if (hyperFetchModule === null) {
+    const hyperFetchUrl = new URL("./web-hyper-fetch.js", import.meta.url).href;
+    hyperFetchModule = import(hyperFetchUrl);
+  }
+
+  return hyperFetchModule;
+}
+
 function ensurePublishService() {
   if (publishService === null) {
     publishService = createWebPublishService({
@@ -278,8 +289,24 @@ function ensureInstallService() {
         void pushInstalledList();
       },
       requestHostReply: requestHostReply,
-      // Browser Hyperdrive-over-relay install lands once ephemeral corestore storage is wired.
-      tryHyperdriveFetch: async () => null
+      tryHyperdriveFetch: async (locator) => {
+        if (webConfig.gatewayUrl.length === 0) {
+          return null;
+        }
+
+        if (locator.driveKey.length === 0 || /^0+$/.test(locator.driveKey)) {
+          return null;
+        }
+
+        const hyperFetch = await loadHyperFetch();
+        const relayUrl = hyperFetch.dhtRelayUrlFromGateway(webConfig.gatewayUrl);
+        return hyperFetch.fetchDriveVersionViaRelay({
+          relayUrl,
+          driveKeyHex: locator.driveKey,
+          version: locator.version,
+          timeoutMs: 90_000
+        });
+      }
     });
   }
 
@@ -810,4 +837,4 @@ pushStatus();
 refreshStorageStatus().catch((error) => {
   log(`Web package storage unavailable: ${error instanceof Error ? error.message : String(error)}`);
 });
-log("Web core worker ready (Phase W3 DevStudio + publish)");
+log("Web core worker ready (Phase W4 Hyperdrive-over-relay install)");

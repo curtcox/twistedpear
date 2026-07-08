@@ -35174,6 +35174,415 @@ var require_corestore = __commonJS({
   }
 });
 
+// ../../node_modules/random-access-storage/index.js
+var require_random_access_storage = __commonJS({
+  "../../node_modules/random-access-storage/index.js"(exports, module) {
+    var EventEmitter = require_events();
+    var queueTick = require_queue_microtask();
+    var NOT_READABLE = defaultImpl(new Error("Not readable"));
+    var NOT_WRITABLE = defaultImpl(new Error("Not writable"));
+    var NOT_DELETABLE = defaultImpl(new Error("Not deletable"));
+    var NOT_STATABLE = defaultImpl(new Error("Not statable"));
+    var DEFAULT_OPEN = defaultImpl(null);
+    var DEFAULT_CLOSE = defaultImpl(null);
+    var DEFAULT_UNLINK = defaultImpl(null);
+    var READ_OP = 0;
+    var WRITE_OP = 1;
+    var DEL_OP = 2;
+    var TRUNCATE_OP = 3;
+    var STAT_OP = 4;
+    var OPEN_OP = 5;
+    var SUSPEND_OP = 6;
+    var CLOSE_OP = 7;
+    var UNLINK_OP = 8;
+    module.exports = class RandomAccessStorage extends EventEmitter {
+      constructor(opts) {
+        super();
+        this._queued = [];
+        this._pending = 0;
+        this._needsOpen = true;
+        this.opened = false;
+        this.suspended = false;
+        this.closed = false;
+        this.unlinked = false;
+        this.writing = false;
+        if (opts) {
+          if (opts.open) this._open = opts.open;
+          if (opts.read) this._read = opts.read;
+          if (opts.write) this._write = opts.write;
+          if (opts.del) this._del = opts.del;
+          if (opts.truncate) this._truncate = opts.truncate;
+          if (opts.stat) this._stat = opts.stat;
+          if (opts.suspend) this._suspend = opts.suspend;
+          if (opts.close) this._close = opts.close;
+          if (opts.unlink) this._unlink = opts.unlink;
+        }
+        this.readable = this._read !== RandomAccessStorage.prototype._read;
+        this.writable = this._write !== RandomAccessStorage.prototype._write;
+        this.deletable = this._del !== RandomAccessStorage.prototype._del;
+        this.truncatable = this._truncate !== RandomAccessStorage.prototype._truncate || this.deletable;
+        this.statable = this._stat !== RandomAccessStorage.prototype._stat;
+      }
+      read(offset, size, cb) {
+        this.run(new Request(this, READ_OP, offset, size, null, cb), false);
+      }
+      _read(req) {
+        return NOT_READABLE(req);
+      }
+      write(offset, data, cb) {
+        if (!cb) cb = noop;
+        this.run(new Request(this, WRITE_OP, offset, data.length, data, cb), true);
+      }
+      _write(req) {
+        return NOT_WRITABLE(req);
+      }
+      del(offset, size, cb) {
+        if (!cb) cb = noop;
+        this.run(new Request(this, DEL_OP, offset, size, null, cb), true);
+      }
+      _del(req) {
+        return NOT_DELETABLE(req);
+      }
+      truncate(offset, cb) {
+        if (!cb) cb = noop;
+        this.run(new Request(this, TRUNCATE_OP, offset, 0, null, cb), true);
+      }
+      _truncate(req) {
+        req.size = Infinity;
+        this._del(req);
+      }
+      stat(cb) {
+        this.run(new Request(this, STAT_OP, 0, 0, null, cb), false);
+      }
+      _stat(req) {
+        return NOT_STATABLE(req);
+      }
+      open(cb) {
+        if (!cb) cb = noop;
+        if (this.opened && !this._needsOpen) return nextTickCallback(cb);
+        this._needsOpen = false;
+        queueAndRun(this, new Request(this, OPEN_OP, 0, 0, null, cb));
+      }
+      _open(req) {
+        return DEFAULT_OPEN(req);
+      }
+      suspend(cb) {
+        if (!cb) cb = noop;
+        if (this.closed || this.suspended) return nextTickCallback(cb);
+        this._needsOpen = true;
+        queueAndRun(this, new Request(this, SUSPEND_OP, 0, 0, null, cb));
+      }
+      _suspend(req) {
+        this._close(req);
+      }
+      close(cb) {
+        if (!cb) cb = noop;
+        if (this.closed) return nextTickCallback(cb);
+        queueAndRun(this, new Request(this, CLOSE_OP, 0, 0, null, cb));
+      }
+      _close(req) {
+        return DEFAULT_CLOSE(req);
+      }
+      unlink(cb) {
+        if (!cb) cb = noop;
+        if (!this.closed) this.close(noop);
+        queueAndRun(this, new Request(this, UNLINK_OP, 0, 0, null, cb));
+      }
+      _unlink(req) {
+        return DEFAULT_UNLINK(req);
+      }
+      run(req, writing) {
+        if (writing && !this.writing) {
+          this.writing = true;
+          this._needsOpen = true;
+        }
+        if (this._needsOpen) this.open(noop);
+        if (this._queued.length) this._queued.push(req);
+        else req._run();
+      }
+    };
+    var Request = class {
+      constructor(self, type, offset, size, data, cb) {
+        this.type = type;
+        this.offset = offset;
+        this.size = size;
+        this.data = data;
+        this.storage = self;
+        this._sync = false;
+        this._callback = cb;
+        this._openError = null;
+      }
+      _maybeOpenError(err) {
+        if (this.type !== OPEN_OP) return;
+        const queued = this.storage._queued;
+        for (let i = 1; i < queued.length; i++) {
+          const q = queued[i];
+          if (q.type === OPEN_OP) break;
+          q._openError = err;
+        }
+      }
+      _unqueue(err) {
+        const ra = this.storage;
+        const queued = ra._queued;
+        if (err) {
+          this._maybeOpenError(err);
+        } else if (this.type > 4) {
+          switch (this.type) {
+            case OPEN_OP:
+              if (ra.suspended) {
+                ra.suspended = false;
+                ra.emit("unsuspend");
+              }
+              if (!ra.opened) {
+                ra.opened = true;
+                ra.emit("open");
+              }
+              break;
+            case SUSPEND_OP:
+              if (!ra.suspended) {
+                ra.suspended = true;
+                ra.emit("suspend");
+              }
+              break;
+            case CLOSE_OP:
+              if (!ra.closed) {
+                ra.closed = true;
+                ra.emit("close");
+              }
+              break;
+            case UNLINK_OP:
+              if (!ra.unlinked) {
+                ra.unlinked = true;
+                ra.emit("unlink");
+              }
+              break;
+          }
+        }
+        if (queued.length && queued[0] === this) queued.shift();
+        if (!--ra._pending) drainQueue(ra);
+      }
+      callback(err, val) {
+        if (this._sync) return nextTick(this, err, val);
+        this._unqueue(err);
+        this._callback(err, val);
+      }
+      _openAndNotClosed() {
+        const ra = this.storage;
+        if (ra.opened && !ra.closed && !ra.suspended) return true;
+        if (!ra.opened || ra.suspended) nextTick(this, this._openError || new Error("Not opened"));
+        else if (ra.closed) nextTick(this, new Error("Closed"));
+        return false;
+      }
+      _open() {
+        const ra = this.storage;
+        if (ra.opened && !ra.suspended) return nextTick(this, null);
+        if (ra.closed) return nextTick(this, new Error("Closed"));
+        ra._open(this);
+      }
+      _run() {
+        const ra = this.storage;
+        ra._pending++;
+        this._sync = true;
+        switch (this.type) {
+          case READ_OP:
+            if (this._openAndNotClosed()) ra._read(this);
+            break;
+          case WRITE_OP:
+            if (this._openAndNotClosed()) ra._write(this);
+            break;
+          case DEL_OP:
+            if (this._openAndNotClosed()) ra._del(this);
+            break;
+          case TRUNCATE_OP:
+            if (this._openAndNotClosed()) ra._truncate(this);
+            break;
+          case STAT_OP:
+            if (this._openAndNotClosed()) ra._stat(this);
+            break;
+          case OPEN_OP:
+            this._open();
+            break;
+          case SUSPEND_OP:
+            if (ra.closed || !ra.opened || ra.suspended) nextTick(this, null);
+            else ra._suspend(this);
+            break;
+          case CLOSE_OP:
+            if (ra.closed || !ra.opened || ra.suspended) nextTick(this, null);
+            else ra._close(this);
+            break;
+          case UNLINK_OP:
+            if (ra.unlinked) nextTick(this, null);
+            else ra._unlink(this);
+            break;
+        }
+        this._sync = false;
+      }
+    };
+    function queueAndRun(self, req) {
+      self._queued.push(req);
+      if (!self._pending) req._run();
+    }
+    function drainQueue(self) {
+      const queued = self._queued;
+      while (queued.length > 0) {
+        const blocking = queued[0].type > 4;
+        if (!blocking || !self._pending) queued[0]._run();
+        if (blocking) return;
+        queued.shift();
+      }
+    }
+    function defaultImpl(err) {
+      return overridable;
+      function overridable(req) {
+        nextTick(req, err);
+      }
+    }
+    function nextTick(req, err, val) {
+      queueTick(() => req.callback(err, val));
+    }
+    function nextTickCallback(cb) {
+      queueTick(() => cb(null));
+    }
+    function noop() {
+    }
+  }
+});
+
+// ../../node_modules/random-access-memory/index.js
+var require_random_access_memory = __commonJS({
+  "../../node_modules/random-access-memory/index.js"(exports, module) {
+    var RandomAccess = require_random_access_storage();
+    var isOptions = require_is_options();
+    var b4a3 = require_browser();
+    var DEFAULT_PAGE_SIZE = 1024 * 1024;
+    module.exports = class RAM2 extends RandomAccess {
+      constructor(opts) {
+        super();
+        if (typeof opts === "number") opts = { length: opts };
+        if (!opts) opts = {};
+        if (b4a3.isBuffer(opts)) {
+          opts = { length: opts.length, buffer: opts };
+        }
+        if (!isOptions(opts)) opts = {};
+        this.length = opts.length || 0;
+        this.pageSize = opts.length || opts.pageSize || DEFAULT_PAGE_SIZE;
+        this.buffers = [];
+        if (opts.buffer) this.buffers.push(opts.buffer);
+      }
+      static reusable() {
+        const all = /* @__PURE__ */ new Map();
+        const RAM3 = this;
+        return function createStorage(name) {
+          const existing = all.get(name);
+          const ram = existing ? existing.clone() : new RAM3();
+          if (!existing || existing.closed) {
+            all.set(name, ram);
+          }
+          ram.on("unlink", function() {
+            if (all.get(name) === ram) all.delete(name);
+          });
+          return ram;
+        };
+      }
+      _stat(req) {
+        const st = {
+          size: this.length,
+          blksize: this.pageSize,
+          blocks: 0
+        };
+        for (let i = 0; i < this.buffers.length; i++) {
+          if (this.buffers[i]) st.blocks += this.buffers[i].byteLength / 512;
+        }
+        req.callback(null, st);
+      }
+      _write(req) {
+        let i = Math.floor(req.offset / this.pageSize);
+        let rel = req.offset - i * this.pageSize;
+        let start = 0;
+        const len = req.offset + req.size;
+        if (len > this.length) this.length = len;
+        while (start < req.size) {
+          const page = this._page(i++, true);
+          const free = this.pageSize - rel;
+          const end = free < req.size - start ? start + free : req.size;
+          b4a3.copy(req.data, page, rel, start, end);
+          start = end;
+          rel = 0;
+        }
+        req.callback(null, null);
+      }
+      _read(req) {
+        let i = Math.floor(req.offset / this.pageSize);
+        let rel = req.offset - i * this.pageSize;
+        let start = 0;
+        if (req.offset + req.size > this.length) {
+          return req.callback(new Error("Could not satisfy length"), null);
+        }
+        const data = b4a3.alloc(req.size);
+        while (start < req.size) {
+          const page = this._page(i++, false);
+          const avail = this.pageSize - rel;
+          const wanted = req.size - start;
+          const len = avail < wanted ? avail : wanted;
+          if (page) b4a3.copy(page, data, start, rel, rel + len);
+          start += len;
+          rel = 0;
+        }
+        req.callback(null, data);
+      }
+      _del(req) {
+        let i = Math.floor(req.offset / this.pageSize);
+        let rel = req.offset - i * this.pageSize;
+        let start = 0;
+        if (rel && req.offset + req.size >= this.length) {
+          const buf = this.buffers[i];
+          if (buf) buf.fill(0, rel);
+        }
+        if (req.offset + req.size > this.length) {
+          req.size = Math.max(0, this.length - req.offset);
+        }
+        while (start < req.size) {
+          if (rel === 0 && req.size - start >= this.pageSize) {
+            this.buffers[i] = void 0;
+          }
+          rel = 0;
+          i += 1;
+          start += this.pageSize - rel;
+        }
+        if (req.offset + req.size >= this.length) {
+          this.length = req.offset;
+        }
+        req.callback(null, null);
+      }
+      _unlink(req) {
+        this._buffers = [];
+        this.length = 0;
+        req.callback(null, null);
+      }
+      _page(i, upsert) {
+        let page = this.buffers[i];
+        if (page || !upsert) return page;
+        page = this.buffers[i] = b4a3.alloc(this.pageSize);
+        return page;
+      }
+      toBuffer() {
+        const buf = b4a3.alloc(this.length);
+        for (let i = 0; i < this.buffers.length; i++) {
+          if (this.buffers[i]) b4a3.copy(this.buffers[i], buf, i * this.pageSize);
+        }
+        return buf;
+      }
+      clone() {
+        const ram = new RAM2();
+        ram.length = this.length;
+        ram.pageSize = this.pageSize;
+        ram.buffers = this.buffers.map((buffer) => b4a3.from(buffer));
+        return ram;
+      }
+    };
+  }
+});
+
 // ../../node_modules/codecs/index.js
 var require_codecs2 = __commonJS({
   "../../node_modules/codecs/index.js"(exports, module) {
@@ -42283,460 +42692,34 @@ var require_hyperswarm = __commonJS({
   }
 });
 
-// ../../node_modules/random-access-storage/index.js
-var require_random_access_storage = __commonJS({
-  "../../node_modules/random-access-storage/index.js"(exports, module) {
-    var EventEmitter = require_events();
-    var queueTick = require_queue_microtask();
-    var NOT_READABLE = defaultImpl(new Error("Not readable"));
-    var NOT_WRITABLE = defaultImpl(new Error("Not writable"));
-    var NOT_DELETABLE = defaultImpl(new Error("Not deletable"));
-    var NOT_STATABLE = defaultImpl(new Error("Not statable"));
-    var DEFAULT_OPEN = defaultImpl(null);
-    var DEFAULT_CLOSE = defaultImpl(null);
-    var DEFAULT_UNLINK = defaultImpl(null);
-    var READ_OP = 0;
-    var WRITE_OP = 1;
-    var DEL_OP = 2;
-    var TRUNCATE_OP = 3;
-    var STAT_OP = 4;
-    var OPEN_OP = 5;
-    var SUSPEND_OP = 6;
-    var CLOSE_OP = 7;
-    var UNLINK_OP = 8;
-    module.exports = class RandomAccessStorage extends EventEmitter {
-      constructor(opts) {
-        super();
-        this._queued = [];
-        this._pending = 0;
-        this._needsOpen = true;
-        this.opened = false;
-        this.suspended = false;
-        this.closed = false;
-        this.unlinked = false;
-        this.writing = false;
-        if (opts) {
-          if (opts.open) this._open = opts.open;
-          if (opts.read) this._read = opts.read;
-          if (opts.write) this._write = opts.write;
-          if (opts.del) this._del = opts.del;
-          if (opts.truncate) this._truncate = opts.truncate;
-          if (opts.stat) this._stat = opts.stat;
-          if (opts.suspend) this._suspend = opts.suspend;
-          if (opts.close) this._close = opts.close;
-          if (opts.unlink) this._unlink = opts.unlink;
-        }
-        this.readable = this._read !== RandomAccessStorage.prototype._read;
-        this.writable = this._write !== RandomAccessStorage.prototype._write;
-        this.deletable = this._del !== RandomAccessStorage.prototype._del;
-        this.truncatable = this._truncate !== RandomAccessStorage.prototype._truncate || this.deletable;
-        this.statable = this._stat !== RandomAccessStorage.prototype._stat;
-      }
-      read(offset, size, cb) {
-        this.run(new Request(this, READ_OP, offset, size, null, cb), false);
-      }
-      _read(req) {
-        return NOT_READABLE(req);
-      }
-      write(offset, data, cb) {
-        if (!cb) cb = noop;
-        this.run(new Request(this, WRITE_OP, offset, data.length, data, cb), true);
-      }
-      _write(req) {
-        return NOT_WRITABLE(req);
-      }
-      del(offset, size, cb) {
-        if (!cb) cb = noop;
-        this.run(new Request(this, DEL_OP, offset, size, null, cb), true);
-      }
-      _del(req) {
-        return NOT_DELETABLE(req);
-      }
-      truncate(offset, cb) {
-        if (!cb) cb = noop;
-        this.run(new Request(this, TRUNCATE_OP, offset, 0, null, cb), true);
-      }
-      _truncate(req) {
-        req.size = Infinity;
-        this._del(req);
-      }
-      stat(cb) {
-        this.run(new Request(this, STAT_OP, 0, 0, null, cb), false);
-      }
-      _stat(req) {
-        return NOT_STATABLE(req);
-      }
-      open(cb) {
-        if (!cb) cb = noop;
-        if (this.opened && !this._needsOpen) return nextTickCallback(cb);
-        this._needsOpen = false;
-        queueAndRun(this, new Request(this, OPEN_OP, 0, 0, null, cb));
-      }
-      _open(req) {
-        return DEFAULT_OPEN(req);
-      }
-      suspend(cb) {
-        if (!cb) cb = noop;
-        if (this.closed || this.suspended) return nextTickCallback(cb);
-        this._needsOpen = true;
-        queueAndRun(this, new Request(this, SUSPEND_OP, 0, 0, null, cb));
-      }
-      _suspend(req) {
-        this._close(req);
-      }
-      close(cb) {
-        if (!cb) cb = noop;
-        if (this.closed) return nextTickCallback(cb);
-        queueAndRun(this, new Request(this, CLOSE_OP, 0, 0, null, cb));
-      }
-      _close(req) {
-        return DEFAULT_CLOSE(req);
-      }
-      unlink(cb) {
-        if (!cb) cb = noop;
-        if (!this.closed) this.close(noop);
-        queueAndRun(this, new Request(this, UNLINK_OP, 0, 0, null, cb));
-      }
-      _unlink(req) {
-        return DEFAULT_UNLINK(req);
-      }
-      run(req, writing) {
-        if (writing && !this.writing) {
-          this.writing = true;
-          this._needsOpen = true;
-        }
-        if (this._needsOpen) this.open(noop);
-        if (this._queued.length) this._queued.push(req);
-        else req._run();
-      }
-    };
-    var Request = class {
-      constructor(self, type, offset, size, data, cb) {
-        this.type = type;
-        this.offset = offset;
-        this.size = size;
-        this.data = data;
-        this.storage = self;
-        this._sync = false;
-        this._callback = cb;
-        this._openError = null;
-      }
-      _maybeOpenError(err) {
-        if (this.type !== OPEN_OP) return;
-        const queued = this.storage._queued;
-        for (let i = 1; i < queued.length; i++) {
-          const q = queued[i];
-          if (q.type === OPEN_OP) break;
-          q._openError = err;
-        }
-      }
-      _unqueue(err) {
-        const ra = this.storage;
-        const queued = ra._queued;
-        if (err) {
-          this._maybeOpenError(err);
-        } else if (this.type > 4) {
-          switch (this.type) {
-            case OPEN_OP:
-              if (ra.suspended) {
-                ra.suspended = false;
-                ra.emit("unsuspend");
-              }
-              if (!ra.opened) {
-                ra.opened = true;
-                ra.emit("open");
-              }
-              break;
-            case SUSPEND_OP:
-              if (!ra.suspended) {
-                ra.suspended = true;
-                ra.emit("suspend");
-              }
-              break;
-            case CLOSE_OP:
-              if (!ra.closed) {
-                ra.closed = true;
-                ra.emit("close");
-              }
-              break;
-            case UNLINK_OP:
-              if (!ra.unlinked) {
-                ra.unlinked = true;
-                ra.emit("unlink");
-              }
-              break;
-          }
-        }
-        if (queued.length && queued[0] === this) queued.shift();
-        if (!--ra._pending) drainQueue(ra);
-      }
-      callback(err, val) {
-        if (this._sync) return nextTick(this, err, val);
-        this._unqueue(err);
-        this._callback(err, val);
-      }
-      _openAndNotClosed() {
-        const ra = this.storage;
-        if (ra.opened && !ra.closed && !ra.suspended) return true;
-        if (!ra.opened || ra.suspended) nextTick(this, this._openError || new Error("Not opened"));
-        else if (ra.closed) nextTick(this, new Error("Closed"));
-        return false;
-      }
-      _open() {
-        const ra = this.storage;
-        if (ra.opened && !ra.suspended) return nextTick(this, null);
-        if (ra.closed) return nextTick(this, new Error("Closed"));
-        ra._open(this);
-      }
-      _run() {
-        const ra = this.storage;
-        ra._pending++;
-        this._sync = true;
-        switch (this.type) {
-          case READ_OP:
-            if (this._openAndNotClosed()) ra._read(this);
-            break;
-          case WRITE_OP:
-            if (this._openAndNotClosed()) ra._write(this);
-            break;
-          case DEL_OP:
-            if (this._openAndNotClosed()) ra._del(this);
-            break;
-          case TRUNCATE_OP:
-            if (this._openAndNotClosed()) ra._truncate(this);
-            break;
-          case STAT_OP:
-            if (this._openAndNotClosed()) ra._stat(this);
-            break;
-          case OPEN_OP:
-            this._open();
-            break;
-          case SUSPEND_OP:
-            if (ra.closed || !ra.opened || ra.suspended) nextTick(this, null);
-            else ra._suspend(this);
-            break;
-          case CLOSE_OP:
-            if (ra.closed || !ra.opened || ra.suspended) nextTick(this, null);
-            else ra._close(this);
-            break;
-          case UNLINK_OP:
-            if (ra.unlinked) nextTick(this, null);
-            else ra._unlink(this);
-            break;
-        }
-        this._sync = false;
-      }
-    };
-    function queueAndRun(self, req) {
-      self._queued.push(req);
-      if (!self._pending) req._run();
-    }
-    function drainQueue(self) {
-      const queued = self._queued;
-      while (queued.length > 0) {
-        const blocking = queued[0].type > 4;
-        if (!blocking || !self._pending) queued[0]._run();
-        if (blocking) return;
-        queued.shift();
-      }
-    }
-    function defaultImpl(err) {
-      return overridable;
-      function overridable(req) {
-        nextTick(req, err);
-      }
-    }
-    function nextTick(req, err, val) {
-      queueTick(() => req.callback(err, val));
-    }
-    function nextTickCallback(cb) {
-      queueTick(() => cb(null));
-    }
-    function noop() {
-    }
-  }
-});
-
-// ../../node_modules/random-access-memory/index.js
-var require_random_access_memory = __commonJS({
-  "../../node_modules/random-access-memory/index.js"(exports, module) {
-    var RandomAccess = require_random_access_storage();
-    var isOptions = require_is_options();
-    var b4a3 = require_browser();
-    var DEFAULT_PAGE_SIZE = 1024 * 1024;
-    module.exports = class RAM2 extends RandomAccess {
-      constructor(opts) {
-        super();
-        if (typeof opts === "number") opts = { length: opts };
-        if (!opts) opts = {};
-        if (b4a3.isBuffer(opts)) {
-          opts = { length: opts.length, buffer: opts };
-        }
-        if (!isOptions(opts)) opts = {};
-        this.length = opts.length || 0;
-        this.pageSize = opts.length || opts.pageSize || DEFAULT_PAGE_SIZE;
-        this.buffers = [];
-        if (opts.buffer) this.buffers.push(opts.buffer);
-      }
-      static reusable() {
-        const all = /* @__PURE__ */ new Map();
-        const RAM3 = this;
-        return function createStorage(name) {
-          const existing = all.get(name);
-          const ram = existing ? existing.clone() : new RAM3();
-          if (!existing || existing.closed) {
-            all.set(name, ram);
-          }
-          ram.on("unlink", function() {
-            if (all.get(name) === ram) all.delete(name);
-          });
-          return ram;
-        };
-      }
-      _stat(req) {
-        const st = {
-          size: this.length,
-          blksize: this.pageSize,
-          blocks: 0
-        };
-        for (let i = 0; i < this.buffers.length; i++) {
-          if (this.buffers[i]) st.blocks += this.buffers[i].byteLength / 512;
-        }
-        req.callback(null, st);
-      }
-      _write(req) {
-        let i = Math.floor(req.offset / this.pageSize);
-        let rel = req.offset - i * this.pageSize;
-        let start = 0;
-        const len = req.offset + req.size;
-        if (len > this.length) this.length = len;
-        while (start < req.size) {
-          const page = this._page(i++, true);
-          const free = this.pageSize - rel;
-          const end = free < req.size - start ? start + free : req.size;
-          b4a3.copy(req.data, page, rel, start, end);
-          start = end;
-          rel = 0;
-        }
-        req.callback(null, null);
-      }
-      _read(req) {
-        let i = Math.floor(req.offset / this.pageSize);
-        let rel = req.offset - i * this.pageSize;
-        let start = 0;
-        if (req.offset + req.size > this.length) {
-          return req.callback(new Error("Could not satisfy length"), null);
-        }
-        const data = b4a3.alloc(req.size);
-        while (start < req.size) {
-          const page = this._page(i++, false);
-          const avail = this.pageSize - rel;
-          const wanted = req.size - start;
-          const len = avail < wanted ? avail : wanted;
-          if (page) b4a3.copy(page, data, start, rel, rel + len);
-          start += len;
-          rel = 0;
-        }
-        req.callback(null, data);
-      }
-      _del(req) {
-        let i = Math.floor(req.offset / this.pageSize);
-        let rel = req.offset - i * this.pageSize;
-        let start = 0;
-        if (rel && req.offset + req.size >= this.length) {
-          const buf = this.buffers[i];
-          if (buf) buf.fill(0, rel);
-        }
-        if (req.offset + req.size > this.length) {
-          req.size = Math.max(0, this.length - req.offset);
-        }
-        while (start < req.size) {
-          if (rel === 0 && req.size - start >= this.pageSize) {
-            this.buffers[i] = void 0;
-          }
-          rel = 0;
-          i += 1;
-          start += this.pageSize - rel;
-        }
-        if (req.offset + req.size >= this.length) {
-          this.length = req.offset;
-        }
-        req.callback(null, null);
-      }
-      _unlink(req) {
-        this._buffers = [];
-        this.length = 0;
-        req.callback(null, null);
-      }
-      _page(i, upsert) {
-        let page = this.buffers[i];
-        if (page || !upsert) return page;
-        page = this.buffers[i] = b4a3.alloc(this.pageSize);
-        return page;
-      }
-      toBuffer() {
-        const buf = b4a3.alloc(this.length);
-        for (let i = 0; i < this.buffers.length; i++) {
-          if (this.buffers[i]) b4a3.copy(this.buffers[i], buf, i * this.pageSize);
-        }
-        return buf;
-      }
-      clone() {
-        const ram = new RAM2();
-        ram.length = this.length;
-        ram.pageSize = this.pageSize;
-        ram.buffers = this.buffers.map((buffer) => b4a3.from(buffer));
-        return ram;
-      }
-    };
-  }
-});
-
-// ../../packages/bridge-hyper/dist/web-hyper-fetch.js
+// ../../packages/bridge-hyper/src/web-hyper-fetch.ts
 var import_dht_relay = __toESM(require_dht_relay(), 1);
 var import_ws = __toESM(require_ws2(), 1);
-var import_b4a2 = __toESM(require_browser(), 1);
 var import_corestore = __toESM(require_corestore(), 1);
-var import_hyperdrive = __toESM(require_hyperdrive(), 1);
-var import_hyperswarm2 = __toESM(require_hyperswarm(), 1);
 var import_random_access_memory = __toESM(require_random_access_memory(), 1);
 
-// ../../packages/bridge-hyper/dist/swarm.js
+// ../../packages/bridge-hyper/src/relay-hyper-fetch.ts
+var import_b4a2 = __toESM(require_browser(), 1);
+var import_hyperdrive = __toESM(require_hyperdrive(), 1);
+var import_hyperswarm2 = __toESM(require_hyperswarm(), 1);
+
+// ../../packages/bridge-hyper/src/swarm.ts
 var import_hyperswarm = __toESM(require_hyperswarm(), 1);
 var import_b4a = __toESM(require_browser(), 1);
 function driveTopic(driveKey) {
   return driveKey.slice(0, 32);
 }
 
-// ../../packages/bridge-hyper/dist/web-hyper-fetch.js
+// ../../packages/bridge-hyper/src/relay-hyper-fetch.ts
 var PACKAGE_PATH_PREFIX = "/packages/";
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-function openRelaySocket(relayUrl, timeoutMs) {
-  return new Promise((resolve, reject) => {
-    const socket = new WebSocket(relayUrl);
-    const timer = setTimeout(() => {
-      socket.close();
-      reject(new Error("DHT relay websocket connect timeout"));
-    }, timeoutMs);
-    socket.addEventListener("open", () => {
-      clearTimeout(timer);
-      resolve(socket);
-    });
-    socket.addEventListener("error", () => {
-      clearTimeout(timer);
-      reject(new Error("DHT relay websocket failed"));
-    });
-  });
-}
-async function fetchDriveVersionViaRelay(options) {
+async function fetchDriveVersionViaRelayedDht(options) {
   const timeoutMs = options.timeoutMs ?? 6e4;
-  const socket = await openRelaySocket(options.relayUrl, Math.min(timeoutMs, 15e3));
-  const dht = new import_dht_relay.default(new import_ws.default(true, socket));
+  const dht = await options.createDht();
   const swarm = new import_hyperswarm2.default({ dht });
-  const store = new import_corestore.default(import_random_access_memory.default);
-  await store.ready();
+  const store = await options.createStore();
   const drive = new import_hyperdrive.default(store, import_b4a2.default.from(options.driveKeyHex, "hex"));
   await drive.ready();
   swarm.on("connection", (peerSocket, peerInfo) => {
@@ -42763,8 +42746,48 @@ async function fetchDriveVersionViaRelay(options) {
     throw new Error(`hyperdrive fetch timed out for ${options.version}`);
   } finally {
     await Promise.allSettled([swarm.destroy(), drive.close(), store.close(), dht.destroy()]);
-    socket.close();
   }
+}
+
+// ../../packages/bridge-hyper/src/web-hyper-fetch.ts
+function openRelaySocket(relayUrl, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const socket = new WebSocket(relayUrl);
+    const timer = setTimeout(() => {
+      socket.close();
+      reject(new Error("DHT relay websocket connect timeout"));
+    }, timeoutMs);
+    socket.addEventListener("open", () => {
+      clearTimeout(timer);
+      resolve(socket);
+    });
+    socket.addEventListener("error", () => {
+      clearTimeout(timer);
+      reject(new Error("DHT relay websocket failed"));
+    });
+  });
+}
+async function fetchDriveVersionViaRelay(options) {
+  return fetchDriveVersionViaRelayedDht({
+    driveKeyHex: options.driveKeyHex,
+    version: options.version,
+    ...options.timeoutMs === void 0 ? {} : { timeoutMs: options.timeoutMs },
+    async createStore() {
+      const store = new import_corestore.default(import_random_access_memory.default);
+      await store.ready();
+      return store;
+    },
+    async createDht() {
+      const socket = await openRelaySocket(options.relayUrl, Math.min(options.timeoutMs ?? 15e3, 15e3));
+      const dht = new import_dht_relay.default(new import_ws.default(true, socket));
+      const destroy = dht.destroy.bind(dht);
+      dht.destroy = async () => {
+        await destroy();
+        socket.close();
+      };
+      return dht;
+    }
+  });
 }
 function dhtRelayUrlFromGateway(gatewayUrl, path = "/dht-relay") {
   const url = new URL(gatewayUrl);

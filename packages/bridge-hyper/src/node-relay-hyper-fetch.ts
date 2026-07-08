@@ -1,5 +1,6 @@
 import DHT from "@hyperswarm/dht-relay";
 import WsStream from "@hyperswarm/dht-relay/ws";
+import Corestore from "corestore";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -39,8 +40,12 @@ export async function fetchDriveVersionViaNodeRelay(options: NodeRelayHyperFetch
     return await fetchDriveVersionViaRelayedDht({
       driveKeyHex: options.driveKeyHex,
       version: options.version,
-      storagePath,
       ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
+      async createStore() {
+        const store = new Corestore(storagePath);
+        await store.ready();
+        return store;
+      },
       async createDht() {
       const socket = await openRelaySocket(options.relayUrl, Math.min(options.timeoutMs ?? 15_000, 15_000));
       const dht = new DHT(new WsStream(true, socket));
