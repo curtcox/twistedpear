@@ -37,13 +37,16 @@ npm run validate:mac                 # doctor + Stages 1–5 (CI-parity local pa
 npm run validate:mac:full            # doctor + Stages 1–8 (mobile + default soaks)
 npm run validate:mac -- --dry-run    # print the selected commands
 npm run validate:mac -- --stage 7 --start-android-emulator
+npm run validate:mac -- --stage 8 --plan-duration  # starts caffeinate automatically
 npm run triage:mac                   # package failed logs from the latest run
 ```
 
 Each suite is logged under `.tmp/mac-validation/<timestamp>/`. Use
 `--continue-on-failure` to gather all failures from a pass, `--ai` to include
 live API-key doctor checks, and `--plan-duration` when running Stage 8's
-overnight/weekend soak durations instead of the default tier.
+overnight/weekend soak durations instead of the default tier. `--plan-duration`
+starts `caffeinate -dimsu` for the selected Stage 8 pass; add
+`--no-caffeinate` only if you are managing sleep prevention separately.
 
 Prerequisites that `setup.sh` does not install: Homebrew, Node 22+, Docker
 Desktop, Xcode with an iOS runtime, `gh` authentication, and API keys. The
@@ -246,7 +249,14 @@ Each defaults to ~5 min (`SOAK_DURATION_MS=300000` equivalents). ~1 h total.
 stretches — run overnight/weekend, one at a time, with sleep disabled:
 
 ```sh
-caffeinate -dimsu &        # keep the Mac awake for the duration
+npm run validate:mac -- --stage 8 --plan-duration
+```
+
+The runner keeps the Mac awake with `caffeinate -dimsu` while the plan-duration
+stage is active. To run the same commands manually:
+
+```sh
+caffeinate -dimsu &        # if not using the runner
 
 # Night 1 (1 h + 24 h can overlap only if RSS monitoring stays readable — prefer serial)
 LINK_SOAK_DURATION_MS=3600000        npm run test:link-soak

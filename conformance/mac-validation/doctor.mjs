@@ -21,11 +21,24 @@ const toolPath = [
   join(repoRoot, "node_modules/.bin"),
   join(androidHome, "platform-tools"),
   join(androidHome, "emulator"),
+  join(androidHome, "cmdline-tools/latest/bin"),
   join(homedir(), ".maestro/bin"),
   process.env.PATH ?? ""
 ].join(":");
 const liveAi = process.argv.includes("--ai");
+const help = process.argv.includes("--help") || process.argv.includes("-h");
 const results = [];
+
+function printHelp() {
+  console.log(`Usage: npm run doctor:mac -- [options]
+
+Verifies the local mac-validation toolchain from docs/mac-validation.md.
+
+Options:
+  --ai       Also verify Anthropic/OpenAI API keys against models endpoints.
+  --help     Show this help text.
+`);
+}
 
 function run(cmd, args, opts = {}) {
   return execFileSync(cmd, args, {
@@ -62,6 +75,11 @@ function check(name, required, fn, fix) {
 
 const setupHint = "run conformance/mac-validation/setup.sh";
 
+if (help) {
+  printHelp();
+  process.exit(0);
+}
+
 check("macOS", true, () => {
   if (process.platform !== "darwin") throw new Error(`platform is ${process.platform}`);
   return process.platform;
@@ -72,6 +90,10 @@ check("node >= 22", true, () => {
   if (major < 22) throw new Error(`node ${process.version} is too old`);
   return process.version;
 }, "install Node 22+");
+
+check("Homebrew", true, () => {
+  return run("brew", ["--version"]).split("\n")[0];
+}, "install Homebrew from https://brew.sh");
 
 check("workspace deps (npm ci)", true, () => {
   for (const bin of ["vitest", "playwright", "tsc"]) {
@@ -136,6 +158,12 @@ check("Android platform-tools (adb)", true, () => {
   const adb = join(androidHome, "platform-tools/adb");
   if (!existsSync(adb)) throw new Error(`${adb} missing`);
   return run(adb, ["version"]).split("\n")[0];
+}, setupHint);
+
+check("Android cmdline-tools", true, () => {
+  const sdkmanager = join(androidHome, "cmdline-tools/latest/bin/sdkmanager");
+  if (!existsSync(sdkmanager)) throw new Error(`${sdkmanager} missing`);
+  return "sdkmanager present";
 }, setupHint);
 
 check("Android emulator", true, () => {

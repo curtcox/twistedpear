@@ -28,6 +28,7 @@ function parseArgs(argv) {
     skipDoctor: false,
     continueOnFailure: false,
     planDuration: false,
+    noCaffeinate: false,
     startAndroidEmulator: false,
     logDir: defaultLogDir,
     stages: [],
@@ -45,6 +46,7 @@ function parseArgs(argv) {
     else if (arg === "--skip-doctor") options.skipDoctor = true;
     else if (arg === "--continue-on-failure") options.continueOnFailure = true;
     else if (arg === "--plan-duration") options.planDuration = true;
+    else if (arg === "--no-caffeinate") options.noCaffeinate = true;
     else if (arg === "--start-android-emulator") options.startAndroidEmulator = true;
     else if (arg === "--stage" || arg === "--stages") options.stages.push(...readNumberList(argv[++i], arg));
     else if (arg.startsWith("--stage=")) options.stages.push(...readNumberList(arg.slice("--stage=".length), "--stage"));
@@ -93,6 +95,7 @@ Options:
   --stage N[,M]             Run one or more stages.
   --from N --through M      Run a contiguous stage range.
   --plan-duration           Use the long Stage 8 soak durations from the plan.
+  --no-caffeinate           Do not keep macOS awake during --plan-duration Stage 8.
   --ai                      Pass --ai to doctor for live API key checks.
   --skip-doctor             Skip the Stage 0 gate.
   --continue-on-failure     Run remaining commands after a failure.
@@ -451,6 +454,38 @@ function logFileFor(logDir, stage, index, label) {
   return join(logDir, `stage-${stage}-${String(index + 1).padStart(2, "0")}-${safe || "command"}.log`);
 }
 
+function startCaffeinate(logDir) {
+  const logPath = join(logDir, "plan-duration-caffeinate.log");
+  const log = createWriteStream(logPath, { flags: "a" });
+  let loggedExit = false;
+  const finishLog = (status) => {
+    if (loggedExit) return;
+    loggedExit = true;
+    log.write(`\n[mac-validation] exit: ${status}\n`);
+    log.end();
+  };
+
+  log.write("[mac-validation] command: caffeinate -dimsu\n\n");
+  const child = spawn("caffeinate", ["-dimsu"], {
+    cwd: repoRoot,
+    env: process.env,
+    stdio: ["ignore", "ignore", "pipe"]
+  });
+
+  child.stderr.on("data", (chunk) => log.write(chunk));
+  child.on("error", (error) => {
+    log.write(`\n[mac-validation] spawn failed: ${error.message}\n`);
+    finishLog(1);
+    console.error(`[mac-validation] failed to start caffeinate: ${error.message}`);
+  });
+  child.on("close", (code, signal) => {
+    finishLog(code ?? signal ?? 0);
+  });
+
+  console.log(`[mac-validation] keeping macOS awake with caffeinate -dimsu (log: ${logPath})`);
+  return child;
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
@@ -473,8 +508,13 @@ async function main() {
 
   console.log(`[mac-validation] stages: ${runStages.join(", ")}`);
   console.log(`[mac-validation] logs: ${options.logDir}`);
+  const shouldCaffeinate = options.planDuration && runStages.includes(8) && !options.noCaffeinate;
 
   if (options.dryRun) {
+    if (shouldCaffeinate) {
+      console.log("\n# Keep awake");
+      console.log("caffeinate -dimsu");
+    }
     for (const stageNumber of runStages) {
       const stage = stages.get(stageNumber);
       console.log(`\n# Stage ${stageNumber}: ${stage.title}`);
@@ -486,35 +526,41 @@ async function main() {
   }
 
   mkdirSync(options.logDir, { recursive: true });
+  const caffeinate = shouldCaffeinate ? startCaffeinate(options.logDir) : undefined;
 
   const failures = [];
-  for (const stageNumber of runStages) {
-    const stage = stages.get(stageNumber);
-    console.log(`\n[mac-validation] Stage ${stageNumber}: ${stage.title}`);
-    for (let index = 0; index < stage.commands.length; index += 1) {
-      const command = stage.commands[index];
-      const logPath = logFileFor(options.logDir, stageNumber, index, command.label);
-      const status = await runCommand(command, { logPath, stageNumber, index, options });
-      if (status !== 0) {
-        failures.push({ stage: stageNumber, label: command.label, logPath });
-        console.error(`[mac-validation] failed: Stage ${stageNumber} ${command.label}`);
-        console.error(`[mac-validation] log: ${logPath}`);
-        if (!options.continueOnFailure) {
-          process.exitCode = 1;
-          return;
+  try {
+    for (const stageNumber of runStages) {
+      const stage = stages.get(stageNumber);
+      console.log(`\n[mac-validation] Stage ${stageNumber}: ${stage.title}`);
+      for (let index = 0; index < stage.commands.length; index += 1) {
+        const command = stage.commands[index];
+        const logPath = logFileFor(options.logDir, stageNumber, index, command.label);
+        const status = await runCommand(command, { logPath, stageNumber, index, options });
+        if (status !== 0) {
+          failures.push({ stage: stageNumber, label: command.label, logPath });
+          console.error(`[mac-validation] failed: Stage ${stageNumber} ${command.label}`);
+          console.error(`[mac-validation] log: ${logPath}`);
+          if (!options.continueOnFailure) break;
         }
       }
+      if (failures.length > 0 && !options.continueOnFailure) break;
     }
-  }
 
-  if (failures.length > 0) {
-    console.error(`\n[mac-validation] ${failures.length} failure(s):`);
-    for (const failure of failures) {
-      console.error(`- Stage ${failure.stage} ${failure.label}: ${failure.logPath}`);
+    if (failures.length > 0) {
+      console.error(`\n[mac-validation] ${failures.length} failure(s):`);
+      for (const failure of failures) {
+        console.error(`- Stage ${failure.stage} ${failure.label}: ${failure.logPath}`);
+      }
+      process.exitCode = 1;
+    } else {
+      console.log("\n[mac-validation] selected stages passed");
     }
-    process.exitCode = 1;
-  } else {
-    console.log("\n[mac-validation] selected stages passed");
+  } finally {
+    if (caffeinate) {
+      console.log("[mac-validation] stopping caffeinate");
+      caffeinate.kill("SIGTERM");
+    }
   }
 }
 
