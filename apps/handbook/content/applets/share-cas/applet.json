@@ -1,5 +1,6 @@
 {
   "id": "share-cas",
+  "group": "distribution",
   "title": "CAS share put/get",
   "capabilities": ["share:cas"],
   "surfaces": ["share.put", "share.get"],

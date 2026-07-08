@@ -230,6 +230,16 @@ async function tap(send, getRuntime, nodeId, event, value) {
 }
 
 async function ensureToc(send, getRuntime) {
+  const runtime = getRuntime();
+  if (
+    runtime?.widgetTree !== null &&
+    treeContainsText(runtime.widgetTree, "Capabilities at install")
+  ) {
+    await tap(send, getRuntime, "grant-intro-continue", "hb.grantintro.dismiss");
+    await waitForRuntime(getRuntime, (next) => treeContainsText(next.widgetTree, "Contents"));
+    return;
+  }
+
   try {
     await waitForRuntime(
       getRuntime,
@@ -403,6 +413,7 @@ async function main() {
 
   send({ type: "launch-miniapp", appId: HANDBOOK_FIXTURE.appId });
   await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "TwistedPear Handbook"));
+  await ensureToc(send, getRuntime);
   await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "Contents"));
   record("toc-rendered");
 

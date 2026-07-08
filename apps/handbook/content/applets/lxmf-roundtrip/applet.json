@@ -1,5 +1,6 @@
 {
   "id": "lxmf-roundtrip",
+  "group": "crypto",
   "title": "LXMF self-message",
   "capabilities": ["identity", "lxmf:send", "lxmf:receive"],
   "surfaces": ["identity.destinationHash", "lxmf.send", "lxmf.receive"],

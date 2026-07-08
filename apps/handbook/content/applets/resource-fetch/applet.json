@@ -1,5 +1,6 @@
 {
   "id": "resource-fetch",
+  "group": "distribution",
   "title": "Resource fetch with budget",
   "capabilities": ["resource:fetch"],
   "surfaces": ["resource.fetch"],

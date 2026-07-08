@@ -121,6 +121,15 @@ async function tap(host, nodeId, event, value) {
   await sleep(300);
 }
 
+async function dismissGrantIntroIfNeeded(host) {
+  const tree = host.snapshot().widgetTree;
+  if (tree !== null && treeContainsText(tree, "Capabilities at install")) {
+    await tap(host, "grant-intro-continue", "hb.grantintro.dismiss");
+    await waitForTreeText(host, "Contents");
+    console.log("handbook: grant intro dismissed");
+  }
+}
+
 function launchManifest(app, publisherPublicKey) {
   return {
     name: app.name,
@@ -377,6 +386,7 @@ async function main() {
     await host.launch(manifest, packed.bundle);
 
     await waitForTreeText(host, "TwistedPear Handbook");
+    await dismissGrantIntroIfNeeded(host);
     await waitForTreeText(host, "Contents");
     console.log("handbook: TOC rendered");
 

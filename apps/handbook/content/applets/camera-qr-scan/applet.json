@@ -1,5 +1,6 @@
 {
   "id": "camera-qr-scan",
+  "group": "interfaces",
   "title": "Camera QR scan",
   "capabilities": ["presence"],
   "surfaces": ["host.info"],

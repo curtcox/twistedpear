@@ -1,5 +1,6 @@
 {
   "id": "ble-peer",
+  "group": "interfaces",
   "title": "BLE peer visibility",
   "capabilities": ["presence"],
   "surfaces": ["host.info", "presence.snapshot"],

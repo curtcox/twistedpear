@@ -1,5 +1,6 @@
 {
   "id": "storage-kv",
+  "group": "storage",
   "title": "KV round-trip",
   "capabilities": ["storage:kv"],
   "surfaces": ["storage.kv.get", "storage.kv.set", "storage.kv.delete"],

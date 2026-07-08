@@ -1,5 +1,6 @@
 {
   "id": "workspace-rw",
+  "group": "storage",
   "title": "Workspace read/write",
   "capabilities": ["workspace"],
   "surfaces": ["workspace.write", "workspace.read", "workspace.list", "workspace.delete"],

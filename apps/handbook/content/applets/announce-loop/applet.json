@@ -1,5 +1,6 @@
 {
   "id": "announce-loop",
+  "group": "distribution",
   "title": "Announce publish/subscribe",
   "capabilities": ["announce:publish", "announce:subscribe"],
   "surfaces": ["announce.publish", "announce.subscribe"],

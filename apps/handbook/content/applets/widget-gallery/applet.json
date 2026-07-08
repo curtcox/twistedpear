@@ -1,5 +1,6 @@
 {
   "id": "widget-gallery",
+  "group": "runtime",
   "title": "Widget gallery smoke",
   "capabilities": ["workspace"],
   "surfaces": ["ui.render"],

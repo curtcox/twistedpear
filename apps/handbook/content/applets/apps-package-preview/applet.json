@@ -1,5 +1,6 @@
 {
   "id": "apps-package-preview",
+  "group": "runtime",
   "title": "Package + preview (confirmed)",
   "capabilities": ["apps:package", "apps:preview", "workspace"],
   "surfaces": ["apps.packageProject", "apps.preview", "apps.stopPreview", "workspace.write"],

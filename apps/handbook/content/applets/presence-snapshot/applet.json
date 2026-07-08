@@ -1,5 +1,6 @@
 {
   "id": "presence-snapshot",
+  "group": "interfaces",
   "title": "Presence snapshot",
   "capabilities": ["presence"],
   "surfaces": ["presence.snapshot"],

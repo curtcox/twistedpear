@@ -1,5 +1,6 @@
 {
   "id": "rnode-serial",
+  "group": "interfaces",
   "title": "RNode serial / LoRa path",
   "capabilities": ["presence"],
   "surfaces": ["host.info", "presence.snapshot"],

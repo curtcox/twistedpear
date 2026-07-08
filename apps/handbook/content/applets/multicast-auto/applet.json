@@ -1,5 +1,6 @@
 {
   "id": "multicast-auto",
+  "group": "interfaces",
   "title": "Multicast / AutoInterface",
   "capabilities": ["presence"],
   "surfaces": ["host.info", "presence.snapshot"],

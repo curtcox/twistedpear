@@ -28,6 +28,23 @@ const bundlePath = join(root, "bundle.js");
 const catalogOutPath = join(generatedDir, "catalog.json");
 
 const EXPECTATION_VALUES = new Set(["pass", "unavailable", "device-gated", "fail"]);
+const DIAGNOSTIC_GROUPS = new Set(["crypto", "interfaces", "storage", "distribution", "runtime"]);
+
+function isTableSeparator(line) {
+  return /^\|?[\s:-]+\|[\s|:-]+\|?$/.test(line.trim());
+}
+
+function parseTableRow(line) {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("|")) {
+    return null;
+  }
+  const cells = trimmed
+    .slice(1, trimmed.endsWith("|") ? -1 : undefined)
+    .split("|")
+    .map((cell) => cell.trim());
+  return cells;
+}
 
 function fail(message) {
   console.error(`handbook build: ${message}`);
@@ -129,6 +146,28 @@ function parseMarkdown(markdown, chapterId) {
       continue;
     }
 
+    if (line.trim().startsWith("|")) {
+      flushParagraph(paragraphBuffer);
+      const headerCells = parseTableRow(line);
+      if (headerCells === null || i + 1 >= lines.length || !isTableSeparator(lines[i + 1])) {
+        paragraphBuffer.push(line.trim());
+        i += 1;
+        continue;
+      }
+      i += 2;
+      const rows = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) {
+        const rowCells = parseTableRow(lines[i]);
+        if (rowCells === null) {
+          break;
+        }
+        rows.push(rowCells);
+        i += 1;
+      }
+      blocks.push({ type: "table", headers: headerCells, rows });
+      continue;
+    }
+
     if (/^\s*[-*]\s+/.test(line)) {
       flushParagraph(paragraphBuffer);
       const items = [];
@@ -193,6 +232,9 @@ function loadApplets() {
     if (!meta.expectations || typeof meta.expectations !== "object") {
       fail(`Applet ${entry} must declare expectations`);
     }
+    if (meta.group !== undefined && !DIAGNOSTIC_GROUPS.has(meta.group)) {
+      fail(`Applet ${entry} has invalid diagnostic group "${meta.group}"`);
+    }
     for (const [platform, expectation] of Object.entries(meta.expectations)) {
       if (!EXPECTATION_VALUES.has(expectation)) {
         fail(`Applet ${entry} has invalid expectation "${expectation}" for ${platform}`);
@@ -207,6 +249,7 @@ function loadApplets() {
     applets.push({
       id: meta.id,
       title: meta.title,
+      group: meta.group ?? "runtime",
       capabilities: meta.capabilities,
       surfaces: meta.surfaces ?? [],
       expectations: meta.expectations,
@@ -634,6 +677,7 @@ async function build() {
         {
           id: applet.id,
           title: applet.title,
+          group: applet.group,
           capabilities: applet.capabilities,
           surfaces: applet.surfaces,
           expectations: applet.expectations
@@ -666,11 +710,15 @@ async function build() {
   }
 
   let capabilityDefinitions = [];
+  let capabilityDescriptions = new Map();
   try {
     const runtimeCaps = await import(
       "../../packages/miniapp-runtime/dist/capabilities.js"
     );
     capabilityDefinitions = runtimeCaps.CAPABILITY_DEFINITIONS.map((entry) => entry.id);
+    capabilityDescriptions = new Map(
+      runtimeCaps.CAPABILITY_DEFINITIONS.map((entry) => [entry.id, entry.description])
+    );
   } catch {
     // Fall back when dist is not built yet; D1 CI always runs after `npm run build`.
     capabilityDefinitions = [
@@ -691,6 +739,7 @@ async function build() {
       "apps:preview",
       "share:cas"
     ];
+    capabilityDescriptions = new Map(capabilityDefinitions.map((id) => [id, id]));
   }
 
   for (const capability of capabilityDefinitions) {
@@ -699,9 +748,17 @@ async function build() {
     }
   }
 
+  const manifestPath = join(root, "app.manifest.json");
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  const manifestCapabilities = (manifest.capabilities ?? []).map((id) => ({
+    id,
+    description: capabilityDescriptions.get(id) ?? id
+  }));
+
   const catalog = {
     title: toc.title,
     version: "0.1.0",
+    manifestCapabilities,
     parts: toc.parts.map((part) => ({
       id: part.id,
       title: part.title,

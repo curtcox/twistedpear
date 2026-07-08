@@ -1,5 +1,6 @@
 {
   "id": "apps-publish-install",
+  "group": "distribution",
   "title": "Publish + install (confirmed)",
   "capabilities": ["apps:publish", "apps:install", "apps:package", "workspace"],
   "surfaces": ["apps.packageProject", "apps.publish", "apps.install"],

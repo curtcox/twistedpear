@@ -222,6 +222,10 @@ reference (generated from `host-core` / runtime defaults). **31 chapters** total
 model, DevStudio walkthrough, and budgets tutorials; Part V host configuration
 reference; difference-matrix prose companion. **36 chapters** total.
 
+**Polish (2026-07-08):** Markdown table rendering in chapters; first-run grant
+intro screen; diagnostics grouped by area (crypto / interfaces / storage /
+distribution / runtime).
+
 ## Testing strategy
 
 - `test:handbook` (D0–D1): headless chapter render + all applets on Node backend.

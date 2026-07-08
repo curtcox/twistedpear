@@ -7,7 +7,8 @@ Each applet reports `{ appletId, status, details, timings }` with first-class
 
 From the Handbook **Contents**, use:
 
-- **Run all diagnostics** — runs every catalog applet inline on this host
+- **Run all diagnostics** — runs every catalog applet inline on this host, grouped
+  by area (crypto, interfaces, storage, distribution, runtime)
 - **Export report** — packs host info + results into JSON, stores via `share.put`,
   shows a 256t id / QR
 - **Compare report** — paste another device's report id to render a status matrix

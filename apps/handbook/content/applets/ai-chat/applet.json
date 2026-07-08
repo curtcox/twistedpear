@@ -1,5 +1,6 @@
 {
   "id": "ai-chat",
+  "group": "runtime",
   "title": "AI chat (host-mediated)",
   "capabilities": ["ai:chat"],
   "surfaces": ["ai.chat"],

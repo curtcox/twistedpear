@@ -19,11 +19,21 @@ import {
 const POSITION_KEY = "handbook:position";
 const SEEDED_KEY = "handbook:seeded";
 const SEED_VERSION_KEY = "handbook:seed-version";
+const GRANT_INTRO_KEY = "handbook:grant-intro-seen";
 const LAST_REPORT_KEY = "handbook:last-report";
 const REPORT_SCHEMA_VERSION = 1;
 const DEVSTUDIO_HANDOFF_KIND = "tp.devstudio.workspace.v1";
 
-/** @type {"toc" | "chapter" | "diagnostics"} */
+const DIAGNOSTIC_GROUP_ORDER = ["crypto", "interfaces", "storage", "distribution", "runtime"];
+const DIAGNOSTIC_GROUP_LABELS = {
+  crypto: "Crypto & messaging",
+  interfaces: "Interfaces & presence",
+  storage: "Storage & workspace",
+  distribution: "Distribution & fetch",
+  runtime: "Runtime & UI"
+};
+
+/** @type {"toc" | "chapter" | "diagnostics" | "grant-intro"} */
 let view = "toc";
 /** @type {string | null} */
 let chapterId = null;
@@ -149,6 +159,60 @@ function explainStatus(status) {
   return null;
 }
 
+function renderTableBlock(bid, block, children) {
+  const lines = [block.headers.join(" · ")];
+  for (const row of block.rows) {
+    lines.push(row.join(" — "));
+  }
+  children.push(textNode(bid, lines.join("\n")));
+}
+
+function renderGrantIntro(children) {
+  children.push(
+    textNode("grant-intro-title", "Capabilities at install", { fontSize: 20, fontWeight: "bold" })
+  );
+  children.push(
+    textNode(
+      "grant-intro-blurb",
+      "The Handbook requested the capabilities below. You may grant a subset at install — withheld capabilities turn matching applets into not-granted teaching cards instead of errors."
+    )
+  );
+
+  const caps = CATALOG.manifestCapabilities ?? [];
+  for (let i = 0; i < caps.length; i += 1) {
+    const cap = caps[i];
+    children.push(
+      textNode(`grant-cap-${i}`, `• ${cap.id} — ${cap.description}`)
+    );
+  }
+
+  children.push(
+    textNode(
+      "grant-intro-note",
+      "Revoke or add grants later in host Settings. Double-gated apps:* capabilities also require a host confirmation on each call."
+    )
+  );
+  children.push(
+    widgetButton("grant-intro-continue", "Continue to Handbook", "hb.grantintro.dismiss")
+  );
+}
+
+function appletsByDiagnosticGroup() {
+  /** @type {Record<string, typeof CATALOG.applets>} */
+  const grouped = {};
+  for (const group of DIAGNOSTIC_GROUP_ORDER) {
+    grouped[group] = [];
+  }
+  for (const applet of CATALOG.applets) {
+    const group = applet.group ?? "runtime";
+    if (grouped[group] === undefined) {
+      grouped[group] = [];
+    }
+    grouped[group].push(applet);
+  }
+  return grouped;
+}
+
 function renderAppletBlock(appletId, children) {
   const applet = findApplet(appletId);
   if (applet === null) {
@@ -230,6 +294,10 @@ function renderChapterBlocks(chapter, children) {
       for (let i = 0; i < block.items.length; i += 1) {
         children.push(textNode(`${bid}-i${i}`, `• ${block.items[i]}`));
       }
+      continue;
+    }
+    if (block.type === "table") {
+      renderTableBlock(bid, block, children);
       continue;
     }
     if (block.type === "code") {
@@ -342,18 +410,32 @@ function renderDiagnostics(children) {
   );
 
   const counts = { pass: 0, fail: 0, unavailable: 0, "not-granted": 0, skipped: 0 };
-  for (const applet of CATALOG.applets) {
-    const result = appletResults[applet.id];
-    const status = result?.status ?? "skipped";
-    if (counts[status] !== undefined) {
-      counts[status] += 1;
+  const grouped = appletsByDiagnosticGroup();
+  for (const group of DIAGNOSTIC_GROUP_ORDER) {
+    const applets = grouped[group];
+    if (applets === undefined || applets.length === 0) {
+      continue;
     }
     children.push(
       textNode(
-        `diag-row-${applet.id}`,
-        `${applet.id}: ${(result?.status ?? "skipped").toUpperCase()}`
+        `diag-group-${group}`,
+        DIAGNOSTIC_GROUP_LABELS[group] ?? group,
+        { fontSize: 14, fontWeight: "bold" }
       )
     );
+    for (const applet of applets) {
+      const result = appletResults[applet.id];
+      const status = result?.status ?? "skipped";
+      if (counts[status] !== undefined) {
+        counts[status] += 1;
+      }
+      children.push(
+        textNode(
+          `diag-row-${applet.id}`,
+          `  ${applet.id}: ${status.toUpperCase()}`
+        )
+      );
+    }
   }
   children.push(
     textNode(
@@ -431,7 +513,9 @@ async function render() {
     children.push(textNode("seeding", "Seeding documentation workspace…"));
   }
 
-  if (view === "toc") {
+  if (view === "grant-intro") {
+    renderGrantIntro(children);
+  } else if (view === "toc") {
     children.push(textNode("toc-heading", "Contents", { fontSize: 20, fontWeight: "bold" }));
     children.push(
       textNode(
@@ -499,6 +583,13 @@ async function openChapter(id) {
   view = "chapter";
   statusLine = null;
   await kvSetText(POSITION_KEY, id);
+  await render();
+}
+
+async function dismissGrantIntro() {
+  await kvSetText(GRANT_INTRO_KEY, "1");
+  view = "toc";
+  statusLine = null;
   await render();
 }
 
@@ -891,6 +982,11 @@ function appletIdFromDevStudioNode(nodeId) {
 }
 
 async function handleEvent({ nodeId, event, value }) {
+  if (event === "hb.grantintro.dismiss") {
+    await dismissGrantIntro();
+    return;
+  }
+
   if (event === "hb.toc") {
     await openToc();
     return;
@@ -954,12 +1050,17 @@ ui.onEvent((event) => {
 
 await ensureSeeds();
 
-const saved = await kvGetText(POSITION_KEY);
-if (saved !== null && findChapter(saved) !== null) {
-  chapterId = saved;
-  view = "chapter";
+const grantIntroSeen = await kvGetText(GRANT_INTRO_KEY);
+if (grantIntroSeen !== "1") {
+  view = "grant-intro";
 } else {
-  view = "toc";
+  const saved = await kvGetText(POSITION_KEY);
+  if (saved !== null && findChapter(saved) !== null) {
+    chapterId = saved;
+    view = "chapter";
+  } else {
+    view = "toc";
+  }
 }
 
 const cachedReport = await kvGetText(LAST_REPORT_KEY);

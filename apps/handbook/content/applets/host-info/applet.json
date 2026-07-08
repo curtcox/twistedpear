@@ -1,5 +1,6 @@
 {
   "id": "host-info",
+  "group": "interfaces",
   "title": "Host info probe",
   "capabilities": ["presence"],
   "surfaces": ["host.info"],
