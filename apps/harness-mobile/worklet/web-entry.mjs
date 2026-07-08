@@ -15,10 +15,13 @@ import {
 } from "../../../packages/reticulum-ts/dist/web.js";
 import { createWebWorkletMiniappHost, hexToBytes } from "./web-miniapp-host.mjs";
 import { createWebInstallService } from "./web-install.mjs";
+import { createWebPublishService } from "./web-publish.mjs";
 import {
   decodePublisherIdentity256t,
   encodePublisherIdentity256t
 } from "../../../packages/app-registry/dist/index.js";
+import { encodeCasLocator } from "../../../packages/cas-256t/dist/index.js";
+import { HOST_API_VERSION } from "../../../packages/miniapp-runtime/dist/host-api.js";
 
 const IDENTITY_STORE_NAME = "twistedpear-harness-web-identity";
 const PACKAGE_STORE_NAME = "twistedpear-harness-web-packages";
@@ -97,6 +100,10 @@ let packageStorage = null;
 let miniappHost = null;
 /** @type {ReturnType<typeof createWebInstallService> | null} */
 let installService = null;
+/** @type {ReturnType<typeof createWebPublishService> | null} */
+let publishService = null;
+/** @type {PureCryptoProvider} */
+const cryptoProvider = new PureCryptoProvider();
 /** @type {ReturnType<typeof setInterval> | null} */
 let statusTimer = null;
 /** @type {ReturnType<typeof createMiniappKvStore> | null} */
@@ -205,15 +212,44 @@ function ensureMiniappKvStore() {
   return miniappKvStore;
 }
 
+function ensurePublishService() {
+  if (publishService === null) {
+    publishService = createWebPublishService({
+      provider: cryptoProvider,
+      log,
+      onCasLocator(locator) {
+        ensureInstallService().ingestCasLocatorAppData(bytesToHex(encodeCasLocator(locator)));
+      }
+    });
+  }
+
+  return publishService;
+}
+
 function ensureMiniappHost() {
   if (miniappHost === null) {
-    const provider = new PureCryptoProvider();
     miniappHost = createWebWorkletMiniappHost({
-      provider,
+      provider: cryptoProvider,
       kvStore: ensureMiniappKvStore(),
       getPresenceSnapshot: () => status,
       send,
       requestHostReply,
+      getPublisherIdentity: async () => {
+        if (!(await hasWebIdentity(identityOptions()))) {
+          return null;
+        }
+
+        return loadOrCreateWebIdentity(cryptoProvider, identityOptions());
+      },
+      publishArchive: async ({ t256, archive }) => {
+        const session = hostSession;
+        if (session === null) {
+          throw new Error("Gateway link is offline — enable WS gateway before publishing");
+        }
+
+        return ensurePublishService().publish(session, { t256, archive });
+      },
+      installFromT256: async (t256) => ensureInstallService().installFromT256(t256),
       onDeveloperModeChange(enabled) {
         status.developerMode = enabled;
         pushStatus();
@@ -230,9 +266,8 @@ function ensureMiniappHost() {
 
 function ensureInstallService() {
   if (installService === null) {
-    const provider = new PureCryptoProvider();
     installService = createWebInstallService({
-      provider,
+      provider: cryptoProvider,
       kvStore: ensureMiniappKvStore(),
       getHostSession: () => hostSession,
       ensurePackageStorage,
@@ -272,7 +307,10 @@ async function ensurePackageStorage() {
     return packageStorage;
   }
 
-  packageStorage = await createWebPackageStorage({ dbName: PACKAGE_STORE_NAME });
+  packageStorage = await createWebPackageStorage({
+    dbName: PACKAGE_STORE_NAME,
+    hostApiVersion: HOST_API_VERSION
+  });
   await packageStorage.requestPersistence();
   status.installedPackages = packageStorage.listInstalled().length;
   return packageStorage;
@@ -364,7 +402,6 @@ async function startHostSession() {
 }
 
 async function refreshIdentityStatus() {
-  const provider = new PureCryptoProvider();
   if (!(await hasWebIdentity(identityOptions()))) {
     status.identityHash = null;
     status.identityPersisted = false;
@@ -372,21 +409,34 @@ async function refreshIdentityStatus() {
     return;
   }
 
-  const identity = await loadOrCreateWebIdentity(provider, identityOptions());
+  const identity = await loadOrCreateWebIdentity(cryptoProvider, identityOptions());
   status.identityHash = bytesToHex(identity.hash);
   status.identityPersisted = true;
   pushStatus();
 }
 
 async function createIdentity() {
-  const provider = new PureCryptoProvider();
   await resetWebIdentity(identityOptions());
-  const identity = new Identity(provider);
+  const identity = new Identity(cryptoProvider);
   await persistWebIdentity(identity, identityOptions());
   status.identityHash = bytesToHex(identity.hash);
   status.identityPersisted = true;
   pushStatus();
   log(`Created web identity ${status.identityHash}`);
+}
+
+async function importIdentity(privateKeyHex) {
+  const identity = Identity.fromBytes(cryptoProvider, hexToBytes(privateKeyHex));
+  if (identity === null) {
+    throw new Error("Invalid identity private key");
+  }
+
+  await resetWebIdentity(identityOptions());
+  await persistWebIdentity(identity, identityOptions());
+  status.identityHash = bytesToHex(identity.hash);
+  status.identityPersisted = true;
+  pushStatus();
+  log(`Imported web identity ${status.identityHash}`);
 }
 
 async function resetIdentity() {
@@ -474,6 +524,15 @@ async function handleHostMessage(raw) {
     return;
   }
 
+  if (message.type === "import-identity") {
+    try {
+      await importIdentity(message.privateKeyHex);
+    } catch (error) {
+      log(`Import identity failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
   if (message.type === "reset-identity") {
     await resetIdentity();
     return;
@@ -544,13 +603,12 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "trust-show") {
-    const provider = new PureCryptoProvider();
     if (!(await hasWebIdentity(identityOptions()))) {
       send({ type: "trust-identity", identity256t: null });
       return;
     }
 
-    const identity = await loadOrCreateWebIdentity(provider, identityOptions());
+    const identity = await loadOrCreateWebIdentity(cryptoProvider, identityOptions());
     send({
       type: "trust-identity",
       identity256t: encodePublisherIdentity256t(identity.getPublicKey())
@@ -750,4 +808,4 @@ pushStatus();
 refreshStorageStatus().catch((error) => {
   log(`Web package storage unavailable: ${error instanceof Error ? error.message : String(error)}`);
 });
-log("Web core worker ready (Phase W3 distribution)");
+log("Web core worker ready (Phase W3 DevStudio + publish)");

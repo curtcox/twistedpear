@@ -168,6 +168,7 @@ export type HostToWorkletMessage =
   | { readonly type: "suspend-node" }
   | { readonly type: "resume-node" }
   | { readonly type: "create-identity" }
+  | { readonly type: "import-identity"; readonly privateKeyHex: string }
   | { readonly type: "reset-identity" }
   | {
       readonly type: "set-interfaces";
@@ -251,7 +252,7 @@ export type WorkletToHostMessage =
   | { readonly type: "sandbox-broker-response"; readonly requestId: string; readonly response: unknown }
   | { readonly type: "install-progress"; readonly progress: InstallProgress }
   | { readonly type: "grants"; readonly appId: string; readonly capabilities: ReadonlyArray<CapabilityGrantView> }
-  | { readonly type: "miniapp-runtime"; readonly runtime: MiniappRuntimeView }
+  | { readonly type: "miniapp-runtime"; readonly slot?: "main" | "preview"; readonly runtime: MiniappRuntimeView | null }
   | { readonly type: "miniapp-benchmark"; readonly result: MiniappBenchmarkResult }
   | { readonly type: "miniapp-log"; readonly appId: string; readonly line: string }
   | {

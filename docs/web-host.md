@@ -1,6 +1,6 @@
 # Web Host: a full TwistedPear host in the browser (plan)
 
-Status: **in progress** (Phase W1 complete; W-S2 + W-S3 + W-S4 landed; W2 software tier landed; **W3 (software tier) landed** for 256t Resource install + trust import) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed; `WebSandboxBackend` + W-S2 adversarial isolation spike landed; `packages/widget-renderer-rn` + W-S3 RNW widget preview landed; `createWebPackageStorage` + W-S4 OPFS/IndexedDB CAS install spike landed; `WebSandboxProxyBackend` + main-thread sandbox relay + `test:web-miniapp` + `test:web-examples` + host confirmation modal (W2 hello + example apps e2e); `createWebInstallService` + install-from-256t Resource fetch + publisher trust store + install review UI + `test:web-distribution` (W3 chat install e2e).
+Status: **in progress** (Phase W1 complete; W-S2 + W-S3 + W-S4 landed; W2 software tier landed; **W3 (software tier) landed** — 256t Resource install + trust import + DevStudio workspace/package/publish) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed; `WebSandboxBackend` + W-S2 adversarial isolation spike landed; `packages/widget-renderer-rn` + W-S3 RNW widget preview landed; `createWebPackageStorage` + W-S4 OPFS/IndexedDB CAS install spike landed; `WebSandboxProxyBackend` + main-thread sandbox relay + `test:web-miniapp` + `test:web-examples` + host confirmation modal (W2 hello + example apps e2e); `createWebInstallService` + install-from-256t Resource fetch + publisher trust store + install review UI + `test:web-distribution` (W3 chat install e2e); `createWebPublishService` + DevStudio appsBackend (workspace/CAS/package/publish/preview) + `test:web-devstudio` (W3 DevStudio hello → package → publish e2e).
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase W.
 
 The web host is a browser tab (React Native for Web via Expo web) that runs the
@@ -168,8 +168,9 @@ Install from pasted/scanned 256t string via Resource fetch; capability review
 and grant UI; publisher trust import; DevStudio on web (workspace in OPFS);
 package + sign + publish from the browser through the gateway. **W3 (software tier) landed:**
 `createWebInstallService` + `install-from-256t` Resource fetch + CAS locator ingest from announces +
-install review modal + publisher trust import UI + `test:web-distribution` (chat `.tpkg` install e2e).
-Remaining W3: DevStudio on web; in-tab package/sign/publish through gateway.
+install review modal + publisher trust import UI + `test:web-distribution` (chat `.tpkg` install e2e);
+`createWebPublishService` + `appsBackend` (workspace, CAS, package, publish, preview) +
+`test:web-devstudio` (DevStudio hello project → package → publish through gateway).
 
 ### Phase W4 — bulk plane and polish
 Hyperdrive fetch via a WebSocket DHT relay on the gateway (optional

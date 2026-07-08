@@ -385,7 +385,7 @@ export default function App() {
         />
       ) : null}
       <Text style={styles.title}>TwistedPear Web Host</Text>
-      <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W3 distribution)</Text>
+      <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W3 — DevStudio + distribution)</Text>
 
       <View style={styles.card}>
         <Text>Core worker: {status.running ? "running" : "stopped"}</Text>

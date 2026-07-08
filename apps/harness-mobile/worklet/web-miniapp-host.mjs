@@ -1,4 +1,11 @@
 import {
+  buildUnsignedManifest,
+  packPackage,
+  signManifest,
+  unpackPackage
+} from "../../../packages/app-registry/dist/index.js";
+import { CasStore } from "../../../packages/cas-256t/dist/index.js";
+import {
   CAPABILITY_DEFINITIONS,
   GrantStore,
   describeCapability,
@@ -9,7 +16,7 @@ import { generateConfirmationToken } from "../../../packages/miniapp-runtime/dis
 import { MiniappHost } from "../../../packages/miniapp-runtime/dist/host.js";
 import { createWebSandboxProxyBackend } from "../../../packages/miniapp-runtime/dist/sandbox/web-proxy.js";
 import { KvStorageBeeBackend } from "../../../packages/miniapp-runtime/dist/services/storage-bee-kv.js";
-import { unpackPackage } from "../../../packages/app-registry/dist/index.js";
+import { bytesToHex } from "../../../packages/reticulum-ts/dist/web.js";
 
 function hexToBytes(hex) {
   const normalized = hex.length % 2 === 0 ? hex : `0${hex}`;
@@ -21,21 +28,10 @@ function hexToBytes(hex) {
   return bytes;
 }
 
-/**
- * Web core-worker mini-app host. Sandbox iframes are spawned on the main thread
- * via WebSandboxProxyBackend + host/web-sandbox-relay.ts (Phase W2).
- */
-export function createWebWorkletMiniappHost(options) {
-  const kvStore = options.kvStore;
-  const grantStore = new GrantStore(kvStore);
-  let developerMode = false;
-  let devBadge = false;
-  let watchdogTimer = null;
-  const beeBackend = new KvStorageBeeBackend(kvStore);
-
-  const sandboxController = createWebSandboxProxyBackend({
+function createProxySandboxController(send) {
+  return createWebSandboxProxyBackend({
     spawn(request) {
-      options.send({
+      send({
         type: "sandbox-spawn",
         requestId: request.requestId,
         instanceId: request.instanceId,
@@ -46,18 +42,37 @@ export function createWebWorkletMiniappHost(options) {
       });
     },
     postMessage(instanceId, payload) {
-      options.send({ type: "sandbox-post", instanceId, payload });
+      send({ type: "sandbox-post", instanceId, payload });
     },
     ping(requestId, instanceId, timeoutMs) {
-      options.send({ type: "sandbox-ping", requestId, instanceId, timeoutMs });
+      send({ type: "sandbox-ping", requestId, instanceId, timeoutMs });
     },
     kill(instanceId, reason) {
-      options.send({ type: "sandbox-kill", instanceId, reason });
+      send({ type: "sandbox-kill", instanceId, reason });
     },
     brokerResponse(requestId, response) {
-      options.send({ type: "sandbox-broker-response", requestId, response });
+      send({ type: "sandbox-broker-response", requestId, response });
     }
   });
+}
+
+/**
+ * Web core-worker mini-app host. Sandbox iframes are spawned on the main thread
+ * via WebSandboxProxyBackend + host/web-sandbox-relay.ts (Phase W2/W3).
+ */
+export function createWebWorkletMiniappHost(options) {
+  const kvStore = options.kvStore;
+  const provider = options.provider;
+  const grantStore = new GrantStore(kvStore);
+  let developerMode = false;
+  let devBadge = false;
+  let watchdogTimer = null;
+  const beeBackend = new KvStorageBeeBackend(kvStore);
+  const casStore = new CasStore(kvStore, (data) => provider.sha512(data));
+  /** @type {{ host: import("../../../packages/miniapp-runtime/dist/host.js").MiniappHost } | null} */
+  let preview = null;
+
+  const sandboxController = createProxySandboxController(options.send);
 
   const host = new MiniappHost({
     backend: sandboxController.backend,
@@ -102,6 +117,88 @@ export function createWebWorkletMiniappHost(options) {
         return bytes;
       }
     },
+    appsBackend: {
+      package: async (appId, { projectPrefix, manifest }) => {
+        const identity = await requirePublisherIdentity();
+        const files = await collectWorkspaceFiles(appId, projectPrefix);
+        if (!files.some((file) => file.path === manifest.entry)) {
+          throw new Error(`Entry file "${manifest.entry}" not found under ${projectPrefix}/`);
+        }
+
+        const unsigned = buildUnsignedManifest(
+          {
+            name: manifest.name,
+            version: manifest.version,
+            entry: manifest.entry,
+            capabilities: manifest.capabilities,
+            icon: null,
+            minHostApi: manifest.minHostApi ?? "0.2.0",
+            driveKey: "0".repeat(64),
+            publisherPublicKey: bytesToHex(identity.getPublicKey()),
+            files
+          },
+          provider
+        );
+        const signed = signManifest(provider, identity, unsigned);
+        const packed = packPackage(provider, { ...signed, signature: signed.signature, files });
+        const t256 = await casStore.put(packed.archiveBytes);
+        return { packageHash: packed.packageHash, size: packed.archiveBytes.length, t256 };
+      },
+      publish: async (_appId, { t256 }) => {
+        if (options.publishArchive === undefined) {
+          throw new Error("Publishing is not configured on this host");
+        }
+
+        const archive = await casStore.get(t256);
+        if (archive === null) {
+          throw new Error("Package not found in the local store; package it first");
+        }
+
+        return options.publishArchive({ t256, archive });
+      },
+      install: async (_appId, { t256 }) => {
+        if (options.installFromT256 === undefined) {
+          throw new Error("Installing from 256t ids is not configured on this host");
+        }
+
+        return options.installFromT256(t256);
+      },
+      preview: async (appId, { projectPrefix, manifest, grants }) => {
+        const files = await collectWorkspaceFiles(appId, projectPrefix);
+        const entryFile = files.find((file) => file.path === manifest.entry);
+        if (entryFile === undefined) {
+          throw new Error(`Entry file "${manifest.entry}" not found under ${projectPrefix}/`);
+        }
+
+        await stopPreviewHost();
+        const previewHost = createPreviewHost();
+        const publisherKey = `dev-preview:${appId}`;
+        await previewHost.grantStore.set(manifest.name, publisherKey, manifest.capabilities, grants);
+        await previewHost.host.launch(
+          {
+            name: manifest.name,
+            version: manifest.version,
+            entry: manifest.entry,
+            capabilities: manifest.capabilities,
+            publisherPublicKey: publisherKey
+          },
+          entryFile.content
+        );
+        preview = previewHost;
+        pushPreviewRuntime();
+        return { launched: true };
+      },
+      stopPreview: async () => {
+        await stopPreviewHost();
+      }
+    },
+    casBackend: {
+      put: async (_appId, content) => {
+        const t256 = await casStore.put(content);
+        return { t256, size: content.length };
+      },
+      get: async (_appId, t256) => casStore.get(t256)
+    },
     callbacks: {
       onWidgetTree: () => pushRuntime(),
       onLog: (entry) => options.send({ type: "miniapp-log", appId: entry.appId, line: entry.line }),
@@ -111,6 +208,93 @@ export function createWebWorkletMiniappHost(options) {
       }
     }
   });
+
+  async function requirePublisherIdentity() {
+    if (options.getPublisherIdentity === undefined) {
+      throw new Error("No publisher identity is configured on this host");
+    }
+
+    const identity = await options.getPublisherIdentity();
+    if (identity === null) {
+      throw new Error("No publisher identity is available; create an identity first");
+    }
+
+    return identity;
+  }
+
+  async function collectWorkspaceFiles(appId, projectPrefix) {
+    const infos = await host.workspace.list(appId, `${projectPrefix}/`);
+    const files = [];
+    for (const info of infos) {
+      const content = await host.workspace.read(appId, info.path);
+      files.push({
+        path: info.path.slice(projectPrefix.length + 1),
+        content: new TextEncoder().encode(content)
+      });
+    }
+
+    return files.sort((left, right) => left.path.localeCompare(right.path));
+  }
+
+  function createPreviewHost() {
+    const memory = new Map();
+    const memoryStore = {
+      async get(key) {
+        return memory.get(key) ?? null;
+      },
+      async set(key, value) {
+        memory.set(key, value);
+      },
+      async delete(key) {
+        memory.delete(key);
+      },
+      async list(prefix) {
+        return [...memory.keys()].filter((key) => key.startsWith(prefix));
+      }
+    };
+    const grantStoreForPreview = new GrantStore(memoryStore);
+    const previewController = createProxySandboxController(options.send);
+    const previewHost = new MiniappHost({
+      backend: previewController.backend,
+      grantStore: grantStoreForPreview,
+      kvBackend: memoryStore,
+      callbacks: {
+        onWidgetTree: () => pushPreviewRuntime(),
+        onLog: (entry) =>
+          options.send({ type: "miniapp-log", appId: `preview:${entry.appId}`, line: entry.line }),
+        onLifecycle: () => pushPreviewRuntime()
+      }
+    });
+    return { host: previewHost, grantStore: grantStoreForPreview };
+  }
+
+  async function stopPreviewHost() {
+    if (preview !== null) {
+      const stopped = preview;
+      preview = null;
+      await stopped.host.stop("preview-stopped");
+      options.send({ type: "miniapp-runtime", slot: "preview", runtime: null });
+    }
+  }
+
+  function pushPreviewRuntime() {
+    if (preview === null) {
+      return;
+    }
+
+    const snapshot = preview.host.snapshot();
+    options.send({
+      type: "miniapp-runtime",
+      slot: "preview",
+      runtime: {
+        appId: snapshot.appId,
+        version: snapshot.version,
+        state: snapshot.state,
+        widgetTree: snapshot.widgetTree,
+        devBadge: true
+      }
+    });
+  }
 
   function pushRuntime() {
     const snapshot = host.snapshot();
@@ -170,7 +354,7 @@ export function createWebWorkletMiniappHost(options) {
       throw new Error(`Archive missing for ${appId}@${version}`);
     }
 
-    const unpacked = unpackPackage(options.provider, archive);
+    const unpacked = unpackPackage(provider, archive);
     const entry = record.manifest.entry;
     const bundle = unpacked.files.get(entry);
     if (bundle === undefined) {
@@ -208,6 +392,15 @@ export function createWebWorkletMiniappHost(options) {
 
       await grantStore.revoke(appId, publisherPublicKey, capability);
       pushGrants(appId, publisherPublicKey, declaredCapabilities);
+    },
+
+    async readWorkspaceFile(documentId) {
+      const snapshot = host.snapshot();
+      if (snapshot.appId === null) {
+        throw new Error("No mini-app is running");
+      }
+
+      return host.workspace.read(snapshot.appId, documentId);
     },
 
     async launch(packageStorage, appId, launchOptions = {}) {
@@ -279,6 +472,7 @@ export function createWebWorkletMiniappHost(options) {
       }
 
       devBadge = false;
+      await stopPreviewHost();
       await host.stop();
       pushRuntime();
     },
@@ -295,6 +489,18 @@ export function createWebWorkletMiniappHost(options) {
 
     async handleUiEvent(nodeId, event, value) {
       await host.handleUiEvent(nodeId, event, value);
+    },
+
+    async handlePreviewUiEvent(nodeId, event, value) {
+      if (preview === null) {
+        throw new Error("No preview app is running");
+      }
+
+      await preview.host.handleUiEvent(nodeId, event, value);
+    },
+
+    async stopPreview() {
+      await stopPreviewHost();
     },
 
     async devSideLoad(manifest, bundleBytes) {

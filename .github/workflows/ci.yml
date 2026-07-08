@@ -361,6 +361,7 @@ jobs:
       - run: npm run test:web-miniapp
       - run: npm run test:web-examples
       - run: npm run test:web-distribution
+      - run: npm run test:web-devstudio
 
   fuzz:
     runs-on: ubuntu-latest
