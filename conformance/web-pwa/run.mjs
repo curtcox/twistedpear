@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
- * W4 Playwright: PWA app-shell loads offline after service worker install.
+ * W4 Playwright: PWA app-shell loads offline after service worker install,
+ * and the in-app Install CTA accepts a deferred beforeinstallprompt.
  */
 
 import { spawnSync } from "node:child_process";
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -98,6 +99,8 @@ function staticContentType(extension) {
       return "text/javascript; charset=utf-8";
     case ".css":
       return "text/css; charset=utf-8";
+    case ".png":
+      return "image/png";
     case ".webmanifest":
       return "application/manifest+json";
     default:
@@ -110,6 +113,23 @@ async function runPlaywright(pageUrl) {
   try {
     const context = await browser.newContext();
     const page = await context.newPage();
+    await page.addInitScript(() => {
+      class FakeBeforeInstallPromptEvent extends Event {
+        constructor() {
+          super("beforeinstallprompt", { cancelable: true });
+          this.userChoice = Promise.resolve({ outcome: "accepted" });
+        }
+
+        prompt() {
+          return Promise.resolve();
+        }
+      }
+
+      window.__dispatchFakeInstallPrompt = () => {
+        window.dispatchEvent(new FakeBeforeInstallPromptEvent());
+      };
+    });
+
     await page.goto(pageUrl, { waitUntil: "networkidle", timeout: 120_000 });
     await page.waitForFunction(() => navigator.serviceWorker?.controller !== null, undefined, {
       timeout: 60_000
@@ -119,6 +139,34 @@ async function runPlaywright(pageUrl) {
     if (manifestHref === null || manifestHref.length === 0) {
       throw new Error("expected web app manifest link in index.html");
     }
+
+    await page.waitForSelector('[data-testid="pwa-install"]', { timeout: 60_000 });
+    await page.evaluate(() => {
+      window.__dispatchFakeInstallPrompt?.();
+    });
+    await page.waitForFunction(
+      () => {
+        const status = document.querySelector('[data-testid="pwa-install-status"]');
+        return status?.textContent?.includes("ready") === true;
+      },
+      undefined,
+      { timeout: 15_000 }
+    );
+
+    const installButton = page.getByTestId("pwa-install");
+    if (await installButton.isDisabled()) {
+      throw new Error("expected Install TwistedPear button to enable after beforeinstallprompt");
+    }
+
+    await installButton.click();
+    await page.waitForFunction(
+      () => {
+        const status = document.querySelector('[data-testid="pwa-install-status"]');
+        return status?.textContent?.includes("installed") === true;
+      },
+      undefined,
+      { timeout: 15_000 }
+    );
 
     await context.setOffline(true);
     await page.reload({ waitUntil: "domcontentloaded", timeout: 60_000 });
@@ -134,16 +182,28 @@ let staticServer = null;
 try {
   runBuild();
 
-  for (const required of ["index.html", "manifest.webmanifest", "sw.js", "web-core.worker.js"]) {
+  for (const required of [
+    "index.html",
+    "manifest.webmanifest",
+    "sw.js",
+    "web-core.worker.js",
+    "icon-192.png",
+    "icon-512.png"
+  ]) {
     if (!existsSync(join(webHostDir, required))) {
       throw new Error(`web-host build missing ${required}`);
     }
   }
 
+  const manifest = JSON.parse(readFileSync(join(webHostDir, "manifest.webmanifest"), "utf8"));
+  if (!Array.isArray(manifest.icons) || manifest.icons.length < 2) {
+    throw new Error("web app manifest missing install icons");
+  }
+
   staticServer = await startStaticServer(webHostDir);
   const pageUrl = `http://127.0.0.1:${staticServer.port}/`;
   const result = await runPlaywright(pageUrl);
-  console.log(`web-pwa: offline shell loaded (manifest ${result.manifestHref})`);
+  console.log(`web-pwa: offline shell + install prompt (manifest ${result.manifestHref})`);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`web-pwa: failed — ${message}`);

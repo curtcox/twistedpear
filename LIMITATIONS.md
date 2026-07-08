@@ -177,7 +177,7 @@ everything below is a known cost of the chosen design or of the platforms involv
   and storage-quota changes apply live; 256t locator announces must have been received
   before an install can resolve (no locator re-request yet).
 
-## 8. Web platform (planned target; see [docs/web-host.md](docs/web-host.md))
+## 8. Web platform (see [docs/web-host.md](docs/web-host.md))
 
 - **Leaf-only, gateway-dependent:** browsers cannot accept inbound connections or open raw
   TCP/UDP sockets, so the web host reaches Reticulum only through the WebSocket interface
@@ -193,8 +193,11 @@ everything below is a known cost of the chosen design or of the platforms involv
 - **Sandbox mechanism differs:** mini-app isolation rests on opaque-origin sandboxed
   iframes + workers and CSP rather than OS processes; it must pass the same adversarial
   review as the native backends before any web release.
-- **Bulk plane degraded:** Hyperswarm/Hyperdrive do not run in browsers; package fetch
-  falls back to Reticulum Resource transfer until (optional) WS DHT-relay support lands.
+- **Bulk plane via gateway:** Hyperswarm/Hyperdrive do not run in the browser tab. The web
+  host installs over Hyperdrive by calling the gateway's `/bulk-fetch` HTTP proxy (the node
+  joins Hyperswarm and streams the archive). Reticulum Resource transfer remains the
+  offline/fallback path. Direct WS DHT-relay client lookup still depends on
+  `@hyperswarm/dht-relay` ↔ `hyperdht` compatibility and is treated as experimental.
 - **Storage is evictable:** OPFS/IndexedDB live under browser quota and can be cleared by
   the user agent; `navigator.storage.persist()` mitigates but does not guarantee.
 

@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 /**
- * Phase W4: offline app-shell (manifest + service worker) for `dist/web-host`.
+ * Phase W4: offline app-shell (manifest + service worker + install icons) for `dist/web-host`.
  */
 
+import { deflateSync } from "node:zlib";
 import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const SHELL_EXTENSIONS = new Set([".html", ".js", ".css", ".json", ".woff", ".woff2", ".ttf", ".png", ".ico", ".svg", ".webmanifest"]);
+const ICON_SIZES = [192, 512];
 
 function collectShellAssets(rootDir) {
   const assets = [];
@@ -38,14 +40,96 @@ function collectShellAssets(rootDir) {
   return [...new Set(assets)].sort();
 }
 
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const value of bytes) {
+    crc ^= value;
+    for (let bit = 0; bit < 8; bit += 1) {
+      const mask = -(crc & 1);
+      crc = (crc >>> 1) ^ (0xedb88320 & mask);
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type, data) {
+  const typeBytes = Buffer.from(type, "ascii");
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length, 0);
+  const crcInput = Buffer.concat([typeBytes, data]);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(crcInput), 0);
+  return Buffer.concat([length, typeBytes, data, crc]);
+}
+
+/**
+ * Minimal opaque PNG (solid slate + lighter center disc) — enough for installability criteria.
+ * @param {number} size
+ */
+export function createPwaIconPng(size) {
+  const stride = 1 + size * 4;
+  const raw = Buffer.alloc(stride * size);
+  const bg = [15, 23, 42, 255];
+  const fg = [56, 189, 248, 255];
+  const center = (size - 1) / 2;
+  const radius = size * 0.28;
+
+  for (let y = 0; y < size; y += 1) {
+    const row = y * stride;
+    raw[row] = 0;
+    for (let x = 0; x < size; x += 1) {
+      const dx = x - center;
+      const dy = y - center;
+      const color = dx * dx + dy * dy <= radius * radius ? fg : bg;
+      const offset = row + 1 + x * 4;
+      raw[offset] = color[0];
+      raw[offset + 1] = color[1];
+      raw[offset + 2] = color[2];
+      raw[offset + 3] = color[3];
+    }
+  }
+
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(size, 0);
+  ihdr.writeUInt32BE(size, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 6;
+  ihdr[10] = 0;
+  ihdr[11] = 0;
+  ihdr[12] = 0;
+
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    pngChunk("IHDR", ihdr),
+    pngChunk("IDAT", deflateSync(raw)),
+    pngChunk("IEND", Buffer.alloc(0))
+  ]);
+}
+
+function writePwaIcons(outputDir) {
+  const icons = [];
+  for (const size of ICON_SIZES) {
+    const filename = `icon-${size}.png`;
+    writeFileSync(join(outputDir, filename), createPwaIconPng(size));
+    icons.push({
+      src: `/${filename}`,
+      sizes: `${size}x${size}`,
+      type: "image/png",
+      purpose: "any"
+    });
+  }
+  return icons;
+}
+
 /**
  * @param {string} outputDir
  */
 export function applyPwaShell(outputDir) {
-  const shellAssets = collectShellAssets(outputDir);
-  if (!shellAssets.includes("/index.html")) {
+  if (!collectShellAssets(outputDir).includes("/index.html")) {
     throw new Error(`PWA shell expected index.html in ${outputDir}`);
   }
+
+  const icons = writePwaIcons(outputDir);
 
   const manifest = {
     name: "TwistedPear Host",
@@ -54,11 +138,13 @@ export function applyPwaShell(outputDir) {
     start_url: "/",
     display: "standalone",
     background_color: "#0f172a",
-    theme_color: "#0f172a"
+    theme_color: "#0f172a",
+    icons
   };
 
   writeFileSync(join(outputDir, "manifest.webmanifest"), `${JSON.stringify(manifest, null, 2)}\n`);
 
+  const shellAssets = collectShellAssets(outputDir);
   const precacheJson = JSON.stringify(shellAssets);
   const serviceWorker = `const PRECACHE = ${precacheJson};
 const CACHE_NAME = "twistedpear-web-host-v1";
@@ -116,6 +202,7 @@ self.addEventListener("fetch", (event) => {
   const injection = [
     '<link rel="manifest" href="/manifest.webmanifest" />',
     '<meta name="theme-color" content="#0f172a" />',
+    '<link rel="apple-touch-icon" href="/icon-192.png" />'
   ];
 
   if (!indexHtml.includes('rel="manifest"')) {
@@ -124,6 +211,11 @@ self.addEventListener("fetch", (event) => {
     } else {
       indexHtml = `${injection.join("\n")}\n${indexHtml}`;
     }
+  } else if (!indexHtml.includes("apple-touch-icon")) {
+    indexHtml = indexHtml.replace(
+      '<link rel="manifest" href="/manifest.webmanifest" />',
+      '<link rel="manifest" href="/manifest.webmanifest" />\n    <link rel="apple-touch-icon" href="/icon-192.png" />'
+    );
   }
 
   const registration = `<script>
@@ -141,5 +233,5 @@ if ("serviceWorker" in navigator) {
   }
 
   writeFileSync(indexPath, indexHtml);
-  console.log(`PWA shell: manifest + service worker (${shellAssets.length} precached assets)`);
+  console.log(`PWA shell: manifest + icons + service worker (${shellAssets.length} precached assets)`);
 }

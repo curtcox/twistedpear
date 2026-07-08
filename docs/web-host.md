@@ -1,7 +1,9 @@
 # Web Host: a full TwistedPear host in the browser (plan)
 
-Status: **in progress** (Phase W1 complete; W-S2 + W-S3 + W-S4 landed; W2 software tier landed; W3 (software tier) landed; **W4 (software tier, partial)** — PWA offline app-shell + web soak + gateway DHT relay + gateway `/bulk-fetch` Hyperdrive proxy + browser install-over-gateway + WebSerial RNode stretch) — Workstreams A/B/C landed; W-S1 interop + Playwright CI wired; browser identity persistence + `createWebLeafHost` landed; Expo web tab UI (`App.web.tsx` + core Web Worker) landed; `WebSandboxBackend` + W-S2 adversarial isolation spike landed; `packages/widget-renderer-rn` + W-S3 RNW widget preview landed; `createWebPackageStorage` + W-S4 OPFS/IndexedDB CAS install spike landed; `WebSandboxProxyBackend` + main-thread sandbox relay + `test:web-miniapp` + `test:web-examples` + host confirmation modal (W2 hello + example apps e2e); `createWebInstallService` + install-from-256t Resource fetch + publisher trust store + install review UI + `test:web-distribution` (W3 chat install e2e); `createWebPublishService` + DevStudio appsBackend (workspace/CAS/package/publish/preview) + `test:web-devstudio` (W3 DevStudio hello → package → publish e2e); PWA manifest + service worker in `build:web-host` + `test:web-pwa`; `test:web-soak` (W4 mini-app launch/stop soak in browser); `attachDhtRelayServer` on WS gateway `/dht-relay` + `attachGatewayBulkFetchServer` / `serveHttp` `/bulk-fetch` + `test:web-hyperdrive`; `web-hyper-fetch.js` + `fetchDriveVersionForWeb` (gateway bulk fetch, DHT relay fallback) + `test:web-hyperdrive-browser` (W4 Hyperdrive install e2e via live gateway bulk fetch).
+Status: **complete (software tier)** — Phases W0–W4 landed in CI; Workstreams A–F software path closed. Remaining hardware/device work (real USB RNode LoRa E2E from Chrome) is device-gated, not blocking the Phase W software exit.
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase W.
+
+Landed: W-S1–W-S4 spikes; W1 leaf peer (`runtime/web`, WS interfaces, identity, LXMF, `createWebLeafHost`, Expo web tab); W2 mini-app runtime (`WebSandboxBackend` / proxy relay, `widget-renderer-rn`, confirmations, `test:web-miniapp` / `test:web-examples`); W3 distribution + DevStudio (`createWebInstallService`, publisher trust, `createWebPublishService`, `test:web-distribution` / `test:web-devstudio`); W4 bulk plane + polish (PWA offline shell + install prompt + icons, `test:web-pwa`; `test:web-soak`; gateway `/dht-relay` + `/bulk-fetch` + browser Hyperdrive install via `fetchDriveVersionForWeb`; WebSerial RNode stretch + `test:web-rnode` simulated serial).
 
 The web host is a browser tab (React Native for Web via Expo web) that runs the
 **complete host stack**: a real Reticulum leaf peer (`reticulum-ts` in the page),
@@ -125,7 +127,8 @@ A first-class interface, not a private control channel: any in-browser
 - **W1 landed:** `App.web.tsx`, `host/web-core-bridge.ts`, and
   `worklet/web-entry.mjs` (bundled to `public/web-core.worker.js`). Build static
   assets with `npm run build:web-host` → `dist/web-host` for `tp node --serve-web`.
-- PWA shell (offline app-shell, install prompt) is Phase W4 polish.
+- **W4 landed:** PWA shell (offline app-shell + manifest icons + in-app install prompt
+  via deferred `beforeinstallprompt`) in `build:web-host` / `App.web.tsx` / `test:web-pwa`.
 
 ## Workstream F — security posture
 
@@ -176,10 +179,11 @@ install review modal + publisher trust import UI + `test:web-distribution` (chat
 Hyperdrive fetch via a WebSocket DHT relay on the gateway (optional
 acceleration; Resource path remains the fallback); PWA offline shell; quotas
 and soak tests; **stretch:** RNode over WebSerial (Chrome) for direct LoRa
-from the laptop browser with no gateway. **W4 (software tier, partial):**
-PWA manifest + service worker in `build:web-host` + `test:web-pwa` (offline
-app-shell load); `test:web-soak` (hello mini-app launch/tap/suspend/stop cycles
-in browser tab; nightly tier via `SOAK_DURATION_MS`); gateway DHT relay at
+from the laptop browser with no gateway. **W4 (software tier) Done:**
+PWA manifest + icons + service worker + in-app install prompt in
+`build:web-host` + `test:web-pwa` (offline app-shell load + deferred
+`beforeinstallprompt` CTA); `test:web-soak` (hello mini-app launch/tap/suspend/stop
+cycles in browser tab; nightly tier via `SOAK_DURATION_MS`); gateway DHT relay at
 `/dht-relay` on `tp node --ws-listen` + gateway `/bulk-fetch` (Hyperswarm on
 the node, streamed to the browser tab) + `test:web-hyperdrive` (relay client
 smoke + bulk-fetch route); `web-hyper-fetch.js` + `fetchDriveVersionForWeb` in

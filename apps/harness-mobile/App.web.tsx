@@ -4,6 +4,10 @@ import { StatusBar } from "expo-status-bar";
 import { validateWidgetTree, type WidgetTree } from "@twistedpear/miniapp-runtime/ui";
 import { MiniappWidgetTree } from "@twistedpear/widget-renderer-rn";
 import { createWebCoreBridge } from "./host/web-core-bridge";
+import {
+  createPwaInstallController,
+  type PwaInstallAvailability
+} from "./host/web-pwa-install";
 import { webSerialSupported } from "./host/web-serial-relay";
 import type {
   AnnounceEntry,
@@ -134,6 +138,8 @@ export default function App() {
   const [trustIdentityInput, setTrustIdentityInput] = useState("");
   const [trustLabelInput, setTrustLabelInput] = useState("");
   const [hostIdentity256t, setHostIdentity256t] = useState<string | null>(null);
+  const [pwaInstallAvailability, setPwaInstallAvailability] = useState<PwaInstallAvailability>("unavailable");
+  const pwaInstallRef = useRef<ReturnType<typeof createPwaInstallController> | null>(null);
 
   const previewOptions = useMemo(
     () =>
@@ -341,6 +347,31 @@ export default function App() {
     []
   );
 
+  useEffect(() => {
+    if (Platform.OS !== "web") {
+      return;
+    }
+
+    const controller = createPwaInstallController();
+    pwaInstallRef.current = controller;
+    const unsubscribe = controller.subscribe(setPwaInstallAvailability);
+    return () => {
+      unsubscribe();
+      controller.dispose();
+      pwaInstallRef.current = null;
+    };
+  }, []);
+
+  const promptPwaInstall = useCallback(async () => {
+    const outcome = await pwaInstallRef.current?.promptInstall();
+    if (outcome === null || outcome === undefined) {
+      appendLog("Install prompt unavailable in this browser session.");
+      return;
+    }
+
+    appendLog(outcome === "accepted" ? "PWA install accepted." : "PWA install dismissed.");
+  }, [appendLog]);
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
@@ -399,7 +430,32 @@ export default function App() {
         />
       ) : null}
       <Text style={styles.title}>TwistedPear Web Host</Text>
-      <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W3 — DevStudio + distribution)</Text>
+      <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W — leaf host)</Text>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Install app (PWA)</Text>
+        <Text style={styles.muted}>
+          Offline app-shell via service worker. Chromium can offer an install prompt after the shell is ready.
+        </Text>
+        <Text testID="pwa-install-status">
+          Install status:{" "}
+          {pwaInstallAvailability === "deferred"
+            ? "ready"
+            : pwaInstallAvailability === "installed"
+              ? "installed / standalone"
+              : "waiting for browser criteria"}
+        </Text>
+        <View style={styles.buttonRow}>
+          <ActionButton
+            testID="pwa-install"
+            label="Install TwistedPear"
+            onPress={() => {
+              void promptPwaInstall();
+            }}
+            disabled={pwaInstallAvailability !== "deferred"}
+          />
+        </View>
+      </View>
 
       <View style={styles.card}>
         <Text>Core worker: {status.running ? "running" : "stopped"}</Text>
@@ -773,7 +829,8 @@ export default function App() {
           USB RNode on web uses Web Serial (Chromium); native Android/iOS USB paths stay on mobile harness.
         </Text>
         <Text style={styles.muted}>
-          Hyperdrive fetch via gateway DHT relay when available; Resource + 256t install always supported.
+          Hyperdrive install uses gateway `/bulk-fetch` (Hyperswarm on the node); DHT relay remains experimental
+          fallback. Resource + 256t install always supported.
         </Text>
       </View>
 
