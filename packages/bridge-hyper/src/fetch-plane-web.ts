@@ -1,7 +1,7 @@
 import type { CatalogEntry } from "@twistedpear/app-registry";
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import { unpackPackage } from "@twistedpear/app-registry";
-import { fetchDriveVersionViaRelay } from "./web-hyper-fetch.js";
+import { fetchDriveVersionViaGateway } from "./web-hyper-fetch-gateway.js";
 
 export type WebFetchPath = "hyperdrive" | "resource";
 
@@ -30,7 +30,7 @@ export interface WebFetchPlane {
 
 export interface WebCompositeFetchPlaneOptions {
   readonly resourcePlane: WebFetchPlane;
-  readonly relayUrl: string;
+  readonly gatewayUrl: string;
 }
 
 export function createWebCompositeFetchPlane(options: WebCompositeFetchPlaneOptions): WebFetchPlane {
@@ -45,8 +45,8 @@ export function createWebCompositeFetchPlane(options: WebCompositeFetchPlaneOpti
             phase: "starting"
           });
 
-          const archiveBytes = await fetchDriveVersionViaRelay({
-            relayUrl: options.relayUrl,
+          const archiveBytes = await fetchDriveVersionViaGateway({
+            gatewayUrl: options.gatewayUrl,
             driveKeyHex: request.entry.driveKey,
             version: request.version
           });

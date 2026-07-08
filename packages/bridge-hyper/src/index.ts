@@ -1,5 +1,17 @@
 export { attachDhtRelayServer, DEFAULT_DHT_RELAY_PATH } from "./dht-relay-server.js";
 export type { DhtRelayServerOptions, DhtRelayServerSession } from "./dht-relay-server.js";
+export {
+  attachGatewayBulkFetchServer,
+  createGatewayBulkFetchHttpHandler,
+  DEFAULT_BULK_FETCH_PATH
+} from "./gateway-bulk-fetch-server.js";
+export type {
+  GatewayBulkFetcher,
+  GatewayBulkFetchServerOptions,
+  GatewayBulkFetchServerSession
+} from "./gateway-bulk-fetch-server.js";
+export { fetchDriveVersionViaHyperswarm } from "./gateway-hyperswarm-fetch.js";
+export type { GatewayHyperswarmFetchOptions } from "./gateway-hyperswarm-fetch.js";
 export { fetchDriveVersionViaNodeRelay } from "./node-relay-hyper-fetch.js";
 export type { NodeRelayHyperFetchOptions } from "./node-relay-hyper-fetch.js";
 

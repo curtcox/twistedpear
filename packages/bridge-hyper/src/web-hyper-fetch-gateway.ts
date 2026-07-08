@@ -1,25 +1,43 @@
-var __filename='';var __dirname='';var process={env:{}};
+import { DEFAULT_BULK_FETCH_PATH } from "./gateway-bulk-fetch-server.js";
 
-// ../../packages/bridge-hyper/src/gateway-bulk-fetch-server.ts
-var DEFAULT_BULK_FETCH_PATH = "/bulk-fetch";
+export interface WebGatewayHyperFetchOptions {
+  readonly gatewayUrl: string;
+  readonly driveKeyHex: string;
+  readonly version: string;
+  readonly timeoutMs?: number;
+  readonly bulkFetchPath?: string;
+}
 
-// ../../packages/bridge-hyper/src/web-hyper-fetch-gateway.ts
-function gatewayHttpUrlFromWebSocket(gatewayUrl) {
+export interface WebCompositeHyperFetchOptions extends WebGatewayHyperFetchOptions {
+  readonly dhtRelayPath?: string;
+}
+
+export function gatewayHttpUrlFromWebSocket(gatewayUrl: string): string {
   const url = new URL(gatewayUrl);
   url.protocol = url.protocol === "wss:" ? "https:" : "http:";
   return url.toString();
 }
-function bulkFetchUrlFromGateway(gatewayUrl, driveKeyHex, version, path = DEFAULT_BULK_FETCH_PATH) {
+
+export function bulkFetchUrlFromGateway(
+  gatewayUrl: string,
+  driveKeyHex: string,
+  version: string,
+  path = DEFAULT_BULK_FETCH_PATH
+): string {
   const url = new URL(gatewayHttpUrlFromWebSocket(gatewayUrl));
   url.pathname = path;
   url.search = `driveKey=${encodeURIComponent(driveKeyHex)}&version=${encodeURIComponent(version)}`;
   url.hash = "";
   return url.toString();
 }
-async function fetchDriveVersionViaGateway(options) {
-  const timeoutMs = options.timeoutMs ?? 9e4;
+
+export async function fetchDriveVersionViaGateway(
+  options: WebGatewayHyperFetchOptions
+): Promise<Uint8Array> {
+  const timeoutMs = options.timeoutMs ?? 90_000;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const response = await fetch(
       bulkFetchUrlFromGateway(
@@ -30,36 +48,36 @@ async function fetchDriveVersionViaGateway(options) {
       ),
       { signal: controller.signal }
     );
+
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
       throw new Error(
-        detail.length > 0 ? `gateway bulk fetch failed (${response.status}): ${detail}` : `gateway bulk fetch failed (${response.status})`
+        detail.length > 0
+          ? `gateway bulk fetch failed (${response.status}): ${detail}`
+          : `gateway bulk fetch failed (${response.status})`
       );
     }
+
     return new Uint8Array(await response.arrayBuffer());
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("gateway bulk fetch timed out");
     }
+
     throw error;
   } finally {
     clearTimeout(timer);
   }
 }
-async function fetchDriveVersionForWeb(options) {
+
+export async function fetchDriveVersionForWeb(options: WebCompositeHyperFetchOptions): Promise<Uint8Array> {
   return fetchDriveVersionViaGateway(options);
 }
-function dhtRelayUrlFromGateway(gatewayUrl, path = "/dht-relay") {
+
+export function dhtRelayUrlFromGateway(gatewayUrl: string, path = "/dht-relay"): string {
   const url = new URL(gatewayUrl);
   url.pathname = path;
   url.search = "";
   url.hash = "";
   return url.toString();
 }
-export {
-  bulkFetchUrlFromGateway,
-  dhtRelayUrlFromGateway,
-  fetchDriveVersionForWeb,
-  fetchDriveVersionViaGateway,
-  gatewayHttpUrlFromWebSocket
-};

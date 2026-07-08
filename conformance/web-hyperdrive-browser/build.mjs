@@ -150,14 +150,7 @@ buildSync({
   logLevel: "warning"
 });
 
-buildSync({
-  entryPoints: [join(hyperdriveRoot, "web-hyper-fetch-shim.mjs")],
-  bundle: true,
-  platform: "browser",
-  format: "esm",
-  outfile: join(hyperdriveRoot, "web-hyper-fetch.js"),
-  logLevel: "warning"
-});
+cpSync(join(harnessRoot, "public/web-hyper-fetch.js"), join(hyperdriveRoot, "web-hyper-fetch.js"));
 
 cpSync(join(harnessRoot, "public/web-core.worker.js"), join(hyperdriveRoot, "web-core.worker.js"));
 

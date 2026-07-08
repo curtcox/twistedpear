@@ -20,8 +20,10 @@ import {
 } from "../../packages/cas-256t/dist/index.js";
 import {
   attachDhtRelayServer,
+  createGatewayBulkFetchHttpHandler,
   createSwarm,
-  DriveManager
+  DriveManager,
+  fetchDriveVersionViaHyperswarm
 } from "../../packages/bridge-hyper/dist/index.js";
 import {
   DestinationDirection,
@@ -55,7 +57,7 @@ function hexToBytes(hex) {
   return bytes;
 }
 
-async function startHyperdrivePublisher() {
+async function startHyperdrivePublisher(staticRoot) {
   const { PUBLISHER_DATA } = await import("./publisher-data.mjs");
   const provider = new NodeCryptoProvider();
   const runtime = nodeRuntime();
@@ -105,10 +107,20 @@ async function startHyperdrivePublisher() {
     void casDestination.announce({ appData: encodeCasLocator(locator) }).catch(() => {});
   }, 2_000);
 
+  const bulkFetchHandler = createGatewayBulkFetchHttpHandler(async (driveKeyHex, version) => {
+    if (driveKeyHex === keyHex) {
+      return publisherDrive.fetchVersion(version);
+    }
+
+    return fetchDriveVersionViaHyperswarm({ driveKeyHex, version, timeoutMs: 60_000 });
+  });
+
   const wsServer = await registerWebSocketServerInterface(publisherNode, {
     name: "ws-gateway",
     listenHost: "127.0.0.1",
-    listenPort: 0
+    listenPort: 0,
+    serveHttp: bulkFetchHandler,
+    staticRoot
   });
 
   const httpServer = wsServer.httpServer;
@@ -125,6 +137,7 @@ async function startHyperdrivePublisher() {
 
   return {
     wsUrl: `ws://127.0.0.1:${wsPort}`,
+    pageUrl: `http://127.0.0.1:${wsPort}/page.html`,
     appId: verified.manifest.name,
     driveKey: keyHex,
     async stop() {
@@ -250,14 +263,12 @@ async function runPlaywright(pageUrl) {
   }
 }
 
-let staticServer = null;
 let gateway = null;
 
 try {
   runBuild();
-  gateway = await startHyperdrivePublisher();
-  staticServer = await startStaticServer(hyperdriveRoot);
-  const pageUrl = `http://127.0.0.1:${staticServer.port}/?ws=${encodeURIComponent(gateway.wsUrl)}`;
+  gateway = await startHyperdrivePublisher(hyperdriveRoot);
+  const pageUrl = `${gateway.pageUrl}?ws=${encodeURIComponent(gateway.wsUrl)}`;
   const result = await runPlaywright(pageUrl);
   console.log(
     `web-hyperdrive-browser: ${JSON.stringify({
@@ -271,10 +282,6 @@ try {
   console.error(`web-hyperdrive-browser: failed — ${message}`);
   process.exit(1);
 } finally {
-  if (staticServer !== null) {
-    await staticServer.close().catch(() => {});
-  }
-
   if (gateway !== null) {
     await gateway.stop().catch(() => {});
   }

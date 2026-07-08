@@ -62,6 +62,11 @@ async function main() {
     buffer = decoded.remainder;
 
     for (const message of decoded.messages) {
+      if (message.type === "log") {
+        console.log(message.line);
+        continue;
+      }
+
       if (message.type === "install-review") {
         worker.postMessage({
           channel: "host-ipc",

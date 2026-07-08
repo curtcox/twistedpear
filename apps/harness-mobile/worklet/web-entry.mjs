@@ -114,7 +114,7 @@ let serialBridge = null;
 let rnodeIface = null;
 /** @type {number} */
 let pendingRnodeBaudRate = 115_200;
-/** @type {Promise<{ fetchDriveVersionViaRelay: Function; dhtRelayUrlFromGateway: Function }> | null} */
+/** @type {Promise<{ fetchDriveVersionForWeb: Function; dhtRelayUrlFromGateway: Function }> | null} */
 let hyperFetchModule = null;
 /** @type {PureCryptoProvider} */
 const cryptoProvider = new PureCryptoProvider();
@@ -440,9 +440,8 @@ function ensureInstallService() {
         }
 
         const hyperFetch = await loadHyperFetch();
-        const relayUrl = hyperFetch.dhtRelayUrlFromGateway(webConfig.gatewayUrl);
-        return hyperFetch.fetchDriveVersionViaRelay({
-          relayUrl,
+        return hyperFetch.fetchDriveVersionForWeb({
+          gatewayUrl: webConfig.gatewayUrl,
           driveKeyHex: locator.driveKey,
           version: locator.version,
           timeoutMs: 90_000

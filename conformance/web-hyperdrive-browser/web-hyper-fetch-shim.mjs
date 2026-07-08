@@ -1,7 +1,6 @@
 /**
- * Conformance shim: stand in for web-hyper-fetch.js when relayed Hyperswarm peer
- * discovery is unavailable in CI. Fetches the publisher fixture from the same origin
- * as the Playwright static server.
+ * Legacy conformance shim (superseded by live gateway `/bulk-fetch` in test:web-hyperdrive-browser).
+ * Kept for local experiments when relay peer discovery regresses.
  */
 
 export function dhtRelayUrlFromGateway(gatewayUrl, path = "/dht-relay") {

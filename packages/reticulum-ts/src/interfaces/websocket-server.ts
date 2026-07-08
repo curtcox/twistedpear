@@ -23,6 +23,8 @@ export interface WebSocketServerInterfaceOptions extends ReticulumInterfaceOptio
   readonly sharedToken?: string;
   /** When set, non-WebSocket GET requests serve files from this directory. */
   readonly staticRoot?: string;
+  /** Optional HTTP handler invoked before static/404 handling (e.g. gateway bulk fetch). */
+  readonly serveHttp?: (request: IncomingMessage, response: ServerResponse) => void | Promise<void>;
 }
 
 export type WebSocketSpawnedInterfaceHandler = (iface: WebSocketClientInterface) => void;
@@ -62,7 +64,9 @@ export class WebSocketServerInterface {
   }
 
   async start(): Promise<void> {
-    this.server = createServer((request, response) => this.handleHttpRequest(request, response));
+    this.server = createServer((request, response) => {
+      void this.handleHttpRequest(request, response);
+    });
     this.server.on("upgrade", (request, socket, head) => this.handleUpgrade(request, socket, head));
 
     await new Promise<void>((resolve, reject) => {
@@ -116,11 +120,18 @@ export class WebSocketServerInterface {
     }
   }
 
-  private handleHttpRequest(request: IncomingMessage, response: ServerResponse): void {
+  private async handleHttpRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
     if (request.method !== "GET" && request.method !== "HEAD") {
       response.writeHead(405);
       response.end();
       return;
+    }
+
+    if (this.options.serveHttp !== undefined) {
+      await this.options.serveHttp(request, response);
+      if (response.headersSent) {
+        return;
+      }
     }
 
     const staticRoot = this.options.staticRoot;

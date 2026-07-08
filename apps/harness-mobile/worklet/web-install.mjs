@@ -104,7 +104,10 @@ export function createWebInstallService(options) {
           });
           return { archive: hyperArchive, fetchPath: "hyperdrive" };
         }
-      } catch {
+      } catch (error) {
+        options.log?.(
+          `Hyperdrive fetch failed: ${error instanceof Error ? error.message : String(error)}`
+        );
         sendProgress?.({
           phase: "failed",
           bytesReceived: 0,

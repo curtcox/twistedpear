@@ -7,5 +7,10 @@ export type {
   WebFetchPlaneResult,
   WebFetchProgress
 } from "./fetch-plane-web.js";
-export { dhtRelayUrlFromGateway, fetchDriveVersionViaRelay } from "./web-hyper-fetch.js";
-export type { WebHyperFetchOptions } from "./web-hyper-fetch.js";
+export {
+  bulkFetchUrlFromGateway,
+  dhtRelayUrlFromGateway,
+  fetchDriveVersionForWeb,
+  fetchDriveVersionViaGateway
+} from "./web-hyper-fetch-gateway.js";
+export type { WebCompositeHyperFetchOptions, WebGatewayHyperFetchOptions } from "./web-hyper-fetch-gateway.js";

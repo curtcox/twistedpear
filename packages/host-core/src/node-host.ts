@@ -139,6 +139,11 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
   }
 
   if (config.interfaces.websocket.enabled) {
+    const bridgeHyper = await import("@twistedpear/bridge-hyper");
+    const bulkFetchHandler = bridgeHyper.createGatewayBulkFetchHttpHandler((driveKeyHex, version) =>
+      bridgeHyper.fetchDriveVersionViaHyperswarm({ driveKeyHex, version })
+    );
+
     wsServer = await registerWebSocketServerInterface(reticulum, {
       name: "host-ws-gateway",
       listenHost: config.interfaces.websocket.listenHost ?? "127.0.0.1",
@@ -149,14 +154,14 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
         : { sharedToken: config.interfaces.websocket.sharedToken }),
       ...(config.interfaces.websocket.staticRoot === undefined
         ? {}
-        : { staticRoot: config.interfaces.websocket.staticRoot })
+        : { staticRoot: config.interfaces.websocket.staticRoot }),
+      serveHttp: bulkFetchHandler
     });
 
     if (config.interfaces.websocket.dhtRelay !== false) {
       const httpServer = wsServer.httpServer;
       if (httpServer !== null) {
-        const { attachDhtRelayServer } = await import("@twistedpear/bridge-hyper");
-        dhtRelaySession = attachDhtRelayServer(httpServer);
+        dhtRelaySession = bridgeHyper.attachDhtRelayServer(httpServer);
       }
     }
   }

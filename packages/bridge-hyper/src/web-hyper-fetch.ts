@@ -2,7 +2,17 @@ import DHT from "@hyperswarm/dht-relay";
 import WsStream from "@hyperswarm/dht-relay/ws";
 import Corestore from "corestore";
 import RAM from "random-access-memory";
+import {
+  bulkFetchUrlFromGateway,
+  fetchDriveVersionViaGateway,
+  gatewayHttpUrlFromWebSocket,
+  type WebCompositeHyperFetchOptions,
+  type WebGatewayHyperFetchOptions
+} from "./web-hyper-fetch-gateway.js";
 import { fetchDriveVersionViaRelayedDht } from "./relay-hyper-fetch.js";
+
+export type { WebCompositeHyperFetchOptions, WebGatewayHyperFetchOptions };
+export { bulkFetchUrlFromGateway, fetchDriveVersionViaGateway, gatewayHttpUrlFromWebSocket };
 
 export interface WebHyperFetchOptions {
   readonly relayUrl: string;
@@ -53,6 +63,19 @@ export async function fetchDriveVersionViaRelay(options: WebHyperFetchOptions): 
       return dht as import("./relay-hyper-fetch.js").RelayedDht;
     }
   });
+}
+
+export async function fetchDriveVersionForWeb(options: WebCompositeHyperFetchOptions): Promise<Uint8Array> {
+  try {
+    return await fetchDriveVersionViaGateway(options);
+  } catch {
+    return fetchDriveVersionViaRelay({
+      relayUrl: dhtRelayUrlFromGateway(options.gatewayUrl, options.dhtRelayPath),
+      driveKeyHex: options.driveKeyHex,
+      version: options.version,
+      ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs })
+    });
+  }
 }
 
 export function dhtRelayUrlFromGateway(gatewayUrl: string, path = "/dht-relay"): string {
