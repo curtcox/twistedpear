@@ -52,13 +52,13 @@ doctor checks these and prints the fix, but they require account or GUI steps.
 | Tool | Used by | Install mechanism | Verify (what doctor runs) |
 |---|---|---|---|
 | Node ≥ 22 + npm | everything | already installed (`~/.local/bin/node`) | `node --version` ≥ 22 |
-| Workspace deps (vitest, playwright, bare, tsc, esbuild) | all suites | `npm ci` from repo root | `node_modules/.bin/{vitest,playwright,bare,tsc}` exist |
+| Workspace deps (vitest, playwright, bare, tsc, esbuild) | all suites | `npm ci` from repo root | `node_modules/.bin/{vitest,playwright,tsc}` and `node_modules/bare/bin/bare` exist |
 | Playwright Chromium browser | all `test:web-*` suites | `npx playwright install chromium` | launch Chromium headless and close it |
 | Docker + compose | `test:interop`, all `INTEROP=1` lanes, web gateway suites | already installed; keep Docker Desktop running | `docker info` succeeds; `docker compose version` |
 | Python peer image | same | `docker compose -f conformance/docker/docker-compose.yml build` | image present (`docker images`) |
 | Xcode + iOS simulator runtime | `test:ios-sim*`, `expo run:ios` | already installed (Xcode 26.6) | `xcodebuild -version`; `xcrun simctl list runtimes` shows an iOS runtime |
 | CocoaPods | `expo run:ios` native build | `brew install cocoapods` | `pod --version` |
-| JDK 17 (Temurin) | Android Gradle builds (`test:android-native`, `expo run:android`) — system JDK 25 is too new for AGP | `brew install --cask temurin@17` | `/usr/libexec/java_home -v 17` resolves |
+| JDK 17 (Temurin) | Android Gradle builds (`test:android-native`, `expo run:android`) — system JDK 25 is too new for AGP | `brew install --cask temurin@17` | `/usr/libexec/java_home -V` lists an exact 17.x runtime |
 | Android SDK (cmdline-tools, platform-tools, emulator, API 34 system image, build-tools) | `test:android-emulator*`, `test:android-native` | `brew install --cask android-commandlinetools`, then `sdkmanager --sdk_root=$ANDROID_HOME ...` (setup.sh does this) | `adb version`; `emulator -list-avds` lists `Pixel_8_API_34` |
 | AVD `Pixel_8_API_34` (arm64-v8a on Apple Silicon) | emulator UI lab E1–E5 | `avdmanager create avd` (setup.sh) | listed by `emulator -list-avds` |
 | Maestro CLI | Maestro flows in `test:android-emulator` | `curl -fsSL https://get.maestro.mobile.dev \| bash` (installs to `~/.maestro/bin`) | `maestro --version` |
@@ -198,7 +198,7 @@ Android SDK, the `Pixel_8_API_34` AVD, Maestro, and Docker.
 
 ```sh
 # One-time: native project + dev client on the emulator
-export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+export JAVA_HOME="$(/usr/libexec/java_home -V 2>&1 | awk '/^[[:space:]]*17([.[:space:]]|$)/ { for (i=1; i<=NF; i++) if ($i ~ /^\//) { print $i; exit } }')"
 npm run test:android-native            # JVM unit tests (BLE, multicast, USB bridges)
 
 emulator -avd Pixel_8_API_34 -no-snapshot-load &

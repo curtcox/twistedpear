@@ -7,7 +7,7 @@
  * to print the exact command plan without executing it.
  */
 
-import { execFileSync, spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createWriteStream, existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -16,6 +16,8 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const androidHome = process.env.ANDROID_HOME ?? join(homedir(), "Library/Android/sdk");
 const defaultLogDir = join(repoRoot, ".tmp/mac-validation", new Date().toISOString().replace(/[:.]/g, "-"));
+const java17Token = "__MAC_VALIDATION_JAVA_HOME_17__";
+const java17Display = `"$(/usr/libexec/java_home -V 2>&1 | awk '/^[[:space:]]*17([.[:space:]]|$)/ { for (i=1; i<=NF; i++) if ($i ~ /^\\//) { print $i; exit } }')"`;
 
 function parseArgs(argv) {
   const options = {
@@ -287,7 +289,7 @@ function buildStages(options) {
 
 function java17Env() {
   return {
-    JAVA_HOME: "$(/usr/libexec/java_home -v 17)"
+    JAVA_HOME: java17Token
   };
 }
 
@@ -324,16 +326,18 @@ function mergedEnv(extra = {}) {
 }
 
 function shellEval(value) {
-  if (value !== "$(/usr/libexec/java_home -v 17)") return value;
+  if (value !== java17Token) return value;
 
-  return runSyncCapture("/usr/libexec/java_home", ["-v", "17"]);
+  return javaHome17();
 }
 
-function runSyncCapture(cmd, args) {
-  return execFileSync(cmd, args, {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"]
-  }).trim();
+function javaHome17() {
+  const result = spawnSync("/usr/libexec/java_home", ["-V"], { encoding: "utf8" });
+  const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+  const line = output.split("\n").find((candidate) => /^\s*17(?:[.\s]|$)/.test(candidate));
+  const match = line?.match(/(\/.*\/Contents\/Home)\s*$/);
+  if (!match) throw new Error("no Java 17 runtime listed by /usr/libexec/java_home -V");
+  return match[1];
 }
 
 async function startAndroidEmulator(context) {
@@ -373,8 +377,12 @@ async function startAndroidEmulator(context) {
 }
 
 function commandLine(command) {
-  const env = command.env ? `${Object.entries(command.env).map(([key, value]) => `${key}=${quote(value)}`).join(" ")} ` : "";
+  const env = command.env ? `${Object.entries(command.env).map(([key, value]) => `${key}=${quoteEnvValue(value)}`).join(" ")} ` : "";
   return `${env}${command.cmd} ${command.args.map(quote).join(" ")}`.trim();
+}
+
+function quoteEnvValue(value) {
+  return value === java17Token ? java17Display : quote(value);
 }
 
 function quote(value) {

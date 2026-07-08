@@ -9,13 +9,21 @@
  *                                 # the (free) GET /v1/models endpoints
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const androidHome = process.env.ANDROID_HOME || join(homedir(), "Library/Android/sdk");
+const toolPath = [
+  join(repoRoot, "node_modules/.bin"),
+  join(androidHome, "platform-tools"),
+  join(androidHome, "emulator"),
+  join(homedir(), ".maestro/bin"),
+  process.env.PATH ?? ""
+].join(":");
 const liveAi = process.argv.includes("--ai");
 const results = [];
 
@@ -25,8 +33,17 @@ function run(cmd, args, opts = {}) {
     stdio: ["ignore", "pipe", "pipe"],
     timeout: opts.timeout ?? 30000,
     cwd: opts.cwd,
-    env: { ...process.env, ...opts.env }
+    env: { ...process.env, ANDROID_HOME: androidHome, PATH: toolPath, ...opts.env }
   }).trim();
+}
+
+function javaHome17() {
+  const result = spawnSync("/usr/libexec/java_home", ["-V"], { encoding: "utf8" });
+  const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+  const line = output.split("\n").find((candidate) => /^\s*17(?:[.\s]|$)/.test(candidate));
+  const match = line?.match(/(\/.*\/Contents\/Home)\s*$/);
+  if (!match) throw new Error("no Java 17 runtime listed by /usr/libexec/java_home -V");
+  return match[1];
 }
 
 function check(name, required, fn, fix) {
@@ -57,10 +74,13 @@ check("node >= 22", true, () => {
 }, "install Node 22+");
 
 check("workspace deps (npm ci)", true, () => {
-  for (const bin of ["vitest", "playwright", "bare", "tsc"]) {
+  for (const bin of ["vitest", "playwright", "tsc"]) {
     if (!existsSync(join(repoRoot, "node_modules/.bin", bin))) {
       throw new Error(`node_modules/.bin/${bin} missing`);
     }
+  }
+  if (!existsSync(join(repoRoot, "node_modules/bare/bin/bare"))) {
+    throw new Error("node_modules/bare/bin/bare missing");
   }
   return "vitest, playwright, bare, tsc present";
 }, "npm ci");
@@ -104,14 +124,13 @@ check("CocoaPods", true, () => `pod ${run("pod", ["--version"])}`,
   "brew install cocoapods");
 
 check("JDK 17 (Android Gradle)", true, () => {
-  // java_home -v treats the version as a minimum; assert the match really is 17
-  const home = run("/usr/libexec/java_home", ["-v", "17"]);
+  // java_home -v treats the version as a minimum on some installs; parse -V
+  // so Android Gradle never silently picks a newer unsupported JDK.
+  const home = javaHome17();
   const version = run(join(home, "bin/java"), ["--version"], { timeout: 15000 });
-  if (!/\b17\./.test(version)) throw new Error(`java_home -v 17 resolved to ${home} (${version.split("\n")[0]})`);
+  if (!/\b17\./.test(version)) throw new Error(`Java 17 candidate resolved to ${home} (${version.split("\n")[0]})`);
   return home;
 }, "brew install --cask temurin@17");
-
-const androidHome = process.env.ANDROID_HOME || join(homedir(), "Library/Android/sdk");
 
 check("Android platform-tools (adb)", true, () => {
   const adb = join(androidHome, "platform-tools/adb");

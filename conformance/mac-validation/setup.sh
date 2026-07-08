@@ -12,7 +12,22 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 WITH_VECTORS=0
-[[ "${1:-}" == "--with-vectors" ]] && WITH_VECTORS=1
+usage() {
+  cat <<'EOF'
+Usage: bash conformance/mac-validation/setup.sh [--with-vectors]
+
+Installs the local mac-validation toolchain pieces that can be installed from
+the shell. --with-vectors also creates .venv-rns for regenerating golden vectors.
+EOF
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    --with-vectors) WITH_VECTORS=1 ;;
+    --help|-h) usage; exit 0 ;;
+    *) echo "[setup] unknown option: $arg" >&2; usage >&2; exit 2 ;;
+  esac
+done
 
 log() { printf '\n[setup] %s\n' "$*"; }
 
@@ -39,8 +54,9 @@ else
 fi
 
 # --- JDK 17 for Android Gradle ----------------------------------------------
-# java_home -v treats the version as a minimum, so verify the match is really 17
-JH17="$(/usr/libexec/java_home -v 17 2>/dev/null || true)"
+# java_home -v can treat the version as a minimum, so parse -V for an exact 17.x
+# entry before deciding whether the Android Gradle JDK is installed.
+JH17="$(/usr/libexec/java_home -V 2>&1 | awk '/^[[:space:]]*17([.[:space:]]|$)/ { for (i=1; i<=NF; i++) if ($i ~ /^\//) { print $i; exit } }')"
 if [[ -z "$JH17" ]] || ! "$JH17/bin/java" --version 2>/dev/null | grep -q ' 17\.'; then
   log "brew install --cask temurin@17"
   brew install --cask temurin@17
@@ -114,7 +130,7 @@ log "add these to your shell profile if not already present:"
 cat <<EOF
   export ANDROID_HOME="$ANDROID_HOME"
   export PATH="\$ANDROID_HOME/platform-tools:\$ANDROID_HOME/emulator:\$HOME/.maestro/bin:\$PATH"
-  export JAVA_HOME="\$(/usr/libexec/java_home -v 17)"   # for Android Gradle tasks
+  export JAVA_HOME="\$(/usr/libexec/java_home -V 2>&1 | awk '/^[[:space:]]*17([.[:space:]]|$)/ { for (i=1; i<=NF; i++) if (\$i ~ /^\\//) { print \$i; exit } }')"   # for Android Gradle tasks
   # export ANTHROPIC_API_KEY=...   # Stage 9 AI layers
   # export OPENAI_API_KEY=...      # Stage 9 OpenAI fallback/judge layers
 EOF
