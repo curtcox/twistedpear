@@ -1,0 +1,13 @@
+{
+  "id": "ai-chat",
+  "title": "AI chat (host-mediated)",
+  "capabilities": ["ai:chat"],
+  "surfaces": ["ai.chat"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  }
+}

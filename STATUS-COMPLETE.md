@@ -425,12 +425,12 @@ CI: `web` + `interop` jobs per [docs/ci-policy.md](docs/ci-policy.md).
 
 ---
 
-## Phase D — Handbook (partial)
+## Phase D — Handbook (D0 + D1)
 
 | Item | Evidence | Verify |
 |---|---|---|
 | D0: Handbook scaffold + pipeline + TOC/chapters + applets on Node | `apps/handbook/`, `conformance/handbook/` | `npm run build:handbook`; `npm run test:handbook` |
-| D1 partial: identity/presence/KV/LXMF/announce applets + coverage gate | `apps/handbook/content/applets/`, `build.mjs` DEFERRED_COVERAGE | `npm run test:handbook` |
+| D1: full Part III SDK tour (every capability) + widget gallery + coverage gate | `apps/handbook/content/applets/` (13), `build.mjs` coverage gate, `conformance/budgets/measured.json` handbook row | `npm run test:handbook`; `npm run test:budgets` |
 
 ---
 

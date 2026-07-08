@@ -13,9 +13,12 @@
     "storage:hyperbee",
     "resource:fetch",
     "workspace",
+    "ai:chat",
     "share:cas",
     "apps:preview",
-    "apps:package"
+    "apps:package",
+    "apps:publish",
+    "apps:install"
   ],
   "icon": null,
   "minHostApi": "0.2.0"

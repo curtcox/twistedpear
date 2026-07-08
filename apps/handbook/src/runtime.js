@@ -1,4 +1,5 @@
 import {
+  ai,
   apps,
   announce,
   identity,
@@ -40,7 +41,8 @@ function makeSdk() {
     workspace,
     ui,
     share,
-    apps
+    apps,
+    ai
   };
 }
 

@@ -4,16 +4,15 @@
  * Writes conformance/budgets/measured.json for LIMITATIONS §6 reference.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, cpSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync, cpSync, mkdtempSync, rmSync } from "node:fs";
+import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runInit, runPack } from "../../packages/cli/dist/commands/index.js";
-import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { runInit, runPack } from "../../packages/cli/dist/commands/index.js";
 
 const fixtureDir = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages");
 const examplesDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/examples");
+const handbookDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/handbook");
 const outputDir = resolve(dirname(fileURLToPath(import.meta.url)));
 const outputPath = join(outputDir, "measured.json");
 
@@ -83,6 +82,32 @@ async function main() {
       } finally {
         rmSync(exampleCwd, { recursive: true, force: true });
       }
+    }
+
+    const handbookCwd = mkdtempSync(join(tmpdir(), "tp-budgets-handbook-"));
+    const handbookAppDir = join(handbookCwd, "handbook");
+    mkdirSync(handbookAppDir, { recursive: true });
+    cpSync(join(handbookDir, "app.manifest.json"), join(handbookAppDir, "app.manifest.json"));
+    cpSync(join(handbookDir, "bundle.js"), join(handbookAppDir, "bundle.js"));
+    try {
+      const initCode = await runInit({ cwd: handbookCwd, args: [] });
+      if (initCode !== 0) {
+        throw new Error("tp init failed for handbook");
+      }
+      const packed = await runPack({
+        cwd: handbookCwd,
+        args: ["handbook", "--out", "handbook.tpkg"]
+      });
+      if (packed !== 0) {
+        throw new Error("tp pack failed for handbook");
+      }
+      examplePackages.push({
+        name: "handbook",
+        bytes: readFileSync(join(handbookCwd, "handbook.tpkg")).length,
+        description: "Phase D Handbook (full docs + applets; exceeds BLE example budget by design)"
+      });
+    } finally {
+      rmSync(handbookCwd, { recursive: true, force: true });
     }
   } finally {
     rmSync(cwd, { recursive: true, force: true });

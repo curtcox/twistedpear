@@ -1,7 +1,7 @@
 # Handbook: interactive diagnostic documentation for every host (plan)
 
-Status: **in progress** — Phase D0 landed; D1 partial (SDK tour applets for identity,
-presence, KV, LXMF, announce; coverage gate with deferred remainder).
+Status: **in progress** — Phase D0 + D1 landed on Node (full Part III SDK tour,
+widget gallery, strict coverage gate, budgets row). D2–D4 open.
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase D;
 device-gated rows will go to [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
 
@@ -153,6 +153,13 @@ position + 5 software-tier applets; `npm run test:handbook`. Web host CI exercis
 - Exit: `test:handbook` green with full applet catalog; budget row added to
   `conformance/budgets` (expect Handbook to exceed the 180 KiB BLE example budget —
   record its own budget; if BLE install matters, split content into per-part packages).
+
+**Landed (2026-07-08, node harness):** 16 chapters, 13 applets covering every
+`CAPABILITY_DEFINITIONS` id (identity, presence, announce, lxmf, storage kv/bee,
+resource, workspace, ai, apps package/publish/install/preview, share:cas) plus
+widget gallery; strict coverage gate (no deferred list); handbook ~71 KiB in
+`conformance/budgets` (BLE install of full Handbook not a goal without a split).
+Preview-mode chapter still uses inline packaging probes (confirmation-backed).
 
 ### Phase D2 — Diagnostics, reports, difference matrix
 - `host.info()` host addition (+ `HOST_API_VERSION` minor bump, all four hosts + node).

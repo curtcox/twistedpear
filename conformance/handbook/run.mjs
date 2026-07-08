@@ -1,19 +1,22 @@
 #!/usr/bin/env node
 /**
- * Phase D0: headless Handbook install + chapter render + applet execution
+ * Phase D0/D1: headless Handbook install + chapter render + applet execution
  * on the Node sandbox backend, plus report/result schema checks.
  */
 
+import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { encode256t } from "../../packages/cas-256t/dist/index.js";
 import { verifyPackage } from "../../packages/app-registry/dist/index.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import { runInit, runPack } from "../../packages/cli/dist/commands/index.js";
 import {
   GrantStore,
+  KvStorageBeeBackend,
   MiniappHost,
   NodeWorkerSandboxBackend
 } from "../../packages/miniapp-runtime/dist/index.js";
@@ -21,6 +24,22 @@ import {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const handbookDir = join(root, "apps/handbook");
 const RESULT_STATUSES = new Set(["pass", "fail", "unavailable", "not-granted", "skipped"]);
+
+const APPLET_CHAPTER = {
+  "identity-hash": "sdk-identity",
+  "presence-snapshot": "sdk-presence",
+  "storage-kv": "sdk-storage-kv",
+  "storage-hyperbee": "sdk-storage-hyperbee",
+  "lxmf-roundtrip": "sdk-lxmf",
+  "announce-loop": "sdk-announce",
+  "resource-fetch": "sdk-resource-fetch",
+  "workspace-rw": "sdk-workspace",
+  "share-cas": "sdk-share-cas",
+  "apps-package-preview": "sdk-apps-package",
+  "apps-publish-install": "sdk-apps-publish",
+  "ai-chat": "sdk-ai-chat",
+  "widget-gallery": "sdk-widget-gallery"
+};
 
 class MemoryStore {
   values = new Map();
@@ -140,7 +159,8 @@ async function packHandbook() {
       app: verified.manifest,
       bundle,
       packageBytes: archive.length,
-      publisherPublicKey: verified.manifest.publisherPublicKey
+      publisherPublicKey: verified.manifest.publisherPublicKey,
+      archive
     };
   } finally {
     rmSync(cwd, { recursive: true, force: true });
@@ -166,6 +186,78 @@ function assertResultSchema(result) {
   }
 }
 
+function sha512(data) {
+  return new Uint8Array(createHash("sha512").update(data).digest());
+}
+
+function makeCasBackend() {
+  const blobs = new Map();
+  return {
+    async put(_appId, content) {
+      const t256 = encode256t(content, sha512);
+      blobs.set(t256, content);
+      return { t256, size: content.length };
+    },
+    async get(_appId, t256) {
+      return blobs.get(t256) ?? null;
+    }
+  };
+}
+
+function makeAppsBackend() {
+  const packages = new Map();
+  let previewActive = false;
+  return {
+    async package(_appId, request) {
+      const payload = new TextEncoder().encode(
+        JSON.stringify({ projectPrefix: request.projectPrefix, manifest: request.manifest })
+      );
+      const t256 = encode256t(payload, sha512);
+      packages.set(t256, {
+        name: request.manifest.name,
+        version: request.manifest.version
+      });
+      return {
+        packageHash: Buffer.from(sha512(payload).slice(0, 16)).toString("hex"),
+        size: payload.length,
+        t256
+      };
+    },
+    async publish(_appId, request) {
+      const known = packages.get(request.t256);
+      if (known === undefined) {
+        throw new Error(`Unknown package ${request.t256}`);
+      }
+      return {
+        t256: request.t256,
+        driveKey: "handbook-mock-drive",
+        version: known.version
+      };
+    },
+    async install(_appId, request) {
+      const known = packages.get(request.t256);
+      if (known === undefined) {
+        throw new Error(`Unknown package ${request.t256}`);
+      }
+      return {
+        appId: known.name,
+        version: known.version,
+        trusted: true
+      };
+    },
+    async preview() {
+      previewActive = true;
+      return { launched: true };
+    },
+    async stopPreview() {
+      previewActive = false;
+    },
+    get previewActive() {
+      return previewActive;
+    }
+  };
+}
+
 async function main() {
   buildHandbook();
   const catalog = loadCatalog();
@@ -176,22 +268,61 @@ async function main() {
     throw new Error("catalog has no applets");
   }
 
+  for (const applet of catalog.applets) {
+    if (APPLET_CHAPTER[applet.id] === undefined) {
+      throw new Error(`No chapter mapping for applet ${applet.id}`);
+    }
+  }
+
   const packed = await packHandbook();
   console.log(`handbook: packed ${packed.packageBytes} bytes`);
 
   const store = new MemoryStore();
+  await store.set(
+    "miniapp-resource:handbook:probe",
+    new TextEncoder().encode("handbook-resource-probe-payload")
+  );
+
   const host = new MiniappHost({
     backend: new NodeWorkerSandboxBackend(),
     grantStore: new GrantStore(store),
     kvBackend: store,
+    beeBackend: new KvStorageBeeBackend(store),
     presenceBackend: {
       snapshot: async () => ({ onlineInterfaces: 0, preferredInterface: null, peers: 0 })
+    },
+    resourceBackend: {
+      fetch: async (_appId, request) => {
+        const bytes = await store.get(`miniapp-resource:${request.resourceId}`);
+        if (bytes === null) {
+          throw new Error(`Resource not found: ${request.resourceId}`);
+        }
+        if (request.budgetBytes !== undefined && bytes.length > request.budgetBytes) {
+          throw new Error(`Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`);
+        }
+        return bytes;
+      }
+    },
+    casBackend: makeCasBackend(),
+    appsBackend: makeAppsBackend(),
+    confirmationChannel: {
+      confirm: async () => ({ approved: true })
+    },
+    aiBackend: {
+      chat: async (_appId, request) => ({
+        message: {
+          role: "assistant",
+          content: request.messages.at(-1)?.content.includes("handbook") ? "handbook" : "ok"
+        },
+        model: "handbook-mock",
+        usage: { promptTokens: 8, completionTokens: 1 }
+      })
     }
   });
 
   try {
     const manifest = launchManifest(packed.app, packed.publisherPublicKey);
-    await host.setGrants(manifest.name, manifest.publisherPublicKey, manifest.capabilities, manifest.capabilities);
+    await host.setGrants(manifest.name, packed.publisherPublicKey, manifest.capabilities, manifest.capabilities);
     await host.launch(manifest, packed.bundle);
 
     await waitForTreeText(host, "TwistedPear Handbook");
@@ -206,20 +337,8 @@ async function main() {
       await waitForTreeText(host, "Contents");
     }
 
-    // Run every applet once from its chapter.
-    const appletChapter = {
-      "identity-hash": "sdk-identity",
-      "presence-snapshot": "sdk-presence",
-      "storage-kv": "sdk-storage-kv",
-      "lxmf-roundtrip": "sdk-lxmf",
-      "announce-loop": "sdk-announce"
-    };
-
     for (const applet of catalog.applets) {
-      const chapter = appletChapter[applet.id];
-      if (chapter === undefined) {
-        throw new Error(`No chapter mapping for applet ${applet.id}`);
-      }
+      const chapter = APPLET_CHAPTER[applet.id];
 
       const tree = host.snapshot().widgetTree;
       if (tree === null || !treeContainsText(tree, "Contents")) {
@@ -238,11 +357,16 @@ async function main() {
         const texts = collectTextValues(next.root);
         const hit = texts.find((value) => value.startsWith("PASS"));
         return hit ?? null;
-      });
+      }, 20_000);
       console.log(`handbook: applet passed — ${applet.id}`);
+
+      // Widget gallery overwrites the Handbook tree; return to TOC before next run.
+      if (applet.id === "widget-gallery") {
+        // Runtime re-renders the chapter after report(); ensure we can leave.
+        await sleep(200);
+      }
     }
 
-    // Canonical result record schema (D0/D2 precursor).
     const resultRecord = {
       appletId: "identity-hash",
       status: "pass",
@@ -252,7 +376,6 @@ async function main() {
     assertResultSchema(resultRecord);
     console.log("handbook: result schema check passed");
 
-    // Reading position persisted in KV (last opened chapter before stop).
     const position = await store.get("miniapp-kv:handbook:handbook:position");
     if (position === null) {
       throw new Error("handbook did not persist reading position");

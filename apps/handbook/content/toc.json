@@ -37,6 +37,11 @@
           "file": "part-3-sdk/storage-kv.md"
         },
         {
+          "id": "sdk-storage-hyperbee",
+          "title": "Hyperbee storage",
+          "file": "part-3-sdk/storage-hyperbee.md"
+        },
+        {
           "id": "sdk-lxmf",
           "title": "LXMF messaging",
           "file": "part-3-sdk/lxmf.md"
@@ -45,6 +50,41 @@
           "id": "sdk-announce",
           "title": "Announce & subscribe",
           "file": "part-3-sdk/announce.md"
+        },
+        {
+          "id": "sdk-resource-fetch",
+          "title": "Resource fetch",
+          "file": "part-3-sdk/resource-fetch.md"
+        },
+        {
+          "id": "sdk-workspace",
+          "title": "Workspace",
+          "file": "part-3-sdk/workspace.md"
+        },
+        {
+          "id": "sdk-share-cas",
+          "title": "Content-addressed share",
+          "file": "part-3-sdk/share-cas.md"
+        },
+        {
+          "id": "sdk-apps-package",
+          "title": "Packaging & preview",
+          "file": "part-3-sdk/apps-package.md"
+        },
+        {
+          "id": "sdk-apps-publish",
+          "title": "Publish & install",
+          "file": "part-3-sdk/apps-publish.md"
+        },
+        {
+          "id": "sdk-ai-chat",
+          "title": "AI chat",
+          "file": "part-3-sdk/ai-chat.md"
+        },
+        {
+          "id": "sdk-widget-gallery",
+          "title": "Widget gallery",
+          "file": "part-3-sdk/widget-gallery.md"
         }
       ]
     },

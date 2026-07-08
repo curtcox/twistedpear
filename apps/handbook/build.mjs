@@ -310,9 +310,9 @@ async function build() {
     );
   }
 
-  // Coverage gate: every applet must be referenced by ≥ 1 chapter.
-  // Capabilities/namespaces not yet covered are tracked in DEFERRED_COVERAGE
-  // (shrinks toward empty as D1 completes).
+  // Coverage gate: every CAPABILITY_DEFINITIONS id must be exercised by ≥ 1
+  // applet and every applet referenced by ≥ 1 chapter. CI fails on new surface
+  // without docs.
   const referencedApplets = new Set();
   const coveredCapabilities = new Set();
   for (const chapter of chapters) {
@@ -330,18 +330,6 @@ async function build() {
       coveredCapabilities.add(capability);
     }
   }
-
-  const DEFERRED_COVERAGE = new Set([
-    "storage:hyperbee",
-    "resource:fetch",
-    "workspace",
-    "ai:chat",
-    "apps:package",
-    "apps:publish",
-    "apps:install",
-    "apps:preview",
-    "share:cas"
-  ]);
 
   let capabilityDefinitions = [];
   try {
@@ -372,22 +360,8 @@ async function build() {
   }
 
   for (const capability of capabilityDefinitions) {
-    if (coveredCapabilities.has(capability)) {
-      continue;
-    }
-    if (DEFERRED_COVERAGE.has(capability)) {
-      continue;
-    }
-    fail(
-      `Capability "${capability}" is not exercised by any applet and is not listed in DEFERRED_COVERAGE`
-    );
-  }
-
-  for (const capability of DEFERRED_COVERAGE) {
-    if (coveredCapabilities.has(capability)) {
-      fail(
-        `Capability "${capability}" is covered by an applet but still listed in DEFERRED_COVERAGE — remove it`
-      );
+    if (!coveredCapabilities.has(capability)) {
+      fail(`Capability "${capability}" is not exercised by any applet`);
     }
   }
 

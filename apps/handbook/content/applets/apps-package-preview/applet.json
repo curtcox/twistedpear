@@ -1,0 +1,13 @@
+{
+  "id": "apps-package-preview",
+  "title": "Package + preview (confirmed)",
+  "capabilities": ["apps:package", "apps:preview", "workspace"],
+  "surfaces": ["apps.packageProject", "apps.preview", "apps.stopPreview", "workspace.write"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  }
+}
