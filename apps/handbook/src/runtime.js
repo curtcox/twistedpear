@@ -21,6 +21,7 @@ const SEEDED_KEY = "handbook:seeded";
 const SEED_VERSION_KEY = "handbook:seed-version";
 const LAST_REPORT_KEY = "handbook:last-report";
 const REPORT_SCHEMA_VERSION = 1;
+const DEVSTUDIO_HANDOFF_KIND = "tp.devstudio.workspace.v1";
 
 /** @type {"toc" | "chapter" | "diagnostics"} */
 let view = "toc";
@@ -40,6 +41,8 @@ let exportState = { reportId: null, generatedAt: null, json: null };
 let compareInput = "";
 /** @type {{ local: object | null, remote: object | null, rows: Array<object>, error: string | null }} */
 let compareState = { local: null, remote: null, rows: [], error: null };
+/** @type {Record<string, { t256: string, project: string }>} */
+let devstudioHandoffs = {};
 
 function makeSdk() {
   return {
@@ -178,6 +181,28 @@ function renderAppletBlock(appletId, children) {
   children.push(
     widgetButton(`applet-run-${appletId}`, "Run applet", "hb.runapplet")
   );
+  children.push(
+    widgetButton(`applet-devstudio-${appletId}`, "Open in DevStudio", "hb.devstudio")
+  );
+
+  const handoff = devstudioHandoffs[appletId];
+  if (handoff !== undefined) {
+    children.push(
+      textNode(
+        `applet-devstudio-meta-${appletId}`,
+        `DevStudio handoff: ${handoff.project}\nPaste in DevStudio → Import from 256t`
+      )
+    );
+    children.push({
+      id: `applet-devstudio-qr-${appletId}`,
+      type: "qr-code",
+      props: {
+        value: handoff.t256,
+        caption: handoff.project,
+        size: 96
+      }
+    });
+  }
 
   const result = appletResults[appletId];
   children.push(resultCard(appletId, result));
@@ -654,6 +679,127 @@ async function exportReport() {
   await render();
 }
 
+function buildDevstudioBundle(appletSource) {
+  const body = appletSource.replace(/^export\s+async\s+function\s+run\s*\(/m, "async function appletRun(");
+  return `import {
+  ai,
+  apps,
+  announce,
+  host,
+  identity,
+  lxmf,
+  presence,
+  resource,
+  share,
+  storage,
+  ui,
+  workspace
+} from "@twistedpear/miniapp-sdk";
+
+${body}
+
+function makeSdk() {
+  return {
+    identity,
+    presence,
+    host,
+    announce,
+    lxmf,
+    storage,
+    resource,
+    workspace,
+    ui,
+    share,
+    apps,
+    ai
+  };
+}
+
+let reported = null;
+await appletRun(makeSdk(), (result) => {
+  reported = result;
+});
+
+await ui.render({
+  root: {
+    id: "root",
+    type: "scroll",
+    style: { padding: 12, gap: 8 },
+    children: [
+      {
+        id: "result",
+        type: "text",
+        props: {
+          value: reported
+            ? \`\${reported.status.toUpperCase()}\\n\${reported.details}\`
+            : "Applet finished without calling report()."
+        }
+      }
+    ]
+  }
+});
+`;
+}
+
+async function exportAppletToDevStudio(appletId) {
+  const applet = findApplet(appletId);
+  if (applet === null) {
+    statusLine = `Unknown applet: ${appletId}`;
+    await render();
+    return;
+  }
+
+  statusLine = `Preparing DevStudio handoff for ${applet.title}…`;
+  await render();
+
+  let source = CATALOG.seeds.find((seed) => seed.path === `applets/${appletId}/main.js`)?.content;
+  if (source === undefined) {
+    try {
+      source = await workspace.read(`applets/${appletId}/main.js`);
+    } catch {
+      source = undefined;
+    }
+  }
+
+  if (source === undefined) {
+    statusLine = "Applet source not found in workspace seeds.";
+    await render();
+    return;
+  }
+
+  const project = `hb-${appletId}`;
+  const manifest = {
+    name: project,
+    version: "0.1.0",
+    entry: "bundle.js",
+    capabilities: applet.capabilities
+  };
+  const payload = {
+    kind: DEVSTUDIO_HANDOFF_KIND,
+    version: 1,
+    project,
+    files: [
+      { path: `${project}/app.json`, content: JSON.stringify(manifest, null, 2) },
+      { path: `${project}/applet.js`, content: source },
+      { path: `${project}/bundle.js`, content: buildDevstudioBundle(source) }
+    ]
+  };
+
+  try {
+    const put = await share.put(JSON.stringify(payload));
+    devstudioHandoffs[appletId] = { t256: put.t256, project };
+    statusLine = `DevStudio handoff ready (${put.t256.slice(0, 12)}…)`;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const notGranted = /CAPABILITY_DENIED|has not been granted|Capability/i.test(message);
+    statusLine = notGranted
+      ? "Grant share:cas to export DevStudio handoffs."
+      : `DevStudio handoff failed: ${message}`;
+  }
+
+  await render();
+}
+
 async function compareReport() {
   const t256 = compareInput.trim();
   if (t256.length === 0) {
@@ -737,6 +883,13 @@ function appletIdFromRunNode(nodeId) {
   return null;
 }
 
+function appletIdFromDevStudioNode(nodeId) {
+  if (nodeId.startsWith("applet-devstudio-")) {
+    return nodeId.slice("applet-devstudio-".length);
+  }
+  return null;
+}
+
 async function handleEvent({ nodeId, event, value }) {
   if (event === "hb.toc") {
     await openToc();
@@ -760,6 +913,14 @@ async function handleEvent({ nodeId, event, value }) {
     const id = appletIdFromRunNode(nodeId);
     if (id !== null) {
       await runAppletInline(id);
+    }
+    return;
+  }
+
+  if (event === "hb.devstudio") {
+    const id = appletIdFromDevStudioNode(nodeId);
+    if (id !== null) {
+      await exportAppletToDevStudio(id);
     }
     return;
   }

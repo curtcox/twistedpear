@@ -7,7 +7,7 @@ Plan: [docs/handbook.md](../../docs/handbook.md).
 
 ```bash
 npm run build:handbook        # content → catalog + bundle.js
-npm run test:handbook         # pack → launch on Node sandbox → chapters + applets
+npm run test:handbook         # pack → launch on Node sandbox → chapters + applets + DevStudio handoff
 npm run test:handbook-report  # run-all → share.put → seeded report diff
 npm run test:handbook-mobile  # iOS + Android worklet path (D3)
 npm run test:web-handbook     # Playwright: same suite on browser web host

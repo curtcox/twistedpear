@@ -22,3 +22,7 @@ same root.
 This document is itself a mini-app. If it installed and rendered on *this* host,
 you have already exercised packaging, install, sandbox, broker, and the widget
 renderer. Chapters later add interactive applets that probe live capabilities.
+
+Open **Diagnostics** from the table of contents to run every probe, export a
+report, or compare against another device. Reference pages in Part V are
+generated from the same runtime sources the host uses.

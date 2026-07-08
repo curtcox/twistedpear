@@ -1,4 +1,4 @@
-import { ai, apps, ui, workspace } from "@twistedpear/miniapp-sdk";
+import { ai, apps, share, ui, workspace } from "@twistedpear/miniapp-sdk";
 
 // DevStudio — a mini-app development environment that is itself a mini-app.
 // Projects live in the app workspace as `<project>/app.json` + source files.
@@ -35,6 +35,8 @@ let aiProposal = null;
 let lastPackage = null;
 let lastPublish = null;
 let installInput = "";
+let importInput = "";
+const HANDBOOK_HANDOFF_KIND = "tp.devstudio.workspace.v1";
 let statusLine = "Create a project to get started.";
 let previewRunning = false;
 
@@ -149,6 +151,24 @@ async function render() {
     props: { value: installInput, placeholder: "Paste a 94-character 256t string", event: "ds.installinput" }
   });
   children.push(widgetButton("install", "Install app from 256t", "ds.install"));
+
+  children.push({ id: "sep6", type: "divider" });
+  children.push({
+    id: "import-title",
+    type: "text",
+    props: { value: "Import Handbook applet" },
+    style: { fontWeight: "bold" }
+  });
+  children.push({
+    id: "import-input",
+    type: "text-input",
+    props: {
+      value: importInput,
+      placeholder: "Paste Handbook DevStudio handoff 256t",
+      event: "ds.importinput"
+    }
+  });
+  children.push(widgetButton("import-handoff", "Import from 256t", "ds.import"));
 
   await ui.render({
     root: { id: "root", type: "view", style: { padding: 16, gap: 8 }, children }
@@ -298,6 +318,58 @@ async function handleEvent({ nodeId, event, value }) {
 
   if (event === "ds.installinput" && typeof value === "string") {
     installInput = value.trim();
+    return;
+  }
+
+  if (event === "ds.importinput" && typeof value === "string") {
+    importInput = value.trim();
+    return;
+  }
+
+  if (event === "ds.import") {
+    if (importInput.length !== 94) {
+      await setStatus("Paste a 94-character Handbook handoff 256t string first.");
+      return;
+    }
+
+    try {
+      const raw = await share.get(importInput);
+      if (typeof raw !== "string" || raw.length === 0) {
+        await setStatus("Handoff not found in CAS.");
+        return;
+      }
+
+      const payload = JSON.parse(raw);
+      if (payload?.kind !== HANDBOOK_HANDOFF_KIND || !Array.isArray(payload.files)) {
+        await setStatus("Not a Handbook DevStudio workspace handoff.");
+        return;
+      }
+
+      for (const file of payload.files) {
+        if (typeof file?.path !== "string" || typeof file?.content !== "string") {
+          await setStatus("Handoff file entry was invalid.");
+          return;
+        }
+        await workspace.write(file.path, file.content);
+      }
+
+      project = typeof payload.project === "string" ? payload.project : null;
+      openFile = project === null ? null : `${project}/bundle.js`;
+      aiProposal = null;
+      lastPackage = null;
+      lastPublish = null;
+      await refreshProjects();
+      if (project !== null) {
+        await refreshFiles();
+      }
+      await setStatus(
+        project === null
+          ? "Imported Handbook handoff files."
+          : `Imported Handbook project ${project}. Open bundle.js to edit or preview.`
+      );
+    } catch (error) {
+      await setStatus(`Import failed: ${error.message}`);
+    }
     return;
   }
 

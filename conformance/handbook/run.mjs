@@ -24,6 +24,7 @@ import {
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const handbookDir = join(root, "apps/handbook");
+const devstudioDir = join(root, "apps/devstudio");
 const RESULT_STATUSES = new Set(["pass", "fail", "unavailable", "not-granted", "skipped"]);
 
 const DEVICE_GATED_APPLET_IDS = new Set([
@@ -141,31 +142,30 @@ function buildHandbook() {
   console.log(result.stdout.trim());
 }
 
-async function packHandbook() {
-  const cwd = mkdtempSync(join(tmpdir(), "tp-handbook-"));
-  const appDir = join(cwd, "handbook");
+async function packAppFromDir(appDirName, sourceDir) {
+  const cwd = mkdtempSync(join(tmpdir(), `tp-handbook-${appDirName}-`));
+  const appDir = join(cwd, appDirName);
   mkdirSync(appDir, { recursive: true });
-  // content/ and seeds/ are authoring artifacts; the built bundle embeds both.
-  cpSync(join(handbookDir, "app.manifest.json"), join(appDir, "app.manifest.json"));
-  cpSync(join(handbookDir, "bundle.js"), join(appDir, "bundle.js"));
+  cpSync(join(sourceDir, "app.manifest.json"), join(appDir, "app.manifest.json"));
+  cpSync(join(sourceDir, "bundle.js"), join(appDir, "bundle.js"));
 
   try {
     const initCode = await runInit({ cwd, args: [] });
     if (initCode !== 0) {
-      throw new Error("tp init failed for handbook");
+      throw new Error(`tp init failed for ${appDirName}`);
     }
 
-    const packCode = await runPack({ cwd, args: ["handbook", "--out", "handbook.tpkg"] });
+    const packCode = await runPack({ cwd, args: [appDirName, "--out", `${appDirName}.tpkg`] });
     if (packCode !== 0) {
-      throw new Error("tp pack failed for handbook");
+      throw new Error(`tp pack failed for ${appDirName}`);
     }
 
     const provider = new NodeCryptoProvider();
-    const archive = new Uint8Array(readFileSync(join(cwd, "handbook.tpkg")));
+    const archive = new Uint8Array(readFileSync(join(cwd, `${appDirName}.tpkg`)));
     const verified = verifyPackage(provider, archive, { hostApiVersion: HOST_API_VERSION });
     const bundle = verified.files.get(verified.manifest.entry);
     if (bundle === undefined) {
-      throw new Error("Handbook entry bundle missing");
+      throw new Error(`${appDirName} entry bundle missing`);
     }
 
     return {
@@ -178,6 +178,14 @@ async function packHandbook() {
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }
+}
+
+async function packHandbook() {
+  return packAppFromDir("handbook", handbookDir);
+}
+
+async function packDevstudio() {
+  return packAppFromDir("devstudio", devstudioDir);
 }
 
 function loadCatalog() {
@@ -545,7 +553,69 @@ async function main() {
     }
     console.log("handbook: host.info smoke passed");
 
+    await tap(host, "back-toc-diag", "hb.toc");
+    await waitForTreeText(host, "Contents");
+    await tap(host, "ch-sdk-identity", "hb.openchapter");
+    await waitForTreeText(host, "Open in DevStudio");
+    await tap(host, "applet-devstudio-identity-hash", "hb.devstudio");
+    await waitForTreeText(host, "DevStudio handoff");
+    const handoffTree = host.snapshot().widgetTree;
+    if (handoffTree === null) {
+      throw new Error("handbook handoff tree missing");
+    }
+    const qrNode = findNodeById(handoffTree.root, "applet-devstudio-qr-identity-hash");
+    const handoffT256 = qrNode?.props?.value;
+    if (typeof handoffT256 !== "string" || handoffT256.length !== 94) {
+      throw new Error(`expected handoff 256t id, got ${String(handoffT256)}`);
+    }
+    const handoffBytes = casBackend.blobs.get(handoffT256);
+    if (handoffBytes === undefined) {
+      throw new Error("handoff missing from CAS");
+    }
+    const handoffPayload = JSON.parse(new TextDecoder().decode(handoffBytes));
+    if (handoffPayload.kind !== "tp.devstudio.workspace.v1" || handoffPayload.project !== "hb-identity-hash") {
+      throw new Error(`unexpected handoff payload: ${JSON.stringify(handoffPayload)}`);
+    }
+    console.log("handbook: DevStudio handoff exported");
+
     await host.stop();
+
+    const devPacked = await packDevstudio();
+    const devHost = new MiniappHost({
+      backend: new NodeWorkerSandboxBackend(),
+      grantStore: new GrantStore(store),
+      kvBackend: store,
+      beeBackend: new KvStorageBeeBackend(store),
+      casBackend,
+      confirmationChannel: { confirm: async () => ({ approved: true }) },
+      aiBackend: {
+        chat: async () => ({
+          message: { role: "assistant", content: "ok" },
+          model: "devstudio-mock",
+          usage: { promptTokens: 1, completionTokens: 1 }
+        })
+      },
+      appsBackend: makeAppsBackend()
+    });
+
+    const devManifest = launchManifest(devPacked.app, devPacked.publisherPublicKey);
+    await devHost.setGrants(
+      devManifest.name,
+      devPacked.publisherPublicKey,
+      devManifest.capabilities,
+      devManifest.capabilities
+    );
+    await devHost.launch(devManifest, devPacked.bundle);
+    await waitForTreeText(devHost, "DevStudio");
+    await tap(devHost, "import-input", "ds.importinput", handoffT256);
+    await tap(devHost, "import-handoff", "ds.import");
+    await waitForTreeText(devHost, "hb-identity-hash");
+    const imported = await store.get("miniapp-workspace:devstudio:hb-identity-hash/bundle.js");
+    if (imported === null) {
+      throw new Error("DevStudio did not persist imported bundle.js");
+    }
+    await devHost.stop();
+    console.log("handbook: DevStudio handoff import passed");
   } finally {
     // host stop covers worker teardown
   }

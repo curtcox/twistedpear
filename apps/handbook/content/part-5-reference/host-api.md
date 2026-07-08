@@ -1,0 +1,21 @@
+# Host API
+
+Current `HOST_API_VERSION`: **`0.3.0`**.
+Manifests pin `minHostApi`; hosts reject packages that require a newer API.
+
+## Changelog
+
+- **`0.1.0`** — Initial mini-app host API: capabilities, broker, lifecycle, widget tree UI, and SDK v1 namespaces.
+- **`0.2.0`** — Dev-environment capabilities (workspace, ai:chat, apps:*, share:cas), host confirmation channel, dynamic resource limits, pre-launch capability review, code-editor and qr-code widgets.
+- **`0.3.0`** — host.info() — platform id, host version, HOST_API_VERSION, enabled roles, interface types, and quota snapshot for Handbook diagnostics.
+
+## host.info()
+
+Returns platform id, host version, API version, roles, interface types, and quota
+snapshot — used by the [live difference matrix](chapter:difference-matrix).
+
+## Workspace quotas
+
+- 262144 bytes/file
+- 4194304 bytes total per app
+- 512 files per app

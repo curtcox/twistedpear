@@ -19,5 +19,5 @@ pass / fail / not-granted.
 
 {{applet:identity-hash}}
 
-Copy the applet source into DevStudio (when available) to experiment further.
-See also [What TwistedPear is](chapter:what-is-twistedpear).
+Use **Open in DevStudio** on any applet to copy the sample into a DevStudio
+project via `share:cas`. See also [What TwistedPear is](chapter:what-is-twistedpear).

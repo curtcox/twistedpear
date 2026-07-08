@@ -44,6 +44,13 @@ import { createWorkletMiniappHost } from "./miniapp-host.mjs";
 import { createDevChannelClient } from "./dev-channel.mjs";
 import { IPC } from "./ipc-stdio.mjs";
 
+let bundledCatalogModule = null;
+try {
+  bundledCatalogModule = await import("./bundled-catalog.generated.mjs");
+} catch {
+  // Generated during worklet build; absent in partial checkouts until build-worklet runs.
+}
+
 const IS_DESKTOP_HOST = process.env.TWISTEDPEAR_HOST_DESKTOP === "1";
 
 function refuseStorePosture() {
@@ -244,6 +251,10 @@ async function publishArchiveFromWorklet({ t256, archive }) {
     throw new Error("No publisher identity available");
   }
 
+  return publishArchiveAsIdentity(identity, { t256, archive });
+}
+
+async function publishArchiveAsIdentity(identity, { t256, archive }) {
   const unpacked = unpackPackage(provider, archive);
   const driveManager = await ensurePackageDriveManager();
   let keyHex = unpacked.manifest.driveKey;
@@ -530,6 +541,95 @@ async function loadCatalogState() {
   const kv = runtimeKeyValueStore();
   await catalog.load(kv);
   await installed.load(kv);
+}
+
+const BUNDLED_SEEDED_KEY = "bundled-catalog:v1-seeded";
+
+async function seedBundledCatalogIfNeeded() {
+  if (bundledCatalogModule === null) {
+    return;
+  }
+
+  const kv = runtimeKeyValueStore();
+  if ((await kv.get(BUNDLED_SEEDED_KEY)) !== null) {
+    return;
+  }
+
+  const { catalogStore: catalog, installedStore: installed } = ensureCatalog();
+  if (catalog.list().length > 0 || installed.list().length > 0) {
+    return;
+  }
+
+  const platformIdentity = Identity.fromBytes(
+    provider,
+    hexToBytes(bundledCatalogModule.TWISTEDPEAR_PLATFORM_PUBLISHER.privateKeyHex)
+  );
+  if (platformIdentity === null) {
+    log("Bundled catalog: invalid platform publisher identity");
+    return;
+  }
+
+  const publisher = bundledCatalogModule.TWISTEDPEAR_PLATFORM_PUBLISHER;
+  const alreadyTrusted = await ensureTrustStore().isTrusted(publisher.publisherPublicKey);
+  if (!alreadyTrusted) {
+    await ensureTrustStore().add({
+      publisherPublicKey: publisher.publisherPublicKey,
+      label: publisher.label,
+      addedAt: Date.now()
+    });
+  }
+
+  const cas = ensureEntryCasStore();
+  for (const bundled of bundledCatalogModule.BUNDLED_APPS) {
+    const archive = hexToBytes(bundled.archiveHex);
+    await cas.put(archive);
+    const unpacked = unpackPackage(provider, archive);
+    const verified = verifyPackage(provider, archive, { hostApiVersion: HOST_API_VERSION });
+    const summary = buildAppAnnounceSummary(provider, platformIdentity, {
+      manifest: verified.manifest,
+      packageSize: archive.length,
+      packageHash: unpacked.packageHash,
+      resourceAvailable: true
+    });
+    catalog.ingest({
+      destinationHash: `bundled:${bundled.appId}`,
+      appData: encodeAppAnnounceData(summary),
+      manifest: verified.manifest,
+      packageHash: unpacked.packageHash
+    });
+    const archivePath = `packages/${bundled.appId}/${verified.manifest.version}.tpkg`;
+    await runtime.store.set(archivePath, archive);
+    installed.install(
+      {
+        appId: bundled.appId,
+        version: verified.manifest.version,
+        packageHash: verified.packageHash,
+        installedAt: Date.now(),
+        manifest: verified.manifest,
+        archivePath
+      },
+      archive.length
+    );
+    log(`Bundled seed: installed ${bundled.appId} v${verified.manifest.version}`);
+  }
+
+  await kv.set(BUNDLED_SEEDED_KEY, new TextEncoder().encode("1"));
+  await persistCatalogState();
+  pushCatalog();
+  await pushTrustList();
+
+  try {
+    await ensureReticulum();
+    for (const bundled of bundledCatalogModule.BUNDLED_APPS) {
+      const archive = hexToBytes(bundled.archiveHex);
+      await publishArchiveAsIdentity(platformIdentity, { t256: bundled.t256, archive });
+    }
+    log("Bundled catalog: platform announces published");
+  } catch (error) {
+    log(
+      `Bundled catalog: local seed ok; announce deferred (${error instanceof Error ? error.message : String(error)})`
+    );
+  }
 }
 
 async function ensurePackageDriveManager() {
@@ -1694,6 +1794,8 @@ IPC.on("data", (data) => {
   });
 });
 
-void loadPersistedIdentity().then(() => loadCatalogState().then(pushCatalog));
+void loadPersistedIdentity().then(() =>
+  loadCatalogState().then(() => seedBundledCatalogIfNeeded()).then(pushCatalog)
+);
 pushStatus();
 log(`Desktop host worklet ready (crypto: ${provider.name})`);

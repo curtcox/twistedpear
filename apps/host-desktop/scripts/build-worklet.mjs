@@ -26,6 +26,14 @@ writeFileSync(
   )}\n`
 );
 
+const bundledBuild = spawnSync(process.execPath, [join(hostRoot, "scripts/build-bundled-catalog.mjs")], {
+  cwd: hostRoot,
+  stdio: "inherit"
+});
+if (bundledBuild.status !== 0) {
+  process.exit(bundledBuild.status ?? 1);
+}
+
 const result = spawnSync(
   "npx",
   [

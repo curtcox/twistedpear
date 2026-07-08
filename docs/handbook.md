@@ -1,10 +1,8 @@
 # Handbook: interactive diagnostic documentation for every host (plan)
 
-Status: **in progress** — Phase D0–D2 landed on Node; web host Handbook CI
-(`test:web-handbook`) closed the D0/D2 web exercise. D3 landed (mobile harness
-slices + device-gated probes); D4 open.
-Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase D;
-device-gated rows will go to [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
+Status: **done (software tier)** — D0–D4 landed. Tracking:
+[STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md); device-gated rows in
+[STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
 
 Verify: `npm run build:handbook` · `npm run test:handbook` ·
 `npm run test:handbook-report` · `npm run test:web-handbook` ·
@@ -206,6 +204,14 @@ comparison rows deferred to STATUS-HARDWARE.
   path in the top-level README (the Handbook becomes the platform's front door).
 - Exit: fresh host on any platform can discover, install, and use the Handbook over
   the platform's own distribution system.
+
+**Landed (2026-07-08):** Part I `concepts-in-practice` + Part V reference chapters
+(generated from `CAPABILITY_DEFINITIONS`, widget schema, `HOST_API_CHANGELOG`);
+**Open in DevStudio** via `share:cas` handoff (`tp.devstudio.workspace.v1`) +
+DevStudio import; desktop first-boot bundled catalog (`handbook`, `devstudio`,
+`chat`) signed by the deterministic TwistedPear platform publisher
+(`conformance/vectors/identity.json` alice); `test:handbook` exercises handoff
+round-trip.
 
 ## Testing strategy
 

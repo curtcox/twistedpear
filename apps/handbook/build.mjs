@@ -222,7 +222,165 @@ function resetSeeds() {
   ensureDir(seedsDir);
 }
 
+async function generateReferenceChapters() {
+  const refDir = join(contentDir, "part-5-reference");
+  ensureDir(refDir);
+
+  let capabilityDefinitions = [];
+  let widgetTypes = [];
+  let widgetPropKeys = new Map();
+  let widgetStyleKeys = new Set();
+  let codeEditorLanguages = new Set();
+  let hostApiVersion = "0.3.0";
+  let hostApiChangelog = [];
+  let workspaceLimits = { maxFileBytes: 256 * 1024, maxTotalBytes: 4 * 1024 * 1024, maxFiles: 512 };
+
+  try {
+    const runtimeCaps = await import("../../packages/miniapp-runtime/dist/capabilities.js");
+    capabilityDefinitions = runtimeCaps.CAPABILITY_DEFINITIONS;
+    const runtimeUi = await import("../../packages/miniapp-runtime/dist/ui/schema.js");
+    widgetTypes = [...runtimeUi.WIDGET_TYPES].sort();
+    widgetPropKeys = runtimeUi.WIDGET_PROP_KEYS;
+    widgetStyleKeys = runtimeUi.WIDGET_STYLE_KEYS;
+    codeEditorLanguages = runtimeUi.CODE_EDITOR_LANGUAGES;
+    const hostApi = await import("../../packages/miniapp-runtime/dist/host-api.js");
+    hostApiVersion = hostApi.HOST_API_VERSION;
+    hostApiChangelog = hostApi.HOST_API_CHANGELOG;
+    const workspace = await import("../../packages/miniapp-runtime/dist/services/workspace.js");
+    workspaceLimits = workspace.DEFAULT_WORKSPACE_LIMITS;
+  } catch {
+    capabilityDefinitions = [
+      { id: "identity", description: "Use an app-scoped identity for signing and addressing." },
+      { id: "presence", description: "Read coarse peer/interface presence and host info." },
+      { id: "announce:subscribe", description: "Receive announces in the app namespace." },
+      { id: "announce:publish", description: "Publish the app destination." },
+      { id: "lxmf:send", description: "Send LXMF messages from the app destination." },
+      { id: "lxmf:receive", description: "Receive LXMF messages for the app destination." },
+      { id: "storage:kv", description: "Store local key/value data for this app." },
+      { id: "storage:hyperbee", description: "Store ordered local Hyperbee data for this app." },
+      { id: "resource:fetch", description: "Fetch package resources through host budget rules." },
+      { id: "workspace", description: "Read and write project source files in this app's private workspace." },
+      { id: "ai:chat", description: "Send prompts to the host-configured AI service." },
+      { id: "apps:package", description: "Package and sign apps under this device's publisher identity." },
+      { id: "apps:publish", description: "Publish signed apps so other users can find and install them." },
+      { id: "apps:install", description: "Ask the host to install apps from a 256t id." },
+      { id: "apps:preview", description: "Run a built app in the host's sandboxed dev-preview slot." },
+      { id: "share:cas", description: "Store and retrieve bounded content-addressed data shared by 256t id." }
+    ];
+    widgetTypes = [
+      "button",
+      "code-editor",
+      "divider",
+      "image",
+      "list",
+      "progress",
+      "qr-code",
+      "scroll",
+      "spacer",
+      "switch",
+      "text",
+      "text-input",
+      "view"
+    ];
+    hostApiChangelog = [{ version: hostApiVersion, note: "See packages/miniapp-runtime/src/host-api.ts" }];
+  }
+
+  const capabilitiesMd = [
+    "# Capabilities",
+    "",
+    "Generated from `CAPABILITY_DEFINITIONS` in `packages/miniapp-runtime`.",
+    "Every id below must be exercised by at least one Handbook applet (coverage gate).",
+    "",
+    ...capabilityDefinitions.map((entry) => `- **\`${entry.id}\`** — ${entry.description}`),
+    "",
+    "Manifests declare the full list; users may grant a subset at install.",
+    "Withholding a capability turns matching probes into `not-granted` cards.",
+    "",
+    "See [Developing mini-apps](chapter:sdk-identity) for tutorials per namespace."
+  ].join("\n");
+
+  const widgetLines = [];
+  for (const type of widgetTypes) {
+    const props = widgetPropKeys.get(type);
+    const propList =
+      props === undefined || props.size === 0 ? "none" : [...props].sort().map((p) => `\`${p}\``).join(", ");
+    widgetLines.push(`- **\`${type}\`** — props: ${propList}`);
+  }
+
+  const widgetsMd = [
+    "# Widget protocol",
+    "",
+    "Generated from `WIDGET_TYPES` / `WIDGET_PROP_KEYS` in `packages/miniapp-runtime`.",
+    "",
+    "Hosts render a declarative tree (`ui.render`). Unknown types, props, styles,",
+    "duplicate ids, or oversized trees are rejected.",
+    "",
+    "## Components",
+    "",
+    ...widgetLines,
+    "",
+    "## Styles",
+    "",
+    widgetStyleKeys.size > 0
+      ? [...widgetStyleKeys].sort().map((key) => `- \`${key}\``).join("\n")
+      : "- See `WIDGET_STYLE_KEYS` in the runtime.",
+    "",
+    "## Limits",
+    "",
+    `- Widget tree JSON budget: 256 KiB (default validator)`,
+    `- \`code-editor\` languages: ${[...codeEditorLanguages].sort().join(", ")}`,
+    `- \`qr-code\` value: up to 512 characters (94-char 256t ids fit)`,
+    "",
+    "Live gallery: [Widget gallery](chapter:sdk-widget-gallery)."
+  ].join("\n");
+
+  const changelogLines = hostApiChangelog.map(
+    (entry) => `- **\`${entry.version}\`** — ${entry.note}`
+  );
+
+  const hostApiMd = [
+    "# Host API",
+    "",
+    `Current \`HOST_API_VERSION\`: **\`${hostApiVersion}\`**.`,
+    "Manifests pin \`minHostApi\`; hosts reject packages that require a newer API.",
+    "",
+    "## Changelog",
+    "",
+    ...changelogLines,
+    "",
+    "## host.info()",
+    "",
+    "Returns platform id, host version, API version, roles, interface types, and quota",
+    "snapshot — used by the [live difference matrix](chapter:difference-matrix).",
+    "",
+    "## Workspace quotas",
+    "",
+    `- ${workspaceLimits.maxFileBytes} bytes/file`,
+    `- ${workspaceLimits.maxTotalBytes} bytes total per app`,
+    `- ${workspaceLimits.maxFiles} files per app`
+  ].join("\n");
+
+  const packagesMd = [
+    "# Package format",
+    "",
+    "Mini-apps ship as deterministic **\`.tpkg\`** archives:",
+    "",
+    "- Signed manifest (name, version, entry, capabilities, publisher key, `minHostApi`)",
+    "- Entry bundle (`bundle.js`) and assets",
+    "- Ed25519 signature over the manifest hash",
+    "",
+    "Packaging flow: [Packaging & preview](chapter:sdk-apps-package).",
+    "256t distribution: [docs/256t-distribution.md](../../../docs/256t-distribution.md)."
+  ].join("\n");
+
+  writeText(join(refDir, "capabilities.md"), `${capabilitiesMd}\n`);
+  writeText(join(refDir, "widgets.md"), `${widgetsMd}\n`);
+  writeText(join(refDir, "host-api.md"), `${hostApiMd}\n`);
+  writeText(join(refDir, "packages.md"), `${packagesMd}\n`);
+}
+
 async function build() {
+  await generateReferenceChapters();
   const toc = loadToc();
   const applets = loadApplets();
   const appletIds = new Set(applets.map((applet) => applet.id));

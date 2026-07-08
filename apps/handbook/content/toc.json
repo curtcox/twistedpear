@@ -14,6 +14,11 @@
           "id": "reticulum-fundamentals",
           "title": "Reticulum fundamentals",
           "file": "part-1-concepts/reticulum-fundamentals.md"
+        },
+        {
+          "id": "concepts-in-practice",
+          "title": "Concepts in practice",
+          "file": "part-1-concepts/concepts-in-practice.md"
         }
       ]
     },
@@ -112,6 +117,32 @@
           "id": "device-gated-probes",
           "title": "Device-gated probes",
           "file": "part-4-diagnostics/device-gated-probes.md"
+        }
+      ]
+    },
+    {
+      "id": "part-5-reference",
+      "title": "Part V — Reference",
+      "chapters": [
+        {
+          "id": "ref-capabilities",
+          "title": "Capabilities",
+          "file": "part-5-reference/capabilities.md"
+        },
+        {
+          "id": "ref-widgets",
+          "title": "Widget protocol",
+          "file": "part-5-reference/widgets.md"
+        },
+        {
+          "id": "ref-host-api",
+          "title": "Host API",
+          "file": "part-5-reference/host-api.md"
+        },
+        {
+          "id": "ref-packages",
+          "title": "Package format",
+          "file": "part-5-reference/packages.md"
         }
       ]
     }

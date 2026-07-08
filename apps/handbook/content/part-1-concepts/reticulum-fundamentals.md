@@ -14,5 +14,5 @@ unreliable links. TwistedPear uses it as the only hard networking constraint.
 ## App-scoped destinations
 
 Mini-apps never hold private keys. The host derives an **app destination** from
-the device identity plus the app id. The Identity chapter shows that derivation
-live with an applet.
+the device identity plus the app id. See [Concepts in practice](chapter:concepts-in-practice)
+for a live identity probe, or [Identity & signing](chapter:sdk-identity).
