@@ -70,6 +70,31 @@ export interface LaunchReviewRequestView {
   readonly capabilities: ReadonlyArray<LaunchReviewCapabilityView>;
 }
 
+export interface InstallReviewRequestView {
+  readonly token: string;
+  readonly appId: string;
+  readonly version: string;
+  readonly publisherPublicKey: string;
+  readonly trusted: boolean;
+  readonly trustedLabel: string | null;
+  readonly capabilities: ReadonlyArray<LaunchReviewCapabilityView>;
+}
+
+export interface Install256tResultView {
+  readonly ok: boolean;
+  readonly appId?: string;
+  readonly version?: string;
+  readonly trusted?: boolean;
+  readonly error?: string;
+}
+
+export interface TrustedPublisherView {
+  readonly publisherPublicKey: string;
+  readonly label: string;
+  readonly addedAt: number;
+  readonly source: "qr" | "paste" | "manual";
+}
+
 export interface MiniappRuntimeView {
   readonly appId: string | null;
   readonly version: string | null;
@@ -163,6 +188,17 @@ export type HostToWorkletMessage =
   | { readonly type: "sandbox-broker-request"; readonly requestId: string; readonly instanceId: string; readonly request: unknown }
   | { readonly type: "confirm-response"; readonly token: string; readonly approved: boolean; readonly detail?: unknown }
   | { readonly type: "launch-confirm"; readonly token: string; readonly accept: boolean; readonly grants?: ReadonlyArray<string> }
+  | { readonly type: "install-confirm"; readonly token: string; readonly accept: boolean; readonly grants?: ReadonlyArray<string> }
+  | { readonly type: "install-from-256t"; readonly t256: string }
+  | { readonly type: "trust-list" }
+  | {
+      readonly type: "trust-add";
+      readonly identityString: string;
+      readonly label?: string;
+      readonly source?: "qr" | "paste" | "manual";
+    }
+  | { readonly type: "trust-remove"; readonly publisherPublicKey: string }
+  | { readonly type: "trust-show" }
   | { readonly type: "install-app"; readonly appId: string; readonly forcePath?: "hyperdrive" | "lan-mirror" | "resource"; readonly archiveHex?: string }
   | { readonly type: "seed-miniapp-kv"; readonly key: string; readonly valueHex: string }
   | { readonly type: "delete-package"; readonly appId: string; readonly version: string }
@@ -234,6 +270,19 @@ export type WorkletToHostMessage =
       readonly version: string;
       readonly capabilities: ReadonlyArray<LaunchReviewCapabilityView>;
     }
+  | {
+      readonly type: "install-review";
+      readonly token: string;
+      readonly appId: string;
+      readonly version: string;
+      readonly publisherPublicKey: string;
+      readonly trusted: boolean;
+      readonly trustedLabel: string | null;
+      readonly capabilities: ReadonlyArray<LaunchReviewCapabilityView>;
+    }
+  | { readonly type: "install-256t-result"; readonly ok: boolean; readonly appId?: string; readonly version?: string; readonly trusted?: boolean; readonly error?: string }
+  | { readonly type: "trust"; readonly entries: ReadonlyArray<TrustedPublisherView> }
+  | { readonly type: "trust-identity"; readonly identity256t: string | null }
   | { readonly type: "dev-channel"; readonly state: "connected" | "disconnected" | "loaded" | "error"; readonly detail?: string }
   | { readonly type: "multicast-start" }
   | { readonly type: "multicast-stop" }

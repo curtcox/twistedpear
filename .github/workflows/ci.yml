@@ -360,6 +360,7 @@ jobs:
       - run: npm run test:web-storage
       - run: npm run test:web-miniapp
       - run: npm run test:web-examples
+      - run: npm run test:web-distribution
 
   fuzz:
     runs-on: ubuntu-latest

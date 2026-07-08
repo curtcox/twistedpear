@@ -14,6 +14,11 @@ import {
   resetWebIdentity
 } from "../../../packages/reticulum-ts/dist/web.js";
 import { createWebWorkletMiniappHost, hexToBytes } from "./web-miniapp-host.mjs";
+import { createWebInstallService } from "./web-install.mjs";
+import {
+  decodePublisherIdentity256t,
+  encodePublisherIdentity256t
+} from "../../../packages/app-registry/dist/index.js";
 
 const IDENTITY_STORE_NAME = "twistedpear-harness-web-identity";
 const PACKAGE_STORE_NAME = "twistedpear-harness-web-packages";
@@ -90,6 +95,8 @@ let hostSession = null;
 let packageStorage = null;
 /** @type {ReturnType<typeof createWebWorkletMiniappHost> | null} */
 let miniappHost = null;
+/** @type {ReturnType<typeof createWebInstallService> | null} */
+let installService = null;
 /** @type {ReturnType<typeof setInterval> | null} */
 let statusTimer = null;
 /** @type {ReturnType<typeof createMiniappKvStore> | null} */
@@ -221,6 +228,45 @@ function ensureMiniappHost() {
   return miniappHost;
 }
 
+function ensureInstallService() {
+  if (installService === null) {
+    const provider = new PureCryptoProvider();
+    installService = createWebInstallService({
+      provider,
+      kvStore: ensureMiniappKvStore(),
+      getHostSession: () => hostSession,
+      ensurePackageStorage,
+      miniappHost: () => ensureMiniappHost(),
+      send,
+      log,
+      pushInstalled: () => {
+        void pushInstalledList();
+      },
+      requestHostReply: requestHostReply
+    });
+  }
+
+  return installService;
+}
+
+async function pushInstalledList() {
+  const storage = await ensurePackageStorage();
+  send({
+    type: "installed",
+    packages: storage.listInstalled().map((record) => ({
+      appId: record.appId,
+      version: record.version,
+      activeVersion: storage.activeVersion(record.appId) ?? record.version,
+      packageHash: record.packageHash,
+      installedAt: record.installedAt,
+      rollbackAvailable: false,
+      capabilities: record.manifest.capabilities,
+      publisherPublicKey: record.manifest.publisherPublicKey
+    }))
+  });
+  pushStatus();
+}
+
 async function ensurePackageStorage() {
   if (packageStorage !== null) {
     return packageStorage;
@@ -303,6 +349,9 @@ async function startHostSession() {
           appDataHex: info.appData === null ? null : bytesToHex(info.appData)
         }
       });
+      if (info.appData !== null) {
+        ensureInstallService().ingestCasLocatorAppData(bytesToHex(info.appData));
+      }
     }
   });
 
@@ -447,8 +496,65 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  if (message.type === "confirm-response" || message.type === "launch-confirm") {
+  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm") {
     pendingHostReplies.get(message.token)?.(message);
+    return;
+  }
+
+  if (message.type === "install-from-256t") {
+    try {
+      const result = await ensureInstallService().installFromT256(message.t256);
+      await pushInstalledList();
+      send({ type: "install-256t-result", ok: true, ...result });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      send({ type: "install-256t-result", ok: false, error: detail });
+      log(`Install from 256t failed: ${detail}`);
+    }
+    return;
+  }
+
+  if (message.type === "trust-list") {
+    await ensureInstallService().pushTrustList();
+    return;
+  }
+
+  if (message.type === "trust-add") {
+    try {
+      const publisherPublicKey = decodePublisherIdentity256t(message.identityString);
+      await ensureInstallService().trustStore.add({
+        publisherPublicKey,
+        label: message.label ?? "Unnamed publisher",
+        addedAt: Date.now(),
+        source: message.source ?? "paste"
+      });
+      log(`Trusted publisher ${message.label ?? publisherPublicKey.slice(0, 16)}`);
+    } catch (error) {
+      log(`Trust add failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    await ensureInstallService().pushTrustList();
+    return;
+  }
+
+  if (message.type === "trust-remove") {
+    await ensureInstallService().trustStore.remove(message.publisherPublicKey);
+    log("Removed trusted publisher");
+    await ensureInstallService().pushTrustList();
+    return;
+  }
+
+  if (message.type === "trust-show") {
+    const provider = new PureCryptoProvider();
+    if (!(await hasWebIdentity(identityOptions()))) {
+      send({ type: "trust-identity", identity256t: null });
+      return;
+    }
+
+    const identity = await loadOrCreateWebIdentity(provider, identityOptions());
+    send({
+      type: "trust-identity",
+      identity256t: encodePublisherIdentity256t(identity.getPublicKey())
+    });
     return;
   }
 
@@ -490,7 +596,7 @@ async function handleHostMessage(raw) {
   if (message.type === "install-app") {
     const storage = await ensurePackageStorage();
     if (message.archiveHex === undefined || message.archiveHex.length === 0) {
-      log("Web install requires archiveHex (catalog fetch is Phase W3)");
+      log("Web install requires archiveHex or install-from-256t");
       return;
     }
 
@@ -644,4 +750,4 @@ pushStatus();
 refreshStorageStatus().catch((error) => {
   log(`Web package storage unavailable: ${error instanceof Error ? error.message : String(error)}`);
 });
-log("Web core worker ready (Phase W2 mini-app runtime)");
+log("Web core worker ready (Phase W3 distribution)");

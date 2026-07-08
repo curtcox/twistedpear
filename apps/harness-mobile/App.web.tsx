@@ -10,10 +10,14 @@ import type {
   ConfirmationKind,
   HostConfirmationRequestView,
   HostToWorkletMessage,
+  Install256tResultView,
+  InstallProgress,
+  InstallReviewRequestView,
   InstalledPackageView,
   LaunchReviewCapabilityView,
   LaunchReviewRequestView,
   MiniappRuntimeView,
+  TrustedPublisherView,
   WebStorageQuotaView,
   WorkletStatus,
   WorkletToHostMessage
@@ -109,9 +113,24 @@ export default function App() {
   const [developerMode, setDeveloperMode] = useState(false);
   const [hostModal, setHostModal] = useState<
     | { readonly kind: "confirm"; readonly request: HostConfirmationRequestView }
-    | { readonly kind: "launch"; readonly review: LaunchReviewRequestView; readonly grants: ReadonlyArray<string> }
+    | {
+        readonly kind: "launch";
+        readonly review: LaunchReviewRequestView;
+        readonly grants: ReadonlyArray<string>;
+      }
+    | {
+        readonly kind: "install";
+        readonly review: InstallReviewRequestView;
+        readonly grants: ReadonlyArray<string>;
+      }
     | null
   >(null);
+  const [install256tInput, setInstall256tInput] = useState("");
+  const [installProgress, setInstallProgress] = useState<InstallProgress | null>(null);
+  const [trustedPublishers, setTrustedPublishers] = useState<ReadonlyArray<TrustedPublisherView>>([]);
+  const [trustIdentityInput, setTrustIdentityInput] = useState("");
+  const [trustLabelInput, setTrustLabelInput] = useState("");
+  const [hostIdentity256t, setHostIdentity256t] = useState<string | null>(null);
 
   const previewOptions = useMemo(
     () =>
@@ -202,6 +221,48 @@ export default function App() {
         });
         return;
       }
+
+      if (message.type === "install-review") {
+        setHostModal({
+          kind: "install",
+          review: {
+            token: message.token,
+            appId: message.appId,
+            version: message.version,
+            publisherPublicKey: message.publisherPublicKey,
+            trusted: message.trusted,
+            trustedLabel: message.trustedLabel,
+            capabilities: message.capabilities
+          },
+          grants: []
+        });
+        return;
+      }
+
+      if (message.type === "install-progress") {
+        setInstallProgress(message.progress);
+        return;
+      }
+
+      if (message.type === "install-256t-result") {
+        const result = message as Install256tResultView;
+        if (result.ok) {
+          appendLog(`Installed ${result.appId} v${result.version} (trusted: ${result.trusted ? "yes" : "no"})`);
+        } else {
+          appendLog(`256t install failed: ${result.error ?? "unknown error"}`);
+        }
+        return;
+      }
+
+      if (message.type === "trust") {
+        setTrustedPublishers(message.entries);
+        return;
+      }
+
+      if (message.type === "trust-identity") {
+        setHostIdentity256t(message.identity256t);
+        return;
+      }
     },
     [appendLog]
   );
@@ -239,6 +300,7 @@ export default function App() {
     ensureBridge();
     sendToWorker({ type: "refresh-storage" });
     sendToWorker({ type: "list-installed" });
+    sendToWorker({ type: "trust-list" });
   }, [ensureBridge, sendToWorker]);
 
   useEffect(() => {
@@ -297,8 +359,21 @@ export default function App() {
             });
             setHostModal(null);
           }}
+          onInstallConfirm={(accept, grants) => {
+            if (hostModal.kind !== "install") {
+              return;
+            }
+
+            sendToWorker({
+              type: "install-confirm",
+              token: hostModal.review.token,
+              accept,
+              ...(grants === undefined ? {} : { grants })
+            });
+            setHostModal(null);
+          }}
           onGrantToggle={(capabilityId, granted) => {
-            if (hostModal.kind !== "launch") {
+            if (hostModal.kind !== "launch" && hostModal.kind !== "install") {
               return;
             }
 
@@ -310,7 +385,7 @@ export default function App() {
         />
       ) : null}
       <Text style={styles.title}>TwistedPear Web Host</Text>
-      <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W1 · W2 mini-app runtime)</Text>
+      <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W3 distribution)</Text>
 
       <View style={styles.card}>
         <Text>Core worker: {status.running ? "running" : "stopped"}</Text>
@@ -439,12 +514,120 @@ export default function App() {
       </View>
 
       <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Install from 256t (W3)</Text>
+        <Text style={styles.muted}>
+          Paste or scan a 94-character package id. The host waits for a CAS locator announce, fetches over Reticulum
+          Resource, then shows capability review before installing into OPFS/IndexedDB.
+        </Text>
+        <TextInput
+          testID="install-256t-input"
+          style={styles.input}
+          value={install256tInput}
+          onChangeText={setInstall256tInput}
+          autoCapitalize="none"
+          placeholder="94-character 256t id"
+        />
+        <View style={styles.buttonRow}>
+          <ActionButton
+            testID="install-256t"
+            label="Install from 256t"
+            onPress={() => {
+              const trimmed = install256tInput.trim();
+              if (trimmed.length === 0) {
+                return;
+              }
+
+              setInstallProgress(null);
+              sendToWorker({ type: "install-from-256t", t256: trimmed });
+            }}
+          />
+        </View>
+        {installProgress !== null ? (
+          <Text testID="install-progress" style={styles.muted}>
+            Install {installProgress.appId}: {installProgress.phase}
+            {installProgress.totalBytes > 0
+              ? ` · ${formatBytes(installProgress.bytesReceived)} / ${formatBytes(installProgress.totalBytes)}`
+              : ""}
+          </Text>
+        ) : null}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Publisher trust (W3)</Text>
+        <Text style={styles.muted}>
+          Import a publisher identity string (94-character inline 256t) to mark installs from that key as trusted in the
+          review UI.
+        </Text>
+        <TextInput
+          testID="trust-identity-input"
+          style={styles.input}
+          value={trustIdentityInput}
+          onChangeText={setTrustIdentityInput}
+          autoCapitalize="none"
+          placeholder="Publisher identity 256t"
+        />
+        <TextInput
+          testID="trust-label-input"
+          style={styles.input}
+          value={trustLabelInput}
+          onChangeText={setTrustLabelInput}
+          placeholder="Label (e.g. Alice)"
+        />
+        <View style={styles.buttonRow}>
+          <ActionButton
+            testID="trust-add"
+            label="Trust publisher"
+            onPress={() => {
+              const identityString = trustIdentityInput.trim();
+              if (identityString.length === 0) {
+                return;
+              }
+
+              sendToWorker({
+                type: "trust-add",
+                identityString,
+                label: trustLabelInput.trim() || "Unnamed publisher",
+                source: "paste"
+              });
+              setTrustIdentityInput("");
+            }}
+          />
+          <ActionButton
+            testID="trust-show"
+            label="Show my identity"
+            onPress={() => sendToWorker({ type: "trust-show" })}
+          />
+          <ActionButton label="Refresh trust" onPress={() => sendToWorker({ type: "trust-list" })} />
+        </View>
+        {hostIdentity256t !== null ? (
+          <Text testID="trust-identity-view" style={styles.mono}>
+            Host identity: {hostIdentity256t}
+          </Text>
+        ) : null}
+        {trustedPublishers.length === 0 ? (
+          <Text style={styles.muted}>No trusted publishers yet.</Text>
+        ) : (
+          trustedPublishers.map((entry) => (
+            <View key={entry.publisherPublicKey} style={styles.packageRow}>
+              <Text style={styles.packageTitle}>
+                {entry.label} · {entry.publisherPublicKey.slice(0, 16)}…
+              </Text>
+              <ActionButton
+                label="Remove"
+                onPress={() => sendToWorker({ type: "trust-remove", publisherPublicKey: entry.publisherPublicKey })}
+              />
+            </View>
+          ))
+        )}
+      </View>
+
+      <View style={styles.card}>
         <Text style={styles.sectionTitle}>Installed packages</Text>
         <View style={styles.buttonRow}>
           <ActionButton label="Refresh" onPress={() => sendToWorker({ type: "list-installed" })} />
         </View>
         {installed.length === 0 ? (
-          <Text style={styles.muted}>No packages installed yet (W-S4 storage is wired; catalog install is Phase W3).</Text>
+          <Text style={styles.muted}>No packages installed yet.</Text>
         ) : (
           installed.map((pkg) => (
             <View key={`${pkg.appId}-${pkg.version}`} style={styles.packageRow}>
@@ -537,7 +720,7 @@ export default function App() {
         <Text style={styles.sectionTitle}>Unavailable on web</Text>
         <Text style={styles.muted}>AutoInterface / multicast / Bonjour — not available in browser tabs.</Text>
         <Text style={styles.muted}>BLE / USB RNode — requires native host bridges.</Text>
-        <Text style={styles.muted}>Catalog install from network — Phase W3.</Text>
+        <Text style={styles.muted}>Hyperdrive catalog browse — not on web (Resource + 256t install only).</Text>
       </View>
 
       <View style={styles.card}>
@@ -628,23 +811,41 @@ function HostConfirmationModal({
   onClose,
   onConfirmResponse,
   onLaunchConfirm,
+  onInstallConfirm,
   onGrantToggle
 }: {
   readonly modal:
     | { readonly kind: "confirm"; readonly request: HostConfirmationRequestView }
-    | { readonly kind: "launch"; readonly review: LaunchReviewRequestView; readonly grants: ReadonlyArray<string> };
+    | {
+        readonly kind: "launch";
+        readonly review: LaunchReviewRequestView;
+        readonly grants: ReadonlyArray<string>;
+      }
+    | {
+        readonly kind: "install";
+        readonly review: InstallReviewRequestView;
+        readonly grants: ReadonlyArray<string>;
+      };
   readonly onClose: () => void;
   readonly onConfirmResponse: (approved: boolean) => void;
   readonly onLaunchConfirm: (accept: boolean, grants?: ReadonlyArray<string>) => void;
+  readonly onInstallConfirm: (accept: boolean, grants?: ReadonlyArray<string>) => void;
   readonly onGrantToggle: (capabilityId: string, granted: boolean) => void;
 }) {
   const title =
     modal.kind === "confirm"
       ? (CONFIRM_KIND_TITLES[modal.request.kind] ?? `Confirm ${modal.request.kind}?`)
-      : `Run ${modal.review.appId} v${modal.review.version}?`;
+      : modal.kind === "install"
+        ? modal.review.trusted
+          ? `Install ${modal.review.appId} v${modal.review.version} from trusted publisher "${modal.review.trustedLabel ?? "?"}"?`
+          : `Install ${modal.review.appId} v${modal.review.version} from UNTRUSTED publisher?`
+        : `Run ${modal.review.appId} v${modal.review.version}?`;
 
   const fingerprint =
     modal.kind === "confirm" ? modal.request.publisherPublicKey : modal.review.publisherPublicKey;
+
+  const capabilities =
+    modal.kind === "confirm" ? null : modal.review.capabilities;
 
   return (
     <View testID="host-confirmation-modal" style={styles.modalOverlay}>
@@ -674,23 +875,40 @@ function HostConfirmationModal({
           </>
         ) : (
           <>
-            <Text style={styles.muted}>Capabilities requested: {modal.review.capabilities.length}</Text>
-            {modal.review.capabilities.map((capability: LaunchReviewCapabilityView) => (
+            <Text style={styles.muted}>Capabilities requested: {capabilities?.length ?? 0}</Text>
+            {capabilities?.map((capability: LaunchReviewCapabilityView) => (
               <Row
                 key={capability.id}
-                testID={`launch-grant-${capability.id}`}
+                testID={modal.kind === "install" ? `install-grant-${capability.id}` : `launch-grant-${capability.id}`}
                 label={capability.id}
                 value={modal.grants.includes(capability.id)}
                 onChange={(granted) => onGrantToggle(capability.id, granted)}
               />
             ))}
             <View style={styles.buttonRow}>
-              <ActionButton testID="host-launch-cancel" label="Cancel" onPress={() => onLaunchConfirm(false)} />
-              <ActionButton
-                testID="host-launch-run"
-                label="Run"
-                onPress={() => onLaunchConfirm(true, modal.grants)}
-              />
+              {modal.kind === "install" ? (
+                <>
+                  <ActionButton
+                    testID="host-install-cancel"
+                    label="Cancel"
+                    onPress={() => onInstallConfirm(false)}
+                  />
+                  <ActionButton
+                    testID="host-install-approve"
+                    label="Install"
+                    onPress={() => onInstallConfirm(true, modal.grants)}
+                  />
+                </>
+              ) : (
+                <>
+                  <ActionButton testID="host-launch-cancel" label="Cancel" onPress={() => onLaunchConfirm(false)} />
+                  <ActionButton
+                    testID="host-launch-run"
+                    label="Run"
+                    onPress={() => onLaunchConfirm(true, modal.grants)}
+                  />
+                </>
+              )}
             </View>
           </>
         )}
