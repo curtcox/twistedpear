@@ -3,7 +3,7 @@
  * The core worker cannot access document; sandbox iframes run here.
  */
 
-import { WebSandboxBackend } from "@twistedpear/miniapp-runtime";
+import { WebSandboxBackend } from "@twistedpear/miniapp-runtime/sandbox/web";
 import type { HostToWorkletMessage, WorkletToHostMessage } from "../worklet/protocol";
 
 function hexToBytes(hex: string): Uint8Array {

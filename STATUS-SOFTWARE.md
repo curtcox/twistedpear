@@ -185,7 +185,7 @@ Full plan: [docs/web-host.md](docs/web-host.md). Everything here runs on a dev m
 | W1: leaf peer in the tab (runtime/web, WS interfaces, `tp node --ws-listen/--serve-web`, LXMF) | web-host §W1 | **Done (software tier)** — runtime/web, WS interfaces, gateway CLI, W-S1 interop, browser identity persistence, Playwright packet+LXMF, `createWebLeafHost` + FetchPlane, Expo web tab UI + `build:web-host` |
 | W2: mini-app runtime (`WebSandboxBackend`, broker/confirm, `widget-renderer-rn` extraction) | web-host §W2 | **Done (software tier)** — proxy sandbox relay + broker + harness mini-app panel + host confirmation modal + `test:web-miniapp` + `test:web-examples` |
 | W3: distribution (256t install, grants UI, DevStudio on web) | web-host §W3 | **Done (software tier)** — 256t Resource install + install review + publisher trust import + `test:web-distribution`; DevStudio workspace + package/sign/publish + `test:web-devstudio` |
-| W4: Hyperdrive via WS DHT relay, PWA shell, soaks; WebSerial RNode stretch | web-host §W4 | Not started |
+| W4: Hyperdrive via WS DHT relay, PWA shell, soaks; WebSerial RNode stretch | web-host §W4 | **Partial (software tier)** — PWA offline app-shell (`build:web-host` + `test:web-pwa`); `test:web-soak` (CI + nightly); Hyperdrive DHT relay + WebSerial stretch not started |
 
 ---
 
@@ -229,4 +229,6 @@ Full plan: [docs/web-host.md](docs/web-host.md). Everything here runs on a dev m
 | `npm run test:web-examples` | W2: chat/file-drop/board install + launch + UI exercise in browser (Playwright) |
 | `npm run test:web-distribution` | W3: chat install from 256t via Resource fetch + install review in browser (Playwright) |
 | `npm run test:web-devstudio` | W3: DevStudio install + hello project + package/sign/publish through gateway (Playwright) |
-| `npm run build:web-host` | Static Expo web bundle + core worker for `tp node --serve-web` |
+| `npm run test:web-soak` | W4: web host mini-app launch/stop soak in browser tab (`SOAK_DURATION_MS`, Playwright) |
+| `npm run test:web-pwa` | W4: PWA offline app-shell after service worker install (`build:web-host`, Playwright) |
+| `npm run build:web-host` | Static Expo web bundle + core worker + PWA shell for `tp node --serve-web` |

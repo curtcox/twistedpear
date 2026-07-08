@@ -9,6 +9,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./sandbox/web": {
+      "types": "./dist/sandbox/web.d.ts",
+      "import": "./dist/sandbox/web.js"
+    },
+    "./ui": {
+      "types": "./dist/ui/index.d.ts",
+      "import": "./dist/ui/index.js"
     }
   },
   "dependencies": {

@@ -69,6 +69,8 @@
     "test:web-examples": "npm run build && node conformance/web-examples/run.mjs",
     "test:web-distribution": "npm run build && node conformance/web-distribution/run.mjs",
     "test:web-devstudio": "npm run build && node conformance/web-devstudio/run.mjs",
+    "test:web-soak": "npm run build && node conformance/web-soak/run.mjs",
+    "test:web-pwa": "npm run build && node conformance/web-pwa/run.mjs",
     "test:fuzz": "vitest run packages/reticulum-ts/test/fuzz.test.ts packages/lxmf-ts/test/fuzz.test.ts",
     "docs:reticulum-ts": "npm run docs --workspace=@twistedpear/reticulum-ts",
     "test:transport-role": "npm run build && node conformance/transport-role/run.mjs",

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { validateWidgetTree, type WidgetTree } from "@twistedpear/miniapp-runtime";
+import { validateWidgetTree, type WidgetTree } from "@twistedpear/miniapp-runtime/ui";
 import { MiniappWidgetTree } from "@twistedpear/widget-renderer-rn";
 import { createWebCoreBridge } from "./host/web-core-bridge";
 import type {

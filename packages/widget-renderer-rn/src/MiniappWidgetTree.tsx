@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
-import type { WidgetNode, WidgetStyle, WidgetTree } from "@twistedpear/miniapp-runtime";
+import type { WidgetNode, WidgetStyle, WidgetTree } from "@twistedpear/miniapp-runtime/ui";
 
 // Keep component/prop mapping aligned with describeWidgetTree() in miniapp-runtime (ui-golden tests).
 

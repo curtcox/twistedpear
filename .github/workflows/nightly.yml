@@ -85,6 +85,21 @@ jobs:
         env:
           SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
 
+  web-soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1500
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: npm run test:web-soak
+        env:
+          SOAK_DURATION_MS: ${{ github.event.inputs.soak_duration_ms || '300000' }}
+
   harness-install:
     runs-on: ubuntu-latest
     steps:

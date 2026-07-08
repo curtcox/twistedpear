@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { applyPwaShell } from "./pwa-shell.mjs";
 
 const harnessRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(harnessRoot, "../..");
@@ -33,4 +34,5 @@ if (exportResult.status !== 0) {
 }
 
 cpSync(join(harnessRoot, "public/web-core.worker.js"), join(outputDir, "web-core.worker.js"));
+applyPwaShell(outputDir);
 console.log(`web-host static bundle written to ${outputDir}`);
