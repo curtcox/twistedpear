@@ -17,12 +17,13 @@ battery-manager soaks (H3).
 
 ## Stage 0 — Toolchain: install and verify
 
-Two scripts implement this stage:
+Three scripts support this plan:
 
 | Script | Purpose |
 |---|---|
 | `conformance/mac-validation/setup.sh` | Idempotent installer for repo deps, Playwright Chromium, CocoaPods, JDK 17, Android SDK/AVD, Maestro, the conformance Docker image, and optional vector venv. Safe to re-run. |
 | `conformance/mac-validation/doctor.mjs` (`npm run doctor:mac`) | Verifies every tool is present, correctly versioned, and functional. Exits non-zero with per-check fix hints on failure. `--ai` additionally makes live (free) key-verification calls to the Anthropic and OpenAI APIs. |
+| `conformance/mac-validation/triage.mjs` (`npm run triage:mac`) | Builds a provider-neutral Stage 9 triage package from failed validation logs: command metadata, bounded log tails, the reusable prompt, and matching `STATUS-SOFTWARE.md` row candidates. |
 
 Run order: `bash conformance/mac-validation/setup.sh` then `npm run doctor:mac`.
 The doctor is the gate for every later stage — do not start a stage whose
@@ -36,6 +37,7 @@ npm run validate:mac                 # doctor + Stages 1–5 (CI-parity local pa
 npm run validate:mac:full            # doctor + Stages 1–8 (mobile + default soaks)
 npm run validate:mac -- --dry-run    # print the selected commands
 npm run validate:mac -- --stage 7 --start-android-emulator
+npm run triage:mac                   # package failed logs from the latest run
 ```
 
 Each suite is logged under `.tmp/mac-validation/<timestamp>/`. Use
@@ -306,9 +308,11 @@ STATUS-SOFTWARE.md row update. Batch all failures from a pass into one
 request so clustering works across suites.
 
 Simplest harness: point Codex or Claude Code at the log directory with the
-brief "triage these suite logs". Scripted alternatives are small Node scripts
-using the Anthropic SDK or OpenAI Responses API. Keep the prompt provider
-neutral so the same evidence package can be sent to either model:
+brief "triage these suite logs", or generate a ready-to-paste package with
+`npm run triage:mac -- --log-dir .tmp/mac-validation/<timestamp>`. Scripted
+alternatives are small Node scripts using the Anthropic SDK or OpenAI
+Responses API. Keep the prompt provider neutral so the same evidence package
+can be sent to either model:
 
 ```text
 You are triaging TwistedPear mac-validation failures. Use only the attached

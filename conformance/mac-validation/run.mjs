@@ -394,8 +394,18 @@ async function runCommand(command, context) {
   if (command.note) console.log(`[mac-validation] note: ${command.note}`);
 
   if (command.custom) {
-    await command.custom(context);
-    return 0;
+    console.log(`[mac-validation] $ ${command.label}`);
+    await appendLog(context.logPath, `[mac-validation] cwd: ${command.cwd ?? repoRoot}\n`);
+    await appendLog(context.logPath, `[mac-validation] command: ${command.label}\n\n`);
+    try {
+      await command.custom(context);
+      await appendLog(context.logPath, "\n[mac-validation] exit: 0\n");
+      return 0;
+    } catch (error) {
+      await appendLog(context.logPath, `\n[mac-validation] custom command failed: ${error instanceof Error ? error.message : String(error)}\n`);
+      await appendLog(context.logPath, "[mac-validation] exit: 1\n");
+      return 1;
+    }
   }
 
   console.log(`[mac-validation] $ ${commandLine(command)}`);
@@ -428,6 +438,12 @@ async function runCommand(command, context) {
   log.write(`\n[mac-validation] exit: ${status}\n`);
   await new Promise((resolveEnd) => log.end(resolveEnd));
   return status === 0 ? 0 : 1;
+}
+
+async function appendLog(path, text) {
+  const log = createWriteStream(path, { flags: "a" });
+  log.write(text);
+  await new Promise((resolveEnd) => log.end(resolveEnd));
 }
 
 function logFileFor(logDir, stage, index, label) {

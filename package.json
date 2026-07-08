@@ -92,6 +92,7 @@
     "doctor:mac": "node conformance/mac-validation/doctor.mjs",
     "validate:mac": "node conformance/mac-validation/run.mjs",
     "validate:mac:full": "node conformance/mac-validation/run.mjs --full",
+    "triage:mac": "node conformance/mac-validation/triage.mjs",
     "lint": "tsc -b --pretty false",
     "vectors:generate": "python3 conformance/vectors/generate.py"
   },
