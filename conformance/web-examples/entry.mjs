@@ -4,6 +4,10 @@
  */
 
 import { WebSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/web.js";
+import {
+  encodeJsonWireValue,
+  reviveJsonWireValue
+} from "../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 import { EXAMPLE_FIXTURES } from "./fixtures.mjs";
 
 function sleep(ms) {
@@ -80,7 +84,7 @@ function createSandboxRelay(sendToWorker) {
                     type: "sandbox-broker-request",
                     requestId,
                     instanceId: message.instanceId,
-                    request
+                    request: encodeJsonWireValue(request)
                   });
                 })
             }
@@ -137,7 +141,7 @@ function createSandboxRelay(sendToWorker) {
         }
 
         pendingBrokers.delete(message.requestId);
-        waiter.resolve(message.response);
+        waiter.resolve(reviveJsonWireValue(message.response));
       }
     }
   };

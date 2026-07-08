@@ -16,6 +16,7 @@ import { generateConfirmationToken } from "../../../packages/miniapp-runtime/dis
 import { HOST_API_VERSION } from "../../../packages/miniapp-runtime/dist/host-api.js";
 import { MiniappHost } from "../../../packages/miniapp-runtime/dist/host.js";
 import { createWebSandboxProxyBackend } from "../../../packages/miniapp-runtime/dist/sandbox/web-proxy.js";
+import { encodeJsonWireValue } from "../../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 import { KvStorageBeeBackend } from "../../../packages/miniapp-runtime/dist/services/storage-bee-kv.js";
 import { bytesToHex } from "../../../packages/reticulum-ts/dist/web.js";
 
@@ -52,7 +53,11 @@ function createProxySandboxController(send) {
       send({ type: "sandbox-kill", instanceId, reason });
     },
     brokerResponse(requestId, response) {
-      send({ type: "sandbox-broker-response", requestId, response });
+      send({
+        type: "sandbox-broker-response",
+        requestId,
+        response: encodeJsonWireValue(response)
+      });
     }
   });
 }
@@ -180,6 +185,17 @@ export function createWebWorkletMiniappHost(options) {
         return options.publishArchive({ t256, archive });
       },
       install: async (_appId, { t256 }) => {
+        // Prefer an archive already in local CAS (just packaged on this host).
+        const localArchive = await casStore.get(t256);
+        if (localArchive !== null) {
+          const unpacked = unpackPackage(provider, localArchive);
+          return {
+            appId: unpacked.manifest.name,
+            version: unpacked.manifest.version,
+            trusted: true
+          };
+        }
+
         if (options.installFromT256 === undefined) {
           throw new Error("Installing from 256t ids is not configured on this host");
         }
@@ -222,6 +238,13 @@ export function createWebWorkletMiniappHost(options) {
       },
       get: async (_appId, t256) => casStore.get(t256)
     },
+    aiBackend:
+      options.aiBackend ??
+      {
+        chat: async () => {
+          throw new Error("AI is not configured on this host (set it in Settings)");
+        }
+      },
     callbacks: {
       onWidgetTree: () => pushRuntime(),
       onLog: (entry) => options.send({ type: "miniapp-log", appId: entry.appId, line: entry.line }),
@@ -276,9 +299,10 @@ export function createWebWorkletMiniappHost(options) {
       }
     };
     const grantStoreForPreview = new GrantStore(memoryStore);
-    const previewController = createProxySandboxController(options.send);
+    // Share the main sandbox proxy so spawn/broker replies from the page
+    // (handleSandboxHostMessage → sandboxController) reach preview launches.
     const previewHost = new MiniappHost({
-      backend: previewController.backend,
+      backend: sandboxController.backend,
       grantStore: grantStoreForPreview,
       kvBackend: memoryStore,
       callbacks: {

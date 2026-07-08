@@ -22,10 +22,12 @@ import { createWebSerialPipe } from "./web-serial-pipe.mjs";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import {
   decodePublisherIdentity256t,
-  encodePublisherIdentity256t
+  encodePublisherIdentity256t,
+  unpackPackage
 } from "../../../packages/app-registry/dist/index.js";
 import { encodeCasLocator } from "../../../packages/cas-256t/dist/index.js";
 import { HOST_API_VERSION } from "../../../packages/miniapp-runtime/dist/host-api.js";
+import { reviveJsonWireValue } from "../../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 
 const IDENTITY_STORE_NAME = "twistedpear-harness-web-identity";
 const PACKAGE_STORE_NAME = "twistedpear-harness-web-packages";
@@ -378,6 +380,11 @@ function ensurePublishService() {
   return publishService;
 }
 
+/** When true, ai.chat returns a fixed assistant reply (Playwright Handbook CI). */
+let mockAiChat = false;
+/** When true, apps.publish succeeds from local CAS without a live gateway (Handbook CI). */
+let mockLocalPublish = false;
+
 function ensureMiniappHost() {
   if (miniappHost === null) {
     miniappHost = createWebWorkletMiniappHost({
@@ -417,12 +424,35 @@ function ensureMiniappHost() {
       publishArchive: async ({ t256, archive }) => {
         const session = hostSession;
         if (session === null) {
-          throw new Error("Gateway link is offline — enable WS gateway before publishing");
+          if (!mockLocalPublish) {
+            throw new Error("Gateway link is offline — enable WS gateway before publishing");
+          }
+          const unpacked = unpackPackage(cryptoProvider, archive);
+          return {
+            t256,
+            driveKey: "0".repeat(64),
+            version: unpacked.manifest.version
+          };
         }
 
         return ensurePublishService().publish(session, { t256, archive });
       },
       installFromT256: async (t256) => ensureInstallService().installFromT256(t256),
+      aiBackend: mockAiChat
+        ? {
+            chat: async (_appId, request) => {
+              const last = request.messages.at(-1)?.content ?? "";
+              return {
+                message: {
+                  role: "assistant",
+                  content: typeof last === "string" && last.includes("handbook") ? "handbook" : "ok"
+                },
+                model: "web-handbook-mock",
+                usage: { promptTokens: 8, completionTokens: 1 }
+              };
+            }
+          }
+        : undefined,
       onDeveloperModeChange(enabled) {
         status.developerMode = enabled;
         pushStatus();
@@ -658,7 +688,11 @@ function handleSandboxHostMessage(message) {
   }
 
   if (message.type === "sandbox-broker-request") {
-    controller.handleBrokerRequest(message.requestId, message.instanceId, message.request);
+    controller.handleBrokerRequest(
+      message.requestId,
+      message.instanceId,
+      reviveJsonWireValue(message.request)
+    );
   }
 }
 
@@ -697,6 +731,12 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "start") {
+    if (message.mockAiChat === true) {
+      mockAiChat = true;
+    }
+    if (message.mockLocalPublish === true) {
+      mockLocalPublish = true;
+    }
     if (message.gatewayUrl !== undefined) {
       webConfig = {
         gatewayUrl: message.gatewayUrl,

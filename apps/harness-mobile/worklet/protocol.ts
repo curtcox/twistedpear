@@ -163,6 +163,10 @@ export type HostToWorkletMessage =
       readonly identityPassphrase?: string;
       readonly multicastEntitled?: boolean;
       readonly bonjourEnabled?: boolean;
+      /** Playwright/Handbook only: stub ai.chat without a real endpoint. */
+      readonly mockAiChat?: boolean;
+      /** Playwright/Handbook only: apps.publish from local CAS without gateway. */
+      readonly mockLocalPublish?: boolean;
     }
   | { readonly type: "stop" }
   | { readonly type: "suspend-node" }

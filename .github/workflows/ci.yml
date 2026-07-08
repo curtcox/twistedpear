@@ -363,6 +363,7 @@ jobs:
       - run: npm run test:web-examples
       - run: npm run test:web-distribution
       - run: npm run test:web-devstudio
+      - run: npm run test:web-handbook
       - run: npm run test:web-soak
       - run: npm run test:web-pwa
       - run: npm run test:web-hyperdrive

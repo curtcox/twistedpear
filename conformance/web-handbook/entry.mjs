@@ -1,6 +1,6 @@
 /**
- * W3 browser spike: DevStudio workspace + package/sign/publish through the WS gateway.
- * Reports status on window.__WEB_DEVSTUDIO__.
+ * Phase D: Handbook install + TOC/chapters + software-tier applets + report export
+ * in the browser via the web core worker. Reports status on window.__WEB_HANDBOOK__.
  */
 
 import { WebSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/web.js";
@@ -8,7 +8,24 @@ import {
   encodeJsonWireValue,
   reviveJsonWireValue
 } from "../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
-import { DEVSTUDIO_FIXTURE } from "./fixtures.mjs";
+import { HANDBOOK_FIXTURE } from "./fixtures.mjs";
+
+const APPLET_CHAPTER = {
+  "host-info": "difference-matrix",
+  "identity-hash": "sdk-identity",
+  "presence-snapshot": "sdk-presence",
+  "storage-kv": "sdk-storage-kv",
+  "storage-hyperbee": "sdk-storage-hyperbee",
+  "lxmf-roundtrip": "sdk-lxmf",
+  "announce-loop": "sdk-announce",
+  "resource-fetch": "sdk-resource-fetch",
+  "workspace-rw": "sdk-workspace",
+  "share-cas": "sdk-share-cas",
+  "apps-package-preview": "sdk-apps-package",
+  "apps-publish-install": "sdk-apps-publish",
+  "ai-chat": "sdk-ai-chat",
+  "widget-gallery": "sdk-widget-gallery"
+};
 
 const T256_PATTERN = /^[A-Za-z0-9_-]{94}$/;
 
@@ -74,6 +91,10 @@ function findNode(node, predicate) {
   return null;
 }
 
+function findNodeById(node, id) {
+  return findNode(node, (candidate) => candidate.id === id);
+}
+
 function treeContainsText(tree, needle) {
   return collectTextValues(tree.root).some((value) => value.includes(needle));
 }
@@ -86,6 +107,10 @@ function hexToBytes(hex) {
   }
 
   return bytes;
+}
+
+function bytesToHex(bytes) {
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 function createSandboxRelay(sendToWorker) {
@@ -174,7 +199,7 @@ function createSandboxRelay(sendToWorker) {
   };
 }
 
-async function waitForRuntime(getRuntime, predicate, timeoutMs = 30_000) {
+async function waitForRuntime(getRuntime, predicate, timeoutMs = 45_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const runtime = getRuntime();
@@ -188,14 +213,48 @@ async function waitForRuntime(getRuntime, predicate, timeoutMs = 30_000) {
   throw new Error("timed out waiting for mini-app runtime");
 }
 
-async function main() {
-  globalThis.__WEB_DEVSTUDIO__ = { status: "starting", steps: [] };
+async function tap(send, getRuntime, nodeId, event, value) {
+  send({ type: "miniapp-ui-event", nodeId, event, value });
+  await sleep(250);
+}
 
-  const params = new URLSearchParams(globalThis.location?.search ?? "");
-  const gatewayUrl = params.get("ws");
-  if (gatewayUrl === null || gatewayUrl.length === 0) {
-    throw new Error("Missing ?ws= gateway URL query parameter");
+async function ensureToc(send, getRuntime) {
+  try {
+    await waitForRuntime(
+      getRuntime,
+      (runtime) => findNodeById(runtime.widgetTree.root, "open-diag") !== null,
+      5_000
+    );
+    return;
+  } catch {
+    // fall through
   }
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const runtime = getRuntime();
+    if (runtime?.widgetTree !== null && findNodeById(runtime.widgetTree.root, "open-diag") !== null) {
+      return;
+    }
+    if (runtime?.widgetTree !== null && findNodeById(runtime.widgetTree.root, "back-toc") !== null) {
+      await tap(send, getRuntime, "back-toc", "hb.toc");
+    } else if (
+      runtime?.widgetTree !== null &&
+      findNodeById(runtime.widgetTree.root, "back-toc-diag") !== null
+    ) {
+      await tap(send, getRuntime, "back-toc-diag", "hb.toc");
+    }
+    await sleep(200);
+  }
+
+  await waitForRuntime(
+    getRuntime,
+    (runtime) => findNodeById(runtime.widgetTree.root, "open-diag") !== null,
+    20_000
+  );
+}
+
+async function main() {
+  globalThis.__WEB_HANDBOOK__ = { status: "starting", steps: [], passedApplets: [] };
 
   const worker = new Worker("./web-core.worker.js", { type: "module" });
   let buffer = "";
@@ -283,93 +342,170 @@ async function main() {
     worker.postMessage({ channel: "host-ipc", data: encodeMessage(message) });
   };
 
+  const getRuntime = () => latestRuntime;
   const steps = [];
   const record = (step) => {
     steps.push(step);
-    globalThis.__WEB_DEVSTUDIO__ = { status: "running", steps: [...steps] };
+    globalThis.__WEB_HANDBOOK__ = {
+      status: "running",
+      steps: [...steps],
+      passedApplets: globalThis.__WEB_HANDBOOK__?.passedApplets ?? []
+    };
   };
 
   send({
     type: "start",
     targetHost: "127.0.0.1",
     targetPort: 9480,
-    gatewayUrl,
-    identityPassphrase: "web-devstudio-test"
+    gatewayUrl: "ws://127.0.0.1:9480",
+    identityPassphrase: "web-handbook-test",
+    mockAiChat: true,
+    mockLocalPublish: true
   });
-  send({ type: "import-identity", privateKeyHex: DEVSTUDIO_FIXTURE.privateKeyHex });
-  send({ type: "set-interfaces", tcp: true, auto: false, ble: false, rnode: false });
-  await sleep(2_000);
-  record("gateway-online");
+  send({ type: "create-identity" });
+  await sleep(1_500);
+  record("identity-ready");
 
   send({
     type: "install-app",
-    appId: DEVSTUDIO_FIXTURE.appId,
-    archiveHex: DEVSTUDIO_FIXTURE.archiveHex
+    appId: HANDBOOK_FIXTURE.appId,
+    archiveHex: HANDBOOK_FIXTURE.archiveHex
   });
-  await sleep(400);
-  record("devstudio-installed");
+  await sleep(500);
+  record("handbook-installed");
 
   send({
     type: "set-grants",
-    appId: DEVSTUDIO_FIXTURE.appId,
-    publisherPublicKey: DEVSTUDIO_FIXTURE.publisherPublicKey,
-    declaredCapabilities: DEVSTUDIO_FIXTURE.capabilities,
-    grantedCapabilities: DEVSTUDIO_FIXTURE.capabilities
+    appId: HANDBOOK_FIXTURE.appId,
+    publisherPublicKey: HANDBOOK_FIXTURE.publisherPublicKey,
+    declaredCapabilities: HANDBOOK_FIXTURE.capabilities,
+    grantedCapabilities: HANDBOOK_FIXTURE.capabilities
+  });
+  await sleep(150);
+
+  send({
+    type: "seed-miniapp-kv",
+    key: "miniapp-resource:handbook:probe",
+    valueHex: bytesToHex(new TextEncoder().encode("handbook-resource-probe-payload"))
   });
   await sleep(100);
 
-  send({ type: "launch-miniapp", appId: DEVSTUDIO_FIXTURE.appId });
-  await waitForRuntime(() => latestRuntime, (runtime) => treeContainsText(runtime.widgetTree, "DevStudio"));
-  record("devstudio-launched");
+  send({ type: "launch-miniapp", appId: HANDBOOK_FIXTURE.appId });
+  await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "TwistedPear Handbook"));
+  await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "Contents"));
+  record("toc-rendered");
 
-  send({ type: "miniapp-ui-event", nodeId: "new-project", event: "ds.newproject" });
+  for (const chapterId of HANDBOOK_FIXTURE.chapterIds) {
+    await ensureToc(send, getRuntime);
+    await tap(send, getRuntime, `ch-${chapterId}`, "hb.openchapter");
+    const title = HANDBOOK_FIXTURE.chapterTitles[chapterId] ?? chapterId;
+    await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, title));
+    record(`chapter:${chapterId}`);
+    await tap(send, getRuntime, "back-toc", "hb.toc");
+    await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "Contents"));
+  }
+
+  const passedApplets = [];
+  for (const appletId of HANDBOOK_FIXTURE.appletIds) {
+    const chapter = APPLET_CHAPTER[appletId];
+    if (chapter === undefined) {
+      throw new Error(`No chapter mapping for applet ${appletId}`);
+    }
+
+    await ensureToc(send, getRuntime);
+    await tap(send, getRuntime, `ch-${chapter}`, "hb.openchapter");
+    const appletTitle = HANDBOOK_FIXTURE.appletTitles[appletId] ?? appletId;
+    await waitForRuntime(getRuntime, (runtime) =>
+      treeContainsText(runtime.widgetTree, `Applet: ${appletTitle}`)
+    );
+    await tap(send, getRuntime, `applet-run-${appletId}`, "hb.runapplet");
+    let appletRuntime;
+    try {
+      appletRuntime = await waitForRuntime(
+        getRuntime,
+        (runtime) => {
+          const texts = collectTextValues(runtime.widgetTree.root);
+          return texts.some(
+            (value) =>
+              /^(PASS|FAIL|UNAVAILABLE|NOT-GRANTED|SKIPPED)\b/.test(value) ||
+              value.startsWith("Error:")
+          );
+        },
+        90_000
+      );
+    } catch (error) {
+      const runtime = getRuntime();
+      const texts =
+        runtime?.widgetTree !== null && runtime?.widgetTree !== undefined
+          ? collectTextValues(runtime.widgetTree.root).slice(0, 40)
+          : [];
+      throw new Error(
+        `${error instanceof Error ? error.message : String(error)}; applet=${appletId}; texts=${JSON.stringify(texts)}`
+      );
+    }
+    const resultLine =
+      collectTextValues(appletRuntime.widgetTree.root).find(
+        (value) =>
+          /^(PASS|FAIL|UNAVAILABLE|NOT-GRANTED|SKIPPED)\b/.test(value) ||
+          value.startsWith("Error:")
+      ) ?? "";
+    if (!resultLine.startsWith("PASS")) {
+      throw new Error(`applet ${appletId} did not pass: ${resultLine}`);
+    }
+    passedApplets.push(appletId);
+    record(`applet:${appletId}`);
+    globalThis.__WEB_HANDBOOK__ = {
+      status: "running",
+      steps: [...steps],
+      passedApplets: [...passedApplets]
+    };
+
+    if (appletId === "widget-gallery") {
+      await sleep(300);
+    }
+  }
+
+  await ensureToc(send, getRuntime);
+  await tap(send, getRuntime, "open-diag", "hb.diagnostics");
   await waitForRuntime(
-    () => latestRuntime,
-    (runtime) => findNode(runtime.widgetTree.root, (node) => node.type === "code-editor") !== null
+    getRuntime,
+    (runtime) => findNodeById(runtime.widgetTree.root, "diag-export") !== null
   );
-  record("hello-project-created");
+  record("diagnostics-open");
 
-  send({ type: "miniapp-ui-event", nodeId: "package", event: "ds.package" });
-  await waitForRuntime(
-    () => latestRuntime,
+  await tap(send, getRuntime, "diag-export", "hb.export");
+  const exportRuntime = await waitForRuntime(
+    getRuntime,
     (runtime) => {
-      const qr = findNode(runtime.widgetTree.root, (node) => node.type === "qr-code");
+      const qr = findNodeById(runtime.widgetTree.root, "diag-export-qr");
       return qr !== null && T256_PATTERN.test(String(qr.props?.value ?? ""));
     },
     45_000
   );
-  const packagedRuntime = latestRuntime;
-  const qrNode = findNode(packagedRuntime.widgetTree.root, (node) => node.type === "qr-code");
-  const packagedT256 = String(qrNode.props.value);
-  record("packaged");
+  const qrNode = findNodeById(exportRuntime.widgetTree.root, "diag-export-qr");
+  const reportId = String(qrNode.props.value);
+  record("report-exported");
 
-  send({ type: "miniapp-ui-event", nodeId: "publish", event: "ds.publish" });
-  await waitForRuntime(
-    () => latestRuntime,
-    (runtime) => {
-      const texts = collectTextValues(runtime.widgetTree.root);
-      if (texts.some((value) => value.includes("Publish failed"))) {
-        throw new Error(texts.find((value) => value.includes("Publish failed")) ?? "Publish failed");
-      }
+  if (passedApplets.length !== HANDBOOK_FIXTURE.appletIds.length) {
+    throw new Error(
+      `expected ${HANDBOOK_FIXTURE.appletIds.length} applets, got ${passedApplets.length}`
+    );
+  }
 
-      return texts.some((value) => value.includes("Published v0.1.0"));
-    },
-    45_000
-  );
-  record("published");
-
-  globalThis.__WEB_DEVSTUDIO__ = {
+  globalThis.__WEB_HANDBOOK__ = {
     status: "done",
     steps,
-    packagedT256,
-    appId: DEVSTUDIO_FIXTURE.appId
+    passedApplets,
+    chapters: HANDBOOK_FIXTURE.chapterIds.length,
+    reportId
   };
 }
 
 main().catch((error) => {
-  globalThis.__WEB_DEVSTUDIO__ = {
+  globalThis.__WEB_HANDBOOK__ = {
     status: "error",
     message: error instanceof Error ? error.message : String(error),
-    steps: globalThis.__WEB_DEVSTUDIO__?.steps ?? []
+    steps: globalThis.__WEB_HANDBOOK__?.steps ?? [],
+    passedApplets: globalThis.__WEB_HANDBOOK__?.passedApplets ?? []
   };
 });

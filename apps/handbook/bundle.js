@@ -497,6 +497,34 @@ function stripAppletExports(source) {
     .replace(/export\s+\{[^}]+\}\s*;?/g, "");
 }
 
+/**
+ * Load applet `run(sdk, report)`. Prefer AsyncFunction (Node sandbox). Fall back
+ * to blob-URL import when CSP blocks eval (browser iframe worker has no
+ * unsafe-eval).
+ */
+async function loadAppletRunner(source) {
+  const body = stripAppletExports(source);
+  try {
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+    // Probe — some CSPs allow constructing Function but reject calling it.
+    const probe = new AsyncFunction("return 1");
+    await probe();
+    return new AsyncFunction("sdk", "report", `${body}\nawait run(sdk, report);`);
+  } catch {
+    const moduleSource = `${body}\nexport async function __handbookRun(sdk, report) {\n  await run(sdk, report);\n}\n`;
+    const moduleUrl = URL.createObjectURL(new Blob([moduleSource], { type: "text/javascript" }));
+    try {
+      const mod = await import(moduleUrl);
+      if (typeof mod.__handbookRun !== "function") {
+        throw new Error("Applet module did not export __handbookRun");
+      }
+      return (sdk, report) => mod.__handbookRun(sdk, report);
+    } finally {
+      URL.revokeObjectURL(moduleUrl);
+    }
+  }
+}
+
 async function runAppletInline(appletId, options = {}) {
   const { quiet = false } = options;
   const applet = findApplet(appletId);
@@ -545,9 +573,7 @@ async function runAppletInline(appletId, options = {}) {
   };
 
   try {
-    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-    const body = stripAppletExports(source);
-    const runner = new AsyncFunction("sdk", "report", `${body}\nawait run(sdk, report);`);
+    const runner = await loadAppletRunner(source);
     await runner(makeSdk(), report);
     if (reported === null) {
       reported = {

@@ -72,6 +72,7 @@
     "test:web-examples": "npm run build && node conformance/web-examples/run.mjs",
     "test:web-distribution": "npm run build && node conformance/web-distribution/run.mjs",
     "test:web-devstudio": "npm run build && node conformance/web-devstudio/run.mjs",
+    "test:web-handbook": "npm run build && node conformance/web-handbook/run.mjs",
     "test:web-soak": "npm run build && node conformance/web-soak/run.mjs",
     "test:web-pwa": "npm run build && node conformance/web-pwa/run.mjs",
     "test:web-hyperdrive": "npm run build && node conformance/web-hyperdrive/run.mjs",

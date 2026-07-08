@@ -425,12 +425,14 @@ CI: `web` + `interop` jobs per [docs/ci-policy.md](docs/ci-policy.md).
 
 ---
 
-## Phase D — Handbook (D0 + D1)
+## Phase D — Handbook (D0–D2)
 
 | Item | Evidence | Verify |
 |---|---|---|
 | D0: Handbook scaffold + pipeline + TOC/chapters + applets on Node | `apps/handbook/`, `conformance/handbook/` | `npm run build:handbook`; `npm run test:handbook` |
-| D1: full Part III SDK tour (every capability) + widget gallery + coverage gate | `apps/handbook/content/applets/` (13), `build.mjs` coverage gate, `conformance/budgets/measured.json` handbook row | `npm run test:handbook`; `npm run test:budgets` |
+| D1: full Part III SDK tour (every capability) + widget gallery + coverage gate | `apps/handbook/content/applets/` (14), `build.mjs` coverage gate, `conformance/budgets/measured.json` handbook row | `npm run test:handbook`; `npm run test:budgets` |
+| D2: `host.info()` + diagnostics report share/diff | `packages/miniapp-runtime` host info, Handbook Diagnostics, `conformance/handbook/report.mjs` | `npm run test:handbook-report` |
+| Web host Handbook CI | `conformance/web-handbook/` Playwright | `npm run test:web-handbook` |
 
 ---
 

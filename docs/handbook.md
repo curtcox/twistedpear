@@ -1,12 +1,12 @@
 # Handbook: interactive diagnostic documentation for every host (plan)
 
-Status: **in progress** — Phase D0–D2 landed on Node (`host.info()`, run-all,
-report share/diff, Part II difference matrix). D3–D4 open.
+Status: **in progress** — Phase D0–D2 landed on Node; web host Handbook CI
+(`test:web-handbook`) closed the D0/D2 web exercise. D3–D4 open.
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase D;
 device-gated rows will go to [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
 
 Verify: `npm run build:handbook` · `npm run test:handbook` ·
-`npm run test:handbook-report`
+`npm run test:handbook-report` · `npm run test:web-handbook`
 
 The Handbook is the platform's documentation delivered **as a mini-app** — the same
 posture as [DevStudio](devstudio.md): a signed, SDK-only bundle running in the standard
@@ -141,7 +141,8 @@ capability model documents itself.
 - Exit: skeleton Handbook installs and runs on web host and node harness in CI.
 
 **Landed (2026-07-08, node harness):** scaffold + pipeline + TOC/chapters + reading
-position + 5 software-tier applets; `npm run test:handbook`. Web host CI exercise still open.
+position + 5 software-tier applets; `npm run test:handbook`. Web host CI:
+`npm run test:web-handbook` (Playwright install → chapters → applets → report).
 
 ### Phase D1 — Applet framework + SDK tour
 - Applet runner (inline + preview modes), result model, `not-granted` /
@@ -175,7 +176,8 @@ Preview-mode chapter still uses inline packaging probes (confirmation-backed).
 (desktop / mobile / web worklets + node default); Handbook Diagnostics screen
 (run-all, `share.put` export + QR, compare/diff matrix); Part II live difference
 matrix chapter + `host-info` applet; `npm run test:handbook-report` (node report
-round-trip + seeded web-status diff). Web Playwright Handbook CI still open with D3.
+round-trip + seeded web-status diff). Web Playwright Handbook CI:
+`npm run test:web-handbook` (same software-tier surface in the browser tab).
 
 ### Phase D3 — Mobile hosts + device-gated content
 - Run Handbook on Android emulator and iOS simulator harnesses (extend the existing

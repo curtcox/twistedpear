@@ -4,6 +4,10 @@
  */
 
 import { WebSandboxBackend } from "@twistedpear/miniapp-runtime/sandbox/web";
+import {
+  encodeJsonWireValue,
+  reviveJsonWireValue
+} from "@twistedpear/miniapp-runtime";
 import type { HostToWorkletMessage, WorkletToHostMessage } from "../worklet/protocol";
 
 function hexToBytes(hex: string): Uint8Array {
@@ -43,7 +47,7 @@ export function createWebSandboxRelay(sendToWorker: (message: HostToWorkletMessa
                   type: "sandbox-broker-request",
                   requestId,
                   instanceId: message.instanceId,
-                  request
+                  request: encodeJsonWireValue(request)
                 });
               })
           }
@@ -100,7 +104,7 @@ export function createWebSandboxRelay(sendToWorker: (message: HostToWorkletMessa
       }
 
       pendingBrokers.delete(message.requestId);
-      waiter.resolve(message.response);
+      waiter.resolve(reviveJsonWireValue(message.response));
     }
   }
 

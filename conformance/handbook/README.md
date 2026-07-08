@@ -7,6 +7,7 @@ Headless install → TOC/chapter render → applet execution on
 ```bash
 npm run test:handbook
 npm run test:handbook-report   # same suite (D2 checklist entry point)
+npm run test:web-handbook      # Playwright browser web host
 ```
 
 Rebuild content without the full package test:

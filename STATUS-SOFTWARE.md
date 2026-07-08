@@ -26,7 +26,7 @@ Last audited: 2026-07-08.
 | Phase 6 interop + packaging | 72 h desktop soak at plan duration; macOS notarization run | No (soak needs server; notarization needs Apple account) |
 | Phase 7 (plan only) | Community BLE spec submission; device battery/bandwidth numbers | No |
 | Phase W — web host | All of [docs/web-host.md](docs/web-host.md): spikes W-S1–W-S4, then W1–W4 | **Done (software tier)** — see Phase W table; real USB RNode LoRa E2E remains device-gated |
-| Phase D — Handbook | [docs/handbook.md](docs/handbook.md) D0–D4 | **In progress** — D0–D2 on Node (`test:handbook`, `test:handbook-report`); D3–D4 open |
+| Phase D — Handbook | [docs/handbook.md](docs/handbook.md) D0–D4 | **In progress** — D0–D2 Node + web (`test:handbook`, `test:handbook-report`, `test:web-handbook`); D3–D4 open |
 
 **Recently closed (2026-07-07):** Docker interop image fix (`rns==0.9.5` for `lxmf==0.7.0`),
 RNS 0.9.5 `Destination.send` → `RNS.Packet` shim in Python peers, link-benchmark READY
@@ -198,9 +198,9 @@ register in STATUS-HARDWARE once D3 starts.
 
 | Item | Plan reference | Status |
 |---|---|---|
-| D0: scaffold + content pipeline + TOC/chapters + one applet E2E | handbook §D0 | **Done (node)** — `apps/handbook`, `npm run build:handbook`, `npm run test:handbook`; web host exercise still open |
-| D1: applet framework + full Part III SDK tour + coverage gate | handbook §D1 | **Done (node)** — 13 applets covering every `CAPABILITY_DEFINITIONS` id + widget gallery; strict coverage gate; handbook row in `conformance/budgets` (~71 KiB, exceeds BLE example budget by design) |
-| D2: `host.info()` + run-all diagnostics + report share/diff | handbook §D2 | **Done (node)** — `HOST_API_VERSION` 0.3.0 `host.info()`; Diagnostics run-all / `share.put`+QR / compare matrix; Part II difference matrix; `npm run test:handbook-report` |
+| D0: scaffold + content pipeline + TOC/chapters + one applet E2E | handbook §D0 | **Done (node + web)** — `apps/handbook`, `npm run build:handbook`, `npm run test:handbook`, `npm run test:web-handbook` |
+| D1: applet framework + full Part III SDK tour + coverage gate | handbook §D1 | **Done (node + web)** — 14 applets covering every `CAPABILITY_DEFINITIONS` id + widget gallery; strict coverage gate; handbook row in `conformance/budgets` (~71 KiB, exceeds BLE example budget by design); web exercise via `test:web-handbook` |
+| D2: `host.info()` + run-all diagnostics + report share/diff | handbook §D2 | **Done (node + web)** — `HOST_API_VERSION` 0.3.0 `host.info()`; Diagnostics run-all / `share.put`+QR / compare matrix; Part II difference matrix; `npm run test:handbook-report`; web report export in `test:web-handbook` |
 | D3: Android emulator + iOS sim Handbook flows | handbook §D3 | Open (software-tier harnesses); hardware rows deferred |
 | D4: Parts I & V, publish, default seed | handbook §D4 | Open |
 
@@ -208,7 +208,7 @@ register in STATUS-HARDWARE once D3 starts.
 
 ## Recommended software-only execution order
 
-1. **Handbook Phase D** — web host Handbook CI; then D3 mobile harnesses + D4 packaging
+1. **Handbook Phase D** — D3 mobile harnesses + D4 Parts I/V + packaging/seed
 2. **Long soaks at plan duration** — dist, miniapp, ios-sim, desktop, transport-node, integration, mixed-network on a dedicated server (`workflow_dispatch` in nightly.yml; see [docs/ci-policy.md](docs/ci-policy.md))
 3. **Phase 1 M8 release** — 0.1.0 tag after soaks; link-benchmark baseline recorded in CI `interop` job
 4. **Phase 7 community** — BLE spec submission; device battery/bandwidth numbers when hardware arrives
@@ -240,6 +240,7 @@ register in STATUS-HARDWARE once D3 starts.
 | `npm run test:examples` | Phase 4: pack → grant → launch → exercise chat/file-drop/board |
 | `npm run test:handbook` | Phase D: Handbook pack → TOC/chapters + applets on Node sandbox |
 | `npm run test:handbook-report` | Phase D2: run-all → share.put report → seeded diff matrix |
+| `npm run test:web-handbook` | Phase D: Playwright Handbook install + chapters + applets + report on web host |
 | `npm run build:handbook` | Rebuild Handbook catalog + `apps/handbook/bundle.js` from content/ |
 | `npm run test:web-interop` | W-S1: WS leaf peer → gateway → dockerized Python RNS |
 | `npm run test:web-interop-browser` | W-S1/W1: Playwright browser tab packet + LXMF echo through gateway |
