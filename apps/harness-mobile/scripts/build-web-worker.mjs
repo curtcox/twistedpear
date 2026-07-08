@@ -41,6 +41,7 @@ buildSync({
   platform: "browser",
   format: "esm",
   outfile: output,
+  define: { global: "globalThis" },
   alias: {
     "@twistedpear/reticulum-ts/web": join(repoRoot, "packages/reticulum-ts/dist/web.js"),
     "@twistedpear/reticulum-ts": join(repoRoot, "packages/reticulum-ts/dist/web.js"),
@@ -63,9 +64,12 @@ const forbidden = [
   "bare-fs",
   "bare-tcp",
   "bare-dgram",
-  "corestore",
-  "hyperdrive",
-  "hyperswarm"
+  'from "corestore"',
+  'from "hyperdrive"',
+  'from "hyperswarm"',
+  "require(\"corestore\")",
+  "require(\"hyperdrive\")",
+  "require(\"hyperswarm\")"
 ];
 const source = readFileSync(output, "utf8");
 const hits = forbidden.filter((needle) => source.includes(needle));

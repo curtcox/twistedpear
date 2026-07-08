@@ -277,7 +277,9 @@ function ensureInstallService() {
       pushInstalled: () => {
         void pushInstalledList();
       },
-      requestHostReply: requestHostReply
+      requestHostReply: requestHostReply,
+      // Browser Hyperdrive-over-relay install lands once ephemeral corestore storage is wired.
+      tryHyperdriveFetch: async () => null
     });
   }
 

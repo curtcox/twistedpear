@@ -4,6 +4,7 @@ import b4a from "b4a";
 export interface SwarmOptions {
   readonly bootstrap?: ReadonlyArray<string>;
   readonly maxPeers?: number;
+  readonly dht?: import("hyperdht").default;
 }
 
 export interface SwarmSession {
@@ -15,7 +16,8 @@ export interface SwarmSession {
 
 export function createSwarm(options: SwarmOptions = {}): SwarmSession {
   const swarm = new Hyperswarm({
-    maxPeers: options.maxPeers ?? 64
+    maxPeers: options.maxPeers ?? 64,
+    ...(options.dht === undefined ? {} : { dht: options.dht })
   });
 
   if (options.bootstrap !== undefined) {

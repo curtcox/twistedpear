@@ -720,7 +720,9 @@ export default function App() {
         <Text style={styles.sectionTitle}>Unavailable on web</Text>
         <Text style={styles.muted}>AutoInterface / multicast / Bonjour — not available in browser tabs.</Text>
         <Text style={styles.muted}>BLE / USB RNode — requires native host bridges.</Text>
-        <Text style={styles.muted}>Hyperdrive catalog browse — not on web (Resource + 256t install only).</Text>
+        <Text style={styles.muted}>
+          Hyperdrive fetch via gateway DHT relay when available; Resource + 256t install always supported.
+        </Text>
       </View>
 
       <View style={styles.card}>

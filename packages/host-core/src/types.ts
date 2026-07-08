@@ -39,6 +39,8 @@ export interface WebSocketInterfaceConfig {
   readonly sharedToken?: string;
   /** Directory of built web-host static assets (`--serve-web`). */
   readonly staticRoot?: string;
+  /** When true (default), expose Hyperswarm DHT relay at `/dht-relay` on the gateway port. */
+  readonly dhtRelay?: boolean;
 }
 
 export interface AutoInterfaceConfig {

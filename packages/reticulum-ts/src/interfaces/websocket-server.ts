@@ -57,9 +57,13 @@ export class WebSocketServerInterface {
     this.onSpawned = handler;
   }
 
+  get httpServer(): Server | null {
+    return this.server;
+  }
+
   async start(): Promise<void> {
     this.server = createServer((request, response) => this.handleHttpRequest(request, response));
-    this.server.on("upgrade", (request, socket) => this.handleUpgrade(request, socket));
+    this.server.on("upgrade", (request, socket, head) => this.handleUpgrade(request, socket, head));
 
     await new Promise<void>((resolve, reject) => {
       this.server?.once("error", reject);
@@ -129,7 +133,12 @@ export class WebSocketServerInterface {
     serveStaticFile(staticRoot, request.url ?? "/", request.method === "HEAD", response);
   }
 
-  private handleUpgrade(request: IncomingMessage, socket: Duplex): void {
+  private handleUpgrade(request: IncomingMessage, socket: Duplex, _head: Buffer): void {
+    const pathname = new URL(request.url ?? "/", "ws://localhost").pathname;
+    if (pathname === "/dht-relay") {
+      return;
+    }
+
     if (!this.acceptsRequest(request)) {
       socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
       socket.destroy();

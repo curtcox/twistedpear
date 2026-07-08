@@ -65,6 +65,7 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
   let tcpClient: TcpClientInterface | null = null;
   let tcpServer: TcpServerInterface | null = null;
   let wsServer: WebSocketServerInterface | null = null;
+  let dhtRelaySession: { close(): Promise<void> } | null = null;
   let autoIface: AutoInterface | null = null;
   let bonjourBridge = createMdnsBonjourBridge();
   let seederSession: Awaited<ReturnType<typeof startSeederRole>> | null = null;
@@ -150,6 +151,14 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
         ? {}
         : { staticRoot: config.interfaces.websocket.staticRoot })
     });
+
+    if (config.interfaces.websocket.dhtRelay !== false) {
+      const httpServer = wsServer.httpServer;
+      if (httpServer !== null) {
+        const { attachDhtRelayServer } = await import("@twistedpear/bridge-hyper");
+        dhtRelaySession = attachDhtRelayServer(httpServer);
+      }
+    }
   }
 
   const buildStatus = (): HostStatus => {
@@ -232,6 +241,10 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
 
       if (tcpServer !== null) {
         await tcpServer.close();
+      }
+
+      if (dhtRelaySession !== null) {
+        await dhtRelaySession.close();
       }
 
       if (wsServer !== null) {

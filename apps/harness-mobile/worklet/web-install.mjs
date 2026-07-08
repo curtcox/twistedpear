@@ -77,6 +77,44 @@ export function createWebInstallService(options) {
       throw new Error("Gateway link is offline — enable WS gateway before installing");
     }
 
+    const locator = await waitForCasLocator(t256);
+
+    if (options.tryHyperdriveFetch !== undefined) {
+      try {
+        sendProgress?.({
+          phase: "starting",
+          bytesReceived: 0,
+          totalBytes: locator.packageSize,
+          path: "hyperdrive",
+          verified: false
+        });
+
+        const hyperArchive = await options.tryHyperdriveFetch(locator);
+        if (hyperArchive !== null) {
+          if (!verify256t(t256, hyperArchive, (data) => options.provider.sha512(data))) {
+            throw new Error("Hyperdrive archive does not match its 256t id");
+          }
+
+          sendProgress?.({
+            phase: "complete",
+            bytesReceived: hyperArchive.length,
+            totalBytes: hyperArchive.length,
+            path: "hyperdrive",
+            verified: true
+          });
+          return hyperArchive;
+        }
+      } catch {
+        sendProgress?.({
+          phase: "failed",
+          bytesReceived: 0,
+          totalBytes: locator.packageSize,
+          path: "hyperdrive",
+          verified: false
+        });
+      }
+    }
+
     sendProgress?.({
       phase: "starting",
       bytesReceived: 0,
@@ -85,7 +123,6 @@ export function createWebInstallService(options) {
       verified: false
     });
 
-    const locator = await waitForCasLocator(t256);
     const result = await hostSession.fetchPlane.fetchPackage(options.provider, {
       entry: toCatalogEntryLike(locator),
       version: locator.version,

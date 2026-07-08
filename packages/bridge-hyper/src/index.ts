@@ -1,3 +1,8 @@
+export { attachDhtRelayServer, DEFAULT_DHT_RELAY_PATH } from "./dht-relay-server.js";
+export type { DhtRelayServerOptions, DhtRelayServerSession } from "./dht-relay-server.js";
+export { fetchDriveVersionViaNodeRelay } from "./node-relay-hyper-fetch.js";
+export type { NodeRelayHyperFetchOptions } from "./node-relay-hyper-fetch.js";
+
 export { createSwarm, driveTopic } from "./swarm.js";
 export type { SwarmOptions, SwarmSession } from "./swarm.js";
 
