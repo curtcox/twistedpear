@@ -1,8 +1,11 @@
 # Handbook: interactive diagnostic documentation for every host (plan)
 
-Status: **plan** — no phases landed.
-Tracking: to be registered in [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) (Phase D) on acceptance;
-device-gated rows go to [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
+Status: **in progress** — Phase D0 landed; D1 partial (SDK tour applets for identity,
+presence, KV, LXMF, announce; coverage gate with deferred remainder).
+Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase D;
+device-gated rows will go to [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
+
+Verify: `npm run build:handbook` · `npm run test:handbook`
 
 The Handbook is the platform's documentation delivered **as a mini-app** — the same
 posture as [DevStudio](devstudio.md): a signed, SDK-only bundle running in the standard
@@ -135,6 +138,9 @@ capability model documents itself.
 - `test:handbook` in `conformance/handbook/`: headless install + render of every
   chapter, execution of every applet on the Node sandbox backend, report schema check.
 - Exit: skeleton Handbook installs and runs on web host and node harness in CI.
+
+**Landed (2026-07-08, node harness):** scaffold + pipeline + TOC/chapters + reading
+position + 5 software-tier applets; `npm run test:handbook`. Web host CI exercise still open.
 
 ### Phase D1 — Applet framework + SDK tour
 - Applet runner (inline + preview modes), result model, `not-granted` /

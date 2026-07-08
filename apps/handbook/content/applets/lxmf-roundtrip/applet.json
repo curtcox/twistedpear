@@ -1,0 +1,13 @@
+{
+  "id": "lxmf-roundtrip",
+  "title": "LXMF self-message",
+  "capabilities": ["identity", "lxmf:send", "lxmf:receive"],
+  "surfaces": ["identity.destinationHash", "lxmf.send", "lxmf.receive"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  }
+}

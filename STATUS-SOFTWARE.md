@@ -26,6 +26,7 @@ Last audited: 2026-07-08.
 | Phase 6 interop + packaging | 72 h desktop soak at plan duration; macOS notarization run | No (soak needs server; notarization needs Apple account) |
 | Phase 7 (plan only) | Community BLE spec submission; device battery/bandwidth numbers | No |
 | Phase W — web host | All of [docs/web-host.md](docs/web-host.md): spikes W-S1–W-S4, then W1–W4 | **Done (software tier)** — see Phase W table; real USB RNode LoRa E2E remains device-gated |
+| Phase D — Handbook | [docs/handbook.md](docs/handbook.md) D0–D4 | **In progress** — D0 + partial D1 on Node (`test:handbook`); D2–D4 open |
 
 **Recently closed (2026-07-07):** Docker interop image fix (`rns==0.9.5` for `lxmf==0.7.0`),
 RNS 0.9.5 `Destination.send` → `RNS.Packet` shim in Python peers, link-benchmark READY
@@ -190,11 +191,27 @@ from Chrome remains device-gated.
 
 ---
 
+## Phase D — Handbook (interactive diagnostic docs mini-app)
+
+Full plan: [docs/handbook.md](docs/handbook.md). Software-first; device-gated probes
+register in STATUS-HARDWARE once D3 starts.
+
+| Item | Plan reference | Status |
+|---|---|---|
+| D0: scaffold + content pipeline + TOC/chapters + one applet E2E | handbook §D0 | **Done (node)** — `apps/handbook`, `npm run build:handbook`, `npm run test:handbook`; web host exercise still open |
+| D1: applet framework + full Part III SDK tour + coverage gate | handbook §D1 | **Partial** — inline runner + result cards; applets for identity/presence/KV/LXMF/announce; coverage gate with deferred caps (`storage:hyperbee`, `resource:fetch`, `workspace`, `ai:chat`, `apps:*`, `share:cas`); widget gallery + budgets row open |
+| D2: `host.info()` + run-all diagnostics + report share/diff | handbook §D2 | Open |
+| D3: Android emulator + iOS sim Handbook flows | handbook §D3 | Open (software-tier harnesses); hardware rows deferred |
+| D4: Parts I & V, publish, default seed | handbook §D4 | Open |
+
+---
+
 ## Recommended software-only execution order
 
-1. **Long soaks at plan duration** — dist, miniapp, ios-sim, desktop, transport-node, integration, mixed-network on a dedicated server (`workflow_dispatch` in nightly.yml; see [docs/ci-policy.md](docs/ci-policy.md))
-2. **Phase 1 M8 release** — 0.1.0 tag after soaks; link-benchmark baseline recorded in CI `interop` job
-3. **Phase 7 community** — BLE spec submission; device battery/bandwidth numbers when hardware arrives
+1. **Handbook Phase D** — finish D1 coverage + D2 `host.info()`/reports; web host Handbook CI; then D4 packaging
+2. **Long soaks at plan duration** — dist, miniapp, ios-sim, desktop, transport-node, integration, mixed-network on a dedicated server (`workflow_dispatch` in nightly.yml; see [docs/ci-policy.md](docs/ci-policy.md))
+3. **Phase 1 M8 release** — 0.1.0 tag after soaks; link-benchmark baseline recorded in CI `interop` job
+4. **Phase 7 community** — BLE spec submission; device battery/bandwidth numbers when hardware arrives
 
 ---
 
@@ -220,7 +237,9 @@ from Chrome remains device-gated.
 | `npm run test:android-emulator` | Local Maestro E1–E5 + E3 adb (skips without device/maestro) |
 | `npm run test:android-emulator:e3` | E3 foreground-service adb check only |
 | `npm run test:android-emulator:e5` | E5 Bare Worker benchmark on emulator |
-| `npm run test:web-runtime` | Browser bundle guard (`reticulum-ts/web` + `host-core/web`) + `runtime/web` unit tests |
+| `npm run test:examples` | Phase 4: pack → grant → launch → exercise chat/file-drop/board |
+| `npm run test:handbook` | Phase D: Handbook pack → TOC/chapters + applets on Node sandbox |
+| `npm run build:handbook` | Rebuild Handbook catalog + `apps/handbook/bundle.js` from content/ |
 | `npm run test:web-interop` | W-S1: WS leaf peer → gateway → dockerized Python RNS |
 | `npm run test:web-interop-browser` | W-S1/W1: Playwright browser tab packet + LXMF echo through gateway |
 | `npm run test:web-sandbox` | W-S2: opaque-origin iframe worker isolation + busy-loop kill (Playwright) |

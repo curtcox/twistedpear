@@ -128,7 +128,11 @@ And `apps/devstudio` — the self-hosting development environment
 ([docs/devstudio.md](devstudio.md)) exercising the workspace, AI, apps, and
 share namespaces plus the `code-editor` and `qr-code` widgets.
 
-Run the CI exercises: `npm run test:examples` and `npm run test:devstudio-loop`.
+And `apps/handbook` — interactive diagnostic documentation as a mini-app
+([docs/handbook.md](handbook.md)).
+
+Run the CI exercises: `npm run test:examples`, `npm run test:handbook`, and
+`npm run test:devstudio-loop`.
 
 ## Future Work
 

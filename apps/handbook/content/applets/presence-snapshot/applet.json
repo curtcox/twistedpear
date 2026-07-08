@@ -1,0 +1,13 @@
+{
+  "id": "presence-snapshot",
+  "title": "Presence snapshot",
+  "capabilities": ["presence"],
+  "surfaces": ["presence.snapshot"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  }
+}

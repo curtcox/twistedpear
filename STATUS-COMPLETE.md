@@ -425,6 +425,15 @@ CI: `web` + `interop` jobs per [docs/ci-policy.md](docs/ci-policy.md).
 
 ---
 
+## Phase D — Handbook (partial)
+
+| Item | Evidence | Verify |
+|---|---|---|
+| D0: Handbook scaffold + pipeline + TOC/chapters + applets on Node | `apps/handbook/`, `conformance/handbook/` | `npm run build:handbook`; `npm run test:handbook` |
+| D1 partial: identity/presence/KV/LXMF/announce applets + coverage gate | `apps/handbook/content/applets/`, `build.mjs` DEFERRED_COVERAGE | `npm run test:handbook` |
+
+---
+
 ## Phase 6 — Desktop host + network health
 
 ### M0 — Shell spike + host-core + CI

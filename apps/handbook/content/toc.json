@@ -1,0 +1,63 @@
+{
+  "title": "TwistedPear Handbook",
+  "parts": [
+    {
+      "id": "part-1-concepts",
+      "title": "Part I — Concepts",
+      "chapters": [
+        {
+          "id": "what-is-twistedpear",
+          "title": "What TwistedPear is",
+          "file": "part-1-concepts/what-is-twistedpear.md"
+        },
+        {
+          "id": "reticulum-fundamentals",
+          "title": "Reticulum fundamentals",
+          "file": "part-1-concepts/reticulum-fundamentals.md"
+        }
+      ]
+    },
+    {
+      "id": "part-3-sdk",
+      "title": "Part III — Developing mini-apps",
+      "chapters": [
+        {
+          "id": "sdk-identity",
+          "title": "Identity & signing",
+          "file": "part-3-sdk/identity.md"
+        },
+        {
+          "id": "sdk-presence",
+          "title": "Presence",
+          "file": "part-3-sdk/presence.md"
+        },
+        {
+          "id": "sdk-storage-kv",
+          "title": "Key/value storage",
+          "file": "part-3-sdk/storage-kv.md"
+        },
+        {
+          "id": "sdk-lxmf",
+          "title": "LXMF messaging",
+          "file": "part-3-sdk/lxmf.md"
+        },
+        {
+          "id": "sdk-announce",
+          "title": "Announce & subscribe",
+          "file": "part-3-sdk/announce.md"
+        }
+      ]
+    },
+    {
+      "id": "part-4-diagnostics",
+      "title": "Part IV — Diagnostics",
+      "chapters": [
+        {
+          "id": "running-diagnostics",
+          "title": "Running diagnostics",
+          "file": "part-4-diagnostics/running-diagnostics.md"
+        }
+      ]
+    }
+  ]
+}

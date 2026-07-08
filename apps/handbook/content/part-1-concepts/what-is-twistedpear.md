@@ -1,0 +1,24 @@
+# What TwistedPear is
+
+TwistedPear is a peer-to-peer app platform. A **host** on each device is a full
+Reticulum peer; **mini-apps** are sandboxed JavaScript bundles that talk to the
+host only through the SDK.
+
+## Two planes
+
+- **Control plane** — Reticulum handles identity, announces, links, LXMF, and
+  off-grid Resource transfer.
+- **Bulk plane** — Hypercore / Hyperdrive / Hyperswarm carry large package
+  syncs when IP connectivity exists.
+
+## Trust model
+
+Publisher identity **is** network identity. Packages are Ed25519-signed with the
+developer's Reticulum key, so discovering an app and trusting its author use the
+same root.
+
+## This Handbook
+
+This document is itself a mini-app. If it installed and rendered on *this* host,
+you have already exercised packaging, install, sandbox, broker, and the widget
+renderer. Chapters later add interactive applets that probe live capabilities.

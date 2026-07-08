@@ -1,0 +1,22 @@
+{
+  "name": "handbook",
+  "version": "0.1.0",
+  "entry": "bundle.js",
+  "capabilities": [
+    "identity",
+    "presence",
+    "announce:publish",
+    "announce:subscribe",
+    "lxmf:send",
+    "lxmf:receive",
+    "storage:kv",
+    "storage:hyperbee",
+    "resource:fetch",
+    "workspace",
+    "share:cas",
+    "apps:preview",
+    "apps:package"
+  ],
+  "icon": null,
+  "minHostApi": "0.2.0"
+}
