@@ -10,7 +10,7 @@ Generated from `DEFAULT_QUOTAS` (`host-core`) and miniapp-runtime defaults.
 - Propagation messages: 10000
 - Bandwidth cap: 524288 bytes/s
 
-Override in `<data-dir>/config.json` — see [Desktop host](chapter:host-desktop).
+Override in `<data-dir>/config.json` — see [Host configuration](chapter:ref-host-config).
 
 ## Mini-app workspace (`workspace` capability)
 

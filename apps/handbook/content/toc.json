@@ -16,6 +16,11 @@
           "file": "part-1-concepts/reticulum-fundamentals.md"
         },
         {
+          "id": "pears-bulk-plane",
+          "title": "Pears bulk plane",
+          "file": "part-1-concepts/pears-bulk-plane.md"
+        },
+        {
           "id": "concepts-in-practice",
           "title": "Concepts in practice",
           "file": "part-1-concepts/concepts-in-practice.md"
@@ -98,6 +103,11 @@
           "file": "part-3-sdk/resource-fetch.md"
         },
         {
+          "id": "sdk-budgets",
+          "title": "Budgets & quotas",
+          "file": "part-3-sdk/budgets.md"
+        },
+        {
           "id": "sdk-workspace",
           "title": "Workspace",
           "file": "part-3-sdk/workspace.md"
@@ -108,6 +118,11 @@
           "file": "part-3-sdk/share-cas.md"
         },
         {
+          "id": "sdk-capabilities",
+          "title": "Capability model",
+          "file": "part-3-sdk/capabilities.md"
+        },
+        {
           "id": "sdk-apps-package",
           "title": "Packaging & preview",
           "file": "part-3-sdk/apps-package.md"
@@ -116,6 +131,11 @@
           "id": "sdk-apps-publish",
           "title": "Publish & install",
           "file": "part-3-sdk/apps-publish.md"
+        },
+        {
+          "id": "sdk-devstudio",
+          "title": "DevStudio walkthrough",
+          "file": "part-3-sdk/devstudio.md"
         },
         {
           "id": "sdk-ai-chat",
@@ -178,6 +198,11 @@
           "id": "ref-quotas",
           "title": "Quotas & limits",
           "file": "part-5-reference/quotas.md"
+        },
+        {
+          "id": "ref-host-config",
+          "title": "Host configuration",
+          "file": "part-5-reference/host-config.md"
         },
         {
           "id": "ref-cli",

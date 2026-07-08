@@ -9,7 +9,7 @@ host only through the SDK.
 - **Control plane** — Reticulum handles identity, announces, links, LXMF, and
   off-grid Resource transfer.
 - **Bulk plane** — Hypercore / Hyperdrive / Hyperswarm carry large package
-  syncs when IP connectivity exists.
+  syncs when IP connectivity exists. [Pears bulk plane](chapter:pears-bulk-plane).
 
 ## Trust model
 

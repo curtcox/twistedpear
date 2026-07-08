@@ -23,4 +23,5 @@ Every id below must be exercised by at least one Handbook applet (coverage gate)
 Manifests declare the full list; users may grant a subset at install.
 Withholding a capability turns matching probes into `not-granted` cards.
 
-See [Developing mini-apps](chapter:sdk-identity) for tutorials per namespace.
+Tutorial: [Capability model](chapter:sdk-capabilities).
+Per-namespace guides: [Developing mini-apps](chapter:sdk-identity).

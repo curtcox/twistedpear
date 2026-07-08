@@ -214,9 +214,13 @@ DevStudio import; desktop first-boot bundled catalog (`handbook`, `devstudio`,
 round-trip.
 
 **Expanded (2026-07-08):** Part II per-host chapters (Android, iOS, desktop, web,
-headless `tp node`/`tp seed`) + Part V interfaces, quotas, and CLI reference
-(generated from `host-core` / runtime defaults). **31 chapters** total;
+headless `tp node`/`tp seed`) + Part V interfaces, quotas, CLI, and host-config
+reference (generated from `host-core` / runtime defaults). **31 chapters** total;
 `test:handbook` renders all.
+
+**Expanded (2026-07-08, editorial):** Part I Pears bulk plane; Part III capability
+model, DevStudio walkthrough, and budgets tutorials; Part V host configuration
+reference; difference-matrix prose companion. **36 chapters** total.
 
 ## Testing strategy
 

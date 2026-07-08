@@ -241,6 +241,15 @@ async function generateReferenceChapters() {
     propagationMessageCount: 10_000,
     bandwidthBytesPerSecond: 512 * 1024
   };
+  let defaultRoles = { transport: true, seeder: true, propagation: false, attachRnsd: null };
+  let defaultInterfaces = {
+    tcp: { enabled: false, mode: "client", targetHost: "127.0.0.1", targetPort: 4242 },
+    websocket: { enabled: false, listenHost: "127.0.0.1", listenPort: 9480 },
+    auto: { enabled: true, multicast: true, bonjour: true },
+    i2p: { enabled: false },
+    rnode: { enabled: false, baudRate: 115_200 }
+  };
+  let defaultDataDir = "~/.local/share/twistedpear/host";
 
   try {
     const runtimeCaps = await import("../../packages/miniapp-runtime/dist/capabilities.js");
@@ -259,6 +268,9 @@ async function generateReferenceChapters() {
     aiLimits = ai.DEFAULT_AI_SERVICE_LIMITS;
     const hostCore = await import("../../packages/host-core/dist/types.js");
     hostQuotas = hostCore.DEFAULT_QUOTAS;
+    defaultRoles = hostCore.DEFAULT_DESKTOP_ROLES;
+    defaultInterfaces = hostCore.DEFAULT_INTERFACE_CONFIG;
+    defaultDataDir = hostCore.defaultHostDataDir();
   } catch {
     capabilityDefinitions = [
       { id: "identity", description: "Use an app-scoped identity for signing and addressing." },
@@ -307,7 +319,8 @@ async function generateReferenceChapters() {
     "Manifests declare the full list; users may grant a subset at install.",
     "Withholding a capability turns matching probes into `not-granted` cards.",
     "",
-    "See [Developing mini-apps](chapter:sdk-identity) for tutorials per namespace."
+    "Tutorial: [Capability model](chapter:sdk-capabilities).",
+    "Per-namespace guides: [Developing mini-apps](chapter:sdk-identity)."
   ].join("\n");
 
   const widgetLines = [];
@@ -432,7 +445,7 @@ async function generateReferenceChapters() {
     `- Propagation messages: ${hostQuotas.propagationMessageCount}`,
     `- Bandwidth cap: ${hostQuotas.bandwidthBytesPerSecond} bytes/s`,
     "",
-    "Override in `<data-dir>/config.json` — see [Desktop host](chapter:host-desktop).",
+    "Override in `<data-dir>/config.json` — see [Host configuration](chapter:ref-host-config).",
     "",
     "## Mini-app workspace (`workspace` capability)",
     "",
@@ -481,6 +494,57 @@ async function generateReferenceChapters() {
     "Tutorial: [Packaging & preview](chapter:sdk-apps-package)."
   ].join("\n");
 
+  const hostConfigMd = [
+    "# Host configuration",
+    "",
+    "Generated from `defaultHostConfig()` defaults in `packages/host-core`.",
+    "Desktop and `tp node` persist overrides in `<data-dir>/config.json`.",
+    "",
+    "## Data directory",
+    "",
+    `- Default (this platform): \`${defaultDataDir}\``,
+    "- Identity: `<data-dir>/identity`",
+    "- Config: `<data-dir>/config.json`",
+    "",
+    "Platform paths: [Desktop host](chapter:host-desktop). Headless flags:",
+    "[CLI commands](chapter:ref-cli).",
+    "",
+    "## Roles (desktop defaults)",
+    "",
+    `- Transport node: ${defaultRoles.transport}`,
+    `- Seeder / LAN mirror: ${defaultRoles.seeder}`,
+    `- Propagation server: ${defaultRoles.propagation}`,
+    `- Attach to external rnsd: ${defaultRoles.attachRnsd === null ? "off" : "on"}`,
+    "",
+    "Web hosts force leaf roles — see [Web host](chapter:host-web).",
+    "",
+    "## Interfaces (desktop defaults)",
+    "",
+    `- TCP client: ${defaultInterfaces.tcp.enabled ? "on" : "off"} (target ${defaultInterfaces.tcp.targetHost}:${defaultInterfaces.tcp.targetPort})`,
+    `- WebSocket gateway: ${defaultInterfaces.websocket.enabled ? "on" : "off"} (listen ${defaultInterfaces.websocket.listenHost}:${defaultInterfaces.websocket.listenPort})`,
+    `- AutoInterface multicast: ${defaultInterfaces.auto.enabled && defaultInterfaces.auto.multicast}`,
+    `- Bonjour discovery: ${defaultInterfaces.auto.enabled && defaultInterfaces.auto.bonjour}`,
+    `- I2P SAM: ${defaultInterfaces.i2p.enabled}`,
+    `- RNode serial: ${defaultInterfaces.rnode.enabled}`,
+    "",
+    "Interface behavior: [Network interfaces](chapter:ref-interfaces).",
+    "",
+    "## Quotas",
+    "",
+    "Seed storage, propagation store, message count, and bandwidth caps match",
+    "[Quotas & limits](chapter:ref-quotas). Override under the `quotas` key.",
+    "",
+    "## AI endpoint",
+    "",
+    "`ai` is `null` until configured (desktop **Settings → AI** or `config.json`).",
+    "Mini-apps use `ai:chat` through the host proxy — see [AI chat](chapter:sdk-ai-chat).",
+    "",
+    "## Status endpoint",
+    "",
+    "Opt-in JSON at `http://127.0.0.1:9473/status` when `statusEndpoint: true`",
+    "or `tp node --status-endpoint`."
+  ].join("\n");
+
   writeText(join(refDir, "capabilities.md"), `${capabilitiesMd}\n`);
   writeText(join(refDir, "widgets.md"), `${widgetsMd}\n`);
   writeText(join(refDir, "host-api.md"), `${hostApiMd}\n`);
@@ -488,6 +552,7 @@ async function generateReferenceChapters() {
   writeText(join(refDir, "interfaces.md"), `${interfacesMd}\n`);
   writeText(join(refDir, "quotas.md"), `${quotasMd}\n`);
   writeText(join(refDir, "cli.md"), `${cliMd}\n`);
+  writeText(join(refDir, "host-config.md"), `${hostConfigMd}\n`);
 }
 
 async function build() {

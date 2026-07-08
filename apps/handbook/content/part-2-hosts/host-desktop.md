@@ -40,6 +40,8 @@ Platform data directory (identity, `config.json`, quotas):
 - Linux: `~/.local/share/twistedpear/host`
 - Windows: `%APPDATA%/TwistedPear/host`
 
+Full schema: [Host configuration](chapter:ref-host-config).
+
 Opt-in status JSON: `http://127.0.0.1:9473/status` when `--status-endpoint` is set.
 
 Live capability view: [Live difference matrix](chapter:difference-matrix).
