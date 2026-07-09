@@ -79,8 +79,8 @@ npm test
 | Example mini-apps | `npm run build`<br>`npm run test:examples` | Exercises chat, file-drop, and board through package/install/runtime paths. See [apps/examples](apps/examples/README.md). |
 | Handbook mini-app | `npm run build:handbook`<br>`npm run test:handbook` | Builds and validates the Handbook mini-app. Web validation is `npm run test:web-handbook`. |
 | Mobile host | `npm run build`<br>`npm run build:worklet`<br>`cd apps/harness-mobile && npx expo run:android` | Use `npx expo run:ios` for the iOS simulator on macOS. See [apps/harness-mobile](apps/harness-mobile/README.md). |
-| Web host | `npm run build:web-host`<br>`cd apps/harness-mobile && npm run web` | Builds the static web-host assets and starts Expo web for local development. See [docs/web-host.md](docs/web-host.md). |
-| Desktop host | `npm run start --workspace=host-desktop` | Builds and starts the Electron desktop host. See [docs/desktop-host.md](docs/desktop-host.md). |
+| Web host | `npm run run:web` | Builds the static web-host assets and starts Expo web for local development. See [docs/web-host.md](docs/web-host.md). |
+| Desktop host | `npm run run:desktop` | Builds and starts the Electron desktop host. See [docs/desktop-host.md](docs/desktop-host.md). |
 | Headless node/seeder | `tp node --data-dir ~/.local/share/twistedpear/host`<br>`tp seed --transport --state-dir .tp/seeder` | Available after the workspace is built. See [docs/desktop-host.md](docs/desktop-host.md). |
 | Mini-app runtime conformance | `npm run test:hostile-apps`<br>`npm run test:sdk-interop`<br>`npm run test:dev-loop`<br>`npm run test:miniapp-soak` | Runtime, SDK, dev side-load, and soak coverage. See [conformance](conformance/README.md). |
 | Web conformance | `npm run test:web-runtime`<br>`npm run test:web-miniapp`<br>`npm run test:web-examples`<br>`npm run test:web-pwa` | Browser/runtime slices for the web implementation. See [docs/web-host.md](docs/web-host.md). |
