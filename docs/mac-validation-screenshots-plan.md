@@ -111,7 +111,7 @@ green — the final summary capture shows whatever really happened.
 | `test:interop` | environment | Docker peer path timeouts — verify compose peers reachable (`docker compose ... up leaf-echo`) |
 | `test:transport-role` | environment | Same peer-path timeout cluster |
 | `test:rnsd-mode` | environment | Same peer-path timeout cluster |
-| `test:propagation-interop` | product bug | Export fixed 2026-07-09; re-run fails on in-process sync (*Propagation node identity is unknown*) |
+| `test:propagation-interop` | product bug | **Fixed 2026-07-09** — local destination identity resolution + PipeInterface in-process slice |
 | `test:link-benchmark` | environment | Peer-path timeout against link-echo |
 | `test:auto-interop` | environment | `EADDRNOTAVAIL` binding link-local IPv6 — host network config |
 | `test:i2p-interop` | environment | I2P peer b32 never appeared — local I2P not running |
@@ -149,7 +149,7 @@ worklet Bare-pack fixes that landed in the same window:
 | `test:desktop-soak` | product bug | **PASS** | Imports `../desktop/full-loop.mjs` |
 | `test:ios-sim:required` | product bug | **PASS** | Worklet bundle + handbook slice |
 | `test:harness-install` | product bug | **PASS** | Worklet bundle + catalog ingest |
-| `test:propagation-interop` | product bug | **FAIL** | Export fixed; new in-process error: *Propagation node identity is unknown* |
+| `test:propagation-interop` | product bug | **PASS** (in-process + host-core slices; docker TCP path still environment-gated) |
 | `npm run start --workspace=host-desktop` | — | **Partial** | Worklet child reaches initial `status` on bare CLI (2026-07-09); full IPC + native store/Hyperdrive still need linked addon frameworks |
 
 **Still open from the 2026-07-08 pass:** Docker peer-connectivity cluster (9
@@ -203,6 +203,18 @@ issues.
 | `ipc-stdio.mjs` lazy IPC + console fallback | **Done** | Initial `status` reaches parent without linked frameworks |
 | Desktop worklet `status` on bare CLI spawn | **Partial** | `DesktopWorkletClient.start()` green (`crypto: pure`); full IPC/store still needs linked frameworks or embedded prebuilds |
 | `node_modules` symlink at build | **Added** | `build-worklet.mjs` links `apps/host-desktop/node_modules` → repo root for addon resolution experiments |
+
+### Phase 4e — Worklet store fallback + propagation identity (2026-07-09)
+
+| Item | Status | Notes |
+|---|---|---|
+| `BareKeyValueStore` memory fallback | **Done** | When `bare-fs` addons are absent (`--linked` bundle on bare CLI), store ops use in-memory map instead of crashing on `bare-os` |
+| `Reticulum.resolveDestinationIdentity()` | **Done** | Checks local registered destinations before `Identity.recall` announce cache |
+| `test:propagation-interop` in-process slice | **Done** | PipeInterface pair + numeric `PropagationTransferState` check; was failing on *identity unknown* / string state compare |
+| `DesktopWorkletClient` create-identity IPC | **Partial** | Identity create + status over stdio works; `bare-process` stdin still needs linked frameworks (`bare-abort` addon) |
+| Embedded prebuild bundle (`--target darwin-arm64` without `--linked`) | **Blocked** | `bare-pack` emits bundle but bare CLI fails to load it (`Unexpected token ':'`); desktop stays on `--linked` for mobile-kit parity |
+
+**Still open:** linked addon frameworks for full `bare-process` IPC + persistent `bare-fs` on desktop bare CLI; re-run `npm run validate:mac:full` for updated summary capture; Android Stage 7 UI shot after green emulator re-run.
 
 ## Risks
 

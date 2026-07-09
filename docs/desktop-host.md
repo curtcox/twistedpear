@@ -47,7 +47,9 @@ Localhost status JSON (opt-in): `http://127.0.0.1:9473/status`
 Electron-based IDEs such as Cursor) before launching Electron. The Bare worklet
 child clears the linked `node:os` / `node:worker_threads` import graph (2026-07-09)
 and reaches an initial `status` message on bare CLI spawn using `PureCryptoProvider`
-and a console-log IPC fallback when linked frameworks are absent. Full stdio IPC,
+and a console-log IPC fallback when linked frameworks are absent. When `bare-fs`
+addons are unavailable, the worklet falls back to an in-memory KV store (2026-07-09)
+so startup no longer crashes on `bare-os`. Full stdio IPC,
 identity persistence (`bare-fs`), sodium-native fast path, and Hyperdrive still
 require linked addon frameworks (as react-native-bare-kit ships on mobile). Conformance
 `test:desktop` exercises the mini-app stack in-process via `node-worker` and

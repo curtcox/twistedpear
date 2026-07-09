@@ -163,6 +163,16 @@ export class Reticulum {
   listInterfaces(): ReadonlyArray<PacketInterface> {
     return this.transport.listInterfaces();
   }
+
+  /** Resolve a destination hash to an identity from local registrations or the announce cache. */
+  resolveDestinationIdentity(destinationHash: Uint8Array): Identity | null {
+    const local = this.transport.findLocalDestination(destinationHash);
+    if (local?.identity !== null && local?.identity !== undefined) {
+      return local.identity;
+    }
+
+    return Identity.recall(this.provider, destinationHash);
+  }
 }
 
 export type { AnnounceHandler, LeafTransportOptions };

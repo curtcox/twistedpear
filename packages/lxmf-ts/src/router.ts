@@ -254,7 +254,7 @@ export class LXMFRouter {
       throw new Error("No outbound propagation node configured");
     }
 
-    const nodeIdentity = Identity.recall(this.provider, this.outboundPropagationNode);
+    const nodeIdentity = this.reticulum.resolveDestinationIdentity(this.outboundPropagationNode);
     if (nodeIdentity === null) {
       throw new Error("Propagation node identity is unknown");
     }

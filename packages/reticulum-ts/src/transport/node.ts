@@ -161,6 +161,10 @@ export class LeafTransport {
     }
   }
 
+  findLocalDestination(destinationHash: Uint8Array): LocalDestination | undefined {
+    return this.destinations.find((destination) => equalBytes(destination.hash, destinationHash));
+  }
+
   registerAnnounceHandler(handler: AnnounceHandler): void {
     if (!this.announceHandlers.includes(handler)) {
       this.announceHandlers.push(handler);

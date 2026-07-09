@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createNodeHost } from "../../packages/host-core/dist/node-host.js";
 import { resolveHostConfig } from "../../packages/host-core/dist/config.js";
-import { NodeCryptoProvider, Reticulum, nodeRuntime, Identity, hexToBytes } from "../../packages/reticulum-ts/dist/index.js";
+import { NodeCryptoProvider, Reticulum, nodeRuntime, Identity, hexToBytes, PipeInterface } from "../../packages/reticulum-ts/dist/index.js";
 import {
   LXMessage,
   LXMessageMethod,
@@ -71,26 +71,37 @@ async function runInProcessPropagationSync() {
   const provider = new NodeCryptoProvider();
   const runtime = nodeRuntime();
 
-  const reticulum = Reticulum.create({ provider, runtime });
-  reticulum.start();
+  const nodeReticulum = Reticulum.create({ provider, runtime });
+  const clientReticulum = Reticulum.create({ provider, runtime });
+  nodeReticulum.start();
+  clientReticulum.start();
 
-  const identity = new Identity(provider);
+  const [nodePipe, clientPipe] = PipeInterface.pair(provider);
+  nodeReticulum.registerInterface(nodePipe);
+  clientReticulum.registerInterface(clientPipe);
+
+  const nodeIdentity = new Identity(provider);
   const server = new PropagationServer(provider);
-  const destination = createPropagationDestination(provider, reticulum, identity);
+  const destination = createPropagationDestination(provider, nodeReticulum, nodeIdentity);
   server.registerHandlers(destination);
+  const nodeDelivery = new LXMFRouter({ reticulum: nodeReticulum, provider }).registerDeliveryIdentity(nodeIdentity);
+  await nodeDelivery.announce();
   await destination.announce();
 
-  const router = new LXMFRouter({ reticulum, provider });
-  router.registerDeliveryIdentity(identity);
+  const router = new LXMFRouter({ reticulum: clientReticulum, provider });
+  router.registerDeliveryIdentity(new Identity(provider));
+
+  await sleep(50);
 
   const client = new PropagationClient({ router, provider });
   client.setPropagationNode(destination.hash);
   const result = await client.syncMessages(10);
-  if (result.state !== "complete" && result.state !== "idle") {
+  if (result.state !== PropagationTransferState.COMPLETE && result.state !== PropagationTransferState.IDLE) {
     throw new Error(`propagation sync failed: ${result.state}`);
   }
 
-  await reticulum.stop();
+  await clientReticulum.stop();
+  await nodeReticulum.stop();
   console.log("propagation-interop: in-process sync passed");
 }
 

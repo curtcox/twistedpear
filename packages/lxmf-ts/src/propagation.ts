@@ -1,10 +1,10 @@
-import type { CryptoProvider, Identity, Link, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, Link, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
 import {
   Destination,
   DestinationAllowPolicy,
   DestinationDirection,
   DestinationType,
-  Identity as RnsIdentity,
+  Identity,
   LinkStatus
 } from "@twistedpear/reticulum-ts";
 import {
@@ -153,7 +153,7 @@ export class PropagationClient {
         messages.push(message);
       }
 
-      haves.push(RnsIdentity.fullHash(this.provider, lxmfData));
+      haves.push(Identity.fullHash(this.provider, lxmfData));
     }
 
     if (haves.length > 0) {
@@ -187,7 +187,7 @@ export class PropagationClient {
       throw new Error("No propagation node configured");
     }
 
-    const nodeIdentity = RnsIdentity.recall(this.provider, this.propagationNodeHash);
+    const nodeIdentity = this.router.reticulum.resolveDestinationIdentity(this.propagationNodeHash);
     if (nodeIdentity === null) {
       throw new Error("Propagation node identity is unknown");
     }
@@ -230,7 +230,7 @@ export class PropagationNodeStore {
   }
 
   storePropagationData(lxmfData: Uint8Array): Uint8Array {
-    const transientId = RnsIdentity.fullHash(this.provider, lxmfData);
+    const transientId = Identity.fullHash(this.provider, lxmfData);
     const destinationHash = lxmfData.subarray(0, 16);
     this.entries.set(Buffer.from(transientId).toString("hex"), {
       transientId,

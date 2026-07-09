@@ -8,11 +8,42 @@ type BareFsModule = {
   unlink(path: string): Promise<void>;
 };
 
-let bareFsModule: BareFsModule | null = null;
+class MemoryKeyValueStore implements KeyValueStore {
+  private readonly values = new Map<string, Uint8Array>();
 
-async function loadBareFs(): Promise<BareFsModule> {
-  bareFsModule ??= (await import("bare-fs")) as BareFsModule;
-  return bareFsModule;
+  async get(key: string): Promise<Uint8Array | undefined> {
+    const value = this.values.get(key);
+    return value === undefined ? undefined : Uint8Array.from(value);
+  }
+
+  async set(key: string, value: Uint8Array): Promise<void> {
+    this.values.set(key, Uint8Array.from(value));
+  }
+
+  async delete(key: string): Promise<void> {
+    this.values.delete(key);
+  }
+}
+
+let bareFsModule: BareFsModule | null = null;
+let bareFsUnavailable = false;
+
+async function loadBareFs(): Promise<BareFsModule | null> {
+  if (bareFsUnavailable) {
+    return null;
+  }
+
+  if (bareFsModule !== null) {
+    return bareFsModule;
+  }
+
+  try {
+    bareFsModule = (await import("bare-fs")) as BareFsModule;
+    return bareFsModule;
+  } catch {
+    bareFsUnavailable = true;
+    return null;
+  }
 }
 
 export interface BareKeyValueStoreOptions {
@@ -21,6 +52,7 @@ export interface BareKeyValueStoreOptions {
 
 export class BareKeyValueStore implements KeyValueStore {
   private readonly rootPath: string;
+  private memoryFallback: MemoryKeyValueStore | null = null;
 
   constructor(options: BareKeyValueStoreOptions) {
     this.rootPath = options.rootPath.replace(/\/$/, "");
@@ -31,28 +63,52 @@ export class BareKeyValueStore implements KeyValueStore {
     return `${this.rootPath}/${encoded}`;
   }
 
-  async get(key: string): Promise<Uint8Array | undefined> {
+  private async resolveStore(): Promise<{ kind: "memory"; store: MemoryKeyValueStore } | { kind: "fs"; fs: BareFsModule }> {
     const fs = await loadBareFs();
+    if (fs === null) {
+      this.memoryFallback ??= new MemoryKeyValueStore();
+      return { kind: "memory", store: this.memoryFallback };
+    }
+
+    return { kind: "fs", fs };
+  }
+
+  async get(key: string): Promise<Uint8Array | undefined> {
+    const resolved = await this.resolveStore();
+    if (resolved.kind === "memory") {
+      return resolved.store.get(key);
+    }
+
     const path = this.pathFor(key);
     try {
-      await fs.access(path);
-      return await fs.readFile(path);
+      await resolved.fs.access(path);
+      return await resolved.fs.readFile(path);
     } catch {
       return undefined;
     }
   }
 
   async set(key: string, value: Uint8Array): Promise<void> {
-    const fs = await loadBareFs();
-    await fs.mkdir(this.rootPath, { recursive: true });
-    await fs.writeFile(this.pathFor(key), value);
+    const resolved = await this.resolveStore();
+    if (resolved.kind === "memory") {
+      await resolved.store.set(key, value);
+      return;
+    }
+
+    await resolved.fs.mkdir(this.rootPath, { recursive: true });
+    await resolved.fs.writeFile(this.pathFor(key), value);
   }
 
   async delete(key: string): Promise<void> {
-    const fs = await loadBareFs();
+    const resolved = await this.resolveStore();
+    if (resolved.kind === "memory") {
+      await resolved.store.delete(key);
+      return;
+    }
+
     const path = this.pathFor(key);
     try {
-      await fs.unlink(path);
+      await resolved.fs.unlink(path);
     } catch {
       // Missing keys are not an error.
     }
