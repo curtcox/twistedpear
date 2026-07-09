@@ -9,6 +9,21 @@ let processModule = null;
 let stdinAttached = false;
 let processLoad = null;
 
+function nodeProcess() {
+  const candidate = globalThis.process;
+  if (
+    candidate !== undefined &&
+    candidate.stdin !== undefined &&
+    typeof candidate.stdin.on === "function" &&
+    candidate.stdout !== undefined &&
+    typeof candidate.stdout.write === "function"
+  ) {
+    return candidate;
+  }
+
+  return null;
+}
+
 async function loadProcess() {
   if (processModule !== null) {
     return processModule;
@@ -42,6 +57,12 @@ export const IPC = {
     }
 
     listeners.add(listener);
+    const process = nodeProcess();
+    if (process !== null) {
+      attachStdin(process);
+      return;
+    }
+
     void loadProcess()
       .then((process) => attachStdin(process))
       .catch((error) => {
@@ -52,6 +73,12 @@ export const IPC = {
   },
 
   write(data) {
+    const process = nodeProcess();
+    if (process !== null) {
+      process.stdout.write(data);
+      return;
+    }
+
     void loadProcess()
       .then((process) => {
         process.stdout.write(data);

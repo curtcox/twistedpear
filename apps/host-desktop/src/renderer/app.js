@@ -135,6 +135,15 @@ function showHostModal({ title, fingerprint, rows = [], capabilities = null, con
   const approve = document.createElement("button");
   approve.className = "primary";
   approve.textContent = confirmLabel;
+  const refreshApproveState = () => {
+    approve.disabled =
+      capabilities !== null &&
+      capabilityInputs.length > 0 &&
+      capabilityInputs.every((input) => !input.checked);
+  };
+  for (const input of capabilityInputs) {
+    input.addEventListener("change", refreshApproveState);
+  }
   approve.addEventListener("click", () => {
     const grants = capabilityInputs
       .filter((input) => input.checked)
@@ -145,6 +154,7 @@ function showHostModal({ title, fingerprint, rows = [], capabilities = null, con
   });
   actions.append(cancel, approve);
   modalEl.appendChild(actions);
+  refreshApproveState();
   modalOverlay.hidden = false;
 }
 
@@ -447,10 +457,6 @@ const host = window.twistedPearHost;
 if (!host) {
   appendLog("Preload bridge unavailable");
 } else {
-  void host.getStatus().then(renderStatus);
-  host.send({ type: "list-catalog" });
-  host.send({ type: "list-installed" });
-
   settingDeveloper?.addEventListener("change", () => {
     host.send({ type: "set-developer-mode", enabled: settingDeveloper.checked });
   });
@@ -693,6 +699,10 @@ if (!host) {
   host.onWorkletExit((detail) => {
     appendLog(`Worklet exited (code=${detail.code}, signal=${detail.signal ?? "none"})`);
   });
+
+  void host.getStatus().then(renderStatus);
+  host.send({ type: "list-catalog" });
+  host.send({ type: "list-installed" });
 }
 
 renderCatalog();

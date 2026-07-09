@@ -110,7 +110,7 @@ function testElectronSecurityPosture() {
   assert(html.includes("Content-Security-Policy"), "renderer HTML includes CSP");
   assert(!html.includes("nodeIntegration"), "renderer HTML does not enable nodeIntegration");
 
-  const preload = readFileSync(join(hostRoot, "src/preload/index.ts"), "utf8");
+  const preload = readFileSync(join(hostRoot, "src/preload/index.cts"), "utf8");
   assert(preload.includes("contextBridge.exposeInMainWorld"), "preload uses contextBridge");
   assert(preload.includes("FROZEN_HOST_API"), "preload documents frozen IPC surface");
 }

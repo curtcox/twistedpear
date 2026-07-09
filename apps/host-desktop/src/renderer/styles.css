@@ -5,6 +5,10 @@ body {
   color: #e7ecf3;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 header {
   padding: 1rem 1.5rem;
   border-bottom: 1px solid #2a3441;

@@ -37,7 +37,7 @@ function createWindow(): void {
     width: 960,
     height: 720,
     webPreferences: {
-      preload: join(hostRoot, "dist/preload/index.js"),
+      preload: join(hostRoot, "dist/preload/index.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true

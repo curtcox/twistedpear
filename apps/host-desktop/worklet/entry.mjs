@@ -79,6 +79,10 @@ async function createProvider() {
 const provider = await createProvider();
 const runtime = bareRuntime({ storePath: "host-desktop-store" });
 const IDENTITY_STORE_KEY = "host-identity";
+const NODE_FALLBACK = globalThis.process?.env?.TWISTEDPEAR_WORKLET_NODE_FALLBACK === "1";
+const NodeWorkerSandboxBackend = NODE_FALLBACK
+  ? (await import("../../../packages/miniapp-runtime/dist/sandbox/node-worker.js")).NodeWorkerSandboxBackend
+  : null;
 
 /** @type {import("./protocol.ts").WorkletStatus} */
 const status = {
@@ -210,6 +214,7 @@ let trustStore = null;
 const casLocators = new Map();
 /** @type {CasStore | null} */
 let entryCasStore = null;
+const runtimeStoreKeys = new Set();
 
 function ensureEntryCasStore() {
   if (entryCasStore === null) {
@@ -455,6 +460,9 @@ function ensureMiniappHost() {
       provider,
       kvStore: runtimeKeyValueStore(),
       beeStoragePath: "miniapp-bee-store",
+      ...(NodeWorkerSandboxBackend === null
+        ? {}
+        : { createSandboxBackend: () => new NodeWorkerSandboxBackend(), sandboxBackend: "node-worker" }),
       getPresenceSnapshot: () => status,
       getHostInfoSnapshot: () => {
         const interfaceTypes = [];
@@ -525,13 +533,15 @@ function runtimeKeyValueStore() {
       return value === undefined ? null : value;
     },
     async set(key, value) {
+      runtimeStoreKeys.add(key);
       await runtime.store.set(key, value);
     },
     async delete(key) {
+      runtimeStoreKeys.delete(key);
       await runtime.store.delete(key);
     },
-    async list() {
-      return [];
+    async list(prefix) {
+      return [...runtimeStoreKeys].filter((key) => key.startsWith(prefix));
     }
   };
 }
