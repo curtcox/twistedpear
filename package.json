@@ -89,7 +89,7 @@
     "demo:phase6": "npm run build && node conformance/demo/phase6-loop.mjs",
     "build:worklet": "npm run build && npm run build:worklet --workspace=harness-mobile",
     "build:web-host": "npm run build && npm run build:web-host --workspace=harness-mobile",
-    "run:web": "npm run build:web-host && npm run web --workspace=harness-mobile",
+    "run:web": "npm run build && npm run build:web-worker --workspace=harness-mobile && npm run web --workspace=harness-mobile",
     "run:desktop": "npm run start --workspace=host-desktop",
     "doctor:mac": "node conformance/mac-validation/doctor.mjs",
     "validate:mac": "node conformance/mac-validation/run.mjs",

@@ -6,7 +6,8 @@
   "main": "dist/main/index.js",
   "scripts": {
     "build": "tsc -b && node scripts/build-worklet.mjs",
-    "start": "npm run build && env -u ELECTRON_RUN_AS_NODE electron .",
+    "postinstall": "node scripts/ensure-electron.mjs",
+    "start": "npm run build && node scripts/ensure-electron.mjs && env -u ELECTRON_RUN_AS_NODE electron .",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder"
   },

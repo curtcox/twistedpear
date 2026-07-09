@@ -6,9 +6,17 @@ const repoRoot = path.resolve(harnessRoot, "../..");
 
 const config = getDefaultConfig(harnessRoot);
 
+const nodeEmptyStub = path.resolve(harnessRoot, "stubs/node-empty.web.js");
+
 const webStubs = {
   "sodium-native": path.resolve(harnessRoot, "stubs/sodium-native.web.js"),
-  "react-native-bare-kit": path.resolve(harnessRoot, "stubs/bare-kit.web.js")
+  "react-native-bare-kit": path.resolve(harnessRoot, "stubs/bare-kit.web.js"),
+  "require-addon": nodeEmptyStub,
+  "rocksdb-native": nodeEmptyStub,
+  corestore: nodeEmptyStub,
+  hyperdrive: nodeEmptyStub,
+  hyperswarm: nodeEmptyStub,
+  hyperbee: nodeEmptyStub
 };
 
 const packageAliases = {
