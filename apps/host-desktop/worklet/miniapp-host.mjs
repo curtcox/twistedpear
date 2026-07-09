@@ -18,7 +18,7 @@ import {
   unpackPackage
 } from "../../../packages/app-registry/dist/index.js";
 import { CasStore } from "../../../packages/cas-256t/dist/index.js";
-import { bytesToHex } from "../../../packages/reticulum-ts/dist/index.js";
+import { bytesToHex } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 
 /**
  * Worklet-side mini-app host wrapper. Keeps Phase 4 runtime wiring out of entry.mjs.

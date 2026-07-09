@@ -18,7 +18,7 @@ import { createIpcSerialBridge } from "./ipc-serial-bridge.mjs";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import { CatalogStore, InstalledPackageStore, TrustStore, decodeAppAnnounceData, decodePublisherIdentity256t, encodePublisherIdentity256t, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
-import { DriveManager, PackageResourceClient, assessFetchBudget, attachPackageResourceServer, createSwarm, fetchPackage } from "../../../packages/bridge-hyper/dist/index.js";
+import { DriveManager, PackageResourceClient, assessFetchBudget, attachPackageResourceServer, createSwarm, fetchPackage } from "../../../packages/bridge-hyper/dist/worklet.js";
 import {
   buildAppAnnounceSummary,
   encodeAppAnnounceData

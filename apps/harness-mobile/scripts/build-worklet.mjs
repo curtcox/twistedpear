@@ -22,7 +22,9 @@ writeFileSync(
     {
       "@noble/hashes/crypto": nobleCrypto,
       "@noble/ciphers/crypto": nobleCrypto,
-      "@noble/curves/crypto": nobleCrypto
+      "@noble/curves/crypto": nobleCrypto,
+      "@twistedpear/reticulum-ts": join(repoRoot, "packages/reticulum-ts/dist/worklet.js"),
+      "@twistedpear/bridge-hyper": join(repoRoot, "packages/bridge-hyper/dist/worklet.js")
     },
     null,
     2
