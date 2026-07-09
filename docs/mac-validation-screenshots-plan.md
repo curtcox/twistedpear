@@ -79,6 +79,60 @@ green — the final summary capture shows whatever really happened.
 3. Verify every embedded image path resolves (scripted check for broken
    image links) and present the full diff. No commit unless requested.
 
+   Run `npm run verify:doc-images` or `vitest run conformance/docs/verify-images.test.mjs`.
+
+## Completion (2026-07-08)
+
+| Phase | Status | Notes |
+|---|---|---|
+| 0 — Preflight | Done | Doctor gate green; dry-run plan captured |
+| 1 — Full pass | Done | Stages 0–8 completed with `--continue-on-failure`; 23 suite failures |
+| 2 — Triage | Done | Classification below; evidence in `.tmp/mac-validation/2026-07-08T23-57-31-857Z/triage-package.md` |
+| 3 — Embed + verify | Done | 9 PNGs in `docs/images/`; embeds in 6 docs; `verify:doc-images` wired |
+
+### Captured images
+
+| File | Doc | Notes |
+|---|---|---|
+| `mac-validation-doctor.png` | mac-validation.md | Stage 0 gate |
+| `mac-validation-plan.png` | mac-validation.md | Dry-run command plan |
+| `mac-validation-summary.png` | mac-validation.md | Failed full-pass summary (23 failures) |
+| `mac-validation-triage.png` | mac-validation.md | Triage package output |
+| `web-host-examples.png` | web-host.md | Stage 4 `test:web-examples` |
+| `handbook-web-handbook.png` | handbook.md | Stage 4 `test:web-handbook` |
+| `ios-handbook-mobile.png` | handbook.md, ios-host.md | Stage 6 `test:handbook-mobile` iOS slice |
+| `android-emulator-handbook.png` | android-emulator-lab.md | Stage 7 handbook slice before lane failure |
+| `desktop-host-failure.png` | desktop-host.md | Stage 5 worklet bundling failure (no stable UI) |
+
+### Triage classification (2026-07-08 full pass)
+
+| Suite | Class | Likely cause / next step |
+|---|---|---|
+| `test:interop` | environment | Docker peer path timeouts — verify compose peers reachable (`docker compose ... up leaf-echo`) |
+| `test:transport-role` | environment | Same peer-path timeout cluster |
+| `test:rnsd-mode` | environment | Same peer-path timeout cluster |
+| `test:propagation-interop` | product bug | Missing export `msgpackUnpackPropagationEnvelope` from `lxmf-ts` |
+| `test:link-benchmark` | environment | Peer-path timeout against link-echo |
+| `test:auto-interop` | environment | `EADDRNOTAVAIL` binding link-local IPv6 — host network config |
+| `test:i2p-interop` | environment | I2P peer b32 never appeared — local I2P not running |
+| `test:web-interop` | environment | Same peer-path timeout cluster |
+| `test:bare-interop` | environment | TCP to docker leaf-echo not connected |
+| `test:harness-install` | product bug | Worklet bundle: `ws` pulls Node `stream` into Bare pack graph |
+| `test:web-pwa` | product bug | Web bundle pulls `rocksdb-native` / `require-addon` — not web-safe |
+| `test:web-rnode` | flaky test | Playwright page closed mid-evaluate |
+| `test:web-interop-browser` | product bug | IndexedDB object store missing in browser interop lane |
+| `test:desktop` | product bug | Worklet bundle: missing Bare shim for `stream` (`ws` dependency) |
+| `build:worklet` (×2) | product bug | Same `stream`/`zlib` Bare pack failures |
+| `test:ios-sim:required` | product bug | Worklet bundle: missing Bare shim for `zlib` |
+| `test:android-native` | toolchain | Kotlin compile failure in `expo-modules-core` with local JDK/Gradle |
+| `expo run:android` | product bug | `minSdkVersion 24` vs `react-native-bare-kit` requires 28 |
+| `test:android-emulator` | product bug | Missing generated `conformance/android-emulator/fixture-meta.json` |
+| `test:android-emulator:e3` | environment | Maestro launch failed — app not installed (downstream of Gradle build) |
+| `test:android-emulator:e5` | product bug | Same missing `fixture-meta.json` |
+| `test:desktop-soak` | product bug | Missing `conformance/desktop-soak/full-loop.mjs` entrypoint |
+
+**Cluster summary:** one Docker peer-connectivity cluster (9 suites), one worklet Bare-pack cluster (6 suites), three Android lane blockers (minSdk, fixture meta, Gradle), four isolated web/desktop product gaps.
+
 ## Risks
 
 - First-run `expo run:ios` and Android Gradle builds can add ~45 min each.

@@ -393,6 +393,20 @@ key value.
 
 The triage package includes the failed logs and command metadata for follow-up classification.
 
+### 2026-07-08 full-pass failure clusters
+
+The pass completed Stages 0–8 with `--continue-on-failure` and reported **23 suite failures**. Triage evidence lives in `.tmp/mac-validation/2026-07-08T23-57-31-857Z/triage-package.md`. High-level classification:
+
+| Cluster | Suites | Class | Next verification |
+|---|---|---|---|
+| Docker peer path timeouts | `test:interop`, `test:transport-role`, `test:rnsd-mode`, `test:link-benchmark`, `test:web-interop`, `test:bare-interop` | environment | Confirm compose peers are up and reachable on localhost ports |
+| Worklet Bare-pack (`ws` → `stream`/`zlib`) | `build:worklet`, `test:desktop`, `test:ios-sim:required`, `test:harness-install` | product bug | Re-run `npm run build:worklet` after Bare shim / dependency graph fix |
+| Android emulator lane | `test:android-native`, `expo run:android`, `test:android-emulator*` | mixed | Fix minSdk 28, generate `fixture-meta.json`, rebuild dev client |
+| Web gaps | `test:web-pwa`, `test:web-interop-browser`, `test:web-rnode` | product / flaky | Re-run individual Stage 4 suites after bundle/IDB fixes |
+| Isolated exports / missing entrypoints | `test:propagation-interop`, `test:desktop-soak` | product bug | Fix missing `msgpackUnpackPropagationEnvelope` export; add desktop soak loop |
+
+See [mac-validation-screenshots-plan.md](mac-validation-screenshots-plan.md) for the per-suite table and screenshot capture notes.
+
 Plan-duration soaks (Stage 8 opt-in) are scheduled separately and are the
 only remaining software-tier exits in STATUS-SOFTWARE once the standard pass
 is green.
