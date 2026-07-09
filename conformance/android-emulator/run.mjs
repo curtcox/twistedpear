@@ -4,7 +4,7 @@
  * Skips when no adb device or maestro CLI is available unless ANDROID_EMULATOR_REQUIRED=1.
  */
 
-import { readFileSync } from "node:fs";
+
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
@@ -13,12 +13,12 @@ import {
   maestroAvailable,
   maestroWithFixtureEnv,
   requireDevice,
-  waitForBootComplete
+  waitForBootComplete,
+  waitForFixtureMeta
 } from "./helpers.mjs";
 import { runAndroidHandbookSlice } from "./handbook.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const labDir = dirname(fileURLToPath(import.meta.url));
 const required = process.env.ANDROID_EMULATOR_REQUIRED === "1";
 
 function dockerAvailable() {
@@ -82,7 +82,7 @@ async function main() {
   waitForBootComplete();
 
   try {
-    readFileSync(join(labDir, "fixture-meta.json"), "utf8");
+    waitForFixtureMeta();
 
     maestro(["test", ".maestro/e1-tcp-install.yaml"]);
     maestro(["test", ".maestro/e2-resource-install.yaml"]);

@@ -5,8 +5,8 @@
  */
 
 import { pathToFileURL } from "node:url";
-import { runDesktopFullLoop } from "./full-loop.mjs";
-import { runDesktopHostileSmoke } from "./hostile-smoke.mjs";
+import { runDesktopFullLoop } from "../desktop/full-loop.mjs";
+import { runDesktopHostileSmoke } from "../desktop/hostile-smoke.mjs";
 
 const cycles = Number.parseInt(process.env.DESKTOP_SOAK_CYCLES ?? "3", 10);
 

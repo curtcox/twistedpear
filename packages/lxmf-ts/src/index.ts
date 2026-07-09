@@ -50,3 +50,9 @@ export {
   type PropagationPersistence,
   type PropagationStoredEntry
 } from "./propagation-server.js";
+export {
+  msgpackPackPropagationEnvelope,
+  msgpackPackPropagationRequest,
+  msgpackUnpackPropagationEnvelope,
+  msgpackUnpackPropagationRequest
+} from "./msgpack.js";

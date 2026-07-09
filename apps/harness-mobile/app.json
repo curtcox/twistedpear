@@ -15,7 +15,8 @@
       "./modules/node-service/app.plugin.js"
     ],
     "android": {
-      "package": "network.twistedpear.harness"
+      "package": "network.twistedpear.harness",
+      "minSdkVersion": 28
     },
     "ios": {
       "bundleIdentifier": "network.twistedpear.harness",

@@ -2,7 +2,7 @@
  * Shared adb helpers for Android emulator lab automation.
  */
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -53,6 +53,23 @@ export function waitForBootComplete(timeoutMs = 120_000) {
   }
 
   throw new Error("Timed out waiting for emulator boot");
+}
+
+export function waitForFixtureMeta(timeoutMs = 120_000) {
+  const metaPath = join(labDir, "fixture-meta.json");
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (existsSync(metaPath)) {
+      const meta = JSON.parse(readFileSync(metaPath, "utf8"));
+      if (typeof meta.appId === "string" && meta.appId.length > 0) {
+        return meta;
+      }
+    }
+
+    spawnSync("sleep", ["1"]);
+  }
+
+  throw new Error("Timed out waiting for fixture-meta.json (host-peer publish still running?)");
 }
 
 export function isForegroundServiceRunning() {
