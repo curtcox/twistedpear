@@ -1,8 +1,36 @@
-import type { CryptoProvider } from "@twistedpear/reticulum-ts";
-import { Identity } from "@twistedpear/reticulum-ts";
+import type { CryptoProvider, PacketInterface, Runtime } from "@twistedpear/reticulum-ts";
+import { Identity, type ReticulumInterfaceOptions } from "@twistedpear/reticulum-ts";
 
 export const SCOPE_LINK = "2";
 export const MULTICAST_TEMPORARY = "1";
+
+/** Mirrors RNS/Interfaces/AutoInterface.py constants (no Node builtins — safe for Bare worklets). */
+export const AUTO_HW_MTU = 1_196;
+export const AUTO_DEFAULT_DISCOVERY_PORT = 29_716;
+export const AUTO_DEFAULT_DATA_PORT = 42_671;
+export const AUTO_DEFAULT_GROUP_ID = "reticulum";
+export const AUTO_PEERING_TIMEOUT_MS = 22_000;
+export const AUTO_ANNOUNCE_INTERVAL_MS = 1_600;
+export const AUTO_PEER_JOB_INTERVAL_MS = 4_000;
+export const AUTO_REVERSE_PEERING_INTERVAL_MS = AUTO_ANNOUNCE_INTERVAL_MS * 3.25;
+export const AUTO_BITRATE_GUESS = 10_000_000;
+
+export interface AutoInterfaceOptions extends ReticulumInterfaceOptions {
+  readonly provider: CryptoProvider;
+  readonly runtime: Runtime;
+  readonly groupId?: string;
+  readonly discoveryPort?: number;
+  readonly dataPort?: number;
+  readonly allowedDevices?: ReadonlyArray<string>;
+  readonly ignoredDevices?: ReadonlyArray<string>;
+  readonly peeringTimeoutMs?: number;
+  readonly onPeerSpawn?: (peer: AutoInterfacePeerHandle) => void;
+  readonly onPeerDetach?: (peer: AutoInterfacePeerHandle) => void;
+}
+
+export interface AutoInterfacePeerHandle extends PacketInterface {
+  readonly peerAddress: string;
+}
 
 export function deriveMulticastAddress(
   provider: CryptoProvider,

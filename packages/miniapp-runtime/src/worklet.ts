@@ -1,0 +1,51 @@
+/**
+ * Bare worklet entrypoint for miniapp-runtime.
+ * Excludes Node `worker_threads`, web-only sandbox backends, and the index barrel
+ * that re-exports them (linked externals evaluate every static export).
+ */
+export { HOST_API_VERSION, HOST_API_CHANGELOG } from "./host-api.js";
+export type { HostApiChangelogEntry } from "./host-api.js";
+export {
+  CAPABILITY_DEFINITIONS,
+  CapabilityError,
+  GrantStore,
+  assertCapabilityAllowed,
+  describeCapability,
+  grantStoreKey,
+  isMiniappCapability,
+  validateManifestCapabilities
+} from "./capabilities.js";
+export type { CapabilityDefinition, GrantKeyValueStore, GrantRecord, MiniappCapability } from "./capabilities.js";
+export { MiniappLifecycle } from "./lifecycle.js";
+export type { MiniappLifecycleSnapshot, MiniappLifecycleState, LifecycleOptions } from "./lifecycle.js";
+export type { SandboxBackend, SandboxInstance, SandboxLimits, SandboxSpawnOptions } from "./sandbox/backend.js";
+export { BareWorkerSandboxBackend, WorkerBackendUnavailableError } from "./sandbox/worker.js";
+export { encodeJsonWireValue, reviveJsonWireValue, isJsonWireBytes } from "./sandbox/json-wire.js";
+export type { JsonWireBytes } from "./sandbox/json-wire.js";
+export { createSandboxBackend } from "./sandbox/worklet-factory.js";
+export { prepareBundleSource } from "./sandbox/prepare-bundle.js";
+export { MiniappHost } from "./host.js";
+export type {
+  LaunchManifest,
+  MiniappHostCallbacks,
+  MiniappHostLogEntry,
+  MiniappHostOptions,
+  MiniappHostSnapshot,
+  ResourceLimitUpdate,
+  ResourceLimitsSnapshot
+} from "./host.js";
+export {
+  ConfirmationError,
+  DEFAULT_CONFIRMATION_TIMEOUT_MS,
+  generateConfirmationToken,
+  requestHostConfirmation
+} from "./confirm.js";
+export type {
+  ConfirmationKind,
+  ConfirmationRequest,
+  ConfirmationResult,
+  HostConfirmationChannel
+} from "./confirm.js";
+export { CorestoreBeeBackend } from "./services/storage-bee-corestore.js";
+export { createOpenRouterBackend } from "./services/ai-openrouter.js";
+export type { OpenRouterBackendOptions } from "./services/ai-openrouter.js";

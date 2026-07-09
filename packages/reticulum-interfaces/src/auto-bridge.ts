@@ -10,9 +10,7 @@ import {
   AUTO_PEERING_TIMEOUT_MS,
   AUTO_REVERSE_PEERING_INTERVAL_MS,
   type AutoInterfaceOptions,
-  type AutoInterfacePeerHandle
-} from "./auto.js";
-import {
+  type AutoInterfacePeerHandle,
   concatBytes,
   deriveMulticastAddress,
   descopeLinkLocal,

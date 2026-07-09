@@ -5,7 +5,7 @@ Desktop and `tp node` persist overrides in `<data-dir>/config.json`.
 
 ## Data directory
 
-- Default (this platform): `/Users/curt/Library/Application Support/TwistedPear/host`
+- Default (this platform): `/Users/curtcox/Library/Application Support/TwistedPear/host`
 - Identity: `<data-dir>/identity`
 - Config: `<data-dir>/config.json`
 

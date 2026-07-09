@@ -45,9 +45,11 @@ Localhost status JSON (opt-in): `http://127.0.0.1:9473/status`
 2026-07-09 capture: renderer shell via Playwright (`conformance/docs/capture-desktop-host-ui.mjs`).
 `npm run start --workspace=host-desktop` now clears `ELECTRON_RUN_AS_NODE` (set by
 Electron-based IDEs such as Cursor) before launching Electron. The Bare worklet
-child still fails at runtime on linked `reticulum-interfaces` modules that import
-deferred Node builtins (`node:os`); conformance `test:desktop` exercises the
-mini-app stack in-process and remains green.
+child no longer fails on linked `node:os` or `node:worker_threads` imports
+(2026-07-09); local darwin bundle spawn can still fail on the linked `bare-type`
+native addon used by the corestore/Hyperbee storage path. Conformance
+`test:desktop` exercises the mini-app stack in-process via `node-worker` and
+remains green.
 
 ## Config
 

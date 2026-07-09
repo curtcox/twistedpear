@@ -36,10 +36,10 @@ export {
   AUTO_DEFAULT_GROUP_ID,
   AUTO_HW_MTU,
   AUTO_PEERING_TIMEOUT_MS,
-  AutoInterface,
   type AutoInterfaceOptions,
   type AutoInterfacePeerHandle
-} from "./auto.js";
+} from "./auto-common.js";
+export { AutoInterface } from "./auto.js";
 
 export {
   AutoInterfaceBridge,

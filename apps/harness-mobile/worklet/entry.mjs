@@ -11,7 +11,7 @@ import { DestinationProofStrategy } from "../../../packages/reticulum-ts/dist/re
 import { Reticulum } from "../../../packages/reticulum-ts/dist/reticulum.js";
 import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
 import { AutoInterfaceBridge } from "../../../packages/reticulum-interfaces/dist/auto-bridge.js";
-import { AUTO_DEFAULT_DATA_PORT } from "../../../packages/reticulum-interfaces/dist/auto.js";
+import { AUTO_DEFAULT_DATA_PORT } from "../../../packages/reticulum-interfaces/dist/auto-common.js";
 import { selectDiscoveryProviders } from "../../../packages/reticulum-interfaces/dist/auto-discovery.js";
 import { BleInterface } from "../../../packages/reticulum-interfaces/dist/ble/interface.js";
 import { createIpcMulticastBridge } from "./ipc-multicast-bridge.mjs";
@@ -23,7 +23,7 @@ import { selectPreferredInterface } from "../../../packages/reticulum-interfaces
 import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
 import { DriveManager, PackageResourceClient, assessFetchBudget, createSwarm, fetchPackage } from "../../../packages/bridge-hyper/dist/worklet.js";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
-import { HOST_API_VERSION, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/index.js";
+import { HOST_API_VERSION, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
 import { createWorkletMiniappHost } from "./miniapp-host.mjs";
 import { createDevChannelClient } from "./dev-channel.mjs";
 import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";

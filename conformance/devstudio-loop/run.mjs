@@ -53,6 +53,7 @@ import {
 } from "../../packages/reticulum-ts/dist/index.js";
 import { HOST_API_VERSION, validateManifestCapabilities } from "../../packages/miniapp-runtime/dist/index.js";
 import { createWorkletMiniappHost } from "../../apps/host-desktop/worklet/miniapp-host.mjs";
+import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 
 const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
@@ -408,6 +409,7 @@ export async function runDevstudioLoop() {
   const hostA = createWorkletMiniappHost({
     provider,
     kvStore: kvA,
+    createSandboxBackend,
     sandboxBackend: "node-worker",
     beeStoragePath: join(tmp, "bee-a"),
     send: (message) => outboundA.push(message),
@@ -430,6 +432,7 @@ export async function runDevstudioLoop() {
   const hostB = createWorkletMiniappHost({
     provider,
     kvStore: kvB,
+    createSandboxBackend,
     sandboxBackend: "node-worker",
     beeStoragePath: join(tmp, "bee-b"),
     send: (message) => outboundB.push(message),

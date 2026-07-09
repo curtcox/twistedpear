@@ -14,6 +14,7 @@ import {
   validateWidgetTree,
   WidgetValidationError
 } from "../../packages/miniapp-runtime/dist/index.js";
+import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import { createWorkletMiniappHost } from "../../apps/host-desktop/worklet/miniapp-host.mjs";
 
@@ -59,6 +60,7 @@ export async function runDesktopHostileSmoke() {
   const miniappHost = createWorkletMiniappHost({
     provider,
     kvStore: store,
+    createSandboxBackend,
     sandboxBackend: "node-worker",
     beeStoragePath: beeDir,
     send: (message) => outbound.push(message),

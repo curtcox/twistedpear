@@ -18,7 +18,6 @@ import {
   verifyPackage
 } from "../../../packages/app-registry/dist/index.js";
 import { Identity, NodeCryptoProvider, hexToBytes } from "../../../packages/reticulum-ts/dist/index.js";
-import { HOST_API_VERSION } from "../../../packages/miniapp-runtime/dist/host-api.js";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const hostRoot = join(scriptDir, "..");
@@ -33,7 +32,7 @@ function bytesToHex(bytes) {
   return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
-async function packApp({ provider, identity, appDir, appName }) {
+async function packApp({ provider, identity, appDir, appName, hostApiVersion }) {
   const manifestPath = join(appDir, "app.manifest.json");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   const files = [{ path: "bundle.js", content: new Uint8Array(readFileSync(join(appDir, "bundle.js"))) }];
@@ -57,7 +56,7 @@ async function packApp({ provider, identity, appDir, appName }) {
     signature: signedManifest.signature,
     files
   });
-  const verified = verifyPackage(provider, packed.archiveBytes, { hostApiVersion: HOST_API_VERSION });
+  const verified = verifyPackage(provider, packed.archiveBytes, { hostApiVersion });
   const t256 = encode256t(packed.archiveBytes, (data) => provider.sha512(data));
   return {
     appId: verified.manifest.name,
@@ -68,12 +67,12 @@ async function packApp({ provider, identity, appDir, appName }) {
   };
 }
 
-async function packFromSource({ provider, identity, sourceDir, folderName }) {
+async function packFromSource({ provider, identity, sourceDir, folderName, hostApiVersion }) {
   const cwd = mkdtempSync(join(tmpdir(), "tp-bundled-pack-"));
   const appDir = join(cwd, folderName);
   cpSync(sourceDir, appDir, { recursive: true });
   try {
-    return packApp({ provider, identity, appDir, appName: folderName });
+    return packApp({ provider, identity, appDir, appName: folderName, hostApiVersion });
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }
@@ -103,6 +102,8 @@ if (handbookBuild.status !== 0) {
   process.exit(handbookBuild.status ?? 1);
 }
 
+const { HOST_API_VERSION } = await import("../../../packages/miniapp-runtime/dist/host-api.js");
+
 const provider = new NodeCryptoProvider();
 const identity = Identity.fromBytes(provider, hexToBytes(PLATFORM_PRIVATE_KEY_HEX));
 if (identity === null) {
@@ -117,7 +118,8 @@ bundled.push(
     provider,
     identity,
     sourceDir: join(repoRoot, "apps/handbook"),
-    folderName: "handbook"
+    folderName: "handbook",
+    hostApiVersion: HOST_API_VERSION
   })
 );
 bundled.push(
@@ -125,7 +127,8 @@ bundled.push(
     provider,
     identity,
     sourceDir: join(repoRoot, "apps/devstudio"),
-    folderName: "devstudio"
+    folderName: "devstudio",
+    hostApiVersion: HOST_API_VERSION
   })
 );
 bundled.push(
@@ -133,7 +136,8 @@ bundled.push(
     provider,
     identity,
     sourceDir: join(repoRoot, "apps/examples/chat"),
-    folderName: "chat"
+    folderName: "chat",
+    hostApiVersion: HOST_API_VERSION
   })
 );
 

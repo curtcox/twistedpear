@@ -5,11 +5,11 @@ import {
   HOST_API_VERSION,
   MiniappHost,
   MiniappLifecycle,
-  createSandboxBackend,
   describeCapability,
   isMiniappCapability,
   validateManifestCapabilities
-} from "../../../packages/miniapp-runtime/dist/index.js";
+} from "../../../packages/miniapp-runtime/dist/worklet.js";
+import { createSandboxBackend as createBareWorkletSandboxBackend } from "../../../packages/miniapp-runtime/dist/sandbox/worklet-factory.js";
 import { unpackPackage } from "../../../packages/app-registry/dist/index.js";
 
 const BENCHMARK_ITERATIONS = 5;
@@ -117,6 +117,7 @@ export function createWorkletMiniappHost(options) {
   const beeBackend = new CorestoreBeeBackend(options.beeStoragePath ?? "miniapp-bee-store");
   const beeReady = beeBackend.ready();
 
+  const createSandboxBackend = options.createSandboxBackend ?? createBareWorkletSandboxBackend;
   const host = new MiniappHost({
     backend: createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
     grantStore,

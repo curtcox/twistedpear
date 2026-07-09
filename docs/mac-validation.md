@@ -411,9 +411,10 @@ and `test:desktop-soak` now pass locally. `test:propagation-interop` still
 fails after the export fix (in-process sync: *Propagation node identity is
 unknown*). Electron `npm run start --workspace=host-desktop` launches when
 `ELECTRON_RUN_AS_NODE` is unset (the start script does this automatically); the
-desktop GUI screenshot is in [desktop-host.md](desktop-host.md). The Bare
-worklet child still crashes on linked `node:os` imports — see
-[mac-validation-screenshots-plan.md](mac-validation-screenshots-plan.md#phase-4--post-fix-re-verification-2026-07-09).
+desktop GUI screenshot is in [desktop-host.md](desktop-host.md). The Bare worklet
+child no longer hits linked `node:os` / `node:worker_threads` imports (Phase 4c);
+local darwin spawn may still fail on the linked `bare-type` native addon — see
+[mac-validation-screenshots-plan.md](mac-validation-screenshots-plan.md#phase-4c--bare-worklet-import-graph-2026-07-09).
 
 See [mac-validation-screenshots-plan.md](mac-validation-screenshots-plan.md) for the per-suite table and screenshot capture notes.
 

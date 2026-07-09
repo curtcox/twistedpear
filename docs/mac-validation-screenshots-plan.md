@@ -150,7 +150,7 @@ worklet Bare-pack fixes that landed in the same window:
 | `test:ios-sim:required` | product bug | **PASS** | Worklet bundle + handbook slice |
 | `test:harness-install` | product bug | **PASS** | Worklet bundle + catalog ingest |
 | `test:propagation-interop` | product bug | **FAIL** | Export fixed; new in-process error: *Propagation node identity is unknown* |
-| `npm run start --workspace=host-desktop` | — | **PARTIAL** | Electron shell launches after `ELECTRON_RUN_AS_NODE` fix; Bare worklet child still fails on linked `node:os` |
+| `npm run start --workspace=host-desktop` | — | **PARTIAL** | Electron shell + renderer capture green; Bare worklet child clears `node:os` / `worker_threads` import errors (2026-07-09); native `bare-type` addon resolution still open |
 
 **Still open from the 2026-07-08 pass:** Docker peer-connectivity cluster (9
 suites), Android emulator lane (minSdk/fixture-meta/Gradle — partial fixes
@@ -173,8 +173,18 @@ issues.
 | `ELECTRON_RUN_AS_NODE` leak | **Fixed** | `host-desktop` start script runs `env -u ELECTRON_RUN_AS_NODE electron .`; Cursor/Electron IDEs set this var and it made `require('electron')` return the binary path |
 | `worklet.ts` barrel | **Fixed** | Removed `nodeRuntime` / `NodeCryptoProvider` from `@twistedpear/reticulum-ts` worklet entry so lxmf/bridge-hyper imports do not pull Node socket runtime into Bare bundles |
 | `packages` symlink at build | **Added** | `build-worklet.mjs` links `apps/host-desktop/packages` → `../../packages` so `--linked` bare-pack paths resolve at runtime |
-| Bare worklet runtime | **Open** | `darwin`+`linux` bundle still hits `node:os` in linked `reticulum-interfaces/dist/auto.js` (deferred builtins do not apply to linked externals) |
+| Bare worklet runtime | **Fixed (import graph)** | `node:os` cleared via `auto-common` constants + `bridge-hyper` → `@twistedpear/reticulum-interfaces/policy`; `node:worker_threads` cleared via `@twistedpear/miniapp-runtime/worklet` entry. Runtime still blocked on linked `bare-type` native addon (corestore/Hyperbee path) when spawning the darwin bundle locally — see Phase 4c. |
 | `desktop-host.png` | **Done** | `node conformance/docs/capture-desktop-host-ui.mjs` (Playwright renderer shell) |
+
+### Phase 4c — Bare worklet import graph (2026-07-09)
+
+| Item | Status | Notes |
+|---|---|---|
+| `auto.ts` `node:os` via linked barrel | **Fixed** | AUTO_* constants + types moved to `auto-common.ts`; worklet imports `auto-common.js`; `auto-bridge.ts` no longer imports `auto.js` |
+| `bridge-hyper/fetch.ts` barrel | **Fixed** | Imports `@twistedpear/reticulum-interfaces/policy` so linked `index.js` does not evaluate `auto.js` |
+| `miniapp-runtime` index barrel | **Fixed** | New `worklet.ts` + `sandbox/worklet-factory.ts`; bare-pack maps `@twistedpear/miniapp-runtime` → `dist/worklet.js` |
+| `build-bundled-catalog.mjs` | **Fixed** | `HOST_API_VERSION` loaded after `miniapp-runtime` build (was stale at static import time) |
+| `bare-type` native addon | **Open** | Darwin bundle reaches corestore/Hyperbee chain; `bare-type.1.1.0.framework` not resolved at spawn — blocks `DesktopWorkletClient` / live Electron worklet child |
 
 ### Updated captured images
 
@@ -184,7 +194,6 @@ issues.
 
 ## Risks
 
-- First-run `expo run:ios` and Android Gradle builds can add ~45 min each.
 - Stage 8 default soaks add ~1 h of mostly screenshot-free waiting; they stay
   in scope because the final summary image should reflect the full pass.
 - If the doctor gate fails on something needing GUI/account steps (Docker not

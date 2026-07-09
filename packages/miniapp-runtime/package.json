@@ -10,6 +10,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./worklet": {
+      "types": "./dist/worklet.d.ts",
+      "import": "./dist/worklet.js"
+    },
     "./sandbox/web": {
       "types": "./dist/sandbox/web.d.ts",
       "import": "./dist/sandbox/web.js"

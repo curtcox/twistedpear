@@ -10,7 +10,7 @@ import { DestinationProofStrategy } from "../../../packages/reticulum-ts/dist/re
 import { Reticulum } from "../../../packages/reticulum-ts/dist/reticulum.js";
 import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
 import { AutoInterfaceBridge } from "../../../packages/reticulum-interfaces/dist/auto-bridge.js";
-import { AUTO_DEFAULT_DATA_PORT } from "../../../packages/reticulum-interfaces/dist/auto.js";
+import { AUTO_DEFAULT_DATA_PORT } from "../../../packages/reticulum-interfaces/dist/auto-common.js";
 import { selectDiscoveryProviders } from "../../../packages/reticulum-interfaces/dist/auto-discovery.js";
 import { createIpcMulticastBridge } from "./ipc-multicast-bridge.mjs";
 import { createIpcBonjourBridge } from "./ipc-bonjour-bridge.mjs";
@@ -34,7 +34,7 @@ import {
   verifyCasLocator
 } from "../../../packages/cas-256t/dist/index.js";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
-import { HOST_API_VERSION, generateConfirmationToken, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/index.js";
+import { HOST_API_VERSION, generateConfirmationToken, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
 import {
   PropagationServer,
   createPropagationDestination,

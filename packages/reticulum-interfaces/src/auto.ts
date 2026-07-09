@@ -3,6 +3,17 @@ import { createSocket, type Socket as DgramSocket } from "node:dgram";
 import type { CryptoProvider, PacketInterface, Runtime } from "@twistedpear/reticulum-ts";
 import { Identity, Packet, RawPacketInterface, TRUNCATED_HASH_LENGTH, type ReticulumInterfaceOptions } from "@twistedpear/reticulum-ts";
 import {
+  AUTO_ANNOUNCE_INTERVAL_MS,
+  AUTO_BITRATE_GUESS,
+  AUTO_DEFAULT_DATA_PORT,
+  AUTO_DEFAULT_DISCOVERY_PORT,
+  AUTO_DEFAULT_GROUP_ID,
+  AUTO_HW_MTU,
+  AUTO_PEERING_TIMEOUT_MS,
+  AUTO_PEER_JOB_INTERVAL_MS,
+  AUTO_REVERSE_PEERING_INTERVAL_MS,
+  type AutoInterfaceOptions,
+  type AutoInterfacePeerHandle,
   concatBytes,
   deriveMulticastAddress,
   descopeLinkLocal,
@@ -11,32 +22,22 @@ import {
   SCOPE_LINK
 } from "./auto-common.js";
 
-/** Mirrors RNS/Interfaces/AutoInterface.py constants. */
-export const AUTO_HW_MTU = 1_196;
-export const AUTO_DEFAULT_DISCOVERY_PORT = 29_716;
-export const AUTO_DEFAULT_DATA_PORT = 42_671;
-export const AUTO_DEFAULT_GROUP_ID = "reticulum";
-export const AUTO_PEERING_TIMEOUT_MS = 22_000;
-export const AUTO_ANNOUNCE_INTERVAL_MS = 1_600;
-export const AUTO_PEER_JOB_INTERVAL_MS = 4_000;
-export const AUTO_REVERSE_PEERING_INTERVAL_MS = AUTO_ANNOUNCE_INTERVAL_MS * 3.25;
-export const AUTO_BITRATE_GUESS = 10_000_000;
+export {
+  AUTO_ANNOUNCE_INTERVAL_MS,
+  AUTO_BITRATE_GUESS,
+  AUTO_DEFAULT_DATA_PORT,
+  AUTO_DEFAULT_DISCOVERY_PORT,
+  AUTO_DEFAULT_GROUP_ID,
+  AUTO_HW_MTU,
+  AUTO_PEERING_TIMEOUT_MS,
+  AUTO_PEER_JOB_INTERVAL_MS,
+  AUTO_REVERSE_PEERING_INTERVAL_MS,
+  type AutoInterfaceOptions,
+  type AutoInterfacePeerHandle
+} from "./auto-common.js";
 
 const ANDROID_IGNORE_IFS = new Set(["dummy0", "lo", "tun0"]);
 const ALL_IGNORE_IFS = new Set(["lo0"]);
-
-export interface AutoInterfaceOptions extends ReticulumInterfaceOptions {
-  readonly provider: CryptoProvider;
-  readonly runtime: Runtime;
-  readonly groupId?: string;
-  readonly discoveryPort?: number;
-  readonly dataPort?: number;
-  readonly allowedDevices?: ReadonlyArray<string>;
-  readonly ignoredDevices?: ReadonlyArray<string>;
-  readonly peeringTimeoutMs?: number;
-  readonly onPeerSpawn?: (peer: AutoInterfacePeerHandle) => void;
-  readonly onPeerDetach?: (peer: AutoInterfacePeerHandle) => void;
-}
 
 interface AdoptedInterface {
   readonly name: string;
@@ -47,10 +48,6 @@ interface PeerRecord {
   readonly ifname: string;
   lastHeard: number;
   lastOutbound: number;
-}
-
-export interface AutoInterfacePeerHandle extends PacketInterface {
-  readonly peerAddress: string;
 }
 
 class AutoInterfacePeer extends RawPacketInterface implements AutoInterfacePeerHandle {

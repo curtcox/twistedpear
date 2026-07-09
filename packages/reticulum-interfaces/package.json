@@ -21,6 +21,10 @@
     "./serial-node": {
       "types": "./dist/serial-node.d.ts",
       "import": "./dist/serial-node.js"
+    },
+    "./policy": {
+      "types": "./dist/policy.d.ts",
+      "import": "./dist/policy.js"
     }
   },
   "scripts": {

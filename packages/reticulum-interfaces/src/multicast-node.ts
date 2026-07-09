@@ -4,10 +4,12 @@ import { networkInterfaces } from "node:os";
 import {
   deriveMulticastAddress,
   descopeLinkLocal,
+  AUTO_DEFAULT_DATA_PORT,
+  AUTO_DEFAULT_DISCOVERY_PORT,
+  AUTO_DEFAULT_GROUP_ID,
   MULTICAST_TEMPORARY,
   SCOPE_LINK
 } from "./auto-common.js";
-import { AUTO_DEFAULT_DATA_PORT, AUTO_DEFAULT_DISCOVERY_PORT, AUTO_DEFAULT_GROUP_ID } from "./auto.js";
 import type { MulticastBridge, MulticastBridgeEvents, MulticastNetworkInfo } from "./pipes.js";
 
 const ALL_IGNORE_IFS = new Set(["lo", "lo0"]);

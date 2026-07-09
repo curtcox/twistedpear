@@ -19,6 +19,7 @@ import {
 import { Identity, NodeCryptoProvider, nodeRuntime } from "../../packages/reticulum-ts/dist/index.js";
 import { runInit, runPack, runPublish, runUpdate } from "../../packages/cli/dist/commands/index.js";
 import { HOST_API_VERSION, validateManifestCapabilities } from "../../packages/miniapp-runtime/dist/index.js";
+import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { createWorkletMiniappHost } from "../../apps/harness-mobile/worklet/miniapp-host.mjs";
 
 const chatExample = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/examples/chat");
@@ -154,6 +155,7 @@ export async function runIosFullLoop() {
   const miniappHost = createWorkletMiniappHost({
     provider,
     kvStore,
+    createSandboxBackend,
     sandboxBackend: "node-worker",
     beeStoragePath: join(cwd, "miniapp-bee"),
     send,

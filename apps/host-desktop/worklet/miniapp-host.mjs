@@ -4,13 +4,13 @@ import {
   GrantStore,
   HOST_API_VERSION,
   MiniappHost,
-  createSandboxBackend,
   describeCapability,
   generateConfirmationToken,
   isMiniappCapability,
   validateManifestCapabilities
-} from "../../../packages/miniapp-runtime/dist/index.js";
-import { createOpenRouterBackend } from "../../../packages/miniapp-runtime/dist/index.js";
+} from "../../../packages/miniapp-runtime/dist/worklet.js";
+import { createOpenRouterBackend } from "../../../packages/miniapp-runtime/dist/worklet.js";
+import { createSandboxBackend as createBareWorkletSandboxBackend } from "../../../packages/miniapp-runtime/dist/sandbox/worklet-factory.js";
 import {
   buildUnsignedManifest,
   packPackage,
@@ -32,11 +32,12 @@ export function createWorkletMiniappHost(options) {
   /** @type {{baseUrl: string, apiKey: string, model: string, allowedModels?: string[]} | null} */
   let aiConfig = options.aiConfig ?? null;
   const casStore = new CasStore(kvStore, (data) => options.provider.sha512(data));
-  /** @type {{host: import("../../../packages/miniapp-runtime/dist/index.js").MiniappHost, appId: string} | null} */
+  /** @type {{host: import("../../../packages/miniapp-runtime/dist/worklet.js").MiniappHost, appId: string} | null} */
   let preview = null;
   const beeBackend = new CorestoreBeeBackend(options.beeStoragePath ?? "miniapp-bee-store");
   const beeReady = beeBackend.ready();
 
+  const createSandboxBackend = options.createSandboxBackend ?? createBareWorkletSandboxBackend;
   const host = new MiniappHost({
     backend: createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
     grantStore,

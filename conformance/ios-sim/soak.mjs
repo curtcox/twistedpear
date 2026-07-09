@@ -19,6 +19,7 @@ import {
 import { Identity, NodeCryptoProvider, nodeRuntime } from "../../packages/reticulum-ts/dist/index.js";
 import { runInit, runPack, runPublish } from "../../packages/cli/dist/commands/index.js";
 import { HOST_API_VERSION } from "../../packages/miniapp-runtime/dist/index.js";
+import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { createWorkletMiniappHost } from "../../apps/harness-mobile/worklet/miniapp-host.mjs";
 import { runBareLifecycleSlice } from "../scenarios/bare/lifecycle-slice.mjs";
 import { INTEROP_HOST, LEAF_ECHO_PORT } from "../scenarios/bare/helpers.mjs";
@@ -88,6 +89,7 @@ async function miniappChurn(durationMs) {
   const miniappHost = createWorkletMiniappHost({
     provider,
     kvStore,
+    createSandboxBackend,
     sandboxBackend: "node-worker",
     beeStoragePath: join(cwd, "miniapp-bee"),
     send: (message) => outbound.push(message),

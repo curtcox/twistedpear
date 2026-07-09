@@ -3,7 +3,7 @@ import {
   InterfaceKind,
   inferInterfaceKind,
   type InterfaceKindValue
-} from "@twistedpear/reticulum-interfaces";
+} from "@twistedpear/reticulum-interfaces/policy";
 import type { CryptoProvider, PacketInterface } from "@twistedpear/reticulum-ts";
 import { unpackPackage, type CatalogEntry } from "@twistedpear/app-registry";
 import type { DriveManager } from "./drive.js";

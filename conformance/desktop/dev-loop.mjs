@@ -11,6 +11,7 @@ import { pathToFileURL } from "node:url";
 import { runCreate } from "../../packages/cli/dist/commands/index.js";
 import { startDevServer } from "../../packages/cli/dist/dev/server.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
+import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { createWorkletMiniappHost } from "../../apps/host-desktop/worklet/miniapp-host.mjs";
 import { createDevChannelClient } from "../../apps/host-desktop/worklet/dev-channel.mjs";
 
@@ -65,6 +66,7 @@ export async function runDesktopDevLoop() {
   const miniappHost = createWorkletMiniappHost({
     provider,
     kvStore,
+    createSandboxBackend,
     sandboxBackend: "node-worker",
     beeStoragePath: beeDir,
     send: (message) => outbound.push(message),

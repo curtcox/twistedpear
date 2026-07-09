@@ -11,6 +11,7 @@ import {
   validateWidgetTree,
   WidgetValidationError
 } from "../../packages/miniapp-runtime/dist/index.js";
+import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import { createWorkletMiniappHost } from "../../apps/harness-mobile/worklet/miniapp-host.mjs";
 
@@ -55,6 +56,7 @@ export async function runIosHostileSmoke() {
   const miniappHost = createWorkletMiniappHost({
     provider,
     kvStore: store,
+    createSandboxBackend,
     sandboxBackend: "node-worker",
     send: (message) => outbound.push(message),
     onDeveloperModeChange() {},
