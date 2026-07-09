@@ -111,27 +111,61 @@ green — the final summary capture shows whatever really happened.
 | `test:interop` | environment | Docker peer path timeouts — verify compose peers reachable (`docker compose ... up leaf-echo`) |
 | `test:transport-role` | environment | Same peer-path timeout cluster |
 | `test:rnsd-mode` | environment | Same peer-path timeout cluster |
-| `test:propagation-interop` | product bug | Missing export `msgpackUnpackPropagationEnvelope` from `lxmf-ts` |
+| `test:propagation-interop` | product bug | Export fixed 2026-07-09; re-run fails on in-process sync (*Propagation node identity is unknown*) |
 | `test:link-benchmark` | environment | Peer-path timeout against link-echo |
 | `test:auto-interop` | environment | `EADDRNOTAVAIL` binding link-local IPv6 — host network config |
 | `test:i2p-interop` | environment | I2P peer b32 never appeared — local I2P not running |
 | `test:web-interop` | environment | Same peer-path timeout cluster |
 | `test:bare-interop` | environment | TCP to docker leaf-echo not connected |
-| `test:harness-install` | product bug | Worklet bundle: `ws` pulls Node `stream` into Bare pack graph |
+| `test:harness-install` | product bug | **Fixed 2026-07-09** — was worklet Bare-pack (`ws` → `stream`) |
 | `test:web-pwa` | product bug | Web bundle pulls `rocksdb-native` / `require-addon` — not web-safe |
 | `test:web-rnode` | flaky test | Playwright page closed mid-evaluate |
 | `test:web-interop-browser` | product bug | IndexedDB object store missing in browser interop lane |
-| `test:desktop` | product bug | Worklet bundle: missing Bare shim for `stream` (`ws` dependency) |
-| `build:worklet` (×2) | product bug | Same `stream`/`zlib` Bare pack failures |
-| `test:ios-sim:required` | product bug | Worklet bundle: missing Bare shim for `zlib` |
+| `test:desktop` | product bug | **Fixed 2026-07-09** — was worklet Bare-pack (`stream` shim) |
+| `build:worklet` (×2) | product bug | **Fixed 2026-07-09** — was `stream`/`zlib` Bare pack failures |
+| `test:ios-sim:required` | product bug | **Fixed 2026-07-09** — was worklet Bare-pack (`zlib` shim) |
 | `test:android-native` | toolchain | Kotlin compile failure in `expo-modules-core` with local JDK/Gradle |
-| `expo run:android` | product bug | `minSdkVersion 24` vs `react-native-bare-kit` requires 28 |
-| `test:android-emulator` | product bug | Missing generated `conformance/android-emulator/fixture-meta.json` |
+| `expo run:android` | product bug | minSdk 28 fix in `1fe328e`; not re-run end-to-end |
+| `test:android-emulator` | product bug | `waitForFixtureMeta` in `1fe328e`; not re-run end-to-end |
 | `test:android-emulator:e3` | environment | Maestro launch failed — app not installed (downstream of Gradle build) |
-| `test:android-emulator:e5` | product bug | Same missing `fixture-meta.json` |
-| `test:desktop-soak` | product bug | Missing `conformance/desktop-soak/full-loop.mjs` entrypoint |
+| `test:android-emulator:e5` | product bug | Same `fixture-meta.json` gap — helper added; not re-run |
+| `test:desktop-soak` | product bug | **Fixed 2026-07-09** — import path to `../desktop/full-loop.mjs` |
 
-**Cluster summary:** one Docker peer-connectivity cluster (9 suites), one worklet Bare-pack cluster (6 suites), three Android lane blockers (minSdk, fixture meta, Gradle), four isolated web/desktop product gaps.
+**Cluster summary (2026-07-08):** one Docker peer-connectivity cluster (9
+suites), one worklet Bare-pack cluster (6 suites — **5/6 green on 2026-07-09
+re-run**), three Android lane blockers (minSdk, fixture meta, Gradle — partial
+fixes in `1fe328e`), four isolated web/desktop product gaps.
+
+## Phase 4 — Post-fix re-verification (2026-07-09)
+
+Targeted re-runs after commit `1fe328e` (Android helpers, minSdk 28,
+`msgpackUnpackPropagationEnvelope` export, desktop-soak import path) and the
+worklet Bare-pack fixes that landed in the same window:
+
+| Suite | 2026-07-08 class | Re-run (2026-07-09) | Notes |
+|---|---|---|---|
+| `build:worklet` | product bug | **PASS** | Bare-pack cluster cleared |
+| `test:desktop` | product bug | **PASS** | Full loop + hostile smoke green |
+| `test:desktop-soak` | product bug | **PASS** | Imports `../desktop/full-loop.mjs` |
+| `test:ios-sim:required` | product bug | **PASS** | Worklet bundle + handbook slice |
+| `test:harness-install` | product bug | **PASS** | Worklet bundle + catalog ingest |
+| `test:propagation-interop` | product bug | **FAIL** | Export fixed; new in-process error: *Propagation node identity is unknown* |
+| `npm run start --workspace=host-desktop` | — | **FAIL** | Electron CJS load error — blocks replacing `desktop-host-failure.png` with a GUI shot |
+
+**Still open from the 2026-07-08 pass:** Docker peer-connectivity cluster (9
+suites), Android emulator lane (minSdk/fixture-meta/Gradle — partial fixes
+landed in `1fe328e` but not re-run end-to-end), web gaps (`test:web-pwa`,
+`test:web-interop-browser`, `test:web-rnode`), I2P/auto-interop environment
+issues.
+
+**Screenshot follow-ups:**
+
+- Keep `desktop-host-failure.png` until Electron `start` is fixed; conformance
+  `test:desktop` now passes headlessly.
+- Re-run `npm run validate:mac:full -- --continue-on-failure` when ready for
+  an updated summary capture (expect fewer than 23 failures).
+- Android UI shot may improve after a green Stage 7 re-run with
+  `fixture-meta.json` generation.
 
 ## Risks
 

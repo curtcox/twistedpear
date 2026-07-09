@@ -42,7 +42,11 @@ Localhost status JSON (opt-in): `http://127.0.0.1:9473/status`
 
 ![desktop host validation failure capture](images/desktop-host-failure.png)
 
-2026-07-08 validation capture: `test:desktop` failed during worklet bundling before a stable Electron UI screenshot could be captured.
+2026-07-08 validation capture: `test:desktop` failed during worklet bundling
+before a stable Electron UI screenshot could be captured. As of 2026-07-09,
+`test:desktop` and `test:desktop-soak` pass headlessly; `npm run start
+--workspace=host-desktop` still fails with an Electron CJS load error, so this
+failure-terminal capture remains until the GUI path is fixed.
 
 ## Config
 

@@ -405,6 +405,14 @@ The pass completed Stages 0–8 with `--continue-on-failure` and reported **23 s
 | Web gaps | `test:web-pwa`, `test:web-interop-browser`, `test:web-rnode` | product / flaky | Re-run individual Stage 4 suites after bundle/IDB fixes |
 | Isolated exports / missing entrypoints | `test:propagation-interop`, `test:desktop-soak` | product bug | Fix missing `msgpackUnpackPropagationEnvelope` export; add desktop soak loop |
 
+**2026-07-09 partial re-verification:** the worklet Bare-pack cluster
+(`build:worklet`, `test:desktop`, `test:ios-sim:required`, `test:harness-install`)
+and `test:desktop-soak` now pass locally. `test:propagation-interop` still
+fails after the export fix (in-process sync: *Propagation node identity is
+unknown*). Electron `npm run start --workspace=host-desktop` still fails with
+a CJS module load error, so the desktop GUI screenshot remains the failure
+capture. Details in [mac-validation-screenshots-plan.md](mac-validation-screenshots-plan.md#phase-4--post-fix-re-verification-2026-07-09).
+
 See [mac-validation-screenshots-plan.md](mac-validation-screenshots-plan.md) for the per-suite table and screenshot capture notes.
 
 Plan-duration soaks (Stage 8 opt-in) are scheduled separately and are the
