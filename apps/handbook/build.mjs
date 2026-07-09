@@ -322,8 +322,6 @@ async function generateReferenceChapters() {
     i2p: { enabled: false },
     rnode: { enabled: false, baudRate: 115_200 }
   };
-  let defaultDataDir = "~/.local/share/twistedpear/host";
-
   try {
     const runtimeCaps = await import("../../packages/miniapp-runtime/dist/capabilities.js");
     capabilityDefinitions = runtimeCaps.CAPABILITY_DEFINITIONS;
@@ -343,7 +341,6 @@ async function generateReferenceChapters() {
     hostQuotas = hostCore.DEFAULT_QUOTAS;
     defaultRoles = hostCore.DEFAULT_DESKTOP_ROLES;
     defaultInterfaces = hostCore.DEFAULT_INTERFACE_CONFIG;
-    defaultDataDir = hostCore.defaultHostDataDir();
   } catch {
     capabilityDefinitions = [
       { id: "identity", description: "Use an app-scoped identity for signing and addressing." },
@@ -575,7 +572,9 @@ async function generateReferenceChapters() {
     "",
     "## Data directory",
     "",
-    `- Default (this platform): \`${defaultDataDir}\``,
+    "- macOS: `~/Library/Application Support/TwistedPear/host`",
+    "- Linux: `~/.local/share/twistedpear/host`",
+    "- Windows: `%APPDATA%/TwistedPear/host`",
     "- Identity: `<data-dir>/identity`",
     "- Config: `<data-dir>/config.json`",
     "",

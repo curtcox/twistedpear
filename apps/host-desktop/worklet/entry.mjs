@@ -53,6 +53,33 @@ try {
 
 const IS_DESKTOP_HOST = true;
 
+function envValue(name) {
+  const value = globalThis.process?.env?.[name];
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function defaultDesktopDataDir() {
+  const platform = globalThis.process?.platform ?? "";
+
+  if (platform === "win32") {
+    return `${envValue("APPDATA") ?? `${envValue("USERPROFILE") ?? "."}\\AppData\\Roaming`}\\TwistedPear\\host`;
+  }
+
+  const home = envValue("HOME") ?? ".";
+  if (platform === "darwin") {
+    return `${home}/Library/Application Support/TwistedPear/host`;
+  }
+
+  return `${home}/.local/share/twistedpear/host`;
+}
+
+const HOST_DATA_DIR = defaultDesktopDataDir();
+const HOST_DATA_SEPARATOR = HOST_DATA_DIR.includes("\\") ? "\\" : "/";
+
+function hostDataPath(...segments) {
+  return [HOST_DATA_DIR, ...segments].join(HOST_DATA_SEPARATOR);
+}
+
 function refuseStorePosture() {
   return false;
 }
@@ -77,7 +104,7 @@ async function createProvider() {
 }
 
 const provider = await createProvider();
-const runtime = bareRuntime({ storePath: "host-desktop-store" });
+const runtime = bareRuntime({ storePath: hostDataPath("host-desktop-store") });
 const IDENTITY_STORE_KEY = "host-identity";
 const NODE_FALLBACK = globalThis.process?.env?.TWISTEDPEAR_WORKLET_NODE_FALLBACK === "1";
 const NodeWorkerSandboxBackend = NODE_FALLBACK
@@ -459,7 +486,7 @@ function ensureMiniappHost() {
     miniappHost = createWorkletMiniappHost({
       provider,
       kvStore: runtimeKeyValueStore(),
-      beeStoragePath: "miniapp-bee-store",
+      beeStoragePath: hostDataPath("miniapp-bee-store"),
       ...(NodeWorkerSandboxBackend === null
         ? {}
         : { createSandboxBackend: () => new NodeWorkerSandboxBackend(), sandboxBackend: "node-worker" }),
@@ -654,7 +681,7 @@ async function ensurePackageDriveManager() {
     const { createSwarm, DriveManager } = await import("../../../packages/bridge-hyper/dist/worklet-hyper.js");
     packageSwarm = createSwarm();
     packageDriveManager = new DriveManager({
-      storagePath: "hyper-storage",
+      storagePath: hostDataPath("hyper-storage"),
       swarm: packageSwarm
     });
     await packageDriveManager.ready();
