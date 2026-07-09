@@ -46,6 +46,10 @@ loop (`conformance/ios-sim/full-loop.mjs`), and lifecycle quiesce slices
 entitlement enforcement, or realistic LAN discovery. Those exits are tracked in
 [STATUS-HARDWARE.md](../STATUS-HARDWARE.md) (H13–H15).
 
+![iOS handbook mobile validation capture](images/ios-handbook-mobile.png)
+
+2026-07-08 validation capture: the shared `test:handbook-mobile` software-tier iOS slice passed; the simulator app lane failed earlier on worklet bundling, so no simulator UI screenshot was captured.
+
 ### Measured simulator reconnect windows
 
 The lifecycle slice (`conformance/scenarios/bare/lifecycle-slice.mjs`) records TCP

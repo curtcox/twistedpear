@@ -167,6 +167,10 @@ main-thread sandbox relay + `createWebWorkletMiniappHost` + harness `App.web.tsx
 panel + host confirmation modal + `test:web-miniapp` (hello dev side-load + UI event) +
 `test:web-examples` (chat/file-drop/board install + launch + exercise).
 
+![web host examples validation capture](images/web-host-examples.png)
+
+2026-07-08 validation capture: `test:web-examples` passed chat, file-drop, and board in the browser harness.
+
 ### Phase W3 — distribution
 Install from pasted/scanned 256t string via Resource fetch; capability review
 and grant UI; publisher trust import; DevStudio on web (workspace in OPFS);

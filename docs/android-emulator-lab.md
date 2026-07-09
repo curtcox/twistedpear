@@ -4,6 +4,10 @@ Local procedures for Phase 3/4 distribution and mini-app exits before physical h
 arrives. CI runs headless proxies (`test:harness-install`, `test:lan-mirror`,
 `test:bare-device`); this document covers the UI path on an Android emulator.
 
+![Android emulator handbook validation capture](images/android-emulator-handbook.png)
+
+2026-07-08 validation capture: the Android emulator handbook slice passed before the lane failed on missing fixture metadata and app launch/build issues.
+
 **Prerequisites:** Android SDK with API 34+ system image, KVM enabled on Linux, docker for
 Python peers, repo built (`npm ci && npm run build && npm run build:worklet`).
 

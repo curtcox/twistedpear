@@ -40,6 +40,10 @@ Localhost status JSON (opt-in): `http://127.0.0.1:9473/status`
 - **Resume**: `resume-node` reconnects and re-announces.
 - **Crash**: supervisor restarts worklet with exponential backoff.
 
+![desktop host validation failure capture](images/desktop-host-failure.png)
+
+2026-07-08 validation capture: `test:desktop` failed during worklet bundling before a stable Electron UI screenshot could be captured.
+
 ## Config
 
 Platform data directory:

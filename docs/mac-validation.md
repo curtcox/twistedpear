@@ -29,6 +29,10 @@ Run order: `bash conformance/mac-validation/setup.sh` then `npm run doctor:mac`.
 The doctor is the gate for every later stage — do not start a stage whose
 required checks are failing.
 
+![mac validation doctor output](images/mac-validation-doctor.png)
+
+2026-07-08 local run: the doctor gate passed all required checks before the full validation pass.
+
 The Stage 1–8 command matrix is implemented by
 `conformance/mac-validation/run.mjs`:
 
@@ -40,6 +44,10 @@ npm run validate:mac -- --stage 7 --start-android-emulator
 npm run validate:mac -- --stage 8 --plan-duration  # starts caffeinate automatically
 npm run triage:mac                   # package failed logs from the latest run
 ```
+
+![mac validation dry-run command plan](images/mac-validation-plan.png)
+
+The dry-run plan prints the exact Stage 0–8 commands before the full pass starts.
 
 Each suite is logged under `.tmp/mac-validation/<timestamp>/`. Use
 `--continue-on-failure` to gather all failures from a pass, `--ai` to include
@@ -376,6 +384,14 @@ key value.
 4. Stage 8 default tier (~1 h).
 5. Stage 9a triage over any failures; 9b/9c on a weekly cadence or before a
    release tag.
+
+![mac validation failed full-pass summary](images/mac-validation-summary.png)
+
+2026-07-08 full pass with `--continue-on-failure`: the runner completed Stages 0–8 and reported 23 failures.
+
+![mac validation triage package](images/mac-validation-triage.png)
+
+The triage package includes the failed logs and command metadata for follow-up classification.
 
 Plan-duration soaks (Stage 8 opt-in) are scheduled separately and are the
 only remaining software-tier exits in STATUS-SOFTWARE once the standard pass

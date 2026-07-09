@@ -179,6 +179,10 @@ matrix chapter + `host-info` applet; `npm run test:handbook-report` (node report
 round-trip + seeded web-status diff). Web Playwright Handbook CI:
 `npm run test:web-handbook` (same software-tier surface in the browser tab).
 
+![web handbook validation capture](images/handbook-web-handbook.png)
+
+2026-07-08 validation capture: `test:web-handbook` passed 36 chapters, 18 applets, and report export in Chromium.
+
 ### Phase D3 — Mobile hosts + device-gated content
 - Run Handbook on Android emulator and iOS simulator harnesses (extend the existing
   `conformance/android-emulator` and `conformance/ios-sim` flows: install → open three
@@ -195,6 +199,10 @@ Android platform ids, Bare worklet path with node-worker fallback);
 `npm run test:handbook-mobile`; wired into `test:ios-sim:required` and
 `test:android-emulator` (headless slice before Maestro). Real-device report
 comparison rows deferred to STATUS-HARDWARE.
+
+![handbook mobile validation capture](images/ios-handbook-mobile.png)
+
+2026-07-08 validation capture: `test:handbook-mobile` passed the software-tier iOS and Android slices.
 
 ### Phase D4 — Parts I & V, publish, seed
 - Concepts and reference chapters (reference pages generated from runtime sources);
