@@ -150,7 +150,7 @@ worklet Bare-pack fixes that landed in the same window:
 | `test:ios-sim:required` | product bug | **PASS** | Worklet bundle + handbook slice |
 | `test:harness-install` | product bug | **PASS** | Worklet bundle + catalog ingest |
 | `test:propagation-interop` | product bug | **FAIL** | Export fixed; new in-process error: *Propagation node identity is unknown* |
-| `npm run start --workspace=host-desktop` | — | **PARTIAL** | Electron shell + renderer capture green; Bare worklet child clears `node:os` / `worker_threads` import errors (2026-07-09); native `bare-type` addon resolution still open |
+| `npm run start --workspace=host-desktop` | — | **Partial** | Worklet child reaches initial `status` on bare CLI (2026-07-09); full IPC + native store/Hyperdrive still need linked addon frameworks |
 
 **Still open from the 2026-07-08 pass:** Docker peer-connectivity cluster (9
 suites), Android emulator lane (minSdk/fixture-meta/Gradle — partial fixes
@@ -184,13 +184,25 @@ issues.
 | `bridge-hyper/fetch.ts` barrel | **Fixed** | Imports `@twistedpear/reticulum-interfaces/policy` so linked `index.js` does not evaluate `auto.js` |
 | `miniapp-runtime` index barrel | **Fixed** | New `worklet.ts` + `sandbox/worklet-factory.ts`; bare-pack maps `@twistedpear/miniapp-runtime` → `dist/worklet.js` |
 | `build-bundled-catalog.mjs` | **Fixed** | `HOST_API_VERSION` loaded after `miniapp-runtime` build (was stale at static import time) |
-| `bare-type` native addon | **Open** | Darwin bundle reaches corestore/Hyperbee chain; `bare-type.1.1.0.framework` not resolved at spawn — blocks `DesktopWorkletClient` / live Electron worklet child |
+| `bare-type` native addon | **Partial** | Worklet boots and emits `status` on bare CLI (`crypto: pure`); linked frameworks still required for sodium-native, bare-process IPC, bare-fs store, and Hyperdrive lazy path |
 
 ### Updated captured images
 
 | File | Doc | Notes |
 |---|---|---|
 | `desktop-host.png` | desktop-host.md | Replaces `desktop-host-failure.png` |
+
+### Phase 4d — Bare worklet boot on desktop CLI (2026-07-09)
+
+| Item | Status | Notes |
+|---|---|---|
+| `KvStorageBeeBackend` in worklet miniapp-host | **Done** | Avoids corestore/bare-type at Hyperbee init; matches web worklet path |
+| `bridge-hyper/worklet-hyper.ts` lazy hyper | **Done** | DriveManager/Hyperswarm dynamic-imported; kept out of `worklet.ts` barrel |
+| `bare-globals.mjs` TextEncoder shim | **Done** | PureCryptoProvider + @noble/* on Bare |
+| Lazy `sodium-native` in `bare.ts` | **Done** | Module graph no longer evaluates sodium at import time |
+| `ipc-stdio.mjs` lazy IPC + console fallback | **Done** | Initial `status` reaches parent without linked frameworks |
+| Desktop worklet `status` on bare CLI spawn | **Partial** | `DesktopWorkletClient.start()` green (`crypto: pure`); full IPC/store still needs linked frameworks or embedded prebuilds |
+| `node_modules` symlink at build | **Added** | `build-worklet.mjs` links `apps/host-desktop/node_modules` → repo root for addon resolution experiments |
 
 ## Risks
 

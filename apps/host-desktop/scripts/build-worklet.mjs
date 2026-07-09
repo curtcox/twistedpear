@@ -13,6 +13,8 @@ const nodeCryptoStub = join(repoRoot, "conformance/bare-interop/node-crypto-stub
 const importsPath = join(hostRoot, "worklet/imports.generated.json");
 const packagesLink = join(hostRoot, "packages");
 const packagesTarget = join(repoRoot, "packages");
+const nodeModulesLink = join(hostRoot, "node_modules");
+const nodeModulesTarget = join(repoRoot, "node_modules");
 
 function ensurePackagesLink() {
   if (existsSync(packagesLink)) {
@@ -26,7 +28,20 @@ function ensurePackagesLink() {
   symlinkSync(packagesTarget, packagesLink, "dir");
 }
 
+function ensureNodeModulesLink() {
+  if (existsSync(nodeModulesLink)) {
+    if (lstatSync(nodeModulesLink).isSymbolicLink()) {
+      return;
+    }
+
+    return;
+  }
+
+  symlinkSync(nodeModulesTarget, nodeModulesLink, "dir");
+}
+
 ensurePackagesLink();
+ensureNodeModulesLink();
 
 writeFileSync(
   importsPath,

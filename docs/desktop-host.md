@@ -45,9 +45,11 @@ Localhost status JSON (opt-in): `http://127.0.0.1:9473/status`
 2026-07-09 capture: renderer shell via Playwright (`conformance/docs/capture-desktop-host-ui.mjs`).
 `npm run start --workspace=host-desktop` now clears `ELECTRON_RUN_AS_NODE` (set by
 Electron-based IDEs such as Cursor) before launching Electron. The Bare worklet
-child no longer fails on linked `node:os` or `node:worker_threads` imports
-(2026-07-09); local darwin bundle spawn can still fail on the linked `bare-type`
-native addon used by the corestore/Hyperbee storage path. Conformance
+child clears the linked `node:os` / `node:worker_threads` import graph (2026-07-09)
+and reaches an initial `status` message on bare CLI spawn using `PureCryptoProvider`
+and a console-log IPC fallback when linked frameworks are absent. Full stdio IPC,
+identity persistence (`bare-fs`), sodium-native fast path, and Hyperdrive still
+require linked addon frameworks (as react-native-bare-kit ships on mobile). Conformance
 `test:desktop` exercises the mini-app stack in-process via `node-worker` and
 remains green.
 

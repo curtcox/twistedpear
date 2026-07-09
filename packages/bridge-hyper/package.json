@@ -21,6 +21,10 @@
     "./worklet": {
       "types": "./dist/worklet.d.ts",
       "import": "./dist/worklet.js"
+    },
+    "./worklet-hyper": {
+      "types": "./dist/worklet-hyper.d.ts",
+      "import": "./dist/worklet-hyper.js"
     }
   },
   "scripts": {

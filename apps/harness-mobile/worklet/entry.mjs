@@ -2,6 +2,7 @@
  * Bare worklet entry (bundled with bare-pack for react-native-bare-kit).
  * Runs reticulum-ts with the Bare runtime adapter and reports status over IPC.
  */
+import "../../../conformance/bare-interop/bare-globals.mjs";
 import { bytesToHex } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { BareCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/bare.js";
 import { PureCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/pure.js";
@@ -21,7 +22,7 @@ import { createIpcSerialBridge } from "./ipc-serial-bridge.mjs";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
-import { DriveManager, PackageResourceClient, assessFetchBudget, createSwarm, fetchPackage } from "../../../packages/bridge-hyper/dist/worklet.js";
+import { PackageResourceClient, assessFetchBudget, fetchPackage } from "../../../packages/bridge-hyper/dist/worklet.js";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { HOST_API_VERSION, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
 import { createWorkletMiniappHost } from "./miniapp-host.mjs";
@@ -106,9 +107,9 @@ let pendingTarget = null;
 let catalogStore = null;
 /** @type {InstalledPackageStore | null} */
 let installedStore = null;
-/** @type {DriveManager | null} */
+/** @type {import("../../../packages/bridge-hyper/dist/drive.js").DriveManager | null} */
 let packageDriveManager = null;
-/** @type {ReturnType<typeof createSwarm> | null} */
+/** @type {import("../../../packages/bridge-hyper/dist/swarm.js").SwarmSession | null} */
 let packageSwarm = null;
 const PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
 
@@ -235,6 +236,7 @@ async function loadCatalogState() {
 
 async function ensurePackageDriveManager() {
   if (packageDriveManager === null) {
+    const { createSwarm, DriveManager } = await import("../../../packages/bridge-hyper/dist/worklet-hyper.js");
     packageSwarm = createSwarm();
     packageDriveManager = new DriveManager({
       storagePath: "hyper-storage",

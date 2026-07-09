@@ -1,13 +1,8 @@
 /**
  * Bare worklet-safe surface for bridge-hyper.
  * Excludes WebSocket gateway / DHT relay modules that depend on Node's `ws` package.
+ * Hyperdrive/Hyperswarm live in worklet-hyper.ts (lazy-loaded — corestore native addons).
  */
-export { createSwarm, driveTopic } from "./swarm.js";
-export type { SwarmOptions, SwarmSession } from "./swarm.js";
-
-export { DriveManager } from "./drive.js";
-export type { DriveManagerOptions, PublishedVersion } from "./drive.js";
-
 export {
   RESOURCE_PROTOCOL_VERSION,
   attachPackageResourceServer,

@@ -1,8 +1,8 @@
 /**
  * Desktop host Bare worklet entry (stdio IPC, transport role enabled by default).
  */
+import "../../../conformance/bare-interop/bare-globals.mjs";
 import { bytesToHex } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
-import { BareCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/bare.js";
 import { PureCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/pure.js";
 import { Identity } from "../../../packages/reticulum-ts/dist/identity.js";
 import { DestinationDirection, DestinationType } from "../../../packages/reticulum-ts/dist/destination.js";
@@ -18,7 +18,7 @@ import { createIpcSerialBridge } from "./ipc-serial-bridge.mjs";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import { CatalogStore, InstalledPackageStore, TrustStore, decodeAppAnnounceData, decodePublisherIdentity256t, encodePublisherIdentity256t, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
-import { DriveManager, PackageResourceClient, assessFetchBudget, attachPackageResourceServer, createSwarm, fetchPackage } from "../../../packages/bridge-hyper/dist/worklet.js";
+import { PackageResourceClient, assessFetchBudget, attachPackageResourceServer, fetchPackage } from "../../../packages/bridge-hyper/dist/worklet.js";
 import {
   buildAppAnnounceSummary,
   encodeAppAnnounceData
@@ -51,7 +51,7 @@ try {
   // Generated during worklet build; absent in partial checkouts until build-worklet runs.
 }
 
-const IS_DESKTOP_HOST = process.env.TWISTEDPEAR_HOST_DESKTOP === "1";
+const IS_DESKTOP_HOST = true;
 
 function refuseStorePosture() {
   return false;
@@ -61,15 +61,22 @@ function shouldRefuseDeveloperMode() {
   return false;
 }
 
-function createProvider() {
+async function createProvider() {
+  if (IS_DESKTOP_HOST) {
+    return new PureCryptoProvider();
+  }
+
   try {
-    return new BareCryptoProvider();
+    const { BareCryptoProvider } = await import("../../../packages/reticulum-ts/dist/crypto/bare.js");
+    const bare = new BareCryptoProvider();
+    bare.ed25519PublicFromPrivate(bare.randomBytes(32));
+    return bare;
   } catch {
     return new PureCryptoProvider();
   }
 }
 
-const provider = createProvider();
+const provider = await createProvider();
 const runtime = bareRuntime({ storePath: "host-desktop-store" });
 const IDENTITY_STORE_KEY = "host-identity";
 
@@ -147,9 +154,9 @@ let pendingTarget = null;
 let catalogStore = null;
 /** @type {InstalledPackageStore | null} */
 let installedStore = null;
-/** @type {DriveManager | null} */
+/** @type {import("../../../packages/bridge-hyper/dist/drive.js").DriveManager | null} */
 let packageDriveManager = null;
-/** @type {ReturnType<typeof createSwarm> | null} */
+/** @type {import("../../../packages/bridge-hyper/dist/swarm.js").SwarmSession | null} */
 let packageSwarm = null;
 const PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
 const PROPAGATION_STORE_KEY = "propagation-store";
@@ -634,6 +641,7 @@ async function seedBundledCatalogIfNeeded() {
 
 async function ensurePackageDriveManager() {
   if (packageDriveManager === null) {
+    const { createSwarm, DriveManager } = await import("../../../packages/bridge-hyper/dist/worklet-hyper.js");
     packageSwarm = createSwarm();
     packageDriveManager = new DriveManager({
       storagePath: "hyper-storage",
@@ -1787,15 +1795,15 @@ async function handleHostMessage(raw) {
   }
 }
 
+void loadPersistedIdentity().then(() =>
+  loadCatalogState().then(() => seedBundledCatalogIfNeeded()).then(pushCatalog)
+);
+pushStatus();
+log(`Desktop host worklet ready (crypto: ${provider.name})`);
+
 IPC.on("data", (data) => {
   handleHostMessage(data).catch((error) => {
     log(`Worklet error: ${error instanceof Error ? error.message : String(error)}`);
     pushStatus();
   });
 });
-
-void loadPersistedIdentity().then(() =>
-  loadCatalogState().then(() => seedBundledCatalogIfNeeded()).then(pushCatalog)
-);
-pushStatus();
-log(`Desktop host worklet ready (crypto: ${provider.name})`);

@@ -1,6 +1,6 @@
 import {
   CAPABILITY_DEFINITIONS,
-  CorestoreBeeBackend,
+  KvStorageBeeBackend,
   GrantStore,
   HOST_API_VERSION,
   MiniappHost,
@@ -34,8 +34,7 @@ export function createWorkletMiniappHost(options) {
   const casStore = new CasStore(kvStore, (data) => options.provider.sha512(data));
   /** @type {{host: import("../../../packages/miniapp-runtime/dist/worklet.js").MiniappHost, appId: string} | null} */
   let preview = null;
-  const beeBackend = new CorestoreBeeBackend(options.beeStoragePath ?? "miniapp-bee-store");
-  const beeReady = beeBackend.ready();
+  const beeBackend = new KvStorageBeeBackend(kvStore);
 
   const createSandboxBackend = options.createSandboxBackend ?? createBareWorkletSandboxBackend;
   const host = new MiniappHost({
@@ -61,22 +60,10 @@ export function createWorkletMiniappHost(options) {
       },
     beeBackend: {
       descriptor: (appId) => beeBackend.descriptor(appId),
-      get: async (appId, key) => {
-        await beeReady;
-        return beeBackend.get(appId, key);
-      },
-      put: async (appId, key, value) => {
-        await beeReady;
-        return beeBackend.put(appId, key, value);
-      },
-      del: async (appId, key) => {
-        await beeReady;
-        return beeBackend.del(appId, key);
-      },
-      list: async (appId, listOptions) => {
-        await beeReady;
-        return beeBackend.list(appId, listOptions);
-      }
+      get: (appId, key) => beeBackend.get(appId, key),
+      put: (appId, key, value) => beeBackend.put(appId, key, value),
+      del: (appId, key) => beeBackend.del(appId, key),
+      list: (appId, listOptions) => beeBackend.list(appId, listOptions)
     },
     presenceBackend: {
       snapshot: async () => ({
