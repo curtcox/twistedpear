@@ -416,6 +416,16 @@ child no longer hits linked `node:os` / `node:worker_threads` imports (Phase 4c)
 local darwin spawn may still fail on the linked `bare-type` native addon — see
 [mac-validation-screenshots-plan.md](mac-validation-screenshots-plan.md#phase-4c--bare-worklet-import-graph-2026-07-09).
 
+**2026-07-09 desktop Handbook/DevStudio spot-check:** the README desktop
+command launched the Electron host and built/seeded `handbook`, `devstudio`,
+and `chat`. OS screenshot capture was blocked by missing Screen Recording
+permission, and Electron debug/Playwright attachment aborted before renderer
+control, so the UI path was verified through the scripted host flows instead.
+The passing commands were `test:handbook`, `test:devstudio-loop`, and
+`test:desktop`. The live launch still logs the known `bare-process` stdin /
+linked `bare-abort` warning before the supervisor fallback path; no new product
+issue was found.
+
 See [mac-validation-screenshots-plan.md](mac-validation-screenshots-plan.md) for the per-suite table and screenshot capture notes.
 
 Plan-duration soaks (Stage 8 opt-in) are scheduled separately and are the
