@@ -409,9 +409,11 @@ The pass completed Stages 0–8 with `--continue-on-failure` and reported **23 s
 (`build:worklet`, `test:desktop`, `test:ios-sim:required`, `test:harness-install`)
 and `test:desktop-soak` now pass locally. `test:propagation-interop` still
 fails after the export fix (in-process sync: *Propagation node identity is
-unknown*). Electron `npm run start --workspace=host-desktop` still fails with
-a CJS module load error, so the desktop GUI screenshot remains the failure
-capture. Details in [mac-validation-screenshots-plan.md](mac-validation-screenshots-plan.md#phase-4--post-fix-re-verification-2026-07-09).
+unknown*). Electron `npm run start --workspace=host-desktop` launches when
+`ELECTRON_RUN_AS_NODE` is unset (the start script does this automatically); the
+desktop GUI screenshot is in [desktop-host.md](desktop-host.md). The Bare
+worklet child still crashes on linked `node:os` imports — see
+[mac-validation-screenshots-plan.md](mac-validation-screenshots-plan.md#phase-4--post-fix-re-verification-2026-07-09).
 
 See [mac-validation-screenshots-plan.md](mac-validation-screenshots-plan.md) for the per-suite table and screenshot capture notes.
 

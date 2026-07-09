@@ -40,13 +40,14 @@ Localhost status JSON (opt-in): `http://127.0.0.1:9473/status`
 - **Resume**: `resume-node` reconnects and re-announces.
 - **Crash**: supervisor restarts worklet with exponential backoff.
 
-![desktop host validation failure capture](images/desktop-host-failure.png)
+![TwistedPear Host desktop shell](images/desktop-host.png)
 
-2026-07-08 validation capture: `test:desktop` failed during worklet bundling
-before a stable Electron UI screenshot could be captured. As of 2026-07-09,
-`test:desktop` and `test:desktop-soak` pass headlessly; `npm run start
---workspace=host-desktop` still fails with an Electron CJS load error, so this
-failure-terminal capture remains until the GUI path is fixed.
+2026-07-09 capture: renderer shell via Playwright (`conformance/docs/capture-desktop-host-ui.mjs`).
+`npm run start --workspace=host-desktop` now clears `ELECTRON_RUN_AS_NODE` (set by
+Electron-based IDEs such as Cursor) before launching Electron. The Bare worklet
+child still fails at runtime on linked `reticulum-interfaces` modules that import
+deferred Node builtins (`node:os`); conformance `test:desktop` exercises the
+mini-app stack in-process and remains green.
 
 ## Config
 

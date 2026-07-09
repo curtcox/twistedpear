@@ -5,7 +5,6 @@
  */
 export type { CryptoProvider, HkdfInput } from "./crypto/provider.js";
 export { BareCryptoProvider } from "./crypto/bare.js";
-export { NodeCryptoProvider } from "./crypto/node.js";
 export { PureCryptoProvider } from "./crypto/pure.js";
 export { rnsHkdf } from "./crypto/hkdf.js";
 export { Token, TOKEN_OVERHEAD } from "./crypto/token.js";
@@ -94,7 +93,6 @@ export type {
   Timer,
   UdpFactory
 } from "./runtime/runtime.js";
-export { nodeRuntime } from "./runtime/node/runtime.js";
 export { bareRuntime } from "./runtime/bare/runtime.js";
 export type { BareRuntimeOptions } from "./runtime/bare/runtime.js";
 export { webRuntime } from "./runtime/web/runtime.js";

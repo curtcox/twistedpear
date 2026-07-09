@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { existsSync, lstatSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,6 +11,22 @@ const output = join(hostRoot, "worklet/worklet.bundle");
 const nobleCrypto = join(repoRoot, "conformance/bare-interop/noble-crypto.mjs");
 const nodeCryptoStub = join(repoRoot, "conformance/bare-interop/node-crypto-stub.mjs");
 const importsPath = join(hostRoot, "worklet/imports.generated.json");
+const packagesLink = join(hostRoot, "packages");
+const packagesTarget = join(repoRoot, "packages");
+
+function ensurePackagesLink() {
+  if (existsSync(packagesLink)) {
+    if (lstatSync(packagesLink).isSymbolicLink()) {
+      return;
+    }
+
+    return;
+  }
+
+  symlinkSync(packagesTarget, packagesLink, "dir");
+}
+
+ensurePackagesLink();
 
 writeFileSync(
   importsPath,

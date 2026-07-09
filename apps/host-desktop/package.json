@@ -6,7 +6,7 @@
   "main": "dist/main/index.js",
   "scripts": {
     "build": "tsc -b && node scripts/build-worklet.mjs",
-    "start": "npm run build && electron .",
+    "start": "npm run build && env -u ELECTRON_RUN_AS_NODE electron .",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder"
   },

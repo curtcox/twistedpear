@@ -102,7 +102,7 @@ green — the final summary capture shows whatever really happened.
 | `handbook-web-handbook.png` | handbook.md | Stage 4 `test:web-handbook` |
 | `ios-handbook-mobile.png` | handbook.md, ios-host.md | Stage 6 `test:handbook-mobile` iOS slice |
 | `android-emulator-handbook.png` | android-emulator-lab.md | Stage 7 handbook slice before lane failure |
-| `desktop-host-failure.png` | desktop-host.md | Stage 5 worklet bundling failure (no stable UI) |
+| `desktop-host.png` | desktop-host.md | Stage 5 GUI shell (2026-07-09 Playwright capture) |
 
 ### Triage classification (2026-07-08 full pass)
 
@@ -150,7 +150,7 @@ worklet Bare-pack fixes that landed in the same window:
 | `test:ios-sim:required` | product bug | **PASS** | Worklet bundle + handbook slice |
 | `test:harness-install` | product bug | **PASS** | Worklet bundle + catalog ingest |
 | `test:propagation-interop` | product bug | **FAIL** | Export fixed; new in-process error: *Propagation node identity is unknown* |
-| `npm run start --workspace=host-desktop` | — | **FAIL** | Electron CJS load error — blocks replacing `desktop-host-failure.png` with a GUI shot |
+| `npm run start --workspace=host-desktop` | — | **PARTIAL** | Electron shell launches after `ELECTRON_RUN_AS_NODE` fix; Bare worklet child still fails on linked `node:os` |
 
 **Still open from the 2026-07-08 pass:** Docker peer-connectivity cluster (9
 suites), Android emulator lane (minSdk/fixture-meta/Gradle — partial fixes
@@ -160,12 +160,27 @@ issues.
 
 **Screenshot follow-ups:**
 
-- Keep `desktop-host-failure.png` until Electron `start` is fixed; conformance
-  `test:desktop` now passes headlessly.
+- `desktop-host.png` replaces `desktop-host-failure.png` (Playwright renderer capture; 2026-07-09).
 - Re-run `npm run validate:mac:full -- --continue-on-failure` when ready for
   an updated summary capture (expect fewer than 23 failures).
 - Android UI shot may improve after a green Stage 7 re-run with
   `fixture-meta.json` generation.
+
+## Phase 4b — Electron + desktop GUI (2026-07-09, continued)
+
+| Item | Status | Notes |
+|---|---|---|
+| `ELECTRON_RUN_AS_NODE` leak | **Fixed** | `host-desktop` start script runs `env -u ELECTRON_RUN_AS_NODE electron .`; Cursor/Electron IDEs set this var and it made `require('electron')` return the binary path |
+| `worklet.ts` barrel | **Fixed** | Removed `nodeRuntime` / `NodeCryptoProvider` from `@twistedpear/reticulum-ts` worklet entry so lxmf/bridge-hyper imports do not pull Node socket runtime into Bare bundles |
+| `packages` symlink at build | **Added** | `build-worklet.mjs` links `apps/host-desktop/packages` → `../../packages` so `--linked` bare-pack paths resolve at runtime |
+| Bare worklet runtime | **Open** | `darwin`+`linux` bundle still hits `node:os` in linked `reticulum-interfaces/dist/auto.js` (deferred builtins do not apply to linked externals) |
+| `desktop-host.png` | **Done** | `node conformance/docs/capture-desktop-host-ui.mjs` (Playwright renderer shell) |
+
+### Updated captured images
+
+| File | Doc | Notes |
+|---|---|---|
+| `desktop-host.png` | desktop-host.md | Replaces `desktop-host-failure.png` |
 
 ## Risks
 
