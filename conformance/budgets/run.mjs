@@ -4,10 +4,11 @@
  * Writes conformance/budgets/measured.json for LIMITATIONS §6 reference.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, cpSync, mkdtempSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, cpSync, mkdtempSync, rmSync, readdirSync, statSync, existsSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
+import { spawnSync } from "node:child_process";
 import { runInit, runPack } from "../../packages/cli/dist/commands/index.js";
 
 const fixtureDir = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages");
@@ -85,6 +86,13 @@ async function main() {
     }
 
     const handbookCwd = mkdtempSync(join(tmpdir(), "tp-budgets-handbook-"));
+    const handbookBuild = spawnSync(process.execPath, [join(handbookDir, "build.mjs")], {
+      cwd: handbookDir,
+      encoding: "utf8"
+    });
+    if (handbookBuild.status !== 0) {
+      throw new Error(`handbook build failed:\n${handbookBuild.stdout}\n${handbookBuild.stderr}`);
+    }
     const handbookAppDir = join(handbookCwd, "handbook");
     mkdirSync(handbookAppDir, { recursive: true });
     cpSync(join(handbookDir, "app.manifest.json"), join(handbookAppDir, "app.manifest.json"));
@@ -106,6 +114,42 @@ async function main() {
         bytes: readFileSync(join(handbookCwd, "handbook.tpkg")).length,
         description: "Phase D Handbook (full docs + applets; exceeds BLE example budget by design)"
       });
+
+      const partsRoot = join(handbookDir, "generated/part-packages");
+      if (existsSync(partsRoot)) {
+        for (const partId of readdirSync(partsRoot).sort()) {
+          const partDir = join(partsRoot, partId);
+          if (!statSync(partDir).isDirectory()) {
+            continue;
+          }
+          const manifest = JSON.parse(readFileSync(join(partDir, "app.manifest.json"), "utf8"));
+          const partCwd = mkdtempSync(join(tmpdir(), `tp-budgets-${manifest.name}-`));
+          const partAppDir = join(partCwd, manifest.name);
+          mkdirSync(partAppDir, { recursive: true });
+          cpSync(join(partDir, "app.manifest.json"), join(partAppDir, "app.manifest.json"));
+          cpSync(join(partDir, "bundle.js"), join(partAppDir, "bundle.js"));
+          try {
+            const partInit = await runInit({ cwd: partCwd, args: [] });
+            if (partInit !== 0) {
+              throw new Error(`tp init failed for ${manifest.name}`);
+            }
+            const partPack = await runPack({
+              cwd: partCwd,
+              args: [manifest.name, "--out", `${manifest.name}.tpkg`]
+            });
+            if (partPack !== 0) {
+              throw new Error(`tp pack failed for ${manifest.name}`);
+            }
+            examplePackages.push({
+              name: manifest.name,
+              bytes: readFileSync(join(partCwd, `${manifest.name}.tpkg`)).length,
+              description: `Handbook part package (${partId})`
+            });
+          } finally {
+            rmSync(partCwd, { recursive: true, force: true });
+          }
+        }
+      }
     } finally {
       rmSync(handbookCwd, { recursive: true, force: true });
     }

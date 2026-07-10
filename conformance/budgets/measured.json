@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-07-10T19:04:59.811Z",
+  "measuredAt": "2026-07-10T20:10:16.295Z",
   "bitrates": {
     "lan": 8388608,
     "ble": 24576,
@@ -103,7 +103,7 @@
     },
     {
       "name": "handbook",
-      "bytes": 302106,
+      "bytes": 303888,
       "description": "Phase D Handbook (full docs + applets; exceeds BLE example budget by design)",
       "estimates": {
         "lan": {
@@ -115,8 +115,103 @@
           "human": "1m 39s"
         },
         "rnode": {
-          "seconds": 2015,
-          "human": "33m 35s"
+          "seconds": 2026,
+          "human": "33m 46s"
+        }
+      }
+    },
+    {
+      "name": "handbook-part-1-concepts",
+      "bytes": 63440,
+      "description": "Handbook part package (part-1-concepts)",
+      "estimates": {
+        "lan": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "ble": {
+          "seconds": 21,
+          "human": "21s"
+        },
+        "rnode": {
+          "seconds": 423,
+          "human": "7m 3s"
+        }
+      }
+    },
+    {
+      "name": "handbook-part-2-hosts",
+      "bytes": 77338,
+      "description": "Handbook part package (part-2-hosts)",
+      "estimates": {
+        "lan": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "ble": {
+          "seconds": 26,
+          "human": "26s"
+        },
+        "rnode": {
+          "seconds": 516,
+          "human": "8m 36s"
+        }
+      }
+    },
+    {
+      "name": "handbook-part-3-sdk",
+      "bytes": 150436,
+      "description": "Handbook part package (part-3-sdk)",
+      "estimates": {
+        "lan": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "ble": {
+          "seconds": 49,
+          "human": "49s"
+        },
+        "rnode": {
+          "seconds": 1003,
+          "human": "16m 43s"
+        }
+      }
+    },
+    {
+      "name": "handbook-part-4-diagnostics",
+      "bytes": 62032,
+      "description": "Handbook part package (part-4-diagnostics)",
+      "estimates": {
+        "lan": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "ble": {
+          "seconds": 21,
+          "human": "21s"
+        },
+        "rnode": {
+          "seconds": 414,
+          "human": "6m 54s"
+        }
+      }
+    },
+    {
+      "name": "handbook-part-5-reference",
+      "bytes": 116271,
+      "description": "Handbook part package (part-5-reference)",
+      "estimates": {
+        "lan": {
+          "seconds": 1,
+          "human": "1s"
+        },
+        "ble": {
+          "seconds": 38,
+          "human": "38s"
+        },
+        "rnode": {
+          "seconds": 776,
+          "human": "12m 56s"
         }
       }
     }

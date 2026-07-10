@@ -23,16 +23,23 @@ const bytes = await resource.fetch({
 ## Package install (per transport)
 
 `conformance/budgets/measured.json` records install time at measured bitrates.
-The BLE guidance target is ~180 KiB for under-one-minute installs; this full
-Handbook is ~165 KiB (~55 s at measured BLE rates) — intentionally above the
+The BLE guidance target is ~180 KiB for under-one-minute installs; the **full**
+Handbook is ~295 KiB (~100 s at measured BLE rates) — intentionally above the
 tiny-app example budget.
 
 | Package | Size | LAN | BLE | RNode |
 |---|---|---|---|---|
 | tiny hello | < 1 KiB | ~1 s | ~1 s | ~6 s |
-| handbook (full) | ~165 KiB | ~1 s | ~55 s | ~19 min |
+| handbook (full) | ~304 KiB | ~1 s | ~100 s | ~34 min |
+| handbook-part-1-concepts | ~62 KiB | ~1 s | ~21 s | ~7 min |
+| handbook-part-2-hosts | ~76 KiB | ~1 s | ~26 s | ~9 min |
+| handbook-part-3-sdk | ~147 KiB | ~1 s | ~49 s | ~17 min |
+| handbook-part-4-diagnostics | ~61 KiB | ~1 s | ~21 s | ~7 min |
+| handbook-part-5-reference | ~114 KiB | ~1 s | ~38 s | ~13 min |
 
-Split per-part Handbook packages if BLE install of the full catalog matters.
+**Per-part packages** (`handbook-part-1-concepts`, …) are built alongside the
+full Handbook (`npm run build:handbook` → `generated/part-packages/`). Install
+one part at a time when BLE bandwidth is tight.
 
 ## Host & workspace quotas
 

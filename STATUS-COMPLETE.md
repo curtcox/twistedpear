@@ -430,10 +430,12 @@ CI: `web` + `interop` jobs per [docs/ci-policy.md](docs/ci-policy.md).
 | Item | Evidence | Verify |
 |---|---|---|
 | D0: Handbook scaffold + pipeline + TOC/chapters + applets on Node | `apps/handbook/`, `conformance/handbook/` | `npm run build:handbook`; `npm run test:handbook` |
-| D1: full Part III SDK tour (every capability) + widget gallery + coverage gate | `apps/handbook/content/applets/` (18), `build.mjs` coverage gate, `conformance/budgets/measured.json` handbook row | `npm run test:handbook`; `npm run test:budgets` |
-| D2: `host.info()` + diagnostics report share/diff | `packages/miniapp-runtime` host info (`HOST_API_VERSION` 0.4.0 `grantedCapabilities`), Handbook Diagnostics, `conformance/handbook/report.mjs` | `npm run test:handbook-report` |
-| D3: mobile harness slices + device-gated applets | `conformance/handbook/mobile-slice.mjs`, device-gated applets | `npm run test:handbook-mobile`; wired into `test:ios-sim:required` + `test:android-emulator` |
-| D4: Parts I & V, DevStudio handoff, desktop bundled seed | Part I/V chapters, `build-bundled-catalog.mjs`, Open in DevStudio via `share:cas` | `test:handbook` handoff round-trip; desktop first-boot seed |
+| D1: full Part III SDK tour (every capability) + widget gallery + coverage gate | `apps/handbook/content/applets/` (19), `build.mjs` coverage gate + part packages, `conformance/budgets/measured.json` | `npm run test:handbook`; `npm run test:budgets` |
+| D2: `host.info()` + diagnostics report share/diff | expectation-aware compare matrix; `conformance/handbook/report.mjs` | `npm run test:handbook-report` |
+| D3: mobile harness slices + device-gated applets + Maestro smoke | `mobile-slice.mjs`, `.maestro/handbook-smoke.yaml`, `handbook-peer.mjs` | `npm run test:handbook-mobile`; `test:android-emulator` |
+| D4: Parts I & V, DevStudio handoff, desktop bundled seed | 38 chapters, `ref-limitations`, `build-bundled-catalog.mjs` | `test:handbook` handoff round-trip; desktop first-boot seed |
+| Reader UX: search, prev/next, scroll persistence | `runtime.js`, scroll `scrollOffset` widget prop | `test:handbook` `assertReaderUx`; `test:web-handbook` TOC search |
+| Gap audit | `scripts/audit-handbook.mjs` | `npm run audit:handbook` (runs in `build:handbook`) |
 | Preview-slot execution + grant intro live status | `apps/handbook` preview mode, `host.info().grantedCapabilities` | `test:handbook` preview slot + grant intro assertions |
 | Web host Handbook CI | `conformance/web-handbook/` Playwright | `npm run test:web-handbook` |
 

@@ -198,11 +198,11 @@ register in STATUS-HARDWARE once D3 starts.
 
 | Item | Plan reference | Status |
 |---|---|---|
-| D0: scaffold + content pipeline + TOC/chapters + one applet E2E | handbook §D0 | **Done (node + web)** — `apps/handbook`, `npm run build:handbook`, `npm run test:handbook`, `npm run test:web-handbook` |
-| D1: applet framework + full Part III SDK tour + coverage gate | handbook §D1 | **Done (node + web)** — 14 applets covering every `CAPABILITY_DEFINITIONS` id + widget gallery; strict coverage gate; handbook row in `conformance/budgets` (~71 KiB, exceeds BLE example budget by design); web exercise via `test:web-handbook` |
-| D2: `host.info()` + run-all diagnostics + report share/diff | handbook §D2 | **Done (node + web)** — `HOST_API_VERSION` 0.4.0 `host.info()` with `grantedCapabilities`; Diagnostics run-all / `share.put`+QR / compare matrix; Part II difference matrix; `npm run test:handbook-report`; web report export in `test:web-handbook` |
-| D3: Android emulator + iOS sim Handbook flows | handbook §D3 | **Done (software tier)** — device-gated applets + `test:handbook-mobile`; slices in `test:ios-sim:required` + `test:android-emulator` (headless); real-device report compare in STATUS-HARDWARE |
-| D4: Parts I & V, publish, default seed | handbook §D4 | **Done (software tier)** — Part I/V chapters; Open in DevStudio handoff; desktop bundled seed (`build-bundled-catalog.mjs`); `test:handbook` handoff round-trip |
+| D0: scaffold + content pipeline + TOC/chapters + one applet E2E | handbook §D0 | **Done (node + web)** — `apps/handbook`, `npm run build:handbook`, `npm run audit:handbook`, `npm run test:handbook`, `npm run test:web-handbook` |
+| D1: applet framework + full Part III SDK tour + coverage gate | handbook §D1 | **Done (node + web)** — 19 applets, SDK namespace + capability coverage gates; full Handbook ~295 KiB + per-part packages in `generated/part-packages/`; `npm run test:budgets` |
+| D2: `host.info()` + run-all diagnostics + report share/diff | handbook §D2 | **Done (node + web)** — expectation-aware compare matrix; `npm run test:handbook-report`; web report export in `test:web-handbook` |
+| D3: Android emulator + iOS sim Handbook flows | handbook §D3 | **Done (software tier)** — device-gated applets + `test:handbook-mobile`; Maestro `.maestro/handbook-smoke.yaml` on Android emulator; real-device rows H21–H22 in STATUS-HARDWARE |
+| D4: Parts I & V, publish, default seed | handbook §D4 | **Done (software tier)** — 38 chapters incl. generated `ref-limitations`; Open in DevStudio; desktop bundled seed |
 
 ---
 
@@ -233,15 +233,16 @@ register in STATUS-HARDWARE once D3 starts.
 | `npm run test:link-benchmark` | Link handshake latency (`LINK_BENCHMARK_RECORD=1` to record) |
 | `npm run test:bare-benchmark-bare-compare` | Bare sodium-native crypto vs baseline |
 | `npm run test:android-native` | Android bridge JVM unit tests (BLE, multicast, USB) |
-| `npm run test:android-emulator` | Local Maestro E1–E5 + E3 adb (skips without device/maestro) |
+| `npm run test:android-emulator` | Local Maestro E1–E5 + handbook smoke + E3 adb (skips without device/maestro) |
 | `npm run test:android-emulator:e3` | E3 foreground-service adb check only |
 | `npm run test:android-emulator:e5` | E5 Bare Worker benchmark on emulator |
 | `npm run test:examples` | Phase 4: pack → grant → launch → exercise chat/file-drop/board |
-| `npm run test:handbook` | Phase D: Handbook pack → TOC/chapters + applets on Node sandbox |
+| `npm run test:handbook` | Phase D: Handbook pack → TOC/chapters + applets + reader UX on Node sandbox |
 | `npm run test:handbook-report` | Phase D2: run-all → share.put report → seeded diff matrix |
 | `npm run test:handbook-mobile` | Phase D3: Handbook install + 3 chapters + run-all + report on iOS/Android worklet path |
-| `npm run test:web-handbook` | Phase D: Playwright Handbook install + chapters + applets + report on web host |
-| `npm run build:handbook` | Rebuild Handbook catalog + `apps/handbook/bundle.js` from content/ |
+| `npm run test:web-handbook` | Phase D: Playwright Handbook install + chapters + applets + search + report on web host |
+| `npm run build:handbook` | Rebuild Handbook catalog + part packages + `apps/handbook/bundle.js` |
+| `npm run audit:handbook` | Dead in-app links, thin chapters, missing applet expectations |
 | `npm run test:web-interop` | W-S1: WS leaf peer → gateway → dockerized Python RNS |
 | `npm run test:web-interop-browser` | W-S1/W1: Playwright browser tab packet + LXMF echo through gateway |
 | `npm run test:web-sandbox` | W-S2: opaque-origin iframe worker isolation + busy-loop kill (Playwright) |

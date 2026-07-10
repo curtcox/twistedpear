@@ -150,6 +150,82 @@ async function dismissGrantIntroIfNeeded(host) {
   }
 }
 
+async function assertReaderUx(host, store) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const tree = host.snapshot().widgetTree;
+    if (tree !== null && findNodeById(tree.root, "open-diag") !== null) {
+      break;
+    }
+    try {
+      await tap(host, "back-toc", "hb.toc");
+    } catch {
+      try {
+        await tap(host, "back-toc-diag", "hb.toc");
+      } catch {
+        // ignore
+      }
+    }
+    await sleep(200);
+  }
+  await waitForTreeText(host, "Contents");
+
+  await tap(host, "toc-search", "hb.search", "widget gallery");
+  await waitFor(async () => {
+    const tree = host.snapshot().widgetTree;
+    if (tree === null) {
+      return null;
+    }
+    if (
+      treeContainsText(tree, "chapter(s) match") &&
+      findNodeById(tree.root, "ch-sdk-widget-gallery") !== null &&
+      findNodeById(tree.root, "ch-host-android") === null
+    ) {
+      return tree;
+    }
+    return null;
+  }, 10_000);
+  console.log("handbook: TOC search passed");
+
+  await tap(host, "toc-search", "hb.search", "");
+  await sleep(200);
+
+  await tap(host, "ch-what-is-twistedpear", "hb.openchapter");
+  await waitForTreeText(host, "What TwistedPear is");
+  if (findNodeById(host.snapshot().widgetTree.root, "ch-reticulum-fundamentals") === null) {
+    throw new Error("missing next-chapter navigation button");
+  }
+  console.log("handbook: chapter prev/next navigation passed");
+
+  await tap(host, "root", "hb.scroll", { y: 200 });
+  await sleep(600);
+  const scrollKey = "miniapp-kv:handbook:handbook:scroll:what-is-twistedpear";
+  const scrollBytes = await store.get(scrollKey);
+  if (scrollBytes === null) {
+    throw new Error("handbook did not persist chapter scroll offset");
+  }
+  const scrollY = Number.parseInt(new TextDecoder().decode(scrollBytes), 10);
+  if (!Number.isFinite(scrollY) || scrollY < 50) {
+    throw new Error(`unexpected scroll offset persisted: ${scrollY}`);
+  }
+
+  await tap(host, "back-toc", "hb.toc");
+  await waitForTreeText(host, "Contents");
+  await tap(host, "ch-what-is-twistedpear", "hb.openchapter");
+  await waitFor(async () => {
+    const tree = host.snapshot().widgetTree;
+    if (tree === null) {
+      return null;
+    }
+    const root = findNodeById(tree.root, "root");
+    const offset = root?.props?.scrollOffset;
+    if (typeof offset === "number" && offset >= 50) {
+      return root;
+    }
+    return null;
+  }, 10_000);
+  console.log(`handbook: scroll position restored (${scrollY} px)`);
+}
+
 async function assertPreviewSlot(host, appsBackend) {
   const tree = host.snapshot().widgetTree;
   if (tree === null || !treeContainsText(tree, "Contents")) {
@@ -496,6 +572,8 @@ async function main() {
       throw new Error("handbook did not persist reading position");
     }
     console.log(`handbook: reading position persisted (${new TextDecoder().decode(position)})`);
+
+    await assertReaderUx(host, store);
 
     // —— Phase D2: export + share round-trip + seeded diff ——
     // Leave whatever chapter/applet view we are on and get back to TOC.

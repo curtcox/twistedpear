@@ -426,6 +426,18 @@ async function main() {
   await waitForRuntime(getRuntime, (runtime) => treeContainsText(runtime.widgetTree, "Contents"));
   record("toc-rendered");
 
+  await tap(send, getRuntime, "toc-search", "hb.search", "widget gallery");
+  await waitForRuntime(
+    getRuntime,
+    (runtime) =>
+      treeContainsText(runtime.widgetTree, "chapter(s) match") &&
+      findNodeById(runtime.widgetTree.root, "ch-sdk-widget-gallery") !== null &&
+      findNodeById(runtime.widgetTree.root, "ch-host-android") === null
+  );
+  record("toc-search");
+  await tap(send, getRuntime, "toc-search", "hb.search", "");
+  await sleep(200);
+
   for (const chapterId of HANDBOOK_FIXTURE.chapterIds) {
     await ensureToc(send, getRuntime);
     await tap(send, getRuntime, `ch-${chapterId}`, "hb.openchapter");

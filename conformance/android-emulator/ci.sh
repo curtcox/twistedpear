@@ -33,7 +33,9 @@ docker compose -f conformance/docker/docker-compose.yml up -d --build leaf-echo
 echo "[android-emulator/ci] start host publisher peer"
 node conformance/android-emulator/host-peer.mjs &
 HOST_PEER_PID=$!
-trap 'kill "$HOST_PEER_PID" 2>/dev/null || true; docker compose -f conformance/docker/docker-compose.yml down' EXIT
+node conformance/android-emulator/handbook-peer.mjs &
+HANDBOOK_PEER_PID=$!
+trap 'kill "$HOST_PEER_PID" "$HANDBOOK_PEER_PID" 2>/dev/null || true; docker compose -f conformance/docker/docker-compose.yml down' EXIT
 sleep 10
 
 echo "[android-emulator/ci] install harness APK"
@@ -53,6 +55,9 @@ sleep 5
 
 echo "[android-emulator/ci] run maestro E4 OTA + rollback"
 maestro test -e "APP_ID=$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('conformance/android-emulator/fixture-meta.json','utf8')).appId)")" .maestro/e4-ota-rollback.yaml
+
+echo "[android-emulator/ci] run maestro handbook smoke"
+maestro test .maestro/handbook-smoke.yaml
 
 echo "[android-emulator/ci] run E3 foreground-service check"
 node conformance/android-emulator/e3-foreground.mjs
