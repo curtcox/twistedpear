@@ -13,6 +13,7 @@ let supervisor: WorkletSupervisor | null = null;
 let bridges: HostDesktopBridges | null = null;
 let latestStatus: WorkletStatus | null = null;
 let quitToTray = true;
+let isQuitting = false;
 let networkSnapshot = JSON.stringify(networkInterfaces());
 let networkPollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -45,7 +46,7 @@ function createWindow(): void {
   });
 
   mainWindow.on("close", (event) => {
-    if (!quitToTray) {
+    if (isQuitting || !quitToTray) {
       return;
     }
 
@@ -119,7 +120,6 @@ app.whenReady().then(() => {
       {
         label: "Quit",
         click: () => {
-          quitToTray = false;
           supervisor?.stop();
           app.quit();
         }
@@ -149,6 +149,8 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  isQuitting = true;
+
   if (networkPollTimer !== null) {
     clearInterval(networkPollTimer);
     networkPollTimer = null;
