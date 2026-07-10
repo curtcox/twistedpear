@@ -16,7 +16,9 @@ Rebuild content without the full package test:
 ```bash
 npm run build:handbook         # bundle.js + generated/part-packages/ + audit gate
 npm run audit:handbook         # dead links, thin chapters, applet expectations
+npm run test:handbook-parts    # pack + launch each part package (also runs in test:handbook)
 npm run pack:handbook-parts    # .tpkg for each part (BLE-friendly slices)
+npm run capture:handbook-web-ui  # docs/images/handbook-web-handbook.png
 ```
 
 Shared UI harness helpers live in `ui-helpers.mjs` (TOC search, prev/next,

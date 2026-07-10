@@ -27,9 +27,13 @@ Author chapters under `content/` (markdown subset) and applets under
 |---|---|---|
 | I Concepts | `handbook-part-1-concepts` | ~62 KiB (~21 s) |
 | II Hosts | `handbook-part-2-hosts` | ~76 KiB (~26 s) |
-| III SDK | `handbook-part-3-sdk` | ~147 KiB (~49 s) |
+| III SDK | `handbook-part-3-sdk` | ~148 KiB (~50 s) |
 | IV Diagnostics | `handbook-part-4-diagnostics` | ~61 KiB (~21 s) |
 | V Reference | `handbook-part-5-reference` | ~114 KiB (~38 s) |
+
+Each part manifest always includes `identity`, `presence`, `storage:kv`, and
+`workspace` (required for seeding chapter content) plus capabilities referenced
+by its applets.
 
 Run `npm run pack:handbook-parts` to produce signed `.tpkg` archives in
 `generated/part-packages-packed/`. Publish and install like any mini-app; each

@@ -971,7 +971,7 @@ function buildPartPackages({ toc, chapters, applets, manifest, capabilityDescrip
       return false;
     });
 
-    const partCapabilityIds = new Set(["storage:kv"]);
+    const partCapabilityIds = new Set(["identity", "presence", "storage:kv", "workspace"]);
     for (const applet of partApplets) {
       for (const capability of applet.capabilities ?? []) {
         partCapabilityIds.add(capability);

@@ -181,7 +181,7 @@ round-trip + seeded web-status diff). Web Playwright Handbook CI:
 
 ![web handbook validation capture](images/handbook-web-handbook.png)
 
-2026-07-08 validation capture: `test:web-handbook` passed 36 chapters, 18 applets, and report export in Chromium.
+2026-07-10 capture: TOC search filtering (`widget gallery`), 38 chapters, 19 applets; regenerate with `npm run capture:handbook-web-ui`.
 
 ### Phase D3 — Mobile hosts + device-gated content
 - Run Handbook on Android emulator and iOS simulator harnesses (extend the existing

@@ -25,6 +25,7 @@ import {
   assertAppletStatusMatchesExpectation,
   parseResultStatus
 } from "./expectations.mjs";
+import { runHandbookPartPackagesSmoke } from "./part-packages.mjs";
 import {
   assertReaderUx,
   collectTextValues,
@@ -599,6 +600,9 @@ async function main() {
   console.log(
     `handbook: ${catalog.chapters.length} chapter(s) + ${catalog.applets.length} applet(s) + report/diff passed on Node sandbox`
   );
+
+  const partCount = await runHandbookPartPackagesSmoke();
+  console.log(`handbook: ${partCount} part package(s) passed smoke`);
 }
 
 main().catch((error) => {

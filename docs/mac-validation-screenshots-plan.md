@@ -99,7 +99,7 @@ green — the final summary capture shows whatever really happened.
 | `mac-validation-summary.png` | mac-validation.md | Failed full-pass summary (23 failures) |
 | `mac-validation-triage.png` | mac-validation.md | Triage package output |
 | `web-host-examples.png` | web-host.md | Stage 4 `test:web-examples` |
-| `handbook-web-handbook.png` | handbook.md | Stage 4 `test:web-handbook` |
+| `handbook-web-handbook.png` | handbook.md | `npm run capture:handbook-web-ui` (TOC search UI) |
 | `ios-handbook-mobile.png` | handbook.md, ios-host.md | Stage 6 `test:handbook-mobile` iOS slice |
 | `android-emulator-handbook.png` | android-emulator-lab.md | Stage 7 handbook slice before lane failure |
 | `desktop-host.png` | desktop-host.md | Stage 5 GUI shell (2026-07-09 Playwright capture) |

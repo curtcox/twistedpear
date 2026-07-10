@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-07-10T20:10:16.295Z",
+  "measuredAt": "2026-07-10T21:38:55.442Z",
   "bitrates": {
     "lan": 8388608,
     "ble": 24576,
@@ -103,7 +103,7 @@
     },
     {
       "name": "handbook",
-      "bytes": 303888,
+      "bytes": 304576,
       "description": "Phase D Handbook (full docs + applets; exceeds BLE example budget by design)",
       "estimates": {
         "lan": {
@@ -111,18 +111,18 @@
           "human": "1s"
         },
         "ble": {
-          "seconds": 99,
-          "human": "1m 39s"
+          "seconds": 100,
+          "human": "1m 40s"
         },
         "rnode": {
-          "seconds": 2026,
-          "human": "33m 46s"
+          "seconds": 2031,
+          "human": "33m 51s"
         }
       }
     },
     {
       "name": "handbook-part-1-concepts",
-      "bytes": 63440,
+      "bytes": 63652,
       "description": "Handbook part package (part-1-concepts)",
       "estimates": {
         "lan": {
@@ -134,14 +134,14 @@
           "human": "21s"
         },
         "rnode": {
-          "seconds": 423,
-          "human": "7m 3s"
+          "seconds": 425,
+          "human": "7m 5s"
         }
       }
     },
     {
       "name": "handbook-part-2-hosts",
-      "bytes": 77338,
+      "bytes": 77554,
       "description": "Handbook part package (part-2-hosts)",
       "estimates": {
         "lan": {
@@ -153,14 +153,14 @@
           "human": "26s"
         },
         "rnode": {
-          "seconds": 516,
-          "human": "8m 36s"
+          "seconds": 518,
+          "human": "8m 38s"
         }
       }
     },
     {
       "name": "handbook-part-3-sdk",
-      "bytes": 150436,
+      "bytes": 151124,
       "description": "Handbook part package (part-3-sdk)",
       "estimates": {
         "lan": {
@@ -168,18 +168,18 @@
           "human": "1s"
         },
         "ble": {
-          "seconds": 49,
-          "human": "49s"
+          "seconds": 50,
+          "human": "50s"
         },
         "rnode": {
-          "seconds": 1003,
-          "human": "16m 43s"
+          "seconds": 1008,
+          "human": "16m 48s"
         }
       }
     },
     {
       "name": "handbook-part-4-diagnostics",
-      "bytes": 62032,
+      "bytes": 62248,
       "description": "Handbook part package (part-4-diagnostics)",
       "estimates": {
         "lan": {
@@ -191,14 +191,14 @@
           "human": "21s"
         },
         "rnode": {
-          "seconds": 414,
-          "human": "6m 54s"
+          "seconds": 415,
+          "human": "6m 55s"
         }
       }
     },
     {
       "name": "handbook-part-5-reference",
-      "bytes": 116271,
+      "bytes": 116583,
       "description": "Handbook part package (part-5-reference)",
       "estimates": {
         "lan": {
@@ -210,8 +210,8 @@
           "human": "38s"
         },
         "rnode": {
-          "seconds": 776,
-          "human": "12m 56s"
+          "seconds": 778,
+          "human": "12m 58s"
         }
       }
     }
