@@ -2,4 +2,15 @@
 set -eu
 
 cd "$(dirname "$0")"
+
+if [ -n "${LAUNCHER_PYTHON:-}" ]; then
+  exec "$LAUNCHER_PYTHON" launcher.py launcher.txt
+fi
+
+for py in /usr/bin/python3 python3; do
+  if command -v "$py" >/dev/null 2>&1 && "$py" -c "import _tkinter" >/dev/null 2>&1; then
+    exec "$py" launcher.py launcher.txt
+  fi
+done
+
 exec python3 launcher.py launcher.txt

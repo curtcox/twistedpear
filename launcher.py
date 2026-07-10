@@ -1,13 +1,76 @@
 #!/usr/bin/env python3
 
 import os
-import sys
+import shutil
 import subprocess
-import threading
-import tkinter as tk
-from tkinter import ttk, messagebox
+import sys
 from dataclasses import dataclass
 from typing import Optional
+
+
+def _python_has_tkinter(python: str) -> bool:
+    try:
+        result = subprocess.run(
+            [python, "-c", "import _tkinter"],
+            capture_output=True,
+            timeout=10,
+        )
+        return result.returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def _tkinter_python_candidates() -> list[str]:
+    seen: set[str] = set()
+    candidates: list[str] = []
+
+    def add(path: Optional[str]) -> None:
+        if not path:
+            return
+        resolved = os.path.realpath(path)
+        if resolved in seen or not os.path.isfile(resolved) or not os.access(resolved, os.X_OK):
+            return
+        seen.add(resolved)
+        candidates.append(path)
+
+    add(os.environ.get("LAUNCHER_PYTHON"))
+    add("/usr/bin/python3")
+    for name in ("python3", "python"):
+        add(shutil.which(name))
+
+    return candidates
+
+
+def _ensure_tkinter_python() -> None:
+    if _python_has_tkinter(sys.executable):
+        return
+
+    for python in _tkinter_python_candidates():
+        if _python_has_tkinter(python):
+            os.execv(python, [python, *sys.argv])
+
+    major, minor = sys.version_info[:2]
+    brew_pkg = f"python-tk@{major}.{minor}"
+
+    print(
+        f"launcher.py: Tkinter is not available in {sys.executable} "
+        f"(Python {major}.{minor}).\n\n"
+        "This launcher needs a Python build linked against Tcl/Tk. "
+        "Homebrew's python@3.x does not include Tk unless you install python-tk.\n\n"
+        "Try one of:\n"
+        "  ./launch\n"
+        "  LAUNCHER_PYTHON=/usr/bin/python3 python3 launcher.py\n"
+        f"  brew install {brew_pkg}\n",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+
+_ensure_tkinter_python()
+
+import threading
+import tkinter as tk
+from tkinter import messagebox, ttk
 
 
 USAGE = """\

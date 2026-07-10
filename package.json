@@ -92,7 +92,7 @@
     "build:web-host": "npm run build && npm run build:web-host --workspace=harness-mobile",
     "run:web": "npm run build && npm run build:web-worker --workspace=harness-mobile && npm run web --workspace=harness-mobile",
     "run:desktop": "npm run start --workspace=host-desktop",
-    "launch": "python3 launcher.py launcher.txt",
+    "launch": "./launch",
     "run:web-handbook": "node scripts/serve-web-handbook.mjs",
     "run:web-devstudio": "node scripts/serve-web-devstudio.mjs",
     "run:web-host-node": "node scripts/serve-web-host-node.mjs",
