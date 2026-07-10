@@ -9,6 +9,10 @@ import {
   reviveJsonWireValue
 } from "../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 import { HANDBOOK_FIXTURE } from "./fixtures.mjs";
+import {
+  assertAppletStatusMatchesExpectation,
+  parseResultStatus
+} from "../handbook/expectations.mjs";
 
 const DEVICE_GATED_APPLET_IDS = new Set([
   "ble-peer",
@@ -30,6 +34,7 @@ const APPLET_CHAPTER = {
   "share-cas": "sdk-share-cas",
   "apps-package-preview": "sdk-apps-package",
   "apps-publish-install": "sdk-apps-publish",
+  "apps-update": "sdk-apps-update",
   "ai-chat": "sdk-ai-chat",
   "widget-gallery": "sdk-widget-gallery",
   "ble-peer": "device-gated-probes",
@@ -475,13 +480,15 @@ async function main() {
           /^(PASS|FAIL|UNAVAILABLE|NOT-GRANTED|SKIPPED)\b/.test(value) ||
           value.startsWith("Error:")
       ) ?? "";
-    if (DEVICE_GATED_APPLET_IDS.has(appletId)) {
-      if (!resultLine.startsWith("UNAVAILABLE") && !resultLine.startsWith("SKIPPED")) {
-        throw new Error(`device-gated applet ${appletId} expected unavailable: ${resultLine}`);
-      }
-    } else if (!resultLine.startsWith("PASS")) {
-      throw new Error(`applet ${appletId} did not pass: ${resultLine}`);
+    const appletMeta = HANDBOOK_FIXTURE.applets?.find((entry) => entry.id === appletId);
+    if (appletMeta === undefined) {
+      throw new Error(`Missing applet metadata for ${appletId}`);
     }
+    const actualStatus = parseResultStatus(resultLine);
+    if (actualStatus === null) {
+      throw new Error(`applet ${appletId} did not report a result: ${resultLine}`);
+    }
+    assertAppletStatusMatchesExpectation(appletMeta, actualStatus, "web");
     passedApplets.push(appletId);
     record(`applet:${appletId}`);
     globalThis.__WEB_HANDBOOK__ = {

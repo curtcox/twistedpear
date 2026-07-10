@@ -18,8 +18,8 @@ asserting differences in stale prose.
 
 | Signal | Typical cause | See also |
 |---|---|---|
-| `platform=web` + no `auto`/`ble` | Browser leaf: WebSocket gateway only | [Web host](chapter:host-web), [LIMITATIONS.md](../../../LIMITATIONS.md) §8 |
-| `platform=ios` + missing multicast | Multicast entitlement / Bonjour path | [iOS host](chapter:host-ios), LIMITATIONS §6 |
+| `platform=web` + no `auto`/`ble` | Browser leaf: WebSocket gateway only | [Web host](chapter:host-web), [Known limitations](chapter:ref-limitations) §8 |
+| `platform=ios` + missing multicast | Multicast entitlement / Bonjour path | [iOS host](chapter:host-ios), [Known limitations](chapter:ref-limitations) §4 |
 | `transport=false` on phones | Leaf role; desktops default transport + seeder | [Android](chapter:host-android) / [Desktop](chapter:host-desktop) |
 | Interface listed but offline | Feature present; peer/hardware not connected | Part IV diagnostics |
 | `not-granted` applet cards | User withheld a manifest capability | [Capability model](chapter:sdk-capabilities) |

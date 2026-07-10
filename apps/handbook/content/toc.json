@@ -133,6 +133,11 @@
           "file": "part-3-sdk/apps-publish.md"
         },
         {
+          "id": "sdk-apps-update",
+          "title": "Publish, install & update",
+          "file": "part-3-sdk/apps-update.md"
+        },
+        {
           "id": "sdk-devstudio",
           "title": "DevStudio walkthrough",
           "file": "part-3-sdk/devstudio.md"
@@ -208,6 +213,11 @@
           "id": "ref-cli",
           "title": "CLI commands",
           "file": "part-5-reference/cli.md"
+        },
+        {
+          "id": "ref-limitations",
+          "title": "Known limitations",
+          "file": "part-5-reference/limitations.md"
         }
       ]
     }

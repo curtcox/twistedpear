@@ -31,7 +31,7 @@ WebSocketClientInterface ──wss──▶ gateway node
 Identity keys live in IndexedDB encrypted with WebCrypto — weaker than a hardware
 keystore. The **page origin is part of the trust base**: default posture is
 self-serving from your own node (`tp node --serve-web`). See
-[LIMITATIONS.md](../../../LIMITATIONS.md) §8.
+[Known limitations](chapter:ref-limitations) §8.
 
 ## Radios & serial
 

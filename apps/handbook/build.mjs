@@ -30,6 +30,27 @@ const catalogOutPath = join(generatedDir, "catalog.json");
 const EXPECTATION_VALUES = new Set(["pass", "unavailable", "device-gated", "fail"]);
 const DIAGNOSTIC_GROUPS = new Set(["crypto", "interfaces", "storage", "distribution", "runtime"]);
 const EXECUTION_MODES = new Set(["inline", "preview"]);
+const HANDBOOK_PLATFORMS = ["android", "ios", "desktop", "web", "node"];
+const SDK_NAMESPACES = [
+  "identity",
+  "presence",
+  "host",
+  "announce",
+  "lxmf",
+  "storage",
+  "resource",
+  "workspace",
+  "share",
+  "apps",
+  "ai",
+  "ui"
+];
+const MIN_CHAPTER_WORDS = {
+  "part-1-concepts": 80,
+  "part-2-hosts": 80,
+  "part-3-sdk": 80,
+  "part-4-diagnostics": 40
+};
 
 function isTableSeparator(line) {
   return /^\|?[\s:-]+\|[\s|:-]+\|?$/.test(line.trim());
@@ -290,6 +311,64 @@ function loadApplets() {
   return applets;
 }
 
+function chapterTextForSearch(chapter) {
+  const parts = [chapter.title, chapter.partTitle];
+  for (const block of chapter.blocks) {
+    if (block.type === "paragraph" || block.type === "heading") {
+      parts.push(block.text);
+    }
+    if (block.type === "list") {
+      parts.push(...block.items);
+    }
+    if (block.type === "table") {
+      parts.push(...block.headers);
+      for (const row of block.rows) {
+        parts.push(...row);
+      }
+    }
+  }
+  return parts.join(" ");
+}
+
+function chapterWordCount(chapter) {
+  return chapterTextForSearch(chapter)
+    .split(/\s+/)
+    .filter((token) => token.length > 0).length;
+}
+
+function transformLimitationsMarkdown(source) {
+  return source
+    .replace(/^# Limitations[^\n]*\n\nCompanion[^\n]+\n\n/m, "")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\[([^\]]+)\]\(docs\/web-host\.md\)/g, "[$1](chapter:host-web)")
+    .replace(/\[([^\]]+)\]\(docs\/miniapp-runtime\.md\)/g, "[$1](chapter:ref-host-api)")
+    .replace(/\[([^\]]+)\]\(docs\/security-review\.md\)/g, "$1")
+    .replace(/\[([^\]]+)\]\(docs\/ios-multicast-entitlement\.md\)/g, "$1")
+    .replace(/\[([^\]]+)\]\(docs\/ios-submission\.md\)/g, "$1")
+    .replace(/\[([^\]]+)\]\(\.\.\/STATUS-HARDWARE\.md\)/g, "STATUS-HARDWARE")
+    .replace(/\[([^\]]+)\]\(\.\.\/PLAN\.md\)/g, "PLAN")
+    .replace(/\[([^\]]+)\]\((?:\.\.\/)+LIMITATIONS\.md[^)]*\)/g, "[$1](chapter:ref-limitations)")
+    .replace(/\[([^\]]+)\]\([^)]*\.md[^)]*\)/g, "$1");
+}
+
+function generateLimitationsChapter(refDir) {
+  const limitationsPath = join(root, "../../LIMITATIONS.md");
+  if (!existsSync(limitationsPath)) {
+    fail("LIMITATIONS.md not found for ref-limitations generation");
+  }
+  const body = transformLimitationsMarkdown(readFileSync(limitationsPath, "utf8"));
+  const limitationsMd = [
+    "# Known limitations",
+    "",
+    "Platform compromises and measured constraints. Cross-linked from host chapters",
+    "and the [live difference matrix](chapter:difference-matrix).",
+    "",
+    body.trim()
+  ].join("\n");
+  writeText(join(refDir, "limitations.md"), `${limitationsMd}\n`);
+}
+
 function resetSeeds() {
   rmSync(seedsDir, { recursive: true, force: true });
   ensureDir(seedsDir);
@@ -298,6 +377,7 @@ function resetSeeds() {
 async function generateReferenceChapters() {
   const refDir = join(contentDir, "part-5-reference");
   ensureDir(refDir);
+  generateLimitationsChapter(refDir);
 
   let capabilityDefinitions = [];
   let widgetTypes = [];
@@ -464,7 +544,7 @@ async function generateReferenceChapters() {
     "- Ed25519 signature over the manifest hash",
     "",
     "Packaging flow: [Packaging & preview](chapter:sdk-apps-package).",
-    "256t distribution: [docs/256t-distribution.md](../../../docs/256t-distribution.md)."
+    "Distribution tutorial: [Publish, install & update](chapter:sdk-apps-update)."
   ].join("\n");
 
   const interfacesMd = [
@@ -481,8 +561,10 @@ async function generateReferenceChapters() {
     "- **Framing** — one Reticulum wire packet per binary WebSocket message.",
     "- **Auth** — optional shared token (`--ws-token`).",
     "",
-    "Full spec: [docs/websocket-interface.md](../../../docs/websocket-interface.md).",
     "Web host chapter: [Web host](chapter:host-web).",
+    "",
+    "WebSocket wire format is documented in the platform repo under",
+    "`docs/websocket-interface.md` (not shipped inside the Handbook bundle).",
     "",
     "## TCP / AutoInterface / Bonjour",
     "",
@@ -499,7 +581,7 @@ async function generateReferenceChapters() {
     "## RNode serial",
     "",
     "USB serial on desktop/Android; BLE-only on iOS. WebSerial (Chromium) is optional.",
-    "LoRa bandwidth budgets apply — see [LIMITATIONS.md](../../../LIMITATIONS.md) §6."
+    "LoRa bandwidth budgets apply — see [Known limitations](chapter:ref-limitations) §6."
   ].join("\n");
 
   const quotasMd = [
@@ -678,8 +760,20 @@ async function build() {
         title: chapter.title,
         partId: part.id,
         partTitle: part.title,
-        blocks: seedBlocks
+        blocks: seedBlocks,
+        searchText: ""
       });
+    }
+  }
+
+  for (const chapter of chapters) {
+    chapter.searchText = chapterTextForSearch(chapter).toLowerCase();
+    const minWords = MIN_CHAPTER_WORDS[chapter.partId];
+    if (minWords !== undefined) {
+      const words = chapterWordCount(chapter);
+      if (words < minWords) {
+        fail(`Chapter ${chapter.id} is too thin (${words} < ${minWords} words)`);
+      }
     }
   }
 
@@ -690,11 +784,19 @@ async function build() {
         fail(`Broken chapter link from ${link.from}: ${link.target}`);
       }
     } else if (link.target.startsWith("http://") || link.target.startsWith("https://")) {
-      // External links are allowed; not validated at build time.
+      // External URLs are allowed.
     } else if (link.target.startsWith("../") || link.target.endsWith(".md")) {
-      // Repo-relative doc links are documentation-only; skip host validation.
+      fail(`Dead in-app link from ${link.from}: ${link.target} — use chapter:id targets`);
     } else {
       fail(`Unsupported link target from ${link.from}: ${link.target}`);
+    }
+  }
+
+  for (const applet of applets) {
+    for (const platform of HANDBOOK_PLATFORMS) {
+      if (applet.expectations[platform] === undefined) {
+        fail(`Applet ${applet.id} missing expectation for platform ${platform}`);
+      }
     }
   }
 
@@ -779,6 +881,17 @@ async function build() {
     }
   }
 
+  const allChapterText = chapters.map((chapter) => chapter.searchText).join("\n");
+  const allSurfacePrefixes = applets
+    .flatMap((applet) => (applet.surfaces ?? []).map((surface) => surface.split(".")[0]))
+    .join(" ")
+    .toLowerCase();
+  for (const namespace of SDK_NAMESPACES) {
+    if (!allChapterText.includes(namespace) && !allSurfacePrefixes.includes(namespace)) {
+      fail(`SDK namespace "${namespace}" is not referenced in any chapter or applet surface`);
+    }
+  }
+
   const manifestPath = join(root, "app.manifest.json");
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   const manifestCapabilities = (manifest.capabilities ?? []).map((id) => ({
@@ -788,7 +901,7 @@ async function build() {
 
   const catalog = {
     title: toc.title,
-    version: "0.1.0",
+    version: manifest.version ?? "0.2.0",
     manifestCapabilities,
     parts: toc.parts.map((part) => ({
       id: part.id,

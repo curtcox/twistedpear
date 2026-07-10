@@ -7,4 +7,4 @@ Mini-apps ship as deterministic **`.tpkg`** archives:
 - Ed25519 signature over the manifest hash
 
 Packaging flow: [Packaging & preview](chapter:sdk-apps-package).
-256t distribution: [docs/256t-distribution.md](../../../docs/256t-distribution.md).
+Distribution tutorial: [Publish, install & update](chapter:sdk-apps-update).

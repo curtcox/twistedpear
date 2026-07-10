@@ -4,6 +4,16 @@
 namespaced to the app. Keys stay sorted so list ranges are useful for feeds
 and indexes.
 
+## KV vs Hyperbee
+
+| Store | Best for |
+|---|---|
+| KV | Small opaque blobs, settings |
+| Hyperbee | Sorted keys, pagination, indexes |
+
+Both are local to the app install and quota-enforced by the host. Hyperbee data
+does not sync to other devices unless your app implements its own exchange.
+
 ## API
 
 ```javascript
@@ -16,6 +26,13 @@ const entries = await storage.bee.list({ limit: 10 });
 await storage.bee.del("post:1");
 ```
 
+## Outcomes
+
+- `pass` — put/get/list/delete round-trip succeeded.
+- `not-granted` — `storage:hyperbee` withheld.
+
 ## Live probe
 
 {{applet:storage-hyperbee}}
+
+See also [Key/value storage](chapter:sdk-storage-kv).

@@ -11,8 +11,10 @@ The [live difference matrix](chapter:difference-matrix) lists which types
 - **Framing** — one Reticulum wire packet per binary WebSocket message.
 - **Auth** — optional shared token (`--ws-token`).
 
-Full spec: [docs/websocket-interface.md](../../../docs/websocket-interface.md).
 Web host chapter: [Web host](chapter:host-web).
+
+WebSocket wire format is documented in the platform repo under
+`docs/websocket-interface.md` (not shipped inside the Handbook bundle).
 
 ## TCP / AutoInterface / Bonjour
 
@@ -29,4 +31,4 @@ central-only and not used for the phone-pipe role. Device-gated Handbook probes:
 ## RNode serial
 
 USB serial on desktop/Android; BLE-only on iOS. WebSerial (Chromium) is optional.
-LoRa bandwidth budgets apply — see [LIMITATIONS.md](../../../LIMITATIONS.md) §6.
+LoRa bandwidth budgets apply — see [Known limitations](chapter:ref-limitations) §6.

@@ -67,7 +67,11 @@ async function packHandbookFixture() {
       chapterIds: catalog.chapters.map((chapter) => chapter.id),
       chapterTitles: Object.fromEntries(catalog.chapters.map((chapter) => [chapter.id, chapter.title])),
       appletIds: catalog.applets.map((applet) => applet.id),
-      appletTitles: Object.fromEntries(catalog.applets.map((applet) => [applet.id, applet.title]))
+      appletTitles: Object.fromEntries(catalog.applets.map((applet) => [applet.id, applet.title])),
+      applets: catalog.applets.map((applet) => ({
+        id: applet.id,
+        expectations: applet.expectations
+      }))
     };
   } finally {
     rmSync(cwd, { recursive: true, force: true });

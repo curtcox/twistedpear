@@ -21,6 +21,10 @@ import {
   MiniappHost,
   NodeWorkerSandboxBackend
 } from "../../packages/miniapp-runtime/dist/index.js";
+import {
+  assertAppletStatusMatchesExpectation,
+  parseResultStatus
+} from "./expectations.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const handbookDir = join(root, "apps/handbook");
@@ -47,6 +51,7 @@ const APPLET_CHAPTER = {
   "share-cas": "sdk-share-cas",
   "apps-package-preview": "sdk-apps-package",
   "apps-publish-install": "sdk-apps-publish",
+  "apps-update": "sdk-apps-update",
   "ai-chat": "sdk-ai-chat",
   "widget-gallery": "sdk-widget-gallery",
   "ble-peer": "device-gated-probes",
@@ -449,20 +454,24 @@ async function main() {
       await tap(host, `ch-${chapter}`, "hb.openchapter");
       await waitForTreeText(host, `Applet: ${applet.title}`);
       await tap(host, `applet-run-${applet.id}`, "hb.runapplet");
-      await waitFor(async () => {
+      const resultLine = await waitFor(async () => {
         const next = host.snapshot().widgetTree;
         if (next === null) {
           return null;
         }
         const texts = collectTextValues(next.root);
-        const hit = texts.find((value) => value.startsWith("PASS"));
-        const unavailable = texts.find((value) => value.startsWith("UNAVAILABLE"));
-        if (DEVICE_GATED_APPLET_IDS.has(applet.id)) {
-          return unavailable ?? null;
-        }
-        return hit ?? null;
+        return (
+          texts.find((value) =>
+            /^(PASS|FAIL|UNAVAILABLE|NOT-GRANTED|SKIPPED)\b/.test(value)
+          ) ?? null
+        );
       }, 20_000);
-      console.log(`handbook: applet passed — ${applet.id}`);
+      const actualStatus = parseResultStatus(resultLine);
+      if (actualStatus === null) {
+        throw new Error(`applet ${applet.id} did not report a result: ${resultLine}`);
+      }
+      assertAppletStatusMatchesExpectation(applet, actualStatus, "node");
+      console.log(`handbook: applet passed — ${applet.id} (${actualStatus})`);
 
       // Widget gallery overwrites the Handbook tree; return to TOC before next run.
       if (applet.id === "widget-gallery") {

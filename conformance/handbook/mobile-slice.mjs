@@ -21,6 +21,9 @@ import {
   MiniappHost,
   createSandboxBackend
 } from "../../packages/miniapp-runtime/dist/index.js";
+import {
+  assertAppletStatusMatchesExpectation
+} from "./expectations.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const handbookDir = join(root, "apps/handbook");
@@ -53,6 +56,7 @@ const SOFTWARE_APPLET_CHAPTER = {
   "share-cas": "sdk-share-cas",
   "apps-package-preview": "sdk-apps-package",
   "apps-publish-install": "sdk-apps-publish",
+  "apps-update": "sdk-apps-update",
   "ai-chat": "sdk-ai-chat",
   "widget-gallery": "sdk-widget-gallery"
 };
@@ -428,19 +432,8 @@ export async function runHandbookMobileSlice(options) {
       ? ""
       : collectTextValues(tree.root).find((value) => new RegExp(`\\b${applet.id}:`).test(value)) ?? "";
     const status = rowText.split(":").pop()?.trim().toLowerCase() ?? "missing";
-
-    if (DEVICE_GATED_APPLET_IDS.has(applet.id)) {
-      if (status !== "unavailable" && status !== "skipped") {
-        throw new Error(
-          `Expected device-gated applet ${applet.id} unavailable/skipped on ${effectiveLabel}, got ${status}`
-        );
-      }
-      continue;
-    }
-
-    if (status !== "pass") {
-      throw new Error(`Expected software-tier applet ${applet.id} pass on ${effectiveLabel}, got ${status}`);
-    }
+    const platform = effectiveLabel === "android" ? "android" : "ios";
+    assertAppletStatusMatchesExpectation(applet, status, platform);
   }
   console.log(`handbook-mobile/${effectiveLabel}: software-tier applets passed`);
 

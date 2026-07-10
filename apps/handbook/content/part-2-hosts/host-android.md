@@ -23,7 +23,7 @@ that dials LAN peers or a desktop gateway.
 - **Foreground** — full interface set, mini-app execution, BLE active.
 - **Background** — `NodeForegroundService` keeps the worklet alive; interfaces
   quiesce on a grace timer then reconnect on resume (see
-  [LIMITATIONS.md](../../../LIMITATIONS.md) §6).
+  [Known limitations](chapter:ref-limitations) §3).
 - **Suspended** — no mini-app execution; LXMF store-and-forward only.
 
 ## Storage

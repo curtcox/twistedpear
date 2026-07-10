@@ -98,8 +98,8 @@ The Handbook is interactive diagnostic documentation shipped as a mini-app.
 | Host | How to get the Handbook |
 |---|---|
 | Desktop | First boot seeds `handbook`, `devstudio`, and `chat` from the TwistedPear platform publisher. Open **Installed** and launch **handbook**. |
-| Web | `npm run test:web-handbook` exercises install in CI; production web hosts follow the same 256t install path as other mini-apps. |
+| Web / mobile | Install from a published 256t id (same path as any mini-app) after `tp publish` on a gateway peer, or use a desktop-seeded LAN mirror. |
 | Node / CI | `npm run test:handbook` |
-| Develop | `npm run build:handbook` then `tp pack handbook` in a temp project. |
+| Develop | `npm run build:handbook` · `npm run audit:handbook` then `tp pack handbook` in a temp project. |
 
 Plan and phases: [docs/handbook.md](docs/handbook.md).

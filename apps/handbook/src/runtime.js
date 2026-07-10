@@ -49,6 +49,8 @@ let runningAll = false;
 let exportState = { reportId: null, generatedAt: null, json: null };
 /** @type {string} */
 let compareInput = "";
+/** @type {string} */
+let searchQuery = "";
 /** @type {{ local: object | null, remote: object | null, rows: Array<object>, error: string | null }} */
 let compareState = { local: null, remote: null, rows: [], error: null };
 /** @type {Record<string, { t256: string, project: string }>} */
@@ -86,6 +88,37 @@ function findChapter(id) {
 
 function findApplet(id) {
   return CATALOG.applets.find((applet) => applet.id === id) ?? null;
+}
+
+function chapterNavigationOrder() {
+  const order = [];
+  for (const part of CATALOG.parts) {
+    for (const chapter of part.chapters) {
+      order.push(chapter.id);
+    }
+  }
+  return order;
+}
+
+function chapterNeighbors(id) {
+  const order = chapterNavigationOrder();
+  const index = order.indexOf(id);
+  if (index < 0) {
+    return { prev: null, next: null };
+  }
+  return {
+    prev: index > 0 ? order[index - 1] : null,
+    next: index < order.length - 1 ? order[index + 1] : null
+  };
+}
+
+function chapterMatchesSearch(chapterMeta, query) {
+  if (query.length === 0) {
+    return true;
+  }
+  const chapter = findChapter(chapterMeta.id);
+  const haystack = `${chapterMeta.title} ${chapter?.searchText ?? ""}`.toLowerCase();
+  return haystack.includes(query);
 }
 
 async function kvGetText(key) {
@@ -149,10 +182,15 @@ function resultCard(appletId, result) {
   const label = result.status.toUpperCase();
   const timing =
     result.timings && typeof result.timings.ms === "number" ? ` (${result.timings.ms} ms)` : "";
-  return textNode(
-    `result-${appletId}`,
-    `${label}${timing}\n${result.details}`
-  );
+  const procedureMatch =
+    typeof result.details === "string"
+      ? result.details.match(/(?:Guided procedure[^:]*:\n)([\s\S]+)$/)
+      : null;
+  const body =
+    procedureMatch !== null && (result.status === "unavailable" || result.status === "skipped")
+      ? `${label}${timing}\n\nGuided procedure:\n${procedureMatch[1].trim()}`
+      : `${label}${timing}\n${result.details}`;
+  return textNode(`result-${appletId}`, body);
 }
 
 function explainStatus(status) {
@@ -392,19 +430,23 @@ async function fetchHostInfoSafe() {
 function buildReportDocument(hostInfo) {
   const results = CATALOG.applets.map((applet) => {
     const result = appletResults[applet.id];
-    if (result === undefined) {
-      return {
-        appletId: applet.id,
-        status: "skipped",
-        details: "Not run",
-        timings: { ms: 0 }
-      };
-    }
+    const row =
+      result === undefined
+        ? {
+            appletId: applet.id,
+            status: "skipped",
+            details: "Not run",
+            timings: { ms: 0 }
+          }
+        : {
+            appletId: applet.id,
+            status: result.status,
+            details: result.details,
+            timings: result.timings ?? { ms: 0 }
+          };
     return {
-      appletId: applet.id,
-      status: result.status,
-      details: result.details,
-      timings: result.timings ?? { ms: 0 }
+      ...row,
+      expectations: applet.expectations ?? {}
     };
   });
 
@@ -421,14 +463,41 @@ function diffReports(localReport, remoteReport) {
   const remoteById = new Map(
     (remoteReport.results ?? []).map((row) => [row.appletId, row])
   );
+  const localPlatform = localReport.host?.platform ?? "unknown";
+  const remotePlatform = remoteReport.host?.platform ?? "unknown";
   const rows = [];
   for (const local of localReport.results ?? []) {
     const remote = remoteById.get(local.appletId);
+    const applet = findApplet(local.appletId);
+    const localExpected =
+      local.expectations?.[localPlatform] ?? applet?.expectations?.[localPlatform] ?? null;
+    const remoteExpected =
+      remote?.expectations?.[remotePlatform] ?? applet?.expectations?.[remotePlatform] ?? null;
+    const remoteStatus = remote?.status ?? "missing";
+    const same = remote !== undefined && remote.status === local.status;
+    const expectedDiff =
+      localExpected !== null &&
+      remoteExpected !== null &&
+      localExpected !== remoteExpected;
+    const unexpected = !same && !expectedDiff;
+    let note = "";
+    if (expectedDiff) {
+      note = `expected ${localExpected} vs ${remoteExpected}`;
+    } else if (unexpected) {
+      note = "unexpected difference";
+    } else if (same) {
+      note = "same status";
+    }
     rows.push({
       appletId: local.appletId,
       local: local.status,
-      remote: remote?.status ?? "missing",
-      same: remote !== undefined && remote.status === local.status
+      remote: remoteStatus,
+      same,
+      expectedDiff,
+      unexpected,
+      note,
+      localExpected,
+      remoteExpected
     });
   }
   return rows;
@@ -552,11 +621,15 @@ function renderDiagnostics(children) {
         )
       );
       for (const row of groupRows) {
-        const mark = row.same ? "=" : "≠";
+        const mark = row.expectedDiff ? "≈" : row.same ? "=" : "≠";
+        const expectNote =
+          row.localExpected !== null && row.remoteExpected !== null
+            ? ` [exp ${row.localExpected}/${row.remoteExpected}]`
+            : "";
         children.push(
           textNode(
             `diag-diff-${row.appletId}`,
-            `  ${mark} ${row.appletId}: ${row.local} / ${row.remote}`
+            `  ${mark} ${row.appletId}: ${row.local} / ${row.remote}${expectNote}${row.note ? ` — ${row.note}` : ""}`
           )
         );
       }
@@ -588,16 +661,41 @@ async function render() {
       )
     );
     children.push(widgetButton("open-diag", "Diagnostics · run all / export / compare", "hb.diagnostics"));
+    children.push({
+      id: "toc-search",
+      type: "text-input",
+      props: {
+        value: searchQuery,
+        placeholder: "Search chapters…",
+        event: "hb.search"
+      }
+    });
+
+    const query = searchQuery.trim().toLowerCase();
+    let visibleCount = 0;
 
     for (const part of CATALOG.parts) {
+      const visibleChapters = part.chapters.filter((chapter) => chapterMatchesSearch(chapter, query));
+      if (visibleChapters.length === 0) {
+        continue;
+      }
+      visibleCount += visibleChapters.length;
       children.push({ id: `part-sep-${part.id}`, type: "divider" });
       children.push(textNode(`part-${part.id}`, part.title, { fontSize: 16, fontWeight: "bold" }));
-      for (const chapter of part.chapters) {
+      for (const chapter of visibleChapters) {
         const marker = chapterId === chapter.id ? "▶ " : "";
         children.push(
           widgetButton(`ch-${chapter.id}`, `${marker}${chapter.title}`, "hb.openchapter")
         );
       }
+    }
+    if (query.length > 0) {
+      children.push(
+        textNode(
+          "toc-search-meta",
+          visibleCount === 0 ? "No chapters match your search." : `${visibleCount} chapter(s) match.`
+        )
+      );
     }
   } else if (view === "diagnostics") {
     renderDiagnostics(children);
@@ -616,6 +714,28 @@ async function render() {
         textNode("chapter-title", chapter.title, { fontSize: 20, fontWeight: "bold" })
       );
       renderChapterBlocks(chapter, children);
+      const { prev, next } = chapterNeighbors(chapter.id);
+      children.push({ id: "chapter-nav-sep", type: "divider" });
+      if (prev !== null) {
+        const prevChapter = findChapter(prev);
+        children.push(
+          widgetButton(
+            `ch-${prev}`,
+            `← ${prevChapter?.title ?? prev}`,
+            "hb.openchapter"
+          )
+        );
+      }
+      if (next !== null) {
+        const nextChapter = findChapter(next);
+        children.push(
+          widgetButton(
+            `ch-${next}`,
+            `${nextChapter?.title ?? next} →`,
+            "hb.openchapter"
+          )
+        );
+      }
     }
   }
 
@@ -1202,6 +1322,13 @@ async function handleEvent({ nodeId, event, value }) {
 
   if (event === "hb.compare.input") {
     compareInput = typeof value === "string" ? value : String(value ?? "");
+    return;
+  }
+
+  if (event === "hb.search") {
+    searchQuery = typeof value === "string" ? value : String(value ?? "");
+    view = "toc";
+    await render();
     return;
   }
 

@@ -1,6 +1,6 @@
 # DevStudio walkthrough
 
-[DevStudio](../../../docs/devstudio.md) is a mini-app IDE — same sandbox and
+DevStudio is a mini-app IDE — same sandbox and
 capability model as any other app. Desktop first-boot seeds it alongside this
 Handbook.
 

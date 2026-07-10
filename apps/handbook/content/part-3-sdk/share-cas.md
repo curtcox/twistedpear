@@ -4,6 +4,12 @@
 Paste or scan that id on another device to `share.get` the same bytes —
 diagnostics reports and DevStudio hand-offs use this path.
 
+## Why CAS for reports
+
+Diagnostic JSON can be large. `share.put` returns a stable id suitable for QR
+codes on the Diagnostics screen. Compare report pastes that id to diff against
+another host.
+
 ## API
 
 ```javascript
@@ -13,6 +19,15 @@ const { t256, size } = await share.put("hello");
 const again = await share.get(t256);
 ```
 
+Payload size is capped by the host quota snapshot in `host.info()`.
+
+## Outcomes
+
+- `pass` — put/get round-trip matched.
+- `not-granted` — `share:cas` withheld.
+
 ## Live probe
 
 {{applet:share-cas}}
+
+Used by [Running diagnostics](chapter:running-diagnostics) export and **Open in DevStudio**.
