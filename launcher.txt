@@ -1,0 +1,52 @@
+# TwistedPear app launcher — one card per runnable target.
+# Run: ./launch   or   python3 launcher.py launcher.txt
+
+name: Desktop Host
+command: npm run run:desktop
+image: docs/images/desktop-host.png
+description: Electron desktop host with transport, seeding, and mini-app runtime. Handbook, DevStudio, and chat are pre-installed under Installed.
+
+name: Handbook (Desktop)
+command: npm run run:desktop
+image: docs/images/desktop-host.png
+description: Same desktop host — after it opens, go to Installed and launch handbook.
+
+name: DevStudio (Desktop)
+command: npm run run:desktop
+image: docs/images/desktop-host.png
+description: Same desktop host — after it opens, go to Installed and launch devstudio.
+
+name: Web Host (Expo dev)
+command: npm run run:web
+image: docs/images/web-host-examples.png
+description: Expo web tab with the full mobile host UI for local development. Builds the web worker bundle and starts the dev server.
+
+name: Web Host (Node gateway)
+command: node scripts/serve-web-host-node.mjs
+image: docs/images/web-host-examples.png
+description: Production-like web host served by tp node with a WebSocket gateway on port 9480. Install and run mini-apps from the browser.
+
+name: Handbook (Web)
+command: node scripts/serve-web-handbook.mjs
+image: docs/images/handbook-web-handbook.png
+description: Browser Handbook spike — builds the conformance web bundle, serves it on port 9482, and opens your default browser.
+
+name: DevStudio (Web)
+command: node scripts/serve-web-devstudio.mjs
+description: Browser DevStudio spike with a local WebSocket gateway — builds, serves on port 9483, and opens your default browser.
+
+name: Mobile Host (Android)
+command: npm run build && npm run build:worklet && npm run android --workspace=harness-mobile
+description: Expo dev build for Android emulator or device. Requires Android SDK and a connected target.
+
+name: Mobile Host (iOS)
+command: npm run build && npm run build:worklet && npm run ios --workspace=harness-mobile
+description: Expo dev build for the iOS simulator (macOS only). Handbook and DevStudio install through the normal catalog flow.
+
+name: Handbook dev side-load
+command: npm run build && npm run build:handbook && npx tp dev apps/handbook
+description: Hot-reload dev server for Handbook sources. Connect from a host in developer mode (mobile harness or desktop).
+
+name: DevStudio dev side-load
+command: npm run build && npx tp dev apps/devstudio
+description: Hot-reload dev server for DevStudio sources. Connect from a host in developer mode (mobile harness or desktop).
