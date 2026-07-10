@@ -202,7 +202,7 @@ comparison rows deferred to STATUS-HARDWARE.
 
 ![handbook mobile validation capture](images/ios-handbook-mobile.png)
 
-2026-07-08 validation capture: `test:handbook-mobile` passed the software-tier iOS and Android slices.
+2026-07-10 capture: chapter view with prev/next navigation; regenerate with `npm run capture:handbook-mobile-ui`.
 
 ### Phase D4 — Parts I & V, publish, seed
 - Concepts and reference chapters (reference pages generated from runtime sources);
@@ -257,7 +257,9 @@ Android emulator Maestro handbook smoke (`.maestro/handbook-smoke.yaml`); widget
 - Web (`conformance/web-*` pattern), Android emulator, iOS sim runs (D3).
 - `test:handbook-mobile` (D3): iOS + Android platform slices on worklet sandbox path (reader UX included).
 - Android emulator UI: `.maestro/handbook-smoke.yaml` after `handbook-peer` publish (TOC search + prev/next + diagnostics).
+- `test:handbook-parts`: pack + launch each per-part package (also runs at end of `test:handbook`).
 - `pack:handbook-parts`: signed `.tpkg` per TOC part for BLE-friendly install.
+- `capture:handbook-docs`: regenerate handbook doc PNGs (web TOC search + mobile chapter view).
 - The coverage gate makes documentation part of the definition of done for any new
   SDK surface.
 

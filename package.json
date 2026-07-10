@@ -43,6 +43,8 @@
     "audit:handbook": "node scripts/audit-handbook.mjs",
     "pack:handbook-parts": "npm run build && node scripts/pack-handbook-parts.mjs",
     "capture:handbook-web-ui": "npm run build && node conformance/docs/capture-handbook-web-ui.mjs",
+    "capture:handbook-mobile-ui": "npm run build && node conformance/docs/capture-handbook-mobile-ui.mjs",
+    "capture:handbook-docs": "npm run build && node conformance/docs/capture-handbook-docs.mjs",
     "test:handbook-parts": "npm run build && node conformance/handbook/part-packages.mjs",
     "test:miniapp-soak": "npm run build && node conformance/miniapp-soak/run.mjs",
     "test:miniapp-benchmark": "npm run build && node conformance/miniapp-benchmark/run.mjs",

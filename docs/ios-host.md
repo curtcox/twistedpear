@@ -48,7 +48,7 @@ entitlement enforcement, or realistic LAN discovery. Those exits are tracked in
 
 ![iOS handbook mobile validation capture](images/ios-handbook-mobile.png)
 
-2026-07-08 validation capture: the shared `test:handbook-mobile` software-tier iOS slice passed; the simulator app lane failed earlier on worklet bundling, so no simulator UI screenshot was captured.
+2026-07-10 capture: Handbook chapter view with prev/next (`npm run capture:handbook-mobile-ui`). Software-tier validation: `npm run test:handbook-mobile`.
 
 ### Measured simulator reconnect windows
 

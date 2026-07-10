@@ -19,6 +19,8 @@ npm run audit:handbook         # dead links, thin chapters, applet expectations
 npm run test:handbook-parts    # pack + launch each part package (also runs in test:handbook)
 npm run pack:handbook-parts    # .tpkg for each part (BLE-friendly slices)
 npm run capture:handbook-web-ui  # docs/images/handbook-web-handbook.png
+npm run capture:handbook-mobile-ui  # docs/images/ios-handbook-mobile.png
+npm run capture:handbook-docs    # both captures above
 ```
 
 Shared UI harness helpers live in `ui-helpers.mjs` (TOC search, prev/next,

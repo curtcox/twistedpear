@@ -26,6 +26,11 @@ command: node scripts/serve-web-host-node.mjs
 image: docs/images/web-host-examples.png
 description: Production-like web host served by tp node with a WebSocket gateway on port 9480. Install and run mini-apps from the browser.
 
+name: Handbook doc screenshots
+command: npm run capture:handbook-docs
+image: docs/images/handbook-web-handbook.png
+description: Regenerate Handbook documentation PNGs (web TOC search + mobile chapter view) via Playwright + react-native-web.
+
 name: Handbook (Web)
 command: node scripts/serve-web-handbook.mjs
 image: docs/images/handbook-web-handbook.png
