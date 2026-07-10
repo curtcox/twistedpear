@@ -489,6 +489,7 @@ jobs:
               - 'packages/cli/**'
               - 'conformance/ios-sim/**'
               - 'conformance/handbook/**'
+              - '.maestro/**'
               - '.github/workflows/ci.yml'
       - uses: actions/setup-node@v4
         if: steps.changes.outputs.ios == 'true'

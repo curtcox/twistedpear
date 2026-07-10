@@ -18,7 +18,10 @@ distribution conformance, mini-app hostile/examples, and desktop smoke.
 The `ios-sim` job runs `test:ios-sim:required` with `IOS_SIM_TCP_REQUIRED=1` and
 `IOS_LIFECYCLE_CYCLES=100`, exercising the full host loop (catalog → install → grant →
 launch → update → rollback) on the Bare worklet path plus simulator toolchain smoke,
-including the Handbook D3 mobile slice (`conformance/ios-sim/handbook.mjs`).
+including the Handbook D3 mobile slice (`conformance/ios-sim/handbook.mjs`). Optional
+Maestro Handbook UI smoke is **not** on the PR path (native build cost); use
+`workflow_dispatch` job `ios-handbook-ui` in [emulator.yml](../.github/workflows/emulator.yml)
+or `npm run test:ios-sim-handbook-ui` locally.
 
 Label `ios-sim-full` on a PR is not required — the expanded path filter covers all
 packages that feed the iOS full loop.
@@ -94,16 +97,19 @@ Monitor RSS flatness and zero crashes as exit criteria per phase plans.
 ## Optional emulator workflow (emulator.yml)
 
 `workflow_dispatch` only. Runs headless distribution proxies, Android native-module JVM
-unit tests, and optional KVM Maestro UI lab.
+unit tests, optional KVM Maestro UI lab, and optional macOS iOS Handbook Maestro smoke.
 
 | Job | Command |
 |---|---|
 | `headless-proxy` | `test:harness-install`, `test:lan-mirror`, `test:bare-device`, `test:updates` |
 | `android-native` | `npm run test:android-native` |
 | `emulator-ui` | KVM API 34 — Maestro E1–E5 + E3 adb (`conformance/android-emulator/ci.sh`) |
+| `ios-handbook-ui` | macOS 15 — Handbook Maestro smoke (`conformance/ios-sim/ci-handbook.sh`) |
 
-Full E1–E4 UI path locally: [android-emulator-lab.md](android-emulator-lab.md),
+Full E1–E4 Android UI path locally: [android-emulator-lab.md](android-emulator-lab.md),
 `npm run test:android-emulator`.
+
+iOS Handbook UI locally: `npm run test:ios-sim-handbook-ui` (see [conformance/ios-sim/README.md](../conformance/ios-sim/README.md)).
 
 ## What CI does not cover (hardware or account)
 

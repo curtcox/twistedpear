@@ -135,6 +135,8 @@ runs on `workflow_dispatch`:
 
 Local UI lab: `npm run test:android-emulator` (Maestro + docker leaf-echo + host peer).
 
+iOS Handbook UI: `npm run test:ios-sim-handbook-ui` or `conformance/ios-sim/ci-handbook.sh` (macOS; `ios-handbook-ui` job in [emulator.yml](../.github/workflows/emulator.yml)).
+
 ---
 
 ## Quick reference

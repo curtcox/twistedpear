@@ -241,6 +241,7 @@ register in STATUS-HARDWARE once D3 starts.
 | `npm run test:handbook-parts` | Phase D: pack + launch each per-part Handbook slice |
 | `npm run test:handbook-report` | Phase D2: run-all → share.put report → seeded diff matrix |
 | `npm run test:ios-sim-handbook-ui` | Phase D3: iOS sim Maestro handbook smoke (skips without macOS/Maestro/docker; set `IOS_SIM_HANDBOOK_UI_REQUIRED=1` to hard-fail) |
+| `conformance/ios-sim/ci-handbook.sh` | Full iOS handbook UI lab (required mode + harness build; `emulator.yml` `ios-handbook-ui` job) |
 | `npm run test:handbook-mobile` | Phase D3: Handbook install + 3 chapters + run-all + report on iOS/Android worklet path |
 | `npm run test:web-handbook` | Phase D: Playwright Handbook install + chapters + applets + search + report on web host |
 | `npm run build:handbook` | Rebuild Handbook catalog + part packages + `apps/handbook/bundle.js` |

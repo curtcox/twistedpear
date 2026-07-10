@@ -30,7 +30,24 @@ export function bootedSimulatorUdid() {
 }
 
 export function defaultSimulatorName() {
-  return process.env.IOS_SIM_DEVICE ?? "iPhone 16";
+  if (process.env.IOS_SIM_DEVICE !== undefined && process.env.IOS_SIM_DEVICE.length > 0) {
+    return process.env.IOS_SIM_DEVICE;
+  }
+
+  const listed = simctl(["list", "devices", "available"]);
+  const preferred = ["iPhone 16", "iPhone 15", "iPhone 14", "iPhone SE (3rd generation)"];
+  for (const name of preferred) {
+    if (listed.includes(`${name} (`)) {
+      return name;
+    }
+  }
+
+  const fallback = listed.match(/^\s+(iPhone[^\n(]+) \(/m);
+  if (fallback !== null) {
+    return fallback[1].trim();
+  }
+
+  throw new Error("No available iPhone simulator found (set IOS_SIM_DEVICE)");
 }
 
 export function bootSimulator(deviceName = defaultSimulatorName()) {

@@ -1,9 +1,9 @@
-name: Android Emulator Lab
+name: Mobile Emulator Lab
 
 on:
   workflow_dispatch:
 
-# Headless proxies for emulator lab E1/E2/E4. Full E1–E5 UI: emulator-ui job (Maestro + adb E3/E5).
+# Android: headless proxies + KVM Maestro E1–E5. iOS: macOS Handbook Maestro UI smoke.
 
 jobs:
   headless-proxy:
@@ -63,3 +63,14 @@ jobs:
           arch: x86_64
           disable-animations: true
           script: chmod +x conformance/android-emulator/ci.sh && conformance/android-emulator/ci.sh
+
+  ios-handbook-ui:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: chmod +x conformance/ios-sim/ci-handbook.sh && conformance/ios-sim/ci-handbook.sh
