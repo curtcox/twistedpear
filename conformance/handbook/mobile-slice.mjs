@@ -24,6 +24,16 @@ import {
 import {
   assertAppletStatusMatchesExpectation
 } from "./expectations.mjs";
+import {
+  assertReaderUx,
+  collectTextValues,
+  dismissGrantIntroIfNeeded,
+  findNodeById,
+  returnToToc,
+  tap,
+  waitFor,
+  waitForTreeText
+} from "./ui-helpers.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const handbookDir = join(root, "apps/handbook");
@@ -79,86 +89,6 @@ class MemoryStore {
   async list(prefix) {
     return [...this.values.keys()].filter((key) => key.startsWith(prefix));
   }
-}
-
-function sleep(ms) {
-  return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
-}
-
-async function waitFor(evaluate, timeoutMs = 20_000) {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    const value = await evaluate();
-    if (value !== null && value !== undefined) {
-      return value;
-    }
-    await sleep(50);
-  }
-  throw new Error("waitFor timeout");
-}
-
-function collectTextValues(node) {
-  const values = [];
-  if (node.type === "text" && typeof node.props?.value === "string") {
-    values.push(node.props.value);
-  }
-  for (const child of node.children ?? []) {
-    values.push(...collectTextValues(child));
-  }
-  return values;
-}
-
-function treeContainsText(tree, needle) {
-  return collectTextValues(tree.root).some((value) => value.includes(needle));
-}
-
-async function waitForTreeText(host, needle, timeoutMs = 25_000) {
-  return waitFor(async () => {
-    const tree = host.snapshot().widgetTree;
-    if (tree !== null && treeContainsText(tree, needle)) {
-      return tree;
-    }
-    return null;
-  }, timeoutMs);
-}
-
-async function tap(host, nodeId, event, value) {
-  await host.handleUiEvent(nodeId, event, value);
-  await sleep(300);
-}
-
-function assertGrantIntroShowsGranted(tree) {
-  if (!treeContainsText(tree, "Capabilities at install")) {
-    return;
-  }
-  const texts = collectTextValues(tree.root);
-  if (!texts.some((value) => value.includes("✓ granted"))) {
-    throw new Error("grant intro missing granted markers from host.info().grantedCapabilities");
-  }
-}
-
-async function dismissGrantIntroIfNeeded(host) {
-  const tree = host.snapshot().widgetTree;
-  if (tree !== null && treeContainsText(tree, "Capabilities at install")) {
-    assertGrantIntroShowsGranted(tree);
-    console.log("handbook-mobile: grant intro shows live granted status");
-    await tap(host, "grant-intro-continue", "hb.grantintro.dismiss");
-    await waitForTreeText(host, "Contents");
-    console.log("handbook-mobile: grant intro dismissed");
-  }
-}
-
-function findNodeById(node, id) {
-  if (node.id === id) {
-    return node;
-  }
-  for (const child of node.children ?? []) {
-    const found = findNodeById(child, id);
-    if (found !== null) {
-      return found;
-    }
-  }
-  return null;
 }
 
 function launchManifest(app, publisherPublicKey) {
@@ -384,9 +314,9 @@ export async function runHandbookMobileSlice(options) {
   await host.setGrants(manifest.name, packed.publisherPublicKey, manifest.capabilities, manifest.capabilities);
   await host.launch(manifest, packed.bundle);
 
-  await waitForTreeText(host, "TwistedPear Handbook");
-  await dismissGrantIntroIfNeeded(host);
-  await waitForTreeText(host, "Contents");
+  await waitForTreeText(host, "TwistedPear Handbook", 25_000);
+  await dismissGrantIntroIfNeeded(host, "handbook-mobile");
+  await waitForTreeText(host, "Contents", 25_000);
   console.log(`handbook-mobile/${effectiveLabel}: TOC rendered`);
 
   for (const chapterId of MOBILE_SAMPLE_CHAPTERS) {
@@ -395,12 +325,16 @@ export async function runHandbookMobileSlice(options) {
       throw new Error(`Sample chapter missing from catalog: ${chapterId}`);
     }
     await tap(host, `ch-${chapterId}`, "hb.openchapter");
-    await waitForTreeText(host, chapter.title);
+    await waitForTreeText(host, chapter.title, 25_000);
     console.log(`handbook-mobile/${effectiveLabel}: chapter rendered — ${chapterId}`);
     await tap(host, "back-toc", "hb.toc");
-    await waitForTreeText(host, "Contents");
+    await waitForTreeText(host, "Contents", 25_000);
   }
 
+  await assertReaderUx(host, store, { logPrefix: `handbook-mobile/${effectiveLabel}` });
+  console.log(`handbook-mobile/${effectiveLabel}: reader UX passed`);
+
+  await returnToToc(host);
   await tap(host, "open-diag", "hb.diagnostics");
   await waitFor(async () => {
     const tree = host.snapshot().widgetTree;

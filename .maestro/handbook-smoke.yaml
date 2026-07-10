@@ -37,10 +37,27 @@ appId: network.twistedpear.harness
     visible: "Contents"
     timeout: 30000
 - tapOn:
+    id: "toc-search"
+- inputText: "widget gallery"
+- extendedWaitUntil:
+    visible: "chapter(s) match"
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: "ch-sdk-widget-gallery"
+    timeout: 5000
+- tapOn:
+    id: "toc-search"
+- eraseText
+- tapOn:
     id: "ch-what-is-twistedpear"
 - extendedWaitUntil:
     visible: "What TwistedPear is"
     timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "ch-reticulum-fundamentals"
+    timeout: 5000
 - tapOn:
     id: "back-toc"
 - extendedWaitUntil:

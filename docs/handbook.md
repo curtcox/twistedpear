@@ -255,8 +255,9 @@ Android emulator Maestro handbook smoke (`.maestro/handbook-smoke.yaml`); widget
 - `test:handbook-report` (D2): report generation, share round-trip, diff detection.
 - `audit:handbook`: dead in-app links, thin chapters, missing applet expectations.
 - Web (`conformance/web-*` pattern), Android emulator, iOS sim runs (D3).
-- `test:handbook-mobile` (D3): iOS + Android platform slices on worklet sandbox path.
-- Android emulator UI: `.maestro/handbook-smoke.yaml` after `handbook-peer` publish.
+- `test:handbook-mobile` (D3): iOS + Android platform slices on worklet sandbox path (reader UX included).
+- Android emulator UI: `.maestro/handbook-smoke.yaml` after `handbook-peer` publish (TOC search + prev/next + diagnostics).
+- `pack:handbook-parts`: signed `.tpkg` per TOC part for BLE-friendly install.
 - The coverage gate makes documentation part of the definition of done for any new
   SDK surface.
 

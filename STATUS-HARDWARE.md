@@ -486,12 +486,13 @@ CI uses shortened soaks. Full phase exits call for 24–72 h runs — can use an
 
 **Clears:** Phase D Handbook device-gated applet pass on real hardware + cross-device report diff.
 
-1. Install Handbook on phone and desktop (or export reports from each).
+1. Install Handbook on phone and desktop (full `handbook` or per-part packages from `npm run pack:handbook-parts`).
 2. On phone: open **Device-gated probes** → run BLE peer and AutoInterface applets with a second peer on LAN.
 3. Export diagnostic report on each host (Diagnostics → Export report).
-4. Paste the other device's 256t id into Compare report — confirm matrix shows expected platform differences.
+4. On the other host: Diagnostics → Compare report → paste the peer's 256t id.
+5. Confirm the matrix uses **=** for matching statuses, **≈** for expected platform differences (e.g. device-gated `unavailable` on desktop), and **≠** only for unexpected mismatches.
 
-**Pass:** BLE / AutoInterface applets report `pass` with peer visible; compare view renders both hosts.
+**Pass:** BLE / AutoInterface applets report `pass` with peer visible; compare view renders both hosts with expected-vs-unexpected labeling.
 
 ## H22 — Handbook RNode probe (phone + RNode)
 
@@ -499,5 +500,6 @@ CI uses shortened soaks. Full phase exits call for 24–72 h runs — can use an
 
 1. Connect RNode per host docs; enable RNode interface.
 2. Open Handbook → **Device-gated probes** → **RNode serial / LoRa path** → Run applet.
+3. Export report and compare with a TCP-only host — RNode row should show **=** on phone, **≈** (expected unavailable) on desktop.
 
 **Pass:** applet reports `pass` with RNode path online.

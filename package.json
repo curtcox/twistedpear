@@ -41,6 +41,7 @@
     "test:handbook-mobile": "npm run build && node conformance/handbook/mobile-slice.mjs && node conformance/handbook/mobile-slice.mjs --android",
     "build:handbook": "node apps/handbook/build.mjs && node scripts/audit-handbook.mjs",
     "audit:handbook": "node scripts/audit-handbook.mjs",
+    "pack:handbook-parts": "npm run build && node scripts/pack-handbook-parts.mjs",
     "test:miniapp-soak": "npm run build && node conformance/miniapp-soak/run.mjs",
     "test:miniapp-benchmark": "npm run build && node conformance/miniapp-benchmark/run.mjs",
     "test:bonjour-interop": "npm run build && node conformance/bonjour-interop/run.mjs",
