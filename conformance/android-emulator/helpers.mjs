@@ -121,7 +121,28 @@ export function readFixtureAppId() {
   return meta.appId;
 }
 
+export function waitForHandbookMeta(timeoutMs = 180_000) {
+  const metaPath = join(labDir, "handbook-fixture-meta.json");
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (existsSync(metaPath)) {
+      const meta = JSON.parse(readFileSync(metaPath, "utf8"));
+      if (typeof meta.appId === "string" && meta.appId.length > 0) {
+        return meta;
+      }
+    }
+
+    spawnSync("sleep", ["1"]);
+  }
+
+  throw new Error("Timed out waiting for handbook-fixture-meta.json (handbook-peer still starting?)");
+}
+
 export function maestroWithFixtureEnv(flowPath) {
   const appId = readFixtureAppId();
   maestro(["test", "-e", `APP_ID=${appId}`, flowPath]);
+}
+
+export function maestroHandbookSmoke() {
+  maestro(["test", ".maestro/handbook-smoke.yaml"]);
 }

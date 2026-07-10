@@ -80,7 +80,7 @@ export const WIDGET_PROP_KEYS: ReadonlyMap<WidgetType, ReadonlySet<string>> = ne
   ["button", new Set(["label", "event"])],
   ["text-input", new Set(["value", "placeholder", "event"])],
   ["switch", new Set(["value", "event"])],
-  ["scroll", new Set(["event"])],
+  ["scroll", new Set(["event", "scrollOffset"])],
   ["list", new Set(["items", "event"])],
   ["progress", new Set(["value", "max"])],
   ["divider", new Set()],

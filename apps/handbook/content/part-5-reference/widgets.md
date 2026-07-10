@@ -14,7 +14,7 @@ duplicate ids, or oversized trees are rejected.
 - **`list`** — props: `event`, `items`
 - **`progress`** — props: `max`, `value`
 - **`qr-code`** — props: `caption`, `size`, `value`
-- **`scroll`** — props: `event`
+- **`scroll`** — props: `event`, `scrollOffset`
 - **`spacer`** — props: `size`
 - **`switch`** — props: `event`, `value`
 - **`text`** — props: `value`

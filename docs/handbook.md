@@ -243,12 +243,20 @@ diagnostic area.
 and grant-intro granted markers; `test:handbook-mobile` and `test:web-handbook`
 assert grant-intro live status.
 
+**Gap closure (2026-07-10):** In-app `ref-limitations` chapter; chapter search and
+prev/next navigation; per-chapter scroll persistence (`scrollOffset` + `hb.scroll`);
+expectation-aware report compare; `apps-update` OTA applet; `npm run audit:handbook`;
+Android emulator Maestro handbook smoke (`.maestro/handbook-smoke.yaml`); widget
+`testID` = node id for UI automation. **38 chapters**, **19 applets**.
+
 ## Testing strategy
 
 - `test:handbook` (D0–D1): headless chapter render + all applets on Node backend.
 - `test:handbook-report` (D2): report generation, share round-trip, diff detection.
+- `audit:handbook`: dead in-app links, thin chapters, missing applet expectations.
 - Web (`conformance/web-*` pattern), Android emulator, iOS sim runs (D3).
 - `test:handbook-mobile` (D3): iOS + Android platform slices on worklet sandbox path.
+- Android emulator UI: `.maestro/handbook-smoke.yaml` after `handbook-peer` publish.
 - The coverage gate makes documentation part of the definition of done for any new
   SDK surface.
 

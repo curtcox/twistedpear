@@ -70,6 +70,19 @@ function renderNode(node, onEvent, options = {}) {
     }
     case "scroll": {
       const element = document.createElement("div");
+      element.className = "widget-scroll";
+      element.dataset.testid = node.id;
+      element.style.overflow = "auto";
+      const offset = typeof node.props?.scrollOffset === "number" ? node.props.scrollOffset : 0;
+      if (offset > 0) {
+        element.scrollTop = offset;
+      }
+      element.addEventListener("scroll", () => {
+        const event = node.props?.event;
+        if (typeof event === "string") {
+          onEvent?.(node.id, event, { y: element.scrollTop });
+        }
+      });
       applyStyle(element, style);
       for (const child of node.children ?? []) {
         element.appendChild(renderNode(child, onEvent, options));

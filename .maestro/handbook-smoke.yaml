@@ -1,0 +1,53 @@
+appId: network.twistedpear.harness
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "create-identity"
+- tapOn:
+    id: "tcp-client-switch"
+- extendedWaitUntil:
+    visible: "handbook"
+    timeout: 120000
+- tapOn:
+    text: "handbook"
+- tapOn:
+    id: "install-dht-handbook"
+- extendedWaitUntil:
+    visible: "complete"
+    timeout: 300000
+- tapOn:
+    id: "installed-handbook"
+- tapOn:
+    id: "grant-identity"
+- tapOn:
+    id: "grant-presence"
+- tapOn:
+    id: "launch-handbook"
+- extendedWaitUntil:
+    visible: "· running"
+    timeout: 60000
+- runFlow:
+    when:
+      visible: "Continue to Handbook"
+    commands:
+      - tapOn:
+          id: "grant-intro-continue"
+- extendedWaitUntil:
+    visible: "Contents"
+    timeout: 30000
+- tapOn:
+    id: "ch-what-is-twistedpear"
+- extendedWaitUntil:
+    visible: "What TwistedPear is"
+    timeout: 30000
+- tapOn:
+    id: "back-toc"
+- extendedWaitUntil:
+    visible: "Contents"
+    timeout: 30000
+- tapOn:
+    id: "open-diag"
+- extendedWaitUntil:
+    visible: "Run all diagnostics"
+    timeout: 30000

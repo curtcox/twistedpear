@@ -131,7 +131,7 @@ runs on `workflow_dispatch`:
 |---|---|
 | `headless-proxy` | `test:harness-install`, `test:lan-mirror`, `test:bare-device`, `test:updates` |
 | `android-native` | `npm run test:android-native` |
-| `emulator-ui` | KVM API 34 emulator — Maestro E1–E5 + E3 adb (`conformance/android-emulator/ci.sh`) |
+| `emulator-ui` | KVM API 34 emulator — Maestro E1–E5 + handbook smoke + E3 adb (`conformance/android-emulator/ci.sh`) |
 
 Local UI lab: `npm run test:android-emulator` (Maestro + docker leaf-echo + host peer).
 
@@ -146,6 +146,7 @@ Local UI lab: `npm run test:android-emulator` (Maestro + docker leaf-echo + host
 | E3 Background service | `npm run test:android-emulator:e3` + manual emulator |
 | E4 OTA/rollback | `npm run test:updates` + Maestro `.maestro/e4-ota-rollback.yaml` |
 | E5 Hyperdrive + Worker | `npm run test:android-emulator:e5` + `npm run test:bare-hyperdrive` |
+| Handbook UI smoke | `.maestro/handbook-smoke.yaml` (via `handbook-peer` + `npm run test:android-emulator`) |
 | Full emulator UI lab | `npm run test:android-emulator` |
 | Native bridge JVM tests | `npm run test:android-native` |
 

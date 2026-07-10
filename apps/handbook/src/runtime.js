@@ -17,6 +17,7 @@ import {
 // CATALOG is injected by build.mjs immediately above this file in bundle.js.
 
 const POSITION_KEY = "handbook:position";
+const SCROLL_KEY_PREFIX = "handbook:scroll:";
 const SEEDED_KEY = "handbook:seeded";
 const SEED_VERSION_KEY = "handbook:seed-version";
 const GRANT_INTRO_KEY = "handbook:grant-intro-seen";
@@ -51,6 +52,10 @@ let exportState = { reportId: null, generatedAt: null, json: null };
 let compareInput = "";
 /** @type {string} */
 let searchQuery = "";
+/** @type {number} */
+let chapterScrollOffset = 0;
+/** @type {number | null} */
+let scrollSaveTimer = null;
 /** @type {{ local: object | null, remote: object | null, rows: Array<object>, error: string | null }} */
 let compareState = { local: null, remote: null, rows: [], error: null };
 /** @type {Record<string, { t256: string, project: string }>} */
@@ -743,6 +748,10 @@ async function render() {
     root: {
       id: "root",
       type: "scroll",
+      props: {
+        scrollOffset: view === "chapter" ? chapterScrollOffset : 0,
+        event: "hb.scroll"
+      },
       style: { padding: 16, gap: 8 },
       children: [
         {
@@ -756,6 +765,22 @@ async function render() {
   });
 }
 
+async function loadChapterScroll(id) {
+  const raw = await kvGetText(`${SCROLL_KEY_PREFIX}${id}`);
+  const parsed = raw === null ? 0 : Number.parseInt(raw, 10);
+  chapterScrollOffset = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function scheduleScrollSave(id, y) {
+  if (scrollSaveTimer !== null) {
+    clearTimeout(scrollSaveTimer);
+  }
+  scrollSaveTimer = setTimeout(() => {
+    scrollSaveTimer = null;
+    void kvSetText(`${SCROLL_KEY_PREFIX}${id}`, String(Math.max(0, Math.round(y))));
+  }, 250);
+}
+
 async function openChapter(id) {
   if (findChapter(id) === null) {
     statusLine = `Unknown chapter: ${id}`;
@@ -767,6 +792,7 @@ async function openChapter(id) {
   view = "chapter";
   statusLine = null;
   await kvSetText(POSITION_KEY, id);
+  await loadChapterScroll(id);
   await render();
 }
 
@@ -1332,6 +1358,13 @@ async function handleEvent({ nodeId, event, value }) {
     return;
   }
 
+  if (event === "hb.scroll" && view === "chapter" && chapterId !== null) {
+    const y = typeof value === "object" && value !== null && typeof value.y === "number" ? value.y : 0;
+    chapterScrollOffset = y;
+    scheduleScrollSave(chapterId, y);
+    return;
+  }
+
   if (event === "hb.compare") {
     await compareReport();
   }
@@ -1354,6 +1387,7 @@ if (grantIntroSeen !== "1") {
   if (saved !== null && findChapter(saved) !== null) {
     chapterId = saved;
     view = "chapter";
+    await loadChapterScroll(saved);
   } else {
     view = "toc";
   }

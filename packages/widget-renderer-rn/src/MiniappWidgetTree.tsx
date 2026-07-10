@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import type { WidgetNode, WidgetStyle, WidgetTree } from "@twistedpear/miniapp-runtime/ui";
 
@@ -17,6 +18,44 @@ export function MiniappWidgetTree({
   return <WidgetNodeView node={tree.root} {...(onEvent === undefined ? {} : { onEvent })} />;
 }
 
+function ScrollWidget({
+  node,
+  style,
+  onEvent
+}: {
+  readonly node: WidgetNode;
+  readonly style: ReturnType<typeof widgetStyle>;
+  readonly onEvent?: (nodeId: string, event: string, value?: unknown) => void;
+}) {
+  const scrollRef = useRef<ScrollView>(null);
+  const offset = typeof node.props?.scrollOffset === "number" ? node.props.scrollOffset : 0;
+
+  useEffect(() => {
+    if (offset > 0) {
+      scrollRef.current?.scrollTo({ y: offset, animated: false });
+    }
+  }, [node.id, offset]);
+
+  return (
+    <ScrollView
+      ref={scrollRef}
+      style={style}
+      testID={node.id}
+      onScroll={(event) => {
+        const name = node.props?.event;
+        if (typeof name === "string") {
+          onEvent?.(node.id, name, { y: event.nativeEvent.contentOffset.y });
+        }
+      }}
+      scrollEventThrottle={100}
+    >
+      {node.children?.map((child) => (
+        <WidgetNodeView key={child.id} node={child} {...(onEvent === undefined ? {} : { onEvent })} />
+      ))}
+    </ScrollView>
+  );
+}
+
 function WidgetNodeView({
   node,
   onEvent
@@ -29,17 +68,22 @@ function WidgetNodeView({
   switch (node.type) {
     case "view":
       return (
-        <View style={style}>
+        <View style={style} testID={node.id}>
           {node.children?.map((child) => (
             <WidgetNodeView key={child.id} node={child} {...(onEvent === undefined ? {} : { onEvent })} />
           ))}
         </View>
       );
     case "text":
-      return <Text style={style}>{String(node.props?.value ?? "")}</Text>;
+      return (
+        <Text style={style} testID={node.id}>
+          {String(node.props?.value ?? "")}
+        </Text>
+      );
     case "button":
       return (
         <Pressable
+          testID={node.id}
           style={[styles.button, style]}
           onPress={() => {
             const event = node.props?.event;
@@ -54,6 +98,7 @@ function WidgetNodeView({
     case "text-input":
       return (
         <TextInput
+          testID={node.id}
           style={[styles.input, style]}
           defaultValue={String(node.props?.value ?? "")}
           placeholder={String(node.props?.placeholder ?? "")}
@@ -68,6 +113,7 @@ function WidgetNodeView({
     case "switch":
       return (
         <Switch
+          testID={node.id}
           value={Boolean(node.props?.value)}
           onValueChange={(value) => {
             const event = node.props?.event;
@@ -78,22 +124,20 @@ function WidgetNodeView({
         />
       );
     case "scroll":
-      return (
-        <ScrollView style={style}>
-          {node.children?.map((child) => (
-            <WidgetNodeView key={child.id} node={child} {...(onEvent === undefined ? {} : { onEvent })} />
-          ))}
-        </ScrollView>
-      );
+      return <ScrollWidget node={node} style={style} {...(onEvent === undefined ? {} : { onEvent })} />;
     case "divider":
-      return <View style={[styles.divider, style]} />;
+      return <View testID={node.id} style={[styles.divider, style]} />;
     case "spacer":
-      return <View style={[{ height: 8 }, style]} />;
+      return <View testID={node.id} style={[{ height: 8 }, style]} />;
     case "progress":
-      return <Text style={style}>Progress {String(node.props?.value ?? 0)}%</Text>;
+      return (
+        <Text testID={node.id} style={style}>
+          Progress {String(node.props?.value ?? 0)}%
+        </Text>
+      );
     case "list":
       return (
-        <View style={style}>
+        <View testID={node.id} style={style}>
           {(Array.isArray(node.props?.items) ? node.props.items : []).map((item, index) => (
             <Text key={`${node.id}-${index}`} style={styles.muted}>
               {typeof item === "string" ? item : JSON.stringify(item)}
@@ -102,12 +146,15 @@ function WidgetNodeView({
         </View>
       );
     case "image":
-      return <Text style={style}>image:{String(node.props?.asset ?? "")}</Text>;
+      return (
+        <Text testID={node.id} style={style}>
+          image:{String(node.props?.asset ?? "")}
+        </Text>
+      );
     case "code-editor":
-      // v1 fallback: plain multiline editor keyed by documentId; the app owns
-      // persistence via workspace.write on the emitted event.
       return (
         <TextInput
+          testID={node.id}
           style={[styles.input, styles.codeEditor, style]}
           multiline
           autoCapitalize="none"
@@ -123,9 +170,8 @@ function WidgetNodeView({
         />
       );
     case "qr-code":
-      // v1 fallback: copyable string (parity flag: desktop renders a scannable QR).
       return (
-        <View style={style}>
+        <View testID={node.id} style={style}>
           <Text selectable style={styles.muted}>
             {String(node.props?.value ?? "")}
           </Text>

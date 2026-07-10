@@ -11,10 +11,12 @@ import { spawn, spawnSync } from "node:child_process";
 import {
   maestro,
   maestroAvailable,
+  maestroHandbookSmoke,
   maestroWithFixtureEnv,
   requireDevice,
   waitForBootComplete,
-  waitForFixtureMeta
+  waitForFixtureMeta,
+  waitForHandbookMeta
 } from "./helpers.mjs";
 import { runAndroidHandbookSlice } from "./handbook.mjs";
 
@@ -79,14 +81,21 @@ async function main() {
   });
 
   const hostPeer = await startHostPeer();
+  const handbookPeer = spawn("node", ["conformance/android-emulator/handbook-peer.mjs"], {
+    cwd: repoRoot,
+    stdio: "inherit",
+    env: { ...process.env, LEAF_ECHO_HOST: "127.0.0.1", LEAF_ECHO_PORT: "4242" }
+  });
   waitForBootComplete();
 
   try {
     waitForFixtureMeta();
+    waitForHandbookMeta();
 
     maestro(["test", ".maestro/e1-tcp-install.yaml"]);
     maestro(["test", ".maestro/e2-resource-install.yaml"]);
     maestroWithFixtureEnv(".maestro/e4-ota-rollback.yaml");
+    maestroHandbookSmoke();
 
     const e3 = spawnSync("node", ["conformance/android-emulator/e3-foreground.mjs"], {
       cwd: repoRoot,
@@ -106,9 +115,10 @@ async function main() {
       throw new Error("e5-worker failed");
     }
 
-    console.log("android-emulator: E1–E5 UI flows passed");
+    console.log("android-emulator: E1–E5 UI flows + handbook smoke passed");
   } finally {
     hostPeer.kill("SIGTERM");
+    handbookPeer.kill("SIGTERM");
     spawnSync("docker", ["compose", "-f", "conformance/docker/docker-compose.yml", "down"], {
       cwd: repoRoot,
       stdio: "inherit"
