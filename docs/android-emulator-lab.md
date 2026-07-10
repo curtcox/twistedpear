@@ -146,7 +146,7 @@ Local UI lab: `npm run test:android-emulator` (Maestro + docker leaf-echo + host
 | E3 Background service | `npm run test:android-emulator:e3` + manual emulator |
 | E4 OTA/rollback | `npm run test:updates` + Maestro `.maestro/e4-ota-rollback.yaml` |
 | E5 Hyperdrive + Worker | `npm run test:android-emulator:e5` + `npm run test:bare-hyperdrive` |
-| Handbook UI smoke | `.maestro/handbook-smoke.yaml` (via `handbook-peer` + `npm run test:android-emulator`) |
+| Handbook UI smoke | `.maestro/handbook-smoke.yaml` (via shared `conformance/handbook/handbook-peer.mjs` + `npm run test:android-emulator`) |
 | Full emulator UI lab | `npm run test:android-emulator` |
 | Native bridge JVM tests | `npm run test:android-native` |
 

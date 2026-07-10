@@ -257,6 +257,7 @@ Android emulator Maestro handbook smoke (`.maestro/handbook-smoke.yaml`); widget
 - Web (`conformance/web-*` pattern), Android emulator, iOS sim runs (D3).
 - `test:handbook-mobile` (D3): iOS + Android platform slices on worklet sandbox path (reader UX included).
 - Android emulator UI: `.maestro/handbook-smoke.yaml` after `handbook-peer` publish (TOC search + prev/next + diagnostics).
+- iOS simulator UI (optional): `npm run test:ios-sim-handbook-ui` — same Maestro flow; builds harness when not installed (`IOS_SIM_HANDBOOK_UI_BUILD=1`).
 - `test:handbook-parts`: pack + launch each per-part package (also runs at end of `test:handbook`).
 - `pack:handbook-parts`: signed `.tpkg` per TOC part for BLE-friendly install.
 - `capture:handbook-docs`: regenerate handbook doc PNGs (web TOC search + mobile chapter view).

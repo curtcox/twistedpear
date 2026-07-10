@@ -81,10 +81,15 @@ async function main() {
   });
 
   const hostPeer = await startHostPeer();
-  const handbookPeer = spawn("node", ["conformance/android-emulator/handbook-peer.mjs"], {
+  const handbookPeer = spawn("node", ["conformance/handbook/handbook-peer.mjs"], {
     cwd: repoRoot,
     stdio: "inherit",
-    env: { ...process.env, LEAF_ECHO_HOST: "127.0.0.1", LEAF_ECHO_PORT: "4242" }
+    env: {
+      ...process.env,
+      LEAF_ECHO_HOST: "127.0.0.1",
+      LEAF_ECHO_PORT: "4242",
+      HANDBOOK_PEER_LOG_PREFIX: "android-emulator/handbook-peer"
+    }
   });
   waitForBootComplete();
 

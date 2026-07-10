@@ -23,6 +23,9 @@ npm run capture:handbook-mobile-ui  # docs/images/ios-handbook-mobile.png
 npm run capture:handbook-docs    # both captures above
 ```
 
+Shared `conformance/handbook/handbook-peer.mjs` publishes the Handbook for Android
+emulator and iOS simulator Maestro UI smoke (`.maestro/handbook-smoke.yaml`).
+
 Shared UI harness helpers live in `ui-helpers.mjs` (TOC search, prev/next,
 scroll persistence) and are exercised by `test:handbook`, `test:handbook-mobile`,
 and `test:web-handbook`.

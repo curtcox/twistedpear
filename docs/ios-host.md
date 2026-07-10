@@ -48,7 +48,7 @@ entitlement enforcement, or realistic LAN discovery. Those exits are tracked in
 
 ![iOS handbook mobile validation capture](images/ios-handbook-mobile.png)
 
-2026-07-10 capture: Handbook chapter view with prev/next (`npm run capture:handbook-mobile-ui`). Software-tier validation: `npm run test:handbook-mobile`.
+2026-07-10 capture: Handbook chapter view with prev/next (`npm run capture:handbook-mobile-ui`). Software-tier validation: `npm run test:handbook-mobile`. Optional simulator UI smoke: `npm run test:ios-sim-handbook-ui` (Maestro + shared `handbook-peer`; set `IOS_SIM_HANDBOOK_UI_BUILD=1` on first run).
 
 ### Measured simulator reconnect windows
 

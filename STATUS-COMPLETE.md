@@ -432,7 +432,7 @@ CI: `web` + `interop` jobs per [docs/ci-policy.md](docs/ci-policy.md).
 | D0: Handbook scaffold + pipeline + TOC/chapters + applets on Node | `apps/handbook/`, `conformance/handbook/` | `npm run build:handbook`; `npm run test:handbook` |
 | D1: full Part III SDK tour (every capability) + widget gallery + coverage gate | `apps/handbook/content/applets/` (19), `build.mjs` coverage gate + part packages, `conformance/budgets/measured.json` | `npm run test:handbook`; `npm run test:budgets` |
 | D2: `host.info()` + diagnostics report share/diff | expectation-aware compare matrix; `conformance/handbook/report.mjs` | `npm run test:handbook-report` |
-| D3: mobile harness slices + device-gated applets + Maestro smoke | `mobile-slice.mjs`, `.maestro/handbook-smoke.yaml`, `handbook-peer.mjs` | `npm run test:handbook-mobile`; `test:android-emulator`; `capture:handbook-docs` |
+| D3: mobile harness slices + device-gated applets + Maestro smoke | `mobile-slice.mjs`, `.maestro/handbook-smoke.yaml`, `handbook-peer.mjs` | `npm run test:handbook-mobile`; `test:android-emulator`; `test:ios-sim-handbook-ui` |
 | D4: Parts I & V, DevStudio handoff, desktop bundled seed | 38 chapters, `ref-limitations`, `build-bundled-catalog.mjs`, per-part packages | `test:handbook` handoff + `test:handbook-parts`; desktop first-boot seed |
 | Reader UX: search, prev/next, scroll persistence | `runtime.js`, scroll `scrollOffset` widget prop | `test:handbook` `assertReaderUx`; `test:web-handbook` TOC search |
 | Gap audit | `scripts/audit-handbook.mjs` | `npm run audit:handbook` (runs in `build:handbook`) |

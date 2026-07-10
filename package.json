@@ -51,6 +51,7 @@
     "test:bonjour-interop": "npm run build && node conformance/bonjour-interop/run.mjs",
     "test:ios-sim": "npm run build && node conformance/ios-sim/run.mjs",
     "test:ios-sim:required": "npm run build && node conformance/ios-sim/run.mjs --require-xcode",
+    "test:ios-sim-handbook-ui": "npm run build && node conformance/ios-sim/handbook-ui.mjs",
     "test:ios-soak": "npm run build && node conformance/ios-sim/soak.mjs",
     "test:ios-soak:required": "npm run build && node conformance/ios-sim/soak.mjs --require-peer",
     "test:android-native": "node conformance/android-native/run.mjs",

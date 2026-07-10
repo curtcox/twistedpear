@@ -201,7 +201,7 @@ register in STATUS-HARDWARE once D3 starts.
 | D0: scaffold + content pipeline + TOC/chapters + one applet E2E | handbook §D0 | **Done (node + web)** — `apps/handbook`, `npm run build:handbook`, `npm run audit:handbook`, `npm run test:handbook`, `npm run test:web-handbook` |
 | D1: applet framework + full Part III SDK tour + coverage gate | handbook §D1 | **Done (node + web)** — 19 applets, SDK namespace + capability coverage gates; full Handbook ~295 KiB + per-part packages in `generated/part-packages/`; `npm run test:budgets` |
 | D2: `host.info()` + run-all diagnostics + report share/diff | handbook §D2 | **Done (node + web)** — expectation-aware compare matrix; `npm run test:handbook-report`; web report export in `test:web-handbook` |
-| D3: Android emulator + iOS sim Handbook flows | handbook §D3 | **Done (software tier)** — device-gated applets + `test:handbook-mobile` (reader UX); Maestro `.maestro/handbook-smoke.yaml` on Android emulator; doc captures via `capture:handbook-docs`; real-device rows H21–H22 in STATUS-HARDWARE |
+| D3: Android emulator + iOS sim Handbook flows | handbook §D3 | **Done (software tier)** — device-gated applets + `test:handbook-mobile` (reader UX); Maestro `.maestro/handbook-smoke.yaml` on Android emulator + optional iOS sim (`test:ios-sim-handbook-ui`); doc captures via `capture:handbook-docs`; real-device rows H21–H22 in STATUS-HARDWARE |
 | D4: Parts I & V, publish, default seed | handbook §D4 | **Done (software tier)** — 38 chapters incl. generated `ref-limitations`; Open in DevStudio; desktop bundled seed |
 
 ---
@@ -240,6 +240,7 @@ register in STATUS-HARDWARE once D3 starts.
 | `npm run test:handbook` | Phase D: Handbook pack → TOC/chapters + applets + reader UX + part packages on Node sandbox |
 | `npm run test:handbook-parts` | Phase D: pack + launch each per-part Handbook slice |
 | `npm run test:handbook-report` | Phase D2: run-all → share.put report → seeded diff matrix |
+| `npm run test:ios-sim-handbook-ui` | Phase D3: iOS sim Maestro handbook smoke (skips without macOS/Maestro/docker; set `IOS_SIM_HANDBOOK_UI_REQUIRED=1` to hard-fail) |
 | `npm run test:handbook-mobile` | Phase D3: Handbook install + 3 chapters + run-all + report on iOS/Android worklet path |
 | `npm run test:web-handbook` | Phase D: Playwright Handbook install + chapters + applets + search + report on web host |
 | `npm run build:handbook` | Rebuild Handbook catalog + part packages + `apps/handbook/bundle.js` |
