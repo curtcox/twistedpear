@@ -6,6 +6,8 @@ const installedList = document.querySelector("#installed-list");
 const grantsPanel = document.querySelector("#grants-panel");
 const logEl = document.querySelector("#log");
 const widgetRoot = document.querySelector("#widget-root");
+const miniappTitle = document.querySelector("#miniapp-title");
+const closeMiniapp = document.querySelector("#close-miniapp");
 const previewRoot = document.querySelector("#preview-root");
 const stopPreview = document.querySelector("#stop-preview");
 const install256tInput = document.querySelector("#install-256t-input");
@@ -541,6 +543,10 @@ if (!host) {
         }
       } else {
         runningAppId = message.runtime.appId;
+        document.body.classList.toggle("miniapp-running", runningAppId !== null);
+        if (miniappTitle) {
+          miniappTitle.textContent = runningAppId ?? "Mini-app";
+        }
         if (runningAppId !== null) {
           host.send({ type: "get-limits", appId: runningAppId });
         }
@@ -679,6 +685,10 @@ if (!host) {
   forceQuit?.addEventListener("click", () => {
     host.send({ type: "stop-miniapp", reason: "user-forced" });
     appendLog("Force quit requested");
+  });
+
+  closeMiniapp?.addEventListener("click", () => {
+    host.send({ type: "stop-miniapp", reason: "user-returned-to-host" });
   });
 
   stopPreview?.addEventListener("click", () => {

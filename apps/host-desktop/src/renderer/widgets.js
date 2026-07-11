@@ -208,12 +208,48 @@ function renderNode(node, onEvent, options = {}) {
 }
 
 function applyStyle(element, style) {
+  if (style.display !== undefined) {
+    element.style.display = style.display;
+  }
+
+  if (style.flexDirection !== undefined) {
+    element.style.flexDirection = style.flexDirection;
+  }
+
+  if (style.alignItems !== undefined) {
+    element.style.alignItems = style.alignItems;
+  }
+
+  if (style.justifyContent !== undefined) {
+    element.style.justifyContent = style.justifyContent;
+  }
+
   if (style.padding !== undefined) {
     element.style.padding = `${style.padding}px`;
   }
 
   if (style.gap !== undefined) {
     element.style.gap = `${style.gap}px`;
+  }
+
+  if (style.margin !== undefined) {
+    element.style.margin = `${style.margin}px`;
+  }
+
+  if (style.width !== undefined) {
+    element.style.width = typeof style.width === "number" ? `${style.width}px` : style.width;
+  }
+
+  if (style.height !== undefined) {
+    element.style.height = typeof style.height === "number" ? `${style.height}px` : style.height;
+  }
+
+  if (style.backgroundColor !== undefined) {
+    element.style.backgroundColor = style.backgroundColor;
+  }
+
+  if (style.color !== undefined) {
+    element.style.color = style.color;
   }
 
   if (style.fontSize !== undefined) {
