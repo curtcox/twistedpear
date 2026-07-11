@@ -331,9 +331,9 @@ export class MiniappHost {
     if (snapshot.state === "crashed") {
       this.logActive(snapshot.appId, `crashed (${snapshot.reason ?? "watchdog"})`);
       this.active = null;
+      this.options.callbacks?.onLifecycle?.(snapshot);
     }
 
-    this.options.callbacks?.onLifecycle?.(snapshot);
     return this.snapshot();
   }
 

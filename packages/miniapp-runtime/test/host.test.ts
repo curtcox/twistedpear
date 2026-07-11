@@ -51,6 +51,16 @@ const manifest = {
   publisherPublicKey: "publisher"
 };
 
+async function waitUntil(condition: () => boolean, timeoutMs = 2_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!condition()) {
+    if (Date.now() >= deadline) {
+      throw new Error("Timed out waiting for sandbox output");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
+
 describe("grant matrix", () => {
   const capabilities = CAPABILITY_DEFINITIONS.map((entry) => entry.id);
 
@@ -90,6 +100,50 @@ describe("grant matrix", () => {
 });
 
 describe("mini-app host", () => {
+  it("does not report healthy watchdog pings as lifecycle changes", async () => {
+    const store = new MemoryStore();
+    const lifecycleStates: string[] = [];
+    let alive = true;
+    const host = new MiniappHost({
+      backend: {
+        name: "healthy-watchdog-test",
+        async spawn() {
+          alive = true;
+          return {
+            id: "healthy-watchdog-instance",
+            async postMessage() {},
+            async ping() {
+              return true;
+            },
+            isAlive() {
+              return alive;
+            },
+            async kill() {
+              alive = false;
+            }
+          };
+        }
+      },
+      grantStore: new GrantStore(store),
+      kvBackend: store,
+      callbacks: {
+        onLifecycle: (snapshot) => {
+          lifecycleStates.push(snapshot.state);
+        }
+      }
+    });
+
+    await host.launch(manifest, helloBundle);
+    expect(lifecycleStates).toEqual(["running"]);
+
+    await host.watchdogPing();
+    await host.watchdogPing();
+    expect(lifecycleStates).toEqual(["running"]);
+
+    await host.stop();
+    expect(lifecycleStates).toEqual(["running", "stopped"]);
+  });
+
   it("launches a hello bundle and renders a widget tree", async () => {
     const store = new MemoryStore();
     let tree: unknown = null;
@@ -105,7 +159,7 @@ describe("mini-app host", () => {
     });
 
     const snapshot = await host.launch(manifest, helloBundle);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await waitUntil(() => tree !== null);
     await host.stop();
 
     expect(snapshot.appId).toBe("hello");
@@ -179,9 +233,11 @@ await paint();
     });
 
     await host.launch(manifest, interactiveBundle);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await waitUntil(() => host.snapshot().widgetTree?.root.children?.some((node) => node.id === "tap") === true);
     await host.handleUiEvent("tap", "demo.tap");
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await waitUntil(
+      () => host.snapshot().widgetTree?.root.children?.find((node) => node.id === "tap")?.props?.label === "tapped"
+    );
 
     const tree = host.snapshot().widgetTree;
     await host.stop();
@@ -199,7 +255,7 @@ await paint();
     });
 
     await host.launch(manifest, helloBundle);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await waitUntil(() => host.snapshot().widgetTree !== null);
     await expect(host.handleUiEvent("missing-node", "tap")).rejects.toThrow("Unknown widget node");
     await host.stop();
   });
@@ -219,7 +275,7 @@ await paint();
     });
 
     await host.launch(manifest, helloBundle);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await waitUntil(() => patches.length > 0);
     await host.dispatchRaw(
       {
         id: "render-2",

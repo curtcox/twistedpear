@@ -73,6 +73,24 @@ try {
   // not merely boot into an empty mini-app shell.
   const chapterText = (await page.locator("#widget-root").innerText()).trim();
   assert.ok(chapterText.length > 200, "Widget gallery chapter should contain substantial content");
+
+  // Healthy watchdog pings run every two seconds. They must not cause the host
+  // to rebuild an unchanged widget tree, which resets document scroll and focus.
+  const reader = page.locator("#widget-root > .widget-scroll");
+  await reader.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await page.waitForTimeout(250);
+  const scrollBeforeWatchdog = await reader.evaluate((element) => element.scrollTop);
+  assert.ok(scrollBeforeWatchdog > 0, "Widget gallery chapter should be scrollable");
+  await page.waitForTimeout(2_500);
+  const scrollAfterWatchdog = await reader.evaluate((element) => element.scrollTop);
+  assert.equal(
+    scrollAfterWatchdog,
+    scrollBeforeWatchdog,
+    "healthy watchdog ping must not reset mini-app document scroll"
+  );
+
   await page.getByText("← Contents", { exact: true }).click();
   await page.getByText("Diagnostics · run all / export / compare", { exact: true }).waitFor();
 
