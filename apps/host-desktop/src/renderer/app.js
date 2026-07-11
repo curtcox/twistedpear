@@ -537,13 +537,6 @@ if (!host) {
     }
 
     if (message.type === "log") {
-      if (
-        requestedAppId !== null &&
-        runningAppId !== requestedAppId &&
-        message.line.startsWith("Desktop host worklet ready")
-      ) {
-        resetRequestedAppLaunch();
-      }
       appendLog(message.line);
     }
 
