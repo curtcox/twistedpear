@@ -50,6 +50,8 @@ let runningAppId = null;
 /** @type {Map<string, {resolve: (content: string) => void, reject: (error: Error) => void}>} */
 const pendingWorkspaceReads = new Map();
 let workspaceReadCounter = 0;
+const requestedAppId = new URLSearchParams(window.location.search).get("app");
+let requestedAppLaunchStarted = false;
 
 function readWorkspaceDocument(documentId) {
   return new Promise((resolve, reject) => {
@@ -520,6 +522,22 @@ if (!host) {
     if (message.type === "installed") {
       installedPackages = message.packages;
       renderInstalled();
+      if (!requestedAppLaunchStarted && requestedAppId !== null) {
+        const requestedPackage = installedPackages.find((pkg) => pkg.appId === requestedAppId);
+        if (requestedPackage !== undefined) {
+          requestedAppLaunchStarted = true;
+          selectedAppId = requestedPackage.appId;
+          host.send({ type: "launch-miniapp", appId: requestedPackage.appId });
+          if (requestedPackage.publisherPublicKey && requestedPackage.capabilities) {
+            host.send({
+              type: "get-grants",
+              appId: requestedPackage.appId,
+              publisherPublicKey: requestedPackage.publisherPublicKey,
+              declaredCapabilities: requestedPackage.capabilities
+            });
+          }
+        }
+      }
     }
 
     if (message.type === "install-progress") {

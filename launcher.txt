@@ -7,9 +7,9 @@ image: docs/images/desktop-host.png
 description: Electron desktop host with transport, seeding, and mini-app runtime. Handbook, DevStudio, and chat are pre-installed under Installed.
 
 name: Handbook (Desktop)
-command: npm run run:desktop
+command: npm run run:desktop:handbook
 image: docs/images/desktop-host.png
-description: Same desktop host — after it opens, go to Installed and launch handbook.
+description: Opens the Electron desktop host directly into the bundled Handbook app.
 
 name: DevStudio (Desktop)
 command: npm run run:desktop

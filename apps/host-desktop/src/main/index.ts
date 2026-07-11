@@ -17,6 +17,12 @@ let isQuitting = false;
 let networkSnapshot = JSON.stringify(networkInterfaces());
 let networkPollTimer: ReturnType<typeof setInterval> | null = null;
 
+function requestedMiniapp(): string | null {
+  const argument = process.argv.find((value) => value.startsWith("--app="));
+  const requested = argument?.slice("--app=".length) ?? process.env.TP_DESKTOP_APP ?? "";
+  return /^[a-z0-9][a-z0-9._-]*$/.test(requested) ? requested : null;
+}
+
 function checkNetworkChange(): void {
   const next = JSON.stringify(networkInterfaces());
   if (next === networkSnapshot) {
@@ -54,7 +60,10 @@ function createWindow(): void {
     mainWindow?.hide();
   });
 
-  mainWindow.loadFile(join(hostRoot, "src/renderer/index.html"));
+  const appId = requestedMiniapp();
+  void mainWindow.loadFile(join(hostRoot, "src/renderer/index.html"), {
+    query: appId === null ? {} : { app: appId }
+  });
 }
 
 function ensureSupervisor(): WorkletSupervisor {
