@@ -4,8 +4,12 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from typing import Optional
+
+# macOS ships a deprecated system Tk that prints this on every launch.
+os.environ.setdefault("TK_SILENCE_DEPRECATION", "1")
 
 
 def _python_has_tkinter(python: str) -> bool:
@@ -214,10 +218,16 @@ def parse_entries(text: str) -> list[Entry]:
 
 
 class LauncherApp(tk.Tk):
+    _PREVIEW_MAX_WIDTH = 320
+    _PREVIEW_MAX_HEIGHT = 200
+
     def __init__(self, entries: list[Entry]):
         super().__init__()
         self.entries = entries
         self.images: list[tk.PhotoImage] = []
+        self._image_cache: dict[str, Optional[tk.PhotoImage]] = {}
+        self._image_warned: set[str] = set()
+        self._temp_image_paths: list[str] = []
 
         self.title("Launcher")
         self.geometry("760x520")
@@ -294,24 +304,123 @@ class LauncherApp(tk.Tk):
         )
         run_button.grid(row=0, column=2, rowspan=3, padx=(12, 0), sticky=tk.NE)
 
+    def _resolve_image_path(self, path: str) -> str:
+        if os.path.isabs(path):
+            return path
+        return os.path.join(os.getcwd(), path)
+
+    def _fit_preview(self, img: tk.PhotoImage) -> tk.PhotoImage:
+        width = img.width()
+        height = img.height()
+        factor = max(
+            (width + self._PREVIEW_MAX_WIDTH - 1) // self._PREVIEW_MAX_WIDTH,
+            (height + self._PREVIEW_MAX_HEIGHT - 1) // self._PREVIEW_MAX_HEIGHT,
+            1,
+        )
+        if factor <= 1:
+            return img
+        return img.subsample(factor, factor)
+
+    def _convert_image_for_tk(self, path: str) -> Optional[str]:
+        if sys.platform == "darwin" and shutil.which("sips"):
+            handle, tmp_path = tempfile.mkstemp(suffix=".gif", prefix="launcher-img-")
+            os.close(handle)
+            try:
+                subprocess.run(
+                    ["sips", "-s", "format", "gif", path, "--out", tmp_path],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+            except (OSError, subprocess.CalledProcessError):
+                os.unlink(tmp_path)
+                return None
+
+            self._temp_image_paths.append(tmp_path)
+            return tmp_path
+
+        return None
+
+    def _photo_from_file(self, path: str) -> tk.PhotoImage:
+        try:
+            return tk.PhotoImage(file=path)
+        except tk.TclError:
+            pass
+
+        try:
+            from PIL import Image, ImageTk  # type: ignore[import-untyped]
+        except ImportError:
+            Image = None  # type: ignore[misc, assignment]
+            ImageTk = None  # type: ignore[misc, assignment]
+
+        if Image is not None and ImageTk is not None:
+            with Image.open(path) as pil_image:
+                return ImageTk.PhotoImage(pil_image)
+
+        converted = self._convert_image_for_tk(path)
+        if converted:
+            return tk.PhotoImage(file=converted)
+
+        raise tk.TclError(f"no Tk-compatible loader for {path!r}")
+
+    def _warn_image_once(self, path: str, message: str) -> None:
+        if path in self._image_warned:
+            return
+        self._image_warned.add(path)
+        print(f"launcher.py: {message}", file=sys.stderr)
+
     def _load_image(self, path: str) -> Optional[tk.PhotoImage]:
-        if not os.path.exists(path):
-            print(f"Warning: image not found: {path}", file=sys.stderr)
+        if path in self._image_cache:
+            return self._image_cache[path]
+
+        resolved = self._resolve_image_path(path)
+        if not os.path.exists(resolved):
+            self._warn_image_once(
+                path,
+                f"preview image not found: {path!r} "
+                f"(looked for {resolved!r}; paths are relative to the current directory).",
+            )
+            self._image_cache[path] = None
             return None
 
         try:
-            img = tk.PhotoImage(file=path)
+            img = self._fit_preview(self._photo_from_file(resolved))
             self.images.append(img)  # keep reference alive
+            self._image_cache[path] = img
             return img
         except tk.TclError as exc:
-            print(f"Warning: could not load image {path!r}: {exc}", file=sys.stderr)
+            hint = (
+                "On macOS, the system Python Tk build cannot read PNG previews; "
+                "install Homebrew python-tk for your Python version "
+                f"(brew install python-tk@{sys.version_info.major}.{sys.version_info.minor}) "
+                "or run ./launch so sips(1) can convert previews."
+            )
+            self._warn_image_once(
+                path,
+                f"could not show preview for {path!r}: {exc}\n  {hint}",
+            )
+            self._image_cache[path] = None
             return None
+
+    def destroy(self) -> None:
+        for tmp_path in self._temp_image_paths:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+        super().destroy()
 
     def _run_entry(self, entry: Entry) -> None:
         try:
             process = subprocess.Popen(entry.command, shell=True)
         except Exception as exc:
-            messagebox.showerror("Launch failed", f"Could not run:\n\n{entry.command}\n\n{exc}")
+            messagebox.showerror(
+                "Launch failed",
+                f"Could not start {entry.name}.\n\n"
+                f"Command:\n{entry.command}\n\n"
+                f"Error:\n{exc}\n\n"
+                "Check that npm/node are on PATH and run this launcher from the repo root.",
+            )
             return
 
         threading.Thread(
@@ -326,8 +435,10 @@ class LauncherApp(tk.Tk):
             self.after(
                 0,
                 lambda: messagebox.showwarning(
-                    "Command exited nonzero",
-                    f"{entry.name} exited with status {return_code}.\n\n{entry.command}",
+                    "Command finished with an error",
+                    f"{entry.name} exited with status {return_code}.\n\n"
+                    f"Command:\n{entry.command}\n\n"
+                    "See the terminal where you started the launcher for build or runtime logs.",
                 ),
             )
 
