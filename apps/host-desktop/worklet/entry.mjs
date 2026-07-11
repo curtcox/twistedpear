@@ -1838,9 +1838,15 @@ void loadPersistedIdentity().then(() =>
 pushStatus();
 log(`Desktop host worklet ready (crypto: ${provider.name})`);
 
+let hostMessageBuffer = "";
 IPC.on("data", (data) => {
-  handleHostMessage(data).catch((error) => {
-    log(`Worklet error: ${error instanceof Error ? error.message : String(error)}`);
-    pushStatus();
-  });
+  hostMessageBuffer += data.toString();
+  const lines = hostMessageBuffer.split("\n");
+  hostMessageBuffer = lines.pop() ?? "";
+  for (const line of lines) {
+    handleHostMessage(line).catch((error) => {
+      log(`Worklet error: ${error instanceof Error ? error.message : String(error)}`);
+      pushStatus();
+    });
+  }
 });

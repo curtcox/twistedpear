@@ -52,6 +52,32 @@ const pendingWorkspaceReads = new Map();
 let workspaceReadCounter = 0;
 const requestedAppId = new URLSearchParams(window.location.search).get("app");
 let requestedAppLaunchStarted = false;
+let requestedAppLaunchTimer = null;
+
+function resetRequestedAppLaunch() {
+  if (requestedAppLaunchTimer !== null) {
+    clearTimeout(requestedAppLaunchTimer);
+    requestedAppLaunchTimer = null;
+  }
+  requestedAppLaunchStarted = false;
+}
+
+function scheduleRequestedAppLaunch(pkg) {
+  requestedAppLaunchStarted = true;
+  requestedAppLaunchTimer = setTimeout(() => {
+    requestedAppLaunchTimer = null;
+    selectedAppId = pkg.appId;
+    host.send({ type: "launch-miniapp", appId: pkg.appId });
+    if (pkg.publisherPublicKey && pkg.capabilities) {
+      host.send({
+        type: "get-grants",
+        appId: pkg.appId,
+        publisherPublicKey: pkg.publisherPublicKey,
+        declaredCapabilities: pkg.capabilities
+      });
+    }
+  }, 250);
+}
 
 function readWorkspaceDocument(documentId) {
   return new Promise((resolve, reject) => {
@@ -511,6 +537,13 @@ if (!host) {
     }
 
     if (message.type === "log") {
+      if (
+        requestedAppId !== null &&
+        runningAppId !== requestedAppId &&
+        message.line.startsWith("Desktop host worklet ready")
+      ) {
+        resetRequestedAppLaunch();
+      }
       appendLog(message.line);
     }
 
@@ -525,17 +558,7 @@ if (!host) {
       if (!requestedAppLaunchStarted && requestedAppId !== null) {
         const requestedPackage = installedPackages.find((pkg) => pkg.appId === requestedAppId);
         if (requestedPackage !== undefined) {
-          requestedAppLaunchStarted = true;
-          selectedAppId = requestedPackage.appId;
-          host.send({ type: "launch-miniapp", appId: requestedPackage.appId });
-          if (requestedPackage.publisherPublicKey && requestedPackage.capabilities) {
-            host.send({
-              type: "get-grants",
-              appId: requestedPackage.appId,
-              publisherPublicKey: requestedPackage.publisherPublicKey,
-              declaredCapabilities: requestedPackage.capabilities
-            });
-          }
+          scheduleRequestedAppLaunch(requestedPackage);
         }
       }
     }
@@ -561,6 +584,9 @@ if (!host) {
         }
       } else {
         runningAppId = message.runtime.appId;
+        if (runningAppId === requestedAppId) {
+          requestedAppLaunchTimer = null;
+        }
         document.body.classList.toggle("miniapp-running", runningAppId !== null);
         if (miniappTitle) {
           miniappTitle.textContent = runningAppId ?? "Mini-app";
@@ -636,6 +662,16 @@ if (!host) {
     }
 
     if (message.type === "launch-review") {
+      if (requestedAppId !== null && message.appId === requestedAppId) {
+        host.send({
+          type: "launch-confirm",
+          token: message.token,
+          accept: true,
+          grants: message.capabilities.map((capability) => capability.id)
+        });
+        return;
+      }
+
       showHostModal({
         title: `Run ${message.appId} v${message.version}?`,
         fingerprint: message.publisherPublicKey,
@@ -725,6 +761,9 @@ if (!host) {
   });
 
   host.onWorkletExit((detail) => {
+    if (requestedAppId !== null && runningAppId !== requestedAppId) {
+      resetRequestedAppLaunch();
+    }
     appendLog(`Worklet exited (code=${detail.code}, signal=${detail.signal ?? "none"})`);
   });
 

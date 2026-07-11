@@ -59,6 +59,7 @@
     "test:android-emulator:e3": "node conformance/android-emulator/e3-foreground.mjs",
     "test:android-emulator:e5": "node conformance/android-emulator/e5-worker.mjs",
     "test:desktop": "npm run build && node conformance/desktop/run.mjs",
+    "test:desktop-handbook-ui": "npm run build --workspace=host-desktop && node conformance/desktop/handbook-ui.mjs",
     "test:devstudio-loop": "npm run build && node conformance/devstudio-loop/run.mjs",
     "test:devstudio-cross-version": "npm run build && node conformance/devstudio-cross-version/run.mjs",
     "test:desktop-lifecycle": "npm run build && node conformance/desktop/lifecycle.mjs",
