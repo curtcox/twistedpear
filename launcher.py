@@ -24,6 +24,83 @@ def _python_has_tkinter(python: str) -> bool:
         return False
 
 
+def _brew_python_executable(major: int, minor: int) -> Optional[str]:
+    if sys.platform != "darwin" or not shutil.which("brew"):
+        return None
+
+    try:
+        result = subprocess.run(
+            ["brew", "--prefix", f"python@{major}.{minor}"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        return None
+
+    python = os.path.join(result.stdout.strip(), "bin", "python3")
+    if os.path.isfile(python):
+        return python
+
+    return None
+
+
+def _same_python(left: str, right: str) -> bool:
+    try:
+        return os.path.realpath(left) == os.path.realpath(right)
+    except OSError:
+        return False
+
+
+def _is_brew_python(python: str) -> bool:
+    major, minor = sys.version_info[:2]
+    brew_python = _brew_python_executable(major, minor)
+    return bool(brew_python and _same_python(python, brew_python))
+
+
+def _preferred_brew_python_version() -> tuple[int, int]:
+    if sys.platform == "darwin" and shutil.which("brew"):
+        for major_minor in ("3.14", "3.13", "3.12", "3.11", "3.10"):
+            major_s, minor_s = major_minor.split(".", 1)
+            major, minor = int(major_s), int(minor_s)
+            if _brew_python_executable(major, minor):
+                return major, minor
+
+    return sys.version_info[:2]
+
+
+def _brew_python_tk_install_message(major: int, minor: int, python: str) -> str:
+    brew_python = f"python@{major}.{minor}"
+    brew_tk = f"python-tk@{major}.{minor}"
+    return (
+        "launcher.py: Homebrew Python is installed but Tcl/Tk support is missing.\n\n"
+        f"Python: {python} ({major}.{minor})\n\n"
+        "Homebrew's python@3.x does not include Tk until you install python-tk:\n\n"
+        f"  brew install {brew_python} {brew_tk}\n\n"
+        "Then run from the repo root:\n"
+        "  ./launch\n"
+        f"  # or: LAUNCHER_PYTHON=\"$(brew --prefix {brew_python})/bin/python3\" python3 launcher.py\n"
+    )
+
+
+def _exit_if_brew_python_missing_tk(python: str) -> None:
+    if not _is_brew_python(python) or _python_has_tkinter(python):
+        return
+
+    major, minor = sys.version_info[:2]
+    print(_brew_python_tk_install_message(major, minor, python), file=sys.stderr)
+    sys.exit(1)
+
+
+def _brew_python_with_tk() -> Optional[str]:
+    major, minor = sys.version_info[:2]
+    python = _brew_python_executable(major, minor)
+    if python and _python_has_tkinter(python):
+        return python
+    return None
+
+
 def _tkinter_python_candidates() -> list[str]:
     seen: set[str] = set()
     candidates: list[str] = []
@@ -38,14 +115,28 @@ def _tkinter_python_candidates() -> list[str]:
         candidates.append(path)
 
     add(os.environ.get("LAUNCHER_PYTHON"))
-    add("/usr/bin/python3")
+    add(_brew_python_with_tk())
+    if not _is_brew_python(sys.executable):
+        add("/usr/bin/python3")
     for name in ("python3", "python"):
-        add(shutil.which(name))
+        candidate = shutil.which(name)
+        if candidate and not (
+            _is_brew_python(candidate) and not _python_has_tkinter(candidate)
+        ):
+            add(candidate)
 
     return candidates
 
 
 def _ensure_tkinter_python() -> None:
+    launcher_python = os.environ.get("LAUNCHER_PYTHON")
+    if launcher_python and _python_has_tkinter(launcher_python):
+        if not _same_python(launcher_python, sys.executable):
+            os.execv(launcher_python, [launcher_python, *sys.argv])
+        return
+
+    _exit_if_brew_python_missing_tk(sys.executable)
+
     if _python_has_tkinter(sys.executable):
         return
 
@@ -54,17 +145,16 @@ def _ensure_tkinter_python() -> None:
             os.execv(python, [python, *sys.argv])
 
     major, minor = sys.version_info[:2]
-    brew_pkg = f"python-tk@{major}.{minor}"
+    brew_python = f"python@{major}.{minor}"
+    brew_tk = f"python-tk@{major}.{minor}"
 
     print(
         f"launcher.py: Tkinter is not available in {sys.executable} "
         f"(Python {major}.{minor}).\n\n"
-        "This launcher needs a Python build linked against Tcl/Tk. "
-        "Homebrew's python@3.x does not include Tk unless you install python-tk.\n\n"
-        "Try one of:\n"
-        "  ./launch\n"
-        "  LAUNCHER_PYTHON=/usr/bin/python3 python3 launcher.py\n"
-        f"  brew install {brew_pkg}\n",
+        "This launcher needs a Python build linked against Tcl/Tk.\n\n"
+        f"  brew install {brew_python} {brew_tk}\n\n"
+        "Then run:\n"
+        "  ./launch\n",
         file=sys.stderr,
     )
     sys.exit(1)
@@ -217,17 +307,253 @@ def parse_entries(text: str) -> list[Entry]:
     return entries
 
 
-class LauncherApp(tk.Tk):
+def _resolve_image_path(path: str) -> str:
+    if os.path.isabs(path):
+        return path
+    return os.path.join(os.getcwd(), path)
+
+
+def _collect_image_paths(entries: list[Entry]) -> list[str]:
+    seen: set[str] = set()
+    paths: list[str] = []
+
+    for entry in entries:
+        if not entry.image or entry.image in seen:
+            continue
+        seen.add(entry.image)
+        paths.append(entry.image)
+
+    return paths
+
+
+def _has_pillow() -> bool:
+    try:
+        import PIL.Image  # noqa: F401
+        import PIL.ImageTk  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def _has_sips() -> bool:
+    return sys.platform == "darwin" and shutil.which("sips") is not None
+
+
+def _tk_supports_png(master: tk.Misc, path: str) -> bool:
+    try:
+        img = tk.PhotoImage(master=master, file=path)
+    except tk.TclError:
+        return False
+
+    master.tk.call("image", "delete", str(img))
+    return True
+
+
+def _is_macos_system_python(python: str) -> bool:
+    return sys.platform == "darwin" and _same_python(python, "/usr/bin/python3")
+
+
+def _available_image_backends(master: tk.Misc, sample_png: Optional[str]) -> list[str]:
+    backends: list[str] = []
+
+    if sample_png and os.path.isfile(sample_png) and _tk_supports_png(master, sample_png):
+        backends.append("tk-png")
+    if _has_pillow():
+        backends.append("pillow")
+
+    return backends
+
+
+def _image_dependency_instructions() -> str:
+    python = sys.executable
+    runtime_major, runtime_minor = sys.version_info[:2]
+    if _is_brew_python(python):
+        major, minor = runtime_major, runtime_minor
+    else:
+        major, minor = _preferred_brew_python_version()
+    brew_python = f"python@{major}.{minor}"
+    brew_tk = f"python-tk@{major}.{minor}"
+
+    lines = [
+        "launcher.py: Preview images need a Python/Tk build that can load PNG files.",
+        "",
+        f"Python: {python} ({runtime_major}.{runtime_minor})",
+        "",
+    ]
+
+    if _is_brew_python(python) and not _python_has_tkinter(python):
+        lines.extend(
+            [
+                "Homebrew Python is installed but python-tk is missing:",
+                f"  brew install {brew_python} {brew_tk}",
+                "",
+            ]
+        )
+    elif _is_macos_system_python(python):
+        lines.extend(
+            [
+                "macOS /usr/bin/python3 uses an older Tk that cannot load PNG previews.",
+                "Install Homebrew Python with Tk support:",
+                f"  brew install {brew_python} {brew_tk}",
+                f"  LAUNCHER_PYTHON=\"$(brew --prefix {brew_python})/bin/python3\" ./launch",
+                "",
+                "Or install Pillow for the current interpreter:",
+                f"  {python} -m pip install --user pillow",
+                "",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "Install Homebrew Python with Tk support:",
+                f"  brew install {brew_python} {brew_tk}",
+                f"  LAUNCHER_PYTHON=\"$(brew --prefix {brew_python})/bin/python3\" ./launch",
+                "",
+                f"Or install Pillow for the current interpreter:",
+                f"  {python} -m pip install --user pillow",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "Run the launcher from the repo root:",
+            "  ./launch",
+        ]
+    )
+    return "\n".join(lines)
+
+
+class PreviewImageLoader:
     _PREVIEW_MAX_WIDTH = 320
     _PREVIEW_MAX_HEIGHT = 200
 
+    def __init__(self, master: tk.Misc):
+        self.master = master
+        self.photos: list[tk.PhotoImage] = []
+        self._pil_images: list[object] = []
+        self._temp_paths: list[str] = []
+        self._cache: dict[str, tk.PhotoImage] = {}
+
+    def cleanup(self) -> None:
+        for tmp_path in self._temp_paths:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+        self._temp_paths.clear()
+
+    def _fit_preview(self, img: tk.PhotoImage) -> tk.PhotoImage:
+        width = img.width()
+        height = img.height()
+        factor = max(
+            (width + self._PREVIEW_MAX_WIDTH - 1) // self._PREVIEW_MAX_WIDTH,
+            (height + self._PREVIEW_MAX_HEIGHT - 1) // self._PREVIEW_MAX_HEIGHT,
+            1,
+        )
+        if factor <= 1:
+            return img
+        return img.subsample(factor, factor)
+
+    def _convert_image_for_tk(self, path: str) -> Optional[str]:
+        if not _has_sips():
+            return None
+
+        handle, tmp_path = tempfile.mkstemp(suffix=".gif", prefix="launcher-img-")
+        os.close(handle)
+        try:
+            subprocess.run(
+                ["sips", "-s", "format", "gif", path, "--out", tmp_path],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except (OSError, subprocess.CalledProcessError):
+            os.unlink(tmp_path)
+            return None
+
+        self._temp_paths.append(tmp_path)
+        return tmp_path
+
+    def _photo_from_file(self, path: str) -> tk.PhotoImage:
+        try:
+            return tk.PhotoImage(master=self.master, file=path)
+        except tk.TclError:
+            pass
+
+        if _has_pillow():
+            from PIL import Image, ImageTk  # type: ignore[import-untyped]
+
+            pil_image = Image.open(path)
+            self._pil_images.append(pil_image)
+            return ImageTk.PhotoImage(pil_image, master=self.master)
+
+        converted = self._convert_image_for_tk(path)
+        if converted:
+            return tk.PhotoImage(master=self.master, file=converted)
+
+        raise tk.TclError(f"no Tk-compatible loader for {path!r}")
+
+    def load(self, path: str) -> tk.PhotoImage:
+        if path in self._cache:
+            return self._cache[path]
+
+        resolved = _resolve_image_path(path)
+        if not os.path.isfile(resolved):
+            raise FileNotFoundError(resolved)
+
+        img = self._fit_preview(self._photo_from_file(resolved))
+        self.photos.append(img)
+        self._cache[path] = img
+        return img
+
+
+def _ensure_image_support(entries: list[Entry], master: tk.Misc) -> PreviewImageLoader:
+    image_paths = _collect_image_paths(entries)
+    if not image_paths:
+        return PreviewImageLoader(master)
+
+    missing = [
+        path
+        for path in image_paths
+        if not os.path.isfile(_resolve_image_path(path))
+    ]
+    if missing:
+        print(
+            "launcher.py: Preview image file(s) not found "
+            f"(paths are relative to {os.getcwd()!r}):\n"
+            + "\n".join(f"  - {path}" for path in missing),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    sample_png = _resolve_image_path(image_paths[0])
+    backends = _available_image_backends(master, sample_png)
+    if not backends:
+        print(_image_dependency_instructions(), file=sys.stderr)
+        sys.exit(1)
+
+    loader = PreviewImageLoader(master)
+    try:
+        for path in image_paths:
+            loader.load(path)
+    except (OSError, tk.TclError) as exc:
+        print(
+            f"launcher.py: Could not load preview image {path!r}: {exc}\n\n"
+            f"{_image_dependency_instructions()}",
+            file=sys.stderr,
+        )
+        loader.cleanup()
+        sys.exit(1)
+
+    return loader
+
+
+class LauncherApp(tk.Tk):
     def __init__(self, entries: list[Entry]):
         super().__init__()
         self.entries = entries
-        self.images: list[tk.PhotoImage] = []
-        self._image_cache: dict[str, Optional[tk.PhotoImage]] = {}
-        self._image_warned: set[str] = set()
-        self._temp_image_paths: list[str] = []
+        self.image_loader = _ensure_image_support(entries, self)
 
         self.title("Launcher")
         self.geometry("760x520")
@@ -270,10 +596,10 @@ class LauncherApp(tk.Tk):
         card.pack(fill=tk.X, expand=True, pady=(0, 10))
 
         if entry.image:
-            img = self._load_image(entry.image)
-            if img:
-                image_label = ttk.Label(card, image=img)
-                image_label.grid(row=0, column=0, rowspan=3, padx=(0, 12), sticky=tk.NW)
+            img = self.image_loader.load(entry.image)
+            image_label = tk.Label(card, image=img, borderwidth=0)
+            image_label.image = img
+            image_label.grid(row=0, column=0, rowspan=3, padx=(0, 12), sticky=tk.NW)
 
         text_col = 1
         card.columnconfigure(text_col, weight=1)
@@ -304,110 +630,8 @@ class LauncherApp(tk.Tk):
         )
         run_button.grid(row=0, column=2, rowspan=3, padx=(12, 0), sticky=tk.NE)
 
-    def _resolve_image_path(self, path: str) -> str:
-        if os.path.isabs(path):
-            return path
-        return os.path.join(os.getcwd(), path)
-
-    def _fit_preview(self, img: tk.PhotoImage) -> tk.PhotoImage:
-        width = img.width()
-        height = img.height()
-        factor = max(
-            (width + self._PREVIEW_MAX_WIDTH - 1) // self._PREVIEW_MAX_WIDTH,
-            (height + self._PREVIEW_MAX_HEIGHT - 1) // self._PREVIEW_MAX_HEIGHT,
-            1,
-        )
-        if factor <= 1:
-            return img
-        return img.subsample(factor, factor)
-
-    def _convert_image_for_tk(self, path: str) -> Optional[str]:
-        if sys.platform == "darwin" and shutil.which("sips"):
-            handle, tmp_path = tempfile.mkstemp(suffix=".gif", prefix="launcher-img-")
-            os.close(handle)
-            try:
-                subprocess.run(
-                    ["sips", "-s", "format", "gif", path, "--out", tmp_path],
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
-            except (OSError, subprocess.CalledProcessError):
-                os.unlink(tmp_path)
-                return None
-
-            self._temp_image_paths.append(tmp_path)
-            return tmp_path
-
-        return None
-
-    def _photo_from_file(self, path: str) -> tk.PhotoImage:
-        try:
-            return tk.PhotoImage(file=path)
-        except tk.TclError:
-            pass
-
-        try:
-            from PIL import Image, ImageTk  # type: ignore[import-untyped]
-        except ImportError:
-            Image = None  # type: ignore[misc, assignment]
-            ImageTk = None  # type: ignore[misc, assignment]
-
-        if Image is not None and ImageTk is not None:
-            with Image.open(path) as pil_image:
-                return ImageTk.PhotoImage(pil_image)
-
-        converted = self._convert_image_for_tk(path)
-        if converted:
-            return tk.PhotoImage(file=converted)
-
-        raise tk.TclError(f"no Tk-compatible loader for {path!r}")
-
-    def _warn_image_once(self, path: str, message: str) -> None:
-        if path in self._image_warned:
-            return
-        self._image_warned.add(path)
-        print(f"launcher.py: {message}", file=sys.stderr)
-
-    def _load_image(self, path: str) -> Optional[tk.PhotoImage]:
-        if path in self._image_cache:
-            return self._image_cache[path]
-
-        resolved = self._resolve_image_path(path)
-        if not os.path.exists(resolved):
-            self._warn_image_once(
-                path,
-                f"preview image not found: {path!r} "
-                f"(looked for {resolved!r}; paths are relative to the current directory).",
-            )
-            self._image_cache[path] = None
-            return None
-
-        try:
-            img = self._fit_preview(self._photo_from_file(resolved))
-            self.images.append(img)  # keep reference alive
-            self._image_cache[path] = img
-            return img
-        except tk.TclError as exc:
-            hint = (
-                "On macOS, the system Python Tk build cannot read PNG previews; "
-                "install Homebrew python-tk for your Python version "
-                f"(brew install python-tk@{sys.version_info.major}.{sys.version_info.minor}) "
-                "or run ./launch so sips(1) can convert previews."
-            )
-            self._warn_image_once(
-                path,
-                f"could not show preview for {path!r}: {exc}\n  {hint}",
-            )
-            self._image_cache[path] = None
-            return None
-
     def destroy(self) -> None:
-        for tmp_path in self._temp_image_paths:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
+        self.image_loader.cleanup()
         super().destroy()
 
     def _run_entry(self, entry: Entry) -> None:

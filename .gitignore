@@ -4,6 +4,9 @@ coverage/
 .tmp/
 *.tsbuildinfo
 .DS_Store
+__pycache__/
+*.py[cod]
+*$py.class
 .venv-rns/
 .bare-interop-store/
 .bare-device-store/
