@@ -2,6 +2,12 @@
   "files": [],
   "references": [
     {
+      "path": "./packages/effects"
+    },
+    {
+      "path": "./packages/protocol"
+    },
+    {
       "path": "./packages/reticulum-ts"
     },
     {

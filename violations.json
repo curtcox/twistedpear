@@ -1,0 +1,436 @@
+{
+  "generatedAt": "2026-07-12T20:14:24.607Z",
+  "roots": [
+    "packages/protocol/src",
+    "packages/reticulum-ts/src",
+    "packages/lxmf-ts/src",
+    "packages/miniapp-runtime/src",
+    "packages/reticulum-interfaces/src"
+  ],
+  "scannedFileCount": 53,
+  "violationCount": 57,
+  "filesWithViolations": [
+    "packages/lxmf-ts/src/message.ts",
+    "packages/lxmf-ts/src/propagation-server.ts",
+    "packages/lxmf-ts/src/propagation.ts",
+    "packages/lxmf-ts/src/router.ts",
+    "packages/miniapp-runtime/src/broker.ts",
+    "packages/miniapp-runtime/src/capabilities.ts",
+    "packages/miniapp-runtime/src/confirm.ts",
+    "packages/miniapp-runtime/src/lifecycle.ts",
+    "packages/reticulum-ts/src/identity.ts",
+    "packages/reticulum-ts/src/link-request-receipt.ts",
+    "packages/reticulum-ts/src/link.ts",
+    "packages/reticulum-ts/src/packet-receipt.ts",
+    "packages/reticulum-ts/src/resource.ts",
+    "packages/reticulum-ts/src/transport/node.ts",
+    "packages/reticulum-ts/src/transport/rate.ts",
+    "packages/reticulum-ts/src/transport/transport.ts"
+  ],
+  "summaryByApi": {
+    "Date.now": 46,
+    "setTimeout": 10,
+    "Math.random": 1
+  },
+  "violations": [
+    {
+      "file": "packages/lxmf-ts/src/message.ts",
+      "line": 120,
+      "api": "Date.now",
+      "match": "message.timestamp = options.timestamp ?? Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/lxmf-ts/src/message.ts",
+      "line": 213,
+      "api": "Date.now",
+      "match": "this.timestamp = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/lxmf-ts/src/message.ts",
+      "line": 289,
+      "api": "Date.now",
+      "match": "this.propagationPacked = msgpackPackPropagationEnvelope(this.timestamp ?? Date.now() / 1000, [lxmfData]);",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/lxmf-ts/src/propagation-server.ts",
+      "line": 133,
+      "api": "Date.now",
+      "match": "const storedAt = Date.now();",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/lxmf-ts/src/propagation-server.ts",
+      "line": 189,
+      "api": "setTimeout",
+      "match": "this.persistTimer = setTimeout(() => {",
+      "suggestedEffect": "Timers"
+    },
+    {
+      "file": "packages/lxmf-ts/src/propagation-server.ts",
+      "line": 221,
+      "api": "Date.now",
+      "match": "const now = Date.now();",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/lxmf-ts/src/propagation.ts",
+      "line": 206,
+      "api": "setTimeout",
+      "match": "const timer = setTimeout(() => reject(new Error(\"Propagation link timeout\")), 5000);",
+      "suggestedEffect": "Timers"
+    },
+    {
+      "file": "packages/lxmf-ts/src/router.ts",
+      "line": 196,
+      "api": "setTimeout",
+      "match": "const timer = setTimeout(() => reject(new Error(\"Direct LXMF link timeout\")), 5000);",
+      "suggestedEffect": "Timers"
+    },
+    {
+      "file": "packages/lxmf-ts/src/router.ts",
+      "line": 272,
+      "api": "setTimeout",
+      "match": "const timer = setTimeout(() => reject(new Error(\"Propagation link timeout\")), 5000);",
+      "suggestedEffect": "Timers"
+    },
+    {
+      "file": "packages/lxmf-ts/src/router.ts",
+      "line": 406,
+      "api": "Date.now",
+      "match": "const deadline = Date.now() + timeoutMs;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/lxmf-ts/src/router.ts",
+      "line": 407,
+      "api": "Date.now",
+      "match": "while (Date.now() < deadline) {",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/lxmf-ts/src/router.ts",
+      "line": 415,
+      "api": "setTimeout",
+      "match": "await new Promise((resolve) => setTimeout(resolve, 10));",
+      "suggestedEffect": "Timers"
+    },
+    {
+      "file": "packages/miniapp-runtime/src/broker.ts",
+      "line": 172,
+      "api": "Date.now",
+      "match": "return this.options.now?.() ?? Date.now();",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/miniapp-runtime/src/capabilities.ts",
+      "line": 127,
+      "api": "Date.now",
+      "match": "now = Date.now()",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/miniapp-runtime/src/capabilities.ts",
+      "line": 152,
+      "api": "Date.now",
+      "match": "async revoke(appId: string, publisherPublicKey: string, capability: MiniappCapability, now = Date.now()): Promise<GrantR",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/miniapp-runtime/src/confirm.ts",
+      "line": 39,
+      "api": "Math.random",
+      "match": "bytes[index] = Math.floor(Math.random() * 256);",
+      "suggestedEffect": "Entropy"
+    },
+    {
+      "file": "packages/miniapp-runtime/src/confirm.ts",
+      "line": 60,
+      "api": "setTimeout",
+      "match": "setTimeout(() => resolve({ approved: false, detail: \"timeout\" }), timeoutMs);",
+      "suggestedEffect": "Timers"
+    },
+    {
+      "file": "packages/miniapp-runtime/src/lifecycle.ts",
+      "line": 108,
+      "api": "setTimeout",
+      "match": "setTimeout(() => resolve(false), timeoutMs);",
+      "suggestedEffect": "Timers"
+    },
+    {
+      "file": "packages/miniapp-runtime/src/lifecycle.ts",
+      "line": 134,
+      "api": "Date.now",
+      "match": "return this.options.now?.() ?? Date.now();",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/identity.ts",
+      "line": 98,
+      "api": "Date.now",
+      "match": "receivedAt = Date.now() / 1000",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/identity.ts",
+      "line": 112,
+      "api": "Date.now",
+      "match": "nowSeconds = Date.now() / 1000",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/identity.ts",
+      "line": 146,
+      "api": "Date.now",
+      "match": "timestamp = Date.now() / 1000",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/link-request-receipt.ts",
+      "line": 57,
+      "api": "Date.now",
+      "match": "this.sentAt = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/link-request-receipt.ts",
+      "line": 78,
+      "api": "Date.now",
+      "match": "this.concludedAt = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/link-request-receipt.ts",
+      "line": 88,
+      "api": "Date.now",
+      "match": "this.concludedAt = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/link.ts",
+      "line": 201,
+      "api": "Date.now",
+      "match": "link.requestTime = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/link.ts",
+      "line": 286,
+      "api": "Date.now",
+      "match": "link.requestTime = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/link.ts",
+      "line": 457,
+      "api": "Date.now",
+      "match": "this.rtt = Date.now() / 1000 - this.requestTime;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/link.ts",
+      "line": 463,
+      "api": "Date.now",
+      "match": "this.activatedAt = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/link.ts",
+      "line": 490,
+      "api": "Date.now",
+      "match": "const measuredRtt = Date.now() / 1000 - this.requestTime;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/link.ts",
+      "line": 500,
+      "api": "Date.now",
+      "match": "this.activatedAt = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/link.ts",
+      "line": 525,
+      "api": "Date.now",
+      "match": "this.lastInbound = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/link.ts",
+      "line": 667,
+      "api": "Date.now",
+      "match": "const packedRequest = msgpackPackRequest(Date.now() / 1000, pathHash, data);",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/link.ts",
+      "line": 872,
+      "api": "Date.now",
+      "match": "const now = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/link.ts",
+      "line": 1153,
+      "api": "Date.now",
+      "match": "const now = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/packet-receipt.ts",
+      "line": 44,
+      "api": "Date.now",
+      "match": "sentAt = Date.now() / 1000",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/packet-receipt.ts",
+      "line": 66,
+      "api": "Date.now",
+      "match": "this.concludedAt = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/packet-receipt.ts",
+      "line": 78,
+      "api": "Date.now",
+      "match": "this.concludedAt = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/packet-receipt.ts",
+      "line": 98,
+      "api": "setTimeout",
+      "match": "setTimeout(seconds: number): void {",
+      "suggestedEffect": "Timers"
+    },
+    {
+      "file": "packages/reticulum-ts/src/packet-receipt.ts",
+      "line": 100,
+      "api": "Date.now",
+      "match": "this.timeoutAt = Date.now() / 1000 + seconds;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/packet-receipt.ts",
+      "line": 121,
+      "api": "Date.now",
+      "match": "checkTimeout(nowSeconds = Date.now() / 1000): boolean {",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/resource.ts",
+      "line": 404,
+      "api": "Date.now",
+      "match": "resource.startedTransferring = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/resource.ts",
+      "line": 453,
+      "api": "Date.now",
+      "match": "this.advSent = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/resource.ts",
+      "line": 745,
+      "api": "Date.now",
+      "match": "const now = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/resource.ts",
+      "line": 828,
+      "api": "setTimeout",
+      "match": "return new Promise((resolve) => setTimeout(resolve, ms));",
+      "suggestedEffect": "Timers"
+    },
+    {
+      "file": "packages/reticulum-ts/src/transport/node.ts",
+      "line": 208,
+      "api": "Date.now",
+      "match": "const now = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/transport/node.ts",
+      "line": 244,
+      "api": "Date.now",
+      "match": "const deadline = Date.now() + timeoutSeconds * 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/transport/node.ts",
+      "line": 245,
+      "api": "Date.now",
+      "match": "while (Date.now() < deadline) {",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/transport/node.ts",
+      "line": 250,
+      "api": "setTimeout",
+      "match": "await new Promise((resolve) => setTimeout(resolve, 50));",
+      "suggestedEffect": "Timers"
+    },
+    {
+      "file": "packages/reticulum-ts/src/transport/node.ts",
+      "line": 422,
+      "api": "Date.now",
+      "match": "const now = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/transport/node.ts",
+      "line": 432,
+      "api": "Date.now",
+      "match": "const now = Date.now() / 1000;",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/transport/rate.ts",
+      "line": 34,
+      "api": "Date.now",
+      "match": "isBlocked(destinationKey: string, now = Date.now() / 1000): boolean {",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/transport/rate.ts",
+      "line": 43,
+      "api": "Date.now",
+      "match": "record(destinationKey: string, now = Date.now() / 1000): boolean {",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/transport/transport.ts",
+      "line": 187,
+      "api": "Date.now",
+      "match": "timeout: Date.now() / 1000 + PATH_REQUEST_TIMEOUT_SECONDS,",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/transport/transport.ts",
+      "line": 246,
+      "api": "Date.now",
+      "match": "timestamp: Date.now() / 1000,",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/transport/transport.ts",
+      "line": 258,
+      "api": "Date.now",
+      "match": "timestamp: Date.now() / 1000",
+      "suggestedEffect": "Clock"
+    },
+    {
+      "file": "packages/reticulum-ts/src/transport/transport.ts",
+      "line": 378,
+      "api": "Date.now",
+      "match": "timestamp: Date.now() / 1000",
+      "suggestedEffect": "Clock"
+    }
+  ]
+}

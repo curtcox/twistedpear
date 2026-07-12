@@ -1,5 +1,11 @@
 # Migrate TwistedPear to Sans-IO Protocol Discipline
 
+> **Status (foundation landed):** `@twistedpear/effects` and `@twistedpear/protocol` packages,
+> inventory (`violations.json`), ratchet (`sansio-ratchet.json`, 16 exceptions), ESLint deny-list,
+> dependency-cruiser, runtime tripwire, sim kernel + determinism tests, and CI/`sansio` gates are in
+> place. Remaining work is module-by-module conversion that shrinks the ratchet toward empty.
+> Run `npm run sansio` locally. Canary layer expectations: `sansio-canary.json`.
+
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
 **No protocol module ever touches IO, time, or randomness directly.**

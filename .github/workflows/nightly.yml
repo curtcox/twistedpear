@@ -304,3 +304,19 @@ jobs:
           name: host-desktop-macos
           path: apps/host-desktop/release
           if-no-files-found: error
+
+  sansio-determinism:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/protocol
+      - run: npm run sansio:determinism
+      - run: npm run sansio:canary
