@@ -131,7 +131,7 @@ export class TransportNode extends LeafTransport {
 
   protected override async handleAnnounce(packet: Packet, iface: PacketInterface): Promise<void> {
     const destinationKey = hashKey(packet.destinationHash);
-    const now = Date.now() / 1000;
+    const now = this.clock.now() / 1000;
     if (
       packet.context !== PacketContext.PATH_RESPONSE &&
       this.announceRateLimiter.isBlocked(destinationKey, now)
@@ -185,7 +185,7 @@ export class TransportNode extends LeafTransport {
     }
 
     this.discoveryPathRequests.set(hashKey(parsed.destinationHash), {
-      timeout: Date.now() / 1000 + PATH_REQUEST_TIMEOUT_SECONDS,
+      timeout: this.clock.now() / 1000 + PATH_REQUEST_TIMEOUT_SECONDS,
       requestingInterface: iface
     });
 
@@ -244,7 +244,7 @@ export class TransportNode extends LeafTransport {
     if (packet.packetType === PacketType.LINKREQUEST) {
       const linkId = Link.linkIdFromLrPacket(this.provider, packet);
       this.linkTable.set(hashKey(linkId), {
-        timestamp: Date.now() / 1000,
+        timestamp: this.clock.now() / 1000,
         nextHop: path.nextHop,
         outboundInterface,
         remainingHops: path.hops,
@@ -256,7 +256,7 @@ export class TransportNode extends LeafTransport {
       this.reverseTable.set(hashKey(packet.truncatedHash()), {
         receivedInterface: iface,
         outboundInterface,
-        timestamp: Date.now() / 1000
+        timestamp: this.clock.now() / 1000
       });
     }
 
@@ -376,7 +376,7 @@ export class TransportNode extends LeafTransport {
 
     const updated: PathEntry = {
       ...existing,
-      timestamp: Date.now() / 1000
+      timestamp: this.clock.now() / 1000
     };
     this.pathTable.set(key, updated);
   }

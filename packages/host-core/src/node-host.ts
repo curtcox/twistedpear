@@ -94,6 +94,11 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
         maxMessages: config.quotas.propagationMessageCount
       },
       {
+        now: () => Date.now(),
+        schedule: (ms: number, callback: () => void) => {
+          const handle = setTimeout(callback, ms);
+          return { cancel: () => clearTimeout(handle) };
+        },
         persistence: createFilePropagationPersistence(join(config.dataDir, "propagation", "store.json"))
       }
     );

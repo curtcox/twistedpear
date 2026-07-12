@@ -401,7 +401,7 @@ export class Resource {
       resource.receivedParts.length = adv.n;
       resource.receivedParts.fill(null);
       resource.hashmap = new Array(adv.n).fill(null);
-      resource.startedTransferring = Date.now() / 1000;
+      resource.startedTransferring = link.linkTransport.clock.now() / 1000;
       resource.hashmapUpdate(0, adv.m);
       link.registerIncomingResource(resource);
       resource.startWatchdog();
@@ -445,12 +445,12 @@ export class Resource {
   async advertise(): Promise<void> {
     while (!this.link.readyForNewResource()) {
       this.status = ResourceStatus.QUEUED;
-      await sleep(250);
+      await this.sleep(250);
     }
 
     const packed = new ResourceAdvertisement(this).pack();
     this.status = ResourceStatus.ADVERTISED;
-    this.advSent = Date.now() / 1000;
+    this.advSent = this.link.linkTransport.clock.now() / 1000;
     this.startedTransferring = this.advSent;
     this.retriesLeft = RESOURCE_MAX_ADV_RETRIES;
     this.link.registerOutgoingResource(this);
@@ -737,12 +737,18 @@ export class Resource {
     }, delayMs);
   }
 
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      this.link.linkTransport.clock.setTimeout(() => resolve(), ms);
+    });
+  }
+
   private async watchdogTick(): Promise<void> {
     if (this.status === ResourceStatus.COMPLETE || this.status === ResourceStatus.FAILED) {
       return;
     }
 
-    const now = Date.now() / 1000;
+    const now = this.link.linkTransport.clock.now() / 1000;
 
     if (this.status === ResourceStatus.ADVERTISED) {
       if (now >= this.advSent + this.timeout + RESOURCE_PROCESSING_GRACE) {
@@ -824,6 +830,3 @@ function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}

@@ -1,9 +1,10 @@
 # Migrate TwistedPear to Sans-IO Protocol Discipline
 
-> **Status:** Foundation + first leaf conversions landed. Ratchet is down to **8** files
-> (`link`, `resource`, `identity`, transport/*, LXMF router/propagation*). Converted off the
-> deny list: receipts, rate limiter, LXMessage timestamps, miniapp broker/lifecycle/confirm/grants.
-> Run `npm run sansio`. Next: inject `Clock` through `link.ts` / `identity.ts`.
+> **Status:** Protocol deny-list ratchet is **empty**. Inventory reports 0 violations under
+> configured roots (adapters remain outside the scan). Effects package, sim determinism,
+> tripwire, ESLint, and dependency-cruiser gates are green via `npm run sansio`. Remaining
+> sans-io depth work: convert promise/callback session APIs toward pure `step(state, event)`
+> machines and multi-node sim scenarios for link/resource/LXMF.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

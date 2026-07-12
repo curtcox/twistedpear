@@ -794,8 +794,13 @@ async function startPropagation() {
 
   await loadPropagationCache();
   propagationServer = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
-    persistence: createWorkletPropagationPersistence()
-  });
+        now: () => Date.now(),
+        schedule: (ms, callback) => {
+          const handle = setTimeout(callback, ms);
+          return { cancel: () => clearTimeout(handle) };
+        },
+        persistence: createWorkletPropagationPersistence()
+      });
   propagationDestination = createPropagationDestination(provider, node, identity);
   propagationServer.registerHandlers(propagationDestination);
   await propagationDestination.announce();

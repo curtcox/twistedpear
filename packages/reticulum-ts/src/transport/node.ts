@@ -114,6 +114,12 @@ export class LeafTransport {
     return this.options.clock;
   }
 
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      this.clock.setTimeout(() => resolve(), ms);
+    });
+  }
+
   get transportIdentity(): Identity {
     return this.options.transportIdentity;
   }
@@ -205,7 +211,7 @@ export class LeafTransport {
 
   requestPath(destinationHash: Uint8Array, onInterface: PacketInterface | null = null): void {
     const key = hashKey(destinationHash);
-    const now = Date.now() / 1000;
+    const now = this.clock.now() / 1000;
     const lastRequest = this.pathRequests.get(key) ?? 0;
     if (now - lastRequest < PATH_REQUEST_MIN_INTERVAL) {
       return;
@@ -241,13 +247,13 @@ export class LeafTransport {
     }
 
     this.requestPath(destinationHash);
-    const deadline = Date.now() + timeoutSeconds * 1000;
-    while (Date.now() < deadline) {
+    const deadline = this.clock.now() + timeoutSeconds * 1000;
+    while (this.clock.now() < deadline) {
       if (this.hasPath(destinationHash)) {
         return true;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await this.delay(50);
     }
 
     return this.hasPath(destinationHash);
@@ -423,7 +429,7 @@ export class LeafTransport {
       shouldAdd =
         !existing.randomBlobs.some((blob) => equalBytes(blob, randomBlob)) && announceEmitted > pathTimebase;
     } else {
-      const now = Date.now() / 1000;
+      const now = this.clock.now() / 1000;
       if (now >= existing.expires) {
         shouldAdd = !existing.randomBlobs.some((blob) => equalBytes(blob, randomBlob));
       }
@@ -433,7 +439,7 @@ export class LeafTransport {
       return;
     }
 
-    const now = Date.now() / 1000;
+    const now = this.clock.now() / 1000;
     const randomBlobs = [...(existing?.randomBlobs ?? [])];
     if (!randomBlobs.some((blob) => equalBytes(blob, randomBlob))) {
       randomBlobs.push(randomBlob);

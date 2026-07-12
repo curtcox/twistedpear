@@ -16,6 +16,7 @@ import {
   LXMFRouter,
   PropagationClient,
   PropagationServer,
+  DEFAULT_PROPAGATION_QUOTAS,
   PropagationTransferState,
   createPropagationDestination,
   msgpackUnpackPropagationEnvelope
@@ -81,7 +82,13 @@ async function runInProcessPropagationSync() {
   clientReticulum.registerInterface(clientPipe);
 
   const nodeIdentity = new Identity(provider);
-  const server = new PropagationServer(provider);
+  const server = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
+        now: () => Date.now(),
+        schedule: (ms, callback) => {
+          const handle = setTimeout(callback, ms);
+          return { cancel: () => clearTimeout(handle) };
+        },
+      });
   const destination = createPropagationDestination(provider, nodeReticulum, nodeIdentity);
   server.registerHandlers(destination);
   const nodeDelivery = new LXMFRouter({ reticulum: nodeReticulum, provider }).registerDeliveryIdentity(nodeIdentity);
@@ -206,7 +213,13 @@ async function runTsPropagationServerPythonClientSync() {
   const router = new LXMFRouter({ reticulum, provider });
   const nodeDelivery = router.registerDeliveryIdentity(bob);
   const nodePropagation = createPropagationDestination(provider, reticulum, bob);
-  const server = new PropagationServer(provider);
+  const server = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
+        now: () => Date.now(),
+        schedule: (ms, callback) => {
+          const handle = setTimeout(callback, ms);
+          return { cancel: () => clearTimeout(handle) };
+        },
+      });
   server.registerHandlers(nodePropagation);
 
   await nodeDelivery.announce();
@@ -331,13 +344,27 @@ async function runPropagationStoreRestart() {
     const storePath = join(dataDir, "store.json");
     const provider = new NodeCryptoProvider();
     const persistence = createFilePropagationPersistence(storePath);
-    const first = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, { persistence });
+    const first = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
+        now: () => Date.now(),
+        schedule: (ms, callback) => {
+          const handle = setTimeout(callback, ms);
+          return { cancel: () => clearTimeout(handle) };
+        },
+        persistence
+      });
     const payload = new Uint8Array(32);
     payload[0] = 99;
     first.storePropagationData(payload);
     await sleep(400);
 
-    const restarted = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, { persistence });
+    const restarted = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
+        now: () => Date.now(),
+        schedule: (ms, callback) => {
+          const handle = setTimeout(callback, ms);
+          return { cancel: () => clearTimeout(handle) };
+        },
+        persistence
+      });
     if (restarted.stats.messageCount !== 1) {
       throw new Error(`propagation store restart expected 1 message, got ${restarted.stats.messageCount}`);
     }

@@ -9,6 +9,12 @@ describe("PropagationServer quotas", () => {
       ...DEFAULT_PROPAGATION_QUOTAS,
       maxMessages: 2,
       maxBytes: 10_000_000
+    }, {
+      now: () => Date.now(),
+      schedule: (ms: number, callback: () => void) => {
+        const handle = setTimeout(callback, ms);
+        return { cancel: () => clearTimeout(handle) };
+      }
     });
 
     const first = new Uint8Array(32);
@@ -31,6 +37,12 @@ describe("PropagationServer quotas", () => {
     const server = new PropagationServer(provider, {
       ...DEFAULT_PROPAGATION_QUOTAS,
       maxMessageBytes: 16
+    }, {
+      now: () => Date.now(),
+      schedule: (ms: number, callback: () => void) => {
+        const handle = setTimeout(callback, ms);
+        return { cancel: () => clearTimeout(handle) };
+      }
     });
 
     const oversized = new Uint8Array(32);
@@ -53,13 +65,27 @@ describe("PropagationServer quotas", () => {
       }
     };
 
-    const first = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, { persistence });
+    const first = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
+        now: () => Date.now(),
+        schedule: (ms: number, callback: () => void) => {
+          const handle = setTimeout(callback, ms);
+          return { cancel: () => clearTimeout(handle) };
+        },
+        persistence
+      });
     const payload = new Uint8Array(32);
     payload[0] = 42;
     first.storePropagationData(payload);
     await new Promise((resolve) => setTimeout(resolve, 300));
 
-    const restarted = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, { persistence });
+    const restarted = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
+        now: () => Date.now(),
+        schedule: (ms: number, callback: () => void) => {
+          const handle = setTimeout(callback, ms);
+          return { cancel: () => clearTimeout(handle) };
+        },
+        persistence
+      });
     expect(restarted.stats.messageCount).toBe(1);
     expect(restarted.stats.usedBytes).toBe(32);
   });

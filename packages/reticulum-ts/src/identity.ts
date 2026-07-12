@@ -94,8 +94,8 @@ export class Identity {
   static rememberRatchet(
     destinationHash: Uint8Array,
     ratchet: Uint8Array,
-    store?: KeyValueStore,
-    receivedAt = Date.now() / 1000
+    receivedAt: number,
+    store?: KeyValueStore
   ): void {
     const key = bytesToHex(destinationHash);
     Identity.knownRatchets.set(key, Uint8Array.from(ratchet));
@@ -108,8 +108,8 @@ export class Identity {
 
   static async getRatchet(
     destinationHash: Uint8Array,
-    store?: KeyValueStore,
-    nowSeconds = Date.now() / 1000
+    nowSeconds: number,
+    store?: KeyValueStore
   ): Promise<Uint8Array | null> {
     const key = bytesToHex(destinationHash);
     const cached = Identity.knownRatchets.get(key);
@@ -143,7 +143,7 @@ export class Identity {
     receivedFrom: Uint8Array,
     publicKey: Uint8Array,
     appData: Uint8Array | null,
-    timestamp = Date.now() / 1000
+    timestamp: number
   ): void {
     Identity.knownDestinations.set(bytesToHex(destinationHash), {
       timestamp,

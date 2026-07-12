@@ -47,6 +47,8 @@ export {
   decodePropagationPeerError,
   type PropagationServerQuotas,
   type PropagationServerStats,
+  type PropagationServerOptions,
+  type PropagationServerTimer,
   type PropagationPersistence,
   type PropagationStoredEntry
 } from "./propagation-server.js";

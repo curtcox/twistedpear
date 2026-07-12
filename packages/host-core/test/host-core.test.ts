@@ -128,13 +128,27 @@ describe("host-core propagation persistence", () => {
       const storePath = join(dataDir, "propagation", "store.json");
       const provider = new NodeCryptoProvider();
       const persistence = createFilePropagationPersistence(storePath);
-      const first = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, { persistence });
+      const first = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
+        now: () => Date.now(),
+        schedule: (ms: number, callback: () => void) => {
+          const handle = setTimeout(callback, ms);
+          return { cancel: () => clearTimeout(handle) };
+        },
+        persistence
+      });
       const payload = new Uint8Array(32);
       payload[0] = 7;
       first.storePropagationData(payload);
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      const restarted = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, { persistence });
+      const restarted = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
+        now: () => Date.now(),
+        schedule: (ms: number, callback: () => void) => {
+          const handle = setTimeout(callback, ms);
+          return { cancel: () => clearTimeout(handle) };
+        },
+        persistence
+      });
       expect(restarted.stats.messageCount).toBe(1);
     } finally {
       rmSync(dataDir, { recursive: true, force: true });

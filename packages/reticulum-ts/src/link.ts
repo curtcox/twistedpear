@@ -198,7 +198,7 @@ export class Link {
     link.publicKeyBytes = provider.x25519PublicFromPrivate(link.privateKey);
     const signaturePublicKeyBytes = provider.ed25519PublicFromPrivate(signaturePrivateKey);
     link.expectedHops = options.transport.hopsTo(destination.hash);
-    link.requestTime = Date.now() / 1000;
+    link.requestTime = options.transport.clock.now() / 1000;
     link.establishmentTimeout =
       LINK_ESTABLISHMENT_TIMEOUT_PER_HOP * Math.max(1, link.expectedHops ?? 1) + LINK_KEEPALIVE;
 
@@ -283,7 +283,7 @@ export class Link {
       link.attachedInterface = iface;
       link.establishmentCost += packet.raw.length;
       link.handshake();
-      link.requestTime = Date.now() / 1000;
+      link.requestTime = transport.clock.now() / 1000;
       link.lastInbound = link.requestTime;
       link.establishmentTimeout =
         LINK_ESTABLISHMENT_TIMEOUT_PER_HOP * Math.max(1, packet.hops) + LINK_KEEPALIVE;
@@ -454,13 +454,13 @@ export class Link {
         throw new Error("Invalid link proof signature");
       }
 
-      this.rtt = Date.now() / 1000 - this.requestTime;
+      this.rtt = this.clock.now() / 1000 - this.requestTime;
       this.attachedInterface = iface;
       this.mtu = confirmedMtu ?? RETICULUM_MTU;
       this.updateMdu();
       this.updateKeepalive();
       this.status = LinkStatus.ACTIVE;
-      this.activatedAt = Date.now() / 1000;
+      this.activatedAt = this.clock.now() / 1000;
       this.establishmentCost += packet.raw.length;
       this.transport.activateLink(this);
 
@@ -487,7 +487,7 @@ export class Link {
     }
 
     try {
-      const measuredRtt = Date.now() / 1000 - this.requestTime;
+      const measuredRtt = this.clock.now() / 1000 - this.requestTime;
       const plaintext = this.decrypt(packet.data);
       if (plaintext === null) {
         throw new Error("Could not decrypt RTT packet");
@@ -497,7 +497,7 @@ export class Link {
       this.rtt = Math.max(measuredRtt, remoteRtt);
       this.updateKeepalive();
       this.status = LinkStatus.ACTIVE;
-      this.activatedAt = Date.now() / 1000;
+      this.activatedAt = this.clock.now() / 1000;
       this.callbacks.linkEstablished?.(this);
     } catch {
       await this.teardown();
@@ -522,7 +522,7 @@ export class Link {
       return;
     }
 
-    this.lastInbound = Date.now() / 1000;
+    this.lastInbound = this.clock.now() / 1000;
     if (packet.context !== PacketContext.KEEPALIVE) {
       this.lastData = this.lastInbound;
     }
@@ -664,7 +664,7 @@ export class Link {
     }
 
     const pathHash = Identity.truncatedHash(this.provider, new TextEncoder().encode(path));
-    const packedRequest = msgpackPackRequest(Date.now() / 1000, pathHash, data);
+    const packedRequest = msgpackPackRequest(this.clock.now() / 1000, pathHash, data);
     const timeout =
       options.timeout ?? this.rtt * LINK_TRAFFIC_TIMEOUT_FACTOR + LINK_RESPONSE_MAX_GRACE_TIME * 1.125;
 
@@ -870,7 +870,7 @@ export class Link {
   }
 
   hadOutbound(isKeepalive = false): void {
-    const now = Date.now() / 1000;
+    const now = this.clock.now() / 1000;
     this.lastOutbound = now;
     this.lastInbound = now;
     if (isKeepalive) {
@@ -1151,7 +1151,7 @@ export class Link {
       return;
     }
 
-    const now = Date.now() / 1000;
+    const now = this.clock.now() / 1000;
 
     if (this.status === LinkStatus.PENDING || this.status === LinkStatus.HANDSHAKE) {
       if (now >= this.requestTime + this.establishmentTimeout) {

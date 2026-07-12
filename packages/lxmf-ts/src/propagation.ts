@@ -203,10 +203,13 @@ export class PropagationClient {
 
     this.transferState = PropagationTransferState.LINK_ESTABLISHING;
     const link = await new Promise<Link>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Propagation link timeout")), 5000);
+      const timer = this.router.reticulum.runtime.clock.setTimeout(
+        () => reject(new Error("Propagation link timeout")),
+        5000
+      );
       outbound.requestLink({
         linkEstablished(establishLink) {
-          clearTimeout(timer);
+          timer.cancel();
           resolve(establishLink);
         }
       });

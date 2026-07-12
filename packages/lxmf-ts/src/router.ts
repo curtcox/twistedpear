@@ -133,10 +133,35 @@ export class LXMFRouter {
     throw new Error(`Unsupported LXMF delivery method: ${message.method}`);
   }
 
+
+  private nowSeconds(): number {
+    return this.reticulum.runtime.clock.now() / 1000;
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      this.reticulum.runtime.clock.setTimeout(() => resolve(), ms);
+    });
+  }
+
+  private async pollDeliveryReceipt(receipt: PacketReceipt, timeoutMs = 500): Promise<void> {
+    const deadline = this.reticulum.runtime.clock.now() + timeoutMs;
+    while (this.reticulum.runtime.clock.now() < deadline) {
+      if (
+        receipt.status === PacketReceiptStatus.DELIVERED ||
+        receipt.status === PacketReceiptStatus.FAILED
+      ) {
+        return;
+      }
+
+      await this.delay(10);
+    }
+  }
+
   packAndSend(options: Omit<LXMessagePackOptions, "provider">): Promise<void> {
     const message = LXMessage.pack({
       provider: this.provider,
-      now: () => Date.now() / 1000,
+      now: () => this.nowSeconds(),
       ...options
     });
     return this.send(message);
@@ -166,7 +191,7 @@ export class LXMFRouter {
     message.state = LXMessageState.SENT;
     message.progress = 0.5;
 
-    await pollDeliveryReceipt(receipt);
+    await this.pollDeliveryReceipt(receipt);
     if (receipt.status === PacketReceiptStatus.DELIVERED) {
       message.state = LXMessageState.DELIVERED;
       message.progress = 1;
@@ -197,10 +222,13 @@ export class LXMFRouter {
       });
 
       link = await new Promise<Link>((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error("Direct LXMF link timeout")), 5000);
+        const timer = this.reticulum.runtime.clock.setTimeout(
+          () => reject(new Error("Direct LXMF link timeout")),
+          5000
+        );
         outbound.requestLink({
           linkEstablished(establishLink) {
-            clearTimeout(timer);
+            timer.cancel();
             resolve(establishLink);
           }
         });
@@ -238,7 +266,7 @@ export class LXMFRouter {
 
     message.progress = 0.5;
     if (result.receipt !== null) {
-      await pollDeliveryReceipt(result.receipt);
+      await this.pollDeliveryReceipt(result.receipt);
       if (result.receipt.status === PacketReceiptStatus.DELIVERED) {
         message.state = LXMessageState.SENT;
         message.progress = 1;
@@ -273,10 +301,13 @@ export class LXMFRouter {
     });
 
     const link = await new Promise<Link>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Propagation link timeout")), 5000);
+      const timer = this.reticulum.runtime.clock.setTimeout(
+        () => reject(new Error("Propagation link timeout")),
+        5000
+      );
       outbound.requestLink({
         linkEstablished(establishLink) {
-          clearTimeout(timer);
+          timer.cancel();
           resolve(establishLink);
         }
       });
@@ -406,16 +437,3 @@ function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   return output;
 }
 
-async function pollDeliveryReceipt(receipt: PacketReceipt, timeoutMs = 500): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (
-      receipt.status === PacketReceiptStatus.DELIVERED ||
-      receipt.status === PacketReceiptStatus.FAILED
-    ) {
-      return;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 10));
-  }
-}

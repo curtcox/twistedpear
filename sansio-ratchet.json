@@ -38,38 +38,5 @@
   "protocolDependencyAllowlist": [
     "@twistedpear/effects"
   ],
-  "exceptions": [
-    {
-      "file": "packages/lxmf-ts/src/propagation-server.ts",
-      "note": "migrating"
-    },
-    {
-      "file": "packages/lxmf-ts/src/propagation.ts",
-      "note": "migrating"
-    },
-    {
-      "file": "packages/lxmf-ts/src/router.ts",
-      "note": "migrating"
-    },
-    {
-      "file": "packages/reticulum-ts/src/identity.ts",
-      "note": "migrating"
-    },
-    {
-      "file": "packages/reticulum-ts/src/link.ts",
-      "note": "migrating"
-    },
-    {
-      "file": "packages/reticulum-ts/src/resource.ts",
-      "note": "migrating"
-    },
-    {
-      "file": "packages/reticulum-ts/src/transport/node.ts",
-      "note": "migrating"
-    },
-    {
-      "file": "packages/reticulum-ts/src/transport/transport.ts",
-      "note": "migrating"
-    }
-  ]
+  "exceptions": []
 }

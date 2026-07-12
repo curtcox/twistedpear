@@ -59,6 +59,18 @@ export interface PropagationPersistence {
   save(entries: ReadonlyArray<PropagationStoredEntry>): void;
 }
 
+export interface PropagationServerTimer {
+  cancel(): void;
+}
+
+export interface PropagationServerOptions {
+  readonly persistence?: PropagationPersistence;
+  /** Injected wall-clock in ms — protocol code never reads OS time. */
+  readonly now: () => number;
+  /** Injected scheduler — adapters supply real timers. */
+  readonly schedule: (ms: number, callback: () => void) => PropagationServerTimer;
+}
+
 /** Production propagation-node server with quotas and eviction. */
 export class PropagationServer {
   private readonly entries = new Map<string, StoredPropagationMessage>();
@@ -66,14 +78,18 @@ export class PropagationServer {
   private evictions = 0;
   private readonly clientBuckets = new Map<string, { count: number; windowStart: number }>();
   private readonly persistence: PropagationPersistence | null;
-  private persistTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly now: () => number;
+  private readonly schedule: (ms: number, callback: () => void) => PropagationServerTimer;
+  private persistTimer: PropagationServerTimer | null = null;
 
   constructor(
     private readonly provider: CryptoProvider,
     private readonly quotas: PropagationServerQuotas = DEFAULT_PROPAGATION_QUOTAS,
-    options: { readonly persistence?: PropagationPersistence } = {}
+    options: PropagationServerOptions
   ) {
     this.persistence = options.persistence ?? null;
+    this.now = options.now;
+    this.schedule = options.schedule;
     if (this.persistence !== null) {
       for (const entry of this.persistence.load()) {
         this.restoreEntry(entry);
@@ -130,7 +146,7 @@ export class PropagationServer {
     }
 
     const destinationHash = lxmfData.subarray(0, 16);
-    const storedAt = Date.now();
+    const storedAt = this.now();
     this.entries.set(key, {
       transientId,
       destinationHash,
@@ -183,13 +199,13 @@ export class PropagationServer {
     }
 
     if (this.persistTimer !== null) {
-      clearTimeout(this.persistTimer);
+      this.persistTimer.cancel();
     }
 
-    this.persistTimer = setTimeout(() => {
+    this.persistTimer = this.schedule(250, () => {
       this.persistTimer = null;
       this.persistence?.save(this.snapshotEntries());
-    }, 250);
+    });
   }
 
   private snapshotEntries(): ReadonlyArray<PropagationStoredEntry> {
@@ -218,7 +234,7 @@ export class PropagationServer {
   }
 
   private allowClientRequest(clientKey: string): boolean {
-    const now = Date.now();
+    const now = this.now();
     const bucket = this.clientBuckets.get(clientKey) ?? { count: 0, windowStart: now };
     const next =
       now - bucket.windowStart >= 60_000
