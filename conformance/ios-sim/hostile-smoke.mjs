@@ -143,8 +143,7 @@ export async function runIosHostileSmoke() {
   }
 
   const backend = new NodeWorkerSandboxBackend();
-  const busyLifecycle = new MiniappLifecycle(
-    backend,
+  const busyLifecycle = new MiniappLifecycle(backend,
     {
       appId: "busy",
       version: "1.0.0",
@@ -152,8 +151,7 @@ export async function runIosHostileSmoke() {
       bundle: new TextEncoder().encode("while (true) {}"),
       brokerEndpoint: { request: async (request) => ({ id: request.id, ok: true }) }
     },
-    { watchdogMs: 300 }
-  );
+    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),  watchdogMs: 300 });
   await busyLifecycle.launch();
   await new Promise((resolve) => setTimeout(resolve, 50));
   const busySnapshot = await busyLifecycle.watchdogPing();

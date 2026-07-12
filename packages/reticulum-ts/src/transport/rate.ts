@@ -31,7 +31,7 @@ export class AnnounceRateLimiter {
     this.ratePenalty = options.ratePenalty ?? DEFAULT_RATE_PENALTY;
   }
 
-  isBlocked(destinationKey: string, now = Date.now() / 1000): boolean {
+  isBlocked(destinationKey: string, now: number): boolean {
     const entry = this.table.get(destinationKey);
     if (entry === undefined) {
       return false;
@@ -40,7 +40,7 @@ export class AnnounceRateLimiter {
     return now <= entry.blockedUntil;
   }
 
-  record(destinationKey: string, now = Date.now() / 1000): boolean {
+  record(destinationKey: string, now: number): boolean {
     let entry = this.table.get(destinationKey);
     if (entry === undefined) {
       entry = { last: now, rateViolations: 0, blockedUntil: 0, timestamps: [now] };

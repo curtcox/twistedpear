@@ -134,7 +134,11 @@ export class LXMFRouter {
   }
 
   packAndSend(options: Omit<LXMessagePackOptions, "provider">): Promise<void> {
-    const message = LXMessage.pack({ provider: this.provider, ...options });
+    const message = LXMessage.pack({
+      provider: this.provider,
+      now: () => Date.now() / 1000,
+      ...options
+    });
     return this.send(message);
   }
 

@@ -46,6 +46,7 @@ export {
   requestHostConfirmation
 } from "./confirm.js";
 export type {
+  ConfirmationEffects,
   ConfirmationKind,
   ConfirmationRequest,
   ConfirmationResult,

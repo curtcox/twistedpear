@@ -1,6 +1,7 @@
 import { equalBytes } from "./crypto/bytes.js";
 import type { Identity } from "./identity.js";
 import { Packet, PacketType } from "./packet.js";
+import type { Timer } from "./runtime/runtime.js";
 
 /** Mirrors RNS/Packet.py PacketReceipt constants. */
 export const PacketReceiptStatus = {
@@ -15,11 +16,17 @@ export type PacketReceiptStatusValue = (typeof PacketReceiptStatus)[keyof typeof
 export const EXPLICIT_PROOF_LENGTH = 32 + 64;
 export const IMPLICIT_PROOF_LENGTH = 64;
 
-import type { Timer } from "./runtime/runtime.js";
+/** Injected clock in seconds — protocol code never reads wall time directly. */
+export type NowSeconds = () => number;
 
 export interface PacketReceiptCallbacks {
   delivery?: (receipt: PacketReceipt) => void;
   timeout?: (receipt: PacketReceipt) => void;
+}
+
+export interface PacketReceiptOptions {
+  readonly sentAt: number;
+  readonly now: NowSeconds;
 }
 
 export class PacketReceipt {
@@ -36,17 +43,19 @@ export class PacketReceipt {
   readonly callbacks: PacketReceiptCallbacks = {};
   private timeoutTimer: Timer | null = null;
   private timeoutAt: number | null = null;
+  private readonly now: NowSeconds;
 
   constructor(
     readonly packetHash: Uint8Array,
     truncatedHash: Uint8Array,
     targetDestinationHash: Uint8Array,
-    sentAt = Date.now() / 1000
+    options: PacketReceiptOptions
   ) {
     this.hash = packetHash;
     this.truncatedHash = truncatedHash;
     this.targetDestinationHash = targetDestinationHash;
-    this.sentAt = sentAt;
+    this.sentAt = options.sentAt;
+    this.now = options.now;
   }
 
   validateProof(proof: Uint8Array, identity: Identity): boolean {
@@ -63,7 +72,7 @@ export class PacketReceipt {
 
       this.status = PacketReceiptStatus.DELIVERED;
       this.proved = true;
-      this.concludedAt = Date.now() / 1000;
+      this.concludedAt = this.now();
       this.callbacks.delivery?.(this);
       return true;
     }
@@ -75,7 +84,7 @@ export class PacketReceipt {
 
       this.status = PacketReceiptStatus.DELIVERED;
       this.proved = true;
-      this.concludedAt = Date.now() / 1000;
+      this.concludedAt = this.now();
       this.callbacks.delivery?.(this);
       return true;
     }
@@ -97,7 +106,7 @@ export class PacketReceipt {
 
   setTimeout(seconds: number): void {
     this.timeout = seconds;
-    this.timeoutAt = Date.now() / 1000 + seconds;
+    this.timeoutAt = this.now() + seconds;
   }
 
   setTimeoutCallback(callback: ((receipt: PacketReceipt) => void) | null): void {
@@ -118,7 +127,7 @@ export class PacketReceipt {
     this.callbacks.delivery = callback;
   }
 
-  checkTimeout(nowSeconds = Date.now() / 1000): boolean {
+  checkTimeout(nowSeconds = this.now()): boolean {
     if (this.status === PacketReceiptStatus.DELIVERED || this.status === PacketReceiptStatus.FAILED) {
       return false;
     }

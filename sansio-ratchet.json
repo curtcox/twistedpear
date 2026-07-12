@@ -40,68 +40,36 @@
   ],
   "exceptions": [
     {
-      "file": "packages/lxmf-ts/src/message.ts",
-      "note": "baseline inventory"
-    },
-    {
       "file": "packages/lxmf-ts/src/propagation-server.ts",
-      "note": "baseline inventory"
+      "note": "migrating"
     },
     {
       "file": "packages/lxmf-ts/src/propagation.ts",
-      "note": "baseline inventory"
+      "note": "migrating"
     },
     {
       "file": "packages/lxmf-ts/src/router.ts",
-      "note": "baseline inventory"
-    },
-    {
-      "file": "packages/miniapp-runtime/src/broker.ts",
-      "note": "baseline inventory"
-    },
-    {
-      "file": "packages/miniapp-runtime/src/capabilities.ts",
-      "note": "baseline inventory"
-    },
-    {
-      "file": "packages/miniapp-runtime/src/confirm.ts",
-      "note": "baseline inventory"
-    },
-    {
-      "file": "packages/miniapp-runtime/src/lifecycle.ts",
-      "note": "baseline inventory"
+      "note": "migrating"
     },
     {
       "file": "packages/reticulum-ts/src/identity.ts",
-      "note": "baseline inventory"
-    },
-    {
-      "file": "packages/reticulum-ts/src/link-request-receipt.ts",
-      "note": "baseline inventory"
+      "note": "migrating"
     },
     {
       "file": "packages/reticulum-ts/src/link.ts",
-      "note": "baseline inventory"
-    },
-    {
-      "file": "packages/reticulum-ts/src/packet-receipt.ts",
-      "note": "baseline inventory"
+      "note": "migrating"
     },
     {
       "file": "packages/reticulum-ts/src/resource.ts",
-      "note": "baseline inventory"
+      "note": "migrating"
     },
     {
       "file": "packages/reticulum-ts/src/transport/node.ts",
-      "note": "baseline inventory"
-    },
-    {
-      "file": "packages/reticulum-ts/src/transport/rate.ts",
-      "note": "baseline inventory"
+      "note": "migrating"
     },
     {
       "file": "packages/reticulum-ts/src/transport/transport.ts",
-      "note": "baseline inventory"
+      "note": "migrating"
     }
   ]
 }

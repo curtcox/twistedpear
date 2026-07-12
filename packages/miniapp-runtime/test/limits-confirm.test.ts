@@ -115,7 +115,7 @@ describe("host resource limits", () => {
 
   it("applies a kv quota shrink to the next storage call", async () => {
     const { host, store } = makeHost();
-    await new GrantStore(store).set("hello", "publisher", manifest.capabilities, ["storage:kv"]);
+    await new GrantStore(store).set("hello", "publisher", manifest.capabilities, ["storage:kv"], 1_000);
 
     const write = (id: string, size: number) =>
       host.dispatchRaw(
@@ -142,7 +142,7 @@ describe("host resource limits", () => {
 
   it("marks memory limits as pending restart while the app runs", async () => {
     const { host, store } = makeHost();
-    await new GrantStore(store).set("hello", "publisher", manifest.capabilities, ["storage:kv"]);
+    await new GrantStore(store).set("hello", "publisher", manifest.capabilities, ["storage:kv"], 1_000);
     const bundle = new TextEncoder().encode("export {};\n");
 
     await host.launch(manifest, bundle);
@@ -180,15 +180,27 @@ describe("host confirmation channel", () => {
     summary: { name: "hello", version: "1.0.0" }
   };
 
+  let tokenCounter = 0;
+  const effects = {
+    randomBytes: (length: number) => {
+      tokenCounter += 1;
+      const bytes = new Uint8Array(length);
+      bytes.fill(tokenCounter & 0xff);
+      bytes[0] = tokenCounter;
+      return bytes;
+    },
+    delay: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+  };
+
   it("denies when no channel is configured", async () => {
-    await expect(requestHostConfirmation(undefined, request)).rejects.toMatchObject({
+    await expect(requestHostConfirmation(undefined, request, effects)).rejects.toMatchObject({
       code: "CONFIRMATION_UNAVAILABLE"
     });
   });
 
   it("propagates a denial", async () => {
     const channel = { confirm: async () => ({ approved: false }) };
-    await expect(requestHostConfirmation(channel, request)).rejects.toMatchObject({
+    await expect(requestHostConfirmation(channel, request, effects)).rejects.toMatchObject({
       code: "CONFIRMATION_DENIED"
     });
   });
@@ -202,8 +214,8 @@ describe("host confirmation channel", () => {
       }
     };
 
-    await requestHostConfirmation(channel, request);
-    await requestHostConfirmation(channel, request);
+    await requestHostConfirmation(channel, request, effects);
+    await requestHostConfirmation(channel, request, effects);
     expect(seen).toHaveLength(2);
     expect(seen[0]?.token).toMatch(/^[0-9a-f]{32}$/);
     expect(seen[0]?.token).not.toBe(seen[1]?.token);
@@ -212,7 +224,7 @@ describe("host confirmation channel", () => {
 
   it("times out into a denial", async () => {
     const channel = { confirm: () => new Promise<never>(() => {}) };
-    await expect(requestHostConfirmation(channel, request, 20)).rejects.toMatchObject({
+    await expect(requestHostConfirmation(channel, request, effects, 20)).rejects.toMatchObject({
       code: "CONFIRMATION_TIMEOUT"
     });
   });

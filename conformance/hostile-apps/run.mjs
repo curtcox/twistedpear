@@ -103,8 +103,7 @@ async function main() {
   await host.stop();
 
   const backend = new NodeWorkerSandboxBackend();
-  const busyLifecycle = new MiniappLifecycle(
-    backend,
+  const busyLifecycle = new MiniappLifecycle(backend,
     {
       appId: "busy",
       version: "1.0.0",
@@ -112,8 +111,7 @@ async function main() {
       bundle: new TextEncoder().encode("while (true) {}"),
       brokerEndpoint: { request: async (request) => ({ id: request.id, ok: true }) }
     },
-    { watchdogMs: 300 }
-  );
+    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),  watchdogMs: 300 });
   await busyLifecycle.launch();
   await new Promise((resolve) => setTimeout(resolve, 50));
   const busySnapshot = await busyLifecycle.watchdogPing();
@@ -122,13 +120,15 @@ async function main() {
   }
   await busyLifecycle.stop("cleanup");
 
-  const escapeLifecycle = new MiniappLifecycle(backend, {
+  const escapeLifecycle = new MiniappLifecycle(backend,
+    {
     appId: "escape",
     version: "1.0.0",
     entryPath: "bundle.js",
     bundle: escapeBundle,
     brokerEndpoint: { request: async (request) => ({ id: request.id, ok: true }) }
-  });
+  },
+    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) });
   await escapeLifecycle.launch();
   await new Promise((resolve) => setTimeout(resolve, 100));
   await escapeLifecycle.stop("cleanup");
@@ -177,13 +177,15 @@ async function main() {
   }
 
   const cycleBackend = new NodeWorkerSandboxBackend();
-  const cycleLifecycle = new MiniappLifecycle(cycleBackend, {
+  const cycleLifecycle = new MiniappLifecycle(cycleBackend,
+    {
     appId: "cycle",
     version: "1.0.0",
     entryPath: "bundle.js",
     bundle: new TextEncoder().encode("await Promise.resolve();"),
     brokerEndpoint: { request: async (request) => ({ id: request.id, ok: true }) }
-  });
+  },
+    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) });
 
   for (let cycle = 0; cycle < 100; cycle += 1) {
     await cycleLifecycle.launch();
@@ -191,8 +193,7 @@ async function main() {
   }
 
   const memoryBackend = new NodeWorkerSandboxBackend();
-  const memoryLifecycle = new MiniappLifecycle(
-    memoryBackend,
+  const memoryLifecycle = new MiniappLifecycle(memoryBackend,
     {
       appId: "memory-bomb",
       version: "1.0.0",
@@ -206,8 +207,7 @@ while (true) {
       limits: { memoryBytes: 16 * 1024 * 1024 },
       brokerEndpoint: { request: async (request) => ({ id: request.id, ok: true }) }
     },
-    { watchdogMs: 500 }
-  );
+    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)), watchdogMs: 500 });
   await memoryLifecycle.launch();
   let memoryKilled = false;
   for (let attempt = 0; attempt < 50; attempt += 1) {
@@ -223,7 +223,7 @@ while (true) {
   }
   await memoryLifecycle.stop("cleanup");
 
-  const oversizedBroker = new MiniappBroker({ maxMessageBytes: 128 });
+  const oversizedBroker = new MiniappBroker({ maxMessageBytes: 128, now: () => Date.now() });
   oversizedBroker.register("ui", "render", null, () => "ok");
   const oversized = await oversizedBroker.dispatch(
     {

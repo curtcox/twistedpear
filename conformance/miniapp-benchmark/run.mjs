@@ -43,7 +43,8 @@ async function measureSpawnKill(backend, bundle) {
   const killLatencies = [];
 
   for (let index = 0; index < ITERATIONS; index += 1) {
-    const lifecycle = new MiniappLifecycle(backend, {
+    const lifecycle = new MiniappLifecycle(backend,
+    {
       appId: "bench",
       version: "1.0.0",
       entryPath: "bundle.js",
@@ -51,7 +52,8 @@ async function measureSpawnKill(backend, bundle) {
       brokerEndpoint: {
         request: async (request) => ({ id: request.id, ok: true, result: "ok" })
       }
-    });
+    },
+    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) });
 
     const spawnStarted = nowMs();
     await lifecycle.launch();
@@ -70,7 +72,8 @@ async function measureSpawnKill(backend, bundle) {
 }
 
 async function measureWatchdogPingRate(backend) {
-  const lifecycle = new MiniappLifecycle(backend, {
+  const lifecycle = new MiniappLifecycle(backend,
+    {
     appId: "throughput",
     version: "1.0.0",
     entryPath: "bundle.js",
@@ -78,7 +81,8 @@ async function measureWatchdogPingRate(backend) {
     brokerEndpoint: {
       request: async (request) => ({ id: request.id, ok: true, result: "ok" })
     }
-  });
+  },
+    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) });
 
   await lifecycle.launch();
   const started = nowMs();
@@ -94,8 +98,7 @@ async function measureWatchdogPingRate(backend) {
 }
 
 async function measureBusyLoopKill(backend) {
-  const lifecycle = new MiniappLifecycle(
-    backend,
+  const lifecycle = new MiniappLifecycle(backend,
     {
       appId: "busy-loop",
       version: "1.0.0",
@@ -105,8 +108,7 @@ async function measureBusyLoopKill(backend) {
         request: async (request) => ({ id: request.id, ok: true })
       }
     },
-    { watchdogMs: 250 }
-  );
+    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),  watchdogMs: 250 });
 
   const started = nowMs();
   await lifecycle.launch();

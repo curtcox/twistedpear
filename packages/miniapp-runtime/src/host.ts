@@ -110,6 +110,7 @@ interface ActiveApp {
 
 export class MiniappHost {
   private readonly broker = new MiniappBroker({
+    now: () => Date.now(),
     audit: (entry) => {
       if (!entry.allowed) {
         this.logActive(entry.appId, `broker denied ${entry.namespace}.${entry.method}`);
@@ -189,11 +190,11 @@ export class MiniappHost {
     declared: ReadonlyArray<string>,
     requestedGrants: ReadonlyArray<string>
   ): Promise<GrantRecord> {
-    return this.options.grantStore.set(appId, publisherPublicKey, declared, requestedGrants);
+    return this.options.grantStore.set(appId, publisherPublicKey, declared, requestedGrants, Date.now());
   }
 
   async revokeGrant(appId: string, publisherPublicKey: string, capability: string): Promise<GrantRecord | null> {
-    return this.options.grantStore.revoke(appId, publisherPublicKey, capability as never);
+    return this.options.grantStore.revoke(appId, publisherPublicKey, capability as never, Date.now());
   }
 
   async deleteGrants(appId: string, publisherPublicKey: string): Promise<void> {
@@ -258,16 +259,23 @@ export class MiniappHost {
     const grantedCapabilities = grants?.granted ?? [];
     const memoryBytes = this.limitOverrides.get(manifest.name)?.memoryBytes ?? null;
 
-    const lifecycle = new MiniappLifecycle(this.options.backend, {
-      appId: manifest.name,
-      version: manifest.version,
-      entryPath: manifest.entry,
-      bundle,
-      ...(memoryBytes !== null ? { limits: { memoryBytes } } : {}),
-      brokerEndpoint: {
-        request: (request: BrokerRequest) => this.dispatch(request, manifest, grantedCapabilities)
+    const lifecycle = new MiniappLifecycle(
+      this.options.backend,
+      {
+        appId: manifest.name,
+        version: manifest.version,
+        entryPath: manifest.entry,
+        bundle,
+        ...(memoryBytes !== null ? { limits: { memoryBytes } } : {}),
+        brokerEndpoint: {
+          request: (request: BrokerRequest) => this.dispatch(request, manifest, grantedCapabilities)
+        }
+      },
+      {
+        now: () => Date.now(),
+        delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms))
       }
-    });
+    );
 
     this.active = {
       manifest,

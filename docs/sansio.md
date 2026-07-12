@@ -1,10 +1,9 @@
 # Migrate TwistedPear to Sans-IO Protocol Discipline
 
-> **Status (foundation landed):** `@twistedpear/effects` and `@twistedpear/protocol` packages,
-> inventory (`violations.json`), ratchet (`sansio-ratchet.json`, 16 exceptions), ESLint deny-list,
-> dependency-cruiser, runtime tripwire, sim kernel + determinism tests, and CI/`sansio` gates are in
-> place. Remaining work is module-by-module conversion that shrinks the ratchet toward empty.
-> Run `npm run sansio` locally. Canary layer expectations: `sansio-canary.json`.
+> **Status:** Foundation + first leaf conversions landed. Ratchet is down to **8** files
+> (`link`, `resource`, `identity`, transport/*, LXMF router/propagation*). Converted off the
+> deny list: receipts, rate limiter, LXMessage timestamps, miniapp broker/lifecycle/confirm/grants.
+> Run `npm run sansio`. Next: inject `Clock` through `link.ts` / `identity.ts`.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

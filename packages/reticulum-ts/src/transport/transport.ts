@@ -131,15 +131,16 @@ export class TransportNode extends LeafTransport {
 
   protected override async handleAnnounce(packet: Packet, iface: PacketInterface): Promise<void> {
     const destinationKey = hashKey(packet.destinationHash);
+    const now = Date.now() / 1000;
     if (
       packet.context !== PacketContext.PATH_RESPONSE &&
-      this.announceRateLimiter.isBlocked(destinationKey)
+      this.announceRateLimiter.isBlocked(destinationKey, now)
     ) {
       return;
     }
 
     if (packet.context !== PacketContext.PATH_RESPONSE) {
-      this.announceRateLimiter.record(destinationKey);
+      this.announceRateLimiter.record(destinationKey, now);
     }
 
     await super.handleAnnounce(packet, iface);

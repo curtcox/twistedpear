@@ -22,9 +22,9 @@ const PATTERNS = [
   { api: "crypto.getRandomValues", re: /\bcrypto\.getRandomValues\b/g, suggestedEffect: "Entropy" },
   { api: "crypto.randomBytes", re: /\bcrypto\.randomBytes\s*\(|from\s+["']node:crypto["'].*randomBytes|randomBytes\s*\}\s*from\s+["']node:crypto["']/g, suggestedEffect: "Entropy" },
   { api: "crypto.randomUUID", re: /\b(?:crypto\.)?randomUUID\s*\(/g, suggestedEffect: "Entropy" },
-  { api: "setTimeout", re: /\bsetTimeout\s*\(/g, suggestedEffect: "Timers" },
-  { api: "setInterval", re: /\bsetInterval\s*\(/g, suggestedEffect: "Timers" },
-  { api: "setImmediate", re: /\bsetImmediate\s*\(/g, suggestedEffect: "Timers" },
+  { api: "setTimeout", re: /(?<!\.)\bsetTimeout\s*\(/g, suggestedEffect: "Timers" },
+  { api: "setInterval", re: /(?<!\.)\bsetInterval\s*\(/g, suggestedEffect: "Timers" },
+  { api: "setImmediate", re: /(?<!\.)\bsetImmediate\s*\(/g, suggestedEffect: "Timers" },
   { api: "queueMicrotask", re: /\bqueueMicrotask\s*\(/g, suggestedEffect: "Timers" },
   { api: "requestAnimationFrame", re: /\brequestAnimationFrame\s*\(/g, suggestedEffect: "Timers" },
   { api: "fetch", re: /\bfetch\s*\(/g, suggestedEffect: "Transport" },
@@ -95,7 +95,10 @@ function scanFile(absPath, relPosix) {
       if (!pattern.re.test(line)) continue;
       // Avoid flagging clock.setTimeout / this.setTimeout method names when clearly method access
       // Still flag bare setTimeout( — pattern already requires setTimeout\s*(
-      if (pattern.api === "setTimeout" && /\.\s*setTimeout\s*\(/.test(line)) {
+      if (pattern.api === "setTimeout" && (/^\s*(?:public\s+|private\s+|protected\s+|async\s+)*setTimeout\s*\(/.test(line) || /\.\s*setTimeout\s*\(/.test(line))) {
+        continue;
+      }
+      if (pattern.api === "setInterval" && (/^\s*(?:public\s+|private\s+|protected\s+|async\s+)*setInterval\s*\(/.test(line) || /\.\s*setInterval\s*\(/.test(line))) {
         continue;
       }
       if (pattern.api === "crypto.randomBytes" && /provider\.randomBytes|this\.provider\.randomBytes|entropy\.randomBytes/.test(line)) {

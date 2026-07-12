@@ -13,7 +13,8 @@ function sleep(ms) {
 function createProbeLifecycle(bundle, appId = "probe") {
   let capturedProbes = null;
   const backend = new WebSandboxBackend();
-  const lifecycle = new MiniappLifecycle(backend, {
+  const lifecycle = new MiniappLifecycle(backend,
+    {
     appId,
     version: "1.0.0",
     entryPath: "bundle.js",
@@ -28,7 +29,8 @@ function createProbeLifecycle(bundle, appId = "probe") {
         return { id: request.id, ok: true, result: "ok" };
       }
     }
-  });
+  },
+    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) });
 
   return {
     lifecycle,
@@ -174,8 +176,7 @@ async function runEscapeProbe() {
 
 async function runBusyLoopKill() {
   const backend = new WebSandboxBackend();
-  const lifecycle = new MiniappLifecycle(
-    backend,
+  const lifecycle = new MiniappLifecycle(backend,
     {
       appId: "busy-loop",
       version: "1.0.0",
@@ -185,8 +186,7 @@ async function runBusyLoopKill() {
         request: async (request) => ({ id: request.id, ok: true, result: "ok" })
       }
     },
-    { watchdogMs: 250 }
-  );
+    { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),  watchdogMs: 250 });
 
   const started = performance.now();
   await lifecycle.launch();

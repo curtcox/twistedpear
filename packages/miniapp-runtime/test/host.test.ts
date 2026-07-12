@@ -180,7 +180,7 @@ describe("mini-app host", () => {
       kvBackend: store
     });
 
-    await grants.set("app", "publisher", ["storage:kv"], ["storage:kv"]);
+    await grants.set("app", "publisher", ["storage:kv"], ["storage:kv"], 1_000);
     const allowed = await host.dispatchRaw(
       { id: "1", namespace: "storage.kv", method: "set", capability: "storage:kv", payload: { key: "a", value: new Uint8Array([1]) } },
       { name: "app", version: "1.0.0", entry: "bundle.js", capabilities: ["storage:kv"], publisherPublicKey: "publisher" },
@@ -188,7 +188,7 @@ describe("mini-app host", () => {
     );
     expect(allowed.ok).toBe(true);
 
-    await grants.revoke("app", "publisher", "storage:kv" as MiniappCapability);
+    await grants.revoke("app", "publisher", "storage:kv" as MiniappCapability, 1_001);
     const denied = await host.dispatchRaw(
       { id: "2", namespace: "storage.kv", method: "set", capability: "storage:kv", payload: { key: "b", value: new Uint8Array([2]) } },
       { name: "app", version: "1.0.0", entry: "bundle.js", capabilities: ["storage:kv"], publisherPublicKey: "publisher" },

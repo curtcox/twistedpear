@@ -1,6 +1,29 @@
 import { validateManifestCapabilities } from "../capabilities.js";
-import { requestHostConfirmation, type HostConfirmationChannel } from "../confirm.js";
+import {
+  requestHostConfirmation,
+  type ConfirmationEffects,
+  type HostConfirmationChannel
+} from "../confirm.js";
 import { validateWorkspacePath } from "./workspace.js";
+
+function nodeConfirmationEffects(): ConfirmationEffects {
+  return {
+    randomBytes(length: number): Uint8Array {
+      const bytes = new Uint8Array(length);
+      const c = globalThis.crypto;
+      if (c === undefined || typeof c.getRandomValues !== "function") {
+        throw new Error("crypto.getRandomValues is required for confirmation tokens");
+      }
+      c.getRandomValues(bytes);
+      return bytes;
+    },
+    delay(ms: number): Promise<void> {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+  };
+}
+
+const confirmationEffects = nodeConfirmationEffects();
 
 export interface AppManifestDraft {
   readonly name: string;
@@ -103,17 +126,21 @@ export class AppsService {
   ): Promise<AppsPackageResult> {
     const manifest = validateManifestDraft(request.manifest);
     const projectPrefix = validateWorkspacePath(String(request.projectPrefix));
-    await requestHostConfirmation(this.confirmationChannel, {
-      kind: "package",
-      appId: context.appId,
-      publisherPublicKey: context.publisherPublicKey,
-      summary: {
-        name: manifest.name,
-        version: manifest.version,
-        entry: manifest.entry,
-        capabilities: manifest.capabilities.join(", ") || "(none)"
-      }
-    });
+    await requestHostConfirmation(
+      this.confirmationChannel,
+      {
+        kind: "package",
+        appId: context.appId,
+        publisherPublicKey: context.publisherPublicKey,
+        summary: {
+          name: manifest.name,
+          version: manifest.version,
+          entry: manifest.entry,
+          capabilities: manifest.capabilities.join(", ") || "(none)"
+        }
+      },
+      confirmationEffects
+    );
     return this.backend.package(context.appId, { projectPrefix, manifest });
   }
 
@@ -122,15 +149,19 @@ export class AppsService {
     request: { t256: unknown }
   ): Promise<AppsPublishResult> {
     const t256 = validateT256(request.t256);
-    await requestHostConfirmation(this.confirmationChannel, {
-      kind: "publish",
-      appId: context.appId,
-      publisherPublicKey: context.publisherPublicKey,
-      summary: {
-        t256,
-        note: "The app becomes visible to other users under this device's publisher identity."
-      }
-    });
+    await requestHostConfirmation(
+      this.confirmationChannel,
+      {
+        kind: "publish",
+        appId: context.appId,
+        publisherPublicKey: context.publisherPublicKey,
+        summary: {
+          t256,
+          note: "The app becomes visible to other users under this device's publisher identity."
+        }
+      },
+      confirmationEffects
+    );
     return this.backend.publish(context.appId, { t256 });
   }
 
@@ -139,15 +170,19 @@ export class AppsService {
     request: { t256: unknown }
   ): Promise<AppsInstallResult> {
     const t256 = validateT256(request.t256);
-    await requestHostConfirmation(this.confirmationChannel, {
-      kind: "install",
-      appId: context.appId,
-      publisherPublicKey: context.publisherPublicKey,
-      summary: {
-        t256,
-        note: "The package is fetched, verified, and reviewed before anything runs."
-      }
-    });
+    await requestHostConfirmation(
+      this.confirmationChannel,
+      {
+        kind: "install",
+        appId: context.appId,
+        publisherPublicKey: context.publisherPublicKey,
+        summary: {
+          t256,
+          note: "The package is fetched, verified, and reviewed before anything runs."
+        }
+      },
+      confirmationEffects
+    );
     return this.backend.install(context.appId, { t256 });
   }
 
@@ -165,16 +200,20 @@ export class AppsService {
       }
     }
 
-    await requestHostConfirmation(this.confirmationChannel, {
-      kind: "preview",
-      appId: context.appId,
-      publisherPublicKey: context.publisherPublicKey,
-      summary: {
-        name: manifest.name,
-        version: manifest.version,
-        grants: grants.join(", ") || "(none)"
-      }
-    });
+    await requestHostConfirmation(
+      this.confirmationChannel,
+      {
+        kind: "preview",
+        appId: context.appId,
+        publisherPublicKey: context.publisherPublicKey,
+        summary: {
+          name: manifest.name,
+          version: manifest.version,
+          grants: grants.join(", ") || "(none)"
+        }
+      },
+      confirmationEffects
+    );
     return this.backend.preview(context.appId, { projectPrefix, manifest, grants });
   }
 

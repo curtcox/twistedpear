@@ -686,6 +686,7 @@ export class Link {
       link: this,
       requestId: packet.truncatedHash(),
       timeout,
+      now: () => this.clock.now() / 1000,
       requestSize: packedRequest.length,
       callbacks: {
         ...(options.response === undefined ? {} : { response: options.response }),

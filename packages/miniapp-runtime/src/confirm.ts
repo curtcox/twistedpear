@@ -17,6 +17,12 @@ export interface HostConfirmationChannel {
   confirm(request: ConfirmationRequest): Promise<ConfirmationResult>;
 }
 
+/** Effects injected by adapters — protocol code never touches entropy or timers. */
+export interface ConfirmationEffects {
+  readonly randomBytes: (length: number) => Uint8Array;
+  readonly delay: (ms: number) => Promise<void>;
+}
+
 export class ConfirmationError extends Error {
   constructor(
     readonly code: "CONFIRMATION_UNAVAILABLE" | "CONFIRMATION_DENIED" | "CONFIRMATION_TIMEOUT",
@@ -29,23 +35,15 @@ export class ConfirmationError extends Error {
 
 export const DEFAULT_CONFIRMATION_TIMEOUT_MS = 60_000;
 
-export function generateConfirmationToken(): string {
-  const bytes = new Uint8Array(16);
-  const cryptoApi = (globalThis as { crypto?: { getRandomValues?: (array: Uint8Array) => Uint8Array } }).crypto;
-  if (cryptoApi?.getRandomValues !== undefined) {
-    cryptoApi.getRandomValues(bytes);
-  } else {
-    for (let index = 0; index < bytes.length; index += 1) {
-      bytes[index] = Math.floor(Math.random() * 256);
-    }
-  }
-
+export function generateConfirmationToken(randomBytes: (length: number) => Uint8Array): string {
+  const bytes = randomBytes(16);
   return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
 export async function requestHostConfirmation(
   channel: HostConfirmationChannel | undefined,
   request: Omit<ConfirmationRequest, "token">,
+  effects: ConfirmationEffects,
   timeoutMs = DEFAULT_CONFIRMATION_TIMEOUT_MS
 ): Promise<ConfirmationResult> {
   if (channel === undefined) {
@@ -55,10 +53,13 @@ export async function requestHostConfirmation(
     );
   }
 
-  const tokenized: ConfirmationRequest = { ...request, token: generateConfirmationToken() };
-  const timeout = new Promise<ConfirmationResult>((resolve) => {
-    setTimeout(() => resolve({ approved: false, detail: "timeout" }), timeoutMs);
-  });
+  const tokenized: ConfirmationRequest = {
+    ...request,
+    token: generateConfirmationToken(effects.randomBytes)
+  };
+  const timeout = effects.delay(timeoutMs).then(
+    (): ConfirmationResult => ({ approved: false, detail: "timeout" })
+  );
   const result = await Promise.race([channel.confirm(tokenized), timeout]);
   if (!result.approved) {
     throw new ConfirmationError(

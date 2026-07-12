@@ -8,9 +8,11 @@ const context: BrokerContext = {
   grantedCapabilities: ["lxmf:send"]
 };
 
+const clock = { now: () => 0 };
+
 describe("mini-app broker", () => {
   it("dispatches through registered capability-checked handlers", async () => {
-    const broker = new MiniappBroker();
+    const broker = new MiniappBroker(clock);
     broker.register("lxmf", "send", "lxmf:send", (request) => request.payload);
 
     await expect(
@@ -19,7 +21,7 @@ describe("mini-app broker", () => {
   });
 
   it("fails closed without a grant", async () => {
-    const broker = new MiniappBroker();
+    const broker = new MiniappBroker(clock);
     broker.register("lxmf", "send", "lxmf:send", () => "sent");
 
     const denied = await broker.dispatch(
@@ -44,7 +46,7 @@ describe("mini-app broker", () => {
   });
 
   it("rejects capability substitution on protected methods", async () => {
-    const broker = new MiniappBroker();
+    const broker = new MiniappBroker(clock);
     broker.register("storage.kv", "get", "storage:kv", () => "secret");
 
     const substituted = await broker.dispatch(
@@ -66,7 +68,7 @@ describe("mini-app broker", () => {
   });
 
   it("enforces the registered capability even when the request omits it", async () => {
-    const broker = new MiniappBroker();
+    const broker = new MiniappBroker(clock);
     broker.register("storage.kv", "get", "storage:kv", () => "secret");
 
     const denied = await broker.dispatch(

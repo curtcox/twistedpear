@@ -306,7 +306,11 @@ export class LeafTransport {
     let receipt: PacketReceipt | null = null;
 
     if (options.createReceipt === true) {
-      receipt = new PacketReceipt(packet.hash(), packet.truncatedHash(), packet.destinationHash);
+      const nowSeconds = () => this.clock.now() / 1000;
+      receipt = new PacketReceipt(packet.hash(), packet.truncatedHash(), packet.destinationHash, {
+        sentAt: nowSeconds(),
+        now: nowSeconds
+      });
       this.receipts.push(receipt);
     }
 

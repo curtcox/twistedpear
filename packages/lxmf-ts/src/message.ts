@@ -42,7 +42,10 @@ export interface LXMessagePackOptions {
   readonly title?: string | Uint8Array;
   readonly content?: string | Uint8Array;
   readonly fields?: LXMessageFields;
+  /** Unix seconds. Required unless `now` is provided. */
   readonly timestamp?: number;
+  /** Injected clock in seconds — used when `timestamp` is omitted. */
+  readonly now?: () => number;
   readonly stamp?: Uint8Array | null;
   readonly deferStamp?: boolean;
   readonly desiredMethod?: LXMessageMethodValue;
@@ -117,7 +120,13 @@ export class LXMessage {
       desiredMethod: options.desiredMethod ?? LXMessageMethod.DIRECT
     });
 
-    message.timestamp = options.timestamp ?? Date.now() / 1000;
+    if (options.timestamp !== undefined) {
+      message.timestamp = options.timestamp;
+    } else if (options.now !== undefined) {
+      message.timestamp = options.now();
+    } else {
+      throw new Error("LXMessage.pack requires timestamp or now()");
+    }
     message.pack(options.provider, {
       ...(options.stamp === undefined ? {} : { stamp: options.stamp }),
       ...(options.deferStamp === undefined ? {} : { deferStamp: options.deferStamp })
@@ -210,7 +219,7 @@ export class LXMessage {
     }
 
     if (this.timestamp === null) {
-      this.timestamp = Date.now() / 1000;
+      throw new Error("LXMessage.pack requires timestamp to be set before packing");
     }
 
     const payloadCore = msgpackPackLxmPayload(this.timestamp, this.title, this.content, this.fields);
@@ -286,7 +295,10 @@ export class LXMessage {
       const encryptedPayload = this.destination.identity.encrypt(this.packed.subarray(DESTINATION_LENGTH));
       const lxmfData = concatBytes(this.destination.hash, encryptedPayload);
       this.transientId = Identity.fullHash(provider, lxmfData);
-      this.propagationPacked = msgpackPackPropagationEnvelope(this.timestamp ?? Date.now() / 1000, [lxmfData]);
+      if (this.timestamp === null) {
+        throw new Error("LXMessage.pack requires timestamp to be set before packing");
+      }
+      this.propagationPacked = msgpackPackPropagationEnvelope(this.timestamp, [lxmfData]);
 
       const propagationSize = this.propagationPacked.length;
       if (propagationSize > LINK_PACKET_MAX_CONTENT) {

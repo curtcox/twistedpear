@@ -124,7 +124,7 @@ export class GrantStore {
     publisherPublicKey: string,
     declared: ReadonlyArray<string>,
     requestedGrants: ReadonlyArray<string>,
-    now = Date.now()
+    now: number
   ): Promise<GrantRecord> {
     const declaredCapabilities = new Set(validateManifestCapabilities(declared));
     const granted = validateManifestCapabilities(requestedGrants);
@@ -149,7 +149,7 @@ export class GrantStore {
     return record;
   }
 
-  async revoke(appId: string, publisherPublicKey: string, capability: MiniappCapability, now = Date.now()): Promise<GrantRecord | null> {
+  async revoke(appId: string, publisherPublicKey: string, capability: MiniappCapability, now: number): Promise<GrantRecord | null> {
     const existing = await this.get(appId, publisherPublicKey);
     if (existing === null) {
       return null;

@@ -9,6 +9,11 @@ const pingableBundle = new TextEncoder().encode(`
 await new Promise(() => {});
 `);
 
+const wall = {
+  now: () => Date.now(),
+  delay: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+};
+
 describe("mini-app lifecycle", () => {
   it("kills an unresponsive app via watchdog", async () => {
     const backend = new NodeWorkerSandboxBackend();
@@ -21,11 +26,11 @@ describe("mini-app lifecycle", () => {
         bundle: busyLoopBundle,
         brokerEndpoint: { request: async () => ({ id: "0", ok: true }) }
       },
-      { watchdogMs: 200 }
+      { ...wall, watchdogMs: 200 }
     );
 
     await lifecycle.launch();
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await wall.delay(50);
     const snapshot = await lifecycle.watchdogPing();
     expect(snapshot.state === "crashed" || snapshot.state === "running").toBe(true);
     await lifecycle.stop("cleanup");
@@ -49,13 +54,17 @@ describe("mini-app lifecycle", () => {
 
   it("stops and relaunches without leaking state", async () => {
     const backend = new NodeWorkerSandboxBackend();
-    const lifecycle = new MiniappLifecycle(backend, {
-      appId: "pingable",
-      version: "1.0.0",
-      entryPath: "bundle.js",
-      bundle: pingableBundle,
-      brokerEndpoint: { request: async () => ({ id: "0", ok: true }) }
-    });
+    const lifecycle = new MiniappLifecycle(
+      backend,
+      {
+        appId: "pingable",
+        version: "1.0.0",
+        entryPath: "bundle.js",
+        bundle: pingableBundle,
+        brokerEndpoint: { request: async () => ({ id: "0", ok: true }) }
+      },
+      wall
+    );
 
     await lifecycle.launch();
     await lifecycle.stop("test");

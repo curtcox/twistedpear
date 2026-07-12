@@ -31,7 +31,7 @@ export type BrokerHandler = (request: BrokerRequest, context: BrokerContext) => 
 export interface BrokerOptions {
   readonly maxMessageBytes?: number;
   readonly maxMessagesPerSecond?: number;
-  readonly now?: () => number;
+  readonly now: () => number;
   readonly audit?: (entry: BrokerAuditEntry) => void;
 }
 
@@ -64,7 +64,7 @@ export class MiniappBroker {
   private readonly buckets = new Map<string, RateBucket>();
   private readonly rateOverrides = new Map<string, number>();
 
-  constructor(private readonly options: BrokerOptions = {}) {}
+  constructor(private readonly options: BrokerOptions) {}
 
   setRateLimit(appId: string, maxMessagesPerSecond: number | null): void {
     if (maxMessagesPerSecond === null) {
@@ -169,6 +169,6 @@ export class MiniappBroker {
   }
 
   private now(): number {
-    return this.options.now?.() ?? Date.now();
+    return this.options.now();
   }
 }

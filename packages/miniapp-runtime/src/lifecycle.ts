@@ -11,8 +11,10 @@ export interface MiniappLifecycleSnapshot {
 }
 
 export interface LifecycleOptions {
-  readonly now?: () => number;
+  readonly now: () => number;
   readonly watchdogMs?: number;
+  /** Injected delay used by the watchdog race — adapters supply setTimeout. */
+  readonly delay: (ms: number) => Promise<void>;
 }
 
 export class MiniappLifecycle {
@@ -24,7 +26,7 @@ export class MiniappLifecycle {
   constructor(
     private readonly backend: SandboxBackend,
     private readonly spawnOptions: Omit<SandboxSpawnOptions, "brokerEndpoint"> & { readonly brokerEndpoint?: unknown },
-    private readonly options: LifecycleOptions = {}
+    private readonly options: LifecycleOptions
   ) {
     this.updatedAt = this.now();
   }
@@ -104,9 +106,7 @@ export class MiniappLifecycle {
 
     const timeoutMs = this.options.watchdogMs ?? 1_000;
     const ping = this.instance.ping(timeoutMs);
-    const timeout = new Promise<false>((resolve) => {
-      setTimeout(() => resolve(false), timeoutMs);
-    });
+    const timeout = this.options.delay(timeoutMs).then(() => false as const);
     const alive = await Promise.race([ping, timeout]);
 
     if (!alive) {
@@ -131,6 +131,6 @@ export class MiniappLifecycle {
   }
 
   private now(): number {
-    return this.options.now?.() ?? Date.now();
+    return this.options.now();
   }
 }

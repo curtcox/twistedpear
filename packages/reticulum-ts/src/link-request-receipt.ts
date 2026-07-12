@@ -1,7 +1,6 @@
 import type { Link } from "./link.js";
 import { equalBytes } from "./crypto/bytes.js";
-import type { PacketReceipt } from "./packet-receipt.js";
-import { PacketReceiptStatus } from "./packet-receipt.js";
+import type { NowSeconds, PacketReceipt } from "./packet-receipt.js";
 
 /** Mirrors RNS/Link.py RequestReceipt status constants. */
 export const RequestReceiptStatus = {
@@ -23,6 +22,7 @@ export interface LinkRequestReceiptOptions {
   readonly link: Link;
   readonly requestId: Uint8Array;
   readonly timeout: number;
+  readonly now: NowSeconds;
   readonly packetReceipt?: PacketReceipt | null;
   readonly requestSize?: number;
   readonly callbacks?: RequestReceiptCallbacks;
@@ -37,6 +37,7 @@ export class LinkRequestReceipt {
   readonly requestSize: number | null;
   readonly callbacks: RequestReceiptCallbacks;
   readonly sentAt: number;
+  private readonly now: NowSeconds;
 
   packetReceipt: PacketReceipt | null;
 
@@ -54,7 +55,8 @@ export class LinkRequestReceipt {
     this.packetReceipt = options.packetReceipt ?? null;
     this.requestSize = options.requestSize ?? null;
     this.callbacks = options.callbacks ?? {};
-    this.sentAt = Date.now() / 1000;
+    this.now = options.now;
+    this.sentAt = options.now();
     this.startedAt = this.sentAt;
 
     if (this.packetReceipt !== null) {
@@ -75,7 +77,7 @@ export class LinkRequestReceipt {
   requestTimedOut(): void {
     if (this.status === RequestReceiptStatus.SENT || this.status === RequestReceiptStatus.DELIVERED) {
       this.status = RequestReceiptStatus.FAILED;
-      this.concludedAt = Date.now() / 1000;
+      this.concludedAt = this.now();
       this.link.unregisterPendingRequest(this);
       this.callbacks.failed?.(this);
     }
@@ -85,7 +87,7 @@ export class LinkRequestReceipt {
     this.response = response;
     this.status = RequestReceiptStatus.READY;
     this.progress = 1;
-    this.concludedAt = Date.now() / 1000;
+    this.concludedAt = this.now();
     this.link.unregisterPendingRequest(this);
     this.callbacks.response?.(this);
   }
