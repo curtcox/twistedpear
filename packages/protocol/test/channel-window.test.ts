@@ -9,6 +9,7 @@ import {
   channelRetryExhausted,
   countChannelTxOutstanding,
   initialChannelWindowState,
+  isChannelOutletTransmitOk,
   planChannelPacketTimeout,
   shouldExtendPacketReceiptTimeout,
   indexOfChannelTxEnvelope,
@@ -66,6 +67,21 @@ describe("protocol channel window", () => {
     expect(channelAllowsSend({ isUsable: false, outstanding: 0, window: 2 })).toBe(false);
     expect(channelRetryExhausted(5, 5)).toBe(true);
     expect(channelRetryExhausted(4, 5)).toBe(false);
+  });
+
+  it("gates outlet transmit results", () => {
+    expect(
+      isChannelOutletTransmitOk({ packetPresent: true, rawLength: 10, receiptPresent: true })
+    ).toBe(true);
+    expect(
+      isChannelOutletTransmitOk({ packetPresent: false, rawLength: 10, receiptPresent: true })
+    ).toBe(false);
+    expect(
+      isChannelOutletTransmitOk({ packetPresent: true, rawLength: 0, receiptPresent: true })
+    ).toBe(false);
+    expect(
+      isChannelOutletTransmitOk({ packetPresent: true, rawLength: 10, receiptPresent: false })
+    ).toBe(false);
   });
 
   it("counts TX outstanding from packet presence and delivery", () => {

@@ -327,6 +327,7 @@ export {
   countChannelTxOutstanding,
   indexOfChannelTxEnvelope,
   initialChannelWindowState,
+  isChannelOutletTransmitOk,
   planChannelPacketTimeout,
   shouldExtendPacketReceiptTimeout,
   stepChannelWindow,

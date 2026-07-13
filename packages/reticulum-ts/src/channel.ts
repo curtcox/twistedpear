@@ -16,6 +16,7 @@ import {
   indexOfChannelRingSequence,
   indexOfChannelTxEnvelope,
   initialChannelWindowState,
+  isChannelOutletTransmitOk,
   isChannelSystemMsgType,
   linkPayloadFitsMdu,
   nextChannelSequence,
@@ -269,7 +270,14 @@ export class Channel {
 
     this.nextSequence = nextChannelSequence(reservedSequence);
     const packet = await this.outlet.send(envelope.raw!);
-    if (packet === null || packet.raw.length === 0 || packet.receipt === null) {
+    if (
+      packet === null ||
+      !isChannelOutletTransmitOk({
+        packetPresent: true,
+        rawLength: packet.raw.length,
+        receiptPresent: packet.receipt !== null
+      })
+    ) {
       this.nextSequence = reservedSequence;
       throw new ChannelException(ChannelExceptionType.ME_LINK_NOT_READY, "Outlet did not transmit packet");
     }

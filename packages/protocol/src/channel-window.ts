@@ -72,6 +72,17 @@ export function channelAllowsSend(input: {
 }
 
 /**
+ * Whether an outlet send result is usable for TX tracking (non-empty packet with a receipt).
+ */
+export function isChannelOutletTransmitOk(input: {
+  readonly packetPresent: boolean;
+  readonly rawLength: number;
+  readonly receiptPresent: boolean;
+}): boolean {
+  return input.packetPresent && input.rawLength > 0 && input.receiptPresent;
+}
+
+/**
  * Count TX-ring entries that still occupy window (unsent or not yet delivered).
  * Packet presence / delivery status are supplied by the adapter.
  */
