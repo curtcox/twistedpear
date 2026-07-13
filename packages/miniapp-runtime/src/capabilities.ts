@@ -1,3 +1,12 @@
+import type { Event } from "@twistedpear/effects";
+import {
+  decodeGrantRecord,
+  grantStoreKey as protocolGrantStoreKey,
+  initialGrantHostState,
+  stepGrantHost,
+  type GrantEvent
+} from "@twistedpear/protocol";
+
 export type MiniappCapability =
   | "identity"
   | "presence"
@@ -98,7 +107,37 @@ export interface GrantKeyValueStore {
 }
 
 export function grantStoreKey(appId: string, publisherPublicKey: string): string {
-  return `miniapp-grants:${publisherPublicKey}:${appId}`;
+  return protocolGrantStoreKey(appId, publisherPublicKey);
+}
+
+function throwGrantError(message: string, capability: string): never {
+  throw new CapabilityError(
+    "UNDECLARED_CAPABILITY",
+    message.includes("undeclared")
+      ? `Capability "${capability}" was not declared by the signed manifest.`
+      : message,
+    capability
+  );
+}
+
+async function applyGrantStep(
+  store: GrantKeyValueStore,
+  state: ReturnType<typeof initialGrantHostState>,
+  event: GrantEvent
+): Promise<ReturnType<typeof initialGrantHostState>> {
+  const result = stepGrantHost(state, event as unknown as Event);
+  if (result.state.lastError !== null) {
+    const match = /undeclared capability: (.+)/.exec(result.state.lastError);
+    throwGrantError(result.state.lastError, match?.[1] ?? "unknown");
+  }
+
+  for (const intent of result.intents) {
+    if (intent.kind === "store/write") {
+      await store.set(intent.write.key, intent.write.value);
+    }
+  }
+
+  return result.state;
 }
 
 export class GrantStore {
@@ -110,11 +149,11 @@ export class GrantStore {
       return null;
     }
 
-    const parsed = JSON.parse(new TextDecoder().decode(raw)) as GrantRecord;
+    const parsed = decodeGrantRecord(raw);
     return {
       appId: parsed.appId,
       publisherPublicKey: parsed.publisherPublicKey,
-      granted: validateManifestCapabilities(parsed.granted),
+      granted: validateManifestCapabilities([...parsed.granted]),
       updatedAt: parsed.updatedAt
     };
   }
@@ -126,27 +165,25 @@ export class GrantStore {
     requestedGrants: ReadonlyArray<string>,
     now: number
   ): Promise<GrantRecord> {
-    const declaredCapabilities = new Set(validateManifestCapabilities(declared));
-    const granted = validateManifestCapabilities(requestedGrants);
+    const declaredCapabilities = validateManifestCapabilities(declared);
+    const requested = validateManifestCapabilities(requestedGrants);
+    const state = await applyGrantStep(this.store, initialGrantHostState(appId, publisherPublicKey), {
+      kind: "grant/set",
+      at: now,
+      declared: declaredCapabilities,
+      requested
+    } as GrantEvent);
 
-    for (const capability of granted) {
-      if (!declaredCapabilities.has(capability)) {
-        throw new CapabilityError(
-          "UNDECLARED_CAPABILITY",
-          `Capability "${capability}" was not declared by the signed manifest.`,
-          capability
-        );
-      }
+    if (state.record === null) {
+      throw new Error("grant set did not produce a record");
     }
 
-    const record: GrantRecord = {
-      appId,
-      publisherPublicKey,
-      granted,
-      updatedAt: now
+    return {
+      appId: state.record.appId,
+      publisherPublicKey: state.record.publisherPublicKey,
+      granted: validateManifestCapabilities([...state.record.granted]),
+      updatedAt: state.record.updatedAt
     };
-    await this.store.set(grantStoreKey(appId, publisherPublicKey), new TextEncoder().encode(JSON.stringify(record)));
-    return record;
   }
 
   async revoke(appId: string, publisherPublicKey: string, capability: MiniappCapability, now: number): Promise<GrantRecord | null> {
@@ -155,13 +192,31 @@ export class GrantStore {
       return null;
     }
 
-    const record: GrantRecord = {
-      ...existing,
-      granted: existing.granted.filter((entry) => entry !== capability),
-      updatedAt: now
+    const state = await applyGrantStep(
+      this.store,
+      {
+        ...initialGrantHostState(appId, publisherPublicKey),
+        record: {
+          appId: existing.appId,
+          publisherPublicKey: existing.publisherPublicKey,
+          granted: existing.granted,
+          updatedAt: existing.updatedAt
+        },
+        lastError: null
+      },
+      { kind: "grant/revoke", at: now, capability } as GrantEvent
+    );
+
+    if (state.record === null) {
+      return null;
+    }
+
+    return {
+      appId: state.record.appId,
+      publisherPublicKey: state.record.publisherPublicKey,
+      granted: validateManifestCapabilities([...state.record.granted]),
+      updatedAt: state.record.updatedAt
     };
-    await this.store.set(grantStoreKey(appId, publisherPublicKey), new TextEncoder().encode(JSON.stringify(record)));
-    return record;
   }
 
   async delete(appId: string, publisherPublicKey: string): Promise<void> {

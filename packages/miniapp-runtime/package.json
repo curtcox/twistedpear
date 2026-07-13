@@ -24,6 +24,7 @@
     }
   },
   "dependencies": {
+    "@twistedpear/protocol": "*",
     "corestore": "^7.9.2",
     "hyperbee": "^2.27.3"
   },
