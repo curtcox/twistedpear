@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  CHANNEL_MAX_TRIES,
   ChannelWindowLimits,
   applyChannelDelivery,
   applyChannelTimeout,
   channelAllowsSend,
   channelPacketTimeoutSeconds,
   channelRetryExhausted,
-  initialChannelWindowState
+  initialChannelWindowState,
+  planChannelPacketTimeout
 } from "../src/channel-window.js";
 
 describe("protocol channel window", () => {
@@ -60,5 +62,15 @@ describe("protocol channel window", () => {
     expect(channelAllowsSend({ isUsable: false, outstanding: 0, window: 2 })).toBe(false);
     expect(channelRetryExhausted(5, 5)).toBe(true);
     expect(channelRetryExhausted(4, 5)).toBe(false);
+  });
+
+  it("plans packet timeout ignore / retry / give-up", () => {
+    expect(CHANNEL_MAX_TRIES).toBe(5);
+    expect(planChannelPacketTimeout({ delivered: true, tries: 1 })).toEqual({ kind: "ignore" });
+    expect(planChannelPacketTimeout({ delivered: false, tries: 2 })).toEqual({
+      kind: "retry",
+      nextTries: 3
+    });
+    expect(planChannelPacketTimeout({ delivered: false, tries: 5 })).toEqual({ kind: "give-up" });
   });
 });

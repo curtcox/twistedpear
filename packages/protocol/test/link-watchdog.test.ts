@@ -118,4 +118,15 @@ describe("protocol link watchdog", () => {
     };
     expect(run()).toEqual(run());
   });
+
+  it("revives STALE to ACTIVE on inbound", () => {
+    const stale = {
+      ...initialLinkWatchdogState({ initiator: true, requestTime: 1, establishmentTimeout: 10 }),
+      status: LinkStatus.STALE,
+      lastInbound: 1
+    };
+    const revived = stepLinkWatchdogWithActions(stale, { kind: "link/inbound", at: 42 });
+    expect(revived.state.status).toBe(LinkStatus.ACTIVE);
+    expect(revived.state.lastInbound).toBe(42);
+  });
 });

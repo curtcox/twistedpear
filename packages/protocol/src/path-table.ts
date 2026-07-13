@@ -13,6 +13,16 @@ export const PATH_REQUEST_TIMEOUT_SECONDS = 15;
 export const PATH_REQUEST_GRACE_MS = 400;
 export const PATH_REQUEST_MIN_INTERVAL = 20;
 
+/** Whether enough time has passed to emit another path request for a destination. */
+export function shouldEmitPathRequest(input: {
+  readonly lastRequestAt: number;
+  readonly nowSeconds: number;
+  readonly minIntervalSeconds?: number;
+}): boolean {
+  const minInterval = input.minIntervalSeconds ?? PATH_REQUEST_MIN_INTERVAL;
+  return input.nowSeconds - input.lastRequestAt >= minInterval;
+}
+
 export interface PathTableEntryView {
   readonly hops: number;
   readonly expires: number;

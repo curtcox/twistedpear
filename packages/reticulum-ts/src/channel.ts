@@ -1,6 +1,7 @@
 import {
   ChannelExceptionTypeCode,
   ChannelMessageState,
+  CHANNEL_MAX_TRIES,
   CHANNEL_SEQ_MAX,
   CHANNEL_SEQ_MODULUS,
   ChannelWindowLimits,
@@ -11,12 +12,12 @@ import {
   channelMessageStateFromPacketReceipt,
   channelPacketTimeoutSeconds,
   channelPayloadMdu,
-  channelRetryExhausted,
   drainContiguousChannelSequences,
   initialChannelWindowState,
   isChannelSystemMsgType,
   nextChannelSequence,
   packChannelEnvelope,
+  planChannelPacketTimeout,
   shouldAcceptChannelSequence,
   unpackChannelEnvelope,
   type ChannelWindowState
@@ -163,7 +164,7 @@ export class Channel {
   private readonly messageFactories = new Map<number, ChannelMessageConstructor>();
   private nextSequence = 0;
   private nextRxSequence = 0;
-  private readonly maxTries = 5;
+  private readonly maxTries = CHANNEL_MAX_TRIES;
   private windowState: ChannelWindowState;
 
   get window(): number {
@@ -368,10 +369,6 @@ export class Channel {
   }
 
   private async packetTimeout(packet: ChannelPacket): Promise<void> {
-    if (this.outlet.getPacketState(packet) === MessageState.MSGSTATE_DELIVERED) {
-      return;
-    }
-
     const targetId = this.outlet.getPacketId(packet);
     const envelope = this.txRing.find(
       (candidate) =>
@@ -385,13 +382,23 @@ export class Channel {
       return;
     }
 
-    if (channelRetryExhausted(envelope.tries, this.maxTries)) {
+    const plan = planChannelPacketTimeout({
+      delivered: this.outlet.getPacketState(packet) === MessageState.MSGSTATE_DELIVERED,
+      tries: envelope.tries,
+      maxTries: this.maxTries
+    });
+
+    if (plan.kind === "ignore") {
+      return;
+    }
+
+    if (plan.kind === "give-up") {
       this.shutdown();
       this.outlet.timedOut();
       return;
     }
 
-    envelope.tries += 1;
+    envelope.tries = plan.nextTries;
     if (envelope.packet !== null) {
       const resent = await this.outlet.resend(envelope.packet);
       if (resent !== null) {

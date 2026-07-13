@@ -149,7 +149,34 @@ export function applyChannelDelivery(
   };
 }
 
+/** Default max TX tries for a channel envelope (RNS Channel). */
+export const CHANNEL_MAX_TRIES = 5;
+
 /** Should the channel give up retrying this envelope? */
-export function channelRetryExhausted(tries: number, maxTries: number): boolean {
+export function channelRetryExhausted(tries: number, maxTries: number = CHANNEL_MAX_TRIES): boolean {
   return tries >= maxTries;
+}
+
+export type ChannelPacketTimeoutPlan =
+  | { readonly kind: "ignore" }
+  | { readonly kind: "give-up" }
+  | { readonly kind: "retry"; readonly nextTries: number };
+
+/**
+ * Plan TX timeout handling for one envelope.
+ * Delivered check and try counting stay pure; resend/shutdown stay at the edge.
+ */
+export function planChannelPacketTimeout(input: {
+  readonly delivered: boolean;
+  readonly tries: number;
+  readonly maxTries?: number;
+}): ChannelPacketTimeoutPlan {
+  if (input.delivered) {
+    return { kind: "ignore" };
+  }
+  const maxTries = input.maxTries ?? CHANNEL_MAX_TRIES;
+  if (channelRetryExhausted(input.tries, maxTries)) {
+    return { kind: "give-up" };
+  }
+  return { kind: "retry", nextTries: input.tries + 1 };
 }

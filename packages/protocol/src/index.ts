@@ -173,6 +173,7 @@ export {
   initialPathTableState,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
+  shouldEmitPathRequest,
   stepPathTable,
   timebaseFromRandomBlobs,
   type PathAddDecisionInput,
@@ -293,6 +294,7 @@ export {
   type IdentityPublicKeyMaterial
 } from "./identity-keygen.js";
 export {
+  CHANNEL_MAX_TRIES,
   ChannelWindowLimits,
   applyChannelDelivery,
   applyChannelTimeout,
@@ -300,6 +302,8 @@ export {
   channelPacketTimeoutSeconds,
   channelRetryExhausted,
   initialChannelWindowState,
+  planChannelPacketTimeout,
+  type ChannelPacketTimeoutPlan,
   type ChannelWindowState
 } from "./channel-window.js";
 export {

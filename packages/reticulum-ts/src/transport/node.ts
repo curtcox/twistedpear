@@ -3,7 +3,6 @@ import {
   PATHFINDER_EXPIRY_SECONDS,
   PATHFINDER_MAX_HOPS,
   PATH_REQUEST_GRACE_MS,
-  PATH_REQUEST_MIN_INTERVAL,
   PATH_REQUEST_TIMEOUT_SECONDS,
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
   computePathExpiry,
@@ -14,6 +13,7 @@ import {
   relayTransportPacketBytes,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
+  shouldEmitPathRequest,
   stripTransportHeadersBytes,
   timebaseFromRandomBlobs as protocolTimebaseFromRandomBlobs,
   wrapTransportPacketBytes,
@@ -230,7 +230,7 @@ export class LeafTransport {
     const key = hashKey(destinationHash);
     const now = this.clock.now() / 1000;
     const lastRequest = this.pathRequests.get(key) ?? 0;
-    if (now - lastRequest < PATH_REQUEST_MIN_INTERVAL) {
+    if (!shouldEmitPathRequest({ lastRequestAt: lastRequest, nowSeconds: now })) {
       return;
     }
 

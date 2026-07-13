@@ -131,7 +131,15 @@ export function stepLinkWatchdogWithActions(
 
 function stepLinkWatchdogInner(state: LinkWatchdogState, event: LinkWatchdogEvent): LinkWatchdogStepResult {
   if (event.kind === "link/inbound") {
-    return { state: { ...state, lastInbound: event.at }, intents: [], actions: [] };
+    return {
+      state: {
+        ...state,
+        lastInbound: event.at,
+        status: state.status === LinkStatus.STALE ? LinkStatus.ACTIVE : state.status
+      },
+      intents: [],
+      actions: []
+    };
   }
 
   if (event.kind === "link/keepalive-sent") {

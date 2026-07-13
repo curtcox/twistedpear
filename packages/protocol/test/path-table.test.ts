@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   PATHFINDER_MAX_HOPS,
+  PATH_REQUEST_MIN_INTERVAL,
   announceEmittedFromRandomBlob,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
+  shouldEmitPathRequest,
   stepPathTable,
   initialPathTableState
 } from "../src/path-table.js";
@@ -81,5 +83,14 @@ describe("protocol path table", () => {
       return { lastAdded: state.lastAdded, hops: state.entries.get("dest")?.hops };
     };
     expect(run()).toEqual(run());
+  });
+
+  it("throttles path-request emission by min interval", () => {
+    expect(
+      shouldEmitPathRequest({ lastRequestAt: 100, nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL - 1 })
+    ).toBe(false);
+    expect(
+      shouldEmitPathRequest({ lastRequestAt: 100, nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL })
+    ).toBe(true);
   });
 });

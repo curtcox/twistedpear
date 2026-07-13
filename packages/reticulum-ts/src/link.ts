@@ -603,13 +603,14 @@ export class Link {
       return;
     }
 
-    this.lastInbound = this.clock.now() / 1000;
+    this.applyWatchdogResult(
+      stepLinkWatchdogWithActions(this.snapshotWatchdogState(), {
+        kind: "link/inbound",
+        at: this.clock.now() / 1000
+      })
+    );
     if (packet.context !== PacketContext.KEEPALIVE) {
       this.lastData = this.lastInbound;
-    }
-
-    if (this.status === LinkStatus.STALE) {
-      this.status = LinkStatus.ACTIVE;
     }
 
     if (packet.packetType !== PacketType.DATA) {
