@@ -102,3 +102,8 @@ export function shouldDeferStreamRead(bufferLength: number, eof: boolean): boole
 export function shouldReturnStreamReadResult(copied: number, eof: boolean): boolean {
   return copied > 0 || eof;
 }
+
+/** Bytes to take from the current chunk into the remaining read window. */
+export function clampStreamChunkTake(chunkLength: number, remaining: number): number {
+  return Math.min(chunkLength, remaining);
+}

@@ -561,6 +561,7 @@ export {
   STREAM_DATA_MSGTYPE,
   STREAM_ID_MAX,
   StreamSystemMessageTypes,
+  clampStreamChunkTake,
   clampStreamDataChunkLength,
   clampStreamReadSize,
   packStreamDataMessage,

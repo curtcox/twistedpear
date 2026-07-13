@@ -3,6 +3,7 @@ import {
   STREAM_DATA_MSGTYPE,
   STREAM_ID_MAX,
   StreamSystemMessageTypes,
+  clampStreamChunkTake,
   clampStreamDataChunkLength,
   clampStreamReadSize,
   packStreamDataMessage,
@@ -64,5 +65,11 @@ describe("protocol stream data framing", () => {
     expect(shouldReturnStreamReadResult(0, false)).toBe(false);
     expect(shouldReturnStreamReadResult(0, true)).toBe(true);
     expect(shouldReturnStreamReadResult(3, false)).toBe(true);
+  });
+
+  it("clamps per-chunk take to remaining read window", () => {
+    expect(clampStreamChunkTake(100, 40)).toBe(40);
+    expect(clampStreamChunkTake(10, 40)).toBe(10);
+    expect(clampStreamChunkTake(0, 5)).toBe(0);
   });
 });
