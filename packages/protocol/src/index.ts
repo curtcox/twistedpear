@@ -103,6 +103,20 @@ export {
   type ResourceWatchdogStepResult
 } from "./resource-watchdog.js";
 export {
+  applyResourceStatusEvent,
+  canReceiveResourcePart,
+  canResourceContinueTransfer,
+  canRunResourceWatchdog,
+  canValidateResourceProof,
+  initialResourceStatusState,
+  isResourceComplete,
+  isResourceFailed,
+  isResourceTerminal,
+  stepResourceStatus,
+  type ResourceStatusEvent,
+  type ResourceStatusState
+} from "./resource-status.js";
+export {
   DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
   DELIVERY_RECEIPT_POLL_INTERVAL_MS,
   ReceiptPollStatus,

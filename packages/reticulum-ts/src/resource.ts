@@ -16,13 +16,20 @@ import {
   RESOURCE_WINDOW_MAX_SLOW,
   RESOURCE_WINDOW_MIN,
   ResourceStatus,
+  applyResourceStatusEvent,
   assembleByteArrays,
   assembleResourceHashmapBytes,
+  canReceiveResourcePart,
+  canResourceContinueTransfer,
+  canRunResourceWatchdog,
+  canValidateResourceProof,
   computeResourceTimeout,
   decodeResourceAdvertisementFlags,
   encodeResourceAdvertisementFlags,
+  initialResourceStatusState,
   isResourceAdvertisementRequest,
   isResourceAdvertisementResponse,
+  isResourceComplete,
   packResourceAdvertisement,
   packResourceHashmapUpdate,
   packResourceHashmapUpdatePacket,
@@ -44,6 +51,7 @@ import {
   stepResourceWatchdogWithActions,
   unpackResourceAdvertisement,
   unpackResourceHashmapUpdate,
+  type ResourceStatusEvent,
   type ResourceStatusValue,
   type ResourceWatchdogState,
   type ResourceWatchdogStepResult
@@ -440,7 +448,7 @@ export class Resource {
         }
       });
 
-      resource.status = ResourceStatus.TRANSFERRING;
+      resource.applyStatus({ kind: "resource/transferring" });
       resource.receivedParts.length = adv.n;
       resource.receivedParts.fill(null);
       resource.hashmap = new Array(adv.n).fill(null);
@@ -480,17 +488,17 @@ export class Resource {
   }
 
   isComplete(): boolean {
-    return this.status === ResourceStatus.COMPLETE;
+    return isResourceComplete(this.status);
   }
 
   async advertise(): Promise<void> {
     while (!this.link.readyForNewResource()) {
-      this.status = ResourceStatus.QUEUED;
+      this.applyStatus({ kind: "resource/queue" });
       await this.sleep(250);
     }
 
     const packed = new ResourceAdvertisement(this).pack();
-    this.status = ResourceStatus.ADVERTISED;
+    this.applyStatus({ kind: "resource/advertise" });
     this.advSent = this.link.linkTransport.clock.now() / 1000;
     this.startedTransferring = this.advSent;
     this.retriesLeft = RESOURCE_MAX_ADV_RETRIES;
@@ -509,11 +517,11 @@ export class Resource {
   }
 
   async handleRequest(requestData: Uint8Array): Promise<void> {
-    if (this.status === ResourceStatus.FAILED) {
+    if (!canResourceContinueTransfer(this.status)) {
       return;
     }
 
-    this.status = ResourceStatus.TRANSFERRING;
+    this.applyStatus({ kind: "resource/transferring" });
     this.retriesLeft = RESOURCE_MAX_RETRIES;
     this.startWatchdog();
 
@@ -560,12 +568,12 @@ export class Resource {
     }
 
     if (plan.status === "awaiting-proof") {
-      this.status = ResourceStatus.AWAITING_PROOF;
+      this.applyStatus({ kind: "resource/awaiting-proof" });
     }
   }
 
   hashmapUpdatePacket(plaintext: Uint8Array): void {
-    if (this.status === ResourceStatus.FAILED) {
+    if (!canResourceContinueTransfer(this.status)) {
       return;
     }
 
@@ -581,11 +589,11 @@ export class Resource {
   }
 
   hashmapUpdate(segment: number, hashmap: Uint8Array): void {
-    if (this.status === ResourceStatus.FAILED) {
+    if (!canResourceContinueTransfer(this.status)) {
       return;
     }
 
-    this.status = ResourceStatus.TRANSFERRING;
+    this.applyStatus({ kind: "resource/transferring" });
     const writes = planResourceHashmapSlotWrites({
       segment,
       hashmap,
@@ -603,7 +611,7 @@ export class Resource {
   }
 
   receivePart(packet: Packet): void {
-    if (this.status === ResourceStatus.FAILED || this.status === ResourceStatus.COMPLETE) {
+    if (!canReceiveResourcePart(this.status)) {
       return;
     }
 
@@ -643,7 +651,7 @@ export class Resource {
   }
 
   async requestNext(): Promise<void> {
-    if (this.status === ResourceStatus.FAILED || this.waitingForHashmap) {
+    if (!canResourceContinueTransfer(this.status) || this.waitingForHashmap) {
       return;
     }
 
@@ -661,23 +669,23 @@ export class Resource {
   }
 
   async assemble(): Promise<void> {
-    if (this.status === ResourceStatus.FAILED) {
+    if (!canResourceContinueTransfer(this.status)) {
       return;
     }
 
     try {
-      this.status = ResourceStatus.ASSEMBLING;
+      this.applyStatus({ kind: "resource/assemble" });
       const stream = assembleByteArrays(this.receivedParts.map((part) => part!));
       const decrypted = this.link.decrypt(stream);
       if (decrypted === null) {
-        this.status = ResourceStatus.CORRUPT;
+        this.applyStatus({ kind: "resource/corrupt" });
         this.cancel();
         return;
       }
 
       const payload = splitResourceDecryptedPayload(decrypted);
       if (payload === null) {
-        this.status = ResourceStatus.CORRUPT;
+        this.applyStatus({ kind: "resource/corrupt" });
         this.cancel();
         return;
       }
@@ -686,19 +694,19 @@ export class Resource {
         resourceHashMaterial(payload, this.randomHash)
       );
       if (!equalBytes(calculatedHash, this.hash)) {
-        this.status = ResourceStatus.CORRUPT;
+        this.applyStatus({ kind: "resource/corrupt" });
         this.cancel();
         return;
       }
 
       this.data = payload;
-      this.status = ResourceStatus.COMPLETE;
+      this.applyStatus({ kind: "resource/complete" });
       this.progress = 1;
       await this.prove();
       this.link.resourceConcluded(this);
       this.callbacks.callback?.(this);
     } catch {
-      this.status = ResourceStatus.CORRUPT;
+      this.applyStatus({ kind: "resource/corrupt" });
       this.cancel();
     }
   }
@@ -717,12 +725,12 @@ export class Resource {
   }
 
   validateProof(proofData: Uint8Array): void {
-    if (this.status === ResourceStatus.FAILED) {
+    if (!canValidateResourceProof(this.status)) {
       return;
     }
 
     if (isValidResourceProof(proofData, this.expectedProof)) {
-      this.status = ResourceStatus.COMPLETE;
+      this.applyStatus({ kind: "resource/complete" });
       this.progress = 1;
       this.link.resourceConcluded(this);
       this.callbacks.callback?.(this);
@@ -730,7 +738,7 @@ export class Resource {
   }
 
   cancel(): void {
-    this.status = ResourceStatus.FAILED;
+    this.applyStatus({ kind: "resource/fail" });
     this.stopWatchdog();
     this.link.resourceConcluded(this);
   }
@@ -761,7 +769,7 @@ export class Resource {
   }
 
   private async watchdogTick(): Promise<void> {
-    if (this.status === ResourceStatus.COMPLETE || this.status === ResourceStatus.FAILED) {
+    if (!canRunResourceWatchdog(this.status)) {
       return;
     }
 
@@ -785,6 +793,10 @@ export class Resource {
       receivedCount: this.receivedCount,
       totalParts: this.totalParts
     };
+  }
+
+  private applyStatus(event: ResourceStatusEvent): void {
+    this.status = applyResourceStatusEvent(initialResourceStatusState(this.status), event).status;
   }
 
   private applyWatchdogResult(result: ResourceWatchdogStepResult): void {

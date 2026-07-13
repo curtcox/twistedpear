@@ -95,8 +95,10 @@
 > fulfill: part send/resend + optional HMU + awaiting-proof) lives in protocol; `Resource`
 > adapts it. **`planLinkRelayTarget`** and **`isReverseEntryExpired`** live in protocol;
 > `TransportNode` adapts them (reverse-table timeout now applied). **`planPathOutbound`**
-> (wrap / direct / flood) lives in protocol; `LeafTransport` adapts it. Remaining depth work:
-> keep converting residual session IO into step machines.
+> (wrap / direct / flood) lives in protocol; `LeafTransport` adapts it. **`stepResourceStatus`**
+> (queue → advertise → transferring → awaiting-proof / assemble → complete/corrupt/failed +
+> gates) lives in protocol; `Resource` adapts it. Remaining depth work: keep converting
+> residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
