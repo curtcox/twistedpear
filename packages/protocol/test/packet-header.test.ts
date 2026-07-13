@@ -1,0 +1,97 @@
+import { describe, expect, it } from "vitest";
+import {
+  PACKET_CONTEXT_FLAG_SET,
+  PACKET_DEST_TYPE_SINGLE,
+  PACKET_HEADER_1,
+  PACKET_HEADER_2,
+  PACKET_TYPE_ANNOUNCE,
+  PACKET_TYPE_DATA,
+  TRANSPORT_BROADCAST,
+  TRANSPORT_ID_BYTES,
+  TRANSPORT_TRANSPORT,
+  decodePacketRaw,
+  encodePacketRaw,
+  packPacketFlags,
+  packetHashablePart,
+  unpackPacketFlags
+} from "../src/packet-header.js";
+
+describe("protocol packet header", () => {
+  const destinationHash = new Uint8Array(TRANSPORT_ID_BYTES).fill(1);
+  const transportId = new Uint8Array(TRANSPORT_ID_BYTES).fill(2);
+  const data = new Uint8Array([0xaa, 0xbb]);
+
+  it("packs and unpacks flags", () => {
+    const flags = packPacketFlags({
+      headerType: PACKET_HEADER_2,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_TRANSPORT,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_ANNOUNCE
+    });
+    expect(unpackPacketFlags(flags)).toEqual({
+      headerType: PACKET_HEADER_2,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_TRANSPORT,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_ANNOUNCE
+    });
+  });
+
+  it("round-trips HEADER_1 packets", () => {
+    const raw = encodePacketRaw({
+      headerType: PACKET_HEADER_1,
+      contextFlag: 0,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      hops: 3,
+      destinationHash,
+      context: 0,
+      data,
+      transportId: null
+    });
+    const decoded = decodePacketRaw(raw);
+    expect(decoded).not.toBeNull();
+    expect(decoded!.hops).toBe(3);
+    expect(decoded!.transportId).toBeNull();
+    expect([...decoded!.destinationHash]).toEqual([...destinationHash]);
+    expect([...decoded!.data]).toEqual([...data]);
+  });
+
+  it("round-trips HEADER_2 packets", () => {
+    const raw = encodePacketRaw({
+      headerType: PACKET_HEADER_2,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_TRANSPORT,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      hops: 1,
+      destinationHash,
+      context: 0x0b,
+      data,
+      transportId
+    });
+    const decoded = decodePacketRaw(raw);
+    expect([...decoded!.transportId!]).toEqual([...transportId]);
+    expect(decoded!.context).toBe(0x0b);
+  });
+
+  it("builds hashable parts with masked flags", () => {
+    const raw = encodePacketRaw({
+      headerType: PACKET_HEADER_1,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      hops: 0,
+      destinationHash,
+      context: 0,
+      data,
+      transportId: null
+    });
+    const part = packetHashablePart(raw, PACKET_HEADER_1);
+    expect(part[0]).toBe(raw[0]! & 0x0f);
+    expect([...part.subarray(1)]).toEqual([...raw.subarray(2)]);
+  });
+});

@@ -414,6 +414,24 @@ export {
   type PacketProofFields
 } from "./packet-proof.js";
 export {
+  PACKET_CONTEXT_FLAG_SET,
+  PACKET_CONTEXT_FLAG_UNSET,
+  PACKET_DEST_TYPE_GROUP,
+  PACKET_DEST_TYPE_LINK,
+  PACKET_DEST_TYPE_PLAIN,
+  PACKET_DEST_TYPE_SINGLE,
+  PACKET_TYPE_ANNOUNCE,
+  PACKET_TYPE_DATA,
+  PACKET_TYPE_LINKREQUEST,
+  PACKET_TYPE_PROOF,
+  decodePacketRaw,
+  encodePacketRaw,
+  packPacketFlags,
+  packetHashablePart,
+  unpackPacketFlags,
+  type PacketHeaderFields
+} from "./packet-header.js";
+export {
   PATH_REQUEST_HASH_BYTES,
   TRANSPORT_PATH_REQUEST_APP,
   TRANSPORT_PATH_REQUEST_ASPECTS,

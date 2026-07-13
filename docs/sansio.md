@@ -34,9 +34,10 @@
 > (build/parse/tag key) is a pure protocol leaf; transport path helpers adapt it.
 > **Announce payload framing** (pack/parse/signed material) and **packet proof framing**
 > (explicit/implicit) are pure protocol leaves; `Announce` and `Packet` adapt them.
-> Identity ratchet JSON and LXMF message text use protocol UTF-8 (no `TextEncoder`/
-> `TextDecoder`). Remaining depth work: keep converting residual session IO into step
-> machines.
+> **Packet header** encode/decode, flag packing, and hashable-part framing are pure
+> protocol leaves; `Packet` adapts them. Identity ratchet JSON and LXMF message text use
+> protocol UTF-8 (no `TextEncoder`/`TextDecoder`). Remaining depth work: keep converting
+> residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

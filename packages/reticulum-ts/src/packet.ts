@@ -1,5 +1,9 @@
 import {
+  decodePacketRaw,
+  encodePacketRaw,
+  packPacketFlags,
   packPacketProof,
+  packetHashablePart,
   packetProofHashMatches,
   splitPacketProof
 } from "@twistedpear/protocol";
@@ -160,76 +164,34 @@ export class Packet {
   }
 
   static decode(provider: CryptoProvider, raw: Uint8Array): Packet | null {
-    try {
-      if (raw.length < 2 + TRUNCATED_HASH_LENGTH / 8 + 1) {
-        return null;
-      }
-
-      const flags = raw[0]!;
-      const headerType = ((flags & 0b01000000) >> 6) as PacketHeaderTypeValue;
-      const contextFlag = ((flags & 0b00100000) >> 5) as PacketContextFlagValue;
-      const transportType = ((flags & 0b00010000) >> 4) as TransportTypeValue;
-      const destinationType = ((flags & 0b00001100) >> 2) as DestinationTypeValue;
-      const packetType = (flags & 0b00000011) as PacketTypeValue;
-      const hops = raw[1]!;
-      const hashLength = TRUNCATED_HASH_LENGTH / 8;
-
-      if (
-        !isHeaderType(headerType) ||
-        !isContextFlag(contextFlag) ||
-        !isTransportType(transportType) ||
-        !isDestinationType(destinationType) ||
-        !isPacketType(packetType)
-      ) {
-        return null;
-      }
-
-      if (headerType === PacketHeaderType.HEADER_2) {
-        if (raw.length < 2 + hashLength * 2 + 1) {
-          return null;
-        }
-
-        return new Packet(provider, {
-          headerType,
-          contextFlag,
-          transportType,
-          destinationType,
-          packetType,
-          hops,
-          transportId: raw.subarray(2, 2 + hashLength),
-          destinationHash: raw.subarray(2 + hashLength, 2 + hashLength * 2),
-          context: raw[2 + hashLength * 2]!,
-          data: raw.subarray(3 + hashLength * 2),
-          raw
-        });
-      }
-
-      return new Packet(provider, {
-        headerType,
-        contextFlag,
-        transportType,
-        destinationType,
-        packetType,
-        hops,
-        transportId: null,
-        destinationHash: raw.subarray(2, 2 + hashLength),
-        context: raw[2 + hashLength]!,
-        data: raw.subarray(3 + hashLength),
-        raw
-      });
-    } catch {
+    const decoded = decodePacketRaw(raw);
+    if (decoded === null) {
       return null;
     }
+
+    return new Packet(provider, {
+      headerType: decoded.headerType as PacketHeaderTypeValue,
+      contextFlag: decoded.contextFlag as PacketContextFlagValue,
+      transportType: decoded.transportType as TransportTypeValue,
+      destinationType: decoded.destinationType as DestinationTypeValue,
+      packetType: decoded.packetType as PacketTypeValue,
+      hops: decoded.hops,
+      transportId: decoded.transportId,
+      destinationHash: decoded.destinationHash,
+      context: decoded.context,
+      data: decoded.data,
+      raw
+    });
   }
 
   packedFlags(): number {
-    return (
-      (this.headerType << 6) |
-      (this.contextFlag << 5) |
-      (this.transportType << 4) |
-      (this.destinationType << 2) |
-      this.packetType
-    );
+    return packPacketFlags({
+      headerType: this.headerType,
+      contextFlag: this.contextFlag,
+      transportType: this.transportType,
+      destinationType: this.destinationType,
+      packetType: this.packetType
+    });
   }
 
   hash(): Uint8Array {
@@ -260,12 +222,7 @@ export class Packet {
   }
 
   hashablePart(): Uint8Array {
-    const maskedFlags = new Uint8Array([this.raw[0]! & 0b00001111]);
-    if (this.headerType === PacketHeaderType.HEADER_2) {
-      return concatBytes(maskedFlags, this.raw.subarray(TRUNCATED_HASH_LENGTH / 8 + 2));
-    }
-
-    return concatBytes(maskedFlags, this.raw.subarray(2));
+    return packetHashablePart(this.raw, this.headerType);
   }
 
   private static encodeRaw(fields: {
@@ -280,18 +237,7 @@ export class Packet {
     readonly data: Uint8Array;
     readonly transportId: Uint8Array | null;
   }): Uint8Array {
-    const flags =
-      (fields.headerType << 6) |
-      (fields.contextFlag << 5) |
-      (fields.transportType << 4) |
-      (fields.destinationType << 2) |
-      fields.packetType;
-    const header =
-      fields.headerType === PacketHeaderType.HEADER_2
-        ? concatBytes(new Uint8Array([flags, fields.hops]), fields.transportId!, fields.destinationHash)
-        : concatBytes(new Uint8Array([flags, fields.hops]), fields.destinationHash);
-
-    return concatBytes(header, new Uint8Array([fields.context]), fields.data);
+    return encodePacketRaw(fields);
   }
 }
 
@@ -329,17 +275,4 @@ function isPacketType(value: number): value is PacketTypeValue {
     value === PacketType.LINKREQUEST ||
     value === PacketType.PROOF
   );
-}
-
-function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  const length = parts.reduce((total, part) => total + part.length, 0);
-  const output = new Uint8Array(length);
-  let offset = 0;
-
-  for (const part of parts) {
-    output.set(part, offset);
-    offset += part.length;
-  }
-
-  return output;
 }
