@@ -3,13 +3,15 @@
  * No IO — time and bytes arrive only as event/parameters.
  */
 import type { Event, StepFn } from "@twistedpear/effects";
+import { TRUNCATED_HASH_BYTES } from "./hash-truncate.js";
+
+export { TRUNCATED_HASH_BYTES };
 
 export const PATHFINDER_MAX_HOPS = 128;
 export const PATHFINDER_EXPIRY_SECONDS = 60 * 60 * 24 * 7;
 export const PATH_REQUEST_TIMEOUT_SECONDS = 15;
 export const PATH_REQUEST_GRACE_MS = 400;
 export const PATH_REQUEST_MIN_INTERVAL = 20;
-export const TRUNCATED_HASH_BYTES = 16;
 
 export interface PathTableEntryView {
   readonly hops: number;

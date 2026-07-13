@@ -2,12 +2,13 @@
  * Pure RNS destination name expansion and hash-input material.
  * SHA truncation stays at the crypto adapter edge.
  */
+import { NAME_HASH_BYTES, TRUNCATED_HASH_BYTES } from "./hash-truncate.js";
 import { utf8Encode } from "./utf8.js";
 
 /** NAME_HASH_LENGTH (80 bits) / 8 */
-export const DESTINATION_NAME_HASH_BYTES = 10;
+export const DESTINATION_NAME_HASH_BYTES = NAME_HASH_BYTES;
 /** TRUNCATED_HASH_LENGTH (128 bits) / 8 */
-export const DESTINATION_IDENTITY_HASH_BYTES = 16;
+export const DESTINATION_IDENTITY_HASH_BYTES = TRUNCATED_HASH_BYTES;
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   const length = parts.reduce((total, part) => total + part.length, 0);

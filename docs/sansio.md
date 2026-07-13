@@ -64,8 +64,13 @@
 > **`rewritePacketHopsBytes`** frames forward/reverse relays; Link resource HMU/cancel
 > uses `splitResourceHashmapUpdatePacket`. Identity ratchet JSON, web-identity
 > passphrase bytes, and LXMF message text use protocol UTF-8 (no
-> `TextEncoder`/`TextDecoder`). Remaining depth work: keep converting residual session
-> IO into step machines.
+> `TextEncoder`/`TextDecoder`). **Hash truncation** (`truncateToTruncatedHash` /
+> `truncateToNameHash`), **packet context byte codes**, and **`utf8OrBytes`** are pure
+> protocol leaves; Identity/Destination/Announce/Packet, Link resource-proof matching,
+> and LXMF message text adapt them. **LXMF delivery sizes / MDU max-content** and
+> **peer-error code object** live in protocol; lxmf-ts re-exports aliases
+> (`DESTINATION_LENGTH`, `ENCRYPTED_PACKET_MAX_CONTENT`, `PeerError`, method/representation
+> enums). Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

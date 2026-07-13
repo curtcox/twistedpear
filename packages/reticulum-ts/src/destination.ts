@@ -2,11 +2,14 @@ import {
   destinationHashMaterial,
   destinationNameHashMaterial,
   expandDestinationName,
-  validateDestinationNamePart
+  truncateToNameHash,
+  truncateToTruncatedHash,
+  validateDestinationNamePart,
+  TRUNCATED_HASH_BYTES
 } from "@twistedpear/protocol";
 import { bytesToHex } from "./crypto/bytes.js";
 import type { CryptoProvider } from "./crypto/provider.js";
-import { Identity, NAME_HASH_LENGTH, TRUNCATED_HASH_LENGTH } from "./identity.js";
+import { Identity } from "./identity.js";
 
 /** Mirrors RNS/Destination.py destination types and hash derivation. */
 export const DestinationType = {
@@ -87,10 +90,7 @@ export class Destination {
   }
 
   static nameHash(provider: CryptoProvider, appName: string, ...aspects: ReadonlyArray<string>): Uint8Array {
-    return Identity.fullHash(provider, destinationNameHashMaterial(appName, aspects)).subarray(
-      0,
-      NAME_HASH_LENGTH / 8
-    );
+    return truncateToNameHash(Identity.fullHash(provider, destinationNameHashMaterial(appName, aspects)));
   }
 
   static hash(
@@ -101,9 +101,8 @@ export class Destination {
   ): Uint8Array {
     const nameHash = Destination.nameHash(provider, appName, ...aspects);
     const identityHash = identityHashBytes(identity);
-    return Identity.fullHash(provider, destinationHashMaterial(nameHash, identityHash)).subarray(
-      0,
-      TRUNCATED_HASH_LENGTH / 8
+    return truncateToTruncatedHash(
+      Identity.fullHash(provider, destinationHashMaterial(nameHash, identityHash))
     );
   }
 }
@@ -117,8 +116,8 @@ function identityHashBytes(identity: Identity | Uint8Array | null | undefined): 
     return identity.hash;
   }
 
-  if (identity.length !== TRUNCATED_HASH_LENGTH / 8) {
-    throw new Error(`Identity hash must be ${TRUNCATED_HASH_LENGTH / 8} bytes`);
+  if (identity.length !== TRUNCATED_HASH_BYTES) {
+    throw new Error(`Identity hash must be ${TRUNCATED_HASH_BYTES} bytes`);
   }
 
   return identity;

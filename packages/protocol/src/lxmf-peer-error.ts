@@ -7,6 +7,14 @@ export const LXMF_PEER_ERROR_NO_IDENTITY = 0xf0;
 export const LXMF_PEER_ERROR_NO_ACCESS = 0xf1;
 export const LXMF_PEER_ERROR_TIMEOUT = 0xfe;
 
+export const LxmfPeerError = {
+  NO_IDENTITY: LXMF_PEER_ERROR_NO_IDENTITY,
+  NO_ACCESS: LXMF_PEER_ERROR_NO_ACCESS,
+  TIMEOUT: LXMF_PEER_ERROR_TIMEOUT
+} as const;
+
+export type LxmfPeerErrorValue = (typeof LxmfPeerError)[keyof typeof LxmfPeerError];
+
 const KNOWN_PEER_ERRORS = new Set([
   LXMF_PEER_ERROR_NO_IDENTITY,
   LXMF_PEER_ERROR_NO_ACCESS

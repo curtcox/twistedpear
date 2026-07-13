@@ -1,5 +1,9 @@
 import {
   bytesToHexLower,
+  LXMF_ENCRYPTED_PACKET_MAX_CONTENT,
+  LXMF_ENCRYPTED_PACKET_MDU,
+  LXMF_LINK_PACKET_MAX_CONTENT,
+  LXMF_LINK_PACKET_MDU,
   lxmfContentSizeFromPackedLength,
   lxmfHashableMaterial,
   lxmfOpportunisticPayload,
@@ -9,7 +13,7 @@ import {
   planLxmfDelivery,
   splitLxmfWire,
   utf8Decode,
-  utf8Encode
+  utf8OrBytes
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import {
@@ -25,9 +29,6 @@ import {
   LXMessageRepresentation,
   LXMessageState,
   LXMessageUnverifiedReason,
-  SIGNATURE_LENGTH,
-  STRUCT_OVERHEAD,
-  TIMESTAMP_SIZE,
   type LXMessageFields,
   type LXMessageMethodValue,
   type LXMessageRepresentationValue,
@@ -38,14 +39,10 @@ import {
 import { msgpackPackLxmPayload, msgpackPackPropagationEnvelope, msgpackUnpackLxmPayload } from "./msgpack.js";
 
 /** Mirrors RNS/Packet.py encrypted MDU with LXMF timestamp allowance. */
-export const ENCRYPTED_PACKET_MDU = 391;
-export const ENCRYPTED_PACKET_MAX_CONTENT =
-  ENCRYPTED_PACKET_MDU -
-  (2 * DESTINATION_LENGTH + SIGNATURE_LENGTH + TIMESTAMP_SIZE + STRUCT_OVERHEAD) +
-  DESTINATION_LENGTH;
-export const LINK_PACKET_MDU = 431;
-export const LINK_PACKET_MAX_CONTENT =
-  LINK_PACKET_MDU - (2 * DESTINATION_LENGTH + SIGNATURE_LENGTH + TIMESTAMP_SIZE + STRUCT_OVERHEAD);
+export const ENCRYPTED_PACKET_MDU = LXMF_ENCRYPTED_PACKET_MDU;
+export const ENCRYPTED_PACKET_MAX_CONTENT = LXMF_ENCRYPTED_PACKET_MAX_CONTENT;
+export const LINK_PACKET_MDU = LXMF_LINK_PACKET_MDU;
+export const LINK_PACKET_MAX_CONTENT = LXMF_LINK_PACKET_MAX_CONTENT;
 
 export interface LXMessagePackOptions {
   readonly provider: CryptoProvider;
@@ -321,7 +318,7 @@ export function propagationDestinationHash(provider: CryptoProvider, identity: I
 }
 
 function encodeTextOrBytes(value: string | Uint8Array): Uint8Array {
-  return typeof value === "string" ? utf8Encode(value) : Uint8Array.from(value);
+  return utf8OrBytes(value);
 }
 
 export function rememberMessage(seen: Set<string>, message: LXMessage): void {

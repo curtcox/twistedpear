@@ -4,6 +4,9 @@ import {
   IDENTITY_KEY_SIZE as PROTOCOL_IDENTITY_KEY_SIZE,
   IDENTITY_RATCHET_BYTES,
   IDENTITY_RATCHET_EXPIRY_SECONDS,
+  NAME_HASH_BITS,
+  TRUNCATED_HASH_BITS,
+  TRUNCATED_HASH_BYTES,
   decodeIdentityRatchetRecord,
   encodeIdentityRatchetRecord,
   identityRatchetStoreKey,
@@ -15,7 +18,9 @@ import {
   splitIdentityCiphertext,
   splitIdentityEntropy,
   splitIdentityPrivateKey,
-  splitIdentityPublicKey
+  splitIdentityPublicKey,
+  truncateToNameHash,
+  truncateToTruncatedHash
 } from "@twistedpear/protocol";
 import { bytesToHex } from "./crypto/bytes.js";
 import { rnsHkdf } from "./crypto/hkdf.js";
@@ -26,8 +31,8 @@ import type { Entropy, KeyValueStore } from "./runtime/runtime.js";
 /** Mirrors RNS/Identity.py constants and core identity operations. */
 export const IDENTITY_KEY_SIZE = PROTOCOL_IDENTITY_KEY_SIZE;
 export const IDENTITY_HALF_KEY_SIZE = IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE;
-export const TRUNCATED_HASH_LENGTH = 128;
-export const NAME_HASH_LENGTH = 80;
+export const TRUNCATED_HASH_LENGTH = TRUNCATED_HASH_BITS;
+export const NAME_HASH_LENGTH = NAME_HASH_BITS;
 export const RATCHET_SIZE = IDENTITY_RATCHET_BYTES * 8;
 export const RATCHET_EXPIRY_SECONDS = IDENTITY_RATCHET_EXPIRY_SECONDS;
 
@@ -108,8 +113,8 @@ export class Identity {
 
   static getRandomHash(provider: CryptoProvider, entropy?: Entropy): Uint8Array {
     return entropy !== undefined
-      ? entropy.randomBytes(TRUNCATED_HASH_LENGTH / 8)
-      : provider.randomBytes(TRUNCATED_HASH_LENGTH / 8);
+      ? entropy.randomBytes(TRUNCATED_HASH_BYTES)
+      : provider.randomBytes(TRUNCATED_HASH_BYTES);
   }
 
   static fullHash(provider: CryptoProvider, data: Uint8Array): Uint8Array {
@@ -117,7 +122,7 @@ export class Identity {
   }
 
   static truncatedHash(provider: CryptoProvider, data: Uint8Array): Uint8Array {
-    return Identity.fullHash(provider, data).subarray(0, TRUNCATED_HASH_LENGTH / 8);
+    return truncateToTruncatedHash(Identity.fullHash(provider, data));
   }
 
   static ratchetPublicBytes(provider: CryptoProvider, ratchetPrivate: Uint8Array): Uint8Array {
@@ -125,7 +130,7 @@ export class Identity {
   }
 
   static ratchetId(provider: CryptoProvider, ratchetPublicBytes: Uint8Array): Uint8Array {
-    return Identity.fullHash(provider, ratchetPublicBytes).subarray(0, NAME_HASH_LENGTH / 8);
+    return truncateToNameHash(Identity.fullHash(provider, ratchetPublicBytes));
   }
 
   static rememberRatchet(

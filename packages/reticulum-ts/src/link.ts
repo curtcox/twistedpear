@@ -39,6 +39,8 @@ import {
   splitLinkRequestData,
   splitResourceHashmapUpdatePacket,
   splitResponderLinkEntropy,
+  splitResourceProof,
+  RESOURCE_PROOF_SIZE,
   stepLinkWatchdogWithActions,
   utf8Encode,
   type LinkWatchdogState,
@@ -1157,7 +1159,10 @@ export class Link {
   }
 
   async handleResourceProof(packet: Packet): Promise<void> {
-    const resourceHash = packet.data.subarray(0, 32);
+    if (packet.data.length !== RESOURCE_PROOF_SIZE) {
+      return;
+    }
+    const { resourceHash } = splitResourceProof(packet.data);
     for (const resource of this.outgoingResourcesList) {
       if (equalBytes(resource.hash, resourceHash)) {
         resource.validateProof(packet.data);

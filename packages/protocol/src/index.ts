@@ -107,7 +107,6 @@ export {
   PATH_REQUEST_GRACE_MS,
   PATH_REQUEST_MIN_INTERVAL,
   PATH_REQUEST_TIMEOUT_SECONDS,
-  TRUNCATED_HASH_BYTES,
   announceEmittedFromRandomBlob,
   computePathExpiry,
   equalByteArrays,
@@ -345,7 +344,22 @@ export {
   msgpackUnpackLinkResponse,
   msgpackUnpackLinkResponseTuple
 } from "./link-request-codec.js";
-export { utf8Decode, utf8Encode } from "./utf8.js";
+export { utf8Decode, utf8Encode, utf8OrBytes } from "./utf8.js";
+export {
+  NAME_HASH_BITS,
+  NAME_HASH_BYTES,
+  TRUNCATED_HASH_BITS,
+  TRUNCATED_HASH_BYTES,
+  truncateHashBytes,
+  truncateToNameHash,
+  truncateToTruncatedHash
+} from "./hash-truncate.js";
+export {
+  PACKET_CONTEXT_NONE,
+  PACKET_CONTEXT_PATH_RESPONSE,
+  PacketContextCode,
+  type PacketContextCodeValue
+} from "./packet-context.js";
 export { assembleByteArrays, concatByteArrays } from "./bytes.js";
 export {
   INTERFACE_RECONNECT_TIMER_ID,
@@ -440,8 +454,6 @@ export {
   wrapTransportPacketBytes
 } from "./transport-framing.js";
 export {
-  PACKET_CONTEXT_NONE,
-  PACKET_CONTEXT_PATH_RESPONSE,
   planClonePacketWithHops,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
@@ -490,6 +502,11 @@ export {
 export { PKCS7_BLOCK_SIZE, pkcs7Pad, pkcs7Unpad } from "./pkcs7.js";
 export {
   LXMF_DESTINATION_LENGTH,
+  LXMF_ENCRYPTED_PACKET_MAX_CONTENT,
+  LXMF_ENCRYPTED_PACKET_MDU,
+  LXMF_LINK_PACKET_MAX_CONTENT,
+  LXMF_LINK_PACKET_MDU,
+  LXMF_OVERHEAD,
   LXMF_SIGNATURE_LENGTH,
   LXMF_STRUCT_OVERHEAD,
   LXMF_TIMESTAMP_SIZE,
@@ -546,7 +563,9 @@ export {
   LXMF_PEER_ERROR_NO_ACCESS,
   LXMF_PEER_ERROR_NO_IDENTITY,
   LXMF_PEER_ERROR_TIMEOUT,
-  decodeLxmfPeerError
+  LxmfPeerError,
+  decodeLxmfPeerError,
+  type LxmfPeerErrorValue
 } from "./lxmf-peer-error.js";
 export {
   IDENTITY_RATCHET_BYTES,

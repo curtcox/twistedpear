@@ -3,14 +3,17 @@
  * Packet construction and identity hashing stay at the adapter edge.
  */
 import {
+  PACKET_CONTEXT_PATH_RESPONSE,
+  PACKET_CONTEXT_NONE
+} from "./packet-context.js";
+import {
   PACKET_HEADER_2,
   PACKET_TYPE_ANNOUNCE,
   type PacketHeaderFields
 } from "./packet-header.js";
 import { TRANSPORT_TRANSPORT } from "./transport-framing.js";
 
-export const PACKET_CONTEXT_NONE = 0x00;
-export const PACKET_CONTEXT_PATH_RESPONSE = 0x0b;
+export { PACKET_CONTEXT_NONE, PACKET_CONTEXT_PATH_RESPONSE };
 
 export interface TransportAnnounceSource {
   readonly contextFlag: number;

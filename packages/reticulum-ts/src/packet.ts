@@ -5,11 +5,14 @@ import {
   packPacketProof,
   packetHashablePart,
   packetProofHashMatches,
-  splitPacketProof
+  PacketContextCode,
+  splitPacketProof,
+  truncateToTruncatedHash,
+  TRUNCATED_HASH_BYTES
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { DestinationType, type DestinationTypeValue } from "./destination.js";
-import { Identity, TRUNCATED_HASH_LENGTH } from "./identity.js";
+import { Identity } from "./identity.js";
 
 /** Mirrors RNS/Packet.py packet and header wire constants. */
 export const PacketType = {
@@ -28,29 +31,7 @@ export const PacketHeaderType = {
 
 export type PacketHeaderTypeValue = (typeof PacketHeaderType)[keyof typeof PacketHeaderType];
 
-export const PacketContext = {
-  NONE: 0x00,
-  RESOURCE: 0x01,
-  RESOURCE_ADV: 0x02,
-  RESOURCE_REQ: 0x03,
-  RESOURCE_HMU: 0x04,
-  RESOURCE_PRF: 0x05,
-  RESOURCE_ICL: 0x06,
-  RESOURCE_RCL: 0x07,
-  CACHE_REQUEST: 0x08,
-  REQUEST: 0x09,
-  RESPONSE: 0x0a,
-  PATH_RESPONSE: 0x0b,
-  COMMAND: 0x0c,
-  COMMAND_STATUS: 0x0d,
-  CHANNEL: 0x0e,
-  KEEPALIVE: 0xfa,
-  LINKIDENTIFY: 0xfb,
-  LINKCLOSE: 0xfc,
-  LINKPROOF: 0xfd,
-  LRRTT: 0xfe,
-  LRPROOF: 0xff
-} as const;
+export const PacketContext = PacketContextCode;
 
 export const PacketContextFlag = {
   UNSET: 0x00,
@@ -203,7 +184,7 @@ export class Packet {
   }
 
   proofDestinationHash(): Uint8Array {
-    return this.hash().subarray(0, TRUNCATED_HASH_LENGTH / 8);
+    return truncateToTruncatedHash(this.hash());
   }
 
   createProof(identity: Identity, options: PacketProofOptions = {}): Uint8Array {
@@ -242,8 +223,8 @@ export class Packet {
 }
 
 function validateHash(value: Uint8Array, label: string): void {
-  if (value.length !== TRUNCATED_HASH_LENGTH / 8) {
-    throw new Error(`${label} must be ${TRUNCATED_HASH_LENGTH / 8} bytes`);
+  if (value.length !== TRUNCATED_HASH_BYTES) {
+    throw new Error(`${label} must be ${TRUNCATED_HASH_BYTES} bytes`);
   }
 }
 

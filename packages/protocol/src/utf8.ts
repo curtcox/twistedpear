@@ -63,3 +63,8 @@ export function utf8Decode(bytes: Uint8Array): string {
   }
   return out;
 }
+
+/** Encode a string as UTF-8, or copy an existing byte array. */
+export function utf8OrBytes(value: string | Uint8Array): Uint8Array {
+  return typeof value === "string" ? utf8Encode(value) : Uint8Array.from(value);
+}

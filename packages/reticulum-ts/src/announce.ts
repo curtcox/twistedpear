@@ -5,11 +5,12 @@ import {
   announceDestinationHashMatches,
   announceSignedMaterial,
   packAnnouncePayload,
-  parseAnnouncePayload
+  parseAnnouncePayload,
+  truncateToTruncatedHash
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { Destination, DestinationDirection, DestinationType } from "./destination.js";
-import { Identity, TRUNCATED_HASH_LENGTH } from "./identity.js";
+import { Identity } from "./identity.js";
 import type { Entropy } from "./runtime/runtime.js";
 import {
   Packet,
@@ -152,10 +153,9 @@ export class Announce {
       return true;
     }
 
-    const expectedHash = Identity.fullHash(
-      provider,
-      announceDestinationHashMaterial(parsed.nameHash, identity.hash)
-    ).subarray(0, TRUNCATED_HASH_LENGTH / 8);
+    const expectedHash = truncateToTruncatedHash(
+      Identity.fullHash(provider, announceDestinationHashMaterial(parsed.nameHash, identity.hash))
+    );
     return announceDestinationHashMatches(parsed.destinationHash, expectedHash);
   }
 }

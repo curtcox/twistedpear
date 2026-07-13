@@ -1,26 +1,28 @@
 /** Mirrors LXMF/LXMF.py and LXMF/LXMessage.py constants. */
 
+import {
+  LXMF_DESTINATION_LENGTH,
+  LXMF_OVERHEAD as PROTOCOL_LXMF_OVERHEAD,
+  LXMF_SIGNATURE_LENGTH,
+  LXMF_STRUCT_OVERHEAD,
+  LXMF_TIMESTAMP_SIZE,
+  LxmfDeliveryMethod,
+  LxmfDeliveryRepresentation,
+  LxmfPeerError,
+  type LxmfDeliveryMethodValue,
+  type LxmfDeliveryRepresentationValue,
+  type LxmfPeerErrorValue
+} from "@twistedpear/protocol";
+
 export { LxmfMessageState as LXMessageState, type LxmfMessageStateValue as LXMessageStateValue } from "@twistedpear/protocol";
 
 export const APP_NAME = "lxmf";
 
-export const LXMessageRepresentation = {
-  UNKNOWN: 0x00,
-  PACKET: 0x01,
-  RESOURCE: 0x02
-} as const;
+export const LXMessageRepresentation = LxmfDeliveryRepresentation;
+export type LXMessageRepresentationValue = LxmfDeliveryRepresentationValue;
 
-export type LXMessageRepresentationValue =
-  (typeof LXMessageRepresentation)[keyof typeof LXMessageRepresentation];
-
-export const LXMessageMethod = {
-  OPPORTUNISTIC: 0x01,
-  DIRECT: 0x02,
-  PROPAGATED: 0x03,
-  PAPER: 0x05
-} as const;
-
-export type LXMessageMethodValue = (typeof LXMessageMethod)[keyof typeof LXMessageMethod];
+export const LXMessageMethod = LxmfDeliveryMethod;
+export type LXMessageMethodValue = LxmfDeliveryMethodValue;
 
 export const LXMessageUnverifiedReason = {
   SOURCE_UNKNOWN: 0x01,
@@ -31,23 +33,19 @@ export type LXMessageUnverifiedReasonValue =
   (typeof LXMessageUnverifiedReason)[keyof typeof LXMessageUnverifiedReason];
 
 /** Mirrors LXMF/LXMessage.py size constants. */
-export const DESTINATION_LENGTH = 16;
-export const SIGNATURE_LENGTH = 64;
-export const TIMESTAMP_SIZE = 8;
-export const STRUCT_OVERHEAD = 8;
-export const LXMF_OVERHEAD =
-  2 * DESTINATION_LENGTH + SIGNATURE_LENGTH + TIMESTAMP_SIZE + STRUCT_OVERHEAD;
+export const DESTINATION_LENGTH = LXMF_DESTINATION_LENGTH;
+export const SIGNATURE_LENGTH = LXMF_SIGNATURE_LENGTH;
+export const TIMESTAMP_SIZE = LXMF_TIMESTAMP_SIZE;
+export const STRUCT_OVERHEAD = LXMF_STRUCT_OVERHEAD;
+export const LXMF_OVERHEAD = PROTOCOL_LXMF_OVERHEAD;
 
 /** Mirrors LXMF/LXMPeer.py request paths. */
 export const MESSAGE_GET_PATH = "/get";
 export const OFFER_REQUEST_PATH = "/offer";
 
 /** Mirrors LXMF/LXMPeer.py error codes. */
-export const PeerError = {
-  NO_IDENTITY: 0xf0,
-  NO_ACCESS: 0xf1,
-  TIMEOUT: 0xfe
-} as const;
+export const PeerError = LxmfPeerError;
+export type PeerErrorValue = LxmfPeerErrorValue;
 
 /** Mirrors LXMF/LXMRouter.py propagation transfer states. */
 export {

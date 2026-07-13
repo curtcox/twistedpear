@@ -27,6 +27,27 @@ export const LXMF_SIGNATURE_LENGTH = 64;
 export const LXMF_TIMESTAMP_SIZE = 8;
 export const LXMF_STRUCT_OVERHEAD = 8;
 
+/** Full LXMF structural overhead (dest×2 + signature + timestamp + struct). */
+export const LXMF_OVERHEAD =
+  2 * LXMF_DESTINATION_LENGTH +
+  LXMF_SIGNATURE_LENGTH +
+  LXMF_TIMESTAMP_SIZE +
+  LXMF_STRUCT_OVERHEAD;
+
+/** Mirrors LXMF encrypted / link packet MDUs. */
+export const LXMF_ENCRYPTED_PACKET_MDU = 391;
+export const LXMF_LINK_PACKET_MDU = 431;
+
+/**
+ * Max opportunistic content that fits an encrypted packet.
+ * Opportunistic frames omit one destination hash from the wire envelope.
+ */
+export const LXMF_ENCRYPTED_PACKET_MAX_CONTENT =
+  LXMF_ENCRYPTED_PACKET_MDU - LXMF_OVERHEAD + LXMF_DESTINATION_LENGTH;
+
+/** Max direct/propagated content that fits a link packet. */
+export const LXMF_LINK_PACKET_MAX_CONTENT = LXMF_LINK_PACKET_MDU - LXMF_OVERHEAD;
+
 export function lxmfContentSizeFromPackedLength(
   packedLength: number,
   destinationLength: number = LXMF_DESTINATION_LENGTH,

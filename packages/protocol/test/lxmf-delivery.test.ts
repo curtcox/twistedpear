@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  LXMF_ENCRYPTED_PACKET_MAX_CONTENT,
+  LXMF_ENCRYPTED_PACKET_MDU,
+  LXMF_LINK_PACKET_MAX_CONTENT,
+  LXMF_LINK_PACKET_MDU,
+  LXMF_OVERHEAD,
   LxmfDeliveryMethod,
   LxmfDeliveryRepresentation,
   lxmfContentSizeFromPackedLength,
@@ -10,6 +15,16 @@ describe("protocol lxmf delivery", () => {
   it("computes content size from packed length", () => {
     // 2*16 + 64 + 8 + 8 + 10 content = 122
     expect(lxmfContentSizeFromPackedLength(122)).toBe(10);
+  });
+
+  it("exposes encrypted and link packet max-content sizes", () => {
+    expect(LXMF_OVERHEAD).toBe(2 * 16 + 64 + 8 + 8);
+    expect(LXMF_ENCRYPTED_PACKET_MDU).toBe(391);
+    expect(LXMF_LINK_PACKET_MDU).toBe(431);
+    expect(LXMF_ENCRYPTED_PACKET_MAX_CONTENT).toBe(
+      LXMF_ENCRYPTED_PACKET_MDU - LXMF_OVERHEAD + 16
+    );
+    expect(LXMF_LINK_PACKET_MAX_CONTENT).toBe(LXMF_LINK_PACKET_MDU - LXMF_OVERHEAD);
   });
 
   it("plans opportunistic and direct representations", () => {
