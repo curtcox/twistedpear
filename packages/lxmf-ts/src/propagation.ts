@@ -1,6 +1,7 @@
 import {
   PROPAGATION_LINK_TIMEOUT_MS,
   PropagationTransferState,
+  decodeLxmfPeerError,
   initialPropagationTransferState,
   planPropagationGet,
   stepPropagationTransferWithActions,
@@ -19,15 +20,13 @@ import {
 } from "@twistedpear/reticulum-ts";
 import {
   APP_NAME,
-  MESSAGE_GET_PATH,
-  PeerError
+  MESSAGE_GET_PATH
 } from "./constants.js";
 import { LXMessage } from "./message.js";
 import {
   msgpackPackArray,
   msgpackPackBin,
   msgpackPackPropagationRequest,
-  msgpackUnpack,
   msgpackUnpackMessageList,
   msgpackUnpackPropagationEnvelope,
   msgpackUnpackPropagationRequest,
@@ -113,7 +112,7 @@ export class PropagationClient {
           return { state: this.state, messages: [] };
         }
 
-        const listError = decodePeerError(listResponse);
+        const listError = decodeLxmfPeerError(listResponse);
         if (listError !== null) {
           this.applyTransfer({ kind: "xfer/list-peer-error", code: listError });
           return { state: this.state, messages: [] };
@@ -408,17 +407,4 @@ async function awaitLinkRequest(
         }
       });
   });
-}
-
-function decodePeerError(response: Uint8Array): number | null {
-  try {
-    const value = msgpackUnpack(response);
-    if (value.type === "int" && (value.int === PeerError.NO_IDENTITY || value.int === PeerError.NO_ACCESS)) {
-      return value.int;
-    }
-  } catch {
-    // Not an error payload.
-  }
-
-  return null;
 }

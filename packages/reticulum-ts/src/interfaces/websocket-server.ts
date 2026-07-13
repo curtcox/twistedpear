@@ -3,6 +3,12 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { extname, join, normalize, sep } from "node:path";
 import type { Duplex } from "node:stream";
+import {
+  WS_OPCODE_BINARY,
+  WS_OPCODE_CLOSE,
+  decodeWsClientFrame,
+  encodeWsBinaryFrame
+} from "@twistedpear/protocol";
 import type { CryptoProvider } from "../crypto/provider.js";
 import type { Reticulum } from "../reticulum.js";
 import type { Runtime } from "../runtime/runtime.js";
@@ -241,7 +247,7 @@ class NodeWebSocketConnection implements WebSocketLike {
       throw new Error("WebSocket is closed");
     }
 
-    this.socket.write(encodeServerBinaryFrame(data));
+    this.socket.write(Buffer.from(encodeWsBinaryFrame(data)));
   }
 
   close(): void {
@@ -271,18 +277,18 @@ class NodeWebSocketConnection implements WebSocketLike {
     this.buffer = Buffer.concat([this.buffer, chunk]);
 
     while (true) {
-      const frame = decodeClientFrame(this.buffer);
+      const frame = decodeWsClientFrame(this.buffer);
       if (frame === null) {
         return;
       }
 
       this.buffer = this.buffer.subarray(frame.consumed);
-      if (frame.opcode === 0x8) {
+      if (frame.opcode === WS_OPCODE_CLOSE) {
         this.close();
         return;
       }
 
-      if (frame.opcode === 0x2) {
+      if (frame.opcode === WS_OPCODE_BINARY) {
         this.emit("message", { data: Uint8Array.from(frame.payload) });
       }
     }
@@ -326,72 +332,6 @@ function webSocketUpgradeResponse(key: string, protocol?: string): string {
 
   lines.push("", "");
   return lines.join("\r\n");
-}
-
-function encodeServerBinaryFrame(data: Uint8Array): Buffer {
-  const payload = Buffer.from(data);
-  if (payload.length < 126) {
-    return Buffer.concat([Buffer.from([0x82, payload.length]), payload]);
-  }
-
-  if (payload.length <= 0xffff) {
-    const header = Buffer.alloc(4);
-    header[0] = 0x82;
-    header[1] = 126;
-    header.writeUInt16BE(payload.length, 2);
-    return Buffer.concat([header, payload]);
-  }
-
-  const header = Buffer.alloc(10);
-  header[0] = 0x82;
-  header[1] = 127;
-  header.writeBigUInt64BE(BigInt(payload.length), 2);
-  return Buffer.concat([header, payload]);
-}
-
-function decodeClientFrame(buffer: Buffer): { readonly opcode: number; readonly payload: Buffer; readonly consumed: number } | null {
-  if (buffer.length < 2) {
-    return null;
-  }
-
-  const opcode = buffer[0]! & 0x0f;
-  const masked = (buffer[1]! & 0x80) !== 0;
-  let length = buffer[1]! & 0x7f;
-  let offset = 2;
-
-  if (length === 126) {
-    if (buffer.length < offset + 2) {
-      return null;
-    }
-
-    length = buffer.readUInt16BE(offset);
-    offset += 2;
-  } else if (length === 127) {
-    if (buffer.length < offset + 8) {
-      return null;
-    }
-
-    const bigLength = buffer.readBigUInt64BE(offset);
-    if (bigLength > BigInt(Number.MAX_SAFE_INTEGER)) {
-      throw new Error("WebSocket frame too large");
-    }
-
-    length = Number(bigLength);
-    offset += 8;
-  }
-
-  if (!masked || buffer.length < offset + 4 + length) {
-    return null;
-  }
-
-  const mask = buffer.subarray(offset, offset + 4);
-  offset += 4;
-  const payload = Buffer.from(buffer.subarray(offset, offset + length));
-  for (let index = 0; index < payload.length; index += 1) {
-    payload[index] = payload[index]! ^ mask[index % 4]!;
-  }
-
-  return { opcode, payload, consumed: offset + length };
 }
 
 export function isWebSocketClientInterface(value: PacketInterface): value is WebSocketClientInterface {

@@ -471,6 +471,26 @@ export {
 } from "./token-framing.js";
 export { stampCostFromAppData } from "./stamp-cost.js";
 export {
+  IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE,
+  packIdentityCiphertext,
+  splitIdentityCiphertext,
+  type IdentityCiphertextFields
+} from "./identity-ciphertext.js";
+export {
+  WS_FIN_BINARY,
+  WS_OPCODE_BINARY,
+  WS_OPCODE_CLOSE,
+  decodeWsClientFrame,
+  encodeWsBinaryFrame,
+  type WsBinaryFrame
+} from "./websocket-frame.js";
+export {
+  LXMF_PEER_ERROR_NO_ACCESS,
+  LXMF_PEER_ERROR_NO_IDENTITY,
+  LXMF_PEER_ERROR_TIMEOUT,
+  decodeLxmfPeerError
+} from "./lxmf-peer-error.js";
+export {
   PATH_REQUEST_HASH_BYTES,
   TRANSPORT_PATH_REQUEST_APP,
   TRANSPORT_PATH_REQUEST_ASPECTS,

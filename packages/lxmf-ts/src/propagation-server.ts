@@ -1,5 +1,6 @@
 import {
   allowClientRequest as checkClientRateLimit,
+  decodeLxmfPeerError,
   initialPersistDebounceState,
   planPropagationGet,
   planPropagationStore,
@@ -23,11 +24,8 @@ import {
   msgpackPackArray,
   msgpackPackUInt,
   msgpackPackBin,
-  msgpackUnpack,
-  msgpackUnpackMessageList,
   msgpackUnpackPropagationEnvelope,
-  msgpackUnpackPropagationRequest,
-  msgpackUnpackTransientIdList
+  msgpackUnpackPropagationRequest
 } from "./msgpack.js";
 
 export interface PropagationServerQuotas {
@@ -357,14 +355,5 @@ export class PropagationServer {
 }
 
 export function decodePropagationPeerError(response: Uint8Array): number | null {
-  try {
-    const value = msgpackUnpack(response);
-    if (value.type === "int" && (value.int === PeerError.NO_IDENTITY || value.int === PeerError.NO_ACCESS)) {
-      return value.int;
-    }
-  } catch {
-    // Not an error payload.
-  }
-
-  return null;
+  return decodeLxmfPeerError(response);
 }

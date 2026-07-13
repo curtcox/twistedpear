@@ -1,4 +1,12 @@
-import { IDENTITY_KEY_ENTROPY_SIZE, splitIdentityEntropy, utf8Decode, utf8Encode } from "@twistedpear/protocol";
+import {
+  IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE,
+  IDENTITY_KEY_ENTROPY_SIZE,
+  packIdentityCiphertext,
+  splitIdentityCiphertext,
+  splitIdentityEntropy,
+  utf8Decode,
+  utf8Encode
+} from "@twistedpear/protocol";
 import { bytesToHex } from "./crypto/bytes.js";
 import { rnsHkdf } from "./crypto/hkdf.js";
 import type { CryptoProvider } from "./crypto/provider.js";
@@ -7,7 +15,7 @@ import type { Entropy, KeyValueStore } from "./runtime/runtime.js";
 
 /** Mirrors RNS/Identity.py constants and core identity operations. */
 export const IDENTITY_KEY_SIZE = 64;
-export const IDENTITY_HALF_KEY_SIZE = 32;
+export const IDENTITY_HALF_KEY_SIZE = IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE;
 export const TRUNCATED_HASH_LENGTH = 128;
 export const NAME_HASH_LENGTH = 80;
 export const RATCHET_SIZE = 256;
@@ -269,18 +277,19 @@ export class Identity {
       ...(options.tokenIv === undefined ? {} : { iv: options.tokenIv }),
       ...(options.entropy === undefined ? {} : { entropy: options.entropy })
     });
-    return concatBytes(ephemeralPublicBytes, ciphertext);
+    return packIdentityCiphertext(ephemeralPublicBytes, ciphertext);
   }
 
   decrypt(ciphertextToken: Uint8Array, options: DecryptOptions = {}): DecryptResult {
     this.requirePrivateKey();
 
-    if (ciphertextToken.length <= IDENTITY_HALF_KEY_SIZE) {
+    const split = splitIdentityCiphertext(ciphertextToken);
+    if (split === null) {
       return { plaintext: null, ratchetId: null };
     }
 
-    const peerPublicBytes = ciphertextToken.subarray(0, IDENTITY_HALF_KEY_SIZE);
-    const ciphertext = ciphertextToken.subarray(IDENTITY_HALF_KEY_SIZE);
+    const peerPublicBytes = split.ephemeralPublicKey;
+    const ciphertext = split.tokenCiphertext;
     let plaintext: Uint8Array | null = null;
     let ratchetId: Uint8Array | null = null;
 

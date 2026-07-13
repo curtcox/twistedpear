@@ -41,9 +41,12 @@
 > extraction** from announce app-data are pure protocol leaves; Token and LXMF router
 > adapt them. **Resource receive-part planning**, **LXMF outer wire framing**, and
 > PacketReceipt proof validation via packet-proof helpers are pure protocol leaves.
-> Identity ratchet JSON, web-identity passphrase bytes, and LXMF message text use
-> protocol UTF-8 (no `TextEncoder`/`TextDecoder`). Remaining depth work: keep
-> converting residual session IO into step machines.
+> **Identity ciphertext** (ephemeral public || Token), **WS binary frame**
+> encode/decode, and **LXMF peer-error** msgpack decode are pure protocol leaves;
+> Identity, websocket-server, and propagation adapters use them. Identity ratchet JSON,
+> web-identity passphrase bytes, and LXMF message text use protocol UTF-8 (no
+> `TextEncoder`/`TextDecoder`). Remaining depth work: keep converting residual session
+> IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
