@@ -40,6 +40,11 @@ export function shouldEnqueueDecodedPacket(packetPresent: boolean): boolean {
   return packetPresent;
 }
 
+/** Whether a pushed packet should be delivered immediately to a waiting iterator. */
+export function shouldDeliverQueuedPacket(waiterPresent: boolean): boolean {
+  return waiterPresent;
+}
+
 export type InterfaceReconnectPlan =
   | { readonly kind: "reconnect"; readonly delayMs: number; readonly attempt: number }
   | { readonly kind: "give-up"; readonly attempt: number };

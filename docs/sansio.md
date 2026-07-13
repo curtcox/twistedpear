@@ -139,6 +139,7 @@
 > **`shouldEnqueueRawInterfaceFrame`** lives in protocol; `RawPacketInterface.decodeIncoming` adapts it.
 > **`shouldConsumeStreamChunk`** lives in protocol; `RawChannelReader.read` chunk-consume branch adapts it.
 > **`shouldEnqueueDecodedPacket`** lives in protocol; `AbstractPacketInterface.receiveBytes` adapts it.
+> **`shouldDeliverQueuedPacket`** lives in protocol; `AsyncPacketQueue.push` adapts it.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

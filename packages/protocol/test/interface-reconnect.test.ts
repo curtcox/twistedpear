@@ -8,6 +8,7 @@ import {
   isValidInterfaceName,
   packetFitsInterfaceMtu,
   planInterfaceReconnect,
+  shouldDeliverQueuedPacket,
   shouldEnqueueDecodedPacket,
   shouldEnqueueRawInterfaceFrame,
   stepInterfaceReconnectWithActions
@@ -44,6 +45,11 @@ describe("protocol interface reconnect", () => {
   it("skips null decoded packets", () => {
     expect(shouldEnqueueDecodedPacket(false)).toBe(false);
     expect(shouldEnqueueDecodedPacket(true)).toBe(true);
+  });
+
+  it("delivers queued packets to waiting iterators", () => {
+    expect(shouldDeliverQueuedPacket(true)).toBe(true);
+    expect(shouldDeliverQueuedPacket(false)).toBe(false);
   });
 
   it("schedules reconnects with default wait", () => {

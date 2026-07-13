@@ -3,6 +3,7 @@ import {
   isInterfaceClosed,
   isValidInterfaceName,
   packetFitsInterfaceMtu,
+  shouldDeliverQueuedPacket,
   shouldEnqueueDecodedPacket,
   shouldEnqueueRawInterfaceFrame
 } from "@twistedpear/protocol";
@@ -136,8 +137,8 @@ class AsyncPacketQueue implements AsyncIterable<Packet> {
 
   push(packet: Packet): void {
     const waiter = this.waiters.shift();
-    if (waiter !== undefined) {
-      waiter({ done: false, value: packet });
+    if (shouldDeliverQueuedPacket(waiter !== undefined)) {
+      waiter!({ done: false, value: packet });
       return;
     }
 
@@ -145,7 +146,7 @@ class AsyncPacketQueue implements AsyncIterable<Packet> {
   }
 
   close(): void {
-    if (this.closed) {
+    if (isInterfaceClosed(this.closed)) {
       return;
     }
 
