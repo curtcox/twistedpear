@@ -10,6 +10,7 @@ import {
   shouldAppendStreamData,
   shouldConsumeStreamChunk,
   shouldDeferStreamRead,
+  shouldMarkStreamEof,
   shouldReturnStreamReadResult,
   unpackStreamDataMessage
 } from "../src/stream-data.js";
@@ -77,5 +78,10 @@ describe("protocol stream data framing", () => {
   it("consumes a chunk when take equals chunk length", () => {
     expect(shouldConsumeStreamChunk(10, 10)).toBe(true);
     expect(shouldConsumeStreamChunk(5, 10)).toBe(false);
+  });
+
+  it("marks reader EOF from stream-data eof flag", () => {
+    expect(shouldMarkStreamEof(true)).toBe(true);
+    expect(shouldMarkStreamEof(false)).toBe(false);
   });
 });

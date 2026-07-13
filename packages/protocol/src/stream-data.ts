@@ -112,3 +112,8 @@ export function clampStreamChunkTake(chunkLength: number, remaining: number): nu
 export function shouldConsumeStreamChunk(take: number, chunkLength: number): boolean {
   return take === chunkLength;
 }
+
+/** Whether an inbound stream-data message should mark the reader EOF. */
+export function shouldMarkStreamEof(eof: boolean): boolean {
+  return eof;
+}

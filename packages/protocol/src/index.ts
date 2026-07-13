@@ -576,6 +576,7 @@ export {
   shouldAppendStreamData,
   shouldConsumeStreamChunk,
   shouldDeferStreamRead,
+  shouldMarkStreamEof,
   shouldReturnStreamReadResult,
   unpackStreamDataMessage,
   type StreamDataFields,

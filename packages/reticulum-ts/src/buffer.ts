@@ -8,6 +8,7 @@ import {
   shouldAppendStreamData,
   shouldConsumeStreamChunk,
   shouldDeferStreamRead,
+  shouldMarkStreamEof,
   shouldReturnStreamReadResult,
   unpackStreamDataMessage
 } from "@twistedpear/protocol";
@@ -90,7 +91,7 @@ export class RawChannelReader {
         this.append(message.data);
       }
 
-      if (message.eof) {
+      if (shouldMarkStreamEof(message.eof)) {
         this.eof = true;
       }
 
