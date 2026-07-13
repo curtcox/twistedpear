@@ -6,6 +6,7 @@ import {
   clampStreamChunkTake,
   clampStreamDataChunkLength,
   clampStreamReadSize,
+  isStreamIdAssigned,
   packStreamDataMessage,
   shouldAppendStreamData,
   shouldConsumeStreamChunk,
@@ -83,5 +84,10 @@ describe("protocol stream data framing", () => {
   it("marks reader EOF from stream-data eof flag", () => {
     expect(shouldMarkStreamEof(true)).toBe(true);
     expect(shouldMarkStreamEof(false)).toBe(false);
+  });
+
+  it("requires an assigned stream id for packing", () => {
+    expect(isStreamIdAssigned(true)).toBe(true);
+    expect(isStreamIdAssigned(false)).toBe(false);
   });
 });

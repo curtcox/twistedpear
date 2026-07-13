@@ -582,6 +582,7 @@ export {
   shouldMarkStreamEof,
   shouldReturnStreamReadResult,
   unpackStreamDataMessage,
+  isStreamIdAssigned,
   type StreamDataFields,
   type StreamSystemMessageTypeValue
 } from "./stream-data.js";

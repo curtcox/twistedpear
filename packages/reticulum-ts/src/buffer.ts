@@ -4,6 +4,7 @@ import {
   clampStreamChunkTake,
   clampStreamDataChunkLength,
   clampStreamReadSize,
+  isStreamIdAssigned,
   packStreamDataMessage,
   shouldAppendStreamData,
   shouldConsumeStreamChunk,
@@ -46,12 +47,12 @@ export class StreamDataMessage implements ChannelMessage {
   }
 
   pack(): Uint8Array {
-    if (this.streamId === null) {
+    if (!isStreamIdAssigned(this.streamId !== null)) {
       throw new Error("stream_id is required");
     }
 
     return packStreamDataMessage({
-      streamId: this.streamId,
+      streamId: this.streamId!,
       data: this.data,
       eof: this.eof,
       compressed: this.compressed

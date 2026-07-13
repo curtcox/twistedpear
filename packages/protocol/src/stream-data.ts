@@ -117,3 +117,8 @@ export function shouldConsumeStreamChunk(take: number, chunkLength: number): boo
 export function shouldMarkStreamEof(eof: boolean): boolean {
   return eof;
 }
+
+/** Whether a stream id has been assigned for packing. */
+export function isStreamIdAssigned(streamIdPresent: boolean): boolean {
+  return streamIdPresent;
+}
