@@ -26,6 +26,7 @@ import {
 import {
   DestinationAllowPolicyCode,
   canAcceptDestinationLinkRequest,
+  canAnnounceDestination,
   isValidDestinationRequestPath,
   utf8Encode,
   type DestinationAllowPolicyCodeValue
@@ -206,7 +207,12 @@ export class RegisteredDestination extends Destination {
       throw new Error("Destination is not attached to a Reticulum instance");
     }
 
-    if (this.type !== DestinationType.SINGLE || this.direction !== DestinationDirection.IN) {
+    if (
+      !canAnnounceDestination({
+        typeSingle: this.type === DestinationType.SINGLE,
+        directionIn: this.direction === DestinationDirection.IN
+      })
+    ) {
       throw new Error("Only IN SINGLE destinations can be announced");
     }
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DestinationAllowPolicyCode,
   canAcceptDestinationLinkRequest,
+  canAnnounceDestination,
   isValidDestinationRequestPath,
   planDestinationRequestAllow
 } from "../src/destination-allow.js";
@@ -55,6 +56,12 @@ describe("destination allow policy", () => {
     expect(
       canAcceptDestinationLinkRequest({ acceptLinkRequests: true, directionIn: false })
     ).toBe(false);
+  });
+
+  it("allows announces only for IN SINGLE destinations", () => {
+    expect(canAnnounceDestination({ typeSingle: true, directionIn: true })).toBe(true);
+    expect(canAnnounceDestination({ typeSingle: false, directionIn: true })).toBe(false);
+    expect(canAnnounceDestination({ typeSingle: true, directionIn: false })).toBe(false);
   });
 });
 

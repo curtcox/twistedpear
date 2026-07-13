@@ -25,6 +25,14 @@ export function canAcceptDestinationLinkRequest(input: {
   return input.acceptLinkRequests && input.directionIn;
 }
 
+/** Whether this destination may emit announces (IN SINGLE only). */
+export function canAnnounceDestination(input: {
+  readonly typeSingle: boolean;
+  readonly directionIn: boolean;
+}): boolean {
+  return input.typeSingle && input.directionIn;
+}
+
 export function planDestinationRequestAllow(input: {
   readonly allow: number;
   readonly allowedList: ReadonlyArray<Uint8Array>;

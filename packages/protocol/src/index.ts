@@ -60,6 +60,7 @@ export {
 export {
   DestinationAllowPolicyCode,
   canAcceptDestinationLinkRequest,
+  canAnnounceDestination,
   isValidDestinationRequestPath,
   planDestinationRequestAllow,
   type DestinationAllowPolicyCodeValue
