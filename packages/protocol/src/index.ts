@@ -68,6 +68,7 @@ export {
   type DestinationProofStrategyCodeValue
 } from "./destination-proof.js";
 export {
+  linkReadyForNewResource,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
   type LinkResourceAcceptPlan

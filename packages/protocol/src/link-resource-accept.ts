@@ -28,3 +28,8 @@ export function planLinkResourceAccept(
 export function planLinkResourceAcceptAppResult(appAccepted: boolean): "accept" | "reject" {
   return appAccepted ? "accept" : "reject";
 }
+
+/** Whether the link may start another outbound resource transfer (no outgoing in flight). */
+export function linkReadyForNewResource(outgoingCount: number): boolean {
+  return outgoingCount === 0;
+}

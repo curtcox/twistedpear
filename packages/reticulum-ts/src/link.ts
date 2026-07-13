@@ -38,6 +38,7 @@ import {
   computeLinkMdu,
   computeLinkRequestTimeout,
   computeLinkRttSeconds,
+  linkReadyForNewResource,
   containsResourceHash,
   deriveRnsLinkKey,
   encodeLinkMtuBytes,
@@ -802,7 +803,7 @@ export class Link {
   }
 
   readyForNewResource(): boolean {
-    return this.outgoingResourcesList.length === 0;
+    return linkReadyForNewResource(this.outgoingResourcesList.length);
   }
 
   registerOutgoingResource(resource: Resource): void {

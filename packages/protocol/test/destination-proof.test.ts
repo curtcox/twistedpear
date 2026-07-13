@@ -4,6 +4,7 @@ import {
   planDestinationProof
 } from "../src/destination-proof.js";
 import {
+  linkReadyForNewResource,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult
 } from "../src/link-resource-accept.js";
@@ -40,6 +41,12 @@ describe("link resource accept planning", () => {
     expect(planLinkResourceAccept(LinkResourceStrategy.ACCEPT_ALL)).toEqual({ kind: "accept" });
     expect(planLinkResourceAcceptAppResult(true)).toBe("accept");
     expect(planLinkResourceAcceptAppResult(false)).toBe("reject");
+  });
+
+  it("gates new outbound resources on empty outgoing count", () => {
+    expect(linkReadyForNewResource(0)).toBe(true);
+    expect(linkReadyForNewResource(1)).toBe(false);
+    expect(linkReadyForNewResource(3)).toBe(false);
   });
 });
 
