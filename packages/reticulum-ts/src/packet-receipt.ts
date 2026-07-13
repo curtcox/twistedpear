@@ -1,5 +1,8 @@
-import { checkPacketReceiptTimeout } from "@twistedpear/protocol";
-import { equalBytes } from "./crypto/bytes.js";
+import {
+  checkPacketReceiptTimeout,
+  packetProofHashMatches,
+  splitPacketProof
+} from "@twistedpear/protocol";
 import type { Identity } from "./identity.js";
 import { Packet, PacketType } from "./packet.js";
 import type { Timer } from "./runtime/runtime.js";
@@ -60,37 +63,20 @@ export class PacketReceipt {
   }
 
   validateProof(proof: Uint8Array, identity: Identity): boolean {
-    if (proof.length === EXPLICIT_PROOF_LENGTH) {
-      const proofHash = proof.subarray(0, 32);
-      const signature = proof.subarray(32);
-      if (!equalBytes(proofHash, this.hash)) {
-        return false;
-      }
-
-      if (!identity.validate(signature, this.hash)) {
-        return false;
-      }
-
-      this.status = PacketReceiptStatus.DELIVERED;
-      this.proved = true;
-      this.concludedAt = this.now();
-      this.callbacks.delivery?.(this);
-      return true;
+    const split = splitPacketProof(proof);
+    if (split === null || !packetProofHashMatches(split, this.hash)) {
+      return false;
     }
 
-    if (proof.length === IMPLICIT_PROOF_LENGTH) {
-      if (!identity.validate(proof, this.hash)) {
-        return false;
-      }
-
-      this.status = PacketReceiptStatus.DELIVERED;
-      this.proved = true;
-      this.concludedAt = this.now();
-      this.callbacks.delivery?.(this);
-      return true;
+    if (!identity.validate(split.signature, this.hash)) {
+      return false;
     }
 
-    return false;
+    this.status = PacketReceiptStatus.DELIVERED;
+    this.proved = true;
+    this.concludedAt = this.now();
+    this.callbacks.delivery?.(this);
+    return true;
   }
 
   validateProofPacket(proofPacket: Packet, identity: Identity): boolean {

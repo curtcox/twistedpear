@@ -1,6 +1,11 @@
 import {
   lxmfContentSizeFromPackedLength,
+  lxmfHashableMaterial,
+  lxmfOpportunisticPayload,
+  lxmfSignedMaterial,
+  packLxmfWire,
   planLxmfDelivery,
+  splitLxmfWire,
   utf8Decode,
   utf8Encode
 } from "@twistedpear/protocol";
@@ -141,24 +146,17 @@ export class LXMessage {
   }
 
   static unpackFromBytes(lxmfBytes: Uint8Array, options: LXMessageUnpackOptions): LXMessage {
-    if (lxmfBytes.length < 2 * DESTINATION_LENGTH + SIGNATURE_LENGTH + 1) {
+    const wire = splitLxmfWire(lxmfBytes);
+    if (wire === null) {
       throw new Error("LXMF bytes too short");
     }
 
-    const destinationHash = lxmfBytes.subarray(0, DESTINATION_LENGTH);
-    const sourceHash = lxmfBytes.subarray(DESTINATION_LENGTH, 2 * DESTINATION_LENGTH);
-    const signature = lxmfBytes.subarray(
-      2 * DESTINATION_LENGTH,
-      2 * DESTINATION_LENGTH + SIGNATURE_LENGTH
-    );
-
-    const { timestamp, title, content, fields, stamp } = msgpackUnpackLxmPayload(
-      lxmfBytes.subarray(2 * DESTINATION_LENGTH + SIGNATURE_LENGTH)
-    );
+    const { destinationHash, sourceHash, signature, payload } = wire;
+    const { timestamp, title, content, fields, stamp } = msgpackUnpackLxmPayload(payload);
     const payloadWithoutStamp = msgpackPackLxmPayload(timestamp, title, content, fields);
-    const hashedPart = concatBytes(destinationHash, sourceHash, payloadWithoutStamp);
+    const hashedPart = lxmfHashableMaterial(destinationHash, sourceHash, payloadWithoutStamp);
     const messageHash = Identity.fullHash(options.provider, hashedPart);
-    const signedPart = concatBytes(hashedPart, messageHash);
+    const signedPart = lxmfSignedMaterial(hashedPart, messageHash);
 
     const sourceIdentity = options.sourceIdentity ?? Identity.recall(options.provider, sourceHash);
     const destinationIdentity = Identity.recall(options.provider, destinationHash);
@@ -229,7 +227,7 @@ export class LXMessage {
     }
 
     const payloadCore = msgpackPackLxmPayload(this.timestamp, this.title, this.content, this.fields);
-    const hashedPart = concatBytes(this.destination.hash, this.source.hash, payloadCore);
+    const hashedPart = lxmfHashableMaterial(this.destination.hash, this.source.hash, payloadCore);
     this.hash = Identity.fullHash(provider, hashedPart);
 
     let stamp: Uint8Array | null = null;
@@ -238,12 +236,17 @@ export class LXMessage {
     }
 
     const payload = msgpackPackLxmPayload(this.timestamp, this.title, this.content, this.fields, stamp);
-    const signedPart = concatBytes(hashedPart, this.hash);
+    const signedPart = lxmfSignedMaterial(hashedPart, this.hash);
     this.signature = this.source.identity.sign(signedPart);
     this.signatureValidated = true;
     this.stamp = stamp;
 
-    this.packed = concatBytes(this.destination.hash, this.source.hash, this.signature, payload);
+    this.packed = packLxmfWire({
+      destinationHash: this.destination.hash,
+      sourceHash: this.source.hash,
+      signature: this.signature,
+      payload
+    });
     this.selectDeliveryParameters(provider);
   }
 
@@ -260,7 +263,7 @@ export class LXMessage {
       throw new Error("LXMessage must be packed before extracting opportunistic payload");
     }
 
-    return this.packed.subarray(DESTINATION_LENGTH);
+    return lxmfOpportunisticPayload(this.packed);
   }
 
   private selectDeliveryParameters(provider: CryptoProvider): void {

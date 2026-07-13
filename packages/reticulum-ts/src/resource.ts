@@ -15,6 +15,7 @@ import {
   parseResourcePartRequest,
   planResourceHashmapSlotWrites,
   planResourcePartRequest,
+  planResourceReceivePart,
   readResourceRequestHash,
   resourceHashmapMaxLen,
   isValidResourceProof,
@@ -610,34 +611,31 @@ export class Resource {
       RESOURCE_MAPHASH_LEN
     );
 
-    let index = Math.max(this.consecutiveCompletedHeight + 1, 0);
-    const searchEnd = Math.min(index + this.window, this.hashmap.length);
-    for (; index < searchEnd; index += 1) {
-      const mapHash = this.hashmap[index];
-      if (mapHash !== null && mapHash !== undefined && equalBytes(mapHash, partHash) && this.receivedParts[index] === null) {
-        this.receivedParts[index] = Uint8Array.from(partData);
-        this.receivedCount += 1;
-        this.outstandingParts -= 1;
-        if (index === this.consecutiveCompletedHeight + 1) {
-          this.consecutiveCompletedHeight = index;
-        }
+    const plan = planResourceReceivePart({
+      partHash,
+      hashmap: this.hashmap,
+      receivedParts: this.receivedParts,
+      consecutiveCompletedHeight: this.consecutiveCompletedHeight,
+      window: this.window,
+      receivedCount: this.receivedCount,
+      outstandingParts: this.outstandingParts,
+      totalParts: this.totalParts,
+      assemblyStarted: this.assemblyStarted
+    });
 
-        let cursor = this.consecutiveCompletedHeight + 1;
-        while (cursor < this.receivedParts.length && this.receivedParts[cursor] !== null) {
-          this.consecutiveCompletedHeight = cursor;
-          cursor += 1;
-        }
-
-        this.progress = this.receivedCount / this.totalParts;
-        this.callbacks.progressCallback?.(this);
-        break;
-      }
+    if (plan.matched && plan.slot !== null) {
+      this.receivedParts[plan.slot] = Uint8Array.from(partData);
+      this.receivedCount = plan.receivedCount;
+      this.outstandingParts = plan.outstandingParts;
+      this.consecutiveCompletedHeight = plan.consecutiveCompletedHeight;
+      this.progress = plan.progress;
+      this.callbacks.progressCallback?.(this);
     }
 
-    if (this.receivedCount === this.totalParts && !this.assemblyStarted) {
+    if (plan.shouldAssemble) {
       this.assemblyStarted = true;
       void this.assemble();
-    } else if (this.outstandingParts === 0) {
+    } else if (plan.shouldRequestNext) {
       void this.requestNext();
     }
   }

@@ -9,6 +9,7 @@ import {
   msgpackUnpack,
   type MsgpackValue
 } from "./msgpack-core.js";
+import { equalByteArrays } from "./path-table.js";
 
 export const RESOURCE_MAPHASH_LEN = 4;
 export const RESOURCE_HASH_SIZE = 32;
@@ -211,5 +212,87 @@ export function planResourcePartRequest(input: {
     outstandingParts,
     waitingForHashmap,
     requestData: concatBytes(requestPrefix, input.resourceHash, ...requestedHashes)
+  };
+}
+
+export interface ResourceReceivePartPlan {
+  readonly matched: boolean;
+  readonly slot: number | null;
+  readonly consecutiveCompletedHeight: number;
+  readonly receivedCount: number;
+  readonly outstandingParts: number;
+  readonly progress: number;
+  readonly shouldAssemble: boolean;
+  readonly shouldRequestNext: boolean;
+}
+
+/**
+ * Plan accepting a received part into the windowed hashmap.
+ * Hashing of part data stays at the adapter edge.
+ */
+export function planResourceReceivePart(input: {
+  readonly partHash: Uint8Array;
+  readonly hashmap: ReadonlyArray<Uint8Array | null>;
+  readonly receivedParts: ReadonlyArray<Uint8Array | null>;
+  readonly consecutiveCompletedHeight: number;
+  readonly window: number;
+  readonly receivedCount: number;
+  readonly outstandingParts: number;
+  readonly totalParts: number;
+  readonly assemblyStarted: boolean;
+}): ResourceReceivePartPlan {
+  let consecutiveCompletedHeight = input.consecutiveCompletedHeight;
+  let receivedCount = input.receivedCount;
+  let outstandingParts = input.outstandingParts;
+  let matched = false;
+  let slot: number | null = null;
+
+  let index = Math.max(consecutiveCompletedHeight + 1, 0);
+  const searchEnd = Math.min(index + input.window, input.hashmap.length);
+  for (; index < searchEnd; index += 1) {
+    const mapHash = input.hashmap[index];
+    if (
+      mapHash !== null &&
+      mapHash !== undefined &&
+      equalByteArrays(mapHash, input.partHash) &&
+      input.receivedParts[index] === null
+    ) {
+      matched = true;
+      slot = index;
+      receivedCount += 1;
+      outstandingParts -= 1;
+      if (index === consecutiveCompletedHeight + 1) {
+        consecutiveCompletedHeight = index;
+      }
+
+      let cursor = consecutiveCompletedHeight + 1;
+      while (cursor < input.receivedParts.length) {
+        // After placing the current part, treat this slot as filled for contiguous scan.
+        const filled =
+          cursor === index ||
+          (input.receivedParts[cursor] !== null && input.receivedParts[cursor] !== undefined);
+        if (!filled) {
+          break;
+        }
+        consecutiveCompletedHeight = cursor;
+        cursor += 1;
+      }
+      break;
+    }
+  }
+
+  const progress = input.totalParts === 0 ? 0 : receivedCount / input.totalParts;
+  const shouldAssemble = receivedCount === input.totalParts && !input.assemblyStarted;
+  const shouldRequestNext = !shouldAssemble && outstandingParts === 0;
+
+  return {
+    matched,
+    slot,
+    consecutiveCompletedHeight,
+    receivedCount,
+    outstandingParts,
+    progress,
+    shouldAssemble,
+    shouldRequestNext
   };
 }

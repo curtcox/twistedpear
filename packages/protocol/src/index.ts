@@ -363,13 +363,15 @@ export {
   parseResourcePartRequest,
   planResourceHashmapSlotWrites,
   planResourcePartRequest,
+  planResourceReceivePart,
   readResourceRequestHash,
   resourceHashmapMaxLen,
   splitResourceHashmapUpdatePacket,
   unpackResourceHashmapUpdate,
   type ResourceHashmapSlotWrite,
   type ResourcePartRequest,
-  type ResourcePartRequestPlan
+  type ResourcePartRequestPlan,
+  type ResourceReceivePartPlan
 } from "./resource-hashmap.js";
 export {
   RESOURCE_PROOF_HASH_SIZE,
@@ -445,6 +447,15 @@ export {
   type LxmfDeliveryPlan,
   type LxmfDeliveryRepresentationValue
 } from "./lxmf-delivery.js";
+export {
+  LXMF_WIRE_HEADER_SIZE,
+  lxmfHashableMaterial,
+  lxmfOpportunisticPayload,
+  lxmfSignedMaterial,
+  packLxmfWire,
+  splitLxmfWire,
+  type LxmfWireFields
+} from "./lxmf-wire.js";
 export {
   TOKEN_HMAC_SIZE,
   TOKEN_IV_SIZE,

@@ -8,6 +8,7 @@ import {
   parseResourcePartRequest,
   planResourceHashmapSlotWrites,
   planResourcePartRequest,
+  planResourceReceivePart,
   readResourceRequestHash,
   resourceHashmapMaxLen,
   splitResourceHashmapUpdatePacket,
@@ -110,5 +111,27 @@ describe("protocol resource hashmap", () => {
     expect(exhausted.outstandingParts).toBe(0);
     expect(exhausted.requestData[0]).toBe(RESOURCE_HASHMAP_IS_EXHAUSTED);
     expect([...exhausted.requestData.subarray(1, 5)]).toEqual([...last]);
+  });
+
+  it("plans receiving a part in-window and advances consecutive height", () => {
+    const mapHash = new Uint8Array([1, 2, 3, 4]);
+    const plan = planResourceReceivePart({
+      partHash: mapHash,
+      hashmap: [mapHash, new Uint8Array([5, 6, 7, 8])],
+      receivedParts: [null, null],
+      consecutiveCompletedHeight: -1,
+      window: 4,
+      receivedCount: 0,
+      outstandingParts: 1,
+      totalParts: 2,
+      assemblyStarted: false
+    });
+    expect(plan.matched).toBe(true);
+    expect(plan.slot).toBe(0);
+    expect(plan.consecutiveCompletedHeight).toBe(0);
+    expect(plan.receivedCount).toBe(1);
+    expect(plan.outstandingParts).toBe(0);
+    expect(plan.shouldRequestNext).toBe(true);
+    expect(plan.shouldAssemble).toBe(false);
   });
 });
