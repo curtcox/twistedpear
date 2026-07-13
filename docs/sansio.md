@@ -178,6 +178,11 @@
 > **`shouldHandleOutgoingResourceRequest`** / **`shouldHandleIncomingResourceByHash`**
 > live in protocol; `Link` resource REQ/HMU/cancel/proof dispatch adapts them.
 > **`planLxmfSendMethod`** lives in protocol; `LXMFRouter.send` adapts it.
+> **`planChannelSend`** lives in protocol; `Channel.send` adapts it.
+> **`canPerformLinkHandshake`**, **`canProveLink`**, **`canAcceptLinkRequestOwner`**,
+> **`planLinkAppRequest`**, and **`canSendLinkAppResponse`** live in protocol; `Link`
+> adapts them. **`shouldAcceptLinkTeardown`** lives in protocol; LINKCLOSE handling
+> adapts it. **`canValidateLinkProof`** also gates destination presence.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

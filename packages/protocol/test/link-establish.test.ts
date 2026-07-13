@@ -9,20 +9,25 @@ import {
   mtuFromLinkProofData,
   splitLinkProofBody
 } from "../src/link-proof.js";
-import { LinkStatus } from "../src/link-watchdog.js";
 import {
   applyLinkEstablishEvent,
+  canAcceptLinkRequestOwner,
   canIdentifyOnLink,
   canLinkRequest,
   canLinkSend,
+  canPerformLinkHandshake,
+  canProveLink,
+  canSendLinkAppResponse,
   canValidateLinkProof,
   computeLinkRttSeconds,
   initialLinkEstablishState,
   isLinkClosed,
   mergeLinkRtt,
+  planLinkAppRequest,
   shouldAcceptLinkPacketInterface,
   shouldEncryptLinkPayload
 } from "../src/link-establish.js";
+import { LinkStatus } from "../src/link-watchdog.js";
 
 describe("protocol link proof framing", () => {
   it("classifies proof payload sizes", () => {
@@ -58,14 +63,87 @@ describe("protocol link establish", () => {
   it("gates proof validation and identify", () => {
     expect(canValidateLinkProof({ status: LinkStatus.PENDING, initiator: true })).toBe(true);
     expect(canValidateLinkProof({ status: LinkStatus.PENDING, initiator: false })).toBe(false);
+    expect(
+      canValidateLinkProof({
+        status: LinkStatus.PENDING,
+        initiator: true,
+        destinationPresent: false
+      })
+    ).toBe(false);
     expect(canIdentifyOnLink({ status: LinkStatus.ACTIVE, initiator: true })).toBe(true);
     expect(canIdentifyOnLink({ status: LinkStatus.ACTIVE, initiator: false })).toBe(false);
+  });
+
+  it("gates handshake / prove / request-owner material", () => {
+    expect(
+      canPerformLinkHandshake({
+        status: LinkStatus.PENDING,
+        privateKeyPresent: true,
+        peerPublicKeyPresent: true
+      })
+    ).toBe(true);
+    expect(
+      canPerformLinkHandshake({
+        status: LinkStatus.HANDSHAKE,
+        privateKeyPresent: true,
+        peerPublicKeyPresent: true
+      })
+    ).toBe(false);
+    expect(
+      canPerformLinkHandshake({
+        status: LinkStatus.PENDING,
+        privateKeyPresent: false,
+        peerPublicKeyPresent: true
+      })
+    ).toBe(false);
+    expect(
+      canProveLink({
+        ownerPresent: true,
+        publicKeyPresent: true,
+        ownerIdentityPresent: true
+      })
+    ).toBe(true);
+    expect(
+      canProveLink({
+        ownerPresent: true,
+        publicKeyPresent: true,
+        ownerIdentityPresent: false
+      })
+    ).toBe(false);
+    expect(canAcceptLinkRequestOwner(true)).toBe(true);
+    expect(canAcceptLinkRequestOwner(false)).toBe(false);
   });
 
   it("gates application requests on ACTIVE with RTT", () => {
     expect(canLinkRequest({ status: LinkStatus.ACTIVE, rtt: 0.1 })).toBe(true);
     expect(canLinkRequest({ status: LinkStatus.ACTIVE, rtt: null })).toBe(false);
     expect(canLinkRequest({ status: LinkStatus.PENDING, rtt: 0.1 })).toBe(false);
+    expect(
+      planLinkAppRequest({
+        status: LinkStatus.ACTIVE,
+        rtt: 0.1,
+        packedLength: 10,
+        mdu: 100
+      })
+    ).toBe("send");
+    expect(
+      planLinkAppRequest({
+        status: LinkStatus.ACTIVE,
+        rtt: null,
+        packedLength: 10,
+        mdu: 100
+      })
+    ).toBe("reject");
+    expect(
+      planLinkAppRequest({
+        status: LinkStatus.ACTIVE,
+        rtt: 0.1,
+        packedLength: 200,
+        mdu: 100
+      })
+    ).toBe("reject");
+    expect(canSendLinkAppResponse({ packedLength: 10, mdu: 100 })).toBe(true);
+    expect(canSendLinkAppResponse({ packedLength: 200, mdu: 100 })).toBe(false);
   });
 
   it("gates sends on ACTIVE only", () => {

@@ -11,6 +11,7 @@ import {
   initialChannelWindowState,
   isChannelOutletTransmitOk,
   planChannelPacketTimeout,
+  planChannelSend,
   shouldExtendPacketReceiptTimeout,
   indexOfChannelTxEnvelope,
   stepChannelWindow
@@ -67,6 +68,37 @@ describe("protocol channel window", () => {
     expect(channelAllowsSend({ isUsable: false, outstanding: 0, window: 2 })).toBe(false);
     expect(channelRetryExhausted(5, 5)).toBe(true);
     expect(channelRetryExhausted(4, 5)).toBe(false);
+  });
+
+  it("plans channel send ready / too-big / proceed", () => {
+    expect(
+      planChannelSend({
+        ready: false,
+        packedLength: null,
+        mdu: 100
+      })
+    ).toBe("link-not-ready");
+    expect(
+      planChannelSend({
+        ready: true,
+        packedLength: null,
+        mdu: 100
+      })
+    ).toBe("proceed");
+    expect(
+      planChannelSend({
+        ready: true,
+        packedLength: 50,
+        mdu: 100
+      })
+    ).toBe("proceed");
+    expect(
+      planChannelSend({
+        ready: true,
+        packedLength: 200,
+        mdu: 100
+      })
+    ).toBe("too-big");
   });
 
   it("gates outlet transmit results", () => {

@@ -38,3 +38,11 @@ export function planLinkTeardownReason(input: {
     ? LinkTeardownReason.INITIATOR_CLOSED
     : LinkTeardownReason.DESTINATION_CLOSED;
 }
+
+/** Whether a decrypted LINKCLOSE payload is acceptable for this link. */
+export function shouldAcceptLinkTeardown(input: {
+  readonly plaintextPresent: boolean;
+  readonly linkIdMatches: boolean;
+}): boolean {
+  return input.plaintextPresent && input.linkIdMatches;
+}

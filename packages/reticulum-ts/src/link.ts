@@ -27,12 +27,15 @@ import {
   RESOURCE_PROOF_SIZE,
   applyLinkEstablishEvent,
   canAcceptLinkIdentify,
+  canAcceptLinkRequestOwner,
   canAcceptLinkRtt,
   canIdentifyOnLink,
-  canLinkHandshake,
   canLinkRequest,
   canLinkSend,
+  canPerformLinkHandshake,
+  canProveLink,
   canRequestLinkDestination,
+  canSendLinkAppResponse,
   canValidateLinkProof,
   classifyLinkProofPayload,
   computeLinkEstablishmentTimeout,
@@ -50,7 +53,6 @@ import {
   isLinkModeEnabled,
   linkHopsMatch,
   linkIdentifySignedMaterial,
-  linkPayloadFitsMdu,
   linkProofSignedMaterial,
   linkReadyForNewResource,
   linkRequestHashablePart,
@@ -67,12 +69,14 @@ import {
   packLinkProofData,
   packLinkRequestData,
   planDestinationRequestAllow,
+  planLinkAppRequest,
   planLinkDataContext,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
   planLinkTeardown,
   planLinkTeardownReason,
   shouldAcceptLinkPacketInterface,
+  shouldAcceptLinkTeardown,
   shouldEncryptLinkPayload,
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest,
@@ -342,7 +346,7 @@ export class Link {
       return null;
     }
 
-    if (owner.identity === null) {
+    if (!canAcceptLinkRequestOwner(owner.identity !== null)) {
       return null;
     }
 
@@ -431,10 +435,16 @@ export class Link {
   }
 
   handshake(): void {
+    const privateKey = this.privateKey;
+    const peerPublicKeyBytes = this.peerPublicKeyBytes;
     if (
-      !canLinkHandshake(this.status) ||
-      this.privateKey === null ||
-      this.peerPublicKeyBytes === null
+      !canPerformLinkHandshake({
+        status: this.status,
+        privateKeyPresent: privateKey !== null,
+        peerPublicKeyPresent: peerPublicKeyBytes !== null
+      }) ||
+      privateKey === null ||
+      peerPublicKeyBytes === null
     ) {
       throw new Error("Invalid link state for handshake");
     }
@@ -444,30 +454,42 @@ export class Link {
       { kind: "establish/handshake" }
     );
     this.status = established.status;
-    const sharedKey = this.provider.x25519SharedSecret(this.privateKey, this.peerPublicKeyBytes);
+    const sharedKey = this.provider.x25519SharedSecret(privateKey, peerPublicKeyBytes);
     // ECDH at the crypto adapter edge; RNS HKDF length/salt selection is pure protocol.
     this.derivedKey = deriveRnsLinkKey(sharedKey, this.linkId, this.mode);
   }
 
   async prove(): Promise<void> {
-    if (this.owner === null || this.publicKeyBytes === null || this.owner.identity === null) {
+    const owner = this.owner;
+    const publicKeyBytes = this.publicKeyBytes;
+    const ownerIdentity = owner?.identity ?? null;
+    if (
+      !canProveLink({
+        ownerPresent: owner !== null,
+        publicKeyPresent: publicKeyBytes !== null,
+        ownerIdentityPresent: ownerIdentity !== null
+      }) ||
+      owner === null ||
+      publicKeyBytes === null ||
+      ownerIdentity === null
+    ) {
       throw new Error("Responder link is missing owner or key material");
     }
 
     const signallingBytes = Link.signallingBytes(this.mtu, this.mode);
-    const ownerPublic = splitIdentityPublicKey(this.owner.identity.getPublicKey());
+    const ownerPublic = splitIdentityPublicKey(ownerIdentity.getPublicKey());
     if (ownerPublic === null) {
       throw new Error("Responder link owner public key is invalid");
     }
     const ownerSigPublicKey = ownerPublic.signaturePublicKey;
     const signedData = linkProofSignedMaterial(
       this.linkId,
-      this.publicKeyBytes,
+      publicKeyBytes,
       ownerSigPublicKey,
       signallingBytes
     );
-    const signature = this.owner.identity.sign(signedData);
-    const proofData = packLinkProofData(signature, this.publicKeyBytes, signallingBytes);
+    const signature = ownerIdentity.sign(signedData);
+    const proofData = packLinkProofData(signature, publicKeyBytes, signallingBytes);
     const proofPacket = Packet.fromFields(this.provider, {
       headerType: PacketHeaderType.HEADER_1,
       transportType: TransportType.BROADCAST,
@@ -486,9 +508,14 @@ export class Link {
   }
 
   async validateProof(packet: Packet, iface: PacketInterface): Promise<void> {
+    const destination = this.destination;
     if (
-      !canValidateLinkProof({ status: this.status, initiator: this.initiator }) ||
-      this.destination === null
+      !canValidateLinkProof({
+        status: this.status,
+        initiator: this.initiator,
+        destinationPresent: destination !== null
+      }) ||
+      destination === null
     ) {
       return;
     }
@@ -517,7 +544,7 @@ export class Link {
         throw new Error("Invalid link proof size");
       }
 
-      const peerPublic = splitIdentityPublicKey(this.destination.identity!.getPublicKey());
+      const peerPublic = splitIdentityPublicKey(destination.identity!.getPublicKey());
       if (peerPublic === null) {
         throw new Error("Invalid peer identity public key in link proof");
       }
@@ -531,7 +558,7 @@ export class Link {
         peerSignaturePublicKey,
         signallingBytes
       );
-      if (!this.destination.identity!.validate(body.signature, signedData)) {
+      if (!destination.identity!.validate(body.signature, signedData)) {
         throw new Error("Invalid link proof signature");
       }
 
@@ -758,9 +785,16 @@ export class Link {
 
     const pathHash = Identity.truncatedHash(this.provider, utf8Encode(path));
     const packedRequest = msgpackPackRequest(this.clock.now() / 1000, pathHash, data);
-    const timeout = options.timeout ?? computeLinkRequestTimeout(this.rtt);
+    const timeout = options.timeout ?? computeLinkRequestTimeout(this.rtt!);
 
-    if (!linkPayloadFitsMdu(packedRequest.length, this.mdu)) {
+    if (
+      planLinkAppRequest({
+        status: this.status,
+        rtt: this.rtt,
+        packedLength: packedRequest.length,
+        mdu: this.mdu
+      }) === "reject"
+    ) {
       return false;
     }
 
@@ -1069,7 +1103,12 @@ export class Link {
       }
 
       const packedResponse = msgpackPackResponse(requestId, response);
-      if (linkPayloadFitsMdu(packedResponse.length, this.mdu)) {
+      if (
+        canSendLinkAppResponse({
+          packedLength: packedResponse.length,
+          mdu: this.mdu
+        })
+      ) {
         await this.sendContext(PacketContext.RESPONSE, packedResponse);
       }
     } catch {
@@ -1219,7 +1258,12 @@ export class Link {
 
   private async handleTeardownPacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (plaintext === null || !equalLinkId(plaintext, this.linkId)) {
+    if (
+      !shouldAcceptLinkTeardown({
+        plaintextPresent: plaintext !== null,
+        linkIdMatches: plaintext !== null && equalBytes(plaintext, this.linkId)
+      })
+    ) {
       return;
     }
 
@@ -1345,8 +1389,4 @@ export class Link {
 
     return this.token;
   }
-}
-
-function equalLinkId(left: Uint8Array, right: Uint8Array): boolean {
-  return equalBytes(left, right);
 }

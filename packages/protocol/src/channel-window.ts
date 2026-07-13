@@ -4,6 +4,7 @@
  */
 import type { Event, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
+import { linkPayloadFitsMdu } from "./link-metrics.js";
 
 export const ChannelWindowLimits = {
   WINDOW: 2,
@@ -69,6 +70,26 @@ export function channelAllowsSend(input: {
   readonly window: number;
 }): boolean {
   return input.isUsable && input.outstanding < input.window;
+}
+
+/**
+ * Channel send gate: ready-to-send and packed-payload MDU fitness.
+ * Pass `packedLength: null` to check readiness only (before pack).
+ */
+export type ChannelSendPlan = "proceed" | "link-not-ready" | "too-big";
+
+export function planChannelSend(input: {
+  readonly ready: boolean;
+  readonly packedLength: number | null;
+  readonly mdu: number;
+}): ChannelSendPlan {
+  if (!input.ready) {
+    return "link-not-ready";
+  }
+  if (input.packedLength !== null && !linkPayloadFitsMdu(input.packedLength, input.mdu)) {
+    return "too-big";
+  }
+  return "proceed";
 }
 
 /**

@@ -3,6 +3,7 @@
  * Crypto verification and packet IO stay at the adapter edge.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { linkPayloadFitsMdu } from "./link-metrics.js";
 import { LinkStatus, type LinkStatusValue } from "./link-watchdog.js";
 
 export interface LinkEstablishState {
@@ -38,10 +39,41 @@ export function canLinkHandshake(status: LinkStatusValue): boolean {
   return status === LinkStatus.PENDING;
 }
 
+/** Whether handshake may run (PENDING + local private key + peer public key). */
+export function canPerformLinkHandshake(input: {
+  readonly status: LinkStatusValue;
+  readonly privateKeyPresent: boolean;
+  readonly peerPublicKeyPresent: boolean;
+}): boolean {
+  return (
+    canLinkHandshake(input.status) &&
+    input.privateKeyPresent &&
+    input.peerPublicKeyPresent
+  );
+}
+
+/** Whether a responder may issue a link request proof. */
+export function canProveLink(input: {
+  readonly ownerPresent: boolean;
+  readonly publicKeyPresent: boolean;
+  readonly ownerIdentityPresent: boolean;
+}): boolean {
+  return input.ownerPresent && input.publicKeyPresent && input.ownerIdentityPresent;
+}
+
+/** Whether an inbound link request destination has identity material. */
+export function canAcceptLinkRequestOwner(identityPresent: boolean): boolean {
+  return identityPresent;
+}
+
 export function canValidateLinkProof(input: {
   readonly status: LinkStatusValue;
   readonly initiator: boolean;
+  readonly destinationPresent?: boolean;
 }): boolean {
+  if (input.destinationPresent === false) {
+    return false;
+  }
   return input.status === LinkStatus.PENDING && input.initiator;
 }
 
@@ -65,6 +97,35 @@ export function canLinkRequest(input: {
   readonly rtt: number | null;
 }): boolean {
   return input.status === LinkStatus.ACTIVE && input.rtt !== null;
+}
+
+/**
+ * Whether a packed application request may be sent (request gate + MDU fit).
+ * Path hashing / encrypt / packet IO stay at the adapter edge.
+ */
+export type LinkAppRequestPlan = "send" | "reject";
+
+export function planLinkAppRequest(input: {
+  readonly status: LinkStatusValue;
+  readonly rtt: number | null;
+  readonly packedLength: number;
+  readonly mdu: number;
+}): LinkAppRequestPlan {
+  if (!canLinkRequest({ status: input.status, rtt: input.rtt })) {
+    return "reject";
+  }
+  if (!linkPayloadFitsMdu(input.packedLength, input.mdu)) {
+    return "reject";
+  }
+  return "send";
+}
+
+/** Whether a packed application response fits the link MDU. */
+export function canSendLinkAppResponse(input: {
+  readonly packedLength: number;
+  readonly mdu: number;
+}): boolean {
+  return linkPayloadFitsMdu(input.packedLength, input.mdu);
 }
 
 /** Whether the link may send application/context data (ACTIVE). */

@@ -90,6 +90,7 @@ export {
 export {
   planLinkTeardown,
   planLinkTeardownReason,
+  shouldAcceptLinkTeardown,
   type LinkTeardownPlan
 } from "./link-teardown.js";
 export {
@@ -355,9 +356,11 @@ export {
   initialChannelWindowState,
   isChannelOutletTransmitOk,
   planChannelPacketTimeout,
+  planChannelSend,
   shouldExtendPacketReceiptTimeout,
   stepChannelWindow,
   type ChannelPacketTimeoutPlan,
+  type ChannelSendPlan,
   type ChannelWindowEvent,
   type ChannelWindowState
 } from "./channel-window.js";
@@ -425,19 +428,25 @@ export {
 } from "./link-proof.js";
 export {
   applyLinkEstablishEvent,
+  canAcceptLinkRequestOwner,
   canAcceptLinkRtt,
   canIdentifyOnLink,
   canLinkHandshake,
   canLinkRequest,
   canLinkSend,
+  canPerformLinkHandshake,
+  canProveLink,
+  canSendLinkAppResponse,
   canValidateLinkProof,
   computeLinkRttSeconds,
   initialLinkEstablishState,
   isLinkClosed,
   mergeLinkRtt,
+  planLinkAppRequest,
   shouldAcceptLinkPacketInterface,
   shouldEncryptLinkPayload,
   stepLinkEstablish,
+  type LinkAppRequestPlan,
   type LinkEstablishEvent,
   type LinkEstablishState
 } from "./link-establish.js";

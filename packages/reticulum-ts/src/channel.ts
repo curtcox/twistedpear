@@ -17,11 +17,11 @@ import {
   indexOfChannelTxEnvelope,
   initialChannelWindowState,
   isChannelOutletTransmitOk,
-  linkPayloadFitsMdu,
   nextChannelSequence,
   packChannelEnvelope,
   planChannelMessageTypeRegistration,
   planChannelPacketTimeout,
+  planChannelSend,
   shouldAcceptChannelSequence,
   shouldExtendPacketReceiptTimeout,
   stepChannelWindow,
@@ -257,17 +257,29 @@ export class Channel {
   }
 
   async send(message: ChannelMessage): Promise<Envelope> {
-    if (!this.isReadyToSend()) {
+    if (
+      planChannelSend({
+        ready: this.isReadyToSend(),
+        packedLength: null,
+        mdu: this.outlet.mdu
+      }) === "link-not-ready"
+    ) {
       throw new ChannelException(ChannelExceptionType.ME_LINK_NOT_READY, "Link is not ready");
     }
 
     const reservedSequence = this.nextSequence;
     const envelope = new Envelope(this.outlet, { message, sequence: reservedSequence });
     envelope.pack();
-    if (envelope.raw !== null && !linkPayloadFitsMdu(envelope.raw.length, this.outlet.mdu)) {
+    if (
+      planChannelSend({
+        ready: true,
+        packedLength: envelope.raw?.length ?? null,
+        mdu: this.outlet.mdu
+      }) === "too-big"
+    ) {
       throw new ChannelException(
         ChannelExceptionType.ME_TOO_BIG,
-        `Packed message too big for packet: ${envelope.raw.length} > ${this.outlet.mdu}`
+        `Packed message too big for packet: ${envelope.raw!.length} > ${this.outlet.mdu}`
       );
     }
 

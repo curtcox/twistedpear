@@ -6,7 +6,8 @@ import {
 import { PacketReceiptStatus } from "../src/packet-receipt-timeout.js";
 import {
   planLinkTeardown,
-  planLinkTeardownReason
+  planLinkTeardownReason,
+  shouldAcceptLinkTeardown
 } from "../src/link-teardown.js";
 import { LinkStatus, LinkTeardownReason } from "../src/link-watchdog.js";
 
@@ -45,5 +46,26 @@ describe("link teardown planning", () => {
     expect(planLinkTeardownReason({ initiator: false, remote: true })).toBe(
       LinkTeardownReason.INITIATOR_CLOSED
     );
+  });
+
+  it("accepts teardown only with present matching link-id plaintext", () => {
+    expect(
+      shouldAcceptLinkTeardown({
+        plaintextPresent: true,
+        linkIdMatches: true
+      })
+    ).toBe(true);
+    expect(
+      shouldAcceptLinkTeardown({
+        plaintextPresent: false,
+        linkIdMatches: false
+      })
+    ).toBe(false);
+    expect(
+      shouldAcceptLinkTeardown({
+        plaintextPresent: true,
+        linkIdMatches: false
+      })
+    ).toBe(false);
   });
 });
