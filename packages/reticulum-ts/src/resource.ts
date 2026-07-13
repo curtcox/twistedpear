@@ -12,6 +12,7 @@ import {
   packResourceHashmapUpdate,
   parseResourcePartRequest,
   planResourceHashmapSlotWrites,
+  planResourcePartRequest,
   readResourceRequestHash,
   resourceHashmapMaxLen,
   splitResourceHashmapUpdatePacket,
@@ -642,42 +643,17 @@ export class Resource {
       return;
     }
 
-    this.outstandingParts = 0;
-    let hashmapExhausted = RESOURCE_HASHMAP_IS_NOT_EXHAUSTED;
-    let requestedHashes = new Uint8Array(0);
-    let index = 0;
-    let partNumber = this.consecutiveCompletedHeight + 1;
-    const searchStart = partNumber;
-
-    for (const part of this.receivedParts.slice(searchStart, searchStart + this.window)) {
-      if (part === null) {
-        const mapHash = this.hashmap[partNumber];
-        if (mapHash !== null && mapHash !== undefined) {
-          requestedHashes = Uint8Array.from(concatBytes(requestedHashes, mapHash));
-          this.outstandingParts += 1;
-          index += 1;
-        } else {
-          hashmapExhausted = RESOURCE_HASHMAP_IS_EXHAUSTED;
-          break;
-        }
-      }
-      partNumber += 1;
-      if (index >= this.window || hashmapExhausted === RESOURCE_HASHMAP_IS_EXHAUSTED) {
-        break;
-      }
-    }
-
-    let requestPrefix = new Uint8Array([hashmapExhausted]);
-    if (hashmapExhausted === RESOURCE_HASHMAP_IS_EXHAUSTED) {
-      const lastMapHash = this.hashmap[this.hashmapHeight - 1];
-      if (lastMapHash !== null && lastMapHash !== undefined) {
-        requestPrefix = Uint8Array.from(concatBytes(requestPrefix, lastMapHash));
-        this.waitingForHashmap = true;
-      }
-    }
-
-    const requestData = concatBytes(requestPrefix, this.hash, requestedHashes);
-    await this.link.sendContext(PacketContext.RESOURCE_REQ, requestData);
+    const plan = planResourcePartRequest({
+      receivedParts: this.receivedParts,
+      hashmap: this.hashmap,
+      consecutiveCompletedHeight: this.consecutiveCompletedHeight,
+      window: this.window,
+      hashmapHeight: this.hashmapHeight,
+      resourceHash: this.hash
+    });
+    this.outstandingParts = plan.outstandingParts;
+    this.waitingForHashmap = plan.waitingForHashmap;
+    await this.link.sendContext(PacketContext.RESOURCE_REQ, plan.requestData);
   }
 
   async assemble(): Promise<void> {

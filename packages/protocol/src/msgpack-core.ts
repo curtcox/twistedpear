@@ -71,6 +71,21 @@ export function msgpackPackFloat64(value: number): Uint8Array {
   return new Uint8Array(buffer);
 }
 
+/** Decode msgpack float32 or float64 (RNS link RTT payloads). */
+export function msgpackUnpackFloat(bytes: Uint8Array): number {
+  if (bytes.length >= 9 && bytes[0] === 0xcb) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    return view.getFloat64(1, false);
+  }
+
+  if (bytes.length >= 5 && bytes[0] === 0xca) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    return view.getFloat32(1, false);
+  }
+
+  throw new Error("Expected msgpack float");
+}
+
 export function msgpackPackArray(items: ReadonlyArray<Uint8Array>): Uint8Array {
   if (items.length > 15) {
     throw new Error("msgpackPackArray supports at most 15 items");

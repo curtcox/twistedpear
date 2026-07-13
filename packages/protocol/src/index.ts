@@ -160,6 +160,7 @@ export {
   msgpackPackStringMap,
   msgpackUnpack,
   msgpackUnpackAt,
+  msgpackUnpackFloat,
   msgpackUnpackScalar,
   msgpackUnpackStringKeyedMap,
   type MsgpackScalar,
@@ -361,10 +362,12 @@ export {
   packResourceHashmapUpdate,
   parseResourcePartRequest,
   planResourceHashmapSlotWrites,
+  planResourcePartRequest,
   readResourceRequestHash,
   resourceHashmapMaxLen,
   splitResourceHashmapUpdatePacket,
   unpackResourceHashmapUpdate,
   type ResourceHashmapSlotWrite,
-  type ResourcePartRequest
+  type ResourcePartRequest,
+  type ResourcePartRequestPlan
 } from "./resource-hashmap.js";

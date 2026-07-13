@@ -24,6 +24,8 @@ import {
   mtuFromLinkProofData,
   mtuFromLinkRequestData,
   packLinkIdentifyPayload,
+  msgpackPackFloat64,
+  msgpackUnpackFloat,
   splitInitiatorLinkEntropy,
   splitLinkIdentifyPayload,
   splitLinkProofBody,
@@ -516,7 +518,7 @@ export class Link {
         packetType: PacketType.DATA,
         destinationHash: this.linkId,
         context: PacketContext.LRRTT,
-        data: this.encrypt(msgpackEncodeFloat(this.rtt!))
+        data: this.encrypt(msgpackPackFloat64(this.rtt!))
       });
       await this.transport.sendPacket(rttPacket, { attachedInterface: this.attachedInterface });
       this.hadOutbound(false);
@@ -542,7 +544,7 @@ export class Link {
         throw new Error("Could not decrypt RTT packet");
       }
 
-      const remoteRtt = msgpackDecodeFloat(plaintext);
+      const remoteRtt = msgpackUnpackFloat(plaintext);
       const nowSeconds = this.clock.now() / 1000;
       const activated = applyLinkEstablishEvent(
         initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
@@ -1290,28 +1292,6 @@ function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   }
 
   return output;
-}
-
-function msgpackEncodeFloat(value: number): Uint8Array {
-  const buffer = new ArrayBuffer(9);
-  const view = new DataView(buffer);
-  view.setUint8(0, 0xcb);
-  view.setFloat64(1, value, false);
-  return new Uint8Array(buffer);
-}
-
-function msgpackDecodeFloat(bytes: Uint8Array): number {
-  if (bytes.length >= 9 && bytes[0] === 0xcb) {
-    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    return view.getFloat64(1, false);
-  }
-
-  if (bytes.length >= 5 && bytes[0] === 0xca) {
-    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    return view.getFloat32(1, false);
-  }
-
-  throw new Error("Expected msgpack float");
 }
 
 function equalLinkId(left: Uint8Array, right: Uint8Array): boolean {

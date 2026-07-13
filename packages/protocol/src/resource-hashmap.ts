@@ -147,3 +147,69 @@ export function assembleResourceHashmapBytes(mapHashes: ReadonlyArray<Uint8Array
   }
   return output;
 }
+
+function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
+  return assembleResourceHashmapBytes(parts);
+}
+
+export interface ResourcePartRequestPlan {
+  readonly outstandingParts: number;
+  readonly waitingForHashmap: boolean;
+  readonly requestData: Uint8Array;
+}
+
+/**
+ * Plan the next RESOURCE_REQ body from receiver window / hashmap state.
+ * Send stays at the adapter edge.
+ */
+export function planResourcePartRequest(input: {
+  readonly receivedParts: ReadonlyArray<Uint8Array | null>;
+  readonly hashmap: ReadonlyArray<Uint8Array | null>;
+  readonly consecutiveCompletedHeight: number;
+  readonly window: number;
+  readonly hashmapHeight: number;
+  readonly resourceHash: Uint8Array;
+}): ResourcePartRequestPlan {
+  let outstandingParts = 0;
+  let hashmapExhausted = RESOURCE_HASHMAP_IS_NOT_EXHAUSTED;
+  const requestedHashes: Uint8Array[] = [];
+  let index = 0;
+  let partNumber = input.consecutiveCompletedHeight + 1;
+  const searchStart = partNumber;
+  const searchEnd = Math.min(searchStart + input.window, input.receivedParts.length);
+
+  for (let cursor = searchStart; cursor < searchEnd; cursor += 1) {
+    const part = input.receivedParts[cursor];
+    if (part === null) {
+      const mapHash = input.hashmap[partNumber];
+      if (mapHash !== null && mapHash !== undefined) {
+        requestedHashes.push(mapHash);
+        outstandingParts += 1;
+        index += 1;
+      } else {
+        hashmapExhausted = RESOURCE_HASHMAP_IS_EXHAUSTED;
+        break;
+      }
+    }
+    partNumber += 1;
+    if (index >= input.window || hashmapExhausted === RESOURCE_HASHMAP_IS_EXHAUSTED) {
+      break;
+    }
+  }
+
+  let requestPrefix = new Uint8Array([hashmapExhausted]);
+  let waitingForHashmap = false;
+  if (hashmapExhausted === RESOURCE_HASHMAP_IS_EXHAUSTED) {
+    const lastMapHash = input.hashmap[input.hashmapHeight - 1];
+    if (lastMapHash !== null && lastMapHash !== undefined) {
+      requestPrefix = concatBytes(requestPrefix, lastMapHash);
+      waitingForHashmap = true;
+    }
+  }
+
+  return {
+    outstandingParts,
+    waitingForHashmap,
+    requestData: concatBytes(requestPrefix, input.resourceHash, ...requestedHashes)
+  };
+}

@@ -26,10 +26,11 @@
 > protocol leaves; `Destination` and path-hash call sites adapt them (SHA stays at the
 > crypto edge). **Msgpack string / string-map** packing and **resource advertisement**
 > codecs (pack/unpack + flag bits) are pure protocol leaves; `ResourceAdvertisement`
-> adapts them. **Resource hashmap-update** framing, part-request parsing, and slot-write
-> planning are pure protocol leaves; `Resource` adapts them. LXMF message text encoding
-> uses protocol UTF-8 (no `TextEncoder`). Remaining depth work: keep converting residual
-> session IO into step machines.
+> adapts them. **Resource hashmap-update** framing, part-request parsing, slot-write
+> planning, and **part-request planning** (`planResourcePartRequest`) are pure protocol
+> leaves; `Resource` adapts them. Link RTT float encode/decode uses protocol msgpack.
+> LXMF message text encoding uses protocol UTF-8 (no `TextEncoder`). Remaining depth
+> work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

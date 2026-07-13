@@ -7,6 +7,7 @@ import {
   packResourceHashmapUpdate,
   parseResourcePartRequest,
   planResourceHashmapSlotWrites,
+  planResourcePartRequest,
   readResourceRequestHash,
   resourceHashmapMaxLen,
   splitResourceHashmapUpdatePacket,
@@ -72,5 +73,42 @@ describe("protocol resource hashmap", () => {
     expect(writes).toHaveLength(2);
     expect(writes[0]!.slot).toBe(10);
     expect([...writes[1]!.mapHash]).toEqual([5, 6, 7, 8]);
+  });
+
+  it("plans part requests within the receive window", () => {
+    const resourceHash = new Uint8Array(32).fill(3);
+    const mapA = new Uint8Array([1, 2, 3, 4]);
+    const mapB = new Uint8Array([5, 6, 7, 8]);
+    const plan = planResourcePartRequest({
+      receivedParts: [new Uint8Array([9]), null, null],
+      hashmap: [new Uint8Array([0, 0, 0, 0]), mapA, mapB],
+      consecutiveCompletedHeight: 0,
+      window: 2,
+      hashmapHeight: 3,
+      resourceHash
+    });
+    expect(plan.outstandingParts).toBe(2);
+    expect(plan.waitingForHashmap).toBe(false);
+    expect(plan.requestData[0]).toBe(RESOURCE_HASHMAP_IS_NOT_EXHAUSTED);
+    const parsed = parseResourcePartRequest(plan.requestData);
+    expect(parsed?.requestedMapHashes).toHaveLength(2);
+    expect([...parsed!.requestedMapHashes[0]!]).toEqual([...mapA]);
+  });
+
+  it("plans exhausted hashmap requests with last map hash", () => {
+    const resourceHash = new Uint8Array(32).fill(4);
+    const last = new Uint8Array([9, 9, 9, 9]);
+    const exhausted = planResourcePartRequest({
+      receivedParts: [new Uint8Array([1]), null],
+      hashmap: [last, null],
+      consecutiveCompletedHeight: 0,
+      window: 4,
+      hashmapHeight: 1,
+      resourceHash
+    });
+    expect(exhausted.waitingForHashmap).toBe(true);
+    expect(exhausted.outstandingParts).toBe(0);
+    expect(exhausted.requestData[0]).toBe(RESOURCE_HASHMAP_IS_EXHAUSTED);
+    expect([...exhausted.requestData.subarray(1, 5)]).toEqual([...last]);
   });
 });

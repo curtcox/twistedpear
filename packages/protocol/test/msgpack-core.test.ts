@@ -3,6 +3,7 @@ import {
   msgpackPackArray,
   msgpackPackBin,
   msgpackPackFloat64,
+  msgpackUnpackFloat,
   msgpackPackNil,
   msgpackPackUInt,
   msgpackUnpackScalar
@@ -30,6 +31,11 @@ describe("protocol msgpack core", () => {
   it("packs float64 and arrays deterministically", () => {
     const float = msgpackPackFloat64(1.5);
     expect(msgpackUnpackScalar(float)).toEqual({ type: "float", float: 1.5 });
+    expect(msgpackUnpackFloat(float)).toBe(1.5);
+    const float32 = new Uint8Array(5);
+    float32[0] = 0xca;
+    new DataView(float32.buffer).setFloat32(1, 2.5, false);
+    expect(msgpackUnpackFloat(float32)).toBe(2.5);
     const array = msgpackPackArray([msgpackPackUInt(1), msgpackPackUInt(2)]);
     expect(array[0]).toBe(0x92);
     expect([...array]).toEqual([...msgpackPackArray([msgpackPackUInt(1), msgpackPackUInt(2)])]);
