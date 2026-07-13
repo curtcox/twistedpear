@@ -404,6 +404,7 @@ export {
   canValidateLinkProof,
   computeLinkRttSeconds,
   initialLinkEstablishState,
+  isLinkClosed,
   mergeLinkRtt,
   stepLinkEstablish,
   type LinkEstablishEvent,

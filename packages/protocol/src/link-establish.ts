@@ -49,7 +49,7 @@ export function canAcceptLinkRtt(input: {
   readonly status: LinkStatusValue;
   readonly initiator: boolean;
 }): boolean {
-  return !input.initiator && input.status !== LinkStatus.CLOSED;
+  return !input.initiator && !isLinkClosed(input.status);
 }
 
 export function canIdentifyOnLink(input: {
@@ -70,6 +70,11 @@ export function canLinkRequest(input: {
 /** Whether the link may send application/context data (ACTIVE). */
 export function canLinkSend(status: LinkStatusValue): boolean {
   return status === LinkStatus.ACTIVE;
+}
+
+/** Whether the link is closed (no further receive / watchdog work). */
+export function isLinkClosed(status: LinkStatusValue): boolean {
+  return status === LinkStatus.CLOSED;
 }
 
 export function computeLinkRttSeconds(nowSeconds: number, requestTimeSeconds: number): number {

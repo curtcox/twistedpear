@@ -38,18 +38,19 @@ import {
   computeLinkMdu,
   computeLinkRequestTimeout,
   computeLinkRttSeconds,
-  linkReadyForNewResource,
   containsResourceHash,
   deriveRnsLinkKey,
   encodeLinkMtuBytes,
   encodeLinkSignallingBytes,
   initialLinkEstablishState,
+  isLinkClosed,
   isLinkKeepaliveProbe,
   isLinkModeEnabled,
   linkHopsMatch,
   linkIdentifySignedMaterial,
   linkPayloadFitsMdu,
   linkProofSignedMaterial,
+  linkReadyForNewResource,
   linkRequestHashablePart,
   mergeLinkRtt,
   modeFromLinkProofData,
@@ -593,7 +594,7 @@ export class Link {
   }
 
   async receive(packet: Packet, iface: PacketInterface): Promise<void> {
-    if (this.status === LinkStatus.CLOSED) {
+    if (isLinkClosed(this.status)) {
       return;
     }
 
@@ -1261,7 +1262,7 @@ export class Link {
   }
 
   private watchdogTick(): void {
-    if (this.status === LinkStatus.CLOSED) {
+    if (isLinkClosed(this.status)) {
       return;
     }
 

@@ -123,6 +123,7 @@
 > **`computeResourceTotalParts`** lives in protocol; `Resource.send` adapts it.
 > **`linkReadyForNewResource`** lives in protocol; `Link.readyForNewResource` adapts it.
 > **`isLinkModeEnabled`** lives in protocol; link validate/signalling adapts it.
+> **`isLinkClosed`** lives in protocol; `Link.receive` / watchdog early-outs adapt it.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

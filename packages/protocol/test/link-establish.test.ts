@@ -18,6 +18,7 @@ import {
   canValidateLinkProof,
   computeLinkRttSeconds,
   initialLinkEstablishState,
+  isLinkClosed,
   mergeLinkRtt
 } from "../src/link-establish.js";
 
@@ -70,6 +71,12 @@ describe("protocol link establish", () => {
     expect(canLinkSend(LinkStatus.PENDING)).toBe(false);
     expect(canLinkSend(LinkStatus.HANDSHAKE)).toBe(false);
     expect(canLinkSend(LinkStatus.CLOSED)).toBe(false);
+  });
+
+  it("detects CLOSED status", () => {
+    expect(isLinkClosed(LinkStatus.CLOSED)).toBe(true);
+    expect(isLinkClosed(LinkStatus.ACTIVE)).toBe(false);
+    expect(isLinkClosed(LinkStatus.PENDING)).toBe(false);
   });
 
   it("transitions handshake → active and merges RTT", () => {
