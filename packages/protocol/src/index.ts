@@ -314,3 +314,11 @@ export {
   type PropagationQuotas,
   type PropagationStorePlan
 } from "./propagation-quota.js";
+export {
+  msgpackPackLinkRequest,
+  msgpackPackLinkResponse,
+  msgpackUnpackLinkRequest,
+  msgpackUnpackLinkRequestTuple,
+  msgpackUnpackLinkResponse,
+  msgpackUnpackLinkResponseTuple
+} from "./link-request-codec.js";

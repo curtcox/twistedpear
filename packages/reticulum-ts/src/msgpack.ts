@@ -1,22 +1,19 @@
-/** Minimal msgpack encode/decode for RNS link request/response payloads. */
+/** Adapter-facing msgpack helpers; link request/response codecs live in protocol. */
 
 export {
   msgpackPackArray,
   msgpackPackBin,
   msgpackPackNil,
   msgpackPackUInt,
-  msgpackPackFloat64 as msgpackPackFloat
-} from "@twistedpear/protocol";
-
-import {
-  msgpackPackArray,
-  msgpackPackBin,
   msgpackPackFloat64 as msgpackPackFloat,
-  msgpackPackNil
+  msgpackPackLinkRequest as msgpackPackRequest,
+  msgpackPackLinkResponse as msgpackPackResponse,
+  msgpackUnpackLinkRequestTuple as msgpackUnpackRequest,
+  msgpackUnpackLinkResponseTuple as msgpackUnpackResponse
 } from "@twistedpear/protocol";
 
 export function msgpackPackString(value: string): Uint8Array {
-  const bytes = new TextEncoder().encode(value);
+  const bytes = utf8Encode(value);
   if (bytes.length <= 31) {
     const output = new Uint8Array(1 + bytes.length);
     output[0] = 0xa0 | bytes.length;
@@ -48,37 +45,6 @@ export interface MsgpackMapValue {
   readonly [key: string]: MsgpackValue | undefined;
 }
 
-function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  const length = parts.reduce((total, part) => total + part.length, 0);
-  const output = new Uint8Array(length);
-  let offset = 0;
-  for (const part of parts) {
-    output.set(part, offset);
-    offset += part.length;
-  }
-
-  return output;
-}
-
-export function msgpackPackRequest(
-  requestedAt: number,
-  pathHash: Uint8Array,
-  data: Uint8Array | null
-): Uint8Array {
-  return msgpackPackArray([
-    msgpackPackFloat(requestedAt),
-    msgpackPackBin(pathHash),
-    data === null ? msgpackPackNil() : msgpackPackBin(data)
-  ]);
-}
-
-export function msgpackPackResponse(requestId: Uint8Array, response: Uint8Array | null): Uint8Array {
-  return msgpackPackArray([
-    msgpackPackBin(requestId),
-    response === null ? msgpackPackNil() : msgpackPackBin(response)
-  ]);
-}
-
 export interface MsgpackValue {
   readonly type: "float" | "bin" | "nil" | "array" | "int" | "map" | "string";
   readonly float?: number;
@@ -94,55 +60,77 @@ export function msgpackUnpack(bytes: Uint8Array): MsgpackValue {
   return value;
 }
 
-export function msgpackUnpackRequest(bytes: Uint8Array): [number, Uint8Array, Uint8Array | null] {
-  const value = msgpackUnpack(bytes);
-  if (value.type !== "array" || value.array === undefined || value.array.length !== 3) {
-    throw new Error("Invalid request payload");
+function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
+  const length = parts.reduce((total, part) => total + part.length, 0);
+  const output = new Uint8Array(length);
+  let offset = 0;
+  for (const part of parts) {
+    output.set(part, offset);
+    offset += part.length;
   }
-
-  const [requestedAtValue, pathHashValue, dataValue] = value.array;
-  if (
-    requestedAtValue === undefined ||
-    pathHashValue === undefined ||
-    dataValue === undefined ||
-    requestedAtValue.type !== "float" ||
-    pathHashValue.type !== "bin" ||
-    pathHashValue.bin === undefined
-  ) {
-    throw new Error("Invalid request payload fields");
-  }
-
-  const data =
-    dataValue.type === "nil" ? null : dataValue.type === "bin" ? dataValue.bin ?? null : null;
-  return [requestedAtValue.float ?? 0, Uint8Array.from(pathHashValue.bin), data === null ? null : Uint8Array.from(data)];
+  return output;
 }
 
-export function msgpackUnpackResponse(bytes: Uint8Array): [Uint8Array, Uint8Array | null] {
-  const value = msgpackUnpack(bytes);
-  if (value.type !== "array" || value.array === undefined || value.array.length !== 2) {
-    throw new Error("Invalid response payload");
+function utf8Encode(value: string): Uint8Array {
+  const out: number[] = [];
+  for (let i = 0; i < value.length; i += 1) {
+    let code = value.charCodeAt(i);
+    if (code < 0x80) {
+      out.push(code);
+    } else if (code < 0x800) {
+      out.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+    } else if (code >= 0xd800 && code <= 0xdbff && i + 1 < value.length) {
+      const low = value.charCodeAt(i + 1);
+      if (low >= 0xdc00 && low <= 0xdfff) {
+        code = 0x10000 + ((code - 0xd800) << 10) + (low - 0xdc00);
+        i += 1;
+        out.push(
+          0xf0 | (code >> 18),
+          0x80 | ((code >> 12) & 0x3f),
+          0x80 | ((code >> 6) & 0x3f),
+          0x80 | (code & 0x3f)
+        );
+        continue;
+      }
+      out.push(0xef, 0xbf, 0xbd);
+    } else {
+      out.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+    }
   }
+  return Uint8Array.from(out);
+}
 
-  const [requestIdValue, responseValue] = value.array;
-  if (
-    requestIdValue === undefined ||
-    responseValue === undefined ||
-    requestIdValue.type !== "bin" ||
-    requestIdValue.bin === undefined
-  ) {
-    throw new Error("Invalid response payload fields");
+function utf8Decode(bytes: Uint8Array): string {
+  let out = "";
+  for (let i = 0; i < bytes.length; ) {
+    const b0 = bytes[i]!;
+    if (b0 < 0x80) {
+      out += String.fromCharCode(b0);
+      i += 1;
+    } else if ((b0 & 0xe0) === 0xc0 && i + 1 < bytes.length) {
+      const b1 = bytes[i + 1]!;
+      out += String.fromCharCode(((b0 & 0x1f) << 6) | (b1 & 0x3f));
+      i += 2;
+    } else if ((b0 & 0xf0) === 0xe0 && i + 2 < bytes.length) {
+      const b1 = bytes[i + 1]!;
+      const b2 = bytes[i + 2]!;
+      out += String.fromCharCode(((b0 & 0x0f) << 12) | ((b1 & 0x3f) << 6) | (b2 & 0x3f));
+      i += 3;
+    } else if ((b0 & 0xf8) === 0xf0 && i + 3 < bytes.length) {
+      const b1 = bytes[i + 1]!;
+      const b2 = bytes[i + 2]!;
+      const b3 = bytes[i + 3]!;
+      let code =
+        ((b0 & 0x07) << 18) | ((b1 & 0x3f) << 12) | ((b2 & 0x3f) << 6) | (b3 & 0x3f);
+      code -= 0x10000;
+      out += String.fromCharCode(0xd800 + (code >> 10), 0xdc00 + (code & 0x3ff));
+      i += 4;
+    } else {
+      out += "\ufffd";
+      i += 1;
+    }
   }
-
-  const response =
-    responseValue.type === "nil"
-      ? null
-      : responseValue.type === "bin"
-        ? responseValue.bin ?? null
-        : null;
-  return [
-    Uint8Array.from(requestIdValue.bin),
-    response === null ? null : Uint8Array.from(response)
-  ];
+  return out;
 }
 
 function msgpackUnpackAt(bytes: Uint8Array, offset: number): [MsgpackValue, number] {
@@ -204,13 +192,13 @@ function msgpackUnpackAt(bytes: Uint8Array, offset: number): [MsgpackValue, numb
   if ((tag & 0xe0) === 0xa0) {
     const length = tag & 0x1f;
     const stringBytes = bytes.subarray(offset + 1, offset + 1 + length);
-    return [{ type: "string", string: new TextDecoder().decode(stringBytes) }, offset + 1 + length];
+    return [{ type: "string", string: utf8Decode(stringBytes) }, offset + 1 + length];
   }
 
   if (tag === 0xd9) {
     const length = bytes[offset + 1]!;
     const stringBytes = bytes.subarray(offset + 2, offset + 2 + length);
-    return [{ type: "string", string: new TextDecoder().decode(stringBytes) }, offset + 2 + length];
+    return [{ type: "string", string: utf8Decode(stringBytes) }, offset + 2 + length];
   }
 
   if (tag === 0xcc) {
