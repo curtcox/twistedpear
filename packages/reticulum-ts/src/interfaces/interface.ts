@@ -1,3 +1,4 @@
+import { isValidInterfaceName } from "@twistedpear/protocol";
 import type { Packet } from "../packet.js";
 import { decodeHdlcFrames, encodeHdlcFrame, type HdlcDecodeState } from "./framing.js";
 
@@ -33,7 +34,7 @@ export abstract class AbstractPacketInterface implements PacketInterface {
   private closed = false;
 
   protected constructor(options: ReticulumInterfaceOptions, incoming = true, outgoing = options.outgoing ?? true) {
-    if (options.name.length === 0) {
+    if (!isValidInterfaceName(options.name)) {
       throw new Error("Interface name cannot be empty");
     }
 

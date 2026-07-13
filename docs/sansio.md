@@ -132,6 +132,7 @@
 > **`shouldDeferStreamRead`** lives in protocol; `RawChannelReader.read` empty-buffer gate adapts it.
 > **`shouldReturnStreamReadResult`** lives in protocol; `RawChannelReader.read` result gate adapts it.
 > **`clampStreamChunkTake`** lives in protocol; `RawChannelReader.read` per-chunk take adapts it.
+> **`isValidInterfaceName`** lives in protocol; `AbstractPacketInterface` construction adapts it.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

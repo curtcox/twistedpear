@@ -475,6 +475,7 @@ export {
   INTERFACE_RECONNECT_TIMER_ID,
   INTERFACE_RECONNECT_WAIT_MS,
   initialInterfaceReconnectState,
+  isValidInterfaceName,
   planInterfaceReconnect,
   stepInterfaceReconnect,
   stepInterfaceReconnectWithActions,

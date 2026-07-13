@@ -7,6 +7,11 @@ import type { Event, Intent, StepFn } from "@twistedpear/effects";
 export const INTERFACE_RECONNECT_WAIT_MS = 5_000;
 export const INTERFACE_RECONNECT_TIMER_ID = "interface-reconnect";
 
+/** Whether an interface name is non-empty (RNS interface config). */
+export function isValidInterfaceName(name: string): boolean {
+  return name.length > 0;
+}
+
 export type InterfaceReconnectPlan =
   | { readonly kind: "reconnect"; readonly delayMs: number; readonly attempt: number }
   | { readonly kind: "give-up"; readonly attempt: number };

@@ -3,11 +3,17 @@ import {
   INTERFACE_RECONNECT_TIMER_ID,
   INTERFACE_RECONNECT_WAIT_MS,
   initialInterfaceReconnectState,
+  isValidInterfaceName,
   planInterfaceReconnect,
   stepInterfaceReconnectWithActions
 } from "../src/interface-reconnect.js";
 
 describe("protocol interface reconnect", () => {
+  it("rejects empty interface names", () => {
+    expect(isValidInterfaceName("")).toBe(false);
+    expect(isValidInterfaceName("wlan0")).toBe(true);
+  });
+
   it("schedules reconnects with default wait", () => {
     expect(planInterfaceReconnect({ attempts: 0 })).toEqual({
       kind: "reconnect",
