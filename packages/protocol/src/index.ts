@@ -59,3 +59,29 @@ export {
   type PersistDebounceState,
   type PersistDebounceStepResult
 } from "./persist-debounce.js";
+export {
+  PROPAGATION_DOWNLOAD_TIMEOUT_SEC,
+  PROPAGATION_HAVES_TIMEOUT_SEC,
+  PROPAGATION_LINK_TIMEOUT_MS,
+  PROPAGATION_LIST_TIMEOUT_SEC,
+  PropagationPeerError,
+  PropagationTransferState,
+  initialPropagationTransferState,
+  stepPropagationTransfer,
+  stepPropagationTransferWithActions,
+  type PropagationTransferAction,
+  type PropagationTransferEvent,
+  type PropagationTransferMachineState,
+  type PropagationTransferStateValue,
+  type PropagationTransferStepResult
+} from "./propagation-transfer.js";
+export {
+  CLIENT_RATE_WINDOW_MS,
+  allowClientRequest,
+  initialClientRateLimitState,
+  stepClientRateLimit,
+  stepClientRateLimitFn,
+  type ClientRateBucket,
+  type ClientRateLimitEvent,
+  type ClientRateLimitState
+} from "./client-rate-limit.js";

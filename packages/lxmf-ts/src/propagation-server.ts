@@ -1,6 +1,8 @@
 import {
+  allowClientRequest as checkClientRateLimit,
   initialPersistDebounceState,
   stepPersistDebounceWithActions,
+  type ClientRateBucket,
   type PersistDebounceState
 } from "@twistedpear/protocol";
 import type { CryptoProvider, Identity, RegisteredDestination } from "@twistedpear/reticulum-ts";
@@ -81,7 +83,7 @@ export class PropagationServer {
   private readonly entries = new Map<string, StoredPropagationMessage>();
   private usedBytes = 0;
   private evictions = 0;
-  private readonly clientBuckets = new Map<string, { count: number; windowStart: number }>();
+  private readonly clientBuckets = new Map<string, ClientRateBucket>();
   private readonly persistence: PropagationPersistence | null;
   private readonly now: () => number;
   private readonly schedule: (ms: number, callback: () => void) => PropagationServerTimer;
@@ -255,15 +257,12 @@ export class PropagationServer {
   }
 
   private allowClientRequest(clientKey: string): boolean {
-    const now = this.now();
-    const bucket = this.clientBuckets.get(clientKey) ?? { count: 0, windowStart: now };
-    const next =
-      now - bucket.windowStart >= 60_000
-        ? { count: 1, windowStart: now }
-        : { count: bucket.count + 1, windowStart: bucket.windowStart };
-
-    this.clientBuckets.set(clientKey, next);
-    return next.count <= this.quotas.perClientRequestsPerMinute;
+    return checkClientRateLimit(
+      this.clientBuckets,
+      clientKey,
+      this.now(),
+      this.quotas.perClientRequestsPerMinute
+    );
   }
 
   private handlePropagationLink(link: Link): void {

@@ -61,25 +61,10 @@ export const PeerError = {
 } as const;
 
 /** Mirrors LXMF/LXMRouter.py propagation transfer states. */
-export const PropagationTransferState = {
-  IDLE: 0x00,
-  PATH_REQUESTED: 0x01,
-  LINK_ESTABLISHING: 0x02,
-  LINK_ESTABLISHED: 0x03,
-  REQUEST_SENT: 0x04,
-  RECEIVING: 0x05,
-  RESPONSE_RECEIVED: 0x06,
-  COMPLETE: 0x07,
-  NO_PATH: 0xf0,
-  LINK_FAILED: 0xf1,
-  TRANSFER_FAILED: 0xf2,
-  NO_IDENTITY_RCVD: 0xf3,
-  NO_ACCESS: 0xf4,
-  FAILED: 0xfe
-} as const;
-
-export type PropagationTransferStateValue =
-  (typeof PropagationTransferState)[keyof typeof PropagationTransferState];
+export {
+  PropagationTransferState,
+  type PropagationTransferStateValue
+} from "@twistedpear/protocol";
 
 /** Core LXMF field identifiers from LXMF/LXMF.py. */
 export const Field = {

@@ -1,3 +1,12 @@
+import {
+  PROPAGATION_LINK_TIMEOUT_MS,
+  PropagationTransferState,
+  initialPropagationTransferState,
+  stepPropagationTransferWithActions,
+  type PropagationTransferAction,
+  type PropagationTransferMachineState,
+  type PropagationTransferStateValue
+} from "@twistedpear/protocol";
 import type { CryptoProvider, Link, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
 import {
   Destination,
@@ -10,9 +19,7 @@ import {
 import {
   APP_NAME,
   MESSAGE_GET_PATH,
-  PeerError,
-  PropagationTransferState,
-  type PropagationTransferStateValue
+  PeerError
 } from "./constants.js";
 import { LXMessage } from "./message.js";
 import {
@@ -51,7 +58,7 @@ export class PropagationClient {
   readonly deliveryLimitKb: number;
   private propagationNodeHash: Uint8Array | null = null;
   private propagationLink: Link | null = null;
-  private transferState: PropagationTransferStateValue = PropagationTransferState.IDLE;
+  private transferMachine: PropagationTransferMachineState = initialPropagationTransferState();
 
   constructor(options: PropagationClientOptions) {
     this.router = options.router;
@@ -72,7 +79,7 @@ export class PropagationClient {
   }
 
   get state(): PropagationTransferStateValue {
-    return this.transferState;
+    return this.transferMachine.phase;
   }
 
   async syncMessages(maxMessages: number | null = null): Promise<PropagationSyncResult> {
@@ -85,97 +92,139 @@ export class PropagationClient {
       throw new Error("Router must register a delivery identity before syncing");
     }
 
+    this.applyTransfer({ kind: "xfer/begin" });
     const link = await this.ensurePropagationLink();
-    link.identify(deliveryIdentity);
+    const afterLink = this.applyTransfer({ kind: "xfer/link-ready" });
 
-    const listResponse = await awaitLinkRequest(
-      link,
-      MESSAGE_GET_PATH,
-      msgpackPackPropagationRequest(null, null),
-      10
-    );
+    for (const action of afterLink.actions) {
+      if (action.kind === "identify") {
+        link.identify(deliveryIdentity);
+      } else if (action.kind === "request-list") {
+        const listResponse = await awaitLinkRequest(
+          link,
+          MESSAGE_GET_PATH,
+          msgpackPackPropagationRequest(null, null),
+          action.timeoutSec
+        );
 
-    if (listResponse === null) {
-      this.transferState = PropagationTransferState.TRANSFER_FAILED;
-      return { state: this.transferState, messages: [] };
-    }
+        if (listResponse === null) {
+          this.applyTransfer({ kind: "xfer/list-null" });
+          return { state: this.state, messages: [] };
+        }
 
-    const listError = decodePeerError(listResponse);
-    if (listError !== null) {
-      this.transferState =
-        listError === PeerError.NO_IDENTITY
-          ? PropagationTransferState.NO_IDENTITY_RCVD
-          : PropagationTransferState.NO_ACCESS;
-      return { state: this.transferState, messages: [] };
-    }
+        const listError = decodePeerError(listResponse);
+        if (listError !== null) {
+          this.applyTransfer({ kind: "xfer/list-peer-error", code: listError });
+          return { state: this.state, messages: [] };
+        }
 
-    let transientIds: ReadonlyArray<Uint8Array>;
-    try {
-      transientIds = msgpackUnpackTransientIdList(listResponse);
-    } catch {
-      this.transferState = PropagationTransferState.TRANSFER_FAILED;
-      return { state: this.transferState, messages: [] };
-    }
+        let transientIds: ReadonlyArray<Uint8Array>;
+        try {
+          transientIds = msgpackUnpackTransientIdList(listResponse);
+        } catch {
+          this.applyTransfer({ kind: "xfer/list-malformed" });
+          return { state: this.state, messages: [] };
+        }
 
-    const wants =
-      maxMessages === null ? [...transientIds] : transientIds.slice(0, Math.max(0, maxMessages));
+        const wants =
+          maxMessages === null ? [...transientIds] : transientIds.slice(0, Math.max(0, maxMessages));
 
-    if (wants.length === 0) {
-      this.transferState = PropagationTransferState.COMPLETE;
-      return { state: this.transferState, messages: [] };
-    }
+        if (wants.length === 0) {
+          this.applyTransfer({ kind: "xfer/list-empty" });
+          return { state: this.state, messages: [] };
+        }
 
-    const downloadResponse = await awaitLinkRequest(
-      link,
-      MESSAGE_GET_PATH,
-      msgpackPackPropagationRequest(wants, null, this.deliveryLimitKb),
-      30
-    );
-
-    if (downloadResponse === null) {
-      this.transferState = PropagationTransferState.TRANSFER_FAILED;
-      return { state: this.transferState, messages: [] };
-    }
-
-    let downloaded: ReadonlyArray<Uint8Array>;
-    try {
-      downloaded = msgpackUnpackMessageList(downloadResponse);
-    } catch {
-      this.transferState = PropagationTransferState.TRANSFER_FAILED;
-      return { state: this.transferState, messages: [] };
-    }
-
-    const messages: LXMessage[] = [];
-    const haves: Uint8Array[] = [];
-    for (const lxmfData of downloaded) {
-      const message = this.router.handlePropagationData(lxmfData);
-      if (message !== null) {
-        messages.push(message);
+        const afterList = this.applyTransfer({ kind: "xfer/list-ready", wantCount: wants.length });
+        return this.continueDownload(link, wants, afterList.actions);
       }
-
-      haves.push(Identity.fullHash(this.provider, lxmfData));
     }
 
-    if (haves.length > 0) {
-      await awaitLinkRequest(
-        link,
-        MESSAGE_GET_PATH,
-        msgpackPackPropagationRequest(null, haves),
-        10
-      );
-    }
-
-    this.transferState = PropagationTransferState.COMPLETE;
-    return { state: this.transferState, messages };
+    return { state: this.state, messages: [] };
   }
 
   cancel(): void {
-    if (this.propagationLink !== null) {
-      this.propagationLink.teardown();
-      this.propagationLink = null;
+    const result = this.applyTransfer({ kind: "xfer/cancel" });
+    for (const action of result.actions) {
+      if (action.kind === "teardown-link" && this.propagationLink !== null) {
+        this.propagationLink.teardown();
+        this.propagationLink = null;
+      }
+    }
+  }
+
+  private async continueDownload(
+    link: Link,
+    wants: ReadonlyArray<Uint8Array>,
+    actions: ReadonlyArray<PropagationTransferAction>
+  ): Promise<PropagationSyncResult> {
+    for (const action of actions) {
+      if (action.kind !== "request-download") {
+        continue;
+      }
+
+      const downloadResponse = await awaitLinkRequest(
+        link,
+        MESSAGE_GET_PATH,
+        msgpackPackPropagationRequest(wants, null, this.deliveryLimitKb),
+        action.timeoutSec
+      );
+
+      if (downloadResponse === null) {
+        this.applyTransfer({ kind: "xfer/download-null" });
+        return { state: this.state, messages: [] };
+      }
+
+      let downloaded: ReadonlyArray<Uint8Array>;
+      try {
+        downloaded = msgpackUnpackMessageList(downloadResponse);
+      } catch {
+        this.applyTransfer({ kind: "xfer/download-malformed" });
+        return { state: this.state, messages: [] };
+      }
+
+      const messages: LXMessage[] = [];
+      const haves: Uint8Array[] = [];
+      for (const lxmfData of downloaded) {
+        const message = this.router.handlePropagationData(lxmfData);
+        if (message !== null) {
+          messages.push(message);
+        }
+        haves.push(Identity.fullHash(this.provider, lxmfData));
+      }
+
+      const afterDownload = this.applyTransfer({
+        kind: "xfer/download-ready",
+        downloadedCount: haves.length
+      });
+
+      for (const next of afterDownload.actions) {
+        if (next.kind === "request-haves-ack" && haves.length > 0) {
+          await awaitLinkRequest(
+            link,
+            MESSAGE_GET_PATH,
+            msgpackPackPropagationRequest(null, haves),
+            next.timeoutSec
+          );
+          this.applyTransfer({ kind: "xfer/haves-acked" });
+        }
+      }
+
+      if (this.state !== PropagationTransferState.COMPLETE && haves.length === 0) {
+        // download-ready with 0 already completed in the step machine
+      }
+
+      return { state: this.state, messages };
     }
 
-    this.transferState = PropagationTransferState.IDLE;
+    return { state: this.state, messages: [] };
+  }
+
+  private applyTransfer(
+    event: Parameters<typeof stepPropagationTransferWithActions>[1]
+  ): ReturnType<typeof stepPropagationTransferWithActions> {
+    const result = stepPropagationTransferWithActions(this.transferMachine, event);
+    this.transferMachine = result.state;
+    return result;
   }
 
   private async ensurePropagationLink(): Promise<Link> {
@@ -201,12 +250,11 @@ export class PropagationClient {
       aspects: ["propagation"]
     });
 
-    this.transferState = PropagationTransferState.LINK_ESTABLISHING;
     const link = await new Promise<Link>((resolve, reject) => {
-      const timer = this.router.reticulum.runtime.clock.setTimeout(
-        () => reject(new Error("Propagation link timeout")),
-        5000
-      );
+      const timer = this.router.reticulum.runtime.clock.setTimeout(() => {
+        this.applyTransfer({ kind: "xfer/link-timeout" });
+        reject(new Error("Propagation link timeout"));
+      }, PROPAGATION_LINK_TIMEOUT_MS);
       outbound.requestLink({
         linkEstablished(establishLink) {
           timer.cancel();
@@ -216,7 +264,6 @@ export class PropagationClient {
     });
 
     this.propagationLink = link;
-    this.transferState = PropagationTransferState.LINK_ESTABLISHED;
     return link;
   }
 }
