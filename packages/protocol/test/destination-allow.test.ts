@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DestinationAllowPolicyCode,
+  isValidDestinationRequestPath,
   planDestinationRequestAllow
 } from "../src/destination-allow.js";
 import { LinkRequestReceiptStatus } from "../src/link-request-receipt.js";
@@ -36,6 +37,11 @@ describe("destination allow policy", () => {
         remoteIdentityHash: new Uint8Array([9, 9, 9])
       })
     ).toBe(false);
+  });
+
+  it("rejects empty request-handler paths", () => {
+    expect(isValidDestinationRequestPath("")).toBe(false);
+    expect(isValidDestinationRequestPath("/echo")).toBe(true);
   });
 });
 

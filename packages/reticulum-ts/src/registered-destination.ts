@@ -25,6 +25,7 @@ import {
 } from "./transport/node.js";
 import {
   DestinationAllowPolicyCode,
+  isValidDestinationRequestPath,
   utf8Encode,
   type DestinationAllowPolicyCodeValue
 } from "@twistedpear/protocol";
@@ -104,7 +105,7 @@ export class RegisteredDestination extends Destination {
     allow: DestinationAllowPolicyValue = DestinationAllowPolicy.ALLOW_NONE,
     allowedList: ReadonlyArray<Uint8Array> = []
   ): void {
-    if (path.length === 0) {
+    if (!isValidDestinationRequestPath(path)) {
       throw new Error("Invalid path specified");
     }
 

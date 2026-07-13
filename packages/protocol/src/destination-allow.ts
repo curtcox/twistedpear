@@ -12,6 +12,11 @@ export const DestinationAllowPolicyCode = {
 export type DestinationAllowPolicyCodeValue =
   (typeof DestinationAllowPolicyCode)[keyof typeof DestinationAllowPolicyCode];
 
+/** Whether a destination request-handler path is non-empty (RNS register_request_handler). */
+export function isValidDestinationRequestPath(path: string): boolean {
+  return path.length > 0;
+}
+
 export function planDestinationRequestAllow(input: {
   readonly allow: number;
   readonly allowedList: ReadonlyArray<Uint8Array>;

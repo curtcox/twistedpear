@@ -59,6 +59,7 @@ export {
 } from "./link-request-receipt.js";
 export {
   DestinationAllowPolicyCode,
+  isValidDestinationRequestPath,
   planDestinationRequestAllow,
   type DestinationAllowPolicyCodeValue
 } from "./destination-allow.js";
