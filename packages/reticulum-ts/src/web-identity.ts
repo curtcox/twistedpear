@@ -1,3 +1,4 @@
+import { utf8Encode } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { Identity } from "./identity.js";
 import type { WebIndexedDB } from "./runtime/web/runtime.js";
@@ -89,7 +90,7 @@ async function decryptPrivateKey(packed: Uint8Array, options: WebIdentityUnlockO
 async function deriveKey(subtle: WebCryptoSubtle, passphrase: string, salt: Uint8Array): Promise<WebCryptoKey> {
   const baseKey = await subtle.importKey(
     "raw",
-    new TextEncoder().encode(passphrase),
+    utf8Encode(passphrase),
     "PBKDF2",
     false,
     ["deriveKey"]

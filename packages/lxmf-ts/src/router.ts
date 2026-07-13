@@ -22,7 +22,6 @@ import {
 } from "@twistedpear/reticulum-ts";
 import { APP_NAME, DESTINATION_LENGTH, LXMessageMethod, LXMessageRepresentation, type LXMessageMethodValue } from "./constants.js";
 import { LXMessage, rememberMessage, type LXMessagePackOptions } from "./message.js";
-import { msgpackUnpack } from "./msgpack.js";
 
 export interface LXMFRouterOptions {
   readonly reticulum: Reticulum;
@@ -451,28 +450,7 @@ export class LXMFRouter {
   }
 }
 
-export function stampCostFromAppData(appData: Uint8Array | null): number | null {
-  if (appData === null || appData.length === 0) {
-    return null;
-  }
-
-  const tag = appData[0];
-  if (tag === undefined || ((tag < 0x90 || tag > 0x9f) && tag !== 0xdc)) {
-    return null;
-  }
-
-  try {
-    const value = msgpackUnpack(appData);
-    if (value.type !== "array" || value.array === undefined || value.array.length < 2) {
-      return null;
-    }
-
-    const cost = value.array[1];
-    return cost?.type === "int" ? cost.int ?? null : null;
-  } catch {
-    return null;
-  }
-}
+export { stampCostFromAppData } from "@twistedpear/protocol";
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   const length = parts.reduce((total, part) => total + part.length, 0);

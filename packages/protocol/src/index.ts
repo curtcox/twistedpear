@@ -446,6 +446,20 @@ export {
   type LxmfDeliveryRepresentationValue
 } from "./lxmf-delivery.js";
 export {
+  TOKEN_HMAC_SIZE,
+  TOKEN_IV_SIZE,
+  TOKEN_OVERHEAD,
+  packTokenFrame,
+  splitTokenFrame,
+  splitTokenKey,
+  tokenHmacMatches,
+  tokenSignedMaterial,
+  type TokenFrameParts,
+  type TokenKeyParts,
+  type TokenMode
+} from "./token-framing.js";
+export { stampCostFromAppData } from "./stamp-cost.js";
+export {
   PATH_REQUEST_HASH_BYTES,
   TRANSPORT_PATH_REQUEST_APP,
   TRANSPORT_PATH_REQUEST_ASPECTS,
