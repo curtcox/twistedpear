@@ -350,3 +350,21 @@ export {
   type ResourceAdvertisementFields,
   type ResourceAdvertisementFlags
 } from "./resource-advertisement.js";
+export {
+  RESOURCE_ADVERTISEMENT_OVERHEAD,
+  RESOURCE_HASHMAP_IS_EXHAUSTED,
+  RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,
+  RESOURCE_HASHMAP_MDU,
+  RESOURCE_HASH_SIZE,
+  RESOURCE_MAPHASH_LEN,
+  assembleResourceHashmapBytes,
+  packResourceHashmapUpdate,
+  parseResourcePartRequest,
+  planResourceHashmapSlotWrites,
+  readResourceRequestHash,
+  resourceHashmapMaxLen,
+  splitResourceHashmapUpdatePacket,
+  unpackResourceHashmapUpdate,
+  type ResourceHashmapSlotWrite,
+  type ResourcePartRequest
+} from "./resource-hashmap.js";

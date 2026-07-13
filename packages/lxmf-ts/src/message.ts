@@ -1,3 +1,4 @@
+import { utf8Encode } from "@twistedpear/protocol";
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import {
   Destination,
@@ -322,7 +323,7 @@ export function propagationDestinationHash(provider: CryptoProvider, identity: I
 }
 
 function encodeTextOrBytes(value: string | Uint8Array): Uint8Array {
-  return typeof value === "string" ? new TextEncoder().encode(value) : Uint8Array.from(value);
+  return typeof value === "string" ? utf8Encode(value) : Uint8Array.from(value);
 }
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {

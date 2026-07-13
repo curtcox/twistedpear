@@ -1,12 +1,23 @@
 import {
+  RESOURCE_HASHMAP_IS_EXHAUSTED,
+  RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,
+  RESOURCE_MAPHASH_LEN,
+  assembleResourceHashmapBytes,
   computeResourceTimeout,
   decodeResourceAdvertisementFlags,
   encodeResourceAdvertisementFlags,
   isResourceAdvertisementRequest,
   isResourceAdvertisementResponse,
   packResourceAdvertisement,
+  packResourceHashmapUpdate,
+  parseResourcePartRequest,
+  planResourceHashmapSlotWrites,
+  readResourceRequestHash,
+  resourceHashmapMaxLen,
+  splitResourceHashmapUpdatePacket,
   stepResourceWatchdogWithActions,
   unpackResourceAdvertisement,
+  unpackResourceHashmapUpdate,
   type ResourceWatchdogState,
   type ResourceWatchdogStepResult
 } from "@twistedpear/protocol";
@@ -15,7 +26,6 @@ import { equalBytes } from "./crypto/bytes.js";
 import { Identity } from "./identity.js";
 import type { Link } from "./link.js";
 import type { LeafTransport } from "./transport/node.js";
-import { msgpackPackBin, msgpackPackUInt, msgpackUnpack, type MsgpackValue } from "./msgpack.js";
 import {
   Packet,
   PacketContext,
@@ -47,10 +57,12 @@ export const RESOURCE_WINDOW_MAX_SLOW = 10;
 export const RESOURCE_WINDOW_MAX_FAST = 75;
 export const RESOURCE_WINDOW_MAX = RESOURCE_WINDOW_MAX_FAST;
 export const RESOURCE_WINDOW_FLEXIBILITY = 4;
-export const RESOURCE_MAPHASH_LEN = 4;
 export const RESOURCE_RANDOM_HASH_SIZE = 4;
-export const RESOURCE_HASHMAP_IS_NOT_EXHAUSTED = 0x00;
-export const RESOURCE_HASHMAP_IS_EXHAUSTED = 0xff;
+export {
+  RESOURCE_MAPHASH_LEN,
+  RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,
+  RESOURCE_HASHMAP_IS_EXHAUSTED
+};
 export const RESOURCE_MAX_RETRIES = 16;
 export const RESOURCE_MAX_ADV_RETRIES = 4;
 export const RESOURCE_PART_TIMEOUT_FACTOR = 4;
@@ -80,7 +92,7 @@ interface ResourcePart {
 /** Mirrors RNS/Resource.py ResourceAdvertisement. */
 export class ResourceAdvertisement {
   static readonly OVERHEAD = 134;
-  static readonly HASHMAP_MAX_LEN = Math.floor((383 - ResourceAdvertisement.OVERHEAD) / RESOURCE_MAPHASH_LEN);
+  static readonly HASHMAP_MAX_LEN = resourceHashmapMaxLen();
 
   t = 0;
   d = 0;
@@ -436,9 +448,7 @@ export class Resource {
   }
 
   static readRequestHash(requestData: Uint8Array): Uint8Array {
-    const wantsMoreHashmap = requestData[0] === RESOURCE_HASHMAP_IS_EXHAUSTED;
-    const pad = wantsMoreHashmap ? 1 + RESOURCE_MAPHASH_LEN : 1;
-    return requestData.subarray(pad, pad + 32);
+    return readResourceRequestHash(requestData);
   }
 
   getTransferSize(): number {
@@ -491,14 +501,12 @@ export class Resource {
     this.retriesLeft = RESOURCE_MAX_RETRIES;
     this.startWatchdog();
 
-    const wantsMoreHashmap = requestData[0] === RESOURCE_HASHMAP_IS_EXHAUSTED;
-    const pad = wantsMoreHashmap ? 1 + RESOURCE_MAPHASH_LEN : 1;
-    const requestedHashes = requestData.subarray(pad + 32);
-    const mapHashes: Uint8Array[] = [];
-    for (let index = 0; index < requestedHashes.length; index += RESOURCE_MAPHASH_LEN) {
-      mapHashes.push(requestedHashes.subarray(index, index + RESOURCE_MAPHASH_LEN));
+    const request = parseResourcePartRequest(requestData);
+    if (request === null) {
+      return;
     }
 
+    const mapHashes = request.requestedMapHashes;
     const searchStart = this.receiverMinConsecutiveHeight;
     const searchScope = this.parts.slice(
       searchStart,
@@ -517,8 +525,8 @@ export class Resource {
       }
     }
 
-    if (wantsMoreHashmap) {
-      const lastMapHash = requestData.subarray(1, 1 + RESOURCE_MAPHASH_LEN);
+    if (request.wantsMoreHashmap && request.lastMapHash !== null) {
+      const lastMapHash = request.lastMapHash;
       let partIndex = this.receiverMinConsecutiveHeight;
       for (const part of this.parts.slice(partIndex, partIndex + ResourceAdvertisement.HASHMAP_MAX_LEN * 2)) {
         partIndex += 1;
@@ -531,15 +539,15 @@ export class Resource {
       const segment = Math.floor(partIndex / ResourceAdvertisement.HASHMAP_MAX_LEN);
       const hashmapStart = segment * ResourceAdvertisement.HASHMAP_MAX_LEN;
       const hashmapEnd = Math.min((segment + 1) * ResourceAdvertisement.HASHMAP_MAX_LEN, this.parts.length);
-      let hashmap = new Uint8Array(0);
+      const segmentHashes: Uint8Array[] = [];
       for (let index = hashmapStart; index < hashmapEnd; index += 1) {
         const part = this.parts[index];
         if (part !== undefined) {
-          hashmap = Uint8Array.from(concatBytes(hashmap, part.mapHash));
+          segmentHashes.push(part.mapHash);
         }
       }
 
-      const update = msgpackPackArray([msgpackPackUInt(segment), msgpackPackBin(hashmap)]);
+      const update = packResourceHashmapUpdate(segment, assembleResourceHashmapBytes(segmentHashes));
       await this.link.sendContext(PacketContext.RESOURCE_HMU, concatBytes(this.hash, update));
     }
 
@@ -553,15 +561,15 @@ export class Resource {
       return;
     }
 
-    const updateBytes = plaintext.subarray(32);
-    const update = msgpackUnpack(updateBytes);
-    if (update.type !== "array" || update.array === undefined || update.array.length !== 2) {
+    const split = splitResourceHashmapUpdatePacket(plaintext);
+    if (split === null) {
       return;
     }
-
-    const segment = readInt(update.array[0]!);
-    const hashmap = readBin(update.array[1]!);
-    this.hashmapUpdate(segment, hashmap);
+    const update = unpackResourceHashmapUpdate(split.updateBytes);
+    if (update === null) {
+      return;
+    }
+    this.hashmapUpdate(update.segment, update.hashmap);
   }
 
   hashmapUpdate(segment: number, hashmap: Uint8Array): void {
@@ -570,14 +578,15 @@ export class Resource {
     }
 
     this.status = ResourceStatus.TRANSFERRING;
-    const hashes = hashmap.length / RESOURCE_MAPHASH_LEN;
-    for (let index = 0; index < hashes; index += 1) {
-      const slot = index + segment * ResourceAdvertisement.HASHMAP_MAX_LEN;
-      if (this.hashmap[slot] === null) {
+    const writes = planResourceHashmapSlotWrites({
+      segment,
+      hashmap,
+      hashmapMaxLen: ResourceAdvertisement.HASHMAP_MAX_LEN
+    });
+    for (const write of writes) {
+      if (this.hashmap[write.slot] === null) {
         this.hashmapHeight += 1;
-        this.hashmap[slot] = Uint8Array.from(
-          hashmap.subarray(index * RESOURCE_MAPHASH_LEN, (index + 1) * RESOURCE_MAPHASH_LEN)
-        );
+        this.hashmap[write.slot] = Uint8Array.from(write.mapHash);
       }
     }
 
@@ -818,38 +827,6 @@ export class Resource {
       }
     }
   }
-}
-
-function readInt(value: MsgpackValue | undefined): number {
-  if (value === undefined) {
-    throw new Error("Missing msgpack int");
-  }
-
-  if (value.type === "int") {
-    return value.int ?? 0;
-  }
-
-  throw new Error("Expected msgpack int");
-}
-
-function readBin(value: MsgpackValue | undefined): Uint8Array {
-  if (value === undefined || value.type !== "bin" || value.bin === undefined) {
-    throw new Error("Expected msgpack bin");
-  }
-
-  return Uint8Array.from(value.bin);
-}
-
-function msgpackPackArray(items: ReadonlyArray<Uint8Array>): Uint8Array {
-  if (items.length > 15) {
-    throw new Error("msgpackPackArray supports at most 15 items");
-  }
-
-  const body = concatBytes(...items);
-  const output = new Uint8Array(1 + body.length);
-  output[0] = 0x90 | items.length;
-  output.set(body, 1);
-  return output;
 }
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
