@@ -70,6 +70,22 @@ export function channelAllowsSend(input: {
   return input.isUsable && input.outstanding < input.window;
 }
 
+/**
+ * Count TX-ring entries that still occupy window (unsent or not yet delivered).
+ * Packet presence / delivery status are supplied by the adapter.
+ */
+export function countChannelTxOutstanding(
+  entries: ReadonlyArray<{ readonly packetPresent: boolean; readonly delivered: boolean }>
+): number {
+  let outstanding = 0;
+  for (const entry of entries) {
+    if (!entry.packetPresent || !entry.delivered) {
+      outstanding += 1;
+    }
+  }
+  return outstanding;
+}
+
 /** Shrink window after a packet timeout / retry. */
 export function applyChannelTimeout(state: ChannelWindowState): ChannelWindowState {
   let window = state.window;

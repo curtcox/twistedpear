@@ -321,6 +321,7 @@ export {
   channelAllowsSend,
   channelPacketTimeoutSeconds,
   channelRetryExhausted,
+  countChannelTxOutstanding,
   initialChannelWindowState,
   planChannelPacketTimeout,
   stepChannelWindow,

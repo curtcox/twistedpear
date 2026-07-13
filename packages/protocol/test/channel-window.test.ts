@@ -7,6 +7,7 @@ import {
   channelAllowsSend,
   channelPacketTimeoutSeconds,
   channelRetryExhausted,
+  countChannelTxOutstanding,
   initialChannelWindowState,
   planChannelPacketTimeout,
   stepChannelWindow
@@ -63,6 +64,17 @@ describe("protocol channel window", () => {
     expect(channelAllowsSend({ isUsable: false, outstanding: 0, window: 2 })).toBe(false);
     expect(channelRetryExhausted(5, 5)).toBe(true);
     expect(channelRetryExhausted(4, 5)).toBe(false);
+  });
+
+  it("counts TX outstanding from packet presence and delivery", () => {
+    expect(
+      countChannelTxOutstanding([
+        { packetPresent: false, delivered: false },
+        { packetPresent: true, delivered: false },
+        { packetPresent: true, delivered: true }
+      ])
+    ).toBe(2);
+    expect(countChannelTxOutstanding([])).toBe(0);
   });
 
   it("plans packet timeout ignore / retry / give-up", () => {

@@ -10,6 +10,7 @@ import {
   channelMessageStateFromPacketReceipt,
   channelPacketTimeoutSeconds,
   channelPayloadMdu,
+  countChannelTxOutstanding,
   drainContiguousChannelSequences,
   initialChannelWindowState,
   isChannelSystemMsgType,
@@ -232,17 +233,14 @@ export class Channel {
   }
 
   isReadyToSend(): boolean {
-    let outstanding = 0;
-    for (const envelope of this.txRing) {
-      if (envelope.packet === null) {
-        outstanding += 1;
-        continue;
-      }
-
-      if (this.outlet.getPacketState(envelope.packet) !== MessageState.MSGSTATE_DELIVERED) {
-        outstanding += 1;
-      }
-    }
+    const outstanding = countChannelTxOutstanding(
+      this.txRing.map((envelope) => ({
+        packetPresent: envelope.packet !== null,
+        delivered:
+          envelope.packet !== null &&
+          this.outlet.getPacketState(envelope.packet) === MessageState.MSGSTATE_DELIVERED
+      }))
+    );
 
     return channelAllowsSend({
       isUsable: this.outlet.isUsable,
