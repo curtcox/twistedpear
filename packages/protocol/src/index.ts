@@ -474,6 +474,7 @@ export { assembleByteArrays, concatByteArrays } from "./bytes.js";
 export {
   INTERFACE_RECONNECT_TIMER_ID,
   INTERFACE_RECONNECT_WAIT_MS,
+  canInterfaceSend,
   initialInterfaceReconnectState,
   isValidInterfaceName,
   packetFitsInterfaceMtu,

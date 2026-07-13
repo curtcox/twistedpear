@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   INTERFACE_RECONNECT_TIMER_ID,
   INTERFACE_RECONNECT_WAIT_MS,
+  canInterfaceSend,
   initialInterfaceReconnectState,
   isValidInterfaceName,
   packetFitsInterfaceMtu,
@@ -19,6 +20,12 @@ describe("protocol interface reconnect", () => {
     expect(packetFitsInterfaceMtu(500, 500)).toBe(true);
     expect(packetFitsInterfaceMtu(501, 500)).toBe(false);
     expect(packetFitsInterfaceMtu(0, 500)).toBe(true);
+  });
+
+  it("gates sends when closed or not outgoing", () => {
+    expect(canInterfaceSend({ closed: false, outgoing: true })).toBe(true);
+    expect(canInterfaceSend({ closed: true, outgoing: true })).toBe(false);
+    expect(canInterfaceSend({ closed: false, outgoing: false })).toBe(false);
   });
 
   it("schedules reconnects with default wait", () => {

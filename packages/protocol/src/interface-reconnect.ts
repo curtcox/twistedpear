@@ -17,6 +17,14 @@ export function packetFitsInterfaceMtu(rawLength: number, mtu: number): boolean 
   return rawLength <= mtu;
 }
 
+/** Whether the interface may send (open and configured for outbound traffic). */
+export function canInterfaceSend(input: {
+  readonly closed: boolean;
+  readonly outgoing: boolean;
+}): boolean {
+  return !input.closed && input.outgoing;
+}
+
 export type InterfaceReconnectPlan =
   | { readonly kind: "reconnect"; readonly delayMs: number; readonly attempt: number }
   | { readonly kind: "give-up"; readonly attempt: number };
