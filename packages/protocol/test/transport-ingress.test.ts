@@ -6,6 +6,8 @@ import {
   PacketContextCode,
   REVERSE_TIMEOUT_SECONDS,
   TRANSPORT_TRANSPORT,
+  isReverseEntryExpired,
+  planLinkRelayTarget,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash
 } from "../src/index.js";
@@ -68,5 +70,64 @@ describe("transport ingress", () => {
         destinationInLinkTable: false
       })
     ).toBe(false);
+  });
+
+  it("plans link relay target from hops and interface identity", () => {
+    expect(
+      planLinkRelayTarget({
+        sameInterface: true,
+        ifaceIsOutbound: true,
+        ifaceIsReceived: true,
+        packetHops: 2,
+        remainingHops: 2,
+        takenHops: 1
+      })
+    ).toBe("outbound");
+    expect(
+      planLinkRelayTarget({
+        sameInterface: false,
+        ifaceIsOutbound: true,
+        ifaceIsReceived: false,
+        packetHops: 3,
+        remainingHops: 3,
+        takenHops: 1
+      })
+    ).toBe("received");
+    expect(
+      planLinkRelayTarget({
+        sameInterface: false,
+        ifaceIsOutbound: false,
+        ifaceIsReceived: true,
+        packetHops: 1,
+        remainingHops: 3,
+        takenHops: 1
+      })
+    ).toBe("outbound");
+    expect(
+      planLinkRelayTarget({
+        sameInterface: false,
+        ifaceIsOutbound: false,
+        ifaceIsReceived: false,
+        packetHops: 1,
+        remainingHops: 3,
+        takenHops: 1
+      })
+    ).toBeNull();
+  });
+
+  it("expires reverse-table entries past timeout", () => {
+    expect(
+      isReverseEntryExpired({
+        timestamp: 100,
+        nowSeconds: 100 + REVERSE_TIMEOUT_SECONDS,
+        timeoutSeconds: REVERSE_TIMEOUT_SECONDS
+      })
+    ).toBe(false);
+    expect(
+      isReverseEntryExpired({
+        timestamp: 100,
+        nowSeconds: 100 + REVERSE_TIMEOUT_SECONDS + 1
+      })
+    ).toBe(true);
   });
 });

@@ -1,6 +1,8 @@
 import {
   LOCAL_REBROADCASTS_MAX as PROTOCOL_LOCAL_REBROADCASTS_MAX,
   REVERSE_TIMEOUT_SECONDS as PROTOCOL_REVERSE_TIMEOUT_SECONDS,
+  isReverseEntryExpired,
+  planLinkRelayTarget,
   rewritePacketHopsBytes,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash as planShouldDeferPacketHash
@@ -276,16 +278,20 @@ export class TransportNode extends LeafTransport {
       return false;
     }
 
-    let outboundInterface: PacketInterface | null = null;
-    if (entry.outboundInterface === entry.receivedInterface) {
-      if (packet.hops === entry.remainingHops || packet.hops === entry.takenHops) {
-        outboundInterface = entry.outboundInterface;
-      }
-    } else if (iface === entry.outboundInterface && packet.hops === entry.remainingHops) {
-      outboundInterface = entry.receivedInterface;
-    } else if (iface === entry.receivedInterface && packet.hops === entry.takenHops) {
-      outboundInterface = entry.outboundInterface;
-    }
+    const target = planLinkRelayTarget({
+      sameInterface: entry.outboundInterface === entry.receivedInterface,
+      ifaceIsOutbound: iface === entry.outboundInterface,
+      ifaceIsReceived: iface === entry.receivedInterface,
+      packetHops: packet.hops,
+      remainingHops: entry.remainingHops,
+      takenHops: entry.takenHops
+    });
+    const outboundInterface =
+      target === "outbound"
+        ? entry.outboundInterface
+        : target === "received"
+          ? entry.receivedInterface
+          : null;
 
     if (outboundInterface === null) {
       return false;
@@ -301,8 +307,15 @@ export class TransportNode extends LeafTransport {
       return false;
     }
 
-    const entry = this.reverseTable.get(hashKey(packet.destinationHash));
+    const key = hashKey(packet.destinationHash);
+    const entry = this.reverseTable.get(key);
     if (entry === undefined) {
+      return false;
+    }
+
+    const nowSeconds = this.clock.now() / 1000;
+    if (isReverseEntryExpired({ timestamp: entry.timestamp, nowSeconds })) {
+      this.reverseTable.delete(key);
       return false;
     }
 

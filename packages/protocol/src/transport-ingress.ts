@@ -49,3 +49,43 @@ export function shouldDeferPacketHash(input: {
   }
   return input.destinationInLinkTable;
 }
+
+/** Which link-table interface should carry a relayed link packet, if any. */
+export type LinkRelayTarget = "outbound" | "received";
+
+/**
+ * Plan link-packet relay direction from link-table hops / interface identity.
+ * Transmit stays at the adapter edge.
+ */
+export function planLinkRelayTarget(input: {
+  readonly sameInterface: boolean;
+  readonly ifaceIsOutbound: boolean;
+  readonly ifaceIsReceived: boolean;
+  readonly packetHops: number;
+  readonly remainingHops: number;
+  readonly takenHops: number;
+}): LinkRelayTarget | null {
+  if (input.sameInterface) {
+    if (input.packetHops === input.remainingHops || input.packetHops === input.takenHops) {
+      return "outbound";
+    }
+    return null;
+  }
+  if (input.ifaceIsOutbound && input.packetHops === input.remainingHops) {
+    return "received";
+  }
+  if (input.ifaceIsReceived && input.packetHops === input.takenHops) {
+    return "outbound";
+  }
+  return null;
+}
+
+/** True when a reverse-table entry is past its lifetime. */
+export function isReverseEntryExpired(input: {
+  readonly timestamp: number;
+  readonly nowSeconds: number;
+  readonly timeoutSeconds?: number;
+}): boolean {
+  const timeoutSeconds = input.timeoutSeconds ?? REVERSE_TIMEOUT_SECONDS;
+  return input.nowSeconds > input.timestamp + timeoutSeconds;
+}

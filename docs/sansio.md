@@ -93,7 +93,9 @@
 > reverse-timeout constants), and **`computeLinkRequestTimeout`** live in protocol; Channel,
 > TransportNode, and Link adapt them. **`planResourceRequestFulfill`** (sender RESOURCE_REQ
 > fulfill: part send/resend + optional HMU + awaiting-proof) lives in protocol; `Resource`
-> adapts it. Remaining depth work: keep converting residual session IO into step machines.
+> adapts it. **`planLinkRelayTarget`** and **`isReverseEntryExpired`** live in protocol;
+> `TransportNode` adapts them (reverse-table timeout now applied). Remaining depth work:
+> keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

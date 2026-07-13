@@ -548,8 +548,11 @@ export {
 export {
   LOCAL_REBROADCASTS_MAX,
   REVERSE_TIMEOUT_SECONDS,
+  isReverseEntryExpired,
+  planLinkRelayTarget,
   shouldAcceptTransportPacket,
-  shouldDeferPacketHash
+  shouldDeferPacketHash,
+  type LinkRelayTarget
 } from "./transport-ingress.js";
 export {
   ANNOUNCE_NAME_HASH_SIZE,
