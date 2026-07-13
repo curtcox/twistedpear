@@ -1,8 +1,21 @@
 import {
+  RESOURCE_ADVERTISEMENT_OVERHEAD,
   RESOURCE_HASHMAP_IS_EXHAUSTED,
   RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,
   RESOURCE_MAPHASH_LEN,
+  RESOURCE_MAX_ADV_RETRIES,
+  RESOURCE_MAX_RETRIES,
+  RESOURCE_PART_TIMEOUT_FACTOR,
+  RESOURCE_PROCESSING_GRACE,
   RESOURCE_RANDOM_HASH_SIZE,
+  RESOURCE_SENDER_GRACE_TIME,
+  RESOURCE_WINDOW,
+  RESOURCE_WINDOW_FLEXIBILITY,
+  RESOURCE_WINDOW_MAX,
+  RESOURCE_WINDOW_MAX_FAST,
+  RESOURCE_WINDOW_MAX_SLOW,
+  RESOURCE_WINDOW_MIN,
+  ResourceStatus,
   assembleByteArrays,
   assembleResourceHashmapBytes,
   computeResourceTimeout,
@@ -30,6 +43,7 @@ import {
   stepResourceWatchdogWithActions,
   unpackResourceAdvertisement,
   unpackResourceHashmapUpdate,
+  type ResourceStatusValue,
   type ResourceWatchdogState,
   type ResourceWatchdogStepResult
 } from "@twistedpear/protocol";
@@ -48,38 +62,25 @@ import {
 import { DestinationType } from "./destination.js";
 
 /** Mirrors RNS/Resource.py constants. */
-export const ResourceStatus = {
-  NONE: 0x00,
-  QUEUED: 0x01,
-  ADVERTISED: 0x02,
-  TRANSFERRING: 0x03,
-  AWAITING_PROOF: 0x04,
-  ASSEMBLING: 0x05,
-  COMPLETE: 0x06,
-  FAILED: 0x07,
-  CORRUPT: 0x08,
-  REJECTED: 0x00
-} as const;
-
-export type ResourceStatusValue = (typeof ResourceStatus)[keyof typeof ResourceStatus];
-
-export const RESOURCE_WINDOW = 4;
-export const RESOURCE_WINDOW_MIN = 2;
-export const RESOURCE_WINDOW_MAX_SLOW = 10;
-export const RESOURCE_WINDOW_MAX_FAST = 75;
-export const RESOURCE_WINDOW_MAX = RESOURCE_WINDOW_MAX_FAST;
-export const RESOURCE_WINDOW_FLEXIBILITY = 4;
 export {
+  ResourceStatus,
+  RESOURCE_WINDOW,
+  RESOURCE_WINDOW_MIN,
+  RESOURCE_WINDOW_MAX_SLOW,
+  RESOURCE_WINDOW_MAX_FAST,
+  RESOURCE_WINDOW_MAX,
+  RESOURCE_WINDOW_FLEXIBILITY,
   RESOURCE_MAPHASH_LEN,
   RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,
   RESOURCE_HASHMAP_IS_EXHAUSTED,
-  RESOURCE_RANDOM_HASH_SIZE
+  RESOURCE_RANDOM_HASH_SIZE,
+  RESOURCE_MAX_RETRIES,
+  RESOURCE_MAX_ADV_RETRIES,
+  RESOURCE_PART_TIMEOUT_FACTOR,
+  RESOURCE_SENDER_GRACE_TIME,
+  RESOURCE_PROCESSING_GRACE,
+  type ResourceStatusValue
 };
-export const RESOURCE_MAX_RETRIES = 16;
-export const RESOURCE_MAX_ADV_RETRIES = 4;
-export const RESOURCE_PART_TIMEOUT_FACTOR = 4;
-export const RESOURCE_SENDER_GRACE_TIME = 10;
-export const RESOURCE_PROCESSING_GRACE = 1;
 
 export interface ResourceCallbacks {
   readonly callback?: (resource: Resource) => void;
@@ -103,7 +104,7 @@ interface ResourcePart {
 
 /** Mirrors RNS/Resource.py ResourceAdvertisement. */
 export class ResourceAdvertisement {
-  static readonly OVERHEAD = 134;
+  static readonly OVERHEAD = RESOURCE_ADVERTISEMENT_OVERHEAD;
   static readonly HASHMAP_MAX_LEN = resourceHashmapMaxLen();
 
   t = 0;

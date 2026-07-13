@@ -46,14 +46,34 @@ export {
   packLinkKeepaliveReply
 } from "./link-keepalive.js";
 export {
+  LinkRequestReceiptStatus,
+  type LinkRequestReceiptStatusValue
+} from "./link-request-receipt.js";
+export {
+  DestinationAllowPolicyCode,
+  planDestinationRequestAllow,
+  type DestinationAllowPolicyCodeValue
+} from "./destination-allow.js";
+export {
   computeResourceTimeout,
   initialResourceWatchdogState,
   stepResourceWatchdog,
   stepResourceWatchdogWithActions,
+  RESOURCE_MAX_ADV_RETRIES,
+  RESOURCE_MAX_RETRIES,
+  RESOURCE_PART_TIMEOUT_FACTOR,
   RESOURCE_PROCESSING_GRACE,
   RESOURCE_SENDER_GRACE_TIME,
   RESOURCE_WATCHDOG_PERIOD_MS,
+  RESOURCE_WINDOW,
+  RESOURCE_WINDOW_FLEXIBILITY,
+  RESOURCE_WINDOW_MAX,
+  RESOURCE_WINDOW_MAX_FAST,
+  RESOURCE_WINDOW_MAX_SLOW,
+  RESOURCE_WINDOW_MIN,
+  ResourceStatus,
   ResourceStatus as ProtocolResourceStatus,
+  type ResourceStatusValue,
   type ResourceWatchdogAction,
   type ResourceWatchdogEvent,
   type ResourceWatchdogState,

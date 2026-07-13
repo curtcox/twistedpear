@@ -78,8 +78,11 @@
 > live in protocol; `link.ts` re-exports RNS names (`LinkMode`, `LINK_ECPUB_SIZE`, …).
 > **LXMF Field / unverified-reason / peer paths / app name**, **ChannelMessageState**,
 > **stream SMT_STREAM_DATA**, and **PacketReceiptStatus** live in protocol; lxmf-ts and
-> reticulum Channel/Buffer/PacketReceipt adapt them. Remaining depth work: keep converting
-> residual session IO into step machines.
+> reticulum Channel/Buffer/PacketReceipt adapt them. **Resource session constants**
+> (status/window/retry), **LinkRequestReceiptStatus**, **DestinationAllowPolicyCode**, and
+> **`planDestinationRequestAllow`** live in protocol; Resource, LinkRequestReceipt,
+> RegisteredDestination, and Link adapt them. Remaining depth work: keep converting residual
+> session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

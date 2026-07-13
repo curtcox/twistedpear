@@ -23,7 +23,11 @@ import {
   type DestinationProofStrategyValue,
   type LeafTransport
 } from "./transport/node.js";
-import { utf8Encode } from "@twistedpear/protocol";
+import {
+  DestinationAllowPolicyCode,
+  utf8Encode,
+  type DestinationAllowPolicyCodeValue
+} from "@twistedpear/protocol";
 
 export interface RegisteredDestinationOptions extends DestinationOptions {
   readonly provider: CryptoProvider;
@@ -31,13 +35,8 @@ export interface RegisteredDestinationOptions extends DestinationOptions {
 
 export { DestinationProofStrategy };
 
-export const DestinationAllowPolicy = {
-  ALLOW_NONE: 0x00,
-  ALLOW_ALL: 0x01,
-  ALLOW_LIST: 0x02
-} as const;
-
-export type DestinationAllowPolicyValue = (typeof DestinationAllowPolicy)[keyof typeof DestinationAllowPolicy];
+export const DestinationAllowPolicy = DestinationAllowPolicyCode;
+export type DestinationAllowPolicyValue = DestinationAllowPolicyCodeValue;
 
 export interface RequestHandler {
   readonly path: string;

@@ -8,6 +8,19 @@ export const RESOURCE_SENDER_GRACE_TIME = 10;
 export const RESOURCE_PROCESSING_GRACE = 1;
 export const RESOURCE_WATCHDOG_PERIOD_MS = 250;
 
+/** Mirrors RNS/Resource.py transfer window constants. */
+export const RESOURCE_WINDOW = 4;
+export const RESOURCE_WINDOW_MIN = 2;
+export const RESOURCE_WINDOW_MAX_SLOW = 10;
+export const RESOURCE_WINDOW_MAX_FAST = 75;
+export const RESOURCE_WINDOW_MAX = RESOURCE_WINDOW_MAX_FAST;
+export const RESOURCE_WINDOW_FLEXIBILITY = 4;
+
+/** Mirrors RNS/Resource.py retry / part-timeout factors. */
+export const RESOURCE_MAX_RETRIES = 16;
+export const RESOURCE_MAX_ADV_RETRIES = 4;
+export const RESOURCE_PART_TIMEOUT_FACTOR = 4;
+
 export const ResourceStatus = {
   NONE: 0x00,
   QUEUED: 0x01,

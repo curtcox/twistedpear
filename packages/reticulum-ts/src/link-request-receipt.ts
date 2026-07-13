@@ -1,17 +1,14 @@
 import type { Link } from "./link.js";
 import { equalBytes } from "./crypto/bytes.js";
 import type { NowSeconds, PacketReceipt } from "./packet-receipt.js";
+import {
+  LinkRequestReceiptStatus,
+  type LinkRequestReceiptStatusValue
+} from "@twistedpear/protocol";
 
 /** Mirrors RNS/Link.py RequestReceipt status constants. */
-export const RequestReceiptStatus = {
-  FAILED: 0x00,
-  SENT: 0x01,
-  DELIVERED: 0x02,
-  RECEIVING: 0x03,
-  READY: 0x04
-} as const;
-
-export type RequestReceiptStatusValue = (typeof RequestReceiptStatus)[keyof typeof RequestReceiptStatus];
+export const RequestReceiptStatus = LinkRequestReceiptStatus;
+export type RequestReceiptStatusValue = LinkRequestReceiptStatusValue;
 
 export interface RequestReceiptCallbacks {
   response?: (receipt: LinkRequestReceipt) => void;

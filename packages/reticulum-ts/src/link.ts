@@ -57,6 +57,7 @@ import {
   packLinkKeepaliveReply,
   packLinkProofData,
   packLinkRequestData,
+  planDestinationRequestAllow,
   splitIdentityPublicKey,
   splitInitiatorLinkEntropy,
   splitLinkIdentifyPayload,
@@ -1013,13 +1014,11 @@ export class Link {
 
       let allowed = false;
       if (handler.allow !== DestinationAllowPolicy.ALLOW_NONE) {
-        if (handler.allow === DestinationAllowPolicy.ALLOW_LIST) {
-          allowed =
-            this.remoteIdentity !== null &&
-            handler.allowedList.some((entry) => equalBytes(entry, this.remoteIdentity!.hash));
-        } else if (handler.allow === DestinationAllowPolicy.ALLOW_ALL) {
-          allowed = true;
-        }
+        allowed = planDestinationRequestAllow({
+          allow: handler.allow,
+          allowedList: handler.allowedList,
+          remoteIdentityHash: this.remoteIdentity?.hash ?? null
+        });
       }
 
       if (!allowed) {
