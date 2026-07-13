@@ -111,7 +111,8 @@
 > lookup adapts it. **`appendResourceMapHashCollisionGuard`** lives in protocol; `Resource.send`
 > adapts it. **`containsResourceHash`** / **`indexOfResourceHash`** live in protocol;
 > `Resource.accept` and `Link.hasIncomingResource` adapt them. **`indexOfChannelRingSequence`**
-> lives in protocol; Channel RX drain adapts it. Remaining depth work: keep converting residual
+> lives in protocol; Channel RX drain adapts it. **`applyResourceHashmapSlotWrites`** lives in
+> protocol; `Resource.hashmapUpdate` adapts it. Remaining depth work: keep converting residual
 > session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

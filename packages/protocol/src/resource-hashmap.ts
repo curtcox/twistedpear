@@ -184,7 +184,7 @@ export interface ResourceHashmapSlotWrite {
   readonly mapHash: Uint8Array;
 }
 
-/** Plan which hashmap slots to fill from a segment update (skips occupied slots at adapter). */
+/** Plan which hashmap slots to fill from a segment update. */
 export function planResourceHashmapSlotWrites(input: {
   readonly segment: number;
   readonly hashmap: Uint8Array;
@@ -199,6 +199,26 @@ export function planResourceHashmapSlotWrites(input: {
     });
   }
   return writes;
+}
+
+/**
+ * Apply planned slot writes, skipping occupied slots and bumping height for new fills.
+ */
+export function applyResourceHashmapSlotWrites(input: {
+  readonly hashmap: ReadonlyArray<Uint8Array | null>;
+  readonly hashmapHeight: number;
+  readonly writes: ReadonlyArray<ResourceHashmapSlotWrite>;
+}): { readonly hashmap: Array<Uint8Array | null>; readonly hashmapHeight: number } {
+  const hashmap = [...input.hashmap];
+  let hashmapHeight = input.hashmapHeight;
+  for (const write of input.writes) {
+    if (hashmap[write.slot] !== null) {
+      continue;
+    }
+    hashmapHeight += 1;
+    hashmap[write.slot] = Uint8Array.from(write.mapHash);
+  }
+  return { hashmap, hashmapHeight };
 }
 
 export function assembleResourceHashmapBytes(mapHashes: ReadonlyArray<Uint8Array>): Uint8Array {

@@ -7,6 +7,7 @@ import {
   packResourceHashmapUpdate,
   packResourceHashmapUpdatePacket,
   parseResourcePartRequest,
+  applyResourceHashmapSlotWrites,
   planResourceHashmapSlotWrites,
   planResourcePartRequest,
   planResourceReceivePart,
@@ -110,6 +111,26 @@ describe("protocol resource hashmap", () => {
     expect(writes).toHaveLength(2);
     expect(writes[0]!.slot).toBe(10);
     expect([...writes[1]!.mapHash]).toEqual([5, 6, 7, 8]);
+  });
+
+  it("applies slot writes skipping occupied slots", () => {
+    const writes = planResourceHashmapSlotWrites({
+      segment: 0,
+      hashmap: assembleResourceHashmapBytes([
+        new Uint8Array([1, 2, 3, 4]),
+        new Uint8Array([5, 6, 7, 8])
+      ]),
+      hashmapMaxLen: 10
+    });
+    const existing = new Uint8Array([9, 9, 9, 9]);
+    const applied = applyResourceHashmapSlotWrites({
+      hashmap: [existing, null],
+      hashmapHeight: 1,
+      writes
+    });
+    expect([...applied.hashmap[0]!]).toEqual([9, 9, 9, 9]);
+    expect([...applied.hashmap[1]!]).toEqual([5, 6, 7, 8]);
+    expect(applied.hashmapHeight).toBe(2);
   });
 
   it("plans part requests within the receive window", () => {

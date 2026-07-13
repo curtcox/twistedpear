@@ -35,6 +35,7 @@ import {
   packResourceHashmapUpdatePacket,
   packResourceProof,
   parseResourcePartRequest,
+  applyResourceHashmapSlotWrites,
   planResourceHashmapSlotWrites,
   planResourcePartRequest,
   planResourceReceivePart,
@@ -607,12 +608,13 @@ export class Resource {
       hashmap,
       hashmapMaxLen: ResourceAdvertisement.HASHMAP_MAX_LEN
     });
-    for (const write of writes) {
-      if (this.hashmap[write.slot] === null) {
-        this.hashmapHeight += 1;
-        this.hashmap[write.slot] = Uint8Array.from(write.mapHash);
-      }
-    }
+    const applied = applyResourceHashmapSlotWrites({
+      hashmap: this.hashmap,
+      hashmapHeight: this.hashmapHeight,
+      writes
+    });
+    this.hashmap = applied.hashmap;
+    this.hashmapHeight = applied.hashmapHeight;
 
     this.waitingForHashmap = false;
     void this.requestNext();

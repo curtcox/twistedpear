@@ -506,6 +506,7 @@ export {
   packResourceHashmapUpdate,
   packResourceHashmapUpdatePacket,
   parseResourcePartRequest,
+  applyResourceHashmapSlotWrites,
   planResourceHashmapSlotWrites,
   planResourcePartRequest,
   planResourceReceivePart,
