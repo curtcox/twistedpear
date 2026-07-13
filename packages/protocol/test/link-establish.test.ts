@@ -25,6 +25,7 @@ import {
   isLinkClosed,
   isLinkInboundDataPacket,
   mergeLinkRtt,
+  planLinkActivateMembership,
   planLinkAppRequest,
   planLinkAppRequestDispatch,
   planLinkAppRequestResponse,
@@ -32,11 +33,13 @@ import {
   planLinkProofValidateOutcome,
   planLinkRegisterList,
   planLinkRttOutcome,
+  planLinkUnregisterMembership,
   planLinkValidateRequest,
   shouldAcceptLinkPacketInterface,
   shouldAttemptLinkProofCrypto,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
+  shouldRegisterLinkMember,
   shouldReuseActiveLink,
   shouldUpdateLinkLastData
 } from "../src/link-establish.js";
@@ -440,6 +443,20 @@ describe("protocol link establish", () => {
   it("plans register list, RTT, plaintext, resend, and app-request transmit", () => {
     expect(planLinkRegisterList(true)).toBe("pending");
     expect(planLinkRegisterList(false)).toBe("active");
+    expect(shouldRegisterLinkMember(false)).toBe(true);
+    expect(shouldRegisterLinkMember(true)).toBe(false);
+    expect(
+      planLinkActivateMembership({ pendingIndex: 2, alreadyActive: false })
+    ).toEqual({ removePendingIndex: 2, appendActive: true });
+    expect(
+      planLinkActivateMembership({ pendingIndex: -1, alreadyActive: true })
+    ).toEqual({ removePendingIndex: null, appendActive: false });
+    expect(
+      planLinkUnregisterMembership({ pendingIndex: 0, activeIndex: -1 })
+    ).toEqual({ removePendingIndex: 0, removeActiveIndex: null });
+    expect(
+      planLinkUnregisterMembership({ pendingIndex: -1, activeIndex: 3 })
+    ).toEqual({ removePendingIndex: null, removeActiveIndex: 3 });
     expect(planLinkRttOutcome({ canAccept: false, plaintextPresent: true })).toBe("ignore");
     expect(planLinkRttOutcome({ canAccept: true, plaintextPresent: false })).toBe("teardown");
     expect(planLinkRttOutcome({ canAccept: true, plaintextPresent: true })).toBe("activate");

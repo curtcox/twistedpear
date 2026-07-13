@@ -13,6 +13,8 @@ import {
   LinkRequestReceiptStatus,
   indexOfPendingLinkAppRequest,
   initialLinkRequestReceiptState,
+  planUnregisterPendingLinkRequest,
+  shouldRegisterPendingLinkRequest,
   stepLinkRequestReceipt
 } from "../src/link-request-receipt.js";
 
@@ -94,5 +96,12 @@ describe("link request receipt step", () => {
         target: new Uint8Array([9, 9, 9])
       })
     ).toBeNull();
+  });
+
+  it("plans pending link-request register and unregister", () => {
+    expect(shouldRegisterPendingLinkRequest(false)).toBe(true);
+    expect(shouldRegisterPendingLinkRequest(true)).toBe(false);
+    expect(planUnregisterPendingLinkRequest(2)).toBe(2);
+    expect(planUnregisterPendingLinkRequest(-1)).toBeNull();
   });
 });

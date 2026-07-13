@@ -224,7 +224,12 @@
 > them. **`planLinkRttOutcome`**, **`shouldDispatchLinkPlaintext`**,
 > **`canResendLinkPacket`**, and **`planLinkAppRequestTransmitOutcome`** live in
 > protocol; `Link` adapts them. **`planResourceHashmapUpdateAccept`** lives in
-> protocol; `Resource` adapts it.
+> protocol; `Resource` adapts it. **`shouldRegisterLinkMember`**,
+> **`planLinkActivateMembership`**, and **`planLinkUnregisterMembership`** live in
+> protocol; transport link register/activate/unregister adapt them.
+> **`shouldRegisterLinkResource`** / **`planLinkResourceConclude`** and
+> **`shouldRegisterPendingLinkRequest`** / **`planUnregisterPendingLinkRequest`**
+> live in protocol; `Link` resource and pending-request lists adapt them.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

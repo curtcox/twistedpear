@@ -53,6 +53,8 @@ export {
   LinkRequestReceiptStatus,
   indexOfPendingLinkAppRequest,
   initialLinkRequestReceiptState,
+  planUnregisterPendingLinkRequest,
+  shouldRegisterPendingLinkRequest,
   stepLinkRequestReceipt,
   type LinkRequestReceiptAction,
   type LinkRequestReceiptEvent,
@@ -87,9 +89,12 @@ export {
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
   planLinkResourceAdvertisement,
+  planLinkResourceConclude,
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest,
-  type LinkResourceAcceptPlan
+  shouldRegisterLinkResource,
+  type LinkResourceAcceptPlan,
+  type LinkResourceConcludePlan
 } from "./link-resource-accept.js";
 export {
   planLinkTeardown,
@@ -463,18 +468,22 @@ export {
   planLinkAppRequest,
   planLinkAppRequestDispatch,
   planLinkAppRequestResponse,
+  planLinkActivateMembership,
   planLinkAppRequestTransmitOutcome,
   planLinkProofValidateOutcome,
   planLinkRegisterList,
   planLinkRttOutcome,
+  planLinkUnregisterMembership,
   planLinkValidateRequest,
   shouldAcceptLinkPacketInterface,
   shouldAttemptLinkProofCrypto,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
+  shouldRegisterLinkMember,
   shouldReuseActiveLink,
   shouldUpdateLinkLastData,
   stepLinkEstablish,
+  type LinkActivateMembershipPlan,
   type LinkAppRequestDispatchPlan,
   type LinkAppRequestPlan,
   type LinkAppRequestResponsePlan,
@@ -484,6 +493,7 @@ export {
   type LinkProofValidateOutcome,
   type LinkRegisterList,
   type LinkRttOutcome,
+  type LinkUnregisterMembershipPlan,
   type LinkValidateRequestPlan
 } from "./link-establish.js";
 export {

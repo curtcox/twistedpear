@@ -79,10 +79,12 @@ import {
   planLinkRequestResponderMtu,
   planLinkResourceAcceptAppResult,
   planLinkResourceAdvertisement,
+  planLinkResourceConclude,
   planLinkRttOutcome,
   planLinkTeardown,
   planLinkTeardownReason,
   planLinkValidateRequest,
+  planUnregisterPendingLinkRequest,
   shouldAcceptLinkPacketInterface,
   shouldAcceptLinkTeardown,
   shouldAttemptLinkProofCrypto,
@@ -91,6 +93,8 @@ import {
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest,
   shouldIgnoreInitiatorKeepaliveProbe,
+  shouldRegisterLinkResource,
+  shouldRegisterPendingLinkRequest,
   shouldReplyKeepaliveProbe,
   shouldUpdateLinkLastData,
   isLinkInboundDataPacket,
@@ -887,13 +891,13 @@ export class Link {
   }
 
   registerOutgoingResource(resource: Resource): void {
-    if (!this.outgoingResourcesList.includes(resource)) {
+    if (shouldRegisterLinkResource(this.outgoingResourcesList.includes(resource))) {
       this.outgoingResourcesList.push(resource);
     }
   }
 
   registerIncomingResource(resource: Resource): void {
-    if (!this.incomingResourcesList.includes(resource)) {
+    if (shouldRegisterLinkResource(this.incomingResourcesList.includes(resource))) {
       this.incomingResourcesList.push(resource);
     }
   }
@@ -906,14 +910,15 @@ export class Link {
   }
 
   resourceConcluded(resource: Resource): void {
-    const outgoingIndex = this.outgoingResourcesList.indexOf(resource);
-    if (outgoingIndex >= 0) {
-      this.outgoingResourcesList.splice(outgoingIndex, 1);
+    const plan = planLinkResourceConclude({
+      outgoingIndex: this.outgoingResourcesList.indexOf(resource),
+      incomingIndex: this.incomingResourcesList.indexOf(resource)
+    });
+    if (plan.removeOutgoingIndex !== null) {
+      this.outgoingResourcesList.splice(plan.removeOutgoingIndex, 1);
     }
-
-    const incomingIndex = this.incomingResourcesList.indexOf(resource);
-    if (incomingIndex >= 0) {
-      this.incomingResourcesList.splice(incomingIndex, 1);
+    if (plan.removeIncomingIndex !== null) {
+      this.incomingResourcesList.splice(plan.removeIncomingIndex, 1);
     }
   }
 
@@ -926,14 +931,14 @@ export class Link {
   }
 
   registerPendingRequest(receipt: LinkRequestReceipt): void {
-    if (!this.pendingRequests.includes(receipt)) {
+    if (shouldRegisterPendingLinkRequest(this.pendingRequests.includes(receipt))) {
       this.pendingRequests.push(receipt);
     }
   }
 
   unregisterPendingRequest(receipt: LinkRequestReceipt): void {
-    const index = this.pendingRequests.indexOf(receipt);
-    if (index >= 0) {
+    const index = planUnregisterPendingLinkRequest(this.pendingRequests.indexOf(receipt));
+    if (index !== null) {
       this.pendingRequests.splice(index, 1);
     }
   }

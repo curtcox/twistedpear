@@ -294,6 +294,49 @@ export function planLinkRegisterList(initiator: boolean): LinkRegisterList {
   return initiator ? "pending" : "active";
 }
 
+/** Whether a transport link list should receive a new member (not already present). */
+export function shouldRegisterLinkMember(alreadyPresent: boolean): boolean {
+  return !alreadyPresent;
+}
+
+export type LinkActivateMembershipPlan = {
+  readonly removePendingIndex: number | null;
+  readonly appendActive: boolean;
+};
+
+/**
+ * Activate a pending/initiator link: drop from pending (if present), unique-push to active.
+ * Splice / push stay at the adapter.
+ */
+export function planLinkActivateMembership(input: {
+  readonly pendingIndex: number;
+  readonly alreadyActive: boolean;
+}): LinkActivateMembershipPlan {
+  return {
+    removePendingIndex: input.pendingIndex >= 0 ? input.pendingIndex : null,
+    appendActive: !input.alreadyActive
+  };
+}
+
+export type LinkUnregisterMembershipPlan = {
+  readonly removePendingIndex: number | null;
+  readonly removeActiveIndex: number | null;
+};
+
+/**
+ * Unregister from pending and/or active transport link lists.
+ * Splice stays at the adapter.
+ */
+export function planLinkUnregisterMembership(input: {
+  readonly pendingIndex: number;
+  readonly activeIndex: number;
+}): LinkUnregisterMembershipPlan {
+  return {
+    removePendingIndex: input.pendingIndex >= 0 ? input.pendingIndex : null,
+    removeActiveIndex: input.activeIndex >= 0 ? input.activeIndex : null
+  };
+}
+
 export type LinkRttOutcome = "ignore" | "activate" | "teardown";
 
 /**

@@ -88,3 +88,16 @@ export function indexOfPendingLinkAppRequest(input: {
   }
   return null;
 }
+
+/** Whether a pending link-request receipt list should receive a new member. */
+export function shouldRegisterPendingLinkRequest(alreadyPresent: boolean): boolean {
+  return !alreadyPresent;
+}
+
+/**
+ * Unregister a pending link-request receipt: splice index or skip when absent.
+ * Splice stays at the adapter.
+ */
+export function planUnregisterPendingLinkRequest(index: number): number | null {
+  return index >= 0 ? index : null;
+}

@@ -11,16 +11,18 @@ import {
   parseAspectFilter,
   planClonePacketWithHops,
   planDestinationProof,
-  planPathOutbound,
+  planLinkActivateMembership,
+  planLinkDataIngressTarget,
+  planLinkRegisterList,
+  planLinkUnregisterMembership,
+  planLocalPlainDataDelivery,
+  planOutboundReceiptOutcome,
   planPacketFilter,
+  planPacketReceiptProofIngress,
+  planPathOutbound,
   planPathRequestIngress,
   planPathResponseAnnounceFields,
-  planOutboundReceiptOutcome,
   planProofIngressKind,
-  planLocalPlainDataDelivery,
-  planLinkDataIngressTarget,
-  planPacketReceiptProofIngress,
-  planLinkRegisterList,
   planTransportAnnounceFields,
   planTransportIngressDispatch,
   shouldAcceptLinkLrProofCandidate,
@@ -30,6 +32,7 @@ import {
   shouldMatchLocalInboundDestination,
   shouldMatchLocalTypedDestination,
   shouldReceiveAnnouncePathResponse,
+  shouldRegisterLinkMember,
   shouldTransmitOnInterface,
   indexOfMatchingLinkId,
   relayTransportPacketBytes,
@@ -310,37 +313,40 @@ export class LeafTransport {
 
   registerLink(link: Link): void {
     if (planLinkRegisterList(link.initiator) === "pending") {
-      if (!this.pendingLinks.includes(link)) {
+      if (shouldRegisterLinkMember(this.pendingLinks.includes(link))) {
         this.pendingLinks.push(link);
       }
       return;
     }
 
-    if (!this.activeLinks.includes(link)) {
+    if (shouldRegisterLinkMember(this.activeLinks.includes(link))) {
       this.activeLinks.push(link);
     }
   }
 
   activateLink(link: Link): void {
-    const index = this.pendingLinks.indexOf(link);
-    if (index >= 0) {
-      this.pendingLinks.splice(index, 1);
+    const plan = planLinkActivateMembership({
+      pendingIndex: this.pendingLinks.indexOf(link),
+      alreadyActive: this.activeLinks.includes(link)
+    });
+    if (plan.removePendingIndex !== null) {
+      this.pendingLinks.splice(plan.removePendingIndex, 1);
     }
-
-    if (!this.activeLinks.includes(link)) {
+    if (plan.appendActive) {
       this.activeLinks.push(link);
     }
   }
 
   unregisterLink(link: Link): void {
-    const pendingIndex = this.pendingLinks.indexOf(link);
-    if (pendingIndex >= 0) {
-      this.pendingLinks.splice(pendingIndex, 1);
+    const plan = planLinkUnregisterMembership({
+      pendingIndex: this.pendingLinks.indexOf(link),
+      activeIndex: this.activeLinks.indexOf(link)
+    });
+    if (plan.removePendingIndex !== null) {
+      this.pendingLinks.splice(plan.removePendingIndex, 1);
     }
-
-    const activeIndex = this.activeLinks.indexOf(link);
-    if (activeIndex >= 0) {
-      this.activeLinks.splice(activeIndex, 1);
+    if (plan.removeActiveIndex !== null) {
+      this.activeLinks.splice(plan.removeActiveIndex, 1);
     }
   }
 

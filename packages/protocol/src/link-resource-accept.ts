@@ -60,3 +60,27 @@ export function shouldHandleOutgoingResourceRequest(input: {
 export function shouldHandleIncomingResourceByHash(hashMatches: boolean): boolean {
   return hashMatches;
 }
+
+/** Whether a link resource list should receive a new member (not already present). */
+export function shouldRegisterLinkResource(alreadyPresent: boolean): boolean {
+  return !alreadyPresent;
+}
+
+export type LinkResourceConcludePlan = {
+  readonly removeOutgoingIndex: number | null;
+  readonly removeIncomingIndex: number | null;
+};
+
+/**
+ * Resource conclude: drop from outgoing and/or incoming lists.
+ * Splice stays at the adapter.
+ */
+export function planLinkResourceConclude(input: {
+  readonly outgoingIndex: number;
+  readonly incomingIndex: number;
+}): LinkResourceConcludePlan {
+  return {
+    removeOutgoingIndex: input.outgoingIndex >= 0 ? input.outgoingIndex : null,
+    removeIncomingIndex: input.incomingIndex >= 0 ? input.incomingIndex : null
+  };
+}

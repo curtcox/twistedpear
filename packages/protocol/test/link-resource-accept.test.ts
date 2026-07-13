@@ -4,8 +4,10 @@ import {
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
   planLinkResourceAdvertisement,
+  planLinkResourceConclude,
   shouldHandleIncomingResourceByHash,
-  shouldHandleOutgoingResourceRequest
+  shouldHandleOutgoingResourceRequest,
+  shouldRegisterLinkResource
 } from "../src/link-resource-accept.js";
 import { LinkResourceStrategy } from "../src/link-watchdog.js";
 
@@ -68,5 +70,16 @@ describe("protocol link resource accept", () => {
     ).toBe(false);
     expect(shouldHandleIncomingResourceByHash(true)).toBe(true);
     expect(shouldHandleIncomingResourceByHash(false)).toBe(false);
+  });
+
+  it("plans unique resource register and conclude membership", () => {
+    expect(shouldRegisterLinkResource(false)).toBe(true);
+    expect(shouldRegisterLinkResource(true)).toBe(false);
+    expect(
+      planLinkResourceConclude({ outgoingIndex: 1, incomingIndex: -1 })
+    ).toEqual({ removeOutgoingIndex: 1, removeIncomingIndex: null });
+    expect(
+      planLinkResourceConclude({ outgoingIndex: -1, incomingIndex: 0 })
+    ).toEqual({ removeOutgoingIndex: null, removeIncomingIndex: 0 });
   });
 });
