@@ -7,6 +7,7 @@ import {
   NAME_HASH_BITS,
   TRUNCATED_HASH_BITS,
   TRUNCATED_HASH_BYTES,
+  canIdentityHash,
   decodeIdentityRatchetRecord,
   encodeIdentityRatchetRecord,
   identityRatchetStoreKey,
@@ -15,6 +16,9 @@ import {
   packIdentityPrivateKey,
   packIdentityPublicKey,
   packPacketProof,
+  planIdentityDecryptOutcome,
+  planIdentityRatchetLookup,
+  planIdentityRecall,
   splitIdentityCiphertext,
   splitIdentityEntropy,
   splitIdentityPrivateKey,
@@ -155,21 +159,29 @@ export class Identity {
   ): Promise<Uint8Array | null> {
     const key = bytesToHex(destinationHash);
     const cached = Identity.knownRatchets.get(key);
-    if (cached !== undefined) {
-      return Uint8Array.from(cached);
+    const beforeStore = planIdentityRatchetLookup({
+      cachedPresent: cached !== undefined,
+      storePresent: store !== undefined,
+      storedPresent: false,
+      usable: false
+    });
+    if (beforeStore === "use-cache") {
+      return Uint8Array.from(cached!);
     }
-
-    if (store === undefined) {
+    if (beforeStore === "miss-no-store") {
       return null;
     }
 
-    const stored = await store.get(identityRatchetStoreKey(key));
-    if (stored === undefined) {
-      return null;
-    }
-
-    const record = decodeIdentityRatchetRecord(stored);
-    if (!isIdentityRatchetRecordUsable(record, nowSeconds)) {
+    const stored = await store!.get(identityRatchetStoreKey(key));
+    const record =
+      stored === undefined ? null : decodeIdentityRatchetRecord(stored);
+    const afterStore = planIdentityRatchetLookup({
+      cachedPresent: false,
+      storePresent: true,
+      storedPresent: record !== null,
+      usable: record !== null && isIdentityRatchetRecordUsable(record, nowSeconds)
+    });
+    if (afterStore !== "restore" || record === null) {
       return null;
     }
 
@@ -194,12 +206,14 @@ export class Identity {
 
   static recall(provider: CryptoProvider, destinationHash: Uint8Array): Identity | null {
     const record = Identity.knownDestinations.get(bytesToHex(destinationHash));
-    if (record === undefined) {
-      return null;
-    }
-
     const identity = new Identity(provider, false);
-    return identity.loadPublicKey(record.publicKey) ? identity : null;
+    const publicKeyLoaded =
+      record !== undefined ? identity.loadPublicKey(record.publicKey) : false;
+    const plan = planIdentityRecall({
+      recordPresent: record !== undefined,
+      publicKeyLoaded
+    });
+    return plan === "hit" ? identity : null;
   }
 
   static recallAppData(destinationHash: Uint8Array): Uint8Array | null {
@@ -208,11 +222,11 @@ export class Identity {
   }
 
   get hash(): Uint8Array {
-    if (this.identityHash === null) {
+    if (!canIdentityHash(this.identityHash !== null)) {
       throw new Error("Identity has no loaded key material");
     }
 
-    return this.identityHash;
+    return this.identityHash!;
   }
 
   createKeys(entropy?: Entropy): void {
@@ -298,46 +312,67 @@ export class Identity {
     this.requirePrivateKey();
 
     const split = splitIdentityCiphertext(ciphertextToken);
-    if (split === null) {
-      return { plaintext: null, ratchetId: null };
-    }
-
-    const peerPublicBytes = split.ephemeralPublicKey;
-    const ciphertext = split.tokenCiphertext;
     let plaintext: Uint8Array | null = null;
     let ratchetId: Uint8Array | null = null;
 
-    if (options.ratchets !== undefined) {
-      for (const ratchet of options.ratchets) {
-        try {
-          const ratchetPublicBytes = Identity.ratchetPublicBytes(this.provider, ratchet);
-          ratchetId = Identity.ratchetId(this.provider, ratchetPublicBytes);
-          const sharedKey = this.provider.x25519SharedSecret(ratchet, peerPublicBytes);
-          const derivedKey = rnsHkdf(this.provider, 32, sharedKey, this.hash, null);
-          plaintext = new Token(this.provider, derivedKey).decrypt(ciphertext);
-          break;
-        } catch {
-          plaintext = null;
-          ratchetId = null;
+    if (split !== null) {
+      const peerPublicBytes = split.ephemeralPublicKey;
+      const ciphertext = split.tokenCiphertext;
+
+      if (options.ratchets !== undefined) {
+        for (const ratchet of options.ratchets) {
+          try {
+            const ratchetPublicBytes = Identity.ratchetPublicBytes(this.provider, ratchet);
+            ratchetId = Identity.ratchetId(this.provider, ratchetPublicBytes);
+            const sharedKey = this.provider.x25519SharedSecret(ratchet, peerPublicBytes);
+            const derivedKey = rnsHkdf(this.provider, 32, sharedKey, this.hash, null);
+            plaintext = new Token(this.provider, derivedKey).decrypt(ciphertext);
+            break;
+          } catch {
+            plaintext = null;
+            ratchetId = null;
+          }
         }
       }
     }
 
-    if (options.enforceRatchets === true && plaintext === null) {
+    const afterRatchets = planIdentityDecryptOutcome({
+      frameOk: split !== null,
+      ratchetPlaintextPresent: plaintext !== null,
+      enforceRatchets: options.enforceRatchets === true,
+      identityFallbackDone: false,
+      identityPlaintextPresent: false
+    });
+    if (afterRatchets === "reject-frame" || afterRatchets === "reject-enforced") {
       return { plaintext: null, ratchetId: null };
     }
-
-    if (plaintext === null) {
-      try {
-        const sharedKey = this.provider.x25519SharedSecret(this.prvBytes!, peerPublicBytes);
-        const derivedKey = rnsHkdf(this.provider, 32, sharedKey, this.hash, null);
-        plaintext = new Token(this.provider, derivedKey).decrypt(ciphertext);
-        ratchetId = null;
-      } catch {
-        return { plaintext: null, ratchetId: null };
-      }
+    if (afterRatchets === "accept") {
+      return { plaintext, ratchetId };
     }
 
+    try {
+      const sharedKey = this.provider.x25519SharedSecret(
+        this.prvBytes!,
+        split!.ephemeralPublicKey
+      );
+      const derivedKey = rnsHkdf(this.provider, 32, sharedKey, this.hash, null);
+      plaintext = new Token(this.provider, derivedKey).decrypt(split!.tokenCiphertext);
+      ratchetId = null;
+    } catch {
+      plaintext = null;
+      ratchetId = null;
+    }
+
+    const afterIdentity = planIdentityDecryptOutcome({
+      frameOk: true,
+      ratchetPlaintextPresent: false,
+      enforceRatchets: false,
+      identityFallbackDone: true,
+      identityPlaintextPresent: plaintext !== null
+    });
+    if (afterIdentity !== "accept") {
+      return { plaintext: null, ratchetId: null };
+    }
     return { plaintext, ratchetId };
   }
 

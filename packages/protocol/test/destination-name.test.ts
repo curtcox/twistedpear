@@ -6,6 +6,7 @@ import {
   destinationNameHashMaterial,
   expandDestinationName,
   parseAspectFilter,
+  planDestinationIdentityHash,
   validateDestinationNamePart
 } from "../src/destination-name.js";
 import { utf8Decode, utf8Encode } from "../src/utf8.js";
@@ -59,5 +60,19 @@ describe("protocol destination name", () => {
     expect(parseAspectFilter("app")).toEqual({ appName: "app", aspects: [] });
     expect(parseAspectFilter("...")).toBeNull();
     expect(parseAspectFilter("")).toBeNull();
+  });
+
+  it("plans destination identity-hash resolution", () => {
+    expect(planDestinationIdentityHash({ kind: "missing" })).toBe("missing");
+    expect(planDestinationIdentityHash({ kind: "object" })).toBe("use-object");
+    expect(
+      planDestinationIdentityHash({
+        kind: "bytes",
+        bytesLength: DESTINATION_IDENTITY_HASH_BYTES
+      })
+    ).toBe("use-bytes");
+    expect(planDestinationIdentityHash({ kind: "bytes", bytesLength: 8 })).toBe(
+      "reject-length"
+    );
   });
 });

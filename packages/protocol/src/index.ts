@@ -601,7 +601,9 @@ export {
   expandDestinationName,
   hexToBytesLower,
   parseAspectFilter,
+  planDestinationIdentityHash,
   validateDestinationNamePart,
+  type DestinationIdentityHashPlan,
   type ParsedAspectFilter
 } from "./destination-name.js";
 export {
@@ -845,6 +847,8 @@ export {
   planLxMessagePack,
   shouldIncludeLxmfStamp,
   shouldRememberLxmfMessage,
+  canRegisterLxmfDeliveryIdentity,
+  shouldTeardownLxmfPropagationLink,
   type LxmfDeliverableAcceptPlan,
   type LxmfDeliveryMethodValue,
   type LxmfDeliveryPlan,
@@ -900,9 +904,14 @@ export {
 export { stampCostFromAppData } from "./stamp-cost.js";
 export {
   IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE,
+  canIdentityHash,
   packIdentityCiphertext,
+  planIdentityDecryptOutcome,
+  planIdentityRecall,
   splitIdentityCiphertext,
-  type IdentityCiphertextFields
+  type IdentityCiphertextFields,
+  type IdentityDecryptPlan,
+  type IdentityRecallPlan
 } from "./identity-ciphertext.js";
 export {
   WS_FIN_BINARY,
@@ -927,6 +936,8 @@ export {
   encodeIdentityRatchetRecord,
   identityRatchetStoreKey,
   isIdentityRatchetRecordUsable,
+  planIdentityRatchetLookup,
+  type IdentityRatchetLookupPlan,
   type IdentityRatchetRecord
 } from "./identity-ratchet-record.js";
 export {

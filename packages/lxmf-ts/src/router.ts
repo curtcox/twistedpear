@@ -2,6 +2,7 @@ import {
   DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
   applyLxmfSendEvent,
   canAcceptLxmfPropagationLocalDelivery,
+  canRegisterLxmfDeliveryIdentity,
   initialDeliveryReceiptPollState,
   initialLxmfSendState,
   lxmfInboundDeliveryBytes,
@@ -16,6 +17,7 @@ import {
   planLxmfSendMethod,
   shouldRememberLxmfMessage,
   shouldReuseActiveLink,
+  shouldTeardownLxmfPropagationLink,
   splitLxmfDestinationPrefixed,
   stepDeliveryReceiptPoll,
   type LxmfSendEvent,
@@ -59,7 +61,7 @@ export class LXMFRouter {
   }
 
   registerDeliveryIdentity(identity: Identity): RegisteredDestination {
-    if (this.deliveryDestination !== null) {
+    if (!canRegisterLxmfDeliveryIdentity(this.deliveryDestination !== null)) {
       throw new Error("Only one delivery identity is supported per LXMF router instance");
     }
 
@@ -99,8 +101,8 @@ export class LXMFRouter {
 
   setOutboundPropagationNode(destinationHash: Uint8Array): void {
     this.outboundPropagationNode = Uint8Array.from(destinationHash);
-    if (this.outboundPropagationLink !== null) {
-      this.outboundPropagationLink.teardown();
+    if (shouldTeardownLxmfPropagationLink(this.outboundPropagationLink !== null)) {
+      this.outboundPropagationLink!.teardown();
       this.outboundPropagationLink = null;
     }
   }

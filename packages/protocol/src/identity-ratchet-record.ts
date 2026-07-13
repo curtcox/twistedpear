@@ -53,3 +53,35 @@ export function isIdentityRatchetRecordUsable(
   }
   return nowSeconds < record.received + expirySeconds;
 }
+
+export type IdentityRatchetLookupPlan =
+  | "use-cache"
+  | "miss-no-store"
+  | "miss-store"
+  | "reject-unusable"
+  | "restore";
+
+/**
+ * Ratchet lookup: cache hit, store absence/miss, unusable record, or restore.
+ * Store get / Map set stay at the adapter (call again after store read).
+ */
+export function planIdentityRatchetLookup(input: {
+  readonly cachedPresent: boolean;
+  readonly storePresent: boolean;
+  readonly storedPresent: boolean;
+  readonly usable: boolean;
+}): IdentityRatchetLookupPlan {
+  if (input.cachedPresent) {
+    return "use-cache";
+  }
+  if (!input.storePresent) {
+    return "miss-no-store";
+  }
+  if (!input.storedPresent) {
+    return "miss-store";
+  }
+  if (!input.usable) {
+    return "reject-unusable";
+  }
+  return "restore";
+}

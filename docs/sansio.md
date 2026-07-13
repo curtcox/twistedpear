@@ -238,7 +238,12 @@
 > **`planPropagationRestore`**, and **`shouldRememberLxmfMessage`** live in protocol;
 > transport lists, receipt create/drop, Channel handlers, stream ready-callbacks,
 > destination link lists, path-table get, propagation restore, and LXMF seen-hash
-> remember adapt them.
+> remember adapt them. **`planIdentityDecryptOutcome`**, **`planIdentityRatchetLookup`**,
+> **`planIdentityRecall`**, and **`canIdentityHash`** live in protocol; `Identity`
+> adapts them. **`canRegisterLxmfDeliveryIdentity`** / **`shouldTeardownLxmfPropagationLink`**
+> live in protocol; LXMF router and propagation client adapt them.
+> **`planDestinationIdentityHash`** lives in protocol; destination hash construction
+> adapts it.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

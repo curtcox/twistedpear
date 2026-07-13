@@ -1,14 +1,15 @@
 import {
+  DESTINATION_IDENTITY_HASH_BYTES,
   destinationHashMaterial,
   destinationNameHashMaterial,
   DestinationDirectionCode,
   DestinationTypeCode,
   expandDestinationName,
   planDestinationConstruction,
+  planDestinationIdentityHash,
   truncateToNameHash,
   truncateToTruncatedHash,
-  validateDestinationNamePart,
-  TRUNCATED_HASH_BYTES
+  validateDestinationNamePart
 } from "@twistedpear/protocol";
 import { bytesToHex } from "./crypto/bytes.js";
 import type { CryptoProvider } from "./crypto/provider.js";
@@ -107,17 +108,20 @@ export class Destination {
 }
 
 function identityHashBytes(identity: Identity | Uint8Array | null | undefined): Uint8Array | null {
-  if (identity == null) {
+  const kind =
+    identity == null ? "missing" : identity instanceof Identity ? "object" : "bytes";
+  const plan = planDestinationIdentityHash({
+    kind,
+    ...(kind === "bytes" ? { bytesLength: (identity as Uint8Array).length } : {})
+  });
+  if (plan === "missing") {
     return null;
   }
-
-  if (identity instanceof Identity) {
-    return identity.hash;
+  if (plan === "use-object") {
+    return (identity as Identity).hash;
   }
-
-  if (identity.length !== TRUNCATED_HASH_BYTES) {
-    throw new Error(`Identity hash must be ${TRUNCATED_HASH_BYTES} bytes`);
+  if (plan === "reject-length") {
+    throw new Error(`Identity hash must be ${DESTINATION_IDENTITY_HASH_BYTES} bytes`);
   }
-
-  return identity;
+  return identity as Uint8Array;
 }

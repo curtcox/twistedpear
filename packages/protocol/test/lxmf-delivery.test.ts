@@ -23,7 +23,9 @@ import {
   planLxmfSendMethod,
   planLxmfSignatureOutcome,
   shouldIncludeLxmfStamp,
-  shouldRememberLxmfMessage
+  shouldRememberLxmfMessage,
+  canRegisterLxmfDeliveryIdentity,
+  shouldTeardownLxmfPropagationLink
 } from "../src/lxmf-delivery.js";
 import { LxmfUnverifiedReason } from "../src/lxmf-fields.js";
 
@@ -464,5 +466,12 @@ describe("protocol lxmf delivery", () => {
     expect(shouldIncludeLxmfStamp(true)).toBe(false);
     expect(shouldRememberLxmfMessage(true)).toBe(true);
     expect(shouldRememberLxmfMessage(false)).toBe(false);
+  });
+
+  it("gates delivery-identity registration and propagation-link teardown", () => {
+    expect(canRegisterLxmfDeliveryIdentity(false)).toBe(true);
+    expect(canRegisterLxmfDeliveryIdentity(true)).toBe(false);
+    expect(shouldTeardownLxmfPropagationLink(true)).toBe(true);
+    expect(shouldTeardownLxmfPropagationLink(false)).toBe(false);
   });
 });

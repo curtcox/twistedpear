@@ -5,7 +5,8 @@ import {
   decodeIdentityRatchetRecord,
   encodeIdentityRatchetRecord,
   identityRatchetStoreKey,
-  isIdentityRatchetRecordUsable
+  isIdentityRatchetRecordUsable,
+  planIdentityRatchetLookup
 } from "../src/identity-ratchet-record.js";
 
 describe("protocol identity ratchet record", () => {
@@ -33,5 +34,48 @@ describe("protocol identity ratchet record", () => {
         100
       )
     ).toBe(false);
+  });
+
+  it("plans ratchet lookup across cache and store", () => {
+    expect(
+      planIdentityRatchetLookup({
+        cachedPresent: true,
+        storePresent: false,
+        storedPresent: false,
+        usable: false
+      })
+    ).toBe("use-cache");
+    expect(
+      planIdentityRatchetLookup({
+        cachedPresent: false,
+        storePresent: false,
+        storedPresent: false,
+        usable: false
+      })
+    ).toBe("miss-no-store");
+    expect(
+      planIdentityRatchetLookup({
+        cachedPresent: false,
+        storePresent: true,
+        storedPresent: false,
+        usable: false
+      })
+    ).toBe("miss-store");
+    expect(
+      planIdentityRatchetLookup({
+        cachedPresent: false,
+        storePresent: true,
+        storedPresent: true,
+        usable: false
+      })
+    ).toBe("reject-unusable");
+    expect(
+      planIdentityRatchetLookup({
+        cachedPresent: false,
+        storePresent: true,
+        storedPresent: true,
+        usable: true
+      })
+    ).toBe("restore");
   });
 });

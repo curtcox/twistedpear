@@ -113,3 +113,31 @@ export function parseAspectFilter(filter: string): ParsedAspectFilter | null {
   }
   return { appName, aspects: parts.slice(1) };
 }
+
+export type DestinationIdentityHashPlan =
+  | "missing"
+  | "use-object"
+  | "reject-length"
+  | "use-bytes";
+
+/**
+ * Destination construction identity-hash resolution.
+ * Identity instanceof / .hash stay at the adapter.
+ */
+export function planDestinationIdentityHash(input: {
+  readonly kind: "missing" | "object" | "bytes";
+  readonly bytesLength?: number;
+  readonly expectedLength?: number;
+}): DestinationIdentityHashPlan {
+  if (input.kind === "missing") {
+    return "missing";
+  }
+  if (input.kind === "object") {
+    return "use-object";
+  }
+  const expected = input.expectedLength ?? DESTINATION_IDENTITY_HASH_BYTES;
+  if ((input.bytesLength ?? 0) !== expected) {
+    return "reject-length";
+  }
+  return "use-bytes";
+}

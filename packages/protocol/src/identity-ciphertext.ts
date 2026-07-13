@@ -44,3 +44,63 @@ export function splitIdentityCiphertext(
     tokenCiphertext: ciphertextToken.subarray(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE)
   };
 }
+
+export type IdentityDecryptPlan =
+  | "reject-frame"
+  | "accept"
+  | "reject-enforced"
+  | "try-identity"
+  | "reject";
+
+/**
+ * After ciphertext frame split and optional ratchet decrypt attempts.
+ * Identity-key ECDH / Token stay at the adapter when the plan is try-identity.
+ */
+export function planIdentityDecryptOutcome(input: {
+  readonly frameOk: boolean;
+  readonly ratchetPlaintextPresent: boolean;
+  readonly enforceRatchets: boolean;
+  readonly identityFallbackDone: boolean;
+  readonly identityPlaintextPresent: boolean;
+}): IdentityDecryptPlan {
+  if (!input.frameOk) {
+    return "reject-frame";
+  }
+  if (input.ratchetPlaintextPresent) {
+    return "accept";
+  }
+  if (input.enforceRatchets) {
+    return "reject-enforced";
+  }
+  if (!input.identityFallbackDone) {
+    return "try-identity";
+  }
+  if (input.identityPlaintextPresent) {
+    return "accept";
+  }
+  return "reject";
+}
+
+export type IdentityRecallPlan = "miss" | "reject-key" | "hit";
+
+/**
+ * Known-destination recall: miss, public-key load failure, or hit.
+ * Identity construction / loadPublicKey stay at the adapter.
+ */
+export function planIdentityRecall(input: {
+  readonly recordPresent: boolean;
+  readonly publicKeyLoaded: boolean;
+}): IdentityRecallPlan {
+  if (!input.recordPresent) {
+    return "miss";
+  }
+  if (!input.publicKeyLoaded) {
+    return "reject-key";
+  }
+  return "hit";
+}
+
+/** Whether Identity.hash may be read (key material loaded). */
+export function canIdentityHash(identityHashPresent: boolean): boolean {
+  return identityHashPresent;
+}

@@ -195,6 +195,21 @@ export function shouldRememberLxmfMessage(hasHash: boolean): boolean {
   return hasHash;
 }
 
+/** Whether a router may register its (only) delivery identity. */
+export function canRegisterLxmfDeliveryIdentity(
+  deliveryDestinationPresent: boolean
+): boolean {
+  return !deliveryDestinationPresent;
+}
+
+/**
+ * Whether changing the outbound/propagation node hash should tear down an
+ * existing propagation link before the adapter clears it.
+ */
+export function shouldTeardownLxmfPropagationLink(linkPresent: boolean): boolean {
+  return linkPresent;
+}
+
 /** Whether propagation inbound targets this router's local delivery destination. */
 export function canAcceptLxmfPropagationLocalDelivery(input: {
   readonly deliveryDestinationPresent: boolean;

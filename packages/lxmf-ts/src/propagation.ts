@@ -5,6 +5,7 @@ import {
   initialPropagationTransferState,
   planPropagationGet,
   shouldReuseActiveLink,
+  shouldTeardownLxmfPropagationLink,
   stepPropagationTransferWithActions,
   type PropagationTransferAction,
   type PropagationTransferMachineState,
@@ -68,8 +69,8 @@ export class PropagationClient {
 
   setPropagationNode(destinationHash: Uint8Array): void {
     this.propagationNodeHash = Uint8Array.from(destinationHash);
-    if (this.propagationLink !== null) {
-      this.propagationLink.teardown();
+    if (shouldTeardownLxmfPropagationLink(this.propagationLink !== null)) {
+      this.propagationLink!.teardown();
       this.propagationLink = null;
     }
   }
