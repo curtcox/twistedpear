@@ -1,3 +1,8 @@
+import {
+  initialPersistDebounceState,
+  stepPersistDebounceWithActions,
+  type PersistDebounceState
+} from "@twistedpear/protocol";
 import type { CryptoProvider, Identity, RegisteredDestination } from "@twistedpear/reticulum-ts";
 import {
   Destination,
@@ -81,6 +86,7 @@ export class PropagationServer {
   private readonly now: () => number;
   private readonly schedule: (ms: number, callback: () => void) => PropagationServerTimer;
   private persistTimer: PropagationServerTimer | null = null;
+  private persistDebounceState: PersistDebounceState = initialPersistDebounceState();
 
   constructor(
     private readonly provider: CryptoProvider,
@@ -198,14 +204,29 @@ export class PropagationServer {
       return;
     }
 
-    if (this.persistTimer !== null) {
-      this.persistTimer.cancel();
-    }
+    const result = stepPersistDebounceWithActions(this.persistDebounceState, { kind: "persist/request" });
+    this.persistDebounceState = result.state;
 
-    this.persistTimer = this.schedule(250, () => {
-      this.persistTimer = null;
-      this.persistence?.save(this.snapshotEntries());
-    });
+    for (const intent of result.intents) {
+      if (intent.kind === "timer/cancel") {
+        this.persistTimer?.cancel();
+        this.persistTimer = null;
+      } else if (intent.kind === "timer/set" && intent.timer.id === "persist-debounce") {
+        this.persistTimer?.cancel();
+        this.persistTimer = this.schedule(intent.timer.delayMs, () => {
+          this.persistTimer = null;
+          const fired = stepPersistDebounceWithActions(this.persistDebounceState, {
+            kind: "timer/fired",
+            id: "persist-debounce",
+            at: this.now()
+          });
+          this.persistDebounceState = fired.state;
+          if (fired.actions.some((action) => action.kind === "flush")) {
+            this.persistence?.save(this.snapshotEntries());
+          }
+        });
+      }
+    }
   }
 
   private snapshotEntries(): ReadonlyArray<PropagationStoredEntry> {

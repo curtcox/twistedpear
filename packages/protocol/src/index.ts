@@ -38,3 +38,24 @@ export {
   type ResourceWatchdogState,
   type ResourceWatchdogStepResult
 } from "./resource-watchdog.js";
+export {
+  DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
+  DELIVERY_RECEIPT_POLL_INTERVAL_MS,
+  ReceiptPollStatus,
+  initialDeliveryReceiptPollState,
+  isTerminalReceiptStatus,
+  stepDeliveryReceiptPoll,
+  type DeliveryReceiptPollEvent,
+  type DeliveryReceiptPollState,
+  type ReceiptPollStatusValue
+} from "./delivery-receipt-poll.js";
+export {
+  PERSIST_DEBOUNCE_MS,
+  initialPersistDebounceState,
+  stepPersistDebounce,
+  stepPersistDebounceWithActions,
+  type PersistDebounceAction,
+  type PersistDebounceEvent,
+  type PersistDebounceState,
+  type PersistDebounceStepResult
+} from "./persist-debounce.js";

@@ -1,3 +1,9 @@
+import {
+  DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
+  initialDeliveryReceiptPollState,
+  stepDeliveryReceiptPoll,
+  type ReceiptPollStatusValue
+} from "@twistedpear/protocol";
 import type { CryptoProvider, Link, Packet, PacketReceipt, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
 import {
   Destination,
@@ -144,17 +150,40 @@ export class LXMFRouter {
     });
   }
 
-  private async pollDeliveryReceipt(receipt: PacketReceipt, timeoutMs = 500): Promise<void> {
-    const deadline = this.reticulum.runtime.clock.now() + timeoutMs;
-    while (this.reticulum.runtime.clock.now() < deadline) {
-      if (
-        receipt.status === PacketReceiptStatus.DELIVERED ||
-        receipt.status === PacketReceiptStatus.FAILED
-      ) {
+  private async pollDeliveryReceipt(
+    receipt: PacketReceipt,
+    timeoutMs = DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS
+  ): Promise<void> {
+    let state = stepDeliveryReceiptPoll(initialDeliveryReceiptPollState(), {
+      kind: "poll/arm",
+      at: this.reticulum.runtime.clock.now(),
+      timeoutMs
+    } as never).state;
+
+    while (!state.concluded) {
+      state = stepDeliveryReceiptPoll(state, {
+        kind: "poll/receipt-status",
+        status: receipt.status as ReceiptPollStatusValue
+      } as never).state;
+      if (state.concluded) {
         return;
       }
 
-      await this.delay(10);
+      const tick = stepDeliveryReceiptPoll(state, {
+        kind: "timer/fired",
+        id: "delivery-poll",
+        at: this.reticulum.runtime.clock.now()
+      });
+      state = tick.state;
+      if (state.concluded) {
+        return;
+      }
+
+      for (const intent of tick.intents) {
+        if (intent.kind === "timer/set" && intent.timer.id === "delivery-poll") {
+          await this.delay(intent.timer.delayMs);
+        }
+      }
     }
   }
 
