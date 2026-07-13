@@ -82,59 +82,118 @@ export function msgpackPackArray(items: ReadonlyArray<Uint8Array>): Uint8Array {
   return output;
 }
 
+/** Pack a small map with integer keys (LXMF fields). */
+export function msgpackPackIntMap(entries: ReadonlyArray<[number, Uint8Array]>): Uint8Array {
+  if (entries.length > 15) {
+    throw new Error("msgpackPackIntMap supports at most 15 entries");
+  }
+
+  const parts = entries.flatMap(([key, value]) => [msgpackPackUInt(key), msgpackPackBin(value)]);
+  const body = concatBytes(...parts);
+  const output = new Uint8Array(1 + body.length);
+  output[0] = 0x80 | entries.length;
+  output.set(body, 1);
+  return output;
+}
+
+export type MsgpackValue =
+  | { readonly type: "nil" }
+  | { readonly type: "int"; readonly int: number }
+  | { readonly type: "bin"; readonly bin: Uint8Array }
+  | { readonly type: "float"; readonly float: number }
+  | { readonly type: "array"; readonly array: ReadonlyArray<MsgpackValue> }
+  | { readonly type: "map"; readonly map: ReadonlyMap<number, MsgpackValue> };
+
 export type MsgpackScalar =
   | { readonly type: "nil" }
   | { readonly type: "int"; readonly int: number }
   | { readonly type: "bin"; readonly bin: Uint8Array }
   | { readonly type: "float"; readonly float: number };
 
+export function msgpackUnpack(bytes: Uint8Array): MsgpackValue {
+  const [value] = msgpackUnpackAt(bytes, 0);
+  return value;
+}
+
 export function msgpackUnpackScalar(bytes: Uint8Array): MsgpackScalar {
-  if (bytes.length === 0) {
-    throw new Error("empty msgpack");
+  const value = msgpackUnpack(bytes);
+  if (value.type === "array" || value.type === "map") {
+    throw new Error("expected msgpack scalar");
+  }
+  return value;
+}
+
+export function msgpackUnpackAt(bytes: Uint8Array, offset: number): [MsgpackValue, number] {
+  const tag = bytes[offset];
+  if (tag === undefined) {
+    throw new Error("Unexpected end of msgpack input");
   }
 
-  const tag = bytes[0]!;
   if (tag === 0xc0) {
-    return { type: "nil" };
+    return [{ type: "nil" }, offset + 1];
+  }
+
+  if (tag === 0xcb) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset + offset, bytes.byteLength - offset);
+    return [{ type: "float", float: view.getFloat64(1, false) }, offset + 9];
+  }
+
+  if (tag === 0xc4) {
+    const length = bytes[offset + 1]!;
+    const bin = bytes.subarray(offset + 2, offset + 2 + length);
+    return [{ type: "bin", bin: Uint8Array.from(bin) }, offset + 2 + length];
+  }
+
+  if (tag === 0xc5) {
+    const length = (bytes[offset + 1]! << 8) | bytes[offset + 2]!;
+    const bin = bytes.subarray(offset + 3, offset + 3 + length);
+    return [{ type: "bin", bin: Uint8Array.from(bin) }, offset + 3 + length];
+  }
+
+  if ((tag & 0xf0) === 0x90) {
+    const count = tag & 0x0f;
+    const array: MsgpackValue[] = [];
+    let nextOffset = offset + 1;
+    for (let index = 0; index < count; index += 1) {
+      const [item, itemOffset] = msgpackUnpackAt(bytes, nextOffset);
+      array.push(item);
+      nextOffset = itemOffset;
+    }
+    return [{ type: "array", array }, nextOffset];
+  }
+
+  if ((tag & 0xf0) === 0x80) {
+    const count = tag & 0x0f;
+    const map = new Map<number, MsgpackValue>();
+    let nextOffset = offset + 1;
+    for (let index = 0; index < count; index += 1) {
+      const [keyValue, keyOffset] = msgpackUnpackAt(bytes, nextOffset);
+      const [entryValue, entryOffset] = msgpackUnpackAt(bytes, keyOffset);
+      if (keyValue.type === "int") {
+        map.set(keyValue.int, entryValue);
+      }
+      nextOffset = entryOffset;
+    }
+    return [{ type: "map", map }, nextOffset];
+  }
+
+  if (tag === 0xcc) {
+    return [{ type: "int", int: bytes[offset + 1]! }, offset + 2];
+  }
+
+  if (tag === 0xcd) {
+    const value = (bytes[offset + 1]! << 8) | bytes[offset + 2]!;
+    return [{ type: "int", int: value }, offset + 3];
+  }
+
+  if (tag === 0xce) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset + offset, bytes.byteLength - offset);
+    return [{ type: "int", int: view.getUint32(1, false) }, offset + 5];
   }
 
   if (tag <= 0x7f) {
-    return { type: "int", int: tag };
+    return [{ type: "int", int: tag }, offset + 1];
   }
 
-  if (tag === 0xcc && bytes.length >= 2) {
-    return { type: "int", int: bytes[1]! };
-  }
-
-  if (tag === 0xcd && bytes.length >= 3) {
-    return { type: "int", int: (bytes[1]! << 8) | bytes[2]! };
-  }
-
-  if (tag === 0xce && bytes.length >= 5) {
-    return {
-      type: "int",
-      int:
-        ((bytes[1]! << 24) >>> 0) +
-        (bytes[2]! << 16) +
-        (bytes[3]! << 8) +
-        bytes[4]!
-    };
-  }
-
-  if (tag === 0xc4 && bytes.length >= 2) {
-    const length = bytes[1]!;
-    return { type: "bin", bin: bytes.subarray(2, 2 + length) };
-  }
-
-  if (tag === 0xc5 && bytes.length >= 3) {
-    const length = (bytes[1]! << 8) | bytes[2]!;
-    return { type: "bin", bin: bytes.subarray(3, 3 + length) };
-  }
-
-  if (tag === 0xcb && bytes.length >= 9) {
-    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    return { type: "float", float: view.getFloat64(1, false) };
-  }
-
-  throw new Error(`unsupported msgpack scalar tag 0x${tag.toString(16)}`);
+  throw new Error(`Unsupported msgpack tag 0x${tag.toString(16)}`);
 }

@@ -155,6 +155,35 @@ export {
   msgpackPackFloat64,
   msgpackPackNil,
   msgpackPackUInt,
+  msgpackPackIntMap,
+  msgpackUnpack,
+  msgpackUnpackAt,
   msgpackUnpackScalar,
-  type MsgpackScalar
+  type MsgpackScalar,
+  type MsgpackValue
 } from "./msgpack-core.js";
+export {
+  packLxmFields,
+  packLxmPayload,
+  packPropagationEnvelope,
+  packPropagationRequest,
+  unpackBinList,
+  unpackLxmPayload,
+  unpackPropagationEnvelope,
+  unpackPropagationRequest,
+  type LxmFields,
+  type UnpackedLxmPayload
+} from "./lxmf-codec.js";
+export {
+  LINK_HANDSHAKE_KEY_SIZE,
+  LinkHandshakePhase,
+  deriveSimSessionKey,
+  initialLinkHandshakeState,
+  stepLinkHandshake,
+  stepLinkHandshakeWithActions,
+  type LinkHandshakeAction,
+  type LinkHandshakeEvent,
+  type LinkHandshakePhaseValue,
+  type LinkHandshakeState,
+  type LinkHandshakeStepResult
+} from "./link-handshake.js";

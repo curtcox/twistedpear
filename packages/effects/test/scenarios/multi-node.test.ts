@@ -1,6 +1,7 @@
 import type { Event } from "../../src/types.js";
 import { assertReplayDeterminism } from "../../src/adapters/sim/replay.js";
 import { SimKernel } from "../../src/adapters/sim/kernel.js";
+import { Xoshiro128StarStar } from "../../src/adapters/sim/entropy.js";
 import { initialEchoState, stepEcho } from "../../../protocol/src/echo.js";
 import {
   initialGrantHostState,
@@ -28,6 +29,13 @@ import {
   stepLinkSession,
   type LinkSessionState
 } from "../../../protocol/src/link-session.js";
+import {
+  LINK_HANDSHAKE_KEY_SIZE,
+  LinkHandshakePhase,
+  initialLinkHandshakeState,
+  stepLinkHandshake,
+  type LinkHandshakeState
+} from "../../../protocol/src/link-handshake.js";
 import { describe, expect, it } from "vitest";
 
 function grantSet(at: number, declared: string[], requested: string[]): Event {
@@ -244,5 +252,69 @@ describe("multi-node sim scenarios", () => {
     live.inject("a", { kind: "session/link-proof", at: 2.1, rtt: 0.4 } as unknown as Event);
     expect((live.getNodeState("a") as LinkSessionState).status).toBe(LinkStatus.ACTIVE);
     expect((live.getNodeState("b") as LinkSessionState).established).toBe(true);
+  });
+
+  it("entropy-driven link handshake yields identical session keys", () => {
+    const linkId = new Uint8Array([1, 2, 3, 4]);
+    const config = {
+      seed: 77,
+      nodes: [
+        {
+          id: "a",
+          initial: initialLinkHandshakeState({ role: "initiator", peerId: "b" }),
+          step: stepLinkHandshake
+        },
+        {
+          id: "b",
+          initial: initialLinkHandshakeState({ role: "responder", peerId: "a" }),
+          step: stepLinkHandshake
+        }
+      ]
+    };
+
+    const run = () => {
+      const entropy = new Xoshiro128StarStar(77);
+      const ea = entropy.randomBytes(LINK_HANDSHAKE_KEY_SIZE);
+      const eb = entropy.randomBytes(LINK_HANDSHAKE_KEY_SIZE);
+      const kernel = new SimKernel(config);
+      kernel.inject("a", {
+        kind: "handshake/begin",
+        at: 0,
+        entropy: ea,
+        linkId
+      } as unknown as Event);
+      kernel.inject("b", {
+        kind: "handshake/begin",
+        at: 0,
+        entropy: eb,
+        linkId
+      } as unknown as Event);
+      const materialA = (kernel.getNodeState("a") as LinkHandshakeState).localMaterial!;
+      const materialB = (kernel.getNodeState("b") as LinkHandshakeState).localMaterial!;
+      kernel.inject("a", {
+        kind: "handshake/peer-material",
+        material: materialB,
+        linkId
+      } as unknown as Event);
+      kernel.inject("b", {
+        kind: "handshake/peer-material",
+        material: materialA,
+        linkId
+      } as unknown as Event);
+      const a = kernel.getNodeState("a") as LinkHandshakeState;
+      const b = kernel.getNodeState("b") as LinkHandshakeState;
+      return {
+        phaseA: a.phase,
+        phaseB: b.phase,
+        key: a.sessionKey === null ? null : [...a.sessionKey],
+        keyB: b.sessionKey === null ? null : [...b.sessionKey]
+      };
+    };
+
+    const x = run();
+    const y = run();
+    expect(x).toEqual(y);
+    expect(x.phaseA).toBe(LinkHandshakePhase.ESTABLISHED);
+    expect(x.key).toEqual(x.keyB);
   });
 });
