@@ -13,6 +13,10 @@ export const LINK_KEEPALIVE_TIMEOUT_FACTOR = 4;
 export const LINK_WATCHDOG_MAX_SLEEP_MS = 5000;
 export const LINK_ESTABLISHMENT_TIMEOUT_PER_HOP = 6;
 export const LINK_KEEPALIVE_DEFAULT = 360;
+/** Multiplier on RTT for request/response traffic timeouts. */
+export const LINK_TRAFFIC_TIMEOUT_FACTOR = 6;
+/** Max grace seconds added to traffic timeouts. */
+export const LINK_RESPONSE_MAX_GRACE_TIME = 5;
 
 export const LinkStatus = {
   PENDING: 0x00,
@@ -31,6 +35,16 @@ export const LinkTeardownReason = {
 } as const;
 
 export type LinkTeardownReasonValue = (typeof LinkTeardownReason)[keyof typeof LinkTeardownReason];
+
+/** Mirrors RNS/Link.py resource acceptance strategies. */
+export const LinkResourceStrategy = {
+  ACCEPT_NONE: 0x00,
+  ACCEPT_ALL: 0x01,
+  ACCEPT_APP: 0x02
+} as const;
+
+export type LinkResourceStrategyValue =
+  (typeof LinkResourceStrategy)[keyof typeof LinkResourceStrategy];
 
 export type LinkWatchdogAction =
   | { readonly kind: "send-keepalive" }

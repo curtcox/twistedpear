@@ -13,6 +13,13 @@ export const LinkKeyMode = {
 
 export type LinkKeyModeValue = (typeof LinkKeyMode)[keyof typeof LinkKeyMode];
 
+/** RNS Link.mode naming alias. */
+export const LinkMode = LinkKeyMode;
+export type LinkModeValue = LinkKeyModeValue;
+
+export const LINK_MODE_DEFAULT: LinkKeyModeValue = LinkKeyMode.MODE_AES256_CBC;
+export const LINK_ENABLED_MODES: ReadonlyArray<LinkKeyModeValue> = [LinkKeyMode.MODE_AES256_CBC];
+
 export function linkDerivedKeyLength(mode: LinkKeyModeValue | number): number {
   return mode === LinkKeyMode.MODE_AES256_CBC ? 64 : 32;
 }

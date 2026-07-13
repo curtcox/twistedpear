@@ -16,11 +16,22 @@ export {
   stepLinkWatchdog,
   stepLinkWatchdogWithActions,
   LINK_KEEPALIVE,
+  LINK_KEEPALIVE_DEFAULT,
+  LINK_KEEPALIVE_MAX_RTT,
   LINK_KEEPALIVE_MIN,
+  LINK_KEEPALIVE_TIMEOUT_FACTOR,
+  LINK_RESPONSE_MAX_GRACE_TIME,
   LINK_STALE_FACTOR,
+  LINK_STALE_GRACE,
+  LINK_TRAFFIC_TIMEOUT_FACTOR,
+  LINK_WATCHDOG_MAX_SLEEP_MS,
   LINK_ESTABLISHMENT_TIMEOUT_PER_HOP,
+  LinkResourceStrategy,
   LinkStatus,
   LinkTeardownReason,
+  type LinkResourceStrategyValue,
+  type LinkStatusValue,
+  type LinkTeardownReasonValue,
   type LinkWatchdogAction,
   type LinkWatchdogEvent,
   type LinkWatchdogState,
@@ -207,11 +218,15 @@ export {
   type RnsHkdfInput
 } from "./rns-hkdf.js";
 export {
+  LINK_ENABLED_MODES,
+  LINK_MODE_DEFAULT,
   LinkKeyMode,
+  LinkMode,
   deriveRnsLinkKey,
   linkDerivedKeyLength,
   orderIndependentSharedSecret,
-  type LinkKeyModeValue
+  type LinkKeyModeValue,
+  type LinkModeValue
 } from "./link-key-derive.js";
 export {
   LINK_INITIATOR_ENTROPY_SIZE,

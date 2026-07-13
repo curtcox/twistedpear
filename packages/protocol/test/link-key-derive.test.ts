@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { normalizeRnsHkdfParams, rnsHkdfSha256 } from "../src/rns-hkdf.js";
 import {
+  LINK_ENABLED_MODES,
+  LINK_MODE_DEFAULT,
   LinkKeyMode,
+  LinkMode,
   deriveRnsLinkKey,
   linkDerivedKeyLength,
   orderIndependentSharedSecret
@@ -22,6 +25,12 @@ describe("protocol RNS HKDF / link key derive", () => {
   it("selects key length from link mode", () => {
     expect(linkDerivedKeyLength(LinkKeyMode.MODE_AES256_CBC)).toBe(64);
     expect(linkDerivedKeyLength(LinkKeyMode.MODE_AES128_CBC)).toBe(32);
+  });
+
+  it("aliases LinkMode and default enabled modes", () => {
+    expect(LinkMode).toBe(LinkKeyMode);
+    expect(LINK_MODE_DEFAULT).toBe(LinkKeyMode.MODE_AES256_CBC);
+    expect(LINK_ENABLED_MODES).toEqual([LinkKeyMode.MODE_AES256_CBC]);
   });
 
   it("derives link keys deterministically", () => {

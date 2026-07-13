@@ -73,8 +73,10 @@
 > enums). **Packet header enum objects** (`PacketTypeCode`, header/context-flag/transport/
 > destination-type/direction codes), **link keepalive probe/reply framing**, and proof/
 > announce signature size aliases are pure protocol leaves; Packet, Destination, Link,
-> PacketReceipt, and Announce adapt them. Remaining depth work: keep converting residual
-> session IO into step machines.
+> PacketReceipt, and Announce adapt them. **Link wire constants / enums** (modes, MTU
+> masks, sizes, keepalive/stale/traffic timeouts, status/teardown/resource-strategy)
+> live in protocol; `link.ts` re-exports RNS names (`LinkMode`, `LINK_ECPUB_SIZE`, …).
+> Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

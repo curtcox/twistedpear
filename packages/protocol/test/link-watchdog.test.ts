@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   LinkStatus,
   LinkTeardownReason,
+  LinkResourceStrategy,
   LINK_KEEPALIVE_MIN,
+  LINK_RESPONSE_MAX_GRACE_TIME,
+  LINK_TRAFFIC_TIMEOUT_FACTOR,
   computeKeepalive,
   computeLinkEstablishmentTimeout,
   initialLinkWatchdogState,
@@ -19,6 +22,13 @@ describe("protocol link watchdog", () => {
     expect(computeLinkEstablishmentTimeout(1)).toBe(366);
     expect(computeLinkEstablishmentTimeout(3)).toBe(378);
     expect(computeLinkEstablishmentTimeout(0)).toBe(366);
+  });
+
+  it("exposes traffic timeout and resource strategy constants", () => {
+    expect(LINK_TRAFFIC_TIMEOUT_FACTOR).toBe(6);
+    expect(LINK_RESPONSE_MAX_GRACE_TIME).toBe(5);
+    expect(LinkResourceStrategy.ACCEPT_ALL).toBe(0x01);
+    expect(LinkStatus.ACTIVE).toBe(0x02);
   });
 
   it("closes pending links after establishment timeout", () => {

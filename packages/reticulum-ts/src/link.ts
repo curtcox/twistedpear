@@ -1,8 +1,30 @@
 import {
-  LINK_INITIATOR_ENTROPY_SIZE,
-  LINK_PROOF_BODY_SIZE,
-  LINK_RESPONDER_ENTROPY_SIZE,
+  LINK_ENABLED_MODES,
   LINK_ESTABLISHMENT_TIMEOUT_PER_HOP,
+  LINK_INITIATOR_ENTROPY_SIZE,
+  LINK_KEEPALIVE,
+  LINK_KEEPALIVE_MAX_RTT,
+  LINK_KEEPALIVE_MIN,
+  LINK_KEEPALIVE_TIMEOUT_FACTOR,
+  LINK_MODE_BYTEMASK,
+  LINK_MODE_DEFAULT,
+  LINK_MTU_BYTEMASK,
+  LINK_PROOF_BODY_SIZE,
+  LINK_PROOF_MTU_SIZE,
+  LINK_PROOF_SIGNATURE_SIZE,
+  LINK_REQUEST_ECPUB_SIZE,
+  LINK_RESPONSE_MAX_GRACE_TIME,
+  LINK_RESPONDER_ENTROPY_SIZE,
+  LINK_STALE_FACTOR,
+  LINK_STALE_GRACE,
+  LINK_TRAFFIC_TIMEOUT_FACTOR,
+  LINK_WATCHDOG_MAX_SLEEP_MS,
+  LINK_X25519_KEY_SIZE,
+  LinkMode,
+  LinkResourceStrategy,
+  LinkStatus,
+  LinkTeardownReason,
+  RESOURCE_PROOF_SIZE,
   applyLinkEstablishEvent,
   canAcceptLinkIdentify,
   canAcceptLinkRtt,
@@ -26,6 +48,8 @@ import {
   mergeLinkRtt,
   modeFromLinkProofData,
   modeFromLinkRequestData,
+  msgpackPackFloat64,
+  msgpackUnpackFloat,
   mtuFromLinkProofData,
   mtuFromLinkRequestData,
   packLinkIdentifyPayload,
@@ -33,19 +57,20 @@ import {
   packLinkKeepaliveReply,
   packLinkProofData,
   packLinkRequestData,
-  msgpackPackFloat64,
-  msgpackUnpackFloat,
-  splitInitiatorLinkEntropy,
   splitIdentityPublicKey,
+  splitInitiatorLinkEntropy,
   splitLinkIdentifyPayload,
   splitLinkProofBody,
   splitLinkRequestData,
   splitResourceHashmapUpdatePacket,
-  splitResponderLinkEntropy,
   splitResourceProof,
-  RESOURCE_PROOF_SIZE,
+  splitResponderLinkEntropy,
   stepLinkWatchdogWithActions,
   utf8Encode,
+  type LinkModeValue,
+  type LinkResourceStrategyValue,
+  type LinkStatusValue,
+  type LinkTeardownReasonValue,
   type LinkWatchdogState,
   type LinkWatchdogStepResult
 } from "@twistedpear/protocol";
@@ -81,60 +106,38 @@ import { PATHFINDER_MAX_HOPS } from "./transport/node.js";
 import { Resource, ResourceAdvertisement } from "./resource.js";
 
 /** Mirrors RNS/Link.py link mode constants (RNS 0.9.4). */
-export const LinkMode = {
-  MODE_AES128_CBC: 0x00,
-  MODE_AES256_CBC: 0x01,
-  MODE_AES256_GCM: 0x02
-} as const;
-
-export type LinkModeValue = (typeof LinkMode)[keyof typeof LinkMode];
-
-export const LINK_MODE_DEFAULT = LinkMode.MODE_AES256_CBC;
-export const LINK_ENABLED_MODES: ReadonlyArray<LinkModeValue> = [LinkMode.MODE_AES256_CBC];
-export const LINK_MTU_BYTEMASK = 0x1fffff;
-export const LINK_MODE_BYTEMASK = 0xe0;
+export {
+  LinkMode,
+  LINK_MODE_DEFAULT,
+  LINK_ENABLED_MODES,
+  LINK_MTU_BYTEMASK,
+  LINK_MODE_BYTEMASK,
+  type LinkModeValue
+};
 
 /** Mirrors RNS/Link.py constants (RNS 0.9.4). */
-export const LINK_ECPUB_SIZE = 64;
-export const LINK_KEY_SIZE = 32;
-export const LINK_MTU_SIZE = 3;
-export const LINK_SIGNATURE_SIZE = 64;
-export const LINK_KEEPALIVE = 360;
-export const LINK_KEEPALIVE_MIN = 5;
-export const LINK_KEEPALIVE_MAX_RTT = 1.75;
-export const LINK_STALE_FACTOR = 2;
-export const LINK_STALE_GRACE = 5;
-export const LINK_TRAFFIC_TIMEOUT_FACTOR = 6;
-export const LINK_KEEPALIVE_TIMEOUT_FACTOR = 4;
-export const LINK_WATCHDOG_MAX_SLEEP_MS = 5000;
-export { LINK_ESTABLISHMENT_TIMEOUT_PER_HOP };
-export const LINK_RESPONSE_MAX_GRACE_TIME = 5;
-
-export const LinkStatus = {
-  PENDING: 0x00,
-  HANDSHAKE: 0x01,
-  ACTIVE: 0x02,
-  STALE: 0x03,
-  CLOSED: 0x04
-} as const;
-
-export type LinkStatusValue = (typeof LinkStatus)[keyof typeof LinkStatus];
-
-export const LinkTeardownReason = {
-  TIMEOUT: 0x01,
-  INITIATOR_CLOSED: 0x02,
-  DESTINATION_CLOSED: 0x03
-} as const;
-
-export type LinkTeardownReasonValue = (typeof LinkTeardownReason)[keyof typeof LinkTeardownReason];
-
-export const LinkResourceStrategy = {
-  ACCEPT_NONE: 0x00,
-  ACCEPT_ALL: 0x01,
-  ACCEPT_APP: 0x02
-} as const;
-
-export type LinkResourceStrategyValue = (typeof LinkResourceStrategy)[keyof typeof LinkResourceStrategy];
+export const LINK_ECPUB_SIZE = LINK_REQUEST_ECPUB_SIZE;
+export const LINK_KEY_SIZE = LINK_X25519_KEY_SIZE;
+export const LINK_MTU_SIZE = LINK_PROOF_MTU_SIZE;
+export const LINK_SIGNATURE_SIZE = LINK_PROOF_SIGNATURE_SIZE;
+export {
+  LINK_KEEPALIVE,
+  LINK_KEEPALIVE_MIN,
+  LINK_KEEPALIVE_MAX_RTT,
+  LINK_STALE_FACTOR,
+  LINK_STALE_GRACE,
+  LINK_TRAFFIC_TIMEOUT_FACTOR,
+  LINK_KEEPALIVE_TIMEOUT_FACTOR,
+  LINK_WATCHDOG_MAX_SLEEP_MS,
+  LINK_ESTABLISHMENT_TIMEOUT_PER_HOP,
+  LINK_RESPONSE_MAX_GRACE_TIME,
+  LinkStatus,
+  LinkTeardownReason,
+  LinkResourceStrategy,
+  type LinkStatusValue,
+  type LinkTeardownReasonValue,
+  type LinkResourceStrategyValue
+};
 
 export interface LinkCallbacks {
   linkEstablished?: (link: Link) => void;
