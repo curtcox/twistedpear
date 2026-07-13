@@ -13,6 +13,7 @@ import {
 import {
   channelEmplaceIndex,
   drainContiguousChannelSequences,
+  indexOfChannelRingSequence,
   insertChannelSequence,
   shouldAcceptChannelSequence
 } from "../src/channel-reorder.js";
@@ -102,5 +103,10 @@ describe("protocol channel reorder", () => {
     expect(drained.contiguous).toEqual([2, 3]);
     expect(drained.remaining).toEqual([5]);
     expect(drained.nextRxSequence).toBe(4);
+  });
+
+  it("finds ring sequence indices", () => {
+    expect(indexOfChannelRingSequence({ ringSequences: [2, 3, 5], target: 3 })).toBe(1);
+    expect(indexOfChannelRingSequence({ ringSequences: [2, 3, 5], target: 9 })).toBeNull();
   });
 });

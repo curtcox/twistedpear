@@ -352,6 +352,7 @@ export {
 export {
   channelEmplaceIndex,
   drainContiguousChannelSequences,
+  indexOfChannelRingSequence,
   insertChannelSequence,
   shouldAcceptChannelSequence
 } from "./channel-reorder.js";

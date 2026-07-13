@@ -49,6 +49,19 @@ export function channelEmplaceIndex(input: {
   return input.ringSequences.length;
 }
 
+/** Index of `target` in a ring of sequences, or null if absent. */
+export function indexOfChannelRingSequence(input: {
+  readonly ringSequences: ReadonlyArray<number>;
+  readonly target: number;
+}): number | null {
+  for (let index = 0; index < input.ringSequences.length; index += 1) {
+    if (input.ringSequences[index] === input.target) {
+      return index;
+    }
+  }
+  return null;
+}
+
 export function insertChannelSequence(
   ringSequences: readonly number[],
   sequence: number,
@@ -81,8 +94,8 @@ export function drainContiguousChannelSequences(input: {
     if (sequence === nextRxSequence) {
       contiguous.push(sequence);
       nextRxSequence = nextChannelSequence(nextRxSequence);
-      const index = remaining.indexOf(sequence);
-      if (index >= 0) {
+      const index = indexOfChannelRingSequence({ ringSequences: remaining, target: sequence });
+      if (index !== null) {
         remaining.splice(index, 1);
       }
     }

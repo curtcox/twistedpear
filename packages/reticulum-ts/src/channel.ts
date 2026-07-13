@@ -12,6 +12,7 @@ import {
   channelPayloadMdu,
   countChannelTxOutstanding,
   drainContiguousChannelSequences,
+  indexOfChannelRingSequence,
   indexOfChannelTxEnvelope,
   initialChannelWindowState,
   isChannelSystemMsgType,
@@ -319,8 +320,11 @@ export class Channel {
     this.nextRxSequence = drained.nextRxSequence;
 
     for (const sequence of drained.contiguous) {
-      const index = this.rxRing.findIndex((candidate) => candidate.sequence === sequence);
-      if (index < 0) {
+      const index = indexOfChannelRingSequence({
+        ringSequences: this.rxRing.map((candidate) => candidate.sequence),
+        target: sequence
+      });
+      if (index === null) {
         continue;
       }
       const candidate = this.rxRing.splice(index, 1)[0]!;
