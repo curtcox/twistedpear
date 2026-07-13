@@ -17,6 +17,17 @@ export const LINK_KEEPALIVE_DEFAULT = 360;
 export const LINK_TRAFFIC_TIMEOUT_FACTOR = 6;
 /** Max grace seconds added to traffic timeouts. */
 export const LINK_RESPONSE_MAX_GRACE_TIME = 5;
+/** Extra grace multiplier used for in-link request timeouts. */
+export const LINK_REQUEST_TIMEOUT_GRACE_FACTOR = 1.125;
+
+export function computeLinkRequestTimeout(
+  rtt: number,
+  trafficTimeoutFactor: number = LINK_TRAFFIC_TIMEOUT_FACTOR,
+  responseMaxGraceTime: number = LINK_RESPONSE_MAX_GRACE_TIME,
+  graceFactor: number = LINK_REQUEST_TIMEOUT_GRACE_FACTOR
+): number {
+  return rtt * trafficTimeoutFactor + responseMaxGraceTime * graceFactor;
+}
 
 export const LinkStatus = {
   PENDING: 0x00,

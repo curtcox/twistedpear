@@ -35,6 +35,7 @@ import {
   computeKeepalive,
   computeLinkEstablishmentTimeout,
   computeLinkMdu,
+  computeLinkRequestTimeout,
   computeLinkRttSeconds,
   deriveRnsLinkKey,
   encodeLinkMtuBytes,
@@ -746,8 +747,7 @@ export class Link {
 
     const pathHash = Identity.truncatedHash(this.provider, utf8Encode(path));
     const packedRequest = msgpackPackRequest(this.clock.now() / 1000, pathHash, data);
-    const timeout =
-      options.timeout ?? this.rtt * LINK_TRAFFIC_TIMEOUT_FACTOR + LINK_RESPONSE_MAX_GRACE_TIME * 1.125;
+    const timeout = options.timeout ?? computeLinkRequestTimeout(this.rtt);
 
     if (packedRequest.length > this.mdu) {
       return false;

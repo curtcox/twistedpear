@@ -8,7 +8,8 @@ import {
   channelPacketTimeoutSeconds,
   channelRetryExhausted,
   initialChannelWindowState,
-  planChannelPacketTimeout
+  planChannelPacketTimeout,
+  stepChannelWindow
 } from "../src/channel-window.js";
 
 describe("protocol channel window", () => {
@@ -72,5 +73,14 @@ describe("protocol channel window", () => {
       nextTries: 3
     });
     expect(planChannelPacketTimeout({ delivered: false, tries: 5 })).toEqual({ kind: "give-up" });
+  });
+
+  it("steps window timeout and delivery events", () => {
+    let state = initialChannelWindowState(0.5);
+    state = { ...state, window: 3, windowMax: 7 };
+    state = stepChannelWindow(state, { kind: "channel/timeout" }).state;
+    expect(state.window).toBe(2);
+    state = stepChannelWindow(state, { kind: "channel/delivered", rtt: 0.5 }).state;
+    expect(state.window).toBe(3);
   });
 });

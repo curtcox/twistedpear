@@ -89,7 +89,10 @@
 > protocol; Channel, Link, and PacketReceipt adapt them. **`planChannelPacketTimeout`**
 > (`CHANNEL_MAX_TRIES`), **`shouldEmitPathRequest`**, and link-watchdog **`link/inbound`**
 > STALE→ACTIVE revive live in protocol; Channel, LeafTransport, and Link adapt them.
-> Remaining depth work: keep converting residual session IO into step machines.
+> **`stepChannelWindow`**, **transport ingress accept/hash-defer planners** (+ rebroadcast/
+> reverse-timeout constants), and **`computeLinkRequestTimeout`** live in protocol; Channel,
+> TransportNode, and Link adapt them. Remaining depth work: keep converting residual session
+> IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

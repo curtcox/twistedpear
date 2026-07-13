@@ -2,6 +2,7 @@
  * Pure RNS Channel congestion window + packet timeout decisions.
  * Adapters own send/resend/timers; this owns window sizing and timeout formulas.
  */
+import type { Event, StepFn } from "@twistedpear/effects";
 
 export const ChannelWindowLimits = {
   WINDOW: 2,
@@ -179,4 +180,29 @@ export function planChannelPacketTimeout(input: {
     return { kind: "give-up" };
   }
   return { kind: "retry", nextTries: input.tries + 1 };
+}
+
+export type ChannelWindowEvent =
+  | Event
+  | { readonly kind: "channel/init"; readonly rtt: number }
+  | { readonly kind: "channel/timeout" }
+  | { readonly kind: "channel/delivered"; readonly rtt: number };
+
+export const stepChannelWindow: StepFn<ChannelWindowState> = (state, event) =>
+  stepChannelWindowInner(state, event as ChannelWindowEvent);
+
+function stepChannelWindowInner(
+  state: ChannelWindowState,
+  event: ChannelWindowEvent
+): { state: ChannelWindowState; intents: [] } {
+  if (event.kind === "channel/init") {
+    return { state: initialChannelWindowState(event.rtt), intents: [] };
+  }
+  if (event.kind === "channel/timeout") {
+    return { state: applyChannelTimeout(state), intents: [] };
+  }
+  if (event.kind === "channel/delivered") {
+    return { state: applyChannelDelivery(state, event.rtt), intents: [] };
+  }
+  return { state, intents: [] };
 }

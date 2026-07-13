@@ -12,6 +12,7 @@ export {
 export {
   computeKeepalive,
   computeLinkEstablishmentTimeout,
+  computeLinkRequestTimeout,
   initialLinkWatchdogState,
   stepLinkWatchdog,
   stepLinkWatchdogWithActions,
@@ -20,6 +21,7 @@ export {
   LINK_KEEPALIVE_MAX_RTT,
   LINK_KEEPALIVE_MIN,
   LINK_KEEPALIVE_TIMEOUT_FACTOR,
+  LINK_REQUEST_TIMEOUT_GRACE_FACTOR,
   LINK_RESPONSE_MAX_GRACE_TIME,
   LINK_STALE_FACTOR,
   LINK_STALE_GRACE,
@@ -303,7 +305,9 @@ export {
   channelRetryExhausted,
   initialChannelWindowState,
   planChannelPacketTimeout,
+  stepChannelWindow,
   type ChannelPacketTimeoutPlan,
+  type ChannelWindowEvent,
   type ChannelWindowState
 } from "./channel-window.js";
 export {
@@ -537,6 +541,12 @@ export {
   planTransportAnnounceFields,
   type TransportAnnounceSource
 } from "./transport-announce.js";
+export {
+  LOCAL_REBROADCASTS_MAX,
+  REVERSE_TIMEOUT_SECONDS,
+  shouldAcceptTransportPacket,
+  shouldDeferPacketHash
+} from "./transport-ingress.js";
 export {
   ANNOUNCE_NAME_HASH_SIZE,
   ANNOUNCE_PUBLIC_KEY_SIZE,

@@ -8,6 +8,7 @@ import {
   LINK_TRAFFIC_TIMEOUT_FACTOR,
   computeKeepalive,
   computeLinkEstablishmentTimeout,
+  computeLinkRequestTimeout,
   initialLinkWatchdogState,
   stepLinkWatchdogWithActions
 } from "../src/link-watchdog.js";
@@ -22,6 +23,12 @@ describe("protocol link watchdog", () => {
     expect(computeLinkEstablishmentTimeout(1)).toBe(366);
     expect(computeLinkEstablishmentTimeout(3)).toBe(378);
     expect(computeLinkEstablishmentTimeout(0)).toBe(366);
+  });
+
+  it("computes link request timeout from rtt", () => {
+    expect(computeLinkRequestTimeout(1)).toBe(
+      LINK_TRAFFIC_TIMEOUT_FACTOR + LINK_RESPONSE_MAX_GRACE_TIME * 1.125
+    );
   });
 
   it("exposes traffic timeout and resource strategy constants", () => {

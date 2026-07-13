@@ -1,3 +1,10 @@
+import {
+  LOCAL_REBROADCASTS_MAX as PROTOCOL_LOCAL_REBROADCASTS_MAX,
+  REVERSE_TIMEOUT_SECONDS as PROTOCOL_REVERSE_TIMEOUT_SECONDS,
+  rewritePacketHopsBytes,
+  shouldAcceptTransportPacket,
+  shouldDeferPacketHash as planShouldDeferPacketHash
+} from "@twistedpear/protocol";
 import { equalBytes } from "../crypto/bytes.js";
 import { DestinationDirection, DestinationType } from "../destination.js";
 import type { PacketInterface } from "../interfaces/interface.js";
@@ -27,11 +34,10 @@ import {
   shouldAnswerPathRequest
 } from "./path.js";
 import { AnnounceRateLimiter } from "./rate.js";
-import { rewritePacketHopsBytes } from "@twistedpear/protocol";
 
 /** Mirrors RNS/Transport.py transport-node constants. */
-export const LOCAL_REBROADCASTS_MAX = 2;
-export const REVERSE_TIMEOUT_SECONDS = 8 * 60;
+export const LOCAL_REBROADCASTS_MAX = PROTOCOL_LOCAL_REBROADCASTS_MAX;
+export const REVERSE_TIMEOUT_SECONDS = PROTOCOL_REVERSE_TIMEOUT_SECONDS;
 export { PATH_REQUEST_MIN_INTERVAL } from "./path.js";
 
 export interface TransportNodeOptions extends LeafTransportOptions {
@@ -200,29 +206,23 @@ export class TransportNode extends LeafTransport {
   }
 
   private shouldAcceptPacket(packet: Packet): boolean {
-    if (this.packetFilter(packet)) {
-      return true;
-    }
-
-    if (
-      packet.packetType === PacketType.ANNOUNCE &&
-      packet.transportType === TransportType.TRANSPORT &&
-      packet.transportId !== null &&
-      !equalBytes(packet.transportId, this.transportIdentity.hash)
-    ) {
-      return !this.packetHashes.has(hashKey(packet.hash()));
-    }
-
-    return false;
+    return shouldAcceptTransportPacket({
+      filterPassed: this.packetFilter(packet),
+      packetType: packet.packetType,
+      transportType: packet.transportType,
+      hasForeignTransportId:
+        packet.transportId !== null &&
+        !equalBytes(packet.transportId, this.transportIdentity.hash),
+      alreadySeenHash: this.packetHashes.has(hashKey(packet.hash()))
+    });
   }
 
   private shouldDeferPacketHash(packet: Packet): boolean {
-    if (packet.packetType === PacketType.PROOF && packet.context === PacketContext.LRPROOF) {
-      return true;
-    }
-
-    const linkId = hashKey(packet.destinationHash);
-    return this.linkTable.has(linkId);
+    return planShouldDeferPacketHash({
+      packetType: packet.packetType,
+      context: packet.context,
+      destinationInLinkTable: this.linkTable.has(hashKey(packet.destinationHash))
+    });
   }
 
   private async relayTransportPacket(packet: Packet, iface: PacketInterface): Promise<boolean> {

@@ -5,8 +5,6 @@ import {
   CHANNEL_SEQ_MAX,
   CHANNEL_SEQ_MODULUS,
   ChannelWindowLimits,
-  applyChannelDelivery,
-  applyChannelTimeout,
   channelAllowsSend,
   channelEmplaceIndex,
   channelMessageStateFromPacketReceipt,
@@ -19,6 +17,7 @@ import {
   packChannelEnvelope,
   planChannelPacketTimeout,
   shouldAcceptChannelSequence,
+  stepChannelWindow,
   unpackChannelEnvelope,
   type ChannelWindowState
 } from "@twistedpear/protocol";
@@ -422,7 +421,7 @@ export class Channel {
       }
     }
 
-    this.windowState = applyChannelTimeout(this.windowState);
+    this.windowState = stepChannelWindow(this.windowState, { kind: "channel/timeout" }).state;
   }
 
   private packetTxOp(packet: ChannelPacket, op: (envelope: Envelope) => boolean): void {
@@ -445,7 +444,10 @@ export class Channel {
       this.txRing.splice(index, 1);
     }
 
-    this.windowState = applyChannelDelivery(this.windowState, this.outlet.rtt);
+    this.windowState = stepChannelWindow(this.windowState, {
+      kind: "channel/delivered",
+      rtt: this.outlet.rtt
+    }).state;
   }
 
   private getPacketTimeoutTime(tries: number): number {
