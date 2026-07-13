@@ -5,9 +5,10 @@
 > tripwire (scoped to `packages/protocol/test/**`), ESLint, and dependency-cruiser gates
 > are green via `npm run sansio`. Pure step machines landed for **echo**, **grant/capability
 > lifecycle** (`packages/protocol/src/grants.ts`), and **link watchdog** scheduling
-> (`packages/protocol/src/link-watchdog.ts`); `GrantStore` delegates to the grant step machine.
-> Remaining depth work: wire link watchdog into `reticulum-ts` Link, LXMF session machines,
-> and strict protocol tsconfig split (no DOM/node).
+> (`packages/protocol/src/link-watchdog.ts`); `GrantStore` and `reticulum-ts` `Link`
+> both delegate to those step machines.
+> Remaining depth work: LXMF session machines, resource transfer step machine, and
+> strict protocol tsconfig split (no DOM/node).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

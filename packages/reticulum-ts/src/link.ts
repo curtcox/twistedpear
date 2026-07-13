@@ -1,3 +1,9 @@
+import {
+  computeKeepalive,
+  stepLinkWatchdogWithActions,
+  type LinkWatchdogState,
+  type LinkWatchdogStepResult
+} from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { rnsHkdf } from "./crypto/hkdf.js";
 import { Token } from "./crypto/token.js";
@@ -1123,15 +1129,14 @@ export class Link {
       return;
     }
 
-    this.keepalive = Math.max(
-      Math.min(this.rtt * (LINK_KEEPALIVE / LINK_KEEPALIVE_MAX_RTT), LINK_KEEPALIVE),
-      LINK_KEEPALIVE_MIN
-    );
+    this.keepalive = computeKeepalive(this.rtt);
     this.staleTime = this.keepalive * LINK_STALE_FACTOR;
   }
 
   private startWatchdog(): void {
-    this.scheduleWatchdog(25);
+    this.applyWatchdogResult(
+      stepLinkWatchdogWithActions(this.snapshotWatchdogState(), { kind: "link/watchdog-start" })
+    );
   }
 
   private stopWatchdog(): void {
@@ -1151,48 +1156,59 @@ export class Link {
       return;
     }
 
-    const now = this.clock.now() / 1000;
+    this.applyWatchdogResult(
+      stepLinkWatchdogWithActions(this.snapshotWatchdogState(), {
+        kind: "timer/fired",
+        id: "link-watchdog",
+        at: this.clock.now()
+      })
+    );
+  }
 
-    if (this.status === LinkStatus.PENDING || this.status === LinkStatus.HANDSHAKE) {
-      if (now >= this.requestTime + this.establishmentTimeout) {
-        this.teardownReason = LinkTeardownReason.TIMEOUT;
+  private snapshotWatchdogState(): LinkWatchdogState {
+    return {
+      status: this.status,
+      initiator: this.initiator,
+      requestTime: this.requestTime,
+      establishmentTimeout: this.establishmentTimeout,
+      activatedAt: this.activatedAt,
+      lastInbound: this.lastInbound,
+      lastKeepalive: this.lastKeepalive,
+      keepalive: this.keepalive,
+      staleTime: this.staleTime,
+      rtt: this.rtt,
+      teardownReason: this.teardownReason
+    };
+  }
+
+  private applyWatchdogResult(result: LinkWatchdogStepResult): void {
+    this.status = result.state.status as LinkStatusValue;
+    this.keepalive = result.state.keepalive;
+    this.staleTime = result.state.staleTime;
+    this.rtt = result.state.rtt;
+    this.activatedAt = result.state.activatedAt;
+    this.lastInbound = result.state.lastInbound;
+    this.lastKeepalive = result.state.lastKeepalive;
+    this.teardownReason = result.state.teardownReason as LinkTeardownReasonValue | null;
+
+    for (const action of result.actions) {
+      if (action.kind === "send-keepalive") {
+        void this.sendKeepalive();
+      } else if (action.kind === "send-teardown") {
+        void this.sendTeardownPacket();
+      } else if (action.kind === "mark-stale") {
+        this.status = LinkStatus.STALE;
+      } else if (action.kind === "close") {
+        this.teardownReason = action.reason as LinkTeardownReasonValue;
         this.close();
         return;
       }
-
-      this.scheduleWatchdog(Math.max((this.requestTime + this.establishmentTimeout - now) * 1000, 25));
-      return;
     }
 
-    if (this.status === LinkStatus.ACTIVE || this.status === LinkStatus.STALE) {
-      const activatedAt = this.activatedAt ?? 0;
-      const lastInbound = Math.max(this.lastInbound, activatedAt);
-
-      if (this.status === LinkStatus.STALE) {
-        void this.sendTeardownPacket();
-        this.teardownReason = LinkTeardownReason.TIMEOUT;
-        this.close();
-        return;
+    for (const intent of result.intents) {
+      if (intent.kind === "timer/set" && intent.timer.id === "link-watchdog") {
+        this.scheduleWatchdog(intent.timer.delayMs);
       }
-
-      if (now >= lastInbound + this.keepalive) {
-        if (this.initiator && now >= this.lastKeepalive + this.keepalive) {
-          void this.sendKeepalive();
-        }
-
-        if (now >= lastInbound + this.staleTime) {
-          this.status = LinkStatus.STALE;
-          this.scheduleWatchdog(Math.max((this.rtt ?? 0.025) * LINK_KEEPALIVE_TIMEOUT_FACTOR * 1000 + LINK_STALE_GRACE * 1000, 25));
-          return;
-        }
-
-        this.scheduleWatchdog(Math.min(this.keepalive * 1000, LINK_WATCHDOG_MAX_SLEEP_MS));
-        return;
-      }
-
-      this.scheduleWatchdog(
-        Math.min(Math.max((lastInbound + this.keepalive - now) * 1000, 25), LINK_WATCHDOG_MAX_SLEEP_MS)
-      );
     }
   }
 
