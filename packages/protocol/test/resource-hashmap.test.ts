@@ -12,7 +12,9 @@ import {
   planResourceReceivePart,
   planResourceRequestFulfill,
   readResourceRequestHash,
+  appendResourceMapHashCollisionGuard,
   resourceHashmapMaxLen,
+  resourceMapHashCollisionGuardLimit,
   splitResourceHashmapUpdatePacket,
   unpackResourceHashmapUpdate
 } from "../src/resource-hashmap.js";
@@ -20,6 +22,30 @@ import {
 describe("protocol resource hashmap", () => {
   it("computes hashmap max length like RNS", () => {
     expect(resourceHashmapMaxLen()).toBe(Math.floor((383 - 134) / 4));
+  });
+
+  it("appends map hashes and trims the collision guard window", () => {
+    const hashmapMaxLen = 2;
+    const limit = resourceMapHashCollisionGuardLimit(hashmapMaxLen);
+    expect(limit).toBe(14);
+
+    let guard: readonly Uint8Array[] = [];
+    for (let index = 0; index < limit + 2; index += 1) {
+      const mapHash = new Uint8Array([index, 0, 0, 0]);
+      const result = appendResourceMapHashCollisionGuard({ guard, mapHash, hashmapMaxLen });
+      expect(result.collided).toBe(false);
+      if (!result.collided) {
+        guard = result.guard;
+      }
+    }
+    expect(guard).toHaveLength(limit);
+
+    const collided = appendResourceMapHashCollisionGuard({
+      guard,
+      mapHash: guard[0]!,
+      hashmapMaxLen
+    });
+    expect(collided.collided).toBe(true);
   });
 
   it("round-trips hashmap update msgpack", () => {

@@ -40,6 +40,7 @@ import {
   planResourceReceivePart,
   planResourceRequestFulfill,
   readResourceRequestHash,
+  appendResourceMapHashCollisionGuard,
   resourceEncryptMaterial,
   resourceExpectedProofMaterial,
   resourceHashMaterial,
@@ -355,15 +356,16 @@ export class Resource {
           RESOURCE_MAPHASH_LEN
         );
 
-        if (collisionGuard.some((existing) => equalBytes(existing, mapHash))) {
+        const appended = appendResourceMapHashCollisionGuard({
+          guard: collisionGuard,
+          mapHash,
+          hashmapMaxLen: ResourceAdvertisement.HASHMAP_MAX_LEN
+        });
+        if (appended.collided) {
           hashmapOk = false;
           break;
         }
-
-        collisionGuard.push(mapHash);
-        if (collisionGuard.length > ResourceAdvertisement.HASHMAP_MAX_LEN * 2 + 10) {
-          collisionGuard.shift();
-        }
+        collisionGuard = [...appended.guard];
 
         const packet = Packet.fromFields(provider, {
           headerType: PacketHeaderType.HEADER_1,

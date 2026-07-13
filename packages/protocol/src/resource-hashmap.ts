@@ -26,6 +26,32 @@ export function resourceHashmapMaxLen(
   return Math.floor((mdu - overhead) / RESOURCE_MAPHASH_LEN);
 }
 
+/** Sliding collision-guard window size used while building resource part map hashes. */
+export function resourceMapHashCollisionGuardLimit(hashmapMaxLen: number): number {
+  return hashmapMaxLen * 2 + 10;
+}
+
+/**
+ * Append a part map hash to the collision guard, or report a collision.
+ * Hashing stays at the adapter edge.
+ */
+export function appendResourceMapHashCollisionGuard(input: {
+  readonly guard: ReadonlyArray<Uint8Array>;
+  readonly mapHash: Uint8Array;
+  readonly hashmapMaxLen: number;
+}): { readonly collided: true } | { readonly collided: false; readonly guard: readonly Uint8Array[] } {
+  if (input.guard.some((existing) => equalByteArrays(existing, input.mapHash))) {
+    return { collided: true };
+  }
+
+  const guard = [...input.guard, input.mapHash];
+  const limit = resourceMapHashCollisionGuardLimit(input.hashmapMaxLen);
+  while (guard.length > limit) {
+    guard.shift();
+  }
+  return { collided: false, guard };
+}
+
 export function packResourceHashmapUpdate(segment: number, hashmap: Uint8Array): Uint8Array {
   return msgpackPackArray([msgpackPackUInt(segment), msgpackPackBin(hashmap)]);
 }
