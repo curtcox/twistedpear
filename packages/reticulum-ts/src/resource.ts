@@ -24,6 +24,7 @@ import {
   canRunResourceWatchdog,
   canValidateResourceProof,
   computeResourceTimeout,
+  computeResourceTotalParts,
   decodeResourceAdvertisementFlags,
   encodeResourceAdvertisementFlags,
   initialResourceStatusState,
@@ -335,7 +336,7 @@ export class Resource {
     const payload = resourceEncryptMaterial(randomHash, data);
     const encryptedPayload = link.encrypt(payload);
     const sdu = link.mdu;
-    const totalParts = Math.ceil(encryptedPayload.length / sdu);
+    const totalParts = computeResourceTotalParts(encryptedPayload.length, sdu);
     const hashInput = resourceHashMaterial(data, randomHash);
     const hash = Identity.fullHash(provider, hashInput);
     const expectedProof = Identity.fullHash(provider, resourceExpectedProofMaterial(data, hash));

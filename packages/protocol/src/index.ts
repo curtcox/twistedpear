@@ -543,6 +543,7 @@ export {
   splitResourceProof
 } from "./resource-proof.js";
 export {
+  computeResourceTotalParts,
   resourceEncryptMaterial,
   resourceExpectedProofMaterial,
   resourceHashMaterial,

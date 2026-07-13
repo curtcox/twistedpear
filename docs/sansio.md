@@ -120,7 +120,8 @@
 > adapts it. **`linkPayloadFitsMdu`** lives in protocol; Link request/response and Channel send
 > adapt it. **`canLinkRequest`** lives in protocol; `Link.request` adapts it. **`canLinkSend`**
 > lives in protocol; `Link.sendContext`, Channel outlet usability, and LXMF link reuse adapt it.
-> Remaining depth work: keep converting residual session IO into step machines.
+> **`computeResourceTotalParts`** lives in protocol; `Resource.send` adapts it. Remaining depth
+> work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

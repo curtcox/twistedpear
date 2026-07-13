@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RESOURCE_RANDOM_HASH_SIZE } from "../src/resource-proof.js";
 import {
+  computeResourceTotalParts,
   resourceEncryptMaterial,
   resourceExpectedProofMaterial,
   resourceHashMaterial,
@@ -18,5 +19,12 @@ describe("protocol resource materials", () => {
     expect([...resourceHashMaterial(data, randomHash)]).toEqual([...data, ...randomHash]);
     expect([...resourceExpectedProofMaterial(data, hash)]).toEqual([...data, ...hash]);
     expect([...resourcePartMapHashMaterial(part, randomHash)]).toEqual([...part, ...randomHash]);
+  });
+
+  it("computes total parts from payload length and SDU", () => {
+    expect(computeResourceTotalParts(0, 100)).toBe(0);
+    expect(computeResourceTotalParts(100, 100)).toBe(1);
+    expect(computeResourceTotalParts(101, 100)).toBe(2);
+    expect(computeResourceTotalParts(250, 100)).toBe(3);
   });
 });

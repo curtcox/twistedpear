@@ -43,3 +43,8 @@ export function resourcePartMapHashMaterial(partData: Uint8Array, randomHash: Ui
   }
   return concatBytes(partData, randomHash);
 }
+
+/** Number of SDU-sized parts needed for an encrypted resource payload. */
+export function computeResourceTotalParts(length: number, sdu: number): number {
+  return Math.ceil(length / sdu);
+}
