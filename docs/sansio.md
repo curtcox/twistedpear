@@ -70,7 +70,11 @@
 > and LXMF message text adapt them. **LXMF delivery sizes / MDU max-content** and
 > **peer-error code object** live in protocol; lxmf-ts re-exports aliases
 > (`DESTINATION_LENGTH`, `ENCRYPTED_PACKET_MAX_CONTENT`, `PeerError`, method/representation
-> enums). Remaining depth work: keep converting residual session IO into step machines.
+> enums). **Packet header enum objects** (`PacketTypeCode`, header/context-flag/transport/
+> destination-type/direction codes), **link keepalive probe/reply framing**, and proof/
+> announce signature size aliases are pure protocol leaves; Packet, Destination, Link,
+> PacketReceipt, and Announce adapt them. Remaining depth work: keep converting residual
+> session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

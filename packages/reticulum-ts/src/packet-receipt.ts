@@ -1,5 +1,7 @@
 import {
   checkPacketReceiptTimeout,
+  PACKET_EXPLICIT_PROOF_SIZE,
+  PACKET_SIGNATURE_SIZE,
   packetProofHashMatches,
   splitPacketProof
 } from "@twistedpear/protocol";
@@ -17,8 +19,8 @@ export const PacketReceiptStatus = {
 
 export type PacketReceiptStatusValue = (typeof PacketReceiptStatus)[keyof typeof PacketReceiptStatus];
 
-export const EXPLICIT_PROOF_LENGTH = 32 + 64;
-export const IMPLICIT_PROOF_LENGTH = 64;
+export const EXPLICIT_PROOF_LENGTH = PACKET_EXPLICIT_PROOF_SIZE;
+export const IMPLICIT_PROOF_LENGTH = PACKET_SIGNATURE_SIZE;
 
 /** Injected clock in seconds — protocol code never reads wall time directly. */
 export type NowSeconds = () => number;

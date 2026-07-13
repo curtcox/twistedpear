@@ -6,6 +6,10 @@ import {
   packetHashablePart,
   packetProofHashMatches,
   PacketContextCode,
+  PacketContextFlagCode,
+  PacketHeaderTypeCode,
+  PacketTypeCode,
+  TransportTypeCode,
   splitPacketProof,
   truncateToTruncatedHash,
   TRUNCATED_HASH_BYTES
@@ -15,35 +19,21 @@ import { DestinationType, type DestinationTypeValue } from "./destination.js";
 import { Identity } from "./identity.js";
 
 /** Mirrors RNS/Packet.py packet and header wire constants. */
-export const PacketType = {
-  DATA: 0x00,
-  ANNOUNCE: 0x01,
-  LINKREQUEST: 0x02,
-  PROOF: 0x03
-} as const;
+export const PacketType = PacketTypeCode;
 
 export type PacketTypeValue = (typeof PacketType)[keyof typeof PacketType];
 
-export const PacketHeaderType = {
-  HEADER_1: 0x00,
-  HEADER_2: 0x01
-} as const;
+export const PacketHeaderType = PacketHeaderTypeCode;
 
 export type PacketHeaderTypeValue = (typeof PacketHeaderType)[keyof typeof PacketHeaderType];
 
 export const PacketContext = PacketContextCode;
 
-export const PacketContextFlag = {
-  UNSET: 0x00,
-  SET: 0x01
-} as const;
+export const PacketContextFlag = PacketContextFlagCode;
 
 export type PacketContextFlagValue = (typeof PacketContextFlag)[keyof typeof PacketContextFlag];
 
-export const TransportType = {
-  BROADCAST: 0x00,
-  TRANSPORT: 0x01
-} as const;
+export const TransportType = TransportTypeCode;
 
 export type TransportTypeValue = (typeof TransportType)[keyof typeof TransportType];
 

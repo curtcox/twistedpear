@@ -1,14 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
+  DestinationDirectionCode,
+  DestinationTypeCode,
   PACKET_CONTEXT_FLAG_SET,
   PACKET_DEST_TYPE_SINGLE,
   PACKET_HEADER_1,
   PACKET_HEADER_2,
   PACKET_TYPE_ANNOUNCE,
   PACKET_TYPE_DATA,
+  PacketContextFlagCode,
+  PacketHeaderTypeCode,
+  PacketTypeCode,
   TRANSPORT_BROADCAST,
   TRANSPORT_ID_BYTES,
   TRANSPORT_TRANSPORT,
+  TransportTypeCode,
   decodePacketRaw,
   encodePacketRaw,
   packPacketFlags,
@@ -20,6 +26,16 @@ describe("protocol packet header", () => {
   const destinationHash = new Uint8Array(TRANSPORT_ID_BYTES).fill(1);
   const transportId = new Uint8Array(TRANSPORT_ID_BYTES).fill(2);
   const data = new Uint8Array([0xaa, 0xbb]);
+
+  it("exposes named packet header enum objects", () => {
+    expect(PacketTypeCode.DATA).toBe(PACKET_TYPE_DATA);
+    expect(PacketHeaderTypeCode.HEADER_2).toBe(PACKET_HEADER_2);
+    expect(PacketContextFlagCode.SET).toBe(PACKET_CONTEXT_FLAG_SET);
+    expect(TransportTypeCode.TRANSPORT).toBe(TRANSPORT_TRANSPORT);
+    expect(DestinationTypeCode.SINGLE).toBe(PACKET_DEST_TYPE_SINGLE);
+    expect(DestinationDirectionCode.IN).toBe(0x11);
+    expect(DestinationDirectionCode.OUT).toBe(0x12);
+  });
 
   it("packs and unpacks flags", () => {
     const flags = packPacketFlags({

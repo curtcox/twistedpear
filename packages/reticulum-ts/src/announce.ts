@@ -1,6 +1,7 @@
 import {
   ANNOUNCE_RANDOM_HASH_SIZE,
   ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE,
+  ANNOUNCE_SIGNATURE_SIZE as PROTOCOL_ANNOUNCE_SIGNATURE_SIZE,
   announceDestinationHashMaterial,
   announceDestinationHashMatches,
   announceSignedMaterial,
@@ -21,7 +22,7 @@ import {
 } from "./packet.js";
 
 export { ANNOUNCE_RANDOM_HASH_SIZE };
-export const ANNOUNCE_SIGNATURE_SIZE = 64;
+export const ANNOUNCE_SIGNATURE_SIZE = PROTOCOL_ANNOUNCE_SIGNATURE_SIZE;
 
 export interface AnnounceBuildOptions {
   readonly appData?: Uint8Array;

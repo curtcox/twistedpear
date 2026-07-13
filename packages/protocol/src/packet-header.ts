@@ -31,6 +31,62 @@ export const PACKET_DEST_TYPE_GROUP = 0x01;
 export const PACKET_DEST_TYPE_PLAIN = 0x02;
 export const PACKET_DEST_TYPE_LINK = 0x03;
 
+/** Named packet-type codes (RNS Packet.types). */
+export const PacketTypeCode = {
+  DATA: PACKET_TYPE_DATA,
+  ANNOUNCE: PACKET_TYPE_ANNOUNCE,
+  LINKREQUEST: PACKET_TYPE_LINKREQUEST,
+  PROOF: PACKET_TYPE_PROOF
+} as const;
+
+export type PacketTypeCodeValue = (typeof PacketTypeCode)[keyof typeof PacketTypeCode];
+
+/** Named header-type codes (HEADER_1 / HEADER_2). */
+export const PacketHeaderTypeCode = {
+  HEADER_1: PACKET_HEADER_1,
+  HEADER_2: PACKET_HEADER_2
+} as const;
+
+export type PacketHeaderTypeCodeValue =
+  (typeof PacketHeaderTypeCode)[keyof typeof PacketHeaderTypeCode];
+
+/** Named context-flag codes. */
+export const PacketContextFlagCode = {
+  UNSET: PACKET_CONTEXT_FLAG_UNSET,
+  SET: PACKET_CONTEXT_FLAG_SET
+} as const;
+
+export type PacketContextFlagCodeValue =
+  (typeof PacketContextFlagCode)[keyof typeof PacketContextFlagCode];
+
+/** Named transport-type codes. */
+export const TransportTypeCode = {
+  BROADCAST: TRANSPORT_BROADCAST,
+  TRANSPORT: TRANSPORT_TRANSPORT
+} as const;
+
+export type TransportTypeCodeValue = (typeof TransportTypeCode)[keyof typeof TransportTypeCode];
+
+/** Named destination-type codes (RNS Destination.types). */
+export const DestinationTypeCode = {
+  SINGLE: PACKET_DEST_TYPE_SINGLE,
+  GROUP: PACKET_DEST_TYPE_GROUP,
+  PLAIN: PACKET_DEST_TYPE_PLAIN,
+  LINK: PACKET_DEST_TYPE_LINK
+} as const;
+
+export type DestinationTypeCodeValue =
+  (typeof DestinationTypeCode)[keyof typeof DestinationTypeCode];
+
+/** Named destination-direction codes (RNS Destination.IN / OUT). */
+export const DestinationDirectionCode = {
+  IN: 0x11,
+  OUT: 0x12
+} as const;
+
+export type DestinationDirectionCodeValue =
+  (typeof DestinationDirectionCode)[keyof typeof DestinationDirectionCode];
+
 export interface PacketHeaderFields {
   readonly headerType: number;
   readonly contextFlag: number;

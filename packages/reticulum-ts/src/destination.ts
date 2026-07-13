@@ -1,6 +1,8 @@
 import {
   destinationHashMaterial,
   destinationNameHashMaterial,
+  DestinationDirectionCode,
+  DestinationTypeCode,
   expandDestinationName,
   truncateToNameHash,
   truncateToTruncatedHash,
@@ -12,21 +14,14 @@ import type { CryptoProvider } from "./crypto/provider.js";
 import { Identity } from "./identity.js";
 
 /** Mirrors RNS/Destination.py destination types and hash derivation. */
-export const DestinationType = {
-  SINGLE: 0x00,
-  GROUP: 0x01,
-  PLAIN: 0x02,
-  LINK: 0x03
-} as const;
+export const DestinationType = DestinationTypeCode;
 
 export type DestinationTypeValue = (typeof DestinationType)[keyof typeof DestinationType];
 
-export const DestinationDirection = {
-  IN: 0x11,
-  OUT: 0x12
-} as const;
+export const DestinationDirection = DestinationDirectionCode;
 
-export type DestinationDirectionValue = (typeof DestinationDirection)[keyof typeof DestinationDirection];
+export type DestinationDirectionValue =
+  (typeof DestinationDirection)[keyof typeof DestinationDirection];
 
 export interface DestinationOptions {
   readonly identity?: Identity | Uint8Array | null;

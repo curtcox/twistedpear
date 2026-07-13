@@ -27,6 +27,14 @@ export {
   type LinkWatchdogStepResult
 } from "./link-watchdog.js";
 export {
+  LINK_KEEPALIVE_PROBE_BYTE,
+  LINK_KEEPALIVE_REPLY_BYTE,
+  isLinkKeepaliveProbe,
+  isLinkKeepaliveReply,
+  packLinkKeepaliveProbe,
+  packLinkKeepaliveReply
+} from "./link-keepalive.js";
+export {
   computeResourceTimeout,
   initialResourceWatchdogState,
   stepResourceWatchdog,
@@ -492,12 +500,24 @@ export {
   PACKET_TYPE_DATA,
   PACKET_TYPE_LINKREQUEST,
   PACKET_TYPE_PROOF,
+  DestinationDirectionCode,
+  DestinationTypeCode,
+  PacketContextFlagCode,
+  PacketHeaderTypeCode,
+  PacketTypeCode,
+  TransportTypeCode,
   decodePacketRaw,
   encodePacketRaw,
   packPacketFlags,
   packetHashablePart,
   unpackPacketFlags,
-  type PacketHeaderFields
+  type DestinationDirectionCodeValue,
+  type DestinationTypeCodeValue,
+  type PacketContextFlagCodeValue,
+  type PacketHeaderFields,
+  type PacketHeaderTypeCodeValue,
+  type PacketTypeCodeValue,
+  type TransportTypeCodeValue
 } from "./packet-header.js";
 export { PKCS7_BLOCK_SIZE, pkcs7Pad, pkcs7Unpad } from "./pkcs7.js";
 export {

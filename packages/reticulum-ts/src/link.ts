@@ -18,6 +18,7 @@ import {
   encodeLinkMtuBytes,
   encodeLinkSignallingBytes,
   initialLinkEstablishState,
+  isLinkKeepaliveProbe,
   linkHopsMatch,
   linkIdentifySignedMaterial,
   linkProofSignedMaterial,
@@ -28,6 +29,8 @@ import {
   mtuFromLinkProofData,
   mtuFromLinkRequestData,
   packLinkIdentifyPayload,
+  packLinkKeepaliveProbe,
+  packLinkKeepaliveReply,
   packLinkProofData,
   packLinkRequestData,
   msgpackPackFloat64,
@@ -583,8 +586,7 @@ export class Link {
     if (
       this.initiator &&
       packet.context === PacketContext.KEEPALIVE &&
-      packet.data.length === 1 &&
-      packet.data[0] === 0xff
+      isLinkKeepaliveProbe(packet.data)
     ) {
       return;
     }
@@ -612,7 +614,7 @@ export class Link {
     }
 
     if (packet.context === PacketContext.KEEPALIVE) {
-      if (!this.initiator && packet.data.length === 1 && packet.data[0] === 0xff) {
+      if (!this.initiator && isLinkKeepaliveProbe(packet.data)) {
         await this.sendKeepaliveReply();
       }
       return;
@@ -1194,11 +1196,11 @@ export class Link {
   }
 
   private async sendKeepalive(): Promise<void> {
-    await this.sendContext(PacketContext.KEEPALIVE, new Uint8Array([0xff]));
+    await this.sendContext(PacketContext.KEEPALIVE, packLinkKeepaliveProbe());
   }
 
   private async sendKeepaliveReply(): Promise<void> {
-    await this.sendContext(PacketContext.KEEPALIVE, new Uint8Array([0xfe]));
+    await this.sendContext(PacketContext.KEEPALIVE, packLinkKeepaliveReply());
   }
 
   private updateKeepalive(): void {
