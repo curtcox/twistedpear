@@ -87,3 +87,8 @@ export function clampStreamDataChunkLength(
 export function shouldAppendStreamData(length: number): boolean {
   return length > 0;
 }
+
+/** Clamp a reader request size to available buffered bytes. */
+export function clampStreamReadSize(size: number, bufferLength: number): number {
+  return Math.min(size, bufferLength);
+}

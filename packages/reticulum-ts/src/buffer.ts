@@ -2,6 +2,7 @@ import {
   STREAM_ID_MAX as PROTOCOL_STREAM_ID_MAX,
   StreamSystemMessageTypes,
   clampStreamDataChunkLength,
+  clampStreamReadSize,
   packStreamDataMessage,
   shouldAppendStreamData,
   unpackStreamDataMessage
@@ -114,7 +115,7 @@ export class RawChannelReader {
       return null;
     }
 
-    const output = new Uint8Array(Math.min(size, this.bufferLength));
+    const output = new Uint8Array(clampStreamReadSize(size, this.bufferLength));
     let copied = 0;
     while (copied < output.length && this.chunks.length > 0) {
       const chunk = this.chunks[0]!;

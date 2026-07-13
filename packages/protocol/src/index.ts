@@ -562,6 +562,7 @@ export {
   STREAM_ID_MAX,
   StreamSystemMessageTypes,
   clampStreamDataChunkLength,
+  clampStreamReadSize,
   packStreamDataMessage,
   shouldAppendStreamData,
   unpackStreamDataMessage,

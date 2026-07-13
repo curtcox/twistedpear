@@ -4,6 +4,7 @@ import {
   STREAM_ID_MAX,
   StreamSystemMessageTypes,
   clampStreamDataChunkLength,
+  clampStreamReadSize,
   packStreamDataMessage,
   shouldAppendStreamData,
   unpackStreamDataMessage
@@ -43,5 +44,11 @@ describe("protocol stream data framing", () => {
   it("skips empty stream payloads for append", () => {
     expect(shouldAppendStreamData(0)).toBe(false);
     expect(shouldAppendStreamData(1)).toBe(true);
+  });
+
+  it("clamps reader size to buffered length", () => {
+    expect(clampStreamReadSize(100, 40)).toBe(40);
+    expect(clampStreamReadSize(10, 40)).toBe(10);
+    expect(clampStreamReadSize(0, 0)).toBe(0);
   });
 });
