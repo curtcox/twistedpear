@@ -339,6 +339,7 @@ export {
   destinationHashMaterial,
   destinationNameHashMaterial,
   expandDestinationName,
+  hexToBytesLower,
   validateDestinationNamePart
 } from "./destination-name.js";
 export {
@@ -490,6 +491,23 @@ export {
   LXMF_PEER_ERROR_TIMEOUT,
   decodeLxmfPeerError
 } from "./lxmf-peer-error.js";
+export {
+  IDENTITY_RATCHET_BYTES,
+  IDENTITY_RATCHET_EXPIRY_SECONDS,
+  decodeIdentityRatchetRecord,
+  encodeIdentityRatchetRecord,
+  identityRatchetStoreKey,
+  isIdentityRatchetRecordUsable,
+  type IdentityRatchetRecord
+} from "./identity-ratchet-record.js";
+export {
+  WEB_IDENTITY_IV_BYTES,
+  WEB_IDENTITY_MIN_CIPHERTEXT_BYTES,
+  WEB_IDENTITY_SALT_BYTES,
+  packWebIdentityRecord,
+  splitWebIdentityRecord,
+  type WebIdentityPackedFields
+} from "./web-identity-record.js";
 export {
   PATH_REQUEST_HASH_BYTES,
   TRANSPORT_PATH_REQUEST_APP,

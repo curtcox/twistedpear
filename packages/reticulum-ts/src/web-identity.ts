@@ -1,4 +1,10 @@
-import { utf8Encode } from "@twistedpear/protocol";
+import {
+  packWebIdentityRecord,
+  splitWebIdentityRecord,
+  utf8Encode,
+  WEB_IDENTITY_IV_BYTES,
+  WEB_IDENTITY_SALT_BYTES
+} from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { Identity } from "./identity.js";
 import type { WebIndexedDB } from "./runtime/web/runtime.js";
@@ -6,8 +12,8 @@ import type { WebIndexedDB } from "./runtime/web/runtime.js";
 const IDENTITY_DB_VERSION = 1;
 const IDENTITY_OBJECT_STORE = "identity";
 const IDENTITY_RECORD_KEY = "private-key";
-const SALT_BYTES = 16;
-const IV_BYTES = 12;
+const SALT_BYTES = WEB_IDENTITY_SALT_BYTES;
+const IV_BYTES = WEB_IDENTITY_IV_BYTES;
 const PBKDF2_ITERATIONS = 100_000;
 
 export interface WebIdentityOptions {
@@ -66,22 +72,13 @@ async function encryptPrivateKey(privateKey: Uint8Array, options: WebIdentityUnl
     await subtle.encrypt({ name: "AES-GCM", iv }, key, Uint8Array.from(privateKey))
   );
 
-  const packed = new Uint8Array(SALT_BYTES + IV_BYTES + ciphertext.length);
-  packed.set(salt, 0);
-  packed.set(iv, SALT_BYTES);
-  packed.set(ciphertext, SALT_BYTES + IV_BYTES);
+  const packed = packWebIdentityRecord(salt, iv, ciphertext);
   return packed;
 }
 
 async function decryptPrivateKey(packed: Uint8Array, options: WebIdentityUnlockOptions): Promise<Uint8Array> {
-  if (packed.length < SALT_BYTES + IV_BYTES + 16) {
-    throw new Error("Stored web identity record is truncated");
-  }
-
+  const { salt, iv, ciphertext } = splitWebIdentityRecord(packed);
   const subtle = requireSubtle(options);
-  const salt = packed.subarray(0, SALT_BYTES);
-  const iv = packed.subarray(SALT_BYTES, SALT_BYTES + IV_BYTES);
-  const ciphertext = packed.subarray(SALT_BYTES + IV_BYTES);
   const key = await deriveKey(subtle, options.passphrase, salt);
   const plaintext = new Uint8Array(await subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext));
   return plaintext;

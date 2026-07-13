@@ -28,6 +28,17 @@ export function bytesToHexLower(bytes: Uint8Array): string {
   return out;
 }
 
+export function hexToBytesLower(hex: string): Uint8Array {
+  if (hex.length % 2 !== 0) {
+    throw new Error("Hex strings must contain an even number of characters");
+  }
+  const output = new Uint8Array(hex.length / 2);
+  for (let index = 0; index < output.length; index += 1) {
+    output[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+  }
+  return output;
+}
+
 export function validateDestinationNamePart(value: string, label: string): void {
   if (value.length === 0) {
     throw new Error(`Destination ${label} cannot be empty`);

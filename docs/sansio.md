@@ -43,10 +43,13 @@
 > PacketReceipt proof validation via packet-proof helpers are pure protocol leaves.
 > **Identity ciphertext** (ephemeral public || Token), **WS binary frame**
 > encode/decode, and **LXMF peer-error** msgpack decode are pure protocol leaves;
-> Identity, websocket-server, and propagation adapters use them. Identity ratchet JSON,
-> web-identity passphrase bytes, and LXMF message text use protocol UTF-8 (no
-> `TextEncoder`/`TextDecoder`). Remaining depth work: keep converting residual session
-> IO into step machines.
+> Identity, websocket-server, and propagation adapters use them. **Identity ratchet
+> persistence** (JSON encode/decode, store key, usability/expiry) and **web-identity
+> record framing** (salt||iv||ciphertext) are pure protocol leaves; Identity and
+> web-identity adapters use them. Shared `hexToBytesLower` lives with destination-name
+> helpers. Identity ratchet JSON, web-identity passphrase bytes, and LXMF message text
+> use protocol UTF-8 (no `TextEncoder`/`TextDecoder`). Remaining depth work: keep
+> converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

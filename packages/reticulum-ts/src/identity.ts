@@ -1,11 +1,15 @@
 import {
   IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE,
   IDENTITY_KEY_ENTROPY_SIZE,
+  IDENTITY_RATCHET_BYTES,
+  IDENTITY_RATCHET_EXPIRY_SECONDS,
+  decodeIdentityRatchetRecord,
+  encodeIdentityRatchetRecord,
+  identityRatchetStoreKey,
+  isIdentityRatchetRecordUsable,
   packIdentityCiphertext,
   splitIdentityCiphertext,
-  splitIdentityEntropy,
-  utf8Decode,
-  utf8Encode
+  splitIdentityEntropy
 } from "@twistedpear/protocol";
 import { bytesToHex } from "./crypto/bytes.js";
 import { rnsHkdf } from "./crypto/hkdf.js";
@@ -18,8 +22,8 @@ export const IDENTITY_KEY_SIZE = 64;
 export const IDENTITY_HALF_KEY_SIZE = IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE;
 export const TRUNCATED_HASH_LENGTH = 128;
 export const NAME_HASH_LENGTH = 80;
-export const RATCHET_SIZE = 256;
-export const RATCHET_EXPIRY_SECONDS = 60 * 60 * 24 * 30;
+export const RATCHET_SIZE = IDENTITY_RATCHET_BYTES * 8;
+export const RATCHET_EXPIRY_SECONDS = IDENTITY_RATCHET_EXPIRY_SECONDS;
 
 export interface RatchetRecord {
   readonly ratchet: Uint8Array;
@@ -128,8 +132,8 @@ export class Identity {
     Identity.knownRatchets.set(key, Uint8Array.from(ratchet));
 
     if (store !== undefined) {
-      const payload = encodeRatchetRecord({ ratchet, received: receivedAt });
-      void store.set(`ratchets/${key}`, payload);
+      const payload = encodeIdentityRatchetRecord({ ratchet, received: receivedAt });
+      void store.set(identityRatchetStoreKey(key), payload);
     }
   }
 
@@ -148,16 +152,13 @@ export class Identity {
       return null;
     }
 
-    const stored = await store.get(`ratchets/${key}`);
+    const stored = await store.get(identityRatchetStoreKey(key));
     if (stored === undefined) {
       return null;
     }
 
-    const record = decodeRatchetRecord(stored);
-    if (
-      nowSeconds >= record.received + RATCHET_EXPIRY_SECONDS ||
-      record.ratchet.length !== RATCHET_SIZE / 8
-    ) {
+    const record = decodeIdentityRatchetRecord(stored);
+    if (!isIdentityRatchetRecordUsable(record, nowSeconds)) {
       return null;
     }
 
@@ -372,35 +373,4 @@ function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   }
 
   return output;
-}
-
-function encodeRatchetRecord(record: RatchetRecord): Uint8Array {
-  const ratchetHex = bytesToHex(record.ratchet);
-  const json = JSON.stringify({ ratchet: ratchetHex, received: record.received });
-  return utf8Encode(json);
-}
-
-function decodeRatchetRecord(bytes: Uint8Array): RatchetRecord {
-  const parsed = JSON.parse(utf8Decode(bytes)) as {
-    ratchet: string;
-    received: number;
-  };
-
-  return {
-    ratchet: hexToRatchetBytes(parsed.ratchet),
-    received: parsed.received
-  };
-}
-
-function hexToRatchetBytes(hex: string): Uint8Array {
-  if (hex.length % 2 !== 0) {
-    throw new Error("Hex strings must contain an even number of characters");
-  }
-
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
-  }
-
-  return bytes;
 }
