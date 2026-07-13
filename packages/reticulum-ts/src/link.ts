@@ -33,6 +33,7 @@ import {
   msgpackPackFloat64,
   msgpackUnpackFloat,
   splitInitiatorLinkEntropy,
+  splitIdentityPublicKey,
   splitLinkIdentifyPayload,
   splitLinkProofBody,
   splitLinkRequestData,
@@ -419,10 +420,11 @@ export class Link {
     }
 
     const signallingBytes = Link.signallingBytes(this.mtu, this.mode);
-    const ownerSigPublicKey = this.owner.identity.getPublicKey().subarray(
-      LINK_ECPUB_SIZE / 2,
-      LINK_ECPUB_SIZE
-    );
+    const ownerPublic = splitIdentityPublicKey(this.owner.identity.getPublicKey());
+    if (ownerPublic === null) {
+      throw new Error("Responder link owner public key is invalid");
+    }
+    const ownerSigPublicKey = ownerPublic.signaturePublicKey;
     const signedData = linkProofSignedMaterial(
       this.linkId,
       this.publicKeyBytes,
@@ -480,10 +482,11 @@ export class Link {
         throw new Error("Invalid link proof size");
       }
 
-      const peerSignaturePublicKey = this.destination.identity!.getPublicKey().subarray(
-        LINK_ECPUB_SIZE / 2,
-        LINK_ECPUB_SIZE
-      );
+      const peerPublic = splitIdentityPublicKey(this.destination.identity!.getPublicKey());
+      if (peerPublic === null) {
+        throw new Error("Invalid peer identity public key in link proof");
+      }
+      const peerSignaturePublicKey = peerPublic.signaturePublicKey;
       this.loadPeer(body.peerPublicKey, peerSignaturePublicKey);
       this.handshake();
 

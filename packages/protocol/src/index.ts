@@ -431,6 +431,14 @@ export {
   wrapTransportPacketBytes
 } from "./transport-framing.js";
 export {
+  PACKET_CONTEXT_NONE,
+  PACKET_CONTEXT_PATH_RESPONSE,
+  planClonePacketWithHops,
+  planPathResponseAnnounceFields,
+  planTransportAnnounceFields,
+  type TransportAnnounceSource
+} from "./transport-announce.js";
+export {
   ANNOUNCE_NAME_HASH_SIZE,
   ANNOUNCE_PUBLIC_KEY_SIZE,
   ANNOUNCE_RANDOM_HASH_SIZE,

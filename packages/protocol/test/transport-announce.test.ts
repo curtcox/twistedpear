@@ -1,0 +1,61 @@
+import { describe, expect, it } from "vitest";
+import {
+  PACKET_CONTEXT_PATH_RESPONSE,
+  planClonePacketWithHops,
+  planPathResponseAnnounceFields,
+  planTransportAnnounceFields
+} from "../src/transport-announce.js";
+import {
+  PACKET_HEADER_1,
+  PACKET_HEADER_2,
+  PACKET_TYPE_ANNOUNCE,
+  PACKET_TYPE_DATA,
+  type PacketHeaderFields
+} from "../src/packet-header.js";
+import { TRANSPORT_BROADCAST, TRANSPORT_TRANSPORT } from "../src/transport-framing.js";
+
+describe("protocol transport announce planning", () => {
+  const destinationHash = new Uint8Array(16).fill(1);
+  const data = new Uint8Array([9, 8]);
+  const transportId = new Uint8Array(16).fill(2);
+
+  it("clones packet fields with new hops", () => {
+    const source: PacketHeaderFields = {
+      headerType: PACKET_HEADER_1,
+      contextFlag: 0,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: 0,
+      packetType: PACKET_TYPE_DATA,
+      hops: 3,
+      transportId: null,
+      destinationHash,
+      context: 0,
+      data
+    };
+    const cloned = planClonePacketWithHops(source, 4);
+    expect(cloned.hops).toBe(4);
+    expect(cloned.packetType).toBe(PACKET_TYPE_DATA);
+    expect(cloned.destinationHash).toBe(destinationHash);
+  });
+
+  it("plans transport and path-response announce fields", () => {
+    const source = {
+      contextFlag: 0,
+      destinationType: 0,
+      destinationHash,
+      context: 0,
+      data
+    };
+    const transport = planTransportAnnounceFields({ source, transportId, hops: 5 });
+    expect(transport.headerType).toBe(PACKET_HEADER_2);
+    expect(transport.transportType).toBe(TRANSPORT_TRANSPORT);
+    expect(transport.packetType).toBe(PACKET_TYPE_ANNOUNCE);
+    expect(transport.hops).toBe(5);
+    expect(transport.context).toBe(0);
+    expect([...transport.transportId!]).toEqual([...transportId]);
+
+    const pathResponse = planPathResponseAnnounceFields({ source, transportId, hops: 2 });
+    expect(pathResponse.context).toBe(PACKET_CONTEXT_PATH_RESPONSE);
+    expect(pathResponse.headerType).toBe(PACKET_HEADER_2);
+  });
+});

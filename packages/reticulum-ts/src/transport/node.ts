@@ -6,12 +6,16 @@ import {
   PATH_REQUEST_TIMEOUT_SECONDS,
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
   computePathExpiry,
+  planClonePacketWithHops,
+  planPathResponseAnnounceFields,
+  planTransportAnnounceFields,
   relayTransportPacketBytes,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
   stripTransportHeadersBytes,
   timebaseFromRandomBlobs as protocolTimebaseFromRandomBlobs,
-  wrapTransportPacketBytes
+  wrapTransportPacketBytes,
+  type PacketHeaderFields
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "../crypto/provider.js";
 import { Announce, type ParsedAnnounce } from "../announce.js";
@@ -26,7 +30,8 @@ import {
   PacketContext,
   PacketHeaderType,
   PacketType,
-  TransportType
+  TransportType,
+  type PacketFields
 } from "../packet.js";
 import type { Clock, Entropy } from "../runtime/runtime.js";
 import {
@@ -724,18 +729,10 @@ export function hashKey(bytes: Uint8Array): string {
 }
 
 export function cloneWithHops(provider: CryptoProvider, packet: Packet, hops: number): Packet {
-  return Packet.fromFields(provider, {
-    headerType: packet.headerType,
-    contextFlag: packet.contextFlag,
-    transportType: packet.transportType,
-    destinationType: packet.destinationType,
-    packetType: packet.packetType,
-    hops,
-    destinationHash: packet.destinationHash,
-    context: packet.context,
-    data: packet.data,
-    ...(packet.transportId === null ? {} : { transportId: packet.transportId })
-  });
+  return Packet.fromFields(
+    provider,
+    planClonePacketWithHops(packetHeaderFields(packet), hops) as PacketFields
+  );
 }
 
 export function announceEmittedFromRandomBlob(randomBlob: Uint8Array): number {
@@ -778,18 +775,20 @@ export function buildTransportAnnounce(
   transportIdentity: Identity,
   hops: number
 ): Packet {
-  return Packet.fromFields(provider, {
-    headerType: PacketHeaderType.HEADER_2,
-    contextFlag: source.contextFlag,
-    transportType: TransportType.TRANSPORT,
-    destinationType: source.destinationType,
-    packetType: PacketType.ANNOUNCE,
-    hops,
-    destinationHash: source.destinationHash,
-    context: source.context,
-    data: source.data,
-    transportId: transportIdentity.hash
-  });
+  return Packet.fromFields(
+    provider,
+    planTransportAnnounceFields({
+      source: {
+        contextFlag: source.contextFlag,
+        destinationType: source.destinationType,
+        destinationHash: source.destinationHash,
+        context: source.context,
+        data: source.data
+      },
+      transportId: transportIdentity.hash,
+      hops
+    }) as PacketFields
+  );
 }
 
 export function buildPathResponseAnnounce(
@@ -798,16 +797,33 @@ export function buildPathResponseAnnounce(
   transportIdentity: Identity,
   hops: number
 ): Packet {
-  return Packet.fromFields(provider, {
-    headerType: PacketHeaderType.HEADER_2,
-    contextFlag: source.contextFlag,
-    transportType: TransportType.TRANSPORT,
-    destinationType: source.destinationType,
-    packetType: PacketType.ANNOUNCE,
-    hops,
-    destinationHash: source.destinationHash,
-    context: PacketContext.PATH_RESPONSE,
-    data: source.data,
-    transportId: transportIdentity.hash
-  });
+  return Packet.fromFields(
+    provider,
+    planPathResponseAnnounceFields({
+      source: {
+        contextFlag: source.contextFlag,
+        destinationType: source.destinationType,
+        destinationHash: source.destinationHash,
+        context: source.context,
+        data: source.data
+      },
+      transportId: transportIdentity.hash,
+      hops
+    }) as PacketFields
+  );
+}
+
+function packetHeaderFields(packet: Packet): PacketHeaderFields {
+  return {
+    headerType: packet.headerType,
+    contextFlag: packet.contextFlag,
+    transportType: packet.transportType,
+    destinationType: packet.destinationType,
+    packetType: packet.packetType,
+    hops: packet.hops,
+    transportId: packet.transportId,
+    destinationHash: packet.destinationHash,
+    context: packet.context,
+    data: packet.data
+  };
 }
