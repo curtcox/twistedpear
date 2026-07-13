@@ -12,7 +12,8 @@ import {
   planLxmfDelivery,
   planLxMessagePack,
   planLxmfDeliverableAccept,
-  planLxmfPropagatedSend
+  planLxmfPropagatedSend,
+  planLxmfSendMethod
 } from "../src/lxmf-delivery.js";
 
 describe("protocol lxmf delivery", () => {
@@ -195,5 +196,38 @@ describe("protocol lxmf delivery", () => {
         representation: LxmfDeliveryRepresentation.RESOURCE
       })
     ).toBe("resource-unimplemented");
+  });
+
+  it("plans LXMF send method dispatch", () => {
+    expect(
+      planLxmfSendMethod({
+        packed: false,
+        method: LxmfDeliveryMethod.DIRECT
+      })
+    ).toBe("reject-unpacked");
+    expect(
+      planLxmfSendMethod({
+        packed: true,
+        method: LxmfDeliveryMethod.OPPORTUNISTIC
+      })
+    ).toBe("opportunistic");
+    expect(
+      planLxmfSendMethod({
+        packed: true,
+        method: LxmfDeliveryMethod.DIRECT
+      })
+    ).toBe("direct");
+    expect(
+      planLxmfSendMethod({
+        packed: true,
+        method: LxmfDeliveryMethod.PROPAGATED
+      })
+    ).toBe("propagated");
+    expect(
+      planLxmfSendMethod({
+        packed: true,
+        method: LxmfDeliveryMethod.PAPER
+      })
+    ).toBe("reject-unsupported");
   });
 });

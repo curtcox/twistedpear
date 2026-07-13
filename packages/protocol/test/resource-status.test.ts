@@ -3,12 +3,17 @@ import { ResourceStatus } from "../src/resource-watchdog.js";
 import {
   applyResourceStatusEvent,
   canReceiveResourcePart,
+  canRequestResourceNext,
   canResourceContinueTransfer,
   canRunResourceWatchdog,
   canValidateResourceProof,
   initialResourceStatusState,
   isResourceComplete,
-  isResourceTerminal
+  isResourceTerminal,
+  planResourceAdvertisePhase,
+  planResourceAssembleOutcome,
+  planResourceProofAccept,
+  shouldAcceptIncomingResourceAdvertisement
 } from "../src/resource-status.js";
 
 describe("protocol resource status", () => {
@@ -24,6 +29,77 @@ describe("protocol resource status", () => {
     expect(canRunResourceWatchdog(ResourceStatus.COMPLETE)).toBe(false);
     expect(isResourceTerminal(ResourceStatus.FAILED)).toBe(true);
     expect(isResourceComplete(ResourceStatus.COMPLETE)).toBe(true);
+    expect(
+      canRequestResourceNext({
+        status: ResourceStatus.TRANSFERRING,
+        waitingForHashmap: false
+      })
+    ).toBe(true);
+    expect(
+      canRequestResourceNext({
+        status: ResourceStatus.TRANSFERRING,
+        waitingForHashmap: true
+      })
+    ).toBe(false);
+    expect(
+      canRequestResourceNext({
+        status: ResourceStatus.FAILED,
+        waitingForHashmap: false
+      })
+    ).toBe(false);
+  });
+
+  it("plans advertise phase, assemble outcome, and proof accept", () => {
+    expect(planResourceAdvertisePhase(false)).toBe("queue");
+    expect(planResourceAdvertisePhase(true)).toBe("advertise");
+    expect(shouldAcceptIncomingResourceAdvertisement(false)).toBe(true);
+    expect(shouldAcceptIncomingResourceAdvertisement(true)).toBe(false);
+    expect(
+      planResourceAssembleOutcome({
+        decryptedPresent: true,
+        payloadPresent: true,
+        hashMatches: true
+      })
+    ).toBe("complete");
+    expect(
+      planResourceAssembleOutcome({
+        decryptedPresent: false,
+        payloadPresent: true,
+        hashMatches: true
+      })
+    ).toBe("corrupt");
+    expect(
+      planResourceAssembleOutcome({
+        decryptedPresent: true,
+        payloadPresent: false,
+        hashMatches: true
+      })
+    ).toBe("corrupt");
+    expect(
+      planResourceAssembleOutcome({
+        decryptedPresent: true,
+        payloadPresent: true,
+        hashMatches: false
+      })
+    ).toBe("corrupt");
+    expect(
+      planResourceProofAccept({
+        status: ResourceStatus.AWAITING_PROOF,
+        proofValid: true
+      })
+    ).toBe("complete");
+    expect(
+      planResourceProofAccept({
+        status: ResourceStatus.AWAITING_PROOF,
+        proofValid: false
+      })
+    ).toBe("ignore");
+    expect(
+      planResourceProofAccept({
+        status: ResourceStatus.FAILED,
+        proofValid: true
+      })
+    ).toBe("ignore");
   });
 
   it("steps through advertise → transferring → awaiting-proof → complete", () => {

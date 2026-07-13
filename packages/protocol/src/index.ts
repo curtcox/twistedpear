@@ -83,6 +83,8 @@ export {
   linkReadyForNewResource,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
+  shouldHandleIncomingResourceByHash,
+  shouldHandleOutgoingResourceRequest,
   type LinkResourceAcceptPlan
 } from "./link-resource-accept.js";
 export {
@@ -118,6 +120,7 @@ export {
 export {
   applyResourceStatusEvent,
   canReceiveResourcePart,
+  canRequestResourceNext,
   canResourceContinueTransfer,
   canRunResourceWatchdog,
   canValidateResourceProof,
@@ -125,7 +128,13 @@ export {
   isResourceComplete,
   isResourceFailed,
   isResourceTerminal,
+  planResourceAdvertisePhase,
+  planResourceAssembleOutcome,
+  planResourceProofAccept,
+  shouldAcceptIncomingResourceAdvertisement,
   stepResourceStatus,
+  type ResourceAssembleOutcome,
+  type ResourceProofAcceptPlan,
   type ResourceStatusEvent,
   type ResourceStatusState
 } from "./resource-status.js";
@@ -722,12 +731,14 @@ export {
   planLxmfDeliverableAccept,
   planLxmfDelivery,
   planLxmfPropagatedSend,
+  planLxmfSendMethod,
   planLxMessagePack,
   type LxmfDeliverableAcceptPlan,
   type LxmfDeliveryMethodValue,
   type LxmfDeliveryPlan,
   type LxmfDeliveryRepresentationValue,
   type LxmfPropagatedSendPlan,
+  type LxmfSendMethodPlan,
   type LxMessagePackGate
 } from "./lxmf-delivery.js";
 export {

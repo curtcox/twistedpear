@@ -9,6 +9,7 @@ import {
   packLxmfDestinationPrefixed,
   planLxmfDeliverableAccept,
   planLxmfPropagatedSend,
+  planLxmfSendMethod,
   splitLxmfDestinationPrefixed,
   stepDeliveryReceiptPoll,
   type LxmfSendEvent,
@@ -123,23 +124,27 @@ export class LXMFRouter {
   }
 
   async send(message: LXMessage): Promise<void> {
-    if (message.packed === null) {
+    const plan = planLxmfSendMethod({
+      packed: message.packed !== null,
+      method: message.method
+    });
+    if (plan === "reject-unpacked") {
       throw new Error("LXMessage must be packed before sending");
     }
 
     this.applySendState(message, { kind: "lxmf/enqueue" });
 
-    if (message.method === LXMessageMethod.OPPORTUNISTIC) {
+    if (plan === "opportunistic") {
       await this.sendOpportunistic(message);
       return;
     }
 
-    if (message.method === LXMessageMethod.DIRECT) {
+    if (plan === "direct") {
       await this.sendDirect(message);
       return;
     }
 
-    if (message.method === LXMessageMethod.PROPAGATED) {
+    if (plan === "propagated") {
       await this.sendPropagated(message);
       return;
     }

@@ -172,6 +172,12 @@
 > **`planPathRequestIngress`** and **`planDiscoveryPathRequestFulfill`** live in
 > protocol; leaf / transport path-request and discovery announce fulfill adapt them.
 > **`planLinkDataContext`** lives in protocol; `Link.receive` DATA dispatch adapts it.
+> **`planResourceAssembleOutcome`**, **`planResourceProofAccept`**,
+> **`canRequestResourceNext`**, **`planResourceAdvertisePhase`**, and
+> **`shouldAcceptIncomingResourceAdvertisement`** live in protocol; `Resource` adapts them.
+> **`shouldHandleOutgoingResourceRequest`** / **`shouldHandleIncomingResourceByHash`**
+> live in protocol; `Link` resource REQ/HMU/cancel/proof dispatch adapts them.
+> **`planLxmfSendMethod`** lives in protocol; `LXMFRouter.send` adapts it.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

@@ -33,3 +33,16 @@ export function planLinkResourceAcceptAppResult(appAccepted: boolean): "accept" 
 export function linkReadyForNewResource(outgoingCount: number): boolean {
   return outgoingCount === 0;
 }
+
+/** Whether an outgoing resource should handle this RESOURCE_REQ packet. */
+export function shouldHandleOutgoingResourceRequest(input: {
+  readonly hashMatches: boolean;
+  readonly alreadySeen: boolean;
+}): boolean {
+  return input.hashMatches && !input.alreadySeen;
+}
+
+/** Whether an incoming resource matches a hashmap/cancel/part packet by hash. */
+export function shouldHandleIncomingResourceByHash(hashMatches: boolean): boolean {
+  return hashMatches;
+}

@@ -55,6 +55,54 @@ export function canRunResourceWatchdog(status: ResourceStatusValue): boolean {
   return !isResourceTerminal(status);
 }
 
+/** Gate for requestNext early-out (failed status or waiting for hashmap). */
+export function canRequestResourceNext(input: {
+  readonly status: ResourceStatusValue;
+  readonly waitingForHashmap: boolean;
+}): boolean {
+  return canResourceContinueTransfer(input.status) && !input.waitingForHashmap;
+}
+
+/** Whether an incoming ADV should create a new resource (not already incoming). */
+export function shouldAcceptIncomingResourceAdvertisement(alreadyIncoming: boolean): boolean {
+  return !alreadyIncoming;
+}
+
+/** Map link readiness to the next advertise-phase status event. */
+export function planResourceAdvertisePhase(linkReady: boolean): "queue" | "advertise" {
+  return linkReady ? "advertise" : "queue";
+}
+
+/**
+ * Assemble validation outcome from crypto-edge booleans
+ * (decrypt / payload split / hash match).
+ */
+export type ResourceAssembleOutcome = "complete" | "corrupt";
+
+export function planResourceAssembleOutcome(input: {
+  readonly decryptedPresent: boolean;
+  readonly payloadPresent: boolean;
+  readonly hashMatches: boolean;
+}): ResourceAssembleOutcome {
+  if (!input.decryptedPresent || !input.payloadPresent || !input.hashMatches) {
+    return "corrupt";
+  }
+  return "complete";
+}
+
+/** Sender proof validation → complete vs ignore. */
+export type ResourceProofAcceptPlan = "complete" | "ignore";
+
+export function planResourceProofAccept(input: {
+  readonly status: ResourceStatusValue;
+  readonly proofValid: boolean;
+}): ResourceProofAcceptPlan {
+  if (!canValidateResourceProof(input.status) || !input.proofValid) {
+    return "ignore";
+  }
+  return "complete";
+}
+
 export function applyResourceStatusEvent(
   state: ResourceStatusState,
   event: ResourceStatusEvent

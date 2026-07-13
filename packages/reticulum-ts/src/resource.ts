@@ -20,9 +20,9 @@ import {
   assembleByteArrays,
   assembleResourceHashmapBytes,
   canReceiveResourcePart,
+  canRequestResourceNext,
   canResourceContinueTransfer,
   canRunResourceWatchdog,
-  canValidateResourceProof,
   computeResourceTimeout,
   computeResourceTotalParts,
   decodeResourceAdvertisementFlags,
@@ -37,10 +37,14 @@ import {
   packResourceProof,
   parseResourcePartRequest,
   applyResourceHashmapSlotWrites,
+  planResourceAdvertisePhase,
+  planResourceAssembleOutcome,
   planResourceHashmapSlotWrites,
   planResourcePartRequest,
+  planResourceProofAccept,
   planResourceReceivePart,
   planResourceRequestFulfill,
+  shouldAcceptIncomingResourceAdvertisement,
   readResourceRequestHash,
   appendResourceMapHashCollisionGuard,
   containsResourceHash,
@@ -429,10 +433,12 @@ export class Resource {
       const adv = ResourceAdvertisement.unpack(plaintext);
       const provider = link.cryptoProvider;
       if (
-        containsResourceHash({
-          hashes: link.incomingResources.map((resource) => resource.hash),
-          target: adv.h
-        })
+        !shouldAcceptIncomingResourceAdvertisement(
+          containsResourceHash({
+            hashes: link.incomingResources.map((resource) => resource.hash),
+            target: adv.h
+          })
+        )
       ) {
         return null;
       }
@@ -502,7 +508,7 @@ export class Resource {
   }
 
   async advertise(): Promise<void> {
-    while (!this.link.readyForNewResource()) {
+    while (planResourceAdvertisePhase(this.link.readyForNewResource()) === "queue") {
       this.applyStatus({ kind: "resource/queue" });
       await this.sleep(250);
     }
@@ -662,7 +668,12 @@ export class Resource {
   }
 
   async requestNext(): Promise<void> {
-    if (!canResourceContinueTransfer(this.status) || this.waitingForHashmap) {
+    if (
+      !canRequestResourceNext({
+        status: this.status,
+        waitingForHashmap: this.waitingForHashmap
+      })
+    ) {
       return;
     }
 
@@ -688,23 +699,19 @@ export class Resource {
       this.applyStatus({ kind: "resource/assemble" });
       const stream = assembleByteArrays(this.receivedParts.map((part) => part!));
       const decrypted = this.link.decrypt(stream);
-      if (decrypted === null) {
-        this.applyStatus({ kind: "resource/corrupt" });
-        this.cancel();
-        return;
-      }
+      const payload = decrypted === null ? null : splitResourceDecryptedPayload(decrypted);
+      const calculatedHash =
+        payload === null
+          ? null
+          : Identity.fullHash(this.provider, resourceHashMaterial(payload, this.randomHash));
+      const outcome = planResourceAssembleOutcome({
+        decryptedPresent: decrypted !== null,
+        payloadPresent: payload !== null,
+        hashMatches:
+          calculatedHash !== null && equalBytes(calculatedHash, this.hash)
+      });
 
-      const payload = splitResourceDecryptedPayload(decrypted);
-      if (payload === null) {
-        this.applyStatus({ kind: "resource/corrupt" });
-        this.cancel();
-        return;
-      }
-      const calculatedHash = Identity.fullHash(
-        this.provider,
-        resourceHashMaterial(payload, this.randomHash)
-      );
-      if (!equalBytes(calculatedHash, this.hash)) {
+      if (outcome === "corrupt" || payload === null) {
         this.applyStatus({ kind: "resource/corrupt" });
         this.cancel();
         return;
@@ -736,16 +743,19 @@ export class Resource {
   }
 
   validateProof(proofData: Uint8Array): void {
-    if (!canValidateResourceProof(this.status)) {
+    if (
+      planResourceProofAccept({
+        status: this.status,
+        proofValid: isValidResourceProof(proofData, this.expectedProof)
+      }) !== "complete"
+    ) {
       return;
     }
 
-    if (isValidResourceProof(proofData, this.expectedProof)) {
-      this.applyStatus({ kind: "resource/complete" });
-      this.progress = 1;
-      this.link.resourceConcluded(this);
-      this.callbacks.callback?.(this);
-    }
+    this.applyStatus({ kind: "resource/complete" });
+    this.progress = 1;
+    this.link.resourceConcluded(this);
+    this.callbacks.callback?.(this);
   }
 
   cancel(): void {

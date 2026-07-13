@@ -74,6 +74,8 @@ import {
   planLinkTeardownReason,
   shouldAcceptLinkPacketInterface,
   shouldEncryptLinkPayload,
+  shouldHandleIncomingResourceByHash,
+  shouldHandleOutgoingResourceRequest,
   shouldIgnoreInitiatorKeepaliveProbe,
   shouldReplyKeepaliveProbe,
   splitIdentityPublicKey,
@@ -1146,7 +1148,12 @@ export class Link {
 
     const resourceHash = Resource.readRequestHash(plaintext);
     for (const resource of this.outgoingResourcesList) {
-      if (equalBytes(resource.hash, resourceHash) && !resource.hasSeenRequest(packet)) {
+      if (
+        shouldHandleOutgoingResourceRequest({
+          hashMatches: equalBytes(resource.hash, resourceHash),
+          alreadySeen: resource.hasSeenRequest(packet)
+        })
+      ) {
         resource.trackRequest(packet);
         await resource.handleRequest(plaintext);
         return;
@@ -1165,7 +1172,7 @@ export class Link {
       return;
     }
     for (const resource of this.incomingResourcesList) {
-      if (equalBytes(resource.hash, split.resourceHash)) {
+      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split.resourceHash))) {
         resource.hashmapUpdatePacket(plaintext);
         return;
       }
@@ -1184,7 +1191,7 @@ export class Link {
     }
     const resources = incoming ? this.incomingResourcesList : this.outgoingResourcesList;
     for (const resource of resources) {
-      if (equalBytes(resource.hash, split.resourceHash)) {
+      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split.resourceHash))) {
         resource.cancel();
         return;
       }
@@ -1197,7 +1204,7 @@ export class Link {
     }
     const { resourceHash } = splitResourceProof(packet.data);
     for (const resource of this.outgoingResourcesList) {
-      if (equalBytes(resource.hash, resourceHash)) {
+      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, resourceHash))) {
         resource.validateProof(packet.data);
         return;
       }

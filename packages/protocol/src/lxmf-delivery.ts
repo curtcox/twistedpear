@@ -188,3 +188,30 @@ export function planLxmfPropagatedSend(input: {
   }
   return "ok";
 }
+
+/** LXMFRouter.send method dispatch after packed-envelope check. */
+export type LxmfSendMethodPlan =
+  | "opportunistic"
+  | "direct"
+  | "propagated"
+  | "reject-unpacked"
+  | "reject-unsupported";
+
+export function planLxmfSendMethod(input: {
+  readonly packed: boolean;
+  readonly method: number;
+}): LxmfSendMethodPlan {
+  if (!input.packed) {
+    return "reject-unpacked";
+  }
+  if (input.method === LxmfDeliveryMethod.OPPORTUNISTIC) {
+    return "opportunistic";
+  }
+  if (input.method === LxmfDeliveryMethod.DIRECT) {
+    return "direct";
+  }
+  if (input.method === LxmfDeliveryMethod.PROPAGATED) {
+    return "propagated";
+  }
+  return "reject-unsupported";
+}
