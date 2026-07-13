@@ -6,6 +6,7 @@ import {
   clampStreamReadSize,
   packStreamDataMessage,
   shouldAppendStreamData,
+  shouldConsumeStreamChunk,
   shouldDeferStreamRead,
   shouldReturnStreamReadResult,
   unpackStreamDataMessage
@@ -125,7 +126,7 @@ export class RawChannelReader {
       const take = clampStreamChunkTake(chunk.length, output.length - copied);
       output.set(chunk.subarray(0, take), copied);
       copied += take;
-      if (take === chunk.length) {
+      if (shouldConsumeStreamChunk(take, chunk.length)) {
         this.chunks.shift();
       } else {
         this.chunks[0] = chunk.subarray(take);

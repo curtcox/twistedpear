@@ -107,3 +107,8 @@ export function shouldReturnStreamReadResult(copied: number, eof: boolean): bool
 export function clampStreamChunkTake(chunkLength: number, remaining: number): number {
   return Math.min(chunkLength, remaining);
 }
+
+/** Whether the taken bytes consume the entire front chunk (shift vs residual slice). */
+export function shouldConsumeStreamChunk(take: number, chunkLength: number): boolean {
+  return take === chunkLength;
+}

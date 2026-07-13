@@ -571,6 +571,7 @@ export {
   clampStreamReadSize,
   packStreamDataMessage,
   shouldAppendStreamData,
+  shouldConsumeStreamChunk,
   shouldDeferStreamRead,
   shouldReturnStreamReadResult,
   unpackStreamDataMessage,

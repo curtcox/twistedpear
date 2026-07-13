@@ -8,6 +8,7 @@ import {
   clampStreamReadSize,
   packStreamDataMessage,
   shouldAppendStreamData,
+  shouldConsumeStreamChunk,
   shouldDeferStreamRead,
   shouldReturnStreamReadResult,
   unpackStreamDataMessage
@@ -71,5 +72,10 @@ describe("protocol stream data framing", () => {
     expect(clampStreamChunkTake(100, 40)).toBe(40);
     expect(clampStreamChunkTake(10, 40)).toBe(10);
     expect(clampStreamChunkTake(0, 5)).toBe(0);
+  });
+
+  it("consumes a chunk when take equals chunk length", () => {
+    expect(shouldConsumeStreamChunk(10, 10)).toBe(true);
+    expect(shouldConsumeStreamChunk(5, 10)).toBe(false);
   });
 });
