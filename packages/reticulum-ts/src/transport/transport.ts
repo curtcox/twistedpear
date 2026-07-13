@@ -27,6 +27,7 @@ import {
   shouldAnswerPathRequest
 } from "./path.js";
 import { AnnounceRateLimiter } from "./rate.js";
+import { rewritePacketHopsBytes } from "@twistedpear/protocol";
 
 /** Mirrors RNS/Transport.py transport-node constants. */
 export const LOCAL_REBROADCASTS_MAX = 2;
@@ -290,10 +291,7 @@ export class TransportNode extends LeafTransport {
       return false;
     }
 
-    const relayed = new Uint8Array(packet.raw.length);
-    relayed[0] = packet.raw[0]!;
-    relayed[1] = packet.hops;
-    relayed.set(packet.raw.subarray(2), 2);
+    const relayed = rewritePacketHopsBytes(packet.raw, packet.hops);
     await this.transmit(outboundInterface, relayed);
     return true;
   }
@@ -312,10 +310,7 @@ export class TransportNode extends LeafTransport {
       return false;
     }
 
-    const relayed = new Uint8Array(packet.raw.length);
-    relayed[0] = packet.raw[0]!;
-    relayed[1] = packet.hops;
-    relayed.set(packet.raw.subarray(2), 2);
+    const relayed = rewritePacketHopsBytes(packet.raw, packet.hops);
     await this.transmit(entry.receivedInterface, relayed);
     return true;
   }

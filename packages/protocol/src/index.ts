@@ -348,9 +348,17 @@ export {
 export { utf8Decode, utf8Encode } from "./utf8.js";
 export { assembleByteArrays, concatByteArrays } from "./bytes.js";
 export {
+  INTERFACE_RECONNECT_TIMER_ID,
   INTERFACE_RECONNECT_WAIT_MS,
+  initialInterfaceReconnectState,
   planInterfaceReconnect,
-  type InterfaceReconnectPlan
+  stepInterfaceReconnect,
+  stepInterfaceReconnectWithActions,
+  type InterfaceReconnectAction,
+  type InterfaceReconnectEvent,
+  type InterfaceReconnectPlan,
+  type InterfaceReconnectState,
+  type InterfaceReconnectStepResult
 } from "./interface-reconnect.js";
 export {
   DESTINATION_IDENTITY_HASH_BYTES,
@@ -427,6 +435,7 @@ export {
   TRANSPORT_TRANSPORT,
   packetFlagsLowNibble,
   relayTransportPacketBytes,
+  rewritePacketHopsBytes,
   stripTransportHeadersBytes,
   wrapTransportPacketBytes
 } from "./transport-framing.js";

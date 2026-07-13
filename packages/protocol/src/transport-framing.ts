@@ -88,3 +88,15 @@ export function relayTransportPacketBytes(input: {
   raw.set(input.raw.subarray(2 + TRANSPORT_ID_BYTES), 2);
   return raw;
 }
+
+/** Rewrite only the hops byte of an already-framed packet (forward / reverse relay). */
+export function rewritePacketHopsBytes(raw: Uint8Array, hops: number): Uint8Array {
+  if (raw.length < 2) {
+    throw new Error("packet raw too short");
+  }
+  const output = new Uint8Array(raw.length);
+  output[0] = raw[0]!;
+  output[1] = hops & 0xff;
+  output.set(raw.subarray(2), 2);
+  return output;
+}

@@ -1,6 +1,10 @@
 import {
+  INTERFACE_RECONNECT_TIMER_ID,
   INTERFACE_RECONNECT_WAIT_MS,
-  planInterfaceReconnect
+  initialInterfaceReconnectState,
+  stepInterfaceReconnectWithActions,
+  type InterfaceReconnectEvent,
+  type InterfaceReconnectState
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "../crypto/provider.js";
 import { Packet } from "../packet.js";
@@ -45,8 +49,7 @@ export interface WebSocketMessageEvent {
 export class WebSocketClientInterface extends RawPacketInterface {
   private socket: WebSocketLike | null = null;
   private reconnectTimer: Timer | null = null;
-  private reconnectAttempts = 0;
-  private detached = false;
+  private reconnectState: InterfaceReconnectState;
 
   constructor(
     private readonly provider: CryptoProvider,
@@ -55,6 +58,11 @@ export class WebSocketClientInterface extends RawPacketInterface {
     connected: WebSocketLike | null = null
   ) {
     super({ ...options, mtu: options.mtu ?? WEBSOCKET_HW_MTU }, true, options.outgoing ?? true);
+    this.reconnectState = initialInterfaceReconnectState({
+      maxTries: options.maxReconnectTries ?? null,
+      waitMs: options.reconnectWaitMs ?? WEBSOCKET_RECONNECT_WAIT_MS,
+      suppressReconnect: connected !== null
+    });
     if (connected !== null) {
       this.attachSocket(connected);
     }
@@ -83,7 +91,7 @@ export class WebSocketClientInterface extends RawPacketInterface {
   async initialConnect(): Promise<void> {
     const connected = await this.connectOnce();
     if (!connected) {
-      this.scheduleReconnect();
+      this.applyReconnect({ kind: "iface/disconnected" });
     }
   }
 
@@ -100,9 +108,7 @@ export class WebSocketClientInterface extends RawPacketInterface {
   }
 
   protected async closeInterface(): Promise<void> {
-    this.detached = true;
-    this.reconnectTimer?.cancel();
-    this.reconnectTimer = null;
+    this.applyReconnect({ kind: "iface/detach" });
 
     if (this.socket !== null) {
       this.socket.close();
@@ -185,7 +191,7 @@ export class WebSocketClientInterface extends RawPacketInterface {
   private attachSocket(socket: WebSocketLike): void {
     this.socket = socket;
     this.online = true;
-    this.reconnectAttempts = 0;
+    this.applyReconnect({ kind: "iface/connected" });
     socket.binaryType = "arraybuffer";
     socket.addEventListener("message", (event) => {
       void toUint8Array(event.data).then((bytes) => {
@@ -199,7 +205,7 @@ export class WebSocketClientInterface extends RawPacketInterface {
   }
 
   private handleDisconnect(): void {
-    if (this.detached) {
+    if (this.reconnectState.detached) {
       return;
     }
 
@@ -209,40 +215,48 @@ export class WebSocketClientInterface extends RawPacketInterface {
 
     this.socket = null;
     this.online = false;
-    this.scheduleReconnect();
+    this.applyReconnect({ kind: "iface/disconnected" });
   }
 
-  private scheduleReconnect(): void {
-    if (this.detached) {
-      return;
+  private applyReconnect(event: InterfaceReconnectEvent): void {
+    const result = stepInterfaceReconnectWithActions(this.reconnectState, event);
+    this.reconnectState = result.state;
+
+    for (const intent of result.intents) {
+      if (intent.kind === "timer/cancel" && intent.timer.id === INTERFACE_RECONNECT_TIMER_ID) {
+        this.reconnectTimer?.cancel();
+        this.reconnectTimer = null;
+      }
+      if (intent.kind === "timer/set" && intent.timer.id === INTERFACE_RECONNECT_TIMER_ID) {
+        this.reconnectTimer?.cancel();
+        this.reconnectTimer = this.runtime.clock.setTimeout(() => {
+          this.reconnectTimer = null;
+          this.applyReconnect({
+            kind: "timer/fired",
+            id: INTERFACE_RECONNECT_TIMER_ID,
+            at: this.runtime.clock.now()
+          });
+        }, intent.timer.delayMs);
+      }
     }
 
-    this.reconnectTimer?.cancel();
-    this.reconnectTimer = this.runtime.clock.setTimeout(async () => {
-      this.reconnectTimer = null;
-      await this.reconnect();
-    }, this.options.reconnectWaitMs ?? WEBSOCKET_RECONNECT_WAIT_MS);
+    for (const action of result.actions) {
+      if (action.kind === "give-up") {
+        void this.close();
+      } else if (action.kind === "connect") {
+        void this.attemptReconnect();
+      }
+    }
   }
 
-  private async reconnect(): Promise<void> {
-    if (this.detached) {
-      return;
-    }
-
-    const plan = planInterfaceReconnect({
-      attempts: this.reconnectAttempts,
-      maxTries: this.options.maxReconnectTries ?? null,
-      waitMs: this.options.reconnectWaitMs ?? WEBSOCKET_RECONNECT_WAIT_MS
-    });
-    this.reconnectAttempts = plan.attempt;
-    if (plan.kind === "give-up") {
-      await this.close();
+  private async attemptReconnect(): Promise<void> {
+    if (this.reconnectState.detached) {
       return;
     }
 
     const connected = await this.connectOnce();
     if (!connected) {
-      this.scheduleReconnect();
+      this.applyReconnect({ kind: "iface/connect-failed" });
     }
   }
 }

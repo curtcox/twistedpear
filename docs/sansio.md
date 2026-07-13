@@ -59,9 +59,13 @@
 > assemblers are pure protocol leaves; TCP/WebSocket clients and Resource adapt them.
 > **Transport announce / path-response / hop-clone field planning** is a pure protocol
 > leaf; leaf transport adapts it. Link proof paths use `splitIdentityPublicKey` for
-> owner/peer Ed25519 halves. Identity ratchet JSON, web-identity passphrase bytes, and
-> LXMF message text use protocol UTF-8 (no `TextEncoder`/`TextDecoder`). Remaining
-> depth work: keep converting residual session IO into step machines.
+> owner/peer Ed25519 halves. **Interface reconnect** is now a pure step machine
+> (`timer/set` intents + connect/give-up actions); TCP/WebSocket clients adapt it.
+> **`rewritePacketHopsBytes`** frames forward/reverse relays; Link resource HMU/cancel
+> uses `splitResourceHashmapUpdatePacket`. Identity ratchet JSON, web-identity
+> passphrase bytes, and LXMF message text use protocol UTF-8 (no
+> `TextEncoder`/`TextDecoder`). Remaining depth work: keep converting residual session
+> IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

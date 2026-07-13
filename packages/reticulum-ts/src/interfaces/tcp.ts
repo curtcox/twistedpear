@@ -3,8 +3,12 @@ import type { DuplexConnection, Runtime, Timer } from "../runtime/runtime.js";
 import { Packet } from "../packet.js";
 import { HdlcPacketInterface, type PacketInterface, type ReticulumInterfaceOptions } from "./interface.js";
 import {
+  INTERFACE_RECONNECT_TIMER_ID,
   INTERFACE_RECONNECT_WAIT_MS,
-  planInterfaceReconnect
+  initialInterfaceReconnectState,
+  stepInterfaceReconnectWithActions,
+  type InterfaceReconnectEvent,
+  type InterfaceReconnectState
 } from "@twistedpear/protocol";
 
 /** Mirrors RNS/Interfaces/TCPInterface.py reconnect defaults. */
@@ -35,8 +39,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
   private connection: DuplexConnection | null = null;
   private readTask: Promise<void> | null = null;
   private reconnectTimer: Timer | null = null;
-  private reconnectAttempts = 0;
-  private detached = false;
+  private reconnectState: InterfaceReconnectState;
 
   constructor(
     private readonly provider: CryptoProvider,
@@ -49,6 +52,11 @@ export class TcpClientInterface extends HdlcPacketInterface {
       true,
       options.outgoing ?? (connected === null ? options.outgoing ?? true : options.outgoing ?? true)
     );
+    this.reconnectState = initialInterfaceReconnectState({
+      maxTries: options.maxReconnectTries ?? null,
+      waitMs: options.reconnectWaitMs ?? TCP_RECONNECT_WAIT_MS,
+      suppressReconnect: connected !== null
+    });
   }
 
   static async connect(
@@ -91,7 +99,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
 
     const connected = await this.connectOnce();
     if (!connected) {
-      this.scheduleReconnect();
+      this.applyReconnect({ kind: "iface/disconnected" });
     }
   }
 
@@ -108,9 +116,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
   }
 
   protected async closeInterface(): Promise<void> {
-    this.detached = true;
-    this.reconnectTimer?.cancel();
-    this.reconnectTimer = null;
+    this.applyReconnect({ kind: "iface/detach" });
 
     if (this.connection !== null) {
       await this.connection.close();
@@ -121,7 +127,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
   private attachConnection(connection: DuplexConnection): void {
     this.connection = connection;
     this.online = true;
-    this.reconnectAttempts = 0;
+    this.applyReconnect({ kind: "iface/connected" });
     this.readTask = this.readLoop(connection);
   }
 
@@ -140,37 +146,45 @@ export class TcpClientInterface extends HdlcPacketInterface {
     }
   }
 
-  private scheduleReconnect(): void {
-    if (this.detached || this.connected !== null) {
-      return;
+  private applyReconnect(event: InterfaceReconnectEvent): void {
+    const result = stepInterfaceReconnectWithActions(this.reconnectState, event);
+    this.reconnectState = result.state;
+
+    for (const intent of result.intents) {
+      if (intent.kind === "timer/cancel" && intent.timer.id === INTERFACE_RECONNECT_TIMER_ID) {
+        this.reconnectTimer?.cancel();
+        this.reconnectTimer = null;
+      }
+      if (intent.kind === "timer/set" && intent.timer.id === INTERFACE_RECONNECT_TIMER_ID) {
+        this.reconnectTimer?.cancel();
+        this.reconnectTimer = this.runtime.clock.setTimeout(() => {
+          this.reconnectTimer = null;
+          this.applyReconnect({
+            kind: "timer/fired",
+            id: INTERFACE_RECONNECT_TIMER_ID,
+            at: this.runtime.clock.now()
+          });
+        }, intent.timer.delayMs);
+      }
     }
 
-    this.reconnectTimer?.cancel();
-    this.reconnectTimer = this.runtime.clock.setTimeout(async () => {
-      this.reconnectTimer = null;
-      await this.reconnect();
-    }, this.options.reconnectWaitMs ?? TCP_RECONNECT_WAIT_MS);
+    for (const action of result.actions) {
+      if (action.kind === "give-up") {
+        void this.close();
+      } else if (action.kind === "connect") {
+        void this.attemptReconnect();
+      }
+    }
   }
 
-  private async reconnect(): Promise<void> {
-    if (this.detached) {
-      return;
-    }
-
-    const plan = planInterfaceReconnect({
-      attempts: this.reconnectAttempts,
-      maxTries: this.options.maxReconnectTries ?? null,
-      waitMs: this.options.reconnectWaitMs ?? TCP_RECONNECT_WAIT_MS
-    });
-    this.reconnectAttempts = plan.attempt;
-    if (plan.kind === "give-up") {
-      await this.close();
+  private async attemptReconnect(): Promise<void> {
+    if (this.reconnectState.detached) {
       return;
     }
 
     const connected = await this.connectOnce();
     if (!connected) {
-      this.scheduleReconnect();
+      this.applyReconnect({ kind: "iface/connect-failed" });
     }
   }
 
@@ -183,9 +197,9 @@ export class TcpClientInterface extends HdlcPacketInterface {
       // Connection closed or failed.
     } finally {
       this.online = false;
-      if (!this.detached && this.connected === null) {
-        this.scheduleReconnect();
-      } else if (!this.detached) {
+      if (!this.reconnectState.detached && this.connected === null) {
+        this.applyReconnect({ kind: "iface/disconnected" });
+      } else if (!this.reconnectState.detached) {
         await this.close();
       }
     }

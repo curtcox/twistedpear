@@ -6,6 +6,7 @@ import {
   TRANSPORT_ID_BYTES,
   TRANSPORT_TRANSPORT,
   relayTransportPacketBytes,
+  rewritePacketHopsBytes,
   stripTransportHeadersBytes,
   wrapTransportPacketBytes
 } from "../src/transport-framing.js";
@@ -71,5 +72,13 @@ describe("protocol transport framing", () => {
       nextHop: next
     });
     expect(delivered.length).toBe(wrapped.length - TRANSPORT_ID_BYTES);
+  });
+
+  it("rewrites hops without changing the rest of the frame", () => {
+    const raw = new Uint8Array([0x11, 3, 0xaa, 0xbb]);
+    const rewritten = rewritePacketHopsBytes(raw, 9);
+    expect(rewritten[0]).toBe(0x11);
+    expect(rewritten[1]).toBe(9);
+    expect([...rewritten.subarray(2)]).toEqual([0xaa, 0xbb]);
   });
 });

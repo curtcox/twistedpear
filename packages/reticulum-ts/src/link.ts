@@ -37,6 +37,7 @@ import {
   splitLinkIdentifyPayload,
   splitLinkProofBody,
   splitLinkRequestData,
+  splitResourceHashmapUpdatePacket,
   splitResponderLinkEntropy,
   stepLinkWatchdogWithActions,
   utf8Encode,
@@ -1124,9 +1125,12 @@ export class Link {
       return;
     }
 
-    const resourceHash = plaintext.subarray(0, 32);
+    const split = splitResourceHashmapUpdatePacket(plaintext);
+    if (split === null) {
+      return;
+    }
     for (const resource of this.incomingResourcesList) {
-      if (equalBytes(resource.hash, resourceHash)) {
+      if (equalBytes(resource.hash, split.resourceHash)) {
         resource.hashmapUpdatePacket(plaintext);
         return;
       }
@@ -1139,9 +1143,13 @@ export class Link {
       return;
     }
 
+    const split = splitResourceHashmapUpdatePacket(plaintext);
+    if (split === null) {
+      return;
+    }
     const resources = incoming ? this.incomingResourcesList : this.outgoingResourcesList;
     for (const resource of resources) {
-      if (equalBytes(resource.hash, plaintext.subarray(0, 32))) {
+      if (equalBytes(resource.hash, split.resourceHash)) {
         resource.cancel();
         return;
       }
