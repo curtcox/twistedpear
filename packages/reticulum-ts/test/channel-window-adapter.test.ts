@@ -10,6 +10,7 @@ describe("Channel window adapter", () => {
   it("exposes protocol window constants", () => {
     expect(Channel.WINDOW).toBe(ChannelWindowLimits.WINDOW);
     expect(Channel.RTT_SLOW).toBe(ChannelWindowLimits.RTT_SLOW);
+    expect(Channel.SEQ_MODULUS).toBe(0x10000);
   });
 
   it("matches protocol initial window for slow RTT outlets", () => {

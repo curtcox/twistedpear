@@ -1,17 +1,27 @@
 import {
+  CHANNEL_SEQ_MAX,
+  CHANNEL_SEQ_MODULUS,
   ChannelWindowLimits,
   applyChannelDelivery,
   applyChannelTimeout,
   channelAllowsSend,
+  channelEmplaceIndex,
   channelPacketTimeoutSeconds,
+  channelPayloadMdu,
   channelRetryExhausted,
+  drainContiguousChannelSequences,
   initialChannelWindowState,
+  isChannelSystemMsgType,
+  nextChannelSequence,
+  packChannelEnvelope,
+  shouldAcceptChannelSequence,
+  unpackChannelEnvelope,
   type ChannelWindowState
 } from "@twistedpear/protocol";
 import { equalBytes } from "./crypto/bytes.js";
 import type { Link } from "./link.js";
 import { LinkStatus } from "./link.js";
-import { Packet, PacketContext } from "./packet.js";
+import { PacketContext } from "./packet.js";
 import type { PacketReceipt } from "./packet-receipt.js";
 import { PacketReceiptStatus } from "./packet-receipt.js";
 
@@ -105,13 +115,11 @@ class Envelope {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope has no message");
     }
 
-    const data = this.message.pack();
-    const header = new Uint8Array(6);
-    const view = new DataView(header.buffer);
-    view.setUint16(0, this.message.MSGTYPE, false);
-    view.setUint16(2, this.sequence, false);
-    view.setUint16(4, data.length, false);
-    this.raw = concatBytes(header, data);
+    this.raw = packChannelEnvelope({
+      msgType: this.message.MSGTYPE,
+      sequence: this.sequence,
+      payload: this.message.pack()
+    });
     return this.raw;
   }
 
@@ -120,17 +128,22 @@ class Envelope {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope has no raw data");
     }
 
-    const view = new DataView(this.raw.buffer, this.raw.byteOffset, this.raw.byteLength);
-    const msgtype = view.getUint16(0, false);
-    this.sequence = view.getUint16(2, false);
-    const length = view.getUint16(4, false);
-    const ctor = factories.get(msgtype);
+    const unpacked = unpackChannelEnvelope(this.raw);
+    if (unpacked === null) {
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope framing is truncated");
+    }
+
+    this.sequence = unpacked.sequence;
+    const ctor = factories.get(unpacked.msgType);
     if (ctor === undefined) {
-      throw new ChannelException(ChannelExceptionType.ME_NOT_REGISTERED, `Unknown channel MSGTYPE ${msgtype.toString(16)}`);
+      throw new ChannelException(
+        ChannelExceptionType.ME_NOT_REGISTERED,
+        `Unknown channel MSGTYPE ${unpacked.msgType.toString(16)}`
+      );
     }
 
     const message = new ctor();
-    message.unpack(this.raw.subarray(6, 6 + length));
+    message.unpack(unpacked.payload);
     return message;
   }
 }
@@ -150,8 +163,8 @@ export class Channel {
   static readonly RTT_MEDIUM = ChannelWindowLimits.RTT_MEDIUM;
   static readonly RTT_SLOW = ChannelWindowLimits.RTT_SLOW;
   static readonly WINDOW_FLEXIBILITY = ChannelWindowLimits.WINDOW_FLEXIBILITY;
-  static readonly SEQ_MAX = 0xffff;
-  static readonly SEQ_MODULUS = Channel.SEQ_MAX + 1;
+  static readonly SEQ_MAX = CHANNEL_SEQ_MAX;
+  static readonly SEQ_MODULUS = CHANNEL_SEQ_MODULUS;
 
   private readonly txRing: Envelope[] = [];
   private readonly rxRing: Envelope[] = [];
@@ -203,7 +216,7 @@ export class Channel {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Message class lacks MSGTYPE");
     }
 
-    if (messageClass.MSGTYPE >= 0xf000 && options.isSystemType !== true) {
+    if (isChannelSystemMsgType(messageClass.MSGTYPE) && options.isSystemType !== true) {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Message type is system-reserved");
     }
 
@@ -224,8 +237,7 @@ export class Channel {
   }
 
   get mdu(): number {
-    const value = this.outlet.mdu - 6;
-    return value > 0xffff ? 0xffff : value;
+    return channelPayloadMdu(this.outlet.mdu);
   }
 
   isReadyToSend(): boolean {
@@ -263,7 +275,7 @@ export class Channel {
       );
     }
 
-    this.nextSequence = (reservedSequence + 1) % Channel.SEQ_MODULUS;
+    this.nextSequence = nextChannelSequence(reservedSequence);
     const packet = await this.outlet.send(envelope.raw!);
     if (packet === null || packet.raw.length === 0 || packet.receipt === null) {
       this.nextSequence = reservedSequence;
@@ -294,37 +306,35 @@ export class Channel {
 
   receive(raw: Uint8Array): void {
     const envelope = new Envelope(this.outlet, { raw: Uint8Array.from(raw) });
-    const message = envelope.unpack(this.messageFactories);
+    envelope.unpack(this.messageFactories);
 
-    if (envelope.sequence < this.nextRxSequence) {
-      const windowOverflow = (this.nextRxSequence + Channel.WINDOW_MAX) % Channel.SEQ_MODULUS;
-      if (windowOverflow < this.nextRxSequence) {
-        if (envelope.sequence > windowOverflow) {
-          return;
-        }
-      } else {
-        return;
-      }
+    if (
+      !shouldAcceptChannelSequence({
+        sequence: envelope.sequence,
+        nextRxSequence: this.nextRxSequence,
+        windowMax: Channel.WINDOW_MAX
+      })
+    ) {
+      return;
     }
 
     if (!this.emplaceEnvelope(envelope, this.rxRing)) {
       return;
     }
 
-    const contiguous: Envelope[] = [];
-    for (const candidate of [...this.rxRing]) {
-      if (candidate.sequence === this.nextRxSequence) {
-        contiguous.push(candidate);
-        this.nextRxSequence = (this.nextRxSequence + 1) % Channel.SEQ_MODULUS;
-      }
-    }
+    const drained = drainContiguousChannelSequences({
+      ringSequences: this.rxRing.map((candidate) => candidate.sequence),
+      nextRxSequence: this.nextRxSequence
+    });
+    this.nextRxSequence = drained.nextRxSequence;
 
-    for (const candidate of contiguous) {
-      const delivered = candidate.unpack(this.messageFactories);
-      const index = this.rxRing.indexOf(candidate);
-      if (index >= 0) {
-        this.rxRing.splice(index, 1);
+    for (const sequence of drained.contiguous) {
+      const index = this.rxRing.findIndex((candidate) => candidate.sequence === sequence);
+      if (index < 0) {
+        continue;
       }
+      const candidate = this.rxRing.splice(index, 1)[0]!;
+      const delivered = candidate.unpack(this.messageFactories);
 
       for (const callback of [...this.messageCallbacks]) {
         if (callback(delivered)) {
@@ -348,29 +358,16 @@ export class Channel {
   }
 
   private emplaceEnvelope(envelope: Envelope, ring: Envelope[]): boolean {
-    for (const existing of ring) {
-      if (envelope.sequence === existing.sequence) {
-        return false;
-      }
+    const index = channelEmplaceIndex({
+      sequence: envelope.sequence,
+      ringSequences: ring.map((existing) => existing.sequence),
+      wrapBaseSequence: this.nextRxSequence
+    });
+    if (index === null) {
+      return false;
     }
 
-    let inserted = false;
-    for (let index = 0; index < ring.length; index += 1) {
-      const existing = ring[index]!;
-      if (
-        envelope.sequence < existing.sequence &&
-        !(this.nextRxSequence - envelope.sequence > Channel.SEQ_MAX / 2)
-      ) {
-        ring.splice(index, 0, envelope);
-        inserted = true;
-        break;
-      }
-    }
-
-    if (!inserted) {
-      ring.push(envelope);
-    }
-
+    ring.splice(index, 0, envelope);
     envelope.tracked = true;
     return true;
   }
@@ -579,17 +576,3 @@ export class LinkChannelOutlet implements ChannelOutlet {
     return packet.receipt?.hash ?? null;
   }
 }
-
-function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  const length = parts.reduce((total, part) => total + part.length, 0);
-  const output = new Uint8Array(length);
-  let offset = 0;
-  for (const part of parts) {
-    output.set(part, offset);
-    offset += part.length;
-  }
-
-  return output;
-}
-
-export { Envelope };

@@ -13,8 +13,9 @@
 > now prefer injected/`Runtime` entropy (transport identity keygen, path-request tags,
 > link Token IVs, destination encrypt, resource random hashes). **Channel congestion**
 > (window sizing, packet timeout formula, retry exhaustion) is a pure protocol leaf;
-> `Channel` adapts it. Remaining depth work: keep converting residual session IO into
-> step machines (e.g. channel envelope codec / RX reordering).
+> `Channel` adapts it. **Channel envelope framing** and **RX reorder/drain** are also
+> pure protocol leaves. Remaining depth work: keep converting residual session IO into
+> step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

@@ -225,3 +225,22 @@ export {
   initialChannelWindowState,
   type ChannelWindowState
 } from "./channel-window.js";
+export {
+  CHANNEL_ENVELOPE_HEADER_SIZE,
+  CHANNEL_SEQ_MAX,
+  CHANNEL_SEQ_MODULUS,
+  CHANNEL_SYSTEM_MSGTYPE_MIN,
+  channelPayloadMdu,
+  isChannelSystemMsgType,
+  nextChannelSequence,
+  packChannelEnvelope,
+  unpackChannelEnvelope,
+  type PackedChannelEnvelope,
+  type UnpackedChannelEnvelope
+} from "./channel-envelope.js";
+export {
+  channelEmplaceIndex,
+  drainContiguousChannelSequences,
+  insertChannelSequence,
+  shouldAcceptChannelSequence
+} from "./channel-reorder.js";
