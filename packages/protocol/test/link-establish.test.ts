@@ -30,6 +30,7 @@ import {
   planLinkProofValidateOutcome,
   planLinkValidateRequest,
   shouldAcceptLinkPacketInterface,
+  shouldAttemptLinkProofCrypto,
   shouldEncryptLinkPayload,
   shouldReuseActiveLink,
   shouldUpdateLinkLastData
@@ -289,6 +290,22 @@ describe("protocol link establish", () => {
         signatureValid: false
       })
     ).toBe("reject");
+    expect(
+      shouldAttemptLinkProofCrypto({
+        modeMatches: true,
+        layoutValid: true,
+        bodyPresent: true,
+        peerPublicPresent: true
+      })
+    ).toBe(true);
+    expect(
+      shouldAttemptLinkProofCrypto({
+        modeMatches: true,
+        layoutValid: false,
+        bodyPresent: true,
+        peerPublicPresent: true
+      })
+    ).toBe(false);
   });
 
   it("plans app request dispatch and response gates", () => {

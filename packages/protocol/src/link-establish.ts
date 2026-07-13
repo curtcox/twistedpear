@@ -130,6 +130,21 @@ export function planLinkProofValidateOutcome(input: {
   return "accept";
 }
 
+/** Whether loadPeer/handshake/signature verify may run for a link proof. */
+export function shouldAttemptLinkProofCrypto(input: {
+  readonly modeMatches: boolean;
+  readonly layoutValid: boolean;
+  readonly bodyPresent: boolean;
+  readonly peerPublicPresent: boolean;
+}): boolean {
+  return (
+    input.modeMatches &&
+    input.layoutValid &&
+    input.bodyPresent &&
+    input.peerPublicPresent
+  );
+}
+
 export function canAcceptLinkRtt(input: {
   readonly status: LinkStatusValue;
   readonly initiator: boolean;

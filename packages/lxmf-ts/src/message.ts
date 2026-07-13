@@ -11,10 +11,12 @@ import {
   packLxmfDestinationPrefixed,
   packLxmfWire,
   planLxmfDelivery,
-  planLxmfSignatureOutcome,
+  planLxmfPackTimestamp,
   planLxmfPropagatedPackPrep,
+  planLxmfSignatureOutcome,
   planLxMessageInstancePack,
   planLxMessagePack,
+  shouldIncludeLxmfStamp,
   splitLxmfWire,
   utf8Decode,
   utf8OrBytes
@@ -136,10 +138,14 @@ export class LXMessage {
       desiredMethod: options.desiredMethod ?? LXMessageMethod.DIRECT
     });
 
-    if (options.timestamp !== undefined) {
-      message.timestamp = options.timestamp;
-    } else if (options.now !== undefined) {
-      message.timestamp = options.now();
+    const timestampPlan = planLxmfPackTimestamp({
+      hasTimestamp: options.timestamp !== undefined,
+      hasNow: options.now !== undefined
+    });
+    if (timestampPlan === "use-timestamp") {
+      message.timestamp = options.timestamp!;
+    } else if (timestampPlan === "use-now") {
+      message.timestamp = options.now!();
     } else {
       throw new Error("LXMessage.pack requires timestamp or now()");
     }
@@ -244,7 +250,7 @@ export class LXMessage {
     this.hash = Identity.fullHash(provider, hashedPart);
 
     let stamp: Uint8Array | null = null;
-    if (options.deferStamp !== true) {
+    if (shouldIncludeLxmfStamp(options.deferStamp)) {
       stamp = options.stamp ?? null;
     }
 

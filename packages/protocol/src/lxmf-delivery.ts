@@ -152,6 +152,27 @@ export function planLxMessagePack(input: {
   return "ok";
 }
 
+export type LxmfPackTimestampPlan = "use-timestamp" | "use-now" | "reject";
+
+/** How LXMessage.pack should obtain its timestamp (explicit / injected now / reject). */
+export function planLxmfPackTimestamp(input: {
+  readonly hasTimestamp: boolean;
+  readonly hasNow: boolean;
+}): LxmfPackTimestampPlan {
+  if (input.hasTimestamp) {
+    return "use-timestamp";
+  }
+  if (input.hasNow) {
+    return "use-now";
+  }
+  return "reject";
+}
+
+/** Whether packing should include a stamp field (omit when deferStamp is true). */
+export function shouldIncludeLxmfStamp(deferStamp: boolean | undefined): boolean {
+  return deferStamp !== true;
+}
+
 export type LxmfDeliverableAcceptPlan = "accept" | "reject-unsigned" | "reject-seen";
 
 /** Whether an unpacked LXMF deliverable should be accepted (sig + seen-hash). */
@@ -175,6 +196,63 @@ export function canAcceptLxmfPropagationLocalDelivery(input: {
   readonly destinationHashMatches: boolean;
 }): boolean {
   return input.deliveryDestinationPresent && input.destinationHashMatches;
+}
+
+export type LxmfPropagationLocalIngressPlan =
+  | "reject-prefix"
+  | "reject-destination"
+  | "reject-decrypt"
+  | "deliver";
+
+/**
+ * Whether propagation local-delivery ingress may unpack+callback.
+ * Decrypt stays at the adapter edge (supply decryptedPresent).
+ */
+export function planLxmfPropagationLocalIngress(input: {
+  readonly prefixedPresent: boolean;
+  readonly deliveryDestinationPresent: boolean;
+  readonly destinationHashMatches: boolean;
+  readonly decryptedPresent: boolean;
+}): LxmfPropagationLocalIngressPlan {
+  if (!input.prefixedPresent) {
+    return "reject-prefix";
+  }
+  if (
+    !canAcceptLxmfPropagationLocalDelivery({
+      deliveryDestinationPresent: input.deliveryDestinationPresent,
+      destinationHashMatches: input.destinationHashMatches
+    })
+  ) {
+    return "reject-destination";
+  }
+  if (!input.decryptedPresent) {
+    return "reject-decrypt";
+  }
+  return "deliver";
+}
+
+export type LxmfPropagationLinkReadyPlan =
+  | "reuse"
+  | "missing-node"
+  | "missing-identity"
+  | "establish";
+
+/** Whether outbound propagation may reuse a link, establish, or must abort. */
+export function planLxmfPropagationLinkReady(input: {
+  readonly canReuseLink: boolean;
+  readonly nodeConfigured: boolean;
+  readonly nodeIdentityPresent: boolean;
+}): LxmfPropagationLinkReadyPlan {
+  if (input.canReuseLink) {
+    return "reuse";
+  }
+  if (!input.nodeConfigured) {
+    return "missing-node";
+  }
+  if (!input.nodeIdentityPresent) {
+    return "missing-identity";
+  }
+  return "establish";
 }
 
 export type LxmfPropagatedSendPlan = "ok" | "missing-packed" | "resource-unimplemented";

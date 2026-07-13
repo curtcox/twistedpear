@@ -15,10 +15,14 @@ import {
   planLxmfDeliverableAccept,
   planLxmfDirectSend,
   planLxmfOpportunisticSend,
+  planLxmfPackTimestamp,
   planLxmfPropagatedPackPrep,
   planLxmfPropagatedSend,
+  planLxmfPropagationLinkReady,
+  planLxmfPropagationLocalIngress,
   planLxmfSendMethod,
-  planLxmfSignatureOutcome
+  planLxmfSignatureOutcome,
+  shouldIncludeLxmfStamp
 } from "../src/lxmf-delivery.js";
 import { LxmfUnverifiedReason } from "../src/lxmf-fields.js";
 
@@ -382,5 +386,80 @@ describe("protocol lxmf delivery", () => {
     expect(planLxmfOpportunisticSend({ destinationPresent: false })).toBe(
       "missing-destination"
     );
+  });
+
+  it("plans propagation local ingress", () => {
+    expect(
+      planLxmfPropagationLocalIngress({
+        prefixedPresent: true,
+        deliveryDestinationPresent: true,
+        destinationHashMatches: true,
+        decryptedPresent: true
+      })
+    ).toBe("deliver");
+    expect(
+      planLxmfPropagationLocalIngress({
+        prefixedPresent: false,
+        deliveryDestinationPresent: true,
+        destinationHashMatches: true,
+        decryptedPresent: true
+      })
+    ).toBe("reject-prefix");
+    expect(
+      planLxmfPropagationLocalIngress({
+        prefixedPresent: true,
+        deliveryDestinationPresent: true,
+        destinationHashMatches: false,
+        decryptedPresent: true
+      })
+    ).toBe("reject-destination");
+    expect(
+      planLxmfPropagationLocalIngress({
+        prefixedPresent: true,
+        deliveryDestinationPresent: true,
+        destinationHashMatches: true,
+        decryptedPresent: false
+      })
+    ).toBe("reject-decrypt");
+  });
+
+  it("plans propagation link readiness", () => {
+    expect(
+      planLxmfPropagationLinkReady({
+        canReuseLink: true,
+        nodeConfigured: true,
+        nodeIdentityPresent: true
+      })
+    ).toBe("reuse");
+    expect(
+      planLxmfPropagationLinkReady({
+        canReuseLink: false,
+        nodeConfigured: false,
+        nodeIdentityPresent: false
+      })
+    ).toBe("missing-node");
+    expect(
+      planLxmfPropagationLinkReady({
+        canReuseLink: false,
+        nodeConfigured: true,
+        nodeIdentityPresent: false
+      })
+    ).toBe("missing-identity");
+    expect(
+      planLxmfPropagationLinkReady({
+        canReuseLink: false,
+        nodeConfigured: true,
+        nodeIdentityPresent: true
+      })
+    ).toBe("establish");
+  });
+
+  it("plans pack timestamp and stamp inclusion", () => {
+    expect(planLxmfPackTimestamp({ hasTimestamp: true, hasNow: false })).toBe("use-timestamp");
+    expect(planLxmfPackTimestamp({ hasTimestamp: false, hasNow: true })).toBe("use-now");
+    expect(planLxmfPackTimestamp({ hasTimestamp: false, hasNow: false })).toBe("reject");
+    expect(shouldIncludeLxmfStamp(undefined)).toBe(true);
+    expect(shouldIncludeLxmfStamp(false)).toBe(true);
+    expect(shouldIncludeLxmfStamp(true)).toBe(false);
   });
 });

@@ -10,6 +10,7 @@ import {
   packChannelEnvelope,
   planChannelEnvelopeUnpack,
   planChannelMessageTypeRegistration,
+  shouldEmitChannelImmediateDelivery,
   unpackChannelEnvelope
 } from "../src/channel-envelope.js";
 import {
@@ -31,6 +32,12 @@ describe("protocol channel envelope", () => {
     expect(channelMessageStateFromPacketReceipt(null)).toBe(ChannelMessageState.MSGSTATE_FAILED);
     expect(channelMessageStateFromPacketReceipt(0x01)).toBe(ChannelMessageState.MSGSTATE_SENT);
     expect(channelMessageStateFromPacketReceipt(0x02)).toBe(ChannelMessageState.MSGSTATE_DELIVERED);
+  });
+
+  it("gates immediate delivery callbacks", () => {
+    expect(shouldEmitChannelImmediateDelivery(ChannelMessageState.MSGSTATE_DELIVERED)).toBe(true);
+    expect(shouldEmitChannelImmediateDelivery(ChannelMessageState.MSGSTATE_SENT)).toBe(false);
+    expect(shouldEmitChannelImmediateDelivery(ChannelMessageState.MSGSTATE_NEW)).toBe(false);
   });
 
   it("round-trips envelope framing", () => {

@@ -80,6 +80,7 @@ import {
   planLinkValidateRequest,
   shouldAcceptLinkPacketInterface,
   shouldAcceptLinkTeardown,
+  shouldAttemptLinkProofCrypto,
   shouldEncryptLinkPayload,
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest,
@@ -551,7 +552,16 @@ export class Link {
         body !== null ? splitIdentityPublicKey(destination.identity!.getPublicKey()) : null;
 
       let signatureValid = false;
-      if (modeMatches && layoutValid && body !== null && peerPublic !== null) {
+      if (
+        shouldAttemptLinkProofCrypto({
+          modeMatches,
+          layoutValid,
+          bodyPresent: body !== null,
+          peerPublicPresent: peerPublic !== null
+        }) &&
+        body !== null &&
+        peerPublic !== null
+      ) {
         this.loadPeer(body.peerPublicKey, peerPublic.signaturePublicKey);
         this.handshake();
 

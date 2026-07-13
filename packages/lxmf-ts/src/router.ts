@@ -10,6 +10,9 @@ import {
   planLxmfDirectSend,
   planLxmfOpportunisticSend,
   planLxmfPropagatedSend,
+  planLxmfPropagationLinkReady,
+  planLxmfPropagationLocalIngress,
+  planLxmfReceiptSendOutcome,
   planLxmfSendMethod,
   shouldReuseActiveLink,
   splitLxmfDestinationPrefixed,
@@ -239,20 +242,28 @@ export class LXMFRouter {
     });
 
     const receipt = await outbound.send(message.opportunisticPayload(), { createReceipt: true });
+    const afterSend = planLxmfReceiptSendOutcome({
+      mode: "opportunistic",
+      phase: "after-send",
+      receiptPresent: receipt !== null,
+      delivered: false
+    });
+    if (afterSend !== null) {
+      this.applySendState(message, afterSend);
+    }
     if (receipt === null) {
-      this.applySendState(message, { kind: "lxmf/mark-failed" });
       return;
     }
 
-    this.applySendState(message, { kind: "lxmf/mark-sent", progress: 0.5 });
-
     await this.pollDeliveryReceipt(receipt);
-    if (receipt.status === PacketReceiptStatus.DELIVERED) {
-      this.applySendState(message, {
-        kind: "lxmf/receipt-result",
-        delivered: true,
-        onDelivered: "delivered"
-      });
+    const afterPoll = planLxmfReceiptSendOutcome({
+      mode: "opportunistic",
+      phase: "after-poll",
+      receiptPresent: true,
+      delivered: receipt.status === PacketReceiptStatus.DELIVERED
+    });
+    if (afterPoll !== null) {
+      this.applySendState(message, afterPoll);
     }
   }
 
@@ -334,42 +345,52 @@ export class LXMFRouter {
       createReceipt: true
     });
 
-    this.applySendState(message, { kind: "lxmf/progress", progress: 0.5 });
-    if (result.receipt !== null) {
-      await this.pollDeliveryReceipt(result.receipt);
-      if (result.receipt.status === PacketReceiptStatus.DELIVERED) {
-        this.applySendState(message, {
-          kind: "lxmf/receipt-result",
-          delivered: true,
-          onDelivered: "sent"
-        });
-        return;
-      }
+    const afterSend = planLxmfReceiptSendOutcome({
+      mode: "propagated",
+      phase: "after-send",
+      receiptPresent: result.receipt !== null,
+      delivered: false
+    });
+    if (afterSend !== null) {
+      this.applySendState(message, afterSend);
     }
 
-    this.applySendState(message, {
-      kind: "lxmf/receipt-result",
-      delivered: false,
-      onDelivered: "sent"
+    if (result.receipt !== null) {
+      await this.pollDeliveryReceipt(result.receipt);
+    }
+    const afterPoll = planLxmfReceiptSendOutcome({
+      mode: "propagated",
+      phase: "after-poll",
+      receiptPresent: result.receipt !== null,
+      delivered: result.receipt?.status === PacketReceiptStatus.DELIVERED
     });
+    if (afterPoll !== null) {
+      this.applySendState(message, afterPoll);
+    }
   }
 
   private async ensureOutboundPropagationLink(): Promise<Link> {
-    if (
-      shouldReuseActiveLink({
-        linkPresent: this.outboundPropagationLink !== null,
-        status: this.outboundPropagationLink?.status ?? 0
-      })
-    ) {
+    const canReuse = shouldReuseActiveLink({
+      linkPresent: this.outboundPropagationLink !== null,
+      status: this.outboundPropagationLink?.status ?? 0
+    });
+    const nodeConfigured = this.outboundPropagationNode !== null;
+    const nodeIdentity =
+      this.outboundPropagationNode === null
+        ? null
+        : this.reticulum.resolveDestinationIdentity(this.outboundPropagationNode);
+    const ready = planLxmfPropagationLinkReady({
+      canReuseLink: canReuse,
+      nodeConfigured,
+      nodeIdentityPresent: nodeIdentity !== null
+    });
+    if (ready === "reuse") {
       return this.outboundPropagationLink!;
     }
-
-    if (this.outboundPropagationNode === null) {
+    if (ready === "missing-node") {
       throw new Error("No outbound propagation node configured");
     }
-
-    const nodeIdentity = this.reticulum.resolveDestinationIdentity(this.outboundPropagationNode);
-    if (nodeIdentity === null) {
+    if (ready === "missing-identity" || nodeIdentity === null) {
       throw new Error("Propagation node identity is unknown");
     }
 
@@ -423,23 +444,31 @@ export class LXMFRouter {
   /** Mirrors LXMF/LXMRouter.lxmf_propagation local-delivery branch. */
   handlePropagationData(lxmfData: Uint8Array): LXMessage | null {
     const prefixed = splitLxmfDestinationPrefixed(lxmfData);
-    if (prefixed === null) {
-      return null;
-    }
-
     const deliveryDestination = this.deliveryDestination;
-    if (
-      deliveryDestination === null ||
-      !canAcceptLxmfPropagationLocalDelivery({
-        deliveryDestinationPresent: true,
-        destinationHashMatches: equalBytes(deliveryDestination.hash, prefixed.destinationHash)
-      })
-    ) {
-      return null;
-    }
+    const destinationHashMatches =
+      deliveryDestination !== null &&
+      prefixed !== null &&
+      equalBytes(deliveryDestination.hash, prefixed.destinationHash);
+    const decrypted =
+      prefixed !== null &&
+      canAcceptLxmfPropagationLocalDelivery({
+        deliveryDestinationPresent: deliveryDestination !== null,
+        destinationHashMatches
+      }) &&
+      deliveryDestination !== null
+        ? deliveryDestination.decrypt(prefixed.remainder)
+        : null;
 
-    const decrypted = deliveryDestination.decrypt(prefixed.remainder);
-    if (decrypted === null) {
+    if (
+      planLxmfPropagationLocalIngress({
+        prefixedPresent: prefixed !== null,
+        deliveryDestinationPresent: deliveryDestination !== null,
+        destinationHashMatches,
+        decryptedPresent: decrypted !== null
+      }) !== "deliver" ||
+      prefixed === null ||
+      decrypted === null
+    ) {
       return null;
     }
 

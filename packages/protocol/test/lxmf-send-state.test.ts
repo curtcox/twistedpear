@@ -3,6 +3,7 @@ import {
   LxmfMessageState,
   applyLxmfSendEvent,
   initialLxmfSendState,
+  planLxmfReceiptSendOutcome,
   stepLxmfSend
 } from "../src/lxmf-send-state.js";
 
@@ -42,6 +43,80 @@ describe("protocol LXMF send-state", () => {
     });
     expect(failed.state).toBe(LxmfMessageState.FAILED);
     expect(failed.progress).toBe(0.5);
+  });
+
+  it("plans opportunistic receipt send outcomes", () => {
+    expect(
+      planLxmfReceiptSendOutcome({
+        mode: "opportunistic",
+        phase: "after-send",
+        receiptPresent: false,
+        delivered: false
+      })
+    ).toEqual({ kind: "lxmf/mark-failed" });
+    expect(
+      planLxmfReceiptSendOutcome({
+        mode: "opportunistic",
+        phase: "after-send",
+        receiptPresent: true,
+        delivered: false
+      })
+    ).toEqual({ kind: "lxmf/mark-sent", progress: 0.5 });
+    expect(
+      planLxmfReceiptSendOutcome({
+        mode: "opportunistic",
+        phase: "after-poll",
+        receiptPresent: true,
+        delivered: true
+      })
+    ).toEqual({
+      kind: "lxmf/receipt-result",
+      delivered: true,
+      onDelivered: "delivered"
+    });
+    expect(
+      planLxmfReceiptSendOutcome({
+        mode: "opportunistic",
+        phase: "after-poll",
+        receiptPresent: true,
+        delivered: false
+      })
+    ).toBeNull();
+  });
+
+  it("plans propagated receipt send outcomes", () => {
+    expect(
+      planLxmfReceiptSendOutcome({
+        mode: "propagated",
+        phase: "after-send",
+        receiptPresent: true,
+        delivered: false
+      })
+    ).toEqual({ kind: "lxmf/progress", progress: 0.5 });
+    expect(
+      planLxmfReceiptSendOutcome({
+        mode: "propagated",
+        phase: "after-poll",
+        receiptPresent: true,
+        delivered: true
+      })
+    ).toEqual({
+      kind: "lxmf/receipt-result",
+      delivered: true,
+      onDelivered: "sent"
+    });
+    expect(
+      planLxmfReceiptSendOutcome({
+        mode: "propagated",
+        phase: "after-poll",
+        receiptPresent: false,
+        delivered: false
+      })
+    ).toEqual({
+      kind: "lxmf/receipt-result",
+      delivered: false,
+      onDelivered: "sent"
+    });
   });
 
   it("is deterministic under double-run", () => {

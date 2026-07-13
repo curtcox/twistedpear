@@ -120,3 +120,44 @@ function stepLxmfSendInner(
 
   return { state, intents: [] };
 }
+
+export type LxmfOutboundSendMode = "opportunistic" | "propagated";
+export type LxmfReceiptSendPhase = "after-send" | "after-poll";
+
+/**
+ * Maps outbound receipt presence/status into LXMF send-state events.
+ * Opportunistic: missing receipt → fail; present → sent; delivered → DELIVERED (else noop).
+ * Propagated: after-send → progress; after-poll → receipt-result (SENT on deliver, else FAILED).
+ */
+export function planLxmfReceiptSendOutcome(input: {
+  readonly mode: LxmfOutboundSendMode;
+  readonly phase: LxmfReceiptSendPhase;
+  readonly receiptPresent: boolean;
+  readonly delivered: boolean;
+}): LxmfSendEvent | null {
+  if (input.mode === "opportunistic") {
+    if (input.phase === "after-send") {
+      if (!input.receiptPresent) {
+        return { kind: "lxmf/mark-failed" };
+      }
+      return { kind: "lxmf/mark-sent", progress: 0.5 };
+    }
+    if (input.delivered) {
+      return {
+        kind: "lxmf/receipt-result",
+        delivered: true,
+        onDelivered: "delivered"
+      };
+    }
+    return null;
+  }
+
+  if (input.phase === "after-send") {
+    return { kind: "lxmf/progress", progress: 0.5 };
+  }
+  return {
+    kind: "lxmf/receipt-result",
+    delivered: input.receiptPresent && input.delivered,
+    onDelivered: "sent"
+  };
+}

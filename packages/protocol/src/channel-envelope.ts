@@ -49,6 +49,11 @@ export function channelMessageStateFromPacketReceipt(
   return ChannelMessageState.MSGSTATE_FAILED;
 }
 
+/** Whether send/resend should immediately fire packetDelivered for an already-delivered outlet state. */
+export function shouldEmitChannelImmediateDelivery(packetState: number): boolean {
+  return packetState === ChannelMessageState.MSGSTATE_DELIVERED;
+}
+
 export interface PackedChannelEnvelope {
   readonly msgType: number;
   readonly sequence: number;

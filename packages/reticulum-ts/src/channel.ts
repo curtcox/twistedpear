@@ -24,6 +24,7 @@ import {
   planChannelPacketTimeout,
   planChannelSend,
   shouldAcceptChannelSequence,
+  shouldEmitChannelImmediateDelivery,
   shouldExtendPacketReceiptTimeout,
   stepChannelWindow,
   unpackChannelEnvelope,
@@ -316,7 +317,7 @@ export class Channel {
     );
     this.updatePacketTimeouts();
 
-    if (this.outlet.getPacketState(packet) === MessageState.MSGSTATE_DELIVERED) {
+    if (shouldEmitChannelImmediateDelivery(this.outlet.getPacketState(packet))) {
       this.packetDelivered(packet);
     }
 
@@ -443,7 +444,7 @@ export class Channel {
       );
       this.updatePacketTimeouts();
 
-      if (this.outlet.getPacketState(envelope.packet) === MessageState.MSGSTATE_DELIVERED) {
+      if (shouldEmitChannelImmediateDelivery(this.outlet.getPacketState(envelope.packet))) {
         this.packetDelivered(envelope.packet);
       }
     }
