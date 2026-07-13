@@ -3,6 +3,9 @@ import { equalBytes } from "./crypto/bytes.js";
 import type { NowSeconds, PacketReceipt } from "./packet-receipt.js";
 import {
   LinkRequestReceiptStatus,
+  initialLinkRequestReceiptState,
+  stepLinkRequestReceipt,
+  type LinkRequestReceiptState,
   type LinkRequestReceiptStatusValue
 } from "@twistedpear/protocol";
 
@@ -35,14 +38,42 @@ export class LinkRequestReceipt {
   readonly callbacks: RequestReceiptCallbacks;
   readonly sentAt: number;
   private readonly now: NowSeconds;
-
+  private receiptState: LinkRequestReceiptState = initialLinkRequestReceiptState();
   packetReceipt: PacketReceipt | null;
 
-  status: RequestReceiptStatusValue = RequestReceiptStatus.SENT;
-  response: Uint8Array | null = null;
-  progress = 0;
-  concludedAt: number | null = null;
-  startedAt: number | null = null;
+  get status(): RequestReceiptStatusValue {
+    return this.receiptState.status;
+  }
+
+  set status(value: RequestReceiptStatusValue) {
+    this.receiptState = { ...this.receiptState, status: value };
+  }
+
+  get response(): Uint8Array | null {
+    return this.receiptState.response;
+  }
+
+  set response(value: Uint8Array | null) {
+    this.receiptState = { ...this.receiptState, response: value };
+  }
+
+  get progress(): number {
+    return this.receiptState.progress;
+  }
+
+  set progress(value: number) {
+    this.receiptState = { ...this.receiptState, progress: value };
+  }
+
+  get concludedAt(): number | null {
+    return this.receiptState.concludedAt;
+  }
+
+  set concludedAt(value: number | null) {
+    this.receiptState = { ...this.receiptState, concludedAt: value };
+  }
+
+  startedAt: number | null;
 
   constructor(options: LinkRequestReceiptOptions) {
     this.link = options.link;
@@ -72,21 +103,28 @@ export class LinkRequestReceipt {
   }
 
   requestTimedOut(): void {
-    if (this.status === RequestReceiptStatus.SENT || this.status === RequestReceiptStatus.DELIVERED) {
-      this.status = RequestReceiptStatus.FAILED;
-      this.concludedAt = this.now();
+    const stepped = stepLinkRequestReceipt(this.receiptState, {
+      kind: "request/timeout",
+      at: this.now()
+    });
+    this.receiptState = stepped.state;
+    if (stepped.actions.some((action) => action.kind === "failed")) {
       this.link.unregisterPendingRequest(this);
       this.callbacks.failed?.(this);
     }
   }
 
   responseReceived(response: Uint8Array | null): void {
-    this.response = response;
-    this.status = RequestReceiptStatus.READY;
-    this.progress = 1;
-    this.concludedAt = this.now();
+    const stepped = stepLinkRequestReceipt(this.receiptState, {
+      kind: "request/response",
+      at: this.now(),
+      response
+    });
+    this.receiptState = stepped.state;
     this.link.unregisterPendingRequest(this);
-    this.callbacks.response?.(this);
+    if (stepped.actions.some((action) => action.kind === "response")) {
+      this.callbacks.response?.(this);
+    }
   }
 
   matchesRequestId(requestId: Uint8Array): boolean {

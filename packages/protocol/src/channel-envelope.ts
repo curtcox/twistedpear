@@ -18,6 +18,19 @@ export const ChannelMessageState = {
 export type ChannelMessageStateValue =
   (typeof ChannelMessageState)[keyof typeof ChannelMessageState];
 
+/** Mirrors RNS/Channel.py ChannelException types. */
+export const ChannelExceptionTypeCode = {
+  ME_NO_MSG_TYPE: 0,
+  ME_INVALID_MSG_TYPE: 1,
+  ME_NOT_REGISTERED: 2,
+  ME_LINK_NOT_READY: 3,
+  ME_ALREADY_SENT: 4,
+  ME_TOO_BIG: 5
+} as const;
+
+export type ChannelExceptionTypeCodeValue =
+  (typeof ChannelExceptionTypeCode)[keyof typeof ChannelExceptionTypeCode];
+
 export interface PackedChannelEnvelope {
   readonly msgType: number;
   readonly sequence: number;

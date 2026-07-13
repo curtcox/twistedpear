@@ -58,6 +58,8 @@ import {
   packLinkProofData,
   packLinkRequestData,
   planDestinationRequestAllow,
+  planLinkResourceAccept,
+  planLinkResourceAcceptAppResult,
   splitIdentityPublicKey,
   splitInitiatorLinkEntropy,
   splitLinkIdentifyPayload,
@@ -1088,14 +1090,15 @@ export class Link {
       return;
     }
 
-    if (this.resourceStrategy === LinkResourceStrategy.ACCEPT_NONE) {
+    const plan = planLinkResourceAccept(this.resourceStrategy);
+    if (plan.kind === "ignore") {
       return;
     }
 
-    if (this.resourceStrategy === LinkResourceStrategy.ACCEPT_APP) {
+    if (plan.kind === "ask-app") {
       try {
         const advertisement = ResourceAdvertisement.unpack(plaintext);
-        if (this.callbacks.resource?.(advertisement) !== true) {
+        if (planLinkResourceAcceptAppResult(this.callbacks.resource?.(advertisement) === true) === "reject") {
           Resource.reject(this, plaintext);
           return;
         }

@@ -1,4 +1,5 @@
 import {
+  DestinationProofStrategyCode,
   PATHFINDER_EXPIRY_SECONDS,
   PATHFINDER_MAX_HOPS,
   PATH_REQUEST_GRACE_MS,
@@ -7,6 +8,7 @@ import {
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
   computePathExpiry,
   planClonePacketWithHops,
+  planDestinationProof,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
   relayTransportPacketBytes,
@@ -69,11 +71,7 @@ export interface AnnounceHandler {
   receivedAnnounce(info: ReceivedAnnounceInfo): void;
 }
 
-export const DestinationProofStrategy = {
-  PROVE_NONE: 0x21,
-  PROVE_APP: 0x22,
-  PROVE_ALL: 0x23
-} as const;
+export const DestinationProofStrategy = DestinationProofStrategyCode;
 
 export type DestinationProofStrategyValue =
   (typeof DestinationProofStrategy)[keyof typeof DestinationProofStrategy];
@@ -539,11 +537,11 @@ export class LeafTransport {
 
     destination.dispatchPacket(plaintext, packet);
 
-    if (destination.proofStrategy === DestinationProofStrategy.PROVE_ALL) {
-      await this.sendProof(destination, packet, iface);
-    } else if (
-      destination.proofStrategy === DestinationProofStrategy.PROVE_APP &&
-      destination.shouldProve(packet)
+    if (
+      planDestinationProof({
+        strategy: destination.proofStrategy,
+        appWantsProof: destination.shouldProve(packet)
+      })
     ) {
       await this.sendProof(destination, packet, iface);
     }

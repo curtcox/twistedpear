@@ -47,13 +47,29 @@ export {
 } from "./link-keepalive.js";
 export {
   LinkRequestReceiptStatus,
-  type LinkRequestReceiptStatusValue
+  initialLinkRequestReceiptState,
+  stepLinkRequestReceipt,
+  type LinkRequestReceiptAction,
+  type LinkRequestReceiptEvent,
+  type LinkRequestReceiptState,
+  type LinkRequestReceiptStatusValue,
+  type LinkRequestReceiptStepResult
 } from "./link-request-receipt.js";
 export {
   DestinationAllowPolicyCode,
   planDestinationRequestAllow,
   type DestinationAllowPolicyCodeValue
 } from "./destination-allow.js";
+export {
+  DestinationProofStrategyCode,
+  planDestinationProof,
+  type DestinationProofStrategyCodeValue
+} from "./destination-proof.js";
+export {
+  planLinkResourceAccept,
+  planLinkResourceAcceptAppResult,
+  type LinkResourceAcceptPlan
+} from "./link-resource-accept.js";
 export {
   computeResourceTimeout,
   initialResourceWatchdogState,
@@ -286,12 +302,14 @@ export {
   CHANNEL_SEQ_MAX,
   CHANNEL_SEQ_MODULUS,
   CHANNEL_SYSTEM_MSGTYPE_MIN,
+  ChannelExceptionTypeCode,
   ChannelMessageState,
   channelPayloadMdu,
   isChannelSystemMsgType,
   nextChannelSequence,
   packChannelEnvelope,
   unpackChannelEnvelope,
+  type ChannelExceptionTypeCodeValue,
   type ChannelMessageStateValue,
   type PackedChannelEnvelope,
   type UnpackedChannelEnvelope

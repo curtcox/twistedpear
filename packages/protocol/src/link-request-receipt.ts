@@ -1,5 +1,5 @@
 /**
- * Pure link request-receipt status codes (RNS Link.RequestReceipt).
+ * Pure link request-receipt status codes and transitions (RNS Link.RequestReceipt).
  */
 
 export const LinkRequestReceiptStatus = {
@@ -12,3 +12,64 @@ export const LinkRequestReceiptStatus = {
 
 export type LinkRequestReceiptStatusValue =
   (typeof LinkRequestReceiptStatus)[keyof typeof LinkRequestReceiptStatus];
+
+export interface LinkRequestReceiptState {
+  readonly status: LinkRequestReceiptStatusValue;
+  readonly response: Uint8Array | null;
+  readonly progress: number;
+  readonly concludedAt: number | null;
+}
+
+export type LinkRequestReceiptEvent =
+  | { readonly kind: "request/timeout"; readonly at: number }
+  | { readonly kind: "request/response"; readonly at: number; readonly response: Uint8Array | null };
+
+export type LinkRequestReceiptAction =
+  | { readonly kind: "failed" }
+  | { readonly kind: "response" };
+
+export interface LinkRequestReceiptStepResult {
+  readonly state: LinkRequestReceiptState;
+  readonly actions: readonly LinkRequestReceiptAction[];
+}
+
+export function initialLinkRequestReceiptState(): LinkRequestReceiptState {
+  return {
+    status: LinkRequestReceiptStatus.SENT,
+    response: null,
+    progress: 0,
+    concludedAt: null
+  };
+}
+
+export function stepLinkRequestReceipt(
+  state: LinkRequestReceiptState,
+  event: LinkRequestReceiptEvent
+): LinkRequestReceiptStepResult {
+  if (event.kind === "request/timeout") {
+    if (
+      state.status === LinkRequestReceiptStatus.SENT ||
+      state.status === LinkRequestReceiptStatus.DELIVERED
+    ) {
+      return {
+        state: {
+          ...state,
+          status: LinkRequestReceiptStatus.FAILED,
+          concludedAt: event.at
+        },
+        actions: [{ kind: "failed" }]
+      };
+    }
+    return { state, actions: [] };
+  }
+
+  return {
+    state: {
+      status: LinkRequestReceiptStatus.READY,
+      response: event.response,
+      progress: 1,
+      concludedAt: event.at
+    },
+    actions: [{ kind: "response" }]
+  };
+}

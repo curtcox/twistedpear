@@ -1,7 +1,8 @@
 import {
+  ChannelExceptionTypeCode,
+  ChannelMessageState,
   CHANNEL_SEQ_MAX,
   CHANNEL_SEQ_MODULUS,
-  ChannelMessageState,
   ChannelWindowLimits,
   applyChannelDelivery,
   applyChannelTimeout,
@@ -31,16 +32,10 @@ export const MessageState = ChannelMessageState;
 
 export type MessageStateValue = (typeof MessageState)[keyof typeof MessageState];
 
-export const ChannelExceptionType = {
-  ME_NO_MSG_TYPE: 0,
-  ME_INVALID_MSG_TYPE: 1,
-  ME_NOT_REGISTERED: 2,
-  ME_LINK_NOT_READY: 3,
-  ME_ALREADY_SENT: 4,
-  ME_TOO_BIG: 5
-} as const;
+export const ChannelExceptionType = ChannelExceptionTypeCode;
 
-export type ChannelExceptionTypeValue = (typeof ChannelExceptionType)[keyof typeof ChannelExceptionType];
+export type ChannelExceptionTypeValue =
+  (typeof ChannelExceptionType)[keyof typeof ChannelExceptionType];
 
 export class ChannelException extends Error {
   readonly type: ChannelExceptionTypeValue;
