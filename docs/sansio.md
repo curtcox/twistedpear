@@ -4,11 +4,11 @@
 > configured roots (adapters remain outside the scan). Effects package, sim determinism,
 > tripwire (scoped to `packages/protocol/test/**`), ESLint, and dependency-cruiser gates
 > are green via `npm run sansio`. Pure step machines landed for echo, grants, link/resource
-> watchdogs, delivery-receipt poll, persist debounce, **propagation transfer**, and
-> **client rate-limit**; LXMF PropagationClient/PropagationServer and reticulum adapters
-> delegate to them.
-> Remaining depth work: pull more reticulum/lxmf pure cores under `packages/protocol`
-> (msgpack/codec leaves, announce path selection) and expand multi-node sim scenarios.
+> watchdogs, delivery-receipt poll, persist debounce, propagation transfer, client rate-limit,
+> and **announce rate**; adapters in lxmf/reticulum delegate to them. Multi-node sim scenarios
+> cover echo, grants, propagation transfer, and announce-rate determinism.
+> Remaining depth work: pull more reticulum/lxmf codec/path-selection leaves under
+> `packages/protocol`, and grow sim scenarios toward full multi-node link sessions.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

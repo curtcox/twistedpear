@@ -6,6 +6,17 @@ import {
   initialGrantHostState,
   stepGrantHost
 } from "../../../protocol/src/grants.js";
+import {
+  initialAnnounceRateState,
+  stepAnnounceRate,
+  type AnnounceRateState
+} from "../../../protocol/src/announce-rate.js";
+import {
+  PropagationTransferState,
+  initialPropagationTransferState,
+  stepPropagationTransfer,
+  type PropagationTransferMachineState
+} from "../../../protocol/src/propagation-transfer.js";
 import { describe, expect, it } from "vitest";
 
 function grantSet(at: number, declared: string[], requested: string[]): Event {
@@ -79,5 +90,72 @@ describe("multi-node sim scenarios", () => {
     };
     expect(runStateHash(0)).toBe(runStateHash(1));
     expect(runStateHash(0)).toBe(runStateHash(999));
+  });
+
+  it("propagation transfer happy path replays identically", () => {
+    const config = {
+      seed: 42,
+      nodes: [
+        {
+          id: "client",
+          initial: initialPropagationTransferState(),
+          step: stepPropagationTransfer
+        }
+      ]
+    };
+    const { stateHash } = assertReplayDeterminism(config, (kernel) => {
+      kernel.inject("client", { kind: "xfer/begin" } as unknown as Event);
+      kernel.inject("client", { kind: "xfer/link-ready" } as unknown as Event);
+      kernel.inject("client", {
+        kind: "xfer/list-ready",
+        wantCount: 2
+      } as unknown as Event);
+      kernel.inject("client", {
+        kind: "xfer/download-ready",
+        downloadedCount: 2
+      } as unknown as Event);
+      kernel.inject("client", { kind: "xfer/haves-acked" } as unknown as Event);
+    });
+    expect(stateHash).toBeTruthy();
+
+    const live = new SimKernel(config);
+    live.inject("client", { kind: "xfer/begin" } as unknown as Event);
+    live.inject("client", { kind: "xfer/link-ready" } as unknown as Event);
+    live.inject("client", { kind: "xfer/list-ready", wantCount: 2 } as unknown as Event);
+    live.inject("client", {
+      kind: "xfer/download-ready",
+      downloadedCount: 2
+    } as unknown as Event);
+    live.inject("client", { kind: "xfer/haves-acked" } as unknown as Event);
+    const state = live.getNodeState("client") as PropagationTransferMachineState;
+    expect(state.phase).toBe(PropagationTransferState.COMPLETE);
+  });
+
+  it("announce rate limiter is deterministic under interleave salt", () => {
+    const base = {
+      seed: 17,
+      nodes: [
+        {
+          id: "transport",
+          initial: initialAnnounceRateState({ rateTarget: 0.2, rateGrace: 0, ratePenalty: 10 }),
+          step: stepAnnounceRate
+        }
+      ]
+    };
+    const run = (salt: number) => {
+      const kernel = new SimKernel({ ...base, interleaveSalt: salt });
+      for (const at of [100, 100.05, 100.1, 111]) {
+        kernel.inject("transport", {
+          kind: "announce/record",
+          destinationKey: "dest",
+          at
+        } as unknown as Event);
+      }
+      return kernel.getNodeState("transport") as AnnounceRateState;
+    };
+    const a = run(0);
+    const b = run(99);
+    expect(a.lastBlocked).toBe(b.lastBlocked);
+    expect(a.table.get("dest")?.blockedUntil).toBe(b.table.get("dest")?.blockedUntil);
   });
 });

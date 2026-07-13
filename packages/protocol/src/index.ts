@@ -85,3 +85,17 @@ export {
   type ClientRateLimitEvent,
   type ClientRateLimitState
 } from "./client-rate-limit.js";
+export {
+  DEFAULT_ANNOUNCE_RATE_GRACE,
+  DEFAULT_ANNOUNCE_RATE_PENALTY,
+  DEFAULT_ANNOUNCE_RATE_TARGET,
+  MAX_ANNOUNCE_RATE_TIMESTAMPS,
+  initialAnnounceRateState,
+  isAnnounceBlocked,
+  recordAnnounce,
+  stepAnnounceRate,
+  type AnnounceRateEntry,
+  type AnnounceRateEvent,
+  type AnnounceRateOptions,
+  type AnnounceRateState
+} from "./announce-rate.js";

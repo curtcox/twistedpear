@@ -1,5 +1,15 @@
-/** Mirrors RNS/Transport.py announce rate limiting constants. */
-export const MAX_RATE_TIMESTAMPS = 16;
+/** Mirrors RNS/Transport.py announce rate limiting — thin adapter over protocol core. */
+import {
+  MAX_ANNOUNCE_RATE_TIMESTAMPS,
+  initialAnnounceRateState,
+  isAnnounceBlocked,
+  recordAnnounce,
+  type AnnounceRateEntry as ProtocolAnnounceRateEntry,
+  type AnnounceRateOptions as ProtocolAnnounceRateOptions,
+  type AnnounceRateState
+} from "@twistedpear/protocol";
+
+export const MAX_RATE_TIMESTAMPS = MAX_ANNOUNCE_RATE_TIMESTAMPS;
 
 export interface AnnounceRateEntry {
   last: number;
@@ -8,68 +18,28 @@ export interface AnnounceRateEntry {
   timestamps: number[];
 }
 
-export interface AnnounceRateOptions {
-  readonly rateTarget?: number;
-  readonly rateGrace?: number;
-  readonly ratePenalty?: number;
-}
-
-const DEFAULT_RATE_TARGET = 0.2;
-const DEFAULT_RATE_GRACE = 2;
-const DEFAULT_RATE_PENALTY = 60;
+export type AnnounceRateOptions = ProtocolAnnounceRateOptions;
 
 /** Tracks announce ingress rates per destination hash. Mirrors RNS/Transport.py announce_rate_table. */
 export class AnnounceRateLimiter {
-  private readonly table = new Map<string, AnnounceRateEntry>();
-  private readonly rateTarget: number;
-  private readonly rateGrace: number;
-  private readonly ratePenalty: number;
+  private state: AnnounceRateState;
 
   constructor(options: AnnounceRateOptions = {}) {
-    this.rateTarget = options.rateTarget ?? DEFAULT_RATE_TARGET;
-    this.rateGrace = options.rateGrace ?? DEFAULT_RATE_GRACE;
-    this.ratePenalty = options.ratePenalty ?? DEFAULT_RATE_PENALTY;
+    this.state = initialAnnounceRateState(options);
   }
 
   isBlocked(destinationKey: string, now: number): boolean {
-    const entry = this.table.get(destinationKey);
-    if (entry === undefined) {
-      return false;
-    }
-
-    return now <= entry.blockedUntil;
+    return isAnnounceBlocked(this.state, destinationKey, now);
   }
 
   record(destinationKey: string, now: number): boolean {
-    let entry = this.table.get(destinationKey);
-    if (entry === undefined) {
-      entry = { last: now, rateViolations: 0, blockedUntil: 0, timestamps: [now] };
-      this.table.set(destinationKey, entry);
-      return false;
-    }
+    const result = recordAnnounce(this.state, destinationKey, now);
+    this.state = result.state;
+    return result.blocked;
+  }
 
-    entry.timestamps.push(now);
-    while (entry.timestamps.length > MAX_RATE_TIMESTAMPS) {
-      entry.timestamps.shift();
-    }
-
-    if (now <= entry.blockedUntil) {
-      return true;
-    }
-
-    const currentRate = now - entry.last;
-    if (currentRate < this.rateTarget) {
-      entry.rateViolations += 1;
-    } else {
-      entry.rateViolations = Math.max(0, entry.rateViolations - 1);
-    }
-
-    if (entry.rateViolations > this.rateGrace) {
-      entry.blockedUntil = entry.last + this.rateTarget + this.ratePenalty;
-      return true;
-    }
-
-    entry.last = now;
-    return false;
+  /** Test/debug helper: snapshot current table entries. */
+  snapshot(): ReadonlyMap<string, ProtocolAnnounceRateEntry> {
+    return this.state.table;
   }
 }
