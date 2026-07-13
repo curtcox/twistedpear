@@ -5,6 +5,7 @@ import {
   destinationHashMaterial,
   destinationNameHashMaterial,
   expandDestinationName,
+  parseAspectFilter,
   validateDestinationNamePart
 } from "../src/destination-name.js";
 import { utf8Decode, utf8Encode } from "../src/utf8.js";
@@ -48,5 +49,15 @@ describe("protocol destination name", () => {
     expect(material.length).toBe(DESTINATION_NAME_HASH_BYTES + DESTINATION_IDENTITY_HASH_BYTES);
     expect([...material.subarray(0, DESTINATION_NAME_HASH_BYTES)]).toEqual([...nameHash]);
     expect([...destinationHashMaterial(nameHash, null)]).toEqual([...nameHash]);
+  });
+
+  it("parses announce-handler aspect filters", () => {
+    expect(parseAspectFilter("lxmf.delivery")).toEqual({
+      appName: "lxmf",
+      aspects: ["delivery"]
+    });
+    expect(parseAspectFilter("app")).toEqual({ appName: "app", aspects: [] });
+    expect(parseAspectFilter("...")).toBeNull();
+    expect(parseAspectFilter("")).toBeNull();
   });
 });

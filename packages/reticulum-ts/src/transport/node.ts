@@ -8,6 +8,7 @@ import {
   appendPathRandomBlob,
   computePathExpiry,
   isPathEntryExpired,
+  parseAspectFilter,
   planClonePacketWithHops,
   planDestinationProof,
   planPathOutbound,
@@ -504,14 +505,17 @@ export class LeafTransport {
       }
 
       if (handler.aspectFilter != null) {
-        const parts = handler.aspectFilter.split(".").filter((part) => part.length > 0);
-        const appName = parts[0];
-        const aspects = parts.slice(1);
-        if (appName === undefined) {
+        const parsedFilter = parseAspectFilter(handler.aspectFilter);
+        if (parsedFilter === null) {
           continue;
         }
 
-        const expected = Destination.hash(this.options.provider, announcedIdentity, appName, ...aspects);
+        const expected = Destination.hash(
+          this.options.provider,
+          announcedIdentity,
+          parsedFilter.appName,
+          ...parsedFilter.aspects
+        );
         if (!equalBytes(packet.destinationHash, expected)) {
           continue;
         }

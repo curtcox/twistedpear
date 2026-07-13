@@ -484,7 +484,9 @@ export {
   destinationNameHashMaterial,
   expandDestinationName,
   hexToBytesLower,
-  validateDestinationNamePart
+  parseAspectFilter,
+  validateDestinationNamePart,
+  type ParsedAspectFilter
 } from "./destination-name.js";
 export {
   decodeResourceAdvertisementFlags,

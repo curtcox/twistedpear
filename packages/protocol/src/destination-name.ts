@@ -95,3 +95,21 @@ export function destinationHashMaterial(
   }
   return concatBytes(nameHash, identityHash);
 }
+
+export interface ParsedAspectFilter {
+  readonly appName: string;
+  readonly aspects: readonly string[];
+}
+
+/**
+ * Parse an announce-handler aspect filter (`app.aspect...`).
+ * Empty / all-empty parts → null (adapter skips the handler).
+ */
+export function parseAspectFilter(filter: string): ParsedAspectFilter | null {
+  const parts = filter.split(".").filter((part) => part.length > 0);
+  const appName = parts[0];
+  if (appName === undefined) {
+    return null;
+  }
+  return { appName, aspects: parts.slice(1) };
+}
