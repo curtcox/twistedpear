@@ -7,10 +7,12 @@ import {
   canRequestLinkDestination,
   isValidDestinationIdentityBinding,
   isValidDestinationRequestPath,
+  planDestinationConstruction,
   planDestinationDecrypt,
   planDestinationEncrypt,
   planDestinationRequestAllow
 } from "../src/destination-allow.js";
+import { DestinationDirectionCode, DestinationTypeCode } from "../src/packet-header.js";
 import { LinkRequestReceiptStatus } from "../src/link-request-receipt.js";
 
 describe("destination allow policy", () => {
@@ -93,6 +95,44 @@ describe("destination allow policy", () => {
     expect(
       isValidDestinationIdentityBinding({ typePlain: false, identityPresent: false })
     ).toBe(false);
+  });
+
+  it("plans destination construction", () => {
+    expect(
+      planDestinationConstruction({
+        direction: DestinationDirectionCode.IN,
+        type: DestinationTypeCode.SINGLE,
+        identityPresent: true
+      })
+    ).toBe("ok");
+    expect(
+      planDestinationConstruction({
+        direction: 0,
+        type: DestinationTypeCode.SINGLE,
+        identityPresent: true
+      })
+    ).toBe("bad-direction");
+    expect(
+      planDestinationConstruction({
+        direction: DestinationDirectionCode.OUT,
+        type: 99,
+        identityPresent: true
+      })
+    ).toBe("bad-type");
+    expect(
+      planDestinationConstruction({
+        direction: DestinationDirectionCode.OUT,
+        type: DestinationTypeCode.PLAIN,
+        identityPresent: true
+      })
+    ).toBe("bad-identity-binding");
+    expect(
+      planDestinationConstruction({
+        direction: DestinationDirectionCode.OUT,
+        type: DestinationTypeCode.SINGLE,
+        identityPresent: false
+      })
+    ).toBe("bad-identity-binding");
   });
 
   it("plans destination decrypt by type and identity", () => {

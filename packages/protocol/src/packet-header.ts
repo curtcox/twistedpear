@@ -155,12 +155,18 @@ function isTransportType(value: number): boolean {
   return value === TRANSPORT_BROADCAST || value === TRANSPORT_TRANSPORT;
 }
 
-function isDestinationType(value: number): boolean {
+export function isDestinationTypeCode(value: number): boolean {
   return (
     value === PACKET_DEST_TYPE_SINGLE ||
     value === PACKET_DEST_TYPE_GROUP ||
     value === PACKET_DEST_TYPE_PLAIN ||
     value === PACKET_DEST_TYPE_LINK
+  );
+}
+
+export function isDestinationDirectionCode(value: number): boolean {
+  return (
+    value === DestinationDirectionCode.IN || value === DestinationDirectionCode.OUT
   );
 }
 
@@ -219,7 +225,7 @@ export function decodePacketRaw(raw: Uint8Array): PacketHeaderFields | null {
     !isHeaderType(unpacked.headerType) ||
     !isContextFlag(unpacked.contextFlag) ||
     !isTransportType(unpacked.transportType) ||
-    !isDestinationType(unpacked.destinationType) ||
+    !isDestinationTypeCode(unpacked.destinationType) ||
     !isPacketType(unpacked.packetType)
   ) {
     return null;

@@ -4,7 +4,7 @@ import {
   DestinationDirectionCode,
   DestinationTypeCode,
   expandDestinationName,
-  isValidDestinationIdentityBinding,
+  planDestinationConstruction,
   truncateToNameHash,
   truncateToTruncatedHash,
   validateDestinationNamePart,
@@ -57,20 +57,18 @@ export class Destination {
     this.appName = options.appName;
     this.aspects = [...(options.aspects ?? [])];
 
-    if (!isDestinationDirection(this.direction)) {
+    const plan = planDestinationConstruction({
+      direction: this.direction,
+      type: this.type,
+      identityPresent: options.identity != null
+    });
+    if (plan === "bad-direction") {
       throw new Error(`Unknown destination direction: ${this.direction}`);
     }
-
-    if (!isDestinationType(this.type)) {
+    if (plan === "bad-type") {
       throw new Error(`Unknown destination type: ${this.type}`);
     }
-
-    if (
-      !isValidDestinationIdentityBinding({
-        typePlain: this.type === DestinationType.PLAIN,
-        identityPresent: options.identity != null
-      })
-    ) {
+    if (plan === "bad-identity-binding") {
       throw new Error(
         this.type === DestinationType.PLAIN
           ? "PLAIN destinations cannot hold an identity"
@@ -122,17 +120,4 @@ function identityHashBytes(identity: Identity | Uint8Array | null | undefined): 
   }
 
   return identity;
-}
-
-function isDestinationType(value: number): value is DestinationTypeValue {
-  return (
-    value === DestinationType.SINGLE ||
-    value === DestinationType.GROUP ||
-    value === DestinationType.PLAIN ||
-    value === DestinationType.LINK
-  );
-}
-
-function isDestinationDirection(value: number): value is DestinationDirectionValue {
-  return value === DestinationDirection.IN || value === DestinationDirection.OUT;
 }

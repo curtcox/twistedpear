@@ -5,9 +5,9 @@ import {
   announceDestinationHashMaterial,
   announceDestinationHashMatches,
   announceSignedMaterial,
-  canAnnounceDestination,
   packAnnouncePayload,
   parseAnnouncePayload,
+  planAnnounceBuild,
   truncateToTruncatedHash
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
@@ -50,20 +50,20 @@ export class Announce {
     destination: Destination,
     options: AnnounceBuildOptions = {}
   ): Packet {
-    if (
-      !canAnnounceDestination({
-        typeSingle: destination.type === DestinationType.SINGLE,
-        directionIn: destination.direction === DestinationDirection.IN
-      })
-    ) {
-      throw new Error(
-        destination.type !== DestinationType.SINGLE
-          ? "Only SINGLE destinations can be announced"
-          : "Only IN destinations can be announced"
-      );
+    const early = planAnnounceBuild({
+      typeSingle: destination.type === DestinationType.SINGLE,
+      directionIn: destination.direction === DestinationDirection.IN,
+      identityPresent: destination.identity !== null,
+      randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+      ratchetPublicKeyLength: null
+    });
+    if (early === "not-announceable-type") {
+      throw new Error("Only SINGLE destinations can be announced");
     }
-
-    if (destination.identity === null) {
+    if (early === "not-announceable-direction") {
+      throw new Error("Only IN destinations can be announced");
+    }
+    if (early === "missing-identity" || destination.identity === null) {
       throw new Error("Announce destination must hold an identity");
     }
 
@@ -72,14 +72,19 @@ export class Announce {
       (options.entropy !== undefined
         ? options.entropy.randomBytes(ANNOUNCE_RANDOM_HASH_SIZE)
         : provider.randomBytes(ANNOUNCE_RANDOM_HASH_SIZE));
-    if (randomHash.length !== ANNOUNCE_RANDOM_HASH_SIZE) {
+
+    const plan = planAnnounceBuild({
+      typeSingle: true,
+      directionIn: true,
+      identityPresent: true,
+      randomHashLength: randomHash.length,
+      ratchetPublicKeyLength:
+        options.ratchetPublicKey === undefined ? null : options.ratchetPublicKey.length
+    });
+    if (plan === "bad-random-hash") {
       throw new Error(`Announce random hash must be ${ANNOUNCE_RANDOM_HASH_SIZE} bytes`);
     }
-
-    if (
-      options.ratchetPublicKey !== undefined &&
-      options.ratchetPublicKey.length !== ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE
-    ) {
+    if (plan === "bad-ratchet") {
       throw new Error(`Announce ratchet public key must be ${ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE} bytes`);
     }
 

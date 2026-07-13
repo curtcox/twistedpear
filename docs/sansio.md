@@ -183,6 +183,13 @@
 > **`planLinkAppRequest`**, and **`canSendLinkAppResponse`** live in protocol; `Link`
 > adapts them. **`shouldAcceptLinkTeardown`** lives in protocol; LINKCLOSE handling
 > adapts it. **`canValidateLinkProof`** also gates destination presence.
+> **`planLxmfDirectSend`**, **`planLxMessageInstancePack`**, and
+> **`planLxmfSignatureOutcome`** live in protocol; `LXMFRouter` / `LXMessage` adapt them.
+> **`shouldReuseActiveLink`** lives in protocol; LXMF direct/propagation link reuse adapts
+> it. **`planAnnounceBuild`** and **`planDestinationConstruction`** live in protocol;
+> `Announce` and `Destination` adapt them. **`planLinkInitiatorMtu`** lives in protocol;
+> `Link.request` adapts it. Destination type/direction code predicates
+> (`isDestinationTypeCode` / `isDestinationDirectionCode`) are exported for adapters.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

@@ -1,6 +1,11 @@
 /**
  * Pure destination request allow-policy codes and allow decision.
  */
+import {
+  DestinationTypeCode,
+  isDestinationDirectionCode,
+  isDestinationTypeCode
+} from "./packet-header.js";
 import { equalByteArrays } from "./path-table.js";
 
 export const DestinationAllowPolicyCode = {
@@ -55,6 +60,35 @@ export function isValidDestinationIdentityBinding(input: {
     return !input.identityPresent;
   }
   return input.identityPresent;
+}
+
+export type DestinationConstructionPlan =
+  | "ok"
+  | "bad-direction"
+  | "bad-type"
+  | "bad-identity-binding";
+
+/** Whether destination construction may proceed (direction / type / identity). */
+export function planDestinationConstruction(input: {
+  readonly direction: number;
+  readonly type: number;
+  readonly identityPresent: boolean;
+}): DestinationConstructionPlan {
+  if (!isDestinationDirectionCode(input.direction)) {
+    return "bad-direction";
+  }
+  if (!isDestinationTypeCode(input.type)) {
+    return "bad-type";
+  }
+  if (
+    !isValidDestinationIdentityBinding({
+      typePlain: input.type === DestinationTypeCode.PLAIN,
+      identityPresent: input.identityPresent
+    })
+  ) {
+    return "bad-identity-binding";
+  }
+  return "ok";
 }
 
 export type DestinationDecryptPlan =

@@ -2,14 +2,15 @@ import {
   DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
   applyLxmfSendEvent,
   canAcceptLxmfPropagationLocalDelivery,
-  canLinkSend,
   initialDeliveryReceiptPollState,
   initialLxmfSendState,
   lxmfInboundDeliveryBytes,
   packLxmfDestinationPrefixed,
   planLxmfDeliverableAccept,
+  planLxmfDirectSend,
   planLxmfPropagatedSend,
   planLxmfSendMethod,
+  shouldReuseActiveLink,
   splitLxmfDestinationPrefixed,
   stepDeliveryReceiptPoll,
   type LxmfSendEvent,
@@ -253,18 +254,27 @@ export class LXMFRouter {
 
   private async sendDirect(message: LXMessage): Promise<void> {
     const destination = message.destination;
-    if (destination === null || destination.identity === null) {
+    const plan = planLxmfDirectSend({
+      destinationPresent: destination !== null,
+      destinationIdentityPresent: destination?.identity !== null,
+      packed: message.packed !== null
+    });
+    if (plan === "missing-destination" || destination === null || destination.identity === null) {
       throw new Error("Direct LXMF requires destination");
     }
-
-    if (message.packed === null) {
+    if (plan === "missing-packed" || message.packed === null) {
       throw new Error("Direct LXMF requires packed message");
     }
 
     const recipientIdentity = destination.identity;
     const destinationKey = bytesToHex(destination.hash);
     let link = this.directLinks.get(destinationKey) ?? null;
-    if (link === null || !canLinkSend(link.status)) {
+    if (
+      !shouldReuseActiveLink({
+        linkPresent: link !== null,
+        status: link?.status ?? 0
+      })
+    ) {
       const outbound = this.reticulum.registerDestination({
         provider: this.provider,
         identity: recipientIdentity,
@@ -292,7 +302,7 @@ export class LXMFRouter {
     }
 
     this.applySendState(message, { kind: "lxmf/begin-sending" });
-    await link.send(message.packed);
+    await link!.send(message.packed);
     this.applySendState(message, { kind: "lxmf/mark-delivered" });
   }
 
@@ -341,8 +351,13 @@ export class LXMFRouter {
   }
 
   private async ensureOutboundPropagationLink(): Promise<Link> {
-    if (this.outboundPropagationLink !== null && canLinkSend(this.outboundPropagationLink.status)) {
-      return this.outboundPropagationLink;
+    if (
+      shouldReuseActiveLink({
+        linkPresent: this.outboundPropagationLink !== null,
+        status: this.outboundPropagationLink?.status ?? 0
+      })
+    ) {
+      return this.outboundPropagationLink!;
     }
 
     if (this.outboundPropagationNode === null) {

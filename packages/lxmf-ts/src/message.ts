@@ -11,6 +11,8 @@ import {
   packLxmfDestinationPrefixed,
   packLxmfWire,
   planLxmfDelivery,
+  planLxmfSignatureOutcome,
+  planLxMessageInstancePack,
   planLxMessagePack,
   splitLxmfWire,
   utf8Decode,
@@ -29,7 +31,6 @@ import {
   LXMessageMethod,
   LXMessageRepresentation,
   LXMessageState,
-  LXMessageUnverifiedReason,
   type LXMessageFields,
   type LXMessageMethodValue,
   type LXMessageRepresentationValue,
@@ -200,15 +201,13 @@ export class LXMessage {
     message.packed = Uint8Array.from(lxmfBytes);
     message.incoming = true;
 
-    if (sourceIdentity !== null) {
-      message.signatureValidated = sourceIdentity.validate(signature, signedPart);
-      if (!message.signatureValidated) {
-        message.unverifiedReason = LXMessageUnverifiedReason.SIGNATURE_INVALID;
-      }
-    } else {
-      message.signatureValidated = false;
-      message.unverifiedReason = LXMessageUnverifiedReason.SOURCE_UNKNOWN;
-    }
+    const outcome = planLxmfSignatureOutcome({
+      sourceIdentityPresent: sourceIdentity !== null,
+      signatureValid:
+        sourceIdentity !== null ? sourceIdentity.validate(signature, signedPart) : false
+    });
+    message.signatureValidated = outcome.signatureValidated;
+    message.unverifiedReason = outcome.unverifiedReason;
 
     return message;
   }
@@ -217,15 +216,25 @@ export class LXMessage {
     provider: CryptoProvider,
     options: { stamp?: Uint8Array | null; deferStamp?: boolean } = {}
   ): void {
-    if (this.packed !== null) {
+    const gate = planLxMessageInstancePack({
+      alreadyPacked: this.packed !== null,
+      destinationPresent: this.destination !== null,
+      sourcePresent: this.source !== null,
+      sourceIdentityPresent: this.source?.identity !== null,
+      timestampPresent: this.timestamp !== null
+    });
+    if (gate === "already-packed") {
       throw new Error("LXMessage is already packed");
     }
-
-    if (this.destination === null || this.source === null || this.source.identity === null) {
+    if (
+      gate === "missing-endpoints" ||
+      this.destination === null ||
+      this.source === null ||
+      this.source.identity === null
+    ) {
       throw new Error("LXMessage requires destination and source destinations to pack");
     }
-
-    if (this.timestamp === null) {
+    if (gate === "missing-timestamp" || this.timestamp === null) {
       throw new Error("LXMessage.pack requires timestamp to be set before packing");
     }
 

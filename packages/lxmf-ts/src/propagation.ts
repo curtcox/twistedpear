@@ -1,10 +1,10 @@
 import {
   PROPAGATION_LINK_TIMEOUT_MS,
   PropagationTransferState,
-  canLinkSend,
   decodeLxmfPeerError,
   initialPropagationTransferState,
   planPropagationGet,
+  shouldReuseActiveLink,
   stepPropagationTransferWithActions,
   type PropagationTransferAction,
   type PropagationTransferMachineState,
@@ -228,8 +228,13 @@ export class PropagationClient {
   }
 
   private async ensurePropagationLink(): Promise<Link> {
-    if (this.propagationLink !== null && canLinkSend(this.propagationLink.status)) {
-      return this.propagationLink;
+    if (
+      shouldReuseActiveLink({
+        linkPresent: this.propagationLink !== null,
+        status: this.propagationLink?.status ?? 0
+      })
+    ) {
+      return this.propagationLink!;
     }
 
     if (this.propagationNodeHash === null) {

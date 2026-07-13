@@ -133,6 +133,14 @@ export function canLinkSend(status: LinkStatusValue): boolean {
   return status === LinkStatus.ACTIVE;
 }
 
+/** Whether an existing link may be reused for outbound send (present + ACTIVE). */
+export function shouldReuseActiveLink(input: {
+  readonly linkPresent: boolean;
+  readonly status: LinkStatusValue;
+}): boolean {
+  return input.linkPresent && canLinkSend(input.status);
+}
+
 /** Whether inbound link traffic should be accepted from this interface attachment. */
 export function shouldAcceptLinkPacketInterface(input: {
   readonly hasAttachedInterface: boolean;

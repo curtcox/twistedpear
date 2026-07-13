@@ -25,8 +25,10 @@ import {
   mergeLinkRtt,
   planLinkAppRequest,
   shouldAcceptLinkPacketInterface,
-  shouldEncryptLinkPayload
+  shouldEncryptLinkPayload,
+  shouldReuseActiveLink
 } from "../src/link-establish.js";
+import { planLinkInitiatorMtu } from "../src/link-metrics.js";
 import { LinkStatus } from "../src/link-watchdog.js";
 
 describe("protocol link proof framing", () => {
@@ -151,6 +153,36 @@ describe("protocol link establish", () => {
     expect(canLinkSend(LinkStatus.PENDING)).toBe(false);
     expect(canLinkSend(LinkStatus.HANDSHAKE)).toBe(false);
     expect(canLinkSend(LinkStatus.CLOSED)).toBe(false);
+  });
+
+  it("reuses present ACTIVE links", () => {
+    expect(shouldReuseActiveLink({ linkPresent: true, status: LinkStatus.ACTIVE })).toBe(true);
+    expect(shouldReuseActiveLink({ linkPresent: false, status: LinkStatus.ACTIVE })).toBe(false);
+    expect(shouldReuseActiveLink({ linkPresent: true, status: LinkStatus.PENDING })).toBe(false);
+  });
+
+  it("plans initiator MTU from discovery and next-hop", () => {
+    expect(
+      planLinkInitiatorMtu({
+        discoveryEnabled: true,
+        nextHopMtu: 420,
+        defaultMtu: 500
+      })
+    ).toBe(420);
+    expect(
+      planLinkInitiatorMtu({
+        discoveryEnabled: true,
+        nextHopMtu: null,
+        defaultMtu: 500
+      })
+    ).toBe(500);
+    expect(
+      planLinkInitiatorMtu({
+        discoveryEnabled: false,
+        nextHopMtu: 420,
+        defaultMtu: 500
+      })
+    ).toBe(500);
   });
 
   it("accepts link packets from matching or unbound interfaces", () => {

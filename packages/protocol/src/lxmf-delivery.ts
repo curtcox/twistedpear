@@ -2,6 +2,10 @@
  * Pure LXMF delivery method / representation planning.
  * Encryption and hashing stay at the adapter edge.
  */
+import {
+  LxmfUnverifiedReason,
+  type LxmfUnverifiedReasonValue
+} from "./lxmf-fields.js";
 
 export const LxmfDeliveryMethod = {
   OPPORTUNISTIC: 0x01,
@@ -214,4 +218,75 @@ export function planLxmfSendMethod(input: {
     return "propagated";
   }
   return "reject-unsupported";
+}
+
+export type LxmfDirectSendPlan = "ok" | "missing-destination" | "missing-packed";
+
+/** Whether DIRECT send may proceed (destination identity + packed envelope). */
+export function planLxmfDirectSend(input: {
+  readonly destinationPresent: boolean;
+  readonly destinationIdentityPresent: boolean;
+  readonly packed: boolean;
+}): LxmfDirectSendPlan {
+  if (!input.destinationPresent || !input.destinationIdentityPresent) {
+    return "missing-destination";
+  }
+  if (!input.packed) {
+    return "missing-packed";
+  }
+  return "ok";
+}
+
+export type LxMessageInstancePackGate =
+  | "ok"
+  | "already-packed"
+  | "missing-endpoints"
+  | "missing-timestamp";
+
+/** Whether an LXMessage instance may pack (already-packed / endpoints / timestamp). */
+export function planLxMessageInstancePack(input: {
+  readonly alreadyPacked: boolean;
+  readonly destinationPresent: boolean;
+  readonly sourcePresent: boolean;
+  readonly sourceIdentityPresent: boolean;
+  readonly timestampPresent: boolean;
+}): LxMessageInstancePackGate {
+  if (input.alreadyPacked) {
+    return "already-packed";
+  }
+  if (
+    !input.destinationPresent ||
+    !input.sourcePresent ||
+    !input.sourceIdentityPresent
+  ) {
+    return "missing-endpoints";
+  }
+  if (!input.timestampPresent) {
+    return "missing-timestamp";
+  }
+  return "ok";
+}
+
+export type LxmfSignatureOutcome = {
+  readonly signatureValidated: boolean;
+  readonly unverifiedReason: LxmfUnverifiedReasonValue | null;
+};
+
+/** Signature status / unverified reason after edge crypto validation. */
+export function planLxmfSignatureOutcome(input: {
+  readonly sourceIdentityPresent: boolean;
+  readonly signatureValid: boolean;
+}): LxmfSignatureOutcome {
+  if (input.sourceIdentityPresent) {
+    return {
+      signatureValidated: input.signatureValid,
+      unverifiedReason: input.signatureValid
+        ? null
+        : LxmfUnverifiedReason.SIGNATURE_INVALID
+    };
+  }
+  return {
+    signatureValidated: false,
+    unverifiedReason: LxmfUnverifiedReason.SOURCE_UNKNOWN
+  };
 }

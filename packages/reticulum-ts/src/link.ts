@@ -71,6 +71,7 @@ import {
   planDestinationRequestAllow,
   planLinkAppRequest,
   planLinkDataContext,
+  planLinkInitiatorMtu,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
   planLinkTeardown,
@@ -297,13 +298,14 @@ export class Link {
       LINK_KEEPALIVE
     );
 
-    let mtu = RETICULUM_MTU;
-    if (options.linkMtuDiscovery !== false) {
-      const nextHopMtu = options.transport.nextHopInterfaceMtu(destination.hash);
-      if (nextHopMtu !== null) {
-        mtu = nextHopMtu;
-      }
-    }
+    const discoveryEnabled = options.linkMtuDiscovery !== false;
+    const mtu = planLinkInitiatorMtu({
+      discoveryEnabled,
+      nextHopMtu: discoveryEnabled
+        ? options.transport.nextHopInterfaceMtu(destination.hash)
+        : null,
+      defaultMtu: RETICULUM_MTU
+    });
 
     link.mtu = mtu;
     link.mode = LINK_MODE_DEFAULT;

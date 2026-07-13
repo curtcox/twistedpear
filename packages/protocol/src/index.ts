@@ -67,10 +67,12 @@ export {
   canRequestLinkDestination,
   isValidDestinationIdentityBinding,
   isValidDestinationRequestPath,
+  planDestinationConstruction,
   planDestinationDecrypt,
   planDestinationEncrypt,
   planDestinationRequestAllow,
   type DestinationAllowPolicyCodeValue,
+  type DestinationConstructionPlan,
   type DestinationDecryptPlan,
   type DestinationEncryptPlan
 } from "./destination-allow.js";
@@ -445,6 +447,7 @@ export {
   planLinkAppRequest,
   shouldAcceptLinkPacketInterface,
   shouldEncryptLinkPayload,
+  shouldReuseActiveLink,
   stepLinkEstablish,
   type LinkAppRequestPlan,
   type LinkEstablishEvent,
@@ -466,7 +469,8 @@ export {
   LINK_MDU_TOKEN_OVERHEAD,
   computeLinkMdu,
   linkHopsMatch,
-  linkPayloadFitsMdu
+  linkPayloadFitsMdu,
+  planLinkInitiatorMtu
 } from "./link-metrics.js";
 export {
   PROPAGATION_DESTINATION_HASH_SIZE,
@@ -680,6 +684,8 @@ export {
   announceSignedMaterial,
   packAnnouncePayload,
   parseAnnouncePayload,
+  planAnnounceBuild,
+  type AnnounceBuildPlan,
   type AnnouncePayloadFields
 } from "./announce-framing.js";
 export {
@@ -711,6 +717,8 @@ export {
   TransportTypeCode,
   decodePacketRaw,
   encodePacketRaw,
+  isDestinationDirectionCode,
+  isDestinationTypeCode,
   packPacketFlags,
   packetHashablePart,
   unpackPacketFlags,
@@ -739,15 +747,21 @@ export {
   canAcceptLxmfPropagationLocalDelivery,
   planLxmfDeliverableAccept,
   planLxmfDelivery,
+  planLxmfDirectSend,
   planLxmfPropagatedSend,
   planLxmfSendMethod,
+  planLxmfSignatureOutcome,
+  planLxMessageInstancePack,
   planLxMessagePack,
   type LxmfDeliverableAcceptPlan,
   type LxmfDeliveryMethodValue,
   type LxmfDeliveryPlan,
   type LxmfDeliveryRepresentationValue,
+  type LxmfDirectSendPlan,
   type LxmfPropagatedSendPlan,
   type LxmfSendMethodPlan,
+  type LxmfSignatureOutcome,
+  type LxMessageInstancePackGate,
   type LxMessagePackGate
 } from "./lxmf-delivery.js";
 export {

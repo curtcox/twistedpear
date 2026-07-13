@@ -140,3 +140,43 @@ export function announceDestinationHashMatches(
 ): boolean {
   return equalByteArrays(destinationHash, expectedTruncatedHash);
 }
+
+export type AnnounceBuildPlan =
+  | "ok"
+  | "not-announceable-type"
+  | "not-announceable-direction"
+  | "missing-identity"
+  | "bad-random-hash"
+  | "bad-ratchet";
+
+/**
+ * Whether Announce.buildPacket may proceed (SINGLE IN + identity + material sizes).
+ * Entropy/signing stay at the adapter edge.
+ */
+export function planAnnounceBuild(input: {
+  readonly typeSingle: boolean;
+  readonly directionIn: boolean;
+  readonly identityPresent: boolean;
+  readonly randomHashLength: number;
+  readonly ratchetPublicKeyLength: number | null;
+}): AnnounceBuildPlan {
+  if (!input.typeSingle) {
+    return "not-announceable-type";
+  }
+  if (!input.directionIn) {
+    return "not-announceable-direction";
+  }
+  if (!input.identityPresent) {
+    return "missing-identity";
+  }
+  if (input.randomHashLength !== ANNOUNCE_RANDOM_HASH_SIZE) {
+    return "bad-random-hash";
+  }
+  if (
+    input.ratchetPublicKeyLength !== null &&
+    input.ratchetPublicKeyLength !== ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE
+  ) {
+    return "bad-ratchet";
+  }
+  return "ok";
+}

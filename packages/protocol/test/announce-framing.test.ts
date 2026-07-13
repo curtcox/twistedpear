@@ -8,7 +8,8 @@ import {
   announceDestinationHashMaterial,
   announceSignedMaterial,
   packAnnouncePayload,
-  parseAnnouncePayload
+  parseAnnouncePayload,
+  planAnnounceBuild
 } from "../src/announce-framing.js";
 
 describe("protocol announce framing", () => {
@@ -69,5 +70,71 @@ describe("protocol announce framing", () => {
     );
     const material = announceDestinationHashMaterial(nameHash, destinationHash);
     expect(material.length).toBe(nameHash.length + destinationHash.length);
+  });
+
+  it("plans announce build gates", () => {
+    expect(
+      planAnnounceBuild({
+        typeSingle: true,
+        directionIn: true,
+        identityPresent: true,
+        randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+        ratchetPublicKeyLength: null
+      })
+    ).toBe("ok");
+    expect(
+      planAnnounceBuild({
+        typeSingle: false,
+        directionIn: true,
+        identityPresent: true,
+        randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+        ratchetPublicKeyLength: null
+      })
+    ).toBe("not-announceable-type");
+    expect(
+      planAnnounceBuild({
+        typeSingle: true,
+        directionIn: false,
+        identityPresent: true,
+        randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+        ratchetPublicKeyLength: null
+      })
+    ).toBe("not-announceable-direction");
+    expect(
+      planAnnounceBuild({
+        typeSingle: true,
+        directionIn: true,
+        identityPresent: false,
+        randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+        ratchetPublicKeyLength: null
+      })
+    ).toBe("missing-identity");
+    expect(
+      planAnnounceBuild({
+        typeSingle: true,
+        directionIn: true,
+        identityPresent: true,
+        randomHashLength: 3,
+        ratchetPublicKeyLength: null
+      })
+    ).toBe("bad-random-hash");
+    expect(
+      planAnnounceBuild({
+        typeSingle: true,
+        directionIn: true,
+        identityPresent: true,
+        randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+        ratchetPublicKeyLength: 8
+      })
+    ).toBe("bad-ratchet");
+    expect(
+      planAnnounceBuild({
+        typeSingle: true,
+        directionIn: true,
+        identityPresent: true,
+        randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+        ratchetPublicKeyLength: ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE
+      })
+    ).toBe("ok");
   });
 });

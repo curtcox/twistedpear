@@ -23,6 +23,18 @@ export function linkPayloadFitsMdu(packedLength: number, mdu: number): boolean {
   return packedLength <= mdu;
 }
 
+/** Initiator MTU selection (optional next-hop discovery vs default). */
+export function planLinkInitiatorMtu(input: {
+  readonly discoveryEnabled: boolean;
+  readonly nextHopMtu: number | null;
+  readonly defaultMtu: number;
+}): number {
+  if (input.discoveryEnabled && input.nextHopMtu !== null) {
+    return input.nextHopMtu;
+  }
+  return input.defaultMtu;
+}
+
 export function linkHopsMatch(input: {
   readonly expectedHops: number | null;
   readonly packetHops: number;

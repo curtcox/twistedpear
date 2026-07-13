@@ -10,11 +10,15 @@ import {
   lxmfContentSizeFromPackedLength,
   canAcceptLxmfPropagationLocalDelivery,
   planLxmfDelivery,
+  planLxMessageInstancePack,
   planLxMessagePack,
   planLxmfDeliverableAccept,
+  planLxmfDirectSend,
   planLxmfPropagatedSend,
-  planLxmfSendMethod
+  planLxmfSendMethod,
+  planLxmfSignatureOutcome
 } from "../src/lxmf-delivery.js";
+import { LxmfUnverifiedReason } from "../src/lxmf-fields.js";
 
 describe("protocol lxmf delivery", () => {
   it("computes content size from packed length", () => {
@@ -229,5 +233,102 @@ describe("protocol lxmf delivery", () => {
         method: LxmfDeliveryMethod.PAPER
       })
     ).toBe("reject-unsupported");
+  });
+
+  it("plans DIRECT send preconditions", () => {
+    expect(
+      planLxmfDirectSend({
+        destinationPresent: true,
+        destinationIdentityPresent: true,
+        packed: true
+      })
+    ).toBe("ok");
+    expect(
+      planLxmfDirectSend({
+        destinationPresent: false,
+        destinationIdentityPresent: true,
+        packed: true
+      })
+    ).toBe("missing-destination");
+    expect(
+      planLxmfDirectSend({
+        destinationPresent: true,
+        destinationIdentityPresent: false,
+        packed: true
+      })
+    ).toBe("missing-destination");
+    expect(
+      planLxmfDirectSend({
+        destinationPresent: true,
+        destinationIdentityPresent: true,
+        packed: false
+      })
+    ).toBe("missing-packed");
+  });
+
+  it("plans LXMessage instance pack gates", () => {
+    expect(
+      planLxMessageInstancePack({
+        alreadyPacked: false,
+        destinationPresent: true,
+        sourcePresent: true,
+        sourceIdentityPresent: true,
+        timestampPresent: true
+      })
+    ).toBe("ok");
+    expect(
+      planLxMessageInstancePack({
+        alreadyPacked: true,
+        destinationPresent: true,
+        sourcePresent: true,
+        sourceIdentityPresent: true,
+        timestampPresent: true
+      })
+    ).toBe("already-packed");
+    expect(
+      planLxMessageInstancePack({
+        alreadyPacked: false,
+        destinationPresent: false,
+        sourcePresent: true,
+        sourceIdentityPresent: true,
+        timestampPresent: true
+      })
+    ).toBe("missing-endpoints");
+    expect(
+      planLxMessageInstancePack({
+        alreadyPacked: false,
+        destinationPresent: true,
+        sourcePresent: true,
+        sourceIdentityPresent: true,
+        timestampPresent: false
+      })
+    ).toBe("missing-timestamp");
+  });
+
+  it("plans LXMF signature outcomes", () => {
+    expect(
+      planLxmfSignatureOutcome({
+        sourceIdentityPresent: true,
+        signatureValid: true
+      })
+    ).toEqual({ signatureValidated: true, unverifiedReason: null });
+    expect(
+      planLxmfSignatureOutcome({
+        sourceIdentityPresent: true,
+        signatureValid: false
+      })
+    ).toEqual({
+      signatureValidated: false,
+      unverifiedReason: LxmfUnverifiedReason.SIGNATURE_INVALID
+    });
+    expect(
+      planLxmfSignatureOutcome({
+        sourceIdentityPresent: false,
+        signatureValid: false
+      })
+    ).toEqual({
+      signatureValidated: false,
+      unverifiedReason: LxmfUnverifiedReason.SOURCE_UNKNOWN
+    });
   });
 });
