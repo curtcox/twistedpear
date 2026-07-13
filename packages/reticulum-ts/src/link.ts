@@ -32,7 +32,6 @@ import {
   canLinkHandshake,
   canValidateLinkProof,
   classifyLinkProofPayload,
-  computeKeepalive,
   computeLinkEstablishmentTimeout,
   computeLinkMdu,
   computeLinkRequestTimeout,
@@ -1221,8 +1220,12 @@ export class Link {
       return;
     }
 
-    this.keepalive = computeKeepalive(this.rtt);
-    this.staleTime = this.keepalive * LINK_STALE_FACTOR;
+    this.applyWatchdogResult(
+      stepLinkWatchdogWithActions(this.snapshotWatchdogState(), {
+        kind: "link/rtt-measured",
+        rtt: this.rtt
+      })
+    );
   }
 
   private startWatchdog(): void {
