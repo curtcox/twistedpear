@@ -6,6 +6,7 @@ import {
   clampStreamReadSize,
   isStreamIdAssigned,
   packStreamDataMessage,
+  planUnregisterStreamReadyCallback,
   shouldAppendStreamData,
   shouldConsumeStreamChunk,
   shouldDeferStreamRead,
@@ -117,8 +118,8 @@ export class RawChannelReader {
   }
 
   removeReadyCallback(callback: StreamReadyCallback): void {
-    const index = this.listeners.indexOf(callback);
-    if (index >= 0) {
+    const index = planUnregisterStreamReadyCallback(this.listeners.indexOf(callback));
+    if (index !== null) {
       this.listeners.splice(index, 1);
     }
   }

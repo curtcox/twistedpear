@@ -5,6 +5,7 @@ import {
   initialPacketReceiptTimeoutState,
   planOutboundReceiptOutcome,
   planPacketReceiptProofIngress,
+  planUnregisterPacketReceipt,
   stepPacketReceiptTimeout
 } from "../src/packet-receipt-timeout.js";
 
@@ -94,5 +95,7 @@ describe("protocol packet receipt timeout", () => {
         proofAccepted: false
       })
     ).toBe("continue");
+    expect(planUnregisterPacketReceipt(2)).toBe(2);
+    expect(planUnregisterPacketReceipt(-1)).toBeNull();
   });
 });

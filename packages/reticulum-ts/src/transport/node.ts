@@ -25,6 +25,8 @@ import {
   planProofIngressKind,
   planTransportAnnounceFields,
   planTransportIngressDispatch,
+  planUnregisterPacketReceipt,
+  planUnregisterTransportMember,
   shouldAcceptLinkLrProofCandidate,
   shouldDispatchLocalLinkRequest,
   shouldIgnoreLocalAnnounce,
@@ -33,6 +35,7 @@ import {
   shouldMatchLocalTypedDestination,
   shouldReceiveAnnouncePathResponse,
   shouldRegisterLinkMember,
+  shouldRegisterTransportMember,
   shouldTransmitOnInterface,
   indexOfMatchingLinkId,
   relayTransportPacketBytes,
@@ -172,7 +175,7 @@ export class LeafTransport {
   }
 
   registerInterface(iface: PacketInterface): void {
-    if (this.interfaces.includes(iface)) {
+    if (!shouldRegisterTransportMember(this.interfaces.includes(iface))) {
       return;
     }
 
@@ -193,8 +196,8 @@ export class LeafTransport {
   }
 
   unregisterInterface(iface: PacketInterface): void {
-    const index = this.interfaces.indexOf(iface);
-    if (index >= 0) {
+    const index = planUnregisterTransportMember(this.interfaces.indexOf(iface));
+    if (index !== null) {
       this.interfaces.splice(index, 1);
     }
     this.interfaceTasks.delete(iface);
@@ -205,7 +208,7 @@ export class LeafTransport {
   }
 
   registerDestination(destination: LocalDestination): void {
-    if (!this.destinations.includes(destination)) {
+    if (shouldRegisterTransportMember(this.destinations.includes(destination))) {
       this.destinations.push(destination);
     }
   }
@@ -215,7 +218,7 @@ export class LeafTransport {
   }
 
   registerAnnounceHandler(handler: AnnounceHandler): void {
-    if (!this.announceHandlers.includes(handler)) {
+    if (shouldRegisterTransportMember(this.announceHandlers.includes(handler))) {
       this.announceHandlers.push(handler);
     }
   }
@@ -380,8 +383,8 @@ export class LeafTransport {
     const outcome = planOutboundReceiptOutcome({ createReceipt, sent });
     if (outcome === "fail-and-drop-receipt" && receipt !== null) {
       receipt.markFailed();
-      const index = this.receipts.indexOf(receipt);
-      if (index >= 0) {
+      const index = planUnregisterPacketReceipt(this.receipts.indexOf(receipt));
+      if (index !== null) {
         this.receipts.splice(index, 1);
       }
       return null;
@@ -660,8 +663,8 @@ export class LeafTransport {
           proofAccepted
         }) === "remove-receipt"
       ) {
-        const index = this.receipts.indexOf(receipt);
-        if (index >= 0) {
+        const index = planUnregisterPacketReceipt(this.receipts.indexOf(receipt));
+        if (index !== null) {
           this.receipts.splice(index, 1);
         }
       }

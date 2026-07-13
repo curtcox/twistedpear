@@ -8,6 +8,7 @@ import {
   clampStreamReadSize,
   isStreamIdAssigned,
   packStreamDataMessage,
+  planUnregisterStreamReadyCallback,
   shouldAppendStreamData,
   shouldConsumeStreamChunk,
   shouldDeferStreamRead,
@@ -102,5 +103,11 @@ describe("protocol stream data framing", () => {
     expect(
       shouldHandleStreamDataMessage({ messageStreamId: null, expectedStreamId: 3 })
     ).toBe(false);
+  });
+
+  it("plans stream ready-callback unregister", () => {
+    expect(planUnregisterStreamReadyCallback(0)).toBe(0);
+    expect(planUnregisterStreamReadyCallback(4)).toBe(4);
+    expect(planUnregisterStreamReadyCallback(-1)).toBeNull();
   });
 });

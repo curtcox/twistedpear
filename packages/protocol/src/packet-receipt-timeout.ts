@@ -168,3 +168,11 @@ export function planPacketReceiptProofIngress(input: {
   }
   return "continue";
 }
+
+/**
+ * Unregister a packet receipt from the transport receipt list.
+ * Splice stays at the adapter.
+ */
+export function planUnregisterPacketReceipt(index: number): number | null {
+  return index >= 0 ? index : null;
+}

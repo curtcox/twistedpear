@@ -130,3 +130,11 @@ export function shouldHandleStreamDataMessage(input: {
 }): boolean {
   return input.messageStreamId === input.expectedStreamId;
 }
+
+/**
+ * Unregister a stream ready-callback: splice index or skip when absent.
+ * Splice stays at the adapter.
+ */
+export function planUnregisterStreamReadyCallback(index: number): number | null {
+  return index >= 0 ? index : null;
+}

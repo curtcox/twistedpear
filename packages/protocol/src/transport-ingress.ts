@@ -366,3 +366,16 @@ export function planReverseRelayOutcome(input: {
   }
   return "relay";
 }
+
+/** Whether a transport list should receive a new member (not already present). */
+export function shouldRegisterTransportMember(alreadyPresent: boolean): boolean {
+  return !alreadyPresent;
+}
+
+/**
+ * Unregister from a transport list: splice index or skip when absent.
+ * Splice stays at the adapter.
+ */
+export function planUnregisterTransportMember(index: number): number | null {
+  return index >= 0 ? index : null;
+}

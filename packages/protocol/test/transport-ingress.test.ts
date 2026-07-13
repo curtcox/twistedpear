@@ -33,8 +33,10 @@ import {
   shouldMatchLocalTypedDestination,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
+  shouldRegisterTransportMember,
   shouldRelayReverseOnInterface,
-  shouldTransmitOnInterface
+  shouldTransmitOnInterface,
+  planUnregisterTransportMember
 } from "../src/index.js";
 
 describe("transport ingress", () => {
@@ -422,5 +424,13 @@ describe("transport ingress", () => {
     expect(
       planReverseRelayOutcome({ canRelay: true, entryExpired: false, ifaceIsOutbound: true })
     ).toBe("relay");
+  });
+
+  it("plans transport list membership register/unregister", () => {
+    expect(shouldRegisterTransportMember(false)).toBe(true);
+    expect(shouldRegisterTransportMember(true)).toBe(false);
+    expect(planUnregisterTransportMember(0)).toBe(0);
+    expect(planUnregisterTransportMember(3)).toBe(3);
+    expect(planUnregisterTransportMember(-1)).toBeNull();
   });
 });

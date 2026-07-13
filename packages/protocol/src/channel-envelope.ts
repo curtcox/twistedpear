@@ -152,6 +152,19 @@ export function planChannelEnvelopePack(messagePresent: boolean): ChannelEnvelop
   return messagePresent ? "ok" : "missing-message";
 }
 
+/** Whether a channel message-handler list should receive a new member. */
+export function shouldRegisterChannelMessageHandler(alreadyPresent: boolean): boolean {
+  return !alreadyPresent;
+}
+
+/**
+ * Unregister a channel message handler: splice index or skip when absent.
+ * Splice stays at the adapter.
+ */
+export function planUnregisterChannelMessageHandler(index: number): number | null {
+  return index >= 0 ? index : null;
+}
+
 export function channelPayloadMdu(outletMdu: number): number {
   const value = outletMdu - CHANNEL_ENVELOPE_HEADER_SIZE;
   return value > 0xffff ? 0xffff : value;

@@ -11,7 +11,9 @@ import {
   planChannelEnvelopePack,
   planChannelEnvelopeUnpack,
   planChannelMessageTypeRegistration,
+  planUnregisterChannelMessageHandler,
   shouldEmitChannelImmediateDelivery,
+  shouldRegisterChannelMessageHandler,
   unpackChannelEnvelope
 } from "../src/channel-envelope.js";
 import {
@@ -121,6 +123,13 @@ describe("protocol channel envelope", () => {
   it("plans channel envelope pack gates", () => {
     expect(planChannelEnvelopePack(false)).toBe("missing-message");
     expect(planChannelEnvelopePack(true)).toBe("ok");
+  });
+
+  it("plans channel message-handler membership", () => {
+    expect(shouldRegisterChannelMessageHandler(false)).toBe(true);
+    expect(shouldRegisterChannelMessageHandler(true)).toBe(false);
+    expect(planUnregisterChannelMessageHandler(1)).toBe(1);
+    expect(planUnregisterChannelMessageHandler(-1)).toBeNull();
   });
 });
 

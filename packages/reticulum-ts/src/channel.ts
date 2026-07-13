@@ -24,9 +24,11 @@ import {
   planChannelMessageTypeRegistration,
   planChannelPacketTimeout,
   planChannelSend,
+  planUnregisterChannelMessageHandler,
   shouldAcceptChannelSequence,
   shouldEmitChannelImmediateDelivery,
   shouldExtendPacketReceiptTimeout,
+  shouldRegisterChannelMessageHandler,
   stepChannelWindow,
   unpackChannelEnvelope,
   type ChannelWindowState
@@ -229,14 +231,14 @@ export class Channel {
   }
 
   addMessageHandler(callback: ChannelMessageHandler): void {
-    if (!this.messageCallbacks.includes(callback)) {
+    if (shouldRegisterChannelMessageHandler(this.messageCallbacks.includes(callback))) {
       this.messageCallbacks.push(callback);
     }
   }
 
   removeMessageHandler(callback: ChannelMessageHandler): void {
-    const index = this.messageCallbacks.indexOf(callback);
-    if (index >= 0) {
+    const index = planUnregisterChannelMessageHandler(this.messageCallbacks.indexOf(callback));
+    if (index !== null) {
       this.messageCallbacks.splice(index, 1);
     }
   }
