@@ -253,3 +253,36 @@ export {
   type LxmfSendEvent,
   type LxmfSendState
 } from "./lxmf-send-state.js";
+export {
+  LINK_MTU_BYTEMASK,
+  LINK_MODE_BYTEMASK,
+  LINK_PROOF_BODY_SIZE,
+  LINK_PROOF_MTU_SIZE,
+  LINK_PROOF_PUBLIC_KEY_SIZE,
+  LINK_PROOF_SIGNATURE_SIZE,
+  LINK_REQUEST_ECPUB_SIZE,
+  classifyLinkProofPayload,
+  decodeLinkModeFromSignallingByte,
+  decodeLinkMtuFromBytes,
+  encodeLinkMtuBytes,
+  encodeLinkSignallingBytes,
+  modeFromLinkProofData,
+  modeFromLinkRequestData,
+  mtuFromLinkProofData,
+  mtuFromLinkRequestData,
+  splitLinkProofBody,
+  type LinkProofPayloadKind
+} from "./link-proof.js";
+export {
+  applyLinkEstablishEvent,
+  canAcceptLinkRtt,
+  canIdentifyOnLink,
+  canLinkHandshake,
+  canValidateLinkProof,
+  computeLinkRttSeconds,
+  initialLinkEstablishState,
+  mergeLinkRtt,
+  stepLinkEstablish,
+  type LinkEstablishEvent,
+  type LinkEstablishState
+} from "./link-establish.js";

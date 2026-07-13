@@ -1,9 +1,26 @@
 import {
   LINK_INITIATOR_ENTROPY_SIZE,
+  LINK_PROOF_BODY_SIZE,
   LINK_RESPONDER_ENTROPY_SIZE,
+  applyLinkEstablishEvent,
+  canAcceptLinkRtt,
+  canIdentifyOnLink,
+  canLinkHandshake,
+  canValidateLinkProof,
+  classifyLinkProofPayload,
   computeKeepalive,
+  computeLinkRttSeconds,
   deriveRnsLinkKey,
+  encodeLinkMtuBytes,
+  encodeLinkSignallingBytes,
+  initialLinkEstablishState,
+  mergeLinkRtt,
+  modeFromLinkProofData,
+  modeFromLinkRequestData,
+  mtuFromLinkProofData,
+  mtuFromLinkRequestData,
   splitInitiatorLinkEntropy,
+  splitLinkProofBody,
   splitResponderLinkEntropy,
   stepLinkWatchdogWithActions,
   type LinkWatchdogState,
@@ -335,57 +352,27 @@ export class Link {
       throw new Error(`Requested link mode ${mode} is not enabled`);
     }
 
-    const signallingValue = (mtu & LINK_MTU_BYTEMASK) + (((mode << 5) & LINK_MODE_BYTEMASK) << 16);
-    const buffer = new ArrayBuffer(4);
-    const view = new DataView(buffer);
-    view.setUint32(0, signallingValue, false);
-    return new Uint8Array(buffer).subarray(1);
+    return encodeLinkSignallingBytes(mtu, mode);
   }
 
   static modeFromLrPacket(packet: Packet): LinkModeValue {
-    if (packet.data.length > LINK_ECPUB_SIZE) {
-      return ((packet.data[LINK_ECPUB_SIZE]! & LINK_MODE_BYTEMASK) >> 5) as LinkModeValue;
-    }
-
-    return LINK_MODE_DEFAULT;
+    return modeFromLinkRequestData(packet.data, LINK_MODE_DEFAULT) as LinkModeValue;
   }
 
   static modeFromLpPacket(packet: Packet): LinkModeValue {
-    const base = LINK_SIGNATURE_SIZE + LINK_ECPUB_SIZE / 2;
-    if (packet.data.length > base) {
-      return ((packet.data[base]! & LINK_MODE_BYTEMASK) >> 5) as LinkModeValue;
-    }
-
-    return LINK_MODE_DEFAULT;
+    return modeFromLinkProofData(packet.data, LINK_MODE_DEFAULT) as LinkModeValue;
   }
 
   static mtuBytes(mtu: number): Uint8Array {
-    const value = mtu & 0xffffff;
-    return new Uint8Array([(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff]);
+    return encodeLinkMtuBytes(mtu);
   }
 
   static mtuFromLrPacket(packet: Packet): number | null {
-    if (packet.data.length !== LINK_ECPUB_SIZE + LINK_MTU_SIZE) {
-      return null;
-    }
-
-    const offset = LINK_ECPUB_SIZE;
-    return (
-      ((packet.data[offset]! << 16) |
-        (packet.data[offset + 1]! << 8) |
-        packet.data[offset + 2]!) &
-      LINK_MTU_BYTEMASK
-    );
+    return mtuFromLinkRequestData(packet.data);
   }
 
   static mtuFromLpPacket(packet: Packet): number | null {
-    const base = LINK_SIGNATURE_SIZE + LINK_ECPUB_SIZE / 2;
-    if (packet.data.length !== base + LINK_MTU_SIZE) {
-      return null;
-    }
-
-    const mtuBytes = packet.data.subarray(base, base + LINK_MTU_SIZE);
-    return ((mtuBytes[0]! << 16) | (mtuBytes[1]! << 8) | mtuBytes[2]!) & LINK_MTU_BYTEMASK;
+    return mtuFromLinkProofData(packet.data);
   }
 
   setLinkId(packet: Packet): void {
@@ -399,11 +386,19 @@ export class Link {
   }
 
   handshake(): void {
-    if (this.status !== LinkStatus.PENDING || this.privateKey === null || this.peerPublicKeyBytes === null) {
+    if (
+      !canLinkHandshake(this.status) ||
+      this.privateKey === null ||
+      this.peerPublicKeyBytes === null
+    ) {
       throw new Error("Invalid link state for handshake");
     }
 
-    this.status = LinkStatus.HANDSHAKE;
+    const established = applyLinkEstablishEvent(
+      initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
+      { kind: "establish/handshake" }
+    );
+    this.status = established.status;
     const sharedKey = this.provider.x25519SharedSecret(this.privateKey, this.peerPublicKeyBytes);
     // ECDH at the crypto adapter edge; RNS HKDF length/salt selection is pure protocol.
     this.derivedKey = deriveRnsLinkKey(sharedKey, this.linkId, this.mode);
@@ -440,7 +435,10 @@ export class Link {
   }
 
   async validateProof(packet: Packet, iface: PacketInterface): Promise<void> {
-    if (this.status !== LinkStatus.PENDING || !this.initiator || this.destination === null) {
+    if (
+      !canValidateLinkProof({ status: this.status, initiator: this.initiator }) ||
+      this.destination === null
+    ) {
       return;
     }
 
@@ -454,37 +452,53 @@ export class Link {
       let signallingBytes = new Uint8Array(0);
       let confirmedMtu: number | null = null;
 
-      if (proofData.length === LINK_SIGNATURE_SIZE + LINK_ECPUB_SIZE / 2 + LINK_MTU_SIZE) {
+      const layout = classifyLinkProofPayload(proofData.length);
+      if (layout === "body-with-mtu") {
         confirmedMtu = Link.mtuFromLpPacket(packet);
         signallingBytes = Uint8Array.from(Link.signallingBytes(confirmedMtu ?? RETICULUM_MTU, mode));
-        proofData = proofData.subarray(0, LINK_SIGNATURE_SIZE + LINK_ECPUB_SIZE / 2);
-      }
-
-      if (proofData.length !== LINK_SIGNATURE_SIZE + LINK_ECPUB_SIZE / 2) {
+        proofData = proofData.subarray(0, LINK_PROOF_BODY_SIZE);
+      } else if (layout === "invalid") {
         throw new Error("Invalid link proof size");
       }
 
-      const peerPublicKey = proofData.subarray(LINK_SIGNATURE_SIZE, LINK_SIGNATURE_SIZE + LINK_ECPUB_SIZE / 2);
+      const body = splitLinkProofBody(proofData);
+      if (body === null) {
+        throw new Error("Invalid link proof size");
+      }
+
       const peerSignaturePublicKey = this.destination.identity!.getPublicKey().subarray(
         LINK_ECPUB_SIZE / 2,
         LINK_ECPUB_SIZE
       );
-      this.loadPeer(peerPublicKey, peerSignaturePublicKey);
+      this.loadPeer(body.peerPublicKey, peerSignaturePublicKey);
       this.handshake();
 
-      const signedData = concatBytes(this.linkId, this.peerPublicKeyBytes!, peerSignaturePublicKey, signallingBytes);
-      const signature = proofData.subarray(0, LINK_SIGNATURE_SIZE);
-      if (!this.destination.identity!.validate(signature, signedData)) {
+      const signedData = concatBytes(
+        this.linkId,
+        this.peerPublicKeyBytes!,
+        peerSignaturePublicKey,
+        signallingBytes
+      );
+      if (!this.destination.identity!.validate(body.signature, signedData)) {
         throw new Error("Invalid link proof signature");
       }
 
-      this.rtt = this.clock.now() / 1000 - this.requestTime;
+      const nowSeconds = this.clock.now() / 1000;
+      const activated = applyLinkEstablishEvent(
+        initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
+        {
+          kind: "establish/activated",
+          atSeconds: nowSeconds,
+          rtt: computeLinkRttSeconds(nowSeconds, this.requestTime)
+        }
+      );
+      this.rtt = activated.rtt;
       this.attachedInterface = iface;
       this.mtu = confirmedMtu ?? RETICULUM_MTU;
       this.updateMdu();
       this.updateKeepalive();
-      this.status = LinkStatus.ACTIVE;
-      this.activatedAt = this.clock.now() / 1000;
+      this.status = activated.status;
+      this.activatedAt = activated.activatedAt;
       this.establishmentCost += packet.raw.length;
       this.transport.activateLink(this);
 
@@ -495,33 +509,46 @@ export class Link {
         packetType: PacketType.DATA,
         destinationHash: this.linkId,
         context: PacketContext.LRRTT,
-        data: this.encrypt(msgpackEncodeFloat(this.rtt))
+        data: this.encrypt(msgpackEncodeFloat(this.rtt!))
       });
       await this.transport.sendPacket(rttPacket, { attachedInterface: this.attachedInterface });
       this.hadOutbound(false);
       this.callbacks.linkEstablished?.(this);
     } catch {
-      this.status = LinkStatus.CLOSED;
+      const failed = applyLinkEstablishEvent(
+        initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
+        { kind: "establish/failed" }
+      );
+      this.status = failed.status;
     }
   }
 
   async handleRttPacket(packet: Packet): Promise<void> {
-    if (this.initiator || this.status === LinkStatus.CLOSED) {
+    if (!canAcceptLinkRtt({ status: this.status, initiator: this.initiator })) {
       return;
     }
 
     try {
-      const measuredRtt = this.clock.now() / 1000 - this.requestTime;
+      const measuredRtt = computeLinkRttSeconds(this.clock.now() / 1000, this.requestTime);
       const plaintext = this.decrypt(packet.data);
       if (plaintext === null) {
         throw new Error("Could not decrypt RTT packet");
       }
 
       const remoteRtt = msgpackDecodeFloat(plaintext);
-      this.rtt = Math.max(measuredRtt, remoteRtt);
+      const nowSeconds = this.clock.now() / 1000;
+      const activated = applyLinkEstablishEvent(
+        initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
+        {
+          kind: "establish/activated",
+          atSeconds: nowSeconds,
+          rtt: mergeLinkRtt(measuredRtt, remoteRtt)
+        }
+      );
+      this.rtt = activated.rtt;
       this.updateKeepalive();
-      this.status = LinkStatus.ACTIVE;
-      this.activatedAt = this.clock.now() / 1000;
+      this.status = activated.status;
+      this.activatedAt = activated.activatedAt;
       this.callbacks.linkEstablished?.(this);
     } catch {
       await this.teardown();
@@ -635,7 +662,7 @@ export class Link {
   }
 
   identify(identity: Identity): void {
-    if (!this.initiator || this.status !== LinkStatus.ACTIVE || identity === null) {
+    if (!canIdentifyOnLink({ status: this.status, initiator: this.initiator }) || identity === null) {
       return;
     }
 
