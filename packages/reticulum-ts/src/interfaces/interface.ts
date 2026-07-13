@@ -3,6 +3,7 @@ import {
   isInterfaceClosed,
   isValidInterfaceName,
   packetFitsInterfaceMtu,
+  shouldEnqueueDecodedPacket,
   shouldEnqueueRawInterfaceFrame
 } from "@twistedpear/protocol";
 import type { Packet } from "../packet.js";
@@ -88,8 +89,8 @@ export abstract class AbstractPacketInterface implements PacketInterface {
 
     for (const frame of this.decodeIncoming(bytes)) {
       const packet = this.decodePacket(frame);
-      if (packet !== null) {
-        this.queue.push(packet);
+      if (shouldEnqueueDecodedPacket(packet !== null)) {
+        this.queue.push(packet!);
       }
     }
   }

@@ -138,6 +138,7 @@
 > **`isInterfaceClosed`** lives in protocol; interface close / receiveBytes early-outs adapt it.
 > **`shouldEnqueueRawInterfaceFrame`** lives in protocol; `RawPacketInterface.decodeIncoming` adapts it.
 > **`shouldConsumeStreamChunk`** lives in protocol; `RawChannelReader.read` chunk-consume branch adapts it.
+> **`shouldEnqueueDecodedPacket`** lives in protocol; `AbstractPacketInterface.receiveBytes` adapts it.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

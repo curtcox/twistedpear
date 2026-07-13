@@ -35,6 +35,11 @@ export function shouldEnqueueRawInterfaceFrame(length: number): boolean {
   return length > 0;
 }
 
+/** Whether a successfully decoded packet should be pushed onto the inbound queue. */
+export function shouldEnqueueDecodedPacket(packetPresent: boolean): boolean {
+  return packetPresent;
+}
+
 export type InterfaceReconnectPlan =
   | { readonly kind: "reconnect"; readonly delayMs: number; readonly attempt: number }
   | { readonly kind: "give-up"; readonly attempt: number };

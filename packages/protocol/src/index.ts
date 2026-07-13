@@ -480,6 +480,7 @@ export {
   isValidInterfaceName,
   packetFitsInterfaceMtu,
   planInterfaceReconnect,
+  shouldEnqueueDecodedPacket,
   shouldEnqueueRawInterfaceFrame,
   stepInterfaceReconnect,
   stepInterfaceReconnectWithActions,

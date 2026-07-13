@@ -8,6 +8,7 @@ import {
   isValidInterfaceName,
   packetFitsInterfaceMtu,
   planInterfaceReconnect,
+  shouldEnqueueDecodedPacket,
   shouldEnqueueRawInterfaceFrame,
   stepInterfaceReconnectWithActions
 } from "../src/interface-reconnect.js";
@@ -38,6 +39,11 @@ describe("protocol interface reconnect", () => {
   it("skips empty raw inbound frames", () => {
     expect(shouldEnqueueRawInterfaceFrame(0)).toBe(false);
     expect(shouldEnqueueRawInterfaceFrame(1)).toBe(true);
+  });
+
+  it("skips null decoded packets", () => {
+    expect(shouldEnqueueDecodedPacket(false)).toBe(false);
+    expect(shouldEnqueueDecodedPacket(true)).toBe(true);
   });
 
   it("schedules reconnects with default wait", () => {
