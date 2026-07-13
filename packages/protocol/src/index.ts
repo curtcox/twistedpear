@@ -391,3 +391,12 @@ export {
   stripTransportHeadersBytes,
   wrapTransportPacketBytes
 } from "./transport-framing.js";
+export {
+  PATH_REQUEST_HASH_BYTES,
+  TRANSPORT_PATH_REQUEST_APP,
+  TRANSPORT_PATH_REQUEST_ASPECTS,
+  buildPathRequestData,
+  parsePathRequestData,
+  pathRequestTagKey,
+  type PathRequestFields
+} from "./path-request.js";

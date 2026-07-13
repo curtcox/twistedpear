@@ -1,4 +1,4 @@
-import { utf8Encode } from "@twistedpear/protocol";
+import { utf8Decode, utf8Encode } from "@twistedpear/protocol";
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import {
   Destination,
@@ -243,11 +243,11 @@ export class LXMessage {
   }
 
   titleAsString(): string {
-    return new TextDecoder().decode(this.title);
+    return utf8Decode(this.title);
   }
 
   contentAsString(): string {
-    return new TextDecoder().decode(this.content);
+    return utf8Decode(this.content);
   }
 
   opportunisticPayload(): Uint8Array {
