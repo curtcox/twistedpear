@@ -76,7 +76,8 @@ export function initialLinkWatchdogState(options: {
     status: LinkStatus.PENDING,
     initiator: options.initiator,
     requestTime: options.requestTime,
-    establishmentTimeout: options.establishmentTimeout ?? LINK_ESTABLISHMENT_TIMEOUT_PER_HOP + LINK_KEEPALIVE_DEFAULT,
+    establishmentTimeout:
+      options.establishmentTimeout ?? computeLinkEstablishmentTimeout(1, keepalive),
     activatedAt: null,
     lastInbound: 0,
     lastKeepalive: 0,
@@ -92,6 +93,14 @@ export function computeKeepalive(rtt: number): number {
     Math.min(rtt * (LINK_KEEPALIVE / LINK_KEEPALIVE_MAX_RTT), LINK_KEEPALIVE),
     LINK_KEEPALIVE_MIN
   );
+}
+
+/** Seconds allowed to establish a link across `hops` (minimum 1 hop). */
+export function computeLinkEstablishmentTimeout(
+  hops: number,
+  keepalive: number = LINK_KEEPALIVE_DEFAULT
+): number {
+  return LINK_ESTABLISHMENT_TIMEOUT_PER_HOP * Math.max(1, hops) + keepalive;
 }
 
 export const stepLinkWatchdog: StepFn<LinkWatchdogState> = (state, event) => {

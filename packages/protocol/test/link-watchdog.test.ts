@@ -4,6 +4,7 @@ import {
   LinkTeardownReason,
   LINK_KEEPALIVE_MIN,
   computeKeepalive,
+  computeLinkEstablishmentTimeout,
   initialLinkWatchdogState,
   stepLinkWatchdogWithActions
 } from "../src/link-watchdog.js";
@@ -12,6 +13,12 @@ describe("protocol link watchdog", () => {
   it("computes keepalive from rtt", () => {
     expect(computeKeepalive(0.01)).toBe(LINK_KEEPALIVE_MIN);
     expect(computeKeepalive(1.75)).toBe(360);
+  });
+
+  it("computes establishment timeout from hops", () => {
+    expect(computeLinkEstablishmentTimeout(1)).toBe(366);
+    expect(computeLinkEstablishmentTimeout(3)).toBe(378);
+    expect(computeLinkEstablishmentTimeout(0)).toBe(366);
   });
 
   it("closes pending links after establishment timeout", () => {

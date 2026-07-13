@@ -2,12 +2,19 @@ import { describe, expect, it } from "vitest";
 import {
   LXMF_WIRE_HEADER_SIZE,
   lxmfHashableMaterial,
+  lxmfInboundDeliveryBytes,
   lxmfOpportunisticPayload,
   lxmfSignedMaterial,
+  packLxmfDestinationPrefixed,
   packLxmfWire,
+  splitLxmfDestinationPrefixed,
   splitLxmfWire
 } from "../src/lxmf-wire.js";
-import { LXMF_DESTINATION_LENGTH, LXMF_SIGNATURE_LENGTH } from "../src/lxmf-delivery.js";
+import {
+  LXMF_DESTINATION_LENGTH,
+  LXMF_SIGNATURE_LENGTH,
+  LxmfDeliveryMethod
+} from "../src/lxmf-delivery.js";
 
 describe("protocol lxmf wire", () => {
   const destination = new Uint8Array(LXMF_DESTINATION_LENGTH).fill(1);
@@ -40,13 +47,33 @@ describe("protocol lxmf wire", () => {
       ...payload
     ]);
   });
+
+  it("rebuilds opportunistic inbound delivery and destination-prefixed envelopes", () => {
+    const trailing = new Uint8Array([4, 5, 6]);
+    const opportunistic = lxmfInboundDeliveryBytes(
+      LxmfDeliveryMethod.OPPORTUNISTIC,
+      destination,
+      trailing
+    );
+    expect([...opportunistic]).toEqual([...destination, ...trailing]);
+    expect([
+      ...lxmfInboundDeliveryBytes(LxmfDeliveryMethod.DIRECT, destination, trailing)
+    ]).toEqual([...trailing]);
+
+    const packed = packLxmfDestinationPrefixed(destination, trailing);
+    const split = splitLxmfDestinationPrefixed(packed);
+    expect(split).not.toBeNull();
+    expect([...split!.destinationHash]).toEqual([...destination]);
+    expect([...split!.remainder]).toEqual([...trailing]);
+    expect(splitLxmfDestinationPrefixed(new Uint8Array(8))).toBeNull();
+  });
 });
 
 function packedFrom(
-  destination: Uint8Array,
-  source: Uint8Array,
+  destinationHash: Uint8Array,
+  sourceHash: Uint8Array,
   signature: Uint8Array,
   payload: Uint8Array
 ): Uint8Array {
-  return packLxmfWire({ destinationHash: destination, sourceHash: source, signature, payload });
+  return packLxmfWire({ destinationHash, sourceHash, signature, payload });
 }

@@ -3,6 +3,9 @@ import {
   applyLxmfSendEvent,
   initialDeliveryReceiptPollState,
   initialLxmfSendState,
+  lxmfInboundDeliveryBytes,
+  packLxmfDestinationPrefixed,
+  splitLxmfDestinationPrefixed,
   stepDeliveryReceiptPoll,
   type LxmfSendEvent,
   type ReceiptPollStatusValue
@@ -20,7 +23,7 @@ import {
   PacketContext,
   PacketReceiptStatus
 } from "@twistedpear/reticulum-ts";
-import { APP_NAME, DESTINATION_LENGTH, LXMessageMethod, LXMessageRepresentation, type LXMessageMethodValue } from "./constants.js";
+import { APP_NAME, LXMessageMethod, LXMessageRepresentation, type LXMessageMethodValue } from "./constants.js";
 import { LXMessage, rememberMessage, type LXMessagePackOptions } from "./message.js";
 
 export interface LXMFRouterOptions {
@@ -366,11 +369,7 @@ export class LXMFRouter {
   }
 
   handleDeliveryPacket(data: Uint8Array, packet: Packet, method: LXMessageMethodValue): boolean {
-    const lxmfData =
-      method === LXMessageMethod.OPPORTUNISTIC
-        ? concatBytes(packet.destinationHash, data)
-        : data;
-
+    const lxmfData = lxmfInboundDeliveryBytes(method, packet.destinationHash, data);
     return this.deliver(lxmfData, method);
   }
 
@@ -392,22 +391,22 @@ export class LXMFRouter {
 
   /** Mirrors LXMF/LXMRouter.lxmf_propagation local-delivery branch. */
   handlePropagationData(lxmfData: Uint8Array): LXMessage | null {
-    if (lxmfData.length < DESTINATION_LENGTH) {
+    const prefixed = splitLxmfDestinationPrefixed(lxmfData);
+    if (prefixed === null) {
       return null;
     }
 
-    const destinationHash = lxmfData.subarray(0, DESTINATION_LENGTH);
     const deliveryDestination = this.deliveryDestination;
-    if (deliveryDestination === null || !equalBytes(deliveryDestination.hash, destinationHash)) {
+    if (deliveryDestination === null || !equalBytes(deliveryDestination.hash, prefixed.destinationHash)) {
       return null;
     }
 
-    const decrypted = deliveryDestination.decrypt(lxmfData.subarray(DESTINATION_LENGTH));
+    const decrypted = deliveryDestination.decrypt(prefixed.remainder);
     if (decrypted === null) {
       return null;
     }
 
-    const deliveryData = concatBytes(destinationHash, decrypted);
+    const deliveryData = packLxmfDestinationPrefixed(prefixed.destinationHash, decrypted);
     const message = this.unpackDeliverable(deliveryData, LXMessageMethod.PROPAGATED);
     if (message !== null) {
       this.deliveryCallback?.(message);
@@ -451,16 +450,4 @@ export class LXMFRouter {
 }
 
 export { stampCostFromAppData } from "@twistedpear/protocol";
-
-function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  const length = parts.reduce((total, part) => total + part.length, 0);
-  const output = new Uint8Array(length);
-  let offset = 0;
-  for (const part of parts) {
-    output.set(part, offset);
-    offset += part.length;
-  }
-
-  return output;
-}
 

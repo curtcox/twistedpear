@@ -11,12 +11,14 @@ export {
 } from "./grants.js";
 export {
   computeKeepalive,
+  computeLinkEstablishmentTimeout,
   initialLinkWatchdogState,
   stepLinkWatchdog,
   stepLinkWatchdogWithActions,
   LINK_KEEPALIVE,
   LINK_KEEPALIVE_MIN,
   LINK_STALE_FACTOR,
+  LINK_ESTABLISHMENT_TIMEOUT_PER_HOP,
   LinkStatus,
   LinkTeardownReason,
   type LinkWatchdogAction,
@@ -451,10 +453,14 @@ export {
 export {
   LXMF_WIRE_HEADER_SIZE,
   lxmfHashableMaterial,
+  lxmfInboundDeliveryBytes,
   lxmfOpportunisticPayload,
   lxmfSignedMaterial,
+  packLxmfDestinationPrefixed,
   packLxmfWire,
+  splitLxmfDestinationPrefixed,
   splitLxmfWire,
+  type LxmfDestinationPrefixed,
   type LxmfWireFields
 } from "./lxmf-wire.js";
 export {

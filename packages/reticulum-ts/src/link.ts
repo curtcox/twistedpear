@@ -2,6 +2,7 @@ import {
   LINK_INITIATOR_ENTROPY_SIZE,
   LINK_PROOF_BODY_SIZE,
   LINK_RESPONDER_ENTROPY_SIZE,
+  LINK_ESTABLISHMENT_TIMEOUT_PER_HOP,
   applyLinkEstablishEvent,
   canAcceptLinkIdentify,
   canAcceptLinkRtt,
@@ -10,6 +11,7 @@ import {
   canValidateLinkProof,
   classifyLinkProofPayload,
   computeKeepalive,
+  computeLinkEstablishmentTimeout,
   computeLinkMdu,
   computeLinkRttSeconds,
   deriveRnsLinkKey,
@@ -93,7 +95,7 @@ export const LINK_STALE_GRACE = 5;
 export const LINK_TRAFFIC_TIMEOUT_FACTOR = 6;
 export const LINK_KEEPALIVE_TIMEOUT_FACTOR = 4;
 export const LINK_WATCHDOG_MAX_SLEEP_MS = 5000;
-export const LINK_ESTABLISHMENT_TIMEOUT_PER_HOP = 6;
+export { LINK_ESTABLISHMENT_TIMEOUT_PER_HOP };
 export const LINK_RESPONSE_MAX_GRACE_TIME = 5;
 
 export const LinkStatus = {
@@ -179,7 +181,7 @@ export class Link {
   lastData = 0;
   keepalive = LINK_KEEPALIVE;
   staleTime = LINK_KEEPALIVE * LINK_STALE_FACTOR;
-  establishmentTimeout = LINK_ESTABLISHMENT_TIMEOUT_PER_HOP + LINK_KEEPALIVE;
+  establishmentTimeout = computeLinkEstablishmentTimeout(1, LINK_KEEPALIVE);
   teardownReason: LinkTeardownReasonValue | null = null;
   remoteIdentity: Identity | null = null;
   mode: LinkModeValue = LINK_MODE_DEFAULT;
@@ -245,8 +247,10 @@ export class Link {
     );
     link.expectedHops = options.transport.hopsTo(destination.hash);
     link.requestTime = options.transport.clock.now() / 1000;
-    link.establishmentTimeout =
-      LINK_ESTABLISHMENT_TIMEOUT_PER_HOP * Math.max(1, link.expectedHops ?? 1) + LINK_KEEPALIVE;
+    link.establishmentTimeout = computeLinkEstablishmentTimeout(
+      link.expectedHops ?? 1,
+      LINK_KEEPALIVE
+    );
 
     let mtu = RETICULUM_MTU;
     if (options.linkMtuDiscovery !== false) {
@@ -335,8 +339,7 @@ export class Link {
       link.handshake();
       link.requestTime = transport.clock.now() / 1000;
       link.lastInbound = link.requestTime;
-      link.establishmentTimeout =
-        LINK_ESTABLISHMENT_TIMEOUT_PER_HOP * Math.max(1, packet.hops) + LINK_KEEPALIVE;
+      link.establishmentTimeout = computeLinkEstablishmentTimeout(packet.hops, LINK_KEEPALIVE);
       transport.registerLink(link);
       link.startWatchdog();
       void link.prove();
