@@ -72,6 +72,19 @@ export function canLinkSend(status: LinkStatusValue): boolean {
   return status === LinkStatus.ACTIVE;
 }
 
+/** Whether inbound link traffic should be accepted from this interface attachment. */
+export function shouldAcceptLinkPacketInterface(input: {
+  readonly hasAttachedInterface: boolean;
+  readonly sameInterface: boolean;
+}): boolean {
+  return !input.hasAttachedInterface || input.sameInterface;
+}
+
+/** Whether link sendContext should encrypt the payload (default yes unless encrypt:false). */
+export function shouldEncryptLinkPayload(encryptOption: boolean | undefined): boolean {
+  return encryptOption !== false;
+}
+
 /** Whether the link is closed (no further receive / watchdog work). */
 export function isLinkClosed(status: LinkStatusValue): boolean {
   return status === LinkStatus.CLOSED;

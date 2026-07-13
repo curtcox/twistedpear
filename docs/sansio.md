@@ -148,6 +148,13 @@
 > **`isStreamIdAssigned`** lives in protocol; `StreamDataMessage.pack` adapts it.
 > **`shouldHandleStreamDataMessage`** lives in protocol; `RawChannelReader` message handler adapts it.
 > **`planDestinationDecrypt`** lives in protocol; `RegisteredDestination.decrypt` adapts it.
+> **`planDestinationEncrypt`** lives in protocol; `RegisteredDestination.send` adapts it.
+> **`canRequestLinkDestination`** lives in protocol; `Link.request` adapts it.
+> **`isValidDestinationIdentityBinding`** lives in protocol; `Destination` construction
+> adapts it. **`Announce.buildPacket`** reuses **`canAnnounceDestination`**.
+> **`planLxMessagePack`** lives in protocol; `LXMessage.pack` adapts it.
+> **`shouldIgnoreInitiatorKeepaliveProbe`**, **`shouldAcceptLinkPacketInterface`**, and
+> **`shouldEncryptLinkPayload`** live in protocol; `Link.receive` / `sendContext` adapt them.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

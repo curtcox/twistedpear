@@ -30,6 +30,7 @@ import {
   canDestinationSend,
   isValidDestinationRequestPath,
   planDestinationDecrypt,
+  planDestinationEncrypt,
   utf8Encode,
   type DestinationAllowPolicyCodeValue
 } from "@twistedpear/protocol";
@@ -252,12 +253,17 @@ export class RegisteredDestination extends Destination {
       throw new Error("Only OUT destinations can send packets");
     }
 
-    const ciphertext =
-      this.type === DestinationType.PLAIN
-        ? data
-        : (this.identity?.encrypt(data, { entropy: this.transport.entropy }) ?? null);
-    if (ciphertext === null) {
+    const plan = planDestinationEncrypt({
+      typePlain: this.type === DestinationType.PLAIN,
+      identityPresent: this.identity !== null
+    });
+    let ciphertext: Uint8Array;
+    if (plan === "use-plaintext") {
+      ciphertext = data;
+    } else if (plan === "reject") {
       throw new Error("Destination cannot encrypt outbound data");
+    } else {
+      ciphertext = this.identity!.encrypt(data, { entropy: this.transport.entropy });
     }
 
     const packet = Packet.fromFields(this.cryptoProvider, {

@@ -130,3 +130,20 @@ export function planLxmfDelivery(input: {
 
   return { kind: "reject-unsupported-method", method: desiredMethod };
 }
+
+export type LxMessagePackGate = "ok" | "bad-destination" | "bad-source";
+
+/** Whether LXMessage.pack may proceed given destination/source direction and identity. */
+export function planLxMessagePack(input: {
+  readonly destinationDirectionOut: boolean;
+  readonly sourceDirectionIn: boolean;
+  readonly sourceIdentityPresent: boolean;
+}): LxMessagePackGate {
+  if (!input.destinationDirectionOut) {
+    return "bad-destination";
+  }
+  if (!input.sourceDirectionIn || !input.sourceIdentityPresent) {
+    return "bad-source";
+  }
+  return "ok";
+}

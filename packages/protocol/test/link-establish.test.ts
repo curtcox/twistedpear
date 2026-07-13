@@ -19,7 +19,9 @@ import {
   computeLinkRttSeconds,
   initialLinkEstablishState,
   isLinkClosed,
-  mergeLinkRtt
+  mergeLinkRtt,
+  shouldAcceptLinkPacketInterface,
+  shouldEncryptLinkPayload
 } from "../src/link-establish.js";
 
 describe("protocol link proof framing", () => {
@@ -71,6 +73,24 @@ describe("protocol link establish", () => {
     expect(canLinkSend(LinkStatus.PENDING)).toBe(false);
     expect(canLinkSend(LinkStatus.HANDSHAKE)).toBe(false);
     expect(canLinkSend(LinkStatus.CLOSED)).toBe(false);
+  });
+
+  it("accepts link packets from matching or unbound interfaces", () => {
+    expect(
+      shouldAcceptLinkPacketInterface({ hasAttachedInterface: false, sameInterface: false })
+    ).toBe(true);
+    expect(
+      shouldAcceptLinkPacketInterface({ hasAttachedInterface: true, sameInterface: true })
+    ).toBe(true);
+    expect(
+      shouldAcceptLinkPacketInterface({ hasAttachedInterface: true, sameInterface: false })
+    ).toBe(false);
+  });
+
+  it("encrypts link payloads unless encrypt option is false", () => {
+    expect(shouldEncryptLinkPayload(undefined)).toBe(true);
+    expect(shouldEncryptLinkPayload(true)).toBe(true);
+    expect(shouldEncryptLinkPayload(false)).toBe(false);
   });
 
   it("detects CLOSED status", () => {

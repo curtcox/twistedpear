@@ -5,7 +5,8 @@ import {
   isLinkKeepaliveProbe,
   isLinkKeepaliveReply,
   packLinkKeepaliveProbe,
-  packLinkKeepaliveReply
+  packLinkKeepaliveReply,
+  shouldIgnoreInitiatorKeepaliveProbe
 } from "../src/link-keepalive.js";
 
 describe("link keepalive framing", () => {
@@ -19,5 +20,29 @@ describe("link keepalive framing", () => {
     expect(isLinkKeepaliveReply(packLinkKeepaliveReply())).toBe(true);
     expect(isLinkKeepaliveProbe(packLinkKeepaliveReply())).toBe(false);
     expect(isLinkKeepaliveReply(new Uint8Array([0xff, 0xfe]))).toBe(false);
+  });
+
+  it("ignores initiator keepalive probes only", () => {
+    expect(
+      shouldIgnoreInitiatorKeepaliveProbe({
+        initiator: true,
+        contextKeepalive: true,
+        probePayload: true
+      })
+    ).toBe(true);
+    expect(
+      shouldIgnoreInitiatorKeepaliveProbe({
+        initiator: false,
+        contextKeepalive: true,
+        probePayload: true
+      })
+    ).toBe(false);
+    expect(
+      shouldIgnoreInitiatorKeepaliveProbe({
+        initiator: true,
+        contextKeepalive: false,
+        probePayload: true
+      })
+    ).toBe(false);
   });
 });

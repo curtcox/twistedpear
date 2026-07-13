@@ -5,6 +5,7 @@ import {
   announceDestinationHashMaterial,
   announceDestinationHashMatches,
   announceSignedMaterial,
+  canAnnounceDestination,
   packAnnouncePayload,
   parseAnnouncePayload,
   truncateToTruncatedHash
@@ -49,12 +50,17 @@ export class Announce {
     destination: Destination,
     options: AnnounceBuildOptions = {}
   ): Packet {
-    if (destination.type !== DestinationType.SINGLE) {
-      throw new Error("Only SINGLE destinations can be announced");
-    }
-
-    if (destination.direction !== DestinationDirection.IN) {
-      throw new Error("Only IN destinations can be announced");
+    if (
+      !canAnnounceDestination({
+        typeSingle: destination.type === DestinationType.SINGLE,
+        directionIn: destination.direction === DestinationDirection.IN
+      })
+    ) {
+      throw new Error(
+        destination.type !== DestinationType.SINGLE
+          ? "Only SINGLE destinations can be announced"
+          : "Only IN destinations can be announced"
+      );
     }
 
     if (destination.identity === null) {

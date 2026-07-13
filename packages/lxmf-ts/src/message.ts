@@ -11,6 +11,7 @@ import {
   packLxmfDestinationPrefixed,
   packLxmfWire,
   planLxmfDelivery,
+  planLxMessagePack,
   splitLxmfWire,
   utf8Decode,
   utf8OrBytes
@@ -112,11 +113,15 @@ export class LXMessage {
   }
 
   static pack(options: LXMessagePackOptions): LXMessage {
-    if (options.destination.direction !== DestinationDirection.OUT) {
+    const gate = planLxMessagePack({
+      destinationDirectionOut: options.destination.direction === DestinationDirection.OUT,
+      sourceDirectionIn: options.source.direction === DestinationDirection.IN,
+      sourceIdentityPresent: options.source.identity !== null
+    });
+    if (gate === "bad-destination") {
       throw new Error("LXMessage destination must be OUT");
     }
-
-    if (options.source.direction !== DestinationDirection.IN || options.source.identity === null) {
+    if (gate === "bad-source") {
       throw new Error("LXMessage source must be IN with identity");
     }
 

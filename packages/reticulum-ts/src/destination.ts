@@ -4,6 +4,7 @@ import {
   DestinationDirectionCode,
   DestinationTypeCode,
   expandDestinationName,
+  isValidDestinationIdentityBinding,
   truncateToNameHash,
   truncateToTruncatedHash,
   validateDestinationNamePart,
@@ -64,12 +65,17 @@ export class Destination {
       throw new Error(`Unknown destination type: ${this.type}`);
     }
 
-    if (this.type === DestinationType.PLAIN && options.identity != null) {
-      throw new Error("PLAIN destinations cannot hold an identity");
-    }
-
-    if (this.type !== DestinationType.PLAIN && options.identity == null) {
-      throw new Error("Non-PLAIN destinations require identity material");
+    if (
+      !isValidDestinationIdentityBinding({
+        typePlain: this.type === DestinationType.PLAIN,
+        identityPresent: options.identity != null
+      })
+    ) {
+      throw new Error(
+        this.type === DestinationType.PLAIN
+          ? "PLAIN destinations cannot hold an identity"
+          : "Non-PLAIN destinations require identity material"
+      );
     }
 
     this.identity = options.identity instanceof Identity ? options.identity : null;

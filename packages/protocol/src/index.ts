@@ -45,7 +45,8 @@ export {
   isLinkKeepaliveProbe,
   isLinkKeepaliveReply,
   packLinkKeepaliveProbe,
-  packLinkKeepaliveReply
+  packLinkKeepaliveReply,
+  shouldIgnoreInitiatorKeepaliveProbe
 } from "./link-keepalive.js";
 export {
   LinkRequestReceiptStatus,
@@ -62,11 +63,15 @@ export {
   canAcceptDestinationLinkRequest,
   canAnnounceDestination,
   canDestinationSend,
+  canRequestLinkDestination,
+  isValidDestinationIdentityBinding,
   isValidDestinationRequestPath,
   planDestinationDecrypt,
+  planDestinationEncrypt,
   planDestinationRequestAllow,
   type DestinationAllowPolicyCodeValue,
-  type DestinationDecryptPlan
+  type DestinationDecryptPlan,
+  type DestinationEncryptPlan
 } from "./destination-allow.js";
 export {
   DestinationProofStrategyCode,
@@ -413,6 +418,8 @@ export {
   initialLinkEstablishState,
   isLinkClosed,
   mergeLinkRtt,
+  shouldAcceptLinkPacketInterface,
+  shouldEncryptLinkPayload,
   stepLinkEstablish,
   type LinkEstablishEvent,
   type LinkEstablishState
@@ -687,9 +694,11 @@ export {
   LxmfDeliveryRepresentation,
   lxmfContentSizeFromPackedLength,
   planLxmfDelivery,
+  planLxMessagePack,
   type LxmfDeliveryMethodValue,
   type LxmfDeliveryPlan,
-  type LxmfDeliveryRepresentationValue
+  type LxmfDeliveryRepresentationValue,
+  type LxMessagePackGate
 } from "./lxmf-delivery.js";
 export {
   LXMF_APP_NAME,

@@ -32,6 +32,7 @@ import {
   canLinkHandshake,
   canLinkRequest,
   canLinkSend,
+  canRequestLinkDestination,
   canValidateLinkProof,
   classifyLinkProofPayload,
   computeLinkEstablishmentTimeout,
@@ -69,6 +70,9 @@ import {
   planLinkResourceAcceptAppResult,
   planLinkTeardown,
   planLinkTeardownReason,
+  shouldAcceptLinkPacketInterface,
+  shouldEncryptLinkPayload,
+  shouldIgnoreInitiatorKeepaliveProbe,
   splitIdentityPublicKey,
   splitInitiatorLinkEntropy,
   splitLinkIdentifyPayload,
@@ -252,7 +256,12 @@ export class Link {
 
   static request(options: InitiatorLinkOptions): Link {
     const destination = options.destination;
-    if (destination.direction !== DestinationDirection.OUT || destination.type !== DestinationType.SINGLE) {
+    if (
+      !canRequestLinkDestination({
+        typeSingle: destination.type === DestinationType.SINGLE,
+        directionOut: destination.direction === DestinationDirection.OUT
+      })
+    ) {
       throw new Error("Links can only be established to OUT SINGLE destinations");
     }
 
@@ -599,14 +608,21 @@ export class Link {
     }
 
     if (
-      this.initiator &&
-      packet.context === PacketContext.KEEPALIVE &&
-      isLinkKeepaliveProbe(packet.data)
+      shouldIgnoreInitiatorKeepaliveProbe({
+        initiator: this.initiator,
+        contextKeepalive: packet.context === PacketContext.KEEPALIVE,
+        probePayload: isLinkKeepaliveProbe(packet.data)
+      })
     ) {
       return;
     }
 
-    if (this.attachedInterface !== null && iface !== this.attachedInterface) {
+    if (
+      !shouldAcceptLinkPacketInterface({
+        hasAttachedInterface: this.attachedInterface !== null,
+        sameInterface: iface === this.attachedInterface
+      })
+    ) {
       return;
     }
 
@@ -885,7 +901,9 @@ export class Link {
       throw new Error("Cannot send on inactive link");
     }
 
-    const payload = options.encrypt === false ? data : this.encrypt(data);
+    const payload = shouldEncryptLinkPayload(options.encrypt)
+      ? this.encrypt(data)
+      : data;
     const packet = Packet.fromFields(this.provider, {
       headerType: PacketHeaderType.HEADER_1,
       transportType: TransportType.BROADCAST,

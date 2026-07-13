@@ -4,8 +4,11 @@ import {
   canAcceptDestinationLinkRequest,
   canAnnounceDestination,
   canDestinationSend,
+  canRequestLinkDestination,
+  isValidDestinationIdentityBinding,
   isValidDestinationRequestPath,
   planDestinationDecrypt,
+  planDestinationEncrypt,
   planDestinationRequestAllow
 } from "../src/destination-allow.js";
 import { LinkRequestReceiptStatus } from "../src/link-request-receipt.js";
@@ -71,6 +74,27 @@ describe("destination allow policy", () => {
     expect(canDestinationSend(false)).toBe(false);
   });
 
+  it("allows link requests only to OUT SINGLE destinations", () => {
+    expect(canRequestLinkDestination({ typeSingle: true, directionOut: true })).toBe(true);
+    expect(canRequestLinkDestination({ typeSingle: false, directionOut: true })).toBe(false);
+    expect(canRequestLinkDestination({ typeSingle: true, directionOut: false })).toBe(false);
+  });
+
+  it("validates destination identity binding by type", () => {
+    expect(
+      isValidDestinationIdentityBinding({ typePlain: true, identityPresent: false })
+    ).toBe(true);
+    expect(
+      isValidDestinationIdentityBinding({ typePlain: true, identityPresent: true })
+    ).toBe(false);
+    expect(
+      isValidDestinationIdentityBinding({ typePlain: false, identityPresent: true })
+    ).toBe(true);
+    expect(
+      isValidDestinationIdentityBinding({ typePlain: false, identityPresent: false })
+    ).toBe(false);
+  });
+
   it("plans destination decrypt by type and identity", () => {
     expect(planDestinationDecrypt({ typePlain: true, identityPresent: false })).toBe(
       "return-ciphertext"
@@ -78,6 +102,16 @@ describe("destination allow policy", () => {
     expect(planDestinationDecrypt({ typePlain: false, identityPresent: false })).toBe("reject");
     expect(planDestinationDecrypt({ typePlain: false, identityPresent: true })).toBe(
       "decrypt-with-identity"
+    );
+  });
+
+  it("plans destination encrypt by type and identity", () => {
+    expect(planDestinationEncrypt({ typePlain: true, identityPresent: false })).toBe(
+      "use-plaintext"
+    );
+    expect(planDestinationEncrypt({ typePlain: false, identityPresent: false })).toBe("reject");
+    expect(planDestinationEncrypt({ typePlain: false, identityPresent: true })).toBe(
+      "encrypt-with-identity"
     );
   });
 });

@@ -21,3 +21,12 @@ export function isLinkKeepaliveProbe(data: Uint8Array): boolean {
 export function isLinkKeepaliveReply(data: Uint8Array): boolean {
   return data.length === 1 && data[0] === LINK_KEEPALIVE_REPLY_BYTE;
 }
+
+/** Whether an initiator should drop an inbound keepalive-probe DATA/KEEPALIVE packet. */
+export function shouldIgnoreInitiatorKeepaliveProbe(input: {
+  readonly initiator: boolean;
+  readonly contextKeepalive: boolean;
+  readonly probePayload: boolean;
+}): boolean {
+  return input.initiator && input.contextKeepalive && input.probePayload;
+}

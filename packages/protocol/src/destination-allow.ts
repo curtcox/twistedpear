@@ -38,6 +38,25 @@ export function canDestinationSend(directionOut: boolean): boolean {
   return directionOut;
 }
 
+/** Whether a link may be requested to this destination (OUT SINGLE only). */
+export function canRequestLinkDestination(input: {
+  readonly typeSingle: boolean;
+  readonly directionOut: boolean;
+}): boolean {
+  return input.typeSingle && input.directionOut;
+}
+
+/** Whether destination type and identity binding are valid. */
+export function isValidDestinationIdentityBinding(input: {
+  readonly typePlain: boolean;
+  readonly identityPresent: boolean;
+}): boolean {
+  if (input.typePlain) {
+    return !input.identityPresent;
+  }
+  return input.identityPresent;
+}
+
 export type DestinationDecryptPlan =
   | "return-ciphertext"
   | "reject"
@@ -55,6 +74,25 @@ export function planDestinationDecrypt(input: {
     return "reject";
   }
   return "decrypt-with-identity";
+}
+
+export type DestinationEncryptPlan =
+  | "use-plaintext"
+  | "reject"
+  | "encrypt-with-identity";
+
+/** How destination send should proceed for outbound data. */
+export function planDestinationEncrypt(input: {
+  readonly typePlain: boolean;
+  readonly identityPresent: boolean;
+}): DestinationEncryptPlan {
+  if (input.typePlain) {
+    return "use-plaintext";
+  }
+  if (!input.identityPresent) {
+    return "reject";
+  }
+  return "encrypt-with-identity";
 }
 
 export function planDestinationRequestAllow(input: {

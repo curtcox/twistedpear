@@ -8,7 +8,8 @@ import {
   LxmfDeliveryMethod,
   LxmfDeliveryRepresentation,
   lxmfContentSizeFromPackedLength,
-  planLxmfDelivery
+  planLxmfDelivery,
+  planLxMessagePack
 } from "../src/lxmf-delivery.js";
 
 describe("protocol lxmf delivery", () => {
@@ -90,5 +91,36 @@ describe("protocol lxmf delivery", () => {
         propagationPackedLength: 80
       }).representation
     ).toBe(LxmfDeliveryRepresentation.RESOURCE);
+  });
+
+  it("plans LXMessage pack gates for destination and source", () => {
+    expect(
+      planLxMessagePack({
+        destinationDirectionOut: true,
+        sourceDirectionIn: true,
+        sourceIdentityPresent: true
+      })
+    ).toBe("ok");
+    expect(
+      planLxMessagePack({
+        destinationDirectionOut: false,
+        sourceDirectionIn: true,
+        sourceIdentityPresent: true
+      })
+    ).toBe("bad-destination");
+    expect(
+      planLxMessagePack({
+        destinationDirectionOut: true,
+        sourceDirectionIn: false,
+        sourceIdentityPresent: true
+      })
+    ).toBe("bad-source");
+    expect(
+      planLxMessagePack({
+        destinationDirectionOut: true,
+        sourceDirectionIn: true,
+        sourceIdentityPresent: false
+      })
+    ).toBe("bad-source");
   });
 });
