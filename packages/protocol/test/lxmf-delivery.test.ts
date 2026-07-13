@@ -8,9 +8,11 @@ import {
   LxmfDeliveryMethod,
   LxmfDeliveryRepresentation,
   lxmfContentSizeFromPackedLength,
+  canAcceptLxmfPropagationLocalDelivery,
   planLxmfDelivery,
   planLxMessagePack,
-  planLxmfDeliverableAccept
+  planLxmfDeliverableAccept,
+  planLxmfPropagatedSend
 } from "../src/lxmf-delivery.js";
 
 describe("protocol lxmf delivery", () => {
@@ -154,5 +156,44 @@ describe("protocol lxmf delivery", () => {
         alreadySeen: true
       })
     ).toBe("accept");
+  });
+
+  it("gates propagation local delivery and propagated send", () => {
+    expect(
+      canAcceptLxmfPropagationLocalDelivery({
+        deliveryDestinationPresent: true,
+        destinationHashMatches: true
+      })
+    ).toBe(true);
+    expect(
+      canAcceptLxmfPropagationLocalDelivery({
+        deliveryDestinationPresent: true,
+        destinationHashMatches: false
+      })
+    ).toBe(false);
+    expect(
+      canAcceptLxmfPropagationLocalDelivery({
+        deliveryDestinationPresent: false,
+        destinationHashMatches: true
+      })
+    ).toBe(false);
+    expect(
+      planLxmfPropagatedSend({
+        hasPropagationPacked: true,
+        representation: LxmfDeliveryRepresentation.PACKET
+      })
+    ).toBe("ok");
+    expect(
+      planLxmfPropagatedSend({
+        hasPropagationPacked: false,
+        representation: LxmfDeliveryRepresentation.PACKET
+      })
+    ).toBe("missing-packed");
+    expect(
+      planLxmfPropagatedSend({
+        hasPropagationPacked: true,
+        representation: LxmfDeliveryRepresentation.RESOURCE
+      })
+    ).toBe("resource-unimplemented");
   });
 });

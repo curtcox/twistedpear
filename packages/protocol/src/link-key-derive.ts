@@ -25,6 +25,14 @@ export function isLinkModeEnabled(mode: LinkKeyModeValue | number): boolean {
   return (LINK_ENABLED_MODES as ReadonlyArray<number>).includes(mode);
 }
 
+/** Whether a received link-proof mode matches the expected session mode. */
+export function isExpectedLinkMode(input: {
+  readonly expected: LinkKeyModeValue | number;
+  readonly received: LinkKeyModeValue | number;
+}): boolean {
+  return input.expected === input.received;
+}
+
 export function linkDerivedKeyLength(mode: LinkKeyModeValue | number): number {
   return mode === LinkKeyMode.MODE_AES256_CBC ? 64 : 32;
 }

@@ -88,6 +88,26 @@ export function shouldReceiveAnnouncePathResponse(input: {
   return input.receivePathResponses === true;
 }
 
+/** Drop announces that target a local IN destination (already ours). */
+export function shouldIgnoreLocalAnnounce(hasLocalInboundDestination: boolean): boolean {
+  return hasLocalInboundDestination;
+}
+
+/**
+ * Whether an announce handler's optional aspect filter matches the packet hash.
+ * Filter parse / Destination.hash stay at the adapter edge as boolean inputs.
+ */
+export function shouldMatchAnnounceAspect(input: {
+  readonly hasFilter: boolean;
+  readonly filterParsed: boolean;
+  readonly hashMatches: boolean;
+}): boolean {
+  if (!input.hasFilter) {
+    return true;
+  }
+  return input.filterParsed && input.hashMatches;
+}
+
 export interface AnnounceIngressGates {
   readonly applyRateLimit: boolean;
   readonly recordRate: boolean;

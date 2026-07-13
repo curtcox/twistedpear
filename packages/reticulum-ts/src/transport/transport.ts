@@ -1,16 +1,21 @@
 import {
   LOCAL_REBROADCASTS_MAX as PROTOCOL_LOCAL_REBROADCASTS_MAX,
   REVERSE_TIMEOUT_SECONDS as PROTOCOL_REVERSE_TIMEOUT_SECONDS,
+  canRelayLinkPacket,
+  canRelayReversePacket,
   canRelayTransportPacket,
   isDiscoveryPathRequestExpired,
   isReverseEntryExpired,
   planAnnounceIngressGates,
   planLinkRelayTarget,
+  planTransportIngressDispatch,
   rewritePacketHopsBytes,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash as planShouldDeferPacketHash,
   shouldRecordLinkRelayTableEntry,
-  shouldRecordReverseTableEntry
+  shouldRecordReverseTableEntry,
+  shouldRelayReverseOnInterface,
+  shouldTransmitOnInterface
 } from "@twistedpear/protocol";
 import { equalBytes } from "../crypto/bytes.js";
 import { DestinationDirection, DestinationType } from "../destination.js";
@@ -118,28 +123,29 @@ export class TransportNode extends LeafTransport {
       this.packetHashes.add(hashKey(workingPacket.hash()));
     }
 
-    if (workingPacket.packetType === PacketType.ANNOUNCE) {
-      await this.handleAnnounce(workingPacket, iface);
-      return;
-    }
-
-    if (workingPacket.packetType === PacketType.LINKREQUEST) {
-      await this.handleLinkRequest(workingPacket, iface);
-      return;
-    }
-
-    if (workingPacket.packetType === PacketType.DATA) {
-      if (workingPacket.destinationType === DestinationType.LINK) {
+    switch (
+      planTransportIngressDispatch({
+        packetType: workingPacket.packetType,
+        destinationType: workingPacket.destinationType
+      })
+    ) {
+      case "announce":
+        await this.handleAnnounce(workingPacket, iface);
+        return;
+      case "link-request":
+        await this.handleLinkRequest(workingPacket, iface);
+        return;
+      case "link-data":
         await this.handleLinkData(workingPacket, iface);
         return;
-      }
-
-      await this.handleData(workingPacket, iface);
-      return;
-    }
-
-    if (workingPacket.packetType === PacketType.PROOF) {
-      await this.handleProof(workingPacket, iface);
+      case "plain-data":
+        await this.handleData(workingPacket, iface);
+        return;
+      case "proof":
+        await this.handleProof(workingPacket, iface);
+        return;
+      case "ignore":
+        return;
     }
   }
 
@@ -208,7 +214,12 @@ export class TransportNode extends LeafTransport {
     });
 
     for (const outbound of this.interfaces) {
-      if (!outbound.outgoing || outbound === iface) {
+      if (
+        !shouldTransmitOnInterface({
+          outgoing: outbound.outgoing,
+          isExcludedInterface: outbound === iface
+        })
+      ) {
         continue;
       }
 
@@ -285,7 +296,7 @@ export class TransportNode extends LeafTransport {
   }
 
   private async relayLinkPacket(packet: Packet, iface: PacketInterface): Promise<boolean> {
-    if (packet.packetType === PacketType.ANNOUNCE || packet.packetType === PacketType.LINKREQUEST) {
+    if (!canRelayLinkPacket(packet.packetType)) {
       return false;
     }
 
@@ -319,23 +330,30 @@ export class TransportNode extends LeafTransport {
   }
 
   private async relayReversePacket(packet: Packet, iface: PacketInterface): Promise<boolean> {
-    if (packet.packetType !== PacketType.PROOF) {
+    const key = hashKey(packet.destinationHash);
+    const entry = this.reverseTable.get(key);
+    const nowSeconds = this.clock.now() / 1000;
+    const entryExpired =
+      entry !== undefined && isReverseEntryExpired({ timestamp: entry.timestamp, nowSeconds });
+
+    if (
+      !canRelayReversePacket({
+        isProof: packet.packetType === PacketType.PROOF,
+        hasEntry: entry !== undefined,
+        entryExpired
+      })
+    ) {
+      if (entryExpired) {
+        this.reverseTable.delete(key);
+      }
       return false;
     }
 
-    const key = hashKey(packet.destinationHash);
-    const entry = this.reverseTable.get(key);
     if (entry === undefined) {
       return false;
     }
 
-    const nowSeconds = this.clock.now() / 1000;
-    if (isReverseEntryExpired({ timestamp: entry.timestamp, nowSeconds })) {
-      this.reverseTable.delete(key);
-      return false;
-    }
-
-    if (iface !== entry.outboundInterface) {
+    if (!shouldRelayReverseOnInterface(iface === entry.outboundInterface)) {
       return false;
     }
 
@@ -351,7 +369,12 @@ export class TransportNode extends LeafTransport {
 
     const rebroadcast = buildTransportAnnounce(this.provider, packet, this.transportIdentity, packet.hops);
     for (const outbound of this.interfaces) {
-      if (!outbound.outgoing || outbound === iface) {
+      if (
+        !shouldTransmitOnInterface({
+          outgoing: outbound.outgoing,
+          isExcludedInterface: outbound === iface
+        })
+      ) {
         continue;
       }
 

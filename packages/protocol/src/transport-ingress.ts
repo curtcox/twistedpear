@@ -3,8 +3,10 @@
  * Hash tables and interface identity stay at the adapter edge as boolean inputs.
  */
 import {
+  PACKET_DEST_TYPE_LINK,
   PACKET_DEST_TYPE_SINGLE,
   PACKET_TYPE_ANNOUNCE,
+  PACKET_TYPE_DATA,
   PACKET_TYPE_LINKREQUEST,
   PACKET_TYPE_PROOF
 } from "./packet-header.js";
@@ -160,4 +162,94 @@ export function isLocalPathRequestPacket(input: {
   readonly destinationHashMatches: boolean;
 }): boolean {
   return input.destinationTypePlain && input.destinationHashMatches;
+}
+
+/**
+ * Whether a link-table packet may be relayed (not ANNOUNCE / LINKREQUEST).
+ * Link-table lookup and hop/interface targeting stay at the adapter edge.
+ */
+export function canRelayLinkPacket(packetType: number): boolean {
+  return (
+    packetType !== PACKET_TYPE_ANNOUNCE && packetType !== PACKET_TYPE_LINKREQUEST
+  );
+}
+
+/**
+ * Whether a reverse-table proof may be relayed (PROOF + live reverse entry).
+ * Interface identity is checked separately via {@link shouldRelayReverseOnInterface}.
+ */
+export function canRelayReversePacket(input: {
+  readonly isProof: boolean;
+  readonly hasEntry: boolean;
+  readonly entryExpired: boolean;
+}): boolean {
+  return input.isProof && input.hasEntry && !input.entryExpired;
+}
+
+/** Whether reverse relay should use this iface (must be the reverse entry's outbound). */
+export function shouldRelayReverseOnInterface(ifaceIsOutbound: boolean): boolean {
+  return ifaceIsOutbound;
+}
+
+/** Pure type → handler dispatch after transport accept / relay. */
+export type TransportIngressDispatch =
+  | "announce"
+  | "link-request"
+  | "link-data"
+  | "plain-data"
+  | "proof"
+  | "ignore";
+
+export function planTransportIngressDispatch(input: {
+  readonly packetType: number;
+  readonly destinationType: number;
+}): TransportIngressDispatch {
+  if (input.packetType === PACKET_TYPE_ANNOUNCE) {
+    return "announce";
+  }
+  if (input.packetType === PACKET_TYPE_LINKREQUEST) {
+    return "link-request";
+  }
+  if (input.packetType === PACKET_TYPE_DATA) {
+    return input.destinationType === PACKET_DEST_TYPE_LINK ? "link-data" : "plain-data";
+  }
+  if (input.packetType === PACKET_TYPE_PROOF) {
+    return "proof";
+  }
+  return "ignore";
+}
+
+/** Pure proof-context → handler kind. */
+export type ProofIngressKind = "lrproof" | "resource-prf" | "receipt";
+
+export function planProofIngressKind(context: number): ProofIngressKind {
+  if (context === PacketContextCode.LRPROOF) {
+    return "lrproof";
+  }
+  if (context === PacketContextCode.RESOURCE_PRF) {
+    return "resource-prf";
+  }
+  return "receipt";
+}
+
+/**
+ * Whether a packet should leave on this interface (outgoing + optional exclude /
+ * attached-interface constraints).
+ */
+export function shouldTransmitOnInterface(input: {
+  readonly outgoing: boolean;
+  readonly isExcludedInterface?: boolean;
+  readonly requireAttached?: boolean;
+  readonly isAttached?: boolean;
+}): boolean {
+  if (!input.outgoing) {
+    return false;
+  }
+  if (input.isExcludedInterface === true) {
+    return false;
+  }
+  if (input.requireAttached === true && input.isAttached !== true) {
+    return false;
+  }
+  return true;
 }

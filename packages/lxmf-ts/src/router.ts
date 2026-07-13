@@ -1,12 +1,14 @@
 import {
   DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
   applyLxmfSendEvent,
+  canAcceptLxmfPropagationLocalDelivery,
   canLinkSend,
   initialDeliveryReceiptPollState,
   initialLxmfSendState,
   lxmfInboundDeliveryBytes,
   packLxmfDestinationPrefixed,
   planLxmfDeliverableAccept,
+  planLxmfPropagatedSend,
   splitLxmfDestinationPrefixed,
   stepDeliveryReceiptPoll,
   type LxmfSendEvent,
@@ -24,7 +26,7 @@ import {
   PacketContext,
   PacketReceiptStatus
 } from "@twistedpear/reticulum-ts";
-import { APP_NAME, LXMessageMethod, LXMessageRepresentation, type LXMessageMethodValue } from "./constants.js";
+import { APP_NAME, LXMessageMethod, type LXMessageMethodValue } from "./constants.js";
 import { LXMessage, rememberMessage, type LXMessagePackOptions } from "./message.js";
 
 export interface LXMFRouterOptions {
@@ -294,18 +296,22 @@ export class LXMFRouter {
       throw new Error("No outbound propagation node configured");
     }
 
-    if (message.propagationPacked === null) {
+    const packed = message.propagationPacked;
+    const plan = planLxmfPropagatedSend({
+      hasPropagationPacked: packed !== null,
+      representation: message.representation
+    });
+    if (plan === "missing-packed" || packed === null) {
       throw new Error("PROPAGATED LXMF requires propagationPacked");
     }
-
-    if (message.representation !== LXMessageRepresentation.PACKET) {
+    if (plan === "resource-unimplemented") {
       throw new Error("Large propagated LXMF via resource is not implemented");
     }
 
     const link = await this.ensureOutboundPropagationLink();
     this.applySendState(message, { kind: "lxmf/begin-sending" });
 
-    const result = await link.sendContext(PacketContext.NONE, message.propagationPacked, {
+    const result = await link.sendContext(PacketContext.NONE, packed, {
       createReceipt: true
     });
 
@@ -398,7 +404,13 @@ export class LXMFRouter {
     }
 
     const deliveryDestination = this.deliveryDestination;
-    if (deliveryDestination === null || !equalBytes(deliveryDestination.hash, prefixed.destinationHash)) {
+    if (
+      deliveryDestination === null ||
+      !canAcceptLxmfPropagationLocalDelivery({
+        deliveryDestinationPresent: true,
+        destinationHashMatches: equalBytes(deliveryDestination.hash, prefixed.destinationHash)
+      })
+    ) {
       return null;
     }
 

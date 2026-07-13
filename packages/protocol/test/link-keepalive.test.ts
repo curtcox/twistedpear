@@ -6,7 +6,8 @@ import {
   isLinkKeepaliveReply,
   packLinkKeepaliveProbe,
   packLinkKeepaliveReply,
-  shouldIgnoreInitiatorKeepaliveProbe
+  shouldIgnoreInitiatorKeepaliveProbe,
+  shouldReplyKeepaliveProbe
 } from "../src/link-keepalive.js";
 
 describe("link keepalive framing", () => {
@@ -42,6 +43,27 @@ describe("link keepalive framing", () => {
         initiator: true,
         contextKeepalive: false,
         probePayload: true
+      })
+    ).toBe(false);
+  });
+
+  it("replies to responder keepalive probes only", () => {
+    expect(
+      shouldReplyKeepaliveProbe({
+        initiator: false,
+        probePayload: true
+      })
+    ).toBe(true);
+    expect(
+      shouldReplyKeepaliveProbe({
+        initiator: true,
+        probePayload: true
+      })
+    ).toBe(false);
+    expect(
+      shouldReplyKeepaliveProbe({
+        initiator: false,
+        probePayload: false
       })
     ).toBe(false);
   });

@@ -6,6 +6,8 @@ import {
   planClonePacketWithHops,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
+  shouldIgnoreLocalAnnounce,
+  shouldMatchAnnounceAspect,
   shouldReceiveAnnouncePathResponse
 } from "../src/transport-announce.js";
 import {
@@ -93,5 +95,41 @@ describe("protocol transport announce planning", () => {
       recordRate: false,
       rebroadcast: false
     });
+  });
+
+  it("ignores announces for local inbound destinations", () => {
+    expect(shouldIgnoreLocalAnnounce(true)).toBe(true);
+    expect(shouldIgnoreLocalAnnounce(false)).toBe(false);
+  });
+
+  it("matches optional announce aspect filters", () => {
+    expect(
+      shouldMatchAnnounceAspect({
+        hasFilter: false,
+        filterParsed: false,
+        hashMatches: false
+      })
+    ).toBe(true);
+    expect(
+      shouldMatchAnnounceAspect({
+        hasFilter: true,
+        filterParsed: false,
+        hashMatches: true
+      })
+    ).toBe(false);
+    expect(
+      shouldMatchAnnounceAspect({
+        hasFilter: true,
+        filterParsed: true,
+        hashMatches: false
+      })
+    ).toBe(false);
+    expect(
+      shouldMatchAnnounceAspect({
+        hasFilter: true,
+        filterParsed: true,
+        hashMatches: true
+      })
+    ).toBe(true);
   });
 });

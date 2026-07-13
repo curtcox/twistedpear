@@ -30,3 +30,11 @@ export function shouldIgnoreInitiatorKeepaliveProbe(input: {
 }): boolean {
   return input.initiator && input.contextKeepalive && input.probePayload;
 }
+
+/** Whether a responder should reply to an inbound keepalive probe. */
+export function shouldReplyKeepaliveProbe(input: {
+  readonly initiator: boolean;
+  readonly probePayload: boolean;
+}): boolean {
+  return !input.initiator && input.probePayload;
+}

@@ -164,3 +164,27 @@ export function planLxmfDeliverableAccept(input: {
   }
   return "accept";
 }
+
+/** Whether propagation inbound targets this router's local delivery destination. */
+export function canAcceptLxmfPropagationLocalDelivery(input: {
+  readonly deliveryDestinationPresent: boolean;
+  readonly destinationHashMatches: boolean;
+}): boolean {
+  return input.deliveryDestinationPresent && input.destinationHashMatches;
+}
+
+export type LxmfPropagatedSendPlan = "ok" | "missing-packed" | "resource-unimplemented";
+
+/** Whether PROPAGATED send may proceed (packed envelope + PACKET representation). */
+export function planLxmfPropagatedSend(input: {
+  readonly hasPropagationPacked: boolean;
+  readonly representation: number;
+}): LxmfPropagatedSendPlan {
+  if (!input.hasPropagationPacked) {
+    return "missing-packed";
+  }
+  if (input.representation !== LxmfDeliveryRepresentation.PACKET) {
+    return "resource-unimplemented";
+  }
+  return "ok";
+}

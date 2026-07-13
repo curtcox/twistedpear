@@ -46,7 +46,8 @@ export {
   isLinkKeepaliveReply,
   packLinkKeepaliveProbe,
   packLinkKeepaliveReply,
-  shouldIgnoreInitiatorKeepaliveProbe
+  shouldIgnoreInitiatorKeepaliveProbe,
+  shouldReplyKeepaliveProbe
 } from "./link-keepalive.js";
 export {
   LinkRequestReceiptStatus,
@@ -300,6 +301,7 @@ export {
   LinkKeyMode,
   LinkMode,
   deriveRnsLinkKey,
+  isExpectedLinkMode,
   isLinkModeEnabled,
   linkDerivedKeyLength,
   orderIndependentSharedSecret,
@@ -615,6 +617,8 @@ export {
   planClonePacketWithHops,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
+  shouldIgnoreLocalAnnounce,
+  shouldMatchAnnounceAspect,
   shouldReceiveAnnouncePathResponse,
   type AnnounceIngressGates,
   type TransportAnnounceSource
@@ -622,16 +626,24 @@ export {
 export {
   LOCAL_REBROADCASTS_MAX,
   REVERSE_TIMEOUT_SECONDS,
+  canRelayLinkPacket,
+  canRelayReversePacket,
   canRelayTransportPacket,
   isLocalPathRequestPacket,
   isReverseEntryExpired,
   planLinkRelayTarget,
   planPacketFilter,
+  planProofIngressKind,
+  planTransportIngressDispatch,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
-  type LinkRelayTarget
+  shouldRelayReverseOnInterface,
+  shouldTransmitOnInterface,
+  type LinkRelayTarget,
+  type ProofIngressKind,
+  type TransportIngressDispatch
 } from "./transport-ingress.js";
 export {
   ANNOUNCE_NAME_HASH_SIZE,
@@ -700,13 +712,16 @@ export {
   LxmfDeliveryMethod,
   LxmfDeliveryRepresentation,
   lxmfContentSizeFromPackedLength,
+  canAcceptLxmfPropagationLocalDelivery,
   planLxmfDeliverableAccept,
   planLxmfDelivery,
+  planLxmfPropagatedSend,
   planLxMessagePack,
   type LxmfDeliverableAcceptPlan,
   type LxmfDeliveryMethodValue,
   type LxmfDeliveryPlan,
   type LxmfDeliveryRepresentationValue,
+  type LxmfPropagatedSendPlan,
   type LxMessagePackGate
 } from "./lxmf-delivery.js";
 export {

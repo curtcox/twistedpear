@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   LOCAL_REBROADCASTS_MAX,
+  PACKET_DEST_TYPE_LINK,
   PACKET_DEST_TYPE_PLAIN,
   PACKET_DEST_TYPE_SINGLE,
   PACKET_TYPE_ANNOUNCE,
@@ -10,15 +11,21 @@ import {
   PacketContextCode,
   REVERSE_TIMEOUT_SECONDS,
   TRANSPORT_TRANSPORT,
+  canRelayLinkPacket,
+  canRelayReversePacket,
   canRelayTransportPacket,
   isLocalPathRequestPacket,
   isReverseEntryExpired,
   planLinkRelayTarget,
   planPacketFilter,
+  planProofIngressKind,
+  planTransportIngressDispatch,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash,
   shouldRecordLinkRelayTableEntry,
-  shouldRecordReverseTableEntry
+  shouldRecordReverseTableEntry,
+  shouldRelayReverseOnInterface,
+  shouldTransmitOnInterface
 } from "../src/index.js";
 
 describe("transport ingress", () => {
@@ -244,5 +251,102 @@ describe("transport ingress", () => {
         destinationHashMatches: true
       })
     ).toBe(false);
+  });
+
+  it("gates link and reverse relay eligibility", () => {
+    expect(canRelayLinkPacket(PACKET_TYPE_DATA)).toBe(true);
+    expect(canRelayLinkPacket(PACKET_TYPE_PROOF)).toBe(true);
+    expect(canRelayLinkPacket(PACKET_TYPE_ANNOUNCE)).toBe(false);
+    expect(canRelayLinkPacket(PACKET_TYPE_LINKREQUEST)).toBe(false);
+    expect(
+      canRelayReversePacket({
+        isProof: true,
+        hasEntry: true,
+        entryExpired: false
+      })
+    ).toBe(true);
+    expect(
+      canRelayReversePacket({
+        isProof: true,
+        hasEntry: true,
+        entryExpired: true
+      })
+    ).toBe(false);
+    expect(
+      canRelayReversePacket({
+        isProof: false,
+        hasEntry: true,
+        entryExpired: false
+      })
+    ).toBe(false);
+    expect(shouldRelayReverseOnInterface(true)).toBe(true);
+    expect(shouldRelayReverseOnInterface(false)).toBe(false);
+  });
+
+  it("dispatches transport ingress and proof kinds", () => {
+    expect(
+      planTransportIngressDispatch({
+        packetType: PACKET_TYPE_ANNOUNCE,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      })
+    ).toBe("announce");
+    expect(
+      planTransportIngressDispatch({
+        packetType: PACKET_TYPE_LINKREQUEST,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      })
+    ).toBe("link-request");
+    expect(
+      planTransportIngressDispatch({
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_LINK
+      })
+    ).toBe("link-data");
+    expect(
+      planTransportIngressDispatch({
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_PLAIN
+      })
+    ).toBe("plain-data");
+    expect(
+      planTransportIngressDispatch({
+        packetType: PACKET_TYPE_PROOF,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      })
+    ).toBe("proof");
+    expect(
+      planTransportIngressDispatch({
+        packetType: 99,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      })
+    ).toBe("ignore");
+    expect(planProofIngressKind(PacketContextCode.LRPROOF)).toBe("lrproof");
+    expect(planProofIngressKind(PacketContextCode.RESOURCE_PRF)).toBe("resource-prf");
+    expect(planProofIngressKind(PacketContextCode.NONE)).toBe("receipt");
+  });
+
+  it("gates interface transmit by outgoing / exclude / attached", () => {
+    expect(shouldTransmitOnInterface({ outgoing: true })).toBe(true);
+    expect(shouldTransmitOnInterface({ outgoing: false })).toBe(false);
+    expect(
+      shouldTransmitOnInterface({
+        outgoing: true,
+        isExcludedInterface: true
+      })
+    ).toBe(false);
+    expect(
+      shouldTransmitOnInterface({
+        outgoing: true,
+        requireAttached: true,
+        isAttached: false
+      })
+    ).toBe(false);
+    expect(
+      shouldTransmitOnInterface({
+        outgoing: true,
+        requireAttached: true,
+        isAttached: true
+      })
+    ).toBe(true);
   });
 });

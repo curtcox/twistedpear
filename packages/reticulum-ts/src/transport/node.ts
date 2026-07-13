@@ -14,8 +14,13 @@ import {
   planPathOutbound,
   planPacketFilter,
   planPathResponseAnnounceFields,
+  planProofIngressKind,
   planTransportAnnounceFields,
+  planTransportIngressDispatch,
+  shouldIgnoreLocalAnnounce,
+  shouldMatchAnnounceAspect,
   shouldReceiveAnnouncePathResponse,
+  shouldTransmitOnInterface,
   relayTransportPacketBytes,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
@@ -377,28 +382,29 @@ export class LeafTransport {
 
     this.packetHashes.add(hashKey(workingPacket.hash()));
 
-    if (workingPacket.packetType === PacketType.ANNOUNCE) {
-      await this.handleAnnounce(workingPacket, iface);
-      return;
-    }
-
-    if (workingPacket.packetType === PacketType.LINKREQUEST) {
-      await this.handleLinkRequest(workingPacket, iface);
-      return;
-    }
-
-    if (workingPacket.packetType === PacketType.DATA) {
-      if (workingPacket.destinationType === DestinationType.LINK) {
+    switch (
+      planTransportIngressDispatch({
+        packetType: workingPacket.packetType,
+        destinationType: workingPacket.destinationType
+      })
+    ) {
+      case "announce":
+        await this.handleAnnounce(workingPacket, iface);
+        return;
+      case "link-request":
+        await this.handleLinkRequest(workingPacket, iface);
+        return;
+      case "link-data":
         await this.handleLinkData(workingPacket, iface);
         return;
-      }
-
-      await this.handleData(workingPacket, iface);
-      return;
-    }
-
-    if (workingPacket.packetType === PacketType.PROOF) {
-      await this.handleProof(workingPacket, iface);
+      case "plain-data":
+        await this.handleData(workingPacket, iface);
+        return;
+      case "proof":
+        await this.handleProof(workingPacket, iface);
+        return;
+      case "ignore":
+        return;
     }
   }
 
@@ -445,7 +451,7 @@ export class LeafTransport {
       (entry) =>
         equalBytes(entry.hash, packet.destinationHash) && entry.direction === DestinationDirection.IN
     );
-    if (localDestination !== undefined) {
+    if (shouldIgnoreLocalAnnounce(localDestination !== undefined)) {
       return;
     }
 
@@ -513,17 +519,22 @@ export class LeafTransport {
 
       if (handler.aspectFilter != null) {
         const parsedFilter = parseAspectFilter(handler.aspectFilter);
-        if (parsedFilter === null) {
-          continue;
-        }
-
-        const expected = Destination.hash(
-          this.options.provider,
-          announcedIdentity,
-          parsedFilter.appName,
-          ...parsedFilter.aspects
-        );
-        if (!equalBytes(packet.destinationHash, expected)) {
+        const expected =
+          parsedFilter === null
+            ? null
+            : Destination.hash(
+                this.options.provider,
+                announcedIdentity,
+                parsedFilter.appName,
+                ...parsedFilter.aspects
+              );
+        if (
+          !shouldMatchAnnounceAspect({
+            hasFilter: true,
+            filterParsed: parsedFilter !== null,
+            hashMatches: expected !== null && equalBytes(packet.destinationHash, expected)
+          })
+        ) {
           continue;
         }
       }
@@ -574,7 +585,8 @@ export class LeafTransport {
   }
 
   protected async handleProof(packet: Packet, iface: PacketInterface): Promise<void> {
-    if (packet.context === PacketContext.LRPROOF) {
+    const kind = planProofIngressKind(packet.context);
+    if (kind === "lrproof") {
       for (const link of this.pendingLinks) {
         if (equalBytes(link.linkId, packet.destinationHash) && link.hopsMatch(packet)) {
           await link.validateProof(packet, iface);
@@ -584,7 +596,7 @@ export class LeafTransport {
       return;
     }
 
-    if (packet.context === PacketContext.RESOURCE_PRF) {
+    if (kind === "resource-prf") {
       for (const link of this.activeLinks) {
         if (equalBytes(link.linkId, packet.destinationHash)) {
           await link.handleResourceProof(packet);
@@ -660,11 +672,13 @@ export class LeafTransport {
 
     let sent = false;
     for (const iface of this.interfaces) {
-      if (!iface.outgoing) {
-        continue;
-      }
-
-      if (attachedInterface !== null && iface !== attachedInterface) {
+      if (
+        !shouldTransmitOnInterface({
+          outgoing: iface.outgoing,
+          requireAttached: attachedInterface !== null,
+          isAttached: attachedInterface !== null && iface === attachedInterface
+        })
+      ) {
         continue;
       }
 

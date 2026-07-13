@@ -160,7 +160,15 @@
 > **`shouldRecordReverseTableEntry`**, and **`isLocalPathRequestPacket`** live in protocol;
 > transport relay / `LeafTransport.handleData` adapt them. **`isPacketTypeProof`** lives in
 > protocol; `PacketReceipt.validateProofPacket` adapts it. **`planLxmfDeliverableAccept`**
-> lives in protocol; `LXMFRouter` unpack adapts it.
+> lives in protocol; `LXMFRouter` unpack adapts it. **`canRelayLinkPacket`**,
+> **`canRelayReversePacket`**, **`shouldRelayReverseOnInterface`**,
+> **`planTransportIngressDispatch`**, **`planProofIngressKind`**, and
+> **`shouldTransmitOnInterface`** live in protocol; `TransportNode` /
+> `LeafTransport` adapt them. **`shouldIgnoreLocalAnnounce`** /
+> **`shouldMatchAnnounceAspect`** live in protocol; announce ingress adapts them.
+> **`shouldReplyKeepaliveProbe`** and **`isExpectedLinkMode`** live in protocol;
+> `Link` adapts them. **`canAcceptLxmfPropagationLocalDelivery`** and
+> **`planLxmfPropagatedSend`** live in protocol; `LXMFRouter` adapts them.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

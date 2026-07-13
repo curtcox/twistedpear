@@ -46,6 +46,7 @@ import {
   initialLinkEstablishState,
   isLinkClosed,
   isLinkKeepaliveProbe,
+  isExpectedLinkMode,
   isLinkModeEnabled,
   linkHopsMatch,
   linkIdentifySignedMaterial,
@@ -73,6 +74,7 @@ import {
   shouldAcceptLinkPacketInterface,
   shouldEncryptLinkPayload,
   shouldIgnoreInitiatorKeepaliveProbe,
+  shouldReplyKeepaliveProbe,
   splitIdentityPublicKey,
   splitInitiatorLinkEntropy,
   splitLinkIdentifyPayload,
@@ -490,7 +492,7 @@ export class Link {
 
     try {
       const mode = Link.modeFromLpPacket(packet);
-      if (mode !== this.mode) {
+      if (!isExpectedLinkMode({ expected: this.mode, received: mode })) {
         throw new Error(`Invalid link mode ${mode} in link request proof`);
       }
 
@@ -646,7 +648,12 @@ export class Link {
     }
 
     if (packet.context === PacketContext.KEEPALIVE) {
-      if (!this.initiator && isLinkKeepaliveProbe(packet.data)) {
+      if (
+        shouldReplyKeepaliveProbe({
+          initiator: this.initiator,
+          probePayload: isLinkKeepaliveProbe(packet.data)
+        })
+      ) {
         await this.sendKeepaliveReply();
       }
       return;
