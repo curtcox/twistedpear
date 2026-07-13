@@ -1,4 +1,4 @@
-import { isValidInterfaceName } from "@twistedpear/protocol";
+import { isValidInterfaceName, packetFitsInterfaceMtu } from "@twistedpear/protocol";
 import type { Packet } from "../packet.js";
 import { decodeHdlcFrames, encodeHdlcFrame, type HdlcDecodeState } from "./framing.js";
 
@@ -58,7 +58,7 @@ export abstract class AbstractPacketInterface implements PacketInterface {
       throw new Error(`Interface ${this.name} is not configured for outbound traffic`);
     }
 
-    if (packet.raw.length > this.mtu) {
+    if (!packetFitsInterfaceMtu(packet.raw.length, this.mtu)) {
       throw new Error(`Packet exceeds interface MTU (${packet.raw.length} > ${this.mtu})`);
     }
 

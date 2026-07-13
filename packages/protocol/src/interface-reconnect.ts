@@ -12,6 +12,11 @@ export function isValidInterfaceName(name: string): boolean {
   return name.length > 0;
 }
 
+/** Whether a packet's raw length fits the interface MTU. */
+export function packetFitsInterfaceMtu(rawLength: number, mtu: number): boolean {
+  return rawLength <= mtu;
+}
+
 export type InterfaceReconnectPlan =
   | { readonly kind: "reconnect"; readonly delayMs: number; readonly attempt: number }
   | { readonly kind: "give-up"; readonly attempt: number };

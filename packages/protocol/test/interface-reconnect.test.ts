@@ -4,6 +4,7 @@ import {
   INTERFACE_RECONNECT_WAIT_MS,
   initialInterfaceReconnectState,
   isValidInterfaceName,
+  packetFitsInterfaceMtu,
   planInterfaceReconnect,
   stepInterfaceReconnectWithActions
 } from "../src/interface-reconnect.js";
@@ -12,6 +13,12 @@ describe("protocol interface reconnect", () => {
   it("rejects empty interface names", () => {
     expect(isValidInterfaceName("")).toBe(false);
     expect(isValidInterfaceName("wlan0")).toBe(true);
+  });
+
+  it("gates packets by interface MTU", () => {
+    expect(packetFitsInterfaceMtu(500, 500)).toBe(true);
+    expect(packetFitsInterfaceMtu(501, 500)).toBe(false);
+    expect(packetFitsInterfaceMtu(0, 500)).toBe(true);
   });
 
   it("schedules reconnects with default wait", () => {
