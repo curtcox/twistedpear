@@ -1,8 +1,14 @@
 /**
  * Pure sim-oriented link crypto handshake.
- * Key material arrives only via events (adapters supply entropy); derivation is commutative.
+ * Key material arrives only via events (adapters supply entropy or ECDH shared secrets);
+ * derivation uses RNS HKDF via {@link deriveRnsLinkKey}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import {
+  LinkKeyMode,
+  deriveRnsLinkKey,
+  orderIndependentSharedSecret
+} from "./link-key-derive.js";
 
 export const LINK_HANDSHAKE_KEY_SIZE = 32;
 
@@ -40,6 +46,13 @@ export type LinkHandshakeEvent =
       readonly material: Uint8Array;
       readonly linkId: Uint8Array;
     }
+  | {
+      /** Adapter-supplied real ECDH shared secret (wire path). */
+      readonly kind: "handshake/shared-secret";
+      readonly sharedSecret: Uint8Array;
+      readonly linkId: Uint8Array;
+      readonly mode?: number;
+    }
   | { readonly kind: "handshake/fail" };
 
 export type LinkHandshakeAction = {
@@ -70,20 +83,18 @@ export function initialLinkHandshakeState(options: {
   };
 }
 
-/** Commutative sim key derivation (not wire-compatible with RNS ECDH/HKDF). */
+/**
+ * Commutative sim key derivation via order-independent shared secret + RNS HKDF.
+ * Not wire ECDH — adapters should inject `handshake/shared-secret` for real X25519.
+ */
 export function deriveSimSessionKey(
   localMaterial: Uint8Array,
   peerMaterial: Uint8Array,
-  linkId: Uint8Array
+  linkId: Uint8Array,
+  mode: number = LinkKeyMode.MODE_AES256_CBC
 ): Uint8Array {
-  const out = new Uint8Array(LINK_HANDSHAKE_KEY_SIZE);
-  for (let i = 0; i < LINK_HANDSHAKE_KEY_SIZE; i += 1) {
-    const a = localMaterial[i % localMaterial.length] ?? 0;
-    const b = peerMaterial[i % peerMaterial.length] ?? 0;
-    const c = linkId[i % linkId.length] ?? 0;
-    out[i] = (a ^ b ^ c ^ ((i * 31) & 0xff)) & 0xff;
-  }
-  return out;
+  const shared = orderIndependentSharedSecret(localMaterial, peerMaterial);
+  return deriveRnsLinkKey(shared, linkId, mode);
 }
 
 export const stepLinkHandshake: StepFn<LinkHandshakeState> = (state, event) => {
@@ -131,6 +142,25 @@ export function stepLinkHandshakeWithActions(
           linkId: next.linkId!
         }
       ]
+    };
+  }
+
+  if (event.kind === "handshake/shared-secret") {
+    const linkId = Uint8Array.from(event.linkId);
+    const sessionKey = deriveRnsLinkKey(
+      event.sharedSecret,
+      linkId,
+      event.mode ?? LinkKeyMode.MODE_AES256_CBC
+    );
+    return {
+      state: {
+        ...state,
+        phase: LinkHandshakePhase.ESTABLISHED,
+        linkId,
+        sessionKey
+      },
+      intents: [],
+      actions: []
     };
   }
 

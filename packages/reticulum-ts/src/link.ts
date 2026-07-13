@@ -1,11 +1,16 @@
 import {
+  LINK_INITIATOR_ENTROPY_SIZE,
+  LINK_RESPONDER_ENTROPY_SIZE,
   computeKeepalive,
+  deriveRnsLinkKey,
+  splitInitiatorLinkEntropy,
+  splitResponderLinkEntropy,
   stepLinkWatchdogWithActions,
   type LinkWatchdogState,
   type LinkWatchdogStepResult
 } from "@twistedpear/protocol";
+
 import type { CryptoProvider } from "./crypto/provider.js";
-import { rnsHkdf } from "./crypto/hkdf.js";
 import { Token } from "./crypto/token.js";
 import { Channel, LinkChannelOutlet } from "./channel.js";
 import { equalBytes } from "./crypto/bytes.js";
@@ -105,6 +110,11 @@ export interface InitiatorLinkOptions {
   readonly transport: LeafTransport;
   readonly linkMtuDiscovery?: boolean;
   readonly callbacks?: LinkCallbacks;
+  /**
+   * Optional injected entropy for initiator X25519 + Ed25519 private keys
+   * (64 bytes). When omitted, the crypto provider supplies randomness.
+   */
+  readonly entropy?: Uint8Array;
 }
 
 export interface LinkRequestOptions {
@@ -199,10 +209,14 @@ export class Link {
       ...(options.callbacks === undefined ? {} : { callbacks: options.callbacks })
     });
 
-    link.privateKey = provider.randomBytes(LINK_KEY_SIZE);
-    const signaturePrivateKey = provider.randomBytes(LINK_KEY_SIZE);
+    const initiatorKeys = splitInitiatorLinkEntropy(
+      options.entropy ?? provider.randomBytes(LINK_INITIATOR_ENTROPY_SIZE)
+    );
+    link.privateKey = initiatorKeys.privateKey;
     link.publicKeyBytes = provider.x25519PublicFromPrivate(link.privateKey);
-    const signaturePublicKeyBytes = provider.ed25519PublicFromPrivate(signaturePrivateKey);
+    const signaturePublicKeyBytes = provider.ed25519PublicFromPrivate(
+      initiatorKeys.signaturePrivateKey
+    );
     link.expectedHops = options.transport.hopsTo(destination.hash);
     link.requestTime = options.transport.clock.now() / 1000;
     link.establishmentTimeout =
@@ -249,7 +263,8 @@ export class Link {
     owner: RegisteredDestination,
     transport: LeafTransport,
     packet: Packet,
-    iface: PacketInterface
+    iface: PacketInterface,
+    options?: { readonly entropy?: Uint8Array }
   ): Link | null {
     const data = packet.data;
     if (data.length !== LINK_ECPUB_SIZE && data.length !== LINK_ECPUB_SIZE + LINK_MTU_SIZE) {
@@ -268,7 +283,10 @@ export class Link {
         destination: null
       });
 
-      link.privateKey = provider.randomBytes(LINK_KEY_SIZE);
+      const responderKeys = splitResponderLinkEntropy(
+        options?.entropy ?? provider.randomBytes(LINK_RESPONDER_ENTROPY_SIZE)
+      );
+      link.privateKey = responderKeys.privateKey;
       link.publicKeyBytes = provider.x25519PublicFromPrivate(link.privateKey);
       link.loadPeer(
         data.subarray(0, LINK_ECPUB_SIZE / 2),
@@ -387,8 +405,8 @@ export class Link {
 
     this.status = LinkStatus.HANDSHAKE;
     const sharedKey = this.provider.x25519SharedSecret(this.privateKey, this.peerPublicKeyBytes);
-    const derivedKeyLength = this.mode === LinkMode.MODE_AES256_CBC ? 64 : 32;
-    this.derivedKey = rnsHkdf(this.provider, derivedKeyLength, sharedKey, this.linkId, null);
+    // ECDH at the crypto adapter edge; RNS HKDF length/salt selection is pure protocol.
+    this.derivedKey = deriveRnsLinkKey(sharedKey, this.linkId, this.mode);
   }
 
   async prove(): Promise<void> {

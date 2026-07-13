@@ -36,7 +36,8 @@
     "packages/reticulum-interfaces/src/rnode/interface.ts"
   ],
   "protocolDependencyAllowlist": [
-    "@twistedpear/effects"
+    "@twistedpear/effects",
+    "@noble/hashes"
   ],
   "exceptions": []
 }

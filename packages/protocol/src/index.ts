@@ -187,3 +187,25 @@ export {
   type LinkHandshakeState,
   type LinkHandshakeStepResult
 } from "./link-handshake.js";
+export {
+  normalizeRnsHkdfParams,
+  rnsHkdfSha256,
+  type NormalizedHkdfParams,
+  type RnsHkdfInput
+} from "./rns-hkdf.js";
+export {
+  LinkKeyMode,
+  deriveRnsLinkKey,
+  linkDerivedKeyLength,
+  orderIndependentSharedSecret,
+  type LinkKeyModeValue
+} from "./link-key-derive.js";
+export {
+  LINK_INITIATOR_ENTROPY_SIZE,
+  LINK_RESPONDER_ENTROPY_SIZE,
+  LINK_X25519_KEY_SIZE,
+  splitInitiatorLinkEntropy,
+  splitResponderLinkEntropy,
+  type LinkInitiatorKeyMaterial,
+  type LinkResponderKeyMaterial
+} from "./link-keygen.js";

@@ -16,7 +16,7 @@ describe("protocol link handshake", () => {
     expect([...deriveSimSessionKey(a, b, linkId)]).toEqual([...deriveSimSessionKey(b, a, linkId)]);
   });
 
-  it("establishes from injected entropy", () => {
+  it("establishes from injected entropy via RNS HKDF", () => {
     const entropy = new Xoshiro128StarStar(0xabc);
     const linkId = new Uint8Array([1, 2, 3, 4]);
     let initiator = initialLinkHandshakeState({ role: "initiator", peerId: "b" });
@@ -52,7 +52,19 @@ describe("protocol link handshake", () => {
 
     expect(initiator.phase).toBe(LinkHandshakePhase.ESTABLISHED);
     expect(responder.phase).toBe(LinkHandshakePhase.ESTABLISHED);
+    expect(initiator.sessionKey).toHaveLength(64);
     expect([...initiator.sessionKey!]).toEqual([...responder.sessionKey!]);
+  });
+
+  it("establishes from an adapter-supplied ECDH shared secret", () => {
+    const shared = new Uint8Array(32).map((_, i) => i ^ 0x5a);
+    const linkId = new Uint8Array([9, 9, 9, 9]);
+    const state = stepLinkHandshakeWithActions(
+      initialLinkHandshakeState({ role: "initiator", peerId: "b" }),
+      { kind: "handshake/shared-secret", sharedSecret: shared, linkId }
+    ).state;
+    expect(state.phase).toBe(LinkHandshakePhase.ESTABLISHED);
+    expect(state.sessionKey).toHaveLength(64);
   });
 
   it("double-runs identically from the same seed", () => {

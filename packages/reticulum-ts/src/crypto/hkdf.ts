@@ -1,6 +1,7 @@
 import type { CryptoProvider } from "./provider.js";
+import { normalizeRnsHkdfParams, rnsHkdfSha256 } from "@twistedpear/protocol";
 
-/** Mirrors RNS/Cryptography/HKDF.py parameter handling. */
+/** Mirrors RNS/Cryptography/HKDF.py parameter handling — delegates to protocol pure HKDF. */
 export function rnsHkdf(
   provider: CryptoProvider,
   length: number,
@@ -8,25 +9,24 @@ export function rnsHkdf(
   salt: Uint8Array | null | undefined,
   context: Uint8Array | null | undefined
 ): Uint8Array {
-  if (length < 1) {
-    throw new Error("Invalid output key length");
-  }
-
-  if (deriveFrom.length === 0) {
-    throw new Error("Cannot derive key from empty input material");
-  }
-
-  const effectiveSalt =
-    salt === null || salt === undefined || salt.length === 0
-      ? new Uint8Array(32)
-      : salt;
-  const effectiveContext = context ?? new Uint8Array(0);
-
+  const params = normalizeRnsHkdfParams({ length, deriveFrom, salt, context });
+  // Prefer provider.hkdf when available so node/bare backends stay authoritative,
+  // but params (and length checks) come from the pure protocol core.
   return provider.hkdf({
     hash: "sha256",
-    keyMaterial: deriveFrom,
-    salt: effectiveSalt,
-    info: effectiveContext,
-    length
+    keyMaterial: params.keyMaterial,
+    salt: params.salt,
+    info: params.info,
+    length: params.length
   });
+}
+
+/** Pure-path helper for tests that skip CryptoProvider. */
+export function rnsHkdfPure(
+  length: number,
+  deriveFrom: Uint8Array,
+  salt: Uint8Array | null | undefined,
+  context: Uint8Array | null | undefined
+): Uint8Array {
+  return rnsHkdfSha256({ length, deriveFrom, salt, context });
 }

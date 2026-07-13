@@ -127,7 +127,10 @@ export class RegisteredDestination extends Destination {
     return this.requestHandlers.get(bytesToHex(pathHash));
   }
 
-  requestLink(callbacks?: LinkCallbacks): Link {
+  requestLink(
+    callbacks?: LinkCallbacks,
+    options?: { readonly entropy?: Uint8Array }
+  ): Link {
     if (this.transport === null) {
       throw new Error("Destination is not attached to a Reticulum instance");
     }
@@ -135,7 +138,8 @@ export class RegisteredDestination extends Destination {
     return Link.request({
       destination: this,
       transport: this.transport,
-      ...(callbacks === undefined ? {} : { callbacks })
+      ...(callbacks === undefined ? {} : { callbacks }),
+      ...(options?.entropy === undefined ? {} : { entropy: options.entropy })
     });
   }
 
