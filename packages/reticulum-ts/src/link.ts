@@ -20,12 +20,14 @@ import {
   initialLinkEstablishState,
   linkHopsMatch,
   linkIdentifySignedMaterial,
+  linkProofSignedMaterial,
   mergeLinkRtt,
   modeFromLinkProofData,
   modeFromLinkRequestData,
   mtuFromLinkProofData,
   mtuFromLinkRequestData,
   packLinkIdentifyPayload,
+  packLinkProofData,
   msgpackPackFloat64,
   msgpackUnpackFloat,
   splitInitiatorLinkEntropy,
@@ -426,9 +428,14 @@ export class Link {
       LINK_ECPUB_SIZE / 2,
       LINK_ECPUB_SIZE
     );
-    const signedData = concatBytes(this.linkId, this.publicKeyBytes, ownerSigPublicKey, signallingBytes);
+    const signedData = linkProofSignedMaterial(
+      this.linkId,
+      this.publicKeyBytes,
+      ownerSigPublicKey,
+      signallingBytes
+    );
     const signature = this.owner.identity.sign(signedData);
-    const proofData = concatBytes(signature, this.publicKeyBytes, signallingBytes);
+    const proofData = packLinkProofData(signature, this.publicKeyBytes, signallingBytes);
     const proofPacket = Packet.fromFields(this.provider, {
       headerType: PacketHeaderType.HEADER_1,
       transportType: TransportType.BROADCAST,
@@ -485,7 +492,7 @@ export class Link {
       this.loadPeer(body.peerPublicKey, peerSignaturePublicKey);
       this.handshake();
 
-      const signedData = concatBytes(
+      const signedData = linkProofSignedMaterial(
         this.linkId,
         this.peerPublicKeyBytes!,
         peerSignaturePublicKey,

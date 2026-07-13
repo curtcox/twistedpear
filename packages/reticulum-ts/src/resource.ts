@@ -17,7 +17,11 @@ import {
   planResourcePartRequest,
   planResourceReceivePart,
   readResourceRequestHash,
+  resourceEncryptMaterial,
+  resourceExpectedProofMaterial,
+  resourceHashMaterial,
   resourceHashmapMaxLen,
+  resourcePartMapHashMaterial,
   isValidResourceProof,
   splitResourceDecryptedPayload,
   splitResourceHashmapUpdatePacket,
@@ -313,13 +317,13 @@ export class Resource {
     if (randomHash.length !== RESOURCE_RANDOM_HASH_SIZE) {
       throw new Error(`Resource random hash must be ${RESOURCE_RANDOM_HASH_SIZE} bytes`);
     }
-    const payload = concatBytes(randomHash, data);
+    const payload = resourceEncryptMaterial(randomHash, data);
     const encryptedPayload = link.encrypt(payload);
     const sdu = link.mdu;
     const totalParts = Math.ceil(encryptedPayload.length / sdu);
-    const hashInput = concatBytes(data, randomHash);
+    const hashInput = resourceHashMaterial(data, randomHash);
     const hash = Identity.fullHash(provider, hashInput);
-    const expectedProof = Identity.fullHash(provider, concatBytes(data, hash));
+    const expectedProof = Identity.fullHash(provider, resourceExpectedProofMaterial(data, hash));
 
     const parts: ResourcePart[] = [];
     let hashmapBytes = new Uint8Array(0);
@@ -334,7 +338,7 @@ export class Resource {
 
       for (let index = 0; index < totalParts; index += 1) {
         const partData = encryptedPayload.subarray(index * sdu, (index + 1) * sdu);
-        const mapHash = Identity.fullHash(provider, concatBytes(partData, randomHash)).subarray(
+        const mapHash = Identity.fullHash(provider, resourcePartMapHashMaterial(partData, randomHash)).subarray(
           0,
           RESOURCE_MAPHASH_LEN
         );
@@ -606,10 +610,10 @@ export class Resource {
     }
 
     const partData = packet.data;
-    const partHash = Identity.fullHash(this.provider, concatBytes(partData, this.randomHash)).subarray(
-      0,
-      RESOURCE_MAPHASH_LEN
-    );
+    const partHash = Identity.fullHash(
+      this.provider,
+      resourcePartMapHashMaterial(partData, this.randomHash)
+    ).subarray(0, RESOURCE_MAPHASH_LEN);
 
     const plan = planResourceReceivePart({
       partHash,
@@ -679,7 +683,10 @@ export class Resource {
         this.cancel();
         return;
       }
-      const calculatedHash = Identity.fullHash(this.provider, concatBytes(payload, this.randomHash));
+      const calculatedHash = Identity.fullHash(
+        this.provider,
+        resourceHashMaterial(payload, this.randomHash)
+      );
       if (!equalBytes(calculatedHash, this.hash)) {
         this.status = ResourceStatus.CORRUPT;
         this.cancel();
@@ -703,7 +710,10 @@ export class Resource {
       return;
     }
 
-    const proof = Identity.fullHash(this.provider, concatBytes(this.data, this.hash));
+    const proof = Identity.fullHash(
+      this.provider,
+      resourceExpectedProofMaterial(this.data, this.hash)
+    );
     const proofData = packResourceProof(this.hash, proof);
     await this.link.sendProof(PacketContext.RESOURCE_PRF, proofData);
   }

@@ -88,3 +88,39 @@ export function mtuFromLinkProofData(data: Uint8Array): number | null {
     data.subarray(LINK_PROOF_BODY_SIZE, LINK_PROOF_BODY_SIZE + LINK_PROOF_MTU_SIZE)
   );
 }
+
+function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
+  const length = parts.reduce((total, part) => total + part.length, 0);
+  const output = new Uint8Array(length);
+  let offset = 0;
+  for (const part of parts) {
+    output.set(part, offset);
+    offset += part.length;
+  }
+  return output;
+}
+
+/** Material signed for a link-request proof. */
+export function linkProofSignedMaterial(
+  linkId: Uint8Array,
+  publicKey: Uint8Array,
+  ownerSigPublicKey: Uint8Array,
+  signallingBytes: Uint8Array
+): Uint8Array {
+  return concatBytes(linkId, publicKey, ownerSigPublicKey, signallingBytes);
+}
+
+/** Wire body for a link-request proof packet (optional signalling already appended by caller). */
+export function packLinkProofData(
+  signature: Uint8Array,
+  publicKey: Uint8Array,
+  signallingBytes: Uint8Array = new Uint8Array(0)
+): Uint8Array {
+  if (signature.length !== LINK_PROOF_SIGNATURE_SIZE) {
+    throw new Error(`link proof signature must be ${LINK_PROOF_SIGNATURE_SIZE} bytes`);
+  }
+  if (publicKey.length !== LINK_PROOF_PUBLIC_KEY_SIZE) {
+    throw new Error(`link proof public key must be ${LINK_PROOF_PUBLIC_KEY_SIZE} bytes`);
+  }
+  return concatBytes(signature, publicKey, signallingBytes);
+}

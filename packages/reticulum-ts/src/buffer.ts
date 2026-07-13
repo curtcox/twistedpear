@@ -1,3 +1,8 @@
+import {
+  STREAM_ID_MAX as PROTOCOL_STREAM_ID_MAX,
+  packStreamDataMessage,
+  unpackStreamDataMessage
+} from "@twistedpear/protocol";
 import { Channel, type ChannelMessage } from "./channel.js";
 
 /** Mirrors RNS/Buffer.py StreamDataMessage system message type. */
@@ -10,7 +15,7 @@ export class StreamDataMessage implements ChannelMessage {
   static readonly MSGTYPE = SystemMessageTypes.SMT_STREAM_DATA;
   readonly MSGTYPE = StreamDataMessage.MSGTYPE;
 
-  static readonly STREAM_ID_MAX = 0x3fff;
+  static readonly STREAM_ID_MAX = PROTOCOL_STREAM_ID_MAX;
   static readonly OVERHEAD = 8;
   static MAX_DATA_LEN = 256;
 
@@ -38,28 +43,20 @@ export class StreamDataMessage implements ChannelMessage {
       throw new Error("stream_id is required");
     }
 
-    let headerValue = this.streamId & 0x3fff;
-    if (this.eof) {
-      headerValue |= 0x8000;
-    }
-
-    if (this.compressed) {
-      headerValue |= 0x4000;
-    }
-
-    const header = new Uint8Array(2);
-    const view = new DataView(header.buffer);
-    view.setUint16(0, headerValue, false);
-    return concatBytes(header, this.data);
+    return packStreamDataMessage({
+      streamId: this.streamId,
+      data: this.data,
+      eof: this.eof,
+      compressed: this.compressed
+    });
   }
 
   unpack(raw: Uint8Array): void {
-    const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
-    const headerValue = view.getUint16(0, false);
-    this.eof = (headerValue & 0x8000) > 0;
-    this.compressed = (headerValue & 0x4000) > 0;
-    this.streamId = headerValue & 0x3fff;
-    this.data = raw.subarray(2);
+    const fields = unpackStreamDataMessage(raw);
+    this.eof = fields.eof;
+    this.compressed = fields.compressed;
+    this.streamId = fields.streamId;
+    this.data = fields.data;
   }
 }
 
@@ -194,16 +191,4 @@ export class Buffer {
   static createWriter(streamId: number, channel: Channel): RawChannelWriter {
     return new RawChannelWriter(streamId, channel);
   }
-}
-
-function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  const length = parts.reduce((total, part) => total + part.length, 0);
-  const output = new Uint8Array(length);
-  let offset = 0;
-  for (const part of parts) {
-    output.set(part, offset);
-    offset += part.length;
-  }
-
-  return output;
 }

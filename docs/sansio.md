@@ -49,10 +49,12 @@
 > web-identity adapters use them. Shared `hexToBytesLower` lives with destination-name
 > helpers. **Link establishment timeout** (`computeLinkEstablishmentTimeout`) and **LXMF
 > inbound delivery framing** (opportunistic rebuild + destination-prefixed pack/split)
-> are pure protocol leaves; `Link` and `LXMFRouter` adapt them. Identity ratchet JSON,
-> web-identity passphrase bytes, and LXMF message text use protocol UTF-8 (no
-> `TextEncoder`/`TextDecoder`). Remaining depth work: keep converting residual session
-> IO into step machines.
+> are pure protocol leaves; `Link` and `LXMFRouter` adapt them. **Link proof signed
+> material / proof packing**, **StreamDataMessage framing**, and **resource hash/encrypt
+> materials** are pure protocol leaves; `Link`, `Buffer`, and `Resource` adapt them.
+> Identity ratchet JSON, web-identity passphrase bytes, and LXMF message text use
+> protocol UTF-8 (no `TextEncoder`/`TextDecoder`). Remaining depth work: keep
+> converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

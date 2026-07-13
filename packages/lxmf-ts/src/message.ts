@@ -3,6 +3,7 @@ import {
   lxmfHashableMaterial,
   lxmfOpportunisticPayload,
   lxmfSignedMaterial,
+  packLxmfDestinationPrefixed,
   packLxmfWire,
   planLxmfDelivery,
   splitLxmfWire,
@@ -280,7 +281,7 @@ export class LXMessage {
       }
 
       const encryptedPayload = this.destination.identity.encrypt(this.packed.subarray(DESTINATION_LENGTH));
-      const lxmfData = concatBytes(this.destination.hash, encryptedPayload);
+      const lxmfData = packLxmfDestinationPrefixed(this.destination.hash, encryptedPayload);
       this.transientId = Identity.fullHash(provider, lxmfData);
       if (this.timestamp === null) {
         throw new Error("LXMessage.pack requires timestamp to be set before packing");
@@ -321,18 +322,6 @@ export function propagationDestinationHash(provider: CryptoProvider, identity: I
 
 function encodeTextOrBytes(value: string | Uint8Array): Uint8Array {
   return typeof value === "string" ? utf8Encode(value) : Uint8Array.from(value);
-}
-
-function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  const length = parts.reduce((total, part) => total + part.length, 0);
-  const output = new Uint8Array(length);
-  let offset = 0;
-  for (const part of parts) {
-    output.set(part, offset);
-    offset += part.length;
-  }
-
-  return output;
 }
 
 export function rememberMessage(seen: Set<string>, message: LXMessage): void {

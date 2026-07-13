@@ -272,10 +272,12 @@ export {
   decodeLinkMtuFromBytes,
   encodeLinkMtuBytes,
   encodeLinkSignallingBytes,
+  linkProofSignedMaterial,
   modeFromLinkProofData,
   modeFromLinkRequestData,
   mtuFromLinkProofData,
   mtuFromLinkRequestData,
+  packLinkProofData,
   splitLinkProofBody,
   type LinkProofPayloadKind
 } from "./link-proof.js";
@@ -385,6 +387,21 @@ export {
   splitResourceDecryptedPayload,
   splitResourceProof
 } from "./resource-proof.js";
+export {
+  resourceEncryptMaterial,
+  resourceExpectedProofMaterial,
+  resourceHashMaterial,
+  resourcePartMapHashMaterial
+} from "./resource-material.js";
+export {
+  STREAM_DATA_FLAG_COMPRESSED,
+  STREAM_DATA_FLAG_EOF,
+  STREAM_DATA_HEADER_SIZE,
+  STREAM_ID_MAX,
+  packStreamDataMessage,
+  unpackStreamDataMessage,
+  type StreamDataFields
+} from "./stream-data.js";
 export {
   PACKET_HEADER_1,
   PACKET_HEADER_2,
