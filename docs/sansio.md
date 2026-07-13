@@ -106,7 +106,8 @@
 > / `LeafTransport.sendPacket` adapt it. **`Link.updateKeepalive`** and keepalive outbound route
 > through `stepLinkWatchdog` `link/rtt-measured` / `link/keepalive-sent`.
 > **`countChannelTxOutstanding`** lives in protocol; `Channel.isReadyToSend` adapts it.
-> Remaining depth work: keep converting residual session IO into step machines.
+> **`shouldExtendPacketReceiptTimeout`** lives in protocol; `Channel.updatePacketTimeouts`
+> adapts it. Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

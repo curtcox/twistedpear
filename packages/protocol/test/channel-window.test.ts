@@ -10,6 +10,7 @@ import {
   countChannelTxOutstanding,
   initialChannelWindowState,
   planChannelPacketTimeout,
+  shouldExtendPacketReceiptTimeout,
   stepChannelWindow
 } from "../src/channel-window.js";
 
@@ -75,6 +76,18 @@ describe("protocol channel window", () => {
       ])
     ).toBe(2);
     expect(countChannelTxOutstanding([])).toBe(0);
+  });
+
+  it("extends receipt timeout only when updated is greater", () => {
+    expect(
+      shouldExtendPacketReceiptTimeout({ currentTimeout: null, updatedTimeout: 1 })
+    ).toBe(false);
+    expect(
+      shouldExtendPacketReceiptTimeout({ currentTimeout: 2, updatedTimeout: 2 })
+    ).toBe(false);
+    expect(
+      shouldExtendPacketReceiptTimeout({ currentTimeout: 2, updatedTimeout: 3 })
+    ).toBe(true);
   });
 
   it("plans packet timeout ignore / retry / give-up", () => {

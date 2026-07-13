@@ -86,6 +86,14 @@ export function countChannelTxOutstanding(
   return outstanding;
 }
 
+/** Whether a recomputed channel packet timeout should replace the receipt's current timeout. */
+export function shouldExtendPacketReceiptTimeout(input: {
+  readonly currentTimeout: number | null;
+  readonly updatedTimeout: number;
+}): boolean {
+  return input.currentTimeout !== null && input.updatedTimeout > input.currentTimeout;
+}
+
 /** Shrink window after a packet timeout / retry. */
 export function applyChannelTimeout(state: ChannelWindowState): ChannelWindowState {
   let window = state.window;

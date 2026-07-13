@@ -18,6 +18,7 @@ import {
   packChannelEnvelope,
   planChannelPacketTimeout,
   shouldAcceptChannelSequence,
+  shouldExtendPacketReceiptTimeout,
   stepChannelWindow,
   unpackChannelEnvelope,
   type ChannelWindowState
@@ -464,7 +465,12 @@ export class Channel {
       }
 
       const updatedTimeout = this.getPacketTimeoutTime(envelope.tries);
-      if (receipt.timeout !== null && updatedTimeout > receipt.timeout) {
+      if (
+        shouldExtendPacketReceiptTimeout({
+          currentTimeout: receipt.timeout,
+          updatedTimeout
+        })
+      ) {
         receipt.setTimeout(updatedTimeout);
       }
     }

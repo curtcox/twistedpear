@@ -324,6 +324,7 @@ export {
   countChannelTxOutstanding,
   initialChannelWindowState,
   planChannelPacketTimeout,
+  shouldExtendPacketReceiptTimeout,
   stepChannelWindow,
   type ChannelPacketTimeoutPlan,
   type ChannelWindowEvent,
