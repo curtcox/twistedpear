@@ -12,6 +12,7 @@ import {
   channelPayloadMdu,
   countChannelTxOutstanding,
   drainContiguousChannelSequences,
+  indexOfChannelTxEnvelope,
   initialChannelWindowState,
   isChannelSystemMsgType,
   nextChannelSequence,
@@ -23,7 +24,6 @@ import {
   unpackChannelEnvelope,
   type ChannelWindowState
 } from "@twistedpear/protocol";
-import { equalBytes } from "./crypto/bytes.js";
 import type { Link } from "./link.js";
 import { LinkStatus } from "./link.js";
 import { PacketContext } from "./packet.js";
@@ -367,15 +367,11 @@ export class Channel {
   }
 
   private async packetTimeout(packet: ChannelPacket): Promise<void> {
-    const targetId = this.outlet.getPacketId(packet);
-    const envelope = this.txRing.find(
-      (candidate) =>
-        candidate.packet !== null &&
-        targetId !== null &&
-        this.outlet.getPacketId(candidate.packet!) !== null &&
-        equalBytes(this.outlet.getPacketId(candidate.packet!)!, targetId)
-    );
-
+    const index = this.indexOfTxEnvelope(packet);
+    if (index === null) {
+      return;
+    }
+    const envelope = this.txRing[index];
     if (envelope === undefined) {
       return;
     }
@@ -424,29 +420,31 @@ export class Channel {
   }
 
   private packetTxOp(packet: ChannelPacket, op: (envelope: Envelope) => boolean): void {
-    const targetId = this.outlet.getPacketId(packet);
-    const envelope = this.txRing.find(
-      (candidate) =>
-        candidate.packet !== null &&
-        targetId !== null &&
-        this.outlet.getPacketId(candidate.packet!) !== null &&
-        equalBytes(this.outlet.getPacketId(candidate.packet!)!, targetId)
-    );
-
+    const index = this.indexOfTxEnvelope(packet);
+    if (index === null) {
+      return;
+    }
+    const envelope = this.txRing[index];
     if (envelope === undefined || !op(envelope)) {
       return;
     }
 
     envelope.tracked = false;
-    const index = this.txRing.indexOf(envelope);
-    if (index >= 0) {
-      this.txRing.splice(index, 1);
-    }
+    this.txRing.splice(index, 1);
 
     this.windowState = stepChannelWindow(this.windowState, {
       kind: "channel/delivered",
       rtt: this.outlet.rtt
     }).state;
+  }
+
+  private indexOfTxEnvelope(packet: ChannelPacket): number | null {
+    return indexOfChannelTxEnvelope({
+      packetIds: this.txRing.map((candidate) =>
+        candidate.packet === null ? null : this.outlet.getPacketId(candidate.packet)
+      ),
+      targetId: this.outlet.getPacketId(packet)
+    });
   }
 
   private getPacketTimeoutTime(tries: number): number {

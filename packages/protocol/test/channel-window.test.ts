@@ -11,6 +11,7 @@ import {
   initialChannelWindowState,
   planChannelPacketTimeout,
   shouldExtendPacketReceiptTimeout,
+  indexOfChannelTxEnvelope,
   stepChannelWindow
 } from "../src/channel-window.js";
 
@@ -88,6 +89,21 @@ describe("protocol channel window", () => {
     expect(
       shouldExtendPacketReceiptTimeout({ currentTimeout: 2, updatedTimeout: 3 })
     ).toBe(true);
+  });
+
+  it("finds TX envelope index by packet id", () => {
+    const a = new Uint8Array([1, 2]);
+    const b = new Uint8Array([3, 4]);
+    expect(
+      indexOfChannelTxEnvelope({
+        packetIds: [null, a, b],
+        targetId: new Uint8Array([3, 4])
+      })
+    ).toBe(2);
+    expect(indexOfChannelTxEnvelope({ packetIds: [a], targetId: null })).toBeNull();
+    expect(
+      indexOfChannelTxEnvelope({ packetIds: [a], targetId: new Uint8Array([9, 9]) })
+    ).toBeNull();
   });
 
   it("plans packet timeout ignore / retry / give-up", () => {

@@ -322,6 +322,7 @@ export {
   channelPacketTimeoutSeconds,
   channelRetryExhausted,
   countChannelTxOutstanding,
+  indexOfChannelTxEnvelope,
   initialChannelWindowState,
   planChannelPacketTimeout,
   shouldExtendPacketReceiptTimeout,

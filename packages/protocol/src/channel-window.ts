@@ -3,6 +3,7 @@
  * Adapters own send/resend/timers; this owns window sizing and timeout formulas.
  */
 import type { Event, StepFn } from "@twistedpear/effects";
+import { equalByteArrays } from "./path-table.js";
 
 export const ChannelWindowLimits = {
   WINDOW: 2,
@@ -92,6 +93,26 @@ export function shouldExtendPacketReceiptTimeout(input: {
   readonly updatedTimeout: number;
 }): boolean {
   return input.currentTimeout !== null && input.updatedTimeout > input.currentTimeout;
+}
+
+/**
+ * Find a TX-ring envelope by outlet packet id.
+ * Packet-id extraction stays at the adapter edge.
+ */
+export function indexOfChannelTxEnvelope(input: {
+  readonly packetIds: ReadonlyArray<Uint8Array | null>;
+  readonly targetId: Uint8Array | null;
+}): number | null {
+  if (input.targetId === null) {
+    return null;
+  }
+  for (let index = 0; index < input.packetIds.length; index += 1) {
+    const packetId = input.packetIds[index];
+    if (packetId != null && equalByteArrays(packetId, input.targetId)) {
+      return index;
+    }
+  }
+  return null;
 }
 
 /** Shrink window after a packet timeout / retry. */
