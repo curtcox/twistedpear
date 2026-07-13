@@ -237,6 +237,18 @@ export function planLxmfDirectSend(input: {
   return "ok";
 }
 
+export type LxmfOpportunisticSendPlan = "ok" | "missing-destination";
+
+/** Whether OPPORTUNISTIC send may proceed (destination present). */
+export function planLxmfOpportunisticSend(input: {
+  readonly destinationPresent: boolean;
+}): LxmfOpportunisticSendPlan {
+  if (!input.destinationPresent) {
+    return "missing-destination";
+  }
+  return "ok";
+}
+
 export type LxMessageInstancePackGate =
   | "ok"
   | "already-packed"

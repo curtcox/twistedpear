@@ -3,6 +3,7 @@ import {
   linkReadyForNewResource,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
+  planLinkResourceAdvertisement,
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest
 } from "../src/link-resource-accept.js";
@@ -17,6 +18,33 @@ describe("protocol link resource accept", () => {
     expect(planLinkResourceAcceptAppResult(false)).toBe("reject");
     expect(linkReadyForNewResource(0)).toBe(true);
     expect(linkReadyForNewResource(1)).toBe(false);
+  });
+
+  it("plans resource advertisement with request bypass", () => {
+    expect(
+      planLinkResourceAdvertisement({
+        isRequest: true,
+        strategy: LinkResourceStrategy.ACCEPT_NONE
+      })
+    ).toEqual({ kind: "accept" });
+    expect(
+      planLinkResourceAdvertisement({
+        isRequest: false,
+        strategy: LinkResourceStrategy.ACCEPT_NONE
+      })
+    ).toEqual({ kind: "ignore" });
+    expect(
+      planLinkResourceAdvertisement({
+        isRequest: false,
+        strategy: LinkResourceStrategy.ACCEPT_APP
+      })
+    ).toEqual({ kind: "ask-app" });
+    expect(
+      planLinkResourceAdvertisement({
+        isRequest: false,
+        strategy: LinkResourceStrategy.ACCEPT_ALL
+      })
+    ).toEqual({ kind: "accept" });
   });
 
   it("gates outgoing request and incoming hash match", () => {

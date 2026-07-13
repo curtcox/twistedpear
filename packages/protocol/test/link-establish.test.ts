@@ -22,13 +22,20 @@ import {
   computeLinkRttSeconds,
   initialLinkEstablishState,
   isLinkClosed,
+  isLinkInboundDataPacket,
   mergeLinkRtt,
   planLinkAppRequest,
+  planLinkAppRequestDispatch,
+  planLinkAppRequestResponse,
+  planLinkProofValidateOutcome,
   planLinkValidateRequest,
   shouldAcceptLinkPacketInterface,
   shouldEncryptLinkPayload,
-  shouldReuseActiveLink
+  shouldReuseActiveLink,
+  shouldUpdateLinkLastData
 } from "../src/link-establish.js";
+import { DestinationAllowPolicyCode } from "../src/destination-allow.js";
+import { PacketTypeCode } from "../src/packet-header.js";
 import { planLinkInitiatorMtu } from "../src/link-metrics.js";
 import { LinkStatus } from "../src/link-watchdog.js";
 
@@ -239,6 +246,121 @@ describe("protocol link establish", () => {
     expect(isLinkClosed(LinkStatus.CLOSED)).toBe(true);
     expect(isLinkClosed(LinkStatus.ACTIVE)).toBe(false);
     expect(isLinkClosed(LinkStatus.PENDING)).toBe(false);
+  });
+
+  it("plans link proof validation outcomes", () => {
+    expect(
+      planLinkProofValidateOutcome({
+        canValidate: true,
+        modeMatches: true,
+        layoutValid: true,
+        bodyPresent: true,
+        peerPublicPresent: true,
+        signatureValid: true
+      })
+    ).toBe("accept");
+    expect(
+      planLinkProofValidateOutcome({
+        canValidate: false,
+        modeMatches: true,
+        layoutValid: true,
+        bodyPresent: true,
+        peerPublicPresent: true,
+        signatureValid: true
+      })
+    ).toBe("reject");
+    expect(
+      planLinkProofValidateOutcome({
+        canValidate: true,
+        modeMatches: false,
+        layoutValid: true,
+        bodyPresent: true,
+        peerPublicPresent: true,
+        signatureValid: true
+      })
+    ).toBe("reject");
+    expect(
+      planLinkProofValidateOutcome({
+        canValidate: true,
+        modeMatches: true,
+        layoutValid: true,
+        bodyPresent: true,
+        peerPublicPresent: true,
+        signatureValid: false
+      })
+    ).toBe("reject");
+  });
+
+  it("plans app request dispatch and response gates", () => {
+    const hash = new Uint8Array([1, 2, 3]);
+    expect(
+      planLinkAppRequestDispatch({
+        plaintextPresent: true,
+        handlerDestinationPresent: true,
+        handlerPresent: true,
+        allow: DestinationAllowPolicyCode.ALLOW_ALL,
+        allowedList: [],
+        remoteIdentityHash: null
+      })
+    ).toBe("invoke-handler");
+    expect(
+      planLinkAppRequestDispatch({
+        plaintextPresent: false,
+        handlerDestinationPresent: true,
+        handlerPresent: true,
+        allow: DestinationAllowPolicyCode.ALLOW_ALL,
+        allowedList: [],
+        remoteIdentityHash: null
+      })
+    ).toBe("ignore");
+    expect(
+      planLinkAppRequestDispatch({
+        plaintextPresent: true,
+        handlerDestinationPresent: true,
+        handlerPresent: true,
+        allow: DestinationAllowPolicyCode.ALLOW_NONE,
+        allowedList: [],
+        remoteIdentityHash: null
+      })
+    ).toBe("forbidden");
+    expect(
+      planLinkAppRequestDispatch({
+        plaintextPresent: true,
+        handlerDestinationPresent: true,
+        handlerPresent: true,
+        allow: DestinationAllowPolicyCode.ALLOW_LIST,
+        allowedList: [hash],
+        remoteIdentityHash: hash
+      })
+    ).toBe("invoke-handler");
+    expect(
+      planLinkAppRequestResponse({
+        responsePresent: true,
+        packedLength: 10,
+        mdu: 100
+      })
+    ).toBe("send-response");
+    expect(
+      planLinkAppRequestResponse({
+        responsePresent: false,
+        packedLength: 0,
+        mdu: 100
+      })
+    ).toBe("ignore");
+    expect(
+      planLinkAppRequestResponse({
+        responsePresent: true,
+        packedLength: 200,
+        mdu: 100
+      })
+    ).toBe("response-too-big");
+  });
+
+  it("gates lastData refresh and DATA inbound dispatch", () => {
+    expect(shouldUpdateLinkLastData(false)).toBe(true);
+    expect(shouldUpdateLinkLastData(true)).toBe(false);
+    expect(isLinkInboundDataPacket(PacketTypeCode.DATA)).toBe(true);
+    expect(isLinkInboundDataPacket(PacketTypeCode.PROOF)).toBe(false);
   });
 
   it("transitions handshake → active and merges RTT", () => {

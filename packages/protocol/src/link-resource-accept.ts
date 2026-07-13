@@ -24,6 +24,20 @@ export function planLinkResourceAccept(
   return { kind: "accept" };
 }
 
+/**
+ * Whether an inbound RESOURCE_ADV should accept / ask-app / ignore.
+ * Request advertisements always accept (bypass strategy); strategy applies to offers.
+ */
+export function planLinkResourceAdvertisement(input: {
+  readonly isRequest: boolean;
+  readonly strategy: LinkResourceStrategyValue | number;
+}): LinkResourceAcceptPlan {
+  if (input.isRequest) {
+    return { kind: "accept" };
+  }
+  return planLinkResourceAccept(input.strategy);
+}
+
 /** After ask-app, map the app callback result to accept/reject. */
 export function planLinkResourceAcceptAppResult(appAccepted: boolean): "accept" | "reject" {
   return appAccepted ? "accept" : "reject";

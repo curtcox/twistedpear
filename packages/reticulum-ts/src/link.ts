@@ -34,7 +34,6 @@ import {
   canPerformLinkHandshake,
   canProveLink,
   canRequestLinkDestination,
-  canSendLinkAppResponse,
   canValidateLinkProof,
   classifyLinkProofPayload,
   computeLinkEstablishmentTimeout,
@@ -67,13 +66,15 @@ import {
   packLinkKeepaliveReply,
   packLinkProofData,
   packLinkRequestData,
-  planDestinationRequestAllow,
   planLinkAppRequest,
+  planLinkAppRequestDispatch,
+  planLinkAppRequestResponse,
   planLinkDataContext,
   planLinkIdentifyOutcome,
   planLinkInitiatorMtu,
-  planLinkResourceAccept,
+  planLinkProofValidateOutcome,
   planLinkResourceAcceptAppResult,
+  planLinkResourceAdvertisement,
   planLinkTeardown,
   planLinkTeardownReason,
   planLinkValidateRequest,
@@ -84,6 +85,8 @@ import {
   shouldHandleOutgoingResourceRequest,
   shouldIgnoreInitiatorKeepaliveProbe,
   shouldReplyKeepaliveProbe,
+  shouldUpdateLinkLastData,
+  isLinkInboundDataPacket,
   splitIdentityPublicKey,
   splitInitiatorLinkEntropy,
   splitLinkIdentifyPayload,
@@ -125,7 +128,6 @@ import {
 } from "./packet.js";
 import type { PacketReceipt } from "./packet-receipt.js";
 import type { RegisteredDestination } from "./registered-destination.js";
-import { DestinationAllowPolicy } from "./registered-destination.js";
 import { RETICULUM_MTU } from "./reticulum.js";
 import type { Clock } from "./runtime/runtime.js";
 import type { LeafTransport } from "./transport/node.js";
@@ -519,57 +521,60 @@ export class Link {
 
   async validateProof(packet: Packet, iface: PacketInterface): Promise<void> {
     const destination = this.destination;
-    if (
-      !canValidateLinkProof({
-        status: this.status,
-        initiator: this.initiator,
-        destinationPresent: destination !== null
-      }) ||
-      destination === null
-    ) {
+    const canValidate = canValidateLinkProof({
+      status: this.status,
+      initiator: this.initiator,
+      destinationPresent: destination !== null
+    });
+    if (!canValidate || destination === null) {
       return;
     }
 
     try {
       const mode = Link.modeFromLpPacket(packet);
-      if (!isExpectedLinkMode({ expected: this.mode, received: mode })) {
-        throw new Error(`Invalid link mode ${mode} in link request proof`);
-      }
+      const modeMatches = isExpectedLinkMode({ expected: this.mode, received: mode });
 
       let proofData = packet.data;
       let signallingBytes = new Uint8Array(0);
       let confirmedMtu: number | null = null;
 
       const layout = classifyLinkProofPayload(proofData.length);
+      const layoutValid = layout !== "invalid";
       if (layout === "body-with-mtu") {
         confirmedMtu = Link.mtuFromLpPacket(packet);
         signallingBytes = Uint8Array.from(Link.signallingBytes(confirmedMtu ?? RETICULUM_MTU, mode));
         proofData = proofData.subarray(0, LINK_PROOF_BODY_SIZE);
-      } else if (layout === "invalid") {
-        throw new Error("Invalid link proof size");
       }
 
       const body = splitLinkProofBody(proofData);
-      if (body === null) {
-        throw new Error("Invalid link proof size");
+      const peerPublic =
+        body !== null ? splitIdentityPublicKey(destination.identity!.getPublicKey()) : null;
+
+      let signatureValid = false;
+      if (modeMatches && layoutValid && body !== null && peerPublic !== null) {
+        this.loadPeer(body.peerPublicKey, peerPublic.signaturePublicKey);
+        this.handshake();
+
+        const signedData = linkProofSignedMaterial(
+          this.linkId,
+          this.peerPublicKeyBytes!,
+          peerPublic.signaturePublicKey,
+          signallingBytes
+        );
+        signatureValid = destination.identity!.validate(body.signature, signedData);
       }
 
-      const peerPublic = splitIdentityPublicKey(destination.identity!.getPublicKey());
-      if (peerPublic === null) {
-        throw new Error("Invalid peer identity public key in link proof");
-      }
-      const peerSignaturePublicKey = peerPublic.signaturePublicKey;
-      this.loadPeer(body.peerPublicKey, peerSignaturePublicKey);
-      this.handshake();
-
-      const signedData = linkProofSignedMaterial(
-        this.linkId,
-        this.peerPublicKeyBytes!,
-        peerSignaturePublicKey,
-        signallingBytes
-      );
-      if (!destination.identity!.validate(body.signature, signedData)) {
-        throw new Error("Invalid link proof signature");
+      if (
+        planLinkProofValidateOutcome({
+          canValidate: true,
+          modeMatches,
+          layoutValid,
+          bodyPresent: body !== null,
+          peerPublicPresent: peerPublic !== null,
+          signatureValid
+        }) === "reject"
+      ) {
+        throw new Error("Invalid link request proof");
       }
 
       const nowSeconds = this.clock.now() / 1000;
@@ -674,11 +679,11 @@ export class Link {
         at: this.clock.now() / 1000
       })
     );
-    if (packet.context !== PacketContext.KEEPALIVE) {
+    if (shouldUpdateLinkLastData(packet.context === PacketContext.KEEPALIVE)) {
       this.lastData = this.lastInbound;
     }
 
-    if (packet.packetType !== PacketType.DATA) {
+    if (!isLinkInboundDataPacket(packet.packetType)) {
       return;
     }
 
@@ -1068,35 +1073,30 @@ export class Link {
   private async handleRequestPacket(packet: Packet): Promise<void> {
     const requestId = packet.truncatedHash();
     const plaintext = this.decrypt(packet.data);
-    if (plaintext === null) {
-      return;
-    }
 
     try {
-      const [requestedAt, pathHash, requestData] = msgpackUnpackRequest(plaintext);
+      const unpacked =
+        plaintext !== null ? msgpackUnpackRequest(plaintext) : null;
       const handlerDestination = this.owner ?? this.destination;
-      if (handlerDestination === null) {
+      const pathHash = unpacked?.[1] ?? null;
+      const handler =
+        handlerDestination !== null && pathHash !== null
+          ? handlerDestination.getRequestHandler(pathHash)
+          : undefined;
+
+      const dispatch = planLinkAppRequestDispatch({
+        plaintextPresent: plaintext !== null,
+        handlerDestinationPresent: handlerDestination !== null,
+        handlerPresent: handler !== undefined,
+        allow: handler?.allow ?? 0,
+        allowedList: handler?.allowedList ?? [],
+        remoteIdentityHash: this.remoteIdentity?.hash ?? null
+      });
+      if (dispatch !== "invoke-handler" || unpacked === null || handler === undefined) {
         return;
       }
 
-      const handler = handlerDestination.getRequestHandler(pathHash);
-      if (handler === undefined) {
-        return;
-      }
-
-      let allowed = false;
-      if (handler.allow !== DestinationAllowPolicy.ALLOW_NONE) {
-        allowed = planDestinationRequestAllow({
-          allow: handler.allow,
-          allowedList: handler.allowedList,
-          remoteIdentityHash: this.remoteIdentity?.hash ?? null
-        });
-      }
-
-      if (!allowed) {
-        return;
-      }
-
+      const [requestedAt, , requestData] = unpacked;
       const response = await handler.responseGenerator(
         handler.path,
         requestData,
@@ -1106,16 +1106,15 @@ export class Link {
         requestedAt
       );
 
-      if (response === null) {
-        return;
-      }
-
-      const packedResponse = msgpackPackResponse(requestId, response);
+      const packedResponse =
+        response !== null ? msgpackPackResponse(requestId, response) : null;
       if (
-        canSendLinkAppResponse({
-          packedLength: packedResponse.length,
+        planLinkAppRequestResponse({
+          responsePresent: packedResponse !== null,
+          packedLength: packedResponse?.length ?? 0,
           mdu: this.mdu
-        })
+        }) === "send-response" &&
+        packedResponse !== null
       ) {
         await this.sendContext(PacketContext.RESPONSE, packedResponse);
       }
@@ -1158,14 +1157,10 @@ export class Link {
       return;
     }
 
-    if (ResourceAdvertisement.isRequest(plaintext)) {
-      Resource.accept(this, plaintext, packet, {
-        callback: (resource) => this.callbacks.resourceConcluded?.(resource)
-      });
-      return;
-    }
-
-    const plan = planLinkResourceAccept(this.resourceStrategy);
+    const plan = planLinkResourceAdvertisement({
+      isRequest: ResourceAdvertisement.isRequest(plaintext),
+      strategy: this.resourceStrategy
+    });
     if (plan.kind === "ignore") {
       return;
     }

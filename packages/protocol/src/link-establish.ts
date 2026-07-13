@@ -3,7 +3,9 @@
  * Crypto verification and packet IO stay at the adapter edge.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { planDestinationRequestAllow } from "./destination-allow.js";
 import { linkPayloadFitsMdu } from "./link-metrics.js";
+import { PacketTypeCode } from "./packet-header.js";
 import { LinkStatus, type LinkStatusValue } from "./link-watchdog.js";
 
 export interface LinkEstablishState {
@@ -101,6 +103,33 @@ export function canValidateLinkProof(input: {
   return input.status === LinkStatus.PENDING && input.initiator;
 }
 
+export type LinkProofValidateOutcome = "accept" | "reject";
+
+/**
+ * Whether inbound link-request proof crypto gates allow ACTIVATED.
+ * ECDH / signature verify / MTU strip stay at the adapter edge.
+ */
+export function planLinkProofValidateOutcome(input: {
+  readonly canValidate: boolean;
+  readonly modeMatches: boolean;
+  readonly layoutValid: boolean;
+  readonly bodyPresent: boolean;
+  readonly peerPublicPresent: boolean;
+  readonly signatureValid: boolean;
+}): LinkProofValidateOutcome {
+  if (
+    !input.canValidate ||
+    !input.modeMatches ||
+    !input.layoutValid ||
+    !input.bodyPresent ||
+    !input.peerPublicPresent ||
+    !input.signatureValid
+  ) {
+    return "reject";
+  }
+  return "accept";
+}
+
 export function canAcceptLinkRtt(input: {
   readonly status: LinkStatusValue;
   readonly initiator: boolean;
@@ -150,6 +179,66 @@ export function canSendLinkAppResponse(input: {
   readonly mdu: number;
 }): boolean {
   return linkPayloadFitsMdu(input.packedLength, input.mdu);
+}
+
+export type LinkAppRequestDispatchPlan = "ignore" | "forbidden" | "invoke-handler";
+
+/**
+ * Whether an inbound application request may invoke the destination handler.
+ * Decrypt / unpack / responseGenerator / encrypt stay at the adapter edge.
+ */
+export function planLinkAppRequestDispatch(input: {
+  readonly plaintextPresent: boolean;
+  readonly handlerDestinationPresent: boolean;
+  readonly handlerPresent: boolean;
+  readonly allow: number;
+  readonly allowedList: ReadonlyArray<Uint8Array>;
+  readonly remoteIdentityHash: Uint8Array | null;
+}): LinkAppRequestDispatchPlan {
+  if (
+    !input.plaintextPresent ||
+    !input.handlerDestinationPresent ||
+    !input.handlerPresent
+  ) {
+    return "ignore";
+  }
+  if (
+    !planDestinationRequestAllow({
+      allow: input.allow,
+      allowedList: input.allowedList,
+      remoteIdentityHash: input.remoteIdentityHash
+    })
+  ) {
+    return "forbidden";
+  }
+  return "invoke-handler";
+}
+
+export type LinkAppRequestResponsePlan = "ignore" | "response-too-big" | "send-response";
+
+/** Whether a packed application response may be sent after the handler returns. */
+export function planLinkAppRequestResponse(input: {
+  readonly responsePresent: boolean;
+  readonly packedLength: number;
+  readonly mdu: number;
+}): LinkAppRequestResponsePlan {
+  if (!input.responsePresent) {
+    return "ignore";
+  }
+  if (!canSendLinkAppResponse({ packedLength: input.packedLength, mdu: input.mdu })) {
+    return "response-too-big";
+  }
+  return "send-response";
+}
+
+/** Whether inbound traffic (non-keepalive) should refresh lastData. */
+export function shouldUpdateLinkLastData(contextKeepalive: boolean): boolean {
+  return !contextKeepalive;
+}
+
+/** Whether inbound link receive should dispatch DATA context handlers. */
+export function isLinkInboundDataPacket(packetType: number): boolean {
+  return packetType === PacketTypeCode.DATA;
 }
 
 /** Whether the link may send application/context data (ACTIVE). */

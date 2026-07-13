@@ -14,6 +14,7 @@ import {
   planLxMessagePack,
   planLxmfDeliverableAccept,
   planLxmfDirectSend,
+  planLxmfOpportunisticSend,
   planLxmfPropagatedPackPrep,
   planLxmfPropagatedSend,
   planLxmfSendMethod,
@@ -374,5 +375,12 @@ describe("protocol lxmf delivery", () => {
         timestampPresent: true
       })
     ).toBe("ok");
+  });
+
+  it("plans opportunistic send destination gate", () => {
+    expect(planLxmfOpportunisticSend({ destinationPresent: true })).toBe("ok");
+    expect(planLxmfOpportunisticSend({ destinationPresent: false })).toBe(
+      "missing-destination"
+    );
   });
 });

@@ -8,6 +8,7 @@ import {
   packLxmfDestinationPrefixed,
   planLxmfDeliverableAccept,
   planLxmfDirectSend,
+  planLxmfOpportunisticSend,
   planLxmfPropagatedSend,
   planLxmfSendMethod,
   shouldReuseActiveLink,
@@ -221,7 +222,10 @@ export class LXMFRouter {
 
   private async sendOpportunistic(message: LXMessage): Promise<void> {
     const destination = message.destination;
-    if (destination === null) {
+    const plan = planLxmfOpportunisticSend({
+      destinationPresent: destination !== null
+    });
+    if (plan === "missing-destination" || destination === null) {
       throw new Error("Opportunistic LXMF requires destination");
     }
 
