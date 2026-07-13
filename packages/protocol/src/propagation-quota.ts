@@ -103,3 +103,30 @@ export function planPropagationStore(input: {
 
   return { kind: "accept", evictKeys };
 }
+
+export type PropagationRestorePlan =
+  | "reject-too-large"
+  | "duplicate"
+  | "reject-hash"
+  | "accept";
+
+/**
+ * Whether a persisted propagation entry may be restored into the in-memory catalog.
+ * Map set / usedBytes stay at the adapter.
+ */
+export function planPropagationRestore(input: {
+  readonly tooLarge: boolean;
+  readonly alreadyStored: boolean;
+  readonly destinationHashPresent: boolean;
+}): PropagationRestorePlan {
+  if (input.tooLarge) {
+    return "reject-too-large";
+  }
+  if (input.alreadyStored) {
+    return "duplicate";
+  }
+  if (!input.destinationHashPresent) {
+    return "reject-hash";
+  }
+  return "accept";
+}

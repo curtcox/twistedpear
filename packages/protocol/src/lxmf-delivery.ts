@@ -190,6 +190,11 @@ export function planLxmfDeliverableAccept(input: {
   return "accept";
 }
 
+/** Whether an accepted LXMF deliverable hash should be remembered in the seen set. */
+export function shouldRememberLxmfMessage(hasHash: boolean): boolean {
+  return hasHash;
+}
+
 /** Whether propagation inbound targets this router's local delivery destination. */
 export function canAcceptLxmfPropagationLocalDelivery(input: {
   readonly deliveryDestinationPresent: boolean;

@@ -29,6 +29,7 @@ import {
   shouldEmitChannelImmediateDelivery,
   shouldExtendPacketReceiptTimeout,
   shouldRegisterChannelMessageHandler,
+  shouldStopChannelHandlerFanout,
   stepChannelWindow,
   unpackChannelEnvelope,
   type ChannelWindowState
@@ -363,7 +364,7 @@ export class Channel {
       const delivered = candidate.unpack(this.messageFactories);
 
       for (const callback of [...this.messageCallbacks]) {
-        if (callback(delivered)) {
+        if (shouldStopChannelHandlerFanout(callback(delivered))) {
           break;
         }
       }

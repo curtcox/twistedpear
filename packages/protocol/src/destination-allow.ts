@@ -150,3 +150,8 @@ export function planDestinationRequestAllow(input: {
   }
   return false;
 }
+
+/** Whether a validated link should be registered on the destination link list. */
+export function shouldRegisterDestinationLink(validatedLinkPresent: boolean): boolean {
+  return validatedLinkPresent;
+}

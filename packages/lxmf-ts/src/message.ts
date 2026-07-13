@@ -17,6 +17,7 @@ import {
   planLxMessageInstancePack,
   planLxMessagePack,
   shouldIncludeLxmfStamp,
+  shouldRememberLxmfMessage,
   splitLxmfWire,
   utf8Decode,
   utf8OrBytes
@@ -350,11 +351,15 @@ function encodeTextOrBytes(value: string | Uint8Array): Uint8Array {
 }
 
 export function rememberMessage(seen: Set<string>, message: LXMessage): void {
-  if (message.hash === null) {
+  if (!shouldRememberLxmfMessage(message.hash !== null)) {
+    return;
+  }
+  const hash = message.hash;
+  if (hash === null) {
     return;
   }
 
-  seen.add(bytesToHexLower(message.hash));
+  seen.add(bytesToHexLower(hash));
 }
 
 export function messagesEqual(left: LXMessage, right: LXMessage): boolean {

@@ -14,6 +14,7 @@ import {
   planLxmfPropagationLocalIngress,
   planLxmfReceiptSendOutcome,
   planLxmfSendMethod,
+  shouldRememberLxmfMessage,
   shouldReuseActiveLink,
   splitLxmfDestinationPrefixed,
   stepDeliveryReceiptPoll,
@@ -504,7 +505,7 @@ export class LXMFRouter {
         return null;
       }
 
-      if (message.hash !== null) {
+      if (shouldRememberLxmfMessage(message.hash !== null)) {
         rememberMessage(this.seenMessages, message);
       }
 

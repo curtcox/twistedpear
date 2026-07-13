@@ -19,6 +19,7 @@ import {
   planOutboundReceiptOutcome,
   planPacketFilter,
   planPacketReceiptProofIngress,
+  planPathEntryLookup,
   planPathOutbound,
   planPathRequestIngress,
   planPathResponseAnnounceFields,
@@ -35,6 +36,7 @@ import {
   shouldMatchLocalTypedDestination,
   shouldReceiveAnnouncePathResponse,
   shouldRegisterLinkMember,
+  shouldRegisterPacketReceipt,
   shouldRegisterTransportMember,
   shouldTransmitOnInterface,
   indexOfMatchingLinkId,
@@ -238,10 +240,16 @@ export class LeafTransport {
   getPathEntry(destinationHash: Uint8Array): PathEntry | undefined {
     const key = hashKey(destinationHash);
     const entry = this.pathTable.get(key);
-    if (entry === undefined) {
+    const plan = planPathEntryLookup({
+      entryPresent: entry !== undefined,
+      expired:
+        entry !== undefined &&
+        isPathEntryExpired({ expires: entry.expires, nowSeconds: this.clock.now() / 1000 })
+    });
+    if (plan === "miss") {
       return undefined;
     }
-    if (isPathEntryExpired({ expires: entry.expires, nowSeconds: this.clock.now() / 1000 })) {
+    if (plan === "expired") {
       this.pathTable.delete(key);
       return undefined;
     }
@@ -370,7 +378,7 @@ export class LeafTransport {
     const createReceipt = options.createReceipt === true;
     let receipt: PacketReceipt | null = null;
 
-    if (createReceipt) {
+    if (shouldRegisterPacketReceipt(createReceipt)) {
       const nowSeconds = () => this.clock.now() / 1000;
       receipt = new PacketReceipt(packet.hash(), packet.truncatedHash(), packet.destinationHash, {
         sentAt: nowSeconds(),

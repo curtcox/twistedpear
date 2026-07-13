@@ -22,7 +22,8 @@ import {
   planLxmfPropagationLocalIngress,
   planLxmfSendMethod,
   planLxmfSignatureOutcome,
-  shouldIncludeLxmfStamp
+  shouldIncludeLxmfStamp,
+  shouldRememberLxmfMessage
 } from "../src/lxmf-delivery.js";
 import { LxmfUnverifiedReason } from "../src/lxmf-fields.js";
 
@@ -461,5 +462,7 @@ describe("protocol lxmf delivery", () => {
     expect(shouldIncludeLxmfStamp(undefined)).toBe(true);
     expect(shouldIncludeLxmfStamp(false)).toBe(true);
     expect(shouldIncludeLxmfStamp(true)).toBe(false);
+    expect(shouldRememberLxmfMessage(true)).toBe(true);
+    expect(shouldRememberLxmfMessage(false)).toBe(false);
   });
 });

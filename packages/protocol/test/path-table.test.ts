@@ -15,6 +15,7 @@ import {
   isDiscoveryPathRequestExpired,
   isPathEntryExpired,
   planDiscoveryPathRequestFulfill,
+  planPathEntryLookup,
   planPathOutbound,
   planPathRequestIngress,
   shouldAddPathEntry,
@@ -351,5 +352,11 @@ describe("protocol path table", () => {
         expired: false
       })
     ).toBe("fulfill");
+  });
+
+  it("plans path-table get miss/expired/hit", () => {
+    expect(planPathEntryLookup({ entryPresent: false, expired: false })).toBe("miss");
+    expect(planPathEntryLookup({ entryPresent: true, expired: true })).toBe("expired");
+    expect(planPathEntryLookup({ entryPresent: true, expired: false })).toBe("hit");
   });
 });

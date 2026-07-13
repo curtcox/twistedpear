@@ -232,6 +232,25 @@ export function isPathEntryExpired(input: {
   return input.nowSeconds >= input.expires;
 }
 
+export type PathEntryLookupPlan = "miss" | "expired" | "hit";
+
+/**
+ * Path-table get: miss, expired (adapter deletes), or hit.
+ * Map delete stays at the adapter.
+ */
+export function planPathEntryLookup(input: {
+  readonly entryPresent: boolean;
+  readonly expired: boolean;
+}): PathEntryLookupPlan {
+  if (!input.entryPresent) {
+    return "miss";
+  }
+  if (input.expired) {
+    return "expired";
+  }
+  return "hit";
+}
+
 /**
  * Dedupe-append a path announce random blob onto the entry's blob list.
  */

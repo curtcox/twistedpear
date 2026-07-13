@@ -176,3 +176,8 @@ export function planPacketReceiptProofIngress(input: {
 export function planUnregisterPacketReceipt(index: number): number | null {
   return index >= 0 ? index : null;
 }
+
+/** Whether an outbound send should create and register a packet receipt. */
+export function shouldRegisterPacketReceipt(createReceipt: boolean): boolean {
+  return createReceipt;
+}

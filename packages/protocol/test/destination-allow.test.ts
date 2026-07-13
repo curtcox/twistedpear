@@ -10,7 +10,8 @@ import {
   planDestinationConstruction,
   planDestinationDecrypt,
   planDestinationEncrypt,
-  planDestinationRequestAllow
+  planDestinationRequestAllow,
+  shouldRegisterDestinationLink
 } from "../src/destination-allow.js";
 import { DestinationDirectionCode, DestinationTypeCode } from "../src/packet-header.js";
 import { LinkRequestReceiptStatus } from "../src/link-request-receipt.js";
@@ -153,6 +154,11 @@ describe("destination allow policy", () => {
     expect(planDestinationEncrypt({ typePlain: false, identityPresent: true })).toBe(
       "encrypt-with-identity"
     );
+  });
+
+  it("registers destination links when validation succeeded", () => {
+    expect(shouldRegisterDestinationLink(true)).toBe(true);
+    expect(shouldRegisterDestinationLink(false)).toBe(false);
   });
 });
 

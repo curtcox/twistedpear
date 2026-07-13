@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   PROPAGATION_DESTINATION_HASH_SIZE,
   isPropagationMessageTooLarge,
+  planPropagationRestore,
   planPropagationStore,
   propagationDestinationHash,
   propagationEntryVisibleToRecipient,
@@ -78,5 +79,36 @@ describe("protocol propagation quota", () => {
     expect(propagationEntryVisibleToRecipient(dest, null)).toBe(true);
     expect(propagationEntryVisibleToRecipient(dest, dest)).toBe(true);
     expect(propagationEntryVisibleToRecipient(dest, new Uint8Array(16))).toBe(false);
+  });
+
+  it("plans propagation restore gates", () => {
+    expect(
+      planPropagationRestore({
+        tooLarge: true,
+        alreadyStored: false,
+        destinationHashPresent: true
+      })
+    ).toBe("reject-too-large");
+    expect(
+      planPropagationRestore({
+        tooLarge: false,
+        alreadyStored: true,
+        destinationHashPresent: true
+      })
+    ).toBe("duplicate");
+    expect(
+      planPropagationRestore({
+        tooLarge: false,
+        alreadyStored: false,
+        destinationHashPresent: false
+      })
+    ).toBe("reject-hash");
+    expect(
+      planPropagationRestore({
+        tooLarge: false,
+        alreadyStored: false,
+        destinationHashPresent: true
+      })
+    ).toBe("accept");
   });
 });

@@ -2,7 +2,9 @@ import {
   allowClientRequest as checkClientRateLimit,
   decodeLxmfPeerError,
   initialPersistDebounceState,
+  isPropagationMessageTooLarge,
   planPropagationGet,
+  planPropagationRestore,
   planPropagationStore,
   propagationDestinationHash,
   selectOldestPropagationKey,
@@ -197,17 +199,14 @@ export class PropagationServer {
   }
 
   private restoreEntry(entry: PropagationStoredEntry): void {
-    if (entry.lxmfData.length > this.quotas.maxMessageBytes) {
-      return;
-    }
-
     const key = Buffer.from(entry.transientId).toString("hex");
-    if (this.entries.has(key)) {
-      return;
-    }
-
     const destinationHash = propagationDestinationHash(entry.lxmfData);
-    if (destinationHash === null) {
+    const plan = planPropagationRestore({
+      tooLarge: isPropagationMessageTooLarge(entry.lxmfData.length, this.quotas),
+      alreadyStored: this.entries.has(key),
+      destinationHashPresent: destinationHash !== null
+    });
+    if (plan !== "accept" || destinationHash === null) {
       return;
     }
 

@@ -165,6 +165,11 @@ export function planUnregisterChannelMessageHandler(index: number): number | nul
   return index >= 0 ? index : null;
 }
 
+/** Whether channel message-handler fan-out should stop after a handler returns handled. */
+export function shouldStopChannelHandlerFanout(handled: boolean): boolean {
+  return handled;
+}
+
 export function channelPayloadMdu(outletMdu: number): number {
   const value = outletMdu - CHANNEL_ENVELOPE_HEADER_SIZE;
   return value > 0xffff ? 0xffff : value;

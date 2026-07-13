@@ -31,6 +31,7 @@ import {
   isValidDestinationRequestPath,
   planDestinationDecrypt,
   planDestinationEncrypt,
+  shouldRegisterDestinationLink,
   utf8Encode,
   type DestinationAllowPolicyCodeValue
 } from "@twistedpear/protocol";
@@ -160,18 +161,23 @@ export class RegisteredDestination extends Destination {
     }
 
     const link = Link.validateRequest(this, this.transport!, packet, iface);
-    if (link !== null) {
-      if (this.linkEstablishedCallback !== null) {
-        const callback = this.linkEstablishedCallback;
-        const existing = link.callbacks.linkEstablished;
-        link.callbacks.linkEstablished = (establishedLink) => {
-          existing?.(establishedLink);
-          callback(establishedLink);
-        };
-      }
-
-      this.links.push(link);
+    if (!shouldRegisterDestinationLink(link !== null)) {
+      return;
     }
+    if (link === null) {
+      return;
+    }
+
+    if (this.linkEstablishedCallback !== null) {
+      const callback = this.linkEstablishedCallback;
+      const existing = link.callbacks.linkEstablished;
+      link.callbacks.linkEstablished = (establishedLink) => {
+        existing?.(establishedLink);
+        callback(establishedLink);
+      };
+    }
+
+    this.links.push(link);
   }
 
   dispatchPacket(data: Uint8Array, packet: Packet): void {

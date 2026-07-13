@@ -14,6 +14,7 @@ import {
   planUnregisterChannelMessageHandler,
   shouldEmitChannelImmediateDelivery,
   shouldRegisterChannelMessageHandler,
+  shouldStopChannelHandlerFanout,
   unpackChannelEnvelope
 } from "../src/channel-envelope.js";
 import {
@@ -130,6 +131,8 @@ describe("protocol channel envelope", () => {
     expect(shouldRegisterChannelMessageHandler(true)).toBe(false);
     expect(planUnregisterChannelMessageHandler(1)).toBe(1);
     expect(planUnregisterChannelMessageHandler(-1)).toBeNull();
+    expect(shouldStopChannelHandlerFanout(true)).toBe(true);
+    expect(shouldStopChannelHandlerFanout(false)).toBe(false);
   });
 });
 
