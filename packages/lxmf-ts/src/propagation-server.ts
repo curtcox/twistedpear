@@ -1,6 +1,10 @@
 import {
   allowClientRequest as checkClientRateLimit,
   initialPersistDebounceState,
+  planPropagationStore,
+  propagationDestinationHash,
+  propagationEntryVisibleToRecipient,
+  selectOldestPropagationKey,
   stepPersistDebounceWithActions,
   type ClientRateBucket,
   type PersistDebounceState
@@ -134,30 +138,44 @@ export class PropagationServer {
   }
 
   storePropagationData(lxmfData: Uint8Array): Uint8Array | null {
-    if (lxmfData.length > this.quotas.maxMessageBytes) {
-      return null;
-    }
-
     const transientId = RnsIdentity.fullHash(this.provider, lxmfData);
     const key = Buffer.from(transientId).toString("hex");
-    if (this.entries.has(key)) {
+    const plan = planPropagationStore({
+      quotas: this.quotas,
+      messageBytes: lxmfData.length,
+      alreadyStored: this.entries.has(key),
+      usedBytes: this.usedBytes,
+      entries: [...this.entries.entries()].map(([entryKey, entry]) => ({
+        key: entryKey,
+        size: entry.size,
+        storedAt: entry.storedAt
+      }))
+    });
+
+    if (plan.kind === "reject-too-large" || plan.kind === "reject-capacity") {
+      return null;
+    }
+    if (plan.kind === "duplicate") {
       return transientId;
     }
 
-    while (
-      this.entries.size >= this.quotas.maxMessages ||
-      this.usedBytes + lxmfData.length > this.quotas.maxBytes
-    ) {
-      if (!this.evictOldest()) {
-        return null;
+    for (const evictKey of plan.evictKeys) {
+      const entry = this.entries.get(evictKey);
+      if (entry !== undefined) {
+        this.delete(entry.transientId);
+        this.evictions += 1;
       }
     }
 
-    const destinationHash = lxmfData.subarray(0, 16);
+    const destinationHash = propagationDestinationHash(lxmfData);
+    if (destinationHash === null) {
+      return null;
+    }
+
     const storedAt = this.now();
     this.entries.set(key, {
       transientId,
-      destinationHash,
+      destinationHash: Uint8Array.from(destinationHash),
       lxmfData: Uint8Array.from(lxmfData),
       storedAt,
       size: lxmfData.length
@@ -190,10 +208,14 @@ export class PropagationServer {
       return;
     }
 
-    const destinationHash = entry.lxmfData.subarray(0, 16);
+    const destinationHash = propagationDestinationHash(entry.lxmfData);
+    if (destinationHash === null) {
+      return;
+    }
+
     this.entries.set(key, {
       transientId: Uint8Array.from(entry.transientId),
-      destinationHash,
+      destinationHash: Uint8Array.from(destinationHash),
       lxmfData: Uint8Array.from(entry.lxmfData),
       storedAt: entry.storedAt,
       size: entry.lxmfData.length
@@ -240,14 +262,19 @@ export class PropagationServer {
   }
 
   private evictOldest(): boolean {
-    let oldest: StoredPropagationMessage | null = null;
-    for (const entry of this.entries.values()) {
-      if (oldest === null || entry.storedAt < oldest.storedAt) {
-        oldest = entry;
-      }
+    const oldestKey = selectOldestPropagationKey(
+      [...this.entries.entries()].map(([key, entry]) => ({
+        key,
+        size: entry.size,
+        storedAt: entry.storedAt
+      }))
+    );
+    if (oldestKey === null) {
+      return false;
     }
 
-    if (oldest === null) {
+    const oldest = this.entries.get(oldestKey);
+    if (oldest === undefined) {
       return false;
     }
 
@@ -304,7 +331,9 @@ export class PropagationServer {
 
     if (wants === null && haves === null) {
       const ids = [...this.entries.values()]
-        .filter((entry) => remoteDeliveryHash === null || equalDestinationHash(entry.destinationHash, remoteDeliveryHash))
+        .filter((entry) =>
+          propagationEntryVisibleToRecipient(entry.destinationHash, remoteDeliveryHash)
+        )
         .map((entry) => entry.transientId);
       return msgpackPackArray(ids.map((id) => msgpackPackBin(id)));
     }
@@ -324,16 +353,12 @@ export class PropagationServer {
       .filter(
         (entry): entry is StoredPropagationMessage =>
           entry !== null &&
-          (remoteDeliveryHash === null || equalDestinationHash(entry.destinationHash, remoteDeliveryHash))
+          propagationEntryVisibleToRecipient(entry.destinationHash, remoteDeliveryHash)
       )
       .map((entry) => entry.lxmfData);
 
     return msgpackPackArray(messages.map((message) => msgpackPackBin(message)));
   }
-}
-
-function equalDestinationHash(left: Uint8Array, right: Uint8Array): boolean {
-  return Buffer.from(left).equals(Buffer.from(right));
 }
 
 export function decodePropagationPeerError(response: Uint8Array): number | null {

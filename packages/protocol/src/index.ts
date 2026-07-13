@@ -303,3 +303,14 @@ export {
   computeLinkMdu,
   linkHopsMatch
 } from "./link-metrics.js";
+export {
+  PROPAGATION_DESTINATION_HASH_SIZE,
+  isPropagationMessageTooLarge,
+  planPropagationStore,
+  propagationDestinationHash,
+  propagationEntryVisibleToRecipient,
+  selectOldestPropagationKey,
+  type PropagationCatalogEntry,
+  type PropagationQuotas,
+  type PropagationStorePlan
+} from "./propagation-quota.js";
