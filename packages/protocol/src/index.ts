@@ -431,6 +431,20 @@ export {
   unpackPacketFlags,
   type PacketHeaderFields
 } from "./packet-header.js";
+export { PKCS7_BLOCK_SIZE, pkcs7Pad, pkcs7Unpad } from "./pkcs7.js";
+export {
+  LXMF_DESTINATION_LENGTH,
+  LXMF_SIGNATURE_LENGTH,
+  LXMF_STRUCT_OVERHEAD,
+  LXMF_TIMESTAMP_SIZE,
+  LxmfDeliveryMethod,
+  LxmfDeliveryRepresentation,
+  lxmfContentSizeFromPackedLength,
+  planLxmfDelivery,
+  type LxmfDeliveryMethodValue,
+  type LxmfDeliveryPlan,
+  type LxmfDeliveryRepresentationValue
+} from "./lxmf-delivery.js";
 export {
   PATH_REQUEST_HASH_BYTES,
   TRANSPORT_PATH_REQUEST_APP,

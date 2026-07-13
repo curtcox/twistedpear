@@ -1,4 +1,9 @@
-import { utf8Decode, utf8Encode } from "@twistedpear/protocol";
+import {
+  lxmfContentSizeFromPackedLength,
+  planLxmfDelivery,
+  utf8Decode,
+  utf8Encode
+} from "@twistedpear/protocol";
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import {
   Destination,
@@ -264,29 +269,7 @@ export class LXMessage {
     }
 
     const desiredMethod = this.desiredMethod ?? LXMessageMethod.DIRECT;
-    const payload = this.packed.subarray(2 * DESTINATION_LENGTH + SIGNATURE_LENGTH);
-    const contentSize = payload.length - TIMESTAMP_SIZE - STRUCT_OVERHEAD;
-
-    if (desiredMethod === LXMessageMethod.OPPORTUNISTIC) {
-      if (contentSize > ENCRYPTED_PACKET_MAX_CONTENT) {
-        throw new TypeError(
-          `Opportunistic LXMF content of length ${contentSize} exceeds single-packet limit ${ENCRYPTED_PACKET_MAX_CONTENT}`
-        );
-      }
-
-      this.method = LXMessageMethod.OPPORTUNISTIC;
-      this.representation = LXMessageRepresentation.PACKET;
-      return;
-    }
-
-    if (desiredMethod === LXMessageMethod.DIRECT) {
-      this.method = LXMessageMethod.DIRECT;
-      this.representation =
-        contentSize <= LINK_PACKET_MAX_CONTENT
-          ? LXMessageRepresentation.PACKET
-          : LXMessageRepresentation.RESOURCE;
-      return;
-    }
+    const contentSize = lxmfContentSizeFromPackedLength(this.packed.length);
 
     if (desiredMethod === LXMessageMethod.PROPAGATED) {
       if (this.destination === null || this.destination.identity === null) {
@@ -300,16 +283,27 @@ export class LXMessage {
         throw new Error("LXMessage.pack requires timestamp to be set before packing");
       }
       this.propagationPacked = msgpackPackPropagationEnvelope(this.timestamp, [lxmfData]);
+    }
 
-      const propagationSize = this.propagationPacked.length;
-      if (propagationSize > LINK_PACKET_MAX_CONTENT) {
-        this.method = LXMessageMethod.PROPAGATED;
-        this.representation = LXMessageRepresentation.RESOURCE;
-        return;
-      }
+    const plan = planLxmfDelivery({
+      desiredMethod,
+      contentSize,
+      encryptedPacketMaxContent: ENCRYPTED_PACKET_MAX_CONTENT,
+      linkPacketMaxContent: LINK_PACKET_MAX_CONTENT,
+      ...(desiredMethod === LXMessageMethod.PROPAGATED
+        ? { propagationPackedLength: this.propagationPacked!.length }
+        : {})
+    });
 
-      this.method = LXMessageMethod.PROPAGATED;
-      this.representation = LXMessageRepresentation.PACKET;
+    if (plan.kind === "reject-opportunistic-too-large") {
+      throw new TypeError(
+        `Opportunistic LXMF content of length ${plan.contentSize} exceeds single-packet limit ${plan.maxContent}`
+      );
+    }
+
+    if (plan.kind === "deliver") {
+      this.method = plan.method as LXMessageMethodValue;
+      this.representation = plan.representation as LXMessageRepresentationValue;
     }
   }
 }
