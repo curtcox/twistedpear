@@ -38,6 +38,25 @@ export function canDestinationSend(directionOut: boolean): boolean {
   return directionOut;
 }
 
+export type DestinationDecryptPlan =
+  | "return-ciphertext"
+  | "reject"
+  | "decrypt-with-identity";
+
+/** How destination decrypt should proceed for inbound ciphertext. */
+export function planDestinationDecrypt(input: {
+  readonly typePlain: boolean;
+  readonly identityPresent: boolean;
+}): DestinationDecryptPlan {
+  if (input.typePlain) {
+    return "return-ciphertext";
+  }
+  if (!input.identityPresent) {
+    return "reject";
+  }
+  return "decrypt-with-identity";
+}
+
 export function planDestinationRequestAllow(input: {
   readonly allow: number;
   readonly allowedList: ReadonlyArray<Uint8Array>;

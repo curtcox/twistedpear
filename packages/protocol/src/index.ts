@@ -63,8 +63,10 @@ export {
   canAnnounceDestination,
   canDestinationSend,
   isValidDestinationRequestPath,
+  planDestinationDecrypt,
   planDestinationRequestAllow,
-  type DestinationAllowPolicyCodeValue
+  type DestinationAllowPolicyCodeValue,
+  type DestinationDecryptPlan
 } from "./destination-allow.js";
 export {
   DestinationProofStrategyCode,

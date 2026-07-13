@@ -5,6 +5,7 @@ import {
   canAnnounceDestination,
   canDestinationSend,
   isValidDestinationRequestPath,
+  planDestinationDecrypt,
   planDestinationRequestAllow
 } from "../src/destination-allow.js";
 import { LinkRequestReceiptStatus } from "../src/link-request-receipt.js";
@@ -68,6 +69,16 @@ describe("destination allow policy", () => {
   it("allows sends only for OUT destinations", () => {
     expect(canDestinationSend(true)).toBe(true);
     expect(canDestinationSend(false)).toBe(false);
+  });
+
+  it("plans destination decrypt by type and identity", () => {
+    expect(planDestinationDecrypt({ typePlain: true, identityPresent: false })).toBe(
+      "return-ciphertext"
+    );
+    expect(planDestinationDecrypt({ typePlain: false, identityPresent: false })).toBe("reject");
+    expect(planDestinationDecrypt({ typePlain: false, identityPresent: true })).toBe(
+      "decrypt-with-identity"
+    );
   });
 });
 

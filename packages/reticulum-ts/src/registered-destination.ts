@@ -29,6 +29,7 @@ import {
   canAnnounceDestination,
   canDestinationSend,
   isValidDestinationRequestPath,
+  planDestinationDecrypt,
   utf8Encode,
   type DestinationAllowPolicyCodeValue
 } from "@twistedpear/protocol";
@@ -185,15 +186,18 @@ export class RegisteredDestination extends Destination {
   }
 
   decrypt(ciphertext: Uint8Array): Uint8Array | null {
-    if (this.type === DestinationType.PLAIN) {
+    const plan = planDestinationDecrypt({
+      typePlain: this.type === DestinationType.PLAIN,
+      identityPresent: this.identity !== null
+    });
+    if (plan === "return-ciphertext") {
       return ciphertext;
     }
-
-    if (this.identity === null) {
+    if (plan === "reject") {
       return null;
     }
 
-    return this.identity.decrypt(ciphertext).plaintext;
+    return this.identity!.decrypt(ciphertext).plaintext;
   }
 
   async announce(
