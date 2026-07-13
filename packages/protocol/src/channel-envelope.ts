@@ -7,6 +7,17 @@ export const CHANNEL_SEQ_MAX = 0xffff;
 export const CHANNEL_SEQ_MODULUS = CHANNEL_SEQ_MAX + 1;
 export const CHANNEL_SYSTEM_MSGTYPE_MIN = 0xf000;
 
+/** Mirrors RNS/Channel.py MessageState. */
+export const ChannelMessageState = {
+  MSGSTATE_NEW: 0,
+  MSGSTATE_SENT: 1,
+  MSGSTATE_DELIVERED: 2,
+  MSGSTATE_FAILED: 3
+} as const;
+
+export type ChannelMessageStateValue =
+  (typeof ChannelMessageState)[keyof typeof ChannelMessageState];
+
 export interface PackedChannelEnvelope {
   readonly msgType: number;
   readonly sequence: number;

@@ -1,6 +1,7 @@
 import {
   CHANNEL_SEQ_MAX,
   CHANNEL_SEQ_MODULUS,
+  ChannelMessageState,
   ChannelWindowLimits,
   applyChannelDelivery,
   applyChannelTimeout,
@@ -26,12 +27,7 @@ import type { PacketReceipt } from "./packet-receipt.js";
 import { PacketReceiptStatus } from "./packet-receipt.js";
 
 /** Mirrors RNS/Channel.py MessageState. */
-export const MessageState = {
-  MSGSTATE_NEW: 0,
-  MSGSTATE_SENT: 1,
-  MSGSTATE_DELIVERED: 2,
-  MSGSTATE_FAILED: 3
-} as const;
+export const MessageState = ChannelMessageState;
 
 export type MessageStateValue = (typeof MessageState)[keyof typeof MessageState];
 

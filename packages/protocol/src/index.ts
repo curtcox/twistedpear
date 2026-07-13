@@ -140,12 +140,14 @@ export {
   type PathTableState
 } from "./path-table.js";
 export {
+  PacketReceiptStatus,
   PacketReceiptStatus as ProtocolPacketReceiptStatus,
   checkPacketReceiptTimeout,
   initialPacketReceiptTimeoutState,
   stepPacketReceiptTimeout,
   type PacketReceiptTimeoutEvent,
   type PacketReceiptTimeoutState,
+  type PacketReceiptStatusValue,
   type PacketReceiptStatusValue as ProtocolPacketReceiptStatusValue
 } from "./packet-receipt-timeout.js";
 export {
@@ -264,11 +266,13 @@ export {
   CHANNEL_SEQ_MAX,
   CHANNEL_SEQ_MODULUS,
   CHANNEL_SYSTEM_MSGTYPE_MIN,
+  ChannelMessageState,
   channelPayloadMdu,
   isChannelSystemMsgType,
   nextChannelSequence,
   packChannelEnvelope,
   unpackChannelEnvelope,
+  type ChannelMessageStateValue,
   type PackedChannelEnvelope,
   type UnpackedChannelEnvelope
 } from "./channel-envelope.js";
@@ -459,10 +463,13 @@ export {
   STREAM_DATA_FLAG_COMPRESSED,
   STREAM_DATA_FLAG_EOF,
   STREAM_DATA_HEADER_SIZE,
+  STREAM_DATA_MSGTYPE,
   STREAM_ID_MAX,
+  StreamSystemMessageTypes,
   packStreamDataMessage,
   unpackStreamDataMessage,
-  type StreamDataFields
+  type StreamDataFields,
+  type StreamSystemMessageTypeValue
 } from "./stream-data.js";
 export {
   PACKET_HEADER_1,
@@ -553,6 +560,16 @@ export {
   type LxmfDeliveryPlan,
   type LxmfDeliveryRepresentationValue
 } from "./lxmf-delivery.js";
+export {
+  LXMF_APP_NAME,
+  LXMF_MESSAGE_GET_PATH,
+  LXMF_OFFER_REQUEST_PATH,
+  LxmfField,
+  LxmfUnverifiedReason,
+  type LxmfFieldValue,
+  type LxmfMessageFields,
+  type LxmfUnverifiedReasonValue
+} from "./lxmf-fields.js";
 export {
   LXMF_WIRE_HEADER_SIZE,
   lxmfHashableMaterial,

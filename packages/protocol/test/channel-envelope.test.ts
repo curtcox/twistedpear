@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CHANNEL_ENVELOPE_HEADER_SIZE,
   CHANNEL_SEQ_MODULUS,
+  ChannelMessageState,
   channelPayloadMdu,
   isChannelSystemMsgType,
   nextChannelSequence,
@@ -16,6 +17,12 @@ import {
 } from "../src/channel-reorder.js";
 
 describe("protocol channel envelope", () => {
+  it("exposes channel message states", () => {
+    expect(ChannelMessageState.MSGSTATE_NEW).toBe(0);
+    expect(ChannelMessageState.MSGSTATE_DELIVERED).toBe(2);
+    expect(ChannelMessageState.MSGSTATE_FAILED).toBe(3);
+  });
+
   it("round-trips envelope framing", () => {
     const packed = packChannelEnvelope({
       msgType: 0x0102,

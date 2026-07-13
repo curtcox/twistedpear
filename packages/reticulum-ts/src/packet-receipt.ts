@@ -2,22 +2,17 @@ import {
   checkPacketReceiptTimeout,
   PACKET_EXPLICIT_PROOF_SIZE,
   PACKET_SIGNATURE_SIZE,
+  PacketReceiptStatus,
   packetProofHashMatches,
-  splitPacketProof
+  splitPacketProof,
+  type PacketReceiptStatusValue
 } from "@twistedpear/protocol";
 import type { Identity } from "./identity.js";
 import { Packet, PacketType } from "./packet.js";
 import type { Timer } from "./runtime/runtime.js";
 
 /** Mirrors RNS/Packet.py PacketReceipt constants. */
-export const PacketReceiptStatus = {
-  FAILED: 0x00,
-  SENT: 0x01,
-  DELIVERED: 0x02,
-  CULLED: 0xff
-} as const;
-
-export type PacketReceiptStatusValue = (typeof PacketReceiptStatus)[keyof typeof PacketReceiptStatus];
+export { PacketReceiptStatus, type PacketReceiptStatusValue };
 
 export const EXPLICIT_PROOF_LENGTH = PACKET_EXPLICIT_PROOF_SIZE;
 export const IMPLICIT_PROOF_LENGTH = PACKET_SIGNATURE_SIZE;

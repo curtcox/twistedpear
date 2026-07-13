@@ -1,14 +1,13 @@
 import {
   STREAM_ID_MAX as PROTOCOL_STREAM_ID_MAX,
+  StreamSystemMessageTypes,
   packStreamDataMessage,
   unpackStreamDataMessage
 } from "@twistedpear/protocol";
 import { Channel, type ChannelMessage } from "./channel.js";
 
 /** Mirrors RNS/Buffer.py StreamDataMessage system message type. */
-export const SystemMessageTypes = {
-  SMT_STREAM_DATA: 0xff00
-} as const;
+export const SystemMessageTypes = StreamSystemMessageTypes;
 
 /** Mirrors RNS/Buffer.py StreamDataMessage. */
 export class StreamDataMessage implements ChannelMessage {

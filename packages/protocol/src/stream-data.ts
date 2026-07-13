@@ -8,6 +8,16 @@ export const STREAM_ID_MAX = 0x3fff;
 export const STREAM_DATA_FLAG_EOF = 0x8000;
 export const STREAM_DATA_FLAG_COMPRESSED = 0x4000;
 
+/** Mirrors RNS/Buffer.py StreamDataMessage system message type. */
+export const STREAM_DATA_MSGTYPE = 0xff00;
+
+export const StreamSystemMessageTypes = {
+  SMT_STREAM_DATA: STREAM_DATA_MSGTYPE
+} as const;
+
+export type StreamSystemMessageTypeValue =
+  (typeof StreamSystemMessageTypes)[keyof typeof StreamSystemMessageTypes];
+
 export interface StreamDataFields {
   readonly streamId: number;
   readonly data: Uint8Array;

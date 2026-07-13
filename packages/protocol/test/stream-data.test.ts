@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  STREAM_DATA_MSGTYPE,
   STREAM_ID_MAX,
+  StreamSystemMessageTypes,
   packStreamDataMessage,
   unpackStreamDataMessage
 } from "../src/stream-data.js";
 
 describe("protocol stream data framing", () => {
+  it("exposes stream system message type", () => {
+    expect(STREAM_DATA_MSGTYPE).toBe(0xff00);
+    expect(StreamSystemMessageTypes.SMT_STREAM_DATA).toBe(STREAM_DATA_MSGTYPE);
+  });
   it("packs and unpacks stream headers with flags", () => {
     const packed = packStreamDataMessage({
       streamId: 42,
