@@ -3,6 +3,7 @@ import {
   CHANNEL_ENVELOPE_HEADER_SIZE,
   CHANNEL_SEQ_MODULUS,
   ChannelMessageState,
+  channelMessageStateFromPacketReceipt,
   channelPayloadMdu,
   isChannelSystemMsgType,
   nextChannelSequence,
@@ -21,6 +22,12 @@ describe("protocol channel envelope", () => {
     expect(ChannelMessageState.MSGSTATE_NEW).toBe(0);
     expect(ChannelMessageState.MSGSTATE_DELIVERED).toBe(2);
     expect(ChannelMessageState.MSGSTATE_FAILED).toBe(3);
+  });
+
+  it("maps packet receipt status to channel message state", () => {
+    expect(channelMessageStateFromPacketReceipt(null)).toBe(ChannelMessageState.MSGSTATE_FAILED);
+    expect(channelMessageStateFromPacketReceipt(0x01)).toBe(ChannelMessageState.MSGSTATE_SENT);
+    expect(channelMessageStateFromPacketReceipt(0x02)).toBe(ChannelMessageState.MSGSTATE_DELIVERED);
   });
 
   it("round-trips envelope framing", () => {

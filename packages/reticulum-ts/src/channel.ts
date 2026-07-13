@@ -8,6 +8,7 @@ import {
   applyChannelTimeout,
   channelAllowsSend,
   channelEmplaceIndex,
+  channelMessageStateFromPacketReceipt,
   channelPacketTimeoutSeconds,
   channelPayloadMdu,
   channelRetryExhausted,
@@ -25,7 +26,6 @@ import type { Link } from "./link.js";
 import { LinkStatus } from "./link.js";
 import { PacketContext } from "./packet.js";
 import type { PacketReceipt } from "./packet-receipt.js";
-import { PacketReceiptStatus } from "./packet-receipt.js";
 
 /** Mirrors RNS/Channel.py MessageState. */
 export const MessageState = ChannelMessageState;
@@ -506,20 +506,9 @@ export class LinkChannelOutlet implements ChannelOutlet {
   }
 
   getPacketState(packet: ChannelPacket): MessageStateValue {
-    if (packet.receipt === null) {
-      return MessageState.MSGSTATE_FAILED;
-    }
-
-    const status = packet.receipt.getStatus();
-    if (status === PacketReceiptStatus.SENT) {
-      return MessageState.MSGSTATE_SENT;
-    }
-
-    if (status === PacketReceiptStatus.DELIVERED) {
-      return MessageState.MSGSTATE_DELIVERED;
-    }
-
-    return MessageState.MSGSTATE_FAILED;
+    return channelMessageStateFromPacketReceipt(
+      packet.receipt === null ? null : packet.receipt.getStatus()
+    );
   }
 
   timedOut(): void {

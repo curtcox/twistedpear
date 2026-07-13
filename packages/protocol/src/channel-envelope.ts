@@ -1,6 +1,8 @@
 /**
  * Pure RNS Channel envelope framing (MSGTYPE + sequence + length + payload).
  */
+import type { PacketReceiptStatusValue } from "./packet-receipt-timeout.js";
+import { PacketReceiptStatus } from "./packet-receipt-timeout.js";
 
 export const CHANNEL_ENVELOPE_HEADER_SIZE = 6;
 export const CHANNEL_SEQ_MAX = 0xffff;
@@ -30,6 +32,22 @@ export const ChannelExceptionTypeCode = {
 
 export type ChannelExceptionTypeCodeValue =
   (typeof ChannelExceptionTypeCode)[keyof typeof ChannelExceptionTypeCode];
+
+/** Map packet-receipt status to channel message state. */
+export function channelMessageStateFromPacketReceipt(
+  receiptStatus: PacketReceiptStatusValue | null
+): ChannelMessageStateValue {
+  if (receiptStatus === null) {
+    return ChannelMessageState.MSGSTATE_FAILED;
+  }
+  if (receiptStatus === PacketReceiptStatus.SENT) {
+    return ChannelMessageState.MSGSTATE_SENT;
+  }
+  if (receiptStatus === PacketReceiptStatus.DELIVERED) {
+    return ChannelMessageState.MSGSTATE_DELIVERED;
+  }
+  return ChannelMessageState.MSGSTATE_FAILED;
+}
 
 export interface PackedChannelEnvelope {
   readonly msgType: number;

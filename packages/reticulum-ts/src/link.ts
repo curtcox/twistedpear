@@ -60,6 +60,8 @@ import {
   planDestinationRequestAllow,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
+  planLinkTeardown,
+  planLinkTeardownReason,
   splitIdentityPublicKey,
   splitInitiatorLinkEntropy,
   splitLinkIdentifyPayload,
@@ -911,13 +913,17 @@ export class Link {
   }
 
   async teardown(): Promise<void> {
-    if (this.status === LinkStatus.PENDING || this.status === LinkStatus.CLOSED) {
+    const plan = planLinkTeardown(this.status);
+    if (plan.kind === "close-only") {
       this.close();
       return;
     }
 
     await this.sendTeardownPacket();
-    this.teardownReason = this.initiator ? LinkTeardownReason.INITIATOR_CLOSED : LinkTeardownReason.DESTINATION_CLOSED;
+    this.teardownReason = planLinkTeardownReason({
+      initiator: this.initiator,
+      remote: false
+    });
     this.close();
   }
 
@@ -1190,9 +1196,10 @@ export class Link {
       return;
     }
 
-    this.teardownReason = this.initiator
-      ? LinkTeardownReason.DESTINATION_CLOSED
-      : LinkTeardownReason.INITIATOR_CLOSED;
+    this.teardownReason = planLinkTeardownReason({
+      initiator: this.initiator,
+      remote: true
+    });
     this.close();
   }
 

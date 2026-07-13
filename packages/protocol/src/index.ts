@@ -71,6 +71,11 @@ export {
   type LinkResourceAcceptPlan
 } from "./link-resource-accept.js";
 export {
+  planLinkTeardown,
+  planLinkTeardownReason,
+  type LinkTeardownPlan
+} from "./link-teardown.js";
+export {
   computeResourceTimeout,
   initialResourceWatchdogState,
   stepResourceWatchdog,
@@ -304,6 +309,7 @@ export {
   CHANNEL_SYSTEM_MSGTYPE_MIN,
   ChannelExceptionTypeCode,
   ChannelMessageState,
+  channelMessageStateFromPacketReceipt,
   channelPayloadMdu,
   isChannelSystemMsgType,
   nextChannelSequence,

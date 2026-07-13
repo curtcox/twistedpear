@@ -84,8 +84,10 @@
 > RegisteredDestination, and Link adapt them. **Destination proof strategy /
 > `planDestinationProof`**, **link resource-accept planning**, **`stepLinkRequestReceipt`**,
 > and **ChannelExceptionType** live in protocol; LeafTransport, Link, LinkRequestReceipt,
-> and Channel adapt them. Remaining depth work: keep converting residual session IO into
-> step machines.
+> and Channel adapt them. **`channelMessageStateFromPacketReceipt`**, **link teardown
+> planning**, and PacketReceipt delivery/timeout via **`stepPacketReceiptTimeout`** live in
+> protocol; Channel, Link, and PacketReceipt adapt them. Remaining depth work: keep converting
+> residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

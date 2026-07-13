@@ -1,11 +1,12 @@
 import {
-  checkPacketReceiptTimeout,
   PACKET_EXPLICIT_PROOF_SIZE,
   PACKET_SIGNATURE_SIZE,
   PacketReceiptStatus,
   packetProofHashMatches,
   splitPacketProof,
-  type PacketReceiptStatusValue
+  stepPacketReceiptTimeout,
+  type PacketReceiptStatusValue,
+  type PacketReceiptTimeoutState
 } from "@twistedpear/protocol";
 import type { Identity } from "./identity.js";
 import { Packet, PacketType } from "./packet.js";
@@ -37,14 +38,33 @@ export class PacketReceipt {
   sent = true;
   sentAt: number;
   proved = false;
-  status: PacketReceiptStatusValue = PacketReceiptStatus.SENT;
-  concludedAt: number | null = null;
   proofPacket: Packet | null = null;
   timeout: number | null = null;
   readonly callbacks: PacketReceiptCallbacks = {};
   private timeoutTimer: Timer | null = null;
-  private timeoutAt: number | null = null;
+  private receiptState: PacketReceiptTimeoutState = {
+    status: PacketReceiptStatus.SENT,
+    timeoutAt: null,
+    concludedAt: null,
+    timedOut: false
+  };
   private readonly now: NowSeconds;
+
+  get status(): PacketReceiptStatusValue {
+    return this.receiptState.status;
+  }
+
+  set status(value: PacketReceiptStatusValue) {
+    this.receiptState = { ...this.receiptState, status: value };
+  }
+
+  get concludedAt(): number | null {
+    return this.receiptState.concludedAt;
+  }
+
+  set concludedAt(value: number | null) {
+    this.receiptState = { ...this.receiptState, concludedAt: value };
+  }
 
   constructor(
     readonly packetHash: Uint8Array,
@@ -69,9 +89,11 @@ export class PacketReceipt {
       return false;
     }
 
-    this.status = PacketReceiptStatus.DELIVERED;
+    this.receiptState = stepPacketReceiptTimeout(this.receiptState, {
+      kind: "receipt/delivered",
+      at: this.now()
+    }).state;
     this.proved = true;
-    this.concludedAt = this.now();
     this.callbacks.delivery?.(this);
     return true;
   }
@@ -90,7 +112,11 @@ export class PacketReceipt {
 
   setTimeout(seconds: number): void {
     this.timeout = seconds;
-    this.timeoutAt = this.now() + seconds;
+    this.receiptState = stepPacketReceiptTimeout(this.receiptState, {
+      kind: "receipt/arm",
+      at: this.now(),
+      timeoutSeconds: seconds
+    }).state;
   }
 
   setTimeoutCallback(callback: ((receipt: PacketReceipt) => void) | null): void {
@@ -112,17 +138,15 @@ export class PacketReceipt {
   }
 
   checkTimeout(nowSeconds = this.now()): boolean {
-    const result = checkPacketReceiptTimeout({
-      status: this.status,
-      timeoutAt: this.timeoutAt,
-      nowSeconds
+    const stepped = stepPacketReceiptTimeout(this.receiptState, {
+      kind: "receipt/check",
+      at: nowSeconds
     });
-    if (!result.timedOut) {
+    this.receiptState = stepped.state;
+    if (!stepped.state.timedOut) {
       return false;
     }
 
-    this.status = PacketReceiptStatus.FAILED;
-    this.concludedAt = result.concludedAt;
     this.callbacks.timeout?.(this);
     return true;
   }
