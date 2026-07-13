@@ -8,6 +8,7 @@ import {
   packStreamDataMessage,
   shouldAppendStreamData,
   shouldDeferStreamRead,
+  shouldReturnStreamReadResult,
   unpackStreamDataMessage
 } from "../src/stream-data.js";
 
@@ -57,5 +58,11 @@ describe("protocol stream data framing", () => {
     expect(shouldDeferStreamRead(0, false)).toBe(true);
     expect(shouldDeferStreamRead(0, true)).toBe(false);
     expect(shouldDeferStreamRead(10, false)).toBe(false);
+  });
+
+  it("returns read results when bytes copied or EOF", () => {
+    expect(shouldReturnStreamReadResult(0, false)).toBe(false);
+    expect(shouldReturnStreamReadResult(0, true)).toBe(true);
+    expect(shouldReturnStreamReadResult(3, false)).toBe(true);
   });
 });

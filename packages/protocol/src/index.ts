@@ -566,6 +566,7 @@ export {
   packStreamDataMessage,
   shouldAppendStreamData,
   shouldDeferStreamRead,
+  shouldReturnStreamReadResult,
   unpackStreamDataMessage,
   type StreamDataFields,
   type StreamSystemMessageTypeValue

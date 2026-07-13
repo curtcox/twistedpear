@@ -6,6 +6,7 @@ import {
   packStreamDataMessage,
   shouldAppendStreamData,
   shouldDeferStreamRead,
+  shouldReturnStreamReadResult,
   unpackStreamDataMessage
 } from "@twistedpear/protocol";
 import { Channel, type ChannelMessage } from "./channel.js";
@@ -131,7 +132,7 @@ export class RawChannelReader {
     }
 
     this.bufferLength -= copied;
-    return copied > 0 || this.eof ? output : null;
+    return shouldReturnStreamReadResult(copied, this.eof) ? output : null;
   }
 
   close(): void {

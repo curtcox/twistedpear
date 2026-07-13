@@ -97,3 +97,8 @@ export function clampStreamReadSize(size: number, bufferLength: number): number 
 export function shouldDeferStreamRead(bufferLength: number, eof: boolean): boolean {
   return bufferLength === 0 && !eof;
 }
+
+/** Whether a read produced a returnable buffer (bytes copied or EOF empty result). */
+export function shouldReturnStreamReadResult(copied: number, eof: boolean): boolean {
+  return copied > 0 || eof;
+}
