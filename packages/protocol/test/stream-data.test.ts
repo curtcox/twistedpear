@@ -7,6 +7,7 @@ import {
   clampStreamReadSize,
   packStreamDataMessage,
   shouldAppendStreamData,
+  shouldDeferStreamRead,
   unpackStreamDataMessage
 } from "../src/stream-data.js";
 
@@ -50,5 +51,11 @@ describe("protocol stream data framing", () => {
     expect(clampStreamReadSize(100, 40)).toBe(40);
     expect(clampStreamReadSize(10, 40)).toBe(10);
     expect(clampStreamReadSize(0, 0)).toBe(0);
+  });
+
+  it("defers read when buffer is empty before EOF", () => {
+    expect(shouldDeferStreamRead(0, false)).toBe(true);
+    expect(shouldDeferStreamRead(0, true)).toBe(false);
+    expect(shouldDeferStreamRead(10, false)).toBe(false);
   });
 });

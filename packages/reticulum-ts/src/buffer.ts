@@ -5,6 +5,7 @@ import {
   clampStreamReadSize,
   packStreamDataMessage,
   shouldAppendStreamData,
+  shouldDeferStreamRead,
   unpackStreamDataMessage
 } from "@twistedpear/protocol";
 import { Channel, type ChannelMessage } from "./channel.js";
@@ -111,7 +112,7 @@ export class RawChannelReader {
   }
 
   read(size: number): Uint8Array | null {
-    if (this.bufferLength === 0 && !this.eof) {
+    if (shouldDeferStreamRead(this.bufferLength, this.eof)) {
       return null;
     }
 

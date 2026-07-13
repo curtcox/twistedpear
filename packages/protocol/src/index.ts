@@ -565,6 +565,7 @@ export {
   clampStreamReadSize,
   packStreamDataMessage,
   shouldAppendStreamData,
+  shouldDeferStreamRead,
   unpackStreamDataMessage,
   type StreamDataFields,
   type StreamSystemMessageTypeValue

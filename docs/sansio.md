@@ -129,6 +129,7 @@
 > **`clampStreamDataChunkLength`** lives in protocol; `RawChannelWriter.write` adapts it.
 > **`shouldAppendStreamData`** lives in protocol; `RawChannelReader` append gating adapts it.
 > **`clampStreamReadSize`** lives in protocol; `RawChannelReader.read` adapts it.
+> **`shouldDeferStreamRead`** lives in protocol; `RawChannelReader.read` empty-buffer gate adapts it.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

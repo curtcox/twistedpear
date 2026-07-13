@@ -92,3 +92,8 @@ export function shouldAppendStreamData(length: number): boolean {
 export function clampStreamReadSize(size: number, bufferLength: number): number {
   return Math.min(size, bufferLength);
 }
+
+/** Whether a read should wait for more data (empty buffer before EOF). */
+export function shouldDeferStreamRead(bufferLength: number, eof: boolean): boolean {
+  return bufferLength === 0 && !eof;
+}
