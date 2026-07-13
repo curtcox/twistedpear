@@ -3,10 +3,12 @@ import {
   PACKET_EXPLICIT_PROOF_SIZE,
   PACKET_FULL_HASH_SIZE,
   PACKET_SIGNATURE_SIZE,
+  isPacketTypeProof,
   packPacketProof,
   packetProofHashMatches,
   splitPacketProof
 } from "../src/packet-proof.js";
+import { PACKET_TYPE_DATA, PACKET_TYPE_PROOF } from "../src/packet-header.js";
 
 describe("protocol packet proof framing", () => {
   const packetHash = new Uint8Array(PACKET_FULL_HASH_SIZE).fill(1);
@@ -35,5 +37,10 @@ describe("protocol packet proof framing", () => {
 
   it("rejects malformed proof lengths", () => {
     expect(splitPacketProof(new Uint8Array(10))).toBeNull();
+  });
+
+  it("recognizes proof packet types", () => {
+    expect(isPacketTypeProof(PACKET_TYPE_PROOF)).toBe(true);
+    expect(isPacketTypeProof(PACKET_TYPE_DATA)).toBe(false);
   });
 });

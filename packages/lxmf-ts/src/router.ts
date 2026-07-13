@@ -6,6 +6,7 @@ import {
   initialLxmfSendState,
   lxmfInboundDeliveryBytes,
   packLxmfDestinationPrefixed,
+  planLxmfDeliverableAccept,
   splitLxmfDestinationPrefixed,
   stepDeliveryReceiptPoll,
   type LxmfSendEvent,
@@ -427,16 +428,18 @@ export class LXMFRouter {
         originalMethod: method
       });
 
-      if (!message.signatureValidated) {
+      if (
+        planLxmfDeliverableAccept({
+          signatureValidated: message.signatureValidated,
+          hasHash: message.hash !== null,
+          alreadySeen:
+            message.hash !== null && this.seenMessages.has(bytesToHex(message.hash))
+        }) !== "accept"
+      ) {
         return null;
       }
 
       if (message.hash !== null) {
-        const key = bytesToHex(message.hash);
-        if (this.seenMessages.has(key)) {
-          return null;
-        }
-
         rememberMessage(this.seenMessages, message);
       }
 

@@ -2,6 +2,7 @@
  * Pure RNS packet proof framing (explicit hash+sig vs signature-only).
  * Signing / verification stay at the crypto adapter edge.
  */
+import { PACKET_TYPE_PROOF } from "./packet-header.js";
 import { equalByteArrays } from "./path-table.js";
 
 export const PACKET_FULL_HASH_SIZE = 32;
@@ -18,6 +19,11 @@ export type PacketProofFields =
       readonly kind: "implicit";
       readonly signature: Uint8Array;
     };
+
+/** Whether a packet is a PROOF type eligible for receipt validation. */
+export function isPacketTypeProof(packetType: number): boolean {
+  return packetType === PACKET_TYPE_PROOF;
+}
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   const length = parts.reduce((total, part) => total + part.length, 0);

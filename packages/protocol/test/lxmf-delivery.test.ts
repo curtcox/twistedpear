@@ -9,7 +9,8 @@ import {
   LxmfDeliveryRepresentation,
   lxmfContentSizeFromPackedLength,
   planLxmfDelivery,
-  planLxMessagePack
+  planLxMessagePack,
+  planLxmfDeliverableAccept
 } from "../src/lxmf-delivery.js";
 
 describe("protocol lxmf delivery", () => {
@@ -122,5 +123,36 @@ describe("protocol lxmf delivery", () => {
         sourceIdentityPresent: false
       })
     ).toBe("bad-source");
+  });
+
+  it("plans LXMF deliverable accept from signature and seen-hash", () => {
+    expect(
+      planLxmfDeliverableAccept({
+        signatureValidated: true,
+        hasHash: true,
+        alreadySeen: false
+      })
+    ).toBe("accept");
+    expect(
+      planLxmfDeliverableAccept({
+        signatureValidated: false,
+        hasHash: true,
+        alreadySeen: false
+      })
+    ).toBe("reject-unsigned");
+    expect(
+      planLxmfDeliverableAccept({
+        signatureValidated: true,
+        hasHash: true,
+        alreadySeen: true
+      })
+    ).toBe("reject-seen");
+    expect(
+      planLxmfDeliverableAccept({
+        signatureValidated: true,
+        hasHash: false,
+        alreadySeen: true
+      })
+    ).toBe("accept");
   });
 });

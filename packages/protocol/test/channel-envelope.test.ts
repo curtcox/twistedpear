@@ -8,6 +8,7 @@ import {
   isChannelSystemMsgType,
   nextChannelSequence,
   packChannelEnvelope,
+  planChannelMessageTypeRegistration,
   unpackChannelEnvelope
 } from "../src/channel-envelope.js";
 import {
@@ -60,6 +61,21 @@ describe("protocol channel envelope", () => {
     expect(isChannelSystemMsgType(0x0fff)).toBe(false);
     expect(channelPayloadMdu(100)).toBe(94);
     expect(nextChannelSequence(CHANNEL_SEQ_MODULUS - 1)).toBe(0);
+  });
+
+  it("plans channel MSGTYPE registration gates", () => {
+    expect(
+      planChannelMessageTypeRegistration({ msgType: undefined, isSystemType: false })
+    ).toBe("missing-msgtype");
+    expect(
+      planChannelMessageTypeRegistration({ msgType: 0xf000, isSystemType: false })
+    ).toBe("system-reserved");
+    expect(
+      planChannelMessageTypeRegistration({ msgType: 0xf000, isSystemType: true })
+    ).toBe("ok");
+    expect(
+      planChannelMessageTypeRegistration({ msgType: 0x0100, isSystemType: false })
+    ).toBe("ok");
   });
 });
 

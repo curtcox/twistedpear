@@ -5,15 +5,20 @@ import {
   PACKET_DEST_TYPE_SINGLE,
   PACKET_TYPE_ANNOUNCE,
   PACKET_TYPE_DATA,
+  PACKET_TYPE_LINKREQUEST,
   PACKET_TYPE_PROOF,
   PacketContextCode,
   REVERSE_TIMEOUT_SECONDS,
   TRANSPORT_TRANSPORT,
+  canRelayTransportPacket,
+  isLocalPathRequestPacket,
   isReverseEntryExpired,
   planLinkRelayTarget,
   planPacketFilter,
   shouldAcceptTransportPacket,
-  shouldDeferPacketHash
+  shouldDeferPacketHash,
+  shouldRecordLinkRelayTableEntry,
+  shouldRecordReverseTableEntry
 } from "../src/index.js";
 
 describe("transport ingress", () => {
@@ -183,5 +188,61 @@ describe("transport ingress", () => {
         nowSeconds: 100 + REVERSE_TIMEOUT_SECONDS + 1
       })
     ).toBe(true);
+  });
+
+  it("gates transport relay and reverse/link table records", () => {
+    expect(
+      canRelayTransportPacket({
+        transportIdPresent: true,
+        isAnnounce: false,
+        transportIdMatchesLocal: true,
+        hasPath: true
+      })
+    ).toBe(true);
+    expect(
+      canRelayTransportPacket({
+        transportIdPresent: true,
+        isAnnounce: true,
+        transportIdMatchesLocal: true,
+        hasPath: true
+      })
+    ).toBe(false);
+    expect(
+      canRelayTransportPacket({
+        transportIdPresent: true,
+        isAnnounce: false,
+        transportIdMatchesLocal: true,
+        hasPath: false
+      })
+    ).toBe(false);
+    expect(shouldRecordLinkRelayTableEntry(PACKET_TYPE_LINKREQUEST)).toBe(true);
+    expect(shouldRecordLinkRelayTableEntry(PACKET_TYPE_DATA)).toBe(false);
+    expect(
+      shouldRecordReverseTableEntry({
+        packetType: PACKET_TYPE_PROOF,
+        context: PacketContextCode.LRPROOF
+      })
+    ).toBe(false);
+    expect(
+      shouldRecordReverseTableEntry({
+        packetType: PACKET_TYPE_DATA,
+        context: PacketContextCode.NONE
+      })
+    ).toBe(true);
+  });
+
+  it("matches local path-request packets", () => {
+    expect(
+      isLocalPathRequestPacket({
+        destinationTypePlain: true,
+        destinationHashMatches: true
+      })
+    ).toBe(true);
+    expect(
+      isLocalPathRequestPacket({
+        destinationTypePlain: false,
+        destinationHashMatches: true
+      })
+    ).toBe(false);
   });
 });

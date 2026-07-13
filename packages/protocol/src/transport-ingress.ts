@@ -5,6 +5,7 @@
 import {
   PACKET_DEST_TYPE_SINGLE,
   PACKET_TYPE_ANNOUNCE,
+  PACKET_TYPE_LINKREQUEST,
   PACKET_TYPE_PROOF
 } from "./packet-header.js";
 import { PacketContextCode } from "./packet-context.js";
@@ -114,4 +115,49 @@ export function isReverseEntryExpired(input: {
 }): boolean {
   const timeoutSeconds = input.timeoutSeconds ?? REVERSE_TIMEOUT_SECONDS;
   return input.nowSeconds > input.timestamp + timeoutSeconds;
+}
+
+/**
+ * Whether this node should relay a transport-wrapped packet (local transport-id,
+ * non-announce, known path).
+ */
+export function canRelayTransportPacket(input: {
+  readonly transportIdPresent: boolean;
+  readonly isAnnounce: boolean;
+  readonly transportIdMatchesLocal: boolean;
+  readonly hasPath: boolean;
+}): boolean {
+  return (
+    input.transportIdPresent &&
+    !input.isAnnounce &&
+    input.transportIdMatchesLocal &&
+    input.hasPath
+  );
+}
+
+/** Whether a relayed packet should create/update a link-relay table entry. */
+export function shouldRecordLinkRelayTableEntry(packetType: number): boolean {
+  return packetType === PACKET_TYPE_LINKREQUEST;
+}
+
+/**
+ * Whether a relayed packet should create/update a reverse-table entry
+ * (everything except LRPROOF proofs).
+ */
+export function shouldRecordReverseTableEntry(input: {
+  readonly packetType: number;
+  readonly context: number;
+}): boolean {
+  return !(
+    input.packetType === PACKET_TYPE_PROOF &&
+    input.context === PacketContextCode.LRPROOF
+  );
+}
+
+/** Whether inbound DATA is a local path-request (PLAIN + path-request hash). */
+export function isLocalPathRequestPacket(input: {
+  readonly destinationTypePlain: boolean;
+  readonly destinationHashMatches: boolean;
+}): boolean {
+  return input.destinationTypePlain && input.destinationHashMatches;
 }

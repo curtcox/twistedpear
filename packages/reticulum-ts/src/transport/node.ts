@@ -20,6 +20,7 @@ import {
   shouldAddPathEntry,
   shouldAnswerPathRequest,
   shouldEmitPathRequest,
+  isLocalPathRequestPacket,
   stripTransportHeadersBytes,
   timebaseFromRandomBlobs as protocolTimebaseFromRandomBlobs,
   wrapTransportPacketBytes,
@@ -539,8 +540,10 @@ export class LeafTransport {
 
   protected async handleData(packet: Packet, iface: PacketInterface): Promise<void> {
     if (
-      packet.destinationType === DestinationType.PLAIN &&
-      equalBytes(packet.destinationHash, this.pathRequestHash)
+      isLocalPathRequestPacket({
+        destinationTypePlain: packet.destinationType === DestinationType.PLAIN,
+        destinationHashMatches: equalBytes(packet.destinationHash, this.pathRequestHash)
+      })
     ) {
       await this.handlePathRequest(packet, iface);
       return;

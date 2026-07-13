@@ -2,6 +2,7 @@ import {
   PACKET_EXPLICIT_PROOF_SIZE,
   PACKET_SIGNATURE_SIZE,
   PacketReceiptStatus,
+  isPacketTypeProof,
   packetProofHashMatches,
   splitPacketProof,
   stepPacketReceiptTimeout,
@@ -9,7 +10,7 @@ import {
   type PacketReceiptTimeoutState
 } from "@twistedpear/protocol";
 import type { Identity } from "./identity.js";
-import { Packet, PacketType } from "./packet.js";
+import { Packet } from "./packet.js";
 import type { Timer } from "./runtime/runtime.js";
 
 /** Mirrors RNS/Packet.py PacketReceipt constants. */
@@ -99,7 +100,7 @@ export class PacketReceipt {
   }
 
   validateProofPacket(proofPacket: Packet, identity: Identity): boolean {
-    if (proofPacket.packetType !== PacketType.PROOF) {
+    if (!isPacketTypeProof(proofPacket.packetType)) {
       return false;
     }
 

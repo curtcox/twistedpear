@@ -97,6 +97,25 @@ export function isChannelSystemMsgType(msgType: number): boolean {
   return msgType >= CHANNEL_SYSTEM_MSGTYPE_MIN;
 }
 
+export type ChannelMessageTypeRegistrationPlan =
+  | "ok"
+  | "missing-msgtype"
+  | "system-reserved";
+
+/** Whether a channel MSGTYPE may be registered (missing / system-reserved gates). */
+export function planChannelMessageTypeRegistration(input: {
+  readonly msgType: number | undefined;
+  readonly isSystemType: boolean;
+}): ChannelMessageTypeRegistrationPlan {
+  if (input.msgType === undefined) {
+    return "missing-msgtype";
+  }
+  if (isChannelSystemMsgType(input.msgType) && !input.isSystemType) {
+    return "system-reserved";
+  }
+  return "ok";
+}
+
 export function channelPayloadMdu(outletMdu: number): number {
   const value = outletMdu - CHANNEL_ENVELOPE_HEADER_SIZE;
   return value > 0xffff ? 0xffff : value;

@@ -155,6 +155,12 @@
 > **`planLxMessagePack`** lives in protocol; `LXMessage.pack` adapts it.
 > **`shouldIgnoreInitiatorKeepaliveProbe`**, **`shouldAcceptLinkPacketInterface`**, and
 > **`shouldEncryptLinkPayload`** live in protocol; `Link.receive` / `sendContext` adapt them.
+> **`planChannelMessageTypeRegistration`** lives in protocol; `Channel.registerMessageType`
+> adapts it. **`canRelayTransportPacket`**, **`shouldRecordLinkRelayTableEntry`**,
+> **`shouldRecordReverseTableEntry`**, and **`isLocalPathRequestPacket`** live in protocol;
+> transport relay / `LeafTransport.handleData` adapt them. **`isPacketTypeProof`** lives in
+> protocol; `PacketReceipt.validateProofPacket` adapts it. **`planLxmfDeliverableAccept`**
+> lives in protocol; `LXMFRouter` unpack adapts it.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

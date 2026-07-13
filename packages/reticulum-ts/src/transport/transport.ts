@@ -1,13 +1,16 @@
 import {
   LOCAL_REBROADCASTS_MAX as PROTOCOL_LOCAL_REBROADCASTS_MAX,
   REVERSE_TIMEOUT_SECONDS as PROTOCOL_REVERSE_TIMEOUT_SECONDS,
+  canRelayTransportPacket,
   isDiscoveryPathRequestExpired,
   isReverseEntryExpired,
   planAnnounceIngressGates,
   planLinkRelayTarget,
   rewritePacketHopsBytes,
   shouldAcceptTransportPacket,
-  shouldDeferPacketHash as planShouldDeferPacketHash
+  shouldDeferPacketHash as planShouldDeferPacketHash,
+  shouldRecordLinkRelayTableEntry,
+  shouldRecordReverseTableEntry
 } from "@twistedpear/protocol";
 import { equalBytes } from "../crypto/bytes.js";
 import { DestinationDirection, DestinationType } from "../destination.js";
@@ -234,23 +237,25 @@ export class TransportNode extends LeafTransport {
   }
 
   private async relayTransportPacket(packet: Packet, iface: PacketInterface): Promise<boolean> {
-    if (
-      packet.transportId === null ||
-      packet.packetType === PacketType.ANNOUNCE ||
-      !equalBytes(packet.transportId, this.transportIdentity.hash)
-    ) {
-      return false;
-    }
-
     const path = this.getPathEntry(packet.destinationHash);
-    if (path === undefined) {
+    if (
+      path === undefined ||
+      !canRelayTransportPacket({
+        transportIdPresent: packet.transportId !== null,
+        isAnnounce: packet.packetType === PacketType.ANNOUNCE,
+        transportIdMatchesLocal:
+          packet.transportId !== null &&
+          equalBytes(packet.transportId, this.transportIdentity.hash),
+        hasPath: true
+      })
+    ) {
       return false;
     }
 
     const relayed = relayTransportPacket(packet, path.hops, path.nextHop);
     const outboundInterface = path.receivedInterface;
 
-    if (packet.packetType === PacketType.LINKREQUEST) {
+    if (shouldRecordLinkRelayTableEntry(packet.packetType)) {
       const linkId = Link.linkIdFromLrPacket(this.provider, packet);
       this.linkTable.set(hashKey(linkId), {
         timestamp: this.clock.now() / 1000,
@@ -261,7 +266,12 @@ export class TransportNode extends LeafTransport {
         takenHops: packet.hops,
         destinationHash: packet.destinationHash
       });
-    } else if (packet.packetType !== PacketType.PROOF || packet.context !== PacketContext.LRPROOF) {
+    } else if (
+      shouldRecordReverseTableEntry({
+        packetType: packet.packetType,
+        context: packet.context
+      })
+    ) {
       this.reverseTable.set(hashKey(packet.truncatedHash()), {
         receivedInterface: iface,
         outboundInterface,

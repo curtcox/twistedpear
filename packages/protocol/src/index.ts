@@ -358,9 +358,11 @@ export {
   isChannelSystemMsgType,
   nextChannelSequence,
   packChannelEnvelope,
+  planChannelMessageTypeRegistration,
   unpackChannelEnvelope,
   type ChannelExceptionTypeCodeValue,
   type ChannelMessageStateValue,
+  type ChannelMessageTypeRegistrationPlan,
   type PackedChannelEnvelope,
   type UnpackedChannelEnvelope
 } from "./channel-envelope.js";
@@ -620,11 +622,15 @@ export {
 export {
   LOCAL_REBROADCASTS_MAX,
   REVERSE_TIMEOUT_SECONDS,
+  canRelayTransportPacket,
+  isLocalPathRequestPacket,
   isReverseEntryExpired,
   planLinkRelayTarget,
   planPacketFilter,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash,
+  shouldRecordLinkRelayTableEntry,
+  shouldRecordReverseTableEntry,
   type LinkRelayTarget
 } from "./transport-ingress.js";
 export {
@@ -644,6 +650,7 @@ export {
   PACKET_EXPLICIT_PROOF_SIZE,
   PACKET_FULL_HASH_SIZE,
   PACKET_SIGNATURE_SIZE,
+  isPacketTypeProof,
   packPacketProof,
   packetProofHashMatches,
   splitPacketProof,
@@ -693,8 +700,10 @@ export {
   LxmfDeliveryMethod,
   LxmfDeliveryRepresentation,
   lxmfContentSizeFromPackedLength,
+  planLxmfDeliverableAccept,
   planLxmfDelivery,
   planLxMessagePack,
+  type LxmfDeliverableAcceptPlan,
   type LxmfDeliveryMethodValue,
   type LxmfDeliveryPlan,
   type LxmfDeliveryRepresentationValue,

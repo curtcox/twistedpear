@@ -17,10 +17,10 @@ import {
   indexOfChannelTxEnvelope,
   initialChannelWindowState,
   isChannelOutletTransmitOk,
-  isChannelSystemMsgType,
   linkPayloadFitsMdu,
   nextChannelSequence,
   packChannelEnvelope,
+  planChannelMessageTypeRegistration,
   planChannelPacketTimeout,
   shouldAcceptChannelSequence,
   shouldExtendPacketReceiptTimeout,
@@ -208,11 +208,14 @@ export class Channel {
   }
 
   registerMessageType(messageClass: ChannelMessageConstructor, options: { readonly isSystemType?: boolean } = {}): void {
-    if (messageClass.MSGTYPE === undefined) {
+    const plan = planChannelMessageTypeRegistration({
+      msgType: messageClass.MSGTYPE,
+      isSystemType: options.isSystemType === true
+    });
+    if (plan === "missing-msgtype") {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Message class lacks MSGTYPE");
     }
-
-    if (isChannelSystemMsgType(messageClass.MSGTYPE) && options.isSystemType !== true) {
+    if (plan === "system-reserved") {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Message type is system-reserved");
     }
 

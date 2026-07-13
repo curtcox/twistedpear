@@ -147,3 +147,20 @@ export function planLxMessagePack(input: {
   }
   return "ok";
 }
+
+export type LxmfDeliverableAcceptPlan = "accept" | "reject-unsigned" | "reject-seen";
+
+/** Whether an unpacked LXMF deliverable should be accepted (sig + seen-hash). */
+export function planLxmfDeliverableAccept(input: {
+  readonly signatureValidated: boolean;
+  readonly hasHash: boolean;
+  readonly alreadySeen: boolean;
+}): LxmfDeliverableAcceptPlan {
+  if (!input.signatureValidated) {
+    return "reject-unsigned";
+  }
+  if (input.hasHash && input.alreadySeen) {
+    return "reject-seen";
+  }
+  return "accept";
+}
