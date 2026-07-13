@@ -1,6 +1,7 @@
 import {
   PROPAGATION_LINK_TIMEOUT_MS,
   PropagationTransferState,
+  canLinkSend,
   decodeLxmfPeerError,
   initialPropagationTransferState,
   planPropagationGet,
@@ -15,8 +16,7 @@ import {
   DestinationAllowPolicy,
   DestinationDirection,
   DestinationType,
-  Identity,
-  LinkStatus
+  Identity
 } from "@twistedpear/reticulum-ts";
 import {
   APP_NAME,
@@ -228,7 +228,7 @@ export class PropagationClient {
   }
 
   private async ensurePropagationLink(): Promise<Link> {
-    if (this.propagationLink !== null && this.propagationLink.status === LinkStatus.ACTIVE) {
+    if (this.propagationLink !== null && canLinkSend(this.propagationLink.status)) {
       return this.propagationLink;
     }
 

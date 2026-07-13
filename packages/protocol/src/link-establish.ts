@@ -67,6 +67,11 @@ export function canLinkRequest(input: {
   return input.status === LinkStatus.ACTIVE && input.rtt !== null;
 }
 
+/** Whether the link may send application/context data (ACTIVE). */
+export function canLinkSend(status: LinkStatusValue): boolean {
+  return status === LinkStatus.ACTIVE;
+}
+
 export function computeLinkRttSeconds(nowSeconds: number, requestTimeSeconds: number): number {
   return nowSeconds - requestTimeSeconds;
 }

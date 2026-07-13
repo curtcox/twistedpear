@@ -398,6 +398,7 @@ export {
   canIdentifyOnLink,
   canLinkHandshake,
   canLinkRequest,
+  canLinkSend,
   canValidateLinkProof,
   computeLinkRttSeconds,
   initialLinkEstablishState,

@@ -5,6 +5,7 @@ import {
   CHANNEL_SEQ_MAX,
   CHANNEL_SEQ_MODULUS,
   ChannelWindowLimits,
+  canLinkSend,
   channelAllowsSend,
   channelEmplaceIndex,
   channelMessageStateFromPacketReceipt,
@@ -16,6 +17,7 @@ import {
   indexOfChannelTxEnvelope,
   initialChannelWindowState,
   isChannelSystemMsgType,
+  linkPayloadFitsMdu,
   nextChannelSequence,
   packChannelEnvelope,
   planChannelPacketTimeout,
@@ -23,11 +25,9 @@ import {
   shouldExtendPacketReceiptTimeout,
   stepChannelWindow,
   unpackChannelEnvelope,
-  linkPayloadFitsMdu,
   type ChannelWindowState
 } from "@twistedpear/protocol";
 import type { Link } from "./link.js";
-import { LinkStatus } from "./link.js";
 import { PacketContext } from "./packet.js";
 import type { PacketReceipt } from "./packet-receipt.js";
 
@@ -500,7 +500,7 @@ export class LinkChannelOutlet implements ChannelOutlet {
   }
 
   get isUsable(): boolean {
-    return this.link.status === LinkStatus.ACTIVE;
+    return canLinkSend(this.link.status);
   }
 
   async send(raw: Uint8Array): Promise<ChannelPacket | null> {

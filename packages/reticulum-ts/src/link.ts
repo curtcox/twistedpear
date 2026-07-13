@@ -31,6 +31,7 @@ import {
   canIdentifyOnLink,
   canLinkHandshake,
   canLinkRequest,
+  canLinkSend,
   canValidateLinkProof,
   classifyLinkProofPayload,
   computeLinkEstablishmentTimeout,
@@ -877,7 +878,7 @@ export class Link {
     data: Uint8Array,
     options: { createReceipt?: boolean; encrypt?: boolean } = {}
   ): Promise<LinkSendContextResult> {
-    if (this.status !== LinkStatus.ACTIVE) {
+    if (!canLinkSend(this.status)) {
       throw new Error("Cannot send on inactive link");
     }
 

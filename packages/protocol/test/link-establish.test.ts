@@ -14,6 +14,7 @@ import {
   applyLinkEstablishEvent,
   canIdentifyOnLink,
   canLinkRequest,
+  canLinkSend,
   canValidateLinkProof,
   computeLinkRttSeconds,
   initialLinkEstablishState,
@@ -62,6 +63,13 @@ describe("protocol link establish", () => {
     expect(canLinkRequest({ status: LinkStatus.ACTIVE, rtt: 0.1 })).toBe(true);
     expect(canLinkRequest({ status: LinkStatus.ACTIVE, rtt: null })).toBe(false);
     expect(canLinkRequest({ status: LinkStatus.PENDING, rtt: 0.1 })).toBe(false);
+  });
+
+  it("gates sends on ACTIVE only", () => {
+    expect(canLinkSend(LinkStatus.ACTIVE)).toBe(true);
+    expect(canLinkSend(LinkStatus.PENDING)).toBe(false);
+    expect(canLinkSend(LinkStatus.HANDSHAKE)).toBe(false);
+    expect(canLinkSend(LinkStatus.CLOSED)).toBe(false);
   });
 
   it("transitions handshake → active and merges RTT", () => {

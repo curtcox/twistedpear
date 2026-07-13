@@ -1,6 +1,7 @@
 import {
   DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
   applyLxmfSendEvent,
+  canLinkSend,
   initialDeliveryReceiptPollState,
   initialLxmfSendState,
   lxmfInboundDeliveryBytes,
@@ -19,7 +20,6 @@ import {
   bytesToHex,
   equalBytes,
   Identity,
-  LinkStatus,
   PacketContext,
   PacketReceiptStatus
 } from "@twistedpear/reticulum-ts";
@@ -256,7 +256,7 @@ export class LXMFRouter {
     const recipientIdentity = destination.identity;
     const destinationKey = bytesToHex(destination.hash);
     let link = this.directLinks.get(destinationKey) ?? null;
-    if (link === null || link.status !== LinkStatus.ACTIVE) {
+    if (link === null || !canLinkSend(link.status)) {
       const outbound = this.reticulum.registerDestination({
         provider: this.provider,
         identity: recipientIdentity,
@@ -329,7 +329,7 @@ export class LXMFRouter {
   }
 
   private async ensureOutboundPropagationLink(): Promise<Link> {
-    if (this.outboundPropagationLink !== null && this.outboundPropagationLink.status === LinkStatus.ACTIVE) {
+    if (this.outboundPropagationLink !== null && canLinkSend(this.outboundPropagationLink.status)) {
       return this.outboundPropagationLink;
     }
 
