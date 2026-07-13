@@ -24,12 +24,14 @@ export interface LinkSessionState {
 export type LinkSessionEvent =
   | Event
   | { readonly kind: "session/request-link"; readonly at: number }
+  | { readonly kind: "session/handshake"; readonly at: number }
   | { readonly kind: "session/link-proof"; readonly at: number; readonly rtt: number }
   | { readonly kind: "session/inbound"; readonly at: number }
   | { readonly kind: "session/close" };
 
 export type LinkSessionAction =
   | { readonly kind: "send-link-request"; readonly peerId: string }
+  | { readonly kind: "send-handshake"; readonly peerId: string }
   | { readonly kind: "send-link-proof"; readonly peerId: string }
   | LinkWatchdogAction;
 
@@ -98,6 +100,23 @@ export function stepLinkSessionWithActions(
       },
       intents: watchdog.intents,
       actions: [{ kind: "send-link-request", peerId: state.peerId }]
+    };
+  }
+
+  if (event.kind === "session/handshake") {
+    const watchdog = stepLinkWatchdogWithActions(state.watchdog, {
+      kind: "link/status",
+      status: LinkStatus.HANDSHAKE
+    });
+    return {
+      state: {
+        ...state,
+        status: LinkStatus.HANDSHAKE,
+        established: false,
+        watchdog: watchdog.state
+      },
+      intents: [],
+      actions: [{ kind: "send-handshake", peerId: state.peerId }]
     };
   }
 

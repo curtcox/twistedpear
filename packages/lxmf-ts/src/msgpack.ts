@@ -1,6 +1,21 @@
 /** Msgpack encode/decode for LXMF message payloads. Mirrors RNS.vendor.umsgpack usage in LXMF. */
 
 import type { LXMessageFields } from "./constants.js";
+export {
+  msgpackPackArray,
+  msgpackPackBin,
+  msgpackPackFloat64,
+  msgpackPackNil,
+  msgpackPackUInt
+} from "@twistedpear/protocol";
+
+import {
+  msgpackPackArray,
+  msgpackPackBin,
+  msgpackPackFloat64,
+  msgpackPackNil,
+  msgpackPackUInt
+} from "@twistedpear/protocol";
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   const length = parts.reduce((total, part) => total + part.length, 0);
@@ -9,78 +24,6 @@ function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   for (const part of parts) {
     output.set(part, offset);
     offset += part.length;
-  }
-
-  return output;
-}
-
-export function msgpackPackFloat64(value: number): Uint8Array {
-  const buffer = new ArrayBuffer(9);
-  const view = new DataView(buffer);
-  view.setUint8(0, 0xcb);
-  view.setFloat64(1, value, false);
-  return new Uint8Array(buffer);
-}
-
-export function msgpackPackBin(bytes: Uint8Array): Uint8Array {
-  const length = bytes.length;
-  if (length <= 0xff) {
-    const output = new Uint8Array(2 + length);
-    output[0] = 0xc4;
-    output[1] = length;
-    output.set(bytes, 2);
-    return output;
-  }
-
-  const output = new Uint8Array(3 + length);
-  output[0] = 0xc5;
-  output[1] = (length >> 8) & 0xff;
-  output[2] = length & 0xff;
-  output.set(bytes, 3);
-  return output;
-}
-
-export function msgpackPackUInt(value: number): Uint8Array {
-  if (value >= 0 && value <= 0x7f) {
-    return new Uint8Array([value]);
-  }
-
-  if (value <= 0xff) {
-    return new Uint8Array([0xcc, value]);
-  }
-
-  if (value <= 0xffff) {
-    const output = new Uint8Array(3);
-    output[0] = 0xcd;
-    output[1] = (value >> 8) & 0xff;
-    output[2] = value & 0xff;
-    return output;
-  }
-
-  const output = new Uint8Array(5);
-  output[0] = 0xce;
-  output[1] = (value >>> 24) & 0xff;
-  output[2] = (value >>> 16) & 0xff;
-  output[3] = (value >>> 8) & 0xff;
-  output[4] = value & 0xff;
-  return output;
-}
-
-export function msgpackPackNil(): Uint8Array {
-  return new Uint8Array([0xc0]);
-}
-
-export function msgpackPackArray(items: ReadonlyArray<Uint8Array>): Uint8Array {
-  if (items.length > 15) {
-    throw new Error("msgpackPackArray supports at most 15 items");
-  }
-
-  const output = new Uint8Array(1 + items.reduce((total, item) => total + item.length, 0));
-  output[0] = 0x90 | items.length;
-  let offset = 1;
-  for (const item of items) {
-    output.set(item, offset);
-    offset += item.length;
   }
 
   return output;

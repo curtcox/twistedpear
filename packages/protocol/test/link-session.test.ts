@@ -12,6 +12,10 @@ describe("protocol link session", () => {
     expect(result.actions[0]).toEqual({ kind: "send-link-request", peerId: "b" });
     expect(result.state.status).toBe(LinkStatus.PENDING);
 
+    result = stepLinkSessionWithActions(result.state, { kind: "session/handshake", at: 10.5 });
+    expect(result.state.status).toBe(LinkStatus.HANDSHAKE);
+    expect(result.actions[0]).toEqual({ kind: "send-handshake", peerId: "b" });
+
     result = stepLinkSessionWithActions(result.state, {
       kind: "session/link-proof",
       at: 11,

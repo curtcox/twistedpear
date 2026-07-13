@@ -3,10 +3,10 @@
 > **Status:** Protocol deny-list ratchet is **empty**. Inventory reports 0 violations under
 > configured roots (adapters remain outside the scan). Effects package, sim determinism,
 > tripwire (scoped to `packages/protocol/test/**`), ESLint, and dependency-cruiser gates
-> are green via `npm run sansio`. Pure step machines now also cover **path-table**,
-> **packet-receipt timeout**, and **link-session** leaves; reticulum path/receipt adapters
-> delegate to them. Multi-node sim scenarios include path-table and two-node link establishment.
-> Remaining depth work: msgpack/codec leaves and richer multi-node link crypto/handshake sims.
+> are green via `npm run sansio`. Codec leaves (**HDLC framing**, **msgpack core**) and richer
+> **link-session handshake** now live under `packages/protocol`; reticulum/lxmf re-export or
+> build on them. Multi-node sims cover path-table and handshake→active link establishment.
+> Remaining depth work: more LXMF payload codec consolidation and crypto-handshake sims.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

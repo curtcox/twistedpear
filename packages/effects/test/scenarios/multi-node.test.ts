@@ -227,6 +227,8 @@ describe("multi-node sim scenarios", () => {
     };
     const { stateHash } = assertReplayDeterminism(config, (kernel) => {
       kernel.inject("a", { kind: "session/request-link", at: 1 } as unknown as Event);
+      kernel.inject("b", { kind: "session/handshake", at: 1.5 } as unknown as Event);
+      kernel.inject("a", { kind: "session/handshake", at: 1.6 } as unknown as Event);
       kernel.inject("b", { kind: "session/link-proof", at: 2, rtt: 0.4 } as unknown as Event);
       kernel.inject("a", { kind: "session/link-proof", at: 2.1, rtt: 0.4 } as unknown as Event);
       kernel.inject("a", { kind: "session/inbound", at: 3 } as unknown as Event);
@@ -236,6 +238,8 @@ describe("multi-node sim scenarios", () => {
 
     const live = new SimKernel(config);
     live.inject("a", { kind: "session/request-link", at: 1 } as unknown as Event);
+    live.inject("b", { kind: "session/handshake", at: 1.5 } as unknown as Event);
+    live.inject("a", { kind: "session/handshake", at: 1.6 } as unknown as Event);
     live.inject("b", { kind: "session/link-proof", at: 2, rtt: 0.4 } as unknown as Event);
     live.inject("a", { kind: "session/link-proof", at: 2.1, rtt: 0.4 } as unknown as Event);
     expect((live.getNodeState("a") as LinkSessionState).status).toBe(LinkStatus.ACTIVE);

@@ -137,3 +137,24 @@ export {
   type LinkSessionState,
   type LinkSessionStepResult
 } from "./link-session.js";
+export {
+  HDLC_ESCAPE,
+  HDLC_ESCAPE_MASK,
+  HDLC_FLAG,
+  decodeHdlcFrames,
+  encodeHdlcFrame,
+  initialHdlcStreamState,
+  pushHdlcBytes,
+  type HdlcDecodeResult,
+  type HdlcDecodeState,
+  type HdlcStreamState
+} from "./hdlc.js";
+export {
+  msgpackPackArray,
+  msgpackPackBin,
+  msgpackPackFloat64,
+  msgpackPackNil,
+  msgpackPackUInt,
+  msgpackUnpackScalar,
+  type MsgpackScalar
+} from "./msgpack-core.js";
