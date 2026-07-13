@@ -17,11 +17,17 @@ import {
   isLocalPathRequestPacket,
   isReverseEntryExpired,
   planLinkRelayTarget,
+  planLocalPlainDataDelivery,
   planPacketFilter,
+  planPacketHashRemember,
   planProofIngressKind,
   planTransportIngressDispatch,
+  shouldAcceptLinkLrProofCandidate,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash,
+  shouldDispatchLocalLinkRequest,
+  shouldMatchLocalInboundDestination,
+  shouldMatchLocalTypedDestination,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
   shouldRelayReverseOnInterface,
@@ -348,5 +354,48 @@ describe("transport ingress", () => {
         isAttached: true
       })
     ).toBe(true);
+  });
+
+  it("matches local destinations and LR-proof / plain-data / hash-remember plans", () => {
+    expect(
+      shouldMatchLocalInboundDestination({ hashMatches: true, directionIn: true })
+    ).toBe(true);
+    expect(
+      shouldMatchLocalInboundDestination({ hashMatches: true, directionIn: false })
+    ).toBe(false);
+    expect(
+      shouldMatchLocalTypedDestination({ hashMatches: true, typeMatches: true })
+    ).toBe(true);
+    expect(
+      shouldMatchLocalTypedDestination({ hashMatches: true, typeMatches: false })
+    ).toBe(false);
+    expect(
+      shouldDispatchLocalLinkRequest({
+        hashMatches: true,
+        typeMatches: true,
+        handlerPresent: true
+      })
+    ).toBe(true);
+    expect(
+      shouldDispatchLocalLinkRequest({
+        hashMatches: true,
+        typeMatches: true,
+        handlerPresent: false
+      })
+    ).toBe(false);
+    expect(
+      shouldAcceptLinkLrProofCandidate({ linkIdMatches: true, hopsMatch: true })
+    ).toBe(true);
+    expect(
+      shouldAcceptLinkLrProofCandidate({ linkIdMatches: true, hopsMatch: false })
+    ).toBe(false);
+    expect(
+      planLocalPlainDataDelivery({ destinationPresent: true, plaintextPresent: true })
+    ).toBe("dispatch");
+    expect(
+      planLocalPlainDataDelivery({ destinationPresent: true, plaintextPresent: false })
+    ).toBe("ignore");
+    expect(planPacketHashRemember(false)).toBe("now");
+    expect(planPacketHashRemember(true)).toBe("after-relay");
   });
 });

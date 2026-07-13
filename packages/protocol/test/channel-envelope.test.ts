@@ -8,6 +8,7 @@ import {
   isChannelSystemMsgType,
   nextChannelSequence,
   packChannelEnvelope,
+  planChannelEnvelopePack,
   planChannelEnvelopeUnpack,
   planChannelMessageTypeRegistration,
   shouldEmitChannelImmediateDelivery,
@@ -115,6 +116,11 @@ describe("protocol channel envelope", () => {
         factoryRegistered: false
       })
     ).toBe("not-registered");
+  });
+
+  it("plans channel envelope pack gates", () => {
+    expect(planChannelEnvelopePack(false)).toBe("missing-message");
+    expect(planChannelEnvelopePack(true)).toBe("ok");
   });
 });
 

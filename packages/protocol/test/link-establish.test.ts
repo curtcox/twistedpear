@@ -37,7 +37,7 @@ import {
 } from "../src/link-establish.js";
 import { DestinationAllowPolicyCode } from "../src/destination-allow.js";
 import { PacketTypeCode } from "../src/packet-header.js";
-import { planLinkInitiatorMtu } from "../src/link-metrics.js";
+import { planLinkInitiatorMtu, planLinkRequestResponderMtu } from "../src/link-metrics.js";
 import { LinkStatus } from "../src/link-watchdog.js";
 
 describe("protocol link proof framing", () => {
@@ -223,6 +223,33 @@ describe("protocol link establish", () => {
         defaultMtu: 500
       })
     ).toBe(500);
+  });
+
+  it("plans responder MTU from LINKREQUEST signalling", () => {
+    expect(
+      planLinkRequestResponderMtu({
+        signallingPresent: false,
+        signallingMtu: 420,
+        currentMtu: 500,
+        defaultMtu: 500
+      })
+    ).toBe(500);
+    expect(
+      planLinkRequestResponderMtu({
+        signallingPresent: true,
+        signallingMtu: 420,
+        currentMtu: 500,
+        defaultMtu: 500
+      })
+    ).toBe(420);
+    expect(
+      planLinkRequestResponderMtu({
+        signallingPresent: true,
+        signallingMtu: null,
+        currentMtu: 500,
+        defaultMtu: 480
+      })
+    ).toBe(480);
   });
 
   it("accepts link packets from matching or unbound interfaces", () => {

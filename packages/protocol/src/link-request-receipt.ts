@@ -1,6 +1,7 @@
 /**
  * Pure link request-receipt status codes and transitions (RNS Link.RequestReceipt).
  */
+import { equalByteArrays } from "./path-table.js";
 
 export const LinkRequestReceiptStatus = {
   FAILED: 0x00,
@@ -72,4 +73,18 @@ export function stepLinkRequestReceipt(
     },
     actions: [{ kind: "response" }]
   };
+}
+
+/** Index of a pending link app-request by request-id (RESPONSE dispatch). */
+export function indexOfPendingLinkAppRequest(input: {
+  readonly requestIds: ReadonlyArray<Uint8Array>;
+  readonly target: Uint8Array;
+}): number | null {
+  for (let index = 0; index < input.requestIds.length; index += 1) {
+    const requestId = input.requestIds[index];
+    if (requestId != null && equalByteArrays(requestId, input.target)) {
+      return index;
+    }
+  }
+  return null;
 }

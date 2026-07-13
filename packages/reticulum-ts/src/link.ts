@@ -44,6 +44,7 @@ import {
   deriveRnsLinkKey,
   encodeLinkMtuBytes,
   encodeLinkSignallingBytes,
+  indexOfPendingLinkAppRequest,
   initialLinkEstablishState,
   isLinkClosed,
   isLinkKeepaliveProbe,
@@ -73,6 +74,7 @@ import {
   planLinkIdentifyOutcome,
   planLinkInitiatorMtu,
   planLinkProofValidateOutcome,
+  planLinkRequestResponderMtu,
   planLinkResourceAcceptAppResult,
   planLinkResourceAdvertisement,
   planLinkTeardown,
@@ -373,9 +375,12 @@ export class Link {
       link.loadPeer(request.publicKey, request.signaturePublicKey);
       link.setLinkId(packet);
 
-      if (request.signallingBytes.length > 0) {
-        link.mtu = Link.mtuFromLrPacket(packet) ?? RETICULUM_MTU;
-      }
+      link.mtu = planLinkRequestResponderMtu({
+        signallingPresent: request.signallingBytes.length > 0,
+        signallingMtu: Link.mtuFromLrPacket(packet),
+        currentMtu: link.mtu,
+        defaultMtu: RETICULUM_MTU
+      });
 
       link.mode = Link.modeFromLrPacket(packet);
       if (
@@ -1141,11 +1146,13 @@ export class Link {
 
     try {
       const [requestId, responseData] = msgpackUnpackResponse(plaintext);
-      for (const pendingRequest of [...this.pendingRequests]) {
-        if (pendingRequest.matchesRequestId(requestId)) {
-          pendingRequest.responseReceived(responseData);
-          return;
-        }
+      const pending = [...this.pendingRequests];
+      const index = indexOfPendingLinkAppRequest({
+        requestIds: pending.map((entry) => entry.requestId),
+        target: requestId
+      });
+      if (index !== null) {
+        pending[index]!.responseReceived(responseData);
       }
     } catch {
       // Ignore malformed responses.

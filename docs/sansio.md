@@ -209,6 +209,14 @@
 > `Link.validateProof` adapts it. **`shouldEmitChannelImmediateDelivery`** lives in
 > protocol; Channel send/resend adapts it. **`planLxmfPackTimestamp`** /
 > **`shouldIncludeLxmfStamp`** live in protocol; `LXMessage.pack` adapts them.
+> **`planAnnounceValidateOutcome`** / **`isAnnouncePacketType`** and
+> **`planPacketReceiptProofAccept`** live in protocol; `Announce` and `PacketReceipt`
+> adapt them. **Local destination match gates** (`shouldMatchLocalInboundDestination`,
+> **`shouldMatchLocalTypedDestination`**, **`shouldDispatchLocalLinkRequest`**),
+> **`shouldAcceptLinkLrProofCandidate`**, **`planLocalPlainDataDelivery`**, and
+> **`planPacketHashRemember`** live in protocol; transport node / LeafTransport adapt them.
+> **`indexOfPendingLinkAppRequest`**, **`planLinkRequestResponderMtu`**, and
+> **`planChannelEnvelopePack`** live in protocol; `Link` and `Channel` adapt them.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

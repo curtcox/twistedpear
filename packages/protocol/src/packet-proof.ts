@@ -74,3 +74,20 @@ export function packetProofHashMatches(
   }
   return equalByteArrays(proof.packetHash, packetHash);
 }
+
+export type PacketReceiptProofAcceptPlan = "reject" | "accept";
+
+/**
+ * PacketReceipt.validateProof outcome from split / hash / signature gates.
+ * Signature verify stays at the adapter edge as `signatureValid`.
+ */
+export function planPacketReceiptProofAccept(input: {
+  readonly splitOk: boolean;
+  readonly hashMatches: boolean;
+  readonly signatureValid: boolean;
+}): PacketReceiptProofAcceptPlan {
+  if (!input.splitOk || !input.hashMatches || !input.signatureValid) {
+    return "reject";
+  }
+  return "accept";
+}

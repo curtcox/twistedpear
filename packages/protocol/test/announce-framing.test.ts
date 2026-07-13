@@ -7,10 +7,13 @@ import {
   ANNOUNCE_SIGNATURE_SIZE,
   announceDestinationHashMaterial,
   announceSignedMaterial,
+  isAnnouncePacketType,
   packAnnouncePayload,
   parseAnnouncePayload,
-  planAnnounceBuild
+  planAnnounceBuild,
+  planAnnounceValidateOutcome
 } from "../src/announce-framing.js";
+import { PACKET_TYPE_ANNOUNCE, PACKET_TYPE_DATA } from "../src/packet-header.js";
 
 describe("protocol announce framing", () => {
   const publicKey = new Uint8Array(ANNOUNCE_PUBLIC_KEY_SIZE).fill(1);
@@ -136,5 +139,64 @@ describe("protocol announce framing", () => {
         ratchetPublicKeyLength: ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE
       })
     ).toBe("ok");
+  });
+
+  it("recognizes announce packet types and plans validate outcomes", () => {
+    expect(isAnnouncePacketType(PACKET_TYPE_ANNOUNCE)).toBe(true);
+    expect(isAnnouncePacketType(PACKET_TYPE_DATA)).toBe(false);
+    expect(
+      planAnnounceValidateOutcome({
+        parsedOk: false,
+        publicKeyLoaded: false,
+        signatureValid: false,
+        onlyValidateSignature: false,
+        destinationHashMatches: false
+      })
+    ).toBe("reject-parse");
+    expect(
+      planAnnounceValidateOutcome({
+        parsedOk: true,
+        publicKeyLoaded: false,
+        signatureValid: false,
+        onlyValidateSignature: false,
+        destinationHashMatches: false
+      })
+    ).toBe("reject-public-key");
+    expect(
+      planAnnounceValidateOutcome({
+        parsedOk: true,
+        publicKeyLoaded: true,
+        signatureValid: false,
+        onlyValidateSignature: false,
+        destinationHashMatches: false
+      })
+    ).toBe("reject-signature");
+    expect(
+      planAnnounceValidateOutcome({
+        parsedOk: true,
+        publicKeyLoaded: true,
+        signatureValid: true,
+        onlyValidateSignature: true,
+        destinationHashMatches: false
+      })
+    ).toBe("accept-signature-only");
+    expect(
+      planAnnounceValidateOutcome({
+        parsedOk: true,
+        publicKeyLoaded: true,
+        signatureValid: true,
+        onlyValidateSignature: false,
+        destinationHashMatches: false
+      })
+    ).toBe("reject-destination-hash");
+    expect(
+      planAnnounceValidateOutcome({
+        parsedOk: true,
+        publicKeyLoaded: true,
+        signatureValid: true,
+        onlyValidateSignature: false,
+        destinationHashMatches: true
+      })
+    ).toBe("accept");
   });
 });

@@ -253,3 +253,65 @@ export function shouldTransmitOnInterface(input: {
   }
   return true;
 }
+
+/** Local IN destination match (announce / path-request answerer). */
+export function shouldMatchLocalInboundDestination(input: {
+  readonly hashMatches: boolean;
+  readonly directionIn: boolean;
+}): boolean {
+  return input.hashMatches && input.directionIn;
+}
+
+/** Local typed destination match (plain DATA delivery). */
+export function shouldMatchLocalTypedDestination(input: {
+  readonly hashMatches: boolean;
+  readonly typeMatches: boolean;
+}): boolean {
+  return input.hashMatches && input.typeMatches;
+}
+
+/** Local LINKREQUEST dispatch (typed destination + handler present). */
+export function shouldDispatchLocalLinkRequest(input: {
+  readonly hashMatches: boolean;
+  readonly typeMatches: boolean;
+  readonly handlerPresent: boolean;
+}): boolean {
+  return input.hashMatches && input.typeMatches && input.handlerPresent;
+}
+
+/**
+ * After `planProofIngressKind === "lrproof"`: whether this pending link may validate.
+ * `linkIdMatches` and hopsMatch stay as adapter-supplied booleans.
+ */
+export function shouldAcceptLinkLrProofCandidate(input: {
+  readonly linkIdMatches: boolean;
+  readonly hopsMatch: boolean;
+}): boolean {
+  return input.linkIdMatches && input.hopsMatch;
+}
+
+export type LocalPlainDataDeliveryPlan = "ignore" | "dispatch";
+
+/**
+ * Local plain DATA after path-request gate: destination present + decrypt present.
+ * Proof emission stays via {@link planDestinationProof} at the adapter.
+ */
+export function planLocalPlainDataDelivery(input: {
+  readonly destinationPresent: boolean;
+  readonly plaintextPresent: boolean;
+}): LocalPlainDataDeliveryPlan {
+  if (!input.destinationPresent || !input.plaintextPresent) {
+    return "ignore";
+  }
+  return "dispatch";
+}
+
+export type PacketHashRememberPlan = "now" | "after-relay";
+
+/**
+ * When to record a packet hash: immediately, or after deferred relay attempts.
+ * Complements {@link shouldDeferPacketHash}.
+ */
+export function planPacketHashRemember(deferred: boolean): PacketHashRememberPlan {
+  return deferred ? "after-relay" : "now";
+}

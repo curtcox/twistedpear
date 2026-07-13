@@ -9,12 +9,14 @@ import {
   planAnnounceIngressGates,
   planDiscoveryPathRequestFulfill,
   planLinkRelayTarget,
+  planPacketHashRemember,
   planPathRequestIngress,
   planTransportIngressDispatch,
   rewritePacketHopsBytes,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash as planShouldDeferPacketHash,
   shouldAnswerPathRequest,
+  shouldMatchLocalInboundDestination,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
   shouldRelayReverseOnInterface,
@@ -98,20 +100,20 @@ export class TransportNode extends LeafTransport {
       return;
     }
 
-    const rememberHash = !this.shouldDeferPacketHash(workingPacket);
-    if (rememberHash) {
+    const rememberWhen = planPacketHashRemember(this.shouldDeferPacketHash(workingPacket));
+    if (rememberWhen === "now") {
       this.packetHashes.add(hashKey(workingPacket.hash()));
     }
 
     if (await this.relayTransportPacket(workingPacket, iface)) {
-      if (!rememberHash) {
+      if (rememberWhen === "after-relay") {
         this.packetHashes.add(hashKey(workingPacket.hash()));
       }
       return;
     }
 
     if (await this.relayLinkPacket(workingPacket, iface)) {
-      if (!rememberHash) {
+      if (rememberWhen === "after-relay") {
         this.packetHashes.add(hashKey(workingPacket.hash()));
       }
       return;
@@ -121,7 +123,7 @@ export class TransportNode extends LeafTransport {
       return;
     }
 
-    if (!rememberHash) {
+    if (rememberWhen === "after-relay") {
       this.packetHashes.add(hashKey(workingPacket.hash()));
     }
 
@@ -174,10 +176,11 @@ export class TransportNode extends LeafTransport {
     const localDestination =
       parsed === null
         ? undefined
-        : this.destinations.find(
-            (entry) =>
-              equalBytes(entry.hash, parsed.destinationHash) &&
-              entry.direction === DestinationDirection.IN
+        : this.destinations.find((entry) =>
+            shouldMatchLocalInboundDestination({
+              hashMatches: equalBytes(entry.hash, parsed.destinationHash),
+              directionIn: entry.direction === DestinationDirection.IN
+            })
           );
     const tagKey =
       parsed !== null && parsed.tag !== null

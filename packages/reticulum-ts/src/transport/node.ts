@@ -16,10 +16,15 @@ import {
   planPathRequestIngress,
   planPathResponseAnnounceFields,
   planProofIngressKind,
+  planLocalPlainDataDelivery,
   planTransportAnnounceFields,
   planTransportIngressDispatch,
+  shouldAcceptLinkLrProofCandidate,
+  shouldDispatchLocalLinkRequest,
   shouldIgnoreLocalAnnounce,
   shouldMatchAnnounceAspect,
+  shouldMatchLocalInboundDestination,
+  shouldMatchLocalTypedDestination,
   shouldReceiveAnnouncePathResponse,
   shouldTransmitOnInterface,
   relayTransportPacketBytes,
@@ -412,11 +417,13 @@ export class LeafTransport {
   protected async handleLinkRequest(packet: Packet, iface: PacketInterface): Promise<void> {
     for (const destination of this.destinations) {
       if (
-        equalBytes(destination.hash, packet.destinationHash) &&
-        destination.type === packet.destinationType &&
-        destination.handleLinkRequest !== undefined
+        shouldDispatchLocalLinkRequest({
+          hashMatches: equalBytes(destination.hash, packet.destinationHash),
+          typeMatches: destination.type === packet.destinationType,
+          handlerPresent: destination.handleLinkRequest !== undefined
+        })
       ) {
-        destination.handleLinkRequest(packet, iface);
+        destination.handleLinkRequest!(packet, iface);
         return;
       }
     }
@@ -448,9 +455,11 @@ export class LeafTransport {
       return;
     }
 
-    const localDestination = this.destinations.find(
-      (entry) =>
-        equalBytes(entry.hash, packet.destinationHash) && entry.direction === DestinationDirection.IN
+    const localDestination = this.destinations.find((entry) =>
+      shouldMatchLocalInboundDestination({
+        hashMatches: equalBytes(entry.hash, packet.destinationHash),
+        directionIn: entry.direction === DestinationDirection.IN
+      })
     );
     if (shouldIgnoreLocalAnnounce(localDestination !== undefined)) {
       return;
@@ -561,15 +570,21 @@ export class LeafTransport {
       return;
     }
 
-    const destination = this.destinations.find(
-      (entry) => equalBytes(entry.hash, packet.destinationHash) && entry.type === packet.destinationType
+    const destination = this.destinations.find((entry) =>
+      shouldMatchLocalTypedDestination({
+        hashMatches: equalBytes(entry.hash, packet.destinationHash),
+        typeMatches: entry.type === packet.destinationType
+      })
     );
-    if (destination === undefined) {
-      return;
-    }
-
-    const plaintext = destination.decrypt(packet.data);
-    if (plaintext === null) {
+    const plaintext = destination === undefined ? null : destination.decrypt(packet.data);
+    if (
+      planLocalPlainDataDelivery({
+        destinationPresent: destination !== undefined,
+        plaintextPresent: plaintext !== null
+      }) !== "dispatch" ||
+      destination === undefined ||
+      plaintext === null
+    ) {
       return;
     }
 
@@ -589,7 +604,12 @@ export class LeafTransport {
     const kind = planProofIngressKind(packet.context);
     if (kind === "lrproof") {
       for (const link of this.pendingLinks) {
-        if (equalBytes(link.linkId, packet.destinationHash) && link.hopsMatch(packet)) {
+        if (
+          shouldAcceptLinkLrProofCandidate({
+            linkIdMatches: equalBytes(link.linkId, packet.destinationHash),
+            hopsMatch: link.hopsMatch(packet)
+          })
+        ) {
           await link.validateProof(packet, iface);
           return;
         }
@@ -697,10 +717,11 @@ export class LeafTransport {
     const localDestination =
       parsed === null
         ? undefined
-        : this.destinations.find(
-            (entry) =>
-              equalBytes(entry.hash, parsed.destinationHash) &&
-              entry.direction === DestinationDirection.IN
+        : this.destinations.find((entry) =>
+            shouldMatchLocalInboundDestination({
+              hashMatches: equalBytes(entry.hash, parsed.destinationHash),
+              directionIn: entry.direction === DestinationDirection.IN
+            })
           );
     const tagKey =
       parsed !== null && parsed.tag !== null

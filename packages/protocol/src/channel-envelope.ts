@@ -145,6 +145,13 @@ export function planChannelEnvelopeUnpack(input: {
   return "ok";
 }
 
+export type ChannelEnvelopePackPlan = "missing-message" | "ok";
+
+/** Whether Envelope.pack may serialize from a typed message. */
+export function planChannelEnvelopePack(messagePresent: boolean): ChannelEnvelopePackPlan {
+  return messagePresent ? "ok" : "missing-message";
+}
+
 export function channelPayloadMdu(outletMdu: number): number {
   const value = outletMdu - CHANNEL_ENVELOPE_HEADER_SIZE;
   return value > 0xffff ? 0xffff : value;

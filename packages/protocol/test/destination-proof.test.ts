@@ -11,6 +11,7 @@ import {
 import { LinkResourceStrategy } from "../src/link-watchdog.js";
 import {
   LinkRequestReceiptStatus,
+  indexOfPendingLinkAppRequest,
   initialLinkRequestReceiptState,
   stepLinkRequestReceipt
 } from "../src/link-request-receipt.js";
@@ -76,5 +77,22 @@ describe("link request receipt step", () => {
     expect(ready.state.status).toBe(LinkRequestReceiptStatus.READY);
     expect([...ready.state.response!]).toEqual([1, 2]);
     expect(ready.actions).toEqual([{ kind: "response" }]);
+  });
+
+  it("indexes pending link app-requests by request-id", () => {
+    const a = new Uint8Array([1, 2, 3]);
+    const b = new Uint8Array([4, 5, 6]);
+    expect(
+      indexOfPendingLinkAppRequest({
+        requestIds: [a, b],
+        target: new Uint8Array([4, 5, 6])
+      })
+    ).toBe(1);
+    expect(
+      indexOfPendingLinkAppRequest({
+        requestIds: [a, b],
+        target: new Uint8Array([9, 9, 9])
+      })
+    ).toBeNull();
   });
 });

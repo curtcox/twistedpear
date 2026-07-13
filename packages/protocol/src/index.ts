@@ -51,6 +51,7 @@ export {
 } from "./link-keepalive.js";
 export {
   LinkRequestReceiptStatus,
+  indexOfPendingLinkAppRequest,
   initialLinkRequestReceiptState,
   stepLinkRequestReceipt,
   type LinkRequestReceiptAction,
@@ -379,10 +380,12 @@ export {
   isChannelSystemMsgType,
   nextChannelSequence,
   packChannelEnvelope,
+  planChannelEnvelopePack,
   planChannelEnvelopeUnpack,
   planChannelMessageTypeRegistration,
   shouldEmitChannelImmediateDelivery,
   unpackChannelEnvelope,
+  type ChannelEnvelopePackPlan,
   type ChannelEnvelopeUnpackPlan,
   type ChannelExceptionTypeCodeValue,
   type ChannelMessageStateValue,
@@ -490,7 +493,8 @@ export {
   computeLinkMdu,
   linkHopsMatch,
   linkPayloadFitsMdu,
-  planLinkInitiatorMtu
+  planLinkInitiatorMtu,
+  planLinkRequestResponderMtu
 } from "./link-metrics.js";
 export {
   PROPAGATION_DESTINATION_HASH_SIZE,
@@ -680,16 +684,24 @@ export {
   isLocalPathRequestPacket,
   isReverseEntryExpired,
   planLinkRelayTarget,
+  planLocalPlainDataDelivery,
   planPacketFilter,
+  planPacketHashRemember,
   planProofIngressKind,
   planTransportIngressDispatch,
+  shouldAcceptLinkLrProofCandidate,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash,
+  shouldDispatchLocalLinkRequest,
+  shouldMatchLocalInboundDestination,
+  shouldMatchLocalTypedDestination,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
   shouldRelayReverseOnInterface,
   shouldTransmitOnInterface,
   type LinkRelayTarget,
+  type LocalPlainDataDeliveryPlan,
+  type PacketHashRememberPlan,
   type ProofIngressKind,
   type TransportIngressDispatch
 } from "./transport-ingress.js";
@@ -702,11 +714,14 @@ export {
   announceDestinationHashMaterial,
   announceDestinationHashMatches,
   announceSignedMaterial,
+  isAnnouncePacketType,
   packAnnouncePayload,
   parseAnnouncePayload,
   planAnnounceBuild,
+  planAnnounceValidateOutcome,
   type AnnounceBuildPlan,
-  type AnnouncePayloadFields
+  type AnnouncePayloadFields,
+  type AnnounceValidatePlan
 } from "./announce-framing.js";
 export {
   PACKET_EXPLICIT_PROOF_SIZE,
@@ -715,8 +730,10 @@ export {
   isPacketTypeProof,
   packPacketProof,
   packetProofHashMatches,
+  planPacketReceiptProofAccept,
   splitPacketProof,
-  type PacketProofFields
+  type PacketProofFields,
+  type PacketReceiptProofAcceptPlan
 } from "./packet-proof.js";
 export {
   PACKET_CONTEXT_FLAG_SET,

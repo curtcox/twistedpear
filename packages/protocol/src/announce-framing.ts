@@ -2,6 +2,7 @@
  * Pure RNS announce payload framing and signed-material assembly.
  * Signing / hashing stay at the crypto adapter edge.
  */
+import { PACKET_TYPE_ANNOUNCE } from "./packet-header.js";
 import { equalByteArrays } from "./path-table.js";
 
 export const ANNOUNCE_RANDOM_HASH_SIZE = 10;
@@ -139,6 +140,48 @@ export function announceDestinationHashMatches(
   expectedTruncatedHash: Uint8Array
 ): boolean {
   return equalByteArrays(destinationHash, expectedTruncatedHash);
+}
+
+/** Whether a packet is an ANNOUNCE type eligible for announce parse. */
+export function isAnnouncePacketType(packetType: number): boolean {
+  return packetType === PACKET_TYPE_ANNOUNCE;
+}
+
+export type AnnounceValidatePlan =
+  | "reject-parse"
+  | "reject-public-key"
+  | "reject-signature"
+  | "accept-signature-only"
+  | "reject-destination-hash"
+  | "accept";
+
+/**
+ * Announce.validate outcome from parse / key / signature / dest-hash gates.
+ * Crypto loadPublicKey + validate stay at the adapter edge as booleans.
+ */
+export function planAnnounceValidateOutcome(input: {
+  readonly parsedOk: boolean;
+  readonly publicKeyLoaded: boolean;
+  readonly signatureValid: boolean;
+  readonly onlyValidateSignature: boolean;
+  readonly destinationHashMatches: boolean;
+}): AnnounceValidatePlan {
+  if (!input.parsedOk) {
+    return "reject-parse";
+  }
+  if (!input.publicKeyLoaded) {
+    return "reject-public-key";
+  }
+  if (!input.signatureValid) {
+    return "reject-signature";
+  }
+  if (input.onlyValidateSignature) {
+    return "accept-signature-only";
+  }
+  if (!input.destinationHashMatches) {
+    return "reject-destination-hash";
+  }
+  return "accept";
 }
 
 export type AnnounceBuildPlan =

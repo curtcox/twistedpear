@@ -5,9 +5,11 @@ import {
   announceDestinationHashMaterial,
   announceDestinationHashMatches,
   announceSignedMaterial,
+  isAnnouncePacketType,
   packAnnouncePayload,
   parseAnnouncePayload,
   planAnnounceBuild,
+  planAnnounceValidateOutcome,
   truncateToTruncatedHash
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
@@ -122,7 +124,7 @@ export class Announce {
   }
 
   static parse(packet: Packet): ParsedAnnounce | null {
-    if (packet.packetType !== PacketType.ANNOUNCE) {
+    if (!isAnnouncePacketType(packet.packetType)) {
       return null;
     }
 
@@ -139,35 +141,38 @@ export class Announce {
 
   static validate(provider: CryptoProvider, packet: Packet, onlyValidateSignature = false): boolean {
     const parsed = Announce.parse(packet);
-    if (parsed === null) {
-      return false;
+    const identity = parsed === null ? null : new Identity(provider, false);
+    const publicKeyLoaded =
+      identity !== null && parsed !== null && identity.loadPublicKey(parsed.publicKey);
+
+    let signatureValid = false;
+    if (parsed !== null && identity !== null && publicKeyLoaded) {
+      const signedData = announceSignedMaterial({
+        destinationHash: parsed.destinationHash,
+        publicKey: parsed.publicKey,
+        nameHash: parsed.nameHash,
+        randomHash: parsed.randomHash,
+        ratchetPublicKey: parsed.ratchetPublicKey,
+        appData: parsed.appData
+      });
+      signatureValid = identity.validate(parsed.signature, signedData);
     }
 
-    const identity = new Identity(provider, false);
-    if (!identity.loadPublicKey(parsed.publicKey)) {
-      return false;
+    let destinationHashMatches = false;
+    if (parsed !== null && identity !== null && publicKeyLoaded && signatureValid && !onlyValidateSignature) {
+      const expectedHash = truncateToTruncatedHash(
+        Identity.fullHash(provider, announceDestinationHashMaterial(parsed.nameHash, identity.hash))
+      );
+      destinationHashMatches = announceDestinationHashMatches(parsed.destinationHash, expectedHash);
     }
 
-    const signedData = announceSignedMaterial({
-      destinationHash: parsed.destinationHash,
-      publicKey: parsed.publicKey,
-      nameHash: parsed.nameHash,
-      randomHash: parsed.randomHash,
-      ratchetPublicKey: parsed.ratchetPublicKey,
-      appData: parsed.appData
+    const plan = planAnnounceValidateOutcome({
+      parsedOk: parsed !== null,
+      publicKeyLoaded,
+      signatureValid,
+      onlyValidateSignature,
+      destinationHashMatches
     });
-
-    if (!identity.validate(parsed.signature, signedData)) {
-      return false;
-    }
-
-    if (onlyValidateSignature) {
-      return true;
-    }
-
-    const expectedHash = truncateToTruncatedHash(
-      Identity.fullHash(provider, announceDestinationHashMaterial(parsed.nameHash, identity.hash))
-    );
-    return announceDestinationHashMatches(parsed.destinationHash, expectedHash);
+    return plan === "accept" || plan === "accept-signature-only";
   }
 }

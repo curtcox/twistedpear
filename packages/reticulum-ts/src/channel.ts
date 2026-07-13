@@ -19,6 +19,7 @@ import {
   isChannelOutletTransmitOk,
   nextChannelSequence,
   packChannelEnvelope,
+  planChannelEnvelopePack,
   planChannelEnvelopeUnpack,
   planChannelMessageTypeRegistration,
   planChannelPacketTimeout,
@@ -109,7 +110,7 @@ class Envelope {
   }
 
   pack(): Uint8Array {
-    if (this.message === null) {
+    if (planChannelEnvelopePack(this.message !== null) === "missing-message" || this.message === null) {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope has no message");
     }
 

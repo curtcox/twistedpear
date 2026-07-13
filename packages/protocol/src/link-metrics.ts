@@ -35,6 +35,22 @@ export function planLinkInitiatorMtu(input: {
   return input.defaultMtu;
 }
 
+/**
+ * Responder MTU from LINKREQUEST signalling (keep current when absent).
+ * `signallingMtu` is pre-parsed via {@link mtuFromLinkRequestData} at the edge.
+ */
+export function planLinkRequestResponderMtu(input: {
+  readonly signallingPresent: boolean;
+  readonly signallingMtu: number | null;
+  readonly currentMtu: number;
+  readonly defaultMtu: number;
+}): number {
+  if (!input.signallingPresent) {
+    return input.currentMtu;
+  }
+  return input.signallingMtu ?? input.defaultMtu;
+}
+
 export function linkHopsMatch(input: {
   readonly expectedHops: number | null;
   readonly packetHops: number;

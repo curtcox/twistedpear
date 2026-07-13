@@ -4,6 +4,7 @@ import {
   PacketReceiptStatus,
   isPacketTypeProof,
   packetProofHashMatches,
+  planPacketReceiptProofAccept,
   splitPacketProof,
   stepPacketReceiptTimeout,
   type PacketReceiptStatusValue,
@@ -82,11 +83,17 @@ export class PacketReceipt {
 
   validateProof(proof: Uint8Array, identity: Identity): boolean {
     const split = splitPacketProof(proof);
-    if (split === null || !packetProofHashMatches(split, this.hash)) {
-      return false;
-    }
-
-    if (!identity.validate(split.signature, this.hash)) {
+    const hashMatches = split !== null && packetProofHashMatches(split, this.hash);
+    const signatureValid =
+      split !== null && hashMatches && identity.validate(split.signature, this.hash);
+    if (
+      planPacketReceiptProofAccept({
+        splitOk: split !== null,
+        hashMatches,
+        signatureValid
+      }) !== "accept" ||
+      split === null
+    ) {
       return false;
     }
 
