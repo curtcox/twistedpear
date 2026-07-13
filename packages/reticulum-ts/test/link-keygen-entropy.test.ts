@@ -72,7 +72,8 @@ describe("Link keygen entropy injection", () => {
 
   it("uses Runtime.entropy when link options omit entropy", () => {
     const provider = new NodeCryptoProvider();
-    const stream = new Uint8Array(64).map((_, i) => (i * 29 + 11) & 0xff);
+    // 64 bytes for transport identity keygen + 64 for initiator link keys.
+    const stream = new Uint8Array(128).map((_, i) => (i * 29 + 11) & 0xff);
 
     const run = () => {
       const runtime = nodeRuntime({ entropy: new ScriptedEntropy(stream) });

@@ -228,7 +228,7 @@ export class LeafTransport {
       return;
     }
 
-    const tag = Identity.getRandomHash(this.provider).subarray(0, TRUNCATED_HASH_BYTES);
+    const tag = Identity.getRandomHash(this.provider, this.entropy).subarray(0, TRUNCATED_HASH_BYTES);
     const requestData = buildPathRequestData(
       destinationHash,
       this.transportEnabled ? this.transportIdentity.hash : null,

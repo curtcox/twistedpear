@@ -1,11 +1,14 @@
 import { pkcs7Pad, pkcs7Unpad } from "./pkcs7.js";
 import type { CryptoProvider } from "./provider.js";
+import type { Entropy } from "../runtime/runtime.js";
 
 /** Mirrors RNS/Cryptography/Token.py */
 export const TOKEN_OVERHEAD = 48;
 
 export interface TokenEncryptOptions {
   readonly iv?: Uint8Array;
+  /** Preferred entropy when `iv` is omitted. */
+  readonly entropy?: Entropy;
 }
 
 type TokenMode = "aes128" | "aes256";
@@ -32,8 +35,8 @@ export class Token {
     }
   }
 
-  static generateKey(provider: CryptoProvider): Uint8Array {
-    return provider.randomBytes(32);
+  static generateKey(provider: CryptoProvider, entropy?: Entropy): Uint8Array {
+    return entropy !== undefined ? entropy.randomBytes(32) : provider.randomBytes(32);
   }
 
   verifyHmac(token: Uint8Array): boolean {
@@ -60,7 +63,11 @@ export class Token {
       throw new TypeError("Token plaintext input must be bytes");
     }
 
-    const iv = options.iv ?? this.provider.randomBytes(16);
+    const iv =
+      options.iv ??
+      (options.entropy !== undefined
+        ? options.entropy.randomBytes(16)
+        : this.provider.randomBytes(16));
     if (iv.length !== 16) {
       throw new Error("Token IV must be 16 bytes");
     }

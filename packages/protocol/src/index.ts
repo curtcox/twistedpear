@@ -209,3 +209,9 @@ export {
   type LinkInitiatorKeyMaterial,
   type LinkResponderKeyMaterial
 } from "./link-keygen.js";
+export {
+  IDENTITY_HALF_KEY_SIZE,
+  IDENTITY_KEY_ENTROPY_SIZE,
+  splitIdentityEntropy,
+  type IdentityKeyMaterial
+} from "./identity-keygen.js";

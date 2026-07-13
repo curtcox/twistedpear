@@ -9,9 +9,10 @@
 > **Link keygen** accepts injected entropy (`splitInitiatorLinkEntropy` /
 > `splitResponderLinkEntropy`). **`Runtime.entropy`** is threaded through
 > `LeafTransport` into Link keygen (explicit override still wins). Announce builds prefer
-> `transport.entropy` for the random hash. Remaining depth work:
-> route Identity/Token/Resource RNG through Runtime entropy, and keep converting
-> residual session IO into step machines.
+> `transport.entropy` for the random hash. **Identity**, **Token**, and **Resource** RNG
+> now prefer injected/`Runtime` entropy (transport identity keygen, path-request tags,
+> link Token IVs, destination encrypt, resource random hashes). Remaining depth work:
+> keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

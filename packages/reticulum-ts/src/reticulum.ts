@@ -35,7 +35,9 @@ export class Reticulum {
   constructor(options: ReticulumOptions) {
     this.provider = options.provider;
     this.runtime = options.runtime;
-    this.transportIdentity = options.transportIdentity ?? new Identity(options.provider);
+    this.transportIdentity =
+      options.transportIdentity ??
+      new Identity(options.provider, { entropy: options.runtime.entropy });
     const transportOptions: LeafTransportOptions = {
       provider: options.provider,
       transportIdentity: this.transportIdentity,

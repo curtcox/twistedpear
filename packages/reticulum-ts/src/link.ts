@@ -795,7 +795,7 @@ export class Link {
   }
 
   encrypt(plaintext: Uint8Array): Uint8Array {
-    return this.tokenInstance().encrypt(plaintext);
+    return this.tokenInstance().encrypt(plaintext, { entropy: this.transport.entropy });
   }
 
   decrypt(ciphertext: Uint8Array): Uint8Array | null {

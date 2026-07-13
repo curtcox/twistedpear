@@ -2,7 +2,8 @@ import { bytesToHex } from "./crypto/bytes.js";
 import { rnsHkdf } from "./crypto/hkdf.js";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { Token } from "./crypto/token.js";
-import type { KeyValueStore } from "./runtime/runtime.js";
+import type { Entropy, KeyValueStore } from "./runtime/runtime.js";
+import { IDENTITY_KEY_ENTROPY_SIZE, splitIdentityEntropy } from "@twistedpear/protocol";
 
 /** Mirrors RNS/Identity.py constants and core identity operations. */
 export const IDENTITY_KEY_SIZE = 64;
@@ -30,7 +31,17 @@ export interface EncryptOptions {
   readonly ephemeralPrivateKey?: Uint8Array;
   /** Fixed Token IV for deterministic conformance vectors. */
   readonly tokenIv?: Uint8Array;
+  /** Preferred entropy when ephemeral key / token IV are not supplied. */
+  readonly entropy?: Entropy;
 }
+
+export type IdentityCreateOptions =
+  | boolean
+  | {
+      readonly createKeys?: boolean;
+      readonly entropy?: Entropy;
+    };
+
 
 export interface DecryptOptions {
   readonly ratchets?: ReadonlyArray<Uint8Array>;
@@ -54,10 +65,16 @@ export class Identity {
 
   constructor(
     private readonly provider: CryptoProvider,
-    createKeys = true
+    createKeysOrOptions: IdentityCreateOptions = true
   ) {
+    const createKeys =
+      typeof createKeysOrOptions === "boolean"
+        ? createKeysOrOptions
+        : createKeysOrOptions.createKeys !== false;
+    const entropy =
+      typeof createKeysOrOptions === "object" ? createKeysOrOptions.entropy : undefined;
     if (createKeys) {
-      this.createKeys();
+      this.createKeys(entropy);
     }
   }
 
@@ -71,8 +88,10 @@ export class Identity {
     return identity.loadPublicKey(publicKeyBytes) ? identity : null;
   }
 
-  static getRandomHash(provider: CryptoProvider): Uint8Array {
-    return provider.randomBytes(TRUNCATED_HASH_LENGTH / 8);
+  static getRandomHash(provider: CryptoProvider, entropy?: Entropy): Uint8Array {
+    return entropy !== undefined
+      ? entropy.randomBytes(TRUNCATED_HASH_LENGTH / 8)
+      : provider.randomBytes(TRUNCATED_HASH_LENGTH / 8);
   }
 
   static fullHash(provider: CryptoProvider, data: Uint8Array): Uint8Array {
@@ -176,9 +195,14 @@ export class Identity {
     return this.identityHash;
   }
 
-  createKeys(): void {
-    this.prvBytes = this.provider.randomBytes(IDENTITY_HALF_KEY_SIZE);
-    this.sigPrvBytes = this.provider.randomBytes(IDENTITY_HALF_KEY_SIZE);
+  createKeys(entropy?: Entropy): void {
+    const material = splitIdentityEntropy(
+      entropy !== undefined
+        ? entropy.randomBytes(IDENTITY_KEY_ENTROPY_SIZE)
+        : this.provider.randomBytes(IDENTITY_KEY_ENTROPY_SIZE)
+    );
+    this.prvBytes = material.privateKey;
+    this.sigPrvBytes = material.signaturePrivateKey;
     this.updatePublicMaterial();
   }
 
@@ -229,7 +253,11 @@ export class Identity {
   encrypt(plaintext: Uint8Array, options: EncryptOptions = {}): Uint8Array {
     this.requirePublicKey();
 
-    const ephemeralPrivateKey = options.ephemeralPrivateKey ?? this.provider.randomBytes(32);
+    const ephemeralPrivateKey =
+      options.ephemeralPrivateKey ??
+      (options.entropy !== undefined
+        ? options.entropy.randomBytes(32)
+        : this.provider.randomBytes(32));
     const ephemeralPublicBytes = this.provider.x25519PublicFromPrivate(ephemeralPrivateKey);
     const targetPublicKey =
       options.ratchetPublicKey === undefined ? this.pubBytes! : options.ratchetPublicKey;
@@ -237,7 +265,10 @@ export class Identity {
     const sharedKey = this.provider.x25519SharedSecret(ephemeralPrivateKey, targetPublicKey);
     const derivedKey = rnsHkdf(this.provider, 32, sharedKey, this.hash, null);
     const token = new Token(this.provider, derivedKey);
-    const ciphertext = token.encrypt(plaintext, options.tokenIv === undefined ? {} : { iv: options.tokenIv });
+    const ciphertext = token.encrypt(plaintext, {
+      ...(options.tokenIv === undefined ? {} : { iv: options.tokenIv }),
+      ...(options.entropy === undefined ? {} : { entropy: options.entropy })
+    });
     return concatBytes(ephemeralPublicBytes, ciphertext);
   }
 

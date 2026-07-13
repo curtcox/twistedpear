@@ -67,6 +67,8 @@ export interface ResourceOptions extends ResourceCallbacks {
   readonly advertise?: boolean;
   readonly autoCompress?: boolean;
   readonly timeout?: number;
+  /** Optional injected resource random hash (first 4 bytes used). */
+  readonly randomHash?: Uint8Array;
 }
 
 interface ResourcePart {
@@ -285,7 +287,16 @@ export class Resource {
 
   static send(link: Link, data: Uint8Array, options: ResourceOptions = {}): Resource {
     const provider = link.cryptoProvider;
-    const randomHash = Identity.getRandomHash(provider).subarray(0, RESOURCE_RANDOM_HASH_SIZE);
+    const randomHash =
+      options.randomHash !== undefined
+        ? Uint8Array.from(options.randomHash.subarray(0, RESOURCE_RANDOM_HASH_SIZE))
+        : Identity.getRandomHash(provider, link.linkTransport.entropy).subarray(
+            0,
+            RESOURCE_RANDOM_HASH_SIZE
+          );
+    if (randomHash.length !== RESOURCE_RANDOM_HASH_SIZE) {
+      throw new Error(`Resource random hash must be ${RESOURCE_RANDOM_HASH_SIZE} bytes`);
+    }
     const payload = concatBytes(randomHash, data);
     const encryptedPayload = link.encrypt(payload);
     const sdu = link.mdu;

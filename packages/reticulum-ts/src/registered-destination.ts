@@ -235,7 +235,9 @@ export class RegisteredDestination extends Destination {
     }
 
     const ciphertext =
-      this.type === DestinationType.PLAIN ? data : (this.identity?.encrypt(data) ?? null);
+      this.type === DestinationType.PLAIN
+        ? data
+        : (this.identity?.encrypt(data, { entropy: this.transport.entropy }) ?? null);
     if (ciphertext === null) {
       throw new Error("Destination cannot encrypt outbound data");
     }
