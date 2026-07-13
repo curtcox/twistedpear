@@ -244,3 +244,12 @@ export {
   insertChannelSequence,
   shouldAcceptChannelSequence
 } from "./channel-reorder.js";
+export {
+  LxmfMessageState,
+  applyLxmfSendEvent,
+  initialLxmfSendState,
+  stepLxmfSend,
+  type LxmfMessageStateValue,
+  type LxmfSendEvent,
+  type LxmfSendState
+} from "./lxmf-send-state.js";

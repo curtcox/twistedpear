@@ -1,7 +1,10 @@
 import {
   DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
+  applyLxmfSendEvent,
   initialDeliveryReceiptPollState,
+  initialLxmfSendState,
   stepDeliveryReceiptPoll,
+  type LxmfSendEvent,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
 import type { CryptoProvider, Link, Packet, PacketReceipt, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
@@ -17,7 +20,7 @@ import {
   PacketContext,
   PacketReceiptStatus
 } from "@twistedpear/reticulum-ts";
-import { APP_NAME, DESTINATION_LENGTH, LXMessageMethod, LXMessageRepresentation, LXMessageState, type LXMessageMethodValue } from "./constants.js";
+import { APP_NAME, DESTINATION_LENGTH, LXMessageMethod, LXMessageRepresentation, type LXMessageMethodValue } from "./constants.js";
 import { LXMessage, rememberMessage, type LXMessagePackOptions } from "./message.js";
 import { msgpackUnpack } from "./msgpack.js";
 
@@ -119,7 +122,7 @@ export class LXMFRouter {
       throw new Error("LXMessage must be packed before sending");
     }
 
-    message.state = LXMessageState.OUTBOUND;
+    this.applySendState(message, { kind: "lxmf/enqueue" });
 
     if (message.method === LXMessageMethod.OPPORTUNISTIC) {
       await this.sendOpportunistic(message);
@@ -137,6 +140,15 @@ export class LXMFRouter {
     }
 
     throw new Error(`Unsupported LXMF delivery method: ${message.method}`);
+  }
+
+  private applySendState(message: LXMessage, event: LxmfSendEvent): void {
+    const next = applyLxmfSendEvent(
+      initialLxmfSendState(message.state, message.progress),
+      event
+    );
+    message.state = next.state;
+    message.progress = next.progress;
   }
 
 
@@ -213,17 +225,19 @@ export class LXMFRouter {
 
     const receipt = await outbound.send(message.opportunisticPayload(), { createReceipt: true });
     if (receipt === null) {
-      message.state = LXMessageState.FAILED;
+      this.applySendState(message, { kind: "lxmf/mark-failed" });
       return;
     }
 
-    message.state = LXMessageState.SENT;
-    message.progress = 0.5;
+    this.applySendState(message, { kind: "lxmf/mark-sent", progress: 0.5 });
 
     await this.pollDeliveryReceipt(receipt);
     if (receipt.status === PacketReceiptStatus.DELIVERED) {
-      message.state = LXMessageState.DELIVERED;
-      message.progress = 1;
+      this.applySendState(message, {
+        kind: "lxmf/receipt-result",
+        delivered: true,
+        onDelivered: "delivered"
+      });
     }
   }
 
@@ -267,10 +281,9 @@ export class LXMFRouter {
       this.handleDeliveryLink(link);
     }
 
-    message.state = LXMessageState.SENDING;
+    this.applySendState(message, { kind: "lxmf/begin-sending" });
     await link.send(message.packed);
-    message.state = LXMessageState.DELIVERED;
-    message.progress = 1;
+    this.applySendState(message, { kind: "lxmf/mark-delivered" });
   }
 
   private async sendPropagated(message: LXMessage): Promise<void> {
@@ -287,23 +300,30 @@ export class LXMFRouter {
     }
 
     const link = await this.ensureOutboundPropagationLink();
-    message.state = LXMessageState.SENDING;
+    this.applySendState(message, { kind: "lxmf/begin-sending" });
 
     const result = await link.sendContext(PacketContext.NONE, message.propagationPacked, {
       createReceipt: true
     });
 
-    message.progress = 0.5;
+    this.applySendState(message, { kind: "lxmf/progress", progress: 0.5 });
     if (result.receipt !== null) {
       await this.pollDeliveryReceipt(result.receipt);
       if (result.receipt.status === PacketReceiptStatus.DELIVERED) {
-        message.state = LXMessageState.SENT;
-        message.progress = 1;
+        this.applySendState(message, {
+          kind: "lxmf/receipt-result",
+          delivered: true,
+          onDelivered: "sent"
+        });
         return;
       }
     }
 
-    message.state = LXMessageState.FAILED;
+    this.applySendState(message, {
+      kind: "lxmf/receipt-result",
+      delivered: false,
+      onDelivered: "sent"
+    });
   }
 
   private async ensureOutboundPropagationLink(): Promise<Link> {
@@ -423,7 +443,7 @@ export class LXMFRouter {
       }
 
       message.method = method;
-      message.state = LXMessageState.DELIVERED;
+      this.applySendState(message, { kind: "lxmf/mark-delivered" });
       return message;
     } catch {
       return null;

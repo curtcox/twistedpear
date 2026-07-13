@@ -1,19 +1,8 @@
 /** Mirrors LXMF/LXMF.py and LXMF/LXMessage.py constants. */
 
+export { LxmfMessageState as LXMessageState, type LxmfMessageStateValue as LXMessageStateValue } from "@twistedpear/protocol";
+
 export const APP_NAME = "lxmf";
-
-export const LXMessageState = {
-  GENERATING: 0x00,
-  OUTBOUND: 0x01,
-  SENDING: 0x02,
-  SENT: 0x04,
-  DELIVERED: 0x08,
-  REJECTED: 0xfd,
-  CANCELLED: 0xfe,
-  FAILED: 0xff
-} as const;
-
-export type LXMessageStateValue = (typeof LXMessageState)[keyof typeof LXMessageState];
 
 export const LXMessageRepresentation = {
   UNKNOWN: 0x00,
