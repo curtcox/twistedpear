@@ -10,3 +10,11 @@ export {
   type SimKernelConfig,
   type SimNodeConfig
 } from "./kernel.js";
+export {
+  assertReplayDeterminism,
+  eventsFromTrace,
+  hashNodeStates,
+  replayEvents,
+  type RecordedEvent,
+  type ReplayResult
+} from "./replay.js";
