@@ -136,6 +136,7 @@
 > **`packetFitsInterfaceMtu`** lives in protocol; `AbstractPacketInterface.send` adapts it.
 > **`canInterfaceSend`** lives in protocol; `AbstractPacketInterface.send` closed/outgoing gates adapt it.
 > **`isInterfaceClosed`** lives in protocol; interface close / receiveBytes early-outs adapt it.
+> **`shouldEnqueueRawInterfaceFrame`** lives in protocol; `RawPacketInterface.decodeIncoming` adapts it.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

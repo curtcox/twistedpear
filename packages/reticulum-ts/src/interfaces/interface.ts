@@ -2,7 +2,8 @@ import {
   canInterfaceSend,
   isInterfaceClosed,
   isValidInterfaceName,
-  packetFitsInterfaceMtu
+  packetFitsInterfaceMtu,
+  shouldEnqueueRawInterfaceFrame
 } from "@twistedpear/protocol";
 import type { Packet } from "../packet.js";
 import { decodeHdlcFrames, encodeHdlcFrame, type HdlcDecodeState } from "./framing.js";
@@ -123,7 +124,7 @@ export abstract class RawPacketInterface extends AbstractPacketInterface {
   }
 
   protected override decodeIncoming(bytes: Uint8Array): ReadonlyArray<Uint8Array> {
-    return bytes.length > 0 ? [bytes] : [];
+    return shouldEnqueueRawInterfaceFrame(bytes.length) ? [bytes] : [];
   }
 }
 

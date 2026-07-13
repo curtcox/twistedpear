@@ -30,6 +30,11 @@ export function canInterfaceSend(input: {
   return !isInterfaceClosed(input.closed) && input.outgoing;
 }
 
+/** Whether a raw (non-HDLC) inbound byte chunk should be enqueued as a frame. */
+export function shouldEnqueueRawInterfaceFrame(length: number): boolean {
+  return length > 0;
+}
+
 export type InterfaceReconnectPlan =
   | { readonly kind: "reconnect"; readonly delayMs: number; readonly attempt: number }
   | { readonly kind: "give-up"; readonly attempt: number };

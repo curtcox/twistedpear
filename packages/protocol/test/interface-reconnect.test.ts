@@ -8,6 +8,7 @@ import {
   isValidInterfaceName,
   packetFitsInterfaceMtu,
   planInterfaceReconnect,
+  shouldEnqueueRawInterfaceFrame,
   stepInterfaceReconnectWithActions
 } from "../src/interface-reconnect.js";
 
@@ -32,6 +33,11 @@ describe("protocol interface reconnect", () => {
     expect(canInterfaceSend({ closed: false, outgoing: true })).toBe(true);
     expect(canInterfaceSend({ closed: true, outgoing: true })).toBe(false);
     expect(canInterfaceSend({ closed: false, outgoing: false })).toBe(false);
+  });
+
+  it("skips empty raw inbound frames", () => {
+    expect(shouldEnqueueRawInterfaceFrame(0)).toBe(false);
+    expect(shouldEnqueueRawInterfaceFrame(1)).toBe(true);
   });
 
   it("schedules reconnects with default wait", () => {
