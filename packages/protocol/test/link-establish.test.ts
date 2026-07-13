@@ -13,6 +13,7 @@ import { LinkStatus } from "../src/link-watchdog.js";
 import {
   applyLinkEstablishEvent,
   canIdentifyOnLink,
+  canLinkRequest,
   canValidateLinkProof,
   computeLinkRttSeconds,
   initialLinkEstablishState,
@@ -55,6 +56,12 @@ describe("protocol link establish", () => {
     expect(canValidateLinkProof({ status: LinkStatus.PENDING, initiator: false })).toBe(false);
     expect(canIdentifyOnLink({ status: LinkStatus.ACTIVE, initiator: true })).toBe(true);
     expect(canIdentifyOnLink({ status: LinkStatus.ACTIVE, initiator: false })).toBe(false);
+  });
+
+  it("gates application requests on ACTIVE with RTT", () => {
+    expect(canLinkRequest({ status: LinkStatus.ACTIVE, rtt: 0.1 })).toBe(true);
+    expect(canLinkRequest({ status: LinkStatus.ACTIVE, rtt: null })).toBe(false);
+    expect(canLinkRequest({ status: LinkStatus.PENDING, rtt: 0.1 })).toBe(false);
   });
 
   it("transitions handshake → active and merges RTT", () => {

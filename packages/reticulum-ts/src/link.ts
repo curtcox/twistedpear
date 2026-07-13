@@ -30,6 +30,7 @@ import {
   canAcceptLinkRtt,
   canIdentifyOnLink,
   canLinkHandshake,
+  canLinkRequest,
   canValidateLinkProof,
   classifyLinkProofPayload,
   computeLinkEstablishmentTimeout,
@@ -742,7 +743,7 @@ export class Link {
     data: Uint8Array | null = null,
     options: LinkRequestOptions = {}
   ): Promise<LinkRequestReceipt | false> {
-    if (this.status !== LinkStatus.ACTIVE || this.rtt === null) {
+    if (!canLinkRequest({ status: this.status, rtt: this.rtt })) {
       return false;
     }
 

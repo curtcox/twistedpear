@@ -59,6 +59,14 @@ export function canIdentifyOnLink(input: {
   return input.initiator && input.status === LinkStatus.ACTIVE;
 }
 
+/** Whether the link may issue an application request (ACTIVE with measured RTT). */
+export function canLinkRequest(input: {
+  readonly status: LinkStatusValue;
+  readonly rtt: number | null;
+}): boolean {
+  return input.status === LinkStatus.ACTIVE && input.rtt !== null;
+}
+
 export function computeLinkRttSeconds(nowSeconds: number, requestTimeSeconds: number): number {
   return nowSeconds - requestTimeSeconds;
 }
