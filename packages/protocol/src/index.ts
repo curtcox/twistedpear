@@ -420,7 +420,8 @@ export {
   LINK_MDU_IFAC_MIN,
   LINK_MDU_TOKEN_OVERHEAD,
   computeLinkMdu,
-  linkHopsMatch
+  linkHopsMatch,
+  linkPayloadFitsMdu
 } from "./link-metrics.js";
 export {
   PROPAGATION_DESTINATION_HASH_SIZE,

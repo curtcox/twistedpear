@@ -23,6 +23,7 @@ import {
   shouldExtendPacketReceiptTimeout,
   stepChannelWindow,
   unpackChannelEnvelope,
+  linkPayloadFitsMdu,
   type ChannelWindowState
 } from "@twistedpear/protocol";
 import type { Link } from "./link.js";
@@ -259,7 +260,7 @@ export class Channel {
     const reservedSequence = this.nextSequence;
     const envelope = new Envelope(this.outlet, { message, sequence: reservedSequence });
     envelope.pack();
-    if (envelope.raw !== null && envelope.raw.length > this.outlet.mdu) {
+    if (envelope.raw !== null && !linkPayloadFitsMdu(envelope.raw.length, this.outlet.mdu)) {
       throw new ChannelException(
         ChannelExceptionType.ME_TOO_BIG,
         `Packed message too big for packet: ${envelope.raw.length} > ${this.outlet.mdu}`

@@ -44,6 +44,7 @@ import {
   isLinkKeepaliveProbe,
   linkHopsMatch,
   linkIdentifySignedMaterial,
+  linkPayloadFitsMdu,
   linkProofSignedMaterial,
   linkRequestHashablePart,
   mergeLinkRtt,
@@ -749,7 +750,7 @@ export class Link {
     const packedRequest = msgpackPackRequest(this.clock.now() / 1000, pathHash, data);
     const timeout = options.timeout ?? computeLinkRequestTimeout(this.rtt);
 
-    if (packedRequest.length > this.mdu) {
+    if (!linkPayloadFitsMdu(packedRequest.length, this.mdu)) {
       return false;
     }
 
@@ -1056,7 +1057,7 @@ export class Link {
       }
 
       const packedResponse = msgpackPackResponse(requestId, response);
-      if (packedResponse.length <= this.mdu) {
+      if (linkPayloadFitsMdu(packedResponse.length, this.mdu)) {
         await this.sendContext(PacketContext.RESPONSE, packedResponse);
       }
     } catch {

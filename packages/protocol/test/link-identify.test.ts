@@ -6,7 +6,7 @@ import {
   packLinkIdentifyPayload,
   splitLinkIdentifyPayload
 } from "../src/link-identify.js";
-import { computeLinkMdu, linkHopsMatch } from "../src/link-metrics.js";
+import { computeLinkMdu, linkHopsMatch, linkPayloadFitsMdu } from "../src/link-metrics.js";
 import { PATHFINDER_MAX_HOPS } from "../src/path-table.js";
 
 describe("protocol link identify", () => {
@@ -58,5 +58,10 @@ describe("protocol link metrics", () => {
         pathfinderMaxHops: PATHFINDER_MAX_HOPS
       })
     ).toBe(true);
+  });
+
+  it("gates packed payload size against MDU", () => {
+    expect(linkPayloadFitsMdu(100, 100)).toBe(true);
+    expect(linkPayloadFitsMdu(101, 100)).toBe(false);
   });
 });

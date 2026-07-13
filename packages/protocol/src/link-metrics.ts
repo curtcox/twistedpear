@@ -18,6 +18,11 @@ export function computeLinkMdu(mtu: number): number {
   );
 }
 
+/** Whether a packed payload fits within the link (or outlet) MDU. */
+export function linkPayloadFitsMdu(packedLength: number, mdu: number): boolean {
+  return packedLength <= mdu;
+}
+
 export function linkHopsMatch(input: {
   readonly expectedHops: number | null;
   readonly packetHops: number;
