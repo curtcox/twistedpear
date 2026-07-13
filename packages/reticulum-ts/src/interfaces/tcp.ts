@@ -2,9 +2,13 @@ import type { CryptoProvider } from "../crypto/provider.js";
 import type { DuplexConnection, Runtime, Timer } from "../runtime/runtime.js";
 import { Packet } from "../packet.js";
 import { HdlcPacketInterface, type PacketInterface, type ReticulumInterfaceOptions } from "./interface.js";
+import {
+  INTERFACE_RECONNECT_WAIT_MS,
+  planInterfaceReconnect
+} from "@twistedpear/protocol";
 
 /** Mirrors RNS/Interfaces/TCPInterface.py reconnect defaults. */
-export const TCP_RECONNECT_WAIT_MS = 5_000;
+export const TCP_RECONNECT_WAIT_MS = INTERFACE_RECONNECT_WAIT_MS;
 export const TCP_INITIAL_CONNECT_TIMEOUT_MS = 5_000;
 export const TCP_HW_MTU = 262_144;
 
@@ -153,9 +157,13 @@ export class TcpClientInterface extends HdlcPacketInterface {
       return;
     }
 
-    this.reconnectAttempts += 1;
-    const maxTries = this.options.maxReconnectTries ?? null;
-    if (maxTries !== null && this.reconnectAttempts > maxTries) {
+    const plan = planInterfaceReconnect({
+      attempts: this.reconnectAttempts,
+      maxTries: this.options.maxReconnectTries ?? null,
+      waitMs: this.options.reconnectWaitMs ?? TCP_RECONNECT_WAIT_MS
+    });
+    this.reconnectAttempts = plan.attempt;
+    if (plan.kind === "give-up") {
       await this.close();
       return;
     }

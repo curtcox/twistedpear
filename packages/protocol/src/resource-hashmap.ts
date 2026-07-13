@@ -2,6 +2,7 @@
  * Pure RNS resource hashmap-update framing and request parsing.
  * Link send/receive stays at the adapter edge.
  */
+import { assembleByteArrays, concatByteArrays } from "./bytes.js";
 import {
   msgpackPackArray,
   msgpackPackBin,
@@ -153,18 +154,11 @@ export function planResourceHashmapSlotWrites(input: {
 }
 
 export function assembleResourceHashmapBytes(mapHashes: ReadonlyArray<Uint8Array>): Uint8Array {
-  const length = mapHashes.reduce((total, hash) => total + hash.length, 0);
-  const output = new Uint8Array(length);
-  let offset = 0;
-  for (const hash of mapHashes) {
-    output.set(hash, offset);
-    offset += hash.length;
-  }
-  return output;
+  return assembleByteArrays(mapHashes);
 }
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  return assembleResourceHashmapBytes(parts);
+  return concatByteArrays(...parts);
 }
 
 export interface ResourcePartRequestPlan {

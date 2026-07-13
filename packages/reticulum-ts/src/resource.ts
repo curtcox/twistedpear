@@ -3,6 +3,7 @@ import {
   RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,
   RESOURCE_MAPHASH_LEN,
   RESOURCE_RANDOM_HASH_SIZE,
+  assembleByteArrays,
   assembleResourceHashmapBytes,
   computeResourceTimeout,
   decodeResourceAdvertisementFlags,
@@ -327,14 +328,14 @@ export class Resource {
     const expectedProof = Identity.fullHash(provider, resourceExpectedProofMaterial(data, hash));
 
     const parts: ResourcePart[] = [];
-    let hashmapBytes = new Uint8Array(0);
+    const mapHashes: Uint8Array[] = [];
     let collisionGuard: Uint8Array[] = [];
 
     let hashmapOk = false;
     while (!hashmapOk) {
       hashmapOk = true;
       parts.length = 0;
-      hashmapBytes = new Uint8Array(0);
+      mapHashes.length = 0;
       collisionGuard = [];
 
       for (let index = 0; index < totalParts; index += 1) {
@@ -370,9 +371,11 @@ export class Resource {
           raw: packet.raw,
           sent: false
         });
-        hashmapBytes = Uint8Array.from(concatBytes(hashmapBytes, Uint8Array.from(mapHash)));
+        mapHashes.push(Uint8Array.from(mapHash));
       }
     }
+
+    const hashmapBytes = assembleResourceHashmapBytes(mapHashes);
 
     const resource = new Resource(provider, link, {
       initiator: true,
@@ -673,7 +676,7 @@ export class Resource {
 
     try {
       this.status = ResourceStatus.ASSEMBLING;
-      const stream = concatBytes(...this.receivedParts.map((part) => part!));
+      const stream = assembleByteArrays(this.receivedParts.map((part) => part!));
       const decrypted = this.link.decrypt(stream);
       if (decrypted === null) {
         this.status = ResourceStatus.CORRUPT;
@@ -824,18 +827,6 @@ export class Resource {
       }
     }
   }
-}
-
-function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  const length = parts.reduce((total, part) => total + part.length, 0);
-  const output = new Uint8Array(length);
-  let offset = 0;
-  for (const part of parts) {
-    output.set(new Uint8Array(part), offset);
-    offset += part.length;
-  }
-
-  return output;
 }
 
 function bytesToHex(bytes: Uint8Array): string {

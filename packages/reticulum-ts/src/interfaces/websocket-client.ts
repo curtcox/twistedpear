@@ -1,9 +1,13 @@
+import {
+  INTERFACE_RECONNECT_WAIT_MS,
+  planInterfaceReconnect
+} from "@twistedpear/protocol";
 import type { CryptoProvider } from "../crypto/provider.js";
 import { Packet } from "../packet.js";
 import type { Runtime, Timer } from "../runtime/runtime.js";
 import { RawPacketInterface, type ReticulumInterfaceOptions } from "./interface.js";
 
-export const WEBSOCKET_RECONNECT_WAIT_MS = 5_000;
+export const WEBSOCKET_RECONNECT_WAIT_MS = INTERFACE_RECONNECT_WAIT_MS;
 export const WEBSOCKET_INITIAL_CONNECT_TIMEOUT_MS = 5_000;
 export const WEBSOCKET_HW_MTU = 262_144;
 
@@ -225,9 +229,13 @@ export class WebSocketClientInterface extends RawPacketInterface {
       return;
     }
 
-    this.reconnectAttempts += 1;
-    const maxTries = this.options.maxReconnectTries ?? null;
-    if (maxTries !== null && this.reconnectAttempts > maxTries) {
+    const plan = planInterfaceReconnect({
+      attempts: this.reconnectAttempts,
+      maxTries: this.options.maxReconnectTries ?? null,
+      waitMs: this.options.reconnectWaitMs ?? WEBSOCKET_RECONNECT_WAIT_MS
+    });
+    this.reconnectAttempts = plan.attempt;
+    if (plan.kind === "give-up") {
       await this.close();
       return;
     }

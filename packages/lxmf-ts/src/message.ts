@@ -1,4 +1,5 @@
 import {
+  bytesToHexLower,
   lxmfContentSizeFromPackedLength,
   lxmfHashableMaterial,
   lxmfOpportunisticPayload,
@@ -16,7 +17,6 @@ import {
   DestinationDirection,
   DestinationType,
   Identity,
-  bytesToHex,
   equalBytes
 } from "@twistedpear/reticulum-ts";
 import {
@@ -329,7 +329,7 @@ export function rememberMessage(seen: Set<string>, message: LXMessage): void {
     return;
   }
 
-  seen.add(bytesToHex(message.hash));
+  seen.add(bytesToHexLower(message.hash));
 }
 
 export function messagesEqual(left: LXMessage, right: LXMessage): boolean {

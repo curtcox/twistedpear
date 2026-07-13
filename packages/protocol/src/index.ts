@@ -346,6 +346,12 @@ export {
   msgpackUnpackLinkResponseTuple
 } from "./link-request-codec.js";
 export { utf8Decode, utf8Encode } from "./utf8.js";
+export { assembleByteArrays, concatByteArrays } from "./bytes.js";
+export {
+  INTERFACE_RECONNECT_WAIT_MS,
+  planInterfaceReconnect,
+  type InterfaceReconnectPlan
+} from "./interface-reconnect.js";
 export {
   DESTINATION_IDENTITY_HASH_BYTES,
   DESTINATION_NAME_HASH_BYTES,
