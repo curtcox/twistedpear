@@ -11,6 +11,7 @@ import {
   shouldAppendStreamData,
   shouldConsumeStreamChunk,
   shouldDeferStreamRead,
+  shouldHandleStreamDataMessage,
   shouldMarkStreamEof,
   shouldReturnStreamReadResult,
   unpackStreamDataMessage
@@ -89,5 +90,17 @@ describe("protocol stream data framing", () => {
   it("requires an assigned stream id for packing", () => {
     expect(isStreamIdAssigned(true)).toBe(true);
     expect(isStreamIdAssigned(false)).toBe(false);
+  });
+
+  it("handles stream-data messages for matching stream ids", () => {
+    expect(
+      shouldHandleStreamDataMessage({ messageStreamId: 3, expectedStreamId: 3 })
+    ).toBe(true);
+    expect(
+      shouldHandleStreamDataMessage({ messageStreamId: 3, expectedStreamId: 4 })
+    ).toBe(false);
+    expect(
+      shouldHandleStreamDataMessage({ messageStreamId: null, expectedStreamId: 3 })
+    ).toBe(false);
   });
 });

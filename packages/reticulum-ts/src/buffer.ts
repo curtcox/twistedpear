@@ -9,6 +9,7 @@ import {
   shouldAppendStreamData,
   shouldConsumeStreamChunk,
   shouldDeferStreamRead,
+  shouldHandleStreamDataMessage,
   shouldMarkStreamEof,
   shouldReturnStreamReadResult,
   unpackStreamDataMessage
@@ -84,7 +85,13 @@ export class RawChannelReader {
   ) {
     this.channel.registerMessageType(StreamDataMessage, { isSystemType: true });
     this.handler = (message) => {
-      if (!(message instanceof StreamDataMessage) || message.streamId !== this.streamId) {
+      if (
+        !(message instanceof StreamDataMessage) ||
+        !shouldHandleStreamDataMessage({
+          messageStreamId: message.streamId,
+          expectedStreamId: this.streamId
+        })
+      ) {
         return false;
       }
 

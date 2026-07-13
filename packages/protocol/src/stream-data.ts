@@ -122,3 +122,11 @@ export function shouldMarkStreamEof(eof: boolean): boolean {
 export function isStreamIdAssigned(streamIdPresent: boolean): boolean {
   return streamIdPresent;
 }
+
+/** Whether an inbound stream-data message belongs to this reader. */
+export function shouldHandleStreamDataMessage(input: {
+  readonly messageStreamId: number | null;
+  readonly expectedStreamId: number;
+}): boolean {
+  return input.messageStreamId === input.expectedStreamId;
+}
