@@ -11,6 +11,7 @@ import {
   shouldDeliverQueuedPacket,
   shouldEnqueueDecodedPacket,
   shouldEnqueueRawInterfaceFrame,
+  shouldYieldBufferedPacket,
   stepInterfaceReconnectWithActions
 } from "../src/interface-reconnect.js";
 
@@ -50,6 +51,11 @@ describe("protocol interface reconnect", () => {
   it("delivers queued packets to waiting iterators", () => {
     expect(shouldDeliverQueuedPacket(true)).toBe(true);
     expect(shouldDeliverQueuedPacket(false)).toBe(false);
+  });
+
+  it("yields buffered queue values from the iterator", () => {
+    expect(shouldYieldBufferedPacket(true)).toBe(true);
+    expect(shouldYieldBufferedPacket(false)).toBe(false);
   });
 
   it("schedules reconnects with default wait", () => {

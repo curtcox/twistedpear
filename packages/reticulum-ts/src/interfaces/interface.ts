@@ -5,7 +5,8 @@ import {
   packetFitsInterfaceMtu,
   shouldDeliverQueuedPacket,
   shouldEnqueueDecodedPacket,
-  shouldEnqueueRawInterfaceFrame
+  shouldEnqueueRawInterfaceFrame,
+  shouldYieldBufferedPacket
 } from "@twistedpear/protocol";
 import type { Packet } from "../packet.js";
 import { decodeHdlcFrames, encodeHdlcFrame, type HdlcDecodeState } from "./framing.js";
@@ -160,11 +161,11 @@ class AsyncPacketQueue implements AsyncIterable<Packet> {
     return {
       next: async () => {
         const value = this.values.shift();
-        if (value !== undefined) {
-          return { done: false, value };
+        if (shouldYieldBufferedPacket(value !== undefined)) {
+          return { done: false, value: value! };
         }
 
-        if (this.closed) {
+        if (isInterfaceClosed(this.closed)) {
           return { done: true, value: undefined };
         }
 

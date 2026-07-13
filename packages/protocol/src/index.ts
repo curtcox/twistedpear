@@ -483,6 +483,7 @@ export {
   shouldDeliverQueuedPacket,
   shouldEnqueueDecodedPacket,
   shouldEnqueueRawInterfaceFrame,
+  shouldYieldBufferedPacket,
   stepInterfaceReconnect,
   stepInterfaceReconnectWithActions,
   type InterfaceReconnectAction,

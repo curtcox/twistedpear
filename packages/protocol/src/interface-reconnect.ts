@@ -45,6 +45,11 @@ export function shouldDeliverQueuedPacket(waiterPresent: boolean): boolean {
   return waiterPresent;
 }
 
+/** Whether a buffered queue value should be yielded from the iterator. */
+export function shouldYieldBufferedPacket(valuePresent: boolean): boolean {
+  return valuePresent;
+}
+
 export type InterfaceReconnectPlan =
   | { readonly kind: "reconnect"; readonly delayMs: number; readonly attempt: number }
   | { readonly kind: "give-up"; readonly attempt: number };
