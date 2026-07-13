@@ -215,3 +215,13 @@ export {
   splitIdentityEntropy,
   type IdentityKeyMaterial
 } from "./identity-keygen.js";
+export {
+  ChannelWindowLimits,
+  applyChannelDelivery,
+  applyChannelTimeout,
+  channelAllowsSend,
+  channelPacketTimeoutSeconds,
+  channelRetryExhausted,
+  initialChannelWindowState,
+  type ChannelWindowState
+} from "./channel-window.js";

@@ -1,3 +1,13 @@
+import {
+  ChannelWindowLimits,
+  applyChannelDelivery,
+  applyChannelTimeout,
+  channelAllowsSend,
+  channelPacketTimeoutSeconds,
+  channelRetryExhausted,
+  initialChannelWindowState,
+  type ChannelWindowState
+} from "@twistedpear/protocol";
 import { equalBytes } from "./crypto/bytes.js";
 import type { Link } from "./link.js";
 import { LinkStatus } from "./link.js";
@@ -127,19 +137,19 @@ class Envelope {
 
 /** Mirrors RNS/Channel.py ordered reliable delivery over links. */
 export class Channel {
-  static readonly WINDOW = 2;
-  static readonly WINDOW_MIN = 2;
-  static readonly WINDOW_MIN_LIMIT_MEDIUM = 5;
-  static readonly WINDOW_MIN_LIMIT_FAST = 16;
-  static readonly WINDOW_MAX_SLOW = 5;
-  static readonly WINDOW_MAX_MEDIUM = 12;
-  static readonly WINDOW_MAX_FAST = 48;
-  static readonly WINDOW_MAX = Channel.WINDOW_MAX_FAST;
-  static readonly FAST_RATE_THRESHOLD = 10;
-  static readonly RTT_FAST = 0.18;
-  static readonly RTT_MEDIUM = 0.75;
-  static readonly RTT_SLOW = 1.45;
-  static readonly WINDOW_FLEXIBILITY = 4;
+  static readonly WINDOW = ChannelWindowLimits.WINDOW;
+  static readonly WINDOW_MIN = ChannelWindowLimits.WINDOW_MIN;
+  static readonly WINDOW_MIN_LIMIT_MEDIUM = ChannelWindowLimits.WINDOW_MIN_LIMIT_MEDIUM;
+  static readonly WINDOW_MIN_LIMIT_FAST = ChannelWindowLimits.WINDOW_MIN_LIMIT_FAST;
+  static readonly WINDOW_MAX_SLOW = ChannelWindowLimits.WINDOW_MAX_SLOW;
+  static readonly WINDOW_MAX_MEDIUM = ChannelWindowLimits.WINDOW_MAX_MEDIUM;
+  static readonly WINDOW_MAX_FAST = ChannelWindowLimits.WINDOW_MAX_FAST;
+  static readonly WINDOW_MAX = ChannelWindowLimits.WINDOW_MAX_FAST;
+  static readonly FAST_RATE_THRESHOLD = ChannelWindowLimits.FAST_RATE_THRESHOLD;
+  static readonly RTT_FAST = ChannelWindowLimits.RTT_FAST;
+  static readonly RTT_MEDIUM = ChannelWindowLimits.RTT_MEDIUM;
+  static readonly RTT_SLOW = ChannelWindowLimits.RTT_SLOW;
+  static readonly WINDOW_FLEXIBILITY = ChannelWindowLimits.WINDOW_FLEXIBILITY;
   static readonly SEQ_MAX = 0xffff;
   static readonly SEQ_MODULUS = Channel.SEQ_MAX + 1;
 
@@ -150,25 +160,42 @@ export class Channel {
   private nextSequence = 0;
   private nextRxSequence = 0;
   private readonly maxTries = 5;
-  private fastRateRounds = 0;
-  private mediumRateRounds = 0;
-  window: number;
-  windowMax: number;
-  windowMin: number;
-  windowFlexibility: number;
+  private windowState: ChannelWindowState;
+
+  get window(): number {
+    return this.windowState.window;
+  }
+
+  set window(value: number) {
+    this.windowState = { ...this.windowState, window: value };
+  }
+
+  get windowMax(): number {
+    return this.windowState.windowMax;
+  }
+
+  set windowMax(value: number) {
+    this.windowState = { ...this.windowState, windowMax: value };
+  }
+
+  get windowMin(): number {
+    return this.windowState.windowMin;
+  }
+
+  set windowMin(value: number) {
+    this.windowState = { ...this.windowState, windowMin: value };
+  }
+
+  get windowFlexibility(): number {
+    return this.windowState.windowFlexibility;
+  }
+
+  set windowFlexibility(value: number) {
+    this.windowState = { ...this.windowState, windowFlexibility: value };
+  }
 
   constructor(private readonly outlet: ChannelOutlet) {
-    if (outlet.rtt > Channel.RTT_SLOW) {
-      this.window = 1;
-      this.windowMax = 1;
-      this.windowMin = 1;
-      this.windowFlexibility = 1;
-    } else {
-      this.window = Channel.WINDOW;
-      this.windowMax = Channel.WINDOW_MAX_SLOW;
-      this.windowMin = Channel.WINDOW_MIN;
-      this.windowFlexibility = Channel.WINDOW_FLEXIBILITY;
-    }
+    this.windowState = initialChannelWindowState(outlet.rtt);
   }
 
   registerMessageType(messageClass: ChannelMessageConstructor, options: { readonly isSystemType?: boolean } = {}): void {
@@ -202,10 +229,6 @@ export class Channel {
   }
 
   isReadyToSend(): boolean {
-    if (!this.outlet.isUsable) {
-      return false;
-    }
-
     let outstanding = 0;
     for (const envelope of this.txRing) {
       if (envelope.packet === null) {
@@ -218,7 +241,11 @@ export class Channel {
       }
     }
 
-    return outstanding < this.window;
+    return channelAllowsSend({
+      isUsable: this.outlet.isUsable,
+      outstanding,
+      window: this.windowState.window
+    });
   }
 
   async send(message: ChannelMessage): Promise<Envelope> {
@@ -370,7 +397,7 @@ export class Channel {
       return;
     }
 
-    if (envelope.tries >= this.maxTries) {
+    if (channelRetryExhausted(envelope.tries, this.maxTries)) {
       this.shutdown();
       this.outlet.timedOut();
       return;
@@ -400,13 +427,7 @@ export class Channel {
       }
     }
 
-    if (this.window > this.windowMin) {
-      this.window -= 1;
-    }
-
-    if (this.windowMax > this.windowMin + this.windowFlexibility) {
-      this.windowMax -= 1;
-    }
+    this.windowState = applyChannelTimeout(this.windowState);
   }
 
   private packetTxOp(packet: ChannelPacket, op: (envelope: Envelope) => boolean): void {
@@ -429,40 +450,15 @@ export class Channel {
       this.txRing.splice(index, 1);
     }
 
-    if (this.window < this.windowMax) {
-      this.window += 1;
-    }
-
-    if (this.outlet.rtt !== 0) {
-      if (this.outlet.rtt > Channel.RTT_FAST) {
-        this.fastRateRounds = 0;
-      }
-
-      if (this.outlet.rtt > Channel.RTT_MEDIUM) {
-        this.mediumRateRounds = 0;
-      } else {
-        this.mediumRateRounds += 1;
-        if (
-          this.windowMax < Channel.WINDOW_MAX_MEDIUM &&
-          this.mediumRateRounds === Channel.FAST_RATE_THRESHOLD
-        ) {
-          this.windowMax = Channel.WINDOW_MAX_MEDIUM;
-          this.windowMin = Channel.WINDOW_MIN_LIMIT_MEDIUM;
-        }
-      }
-
-      if (this.outlet.rtt <= Channel.RTT_FAST) {
-        this.fastRateRounds += 1;
-        if (this.windowMax < Channel.WINDOW_MAX_FAST && this.fastRateRounds === Channel.FAST_RATE_THRESHOLD) {
-          this.windowMax = Channel.WINDOW_MAX_FAST;
-          this.windowMin = Channel.WINDOW_MIN_LIMIT_FAST;
-        }
-      }
-    }
+    this.windowState = applyChannelDelivery(this.windowState, this.outlet.rtt);
   }
 
   private getPacketTimeoutTime(tries: number): number {
-    return Math.pow(1.5, tries - 1) * Math.max(this.outlet.rtt * 2.5, 0.025) * (this.txRing.length + 1.5);
+    return channelPacketTimeoutSeconds({
+      tries,
+      rtt: this.outlet.rtt,
+      txRingLength: this.txRing.length
+    });
   }
 
   private updatePacketTimeouts(): void {

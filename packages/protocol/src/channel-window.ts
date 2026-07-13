@@ -1,0 +1,155 @@
+/**
+ * Pure RNS Channel congestion window + packet timeout decisions.
+ * Adapters own send/resend/timers; this owns window sizing and timeout formulas.
+ */
+
+export const ChannelWindowLimits = {
+  WINDOW: 2,
+  WINDOW_MIN: 2,
+  WINDOW_MIN_LIMIT_MEDIUM: 5,
+  WINDOW_MIN_LIMIT_FAST: 16,
+  WINDOW_MAX_SLOW: 5,
+  WINDOW_MAX_MEDIUM: 12,
+  WINDOW_MAX_FAST: 48,
+  FAST_RATE_THRESHOLD: 10,
+  RTT_FAST: 0.18,
+  RTT_MEDIUM: 0.75,
+  RTT_SLOW: 1.45,
+  WINDOW_FLEXIBILITY: 4
+} as const;
+
+export interface ChannelWindowState {
+  readonly window: number;
+  readonly windowMax: number;
+  readonly windowMin: number;
+  readonly windowFlexibility: number;
+  readonly fastRateRounds: number;
+  readonly mediumRateRounds: number;
+}
+
+export function initialChannelWindowState(rtt: number): ChannelWindowState {
+  if (rtt > ChannelWindowLimits.RTT_SLOW) {
+    return {
+      window: 1,
+      windowMax: 1,
+      windowMin: 1,
+      windowFlexibility: 1,
+      fastRateRounds: 0,
+      mediumRateRounds: 0
+    };
+  }
+
+  return {
+    window: ChannelWindowLimits.WINDOW,
+    windowMax: ChannelWindowLimits.WINDOW_MAX_SLOW,
+    windowMin: ChannelWindowLimits.WINDOW_MIN,
+    windowFlexibility: ChannelWindowLimits.WINDOW_FLEXIBILITY,
+    fastRateRounds: 0,
+    mediumRateRounds: 0
+  };
+}
+
+export function channelPacketTimeoutSeconds(input: {
+  readonly tries: number;
+  readonly rtt: number;
+  readonly txRingLength: number;
+}): number {
+  return (
+    Math.pow(1.5, input.tries - 1) *
+    Math.max(input.rtt * 2.5, 0.025) *
+    (input.txRingLength + 1.5)
+  );
+}
+
+export function channelAllowsSend(input: {
+  readonly isUsable: boolean;
+  readonly outstanding: number;
+  readonly window: number;
+}): boolean {
+  return input.isUsable && input.outstanding < input.window;
+}
+
+/** Shrink window after a packet timeout / retry. */
+export function applyChannelTimeout(state: ChannelWindowState): ChannelWindowState {
+  let window = state.window;
+  let windowMax = state.windowMax;
+  if (window > state.windowMin) {
+    window -= 1;
+  }
+  if (windowMax > state.windowMin + state.windowFlexibility) {
+    windowMax -= 1;
+  }
+  return { ...state, window, windowMax };
+}
+
+/** Grow window / upgrade rate tiers after a successful delivery. */
+export function applyChannelDelivery(
+  state: ChannelWindowState,
+  rtt: number
+): ChannelWindowState {
+  let {
+    window,
+    windowMax,
+    windowMin,
+    windowFlexibility,
+    fastRateRounds,
+    mediumRateRounds
+  } = state;
+
+  if (window < windowMax) {
+    window += 1;
+  }
+
+  if (rtt === 0) {
+    return {
+      window,
+      windowMax,
+      windowMin,
+      windowFlexibility,
+      fastRateRounds,
+      mediumRateRounds
+    };
+  }
+
+  if (rtt > ChannelWindowLimits.RTT_FAST) {
+    fastRateRounds = 0;
+  }
+
+  if (rtt > ChannelWindowLimits.RTT_MEDIUM) {
+    mediumRateRounds = 0;
+  } else {
+    mediumRateRounds += 1;
+    if (
+      windowMax < ChannelWindowLimits.WINDOW_MAX_MEDIUM &&
+      mediumRateRounds === ChannelWindowLimits.FAST_RATE_THRESHOLD
+    ) {
+      windowMax = ChannelWindowLimits.WINDOW_MAX_MEDIUM;
+      windowMin = ChannelWindowLimits.WINDOW_MIN_LIMIT_MEDIUM;
+    }
+  }
+
+  if (rtt <= ChannelWindowLimits.RTT_FAST) {
+    fastRateRounds += 1;
+    if (
+      windowMax < ChannelWindowLimits.WINDOW_MAX_FAST &&
+      fastRateRounds === ChannelWindowLimits.FAST_RATE_THRESHOLD
+    ) {
+      windowMax = ChannelWindowLimits.WINDOW_MAX_FAST;
+      windowMin = ChannelWindowLimits.WINDOW_MIN_LIMIT_FAST;
+    }
+  }
+
+  return {
+    window,
+    windowMax,
+    windowMin,
+    windowFlexibility,
+    fastRateRounds,
+    mediumRateRounds
+  };
+}
+
+/** Should the channel give up retrying this envelope? */
+export function channelRetryExhausted(tries: number, maxTries: number): boolean {
+  return tries >= maxTries;
+}

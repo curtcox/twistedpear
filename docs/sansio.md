@@ -11,8 +11,10 @@
 > `LeafTransport` into Link keygen (explicit override still wins). Announce builds prefer
 > `transport.entropy` for the random hash. **Identity**, **Token**, and **Resource** RNG
 > now prefer injected/`Runtime` entropy (transport identity keygen, path-request tags,
-> link Token IVs, destination encrypt, resource random hashes). Remaining depth work:
-> keep converting residual session IO into step machines.
+> link Token IVs, destination encrypt, resource random hashes). **Channel congestion**
+> (window sizing, packet timeout formula, retry exhaustion) is a pure protocol leaf;
+> `Channel` adapts it. Remaining depth work: keep converting residual session IO into
+> step machines (e.g. channel envelope codec / RX reordering).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
