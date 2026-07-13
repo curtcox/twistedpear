@@ -126,6 +126,7 @@
 > **`isLinkClosed`** lives in protocol; `Link.receive` / watchdog early-outs adapt it.
 > **`isChannelOutletTransmitOk`** lives in protocol; `Channel.send` outlet-result gate adapts it.
 > **`isValidDestinationRequestPath`** lives in protocol; `registerRequestHandler` adapts it.
+> **`clampStreamDataChunkLength`** lives in protocol; `RawChannelWriter.write` adapts it.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

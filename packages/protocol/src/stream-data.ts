@@ -73,3 +73,12 @@ export function unpackStreamDataMessage(raw: Uint8Array): StreamDataFields {
     data: raw.subarray(STREAM_DATA_HEADER_SIZE)
   };
 }
+
+/** Clamp a write buffer to stream max data length and writer max chunk length. */
+export function clampStreamDataChunkLength(
+  length: number,
+  maxDataLen: number,
+  maxChunkLen: number
+): number {
+  return Math.min(length, maxDataLen, maxChunkLen);
+}

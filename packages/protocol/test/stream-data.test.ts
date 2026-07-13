@@ -3,6 +3,7 @@ import {
   STREAM_DATA_MSGTYPE,
   STREAM_ID_MAX,
   StreamSystemMessageTypes,
+  clampStreamDataChunkLength,
   packStreamDataMessage,
   unpackStreamDataMessage
 } from "../src/stream-data.js";
@@ -30,5 +31,11 @@ describe("protocol stream data framing", () => {
     expect(() =>
       packStreamDataMessage({ streamId: STREAM_ID_MAX + 1, data: new Uint8Array(0) })
     ).toThrow(/stream_id/);
+  });
+
+  it("clamps write chunk length to data and chunk limits", () => {
+    expect(clampStreamDataChunkLength(1000, 256, 16_384)).toBe(256);
+    expect(clampStreamDataChunkLength(100, 256, 16_384)).toBe(100);
+    expect(clampStreamDataChunkLength(1000, 2000, 500)).toBe(500);
   });
 });

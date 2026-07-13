@@ -1,6 +1,7 @@
 import {
   STREAM_ID_MAX as PROTOCOL_STREAM_ID_MAX,
   StreamSystemMessageTypes,
+  clampStreamDataChunkLength,
   packStreamDataMessage,
   unpackStreamDataMessage
 } from "@twistedpear/protocol";
@@ -156,7 +157,10 @@ export class RawChannelWriter {
   ) {}
 
   async write(data: Uint8Array): Promise<number> {
-    const chunk = data.subarray(0, Math.min(data.length, StreamDataMessage.MAX_DATA_LEN, RawChannelWriter.MAX_CHUNK_LEN));
+    const chunk = data.subarray(
+      0,
+      clampStreamDataChunkLength(data.length, StreamDataMessage.MAX_DATA_LEN, RawChannelWriter.MAX_CHUNK_LEN)
+    );
     const message = new StreamDataMessage({
       streamId: this.streamId,
       data: chunk,
