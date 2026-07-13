@@ -2,6 +2,7 @@
  * Shared pure msgpack primitives (no TextEncoder / DOM).
  * Higher-level RNS/LXMF codecs build on these in their packages.
  */
+import { utf8Decode, utf8Encode } from "./utf8.js";
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   const length = parts.reduce((total, part) => total + part.length, 0);
@@ -96,6 +97,40 @@ export function msgpackPackIntMap(entries: ReadonlyArray<[number, Uint8Array]>):
   return output;
 }
 
+export function msgpackPackString(value: string): Uint8Array {
+  const bytes = utf8Encode(value);
+  if (bytes.length <= 31) {
+    const output = new Uint8Array(1 + bytes.length);
+    output[0] = 0xa0 | bytes.length;
+    output.set(bytes, 1);
+    return output;
+  }
+
+  if (bytes.length > 0xff) {
+    throw new Error("msgpackPackString supports at most 255 UTF-8 bytes");
+  }
+
+  const output = new Uint8Array(2 + bytes.length);
+  output[0] = 0xd9;
+  output[1] = bytes.length;
+  output.set(bytes, 2);
+  return output;
+}
+
+/** Pack a small map with string keys (RNS resource advertisements). */
+export function msgpackPackStringMap(entries: ReadonlyArray<[string, Uint8Array]>): Uint8Array {
+  if (entries.length > 15) {
+    throw new Error("msgpackPackStringMap supports at most 15 entries");
+  }
+
+  const parts = entries.flatMap(([key, value]) => [msgpackPackString(key), value]);
+  const body = concatBytes(...parts);
+  const output = new Uint8Array(1 + body.length);
+  output[0] = 0x80 | entries.length;
+  output.set(body, 1);
+  return output;
+}
+
 export type MsgpackValue =
   | { readonly type: "nil" }
   | { readonly type: "int"; readonly int: number }
@@ -121,6 +156,54 @@ export function msgpackUnpackScalar(bytes: Uint8Array): MsgpackScalar {
     throw new Error("expected msgpack scalar");
   }
   return value;
+}
+
+function unpackStringAt(bytes: Uint8Array, offset: number): [string, number] {
+  const tag = bytes[offset];
+  if (tag === undefined) {
+    throw new Error("Unexpected end of msgpack input");
+  }
+
+  if ((tag & 0xe0) === 0xa0) {
+    const length = tag & 0x1f;
+    const stringBytes = bytes.subarray(offset + 1, offset + 1 + length);
+    return [utf8Decode(stringBytes), offset + 1 + length];
+  }
+
+  if (tag === 0xd9) {
+    const length = bytes[offset + 1]!;
+    const stringBytes = bytes.subarray(offset + 2, offset + 2 + length);
+    return [utf8Decode(stringBytes), offset + 2 + length];
+  }
+
+  throw new Error(`Expected msgpack string tag, got 0x${tag.toString(16)}`);
+}
+
+function unpackScalarAt(bytes: Uint8Array, offset: number): [MsgpackScalar, number] {
+  const [value, next] = msgpackUnpackAt(bytes, offset);
+  if (value.type === "array" || value.type === "map") {
+    throw new Error("expected msgpack scalar");
+  }
+  return [value, next];
+}
+
+/** Unpack a fixmap with string keys and scalar values. */
+export function msgpackUnpackStringKeyedMap(bytes: Uint8Array): ReadonlyMap<string, MsgpackScalar> {
+  const tag = bytes[0];
+  if (tag === undefined || (tag & 0xf0) !== 0x80) {
+    throw new Error("Expected msgpack fixmap");
+  }
+
+  const count = tag & 0x0f;
+  const map = new Map<string, MsgpackScalar>();
+  let offset = 1;
+  for (let index = 0; index < count; index += 1) {
+    const [key, keyOffset] = unpackStringAt(bytes, offset);
+    const [value, valueOffset] = unpackScalarAt(bytes, keyOffset);
+    map.set(key, value);
+    offset = valueOffset;
+  }
+  return map;
 }
 
 export function msgpackUnpackAt(bytes: Uint8Array, offset: number): [MsgpackValue, number] {

@@ -156,9 +156,12 @@ export {
   msgpackPackNil,
   msgpackPackUInt,
   msgpackPackIntMap,
+  msgpackPackString,
+  msgpackPackStringMap,
   msgpackUnpack,
   msgpackUnpackAt,
   msgpackUnpackScalar,
+  msgpackUnpackStringKeyedMap,
   type MsgpackScalar,
   type MsgpackValue
 } from "./msgpack-core.js";
@@ -337,3 +340,13 @@ export {
   expandDestinationName,
   validateDestinationNamePart
 } from "./destination-name.js";
+export {
+  decodeResourceAdvertisementFlags,
+  encodeResourceAdvertisementFlags,
+  isResourceAdvertisementRequest,
+  isResourceAdvertisementResponse,
+  packResourceAdvertisement,
+  unpackResourceAdvertisement,
+  type ResourceAdvertisementFields,
+  type ResourceAdvertisementFlags
+} from "./resource-advertisement.js";

@@ -1,6 +1,6 @@
-/** Adapter-facing msgpack helpers; link request/response codecs live in protocol. */
+/** Adapter-facing msgpack helpers; codecs live in protocol. */
 
-import { utf8Decode, utf8Encode } from "@twistedpear/protocol";
+import { utf8Decode } from "@twistedpear/protocol";
 
 export {
   msgpackPackArray,
@@ -10,40 +10,13 @@ export {
   msgpackPackFloat64 as msgpackPackFloat,
   msgpackPackLinkRequest as msgpackPackRequest,
   msgpackPackLinkResponse as msgpackPackResponse,
+  msgpackPackString,
+  msgpackPackStringMap as msgpackPackMap,
   msgpackUnpackLinkRequestTuple as msgpackUnpackRequest,
   msgpackUnpackLinkResponseTuple as msgpackUnpackResponse,
   utf8Decode,
   utf8Encode
 } from "@twistedpear/protocol";
-
-export function msgpackPackString(value: string): Uint8Array {
-  const bytes = utf8Encode(value);
-  if (bytes.length <= 31) {
-    const output = new Uint8Array(1 + bytes.length);
-    output[0] = 0xa0 | bytes.length;
-    output.set(bytes, 1);
-    return output;
-  }
-
-  const output = new Uint8Array(2 + bytes.length);
-  output[0] = 0xd9;
-  output[1] = bytes.length;
-  output.set(bytes, 2);
-  return output;
-}
-
-export function msgpackPackMap(entries: ReadonlyArray<[string, Uint8Array]>): Uint8Array {
-  if (entries.length > 15) {
-    throw new Error("msgpackPackMap supports at most 15 entries");
-  }
-
-  const parts = entries.flatMap(([key, value]) => [msgpackPackString(key), value]);
-  const body = concatBytes(...parts);
-  const output = new Uint8Array(1 + body.length);
-  output[0] = 0x80 | entries.length;
-  output.set(body, 1);
-  return output;
-}
 
 export interface MsgpackMapValue {
   readonly [key: string]: MsgpackValue | undefined;
@@ -62,17 +35,6 @@ export interface MsgpackValue {
 export function msgpackUnpack(bytes: Uint8Array): MsgpackValue {
   const [value] = msgpackUnpackAt(bytes, 0);
   return value;
-}
-
-function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  const length = parts.reduce((total, part) => total + part.length, 0);
-  const output = new Uint8Array(length);
-  let offset = 0;
-  for (const part of parts) {
-    output.set(part, offset);
-    offset += part.length;
-  }
-  return output;
 }
 
 function msgpackUnpackAt(bytes: Uint8Array, offset: number): [MsgpackValue, number] {

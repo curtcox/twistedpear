@@ -24,7 +24,9 @@
 > request / response msgpack codecs** are pure protocol leaves; reticulum re-exports them.
 > **Destination name expansion / hash material** and shared **UTF-8** helpers are pure
 > protocol leaves; `Destination` and path-hash call sites adapt them (SHA stays at the
-> crypto edge). Remaining depth work: keep converting residual session IO into step machines.
+> crypto edge). **Msgpack string / string-map** packing and **resource advertisement**
+> codecs (pack/unpack + flag bits) are pure protocol leaves; `ResourceAdvertisement`
+> adapts them. Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

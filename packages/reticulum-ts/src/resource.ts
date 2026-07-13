@@ -1,6 +1,12 @@
 import {
   computeResourceTimeout,
+  decodeResourceAdvertisementFlags,
+  encodeResourceAdvertisementFlags,
+  isResourceAdvertisementRequest,
+  isResourceAdvertisementResponse,
+  packResourceAdvertisement,
   stepResourceWatchdogWithActions,
+  unpackResourceAdvertisement,
   type ResourceWatchdogState,
   type ResourceWatchdogStepResult
 } from "@twistedpear/protocol";
@@ -9,14 +15,7 @@ import { equalBytes } from "./crypto/bytes.js";
 import { Identity } from "./identity.js";
 import type { Link } from "./link.js";
 import type { LeafTransport } from "./transport/node.js";
-import {
-  msgpackPackBin,
-  msgpackPackMap,
-  msgpackPackNil,
-  msgpackPackUInt,
-  msgpackUnpack,
-  type MsgpackValue
-} from "./msgpack.js";
+import { msgpackPackBin, msgpackPackUInt, msgpackUnpack, type MsgpackValue } from "./msgpack.js";
 import {
   Packet,
   PacketContext,
@@ -103,8 +102,7 @@ export class ResourceAdvertisement {
 
   static isRequest(plaintext: Uint8Array): boolean {
     try {
-      const adv = ResourceAdvertisement.unpack(plaintext);
-      return adv.q !== null && adv.u;
+      return isResourceAdvertisementRequest(unpackResourceAdvertisement(plaintext));
     } catch {
       return false;
     }
@@ -112,40 +110,33 @@ export class ResourceAdvertisement {
 
   static isResponse(plaintext: Uint8Array): boolean {
     try {
-      const adv = ResourceAdvertisement.unpack(plaintext);
-      return adv.q !== null && adv.p;
+      return isResourceAdvertisementResponse(unpackResourceAdvertisement(plaintext));
     } catch {
       return false;
     }
   }
 
   static unpack(data: Uint8Array): ResourceAdvertisement {
-    const value = msgpackUnpack(data);
-    if (value.type !== "map" || value.map === undefined) {
-      throw new Error("Invalid resource advertisement");
-    }
-
+    const fields = unpackResourceAdvertisement(data);
+    const flags = decodeResourceAdvertisementFlags(fields.f);
     const adv = new ResourceAdvertisement();
-    adv.t = readInt(value.map["t"]);
-    adv.d = readInt(value.map["d"]);
-    adv.n = readInt(value.map["n"]);
-    adv.h = Uint8Array.from(readBin(value.map["h"]));
-    adv.r = Uint8Array.from(readBin(value.map["r"]));
-    adv.o = Uint8Array.from(readBin(value.map["o"]));
-    adv.m = Uint8Array.from(readBin(value.map["m"]));
-    adv.f = readInt(value.map["f"]);
-    adv.i = readInt(value.map["i"]);
-    adv.l = readInt(value.map["l"]);
-    adv.q = readOptionalBin(value.map["q"]);
-    if (adv.q !== null) {
-      adv.q = Uint8Array.from(adv.q);
-    }
-    adv.e = (adv.f & 0x01) === 0x01;
-    adv.c = ((adv.f >> 1) & 0x01) === 0x01;
-    adv.s = ((adv.f >> 2) & 0x01) === 0x01;
-    adv.u = ((adv.f >> 3) & 0x01) === 0x01;
-    adv.p = ((adv.f >> 4) & 0x01) === 0x01;
-    adv.x = ((adv.f >> 5) & 0x01) === 0x01;
+    adv.t = fields.t;
+    adv.d = fields.d;
+    adv.n = fields.n;
+    adv.h = fields.h;
+    adv.r = fields.r;
+    adv.o = fields.o;
+    adv.m = fields.m;
+    adv.f = fields.f;
+    adv.i = fields.i;
+    adv.l = fields.l;
+    adv.q = fields.q;
+    adv.e = flags.e;
+    adv.c = flags.c;
+    adv.s = flags.s;
+    adv.u = flags.u;
+    adv.p = flags.p;
+    adv.x = flags.x;
     return adv;
   }
 
@@ -170,23 +161,30 @@ export class ResourceAdvertisement {
     this.q = resource.requestId;
     this.u = resource.requestId !== null && !resource.isResponse;
     this.p = resource.requestId !== null && resource.isResponse;
-    this.f = 0x00 | (this.x ? 1 << 5 : 0) | (this.p ? 1 << 4 : 0) | (this.u ? 1 << 3 : 0) | (this.s ? 1 << 2 : 0) | (this.c ? 1 << 1 : 0) | (this.e ? 1 : 0);
+    this.f = encodeResourceAdvertisementFlags({
+      e: this.e,
+      c: this.c,
+      s: this.s,
+      u: this.u,
+      p: this.p,
+      x: this.x
+    });
   }
 
   pack(): Uint8Array {
-    return msgpackPackMap([
-      ["t", msgpackPackUInt(this.t)],
-      ["d", msgpackPackUInt(this.d)],
-      ["n", msgpackPackUInt(this.n)],
-      ["h", msgpackPackBin(this.h)],
-      ["r", msgpackPackBin(this.r)],
-      ["o", msgpackPackBin(this.o)],
-      ["i", msgpackPackUInt(this.i)],
-      ["l", msgpackPackUInt(this.l)],
-      ["q", this.q === null ? msgpackPackNil() : msgpackPackBin(this.q)],
-      ["f", msgpackPackUInt(this.f)],
-      ["m", msgpackPackBin(this.m)]
-    ]);
+    return packResourceAdvertisement({
+      t: this.t,
+      d: this.d,
+      n: this.n,
+      h: this.h,
+      r: this.r,
+      o: this.o,
+      m: this.m,
+      f: this.f,
+      i: this.i,
+      l: this.l,
+      q: this.q
+    });
   }
 }
 
@@ -840,14 +838,6 @@ function readBin(value: MsgpackValue | undefined): Uint8Array {
   }
 
   return Uint8Array.from(value.bin);
-}
-
-function readOptionalBin(value: MsgpackValue | undefined): Uint8Array | null {
-  if (value === undefined || value.type === "nil") {
-    return null;
-  }
-
-  return readBin(value);
 }
 
 function msgpackPackArray(items: ReadonlyArray<Uint8Array>): Uint8Array {
