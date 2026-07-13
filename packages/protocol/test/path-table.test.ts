@@ -11,6 +11,7 @@ import {
   PACKET_TYPE_ANNOUNCE,
   PACKET_TYPE_DATA,
   announceEmittedFromRandomBlob,
+  appendPathRandomBlob,
   isDiscoveryPathRequestExpired,
   isPathEntryExpired,
   planPathOutbound,
@@ -115,6 +116,15 @@ describe("protocol path table", () => {
     expect(isPathEntryExpired({ expires: 100, nowSeconds: 99 })).toBe(false);
     expect(isPathEntryExpired({ expires: 100, nowSeconds: 100 })).toBe(true);
     expect(isPathEntryExpired({ expires: 100, nowSeconds: 101 })).toBe(true);
+  });
+
+  it("dedupe-appends path announce random blobs", () => {
+    const first = new Uint8Array([1, 2, 3]);
+    const second = new Uint8Array([4, 5, 6]);
+    const once = appendPathRandomBlob({ randomBlobs: [], randomBlob: first });
+    expect(once).toHaveLength(1);
+    expect(appendPathRandomBlob({ randomBlobs: once, randomBlob: first })).toHaveLength(1);
+    expect(appendPathRandomBlob({ randomBlobs: once, randomBlob: second })).toHaveLength(2);
   });
 
   it("plans wrap, direct, and flood outbound kinds", () => {

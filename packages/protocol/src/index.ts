@@ -184,6 +184,7 @@ export {
   PATH_REQUEST_MIN_INTERVAL,
   PATH_REQUEST_TIMEOUT_SECONDS,
   announceEmittedFromRandomBlob,
+  appendPathRandomBlob,
   computePathExpiry,
   equalByteArrays,
   initialPathTableState,

@@ -162,6 +162,19 @@ export function isPathEntryExpired(input: {
   return input.nowSeconds >= input.expires;
 }
 
+/**
+ * Dedupe-append a path announce random blob onto the entry's blob list.
+ */
+export function appendPathRandomBlob(input: {
+  readonly randomBlobs: ReadonlyArray<Uint8Array>;
+  readonly randomBlob: Uint8Array;
+}): readonly Uint8Array[] {
+  if (input.randomBlobs.some((blob) => equalByteArrays(blob, input.randomBlob))) {
+    return input.randomBlobs;
+  }
+  return [...input.randomBlobs, input.randomBlob];
+}
+
 /** Lightweight path-table step for sim: tracks hops per destination key. */
 export interface PathTableState {
   readonly entries: ReadonlyMap<

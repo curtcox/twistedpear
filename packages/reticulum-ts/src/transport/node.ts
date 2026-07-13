@@ -5,6 +5,7 @@ import {
   PATH_REQUEST_GRACE_MS,
   PATH_REQUEST_TIMEOUT_SECONDS,
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
+  appendPathRandomBlob,
   computePathExpiry,
   isPathEntryExpired,
   planClonePacketWithHops,
@@ -467,10 +468,10 @@ export class LeafTransport {
       return;
     }
 
-    const randomBlobs = [...(existing?.randomBlobs ?? [])];
-    if (!randomBlobs.some((blob) => equalBytes(blob, randomBlob))) {
-      randomBlobs.push(randomBlob);
-    }
+    const randomBlobs = appendPathRandomBlob({
+      randomBlobs: existing?.randomBlobs ?? [],
+      randomBlob
+    });
 
     const entry: PathEntry = {
       timestamp: now,
