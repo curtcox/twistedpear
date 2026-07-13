@@ -100,8 +100,9 @@
 > gates) lives in protocol; `Resource` adapts it. **`planPacketFilter`** (foreign transport-id +
 > seen-hash allow rules) lives in protocol; `LeafTransport` adapts it.
 > **`isDiscoveryPathRequestExpired`** lives in protocol; `TransportNode` adapts it (discovery
-> path-request timeout now applied). Remaining depth work: keep converting residual session
-> IO into step machines.
+> path-request timeout now applied). **`isPathEntryExpired`** lives in protocol; path-table
+> lookups (`hasPath` / `getPathEntry` / outbound / path-request) treat expired paths as missing.
+> Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

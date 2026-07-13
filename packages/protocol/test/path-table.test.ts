@@ -12,6 +12,7 @@ import {
   PACKET_TYPE_DATA,
   announceEmittedFromRandomBlob,
   isDiscoveryPathRequestExpired,
+  isPathEntryExpired,
   planPathOutbound,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
@@ -108,6 +109,12 @@ describe("protocol path table", () => {
     const timeoutAt = 100 + PATH_REQUEST_TIMEOUT_SECONDS;
     expect(isDiscoveryPathRequestExpired({ timeoutAt, nowSeconds: timeoutAt })).toBe(false);
     expect(isDiscoveryPathRequestExpired({ timeoutAt, nowSeconds: timeoutAt + 1 })).toBe(true);
+  });
+
+  it("expires path-table entries at or past expires", () => {
+    expect(isPathEntryExpired({ expires: 100, nowSeconds: 99 })).toBe(false);
+    expect(isPathEntryExpired({ expires: 100, nowSeconds: 100 })).toBe(true);
+    expect(isPathEntryExpired({ expires: 100, nowSeconds: 101 })).toBe(true);
   });
 
   it("plans wrap, direct, and flood outbound kinds", () => {

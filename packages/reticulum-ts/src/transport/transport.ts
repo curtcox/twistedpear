@@ -180,7 +180,7 @@ export class TransportNode extends LeafTransport {
       return;
     }
 
-    const path = this.pathTable.get(hashKey(parsed.destinationHash));
+    const path = this.getPathEntry(parsed.destinationHash);
     if (path !== undefined) {
       if (!shouldAnswerPathRequest(path.nextHop, parsed.requestorTransportId)) {
         return;

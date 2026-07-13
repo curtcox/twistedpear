@@ -6,6 +6,7 @@ import {
   PATH_REQUEST_TIMEOUT_SECONDS,
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
   computePathExpiry,
+  isPathEntryExpired,
   planClonePacketWithHops,
   planDestinationProof,
   planPathOutbound,
@@ -197,19 +198,28 @@ export class LeafTransport {
   }
 
   hasPath(destinationHash: Uint8Array): boolean {
-    return this.pathTable.has(hashKey(destinationHash));
+    return this.getPathEntry(destinationHash) !== undefined;
   }
 
   hopsTo(destinationHash: Uint8Array): number | null {
-    return this.pathTable.get(hashKey(destinationHash))?.hops ?? null;
+    return this.getPathEntry(destinationHash)?.hops ?? null;
   }
 
   nextHopInterfaceMtu(destinationHash: Uint8Array): number | null {
-    return this.pathTable.get(hashKey(destinationHash))?.receivedInterface.mtu ?? null;
+    return this.getPathEntry(destinationHash)?.receivedInterface.mtu ?? null;
   }
 
   getPathEntry(destinationHash: Uint8Array): PathEntry | undefined {
-    return this.pathTable.get(hashKey(destinationHash));
+    const key = hashKey(destinationHash);
+    const entry = this.pathTable.get(key);
+    if (entry === undefined) {
+      return undefined;
+    }
+    if (isPathEntryExpired({ expires: entry.expires, nowSeconds: this.clock.now() / 1000 })) {
+      this.pathTable.delete(key);
+      return undefined;
+    }
+    return entry;
   }
 
   get pathTableCount(): number {
@@ -614,7 +624,7 @@ export class LeafTransport {
   }
 
   protected async outbound(packet: Packet, attachedInterface: PacketInterface | null): Promise<boolean> {
-    const path = this.pathTable.get(hashKey(packet.destinationHash));
+    const path = this.getPathEntry(packet.destinationHash);
     const kind = planPathOutbound({
       packetType: packet.packetType,
       destinationType: packet.destinationType,
@@ -678,7 +688,7 @@ export class LeafTransport {
       return;
     }
 
-    const path = this.pathTable.get(hashKey(parsed.destinationHash));
+    const path = this.getPathEntry(parsed.destinationHash);
     if (path === undefined) {
       return;
     }

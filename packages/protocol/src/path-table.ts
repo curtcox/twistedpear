@@ -143,7 +143,7 @@ export function shouldAddPathEntry(input: PathAddDecisionInput): boolean {
     return !seen && announceEmitted > pathTimebase;
   }
 
-  if (nowSeconds >= existing.expires) {
+  if (isPathEntryExpired({ expires: existing.expires, nowSeconds })) {
     return !existing.randomBlobs.some((blob) => equalByteArrays(blob, randomBlob));
   }
 
@@ -152,6 +152,14 @@ export function shouldAddPathEntry(input: PathAddDecisionInput): boolean {
 
 export function computePathExpiry(nowSeconds: number): number {
   return nowSeconds + PATHFINDER_EXPIRY_SECONDS;
+}
+
+/** True when a path-table entry is past its expiry instant. */
+export function isPathEntryExpired(input: {
+  readonly expires: number;
+  readonly nowSeconds: number;
+}): boolean {
+  return input.nowSeconds >= input.expires;
 }
 
 /** Lightweight path-table step for sim: tracks hops per destination key. */

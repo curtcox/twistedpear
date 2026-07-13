@@ -188,6 +188,7 @@ export {
   equalByteArrays,
   initialPathTableState,
   isDiscoveryPathRequestExpired,
+  isPathEntryExpired,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
   shouldEmitPathRequest,
