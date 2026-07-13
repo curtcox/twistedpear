@@ -124,3 +124,50 @@ export function packLinkProofData(
   }
   return concatBytes(signature, publicKey, signallingBytes);
 }
+
+export interface LinkRequestKeyFields {
+  readonly publicKey: Uint8Array;
+  readonly signaturePublicKey: Uint8Array;
+  readonly signallingBytes: Uint8Array;
+}
+
+/** Pack initiator link-request payload: X25519 pub || Ed25519 pub || optional signalling. */
+export function packLinkRequestData(
+  publicKey: Uint8Array,
+  signaturePublicKey: Uint8Array,
+  signallingBytes: Uint8Array = new Uint8Array(0)
+): Uint8Array {
+  if (publicKey.length !== LINK_PROOF_PUBLIC_KEY_SIZE) {
+    throw new Error(`link request public key must be ${LINK_PROOF_PUBLIC_KEY_SIZE} bytes`);
+  }
+  if (signaturePublicKey.length !== LINK_PROOF_PUBLIC_KEY_SIZE) {
+    throw new Error(`link request signature public key must be ${LINK_PROOF_PUBLIC_KEY_SIZE} bytes`);
+  }
+  return concatBytes(publicKey, signaturePublicKey, signallingBytes);
+}
+
+export function splitLinkRequestData(data: Uint8Array): LinkRequestKeyFields | null {
+  if (data.length !== LINK_REQUEST_ECPUB_SIZE && data.length !== LINK_REQUEST_ECPUB_SIZE + LINK_PROOF_MTU_SIZE) {
+    return null;
+  }
+  return {
+    publicKey: data.subarray(0, LINK_PROOF_PUBLIC_KEY_SIZE),
+    signaturePublicKey: data.subarray(LINK_PROOF_PUBLIC_KEY_SIZE, LINK_REQUEST_ECPUB_SIZE),
+    signallingBytes:
+      data.length === LINK_REQUEST_ECPUB_SIZE + LINK_PROOF_MTU_SIZE
+        ? data.subarray(LINK_REQUEST_ECPUB_SIZE)
+        : new Uint8Array(0)
+  };
+}
+
+/** Truncate link-request hashable material when signalling bytes are present. */
+export function linkRequestHashablePart(
+  hashablePart: Uint8Array,
+  requestDataLength: number
+): Uint8Array {
+  if (requestDataLength <= LINK_REQUEST_ECPUB_SIZE) {
+    return hashablePart;
+  }
+  const diff = requestDataLength - LINK_REQUEST_ECPUB_SIZE;
+  return hashablePart.subarray(0, hashablePart.length - diff);
+}

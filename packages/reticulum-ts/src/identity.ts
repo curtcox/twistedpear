@@ -1,6 +1,7 @@
 import {
   IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE,
   IDENTITY_KEY_ENTROPY_SIZE,
+  IDENTITY_KEY_SIZE as PROTOCOL_IDENTITY_KEY_SIZE,
   IDENTITY_RATCHET_BYTES,
   IDENTITY_RATCHET_EXPIRY_SECONDS,
   decodeIdentityRatchetRecord,
@@ -8,8 +9,13 @@ import {
   identityRatchetStoreKey,
   isIdentityRatchetRecordUsable,
   packIdentityCiphertext,
+  packIdentityPrivateKey,
+  packIdentityPublicKey,
+  packPacketProof,
   splitIdentityCiphertext,
-  splitIdentityEntropy
+  splitIdentityEntropy,
+  splitIdentityPrivateKey,
+  splitIdentityPublicKey
 } from "@twistedpear/protocol";
 import { bytesToHex } from "./crypto/bytes.js";
 import { rnsHkdf } from "./crypto/hkdf.js";
@@ -18,7 +24,7 @@ import { Token } from "./crypto/token.js";
 import type { Entropy, KeyValueStore } from "./runtime/runtime.js";
 
 /** Mirrors RNS/Identity.py constants and core identity operations. */
-export const IDENTITY_KEY_SIZE = 64;
+export const IDENTITY_KEY_SIZE = PROTOCOL_IDENTITY_KEY_SIZE;
 export const IDENTITY_HALF_KEY_SIZE = IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE;
 export const TRUNCATED_HASH_LENGTH = 128;
 export const NAME_HASH_LENGTH = 80;
@@ -217,34 +223,36 @@ export class Identity {
 
   getPrivateKey(): Uint8Array {
     this.requirePrivateKey();
-    return concatBytes(this.prvBytes!, this.sigPrvBytes!);
+    return packIdentityPrivateKey(this.prvBytes!, this.sigPrvBytes!);
   }
 
   getPublicKey(): Uint8Array {
     this.requirePublicKey();
-    return concatBytes(this.pubBytes!, this.sigPubBytes!);
+    return packIdentityPublicKey(this.pubBytes!, this.sigPubBytes!);
   }
 
   loadPrivateKey(privateKeyBytes: Uint8Array): boolean {
-    if (privateKeyBytes.length !== IDENTITY_KEY_SIZE) {
+    const split = splitIdentityPrivateKey(privateKeyBytes);
+    if (split === null) {
       return false;
     }
 
-    this.prvBytes = privateKeyBytes.subarray(0, IDENTITY_HALF_KEY_SIZE);
-    this.sigPrvBytes = privateKeyBytes.subarray(IDENTITY_HALF_KEY_SIZE);
+    this.prvBytes = split.privateKey;
+    this.sigPrvBytes = split.signaturePrivateKey;
     this.updatePublicMaterial();
     return true;
   }
 
   loadPublicKey(publicKeyBytes: Uint8Array): boolean {
-    if (publicKeyBytes.length !== IDENTITY_KEY_SIZE) {
+    const split = splitIdentityPublicKey(publicKeyBytes);
+    if (split === null) {
       return false;
     }
 
     this.prvBytes = null;
     this.sigPrvBytes = null;
-    this.pubBytes = publicKeyBytes.subarray(0, IDENTITY_HALF_KEY_SIZE);
-    this.sigPubBytes = publicKeyBytes.subarray(IDENTITY_HALF_KEY_SIZE);
+    this.pubBytes = split.publicKey;
+    this.sigPubBytes = split.signaturePublicKey;
     this.updateHashes();
     return true;
   }
@@ -335,7 +343,7 @@ export class Identity {
     useImplicitProof = true
   ): Promise<void> {
     const signature = this.sign(packetHash);
-    const proofData = useImplicitProof ? signature : concatBytes(packetHash, signature);
+    const proofData = packPacketProof(packetHash, signature, !useImplicitProof);
     return sendProof(proofDestinationHash, proofData);
   }
 
@@ -360,17 +368,4 @@ export class Identity {
       throw new Error("Identity does not hold a public key");
     }
   }
-}
-
-function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  const length = parts.reduce((total, part) => total + part.length, 0);
-  const output = new Uint8Array(length);
-  let offset = 0;
-
-  for (const part of parts) {
-    output.set(part, offset);
-    offset += part.length;
-  }
-
-  return output;
 }

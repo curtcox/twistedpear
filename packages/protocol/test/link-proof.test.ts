@@ -3,8 +3,12 @@ import {
   LINK_PROOF_BODY_SIZE,
   LINK_PROOF_PUBLIC_KEY_SIZE,
   LINK_PROOF_SIGNATURE_SIZE,
+  LINK_REQUEST_ECPUB_SIZE,
   linkProofSignedMaterial,
-  packLinkProofData
+  linkRequestHashablePart,
+  packLinkProofData,
+  packLinkRequestData,
+  splitLinkRequestData
 } from "../src/link-proof.js";
 
 describe("protocol link proof materials", () => {
@@ -20,5 +24,22 @@ describe("protocol link proof materials", () => {
     const packed = packLinkProofData(signature, publicKey, signalling);
     expect(packed.length).toBe(LINK_PROOF_BODY_SIZE + signalling.length);
     expect([...packed.subarray(0, LINK_PROOF_SIGNATURE_SIZE)]).toEqual([...signature]);
+  });
+
+  it("packs and splits link-request payloads", () => {
+    const publicKey = new Uint8Array(LINK_PROOF_PUBLIC_KEY_SIZE).fill(1);
+    const signaturePublicKey = new Uint8Array(LINK_PROOF_PUBLIC_KEY_SIZE).fill(2);
+    const signalling = new Uint8Array([3, 4, 5]);
+    const packed = packLinkRequestData(publicKey, signaturePublicKey, signalling);
+    expect(packed.length).toBe(LINK_REQUEST_ECPUB_SIZE + signalling.length);
+    const split = splitLinkRequestData(packed);
+    expect(split).not.toBeNull();
+    expect([...split!.publicKey]).toEqual([...publicKey]);
+    expect([...split!.signaturePublicKey]).toEqual([...signaturePublicKey]);
+    expect([...split!.signallingBytes]).toEqual([...signalling]);
+
+    const hashable = new Uint8Array(20).fill(9);
+    expect([...linkRequestHashablePart(hashable, LINK_REQUEST_ECPUB_SIZE)]).toEqual([...hashable]);
+    expect(linkRequestHashablePart(hashable, LINK_REQUEST_ECPUB_SIZE + 3).length).toBe(17);
   });
 });

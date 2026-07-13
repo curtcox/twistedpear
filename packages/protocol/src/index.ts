@@ -218,8 +218,14 @@ export {
 export {
   IDENTITY_HALF_KEY_SIZE,
   IDENTITY_KEY_ENTROPY_SIZE,
+  IDENTITY_KEY_SIZE,
+  packIdentityPrivateKey,
+  packIdentityPublicKey,
   splitIdentityEntropy,
-  type IdentityKeyMaterial
+  splitIdentityPrivateKey,
+  splitIdentityPublicKey,
+  type IdentityKeyMaterial,
+  type IdentityPublicKeyMaterial
 } from "./identity-keygen.js";
 export {
   ChannelWindowLimits,
@@ -273,13 +279,17 @@ export {
   encodeLinkMtuBytes,
   encodeLinkSignallingBytes,
   linkProofSignedMaterial,
+  linkRequestHashablePart,
   modeFromLinkProofData,
   modeFromLinkRequestData,
   mtuFromLinkProofData,
   mtuFromLinkRequestData,
   packLinkProofData,
+  packLinkRequestData,
   splitLinkProofBody,
-  type LinkProofPayloadKind
+  splitLinkRequestData,
+  type LinkProofPayloadKind,
+  type LinkRequestKeyFields
 } from "./link-proof.js";
 export {
   applyLinkEstablishEvent,
@@ -365,6 +375,7 @@ export {
   RESOURCE_MAPHASH_LEN,
   assembleResourceHashmapBytes,
   packResourceHashmapUpdate,
+  packResourceHashmapUpdatePacket,
   parseResourcePartRequest,
   planResourceHashmapSlotWrites,
   planResourcePartRequest,

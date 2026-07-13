@@ -52,9 +52,12 @@
 > are pure protocol leaves; `Link` and `LXMFRouter` adapt them. **Link proof signed
 > material / proof packing**, **StreamDataMessage framing**, and **resource hash/encrypt
 > materials** are pure protocol leaves; `Link`, `Buffer`, and `Resource` adapt them.
-> Identity ratchet JSON, web-identity passphrase bytes, and LXMF message text use
-> protocol UTF-8 (no `TextEncoder`/`TextDecoder`). Remaining depth work: keep
-> converting residual session IO into step machines.
+> **Identity key pack/split**, **link-request pack/split/hashable truncation**, and
+> **RESOURCE_HMU pack** are pure protocol leaves; Identity, Link, and Resource adapt
+> them (`Identity.prove` uses `packPacketProof`). Identity ratchet JSON, web-identity
+> passphrase bytes, and LXMF message text use protocol UTF-8 (no
+> `TextEncoder`/`TextDecoder`). Remaining depth work: keep converting residual session
+> IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

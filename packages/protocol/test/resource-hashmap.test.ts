@@ -5,6 +5,7 @@ import {
   RESOURCE_MAPHASH_LEN,
   assembleResourceHashmapBytes,
   packResourceHashmapUpdate,
+  packResourceHashmapUpdatePacket,
   parseResourcePartRequest,
   planResourceHashmapSlotWrites,
   planResourcePartRequest,
@@ -29,9 +30,7 @@ describe("protocol resource hashmap", () => {
   it("splits HMU packets after the resource hash", () => {
     const hash = new Uint8Array(32).fill(9);
     const update = packResourceHashmapUpdate(0, new Uint8Array([1, 2, 3, 4]));
-    const plaintext = new Uint8Array(hash.length + update.length);
-    plaintext.set(hash, 0);
-    plaintext.set(update, hash.length);
+    const plaintext = packResourceHashmapUpdatePacket(hash, update);
     const split = splitResourceHashmapUpdatePacket(plaintext);
     expect(split).not.toBeNull();
     expect([...split!.resourceHash]).toEqual([...hash]);

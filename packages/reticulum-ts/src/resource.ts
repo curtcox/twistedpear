@@ -11,6 +11,7 @@ import {
   isResourceAdvertisementResponse,
   packResourceAdvertisement,
   packResourceHashmapUpdate,
+  packResourceHashmapUpdatePacket,
   packResourceProof,
   parseResourcePartRequest,
   planResourceHashmapSlotWrites,
@@ -558,7 +559,10 @@ export class Resource {
       }
 
       const update = packResourceHashmapUpdate(segment, assembleResourceHashmapBytes(segmentHashes));
-      await this.link.sendContext(PacketContext.RESOURCE_HMU, concatBytes(this.hash, update));
+      await this.link.sendContext(
+        PacketContext.RESOURCE_HMU,
+        packResourceHashmapUpdatePacket(this.hash, update)
+      );
     }
 
     if (this.sentParts === this.totalParts) {

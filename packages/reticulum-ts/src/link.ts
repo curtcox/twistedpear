@@ -21,6 +21,7 @@ import {
   linkHopsMatch,
   linkIdentifySignedMaterial,
   linkProofSignedMaterial,
+  linkRequestHashablePart,
   mergeLinkRtt,
   modeFromLinkProofData,
   modeFromLinkRequestData,
@@ -28,11 +29,13 @@ import {
   mtuFromLinkRequestData,
   packLinkIdentifyPayload,
   packLinkProofData,
+  packLinkRequestData,
   msgpackPackFloat64,
   msgpackUnpackFloat,
   splitInitiatorLinkEntropy,
   splitLinkIdentifyPayload,
   splitLinkProofBody,
+  splitLinkRequestData,
   splitResponderLinkEntropy,
   stepLinkWatchdogWithActions,
   utf8Encode,
@@ -265,7 +268,7 @@ export class Link {
     link.mtu = mtu;
     link.mode = LINK_MODE_DEFAULT;
     link.updateMdu();
-    const requestData = concatBytes(
+    const requestData = packLinkRequestData(
       link.publicKeyBytes,
       signaturePublicKeyBytes,
       Link.signallingBytes(mtu, link.mode)
@@ -298,8 +301,8 @@ export class Link {
     iface: PacketInterface,
     options?: { readonly entropy?: Uint8Array }
   ): Link | null {
-    const data = packet.data;
-    if (data.length !== LINK_ECPUB_SIZE && data.length !== LINK_ECPUB_SIZE + LINK_MTU_SIZE) {
+    const request = splitLinkRequestData(packet.data);
+    if (request === null) {
       return null;
     }
 
@@ -320,13 +323,10 @@ export class Link {
       );
       link.privateKey = responderKeys.privateKey;
       link.publicKeyBytes = provider.x25519PublicFromPrivate(link.privateKey);
-      link.loadPeer(
-        data.subarray(0, LINK_ECPUB_SIZE / 2),
-        data.subarray(LINK_ECPUB_SIZE / 2, LINK_ECPUB_SIZE)
-      );
+      link.loadPeer(request.publicKey, request.signaturePublicKey);
       link.setLinkId(packet);
 
-      if (data.length === LINK_ECPUB_SIZE + LINK_MTU_SIZE) {
+      if (request.signallingBytes.length > 0) {
         link.mtu = Link.mtuFromLrPacket(packet) ?? RETICULUM_MTU;
       }
 
@@ -352,12 +352,7 @@ export class Link {
   }
 
   static linkIdFromLrPacket(provider: CryptoProvider, packet: Packet): Uint8Array {
-    let hashablePart = packet.hashablePart();
-    if (packet.data.length > LINK_ECPUB_SIZE) {
-      const diff = packet.data.length - LINK_ECPUB_SIZE;
-      hashablePart = hashablePart.subarray(0, hashablePart.length - diff);
-    }
-
+    const hashablePart = linkRequestHashablePart(packet.hashablePart(), packet.data.length);
     return Identity.truncatedHash(provider, hashablePart);
   }
 
@@ -1289,19 +1284,6 @@ export class Link {
 
     return this.token;
   }
-}
-
-function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  const length = parts.reduce((total, part) => total + part.length, 0);
-  const output = new Uint8Array(length);
-  let offset = 0;
-
-  for (const part of parts) {
-    output.set(new Uint8Array(part), offset);
-    offset += part.length;
-  }
-
-  return output;
 }
 
 function equalLinkId(left: Uint8Array, right: Uint8Array): boolean {

@@ -75,6 +75,20 @@ export function splitResourceHashmapUpdatePacket(
   };
 }
 
+/** Pack RESOURCE_HMU plaintext: resource hash || msgpack update body. */
+export function packResourceHashmapUpdatePacket(
+  resourceHash: Uint8Array,
+  updateBytes: Uint8Array
+): Uint8Array {
+  if (resourceHash.length !== RESOURCE_HASH_SIZE) {
+    throw new Error(`resource hash must be ${RESOURCE_HASH_SIZE} bytes`);
+  }
+  const output = new Uint8Array(RESOURCE_HASH_SIZE + updateBytes.length);
+  output.set(resourceHash, 0);
+  output.set(updateBytes, RESOURCE_HASH_SIZE);
+  return output;
+}
+
 export interface ResourcePartRequest {
   readonly wantsMoreHashmap: boolean;
   readonly lastMapHash: Uint8Array | null;
