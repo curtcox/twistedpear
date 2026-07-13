@@ -15,8 +15,12 @@ import {
   planPacketFilter,
   planPathRequestIngress,
   planPathResponseAnnounceFields,
+  planOutboundReceiptOutcome,
   planProofIngressKind,
   planLocalPlainDataDelivery,
+  planLinkDataIngressTarget,
+  planPacketReceiptProofIngress,
+  planLinkRegisterList,
   planTransportAnnounceFields,
   planTransportIngressDispatch,
   shouldAcceptLinkLrProofCandidate,
@@ -27,6 +31,7 @@ import {
   shouldMatchLocalTypedDestination,
   shouldReceiveAnnouncePathResponse,
   shouldTransmitOnInterface,
+  indexOfMatchingLinkId,
   relayTransportPacketBytes,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
@@ -304,7 +309,7 @@ export class LeafTransport {
   }
 
   registerLink(link: Link): void {
-    if (link.initiator) {
+    if (planLinkRegisterList(link.initiator) === "pending") {
       if (!this.pendingLinks.includes(link)) {
         this.pendingLinks.push(link);
       }
@@ -353,9 +358,10 @@ export class LeafTransport {
     packet: Packet,
     options: { createReceipt?: boolean; attachedInterface?: PacketInterface | null } = {}
   ): Promise<PacketReceipt | null> {
+    const createReceipt = options.createReceipt === true;
     let receipt: PacketReceipt | null = null;
 
-    if (options.createReceipt === true) {
+    if (createReceipt) {
       const nowSeconds = () => this.clock.now() / 1000;
       receipt = new PacketReceipt(packet.hash(), packet.truncatedHash(), packet.destinationHash, {
         sentAt: nowSeconds(),
@@ -365,14 +371,16 @@ export class LeafTransport {
     }
 
     const sent = await this.outbound(packet, options.attachedInterface ?? null);
-    if (!sent) {
-      if (receipt !== null) {
-        receipt.markFailed();
-        const index = this.receipts.indexOf(receipt);
-        if (index >= 0) {
-          this.receipts.splice(index, 1);
-        }
+    const outcome = planOutboundReceiptOutcome({ createReceipt, sent });
+    if (outcome === "fail-and-drop-receipt" && receipt !== null) {
+      receipt.markFailed();
+      const index = this.receipts.indexOf(receipt);
+      if (index >= 0) {
+        this.receipts.splice(index, 1);
       }
+      return null;
+    }
+    if (outcome === "none" || !sent) {
       return null;
     }
 
@@ -430,18 +438,23 @@ export class LeafTransport {
   }
 
   protected async handleLinkData(packet: Packet, iface: PacketInterface): Promise<void> {
-    for (const link of this.activeLinks) {
-      if (equalBytes(link.linkId, packet.destinationHash)) {
-        await link.receive(packet, iface);
+    const activeIndex = indexOfMatchingLinkId({
+      linkIds: this.activeLinks.map((link) => link.linkId),
+      target: packet.destinationHash
+    });
+    const pendingIndex = indexOfMatchingLinkId({
+      linkIds: this.pendingLinks.map((link) => link.linkId),
+      target: packet.destinationHash
+    });
+    switch (planLinkDataIngressTarget({ activeIndex, pendingIndex })) {
+      case "active":
+        await this.activeLinks[activeIndex!]!.receive(packet, iface);
         return;
-      }
-    }
-
-    for (const link of this.pendingLinks) {
-      if (equalBytes(link.linkId, packet.destinationHash)) {
-        await link.receive(packet, iface);
+      case "pending":
+        await this.pendingLinks[pendingIndex!]!.receive(packet, iface);
         return;
-      }
+      case "none":
+        return;
     }
   }
 
@@ -618,26 +631,29 @@ export class LeafTransport {
     }
 
     if (kind === "resource-prf") {
-      for (const link of this.activeLinks) {
-        if (equalBytes(link.linkId, packet.destinationHash)) {
-          await link.handleResourceProof(packet);
-          return;
-        }
+      const activeIndex = indexOfMatchingLinkId({
+        linkIds: this.activeLinks.map((link) => link.linkId),
+        target: packet.destinationHash
+      });
+      if (activeIndex !== null) {
+        await this.activeLinks[activeIndex]!.handleResourceProof(packet);
       }
       return;
     }
 
     for (const receipt of [...this.receipts]) {
-      if (!equalBytes(packet.destinationHash, receipt.truncatedHash)) {
-        continue;
-      }
-
-      const identity = Identity.recall(this.options.provider, receipt.targetDestinationHash);
-      if (identity === null) {
-        continue;
-      }
-
-      if (receipt.validateProofPacket(packet, identity)) {
+      const identity = equalBytes(packet.destinationHash, receipt.truncatedHash)
+        ? Identity.recall(this.options.provider, receipt.targetDestinationHash)
+        : null;
+      const proofAccepted =
+        identity !== null && receipt.validateProofPacket(packet, identity);
+      if (
+        planPacketReceiptProofIngress({
+          truncatedHashMatches: equalBytes(packet.destinationHash, receipt.truncatedHash),
+          identityPresent: identity !== null,
+          proofAccepted
+        }) === "remove-receipt"
+      ) {
         const index = this.receipts.indexOf(receipt);
         if (index >= 0) {
           this.receipts.splice(index, 1);

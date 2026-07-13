@@ -18,10 +18,13 @@ import {
   isReverseEntryExpired,
   planLinkRelayTarget,
   planLocalPlainDataDelivery,
+  planLinkDataIngressTarget,
   planPacketFilter,
   planPacketHashRemember,
   planProofIngressKind,
+  planReverseRelayOutcome,
   planTransportIngressDispatch,
+  indexOfMatchingLinkId,
   shouldAcceptLinkLrProofCandidate,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash,
@@ -397,5 +400,27 @@ describe("transport ingress", () => {
     ).toBe("ignore");
     expect(planPacketHashRemember(false)).toBe("now");
     expect(planPacketHashRemember(true)).toBe("after-relay");
+  });
+
+  it("indexes link-ids and plans reverse-relay / link-data ingress", () => {
+    const a = new Uint8Array([1, 2, 3]);
+    const b = new Uint8Array([4, 5, 6]);
+    expect(indexOfMatchingLinkId({ linkIds: [a, b], target: new Uint8Array([4, 5, 6]) })).toBe(1);
+    expect(indexOfMatchingLinkId({ linkIds: [a, b], target: new Uint8Array([9]) })).toBeNull();
+    expect(planLinkDataIngressTarget({ activeIndex: 0, pendingIndex: 1 })).toBe("active");
+    expect(planLinkDataIngressTarget({ activeIndex: null, pendingIndex: 2 })).toBe("pending");
+    expect(planLinkDataIngressTarget({ activeIndex: null, pendingIndex: null })).toBe("none");
+    expect(
+      planReverseRelayOutcome({ canRelay: false, entryExpired: true, ifaceIsOutbound: true })
+    ).toBe("delete-expired");
+    expect(
+      planReverseRelayOutcome({ canRelay: false, entryExpired: false, ifaceIsOutbound: true })
+    ).toBe("ignore");
+    expect(
+      planReverseRelayOutcome({ canRelay: true, entryExpired: false, ifaceIsOutbound: false })
+    ).toBe("ignore");
+    expect(
+      planReverseRelayOutcome({ canRelay: true, entryExpired: false, ifaceIsOutbound: true })
+    ).toBe("relay");
   });
 });

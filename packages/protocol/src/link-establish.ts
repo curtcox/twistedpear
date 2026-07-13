@@ -287,6 +287,54 @@ export function isLinkClosed(status: LinkStatusValue): boolean {
   return status === LinkStatus.CLOSED;
 }
 
+export type LinkRegisterList = "pending" | "active";
+
+/** Which transport link list should receive a newly registered link. */
+export function planLinkRegisterList(initiator: boolean): LinkRegisterList {
+  return initiator ? "pending" : "active";
+}
+
+export type LinkRttOutcome = "ignore" | "activate" | "teardown";
+
+/**
+ * Responder LRRTT handling: accept gate × decrypt presence.
+ * Unpack / merge / establish-activate stay at the adapter after `"activate"`.
+ */
+export function planLinkRttOutcome(input: {
+  readonly canAccept: boolean;
+  readonly plaintextPresent: boolean;
+}): LinkRttOutcome {
+  if (!input.canAccept) {
+    return "ignore";
+  }
+  if (!input.plaintextPresent) {
+    return "teardown";
+  }
+  return "activate";
+}
+
+/** Whether link plaintext DATA callback may fire after decrypt. */
+export function shouldDispatchLinkPlaintext(plaintextPresent: boolean): boolean {
+  return plaintextPresent;
+}
+
+/** Whether resendPacket may transmit (decoded + attached interface). */
+export function canResendLinkPacket(input: {
+  readonly packetDecoded: boolean;
+  readonly attachedInterfacePresent: boolean;
+}): boolean {
+  return input.packetDecoded && input.attachedInterfacePresent;
+}
+
+export type LinkAppRequestTransmitOutcome = "keep-pending" | "unregister";
+
+/** After app-request sendPacket: attach receipt or unregister the pending request. */
+export function planLinkAppRequestTransmitOutcome(
+  receiptPresent: boolean
+): LinkAppRequestTransmitOutcome {
+  return receiptPresent ? "keep-pending" : "unregister";
+}
+
 export function computeLinkRttSeconds(nowSeconds: number, requestTimeSeconds: number): number {
   return nowSeconds - requestTimeSeconds;
 }

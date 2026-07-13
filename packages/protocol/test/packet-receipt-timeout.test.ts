@@ -3,6 +3,8 @@ import {
   PacketReceiptStatus,
   checkPacketReceiptTimeout,
   initialPacketReceiptTimeoutState,
+  planOutboundReceiptOutcome,
+  planPacketReceiptProofIngress,
   stepPacketReceiptTimeout
 } from "../src/packet-receipt-timeout.js";
 
@@ -70,5 +72,27 @@ describe("protocol packet receipt timeout", () => {
       { kind: "receipt/failed", at: 2 } as never
     ).state;
     expect(delivered.status).toBe(PacketReceiptStatus.DELIVERED);
+  });
+
+  it("plans outbound receipt and receipt-proof ingress outcomes", () => {
+    expect(planOutboundReceiptOutcome({ createReceipt: false, sent: true })).toBe("none");
+    expect(planOutboundReceiptOutcome({ createReceipt: true, sent: true })).toBe("keep-receipt");
+    expect(planOutboundReceiptOutcome({ createReceipt: true, sent: false })).toBe(
+      "fail-and-drop-receipt"
+    );
+    expect(
+      planPacketReceiptProofIngress({
+        truncatedHashMatches: true,
+        identityPresent: true,
+        proofAccepted: true
+      })
+    ).toBe("remove-receipt");
+    expect(
+      planPacketReceiptProofIngress({
+        truncatedHashMatches: true,
+        identityPresent: true,
+        proofAccepted: false
+      })
+    ).toBe("continue");
   });
 });

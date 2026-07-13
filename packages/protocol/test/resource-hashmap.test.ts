@@ -9,6 +9,7 @@ import {
   parseResourcePartRequest,
   applyResourceHashmapSlotWrites,
   planResourceHashmapSlotWrites,
+  planResourceHashmapUpdateAccept,
   planResourcePartRequest,
   planResourceReceivePart,
   planResourceRequestFulfill,
@@ -242,5 +243,29 @@ describe("protocol resource hashmap", () => {
     expect(plan.hashmapUpdate!.mapHashes).toHaveLength(2);
     expect(plan.nextReceiverMinConsecutiveHeight).toBe(0);
     expect(plan.status).toBe("transferring");
+  });
+
+  it("plans hashmap-update accept gates", () => {
+    expect(
+      planResourceHashmapUpdateAccept({
+        canContinue: true,
+        splitOk: true,
+        unpackOk: true
+      })
+    ).toBe("apply");
+    expect(
+      planResourceHashmapUpdateAccept({
+        canContinue: false,
+        splitOk: true,
+        unpackOk: true
+      })
+    ).toBe("ignore");
+    expect(
+      planResourceHashmapUpdateAccept({
+        canContinue: true,
+        splitOk: false,
+        unpackOk: true
+      })
+    ).toBe("ignore");
   });
 });

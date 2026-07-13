@@ -17,6 +17,7 @@ import {
   canLinkSend,
   canPerformLinkHandshake,
   canProveLink,
+  canResendLinkPacket,
   canSendLinkAppResponse,
   canValidateLinkProof,
   computeLinkRttSeconds,
@@ -27,10 +28,14 @@ import {
   planLinkAppRequest,
   planLinkAppRequestDispatch,
   planLinkAppRequestResponse,
+  planLinkAppRequestTransmitOutcome,
   planLinkProofValidateOutcome,
+  planLinkRegisterList,
+  planLinkRttOutcome,
   planLinkValidateRequest,
   shouldAcceptLinkPacketInterface,
   shouldAttemptLinkProofCrypto,
+  shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
   shouldReuseActiveLink,
   shouldUpdateLinkLastData
@@ -430,5 +435,23 @@ describe("protocol link establish", () => {
       { kind: "establish/failed" }
     );
     expect(state.status).toBe(LinkStatus.CLOSED);
+  });
+
+  it("plans register list, RTT, plaintext, resend, and app-request transmit", () => {
+    expect(planLinkRegisterList(true)).toBe("pending");
+    expect(planLinkRegisterList(false)).toBe("active");
+    expect(planLinkRttOutcome({ canAccept: false, plaintextPresent: true })).toBe("ignore");
+    expect(planLinkRttOutcome({ canAccept: true, plaintextPresent: false })).toBe("teardown");
+    expect(planLinkRttOutcome({ canAccept: true, plaintextPresent: true })).toBe("activate");
+    expect(shouldDispatchLinkPlaintext(true)).toBe(true);
+    expect(shouldDispatchLinkPlaintext(false)).toBe(false);
+    expect(
+      canResendLinkPacket({ packetDecoded: true, attachedInterfacePresent: true })
+    ).toBe(true);
+    expect(
+      canResendLinkPacket({ packetDecoded: true, attachedInterfacePresent: false })
+    ).toBe(false);
+    expect(planLinkAppRequestTransmitOutcome(true)).toBe("keep-pending");
+    expect(planLinkAppRequestTransmitOutcome(false)).toBe("unregister");
   });
 });

@@ -34,6 +34,7 @@ import {
   canPerformLinkHandshake,
   canProveLink,
   canRequestLinkDestination,
+  canResendLinkPacket,
   canValidateLinkProof,
   classifyLinkProofPayload,
   computeLinkEstablishmentTimeout,
@@ -70,6 +71,7 @@ import {
   planLinkAppRequest,
   planLinkAppRequestDispatch,
   planLinkAppRequestResponse,
+  planLinkAppRequestTransmitOutcome,
   planLinkDataContext,
   planLinkIdentifyOutcome,
   planLinkInitiatorMtu,
@@ -77,12 +79,14 @@ import {
   planLinkRequestResponderMtu,
   planLinkResourceAcceptAppResult,
   planLinkResourceAdvertisement,
+  planLinkRttOutcome,
   planLinkTeardown,
   planLinkTeardownReason,
   planLinkValidateRequest,
   shouldAcceptLinkPacketInterface,
   shouldAcceptLinkTeardown,
   shouldAttemptLinkProofCrypto,
+  shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest,
@@ -633,17 +637,22 @@ export class Link {
   }
 
   async handleRttPacket(packet: Packet): Promise<void> {
-    if (!canAcceptLinkRtt({ status: this.status, initiator: this.initiator })) {
+    const canAccept = canAcceptLinkRtt({ status: this.status, initiator: this.initiator });
+    const plaintext = canAccept ? this.decrypt(packet.data) : null;
+    const outcome = planLinkRttOutcome({
+      canAccept,
+      plaintextPresent: plaintext !== null
+    });
+    if (outcome === "ignore") {
+      return;
+    }
+    if (outcome === "teardown" || plaintext === null) {
+      await this.teardown();
       return;
     }
 
     try {
       const measuredRtt = computeLinkRttSeconds(this.clock.now() / 1000, this.requestTime);
-      const plaintext = this.decrypt(packet.data);
-      if (plaintext === null) {
-        throw new Error("Could not decrypt RTT packet");
-      }
-
       const remoteRtt = msgpackUnpackFloat(plaintext);
       const nowSeconds = this.clock.now() / 1000;
       const activated = applyLinkEstablishEvent(
@@ -751,7 +760,7 @@ export class Link {
         return;
       case "plaintext": {
         const plaintext = this.decrypt(packet.data);
-        if (plaintext !== null) {
+        if (shouldDispatchLinkPlaintext(plaintext !== null) && plaintext !== null) {
           this.callbacks.packet?.(plaintext, packet);
         }
         return;
@@ -856,12 +865,12 @@ export class Link {
     });
     this.hadOutbound(false);
 
-    if (sentReceipt === null) {
+    if (planLinkAppRequestTransmitOutcome(sentReceipt !== null) === "unregister") {
       this.unregisterPendingRequest(pending);
       return false;
     }
 
-    pending.attachPacketReceipt(sentReceipt);
+    pending.attachPacketReceipt(sentReceipt!);
     return pending;
   }
 
@@ -981,7 +990,13 @@ export class Link {
 
   async resendPacket(raw: Uint8Array, options: { createReceipt?: boolean } = {}): Promise<LinkSendContextResult | null> {
     const packet = Packet.decode(this.provider, raw);
-    if (packet === null || this.attachedInterface === null) {
+    if (
+      !canResendLinkPacket({
+        packetDecoded: packet !== null,
+        attachedInterfacePresent: this.attachedInterface !== null
+      }) ||
+      packet === null
+    ) {
       return null;
     }
 

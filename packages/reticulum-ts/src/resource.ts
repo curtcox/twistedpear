@@ -40,6 +40,7 @@ import {
   planResourceAdvertisePhase,
   planResourceAssembleOutcome,
   planResourceHashmapSlotWrites,
+  planResourceHashmapUpdateAccept,
   planResourcePartRequest,
   planResourceProofAccept,
   planResourceReceivePart,
@@ -589,16 +590,17 @@ export class Resource {
   }
 
   hashmapUpdatePacket(plaintext: Uint8Array): void {
-    if (!canResourceContinueTransfer(this.status)) {
-      return;
-    }
-
     const split = splitResourceHashmapUpdatePacket(plaintext);
-    if (split === null) {
-      return;
-    }
-    const update = unpackResourceHashmapUpdate(split.updateBytes);
-    if (update === null) {
+    const update =
+      split === null ? null : unpackResourceHashmapUpdate(split.updateBytes);
+    if (
+      planResourceHashmapUpdateAccept({
+        canContinue: canResourceContinueTransfer(this.status),
+        splitOk: split !== null,
+        unpackOk: update !== null
+      }) !== "apply" ||
+      update === null
+    ) {
       return;
     }
     this.hashmapUpdate(update.segment, update.hashmap);

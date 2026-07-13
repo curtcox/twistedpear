@@ -315,3 +315,54 @@ export type PacketHashRememberPlan = "now" | "after-relay";
 export function planPacketHashRemember(deferred: boolean): PacketHashRememberPlan {
   return deferred ? "after-relay" : "now";
 }
+
+/** Index of a link-id in a list (link-data / resource-prf ingress). */
+export function indexOfMatchingLinkId(input: {
+  readonly linkIds: ReadonlyArray<Uint8Array>;
+  readonly target: Uint8Array;
+}): number | null {
+  for (let index = 0; index < input.linkIds.length; index += 1) {
+    const linkId = input.linkIds[index];
+    if (linkId != null && equalByteArrays(linkId, input.target)) {
+      return index;
+    }
+  }
+  return null;
+}
+
+export type LinkDataIngressTarget = "active" | "pending" | "none";
+
+/**
+ * Prefer active then pending link-id match for DATA / resource-proof ingress.
+ */
+export function planLinkDataIngressTarget(input: {
+  readonly activeIndex: number | null;
+  readonly pendingIndex: number | null;
+}): LinkDataIngressTarget {
+  if (input.activeIndex !== null) {
+    return "active";
+  }
+  if (input.pendingIndex !== null) {
+    return "pending";
+  }
+  return "none";
+}
+
+export type ReverseRelayOutcome = "relay" | "delete-expired" | "ignore";
+
+/**
+ * Reverse-table proof relay: compose can-relay + expiry cleanup + interface gate.
+ */
+export function planReverseRelayOutcome(input: {
+  readonly canRelay: boolean;
+  readonly entryExpired: boolean;
+  readonly ifaceIsOutbound: boolean;
+}): ReverseRelayOutcome {
+  if (!input.canRelay) {
+    return input.entryExpired ? "delete-expired" : "ignore";
+  }
+  if (!input.ifaceIsOutbound) {
+    return "ignore";
+  }
+  return "relay";
+}

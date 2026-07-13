@@ -11,6 +11,7 @@ import {
   planLinkRelayTarget,
   planPacketHashRemember,
   planPathRequestIngress,
+  planReverseRelayOutcome,
   planTransportIngressDispatch,
   rewritePacketHopsBytes,
   shouldAcceptTransportPacket,
@@ -19,7 +20,6 @@ import {
   shouldMatchLocalInboundDestination,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
-  shouldRelayReverseOnInterface,
   shouldTransmitOnInterface
 } from "@twistedpear/protocol";
 import { equalBytes } from "../crypto/bytes.js";
@@ -374,25 +374,22 @@ export class TransportNode extends LeafTransport {
     const nowSeconds = this.clock.now() / 1000;
     const entryExpired =
       entry !== undefined && isReverseEntryExpired({ timestamp: entry.timestamp, nowSeconds });
+    const canRelay = canRelayReversePacket({
+      isProof: packet.packetType === PacketType.PROOF,
+      hasEntry: entry !== undefined,
+      entryExpired
+    });
+    const outcome = planReverseRelayOutcome({
+      canRelay,
+      entryExpired,
+      ifaceIsOutbound: entry !== undefined && iface === entry.outboundInterface
+    });
 
-    if (
-      !canRelayReversePacket({
-        isProof: packet.packetType === PacketType.PROOF,
-        hasEntry: entry !== undefined,
-        entryExpired
-      })
-    ) {
-      if (entryExpired) {
-        this.reverseTable.delete(key);
-      }
+    if (outcome === "delete-expired") {
+      this.reverseTable.delete(key);
       return false;
     }
-
-    if (entry === undefined) {
-      return false;
-    }
-
-    if (!shouldRelayReverseOnInterface(iface === entry.outboundInterface)) {
+    if (outcome !== "relay" || entry === undefined) {
       return false;
     }
 

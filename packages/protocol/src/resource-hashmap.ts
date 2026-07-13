@@ -474,3 +474,19 @@ export function planResourceRequestFulfill(input: {
     status: nextSentParts === input.totalParts ? "awaiting-proof" : "transferring"
   };
 }
+
+export type ResourceHashmapUpdateAcceptPlan = "apply" | "ignore";
+
+/**
+ * Incoming RESOURCE_HMU accept: continue × split × unpack before slot writes.
+ */
+export function planResourceHashmapUpdateAccept(input: {
+  readonly canContinue: boolean;
+  readonly splitOk: boolean;
+  readonly unpackOk: boolean;
+}): ResourceHashmapUpdateAcceptPlan {
+  if (!input.canContinue || !input.splitOk || !input.unpackOk) {
+    return "ignore";
+  }
+  return "apply";
+}

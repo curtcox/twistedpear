@@ -132,3 +132,39 @@ function stepPacketReceiptTimeoutInner(
 
   return { state, intents: [] };
 }
+
+export type OutboundReceiptOutcome = "none" | "keep-receipt" | "fail-and-drop-receipt";
+
+/**
+ * After outbound transmit: whether a created receipt is kept, failed+dropped, or unused.
+ * Receipt construction / markFailed / splice stay at the adapter edge.
+ */
+export function planOutboundReceiptOutcome(input: {
+  readonly createReceipt: boolean;
+  readonly sent: boolean;
+}): OutboundReceiptOutcome {
+  if (!input.createReceipt) {
+    return "none";
+  }
+  if (input.sent) {
+    return "keep-receipt";
+  }
+  return "fail-and-drop-receipt";
+}
+
+export type PacketReceiptProofIngressPlan = "remove-receipt" | "continue";
+
+/**
+ * After `planProofIngressKind === "receipt"`: whether this receipt may be removed.
+ * Identity recall + validateProofPacket stay at the adapter edge as booleans.
+ */
+export function planPacketReceiptProofIngress(input: {
+  readonly truncatedHashMatches: boolean;
+  readonly identityPresent: boolean;
+  readonly proofAccepted: boolean;
+}): PacketReceiptProofIngressPlan {
+  if (input.truncatedHashMatches && input.identityPresent && input.proofAccepted) {
+    return "remove-receipt";
+  }
+  return "continue";
+}
