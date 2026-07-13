@@ -327,3 +327,13 @@ export {
   msgpackUnpackLinkResponse,
   msgpackUnpackLinkResponseTuple
 } from "./link-request-codec.js";
+export { utf8Decode, utf8Encode } from "./utf8.js";
+export {
+  DESTINATION_IDENTITY_HASH_BYTES,
+  DESTINATION_NAME_HASH_BYTES,
+  bytesToHexLower,
+  destinationHashMaterial,
+  destinationNameHashMaterial,
+  expandDestinationName,
+  validateDestinationNamePart
+} from "./destination-name.js";

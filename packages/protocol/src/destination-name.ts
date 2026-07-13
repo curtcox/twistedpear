@@ -1,0 +1,85 @@
+/**
+ * Pure RNS destination name expansion and hash-input material.
+ * SHA truncation stays at the crypto adapter edge.
+ */
+import { utf8Encode } from "./utf8.js";
+
+/** NAME_HASH_LENGTH (80 bits) / 8 */
+export const DESTINATION_NAME_HASH_BYTES = 10;
+/** TRUNCATED_HASH_LENGTH (128 bits) / 8 */
+export const DESTINATION_IDENTITY_HASH_BYTES = 16;
+
+function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
+  const length = parts.reduce((total, part) => total + part.length, 0);
+  const output = new Uint8Array(length);
+  let offset = 0;
+  for (const part of parts) {
+    output.set(part, offset);
+    offset += part.length;
+  }
+  return output;
+}
+
+export function bytesToHexLower(bytes: Uint8Array): string {
+  let out = "";
+  for (const byte of bytes) {
+    out += byte.toString(16).padStart(2, "0");
+  }
+  return out;
+}
+
+export function validateDestinationNamePart(value: string, label: string): void {
+  if (value.length === 0) {
+    throw new Error(`Destination ${label} cannot be empty`);
+  }
+  if (value.includes(".")) {
+    throw new Error(`Dots cannot be used in destination ${label}s`);
+  }
+}
+
+/**
+ * Expand an RNS destination name: `app.aspect...[.identityHex]`.
+ */
+export function expandDestinationName(
+  identityHash: Uint8Array | null,
+  appName: string,
+  aspects: ReadonlyArray<string> = []
+): string {
+  validateDestinationNamePart(appName, "app name");
+  for (const aspect of aspects) {
+    validateDestinationNamePart(aspect, "aspect");
+  }
+
+  let name = appName;
+  for (const aspect of aspects) {
+    name += `.${aspect}`;
+  }
+
+  if (identityHash !== null) {
+    if (identityHash.length !== DESTINATION_IDENTITY_HASH_BYTES) {
+      throw new Error(`Identity hash must be ${DESTINATION_IDENTITY_HASH_BYTES} bytes`);
+    }
+    name += `.${bytesToHexLower(identityHash)}`;
+  }
+
+  return name;
+}
+
+/** UTF-8 bytes hashed (then truncated) for the destination name hash. */
+export function destinationNameHashMaterial(
+  appName: string,
+  aspects: ReadonlyArray<string> = []
+): Uint8Array {
+  return utf8Encode(expandDestinationName(null, appName, aspects));
+}
+
+/** Bytes hashed (then truncated) for the full destination hash. */
+export function destinationHashMaterial(
+  nameHash: Uint8Array,
+  identityHash: Uint8Array | null
+): Uint8Array {
+  if (identityHash === null) {
+    return nameHash;
+  }
+  return concatBytes(nameHash, identityHash);
+}

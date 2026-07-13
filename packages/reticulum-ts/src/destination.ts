@@ -1,3 +1,9 @@
+import {
+  destinationHashMaterial,
+  destinationNameHashMaterial,
+  expandDestinationName,
+  validateDestinationNamePart
+} from "@twistedpear/protocol";
 import { bytesToHex } from "./crypto/bytes.js";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { Identity, NAME_HASH_LENGTH, TRUNCATED_HASH_LENGTH } from "./identity.js";
@@ -42,9 +48,9 @@ export class Destination {
     private readonly provider: CryptoProvider,
     options: DestinationOptions
   ) {
-    validateNamePart(options.appName, "app name");
+    validateDestinationNamePart(options.appName, "app name");
     for (const aspect of options.aspects ?? []) {
-      validateNamePart(aspect, "aspect");
+      validateDestinationNamePart(aspect, "aspect");
     }
 
     this.direction = options.direction;
@@ -77,26 +83,14 @@ export class Destination {
   }
 
   static expandName(identityHash: Uint8Array | null, appName: string, ...aspects: ReadonlyArray<string>): string {
-    validateNamePart(appName, "app name");
-    for (const aspect of aspects) {
-      validateNamePart(aspect, "aspect");
-    }
-
-    let name = appName;
-    for (const aspect of aspects) {
-      name += `.${aspect}`;
-    }
-
-    if (identityHash !== null) {
-      name += `.${bytesToHex(identityHash)}`;
-    }
-
-    return name;
+    return expandDestinationName(identityHash, appName, aspects);
   }
 
   static nameHash(provider: CryptoProvider, appName: string, ...aspects: ReadonlyArray<string>): Uint8Array {
-    const expanded = Destination.expandName(null, appName, ...aspects);
-    return Identity.fullHash(provider, new TextEncoder().encode(expanded)).subarray(0, NAME_HASH_LENGTH / 8);
+    return Identity.fullHash(provider, destinationNameHashMaterial(appName, aspects)).subarray(
+      0,
+      NAME_HASH_LENGTH / 8
+    );
   }
 
   static hash(
@@ -107,8 +101,10 @@ export class Destination {
   ): Uint8Array {
     const nameHash = Destination.nameHash(provider, appName, ...aspects);
     const identityHash = identityHashBytes(identity);
-    const material = identityHash === null ? nameHash : concatBytes(nameHash, identityHash);
-    return Identity.fullHash(provider, material).subarray(0, TRUNCATED_HASH_LENGTH / 8);
+    return Identity.fullHash(provider, destinationHashMaterial(nameHash, identityHash)).subarray(
+      0,
+      TRUNCATED_HASH_LENGTH / 8
+    );
   }
 }
 
@@ -139,27 +135,4 @@ function isDestinationType(value: number): value is DestinationTypeValue {
 
 function isDestinationDirection(value: number): value is DestinationDirectionValue {
   return value === DestinationDirection.IN || value === DestinationDirection.OUT;
-}
-
-function validateNamePart(value: string, label: string): void {
-  if (value.length === 0) {
-    throw new Error(`Destination ${label} cannot be empty`);
-  }
-
-  if (value.includes(".")) {
-    throw new Error(`Dots cannot be used in destination ${label}s`);
-  }
-}
-
-function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  const length = parts.reduce((total, part) => total + part.length, 0);
-  const output = new Uint8Array(length);
-  let offset = 0;
-
-  for (const part of parts) {
-    output.set(part, offset);
-    offset += part.length;
-  }
-
-  return output;
 }

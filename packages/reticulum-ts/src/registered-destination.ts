@@ -23,6 +23,7 @@ import {
   type DestinationProofStrategyValue,
   type LeafTransport
 } from "./transport/node.js";
+import { utf8Encode } from "@twistedpear/protocol";
 
 export interface RegisteredDestinationOptions extends DestinationOptions {
   readonly provider: CryptoProvider;
@@ -108,7 +109,7 @@ export class RegisteredDestination extends Destination {
       throw new Error("Invalid path specified");
     }
 
-    const pathHash = Identity.truncatedHash(this.cryptoProvider, new TextEncoder().encode(path));
+    const pathHash = Identity.truncatedHash(this.cryptoProvider, utf8Encode(path));
     this.requestHandlers.set(bytesToHex(pathHash), {
       path,
       pathHash,
@@ -119,7 +120,7 @@ export class RegisteredDestination extends Destination {
   }
 
   deregisterRequestHandler(path: string): boolean {
-    const pathHash = Identity.truncatedHash(this.cryptoProvider, new TextEncoder().encode(path));
+    const pathHash = Identity.truncatedHash(this.cryptoProvider, utf8Encode(path));
     return this.requestHandlers.delete(bytesToHex(pathHash));
   }
 

@@ -29,6 +29,7 @@ import {
   splitLinkProofBody,
   splitResponderLinkEntropy,
   stepLinkWatchdogWithActions,
+  utf8Encode,
   type LinkWatchdogState,
   type LinkWatchdogStepResult
 } from "@twistedpear/protocol";
@@ -719,7 +720,7 @@ export class Link {
       return false;
     }
 
-    const pathHash = Identity.truncatedHash(this.provider, new TextEncoder().encode(path));
+    const pathHash = Identity.truncatedHash(this.provider, utf8Encode(path));
     const packedRequest = msgpackPackRequest(this.clock.now() / 1000, pathHash, data);
     const timeout =
       options.timeout ?? this.rtt * LINK_TRAFFIC_TIMEOUT_FACTOR + LINK_RESPONSE_MAX_GRACE_TIME * 1.125;
