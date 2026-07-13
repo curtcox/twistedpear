@@ -1,9 +1,11 @@
+import {
+  packPacketProof,
+  packetProofHashMatches,
+  splitPacketProof
+} from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { DestinationType, type DestinationTypeValue } from "./destination.js";
 import { Identity, TRUNCATED_HASH_LENGTH } from "./identity.js";
-
-const FULL_HASH_SIZE = 32;
-const SIGNATURE_SIZE = 64;
 
 /** Mirrors RNS/Packet.py packet and header wire constants. */
 export const PacketType = {
@@ -245,25 +247,16 @@ export class Packet {
   createProof(identity: Identity, options: PacketProofOptions = {}): Uint8Array {
     const packetHash = this.hash();
     const signature = identity.sign(packetHash);
-    return options.explicit === false ? signature : concatBytes(packetHash, signature);
+    return packPacketProof(packetHash, signature, options.explicit !== false);
   }
 
   validateProof(identity: Identity, proof: Uint8Array): boolean {
     const packetHash = this.hash();
-    if (proof.length === FULL_HASH_SIZE + SIGNATURE_SIZE) {
-      const proofHash = proof.subarray(0, FULL_HASH_SIZE);
-      if (!equalBytes(proofHash, packetHash)) {
-        return false;
-      }
-
-      return identity.validate(proof.subarray(FULL_HASH_SIZE), packetHash);
+    const split = splitPacketProof(proof);
+    if (split === null || !packetProofHashMatches(split, packetHash)) {
+      return false;
     }
-
-    if (proof.length === SIGNATURE_SIZE) {
-      return identity.validate(proof, packetHash);
-    }
-
-    return false;
+    return identity.validate(split.signature, packetHash);
   }
 
   hashablePart(): Uint8Array {
@@ -336,19 +329,6 @@ function isPacketType(value: number): value is PacketTypeValue {
     value === PacketType.LINKREQUEST ||
     value === PacketType.PROOF
   );
-}
-
-function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
-  if (left.length !== right.length) {
-    return false;
-  }
-
-  let diff = 0;
-  for (let index = 0; index < left.length; index += 1) {
-    diff |= left[index]! ^ right[index]!;
-  }
-
-  return diff === 0;
 }
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {

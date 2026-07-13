@@ -1,6 +1,15 @@
+import {
+  ANNOUNCE_RANDOM_HASH_SIZE,
+  ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE,
+  announceDestinationHashMaterial,
+  announceDestinationHashMatches,
+  announceSignedMaterial,
+  packAnnouncePayload,
+  parseAnnouncePayload
+} from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { Destination, DestinationDirection, DestinationType } from "./destination.js";
-import { IDENTITY_KEY_SIZE, Identity, NAME_HASH_LENGTH, RATCHET_SIZE, TRUNCATED_HASH_LENGTH } from "./identity.js";
+import { Identity, TRUNCATED_HASH_LENGTH } from "./identity.js";
 import type { Entropy } from "./runtime/runtime.js";
 import {
   Packet,
@@ -10,7 +19,7 @@ import {
   TransportType
 } from "./packet.js";
 
-export const ANNOUNCE_RANDOM_HASH_SIZE = 10;
+export { ANNOUNCE_RANDOM_HASH_SIZE };
 export const ANNOUNCE_SIGNATURE_SIZE = 64;
 
 export interface AnnounceBuildOptions {
@@ -61,17 +70,31 @@ export class Announce {
 
     if (
       options.ratchetPublicKey !== undefined &&
-      options.ratchetPublicKey.length !== RATCHET_SIZE / 8
+      options.ratchetPublicKey.length !== ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE
     ) {
-      throw new Error(`Announce ratchet public key must be ${RATCHET_SIZE / 8} bytes`);
+      throw new Error(`Announce ratchet public key must be ${ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE} bytes`);
     }
 
     const publicKey = destination.identity.getPublicKey();
-    const ratchet = options.ratchetPublicKey ?? new Uint8Array();
-    const appData = options.appData ?? new Uint8Array();
-    const signedData = concatBytes(destination.hash, publicKey, destination.nameHash, randomHash, ratchet, appData);
+    const ratchetPublicKey = options.ratchetPublicKey ?? null;
+    const appData = options.appData ?? null;
+    const signedData = announceSignedMaterial({
+      destinationHash: destination.hash,
+      publicKey,
+      nameHash: destination.nameHash,
+      randomHash,
+      ratchetPublicKey,
+      appData
+    });
     const signature = destination.identity.sign(signedData);
-    const data = concatBytes(publicKey, destination.nameHash, randomHash, ratchet, signature, appData);
+    const data = packAnnouncePayload({
+      publicKey,
+      nameHash: destination.nameHash,
+      randomHash,
+      ratchetPublicKey,
+      signature,
+      appData
+    });
 
     return Packet.fromFields(provider, {
       headerType: 0,
@@ -90,38 +113,14 @@ export class Announce {
       return null;
     }
 
-    const keySize = IDENTITY_KEY_SIZE;
-    const nameHashSize = NAME_HASH_LENGTH / 8;
-    const ratchetSize = RATCHET_SIZE / 8;
-    const minimumLength = keySize + nameHashSize + ANNOUNCE_RANDOM_HASH_SIZE + ANNOUNCE_SIGNATURE_SIZE;
-    const hasRatchet = packet.contextFlag === PacketContextFlag.SET;
-    const ratchetLength = hasRatchet ? ratchetSize : 0;
-
-    if (packet.data.length < minimumLength + ratchetLength) {
+    const fields = parseAnnouncePayload(packet.data, packet.contextFlag === PacketContextFlag.SET);
+    if (fields === null) {
       return null;
     }
 
-    let offset = 0;
-    const publicKey = packet.data.subarray(offset, offset + keySize);
-    offset += keySize;
-    const nameHash = packet.data.subarray(offset, offset + nameHashSize);
-    offset += nameHashSize;
-    const randomHash = packet.data.subarray(offset, offset + ANNOUNCE_RANDOM_HASH_SIZE);
-    offset += ANNOUNCE_RANDOM_HASH_SIZE;
-    const ratchetPublicKey = hasRatchet ? packet.data.subarray(offset, offset + ratchetSize) : null;
-    offset += ratchetLength;
-    const signature = packet.data.subarray(offset, offset + ANNOUNCE_SIGNATURE_SIZE);
-    offset += ANNOUNCE_SIGNATURE_SIZE;
-    const appData = packet.data.length > offset ? packet.data.subarray(offset) : null;
-
     return {
       destinationHash: packet.destinationHash,
-      publicKey,
-      nameHash,
-      randomHash,
-      ratchetPublicKey,
-      signature,
-      appData
+      ...fields
     };
   }
 
@@ -136,16 +135,14 @@ export class Announce {
       return false;
     }
 
-    const ratchet = parsed.ratchetPublicKey ?? new Uint8Array();
-    const appData = parsed.appData ?? new Uint8Array();
-    const signedData = concatBytes(
-      parsed.destinationHash,
-      parsed.publicKey,
-      parsed.nameHash,
-      parsed.randomHash,
-      ratchet,
-      appData
-    );
+    const signedData = announceSignedMaterial({
+      destinationHash: parsed.destinationHash,
+      publicKey: parsed.publicKey,
+      nameHash: parsed.nameHash,
+      randomHash: parsed.randomHash,
+      ratchetPublicKey: parsed.ratchetPublicKey,
+      appData: parsed.appData
+    });
 
     if (!identity.validate(parsed.signature, signedData)) {
       return false;
@@ -155,36 +152,10 @@ export class Announce {
       return true;
     }
 
-    const expectedHash = Identity.fullHash(provider, concatBytes(parsed.nameHash, identity.hash)).subarray(
-      0,
-      TRUNCATED_HASH_LENGTH / 8
-    );
-    return equalBytes(parsed.destinationHash, expectedHash);
+    const expectedHash = Identity.fullHash(
+      provider,
+      announceDestinationHashMaterial(parsed.nameHash, identity.hash)
+    ).subarray(0, TRUNCATED_HASH_LENGTH / 8);
+    return announceDestinationHashMatches(parsed.destinationHash, expectedHash);
   }
-}
-
-function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
-  const length = parts.reduce((total, part) => total + part.length, 0);
-  const output = new Uint8Array(length);
-  let offset = 0;
-
-  for (const part of parts) {
-    output.set(part, offset);
-    offset += part.length;
-  }
-
-  return output;
-}
-
-function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
-  if (left.length !== right.length) {
-    return false;
-  }
-
-  let diff = 0;
-  for (let index = 0; index < left.length; index += 1) {
-    diff |= left[index]! ^ right[index]!;
-  }
-
-  return diff === 0;
 }

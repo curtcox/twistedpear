@@ -1,0 +1,142 @@
+/**
+ * Pure RNS announce payload framing and signed-material assembly.
+ * Signing / hashing stay at the crypto adapter edge.
+ */
+import { equalByteArrays } from "./path-table.js";
+
+export const ANNOUNCE_RANDOM_HASH_SIZE = 10;
+export const ANNOUNCE_SIGNATURE_SIZE = 64;
+export const ANNOUNCE_PUBLIC_KEY_SIZE = 64;
+export const ANNOUNCE_NAME_HASH_SIZE = 10;
+export const ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE = 32;
+
+export interface AnnouncePayloadFields {
+  readonly publicKey: Uint8Array;
+  readonly nameHash: Uint8Array;
+  readonly randomHash: Uint8Array;
+  readonly ratchetPublicKey: Uint8Array | null;
+  readonly signature: Uint8Array;
+  readonly appData: Uint8Array | null;
+}
+
+function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
+  const length = parts.reduce((total, part) => total + part.length, 0);
+  const output = new Uint8Array(length);
+  let offset = 0;
+  for (const part of parts) {
+    output.set(part, offset);
+    offset += part.length;
+  }
+  return output;
+}
+
+export function announceSignedMaterial(input: {
+  readonly destinationHash: Uint8Array;
+  readonly publicKey: Uint8Array;
+  readonly nameHash: Uint8Array;
+  readonly randomHash: Uint8Array;
+  readonly ratchetPublicKey: Uint8Array | null;
+  readonly appData: Uint8Array | null;
+}): Uint8Array {
+  return concatBytes(
+    input.destinationHash,
+    input.publicKey,
+    input.nameHash,
+    input.randomHash,
+    input.ratchetPublicKey ?? new Uint8Array(),
+    input.appData ?? new Uint8Array()
+  );
+}
+
+export function packAnnouncePayload(input: {
+  readonly publicKey: Uint8Array;
+  readonly nameHash: Uint8Array;
+  readonly randomHash: Uint8Array;
+  readonly ratchetPublicKey: Uint8Array | null;
+  readonly signature: Uint8Array;
+  readonly appData: Uint8Array | null;
+}): Uint8Array {
+  if (input.publicKey.length !== ANNOUNCE_PUBLIC_KEY_SIZE) {
+    throw new Error(`Announce public key must be ${ANNOUNCE_PUBLIC_KEY_SIZE} bytes`);
+  }
+  if (input.nameHash.length !== ANNOUNCE_NAME_HASH_SIZE) {
+    throw new Error(`Announce name hash must be ${ANNOUNCE_NAME_HASH_SIZE} bytes`);
+  }
+  if (input.randomHash.length !== ANNOUNCE_RANDOM_HASH_SIZE) {
+    throw new Error(`Announce random hash must be ${ANNOUNCE_RANDOM_HASH_SIZE} bytes`);
+  }
+  if (
+    input.ratchetPublicKey !== null &&
+    input.ratchetPublicKey.length !== ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE
+  ) {
+    throw new Error(`Announce ratchet public key must be ${ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE} bytes`);
+  }
+  if (input.signature.length !== ANNOUNCE_SIGNATURE_SIZE) {
+    throw new Error(`Announce signature must be ${ANNOUNCE_SIGNATURE_SIZE} bytes`);
+  }
+
+  return concatBytes(
+    input.publicKey,
+    input.nameHash,
+    input.randomHash,
+    input.ratchetPublicKey ?? new Uint8Array(),
+    input.signature,
+    input.appData ?? new Uint8Array()
+  );
+}
+
+export function parseAnnouncePayload(
+  data: Uint8Array,
+  hasRatchet: boolean
+): AnnouncePayloadFields | null {
+  const ratchetLength = hasRatchet ? ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE : 0;
+  const minimumLength =
+    ANNOUNCE_PUBLIC_KEY_SIZE +
+    ANNOUNCE_NAME_HASH_SIZE +
+    ANNOUNCE_RANDOM_HASH_SIZE +
+    ANNOUNCE_SIGNATURE_SIZE +
+    ratchetLength;
+
+  if (data.length < minimumLength) {
+    return null;
+  }
+
+  let offset = 0;
+  const publicKey = data.subarray(offset, offset + ANNOUNCE_PUBLIC_KEY_SIZE);
+  offset += ANNOUNCE_PUBLIC_KEY_SIZE;
+  const nameHash = data.subarray(offset, offset + ANNOUNCE_NAME_HASH_SIZE);
+  offset += ANNOUNCE_NAME_HASH_SIZE;
+  const randomHash = data.subarray(offset, offset + ANNOUNCE_RANDOM_HASH_SIZE);
+  offset += ANNOUNCE_RANDOM_HASH_SIZE;
+  const ratchetPublicKey = hasRatchet
+    ? data.subarray(offset, offset + ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE)
+    : null;
+  offset += ratchetLength;
+  const signature = data.subarray(offset, offset + ANNOUNCE_SIGNATURE_SIZE);
+  offset += ANNOUNCE_SIGNATURE_SIZE;
+  const appData = data.length > offset ? data.subarray(offset) : null;
+
+  return {
+    publicKey,
+    nameHash,
+    randomHash,
+    ratchetPublicKey,
+    signature,
+    appData
+  };
+}
+
+/** Material hashed then truncated for destination-hash check after announce validate. */
+export function announceDestinationHashMaterial(
+  nameHash: Uint8Array,
+  identityHash: Uint8Array
+): Uint8Array {
+  return concatBytes(nameHash, identityHash);
+}
+
+export function announceDestinationHashMatches(
+  destinationHash: Uint8Array,
+  expectedTruncatedHash: Uint8Array
+): boolean {
+  return equalByteArrays(destinationHash, expectedTruncatedHash);
+}

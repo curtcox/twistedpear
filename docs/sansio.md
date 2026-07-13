@@ -32,6 +32,8 @@
 > **Transport wrap/strip/relay framing** and **resource proof** pack/validate are pure
 > protocol leaves; transport + `Resource` adapt them. **Path-request payload framing**
 > (build/parse/tag key) is a pure protocol leaf; transport path helpers adapt it.
+> **Announce payload framing** (pack/parse/signed material) and **packet proof framing**
+> (explicit/implicit) are pure protocol leaves; `Announce` and `Packet` adapt them.
 > Identity ratchet JSON and LXMF message text use protocol UTF-8 (no `TextEncoder`/
 > `TextDecoder`). Remaining depth work: keep converting residual session IO into step
 > machines.

@@ -392,6 +392,28 @@ export {
   wrapTransportPacketBytes
 } from "./transport-framing.js";
 export {
+  ANNOUNCE_NAME_HASH_SIZE,
+  ANNOUNCE_PUBLIC_KEY_SIZE,
+  ANNOUNCE_RANDOM_HASH_SIZE,
+  ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE,
+  ANNOUNCE_SIGNATURE_SIZE,
+  announceDestinationHashMaterial,
+  announceDestinationHashMatches,
+  announceSignedMaterial,
+  packAnnouncePayload,
+  parseAnnouncePayload,
+  type AnnouncePayloadFields
+} from "./announce-framing.js";
+export {
+  PACKET_EXPLICIT_PROOF_SIZE,
+  PACKET_FULL_HASH_SIZE,
+  PACKET_SIGNATURE_SIZE,
+  packPacketProof,
+  packetProofHashMatches,
+  splitPacketProof,
+  type PacketProofFields
+} from "./packet-proof.js";
+export {
   PATH_REQUEST_HASH_BYTES,
   TRANSPORT_PATH_REQUEST_APP,
   TRANSPORT_PATH_REQUEST_ASPECTS,
