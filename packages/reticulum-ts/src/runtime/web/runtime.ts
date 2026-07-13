@@ -3,6 +3,7 @@ import type {
   Clock,
   DatagramPacket,
   DuplexConnection,
+  Entropy,
   KeyValueStore,
   Runtime,
   TcpConnectOptions,
@@ -16,6 +17,8 @@ import type {
 export interface WebRuntimeOptions {
   readonly storeName?: string;
   readonly indexedDB?: WebIndexedDB;
+  readonly clock?: Clock;
+  readonly entropy?: Entropy;
 }
 
 export interface WebIndexedDB {
@@ -67,6 +70,22 @@ class WebClock implements Clock {
 
   setTimeout(callback: () => void, milliseconds: number): Timer {
     return new WebTimer(setTimeout(callback, milliseconds));
+  }
+}
+
+type GlobalCrypto = {
+  getRandomValues: (array: Uint8Array) => Uint8Array;
+};
+
+class WebEntropy implements Entropy {
+  randomBytes(length: number): Uint8Array {
+    const out = new Uint8Array(length);
+    const c = (globalThis as { crypto?: GlobalCrypto }).crypto;
+    if (c !== undefined && typeof c.getRandomValues === "function") {
+      c.getRandomValues(out);
+      return out;
+    }
+    throw new Error("WebEntropy requires globalThis.crypto.getRandomValues");
   }
 }
 
@@ -137,7 +156,8 @@ export function webRuntime(options: WebRuntimeOptions = {}): Runtime {
   }
 
   return {
-    clock: new WebClock(),
+    clock: options.clock ?? new WebClock(),
+    entropy: options.entropy ?? new WebEntropy(),
     store: new IndexedDbKeyValueStore(indexedDB, options.storeName ?? "twistedpear-reticulum"),
     tcp: new UnsupportedTcpFactory(),
     udp: new UnsupportedUdpFactory()

@@ -210,7 +210,7 @@ export class Link {
     });
 
     const initiatorKeys = splitInitiatorLinkEntropy(
-      options.entropy ?? provider.randomBytes(LINK_INITIATOR_ENTROPY_SIZE)
+      options.entropy ?? options.transport.entropy.randomBytes(LINK_INITIATOR_ENTROPY_SIZE)
     );
     link.privateKey = initiatorKeys.privateKey;
     link.publicKeyBytes = provider.x25519PublicFromPrivate(link.privateKey);
@@ -284,7 +284,7 @@ export class Link {
       });
 
       const responderKeys = splitResponderLinkEntropy(
-        options?.entropy ?? provider.randomBytes(LINK_RESPONDER_ENTROPY_SIZE)
+        options?.entropy ?? transport.entropy.randomBytes(LINK_RESPONDER_ENTROPY_SIZE)
       );
       link.privateKey = responderKeys.privateKey;
       link.publicKeyBytes = provider.x25519PublicFromPrivate(link.privateKey);

@@ -40,6 +40,7 @@ export class Reticulum {
       provider: options.provider,
       transportIdentity: this.transportIdentity,
       clock: options.runtime.clock,
+      entropy: options.runtime.entropy,
       ...(options.useImplicitProof === undefined ? {} : { useImplicitProof: options.useImplicitProof })
     };
     this.transport =

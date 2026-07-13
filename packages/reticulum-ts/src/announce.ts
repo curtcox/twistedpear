@@ -1,6 +1,7 @@
 import type { CryptoProvider } from "./crypto/provider.js";
 import { Destination, DestinationDirection, DestinationType } from "./destination.js";
 import { IDENTITY_KEY_SIZE, Identity, NAME_HASH_LENGTH, RATCHET_SIZE, TRUNCATED_HASH_LENGTH } from "./identity.js";
+import type { Entropy } from "./runtime/runtime.js";
 import {
   Packet,
   PacketContext,
@@ -17,6 +18,8 @@ export interface AnnounceBuildOptions {
   readonly randomHash?: Uint8Array;
   readonly ratchetPublicKey?: Uint8Array;
   readonly pathResponse?: boolean;
+  /** Preferred entropy source when `randomHash` is omitted. */
+  readonly entropy?: Entropy;
 }
 
 export interface ParsedAnnounce {
@@ -47,7 +50,11 @@ export class Announce {
       throw new Error("Announce destination must hold an identity");
     }
 
-    const randomHash = options.randomHash ?? provider.randomBytes(ANNOUNCE_RANDOM_HASH_SIZE);
+    const randomHash =
+      options.randomHash ??
+      (options.entropy !== undefined
+        ? options.entropy.randomBytes(ANNOUNCE_RANDOM_HASH_SIZE)
+        : provider.randomBytes(ANNOUNCE_RANDOM_HASH_SIZE));
     if (randomHash.length !== ANNOUNCE_RANDOM_HASH_SIZE) {
       throw new Error(`Announce random hash must be ${ANNOUNCE_RANDOM_HASH_SIZE} bytes`);
     }

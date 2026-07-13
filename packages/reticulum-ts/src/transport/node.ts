@@ -25,7 +25,7 @@ import {
   PacketType,
   TransportType
 } from "../packet.js";
-import type { Clock } from "../runtime/runtime.js";
+import type { Clock, Entropy } from "../runtime/runtime.js";
 import {
   buildPathRequestData,
   parsePathRequestData,
@@ -87,6 +87,7 @@ export interface LeafTransportOptions {
   readonly provider: CryptoProvider;
   readonly transportIdentity: Identity;
   readonly clock: Clock;
+  readonly entropy: Entropy;
   readonly useImplicitProof?: boolean;
   readonly transportEnabled?: boolean;
 }
@@ -118,6 +119,10 @@ export class LeafTransport {
 
   get clock(): Clock {
     return this.options.clock;
+  }
+
+  get entropy(): Entropy {
+    return this.options.entropy;
   }
 
   private delay(ms: number): Promise<void> {

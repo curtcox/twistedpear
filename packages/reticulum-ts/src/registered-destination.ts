@@ -192,6 +192,7 @@ export class RegisteredDestination extends Destination {
       appData?: Uint8Array;
       attachedInterface?: PacketInterface | null;
       pathResponse?: boolean;
+      randomHash?: Uint8Array;
     } = {}
   ): Promise<void> {
     if (this.transport === null) {
@@ -207,8 +208,10 @@ export class RegisteredDestination extends Destination {
     }
 
     const packet = Announce.buildPacket(this.cryptoProvider, this, {
+      entropy: this.transport.entropy,
       ...(options.appData === undefined ? {} : { appData: options.appData }),
-      ...(options.pathResponse === true ? { pathResponse: true } : {})
+      ...(options.pathResponse === true ? { pathResponse: true } : {}),
+      ...(options.randomHash === undefined ? {} : { randomHash: options.randomHash })
     });
     await this.transport.sendPacket(packet, {
       attachedInterface: options.attachedInterface ?? null

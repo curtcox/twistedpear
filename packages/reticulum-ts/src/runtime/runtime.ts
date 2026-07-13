@@ -7,6 +7,11 @@ export interface Clock {
   setTimeout(callback: () => void, milliseconds: number): Timer;
 }
 
+/** Injected randomness — protocol/session code must not call OS RNG directly. */
+export interface Entropy {
+  randomBytes(length: number): Uint8Array;
+}
+
 export interface KeyValueStore {
   get(key: string): Promise<Uint8Array | undefined>;
   set(key: string, value: Uint8Array): Promise<void>;
@@ -60,6 +65,7 @@ export interface UdpFactory {
 
 export interface Runtime {
   readonly clock: Clock;
+  readonly entropy: Entropy;
   readonly store: KeyValueStore;
   readonly tcp: TcpFactory;
   readonly udp: UdpFactory;

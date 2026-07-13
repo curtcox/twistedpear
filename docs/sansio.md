@@ -7,8 +7,10 @@
 > cores (`@noble/hashes`); `Link.handshake` performs ECDH at the crypto edge then calls
 > `deriveRnsLinkKey`. Handshake sims use RNS HKDF over order-independent shared secrets.
 > **Link keygen** accepts injected entropy (`splitInitiatorLinkEntropy` /
-> `splitResponderLinkEntropy`); providers remain the default source when entropy is omitted.
-> Remaining depth work: thread `Entropy` through Runtime for live paths, and keep converting
+> `splitResponderLinkEntropy`). **`Runtime.entropy`** is threaded through
+> `LeafTransport` into Link keygen (explicit override still wins). Announce builds prefer
+> `transport.entropy` for the random hash. Remaining depth work:
+> route Identity/Token/Resource RNG through Runtime entropy, and keep converting
 > residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

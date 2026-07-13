@@ -1,4 +1,5 @@
-import type { Clock, KeyValueStore, Runtime, Timer } from "../runtime.js";
+import { randomBytes as nodeRandomBytes } from "node:crypto";
+import type { Clock, Entropy, KeyValueStore, Runtime, Timer } from "../runtime.js";
 import { nodeTcpFactory, nodeUdpFactory } from "./sockets.js";
 
 class NodeTimer implements Timer {
@@ -19,6 +20,12 @@ class NodeClock implements Clock {
   }
 }
 
+class NodeEntropy implements Entropy {
+  randomBytes(length: number): Uint8Array {
+    return new Uint8Array(nodeRandomBytes(length));
+  }
+}
+
 class MemoryKeyValueStore implements KeyValueStore {
   private readonly values = new Map<string, Uint8Array>();
 
@@ -36,9 +43,15 @@ class MemoryKeyValueStore implements KeyValueStore {
   }
 }
 
-export function nodeRuntime(): Runtime {
+export interface NodeRuntimeOptions {
+  readonly clock?: Clock;
+  readonly entropy?: Entropy;
+}
+
+export function nodeRuntime(options: NodeRuntimeOptions = {}): Runtime {
   return {
-    clock: new NodeClock(),
+    clock: options.clock ?? new NodeClock(),
+    entropy: options.entropy ?? new NodeEntropy(),
     store: new MemoryKeyValueStore(),
     tcp: nodeTcpFactory,
     udp: nodeUdpFactory

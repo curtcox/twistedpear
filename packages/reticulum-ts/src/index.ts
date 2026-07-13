@@ -91,6 +91,7 @@ export type {
   Clock,
   DatagramPacket,
   DuplexConnection,
+  Entropy,
   KeyValueStore,
   Runtime,
   TcpConnectOptions,
@@ -100,6 +101,7 @@ export type {
   UdpFactory
 } from "./runtime/runtime.js";
 export { nodeRuntime } from "./runtime/node/runtime.js";
+export type { NodeRuntimeOptions } from "./runtime/node/runtime.js";
 export { bareRuntime } from "./runtime/bare/runtime.js";
 export type { BareRuntimeOptions } from "./runtime/bare/runtime.js";
 export { webRuntime } from "./runtime/web/runtime.js";

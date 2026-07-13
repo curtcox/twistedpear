@@ -85,6 +85,7 @@ export type {
   Clock,
   DatagramPacket,
   DuplexConnection,
+  Entropy,
   KeyValueStore,
   Runtime,
   TcpConnectOptions,

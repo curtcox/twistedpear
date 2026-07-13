@@ -1,4 +1,4 @@
-import type { Clock, Runtime, Timer } from "../runtime.js";
+import type { Clock, Entropy, Runtime, Timer } from "../runtime.js";
 import { BareKeyValueStore } from "./store.js";
 import { bareTcpFactory, bareUdpFactory } from "./sockets.js";
 
@@ -20,13 +20,32 @@ class BareClock implements Clock {
   }
 }
 
+type GlobalCrypto = {
+  getRandomValues: (array: Uint8Array) => Uint8Array;
+};
+
+class BareEntropy implements Entropy {
+  randomBytes(length: number): Uint8Array {
+    const out = new Uint8Array(length);
+    const c = (globalThis as { crypto?: GlobalCrypto }).crypto;
+    if (c !== undefined && typeof c.getRandomValues === "function") {
+      c.getRandomValues(out);
+      return out;
+    }
+    throw new Error("BareEntropy requires globalThis.crypto.getRandomValues");
+  }
+}
+
 export interface BareRuntimeOptions {
   readonly storePath?: string;
+  readonly clock?: Clock;
+  readonly entropy?: Entropy;
 }
 
 export function bareRuntime(options: BareRuntimeOptions = {}): Runtime {
   return {
-    clock: new BareClock(),
+    clock: options.clock ?? new BareClock(),
+    entropy: options.entropy ?? new BareEntropy(),
     store: new BareKeyValueStore({ rootPath: options.storePath ?? ".reticulum-store" }),
     tcp: bareTcpFactory,
     udp: bareUdpFactory
