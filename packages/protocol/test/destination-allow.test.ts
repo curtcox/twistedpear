@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DestinationAllowPolicyCode,
+  canAcceptDestinationLinkRequest,
   isValidDestinationRequestPath,
   planDestinationRequestAllow
 } from "../src/destination-allow.js";
@@ -42,6 +43,18 @@ describe("destination allow policy", () => {
   it("rejects empty request-handler paths", () => {
     expect(isValidDestinationRequestPath("")).toBe(false);
     expect(isValidDestinationRequestPath("/echo")).toBe(true);
+  });
+
+  it("accepts inbound link requests only when enabled and IN", () => {
+    expect(
+      canAcceptDestinationLinkRequest({ acceptLinkRequests: true, directionIn: true })
+    ).toBe(true);
+    expect(
+      canAcceptDestinationLinkRequest({ acceptLinkRequests: false, directionIn: true })
+    ).toBe(false);
+    expect(
+      canAcceptDestinationLinkRequest({ acceptLinkRequests: true, directionIn: false })
+    ).toBe(false);
   });
 });
 

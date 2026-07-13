@@ -17,6 +17,14 @@ export function isValidDestinationRequestPath(path: string): boolean {
   return path.length > 0;
 }
 
+/** Whether this destination should validate and accept inbound link requests. */
+export function canAcceptDestinationLinkRequest(input: {
+  readonly acceptLinkRequests: boolean;
+  readonly directionIn: boolean;
+}): boolean {
+  return input.acceptLinkRequests && input.directionIn;
+}
+
 export function planDestinationRequestAllow(input: {
   readonly allow: number;
   readonly allowedList: ReadonlyArray<Uint8Array>;

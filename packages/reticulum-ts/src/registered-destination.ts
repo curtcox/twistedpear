@@ -25,6 +25,7 @@ import {
 } from "./transport/node.js";
 import {
   DestinationAllowPolicyCode,
+  canAcceptDestinationLinkRequest,
   isValidDestinationRequestPath,
   utf8Encode,
   type DestinationAllowPolicyCodeValue
@@ -145,7 +146,12 @@ export class RegisteredDestination extends Destination {
   }
 
   handleLinkRequest(packet: Packet, iface: PacketInterface): void {
-    if (!this.acceptLinkRequests || this.direction !== DestinationDirection.IN) {
+    if (
+      !canAcceptDestinationLinkRequest({
+        acceptLinkRequests: this.acceptLinkRequests,
+        directionIn: this.direction === DestinationDirection.IN
+      })
+    ) {
       return;
     }
 
