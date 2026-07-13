@@ -286,3 +286,20 @@ export {
   type LinkEstablishEvent,
   type LinkEstablishState
 } from "./link-establish.js";
+export {
+  LINK_IDENTIFY_PAYLOAD_SIZE,
+  LINK_IDENTIFY_PUBLIC_KEY_SIZE,
+  LINK_IDENTIFY_SIGNATURE_SIZE,
+  canAcceptLinkIdentify,
+  linkIdentifySignedMaterial,
+  packLinkIdentifyPayload,
+  splitLinkIdentifyPayload
+} from "./link-identify.js";
+export {
+  LINK_MDU_BLOCK_SIZE,
+  LINK_MDU_HEADER_MAX,
+  LINK_MDU_IFAC_MIN,
+  LINK_MDU_TOKEN_OVERHEAD,
+  computeLinkMdu,
+  linkHopsMatch
+} from "./link-metrics.js";

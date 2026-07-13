@@ -3,23 +3,29 @@ import {
   LINK_PROOF_BODY_SIZE,
   LINK_RESPONDER_ENTROPY_SIZE,
   applyLinkEstablishEvent,
+  canAcceptLinkIdentify,
   canAcceptLinkRtt,
   canIdentifyOnLink,
   canLinkHandshake,
   canValidateLinkProof,
   classifyLinkProofPayload,
   computeKeepalive,
+  computeLinkMdu,
   computeLinkRttSeconds,
   deriveRnsLinkKey,
   encodeLinkMtuBytes,
   encodeLinkSignallingBytes,
   initialLinkEstablishState,
+  linkHopsMatch,
+  linkIdentifySignedMaterial,
   mergeLinkRtt,
   modeFromLinkProofData,
   modeFromLinkRequestData,
   mtuFromLinkProofData,
   mtuFromLinkRequestData,
+  packLinkIdentifyPayload,
   splitInitiatorLinkEntropy,
+  splitLinkIdentifyPayload,
   splitLinkProofBody,
   splitResponderLinkEntropy,
   stepLinkWatchdogWithActions,
@@ -32,7 +38,7 @@ import { Token } from "./crypto/token.js";
 import { Channel, LinkChannelOutlet } from "./channel.js";
 import { equalBytes } from "./crypto/bytes.js";
 import { DestinationDirection, DestinationType } from "./destination.js";
-import { Identity, IDENTITY_KEY_SIZE } from "./identity.js";
+import { Identity } from "./identity.js";
 import type { PacketInterface } from "./interfaces/interface.js";
 import { LinkRequestReceipt } from "./link-request-receipt.js";
 import {
@@ -666,10 +672,9 @@ export class Link {
       return;
     }
 
-    const signedData = concatBytes(this.linkId, identity.getPublicKey());
-    const signature = identity.sign(signedData);
-    const proofData = concatBytes(identity.getPublicKey(), signature);
-    void this.sendContext(PacketContext.LINKIDENTIFY, proofData);
+    const publicKey = identity.getPublicKey();
+    const signature = identity.sign(linkIdentifySignedMaterial(this.linkId, publicKey));
+    void this.sendContext(PacketContext.LINKIDENTIFY, packLinkIdentifyPayload(publicKey, signature));
   }
 
   getRemoteIdentity(): Identity | null {
@@ -913,11 +918,7 @@ export class Link {
   }
 
   updateMdu(): void {
-    const headerMax = 18;
-    const ifacMin = 0;
-    const blockSize = 16;
-    this.mdu =
-      Math.floor((this.mtu - ifacMin - headerMax - 48) / blockSize) * blockSize - 1;
+    this.mdu = computeLinkMdu(this.mtu);
   }
 
   hadOutbound(isKeepalive = false): void {
@@ -932,32 +933,39 @@ export class Link {
   }
 
   hopsMatch(packet: Packet): boolean {
-    if (this.expectedHops === null) {
-      return true;
-    }
-
-    return packet.hops === this.expectedHops || this.expectedHops === PATHFINDER_MAX_HOPS;
+    return linkHopsMatch({
+      expectedHops: this.expectedHops,
+      packetHops: packet.hops,
+      pathfinderMaxHops: PATHFINDER_MAX_HOPS
+    });
   }
 
   private async handleIdentifyPacket(packet: Packet): Promise<void> {
-    if (this.initiator) {
+    if (!canAcceptLinkIdentify(this.initiator)) {
       return;
     }
 
     const plaintext = this.decrypt(packet.data);
-    if (plaintext === null || plaintext.length !== IDENTITY_KEY_SIZE + LINK_SIGNATURE_SIZE) {
+    if (plaintext === null) {
       return;
     }
 
-    const publicKey = plaintext.subarray(0, IDENTITY_KEY_SIZE);
-    const signature = plaintext.subarray(IDENTITY_KEY_SIZE, IDENTITY_KEY_SIZE + LINK_SIGNATURE_SIZE);
-    const identity = Identity.fromPublicKey(this.provider, publicKey);
+    const parts = splitLinkIdentifyPayload(plaintext);
+    if (parts === null) {
+      return;
+    }
+
+    const identity = Identity.fromPublicKey(this.provider, parts.publicKey);
     if (identity === null) {
       return;
     }
 
-    const signedData = concatBytes(this.linkId, publicKey);
-    if (!identity.validate(signature, signedData)) {
+    if (
+      !identity.validate(
+        parts.signature,
+        linkIdentifySignedMaterial(this.linkId, parts.publicKey)
+      )
+    ) {
       return;
     }
 

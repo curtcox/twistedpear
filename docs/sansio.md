@@ -17,8 +17,9 @@
 > pure protocol leaves. **LXMF outbound send-state** (enqueue → sending → sent/delivered/
 > failed + progress) is a pure protocol leaf; `LXMFRouter` adapts it. **Link proof framing**
 > and **establish status transitions** (handshake/proof/RTT/identify gates) are pure
-> protocol leaves; `Link` adapts them. Remaining depth work: keep converting residual
-> session IO into step machines.
+> protocol leaves; `Link` adapts them. **Link identify** payload framing/gates and **MDU /
+> hops-match** metrics are pure protocol leaves. Remaining depth work: keep converting
+> residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
