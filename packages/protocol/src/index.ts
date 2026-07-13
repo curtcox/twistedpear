@@ -371,3 +371,23 @@ export {
   type ResourcePartRequest,
   type ResourcePartRequestPlan
 } from "./resource-hashmap.js";
+export {
+  RESOURCE_PROOF_HASH_SIZE,
+  RESOURCE_PROOF_SIZE,
+  RESOURCE_RANDOM_HASH_SIZE,
+  isValidResourceProof,
+  packResourceProof,
+  splitResourceDecryptedPayload,
+  splitResourceProof
+} from "./resource-proof.js";
+export {
+  PACKET_HEADER_1,
+  PACKET_HEADER_2,
+  TRANSPORT_BROADCAST,
+  TRANSPORT_ID_BYTES,
+  TRANSPORT_TRANSPORT,
+  packetFlagsLowNibble,
+  relayTransportPacketBytes,
+  stripTransportHeadersBytes,
+  wrapTransportPacketBytes
+} from "./transport-framing.js";

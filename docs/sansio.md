@@ -29,8 +29,10 @@
 > adapts them. **Resource hashmap-update** framing, part-request parsing, slot-write
 > planning, and **part-request planning** (`planResourcePartRequest`) are pure protocol
 > leaves; `Resource` adapts them. Link RTT float encode/decode uses protocol msgpack.
-> LXMF message text encoding uses protocol UTF-8 (no `TextEncoder`). Remaining depth
-> work: keep converting residual session IO into step machines.
+> **Transport wrap/strip/relay framing** and **resource proof** pack/validate are pure
+> protocol leaves; transport + `Resource` adapt them. Identity ratchet JSON and LXMF
+> message text use protocol UTF-8 (no `TextEncoder`). Remaining depth work: keep
+> converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

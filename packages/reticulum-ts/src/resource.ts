@@ -2,6 +2,7 @@ import {
   RESOURCE_HASHMAP_IS_EXHAUSTED,
   RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,
   RESOURCE_MAPHASH_LEN,
+  RESOURCE_RANDOM_HASH_SIZE,
   assembleResourceHashmapBytes,
   computeResourceTimeout,
   decodeResourceAdvertisementFlags,
@@ -10,11 +11,14 @@ import {
   isResourceAdvertisementResponse,
   packResourceAdvertisement,
   packResourceHashmapUpdate,
+  packResourceProof,
   parseResourcePartRequest,
   planResourceHashmapSlotWrites,
   planResourcePartRequest,
   readResourceRequestHash,
   resourceHashmapMaxLen,
+  isValidResourceProof,
+  splitResourceDecryptedPayload,
   splitResourceHashmapUpdatePacket,
   stepResourceWatchdogWithActions,
   unpackResourceAdvertisement,
@@ -58,11 +62,11 @@ export const RESOURCE_WINDOW_MAX_SLOW = 10;
 export const RESOURCE_WINDOW_MAX_FAST = 75;
 export const RESOURCE_WINDOW_MAX = RESOURCE_WINDOW_MAX_FAST;
 export const RESOURCE_WINDOW_FLEXIBILITY = 4;
-export const RESOURCE_RANDOM_HASH_SIZE = 4;
 export {
   RESOURCE_MAPHASH_LEN,
   RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,
-  RESOURCE_HASHMAP_IS_EXHAUSTED
+  RESOURCE_HASHMAP_IS_EXHAUSTED,
+  RESOURCE_RANDOM_HASH_SIZE
 };
 export const RESOURCE_MAX_RETRIES = 16;
 export const RESOURCE_MAX_ADV_RETRIES = 4;
@@ -671,7 +675,12 @@ export class Resource {
         return;
       }
 
-      const payload = decrypted.subarray(RESOURCE_RANDOM_HASH_SIZE);
+      const payload = splitResourceDecryptedPayload(decrypted);
+      if (payload === null) {
+        this.status = ResourceStatus.CORRUPT;
+        this.cancel();
+        return;
+      }
       const calculatedHash = Identity.fullHash(this.provider, concatBytes(payload, this.randomHash));
       if (!equalBytes(calculatedHash, this.hash)) {
         this.status = ResourceStatus.CORRUPT;
@@ -697,7 +706,7 @@ export class Resource {
     }
 
     const proof = Identity.fullHash(this.provider, concatBytes(this.data, this.hash));
-    const proofData = concatBytes(this.hash, proof);
+    const proofData = packResourceProof(this.hash, proof);
     await this.link.sendProof(PacketContext.RESOURCE_PRF, proofData);
   }
 
@@ -706,7 +715,7 @@ export class Resource {
       return;
     }
 
-    if (proofData.length === 64 && equalBytes(proofData.subarray(32), this.expectedProof)) {
+    if (isValidResourceProof(proofData, this.expectedProof)) {
       this.status = ResourceStatus.COMPLETE;
       this.progress = 1;
       this.link.resourceConcluded(this);

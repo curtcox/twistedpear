@@ -6,9 +6,12 @@ import {
   PATH_REQUEST_TIMEOUT_SECONDS,
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
   computePathExpiry,
+  relayTransportPacketBytes,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
-  timebaseFromRandomBlobs as protocolTimebaseFromRandomBlobs
+  stripTransportHeadersBytes,
+  timebaseFromRandomBlobs as protocolTimebaseFromRandomBlobs,
+  wrapTransportPacketBytes
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "../crypto/provider.js";
 import { Announce, type ParsedAnnounce } from "../announce.js";
@@ -744,24 +747,16 @@ export function timebaseFromRandomBlobs(randomBlobs: ReadonlyArray<Uint8Array>):
 }
 
 export function wrapTransportPacket(packet: Packet, nextHop: Uint8Array): Uint8Array {
-  const flags =
-    (PacketHeaderType.HEADER_2 << 6) | (TransportType.TRANSPORT << 4) | (packet.packedFlags() & 0x0f);
-  const header = new Uint8Array([flags, packet.hops]);
-  const rest = packet.raw.subarray(2);
-  const wrapped = new Uint8Array(header.length + nextHop.length + rest.length);
-  wrapped.set(header, 0);
-  wrapped.set(nextHop, header.length);
-  wrapped.set(rest, header.length + nextHop.length);
-  return wrapped;
+  return wrapTransportPacketBytes({
+    packedFlags: packet.packedFlags(),
+    hops: packet.hops,
+    raw: packet.raw,
+    nextHop
+  });
 }
 
 export function stripTransportHeaders(raw: Uint8Array): Uint8Array {
-  const flags = ((raw[0]! & 0b00001111) | (PacketHeaderType.HEADER_1 << 6) | (TransportType.BROADCAST << 4)) & 0xff;
-  const output = new Uint8Array(raw.length - TRUNCATED_HASH_BYTES);
-  output[0] = flags;
-  output[1] = raw[1]!;
-  output.set(raw.subarray(2 + TRUNCATED_HASH_BYTES), 2);
-  return output;
+  return stripTransportHeadersBytes(raw);
 }
 
 export function relayTransportPacket(
@@ -769,24 +764,12 @@ export function relayTransportPacket(
   remainingHops: number,
   nextHop: Uint8Array
 ): Uint8Array {
-  if (remainingHops > 1) {
-    const raw = new Uint8Array(packet.raw.length);
-    raw[0] = packet.raw[0]!;
-    raw[1] = packet.hops;
-    raw.set(nextHop, 2);
-    raw.set(packet.raw.subarray(2 + TRUNCATED_HASH_BYTES), 2 + TRUNCATED_HASH_BYTES);
-    return raw;
-  }
-
-  if (remainingHops === 1) {
-    return stripTransportHeaders(packet.raw);
-  }
-
-  const raw = new Uint8Array(packet.raw.length - TRUNCATED_HASH_BYTES);
-  raw[0] = packet.raw[0]!;
-  raw[1] = packet.hops;
-  raw.set(packet.raw.subarray(2 + TRUNCATED_HASH_BYTES), 2);
-  return raw;
+  return relayTransportPacketBytes({
+    raw: packet.raw,
+    hops: packet.hops,
+    remainingHops,
+    nextHop
+  });
 }
 
 export function buildTransportAnnounce(

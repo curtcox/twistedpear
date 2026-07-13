@@ -1,9 +1,9 @@
+import { IDENTITY_KEY_ENTROPY_SIZE, splitIdentityEntropy, utf8Decode, utf8Encode } from "@twistedpear/protocol";
 import { bytesToHex } from "./crypto/bytes.js";
 import { rnsHkdf } from "./crypto/hkdf.js";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { Token } from "./crypto/token.js";
 import type { Entropy, KeyValueStore } from "./runtime/runtime.js";
-import { IDENTITY_KEY_ENTROPY_SIZE, splitIdentityEntropy } from "@twistedpear/protocol";
 
 /** Mirrors RNS/Identity.py constants and core identity operations. */
 export const IDENTITY_KEY_SIZE = 64;
@@ -368,11 +368,11 @@ function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
 function encodeRatchetRecord(record: RatchetRecord): Uint8Array {
   const ratchetHex = bytesToHex(record.ratchet);
   const json = JSON.stringify({ ratchet: ratchetHex, received: record.received });
-  return new TextEncoder().encode(json);
+  return utf8Encode(json);
 }
 
 function decodeRatchetRecord(bytes: Uint8Array): RatchetRecord {
-  const parsed = JSON.parse(new TextDecoder().decode(bytes)) as {
+  const parsed = JSON.parse(utf8Decode(bytes)) as {
     ratchet: string;
     received: number;
   };
