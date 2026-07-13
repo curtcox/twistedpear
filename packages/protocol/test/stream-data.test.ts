@@ -5,6 +5,7 @@ import {
   StreamSystemMessageTypes,
   clampStreamDataChunkLength,
   packStreamDataMessage,
+  shouldAppendStreamData,
   unpackStreamDataMessage
 } from "../src/stream-data.js";
 
@@ -37,5 +38,10 @@ describe("protocol stream data framing", () => {
     expect(clampStreamDataChunkLength(1000, 256, 16_384)).toBe(256);
     expect(clampStreamDataChunkLength(100, 256, 16_384)).toBe(100);
     expect(clampStreamDataChunkLength(1000, 2000, 500)).toBe(500);
+  });
+
+  it("skips empty stream payloads for append", () => {
+    expect(shouldAppendStreamData(0)).toBe(false);
+    expect(shouldAppendStreamData(1)).toBe(true);
   });
 });

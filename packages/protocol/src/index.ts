@@ -563,6 +563,7 @@ export {
   StreamSystemMessageTypes,
   clampStreamDataChunkLength,
   packStreamDataMessage,
+  shouldAppendStreamData,
   unpackStreamDataMessage,
   type StreamDataFields,
   type StreamSystemMessageTypeValue

@@ -82,3 +82,8 @@ export function clampStreamDataChunkLength(
 ): number {
   return Math.min(length, maxDataLen, maxChunkLen);
 }
+
+/** Whether inbound stream payload bytes should be appended to the reader buffer. */
+export function shouldAppendStreamData(length: number): boolean {
+  return length > 0;
+}

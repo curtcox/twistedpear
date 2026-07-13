@@ -3,6 +3,7 @@ import {
   StreamSystemMessageTypes,
   clampStreamDataChunkLength,
   packStreamDataMessage,
+  shouldAppendStreamData,
   unpackStreamDataMessage
 } from "@twistedpear/protocol";
 import { Channel, type ChannelMessage } from "./channel.js";
@@ -80,7 +81,7 @@ export class RawChannelReader {
         return false;
       }
 
-      if (message.data.length > 0) {
+      if (shouldAppendStreamData(message.data.length)) {
         this.append(message.data);
       }
 
@@ -137,7 +138,7 @@ export class RawChannelReader {
   }
 
   private append(data: Uint8Array): void {
-    if (data.length === 0) {
+    if (!shouldAppendStreamData(data.length)) {
       return;
     }
 
