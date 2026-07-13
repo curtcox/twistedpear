@@ -45,6 +45,7 @@ import {
   encodeLinkSignallingBytes,
   initialLinkEstablishState,
   isLinkKeepaliveProbe,
+  isLinkModeEnabled,
   linkHopsMatch,
   linkIdentifySignedMaterial,
   linkPayloadFitsMdu,
@@ -351,7 +352,7 @@ export class Link {
       }
 
       link.mode = Link.modeFromLrPacket(packet);
-      if (!LINK_ENABLED_MODES.includes(link.mode)) {
+      if (!isLinkModeEnabled(link.mode)) {
         return null;
       }
 
@@ -377,7 +378,7 @@ export class Link {
   }
 
   static signallingBytes(mtu: number, mode: LinkModeValue): Uint8Array {
-    if (!LINK_ENABLED_MODES.includes(mode)) {
+    if (!isLinkModeEnabled(mode)) {
       throw new Error(`Requested link mode ${mode} is not enabled`);
     }
 

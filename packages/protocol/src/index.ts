@@ -289,6 +289,7 @@ export {
   LinkKeyMode,
   LinkMode,
   deriveRnsLinkKey,
+  isLinkModeEnabled,
   linkDerivedKeyLength,
   orderIndependentSharedSecret,
   type LinkKeyModeValue,

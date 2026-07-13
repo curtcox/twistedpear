@@ -20,6 +20,11 @@ export type LinkModeValue = LinkKeyModeValue;
 export const LINK_MODE_DEFAULT: LinkKeyModeValue = LinkKeyMode.MODE_AES256_CBC;
 export const LINK_ENABLED_MODES: ReadonlyArray<LinkKeyModeValue> = [LinkKeyMode.MODE_AES256_CBC];
 
+/** Whether a link mode is in the currently enabled set. */
+export function isLinkModeEnabled(mode: LinkKeyModeValue | number): boolean {
+  return (LINK_ENABLED_MODES as ReadonlyArray<number>).includes(mode);
+}
+
 export function linkDerivedKeyLength(mode: LinkKeyModeValue | number): number {
   return mode === LinkKeyMode.MODE_AES256_CBC ? 64 : 32;
 }

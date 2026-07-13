@@ -6,6 +6,7 @@ import {
   LinkKeyMode,
   LinkMode,
   deriveRnsLinkKey,
+  isLinkModeEnabled,
   linkDerivedKeyLength,
   orderIndependentSharedSecret
 } from "../src/link-key-derive.js";
@@ -31,6 +32,9 @@ describe("protocol RNS HKDF / link key derive", () => {
     expect(LinkMode).toBe(LinkKeyMode);
     expect(LINK_MODE_DEFAULT).toBe(LinkKeyMode.MODE_AES256_CBC);
     expect(LINK_ENABLED_MODES).toEqual([LinkKeyMode.MODE_AES256_CBC]);
+    expect(isLinkModeEnabled(LinkKeyMode.MODE_AES256_CBC)).toBe(true);
+    expect(isLinkModeEnabled(LinkKeyMode.MODE_AES128_CBC)).toBe(false);
+    expect(isLinkModeEnabled(LinkKeyMode.MODE_AES256_GCM)).toBe(false);
   });
 
   it("derives link keys deterministically", () => {
