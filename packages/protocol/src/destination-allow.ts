@@ -33,6 +33,11 @@ export function canAnnounceDestination(input: {
   return input.typeSingle && input.directionIn;
 }
 
+/** Whether this destination may send outbound packets (OUT only). */
+export function canDestinationSend(directionOut: boolean): boolean {
+  return directionOut;
+}
+
 export function planDestinationRequestAllow(input: {
   readonly allow: number;
   readonly allowedList: ReadonlyArray<Uint8Array>;

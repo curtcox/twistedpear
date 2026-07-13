@@ -3,6 +3,7 @@ import {
   DestinationAllowPolicyCode,
   canAcceptDestinationLinkRequest,
   canAnnounceDestination,
+  canDestinationSend,
   isValidDestinationRequestPath,
   planDestinationRequestAllow
 } from "../src/destination-allow.js";
@@ -62,6 +63,11 @@ describe("destination allow policy", () => {
     expect(canAnnounceDestination({ typeSingle: true, directionIn: true })).toBe(true);
     expect(canAnnounceDestination({ typeSingle: false, directionIn: true })).toBe(false);
     expect(canAnnounceDestination({ typeSingle: true, directionIn: false })).toBe(false);
+  });
+
+  it("allows sends only for OUT destinations", () => {
+    expect(canDestinationSend(true)).toBe(true);
+    expect(canDestinationSend(false)).toBe(false);
   });
 });
 

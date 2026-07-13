@@ -27,6 +27,7 @@ import {
   DestinationAllowPolicyCode,
   canAcceptDestinationLinkRequest,
   canAnnounceDestination,
+  canDestinationSend,
   isValidDestinationRequestPath,
   utf8Encode,
   type DestinationAllowPolicyCodeValue
@@ -243,7 +244,7 @@ export class RegisteredDestination extends Destination {
       throw new Error("Destination is not attached to a Reticulum instance");
     }
 
-    if (this.direction !== DestinationDirection.OUT) {
+    if (!canDestinationSend(this.direction === DestinationDirection.OUT)) {
       throw new Error("Only OUT destinations can send packets");
     }
 
