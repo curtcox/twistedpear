@@ -954,7 +954,12 @@ export class Link {
     this.lastOutbound = now;
     this.lastInbound = now;
     if (isKeepalive) {
-      this.lastKeepalive = now;
+      this.applyWatchdogResult(
+        stepLinkWatchdogWithActions(this.snapshotWatchdogState(), {
+          kind: "link/keepalive-sent",
+          at: now
+        })
+      );
     } else {
       this.lastData = now;
     }

@@ -103,9 +103,9 @@
 > path-request timeout now applied). **`isPathEntryExpired`** lives in protocol; path-table
 > lookups (`hasPath` / `getPathEntry` / outbound / path-request) treat expired paths as missing.
 > **`receipt/failed`** on `stepPacketReceiptTimeout` lives in protocol; `PacketReceipt.markFailed`
-> / `LeafTransport.sendPacket` adapt it. **`Link.updateKeepalive`** routes through
-> `stepLinkWatchdog` `link/rtt-measured` (no duplicated keepalive/stale formula). Remaining
-> depth work: keep converting residual session IO into step machines.
+> / `LeafTransport.sendPacket` adapt it. **`Link.updateKeepalive`** and keepalive outbound route
+> through `stepLinkWatchdog` `link/rtt-measured` / `link/keepalive-sent`. Remaining depth work:
+> keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

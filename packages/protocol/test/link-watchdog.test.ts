@@ -136,4 +136,10 @@ describe("protocol link watchdog", () => {
     expect(revived.state.status).toBe(LinkStatus.ACTIVE);
     expect(revived.state.lastInbound).toBe(42);
   });
+
+  it("records lastKeepalive on keepalive-sent", () => {
+    const state = initialLinkWatchdogState({ initiator: true, requestTime: 0, establishmentTimeout: 5 });
+    const stepped = stepLinkWatchdogWithActions(state, { kind: "link/keepalive-sent", at: 77 });
+    expect(stepped.state.lastKeepalive).toBe(77);
+  });
 });
