@@ -1,3 +1,9 @@
+import {
+  computeResourceTimeout,
+  stepResourceWatchdogWithActions,
+  type ResourceWatchdogState,
+  type ResourceWatchdogStepResult
+} from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { equalBytes } from "./crypto/bytes.js";
 import { Identity } from "./identity.js";
@@ -274,7 +280,7 @@ export class Resource {
     this.callbacks = options.callbacks ?? {};
     this.sdu = link.mdu;
     this.timeout =
-      options.timeout ?? (link.rtt ?? 1) * link.trafficTimeoutFactor + RESOURCE_SENDER_GRACE_TIME;
+      options.timeout ?? computeResourceTimeout(link.rtt ?? 1, link.trafficTimeoutFactor);
   }
 
   static send(link: Link, data: Uint8Array, options: ResourceOptions = {}): Resource {
@@ -722,7 +728,9 @@ export class Resource {
 
   private startWatchdog(): void {
     this.stopWatchdog();
-    this.scheduleWatchdog(250);
+    this.applyWatchdogResult(
+      stepResourceWatchdogWithActions(this.snapshotWatchdogState(), { kind: "resource/watchdog-start" })
+    );
   }
 
   private stopWatchdog(): void {
@@ -748,28 +756,57 @@ export class Resource {
       return;
     }
 
-    const now = this.link.linkTransport.clock.now() / 1000;
+    const result = stepResourceWatchdogWithActions(this.snapshotWatchdogState(), {
+      kind: "timer/fired",
+      id: "resource-watchdog",
+      at: this.link.linkTransport.clock.now()
+    });
 
-    if (this.status === ResourceStatus.ADVERTISED) {
-      if (now >= this.advSent + this.timeout + RESOURCE_PROCESSING_GRACE) {
-        if (this.retriesLeft <= 0) {
-          this.cancel();
-          return;
-        }
+    await this.applyWatchdogResultAsync(result);
+  }
 
-        this.retriesLeft -= 1;
-        await this.advertise();
+  private snapshotWatchdogState(): ResourceWatchdogState {
+    return {
+      status: this.status,
+      initiator: this.initiator,
+      advSent: this.advSent,
+      timeout: this.timeout,
+      retriesLeft: this.retriesLeft,
+      outstandingParts: this.outstandingParts,
+      receivedCount: this.receivedCount,
+      totalParts: this.totalParts
+    };
+  }
+
+  private applyWatchdogResult(result: ResourceWatchdogStepResult): void {
+    this.retriesLeft = result.state.retriesLeft;
+
+    for (const intent of result.intents) {
+      if (intent.kind === "timer/set" && intent.timer.id === "resource-watchdog") {
+        this.scheduleWatchdog(intent.timer.delayMs);
       }
-
-      this.scheduleWatchdog(250);
-      return;
     }
+  }
 
-    if (this.status === ResourceStatus.TRANSFERRING && !this.initiator) {
-      if (this.outstandingParts === 0 && this.receivedCount < this.totalParts) {
+  private async applyWatchdogResultAsync(result: ResourceWatchdogStepResult): Promise<void> {
+    this.retriesLeft = result.state.retriesLeft;
+
+    for (const action of result.actions) {
+      if (action.kind === "cancel") {
+        this.cancel();
+        return;
+      }
+      if (action.kind === "advertise") {
+        await this.advertise();
+      } else if (action.kind === "request-next") {
         await this.requestNext();
       }
-      this.scheduleWatchdog(250);
+    }
+
+    for (const intent of result.intents) {
+      if (intent.kind === "timer/set" && intent.timer.id === "resource-watchdog") {
+        this.scheduleWatchdog(intent.timer.delayMs);
+      }
     }
   }
 }
