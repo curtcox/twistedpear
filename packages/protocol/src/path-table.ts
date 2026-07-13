@@ -4,6 +4,12 @@
  */
 import type { Event, StepFn } from "@twistedpear/effects";
 import { TRUNCATED_HASH_BYTES } from "./hash-truncate.js";
+import {
+  PACKET_DEST_TYPE_GROUP,
+  PACKET_DEST_TYPE_PLAIN,
+  PACKET_HEADER_1,
+  PACKET_TYPE_ANNOUNCE
+} from "./packet-header.js";
 
 export { TRUNCATED_HASH_BYTES };
 
@@ -21,6 +27,37 @@ export function shouldEmitPathRequest(input: {
 }): boolean {
   const minInterval = input.minIntervalSeconds ?? PATH_REQUEST_MIN_INTERVAL;
   return input.nowSeconds - input.lastRequestAt >= minInterval;
+}
+
+/** How LeafTransport should send a packet given path-table state. */
+export type PathOutboundKind = "wrap" | "direct" | "flood";
+
+/**
+ * Plan outbound routing: transport-wrap, single-hop direct, or flood.
+ * Transmit / wrap bytes stay at the adapter edge.
+ */
+export function planPathOutbound(input: {
+  readonly packetType: number;
+  readonly destinationType: number;
+  readonly headerType: number;
+  readonly hasPath: boolean;
+  readonly pathHops: number;
+}): PathOutboundKind {
+  const pathEligible =
+    input.packetType !== PACKET_TYPE_ANNOUNCE &&
+    input.destinationType !== PACKET_DEST_TYPE_PLAIN &&
+    input.destinationType !== PACKET_DEST_TYPE_GROUP &&
+    input.hasPath;
+
+  if (pathEligible) {
+    if (input.pathHops > 1 && input.headerType === PACKET_HEADER_1) {
+      return "wrap";
+    }
+    if (input.pathHops <= 1) {
+      return "direct";
+    }
+  }
+  return "flood";
 }
 
 export interface PathTableEntryView {

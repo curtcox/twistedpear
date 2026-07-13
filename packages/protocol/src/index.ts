@@ -176,9 +176,11 @@ export {
   shouldAddPathEntry,
   shouldAnswerPathRequest,
   shouldEmitPathRequest,
+  planPathOutbound,
   stepPathTable,
   timebaseFromRandomBlobs,
   type PathAddDecisionInput,
+  type PathOutboundKind,
   type PathTableEntryView,
   type PathTableEvent,
   type PathTableState

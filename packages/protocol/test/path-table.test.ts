@@ -2,13 +2,21 @@ import { describe, expect, it } from "vitest";
 import {
   PATHFINDER_MAX_HOPS,
   PATH_REQUEST_MIN_INTERVAL,
+  PACKET_DEST_TYPE_GROUP,
+  PACKET_DEST_TYPE_PLAIN,
+  PACKET_DEST_TYPE_SINGLE,
+  PACKET_HEADER_1,
+  PACKET_HEADER_2,
+  PACKET_TYPE_ANNOUNCE,
+  PACKET_TYPE_DATA,
   announceEmittedFromRandomBlob,
+  planPathOutbound,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
   shouldEmitPathRequest,
   stepPathTable,
   initialPathTableState
-} from "../src/path-table.js";
+} from "../src/index.js";
 
 function blobWithEmitted(emitted: number): Uint8Array {
   const blob = new Uint8Array(10);
@@ -92,5 +100,71 @@ describe("protocol path table", () => {
     expect(
       shouldEmitPathRequest({ lastRequestAt: 100, nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL })
     ).toBe(true);
+  });
+
+  it("plans wrap, direct, and flood outbound kinds", () => {
+    expect(
+      planPathOutbound({
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        headerType: PACKET_HEADER_1,
+        hasPath: true,
+        pathHops: 3
+      })
+    ).toBe("wrap");
+    expect(
+      planPathOutbound({
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        headerType: PACKET_HEADER_1,
+        hasPath: true,
+        pathHops: 1
+      })
+    ).toBe("direct");
+    expect(
+      planPathOutbound({
+        packetType: PACKET_TYPE_ANNOUNCE,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        headerType: PACKET_HEADER_1,
+        hasPath: true,
+        pathHops: 3
+      })
+    ).toBe("flood");
+    expect(
+      planPathOutbound({
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_PLAIN,
+        headerType: PACKET_HEADER_1,
+        hasPath: true,
+        pathHops: 3
+      })
+    ).toBe("flood");
+    expect(
+      planPathOutbound({
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_GROUP,
+        headerType: PACKET_HEADER_1,
+        hasPath: true,
+        pathHops: 3
+      })
+    ).toBe("flood");
+    expect(
+      planPathOutbound({
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        headerType: PACKET_HEADER_2,
+        hasPath: true,
+        pathHops: 3
+      })
+    ).toBe("flood");
+    expect(
+      planPathOutbound({
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        headerType: PACKET_HEADER_1,
+        hasPath: false,
+        pathHops: 0
+      })
+    ).toBe("flood");
   });
 });

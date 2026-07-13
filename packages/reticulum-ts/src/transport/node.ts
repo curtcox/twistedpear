@@ -8,6 +8,7 @@ import {
   computePathExpiry,
   planClonePacketWithHops,
   planDestinationProof,
+  planPathOutbound,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
   relayTransportPacketBytes,
@@ -613,23 +614,23 @@ export class LeafTransport {
 
   protected async outbound(packet: Packet, attachedInterface: PacketInterface | null): Promise<boolean> {
     const path = this.pathTable.get(hashKey(packet.destinationHash));
+    const kind = planPathOutbound({
+      packetType: packet.packetType,
+      destinationType: packet.destinationType,
+      headerType: packet.headerType,
+      hasPath: path !== undefined,
+      pathHops: path?.hops ?? 0
+    });
 
-    if (
-      packet.packetType !== PacketType.ANNOUNCE &&
-      packet.destinationType !== DestinationType.PLAIN &&
-      packet.destinationType !== DestinationType.GROUP &&
-      path !== undefined
-    ) {
-      if (path.hops > 1 && packet.headerType === PacketHeaderType.HEADER_1) {
-        const wrapped = wrapTransportPacket(packet, path.nextHop);
-        await this.transmit(path.receivedInterface, wrapped);
-        return true;
-      }
+    if (kind === "wrap" && path !== undefined) {
+      const wrapped = wrapTransportPacket(packet, path.nextHop);
+      await this.transmit(path.receivedInterface, wrapped);
+      return true;
+    }
 
-      if (path.hops <= 1) {
-        await this.transmit(path.receivedInterface, packet.raw);
-        return true;
-      }
+    if (kind === "direct" && path !== undefined) {
+      await this.transmit(path.receivedInterface, packet.raw);
+      return true;
     }
 
     let sent = false;
