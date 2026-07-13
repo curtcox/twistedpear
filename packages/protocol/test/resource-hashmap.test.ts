@@ -10,6 +10,7 @@ import {
   planResourceHashmapSlotWrites,
   planResourcePartRequest,
   planResourceReceivePart,
+  planResourceRequestFulfill,
   readResourceRequestHash,
   resourceHashmapMaxLen,
   splitResourceHashmapUpdatePacket,
@@ -132,5 +133,57 @@ describe("protocol resource hashmap", () => {
     expect(plan.outstandingParts).toBe(0);
     expect(plan.shouldRequestNext).toBe(true);
     expect(plan.shouldAssemble).toBe(false);
+  });
+
+  it("plans sender fulfill: send unsent matches and mark awaiting-proof", () => {
+    const mapA = new Uint8Array([1, 2, 3, 4]);
+    const mapB = new Uint8Array([5, 6, 7, 8]);
+    const plan = planResourceRequestFulfill({
+      request: {
+        wantsMoreHashmap: false,
+        lastMapHash: null,
+        resourceHash: new Uint8Array(32),
+        requestedMapHashes: [mapA, mapB]
+      },
+      partMapHashes: [mapA, mapB],
+      partSent: [false, true],
+      receiverMinConsecutiveHeight: 0,
+      hashmapMaxLen: 10,
+      windowMax: 4,
+      totalParts: 2,
+      sentParts: 1
+    });
+    expect(plan.partActions).toEqual([
+      { index: 0, kind: "send" },
+      { index: 1, kind: "resend" }
+    ]);
+    expect(plan.nextSentParts).toBe(2);
+    expect(plan.hashmapUpdate).toBeNull();
+    expect(plan.status).toBe("awaiting-proof");
+  });
+
+  it("plans sender fulfill hashmap update from last map hash", () => {
+    const last = new Uint8Array([9, 9, 9, 9]);
+    const next = new Uint8Array([1, 1, 1, 1]);
+    const plan = planResourceRequestFulfill({
+      request: {
+        wantsMoreHashmap: true,
+        lastMapHash: last,
+        resourceHash: new Uint8Array(32),
+        requestedMapHashes: []
+      },
+      partMapHashes: [last, next],
+      partSent: [true, false],
+      receiverMinConsecutiveHeight: 0,
+      hashmapMaxLen: 10,
+      windowMax: 4,
+      totalParts: 2,
+      sentParts: 1
+    });
+    expect(plan.hashmapUpdate).not.toBeNull();
+    expect(plan.hashmapUpdate!.segment).toBe(0);
+    expect(plan.hashmapUpdate!.mapHashes).toHaveLength(2);
+    expect(plan.nextReceiverMinConsecutiveHeight).toBe(0);
+    expect(plan.status).toBe("transferring");
   });
 });

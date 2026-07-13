@@ -304,3 +304,105 @@ export function planResourceReceivePart(input: {
     shouldRequestNext
   };
 }
+
+export interface ResourceRequestFulfillPartAction {
+  readonly index: number;
+  readonly kind: "send" | "resend";
+}
+
+export interface ResourceRequestFulfillHashmapUpdate {
+  readonly segment: number;
+  readonly mapHashes: readonly Uint8Array[];
+  readonly nextReceiverMinConsecutiveHeight: number;
+}
+
+export interface ResourceRequestFulfillPlan {
+  readonly partActions: readonly ResourceRequestFulfillPartAction[];
+  readonly hashmapUpdate: ResourceRequestFulfillHashmapUpdate | null;
+  readonly nextSentParts: number;
+  readonly nextReceiverMinConsecutiveHeight: number;
+  readonly status: "transferring" | "awaiting-proof";
+}
+
+/**
+ * Plan sender-side fulfillment of a RESOURCE_REQ (matched parts + optional HMU).
+ * Send / resend / HMU emit stay at the adapter edge.
+ */
+export function planResourceRequestFulfill(input: {
+  readonly request: ResourcePartRequest;
+  readonly partMapHashes: ReadonlyArray<Uint8Array>;
+  readonly partSent: ReadonlyArray<boolean>;
+  readonly receiverMinConsecutiveHeight: number;
+  readonly hashmapMaxLen: number;
+  readonly windowMax: number;
+  readonly totalParts: number;
+  readonly sentParts: number;
+}): ResourceRequestFulfillPlan {
+  const partActions: ResourceRequestFulfillPartAction[] = [];
+  let nextSentParts = input.sentParts;
+  const searchStart = input.receiverMinConsecutiveHeight;
+  const searchEnd = Math.min(
+    searchStart + input.hashmapMaxLen * 2 + input.windowMax,
+    input.partMapHashes.length
+  );
+
+  for (let index = searchStart; index < searchEnd; index += 1) {
+    const mapHash = input.partMapHashes[index];
+    if (mapHash === undefined) {
+      continue;
+    }
+    if (!input.request.requestedMapHashes.some((requested) => equalByteArrays(requested, mapHash))) {
+      continue;
+    }
+    if (!input.partSent[index]) {
+      partActions.push({ index, kind: "send" });
+      nextSentParts += 1;
+    } else {
+      partActions.push({ index, kind: "resend" });
+    }
+  }
+
+  let nextReceiverMinConsecutiveHeight = input.receiverMinConsecutiveHeight;
+  let hashmapUpdate: ResourceRequestFulfillHashmapUpdate | null = null;
+
+  if (input.request.wantsMoreHashmap && input.request.lastMapHash !== null) {
+    const lastMapHash = input.request.lastMapHash;
+    let partIndex = input.receiverMinConsecutiveHeight;
+    const walkEnd = Math.min(
+      partIndex + input.hashmapMaxLen * 2,
+      input.partMapHashes.length
+    );
+    for (let index = partIndex; index < walkEnd; index += 1) {
+      partIndex += 1;
+      const mapHash = input.partMapHashes[index];
+      if (mapHash !== undefined && equalByteArrays(mapHash, lastMapHash)) {
+        break;
+      }
+    }
+
+    nextReceiverMinConsecutiveHeight = Math.max(partIndex - 1 - input.windowMax, 0);
+    const segment = Math.floor(partIndex / input.hashmapMaxLen);
+    const hashmapStart = segment * input.hashmapMaxLen;
+    const hashmapEnd = Math.min((segment + 1) * input.hashmapMaxLen, input.partMapHashes.length);
+    const mapHashes: Uint8Array[] = [];
+    for (let index = hashmapStart; index < hashmapEnd; index += 1) {
+      const mapHash = input.partMapHashes[index];
+      if (mapHash !== undefined) {
+        mapHashes.push(mapHash);
+      }
+    }
+    hashmapUpdate = {
+      segment,
+      mapHashes,
+      nextReceiverMinConsecutiveHeight
+    };
+  }
+
+  return {
+    partActions,
+    hashmapUpdate,
+    nextSentParts,
+    nextReceiverMinConsecutiveHeight,
+    status: nextSentParts === input.totalParts ? "awaiting-proof" : "transferring"
+  };
+}

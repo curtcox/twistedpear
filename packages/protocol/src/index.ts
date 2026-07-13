@@ -487,6 +487,7 @@ export {
   planResourceHashmapSlotWrites,
   planResourcePartRequest,
   planResourceReceivePart,
+  planResourceRequestFulfill,
   readResourceRequestHash,
   resourceHashmapMaxLen,
   splitResourceHashmapUpdatePacket,
@@ -494,7 +495,10 @@ export {
   type ResourceHashmapSlotWrite,
   type ResourcePartRequest,
   type ResourcePartRequestPlan,
-  type ResourceReceivePartPlan
+  type ResourceReceivePartPlan,
+  type ResourceRequestFulfillHashmapUpdate,
+  type ResourceRequestFulfillPartAction,
+  type ResourceRequestFulfillPlan
 } from "./resource-hashmap.js";
 export {
   RESOURCE_PROOF_HASH_SIZE,

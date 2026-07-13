@@ -91,8 +91,9 @@
 > STALE→ACTIVE revive live in protocol; Channel, LeafTransport, and Link adapt them.
 > **`stepChannelWindow`**, **transport ingress accept/hash-defer planners** (+ rebroadcast/
 > reverse-timeout constants), and **`computeLinkRequestTimeout`** live in protocol; Channel,
-> TransportNode, and Link adapt them. Remaining depth work: keep converting residual session
-> IO into step machines.
+> TransportNode, and Link adapt them. **`planResourceRequestFulfill`** (sender RESOURCE_REQ
+> fulfill: part send/resend + optional HMU + awaiting-proof) lives in protocol; `Resource`
+> adapts it. Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

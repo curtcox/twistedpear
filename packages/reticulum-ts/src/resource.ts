@@ -31,6 +31,7 @@ import {
   planResourceHashmapSlotWrites,
   planResourcePartRequest,
   planResourceReceivePart,
+  planResourceRequestFulfill,
   readResourceRequestHash,
   resourceEncryptMaterial,
   resourceExpectedProofMaterial,
@@ -521,55 +522,44 @@ export class Resource {
       return;
     }
 
-    const mapHashes = request.requestedMapHashes;
-    const searchStart = this.receiverMinConsecutiveHeight;
-    const searchScope = this.parts.slice(
-      searchStart,
-      searchStart + ResourceAdvertisement.HASHMAP_MAX_LEN * 2 + RESOURCE_WINDOW_MAX
-    );
+    const plan = planResourceRequestFulfill({
+      request,
+      partMapHashes: this.parts.map((part) => part.mapHash),
+      partSent: this.parts.map((part) => part.sent),
+      receiverMinConsecutiveHeight: this.receiverMinConsecutiveHeight,
+      hashmapMaxLen: ResourceAdvertisement.HASHMAP_MAX_LEN,
+      windowMax: RESOURCE_WINDOW_MAX,
+      totalParts: this.totalParts,
+      sentParts: this.sentParts
+    });
 
-    for (const part of searchScope) {
-      if (mapHashes.some((mapHash) => equalBytes(mapHash, part.mapHash))) {
-        if (!part.sent) {
-          await this.link.sendResourcePart(part.data);
-          part.sent = true;
-          this.sentParts += 1;
-        } else {
-          await this.link.resendPacket(part.raw);
-        }
+    for (const action of plan.partActions) {
+      const part = this.parts[action.index];
+      if (part === undefined) {
+        continue;
+      }
+      if (action.kind === "send") {
+        await this.link.sendResourcePart(part.data);
+        part.sent = true;
+      } else {
+        await this.link.resendPacket(part.raw);
       }
     }
+    this.sentParts = plan.nextSentParts;
+    this.receiverMinConsecutiveHeight = plan.nextReceiverMinConsecutiveHeight;
 
-    if (request.wantsMoreHashmap && request.lastMapHash !== null) {
-      const lastMapHash = request.lastMapHash;
-      let partIndex = this.receiverMinConsecutiveHeight;
-      for (const part of this.parts.slice(partIndex, partIndex + ResourceAdvertisement.HASHMAP_MAX_LEN * 2)) {
-        partIndex += 1;
-        if (equalBytes(part.mapHash, lastMapHash)) {
-          break;
-        }
-      }
-
-      this.receiverMinConsecutiveHeight = Math.max(partIndex - 1 - RESOURCE_WINDOW_MAX, 0);
-      const segment = Math.floor(partIndex / ResourceAdvertisement.HASHMAP_MAX_LEN);
-      const hashmapStart = segment * ResourceAdvertisement.HASHMAP_MAX_LEN;
-      const hashmapEnd = Math.min((segment + 1) * ResourceAdvertisement.HASHMAP_MAX_LEN, this.parts.length);
-      const segmentHashes: Uint8Array[] = [];
-      for (let index = hashmapStart; index < hashmapEnd; index += 1) {
-        const part = this.parts[index];
-        if (part !== undefined) {
-          segmentHashes.push(part.mapHash);
-        }
-      }
-
-      const update = packResourceHashmapUpdate(segment, assembleResourceHashmapBytes(segmentHashes));
+    if (plan.hashmapUpdate !== null) {
+      const update = packResourceHashmapUpdate(
+        plan.hashmapUpdate.segment,
+        assembleResourceHashmapBytes(plan.hashmapUpdate.mapHashes)
+      );
       await this.link.sendContext(
         PacketContext.RESOURCE_HMU,
         packResourceHashmapUpdatePacket(this.hash, update)
       );
     }
 
-    if (this.sentParts === this.totalParts) {
+    if (plan.status === "awaiting-proof") {
       this.status = ResourceStatus.AWAITING_PROOF;
     }
   }
