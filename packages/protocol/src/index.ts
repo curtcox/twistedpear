@@ -570,10 +570,12 @@ export {
   wrapTransportPacketBytes
 } from "./transport-framing.js";
 export {
+  planAnnounceIngressGates,
   planClonePacketWithHops,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
   shouldReceiveAnnouncePathResponse,
+  type AnnounceIngressGates,
   type TransportAnnounceSource
 } from "./transport-announce.js";
 export {

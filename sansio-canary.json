@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T17:19:10.405Z",
+  "generatedAt": "2026-07-13T17:23:37.606Z",
   "canaryProcedure": "Add `void Date.now();` to packages/protocol/src/echo.ts on a scratch branch, then run npm run sansio.",
   "layers": [
     {

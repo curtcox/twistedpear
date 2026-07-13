@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   PACKET_CONTEXT_NONE,
   PACKET_CONTEXT_PATH_RESPONSE,
+  planAnnounceIngressGates,
   planClonePacketWithHops,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
@@ -79,5 +80,18 @@ describe("protocol transport announce planning", () => {
         receivePathResponses: true
       })
     ).toBe(true);
+  });
+
+  it("disables rate-limit / record / rebroadcast for PATH_RESPONSE", () => {
+    expect(planAnnounceIngressGates(PACKET_CONTEXT_NONE)).toEqual({
+      applyRateLimit: true,
+      recordRate: true,
+      rebroadcast: true
+    });
+    expect(planAnnounceIngressGates(PACKET_CONTEXT_PATH_RESPONSE)).toEqual({
+      applyRateLimit: false,
+      recordRate: false,
+      rebroadcast: false
+    });
   });
 });

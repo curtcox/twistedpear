@@ -3,6 +3,7 @@ import {
   REVERSE_TIMEOUT_SECONDS as PROTOCOL_REVERSE_TIMEOUT_SECONDS,
   isDiscoveryPathRequestExpired,
   isReverseEntryExpired,
+  planAnnounceIngressGates,
   planLinkRelayTarget,
   rewritePacketHopsBytes,
   shouldAcceptTransportPacket,
@@ -142,14 +143,12 @@ export class TransportNode extends LeafTransport {
   protected override async handleAnnounce(packet: Packet, iface: PacketInterface): Promise<void> {
     const destinationKey = hashKey(packet.destinationHash);
     const now = this.clock.now() / 1000;
-    if (
-      packet.context !== PacketContext.PATH_RESPONSE &&
-      this.announceRateLimiter.isBlocked(destinationKey, now)
-    ) {
+    const gates = planAnnounceIngressGates(packet.context);
+    if (gates.applyRateLimit && this.announceRateLimiter.isBlocked(destinationKey, now)) {
       return;
     }
 
-    if (packet.context !== PacketContext.PATH_RESPONSE) {
+    if (gates.recordRate) {
       this.announceRateLimiter.record(destinationKey, now);
     }
 
@@ -336,7 +335,7 @@ export class TransportNode extends LeafTransport {
   }
 
   private async rebroadcastAnnounce(packet: Packet, iface: PacketInterface): Promise<void> {
-    if (packet.context === PacketContext.PATH_RESPONSE) {
+    if (!planAnnounceIngressGates(packet.context).rebroadcast) {
       return;
     }
 

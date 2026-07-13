@@ -87,3 +87,22 @@ export function shouldReceiveAnnouncePathResponse(input: {
   }
   return input.receivePathResponses === true;
 }
+
+export interface AnnounceIngressGates {
+  readonly applyRateLimit: boolean;
+  readonly recordRate: boolean;
+  readonly rebroadcast: boolean;
+}
+
+/**
+ * PATH_RESPONSE announces skip rate-limit / rate-record / rebroadcast.
+ * Non-path-response announces enable all three.
+ */
+export function planAnnounceIngressGates(context: number): AnnounceIngressGates {
+  const allow = context !== PACKET_CONTEXT_PATH_RESPONSE;
+  return {
+    applyRateLimit: allow,
+    recordRate: allow,
+    rebroadcast: allow
+  };
+}
