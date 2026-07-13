@@ -315,6 +315,11 @@ export {
   type PropagationStorePlan
 } from "./propagation-quota.js";
 export {
+  planPropagationGet,
+  type PropagationGetCatalogEntry,
+  type PropagationGetPlan
+} from "./propagation-get.js";
+export {
   msgpackPackLinkRequest,
   msgpackPackLinkResponse,
   msgpackUnpackLinkRequest,

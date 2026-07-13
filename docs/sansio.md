@@ -19,8 +19,9 @@
 > and **establish status transitions** (handshake/proof/RTT/identify gates) are pure
 > protocol leaves; `Link` adapts them. **Link identify** payload framing/gates and **MDU /
 > hops-match** metrics are pure protocol leaves. **LXMF propagation quota / eviction
-> planning** is a pure protocol leaf; `PropagationServer` adapts it. **Link request /
-> response msgpack codecs** are pure protocol leaves; reticulum re-exports them.
+> planning** and **propagation /get request planning** (list / delete / fetch visibility)
+> are pure protocol leaves; `PropagationServer` and peer propagation adapt them. **Link
+> request / response msgpack codecs** are pure protocol leaves; reticulum re-exports them.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

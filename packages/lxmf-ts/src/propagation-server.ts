@@ -1,9 +1,9 @@
 import {
   allowClientRequest as checkClientRateLimit,
   initialPersistDebounceState,
+  planPropagationGet,
   planPropagationStore,
   propagationDestinationHash,
-  propagationEntryVisibleToRecipient,
   selectOldestPropagationKey,
   stepPersistDebounceWithActions,
   type ClientRateBucket,
@@ -329,32 +329,27 @@ export class PropagationServer {
             aspects: ["delivery"]
           }).hash;
 
-    if (wants === null && haves === null) {
-      const ids = [...this.entries.values()]
-        .filter((entry) =>
-          propagationEntryVisibleToRecipient(entry.destinationHash, remoteDeliveryHash)
-        )
-        .map((entry) => entry.transientId);
-      return msgpackPackArray(ids.map((id) => msgpackPackBin(id)));
+    const plan = planPropagationGet({
+      wants,
+      haves,
+      remoteDeliveryHash,
+      entries: [...this.entries.values()].map((entry) => ({
+        transientId: entry.transientId,
+        destinationHash: entry.destinationHash
+      }))
+    });
+
+    if (plan.kind === "list-ids") {
+      return msgpackPackArray(plan.transientIds.map((id) => msgpackPackBin(id)));
     }
 
-    if (haves !== null) {
-      for (const transientId of haves) {
-        this.delete(transientId);
-      }
+    for (const transientId of plan.deleteIds) {
+      this.delete(transientId);
     }
 
-    if (wants === null || wants.length === 0) {
-      return msgpackPackArray([]);
-    }
-
-    const messages = wants
+    const messages = plan.fetchIds
       .map((transientId) => this.entries.get(Buffer.from(transientId).toString("hex")) ?? null)
-      .filter(
-        (entry): entry is StoredPropagationMessage =>
-          entry !== null &&
-          propagationEntryVisibleToRecipient(entry.destinationHash, remoteDeliveryHash)
-      )
+      .filter((entry): entry is StoredPropagationMessage => entry !== null)
       .map((entry) => entry.lxmfData);
 
     return msgpackPackArray(messages.map((message) => msgpackPackBin(message)));
