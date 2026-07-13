@@ -116,6 +116,30 @@ export function planChannelMessageTypeRegistration(input: {
   return "ok";
 }
 
+export type ChannelEnvelopeUnpackPlan =
+  | "ok"
+  | "missing-raw"
+  | "truncated"
+  | "not-registered";
+
+/** Whether Envelope.unpack may construct a typed message from raw bytes. */
+export function planChannelEnvelopeUnpack(input: {
+  readonly rawPresent: boolean;
+  readonly framingOk: boolean;
+  readonly factoryRegistered: boolean;
+}): ChannelEnvelopeUnpackPlan {
+  if (!input.rawPresent) {
+    return "missing-raw";
+  }
+  if (!input.framingOk) {
+    return "truncated";
+  }
+  if (!input.factoryRegistered) {
+    return "not-registered";
+  }
+  return "ok";
+}
+
 export function channelPayloadMdu(outletMdu: number): number {
   const value = outletMdu - CHANNEL_ENVELOPE_HEADER_SIZE;
   return value > 0xffff ? 0xffff : value;

@@ -12,6 +12,31 @@ export function canAcceptLinkIdentify(initiator: boolean): boolean {
   return !initiator;
 }
 
+export type LinkIdentifyOutcome = "accept" | "reject";
+
+/**
+ * Whether LINKIDENTIFY payload crypto gates allow setting remoteIdentity.
+ * Decrypt / split / key load / signature verification stay at the adapter edge.
+ */
+export function planLinkIdentifyOutcome(input: {
+  readonly canAccept: boolean;
+  readonly plaintextPresent: boolean;
+  readonly partsPresent: boolean;
+  readonly identityPresent: boolean;
+  readonly signatureValid: boolean;
+}): LinkIdentifyOutcome {
+  if (
+    !input.canAccept ||
+    !input.plaintextPresent ||
+    !input.partsPresent ||
+    !input.identityPresent ||
+    !input.signatureValid
+  ) {
+    return "reject";
+  }
+  return "accept";
+}
+
 export function splitLinkIdentifyPayload(plaintext: Uint8Array): {
   readonly publicKey: Uint8Array;
   readonly signature: Uint8Array;

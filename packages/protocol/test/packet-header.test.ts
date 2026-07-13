@@ -19,6 +19,7 @@ import {
   encodePacketRaw,
   packPacketFlags,
   packetHashablePart,
+  planPacketFromFields,
   unpackPacketFlags
 } from "../src/packet-header.js";
 
@@ -109,5 +110,80 @@ describe("protocol packet header", () => {
     const part = packetHashablePart(raw, PACKET_HEADER_1);
     expect(part[0]).toBe(raw[0]! & 0x0f);
     expect([...part.subarray(1)]).toEqual([...raw.subarray(2)]);
+  });
+
+  it("plans fromFields construction gates", () => {
+    expect(
+      planPacketFromFields({
+        headerType: PACKET_HEADER_1,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_BROADCAST,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: TRANSPORT_ID_BYTES,
+        transportIdPresent: false,
+        transportIdLength: 0
+      })
+    ).toBe("ok");
+    expect(
+      planPacketFromFields({
+        headerType: 9,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_BROADCAST,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: TRANSPORT_ID_BYTES,
+        transportIdPresent: false,
+        transportIdLength: 0
+      })
+    ).toBe("bad-header-type");
+    expect(
+      planPacketFromFields({
+        headerType: PACKET_HEADER_1,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_BROADCAST,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: 4,
+        transportIdPresent: false,
+        transportIdLength: 0
+      })
+    ).toBe("bad-destination-hash");
+    expect(
+      planPacketFromFields({
+        headerType: PACKET_HEADER_2,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_TRANSPORT,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: TRANSPORT_ID_BYTES,
+        transportIdPresent: false,
+        transportIdLength: 0
+      })
+    ).toBe("header2-missing-transport-id");
+    expect(
+      planPacketFromFields({
+        headerType: PACKET_HEADER_2,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_TRANSPORT,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: TRANSPORT_ID_BYTES,
+        transportIdPresent: true,
+        transportIdLength: 4
+      })
+    ).toBe("bad-transport-id");
+    expect(
+      planPacketFromFields({
+        headerType: PACKET_HEADER_2,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_TRANSPORT,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: TRANSPORT_ID_BYTES,
+        transportIdPresent: true,
+        transportIdLength: TRANSPORT_ID_BYTES
+      })
+    ).toBe("ok");
   });
 });

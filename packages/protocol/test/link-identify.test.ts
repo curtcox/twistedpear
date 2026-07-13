@@ -4,6 +4,7 @@ import {
   canAcceptLinkIdentify,
   linkIdentifySignedMaterial,
   packLinkIdentifyPayload,
+  planLinkIdentifyOutcome,
   splitLinkIdentifyPayload
 } from "../src/link-identify.js";
 import { computeLinkMdu, linkHopsMatch, linkPayloadFitsMdu } from "../src/link-metrics.js";
@@ -13,6 +14,36 @@ describe("protocol link identify", () => {
   it("accepts identify only on responder links", () => {
     expect(canAcceptLinkIdentify(false)).toBe(true);
     expect(canAcceptLinkIdentify(true)).toBe(false);
+  });
+
+  it("plans identify outcome from crypto edge flags", () => {
+    expect(
+      planLinkIdentifyOutcome({
+        canAccept: true,
+        plaintextPresent: true,
+        partsPresent: true,
+        identityPresent: true,
+        signatureValid: true
+      })
+    ).toBe("accept");
+    expect(
+      planLinkIdentifyOutcome({
+        canAccept: false,
+        plaintextPresent: true,
+        partsPresent: true,
+        identityPresent: true,
+        signatureValid: true
+      })
+    ).toBe("reject");
+    expect(
+      planLinkIdentifyOutcome({
+        canAccept: true,
+        plaintextPresent: true,
+        partsPresent: true,
+        identityPresent: true,
+        signatureValid: false
+      })
+    ).toBe("reject");
   });
 
   it("splits and packs identify payloads", () => {

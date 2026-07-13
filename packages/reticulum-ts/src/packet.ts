@@ -10,12 +10,13 @@ import {
   PacketHeaderTypeCode,
   PacketTypeCode,
   TransportTypeCode,
+  planPacketFromFields,
   splitPacketProof,
   truncateToTruncatedHash,
   TRUNCATED_HASH_BYTES
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
-import { DestinationType, type DestinationTypeValue } from "./destination.js";
+import type { DestinationTypeValue } from "./destination.js";
 import { Identity } from "./identity.js";
 
 /** Mirrors RNS/Packet.py packet and header wire constants. */
@@ -92,37 +93,45 @@ export class Packet {
   }
 
   static fromFields(provider: CryptoProvider, fields: PacketFields): Packet {
-    if (!isHeaderType(fields.headerType)) {
+    const contextFlag = fields.contextFlag ?? PacketContextFlag.UNSET;
+    const plan = planPacketFromFields({
+      headerType: fields.headerType,
+      contextFlag,
+      transportType: fields.transportType,
+      destinationType: fields.destinationType,
+      packetType: fields.packetType,
+      destinationHashLength: fields.destinationHash.length,
+      transportIdPresent: fields.transportId !== undefined,
+      transportIdLength: fields.transportId?.length ?? 0
+    });
+    if (plan === "bad-header-type") {
       throw new Error(`Unknown packet header type: ${fields.headerType}`);
     }
-
-    if (!isContextFlag(fields.contextFlag ?? PacketContextFlag.UNSET)) {
+    if (plan === "bad-context-flag") {
       throw new Error(`Unknown packet context flag: ${fields.contextFlag}`);
     }
-
-    if (!isTransportType(fields.transportType)) {
+    if (plan === "bad-transport-type") {
       throw new Error(`Unknown packet transport type: ${fields.transportType}`);
     }
-
-    if (!isDestinationType(fields.destinationType)) {
+    if (plan === "bad-destination-type") {
       throw new Error(`Unknown packet destination type: ${fields.destinationType}`);
     }
-
-    if (!isPacketType(fields.packetType)) {
+    if (plan === "bad-packet-type") {
       throw new Error(`Unknown packet type: ${fields.packetType}`);
     }
-
-    validateHash(fields.destinationHash, "destination hash");
-    if (fields.headerType === PacketHeaderType.HEADER_2) {
-      if (fields.transportId === undefined) {
-        throw new Error("HEADER_2 packets require a transport ID");
-      }
-      validateHash(fields.transportId, "transport ID");
+    if (plan === "bad-destination-hash") {
+      throw new Error(`destination hash must be ${TRUNCATED_HASH_BYTES} bytes`);
+    }
+    if (plan === "header2-missing-transport-id") {
+      throw new Error("HEADER_2 packets require a transport ID");
+    }
+    if (plan === "bad-transport-id") {
+      throw new Error(`transport ID must be ${TRUNCATED_HASH_BYTES} bytes`);
     }
 
     return new Packet(provider, {
       headerType: fields.headerType,
-      contextFlag: fields.contextFlag ?? PacketContextFlag.UNSET,
+      contextFlag,
       transportType: fields.transportType,
       destinationType: fields.destinationType,
       packetType: fields.packetType,
@@ -210,40 +219,4 @@ export class Packet {
   }): Uint8Array {
     return encodePacketRaw(fields);
   }
-}
-
-function validateHash(value: Uint8Array, label: string): void {
-  if (value.length !== TRUNCATED_HASH_BYTES) {
-    throw new Error(`${label} must be ${TRUNCATED_HASH_BYTES} bytes`);
-  }
-}
-
-function isHeaderType(value: number): value is PacketHeaderTypeValue {
-  return value === PacketHeaderType.HEADER_1 || value === PacketHeaderType.HEADER_2;
-}
-
-function isContextFlag(value: number): value is PacketContextFlagValue {
-  return value === PacketContextFlag.UNSET || value === PacketContextFlag.SET;
-}
-
-function isTransportType(value: number): value is TransportTypeValue {
-  return value === TransportType.BROADCAST || value === TransportType.TRANSPORT;
-}
-
-function isDestinationType(value: number): value is DestinationTypeValue {
-  return (
-    value === DestinationType.SINGLE ||
-    value === DestinationType.GROUP ||
-    value === DestinationType.PLAIN ||
-    value === DestinationType.LINK
-  );
-}
-
-function isPacketType(value: number): value is PacketTypeValue {
-  return (
-    value === PacketType.DATA ||
-    value === PacketType.ANNOUNCE ||
-    value === PacketType.LINKREQUEST ||
-    value === PacketType.PROOF
-  );
 }

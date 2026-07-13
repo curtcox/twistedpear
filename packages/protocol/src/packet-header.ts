@@ -179,6 +179,73 @@ function isPacketType(value: number): boolean {
   );
 }
 
+export function isHeaderTypeCode(value: number): boolean {
+  return isHeaderType(value);
+}
+
+export function isContextFlagCode(value: number): boolean {
+  return isContextFlag(value);
+}
+
+export function isTransportTypeCode(value: number): boolean {
+  return isTransportType(value);
+}
+
+export function isPacketTypeCode(value: number): boolean {
+  return isPacketType(value);
+}
+
+export type PacketFromFieldsPlan =
+  | "ok"
+  | "bad-header-type"
+  | "bad-context-flag"
+  | "bad-transport-type"
+  | "bad-destination-type"
+  | "bad-packet-type"
+  | "bad-destination-hash"
+  | "header2-missing-transport-id"
+  | "bad-transport-id";
+
+/** Whether Packet.fromFields may proceed (enum codes + HASH / HEADER_2 transport id). */
+export function planPacketFromFields(input: {
+  readonly headerType: number;
+  readonly contextFlag: number;
+  readonly transportType: number;
+  readonly destinationType: number;
+  readonly packetType: number;
+  readonly destinationHashLength: number;
+  readonly transportIdPresent: boolean;
+  readonly transportIdLength: number;
+}): PacketFromFieldsPlan {
+  if (!isHeaderTypeCode(input.headerType)) {
+    return "bad-header-type";
+  }
+  if (!isContextFlagCode(input.contextFlag)) {
+    return "bad-context-flag";
+  }
+  if (!isTransportTypeCode(input.transportType)) {
+    return "bad-transport-type";
+  }
+  if (!isDestinationTypeCode(input.destinationType)) {
+    return "bad-destination-type";
+  }
+  if (!isPacketTypeCode(input.packetType)) {
+    return "bad-packet-type";
+  }
+  if (input.destinationHashLength !== TRANSPORT_ID_BYTES) {
+    return "bad-destination-hash";
+  }
+  if (input.headerType === PACKET_HEADER_2) {
+    if (!input.transportIdPresent) {
+      return "header2-missing-transport-id";
+    }
+    if (input.transportIdLength !== TRANSPORT_ID_BYTES) {
+      return "bad-transport-id";
+    }
+  }
+  return "ok";
+}
+
 export function encodePacketRaw(fields: {
   readonly headerType: number;
   readonly contextFlag: number;

@@ -12,6 +12,7 @@ import {
   packLxmfWire,
   planLxmfDelivery,
   planLxmfSignatureOutcome,
+  planLxmfPropagatedPackPrep,
   planLxMessageInstancePack,
   planLxMessagePack,
   splitLxmfWire,
@@ -286,18 +287,25 @@ export class LXMessage {
     const desiredMethod = this.desiredMethod ?? LXMessageMethod.DIRECT;
     const contentSize = lxmfContentSizeFromPackedLength(this.packed.length);
 
-    if (desiredMethod === LXMessageMethod.PROPAGATED) {
-      if (this.destination === null || this.destination.identity === null) {
-        throw new Error("PROPAGATED LXMF requires destination identity");
-      }
-
-      const encryptedPayload = this.destination.identity.encrypt(this.packed.subarray(DESTINATION_LENGTH));
-      const lxmfData = packLxmfDestinationPrefixed(this.destination.hash, encryptedPayload);
+    const prep = planLxmfPropagatedPackPrep({
+      packedPresent: true,
+      desiredMethod,
+      destinationIdentityPresent: this.destination !== null && this.destination.identity !== null,
+      timestampPresent: this.timestamp !== null
+    });
+    if (prep === "missing-identity") {
+      throw new Error("PROPAGATED LXMF requires destination identity");
+    }
+    if (prep === "missing-timestamp") {
+      throw new Error("LXMessage.pack requires timestamp to be set before packing");
+    }
+    if (prep === "ok") {
+      const encryptedPayload = this.destination!.identity!.encrypt(
+        this.packed.subarray(DESTINATION_LENGTH)
+      );
+      const lxmfData = packLxmfDestinationPrefixed(this.destination!.hash, encryptedPayload);
       this.transientId = Identity.fullHash(provider, lxmfData);
-      if (this.timestamp === null) {
-        throw new Error("LXMessage.pack requires timestamp to be set before packing");
-      }
-      this.propagationPacked = msgpackPackPropagationEnvelope(this.timestamp, [lxmfData]);
+      this.propagationPacked = msgpackPackPropagationEnvelope(this.timestamp!, [lxmfData]);
     }
 
     const plan = planLxmfDelivery({

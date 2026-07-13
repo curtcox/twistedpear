@@ -27,7 +27,6 @@ import {
   RESOURCE_PROOF_SIZE,
   applyLinkEstablishEvent,
   canAcceptLinkIdentify,
-  canAcceptLinkRequestOwner,
   canAcceptLinkRtt,
   canIdentifyOnLink,
   canLinkRequest,
@@ -71,11 +70,13 @@ import {
   planDestinationRequestAllow,
   planLinkAppRequest,
   planLinkDataContext,
+  planLinkIdentifyOutcome,
   planLinkInitiatorMtu,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
   planLinkTeardown,
   planLinkTeardownReason,
+  planLinkValidateRequest,
   shouldAcceptLinkPacketInterface,
   shouldAcceptLinkTeardown,
   shouldEncryptLinkPayload,
@@ -344,11 +345,12 @@ export class Link {
     options?: { readonly entropy?: Uint8Array }
   ): Link | null {
     const request = splitLinkRequestData(packet.data);
-    if (request === null) {
-      return null;
-    }
-
-    if (!canAcceptLinkRequestOwner(owner.identity !== null)) {
+    const early = planLinkValidateRequest({
+      requestPresent: request !== null,
+      ownerIdentityPresent: owner.identity !== null,
+      modeEnabled: true
+    });
+    if (early !== "ok" || request === null) {
       return null;
     }
 
@@ -373,7 +375,13 @@ export class Link {
       }
 
       link.mode = Link.modeFromLrPacket(packet);
-      if (!isLinkModeEnabled(link.mode)) {
+      if (
+        planLinkValidateRequest({
+          requestPresent: true,
+          ownerIdentityPresent: true,
+          modeEnabled: isLinkModeEnabled(link.mode)
+        }) !== "ok"
+      ) {
         return null;
       }
 
@@ -1027,30 +1035,28 @@ export class Link {
   }
 
   private async handleIdentifyPacket(packet: Packet): Promise<void> {
-    if (!canAcceptLinkIdentify(this.initiator)) {
-      return;
-    }
-
-    const plaintext = this.decrypt(packet.data);
-    if (plaintext === null) {
-      return;
-    }
-
-    const parts = splitLinkIdentifyPayload(plaintext);
-    if (parts === null) {
-      return;
-    }
-
-    const identity = Identity.fromPublicKey(this.provider, parts.publicKey);
-    if (identity === null) {
-      return;
-    }
-
-    if (
-      !identity.validate(
+    const canAccept = canAcceptLinkIdentify(this.initiator);
+    const plaintext = canAccept ? this.decrypt(packet.data) : null;
+    const parts = plaintext !== null ? splitLinkIdentifyPayload(plaintext) : null;
+    const identity =
+      parts !== null ? Identity.fromPublicKey(this.provider, parts.publicKey) : null;
+    const signatureValid =
+      identity !== null &&
+      parts !== null &&
+      identity.validate(
         parts.signature,
         linkIdentifySignedMaterial(this.linkId, parts.publicKey)
-      )
+      );
+
+    if (
+      planLinkIdentifyOutcome({
+        canAccept,
+        plaintextPresent: plaintext !== null,
+        partsPresent: parts !== null,
+        identityPresent: identity !== null,
+        signatureValid
+      }) === "reject" ||
+      identity === null
     ) {
       return;
     }

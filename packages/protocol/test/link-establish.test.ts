@@ -24,6 +24,7 @@ import {
   isLinkClosed,
   mergeLinkRtt,
   planLinkAppRequest,
+  planLinkValidateRequest,
   shouldAcceptLinkPacketInterface,
   shouldEncryptLinkPayload,
   shouldReuseActiveLink
@@ -159,6 +160,37 @@ describe("protocol link establish", () => {
     expect(shouldReuseActiveLink({ linkPresent: true, status: LinkStatus.ACTIVE })).toBe(true);
     expect(shouldReuseActiveLink({ linkPresent: false, status: LinkStatus.ACTIVE })).toBe(false);
     expect(shouldReuseActiveLink({ linkPresent: true, status: LinkStatus.PENDING })).toBe(false);
+  });
+
+  it("plans link validate-request gates", () => {
+    expect(
+      planLinkValidateRequest({
+        requestPresent: true,
+        ownerIdentityPresent: true,
+        modeEnabled: true
+      })
+    ).toBe("ok");
+    expect(
+      planLinkValidateRequest({
+        requestPresent: false,
+        ownerIdentityPresent: true,
+        modeEnabled: true
+      })
+    ).toBe("bad-request");
+    expect(
+      planLinkValidateRequest({
+        requestPresent: true,
+        ownerIdentityPresent: false,
+        modeEnabled: true
+      })
+    ).toBe("owner-missing-identity");
+    expect(
+      planLinkValidateRequest({
+        requestPresent: true,
+        ownerIdentityPresent: true,
+        modeEnabled: false
+      })
+    ).toBe("mode-disabled");
   });
 
   it("plans initiator MTU from discovery and next-hop", () => {

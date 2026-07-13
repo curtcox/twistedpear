@@ -66,6 +66,30 @@ export function canAcceptLinkRequestOwner(identityPresent: boolean): boolean {
   return identityPresent;
 }
 
+export type LinkValidateRequestPlan =
+  | "ok"
+  | "bad-request"
+  | "owner-missing-identity"
+  | "mode-disabled";
+
+/** Whether validateRequest may proceed (parsed request + owner + enabled mode). */
+export function planLinkValidateRequest(input: {
+  readonly requestPresent: boolean;
+  readonly ownerIdentityPresent: boolean;
+  readonly modeEnabled: boolean;
+}): LinkValidateRequestPlan {
+  if (!input.requestPresent) {
+    return "bad-request";
+  }
+  if (!canAcceptLinkRequestOwner(input.ownerIdentityPresent)) {
+    return "owner-missing-identity";
+  }
+  if (!input.modeEnabled) {
+    return "mode-disabled";
+  }
+  return "ok";
+}
+
 export function canValidateLinkProof(input: {
   readonly status: LinkStatusValue;
   readonly initiator: boolean;

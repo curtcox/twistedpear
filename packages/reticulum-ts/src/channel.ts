@@ -19,6 +19,7 @@ import {
   isChannelOutletTransmitOk,
   nextChannelSequence,
   packChannelEnvelope,
+  planChannelEnvelopeUnpack,
   planChannelMessageTypeRegistration,
   planChannelPacketTimeout,
   planChannelSend,
@@ -120,24 +121,27 @@ class Envelope {
   }
 
   unpack(factories: ReadonlyMap<number, ChannelMessageConstructor>): ChannelMessage {
-    if (this.raw === null) {
+    const unpacked = this.raw === null ? null : unpackChannelEnvelope(this.raw);
+    const plan = planChannelEnvelopeUnpack({
+      rawPresent: this.raw !== null,
+      framingOk: unpacked !== null,
+      factoryRegistered: unpacked !== null && factories.has(unpacked.msgType)
+    });
+    if (plan === "missing-raw") {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope has no raw data");
     }
-
-    const unpacked = unpackChannelEnvelope(this.raw);
-    if (unpacked === null) {
+    if (plan === "truncated" || unpacked === null) {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope framing is truncated");
     }
-
-    this.sequence = unpacked.sequence;
-    const ctor = factories.get(unpacked.msgType);
-    if (ctor === undefined) {
+    if (plan === "not-registered") {
       throw new ChannelException(
         ChannelExceptionType.ME_NOT_REGISTERED,
         `Unknown channel MSGTYPE ${unpacked.msgType.toString(16)}`
       );
     }
 
+    this.sequence = unpacked.sequence;
+    const ctor = factories.get(unpacked.msgType)!;
     const message = new ctor();
     message.unpack(unpacked.payload);
     return message;

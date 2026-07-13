@@ -290,3 +290,31 @@ export function planLxmfSignatureOutcome(input: {
     unverifiedReason: LxmfUnverifiedReason.SOURCE_UNKNOWN
   };
 }
+
+export type LxmfPropagatedPackPrepPlan =
+  | "skip"
+  | "ok"
+  | "missing-identity"
+  | "missing-timestamp";
+
+/**
+ * Whether PROPAGATED pack prep (encrypt + envelope) may run during selectDeliveryParameters.
+ * Returns `skip` when not packed or not PROPAGATED.
+ */
+export function planLxmfPropagatedPackPrep(input: {
+  readonly packedPresent: boolean;
+  readonly desiredMethod: number;
+  readonly destinationIdentityPresent: boolean;
+  readonly timestampPresent: boolean;
+}): LxmfPropagatedPackPrepPlan {
+  if (!input.packedPresent || input.desiredMethod !== LxmfDeliveryMethod.PROPAGATED) {
+    return "skip";
+  }
+  if (!input.destinationIdentityPresent) {
+    return "missing-identity";
+  }
+  if (!input.timestampPresent) {
+    return "missing-timestamp";
+  }
+  return "ok";
+}

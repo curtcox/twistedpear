@@ -190,6 +190,12 @@
 > `Announce` and `Destination` adapt them. **`planLinkInitiatorMtu`** lives in protocol;
 > `Link.request` adapts it. Destination type/direction code predicates
 > (`isDestinationTypeCode` / `isDestinationDirectionCode`) are exported for adapters.
+> **`planPacketFromFields`** lives in protocol; `Packet.fromFields` adapts it (enum /
+> HEADER_2 transport-id gates). **`planChannelEnvelopeUnpack`** lives in protocol;
+> Channel `Envelope.unpack` adapts it. **`planLxmfPropagatedPackPrep`** lives in protocol;
+> `LXMessage` delivery-parameter selection adapts it. **`planLinkValidateRequest`** and
+> **`planLinkIdentifyOutcome`** live in protocol; `Link.validateRequest` /
+> `handleIdentifyPacket` adapt them.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

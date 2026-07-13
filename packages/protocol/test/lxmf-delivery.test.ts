@@ -14,6 +14,7 @@ import {
   planLxMessagePack,
   planLxmfDeliverableAccept,
   planLxmfDirectSend,
+  planLxmfPropagatedPackPrep,
   planLxmfPropagatedSend,
   planLxmfSendMethod,
   planLxmfSignatureOutcome
@@ -330,5 +331,48 @@ describe("protocol lxmf delivery", () => {
       signatureValidated: false,
       unverifiedReason: LxmfUnverifiedReason.SOURCE_UNKNOWN
     });
+  });
+
+  it("plans PROPAGATED pack prep gates", () => {
+    expect(
+      planLxmfPropagatedPackPrep({
+        packedPresent: true,
+        desiredMethod: LxmfDeliveryMethod.DIRECT,
+        destinationIdentityPresent: true,
+        timestampPresent: true
+      })
+    ).toBe("skip");
+    expect(
+      planLxmfPropagatedPackPrep({
+        packedPresent: false,
+        desiredMethod: LxmfDeliveryMethod.PROPAGATED,
+        destinationIdentityPresent: true,
+        timestampPresent: true
+      })
+    ).toBe("skip");
+    expect(
+      planLxmfPropagatedPackPrep({
+        packedPresent: true,
+        desiredMethod: LxmfDeliveryMethod.PROPAGATED,
+        destinationIdentityPresent: false,
+        timestampPresent: true
+      })
+    ).toBe("missing-identity");
+    expect(
+      planLxmfPropagatedPackPrep({
+        packedPresent: true,
+        desiredMethod: LxmfDeliveryMethod.PROPAGATED,
+        destinationIdentityPresent: true,
+        timestampPresent: false
+      })
+    ).toBe("missing-timestamp");
+    expect(
+      planLxmfPropagatedPackPrep({
+        packedPresent: true,
+        desiredMethod: LxmfDeliveryMethod.PROPAGATED,
+        destinationIdentityPresent: true,
+        timestampPresent: true
+      })
+    ).toBe("ok");
   });
 });

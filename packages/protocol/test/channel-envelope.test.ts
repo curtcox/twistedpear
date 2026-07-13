@@ -8,6 +8,7 @@ import {
   isChannelSystemMsgType,
   nextChannelSequence,
   packChannelEnvelope,
+  planChannelEnvelopeUnpack,
   planChannelMessageTypeRegistration,
   unpackChannelEnvelope
 } from "../src/channel-envelope.js";
@@ -76,6 +77,37 @@ describe("protocol channel envelope", () => {
     expect(
       planChannelMessageTypeRegistration({ msgType: 0x0100, isSystemType: false })
     ).toBe("ok");
+  });
+
+  it("plans channel envelope unpack gates", () => {
+    expect(
+      planChannelEnvelopeUnpack({
+        rawPresent: true,
+        framingOk: true,
+        factoryRegistered: true
+      })
+    ).toBe("ok");
+    expect(
+      planChannelEnvelopeUnpack({
+        rawPresent: false,
+        framingOk: true,
+        factoryRegistered: true
+      })
+    ).toBe("missing-raw");
+    expect(
+      planChannelEnvelopeUnpack({
+        rawPresent: true,
+        framingOk: false,
+        factoryRegistered: true
+      })
+    ).toBe("truncated");
+    expect(
+      planChannelEnvelopeUnpack({
+        rawPresent: true,
+        framingOk: true,
+        factoryRegistered: false
+      })
+    ).toBe("not-registered");
   });
 });
 
