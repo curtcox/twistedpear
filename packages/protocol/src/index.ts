@@ -573,6 +573,7 @@ export {
   planClonePacketWithHops,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
+  shouldReceiveAnnouncePathResponse,
   type TransportAnnounceSource
 } from "./transport-announce.js";
 export {

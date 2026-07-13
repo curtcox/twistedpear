@@ -73,3 +73,17 @@ export function planPathResponseAnnounceFields(input: {
     context: PACKET_CONTEXT_PATH_RESPONSE
   };
 }
+
+/**
+ * Whether an announce handler should receive this packet given PATH_RESPONSE opt-in.
+ * Non-path-response announces always pass; path responses require `receivePathResponses === true`.
+ */
+export function shouldReceiveAnnouncePathResponse(input: {
+  readonly context: number;
+  readonly receivePathResponses?: boolean;
+}): boolean {
+  if (input.context !== PACKET_CONTEXT_PATH_RESPONSE) {
+    return true;
+  }
+  return input.receivePathResponses === true;
+}

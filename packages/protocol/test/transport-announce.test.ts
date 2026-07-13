@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  PACKET_CONTEXT_NONE,
   PACKET_CONTEXT_PATH_RESPONSE,
   planClonePacketWithHops,
   planPathResponseAnnounceFields,
-  planTransportAnnounceFields
+  planTransportAnnounceFields,
+  shouldReceiveAnnouncePathResponse
 } from "../src/transport-announce.js";
 import {
   PACKET_HEADER_1,
@@ -57,5 +59,25 @@ describe("protocol transport announce planning", () => {
     const pathResponse = planPathResponseAnnounceFields({ source, transportId, hops: 2 });
     expect(pathResponse.context).toBe(PACKET_CONTEXT_PATH_RESPONSE);
     expect(pathResponse.headerType).toBe(PACKET_HEADER_2);
+  });
+
+  it("gates PATH_RESPONSE delivery on handler opt-in", () => {
+    expect(
+      shouldReceiveAnnouncePathResponse({
+        context: PACKET_CONTEXT_NONE,
+        receivePathResponses: false
+      })
+    ).toBe(true);
+    expect(
+      shouldReceiveAnnouncePathResponse({
+        context: PACKET_CONTEXT_PATH_RESPONSE
+      })
+    ).toBe(false);
+    expect(
+      shouldReceiveAnnouncePathResponse({
+        context: PACKET_CONTEXT_PATH_RESPONSE,
+        receivePathResponses: true
+      })
+    ).toBe(true);
   });
 });

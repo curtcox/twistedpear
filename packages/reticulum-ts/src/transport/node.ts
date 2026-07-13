@@ -15,6 +15,7 @@ import {
   planPacketFilter,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
+  shouldReceiveAnnouncePathResponse,
   relayTransportPacketBytes,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
@@ -500,7 +501,12 @@ export class LeafTransport {
     }
 
     for (const handler of this.announceHandlers) {
-      if (packet.context === PacketContext.PATH_RESPONSE && handler.receivePathResponses !== true) {
+      if (
+        !shouldReceiveAnnouncePathResponse({
+          context: packet.context,
+          receivePathResponses: handler.receivePathResponses
+        })
+      ) {
         continue;
       }
 

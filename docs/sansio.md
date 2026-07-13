@@ -114,8 +114,9 @@
 > lives in protocol; Channel RX drain adapts it. **`applyResourceHashmapSlotWrites`** lives in
 > protocol; `Resource.hashmapUpdate` adapts it. **`appendPathRandomBlob`** lives in protocol;
 > path-table announce update adapts it. **`parseAspectFilter`** lives in protocol; announce-handler
-> matching adapts it (SHA stays at the edge). Remaining depth work: keep converting residual
-> session IO into step machines.
+> matching adapts it (SHA stays at the edge). **`shouldReceiveAnnouncePathResponse`** lives in
+> protocol; announce-handler PATH_RESPONSE opt-in adapts it. Remaining depth work: keep
+> converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
