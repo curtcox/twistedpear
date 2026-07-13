@@ -4,6 +4,7 @@ import {
   INTERFACE_RECONNECT_WAIT_MS,
   canInterfaceSend,
   initialInterfaceReconnectState,
+  isInterfaceClosed,
   isValidInterfaceName,
   packetFitsInterfaceMtu,
   planInterfaceReconnect,
@@ -20,6 +21,11 @@ describe("protocol interface reconnect", () => {
     expect(packetFitsInterfaceMtu(500, 500)).toBe(true);
     expect(packetFitsInterfaceMtu(501, 500)).toBe(false);
     expect(packetFitsInterfaceMtu(0, 500)).toBe(true);
+  });
+
+  it("detects closed interface state", () => {
+    expect(isInterfaceClosed(true)).toBe(true);
+    expect(isInterfaceClosed(false)).toBe(false);
   });
 
   it("gates sends when closed or not outgoing", () => {

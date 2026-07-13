@@ -476,6 +476,7 @@ export {
   INTERFACE_RECONNECT_WAIT_MS,
   canInterfaceSend,
   initialInterfaceReconnectState,
+  isInterfaceClosed,
   isValidInterfaceName,
   packetFitsInterfaceMtu,
   planInterfaceReconnect,

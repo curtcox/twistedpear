@@ -17,12 +17,17 @@ export function packetFitsInterfaceMtu(rawLength: number, mtu: number): boolean 
   return rawLength <= mtu;
 }
 
+/** Whether the interface is closed (no further send / receive / close work). */
+export function isInterfaceClosed(closed: boolean): boolean {
+  return closed;
+}
+
 /** Whether the interface may send (open and configured for outbound traffic). */
 export function canInterfaceSend(input: {
   readonly closed: boolean;
   readonly outgoing: boolean;
 }): boolean {
-  return !input.closed && input.outgoing;
+  return !isInterfaceClosed(input.closed) && input.outgoing;
 }
 
 export type InterfaceReconnectPlan =

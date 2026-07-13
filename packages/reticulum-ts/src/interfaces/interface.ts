@@ -1,4 +1,9 @@
-import { canInterfaceSend, isValidInterfaceName, packetFitsInterfaceMtu } from "@twistedpear/protocol";
+import {
+  canInterfaceSend,
+  isInterfaceClosed,
+  isValidInterfaceName,
+  packetFitsInterfaceMtu
+} from "@twistedpear/protocol";
 import type { Packet } from "../packet.js";
 import { decodeHdlcFrames, encodeHdlcFrame, type HdlcDecodeState } from "./framing.js";
 
@@ -51,7 +56,7 @@ export abstract class AbstractPacketInterface implements PacketInterface {
 
   async send(packet: Packet): Promise<void> {
     if (!canInterfaceSend({ closed: this.closed, outgoing: this.outgoing })) {
-      if (this.closed) {
+      if (isInterfaceClosed(this.closed)) {
         throw new Error(`Interface ${this.name} is closed`);
       }
       throw new Error(`Interface ${this.name} is not configured for outbound traffic`);
@@ -65,7 +70,7 @@ export abstract class AbstractPacketInterface implements PacketInterface {
   }
 
   async close(): Promise<void> {
-    if (this.closed) {
+    if (isInterfaceClosed(this.closed)) {
       return;
     }
 
@@ -76,7 +81,7 @@ export abstract class AbstractPacketInterface implements PacketInterface {
   }
 
   protected receiveBytes(bytes: Uint8Array): void {
-    if (this.closed) {
+    if (isInterfaceClosed(this.closed)) {
       return;
     }
 
