@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   LOCAL_REBROADCASTS_MAX,
+  PACKET_DEST_TYPE_PLAIN,
+  PACKET_DEST_TYPE_SINGLE,
   PACKET_TYPE_ANNOUNCE,
+  PACKET_TYPE_DATA,
   PACKET_TYPE_PROOF,
   PacketContextCode,
   REVERSE_TIMEOUT_SECONDS,
   TRANSPORT_TRANSPORT,
   isReverseEntryExpired,
   planLinkRelayTarget,
+  planPacketFilter,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash
 } from "../src/index.js";
@@ -46,6 +50,56 @@ describe("transport ingress", () => {
         alreadySeenHash: true
       })
     ).toBe(false);
+  });
+
+  it("plans packet filter for transport-id and seen-hash rules", () => {
+    const local = new Uint8Array([1, 2, 3]);
+    const foreign = new Uint8Array([9, 9, 9]);
+    expect(
+      planPacketFilter({
+        transportId: foreign,
+        localTransportHash: local,
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        alreadySeenHash: false
+      })
+    ).toBe(false);
+    expect(
+      planPacketFilter({
+        transportId: local,
+        localTransportHash: local,
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        alreadySeenHash: false
+      })
+    ).toBe(true);
+    expect(
+      planPacketFilter({
+        transportId: foreign,
+        localTransportHash: local,
+        packetType: PACKET_TYPE_ANNOUNCE,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        alreadySeenHash: false
+      })
+    ).toBe(true);
+    expect(
+      planPacketFilter({
+        transportId: null,
+        localTransportHash: local,
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_PLAIN,
+        alreadySeenHash: true
+      })
+    ).toBe(false);
+    expect(
+      planPacketFilter({
+        transportId: null,
+        localTransportHash: local,
+        packetType: PACKET_TYPE_ANNOUNCE,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        alreadySeenHash: true
+      })
+    ).toBe(true);
   });
 
   it("defers hash for LRPROOF and link-table destinations", () => {

@@ -566,6 +566,7 @@ export {
   REVERSE_TIMEOUT_SECONDS,
   isReverseEntryExpired,
   planLinkRelayTarget,
+  planPacketFilter,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash,
   type LinkRelayTarget

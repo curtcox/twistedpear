@@ -9,6 +9,7 @@ import {
   planClonePacketWithHops,
   planDestinationProof,
   planPathOutbound,
+  planPacketFilter,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
   relayTransportPacketBytes,
@@ -708,18 +709,13 @@ export class LeafTransport {
   }
 
   protected packetFilter(packet: Packet): boolean {
-    if (packet.transportId !== null && packet.packetType !== PacketType.ANNOUNCE) {
-      if (!equalBytes(packet.transportId, this.options.transportIdentity.hash)) {
-        return false;
-      }
-    }
-
-    const packetHash = hashKey(packet.hash());
-    if (!this.packetHashes.has(packetHash)) {
-      return true;
-    }
-
-    return packet.packetType === PacketType.ANNOUNCE && packet.destinationType === DestinationType.SINGLE;
+    return planPacketFilter({
+      transportId: packet.transportId,
+      localTransportHash: this.options.transportIdentity.hash,
+      packetType: packet.packetType,
+      destinationType: packet.destinationType,
+      alreadySeenHash: this.packetHashes.has(hashKey(packet.hash()))
+    });
   }
 }
 

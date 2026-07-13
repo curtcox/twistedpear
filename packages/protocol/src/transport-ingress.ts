@@ -1,18 +1,44 @@
 /**
- * Pure transport ingress accept / packet-hash deferral decisions.
- * Hash tables and packetFilter callbacks stay at the adapter edge.
+ * Pure transport ingress accept / filter / packet-hash deferral / relay decisions.
+ * Hash tables and interface identity stay at the adapter edge as boolean inputs.
  */
 import {
+  PACKET_DEST_TYPE_SINGLE,
   PACKET_TYPE_ANNOUNCE,
   PACKET_TYPE_PROOF
 } from "./packet-header.js";
 import { PacketContextCode } from "./packet-context.js";
+import { equalByteArrays } from "./path-table.js";
 import { TRANSPORT_TRANSPORT } from "./transport-framing.js";
 
 /** Mirrors RNS/Transport.py local rebroadcast limit. */
 export const LOCAL_REBROADCASTS_MAX = 2;
 /** Mirrors RNS/Transport.py reverse-table entry lifetime. */
 export const REVERSE_TIMEOUT_SECONDS = 8 * 60;
+
+/**
+ * Plan leaf packet-filter accept (foreign transport-id + seen-hash rules).
+ * Hash-set membership is supplied as `alreadySeenHash`.
+ */
+export function planPacketFilter(input: {
+  readonly transportId: Uint8Array | null;
+  readonly localTransportHash: Uint8Array;
+  readonly packetType: number;
+  readonly destinationType: number;
+  readonly alreadySeenHash: boolean;
+}): boolean {
+  if (input.transportId !== null && input.packetType !== PACKET_TYPE_ANNOUNCE) {
+    if (!equalByteArrays(input.transportId, input.localTransportHash)) {
+      return false;
+    }
+  }
+
+  if (!input.alreadySeenHash) {
+    return true;
+  }
+
+  return input.packetType === PACKET_TYPE_ANNOUNCE && input.destinationType === PACKET_DEST_TYPE_SINGLE;
+}
 
 export function shouldAcceptTransportPacket(input: {
   readonly filterPassed: boolean;
