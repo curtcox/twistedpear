@@ -67,6 +67,7 @@ import {
   packLinkProofData,
   packLinkRequestData,
   planDestinationRequestAllow,
+  planLinkDataContext,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
   planLinkTeardown,
@@ -642,83 +643,62 @@ export class Link {
       return;
     }
 
-    if (packet.context === PacketContext.LRRTT) {
-      await this.handleRttPacket(packet);
-      return;
-    }
-
-    if (packet.context === PacketContext.KEEPALIVE) {
-      if (
-        shouldReplyKeepaliveProbe({
-          initiator: this.initiator,
-          probePayload: isLinkKeepaliveProbe(packet.data)
-        })
-      ) {
-        await this.sendKeepaliveReply();
+    switch (planLinkDataContext(packet.context)) {
+      case "rtt":
+        await this.handleRttPacket(packet);
+        return;
+      case "keepalive":
+        if (
+          shouldReplyKeepaliveProbe({
+            initiator: this.initiator,
+            probePayload: isLinkKeepaliveProbe(packet.data)
+          })
+        ) {
+          await this.sendKeepaliveReply();
+        }
+        return;
+      case "close":
+        await this.handleTeardownPacket(packet);
+        return;
+      case "identify":
+        await this.handleIdentifyPacket(packet);
+        return;
+      case "request":
+        await this.handleRequestPacket(packet);
+        return;
+      case "response":
+        await this.handleResponsePacket(packet);
+        return;
+      case "channel":
+        await this.handleChannelPacket(packet);
+        return;
+      case "resource-adv":
+        await this.handleResourceAdvertisementPacket(packet);
+        return;
+      case "resource-req":
+        await this.handleResourceRequestPacket(packet);
+        return;
+      case "resource-hmu":
+        await this.handleResourceHashmapUpdatePacket(packet);
+        return;
+      case "resource-icl":
+        await this.handleResourceCancelPacket(packet, true);
+        return;
+      case "resource-rcl":
+        await this.handleResourceCancelPacket(packet, false);
+        return;
+      case "resource":
+        await this.handleResourcePartPacket(packet);
+        return;
+      case "plaintext": {
+        const plaintext = this.decrypt(packet.data);
+        if (plaintext !== null) {
+          this.callbacks.packet?.(plaintext, packet);
+        }
+        return;
       }
-      return;
-    }
-
-    if (packet.context === PacketContext.LINKCLOSE) {
-      await this.handleTeardownPacket(packet);
-      return;
-    }
-
-    if (packet.context === PacketContext.LINKIDENTIFY) {
-      await this.handleIdentifyPacket(packet);
-      return;
-    }
-
-    if (packet.context === PacketContext.REQUEST) {
-      await this.handleRequestPacket(packet);
-      return;
-    }
-
-    if (packet.context === PacketContext.RESPONSE) {
-      await this.handleResponsePacket(packet);
-      return;
-    }
-
-    if (packet.context === PacketContext.CHANNEL) {
-      await this.handleChannelPacket(packet);
-      return;
-    }
-
-    if (packet.context === PacketContext.RESOURCE_ADV) {
-      await this.handleResourceAdvertisementPacket(packet);
-      return;
-    }
-
-    if (packet.context === PacketContext.RESOURCE_REQ) {
-      await this.handleResourceRequestPacket(packet);
-      return;
-    }
-
-    if (packet.context === PacketContext.RESOURCE_HMU) {
-      await this.handleResourceHashmapUpdatePacket(packet);
-      return;
-    }
-
-    if (packet.context === PacketContext.RESOURCE_ICL) {
-      await this.handleResourceCancelPacket(packet, true);
-      return;
-    }
-
-    if (packet.context === PacketContext.RESOURCE_RCL) {
-      await this.handleResourceCancelPacket(packet, false);
-      return;
-    }
-
-    if (packet.context === PacketContext.RESOURCE) {
-      await this.handleResourcePartPacket(packet);
-      return;
-    }
-
-    if (packet.context === PacketContext.NONE) {
-      const plaintext = this.decrypt(packet.data);
-      if (plaintext !== null) {
-        this.callbacks.packet?.(plaintext, packet);
-      }
+      case "ignore":
+        return;
     }
   }
 

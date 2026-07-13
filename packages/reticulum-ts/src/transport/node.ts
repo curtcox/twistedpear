@@ -13,6 +13,7 @@ import {
   planDestinationProof,
   planPathOutbound,
   planPacketFilter,
+  planPathRequestIngress,
   planPathResponseAnnounceFields,
   planProofIngressKind,
   planTransportAnnounceFields,
@@ -692,40 +693,53 @@ export class LeafTransport {
 
   protected async handlePathRequest(packet: Packet, iface: PacketInterface): Promise<void> {
     const parsed = parsePathRequestData(packet.data);
-    if (parsed === null || parsed.tag === null) {
+    const path = parsed === null ? undefined : this.getPathEntry(parsed.destinationHash);
+    const localDestination =
+      parsed === null
+        ? undefined
+        : this.destinations.find(
+            (entry) =>
+              equalBytes(entry.hash, parsed.destinationHash) &&
+              entry.direction === DestinationDirection.IN
+          );
+    const tagKey =
+      parsed !== null && parsed.tag !== null
+        ? pathRequestTagKey(parsed.destinationHash, parsed.tag)
+        : null;
+    const plan = planPathRequestIngress({
+      parsedOk: parsed !== null,
+      hasTag: parsed?.tag !== null && parsed?.tag !== undefined,
+      tagAlreadySeen: tagKey !== null && this.discoveryPrTags.has(tagKey),
+      hasLocalAnswerer: localDestination?.answerPathRequest !== undefined,
+      transportEnabled: this.transportEnabled,
+      hasPath: path !== undefined,
+      shouldAnswerPath:
+        path !== undefined &&
+        shouldAnswerPathRequest(path.nextHop, parsed?.requestorTransportId ?? null),
+      discoveryPresent: false,
+      discoveryExpired: false,
+      allowDiscovery: false
+    });
+
+    if (plan === "ignore-unparsed" || plan === "ignore-seen-tag") {
       return;
     }
 
-    const tagKey = pathRequestTagKey(parsed.destinationHash, parsed.tag);
-    if (this.discoveryPrTags.has(tagKey)) {
-      return;
+    if (tagKey !== null) {
+      this.discoveryPrTags.add(tagKey);
     }
 
-    this.discoveryPrTags.add(tagKey);
-
-    const localDestination = this.destinations.find(
-      (entry) =>
-        equalBytes(entry.hash, parsed.destinationHash) && entry.direction === DestinationDirection.IN
-    );
-    if (localDestination?.answerPathRequest !== undefined) {
+    if (plan === "answer-local") {
+      if (localDestination?.answerPathRequest === undefined) {
+        return;
+      }
       await localDestination.answerPathRequest(iface);
       return;
     }
 
-    if (!this.transportEnabled) {
-      return;
+    if (plan === "answer-path" && path !== undefined) {
+      await this.sendPathResponse(path, iface);
     }
-
-    const path = this.getPathEntry(parsed.destinationHash);
-    if (path === undefined) {
-      return;
-    }
-
-    if (!shouldAnswerPathRequest(path.nextHop, parsed.requestorTransportId)) {
-      return;
-    }
-
-    await this.sendPathResponse(path, iface);
   }
 
   protected async sendPathResponse(path: PathEntry, iface: PacketInterface): Promise<void> {

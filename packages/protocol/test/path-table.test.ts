@@ -14,7 +14,9 @@ import {
   appendPathRandomBlob,
   isDiscoveryPathRequestExpired,
   isPathEntryExpired,
+  planDiscoveryPathRequestFulfill,
   planPathOutbound,
+  planPathRequestIngress,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
   shouldEmitPathRequest,
@@ -191,5 +193,163 @@ describe("protocol path table", () => {
         pathHops: 0
       })
     ).toBe("flood");
+  });
+
+  it("plans path-request ingress for leaf and discovery nodes", () => {
+    expect(
+      planPathRequestIngress({
+        parsedOk: false,
+        hasTag: false,
+        tagAlreadySeen: false,
+        hasLocalAnswerer: false,
+        transportEnabled: true,
+        hasPath: false,
+        shouldAnswerPath: false,
+        discoveryPresent: false,
+        discoveryExpired: false
+      })
+    ).toBe("ignore-unparsed");
+    expect(
+      planPathRequestIngress({
+        parsedOk: true,
+        hasTag: true,
+        tagAlreadySeen: true,
+        hasLocalAnswerer: false,
+        transportEnabled: true,
+        hasPath: false,
+        shouldAnswerPath: false,
+        discoveryPresent: false,
+        discoveryExpired: false
+      })
+    ).toBe("ignore-seen-tag");
+    expect(
+      planPathRequestIngress({
+        parsedOk: true,
+        hasTag: true,
+        tagAlreadySeen: false,
+        hasLocalAnswerer: true,
+        transportEnabled: true,
+        hasPath: true,
+        shouldAnswerPath: true,
+        discoveryPresent: false,
+        discoveryExpired: false
+      })
+    ).toBe("answer-local");
+    expect(
+      planPathRequestIngress({
+        parsedOk: true,
+        hasTag: true,
+        tagAlreadySeen: false,
+        hasLocalAnswerer: false,
+        transportEnabled: false,
+        hasPath: true,
+        shouldAnswerPath: true,
+        discoveryPresent: false,
+        discoveryExpired: false
+      })
+    ).toBe("ignore");
+    expect(
+      planPathRequestIngress({
+        parsedOk: true,
+        hasTag: true,
+        tagAlreadySeen: false,
+        hasLocalAnswerer: false,
+        transportEnabled: true,
+        hasPath: true,
+        shouldAnswerPath: true,
+        discoveryPresent: false,
+        discoveryExpired: false
+      })
+    ).toBe("answer-path");
+    expect(
+      planPathRequestIngress({
+        parsedOk: true,
+        hasTag: true,
+        tagAlreadySeen: false,
+        hasLocalAnswerer: false,
+        transportEnabled: true,
+        hasPath: true,
+        shouldAnswerPath: false,
+        discoveryPresent: false,
+        discoveryExpired: false
+      })
+    ).toBe("ignore");
+    expect(
+      planPathRequestIngress({
+        parsedOk: true,
+        hasTag: true,
+        tagAlreadySeen: false,
+        hasLocalAnswerer: false,
+        transportEnabled: true,
+        hasPath: false,
+        shouldAnswerPath: false,
+        discoveryPresent: false,
+        discoveryExpired: false,
+        allowDiscovery: false
+      })
+    ).toBe("ignore");
+    expect(
+      planPathRequestIngress({
+        parsedOk: true,
+        hasTag: true,
+        tagAlreadySeen: false,
+        hasLocalAnswerer: false,
+        transportEnabled: true,
+        hasPath: false,
+        shouldAnswerPath: false,
+        discoveryPresent: true,
+        discoveryExpired: false,
+        allowDiscovery: true
+      })
+    ).toBe("ignore-in-flight-discovery");
+    expect(
+      planPathRequestIngress({
+        parsedOk: true,
+        hasTag: true,
+        tagAlreadySeen: false,
+        hasLocalAnswerer: false,
+        transportEnabled: true,
+        hasPath: false,
+        shouldAnswerPath: false,
+        discoveryPresent: true,
+        discoveryExpired: true,
+        allowDiscovery: true
+      })
+    ).toBe("start-discovery");
+    expect(
+      planPathRequestIngress({
+        parsedOk: true,
+        hasTag: true,
+        tagAlreadySeen: false,
+        hasLocalAnswerer: false,
+        transportEnabled: true,
+        hasPath: false,
+        shouldAnswerPath: false,
+        discoveryPresent: false,
+        discoveryExpired: false,
+        allowDiscovery: true
+      })
+    ).toBe("start-discovery");
+  });
+
+  it("plans discovery path-request fulfill from announce", () => {
+    expect(
+      planDiscoveryPathRequestFulfill({
+        hasPending: false,
+        expired: false
+      })
+    ).toBe("ignore");
+    expect(
+      planDiscoveryPathRequestFulfill({
+        hasPending: true,
+        expired: true
+      })
+    ).toBe("drop-expired");
+    expect(
+      planDiscoveryPathRequestFulfill({
+        hasPending: true,
+        expired: false
+      })
+    ).toBe("fulfill");
   });
 });

@@ -37,6 +37,76 @@ export function isDiscoveryPathRequestExpired(input: {
   return input.nowSeconds > input.timeoutAt;
 }
 
+/**
+ * Path-request ingress outcome after parse / tag / local / path / discovery gates.
+ * Tag recording and transmit stay at the adapter edge.
+ */
+export type PathRequestIngressPlan =
+  | "ignore-unparsed"
+  | "ignore-seen-tag"
+  | "answer-local"
+  | "answer-path"
+  | "ignore"
+  | "ignore-in-flight-discovery"
+  | "start-discovery";
+
+/**
+ * Plan inbound path-request handling for leaf and transport-enabled nodes.
+ * Pass `allowDiscovery: true` on TransportNode (missing path may forward);
+ * leaf transport keeps the default (`false`) and ignores when no answerable path.
+ */
+export function planPathRequestIngress(input: {
+  readonly parsedOk: boolean;
+  readonly hasTag: boolean;
+  readonly tagAlreadySeen: boolean;
+  readonly hasLocalAnswerer: boolean;
+  readonly transportEnabled: boolean;
+  readonly hasPath: boolean;
+  readonly shouldAnswerPath: boolean;
+  readonly discoveryPresent: boolean;
+  readonly discoveryExpired: boolean;
+  readonly allowDiscovery?: boolean;
+}): PathRequestIngressPlan {
+  if (!input.parsedOk || !input.hasTag) {
+    return "ignore-unparsed";
+  }
+  if (input.tagAlreadySeen) {
+    return "ignore-seen-tag";
+  }
+  if (input.hasLocalAnswerer) {
+    return "answer-local";
+  }
+  if (!input.transportEnabled) {
+    return "ignore";
+  }
+  if (input.hasPath) {
+    return input.shouldAnswerPath ? "answer-path" : "ignore";
+  }
+  if (input.allowDiscovery !== true) {
+    return "ignore";
+  }
+  if (input.discoveryPresent && !input.discoveryExpired) {
+    return "ignore-in-flight-discovery";
+  }
+  return "start-discovery";
+}
+
+/** Whether a pending discovery path-request should be fulfilled by an announce. */
+export type DiscoveryPathRequestFulfillPlan = "ignore" | "drop-expired" | "fulfill";
+
+export function planDiscoveryPathRequestFulfill(input: {
+  readonly hasPending: boolean;
+  readonly expired: boolean;
+}): DiscoveryPathRequestFulfillPlan {
+  if (!input.hasPending) {
+    return "ignore";
+  }
+  if (input.expired) {
+    return "drop-expired";
+  }
+  return "fulfill";
+}
+
 /** How LeafTransport should send a packet given path-table state. */
 export type PathOutboundKind = "wrap" | "direct" | "flood";
 

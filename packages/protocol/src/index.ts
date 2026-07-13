@@ -206,11 +206,15 @@ export {
   shouldAddPathEntry,
   shouldAnswerPathRequest,
   shouldEmitPathRequest,
+  planDiscoveryPathRequestFulfill,
   planPathOutbound,
+  planPathRequestIngress,
   stepPathTable,
   timebaseFromRandomBlobs,
+  type DiscoveryPathRequestFulfillPlan,
   type PathAddDecisionInput,
   type PathOutboundKind,
+  type PathRequestIngressPlan,
   type PathTableEntryView,
   type PathTableEvent,
   type PathTableState
@@ -484,6 +488,8 @@ export {
   PACKET_CONTEXT_NONE,
   PACKET_CONTEXT_PATH_RESPONSE,
   PacketContextCode,
+  planLinkDataContext,
+  type LinkDataContextKind,
   type PacketContextCodeValue
 } from "./packet-context.js";
 export { assembleByteArrays, concatByteArrays } from "./bytes.js";

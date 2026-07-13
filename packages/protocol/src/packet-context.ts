@@ -33,3 +33,56 @@ export type PacketContextCodeValue =
 /** Keep transport-announce aliases aligned with PacketContextCode. */
 export const PACKET_CONTEXT_NONE = PacketContextCode.NONE;
 export const PACKET_CONTEXT_PATH_RESPONSE = PacketContextCode.PATH_RESPONSE;
+
+/** Pure link DATA packet context → handler kind. */
+export type LinkDataContextKind =
+  | "rtt"
+  | "keepalive"
+  | "close"
+  | "identify"
+  | "request"
+  | "response"
+  | "channel"
+  | "resource-adv"
+  | "resource-req"
+  | "resource-hmu"
+  | "resource-icl"
+  | "resource-rcl"
+  | "resource"
+  | "plaintext"
+  | "ignore";
+
+export function planLinkDataContext(context: number): LinkDataContextKind {
+  switch (context) {
+    case PacketContextCode.LRRTT:
+      return "rtt";
+    case PacketContextCode.KEEPALIVE:
+      return "keepalive";
+    case PacketContextCode.LINKCLOSE:
+      return "close";
+    case PacketContextCode.LINKIDENTIFY:
+      return "identify";
+    case PacketContextCode.REQUEST:
+      return "request";
+    case PacketContextCode.RESPONSE:
+      return "response";
+    case PacketContextCode.CHANNEL:
+      return "channel";
+    case PacketContextCode.RESOURCE_ADV:
+      return "resource-adv";
+    case PacketContextCode.RESOURCE_REQ:
+      return "resource-req";
+    case PacketContextCode.RESOURCE_HMU:
+      return "resource-hmu";
+    case PacketContextCode.RESOURCE_ICL:
+      return "resource-icl";
+    case PacketContextCode.RESOURCE_RCL:
+      return "resource-rcl";
+    case PacketContextCode.RESOURCE:
+      return "resource";
+    case PacketContextCode.NONE:
+      return "plaintext";
+    default:
+      return "ignore";
+  }
+}

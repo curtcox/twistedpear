@@ -7,11 +7,14 @@ import {
   isDiscoveryPathRequestExpired,
   isReverseEntryExpired,
   planAnnounceIngressGates,
+  planDiscoveryPathRequestFulfill,
   planLinkRelayTarget,
+  planPathRequestIngress,
   planTransportIngressDispatch,
   rewritePacketHopsBytes,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash as planShouldDeferPacketHash,
+  shouldAnswerPathRequest,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
   shouldRelayReverseOnInterface,
@@ -42,8 +45,7 @@ import {
   PATH_REQUEST_TIMEOUT_SECONDS,
   buildPathRequestData,
   parsePathRequestData,
-  pathRequestTagKey,
-  shouldAnswerPathRequest
+  pathRequestTagKey
 } from "./path.js";
 import { AnnounceRateLimiter } from "./rate.js";
 
@@ -168,48 +170,82 @@ export class TransportNode extends LeafTransport {
 
   protected override async handlePathRequest(packet: Packet, iface: PacketInterface): Promise<void> {
     const parsed = parsePathRequestData(packet.data);
-    if (parsed === null || parsed.tag === null) {
+    const path = parsed === null ? undefined : this.getPathEntry(parsed.destinationHash);
+    const localDestination =
+      parsed === null
+        ? undefined
+        : this.destinations.find(
+            (entry) =>
+              equalBytes(entry.hash, parsed.destinationHash) &&
+              entry.direction === DestinationDirection.IN
+          );
+    const tagKey =
+      parsed !== null && parsed.tag !== null
+        ? pathRequestTagKey(parsed.destinationHash, parsed.tag)
+        : null;
+    const destinationKey =
+      parsed !== null ? hashKey(parsed.destinationHash) : null;
+    const existingDiscovery =
+      destinationKey !== null ? this.discoveryPathRequests.get(destinationKey) : undefined;
+    const nowSeconds = this.clock.now() / 1000;
+    const discoveryExpired =
+      existingDiscovery !== undefined &&
+      isDiscoveryPathRequestExpired({ timeoutAt: existingDiscovery.timeout, nowSeconds });
+
+    const plan = planPathRequestIngress({
+      parsedOk: parsed !== null,
+      hasTag: parsed?.tag !== null && parsed?.tag !== undefined,
+      tagAlreadySeen: tagKey !== null && this.discoveryPrTags.has(tagKey),
+      hasLocalAnswerer: localDestination?.answerPathRequest !== undefined,
+      transportEnabled: true,
+      hasPath: path !== undefined,
+      shouldAnswerPath:
+        path !== undefined &&
+        shouldAnswerPathRequest(path.nextHop, parsed?.requestorTransportId ?? null),
+      discoveryPresent: existingDiscovery !== undefined,
+      discoveryExpired,
+      allowDiscovery: true
+    });
+
+    if (plan === "ignore-unparsed" || plan === "ignore-seen-tag") {
       return;
     }
 
-    const tagKey = pathRequestTagKey(parsed.destinationHash, parsed.tag);
-    if (this.discoveryPrTags.has(tagKey)) {
-      return;
+    if (tagKey !== null) {
+      this.discoveryPrTags.add(tagKey);
     }
 
-    this.discoveryPrTags.add(tagKey);
-
-    const localDestination = this.destinations.find(
-      (entry) =>
-        equalBytes(entry.hash, parsed.destinationHash) && entry.direction === DestinationDirection.IN
-    );
-    if (localDestination?.answerPathRequest !== undefined) {
+    if (plan === "answer-local") {
+      if (localDestination?.answerPathRequest === undefined) {
+        return;
+      }
       await localDestination.answerPathRequest(iface);
       return;
     }
 
-    const path = this.getPathEntry(parsed.destinationHash);
-    if (path !== undefined) {
-      if (!shouldAnswerPathRequest(path.nextHop, parsed.requestorTransportId)) {
+    if (plan === "answer-path") {
+      if (path === undefined) {
         return;
       }
-
       await this.sendPathResponse(path, iface);
       return;
     }
 
-    const destinationKey = hashKey(parsed.destinationHash);
-    const existingDiscovery = this.discoveryPathRequests.get(destinationKey);
-    if (existingDiscovery !== undefined) {
-      const nowSeconds = this.clock.now() / 1000;
-      if (!isDiscoveryPathRequestExpired({ timeoutAt: existingDiscovery.timeout, nowSeconds })) {
-        return;
-      }
+    if (plan === "ignore" || plan === "ignore-in-flight-discovery") {
+      return;
+    }
+
+    // start-discovery
+    if (parsed === null || parsed.tag === null || destinationKey === null) {
+      return;
+    }
+
+    if (discoveryExpired) {
       this.discoveryPathRequests.delete(destinationKey);
     }
 
     this.discoveryPathRequests.set(destinationKey, {
-      timeout: this.clock.now() / 1000 + PATH_REQUEST_TIMEOUT_SECONDS,
+      timeout: nowSeconds + PATH_REQUEST_TIMEOUT_SECONDS,
       requestingInterface: iface
     });
 
@@ -386,17 +422,23 @@ export class TransportNode extends LeafTransport {
   private async fulfillDiscoveryPathRequest(packet: Packet, iface: PacketInterface): Promise<void> {
     const destinationKey = hashKey(packet.destinationHash);
     const pending = this.discoveryPathRequests.get(destinationKey);
-    if (pending === undefined) {
-      return;
-    }
-
     const nowSeconds = this.clock.now() / 1000;
-    if (isDiscoveryPathRequestExpired({ timeoutAt: pending.timeout, nowSeconds })) {
-      this.discoveryPathRequests.delete(destinationKey);
+    const fulfill = planDiscoveryPathRequestFulfill({
+      hasPending: pending !== undefined,
+      expired:
+        pending !== undefined &&
+        isDiscoveryPathRequestExpired({ timeoutAt: pending.timeout, nowSeconds })
+    });
+
+    if (fulfill === "ignore") {
       return;
     }
 
     this.discoveryPathRequests.delete(destinationKey);
+    if (fulfill === "drop-expired" || pending === undefined) {
+      return;
+    }
+
     const response = buildPathResponseAnnounce(this.provider, packet, this.transportIdentity, packet.hops);
     await this.transmit(pending.requestingInterface, response.raw);
   }

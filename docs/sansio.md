@@ -169,6 +169,9 @@
 > **`shouldReplyKeepaliveProbe`** and **`isExpectedLinkMode`** live in protocol;
 > `Link` adapts them. **`canAcceptLxmfPropagationLocalDelivery`** and
 > **`planLxmfPropagatedSend`** live in protocol; `LXMFRouter` adapts them.
+> **`planPathRequestIngress`** and **`planDiscoveryPathRequestFulfill`** live in
+> protocol; leaf / transport path-request and discovery announce fulfill adapt them.
+> **`planLinkDataContext`** lives in protocol; `Link.receive` DATA dispatch adapts it.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
