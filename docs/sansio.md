@@ -98,8 +98,10 @@
 > (wrap / direct / flood) lives in protocol; `LeafTransport` adapts it. **`stepResourceStatus`**
 > (queue → advertise → transferring → awaiting-proof / assemble → complete/corrupt/failed +
 > gates) lives in protocol; `Resource` adapts it. **`planPacketFilter`** (foreign transport-id +
-> seen-hash allow rules) lives in protocol; `LeafTransport` adapts it. Remaining depth work:
-> keep converting residual session IO into step machines.
+> seen-hash allow rules) lives in protocol; `LeafTransport` adapts it.
+> **`isDiscoveryPathRequestExpired`** lives in protocol; `TransportNode` adapts it (discovery
+> path-request timeout now applied). Remaining depth work: keep converting residual session
+> IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

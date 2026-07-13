@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   PATHFINDER_MAX_HOPS,
   PATH_REQUEST_MIN_INTERVAL,
+  PATH_REQUEST_TIMEOUT_SECONDS,
   PACKET_DEST_TYPE_GROUP,
   PACKET_DEST_TYPE_PLAIN,
   PACKET_DEST_TYPE_SINGLE,
@@ -10,6 +11,7 @@ import {
   PACKET_TYPE_ANNOUNCE,
   PACKET_TYPE_DATA,
   announceEmittedFromRandomBlob,
+  isDiscoveryPathRequestExpired,
   planPathOutbound,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
@@ -100,6 +102,12 @@ describe("protocol path table", () => {
     expect(
       shouldEmitPathRequest({ lastRequestAt: 100, nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL })
     ).toBe(true);
+  });
+
+  it("expires discovery path-request entries past absolute deadline", () => {
+    const timeoutAt = 100 + PATH_REQUEST_TIMEOUT_SECONDS;
+    expect(isDiscoveryPathRequestExpired({ timeoutAt, nowSeconds: timeoutAt })).toBe(false);
+    expect(isDiscoveryPathRequestExpired({ timeoutAt, nowSeconds: timeoutAt + 1 })).toBe(true);
   });
 
   it("plans wrap, direct, and flood outbound kinds", () => {

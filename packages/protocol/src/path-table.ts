@@ -29,6 +29,14 @@ export function shouldEmitPathRequest(input: {
   return input.nowSeconds - input.lastRequestAt >= minInterval;
 }
 
+/** True when a discovery path-request entry is past its absolute deadline. */
+export function isDiscoveryPathRequestExpired(input: {
+  readonly timeoutAt: number;
+  readonly nowSeconds: number;
+}): boolean {
+  return input.nowSeconds > input.timeoutAt;
+}
+
 /** How LeafTransport should send a packet given path-table state. */
 export type PathOutboundKind = "wrap" | "direct" | "flood";
 

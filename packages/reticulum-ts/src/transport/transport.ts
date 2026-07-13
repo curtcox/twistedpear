@@ -1,6 +1,7 @@
 import {
   LOCAL_REBROADCASTS_MAX as PROTOCOL_LOCAL_REBROADCASTS_MAX,
   REVERSE_TIMEOUT_SECONDS as PROTOCOL_REVERSE_TIMEOUT_SECONDS,
+  isDiscoveryPathRequestExpired,
   isReverseEntryExpired,
   planLinkRelayTarget,
   rewritePacketHopsBytes,
@@ -189,11 +190,17 @@ export class TransportNode extends LeafTransport {
       return;
     }
 
-    if (this.discoveryPathRequests.has(hashKey(parsed.destinationHash))) {
-      return;
+    const destinationKey = hashKey(parsed.destinationHash);
+    const existingDiscovery = this.discoveryPathRequests.get(destinationKey);
+    if (existingDiscovery !== undefined) {
+      const nowSeconds = this.clock.now() / 1000;
+      if (!isDiscoveryPathRequestExpired({ timeoutAt: existingDiscovery.timeout, nowSeconds })) {
+        return;
+      }
+      this.discoveryPathRequests.delete(destinationKey);
     }
 
-    this.discoveryPathRequests.set(hashKey(parsed.destinationHash), {
+    this.discoveryPathRequests.set(destinationKey, {
       timeout: this.clock.now() / 1000 + PATH_REQUEST_TIMEOUT_SECONDS,
       requestingInterface: iface
     });
@@ -348,6 +355,12 @@ export class TransportNode extends LeafTransport {
     const destinationKey = hashKey(packet.destinationHash);
     const pending = this.discoveryPathRequests.get(destinationKey);
     if (pending === undefined) {
+      return;
+    }
+
+    const nowSeconds = this.clock.now() / 1000;
+    if (isDiscoveryPathRequestExpired({ timeoutAt: pending.timeout, nowSeconds })) {
+      this.discoveryPathRequests.delete(destinationKey);
       return;
     }
 
