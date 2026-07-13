@@ -36,6 +36,7 @@ import {
   computeLinkMdu,
   computeLinkRequestTimeout,
   computeLinkRttSeconds,
+  containsResourceHash,
   deriveRnsLinkKey,
   encodeLinkMtuBytes,
   encodeLinkSignallingBytes,
@@ -814,7 +815,10 @@ export class Link {
   }
 
   hasIncomingResource(resource: Resource): boolean {
-    return this.incomingResourcesList.some((incoming) => equalBytes(incoming.hash, resource.hash));
+    return containsResourceHash({
+      hashes: this.incomingResourcesList.map((incoming) => incoming.hash),
+      target: resource.hash
+    });
   }
 
   resourceConcluded(resource: Resource): void {

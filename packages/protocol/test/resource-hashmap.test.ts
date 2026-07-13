@@ -13,6 +13,8 @@ import {
   planResourceRequestFulfill,
   readResourceRequestHash,
   appendResourceMapHashCollisionGuard,
+  containsResourceHash,
+  indexOfResourceHash,
   resourceHashmapMaxLen,
   resourceMapHashCollisionGuardLimit,
   splitResourceHashmapUpdatePacket,
@@ -46,6 +48,14 @@ describe("protocol resource hashmap", () => {
       hashmapMaxLen
     });
     expect(collided.collided).toBe(true);
+  });
+
+  it("finds resource hashes by membership", () => {
+    const a = new Uint8Array([1, 2, 3]);
+    const b = new Uint8Array([4, 5, 6]);
+    expect(indexOfResourceHash({ hashes: [a, b], target: new Uint8Array([4, 5, 6]) })).toBe(1);
+    expect(containsResourceHash({ hashes: [a, b], target: a })).toBe(true);
+    expect(containsResourceHash({ hashes: [a], target: b })).toBe(false);
   });
 
   it("round-trips hashmap update msgpack", () => {

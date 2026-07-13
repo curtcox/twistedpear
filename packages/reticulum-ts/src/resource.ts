@@ -41,6 +41,7 @@ import {
   planResourceRequestFulfill,
   readResourceRequestHash,
   appendResourceMapHashCollisionGuard,
+  containsResourceHash,
   resourceEncryptMaterial,
   resourceExpectedProofMaterial,
   resourceHashMaterial,
@@ -425,7 +426,12 @@ export class Resource {
     try {
       const adv = ResourceAdvertisement.unpack(plaintext);
       const provider = link.cryptoProvider;
-      if (link.incomingResources.some((resource) => equalBytes(resource.hash, adv.h))) {
+      if (
+        containsResourceHash({
+          hashes: link.incomingResources.map((resource) => resource.hash),
+          target: adv.h
+        })
+      ) {
         return null;
       }
 

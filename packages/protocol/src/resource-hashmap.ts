@@ -52,6 +52,28 @@ export function appendResourceMapHashCollisionGuard(input: {
   return { collided: false, guard };
 }
 
+/** Index of `target` in a resource-hash list, or null if absent. */
+export function indexOfResourceHash(input: {
+  readonly hashes: ReadonlyArray<Uint8Array>;
+  readonly target: Uint8Array;
+}): number | null {
+  for (let index = 0; index < input.hashes.length; index += 1) {
+    const hash = input.hashes[index];
+    if (hash != null && equalByteArrays(hash, input.target)) {
+      return index;
+    }
+  }
+  return null;
+}
+
+/** Whether `target` is present in a resource-hash list. */
+export function containsResourceHash(input: {
+  readonly hashes: ReadonlyArray<Uint8Array>;
+  readonly target: Uint8Array;
+}): boolean {
+  return indexOfResourceHash(input) !== null;
+}
+
 export function packResourceHashmapUpdate(segment: number, hashmap: Uint8Array): Uint8Array {
   return msgpackPackArray([msgpackPackUInt(segment), msgpackPackBin(hashmap)]);
 }

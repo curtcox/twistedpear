@@ -511,6 +511,8 @@ export {
   planResourceRequestFulfill,
   readResourceRequestHash,
   appendResourceMapHashCollisionGuard,
+  containsResourceHash,
+  indexOfResourceHash,
   resourceHashmapMaxLen,
   resourceMapHashCollisionGuardLimit,
   splitResourceHashmapUpdatePacket,
