@@ -1,3 +1,4 @@
+import { checkPacketReceiptTimeout } from "@twistedpear/protocol";
 import { equalBytes } from "./crypto/bytes.js";
 import type { Identity } from "./identity.js";
 import { Packet, PacketType } from "./packet.js";
@@ -128,18 +129,19 @@ export class PacketReceipt {
   }
 
   checkTimeout(nowSeconds = this.now()): boolean {
-    if (this.status === PacketReceiptStatus.DELIVERED || this.status === PacketReceiptStatus.FAILED) {
+    const result = checkPacketReceiptTimeout({
+      status: this.status,
+      timeoutAt: this.timeoutAt,
+      nowSeconds
+    });
+    if (!result.timedOut) {
       return false;
     }
 
-    if (this.timeoutAt !== null && nowSeconds >= this.timeoutAt) {
-      this.status = PacketReceiptStatus.FAILED;
-      this.concludedAt = nowSeconds;
-      this.callbacks.timeout?.(this);
-      return true;
-    }
-
-    return false;
+    this.status = PacketReceiptStatus.FAILED;
+    this.concludedAt = result.concludedAt;
+    this.callbacks.timeout?.(this);
+    return true;
   }
 
   cancelTimeoutTimer(): void {

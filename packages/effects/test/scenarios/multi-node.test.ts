@@ -17,10 +17,28 @@ import {
   stepPropagationTransfer,
   type PropagationTransferMachineState
 } from "../../../protocol/src/propagation-transfer.js";
+import {
+  initialPathTableState,
+  stepPathTable,
+  type PathTableState
+} from "../../../protocol/src/path-table.js";
+import { LinkStatus } from "../../../protocol/src/link-watchdog.js";
+import {
+  initialLinkSessionState,
+  stepLinkSession,
+  type LinkSessionState
+} from "../../../protocol/src/link-session.js";
 import { describe, expect, it } from "vitest";
 
 function grantSet(at: number, declared: string[], requested: string[]): Event {
   return { kind: "grant/set", at, declared, requested } as unknown as Event;
+}
+
+function blobWithEmitted(emitted: number): Uint8Array {
+  const blob = new Uint8Array(10);
+  blob[9] = emitted & 0xff;
+  blob[8] = (emitted >>> 8) & 0xff;
+  return blob;
 }
 
 describe("multi-node sim scenarios", () => {
@@ -157,5 +175,70 @@ describe("multi-node sim scenarios", () => {
     const b = run(99);
     expect(a.lastBlocked).toBe(b.lastBlocked);
     expect(a.table.get("dest")?.blockedUntil).toBe(b.table.get("dest")?.blockedUntil);
+  });
+
+  it("path table updates replay identically across nodes", () => {
+    const blob = blobWithEmitted(42);
+    const config = {
+      seed: 5,
+      nodes: [
+        { id: "a", initial: initialPathTableState(), step: stepPathTable },
+        { id: "b", initial: initialPathTableState(), step: stepPathTable }
+      ]
+    };
+    const { stateHash } = assertReplayDeterminism(config, (kernel) => {
+      for (const node of ["a", "b"] as const) {
+        kernel.inject(node, {
+          kind: "path/announce",
+          destinationKey: "dest",
+          hops: 1,
+          randomBlob: blob,
+          at: 10
+        } as unknown as Event);
+      }
+    });
+    expect(stateHash).toBeTruthy();
+    const live = new SimKernel(config);
+    live.inject("a", {
+      kind: "path/announce",
+      destinationKey: "dest",
+      hops: 1,
+      randomBlob: blob,
+      at: 10
+    } as unknown as Event);
+    expect((live.getNodeState("a") as PathTableState).entries.get("dest")?.hops).toBe(1);
+  });
+
+  it("two-node link session establishes deterministically", () => {
+    const config = {
+      seed: 11,
+      nodes: [
+        {
+          id: "a",
+          initial: initialLinkSessionState({ role: "initiator", peerId: "b" }),
+          step: stepLinkSession
+        },
+        {
+          id: "b",
+          initial: initialLinkSessionState({ role: "responder", peerId: "a" }),
+          step: stepLinkSession
+        }
+      ]
+    };
+    const { stateHash } = assertReplayDeterminism(config, (kernel) => {
+      kernel.inject("a", { kind: "session/request-link", at: 1 } as unknown as Event);
+      kernel.inject("b", { kind: "session/link-proof", at: 2, rtt: 0.4 } as unknown as Event);
+      kernel.inject("a", { kind: "session/link-proof", at: 2.1, rtt: 0.4 } as unknown as Event);
+      kernel.inject("a", { kind: "session/inbound", at: 3 } as unknown as Event);
+      kernel.inject("b", { kind: "session/inbound", at: 3 } as unknown as Event);
+    });
+    expect(stateHash).toBeTruthy();
+
+    const live = new SimKernel(config);
+    live.inject("a", { kind: "session/request-link", at: 1 } as unknown as Event);
+    live.inject("b", { kind: "session/link-proof", at: 2, rtt: 0.4 } as unknown as Event);
+    live.inject("a", { kind: "session/link-proof", at: 2.1, rtt: 0.4 } as unknown as Event);
+    expect((live.getNodeState("a") as LinkSessionState).status).toBe(LinkStatus.ACTIVE);
+    expect((live.getNodeState("b") as LinkSessionState).established).toBe(true);
   });
 });

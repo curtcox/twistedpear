@@ -1,3 +1,15 @@
+import {
+  PATHFINDER_EXPIRY_SECONDS,
+  PATHFINDER_MAX_HOPS,
+  PATH_REQUEST_GRACE_MS,
+  PATH_REQUEST_MIN_INTERVAL,
+  PATH_REQUEST_TIMEOUT_SECONDS,
+  announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
+  computePathExpiry,
+  shouldAddPathEntry,
+  shouldAnswerPathRequest,
+  timebaseFromRandomBlobs as protocolTimebaseFromRandomBlobs
+} from "@twistedpear/protocol";
 import type { CryptoProvider } from "../crypto/provider.js";
 import { Announce, type ParsedAnnounce } from "../announce.js";
 import { bytesToHex, equalBytes } from "../crypto/bytes.js";
@@ -15,19 +27,13 @@ import {
 } from "../packet.js";
 import type { Clock } from "../runtime/runtime.js";
 import {
-  PATH_REQUEST_GRACE_MS,
-  PATH_REQUEST_MIN_INTERVAL,
-  PATH_REQUEST_TIMEOUT_SECONDS,
   buildPathRequestData,
   parsePathRequestData,
   pathRequestDestinationHash,
-  pathRequestTagKey,
-  shouldAnswerPathRequest
+  pathRequestTagKey
 } from "./path.js";
 
-/** Mirrors RNS/Transport.py path table constants for leaf mode. */
-export const PATHFINDER_MAX_HOPS = 128;
-export const PATHFINDER_EXPIRY_SECONDS = 60 * 60 * 24 * 7;
+export { PATHFINDER_EXPIRY_SECONDS, PATHFINDER_MAX_HOPS };
 export const TRUNCATED_HASH_BYTES = TRUNCATED_HASH_LENGTH / 8;
 
 export interface PathEntry {
@@ -419,27 +425,25 @@ export class LeafTransport {
     const receivedFrom = packet.transportId ?? packet.destinationHash;
     const randomBlob = parsed.randomHash;
     const existing = this.pathTable.get(hashKey(packet.destinationHash));
-    const announceEmitted = announceEmittedFromRandomBlob(randomBlob);
-    let shouldAdd = false;
-
-    if (existing === undefined) {
-      shouldAdd = packet.hops < PATHFINDER_MAX_HOPS + 1;
-    } else if (packet.hops <= existing.hops) {
-      const pathTimebase = timebaseFromRandomBlobs(existing.randomBlobs);
-      shouldAdd =
-        !existing.randomBlobs.some((blob) => equalBytes(blob, randomBlob)) && announceEmitted > pathTimebase;
-    } else {
-      const now = this.clock.now() / 1000;
-      if (now >= existing.expires) {
-        shouldAdd = !existing.randomBlobs.some((blob) => equalBytes(blob, randomBlob));
-      }
-    }
+    const now = this.clock.now() / 1000;
+    const shouldAdd = shouldAddPathEntry({
+      hops: packet.hops,
+      randomBlob,
+      nowSeconds: now,
+      existing:
+        existing === undefined
+          ? null
+          : {
+              hops: existing.hops,
+              expires: existing.expires,
+              randomBlobs: existing.randomBlobs
+            }
+    });
 
     if (!shouldAdd) {
       return;
     }
 
-    const now = this.clock.now() / 1000;
     const randomBlobs = [...(existing?.randomBlobs ?? [])];
     if (!randomBlobs.some((blob) => equalBytes(blob, randomBlob))) {
       randomBlobs.push(randomBlob);
@@ -449,7 +453,7 @@ export class LeafTransport {
       timestamp: now,
       nextHop: Uint8Array.from(receivedFrom),
       hops: packet.hops,
-      expires: now + PATHFINDER_EXPIRY_SECONDS,
+      expires: computePathExpiry(now),
       randomBlobs,
       receivedInterface: iface,
       packetHash: packet.hash(),
@@ -727,25 +731,11 @@ export function cloneWithHops(provider: CryptoProvider, packet: Packet, hops: nu
 }
 
 export function announceEmittedFromRandomBlob(randomBlob: Uint8Array): number {
-  if (randomBlob.length < 10) {
-    return 0;
-  }
-
-  let value = 0;
-  for (let index = 5; index < 10; index += 1) {
-    value = (value << 8) | randomBlob[index]!;
-  }
-
-  return value;
+  return protocolAnnounceEmittedFromRandomBlob(randomBlob);
 }
 
 export function timebaseFromRandomBlobs(randomBlobs: ReadonlyArray<Uint8Array>): number {
-  let latest = 0;
-  for (const blob of randomBlobs) {
-    latest = Math.max(latest, announceEmittedFromRandomBlob(blob));
-  }
-
-  return latest;
+  return protocolTimebaseFromRandomBlobs(randomBlobs);
 }
 
 export function wrapTransportPacket(packet: Packet, nextHop: Uint8Array): Uint8Array {

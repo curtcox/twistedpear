@@ -99,3 +99,41 @@ export {
   type AnnounceRateOptions,
   type AnnounceRateState
 } from "./announce-rate.js";
+export {
+  PATHFINDER_EXPIRY_SECONDS,
+  PATHFINDER_MAX_HOPS,
+  PATH_REQUEST_GRACE_MS,
+  PATH_REQUEST_MIN_INTERVAL,
+  PATH_REQUEST_TIMEOUT_SECONDS,
+  TRUNCATED_HASH_BYTES,
+  announceEmittedFromRandomBlob,
+  computePathExpiry,
+  equalByteArrays,
+  initialPathTableState,
+  shouldAddPathEntry,
+  shouldAnswerPathRequest,
+  stepPathTable,
+  timebaseFromRandomBlobs,
+  type PathAddDecisionInput,
+  type PathTableEntryView,
+  type PathTableEvent,
+  type PathTableState
+} from "./path-table.js";
+export {
+  PacketReceiptStatus as ProtocolPacketReceiptStatus,
+  checkPacketReceiptTimeout,
+  initialPacketReceiptTimeoutState,
+  stepPacketReceiptTimeout,
+  type PacketReceiptTimeoutEvent,
+  type PacketReceiptTimeoutState,
+  type PacketReceiptStatusValue as ProtocolPacketReceiptStatusValue
+} from "./packet-receipt-timeout.js";
+export {
+  initialLinkSessionState,
+  stepLinkSession,
+  stepLinkSessionWithActions,
+  type LinkSessionAction,
+  type LinkSessionEvent,
+  type LinkSessionState,
+  type LinkSessionStepResult
+} from "./link-session.js";
