@@ -29,7 +29,7 @@ import { Destination, DestinationDirection, DestinationType, type DestinationTyp
 import { Identity, TRUNCATED_HASH_LENGTH } from "../identity.js";
 import type { PacketInterface } from "../interfaces/interface.js";
 import type { Link } from "../link.js";
-import { PacketReceipt, PacketReceiptStatus } from "../packet-receipt.js";
+import { PacketReceipt } from "../packet-receipt.js";
 import {
   Packet,
   PacketContext,
@@ -352,7 +352,7 @@ export class LeafTransport {
     const sent = await this.outbound(packet, options.attachedInterface ?? null);
     if (!sent) {
       if (receipt !== null) {
-        receipt.status = PacketReceiptStatus.FAILED;
+        receipt.markFailed();
         const index = this.receipts.indexOf(receipt);
         if (index >= 0) {
           this.receipts.splice(index, 1);

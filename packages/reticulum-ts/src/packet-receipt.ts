@@ -151,6 +151,14 @@ export class PacketReceipt {
     return true;
   }
 
+  /** Mark the receipt failed (e.g. outbound send could not transmit). */
+  markFailed(atSeconds = this.now()): void {
+    this.receiptState = stepPacketReceiptTimeout(this.receiptState, {
+      kind: "receipt/failed",
+      at: atSeconds
+    }).state;
+  }
+
   cancelTimeoutTimer(): void {
     this.timeoutTimer?.cancel();
     this.timeoutTimer = null;

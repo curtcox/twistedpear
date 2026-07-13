@@ -49,4 +49,26 @@ describe("protocol packet receipt timeout", () => {
     expect(state.timedOut).toBe(true);
     expect(state.status).toBe(PacketReceiptStatus.FAILED);
   });
+
+  it("marks send-failure as failed without timing out", () => {
+    let state = initialPacketReceiptTimeoutState();
+    state = stepPacketReceiptTimeout(state, {
+      kind: "receipt/arm",
+      at: 10,
+      timeoutSeconds: 5
+    } as never).state;
+    state = stepPacketReceiptTimeout(state, { kind: "receipt/failed", at: 11 } as never).state;
+    expect(state.status).toBe(PacketReceiptStatus.FAILED);
+    expect(state.concludedAt).toBe(11);
+    expect(state.timedOut).toBe(false);
+
+    const delivered = stepPacketReceiptTimeout(
+      stepPacketReceiptTimeout(initialPacketReceiptTimeoutState(), {
+        kind: "receipt/delivered",
+        at: 1
+      } as never).state,
+      { kind: "receipt/failed", at: 2 } as never
+    ).state;
+    expect(delivered.status).toBe(PacketReceiptStatus.DELIVERED);
+  });
 });

@@ -25,6 +25,7 @@ export type PacketReceiptTimeoutEvent =
   | Event
   | { readonly kind: "receipt/arm"; readonly at: number; readonly timeoutSeconds: number }
   | { readonly kind: "receipt/delivered"; readonly at: number }
+  | { readonly kind: "receipt/failed"; readonly at: number }
   | { readonly kind: "receipt/check"; readonly at: number };
 
 export function initialPacketReceiptTimeoutState(): PacketReceiptTimeoutState {
@@ -83,6 +84,24 @@ function stepPacketReceiptTimeoutInner(
       state: {
         ...state,
         status: PacketReceiptStatus.DELIVERED,
+        concludedAt: event.at,
+        timedOut: false
+      },
+      intents: []
+    };
+  }
+
+  if (event.kind === "receipt/failed") {
+    if (
+      state.status === PacketReceiptStatus.DELIVERED ||
+      state.status === PacketReceiptStatus.FAILED
+    ) {
+      return { state, intents: [] };
+    }
+    return {
+      state: {
+        ...state,
+        status: PacketReceiptStatus.FAILED,
         concludedAt: event.at,
         timedOut: false
       },
