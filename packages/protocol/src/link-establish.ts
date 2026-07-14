@@ -24,11 +24,14 @@ export type LinkEstablishEvent =
       readonly atSeconds: number;
       readonly rtt: number;
     }
-  | { readonly kind: "establish/failed" };
+  | { readonly kind: "establish/failed" }
+  | { readonly kind: "establish/rtt"; readonly plaintextPresent: boolean }
+  | { readonly kind: "establish/rtt-failed" };
 
 /**
- * Adapter applies handshake / activate / fail only from these actions.
+ * Adapter applies handshake / activate / fail / RTT gate only from these actions.
  * Initiator activation also drives membership + LRRTT send flags.
+ * Responder LRRTT: ignore / accept-rtt (unpack then activated) / teardown.
  */
 export type LinkEstablishAction =
   | { readonly kind: "enter-handshake" }
@@ -39,7 +42,10 @@ export type LinkEstablishAction =
       readonly sendRtt: boolean;
       readonly activateMembership: boolean;
     }
-  | { readonly kind: "failed" };
+  | { readonly kind: "failed" }
+  | { readonly kind: "ignore" }
+  | { readonly kind: "accept-rtt" }
+  | { readonly kind: "teardown" };
 
 export interface LinkEstablishStepResult {
   readonly state: LinkEstablishState;
@@ -542,6 +548,27 @@ export function shouldFailLinkEstablish(
   return actions.some((action) => action.kind === "failed");
 }
 
+/** Whether step actions include ignore (LRRTT gate). */
+export function shouldIgnoreLinkEstablishRtt(
+  actions: ReadonlyArray<LinkEstablishAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+/** Whether step actions include accept-rtt (proceed to unpack / activate). */
+export function shouldAcceptLinkEstablishRtt(
+  actions: ReadonlyArray<LinkEstablishAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept-rtt");
+}
+
+/** Whether step actions include teardown (full link close after LRRTT failure). */
+export function shouldTeardownLinkEstablish(
+  actions: ReadonlyArray<LinkEstablishAction>
+): boolean {
+  return actions.some((action) => action.kind === "teardown");
+}
+
 /** Extract the activated action from an establish step, if any. */
 export function linkEstablishActivatedAction(
   actions: ReadonlyArray<LinkEstablishAction>
@@ -600,6 +627,42 @@ function stepLinkEstablishInner(
       },
       intents: [],
       actions: [{ kind: "failed" }]
+    };
+  }
+
+  if (event.kind === "establish/rtt") {
+    const canAccept = canAcceptLinkRtt({
+      status: state.status,
+      initiator: state.initiator
+    });
+    const outcome = planLinkRttOutcome({
+      canAccept,
+      plaintextPresent: event.plaintextPresent
+    });
+    if (outcome === "ignore") {
+      return { state, intents: [], actions: [{ kind: "ignore" }] };
+    }
+    if (
+      shouldTeardownLinkFromRtt({
+        outcomeTeardown: outcome === "teardown",
+        plaintextPresent: event.plaintextPresent
+      })
+    ) {
+      return { state, intents: [], actions: [{ kind: "teardown" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "accept-rtt" }] };
+  }
+
+  if (event.kind === "establish/rtt-failed") {
+    return {
+      state: {
+        ...state,
+        status: LinkStatus.CLOSED,
+        rtt: null,
+        activatedAt: null
+      },
+      intents: [],
+      actions: [{ kind: "teardown" }]
     };
   }
 

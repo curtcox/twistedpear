@@ -85,10 +85,10 @@ import {
   planLinkProofValidateOutcome,
   planLinkRequestResponderMtu,
   planLinkResourceConclude,
-  planLinkRttOutcome,
   planLinkTokenAccess,
   planLinkValidateRequest,
   planUnregisterPendingLinkRequest,
+  shouldAcceptLinkEstablishRtt,
   shouldAcceptLinkPacketInterface,
   shouldAcceptLinkResourceAdvertisement,
   shouldAcceptRemoteLinkTeardown,
@@ -110,6 +110,7 @@ import {
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest,
   shouldIgnoreInitiatorKeepaliveProbe,
+  shouldIgnoreLinkEstablishRtt,
   shouldIgnoreLinkResourceAdvertisement,
   shouldRegisterLinkResource,
   shouldRegisterPendingLinkRequest,
@@ -117,7 +118,7 @@ import {
   shouldRemoveLinkResourceListIndex,
   shouldReplyKeepaliveProbe,
   shouldSendLinkTeardownThenClose,
-  shouldTeardownLinkFromRtt,
+  shouldTeardownLinkEstablish,
   shouldUnregisterPendingLinkRequest,
   shouldUpdateLinkLastData,
   isLinkInboundDataPacket,
@@ -669,48 +670,60 @@ export class Link {
   async handleRttPacket(packet: Packet): Promise<void> {
     const canAccept = canAcceptLinkRtt({ status: this.status, initiator: this.initiator });
     const plaintext = canAccept ? this.decrypt(packet.data) : null;
-    const outcome = planLinkRttOutcome({
-      canAccept,
-      plaintextPresent: plaintext !== null
-    });
-    if (outcome === "ignore") {
-      return;
-    }
-    if (
-      shouldTeardownLinkFromRtt({
-        outcomeTeardown: outcome === "teardown",
-        plaintextPresent: plaintext !== null
-      })
-    ) {
-      await this.teardown();
-      return;
-    }
-
-    try {
-      const measuredRtt = computeLinkRttSeconds(this.clock.now() / 1000, this.requestTime);
-      const remoteRtt = msgpackUnpackFloat(plaintext!);
-      const nowSeconds = this.clock.now() / 1000;
-      await this.applyLinkEstablishActions(
-        stepLinkEstablishWithActions(
-          initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
-          {
-            kind: "establish/activated",
-            atSeconds: nowSeconds,
-            rtt: mergeLinkRtt(measuredRtt, remoteRtt)
-          }
-        ).actions
-      );
-    } catch {
-      await this.teardown();
-    }
+    await this.applyLinkEstablishActions(
+      stepLinkEstablishWithActions(
+        initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
+        {
+          kind: "establish/rtt",
+          plaintextPresent: plaintext !== null
+        }
+      ).actions,
+      { rttPlaintext: plaintext }
+    );
   }
 
   private async applyLinkEstablishActions(
     actions: readonly LinkEstablishAction[],
     context?: {
       readonly prepareInitiatorActivate?: () => void;
+      readonly rttPlaintext?: Uint8Array | null;
     }
   ): Promise<void> {
+    if (shouldIgnoreLinkEstablishRtt(actions)) {
+      return;
+    }
+
+    if (shouldTeardownLinkEstablish(actions)) {
+      await this.teardown();
+      return;
+    }
+
+    if (shouldAcceptLinkEstablishRtt(actions)) {
+      try {
+        const measuredRtt = computeLinkRttSeconds(this.clock.now() / 1000, this.requestTime);
+        const remoteRtt = msgpackUnpackFloat(context?.rttPlaintext!);
+        const nowSeconds = this.clock.now() / 1000;
+        await this.applyLinkEstablishActions(
+          stepLinkEstablishWithActions(
+            initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
+            {
+              kind: "establish/activated",
+              atSeconds: nowSeconds,
+              rtt: mergeLinkRtt(measuredRtt, remoteRtt)
+            }
+          ).actions
+        );
+      } catch {
+        await this.applyLinkEstablishActions(
+          stepLinkEstablishWithActions(
+            initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
+            { kind: "establish/rtt-failed" }
+          ).actions
+        );
+      }
+      return;
+    }
+
     if (shouldEnterLinkHandshake(actions)) {
       this.status = LinkStatus.HANDSHAKE;
     }

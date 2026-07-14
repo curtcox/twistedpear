@@ -222,7 +222,8 @@
 > protocol; transport sendPacket / receipt proofs adapt them. **`planLinkRegisterList`**,
 > **`indexOfMatchingLinkId`** / **`planLinkDataIngressTarget`**, and
 > **`planReverseRelayOutcome`** live in protocol; transport link + reverse relay adapt
-> them. **`planLinkRttOutcome`**, **`shouldDispatchLinkPlaintext`**,
+> them. **`planLinkRttOutcome`** (via **`stepLinkEstablishWithActions`**
+> `establish/rtt`), **`shouldDispatchLinkPlaintext`**,
 > **`canResendLinkPacket`**, and **`planLinkAppRequestTransmitOutcome`** live in
 > protocol; `Link` adapts them. **`planResourceHashmapUpdateAccept`** lives in
 > protocol; `Resource` adapts it. **`shouldRegisterLinkMember`**,
@@ -339,9 +340,10 @@
 > `give-up` / `retry` actions (no ad-hoc `plan.kind` reads). Receipt timeout
 > refresh uses **`planChannelTxReceiptTimeoutRefresh`**.
 > **`stepLinkEstablishWithActions`** emits `enter-handshake` / `activated`
-> (with initiator `sendRtt` + `activateMembership` flags) / `failed`; `Link`
-> handshake, validateProof, and handleRtt apply status and edge IO only from
-> those actions.
+> (with initiator `sendRtt` + `activateMembership` flags) / `failed` / LRRTT
+> `ignore` / `accept-rtt` / `teardown`; `Link` handshake, validateProof, and
+> handleRtt apply status and edge IO only from those actions (no ad-hoc
+> `planLinkRttOutcome` reads beside the step).
 > **`stepLinkTeardownWithActions`** emits `close-only` /
 > `send-teardown-then-close` (with reason) / `accept-remote-close`; `Link`
 > teardown and LINKCLOSE handling apply send/reason/close only from those
@@ -384,7 +386,7 @@
 > awaits all conclude via machine resolve/reject actions (adapters no longer
 > finish by reading `state.concluded` beside probes). PacketReceipt
 > timeout/delivery/failed, Channel TX timeout/retry/give-up, Link establish
-> handshake/activate/fail, Link teardown local/remote close, and Link
+> handshake/activate/fail/LRRTT, Link teardown local/remote close, and Link
 > RESOURCE_ADV accept/ask-app/reject also conclude via machine actions (no
 > ad-hoc `state.timedOut` / `plan.kind` / establish-status reads beside the
 > step).

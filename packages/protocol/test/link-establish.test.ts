@@ -39,6 +39,7 @@ import {
   planLinkTokenAccess,
   planLinkUnregisterMembership,
   planLinkValidateRequest,
+  shouldAcceptLinkEstablishRtt,
   shouldAcceptLinkPacketInterface,
   shouldActivateLinkEstablish,
   shouldAppendActiveLinkMembership,
@@ -49,12 +50,14 @@ import {
   shouldEncryptLinkPayload,
   shouldEnterLinkHandshake,
   shouldFailLinkEstablish,
+  shouldIgnoreLinkEstablishRtt,
   shouldInvokeLinkAppRequestHandler,
   shouldRegisterLinkMember,
   shouldRemoveActiveLinkMembership,
   shouldRemovePendingLinkMembership,
   shouldReuseActiveLink,
   shouldSendLinkAppRequestResponse,
+  shouldTeardownLinkEstablish,
   shouldTeardownLinkFromRtt,
   shouldUpdateLinkLastData,
   stepLinkEstablish,
@@ -551,6 +554,44 @@ describe("protocol link establish", () => {
     });
   });
 
+  it("emits establish actions for LRRTT ignore / accept-rtt / teardown", () => {
+    const initiator = initialLinkEstablishState({
+      initiator: true,
+      status: LinkStatus.PENDING
+    });
+    const ignored = stepLinkEstablishWithActions(initiator, {
+      kind: "establish/rtt",
+      plaintextPresent: true
+    });
+    expect(ignored.actions).toEqual([{ kind: "ignore" }]);
+    expect(shouldIgnoreLinkEstablishRtt(ignored.actions)).toBe(true);
+    expect(shouldAcceptLinkEstablishRtt(ignored.actions)).toBe(false);
+
+    const responder = initialLinkEstablishState({
+      initiator: false,
+      status: LinkStatus.HANDSHAKE
+    });
+    const missing = stepLinkEstablishWithActions(responder, {
+      kind: "establish/rtt",
+      plaintextPresent: false
+    });
+    expect(missing.actions).toEqual([{ kind: "teardown" }]);
+    expect(shouldTeardownLinkEstablish(missing.actions)).toBe(true);
+
+    const accept = stepLinkEstablishWithActions(responder, {
+      kind: "establish/rtt",
+      plaintextPresent: true
+    });
+    expect(accept.actions).toEqual([{ kind: "accept-rtt" }]);
+    expect(shouldAcceptLinkEstablishRtt(accept.actions)).toBe(true);
+
+    const unpackFail = stepLinkEstablishWithActions(responder, {
+      kind: "establish/rtt-failed"
+    });
+    expect(unpackFail.actions).toEqual([{ kind: "teardown" }]);
+    expect(unpackFail.state.status).toBe(LinkStatus.CLOSED);
+  });
+
   it("establish actions double-run identically", () => {
     const run = () => {
       let state = initialLinkEstablishState({ initiator: true });
@@ -567,6 +608,22 @@ describe("protocol link establish", () => {
       steps.push(
         stepLinkEstablishWithActions(initialLinkEstablishState({ initiator: false }), {
           kind: "establish/failed"
+        })
+      );
+      const responder = initialLinkEstablishState({
+        initiator: false,
+        status: LinkStatus.HANDSHAKE
+      });
+      steps.push(
+        stepLinkEstablishWithActions(responder, {
+          kind: "establish/rtt",
+          plaintextPresent: true
+        })
+      );
+      steps.push(
+        stepLinkEstablishWithActions(responder, {
+          kind: "establish/rtt",
+          plaintextPresent: false
         })
       );
       return steps.map((s) => ({
