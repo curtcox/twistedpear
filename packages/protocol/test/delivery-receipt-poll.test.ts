@@ -5,6 +5,7 @@ import {
   DELIVERY_RECEIPT_POLL_TIMER_ID,
   ReceiptPollStatus,
   initialDeliveryReceiptPollState,
+  shouldContinueDeliveryReceiptPoll,
   stepDeliveryReceiptPollWithActions
 } from "../src/delivery-receipt-poll.js";
 
@@ -34,8 +35,12 @@ describe("protocol delivery receipt poll", () => {
       at: 0
     });
     expect(result.state.concluded).toBe(true);
+    expect(shouldContinueDeliveryReceiptPoll(result.state.concluded)).toBe(false);
     expect(result.intents).toEqual([
       { kind: "timer/cancel", timer: { id: DELIVERY_RECEIPT_POLL_TIMER_ID } }
+    ]);
+    expect(result.actions).toEqual([
+      { kind: "resolve", status: ReceiptPollStatus.DELIVERED }
     ]);
   });
 
@@ -95,6 +100,7 @@ describe("protocol delivery receipt poll", () => {
       at: 30
     });
     expect(step.state.concluded).toBe(true);
+    expect(step.actions).toEqual([{ kind: "resolve", status: ReceiptPollStatus.SENT }]);
   });
 
   it("double-runs identically", () => {

@@ -4,6 +4,7 @@ import {
   PATH_AWAIT_POLL_INTERVAL_MS,
   PATH_AWAIT_TIMER_ID,
   initialPathAwaitState,
+  isPathAwaitFound,
   shouldContinuePathAwait,
   stepPathAwaitWithActions
 } from "../src/path-await.js";
@@ -35,10 +36,12 @@ describe("protocol path await", () => {
     });
     expect(result.state.concluded).toBe(true);
     expect(result.state.found).toBe(true);
+    expect(isPathAwaitFound(result.state)).toBe(true);
     expect(shouldContinuePathAwait(result.state.concluded)).toBe(false);
     expect(result.intents).toEqual([
       { kind: "timer/cancel", timer: { id: PATH_AWAIT_TIMER_ID } }
     ]);
+    expect(result.actions).toEqual([{ kind: "resolve", found: true }]);
   });
 
   it("schedules polls until the deadline then concludes not-found", () => {
@@ -95,6 +98,7 @@ describe("protocol path await", () => {
     });
     expect(step.state.concluded).toBe(true);
     expect(step.state.found).toBe(false);
+    expect(step.actions).toEqual([{ kind: "resolve", found: false }]);
   });
 
   it("ignores probes when not armed or already concluded", () => {
@@ -122,6 +126,7 @@ describe("protocol path await", () => {
     });
     expect(after.state.concluded).toBe(true);
     expect(after.state.found).toBe(true);
+    expect(after.actions).toEqual([]);
   });
 
   it("double-runs identically", () => {

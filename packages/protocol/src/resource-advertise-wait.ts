@@ -1,6 +1,7 @@
 /**
  * Pure resource advertise-wait loop: queue until the link can accept a new resource.
- * Link readiness is observed only via probe actions; adapters schedule from timer intents.
+ * Link readiness is observed only via probe actions; adapters schedule from timer intents
+ * and conclude the Promise shell only via resolve actions.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { planResourceAdvertisePhase } from "./resource-status.js";
@@ -20,7 +21,8 @@ export type ResourceAdvertiseWaitEvent =
 
 export type ResourceAdvertiseWaitAction =
   | { readonly kind: "probe" }
-  | { readonly kind: "queue" };
+  | { readonly kind: "queue" }
+  | { readonly kind: "resolve" };
 
 export interface ResourceAdvertiseWaitStepResult {
   readonly state: ResourceAdvertiseWaitState;
@@ -72,7 +74,7 @@ function stepResourceAdvertiseWaitInner(
       return {
         state: { ...state, concluded: true },
         intents: [{ kind: "timer/cancel", timer: { id: RESOURCE_ADVERTISE_WAIT_TIMER_ID } }],
-        actions: []
+        actions: [{ kind: "resolve" }]
       };
     }
     return {

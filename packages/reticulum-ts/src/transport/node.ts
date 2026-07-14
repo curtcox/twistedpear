@@ -368,9 +368,6 @@ export class LeafTransport {
               state = tick.state;
               applyIntents(tick.intents);
               applyActions(tick.actions);
-              if (state.concluded) {
-                finish(state.found);
-              }
             }, intent.timer.delayMs);
           }
         }
@@ -389,9 +386,9 @@ export class LeafTransport {
             state = probe.state;
             applyIntents(probe.intents);
             applyActions(probe.actions);
-            if (state.concluded) {
-              finish(state.found);
-            }
+          }
+          if (action.kind === "resolve") {
+            finish(action.found);
           }
         }
       };

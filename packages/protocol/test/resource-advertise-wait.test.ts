@@ -31,7 +31,7 @@ describe("protocol resource advertise wait", () => {
     expect(result.intents).toEqual([
       { kind: "timer/cancel", timer: { id: RESOURCE_ADVERTISE_WAIT_TIMER_ID } }
     ]);
-    expect(result.actions).toEqual([]);
+    expect(result.actions).toEqual([{ kind: "resolve" }]);
   });
 
   it("queues and schedules waits until timer/fired re-probes readiness", () => {
@@ -68,7 +68,7 @@ describe("protocol resource advertise wait", () => {
       ready: true
     });
     expect(step.state.concluded).toBe(true);
-    expect(step.actions).toEqual([]);
+    expect(step.actions).toEqual([{ kind: "resolve" }]);
     expect(step.intents).toEqual([
       { kind: "timer/cancel", timer: { id: RESOURCE_ADVERTISE_WAIT_TIMER_ID } }
     ]);

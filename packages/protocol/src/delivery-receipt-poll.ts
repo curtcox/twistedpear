@@ -1,7 +1,8 @@
 /**
  * Pure delivery-receipt poll loop for LXMF opportunistic/propagated sends.
- * Time arrives only via event.at; adapters schedule from timer intents and
- * observe receipt status only when the machine emits a probe action.
+ * Time arrives only via event.at; adapters schedule from timer intents,
+ * observe receipt status only when the machine emits a probe action, and
+ * conclude the Promise shell only via resolve actions.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -35,7 +36,9 @@ export type DeliveryReceiptPollEvent =
       readonly at: number;
     };
 
-export type DeliveryReceiptPollAction = { readonly kind: "probe" };
+export type DeliveryReceiptPollAction =
+  | { readonly kind: "probe" }
+  | { readonly kind: "resolve"; readonly status: ReceiptPollStatusValue };
 
 export interface DeliveryReceiptPollStepResult {
   readonly state: DeliveryReceiptPollState;
@@ -54,6 +57,11 @@ export function initialDeliveryReceiptPollState(): DeliveryReceiptPollState {
 
 export function isTerminalReceiptStatus(status: ReceiptPollStatusValue): boolean {
   return status === ReceiptPollStatus.DELIVERED || status === ReceiptPollStatus.FAILED;
+}
+
+/** Whether the delivery-receipt poll should keep probing. */
+export function shouldContinueDeliveryReceiptPoll(concluded: boolean): boolean {
+  return !concluded;
 }
 
 export const stepDeliveryReceiptPoll: StepFn<DeliveryReceiptPollState> = (state, event) => {
@@ -93,14 +101,14 @@ function stepDeliveryReceiptPollInner(
       return {
         state: { ...state, receiptStatus: event.status, concluded: true },
         intents: [{ kind: "timer/cancel", timer: { id: DELIVERY_RECEIPT_POLL_TIMER_ID } }],
-        actions: []
+        actions: [{ kind: "resolve", status: event.status }]
       };
     }
     if (event.at >= state.deadlineMs) {
       return {
         state: { ...state, receiptStatus: event.status, concluded: true },
         intents: [{ kind: "timer/cancel", timer: { id: DELIVERY_RECEIPT_POLL_TIMER_ID } }],
-        actions: []
+        actions: [{ kind: "resolve", status: event.status }]
       };
     }
     return {

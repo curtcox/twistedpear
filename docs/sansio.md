@@ -340,8 +340,9 @@
 > **`stepPathAwait`** / **`stepDeliveryReceiptPoll`** /
 > **`stepResourceAdvertiseWait`** arms emit a `probe` action; continuing status
 > events emit `timer/set` (advertise-wait also emits `queue`); terminal probes
-> emit `timer/cancel`. Timer callbacks only re-enter via `timer/fired` → probe
-> actions (no ad-hoc status reads beside the machine).
+> emit `timer/cancel` and conclude via `resolve` actions (`found` for path-await,
+> `status` for delivery-receipt). Timer callbacks only re-enter via `timer/fired`
+> → probe actions (no ad-hoc status reads beside the machine).
 > **`stepPropagationTransfer`** link-establish timeout (`PROPAGATION_LINK_TIMER_ID`)
 > is adapted by `PropagationClient`: timer callbacks only emit `timer/fired`;
 > `reject-link-wait` / `resolve-link-wait` conclude the Promise shell;
@@ -357,13 +358,10 @@
 > download / haves awaits adapt it (timeout stays on `LinkRequestReceipt`).
 > Remaining depth work: Link/Channel/LXMF orchestration shells that still
 > hold Promise/callback continuations around already-pure step cores (watchdog
-> ticks are already intent-driven). Path-await, delivery-receipt, and resource
-> advertise-wait polls emit `probe` machine actions; adapters observe path /
-> receipt / link-ready status only when applying those actions. Propagation
-> link establish/timeout and LXMF outbound link-await now conclude via machine
-> resolve/reject actions; propagation app-request awaits conclude via
-> `stepLinkAppRequestAwait` resolve actions. Delivery-receipt and path-await
-> polls still finish by reading `state.concluded` beside probe actions.
+> ticks are already intent-driven). Path-await, delivery-receipt, resource
+> advertise-wait, propagation link establish/timeout, LXMF outbound link-await,
+> and propagation app-request awaits all conclude via machine resolve/reject
+> actions (adapters no longer finish by reading `state.concluded` beside probes).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

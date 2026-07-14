@@ -66,7 +66,6 @@ import {
   shouldApplyResourceFulfillPart,
   shouldApplyResourceReceivePartSlot,
   shouldCommitResourceAssemblePayload,
-  shouldContinueResourceAdvertiseWait,
   shouldFulfillResourcePartRequest,
   shouldSendResourceHashmapUpdate,
   stepResourceAdvertiseWaitWithActions,
@@ -564,9 +563,6 @@ export class Resource {
               waitState = tick.state;
               applyIntents(tick.intents);
               applyActions(tick.actions);
-              if (!shouldContinueResourceAdvertiseWait(waitState.concluded)) {
-                finish();
-              }
             }, intent.timer.delayMs);
           }
         }
@@ -587,9 +583,9 @@ export class Resource {
             waitState = probe.state;
             applyIntents(probe.intents);
             applyActions(probe.actions);
-            if (!shouldContinueResourceAdvertiseWait(waitState.concluded)) {
-              finish();
-            }
+          }
+          if (action.kind === "resolve") {
+            finish();
           }
         }
       };

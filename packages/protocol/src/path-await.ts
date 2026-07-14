@@ -1,6 +1,7 @@
 /**
  * Pure path-await poll loop for TransportNode.awaitPath.
- * Path presence is observed only via probe actions; adapters schedule from timer intents.
+ * Path presence is observed only via probe actions; adapters schedule from timer intents
+ * and conclude the Promise shell only via resolve actions.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PATH_REQUEST_TIMEOUT_SECONDS } from "./path-table.js";
@@ -26,7 +27,9 @@ export type PathAwaitEvent =
       readonly at: number;
     };
 
-export type PathAwaitAction = { readonly kind: "probe" };
+export type PathAwaitAction =
+  | { readonly kind: "probe" }
+  | { readonly kind: "resolve"; readonly found: boolean };
 
 export interface PathAwaitStepResult {
   readonly state: PathAwaitState;
@@ -47,6 +50,11 @@ export function initialPathAwaitState(): PathAwaitState {
 /** Whether the path-await loop should keep probing. */
 export function shouldContinuePathAwait(concluded: boolean): boolean {
   return !concluded;
+}
+
+/** Whether await concluded with a path present. */
+export function isPathAwaitFound(state: PathAwaitState): boolean {
+  return state.concluded && state.found;
 }
 
 export const stepPathAwait: StepFn<PathAwaitState> = (state, event) => {
@@ -92,7 +100,7 @@ function stepPathAwaitInner(
           found: true
         },
         intents: [{ kind: "timer/cancel", timer: { id: PATH_AWAIT_TIMER_ID } }],
-        actions: []
+        actions: [{ kind: "resolve", found: true }]
       };
     }
     if (event.at >= state.deadlineMs) {
@@ -104,7 +112,7 @@ function stepPathAwaitInner(
           found: false
         },
         intents: [{ kind: "timer/cancel", timer: { id: PATH_AWAIT_TIMER_ID } }],
-        actions: []
+        actions: [{ kind: "resolve", found: false }]
       };
     }
     return {

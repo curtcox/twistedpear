@@ -319,9 +319,6 @@ export class LXMFRouter {
               state = tick.state;
               applyIntents(tick.intents);
               applyActions(tick.actions);
-              if (state.concluded) {
-                finish();
-              }
             }, intent.timer.delayMs);
           }
         }
@@ -340,9 +337,9 @@ export class LXMFRouter {
             state = probe.state;
             applyIntents(probe.intents);
             applyActions(probe.actions);
-            if (state.concluded) {
-              finish();
-            }
+          }
+          if (action.kind === "resolve") {
+            finish();
           }
         }
       };
