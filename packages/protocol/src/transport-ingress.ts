@@ -851,3 +851,82 @@ function stepLocalPlainDataDeliveryInner(
 
   return { state, intents: [], actions: [] };
 }
+
+/**
+ * Proof ingress kind is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type ProofIngressState = Record<string, never>;
+
+export type ProofIngressEvent =
+  | Event
+  | {
+      readonly kind: "transport/proof-ingress-gate";
+      readonly context: number;
+    };
+
+export type ProofIngressAction = {
+  readonly kind: ProofIngressKind;
+};
+
+export interface ProofIngressStepResult {
+  readonly state: ProofIngressState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ProofIngressAction[];
+}
+
+export function initialProofIngressState(): ProofIngressState {
+  return {};
+}
+
+export const stepProofIngress: StepFn<ProofIngressState> = (state, event) => {
+  const result = stepProofIngressInner(state, event as ProofIngressEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepProofIngressWithActions(
+  state: ProofIngressState,
+  event: ProofIngressEvent
+): ProofIngressStepResult {
+  return stepProofIngressInner(state, event);
+}
+
+export function proofIngressKindFromActions(
+  actions: ReadonlyArray<ProofIngressAction>
+): ProofIngressKind | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldHandleProofLrproof(
+  actions: ReadonlyArray<ProofIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "lrproof");
+}
+
+export function shouldHandleProofResourcePrf(
+  actions: ReadonlyArray<ProofIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "resource-prf");
+}
+
+export function shouldHandleProofReceipt(
+  actions: ReadonlyArray<ProofIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "receipt");
+}
+
+function stepProofIngressInner(
+  state: ProofIngressState,
+  event: ProofIngressEvent
+): ProofIngressStepResult {
+  if (event.kind === "transport/proof-ingress-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: planProofIngressKind(event.context) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}

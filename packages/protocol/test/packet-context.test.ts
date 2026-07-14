@@ -1,5 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { PacketContextCode, isLinkKeepaliveContext, planLinkDataContext } from "../src/packet-context.js";
+import {
+  PacketContextCode,
+  initialLinkDataContextState,
+  isLinkKeepaliveContext,
+  linkDataContextFromActions,
+  planLinkDataContext,
+  shouldHandleLinkDataChannel,
+  shouldHandleLinkDataClose,
+  shouldHandleLinkDataIdentify,
+  shouldHandleLinkDataKeepalive,
+  shouldHandleLinkDataPlaintext,
+  shouldHandleLinkDataRequest,
+  shouldHandleLinkDataResource,
+  shouldHandleLinkDataResourceAdv,
+  shouldHandleLinkDataResourceHmu,
+  shouldHandleLinkDataResourceIcl,
+  shouldHandleLinkDataResourceRcl,
+  shouldHandleLinkDataResourceReq,
+  shouldHandleLinkDataResponse,
+  shouldHandleLinkDataRtt,
+  shouldIgnoreLinkDataContext,
+  stepLinkDataContextWithActions
+} from "../src/packet-context.js";
 
 describe("protocol packet context", () => {
   it("plans link DATA context dispatch kinds", () => {
@@ -18,6 +40,35 @@ describe("protocol packet context", () => {
     expect(planLinkDataContext(PacketContextCode.RESOURCE)).toBe("resource");
     expect(planLinkDataContext(PacketContextCode.NONE)).toBe("plaintext");
     expect(planLinkDataContext(PacketContextCode.LRPROOF)).toBe("ignore");
+  });
+
+  it("emits link DATA context actions without ad-hoc plan reads", () => {
+    const cases: Array<{ context: number; kind: string; check: (actions: ReturnType<typeof stepLinkDataContextWithActions>["actions"]) => boolean }> = [
+      { context: PacketContextCode.LRRTT, kind: "rtt", check: shouldHandleLinkDataRtt },
+      { context: PacketContextCode.KEEPALIVE, kind: "keepalive", check: shouldHandleLinkDataKeepalive },
+      { context: PacketContextCode.LINKCLOSE, kind: "close", check: shouldHandleLinkDataClose },
+      { context: PacketContextCode.LINKIDENTIFY, kind: "identify", check: shouldHandleLinkDataIdentify },
+      { context: PacketContextCode.REQUEST, kind: "request", check: shouldHandleLinkDataRequest },
+      { context: PacketContextCode.RESPONSE, kind: "response", check: shouldHandleLinkDataResponse },
+      { context: PacketContextCode.CHANNEL, kind: "channel", check: shouldHandleLinkDataChannel },
+      { context: PacketContextCode.RESOURCE_ADV, kind: "resource-adv", check: shouldHandleLinkDataResourceAdv },
+      { context: PacketContextCode.RESOURCE_REQ, kind: "resource-req", check: shouldHandleLinkDataResourceReq },
+      { context: PacketContextCode.RESOURCE_HMU, kind: "resource-hmu", check: shouldHandleLinkDataResourceHmu },
+      { context: PacketContextCode.RESOURCE_ICL, kind: "resource-icl", check: shouldHandleLinkDataResourceIcl },
+      { context: PacketContextCode.RESOURCE_RCL, kind: "resource-rcl", check: shouldHandleLinkDataResourceRcl },
+      { context: PacketContextCode.RESOURCE, kind: "resource", check: shouldHandleLinkDataResource },
+      { context: PacketContextCode.NONE, kind: "plaintext", check: shouldHandleLinkDataPlaintext },
+      { context: PacketContextCode.LRPROOF, kind: "ignore", check: shouldIgnoreLinkDataContext }
+    ];
+
+    for (const entry of cases) {
+      const stepped = stepLinkDataContextWithActions(initialLinkDataContextState(), {
+        kind: "link/data-context-gate",
+        context: entry.context
+      });
+      expect(linkDataContextFromActions(stepped.actions)).toBe(entry.kind);
+      expect(entry.check(stepped.actions)).toBe(true);
+    }
   });
 
   it("recognizes keepalive context bytes", () => {

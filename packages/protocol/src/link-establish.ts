@@ -889,6 +889,412 @@ export function shouldRemoveActiveLinkMembership(indexPresent: boolean): boolean
   return indexPresent;
 }
 
+/**
+ * Link register-list choice is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LinkRegisterListState = Record<string, never>;
+
+export type LinkRegisterListEvent =
+  | Event
+  | {
+      readonly kind: "link/register-list-gate";
+      readonly initiator: boolean;
+    };
+
+export type LinkRegisterListAction = {
+  readonly kind: LinkRegisterList;
+};
+
+export interface LinkRegisterListStepResult {
+  readonly state: LinkRegisterListState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkRegisterListAction[];
+}
+
+export function initialLinkRegisterListState(): LinkRegisterListState {
+  return {};
+}
+
+export const stepLinkRegisterList: StepFn<LinkRegisterListState> = (state, event) => {
+  const result = stepLinkRegisterListInner(state, event as LinkRegisterListEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkRegisterListWithActions(
+  state: LinkRegisterListState,
+  event: LinkRegisterListEvent
+): LinkRegisterListStepResult {
+  return stepLinkRegisterListInner(state, event);
+}
+
+export function linkRegisterListFromActions(
+  actions: ReadonlyArray<LinkRegisterListAction>
+): LinkRegisterList | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldRegisterLinkPending(
+  actions: ReadonlyArray<LinkRegisterListAction>
+): boolean {
+  return actions.some((action) => action.kind === "pending");
+}
+
+export function shouldRegisterLinkActive(
+  actions: ReadonlyArray<LinkRegisterListAction>
+): boolean {
+  return actions.some((action) => action.kind === "active");
+}
+
+function stepLinkRegisterListInner(
+  state: LinkRegisterListState,
+  event: LinkRegisterListEvent
+): LinkRegisterListStepResult {
+  if (event.kind === "link/register-list-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: planLinkRegisterList(event.initiator) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
+ * Link activate-membership is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LinkActivateMembershipState = Record<string, never>;
+
+export type LinkActivateMembershipEvent =
+  | Event
+  | {
+      readonly kind: "link/activate-membership-gate";
+      readonly pendingIndex: number;
+      readonly alreadyActive: boolean;
+    };
+
+export type LinkActivateMembershipAction =
+  | { readonly kind: "remove-pending"; readonly index: number }
+  | { readonly kind: "append-active" };
+
+export interface LinkActivateMembershipStepResult {
+  readonly state: LinkActivateMembershipState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkActivateMembershipAction[];
+}
+
+export function initialLinkActivateMembershipState(): LinkActivateMembershipState {
+  return {};
+}
+
+export const stepLinkActivateMembership: StepFn<LinkActivateMembershipState> = (state, event) => {
+  const result = stepLinkActivateMembershipInner(state, event as LinkActivateMembershipEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkActivateMembershipWithActions(
+  state: LinkActivateMembershipState,
+  event: LinkActivateMembershipEvent
+): LinkActivateMembershipStepResult {
+  return stepLinkActivateMembershipInner(state, event);
+}
+
+export function shouldRemovePendingLinkMembershipActions(
+  actions: ReadonlyArray<LinkActivateMembershipAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove-pending");
+}
+
+export function pendingLinkMembershipRemoveIndex(
+  actions: ReadonlyArray<LinkActivateMembershipAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove-pending");
+  return action?.kind === "remove-pending" ? action.index : null;
+}
+
+export function shouldAppendActiveLinkMembershipActions(
+  actions: ReadonlyArray<LinkActivateMembershipAction>
+): boolean {
+  return actions.some((action) => action.kind === "append-active");
+}
+
+function stepLinkActivateMembershipInner(
+  state: LinkActivateMembershipState,
+  event: LinkActivateMembershipEvent
+): LinkActivateMembershipStepResult {
+  if (event.kind === "link/activate-membership-gate") {
+    const plan = planLinkActivateMembership({
+      pendingIndex: event.pendingIndex,
+      alreadyActive: event.alreadyActive
+    });
+    const actions: LinkActivateMembershipAction[] = [];
+    if (plan.removePendingIndex !== null) {
+      actions.push({ kind: "remove-pending", index: plan.removePendingIndex });
+    }
+    if (plan.appendActive) {
+      actions.push({ kind: "append-active" });
+    }
+    return { state, intents: [], actions };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
+ * Link unregister-membership is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LinkUnregisterMembershipState = Record<string, never>;
+
+export type LinkUnregisterMembershipEvent =
+  | Event
+  | {
+      readonly kind: "link/unregister-membership-gate";
+      readonly pendingIndex: number;
+      readonly activeIndex: number;
+    };
+
+export type LinkUnregisterMembershipAction =
+  | { readonly kind: "remove-pending"; readonly index: number }
+  | { readonly kind: "remove-active"; readonly index: number };
+
+export interface LinkUnregisterMembershipStepResult {
+  readonly state: LinkUnregisterMembershipState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkUnregisterMembershipAction[];
+}
+
+export function initialLinkUnregisterMembershipState(): LinkUnregisterMembershipState {
+  return {};
+}
+
+export const stepLinkUnregisterMembership: StepFn<LinkUnregisterMembershipState> = (
+  state,
+  event
+) => {
+  const result = stepLinkUnregisterMembershipInner(
+    state,
+    event as LinkUnregisterMembershipEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkUnregisterMembershipWithActions(
+  state: LinkUnregisterMembershipState,
+  event: LinkUnregisterMembershipEvent
+): LinkUnregisterMembershipStepResult {
+  return stepLinkUnregisterMembershipInner(state, event);
+}
+
+export function pendingLinkUnregisterRemoveIndex(
+  actions: ReadonlyArray<LinkUnregisterMembershipAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove-pending");
+  return action?.kind === "remove-pending" ? action.index : null;
+}
+
+export function activeLinkUnregisterRemoveIndex(
+  actions: ReadonlyArray<LinkUnregisterMembershipAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove-active");
+  return action?.kind === "remove-active" ? action.index : null;
+}
+
+export function shouldRemovePendingLinkUnregisterActions(
+  actions: ReadonlyArray<LinkUnregisterMembershipAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove-pending");
+}
+
+export function shouldRemoveActiveLinkUnregisterActions(
+  actions: ReadonlyArray<LinkUnregisterMembershipAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove-active");
+}
+
+function stepLinkUnregisterMembershipInner(
+  state: LinkUnregisterMembershipState,
+  event: LinkUnregisterMembershipEvent
+): LinkUnregisterMembershipStepResult {
+  if (event.kind === "link/unregister-membership-gate") {
+    const plan = planLinkUnregisterMembership({
+      pendingIndex: event.pendingIndex,
+      activeIndex: event.activeIndex
+    });
+    const actions: LinkUnregisterMembershipAction[] = [];
+    if (plan.removePendingIndex !== null) {
+      actions.push({ kind: "remove-pending", index: plan.removePendingIndex });
+    }
+    if (plan.removeActiveIndex !== null) {
+      actions.push({ kind: "remove-active", index: plan.removeActiveIndex });
+    }
+    return { state, intents: [], actions };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
+ * Link app-request send gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LinkAppRequestState = Record<string, never>;
+
+export type LinkAppRequestEvent =
+  | Event
+  | {
+      readonly kind: "link/app-request-gate";
+      readonly status: LinkStatusValue;
+      readonly rtt: number | null;
+      readonly packedLength: number;
+      readonly mdu: number;
+    };
+
+export type LinkAppRequestAction = {
+  readonly kind: LinkAppRequestPlan;
+};
+
+export interface LinkAppRequestStepResult {
+  readonly state: LinkAppRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkAppRequestAction[];
+}
+
+export function initialLinkAppRequestState(): LinkAppRequestState {
+  return {};
+}
+
+export const stepLinkAppRequest: StepFn<LinkAppRequestState> = (state, event) => {
+  const result = stepLinkAppRequestInner(state, event as LinkAppRequestEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkAppRequestWithActions(
+  state: LinkAppRequestState,
+  event: LinkAppRequestEvent
+): LinkAppRequestStepResult {
+  return stepLinkAppRequestInner(state, event);
+}
+
+export function linkAppRequestFromActions(
+  actions: ReadonlyArray<LinkAppRequestAction>
+): LinkAppRequestPlan | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldSendLinkAppRequest(
+  actions: ReadonlyArray<LinkAppRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "send");
+}
+
+export function shouldRejectLinkAppRequest(
+  actions: ReadonlyArray<LinkAppRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+function stepLinkAppRequestInner(
+  state: LinkAppRequestState,
+  event: LinkAppRequestEvent
+): LinkAppRequestStepResult {
+  if (event.kind === "link/app-request-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLinkAppRequest({
+            status: event.status,
+            rtt: event.rtt,
+            packedLength: event.packedLength,
+            mdu: event.mdu
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
+ * Link app-request transmit outcome is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LinkAppRequestTransmitState = Record<string, never>;
+
+export type LinkAppRequestTransmitEvent =
+  | Event
+  | {
+      readonly kind: "link/app-request-transmit-gate";
+      readonly receiptPresent: boolean;
+    };
+
+export type LinkAppRequestTransmitAction = {
+  readonly kind: LinkAppRequestTransmitOutcome;
+};
+
+export interface LinkAppRequestTransmitStepResult {
+  readonly state: LinkAppRequestTransmitState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkAppRequestTransmitAction[];
+}
+
+export function initialLinkAppRequestTransmitState(): LinkAppRequestTransmitState {
+  return {};
+}
+
+export const stepLinkAppRequestTransmit: StepFn<LinkAppRequestTransmitState> = (state, event) => {
+  const result = stepLinkAppRequestTransmitInner(state, event as LinkAppRequestTransmitEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkAppRequestTransmitWithActions(
+  state: LinkAppRequestTransmitState,
+  event: LinkAppRequestTransmitEvent
+): LinkAppRequestTransmitStepResult {
+  return stepLinkAppRequestTransmitInner(state, event);
+}
+
+export function linkAppRequestTransmitFromActions(
+  actions: ReadonlyArray<LinkAppRequestTransmitAction>
+): LinkAppRequestTransmitOutcome | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldKeepPendingLinkAppRequestTransmit(
+  actions: ReadonlyArray<LinkAppRequestTransmitAction>
+): boolean {
+  return actions.some((action) => action.kind === "keep-pending");
+}
+
+export function shouldUnregisterLinkAppRequestTransmit(
+  actions: ReadonlyArray<LinkAppRequestTransmitAction>
+): boolean {
+  return actions.some((action) => action.kind === "unregister");
+}
+
+function stepLinkAppRequestTransmitInner(
+  state: LinkAppRequestTransmitState,
+  event: LinkAppRequestTransmitEvent
+): LinkAppRequestTransmitStepResult {
+  if (event.kind === "link/app-request-transmit-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: planLinkAppRequestTransmitOutcome(event.receiptPresent) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 export type LinkRttOutcome = "ignore" | "activate" | "teardown";
 
 /**

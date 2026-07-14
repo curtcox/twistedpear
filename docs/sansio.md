@@ -219,7 +219,8 @@
 > **`canRelayReversePacket`**, **`shouldRelayReverseOnInterface`**,
 > **`planTransportIngressDispatch`** (via
 > **`stepTransportIngressDispatchWithActions`**: announce / link-request /
-> link-data / plain-data / proof / ignore), **`planProofIngressKind`**, and
+> link-data / plain-data / proof / ignore), **`planProofIngressKind`** (via
+> **`stepProofIngressWithActions`**: lrproof / resource-prf / receipt), and
 > **`shouldTransmitOnInterface`** live in protocol; `TransportNode` /
 > `LeafTransport` adapt them. **`shouldIgnoreLocalAnnounce`** /
 > **`shouldMatchAnnounceAspect`** live in protocol; announce ingress adapts them.
@@ -233,7 +234,9 @@
 > ignore-in-flight-discovery / start-discovery) and **`planDiscoveryPathRequestFulfill`**
 > (via **`stepDiscoveryPathRequestFulfillWithActions`**: ignore / drop-expired / fulfill)
 > live in protocol; leaf / transport path-request and discovery announce fulfill adapt them.
-> **`planLinkDataContext`** lives in protocol; `Link.receive` DATA dispatch adapts it.
+> **`planLinkDataContext`** (via **`stepLinkDataContextWithActions`**: rtt /
+> keepalive / close / identify / request / response / channel / resource-* /
+> plaintext / ignore) lives in protocol; `Link.receive` DATA dispatch adapts it.
 > **`planResourceAssembleOutcome`** (via **`stepResourceAssembleWithActions`**:
 > complete / corrupt), **`planResourceProofAccept`** (via
 > **`stepResourceProofAcceptWithActions`**: complete / ignore),
@@ -247,7 +250,8 @@
 > **`stepChannelSendWithActions`**: proceed / link-not-ready / too-big) lives in
 > protocol; `Channel.send` adapts it.
 > **`canPerformLinkHandshake`**, **`canProveLink`**, **`canAcceptLinkRequestOwner`**,
-> **`planLinkAppRequest`**, **`canSendLinkAppResponse`**, and **`planLinkTokenAccess`**
+> **`planLinkAppRequest`** (via **`stepLinkAppRequestWithActions`**: send / reject),
+> **`canSendLinkAppResponse`**, and **`planLinkTokenAccess`**
 > (via **`stepLinkTokenAccessWithActions`**: reject-no-key / create / reuse) live in
 > protocol; `Link` adapts them (`tokenInstance` via token-access actions).
 > **`shouldAcceptLinkTeardown`** lives in protocol; LINKCLOSE handling
@@ -313,18 +317,25 @@
 > **`indexOfPendingLinkAppRequest`**, **`planLinkRequestResponderMtu`**, and
 > **`planChannelEnvelopePack`** (via **`stepChannelEnvelopePackWithActions`**: ok /
 > missing-message) live in protocol; `Link` and `Channel` adapt them.
-> **`planOutboundReceiptOutcome`** / **`planPacketReceiptProofIngress`** live in
-> protocol; transport sendPacket / receipt proofs adapt them. **`planLinkRegisterList`**,
+> **`planOutboundReceiptOutcome`** (via **`stepOutboundReceiptWithActions`**:
+> none / keep-receipt / fail-and-drop-receipt) /
+> **`planPacketReceiptProofIngress`** (via
+> **`stepPacketReceiptProofIngressWithActions`**: remove-receipt / continue) live in
+> protocol; transport sendPacket / receipt proofs adapt them. **`planLinkRegisterList`**
+> (via **`stepLinkRegisterListWithActions`**: pending / active),
 > **`indexOfMatchingLinkId`** / **`planLinkDataIngressTarget`** (via
 > **`stepLinkDataIngressTargetWithActions`**: active / pending / none), and
 > **`planReverseRelayOutcome`** (via **`stepReverseRelayOutcomeWithActions`**:
 > relay / delete-expired / ignore) live in protocol; transport link + reverse relay adapt
 > them. **`planLinkRttOutcome`** (via **`stepLinkEstablishWithActions`**
 > `establish/rtt`), **`shouldDispatchLinkPlaintext`**,
-> **`canResendLinkPacket`**, and **`planLinkAppRequestTransmitOutcome`** live in
+> **`canResendLinkPacket`**, and **`planLinkAppRequestTransmitOutcome`** (via
+> **`stepLinkAppRequestTransmitWithActions`**: keep-pending / unregister) live in
 > protocol; `Link` adapts them. **`planResourceHashmapUpdateAccept`** lives in
 > protocol; `Resource` adapts it. **`shouldRegisterLinkMember`**,
-> **`planLinkActivateMembership`**, and **`planLinkUnregisterMembership`** live in
+> **`planLinkActivateMembership`** (via **`stepLinkActivateMembershipWithActions`**:
+> remove-pending / append-active), and **`planLinkUnregisterMembership`** (via
+> **`stepLinkUnregisterMembershipWithActions`**: remove-pending / remove-active) live in
 > protocol; transport link register/activate/unregister adapt them.
 > **`shouldRegisterLinkResource`** / **`planLinkResourceConclude`** and
 > **`shouldRegisterPendingLinkRequest`** / **`planUnregisterPendingLinkRequest`**
@@ -599,12 +610,34 @@
 > `none`; **`stepReverseRelayOutcomeWithActions`** emits `relay` /
 > `delete-expired` / `ignore`; **`stepPacketHashRememberWithActions`** emits
 > `now` / `after-relay`; **`stepLocalPlainDataDeliveryWithActions`** emits
-> `dispatch` / `ignore`; `LeafTransport` / `TransportNode` ingress dispatch,
-> link-data target, reverse relay, hash remember, and local plain DATA apply
-> only from those actions (no ad-hoc `planTransportIngressDispatch` /
-> `planLinkDataIngressTarget` / `planReverseRelayOutcome` /
-> `planPacketHashRemember` / `planLocalPlainDataDelivery` reads beside the
+> `dispatch` / `ignore`; **`stepProofIngressWithActions`** emits
+> `lrproof` / `resource-prf` / `receipt`; `LeafTransport` / `TransportNode`
+> ingress dispatch, link-data target, reverse relay, hash remember, local
+> plain DATA, and proof ingress apply only from those actions (no ad-hoc
+> `planTransportIngressDispatch` / `planLinkDataIngressTarget` /
+> `planReverseRelayOutcome` / `planPacketHashRemember` /
+> `planLocalPlainDataDelivery` / `planProofIngressKind` reads beside the
 > step).
+> **`stepOutboundReceiptWithActions`** emits `none` / `keep-receipt` /
+> `fail-and-drop-receipt`; **`stepPacketReceiptProofIngressWithActions`**
+> emits `remove-receipt` / `continue`; `LeafTransport.sendPacket` /
+> `handleProof` apply only from those actions (no ad-hoc
+> `planOutboundReceiptOutcome` / `planPacketReceiptProofIngress` reads
+> beside the step).
+> **`stepLinkDataContextWithActions`** emits `rtt` / `keepalive` / `close` /
+> `identify` / `request` / `response` / `channel` / `resource-*` /
+> `plaintext` / `ignore`; `Link.receive` DATA dispatch applies only from
+> those actions (no ad-hoc `planLinkDataContext` reads beside the step).
+> **`stepLinkRegisterListWithActions`** emits `pending` / `active`;
+> **`stepLinkActivateMembershipWithActions`** emits `remove-pending` /
+> `append-active`; **`stepLinkUnregisterMembershipWithActions`** emits
+> `remove-pending` / `remove-active`; **`stepLinkAppRequestWithActions`**
+> emits `send` / `reject`; **`stepLinkAppRequestTransmitWithActions`** emits
+> `keep-pending` / `unregister`; transport link register/activate/unregister
+> and `Link.request` apply only from those actions (no ad-hoc
+> `planLinkRegisterList` / `planLinkActivateMembership` /
+> `planLinkUnregisterMembership` / `planLinkAppRequest` /
+> `planLinkAppRequestTransmitOutcome` reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -666,7 +699,11 @@
 > discovery-path-request-fulfill / path-outbound / path-entry-lookup /
 > transport-ingress-dispatch / link-data-ingress-target /
 > reverse-relay-outcome / packet-hash-remember /
-> local-plain-data-delivery reads
+> local-plain-data-delivery / proof-ingress / outbound-receipt /
+> packet-receipt-proof-ingress / link-data-context /
+> link-register-list / link-activate-membership /
+> link-unregister-membership / link-app-request /
+> link-app-request-transmit reads
 > beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

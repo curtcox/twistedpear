@@ -272,3 +272,179 @@ export function shouldInvokePacketReceiptTimeoutCallback(
 ): boolean {
   return shouldInvokePacketReceiptAction(actions, "timeout");
 }
+
+/**
+ * Outbound receipt outcome is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type OutboundReceiptState = Record<string, never>;
+
+export type OutboundReceiptEvent =
+  | Event
+  | {
+      readonly kind: "receipt/outbound-gate";
+      readonly createReceipt: boolean;
+      readonly sent: boolean;
+    };
+
+export type OutboundReceiptAction = {
+  readonly kind: OutboundReceiptOutcome;
+};
+
+export interface OutboundReceiptStepResult {
+  readonly state: OutboundReceiptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly OutboundReceiptAction[];
+}
+
+export function initialOutboundReceiptState(): OutboundReceiptState {
+  return {};
+}
+
+export const stepOutboundReceipt: StepFn<OutboundReceiptState> = (state, event) => {
+  const result = stepOutboundReceiptInner(state, event as OutboundReceiptEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepOutboundReceiptWithActions(
+  state: OutboundReceiptState,
+  event: OutboundReceiptEvent
+): OutboundReceiptStepResult {
+  return stepOutboundReceiptInner(state, event);
+}
+
+export function outboundReceiptOutcomeFromActions(
+  actions: ReadonlyArray<OutboundReceiptAction>
+): OutboundReceiptOutcome | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldOutboundReceiptNone(
+  actions: ReadonlyArray<OutboundReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "none");
+}
+
+export function shouldOutboundKeepReceipt(
+  actions: ReadonlyArray<OutboundReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "keep-receipt");
+}
+
+export function shouldOutboundFailAndDropReceipt(
+  actions: ReadonlyArray<OutboundReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "fail-and-drop-receipt");
+}
+
+function stepOutboundReceiptInner(
+  state: OutboundReceiptState,
+  event: OutboundReceiptEvent
+): OutboundReceiptStepResult {
+  if (event.kind === "receipt/outbound-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planOutboundReceiptOutcome({
+            createReceipt: event.createReceipt,
+            sent: event.sent
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
+ * Packet-receipt proof ingress is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type PacketReceiptProofIngressState = Record<string, never>;
+
+export type PacketReceiptProofIngressEvent =
+  | Event
+  | {
+      readonly kind: "receipt/proof-ingress-gate";
+      readonly truncatedHashMatches: boolean;
+      readonly identityPresent: boolean;
+      readonly proofAccepted: boolean;
+    };
+
+export type PacketReceiptProofIngressAction = {
+  readonly kind: PacketReceiptProofIngressPlan;
+};
+
+export interface PacketReceiptProofIngressStepResult {
+  readonly state: PacketReceiptProofIngressState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketReceiptProofIngressAction[];
+}
+
+export function initialPacketReceiptProofIngressState(): PacketReceiptProofIngressState {
+  return {};
+}
+
+export const stepPacketReceiptProofIngress: StepFn<PacketReceiptProofIngressState> = (
+  state,
+  event
+) => {
+  const result = stepPacketReceiptProofIngressInner(
+    state,
+    event as PacketReceiptProofIngressEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepPacketReceiptProofIngressWithActions(
+  state: PacketReceiptProofIngressState,
+  event: PacketReceiptProofIngressEvent
+): PacketReceiptProofIngressStepResult {
+  return stepPacketReceiptProofIngressInner(state, event);
+}
+
+export function packetReceiptProofIngressFromActions(
+  actions: ReadonlyArray<PacketReceiptProofIngressAction>
+): PacketReceiptProofIngressPlan | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldRemovePacketReceiptProofIngress(
+  actions: ReadonlyArray<PacketReceiptProofIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove-receipt");
+}
+
+export function shouldContinuePacketReceiptProofIngress(
+  actions: ReadonlyArray<PacketReceiptProofIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "continue");
+}
+
+function stepPacketReceiptProofIngressInner(
+  state: PacketReceiptProofIngressState,
+  event: PacketReceiptProofIngressEvent
+): PacketReceiptProofIngressStepResult {
+  if (event.kind === "receipt/proof-ingress-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planPacketReceiptProofIngress({
+            truncatedHashMatches: event.truncatedHashMatches,
+            identityPresent: event.identityPresent,
+            proofAccepted: event.proofAccepted
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}

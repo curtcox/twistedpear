@@ -20,6 +20,7 @@ import {
   initialLinkDataIngressTargetState,
   initialLocalPlainDataDeliveryState,
   initialPacketHashRememberState,
+  initialProofIngressState,
   initialReverseRelayOutcomeState,
   initialTransportIngressDispatchState,
   linkDataIngressTargetFromActions,
@@ -34,6 +35,7 @@ import {
   planReverseRelayOutcome,
   planTransportIngressDispatch,
   indexOfMatchingLinkId,
+  proofIngressKindFromActions,
   reverseRelayOutcomeFromActions,
   shouldAcceptLinkLrProofCandidate,
   shouldAcceptTransportPacket,
@@ -49,6 +51,9 @@ import {
   shouldDispatchTransportLinkRequest,
   shouldDispatchTransportPlainData,
   shouldDispatchTransportProof,
+  shouldHandleProofLrproof,
+  shouldHandleProofReceipt,
+  shouldHandleProofResourcePrf,
   shouldIgnoreLocalPlainDataDelivery,
   shouldIgnoreReverseRelayOutcome,
   shouldIgnoreTransportIngressDispatch,
@@ -74,6 +79,7 @@ import {
   stepLinkDataIngressTargetWithActions,
   stepLocalPlainDataDeliveryWithActions,
   stepPacketHashRememberWithActions,
+  stepProofIngressWithActions,
   stepReverseRelayOutcomeWithActions,
   stepTransportIngressDispatchWithActions,
   transportIngressDispatchFromActions
@@ -685,5 +691,32 @@ describe("transport ingress", () => {
         plaintextPresent: true
       }).actions
     ).toEqual(dispatch.actions);
+  });
+
+  it("emits proof ingress actions from the gate step", () => {
+    const lrproof = stepProofIngressWithActions(initialProofIngressState(), {
+      kind: "transport/proof-ingress-gate",
+      context: PacketContextCode.LRPROOF
+    });
+    expect(proofIngressKindFromActions(lrproof.actions)).toBe("lrproof");
+    expect(shouldHandleProofLrproof(lrproof.actions)).toBe(true);
+
+    const resourcePrf = stepProofIngressWithActions(initialProofIngressState(), {
+      kind: "transport/proof-ingress-gate",
+      context: PacketContextCode.RESOURCE_PRF
+    });
+    expect(shouldHandleProofResourcePrf(resourcePrf.actions)).toBe(true);
+
+    const receipt = stepProofIngressWithActions(initialProofIngressState(), {
+      kind: "transport/proof-ingress-gate",
+      context: PacketContextCode.NONE
+    });
+    expect(shouldHandleProofReceipt(receipt.actions)).toBe(true);
+    expect(
+      stepProofIngressWithActions(initialProofIngressState(), {
+        kind: "transport/proof-ingress-gate",
+        context: PacketContextCode.LRPROOF
+      }).actions
+    ).toEqual(lrproof.actions);
   });
 });

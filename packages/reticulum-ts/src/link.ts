@@ -79,9 +79,9 @@ import {
   packLinkProofData,
   packLinkRequestData,
   planLinkResourceConclude,
-  planLinkAppRequest,
-  planLinkAppRequestTransmitOutcome,
-  planLinkDataContext,
+  initialLinkAppRequestState,
+  initialLinkAppRequestTransmitState,
+  initialLinkDataContextState,
   planLinkInitiatorMtu,
   planLinkRequestResponderMtu,
   planUnregisterPendingLinkRequest,
@@ -113,10 +113,27 @@ import {
   shouldIgnoreLinkAppRequestInbound,
   shouldIgnoreLinkAppRequestInboundResponse,
   shouldIgnoreLinkEstablishRtt,
+  shouldHandleLinkDataChannel,
+  shouldHandleLinkDataClose,
+  shouldHandleLinkDataIdentify,
+  shouldHandleLinkDataKeepalive,
+  shouldHandleLinkDataPlaintext,
+  shouldHandleLinkDataRequest,
+  shouldHandleLinkDataResource,
+  shouldHandleLinkDataResourceAdv,
+  shouldHandleLinkDataResourceHmu,
+  shouldHandleLinkDataResourceIcl,
+  shouldHandleLinkDataResourceRcl,
+  shouldHandleLinkDataResourceReq,
+  shouldHandleLinkDataResponse,
+  shouldHandleLinkDataRtt,
+  shouldIgnoreLinkDataContext,
   shouldIgnoreLinkResourceAdvertisement,
   shouldInvokeLinkAppRequestInbound,
+  shouldKeepPendingLinkAppRequestTransmit,
   shouldRegisterLinkResource,
   shouldRegisterPendingLinkRequest,
+  shouldRejectLinkAppRequest,
   shouldRejectLinkAppRequestInboundTooBig,
   shouldRejectLinkIdentify,
   shouldRejectLinkProofValidate,
@@ -125,9 +142,11 @@ import {
   shouldRemoveLinkResourceListIndex,
   shouldReplyKeepaliveProbe,
   shouldReuseLinkToken,
+  shouldSendLinkAppRequest,
   shouldSendLinkAppRequestInboundResponse,
   shouldSendLinkTeardownThenClose,
   shouldTeardownLinkEstablish,
+  shouldUnregisterLinkAppRequestTransmit,
   shouldUnregisterPendingLinkRequest,
   shouldUpdateLinkLastData,
   isLinkInboundDataPacket,
@@ -141,6 +160,9 @@ import {
   splitResourceProof,
   splitResponderLinkEntropy,
   stepLinkAppRequestInboundWithActions,
+  stepLinkAppRequestTransmitWithActions,
+  stepLinkAppRequestWithActions,
+  stepLinkDataContextWithActions,
   stepLinkEstablishWithActions,
   stepLinkIdentifyWithActions,
   stepLinkProofValidateWithActions,
@@ -824,62 +846,78 @@ export class Link {
       return;
     }
 
-    switch (planLinkDataContext(packet.context)) {
-      case "rtt":
-        await this.handleRttPacket(packet);
-        return;
-      case "keepalive":
-        if (
-          shouldReplyKeepaliveProbe({
-            initiator: this.initiator,
-            probePayload: isLinkKeepaliveProbe(packet.data)
-          })
-        ) {
-          await this.sendKeepaliveReply();
-        }
-        return;
-      case "close":
-        await this.handleTeardownPacket(packet);
-        return;
-      case "identify":
-        await this.handleIdentifyPacket(packet);
-        return;
-      case "request":
-        await this.handleRequestPacket(packet);
-        return;
-      case "response":
-        await this.handleResponsePacket(packet);
-        return;
-      case "channel":
-        await this.handleChannelPacket(packet);
-        return;
-      case "resource-adv":
-        await this.handleResourceAdvertisementPacket(packet);
-        return;
-      case "resource-req":
-        await this.handleResourceRequestPacket(packet);
-        return;
-      case "resource-hmu":
-        await this.handleResourceHashmapUpdatePacket(packet);
-        return;
-      case "resource-icl":
-        await this.handleResourceCancelPacket(packet, true);
-        return;
-      case "resource-rcl":
-        await this.handleResourceCancelPacket(packet, false);
-        return;
-      case "resource":
-        await this.handleResourcePartPacket(packet);
-        return;
-      case "plaintext": {
-        const plaintext = this.decrypt(packet.data);
-        if (shouldDispatchLinkPlaintext(plaintext !== null) && plaintext !== null) {
-          this.callbacks.packet?.(plaintext, packet);
-        }
-        return;
+    const contextStepped = stepLinkDataContextWithActions(initialLinkDataContextState(), {
+      kind: "link/data-context-gate",
+      context: packet.context
+    });
+    if (shouldHandleLinkDataRtt(contextStepped.actions)) {
+      await this.handleRttPacket(packet);
+      return;
+    }
+    if (shouldHandleLinkDataKeepalive(contextStepped.actions)) {
+      if (
+        shouldReplyKeepaliveProbe({
+          initiator: this.initiator,
+          probePayload: isLinkKeepaliveProbe(packet.data)
+        })
+      ) {
+        await this.sendKeepaliveReply();
       }
-      case "ignore":
-        return;
+      return;
+    }
+    if (shouldHandleLinkDataClose(contextStepped.actions)) {
+      await this.handleTeardownPacket(packet);
+      return;
+    }
+    if (shouldHandleLinkDataIdentify(contextStepped.actions)) {
+      await this.handleIdentifyPacket(packet);
+      return;
+    }
+    if (shouldHandleLinkDataRequest(contextStepped.actions)) {
+      await this.handleRequestPacket(packet);
+      return;
+    }
+    if (shouldHandleLinkDataResponse(contextStepped.actions)) {
+      await this.handleResponsePacket(packet);
+      return;
+    }
+    if (shouldHandleLinkDataChannel(contextStepped.actions)) {
+      await this.handleChannelPacket(packet);
+      return;
+    }
+    if (shouldHandleLinkDataResourceAdv(contextStepped.actions)) {
+      await this.handleResourceAdvertisementPacket(packet);
+      return;
+    }
+    if (shouldHandleLinkDataResourceReq(contextStepped.actions)) {
+      await this.handleResourceRequestPacket(packet);
+      return;
+    }
+    if (shouldHandleLinkDataResourceHmu(contextStepped.actions)) {
+      await this.handleResourceHashmapUpdatePacket(packet);
+      return;
+    }
+    if (shouldHandleLinkDataResourceIcl(contextStepped.actions)) {
+      await this.handleResourceCancelPacket(packet, true);
+      return;
+    }
+    if (shouldHandleLinkDataResourceRcl(contextStepped.actions)) {
+      await this.handleResourceCancelPacket(packet, false);
+      return;
+    }
+    if (shouldHandleLinkDataResource(contextStepped.actions)) {
+      await this.handleResourcePartPacket(packet);
+      return;
+    }
+    if (shouldHandleLinkDataPlaintext(contextStepped.actions)) {
+      const plaintext = this.decrypt(packet.data);
+      if (shouldDispatchLinkPlaintext(plaintext !== null) && plaintext !== null) {
+        this.callbacks.packet?.(plaintext, packet);
+      }
+      return;
+    }
+    if (shouldIgnoreLinkDataContext(contextStepped.actions)) {
+      return;
     }
   }
 
@@ -939,14 +977,17 @@ export class Link {
     const packedRequest = msgpackPackRequest(this.clock.now() / 1000, pathHash, data);
     const timeout = options.timeout ?? computeLinkRequestTimeout(this.rtt!);
 
-    if (
-      planLinkAppRequest({
-        status: this.status,
-        rtt: this.rtt,
-        packedLength: packedRequest.length,
-        mdu: this.mdu
-      }) === "reject"
-    ) {
+    const appRequestStepped = stepLinkAppRequestWithActions(initialLinkAppRequestState(), {
+      kind: "link/app-request-gate",
+      status: this.status,
+      rtt: this.rtt,
+      packedLength: packedRequest.length,
+      mdu: this.mdu
+    });
+    if (shouldRejectLinkAppRequest(appRequestStepped.actions)) {
+      return false;
+    }
+    if (!shouldSendLinkAppRequest(appRequestStepped.actions)) {
       return false;
     }
 
@@ -978,8 +1019,18 @@ export class Link {
     });
     this.hadOutbound(false);
 
-    if (planLinkAppRequestTransmitOutcome(sentReceipt !== null) === "unregister") {
+    const transmitStepped = stepLinkAppRequestTransmitWithActions(
+      initialLinkAppRequestTransmitState(),
+      {
+        kind: "link/app-request-transmit-gate",
+        receiptPresent: sentReceipt !== null
+      }
+    );
+    if (shouldUnregisterLinkAppRequestTransmit(transmitStepped.actions)) {
       this.unregisterPendingRequest(pending);
+      return false;
+    }
+    if (!shouldKeepPendingLinkAppRequestTransmit(transmitStepped.actions)) {
       return false;
     }
 

@@ -17,32 +17,35 @@ import {
   parseAspectFilter,
   planClonePacketWithHops,
   planDestinationProof,
-  planLinkActivateMembership,
-  planLinkRegisterList,
-  planLinkUnregisterMembership,
-  planOutboundReceiptOutcome,
   planPacketFilter,
-  planPacketReceiptProofIngress,
   planPathResponseAnnounceFields,
-  planProofIngressKind,
   planTransportAnnounceFields,
   planUnregisterPacketReceipt,
   planUnregisterTransportMember,
   canAnswerLocalPathRequest,
   canDispatchAnnounceHandlers,
+  activeLinkUnregisterRemoveIndex,
+  initialLinkActivateMembershipState,
   initialLinkDataIngressTargetState,
+  initialLinkRegisterListState,
+  initialLinkUnregisterMembershipState,
   initialLocalPlainDataDeliveryState,
+  initialOutboundReceiptState,
+  initialPacketReceiptProofIngressState,
   initialPathEntryLookupState,
   initialPathOutboundState,
   initialPathRequestIngressState,
+  initialProofIngressState,
   initialTransportIngressDispatchState,
+  pendingLinkMembershipRemoveIndex,
+  pendingLinkUnregisterRemoveIndex,
   shouldAcceptCachedPathResponsePacket,
   shouldAcceptLinkLrProofCandidate,
   shouldAcceptParsedAnnounce,
   shouldAnswerPathRequestLocal,
   shouldAnswerPathRequestPath,
   shouldAnswerPathWithEntry,
-  shouldAppendActiveLinkMembership,
+  shouldAppendActiveLinkMembershipActions,
   shouldDirectPathOutbound,
   shouldDispatchLocalLinkRequest,
   shouldDispatchLocalPlainDataDelivery,
@@ -53,6 +56,9 @@ import {
   shouldDispatchTransportLinkRequest,
   shouldDispatchTransportPlainData,
   shouldDispatchTransportProof,
+  shouldHandleProofLrproof,
+  shouldHandleProofReceipt,
+  shouldHandleProofResourcePrf,
   shouldIgnoreTransportIngressDispatch,
   shouldIngressLinkDataActive,
   shouldIngressLinkDataPending,
@@ -68,13 +74,19 @@ import {
   shouldWrapPathOutbound,
   shouldMatchLocalInboundDestination,
   shouldMatchLocalTypedDestination,
+  shouldOutboundFailAndDropReceipt,
+  shouldOutboundKeepReceipt,
   shouldReceiveAnnouncePathResponse,
+  shouldRegisterLinkActive,
   shouldRegisterLinkMember,
+  shouldRegisterLinkPending,
   shouldRegisterPacketReceipt,
   shouldRegisterTransportMember,
   shouldRememberPathRequestTag,
-  shouldRemoveActiveLinkMembership,
-  shouldRemovePendingLinkMembership,
+  shouldRemoveActiveLinkUnregisterActions,
+  shouldRemovePacketReceiptProofIngress,
+  shouldRemovePendingLinkMembershipActions,
+  shouldRemovePendingLinkUnregisterActions,
   shouldTransmitOnInterface,
   shouldUnregisterPacketReceipt,
   shouldUnregisterTransportMember,
@@ -85,11 +97,17 @@ import {
   shouldAnswerPathRequest,
   shouldEmitPathRequest,
   isLocalPathRequestPacket,
+  stepLinkActivateMembershipWithActions,
   stepLinkDataIngressTargetWithActions,
+  stepLinkRegisterListWithActions,
+  stepLinkUnregisterMembershipWithActions,
   stepLocalPlainDataDeliveryWithActions,
+  stepOutboundReceiptWithActions,
+  stepPacketReceiptProofIngressWithActions,
   stepPathEntryLookupWithActions,
   stepPathOutboundWithActions,
   stepPathRequestIngressWithActions,
+  stepProofIngressWithActions,
   stepTransportIngressDispatchWithActions,
   stripTransportHeadersBytes,
   timebaseFromRandomBlobs as protocolTimebaseFromRandomBlobs,
@@ -425,41 +443,64 @@ export class LeafTransport {
   }
 
   registerLink(link: Link): void {
-    if (planLinkRegisterList(link.initiator) === "pending") {
+    const registerStepped = stepLinkRegisterListWithActions(initialLinkRegisterListState(), {
+      kind: "link/register-list-gate",
+      initiator: link.initiator
+    });
+    if (shouldRegisterLinkPending(registerStepped.actions)) {
       if (shouldRegisterLinkMember(this.pendingLinks.includes(link))) {
         this.pendingLinks.push(link);
       }
       return;
     }
 
-    if (shouldRegisterLinkMember(this.activeLinks.includes(link))) {
-      this.activeLinks.push(link);
+    if (shouldRegisterLinkActive(registerStepped.actions)) {
+      if (shouldRegisterLinkMember(this.activeLinks.includes(link))) {
+        this.activeLinks.push(link);
+      }
     }
   }
 
   activateLink(link: Link): void {
-    const plan = planLinkActivateMembership({
-      pendingIndex: this.pendingLinks.indexOf(link),
-      alreadyActive: this.activeLinks.includes(link)
-    });
-    if (shouldRemovePendingLinkMembership(plan.removePendingIndex !== null)) {
-      this.pendingLinks.splice(plan.removePendingIndex!, 1);
+    const activateStepped = stepLinkActivateMembershipWithActions(
+      initialLinkActivateMembershipState(),
+      {
+        kind: "link/activate-membership-gate",
+        pendingIndex: this.pendingLinks.indexOf(link),
+        alreadyActive: this.activeLinks.includes(link)
+      }
+    );
+    const pendingIndex = pendingLinkMembershipRemoveIndex(activateStepped.actions);
+    if (shouldRemovePendingLinkMembershipActions(activateStepped.actions) && pendingIndex !== null) {
+      this.pendingLinks.splice(pendingIndex, 1);
     }
-    if (shouldAppendActiveLinkMembership(plan.appendActive)) {
+    if (shouldAppendActiveLinkMembershipActions(activateStepped.actions)) {
       this.activeLinks.push(link);
     }
   }
 
   unregisterLink(link: Link): void {
-    const plan = planLinkUnregisterMembership({
-      pendingIndex: this.pendingLinks.indexOf(link),
-      activeIndex: this.activeLinks.indexOf(link)
-    });
-    if (shouldRemovePendingLinkMembership(plan.removePendingIndex !== null)) {
-      this.pendingLinks.splice(plan.removePendingIndex!, 1);
+    const unregisterStepped = stepLinkUnregisterMembershipWithActions(
+      initialLinkUnregisterMembershipState(),
+      {
+        kind: "link/unregister-membership-gate",
+        pendingIndex: this.pendingLinks.indexOf(link),
+        activeIndex: this.activeLinks.indexOf(link)
+      }
+    );
+    const pendingIndex = pendingLinkUnregisterRemoveIndex(unregisterStepped.actions);
+    if (
+      shouldRemovePendingLinkUnregisterActions(unregisterStepped.actions) &&
+      pendingIndex !== null
+    ) {
+      this.pendingLinks.splice(pendingIndex, 1);
     }
-    if (shouldRemoveActiveLinkMembership(plan.removeActiveIndex !== null)) {
-      this.activeLinks.splice(plan.removeActiveIndex!, 1);
+    const activeIndex = activeLinkUnregisterRemoveIndex(unregisterStepped.actions);
+    if (
+      shouldRemoveActiveLinkUnregisterActions(unregisterStepped.actions) &&
+      activeIndex !== null
+    ) {
+      this.activeLinks.splice(activeIndex, 1);
     }
   }
 
@@ -491,10 +532,14 @@ export class LeafTransport {
     }
 
     const sent = await this.outbound(packet, options.attachedInterface ?? null);
-    const outcome = planOutboundReceiptOutcome({ createReceipt, sent });
+    const outcomeStepped = stepOutboundReceiptWithActions(initialOutboundReceiptState(), {
+      kind: "receipt/outbound-gate",
+      createReceipt,
+      sent
+    });
     if (
       shouldFailAndDropOutboundReceipt({
-        failAndDrop: outcome === "fail-and-drop-receipt",
+        failAndDrop: shouldOutboundFailAndDropReceipt(outcomeStepped.actions),
         receiptPresent: receipt !== null
       })
     ) {
@@ -505,7 +550,11 @@ export class LeafTransport {
       }
       return null;
     }
-    if (!shouldKeepOutboundReceipt(outcome === "keep-receipt" && sent)) {
+    if (
+      !shouldKeepOutboundReceipt(
+        shouldOutboundKeepReceipt(outcomeStepped.actions) && sent
+      )
+    ) {
       return null;
     }
 
@@ -758,8 +807,11 @@ export class LeafTransport {
   }
 
   protected async handleProof(packet: Packet, iface: PacketInterface): Promise<void> {
-    const kind = planProofIngressKind(packet.context);
-    if (kind === "lrproof") {
+    const proofStepped = stepProofIngressWithActions(initialProofIngressState(), {
+      kind: "transport/proof-ingress-gate",
+      context: packet.context
+    });
+    if (shouldHandleProofLrproof(proofStepped.actions)) {
       for (const link of this.pendingLinks) {
         if (
           shouldAcceptLinkLrProofCandidate({
@@ -774,7 +826,7 @@ export class LeafTransport {
       return;
     }
 
-    if (kind === "resource-prf") {
+    if (shouldHandleProofResourcePrf(proofStepped.actions)) {
       const activeIndex = indexOfMatchingLinkId({
         linkIds: this.activeLinks.map((link) => link.linkId),
         target: packet.destinationHash
@@ -785,19 +837,26 @@ export class LeafTransport {
       return;
     }
 
+    if (!shouldHandleProofReceipt(proofStepped.actions)) {
+      return;
+    }
+
     for (const receipt of [...this.receipts]) {
       const identity = equalBytes(packet.destinationHash, receipt.truncatedHash)
         ? Identity.recall(this.options.provider, receipt.targetDestinationHash)
         : null;
       const proofAccepted =
         identity !== null && receipt.validateProofPacket(packet, identity);
-      if (
-        planPacketReceiptProofIngress({
+      const proofIngressStepped = stepPacketReceiptProofIngressWithActions(
+        initialPacketReceiptProofIngressState(),
+        {
+          kind: "receipt/proof-ingress-gate",
           truncatedHashMatches: equalBytes(packet.destinationHash, receipt.truncatedHash),
           identityPresent: identity !== null,
           proofAccepted
-        }) === "remove-receipt"
-      ) {
+        }
+      );
+      if (shouldRemovePacketReceiptProofIngress(proofIngressStepped.actions)) {
         const index = planUnregisterPacketReceipt(this.receipts.indexOf(receipt));
         if (shouldUnregisterPacketReceipt(index !== null)) {
           this.receipts.splice(index!, 1);

@@ -23,15 +23,26 @@ import {
   canUpdateLinkKeepalive,
   canValidateLinkProof,
   computeLinkRttSeconds,
+  initialLinkActivateMembershipState,
   initialLinkAppRequestInboundState,
+  initialLinkAppRequestState,
+  initialLinkAppRequestTransmitState,
   initialLinkEstablishState,
   initialLinkProofValidateState,
+  initialLinkRegisterListState,
   initialLinkTokenAccessState,
+  initialLinkUnregisterMembershipState,
   initialLinkValidateRequestState,
   isLinkClosed,
   isLinkInboundDataPacket,
+  linkAppRequestFromActions,
+  linkAppRequestTransmitFromActions,
   linkEstablishActivatedAction,
+  linkRegisterListFromActions,
   mergeLinkRtt,
+  pendingLinkMembershipRemoveIndex,
+  pendingLinkUnregisterRemoveIndex,
+  activeLinkUnregisterRemoveIndex,
   planLinkActivateMembership,
   planLinkAppRequest,
   planLinkAppRequestDispatch,
@@ -48,6 +59,7 @@ import {
   shouldAcceptLinkProofValidate,
   shouldActivateLinkEstablish,
   shouldAppendActiveLinkMembership,
+  shouldAppendActiveLinkMembershipActions,
   shouldAttemptLinkProofCrypto,
   shouldContinueLinkValidateRequest,
   shouldCreateLinkChannel,
@@ -62,8 +74,12 @@ import {
   shouldIgnoreLinkEstablishRtt,
   shouldInvokeLinkAppRequestHandler,
   shouldInvokeLinkAppRequestInbound,
+  shouldKeepPendingLinkAppRequestTransmit,
   shouldProceedLinkValidateRequest,
+  shouldRegisterLinkActive,
   shouldRegisterLinkMember,
+  shouldRegisterLinkPending,
+  shouldRejectLinkAppRequest,
   shouldRejectLinkAppRequestInboundTooBig,
   shouldRejectLinkProofValidate,
   shouldRejectLinkTokenNoKey,
@@ -71,20 +87,30 @@ import {
   shouldRejectLinkValidateModeDisabled,
   shouldRejectLinkValidateOwnerMissingIdentity,
   shouldRemoveActiveLinkMembership,
+  shouldRemoveActiveLinkUnregisterActions,
   shouldRemovePendingLinkMembership,
+  shouldRemovePendingLinkMembershipActions,
+  shouldRemovePendingLinkUnregisterActions,
   shouldReuseActiveLink,
   shouldReuseLinkToken,
+  shouldSendLinkAppRequest,
   shouldSendLinkAppRequestInboundResponse,
   shouldSendLinkAppRequestResponse,
   shouldTeardownLinkEstablish,
   shouldTeardownLinkFromRtt,
+  shouldUnregisterLinkAppRequestTransmit,
   shouldUpdateLinkLastData,
+  stepLinkActivateMembershipWithActions,
   stepLinkAppRequestInbound,
   stepLinkAppRequestInboundWithActions,
+  stepLinkAppRequestTransmitWithActions,
+  stepLinkAppRequestWithActions,
   stepLinkEstablish,
   stepLinkEstablishWithActions,
   stepLinkProofValidateWithActions,
+  stepLinkRegisterListWithActions,
   stepLinkTokenAccessWithActions,
+  stepLinkUnregisterMembershipWithActions,
   stepLinkValidateRequestWithActions
 } from "../src/link-establish.js";
 import { DestinationAllowPolicyCode } from "../src/destination-allow.js";
@@ -934,5 +960,77 @@ describe("protocol link establish", () => {
     ).toBe(false);
     expect(planLinkAppRequestTransmitOutcome(true)).toBe("keep-pending");
     expect(planLinkAppRequestTransmitOutcome(false)).toBe("unregister");
+  });
+
+  it("emits register / membership / app-request actions from gate steps", () => {
+    const pending = stepLinkRegisterListWithActions(initialLinkRegisterListState(), {
+      kind: "link/register-list-gate",
+      initiator: true
+    });
+    expect(linkRegisterListFromActions(pending.actions)).toBe("pending");
+    expect(shouldRegisterLinkPending(pending.actions)).toBe(true);
+
+    const active = stepLinkRegisterListWithActions(initialLinkRegisterListState(), {
+      kind: "link/register-list-gate",
+      initiator: false
+    });
+    expect(shouldRegisterLinkActive(active.actions)).toBe(true);
+
+    const activate = stepLinkActivateMembershipWithActions(initialLinkActivateMembershipState(), {
+      kind: "link/activate-membership-gate",
+      pendingIndex: 2,
+      alreadyActive: false
+    });
+    expect(pendingLinkMembershipRemoveIndex(activate.actions)).toBe(2);
+    expect(shouldRemovePendingLinkMembershipActions(activate.actions)).toBe(true);
+    expect(shouldAppendActiveLinkMembershipActions(activate.actions)).toBe(true);
+
+    const unregister = stepLinkUnregisterMembershipWithActions(
+      initialLinkUnregisterMembershipState(),
+      {
+        kind: "link/unregister-membership-gate",
+        pendingIndex: 0,
+        activeIndex: 3
+      }
+    );
+    expect(pendingLinkUnregisterRemoveIndex(unregister.actions)).toBe(0);
+    expect(activeLinkUnregisterRemoveIndex(unregister.actions)).toBe(3);
+    expect(shouldRemovePendingLinkUnregisterActions(unregister.actions)).toBe(true);
+    expect(shouldRemoveActiveLinkUnregisterActions(unregister.actions)).toBe(true);
+
+    const send = stepLinkAppRequestWithActions(initialLinkAppRequestState(), {
+      kind: "link/app-request-gate",
+      status: LinkStatus.ACTIVE,
+      rtt: 0.1,
+      packedLength: 10,
+      mdu: 500
+    });
+    expect(linkAppRequestFromActions(send.actions)).toBe("send");
+    expect(shouldSendLinkAppRequest(send.actions)).toBe(true);
+
+    const reject = stepLinkAppRequestWithActions(initialLinkAppRequestState(), {
+      kind: "link/app-request-gate",
+      status: LinkStatus.PENDING,
+      rtt: null,
+      packedLength: 10,
+      mdu: 500
+    });
+    expect(shouldRejectLinkAppRequest(reject.actions)).toBe(true);
+
+    const keep = stepLinkAppRequestTransmitWithActions(initialLinkAppRequestTransmitState(), {
+      kind: "link/app-request-transmit-gate",
+      receiptPresent: true
+    });
+    expect(linkAppRequestTransmitFromActions(keep.actions)).toBe("keep-pending");
+    expect(shouldKeepPendingLinkAppRequestTransmit(keep.actions)).toBe(true);
+
+    const unregisterTx = stepLinkAppRequestTransmitWithActions(
+      initialLinkAppRequestTransmitState(),
+      {
+        kind: "link/app-request-transmit-gate",
+        receiptPresent: false
+      }
+    );
+    expect(shouldUnregisterLinkAppRequestTransmit(unregisterTx.actions)).toBe(true);
   });
 });
