@@ -310,6 +310,89 @@ export function planLxMessagePack(input: {
   return "ok";
 }
 
+/**
+ * Static LXMessage.pack destination/source gates are event-driven; no durable
+ * session fields. Conclusions leave via machine actions (no ad-hoc plan reads
+ * beside the step).
+ */
+export type LxMessagePackState = Record<string, never>;
+
+export type LxMessagePackEvent =
+  | Event
+  | {
+      readonly kind: "lxmessage-pack/gate";
+      readonly destinationDirectionOut: boolean;
+      readonly sourceDirectionIn: boolean;
+      readonly sourceIdentityPresent: boolean;
+    };
+
+export type LxMessagePackAction =
+  | { readonly kind: "proceed" }
+  | { readonly kind: "reject-bad-destination" }
+  | { readonly kind: "reject-bad-source" };
+
+export interface LxMessagePackStepResult {
+  readonly state: LxMessagePackState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxMessagePackAction[];
+}
+
+export function initialLxMessagePackState(): LxMessagePackState {
+  return {};
+}
+
+export const stepLxMessagePack: StepFn<LxMessagePackState> = (state, event) => {
+  const result = stepLxMessagePackInner(state, event as LxMessagePackEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxMessagePackWithActions(
+  state: LxMessagePackState,
+  event: LxMessagePackEvent
+): LxMessagePackStepResult {
+  return stepLxMessagePackInner(state, event);
+}
+
+export function shouldProceedLxMessagePack(
+  actions: ReadonlyArray<LxMessagePackAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
+export function shouldRejectLxMessagePackBadDestination(
+  actions: ReadonlyArray<LxMessagePackAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-bad-destination");
+}
+
+export function shouldRejectLxMessagePackBadSource(
+  actions: ReadonlyArray<LxMessagePackAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-bad-source");
+}
+
+function stepLxMessagePackInner(
+  state: LxMessagePackState,
+  event: LxMessagePackEvent
+): LxMessagePackStepResult {
+  if (event.kind === "lxmessage-pack/gate") {
+    const plan = planLxMessagePack({
+      destinationDirectionOut: event.destinationDirectionOut,
+      sourceDirectionIn: event.sourceDirectionIn,
+      sourceIdentityPresent: event.sourceIdentityPresent
+    });
+    if (plan === "bad-destination") {
+      return { state, intents: [], actions: [{ kind: "reject-bad-destination" }] };
+    }
+    if (plan === "bad-source") {
+      return { state, intents: [], actions: [{ kind: "reject-bad-source" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "proceed" }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 export type LxmfPackTimestampPlan = "use-timestamp" | "use-now" | "reject";
 
 /** How LXMessage.pack should obtain its timestamp (explicit / injected now / reject). */
@@ -324,6 +407,86 @@ export function planLxmfPackTimestamp(input: {
     return "use-now";
   }
   return "reject";
+}
+
+/**
+ * LXMessage.pack timestamp selection is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LxmfPackTimestampState = Record<string, never>;
+
+export type LxmfPackTimestampEvent =
+  | Event
+  | {
+      readonly kind: "pack-timestamp/select";
+      readonly hasTimestamp: boolean;
+      readonly hasNow: boolean;
+    };
+
+export type LxmfPackTimestampAction =
+  | { readonly kind: "use-timestamp" }
+  | { readonly kind: "use-now" }
+  | { readonly kind: "reject" };
+
+export interface LxmfPackTimestampStepResult {
+  readonly state: LxmfPackTimestampState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfPackTimestampAction[];
+}
+
+export function initialLxmfPackTimestampState(): LxmfPackTimestampState {
+  return {};
+}
+
+export const stepLxmfPackTimestamp: StepFn<LxmfPackTimestampState> = (state, event) => {
+  const result = stepLxmfPackTimestampInner(state, event as LxmfPackTimestampEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxmfPackTimestampWithActions(
+  state: LxmfPackTimestampState,
+  event: LxmfPackTimestampEvent
+): LxmfPackTimestampStepResult {
+  return stepLxmfPackTimestampInner(state, event);
+}
+
+export function shouldUseLxmfPackTimestamp(
+  actions: ReadonlyArray<LxmfPackTimestampAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-timestamp");
+}
+
+export function shouldUseLxmfPackNow(
+  actions: ReadonlyArray<LxmfPackTimestampAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-now");
+}
+
+export function shouldRejectLxmfPackTimestampSelect(
+  actions: ReadonlyArray<LxmfPackTimestampAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+function stepLxmfPackTimestampInner(
+  state: LxmfPackTimestampState,
+  event: LxmfPackTimestampEvent
+): LxmfPackTimestampStepResult {
+  if (event.kind === "pack-timestamp/select") {
+    const plan = planLxmfPackTimestamp({
+      hasTimestamp: event.hasTimestamp,
+      hasNow: event.hasNow
+    });
+    if (plan === "use-timestamp") {
+      return { state, intents: [], actions: [{ kind: "use-timestamp" }] };
+    }
+    if (plan === "use-now") {
+      return { state, intents: [], actions: [{ kind: "use-now" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "reject" }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 /** Whether packing should include a stamp field (omit when deferStamp is true). */
@@ -1350,6 +1513,108 @@ export function planLxMessageInstancePack(input: {
 }
 
 /**
+ * LXMessage instance pack gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LxMessageInstancePackState = Record<string, never>;
+
+export type LxMessageInstancePackEvent =
+  | Event
+  | {
+      readonly kind: "instance-pack/gate";
+      readonly alreadyPacked: boolean;
+      readonly destinationPresent: boolean;
+      readonly sourcePresent: boolean;
+      readonly sourceIdentityPresent: boolean;
+      readonly timestampPresent: boolean;
+    };
+
+export type LxMessageInstancePackAction =
+  | { readonly kind: "proceed" }
+  | { readonly kind: "reject-already-packed" }
+  | { readonly kind: "reject-missing-endpoints" }
+  | { readonly kind: "reject-missing-timestamp" };
+
+export interface LxMessageInstancePackStepResult {
+  readonly state: LxMessageInstancePackState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxMessageInstancePackAction[];
+}
+
+export function initialLxMessageInstancePackState(): LxMessageInstancePackState {
+  return {};
+}
+
+export const stepLxMessageInstancePack: StepFn<LxMessageInstancePackState> = (
+  state,
+  event
+) => {
+  const result = stepLxMessageInstancePackInner(
+    state,
+    event as LxMessageInstancePackEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxMessageInstancePackWithActions(
+  state: LxMessageInstancePackState,
+  event: LxMessageInstancePackEvent
+): LxMessageInstancePackStepResult {
+  return stepLxMessageInstancePackInner(state, event);
+}
+
+export function shouldProceedLxMessageInstancePack(
+  actions: ReadonlyArray<LxMessageInstancePackAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
+export function shouldRejectLxMessageInstanceAlreadyPacked(
+  actions: ReadonlyArray<LxMessageInstancePackAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-already-packed");
+}
+
+export function shouldRejectLxMessageInstanceMissingEndpoints(
+  actions: ReadonlyArray<LxMessageInstancePackAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-endpoints");
+}
+
+export function shouldRejectLxMessageInstanceMissingTimestamp(
+  actions: ReadonlyArray<LxMessageInstancePackAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-timestamp");
+}
+
+function stepLxMessageInstancePackInner(
+  state: LxMessageInstancePackState,
+  event: LxMessageInstancePackEvent
+): LxMessageInstancePackStepResult {
+  if (event.kind === "instance-pack/gate") {
+    const plan = planLxMessageInstancePack({
+      alreadyPacked: event.alreadyPacked,
+      destinationPresent: event.destinationPresent,
+      sourcePresent: event.sourcePresent,
+      sourceIdentityPresent: event.sourceIdentityPresent,
+      timestampPresent: event.timestampPresent
+    });
+    if (plan === "already-packed") {
+      return { state, intents: [], actions: [{ kind: "reject-already-packed" }] };
+    }
+    if (plan === "missing-endpoints") {
+      return { state, intents: [], actions: [{ kind: "reject-missing-endpoints" }] };
+    }
+    if (plan === "missing-timestamp") {
+      return { state, intents: [], actions: [{ kind: "reject-missing-timestamp" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "proceed" }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
  * Whether LXMessage.pack should reject for missing destination/source endpoints
  * after {@link planLxMessageInstancePack}.
  */
@@ -1428,4 +1693,104 @@ export function planLxmfPropagatedPackPrep(input: {
     return "missing-timestamp";
   }
   return "ok";
+}
+
+/**
+ * PROPAGATED pack prep gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LxmfPropagatedPackPrepState = Record<string, never>;
+
+export type LxmfPropagatedPackPrepEvent =
+  | Event
+  | {
+      readonly kind: "propagated-pack-prep/gate";
+      readonly packedPresent: boolean;
+      readonly desiredMethod: number;
+      readonly destinationIdentityPresent: boolean;
+      readonly timestampPresent: boolean;
+    };
+
+export type LxmfPropagatedPackPrepAction =
+  | { readonly kind: "skip" }
+  | { readonly kind: "proceed" }
+  | { readonly kind: "reject-missing-identity" }
+  | { readonly kind: "reject-missing-timestamp" };
+
+export interface LxmfPropagatedPackPrepStepResult {
+  readonly state: LxmfPropagatedPackPrepState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfPropagatedPackPrepAction[];
+}
+
+export function initialLxmfPropagatedPackPrepState(): LxmfPropagatedPackPrepState {
+  return {};
+}
+
+export const stepLxmfPropagatedPackPrep: StepFn<LxmfPropagatedPackPrepState> = (
+  state,
+  event
+) => {
+  const result = stepLxmfPropagatedPackPrepInner(
+    state,
+    event as LxmfPropagatedPackPrepEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxmfPropagatedPackPrepWithActions(
+  state: LxmfPropagatedPackPrepState,
+  event: LxmfPropagatedPackPrepEvent
+): LxmfPropagatedPackPrepStepResult {
+  return stepLxmfPropagatedPackPrepInner(state, event);
+}
+
+export function shouldSkipLxmfPropagatedPackPrep(
+  actions: ReadonlyArray<LxmfPropagatedPackPrepAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+export function shouldProceedLxmfPropagatedPackPrep(
+  actions: ReadonlyArray<LxmfPropagatedPackPrepAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
+export function shouldRejectLxmfPropagatedPackMissingIdentity(
+  actions: ReadonlyArray<LxmfPropagatedPackPrepAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-identity");
+}
+
+export function shouldRejectLxmfPropagatedPackMissingTimestamp(
+  actions: ReadonlyArray<LxmfPropagatedPackPrepAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-timestamp");
+}
+
+function stepLxmfPropagatedPackPrepInner(
+  state: LxmfPropagatedPackPrepState,
+  event: LxmfPropagatedPackPrepEvent
+): LxmfPropagatedPackPrepStepResult {
+  if (event.kind === "propagated-pack-prep/gate") {
+    const plan = planLxmfPropagatedPackPrep({
+      packedPresent: event.packedPresent,
+      desiredMethod: event.desiredMethod,
+      destinationIdentityPresent: event.destinationIdentityPresent,
+      timestampPresent: event.timestampPresent
+    });
+    if (plan === "skip") {
+      return { state, intents: [], actions: [{ kind: "skip" }] };
+    }
+    if (plan === "missing-identity") {
+      return { state, intents: [], actions: [{ kind: "reject-missing-identity" }] };
+    }
+    if (plan === "missing-timestamp") {
+      return { state, intents: [], actions: [{ kind: "reject-missing-timestamp" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "proceed" }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }

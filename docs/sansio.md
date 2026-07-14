@@ -31,7 +31,14 @@
 > `LXMFRouter.send` adapts it. **LXMF per-method send gates** (via
 > **`stepLxmfOpportunisticSendWithActions`** / **`stepLxmfDirectSendWithActions`** /
 > **`stepLxmfPropagatedSendWithActions`**: proceed / reject-*) are pure protocol
-> leaves; `LXMFRouter` send paths adapt them. **LXMF propagation link-ready /
+> leaves; `LXMFRouter` send paths adapt them. **LXMF pack gates** (via
+> **`stepLxMessagePackWithActions`**: proceed / reject-bad-destination /
+> reject-bad-source; **`stepLxmfPackTimestampWithActions`**: use-timestamp /
+> use-now / reject; **`stepLxMessageInstancePackWithActions`**: proceed /
+> reject-already-packed / reject-missing-endpoints / reject-missing-timestamp;
+> **`stepLxmfPropagatedPackPrepWithActions`**: skip / proceed /
+> reject-missing-identity / reject-missing-timestamp) are pure protocol leaves;
+> `LXMessage` adapts them. **LXMF propagation link-ready /
 > sync-prep gates** (via **`stepLxmfPropagationLinkReadyWithActions`**: reuse /
 > establish / reject-missing-node / reject-missing-identity; **`stepLxmfPropagationSyncPrepWithActions`**:
 > proceed / reject-missing-node / reject-missing-delivery-identity) are pure
@@ -174,7 +181,9 @@
 > **`canRequestLinkDestination`** lives in protocol; `Link.request` adapts it.
 > **`isValidDestinationIdentityBinding`** lives in protocol; `Destination` construction
 > adapts it. **`Announce.buildPacket`** reuses **`canAnnounceDestination`**.
-> **`planLxMessagePack`** lives in protocol; `LXMessage.pack` adapts it.
+> **`planLxMessagePack`** (via **`stepLxMessagePackWithActions`**: proceed /
+> reject-bad-destination / reject-bad-source) lives in protocol; `LXMessage.pack`
+> adapts it.
 > **`shouldIgnoreInitiatorKeepaliveProbe`**, **`shouldAcceptLinkPacketInterface`**, and
 > **`shouldEncryptLinkPayload`** live in protocol; `Link.receive` / `sendContext` adapt them.
 > **`planChannelMessageTypeRegistration`** lives in protocol; `Channel.registerMessageType`
@@ -211,7 +220,9 @@
 > adapts them. **`shouldAcceptLinkTeardown`** lives in protocol; LINKCLOSE handling
 > adapts it. **`canValidateLinkProof`** also gates destination presence.
 > **`planLxmfDirectSend`** (via **`stepLxmfDirectSendWithActions`**: proceed /
-> reject-missing-destination / reject-missing-packed), **`planLxMessageInstancePack`**, and
+> reject-missing-destination / reject-missing-packed), **`planLxMessageInstancePack`**
+> (via **`stepLxMessageInstancePackWithActions`**: proceed / reject-already-packed /
+> reject-missing-endpoints / reject-missing-timestamp), and
 > **`planLxmfSignatureOutcome`** live in protocol; `LXMFRouter` / `LXMessage` adapt them.
 > **`shouldReuseActiveLink`** lives in protocol; LXMF direct/propagation link reuse adapts
 > it. **`planAnnounceBuild`** and **`planDestinationConstruction`** live in protocol;
@@ -220,7 +231,9 @@
 > (`isDestinationTypeCode` / `isDestinationDirectionCode`) are exported for adapters.
 > **`planPacketFromFields`** lives in protocol; `Packet.fromFields` adapts it (enum /
 > HEADER_2 transport-id gates). **`planChannelEnvelopeUnpack`** lives in protocol;
-> Channel `Envelope.unpack` adapts it. **`planLxmfPropagatedPackPrep`** lives in protocol;
+> Channel `Envelope.unpack` adapts it. **`planLxmfPropagatedPackPrep`** (via
+> **`stepLxmfPropagatedPackPrepWithActions`**: skip / proceed /
+> reject-missing-identity / reject-missing-timestamp) lives in protocol;
 > `LXMessage` delivery-parameter selection adapts it. **`planLinkValidateRequest`** and
 > **`planLinkIdentifyOutcome`** live in protocol; `Link.validateRequest` /
 > `handleIdentifyPacket` adapt them. **`planLinkAppRequestDispatch`** /
@@ -238,7 +251,8 @@
 > reuse / establish / reject-missing-node / reject-missing-identity) live in protocol;
 > propagation ingress and outbound link readiness adapt them. **`shouldAttemptLinkProofCrypto`** lives in protocol;
 > `Link.validateProof` adapts it. **`shouldEmitChannelImmediateDelivery`** lives in
-> protocol; Channel send/resend adapts it. **`planLxmfPackTimestamp`** /
+> protocol; Channel send/resend adapts it. **`planLxmfPackTimestamp`** (via
+> **`stepLxmfPackTimestampWithActions`**: use-timestamp / use-now / reject) /
 > **`shouldIncludeLxmfStamp`** live in protocol; `LXMessage.pack` adapts them.
 > **`planAnnounceValidateOutcome`** / **`isAnnouncePacketType`** and
 > **`planPacketReceiptProofAccept`** live in protocol; `Announce` and `PacketReceipt`
@@ -434,6 +448,16 @@
 > **`stepLxmfReceiptSendWithActions`** emits `apply` (with send-state event) /
 > `skip`; opportunistic/propagated send paths update send-state only from those
 > actions (no ad-hoc `planLxmfReceiptSendOutcome` reads beside the step).
+> **`stepLxMessagePackWithActions`** emits `proceed` / `reject-bad-destination` /
+> `reject-bad-source`; **`stepLxmfPackTimestampWithActions`** emits
+> `use-timestamp` / `use-now` / `reject`; **`stepLxMessageInstancePackWithActions`**
+> emits `proceed` / `reject-already-packed` / `reject-missing-endpoints` /
+> `reject-missing-timestamp`; **`stepLxmfPropagatedPackPrepWithActions`** emits
+> `skip` / `proceed` / `reject-missing-identity` / `reject-missing-timestamp`;
+> `LXMessage` pack / timestamp / instance-pack / propagated-pack-prep apply
+> proceed/encrypt or throw only from those actions (no ad-hoc
+> `planLxMessagePack` / `planLxmfPackTimestamp` / `planLxMessageInstancePack` /
+> `planLxmfPropagatedPackPrep` reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -475,11 +499,12 @@
 > reject/duplicate/accept, propagation /get list-ids/apply, LXMF
 > delivery-parameter select deliver/reject, LXMF send-method
 > reject/dispatch, LXMF per-method send gates (opportunistic /
-> direct / propagated), LXMF propagation link-ready / sync-prep
-> gates, LXMF deliverable accept, propagation local ingress, and
+> direct / propagated), LXMF pack gates (static pack / timestamp /
+> instance pack / propagated pack prep), LXMF propagation link-ready /
+> sync-prep gates, LXMF deliverable accept, propagation local ingress, and
 > LXMF receipt → send-state mapping also conclude via machine actions
 > (no ad-hoc `state.timedOut` / `plan.kind` / establish-status / dispatch /
-> identify-outcome / delivery-plan / send-method / send-gate /
+> identify-outcome / delivery-plan / send-method / send-gate / pack-gate /
 > propagation-link-ready / sync-prep / deliverable-accept /
 > local-ingress / receipt-send reads beside the step).
 

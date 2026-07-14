@@ -67,27 +67,49 @@ import {
   initialLxmfDeliverableAcceptState,
   initialLxmfDirectSendState,
   initialLxmfOpportunisticSendState,
+  initialLxmfPackTimestampState,
+  initialLxmfPropagatedPackPrepState,
   initialLxmfPropagatedSendState,
   initialLxmfPropagationLinkReadyState,
   initialLxmfPropagationLocalIngressState,
   initialLxmfPropagationSyncPrepState,
   initialLxmfSendMethodState,
+  initialLxMessageInstancePackState,
+  initialLxMessagePackState,
   lxmfSendUnsupportedMethod,
   shouldAcceptLxmfDeliverable,
+  shouldProceedLxMessageInstancePack,
+  shouldProceedLxMessagePack,
+  shouldProceedLxmfPropagatedPackPrep,
   shouldRejectLxmfDeliverableSeen,
   shouldRejectLxmfDeliverableUnsigned,
+  shouldRejectLxmfPackTimestampSelect,
+  shouldRejectLxmfPropagatedPackMissingIdentity,
+  shouldRejectLxmfPropagatedPackMissingTimestamp,
   shouldRejectLxmfPropagationLocalDecrypt,
   shouldRejectLxmfPropagationLocalDestination,
   shouldRejectLxmfPropagationLocalPrefix,
+  shouldRejectLxMessageInstanceAlreadyPacked,
+  shouldRejectLxMessageInstanceMissingEndpoints,
+  shouldRejectLxMessageInstanceMissingTimestamp,
+  shouldRejectLxMessagePackBadDestination,
+  shouldRejectLxMessagePackBadSource,
+  shouldSkipLxmfPropagatedPackPrep,
+  shouldUseLxmfPackNow,
+  shouldUseLxmfPackTimestamp,
   stepLxmfDeliverableAcceptWithActions,
   stepLxmfDeliveryWithActions,
   stepLxmfDirectSendWithActions,
   stepLxmfOpportunisticSendWithActions,
+  stepLxmfPackTimestampWithActions,
+  stepLxmfPropagatedPackPrepWithActions,
   stepLxmfPropagatedSendWithActions,
   stepLxmfPropagationLinkReadyWithActions,
   stepLxmfPropagationLocalIngressWithActions,
   stepLxmfPropagationSyncPrepWithActions,
-  stepLxmfSendMethodWithActions
+  stepLxmfSendMethodWithActions,
+  stepLxMessageInstancePackWithActions,
+  stepLxMessagePackWithActions
 } from "../src/lxmf-delivery.js";
 import { LxmfUnverifiedReason } from "../src/lxmf-fields.js";
 
@@ -264,6 +286,49 @@ describe("protocol lxmf delivery", () => {
         sourceIdentityPresent: false
       })
     ).toBe("bad-source");
+  });
+
+  it("emits LXMessage pack gate actions from stepLxMessagePackWithActions", () => {
+    const ok = stepLxMessagePackWithActions(initialLxMessagePackState(), {
+      kind: "lxmessage-pack/gate",
+      destinationDirectionOut: true,
+      sourceDirectionIn: true,
+      sourceIdentityPresent: true
+    });
+    expect(ok.actions).toEqual([{ kind: "proceed" }]);
+    expect(shouldProceedLxMessagePack(ok.actions)).toBe(true);
+
+    const badDest = stepLxMessagePackWithActions(initialLxMessagePackState(), {
+      kind: "lxmessage-pack/gate",
+      destinationDirectionOut: false,
+      sourceDirectionIn: true,
+      sourceIdentityPresent: true
+    });
+    expect(badDest.actions).toEqual([{ kind: "reject-bad-destination" }]);
+    expect(shouldRejectLxMessagePackBadDestination(badDest.actions)).toBe(true);
+
+    const badSource = stepLxMessagePackWithActions(initialLxMessagePackState(), {
+      kind: "lxmessage-pack/gate",
+      destinationDirectionOut: true,
+      sourceDirectionIn: true,
+      sourceIdentityPresent: false
+    });
+    expect(badSource.actions).toEqual([{ kind: "reject-bad-source" }]);
+    expect(shouldRejectLxMessagePackBadSource(badSource.actions)).toBe(true);
+  });
+
+  it("is deterministic for LXMessage pack gate events", () => {
+    const state = initialLxMessagePackState();
+    const event = {
+      kind: "lxmessage-pack/gate" as const,
+      destinationDirectionOut: true,
+      sourceDirectionIn: true,
+      sourceIdentityPresent: true
+    };
+    const a = stepLxMessagePackWithActions(state, event);
+    const b = stepLxMessagePackWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("plans LXMF deliverable accept from signature and seen-hash", () => {
@@ -696,6 +761,68 @@ describe("protocol lxmf delivery", () => {
     ).toBe(false);
   });
 
+  it("emits LXMessage instance pack gate actions from stepLxMessageInstancePackWithActions", () => {
+    const ok = stepLxMessageInstancePackWithActions(initialLxMessageInstancePackState(), {
+      kind: "instance-pack/gate",
+      alreadyPacked: false,
+      destinationPresent: true,
+      sourcePresent: true,
+      sourceIdentityPresent: true,
+      timestampPresent: true
+    });
+    expect(ok.actions).toEqual([{ kind: "proceed" }]);
+    expect(shouldProceedLxMessageInstancePack(ok.actions)).toBe(true);
+
+    const packed = stepLxMessageInstancePackWithActions(initialLxMessageInstancePackState(), {
+      kind: "instance-pack/gate",
+      alreadyPacked: true,
+      destinationPresent: true,
+      sourcePresent: true,
+      sourceIdentityPresent: true,
+      timestampPresent: true
+    });
+    expect(packed.actions).toEqual([{ kind: "reject-already-packed" }]);
+    expect(shouldRejectLxMessageInstanceAlreadyPacked(packed.actions)).toBe(true);
+
+    const endpoints = stepLxMessageInstancePackWithActions(initialLxMessageInstancePackState(), {
+      kind: "instance-pack/gate",
+      alreadyPacked: false,
+      destinationPresent: false,
+      sourcePresent: true,
+      sourceIdentityPresent: true,
+      timestampPresent: true
+    });
+    expect(endpoints.actions).toEqual([{ kind: "reject-missing-endpoints" }]);
+    expect(shouldRejectLxMessageInstanceMissingEndpoints(endpoints.actions)).toBe(true);
+
+    const timestamp = stepLxMessageInstancePackWithActions(initialLxMessageInstancePackState(), {
+      kind: "instance-pack/gate",
+      alreadyPacked: false,
+      destinationPresent: true,
+      sourcePresent: true,
+      sourceIdentityPresent: true,
+      timestampPresent: false
+    });
+    expect(timestamp.actions).toEqual([{ kind: "reject-missing-timestamp" }]);
+    expect(shouldRejectLxMessageInstanceMissingTimestamp(timestamp.actions)).toBe(true);
+  });
+
+  it("is deterministic for LXMessage instance pack gate events", () => {
+    const state = initialLxMessageInstancePackState();
+    const event = {
+      kind: "instance-pack/gate" as const,
+      alreadyPacked: false,
+      destinationPresent: true,
+      sourcePresent: true,
+      sourceIdentityPresent: true,
+      timestampPresent: true
+    };
+    const a = stepLxMessageInstancePackWithActions(state, event);
+    const b = stepLxMessageInstancePackWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
+  });
+
   it("plans LXMF signature outcomes", () => {
     expect(
       planLxmfSignatureOutcome({
@@ -764,6 +891,69 @@ describe("protocol lxmf delivery", () => {
         timestampPresent: true
       })
     ).toBe("ok");
+  });
+
+  it("emits PROPAGATED pack prep actions from stepLxmfPropagatedPackPrepWithActions", () => {
+    const skip = stepLxmfPropagatedPackPrepWithActions(initialLxmfPropagatedPackPrepState(), {
+      kind: "propagated-pack-prep/gate",
+      packedPresent: true,
+      desiredMethod: LxmfDeliveryMethod.DIRECT,
+      destinationIdentityPresent: true,
+      timestampPresent: true
+    });
+    expect(skip.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldSkipLxmfPropagatedPackPrep(skip.actions)).toBe(true);
+
+    const ok = stepLxmfPropagatedPackPrepWithActions(initialLxmfPropagatedPackPrepState(), {
+      kind: "propagated-pack-prep/gate",
+      packedPresent: true,
+      desiredMethod: LxmfDeliveryMethod.PROPAGATED,
+      destinationIdentityPresent: true,
+      timestampPresent: true
+    });
+    expect(ok.actions).toEqual([{ kind: "proceed" }]);
+    expect(shouldProceedLxmfPropagatedPackPrep(ok.actions)).toBe(true);
+
+    const missingIdentity = stepLxmfPropagatedPackPrepWithActions(
+      initialLxmfPropagatedPackPrepState(),
+      {
+        kind: "propagated-pack-prep/gate",
+        packedPresent: true,
+        desiredMethod: LxmfDeliveryMethod.PROPAGATED,
+        destinationIdentityPresent: false,
+        timestampPresent: true
+      }
+    );
+    expect(missingIdentity.actions).toEqual([{ kind: "reject-missing-identity" }]);
+    expect(shouldRejectLxmfPropagatedPackMissingIdentity(missingIdentity.actions)).toBe(true);
+
+    const missingTimestamp = stepLxmfPropagatedPackPrepWithActions(
+      initialLxmfPropagatedPackPrepState(),
+      {
+        kind: "propagated-pack-prep/gate",
+        packedPresent: true,
+        desiredMethod: LxmfDeliveryMethod.PROPAGATED,
+        destinationIdentityPresent: true,
+        timestampPresent: false
+      }
+    );
+    expect(missingTimestamp.actions).toEqual([{ kind: "reject-missing-timestamp" }]);
+    expect(shouldRejectLxmfPropagatedPackMissingTimestamp(missingTimestamp.actions)).toBe(true);
+  });
+
+  it("is deterministic for PROPAGATED pack prep gate events", () => {
+    const state = initialLxmfPropagatedPackPrepState();
+    const event = {
+      kind: "propagated-pack-prep/gate" as const,
+      packedPresent: true,
+      desiredMethod: LxmfDeliveryMethod.PROPAGATED,
+      destinationIdentityPresent: true,
+      timestampPresent: true
+    };
+    const a = stepLxmfPropagatedPackPrepWithActions(state, event);
+    const b = stepLxmfPropagatedPackPrepWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("plans opportunistic send destination gate", () => {
@@ -1052,6 +1242,45 @@ describe("protocol lxmf delivery", () => {
     expect(shouldIncludeLxmfStamp(true)).toBe(false);
     expect(shouldRememberLxmfMessage(true)).toBe(true);
     expect(shouldRememberLxmfMessage(false)).toBe(false);
+  });
+
+  it("emits pack timestamp actions from stepLxmfPackTimestampWithActions", () => {
+    const useTimestamp = stepLxmfPackTimestampWithActions(initialLxmfPackTimestampState(), {
+      kind: "pack-timestamp/select",
+      hasTimestamp: true,
+      hasNow: false
+    });
+    expect(useTimestamp.actions).toEqual([{ kind: "use-timestamp" }]);
+    expect(shouldUseLxmfPackTimestamp(useTimestamp.actions)).toBe(true);
+
+    const useNow = stepLxmfPackTimestampWithActions(initialLxmfPackTimestampState(), {
+      kind: "pack-timestamp/select",
+      hasTimestamp: false,
+      hasNow: true
+    });
+    expect(useNow.actions).toEqual([{ kind: "use-now" }]);
+    expect(shouldUseLxmfPackNow(useNow.actions)).toBe(true);
+
+    const reject = stepLxmfPackTimestampWithActions(initialLxmfPackTimestampState(), {
+      kind: "pack-timestamp/select",
+      hasTimestamp: false,
+      hasNow: false
+    });
+    expect(reject.actions).toEqual([{ kind: "reject" }]);
+    expect(shouldRejectLxmfPackTimestampSelect(reject.actions)).toBe(true);
+  });
+
+  it("is deterministic for pack timestamp select events", () => {
+    const state = initialLxmfPackTimestampState();
+    const event = {
+      kind: "pack-timestamp/select" as const,
+      hasTimestamp: true,
+      hasNow: false
+    };
+    const a = stepLxmfPackTimestampWithActions(state, event);
+    const b = stepLxmfPackTimestampWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("gates delivery-identity registration and propagation-link teardown", () => {

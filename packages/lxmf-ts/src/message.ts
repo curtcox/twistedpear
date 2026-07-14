@@ -12,23 +12,35 @@ import {
   packLxmfWire,
   canExtractLxmfOpportunisticPayload,
   initialLxmfDeliveryState,
+  initialLxmfPackTimestampState,
+  initialLxmfPropagatedPackPrepState,
+  initialLxMessageInstancePackState,
+  initialLxMessagePackState,
   lxmfDeliveryDeliverParams,
   lxmfDeliveryOpportunisticRejectSizes,
-  planLxmfPackTimestamp,
-  planLxmfPropagatedPackPrep,
   planLxmfSignatureOutcome,
-  planLxMessageInstancePack,
-  planLxMessagePack,
   shouldDeliverLxmf,
   shouldIncludeLxmfStamp,
   shouldAcceptLxmfWireFrame,
   shouldCommitRememberedLxmfHash,
+  shouldProceedLxmfPropagatedPackPrep,
   shouldRejectLxmfOpportunisticTooLarge,
-  shouldRejectLxmfPackEndpoints,
-  shouldRejectLxmfPackTimestamp,
+  shouldRejectLxmfPropagatedPackMissingIdentity,
+  shouldRejectLxmfPropagatedPackMissingTimestamp,
+  shouldRejectLxMessageInstanceAlreadyPacked,
+  shouldRejectLxMessageInstanceMissingEndpoints,
+  shouldRejectLxMessageInstanceMissingTimestamp,
+  shouldRejectLxMessagePackBadDestination,
+  shouldRejectLxMessagePackBadSource,
   shouldRememberLxmfMessage,
   shouldSelectLxmfDeliveryParameters,
+  shouldUseLxmfPackNow,
+  shouldUseLxmfPackTimestamp,
   stepLxmfDeliveryWithActions,
+  stepLxmfPackTimestampWithActions,
+  stepLxmfPropagatedPackPrepWithActions,
+  stepLxMessageInstancePackWithActions,
+  stepLxMessagePackWithActions,
   splitLxmfWire,
   utf8Decode,
   utf8OrBytes
@@ -129,15 +141,16 @@ export class LXMessage {
   }
 
   static pack(options: LXMessagePackOptions): LXMessage {
-    const gate = planLxMessagePack({
+    const packGate = stepLxMessagePackWithActions(initialLxMessagePackState(), {
+      kind: "lxmessage-pack/gate",
       destinationDirectionOut: options.destination.direction === DestinationDirection.OUT,
       sourceDirectionIn: options.source.direction === DestinationDirection.IN,
       sourceIdentityPresent: options.source.identity !== null
     });
-    if (gate === "bad-destination") {
+    if (shouldRejectLxMessagePackBadDestination(packGate.actions)) {
       throw new Error("LXMessage destination must be OUT");
     }
-    if (gate === "bad-source") {
+    if (shouldRejectLxMessagePackBadSource(packGate.actions)) {
       throw new Error("LXMessage source must be IN with identity");
     }
 
@@ -150,13 +163,14 @@ export class LXMessage {
       desiredMethod: options.desiredMethod ?? LXMessageMethod.DIRECT
     });
 
-    const timestampPlan = planLxmfPackTimestamp({
+    const timestampGate = stepLxmfPackTimestampWithActions(initialLxmfPackTimestampState(), {
+      kind: "pack-timestamp/select",
       hasTimestamp: options.timestamp !== undefined,
       hasNow: options.now !== undefined
     });
-    if (timestampPlan === "use-timestamp") {
+    if (shouldUseLxmfPackTimestamp(timestampGate.actions)) {
       message.timestamp = options.timestamp!;
-    } else if (timestampPlan === "use-now") {
+    } else if (shouldUseLxmfPackNow(timestampGate.actions)) {
       message.timestamp = options.now!();
     } else {
       throw new Error("LXMessage.pack requires timestamp or now()");
@@ -235,32 +249,21 @@ export class LXMessage {
     provider: CryptoProvider,
     options: { stamp?: Uint8Array | null; deferStamp?: boolean } = {}
   ): void {
-    const gate = planLxMessageInstancePack({
+    const packGate = stepLxMessageInstancePackWithActions(initialLxMessageInstancePackState(), {
+      kind: "instance-pack/gate",
       alreadyPacked: this.packed !== null,
       destinationPresent: this.destination !== null,
       sourcePresent: this.source !== null,
       sourceIdentityPresent: this.source?.identity !== null,
       timestampPresent: this.timestamp !== null
     });
-    if (gate === "already-packed") {
+    if (shouldRejectLxMessageInstanceAlreadyPacked(packGate.actions)) {
       throw new Error("LXMessage is already packed");
     }
-    if (
-      shouldRejectLxmfPackEndpoints({
-        gateMissingEndpoints: gate === "missing-endpoints",
-        destinationPresent: this.destination !== null,
-        sourcePresent: this.source !== null,
-        sourceIdentityPresent: this.source?.identity !== null
-      })
-    ) {
+    if (shouldRejectLxMessageInstanceMissingEndpoints(packGate.actions)) {
       throw new Error("LXMessage requires destination and source destinations to pack");
     }
-    if (
-      shouldRejectLxmfPackTimestamp({
-        gateMissingTimestamp: gate === "missing-timestamp",
-        timestampPresent: this.timestamp !== null
-      })
-    ) {
+    if (shouldRejectLxMessageInstanceMissingTimestamp(packGate.actions)) {
       throw new Error("LXMessage.pack requires timestamp to be set before packing");
     }
 
@@ -313,19 +316,20 @@ export class LXMessage {
     const desiredMethod = this.desiredMethod ?? LXMessageMethod.DIRECT;
     const contentSize = lxmfContentSizeFromPackedLength(packed!.length);
 
-    const prep = planLxmfPropagatedPackPrep({
+    const prep = stepLxmfPropagatedPackPrepWithActions(initialLxmfPropagatedPackPrepState(), {
+      kind: "propagated-pack-prep/gate",
       packedPresent: true,
       desiredMethod,
       destinationIdentityPresent: this.destination !== null && this.destination.identity !== null,
       timestampPresent: this.timestamp !== null
     });
-    if (prep === "missing-identity") {
+    if (shouldRejectLxmfPropagatedPackMissingIdentity(prep.actions)) {
       throw new Error("PROPAGATED LXMF requires destination identity");
     }
-    if (prep === "missing-timestamp") {
+    if (shouldRejectLxmfPropagatedPackMissingTimestamp(prep.actions)) {
       throw new Error("LXMessage.pack requires timestamp to be set before packing");
     }
-    if (prep === "ok") {
+    if (shouldProceedLxmfPropagatedPackPrep(prep.actions)) {
       const encryptedPayload = this.destination!.identity!.encrypt(
         packed!.subarray(DESTINATION_LENGTH)
       );
