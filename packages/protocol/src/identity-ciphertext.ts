@@ -1,6 +1,8 @@
 /**
  * Pure RNS Identity encrypt wire layout: ephemeral X25519 public || Token ciphertext.
  * ECDH / Token crypto stay at the adapter edge.
+ * Pack / split conclusions leave via machine actions (no ad-hoc
+ * `packIdentityCiphertext` / `splitIdentityCiphertext` reads beside the step).
  * Decrypt conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
@@ -45,6 +47,146 @@ export function splitIdentityCiphertext(
     ephemeralPublicKey: ciphertextToken.subarray(0, IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE),
     tokenCiphertext: ciphertextToken.subarray(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE)
   };
+}
+
+/**
+ * Identity-ciphertext pack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `packIdentityCiphertext` reads
+ * beside the step). Invalid sizes become `reject` (helper may throw).
+ */
+export type PackIdentityCiphertextState = Record<string, never>;
+
+export type PackIdentityCiphertextEvent =
+  | Event
+  | {
+      readonly kind: "identity-ciphertext/pack-gate";
+      readonly ephemeralPublicKey: Uint8Array;
+      readonly tokenCiphertext: Uint8Array;
+    };
+
+export type PackIdentityCiphertextAction =
+  | { readonly kind: "use-raw"; readonly raw: Uint8Array }
+  | { readonly kind: "reject" };
+
+export interface PackIdentityCiphertextStepResult {
+  readonly state: PackIdentityCiphertextState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackIdentityCiphertextAction[];
+}
+
+export function initialPackIdentityCiphertextState(): PackIdentityCiphertextState {
+  return {};
+}
+
+export function stepPackIdentityCiphertextWithActions(
+  state: PackIdentityCiphertextState,
+  event: PackIdentityCiphertextEvent
+): PackIdentityCiphertextStepResult {
+  if (event.kind === "identity-ciphertext/pack-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [
+          {
+            kind: "use-raw",
+            raw: packIdentityCiphertext(event.ephemeralPublicKey, event.tokenCiphertext)
+          }
+        ]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackIdentityCiphertext(
+  actions: ReadonlyArray<PackIdentityCiphertextAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+export function shouldRejectPackIdentityCiphertext(
+  actions: ReadonlyArray<PackIdentityCiphertextAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract packed identity ciphertext from step actions; null when no `use-raw`. */
+export function packIdentityCiphertextRawFromActions(
+  actions: ReadonlyArray<PackIdentityCiphertextAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Identity-ciphertext split framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `splitIdentityCiphertext` reads
+ * beside the step). Short frames become `reject`.
+ */
+export type SplitIdentityCiphertextState = Record<string, never>;
+
+export type SplitIdentityCiphertextEvent =
+  | Event
+  | {
+      readonly kind: "identity-ciphertext/split-gate";
+      readonly ciphertextToken: Uint8Array;
+    };
+
+export type SplitIdentityCiphertextAction =
+  | { readonly kind: "use-fields"; readonly fields: IdentityCiphertextFields }
+  | { readonly kind: "reject" };
+
+export interface SplitIdentityCiphertextStepResult {
+  readonly state: SplitIdentityCiphertextState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly SplitIdentityCiphertextAction[];
+}
+
+export function initialSplitIdentityCiphertextState(): SplitIdentityCiphertextState {
+  return {};
+}
+
+export function stepSplitIdentityCiphertextWithActions(
+  state: SplitIdentityCiphertextState,
+  event: SplitIdentityCiphertextEvent
+): SplitIdentityCiphertextStepResult {
+  if (event.kind === "identity-ciphertext/split-gate") {
+    const fields = splitIdentityCiphertext(event.ciphertextToken);
+    if (fields === null) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-fields", fields }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseSplitIdentityCiphertext(
+  actions: ReadonlyArray<SplitIdentityCiphertextAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectSplitIdentityCiphertext(
+  actions: ReadonlyArray<SplitIdentityCiphertextAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract split identity-ciphertext fields from step actions; null when no `use-fields`. */
+export function identityCiphertextFieldsFromActions(
+  actions: ReadonlyArray<SplitIdentityCiphertextAction>
+): IdentityCiphertextFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }
 
 /** Whether identity ciphertext split succeeded and may drive decrypt. */

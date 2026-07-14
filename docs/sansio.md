@@ -107,7 +107,10 @@
 > **`stepResourceReceivePartWithActions`**), **LXMF outer wire framing**, and
 > PacketReceipt proof validation via **`stepSplitPacketProofWithActions`** /
 > **`stepPacketReceiptProofAcceptWithActions`** are pure protocol leaves.
-> **Identity ciphertext** (ephemeral public || Token), **WS binary frame**
+> **Identity ciphertext** framing (pack/split via
+> **`stepPackIdentityCiphertextWithActions`** /
+> **`stepSplitIdentityCiphertextWithActions`**: use-raw|reject /
+> use-fields|reject; ephemeral public || Token), **WS binary frame**
 > encode/decode, and **LXMF peer-error** msgpack decode are pure protocol leaves;
 > Identity, websocket-server, and propagation adapters use them. **Identity ratchet
 > persistence** (JSON encode/decode, store key, usability/expiry; lookup via
@@ -788,7 +791,8 @@
 > parse-resource-part-request / pack-resource-advertisement /
 > unpack-resource-advertisement / pack-link-request /
 > pack-link-response / unpack-link-request / unpack-link-response /
-> pack-token-frame / split-token-frame reads
+> pack-token-frame / split-token-frame /
+> pack-identity-ciphertext / split-identity-ciphertext reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -878,6 +882,11 @@
 > `use-fields`|`reject`; Token frame pack / split apply only from those
 > actions (no ad-hoc `packTokenFrame` / `splitTokenFrame` reads beside the
 > step).
+> **`stepPackIdentityCiphertextWithActions`** /
+> **`stepSplitIdentityCiphertextWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject`; Identity ciphertext pack / split apply only from
+> those actions (no ad-hoc `packIdentityCiphertext` /
+> `splitIdentityCiphertext` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

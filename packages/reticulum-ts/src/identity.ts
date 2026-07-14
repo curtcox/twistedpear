@@ -13,14 +13,17 @@ import {
   canLoadIdentityKeyMaterial,
   decodeIdentityRatchetRecord,
   encodeIdentityRatchetRecord,
+  identityCiphertextFieldsFromActions,
   identityRatchetStoreKey,
   initialIdentityDecryptState,
   initialIdentityRatchetLookupState,
   initialIdentityRecallAppDataState,
   initialIdentityRecallState,
+  initialPackIdentityCiphertextState,
   initialPackPacketProofState,
+  initialSplitIdentityCiphertextState,
   isIdentityRatchetRecordUsable,
-  packIdentityCiphertext,
+  packIdentityCiphertextRawFromActions,
   packIdentityPrivateKey,
   packIdentityPublicKey,
   packPacketProofRawFromActions,
@@ -34,15 +37,19 @@ import {
   shouldPersistIdentityRatchet,
   shouldRejectIdentityDecryptEnforced,
   shouldRejectIdentityDecryptFrame,
+  shouldRejectPackIdentityCiphertext,
   shouldTryIdentityDecrypt,
   shouldUseCachedIdentityRatchet,
+  shouldUsePackIdentityCiphertext,
   shouldUsePackPacketProof,
-  splitIdentityCiphertext,
+  shouldUseSplitIdentityCiphertext,
   stepIdentityDecryptWithActions,
   stepIdentityRatchetLookupWithActions,
   stepIdentityRecallAppDataWithActions,
   stepIdentityRecallWithActions,
+  stepPackIdentityCiphertextWithActions,
   stepPackPacketProofWithActions,
+  stepSplitIdentityCiphertextWithActions,
   splitIdentityEntropy,
   splitIdentityPrivateKey,
   splitIdentityPublicKey,
@@ -336,17 +343,46 @@ export class Identity {
       ...(options.tokenIv === undefined ? {} : { iv: options.tokenIv }),
       ...(options.entropy === undefined ? {} : { entropy: options.entropy })
     });
-    return packIdentityCiphertext(ephemeralPublicBytes, ciphertext);
+    const packStepped = stepPackIdentityCiphertextWithActions(initialPackIdentityCiphertextState(), {
+      kind: "identity-ciphertext/pack-gate",
+      ephemeralPublicKey: ephemeralPublicBytes,
+      tokenCiphertext: ciphertext
+    });
+    if (
+      shouldRejectPackIdentityCiphertext(packStepped.actions) ||
+      !shouldUsePackIdentityCiphertext(packStepped.actions)
+    ) {
+      throw new Error(
+        `ephemeral public key must be ${IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE} bytes`
+      );
+    }
+    const packed = packIdentityCiphertextRawFromActions(packStepped.actions);
+    if (packed === null) {
+      throw new Error(
+        `ephemeral public key must be ${IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE} bytes`
+      );
+    }
+    return packed;
   }
 
   decrypt(ciphertextToken: Uint8Array, options: DecryptOptions = {}): DecryptResult {
     this.requirePrivateKey();
 
-    const split = splitIdentityCiphertext(ciphertextToken);
+    const splitStepped = stepSplitIdentityCiphertextWithActions(
+      initialSplitIdentityCiphertextState(),
+      {
+        kind: "identity-ciphertext/split-gate",
+        ciphertextToken
+      }
+    );
+    const split = identityCiphertextFieldsFromActions(splitStepped.actions);
+    const frameOk =
+      shouldUseSplitIdentityCiphertext(splitStepped.actions) &&
+      shouldAcceptIdentityCiphertextFrame(split !== null);
     let plaintext: Uint8Array | null = null;
     let ratchetId: Uint8Array | null = null;
 
-    if (shouldAcceptIdentityCiphertextFrame(split !== null)) {
+    if (frameOk) {
       const peerPublicBytes = split!.ephemeralPublicKey;
       const ciphertext = split!.tokenCiphertext;
 
@@ -369,7 +405,7 @@ export class Identity {
 
     const afterRatchets = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
       kind: "identity/decrypt-gate",
-      frameOk: split !== null,
+      frameOk,
       ratchetPlaintextPresent: plaintext !== null,
       enforceRatchets: options.enforceRatchets === true,
       identityFallbackDone: false,

@@ -5,10 +5,14 @@ import {
   canIdentityUsePrivateKey,
   canIdentityUsePublicKey,
   canLoadIdentityKeyMaterial,
+  identityCiphertextFieldsFromActions,
   initialIdentityDecryptState,
   initialIdentityRecallAppDataState,
   initialIdentityRecallState,
+  initialPackIdentityCiphertextState,
+  initialSplitIdentityCiphertextState,
   packIdentityCiphertext,
+  packIdentityCiphertextRawFromActions,
   planIdentityDecryptOutcome,
   planIdentityRecall,
   planIdentityRecallAppData,
@@ -24,11 +28,17 @@ import {
   shouldRejectIdentityDecryptEnforced,
   shouldRejectIdentityDecryptFrame,
   shouldRejectIdentityRecallKey,
+  shouldRejectPackIdentityCiphertext,
+  shouldRejectSplitIdentityCiphertext,
   shouldTryIdentityDecrypt,
+  shouldUsePackIdentityCiphertext,
+  shouldUseSplitIdentityCiphertext,
   splitIdentityCiphertext,
   stepIdentityDecryptWithActions,
   stepIdentityRecallAppDataWithActions,
-  stepIdentityRecallWithActions
+  stepIdentityRecallWithActions,
+  stepPackIdentityCiphertextWithActions,
+  stepSplitIdentityCiphertextWithActions
 } from "../src/identity-ciphertext.js";
 
 describe("protocol identity ciphertext", () => {
@@ -48,6 +58,54 @@ describe("protocol identity ciphertext", () => {
     expect(shouldAcceptIdentityCiphertextFrame(false)).toBe(false);
     expect(shouldAcceptIdentityDecryptPlaintext(true)).toBe(true);
     expect(shouldAcceptIdentityDecryptPlaintext(false)).toBe(false);
+  });
+
+  it("emits pack raw or reject from WithActions steps", () => {
+    const ephemeral = new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE).fill(1);
+    const token = new Uint8Array([9, 8, 7, 6]);
+    const ok = stepPackIdentityCiphertextWithActions(initialPackIdentityCiphertextState(), {
+      kind: "identity-ciphertext/pack-gate",
+      ephemeralPublicKey: ephemeral,
+      tokenCiphertext: token
+    });
+    expect(shouldUsePackIdentityCiphertext(ok.actions)).toBe(true);
+    expect(shouldRejectPackIdentityCiphertext(ok.actions)).toBe(false);
+    const packed = packIdentityCiphertextRawFromActions(ok.actions);
+    expect(packed).not.toBeNull();
+    expect([...packed!]).toEqual([...packIdentityCiphertext(ephemeral, token)]);
+
+    const rejected = stepPackIdentityCiphertextWithActions(initialPackIdentityCiphertextState(), {
+      kind: "identity-ciphertext/pack-gate",
+      ephemeralPublicKey: new Uint8Array(8),
+      tokenCiphertext: token
+    });
+    expect(shouldRejectPackIdentityCiphertext(rejected.actions)).toBe(true);
+    expect(shouldUsePackIdentityCiphertext(rejected.actions)).toBe(false);
+    expect(packIdentityCiphertextRawFromActions(rejected.actions)).toBeNull();
+  });
+
+  it("emits split fields or reject from WithActions steps", () => {
+    const ephemeral = new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE).fill(1);
+    const token = new Uint8Array([9, 8, 7, 6]);
+    const packed = packIdentityCiphertext(ephemeral, token);
+    const ok = stepSplitIdentityCiphertextWithActions(initialSplitIdentityCiphertextState(), {
+      kind: "identity-ciphertext/split-gate",
+      ciphertextToken: packed
+    });
+    expect(shouldUseSplitIdentityCiphertext(ok.actions)).toBe(true);
+    expect(shouldRejectSplitIdentityCiphertext(ok.actions)).toBe(false);
+    const fields = identityCiphertextFieldsFromActions(ok.actions);
+    expect(fields).not.toBeNull();
+    expect([...fields!.ephemeralPublicKey]).toEqual([...ephemeral]);
+    expect([...fields!.tokenCiphertext]).toEqual([...token]);
+
+    const rejected = stepSplitIdentityCiphertextWithActions(initialSplitIdentityCiphertextState(), {
+      kind: "identity-ciphertext/split-gate",
+      ciphertextToken: new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE)
+    });
+    expect(shouldRejectSplitIdentityCiphertext(rejected.actions)).toBe(true);
+    expect(shouldUseSplitIdentityCiphertext(rejected.actions)).toBe(false);
+    expect(identityCiphertextFieldsFromActions(rejected.actions)).toBeNull();
   });
 
   it("plans decrypt outcomes after frame / ratchet / identity fallback", () => {
