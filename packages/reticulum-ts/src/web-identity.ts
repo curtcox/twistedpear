@@ -1,9 +1,17 @@
 import {
-  packWebIdentityRecord,
-  splitWebIdentityRecord,
+  initialPackWebIdentityRecordState,
+  initialSplitWebIdentityRecordState,
+  packWebIdentityRecordRawFromActions,
+  shouldRejectPackWebIdentityRecord,
+  shouldRejectSplitWebIdentityRecord,
+  shouldUsePackWebIdentityRecord,
+  shouldUseSplitWebIdentityRecord,
+  stepPackWebIdentityRecordWithActions,
+  stepSplitWebIdentityRecordWithActions,
   utf8Encode,
   WEB_IDENTITY_IV_BYTES,
-  WEB_IDENTITY_SALT_BYTES
+  WEB_IDENTITY_SALT_BYTES,
+  webIdentityRecordFieldsFromActions
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { Identity } from "./identity.js";
@@ -72,12 +80,41 @@ async function encryptPrivateKey(privateKey: Uint8Array, options: WebIdentityUnl
     await subtle.encrypt({ name: "AES-GCM", iv }, key, Uint8Array.from(privateKey))
   );
 
-  const packed = packWebIdentityRecord(salt, iv, ciphertext);
+  const packStepped = stepPackWebIdentityRecordWithActions(initialPackWebIdentityRecordState(), {
+    kind: "web-identity/pack-gate",
+    salt,
+    iv,
+    ciphertext
+  });
+  if (
+    shouldRejectPackWebIdentityRecord(packStepped.actions) ||
+    !shouldUsePackWebIdentityRecord(packStepped.actions)
+  ) {
+    throw new Error("web identity: missing use-raw action");
+  }
+  const packed = packWebIdentityRecordRawFromActions(packStepped.actions);
+  if (packed === null) {
+    throw new Error("web identity: missing use-raw action");
+  }
   return packed;
 }
 
 async function decryptPrivateKey(packed: Uint8Array, options: WebIdentityUnlockOptions): Promise<Uint8Array> {
-  const { salt, iv, ciphertext } = splitWebIdentityRecord(packed);
+  const splitStepped = stepSplitWebIdentityRecordWithActions(initialSplitWebIdentityRecordState(), {
+    kind: "web-identity/split-gate",
+    packed
+  });
+  if (
+    shouldRejectSplitWebIdentityRecord(splitStepped.actions) ||
+    !shouldUseSplitWebIdentityRecord(splitStepped.actions)
+  ) {
+    throw new Error("Stored web identity record is truncated");
+  }
+  const fields = webIdentityRecordFieldsFromActions(splitStepped.actions);
+  if (fields === null) {
+    throw new Error("Stored web identity record is truncated");
+  }
+  const { salt, iv, ciphertext } = fields;
   const subtle = requireSubtle(options);
   const key = await deriveKey(subtle, options.passphrase, salt);
   const plaintext = new Uint8Array(await subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext));

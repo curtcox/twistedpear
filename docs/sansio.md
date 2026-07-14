@@ -119,8 +119,10 @@
 > Identity, websocket-server, and propagation adapters use them. **Identity ratchet
 > persistence** (JSON encode/decode, store key, usability/expiry; lookup via
 > **`stepIdentityRatchetLookupWithActions`**) and **web-identity
-> record framing** (salt||iv||ciphertext) are pure protocol leaves; Identity and
-> web-identity adapters use them. Shared `hexToBytesLower` lives with destination-name
+> record framing** (pack/split via **`stepPackWebIdentityRecordWithActions`** /
+> **`stepSplitWebIdentityRecordWithActions`**: use-raw|reject / use-fields|reject;
+> salt||iv||ciphertext) are pure protocol leaves; Identity and web-identity
+> adapters use them. Shared `hexToBytesLower` lives with destination-name
 > helpers. **Identity recall** / **recall-app-data** (via
 > **`stepIdentityRecallWithActions`** / **`stepIdentityRecallAppDataWithActions`**)
 > are pure protocol leaves; `Identity` adapts them. **Link establishment timeout** (`computeLinkEstablishmentTimeout`) and **LXMF
@@ -806,7 +808,8 @@
 > pack-lxmf-wire / split-lxmf-wire /
 > pack-lxmf-destination-prefixed / split-lxmf-destination-prefixed /
 > lxmf-inbound-delivery / pack-link-identify-payload /
-> split-link-identify-payload reads
+> split-link-identify-payload / pack-web-identity-record /
+> split-web-identity-record reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -917,6 +920,11 @@
 > `use-fields`|`reject`; Link identify payload pack / split apply only from
 > those actions (no ad-hoc `packLinkIdentifyPayload` /
 > `splitLinkIdentifyPayload` reads beside the step).
+> **`stepPackWebIdentityRecordWithActions`** /
+> **`stepSplitWebIdentityRecordWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject`; web-identity salt||iv||ciphertext pack / split apply
+> only from those actions (no ad-hoc `packWebIdentityRecord` /
+> `splitWebIdentityRecord` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
