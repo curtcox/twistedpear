@@ -217,7 +217,9 @@
 > (via **`stepLxmfDeliverableAcceptWithActions`**) lives in protocol; `LXMFRouter` unpack
 > adapts it. **`canRelayLinkPacket`**,
 > **`canRelayReversePacket`**, **`shouldRelayReverseOnInterface`**,
-> **`planTransportIngressDispatch`**, **`planProofIngressKind`**, and
+> **`planTransportIngressDispatch`** (via
+> **`stepTransportIngressDispatchWithActions`**: announce / link-request /
+> link-data / plain-data / proof / ignore), **`planProofIngressKind`**, and
 > **`shouldTransmitOnInterface`** live in protocol; `TransportNode` /
 > `LeafTransport` adapt them. **`shouldIgnoreLocalAnnounce`** /
 > **`shouldMatchAnnounceAspect`** live in protocol; announce ingress adapts them.
@@ -304,15 +306,19 @@
 > **`planPacketReceiptProofAccept`** live in protocol; `Announce` and `PacketReceipt`
 > adapt them. **Local destination match gates** (`shouldMatchLocalInboundDestination`,
 > **`shouldMatchLocalTypedDestination`**, **`shouldDispatchLocalLinkRequest`**),
-> **`shouldAcceptLinkLrProofCandidate`**, **`planLocalPlainDataDelivery`**, and
-> **`planPacketHashRemember`** live in protocol; transport node / LeafTransport adapt them.
+> **`shouldAcceptLinkLrProofCandidate`**, **`planLocalPlainDataDelivery`** (via
+> **`stepLocalPlainDataDeliveryWithActions`**: dispatch / ignore), and
+> **`planPacketHashRemember`** (via **`stepPacketHashRememberWithActions`**: now /
+> after-relay) live in protocol; transport node / LeafTransport adapt them.
 > **`indexOfPendingLinkAppRequest`**, **`planLinkRequestResponderMtu`**, and
 > **`planChannelEnvelopePack`** (via **`stepChannelEnvelopePackWithActions`**: ok /
 > missing-message) live in protocol; `Link` and `Channel` adapt them.
 > **`planOutboundReceiptOutcome`** / **`planPacketReceiptProofIngress`** live in
 > protocol; transport sendPacket / receipt proofs adapt them. **`planLinkRegisterList`**,
-> **`indexOfMatchingLinkId`** / **`planLinkDataIngressTarget`**, and
-> **`planReverseRelayOutcome`** live in protocol; transport link + reverse relay adapt
+> **`indexOfMatchingLinkId`** / **`planLinkDataIngressTarget`** (via
+> **`stepLinkDataIngressTargetWithActions`**: active / pending / none), and
+> **`planReverseRelayOutcome`** (via **`stepReverseRelayOutcomeWithActions`**:
+> relay / delete-expired / ignore) live in protocol; transport link + reverse relay adapt
 > them. **`planLinkRttOutcome`** (via **`stepLinkEstablishWithActions`**
 > `establish/rtt`), **`shouldDispatchLinkPlaintext`**,
 > **`canResendLinkPacket`**, and **`planLinkAppRequestTransmitOutcome`** live in
@@ -587,6 +593,18 @@
 > discovery fulfill, outbound, and path-table get apply only from those actions
 > (no ad-hoc `planPathRequestIngress` / `planDiscoveryPathRequestFulfill` /
 > `planPathOutbound` / `planPathEntryLookup` reads beside the step).
+> **`stepTransportIngressDispatchWithActions`** emits `announce` /
+> `link-request` / `link-data` / `plain-data` / `proof` / `ignore`;
+> **`stepLinkDataIngressTargetWithActions`** emits `active` / `pending` /
+> `none`; **`stepReverseRelayOutcomeWithActions`** emits `relay` /
+> `delete-expired` / `ignore`; **`stepPacketHashRememberWithActions`** emits
+> `now` / `after-relay`; **`stepLocalPlainDataDeliveryWithActions`** emits
+> `dispatch` / `ignore`; `LeafTransport` / `TransportNode` ingress dispatch,
+> link-data target, reverse relay, hash remember, and local plain DATA apply
+> only from those actions (no ad-hoc `planTransportIngressDispatch` /
+> `planLinkDataIngressTarget` / `planReverseRelayOutcome` /
+> `planPacketHashRemember` / `planLocalPlainDataDelivery` reads beside the
+> step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -645,7 +663,10 @@
 > resource-assemble / resource-proof-accept / resource-request-fulfill /
 > resource-receive-part / resource-part-request /
 > resource-hashmap-update-accept / path-request-ingress /
-> discovery-path-request-fulfill / path-outbound / path-entry-lookup reads
+> discovery-path-request-fulfill / path-outbound / path-entry-lookup /
+> transport-ingress-dispatch / link-data-ingress-target /
+> reverse-relay-outcome / packet-hash-remember /
+> local-plain-data-delivery reads
 > beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

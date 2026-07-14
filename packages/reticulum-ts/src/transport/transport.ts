@@ -8,13 +8,13 @@ import {
   isDiscoveryPathRequestExpired,
   isReverseEntryExpired,
   initialDiscoveryPathRequestFulfillState,
+  initialPacketHashRememberState,
   initialPathRequestIngressState,
+  initialReverseRelayOutcomeState,
+  initialTransportIngressDispatchState,
   planAnnounceIngressGates,
   planLinkRelayTarget,
   shouldTransmitLinkRelay,
-  planPacketHashRemember,
-  planReverseRelayOutcome,
-  planTransportIngressDispatch,
   rewritePacketHopsBytes,
   canAnswerLocalPathRequest,
   shouldAcceptTransportPacket,
@@ -25,7 +25,12 @@ import {
   shouldClearExpiredDiscoveryPathRequest,
   shouldDeferPacketHash as planShouldDeferPacketHash,
   shouldAnswerPathRequest,
-  shouldDeleteExpiredReverseEntry,
+  shouldDeleteExpiredReverseEntryActions,
+  shouldDispatchTransportAnnounce,
+  shouldDispatchTransportLinkData,
+  shouldDispatchTransportLinkRequest,
+  shouldDispatchTransportPlainData,
+  shouldDispatchTransportProof,
   shouldFulfillDiscoveryPathRequest,
   shouldFulfillDiscoveryPending,
   shouldIgnoreDiscoveryPathFulfillActions,
@@ -33,16 +38,21 @@ import {
   shouldIgnorePathRequestIngress,
   shouldIgnorePathRequestSeenTag,
   shouldIgnorePathRequestUnparsed,
+  shouldIgnoreTransportIngressDispatch,
   shouldMatchLocalInboundDestination,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
-  shouldRememberPacketHashAfterRelay,
-  shouldRememberPacketHashNow,
+  shouldRelayReversePacketActions,
+  shouldRememberPacketHashAfterRelayActions,
+  shouldRememberPacketHashNowActions,
   shouldRememberPathRequestTag,
   shouldRelayReverseOnInterface,
   shouldStartPathRequestDiscovery,
   shouldTouchPathEntry,
   shouldTransmitReverseRelay,
+  stepPacketHashRememberWithActions,
+  stepReverseRelayOutcomeWithActions,
+  stepTransportIngressDispatchWithActions,
   shouldTransmitOnInterface,
   stepDiscoveryPathRequestFulfillWithActions,
   stepPathRequestIngressWithActions
@@ -125,20 +135,23 @@ export class TransportNode extends LeafTransport {
       return;
     }
 
-    const rememberWhen = planPacketHashRemember(this.shouldDeferPacketHash(workingPacket));
-    if (shouldRememberPacketHashNow(rememberWhen === "now")) {
+    const rememberStepped = stepPacketHashRememberWithActions(initialPacketHashRememberState(), {
+      kind: "transport/packet-hash-remember-gate",
+      deferred: this.shouldDeferPacketHash(workingPacket)
+    });
+    if (shouldRememberPacketHashNowActions(rememberStepped.actions)) {
       this.packetHashes.add(hashKey(workingPacket.hash()));
     }
 
     if (await this.relayTransportPacket(workingPacket, iface)) {
-      if (shouldRememberPacketHashAfterRelay(rememberWhen === "after-relay")) {
+      if (shouldRememberPacketHashAfterRelayActions(rememberStepped.actions)) {
         this.packetHashes.add(hashKey(workingPacket.hash()));
       }
       return;
     }
 
     if (await this.relayLinkPacket(workingPacket, iface)) {
-      if (shouldRememberPacketHashAfterRelay(rememberWhen === "after-relay")) {
+      if (shouldRememberPacketHashAfterRelayActions(rememberStepped.actions)) {
         this.packetHashes.add(hashKey(workingPacket.hash()));
       }
       return;
@@ -148,33 +161,40 @@ export class TransportNode extends LeafTransport {
       return;
     }
 
-    if (shouldRememberPacketHashAfterRelay(rememberWhen === "after-relay")) {
+    if (shouldRememberPacketHashAfterRelayActions(rememberStepped.actions)) {
       this.packetHashes.add(hashKey(workingPacket.hash()));
     }
 
-    switch (
-      planTransportIngressDispatch({
+    const dispatchStepped = stepTransportIngressDispatchWithActions(
+      initialTransportIngressDispatchState(),
+      {
+        kind: "transport/ingress-dispatch-gate",
         packetType: workingPacket.packetType,
         destinationType: workingPacket.destinationType
-      })
-    ) {
-      case "announce":
-        await this.handleAnnounce(workingPacket, iface);
-        return;
-      case "link-request":
-        await this.handleLinkRequest(workingPacket, iface);
-        return;
-      case "link-data":
-        await this.handleLinkData(workingPacket, iface);
-        return;
-      case "plain-data":
-        await this.handleData(workingPacket, iface);
-        return;
-      case "proof":
-        await this.handleProof(workingPacket, iface);
-        return;
-      case "ignore":
-        return;
+      }
+    );
+    if (shouldDispatchTransportAnnounce(dispatchStepped.actions)) {
+      await this.handleAnnounce(workingPacket, iface);
+      return;
+    }
+    if (shouldDispatchTransportLinkRequest(dispatchStepped.actions)) {
+      await this.handleLinkRequest(workingPacket, iface);
+      return;
+    }
+    if (shouldDispatchTransportLinkData(dispatchStepped.actions)) {
+      await this.handleLinkData(workingPacket, iface);
+      return;
+    }
+    if (shouldDispatchTransportPlainData(dispatchStepped.actions)) {
+      await this.handleData(workingPacket, iface);
+      return;
+    }
+    if (shouldDispatchTransportProof(dispatchStepped.actions)) {
+      await this.handleProof(workingPacket, iface);
+      return;
+    }
+    if (shouldIgnoreTransportIngressDispatch(dispatchStepped.actions)) {
+      return;
     }
   }
 
@@ -423,7 +443,8 @@ export class TransportNode extends LeafTransport {
       hasEntry: entry !== undefined,
       entryExpired
     });
-    const outcome = planReverseRelayOutcome({
+    const stepped = stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
+      kind: "transport/reverse-relay-gate",
       canRelay,
       entryExpired,
       ifaceIsOutbound: shouldRelayReverseOnInterface(
@@ -431,13 +452,13 @@ export class TransportNode extends LeafTransport {
       )
     });
 
-    if (shouldDeleteExpiredReverseEntry(outcome === "delete-expired")) {
+    if (shouldDeleteExpiredReverseEntryActions(stepped.actions)) {
       this.reverseTable.delete(key);
       return false;
     }
     if (
       !shouldTransmitReverseRelay({
-        relayOk: outcome === "relay",
+        relayOk: shouldRelayReversePacketActions(stepped.actions),
         entryPresent: entry !== undefined
       })
     ) {

@@ -1,7 +1,11 @@
 /**
  * Pure transport ingress accept / filter / packet-hash deferral / relay decisions.
  * Hash tables and interface identity stay at the adapter edge as boolean inputs.
+ * Ingress dispatch / link-data target / reverse-relay / hash-remember /
+ * local plain-data conclusions leave via machine actions (no ad-hoc plan reads
+ * beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   PACKET_DEST_TYPE_LINK,
   PACKET_DEST_TYPE_SINGLE,
@@ -436,4 +440,414 @@ export function planUnregisterTransportMember(index: number): number | null {
 /** Whether unregister may splice after {@link planUnregisterTransportMember}. */
 export function shouldUnregisterTransportMember(indexPresent: boolean): boolean {
   return indexPresent;
+}
+
+/**
+ * Transport ingress dispatch is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type TransportIngressDispatchState = Record<string, never>;
+
+export type TransportIngressDispatchEvent =
+  | Event
+  | {
+      readonly kind: "transport/ingress-dispatch-gate";
+      readonly packetType: number;
+      readonly destinationType: number;
+    };
+
+export type TransportIngressDispatchAction = {
+  readonly kind: TransportIngressDispatch;
+};
+
+export interface TransportIngressDispatchStepResult {
+  readonly state: TransportIngressDispatchState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TransportIngressDispatchAction[];
+}
+
+export function initialTransportIngressDispatchState(): TransportIngressDispatchState {
+  return {};
+}
+
+export const stepTransportIngressDispatch: StepFn<TransportIngressDispatchState> = (
+  state,
+  event
+) => {
+  const result = stepTransportIngressDispatchInner(
+    state,
+    event as TransportIngressDispatchEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepTransportIngressDispatchWithActions(
+  state: TransportIngressDispatchState,
+  event: TransportIngressDispatchEvent
+): TransportIngressDispatchStepResult {
+  return stepTransportIngressDispatchInner(state, event);
+}
+
+export function transportIngressDispatchFromActions(
+  actions: ReadonlyArray<TransportIngressDispatchAction>
+): TransportIngressDispatch | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldDispatchTransportAnnounce(
+  actions: ReadonlyArray<TransportIngressDispatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "announce");
+}
+
+export function shouldDispatchTransportLinkRequest(
+  actions: ReadonlyArray<TransportIngressDispatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "link-request");
+}
+
+export function shouldDispatchTransportLinkData(
+  actions: ReadonlyArray<TransportIngressDispatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "link-data");
+}
+
+export function shouldDispatchTransportPlainData(
+  actions: ReadonlyArray<TransportIngressDispatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "plain-data");
+}
+
+export function shouldDispatchTransportProof(
+  actions: ReadonlyArray<TransportIngressDispatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "proof");
+}
+
+export function shouldIgnoreTransportIngressDispatch(
+  actions: ReadonlyArray<TransportIngressDispatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+function stepTransportIngressDispatchInner(
+  state: TransportIngressDispatchState,
+  event: TransportIngressDispatchEvent
+): TransportIngressDispatchStepResult {
+  if (event.kind === "transport/ingress-dispatch-gate") {
+    const plan = planTransportIngressDispatch({
+      packetType: event.packetType,
+      destinationType: event.destinationType
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
+ * Link-data ingress target is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LinkDataIngressTargetState = Record<string, never>;
+
+export type LinkDataIngressTargetEvent =
+  | Event
+  | {
+      readonly kind: "transport/link-data-ingress-gate";
+      readonly activeIndex: number | null;
+      readonly pendingIndex: number | null;
+    };
+
+export type LinkDataIngressTargetAction = {
+  readonly kind: LinkDataIngressTarget;
+};
+
+export interface LinkDataIngressTargetStepResult {
+  readonly state: LinkDataIngressTargetState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkDataIngressTargetAction[];
+}
+
+export function initialLinkDataIngressTargetState(): LinkDataIngressTargetState {
+  return {};
+}
+
+export const stepLinkDataIngressTarget: StepFn<LinkDataIngressTargetState> = (state, event) => {
+  const result = stepLinkDataIngressTargetInner(state, event as LinkDataIngressTargetEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkDataIngressTargetWithActions(
+  state: LinkDataIngressTargetState,
+  event: LinkDataIngressTargetEvent
+): LinkDataIngressTargetStepResult {
+  return stepLinkDataIngressTargetInner(state, event);
+}
+
+export function linkDataIngressTargetFromActions(
+  actions: ReadonlyArray<LinkDataIngressTargetAction>
+): LinkDataIngressTarget | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldIngressLinkDataActive(
+  actions: ReadonlyArray<LinkDataIngressTargetAction>
+): boolean {
+  return actions.some((action) => action.kind === "active");
+}
+
+export function shouldIngressLinkDataPending(
+  actions: ReadonlyArray<LinkDataIngressTargetAction>
+): boolean {
+  return actions.some((action) => action.kind === "pending");
+}
+
+export function shouldIngressLinkDataNone(
+  actions: ReadonlyArray<LinkDataIngressTargetAction>
+): boolean {
+  return actions.some((action) => action.kind === "none");
+}
+
+function stepLinkDataIngressTargetInner(
+  state: LinkDataIngressTargetState,
+  event: LinkDataIngressTargetEvent
+): LinkDataIngressTargetStepResult {
+  if (event.kind === "transport/link-data-ingress-gate") {
+    const plan = planLinkDataIngressTarget({
+      activeIndex: event.activeIndex,
+      pendingIndex: event.pendingIndex
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
+ * Reverse-relay outcome is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type ReverseRelayOutcomeState = Record<string, never>;
+
+export type ReverseRelayOutcomeEvent =
+  | Event
+  | {
+      readonly kind: "transport/reverse-relay-gate";
+      readonly canRelay: boolean;
+      readonly entryExpired: boolean;
+      readonly ifaceIsOutbound: boolean;
+    };
+
+export type ReverseRelayOutcomeAction = {
+  readonly kind: ReverseRelayOutcome;
+};
+
+export interface ReverseRelayOutcomeStepResult {
+  readonly state: ReverseRelayOutcomeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ReverseRelayOutcomeAction[];
+}
+
+export function initialReverseRelayOutcomeState(): ReverseRelayOutcomeState {
+  return {};
+}
+
+export const stepReverseRelayOutcome: StepFn<ReverseRelayOutcomeState> = (state, event) => {
+  const result = stepReverseRelayOutcomeInner(state, event as ReverseRelayOutcomeEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepReverseRelayOutcomeWithActions(
+  state: ReverseRelayOutcomeState,
+  event: ReverseRelayOutcomeEvent
+): ReverseRelayOutcomeStepResult {
+  return stepReverseRelayOutcomeInner(state, event);
+}
+
+export function reverseRelayOutcomeFromActions(
+  actions: ReadonlyArray<ReverseRelayOutcomeAction>
+): ReverseRelayOutcome | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldRelayReversePacketActions(
+  actions: ReadonlyArray<ReverseRelayOutcomeAction>
+): boolean {
+  return actions.some((action) => action.kind === "relay");
+}
+
+export function shouldDeleteExpiredReverseEntryActions(
+  actions: ReadonlyArray<ReverseRelayOutcomeAction>
+): boolean {
+  return actions.some((action) => action.kind === "delete-expired");
+}
+
+export function shouldIgnoreReverseRelayOutcome(
+  actions: ReadonlyArray<ReverseRelayOutcomeAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+function stepReverseRelayOutcomeInner(
+  state: ReverseRelayOutcomeState,
+  event: ReverseRelayOutcomeEvent
+): ReverseRelayOutcomeStepResult {
+  if (event.kind === "transport/reverse-relay-gate") {
+    const plan = planReverseRelayOutcome({
+      canRelay: event.canRelay,
+      entryExpired: event.entryExpired,
+      ifaceIsOutbound: event.ifaceIsOutbound
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
+ * Packet-hash remember timing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type PacketHashRememberState = Record<string, never>;
+
+export type PacketHashRememberEvent =
+  | Event
+  | {
+      readonly kind: "transport/packet-hash-remember-gate";
+      readonly deferred: boolean;
+    };
+
+export type PacketHashRememberAction = {
+  readonly kind: PacketHashRememberPlan;
+};
+
+export interface PacketHashRememberStepResult {
+  readonly state: PacketHashRememberState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketHashRememberAction[];
+}
+
+export function initialPacketHashRememberState(): PacketHashRememberState {
+  return {};
+}
+
+export const stepPacketHashRemember: StepFn<PacketHashRememberState> = (state, event) => {
+  const result = stepPacketHashRememberInner(state, event as PacketHashRememberEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepPacketHashRememberWithActions(
+  state: PacketHashRememberState,
+  event: PacketHashRememberEvent
+): PacketHashRememberStepResult {
+  return stepPacketHashRememberInner(state, event);
+}
+
+export function packetHashRememberFromActions(
+  actions: ReadonlyArray<PacketHashRememberAction>
+): PacketHashRememberPlan | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldRememberPacketHashNowActions(
+  actions: ReadonlyArray<PacketHashRememberAction>
+): boolean {
+  return actions.some((action) => action.kind === "now");
+}
+
+export function shouldRememberPacketHashAfterRelayActions(
+  actions: ReadonlyArray<PacketHashRememberAction>
+): boolean {
+  return actions.some((action) => action.kind === "after-relay");
+}
+
+function stepPacketHashRememberInner(
+  state: PacketHashRememberState,
+  event: PacketHashRememberEvent
+): PacketHashRememberStepResult {
+  if (event.kind === "transport/packet-hash-remember-gate") {
+    const plan = planPacketHashRemember(event.deferred);
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
+ * Local plain-data delivery is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LocalPlainDataDeliveryState = Record<string, never>;
+
+export type LocalPlainDataDeliveryEvent =
+  | Event
+  | {
+      readonly kind: "transport/local-plain-data-gate";
+      readonly destinationPresent: boolean;
+      readonly plaintextPresent: boolean;
+    };
+
+export type LocalPlainDataDeliveryAction = {
+  readonly kind: LocalPlainDataDeliveryPlan;
+};
+
+export interface LocalPlainDataDeliveryStepResult {
+  readonly state: LocalPlainDataDeliveryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LocalPlainDataDeliveryAction[];
+}
+
+export function initialLocalPlainDataDeliveryState(): LocalPlainDataDeliveryState {
+  return {};
+}
+
+export const stepLocalPlainDataDelivery: StepFn<LocalPlainDataDeliveryState> = (state, event) => {
+  const result = stepLocalPlainDataDeliveryInner(state, event as LocalPlainDataDeliveryEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLocalPlainDataDeliveryWithActions(
+  state: LocalPlainDataDeliveryState,
+  event: LocalPlainDataDeliveryEvent
+): LocalPlainDataDeliveryStepResult {
+  return stepLocalPlainDataDeliveryInner(state, event);
+}
+
+export function localPlainDataDeliveryFromActions(
+  actions: ReadonlyArray<LocalPlainDataDeliveryAction>
+): LocalPlainDataDeliveryPlan | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldDispatchLocalPlainDataDeliveryActions(
+  actions: ReadonlyArray<LocalPlainDataDeliveryAction>
+): boolean {
+  return actions.some((action) => action.kind === "dispatch");
+}
+
+export function shouldIgnoreLocalPlainDataDelivery(
+  actions: ReadonlyArray<LocalPlainDataDeliveryAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+function stepLocalPlainDataDeliveryInner(
+  state: LocalPlainDataDeliveryState,
+  event: LocalPlainDataDeliveryEvent
+): LocalPlainDataDeliveryStepResult {
+  if (event.kind === "transport/local-plain-data-gate") {
+    const plan = planLocalPlainDataDelivery({
+      destinationPresent: event.destinationPresent,
+      plaintextPresent: event.plaintextPresent
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }

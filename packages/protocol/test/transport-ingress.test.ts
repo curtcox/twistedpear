@@ -17,6 +17,14 @@ import {
   canRelayTransportPacket,
   isLocalPathRequestPacket,
   isReverseEntryExpired,
+  initialLinkDataIngressTargetState,
+  initialLocalPlainDataDeliveryState,
+  initialPacketHashRememberState,
+  initialReverseRelayOutcomeState,
+  initialTransportIngressDispatchState,
+  linkDataIngressTargetFromActions,
+  localPlainDataDeliveryFromActions,
+  packetHashRememberFromActions,
   planLinkRelayTarget,
   planLocalPlainDataDelivery,
   planLinkDataIngressTarget,
@@ -26,26 +34,49 @@ import {
   planReverseRelayOutcome,
   planTransportIngressDispatch,
   indexOfMatchingLinkId,
+  reverseRelayOutcomeFromActions,
   shouldAcceptLinkLrProofCandidate,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash,
   shouldDeleteExpiredReverseEntry,
+  shouldDeleteExpiredReverseEntryActions,
   shouldDispatchLocalLinkRequest,
+  shouldDispatchLocalPlainDataDelivery,
+  shouldDispatchLocalPlainDataDeliveryActions,
   shouldDispatchResourceProofToLink,
+  shouldDispatchTransportAnnounce,
+  shouldDispatchTransportLinkData,
+  shouldDispatchTransportLinkRequest,
+  shouldDispatchTransportPlainData,
+  shouldDispatchTransportProof,
+  shouldIgnoreLocalPlainDataDelivery,
+  shouldIgnoreReverseRelayOutcome,
+  shouldIgnoreTransportIngressDispatch,
+  shouldIngressLinkDataActive,
+  shouldIngressLinkDataNone,
+  shouldIngressLinkDataPending,
   shouldMatchLocalInboundDestination,
   shouldMatchLocalTypedDestination,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
   shouldRegisterTransportMember,
   shouldRelayReverseOnInterface,
+  shouldRelayReversePacketActions,
   shouldRememberPacketHashAfterRelay,
+  shouldRememberPacketHashAfterRelayActions,
   shouldRememberPacketHashNow,
-  shouldDispatchLocalPlainDataDelivery,
+  shouldRememberPacketHashNowActions,
   shouldTransmitLinkRelay,
   shouldTransmitOnInterface,
   shouldTransmitReverseRelay,
   planUnregisterTransportMember,
-  shouldUnregisterTransportMember
+  shouldUnregisterTransportMember,
+  stepLinkDataIngressTargetWithActions,
+  stepLocalPlainDataDeliveryWithActions,
+  stepPacketHashRememberWithActions,
+  stepReverseRelayOutcomeWithActions,
+  stepTransportIngressDispatchWithActions,
+  transportIngressDispatchFromActions
 } from "../src/index.js";
 
 describe("transport ingress", () => {
@@ -479,5 +510,180 @@ describe("transport ingress", () => {
     expect(planUnregisterTransportMember(-1)).toBeNull();
     expect(shouldUnregisterTransportMember(true)).toBe(true);
     expect(shouldUnregisterTransportMember(false)).toBe(false);
+  });
+
+  it("emits transport ingress dispatch actions from the gate step", () => {
+    const announce = stepTransportIngressDispatchWithActions(
+      initialTransportIngressDispatchState(),
+      {
+        kind: "transport/ingress-dispatch-gate",
+        packetType: PACKET_TYPE_ANNOUNCE,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
+    );
+    expect(transportIngressDispatchFromActions(announce.actions)).toBe("announce");
+    expect(shouldDispatchTransportAnnounce(announce.actions)).toBe(true);
+
+    const linkRequest = stepTransportIngressDispatchWithActions(
+      initialTransportIngressDispatchState(),
+      {
+        kind: "transport/ingress-dispatch-gate",
+        packetType: PACKET_TYPE_LINKREQUEST,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
+    );
+    expect(shouldDispatchTransportLinkRequest(linkRequest.actions)).toBe(true);
+
+    const linkData = stepTransportIngressDispatchWithActions(
+      initialTransportIngressDispatchState(),
+      {
+        kind: "transport/ingress-dispatch-gate",
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_LINK
+      }
+    );
+    expect(shouldDispatchTransportLinkData(linkData.actions)).toBe(true);
+
+    const plainData = stepTransportIngressDispatchWithActions(
+      initialTransportIngressDispatchState(),
+      {
+        kind: "transport/ingress-dispatch-gate",
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
+    );
+    expect(shouldDispatchTransportPlainData(plainData.actions)).toBe(true);
+
+    const proof = stepTransportIngressDispatchWithActions(initialTransportIngressDispatchState(), {
+      kind: "transport/ingress-dispatch-gate",
+      packetType: PACKET_TYPE_PROOF,
+      destinationType: PACKET_DEST_TYPE_SINGLE
+    });
+    expect(shouldDispatchTransportProof(proof.actions)).toBe(true);
+
+    const ignore = stepTransportIngressDispatchWithActions(initialTransportIngressDispatchState(), {
+      kind: "transport/ingress-dispatch-gate",
+      packetType: 0xff,
+      destinationType: PACKET_DEST_TYPE_SINGLE
+    });
+    expect(shouldIgnoreTransportIngressDispatch(ignore.actions)).toBe(true);
+    expect(
+      stepTransportIngressDispatchWithActions(initialTransportIngressDispatchState(), {
+        kind: "transport/ingress-dispatch-gate",
+        packetType: PACKET_TYPE_ANNOUNCE,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }).actions
+    ).toEqual(announce.actions);
+  });
+
+  it("emits link-data ingress target actions from the gate step", () => {
+    const active = stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
+      kind: "transport/link-data-ingress-gate",
+      activeIndex: 0,
+      pendingIndex: 1
+    });
+    expect(linkDataIngressTargetFromActions(active.actions)).toBe("active");
+    expect(shouldIngressLinkDataActive(active.actions)).toBe(true);
+
+    const pending = stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
+      kind: "transport/link-data-ingress-gate",
+      activeIndex: null,
+      pendingIndex: 2
+    });
+    expect(shouldIngressLinkDataPending(pending.actions)).toBe(true);
+
+    const none = stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
+      kind: "transport/link-data-ingress-gate",
+      activeIndex: null,
+      pendingIndex: null
+    });
+    expect(shouldIngressLinkDataNone(none.actions)).toBe(true);
+    expect(
+      stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
+        kind: "transport/link-data-ingress-gate",
+        activeIndex: 0,
+        pendingIndex: 1
+      }).actions
+    ).toEqual(active.actions);
+  });
+
+  it("emits reverse-relay outcome actions from the gate step", () => {
+    const deleteExpired = stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
+      kind: "transport/reverse-relay-gate",
+      canRelay: false,
+      entryExpired: true,
+      ifaceIsOutbound: true
+    });
+    expect(reverseRelayOutcomeFromActions(deleteExpired.actions)).toBe("delete-expired");
+    expect(shouldDeleteExpiredReverseEntryActions(deleteExpired.actions)).toBe(true);
+
+    const ignore = stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
+      kind: "transport/reverse-relay-gate",
+      canRelay: true,
+      entryExpired: false,
+      ifaceIsOutbound: false
+    });
+    expect(shouldIgnoreReverseRelayOutcome(ignore.actions)).toBe(true);
+
+    const relay = stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
+      kind: "transport/reverse-relay-gate",
+      canRelay: true,
+      entryExpired: false,
+      ifaceIsOutbound: true
+    });
+    expect(shouldRelayReversePacketActions(relay.actions)).toBe(true);
+    expect(
+      stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
+        kind: "transport/reverse-relay-gate",
+        canRelay: true,
+        entryExpired: false,
+        ifaceIsOutbound: true
+      }).actions
+    ).toEqual(relay.actions);
+  });
+
+  it("emits packet-hash remember actions from the gate step", () => {
+    const now = stepPacketHashRememberWithActions(initialPacketHashRememberState(), {
+      kind: "transport/packet-hash-remember-gate",
+      deferred: false
+    });
+    expect(packetHashRememberFromActions(now.actions)).toBe("now");
+    expect(shouldRememberPacketHashNowActions(now.actions)).toBe(true);
+
+    const afterRelay = stepPacketHashRememberWithActions(initialPacketHashRememberState(), {
+      kind: "transport/packet-hash-remember-gate",
+      deferred: true
+    });
+    expect(shouldRememberPacketHashAfterRelayActions(afterRelay.actions)).toBe(true);
+    expect(
+      stepPacketHashRememberWithActions(initialPacketHashRememberState(), {
+        kind: "transport/packet-hash-remember-gate",
+        deferred: false
+      }).actions
+    ).toEqual(now.actions);
+  });
+
+  it("emits local plain-data delivery actions from the gate step", () => {
+    const dispatch = stepLocalPlainDataDeliveryWithActions(initialLocalPlainDataDeliveryState(), {
+      kind: "transport/local-plain-data-gate",
+      destinationPresent: true,
+      plaintextPresent: true
+    });
+    expect(localPlainDataDeliveryFromActions(dispatch.actions)).toBe("dispatch");
+    expect(shouldDispatchLocalPlainDataDeliveryActions(dispatch.actions)).toBe(true);
+
+    const ignore = stepLocalPlainDataDeliveryWithActions(initialLocalPlainDataDeliveryState(), {
+      kind: "transport/local-plain-data-gate",
+      destinationPresent: true,
+      plaintextPresent: false
+    });
+    expect(shouldIgnoreLocalPlainDataDelivery(ignore.actions)).toBe(true);
+    expect(
+      stepLocalPlainDataDeliveryWithActions(initialLocalPlainDataDeliveryState(), {
+        kind: "transport/local-plain-data-gate",
+        destinationPresent: true,
+        plaintextPresent: true
+      }).actions
+    ).toEqual(dispatch.actions);
   });
 });

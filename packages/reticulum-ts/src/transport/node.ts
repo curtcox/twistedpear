@@ -18,24 +18,24 @@ import {
   planClonePacketWithHops,
   planDestinationProof,
   planLinkActivateMembership,
-  planLinkDataIngressTarget,
   planLinkRegisterList,
   planLinkUnregisterMembership,
-  planLocalPlainDataDelivery,
   planOutboundReceiptOutcome,
   planPacketFilter,
   planPacketReceiptProofIngress,
   planPathResponseAnnounceFields,
   planProofIngressKind,
   planTransportAnnounceFields,
-  planTransportIngressDispatch,
   planUnregisterPacketReceipt,
   planUnregisterTransportMember,
   canAnswerLocalPathRequest,
   canDispatchAnnounceHandlers,
+  initialLinkDataIngressTargetState,
+  initialLocalPlainDataDeliveryState,
   initialPathEntryLookupState,
   initialPathOutboundState,
   initialPathRequestIngressState,
+  initialTransportIngressDispatchState,
   shouldAcceptCachedPathResponsePacket,
   shouldAcceptLinkLrProofCandidate,
   shouldAcceptParsedAnnounce,
@@ -46,7 +46,16 @@ import {
   shouldDirectPathOutbound,
   shouldDispatchLocalLinkRequest,
   shouldDispatchLocalPlainDataDelivery,
+  shouldDispatchLocalPlainDataDeliveryActions,
   shouldDispatchResourceProofToLink,
+  shouldDispatchTransportAnnounce,
+  shouldDispatchTransportLinkData,
+  shouldDispatchTransportLinkRequest,
+  shouldDispatchTransportPlainData,
+  shouldDispatchTransportProof,
+  shouldIgnoreTransportIngressDispatch,
+  shouldIngressLinkDataActive,
+  shouldIngressLinkDataPending,
   shouldExpirePathEntryLookup,
   shouldFailAndDropOutboundReceipt,
   shouldHitPathEntryLookup,
@@ -76,9 +85,12 @@ import {
   shouldAnswerPathRequest,
   shouldEmitPathRequest,
   isLocalPathRequestPacket,
+  stepLinkDataIngressTargetWithActions,
+  stepLocalPlainDataDeliveryWithActions,
   stepPathEntryLookupWithActions,
   stepPathOutboundWithActions,
   stepPathRequestIngressWithActions,
+  stepTransportIngressDispatchWithActions,
   stripTransportHeadersBytes,
   timebaseFromRandomBlobs as protocolTimebaseFromRandomBlobs,
   wrapTransportPacketBytes,
@@ -509,29 +521,36 @@ export class LeafTransport {
 
     this.packetHashes.add(hashKey(workingPacket.hash()));
 
-    switch (
-      planTransportIngressDispatch({
+    const dispatchStepped = stepTransportIngressDispatchWithActions(
+      initialTransportIngressDispatchState(),
+      {
+        kind: "transport/ingress-dispatch-gate",
         packetType: workingPacket.packetType,
         destinationType: workingPacket.destinationType
-      })
-    ) {
-      case "announce":
-        await this.handleAnnounce(workingPacket, iface);
-        return;
-      case "link-request":
-        await this.handleLinkRequest(workingPacket, iface);
-        return;
-      case "link-data":
-        await this.handleLinkData(workingPacket, iface);
-        return;
-      case "plain-data":
-        await this.handleData(workingPacket, iface);
-        return;
-      case "proof":
-        await this.handleProof(workingPacket, iface);
-        return;
-      case "ignore":
-        return;
+      }
+    );
+    if (shouldDispatchTransportAnnounce(dispatchStepped.actions)) {
+      await this.handleAnnounce(workingPacket, iface);
+      return;
+    }
+    if (shouldDispatchTransportLinkRequest(dispatchStepped.actions)) {
+      await this.handleLinkRequest(workingPacket, iface);
+      return;
+    }
+    if (shouldDispatchTransportLinkData(dispatchStepped.actions)) {
+      await this.handleLinkData(workingPacket, iface);
+      return;
+    }
+    if (shouldDispatchTransportPlainData(dispatchStepped.actions)) {
+      await this.handleData(workingPacket, iface);
+      return;
+    }
+    if (shouldDispatchTransportProof(dispatchStepped.actions)) {
+      await this.handleProof(workingPacket, iface);
+      return;
+    }
+    if (shouldIgnoreTransportIngressDispatch(dispatchStepped.actions)) {
+      return;
     }
   }
 
@@ -559,15 +578,18 @@ export class LeafTransport {
       linkIds: this.pendingLinks.map((link) => link.linkId),
       target: packet.destinationHash
     });
-    switch (planLinkDataIngressTarget({ activeIndex, pendingIndex })) {
-      case "active":
-        await this.activeLinks[activeIndex!]!.receive(packet, iface);
-        return;
-      case "pending":
-        await this.pendingLinks[pendingIndex!]!.receive(packet, iface);
-        return;
-      case "none":
-        return;
+    const stepped = stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
+      kind: "transport/link-data-ingress-gate",
+      activeIndex,
+      pendingIndex
+    });
+    if (shouldIngressLinkDataActive(stepped.actions)) {
+      await this.activeLinks[activeIndex!]!.receive(packet, iface);
+      return;
+    }
+    if (shouldIngressLinkDataPending(stepped.actions)) {
+      await this.pendingLinks[pendingIndex!]!.receive(packet, iface);
+      return;
     }
   }
 
@@ -705,13 +727,17 @@ export class LeafTransport {
       })
     );
     const plaintext = destination === undefined ? null : destination.decrypt(packet.data);
+    const deliveryStepped = stepLocalPlainDataDeliveryWithActions(
+      initialLocalPlainDataDeliveryState(),
+      {
+        kind: "transport/local-plain-data-gate",
+        destinationPresent: destination !== undefined,
+        plaintextPresent: plaintext !== null
+      }
+    );
     if (
       !shouldDispatchLocalPlainDataDelivery({
-        planDispatch:
-          planLocalPlainDataDelivery({
-            destinationPresent: destination !== undefined,
-            plaintextPresent: plaintext !== null
-          }) === "dispatch",
+        planDispatch: shouldDispatchLocalPlainDataDeliveryActions(deliveryStepped.actions),
         destinationPresent: destination !== undefined,
         plaintextPresent: plaintext !== null
       })
