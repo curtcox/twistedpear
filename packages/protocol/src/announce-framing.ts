@@ -1,8 +1,9 @@
 /**
  * Pure RNS announce payload framing and signed-material assembly.
  * Signing / hashing stay at the crypto adapter edge.
- * Validate / build conclusions leave via machine actions (no ad-hoc
- * `plan` string reads beside the step).
+ * Pack / parse / validate / build conclusions leave via machine actions
+ * (no ad-hoc `packAnnouncePayload` / `parseAnnouncePayload` / `plan` string
+ * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_ANNOUNCE } from "./packet-header.js";
@@ -128,6 +129,149 @@ export function parseAnnouncePayload(
     signature,
     appData
   };
+}
+
+/**
+ * Announce payload pack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `packAnnouncePayload`
+ * reads beside the step).
+ */
+export type PackAnnouncePayloadState = Record<string, never>;
+
+export type PackAnnouncePayloadEvent =
+  | Event
+  | {
+      readonly kind: "announce/pack-payload-gate";
+      readonly publicKey: Uint8Array;
+      readonly nameHash: Uint8Array;
+      readonly randomHash: Uint8Array;
+      readonly ratchetPublicKey: Uint8Array | null;
+      readonly signature: Uint8Array;
+      readonly appData: Uint8Array | null;
+    };
+
+export type PackAnnouncePayloadAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface PackAnnouncePayloadStepResult {
+  readonly state: PackAnnouncePayloadState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackAnnouncePayloadAction[];
+}
+
+export function initialPackAnnouncePayloadState(): PackAnnouncePayloadState {
+  return {};
+}
+
+export function stepPackAnnouncePayloadWithActions(
+  state: PackAnnouncePayloadState,
+  event: PackAnnouncePayloadEvent
+): PackAnnouncePayloadStepResult {
+  if (event.kind === "announce/pack-payload-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: packAnnouncePayload({
+            publicKey: event.publicKey,
+            nameHash: event.nameHash,
+            randomHash: event.randomHash,
+            ratchetPublicKey: event.ratchetPublicKey,
+            signature: event.signature,
+            appData: event.appData
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackAnnouncePayload(
+  actions: ReadonlyArray<PackAnnouncePayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract announce pack bytes from step actions; null when no `use-raw`. */
+export function packAnnouncePayloadRawFromActions(
+  actions: ReadonlyArray<PackAnnouncePayloadAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Announce payload parse framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `parseAnnouncePayload`
+ * reads beside the step).
+ */
+export type ParseAnnouncePayloadState = Record<string, never>;
+
+export type ParseAnnouncePayloadEvent =
+  | Event
+  | {
+      readonly kind: "announce/parse-payload-gate";
+      readonly data: Uint8Array;
+      readonly hasRatchet: boolean;
+    };
+
+export type ParseAnnouncePayloadAction =
+  | { readonly kind: "use-fields"; readonly fields: AnnouncePayloadFields }
+  | { readonly kind: "reject" };
+
+export interface ParseAnnouncePayloadStepResult {
+  readonly state: ParseAnnouncePayloadState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ParseAnnouncePayloadAction[];
+}
+
+export function initialParseAnnouncePayloadState(): ParseAnnouncePayloadState {
+  return {};
+}
+
+export function stepParseAnnouncePayloadWithActions(
+  state: ParseAnnouncePayloadState,
+  event: ParseAnnouncePayloadEvent
+): ParseAnnouncePayloadStepResult {
+  if (event.kind === "announce/parse-payload-gate") {
+    const fields = parseAnnouncePayload(event.data, event.hasRatchet);
+    if (fields === null) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-fields", fields }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseParseAnnouncePayload(
+  actions: ReadonlyArray<ParseAnnouncePayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectParseAnnouncePayload(
+  actions: ReadonlyArray<ParseAnnouncePayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract parsed announce payload fields from step actions; null when no `use-fields`. */
+export function announcePayloadFieldsFromActions(
+  actions: ReadonlyArray<ParseAnnouncePayloadAction>
+): AnnouncePayloadFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }
 
 /** Whether announce payload fields parsed successfully and may be retained. */

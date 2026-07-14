@@ -6,11 +6,15 @@ import {
   ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE,
   ANNOUNCE_SIGNATURE_SIZE,
   announceDestinationHashMaterial,
+  announcePayloadFieldsFromActions,
   announceSignedMaterial,
   initialAnnounceBuildState,
   initialAnnounceValidateState,
+  initialPackAnnouncePayloadState,
+  initialParseAnnouncePayloadState,
   isAnnouncePacketType,
   packAnnouncePayload,
+  packAnnouncePayloadRawFromActions,
   parseAnnouncePayload,
   planAnnounceBuild,
   planAnnounceValidateOutcome,
@@ -25,8 +29,13 @@ import {
   shouldRejectAnnounceBuildMissingIdentity,
   shouldRejectAnnounceBuildNotAnnounceableDirection,
   shouldRejectAnnounceBuildNotAnnounceableType,
+  shouldRejectParseAnnouncePayload,
+  shouldUsePackAnnouncePayload,
+  shouldUseParseAnnouncePayload,
   stepAnnounceBuildWithActions,
-  stepAnnounceValidateWithActions
+  stepAnnounceValidateWithActions,
+  stepPackAnnouncePayloadWithActions,
+  stepParseAnnouncePayloadWithActions
 } from "../src/announce-framing.js";
 import { PACKET_TYPE_ANNOUNCE, PACKET_TYPE_DATA } from "../src/packet-header.js";
 
@@ -387,5 +396,62 @@ describe("protocol announce framing", () => {
     expect(shouldAcceptAnnouncePayload(false)).toBe(false);
     expect(shouldAcceptParsedAnnounce(true)).toBe(true);
     expect(shouldAcceptParsedAnnounce(false)).toBe(false);
+  });
+
+  it("emits pack framing bytes from WithActions step", () => {
+    const stepped = stepPackAnnouncePayloadWithActions(initialPackAnnouncePayloadState(), {
+      kind: "announce/pack-payload-gate",
+      publicKey,
+      nameHash,
+      randomHash,
+      ratchetPublicKey: ratchet,
+      signature,
+      appData
+    });
+    expect(shouldUsePackAnnouncePayload(stepped.actions)).toBe(true);
+    const packed = packAnnouncePayloadRawFromActions(stepped.actions);
+    expect(packed).not.toBeNull();
+    expect([...packed!]).toEqual([
+      ...packAnnouncePayload({
+        publicKey,
+        nameHash,
+        randomHash,
+        ratchetPublicKey: ratchet,
+        signature,
+        appData
+      })
+    ]);
+  });
+
+  it("emits parse fields or reject from WithActions step", () => {
+    const packed = packAnnouncePayload({
+      publicKey,
+      nameHash,
+      randomHash,
+      ratchetPublicKey: ratchet,
+      signature,
+      appData
+    });
+    const ok = stepParseAnnouncePayloadWithActions(initialParseAnnouncePayloadState(), {
+      kind: "announce/parse-payload-gate",
+      data: packed,
+      hasRatchet: true
+    });
+    expect(shouldUseParseAnnouncePayload(ok.actions)).toBe(true);
+    expect(shouldRejectParseAnnouncePayload(ok.actions)).toBe(false);
+    const fields = announcePayloadFieldsFromActions(ok.actions);
+    expect(fields).not.toBeNull();
+    expect([...fields!.publicKey]).toEqual([...publicKey]);
+    expect([...fields!.ratchetPublicKey!]).toEqual([...ratchet]);
+    expect([...fields!.appData!]).toEqual([...appData]);
+
+    const rejected = stepParseAnnouncePayloadWithActions(initialParseAnnouncePayloadState(), {
+      kind: "announce/parse-payload-gate",
+      data: new Uint8Array(8),
+      hasRatchet: true
+    });
+    expect(shouldRejectParseAnnouncePayload(rejected.actions)).toBe(true);
+    expect(shouldUseParseAnnouncePayload(rejected.actions)).toBe(false);
+    expect(announcePayloadFieldsFromActions(rejected.actions)).toBeNull();
   });
 });

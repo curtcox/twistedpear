@@ -73,7 +73,9 @@
 > **`stepParsePathRequestDataWithActions`** /
 > **`stepPathRequestTagKeyWithActions`**: use-raw / use-fields|reject /
 > use-key) is a pure protocol leaf; transport path helpers adapt it.
-> **Announce payload framing** (pack/parse/signed material) and **packet proof framing**
+> **Announce payload framing** (pack/parse via **`stepPackAnnouncePayloadWithActions`** /
+> **`stepParseAnnouncePayloadWithActions`**: use-raw / use-fields|reject; signed material)
+> and **packet proof framing**
 > (explicit/implicit) are pure protocol leaves; `Announce` and `Packet` adapt them.
 > **Packet header** encode/decode, flag packing, and hashable-part framing are pure
 > protocol leaves; `Packet` adapts them. **PKCS#7** padding and **LXMF delivery planning**
@@ -752,7 +754,8 @@
 > path-response-announce-fields / wrap-transport-packet /
 > strip-transport-headers / relay-transport-packet-bytes /
 > rewrite-packet-hops / build-path-request-data /
-> parse-path-request-data / path-request-tag-key reads
+> parse-path-request-data / path-request-tag-key /
+> pack-announce-payload / parse-announce-payload reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -792,6 +795,10 @@
 > `use-key`; transport path-request build / parse / tag-key apply only from
 > those actions (no ad-hoc `buildPathRequestData` / `parsePathRequestData` /
 > `pathRequestTagKey` reads beside the step).
+> **`stepPackAnnouncePayloadWithActions`** /
+> **`stepParseAnnouncePayloadWithActions`** emit `use-raw` / `use-fields`|`reject`;
+> announce pack / parse apply only from those actions (no ad-hoc
+> `packAnnouncePayload` / `parseAnnouncePayload` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

@@ -4,13 +4,14 @@ import {
   ANNOUNCE_SIGNATURE_SIZE as PROTOCOL_ANNOUNCE_SIGNATURE_SIZE,
   announceDestinationHashMaterial,
   announceDestinationHashMatches,
+  announcePayloadFieldsFromActions,
   announceSignedMaterial,
   initialAnnounceBuildState,
   initialAnnounceValidateState,
+  initialPackAnnouncePayloadState,
+  initialParseAnnouncePayloadState,
   isAnnouncePacketType,
-  packAnnouncePayload,
-  parseAnnouncePayload,
-  shouldAcceptAnnouncePayload,
+  packAnnouncePayloadRawFromActions,
   shouldAcceptAnnounceValidate,
   shouldAttemptAnnounceSignatureValidate,
   shouldCheckAnnounceDestinationHash,
@@ -20,8 +21,13 @@ import {
   shouldRejectAnnounceBuildMissingIdentity,
   shouldRejectAnnounceBuildNotAnnounceableDirection,
   shouldRejectAnnounceBuildNotAnnounceableType,
+  shouldRejectParseAnnouncePayload,
+  shouldUsePackAnnouncePayload,
+  shouldUseParseAnnouncePayload,
   stepAnnounceBuildWithActions,
   stepAnnounceValidateWithActions,
+  stepPackAnnouncePayloadWithActions,
+  stepParseAnnouncePayloadWithActions,
   truncateToTruncatedHash
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
@@ -122,7 +128,8 @@ export class Announce {
       appData
     });
     const signature = destination.identity.sign(signedData);
-    const data = packAnnouncePayload({
+    const packStepped = stepPackAnnouncePayloadWithActions(initialPackAnnouncePayloadState(), {
+      kind: "announce/pack-payload-gate",
       publicKey,
       nameHash: destination.nameHash,
       randomHash,
@@ -130,6 +137,13 @@ export class Announce {
       signature,
       appData
     });
+    const data =
+      shouldUsePackAnnouncePayload(packStepped.actions)
+        ? packAnnouncePayloadRawFromActions(packStepped.actions)
+        : null;
+    if (data === null) {
+      throw new Error("Announce pack: missing use-raw action");
+    }
 
     return Packet.fromFields(provider, {
       headerType: 0,
@@ -148,14 +162,25 @@ export class Announce {
       return null;
     }
 
-    const fields = parseAnnouncePayload(packet.data, packet.contextFlag === PacketContextFlag.SET);
-    if (!shouldAcceptAnnouncePayload(fields !== null)) {
+    const parseStepped = stepParseAnnouncePayloadWithActions(initialParseAnnouncePayloadState(), {
+      kind: "announce/parse-payload-gate",
+      data: packet.data,
+      hasRatchet: packet.contextFlag === PacketContextFlag.SET
+    });
+    if (shouldRejectParseAnnouncePayload(parseStepped.actions)) {
+      return null;
+    }
+    if (!shouldUseParseAnnouncePayload(parseStepped.actions)) {
+      return null;
+    }
+    const fields = announcePayloadFieldsFromActions(parseStepped.actions);
+    if (fields === null) {
       return null;
     }
 
     return {
       destinationHash: packet.destinationHash,
-      ...fields!
+      ...fields
     };
   }
 
