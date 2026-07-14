@@ -7,8 +7,10 @@ import {
   initialPacketReceiptCallbackState,
   initialPacketReceiptProofIngressState,
   initialPacketReceiptTimeoutState,
+  initialPacketReceiptUnregisterState,
   outboundReceiptOutcomeFromActions,
   packetReceiptProofIngressFromActions,
+  packetReceiptUnregisterIndex,
   planOutboundReceiptOutcome,
   planPacketReceiptCallback,
   planPacketReceiptProofIngress,
@@ -24,6 +26,7 @@ import {
   shouldOutboundKeepReceipt,
   shouldOutboundReceiptNone,
   shouldRegisterPacketReceipt,
+  shouldRemovePacketReceipt,
   shouldRemovePacketReceiptProofIngress,
   shouldSetPacketReceiptCallback,
   shouldUnregisterPacketReceipt,
@@ -31,7 +34,8 @@ import {
   stepPacketReceiptCallbackWithActions,
   stepPacketReceiptProofIngressWithActions,
   stepPacketReceiptTimeout,
-  stepPacketReceiptTimeoutWithActions
+  stepPacketReceiptTimeoutWithActions,
+  stepPacketReceiptUnregisterWithActions
 } from "../src/packet-receipt-timeout.js";
 
 describe("protocol packet receipt timeout", () => {
@@ -176,6 +180,18 @@ describe("protocol packet receipt timeout", () => {
     expect(planUnregisterPacketReceipt(-1)).toBeNull();
     expect(shouldUnregisterPacketReceipt(true)).toBe(true);
     expect(shouldUnregisterPacketReceipt(false)).toBe(false);
+    const remove = stepPacketReceiptUnregisterWithActions(initialPacketReceiptUnregisterState(), {
+      kind: "receipt/unregister-gate",
+      index: 2
+    });
+    expect(shouldRemovePacketReceipt(remove.actions)).toBe(true);
+    expect(packetReceiptUnregisterIndex(remove.actions)).toBe(2);
+    const skip = stepPacketReceiptUnregisterWithActions(initialPacketReceiptUnregisterState(), {
+      kind: "receipt/unregister-gate",
+      index: -1
+    });
+    expect(shouldRemovePacketReceipt(skip.actions)).toBe(false);
+    expect(packetReceiptUnregisterIndex(skip.actions)).toBeNull();
     expect(shouldRegisterPacketReceipt(true)).toBe(true);
     expect(shouldRegisterPacketReceipt(false)).toBe(false);
     expect(planPacketReceiptCallback(true)).toBe("set");

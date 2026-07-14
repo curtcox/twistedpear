@@ -1,7 +1,10 @@
 /**
  * Pure RNS channel StreamDataMessage header framing.
  * Compression / channel IO stay at the adapter edge.
+ * Stream ready-callback unregister conclusions leave via machine actions
+ * (no ad-hoc `planUnregisterStreamReadyCallback` reads beside the step).
  */
+import type { Event, Intent } from "@twistedpear/effects";
 
 export const STREAM_DATA_HEADER_SIZE = 2;
 export const STREAM_ID_MAX = 0x3fff;
@@ -147,4 +150,62 @@ export function planUnregisterStreamReadyCallback(index: number): number | null 
 /** Whether unregister may splice after {@link planUnregisterStreamReadyCallback}. */
 export function shouldUnregisterStreamReadyCallback(indexPresent: boolean): boolean {
   return indexPresent;
+}
+
+/**
+ * Stream ready-callback unregister is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `planUnregisterStreamReadyCallback` reads beside the step).
+ */
+export type StreamReadyCallbackUnregisterState = Record<string, never>;
+
+export type StreamReadyCallbackUnregisterEvent =
+  | Event
+  | {
+      readonly kind: "stream/ready-callback-unregister-gate";
+      readonly index: number;
+    };
+
+export type StreamReadyCallbackUnregisterAction = {
+  readonly kind: "remove";
+  readonly index: number;
+};
+
+export interface StreamReadyCallbackUnregisterStepResult {
+  readonly state: StreamReadyCallbackUnregisterState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly StreamReadyCallbackUnregisterAction[];
+}
+
+export function initialStreamReadyCallbackUnregisterState(): StreamReadyCallbackUnregisterState {
+  return {};
+}
+
+export function stepStreamReadyCallbackUnregisterWithActions(
+  state: StreamReadyCallbackUnregisterState,
+  event: StreamReadyCallbackUnregisterEvent
+): StreamReadyCallbackUnregisterStepResult {
+  if (event.kind === "stream/ready-callback-unregister-gate") {
+    const index = planUnregisterStreamReadyCallback(event.index);
+    return {
+      state,
+      intents: [],
+      actions: index === null ? [] : [{ kind: "remove", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function streamReadyCallbackUnregisterIndex(
+  actions: ReadonlyArray<StreamReadyCallbackUnregisterAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove");
+  return action?.kind === "remove" ? action.index : null;
+}
+
+export function shouldRemoveStreamReadyCallback(
+  actions: ReadonlyArray<StreamReadyCallbackUnregisterAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove");
 }

@@ -18,8 +18,6 @@ import {
   planClonePacketWithHops,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
-  planUnregisterPacketReceipt,
-  planUnregisterTransportMember,
   canAnswerLocalPathRequest,
   canDispatchAnnounceHandlers,
   activeLinkUnregisterRemoveIndex,
@@ -32,11 +30,14 @@ import {
   initialOutboundReceiptState,
   initialPacketFilterState,
   initialPacketReceiptProofIngressState,
+  initialPacketReceiptUnregisterState,
   initialPathEntryLookupState,
   initialPathOutboundState,
   initialPathRequestIngressState,
   initialProofIngressState,
   initialTransportIngressDispatchState,
+  initialTransportMemberUnregisterState,
+  packetReceiptUnregisterIndex,
   pendingLinkMembershipRemoveIndex,
   pendingLinkUnregisterRemoveIndex,
   shouldAcceptCachedPathResponsePacket,
@@ -88,8 +89,8 @@ import {
   shouldRemovePendingLinkMembershipActions,
   shouldRemovePendingLinkUnregisterActions,
   shouldTransmitOnInterface,
-  shouldUnregisterPacketReceipt,
-  shouldUnregisterTransportMember,
+  shouldRemovePacketReceipt,
+  shouldRemoveTransportMember,
   shouldUsePathForOutbound,
   shouldProveDestination,
   shouldAcceptPacketFilter,
@@ -108,11 +109,14 @@ import {
   stepOutboundReceiptWithActions,
   stepPacketFilterWithActions,
   stepPacketReceiptProofIngressWithActions,
+  stepPacketReceiptUnregisterWithActions,
   stepPathEntryLookupWithActions,
   stepPathOutboundWithActions,
   stepPathRequestIngressWithActions,
   stepProofIngressWithActions,
   stepTransportIngressDispatchWithActions,
+  stepTransportMemberUnregisterWithActions,
+  transportMemberUnregisterIndex,
   stripTransportHeadersBytes,
   timebaseFromRandomBlobs as protocolTimebaseFromRandomBlobs,
   wrapTransportPacketBytes,
@@ -260,9 +264,13 @@ export class LeafTransport {
   }
 
   unregisterInterface(iface: PacketInterface): void {
-    const index = planUnregisterTransportMember(this.interfaces.indexOf(iface));
-    if (shouldUnregisterTransportMember(index !== null)) {
-      this.interfaces.splice(index!, 1);
+    const stepped = stepTransportMemberUnregisterWithActions(initialTransportMemberUnregisterState(), {
+      kind: "transport/member-unregister-gate",
+      index: this.interfaces.indexOf(iface)
+    });
+    const index = transportMemberUnregisterIndex(stepped.actions);
+    if (shouldRemoveTransportMember(stepped.actions) && index !== null) {
+      this.interfaces.splice(index, 1);
     }
     this.interfaceTasks.delete(iface);
   }
@@ -548,9 +556,16 @@ export class LeafTransport {
       })
     ) {
       receipt!.markFailed();
-      const index = planUnregisterPacketReceipt(this.receipts.indexOf(receipt!));
-      if (shouldUnregisterPacketReceipt(index !== null)) {
-        this.receipts.splice(index!, 1);
+      const receiptStepped = stepPacketReceiptUnregisterWithActions(
+        initialPacketReceiptUnregisterState(),
+        {
+          kind: "receipt/unregister-gate",
+          index: this.receipts.indexOf(receipt!)
+        }
+      );
+      const index = packetReceiptUnregisterIndex(receiptStepped.actions);
+      if (shouldRemovePacketReceipt(receiptStepped.actions) && index !== null) {
+        this.receipts.splice(index, 1);
       }
       return null;
     }
@@ -861,9 +876,16 @@ export class LeafTransport {
         }
       );
       if (shouldRemovePacketReceiptProofIngress(proofIngressStepped.actions)) {
-        const index = planUnregisterPacketReceipt(this.receipts.indexOf(receipt));
-        if (shouldUnregisterPacketReceipt(index !== null)) {
-          this.receipts.splice(index!, 1);
+        const receiptStepped = stepPacketReceiptUnregisterWithActions(
+          initialPacketReceiptUnregisterState(),
+          {
+            kind: "receipt/unregister-gate",
+            index: this.receipts.indexOf(receipt)
+          }
+        );
+        const index = packetReceiptUnregisterIndex(receiptStepped.actions);
+        if (shouldRemovePacketReceipt(receiptStepped.actions) && index !== null) {
+          this.receipts.splice(index, 1);
         }
       }
     }

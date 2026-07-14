@@ -1,6 +1,9 @@
 /**
  * Pure link request-receipt status codes and transitions (RNS Link.RequestReceipt).
+ * Pending-request unregister conclusions leave via machine actions (no ad-hoc
+ * `planUnregisterPendingLinkRequest` reads beside the step).
  */
+import type { Event, Intent } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
 
 export const LinkRequestReceiptStatus = {
@@ -115,6 +118,64 @@ export function planUnregisterPendingLinkRequest(index: number): number | null {
 /** Whether unregister may splice after {@link planUnregisterPendingLinkRequest}. */
 export function shouldUnregisterPendingLinkRequest(indexPresent: boolean): boolean {
   return indexPresent;
+}
+
+/**
+ * Pending link-request unregister is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `planUnregisterPendingLinkRequest` reads beside the step).
+ */
+export type PendingLinkRequestUnregisterState = Record<string, never>;
+
+export type PendingLinkRequestUnregisterEvent =
+  | Event
+  | {
+      readonly kind: "link/pending-request-unregister-gate";
+      readonly index: number;
+    };
+
+export type PendingLinkRequestUnregisterAction = {
+  readonly kind: "remove";
+  readonly index: number;
+};
+
+export interface PendingLinkRequestUnregisterStepResult {
+  readonly state: PendingLinkRequestUnregisterState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PendingLinkRequestUnregisterAction[];
+}
+
+export function initialPendingLinkRequestUnregisterState(): PendingLinkRequestUnregisterState {
+  return {};
+}
+
+export function stepPendingLinkRequestUnregisterWithActions(
+  state: PendingLinkRequestUnregisterState,
+  event: PendingLinkRequestUnregisterEvent
+): PendingLinkRequestUnregisterStepResult {
+  if (event.kind === "link/pending-request-unregister-gate") {
+    const index = planUnregisterPendingLinkRequest(event.index);
+    return {
+      state,
+      intents: [],
+      actions: index === null ? [] : [{ kind: "remove", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function pendingLinkRequestUnregisterIndex(
+  actions: ReadonlyArray<PendingLinkRequestUnregisterAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove");
+  return action?.kind === "remove" ? action.index : null;
+}
+
+export function shouldRemovePendingLinkRequest(
+  actions: ReadonlyArray<PendingLinkRequestUnregisterAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove");
 }
 
 /** Whether step actions include a failed/response fanout for the adapter callback. */

@@ -598,6 +598,64 @@ export function shouldUnregisterTransportMember(indexPresent: boolean): boolean 
 }
 
 /**
+ * Transport-member unregister is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `planUnregisterTransportMember` reads beside the step).
+ */
+export type TransportMemberUnregisterState = Record<string, never>;
+
+export type TransportMemberUnregisterEvent =
+  | Event
+  | {
+      readonly kind: "transport/member-unregister-gate";
+      readonly index: number;
+    };
+
+export type TransportMemberUnregisterAction = {
+  readonly kind: "remove";
+  readonly index: number;
+};
+
+export interface TransportMemberUnregisterStepResult {
+  readonly state: TransportMemberUnregisterState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TransportMemberUnregisterAction[];
+}
+
+export function initialTransportMemberUnregisterState(): TransportMemberUnregisterState {
+  return {};
+}
+
+export function stepTransportMemberUnregisterWithActions(
+  state: TransportMemberUnregisterState,
+  event: TransportMemberUnregisterEvent
+): TransportMemberUnregisterStepResult {
+  if (event.kind === "transport/member-unregister-gate") {
+    const index = planUnregisterTransportMember(event.index);
+    return {
+      state,
+      intents: [],
+      actions: index === null ? [] : [{ kind: "remove", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function transportMemberUnregisterIndex(
+  actions: ReadonlyArray<TransportMemberUnregisterAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove");
+  return action?.kind === "remove" ? action.index : null;
+}
+
+export function shouldRemoveTransportMember(
+  actions: ReadonlyArray<TransportMemberUnregisterAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove");
+}
+
+/**
  * Transport ingress dispatch is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  */

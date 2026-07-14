@@ -4,17 +4,19 @@ import {
   clampStreamChunkTake,
   clampStreamDataChunkLength,
   clampStreamReadSize,
+  initialStreamReadyCallbackUnregisterState,
   isStreamIdAssigned,
   packStreamDataMessage,
-  planUnregisterStreamReadyCallback,
   shouldAppendStreamData,
   shouldConsumeStreamChunk,
   shouldDeferStreamRead,
   shouldHandleStreamDataMessage,
   shouldMarkStreamEof,
   shouldRegisterStreamReadyCallback,
+  shouldRemoveStreamReadyCallback,
   shouldReturnStreamReadResult,
-  shouldUnregisterStreamReadyCallback,
+  stepStreamReadyCallbackUnregisterWithActions,
+  streamReadyCallbackUnregisterIndex,
   unpackStreamDataMessage
 } from "@twistedpear/protocol";
 import { Channel, type ChannelMessage } from "./channel.js";
@@ -120,9 +122,16 @@ export class RawChannelReader {
   }
 
   removeReadyCallback(callback: StreamReadyCallback): void {
-    const index = planUnregisterStreamReadyCallback(this.listeners.indexOf(callback));
-    if (shouldUnregisterStreamReadyCallback(index !== null)) {
-      this.listeners.splice(index!, 1);
+    const stepped = stepStreamReadyCallbackUnregisterWithActions(
+      initialStreamReadyCallbackUnregisterState(),
+      {
+        kind: "stream/ready-callback-unregister-gate",
+        index: this.listeners.indexOf(callback)
+      }
+    );
+    const index = streamReadyCallbackUnregisterIndex(stepped.actions);
+    if (shouldRemoveStreamReadyCallback(stepped.actions) && index !== null) {
+      this.listeners.splice(index, 1);
     }
   }
 

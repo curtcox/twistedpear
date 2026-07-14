@@ -246,6 +246,64 @@ export function shouldUnregisterPacketReceipt(indexPresent: boolean): boolean {
   return indexPresent;
 }
 
+/**
+ * Packet-receipt unregister is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `planUnregisterPacketReceipt` reads beside the step).
+ */
+export type PacketReceiptUnregisterState = Record<string, never>;
+
+export type PacketReceiptUnregisterEvent =
+  | Event
+  | {
+      readonly kind: "receipt/unregister-gate";
+      readonly index: number;
+    };
+
+export type PacketReceiptUnregisterAction = {
+  readonly kind: "remove";
+  readonly index: number;
+};
+
+export interface PacketReceiptUnregisterStepResult {
+  readonly state: PacketReceiptUnregisterState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketReceiptUnregisterAction[];
+}
+
+export function initialPacketReceiptUnregisterState(): PacketReceiptUnregisterState {
+  return {};
+}
+
+export function stepPacketReceiptUnregisterWithActions(
+  state: PacketReceiptUnregisterState,
+  event: PacketReceiptUnregisterEvent
+): PacketReceiptUnregisterStepResult {
+  if (event.kind === "receipt/unregister-gate") {
+    const index = planUnregisterPacketReceipt(event.index);
+    return {
+      state,
+      intents: [],
+      actions: index === null ? [] : [{ kind: "remove", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function packetReceiptUnregisterIndex(
+  actions: ReadonlyArray<PacketReceiptUnregisterAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove");
+  return action?.kind === "remove" ? action.index : null;
+}
+
+export function shouldRemovePacketReceipt(
+  actions: ReadonlyArray<PacketReceiptUnregisterAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove");
+}
+
 /** Whether an outbound send should create and register a packet receipt. */
 export function shouldRegisterPacketReceipt(createReceipt: boolean): boolean {
   return createReceipt;

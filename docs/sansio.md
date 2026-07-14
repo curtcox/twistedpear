@@ -731,8 +731,21 @@
 > link-relay-target / link-resource-conclude /
 > packet-receipt-proof-accept / propagation-restore /
 > destination-identity-hash / channel-tx-envelope-op /
-> destination-proof / packet-filter / packet-receipt-callback reads
+> destination-proof / packet-filter / packet-receipt-callback /
+> channel-tx-receipt-timeout-refresh / channel-message-handler-unregister /
+> pending-link-request-unregister / stream-ready-callback-unregister /
+> packet-receipt-unregister / transport-member-unregister reads
 > beside the step).
+> **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
+> (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
+> only from those actions. **`stepChannelMessageHandlerUnregisterWithActions`**,
+> **`stepPendingLinkRequestUnregisterWithActions`**,
+> **`stepStreamReadyCallbackUnregisterWithActions`**,
+> **`stepPacketReceiptUnregisterWithActions`**, and
+> **`stepTransportMemberUnregisterWithActions`** emit `remove` (with index);
+> Channel, Link, Buffer, and TransportNode list splices apply only from those
+> actions (no ad-hoc `planUnregister*` / `index !== null` reads beside the
+> step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

@@ -5,9 +5,13 @@ import {
   shouldAttachLinkRequestPacketReceipt,
   shouldInvokeLinkRequestReceiptAction,
   shouldRegisterPendingLinkRequest,
+  shouldRemovePendingLinkRequest,
   shouldUnregisterPendingLinkRequest,
+  initialPendingLinkRequestUnregisterState,
+  pendingLinkRequestUnregisterIndex,
   planUnregisterPendingLinkRequest,
-  stepLinkRequestReceipt
+  stepLinkRequestReceipt,
+  stepPendingLinkRequestUnregisterWithActions
 } from "../src/link-request-receipt.js";
 
 describe("protocol link request receipt", () => {
@@ -38,5 +42,19 @@ describe("protocol link request receipt", () => {
     expect(planUnregisterPendingLinkRequest(-1)).toBeNull();
     expect(shouldUnregisterPendingLinkRequest(true)).toBe(true);
     expect(shouldUnregisterPendingLinkRequest(false)).toBe(false);
+
+    const remove = stepPendingLinkRequestUnregisterWithActions(
+      initialPendingLinkRequestUnregisterState(),
+      { kind: "link/pending-request-unregister-gate", index: 2 }
+    );
+    expect(shouldRemovePendingLinkRequest(remove.actions)).toBe(true);
+    expect(pendingLinkRequestUnregisterIndex(remove.actions)).toBe(2);
+
+    const skip = stepPendingLinkRequestUnregisterWithActions(
+      initialPendingLinkRequestUnregisterState(),
+      { kind: "link/pending-request-unregister-gate", index: -1 }
+    );
+    expect(shouldRemovePendingLinkRequest(skip.actions)).toBe(false);
+    expect(pendingLinkRequestUnregisterIndex(skip.actions)).toBeNull();
   });
 });

@@ -83,6 +83,9 @@ import {
   shouldTransmitReverseRelay,
   planUnregisterTransportMember,
   shouldUnregisterTransportMember,
+  shouldRemoveTransportMember,
+  initialTransportMemberUnregisterState,
+  transportMemberUnregisterIndex,
   stepLinkDataIngressTargetWithActions,
   stepLinkRelayTargetWithActions,
   stepLocalPlainDataDeliveryWithActions,
@@ -91,6 +94,7 @@ import {
   stepProofIngressWithActions,
   stepReverseRelayOutcomeWithActions,
   stepTransportIngressDispatchWithActions,
+  stepTransportMemberUnregisterWithActions,
   transportIngressDispatchFromActions
 } from "../src/index.js";
 
@@ -587,6 +591,20 @@ describe("transport ingress", () => {
     expect(planUnregisterTransportMember(-1)).toBeNull();
     expect(shouldUnregisterTransportMember(true)).toBe(true);
     expect(shouldUnregisterTransportMember(false)).toBe(false);
+
+    const remove = stepTransportMemberUnregisterWithActions(initialTransportMemberUnregisterState(), {
+      kind: "transport/member-unregister-gate",
+      index: 3
+    });
+    expect(shouldRemoveTransportMember(remove.actions)).toBe(true);
+    expect(transportMemberUnregisterIndex(remove.actions)).toBe(3);
+
+    const skip = stepTransportMemberUnregisterWithActions(initialTransportMemberUnregisterState(), {
+      kind: "transport/member-unregister-gate",
+      index: -1
+    });
+    expect(shouldRemoveTransportMember(skip.actions)).toBe(false);
+    expect(transportMemberUnregisterIndex(skip.actions)).toBeNull();
   });
 
   it("emits transport ingress dispatch actions from the gate step", () => {

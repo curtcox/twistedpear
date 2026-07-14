@@ -7,6 +7,7 @@ import {
   channelPayloadMdu,
   initialChannelEnvelopePackState,
   initialChannelEnvelopeUnpackState,
+  initialChannelMessageHandlerUnregisterState,
   initialChannelMessageTypeRegistrationState,
   isChannelSystemMsgType,
   nextChannelSequence,
@@ -15,6 +16,7 @@ import {
   planChannelEnvelopeUnpack,
   planChannelMessageTypeRegistration,
   planUnregisterChannelMessageHandler,
+  channelMessageHandlerUnregisterIndex,
   shouldEmitChannelImmediateDelivery,
   shouldProceedChannelEnvelopePack,
   shouldProceedChannelEnvelopeUnpack,
@@ -26,10 +28,12 @@ import {
   shouldRejectChannelEnvelopeUnpackTruncate,
   shouldRejectChannelMessageTypeMissingMsgtype,
   shouldRejectChannelMessageTypeSystemReserved,
+  shouldRemoveChannelMessageHandler,
   shouldStopChannelHandlerFanout,
   shouldUnregisterChannelMessageHandler,
   stepChannelEnvelopePackWithActions,
   stepChannelEnvelopeUnpackWithActions,
+  stepChannelMessageHandlerUnregisterWithActions,
   stepChannelMessageTypeRegistrationWithActions,
   unpackChannelEnvelope
 } from "../src/channel-envelope.js";
@@ -236,6 +240,20 @@ describe("protocol channel envelope", () => {
     expect(shouldUnregisterChannelMessageHandler(false)).toBe(false);
     expect(shouldStopChannelHandlerFanout(true)).toBe(true);
     expect(shouldStopChannelHandlerFanout(false)).toBe(false);
+
+    const remove = stepChannelMessageHandlerUnregisterWithActions(
+      initialChannelMessageHandlerUnregisterState(),
+      { kind: "channel/message-handler-unregister-gate", index: 1 }
+    );
+    expect(shouldRemoveChannelMessageHandler(remove.actions)).toBe(true);
+    expect(channelMessageHandlerUnregisterIndex(remove.actions)).toBe(1);
+
+    const skip = stepChannelMessageHandlerUnregisterWithActions(
+      initialChannelMessageHandlerUnregisterState(),
+      { kind: "channel/message-handler-unregister-gate", index: -1 }
+    );
+    expect(shouldRemoveChannelMessageHandler(skip.actions)).toBe(false);
+    expect(channelMessageHandlerUnregisterIndex(skip.actions)).toBeNull();
   });
 });
 

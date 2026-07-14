@@ -84,7 +84,8 @@ import {
   initialLinkResourceConcludeState,
   planLinkInitiatorMtu,
   planLinkRequestResponderMtu,
-  planUnregisterPendingLinkRequest,
+  initialPendingLinkRequestUnregisterState,
+  pendingLinkRequestUnregisterIndex,
   shouldAcceptLinkEstablishRtt,
   shouldAcceptLinkPacketInterface,
   shouldAcceptLinkResourceAdvertisement,
@@ -150,7 +151,7 @@ import {
   shouldSendLinkTeardownThenClose,
   shouldTeardownLinkEstablish,
   shouldUnregisterLinkAppRequestTransmit,
-  shouldUnregisterPendingLinkRequest,
+  shouldRemovePendingLinkRequest,
   shouldUpdateLinkLastData,
   isLinkInboundDataPacket,
   isLinkKeepaliveContext,
@@ -171,6 +172,7 @@ import {
   stepLinkProofValidateWithActions,
   stepLinkResourceAdvertisementWithActions,
   stepLinkResourceConcludeWithActions,
+  stepPendingLinkRequestUnregisterWithActions,
   stepLinkTeardownWithActions,
   stepLinkTokenAccessWithActions,
   stepLinkValidateRequestWithActions,
@@ -1104,9 +1106,16 @@ export class Link {
   }
 
   unregisterPendingRequest(receipt: LinkRequestReceipt): void {
-    const index = planUnregisterPendingLinkRequest(this.pendingRequests.indexOf(receipt));
-    if (shouldUnregisterPendingLinkRequest(index !== null)) {
-      this.pendingRequests.splice(index!, 1);
+    const stepped = stepPendingLinkRequestUnregisterWithActions(
+      initialPendingLinkRequestUnregisterState(),
+      {
+        kind: "link/pending-request-unregister-gate",
+        index: this.pendingRequests.indexOf(receipt)
+      }
+    );
+    const index = pendingLinkRequestUnregisterIndex(stepped.actions);
+    if (shouldRemovePendingLinkRequest(stepped.actions) && index !== null) {
+      this.pendingRequests.splice(index, 1);
     }
   }
 

@@ -8,10 +8,12 @@ import {
   channelPacketTimeoutSeconds,
   channelRetryExhausted,
   channelTxTimeoutRetryAction,
+  channelTxReceiptTimeoutExtensions,
   countChannelTxOutstanding,
   canArmChannelPacketReceipt,
   initialChannelSendState,
   initialChannelTxEnvelopeOpState,
+  initialChannelTxReceiptTimeoutRefreshState,
   initialChannelWindowState,
   isChannelOutletTransmitOk,
   planChannelPacketTimeout,
@@ -20,6 +22,7 @@ import {
   planChannelTxReceiptTimeoutRefresh,
   shouldApplyChannelPacketReceiptTimeout,
   shouldApplyChannelTxReceiptTimeoutExtension,
+  shouldExtendChannelTxReceiptTimeout,
   shouldExtendPacketReceiptTimeout,
   shouldGiveUpChannelTxTimeout,
   shouldMissChannelTxEnvelopeOp,
@@ -34,6 +37,7 @@ import {
   indexOfChannelTxEnvelope,
   stepChannelSendWithActions,
   stepChannelTxEnvelopeOpWithActions,
+  stepChannelTxReceiptTimeoutRefreshWithActions,
   stepChannelTxTimeout,
   stepChannelTxTimeoutWithActions,
   stepChannelWindow
@@ -368,7 +372,7 @@ describe("protocol channel window", () => {
   });
 
   it("plans receipt timeout refresh extensions without ad-hoc extend checks", () => {
-    const extensions = planChannelTxReceiptTimeoutRefresh([
+    const entries = [
       {
         receiptPresent: false,
         currentTimeout: 1,
@@ -390,12 +394,23 @@ describe("protocol channel window", () => {
         rtt: 0.2,
         txRingLength: 1
       }
-    ]);
+    ];
+    const extensions = planChannelTxReceiptTimeoutRefresh(entries);
     expect(extensions).toHaveLength(1);
     expect(extensions[0]!.index).toBe(1);
     expect(extensions[0]!.timeoutSeconds).toBeGreaterThan(0.01);
     expect(shouldApplyChannelTxReceiptTimeoutExtension(true)).toBe(true);
     expect(shouldApplyChannelTxReceiptTimeoutExtension(false)).toBe(false);
+
+    const stepped = stepChannelTxReceiptTimeoutRefreshWithActions(
+      initialChannelTxReceiptTimeoutRefreshState(),
+      {
+        kind: "channel/tx-receipt-timeout-refresh-gate",
+        entries
+      }
+    );
+    expect(channelTxReceiptTimeoutExtensions(stepped.actions)).toEqual(extensions);
+    expect(shouldExtendChannelTxReceiptTimeout(stepped.actions)).toBe(true);
   });
 
   it("TX timeout double-runs identically", () => {

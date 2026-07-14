@@ -392,6 +392,64 @@ export function shouldUnregisterChannelMessageHandler(indexPresent: boolean): bo
   return indexPresent;
 }
 
+/**
+ * Channel message-handler unregister is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `planUnregisterChannelMessageHandler` reads beside the step).
+ */
+export type ChannelMessageHandlerUnregisterState = Record<string, never>;
+
+export type ChannelMessageHandlerUnregisterEvent =
+  | Event
+  | {
+      readonly kind: "channel/message-handler-unregister-gate";
+      readonly index: number;
+    };
+
+export type ChannelMessageHandlerUnregisterAction = {
+  readonly kind: "remove";
+  readonly index: number;
+};
+
+export interface ChannelMessageHandlerUnregisterStepResult {
+  readonly state: ChannelMessageHandlerUnregisterState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelMessageHandlerUnregisterAction[];
+}
+
+export function initialChannelMessageHandlerUnregisterState(): ChannelMessageHandlerUnregisterState {
+  return {};
+}
+
+export function stepChannelMessageHandlerUnregisterWithActions(
+  state: ChannelMessageHandlerUnregisterState,
+  event: ChannelMessageHandlerUnregisterEvent
+): ChannelMessageHandlerUnregisterStepResult {
+  if (event.kind === "channel/message-handler-unregister-gate") {
+    const index = planUnregisterChannelMessageHandler(event.index);
+    return {
+      state,
+      intents: [],
+      actions: index === null ? [] : [{ kind: "remove", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function channelMessageHandlerUnregisterIndex(
+  actions: ReadonlyArray<ChannelMessageHandlerUnregisterAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove");
+  return action?.kind === "remove" ? action.index : null;
+}
+
+export function shouldRemoveChannelMessageHandler(
+  actions: ReadonlyArray<ChannelMessageHandlerUnregisterAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove");
+}
+
 /** Whether channel message-handler fan-out should stop after a handler returns handled. */
 export function shouldStopChannelHandlerFanout(handled: boolean): boolean {
   return handled;

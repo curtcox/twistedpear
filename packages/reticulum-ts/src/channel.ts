@@ -22,12 +22,12 @@ import {
   nextChannelSequence,
   initialChannelEnvelopePackState,
   initialChannelEnvelopeUnpackState,
+  initialChannelMessageHandlerUnregisterState,
   initialChannelMessageTypeRegistrationState,
   initialChannelSendState,
   initialChannelTxEnvelopeOpState,
+  initialChannelTxReceiptTimeoutRefreshState,
   packChannelEnvelope,
-  planChannelTxReceiptTimeoutRefresh,
-  planUnregisterChannelMessageHandler,
   shouldAcceptChannelSequence,
   shouldApplyChannelPacketReceiptTimeout,
   shouldApplyChannelTxReceiptTimeoutExtension,
@@ -50,15 +50,19 @@ import {
   shouldRejectChannelMessageTypeSystemReserved,
   shouldRejectChannelSendLinkNotReady,
   shouldRejectChannelSendTooBig,
+  shouldRemoveChannelMessageHandler,
   shouldReplaceChannelResentPacket,
   shouldRetryChannelTxTimeout,
   shouldStopChannelHandlerFanout,
-  shouldUnregisterChannelMessageHandler,
+  channelMessageHandlerUnregisterIndex,
+  channelTxReceiptTimeoutExtensions,
   stepChannelEnvelopePackWithActions,
   stepChannelEnvelopeUnpackWithActions,
+  stepChannelMessageHandlerUnregisterWithActions,
   stepChannelMessageTypeRegistrationWithActions,
   stepChannelSendWithActions,
   stepChannelTxEnvelopeOpWithActions,
+  stepChannelTxReceiptTimeoutRefreshWithActions,
   stepChannelTxTimeoutWithActions,
   stepChannelWindow,
   unpackChannelEnvelope,
@@ -287,9 +291,16 @@ export class Channel {
   }
 
   removeMessageHandler(callback: ChannelMessageHandler): void {
-    const index = planUnregisterChannelMessageHandler(this.messageCallbacks.indexOf(callback));
-    if (shouldUnregisterChannelMessageHandler(index !== null)) {
-      this.messageCallbacks.splice(index!, 1);
+    const stepped = stepChannelMessageHandlerUnregisterWithActions(
+      initialChannelMessageHandlerUnregisterState(),
+      {
+        kind: "channel/message-handler-unregister-gate",
+        index: this.messageCallbacks.indexOf(callback)
+      }
+    );
+    const index = channelMessageHandlerUnregisterIndex(stepped.actions);
+    if (shouldRemoveChannelMessageHandler(stepped.actions) && index !== null) {
+      this.messageCallbacks.splice(index, 1);
     }
   }
 
@@ -562,16 +573,20 @@ export class Channel {
   }
 
   private updatePacketTimeouts(): void {
-    const extensions = planChannelTxReceiptTimeoutRefresh(
-      this.txRing.map((envelope) => ({
-        receiptPresent: envelope.packet?.receipt != null,
-        currentTimeout: envelope.packet?.receipt?.timeout ?? null,
-        tries: envelope.tries,
-        rtt: this.outlet.rtt,
-        txRingLength: this.txRing.length
-      }))
+    const stepped = stepChannelTxReceiptTimeoutRefreshWithActions(
+      initialChannelTxReceiptTimeoutRefreshState(),
+      {
+        kind: "channel/tx-receipt-timeout-refresh-gate",
+        entries: this.txRing.map((envelope) => ({
+          receiptPresent: envelope.packet?.receipt != null,
+          currentTimeout: envelope.packet?.receipt?.timeout ?? null,
+          tries: envelope.tries,
+          rtt: this.outlet.rtt,
+          txRingLength: this.txRing.length
+        }))
+      }
     );
-    for (const extension of extensions) {
+    for (const extension of channelTxReceiptTimeoutExtensions(stepped.actions)) {
       const receipt = this.txRing[extension.index]?.packet?.receipt;
       if (shouldApplyChannelTxReceiptTimeoutExtension(receipt != null)) {
         receipt!.setTimeout(extension.timeoutSeconds);

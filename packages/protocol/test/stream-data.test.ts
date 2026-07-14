@@ -15,8 +15,12 @@ import {
   shouldHandleStreamDataMessage,
   shouldMarkStreamEof,
   shouldRegisterStreamReadyCallback,
+  shouldRemoveStreamReadyCallback,
   shouldReturnStreamReadResult,
   shouldUnregisterStreamReadyCallback,
+  initialStreamReadyCallbackUnregisterState,
+  streamReadyCallbackUnregisterIndex,
+  stepStreamReadyCallbackUnregisterWithActions,
   unpackStreamDataMessage
 } from "../src/stream-data.js";
 
@@ -115,5 +119,19 @@ describe("protocol stream data framing", () => {
     expect(planUnregisterStreamReadyCallback(-1)).toBeNull();
     expect(shouldUnregisterStreamReadyCallback(true)).toBe(true);
     expect(shouldUnregisterStreamReadyCallback(false)).toBe(false);
+
+    const remove = stepStreamReadyCallbackUnregisterWithActions(
+      initialStreamReadyCallbackUnregisterState(),
+      { kind: "stream/ready-callback-unregister-gate", index: 4 }
+    );
+    expect(shouldRemoveStreamReadyCallback(remove.actions)).toBe(true);
+    expect(streamReadyCallbackUnregisterIndex(remove.actions)).toBe(4);
+
+    const skip = stepStreamReadyCallbackUnregisterWithActions(
+      initialStreamReadyCallbackUnregisterState(),
+      { kind: "stream/ready-callback-unregister-gate", index: -1 }
+    );
+    expect(shouldRemoveStreamReadyCallback(skip.actions)).toBe(false);
+    expect(streamReadyCallbackUnregisterIndex(skip.actions)).toBeNull();
   });
 });
