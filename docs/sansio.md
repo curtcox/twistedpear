@@ -111,8 +111,9 @@
 > pure protocol leaves; Token and `LXMessage` adapt them. **Token framing**
 > (key split / iv||ciphertext||hmac via **`stepPackTokenFrameWithActions`** /
 > **`stepSplitTokenFrameWithActions`**: use-raw|reject / use-fields|reject) and
-> **stamp-cost extraction** from announce app-data are pure protocol leaves;
-> Token and LXMF router adapt them. **Resource receive-part planning** (via
+> **stamp-cost extraction** from announce app-data (via
+> **`stepStampCostFromAppDataWithActions`**: use-fields|reject) are pure
+> protocol leaves; Token and LXMF router adapt them. **Resource receive-part planning** (via
 > **`stepResourceReceivePartWithActions`**), **LXMF outer wire framing** (via
 > **`stepPackLxmfWireWithActions`** / **`stepSplitLxmfWireWithActions`**), and
 > PacketReceipt proof validation via **`stepSplitPacketProofWithActions`** /
@@ -868,7 +869,7 @@
 > unpack-channel-envelope / pack-link-keepalive-probe /
 > pack-link-keepalive-reply / classify-link-keepalive /
 > pack-msgpack-float64 / unpack-msgpack-float / pkcs7-pad /
-> pkcs7-unpad reads
+> pkcs7-unpad / stamp-cost-from-app-data reads
 > beside the step).
 > **`stepPackStreamDataMessageWithActions`** /
 > **`stepUnpackStreamDataMessageWithActions`** emit `use-raw`|`reject` /
@@ -913,6 +914,9 @@
 > **`stepPkcs7PadWithActions`** / **`stepPkcs7UnpadWithActions`** emit
 > `use-raw` / `use-raw`|`reject`; Token PKCS#7 pad / unpad apply only from
 > those actions (no ad-hoc `pkcs7Pad` / `pkcs7Unpad` reads beside the step).
+> **`stepStampCostFromAppDataWithActions`** emits `use-fields`|`reject`;
+> LXMF stamp-cost extraction from announce app-data applies only from those
+> actions (no ad-hoc `stampCostFromAppData` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
 > only from those actions. **`stepChannelMessageHandlerUnregisterWithActions`**,

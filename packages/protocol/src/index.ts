@@ -2449,7 +2449,19 @@ export {
   type TokenKeyParts,
   type TokenMode
 } from "./token-framing.js";
-export { stampCostFromAppData } from "./stamp-cost.js";
+export {
+  initialStampCostFromAppDataState,
+  shouldRejectStampCostFromAppData,
+  shouldUseStampCostFromAppData,
+  stampCostFromActions,
+  stampCostFromAppData,
+  stepStampCostFromAppDataWithActions,
+  type StampCostFields,
+  type StampCostFromAppDataAction,
+  type StampCostFromAppDataEvent,
+  type StampCostFromAppDataState,
+  type StampCostFromAppDataStepResult
+} from "./stamp-cost.js";
 export {
   IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE,
   canIdentityHash,

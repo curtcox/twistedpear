@@ -21,11 +21,13 @@ import {
   initialLxmfSendState,
   initialPackLxmfDestinationPrefixedState,
   initialSplitLxmfDestinationPrefixedState,
+  initialStampCostFromAppDataState,
   lxmfDestinationPrefixedFieldsFromActions,
   lxmfInboundDeliveryRawFromActions,
   lxmfReceiptSendApplyEvent,
   lxmfSendUnsupportedMethod,
   packLxmfDestinationPrefixedRawFromActions,
+  stampCostFromActions,
   shouldAcceptLxmfDeliverable,
   shouldApplyLxmfReceiptSend,
   shouldAwaitLxmfDeliveryReceipt,
@@ -70,6 +72,7 @@ import {
   stepLxmfSendMethodWithActions,
   stepPackLxmfDestinationPrefixedWithActions,
   stepSplitLxmfDestinationPrefixedWithActions,
+  stepStampCostFromAppDataWithActions,
   type LxmfSendEvent,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
@@ -765,5 +768,12 @@ export class LXMFRouter {
   }
 }
 
-export { stampCostFromAppData } from "@twistedpear/protocol";
+/** Adapt stamp-cost extraction via protocol actions (no ad-hoc reads). */
+export function stampCostFromAppData(appData: Uint8Array | null): number | null {
+  const stepped = stepStampCostFromAppDataWithActions(initialStampCostFromAppDataState(), {
+    kind: "lxmf/stamp-cost-gate",
+    appData
+  });
+  return stampCostFromActions(stepped.actions);
+}
 
