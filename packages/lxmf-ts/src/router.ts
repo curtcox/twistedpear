@@ -11,11 +11,11 @@ import {
   initialLxmfSendState,
   lxmfInboundDeliveryBytes,
   packLxmfDestinationPrefixed,
+  initialLxmfDirectSendState,
+  initialLxmfOpportunisticSendState,
+  initialLxmfPropagatedSendState,
   initialLxmfSendMethodState,
   planLxmfDeliverableAccept,
-  planLxmfDirectSend,
-  planLxmfOpportunisticSend,
-  planLxmfPropagatedSend,
   planLxmfPropagationLinkReady,
   planLxmfPropagationLocalIngress,
   planLxmfReceiptSendOutcome,
@@ -23,6 +23,15 @@ import {
   shouldAwaitLxmfDeliveryReceipt,
   shouldDeliverLxmfPropagationLocalIngress,
   shouldInvokeLxmfDeliveryCallback,
+  shouldProceedLxmfDirectSend,
+  shouldProceedLxmfOpportunisticSend,
+  shouldProceedLxmfPropagatedSend,
+  shouldRejectLxmfDirectMissingDestination,
+  shouldRejectLxmfDirectMissingPacked,
+  shouldRejectLxmfOpportunisticMissingDestination,
+  shouldRejectLxmfPropagatedMissingNode,
+  shouldRejectLxmfPropagatedMissingPacked,
+  shouldRejectLxmfPropagatedResourceUnimplemented,
   shouldRejectLxmfSendUnpacked,
   shouldRejectLxmfSendUnsupported,
   shouldRememberLxmfMessage,
@@ -34,6 +43,9 @@ import {
   splitLxmfDestinationPrefixed,
   stepDeliveryReceiptPollWithActions,
   stepLinkAwaitWithActions,
+  stepLxmfDirectSendWithActions,
+  stepLxmfOpportunisticSendWithActions,
+  stepLxmfPropagatedSendWithActions,
   stepLxmfSendMethodWithActions,
   lxmfSendUnsupportedMethod,
   type LxmfSendEvent,
@@ -375,10 +387,15 @@ export class LXMFRouter {
 
   private async sendOpportunistic(message: LXMessage): Promise<void> {
     const destination = message.destination;
-    const plan = planLxmfOpportunisticSend({
+    const stepped = stepLxmfOpportunisticSendWithActions(initialLxmfOpportunisticSendState(), {
+      kind: "opportunistic-send/gate",
       destinationPresent: destination !== null
     });
-    if (plan === "missing-destination" || destination === null) {
+    if (
+      shouldRejectLxmfOpportunisticMissingDestination(stepped.actions) ||
+      !shouldProceedLxmfOpportunisticSend(stepped.actions) ||
+      destination === null
+    ) {
       throw new Error("Opportunistic LXMF requires destination");
     }
 
@@ -419,16 +436,24 @@ export class LXMFRouter {
 
   private async sendDirect(message: LXMessage): Promise<void> {
     const destination = message.destination;
-    const plan = planLxmfDirectSend({
+    const stepped = stepLxmfDirectSendWithActions(initialLxmfDirectSendState(), {
+      kind: "direct-send/gate",
       destinationPresent: destination !== null,
       destinationIdentityPresent: destination?.identity !== null,
       packed: message.packed !== null
     });
-    if (plan === "missing-destination" || destination === null || destination.identity === null) {
+    if (
+      shouldRejectLxmfDirectMissingDestination(stepped.actions) ||
+      destination === null ||
+      destination.identity === null
+    ) {
       throw new Error("Direct LXMF requires destination");
     }
-    if (plan === "missing-packed" || message.packed === null) {
+    if (shouldRejectLxmfDirectMissingPacked(stepped.actions) || message.packed === null) {
       throw new Error("Direct LXMF requires packed message");
+    }
+    if (!shouldProceedLxmfDirectSend(stepped.actions)) {
+      throw new Error("Direct LXMF send rejected");
     }
 
     const recipientIdentity = destination.identity;
@@ -464,19 +489,23 @@ export class LXMFRouter {
 
   private async sendPropagated(message: LXMessage): Promise<void> {
     const packed = message.propagationPacked;
-    const plan = planLxmfPropagatedSend({
+    const stepped = stepLxmfPropagatedSendWithActions(initialLxmfPropagatedSendState(), {
+      kind: "propagated-send/gate",
       nodeConfigured: this.outboundPropagationNode !== null,
       hasPropagationPacked: packed !== null,
       representation: message.representation
     });
-    if (plan === "missing-node") {
+    if (shouldRejectLxmfPropagatedMissingNode(stepped.actions)) {
       throw new Error("No outbound propagation node configured");
     }
-    if (plan === "missing-packed" || packed === null) {
+    if (shouldRejectLxmfPropagatedMissingPacked(stepped.actions) || packed === null) {
       throw new Error("PROPAGATED LXMF requires propagationPacked");
     }
-    if (plan === "resource-unimplemented") {
+    if (shouldRejectLxmfPropagatedResourceUnimplemented(stepped.actions)) {
       throw new Error("Large propagated LXMF via resource is not implemented");
+    }
+    if (!shouldProceedLxmfPropagatedSend(stepped.actions)) {
+      throw new Error("PROPAGATED LXMF send rejected");
     }
 
     const link = await this.ensureOutboundPropagationLink();

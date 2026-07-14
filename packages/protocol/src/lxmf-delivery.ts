@@ -511,6 +511,98 @@ export function planLxmfPropagatedSend(input: {
   return "ok";
 }
 
+/**
+ * PROPAGATED send gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LxmfPropagatedSendState = Record<string, never>;
+
+export type LxmfPropagatedSendEvent =
+  | Event
+  | {
+      readonly kind: "propagated-send/gate";
+      readonly nodeConfigured: boolean;
+      readonly hasPropagationPacked: boolean;
+      readonly representation: number;
+    };
+
+export type LxmfPropagatedSendAction =
+  | { readonly kind: "proceed" }
+  | { readonly kind: "reject-missing-node" }
+  | { readonly kind: "reject-missing-packed" }
+  | { readonly kind: "reject-resource-unimplemented" };
+
+export interface LxmfPropagatedSendStepResult {
+  readonly state: LxmfPropagatedSendState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfPropagatedSendAction[];
+}
+
+export function initialLxmfPropagatedSendState(): LxmfPropagatedSendState {
+  return {};
+}
+
+export const stepLxmfPropagatedSend: StepFn<LxmfPropagatedSendState> = (state, event) => {
+  const result = stepLxmfPropagatedSendInner(state, event as LxmfPropagatedSendEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxmfPropagatedSendWithActions(
+  state: LxmfPropagatedSendState,
+  event: LxmfPropagatedSendEvent
+): LxmfPropagatedSendStepResult {
+  return stepLxmfPropagatedSendInner(state, event);
+}
+
+export function shouldProceedLxmfPropagatedSend(
+  actions: ReadonlyArray<LxmfPropagatedSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
+export function shouldRejectLxmfPropagatedMissingNode(
+  actions: ReadonlyArray<LxmfPropagatedSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-node");
+}
+
+export function shouldRejectLxmfPropagatedMissingPacked(
+  actions: ReadonlyArray<LxmfPropagatedSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-packed");
+}
+
+export function shouldRejectLxmfPropagatedResourceUnimplemented(
+  actions: ReadonlyArray<LxmfPropagatedSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-resource-unimplemented");
+}
+
+function stepLxmfPropagatedSendInner(
+  state: LxmfPropagatedSendState,
+  event: LxmfPropagatedSendEvent
+): LxmfPropagatedSendStepResult {
+  if (event.kind === "propagated-send/gate") {
+    const plan = planLxmfPropagatedSend({
+      nodeConfigured: event.nodeConfigured,
+      hasPropagationPacked: event.hasPropagationPacked,
+      representation: event.representation
+    });
+    if (plan === "missing-node") {
+      return { state, intents: [], actions: [{ kind: "reject-missing-node" }] };
+    }
+    if (plan === "missing-packed") {
+      return { state, intents: [], actions: [{ kind: "reject-missing-packed" }] };
+    }
+    if (plan === "resource-unimplemented") {
+      return { state, intents: [], actions: [{ kind: "reject-resource-unimplemented" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "proceed" }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 /** Whether outbound LXMF should await / poll a delivery receipt. */
 export function shouldAwaitLxmfDeliveryReceipt(receiptPresent: boolean): boolean {
   return receiptPresent;
@@ -689,6 +781,88 @@ export function planLxmfDirectSend(input: {
   return "ok";
 }
 
+/**
+ * DIRECT send gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LxmfDirectSendState = Record<string, never>;
+
+export type LxmfDirectSendEvent =
+  | Event
+  | {
+      readonly kind: "direct-send/gate";
+      readonly destinationPresent: boolean;
+      readonly destinationIdentityPresent: boolean;
+      readonly packed: boolean;
+    };
+
+export type LxmfDirectSendAction =
+  | { readonly kind: "proceed" }
+  | { readonly kind: "reject-missing-destination" }
+  | { readonly kind: "reject-missing-packed" };
+
+export interface LxmfDirectSendStepResult {
+  readonly state: LxmfDirectSendState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfDirectSendAction[];
+}
+
+export function initialLxmfDirectSendState(): LxmfDirectSendState {
+  return {};
+}
+
+export const stepLxmfDirectSend: StepFn<LxmfDirectSendState> = (state, event) => {
+  const result = stepLxmfDirectSendInner(state, event as LxmfDirectSendEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxmfDirectSendWithActions(
+  state: LxmfDirectSendState,
+  event: LxmfDirectSendEvent
+): LxmfDirectSendStepResult {
+  return stepLxmfDirectSendInner(state, event);
+}
+
+export function shouldProceedLxmfDirectSend(
+  actions: ReadonlyArray<LxmfDirectSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
+export function shouldRejectLxmfDirectMissingDestination(
+  actions: ReadonlyArray<LxmfDirectSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-destination");
+}
+
+export function shouldRejectLxmfDirectMissingPacked(
+  actions: ReadonlyArray<LxmfDirectSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-packed");
+}
+
+function stepLxmfDirectSendInner(
+  state: LxmfDirectSendState,
+  event: LxmfDirectSendEvent
+): LxmfDirectSendStepResult {
+  if (event.kind === "direct-send/gate") {
+    const plan = planLxmfDirectSend({
+      destinationPresent: event.destinationPresent,
+      destinationIdentityPresent: event.destinationIdentityPresent,
+      packed: event.packed
+    });
+    if (plan === "missing-destination") {
+      return { state, intents: [], actions: [{ kind: "reject-missing-destination" }] };
+    }
+    if (plan === "missing-packed") {
+      return { state, intents: [], actions: [{ kind: "reject-missing-packed" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "proceed" }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 export type LxmfOpportunisticSendPlan = "ok" | "missing-destination";
 
 /** Whether OPPORTUNISTIC send may proceed (destination present). */
@@ -699,6 +873,74 @@ export function planLxmfOpportunisticSend(input: {
     return "missing-destination";
   }
   return "ok";
+}
+
+/**
+ * OPPORTUNISTIC send gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LxmfOpportunisticSendState = Record<string, never>;
+
+export type LxmfOpportunisticSendEvent =
+  | Event
+  | {
+      readonly kind: "opportunistic-send/gate";
+      readonly destinationPresent: boolean;
+    };
+
+export type LxmfOpportunisticSendAction =
+  | { readonly kind: "proceed" }
+  | { readonly kind: "reject-missing-destination" };
+
+export interface LxmfOpportunisticSendStepResult {
+  readonly state: LxmfOpportunisticSendState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfOpportunisticSendAction[];
+}
+
+export function initialLxmfOpportunisticSendState(): LxmfOpportunisticSendState {
+  return {};
+}
+
+export const stepLxmfOpportunisticSend: StepFn<LxmfOpportunisticSendState> = (state, event) => {
+  const result = stepLxmfOpportunisticSendInner(state, event as LxmfOpportunisticSendEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxmfOpportunisticSendWithActions(
+  state: LxmfOpportunisticSendState,
+  event: LxmfOpportunisticSendEvent
+): LxmfOpportunisticSendStepResult {
+  return stepLxmfOpportunisticSendInner(state, event);
+}
+
+export function shouldProceedLxmfOpportunisticSend(
+  actions: ReadonlyArray<LxmfOpportunisticSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
+export function shouldRejectLxmfOpportunisticMissingDestination(
+  actions: ReadonlyArray<LxmfOpportunisticSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-destination");
+}
+
+function stepLxmfOpportunisticSendInner(
+  state: LxmfOpportunisticSendState,
+  event: LxmfOpportunisticSendEvent
+): LxmfOpportunisticSendStepResult {
+  if (event.kind === "opportunistic-send/gate") {
+    const plan = planLxmfOpportunisticSend({
+      destinationPresent: event.destinationPresent
+    });
+    if (plan === "missing-destination") {
+      return { state, intents: [], actions: [{ kind: "reject-missing-destination" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "proceed" }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 export type LxMessageInstancePackGate =

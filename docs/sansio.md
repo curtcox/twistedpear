@@ -28,7 +28,10 @@
 > adapts it. **LXMF outbound send-method dispatch** (via
 > **`stepLxmfSendMethodWithActions`**: reject-unpacked / send-opportunistic /
 > send-direct / send-propagated / reject-unsupported) is a pure protocol leaf;
-> `LXMFRouter.send` adapts it. **Link request / response
+> `LXMFRouter.send` adapts it. **LXMF per-method send gates** (via
+> **`stepLxmfOpportunisticSendWithActions`** / **`stepLxmfDirectSendWithActions`** /
+> **`stepLxmfPropagatedSendWithActions`**: proceed / reject-*) are pure protocol
+> leaves; `LXMFRouter` send paths adapt them. **Link request / response
 > msgpack codecs** are pure protocol leaves; reticulum re-exports them.
 > **Destination name expansion / hash material** and shared **UTF-8** helpers are pure
 > protocol leaves; `Destination` and path-hash call sites adapt them (SHA stays at the
@@ -178,7 +181,9 @@
 > **`shouldMatchAnnounceAspect`** live in protocol; announce ingress adapts them.
 > **`shouldReplyKeepaliveProbe`** and **`isExpectedLinkMode`** live in protocol;
 > `Link` adapts them. **`canAcceptLxmfPropagationLocalDelivery`** and
-> **`planLxmfPropagatedSend`** live in protocol; `LXMFRouter` adapts them.
+> **`planLxmfPropagatedSend`** (via **`stepLxmfPropagatedSendWithActions`**: proceed /
+> reject-missing-node / reject-missing-packed / reject-resource-unimplemented) live
+> in protocol; `LXMFRouter` adapts them.
 > **`planPathRequestIngress`** and **`planDiscoveryPathRequestFulfill`** live in
 > protocol; leaf / transport path-request and discovery announce fulfill adapt them.
 > **`planLinkDataContext`** lives in protocol; `Link.receive` DATA dispatch adapts it.
@@ -195,7 +200,8 @@
 > **`planLinkAppRequest`**, and **`canSendLinkAppResponse`** live in protocol; `Link`
 > adapts them. **`shouldAcceptLinkTeardown`** lives in protocol; LINKCLOSE handling
 > adapts it. **`canValidateLinkProof`** also gates destination presence.
-> **`planLxmfDirectSend`**, **`planLxMessageInstancePack`**, and
+> **`planLxmfDirectSend`** (via **`stepLxmfDirectSendWithActions`**: proceed /
+> reject-missing-destination / reject-missing-packed), **`planLxMessageInstancePack`**, and
 > **`planLxmfSignatureOutcome`** live in protocol; `LXMFRouter` / `LXMessage` adapt them.
 > **`shouldReuseActiveLink`** lives in protocol; LXMF direct/propagation link reuse adapts
 > it. **`planAnnounceBuild`** and **`planDestinationConstruction`** live in protocol;
@@ -211,7 +217,7 @@
 > **`planLinkAppRequestResponse`** and **`planLinkProofValidateOutcome`** live in
 > protocol; `Link` app-request and proof validation adapt them.
 > **`planLinkResourceAdvertisement`** (request bypass + strategy) lives in protocol;
-> `Link` RESOURCE_ADV adapts it via **`stepLinkResourceAdvertisementWithActions`**. **`planLxmfOpportunisticSend`** lives in protocol;
+> `Link` RESOURCE_ADV adapts it via **`stepLinkResourceAdvertisementWithActions`**. **`planLxmfOpportunisticSend`** (via **`stepLxmfOpportunisticSendWithActions`**: proceed / reject-missing-destination) lives in protocol;
 > `LXMFRouter` adapts it. **`shouldUpdateLinkLastData`** /
 > **`isLinkInboundDataPacket`** live in protocol; `Link.receive` adapts them.
 > **`planLxmfReceiptSendOutcome`** lives in protocol; opportunistic/propagated receipt →
@@ -274,7 +280,7 @@
 > **`planIdentityRecallAppData`**, **`shouldRegisterStreamReadyCallback`**,
 > **`shouldAttachLinkRequestPacketReceipt`**, **`shouldAwaitLxmfDeliveryReceipt`** /
 > **`shouldInvokeLxmfDeliveryCallback`**, and extended **`planLxmfPropagatedSend`**
-> (`missing-node`) live in protocol; destination, Channel, PacketReceipt, transport
+> (`missing-node`, via **`stepLxmfPropagatedSendWithActions`**) live in protocol; destination, Channel, PacketReceipt, transport
 > announce, Identity, Buffer, LinkRequestReceipt, and LXMF router adapt them. Link
 > resource/response/channel plaintext early-outs reuse **`shouldDispatchLinkPlaintext`**.
 > **`shouldAcceptResourceProofPayload`** / **`isValidResourceRandomHashLength`**,
@@ -387,6 +393,15 @@
 > `reject-unsupported`; `LXMFRouter.send` applies enqueue + method dispatch
 > or throws only from those actions (no ad-hoc `planLxmfSendMethod` reads
 > beside the step).
+> **`stepLxmfOpportunisticSendWithActions`** emits `proceed` /
+> `reject-missing-destination`; **`stepLxmfDirectSendWithActions`** emits
+> `proceed` / `reject-missing-destination` / `reject-missing-packed`;
+> **`stepLxmfPropagatedSendWithActions`** emits `proceed` /
+> `reject-missing-node` / `reject-missing-packed` /
+> `reject-resource-unimplemented`; `LXMFRouter` per-method send applies
+> proceed or throws only from those actions (no ad-hoc
+> `planLxmfOpportunisticSend` / `planLxmfDirectSend` /
+> `planLxmfPropagatedSend` reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -426,10 +441,11 @@
 > RESOURCE_ADV accept/ask-app/reject, Link inbound app-request
 > invoke/response, Link LINKIDENTIFY reject/commit, propagation-store
 > reject/duplicate/accept, propagation /get list-ids/apply, LXMF
-> delivery-parameter select deliver/reject, and LXMF send-method
-> reject/dispatch also conclude via machine actions
+> delivery-parameter select deliver/reject, LXMF send-method
+> reject/dispatch, and LXMF per-method send gates (opportunistic /
+> direct / propagated) also conclude via machine actions
 > (no ad-hoc `state.timedOut` / `plan.kind` / establish-status / dispatch /
-> identify-outcome / delivery-plan / send-method reads beside the step).
+> identify-outcome / delivery-plan / send-method / send-gate reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
