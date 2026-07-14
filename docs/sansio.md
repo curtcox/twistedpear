@@ -118,7 +118,8 @@
 > **`stepAnnounceSignedMaterialWithActions`**: use-raw)
 > and **packet proof framing**
 > (pack/split via **`stepPackPacketProofWithActions`** /
-> **`stepSplitPacketProofWithActions`**: use-raw / use-fields|reject; explicit/implicit)
+> **`stepSplitPacketProofWithActions`**: use-raw / use-fields|reject; explicit/implicit;
+> hash-match via **`stepPacketProofHashMatchWithActions`**: match|mismatch)
 > are pure protocol leaves; `Announce` and `Packet` adapt them.
 > **Link-proof / link-request framing** (pack/split via
 > **`stepPackLinkProofDataWithActions`** / **`stepSplitLinkProofBodyWithActions`** /
@@ -158,6 +159,7 @@
 > **`stepLxmfSignedMaterialWithActions`** /
 > **`stepLxmfOpportunisticPayloadWithActions`**), and
 > PacketReceipt proof validation via **`stepSplitPacketProofWithActions`** /
+> **`stepPacketProofHashMatchWithActions`** /
 > **`stepPacketReceiptProofAcceptWithActions`** are pure protocol leaves.
 > **Identity ciphertext** framing (pack/split via
 > **`stepPackIdentityCiphertextWithActions`** /
@@ -907,7 +909,7 @@
 > parse-path-request-data / path-request-tag-key /
 > pack-announce-payload / parse-announce-payload /
 > announce-signed-material /
-> pack-packet-proof / split-packet-proof /
+> pack-packet-proof / split-packet-proof / packet-proof-hash-match /
 > encode-packet-raw / decode-packet-raw /
 > pack-packet-flags / unpack-packet-flags / packet-hashable-part /
 > pack-link-proof-data / split-link-proof-body /
@@ -1089,9 +1091,11 @@
 > apply only from those actions (no ad-hoc `packAnnouncePayload` /
 > `parseAnnouncePayload` / `announceSignedMaterial` reads beside the step).
 > **`stepPackPacketProofWithActions`** /
-> **`stepSplitPacketProofWithActions`** emit `use-raw` / `use-fields`|`reject`;
-> packet-proof pack / split apply only from those actions (no ad-hoc
-> `packPacketProof` / `splitPacketProof` reads beside the step).
+> **`stepSplitPacketProofWithActions`** /
+> **`stepPacketProofHashMatchWithActions`** emit `use-raw` /
+> `use-fields`|`reject` / `match`|`mismatch`; packet-proof pack / split / hash-match
+> apply only from those actions (no ad-hoc `packPacketProof` / `splitPacketProof` /
+> `packetProofHashMatches` reads beside the step).
 > **`stepEncodePacketRawWithActions`** /
 > **`stepDecodePacketRawWithActions`** emit `use-raw`|`reject` /
 > `use-fields`|`reject`; packet-header encode / decode apply only from those

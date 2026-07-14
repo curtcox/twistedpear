@@ -6,18 +6,19 @@ import {
   initialPackPacketProofState,
   initialPacketFromFieldsState,
   initialPacketHashablePartState,
+  initialPacketProofHashMatchState,
   initialSplitPacketProofState,
   packPacketFlagsFromActions,
   packPacketProofRawFromActions,
   packetHashablePartRawFromActions,
   packetHeaderFieldsFromActions,
   packetProofFieldsFromActions,
-  packetProofHashMatches,
   PacketContextCode,
   PacketContextFlagCode,
   PacketHeaderTypeCode,
   PacketTypeCode,
   TransportTypeCode,
+  shouldMatchPacketProofHash,
   shouldProceedPacketFromFields,
   shouldRejectDecodePacketRaw,
   shouldRejectEncodePacketRaw,
@@ -42,6 +43,7 @@ import {
   stepPackPacketProofWithActions,
   stepPacketFromFieldsWithActions,
   stepPacketHashablePartWithActions,
+  stepPacketProofHashMatchWithActions,
   stepSplitPacketProofWithActions,
   stepTruncateHashBytesWithActions,
   truncateHashBytesRawFromActions,
@@ -288,7 +290,15 @@ export class Packet {
       shouldUseSplitPacketProof(stepped.actions)
         ? packetProofFieldsFromActions(stepped.actions)
         : null;
-    if (split === null || !packetProofHashMatches(split, packetHash)) {
+    if (split === null) {
+      return false;
+    }
+    const hashStepped = stepPacketProofHashMatchWithActions(initialPacketProofHashMatchState(), {
+      kind: "packet-proof/hash-match-gate",
+      proof: split,
+      packetHash
+    });
+    if (!shouldMatchPacketProofHash(hashStepped.actions)) {
       return false;
     }
     return identity.validate(split.signature, packetHash);

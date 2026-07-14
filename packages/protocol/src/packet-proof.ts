@@ -1,9 +1,10 @@
 /**
  * Pure RNS packet proof framing (explicit hash+sig vs signature-only).
  * Signing / verification stay at the crypto adapter edge.
- * Pack / split / packet-receipt proof-accept conclusions leave via machine
- * actions (no ad-hoc `packPacketProof` / `splitPacketProof` /
- * `planPacketReceiptProofAccept` reads beside the step).
+ * Pack / split / hash-match / packet-receipt proof-accept conclusions leave via
+ * machine actions (no ad-hoc `packPacketProof` / `splitPacketProof` /
+ * `packetProofHashMatches` / `planPacketReceiptProofAccept` reads beside the
+ * step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_PROOF } from "./packet-header.js";
@@ -209,6 +210,68 @@ export function packetProofHashMatches(
     return true;
   }
   return equalByteArrays(proof.packetHash, packetHash);
+}
+
+/**
+ * Packet-proof hash match is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `packetProofHashMatches`
+ * reads beside the step).
+ */
+export type PacketProofHashMatchState = Record<string, never>;
+
+export type PacketProofHashMatchEvent =
+  | Event
+  | {
+      readonly kind: "packet-proof/hash-match-gate";
+      readonly proof: PacketProofFields;
+      readonly packetHash: Uint8Array;
+    };
+
+export type PacketProofHashMatchAction =
+  | { readonly kind: "match" }
+  | { readonly kind: "mismatch" };
+
+export interface PacketProofHashMatchStepResult {
+  readonly state: PacketProofHashMatchState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketProofHashMatchAction[];
+}
+
+export function initialPacketProofHashMatchState(): PacketProofHashMatchState {
+  return {};
+}
+
+export function stepPacketProofHashMatchWithActions(
+  state: PacketProofHashMatchState,
+  event: PacketProofHashMatchEvent
+): PacketProofHashMatchStepResult {
+  if (event.kind === "packet-proof/hash-match-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: packetProofHashMatches(event.proof, event.packetHash)
+            ? "match"
+            : "mismatch"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldMatchPacketProofHash(
+  actions: ReadonlyArray<PacketProofHashMatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "match");
+}
+
+export function shouldMismatchPacketProofHash(
+  actions: ReadonlyArray<PacketProofHashMatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "mismatch");
 }
 
 export type PacketReceiptProofAcceptPlan = "reject" | "accept";

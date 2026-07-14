@@ -5,6 +5,7 @@ import {
   PACKET_SIGNATURE_SIZE,
   isPacketTypeProof,
   initialPackPacketProofState,
+  initialPacketProofHashMatchState,
   initialPacketReceiptProofAcceptState,
   initialSplitPacketProofState,
   packPacketProof,
@@ -14,12 +15,15 @@ import {
   planPacketReceiptProofAccept,
   shouldAcceptPacketReceiptProof,
   shouldAcceptPacketReceiptProofActions,
+  shouldMatchPacketProofHash,
+  shouldMismatchPacketProofHash,
   shouldRejectPacketReceiptProofActions,
   shouldRejectSplitPacketProof,
   shouldUsePackPacketProof,
   shouldUseSplitPacketProof,
   splitPacketProof,
   stepPackPacketProofWithActions,
+  stepPacketProofHashMatchWithActions,
   stepPacketReceiptProofAcceptWithActions,
   stepSplitPacketProofWithActions
 } from "../src/packet-proof.js";
@@ -94,6 +98,34 @@ describe("protocol packet proof framing", () => {
     expect(shouldRejectSplitPacketProof(rejected.actions)).toBe(true);
     expect(shouldUseSplitPacketProof(rejected.actions)).toBe(false);
     expect(packetProofFieldsFromActions(rejected.actions)).toBeNull();
+  });
+
+  it("emits match or mismatch from hash-match WithActions step", () => {
+    const packed = packPacketProof(packetHash, signature, true);
+    const fields = splitPacketProof(packed)!;
+    const match = stepPacketProofHashMatchWithActions(initialPacketProofHashMatchState(), {
+      kind: "packet-proof/hash-match-gate",
+      proof: fields,
+      packetHash
+    });
+    expect(shouldMatchPacketProofHash(match.actions)).toBe(true);
+    expect(shouldMismatchPacketProofHash(match.actions)).toBe(false);
+
+    const mismatch = stepPacketProofHashMatchWithActions(initialPacketProofHashMatchState(), {
+      kind: "packet-proof/hash-match-gate",
+      proof: fields,
+      packetHash: new Uint8Array(PACKET_FULL_HASH_SIZE).fill(9)
+    });
+    expect(shouldMatchPacketProofHash(mismatch.actions)).toBe(false);
+    expect(shouldMismatchPacketProofHash(mismatch.actions)).toBe(true);
+
+    const implicit = splitPacketProof(packPacketProof(packetHash, signature, false))!;
+    const implicitMatch = stepPacketProofHashMatchWithActions(initialPacketProofHashMatchState(), {
+      kind: "packet-proof/hash-match-gate",
+      proof: implicit,
+      packetHash: new Uint8Array(PACKET_FULL_HASH_SIZE).fill(9)
+    });
+    expect(shouldMatchPacketProofHash(implicitMatch.actions)).toBe(true);
   });
 
   it("plans packet-receipt proof accept outcomes", () => {
