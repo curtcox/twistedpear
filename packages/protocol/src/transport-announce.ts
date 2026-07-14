@@ -74,6 +74,11 @@ export function planPathResponseAnnounceFields(input: {
   };
 }
 
+/** Whether a cached path-response announce packet decoded successfully. */
+export function shouldAcceptCachedPathResponsePacket(decodedOk: boolean): boolean {
+  return decodedOk;
+}
+
 /**
  * Whether an announce handler should receive this packet given PATH_RESPONSE opt-in.
  * Non-path-response announces always pass; path responses require `receivePathResponses === true`.

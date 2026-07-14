@@ -503,3 +503,8 @@ export function shouldAcceptResourceHashmapUpdateFrame(splitOk: boolean): boolea
 export function shouldFulfillResourcePartRequest(requestPresent: boolean): boolean {
   return requestPresent;
 }
+
+/** Whether a planned fulfill part action has a matching local part slot. */
+export function shouldApplyResourceFulfillPart(partPresent: boolean): boolean {
+  return partPresent;
+}

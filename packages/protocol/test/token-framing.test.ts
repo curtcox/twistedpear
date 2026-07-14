@@ -7,7 +7,9 @@ import {
   splitTokenFrame,
   splitTokenKey,
   tokenHmacMatches,
-  tokenSignedMaterial
+  tokenSignedMaterial,
+  isValidTokenIvLength,
+  shouldAcceptTokenFrame
 } from "../src/token-framing.js";
 
 describe("protocol token framing", () => {
@@ -42,5 +44,12 @@ describe("protocol token framing", () => {
   it("rejects short frames and bad key sizes", () => {
     expect(splitTokenFrame(new Uint8Array(TOKEN_OVERHEAD))).toBeNull();
     expect(() => splitTokenKey(new Uint8Array(10))).toThrow(/32 or 64/);
+  });
+
+  it("gates IV length and frame presence", () => {
+    expect(isValidTokenIvLength(TOKEN_IV_SIZE)).toBe(true);
+    expect(isValidTokenIvLength(8)).toBe(false);
+    expect(shouldAcceptTokenFrame(true)).toBe(true);
+    expect(shouldAcceptTokenFrame(false)).toBe(false);
   });
 });

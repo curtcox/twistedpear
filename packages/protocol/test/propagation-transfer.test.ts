@@ -4,6 +4,9 @@ import {
   PropagationPeerError,
   PropagationTransferState,
   initialPropagationTransferState,
+  shouldAcceptPropagationPeerResponse,
+  shouldRequestPropagationHavesAck,
+  shouldTreatPropagationListAsEmpty,
   stepPropagationTransferWithActions
 } from "../src/propagation-transfer.js";
 
@@ -63,6 +66,31 @@ describe("protocol propagation transfer", () => {
     state = stepPropagationTransferWithActions(state, { kind: "xfer/link-ready" }).state;
     const result = stepPropagationTransferWithActions(state, { kind: "xfer/list-empty" });
     expect(result.state.phase).toBe(PropagationTransferState.COMPLETE);
+  });
+
+  it("gates peer response, empty list, and haves-ack", () => {
+    expect(shouldAcceptPropagationPeerResponse(true)).toBe(true);
+    expect(shouldAcceptPropagationPeerResponse(false)).toBe(false);
+    expect(shouldTreatPropagationListAsEmpty(0)).toBe(true);
+    expect(shouldTreatPropagationListAsEmpty(2)).toBe(false);
+    expect(
+      shouldRequestPropagationHavesAck({
+        actionIsHavesAck: true,
+        haveCount: 1
+      })
+    ).toBe(true);
+    expect(
+      shouldRequestPropagationHavesAck({
+        actionIsHavesAck: true,
+        haveCount: 0
+      })
+    ).toBe(false);
+    expect(
+      shouldRequestPropagationHavesAck({
+        actionIsHavesAck: false,
+        haveCount: 3
+      })
+    ).toBe(false);
   });
 
   it("marks link failed on timeout", () => {

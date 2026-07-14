@@ -28,6 +28,7 @@ import {
   planChannelTxEnvelopeOp,
   planUnregisterChannelMessageHandler,
   shouldAcceptChannelSequence,
+  shouldEmplaceChannelEnvelope,
   shouldApplyChannelPacketReceiptTimeout,
   shouldEmitChannelImmediateDelivery,
   shouldExtendPacketReceiptTimeout,
@@ -394,11 +395,11 @@ export class Channel {
       ringSequences: ring.map((existing) => existing.sequence),
       wrapBaseSequence: this.nextRxSequence
     });
-    if (index === null) {
+    if (!shouldEmplaceChannelEnvelope(index !== null)) {
       return false;
     }
 
-    ring.splice(index, 0, envelope);
+    ring.splice(index!, 0, envelope);
     envelope.tracked = true;
     return true;
   }

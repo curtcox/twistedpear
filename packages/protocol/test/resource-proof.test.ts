@@ -6,7 +6,7 @@ import {
   isValidResourceRandomHashLength,
   packResourceProof,
   shouldAcceptResourceProofPayload,
-  shouldAcceptResourceProofPayload,
+  shouldAcceptResourceProofSplit,
   splitResourceDecryptedPayload,
   splitResourceProof
 } from "../src/resource-proof.js";
@@ -26,6 +26,8 @@ describe("protocol resource proof", () => {
   it("gates proof payload length and random-hash size", () => {
     expect(shouldAcceptResourceProofPayload(RESOURCE_PROOF_SIZE)).toBe(true);
     expect(shouldAcceptResourceProofPayload(10)).toBe(false);
+    expect(shouldAcceptResourceProofSplit(true)).toBe(true);
+    expect(shouldAcceptResourceProofSplit(false)).toBe(false);
     expect(isValidResourceRandomHashLength(RESOURCE_RANDOM_HASH_SIZE)).toBe(true);
     expect(isValidResourceRandomHashLength(3)).toBe(false);
   });

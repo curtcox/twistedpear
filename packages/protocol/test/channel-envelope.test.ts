@@ -22,7 +22,8 @@ import {
   drainContiguousChannelSequences,
   indexOfChannelRingSequence,
   insertChannelSequence,
-  shouldAcceptChannelSequence
+  shouldAcceptChannelSequence,
+  shouldEmplaceChannelEnvelope
 } from "../src/channel-reorder.js";
 
 describe("protocol channel envelope", () => {
@@ -162,6 +163,8 @@ describe("protocol channel reorder", () => {
     expect(
       channelEmplaceIndex({ sequence: 4, ringSequences: [1, 4], wrapBaseSequence: 1 })
     ).toBeNull();
+    expect(shouldEmplaceChannelEnvelope(true)).toBe(true);
+    expect(shouldEmplaceChannelEnvelope(false)).toBe(false);
 
     const inserted = insertChannelSequence([1, 4], 3, 1);
     expect(inserted.inserted).toBe(true);

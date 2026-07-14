@@ -91,6 +91,7 @@ import {
   shouldAcceptLinkTeardown,
   shouldAcceptResourceHashmapUpdateFrame,
   shouldAcceptResourceProofPayload,
+  shouldAcceptResourceProofSplit,
   shouldAttemptLinkProofCrypto,
   shouldCreateLinkChannel,
   shouldDispatchLinkPlaintext,
@@ -103,6 +104,7 @@ import {
   shouldReplyKeepaliveProbe,
   shouldUpdateLinkLastData,
   isLinkInboundDataPacket,
+  isLinkKeepaliveContext,
   splitIdentityPublicKey,
   splitInitiatorLinkEntropy,
   splitLinkIdentifyPayload,
@@ -690,7 +692,7 @@ export class Link {
     if (
       shouldIgnoreInitiatorKeepaliveProbe({
         initiator: this.initiator,
-        contextKeepalive: packet.context === PacketContext.KEEPALIVE,
+        contextKeepalive: isLinkKeepaliveContext(packet.context),
         probePayload: isLinkKeepaliveProbe(packet.data)
       })
     ) {
@@ -712,7 +714,7 @@ export class Link {
         at: this.clock.now() / 1000
       })
     );
-    if (shouldUpdateLinkLastData(packet.context === PacketContext.KEEPALIVE)) {
+    if (shouldUpdateLinkLastData(isLinkKeepaliveContext(packet.context))) {
       this.lastData = this.lastInbound;
     }
 
@@ -990,7 +992,7 @@ export class Link {
       attachedInterface: this.attachedInterface,
       createReceipt: options.createReceipt ?? false
     });
-    this.hadOutbound(context === PacketContext.KEEPALIVE);
+    this.hadOutbound(isLinkKeepaliveContext(context));
     return { raw: packet.raw, receipt };
   }
 
@@ -1287,11 +1289,11 @@ export class Link {
       return;
     }
     const split = splitResourceProof(packet.data);
-    if (split === null) {
+    if (!shouldAcceptResourceProofSplit(split !== null)) {
       return;
     }
     for (const resource of this.outgoingResourcesList) {
-      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split.resourceHash))) {
+      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split!.resourceHash))) {
         resource.validateProof(packet.data);
         return;
       }

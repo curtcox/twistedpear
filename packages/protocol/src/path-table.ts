@@ -108,6 +108,16 @@ export function shouldBeginPathDiscovery(input: {
   return input.parsedOk && input.tagPresent && input.destinationKeyPresent;
 }
 
+/** Whether an expired discovery path-request entry should be cleared before reinsert. */
+export function shouldClearExpiredDiscoveryPathRequest(discoveryExpired: boolean): boolean {
+  return discoveryExpired;
+}
+
+/** Whether a path-request tag key should be remembered in the seen-tag set. */
+export function shouldRememberPathRequestTag(tagKeyPresent: boolean): boolean {
+  return tagKeyPresent;
+}
+
 /** Whether a pending discovery path-request should be fulfilled by an announce. */
 export type DiscoveryPathRequestFulfillPlan = "ignore" | "drop-expired" | "fulfill";
 

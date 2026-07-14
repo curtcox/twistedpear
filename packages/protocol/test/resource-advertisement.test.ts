@@ -5,6 +5,7 @@ import {
   isResourceAdvertisementRequest,
   isResourceAdvertisementResponse,
   packResourceAdvertisement,
+  planResourceAdvertisementRoleFlags,
   unpackResourceAdvertisement
 } from "../src/resource-advertisement.js";
 import { msgpackPackString, msgpackPackStringMap, msgpackPackUInt } from "../src/msgpack-core.js";
@@ -97,5 +98,26 @@ describe("protocol resource advertisement", () => {
     expect(isResourceAdvertisementResponse(request)).toBe(false);
     expect(isResourceAdvertisementResponse(response)).toBe(true);
     expect(isResourceAdvertisementRequest(response)).toBe(false);
+  });
+
+  it("plans request/response role flags", () => {
+    expect(
+      planResourceAdvertisementRoleFlags({
+        requestIdPresent: true,
+        isResponse: false
+      })
+    ).toEqual({ u: true, p: false });
+    expect(
+      planResourceAdvertisementRoleFlags({
+        requestIdPresent: true,
+        isResponse: true
+      })
+    ).toEqual({ u: false, p: true });
+    expect(
+      planResourceAdvertisementRoleFlags({
+        requestIdPresent: false,
+        isResponse: false
+      })
+    ).toEqual({ u: false, p: false });
   });
 });

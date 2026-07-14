@@ -49,6 +49,11 @@ export function channelEmplaceIndex(input: {
   return input.ringSequences.length;
 }
 
+/** Whether an emplace index may insert into the RX/TX ring (duplicate → miss). */
+export function shouldEmplaceChannelEnvelope(indexPresent: boolean): boolean {
+  return indexPresent;
+}
+
 /** Index of `target` in a ring of sequences, or null if absent. */
 export function indexOfChannelRingSequence(input: {
   readonly ringSequences: ReadonlyArray<number>;

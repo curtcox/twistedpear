@@ -6,8 +6,11 @@ import {
   planLxmfPropagationLinkReady,
   planLxmfPropagationSyncPrep,
   planPropagationGet,
+  shouldAcceptPropagationPeerResponse,
+  shouldRequestPropagationHavesAck,
   shouldReuseActiveLink,
   shouldTeardownLxmfPropagationLink,
+  shouldTreatPropagationListAsEmpty,
   stepPropagationTransferWithActions,
   type PropagationTransferAction,
   type PropagationTransferMachineState,
@@ -114,12 +117,12 @@ export class PropagationClient {
           action.timeoutSec
         );
 
-        if (listResponse === null) {
+        if (!shouldAcceptPropagationPeerResponse(listResponse !== null)) {
           this.applyTransfer({ kind: "xfer/list-null" });
           return { state: this.state, messages: [] };
         }
 
-        const listError = decodeLxmfPeerError(listResponse);
+        const listError = decodeLxmfPeerError(listResponse!);
         if (listError !== null) {
           this.applyTransfer({ kind: "xfer/list-peer-error", code: listError });
           return { state: this.state, messages: [] };
@@ -127,7 +130,7 @@ export class PropagationClient {
 
         let transientIds: ReadonlyArray<Uint8Array>;
         try {
-          transientIds = msgpackUnpackTransientIdList(listResponse);
+          transientIds = msgpackUnpackTransientIdList(listResponse!);
         } catch {
           this.applyTransfer({ kind: "xfer/list-malformed" });
           return { state: this.state, messages: [] };
@@ -136,7 +139,7 @@ export class PropagationClient {
         const wants =
           maxMessages === null ? [...transientIds] : transientIds.slice(0, Math.max(0, maxMessages));
 
-        if (wants.length === 0) {
+        if (shouldTreatPropagationListAsEmpty(wants.length)) {
           this.applyTransfer({ kind: "xfer/list-empty" });
           return { state: this.state, messages: [] };
         }
@@ -176,14 +179,14 @@ export class PropagationClient {
         action.timeoutSec
       );
 
-      if (downloadResponse === null) {
+      if (!shouldAcceptPropagationPeerResponse(downloadResponse !== null)) {
         this.applyTransfer({ kind: "xfer/download-null" });
         return { state: this.state, messages: [] };
       }
 
       let downloaded: ReadonlyArray<Uint8Array>;
       try {
-        downloaded = msgpackUnpackMessageList(downloadResponse);
+        downloaded = msgpackUnpackMessageList(downloadResponse!);
       } catch {
         this.applyTransfer({ kind: "xfer/download-malformed" });
         return { state: this.state, messages: [] };
@@ -205,7 +208,13 @@ export class PropagationClient {
       });
 
       for (const next of afterDownload.actions) {
-        if (next.kind === "request-haves-ack" && haves.length > 0) {
+        if (
+          next.kind === "request-haves-ack" &&
+          shouldRequestPropagationHavesAck({
+            actionIsHavesAck: true,
+            haveCount: haves.length
+          })
+        ) {
           await awaitLinkRequest(
             link,
             MESSAGE_GET_PATH,

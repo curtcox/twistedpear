@@ -223,3 +223,21 @@ function stepPropagationTransferInner(
 
   return { state, intents: [], actions: [] };
 }
+
+/** Whether a peer list/download response bytes are present for transfer progression. */
+export function shouldAcceptPropagationPeerResponse(responsePresent: boolean): boolean {
+  return responsePresent;
+}
+
+/** Whether a filtered want-list should complete as empty (xfer/list-empty). */
+export function shouldTreatPropagationListAsEmpty(wantCount: number): boolean {
+  return wantCount === 0;
+}
+
+/** Whether haves-ack request should run after download-ready. */
+export function shouldRequestPropagationHavesAck(input: {
+  readonly actionIsHavesAck: boolean;
+  readonly haveCount: number;
+}): boolean {
+  return input.actionIsHavesAck && input.haveCount > 0;
+}

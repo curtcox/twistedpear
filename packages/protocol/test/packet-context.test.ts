@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PacketContextCode, planLinkDataContext } from "../src/packet-context.js";
+import { PacketContextCode, isLinkKeepaliveContext, planLinkDataContext } from "../src/packet-context.js";
 
 describe("protocol packet context", () => {
   it("plans link DATA context dispatch kinds", () => {
@@ -18,5 +18,10 @@ describe("protocol packet context", () => {
     expect(planLinkDataContext(PacketContextCode.RESOURCE)).toBe("resource");
     expect(planLinkDataContext(PacketContextCode.NONE)).toBe("plaintext");
     expect(planLinkDataContext(PacketContextCode.LRPROOF)).toBe("ignore");
+  });
+
+  it("recognizes keepalive context bytes", () => {
+    expect(isLinkKeepaliveContext(PacketContextCode.KEEPALIVE)).toBe(true);
+    expect(isLinkKeepaliveContext(PacketContextCode.NONE)).toBe(false);
   });
 });

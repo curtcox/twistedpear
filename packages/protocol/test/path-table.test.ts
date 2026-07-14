@@ -22,7 +22,9 @@ import {
   shouldAddPathEntry,
   shouldAnswerPathRequest,
   shouldBeginPathDiscovery,
+  shouldClearExpiredDiscoveryPathRequest,
   shouldEmitPathRequest,
+  shouldRememberPathRequestTag,
   stepPathTable,
   initialPathTableState
 } from "../src/index.js";
@@ -352,6 +354,10 @@ describe("protocol path table", () => {
         destinationKeyPresent: false
       })
     ).toBe(false);
+    expect(shouldClearExpiredDiscoveryPathRequest(true)).toBe(true);
+    expect(shouldClearExpiredDiscoveryPathRequest(false)).toBe(false);
+    expect(shouldRememberPathRequestTag(true)).toBe(true);
+    expect(shouldRememberPathRequestTag(false)).toBe(false);
   });
 
   it("plans discovery path-request fulfill from announce", () => {

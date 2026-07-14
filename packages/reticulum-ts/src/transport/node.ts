@@ -31,6 +31,7 @@ import {
   planUnregisterTransportMember,
   canAnswerLocalPathRequest,
   canDispatchAnnounceHandlers,
+  shouldAcceptCachedPathResponsePacket,
   shouldAcceptLinkLrProofCandidate,
   shouldDispatchLocalLinkRequest,
   shouldIgnoreLocalAnnounce,
@@ -41,6 +42,7 @@ import {
   shouldRegisterLinkMember,
   shouldRegisterPacketReceipt,
   shouldRegisterTransportMember,
+  shouldRememberPathRequestTag,
   shouldTransmitOnInterface,
   indexOfMatchingLinkId,
   relayTransportPacketBytes,
@@ -783,8 +785,8 @@ export class LeafTransport {
       return;
     }
 
-    if (tagKey !== null) {
-      this.discoveryPrTags.add(tagKey);
+    if (shouldRememberPathRequestTag(tagKey !== null)) {
+      this.discoveryPrTags.add(tagKey!);
     }
 
     if (plan === "answer-local") {
@@ -805,12 +807,12 @@ export class LeafTransport {
       this.clock.setTimeout(() => {
         void (async () => {
           const cached = Packet.decode(this.provider, path.announceRaw);
-          if (cached === null) {
+          if (!shouldAcceptCachedPathResponsePacket(cached !== null)) {
             resolve();
             return;
           }
 
-          const response = buildPathResponseAnnounce(this.provider, cached, this.transportIdentity, path.hops);
+          const response = buildPathResponseAnnounce(this.provider, cached!, this.transportIdentity, path.hops);
           await this.outbound(response, iface);
           resolve();
         })();

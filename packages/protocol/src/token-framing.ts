@@ -98,3 +98,13 @@ export function tokenHmacMatches(received: Uint8Array, expected: Uint8Array): bo
   }
   return mismatch === 0;
 }
+
+/** Whether a Token IV matches the fixed RNS size. */
+export function isValidTokenIvLength(length: number): boolean {
+  return length === TOKEN_IV_SIZE;
+}
+
+/** Whether a Token frame split succeeded (HMAC/AES stay at the edge). */
+export function shouldAcceptTokenFrame(framePresent: boolean): boolean {
+  return framePresent;
+}

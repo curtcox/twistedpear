@@ -187,6 +187,9 @@ export {
   PropagationPeerError,
   PropagationTransferState,
   initialPropagationTransferState,
+  shouldAcceptPropagationPeerResponse,
+  shouldRequestPropagationHavesAck,
+  shouldTreatPropagationListAsEmpty,
   stepPropagationTransfer,
   stepPropagationTransferWithActions,
   type PropagationTransferAction,
@@ -241,6 +244,8 @@ export {
   planPathOutbound,
   planPathRequestIngress,
   shouldBeginPathDiscovery,
+  shouldClearExpiredDiscoveryPathRequest,
+  shouldRememberPathRequestTag,
   stepPathTable,
   timebaseFromRandomBlobs,
   type DiscoveryPathRequestFulfillPlan,
@@ -434,7 +439,8 @@ export {
   drainContiguousChannelSequences,
   indexOfChannelRingSequence,
   insertChannelSequence,
-  shouldAcceptChannelSequence
+  shouldAcceptChannelSequence,
+  shouldEmplaceChannelEnvelope
 } from "./channel-reorder.js";
 export {
   LxmfMessageState,
@@ -590,6 +596,7 @@ export {
   PACKET_CONTEXT_NONE,
   PACKET_CONTEXT_PATH_RESPONSE,
   PacketContextCode,
+  isLinkKeepaliveContext,
   planLinkDataContext,
   type LinkDataContextKind,
   type PacketContextCodeValue
@@ -636,6 +643,7 @@ export {
   isResourceAdvertisementRequest,
   isResourceAdvertisementResponse,
   packResourceAdvertisement,
+  planResourceAdvertisementRoleFlags,
   unpackResourceAdvertisement,
   type ResourceAdvertisementFields,
   type ResourceAdvertisementFlags
@@ -664,6 +672,7 @@ export {
   resourceHashmapMaxLen,
   resourceMapHashCollisionGuardLimit,
   shouldAcceptResourceHashmapUpdateFrame,
+  shouldApplyResourceFulfillPart,
   shouldFulfillResourcePartRequest,
   splitResourceHashmapUpdatePacket,
   unpackResourceHashmapUpdate,
@@ -684,6 +693,7 @@ export {
   isValidResourceRandomHashLength,
   packResourceProof,
   shouldAcceptResourceProofPayload,
+  shouldAcceptResourceProofSplit,
   splitResourceDecryptedPayload,
   splitResourceProof
 } from "./resource-proof.js";
@@ -736,6 +746,7 @@ export {
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
   canDispatchAnnounceHandlers,
+  shouldAcceptCachedPathResponsePacket,
   shouldIgnoreLocalAnnounce,
   shouldMatchAnnounceAspect,
   shouldReceiveAnnouncePathResponse,
@@ -928,7 +939,9 @@ export {
   TOKEN_HMAC_SIZE,
   TOKEN_IV_SIZE,
   TOKEN_OVERHEAD,
+  isValidTokenIvLength,
   packTokenFrame,
+  shouldAcceptTokenFrame,
   splitTokenFrame,
   splitTokenKey,
   tokenHmacMatches,

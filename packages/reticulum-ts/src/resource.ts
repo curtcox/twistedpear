@@ -28,6 +28,7 @@ import {
   computeResourceTotalParts,
   decodeResourceAdvertisementFlags,
   encodeResourceAdvertisementFlags,
+  planResourceAdvertisementRoleFlags,
   initialResourceStatusState,
   isResourceAdvertisementRequest,
   isResourceAdvertisementResponse,
@@ -60,6 +61,7 @@ import {
   splitResourceHashmapUpdatePacket,
   shouldAcceptIncomingResourceAdvertisement,
   shouldAdvertiseResource,
+  shouldApplyResourceFulfillPart,
   shouldFulfillResourcePartRequest,
   stepResourceWatchdogWithActions,
   unpackResourceAdvertisement,
@@ -206,8 +208,12 @@ export class ResourceAdvertisement {
     this.i = resource.segmentIndex;
     this.l = resource.totalSegments;
     this.q = resource.requestId;
-    this.u = resource.requestId !== null && !resource.isResponse;
-    this.p = resource.requestId !== null && resource.isResponse;
+    const role = planResourceAdvertisementRoleFlags({
+      requestIdPresent: resource.requestId !== null,
+      isResponse: resource.isResponse
+    });
+    this.u = role.u;
+    this.p = role.p;
     this.f = encodeResourceAdvertisementFlags({
       e: this.e,
       c: this.c,
@@ -564,14 +570,14 @@ export class Resource {
 
     for (const action of plan.partActions) {
       const part = this.parts[action.index];
-      if (part === undefined) {
+      if (!shouldApplyResourceFulfillPart(part !== undefined)) {
         continue;
       }
       if (action.kind === "send") {
-        await this.link.sendResourcePart(part.data);
-        part.sent = true;
+        await this.link.sendResourcePart(part!.data);
+        part!.sent = true;
       } else {
-        await this.link.resendPacket(part.raw);
+        await this.link.resendPacket(part!.raw);
       }
     }
     this.sentParts = plan.nextSentParts;

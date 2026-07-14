@@ -52,6 +52,11 @@ export function shouldAcceptResourceProofPayload(dataLength: number): boolean {
   return dataLength === RESOURCE_PROOF_SIZE;
 }
 
+/** Whether a RESOURCE_PRF split produced hash halves. */
+export function shouldAcceptResourceProofSplit(splitOk: boolean): boolean {
+  return splitOk;
+}
+
 /** Whether a resource random-hash prefix has the RNS size. */
 export function isValidResourceRandomHashLength(length: number): boolean {
   return length === RESOURCE_RANDOM_HASH_SIZE;

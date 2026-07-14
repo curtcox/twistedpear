@@ -1,9 +1,11 @@
 import {
   TOKEN_IV_SIZE,
   TOKEN_OVERHEAD,
+  isValidTokenIvLength,
   packTokenFrame,
   pkcs7Pad,
   pkcs7Unpad,
+  shouldAcceptTokenFrame,
   splitTokenFrame,
   splitTokenKey,
   tokenHmacMatches,
@@ -42,12 +44,12 @@ export class Token {
 
   verifyHmac(token: Uint8Array): boolean {
     const frame = splitTokenFrame(token);
-    if (frame === null) {
+    if (!shouldAcceptTokenFrame(frame !== null)) {
       throw new Error(`Cannot verify HMAC on token of only ${token.length} bytes`);
     }
 
-    const expectedHmac = this.provider.hmacSha256(this.signingKey, frame.signedMaterial);
-    return tokenHmacMatches(frame.hmac, expectedHmac);
+    const expectedHmac = this.provider.hmacSha256(this.signingKey, frame!.signedMaterial);
+    return tokenHmacMatches(frame!.hmac, expectedHmac);
   }
 
   encrypt(data: Uint8Array, options: TokenEncryptOptions = {}): Uint8Array {
@@ -60,7 +62,7 @@ export class Token {
       (options.entropy !== undefined
         ? options.entropy.randomBytes(TOKEN_IV_SIZE)
         : this.provider.randomBytes(TOKEN_IV_SIZE));
-    if (iv.length !== TOKEN_IV_SIZE) {
+    if (!isValidTokenIvLength(iv.length)) {
       throw new Error(`Token IV must be ${TOKEN_IV_SIZE} bytes`);
     }
 
@@ -83,15 +85,15 @@ export class Token {
     }
 
     const frame = splitTokenFrame(token);
-    if (frame === null) {
+    if (!shouldAcceptTokenFrame(frame !== null)) {
       throw new Error("Token HMAC was invalid");
     }
 
     try {
       const decrypted =
         this.mode === "aes256"
-          ? this.provider.aes256CbcDecrypt(frame.ciphertext, this.encryptionKey, frame.iv)
-          : this.provider.aes128CbcDecrypt(frame.ciphertext, this.encryptionKey, frame.iv);
+          ? this.provider.aes256CbcDecrypt(frame!.ciphertext, this.encryptionKey, frame!.iv)
+          : this.provider.aes128CbcDecrypt(frame!.ciphertext, this.encryptionKey, frame!.iv);
       return pkcs7Unpad(decrypted);
     } catch {
       throw new Error("Could not decrypt token");

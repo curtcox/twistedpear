@@ -272,6 +272,14 @@
 > **`shouldInvokePacketReceiptTimeoutCallback`**, and
 > **`shouldInvokeLinkRequestReceiptAction`** live in protocol; Link, Resource, Channel,
 > transport path-request, PacketReceipt, and LinkRequestReceipt adapt them.
+> **`planResourceAdvertisementRoleFlags`**, **`isValidTokenIvLength`** /
+> **`shouldAcceptTokenFrame`**, **`isLinkKeepaliveContext`**,
+> **`shouldAcceptResourceProofSplit`**, **`shouldEmplaceChannelEnvelope`**,
+> **`shouldApplyResourceFulfillPart`**, **`shouldClearExpiredDiscoveryPathRequest`** /
+> **`shouldRememberPathRequestTag`**, **`shouldAcceptCachedPathResponsePacket`**,
+> and **`shouldAcceptPropagationPeerResponse`** / **`shouldTreatPropagationListAsEmpty`** /
+> **`shouldRequestPropagationHavesAck`** live in protocol; Resource, Token, Link,
+> Channel, transport path helpers, and LXMF propagation adapt them.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

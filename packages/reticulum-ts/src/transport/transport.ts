@@ -17,11 +17,13 @@ import {
   canAnswerLocalPathRequest,
   shouldAcceptTransportPacket,
   shouldBeginPathDiscovery,
+  shouldClearExpiredDiscoveryPathRequest,
   shouldDeferPacketHash as planShouldDeferPacketHash,
   shouldAnswerPathRequest,
   shouldMatchLocalInboundDestination,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
+  shouldRememberPathRequestTag,
   shouldTransmitOnInterface
 } from "@twistedpear/protocol";
 import { equalBytes } from "../crypto/bytes.js";
@@ -216,8 +218,8 @@ export class TransportNode extends LeafTransport {
       return;
     }
 
-    if (tagKey !== null) {
-      this.discoveryPrTags.add(tagKey);
+    if (shouldRememberPathRequestTag(tagKey !== null)) {
+      this.discoveryPrTags.add(tagKey!);
     }
 
     if (plan === "answer-local") {
@@ -253,7 +255,7 @@ export class TransportNode extends LeafTransport {
 
     const discoveryKey = destinationKey!;
     const discoveryParsed = parsed!;
-    if (discoveryExpired) {
+    if (shouldClearExpiredDiscoveryPathRequest(discoveryExpired)) {
       this.discoveryPathRequests.delete(discoveryKey);
     }
 

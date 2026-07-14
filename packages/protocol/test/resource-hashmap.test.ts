@@ -20,6 +20,7 @@ import {
   resourceHashmapMaxLen,
   resourceMapHashCollisionGuardLimit,
   shouldAcceptResourceHashmapUpdateFrame,
+  shouldApplyResourceFulfillPart,
   shouldFulfillResourcePartRequest,
   splitResourceHashmapUpdatePacket,
   unpackResourceHashmapUpdate
@@ -273,5 +274,7 @@ describe("protocol resource hashmap", () => {
     expect(shouldAcceptResourceHashmapUpdateFrame(false)).toBe(false);
     expect(shouldFulfillResourcePartRequest(true)).toBe(true);
     expect(shouldFulfillResourcePartRequest(false)).toBe(false);
+    expect(shouldApplyResourceFulfillPart(true)).toBe(true);
+    expect(shouldApplyResourceFulfillPart(false)).toBe(false);
   });
 });

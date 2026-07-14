@@ -7,6 +7,7 @@ import {
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
   canDispatchAnnounceHandlers,
+  shouldAcceptCachedPathResponsePacket,
   shouldIgnoreLocalAnnounce,
   shouldMatchAnnounceAspect,
   shouldReceiveAnnouncePathResponse
@@ -101,6 +102,11 @@ describe("protocol transport announce planning", () => {
   it("ignores announces for local inbound destinations", () => {
     expect(shouldIgnoreLocalAnnounce(true)).toBe(true);
     expect(shouldIgnoreLocalAnnounce(false)).toBe(false);
+  });
+
+  it("accepts cached path-response packets when decode succeeds", () => {
+    expect(shouldAcceptCachedPathResponsePacket(true)).toBe(true);
+    expect(shouldAcceptCachedPathResponsePacket(false)).toBe(false);
   });
 
   it("dispatches announce handlers when identity recall succeeds", () => {

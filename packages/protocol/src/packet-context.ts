@@ -86,3 +86,8 @@ export function planLinkDataContext(context: number): LinkDataContextKind {
       return "ignore";
   }
 }
+
+/** Whether a packet context byte is the link keepalive context. */
+export function isLinkKeepaliveContext(context: number): boolean {
+  return context === PacketContextCode.KEEPALIVE;
+}

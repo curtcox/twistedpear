@@ -120,3 +120,17 @@ export function isResourceAdvertisementResponse(fields: ResourceAdvertisementFie
   const flags = decodeResourceAdvertisementFlags(fields.f);
   return fields.q !== null && flags.p;
 }
+
+/**
+ * Plan request (u) / response (p) role flags for a resource advertisement.
+ * Encoder packing stays at the adapter edge.
+ */
+export function planResourceAdvertisementRoleFlags(input: {
+  readonly requestIdPresent: boolean;
+  readonly isResponse: boolean;
+}): { readonly u: boolean; readonly p: boolean } {
+  return {
+    u: input.requestIdPresent && !input.isResponse,
+    p: input.requestIdPresent && input.isResponse
+  };
+}
