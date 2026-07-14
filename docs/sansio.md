@@ -321,11 +321,13 @@
 > lives in protocol; `TransportNode.awaitPath` adapts it. **`stepLinkAwait`** (outbound
 > link establish-or-timeout; timer set/cancel intents) lives in protocol; LXMF router
 > direct/propagation link waits and `PropagationClient` adapt it.
-> **`stepPathResponseGrace`** (PATH_REQUEST_GRACE_MS delay then transmit action) lives in
-> protocol; `TransportNode.sendPathResponse` adapts it.
-> **`stepInterfaceConnect`** (initial socket connect timeout / open / fail) lives in
-> protocol; TCP and WebSocket clients adapt it (share `INTERFACE_CONNECT_TIMEOUT_MS`;
-> TCP factory uses `connectTimeoutMs: 0` so only the step machine arms a timer).
+> **`stepPathResponseGrace`** (PATH_REQUEST_GRACE_MS delay then `transmit` + `resolve`
+> actions) lives in protocol; `TransportNode.sendPathResponse` adapts it (no ad-hoc
+> `shouldTransmitPathResponse` read beside the machine).
+> **`stepInterfaceConnectWithActions`** (arm → `connect`; open/fail/timeout →
+> `resolve` / `reject`) lives in protocol; TCP and WebSocket clients adapt it (share
+> `INTERFACE_CONNECT_TIMEOUT_MS`; TCP factory uses `connectTimeoutMs: 0` so only the
+> step machine arms a timer).
 > **`stepPacketReceiptTimeout`** emits `timer/set` / `timer/cancel` for
 > `receipt-timeout`; `PacketReceipt` schedules from injected `clock` (Channel /
 > LinkRequestReceipt callbacks fire on timer expiry).
@@ -359,9 +361,10 @@
 > Remaining depth work: Link/Channel/LXMF orchestration shells that still
 > hold Promise/callback continuations around already-pure step cores (watchdog
 > ticks are already intent-driven). Path-await, delivery-receipt, resource
-> advertise-wait, propagation link establish/timeout, LXMF outbound link-await,
-> and propagation app-request awaits all conclude via machine resolve/reject
-> actions (adapters no longer finish by reading `state.concluded` beside probes).
+> advertise-wait, path-response grace, interface connect, propagation link
+> establish/timeout, LXMF outbound link-await, and propagation app-request
+> awaits all conclude via machine resolve/reject actions (adapters no longer
+> finish by reading `state.concluded` beside probes).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

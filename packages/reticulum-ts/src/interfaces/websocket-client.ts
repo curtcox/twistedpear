@@ -5,10 +5,7 @@ import {
   INTERFACE_RECONNECT_WAIT_MS,
   initialInterfaceConnectState,
   initialInterfaceReconnectState,
-  isInterfaceConnectConnected,
-  isInterfaceConnectFailed,
-  isInterfaceConnectTimedOut,
-  stepInterfaceConnect,
+  stepInterfaceConnectWithActions,
   stepInterfaceReconnectWithActions,
   type InterfaceReconnectEvent,
   type InterfaceReconnectState
@@ -139,12 +136,13 @@ export class WebSocketClientInterface extends RawPacketInterface {
     socket.binaryType = "arraybuffer";
 
     return new Promise((resolve, reject) => {
-      const armed = stepInterfaceConnect(initialInterfaceConnectState(), {
+      const armed = stepInterfaceConnectWithActions(initialInterfaceConnectState(), {
         kind: "interface-connect/arm",
         timeoutMs: this.connectTimeoutMs()
-      } as never);
+      });
       let state = armed.state;
       let timer: Timer | null = null;
+      let settled = false;
 
       const cleanupListeners = () => {
         socket.removeEventListener("open", onOpen);
@@ -152,24 +150,35 @@ export class WebSocketClientInterface extends RawPacketInterface {
         socket.removeEventListener("error", onFailure);
       };
 
-      const applyIntents = (intents: ReturnType<typeof stepInterfaceConnect>["intents"]): void => {
+      const finish = (result: { ok: true } | { ok: false; error: Error }): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanupListeners();
+        if (result.ok) {
+          resolve(socket);
+          return;
+        }
+        reject(result.error);
+      };
+
+      const applyIntents = (
+        intents: ReturnType<typeof stepInterfaceConnectWithActions>["intents"]
+      ): void => {
         for (const intent of intents) {
           if (intent.kind === "timer/set" && intent.timer.id === INTERFACE_CONNECT_TIMER_ID) {
             timer?.cancel();
             timer = this.runtime.clock.setTimeout(() => {
               timer = null;
-              const tick = stepInterfaceConnect(state, {
+              const tick = stepInterfaceConnectWithActions(state, {
                 kind: "timer/fired",
                 id: INTERFACE_CONNECT_TIMER_ID,
                 at: this.runtime.clock.now()
               });
               state = tick.state;
               applyIntents(tick.intents);
-              if (isInterfaceConnectTimedOut(state)) {
-                cleanupListeners();
-                socket.close();
-                reject(new Error(`WebSocket connect timed out after ${this.connectTimeoutMs()}ms`));
-              }
+              applyActions(tick.actions);
             }, intent.timer.delayMs);
           }
           if (intent.kind === "timer/cancel" && intent.timer.id === INTERFACE_CONNECT_TIMER_ID) {
@@ -179,29 +188,54 @@ export class WebSocketClientInterface extends RawPacketInterface {
         }
       };
 
-      const onOpen = () => {
-        const result = stepInterfaceConnect(state, { kind: "interface-connect/connected" } as never);
-        state = result.state;
-        applyIntents(result.intents);
-        if (isInterfaceConnectConnected(state)) {
-          cleanupListeners();
-          resolve(socket);
-        }
-      };
-      const onFailure = () => {
-        const result = stepInterfaceConnect(state, { kind: "interface-connect/failed" } as never);
-        state = result.state;
-        applyIntents(result.intents);
-        if (isInterfaceConnectFailed(state)) {
-          cleanupListeners();
-          reject(new Error(`WebSocket connect failed for ${this.options.url}`));
+      const applyActions = (
+        actions: ReturnType<typeof stepInterfaceConnectWithActions>["actions"]
+      ): void => {
+        for (const action of actions) {
+          if (action.kind === "connect") {
+            socket.addEventListener("open", onOpen);
+            socket.addEventListener("close", onFailure);
+            socket.addEventListener("error", onFailure);
+          }
+          if (action.kind === "resolve") {
+            finish({ ok: true });
+          }
+          if (action.kind === "reject") {
+            if (action.reason === "timeout") {
+              socket.close();
+              finish({
+                ok: false,
+                error: new Error(`WebSocket connect timed out after ${this.connectTimeoutMs()}ms`)
+              });
+              return;
+            }
+            finish({
+              ok: false,
+              error: new Error(`WebSocket connect failed for ${this.options.url}`)
+            });
+          }
         }
       };
 
+      const onOpen = () => {
+        const result = stepInterfaceConnectWithActions(state, {
+          kind: "interface-connect/connected"
+        });
+        state = result.state;
+        applyIntents(result.intents);
+        applyActions(result.actions);
+      };
+      const onFailure = () => {
+        const result = stepInterfaceConnectWithActions(state, {
+          kind: "interface-connect/failed"
+        });
+        state = result.state;
+        applyIntents(result.intents);
+        applyActions(result.actions);
+      };
+
       applyIntents(armed.intents);
-      socket.addEventListener("open", onOpen);
-      socket.addEventListener("close", onFailure);
-      socket.addEventListener("error", onFailure);
+      applyActions(armed.actions);
     });
   }
 

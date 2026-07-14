@@ -23,7 +23,7 @@ describe("protocol path-response grace", () => {
     expect(result.actions).toEqual([]);
   });
 
-  it("emits transmit when the grace timer fires", () => {
+  it("emits transmit and resolve when the grace timer fires", () => {
     let state = stepPathResponseGraceWithActions(initialPathResponseGraceState(), {
       kind: "path-response-grace/arm"
     }).state;
@@ -33,7 +33,7 @@ describe("protocol path-response grace", () => {
       at: PATH_REQUEST_GRACE_MS
     });
     expect(shouldTransmitPathResponse(result.state)).toBe(true);
-    expect(result.actions).toEqual([{ kind: "transmit" }]);
+    expect(result.actions).toEqual([{ kind: "transmit" }, { kind: "resolve" }]);
     expect(result.intents).toEqual([]);
   });
 

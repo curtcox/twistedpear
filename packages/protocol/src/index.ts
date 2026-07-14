@@ -304,8 +304,11 @@ export {
   isInterfaceConnectTimedOut,
   shouldContinueInterfaceConnect,
   stepInterfaceConnect,
+  stepInterfaceConnectWithActions,
+  type InterfaceConnectAction,
   type InterfaceConnectEvent,
-  type InterfaceConnectState
+  type InterfaceConnectState,
+  type InterfaceConnectStepResult
 } from "./interface-connect.js";
 export {
   PATHFINDER_EXPIRY_SECONDS,

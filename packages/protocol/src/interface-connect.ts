@@ -1,6 +1,7 @@
 /**
  * Pure interface initial-connect timeout: arm a timer, conclude on open / fail / timeout.
- * Adapters open the socket and sleep/cancel timers from intents.
+ * Adapters open the socket from the connect action, schedule/cancel timers from intents,
+ * and conclude the Promise shell only via resolve/reject actions.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -20,6 +21,17 @@ export type InterfaceConnectEvent =
   | { readonly kind: "interface-connect/arm"; readonly timeoutMs: number }
   | { readonly kind: "interface-connect/connected" }
   | { readonly kind: "interface-connect/failed" };
+
+export type InterfaceConnectAction =
+  | { readonly kind: "connect"; readonly timeoutMs: number }
+  | { readonly kind: "resolve" }
+  | { readonly kind: "reject"; readonly reason: "timeout" | "failed" };
+
+export interface InterfaceConnectStepResult {
+  readonly state: InterfaceConnectState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly InterfaceConnectAction[];
+}
 
 export function initialInterfaceConnectState(): InterfaceConnectState {
   return {
@@ -51,13 +63,22 @@ export function isInterfaceConnectFailed(state: InterfaceConnectState): boolean 
   return state.concluded && state.failed;
 }
 
-export const stepInterfaceConnect: StepFn<InterfaceConnectState> = (state, event) =>
-  stepInterfaceConnectInner(state, event as InterfaceConnectEvent);
+export const stepInterfaceConnect: StepFn<InterfaceConnectState> = (state, event) => {
+  const result = stepInterfaceConnectInner(state, event as InterfaceConnectEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepInterfaceConnectWithActions(
+  state: InterfaceConnectState,
+  event: InterfaceConnectEvent
+): InterfaceConnectStepResult {
+  return stepInterfaceConnectInner(state, event);
+}
 
 function stepInterfaceConnectInner(
   state: InterfaceConnectState,
   event: InterfaceConnectEvent
-): { state: InterfaceConnectState; intents: Intent[] } {
+): InterfaceConnectStepResult {
   if (event.kind === "interface-connect/arm") {
     return {
       state: {
@@ -72,13 +93,14 @@ function stepInterfaceConnectInner(
           kind: "timer/set",
           timer: { id: INTERFACE_CONNECT_TIMER_ID, delayMs: event.timeoutMs }
         }
-      ]
+      ],
+      actions: [{ kind: "connect", timeoutMs: event.timeoutMs }]
     };
   }
 
   if (event.kind === "interface-connect/connected") {
     if (!state.armed || state.concluded) {
-      return { state, intents: [] };
+      return { state, intents: [], actions: [] };
     }
     return {
       state: {
@@ -88,13 +110,14 @@ function stepInterfaceConnectInner(
         timedOut: false,
         failed: false
       },
-      intents: [{ kind: "timer/cancel", timer: { id: INTERFACE_CONNECT_TIMER_ID } }]
+      intents: [{ kind: "timer/cancel", timer: { id: INTERFACE_CONNECT_TIMER_ID } }],
+      actions: [{ kind: "resolve" }]
     };
   }
 
   if (event.kind === "interface-connect/failed") {
     if (!state.armed || state.concluded) {
-      return { state, intents: [] };
+      return { state, intents: [], actions: [] };
     }
     return {
       state: {
@@ -104,13 +127,14 @@ function stepInterfaceConnectInner(
         timedOut: false,
         failed: true
       },
-      intents: [{ kind: "timer/cancel", timer: { id: INTERFACE_CONNECT_TIMER_ID } }]
+      intents: [{ kind: "timer/cancel", timer: { id: INTERFACE_CONNECT_TIMER_ID } }],
+      actions: [{ kind: "reject", reason: "failed" }]
     };
   }
 
   if (event.kind === "timer/fired" && event.id === INTERFACE_CONNECT_TIMER_ID) {
     if (!state.armed || state.concluded) {
-      return { state, intents: [] };
+      return { state, intents: [], actions: [] };
     }
     return {
       state: {
@@ -120,9 +144,10 @@ function stepInterfaceConnectInner(
         timedOut: true,
         failed: false
       },
-      intents: []
+      intents: [],
+      actions: [{ kind: "reject", reason: "timeout" }]
     };
   }
 
-  return { state, intents: [] };
+  return { state, intents: [], actions: [] };
 }

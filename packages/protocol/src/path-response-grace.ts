@@ -1,6 +1,7 @@
 /**
  * Pure path-response grace delay before transmitting a cached announce reply.
- * Adapters arm the timer from intents and transmit on the ready action.
+ * Adapters arm the timer from intents, transmit on the transmit action, and
+ * conclude the Promise shell only via resolve actions.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PATH_REQUEST_GRACE_MS } from "./path-table.js";
@@ -18,7 +19,9 @@ export type PathResponseGraceEvent =
   | Event
   | { readonly kind: "path-response-grace/arm"; readonly delayMs?: number };
 
-export type PathResponseGraceAction = { readonly kind: "transmit" };
+export type PathResponseGraceAction =
+  | { readonly kind: "transmit" }
+  | { readonly kind: "resolve" };
 
 export interface PathResponseGraceStepResult {
   readonly state: PathResponseGraceState;
@@ -86,7 +89,7 @@ function stepPathResponseGraceInner(
         ready: true
       },
       intents: [],
-      actions: [{ kind: "transmit" }]
+      actions: [{ kind: "transmit" }, { kind: "resolve" }]
     };
   }
 

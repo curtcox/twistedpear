@@ -7,7 +7,6 @@ import {
   PATH_RESPONSE_GRACE_TIMER_ID,
   initialPathAwaitState,
   initialPathResponseGraceState,
-  shouldTransmitPathResponse,
   stepPathAwaitWithActions,
   stepPathResponseGraceWithActions,
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
@@ -90,7 +89,6 @@ import {
   type PacketFields
 } from "../packet.js";
 import type { Clock, Entropy, Timer } from "../runtime/runtime.js";
-import type { Intent } from "@twistedpear/effects";
 import {
   buildPathRequestData,
   parsePathRequestData,
@@ -887,10 +885,21 @@ export class LeafTransport {
     return new Promise<void>((resolve, reject) => {
       const armed = stepPathResponseGraceWithActions(initialPathResponseGraceState(), {
         kind: "path-response-grace/arm"
-      } as never);
+      });
       let state = armed.state;
+      let concluded = false;
 
-      const applyIntents = (intents: readonly Intent[]): void => {
+      const finish = (): void => {
+        if (concluded) {
+          return;
+        }
+        concluded = true;
+        resolve();
+      };
+
+      const applyIntents = (
+        intents: ReturnType<typeof stepPathResponseGraceWithActions>["intents"]
+      ): void => {
         for (const intent of intents) {
           if (intent.kind === "timer/set" && intent.timer.id === PATH_RESPONSE_GRACE_TIMER_ID) {
             this.clock.setTimeout(() => {
@@ -900,39 +909,38 @@ export class LeafTransport {
                 at: this.clock.now()
               });
               state = tick.state;
-              if (!shouldTransmitPathResponse(state)) {
-                resolve();
-                return;
-              }
-
-              void (async () => {
-                try {
-                  for (const action of tick.actions) {
-                    if (action.kind === "transmit") {
-                      const cached = Packet.decode(this.provider, path.announceRaw);
-                      if (!shouldAcceptCachedPathResponsePacket(cached !== null)) {
-                        return;
-                      }
-                      const response = buildPathResponseAnnounce(
-                        this.provider,
-                        cached!,
-                        this.transportIdentity,
-                        path.hops
-                      );
-                      await this.outbound(response, iface);
-                    }
-                  }
-                  resolve();
-                } catch (error) {
-                  reject(error);
-                }
-              })();
+              applyIntents(tick.intents);
+              void applyActions(tick.actions).catch(reject);
             }, intent.timer.delayMs);
           }
         }
       };
 
+      const applyActions = async (
+        actions: ReturnType<typeof stepPathResponseGraceWithActions>["actions"]
+      ): Promise<void> => {
+        for (const action of actions) {
+          if (action.kind === "transmit") {
+            const cached = Packet.decode(this.provider, path.announceRaw);
+            if (!shouldAcceptCachedPathResponsePacket(cached !== null)) {
+              return;
+            }
+            const response = buildPathResponseAnnounce(
+              this.provider,
+              cached!,
+              this.transportIdentity,
+              path.hops
+            );
+            await this.outbound(response, iface);
+          }
+          if (action.kind === "resolve") {
+            finish();
+          }
+        }
+      };
+
       applyIntents(armed.intents);
+      void applyActions(armed.actions).catch(reject);
     });
   }
 

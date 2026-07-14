@@ -9,10 +9,7 @@ import {
   INTERFACE_RECONNECT_WAIT_MS,
   initialInterfaceConnectState,
   initialInterfaceReconnectState,
-  isInterfaceConnectConnected,
-  isInterfaceConnectFailed,
-  isInterfaceConnectTimedOut,
-  stepInterfaceConnect,
+  stepInterfaceConnectWithActions,
   stepInterfaceReconnectWithActions,
   type InterfaceReconnectEvent,
   type InterfaceReconnectState
@@ -151,31 +148,46 @@ export class TcpClientInterface extends HdlcPacketInterface {
 
   private openConnection(): Promise<DuplexConnection> {
     return new Promise((resolve, reject) => {
-      const armed = stepInterfaceConnect(initialInterfaceConnectState(), {
+      const armed = stepInterfaceConnectWithActions(initialInterfaceConnectState(), {
         kind: "interface-connect/arm",
         timeoutMs: this.connectTimeoutMs()
-      } as never);
+      });
       let state = armed.state;
       let timer: Timer | null = null;
       let settled = false;
+      let pendingConnection: DuplexConnection | null = null;
+      let pendingError: unknown = null;
 
-      const applyIntents = (intents: ReturnType<typeof stepInterfaceConnect>["intents"]): void => {
+      const finish = (
+        result: { ok: true; connection: DuplexConnection } | { ok: false; error: Error }
+      ): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (result.ok) {
+          resolve(result.connection);
+          return;
+        }
+        reject(result.error);
+      };
+
+      const applyIntents = (
+        intents: ReturnType<typeof stepInterfaceConnectWithActions>["intents"]
+      ): void => {
         for (const intent of intents) {
           if (intent.kind === "timer/set" && intent.timer.id === INTERFACE_CONNECT_TIMER_ID) {
             timer?.cancel();
             timer = this.runtime.clock.setTimeout(() => {
               timer = null;
-              const tick = stepInterfaceConnect(state, {
+              const tick = stepInterfaceConnectWithActions(state, {
                 kind: "timer/fired",
                 id: INTERFACE_CONNECT_TIMER_ID,
                 at: this.runtime.clock.now()
               });
               state = tick.state;
               applyIntents(tick.intents);
-              if (isInterfaceConnectTimedOut(state) && !settled) {
-                settled = true;
-                reject(new Error(`TCP connect timed out after ${this.connectTimeoutMs()}ms`));
-              }
+              applyActions(tick.actions);
             }, intent.timer.delayMs);
           }
           if (intent.kind === "timer/cancel" && intent.timer.id === INTERFACE_CONNECT_TIMER_ID) {
@@ -185,35 +197,68 @@ export class TcpClientInterface extends HdlcPacketInterface {
         }
       };
 
-      applyIntents(armed.intents);
+      const applyActions = (
+        actions: ReturnType<typeof stepInterfaceConnectWithActions>["actions"]
+      ): void => {
+        for (const action of actions) {
+          if (action.kind === "connect") {
+            // Timeout is owned by stepInterfaceConnect; factory must not arm a second timer.
+            void this.runtime.tcp
+              .connect({
+                host: this.options.targetHost,
+                port: this.options.targetPort,
+                connectTimeoutMs: 0
+              })
+              .then((connection) => {
+                pendingConnection = connection;
+                const result = stepInterfaceConnectWithActions(state, {
+                  kind: "interface-connect/connected"
+                });
+                state = result.state;
+                applyIntents(result.intents);
+                applyActions(result.actions);
+                if (pendingConnection === connection) {
+                  void connection.close();
+                  pendingConnection = null;
+                }
+              })
+              .catch((error: unknown) => {
+                pendingError = error;
+                const result = stepInterfaceConnectWithActions(state, {
+                  kind: "interface-connect/failed"
+                });
+                state = result.state;
+                applyIntents(result.intents);
+                applyActions(result.actions);
+              });
+          }
+          if (action.kind === "resolve") {
+            const connection = pendingConnection;
+            if (connection !== null) {
+              pendingConnection = null;
+              finish({ ok: true, connection });
+            }
+          }
+          if (action.kind === "reject") {
+            if (action.reason === "timeout") {
+              finish({
+                ok: false,
+                error: new Error(`TCP connect timed out after ${this.connectTimeoutMs()}ms`)
+              });
+              return;
+            }
+            const error = pendingError;
+            pendingError = null;
+            finish({
+              ok: false,
+              error: error instanceof Error ? error : new Error(String(error ?? "connect failed"))
+            });
+          }
+        }
+      };
 
-      // Timeout is owned by stepInterfaceConnect; factory must not arm a second timer.
-      void this.runtime.tcp
-        .connect({
-          host: this.options.targetHost,
-          port: this.options.targetPort,
-          connectTimeoutMs: 0
-        })
-        .then((connection) => {
-          const result = stepInterfaceConnect(state, { kind: "interface-connect/connected" } as never);
-          state = result.state;
-          applyIntents(result.intents);
-          if (isInterfaceConnectConnected(state) && !settled) {
-            settled = true;
-            resolve(connection);
-            return;
-          }
-          void connection.close();
-        })
-        .catch((error: unknown) => {
-          const result = stepInterfaceConnect(state, { kind: "interface-connect/failed" } as never);
-          state = result.state;
-          applyIntents(result.intents);
-          if (isInterfaceConnectFailed(state) && !settled) {
-            settled = true;
-            reject(error instanceof Error ? error : new Error(String(error)));
-          }
-        });
+      applyIntents(armed.intents);
+      applyActions(armed.actions);
     });
   }
 
