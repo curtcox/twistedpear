@@ -26,14 +26,18 @@ import {
   canResourceContinueTransfer,
   canRunResourceWatchdog,
   computeResourceTimeout,
-  computeResourceTotalParts,
   encodeResourceAdvertisementFlagsFromActions,
   initialClassifyResourceAdvertisementState,
+  initialComputeResourceTotalPartsState,
   initialDecodeResourceAdvertisementFlagsState,
   initialEncodeResourceAdvertisementFlagsState,
   initialResourceAdvertisementRoleFlagsState,
   initialResourceAdvertiseWaitState,
+  initialResourceEncryptMaterialState,
+  initialResourceExpectedProofMaterialState,
+  initialResourceHashMaterialState,
   initialResourceHashmapSlotWritesState,
+  initialResourcePartMapHashMaterialState,
   initialResourceStatusState,
   isResourceComplete,
   initialPackResourceAdvertisementState,
@@ -95,9 +99,14 @@ import {
   shouldUseUnpackResourceHashmapUpdate,
   shouldWriteResourceHashmapSlots,
   stepClassifyResourceAdvertisementWithActions,
+  stepComputeResourceTotalPartsWithActions,
   stepDecodeResourceAdvertisementFlagsWithActions,
   stepEncodeResourceAdvertisementFlagsWithActions,
   stepPackResourceAdvertisementWithActions,
+  stepResourceEncryptMaterialWithActions,
+  stepResourceExpectedProofMaterialWithActions,
+  stepResourceHashMaterialWithActions,
+  stepResourcePartMapHashMaterialWithActions,
   stepPackResourceHashmapUpdatePacketWithActions,
   stepPackResourceHashmapUpdateWithActions,
   stepPackResourceProofWithActions,
@@ -118,12 +127,21 @@ import {
   readResourceRequestHash,
   appendResourceMapHashCollisionGuard,
   containsResourceHash,
-  resourceEncryptMaterial,
-  resourceExpectedProofMaterial,
-  resourceHashMaterial,
+  resourceEncryptMaterialRawFromActions,
+  resourceExpectedProofMaterialRawFromActions,
+  resourceHashMaterialRawFromActions,
   resourceHashmapMaxLen,
-  resourcePartMapHashMaterial,
+  resourcePartMapHashMaterialRawFromActions,
+  resourceTotalPartsFromActions,
   isValidResourceRandomHashLength,
+  shouldRejectResourceEncryptMaterial,
+  shouldRejectResourceHashMaterial,
+  shouldRejectResourcePartMapHashMaterial,
+  shouldUseComputeResourceTotalParts,
+  shouldUseResourceEncryptMaterial,
+  shouldUseResourceExpectedProofMaterial,
+  shouldUseResourceHashMaterial,
+  shouldUseResourcePartMapHashMaterial,
   shouldAcceptIncomingResourceAdvertisement,
   shouldAdvertiseResource,
   shouldAdvanceResourceAwaitingProof,
@@ -515,13 +533,74 @@ export class Resource {
     if (!isValidResourceRandomHashLength(randomHash.length)) {
       throw new Error(`Resource random hash must be ${RESOURCE_RANDOM_HASH_SIZE} bytes`);
     }
-    const payload = resourceEncryptMaterial(randomHash, data);
+    const encryptStepped = stepResourceEncryptMaterialWithActions(
+      initialResourceEncryptMaterialState(),
+      {
+        kind: "resource-material/encrypt-gate",
+        randomHash,
+        data
+      }
+    );
+    const payload = resourceEncryptMaterialRawFromActions(encryptStepped.actions);
+    if (
+      shouldRejectResourceEncryptMaterial(encryptStepped.actions) ||
+      !shouldUseResourceEncryptMaterial(encryptStepped.actions) ||
+      payload === null
+    ) {
+      throw new Error("Resource encrypt material rejected");
+    }
     const encryptedPayload = link.encrypt(payload);
     const sdu = link.mdu;
-    const totalParts = computeResourceTotalParts(encryptedPayload.length, sdu);
-    const hashInput = resourceHashMaterial(data, randomHash);
+    const totalPartsStepped = stepComputeResourceTotalPartsWithActions(
+      initialComputeResourceTotalPartsState(),
+      {
+        kind: "resource-material/total-parts-gate",
+        length: encryptedPayload.length,
+        sdu
+      }
+    );
+    const totalParts = resourceTotalPartsFromActions(totalPartsStepped.actions);
+    if (
+      !shouldUseComputeResourceTotalParts(totalPartsStepped.actions) ||
+      totalParts === null
+    ) {
+      throw new Error("Resource total parts rejected");
+    }
+    const hashMaterialStepped = stepResourceHashMaterialWithActions(
+      initialResourceHashMaterialState(),
+      {
+        kind: "resource-material/hash-gate",
+        data,
+        randomHash
+      }
+    );
+    const hashInput = resourceHashMaterialRawFromActions(hashMaterialStepped.actions);
+    if (
+      shouldRejectResourceHashMaterial(hashMaterialStepped.actions) ||
+      !shouldUseResourceHashMaterial(hashMaterialStepped.actions) ||
+      hashInput === null
+    ) {
+      throw new Error("Resource hash material rejected");
+    }
     const hash = Identity.fullHash(provider, hashInput);
-    const expectedProof = Identity.fullHash(provider, resourceExpectedProofMaterial(data, hash));
+    const expectedProofStepped = stepResourceExpectedProofMaterialWithActions(
+      initialResourceExpectedProofMaterialState(),
+      {
+        kind: "resource-material/expected-proof-gate",
+        data,
+        resourceHash: hash
+      }
+    );
+    const expectedProofMaterial = resourceExpectedProofMaterialRawFromActions(
+      expectedProofStepped.actions
+    );
+    if (
+      !shouldUseResourceExpectedProofMaterial(expectedProofStepped.actions) ||
+      expectedProofMaterial === null
+    ) {
+      throw new Error("Resource expected-proof material rejected");
+    }
+    const expectedProof = Identity.fullHash(provider, expectedProofMaterial);
 
     const parts: ResourcePart[] = [];
     const mapHashes: Uint8Array[] = [];
@@ -536,7 +615,23 @@ export class Resource {
 
       for (let index = 0; index < totalParts; index += 1) {
         const partData = encryptedPayload.subarray(index * sdu, (index + 1) * sdu);
-        const mapHash = Identity.fullHash(provider, resourcePartMapHashMaterial(partData, randomHash)).subarray(
+        const partMapStepped = stepResourcePartMapHashMaterialWithActions(
+          initialResourcePartMapHashMaterialState(),
+          {
+            kind: "resource-material/part-map-hash-gate",
+            partData,
+            randomHash
+          }
+        );
+        const partMapMaterial = resourcePartMapHashMaterialRawFromActions(partMapStepped.actions);
+        if (
+          shouldRejectResourcePartMapHashMaterial(partMapStepped.actions) ||
+          !shouldUseResourcePartMapHashMaterial(partMapStepped.actions) ||
+          partMapMaterial === null
+        ) {
+          throw new Error("Resource part map-hash material rejected");
+        }
+        const mapHash = Identity.fullHash(provider, partMapMaterial).subarray(
           0,
           RESOURCE_MAPHASH_LEN
         );
@@ -950,10 +1045,26 @@ export class Resource {
     }
 
     const partData = packet.data;
-    const partHash = Identity.fullHash(
-      this.provider,
-      resourcePartMapHashMaterial(partData, this.randomHash)
-    ).subarray(0, RESOURCE_MAPHASH_LEN);
+    const partMapStepped = stepResourcePartMapHashMaterialWithActions(
+      initialResourcePartMapHashMaterialState(),
+      {
+        kind: "resource-material/part-map-hash-gate",
+        partData,
+        randomHash: this.randomHash
+      }
+    );
+    const partMapMaterial = resourcePartMapHashMaterialRawFromActions(partMapStepped.actions);
+    if (
+      shouldRejectResourcePartMapHashMaterial(partMapStepped.actions) ||
+      !shouldUseResourcePartMapHashMaterial(partMapStepped.actions) ||
+      partMapMaterial === null
+    ) {
+      return;
+    }
+    const partHash = Identity.fullHash(this.provider, partMapMaterial).subarray(
+      0,
+      RESOURCE_MAPHASH_LEN
+    );
 
     const { actions } = stepResourceReceivePartWithActions(initialResourceReceivePartState(), {
       kind: "resource/receive-part-gate",
@@ -1054,10 +1165,22 @@ export class Resource {
         !shouldUseSplitResourceDecryptedPayload(decryptedStepped.actions)
           ? null
           : resourceDecryptedPayloadFromActions(decryptedStepped.actions);
-      const calculatedHash =
+      const hashMaterialStepped =
         payload === null
           ? null
-          : Identity.fullHash(this.provider, resourceHashMaterial(payload, this.randomHash));
+          : stepResourceHashMaterialWithActions(initialResourceHashMaterialState(), {
+              kind: "resource-material/hash-gate",
+              data: payload,
+              randomHash: this.randomHash
+            });
+      const hashInput =
+        hashMaterialStepped === null ||
+        shouldRejectResourceHashMaterial(hashMaterialStepped.actions) ||
+        !shouldUseResourceHashMaterial(hashMaterialStepped.actions)
+          ? null
+          : resourceHashMaterialRawFromActions(hashMaterialStepped.actions);
+      const calculatedHash =
+        hashInput === null ? null : Identity.fullHash(this.provider, hashInput);
       const { actions } = stepResourceAssembleWithActions(initialResourceAssembleState(), {
         kind: "resource/assemble-gate",
         decryptedPresent: decrypted !== null,
@@ -1094,10 +1217,24 @@ export class Resource {
       return;
     }
 
-    const proof = Identity.fullHash(
-      this.provider,
-      resourceExpectedProofMaterial(this.data!, this.hash)
+    const expectedProofStepped = stepResourceExpectedProofMaterialWithActions(
+      initialResourceExpectedProofMaterialState(),
+      {
+        kind: "resource-material/expected-proof-gate",
+        data: this.data!,
+        resourceHash: this.hash
+      }
     );
+    const expectedProofMaterial = resourceExpectedProofMaterialRawFromActions(
+      expectedProofStepped.actions
+    );
+    if (
+      !shouldUseResourceExpectedProofMaterial(expectedProofStepped.actions) ||
+      expectedProofMaterial === null
+    ) {
+      return;
+    }
+    const proof = Identity.fullHash(this.provider, expectedProofMaterial);
     const stepped = stepPackResourceProofWithActions(initialPackResourceProofState(), {
       kind: "resource-proof/pack-gate",
       resourceHash: this.hash,

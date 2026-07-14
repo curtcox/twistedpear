@@ -195,7 +195,12 @@
 > (pack/unpack via **`stepPackStreamDataMessageWithActions`** /
 > **`stepUnpackStreamDataMessageWithActions`**: use-raw|reject /
 > use-fields|reject), and **resource hash/encrypt
-> materials** are pure protocol leaves; `Link`, `Buffer`, and `Resource` adapt them.
+> materials** (via **`stepResourceEncryptMaterialWithActions`** /
+> **`stepResourceHashMaterialWithActions`** /
+> **`stepResourceExpectedProofMaterialWithActions`** /
+> **`stepResourcePartMapHashMaterialWithActions`**: use-raw|reject /
+> use-raw; total parts via **`stepComputeResourceTotalPartsWithActions`**:
+> use-parts) are pure protocol leaves; `Resource` adapts them.
 > **Identity keygen entropy** (via **`stepSplitIdentityEntropyWithActions`**:
 > use-fields|reject) and **Identity key pack/split** (via
 > **`stepPackIdentityPrivateKeyWithActions`** /
@@ -300,7 +305,8 @@
 > adapts it. **`linkPayloadFitsMdu`** lives in protocol; Link request/response and Channel send
 > adapt it. **`canLinkRequest`** lives in protocol; `Link.request` adapts it. **`canLinkSend`**
 > lives in protocol; `Link.sendContext`, Channel outlet usability, and LXMF link reuse adapt it.
-> **`computeResourceTotalParts`** lives in protocol; `Resource.send` adapts it.
+> **`computeResourceTotalParts`** (via **`stepComputeResourceTotalPartsWithActions`**:
+> use-parts) lives in protocol; `Resource.send` adapts it.
 > **`linkReadyForNewResource`** lives in protocol; `Link.readyForNewResource` adapts it.
 > **`isLinkModeEnabled`** lives in protocol; link validate/signalling adapts it.
 > **`isLinkClosed`** lives in protocol; `Link.receive` / watchdog early-outs adapt it.
@@ -871,7 +877,9 @@
 > link-initiator-mtu / link-request-responder-mtu / packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
 > decode-resource-advertisement-flags / classify-resource-advertisement /
-> resource-hashmap-slot-writes /
+> resource-encrypt-material / resource-hash-material /
+> resource-expected-proof-material / resource-part-map-hash-material /
+> compute-resource-total-parts / resource-hashmap-slot-writes /
 > clone-packet-with-hops / transport-announce-fields /
 > path-response-announce-fields / wrap-transport-packet /
 > strip-transport-headers / relay-transport-packet-bytes /
@@ -895,7 +903,9 @@
 > parse-resource-part-request / pack-resource-advertisement /
 > unpack-resource-advertisement / encode-resource-advertisement-flags /
 > decode-resource-advertisement-flags / classify-resource-advertisement /
-> pack-link-request /
+> resource-encrypt-material / resource-hash-material /
+> resource-expected-proof-material / resource-part-map-hash-material /
+> compute-resource-total-parts / pack-link-request /
 > pack-link-response / unpack-link-request / unpack-link-response /
 > pack-token-frame / split-token-frame / split-token-key /
 > pack-identity-ciphertext / split-identity-ciphertext /
@@ -1119,6 +1129,16 @@
 > (no ad-hoc `encodeResourceAdvertisementFlags` /
 > `decodeResourceAdvertisementFlags` / `isResourceAdvertisementRequest` /
 > `isResourceAdvertisementResponse` reads beside the step).
+> **`stepResourceEncryptMaterialWithActions`** /
+> **`stepResourceHashMaterialWithActions`** /
+> **`stepResourceExpectedProofMaterialWithActions`** /
+> **`stepResourcePartMapHashMaterialWithActions`** /
+> **`stepComputeResourceTotalPartsWithActions`** emit `use-raw`|`reject` /
+> `use-raw` / `use-parts`; resource encrypt / hash / expected-proof / part
+> map-hash materials and total-parts computation apply only from those actions
+> (no ad-hoc `resourceEncryptMaterial` / `resourceHashMaterial` /
+> `resourceExpectedProofMaterial` / `resourcePartMapHashMaterial` /
+> `computeResourceTotalParts` reads beside the step).
 > **`stepPackLinkRequestWithActions`** /
 > **`stepPackLinkResponseWithActions`** /
 > **`stepUnpackLinkRequestWithActions`** /
