@@ -21,6 +21,7 @@ import {
   initialLinkRelayTargetState,
   initialLocalPlainDataDeliveryState,
   initialPacketFilterState,
+  initialPacketHashDeferState,
   initialPacketHashRememberState,
   initialProofIngressState,
   initialReverseRelayOutcomeState,
@@ -44,6 +45,9 @@ import {
   shouldAcceptPacketFilter,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash,
+  shouldDeferPacketHashActions,
+  shouldRememberPacketHashImmediately,
+  stepPacketHashDeferWithActions,
   shouldDeleteExpiredReverseEntry,
   shouldDeleteExpiredReverseEntryActions,
   shouldDispatchLocalLinkRequest,
@@ -230,6 +234,23 @@ describe("transport ingress", () => {
         destinationInLinkTable: false
       })
     ).toBe(false);
+
+    const deferLrproof = stepPacketHashDeferWithActions(initialPacketHashDeferState(), {
+      kind: "transport/packet-hash-defer-gate",
+      packetType: PACKET_TYPE_PROOF,
+      context: PacketContextCode.LRPROOF,
+      destinationInLinkTable: false
+    });
+    expect(shouldDeferPacketHashActions(deferLrproof.actions)).toBe(true);
+
+    const rememberNow = stepPacketHashDeferWithActions(initialPacketHashDeferState(), {
+      kind: "transport/packet-hash-defer-gate",
+      packetType: PACKET_TYPE_ANNOUNCE,
+      context: PacketContextCode.NONE,
+      destinationInLinkTable: false
+    });
+    expect(shouldRememberPacketHashImmediately(rememberNow.actions)).toBe(true);
+    expect(shouldDeferPacketHashActions(rememberNow.actions)).toBe(false);
   });
 
   it("plans link relay target from hops and interface identity", () => {

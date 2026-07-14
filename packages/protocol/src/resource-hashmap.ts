@@ -204,6 +204,76 @@ export function planResourceHashmapSlotWrites(input: {
 }
 
 /**
+ * Resource hashmap slot-write planning is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planResourceHashmapSlotWrites`
+ * reads beside the step).
+ */
+export type ResourceHashmapSlotWritesState = Record<string, never>;
+
+export type ResourceHashmapSlotWritesEvent =
+  | Event
+  | {
+      readonly kind: "resource/hashmap-slot-writes-gate";
+      readonly segment: number;
+      readonly hashmap: Uint8Array;
+      readonly hashmapMaxLen: number;
+    };
+
+export type ResourceHashmapSlotWritesAction = {
+  readonly kind: "write";
+  readonly slot: number;
+  readonly mapHash: Uint8Array;
+};
+
+export interface ResourceHashmapSlotWritesStepResult {
+  readonly state: ResourceHashmapSlotWritesState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceHashmapSlotWritesAction[];
+}
+
+export function initialResourceHashmapSlotWritesState(): ResourceHashmapSlotWritesState {
+  return {};
+}
+
+export function stepResourceHashmapSlotWritesWithActions(
+  state: ResourceHashmapSlotWritesState,
+  event: ResourceHashmapSlotWritesEvent
+): ResourceHashmapSlotWritesStepResult {
+  if (event.kind === "resource/hashmap-slot-writes-gate") {
+    return {
+      state,
+      intents: [],
+      actions: planResourceHashmapSlotWrites({
+        segment: event.segment,
+        hashmap: event.hashmap,
+        hashmapMaxLen: event.hashmapMaxLen
+      }).map((write) => ({
+        kind: "write" as const,
+        slot: write.slot,
+        mapHash: write.mapHash
+      }))
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldWriteResourceHashmapSlots(
+  actions: ReadonlyArray<ResourceHashmapSlotWritesAction>
+): boolean {
+  return actions.some((action) => action.kind === "write");
+}
+
+/** Extract slot writes from step actions for {@link applyResourceHashmapSlotWrites}. */
+export function resourceHashmapSlotWritesFromActions(
+  actions: ReadonlyArray<ResourceHashmapSlotWritesAction>
+): readonly ResourceHashmapSlotWrite[] {
+  return actions
+    .filter((action): action is ResourceHashmapSlotWritesAction => action.kind === "write")
+    .map((action) => ({ slot: action.slot, mapHash: action.mapHash }));
+}
+
+/**
  * Apply planned slot writes, skipping occupied slots and bumping height for new fills.
  */
 export function applyResourceHashmapSlotWrites(input: {

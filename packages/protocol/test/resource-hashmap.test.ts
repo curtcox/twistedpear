@@ -8,6 +8,7 @@ import {
   packResourceHashmapUpdatePacket,
   parseResourcePartRequest,
   applyResourceHashmapSlotWrites,
+  initialResourceHashmapSlotWritesState,
   initialResourceHashmapUpdateAcceptState,
   initialResourcePartRequestState,
   initialResourceReceivePartState,
@@ -22,7 +23,10 @@ import {
   containsResourceHash,
   indexOfResourceHash,
   resourceHashmapMaxLen,
+  resourceHashmapSlotWritesFromActions,
   resourceMapHashCollisionGuardLimit,
+  shouldWriteResourceHashmapSlots,
+  stepResourceHashmapSlotWritesWithActions,
   resourcePartRequestFromActions,
   resourceReceivePartFromActions,
   resourceRequestFulfillFromActions,
@@ -133,6 +137,18 @@ describe("protocol resource hashmap", () => {
     expect(writes).toHaveLength(2);
     expect(writes[0]!.slot).toBe(10);
     expect([...writes[1]!.mapHash]).toEqual([5, 6, 7, 8]);
+
+    const stepped = stepResourceHashmapSlotWritesWithActions(initialResourceHashmapSlotWritesState(), {
+      kind: "resource/hashmap-slot-writes-gate",
+      segment: 1,
+      hashmap,
+      hashmapMaxLen: 10
+    });
+    expect(shouldWriteResourceHashmapSlots(stepped.actions)).toBe(true);
+    const fromActions = resourceHashmapSlotWritesFromActions(stepped.actions);
+    expect(fromActions).toHaveLength(2);
+    expect(fromActions[0]!.slot).toBe(10);
+    expect([...fromActions[1]!.mapHash]).toEqual([5, 6, 7, 8]);
   });
 
   it("applies slot writes skipping occupied slots", () => {

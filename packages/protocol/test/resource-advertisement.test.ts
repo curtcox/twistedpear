@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   decodeResourceAdvertisementFlags,
   encodeResourceAdvertisementFlags,
+  initialResourceAdvertisementRoleFlagsState,
   isResourceAdvertisementRequest,
   isResourceAdvertisementResponse,
   packResourceAdvertisement,
   planResourceAdvertisementRoleFlags,
+  resourceAdvertisementRoleFlagsFromActions,
+  shouldUseResourceAdvertisementRoleFlags,
+  stepResourceAdvertisementRoleFlagsWithActions,
   unpackResourceAdvertisement
 } from "../src/resource-advertisement.js";
 import { msgpackPackString, msgpackPackStringMap, msgpackPackUInt } from "../src/msgpack-core.js";
@@ -119,5 +123,32 @@ describe("protocol resource advertisement", () => {
         isResponse: false
       })
     ).toEqual({ u: false, p: false });
+
+    const request = stepResourceAdvertisementRoleFlagsWithActions(
+      initialResourceAdvertisementRoleFlagsState(),
+      {
+        kind: "resource/advertisement-role-flags-gate",
+        requestIdPresent: true,
+        isResponse: false
+      }
+    );
+    expect(shouldUseResourceAdvertisementRoleFlags(request.actions)).toBe(true);
+    expect(resourceAdvertisementRoleFlagsFromActions(request.actions)).toEqual({
+      u: true,
+      p: false
+    });
+
+    const response = stepResourceAdvertisementRoleFlagsWithActions(
+      initialResourceAdvertisementRoleFlagsState(),
+      {
+        kind: "resource/advertisement-role-flags-gate",
+        requestIdPresent: true,
+        isResponse: true
+      }
+    );
+    expect(resourceAdvertisementRoleFlagsFromActions(response.actions)).toEqual({
+      u: false,
+      p: true
+    });
   });
 });

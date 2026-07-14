@@ -115,7 +115,7 @@ import {
 } from "../src/link-establish.js";
 import { DestinationAllowPolicyCode } from "../src/destination-allow.js";
 import { PacketTypeCode } from "../src/packet-header.js";
-import { planLinkInitiatorMtu, planLinkRequestResponderMtu } from "../src/link-metrics.js";
+import { planLinkInitiatorMtu, planLinkRequestResponderMtu, initialLinkInitiatorMtuState, initialLinkRequestResponderMtuState, linkInitiatorMtuFromActions, linkRequestResponderMtuFromActions, shouldUseLinkInitiatorMtu, shouldUseLinkRequestResponderMtu, stepLinkInitiatorMtuWithActions, stepLinkRequestResponderMtuWithActions } from "../src/link-metrics.js";
 import { LinkStatus } from "../src/link-watchdog.js";
 
 describe("protocol link proof framing", () => {
@@ -383,6 +383,23 @@ describe("protocol link establish", () => {
         defaultMtu: 500
       })
     ).toBe(500);
+
+    const discovered = stepLinkInitiatorMtuWithActions(initialLinkInitiatorMtuState(), {
+      kind: "link/initiator-mtu-gate",
+      discoveryEnabled: true,
+      nextHopMtu: 420,
+      defaultMtu: 500
+    });
+    expect(shouldUseLinkInitiatorMtu(discovered.actions)).toBe(true);
+    expect(linkInitiatorMtuFromActions(discovered.actions)).toBe(420);
+
+    const fallback = stepLinkInitiatorMtuWithActions(initialLinkInitiatorMtuState(), {
+      kind: "link/initiator-mtu-gate",
+      discoveryEnabled: false,
+      nextHopMtu: 420,
+      defaultMtu: 500
+    });
+    expect(linkInitiatorMtuFromActions(fallback.actions)).toBe(500);
   });
 
   it("plans responder MTU from LINKREQUEST signalling", () => {
@@ -410,6 +427,28 @@ describe("protocol link establish", () => {
         defaultMtu: 480
       })
     ).toBe(480);
+
+    const keepCurrent = stepLinkRequestResponderMtuWithActions(initialLinkRequestResponderMtuState(), {
+      kind: "link/request-responder-mtu-gate",
+      signallingPresent: false,
+      signallingMtu: 420,
+      currentMtu: 500,
+      defaultMtu: 500
+    });
+    expect(shouldUseLinkRequestResponderMtu(keepCurrent.actions)).toBe(true);
+    expect(linkRequestResponderMtuFromActions(keepCurrent.actions)).toBe(500);
+
+    const fromSignalling = stepLinkRequestResponderMtuWithActions(
+      initialLinkRequestResponderMtuState(),
+      {
+        kind: "link/request-responder-mtu-gate",
+        signallingPresent: true,
+        signallingMtu: 420,
+        currentMtu: 500,
+        defaultMtu: 500
+      }
+    );
+    expect(linkRequestResponderMtuFromActions(fromSignalling.actions)).toBe(420);
   });
 
   it("accepts link packets from matching or unbound interfaces", () => {

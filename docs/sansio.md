@@ -734,7 +734,9 @@
 > destination-proof / packet-filter / packet-receipt-callback /
 > channel-tx-receipt-timeout-refresh / channel-message-handler-unregister /
 > pending-link-request-unregister / stream-ready-callback-unregister /
-> packet-receipt-unregister / transport-member-unregister reads
+> packet-receipt-unregister / transport-member-unregister /
+> link-initiator-mtu / link-request-responder-mtu / packet-hash-defer /
+> resource-advertisement-role-flags / resource-hashmap-slot-writes reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -746,6 +748,16 @@
 > Channel, Link, Buffer, and TransportNode list splices apply only from those
 > actions (no ad-hoc `planUnregister*` / `index !== null` reads beside the
 > step).
+> **`stepLinkInitiatorMtuWithActions`** / **`stepLinkRequestResponderMtuWithActions`**
+> emit `use-mtu`; Link establish applies MTU only from those actions.
+> **`stepPacketHashDeferWithActions`** emits `defer` / `remember-now`;
+> transport ingress hash deferral applies only from those actions.
+> **`stepResourceAdvertisementRoleFlagsWithActions`** emits `use-flags`;
+> **`stepResourceHashmapSlotWritesWithActions`** emits `write` (per slot);
+> Resource advertisement + hashmap-update apply only from those actions
+> (no ad-hoc `planLinkInitiatorMtu` / `planLinkRequestResponderMtu` /
+> `shouldDeferPacketHash` / `planResourceAdvertisementRoleFlags` /
+> `planResourceHashmapSlotWrites` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

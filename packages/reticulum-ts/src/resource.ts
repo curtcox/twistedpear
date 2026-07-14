@@ -29,8 +29,9 @@ import {
   computeResourceTotalParts,
   decodeResourceAdvertisementFlags,
   encodeResourceAdvertisementFlags,
-  planResourceAdvertisementRoleFlags,
+  initialResourceAdvertisementRoleFlagsState,
   initialResourceAdvertiseWaitState,
+  initialResourceHashmapSlotWritesState,
   initialResourceStatusState,
   isResourceAdvertisementRequest,
   isResourceAdvertisementResponse,
@@ -47,14 +48,19 @@ import {
   initialResourceProofAcceptState,
   initialResourceReceivePartState,
   initialResourceRequestFulfillState,
-  planResourceHashmapSlotWrites,
+  resourceAdvertisementRoleFlagsFromActions,
+  resourceHashmapSlotWritesFromActions,
   resourcePartRequestFromActions,
   resourceReceivePartFromActions,
   resourceRequestFulfillFromActions,
   shouldApplyResourceHashmapUpdateAccept,
   shouldCompleteResourceAssemble,
   shouldCompleteResourceProofAccept,
+  shouldUseResourceAdvertisementRoleFlags,
+  shouldWriteResourceHashmapSlots,
+  stepResourceAdvertisementRoleFlagsWithActions,
   stepResourceAssembleWithActions,
+  stepResourceHashmapSlotWritesWithActions,
   stepResourceHashmapUpdateAcceptWithActions,
   stepResourcePartRequestWithActions,
   stepResourceProofAcceptWithActions,
@@ -226,12 +232,19 @@ export class ResourceAdvertisement {
     this.i = resource.segmentIndex;
     this.l = resource.totalSegments;
     this.q = resource.requestId;
-    const role = planResourceAdvertisementRoleFlags({
-      requestIdPresent: resource.requestId !== null,
-      isResponse: resource.isResponse
-    });
-    this.u = role.u;
-    this.p = role.p;
+    const roleStepped = stepResourceAdvertisementRoleFlagsWithActions(
+      initialResourceAdvertisementRoleFlagsState(),
+      {
+        kind: "resource/advertisement-role-flags-gate",
+        requestIdPresent: resource.requestId !== null,
+        isResponse: resource.isResponse
+      }
+    );
+    const role = shouldUseResourceAdvertisementRoleFlags(roleStepped.actions)
+      ? resourceAdvertisementRoleFlagsFromActions(roleStepped.actions)
+      : null;
+    this.u = role?.u ?? false;
+    this.p = role?.p ?? false;
     this.f = encodeResourceAdvertisementFlags({
       e: this.e,
       c: this.c,
@@ -717,11 +730,18 @@ export class Resource {
     }
 
     this.applyStatus({ kind: "resource/transferring" });
-    const writes = planResourceHashmapSlotWrites({
-      segment,
-      hashmap,
-      hashmapMaxLen: ResourceAdvertisement.HASHMAP_MAX_LEN
-    });
+    const writesStepped = stepResourceHashmapSlotWritesWithActions(
+      initialResourceHashmapSlotWritesState(),
+      {
+        kind: "resource/hashmap-slot-writes-gate",
+        segment,
+        hashmap,
+        hashmapMaxLen: ResourceAdvertisement.HASHMAP_MAX_LEN
+      }
+    );
+    const writes = shouldWriteResourceHashmapSlots(writesStepped.actions)
+      ? resourceHashmapSlotWritesFromActions(writesStepped.actions)
+      : [];
     const applied = applyResourceHashmapSlotWrites({
       hashmap: this.hashmap,
       hashmapHeight: this.hashmapHeight,

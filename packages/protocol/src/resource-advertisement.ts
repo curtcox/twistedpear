@@ -1,7 +1,10 @@
 /**
  * Pure RNS resource advertisement msgpack codec and flag bits.
  * Hashing / link IO stay at the adapter edge.
+ * Role-flag conclusions leave via machine actions (no ad-hoc
+ * `planResourceAdvertisementRoleFlags` reads beside the step).
  */
+import type { Event, Intent } from "@twistedpear/effects";
 import {
   msgpackPackBin,
   msgpackPackNil,
@@ -133,4 +136,68 @@ export function planResourceAdvertisementRoleFlags(input: {
     u: input.requestIdPresent && !input.isResponse,
     p: input.requestIdPresent && input.isResponse
   };
+}
+
+/**
+ * Resource advertisement role-flag selection is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `planResourceAdvertisementRoleFlags` reads beside the step).
+ */
+export type ResourceAdvertisementRoleFlagsState = Record<string, never>;
+
+export type ResourceAdvertisementRoleFlagsEvent =
+  | Event
+  | {
+      readonly kind: "resource/advertisement-role-flags-gate";
+      readonly requestIdPresent: boolean;
+      readonly isResponse: boolean;
+    };
+
+export type ResourceAdvertisementRoleFlagsAction = {
+  readonly kind: "use-flags";
+  readonly u: boolean;
+  readonly p: boolean;
+};
+
+export interface ResourceAdvertisementRoleFlagsStepResult {
+  readonly state: ResourceAdvertisementRoleFlagsState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceAdvertisementRoleFlagsAction[];
+}
+
+export function initialResourceAdvertisementRoleFlagsState(): ResourceAdvertisementRoleFlagsState {
+  return {};
+}
+
+export function stepResourceAdvertisementRoleFlagsWithActions(
+  state: ResourceAdvertisementRoleFlagsState,
+  event: ResourceAdvertisementRoleFlagsEvent
+): ResourceAdvertisementRoleFlagsStepResult {
+  if (event.kind === "resource/advertisement-role-flags-gate") {
+    const flags = planResourceAdvertisementRoleFlags({
+      requestIdPresent: event.requestIdPresent,
+      isResponse: event.isResponse
+    });
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-flags", u: flags.u, p: flags.p }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseResourceAdvertisementRoleFlags(
+  actions: ReadonlyArray<ResourceAdvertisementRoleFlagsAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-flags");
+}
+
+/** Extract role flags from step actions; null when no `use-flags` action. */
+export function resourceAdvertisementRoleFlagsFromActions(
+  actions: ReadonlyArray<ResourceAdvertisementRoleFlagsAction>
+): { readonly u: boolean; readonly p: boolean } | null {
+  const action = actions.find((entry) => entry.kind === "use-flags");
+  return action?.kind === "use-flags" ? { u: action.u, p: action.p } : null;
 }

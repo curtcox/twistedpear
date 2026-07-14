@@ -2,8 +2,8 @@
  * Pure transport ingress accept / filter / packet-hash deferral / relay decisions.
  * Hash tables and interface identity stay at the adapter edge as boolean inputs.
  * Ingress dispatch / link-data target / reverse-relay / hash-remember /
- * local plain-data / link-relay conclusions leave via machine actions (no ad-hoc
- * plan reads beside the step).
+ * packet-hash defer / local plain-data / link-relay conclusions leave via
+ * machine actions (no ad-hoc plan reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -141,6 +141,68 @@ export function shouldDeferPacketHash(input: {
     return true;
   }
   return input.destinationInLinkTable;
+}
+
+/**
+ * Packet-hash deferral is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldDeferPacketHash`
+ * reads beside the step).
+ */
+export type PacketHashDeferState = Record<string, never>;
+
+export type PacketHashDeferEvent =
+  | Event
+  | {
+      readonly kind: "transport/packet-hash-defer-gate";
+      readonly packetType: number;
+      readonly context: number;
+      readonly destinationInLinkTable: boolean;
+    };
+
+export type PacketHashDeferAction =
+  | { readonly kind: "defer" }
+  | { readonly kind: "remember-now" };
+
+export interface PacketHashDeferStepResult {
+  readonly state: PacketHashDeferState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketHashDeferAction[];
+}
+
+export function initialPacketHashDeferState(): PacketHashDeferState {
+  return {};
+}
+
+export function stepPacketHashDeferWithActions(
+  state: PacketHashDeferState,
+  event: PacketHashDeferEvent
+): PacketHashDeferStepResult {
+  if (event.kind === "transport/packet-hash-defer-gate") {
+    const defer = shouldDeferPacketHash({
+      packetType: event.packetType,
+      context: event.context,
+      destinationInLinkTable: event.destinationInLinkTable
+    });
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: defer ? "defer" : "remember-now" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldDeferPacketHashActions(
+  actions: ReadonlyArray<PacketHashDeferAction>
+): boolean {
+  return actions.some((action) => action.kind === "defer");
+}
+
+export function shouldRememberPacketHashImmediately(
+  actions: ReadonlyArray<PacketHashDeferAction>
+): boolean {
+  return actions.some((action) => action.kind === "remember-now");
 }
 
 /** Which link-table interface should carry a relayed link packet, if any. */

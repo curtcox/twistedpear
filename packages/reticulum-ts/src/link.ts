@@ -81,9 +81,15 @@ import {
   initialLinkAppRequestState,
   initialLinkAppRequestTransmitState,
   initialLinkDataContextState,
+  initialLinkInitiatorMtuState,
+  initialLinkRequestResponderMtuState,
   initialLinkResourceConcludeState,
-  planLinkInitiatorMtu,
-  planLinkRequestResponderMtu,
+  linkInitiatorMtuFromActions,
+  linkRequestResponderMtuFromActions,
+  shouldUseLinkInitiatorMtu,
+  shouldUseLinkRequestResponderMtu,
+  stepLinkInitiatorMtuWithActions,
+  stepLinkRequestResponderMtuWithActions,
   initialPendingLinkRequestUnregisterState,
   pendingLinkRequestUnregisterIndex,
   shouldAcceptLinkEstablishRtt,
@@ -390,13 +396,17 @@ export class Link {
     );
 
     const discoveryEnabled = options.linkMtuDiscovery !== false;
-    const mtu = planLinkInitiatorMtu({
+    const mtuStepped = stepLinkInitiatorMtuWithActions(initialLinkInitiatorMtuState(), {
+      kind: "link/initiator-mtu-gate",
       discoveryEnabled,
       nextHopMtu: discoveryEnabled
         ? options.transport.nextHopInterfaceMtu(destination.hash)
         : null,
       defaultMtu: RETICULUM_MTU
     });
+    const mtu = shouldUseLinkInitiatorMtu(mtuStepped.actions)
+      ? (linkInitiatorMtuFromActions(mtuStepped.actions) ?? RETICULUM_MTU)
+      : RETICULUM_MTU;
 
     link.mtu = mtu;
     link.mode = LINK_MODE_DEFAULT;
@@ -466,12 +476,22 @@ export class Link {
       link.loadPeer(request!.publicKey, request!.signaturePublicKey);
       link.setLinkId(packet);
 
-      link.mtu = planLinkRequestResponderMtu({
-        signallingPresent: request!.signallingBytes.length > 0,
-        signallingMtu: Link.mtuFromLrPacket(packet),
-        currentMtu: link.mtu,
-        defaultMtu: RETICULUM_MTU
-      });
+      const responderMtuStepped = stepLinkRequestResponderMtuWithActions(
+        initialLinkRequestResponderMtuState(),
+        {
+          kind: "link/request-responder-mtu-gate",
+          signallingPresent: request!.signallingBytes.length > 0,
+          signallingMtu: Link.mtuFromLrPacket(packet),
+          currentMtu: link.mtu,
+          defaultMtu: RETICULUM_MTU
+        }
+      );
+      if (shouldUseLinkRequestResponderMtu(responderMtuStepped.actions)) {
+        const selected = linkRequestResponderMtuFromActions(responderMtuStepped.actions);
+        if (selected !== null) {
+          link.mtu = selected;
+        }
+      }
 
       link.mode = Link.modeFromLrPacket(packet);
       const modeGate = stepLinkValidateRequestWithActions(initialLinkValidateRequestState(), {

@@ -29,9 +29,9 @@ import {
   shouldAnswerPathWithEntry,
   shouldBeginPathDiscovery,
   shouldClearExpiredDiscoveryPathRequest,
-  shouldDeferPacketHash as planShouldDeferPacketHash,
   shouldAnswerPathRequest,
   shouldDeleteExpiredReverseEntryActions,
+  shouldDeferPacketHashActions,
   shouldDispatchTransportAnnounce,
   shouldDispatchTransportLinkData,
   shouldDispatchTransportLinkRequest,
@@ -48,6 +48,8 @@ import {
   shouldMatchLocalInboundDestination,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
+  initialPacketHashDeferState,
+  stepPacketHashDeferWithActions,
   shouldRelayReversePacketActions,
   shouldRememberPacketHashAfterRelayActions,
   shouldRememberPacketHashNowActions,
@@ -357,11 +359,13 @@ export class TransportNode extends LeafTransport {
   }
 
   private shouldDeferPacketHash(packet: Packet): boolean {
-    return planShouldDeferPacketHash({
+    const stepped = stepPacketHashDeferWithActions(initialPacketHashDeferState(), {
+      kind: "transport/packet-hash-defer-gate",
       packetType: packet.packetType,
       context: packet.context,
       destinationInLinkTable: this.linkTable.has(hashKey(packet.destinationHash))
     });
+    return shouldDeferPacketHashActions(stepped.actions);
   }
 
   private async relayTransportPacket(packet: Packet, iface: PacketInterface): Promise<boolean> {
