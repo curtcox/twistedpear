@@ -1,8 +1,8 @@
 /**
  * Pure LXMF propagation-server quota and eviction planning.
  * Persistence and hashing stay at the adapter edge.
- * Store conclusions leave via machine actions (no ad-hoc `plan.kind` reads
- * beside the step).
+ * Store / restore conclusions leave via machine actions (no ad-hoc `plan.kind`
+ * / `plan === "accept"` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -281,4 +281,71 @@ export function planPropagationRestore(input: {
     return "reject-hash";
   }
   return "accept";
+}
+
+/**
+ * Propagation restore is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planPropagationRestore`
+ * / `plan === "accept"` reads beside the step).
+ */
+export type PropagationRestoreState = Record<string, never>;
+
+export type PropagationRestoreEvent =
+  | Event
+  | {
+      readonly kind: "propagation/restore-gate";
+      readonly tooLarge: boolean;
+      readonly alreadyStored: boolean;
+      readonly destinationHashPresent: boolean;
+    };
+
+export type PropagationRestoreAction =
+  | { readonly kind: "reject-too-large" }
+  | { readonly kind: "duplicate" }
+  | { readonly kind: "reject-hash" }
+  | { readonly kind: "accept" };
+
+export interface PropagationRestoreStepResult {
+  readonly state: PropagationRestoreState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PropagationRestoreAction[];
+}
+
+export function initialPropagationRestoreState(): PropagationRestoreState {
+  return {};
+}
+
+export const stepPropagationRestore: StepFn<PropagationRestoreState> = (state, event) => {
+  const result = stepPropagationRestoreInner(state, event as PropagationRestoreEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepPropagationRestoreWithActions(
+  state: PropagationRestoreState,
+  event: PropagationRestoreEvent
+): PropagationRestoreStepResult {
+  return stepPropagationRestoreInner(state, event);
+}
+
+/** Whether step actions include accept (catalog insert). */
+export function shouldAcceptPropagationRestore(
+  actions: ReadonlyArray<PropagationRestoreAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+function stepPropagationRestoreInner(
+  state: PropagationRestoreState,
+  event: PropagationRestoreEvent
+): PropagationRestoreStepResult {
+  if (event.kind === "propagation/restore-gate") {
+    const plan = planPropagationRestore({
+      tooLarge: event.tooLarge,
+      alreadyStored: event.alreadyStored,
+      destinationHashPresent: event.destinationHashPresent
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }

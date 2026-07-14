@@ -6,12 +6,17 @@ import {
   DestinationTypeCode,
   expandDestinationName,
   initialDestinationConstructionState,
-  planDestinationIdentityHash,
+  initialDestinationIdentityHashState,
+  shouldMissDestinationIdentityHash,
   shouldProceedDestinationConstruction,
   shouldRejectDestinationConstructionBadDirection,
   shouldRejectDestinationConstructionBadIdentityBinding,
   shouldRejectDestinationConstructionBadType,
+  shouldRejectLengthDestinationIdentityHash,
+  shouldUseBytesDestinationIdentityHash,
+  shouldUseObjectDestinationIdentityHash,
   stepDestinationConstructionWithActions,
+  stepDestinationIdentityHashWithActions,
   truncateToNameHash,
   truncateToTruncatedHash,
   validateDestinationNamePart
@@ -117,20 +122,24 @@ export class Destination {
 }
 
 function identityHashBytes(identity: Identity | Uint8Array | null | undefined): Uint8Array | null {
-  const kind =
+  const identityKind =
     identity == null ? "missing" : identity instanceof Identity ? "object" : "bytes";
-  const plan = planDestinationIdentityHash({
-    kind,
-    ...(kind === "bytes" ? { bytesLength: (identity as Uint8Array).length } : {})
+  const stepped = stepDestinationIdentityHashWithActions(initialDestinationIdentityHashState(), {
+    kind: "destination/identity-hash-gate",
+    identityKind,
+    ...(identityKind === "bytes" ? { bytesLength: (identity as Uint8Array).length } : {})
   });
-  if (plan === "missing") {
+  if (shouldMissDestinationIdentityHash(stepped.actions)) {
     return null;
   }
-  if (plan === "use-object") {
+  if (shouldUseObjectDestinationIdentityHash(stepped.actions)) {
     return (identity as Identity).hash;
   }
-  if (plan === "reject-length") {
+  if (shouldRejectLengthDestinationIdentityHash(stepped.actions)) {
     throw new Error(`Identity hash must be ${DESTINATION_IDENTITY_HASH_BYTES} bytes`);
   }
-  return identity as Uint8Array;
+  if (shouldUseBytesDestinationIdentityHash(stepped.actions)) {
+    return identity as Uint8Array;
+  }
+  return null;
 }

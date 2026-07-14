@@ -47,6 +47,66 @@ export function planPacketFilter(input: {
   return input.packetType === PACKET_TYPE_ANNOUNCE && input.destinationType === PACKET_DEST_TYPE_SINGLE;
 }
 
+/**
+ * Packet filter gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planPacketFilter` reads
+ * beside the step).
+ */
+export type PacketFilterState = Record<string, never>;
+
+export type PacketFilterEvent =
+  | Event
+  | {
+      readonly kind: "transport/packet-filter-gate";
+      readonly transportId: Uint8Array | null;
+      readonly localTransportHash: Uint8Array;
+      readonly packetType: number;
+      readonly destinationType: number;
+      readonly alreadySeenHash: boolean;
+    };
+
+export type PacketFilterAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "reject" };
+
+export interface PacketFilterStepResult {
+  readonly state: PacketFilterState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketFilterAction[];
+}
+
+export function initialPacketFilterState(): PacketFilterState {
+  return {};
+}
+
+export function stepPacketFilterWithActions(
+  state: PacketFilterState,
+  event: PacketFilterEvent
+): PacketFilterStepResult {
+  if (event.kind === "transport/packet-filter-gate") {
+    const accept = planPacketFilter({
+      transportId: event.transportId,
+      localTransportHash: event.localTransportHash,
+      packetType: event.packetType,
+      destinationType: event.destinationType,
+      alreadySeenHash: event.alreadySeenHash
+    });
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: accept ? "accept" : "reject" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptPacketFilter(
+  actions: ReadonlyArray<PacketFilterAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
 export function shouldAcceptTransportPacket(input: {
   readonly filterPassed: boolean;
   readonly packetType: number;

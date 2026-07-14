@@ -11,6 +11,7 @@ import {
   countChannelTxOutstanding,
   canArmChannelPacketReceipt,
   initialChannelSendState,
+  initialChannelTxEnvelopeOpState,
   initialChannelWindowState,
   isChannelOutletTransmitOk,
   planChannelPacketTimeout,
@@ -21,7 +22,9 @@ import {
   shouldApplyChannelTxReceiptTimeoutExtension,
   shouldExtendPacketReceiptTimeout,
   shouldGiveUpChannelTxTimeout,
+  shouldMissChannelTxEnvelopeOp,
   shouldProceedChannelSend,
+  shouldProcessChannelTxEnvelopeOp,
   shouldRejectChannelSendLinkNotReady,
   shouldRejectChannelSendTooBig,
   shouldReplaceChannelResentPacket,
@@ -30,6 +33,7 @@ import {
   shouldClearChannelEnvelopePacket,
   indexOfChannelTxEnvelope,
   stepChannelSendWithActions,
+  stepChannelTxEnvelopeOpWithActions,
   stepChannelTxTimeout,
   stepChannelTxTimeoutWithActions,
   stepChannelWindow
@@ -207,6 +211,31 @@ describe("protocol channel window", () => {
     expect(shouldResendChannelTimeoutPacket(false)).toBe(false);
     expect(shouldClearChannelEnvelopePacket(true)).toBe(true);
     expect(shouldClearChannelEnvelopePacket(false)).toBe(false);
+  });
+
+  it("emits miss / process actions from channel/tx-envelope-op-gate", () => {
+    const process = stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
+      kind: "channel/tx-envelope-op-gate",
+      indexOk: true,
+      envelopePresent: true
+    });
+    expect(shouldProcessChannelTxEnvelopeOp(process.actions)).toBe(true);
+    expect(shouldMissChannelTxEnvelopeOp(process.actions)).toBe(false);
+
+    const missIndex = stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
+      kind: "channel/tx-envelope-op-gate",
+      indexOk: false,
+      envelopePresent: true
+    });
+    expect(shouldMissChannelTxEnvelopeOp(missIndex.actions)).toBe(true);
+
+    const missOp = stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
+      kind: "channel/tx-envelope-op-gate",
+      indexOk: true,
+      envelopePresent: true,
+      opOk: false
+    });
+    expect(shouldMissChannelTxEnvelopeOp(missOp.actions)).toBe(true);
   });
 
   it("finds TX envelope index by packet id", () => {

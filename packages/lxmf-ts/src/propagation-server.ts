@@ -3,18 +3,18 @@ import {
   decodeLxmfPeerError,
   initialPersistDebounceState,
   initialPropagationGetState,
+  initialPropagationRestoreState,
   initialPropagationStoreState,
   isPropagationMessageTooLarge,
-  planPropagationRestore,
   propagationDestinationHash,
   propagationGetApplyIds,
   propagationGetListIds,
   propagationStoreAcceptEvictKeys,
   selectOldestPropagationKey,
   shouldAcceptPropagationGetRequestData,
+  shouldAcceptPropagationRestore,
   shouldAcceptPropagationStore,
   shouldApplyPropagationGet,
-  shouldApplyPropagationRestore,
   shouldDeletePropagationCatalogEntry,
   shouldDuplicatePropagationStore,
   shouldEvictOldestPropagationEntry,
@@ -23,6 +23,7 @@ import {
   shouldRejectPropagationStore,
   stepPersistDebounceWithActions,
   stepPropagationGetWithActions,
+  stepPropagationRestoreWithActions,
   stepPropagationStoreWithActions,
   type ClientRateBucket,
   type PersistDebounceState,
@@ -236,23 +237,19 @@ export class PropagationServer {
   private restoreEntry(entry: PropagationStoredEntry): void {
     const key = Buffer.from(entry.transientId).toString("hex");
     const destinationHash = propagationDestinationHash(entry.lxmfData);
-    const plan = planPropagationRestore({
+    const stepped = stepPropagationRestoreWithActions(initialPropagationRestoreState(), {
+      kind: "propagation/restore-gate",
       tooLarge: isPropagationMessageTooLarge(entry.lxmfData.length, this.quotas),
       alreadyStored: this.entries.has(key),
       destinationHashPresent: destinationHash !== null
     });
-    if (
-      !shouldApplyPropagationRestore({
-        planAccept: plan === "accept",
-        destinationHashPresent: destinationHash !== null
-      })
-    ) {
+    if (!shouldAcceptPropagationRestore(stepped.actions) || destinationHash === null) {
       return;
     }
 
     this.entries.set(key, {
       transientId: Uint8Array.from(entry.transientId),
-      destinationHash: Uint8Array.from(destinationHash!),
+      destinationHash: Uint8Array.from(destinationHash),
       lxmfData: Uint8Array.from(entry.lxmfData),
       storedAt: entry.storedAt,
       size: entry.lxmfData.length

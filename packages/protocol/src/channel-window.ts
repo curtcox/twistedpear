@@ -241,6 +241,71 @@ export function planChannelTxEnvelopeOp(input: {
   return "process";
 }
 
+/**
+ * Channel TX-envelope op gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planChannelTxEnvelopeOp`
+ * / `plan === "miss"` reads beside the step).
+ */
+export type ChannelTxEnvelopeOpState = Record<string, never>;
+
+export type ChannelTxEnvelopeOpEvent =
+  | Event
+  | {
+      readonly kind: "channel/tx-envelope-op-gate";
+      readonly indexOk: boolean;
+      readonly envelopePresent: boolean;
+      readonly opOk?: boolean;
+    };
+
+export type ChannelTxEnvelopeOpAction =
+  | { readonly kind: "miss" }
+  | { readonly kind: "process" };
+
+export interface ChannelTxEnvelopeOpStepResult {
+  readonly state: ChannelTxEnvelopeOpState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelTxEnvelopeOpAction[];
+}
+
+export function initialChannelTxEnvelopeOpState(): ChannelTxEnvelopeOpState {
+  return {};
+}
+
+export function stepChannelTxEnvelopeOpWithActions(
+  state: ChannelTxEnvelopeOpState,
+  event: ChannelTxEnvelopeOpEvent
+): ChannelTxEnvelopeOpStepResult {
+  if (event.kind === "channel/tx-envelope-op-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planChannelTxEnvelopeOp({
+            indexOk: event.indexOk,
+            envelopePresent: event.envelopePresent,
+            ...(event.opOk !== undefined ? { opOk: event.opOk } : {})
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldMissChannelTxEnvelopeOp(
+  actions: ReadonlyArray<ChannelTxEnvelopeOpAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
+export function shouldProcessChannelTxEnvelopeOp(
+  actions: ReadonlyArray<ChannelTxEnvelopeOpAction>
+): boolean {
+  return actions.some((action) => action.kind === "process");
+}
+
 /** Whether channel outlet arming should apply a non-null receipt timeout. */
 export function shouldApplyChannelPacketReceiptTimeout(timeoutPresent: boolean): boolean {
   return timeoutPresent;

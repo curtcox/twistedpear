@@ -5,12 +5,14 @@ import {
   RECEIPT_TIMEOUT_TIMER_ID,
   isPacketTypeProof,
   packetProofHashMatches,
+  initialPacketReceiptCallbackState,
   initialPacketReceiptProofAcceptState,
-  planPacketReceiptCallback,
   shouldAcceptPacketReceiptProof,
   shouldAcceptPacketReceiptProofActions,
+  shouldClearPacketReceiptCallback,
   shouldInvokePacketReceiptAction,
   splitPacketProof,
+  stepPacketReceiptCallbackWithActions,
   stepPacketReceiptProofAcceptWithActions,
   stepPacketReceiptTimeoutWithActions,
   type PacketReceiptStatusValue,
@@ -150,7 +152,11 @@ export class PacketReceipt {
   }
 
   setTimeoutCallback(callback: ((receipt: PacketReceipt) => void) | null): void {
-    if (planPacketReceiptCallback(callback !== null) === "clear") {
+    const stepped = stepPacketReceiptCallbackWithActions(initialPacketReceiptCallbackState(), {
+      kind: "receipt/callback-gate",
+      callbackPresent: callback !== null
+    });
+    if (shouldClearPacketReceiptCallback(stepped.actions)) {
       delete this.callbacks.timeout;
       return;
     }
@@ -159,7 +165,11 @@ export class PacketReceipt {
   }
 
   setDeliveryCallback(callback: ((receipt: PacketReceipt) => void) | null): void {
-    if (planPacketReceiptCallback(callback !== null) === "clear") {
+    const stepped = stepPacketReceiptCallbackWithActions(initialPacketReceiptCallbackState(), {
+      kind: "receipt/callback-gate",
+      callbackPresent: callback !== null
+    });
+    if (shouldClearPacketReceiptCallback(stepped.actions)) {
       delete this.callbacks.delivery;
       return;
     }

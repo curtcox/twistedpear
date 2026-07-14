@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   DestinationProofStrategyCode,
   canEmitDestinationProof,
-  planDestinationProof
+  initialDestinationProofState,
+  planDestinationProof,
+  shouldProveDestination,
+  stepDestinationProofWithActions
 } from "../src/destination-proof.js";
 import {
   linkReadyForNewResource,
@@ -36,6 +39,27 @@ describe("destination proof planning", () => {
       })
     ).toBe(false);
     expect(planDestinationProof({ strategy: DestinationProofStrategyCode.PROVE_NONE })).toBe(false);
+  });
+
+  it("emits prove / skip actions from destination/proof-gate", () => {
+    const proveAll = stepDestinationProofWithActions(initialDestinationProofState(), {
+      kind: "destination/proof-gate",
+      strategy: DestinationProofStrategyCode.PROVE_ALL
+    });
+    expect(shouldProveDestination(proveAll.actions)).toBe(true);
+
+    const skipNone = stepDestinationProofWithActions(initialDestinationProofState(), {
+      kind: "destination/proof-gate",
+      strategy: DestinationProofStrategyCode.PROVE_NONE
+    });
+    expect(shouldProveDestination(skipNone.actions)).toBe(false);
+
+    const proveApp = stepDestinationProofWithActions(initialDestinationProofState(), {
+      kind: "destination/proof-gate",
+      strategy: DestinationProofStrategyCode.PROVE_APP,
+      appWantsProof: true
+    });
+    expect(shouldProveDestination(proveApp.actions)).toBe(true);
   });
 
   it("gates destination proof emission on identity presence", () => {

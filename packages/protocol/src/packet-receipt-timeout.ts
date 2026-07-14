@@ -258,6 +258,61 @@ export function planPacketReceiptCallback(callbackPresent: boolean): PacketRecei
   return callbackPresent ? "set" : "clear";
 }
 
+/**
+ * Packet-receipt callback assignment is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planPacketReceiptCallback`
+ * / `plan === "clear"` reads beside the step).
+ */
+export type PacketReceiptCallbackState = Record<string, never>;
+
+export type PacketReceiptCallbackEvent =
+  | Event
+  | {
+      readonly kind: "receipt/callback-gate";
+      readonly callbackPresent: boolean;
+    };
+
+export type PacketReceiptCallbackAction =
+  | { readonly kind: "clear" }
+  | { readonly kind: "set" };
+
+export interface PacketReceiptCallbackStepResult {
+  readonly state: PacketReceiptCallbackState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketReceiptCallbackAction[];
+}
+
+export function initialPacketReceiptCallbackState(): PacketReceiptCallbackState {
+  return {};
+}
+
+export function stepPacketReceiptCallbackWithActions(
+  state: PacketReceiptCallbackState,
+  event: PacketReceiptCallbackEvent
+): PacketReceiptCallbackStepResult {
+  if (event.kind === "receipt/callback-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: planPacketReceiptCallback(event.callbackPresent) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldClearPacketReceiptCallback(
+  actions: ReadonlyArray<PacketReceiptCallbackAction>
+): boolean {
+  return actions.some((action) => action.kind === "clear");
+}
+
+export function shouldSetPacketReceiptCallback(
+  actions: ReadonlyArray<PacketReceiptCallbackAction>
+): boolean {
+  return actions.some((action) => action.kind === "set");
+}
+
 /** Whether step actions include a timeout/delivery/failed fanout for the adapter callback. */
 export function shouldInvokePacketReceiptAction(
   actions: ReadonlyArray<PacketReceiptTimeoutAction>,

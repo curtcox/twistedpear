@@ -5,8 +5,14 @@ import {
   destinationHashMaterial,
   destinationNameHashMaterial,
   expandDestinationName,
+  initialDestinationIdentityHashState,
   parseAspectFilter,
   planDestinationIdentityHash,
+  shouldMissDestinationIdentityHash,
+  shouldRejectLengthDestinationIdentityHash,
+  shouldUseBytesDestinationIdentityHash,
+  shouldUseObjectDestinationIdentityHash,
+  stepDestinationIdentityHashWithActions,
   validateDestinationNamePart
 } from "../src/destination-name.js";
 import { utf8Decode, utf8Encode } from "../src/utf8.js";
@@ -74,5 +80,33 @@ describe("protocol destination name", () => {
     expect(planDestinationIdentityHash({ kind: "bytes", bytesLength: 8 })).toBe(
       "reject-length"
     );
+  });
+
+  it("emits identity-hash actions from destination/identity-hash-gate", () => {
+    const missing = stepDestinationIdentityHashWithActions(initialDestinationIdentityHashState(), {
+      kind: "destination/identity-hash-gate",
+      identityKind: "missing"
+    });
+    expect(shouldMissDestinationIdentityHash(missing.actions)).toBe(true);
+
+    const object = stepDestinationIdentityHashWithActions(initialDestinationIdentityHashState(), {
+      kind: "destination/identity-hash-gate",
+      identityKind: "object"
+    });
+    expect(shouldUseObjectDestinationIdentityHash(object.actions)).toBe(true);
+
+    const bytes = stepDestinationIdentityHashWithActions(initialDestinationIdentityHashState(), {
+      kind: "destination/identity-hash-gate",
+      identityKind: "bytes",
+      bytesLength: DESTINATION_IDENTITY_HASH_BYTES
+    });
+    expect(shouldUseBytesDestinationIdentityHash(bytes.actions)).toBe(true);
+
+    const bad = stepDestinationIdentityHashWithActions(initialDestinationIdentityHashState(), {
+      kind: "destination/identity-hash-gate",
+      identityKind: "bytes",
+      bytesLength: 8
+    });
+    expect(shouldRejectLengthDestinationIdentityHash(bad.actions)).toBe(true);
   });
 });

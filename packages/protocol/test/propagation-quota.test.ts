@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   PROPAGATION_DESTINATION_HASH_SIZE,
+  initialPropagationRestoreState,
   initialPropagationStoreState,
   isPropagationMessageTooLarge,
   planPropagationRestore,
@@ -9,6 +10,7 @@ import {
   propagationEntryVisibleToRecipient,
   propagationStoreAcceptEvictKeys,
   selectOldestPropagationKey,
+  shouldAcceptPropagationRestore,
   shouldAcceptPropagationStore,
   shouldApplyPropagationRestore,
   shouldCommitPropagationStoreEntry,
@@ -17,6 +19,7 @@ import {
   shouldEvictOldestPropagationEntry,
   shouldEvictPropagationCatalogEntry,
   shouldRejectPropagationStore,
+  stepPropagationRestoreWithActions,
   stepPropagationStoreWithActions,
   type PropagationQuotas
 } from "../src/propagation-quota.js";
@@ -145,6 +148,42 @@ describe("protocol propagation quota", () => {
     expect(
       shouldEvictOldestPropagationEntry({ oldestKeyPresent: false, entryPresent: true })
     ).toBe(false);
+  });
+
+  it("emits restore reject / duplicate / reject-hash / accept actions from restore-gate", () => {
+    const tooLarge = stepPropagationRestoreWithActions(initialPropagationRestoreState(), {
+      kind: "propagation/restore-gate",
+      tooLarge: true,
+      alreadyStored: false,
+      destinationHashPresent: true
+    });
+    expect(tooLarge.actions).toEqual([{ kind: "reject-too-large" }]);
+    expect(shouldAcceptPropagationRestore(tooLarge.actions)).toBe(false);
+
+    const duplicate = stepPropagationRestoreWithActions(initialPropagationRestoreState(), {
+      kind: "propagation/restore-gate",
+      tooLarge: false,
+      alreadyStored: true,
+      destinationHashPresent: true
+    });
+    expect(duplicate.actions).toEqual([{ kind: "duplicate" }]);
+
+    const missingHash = stepPropagationRestoreWithActions(initialPropagationRestoreState(), {
+      kind: "propagation/restore-gate",
+      tooLarge: false,
+      alreadyStored: false,
+      destinationHashPresent: false
+    });
+    expect(missingHash.actions).toEqual([{ kind: "reject-hash" }]);
+
+    const accepted = stepPropagationRestoreWithActions(initialPropagationRestoreState(), {
+      kind: "propagation/restore-gate",
+      tooLarge: false,
+      alreadyStored: false,
+      destinationHashPresent: true
+    });
+    expect(accepted.actions).toEqual([{ kind: "accept" }]);
+    expect(shouldAcceptPropagationRestore(accepted.actions)).toBe(true);
   });
 
   it("emits reject / duplicate / accept actions from store/received", () => {

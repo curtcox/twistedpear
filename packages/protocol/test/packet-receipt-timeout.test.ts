@@ -4,6 +4,7 @@ import {
   RECEIPT_TIMEOUT_TIMER_ID,
   checkPacketReceiptTimeout,
   initialOutboundReceiptState,
+  initialPacketReceiptCallbackState,
   initialPacketReceiptProofIngressState,
   initialPacketReceiptTimeoutState,
   outboundReceiptOutcomeFromActions,
@@ -13,6 +14,7 @@ import {
   planPacketReceiptProofIngress,
   planUnregisterPacketReceipt,
   shouldArmPacketReceiptTimeoutTimer,
+  shouldClearPacketReceiptCallback,
   shouldContinuePacketReceiptProofIngress,
   shouldFailAndDropOutboundReceipt,
   shouldInvokePacketReceiptAction,
@@ -23,8 +25,10 @@ import {
   shouldOutboundReceiptNone,
   shouldRegisterPacketReceipt,
   shouldRemovePacketReceiptProofIngress,
+  shouldSetPacketReceiptCallback,
   shouldUnregisterPacketReceipt,
   stepOutboundReceiptWithActions,
+  stepPacketReceiptCallbackWithActions,
   stepPacketReceiptProofIngressWithActions,
   stepPacketReceiptTimeout,
   stepPacketReceiptTimeoutWithActions
@@ -180,6 +184,22 @@ describe("protocol packet receipt timeout", () => {
     expect(shouldInvokePacketReceiptTimeoutCallback([{ kind: "delivered" }])).toBe(false);
     expect(shouldInvokePacketReceiptTimeoutCallback([])).toBe(false);
     expect(shouldArmPacketReceiptTimeoutTimer(0)).toBe(false);
+  });
+
+  it("emits clear / set actions from receipt/callback-gate", () => {
+    const clear = stepPacketReceiptCallbackWithActions(initialPacketReceiptCallbackState(), {
+      kind: "receipt/callback-gate",
+      callbackPresent: false
+    });
+    expect(shouldClearPacketReceiptCallback(clear.actions)).toBe(true);
+    expect(shouldSetPacketReceiptCallback(clear.actions)).toBe(false);
+
+    const set = stepPacketReceiptCallbackWithActions(initialPacketReceiptCallbackState(), {
+      kind: "receipt/callback-gate",
+      callbackPresent: true
+    });
+    expect(shouldSetPacketReceiptCallback(set.actions)).toBe(true);
+    expect(shouldClearPacketReceiptCallback(set.actions)).toBe(false);
   });
 
   it("emits outbound receipt and proof-ingress actions from gate steps", () => {

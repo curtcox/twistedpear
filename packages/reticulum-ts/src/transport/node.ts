@@ -16,8 +16,6 @@ import {
   isPathEntryExpired,
   parseAspectFilter,
   planClonePacketWithHops,
-  planDestinationProof,
-  planPacketFilter,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
   planUnregisterPacketReceipt,
@@ -25,12 +23,14 @@ import {
   canAnswerLocalPathRequest,
   canDispatchAnnounceHandlers,
   activeLinkUnregisterRemoveIndex,
+  initialDestinationProofState,
   initialLinkActivateMembershipState,
   initialLinkDataIngressTargetState,
   initialLinkRegisterListState,
   initialLinkUnregisterMembershipState,
   initialLocalPlainDataDeliveryState,
   initialOutboundReceiptState,
+  initialPacketFilterState,
   initialPacketReceiptProofIngressState,
   initialPathEntryLookupState,
   initialPathOutboundState,
@@ -91,18 +91,22 @@ import {
   shouldUnregisterPacketReceipt,
   shouldUnregisterTransportMember,
   shouldUsePathForOutbound,
+  shouldProveDestination,
+  shouldAcceptPacketFilter,
   indexOfMatchingLinkId,
   relayTransportPacketBytes,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
   shouldEmitPathRequest,
   isLocalPathRequestPacket,
+  stepDestinationProofWithActions,
   stepLinkActivateMembershipWithActions,
   stepLinkDataIngressTargetWithActions,
   stepLinkRegisterListWithActions,
   stepLinkUnregisterMembershipWithActions,
   stepLocalPlainDataDeliveryWithActions,
   stepOutboundReceiptWithActions,
+  stepPacketFilterWithActions,
   stepPacketReceiptProofIngressWithActions,
   stepPathEntryLookupWithActions,
   stepPathOutboundWithActions,
@@ -796,12 +800,12 @@ export class LeafTransport {
 
     destination!.dispatchPacket(plaintext!, packet);
 
-    if (
-      planDestinationProof({
-        strategy: destination!.proofStrategy,
-        appWantsProof: destination!.shouldProve(packet)
-      })
-    ) {
+    const proofStepped = stepDestinationProofWithActions(initialDestinationProofState(), {
+      kind: "destination/proof-gate",
+      strategy: destination!.proofStrategy,
+      appWantsProof: destination!.shouldProve(packet)
+    });
+    if (shouldProveDestination(proofStepped.actions)) {
       await this.sendProof(destination!, packet, iface);
     }
   }
@@ -1054,13 +1058,15 @@ export class LeafTransport {
   }
 
   protected packetFilter(packet: Packet): boolean {
-    return planPacketFilter({
+    const stepped = stepPacketFilterWithActions(initialPacketFilterState(), {
+      kind: "transport/packet-filter-gate",
       transportId: packet.transportId,
       localTransportHash: this.options.transportIdentity.hash,
       packetType: packet.packetType,
       destinationType: packet.destinationType,
       alreadySeenHash: this.packetHashes.has(hashKey(packet.hash()))
     });
+    return shouldAcceptPacketFilter(stepped.actions);
   }
 }
 

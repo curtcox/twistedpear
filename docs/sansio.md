@@ -652,6 +652,20 @@
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
 > live in protocol; Link, Announce, TransportNode, and Identity adapt them.
+> **`stepPropagationRestoreWithActions`** emits `reject-too-large` / `duplicate` /
+> `reject-hash` / `accept`; `PropagationServer` restore applies catalog insert only
+> from those actions (no ad-hoc `planPropagationRestore` / `plan === "accept"`
+> reads beside the step). **`stepDestinationIdentityHashWithActions`** emits
+> `missing` / `use-object` / `reject-length` / `use-bytes`; `Destination` hash
+> construction applies only from those actions.
+> **`stepChannelTxEnvelopeOpWithActions`** emits `miss` / `process`; Channel
+> TX-ring timeout/delivery applies only from those actions.
+> **`stepDestinationProofWithActions`** emits `prove` / `skip`;
+> **`stepPacketFilterWithActions`** emits `accept` / `reject`; transport node
+> local plain DATA prove and packet-filter apply only from those actions.
+> **`stepPacketReceiptCallbackWithActions`** emits `clear` / `set`;
+> `PacketReceipt` timeout/delivery callback assignment applies only from those
+> actions.
 > Residual session wait loops now schedule injected-clock timers from step
 > intents (no Promise.`delay`/`sleep` polls): **`stepPathAwait`** /
 > **`stepPathResponseGrace`** (`TransportNode`), **`stepDeliveryReceiptPoll`**
@@ -715,7 +729,9 @@
 > link-unregister-membership / link-app-request /
 > link-app-request-transmit / announce-ingress-gates /
 > link-relay-target / link-resource-conclude /
-> packet-receipt-proof-accept reads
+> packet-receipt-proof-accept / propagation-restore /
+> destination-identity-hash / channel-tx-envelope-op /
+> destination-proof / packet-filter / packet-receipt-callback reads
 > beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

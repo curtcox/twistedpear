@@ -1,7 +1,10 @@
 /**
  * Pure RNS destination name expansion and hash-input material.
  * SHA truncation stays at the crypto adapter edge.
+ * Identity-hash resolution conclusions leave via machine actions (no ad-hoc
+ * `planDestinationIdentityHash` / `plan === "..."` reads beside the step).
  */
+import type { Event, Intent } from "@twistedpear/effects";
 import { NAME_HASH_BYTES, TRUNCATED_HASH_BYTES } from "./hash-truncate.js";
 import { utf8Encode } from "./utf8.js";
 
@@ -140,4 +143,82 @@ export function planDestinationIdentityHash(input: {
     return "reject-length";
   }
   return "use-bytes";
+}
+
+/**
+ * Destination identity-hash resolution is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planDestinationIdentityHash`
+ * / `plan === "..."` reads beside the step).
+ */
+export type DestinationIdentityHashState = Record<string, never>;
+
+export type DestinationIdentityHashEvent =
+  | Event
+  | {
+      readonly kind: "destination/identity-hash-gate";
+      readonly identityKind: "missing" | "object" | "bytes";
+      readonly bytesLength?: number;
+      readonly expectedLength?: number;
+    };
+
+export type DestinationIdentityHashAction =
+  | { readonly kind: "missing" }
+  | { readonly kind: "use-object" }
+  | { readonly kind: "reject-length" }
+  | { readonly kind: "use-bytes" };
+
+export interface DestinationIdentityHashStepResult {
+  readonly state: DestinationIdentityHashState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationIdentityHashAction[];
+}
+
+export function initialDestinationIdentityHashState(): DestinationIdentityHashState {
+  return {};
+}
+
+export function stepDestinationIdentityHashWithActions(
+  state: DestinationIdentityHashState,
+  event: DestinationIdentityHashEvent
+): DestinationIdentityHashStepResult {
+  if (event.kind === "destination/identity-hash-gate") {
+    const plan = planDestinationIdentityHash({
+      kind: event.identityKind,
+      ...(event.bytesLength !== undefined ? { bytesLength: event.bytesLength } : {}),
+      ...(event.expectedLength !== undefined ? { expectedLength: event.expectedLength } : {})
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function destinationIdentityHashFromActions(
+  actions: ReadonlyArray<DestinationIdentityHashAction>
+): DestinationIdentityHashPlan | null {
+  return actions[0]?.kind ?? null;
+}
+
+export function shouldUseObjectDestinationIdentityHash(
+  actions: ReadonlyArray<DestinationIdentityHashAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-object");
+}
+
+export function shouldUseBytesDestinationIdentityHash(
+  actions: ReadonlyArray<DestinationIdentityHashAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-bytes");
+}
+
+export function shouldRejectLengthDestinationIdentityHash(
+  actions: ReadonlyArray<DestinationIdentityHashAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-length");
+}
+
+export function shouldMissDestinationIdentityHash(
+  actions: ReadonlyArray<DestinationIdentityHashAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing");
 }

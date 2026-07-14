@@ -24,8 +24,8 @@ import {
   initialChannelEnvelopeUnpackState,
   initialChannelMessageTypeRegistrationState,
   initialChannelSendState,
+  initialChannelTxEnvelopeOpState,
   packChannelEnvelope,
-  planChannelTxEnvelopeOp,
   planChannelTxReceiptTimeoutRefresh,
   planUnregisterChannelMessageHandler,
   shouldAcceptChannelSequence,
@@ -36,6 +36,7 @@ import {
   shouldEmplaceChannelEnvelope,
   shouldEmitChannelImmediateDelivery,
   shouldGiveUpChannelTxTimeout,
+  shouldMissChannelTxEnvelopeOp,
   shouldProceedChannelEnvelopePack,
   shouldProceedChannelEnvelopeUnpack,
   shouldProceedChannelMessageTypeRegistration,
@@ -57,6 +58,7 @@ import {
   stepChannelEnvelopeUnpackWithActions,
   stepChannelMessageTypeRegistrationWithActions,
   stepChannelSendWithActions,
+  stepChannelTxEnvelopeOpWithActions,
   stepChannelTxTimeoutWithActions,
   stepChannelWindow,
   unpackChannelEnvelope,
@@ -523,13 +525,13 @@ export class Channel {
   private packetTxOp(packet: ChannelPacket, op: (envelope: Envelope) => boolean): void {
     const index = this.indexOfTxEnvelope(packet);
     const envelope = index === null ? undefined : this.txRing[index];
-    if (
-      planChannelTxEnvelopeOp({
-        indexOk: index !== null,
-        envelopePresent: envelope !== undefined,
-        opOk: envelope === undefined ? false : op(envelope)
-      }) === "miss"
-    ) {
+    const stepped = stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
+      kind: "channel/tx-envelope-op-gate",
+      indexOk: index !== null,
+      envelopePresent: envelope !== undefined,
+      opOk: envelope === undefined ? false : op(envelope)
+    });
+    if (shouldMissChannelTxEnvelopeOp(stepped.actions)) {
       return;
     }
 

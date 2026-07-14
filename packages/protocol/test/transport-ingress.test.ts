@@ -20,6 +20,7 @@ import {
   initialLinkDataIngressTargetState,
   initialLinkRelayTargetState,
   initialLocalPlainDataDeliveryState,
+  initialPacketFilterState,
   initialPacketHashRememberState,
   initialProofIngressState,
   initialReverseRelayOutcomeState,
@@ -40,6 +41,7 @@ import {
   proofIngressKindFromActions,
   reverseRelayOutcomeFromActions,
   shouldAcceptLinkLrProofCandidate,
+  shouldAcceptPacketFilter,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash,
   shouldDeleteExpiredReverseEntry,
@@ -84,6 +86,7 @@ import {
   stepLinkDataIngressTargetWithActions,
   stepLinkRelayTargetWithActions,
   stepLocalPlainDataDeliveryWithActions,
+  stepPacketFilterWithActions,
   stepPacketHashRememberWithActions,
   stepProofIngressWithActions,
   stepReverseRelayOutcomeWithActions,
@@ -175,6 +178,30 @@ describe("transport ingress", () => {
         alreadySeenHash: true
       })
     ).toBe(true);
+  });
+
+  it("emits accept / reject actions from transport/packet-filter-gate", () => {
+    const local = new Uint8Array([1, 2, 3]);
+    const foreign = new Uint8Array([9, 9, 9]);
+    const reject = stepPacketFilterWithActions(initialPacketFilterState(), {
+      kind: "transport/packet-filter-gate",
+      transportId: foreign,
+      localTransportHash: local,
+      packetType: PACKET_TYPE_DATA,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      alreadySeenHash: false
+    });
+    expect(shouldAcceptPacketFilter(reject.actions)).toBe(false);
+
+    const accept = stepPacketFilterWithActions(initialPacketFilterState(), {
+      kind: "transport/packet-filter-gate",
+      transportId: local,
+      localTransportHash: local,
+      packetType: PACKET_TYPE_DATA,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      alreadySeenHash: false
+    });
+    expect(shouldAcceptPacketFilter(accept.actions)).toBe(true);
   });
 
   it("defers hash for LRPROOF and link-table destinations", () => {
