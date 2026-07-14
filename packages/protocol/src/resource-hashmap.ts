@@ -1,7 +1,9 @@
 /**
  * Pure RNS resource hashmap-update framing and request parsing.
  * Link send/receive stays at the adapter edge.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { assembleByteArrays, concatByteArrays } from "./bytes.js";
 import {
   msgpackPackArray,
@@ -527,4 +529,404 @@ export function shouldAdvanceResourceAwaitingProof(
   status: "transferring" | "awaiting-proof"
 ): boolean {
   return status === "awaiting-proof";
+}
+
+/**
+ * Resource part-request planning is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type ResourcePartRequestState = Record<string, never>;
+
+export type ResourcePartRequestEvent =
+  | Event
+  | {
+      readonly kind: "resource/part-request-gate";
+      readonly receivedParts: ReadonlyArray<Uint8Array | null>;
+      readonly hashmap: ReadonlyArray<Uint8Array | null>;
+      readonly consecutiveCompletedHeight: number;
+      readonly window: number;
+      readonly hashmapHeight: number;
+      readonly resourceHash: Uint8Array;
+    };
+
+export type ResourcePartRequestAction = {
+  readonly kind: "request";
+  readonly outstandingParts: number;
+  readonly waitingForHashmap: boolean;
+  readonly requestData: Uint8Array;
+};
+
+export interface ResourcePartRequestStepResult {
+  readonly state: ResourcePartRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourcePartRequestAction[];
+}
+
+export function initialResourcePartRequestState(): ResourcePartRequestState {
+  return {};
+}
+
+export const stepResourcePartRequest: StepFn<ResourcePartRequestState> = (state, event) => {
+  const result = stepResourcePartRequestInner(state, event as ResourcePartRequestEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepResourcePartRequestWithActions(
+  state: ResourcePartRequestState,
+  event: ResourcePartRequestEvent
+): ResourcePartRequestStepResult {
+  return stepResourcePartRequestInner(state, event);
+}
+
+export function shouldEmitResourcePartRequest(
+  actions: ReadonlyArray<ResourcePartRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "request");
+}
+
+export function resourcePartRequestFromActions(
+  actions: ReadonlyArray<ResourcePartRequestAction>
+): ResourcePartRequestPlan | null {
+  for (const action of actions) {
+    if (action.kind === "request") {
+      return {
+        outstandingParts: action.outstandingParts,
+        waitingForHashmap: action.waitingForHashmap,
+        requestData: action.requestData
+      };
+    }
+  }
+  return null;
+}
+
+function stepResourcePartRequestInner(
+  state: ResourcePartRequestState,
+  event: ResourcePartRequestEvent
+): ResourcePartRequestStepResult {
+  if (event.kind === "resource/part-request-gate") {
+    const plan = planResourcePartRequest({
+      receivedParts: event.receivedParts,
+      hashmap: event.hashmap,
+      consecutiveCompletedHeight: event.consecutiveCompletedHeight,
+      window: event.window,
+      hashmapHeight: event.hashmapHeight,
+      resourceHash: event.resourceHash
+    });
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "request",
+          outstandingParts: plan.outstandingParts,
+          waitingForHashmap: plan.waitingForHashmap,
+          requestData: plan.requestData
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
+ * Resource receive-part planning is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type ResourceReceivePartState = Record<string, never>;
+
+export type ResourceReceivePartEvent =
+  | Event
+  | {
+      readonly kind: "resource/receive-part-gate";
+      readonly partHash: Uint8Array;
+      readonly hashmap: ReadonlyArray<Uint8Array | null>;
+      readonly receivedParts: ReadonlyArray<Uint8Array | null>;
+      readonly consecutiveCompletedHeight: number;
+      readonly window: number;
+      readonly receivedCount: number;
+      readonly outstandingParts: number;
+      readonly totalParts: number;
+      readonly assemblyStarted: boolean;
+    };
+
+export type ResourceReceivePartAction = {
+  readonly kind: "receive";
+  readonly matched: boolean;
+  readonly slot: number | null;
+  readonly consecutiveCompletedHeight: number;
+  readonly receivedCount: number;
+  readonly outstandingParts: number;
+  readonly progress: number;
+  readonly shouldAssemble: boolean;
+  readonly shouldRequestNext: boolean;
+};
+
+export interface ResourceReceivePartStepResult {
+  readonly state: ResourceReceivePartState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceReceivePartAction[];
+}
+
+export function initialResourceReceivePartState(): ResourceReceivePartState {
+  return {};
+}
+
+export const stepResourceReceivePart: StepFn<ResourceReceivePartState> = (state, event) => {
+  const result = stepResourceReceivePartInner(state, event as ResourceReceivePartEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepResourceReceivePartWithActions(
+  state: ResourceReceivePartState,
+  event: ResourceReceivePartEvent
+): ResourceReceivePartStepResult {
+  return stepResourceReceivePartInner(state, event);
+}
+
+export function shouldApplyResourceReceivePart(
+  actions: ReadonlyArray<ResourceReceivePartAction>
+): boolean {
+  return actions.some((action) => action.kind === "receive");
+}
+
+export function resourceReceivePartFromActions(
+  actions: ReadonlyArray<ResourceReceivePartAction>
+): ResourceReceivePartPlan | null {
+  for (const action of actions) {
+    if (action.kind === "receive") {
+      return {
+        matched: action.matched,
+        slot: action.slot,
+        consecutiveCompletedHeight: action.consecutiveCompletedHeight,
+        receivedCount: action.receivedCount,
+        outstandingParts: action.outstandingParts,
+        progress: action.progress,
+        shouldAssemble: action.shouldAssemble,
+        shouldRequestNext: action.shouldRequestNext
+      };
+    }
+  }
+  return null;
+}
+
+function stepResourceReceivePartInner(
+  state: ResourceReceivePartState,
+  event: ResourceReceivePartEvent
+): ResourceReceivePartStepResult {
+  if (event.kind === "resource/receive-part-gate") {
+    const plan = planResourceReceivePart({
+      partHash: event.partHash,
+      hashmap: event.hashmap,
+      receivedParts: event.receivedParts,
+      consecutiveCompletedHeight: event.consecutiveCompletedHeight,
+      window: event.window,
+      receivedCount: event.receivedCount,
+      outstandingParts: event.outstandingParts,
+      totalParts: event.totalParts,
+      assemblyStarted: event.assemblyStarted
+    });
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "receive",
+          matched: plan.matched,
+          slot: plan.slot,
+          consecutiveCompletedHeight: plan.consecutiveCompletedHeight,
+          receivedCount: plan.receivedCount,
+          outstandingParts: plan.outstandingParts,
+          progress: plan.progress,
+          shouldAssemble: plan.shouldAssemble,
+          shouldRequestNext: plan.shouldRequestNext
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
+ * Resource request-fulfill planning is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type ResourceRequestFulfillState = Record<string, never>;
+
+export type ResourceRequestFulfillEvent =
+  | Event
+  | {
+      readonly kind: "resource/request-fulfill-gate";
+      readonly request: ResourcePartRequest;
+      readonly partMapHashes: ReadonlyArray<Uint8Array>;
+      readonly partSent: ReadonlyArray<boolean>;
+      readonly receiverMinConsecutiveHeight: number;
+      readonly hashmapMaxLen: number;
+      readonly windowMax: number;
+      readonly totalParts: number;
+      readonly sentParts: number;
+    };
+
+export type ResourceRequestFulfillAction = {
+  readonly kind: "fulfill";
+  readonly partActions: readonly ResourceRequestFulfillPartAction[];
+  readonly hashmapUpdate: ResourceRequestFulfillHashmapUpdate | null;
+  readonly nextSentParts: number;
+  readonly nextReceiverMinConsecutiveHeight: number;
+  readonly status: "transferring" | "awaiting-proof";
+};
+
+export interface ResourceRequestFulfillStepResult {
+  readonly state: ResourceRequestFulfillState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceRequestFulfillAction[];
+}
+
+export function initialResourceRequestFulfillState(): ResourceRequestFulfillState {
+  return {};
+}
+
+export const stepResourceRequestFulfill: StepFn<ResourceRequestFulfillState> = (state, event) => {
+  const result = stepResourceRequestFulfillInner(state, event as ResourceRequestFulfillEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepResourceRequestFulfillWithActions(
+  state: ResourceRequestFulfillState,
+  event: ResourceRequestFulfillEvent
+): ResourceRequestFulfillStepResult {
+  return stepResourceRequestFulfillInner(state, event);
+}
+
+export function shouldFulfillResourceRequest(
+  actions: ReadonlyArray<ResourceRequestFulfillAction>
+): boolean {
+  return actions.some((action) => action.kind === "fulfill");
+}
+
+export function resourceRequestFulfillFromActions(
+  actions: ReadonlyArray<ResourceRequestFulfillAction>
+): ResourceRequestFulfillPlan | null {
+  for (const action of actions) {
+    if (action.kind === "fulfill") {
+      return {
+        partActions: action.partActions,
+        hashmapUpdate: action.hashmapUpdate,
+        nextSentParts: action.nextSentParts,
+        nextReceiverMinConsecutiveHeight: action.nextReceiverMinConsecutiveHeight,
+        status: action.status
+      };
+    }
+  }
+  return null;
+}
+
+function stepResourceRequestFulfillInner(
+  state: ResourceRequestFulfillState,
+  event: ResourceRequestFulfillEvent
+): ResourceRequestFulfillStepResult {
+  if (event.kind === "resource/request-fulfill-gate") {
+    const plan = planResourceRequestFulfill({
+      request: event.request,
+      partMapHashes: event.partMapHashes,
+      partSent: event.partSent,
+      receiverMinConsecutiveHeight: event.receiverMinConsecutiveHeight,
+      hashmapMaxLen: event.hashmapMaxLen,
+      windowMax: event.windowMax,
+      totalParts: event.totalParts,
+      sentParts: event.sentParts
+    });
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "fulfill",
+          partActions: plan.partActions,
+          hashmapUpdate: plan.hashmapUpdate,
+          nextSentParts: plan.nextSentParts,
+          nextReceiverMinConsecutiveHeight: plan.nextReceiverMinConsecutiveHeight,
+          status: plan.status
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
+ * Resource hashmap-update accept gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type ResourceHashmapUpdateAcceptState = Record<string, never>;
+
+export type ResourceHashmapUpdateAcceptEvent =
+  | Event
+  | {
+      readonly kind: "resource/hashmap-update-accept-gate";
+      readonly canContinue: boolean;
+      readonly splitOk: boolean;
+      readonly unpackOk: boolean;
+    };
+
+export type ResourceHashmapUpdateAcceptAction = {
+  readonly kind: ResourceHashmapUpdateAcceptPlan;
+};
+
+export interface ResourceHashmapUpdateAcceptStepResult {
+  readonly state: ResourceHashmapUpdateAcceptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceHashmapUpdateAcceptAction[];
+}
+
+export function initialResourceHashmapUpdateAcceptState(): ResourceHashmapUpdateAcceptState {
+  return {};
+}
+
+export const stepResourceHashmapUpdateAccept: StepFn<ResourceHashmapUpdateAcceptState> = (
+  state,
+  event
+) => {
+  const result = stepResourceHashmapUpdateAcceptInner(
+    state,
+    event as ResourceHashmapUpdateAcceptEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepResourceHashmapUpdateAcceptWithActions(
+  state: ResourceHashmapUpdateAcceptState,
+  event: ResourceHashmapUpdateAcceptEvent
+): ResourceHashmapUpdateAcceptStepResult {
+  return stepResourceHashmapUpdateAcceptInner(state, event);
+}
+
+export function shouldApplyResourceHashmapUpdateAccept(
+  actions: ReadonlyArray<ResourceHashmapUpdateAcceptAction>
+): boolean {
+  return actions.some((action) => action.kind === "apply");
+}
+
+export function shouldIgnoreResourceHashmapUpdateAccept(
+  actions: ReadonlyArray<ResourceHashmapUpdateAcceptAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+function stepResourceHashmapUpdateAcceptInner(
+  state: ResourceHashmapUpdateAcceptState,
+  event: ResourceHashmapUpdateAcceptEvent
+): ResourceHashmapUpdateAcceptStepResult {
+  if (event.kind === "resource/hashmap-update-accept-gate") {
+    const plan = planResourceHashmapUpdateAccept({
+      canContinue: event.canContinue,
+      splitOk: event.splitOk,
+      unpackOk: event.unpackOk
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }

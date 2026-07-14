@@ -54,7 +54,11 @@
 > crypto edge). **Msgpack string / string-map** packing and **resource advertisement**
 > codecs (pack/unpack + flag bits) are pure protocol leaves; `ResourceAdvertisement`
 > adapts them. **Resource hashmap-update** framing, part-request parsing, slot-write
-> planning, and **part-request planning** (`planResourcePartRequest`) are pure protocol
+> planning, and **part-request / receive-part / request-fulfill / HMU-accept**
+> (via **`stepResourcePartRequestWithActions`** /
+> **`stepResourceReceivePartWithActions`** /
+> **`stepResourceRequestFulfillWithActions`** /
+> **`stepResourceHashmapUpdateAcceptWithActions`**) are pure protocol
 > leaves; `Resource` adapts them. Link RTT float encode/decode uses protocol msgpack.
 > **Transport wrap/strip/relay framing** and **resource proof** pack/validate are pure
 > protocol leaves; transport + `Resource` adapt them. **Path-request payload framing**
@@ -67,7 +71,8 @@
 > pure protocol leaves; Token and `LXMessage` adapt them. **Token framing**
 > (key split / iv||ciphertext||hmac) and **stamp-cost
 > extraction** from announce app-data are pure protocol leaves; Token and LXMF router
-> adapt them. **Resource receive-part planning**, **LXMF outer wire framing**, and
+> adapt them. **Resource receive-part planning** (via
+> **`stepResourceReceivePartWithActions`**), **LXMF outer wire framing**, and
 > PacketReceipt proof validation via packet-proof helpers are pure protocol leaves.
 > **Identity ciphertext** (ephemeral public || Token), **WS binary frame**
 > encode/decode, and **LXMF peer-error** msgpack decode are pure protocol leaves;
@@ -130,7 +135,8 @@
 > **`stepChannelWindow`**, **transport ingress accept/hash-defer planners** (+ rebroadcast/
 > reverse-timeout constants), and **`computeLinkRequestTimeout`** live in protocol; Channel,
 > TransportNode, and Link adapt them. **`planResourceRequestFulfill`** (sender RESOURCE_REQ
-> fulfill: part send/resend + optional HMU + awaiting-proof) lives in protocol; `Resource`
+> fulfill via **`stepResourceRequestFulfillWithActions`**: part send/resend + optional HMU +
+> awaiting-proof) lives in protocol; `Resource`
 > adapts it. **`planLinkRelayTarget`** and **`isReverseEntryExpired`** live in protocol;
 > `TransportNode` adapts them (reverse-table timeout now applied). **`planPathOutbound`**
 > (wrap / direct / flood) lives in protocol; `LeafTransport` adapts it. **`stepResourceStatus`**
@@ -556,6 +562,14 @@
 > `planChannelMessageTypeRegistration` / `planChannelEnvelopeUnpack` /
 > `planChannelEnvelopePack` / `planChannelSend` / `planResourceAssembleOutcome` /
 > `planResourceProofAccept` reads beside the step).
+> **`stepResourceRequestFulfillWithActions`** emits `fulfill` (part send/resend +
+> optional HMU + counters/status); **`stepResourceReceivePartWithActions`** emits
+> `receive` (slot/counters + assemble/request-next); **`stepResourcePartRequestWithActions`**
+> emits `request`; **`stepResourceHashmapUpdateAcceptWithActions`** emits
+> `apply` / `ignore`; `Resource` REQ/HMU/receive/request-next apply only from
+> those actions (no ad-hoc `planResourceRequestFulfill` /
+> `planResourceReceivePart` / `planResourcePartRequest` /
+> `planResourceHashmapUpdateAccept` reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -611,7 +625,9 @@
 > identity-recall-app-data / destination-construction / destination-decrypt /
 > destination-encrypt / packet-from-fields / channel-message-type-registration /
 > channel-envelope-unpack / channel-envelope-pack / channel-send /
-> resource-assemble / resource-proof-accept reads
+> resource-assemble / resource-proof-accept / resource-request-fulfill /
+> resource-receive-part / resource-part-request /
+> resource-hashmap-update-accept reads
 > beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

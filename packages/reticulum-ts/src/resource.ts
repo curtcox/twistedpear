@@ -42,16 +42,24 @@ import {
   parseResourcePartRequest,
   applyResourceHashmapSlotWrites,
   initialResourceAssembleState,
+  initialResourceHashmapUpdateAcceptState,
+  initialResourcePartRequestState,
   initialResourceProofAcceptState,
+  initialResourceReceivePartState,
+  initialResourceRequestFulfillState,
   planResourceHashmapSlotWrites,
-  planResourceHashmapUpdateAccept,
-  planResourcePartRequest,
-  planResourceReceivePart,
-  planResourceRequestFulfill,
+  resourcePartRequestFromActions,
+  resourceReceivePartFromActions,
+  resourceRequestFulfillFromActions,
+  shouldApplyResourceHashmapUpdateAccept,
   shouldCompleteResourceAssemble,
   shouldCompleteResourceProofAccept,
   stepResourceAssembleWithActions,
+  stepResourceHashmapUpdateAcceptWithActions,
+  stepResourcePartRequestWithActions,
   stepResourceProofAcceptWithActions,
+  stepResourceReceivePartWithActions,
+  stepResourceRequestFulfillWithActions,
   readResourceRequestHash,
   appendResourceMapHashCollisionGuard,
   containsResourceHash,
@@ -631,7 +639,8 @@ export class Resource {
       return;
     }
 
-    const plan = planResourceRequestFulfill({
+    const { actions } = stepResourceRequestFulfillWithActions(initialResourceRequestFulfillState(), {
+      kind: "resource/request-fulfill-gate",
       request: request!,
       partMapHashes: this.parts.map((part) => part.mapHash),
       partSent: this.parts.map((part) => part.sent),
@@ -641,6 +650,16 @@ export class Resource {
       totalParts: this.totalParts,
       sentParts: this.sentParts
     });
+    await this.applyResourceRequestFulfillActions(actions);
+  }
+
+  private async applyResourceRequestFulfillActions(
+    actions: ReturnType<typeof stepResourceRequestFulfillWithActions>["actions"]
+  ): Promise<void> {
+    const plan = resourceRequestFulfillFromActions(actions);
+    if (plan === null) {
+      return;
+    }
 
     for (const action of plan.partActions) {
       const part = this.parts[action.index];
@@ -677,14 +696,16 @@ export class Resource {
     const split = splitResourceHashmapUpdatePacket(plaintext);
     const update =
       split === null ? null : unpackResourceHashmapUpdate(split.updateBytes);
-    if (
-      planResourceHashmapUpdateAccept({
+    const { actions } = stepResourceHashmapUpdateAcceptWithActions(
+      initialResourceHashmapUpdateAcceptState(),
+      {
+        kind: "resource/hashmap-update-accept-gate",
         canContinue: canResourceContinueTransfer(this.status),
         splitOk: split !== null,
         unpackOk: update !== null
-      }) !== "apply" ||
-      update === null
-    ) {
+      }
+    );
+    if (!shouldApplyResourceHashmapUpdateAccept(actions) || update === null) {
       return;
     }
     this.hashmapUpdate(update.segment, update.hashmap);
@@ -724,7 +745,8 @@ export class Resource {
       resourcePartMapHashMaterial(partData, this.randomHash)
     ).subarray(0, RESOURCE_MAPHASH_LEN);
 
-    const plan = planResourceReceivePart({
+    const { actions } = stepResourceReceivePartWithActions(initialResourceReceivePartState(), {
+      kind: "resource/receive-part-gate",
       partHash,
       hashmap: this.hashmap,
       receivedParts: this.receivedParts,
@@ -735,6 +757,17 @@ export class Resource {
       totalParts: this.totalParts,
       assemblyStarted: this.assemblyStarted
     });
+    this.applyResourceReceivePartActions(partData, actions);
+  }
+
+  private applyResourceReceivePartActions(
+    partData: Uint8Array,
+    actions: ReturnType<typeof stepResourceReceivePartWithActions>["actions"]
+  ): void {
+    const plan = resourceReceivePartFromActions(actions);
+    if (plan === null) {
+      return;
+    }
 
     if (
       shouldApplyResourceReceivePartSlot({
@@ -768,7 +801,8 @@ export class Resource {
       return;
     }
 
-    const plan = planResourcePartRequest({
+    const { actions } = stepResourcePartRequestWithActions(initialResourcePartRequestState(), {
+      kind: "resource/part-request-gate",
       receivedParts: this.receivedParts,
       hashmap: this.hashmap,
       consecutiveCompletedHeight: this.consecutiveCompletedHeight,
@@ -776,6 +810,10 @@ export class Resource {
       hashmapHeight: this.hashmapHeight,
       resourceHash: this.hash
     });
+    const plan = resourcePartRequestFromActions(actions);
+    if (plan === null) {
+      return;
+    }
     this.outstandingParts = plan.outstandingParts;
     this.waitingForHashmap = plan.waitingForHashmap;
     await this.link.sendContext(PacketContext.RESOURCE_REQ, plan.requestData);

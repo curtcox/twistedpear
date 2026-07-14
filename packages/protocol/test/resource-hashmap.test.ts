@@ -8,6 +8,10 @@ import {
   packResourceHashmapUpdatePacket,
   parseResourcePartRequest,
   applyResourceHashmapSlotWrites,
+  initialResourceHashmapUpdateAcceptState,
+  initialResourcePartRequestState,
+  initialResourceReceivePartState,
+  initialResourceRequestFulfillState,
   planResourceHashmapSlotWrites,
   planResourceHashmapUpdateAccept,
   planResourcePartRequest,
@@ -19,13 +23,24 @@ import {
   indexOfResourceHash,
   resourceHashmapMaxLen,
   resourceMapHashCollisionGuardLimit,
+  resourcePartRequestFromActions,
+  resourceReceivePartFromActions,
+  resourceRequestFulfillFromActions,
   shouldAcceptResourceHashmapUpdateFrame,
   shouldAdvanceResourceAwaitingProof,
   shouldApplyResourceFulfillPart,
+  shouldApplyResourceHashmapUpdateAccept,
   shouldApplyResourceReceivePartSlot,
+  shouldEmitResourcePartRequest,
   shouldFulfillResourcePartRequest,
+  shouldFulfillResourceRequest,
+  shouldIgnoreResourceHashmapUpdateAccept,
   shouldSendResourceHashmapUpdate,
   splitResourceHashmapUpdatePacket,
+  stepResourceHashmapUpdateAcceptWithActions,
+  stepResourcePartRequestWithActions,
+  stepResourceReceivePartWithActions,
+  stepResourceRequestFulfillWithActions,
   unpackResourceHashmapUpdate
 } from "../src/resource-hashmap.js";
 
@@ -286,5 +301,154 @@ describe("protocol resource hashmap", () => {
     expect(shouldApplyResourceReceivePartSlot({ matched: true, slotPresent: true })).toBe(true);
     expect(shouldApplyResourceReceivePartSlot({ matched: true, slotPresent: false })).toBe(false);
     expect(shouldApplyResourceReceivePartSlot({ matched: false, slotPresent: true })).toBe(false);
+  });
+
+  it("emits fulfill / receive / part-request / hashmap-update-accept actions", () => {
+    const mapA = new Uint8Array([1, 2, 3, 4]);
+    const mapB = new Uint8Array([5, 6, 7, 8]);
+    const fulfilled = stepResourceRequestFulfillWithActions(initialResourceRequestFulfillState(), {
+      kind: "resource/request-fulfill-gate",
+      request: {
+        wantsMoreHashmap: false,
+        lastMapHash: null,
+        resourceHash: new Uint8Array(32),
+        requestedMapHashes: [mapA, mapB]
+      },
+      partMapHashes: [mapA, mapB],
+      partSent: [false, true],
+      receiverMinConsecutiveHeight: 0,
+      hashmapMaxLen: 10,
+      windowMax: 4,
+      totalParts: 2,
+      sentParts: 1
+    });
+    expect(shouldFulfillResourceRequest(fulfilled.actions)).toBe(true);
+    expect(resourceRequestFulfillFromActions(fulfilled.actions)).toEqual({
+      partActions: [
+        { index: 0, kind: "send" },
+        { index: 1, kind: "resend" }
+      ],
+      hashmapUpdate: null,
+      nextSentParts: 2,
+      nextReceiverMinConsecutiveHeight: 0,
+      status: "awaiting-proof"
+    });
+
+    const received = stepResourceReceivePartWithActions(initialResourceReceivePartState(), {
+      kind: "resource/receive-part-gate",
+      partHash: mapA,
+      hashmap: [mapA, mapB],
+      receivedParts: [null, null],
+      consecutiveCompletedHeight: -1,
+      window: 4,
+      receivedCount: 0,
+      outstandingParts: 1,
+      totalParts: 2,
+      assemblyStarted: false
+    });
+    expect(resourceReceivePartFromActions(received.actions)).toEqual({
+      matched: true,
+      slot: 0,
+      consecutiveCompletedHeight: 0,
+      receivedCount: 1,
+      outstandingParts: 0,
+      progress: 0.5,
+      shouldAssemble: false,
+      shouldRequestNext: true
+    });
+
+    const hash = new Uint8Array(32).fill(7);
+    const requested = stepResourcePartRequestWithActions(initialResourcePartRequestState(), {
+      kind: "resource/part-request-gate",
+      receivedParts: [null],
+      hashmap: [mapA],
+      consecutiveCompletedHeight: -1,
+      window: 4,
+      hashmapHeight: 1,
+      resourceHash: hash
+    });
+    expect(shouldEmitResourcePartRequest(requested.actions)).toBe(true);
+    const requestPlan = resourcePartRequestFromActions(requested.actions);
+    expect(requestPlan).not.toBeNull();
+    expect(requestPlan!.outstandingParts).toBe(1);
+    expect(requestPlan!.waitingForHashmap).toBe(false);
+
+    const accepted = stepResourceHashmapUpdateAcceptWithActions(
+      initialResourceHashmapUpdateAcceptState(),
+      {
+        kind: "resource/hashmap-update-accept-gate",
+        canContinue: true,
+        splitOk: true,
+        unpackOk: true
+      }
+    );
+    expect(shouldApplyResourceHashmapUpdateAccept(accepted.actions)).toBe(true);
+    expect(shouldIgnoreResourceHashmapUpdateAccept(accepted.actions)).toBe(false);
+
+    const ignored = stepResourceHashmapUpdateAcceptWithActions(
+      initialResourceHashmapUpdateAcceptState(),
+      {
+        kind: "resource/hashmap-update-accept-gate",
+        canContinue: false,
+        splitOk: true,
+        unpackOk: true
+      }
+    );
+    expect(shouldIgnoreResourceHashmapUpdateAccept(ignored.actions)).toBe(true);
+    expect(shouldApplyResourceHashmapUpdateAccept(ignored.actions)).toBe(false);
+
+    expect(
+      stepResourceRequestFulfillWithActions(initialResourceRequestFulfillState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
+  });
+
+  it("is deterministic for resource hashmap gate events", () => {
+    const mapA = new Uint8Array([1, 2, 3, 4]);
+    const event = {
+      kind: "resource/hashmap-update-accept-gate" as const,
+      canContinue: true,
+      splitOk: true,
+      unpackOk: true
+    };
+    const a = stepResourceHashmapUpdateAcceptWithActions(
+      initialResourceHashmapUpdateAcceptState(),
+      event
+    );
+    const b = stepResourceHashmapUpdateAcceptWithActions(
+      initialResourceHashmapUpdateAcceptState(),
+      event
+    );
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
+
+    const fulfillEvent = {
+      kind: "resource/request-fulfill-gate" as const,
+      request: {
+        wantsMoreHashmap: false as const,
+        lastMapHash: null,
+        resourceHash: new Uint8Array(32),
+        requestedMapHashes: [mapA]
+      },
+      partMapHashes: [mapA],
+      partSent: [false],
+      receiverMinConsecutiveHeight: 0,
+      hashmapMaxLen: 10,
+      windowMax: 4,
+      totalParts: 1,
+      sentParts: 0
+    };
+    const fa = stepResourceRequestFulfillWithActions(
+      initialResourceRequestFulfillState(),
+      fulfillEvent
+    );
+    const fb = stepResourceRequestFulfillWithActions(
+      initialResourceRequestFulfillState(),
+      fulfillEvent
+    );
+    expect(fa).toEqual(fb);
   });
 });
