@@ -91,6 +91,23 @@ export function planPathRequestIngress(input: {
   return "start-discovery";
 }
 
+/** Whether answer-local may invoke the local destination path-request handler. */
+export function canAnswerLocalPathRequest(handlerPresent: boolean): boolean {
+  return handlerPresent;
+}
+
+/**
+ * Whether start-discovery may record a pending request and flood peers.
+ * Tag / destination-key extraction stays at the adapter edge as booleans.
+ */
+export function shouldBeginPathDiscovery(input: {
+  readonly parsedOk: boolean;
+  readonly tagPresent: boolean;
+  readonly destinationKeyPresent: boolean;
+}): boolean {
+  return input.parsedOk && input.tagPresent && input.destinationKeyPresent;
+}
+
 /** Whether a pending discovery path-request should be fulfilled by an announce. */
 export type DiscoveryPathRequestFulfillPlan = "ignore" | "drop-expired" | "fulfill";
 

@@ -18,8 +18,10 @@ import {
   planPathEntryLookup,
   planPathOutbound,
   planPathRequestIngress,
+  canAnswerLocalPathRequest,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
+  shouldBeginPathDiscovery,
   shouldEmitPathRequest,
   stepPathTable,
   initialPathTableState
@@ -331,6 +333,25 @@ describe("protocol path table", () => {
         allowDiscovery: true
       })
     ).toBe("start-discovery");
+  });
+
+  it("gates local answer handler and discovery begin", () => {
+    expect(canAnswerLocalPathRequest(true)).toBe(true);
+    expect(canAnswerLocalPathRequest(false)).toBe(false);
+    expect(
+      shouldBeginPathDiscovery({
+        parsedOk: true,
+        tagPresent: true,
+        destinationKeyPresent: true
+      })
+    ).toBe(true);
+    expect(
+      shouldBeginPathDiscovery({
+        parsedOk: true,
+        tagPresent: true,
+        destinationKeyPresent: false
+      })
+    ).toBe(false);
   });
 
   it("plans discovery path-request fulfill from announce", () => {

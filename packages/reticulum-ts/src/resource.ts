@@ -46,8 +46,6 @@ import {
   planResourceProofAccept,
   planResourceReceivePart,
   planResourceRequestFulfill,
-  shouldAcceptIncomingResourceAdvertisement,
-  shouldAdvertiseResource,
   readResourceRequestHash,
   appendResourceMapHashCollisionGuard,
   containsResourceHash,
@@ -57,8 +55,12 @@ import {
   resourceHashmapMaxLen,
   resourcePartMapHashMaterial,
   isValidResourceProof,
+  isValidResourceRandomHashLength,
   splitResourceDecryptedPayload,
   splitResourceHashmapUpdatePacket,
+  shouldAcceptIncomingResourceAdvertisement,
+  shouldAdvertiseResource,
+  shouldFulfillResourcePartRequest,
   stepResourceWatchdogWithActions,
   unpackResourceAdvertisement,
   unpackResourceHashmapUpdate,
@@ -337,7 +339,7 @@ export class Resource {
             0,
             RESOURCE_RANDOM_HASH_SIZE
           );
-    if (randomHash.length !== RESOURCE_RANDOM_HASH_SIZE) {
+    if (!isValidResourceRandomHashLength(randomHash.length)) {
       throw new Error(`Resource random hash must be ${RESOURCE_RANDOM_HASH_SIZE} bytes`);
     }
     const payload = resourceEncryptMaterial(randomHash, data);
@@ -545,12 +547,12 @@ export class Resource {
     this.startWatchdog();
 
     const request = parseResourcePartRequest(requestData);
-    if (request === null) {
+    if (!shouldFulfillResourcePartRequest(request !== null)) {
       return;
     }
 
     const plan = planResourceRequestFulfill({
-      request,
+      request: request!,
       partMapHashes: this.parts.map((part) => part.mapHash),
       partSent: this.parts.map((part) => part.sent),
       receiverMinConsecutiveHeight: this.receiverMinConsecutiveHeight,

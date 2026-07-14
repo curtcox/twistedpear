@@ -11,6 +11,7 @@ import {
 } from "../src/link-proof.js";
 import {
   applyLinkEstablishEvent,
+  canAcceptLinkOwnerPublicKey,
   canAcceptLinkRequestOwner,
   canIdentifyOnLink,
   canLinkRequest,
@@ -134,6 +135,8 @@ describe("protocol link establish", () => {
     ).toBe(false);
     expect(canAcceptLinkRequestOwner(true)).toBe(true);
     expect(canAcceptLinkRequestOwner(false)).toBe(false);
+    expect(canAcceptLinkOwnerPublicKey(true)).toBe(true);
+    expect(canAcceptLinkOwnerPublicKey(false)).toBe(false);
   });
 
   it("gates application requests on ACTIVE with RTT", () => {

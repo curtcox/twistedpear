@@ -24,9 +24,9 @@ import {
   LinkResourceStrategy,
   LinkStatus,
   LinkTeardownReason,
-  RESOURCE_PROOF_SIZE,
   applyLinkEstablishEvent,
   canAcceptLinkIdentify,
+  canAcceptLinkOwnerPublicKey,
   canAcceptLinkRtt,
   canIdentifyOnLink,
   canLinkRequest,
@@ -89,6 +89,8 @@ import {
   planUnregisterPendingLinkRequest,
   shouldAcceptLinkPacketInterface,
   shouldAcceptLinkTeardown,
+  shouldAcceptResourceHashmapUpdateFrame,
+  shouldAcceptResourceProofPayload,
   shouldAttemptLinkProofCrypto,
   shouldCreateLinkChannel,
   shouldDispatchLinkPlaintext,
@@ -507,10 +509,10 @@ export class Link {
 
     const signallingBytes = Link.signallingBytes(this.mtu, this.mode);
     const ownerPublic = splitIdentityPublicKey(ownerIdentity.getPublicKey());
-    if (ownerPublic === null) {
+    if (!canAcceptLinkOwnerPublicKey(ownerPublic !== null)) {
       throw new Error("Responder link owner public key is invalid");
     }
-    const ownerSigPublicKey = ownerPublic.signaturePublicKey;
+    const ownerSigPublicKey = ownerPublic!.signaturePublicKey;
     const signedData = linkProofSignedMaterial(
       this.linkId,
       publicKeyBytes,
@@ -1250,11 +1252,11 @@ export class Link {
     }
 
     const split = splitResourceHashmapUpdatePacket(plaintext!);
-    if (split === null) {
+    if (!shouldAcceptResourceHashmapUpdateFrame(split !== null)) {
       return;
     }
     for (const resource of this.incomingResourcesList) {
-      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split.resourceHash))) {
+      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split!.resourceHash))) {
         resource.hashmapUpdatePacket(plaintext!);
         return;
       }
@@ -1268,12 +1270,12 @@ export class Link {
     }
 
     const split = splitResourceHashmapUpdatePacket(plaintext!);
-    if (split === null) {
+    if (!shouldAcceptResourceHashmapUpdateFrame(split !== null)) {
       return;
     }
     const resources = incoming ? this.incomingResourcesList : this.outgoingResourcesList;
     for (const resource of resources) {
-      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split.resourceHash))) {
+      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split!.resourceHash))) {
         resource.cancel();
         return;
       }
@@ -1281,12 +1283,15 @@ export class Link {
   }
 
   async handleResourceProof(packet: Packet): Promise<void> {
-    if (packet.data.length !== RESOURCE_PROOF_SIZE) {
+    if (!shouldAcceptResourceProofPayload(packet.data.length)) {
       return;
     }
-    const { resourceHash } = splitResourceProof(packet.data);
+    const split = splitResourceProof(packet.data);
+    if (split === null) {
+      return;
+    }
     for (const resource of this.outgoingResourcesList) {
-      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, resourceHash))) {
+      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split.resourceHash))) {
         resource.validateProof(packet.data);
         return;
       }

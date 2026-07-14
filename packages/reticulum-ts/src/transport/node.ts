@@ -29,6 +29,7 @@ import {
   planTransportIngressDispatch,
   planUnregisterPacketReceipt,
   planUnregisterTransportMember,
+  canAnswerLocalPathRequest,
   canDispatchAnnounceHandlers,
   shouldAcceptLinkLrProofCandidate,
   shouldDispatchLocalLinkRequest,
@@ -787,10 +788,10 @@ export class LeafTransport {
     }
 
     if (plan === "answer-local") {
-      if (localDestination?.answerPathRequest === undefined) {
+      if (!canAnswerLocalPathRequest(localDestination?.answerPathRequest !== undefined)) {
         return;
       }
-      await localDestination.answerPathRequest(iface);
+      await localDestination!.answerPathRequest!(iface);
       return;
     }
 

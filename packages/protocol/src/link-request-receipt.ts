@@ -106,3 +106,11 @@ export function shouldAttachLinkRequestPacketReceipt(packetReceiptPresent: boole
 export function planUnregisterPendingLinkRequest(index: number): number | null {
   return index >= 0 ? index : null;
 }
+
+/** Whether step actions include a failed/response fanout for the adapter callback. */
+export function shouldInvokeLinkRequestReceiptAction(
+  actions: ReadonlyArray<LinkRequestReceiptAction>,
+  kind: LinkRequestReceiptAction["kind"]
+): boolean {
+  return actions.some((action) => action.kind === kind);
+}

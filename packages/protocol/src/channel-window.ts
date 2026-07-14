@@ -152,6 +152,33 @@ export function indexOfChannelTxEnvelope(input: {
   return null;
 }
 
+export type ChannelTxEnvelopeOpPlan = "miss" | "process";
+
+/**
+ * Whether a TX-ring lookup may operate on the envelope (timeout/delivery).
+ * Pass `opOk: false` when a delivery op declined the envelope.
+ */
+export function planChannelTxEnvelopeOp(input: {
+  readonly indexOk: boolean;
+  readonly envelopePresent: boolean;
+  readonly opOk?: boolean;
+}): ChannelTxEnvelopeOpPlan {
+  if (!input.indexOk || !input.envelopePresent || input.opOk === false) {
+    return "miss";
+  }
+  return "process";
+}
+
+/** Whether channel outlet arming should apply a non-null receipt timeout. */
+export function shouldApplyChannelPacketReceiptTimeout(timeoutPresent: boolean): boolean {
+  return timeoutPresent;
+}
+
+/** Whether a successful resend should replace the envelope's tracked packet. */
+export function shouldReplaceChannelResentPacket(resentPresent: boolean): boolean {
+  return resentPresent;
+}
+
 /** Shrink window after a packet timeout / retry. */
 export function applyChannelTimeout(state: ChannelWindowState): ChannelWindowState {
   let window = state.window;

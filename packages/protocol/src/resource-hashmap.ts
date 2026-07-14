@@ -490,3 +490,16 @@ export function planResourceHashmapUpdateAccept(input: {
   }
   return "apply";
 }
+
+/**
+ * Whether a decrypted RESOURCE_HMU / cancel frame has a valid hash prefix.
+ * Part/slot application stays at the adapter edge.
+ */
+export function shouldAcceptResourceHashmapUpdateFrame(splitOk: boolean): boolean {
+  return splitOk;
+}
+
+/** Whether a parsed RESOURCE_REQ may be fulfilled. */
+export function shouldFulfillResourcePartRequest(requestPresent: boolean): boolean {
+  return requestPresent;
+}

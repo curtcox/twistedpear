@@ -47,6 +47,16 @@ export function isValidResourceProof(
   return equalByteArrays(split.proofHash, expectedProof);
 }
 
+/** Whether inbound RESOURCE_PRF bytes match the fixed proof length. */
+export function shouldAcceptResourceProofPayload(dataLength: number): boolean {
+  return dataLength === RESOURCE_PROOF_SIZE;
+}
+
+/** Whether a resource random-hash prefix has the RNS size. */
+export function isValidResourceRandomHashLength(length: number): boolean {
+  return length === RESOURCE_RANDOM_HASH_SIZE;
+}
+
 /** After link decrypt, drop the leading random-hash prefix. */
 export function splitResourceDecryptedPayload(
   decrypted: Uint8Array,

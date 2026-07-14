@@ -14,7 +14,9 @@ import {
   planReverseRelayOutcome,
   planTransportIngressDispatch,
   rewritePacketHopsBytes,
+  canAnswerLocalPathRequest,
   shouldAcceptTransportPacket,
+  shouldBeginPathDiscovery,
   shouldDeferPacketHash as planShouldDeferPacketHash,
   shouldAnswerPathRequest,
   shouldMatchLocalInboundDestination,
@@ -219,10 +221,10 @@ export class TransportNode extends LeafTransport {
     }
 
     if (plan === "answer-local") {
-      if (localDestination?.answerPathRequest === undefined) {
+      if (!canAnswerLocalPathRequest(localDestination?.answerPathRequest !== undefined)) {
         return;
       }
-      await localDestination.answerPathRequest(iface);
+      await localDestination!.answerPathRequest!(iface);
       return;
     }
 
@@ -239,15 +241,23 @@ export class TransportNode extends LeafTransport {
     }
 
     // start-discovery
-    if (parsed === null || parsed.tag === null || destinationKey === null) {
+    if (
+      !shouldBeginPathDiscovery({
+        parsedOk: parsed !== null,
+        tagPresent: parsed !== null && parsed.tag !== null,
+        destinationKeyPresent: destinationKey !== null
+      })
+    ) {
       return;
     }
 
+    const discoveryKey = destinationKey!;
+    const discoveryParsed = parsed!;
     if (discoveryExpired) {
-      this.discoveryPathRequests.delete(destinationKey);
+      this.discoveryPathRequests.delete(discoveryKey);
     }
 
-    this.discoveryPathRequests.set(destinationKey, {
+    this.discoveryPathRequests.set(discoveryKey, {
       timeout: nowSeconds + PATH_REQUEST_TIMEOUT_SECONDS,
       requestingInterface: iface
     });
@@ -262,7 +272,7 @@ export class TransportNode extends LeafTransport {
         continue;
       }
 
-      this.forwardPathRequest(parsed.destinationHash, parsed.tag, outbound);
+      this.forwardPathRequest(discoveryParsed.destinationHash, discoveryParsed.tag!, outbound);
     }
   }
 

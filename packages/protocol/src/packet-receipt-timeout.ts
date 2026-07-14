@@ -188,3 +188,8 @@ export type PacketReceiptCallbackPlan = "clear" | "set";
 export function planPacketReceiptCallback(callbackPresent: boolean): PacketReceiptCallbackPlan {
   return callbackPresent ? "set" : "clear";
 }
+
+/** Whether checkTimeout should invoke the timeout callback after a timed-out step. */
+export function shouldInvokePacketReceiptTimeoutCallback(timedOut: boolean): boolean {
+  return timedOut;
+}

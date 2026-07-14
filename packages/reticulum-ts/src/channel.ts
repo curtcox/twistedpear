@@ -25,11 +25,14 @@ import {
   planChannelMessageTypeRegistration,
   planChannelPacketTimeout,
   planChannelSend,
+  planChannelTxEnvelopeOp,
   planUnregisterChannelMessageHandler,
   shouldAcceptChannelSequence,
+  shouldApplyChannelPacketReceiptTimeout,
   shouldEmitChannelImmediateDelivery,
   shouldExtendPacketReceiptTimeout,
   shouldRegisterChannelMessageHandler,
+  shouldReplaceChannelResentPacket,
   shouldStopChannelHandlerFanout,
   stepChannelWindow,
   unpackChannelEnvelope,
@@ -406,17 +409,17 @@ export class Channel {
 
   private async packetTimeout(packet: ChannelPacket): Promise<void> {
     const index = this.indexOfTxEnvelope(packet);
-    if (index === null) {
-      return;
-    }
-    const envelope = this.txRing[index];
-    if (envelope === undefined) {
+    const envelope = index === null ? undefined : this.txRing[index];
+    if (planChannelTxEnvelopeOp({
+      indexOk: index !== null,
+      envelopePresent: envelope !== undefined
+    }) === "miss") {
       return;
     }
 
     const plan = planChannelPacketTimeout({
       delivered: this.outlet.getPacketState(packet) === MessageState.MSGSTATE_DELIVERED,
-      tries: envelope.tries,
+      tries: envelope!.tries,
       maxTries: this.maxTries
     });
 
@@ -430,27 +433,27 @@ export class Channel {
       return;
     }
 
-    envelope.tries = plan.nextTries;
-    if (envelope.packet !== null) {
-      const resent = await this.outlet.resend(envelope.packet);
-      if (resent !== null) {
-        envelope.packet = resent;
+    envelope!.tries = plan.nextTries;
+    if (envelope!.packet !== null) {
+      const resent = await this.outlet.resend(envelope!.packet);
+      if (shouldReplaceChannelResentPacket(resent !== null)) {
+        envelope!.packet = resent!;
       }
 
-      this.outlet.setPacketDeliveredCallback(envelope.packet, (deliveredPacket) => {
+      this.outlet.setPacketDeliveredCallback(envelope!.packet, (deliveredPacket) => {
         this.packetDelivered(deliveredPacket);
       });
       this.outlet.setPacketTimeoutCallback(
-        envelope.packet,
+        envelope!.packet,
         (timedOutPacket) => {
           void this.packetTimeout(timedOutPacket);
         },
-        this.getPacketTimeoutTime(envelope.tries)
+        this.getPacketTimeoutTime(envelope!.tries)
       );
       this.updatePacketTimeouts();
 
-      if (shouldEmitChannelImmediateDelivery(this.outlet.getPacketState(envelope.packet))) {
-        this.packetDelivered(envelope.packet);
+      if (shouldEmitChannelImmediateDelivery(this.outlet.getPacketState(envelope!.packet))) {
+        this.packetDelivered(envelope!.packet);
       }
     }
 
@@ -459,16 +462,19 @@ export class Channel {
 
   private packetTxOp(packet: ChannelPacket, op: (envelope: Envelope) => boolean): void {
     const index = this.indexOfTxEnvelope(packet);
-    if (index === null) {
-      return;
-    }
-    const envelope = this.txRing[index];
-    if (envelope === undefined || !op(envelope)) {
+    const envelope = index === null ? undefined : this.txRing[index];
+    if (
+      planChannelTxEnvelopeOp({
+        indexOk: index !== null,
+        envelopePresent: envelope !== undefined,
+        opOk: envelope === undefined ? false : op(envelope)
+      }) === "miss"
+    ) {
       return;
     }
 
-    envelope.tracked = false;
-    this.txRing.splice(index, 1);
+    envelope!.tracked = false;
+    this.txRing.splice(index!, 1);
 
     this.windowState = stepChannelWindow(this.windowState, {
       kind: "channel/delivered",
@@ -573,8 +579,8 @@ export class LinkChannelOutlet implements ChannelOutlet {
       return;
     }
 
-    if (timeout !== null) {
-      packet.receipt!.setTimeout(timeout);
+    if (shouldApplyChannelPacketReceiptTimeout(timeout !== null)) {
+      packet.receipt!.setTimeout(timeout!);
     }
 
     packet.receipt!.setTimeoutCallback(

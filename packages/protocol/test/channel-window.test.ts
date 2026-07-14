@@ -13,7 +13,10 @@ import {
   isChannelOutletTransmitOk,
   planChannelPacketTimeout,
   planChannelSend,
+  planChannelTxEnvelopeOp,
+  shouldApplyChannelPacketReceiptTimeout,
   shouldExtendPacketReceiptTimeout,
+  shouldReplaceChannelResentPacket,
   indexOfChannelTxEnvelope,
   stepChannelWindow
 } from "../src/channel-window.js";
@@ -143,6 +146,22 @@ describe("protocol channel window", () => {
   it("arms channel packet receipts when present", () => {
     expect(canArmChannelPacketReceipt(true)).toBe(true);
     expect(canArmChannelPacketReceipt(false)).toBe(false);
+  });
+
+  it("plans TX envelope ops and receipt timeout / resent gates", () => {
+    expect(
+      planChannelTxEnvelopeOp({ indexOk: true, envelopePresent: true })
+    ).toBe("process");
+    expect(
+      planChannelTxEnvelopeOp({ indexOk: false, envelopePresent: true })
+    ).toBe("miss");
+    expect(
+      planChannelTxEnvelopeOp({ indexOk: true, envelopePresent: true, opOk: false })
+    ).toBe("miss");
+    expect(shouldApplyChannelPacketReceiptTimeout(true)).toBe(true);
+    expect(shouldApplyChannelPacketReceiptTimeout(false)).toBe(false);
+    expect(shouldReplaceChannelResentPacket(true)).toBe(true);
+    expect(shouldReplaceChannelResentPacket(false)).toBe(false);
   });
 
   it("finds TX envelope index by packet id", () => {

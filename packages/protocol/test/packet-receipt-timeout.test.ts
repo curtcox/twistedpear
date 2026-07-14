@@ -7,6 +7,7 @@ import {
   planPacketReceiptCallback,
   planPacketReceiptProofIngress,
   planUnregisterPacketReceipt,
+  shouldInvokePacketReceiptTimeoutCallback,
   shouldRegisterPacketReceipt,
   stepPacketReceiptTimeout
 } from "../src/packet-receipt-timeout.js";
@@ -103,5 +104,7 @@ describe("protocol packet receipt timeout", () => {
     expect(shouldRegisterPacketReceipt(false)).toBe(false);
     expect(planPacketReceiptCallback(true)).toBe("set");
     expect(planPacketReceiptCallback(false)).toBe("clear");
+    expect(shouldInvokePacketReceiptTimeoutCallback(true)).toBe(true);
+    expect(shouldInvokePacketReceiptTimeoutCallback(false)).toBe(false);
   });
 });

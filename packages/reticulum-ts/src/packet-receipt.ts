@@ -6,6 +6,7 @@ import {
   packetProofHashMatches,
   planPacketReceiptCallback,
   planPacketReceiptProofAccept,
+  shouldInvokePacketReceiptTimeoutCallback,
   splitPacketProof,
   stepPacketReceiptTimeout,
   type PacketReceiptStatusValue,
@@ -152,7 +153,7 @@ export class PacketReceipt {
       at: nowSeconds
     });
     this.receiptState = stepped.state;
-    if (!stepped.state.timedOut) {
+    if (!shouldInvokePacketReceiptTimeoutCallback(stepped.state.timedOut)) {
       return false;
     }
 

@@ -63,6 +63,11 @@ export function canProveLink(input: {
   return input.ownerPresent && input.publicKeyPresent && input.ownerIdentityPresent;
 }
 
+/** Whether owner public-key bytes split into Ed25519/X25519 halves for prove. */
+export function canAcceptLinkOwnerPublicKey(splitOk: boolean): boolean {
+  return splitOk;
+}
+
 /** Whether an inbound link request destination has identity material. */
 export function canAcceptLinkRequestOwner(identityPresent: boolean): boolean {
   return identityPresent;

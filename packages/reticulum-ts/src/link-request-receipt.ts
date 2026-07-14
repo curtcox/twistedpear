@@ -5,6 +5,7 @@ import {
   LinkRequestReceiptStatus,
   initialLinkRequestReceiptState,
   shouldAttachLinkRequestPacketReceipt,
+  shouldInvokeLinkRequestReceiptAction,
   stepLinkRequestReceipt,
   type LinkRequestReceiptState,
   type LinkRequestReceiptStatusValue
@@ -109,7 +110,7 @@ export class LinkRequestReceipt {
       at: this.now()
     });
     this.receiptState = stepped.state;
-    if (stepped.actions.some((action) => action.kind === "failed")) {
+    if (shouldInvokeLinkRequestReceiptAction(stepped.actions, "failed")) {
       this.link.unregisterPendingRequest(this);
       this.callbacks.failed?.(this);
     }
@@ -123,7 +124,7 @@ export class LinkRequestReceipt {
     });
     this.receiptState = stepped.state;
     this.link.unregisterPendingRequest(this);
-    if (stepped.actions.some((action) => action.kind === "response")) {
+    if (shouldInvokeLinkRequestReceiptAction(stepped.actions, "response")) {
       this.callbacks.response?.(this);
     }
   }
