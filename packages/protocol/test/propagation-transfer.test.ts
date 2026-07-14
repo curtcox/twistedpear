@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   PROPAGATION_LINK_TIMEOUT_MS,
+  PROPAGATION_LINK_TIMER_ID,
   PropagationPeerError,
   PropagationTransferState,
   initialPropagationTransferState,
@@ -18,8 +19,31 @@ describe("protocol propagation transfer", () => {
       kind: "xfer/begin"
     });
     expect(result.state.phase).toBe(PropagationTransferState.LINK_ESTABLISHING);
+    expect(result.intents).toEqual([
+      {
+        kind: "timer/set",
+        timer: { id: PROPAGATION_LINK_TIMER_ID, delayMs: PROPAGATION_LINK_TIMEOUT_MS }
+      }
+    ]);
     expect(result.actions).toEqual([
       { kind: "establish-link", timeoutMs: PROPAGATION_LINK_TIMEOUT_MS }
+    ]);
+  });
+
+  it("cancels the link timer on link-ready and cancel", () => {
+    let state = initialPropagationTransferState();
+    state = stepPropagationTransferWithActions(state, { kind: "xfer/begin" }).state;
+    const ready = stepPropagationTransferWithActions(state, { kind: "xfer/link-ready" });
+    expect(ready.intents).toEqual([
+      { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }
+    ]);
+
+    state = stepPropagationTransferWithActions(initialPropagationTransferState(), {
+      kind: "xfer/begin"
+    }).state;
+    const cancelled = stepPropagationTransferWithActions(state, { kind: "xfer/cancel" });
+    expect(cancelled.intents).toEqual([
+      { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }
     ]);
   });
 
@@ -104,7 +128,7 @@ describe("protocol propagation transfer", () => {
     state = stepPropagationTransferWithActions(state, { kind: "xfer/begin" }).state;
     const result = stepPropagationTransferWithActions(state, {
       kind: "timer/fired",
-      id: "propagation-link",
+      id: PROPAGATION_LINK_TIMER_ID,
       at: PROPAGATION_LINK_TIMEOUT_MS
     });
     expect(result.state.phase).toBe(PropagationTransferState.LINK_FAILED);

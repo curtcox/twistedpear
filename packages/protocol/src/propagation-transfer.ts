@@ -34,6 +34,7 @@ export const PropagationPeerError = {
 } as const;
 
 export const PROPAGATION_LINK_TIMEOUT_MS = LINK_AWAIT_DEFAULT_TIMEOUT_MS;
+export const PROPAGATION_LINK_TIMER_ID = "propagation-link";
 export const PROPAGATION_LIST_TIMEOUT_SEC = 10;
 export const PROPAGATION_DOWNLOAD_TIMEOUT_SEC = 30;
 export const PROPAGATION_HAVES_TIMEOUT_SEC = 10;
@@ -101,7 +102,7 @@ function stepPropagationTransferInner(
   if (event.kind === "xfer/cancel") {
     return {
       state: initialPropagationTransferState(),
-      intents: [],
+      intents: [{ kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }],
       actions: [{ kind: "teardown-link" }]
     };
   }
@@ -114,13 +115,16 @@ function stepPropagationTransferInner(
         downloadedCount: 0
       },
       intents: [
-        { kind: "timer/set", timer: { id: "propagation-link", delayMs: PROPAGATION_LINK_TIMEOUT_MS } }
+        {
+          kind: "timer/set",
+          timer: { id: PROPAGATION_LINK_TIMER_ID, delayMs: PROPAGATION_LINK_TIMEOUT_MS }
+        }
       ],
       actions: [{ kind: "establish-link", timeoutMs: PROPAGATION_LINK_TIMEOUT_MS }]
     };
   }
 
-  if (event.kind === "timer/fired" && event.id === "propagation-link") {
+  if (event.kind === "timer/fired" && event.id === PROPAGATION_LINK_TIMER_ID) {
     if (state.phase !== PropagationTransferState.LINK_ESTABLISHING) {
       return { state, intents: [], actions: [] };
     }
@@ -134,7 +138,7 @@ function stepPropagationTransferInner(
   if (event.kind === "xfer/link-timeout") {
     return {
       state: { ...state, phase: PropagationTransferState.LINK_FAILED },
-      intents: [],
+      intents: [{ kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }],
       actions: [{ kind: "teardown-link" }]
     };
   }
@@ -142,7 +146,7 @@ function stepPropagationTransferInner(
   if (event.kind === "xfer/link-ready") {
     return {
       state: { ...state, phase: PropagationTransferState.LINK_ESTABLISHED },
-      intents: [{ kind: "timer/cancel", timer: { id: "propagation-link" } }],
+      intents: [{ kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }],
       actions: [
         { kind: "identify" },
         { kind: "request-list", timeoutSec: PROPAGATION_LIST_TIMEOUT_SEC }

@@ -1,12 +1,8 @@
 import {
-  LINK_AWAIT_TIMER_ID,
-  PROPAGATION_LINK_TIMEOUT_MS,
+  PROPAGATION_LINK_TIMER_ID,
   PropagationTransferState,
   decodeLxmfPeerError,
-  initialLinkAwaitState,
   initialPropagationTransferState,
-  isLinkAwaitEstablished,
-  isLinkAwaitTimedOut,
   planLxmfPropagationLinkReady,
   planLxmfPropagationSyncPrep,
   planPropagationGet,
@@ -18,12 +14,12 @@ import {
   shouldReuseActiveLink,
   shouldTeardownLxmfPropagationLink,
   shouldTreatPropagationListAsEmpty,
-  stepLinkAwait,
   stepPropagationTransferWithActions,
   type PropagationTransferAction,
   type PropagationTransferMachineState,
   type PropagationTransferStateValue
 } from "@twistedpear/protocol";
+import type { Intent } from "@twistedpear/effects";
 import type { CryptoProvider, Link, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
 import {
   Destination,
@@ -73,6 +69,9 @@ export class PropagationClient {
   private propagationNodeHash: Uint8Array | null = null;
   private propagationLink: Link | null = null;
   private transferMachine: PropagationTransferMachineState = initialPropagationTransferState();
+  private linkTimer: { cancel(): void } | null = null;
+  private pendingLinkResolve: ((link: Link) => void) | null = null;
+  private pendingLinkReject: ((error: Error) => void) | null = null;
 
   constructor(options: PropagationClientOptions) {
     this.router = options.router;
@@ -110,8 +109,19 @@ export class PropagationClient {
 
     const deliveryIdentity = this.router.deliveryIdentity!;
 
-    this.applyTransfer({ kind: "xfer/begin" });
-    const link = await this.ensurePropagationLink();
+    const begin = this.applyTransfer({ kind: "xfer/begin" });
+    let link: Link;
+    try {
+      link = await this.ensurePropagationLink(begin.actions);
+    } catch (error) {
+      if (this.transferMachine.phase === PropagationTransferState.LINK_ESTABLISHING) {
+        this.applyTransfer({ kind: "xfer/link-timeout" });
+      }
+      throw error;
+    }
+    if (this.state === PropagationTransferState.LINK_FAILED) {
+      throw new Error("Propagation link timeout");
+    }
     const afterLink = this.applyTransfer({ kind: "xfer/link-ready" });
 
     for (const action of afterLink.actions) {
@@ -161,16 +171,7 @@ export class PropagationClient {
   }
 
   cancel(): void {
-    const result = this.applyTransfer({ kind: "xfer/cancel" });
-    for (const action of result.actions) {
-      if (
-        action.kind === "teardown-link" &&
-        shouldTeardownLxmfPropagationLink(this.propagationLink !== null)
-      ) {
-        this.propagationLink!.teardown();
-        this.propagationLink = null;
-      }
-    }
+    this.applyTransfer({ kind: "xfer/cancel" });
   }
 
   private async continueDownload(
@@ -251,10 +252,54 @@ export class PropagationClient {
   ): ReturnType<typeof stepPropagationTransferWithActions> {
     const result = stepPropagationTransferWithActions(this.transferMachine, event);
     this.transferMachine = result.state;
+    this.applyTransferIntents(result.intents);
+    this.applyTeardownActions(result.actions);
     return result;
   }
 
-  private async ensurePropagationLink(): Promise<Link> {
+  private applyTransferIntents(intents: readonly Intent[]): void {
+    for (const intent of intents) {
+      if (intent.kind === "timer/cancel" && intent.timer.id === PROPAGATION_LINK_TIMER_ID) {
+        this.linkTimer?.cancel();
+        this.linkTimer = null;
+      }
+      if (intent.kind === "timer/set" && intent.timer.id === PROPAGATION_LINK_TIMER_ID) {
+        this.linkTimer?.cancel();
+        this.linkTimer = this.router.reticulum.runtime.clock.setTimeout(() => {
+          this.linkTimer = null;
+          this.applyTransfer({
+            kind: "timer/fired",
+            id: PROPAGATION_LINK_TIMER_ID,
+            at: this.router.reticulum.runtime.clock.now()
+          });
+          const reject = this.pendingLinkReject;
+          this.clearPendingLinkWait();
+          reject?.(new Error("Propagation link timeout"));
+        }, intent.timer.delayMs);
+      }
+    }
+  }
+
+  private applyTeardownActions(actions: ReadonlyArray<PropagationTransferAction>): void {
+    for (const action of actions) {
+      if (
+        action.kind === "teardown-link" &&
+        shouldTeardownLxmfPropagationLink(this.propagationLink !== null)
+      ) {
+        this.propagationLink!.teardown();
+        this.propagationLink = null;
+      }
+    }
+  }
+
+  private clearPendingLinkWait(): void {
+    this.pendingLinkResolve = null;
+    this.pendingLinkReject = null;
+  }
+
+  private async ensurePropagationLink(
+    actions: ReadonlyArray<PropagationTransferAction>
+  ): Promise<Link> {
     if (
       shouldReuseActiveLink({
         linkPresent: this.propagationLink !== null,
@@ -262,6 +307,11 @@ export class PropagationClient {
       })
     ) {
       return this.propagationLink!;
+    }
+
+    const establish = actions.find((action) => action.kind === "establish-link");
+    if (establish === undefined) {
+      throw new Error("Propagation transfer did not request a link");
     }
 
     const nodeIdentity =
@@ -290,47 +340,16 @@ export class PropagationClient {
     });
 
     const link = await new Promise<Link>((resolve, reject) => {
-      const armed = stepLinkAwait(initialLinkAwaitState(), {
-        kind: "link-await/arm",
-        timeoutMs: PROPAGATION_LINK_TIMEOUT_MS
-      } as never);
-      let state = armed.state;
-      let timer: { cancel(): void } | null = null;
-
-      const applyIntents = (intents: ReturnType<typeof stepLinkAwait>["intents"]): void => {
-        for (const intent of intents) {
-          if (intent.kind === "timer/set" && intent.timer.id === LINK_AWAIT_TIMER_ID) {
-            timer?.cancel();
-            timer = this.router.reticulum.runtime.clock.setTimeout(() => {
-              const tick = stepLinkAwait(state, {
-                kind: "timer/fired",
-                id: LINK_AWAIT_TIMER_ID,
-                at: this.router.reticulum.runtime.clock.now()
-              });
-              state = tick.state;
-              applyIntents(tick.intents);
-              if (isLinkAwaitTimedOut(state)) {
-                this.applyTransfer({ kind: "xfer/link-timeout" });
-                reject(new Error("Propagation link timeout"));
-              }
-            }, intent.timer.delayMs);
-          }
-          if (intent.kind === "timer/cancel" && intent.timer.id === LINK_AWAIT_TIMER_ID) {
-            timer?.cancel();
-            timer = null;
-          }
-        }
-      };
-
-      applyIntents(armed.intents);
+      this.pendingLinkResolve = resolve;
+      this.pendingLinkReject = reject;
       outbound.requestLink({
-        linkEstablished(establishLink) {
-          const result = stepLinkAwait(state, { kind: "link-await/established" } as never);
-          state = result.state;
-          applyIntents(result.intents);
-          if (isLinkAwaitEstablished(state)) {
-            resolve(establishLink);
+        linkEstablished: (establishLink) => {
+          if (this.transferMachine.phase !== PropagationTransferState.LINK_ESTABLISHING) {
+            return;
           }
+          const pendingResolve = this.pendingLinkResolve;
+          this.clearPendingLinkWait();
+          pendingResolve?.(establishLink);
         }
       });
     });
