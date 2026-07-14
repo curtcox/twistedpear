@@ -116,9 +116,12 @@
 > **`stepSplitIdentityCiphertextWithActions`**: use-raw|reject /
 > use-fields|reject; ephemeral public || Token), **WS binary frame**
 > encode/decode (via **`stepEncodeWsBinaryFrameWithActions`** /
-> **`stepDecodeWsClientFrameWithActions`**: use-raw / use-fields|reject), and
-> **LXMF peer-error** msgpack decode are pure protocol leaves;
-> Identity, websocket-server, and propagation adapters use them. **Identity ratchet
+> **`stepDecodeWsClientFrameWithActions`**: use-raw / use-fields|reject),
+> **HDLC interface framing** (encode/decode via
+> **`stepEncodeHdlcFrameWithActions`** / **`stepDecodeHdlcFramesWithActions`**:
+> use-raw / use-fields), and **LXMF peer-error** msgpack decode are pure
+> protocol leaves; Identity, websocket-server, `HdlcPacketInterface`, and
+> propagation adapters use them. **Identity ratchet
 > persistence** (JSON encode/decode, store key, usability/expiry; lookup via
 > **`stepIdentityRatchetLookupWithActions`**) and **web-identity
 > record framing** (pack/split via **`stepPackWebIdentityRecordWithActions`** /
@@ -812,7 +815,7 @@
 > lxmf-inbound-delivery / pack-link-identify-payload /
 > split-link-identify-payload / pack-web-identity-record /
 > split-web-identity-record / encode-ws-binary-frame /
-> decode-ws-client-frame reads
+> decode-ws-client-frame / encode-hdlc-frame / decode-hdlc-frames reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -933,6 +936,10 @@
 > `use-fields`|`reject`; WS binary frame encode / decode apply only from those
 > actions (no ad-hoc `encodeWsBinaryFrame` / `decodeWsClientFrame` reads beside
 > the step).
+> **`stepEncodeHdlcFrameWithActions`** /
+> **`stepDecodeHdlcFramesWithActions`** emit `use-raw` / `use-fields`; HDLC
+> interface encode / decode apply only from those actions (no ad-hoc
+> `encodeHdlcFrame` / `decodeHdlcFrames` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

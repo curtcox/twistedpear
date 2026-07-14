@@ -1,15 +1,23 @@
 import {
   canInterfaceSend,
+  encodeHdlcFrameRawFromActions,
+  hdlcDecodeResultFromActions,
+  initialDecodeHdlcFramesState,
+  initialEncodeHdlcFrameState,
   isInterfaceClosed,
   isValidInterfaceName,
   packetFitsInterfaceMtu,
   shouldDeliverQueuedPacket,
   shouldEnqueueDecodedPacket,
   shouldEnqueueRawInterfaceFrame,
-  shouldYieldBufferedPacket
+  shouldUseDecodeHdlcFrames,
+  shouldUseEncodeHdlcFrame,
+  shouldYieldBufferedPacket,
+  stepDecodeHdlcFramesWithActions,
+  stepEncodeHdlcFrameWithActions,
+  type HdlcDecodeState
 } from "@twistedpear/protocol";
 import type { Packet } from "../packet.js";
-import { decodeHdlcFrames, encodeHdlcFrame, type HdlcDecodeState } from "./framing.js";
 
 export interface ReticulumInterfaceOptions {
   readonly name: string;
@@ -108,11 +116,33 @@ export abstract class HdlcPacketInterface extends AbstractPacketInterface {
   private decodeState: HdlcDecodeState = {};
 
   protected override encodeOutgoing(raw: Uint8Array): Uint8Array {
-    return encodeHdlcFrame(raw);
+    const encodeStepped = stepEncodeHdlcFrameWithActions(initialEncodeHdlcFrameState(), {
+      kind: "hdlc/encode-gate",
+      payload: raw
+    });
+    if (!shouldUseEncodeHdlcFrame(encodeStepped.actions)) {
+      throw new Error("hdlc frame: missing use-raw action");
+    }
+    const encoded = encodeHdlcFrameRawFromActions(encodeStepped.actions);
+    if (encoded === null) {
+      throw new Error("hdlc frame: missing use-raw action");
+    }
+    return encoded;
   }
 
   protected override decodeIncoming(bytes: Uint8Array): ReadonlyArray<Uint8Array> {
-    const decoded = decodeHdlcFrames(bytes, this.decodeState);
+    const decodeStepped = stepDecodeHdlcFramesWithActions(initialDecodeHdlcFramesState(), {
+      kind: "hdlc/decode-gate",
+      input: bytes,
+      decodeState: this.decodeState
+    });
+    if (!shouldUseDecodeHdlcFrames(decodeStepped.actions)) {
+      throw new Error("hdlc frame: missing use-fields action");
+    }
+    const decoded = hdlcDecodeResultFromActions(decodeStepped.actions);
+    if (decoded === null) {
+      throw new Error("hdlc frame: missing use-fields action");
+    }
     this.decodeState = {
       buffer: decoded.buffer,
       inEscape: decoded.inEscape
