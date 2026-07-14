@@ -46,6 +46,7 @@ import {
   encodeLinkMtuBytes,
   encodeLinkSignallingBytes,
   indexOfPendingLinkAppRequest,
+  initialLinkAppRequestInboundState,
   initialLinkEstablishState,
   initialLinkResourceAdvertisementState,
   isLinkClosed,
@@ -74,11 +75,7 @@ import {
   packLinkProofData,
   packLinkRequestData,
   planLinkAppRequest,
-  planLinkAppRequestDispatch,
-  planLinkAppRequestResponse,
   planLinkAppRequestTransmitOutcome,
-  shouldInvokeLinkAppRequestHandler,
-  shouldSendLinkAppRequestResponse,
   planLinkDataContext,
   planLinkIdentifyOutcome,
   planLinkInitiatorMtu,
@@ -107,16 +104,22 @@ import {
   shouldEncryptLinkPayload,
   shouldEnterLinkHandshake,
   shouldFailLinkEstablish,
+  shouldForbidLinkAppRequestInbound,
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest,
   shouldIgnoreInitiatorKeepaliveProbe,
+  shouldIgnoreLinkAppRequestInbound,
+  shouldIgnoreLinkAppRequestInboundResponse,
   shouldIgnoreLinkEstablishRtt,
   shouldIgnoreLinkResourceAdvertisement,
+  shouldInvokeLinkAppRequestInbound,
   shouldRegisterLinkResource,
   shouldRegisterPendingLinkRequest,
+  shouldRejectLinkAppRequestInboundTooBig,
   shouldRejectLinkResourceAdvertisement,
   shouldRemoveLinkResourceListIndex,
   shouldReplyKeepaliveProbe,
+  shouldSendLinkAppRequestInboundResponse,
   shouldSendLinkTeardownThenClose,
   shouldTeardownLinkEstablish,
   shouldUnregisterPendingLinkRequest,
@@ -131,11 +134,14 @@ import {
   splitResourceHashmapUpdatePacket,
   splitResourceProof,
   splitResponderLinkEntropy,
+  stepLinkAppRequestInboundWithActions,
   stepLinkEstablishWithActions,
   stepLinkResourceAdvertisementWithActions,
   stepLinkTeardownWithActions,
   stepLinkWatchdogWithActions,
   utf8Encode,
+  type LinkAppRequestInboundAction,
+  type LinkAppRequestInboundState,
   type LinkEstablishAction,
   type LinkModeValue,
   type LinkResourceAdvertisementAction,
@@ -170,7 +176,7 @@ import {
   TransportType
 } from "./packet.js";
 import type { PacketReceipt } from "./packet-receipt.js";
-import type { RegisteredDestination } from "./registered-destination.js";
+import type { RegisteredDestination, RequestHandler } from "./registered-destination.js";
 import { RETICULUM_MTU } from "./reticulum.js";
 import type { Clock } from "./runtime/runtime.js";
 import type { LeafTransport } from "./transport/node.js";
@@ -1207,51 +1213,88 @@ export class Link {
           ? handlerDestination.getRequestHandler(pathHash)
           : undefined;
 
-      const dispatch = planLinkAppRequestDispatch({
-        plaintextPresent: plaintext !== null,
-        handlerDestinationPresent: handlerDestination !== null,
-        handlerPresent: handler !== undefined,
-        allow: handler?.allow ?? 0,
-        allowedList: handler?.allowedList ?? [],
-        remoteIdentityHash: this.remoteIdentity?.hash ?? null
-      });
-      if (
-        !shouldInvokeLinkAppRequestHandler({
-          dispatchInvoke: dispatch === "invoke-handler",
-          unpackedPresent: unpacked !== null,
-          handlerPresent: handler !== undefined
-        })
-      ) {
-        return;
-      }
+      const stepped = stepLinkAppRequestInboundWithActions(
+        initialLinkAppRequestInboundState({ mdu: this.mdu }),
+        {
+          kind: "app-request/received",
+          plaintextPresent: plaintext !== null,
+          handlerDestinationPresent: handlerDestination !== null,
+          handlerPresent: handler !== undefined,
+          allow: handler?.allow ?? 0,
+          allowedList: handler?.allowedList ?? [],
+          remoteIdentityHash: this.remoteIdentity?.hash ?? null,
+          unpackedPresent: unpacked !== null
+        }
+      );
+      await this.applyLinkAppRequestInboundActions(
+        stepped.state,
+        stepped.actions,
+        {
+          unpacked,
+          handler,
+          requestId,
+          packedResponse: null
+        }
+      );
+    } catch {
+      // Ignore malformed requests.
+    }
+  }
 
-      const [requestedAt, , requestData] = unpacked!;
-      const response = await handler!.responseGenerator(
-        handler!.path,
+  private async applyLinkAppRequestInboundActions(
+    state: LinkAppRequestInboundState,
+    actions: readonly LinkAppRequestInboundAction[],
+    ctx: {
+      readonly unpacked: ReturnType<typeof msgpackUnpackRequest> | null;
+      readonly handler: RequestHandler | undefined;
+      readonly requestId: Uint8Array;
+      readonly packedResponse: Uint8Array | null;
+    }
+  ): Promise<void> {
+    if (
+      shouldIgnoreLinkAppRequestInbound(actions) ||
+      shouldForbidLinkAppRequestInbound(actions)
+    ) {
+      return;
+    }
+
+    if (shouldInvokeLinkAppRequestInbound(actions)) {
+      const [requestedAt, , requestData] = ctx.unpacked!;
+      const response = await ctx.handler!.responseGenerator(
+        ctx.handler!.path,
         requestData,
-        requestId,
+        ctx.requestId,
         this.linkId,
         this.remoteIdentity,
         requestedAt
       );
 
       const packedResponse =
-        response !== null ? msgpackPackResponse(requestId, response) : null;
-      if (
-        shouldSendLinkAppRequestResponse({
-          planSend:
-            planLinkAppRequestResponse({
-              responsePresent: packedResponse !== null,
-              packedLength: packedResponse?.length ?? 0,
-              mdu: this.mdu
-            }) === "send-response",
-          packedPresent: packedResponse !== null
-        })
-      ) {
-        await this.sendContext(PacketContext.RESPONSE, packedResponse!);
-      }
-    } catch {
-      // Ignore malformed requests.
+        response !== null ? msgpackPackResponse(ctx.requestId, response) : null;
+      const next = stepLinkAppRequestInboundWithActions(state, {
+        kind: "app-request/handler-result",
+        responsePresent: packedResponse !== null,
+        packedLength: packedResponse?.length ?? 0
+      });
+      await this.applyLinkAppRequestInboundActions(next.state, next.actions, {
+        ...ctx,
+        packedResponse
+      });
+      return;
+    }
+
+    if (
+      shouldIgnoreLinkAppRequestInboundResponse(actions) ||
+      shouldRejectLinkAppRequestInboundTooBig(actions)
+    ) {
+      return;
+    }
+
+    if (
+      shouldSendLinkAppRequestInboundResponse(actions) &&
+      ctx.packedResponse !== null
+    ) {
+      await this.sendContext(PacketContext.RESPONSE, ctx.packedResponse);
     }
   }
 

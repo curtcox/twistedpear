@@ -23,6 +23,7 @@ import {
   canUpdateLinkKeepalive,
   canValidateLinkProof,
   computeLinkRttSeconds,
+  initialLinkAppRequestInboundState,
   initialLinkEstablishState,
   isLinkClosed,
   isLinkInboundDataPacket,
@@ -50,16 +51,24 @@ import {
   shouldEncryptLinkPayload,
   shouldEnterLinkHandshake,
   shouldFailLinkEstablish,
+  shouldForbidLinkAppRequestInbound,
+  shouldIgnoreLinkAppRequestInbound,
+  shouldIgnoreLinkAppRequestInboundResponse,
   shouldIgnoreLinkEstablishRtt,
   shouldInvokeLinkAppRequestHandler,
+  shouldInvokeLinkAppRequestInbound,
   shouldRegisterLinkMember,
+  shouldRejectLinkAppRequestInboundTooBig,
   shouldRemoveActiveLinkMembership,
   shouldRemovePendingLinkMembership,
   shouldReuseActiveLink,
+  shouldSendLinkAppRequestInboundResponse,
   shouldSendLinkAppRequestResponse,
   shouldTeardownLinkEstablish,
   shouldTeardownLinkFromRtt,
   shouldUpdateLinkLastData,
+  stepLinkAppRequestInbound,
+  stepLinkAppRequestInboundWithActions,
   stepLinkEstablish,
   stepLinkEstablishWithActions
 } from "../src/link-establish.js";
@@ -472,6 +481,139 @@ describe("protocol link establish", () => {
         packedPresent: false
       })
     ).toBe(false);
+  });
+
+  it("emits app-request inbound actions for ignore / invoke / response", () => {
+    const initial = initialLinkAppRequestInboundState({ mdu: 100 });
+    const ignored = stepLinkAppRequestInboundWithActions(initial, {
+      kind: "app-request/received",
+      plaintextPresent: false,
+      handlerDestinationPresent: true,
+      handlerPresent: true,
+      allow: DestinationAllowPolicyCode.ALLOW_ALL,
+      allowedList: [],
+      remoteIdentityHash: null,
+      unpackedPresent: false
+    });
+    expect(ignored.actions).toEqual([{ kind: "ignore" }]);
+    expect(shouldIgnoreLinkAppRequestInbound(ignored.actions)).toBe(true);
+
+    const forbidden = stepLinkAppRequestInboundWithActions(initial, {
+      kind: "app-request/received",
+      plaintextPresent: true,
+      handlerDestinationPresent: true,
+      handlerPresent: true,
+      allow: DestinationAllowPolicyCode.ALLOW_NONE,
+      allowedList: [],
+      remoteIdentityHash: null,
+      unpackedPresent: true
+    });
+    expect(forbidden.actions).toEqual([{ kind: "forbidden" }]);
+    expect(shouldForbidLinkAppRequestInbound(forbidden.actions)).toBe(true);
+
+    const invoke = stepLinkAppRequestInboundWithActions(initial, {
+      kind: "app-request/received",
+      plaintextPresent: true,
+      handlerDestinationPresent: true,
+      handlerPresent: true,
+      allow: DestinationAllowPolicyCode.ALLOW_ALL,
+      allowedList: [],
+      remoteIdentityHash: null,
+      unpackedPresent: true
+    });
+    expect(invoke.actions).toEqual([{ kind: "invoke-handler" }]);
+    expect(shouldInvokeLinkAppRequestInbound(invoke.actions)).toBe(true);
+    expect(invoke.state.waitingHandler).toBe(true);
+
+    const send = stepLinkAppRequestInboundWithActions(invoke.state, {
+      kind: "app-request/handler-result",
+      responsePresent: true,
+      packedLength: 10
+    });
+    expect(send.actions).toEqual([{ kind: "send-response" }]);
+    expect(shouldSendLinkAppRequestInboundResponse(send.actions)).toBe(true);
+    expect(send.state.waitingHandler).toBe(false);
+
+    const nullResponse = stepLinkAppRequestInboundWithActions(invoke.state, {
+      kind: "app-request/handler-result",
+      responsePresent: false,
+      packedLength: 0
+    });
+    expect(nullResponse.actions).toEqual([{ kind: "ignore-response" }]);
+    expect(shouldIgnoreLinkAppRequestInboundResponse(nullResponse.actions)).toBe(true);
+
+    const tooBig = stepLinkAppRequestInboundWithActions(invoke.state, {
+      kind: "app-request/handler-result",
+      responsePresent: true,
+      packedLength: 200
+    });
+    expect(tooBig.actions).toEqual([{ kind: "response-too-big" }]);
+    expect(shouldRejectLinkAppRequestInboundTooBig(tooBig.actions)).toBe(true);
+
+    const stray = stepLinkAppRequestInboundWithActions(initial, {
+      kind: "app-request/handler-result",
+      responsePresent: true,
+      packedLength: 10
+    });
+    expect(stray.actions).toEqual([]);
+
+    const stripped = stepLinkAppRequestInbound(initial, {
+      kind: "app-request/received",
+      plaintextPresent: false,
+      handlerDestinationPresent: true,
+      handlerPresent: true,
+      allow: DestinationAllowPolicyCode.ALLOW_ALL,
+      allowedList: [],
+      remoteIdentityHash: null,
+      unpackedPresent: false
+    });
+    expect(stripped).toEqual({
+      state: ignored.state,
+      intents: ignored.intents
+    });
+  });
+
+  it("app-request inbound actions double-run identically", () => {
+    const run = () => {
+      const steps = [];
+      const initial = initialLinkAppRequestInboundState({ mdu: 100 });
+      const invoke = stepLinkAppRequestInboundWithActions(initial, {
+        kind: "app-request/received",
+        plaintextPresent: true,
+        handlerDestinationPresent: true,
+        handlerPresent: true,
+        allow: DestinationAllowPolicyCode.ALLOW_ALL,
+        allowedList: [],
+        remoteIdentityHash: null,
+        unpackedPresent: true
+      });
+      steps.push(invoke);
+      steps.push(
+        stepLinkAppRequestInboundWithActions(invoke.state, {
+          kind: "app-request/handler-result",
+          responsePresent: true,
+          packedLength: 10
+        })
+      );
+      steps.push(
+        stepLinkAppRequestInboundWithActions(initial, {
+          kind: "app-request/received",
+          plaintextPresent: true,
+          handlerDestinationPresent: true,
+          handlerPresent: true,
+          allow: DestinationAllowPolicyCode.ALLOW_NONE,
+          allowedList: [],
+          remoteIdentityHash: null,
+          unpackedPresent: true
+        })
+      );
+      return steps.map((s) => ({
+        waitingHandler: s.state.waitingHandler,
+        actions: s.actions,
+        intents: s.intents
+      }));
+    };
+    expect(run()).toEqual(run());
   });
 
   it("gates lastData refresh and DATA inbound dispatch", () => {

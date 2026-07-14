@@ -351,6 +351,10 @@
 > **`stepLinkResourceAdvertisementWithActions`** emits `ignore` / `ask-app` /
 > `accept` / `reject`; `Link` RESOURCE_ADV handling applies unpack/app-callback /
 > accept/reject only from those actions (no ad-hoc `plan.kind` reads).
+> **`stepLinkAppRequestInboundWithActions`** emits `ignore` / `forbidden` /
+> `invoke-handler` / `send-response` / `ignore-response` / `response-too-big`;
+> `Link.handleRequestPacket` applies responseGenerator / send only from those
+> actions (no ad-hoc dispatch/`plan.kind` reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`** / **`shouldCommitLinkRemoteIdentity`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -386,10 +390,10 @@
 > awaits all conclude via machine resolve/reject actions (adapters no longer
 > finish by reading `state.concluded` beside probes). PacketReceipt
 > timeout/delivery/failed, Channel TX timeout/retry/give-up, Link establish
-> handshake/activate/fail/LRRTT, Link teardown local/remote close, and Link
-> RESOURCE_ADV accept/ask-app/reject also conclude via machine actions (no
-> ad-hoc `state.timedOut` / `plan.kind` / establish-status reads beside the
-> step).
+> handshake/activate/fail/LRRTT, Link teardown local/remote close, Link
+> RESOURCE_ADV accept/ask-app/reject, and Link inbound app-request
+> invoke/response also conclude via machine actions (no ad-hoc `state.timedOut` /
+> `plan.kind` / establish-status / dispatch reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

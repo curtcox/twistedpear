@@ -1,7 +1,9 @@
 /**
- * Pure link establishment status transitions (handshake → proof/RTT → ACTIVE).
+ * Pure link establishment status transitions (handshake → proof/RTT → ACTIVE)
+ * and inbound application-request dispatch (handler invoke → response send).
  * Crypto verification and packet IO stay at the adapter edge.
- * Conclusions leave via machine actions (no ad-hoc status reads beside the step).
+ * Conclusions leave via machine actions (no ad-hoc status / plan.kind reads
+ * beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { planDestinationRequestAllow } from "./destination-allow.js";
@@ -340,6 +342,185 @@ export function planLinkAppRequestResponse(input: {
     return "response-too-big";
   }
   return "send-response";
+}
+
+/**
+ * Pure inbound link application-request dispatch (handler invoke → response send).
+ * Decrypt / unpack / responseGenerator / encrypt stay at the adapter edge.
+ * Conclusions leave via machine actions (no ad-hoc plan outcome reads beside the step).
+ */
+export interface LinkAppRequestInboundState {
+  readonly waitingHandler: boolean;
+  readonly mdu: number;
+}
+
+export type LinkAppRequestInboundEvent =
+  | Event
+  | {
+      readonly kind: "app-request/received";
+      readonly plaintextPresent: boolean;
+      readonly handlerDestinationPresent: boolean;
+      readonly handlerPresent: boolean;
+      readonly allow: number;
+      readonly allowedList: ReadonlyArray<Uint8Array>;
+      readonly remoteIdentityHash: Uint8Array | null;
+      readonly unpackedPresent: boolean;
+    }
+  | {
+      readonly kind: "app-request/handler-result";
+      readonly responsePresent: boolean;
+      readonly packedLength: number;
+    };
+
+/**
+ * Adapter applies ignore / forbidden / invoke-handler / response outcomes only from these.
+ */
+export type LinkAppRequestInboundAction =
+  | { readonly kind: "ignore" }
+  | { readonly kind: "forbidden" }
+  | { readonly kind: "invoke-handler" }
+  | { readonly kind: "send-response" }
+  | { readonly kind: "ignore-response" }
+  | { readonly kind: "response-too-big" };
+
+export interface LinkAppRequestInboundStepResult {
+  readonly state: LinkAppRequestInboundState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkAppRequestInboundAction[];
+}
+
+export function initialLinkAppRequestInboundState(input: {
+  readonly mdu: number;
+}): LinkAppRequestInboundState {
+  return {
+    waitingHandler: false,
+    mdu: input.mdu
+  };
+}
+
+export const stepLinkAppRequestInbound: StepFn<LinkAppRequestInboundState> = (
+  state,
+  event
+) => {
+  const result = stepLinkAppRequestInboundInner(
+    state,
+    event as LinkAppRequestInboundEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkAppRequestInboundWithActions(
+  state: LinkAppRequestInboundState,
+  event: LinkAppRequestInboundEvent
+): LinkAppRequestInboundStepResult {
+  return stepLinkAppRequestInboundInner(state, event);
+}
+
+/** Whether step actions include ignore. */
+export function shouldIgnoreLinkAppRequestInbound(
+  actions: ReadonlyArray<LinkAppRequestInboundAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+/** Whether step actions include forbidden. */
+export function shouldForbidLinkAppRequestInbound(
+  actions: ReadonlyArray<LinkAppRequestInboundAction>
+): boolean {
+  return actions.some((action) => action.kind === "forbidden");
+}
+
+/** Whether step actions include invoke-handler. */
+export function shouldInvokeLinkAppRequestInbound(
+  actions: ReadonlyArray<LinkAppRequestInboundAction>
+): boolean {
+  return actions.some((action) => action.kind === "invoke-handler");
+}
+
+/** Whether step actions include send-response. */
+export function shouldSendLinkAppRequestInboundResponse(
+  actions: ReadonlyArray<LinkAppRequestInboundAction>
+): boolean {
+  return actions.some((action) => action.kind === "send-response");
+}
+
+/** Whether step actions include ignore-response. */
+export function shouldIgnoreLinkAppRequestInboundResponse(
+  actions: ReadonlyArray<LinkAppRequestInboundAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore-response");
+}
+
+/** Whether step actions include response-too-big. */
+export function shouldRejectLinkAppRequestInboundTooBig(
+  actions: ReadonlyArray<LinkAppRequestInboundAction>
+): boolean {
+  return actions.some((action) => action.kind === "response-too-big");
+}
+
+function stepLinkAppRequestInboundInner(
+  state: LinkAppRequestInboundState,
+  event: LinkAppRequestInboundEvent
+): LinkAppRequestInboundStepResult {
+  if (event.kind === "app-request/received") {
+    const plan = planLinkAppRequestDispatch({
+      plaintextPresent: event.plaintextPresent,
+      handlerDestinationPresent: event.handlerDestinationPresent,
+      handlerPresent: event.handlerPresent,
+      allow: event.allow,
+      allowedList: event.allowedList,
+      remoteIdentityHash: event.remoteIdentityHash
+    });
+    if (plan === "ignore") {
+      return { state, intents: [], actions: [{ kind: "ignore" }] };
+    }
+    if (plan === "forbidden") {
+      return { state, intents: [], actions: [{ kind: "forbidden" }] };
+    }
+    if (
+      !shouldInvokeLinkAppRequestHandler({
+        dispatchInvoke: true,
+        unpackedPresent: event.unpackedPresent,
+        handlerPresent: event.handlerPresent
+      })
+    ) {
+      return { state, intents: [], actions: [{ kind: "ignore" }] };
+    }
+    return {
+      state: { ...state, waitingHandler: true },
+      intents: [],
+      actions: [{ kind: "invoke-handler" }]
+    };
+  }
+
+  if (event.kind === "app-request/handler-result") {
+    if (!state.waitingHandler) {
+      return { state, intents: [], actions: [] };
+    }
+    const plan = planLinkAppRequestResponse({
+      responsePresent: event.responsePresent,
+      packedLength: event.packedLength,
+      mdu: state.mdu
+    });
+    const next = { ...state, waitingHandler: false };
+    if (plan === "ignore") {
+      return { state: next, intents: [], actions: [{ kind: "ignore-response" }] };
+    }
+    if (plan === "response-too-big") {
+      return { state: next, intents: [], actions: [{ kind: "response-too-big" }] };
+    }
+    if (
+      !shouldSendLinkAppRequestResponse({
+        planSend: true,
+        packedPresent: event.responsePresent
+      })
+    ) {
+      return { state: next, intents: [], actions: [{ kind: "ignore-response" }] };
+    }
+    return { state: next, intents: [], actions: [{ kind: "send-response" }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 /** Whether inbound traffic (non-keepalive) should refresh lastData. */
