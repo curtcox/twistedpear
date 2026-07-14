@@ -1,6 +1,8 @@
 /**
  * Pure Identity ratchet persistence record (JSON over UTF-8).
  * Store IO and expiry clock stay at the adapter edge.
+ * Encode / decode conclusions leave via machine actions (no ad-hoc
+ * `encodeIdentityRatchetRecord` / `decodeIdentityRatchetRecord` reads beside the step).
  * Lookup conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
@@ -38,6 +40,150 @@ export function decodeIdentityRatchetRecord(bytes: Uint8Array): IdentityRatchetR
     ratchet: hexToBytesLower(parsed.ratchet),
     received: parsed.received
   };
+}
+
+/**
+ * Identity-ratchet encode framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `encodeIdentityRatchetRecord`
+ * reads beside the step). Encode failures become `reject`.
+ */
+export type EncodeIdentityRatchetRecordState = Record<string, never>;
+
+export type EncodeIdentityRatchetRecordEvent =
+  | Event
+  | {
+      readonly kind: "identity-ratchet/encode-gate";
+      readonly record: IdentityRatchetRecord;
+    };
+
+export type EncodeIdentityRatchetRecordAction =
+  | { readonly kind: "use-raw"; readonly raw: Uint8Array }
+  | { readonly kind: "reject" };
+
+export interface EncodeIdentityRatchetRecordStepResult {
+  readonly state: EncodeIdentityRatchetRecordState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly EncodeIdentityRatchetRecordAction[];
+}
+
+export function initialEncodeIdentityRatchetRecordState(): EncodeIdentityRatchetRecordState {
+  return {};
+}
+
+export function stepEncodeIdentityRatchetRecordWithActions(
+  state: EncodeIdentityRatchetRecordState,
+  event: EncodeIdentityRatchetRecordEvent
+): EncodeIdentityRatchetRecordStepResult {
+  if (event.kind === "identity-ratchet/encode-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [
+          {
+            kind: "use-raw",
+            raw: encodeIdentityRatchetRecord(event.record)
+          }
+        ]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseEncodeIdentityRatchetRecord(
+  actions: ReadonlyArray<EncodeIdentityRatchetRecordAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+export function shouldRejectEncodeIdentityRatchetRecord(
+  actions: ReadonlyArray<EncodeIdentityRatchetRecordAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract encoded identity ratchet record from step actions; null when no `use-raw`. */
+export function encodeIdentityRatchetRecordRawFromActions(
+  actions: ReadonlyArray<EncodeIdentityRatchetRecordAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Identity-ratchet decode framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `decodeIdentityRatchetRecord`
+ * reads beside the step). Invalid JSON / hex become `reject`.
+ */
+export type DecodeIdentityRatchetRecordState = Record<string, never>;
+
+export type DecodeIdentityRatchetRecordEvent =
+  | Event
+  | {
+      readonly kind: "identity-ratchet/decode-gate";
+      readonly bytes: Uint8Array;
+    };
+
+export type DecodeIdentityRatchetRecordAction =
+  | { readonly kind: "use-fields"; readonly fields: IdentityRatchetRecord }
+  | { readonly kind: "reject" };
+
+export interface DecodeIdentityRatchetRecordStepResult {
+  readonly state: DecodeIdentityRatchetRecordState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DecodeIdentityRatchetRecordAction[];
+}
+
+export function initialDecodeIdentityRatchetRecordState(): DecodeIdentityRatchetRecordState {
+  return {};
+}
+
+export function stepDecodeIdentityRatchetRecordWithActions(
+  state: DecodeIdentityRatchetRecordState,
+  event: DecodeIdentityRatchetRecordEvent
+): DecodeIdentityRatchetRecordStepResult {
+  if (event.kind === "identity-ratchet/decode-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [
+          {
+            kind: "use-fields",
+            fields: decodeIdentityRatchetRecord(event.bytes)
+          }
+        ]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseDecodeIdentityRatchetRecord(
+  actions: ReadonlyArray<DecodeIdentityRatchetRecordAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectDecodeIdentityRatchetRecord(
+  actions: ReadonlyArray<DecodeIdentityRatchetRecordAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract decoded identity ratchet record from step actions; null when no `use-fields`. */
+export function identityRatchetRecordFromActions(
+  actions: ReadonlyArray<DecodeIdentityRatchetRecordAction>
+): IdentityRatchetRecord | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }
 
 export function isIdentityRatchetRecordUsable(

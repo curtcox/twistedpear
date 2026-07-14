@@ -11,21 +11,29 @@ import {
   canIdentityUsePrivateKey,
   canIdentityUsePublicKey,
   canLoadIdentityKeyMaterial,
-  decodeIdentityRatchetRecord,
-  encodeIdentityRatchetRecord,
+  encodeIdentityRatchetRecordRawFromActions,
   identityCiphertextFieldsFromActions,
+  identityPrivateKeyFieldsFromActions,
+  identityPublicKeyFieldsFromActions,
+  identityRatchetRecordFromActions,
   identityRatchetStoreKey,
+  initialDecodeIdentityRatchetRecordState,
+  initialEncodeIdentityRatchetRecordState,
   initialIdentityDecryptState,
   initialIdentityRatchetLookupState,
   initialIdentityRecallAppDataState,
   initialIdentityRecallState,
   initialPackIdentityCiphertextState,
+  initialPackIdentityPrivateKeyState,
+  initialPackIdentityPublicKeyState,
   initialPackPacketProofState,
   initialSplitIdentityCiphertextState,
+  initialSplitIdentityPrivateKeyState,
+  initialSplitIdentityPublicKeyState,
   isIdentityRatchetRecordUsable,
   packIdentityCiphertextRawFromActions,
-  packIdentityPrivateKey,
-  packIdentityPublicKey,
+  packIdentityPrivateKeyRawFromActions,
+  packIdentityPublicKeyRawFromActions,
   packPacketProofRawFromActions,
   shouldAcceptIdentityDecrypt,
   shouldAttemptIdentityRatchetDecrypt,
@@ -35,24 +43,37 @@ import {
   shouldHitIdentityRecallAppData,
   shouldMissIdentityRatchetNoStore,
   shouldPersistIdentityRatchet,
+  shouldRejectEncodeIdentityRatchetRecord,
   shouldRejectIdentityDecryptEnforced,
   shouldRejectIdentityDecryptFrame,
   shouldRejectPackIdentityCiphertext,
+  shouldRejectPackIdentityPrivateKey,
+  shouldRejectPackIdentityPublicKey,
   shouldTryIdentityDecrypt,
   shouldUseCachedIdentityRatchet,
+  shouldUseDecodeIdentityRatchetRecord,
+  shouldUseEncodeIdentityRatchetRecord,
   shouldUsePackIdentityCiphertext,
+  shouldUsePackIdentityPrivateKey,
+  shouldUsePackIdentityPublicKey,
   shouldUsePackPacketProof,
   shouldUseSplitIdentityCiphertext,
+  shouldUseSplitIdentityPrivateKey,
+  shouldUseSplitIdentityPublicKey,
+  stepDecodeIdentityRatchetRecordWithActions,
+  stepEncodeIdentityRatchetRecordWithActions,
   stepIdentityDecryptWithActions,
   stepIdentityRatchetLookupWithActions,
   stepIdentityRecallAppDataWithActions,
   stepIdentityRecallWithActions,
   stepPackIdentityCiphertextWithActions,
+  stepPackIdentityPrivateKeyWithActions,
+  stepPackIdentityPublicKeyWithActions,
   stepPackPacketProofWithActions,
   stepSplitIdentityCiphertextWithActions,
+  stepSplitIdentityPrivateKeyWithActions,
+  stepSplitIdentityPublicKeyWithActions,
   splitIdentityEntropy,
-  splitIdentityPrivateKey,
-  splitIdentityPublicKey,
   truncateToNameHash,
   truncateToTruncatedHash
 } from "@twistedpear/protocol";
@@ -177,7 +198,23 @@ export class Identity {
     Identity.knownRatchets.set(key, Uint8Array.from(ratchet));
 
     if (shouldPersistIdentityRatchet(store !== undefined)) {
-      const payload = encodeIdentityRatchetRecord({ ratchet, received: receivedAt });
+      const encodeStepped = stepEncodeIdentityRatchetRecordWithActions(
+        initialEncodeIdentityRatchetRecordState(),
+        {
+          kind: "identity-ratchet/encode-gate",
+          record: { ratchet, received: receivedAt }
+        }
+      );
+      if (
+        shouldRejectEncodeIdentityRatchetRecord(encodeStepped.actions) ||
+        !shouldUseEncodeIdentityRatchetRecord(encodeStepped.actions)
+      ) {
+        return;
+      }
+      const payload = encodeIdentityRatchetRecordRawFromActions(encodeStepped.actions);
+      if (payload === null) {
+        return;
+      }
       void store!.set(identityRatchetStoreKey(key), payload);
     }
   }
@@ -204,8 +241,19 @@ export class Identity {
     }
 
     const stored = await store!.get(identityRatchetStoreKey(key));
-    const record =
-      stored === undefined ? null : decodeIdentityRatchetRecord(stored);
+    let record = null;
+    if (stored !== undefined) {
+      const decodeStepped = stepDecodeIdentityRatchetRecordWithActions(
+        initialDecodeIdentityRatchetRecordState(),
+        {
+          kind: "identity-ratchet/decode-gate",
+          bytes: stored
+        }
+      );
+      if (shouldUseDecodeIdentityRatchetRecord(decodeStepped.actions)) {
+        record = identityRatchetRecordFromActions(decodeStepped.actions);
+      }
+    }
     const afterStore = stepIdentityRatchetLookupWithActions(initialIdentityRatchetLookupState(), {
       kind: "identity/ratchet-lookup-gate",
       cachedPresent: false,
@@ -280,16 +328,55 @@ export class Identity {
 
   getPrivateKey(): Uint8Array {
     this.requirePrivateKey();
-    return packIdentityPrivateKey(this.prvBytes!, this.sigPrvBytes!);
+    const packStepped = stepPackIdentityPrivateKeyWithActions(initialPackIdentityPrivateKeyState(), {
+      kind: "identity-key/pack-private-gate",
+      privateKey: this.prvBytes!,
+      signaturePrivateKey: this.sigPrvBytes!
+    });
+    if (
+      shouldRejectPackIdentityPrivateKey(packStepped.actions) ||
+      !shouldUsePackIdentityPrivateKey(packStepped.actions)
+    ) {
+      throw new Error("Identity.getPrivateKey: missing use-raw action");
+    }
+    const packed = packIdentityPrivateKeyRawFromActions(packStepped.actions);
+    if (packed === null) {
+      throw new Error("Identity.getPrivateKey: missing use-raw action");
+    }
+    return packed;
   }
 
   getPublicKey(): Uint8Array {
     this.requirePublicKey();
-    return packIdentityPublicKey(this.pubBytes!, this.sigPubBytes!);
+    const packStepped = stepPackIdentityPublicKeyWithActions(initialPackIdentityPublicKeyState(), {
+      kind: "identity-key/pack-public-gate",
+      publicKey: this.pubBytes!,
+      signaturePublicKey: this.sigPubBytes!
+    });
+    if (
+      shouldRejectPackIdentityPublicKey(packStepped.actions) ||
+      !shouldUsePackIdentityPublicKey(packStepped.actions)
+    ) {
+      throw new Error("Identity.getPublicKey: missing use-raw action");
+    }
+    const packed = packIdentityPublicKeyRawFromActions(packStepped.actions);
+    if (packed === null) {
+      throw new Error("Identity.getPublicKey: missing use-raw action");
+    }
+    return packed;
   }
 
   loadPrivateKey(privateKeyBytes: Uint8Array): boolean {
-    const split = splitIdentityPrivateKey(privateKeyBytes);
+    const splitStepped = stepSplitIdentityPrivateKeyWithActions(
+      initialSplitIdentityPrivateKeyState(),
+      {
+        kind: "identity-key/split-private-gate",
+        privateKeyBytes
+      }
+    );
+    const split = shouldUseSplitIdentityPrivateKey(splitStepped.actions)
+      ? identityPrivateKeyFieldsFromActions(splitStepped.actions)
+      : null;
     if (!canLoadIdentityKeyMaterial(split !== null)) {
       return false;
     }
@@ -301,7 +388,16 @@ export class Identity {
   }
 
   loadPublicKey(publicKeyBytes: Uint8Array): boolean {
-    const split = splitIdentityPublicKey(publicKeyBytes);
+    const splitStepped = stepSplitIdentityPublicKeyWithActions(
+      initialSplitIdentityPublicKeyState(),
+      {
+        kind: "identity-key/split-public-gate",
+        publicKeyBytes
+      }
+    );
+    const split = shouldUseSplitIdentityPublicKey(splitStepped.actions)
+      ? identityPublicKeyFieldsFromActions(splitStepped.actions)
+      : null;
     if (!canLoadIdentityKeyMaterial(split !== null)) {
       return false;
     }

@@ -3,11 +3,31 @@ import {
   IDENTITY_HALF_KEY_SIZE,
   IDENTITY_KEY_ENTROPY_SIZE,
   IDENTITY_KEY_SIZE,
+  identityPrivateKeyFieldsFromActions,
+  identityPublicKeyFieldsFromActions,
+  initialPackIdentityPrivateKeyState,
+  initialPackIdentityPublicKeyState,
+  initialSplitIdentityPrivateKeyState,
+  initialSplitIdentityPublicKeyState,
   packIdentityPrivateKey,
+  packIdentityPrivateKeyRawFromActions,
   packIdentityPublicKey,
+  packIdentityPublicKeyRawFromActions,
+  shouldRejectPackIdentityPrivateKey,
+  shouldRejectPackIdentityPublicKey,
+  shouldRejectSplitIdentityPrivateKey,
+  shouldRejectSplitIdentityPublicKey,
+  shouldUsePackIdentityPrivateKey,
+  shouldUsePackIdentityPublicKey,
+  shouldUseSplitIdentityPrivateKey,
+  shouldUseSplitIdentityPublicKey,
   splitIdentityEntropy,
   splitIdentityPrivateKey,
-  splitIdentityPublicKey
+  splitIdentityPublicKey,
+  stepPackIdentityPrivateKeyWithActions,
+  stepPackIdentityPublicKeyWithActions,
+  stepSplitIdentityPrivateKeyWithActions,
+  stepSplitIdentityPublicKeyWithActions
 } from "../src/identity-keygen.js";
 
 describe("protocol identity keygen entropy", () => {
@@ -38,5 +58,96 @@ describe("protocol identity keygen entropy", () => {
     expect([...splitPublic!.publicKey]).toEqual([...left]);
     expect([...splitPublic!.signaturePublicKey]).toEqual([...right]);
     expect(splitIdentityPrivateKey(new Uint8Array(8))).toBeNull();
+  });
+
+  it("emits pack/split actions for private key material", () => {
+    const left = new Uint8Array(IDENTITY_HALF_KEY_SIZE).fill(1);
+    const right = new Uint8Array(IDENTITY_HALF_KEY_SIZE).fill(2);
+    const packed = packIdentityPrivateKey(left, right);
+
+    const packOk = stepPackIdentityPrivateKeyWithActions(initialPackIdentityPrivateKeyState(), {
+      kind: "identity-key/pack-private-gate",
+      privateKey: left,
+      signaturePrivateKey: right
+    });
+    expect(shouldUsePackIdentityPrivateKey(packOk.actions)).toBe(true);
+    expect([...packIdentityPrivateKeyRawFromActions(packOk.actions)!]).toEqual([...packed]);
+
+    const packReject = stepPackIdentityPrivateKeyWithActions(initialPackIdentityPrivateKeyState(), {
+      kind: "identity-key/pack-private-gate",
+      privateKey: new Uint8Array(8),
+      signaturePrivateKey: right
+    });
+    expect(shouldRejectPackIdentityPrivateKey(packReject.actions)).toBe(true);
+    expect(packIdentityPrivateKeyRawFromActions(packReject.actions)).toBeNull();
+
+    const splitOk = stepSplitIdentityPrivateKeyWithActions(initialSplitIdentityPrivateKeyState(), {
+      kind: "identity-key/split-private-gate",
+      privateKeyBytes: packed
+    });
+    expect(shouldUseSplitIdentityPrivateKey(splitOk.actions)).toBe(true);
+    const fields = identityPrivateKeyFieldsFromActions(splitOk.actions)!;
+    expect([...fields.privateKey]).toEqual([...left]);
+    expect([...fields.signaturePrivateKey]).toEqual([...right]);
+
+    const splitReject = stepSplitIdentityPrivateKeyWithActions(
+      initialSplitIdentityPrivateKeyState(),
+      {
+        kind: "identity-key/split-private-gate",
+        privateKeyBytes: new Uint8Array(8)
+      }
+    );
+    expect(shouldRejectSplitIdentityPrivateKey(splitReject.actions)).toBe(true);
+    expect(identityPrivateKeyFieldsFromActions(splitReject.actions)).toBeNull();
+  });
+
+  it("emits pack/split actions for public key material", () => {
+    const left = new Uint8Array(IDENTITY_HALF_KEY_SIZE).fill(3);
+    const right = new Uint8Array(IDENTITY_HALF_KEY_SIZE).fill(4);
+    const packed = packIdentityPublicKey(left, right);
+
+    const packOk = stepPackIdentityPublicKeyWithActions(initialPackIdentityPublicKeyState(), {
+      kind: "identity-key/pack-public-gate",
+      publicKey: left,
+      signaturePublicKey: right
+    });
+    expect(shouldUsePackIdentityPublicKey(packOk.actions)).toBe(true);
+    expect([...packIdentityPublicKeyRawFromActions(packOk.actions)!]).toEqual([...packed]);
+
+    const packReject = stepPackIdentityPublicKeyWithActions(initialPackIdentityPublicKeyState(), {
+      kind: "identity-key/pack-public-gate",
+      publicKey: left,
+      signaturePublicKey: new Uint8Array(8)
+    });
+    expect(shouldRejectPackIdentityPublicKey(packReject.actions)).toBe(true);
+
+    const splitOk = stepSplitIdentityPublicKeyWithActions(initialSplitIdentityPublicKeyState(), {
+      kind: "identity-key/split-public-gate",
+      publicKeyBytes: packed
+    });
+    expect(shouldUseSplitIdentityPublicKey(splitOk.actions)).toBe(true);
+    const fields = identityPublicKeyFieldsFromActions(splitOk.actions)!;
+    expect([...fields.publicKey]).toEqual([...left]);
+    expect([...fields.signaturePublicKey]).toEqual([...right]);
+
+    const splitReject = stepSplitIdentityPublicKeyWithActions(initialSplitIdentityPublicKeyState(), {
+      kind: "identity-key/split-public-gate",
+      publicKeyBytes: new Uint8Array(8)
+    });
+    expect(shouldRejectSplitIdentityPublicKey(splitReject.actions)).toBe(true);
+    expect(identityPublicKeyFieldsFromActions(splitReject.actions)).toBeNull();
+  });
+
+  it("is deterministic for identical identity-key events", () => {
+    const left = new Uint8Array(IDENTITY_HALF_KEY_SIZE).fill(5);
+    const right = new Uint8Array(IDENTITY_HALF_KEY_SIZE).fill(6);
+    const event = {
+      kind: "identity-key/pack-public-gate" as const,
+      publicKey: left,
+      signaturePublicKey: right
+    };
+    const a = stepPackIdentityPublicKeyWithActions(initialPackIdentityPublicKeyState(), event);
+    const b = stepPackIdentityPublicKeyWithActions(initialPackIdentityPublicKeyState(), event);
+    expect(a).toEqual(b);
   });
 });

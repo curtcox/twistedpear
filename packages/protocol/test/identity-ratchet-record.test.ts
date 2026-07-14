@@ -4,7 +4,11 @@ import {
   IDENTITY_RATCHET_EXPIRY_SECONDS,
   decodeIdentityRatchetRecord,
   encodeIdentityRatchetRecord,
+  encodeIdentityRatchetRecordRawFromActions,
+  identityRatchetRecordFromActions,
   identityRatchetStoreKey,
+  initialDecodeIdentityRatchetRecordState,
+  initialEncodeIdentityRatchetRecordState,
   initialIdentityRatchetLookupState,
   isIdentityRatchetRecordUsable,
   planIdentityRatchetLookup,
@@ -12,12 +16,19 @@ import {
   shouldMissIdentityRatchetNoStore,
   shouldMissIdentityRatchetStore,
   shouldPersistIdentityRatchet,
+  shouldRejectDecodeIdentityRatchetRecord,
+  shouldRejectEncodeIdentityRatchetRecord,
   shouldRejectIdentityRatchetUnusable,
   shouldRestoreIdentityRatchetLookup,
   shouldRestoreIdentityRatchetRecord,
   shouldUseCachedIdentityRatchet,
+  shouldUseDecodeIdentityRatchetRecord,
+  shouldUseEncodeIdentityRatchetRecord,
+  stepDecodeIdentityRatchetRecordWithActions,
+  stepEncodeIdentityRatchetRecordWithActions,
   stepIdentityRatchetLookupWithActions
 } from "../src/identity-ratchet-record.js";
+import { utf8Encode } from "../src/utf8.js";
 
 describe("protocol identity ratchet record", () => {
   it("round-trips JSON records", () => {
@@ -26,6 +37,47 @@ describe("protocol identity ratchet record", () => {
     const decoded = decodeIdentityRatchetRecord(encoded);
     expect([...decoded.ratchet]).toEqual([...ratchet]);
     expect(decoded.received).toBe(1_700_000_000);
+  });
+
+  it("emits encode/decode actions from WithActions steps", () => {
+    const ratchet = new Uint8Array(IDENTITY_RATCHET_BYTES).fill(0xcd);
+    const record = { ratchet, received: 1_700_000_100 };
+    const encoded = encodeIdentityRatchetRecord(record);
+
+    const encodeOk = stepEncodeIdentityRatchetRecordWithActions(
+      initialEncodeIdentityRatchetRecordState(),
+      {
+        kind: "identity-ratchet/encode-gate",
+        record
+      }
+    );
+    expect(shouldUseEncodeIdentityRatchetRecord(encodeOk.actions)).toBe(true);
+    expect(shouldRejectEncodeIdentityRatchetRecord(encodeOk.actions)).toBe(false);
+    expect([...encodeIdentityRatchetRecordRawFromActions(encodeOk.actions)!]).toEqual([
+      ...encoded
+    ]);
+
+    const decodeOk = stepDecodeIdentityRatchetRecordWithActions(
+      initialDecodeIdentityRatchetRecordState(),
+      {
+        kind: "identity-ratchet/decode-gate",
+        bytes: encoded
+      }
+    );
+    expect(shouldUseDecodeIdentityRatchetRecord(decodeOk.actions)).toBe(true);
+    const fields = identityRatchetRecordFromActions(decodeOk.actions)!;
+    expect([...fields.ratchet]).toEqual([...ratchet]);
+    expect(fields.received).toBe(1_700_000_100);
+
+    const decodeReject = stepDecodeIdentityRatchetRecordWithActions(
+      initialDecodeIdentityRatchetRecordState(),
+      {
+        kind: "identity-ratchet/decode-gate",
+        bytes: utf8Encode("not-json")
+      }
+    );
+    expect(shouldRejectDecodeIdentityRatchetRecord(decodeReject.actions)).toBe(true);
+    expect(identityRatchetRecordFromActions(decodeReject.actions)).toBeNull();
   });
 
   it("builds store keys and checks usability", () => {

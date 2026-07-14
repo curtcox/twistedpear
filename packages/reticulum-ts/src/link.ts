@@ -203,9 +203,12 @@ import {
   shouldUpdateLinkLastData,
   isLinkInboundDataPacket,
   isLinkKeepaliveContext,
-  splitIdentityPublicKey,
+  identityPublicKeyFieldsFromActions,
+  initialSplitIdentityPublicKeyState,
+  shouldUseSplitIdentityPublicKey,
   splitInitiatorLinkEntropy,
   splitResponderLinkEntropy,
+  stepSplitIdentityPublicKeyWithActions,
   initialSplitResourceHashmapUpdatePacketState,
   initialSplitResourceProofState,
   resourceHashmapUpdatePacketFieldsFromActions,
@@ -666,7 +669,13 @@ export class Link {
     }
 
     const signallingBytes = Link.signallingBytes(this.mtu, this.mode);
-    const ownerPublic = splitIdentityPublicKey(ownerIdentity.getPublicKey());
+    const ownerSplit = stepSplitIdentityPublicKeyWithActions(initialSplitIdentityPublicKeyState(), {
+      kind: "identity-key/split-public-gate",
+      publicKeyBytes: ownerIdentity.getPublicKey()
+    });
+    const ownerPublic = shouldUseSplitIdentityPublicKey(ownerSplit.actions)
+      ? identityPublicKeyFieldsFromActions(ownerSplit.actions)
+      : null;
     if (!canAcceptLinkOwnerPublicKey(ownerPublic !== null)) {
       throw new Error("Responder link owner public key is invalid");
     }
@@ -744,8 +753,17 @@ export class Link {
         !shouldUseSplitLinkProofBody(bodyStepped.actions)
           ? null
           : linkProofBodyFieldsFromActions(bodyStepped.actions);
+      const peerSplit =
+        body !== null
+          ? stepSplitIdentityPublicKeyWithActions(initialSplitIdentityPublicKeyState(), {
+              kind: "identity-key/split-public-gate",
+              publicKeyBytes: destination.identity!.getPublicKey()
+            })
+          : null;
       const peerPublic =
-        body !== null ? splitIdentityPublicKey(destination.identity!.getPublicKey()) : null;
+        peerSplit !== null && shouldUseSplitIdentityPublicKey(peerSplit.actions)
+          ? identityPublicKeyFieldsFromActions(peerSplit.actions)
+          : null;
 
       let signatureValid = false;
       if (

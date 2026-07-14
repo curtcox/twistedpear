@@ -134,7 +134,10 @@
 > use-fields|reject) are pure protocol leaves; Identity,
 > websocket-server, `HdlcPacketInterface`, `LXMessage`, and
 > propagation adapters use them. **Identity ratchet
-> persistence** (JSON encode/decode, store key, usability/expiry; lookup via
+> persistence** (JSON encode/decode via
+> **`stepEncodeIdentityRatchetRecordWithActions`** /
+> **`stepDecodeIdentityRatchetRecordWithActions`**: use-raw|reject /
+> use-fields|reject; store key, usability/expiry; lookup via
 > **`stepIdentityRatchetLookupWithActions`**) and **web-identity
 > record framing** (pack/split via **`stepPackWebIdentityRecordWithActions`** /
 > **`stepSplitWebIdentityRecordWithActions`**: use-raw|reject / use-fields|reject;
@@ -156,7 +159,11 @@
 > **`stepUnpackStreamDataMessageWithActions`**: use-raw|reject /
 > use-fields|reject), and **resource hash/encrypt
 > materials** are pure protocol leaves; `Link`, `Buffer`, and `Resource` adapt them.
-> **Identity key pack/split**, link-request hashable truncation, and
+> **Identity key pack/split** (via **`stepPackIdentityPrivateKeyWithActions`** /
+> **`stepSplitIdentityPrivateKeyWithActions`** /
+> **`stepPackIdentityPublicKeyWithActions`** /
+> **`stepSplitIdentityPublicKeyWithActions`**: use-raw|reject /
+> use-fields|reject), link-request hashable truncation, and
 > **RESOURCE_HMU pack** are pure protocol leaves; Identity, Link, and Resource adapt
 > them (`Identity.prove` uses **`stepPackPacketProofWithActions`**; link-request /
 > link-proof pack/split use the WithActions steps above). **Byte-array assembly** helpers,
@@ -165,10 +172,13 @@
 > **Transport announce / path-response / hop-clone field planning** applies only from
 > those `use-fields` actions (see above). **Transport wrap / strip / relay /
 > hop-rewrite framing** applies only from those `use-raw` actions (see above).
-> Link proof paths use `splitIdentityPublicKey` for
+> Link proof paths use **`stepSplitIdentityPublicKeyWithActions`** for
 > owner/peer Ed25519 halves. **Interface reconnect** is now a pure step machine
 > (`timer/set` intents + connect/give-up actions); TCP/WebSocket clients adapt it.
-> Link resource HMU/cancel uses `splitResourceHashmapUpdatePacket`. Identity ratchet JSON, web-identity
+> Link resource HMU/cancel uses `splitResourceHashmapUpdatePacket`. Identity ratchet JSON
+> (encode/decode via **`stepEncodeIdentityRatchetRecordWithActions`** /
+> **`stepDecodeIdentityRatchetRecordWithActions`**: use-raw|reject /
+> use-fields|reject), web-identity
 > passphrase bytes, and LXMF message text use protocol UTF-8 (no
 > `TextEncoder`/`TextDecoder`). **Hash truncation** (`truncateToTruncatedHash` /
 > `truncateToNameHash`), **packet context byte codes**, and **`utf8OrBytes`** are pure
@@ -836,13 +846,29 @@
 > pack-propagation-request / unpack-propagation-request /
 > pack-propagation-envelope / unpack-propagation-envelope /
 > unpack-bin-list / pack-stream-data-message /
-> unpack-stream-data-message reads
+> unpack-stream-data-message / pack-identity-private-key /
+> split-identity-private-key / pack-identity-public-key /
+> split-identity-public-key / encode-identity-ratchet-record /
+> decode-identity-ratchet-record reads
 > beside the step).
 > **`stepPackStreamDataMessageWithActions`** /
 > **`stepUnpackStreamDataMessageWithActions`** emit `use-raw`|`reject` /
 > `use-fields`|`reject`; StreamDataMessage pack / unpack apply only from
 > those actions (no ad-hoc `packStreamDataMessage` /
 > `unpackStreamDataMessage` reads beside the step).
+> **`stepPackIdentityPrivateKeyWithActions`** /
+> **`stepSplitIdentityPrivateKeyWithActions`** /
+> **`stepPackIdentityPublicKeyWithActions`** /
+> **`stepSplitIdentityPublicKeyWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject`; Identity key pack / split and Link owner/peer
+> public-key splits apply only from those actions (no ad-hoc
+> `packIdentityPrivateKey` / `splitIdentityPrivateKey` /
+> `packIdentityPublicKey` / `splitIdentityPublicKey` reads beside the step).
+> **`stepEncodeIdentityRatchetRecordWithActions`** /
+> **`stepDecodeIdentityRatchetRecordWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject`; Identity ratchet persist encode / decode apply only
+> from those actions (no ad-hoc `encodeIdentityRatchetRecord` /
+> `decodeIdentityRatchetRecord` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
 > only from those actions. **`stepChannelMessageHandlerUnregisterWithActions`**,
