@@ -250,6 +250,17 @@ export {
   type PathAwaitState
 } from "./path-await.js";
 export {
+  LINK_AWAIT_DEFAULT_TIMEOUT_MS,
+  LINK_AWAIT_TIMER_ID,
+  initialLinkAwaitState,
+  isLinkAwaitEstablished,
+  isLinkAwaitTimedOut,
+  shouldContinueLinkAwait,
+  stepLinkAwait,
+  type LinkAwaitEvent,
+  type LinkAwaitState
+} from "./link-await.js";
+export {
   PATHFINDER_EXPIRY_SECONDS,
   PATHFINDER_MAX_HOPS,
   PATH_REQUEST_GRACE_MS,

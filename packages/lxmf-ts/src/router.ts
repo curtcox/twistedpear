@@ -1,10 +1,15 @@
 import {
   DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
+  LINK_AWAIT_DEFAULT_TIMEOUT_MS,
+  LINK_AWAIT_TIMER_ID,
   applyLxmfSendEvent,
   canAcceptLxmfPropagationLocalDelivery,
   canRegisterLxmfDeliveryIdentity,
   initialDeliveryReceiptPollState,
+  initialLinkAwaitState,
   initialLxmfSendState,
+  isLinkAwaitEstablished,
+  isLinkAwaitTimedOut,
   lxmfInboundDeliveryBytes,
   packLxmfDestinationPrefixed,
   planLxmfDeliverableAccept,
@@ -24,6 +29,7 @@ import {
   shouldTeardownLxmfPropagationLink,
   splitLxmfDestinationPrefixed,
   stepDeliveryReceiptPoll,
+  stepLinkAwait,
   type LxmfSendEvent,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
@@ -184,6 +190,62 @@ export class LXMFRouter {
     });
   }
 
+  private awaitOutboundLink(
+    outbound: RegisteredDestination,
+    options: {
+      readonly timeoutMs?: number;
+      readonly timeoutError: string;
+      readonly onTimeout?: () => void;
+    }
+  ): Promise<Link> {
+    const timeoutMs = options.timeoutMs ?? LINK_AWAIT_DEFAULT_TIMEOUT_MS;
+    return new Promise<Link>((resolve, reject) => {
+      const armed = stepLinkAwait(initialLinkAwaitState(), {
+        kind: "link-await/arm",
+        timeoutMs
+      } as never);
+      let state = armed.state;
+      let timer: { cancel(): void } | null = null;
+
+      const applyIntents = (intents: ReturnType<typeof stepLinkAwait>["intents"]): void => {
+        for (const intent of intents) {
+          if (intent.kind === "timer/set" && intent.timer.id === LINK_AWAIT_TIMER_ID) {
+            timer?.cancel();
+            timer = this.reticulum.runtime.clock.setTimeout(() => {
+              const tick = stepLinkAwait(state, {
+                kind: "timer/fired",
+                id: LINK_AWAIT_TIMER_ID,
+                at: this.reticulum.runtime.clock.now()
+              });
+              state = tick.state;
+              applyIntents(tick.intents);
+              if (isLinkAwaitTimedOut(state)) {
+                options.onTimeout?.();
+                reject(new Error(options.timeoutError));
+              }
+            }, intent.timer.delayMs);
+          }
+          if (intent.kind === "timer/cancel" && intent.timer.id === LINK_AWAIT_TIMER_ID) {
+            timer?.cancel();
+            timer = null;
+          }
+        }
+      };
+
+      applyIntents(armed.intents);
+      outbound.requestLink({
+        linkEstablished(establishLink) {
+          const result = stepLinkAwait(state, { kind: "link-await/established" } as never);
+          state = result.state;
+          applyIntents(result.intents);
+          if (isLinkAwaitEstablished(state)) {
+            resolve(establishLink);
+          }
+        }
+      });
+    });
+  }
+
   private async pollDeliveryReceipt(
     receipt: PacketReceipt,
     timeoutMs = DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS
@@ -306,17 +368,8 @@ export class LXMFRouter {
         aspects: ["delivery"]
       });
 
-      link = await new Promise<Link>((resolve, reject) => {
-        const timer = this.reticulum.runtime.clock.setTimeout(
-          () => reject(new Error("Direct LXMF link timeout")),
-          5000
-        );
-        outbound.requestLink({
-          linkEstablished(establishLink) {
-            timer.cancel();
-            resolve(establishLink);
-          }
-        });
+      link = await this.awaitOutboundLink(outbound, {
+        timeoutError: "Direct LXMF link timeout"
       });
 
       this.directLinks.set(destinationKey, link);
@@ -410,17 +463,8 @@ export class LXMFRouter {
       aspects: ["propagation"]
     });
 
-    const link = await new Promise<Link>((resolve, reject) => {
-      const timer = this.reticulum.runtime.clock.setTimeout(
-        () => reject(new Error("Propagation link timeout")),
-        5000
-      );
-      outbound.requestLink({
-        linkEstablished(establishLink) {
-          timer.cancel();
-          resolve(establishLink);
-        }
-      });
+    const link = await this.awaitOutboundLink(outbound, {
+      timeoutError: "Propagation link timeout"
     });
 
     this.outboundPropagationLink = link;

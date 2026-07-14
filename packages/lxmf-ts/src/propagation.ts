@@ -1,8 +1,12 @@
 import {
+  LINK_AWAIT_TIMER_ID,
   PROPAGATION_LINK_TIMEOUT_MS,
   PropagationTransferState,
   decodeLxmfPeerError,
+  initialLinkAwaitState,
   initialPropagationTransferState,
+  isLinkAwaitEstablished,
+  isLinkAwaitTimedOut,
   planLxmfPropagationLinkReady,
   planLxmfPropagationSyncPrep,
   planPropagationGet,
@@ -14,6 +18,7 @@ import {
   shouldReuseActiveLink,
   shouldTeardownLxmfPropagationLink,
   shouldTreatPropagationListAsEmpty,
+  stepLinkAwait,
   stepPropagationTransferWithActions,
   type PropagationTransferAction,
   type PropagationTransferMachineState,
@@ -285,14 +290,47 @@ export class PropagationClient {
     });
 
     const link = await new Promise<Link>((resolve, reject) => {
-      const timer = this.router.reticulum.runtime.clock.setTimeout(() => {
-        this.applyTransfer({ kind: "xfer/link-timeout" });
-        reject(new Error("Propagation link timeout"));
-      }, PROPAGATION_LINK_TIMEOUT_MS);
+      const armed = stepLinkAwait(initialLinkAwaitState(), {
+        kind: "link-await/arm",
+        timeoutMs: PROPAGATION_LINK_TIMEOUT_MS
+      } as never);
+      let state = armed.state;
+      let timer: { cancel(): void } | null = null;
+
+      const applyIntents = (intents: ReturnType<typeof stepLinkAwait>["intents"]): void => {
+        for (const intent of intents) {
+          if (intent.kind === "timer/set" && intent.timer.id === LINK_AWAIT_TIMER_ID) {
+            timer?.cancel();
+            timer = this.router.reticulum.runtime.clock.setTimeout(() => {
+              const tick = stepLinkAwait(state, {
+                kind: "timer/fired",
+                id: LINK_AWAIT_TIMER_ID,
+                at: this.router.reticulum.runtime.clock.now()
+              });
+              state = tick.state;
+              applyIntents(tick.intents);
+              if (isLinkAwaitTimedOut(state)) {
+                this.applyTransfer({ kind: "xfer/link-timeout" });
+                reject(new Error("Propagation link timeout"));
+              }
+            }, intent.timer.delayMs);
+          }
+          if (intent.kind === "timer/cancel" && intent.timer.id === LINK_AWAIT_TIMER_ID) {
+            timer?.cancel();
+            timer = null;
+          }
+        }
+      };
+
+      applyIntents(armed.intents);
       outbound.requestLink({
         linkEstablished(establishLink) {
-          timer.cancel();
-          resolve(establishLink);
+          const result = stepLinkAwait(state, { kind: "link-await/established" } as never);
+          state = result.state;
+          applyIntents(result.intents);
+          if (isLinkAwaitEstablished(state)) {
+            resolve(establishLink);
+          }
         }
       });
     });

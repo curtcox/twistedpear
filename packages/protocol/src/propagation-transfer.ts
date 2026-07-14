@@ -3,6 +3,7 @@
  * Adapters perform link/request IO; this machine owns phase transitions.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { LINK_AWAIT_DEFAULT_TIMEOUT_MS } from "./link-await.js";
 
 /** Mirrors LXMF/LXMRouter.py propagation transfer states. */
 export const PropagationTransferState = {
@@ -32,7 +33,7 @@ export const PropagationPeerError = {
   TIMEOUT: 0xfe
 } as const;
 
-export const PROPAGATION_LINK_TIMEOUT_MS = 5000;
+export const PROPAGATION_LINK_TIMEOUT_MS = LINK_AWAIT_DEFAULT_TIMEOUT_MS;
 export const PROPAGATION_LIST_TIMEOUT_SEC = 10;
 export const PROPAGATION_DOWNLOAD_TIMEOUT_SEC = 30;
 export const PROPAGATION_HAVES_TIMEOUT_SEC = 10;
