@@ -3,13 +3,23 @@ import {
   TOKEN_HMAC_SIZE,
   TOKEN_IV_SIZE,
   TOKEN_OVERHEAD,
+  initialPackTokenFrameState,
+  initialSplitTokenFrameState,
+  isValidTokenIvLength,
   packTokenFrame,
+  packTokenFrameRawFromActions,
+  shouldAcceptTokenFrame,
+  shouldRejectPackTokenFrame,
+  shouldRejectSplitTokenFrame,
+  shouldUsePackTokenFrame,
+  shouldUseSplitTokenFrame,
   splitTokenFrame,
   splitTokenKey,
+  stepPackTokenFrameWithActions,
+  stepSplitTokenFrameWithActions,
+  tokenFrameFieldsFromActions,
   tokenHmacMatches,
-  tokenSignedMaterial,
-  isValidTokenIvLength,
-  shouldAcceptTokenFrame
+  tokenSignedMaterial
 } from "../src/token-framing.js";
 
 describe("protocol token framing", () => {
@@ -51,5 +61,58 @@ describe("protocol token framing", () => {
     expect(isValidTokenIvLength(8)).toBe(false);
     expect(shouldAcceptTokenFrame(true)).toBe(true);
     expect(shouldAcceptTokenFrame(false)).toBe(false);
+  });
+
+  it("emits pack raw or reject from WithActions steps", () => {
+    const iv = new Uint8Array(TOKEN_IV_SIZE).fill(1);
+    const ciphertext = new Uint8Array([9, 8, 7, 6]);
+    const hmac = new Uint8Array(TOKEN_HMAC_SIZE).fill(2);
+    const ok = stepPackTokenFrameWithActions(initialPackTokenFrameState(), {
+      kind: "token-framing/pack-gate",
+      iv,
+      ciphertext,
+      hmac
+    });
+    expect(shouldUsePackTokenFrame(ok.actions)).toBe(true);
+    expect(shouldRejectPackTokenFrame(ok.actions)).toBe(false);
+    const packed = packTokenFrameRawFromActions(ok.actions);
+    expect(packed).not.toBeNull();
+    expect([...packed!]).toEqual([...packTokenFrame({ iv, ciphertext, hmac })]);
+
+    const rejected = stepPackTokenFrameWithActions(initialPackTokenFrameState(), {
+      kind: "token-framing/pack-gate",
+      iv: new Uint8Array(8),
+      ciphertext,
+      hmac
+    });
+    expect(shouldRejectPackTokenFrame(rejected.actions)).toBe(true);
+    expect(shouldUsePackTokenFrame(rejected.actions)).toBe(false);
+    expect(packTokenFrameRawFromActions(rejected.actions)).toBeNull();
+  });
+
+  it("emits split fields or reject from WithActions steps", () => {
+    const iv = new Uint8Array(TOKEN_IV_SIZE).fill(1);
+    const ciphertext = new Uint8Array([9, 8, 7, 6]);
+    const hmac = new Uint8Array(TOKEN_HMAC_SIZE).fill(2);
+    const packed = packTokenFrame({ iv, ciphertext, hmac });
+    const ok = stepSplitTokenFrameWithActions(initialSplitTokenFrameState(), {
+      kind: "token-framing/split-gate",
+      token: packed
+    });
+    expect(shouldUseSplitTokenFrame(ok.actions)).toBe(true);
+    expect(shouldRejectSplitTokenFrame(ok.actions)).toBe(false);
+    const fields = tokenFrameFieldsFromActions(ok.actions);
+    expect(fields).not.toBeNull();
+    expect([...fields!.iv]).toEqual([...iv]);
+    expect([...fields!.ciphertext]).toEqual([...ciphertext]);
+    expect([...fields!.hmac]).toEqual([...hmac]);
+
+    const rejected = stepSplitTokenFrameWithActions(initialSplitTokenFrameState(), {
+      kind: "token-framing/split-gate",
+      token: new Uint8Array(TOKEN_OVERHEAD)
+    });
+    expect(shouldRejectSplitTokenFrame(rejected.actions)).toBe(true);
+    expect(shouldUseSplitTokenFrame(rejected.actions)).toBe(false);
+    expect(tokenFrameFieldsFromActions(rejected.actions)).toBeNull();
   });
 });

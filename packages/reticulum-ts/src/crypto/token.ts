@@ -1,13 +1,20 @@
 import {
   TOKEN_IV_SIZE,
   TOKEN_OVERHEAD,
+  initialPackTokenFrameState,
+  initialSplitTokenFrameState,
   isValidTokenIvLength,
-  packTokenFrame,
+  packTokenFrameRawFromActions,
   pkcs7Pad,
   pkcs7Unpad,
   shouldAcceptTokenFrame,
-  splitTokenFrame,
+  shouldRejectPackTokenFrame,
+  shouldUsePackTokenFrame,
+  shouldUseSplitTokenFrame,
   splitTokenKey,
+  stepPackTokenFrameWithActions,
+  stepSplitTokenFrameWithActions,
+  tokenFrameFieldsFromActions,
   tokenHmacMatches,
   tokenSignedMaterial
 } from "@twistedpear/protocol";
@@ -43,8 +50,12 @@ export class Token {
   }
 
   verifyHmac(token: Uint8Array): boolean {
-    const frame = splitTokenFrame(token);
-    if (!shouldAcceptTokenFrame(frame !== null)) {
+    const stepped = stepSplitTokenFrameWithActions(initialSplitTokenFrameState(), {
+      kind: "token-framing/split-gate",
+      token
+    });
+    const frame = tokenFrameFieldsFromActions(stepped.actions);
+    if (!shouldUseSplitTokenFrame(stepped.actions) || !shouldAcceptTokenFrame(frame !== null)) {
       throw new Error(`Cannot verify HMAC on token of only ${token.length} bytes`);
     }
 
@@ -72,7 +83,20 @@ export class Token {
         : this.provider.aes128CbcEncrypt(pkcs7Pad(data), this.encryptionKey, iv);
     const signedParts = tokenSignedMaterial(iv, ciphertext);
     const hmac = this.provider.hmacSha256(this.signingKey, signedParts);
-    return packTokenFrame({ iv, ciphertext, hmac });
+    const stepped = stepPackTokenFrameWithActions(initialPackTokenFrameState(), {
+      kind: "token-framing/pack-gate",
+      iv,
+      ciphertext,
+      hmac
+    });
+    if (shouldRejectPackTokenFrame(stepped.actions) || !shouldUsePackTokenFrame(stepped.actions)) {
+      throw new Error(`Token IV must be ${TOKEN_IV_SIZE} bytes`);
+    }
+    const packed = packTokenFrameRawFromActions(stepped.actions);
+    if (packed === null) {
+      throw new Error(`Token IV must be ${TOKEN_IV_SIZE} bytes`);
+    }
+    return packed;
   }
 
   decrypt(token: Uint8Array): Uint8Array {
@@ -84,8 +108,12 @@ export class Token {
       throw new Error("Token HMAC was invalid");
     }
 
-    const frame = splitTokenFrame(token);
-    if (!shouldAcceptTokenFrame(frame !== null)) {
+    const stepped = stepSplitTokenFrameWithActions(initialSplitTokenFrameState(), {
+      kind: "token-framing/split-gate",
+      token
+    });
+    const frame = tokenFrameFieldsFromActions(stepped.actions);
+    if (!shouldUseSplitTokenFrame(stepped.actions) || !shouldAcceptTokenFrame(frame !== null)) {
       throw new Error("Token HMAC was invalid");
     }
 

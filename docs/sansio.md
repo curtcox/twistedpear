@@ -100,9 +100,10 @@
 > protocol leaves; `Packet` adapts them. **PKCS#7** padding and **LXMF delivery planning**
 > (method/representation selection via **`stepLxmfDeliveryWithActions`**) are
 > pure protocol leaves; Token and `LXMessage` adapt them. **Token framing**
-> (key split / iv||ciphertext||hmac) and **stamp-cost
-> extraction** from announce app-data are pure protocol leaves; Token and LXMF router
-> adapt them. **Resource receive-part planning** (via
+> (key split / iv||ciphertext||hmac via **`stepPackTokenFrameWithActions`** /
+> **`stepSplitTokenFrameWithActions`**: use-raw|reject / use-fields|reject) and
+> **stamp-cost extraction** from announce app-data are pure protocol leaves;
+> Token and LXMF router adapt them. **Resource receive-part planning** (via
 > **`stepResourceReceivePartWithActions`**), **LXMF outer wire framing**, and
 > PacketReceipt proof validation via **`stepSplitPacketProofWithActions`** /
 > **`stepPacketReceiptProofAcceptWithActions`** are pure protocol leaves.
@@ -786,7 +787,8 @@
 > pack-resource-hashmap-update-packet / split-resource-hashmap-update-packet /
 > parse-resource-part-request / pack-resource-advertisement /
 > unpack-resource-advertisement / pack-link-request /
-> pack-link-response / unpack-link-request / unpack-link-response reads
+> pack-link-response / unpack-link-request / unpack-link-response /
+> pack-token-frame / split-token-frame reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -871,6 +873,11 @@
 > only from those actions (no ad-hoc `msgpackPackLinkRequest` /
 > `msgpackPackLinkResponse` / `msgpackUnpackLinkRequest` /
 > `msgpackUnpackLinkResponse` reads beside the step).
+> **`stepPackTokenFrameWithActions`** /
+> **`stepSplitTokenFrameWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject`; Token frame pack / split apply only from those
+> actions (no ad-hoc `packTokenFrame` / `splitTokenFrame` reads beside the
+> step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

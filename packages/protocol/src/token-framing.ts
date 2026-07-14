@@ -1,7 +1,10 @@
 /**
  * Pure RNS Token key split and frame layout (iv || ciphertext || hmac).
  * AES / HMAC stay at the crypto adapter edge.
+ * Pack / split conclusions leave via machine actions (no ad-hoc
+ * `packTokenFrame` / `splitTokenFrame` reads beside the step).
  */
+import type { Event, Intent } from "@twistedpear/effects";
 
 export const TOKEN_IV_SIZE = 16;
 export const TOKEN_HMAC_SIZE = 32;
@@ -107,4 +110,149 @@ export function isValidTokenIvLength(length: number): boolean {
 /** Whether a Token frame split succeeded (HMAC/AES stay at the edge). */
 export function shouldAcceptTokenFrame(framePresent: boolean): boolean {
   return framePresent;
+}
+
+/**
+ * Token-frame pack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `packTokenFrame` reads
+ * beside the step). Invalid sizes become `reject` (helper may throw).
+ */
+export type PackTokenFrameState = Record<string, never>;
+
+export type PackTokenFrameEvent =
+  | Event
+  | {
+      readonly kind: "token-framing/pack-gate";
+      readonly iv: Uint8Array;
+      readonly ciphertext: Uint8Array;
+      readonly hmac: Uint8Array;
+    };
+
+export type PackTokenFrameAction =
+  | { readonly kind: "use-raw"; readonly raw: Uint8Array }
+  | { readonly kind: "reject" };
+
+export interface PackTokenFrameStepResult {
+  readonly state: PackTokenFrameState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackTokenFrameAction[];
+}
+
+export function initialPackTokenFrameState(): PackTokenFrameState {
+  return {};
+}
+
+export function stepPackTokenFrameWithActions(
+  state: PackTokenFrameState,
+  event: PackTokenFrameEvent
+): PackTokenFrameStepResult {
+  if (event.kind === "token-framing/pack-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [
+          {
+            kind: "use-raw",
+            raw: packTokenFrame({
+              iv: event.iv,
+              ciphertext: event.ciphertext,
+              hmac: event.hmac
+            })
+          }
+        ]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackTokenFrame(
+  actions: ReadonlyArray<PackTokenFrameAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+export function shouldRejectPackTokenFrame(
+  actions: ReadonlyArray<PackTokenFrameAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract token-frame pack bytes from step actions; null when no `use-raw`. */
+export function packTokenFrameRawFromActions(
+  actions: ReadonlyArray<PackTokenFrameAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Token-frame split framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `splitTokenFrame` reads
+ * beside the step). Short frames become `reject`.
+ */
+export type SplitTokenFrameState = Record<string, never>;
+
+export type SplitTokenFrameEvent =
+  | Event
+  | {
+      readonly kind: "token-framing/split-gate";
+      readonly token: Uint8Array;
+    };
+
+export type SplitTokenFrameAction =
+  | { readonly kind: "use-fields"; readonly fields: TokenFrameParts }
+  | { readonly kind: "reject" };
+
+export interface SplitTokenFrameStepResult {
+  readonly state: SplitTokenFrameState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly SplitTokenFrameAction[];
+}
+
+export function initialSplitTokenFrameState(): SplitTokenFrameState {
+  return {};
+}
+
+export function stepSplitTokenFrameWithActions(
+  state: SplitTokenFrameState,
+  event: SplitTokenFrameEvent
+): SplitTokenFrameStepResult {
+  if (event.kind === "token-framing/split-gate") {
+    const fields = splitTokenFrame(event.token);
+    if (fields === null) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-fields", fields }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseSplitTokenFrame(
+  actions: ReadonlyArray<SplitTokenFrameAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectSplitTokenFrame(
+  actions: ReadonlyArray<SplitTokenFrameAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract split token-frame fields from step actions; null when no `use-fields`. */
+export function tokenFrameFieldsFromActions(
+  actions: ReadonlyArray<SplitTokenFrameAction>
+): TokenFrameParts | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }
