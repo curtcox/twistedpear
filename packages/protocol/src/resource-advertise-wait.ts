@@ -1,6 +1,6 @@
 /**
  * Pure resource advertise-wait loop: queue until the link can accept a new resource.
- * Link readiness arrives as probe events; adapters sleep on timer intents.
+ * Link readiness is observed only via probe actions; adapters schedule from timer intents.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { planResourceAdvertisePhase } from "./resource-status.js";
@@ -18,7 +18,9 @@ export type ResourceAdvertiseWaitEvent =
   | { readonly kind: "advertise-wait/arm" }
   | { readonly kind: "advertise-wait/link-ready"; readonly ready: boolean };
 
-export type ResourceAdvertiseWaitAction = { readonly kind: "queue" };
+export type ResourceAdvertiseWaitAction =
+  | { readonly kind: "probe" }
+  | { readonly kind: "queue" };
 
 export interface ResourceAdvertiseWaitStepResult {
   readonly state: ResourceAdvertiseWaitState;
@@ -58,7 +60,7 @@ function stepResourceAdvertiseWaitInner(
     return {
       state: { armed: true, concluded: false },
       intents: [],
-      actions: []
+      actions: [{ kind: "probe" }]
     };
   }
 
@@ -69,7 +71,7 @@ function stepResourceAdvertiseWaitInner(
     if (planResourceAdvertisePhase(event.ready) === "advertise") {
       return {
         state: { ...state, concluded: true },
-        intents: [],
+        intents: [{ kind: "timer/cancel", timer: { id: RESOURCE_ADVERTISE_WAIT_TIMER_ID } }],
         actions: []
       };
     }
@@ -82,6 +84,17 @@ function stepResourceAdvertiseWaitInner(
         }
       ],
       actions: [{ kind: "queue" }]
+    };
+  }
+
+  if (event.kind === "timer/fired" && event.id === RESOURCE_ADVERTISE_WAIT_TIMER_ID) {
+    if (!state.armed || state.concluded) {
+      return { state, intents: [], actions: [] };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "probe" }]
     };
   }
 

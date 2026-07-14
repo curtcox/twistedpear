@@ -337,12 +337,15 @@
 > intents (no Promise.`delay`/`sleep` polls): **`stepPathAwait`** /
 > **`stepPathResponseGrace`** (`TransportNode`), **`stepDeliveryReceiptPoll`**
 > (LXMF router), and **`stepResourceAdvertiseWait`** (`Resource.advertise`).
-> **`stepPathAwait`** / **`stepDeliveryReceiptPoll`** arms emit a `probe`
-> action; continuing status events emit `timer/set`; terminal probes emit
-> `timer/cancel`. Timer callbacks only re-enter via `timer/fired` → probe
+> **`stepPathAwait`** / **`stepDeliveryReceiptPoll`** /
+> **`stepResourceAdvertiseWait`** arms emit a `probe` action; continuing status
+> events emit `timer/set` (advertise-wait also emits `queue`); terminal probes
+> emit `timer/cancel`. Timer callbacks only re-enter via `timer/fired` → probe
 > actions (no ad-hoc status reads beside the machine).
 > **`stepPropagationTransfer`** link-establish timeout (`PROPAGATION_LINK_TIMER_ID`)
-> is adapted by `PropagationClient` (no parallel `stepLinkAwait`); cancel /
+> is adapted by `PropagationClient`: timer callbacks only emit `timer/fired`;
+> `reject-link-wait` / `resolve-link-wait` conclude the Promise shell;
+> `xfer/link-arrived` gates late establishes (no ad-hoc phase read). Cancel /
 > link-ready / link-timeout emit `timer/cancel`.
 > **`stepLinkAwaitWithActions`** emits a `request-link` action on arm (plus the
 > link-await timer intents); LXMF `awaitOutboundLink` adapts it — same
@@ -350,11 +353,10 @@
 > for the public async API.
 > Remaining depth work: Link/Channel/LXMF orchestration shells that still
 > hold Promise/callback continuations around already-pure step cores (watchdog
-> ticks are already intent-driven). Delivery-receipt and path-await polls now
-> emit `probe` machine actions; adapters observe receipt/path status only when
-> applying those actions (timer callbacks no longer probe ad hoc). Resource
-> advertise-wait still probes inside its timer callback rather than via a
-> `timer/fired` → probe action path.
+> ticks are already intent-driven). Path-await, delivery-receipt, and resource
+> advertise-wait polls emit `probe` machine actions; adapters observe path /
+> receipt / link-ready status only when applying those actions. Propagation
+> link establish/timeout now concludes via transfer-machine actions as well.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

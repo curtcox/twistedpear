@@ -41,6 +41,8 @@ export const PROPAGATION_HAVES_TIMEOUT_SEC = 10;
 
 export type PropagationTransferAction =
   | { readonly kind: "establish-link"; readonly timeoutMs: number }
+  | { readonly kind: "resolve-link-wait" }
+  | { readonly kind: "reject-link-wait"; readonly reason: "timeout" }
   | { readonly kind: "identify" }
   | { readonly kind: "request-list"; readonly timeoutSec: number }
   | { readonly kind: "request-download"; readonly timeoutSec: number }
@@ -57,6 +59,7 @@ export type PropagationTransferEvent =
   | Event
   | { readonly kind: "xfer/begin" }
   | { readonly kind: "xfer/link-timeout" }
+  | { readonly kind: "xfer/link-arrived" }
   | { readonly kind: "xfer/link-ready" }
   | { readonly kind: "xfer/list-null" }
   | { readonly kind: "xfer/list-peer-error"; readonly code: number }
@@ -131,7 +134,10 @@ function stepPropagationTransferInner(
     return {
       state: { ...state, phase: PropagationTransferState.LINK_FAILED },
       intents: [],
-      actions: [{ kind: "teardown-link" }]
+      actions: [
+        { kind: "teardown-link" },
+        { kind: "reject-link-wait", reason: "timeout" }
+      ]
     };
   }
 
@@ -140,6 +146,17 @@ function stepPropagationTransferInner(
       state: { ...state, phase: PropagationTransferState.LINK_FAILED },
       intents: [{ kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }],
       actions: [{ kind: "teardown-link" }]
+    };
+  }
+
+  if (event.kind === "xfer/link-arrived") {
+    if (state.phase !== PropagationTransferState.LINK_ESTABLISHING) {
+      return { state, intents: [], actions: [] };
+    }
+    return {
+      state,
+      intents: [{ kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }],
+      actions: [{ kind: "resolve-link-wait" }]
     };
   }
 

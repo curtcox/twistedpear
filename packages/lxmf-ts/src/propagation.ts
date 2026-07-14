@@ -72,6 +72,7 @@ export class PropagationClient {
   private linkTimer: { cancel(): void } | null = null;
   private pendingLinkResolve: ((link: Link) => void) | null = null;
   private pendingLinkReject: ((error: Error) => void) | null = null;
+  private pendingEstablishedLink: Link | null = null;
 
   constructor(options: PropagationClientOptions) {
     this.router = options.router;
@@ -253,7 +254,7 @@ export class PropagationClient {
     const result = stepPropagationTransferWithActions(this.transferMachine, event);
     this.transferMachine = result.state;
     this.applyTransferIntents(result.intents);
-    this.applyTeardownActions(result.actions);
+    this.applyTransferActions(result.actions);
     return result;
   }
 
@@ -272,15 +273,12 @@ export class PropagationClient {
             id: PROPAGATION_LINK_TIMER_ID,
             at: this.router.reticulum.runtime.clock.now()
           });
-          const reject = this.pendingLinkReject;
-          this.clearPendingLinkWait();
-          reject?.(new Error("Propagation link timeout"));
         }, intent.timer.delayMs);
       }
     }
   }
 
-  private applyTeardownActions(actions: ReadonlyArray<PropagationTransferAction>): void {
+  private applyTransferActions(actions: ReadonlyArray<PropagationTransferAction>): void {
     for (const action of actions) {
       if (
         action.kind === "teardown-link" &&
@@ -288,6 +286,22 @@ export class PropagationClient {
       ) {
         this.propagationLink!.teardown();
         this.propagationLink = null;
+      }
+      if (action.kind === "resolve-link-wait") {
+        const link = this.pendingEstablishedLink;
+        const resolve = this.pendingLinkResolve;
+        this.pendingEstablishedLink = null;
+        this.clearPendingLinkWait();
+        if (link !== null) {
+          this.propagationLink = link;
+          resolve?.(link);
+        }
+      }
+      if (action.kind === "reject-link-wait") {
+        const reject = this.pendingLinkReject;
+        this.pendingEstablishedLink = null;
+        this.clearPendingLinkWait();
+        reject?.(new Error("Propagation link timeout"));
       }
     }
   }
@@ -309,8 +323,14 @@ export class PropagationClient {
       return this.propagationLink!;
     }
 
-    const establish = actions.find((action) => action.kind === "establish-link");
-    if (establish === undefined) {
+    let hasEstablish = false;
+    for (const action of actions) {
+      if (action.kind === "establish-link") {
+        hasEstablish = true;
+        break;
+      }
+    }
+    if (!hasEstablish) {
       throw new Error("Propagation transfer did not request a link");
     }
 
@@ -339,23 +359,16 @@ export class PropagationClient {
       aspects: ["propagation"]
     });
 
-    const link = await new Promise<Link>((resolve, reject) => {
+    return new Promise<Link>((resolve, reject) => {
       this.pendingLinkResolve = resolve;
       this.pendingLinkReject = reject;
       outbound.requestLink({
         linkEstablished: (establishLink) => {
-          if (this.transferMachine.phase !== PropagationTransferState.LINK_ESTABLISHING) {
-            return;
-          }
-          const pendingResolve = this.pendingLinkResolve;
-          this.clearPendingLinkWait();
-          pendingResolve?.(establishLink);
+          this.pendingEstablishedLink = establishLink;
+          this.applyTransfer({ kind: "xfer/link-arrived" });
         }
       });
     });
-
-    this.propagationLink = link;
-    return link;
   }
 }
 

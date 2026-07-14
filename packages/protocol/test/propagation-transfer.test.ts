@@ -30,10 +30,17 @@ describe("protocol propagation transfer", () => {
     ]);
   });
 
-  it("cancels the link timer on link-ready and cancel", () => {
+  it("cancels the link timer on link-arrived, link-ready, and cancel", () => {
     let state = initialPropagationTransferState();
     state = stepPropagationTransferWithActions(state, { kind: "xfer/begin" }).state;
-    const ready = stepPropagationTransferWithActions(state, { kind: "xfer/link-ready" });
+    const arrived = stepPropagationTransferWithActions(state, { kind: "xfer/link-arrived" });
+    expect(arrived.intents).toEqual([
+      { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }
+    ]);
+    expect(arrived.actions).toEqual([{ kind: "resolve-link-wait" }]);
+    expect(arrived.state.phase).toBe(PropagationTransferState.LINK_ESTABLISHING);
+
+    const ready = stepPropagationTransferWithActions(arrived.state, { kind: "xfer/link-ready" });
     expect(ready.intents).toEqual([
       { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }
     ]);
@@ -45,6 +52,26 @@ describe("protocol propagation transfer", () => {
     expect(cancelled.intents).toEqual([
       { kind: "timer/cancel", timer: { id: PROPAGATION_LINK_TIMER_ID } }
     ]);
+  });
+
+  it("ignores late link-arrived when not establishing", () => {
+    const idle = stepPropagationTransferWithActions(initialPropagationTransferState(), {
+      kind: "xfer/link-arrived"
+    });
+    expect(idle.actions).toEqual([]);
+    expect(idle.intents).toEqual([]);
+
+    let state = stepPropagationTransferWithActions(initialPropagationTransferState(), {
+      kind: "xfer/begin"
+    }).state;
+    state = stepPropagationTransferWithActions(state, {
+      kind: "timer/fired",
+      id: PROPAGATION_LINK_TIMER_ID,
+      at: PROPAGATION_LINK_TIMEOUT_MS
+    }).state;
+    const late = stepPropagationTransferWithActions(state, { kind: "xfer/link-arrived" });
+    expect(late.state.phase).toBe(PropagationTransferState.LINK_FAILED);
+    expect(late.actions).toEqual([]);
   });
 
   it("maps peer errors after list response", () => {
@@ -123,7 +150,7 @@ describe("protocol propagation transfer", () => {
     ).toBe(false);
   });
 
-  it("marks link failed on timeout", () => {
+  it("marks link failed on timeout and emits reject-link-wait", () => {
     let state = initialPropagationTransferState();
     state = stepPropagationTransferWithActions(state, { kind: "xfer/begin" }).state;
     const result = stepPropagationTransferWithActions(state, {
@@ -132,6 +159,10 @@ describe("protocol propagation transfer", () => {
       at: PROPAGATION_LINK_TIMEOUT_MS
     });
     expect(result.state.phase).toBe(PropagationTransferState.LINK_FAILED);
+    expect(result.actions).toEqual([
+      { kind: "teardown-link" },
+      { kind: "reject-link-wait", reason: "timeout" }
+    ]);
   });
 
   it("double-runs identically", () => {

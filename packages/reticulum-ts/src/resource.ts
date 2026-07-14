@@ -527,15 +527,49 @@ export class Resource {
 
   async advertise(): Promise<void> {
     await new Promise<void>((resolve) => {
-      let waitState = stepResourceAdvertiseWaitWithActions(initialResourceAdvertiseWaitState(), {
+      const armed = stepResourceAdvertiseWaitWithActions(initialResourceAdvertiseWaitState(), {
         kind: "advertise-wait/arm"
-      }).state;
+      });
+      let waitState = armed.state;
       let timer: ReturnType<LeafTransport["clock"]["setTimeout"]> | null = null;
+      let concluded = false;
 
       const finish = (): void => {
+        if (concluded) {
+          return;
+        }
+        concluded = true;
         timer?.cancel();
         timer = null;
         resolve();
+      };
+
+      const applyIntents = (
+        intents: ReturnType<typeof stepResourceAdvertiseWaitWithActions>["intents"]
+      ): void => {
+        for (const intent of intents) {
+          if (intent.kind === "timer/cancel" && intent.timer.id === RESOURCE_ADVERTISE_WAIT_TIMER_ID) {
+            timer?.cancel();
+            timer = null;
+          }
+          if (intent.kind === "timer/set" && intent.timer.id === RESOURCE_ADVERTISE_WAIT_TIMER_ID) {
+            timer?.cancel();
+            timer = this.link.linkTransport.clock.setTimeout(() => {
+              timer = null;
+              const tick = stepResourceAdvertiseWaitWithActions(waitState, {
+                kind: "timer/fired",
+                id: RESOURCE_ADVERTISE_WAIT_TIMER_ID,
+                at: this.link.linkTransport.clock.now()
+              });
+              waitState = tick.state;
+              applyIntents(tick.intents);
+              applyActions(tick.actions);
+              if (!shouldContinueResourceAdvertiseWait(waitState.concluded)) {
+                finish();
+              }
+            }, intent.timer.delayMs);
+          }
+        }
       };
 
       const applyActions = (
@@ -545,42 +579,23 @@ export class Resource {
           if (action.kind === "queue") {
             this.applyStatus({ kind: "resource/queue" });
           }
-        }
-      };
-
-      const applyIntents = (
-        intents: ReturnType<typeof stepResourceAdvertiseWaitWithActions>["intents"]
-      ): void => {
-        for (const intent of intents) {
-          if (intent.kind === "timer/set" && intent.timer.id === RESOURCE_ADVERTISE_WAIT_TIMER_ID) {
-            timer?.cancel();
-            timer = this.link.linkTransport.clock.setTimeout(() => {
-              timer = null;
-              const probe = stepResourceAdvertiseWaitWithActions(waitState, {
-                kind: "advertise-wait/link-ready",
-                ready: this.link.readyForNewResource()
-              });
-              waitState = probe.state;
-              applyActions(probe.actions);
-              applyIntents(probe.intents);
-              if (!shouldContinueResourceAdvertiseWait(waitState.concluded)) {
-                finish();
-              }
-            }, intent.timer.delayMs);
+          if (action.kind === "probe") {
+            const probe = stepResourceAdvertiseWaitWithActions(waitState, {
+              kind: "advertise-wait/link-ready",
+              ready: this.link.readyForNewResource()
+            });
+            waitState = probe.state;
+            applyIntents(probe.intents);
+            applyActions(probe.actions);
+            if (!shouldContinueResourceAdvertiseWait(waitState.concluded)) {
+              finish();
+            }
           }
         }
       };
 
-      const probe = stepResourceAdvertiseWaitWithActions(waitState, {
-        kind: "advertise-wait/link-ready",
-        ready: this.link.readyForNewResource()
-      });
-      waitState = probe.state;
-      applyActions(probe.actions);
-      applyIntents(probe.intents);
-      if (!shouldContinueResourceAdvertiseWait(waitState.concluded)) {
-        finish();
-      }
+      applyIntents(armed.intents);
+      applyActions(armed.actions);
     });
 
     const packed = new ResourceAdvertisement(this).pack();

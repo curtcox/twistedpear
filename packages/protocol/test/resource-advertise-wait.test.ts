@@ -8,17 +8,17 @@ import {
 } from "../src/resource-advertise-wait.js";
 
 describe("protocol resource advertise wait", () => {
-  it("arms without probing until link readiness arrives", () => {
+  it("arms with an immediate probe action", () => {
     const result = stepResourceAdvertiseWaitWithActions(initialResourceAdvertiseWaitState(), {
       kind: "advertise-wait/arm"
     });
     expect(result.state.armed).toBe(true);
     expect(result.state.concluded).toBe(false);
     expect(result.intents).toEqual([]);
-    expect(result.actions).toEqual([]);
+    expect(result.actions).toEqual([{ kind: "probe" }]);
   });
 
-  it("concludes immediately when the link is ready", () => {
+  it("concludes when the link is ready and cancels the wait timer", () => {
     let state = stepResourceAdvertiseWaitWithActions(initialResourceAdvertiseWaitState(), {
       kind: "advertise-wait/arm"
     }).state;
@@ -28,35 +28,50 @@ describe("protocol resource advertise wait", () => {
     });
     expect(result.state.concluded).toBe(true);
     expect(shouldContinueResourceAdvertiseWait(result.state.concluded)).toBe(false);
-    expect(result.intents).toEqual([]);
+    expect(result.intents).toEqual([
+      { kind: "timer/cancel", timer: { id: RESOURCE_ADVERTISE_WAIT_TIMER_ID } }
+    ]);
     expect(result.actions).toEqual([]);
   });
 
-  it("queues and schedules a wait when the link is not ready", () => {
+  it("queues and schedules waits until timer/fired re-probes readiness", () => {
     let state = stepResourceAdvertiseWaitWithActions(initialResourceAdvertiseWaitState(), {
       kind: "advertise-wait/arm"
     }).state;
-    const waiting = stepResourceAdvertiseWaitWithActions(state, {
+    let step = stepResourceAdvertiseWaitWithActions(state, {
       kind: "advertise-wait/link-ready",
       ready: false
     });
-    expect(waiting.state.concluded).toBe(false);
-    expect(shouldContinueResourceAdvertiseWait(waiting.state.concluded)).toBe(true);
-    expect(waiting.actions).toEqual([{ kind: "queue" }]);
-    expect(waiting.intents).toEqual([
+    expect(step.state.concluded).toBe(false);
+    expect(shouldContinueResourceAdvertiseWait(step.state.concluded)).toBe(true);
+    expect(step.actions).toEqual([{ kind: "queue" }]);
+    expect(step.intents).toEqual([
       {
         kind: "timer/set",
         timer: { id: RESOURCE_ADVERTISE_WAIT_TIMER_ID, delayMs: RESOURCE_ADVERTISE_WAIT_MS }
       }
     ]);
+    state = step.state;
 
-    state = waiting.state;
-    const ready = stepResourceAdvertiseWaitWithActions(state, {
+    step = stepResourceAdvertiseWaitWithActions(state, {
+      kind: "timer/fired",
+      id: RESOURCE_ADVERTISE_WAIT_TIMER_ID,
+      at: RESOURCE_ADVERTISE_WAIT_MS
+    });
+    expect(step.state.concluded).toBe(false);
+    expect(step.actions).toEqual([{ kind: "probe" }]);
+    expect(step.intents).toEqual([]);
+    state = step.state;
+
+    step = stepResourceAdvertiseWaitWithActions(state, {
       kind: "advertise-wait/link-ready",
       ready: true
     });
-    expect(ready.state.concluded).toBe(true);
-    expect(ready.actions).toEqual([]);
+    expect(step.state.concluded).toBe(true);
+    expect(step.actions).toEqual([]);
+    expect(step.intents).toEqual([
+      { kind: "timer/cancel", timer: { id: RESOURCE_ADVERTISE_WAIT_TIMER_ID } }
+    ]);
   });
 
   it("ignores probes when not armed or already concluded", () => {
@@ -95,6 +110,14 @@ describe("protocol resource advertise wait", () => {
         })
       );
       state = steps[1]!.state;
+      steps.push(
+        stepResourceAdvertiseWaitWithActions(state, {
+          kind: "timer/fired",
+          id: RESOURCE_ADVERTISE_WAIT_TIMER_ID,
+          at: RESOURCE_ADVERTISE_WAIT_MS
+        })
+      );
+      state = steps[2]!.state;
       steps.push(
         stepResourceAdvertiseWaitWithActions(state, {
           kind: "advertise-wait/link-ready",
