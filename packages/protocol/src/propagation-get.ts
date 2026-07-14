@@ -1,7 +1,10 @@
 /**
  * Pure LXMF propagation /get request planning.
  * Packing responses and mutating the store stay at the adapter edge.
+ * Conclusions leave via machine actions (no ad-hoc `plan.kind` reads
+ * beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
 import { propagationEntryVisibleToRecipient } from "./propagation-quota.js";
 
@@ -75,4 +78,130 @@ export function planPropagationGet(input: {
 /** Whether a /get request body is present and may be unpacked. */
 export function shouldAcceptPropagationGetRequestData(dataPresent: boolean): boolean {
   return dataPresent;
+}
+
+/**
+ * /get planning is event-driven; no durable session fields.
+ */
+export type PropagationGetState = Record<string, never>;
+
+export type PropagationGetEvent =
+  | Event
+  | {
+      readonly kind: "get/received";
+      readonly wants: ReadonlyArray<Uint8Array> | null;
+      readonly haves: ReadonlyArray<Uint8Array> | null;
+      readonly remoteDeliveryHash: Uint8Array | null;
+      readonly entries: ReadonlyArray<PropagationGetCatalogEntry>;
+    };
+
+/**
+ * Adapter applies list-ids / apply (delete then fetch) only from these actions.
+ */
+export type PropagationGetAction =
+  | {
+      readonly kind: "list-ids";
+      readonly transientIds: readonly Uint8Array[];
+    }
+  | {
+      readonly kind: "apply";
+      readonly deleteIds: readonly Uint8Array[];
+      readonly fetchIds: readonly Uint8Array[];
+    };
+
+export interface PropagationGetStepResult {
+  readonly state: PropagationGetState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PropagationGetAction[];
+}
+
+export function initialPropagationGetState(): PropagationGetState {
+  return {};
+}
+
+export const stepPropagationGet: StepFn<PropagationGetState> = (state, event) => {
+  const result = stepPropagationGetInner(state, event as PropagationGetEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepPropagationGetWithActions(
+  state: PropagationGetState,
+  event: PropagationGetEvent
+): PropagationGetStepResult {
+  return stepPropagationGetInner(state, event);
+}
+
+/** Whether step actions include list-ids. */
+export function shouldListPropagationGetIds(
+  actions: ReadonlyArray<PropagationGetAction>
+): boolean {
+  return actions.some((action) => action.kind === "list-ids");
+}
+
+/** Whether step actions include apply (delete + fetch). */
+export function shouldApplyPropagationGet(
+  actions: ReadonlyArray<PropagationGetAction>
+): boolean {
+  return actions.some((action) => action.kind === "apply");
+}
+
+/** Transient IDs from a list-ids action, if present. */
+export function propagationGetListIds(
+  actions: ReadonlyArray<PropagationGetAction>
+): readonly Uint8Array[] | null {
+  for (const action of actions) {
+    if (action.kind === "list-ids") {
+      return action.transientIds;
+    }
+  }
+  return null;
+}
+
+/** Delete / fetch id lists from an apply action, if present. */
+export function propagationGetApplyIds(
+  actions: ReadonlyArray<PropagationGetAction>
+): {
+  readonly deleteIds: readonly Uint8Array[];
+  readonly fetchIds: readonly Uint8Array[];
+} | null {
+  for (const action of actions) {
+    if (action.kind === "apply") {
+      return { deleteIds: action.deleteIds, fetchIds: action.fetchIds };
+    }
+  }
+  return null;
+}
+
+function stepPropagationGetInner(
+  state: PropagationGetState,
+  event: PropagationGetEvent
+): PropagationGetStepResult {
+  if (event.kind === "get/received") {
+    const plan = planPropagationGet({
+      wants: event.wants,
+      haves: event.haves,
+      remoteDeliveryHash: event.remoteDeliveryHash,
+      entries: event.entries
+    });
+    if (plan.kind === "list-ids") {
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "list-ids", transientIds: plan.transientIds }]
+      };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "apply",
+          deleteIds: plan.deleteIds,
+          fetchIds: plan.fetchIds
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
 }

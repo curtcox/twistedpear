@@ -766,10 +766,21 @@ export {
   type PropagationStoreStepResult
 } from "./propagation-quota.js";
 export {
+  initialPropagationGetState,
   planPropagationGet,
+  propagationGetApplyIds,
+  propagationGetListIds,
   shouldAcceptPropagationGetRequestData,
+  shouldApplyPropagationGet,
+  shouldListPropagationGetIds,
+  stepPropagationGet,
+  stepPropagationGetWithActions,
+  type PropagationGetAction,
   type PropagationGetCatalogEntry,
-  type PropagationGetPlan
+  type PropagationGetEvent,
+  type PropagationGetPlan,
+  type PropagationGetState,
+  type PropagationGetStepResult
 } from "./propagation-get.js";
 export {
   msgpackPackLinkRequest,

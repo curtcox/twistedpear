@@ -2,25 +2,31 @@ import {
   allowClientRequest as checkClientRateLimit,
   decodeLxmfPeerError,
   initialPersistDebounceState,
+  initialPropagationGetState,
   initialPropagationStoreState,
   isPropagationMessageTooLarge,
-  planPropagationGet,
   planPropagationRestore,
   propagationDestinationHash,
+  propagationGetApplyIds,
+  propagationGetListIds,
   propagationStoreAcceptEvictKeys,
   selectOldestPropagationKey,
   shouldAcceptPropagationGetRequestData,
   shouldAcceptPropagationStore,
+  shouldApplyPropagationGet,
   shouldApplyPropagationRestore,
   shouldDeletePropagationCatalogEntry,
   shouldDuplicatePropagationStore,
   shouldEvictOldestPropagationEntry,
   shouldEvictPropagationCatalogEntry,
+  shouldListPropagationGetIds,
   shouldRejectPropagationStore,
   stepPersistDebounceWithActions,
+  stepPropagationGetWithActions,
   stepPropagationStoreWithActions,
   type ClientRateBucket,
   type PersistDebounceState,
+  type PropagationGetAction,
   type PropagationStoreAction
 } from "@twistedpear/protocol";
 import type { CryptoProvider, Identity, RegisteredDestination } from "@twistedpear/reticulum-ts";
@@ -361,7 +367,8 @@ export class PropagationServer {
             aspects: ["delivery"]
           }).hash;
 
-    const plan = planPropagationGet({
+    const stepped = stepPropagationGetWithActions(initialPropagationGetState(), {
+      kind: "get/received",
       wants,
       haves,
       remoteDeliveryHash,
@@ -370,16 +377,30 @@ export class PropagationServer {
         destinationHash: entry.destinationHash
       }))
     });
+    return this.applyPropagationGetActions(stepped.actions);
+  }
 
-    if (plan.kind === "list-ids") {
-      return msgpackPackArray(plan.transientIds.map((id) => msgpackPackBin(id)));
+  private applyPropagationGetActions(
+    actions: readonly PropagationGetAction[]
+  ): Uint8Array | null {
+    if (shouldListPropagationGetIds(actions)) {
+      const transientIds = propagationGetListIds(actions) ?? [];
+      return msgpackPackArray(transientIds.map((id) => msgpackPackBin(id)));
+    }
+    if (!shouldApplyPropagationGet(actions)) {
+      return null;
     }
 
-    for (const transientId of plan.deleteIds) {
+    const apply = propagationGetApplyIds(actions);
+    if (apply === null) {
+      return null;
+    }
+
+    for (const transientId of apply.deleteIds) {
       this.delete(transientId);
     }
 
-    const messages = plan.fetchIds
+    const messages = apply.fetchIds
       .map((transientId) => this.entries.get(Buffer.from(transientId).toString("hex")) ?? null)
       .filter((entry): entry is StoredPropagationMessage => entry !== null)
       .map((entry) => entry.lxmfData);

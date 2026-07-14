@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { planPropagationGet, shouldAcceptPropagationGetRequestData } from "../src/propagation-get.js";
+import {
+  initialPropagationGetState,
+  planPropagationGet,
+  propagationGetApplyIds,
+  propagationGetListIds,
+  shouldAcceptPropagationGetRequestData,
+  shouldApplyPropagationGet,
+  shouldListPropagationGetIds,
+  stepPropagationGetWithActions
+} from "../src/propagation-get.js";
 
 describe("protocol propagation get planner", () => {
   const alice = new Uint8Array(16).map((_, i) => i + 1);
@@ -69,5 +78,58 @@ describe("protocol propagation get planner", () => {
   it("gates /get request body presence", () => {
     expect(shouldAcceptPropagationGetRequestData(true)).toBe(true);
     expect(shouldAcceptPropagationGetRequestData(false)).toBe(false);
+  });
+
+  it("emits list-ids / apply actions from get/received", () => {
+    const listed = stepPropagationGetWithActions(initialPropagationGetState(), {
+      kind: "get/received",
+      wants: null,
+      haves: null,
+      remoteDeliveryHash: alice,
+      entries
+    });
+    expect(shouldListPropagationGetIds(listed.actions)).toBe(true);
+    expect(shouldApplyPropagationGet(listed.actions)).toBe(false);
+    const ids = propagationGetListIds(listed.actions);
+    expect(ids).toHaveLength(2);
+    expect([...ids![0]!]).toEqual([...idA]);
+    expect([...ids![1]!]).toEqual([...idC]);
+
+    const applied = stepPropagationGetWithActions(initialPropagationGetState(), {
+      kind: "get/received",
+      wants: [idB, idA, new Uint8Array(32)],
+      haves: [idC],
+      remoteDeliveryHash: alice,
+      entries
+    });
+    expect(shouldApplyPropagationGet(applied.actions)).toBe(true);
+    expect(shouldListPropagationGetIds(applied.actions)).toBe(false);
+    expect(propagationGetApplyIds(applied.actions)).toEqual({
+      deleteIds: [idC],
+      fetchIds: [idA]
+    });
+
+    expect(
+      stepPropagationGetWithActions(initialPropagationGetState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
+  });
+
+  it("is deterministic for get receive events", () => {
+    const state = initialPropagationGetState();
+    const event = {
+      kind: "get/received" as const,
+      wants: null,
+      haves: null,
+      remoteDeliveryHash: alice,
+      entries
+    };
+    const a = stepPropagationGetWithActions(state, event);
+    const b = stepPropagationGetWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 });
