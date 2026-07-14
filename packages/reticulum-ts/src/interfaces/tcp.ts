@@ -3,6 +3,7 @@ import type { DuplexConnection, Runtime, Timer } from "../runtime/runtime.js";
 import { Packet } from "../packet.js";
 import { HdlcPacketInterface, type PacketInterface, type ReticulumInterfaceOptions } from "./interface.js";
 import {
+  INTERFACE_CONNECT_TIMEOUT_MS,
   INTERFACE_RECONNECT_TIMER_ID,
   INTERFACE_RECONNECT_WAIT_MS,
   initialInterfaceReconnectState,
@@ -13,7 +14,7 @@ import {
 
 /** Mirrors RNS/Interfaces/TCPInterface.py reconnect defaults. */
 export const TCP_RECONNECT_WAIT_MS = INTERFACE_RECONNECT_WAIT_MS;
-export const TCP_INITIAL_CONNECT_TIMEOUT_MS = 5_000;
+export const TCP_INITIAL_CONNECT_TIMEOUT_MS = INTERFACE_CONNECT_TIMEOUT_MS;
 export const TCP_HW_MTU = 262_144;
 
 export interface TcpClientInterfaceOptions extends ReticulumInterfaceOptions {

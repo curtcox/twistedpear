@@ -273,6 +273,18 @@ export {
   type PathResponseGraceStepResult
 } from "./path-response-grace.js";
 export {
+  INTERFACE_CONNECT_TIMEOUT_MS,
+  INTERFACE_CONNECT_TIMER_ID,
+  initialInterfaceConnectState,
+  isInterfaceConnectConnected,
+  isInterfaceConnectFailed,
+  isInterfaceConnectTimedOut,
+  shouldContinueInterfaceConnect,
+  stepInterfaceConnect,
+  type InterfaceConnectEvent,
+  type InterfaceConnectState
+} from "./interface-connect.js";
+export {
   PATHFINDER_EXPIRY_SECONDS,
   PATHFINDER_MAX_HOPS,
   PATH_REQUEST_GRACE_MS,

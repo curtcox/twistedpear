@@ -1,7 +1,14 @@
 import {
+  INTERFACE_CONNECT_TIMEOUT_MS,
+  INTERFACE_CONNECT_TIMER_ID,
   INTERFACE_RECONNECT_TIMER_ID,
   INTERFACE_RECONNECT_WAIT_MS,
+  initialInterfaceConnectState,
   initialInterfaceReconnectState,
+  isInterfaceConnectConnected,
+  isInterfaceConnectFailed,
+  isInterfaceConnectTimedOut,
+  stepInterfaceConnect,
   stepInterfaceReconnectWithActions,
   type InterfaceReconnectEvent,
   type InterfaceReconnectState
@@ -12,7 +19,7 @@ import type { Runtime, Timer } from "../runtime/runtime.js";
 import { RawPacketInterface, type ReticulumInterfaceOptions } from "./interface.js";
 
 export const WEBSOCKET_RECONNECT_WAIT_MS = INTERFACE_RECONNECT_WAIT_MS;
-export const WEBSOCKET_INITIAL_CONNECT_TIMEOUT_MS = 5_000;
+export const WEBSOCKET_INITIAL_CONNECT_TIMEOUT_MS = INTERFACE_CONNECT_TIMEOUT_MS;
 export const WEBSOCKET_HW_MTU = 262_144;
 
 export interface WebSocketClientInterfaceOptions extends ReticulumInterfaceOptions {
@@ -132,32 +139,66 @@ export class WebSocketClientInterface extends RawPacketInterface {
     socket.binaryType = "arraybuffer";
 
     return new Promise((resolve, reject) => {
-      let settled = false;
-      const timer = this.runtime.clock.setTimeout(() => {
-        settle(() => {
-          socket.close();
-          reject(new Error(`WebSocket connect timed out after ${this.connectTimeoutMs()}ms`));
-        });
-      }, this.connectTimeoutMs());
+      const armed = stepInterfaceConnect(initialInterfaceConnectState(), {
+        kind: "interface-connect/arm",
+        timeoutMs: this.connectTimeoutMs()
+      } as never);
+      let state = armed.state;
+      let timer: Timer | null = null;
 
-      const cleanup = () => {
-        timer.cancel();
+      const cleanupListeners = () => {
         socket.removeEventListener("open", onOpen);
         socket.removeEventListener("close", onFailure);
         socket.removeEventListener("error", onFailure);
       };
-      const settle = (callback: () => void) => {
-        if (settled) {
-          return;
+
+      const applyIntents = (intents: ReturnType<typeof stepInterfaceConnect>["intents"]): void => {
+        for (const intent of intents) {
+          if (intent.kind === "timer/set" && intent.timer.id === INTERFACE_CONNECT_TIMER_ID) {
+            timer?.cancel();
+            timer = this.runtime.clock.setTimeout(() => {
+              timer = null;
+              const tick = stepInterfaceConnect(state, {
+                kind: "timer/fired",
+                id: INTERFACE_CONNECT_TIMER_ID,
+                at: this.runtime.clock.now()
+              });
+              state = tick.state;
+              applyIntents(tick.intents);
+              if (isInterfaceConnectTimedOut(state)) {
+                cleanupListeners();
+                socket.close();
+                reject(new Error(`WebSocket connect timed out after ${this.connectTimeoutMs()}ms`));
+              }
+            }, intent.timer.delayMs);
+          }
+          if (intent.kind === "timer/cancel" && intent.timer.id === INTERFACE_CONNECT_TIMER_ID) {
+            timer?.cancel();
+            timer = null;
+          }
         }
-
-        settled = true;
-        cleanup();
-        callback();
       };
-      const onOpen = () => settle(() => resolve(socket));
-      const onFailure = () => settle(() => reject(new Error(`WebSocket connect failed for ${this.options.url}`)));
 
+      const onOpen = () => {
+        const result = stepInterfaceConnect(state, { kind: "interface-connect/connected" } as never);
+        state = result.state;
+        applyIntents(result.intents);
+        if (isInterfaceConnectConnected(state)) {
+          cleanupListeners();
+          resolve(socket);
+        }
+      };
+      const onFailure = () => {
+        const result = stepInterfaceConnect(state, { kind: "interface-connect/failed" } as never);
+        state = result.state;
+        applyIntents(result.intents);
+        if (isInterfaceConnectFailed(state)) {
+          cleanupListeners();
+          reject(new Error(`WebSocket connect failed for ${this.options.url}`));
+        }
+      };
+
+      applyIntents(armed.intents);
       socket.addEventListener("open", onOpen);
       socket.addEventListener("close", onFailure);
       socket.addEventListener("error", onFailure);

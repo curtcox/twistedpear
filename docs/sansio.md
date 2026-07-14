@@ -323,6 +323,8 @@
 > direct/propagation link waits and `PropagationClient` adapt it.
 > **`stepPathResponseGrace`** (PATH_REQUEST_GRACE_MS delay then transmit action) lives in
 > protocol; `TransportNode.sendPathResponse` adapts it.
+> **`stepInterfaceConnect`** (initial socket connect timeout / open / fail) lives in
+> protocol; WebSocket client adapts it (TCP/WebSocket share `INTERFACE_CONNECT_TIMEOUT_MS`).
 > **`shouldDeliverPendingLinkAppResponse`** / **`shouldCommitLinkRemoteIdentity`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
