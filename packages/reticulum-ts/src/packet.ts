@@ -1,6 +1,7 @@
 import {
   decodePacketRaw,
   encodePacketRaw,
+  initialPacketFromFieldsState,
   packPacketFlags,
   packPacketProof,
   packetHashablePart,
@@ -10,8 +11,17 @@ import {
   PacketHeaderTypeCode,
   PacketTypeCode,
   TransportTypeCode,
-  planPacketFromFields,
+  shouldProceedPacketFromFields,
+  shouldRejectPacketFromFieldsBadContextFlag,
+  shouldRejectPacketFromFieldsBadDestinationHash,
+  shouldRejectPacketFromFieldsBadDestinationType,
+  shouldRejectPacketFromFieldsBadHeaderType,
+  shouldRejectPacketFromFieldsBadPacketType,
+  shouldRejectPacketFromFieldsBadTransportId,
+  shouldRejectPacketFromFieldsBadTransportType,
+  shouldRejectPacketFromFieldsHeader2MissingTransportId,
   splitPacketProof,
+  stepPacketFromFieldsWithActions,
   truncateToTruncatedHash,
   TRUNCATED_HASH_BYTES
 } from "@twistedpear/protocol";
@@ -94,7 +104,8 @@ export class Packet {
 
   static fromFields(provider: CryptoProvider, fields: PacketFields): Packet {
     const contextFlag = fields.contextFlag ?? PacketContextFlag.UNSET;
-    const plan = planPacketFromFields({
+    const gate = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), {
+      kind: "packet/from-fields-gate",
       headerType: fields.headerType,
       contextFlag,
       transportType: fields.transportType,
@@ -104,29 +115,32 @@ export class Packet {
       transportIdPresent: fields.transportId !== undefined,
       transportIdLength: fields.transportId?.length ?? 0
     });
-    if (plan === "bad-header-type") {
+    if (shouldRejectPacketFromFieldsBadHeaderType(gate.actions)) {
       throw new Error(`Unknown packet header type: ${fields.headerType}`);
     }
-    if (plan === "bad-context-flag") {
+    if (shouldRejectPacketFromFieldsBadContextFlag(gate.actions)) {
       throw new Error(`Unknown packet context flag: ${fields.contextFlag}`);
     }
-    if (plan === "bad-transport-type") {
+    if (shouldRejectPacketFromFieldsBadTransportType(gate.actions)) {
       throw new Error(`Unknown packet transport type: ${fields.transportType}`);
     }
-    if (plan === "bad-destination-type") {
+    if (shouldRejectPacketFromFieldsBadDestinationType(gate.actions)) {
       throw new Error(`Unknown packet destination type: ${fields.destinationType}`);
     }
-    if (plan === "bad-packet-type") {
+    if (shouldRejectPacketFromFieldsBadPacketType(gate.actions)) {
       throw new Error(`Unknown packet type: ${fields.packetType}`);
     }
-    if (plan === "bad-destination-hash") {
+    if (shouldRejectPacketFromFieldsBadDestinationHash(gate.actions)) {
       throw new Error(`destination hash must be ${TRUNCATED_HASH_BYTES} bytes`);
     }
-    if (plan === "header2-missing-transport-id") {
+    if (shouldRejectPacketFromFieldsHeader2MissingTransportId(gate.actions)) {
       throw new Error("HEADER_2 packets require a transport ID");
     }
-    if (plan === "bad-transport-id") {
+    if (shouldRejectPacketFromFieldsBadTransportId(gate.actions)) {
       throw new Error(`transport ID must be ${TRUNCATED_HASH_BYTES} bytes`);
+    }
+    if (!shouldProceedPacketFromFields(gate.actions)) {
+      throw new Error("Packet fromFields rejected");
     }
 
     return new Packet(provider, {

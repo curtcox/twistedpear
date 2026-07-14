@@ -17,9 +17,16 @@ import {
   TransportTypeCode,
   decodePacketRaw,
   encodePacketRaw,
+  initialPacketFromFieldsState,
   packPacketFlags,
   packetHashablePart,
   planPacketFromFields,
+  shouldProceedPacketFromFields,
+  shouldRejectPacketFromFieldsBadDestinationHash,
+  shouldRejectPacketFromFieldsBadHeaderType,
+  shouldRejectPacketFromFieldsBadTransportId,
+  shouldRejectPacketFromFieldsHeader2MissingTransportId,
+  stepPacketFromFieldsWithActions,
   unpackPacketFlags
 } from "../src/packet-header.js";
 
@@ -185,5 +192,93 @@ describe("protocol packet header", () => {
         transportIdLength: TRANSPORT_ID_BYTES
       })
     ).toBe("ok");
+  });
+
+  it("emits fromFields actions from stepPacketFromFieldsWithActions", () => {
+    const ok = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), {
+      kind: "packet/from-fields-gate",
+      headerType: PACKET_HEADER_1,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      destinationHashLength: TRANSPORT_ID_BYTES,
+      transportIdPresent: false,
+      transportIdLength: 0
+    });
+    expect(ok.actions).toEqual([{ kind: "ok" }]);
+    expect(shouldProceedPacketFromFields(ok.actions)).toBe(true);
+
+    const badHeader = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), {
+      kind: "packet/from-fields-gate",
+      headerType: 9,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      destinationHashLength: TRANSPORT_ID_BYTES,
+      transportIdPresent: false,
+      transportIdLength: 0
+    });
+    expect(shouldRejectPacketFromFieldsBadHeaderType(badHeader.actions)).toBe(true);
+
+    const badHash = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), {
+      kind: "packet/from-fields-gate",
+      headerType: PACKET_HEADER_1,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      destinationHashLength: 4,
+      transportIdPresent: false,
+      transportIdLength: 0
+    });
+    expect(shouldRejectPacketFromFieldsBadDestinationHash(badHash.actions)).toBe(true);
+
+    const missingTransport = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), {
+      kind: "packet/from-fields-gate",
+      headerType: PACKET_HEADER_2,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_TRANSPORT,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      destinationHashLength: TRANSPORT_ID_BYTES,
+      transportIdPresent: false,
+      transportIdLength: 0
+    });
+    expect(shouldRejectPacketFromFieldsHeader2MissingTransportId(missingTransport.actions)).toBe(
+      true
+    );
+
+    const badTransportId = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), {
+      kind: "packet/from-fields-gate",
+      headerType: PACKET_HEADER_2,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_TRANSPORT,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      destinationHashLength: TRANSPORT_ID_BYTES,
+      transportIdPresent: true,
+      transportIdLength: 4
+    });
+    expect(shouldRejectPacketFromFieldsBadTransportId(badTransportId.actions)).toBe(true);
+  });
+
+  it("is deterministic for identical fromFields gate events", () => {
+    const event = {
+      kind: "packet/from-fields-gate" as const,
+      headerType: PACKET_HEADER_1,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      destinationHashLength: TRANSPORT_ID_BYTES,
+      transportIdPresent: false,
+      transportIdLength: 0
+    };
+    const a = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), event);
+    const b = stepPacketFromFieldsWithActions(initialPacketFromFieldsState(), event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 });

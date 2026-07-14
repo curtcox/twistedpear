@@ -1,7 +1,9 @@
 /**
  * Pure RNS packet header flag packing, raw encode/decode, and hashable-part framing.
  * Crypto hashing stays at the adapter edge.
+ * fromFields conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   PACKET_HEADER_1,
   PACKET_HEADER_2,
@@ -244,6 +246,125 @@ export function planPacketFromFields(input: {
     }
   }
   return "ok";
+}
+
+/**
+ * Packet fromFields gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type PacketFromFieldsState = Record<string, never>;
+
+export type PacketFromFieldsEvent =
+  | Event
+  | {
+      readonly kind: "packet/from-fields-gate";
+      readonly headerType: number;
+      readonly contextFlag: number;
+      readonly transportType: number;
+      readonly destinationType: number;
+      readonly packetType: number;
+      readonly destinationHashLength: number;
+      readonly transportIdPresent: boolean;
+      readonly transportIdLength: number;
+    };
+
+export type PacketFromFieldsAction = { readonly kind: PacketFromFieldsPlan };
+
+export interface PacketFromFieldsStepResult {
+  readonly state: PacketFromFieldsState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketFromFieldsAction[];
+}
+
+export function initialPacketFromFieldsState(): PacketFromFieldsState {
+  return {};
+}
+
+export const stepPacketFromFields: StepFn<PacketFromFieldsState> = (state, event) => {
+  const result = stepPacketFromFieldsInner(state, event as PacketFromFieldsEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepPacketFromFieldsWithActions(
+  state: PacketFromFieldsState,
+  event: PacketFromFieldsEvent
+): PacketFromFieldsStepResult {
+  return stepPacketFromFieldsInner(state, event);
+}
+
+export function shouldProceedPacketFromFields(
+  actions: ReadonlyArray<PacketFromFieldsAction>
+): boolean {
+  return actions.some((action) => action.kind === "ok");
+}
+
+export function shouldRejectPacketFromFieldsBadHeaderType(
+  actions: ReadonlyArray<PacketFromFieldsAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-header-type");
+}
+
+export function shouldRejectPacketFromFieldsBadContextFlag(
+  actions: ReadonlyArray<PacketFromFieldsAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-context-flag");
+}
+
+export function shouldRejectPacketFromFieldsBadTransportType(
+  actions: ReadonlyArray<PacketFromFieldsAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-transport-type");
+}
+
+export function shouldRejectPacketFromFieldsBadDestinationType(
+  actions: ReadonlyArray<PacketFromFieldsAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-destination-type");
+}
+
+export function shouldRejectPacketFromFieldsBadPacketType(
+  actions: ReadonlyArray<PacketFromFieldsAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-packet-type");
+}
+
+export function shouldRejectPacketFromFieldsBadDestinationHash(
+  actions: ReadonlyArray<PacketFromFieldsAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-destination-hash");
+}
+
+export function shouldRejectPacketFromFieldsHeader2MissingTransportId(
+  actions: ReadonlyArray<PacketFromFieldsAction>
+): boolean {
+  return actions.some((action) => action.kind === "header2-missing-transport-id");
+}
+
+export function shouldRejectPacketFromFieldsBadTransportId(
+  actions: ReadonlyArray<PacketFromFieldsAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-transport-id");
+}
+
+function stepPacketFromFieldsInner(
+  state: PacketFromFieldsState,
+  event: PacketFromFieldsEvent
+): PacketFromFieldsStepResult {
+  if (event.kind === "packet/from-fields-gate") {
+    const plan = planPacketFromFields({
+      headerType: event.headerType,
+      contextFlag: event.contextFlag,
+      transportType: event.transportType,
+      destinationType: event.destinationType,
+      packetType: event.packetType,
+      destinationHashLength: event.destinationHashLength,
+      transportIdPresent: event.transportIdPresent,
+      transportIdLength: event.transportIdLength
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 export function encodePacketRaw(fields: {

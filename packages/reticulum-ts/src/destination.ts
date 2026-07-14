@@ -5,8 +5,13 @@ import {
   DestinationDirectionCode,
   DestinationTypeCode,
   expandDestinationName,
-  planDestinationConstruction,
+  initialDestinationConstructionState,
   planDestinationIdentityHash,
+  shouldProceedDestinationConstruction,
+  shouldRejectDestinationConstructionBadDirection,
+  shouldRejectDestinationConstructionBadIdentityBinding,
+  shouldRejectDestinationConstructionBadType,
+  stepDestinationConstructionWithActions,
   truncateToNameHash,
   truncateToTruncatedHash,
   validateDestinationNamePart
@@ -58,23 +63,27 @@ export class Destination {
     this.appName = options.appName;
     this.aspects = [...(options.aspects ?? [])];
 
-    const plan = planDestinationConstruction({
+    const gate = stepDestinationConstructionWithActions(initialDestinationConstructionState(), {
+      kind: "destination/construction-gate",
       direction: this.direction,
       type: this.type,
       identityPresent: options.identity != null
     });
-    if (plan === "bad-direction") {
+    if (shouldRejectDestinationConstructionBadDirection(gate.actions)) {
       throw new Error(`Unknown destination direction: ${this.direction}`);
     }
-    if (plan === "bad-type") {
+    if (shouldRejectDestinationConstructionBadType(gate.actions)) {
       throw new Error(`Unknown destination type: ${this.type}`);
     }
-    if (plan === "bad-identity-binding") {
+    if (shouldRejectDestinationConstructionBadIdentityBinding(gate.actions)) {
       throw new Error(
         this.type === DestinationType.PLAIN
           ? "PLAIN destinations cannot hold an identity"
           : "Non-PLAIN destinations require identity material"
       );
+    }
+    if (!shouldProceedDestinationConstruction(gate.actions)) {
+      throw new Error("Destination construction rejected");
     }
 
     this.identity = options.identity instanceof Identity ? options.identity : null;

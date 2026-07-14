@@ -30,12 +30,20 @@ import {
   canAnnounceWithIdentity,
   canDestinationSend,
   canOperateAttachedDestination,
+  initialDestinationDecryptState,
+  initialDestinationEncryptState,
   isValidDestinationRequestPath,
-  planDestinationDecrypt,
-  planDestinationEncrypt,
+  shouldDecryptDestinationWithIdentity,
+  shouldEncryptDestinationWithIdentity,
   shouldInvokeDestinationLinkEstablishedCallback,
   shouldInvokeDestinationProofCallback,
   shouldRegisterDestinationLink,
+  shouldRejectDestinationDecrypt,
+  shouldRejectDestinationEncrypt,
+  shouldReturnDestinationDecryptCiphertext,
+  shouldUseDestinationEncryptPlaintext,
+  stepDestinationDecryptWithActions,
+  stepDestinationEncryptWithActions,
   utf8Encode,
   type DestinationAllowPolicyCodeValue
 } from "@twistedpear/protocol";
@@ -197,18 +205,25 @@ export class RegisteredDestination extends Destination {
   }
 
   decrypt(ciphertext: Uint8Array): Uint8Array | null {
-    const plan = planDestinationDecrypt({
+    const gate = stepDestinationDecryptWithActions(initialDestinationDecryptState(), {
+      kind: "destination/decrypt-gate",
       typePlain: this.type === DestinationType.PLAIN,
       identityPresent: this.identity !== null
     });
-    if (plan === "return-ciphertext") {
+    if (shouldReturnDestinationDecryptCiphertext(gate.actions)) {
       return ciphertext;
     }
-    if (plan === "reject") {
+    if (shouldRejectDestinationDecrypt(gate.actions)) {
+      return null;
+    }
+    if (
+      !shouldDecryptDestinationWithIdentity(gate.actions) ||
+      this.identity === null
+    ) {
       return null;
     }
 
-    return this.identity!.decrypt(ciphertext).plaintext;
+    return this.identity.decrypt(ciphertext).plaintext;
   }
 
   async announce(
@@ -263,17 +278,23 @@ export class RegisteredDestination extends Destination {
       throw new Error("Only OUT destinations can send packets");
     }
 
-    const plan = planDestinationEncrypt({
+    const gate = stepDestinationEncryptWithActions(initialDestinationEncryptState(), {
+      kind: "destination/encrypt-gate",
       typePlain: this.type === DestinationType.PLAIN,
       identityPresent: this.identity !== null
     });
     let ciphertext: Uint8Array;
-    if (plan === "use-plaintext") {
+    if (shouldUseDestinationEncryptPlaintext(gate.actions)) {
       ciphertext = data;
-    } else if (plan === "reject") {
+    } else if (shouldRejectDestinationEncrypt(gate.actions)) {
+      throw new Error("Destination cannot encrypt outbound data");
+    } else if (
+      !shouldEncryptDestinationWithIdentity(gate.actions) ||
+      this.identity === null
+    ) {
       throw new Error("Destination cannot encrypt outbound data");
     } else {
-      ciphertext = this.identity!.encrypt(data, { entropy: this.transport!.entropy });
+      ciphertext = this.identity.encrypt(data, { entropy: this.transport!.entropy });
     }
 
     const packet = Packet.fromFields(this.cryptoProvider, {

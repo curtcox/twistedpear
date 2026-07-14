@@ -7,15 +7,31 @@ import {
   canDestinationSend,
   canOperateAttachedDestination,
   canRequestLinkDestination,
+  initialDestinationConstructionState,
+  initialDestinationDecryptState,
+  initialDestinationEncryptState,
   isValidDestinationIdentityBinding,
   isValidDestinationRequestPath,
   planDestinationConstruction,
   planDestinationDecrypt,
   planDestinationEncrypt,
   planDestinationRequestAllow,
+  shouldDecryptDestinationWithIdentity,
+  shouldEncryptDestinationWithIdentity,
   shouldInvokeDestinationLinkEstablishedCallback,
   shouldInvokeDestinationProofCallback,
-  shouldRegisterDestinationLink
+  shouldProceedDestinationConstruction,
+  shouldRegisterDestinationLink,
+  shouldRejectDestinationConstructionBadDirection,
+  shouldRejectDestinationConstructionBadIdentityBinding,
+  shouldRejectDestinationConstructionBadType,
+  shouldRejectDestinationDecrypt,
+  shouldRejectDestinationEncrypt,
+  shouldReturnDestinationDecryptCiphertext,
+  shouldUseDestinationEncryptPlaintext,
+  stepDestinationConstructionWithActions,
+  stepDestinationDecryptWithActions,
+  stepDestinationEncryptWithActions
 } from "../src/destination-allow.js";
 import { DestinationDirectionCode, DestinationTypeCode } from "../src/packet-header.js";
 import { LinkRequestReceiptStatus, shouldAttachLinkRequestPacketReceipt } from "../src/link-request-receipt.js";
@@ -169,6 +185,105 @@ describe("destination allow policy", () => {
     expect(planDestinationEncrypt({ typePlain: false, identityPresent: true })).toBe(
       "encrypt-with-identity"
     );
+  });
+
+  it("emits destination construction actions from stepDestinationConstructionWithActions", () => {
+    const ok = stepDestinationConstructionWithActions(initialDestinationConstructionState(), {
+      kind: "destination/construction-gate",
+      direction: DestinationDirectionCode.IN,
+      type: DestinationTypeCode.SINGLE,
+      identityPresent: true
+    });
+    expect(ok.actions).toEqual([{ kind: "ok" }]);
+    expect(shouldProceedDestinationConstruction(ok.actions)).toBe(true);
+
+    const badDirection = stepDestinationConstructionWithActions(
+      initialDestinationConstructionState(),
+      {
+        kind: "destination/construction-gate",
+        direction: 0,
+        type: DestinationTypeCode.SINGLE,
+        identityPresent: true
+      }
+    );
+    expect(shouldRejectDestinationConstructionBadDirection(badDirection.actions)).toBe(true);
+
+    const badType = stepDestinationConstructionWithActions(initialDestinationConstructionState(), {
+      kind: "destination/construction-gate",
+      direction: DestinationDirectionCode.OUT,
+      type: 99,
+      identityPresent: true
+    });
+    expect(shouldRejectDestinationConstructionBadType(badType.actions)).toBe(true);
+
+    const badBinding = stepDestinationConstructionWithActions(
+      initialDestinationConstructionState(),
+      {
+        kind: "destination/construction-gate",
+        direction: DestinationDirectionCode.OUT,
+        type: DestinationTypeCode.PLAIN,
+        identityPresent: true
+      }
+    );
+    expect(shouldRejectDestinationConstructionBadIdentityBinding(badBinding.actions)).toBe(true);
+  });
+
+  it("emits destination decrypt/encrypt actions from WithActions steps", () => {
+    const plain = stepDestinationDecryptWithActions(initialDestinationDecryptState(), {
+      kind: "destination/decrypt-gate",
+      typePlain: true,
+      identityPresent: false
+    });
+    expect(plain.actions).toEqual([{ kind: "return-ciphertext" }]);
+    expect(shouldReturnDestinationDecryptCiphertext(plain.actions)).toBe(true);
+
+    const reject = stepDestinationDecryptWithActions(initialDestinationDecryptState(), {
+      kind: "destination/decrypt-gate",
+      typePlain: false,
+      identityPresent: false
+    });
+    expect(shouldRejectDestinationDecrypt(reject.actions)).toBe(true);
+
+    const decrypt = stepDestinationDecryptWithActions(initialDestinationDecryptState(), {
+      kind: "destination/decrypt-gate",
+      typePlain: false,
+      identityPresent: true
+    });
+    expect(shouldDecryptDestinationWithIdentity(decrypt.actions)).toBe(true);
+
+    const usePlain = stepDestinationEncryptWithActions(initialDestinationEncryptState(), {
+      kind: "destination/encrypt-gate",
+      typePlain: true,
+      identityPresent: false
+    });
+    expect(shouldUseDestinationEncryptPlaintext(usePlain.actions)).toBe(true);
+
+    const encryptReject = stepDestinationEncryptWithActions(initialDestinationEncryptState(), {
+      kind: "destination/encrypt-gate",
+      typePlain: false,
+      identityPresent: false
+    });
+    expect(shouldRejectDestinationEncrypt(encryptReject.actions)).toBe(true);
+
+    const encrypt = stepDestinationEncryptWithActions(initialDestinationEncryptState(), {
+      kind: "destination/encrypt-gate",
+      typePlain: false,
+      identityPresent: true
+    });
+    expect(shouldEncryptDestinationWithIdentity(encrypt.actions)).toBe(true);
+  });
+
+  it("is deterministic for identical destination gate events", () => {
+    const event = {
+      kind: "destination/construction-gate" as const,
+      direction: DestinationDirectionCode.IN,
+      type: DestinationTypeCode.SINGLE,
+      identityPresent: true
+    };
+    const a = stepDestinationConstructionWithActions(initialDestinationConstructionState(), event);
+    const b = stepDestinationConstructionWithActions(initialDestinationConstructionState(), event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("registers destination links when validation succeeded", () => {

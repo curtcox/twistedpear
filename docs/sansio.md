@@ -179,8 +179,11 @@
 > **`canDestinationSend`** lives in protocol; `RegisteredDestination.send` adapts it.
 > **`isStreamIdAssigned`** lives in protocol; `StreamDataMessage.pack` adapts it.
 > **`shouldHandleStreamDataMessage`** lives in protocol; `RawChannelReader` message handler adapts it.
-> **`planDestinationDecrypt`** lives in protocol; `RegisteredDestination.decrypt` adapts it.
-> **`planDestinationEncrypt`** lives in protocol; `RegisteredDestination.send` adapts it.
+> **`planDestinationDecrypt`** (via **`stepDestinationDecryptWithActions`**:
+> return-ciphertext / reject / decrypt-with-identity) lives in protocol;
+> `RegisteredDestination.decrypt` adapts it. **`planDestinationEncrypt`** (via
+> **`stepDestinationEncryptWithActions`**: use-plaintext / reject /
+> encrypt-with-identity) lives in protocol; `RegisteredDestination.send` adapts it.
 > **`canRequestLinkDestination`** lives in protocol; `Link.request` adapts it.
 > **`isValidDestinationIdentityBinding`** lives in protocol; `Destination` construction
 > adapts it. **`Announce.buildPacket`** reuses **`canAnnounceDestination`**.
@@ -235,12 +238,15 @@
 > it. **`planAnnounceBuild`** (via **`stepAnnounceBuildWithActions`**: proceed /
 > reject-not-announceable-type / reject-not-announceable-direction /
 > reject-missing-identity / reject-bad-random-hash / reject-bad-ratchet) and
-> **`planDestinationConstruction`** live in protocol; `Announce` and `Destination`
-> adapt them. **`planLinkInitiatorMtu`** lives in protocol;
+> **`planDestinationConstruction`** (via **`stepDestinationConstructionWithActions`**:
+> ok / bad-direction / bad-type / bad-identity-binding) live in protocol; `Announce`
+> and `Destination` adapt them. **`planLinkInitiatorMtu`** lives in protocol;
 > `Link.request` adapts it. Destination type/direction code predicates
 > (`isDestinationTypeCode` / `isDestinationDirectionCode`) are exported for adapters.
-> **`planPacketFromFields`** lives in protocol; `Packet.fromFields` adapts it (enum /
-> HEADER_2 transport-id gates). **`planChannelEnvelopeUnpack`** lives in protocol;
+> **`planPacketFromFields`** (via **`stepPacketFromFieldsWithActions`**: ok /
+> bad-header-type / bad-context-flag / bad-transport-type / bad-destination-type /
+> bad-packet-type / bad-destination-hash / header2-missing-transport-id /
+> bad-transport-id) lives in protocol; `Packet.fromFields` adapts it. **`planChannelEnvelopeUnpack`** lives in protocol;
 > Channel `Envelope.unpack` adapts it. **`planLxmfPropagatedPackPrep`** (via
 > **`stepLxmfPropagatedPackPrepWithActions`**: skip / proceed /
 > reject-missing-identity / reject-missing-timestamp) lives in protocol;
@@ -513,6 +519,17 @@
 > `Identity.recall` / `recallAppData` return results only from those actions
 > (no ad-hoc `planIdentityRecall` / `planIdentityRecallAppData` reads beside
 > the step).
+> **`stepDestinationConstructionWithActions`** emits `ok` / `bad-direction` /
+> `bad-type` / `bad-identity-binding`; `Destination` construction throws or
+> continues only from those actions. **`stepDestinationDecryptWithActions`**
+> emits `return-ciphertext` / `reject` / `decrypt-with-identity`;
+> **`stepDestinationEncryptWithActions`** emits `use-plaintext` / `reject` /
+> `encrypt-with-identity`; `RegisteredDestination` decrypt/send apply only
+> from those actions. **`stepPacketFromFieldsWithActions`** emits `ok` /
+> `bad-*` / `header2-missing-transport-id`; `Packet.fromFields` throws or
+> continues only from those actions (no ad-hoc `planDestinationConstruction` /
+> `planDestinationDecrypt` / `planDestinationEncrypt` / `planPacketFromFields`
+> reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -565,7 +582,8 @@
 > local-ingress / receipt-send / validate-request / proof-validate /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
-> identity-recall-app-data reads
+> identity-recall-app-data / destination-construction / destination-decrypt /
+> destination-encrypt / packet-from-fields reads
 > beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

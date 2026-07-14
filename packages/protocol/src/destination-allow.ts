@@ -1,6 +1,9 @@
 /**
  * Pure destination request allow-policy codes and allow decision.
+ * Construction / encrypt / decrypt conclusions leave via machine actions
+ * (no ad-hoc plan reads beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   DestinationTypeCode,
   isDestinationDirectionCode,
@@ -113,6 +116,91 @@ export function planDestinationConstruction(input: {
   return "ok";
 }
 
+/**
+ * Destination construction gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type DestinationConstructionState = Record<string, never>;
+
+export type DestinationConstructionEvent =
+  | Event
+  | {
+      readonly kind: "destination/construction-gate";
+      readonly direction: number;
+      readonly type: number;
+      readonly identityPresent: boolean;
+    };
+
+export type DestinationConstructionAction = { readonly kind: DestinationConstructionPlan };
+
+export interface DestinationConstructionStepResult {
+  readonly state: DestinationConstructionState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationConstructionAction[];
+}
+
+export function initialDestinationConstructionState(): DestinationConstructionState {
+  return {};
+}
+
+export const stepDestinationConstruction: StepFn<DestinationConstructionState> = (
+  state,
+  event
+) => {
+  const result = stepDestinationConstructionInner(
+    state,
+    event as DestinationConstructionEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepDestinationConstructionWithActions(
+  state: DestinationConstructionState,
+  event: DestinationConstructionEvent
+): DestinationConstructionStepResult {
+  return stepDestinationConstructionInner(state, event);
+}
+
+export function shouldProceedDestinationConstruction(
+  actions: ReadonlyArray<DestinationConstructionAction>
+): boolean {
+  return actions.some((action) => action.kind === "ok");
+}
+
+export function shouldRejectDestinationConstructionBadDirection(
+  actions: ReadonlyArray<DestinationConstructionAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-direction");
+}
+
+export function shouldRejectDestinationConstructionBadType(
+  actions: ReadonlyArray<DestinationConstructionAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-type");
+}
+
+export function shouldRejectDestinationConstructionBadIdentityBinding(
+  actions: ReadonlyArray<DestinationConstructionAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-identity-binding");
+}
+
+function stepDestinationConstructionInner(
+  state: DestinationConstructionState,
+  event: DestinationConstructionEvent
+): DestinationConstructionStepResult {
+  if (event.kind === "destination/construction-gate") {
+    const plan = planDestinationConstruction({
+      direction: event.direction,
+      type: event.type,
+      identityPresent: event.identityPresent
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 export type DestinationDecryptPlan =
   | "return-ciphertext"
   | "reject"
@@ -132,6 +220,77 @@ export function planDestinationDecrypt(input: {
   return "decrypt-with-identity";
 }
 
+/**
+ * Destination decrypt gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type DestinationDecryptState = Record<string, never>;
+
+export type DestinationDecryptEvent =
+  | Event
+  | {
+      readonly kind: "destination/decrypt-gate";
+      readonly typePlain: boolean;
+      readonly identityPresent: boolean;
+    };
+
+export type DestinationDecryptAction = { readonly kind: DestinationDecryptPlan };
+
+export interface DestinationDecryptStepResult {
+  readonly state: DestinationDecryptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationDecryptAction[];
+}
+
+export function initialDestinationDecryptState(): DestinationDecryptState {
+  return {};
+}
+
+export const stepDestinationDecrypt: StepFn<DestinationDecryptState> = (state, event) => {
+  const result = stepDestinationDecryptInner(state, event as DestinationDecryptEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepDestinationDecryptWithActions(
+  state: DestinationDecryptState,
+  event: DestinationDecryptEvent
+): DestinationDecryptStepResult {
+  return stepDestinationDecryptInner(state, event);
+}
+
+export function shouldReturnDestinationDecryptCiphertext(
+  actions: ReadonlyArray<DestinationDecryptAction>
+): boolean {
+  return actions.some((action) => action.kind === "return-ciphertext");
+}
+
+export function shouldRejectDestinationDecrypt(
+  actions: ReadonlyArray<DestinationDecryptAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+export function shouldDecryptDestinationWithIdentity(
+  actions: ReadonlyArray<DestinationDecryptAction>
+): boolean {
+  return actions.some((action) => action.kind === "decrypt-with-identity");
+}
+
+function stepDestinationDecryptInner(
+  state: DestinationDecryptState,
+  event: DestinationDecryptEvent
+): DestinationDecryptStepResult {
+  if (event.kind === "destination/decrypt-gate") {
+    const plan = planDestinationDecrypt({
+      typePlain: event.typePlain,
+      identityPresent: event.identityPresent
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 export type DestinationEncryptPlan =
   | "use-plaintext"
   | "reject"
@@ -149,6 +308,77 @@ export function planDestinationEncrypt(input: {
     return "reject";
   }
   return "encrypt-with-identity";
+}
+
+/**
+ * Destination encrypt gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type DestinationEncryptState = Record<string, never>;
+
+export type DestinationEncryptEvent =
+  | Event
+  | {
+      readonly kind: "destination/encrypt-gate";
+      readonly typePlain: boolean;
+      readonly identityPresent: boolean;
+    };
+
+export type DestinationEncryptAction = { readonly kind: DestinationEncryptPlan };
+
+export interface DestinationEncryptStepResult {
+  readonly state: DestinationEncryptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationEncryptAction[];
+}
+
+export function initialDestinationEncryptState(): DestinationEncryptState {
+  return {};
+}
+
+export const stepDestinationEncrypt: StepFn<DestinationEncryptState> = (state, event) => {
+  const result = stepDestinationEncryptInner(state, event as DestinationEncryptEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepDestinationEncryptWithActions(
+  state: DestinationEncryptState,
+  event: DestinationEncryptEvent
+): DestinationEncryptStepResult {
+  return stepDestinationEncryptInner(state, event);
+}
+
+export function shouldUseDestinationEncryptPlaintext(
+  actions: ReadonlyArray<DestinationEncryptAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-plaintext");
+}
+
+export function shouldRejectDestinationEncrypt(
+  actions: ReadonlyArray<DestinationEncryptAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+export function shouldEncryptDestinationWithIdentity(
+  actions: ReadonlyArray<DestinationEncryptAction>
+): boolean {
+  return actions.some((action) => action.kind === "encrypt-with-identity");
+}
+
+function stepDestinationEncryptInner(
+  state: DestinationEncryptState,
+  event: DestinationEncryptEvent
+): DestinationEncryptStepResult {
+  if (event.kind === "destination/encrypt-gate") {
+    const plan = planDestinationEncrypt({
+      typePlain: event.typePlain,
+      identityPresent: event.identityPresent
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 export function planDestinationRequestAllow(input: {
