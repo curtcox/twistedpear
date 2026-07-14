@@ -1,6 +1,8 @@
 /**
  * Pure packet-receipt timeout conclusion.
- * Adapters schedule/cancel clocks from timer intents and own callbacks.
+ * Adapters schedule/cancel clocks from timer intents and invoke
+ * delivery/timeout callbacks only via machine actions (no ad-hoc
+ * `state.timedOut` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -29,6 +31,17 @@ export type PacketReceiptTimeoutEvent =
   | { readonly kind: "receipt/delivered"; readonly at: number }
   | { readonly kind: "receipt/failed"; readonly at: number }
   | { readonly kind: "receipt/check"; readonly at: number };
+
+export type PacketReceiptTimeoutAction =
+  | { readonly kind: "timeout" }
+  | { readonly kind: "delivered" }
+  | { readonly kind: "failed" };
+
+export interface PacketReceiptTimeoutStepResult {
+  readonly state: PacketReceiptTimeoutState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketReceiptTimeoutAction[];
+}
 
 export function initialPacketReceiptTimeoutState(): PacketReceiptTimeoutState {
   return {
@@ -67,13 +80,22 @@ export function shouldArmPacketReceiptTimeoutTimer(timeoutSeconds: number): bool
   return timeoutSeconds > 0;
 }
 
-export const stepPacketReceiptTimeout: StepFn<PacketReceiptTimeoutState> = (state, event) =>
-  stepPacketReceiptTimeoutInner(state, event as PacketReceiptTimeoutEvent);
+export const stepPacketReceiptTimeout: StepFn<PacketReceiptTimeoutState> = (state, event) => {
+  const result = stepPacketReceiptTimeoutInner(state, event as PacketReceiptTimeoutEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepPacketReceiptTimeoutWithActions(
+  state: PacketReceiptTimeoutState,
+  event: PacketReceiptTimeoutEvent
+): PacketReceiptTimeoutStepResult {
+  return stepPacketReceiptTimeoutInner(state, event);
+}
 
 function stepPacketReceiptTimeoutInner(
   state: PacketReceiptTimeoutState,
   event: PacketReceiptTimeoutEvent
-): { state: PacketReceiptTimeoutState; intents: Intent[] } {
+): PacketReceiptTimeoutStepResult {
   if (event.kind === "receipt/arm") {
     const intents: Intent[] = [
       { kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }
@@ -94,7 +116,8 @@ function stepPacketReceiptTimeoutInner(
         concludedAt: null,
         timedOut: false
       },
-      intents
+      intents,
+      actions: []
     };
   }
 
@@ -106,7 +129,8 @@ function stepPacketReceiptTimeoutInner(
         concludedAt: event.at,
         timedOut: false
       },
-      intents: [{ kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }]
+      intents: [{ kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }],
+      actions: [{ kind: "delivered" }]
     };
   }
 
@@ -115,7 +139,7 @@ function stepPacketReceiptTimeoutInner(
       state.status === PacketReceiptStatus.DELIVERED ||
       state.status === PacketReceiptStatus.FAILED
     ) {
-      return { state, intents: [] };
+      return { state, intents: [], actions: [] };
     }
     return {
       state: {
@@ -124,7 +148,8 @@ function stepPacketReceiptTimeoutInner(
         concludedAt: event.at,
         timedOut: false
       },
-      intents: [{ kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }]
+      intents: [{ kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }],
+      actions: [{ kind: "failed" }]
     };
   }
 
@@ -139,7 +164,7 @@ function stepPacketReceiptTimeoutInner(
       nowSeconds: at
     });
     if (!result.timedOut) {
-      return { state: { ...state, timedOut: false }, intents: [] };
+      return { state: { ...state, timedOut: false }, intents: [], actions: [] };
     }
     return {
       state: {
@@ -151,11 +176,12 @@ function stepPacketReceiptTimeoutInner(
       intents:
         event.kind === "receipt/check"
           ? [{ kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }]
-          : []
+          : [],
+      actions: [{ kind: "timeout" }]
     };
   }
 
-  return { state, intents: [] };
+  return { state, intents: [], actions: [] };
 }
 
 export type OutboundReceiptOutcome = "none" | "keep-receipt" | "fail-and-drop-receipt";
@@ -232,7 +258,17 @@ export function planPacketReceiptCallback(callbackPresent: boolean): PacketRecei
   return callbackPresent ? "set" : "clear";
 }
 
-/** Whether checkTimeout should invoke the timeout callback after a timed-out step. */
-export function shouldInvokePacketReceiptTimeoutCallback(timedOut: boolean): boolean {
-  return timedOut;
+/** Whether step actions include a timeout/delivery/failed fanout for the adapter callback. */
+export function shouldInvokePacketReceiptAction(
+  actions: ReadonlyArray<PacketReceiptTimeoutAction>,
+  kind: PacketReceiptTimeoutAction["kind"]
+): boolean {
+  return actions.some((action) => action.kind === kind);
+}
+
+/** Whether the adapter should invoke the timeout callback after a timed-out step. */
+export function shouldInvokePacketReceiptTimeoutCallback(
+  actions: ReadonlyArray<PacketReceiptTimeoutAction>
+): boolean {
+  return shouldInvokePacketReceiptAction(actions, "timeout");
 }

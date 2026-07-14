@@ -74,4 +74,24 @@ describe("packet receipt timeout adapter", () => {
     expect(clock.pending.every((entry) => entry.cancelled)).toBe(true);
     expect(receipt.status).toBe(PacketReceiptStatus.FAILED);
   });
+
+  it("invokes timeout callback only via machine timeout action", () => {
+    const clock = createFakeClock(0);
+    let timeoutCount = 0;
+    const receipt = new PacketReceipt(new Uint8Array(32), new Uint8Array(16), new Uint8Array(16), {
+      sentAt: 0,
+      now: () => clock.now() / 1000,
+      clock
+    });
+    receipt.setTimeoutCallback(() => {
+      timeoutCount += 1;
+    });
+    receipt.setTimeout(1);
+    expect(receipt.checkTimeout(0.5)).toBe(false);
+    expect(timeoutCount).toBe(0);
+    expect(receipt.checkTimeout(1)).toBe(true);
+    expect(timeoutCount).toBe(1);
+    expect(receipt.checkTimeout(2)).toBe(false);
+    expect(timeoutCount).toBe(1);
+  });
 });

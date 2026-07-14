@@ -85,7 +85,8 @@
 > `planDestinationProof`**, **link resource-accept planning**, **`stepLinkRequestReceipt`**,
 > and **ChannelExceptionType** live in protocol; LeafTransport, Link, LinkRequestReceipt,
 > and Channel adapt them. **`channelMessageStateFromPacketReceipt`**, **link teardown
-> planning**, and PacketReceipt delivery/timeout via **`stepPacketReceiptTimeout`** live in
+> planning**, and PacketReceipt delivery/timeout via **`stepPacketReceiptTimeoutWithActions`**
+> (`timeout` / `delivered` / `failed` actions) live in
 > protocol; Channel, Link, and PacketReceipt adapt them. **`planChannelPacketTimeout`**
 > (`CHANNEL_MAX_TRIES`), **`shouldEmitPathRequest`**, and link-watchdog **`link/inbound`**
 > STALE→ACTIVE revive live in protocol; Channel, LeafTransport, and Link adapt them.
@@ -329,7 +330,9 @@
 > `INTERFACE_CONNECT_TIMEOUT_MS`; TCP factory uses `connectTimeoutMs: 0` so only the
 > step machine arms a timer).
 > **`stepPacketReceiptTimeout`** emits `timer/set` / `timer/cancel` for
-> `receipt-timeout`; `PacketReceipt` schedules from injected `clock` (Channel /
+> `receipt-timeout` and concludes via `timeout` / `delivered` / `failed`
+> actions (`stepPacketReceiptTimeoutWithActions`); `PacketReceipt` schedules
+> from injected `clock` and invokes callbacks only from those actions (Channel /
 > LinkRequestReceipt callbacks fire on timer expiry).
 > **`shouldDeliverPendingLinkAppResponse`** / **`shouldCommitLinkRemoteIdentity`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
@@ -364,7 +367,9 @@
 > advertise-wait, path-response grace, interface connect, propagation link
 > establish/timeout, LXMF outbound link-await, and propagation app-request
 > awaits all conclude via machine resolve/reject actions (adapters no longer
-> finish by reading `state.concluded` beside probes).
+> finish by reading `state.concluded` beside probes). PacketReceipt
+> timeout/delivery/failed also conclude via machine actions (no ad-hoc
+> `state.timedOut` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
