@@ -1,7 +1,9 @@
 /**
  * Pure LINKIDENTIFY payload layout and acceptance gates.
  * Signature verification stays at the crypto adapter edge.
- * Conclusions leave via machine actions (no ad-hoc `plan.kind` reads beside the step).
+ * Pack / split / acceptance conclusions leave via machine actions (no ad-hoc
+ * `packLinkIdentifyPayload` / `splitLinkIdentifyPayload` / `plan.kind` reads
+ * beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -135,10 +137,14 @@ function stepLinkIdentifyInner(
   return { state, intents: [], actions: [] };
 }
 
-export function splitLinkIdentifyPayload(plaintext: Uint8Array): {
+export interface LinkIdentifyPayloadFields {
   readonly publicKey: Uint8Array;
   readonly signature: Uint8Array;
-} | null {
+}
+
+export function splitLinkIdentifyPayload(
+  plaintext: Uint8Array
+): LinkIdentifyPayloadFields | null {
   if (plaintext.length !== LINK_IDENTIFY_PAYLOAD_SIZE) {
     return null;
   }
@@ -177,4 +183,144 @@ export function packLinkIdentifyPayload(
   out.set(publicKey, 0);
   out.set(signature, LINK_IDENTIFY_PUBLIC_KEY_SIZE);
   return out;
+}
+
+/**
+ * Link-identify pack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `packLinkIdentifyPayload`
+ * reads beside the step). Invalid sizes become `reject` (helper may throw).
+ */
+export type PackLinkIdentifyPayloadState = Record<string, never>;
+
+export type PackLinkIdentifyPayloadEvent =
+  | Event
+  | {
+      readonly kind: "link-identify/pack-gate";
+      readonly publicKey: Uint8Array;
+      readonly signature: Uint8Array;
+    };
+
+export type PackLinkIdentifyPayloadAction =
+  | { readonly kind: "use-raw"; readonly raw: Uint8Array }
+  | { readonly kind: "reject" };
+
+export interface PackLinkIdentifyPayloadStepResult {
+  readonly state: PackLinkIdentifyPayloadState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackLinkIdentifyPayloadAction[];
+}
+
+export function initialPackLinkIdentifyPayloadState(): PackLinkIdentifyPayloadState {
+  return {};
+}
+
+export function stepPackLinkIdentifyPayloadWithActions(
+  state: PackLinkIdentifyPayloadState,
+  event: PackLinkIdentifyPayloadEvent
+): PackLinkIdentifyPayloadStepResult {
+  if (event.kind === "link-identify/pack-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [
+          {
+            kind: "use-raw",
+            raw: packLinkIdentifyPayload(event.publicKey, event.signature)
+          }
+        ]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackLinkIdentifyPayload(
+  actions: ReadonlyArray<PackLinkIdentifyPayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+export function shouldRejectPackLinkIdentifyPayload(
+  actions: ReadonlyArray<PackLinkIdentifyPayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract packed identify payload from step actions; null when no `use-raw`. */
+export function packLinkIdentifyPayloadRawFromActions(
+  actions: ReadonlyArray<PackLinkIdentifyPayloadAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Link-identify split framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `splitLinkIdentifyPayload`
+ * reads beside the step).
+ */
+export type SplitLinkIdentifyPayloadState = Record<string, never>;
+
+export type SplitLinkIdentifyPayloadEvent =
+  | Event
+  | {
+      readonly kind: "link-identify/split-gate";
+      readonly plaintext: Uint8Array;
+    };
+
+export type SplitLinkIdentifyPayloadAction =
+  | { readonly kind: "use-fields"; readonly fields: LinkIdentifyPayloadFields }
+  | { readonly kind: "reject" };
+
+export interface SplitLinkIdentifyPayloadStepResult {
+  readonly state: SplitLinkIdentifyPayloadState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly SplitLinkIdentifyPayloadAction[];
+}
+
+export function initialSplitLinkIdentifyPayloadState(): SplitLinkIdentifyPayloadState {
+  return {};
+}
+
+export function stepSplitLinkIdentifyPayloadWithActions(
+  state: SplitLinkIdentifyPayloadState,
+  event: SplitLinkIdentifyPayloadEvent
+): SplitLinkIdentifyPayloadStepResult {
+  if (event.kind === "link-identify/split-gate") {
+    const fields = splitLinkIdentifyPayload(event.plaintext);
+    if (fields === null) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-fields", fields }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseSplitLinkIdentifyPayload(
+  actions: ReadonlyArray<SplitLinkIdentifyPayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectSplitLinkIdentifyPayload(
+  actions: ReadonlyArray<SplitLinkIdentifyPayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract split identify payload fields from step actions; null when no `use-fields`. */
+export function linkIdentifyPayloadFieldsFromActions(
+  actions: ReadonlyArray<SplitLinkIdentifyPayloadAction>
+): LinkIdentifyPayloadFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }

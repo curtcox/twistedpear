@@ -3,14 +3,24 @@ import {
   LINK_IDENTIFY_PAYLOAD_SIZE,
   canAcceptLinkIdentify,
   initialLinkIdentifyState,
+  initialPackLinkIdentifyPayloadState,
+  initialSplitLinkIdentifyPayloadState,
+  linkIdentifyPayloadFieldsFromActions,
   linkIdentifySignedMaterial,
   packLinkIdentifyPayload,
+  packLinkIdentifyPayloadRawFromActions,
   planLinkIdentifyOutcome,
   shouldCommitLinkIdentify,
   shouldCommitLinkRemoteIdentity,
   shouldRejectLinkIdentify,
+  shouldRejectPackLinkIdentifyPayload,
+  shouldRejectSplitLinkIdentifyPayload,
+  shouldUsePackLinkIdentifyPayload,
+  shouldUseSplitLinkIdentifyPayload,
   splitLinkIdentifyPayload,
-  stepLinkIdentifyWithActions
+  stepLinkIdentifyWithActions,
+  stepPackLinkIdentifyPayloadWithActions,
+  stepSplitLinkIdentifyPayloadWithActions
 } from "../src/link-identify.js";
 import { computeLinkMdu, linkHopsMatch, linkPayloadFitsMdu } from "../src/link-metrics.js";
 import { PATHFINDER_MAX_HOPS } from "../src/path-table.js";
@@ -145,6 +155,96 @@ describe("protocol link identify", () => {
     expect([...split!.publicKey]).toEqual([...publicKey]);
     expect([...split!.signature]).toEqual([...signature]);
     expect(splitLinkIdentifyPayload(new Uint8Array(10))).toBeNull();
+  });
+
+  it("emits use-raw / reject from identify pack-gate", () => {
+    const publicKey = new Uint8Array(64).map((_, i) => i);
+    const signature = new Uint8Array(64).map((_, i) => 200 - i);
+    const ok = stepPackLinkIdentifyPayloadWithActions(initialPackLinkIdentifyPayloadState(), {
+      kind: "link-identify/pack-gate",
+      publicKey,
+      signature
+    });
+    expect(shouldUsePackLinkIdentifyPayload(ok.actions)).toBe(true);
+    expect(shouldRejectPackLinkIdentifyPayload(ok.actions)).toBe(false);
+    const raw = packLinkIdentifyPayloadRawFromActions(ok.actions);
+    expect(raw).not.toBeNull();
+    expect([...raw!]).toEqual([...packLinkIdentifyPayload(publicKey, signature)]);
+
+    const bad = stepPackLinkIdentifyPayloadWithActions(initialPackLinkIdentifyPayloadState(), {
+      kind: "link-identify/pack-gate",
+      publicKey: new Uint8Array(8),
+      signature
+    });
+    expect(shouldRejectPackLinkIdentifyPayload(bad.actions)).toBe(true);
+    expect(shouldUsePackLinkIdentifyPayload(bad.actions)).toBe(false);
+    expect(packLinkIdentifyPayloadRawFromActions(bad.actions)).toBeNull();
+
+    expect(
+      stepPackLinkIdentifyPayloadWithActions(initialPackLinkIdentifyPayloadState(), {
+        kind: "timer/fired",
+        id: "x",
+        atMs: 0
+      }).actions
+    ).toEqual([]);
+  });
+
+  it("emits use-fields / reject from identify split-gate", () => {
+    const publicKey = new Uint8Array(64).map((_, i) => i);
+    const signature = new Uint8Array(64).map((_, i) => 200 - i);
+    const packed = packLinkIdentifyPayload(publicKey, signature);
+    const ok = stepSplitLinkIdentifyPayloadWithActions(initialSplitLinkIdentifyPayloadState(), {
+      kind: "link-identify/split-gate",
+      plaintext: packed
+    });
+    expect(shouldUseSplitLinkIdentifyPayload(ok.actions)).toBe(true);
+    expect(shouldRejectSplitLinkIdentifyPayload(ok.actions)).toBe(false);
+    const fields = linkIdentifyPayloadFieldsFromActions(ok.actions);
+    expect(fields).not.toBeNull();
+    expect([...fields!.publicKey]).toEqual([...publicKey]);
+    expect([...fields!.signature]).toEqual([...signature]);
+
+    const bad = stepSplitLinkIdentifyPayloadWithActions(initialSplitLinkIdentifyPayloadState(), {
+      kind: "link-identify/split-gate",
+      plaintext: new Uint8Array(10)
+    });
+    expect(shouldRejectSplitLinkIdentifyPayload(bad.actions)).toBe(true);
+    expect(shouldUseSplitLinkIdentifyPayload(bad.actions)).toBe(false);
+    expect(linkIdentifyPayloadFieldsFromActions(bad.actions)).toBeNull();
+  });
+
+  it("is deterministic for identify pack / split gates", () => {
+    const publicKey = new Uint8Array(64).fill(1);
+    const signature = new Uint8Array(64).fill(2);
+    const packEvent = {
+      kind: "link-identify/pack-gate" as const,
+      publicKey,
+      signature
+    };
+    const packA = stepPackLinkIdentifyPayloadWithActions(
+      initialPackLinkIdentifyPayloadState(),
+      packEvent
+    );
+    const packB = stepPackLinkIdentifyPayloadWithActions(
+      initialPackLinkIdentifyPayloadState(),
+      packEvent
+    );
+    expect(packA).toEqual(packB);
+
+    const packed = packLinkIdentifyPayload(publicKey, signature);
+    const splitEvent = {
+      kind: "link-identify/split-gate" as const,
+      plaintext: packed
+    };
+    const splitA = stepSplitLinkIdentifyPayloadWithActions(
+      initialSplitLinkIdentifyPayloadState(),
+      splitEvent
+    );
+    const splitB = stepSplitLinkIdentifyPayloadWithActions(
+      initialSplitLinkIdentifyPayloadState(),
+      splitEvent
+    );
+    expect(splitA).toEqual(splitB);
   });
 
   it("builds signed material as linkId || publicKey", () => {

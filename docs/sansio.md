@@ -17,7 +17,10 @@
 > pure protocol leaves. **LXMF outbound send-state** (enqueue → sending → sent/delivered/
 > failed + progress) is a pure protocol leaf; `LXMFRouter` adapts it. **Link proof framing**
 > and **establish status transitions** (handshake/proof/RTT/identify gates) are pure
-> protocol leaves; `Link` adapts them. **Link identify** payload framing/gates and **MDU /
+> protocol leaves; `Link` adapts them. **Link identify** payload framing (pack/split via
+> **`stepPackLinkIdentifyPayloadWithActions`** /
+> **`stepSplitLinkIdentifyPayloadWithActions`**: use-raw|reject / use-fields|reject) and
+> acceptance gates are pure protocol leaves; `Link` adapts them. **MDU /
 > hops-match** metrics are pure protocol leaves. **LXMF propagation quota / eviction
 > planning** (store via **`stepPropagationStoreWithActions`**) and **propagation /get
 > request planning** (via **`stepPropagationGetWithActions`**: list-ids / apply
@@ -802,7 +805,8 @@
 > pack-identity-ciphertext / split-identity-ciphertext /
 > pack-lxmf-wire / split-lxmf-wire /
 > pack-lxmf-destination-prefixed / split-lxmf-destination-prefixed /
-> lxmf-inbound-delivery reads
+> lxmf-inbound-delivery / pack-link-identify-payload /
+> split-link-identify-payload reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -908,6 +912,11 @@
 > inbound-delivery rebuild apply only from those actions (no ad-hoc
 > `packLxmfDestinationPrefixed` / `splitLxmfDestinationPrefixed` /
 > `lxmfInboundDeliveryBytes` reads beside the step).
+> **`stepPackLinkIdentifyPayloadWithActions`** /
+> **`stepSplitLinkIdentifyPayloadWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject`; Link identify payload pack / split apply only from
+> those actions (no ad-hoc `packLinkIdentifyPayload` /
+> `splitLinkIdentifyPayload` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

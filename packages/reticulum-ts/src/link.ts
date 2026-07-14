@@ -73,9 +73,9 @@ import {
   msgpackUnpackFloat,
   mtuFromLinkProofData,
   mtuFromLinkRequestData,
-  packLinkIdentifyPayload,
   packLinkKeepaliveProbe,
   packLinkKeepaliveReply,
+  packLinkIdentifyPayloadRawFromActions,
   packLinkProofDataRawFromActions,
   packLinkRequestDataRawFromActions,
   initialLinkAppRequestState,
@@ -84,14 +84,17 @@ import {
   initialLinkInitiatorMtuState,
   initialLinkRequestResponderMtuState,
   initialLinkResourceConcludeState,
+  initialPackLinkIdentifyPayloadState,
   initialPackLinkProofDataState,
   initialPackLinkRequestDataState,
   initialPackLinkRequestState,
   initialPackLinkResponseState,
+  initialSplitLinkIdentifyPayloadState,
   initialSplitLinkProofBodyState,
   initialSplitLinkRequestDataState,
   initialUnpackLinkRequestState,
   initialUnpackLinkResponseState,
+  linkIdentifyPayloadFieldsFromActions,
   linkInitiatorMtuFromActions,
   linkProofBodyFieldsFromActions,
   linkRequestFieldsFromActions,
@@ -100,26 +103,32 @@ import {
   linkResponseFieldsFromActions,
   packLinkRequestRawFromActions,
   packLinkResponseRawFromActions,
+  shouldRejectPackLinkIdentifyPayload,
+  shouldRejectSplitLinkIdentifyPayload,
   shouldRejectSplitLinkProofBody,
   shouldRejectSplitLinkRequestData,
   shouldRejectUnpackLinkRequest,
   shouldRejectUnpackLinkResponse,
   shouldUseLinkInitiatorMtu,
   shouldUseLinkRequestResponderMtu,
+  shouldUsePackLinkIdentifyPayload,
   shouldUsePackLinkProofData,
   shouldUsePackLinkRequest,
   shouldUsePackLinkRequestData,
   shouldUsePackLinkResponse,
+  shouldUseSplitLinkIdentifyPayload,
   shouldUseSplitLinkProofBody,
   shouldUseSplitLinkRequestData,
   shouldUseUnpackLinkRequest,
   shouldUseUnpackLinkResponse,
   stepLinkInitiatorMtuWithActions,
   stepLinkRequestResponderMtuWithActions,
+  stepPackLinkIdentifyPayloadWithActions,
   stepPackLinkProofDataWithActions,
   stepPackLinkRequestDataWithActions,
   stepPackLinkRequestWithActions,
   stepPackLinkResponseWithActions,
+  stepSplitLinkIdentifyPayloadWithActions,
   stepSplitLinkProofBodyWithActions,
   stepSplitLinkRequestDataWithActions,
   stepUnpackLinkRequestWithActions,
@@ -196,7 +205,6 @@ import {
   isLinkKeepaliveContext,
   splitIdentityPublicKey,
   splitInitiatorLinkEntropy,
-  splitLinkIdentifyPayload,
   splitResponderLinkEntropy,
   initialSplitResourceHashmapUpdatePacketState,
   initialSplitResourceProofState,
@@ -1025,7 +1033,25 @@ export class Link {
 
     const publicKey = identity.getPublicKey();
     const signature = identity.sign(linkIdentifySignedMaterial(this.linkId, publicKey));
-    void this.sendContext(PacketContext.LINKIDENTIFY, packLinkIdentifyPayload(publicKey, signature));
+    const packStepped = stepPackLinkIdentifyPayloadWithActions(
+      initialPackLinkIdentifyPayloadState(),
+      {
+        kind: "link-identify/pack-gate",
+        publicKey,
+        signature
+      }
+    );
+    if (
+      shouldRejectPackLinkIdentifyPayload(packStepped.actions) ||
+      !shouldUsePackLinkIdentifyPayload(packStepped.actions)
+    ) {
+      throw new Error("Link.identify: missing use-raw action");
+    }
+    const payload = packLinkIdentifyPayloadRawFromActions(packStepped.actions);
+    if (payload === null) {
+      throw new Error("Link.identify: missing use-raw action");
+    }
+    void this.sendContext(PacketContext.LINKIDENTIFY, payload);
   }
 
   getRemoteIdentity(): Identity | null {
@@ -1350,7 +1376,19 @@ export class Link {
     const plaintext = canAcceptLinkIdentify(this.initiator)
       ? this.decrypt(packet.data)
       : null;
-    const parts = plaintext !== null ? splitLinkIdentifyPayload(plaintext) : null;
+    const splitStepped =
+      plaintext !== null
+        ? stepSplitLinkIdentifyPayloadWithActions(initialSplitLinkIdentifyPayloadState(), {
+            kind: "link-identify/split-gate",
+            plaintext
+          })
+        : null;
+    const parts =
+      splitStepped === null ||
+      shouldRejectSplitLinkIdentifyPayload(splitStepped.actions) ||
+      !shouldUseSplitLinkIdentifyPayload(splitStepped.actions)
+        ? null
+        : linkIdentifyPayloadFieldsFromActions(splitStepped.actions);
     const identity =
       parts !== null ? Identity.fromPublicKey(this.provider, parts.publicKey) : null;
     const signatureValid =
