@@ -4,20 +4,28 @@ import {
   clampStreamChunkTake,
   clampStreamDataChunkLength,
   clampStreamReadSize,
+  initialPackStreamDataMessageState,
   initialStreamReadyCallbackUnregisterState,
+  initialUnpackStreamDataMessageState,
   isStreamIdAssigned,
-  packStreamDataMessage,
+  packStreamDataMessageRawFromActions,
   shouldAppendStreamData,
   shouldConsumeStreamChunk,
   shouldDeferStreamRead,
   shouldHandleStreamDataMessage,
   shouldMarkStreamEof,
   shouldRegisterStreamReadyCallback,
+  shouldRejectPackStreamDataMessage,
+  shouldRejectUnpackStreamDataMessage,
   shouldRemoveStreamReadyCallback,
   shouldReturnStreamReadResult,
+  shouldUsePackStreamDataMessage,
+  shouldUseUnpackStreamDataMessage,
+  stepPackStreamDataMessageWithActions,
   stepStreamReadyCallbackUnregisterWithActions,
-  streamReadyCallbackUnregisterIndex,
-  unpackStreamDataMessage
+  stepUnpackStreamDataMessageWithActions,
+  streamDataMessageFieldsFromActions,
+  streamReadyCallbackUnregisterIndex
 } from "@twistedpear/protocol";
 import { Channel, type ChannelMessage } from "./channel.js";
 
@@ -57,16 +65,35 @@ export class StreamDataMessage implements ChannelMessage {
       throw new Error("stream_id is required");
     }
 
-    return packStreamDataMessage({
+    const { actions } = stepPackStreamDataMessageWithActions(initialPackStreamDataMessageState(), {
+      kind: "stream-data/pack-gate",
       streamId: this.streamId!,
       data: this.data,
       eof: this.eof,
       compressed: this.compressed
     });
+    if (shouldRejectPackStreamDataMessage(actions) || !shouldUsePackStreamDataMessage(actions)) {
+      throw new Error("StreamDataMessage.pack: missing use-raw action");
+    }
+    const packed = packStreamDataMessageRawFromActions(actions);
+    if (packed === null) {
+      throw new Error("StreamDataMessage.pack: missing use-raw action");
+    }
+    return packed;
   }
 
   unpack(raw: Uint8Array): void {
-    const fields = unpackStreamDataMessage(raw);
+    const { actions } = stepUnpackStreamDataMessageWithActions(initialUnpackStreamDataMessageState(), {
+      kind: "stream-data/unpack-gate",
+      data: raw
+    });
+    if (shouldRejectUnpackStreamDataMessage(actions) || !shouldUseUnpackStreamDataMessage(actions)) {
+      throw new Error("StreamDataMessage is truncated");
+    }
+    const fields = streamDataMessageFieldsFromActions(actions);
+    if (fields === null) {
+      throw new Error("StreamDataMessage is truncated");
+    }
     this.eof = fields.eof;
     this.compressed = fields.compressed;
     this.streamId = fields.streamId;

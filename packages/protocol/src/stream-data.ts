@@ -1,6 +1,8 @@
 /**
  * Pure RNS channel StreamDataMessage header framing.
  * Compression / channel IO stay at the adapter edge.
+ * Pack / unpack conclusions leave via machine actions (no ad-hoc
+ * `packStreamDataMessage` / `unpackStreamDataMessage` reads beside the step).
  * Stream ready-callback unregister conclusions leave via machine actions
  * (no ad-hoc `planUnregisterStreamReadyCallback` reads beside the step).
  */
@@ -75,6 +77,154 @@ export function unpackStreamDataMessage(raw: Uint8Array): StreamDataFields {
     streamId: headerValue & STREAM_ID_MAX,
     data: raw.subarray(STREAM_DATA_HEADER_SIZE)
   };
+}
+
+/**
+ * StreamDataMessage pack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `packStreamDataMessage`
+ * reads beside the step). Invalid stream ids become `reject` (helper may throw).
+ */
+export type PackStreamDataMessageState = Record<string, never>;
+
+export type PackStreamDataMessageEvent =
+  | Event
+  | {
+      readonly kind: "stream-data/pack-gate";
+      readonly streamId: number;
+      readonly data: Uint8Array;
+      readonly eof?: boolean;
+      readonly compressed?: boolean;
+    };
+
+export type PackStreamDataMessageAction =
+  | { readonly kind: "use-raw"; readonly raw: Uint8Array }
+  | { readonly kind: "reject" };
+
+export interface PackStreamDataMessageStepResult {
+  readonly state: PackStreamDataMessageState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackStreamDataMessageAction[];
+}
+
+export function initialPackStreamDataMessageState(): PackStreamDataMessageState {
+  return {};
+}
+
+export function stepPackStreamDataMessageWithActions(
+  state: PackStreamDataMessageState,
+  event: PackStreamDataMessageEvent
+): PackStreamDataMessageStepResult {
+  if (event.kind === "stream-data/pack-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [
+          {
+            kind: "use-raw",
+            raw: packStreamDataMessage({
+              streamId: event.streamId,
+              data: event.data,
+              ...(event.eof !== undefined ? { eof: event.eof } : {}),
+              ...(event.compressed !== undefined ? { compressed: event.compressed } : {})
+            })
+          }
+        ]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackStreamDataMessage(
+  actions: ReadonlyArray<PackStreamDataMessageAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+export function shouldRejectPackStreamDataMessage(
+  actions: ReadonlyArray<PackStreamDataMessageAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract packed stream-data bytes from step actions; null when no `use-raw`. */
+export function packStreamDataMessageRawFromActions(
+  actions: ReadonlyArray<PackStreamDataMessageAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * StreamDataMessage unpack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `unpackStreamDataMessage`
+ * reads beside the step). Truncated frames become `reject` (helper may throw).
+ */
+export type UnpackStreamDataMessageState = Record<string, never>;
+
+export type UnpackStreamDataMessageEvent =
+  | Event
+  | {
+      readonly kind: "stream-data/unpack-gate";
+      readonly data: Uint8Array;
+    };
+
+export type UnpackStreamDataMessageAction =
+  | { readonly kind: "use-fields"; readonly fields: StreamDataFields }
+  | { readonly kind: "reject" };
+
+export interface UnpackStreamDataMessageStepResult {
+  readonly state: UnpackStreamDataMessageState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly UnpackStreamDataMessageAction[];
+}
+
+export function initialUnpackStreamDataMessageState(): UnpackStreamDataMessageState {
+  return {};
+}
+
+export function stepUnpackStreamDataMessageWithActions(
+  state: UnpackStreamDataMessageState,
+  event: UnpackStreamDataMessageEvent
+): UnpackStreamDataMessageStepResult {
+  if (event.kind === "stream-data/unpack-gate") {
+    try {
+      const fields = unpackStreamDataMessage(event.data);
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "use-fields", fields }]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseUnpackStreamDataMessage(
+  actions: ReadonlyArray<UnpackStreamDataMessageAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectUnpackStreamDataMessage(
+  actions: ReadonlyArray<UnpackStreamDataMessageAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract unpacked stream-data fields from step actions; null when no `use-fields`. */
+export function streamDataMessageFieldsFromActions(
+  actions: ReadonlyArray<UnpackStreamDataMessageAction>
+): StreamDataFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }
 
 /** Clamp a write buffer to stream max data length and writer max chunk length. */

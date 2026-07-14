@@ -149,7 +149,10 @@
 > **LXMF outer wire framing** (pack/split via
 > **`stepPackLxmfWireWithActions`** / **`stepSplitLxmfWireWithActions`**: use-raw|reject /
 > use-fields|reject) is a pure protocol leaf; `LXMessage` adapts it. **Link proof signed
-> material**, **StreamDataMessage framing**, and **resource hash/encrypt
+> material**, **StreamDataMessage framing** (pack/unpack via
+> **`stepPackStreamDataMessageWithActions`** /
+> **`stepUnpackStreamDataMessageWithActions`**: use-raw|reject /
+> use-fields|reject), and **resource hash/encrypt
 > materials** are pure protocol leaves; `Link`, `Buffer`, and `Resource` adapt them.
 > **Identity key pack/split**, link-request hashable truncation, and
 > **RESOURCE_HMU pack** are pure protocol leaves; Identity, Link, and Resource adapt
@@ -829,8 +832,14 @@
 > decode-lxmf-peer-error / pack-lxm-payload / unpack-lxm-payload /
 > pack-propagation-request / unpack-propagation-request /
 > pack-propagation-envelope / unpack-propagation-envelope /
-> unpack-bin-list reads
+> unpack-bin-list / pack-stream-data-message /
+> unpack-stream-data-message reads
 > beside the step).
+> **`stepPackStreamDataMessageWithActions`** /
+> **`stepUnpackStreamDataMessageWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject`; StreamDataMessage pack / unpack apply only from
+> those actions (no ad-hoc `packStreamDataMessage` /
+> `unpackStreamDataMessage` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
 > only from those actions. **`stepChannelMessageHandlerUnregisterWithActions`**,

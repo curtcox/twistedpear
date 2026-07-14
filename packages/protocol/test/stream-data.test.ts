@@ -6,8 +6,11 @@ import {
   clampStreamChunkTake,
   clampStreamDataChunkLength,
   clampStreamReadSize,
+  initialPackStreamDataMessageState,
+  initialUnpackStreamDataMessageState,
   isStreamIdAssigned,
   packStreamDataMessage,
+  packStreamDataMessageRawFromActions,
   planUnregisterStreamReadyCallback,
   shouldAppendStreamData,
   shouldConsumeStreamChunk,
@@ -15,10 +18,17 @@ import {
   shouldHandleStreamDataMessage,
   shouldMarkStreamEof,
   shouldRegisterStreamReadyCallback,
+  shouldRejectPackStreamDataMessage,
+  shouldRejectUnpackStreamDataMessage,
   shouldRemoveStreamReadyCallback,
   shouldReturnStreamReadResult,
   shouldUnregisterStreamReadyCallback,
+  shouldUsePackStreamDataMessage,
+  shouldUseUnpackStreamDataMessage,
   initialStreamReadyCallbackUnregisterState,
+  stepPackStreamDataMessageWithActions,
+  stepUnpackStreamDataMessageWithActions,
+  streamDataMessageFieldsFromActions,
   streamReadyCallbackUnregisterIndex,
   stepStreamReadyCallbackUnregisterWithActions,
   unpackStreamDataMessage
@@ -43,10 +53,57 @@ describe("protocol stream data framing", () => {
     expect([...fields.data]).toEqual([9, 8, 7]);
   });
 
+  it("packs and unpacks via WithActions steps", () => {
+    const packStepped = stepPackStreamDataMessageWithActions(initialPackStreamDataMessageState(), {
+      kind: "stream-data/pack-gate",
+      streamId: 42,
+      data: new Uint8Array([9, 8, 7]),
+      eof: true,
+      compressed: true
+    });
+    expect(shouldUsePackStreamDataMessage(packStepped.actions)).toBe(true);
+    expect(shouldRejectPackStreamDataMessage(packStepped.actions)).toBe(false);
+    const packed = packStreamDataMessageRawFromActions(packStepped.actions);
+    expect(packed).not.toBeNull();
+
+    const unpackStepped = stepUnpackStreamDataMessageWithActions(
+      initialUnpackStreamDataMessageState(),
+      { kind: "stream-data/unpack-gate", data: packed! }
+    );
+    expect(shouldUseUnpackStreamDataMessage(unpackStepped.actions)).toBe(true);
+    expect(shouldRejectUnpackStreamDataMessage(unpackStepped.actions)).toBe(false);
+    const fields = streamDataMessageFieldsFromActions(unpackStepped.actions);
+    expect(fields).toEqual({
+      streamId: 42,
+      eof: true,
+      compressed: true,
+      data: new Uint8Array([9, 8, 7])
+    });
+  });
+
   it("rejects invalid stream ids", () => {
     expect(() =>
       packStreamDataMessage({ streamId: STREAM_ID_MAX + 1, data: new Uint8Array(0) })
     ).toThrow(/stream_id/);
+
+    const rejected = stepPackStreamDataMessageWithActions(initialPackStreamDataMessageState(), {
+      kind: "stream-data/pack-gate",
+      streamId: STREAM_ID_MAX + 1,
+      data: new Uint8Array(0)
+    });
+    expect(shouldRejectPackStreamDataMessage(rejected.actions)).toBe(true);
+    expect(shouldUsePackStreamDataMessage(rejected.actions)).toBe(false);
+    expect(packStreamDataMessageRawFromActions(rejected.actions)).toBeNull();
+  });
+
+  it("rejects truncated unpack via WithActions", () => {
+    const rejected = stepUnpackStreamDataMessageWithActions(initialUnpackStreamDataMessageState(), {
+      kind: "stream-data/unpack-gate",
+      data: new Uint8Array([1])
+    });
+    expect(shouldRejectUnpackStreamDataMessage(rejected.actions)).toBe(true);
+    expect(shouldUseUnpackStreamDataMessage(rejected.actions)).toBe(false);
+    expect(streamDataMessageFieldsFromActions(rejected.actions)).toBeNull();
   });
 
   it("clamps write chunk length to data and chunk limits", () => {
