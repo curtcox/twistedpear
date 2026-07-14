@@ -45,20 +45,24 @@ async function* readSocket(socket: Socket): AsyncGenerator<Uint8Array> {
 
 class NodeTcpFactory implements TcpFactory {
   async connect(options: TcpConnectOptions): Promise<DuplexConnection> {
-    const timeoutMs = options.connectTimeoutMs ?? 5_000;
+    // `0` means no factory timer (caller owns connect timeout).
+    const timeoutMs = options.connectTimeoutMs === 0 ? 0 : (options.connectTimeoutMs ?? 5_000);
     const socket = await new Promise<Socket>((resolve, reject) => {
       const connection = createConnection({ host: options.host, port: options.port });
       let settled = false;
 
-      const timer = setTimeout(() => {
-        if (settled) {
-          return;
-        }
+      const timer =
+        timeoutMs > 0
+          ? setTimeout(() => {
+              if (settled) {
+                return;
+              }
 
-        settled = true;
-        connection.destroy();
-        reject(new Error(`TCP connect timed out after ${timeoutMs}ms`));
-      }, timeoutMs);
+              settled = true;
+              connection.destroy();
+              reject(new Error(`TCP connect timed out after ${timeoutMs}ms`));
+            }, timeoutMs)
+          : null;
 
       connection.once("connect", () => {
         if (settled) {
@@ -66,7 +70,9 @@ class NodeTcpFactory implements TcpFactory {
         }
 
         settled = true;
-        clearTimeout(timer);
+        if (timer !== null) {
+          clearTimeout(timer);
+        }
         connection.setNoDelay(true);
         connection.setTimeout(0);
         resolve(connection);
@@ -78,7 +84,9 @@ class NodeTcpFactory implements TcpFactory {
         }
 
         settled = true;
-        clearTimeout(timer);
+        if (timer !== null) {
+          clearTimeout(timer);
+        }
         reject(error);
       });
     });

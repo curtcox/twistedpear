@@ -324,7 +324,8 @@
 > **`stepPathResponseGrace`** (PATH_REQUEST_GRACE_MS delay then transmit action) lives in
 > protocol; `TransportNode.sendPathResponse` adapts it.
 > **`stepInterfaceConnect`** (initial socket connect timeout / open / fail) lives in
-> protocol; WebSocket client adapts it (TCP/WebSocket share `INTERFACE_CONNECT_TIMEOUT_MS`).
+> protocol; TCP and WebSocket clients adapt it (share `INTERFACE_CONNECT_TIMEOUT_MS`;
+> TCP factory uses `connectTimeoutMs: 0` so only the step machine arms a timer).
 > **`stepPacketReceiptTimeout`** emits `timer/set` / `timer/cancel` for
 > `receipt-timeout`; `PacketReceipt` schedules from injected `clock` (Channel /
 > LinkRequestReceipt callbacks fire on timer expiry).
@@ -332,8 +333,10 @@
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
 > live in protocol; Link, Announce, TransportNode, and Identity adapt them.
-> Remaining depth work: switch residual session IO / timer loops into step machines
-> (cheap presence leaves in preferred Link/Announce/Identity paths are largely exhausted).
+> Remaining depth work: **blocked for this incremental loop** — deny-list / presence leaves
+> and discrete timer→`step*` conversions in reticulum-ts/lxmf-ts are exhausted; further
+> progress needs larger Promise/callback session-shell redesign (Link/Channel/LXMF
+> orchestration), not another cheap pure leaf.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

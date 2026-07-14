@@ -68,20 +68,24 @@ function bareSocketConnection(socket: InstanceType<BareTcpModule["Socket"]>): Du
 class BareTcpFactory implements TcpFactory {
   async connect(options: TcpConnectOptions): Promise<DuplexConnection> {
     const tcp = await loadBareTcp();
-    const timeoutMs = options.connectTimeoutMs ?? 5_000;
+    // `0` means no factory timer (caller owns connect timeout).
+    const timeoutMs = options.connectTimeoutMs === 0 ? 0 : (options.connectTimeoutMs ?? 5_000);
     const socket = new tcp.Socket({ eagerOpen: true });
 
     await new Promise<void>((resolve, reject) => {
       let settled = false;
-      const timer = setTimeout(() => {
-        if (settled) {
-          return;
-        }
+      const timer =
+        timeoutMs > 0
+          ? setTimeout(() => {
+              if (settled) {
+                return;
+              }
 
-        settled = true;
-        socket.destroy();
-        reject(new Error(`TCP connect timed out after ${timeoutMs}ms`));
-      }, timeoutMs);
+              settled = true;
+              socket.destroy();
+              reject(new Error(`TCP connect timed out after ${timeoutMs}ms`));
+            }, timeoutMs)
+          : null;
 
       socket.once("connect", () => {
         if (settled) {
@@ -89,7 +93,9 @@ class BareTcpFactory implements TcpFactory {
         }
 
         settled = true;
-        clearTimeout(timer);
+        if (timer !== null) {
+          clearTimeout(timer);
+        }
         socket.setNoDelay(true);
         resolve();
       });
@@ -100,7 +106,9 @@ class BareTcpFactory implements TcpFactory {
         }
 
         settled = true;
-        clearTimeout(timer);
+        if (timer !== null) {
+          clearTimeout(timer);
+        }
         reject(error);
       });
 

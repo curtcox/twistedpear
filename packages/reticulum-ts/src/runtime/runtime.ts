@@ -27,6 +27,11 @@ export interface DuplexConnection {
 export interface TcpConnectOptions {
   readonly host: string;
   readonly port: number;
+  /**
+   * Socket-level connect timeout. Omit for the factory default (5s).
+   * Pass `0` when the caller (e.g. TcpClientInterface via stepInterfaceConnect)
+   * owns the timeout and the factory must not arm a second timer.
+   */
   readonly connectTimeoutMs?: number;
 }
 
