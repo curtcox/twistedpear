@@ -260,8 +260,11 @@ export {
   isLinkAwaitTimedOut,
   shouldContinueLinkAwait,
   stepLinkAwait,
+  stepLinkAwaitWithActions,
+  type LinkAwaitAction,
   type LinkAwaitEvent,
-  type LinkAwaitState
+  type LinkAwaitState,
+  type LinkAwaitStepResult
 } from "./link-await.js";
 export {
   PATH_RESPONSE_GRACE_TIMER_ID,

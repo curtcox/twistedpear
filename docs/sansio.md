@@ -341,10 +341,14 @@
 > **`stepPropagationTransfer`** link-establish timeout (`PROPAGATION_LINK_TIMER_ID`)
 > is adapted by `PropagationClient` (no parallel `stepLinkAwait`); cancel /
 > link-ready / link-timeout emit `timer/cancel`.
+> **`stepLinkAwaitWithActions`** emits a `request-link` action on arm (plus the
+> link-await timer intents); LXMF `awaitOutboundLink` adapts it — same
+> action+intent path as propagation establish, still sharing the Promise shell
+> for the public async API.
 > Remaining depth work: Link/Channel/LXMF orchestration shells that still
 > hold Promise/callback continuations around already-pure step cores (watchdog
-> ticks are already intent-driven; LXMF direct `awaitOutboundLink` still uses
-> `stepLinkAwait`).
+> ticks are already intent-driven; delivery-receipt / path-await polls still
+> probe inside timer callbacks rather than via machine actions).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

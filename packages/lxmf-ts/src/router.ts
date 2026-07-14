@@ -30,7 +30,7 @@ import {
   shouldTeardownLxmfPropagationLink,
   splitLxmfDestinationPrefixed,
   stepDeliveryReceiptPoll,
-  stepLinkAwait,
+  stepLinkAwaitWithActions,
   type LxmfSendEvent,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
@@ -196,28 +196,45 @@ export class LXMFRouter {
   ): Promise<Link> {
     const timeoutMs = options.timeoutMs ?? LINK_AWAIT_DEFAULT_TIMEOUT_MS;
     return new Promise<Link>((resolve, reject) => {
-      const armed = stepLinkAwait(initialLinkAwaitState(), {
+      const armed = stepLinkAwaitWithActions(initialLinkAwaitState(), {
         kind: "link-await/arm",
         timeoutMs
-      } as never);
+      });
       let state = armed.state;
       let timer: { cancel(): void } | null = null;
+      let concluded = false;
 
-      const applyIntents = (intents: ReturnType<typeof stepLinkAwait>["intents"]): void => {
+      const finish = (result: { ok: true; link: Link } | { ok: false }): void => {
+        if (concluded) {
+          return;
+        }
+        concluded = true;
+        if (result.ok) {
+          resolve(result.link);
+          return;
+        }
+        options.onTimeout?.();
+        reject(new Error(options.timeoutError));
+      };
+
+      const applyIntents = (
+        intents: ReturnType<typeof stepLinkAwaitWithActions>["intents"]
+      ): void => {
         for (const intent of intents) {
           if (intent.kind === "timer/set" && intent.timer.id === LINK_AWAIT_TIMER_ID) {
             timer?.cancel();
             timer = this.reticulum.runtime.clock.setTimeout(() => {
-              const tick = stepLinkAwait(state, {
+              timer = null;
+              const tick = stepLinkAwaitWithActions(state, {
                 kind: "timer/fired",
                 id: LINK_AWAIT_TIMER_ID,
                 at: this.reticulum.runtime.clock.now()
               });
               state = tick.state;
               applyIntents(tick.intents);
+              applyActions(tick.actions);
               if (isLinkAwaitTimedOut(state)) {
-                options.onTimeout?.();
-                reject(new Error(options.timeoutError));
+                finish({ ok: false });
               }
             }, intent.timer.delayMs);
           }
@@ -228,17 +245,30 @@ export class LXMFRouter {
         }
       };
 
-      applyIntents(armed.intents);
-      outbound.requestLink({
-        linkEstablished(establishLink) {
-          const result = stepLinkAwait(state, { kind: "link-await/established" } as never);
-          state = result.state;
-          applyIntents(result.intents);
-          if (isLinkAwaitEstablished(state)) {
-            resolve(establishLink);
+      const applyActions = (
+        actions: ReturnType<typeof stepLinkAwaitWithActions>["actions"]
+      ): void => {
+        for (const action of actions) {
+          if (action.kind === "request-link") {
+            outbound.requestLink({
+              linkEstablished(establishLink) {
+                const result = stepLinkAwaitWithActions(state, {
+                  kind: "link-await/established"
+                });
+                state = result.state;
+                applyIntents(result.intents);
+                applyActions(result.actions);
+                if (isLinkAwaitEstablished(state)) {
+                  finish({ ok: true, link: establishLink });
+                }
+              }
+            });
           }
         }
-      });
+      };
+
+      applyIntents(armed.intents);
+      applyActions(armed.actions);
     });
   }
 

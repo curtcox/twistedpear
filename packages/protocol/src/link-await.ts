@@ -1,6 +1,6 @@
 /**
  * Pure outbound link-await: arm a timeout, conclude on established or timeout.
- * Adapters run requestLink and sleep/cancel timers from intents.
+ * Adapters run requestLink from the request-link action and sleep/cancel timers from intents.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -18,6 +18,17 @@ export type LinkAwaitEvent =
   | Event
   | { readonly kind: "link-await/arm"; readonly timeoutMs: number }
   | { readonly kind: "link-await/established" };
+
+export type LinkAwaitAction = {
+  readonly kind: "request-link";
+  readonly timeoutMs: number;
+};
+
+export interface LinkAwaitStepResult {
+  readonly state: LinkAwaitState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkAwaitAction[];
+}
 
 export function initialLinkAwaitState(): LinkAwaitState {
   return {
@@ -43,13 +54,22 @@ export function isLinkAwaitTimedOut(state: LinkAwaitState): boolean {
   return state.concluded && state.timedOut;
 }
 
-export const stepLinkAwait: StepFn<LinkAwaitState> = (state, event) =>
-  stepLinkAwaitInner(state, event as LinkAwaitEvent);
+export const stepLinkAwait: StepFn<LinkAwaitState> = (state, event) => {
+  const result = stepLinkAwaitInner(state, event as LinkAwaitEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkAwaitWithActions(
+  state: LinkAwaitState,
+  event: LinkAwaitEvent
+): LinkAwaitStepResult {
+  return stepLinkAwaitInner(state, event);
+}
 
 function stepLinkAwaitInner(
   state: LinkAwaitState,
   event: LinkAwaitEvent
-): { state: LinkAwaitState; intents: Intent[] } {
+): LinkAwaitStepResult {
   if (event.kind === "link-await/arm") {
     return {
       state: {
@@ -63,13 +83,14 @@ function stepLinkAwaitInner(
           kind: "timer/set",
           timer: { id: LINK_AWAIT_TIMER_ID, delayMs: event.timeoutMs }
         }
-      ]
+      ],
+      actions: [{ kind: "request-link", timeoutMs: event.timeoutMs }]
     };
   }
 
   if (event.kind === "link-await/established") {
     if (!state.armed || state.concluded) {
-      return { state, intents: [] };
+      return { state, intents: [], actions: [] };
     }
     return {
       state: {
@@ -78,13 +99,14 @@ function stepLinkAwaitInner(
         established: true,
         timedOut: false
       },
-      intents: [{ kind: "timer/cancel", timer: { id: LINK_AWAIT_TIMER_ID } }]
+      intents: [{ kind: "timer/cancel", timer: { id: LINK_AWAIT_TIMER_ID } }],
+      actions: []
     };
   }
 
   if (event.kind === "timer/fired" && event.id === LINK_AWAIT_TIMER_ID) {
     if (!state.armed || state.concluded) {
-      return { state, intents: [] };
+      return { state, intents: [], actions: [] };
     }
     return {
       state: {
@@ -93,9 +115,10 @@ function stepLinkAwaitInner(
         established: false,
         timedOut: true
       },
-      intents: []
+      intents: [],
+      actions: []
     };
   }
 
-  return { state, intents: [] };
+  return { state, intents: [], actions: [] };
 }
