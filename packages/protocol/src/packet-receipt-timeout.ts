@@ -181,3 +181,10 @@ export function planUnregisterPacketReceipt(index: number): number | null {
 export function shouldRegisterPacketReceipt(createReceipt: boolean): boolean {
   return createReceipt;
 }
+
+export type PacketReceiptCallbackPlan = "clear" | "set";
+
+/** Whether a packet-receipt timeout/delivery callback should be cleared or assigned. */
+export function planPacketReceiptCallback(callbackPresent: boolean): PacketReceiptCallbackPlan {
+  return callbackPresent ? "set" : "clear";
+}

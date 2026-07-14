@@ -29,6 +29,7 @@ import {
   planTransportIngressDispatch,
   planUnregisterPacketReceipt,
   planUnregisterTransportMember,
+  canDispatchAnnounceHandlers,
   shouldAcceptLinkLrProofCandidate,
   shouldDispatchLocalLinkRequest,
   shouldIgnoreLocalAnnounce,
@@ -544,9 +545,10 @@ export class LeafTransport {
     );
 
     const announcedIdentity = Identity.recall(this.options.provider, packet.destinationHash);
-    if (announcedIdentity === null) {
+    if (!canDispatchAnnounceHandlers(announcedIdentity !== null)) {
       return;
     }
+    const identity = announcedIdentity!;
 
     for (const handler of this.announceHandlers) {
       if (
@@ -565,7 +567,7 @@ export class LeafTransport {
             ? null
             : Destination.hash(
                 this.options.provider,
-                announcedIdentity,
+                identity,
                 parsedFilter.appName,
                 ...parsedFilter.aspects
               );
@@ -582,7 +584,7 @@ export class LeafTransport {
 
       handler.receivedAnnounce({
         destinationHash: packet.destinationHash,
-        announcedIdentity,
+        announcedIdentity: identity,
         appData: parsed.appData,
         announce: parsed,
         packet

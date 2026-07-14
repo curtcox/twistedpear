@@ -53,6 +53,13 @@ export function shouldInvokeDestinationProofCallback(callbackPresent: boolean): 
   return callbackPresent;
 }
 
+/** Whether a validated link should wrap the destination link-established callback. */
+export function shouldInvokeDestinationLinkEstablishedCallback(
+  callbackPresent: boolean
+): boolean {
+  return callbackPresent;
+}
+
 /** Whether this destination may send outbound packets (OUT only). */
 export function canDestinationSend(directionOut: boolean): boolean {
   return directionOut;

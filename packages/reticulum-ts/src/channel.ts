@@ -5,6 +5,7 @@ import {
   CHANNEL_SEQ_MAX,
   CHANNEL_SEQ_MODULUS,
   ChannelWindowLimits,
+  canArmChannelPacketReceipt,
   canLinkSend,
   channelAllowsSend,
   channelEmplaceIndex,
@@ -495,18 +496,18 @@ export class Channel {
   private updatePacketTimeouts(): void {
     for (const envelope of this.txRing) {
       const receipt = envelope.packet?.receipt;
-      if (receipt === null || receipt === undefined) {
+      if (!canArmChannelPacketReceipt(receipt != null)) {
         continue;
       }
 
       const updatedTimeout = this.getPacketTimeoutTime(envelope.tries);
       if (
         shouldExtendPacketReceiptTimeout({
-          currentTimeout: receipt.timeout,
+          currentTimeout: receipt!.timeout,
           updatedTimeout
         })
       ) {
-        receipt.setTimeout(updatedTimeout);
+        receipt!.setTimeout(updatedTimeout);
       }
     }
   }
@@ -568,15 +569,15 @@ export class LinkChannelOutlet implements ChannelOutlet {
     callback: ((packet: ChannelPacket) => void) | null,
     timeout: number | null = null
   ): void {
-    if (packet.receipt === null) {
+    if (!canArmChannelPacketReceipt(packet.receipt !== null)) {
       return;
     }
 
     if (timeout !== null) {
-      packet.receipt.setTimeout(timeout);
+      packet.receipt!.setTimeout(timeout);
     }
 
-    packet.receipt.setTimeoutCallback(
+    packet.receipt!.setTimeoutCallback(
       callback === null ? null : () => {
         callback(packet);
       }
@@ -587,11 +588,11 @@ export class LinkChannelOutlet implements ChannelOutlet {
     packet: ChannelPacket,
     callback: ((packet: ChannelPacket) => void) | null
   ): void {
-    if (packet.receipt === null) {
+    if (!canArmChannelPacketReceipt(packet.receipt !== null)) {
       return;
     }
 
-    packet.receipt.setDeliveryCallback(
+    packet.receipt!.setDeliveryCallback(
       callback === null
         ? null
         : () => {

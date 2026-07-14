@@ -94,6 +94,11 @@ export function shouldRegisterPendingLinkRequest(alreadyPresent: boolean): boole
   return !alreadyPresent;
 }
 
+/** Whether construction should attach an outbound packet receipt to the request receipt. */
+export function shouldAttachLinkRequestPacketReceipt(packetReceiptPresent: boolean): boolean {
+  return packetReceiptPresent;
+}
+
 /**
  * Unregister a pending link-request receipt: splice index or skip when absent.
  * Splice stays at the adapter.

@@ -28,6 +28,8 @@ import {
   canExtractLxmfOpportunisticPayload,
   shouldSelectLxmfDeliveryParameters,
   planLxmfPropagationSyncPrep,
+  shouldAwaitLxmfDeliveryReceipt,
+  shouldInvokeLxmfDeliveryCallback,
   shouldTeardownLxmfPropagationLink
 } from "../src/lxmf-delivery.js";
 import { LxmfUnverifiedReason } from "../src/lxmf-fields.js";
@@ -196,22 +198,36 @@ describe("protocol lxmf delivery", () => {
     ).toBe(false);
     expect(
       planLxmfPropagatedSend({
+        nodeConfigured: true,
         hasPropagationPacked: true,
         representation: LxmfDeliveryRepresentation.PACKET
       })
     ).toBe("ok");
     expect(
       planLxmfPropagatedSend({
+        nodeConfigured: false,
+        hasPropagationPacked: true,
+        representation: LxmfDeliveryRepresentation.PACKET
+      })
+    ).toBe("missing-node");
+    expect(
+      planLxmfPropagatedSend({
+        nodeConfigured: true,
         hasPropagationPacked: false,
         representation: LxmfDeliveryRepresentation.PACKET
       })
     ).toBe("missing-packed");
     expect(
       planLxmfPropagatedSend({
+        nodeConfigured: true,
         hasPropagationPacked: true,
         representation: LxmfDeliveryRepresentation.RESOURCE
       })
     ).toBe("resource-unimplemented");
+    expect(shouldAwaitLxmfDeliveryReceipt(true)).toBe(true);
+    expect(shouldAwaitLxmfDeliveryReceipt(false)).toBe(false);
+    expect(shouldInvokeLxmfDeliveryCallback(true)).toBe(true);
+    expect(shouldInvokeLxmfDeliveryCallback(false)).toBe(false);
   });
 
   it("plans LXMF send method dispatch", () => {

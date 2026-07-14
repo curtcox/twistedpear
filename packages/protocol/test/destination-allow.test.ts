@@ -13,11 +13,12 @@ import {
   planDestinationDecrypt,
   planDestinationEncrypt,
   planDestinationRequestAllow,
+  shouldInvokeDestinationLinkEstablishedCallback,
   shouldInvokeDestinationProofCallback,
   shouldRegisterDestinationLink
 } from "../src/destination-allow.js";
 import { DestinationDirectionCode, DestinationTypeCode } from "../src/packet-header.js";
-import { LinkRequestReceiptStatus } from "../src/link-request-receipt.js";
+import { LinkRequestReceiptStatus, shouldAttachLinkRequestPacketReceipt } from "../src/link-request-receipt.js";
 
 describe("destination allow policy", () => {
   it("allows ALL and LIST matches", () => {
@@ -75,13 +76,15 @@ describe("destination allow policy", () => {
     expect(canAnnounceDestination({ typeSingle: true, directionIn: false })).toBe(false);
   });
 
-  it("gates attached ops, announce identity, and proof callbacks", () => {
+  it("gates attached ops, announce identity, and proof/link-established callbacks", () => {
     expect(canOperateAttachedDestination(true)).toBe(true);
     expect(canOperateAttachedDestination(false)).toBe(false);
     expect(canAnnounceWithIdentity(true)).toBe(true);
     expect(canAnnounceWithIdentity(false)).toBe(false);
     expect(shouldInvokeDestinationProofCallback(true)).toBe(true);
     expect(shouldInvokeDestinationProofCallback(false)).toBe(false);
+    expect(shouldInvokeDestinationLinkEstablishedCallback(true)).toBe(true);
+    expect(shouldInvokeDestinationLinkEstablishedCallback(false)).toBe(false);
   });
 
   it("allows sends only for OUT destinations", () => {
@@ -178,5 +181,10 @@ describe("link request receipt status", () => {
   it("exposes receipt status codes", () => {
     expect(LinkRequestReceiptStatus.SENT).toBe(0x01);
     expect(LinkRequestReceiptStatus.READY).toBe(0x04);
+  });
+
+  it("attaches packet receipts when present", () => {
+    expect(shouldAttachLinkRequestPacketReceipt(true)).toBe(true);
+    expect(shouldAttachLinkRequestPacketReceipt(false)).toBe(false);
   });
 });

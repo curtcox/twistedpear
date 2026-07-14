@@ -6,6 +6,7 @@ import {
   planClonePacketWithHops,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
+  canDispatchAnnounceHandlers,
   shouldIgnoreLocalAnnounce,
   shouldMatchAnnounceAspect,
   shouldReceiveAnnouncePathResponse
@@ -100,6 +101,11 @@ describe("protocol transport announce planning", () => {
   it("ignores announces for local inbound destinations", () => {
     expect(shouldIgnoreLocalAnnounce(true)).toBe(true);
     expect(shouldIgnoreLocalAnnounce(false)).toBe(false);
+  });
+
+  it("dispatches announce handlers when identity recall succeeds", () => {
+    expect(canDispatchAnnounceHandlers(true)).toBe(true);
+    expect(canDispatchAnnounceHandlers(false)).toBe(false);
   });
 
   it("matches optional announce aspect filters", () => {

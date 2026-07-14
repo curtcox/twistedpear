@@ -12,6 +12,7 @@ import {
   shouldDeferStreamRead,
   shouldHandleStreamDataMessage,
   shouldMarkStreamEof,
+  shouldRegisterStreamReadyCallback,
   shouldReturnStreamReadResult,
   unpackStreamDataMessage
 } from "@twistedpear/protocol";
@@ -200,8 +201,8 @@ export class Buffer {
     readyCallback?: StreamReadyCallback
   ): RawChannelReader {
     const reader = new RawChannelReader(streamId, channel);
-    if (readyCallback !== undefined) {
-      reader.addReadyCallback(readyCallback);
+    if (shouldRegisterStreamReadyCallback(readyCallback !== undefined)) {
+      reader.addReadyCallback(readyCallback!);
     }
 
     return reader;

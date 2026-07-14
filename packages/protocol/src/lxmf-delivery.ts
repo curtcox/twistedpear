@@ -304,13 +304,21 @@ export function planLxmfPropagationLinkReady(input: {
   return "establish";
 }
 
-export type LxmfPropagatedSendPlan = "ok" | "missing-packed" | "resource-unimplemented";
+export type LxmfPropagatedSendPlan =
+  | "ok"
+  | "missing-node"
+  | "missing-packed"
+  | "resource-unimplemented";
 
-/** Whether PROPAGATED send may proceed (packed envelope + PACKET representation). */
+/** Whether PROPAGATED send may proceed (node + packed envelope + PACKET representation). */
 export function planLxmfPropagatedSend(input: {
+  readonly nodeConfigured: boolean;
   readonly hasPropagationPacked: boolean;
   readonly representation: number;
 }): LxmfPropagatedSendPlan {
+  if (!input.nodeConfigured) {
+    return "missing-node";
+  }
   if (!input.hasPropagationPacked) {
     return "missing-packed";
   }
@@ -318,6 +326,16 @@ export function planLxmfPropagatedSend(input: {
     return "resource-unimplemented";
   }
   return "ok";
+}
+
+/** Whether outbound LXMF should await / poll a delivery receipt. */
+export function shouldAwaitLxmfDeliveryReceipt(receiptPresent: boolean): boolean {
+  return receiptPresent;
+}
+
+/** Whether an unpacked deliverable should invoke the delivery callback. */
+export function shouldInvokeLxmfDeliveryCallback(messagePresent: boolean): boolean {
+  return messagePresent;
 }
 
 /** LXMFRouter.send method dispatch after packed-envelope check. */

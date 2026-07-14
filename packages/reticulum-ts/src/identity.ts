@@ -22,6 +22,8 @@ import {
   planIdentityDecryptOutcome,
   planIdentityRatchetLookup,
   planIdentityRecall,
+  planIdentityRecallAppData,
+  shouldAttemptIdentityRatchetDecrypt,
   shouldPersistIdentityRatchet,
   splitIdentityCiphertext,
   splitIdentityEntropy,
@@ -222,7 +224,11 @@ export class Identity {
 
   static recallAppData(destinationHash: Uint8Array): Uint8Array | null {
     const record = Identity.knownDestinations.get(bytesToHex(destinationHash));
-    return record?.appData ?? null;
+    const plan = planIdentityRecallAppData({
+      recordPresent: record !== undefined,
+      appDataPresent: record?.appData !== undefined
+    });
+    return plan === "hit" ? record!.appData! : null;
   }
 
   get hash(): Uint8Array {
@@ -323,8 +329,8 @@ export class Identity {
       const peerPublicBytes = split.ephemeralPublicKey;
       const ciphertext = split.tokenCiphertext;
 
-      if (options.ratchets !== undefined) {
-        for (const ratchet of options.ratchets) {
+      if (shouldAttemptIdentityRatchetDecrypt(options.ratchets !== undefined)) {
+        for (const ratchet of options.ratchets!) {
           try {
             const ratchetPublicBytes = Identity.ratchetPublicBytes(this.provider, ratchet);
             ratchetId = Identity.ratchetId(this.provider, ratchetPublicBytes);

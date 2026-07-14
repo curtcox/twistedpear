@@ -8,6 +8,7 @@ import {
   channelPacketTimeoutSeconds,
   channelRetryExhausted,
   countChannelTxOutstanding,
+  canArmChannelPacketReceipt,
   initialChannelWindowState,
   isChannelOutletTransmitOk,
   planChannelPacketTimeout,
@@ -137,6 +138,11 @@ describe("protocol channel window", () => {
     expect(
       shouldExtendPacketReceiptTimeout({ currentTimeout: 2, updatedTimeout: 3 })
     ).toBe(true);
+  });
+
+  it("arms channel packet receipts when present", () => {
+    expect(canArmChannelPacketReceipt(true)).toBe(true);
+    expect(canArmChannelPacketReceipt(false)).toBe(false);
   });
 
   it("finds TX envelope index by packet id", () => {

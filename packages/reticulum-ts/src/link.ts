@@ -1163,12 +1163,12 @@ export class Link {
 
   private async handleResponsePacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (plaintext === null) {
+    if (!shouldDispatchLinkPlaintext(plaintext !== null)) {
       return;
     }
 
     try {
-      const [requestId, responseData] = msgpackUnpackResponse(plaintext);
+      const [requestId, responseData] = msgpackUnpackResponse(plaintext!);
       const pending = [...this.pendingRequests];
       const index = indexOfPendingLinkAppRequest({
         requestIds: pending.map((entry) => entry.requestId),
@@ -1184,21 +1184,21 @@ export class Link {
 
   private async handleChannelPacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (plaintext === null) {
+    if (!shouldDispatchLinkPlaintext(plaintext !== null)) {
       return;
     }
 
-    this.getChannel().receive(plaintext);
+    this.getChannel().receive(plaintext!);
   }
 
   private async handleResourceAdvertisementPacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (plaintext === null) {
+    if (!shouldDispatchLinkPlaintext(plaintext !== null)) {
       return;
     }
 
     const plan = planLinkResourceAdvertisement({
-      isRequest: ResourceAdvertisement.isRequest(plaintext),
+      isRequest: ResourceAdvertisement.isRequest(plaintext!),
       strategy: this.resourceStrategy
     });
     if (plan.kind === "ignore") {
@@ -1207,9 +1207,9 @@ export class Link {
 
     if (plan.kind === "ask-app") {
       try {
-        const advertisement = ResourceAdvertisement.unpack(plaintext);
+        const advertisement = ResourceAdvertisement.unpack(plaintext!);
         if (planLinkResourceAcceptAppResult(this.callbacks.resource?.(advertisement) === true) === "reject") {
-          Resource.reject(this, plaintext);
+          Resource.reject(this, plaintext!);
           return;
         }
       } catch {
@@ -1217,18 +1217,18 @@ export class Link {
       }
     }
 
-    Resource.accept(this, plaintext, packet, {
+    Resource.accept(this, plaintext!, packet, {
       callback: (resource) => this.callbacks.resourceConcluded?.(resource)
     });
   }
 
   private async handleResourceRequestPacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (plaintext === null) {
+    if (!shouldDispatchLinkPlaintext(plaintext !== null)) {
       return;
     }
 
-    const resourceHash = Resource.readRequestHash(plaintext);
+    const resourceHash = Resource.readRequestHash(plaintext!);
     for (const resource of this.outgoingResourcesList) {
       if (
         shouldHandleOutgoingResourceRequest({
@@ -1237,7 +1237,7 @@ export class Link {
         })
       ) {
         resource.trackRequest(packet);
-        await resource.handleRequest(plaintext);
+        await resource.handleRequest(plaintext!);
         return;
       }
     }
@@ -1245,17 +1245,17 @@ export class Link {
 
   private async handleResourceHashmapUpdatePacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (plaintext === null) {
+    if (!shouldDispatchLinkPlaintext(plaintext !== null)) {
       return;
     }
 
-    const split = splitResourceHashmapUpdatePacket(plaintext);
+    const split = splitResourceHashmapUpdatePacket(plaintext!);
     if (split === null) {
       return;
     }
     for (const resource of this.incomingResourcesList) {
       if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split.resourceHash))) {
-        resource.hashmapUpdatePacket(plaintext);
+        resource.hashmapUpdatePacket(plaintext!);
         return;
       }
     }
@@ -1263,11 +1263,11 @@ export class Link {
 
   private async handleResourceCancelPacket(packet: Packet, incoming: boolean): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (plaintext === null) {
+    if (!shouldDispatchLinkPlaintext(plaintext !== null)) {
       return;
     }
 
-    const split = splitResourceHashmapUpdatePacket(plaintext);
+    const split = splitResourceHashmapUpdatePacket(plaintext!);
     if (split === null) {
       return;
     }

@@ -93,6 +93,11 @@ export function shouldIgnoreLocalAnnounce(hasLocalInboundDestination: boolean): 
   return hasLocalInboundDestination;
 }
 
+/** Whether announce-handler fanout may run after Identity.recall. */
+export function canDispatchAnnounceHandlers(identityPresent: boolean): boolean {
+  return identityPresent;
+}
+
 /**
  * Whether an announce handler's optional aspect filter matches the packet hash.
  * Filter parse / Destination.hash stay at the adapter edge as boolean inputs.

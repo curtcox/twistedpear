@@ -33,6 +33,7 @@ import {
   isValidDestinationRequestPath,
   planDestinationDecrypt,
   planDestinationEncrypt,
+  shouldInvokeDestinationLinkEstablishedCallback,
   shouldInvokeDestinationProofCallback,
   shouldRegisterDestinationLink,
   utf8Encode,
@@ -171,8 +172,8 @@ export class RegisteredDestination extends Destination {
       return;
     }
 
-    if (this.linkEstablishedCallback !== null) {
-      const callback = this.linkEstablishedCallback;
+    if (shouldInvokeDestinationLinkEstablishedCallback(this.linkEstablishedCallback !== null)) {
+      const callback = this.linkEstablishedCallback!;
       const existing = link.callbacks.linkEstablished;
       link.callbacks.linkEstablished = (establishedLink) => {
         existing?.(establishedLink);

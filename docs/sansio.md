@@ -255,7 +255,15 @@
 > **`planLxmfPropagationLinkReady`**). **`canProveResource`** /
 > **`shouldAdvertiseResource`**, **`canUpdateLinkKeepalive`** /
 > **`shouldCreateLinkChannel`** / **`planLinkTokenAccess`** live in protocol; Resource and
-> Link adapt them.
+> Link adapt them. **`shouldInvokeDestinationLinkEstablishedCallback`**,
+> **`canArmChannelPacketReceipt`**, **`planPacketReceiptCallback`**,
+> **`canDispatchAnnounceHandlers`**, **`shouldAttemptIdentityRatchetDecrypt`** /
+> **`planIdentityRecallAppData`**, **`shouldRegisterStreamReadyCallback`**,
+> **`shouldAttachLinkRequestPacketReceipt`**, **`shouldAwaitLxmfDeliveryReceipt`** /
+> **`shouldInvokeLxmfDeliveryCallback`**, and extended **`planLxmfPropagatedSend`**
+> (`missing-node`) live in protocol; destination, Channel, PacketReceipt, transport
+> announce, Identity, Buffer, LinkRequestReceipt, and LXMF router adapt them. Link
+> resource/response/channel plaintext early-outs reuse **`shouldDispatchLinkPlaintext`**.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

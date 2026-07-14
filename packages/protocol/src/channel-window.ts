@@ -119,6 +119,11 @@ export function countChannelTxOutstanding(
   return outstanding;
 }
 
+/** Whether channel TX timeout refresh / receipt callback arming may use a packet receipt. */
+export function canArmChannelPacketReceipt(receiptPresent: boolean): boolean {
+  return receiptPresent;
+}
+
 /** Whether a recomputed channel packet timeout should replace the receipt's current timeout. */
 export function shouldExtendPacketReceiptTimeout(input: {
   readonly currentTimeout: number | null;

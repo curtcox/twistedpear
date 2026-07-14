@@ -4,6 +4,7 @@ import {
   PacketReceiptStatus,
   isPacketTypeProof,
   packetProofHashMatches,
+  planPacketReceiptCallback,
   planPacketReceiptProofAccept,
   splitPacketProof,
   stepPacketReceiptTimeout,
@@ -128,21 +129,21 @@ export class PacketReceipt {
   }
 
   setTimeoutCallback(callback: ((receipt: PacketReceipt) => void) | null): void {
-    if (callback === null) {
+    if (planPacketReceiptCallback(callback !== null) === "clear") {
       delete this.callbacks.timeout;
       return;
     }
 
-    this.callbacks.timeout = callback;
+    this.callbacks.timeout = callback!;
   }
 
   setDeliveryCallback(callback: ((receipt: PacketReceipt) => void) | null): void {
-    if (callback === null) {
+    if (planPacketReceiptCallback(callback !== null) === "clear") {
       delete this.callbacks.delivery;
       return;
     }
 
-    this.callbacks.delivery = callback;
+    this.callbacks.delivery = callback!;
   }
 
   checkTimeout(nowSeconds = this.now()): boolean {

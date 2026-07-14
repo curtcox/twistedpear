@@ -8,6 +8,8 @@ import {
   packIdentityCiphertext,
   planIdentityDecryptOutcome,
   planIdentityRecall,
+  planIdentityRecallAppData,
+  shouldAttemptIdentityRatchetDecrypt,
   splitIdentityCiphertext
 } from "../src/identity-ciphertext.js";
 
@@ -89,6 +91,17 @@ describe("protocol identity ciphertext", () => {
       "reject-key"
     );
     expect(planIdentityRecall({ recordPresent: true, publicKeyLoaded: true })).toBe("hit");
+    expect(
+      planIdentityRecallAppData({ recordPresent: false, appDataPresent: false })
+    ).toBe("miss");
+    expect(planIdentityRecallAppData({ recordPresent: true, appDataPresent: false })).toBe(
+      "miss"
+    );
+    expect(planIdentityRecallAppData({ recordPresent: true, appDataPresent: true })).toBe(
+      "hit"
+    );
+    expect(shouldAttemptIdentityRatchetDecrypt(true)).toBe(true);
+    expect(shouldAttemptIdentityRatchetDecrypt(false)).toBe(false);
     expect(canIdentityHash(true)).toBe(true);
     expect(canIdentityHash(false)).toBe(false);
   });

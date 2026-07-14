@@ -4,6 +4,7 @@ import type { NowSeconds, PacketReceipt } from "./packet-receipt.js";
 import {
   LinkRequestReceiptStatus,
   initialLinkRequestReceiptState,
+  shouldAttachLinkRequestPacketReceipt,
   stepLinkRequestReceipt,
   type LinkRequestReceiptState,
   type LinkRequestReceiptStatusValue
@@ -87,8 +88,8 @@ export class LinkRequestReceipt {
     this.sentAt = options.now();
     this.startedAt = this.sentAt;
 
-    if (this.packetReceipt !== null) {
-      this.attachPacketReceipt(this.packetReceipt);
+    if (shouldAttachLinkRequestPacketReceipt(this.packetReceipt !== null)) {
+      this.attachPacketReceipt(this.packetReceipt!);
     }
 
     this.link.registerPendingRequest(this);

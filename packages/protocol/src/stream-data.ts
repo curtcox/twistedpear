@@ -131,6 +131,11 @@ export function shouldHandleStreamDataMessage(input: {
   return input.messageStreamId === input.expectedStreamId;
 }
 
+/** Whether createReader should register an optional ready-callback. */
+export function shouldRegisterStreamReadyCallback(callbackPresent: boolean): boolean {
+  return callbackPresent;
+}
+
 /**
  * Unregister a stream ready-callback: splice index or skip when absent.
  * Splice stays at the adapter.

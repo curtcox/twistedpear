@@ -15,6 +15,8 @@ import {
   planLxmfPropagationLocalIngress,
   planLxmfReceiptSendOutcome,
   planLxmfSendMethod,
+  shouldAwaitLxmfDeliveryReceipt,
+  shouldInvokeLxmfDeliveryCallback,
   shouldRememberLxmfMessage,
   shouldReuseActiveLink,
   shouldTeardownLxmfPropagationLink,
@@ -254,16 +256,16 @@ export class LXMFRouter {
     if (afterSend !== null) {
       this.applySendState(message, afterSend);
     }
-    if (receipt === null) {
+    if (!shouldAwaitLxmfDeliveryReceipt(receipt !== null)) {
       return;
     }
 
-    await this.pollDeliveryReceipt(receipt);
+    await this.pollDeliveryReceipt(receipt!);
     const afterPoll = planLxmfReceiptSendOutcome({
       mode: "opportunistic",
       phase: "after-poll",
       receiptPresent: true,
-      delivered: receipt.status === PacketReceiptStatus.DELIVERED
+      delivered: receipt!.status === PacketReceiptStatus.DELIVERED
     });
     if (afterPoll !== null) {
       this.applySendState(message, afterPoll);
@@ -325,15 +327,15 @@ export class LXMFRouter {
   }
 
   private async sendPropagated(message: LXMessage): Promise<void> {
-    if (this.outboundPropagationNode === null) {
-      throw new Error("No outbound propagation node configured");
-    }
-
     const packed = message.propagationPacked;
     const plan = planLxmfPropagatedSend({
+      nodeConfigured: this.outboundPropagationNode !== null,
       hasPropagationPacked: packed !== null,
       representation: message.representation
     });
+    if (plan === "missing-node") {
+      throw new Error("No outbound propagation node configured");
+    }
     if (plan === "missing-packed" || packed === null) {
       throw new Error("PROPAGATED LXMF requires propagationPacked");
     }
@@ -358,8 +360,8 @@ export class LXMFRouter {
       this.applySendState(message, afterSend);
     }
 
-    if (result.receipt !== null) {
-      await this.pollDeliveryReceipt(result.receipt);
+    if (shouldAwaitLxmfDeliveryReceipt(result.receipt !== null)) {
+      await this.pollDeliveryReceipt(result.receipt!);
     }
     const afterPoll = planLxmfReceiptSendOutcome({
       mode: "propagated",
@@ -436,11 +438,11 @@ export class LXMFRouter {
 
   deliver(lxmfData: Uint8Array, method: LXMessageMethodValue = LXMessageMethod.DIRECT): boolean {
     const message = this.unpackDeliverable(lxmfData, method);
-    if (message === null) {
+    if (!shouldInvokeLxmfDeliveryCallback(message !== null)) {
       return false;
     }
 
-    this.deliveryCallback?.(message);
+    this.deliveryCallback?.(message!);
     return true;
   }
 
@@ -477,8 +479,8 @@ export class LXMFRouter {
 
     const deliveryData = packLxmfDestinationPrefixed(prefixed.destinationHash, decrypted);
     const message = this.unpackDeliverable(deliveryData, LXMessageMethod.PROPAGATED);
-    if (message !== null) {
-      this.deliveryCallback?.(message);
+    if (shouldInvokeLxmfDeliveryCallback(message !== null)) {
+      this.deliveryCallback?.(message!);
     }
 
     return message;

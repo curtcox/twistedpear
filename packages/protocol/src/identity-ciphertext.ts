@@ -100,6 +100,24 @@ export function planIdentityRecall(input: {
   return "hit";
 }
 
+export type IdentityRecallAppDataPlan = "hit" | "miss";
+
+/** Known-destination app-data recall: hit when record holds appData. */
+export function planIdentityRecallAppData(input: {
+  readonly recordPresent: boolean;
+  readonly appDataPresent: boolean;
+}): IdentityRecallAppDataPlan {
+  if (!input.recordPresent || !input.appDataPresent) {
+    return "miss";
+  }
+  return "hit";
+}
+
+/** Whether decrypt should attempt ratchet keys before identity-key fallback. */
+export function shouldAttemptIdentityRatchetDecrypt(ratchetsPresent: boolean): boolean {
+  return ratchetsPresent;
+}
+
 /** Whether Identity.hash may be read (key material loaded). */
 export function canIdentityHash(identityHashPresent: boolean): boolean {
   return identityHashPresent;
