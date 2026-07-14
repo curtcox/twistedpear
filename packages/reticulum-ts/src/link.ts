@@ -220,10 +220,18 @@ import {
   isLinkKeepaliveContext,
   identityPublicKeyFieldsFromActions,
   initialSplitIdentityPublicKeyState,
+  initialSplitInitiatorLinkEntropyState,
+  initialSplitResponderLinkEntropyState,
+  initiatorLinkEntropyFieldsFromActions,
+  responderLinkEntropyFieldsFromActions,
+  shouldRejectSplitInitiatorLinkEntropy,
+  shouldRejectSplitResponderLinkEntropy,
   shouldUseSplitIdentityPublicKey,
-  splitInitiatorLinkEntropy,
-  splitResponderLinkEntropy,
+  shouldUseSplitInitiatorLinkEntropy,
+  shouldUseSplitResponderLinkEntropy,
   stepSplitIdentityPublicKeyWithActions,
+  stepSplitInitiatorLinkEntropyWithActions,
+  stepSplitResponderLinkEntropyWithActions,
   initialSplitResourceHashmapUpdatePacketState,
   initialSplitResourceProofState,
   resourceHashmapUpdatePacketFieldsFromActions,
@@ -443,9 +451,24 @@ export class Link {
       ...(options.callbacks === undefined ? {} : { callbacks: options.callbacks })
     });
 
-    const initiatorKeys = splitInitiatorLinkEntropy(
-      options.entropy ?? options.transport.entropy.randomBytes(LINK_INITIATOR_ENTROPY_SIZE)
+    const initiatorStepped = stepSplitInitiatorLinkEntropyWithActions(
+      initialSplitInitiatorLinkEntropyState(),
+      {
+        kind: "link-keygen/split-initiator-gate",
+        entropy:
+          options.entropy ?? options.transport.entropy.randomBytes(LINK_INITIATOR_ENTROPY_SIZE)
+      }
     );
+    const initiatorKeys = initiatorLinkEntropyFieldsFromActions(initiatorStepped.actions);
+    if (
+      shouldRejectSplitInitiatorLinkEntropy(initiatorStepped.actions) ||
+      !shouldUseSplitInitiatorLinkEntropy(initiatorStepped.actions) ||
+      initiatorKeys === null
+    ) {
+      throw new Error(
+        `Initiator link entropy must be at least ${LINK_INITIATOR_ENTROPY_SIZE} bytes`
+      );
+    }
     link.privateKey = initiatorKeys.privateKey;
     link.publicKeyBytes = provider.x25519PublicFromPrivate(link.privateKey);
     const signaturePublicKeyBytes = provider.ed25519PublicFromPrivate(
@@ -548,9 +571,24 @@ export class Link {
         destination: null
       });
 
-      const responderKeys = splitResponderLinkEntropy(
-        options?.entropy ?? transport.entropy.randomBytes(LINK_RESPONDER_ENTROPY_SIZE)
+      const responderStepped = stepSplitResponderLinkEntropyWithActions(
+        initialSplitResponderLinkEntropyState(),
+        {
+          kind: "link-keygen/split-responder-gate",
+          entropy:
+            options?.entropy ?? transport.entropy.randomBytes(LINK_RESPONDER_ENTROPY_SIZE)
+        }
       );
+      const responderKeys = responderLinkEntropyFieldsFromActions(responderStepped.actions);
+      if (
+        shouldRejectSplitResponderLinkEntropy(responderStepped.actions) ||
+        !shouldUseSplitResponderLinkEntropy(responderStepped.actions) ||
+        responderKeys === null
+      ) {
+        throw new Error(
+          `Responder link entropy must be at least ${LINK_RESPONDER_ENTROPY_SIZE} bytes`
+        );
+      }
       link.privateKey = responderKeys.privateKey;
       link.publicKeyBytes = provider.x25519PublicFromPrivate(link.privateKey);
       link.loadPeer(request.publicKey, request.signaturePublicKey);

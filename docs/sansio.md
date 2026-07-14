@@ -6,15 +6,16 @@
 > are green via `npm run sansio`. **RNS HKDF** and **link key derive** are pure protocol
 > cores (`@noble/hashes`); `Link.handshake` performs ECDH at the crypto edge then calls
 > `deriveRnsLinkKey`. Handshake sims use RNS HKDF over order-independent shared secrets.
-> **Link keygen** accepts injected entropy (`splitInitiatorLinkEntropy` /
-> `splitResponderLinkEntropy`). **`Runtime.entropy`** is threaded through
-> `LeafTransport` into Link keygen (explicit override still wins). Announce builds prefer
-> `transport.entropy` for the random hash. **Identity**, **Token**, and **Resource** RNG
-> now prefer injected/`Runtime` entropy (transport identity keygen, path-request tags,
-> link Token IVs, destination encrypt, resource random hashes). **Channel congestion**
-> (window sizing, packet timeout formula, retry exhaustion) is a pure protocol leaf;
-> `Channel` adapts it. **Channel envelope framing** and **RX reorder/drain** are also
-> pure protocol leaves. **LXMF outbound send-state** (enqueue → sending → sent/delivered/
+> **Link keygen** entropy splits (via **`stepSplitInitiatorLinkEntropyWithActions`** /
+> **`stepSplitResponderLinkEntropyWithActions`**: use-fields|reject) accept injected
+> entropy; **`Runtime.entropy`** is threaded through `LeafTransport` into Link keygen
+> (explicit override still wins). Announce builds prefer `transport.entropy` for the
+> random hash. **Identity**, **Token**, and **Resource** RNG now prefer
+> injected/`Runtime` entropy (transport identity keygen, path-request tags, link Token
+> IVs, destination encrypt, resource random hashes). **Channel congestion** (window
+> sizing, packet timeout formula, retry exhaustion) is a pure protocol leaf; `Channel`
+> adapts it. **Channel envelope framing** and **RX reorder/drain** are also pure
+> protocol leaves. **LXMF outbound send-state** (enqueue → sending → sent/delivered/
 > failed + progress) is a pure protocol leaf; `LXMFRouter` adapts it. **Link proof framing**
 > and **establish status transitions** (handshake/proof/RTT/identify gates) are pure
 > protocol leaves; `Link` adapts them. **Link identify** payload framing (pack/split via
@@ -882,7 +883,8 @@
 > pkcs7-unpad / stamp-cost-from-app-data / truncate-hash-bytes /
 > utf8-encode / utf8-decode / utf8-or-bytes / expand-destination-name /
 > destination-name-hash-material / destination-hash-material /
-> validate-destination-name-part / parse-aspect-filter reads
+> validate-destination-name-part / parse-aspect-filter /
+> split-initiator-link-entropy / split-responder-link-entropy reads
 > beside the step).
 > **`stepPackStreamDataMessageWithActions`** /
 > **`stepUnpackStreamDataMessageWithActions`** emit `use-raw`|`reject` /
@@ -950,6 +952,11 @@
 > ad-hoc `expandDestinationName` / `destinationNameHashMaterial` /
 > `destinationHashMaterial` / `validateDestinationNamePart` /
 > `parseAspectFilter` reads beside the step).
+> **`stepSplitInitiatorLinkEntropyWithActions`** /
+> **`stepSplitResponderLinkEntropyWithActions`** emit `use-fields`|`reject`;
+> Link initiator / responder keygen entropy splits apply only from those
+> actions (no ad-hoc `splitInitiatorLinkEntropy` /
+> `splitResponderLinkEntropy` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
 > only from those actions. **`stepChannelMessageHandlerUnregisterWithActions`**,
