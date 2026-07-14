@@ -1,9 +1,9 @@
 /**
  * Pure LINKIDENTIFY payload layout and acceptance gates.
  * Signature verification stays at the crypto adapter edge.
- * Pack / split / acceptance conclusions leave via machine actions (no ad-hoc
- * `packLinkIdentifyPayload` / `splitLinkIdentifyPayload` / `plan.kind` reads
- * beside the step).
+ * Pack / split / signed-material / acceptance conclusions leave via machine
+ * actions (no ad-hoc `packLinkIdentifyPayload` / `splitLinkIdentifyPayload` /
+ * `linkIdentifySignedMaterial` / `plan.kind` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -166,6 +166,70 @@ export function linkIdentifySignedMaterial(
   out.set(linkId, 0);
   out.set(publicKey, linkId.length);
   return out;
+}
+
+/**
+ * Link-identify signed-material assembly is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `linkIdentifySignedMaterial`
+ * reads beside the step).
+ */
+export type LinkIdentifySignedMaterialState = Record<string, never>;
+
+export type LinkIdentifySignedMaterialEvent =
+  | Event
+  | {
+      readonly kind: "link-identify/signed-material-gate";
+      readonly linkId: Uint8Array;
+      readonly publicKey: Uint8Array;
+    };
+
+export type LinkIdentifySignedMaterialAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface LinkIdentifySignedMaterialStepResult {
+  readonly state: LinkIdentifySignedMaterialState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkIdentifySignedMaterialAction[];
+}
+
+export function initialLinkIdentifySignedMaterialState(): LinkIdentifySignedMaterialState {
+  return {};
+}
+
+export function stepLinkIdentifySignedMaterialWithActions(
+  state: LinkIdentifySignedMaterialState,
+  event: LinkIdentifySignedMaterialEvent
+): LinkIdentifySignedMaterialStepResult {
+  if (event.kind === "link-identify/signed-material-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: linkIdentifySignedMaterial(event.linkId, event.publicKey)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseLinkIdentifySignedMaterial(
+  actions: ReadonlyArray<LinkIdentifySignedMaterialAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract link-identify signed material from step actions; null when no `use-raw`. */
+export function linkIdentifySignedMaterialRawFromActions(
+  actions: ReadonlyArray<LinkIdentifySignedMaterialAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
 }
 
 /** Pack identify plaintext for outbound LINKIDENTIFY (publicKey || signature). */

@@ -8,7 +8,9 @@ import {
   announceDestinationHashMaterial,
   announcePayloadFieldsFromActions,
   announceSignedMaterial,
+  announceSignedMaterialRawFromActions,
   initialAnnounceBuildState,
+  initialAnnounceSignedMaterialState,
   initialAnnounceValidateState,
   initialPackAnnouncePayloadState,
   initialParseAnnouncePayloadState,
@@ -30,9 +32,11 @@ import {
   shouldRejectAnnounceBuildNotAnnounceableDirection,
   shouldRejectAnnounceBuildNotAnnounceableType,
   shouldRejectParseAnnouncePayload,
+  shouldUseAnnounceSignedMaterial,
   shouldUsePackAnnouncePayload,
   shouldUseParseAnnouncePayload,
   stepAnnounceBuildWithActions,
+  stepAnnounceSignedMaterialWithActions,
   stepAnnounceValidateWithActions,
   stepPackAnnouncePayloadWithActions,
   stepParseAnnouncePayloadWithActions
@@ -95,6 +99,24 @@ describe("protocol announce framing", () => {
         ratchet.length +
         appData.length
     );
+
+    const signedStepped = stepAnnounceSignedMaterialWithActions(
+      initialAnnounceSignedMaterialState(),
+      {
+        kind: "announce/signed-material-gate",
+        destinationHash,
+        publicKey,
+        nameHash,
+        randomHash,
+        ratchetPublicKey: ratchet,
+        appData
+      }
+    );
+    expect(shouldUseAnnounceSignedMaterial(signedStepped.actions)).toBe(true);
+    const signedFromActions = announceSignedMaterialRawFromActions(signedStepped.actions);
+    expect(signedFromActions).not.toBeNull();
+    expect([...signedFromActions!]).toEqual([...signed]);
+
     const material = announceDestinationHashMaterial(nameHash, destinationHash);
     expect(material.length).toBe(nameHash.length + destinationHash.length);
   });

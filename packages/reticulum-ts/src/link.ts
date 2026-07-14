@@ -58,7 +58,7 @@ import {
   isLinkModeEnabled,
   linkEstablishActivatedAction,
   linkHopsMatch,
-  linkIdentifySignedMaterial,
+  linkIdentifySignedMaterialRawFromActions,
   linkProofSignedMaterialRawFromActions,
   linkReadyForNewResource,
   linkRequestHashablePartRawFromActions,
@@ -92,6 +92,7 @@ import {
   initialLinkInitiatorMtuState,
   initialLinkRequestResponderMtuState,
   initialLinkResourceConcludeState,
+  initialLinkIdentifySignedMaterialState,
   initialPackLinkIdentifyPayloadState,
   initialPackLinkKeepaliveProbeState,
   initialPackLinkKeepaliveReplyState,
@@ -137,6 +138,7 @@ import {
   shouldUseModeFromLinkRequestData,
   shouldUseMtuFromLinkProofData,
   shouldUseMtuFromLinkRequestData,
+  shouldUseLinkIdentifySignedMaterial,
   shouldUsePackLinkIdentifyPayload,
   shouldUsePackLinkKeepaliveProbe,
   shouldUsePackLinkKeepaliveReply,
@@ -163,6 +165,7 @@ import {
   stepMtuFromLinkRequestDataWithActions,
   stepLinkInitiatorMtuWithActions,
   stepLinkRequestResponderMtuWithActions,
+  stepLinkIdentifySignedMaterialWithActions,
   stepPackLinkIdentifyPayloadWithActions,
   stepPackLinkKeepaliveProbeWithActions,
   stepPackLinkKeepaliveReplyWithActions,
@@ -1278,7 +1281,22 @@ export class Link {
     }
 
     const publicKey = identity.getPublicKey();
-    const signature = identity.sign(linkIdentifySignedMaterial(this.linkId, publicKey));
+    const signedStepped = stepLinkIdentifySignedMaterialWithActions(
+      initialLinkIdentifySignedMaterialState(),
+      {
+        kind: "link-identify/signed-material-gate",
+        linkId: this.linkId,
+        publicKey
+      }
+    );
+    const signedData =
+      shouldUseLinkIdentifySignedMaterial(signedStepped.actions)
+        ? linkIdentifySignedMaterialRawFromActions(signedStepped.actions)
+        : null;
+    if (signedData === null) {
+      throw new Error("Link.identify: missing signed-material use-raw action");
+    }
+    const signature = identity.sign(signedData);
     const packStepped = stepPackLinkIdentifyPayloadWithActions(
       initialPackLinkIdentifyPayloadState(),
       {
@@ -1645,13 +1663,23 @@ export class Link {
         : linkIdentifyPayloadFieldsFromActions(splitStepped.actions);
     const identity =
       parts !== null ? Identity.fromPublicKey(this.provider, parts.publicKey) : null;
+    const signedStepped =
+      parts !== null
+        ? stepLinkIdentifySignedMaterialWithActions(initialLinkIdentifySignedMaterialState(), {
+            kind: "link-identify/signed-material-gate",
+            linkId: this.linkId,
+            publicKey: parts.publicKey
+          })
+        : null;
+    const signedData =
+      signedStepped !== null && shouldUseLinkIdentifySignedMaterial(signedStepped.actions)
+        ? linkIdentifySignedMaterialRawFromActions(signedStepped.actions)
+        : null;
     const signatureValid =
       identity !== null &&
       parts !== null &&
-      identity.validate(
-        parts.signature,
-        linkIdentifySignedMaterial(this.linkId, parts.publicKey)
-      );
+      signedData !== null &&
+      identity.validate(parts.signature, signedData);
 
     const stepped = stepLinkIdentifyWithActions(
       initialLinkIdentifyState({ initiator: this.initiator }),

@@ -5,8 +5,9 @@ import {
   announceDestinationHashMaterial,
   announceDestinationHashMatches,
   announcePayloadFieldsFromActions,
-  announceSignedMaterial,
+  announceSignedMaterialRawFromActions,
   initialAnnounceBuildState,
+  initialAnnounceSignedMaterialState,
   initialAnnounceValidateState,
   initialPackAnnouncePayloadState,
   initialParseAnnouncePayloadState,
@@ -22,9 +23,11 @@ import {
   shouldRejectAnnounceBuildNotAnnounceableDirection,
   shouldRejectAnnounceBuildNotAnnounceableType,
   shouldRejectParseAnnouncePayload,
+  shouldUseAnnounceSignedMaterial,
   shouldUsePackAnnouncePayload,
   shouldUseParseAnnouncePayload,
   stepAnnounceBuildWithActions,
+  stepAnnounceSignedMaterialWithActions,
   stepAnnounceValidateWithActions,
   stepPackAnnouncePayloadWithActions,
   stepParseAnnouncePayloadWithActions,
@@ -124,14 +127,25 @@ export class Announce {
     const publicKey = destination.identity.getPublicKey();
     const ratchetPublicKey = options.ratchetPublicKey ?? null;
     const appData = options.appData ?? null;
-    const signedData = announceSignedMaterial({
-      destinationHash: destination.hash,
-      publicKey,
-      nameHash: destination.nameHash,
-      randomHash,
-      ratchetPublicKey,
-      appData
-    });
+    const signedStepped = stepAnnounceSignedMaterialWithActions(
+      initialAnnounceSignedMaterialState(),
+      {
+        kind: "announce/signed-material-gate",
+        destinationHash: destination.hash,
+        publicKey,
+        nameHash: destination.nameHash,
+        randomHash,
+        ratchetPublicKey,
+        appData
+      }
+    );
+    const signedData =
+      shouldUseAnnounceSignedMaterial(signedStepped.actions)
+        ? announceSignedMaterialRawFromActions(signedStepped.actions)
+        : null;
+    if (signedData === null) {
+      throw new Error("Announce signed material: missing use-raw action");
+    }
     const signature = destination.identity.sign(signedData);
     const packStepped = stepPackAnnouncePayloadWithActions(initialPackAnnouncePayloadState(), {
       kind: "announce/pack-payload-gate",
@@ -203,15 +217,24 @@ export class Announce {
         publicKeyLoaded
       })
     ) {
-      const signedData = announceSignedMaterial({
-        destinationHash: parsed!.destinationHash,
-        publicKey: parsed!.publicKey,
-        nameHash: parsed!.nameHash,
-        randomHash: parsed!.randomHash,
-        ratchetPublicKey: parsed!.ratchetPublicKey,
-        appData: parsed!.appData
-      });
-      signatureValid = identity!.validate(parsed!.signature, signedData);
+      const signedStepped = stepAnnounceSignedMaterialWithActions(
+        initialAnnounceSignedMaterialState(),
+        {
+          kind: "announce/signed-material-gate",
+          destinationHash: parsed!.destinationHash,
+          publicKey: parsed!.publicKey,
+          nameHash: parsed!.nameHash,
+          randomHash: parsed!.randomHash,
+          ratchetPublicKey: parsed!.ratchetPublicKey,
+          appData: parsed!.appData
+        }
+      );
+      const signedData =
+        shouldUseAnnounceSignedMaterial(signedStepped.actions)
+          ? announceSignedMaterialRawFromActions(signedStepped.actions)
+          : null;
+      signatureValid =
+        signedData !== null && identity!.validate(parsed!.signature, signedData);
     }
 
     let destinationHashMatches = false;

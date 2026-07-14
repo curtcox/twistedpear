@@ -1,9 +1,9 @@
 /**
  * Pure RNS announce payload framing and signed-material assembly.
  * Signing / hashing stay at the crypto adapter edge.
- * Pack / parse / validate / build conclusions leave via machine actions
- * (no ad-hoc `packAnnouncePayload` / `parseAnnouncePayload` / `plan` string
- * reads beside the step).
+ * Pack / parse / validate / build / signed-material conclusions leave via
+ * machine actions (no ad-hoc `packAnnouncePayload` / `parseAnnouncePayload` /
+ * `announceSignedMaterial` / `plan` string reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_ANNOUNCE } from "./packet-header.js";
@@ -51,6 +51,81 @@ export function announceSignedMaterial(input: {
     input.ratchetPublicKey ?? new Uint8Array(),
     input.appData ?? new Uint8Array()
   );
+}
+
+/**
+ * Announce signed-material assembly is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `announceSignedMaterial`
+ * reads beside the step).
+ */
+export type AnnounceSignedMaterialState = Record<string, never>;
+
+export type AnnounceSignedMaterialEvent =
+  | Event
+  | {
+      readonly kind: "announce/signed-material-gate";
+      readonly destinationHash: Uint8Array;
+      readonly publicKey: Uint8Array;
+      readonly nameHash: Uint8Array;
+      readonly randomHash: Uint8Array;
+      readonly ratchetPublicKey: Uint8Array | null;
+      readonly appData: Uint8Array | null;
+    };
+
+export type AnnounceSignedMaterialAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface AnnounceSignedMaterialStepResult {
+  readonly state: AnnounceSignedMaterialState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AnnounceSignedMaterialAction[];
+}
+
+export function initialAnnounceSignedMaterialState(): AnnounceSignedMaterialState {
+  return {};
+}
+
+export function stepAnnounceSignedMaterialWithActions(
+  state: AnnounceSignedMaterialState,
+  event: AnnounceSignedMaterialEvent
+): AnnounceSignedMaterialStepResult {
+  if (event.kind === "announce/signed-material-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: announceSignedMaterial({
+            destinationHash: event.destinationHash,
+            publicKey: event.publicKey,
+            nameHash: event.nameHash,
+            randomHash: event.randomHash,
+            ratchetPublicKey: event.ratchetPublicKey,
+            appData: event.appData
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseAnnounceSignedMaterial(
+  actions: ReadonlyArray<AnnounceSignedMaterialAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract announce signed material from step actions; null when no `use-raw`. */
+export function announceSignedMaterialRawFromActions(
+  actions: ReadonlyArray<AnnounceSignedMaterialAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
 }
 
 export function packAnnouncePayload(input: {

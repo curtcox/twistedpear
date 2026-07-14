@@ -3,10 +3,12 @@ import {
   LINK_IDENTIFY_PAYLOAD_SIZE,
   canAcceptLinkIdentify,
   initialLinkIdentifyState,
+  initialLinkIdentifySignedMaterialState,
   initialPackLinkIdentifyPayloadState,
   initialSplitLinkIdentifyPayloadState,
   linkIdentifyPayloadFieldsFromActions,
   linkIdentifySignedMaterial,
+  linkIdentifySignedMaterialRawFromActions,
   packLinkIdentifyPayload,
   packLinkIdentifyPayloadRawFromActions,
   planLinkIdentifyOutcome,
@@ -15,10 +17,12 @@ import {
   shouldRejectLinkIdentify,
   shouldRejectPackLinkIdentifyPayload,
   shouldRejectSplitLinkIdentifyPayload,
+  shouldUseLinkIdentifySignedMaterial,
   shouldUsePackLinkIdentifyPayload,
   shouldUseSplitLinkIdentifyPayload,
   splitLinkIdentifyPayload,
   stepLinkIdentifyWithActions,
+  stepLinkIdentifySignedMaterialWithActions,
   stepPackLinkIdentifyPayloadWithActions,
   stepSplitLinkIdentifyPayloadWithActions
 } from "../src/link-identify.js";
@@ -250,7 +254,21 @@ describe("protocol link identify", () => {
   it("builds signed material as linkId || publicKey", () => {
     const linkId = Uint8Array.from([1, 2, 3]);
     const publicKey = Uint8Array.from([4, 5]);
-    expect([...linkIdentifySignedMaterial(linkId, publicKey)]).toEqual([1, 2, 3, 4, 5]);
+    const signed = linkIdentifySignedMaterial(linkId, publicKey);
+    expect([...signed]).toEqual([1, 2, 3, 4, 5]);
+
+    const signedStepped = stepLinkIdentifySignedMaterialWithActions(
+      initialLinkIdentifySignedMaterialState(),
+      {
+        kind: "link-identify/signed-material-gate",
+        linkId,
+        publicKey
+      }
+    );
+    expect(shouldUseLinkIdentifySignedMaterial(signedStepped.actions)).toBe(true);
+    const signedFromActions = linkIdentifySignedMaterialRawFromActions(signedStepped.actions);
+    expect(signedFromActions).not.toBeNull();
+    expect([...signedFromActions!]).toEqual([...signed]);
   });
 });
 

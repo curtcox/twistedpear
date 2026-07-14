@@ -24,7 +24,8 @@
 > and **establish status transitions** (handshake/proof/RTT/identify gates) are pure
 > protocol leaves; `Link` adapts them. **Link identify** payload framing (pack/split via
 > **`stepPackLinkIdentifyPayloadWithActions`** /
-> **`stepSplitLinkIdentifyPayloadWithActions`**: use-raw|reject / use-fields|reject) and
+> **`stepSplitLinkIdentifyPayloadWithActions`**: use-raw|reject / use-fields|reject;
+> signed material via **`stepLinkIdentifySignedMaterialWithActions`**: use-raw) and
 > acceptance gates are pure protocol leaves; `Link` adapts them. **MDU /
 > hops-match** metrics are pure protocol leaves. **LXMF propagation quota / eviction
 > planning** (store via **`stepPropagationStoreWithActions`**) and **propagation /get
@@ -107,7 +108,8 @@
 > **`stepPathRequestTagKeyWithActions`**: use-raw / use-fields|reject /
 > use-key) is a pure protocol leaf; transport path helpers adapt it.
 > **Announce payload framing** (pack/parse via **`stepPackAnnouncePayloadWithActions`** /
-> **`stepParseAnnouncePayloadWithActions`**: use-raw / use-fields|reject; signed material)
+> **`stepParseAnnouncePayloadWithActions`**: use-raw / use-fields|reject; signed material via
+> **`stepAnnounceSignedMaterialWithActions`**: use-raw)
 > and **packet proof framing**
 > (pack/split via **`stepPackPacketProofWithActions`** /
 > **`stepSplitPacketProofWithActions`**: use-raw / use-fields|reject; explicit/implicit)
@@ -886,6 +888,7 @@
 > rewrite-packet-hops / build-path-request-data /
 > parse-path-request-data / path-request-tag-key /
 > pack-announce-payload / parse-announce-payload /
+> announce-signed-material /
 > pack-packet-proof / split-packet-proof /
 > encode-packet-raw / decode-packet-raw /
 > pack-packet-flags / unpack-packet-flags / packet-hashable-part /
@@ -912,7 +915,8 @@
 > pack-lxmf-wire / split-lxmf-wire /
 > pack-lxmf-destination-prefixed / split-lxmf-destination-prefixed /
 > lxmf-inbound-delivery / pack-link-identify-payload /
-> split-link-identify-payload / pack-web-identity-record /
+> split-link-identify-payload / link-identify-signed-material /
+> pack-web-identity-record /
 > split-web-identity-record / encode-ws-binary-frame /
 > decode-ws-client-frame / encode-hdlc-frame / decode-hdlc-frames /
 > decode-lxmf-peer-error / pack-lxm-payload / unpack-lxm-payload /
@@ -1057,9 +1061,11 @@
 > those actions (no ad-hoc `buildPathRequestData` / `parsePathRequestData` /
 > `pathRequestTagKey` reads beside the step).
 > **`stepPackAnnouncePayloadWithActions`** /
-> **`stepParseAnnouncePayloadWithActions`** emit `use-raw` / `use-fields`|`reject`;
-> announce pack / parse apply only from those actions (no ad-hoc
-> `packAnnouncePayload` / `parseAnnouncePayload` reads beside the step).
+> **`stepParseAnnouncePayloadWithActions`** /
+> **`stepAnnounceSignedMaterialWithActions`** emit `use-raw` /
+> `use-fields`|`reject` / `use-raw`; announce pack / parse / signed-material
+> apply only from those actions (no ad-hoc `packAnnouncePayload` /
+> `parseAnnouncePayload` / `announceSignedMaterial` reads beside the step).
 > **`stepPackPacketProofWithActions`** /
 > **`stepSplitPacketProofWithActions`** emit `use-raw` / `use-fields`|`reject`;
 > packet-proof pack / split apply only from those actions (no ad-hoc
@@ -1170,10 +1176,12 @@
 > `packLxmfDestinationPrefixed` / `splitLxmfDestinationPrefixed` /
 > `lxmfInboundDeliveryBytes` reads beside the step).
 > **`stepPackLinkIdentifyPayloadWithActions`** /
-> **`stepSplitLinkIdentifyPayloadWithActions`** emit `use-raw`|`reject` /
-> `use-fields`|`reject`; Link identify payload pack / split apply only from
-> those actions (no ad-hoc `packLinkIdentifyPayload` /
-> `splitLinkIdentifyPayload` reads beside the step).
+> **`stepSplitLinkIdentifyPayloadWithActions`** /
+> **`stepLinkIdentifySignedMaterialWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject` / `use-raw`; Link identify payload pack / split /
+> signed-material apply only from those actions (no ad-hoc
+> `packLinkIdentifyPayload` / `splitLinkIdentifyPayload` /
+> `linkIdentifySignedMaterial` reads beside the step).
 > **`stepPackWebIdentityRecordWithActions`** /
 > **`stepSplitWebIdentityRecordWithActions`** emit `use-raw`|`reject` /
 > `use-fields`|`reject`; web-identity salt||iv||ciphertext pack / split apply
