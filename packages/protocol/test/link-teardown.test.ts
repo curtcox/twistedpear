@@ -5,9 +5,17 @@ import {
 } from "../src/channel-envelope.js";
 import { PacketReceiptStatus } from "../src/packet-receipt-timeout.js";
 import {
+  initialLinkTeardownState,
+  linkTeardownRemoteCloseAction,
+  linkTeardownSendThenCloseAction,
   planLinkTeardown,
   planLinkTeardownReason,
-  shouldAcceptLinkTeardown
+  shouldAcceptLinkTeardown,
+  shouldAcceptRemoteLinkTeardown,
+  shouldCloseOnlyLinkTeardown,
+  shouldSendLinkTeardownThenClose,
+  stepLinkTeardown,
+  stepLinkTeardownWithActions
 } from "../src/link-teardown.js";
 import { LinkStatus, LinkTeardownReason } from "../src/link-watchdog.js";
 
@@ -67,5 +75,103 @@ describe("link teardown planning", () => {
         linkIdMatches: false
       })
     ).toBe(false);
+  });
+
+  it("emits teardown actions for local close-only / send / remote accept", () => {
+    const pending = initialLinkTeardownState({
+      status: LinkStatus.PENDING,
+      initiator: true
+    });
+    const closeOnly = stepLinkTeardownWithActions(pending, { kind: "teardown/local" });
+    expect(closeOnly.actions).toEqual([{ kind: "close-only" }]);
+    expect(shouldCloseOnlyLinkTeardown(closeOnly.actions)).toBe(true);
+    expect(closeOnly.state.status).toBe(LinkStatus.CLOSED);
+
+    const active = initialLinkTeardownState({
+      status: LinkStatus.ACTIVE,
+      initiator: true
+    });
+    const send = stepLinkTeardownWithActions(active, { kind: "teardown/local" });
+    expect(send.actions).toEqual([
+      {
+        kind: "send-teardown-then-close",
+        reason: LinkTeardownReason.INITIATOR_CLOSED
+      }
+    ]);
+    expect(shouldSendLinkTeardownThenClose(send.actions)).toBe(true);
+    expect(linkTeardownSendThenCloseAction(send.actions)).toEqual(send.actions[0]);
+
+    const responder = stepLinkTeardownWithActions(
+      initialLinkTeardownState({ status: LinkStatus.HANDSHAKE, initiator: false }),
+      { kind: "teardown/local" }
+    );
+    expect(responder.actions).toEqual([
+      {
+        kind: "send-teardown-then-close",
+        reason: LinkTeardownReason.DESTINATION_CLOSED
+      }
+    ]);
+
+    const ignored = stepLinkTeardownWithActions(active, {
+      kind: "teardown/remote",
+      plaintextPresent: true,
+      linkIdMatches: false
+    });
+    expect(ignored.actions).toEqual([]);
+    expect(shouldAcceptRemoteLinkTeardown(ignored.actions)).toBe(false);
+
+    const remote = stepLinkTeardownWithActions(active, {
+      kind: "teardown/remote",
+      plaintextPresent: true,
+      linkIdMatches: true
+    });
+    expect(remote.actions).toEqual([
+      {
+        kind: "accept-remote-close",
+        reason: LinkTeardownReason.DESTINATION_CLOSED
+      }
+    ]);
+    expect(shouldAcceptRemoteLinkTeardown(remote.actions)).toBe(true);
+    expect(linkTeardownRemoteCloseAction(remote.actions)).toEqual(remote.actions[0]);
+
+    const stripped = stepLinkTeardown(pending, { kind: "teardown/local" });
+    expect(stripped).toEqual({
+      state: closeOnly.state,
+      intents: closeOnly.intents
+    });
+  });
+
+  it("teardown actions double-run identically", () => {
+    const run = () => {
+      const steps = [];
+      steps.push(
+        stepLinkTeardownWithActions(
+          initialLinkTeardownState({ status: LinkStatus.PENDING, initiator: true }),
+          { kind: "teardown/local" }
+        )
+      );
+      steps.push(
+        stepLinkTeardownWithActions(
+          initialLinkTeardownState({ status: LinkStatus.ACTIVE, initiator: false }),
+          { kind: "teardown/local" }
+        )
+      );
+      steps.push(
+        stepLinkTeardownWithActions(
+          initialLinkTeardownState({ status: LinkStatus.ACTIVE, initiator: true }),
+          {
+            kind: "teardown/remote",
+            plaintextPresent: true,
+            linkIdMatches: true
+          }
+        )
+      );
+      return steps.map((s) => ({
+        status: s.state.status,
+        actions: s.actions,
+        intents: s.intents
+      }));
+    };
+    expect(run()).toEqual(run());
   });
 });

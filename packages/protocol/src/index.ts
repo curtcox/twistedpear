@@ -108,10 +108,22 @@ export {
   type LinkResourceConcludePlan
 } from "./link-resource-accept.js";
 export {
+  initialLinkTeardownState,
+  linkTeardownRemoteCloseAction,
+  linkTeardownSendThenCloseAction,
   planLinkTeardown,
   planLinkTeardownReason,
   shouldAcceptLinkTeardown,
-  type LinkTeardownPlan
+  shouldAcceptRemoteLinkTeardown,
+  shouldCloseOnlyLinkTeardown,
+  shouldSendLinkTeardownThenClose,
+  stepLinkTeardown,
+  stepLinkTeardownWithActions,
+  type LinkTeardownAction,
+  type LinkTeardownEvent,
+  type LinkTeardownPlan,
+  type LinkTeardownState,
+  type LinkTeardownStepResult
 } from "./link-teardown.js";
 export {
   computeResourceTimeout,

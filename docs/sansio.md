@@ -342,6 +342,10 @@
 > (with initiator `sendRtt` + `activateMembership` flags) / `failed`; `Link`
 > handshake, validateProof, and handleRtt apply status and edge IO only from
 > those actions.
+> **`stepLinkTeardownWithActions`** emits `close-only` /
+> `send-teardown-then-close` (with reason) / `accept-remote-close`; `Link`
+> teardown and LINKCLOSE handling apply send/reason/close only from those
+> actions (no ad-hoc `plan.kind` reads).
 > **`shouldDeliverPendingLinkAppResponse`** / **`shouldCommitLinkRemoteIdentity`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -376,10 +380,10 @@
 > establish/timeout, LXMF outbound link-await, and propagation app-request
 > awaits all conclude via machine resolve/reject actions (adapters no longer
 > finish by reading `state.concluded` beside probes). PacketReceipt
-> timeout/delivery/failed, Channel TX timeout/retry/give-up, and Link
-> establish handshake/activate/fail also conclude via machine actions (no
-> ad-hoc `state.timedOut` / `plan.kind` / establish-status reads beside the
-> step).
+> timeout/delivery/failed, Channel TX timeout/retry/give-up, Link establish
+> handshake/activate/fail, and Link teardown local/remote close also conclude
+> via machine actions (no ad-hoc `state.timedOut` / `plan.kind` /
+> establish-status reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

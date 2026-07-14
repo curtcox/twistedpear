@@ -51,12 +51,15 @@ import {
   isLinkKeepaliveProbe,
   isExpectedLinkMode,
   isLinkModeEnabled,
+  initialLinkTeardownState,
   linkEstablishActivatedAction,
   linkHopsMatch,
   linkIdentifySignedMaterial,
   linkProofSignedMaterial,
   linkReadyForNewResource,
   linkRequestHashablePart,
+  linkTeardownRemoteCloseAction,
+  linkTeardownSendThenCloseAction,
   mergeLinkRtt,
   modeFromLinkProofData,
   modeFromLinkRequestData,
@@ -84,18 +87,17 @@ import {
   planLinkResourceAdvertisement,
   planLinkResourceConclude,
   planLinkRttOutcome,
-  planLinkTeardown,
-  planLinkTeardownReason,
   planLinkTokenAccess,
   planLinkValidateRequest,
   planUnregisterPendingLinkRequest,
   shouldAcceptLinkPacketInterface,
-  shouldAcceptLinkTeardown,
+  shouldAcceptRemoteLinkTeardown,
   shouldAcceptResourceHashmapUpdateFrame,
   shouldAcceptResourceProofPayload,
   shouldAcceptResourceProofSplit,
   shouldActivateLinkEstablish,
   shouldAttemptLinkProofCrypto,
+  shouldCloseOnlyLinkTeardown,
   shouldContinueLinkValidateRequest,
   shouldCreateLinkChannel,
   shouldCommitLinkRemoteIdentity,
@@ -111,6 +113,7 @@ import {
   shouldRegisterPendingLinkRequest,
   shouldRemoveLinkResourceListIndex,
   shouldReplyKeepaliveProbe,
+  shouldSendLinkTeardownThenClose,
   shouldTeardownLinkFromRtt,
   shouldUnregisterPendingLinkRequest,
   shouldUpdateLinkLastData,
@@ -125,12 +128,14 @@ import {
   splitResourceProof,
   splitResponderLinkEntropy,
   stepLinkEstablishWithActions,
+  stepLinkTeardownWithActions,
   stepLinkWatchdogWithActions,
   utf8Encode,
   type LinkEstablishAction,
   type LinkModeValue,
   type LinkResourceStrategyValue,
   type LinkStatusValue,
+  type LinkTeardownAction,
   type LinkTeardownReasonValue,
   type LinkWatchdogState,
   type LinkWatchdogStepResult
@@ -1081,18 +1086,12 @@ export class Link {
   }
 
   async teardown(): Promise<void> {
-    const plan = planLinkTeardown(this.status);
-    if (plan.kind === "close-only") {
-      this.close();
-      return;
-    }
-
-    await this.sendTeardownPacket();
-    this.teardownReason = planLinkTeardownReason({
-      initiator: this.initiator,
-      remote: false
-    });
-    this.close();
+    await this.applyLinkTeardownActions(
+      stepLinkTeardownWithActions(
+        initialLinkTeardownState({ status: this.status, initiator: this.initiator }),
+        { kind: "teardown/local" }
+      ).actions
+    );
   }
 
   close(): void {
@@ -1380,19 +1379,43 @@ export class Link {
 
   private async handleTeardownPacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (
-      !shouldAcceptLinkTeardown({
-        plaintextPresent: plaintext !== null,
-        linkIdMatches: plaintext !== null && equalBytes(plaintext, this.linkId)
-      })
-    ) {
+    await this.applyLinkTeardownActions(
+      stepLinkTeardownWithActions(
+        initialLinkTeardownState({ status: this.status, initiator: this.initiator }),
+        {
+          kind: "teardown/remote",
+          plaintextPresent: plaintext !== null,
+          linkIdMatches: plaintext !== null && equalBytes(plaintext, this.linkId)
+        }
+      ).actions
+    );
+  }
+
+  private async applyLinkTeardownActions(actions: readonly LinkTeardownAction[]): Promise<void> {
+    if (shouldCloseOnlyLinkTeardown(actions)) {
+      this.close();
       return;
     }
 
-    this.teardownReason = planLinkTeardownReason({
-      initiator: this.initiator,
-      remote: true
-    });
+    if (shouldSendLinkTeardownThenClose(actions)) {
+      const send = linkTeardownSendThenCloseAction(actions);
+      if (send === null) {
+        return;
+      }
+      await this.sendTeardownPacket();
+      this.teardownReason = send.reason;
+      this.close();
+      return;
+    }
+
+    if (!shouldAcceptRemoteLinkTeardown(actions)) {
+      return;
+    }
+    const remote = linkTeardownRemoteCloseAction(actions);
+    if (remote === null) {
+      return;
+    }
+    this.teardownReason = remote.reason;
     this.close();
   }
 
