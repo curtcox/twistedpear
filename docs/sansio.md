@@ -337,7 +337,10 @@
 > intents (no Promise.`delay`/`sleep` polls): **`stepPathAwait`** /
 > **`stepPathResponseGrace`** (`TransportNode`), **`stepDeliveryReceiptPoll`**
 > (LXMF router), and **`stepResourceAdvertiseWait`** (`Resource.advertise`).
-> Poll arms emit the first `timer/set`; terminal probes emit `timer/cancel`.
+> **`stepPathAwait`** / **`stepDeliveryReceiptPoll`** arms emit a `probe`
+> action; continuing status events emit `timer/set`; terminal probes emit
+> `timer/cancel`. Timer callbacks only re-enter via `timer/fired` → probe
+> actions (no ad-hoc status reads beside the machine).
 > **`stepPropagationTransfer`** link-establish timeout (`PROPAGATION_LINK_TIMER_ID`)
 > is adapted by `PropagationClient` (no parallel `stepLinkAwait`); cancel /
 > link-ready / link-timeout emit `timer/cancel`.
@@ -347,8 +350,11 @@
 > for the public async API.
 > Remaining depth work: Link/Channel/LXMF orchestration shells that still
 > hold Promise/callback continuations around already-pure step cores (watchdog
-> ticks are already intent-driven; delivery-receipt / path-await polls still
-> probe inside timer callbacks rather than via machine actions).
+> ticks are already intent-driven). Delivery-receipt and path-await polls now
+> emit `probe` machine actions; adapters observe receipt/path status only when
+> applying those actions (timer callbacks no longer probe ad hoc). Resource
+> advertise-wait still probes inside its timer callback rather than via a
+> `timer/fired` → probe action path.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

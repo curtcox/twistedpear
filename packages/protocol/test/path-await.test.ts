@@ -5,12 +5,12 @@ import {
   PATH_AWAIT_TIMER_ID,
   initialPathAwaitState,
   shouldContinuePathAwait,
-  stepPathAwait
+  stepPathAwaitWithActions
 } from "../src/path-await.js";
 
 describe("protocol path await", () => {
-  it("arms with a deadline and first poll timer", () => {
-    const result = stepPathAwait(initialPathAwaitState(), {
+  it("arms with a deadline and immediate probe action", () => {
+    const result = stepPathAwaitWithActions(initialPathAwaitState(), {
       kind: "path-await/arm",
       at: 1_000,
       timeoutMs: PATH_AWAIT_DEFAULT_TIMEOUT_MS
@@ -18,23 +18,20 @@ describe("protocol path await", () => {
     expect(result.state.armed).toBe(true);
     expect(result.state.deadlineMs).toBe(1_000 + PATH_AWAIT_DEFAULT_TIMEOUT_MS);
     expect(result.state.concluded).toBe(false);
-    expect(result.intents).toEqual([
-      {
-        kind: "timer/set",
-        timer: { id: PATH_AWAIT_TIMER_ID, delayMs: PATH_AWAIT_POLL_INTERVAL_MS }
-      }
-    ]);
+    expect(result.intents).toEqual([]);
+    expect(result.actions).toEqual([{ kind: "probe" }]);
   });
 
   it("concludes when a path becomes present and cancels the poll timer", () => {
-    let state = stepPathAwait(initialPathAwaitState(), {
+    let state = stepPathAwaitWithActions(initialPathAwaitState(), {
       kind: "path-await/arm",
       at: 0,
       timeoutMs: 1_000
     }).state;
-    const result = stepPathAwait(state, {
+    const result = stepPathAwaitWithActions(state, {
       kind: "path-await/path-status",
-      present: true
+      present: true,
+      at: 0
     });
     expect(result.state.concluded).toBe(true);
     expect(result.state.found).toBe(true);
@@ -45,59 +42,83 @@ describe("protocol path await", () => {
   });
 
   it("schedules polls until the deadline then concludes not-found", () => {
-    let state = stepPathAwait(initialPathAwaitState(), {
+    let state = stepPathAwaitWithActions(initialPathAwaitState(), {
       kind: "path-await/arm",
       at: 0,
       timeoutMs: 100
     }).state;
-    state = stepPathAwait(state, {
+    let step = stepPathAwaitWithActions(state, {
       kind: "path-await/path-status",
-      present: false
-    }).state;
-    expect(state.concluded).toBe(false);
-
-    const mid = stepPathAwait(state, {
-      kind: "timer/fired",
-      id: PATH_AWAIT_TIMER_ID,
-      at: 40
+      present: false,
+      at: 0
     });
-    expect(mid.state.concluded).toBe(false);
-    expect(mid.intents).toEqual([
+    expect(step.state.concluded).toBe(false);
+    expect(step.intents).toEqual([
       {
         kind: "timer/set",
         timer: { id: PATH_AWAIT_TIMER_ID, delayMs: PATH_AWAIT_POLL_INTERVAL_MS }
       }
     ]);
+    state = step.state;
 
-    const done = stepPathAwait(mid.state, {
+    step = stepPathAwaitWithActions(state, {
+      kind: "timer/fired",
+      id: PATH_AWAIT_TIMER_ID,
+      at: 40
+    });
+    expect(step.state.concluded).toBe(false);
+    expect(step.actions).toEqual([{ kind: "probe" }]);
+    expect(step.intents).toEqual([]);
+    state = step.state;
+
+    step = stepPathAwaitWithActions(state, {
+      kind: "path-await/path-status",
+      present: false,
+      at: 40
+    });
+    expect(step.state.concluded).toBe(false);
+    expect(step.intents[0]?.kind).toBe("timer/set");
+    state = step.state;
+
+    step = stepPathAwaitWithActions(state, {
       kind: "timer/fired",
       id: PATH_AWAIT_TIMER_ID,
       at: 100
     });
-    expect(done.state.concluded).toBe(true);
-    expect(done.state.found).toBe(false);
-    expect(done.intents).toEqual([]);
+    expect(step.actions).toEqual([{ kind: "probe" }]);
+    state = step.state;
+
+    step = stepPathAwaitWithActions(state, {
+      kind: "path-await/path-status",
+      present: false,
+      at: 100
+    });
+    expect(step.state.concluded).toBe(true);
+    expect(step.state.found).toBe(false);
   });
 
   it("ignores probes when not armed or already concluded", () => {
-    const unarmed = stepPathAwait(initialPathAwaitState(), {
+    const unarmed = stepPathAwaitWithActions(initialPathAwaitState(), {
       kind: "path-await/path-status",
-      present: true
+      present: true,
+      at: 0
     });
     expect(unarmed.state.concluded).toBe(false);
 
-    let state = stepPathAwait(initialPathAwaitState(), {
+    let state = stepPathAwaitWithActions(initialPathAwaitState(), {
       kind: "path-await/arm",
       at: 0,
       timeoutMs: 100
     }).state;
-    state = stepPathAwait(state, {
+    state = stepPathAwaitWithActions(state, {
       kind: "path-await/path-status",
-      present: true
+      present: true,
+      at: 0
     }).state;
-    const after = stepPathAwait(state, {
+    const after = stepPathAwaitWithActions(state, {
       kind: "path-await/path-status",
-      present: false
+      present: false,
+      at: 50
     });
     expect(after.state.concluded).toBe(true);
     expect(after.state.found).toBe(true);
@@ -108,7 +129,7 @@ describe("protocol path await", () => {
       let state = initialPathAwaitState();
       const steps = [];
       steps.push(
-        stepPathAwait(state, {
+        stepPathAwaitWithActions(state, {
           kind: "path-await/arm",
           at: 0,
           timeoutMs: 100
@@ -116,14 +137,15 @@ describe("protocol path await", () => {
       );
       state = steps[0]!.state;
       steps.push(
-        stepPathAwait(state, {
+        stepPathAwaitWithActions(state, {
           kind: "path-await/path-status",
-          present: false
+          present: false,
+          at: 0
         })
       );
       state = steps[1]!.state;
       steps.push(
-        stepPathAwait(state, {
+        stepPathAwaitWithActions(state, {
           kind: "timer/fired",
           id: PATH_AWAIT_TIMER_ID,
           at: 40
@@ -131,15 +153,17 @@ describe("protocol path await", () => {
       );
       state = steps[2]!.state;
       steps.push(
-        stepPathAwait(state, {
+        stepPathAwaitWithActions(state, {
           kind: "path-await/path-status",
-          present: true
+          present: true,
+          at: 40
         })
       );
-      return steps.map((step) => ({
-        concluded: step.state.concluded,
-        found: step.state.found,
-        intents: step.intents
+      return steps.map((s) => ({
+        concluded: s.state.concluded,
+        found: s.state.found,
+        intents: s.intents,
+        actions: s.actions
       }));
     };
     expect(run()).toEqual(run());

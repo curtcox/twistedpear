@@ -8,7 +8,7 @@ import {
   initialPathAwaitState,
   initialPathResponseGraceState,
   shouldTransmitPathResponse,
-  stepPathAwait,
+  stepPathAwaitWithActions,
   stepPathResponseGraceWithActions,
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
   appendPathRandomBlob,
@@ -329,21 +329,28 @@ export class LeafTransport {
 
     this.requestPath(destinationHash);
     return new Promise<boolean>((resolve) => {
-      const armed = stepPathAwait(initialPathAwaitState(), {
+      const armed = stepPathAwaitWithActions(initialPathAwaitState(), {
         kind: "path-await/arm",
         at: this.clock.now(),
         timeoutMs: timeoutSeconds * 1000
-      } as never);
+      });
       let state = armed.state;
       let timer: Timer | null = null;
+      let concluded = false;
 
       const finish = (found: boolean): void => {
+        if (concluded) {
+          return;
+        }
+        concluded = true;
         timer?.cancel();
         timer = null;
         resolve(found);
       };
 
-      const applyIntents = (intents: readonly Intent[]): void => {
+      const applyIntents = (
+        intents: ReturnType<typeof stepPathAwaitWithActions>["intents"]
+      ): void => {
         for (const intent of intents) {
           if (intent.kind === "timer/cancel" && intent.timer.id === PATH_AWAIT_TIMER_ID) {
             timer?.cancel();
@@ -353,43 +360,44 @@ export class LeafTransport {
             timer?.cancel();
             timer = this.clock.setTimeout(() => {
               timer = null;
-              const probe = stepPathAwait(state, {
-                kind: "path-await/path-status",
-                present: this.hasPath(destinationHash)
-              } as never);
-              state = probe.state;
-              applyIntents(probe.intents);
-              if (state.concluded) {
-                finish(state.found);
-                return;
-              }
-
-              const tick = stepPathAwait(state, {
+              const tick = stepPathAwaitWithActions(state, {
                 kind: "timer/fired",
                 id: PATH_AWAIT_TIMER_ID,
                 at: this.clock.now()
               });
               state = tick.state;
               applyIntents(tick.intents);
+              applyActions(tick.actions);
               if (state.concluded) {
-                finish(state.found || this.hasPath(destinationHash));
+                finish(state.found);
               }
             }, intent.timer.delayMs);
           }
         }
       };
 
-      const immediate = stepPathAwait(state, {
-        kind: "path-await/path-status",
-        present: this.hasPath(destinationHash)
-      } as never);
-      state = immediate.state;
-      applyIntents(immediate.intents);
-      if (state.concluded) {
-        finish(state.found);
-        return;
-      }
+      const applyActions = (
+        actions: ReturnType<typeof stepPathAwaitWithActions>["actions"]
+      ): void => {
+        for (const action of actions) {
+          if (action.kind === "probe") {
+            const probe = stepPathAwaitWithActions(state, {
+              kind: "path-await/path-status",
+              present: this.hasPath(destinationHash),
+              at: this.clock.now()
+            });
+            state = probe.state;
+            applyIntents(probe.intents);
+            applyActions(probe.actions);
+            if (state.concluded) {
+              finish(state.found);
+            }
+          }
+        }
+      };
+
       applyIntents(armed.intents);
+      applyActions(armed.actions);
     });
   }
 

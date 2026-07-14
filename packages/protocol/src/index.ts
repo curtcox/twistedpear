@@ -182,8 +182,11 @@ export {
   initialDeliveryReceiptPollState,
   isTerminalReceiptStatus,
   stepDeliveryReceiptPoll,
+  stepDeliveryReceiptPollWithActions,
+  type DeliveryReceiptPollAction,
   type DeliveryReceiptPollEvent,
   type DeliveryReceiptPollState,
+  type DeliveryReceiptPollStepResult,
   type ReceiptPollStatusValue
 } from "./delivery-receipt-poll.js";
 export {
@@ -249,8 +252,11 @@ export {
   initialPathAwaitState,
   shouldContinuePathAwait,
   stepPathAwait,
+  stepPathAwaitWithActions,
+  type PathAwaitAction,
   type PathAwaitEvent,
-  type PathAwaitState
+  type PathAwaitState,
+  type PathAwaitStepResult
 } from "./path-await.js";
 export {
   LINK_AWAIT_DEFAULT_TIMEOUT_MS,

@@ -29,12 +29,11 @@ import {
   shouldReuseActiveLink,
   shouldTeardownLxmfPropagationLink,
   splitLxmfDestinationPrefixed,
-  stepDeliveryReceiptPoll,
+  stepDeliveryReceiptPollWithActions,
   stepLinkAwaitWithActions,
   type LxmfSendEvent,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
-import type { Intent } from "@twistedpear/effects";
 import type { CryptoProvider, Link, Packet, PacketReceipt, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
 import {
   Destination,
@@ -277,21 +276,28 @@ export class LXMFRouter {
     timeoutMs = DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS
   ): Promise<void> {
     return new Promise<void>((resolve) => {
-      const armed = stepDeliveryReceiptPoll(initialDeliveryReceiptPollState(), {
+      const armed = stepDeliveryReceiptPollWithActions(initialDeliveryReceiptPollState(), {
         kind: "poll/arm",
         at: this.reticulum.runtime.clock.now(),
         timeoutMs
-      } as never);
+      });
       let state = armed.state;
       let timer: { cancel(): void } | null = null;
+      let concluded = false;
 
       const finish = (): void => {
+        if (concluded) {
+          return;
+        }
+        concluded = true;
         timer?.cancel();
         timer = null;
         resolve();
       };
 
-      const applyIntents = (intents: readonly Intent[]): void => {
+      const applyIntents = (
+        intents: ReturnType<typeof stepDeliveryReceiptPollWithActions>["intents"]
+      ): void => {
         for (const intent of intents) {
           if (intent.kind === "timer/cancel" && intent.timer.id === DELIVERY_RECEIPT_POLL_TIMER_ID) {
             timer?.cancel();
@@ -301,24 +307,14 @@ export class LXMFRouter {
             timer?.cancel();
             timer = this.reticulum.runtime.clock.setTimeout(() => {
               timer = null;
-              const probe = stepDeliveryReceiptPoll(state, {
-                kind: "poll/receipt-status",
-                status: receipt.status as ReceiptPollStatusValue
-              } as never);
-              state = probe.state;
-              applyIntents(probe.intents);
-              if (state.concluded) {
-                finish();
-                return;
-              }
-
-              const tick = stepDeliveryReceiptPoll(state, {
+              const tick = stepDeliveryReceiptPollWithActions(state, {
                 kind: "timer/fired",
                 id: DELIVERY_RECEIPT_POLL_TIMER_ID,
                 at: this.reticulum.runtime.clock.now()
               });
               state = tick.state;
               applyIntents(tick.intents);
+              applyActions(tick.actions);
               if (state.concluded) {
                 finish();
               }
@@ -327,17 +323,28 @@ export class LXMFRouter {
         }
       };
 
-      const immediate = stepDeliveryReceiptPoll(state, {
-        kind: "poll/receipt-status",
-        status: receipt.status as ReceiptPollStatusValue
-      } as never);
-      state = immediate.state;
-      applyIntents(immediate.intents);
-      if (state.concluded) {
-        finish();
-        return;
-      }
+      const applyActions = (
+        actions: ReturnType<typeof stepDeliveryReceiptPollWithActions>["actions"]
+      ): void => {
+        for (const action of actions) {
+          if (action.kind === "probe") {
+            const probe = stepDeliveryReceiptPollWithActions(state, {
+              kind: "poll/receipt-status",
+              status: receipt.status as ReceiptPollStatusValue,
+              at: this.reticulum.runtime.clock.now()
+            });
+            state = probe.state;
+            applyIntents(probe.intents);
+            applyActions(probe.actions);
+            if (state.concluded) {
+              finish();
+            }
+          }
+        }
+      };
+
       applyIntents(armed.intents);
+      applyActions(armed.actions);
     });
   }
 

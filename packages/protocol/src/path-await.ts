@@ -1,6 +1,6 @@
 /**
  * Pure path-await poll loop for TransportNode.awaitPath.
- * Path presence arrives as probe events; adapters schedule from timer intents.
+ * Path presence is observed only via probe actions; adapters schedule from timer intents.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PATH_REQUEST_TIMEOUT_SECONDS } from "./path-table.js";
@@ -20,7 +20,19 @@ export interface PathAwaitState {
 export type PathAwaitEvent =
   | Event
   | { readonly kind: "path-await/arm"; readonly at: number; readonly timeoutMs: number }
-  | { readonly kind: "path-await/path-status"; readonly present: boolean };
+  | {
+      readonly kind: "path-await/path-status";
+      readonly present: boolean;
+      readonly at: number;
+    };
+
+export type PathAwaitAction = { readonly kind: "probe" };
+
+export interface PathAwaitStepResult {
+  readonly state: PathAwaitState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PathAwaitAction[];
+}
 
 export function initialPathAwaitState(): PathAwaitState {
   return {
@@ -37,13 +49,22 @@ export function shouldContinuePathAwait(concluded: boolean): boolean {
   return !concluded;
 }
 
-export const stepPathAwait: StepFn<PathAwaitState> = (state, event) =>
-  stepPathAwaitInner(state, event as PathAwaitEvent);
+export const stepPathAwait: StepFn<PathAwaitState> = (state, event) => {
+  const result = stepPathAwaitInner(state, event as PathAwaitEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepPathAwaitWithActions(
+  state: PathAwaitState,
+  event: PathAwaitEvent
+): PathAwaitStepResult {
+  return stepPathAwaitInner(state, event);
+}
 
 function stepPathAwaitInner(
   state: PathAwaitState,
   event: PathAwaitEvent
-): { state: PathAwaitState; intents: Intent[] } {
+): PathAwaitStepResult {
   if (event.kind === "path-await/arm") {
     return {
       state: {
@@ -53,18 +74,14 @@ function stepPathAwaitInner(
         concluded: false,
         found: false
       },
-      intents: [
-        {
-          kind: "timer/set",
-          timer: { id: PATH_AWAIT_TIMER_ID, delayMs: PATH_AWAIT_POLL_INTERVAL_MS }
-        }
-      ]
+      intents: [],
+      actions: [{ kind: "probe" }]
     };
   }
 
   if (event.kind === "path-await/path-status") {
     if (!state.armed || state.concluded) {
-      return { state, intents: [] };
+      return { state, intents: [], actions: [] };
     }
     if (event.present) {
       return {
@@ -74,39 +91,44 @@ function stepPathAwaitInner(
           concluded: true,
           found: true
         },
-        intents: [{ kind: "timer/cancel", timer: { id: PATH_AWAIT_TIMER_ID } }]
+        intents: [{ kind: "timer/cancel", timer: { id: PATH_AWAIT_TIMER_ID } }],
+        actions: []
+      };
+    }
+    if (event.at >= state.deadlineMs) {
+      return {
+        state: {
+          ...state,
+          pathPresent: false,
+          concluded: true,
+          found: false
+        },
+        intents: [{ kind: "timer/cancel", timer: { id: PATH_AWAIT_TIMER_ID } }],
+        actions: []
       };
     }
     return {
       state: { ...state, pathPresent: false },
-      intents: []
-    };
-  }
-
-  if (event.kind === "timer/fired" && event.id === PATH_AWAIT_TIMER_ID) {
-    if (!state.armed || state.concluded) {
-      return { state, intents: [] };
-    }
-    if (state.pathPresent || event.at >= state.deadlineMs) {
-      return {
-        state: {
-          ...state,
-          concluded: true,
-          found: state.pathPresent
-        },
-        intents: []
-      };
-    }
-    return {
-      state,
       intents: [
         {
           kind: "timer/set",
           timer: { id: PATH_AWAIT_TIMER_ID, delayMs: PATH_AWAIT_POLL_INTERVAL_MS }
         }
-      ]
+      ],
+      actions: []
     };
   }
 
-  return { state, intents: [] };
+  if (event.kind === "timer/fired" && event.id === PATH_AWAIT_TIMER_ID) {
+    if (!state.armed || state.concluded) {
+      return { state, intents: [], actions: [] };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "probe" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
 }
