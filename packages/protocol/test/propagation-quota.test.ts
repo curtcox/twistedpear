@@ -1,17 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
   PROPAGATION_DESTINATION_HASH_SIZE,
+  initialPropagationStoreState,
   isPropagationMessageTooLarge,
   planPropagationRestore,
   planPropagationStore,
   propagationDestinationHash,
   propagationEntryVisibleToRecipient,
+  propagationStoreAcceptEvictKeys,
   selectOldestPropagationKey,
+  shouldAcceptPropagationStore,
   shouldApplyPropagationRestore,
   shouldCommitPropagationStoreEntry,
   shouldDeletePropagationCatalogEntry,
+  shouldDuplicatePropagationStore,
   shouldEvictOldestPropagationEntry,
   shouldEvictPropagationCatalogEntry,
+  shouldRejectPropagationStore,
+  stepPropagationStoreWithActions,
   type PropagationQuotas
 } from "../src/propagation-quota.js";
 
@@ -139,5 +145,93 @@ describe("protocol propagation quota", () => {
     expect(
       shouldEvictOldestPropagationEntry({ oldestKeyPresent: false, entryPresent: true })
     ).toBe(false);
+  });
+
+  it("emits reject / duplicate / accept actions from store/received", () => {
+    const tooLarge = stepPropagationStoreWithActions(initialPropagationStoreState(), {
+      kind: "store/received",
+      quotas,
+      messageBytes: 51,
+      alreadyStored: false,
+      usedBytes: 0,
+      entries: [],
+      destinationHashPresent: true
+    });
+    expect(shouldRejectPropagationStore(tooLarge.actions)).toBe(true);
+    expect(shouldAcceptPropagationStore(tooLarge.actions)).toBe(false);
+
+    const duplicate = stepPropagationStoreWithActions(initialPropagationStoreState(), {
+      kind: "store/received",
+      quotas,
+      messageBytes: 10,
+      alreadyStored: true,
+      usedBytes: 10,
+      entries: [{ key: "a", size: 10, storedAt: 1 }],
+      destinationHashPresent: true
+    });
+    expect(shouldDuplicatePropagationStore(duplicate.actions)).toBe(true);
+    expect(shouldRejectPropagationStore(duplicate.actions)).toBe(false);
+
+    const accepted = stepPropagationStoreWithActions(initialPropagationStoreState(), {
+      kind: "store/received",
+      quotas,
+      messageBytes: 40,
+      alreadyStored: false,
+      usedBytes: 80,
+      entries: [
+        { key: "old", size: 40, storedAt: 1 },
+        { key: "new", size: 40, storedAt: 2 }
+      ],
+      destinationHashPresent: true
+    });
+    expect(shouldAcceptPropagationStore(accepted.actions)).toBe(true);
+    expect(propagationStoreAcceptEvictKeys(accepted.actions)).toEqual(["old"]);
+
+    const missingHash = stepPropagationStoreWithActions(initialPropagationStoreState(), {
+      kind: "store/received",
+      quotas,
+      messageBytes: 10,
+      alreadyStored: false,
+      usedBytes: 0,
+      entries: [],
+      destinationHashPresent: false
+    });
+    expect(shouldRejectPropagationStore(missingHash.actions)).toBe(true);
+
+    const capacity = stepPropagationStoreWithActions(initialPropagationStoreState(), {
+      kind: "store/received",
+      quotas: { maxBytes: 30, maxMessages: 10, maxMessageBytes: 50 },
+      messageBytes: 40,
+      alreadyStored: false,
+      usedBytes: 0,
+      entries: [],
+      destinationHashPresent: true
+    });
+    expect(shouldRejectPropagationStore(capacity.actions)).toBe(true);
+
+    expect(
+      stepPropagationStoreWithActions(initialPropagationStoreState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
+  });
+
+  it("is deterministic for store receive events", () => {
+    const state = initialPropagationStoreState();
+    const event = {
+      kind: "store/received" as const,
+      quotas,
+      messageBytes: 10,
+      alreadyStored: false,
+      usedBytes: 0,
+      entries: [] as const,
+      destinationHashPresent: true
+    };
+    const a = stepPropagationStoreWithActions(state, event);
+    const b = stepPropagationStoreWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 });

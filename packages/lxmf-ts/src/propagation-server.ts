@@ -2,21 +2,26 @@ import {
   allowClientRequest as checkClientRateLimit,
   decodeLxmfPeerError,
   initialPersistDebounceState,
+  initialPropagationStoreState,
   isPropagationMessageTooLarge,
   planPropagationGet,
   planPropagationRestore,
-  planPropagationStore,
   propagationDestinationHash,
+  propagationStoreAcceptEvictKeys,
   selectOldestPropagationKey,
   shouldAcceptPropagationGetRequestData,
+  shouldAcceptPropagationStore,
   shouldApplyPropagationRestore,
-  shouldCommitPropagationStoreEntry,
   shouldDeletePropagationCatalogEntry,
+  shouldDuplicatePropagationStore,
   shouldEvictOldestPropagationEntry,
   shouldEvictPropagationCatalogEntry,
+  shouldRejectPropagationStore,
   stepPersistDebounceWithActions,
+  stepPropagationStoreWithActions,
   type ClientRateBucket,
-  type PersistDebounceState
+  type PersistDebounceState,
+  type PropagationStoreAction
 } from "@twistedpear/protocol";
 import type { CryptoProvider, Identity, RegisteredDestination } from "@twistedpear/reticulum-ts";
 import {
@@ -146,7 +151,9 @@ export class PropagationServer {
   storePropagationData(lxmfData: Uint8Array): Uint8Array | null {
     const transientId = RnsIdentity.fullHash(this.provider, lxmfData);
     const key = Buffer.from(transientId).toString("hex");
-    const plan = planPropagationStore({
+    const destinationHash = propagationDestinationHash(lxmfData);
+    const stepped = stepPropagationStoreWithActions(initialPropagationStoreState(), {
+      kind: "store/received",
       quotas: this.quotas,
       messageBytes: lxmfData.length,
       alreadyStored: this.entries.has(key),
@@ -155,17 +162,38 @@ export class PropagationServer {
         key: entryKey,
         size: entry.size,
         storedAt: entry.storedAt
-      }))
+      })),
+      destinationHashPresent: destinationHash !== null
     });
+    return this.applyPropagationStoreActions(stepped.actions, {
+      transientId,
+      key,
+      lxmfData,
+      destinationHash
+    });
+  }
 
-    if (plan.kind === "reject-too-large" || plan.kind === "reject-capacity") {
+  private applyPropagationStoreActions(
+    actions: readonly PropagationStoreAction[],
+    input: {
+      readonly transientId: Uint8Array;
+      readonly key: string;
+      readonly lxmfData: Uint8Array;
+      readonly destinationHash: Uint8Array | null;
+    }
+  ): Uint8Array | null {
+    if (shouldRejectPropagationStore(actions)) {
       return null;
     }
-    if (plan.kind === "duplicate") {
-      return transientId;
+    if (shouldDuplicatePropagationStore(actions)) {
+      return input.transientId;
+    }
+    if (!shouldAcceptPropagationStore(actions) || input.destinationHash === null) {
+      return null;
     }
 
-    for (const evictKey of plan.evictKeys) {
+    const evictKeys = propagationStoreAcceptEvictKeys(actions) ?? [];
+    for (const evictKey of evictKeys) {
       const entry = this.entries.get(evictKey);
       if (shouldEvictPropagationCatalogEntry(entry !== undefined)) {
         this.delete(entry!.transientId);
@@ -173,22 +201,17 @@ export class PropagationServer {
       }
     }
 
-    const destinationHash = propagationDestinationHash(lxmfData);
-    if (!shouldCommitPropagationStoreEntry(destinationHash !== null)) {
-      return null;
-    }
-
     const storedAt = this.now();
-    this.entries.set(key, {
-      transientId,
-      destinationHash: Uint8Array.from(destinationHash!),
-      lxmfData: Uint8Array.from(lxmfData),
+    this.entries.set(input.key, {
+      transientId: input.transientId,
+      destinationHash: Uint8Array.from(input.destinationHash),
+      lxmfData: Uint8Array.from(input.lxmfData),
       storedAt,
-      size: lxmfData.length
+      size: input.lxmfData.length
     });
-    this.usedBytes += lxmfData.length;
+    this.usedBytes += input.lxmfData.length;
     this.schedulePersist();
-    return transientId;
+    return input.transientId;
   }
 
   delete(transientId: Uint8Array): boolean {

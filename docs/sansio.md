@@ -19,9 +19,10 @@
 > and **establish status transitions** (handshake/proof/RTT/identify gates) are pure
 > protocol leaves; `Link` adapts them. **Link identify** payload framing/gates and **MDU /
 > hops-match** metrics are pure protocol leaves. **LXMF propagation quota / eviction
-> planning** and **propagation /get request planning** (list / delete / fetch visibility)
-> are pure protocol leaves; `PropagationServer` and peer propagation adapt them. **Link
-> request / response msgpack codecs** are pure protocol leaves; reticulum re-exports them.
+> planning** (store via **`stepPropagationStoreWithActions`**) and **propagation /get
+> request planning** (list / delete / fetch visibility) are pure protocol leaves;
+> `PropagationServer` and peer propagation adapt them. **Link request / response
+> msgpack codecs** are pure protocol leaves; reticulum re-exports them.
 > **Destination name expansion / hash material** and shared **UTF-8** helpers are pure
 > protocol leaves; `Destination` and path-hash call sites adapt them (SHA stays at the
 > crypto edge). **Msgpack string / string-map** packing and **resource advertisement**
@@ -359,6 +360,10 @@
 > LINKIDENTIFY handling applies remoteIdentity + callback only from those
 > actions (no ad-hoc `planLinkIdentifyOutcome` / `shouldCommitLinkRemoteIdentity`
 > reads beside the step).
+> **`stepPropagationStoreWithActions`** emits `reject` / `duplicate` /
+> `accept` (with evict keys); `PropagationServer.storePropagationData` applies
+> eviction + commit only from those actions (no ad-hoc `plan.kind` /
+> `shouldCommitPropagationStoreEntry` reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -396,9 +401,10 @@
 > timeout/delivery/failed, Channel TX timeout/retry/give-up, Link establish
 > handshake/activate/fail/LRRTT, Link teardown local/remote close, Link
 > RESOURCE_ADV accept/ask-app/reject, Link inbound app-request
-> invoke/response, and Link LINKIDENTIFY reject/commit also conclude via
-> machine actions (no ad-hoc `state.timedOut` / `plan.kind` / establish-status /
-> dispatch / identify-outcome reads beside the step).
+> invoke/response, Link LINKIDENTIFY reject/commit, and propagation-store
+> reject/duplicate/accept also conclude via machine actions (no ad-hoc
+> `state.timedOut` / `plan.kind` / establish-status / dispatch /
+> identify-outcome reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

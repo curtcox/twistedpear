@@ -1,7 +1,10 @@
 /**
  * Pure LXMF propagation-server quota and eviction planning.
  * Persistence and hashing stay at the adapter edge.
+ * Store conclusions leave via machine actions (no ad-hoc `plan.kind` reads
+ * beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
 
 export const PROPAGATION_DESTINATION_HASH_SIZE = 16;
@@ -123,6 +126,118 @@ export function shouldEvictOldestPropagationEntry(input: {
 /** Whether store may commit after destination-hash extraction succeeds. */
 export function shouldCommitPropagationStoreEntry(destinationHashPresent: boolean): boolean {
   return destinationHashPresent;
+}
+
+/**
+ * Store planning is event-driven; no durable session fields.
+ */
+export type PropagationStoreState = Record<string, never>;
+
+export type PropagationStoreEvent =
+  | Event
+  | {
+      readonly kind: "store/received";
+      readonly quotas: PropagationQuotas;
+      readonly messageBytes: number;
+      readonly alreadyStored: boolean;
+      readonly usedBytes: number;
+      readonly entries: ReadonlyArray<PropagationCatalogEntry>;
+      readonly destinationHashPresent: boolean;
+    };
+
+/**
+ * Adapter applies reject / duplicate / accept (with eviction keys) only from
+ * these actions.
+ */
+export type PropagationStoreAction =
+  | { readonly kind: "reject" }
+  | { readonly kind: "duplicate" }
+  | { readonly kind: "accept"; readonly evictKeys: readonly string[] };
+
+export interface PropagationStoreStepResult {
+  readonly state: PropagationStoreState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PropagationStoreAction[];
+}
+
+export function initialPropagationStoreState(): PropagationStoreState {
+  return {};
+}
+
+export const stepPropagationStore: StepFn<PropagationStoreState> = (state, event) => {
+  const result = stepPropagationStoreInner(state, event as PropagationStoreEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepPropagationStoreWithActions(
+  state: PropagationStoreState,
+  event: PropagationStoreEvent
+): PropagationStoreStepResult {
+  return stepPropagationStoreInner(state, event);
+}
+
+/** Whether step actions include reject (too-large / capacity / missing hash). */
+export function shouldRejectPropagationStore(
+  actions: ReadonlyArray<PropagationStoreAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Whether step actions include duplicate (already stored). */
+export function shouldDuplicatePropagationStore(
+  actions: ReadonlyArray<PropagationStoreAction>
+): boolean {
+  return actions.some((action) => action.kind === "duplicate");
+}
+
+/** Whether step actions include accept (evict then commit). */
+export function shouldAcceptPropagationStore(
+  actions: ReadonlyArray<PropagationStoreAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+/** Eviction keys from an accept action, if present. */
+export function propagationStoreAcceptEvictKeys(
+  actions: ReadonlyArray<PropagationStoreAction>
+): readonly string[] | null {
+  for (const action of actions) {
+    if (action.kind === "accept") {
+      return action.evictKeys;
+    }
+  }
+  return null;
+}
+
+function stepPropagationStoreInner(
+  state: PropagationStoreState,
+  event: PropagationStoreEvent
+): PropagationStoreStepResult {
+  if (event.kind === "store/received") {
+    const plan = planPropagationStore({
+      quotas: event.quotas,
+      messageBytes: event.messageBytes,
+      alreadyStored: event.alreadyStored,
+      usedBytes: event.usedBytes,
+      entries: event.entries
+    });
+    if (plan.kind === "reject-too-large" || plan.kind === "reject-capacity") {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    if (plan.kind === "duplicate") {
+      return { state, intents: [], actions: [{ kind: "duplicate" }] };
+    }
+    if (!shouldCommitPropagationStoreEntry(event.destinationHashPresent)) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "accept", evictKeys: plan.evictKeys }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 /** Whether delete may remove a catalog entry after lookup. */

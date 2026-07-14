@@ -738,21 +738,32 @@ export {
 } from "./link-metrics.js";
 export {
   PROPAGATION_DESTINATION_HASH_SIZE,
+  initialPropagationStoreState,
   isPropagationMessageTooLarge,
   planPropagationRestore,
   planPropagationStore,
   propagationDestinationHash,
   propagationEntryVisibleToRecipient,
+  propagationStoreAcceptEvictKeys,
   selectOldestPropagationKey,
+  shouldAcceptPropagationStore,
   shouldApplyPropagationRestore,
   shouldCommitPropagationStoreEntry,
   shouldDeletePropagationCatalogEntry,
+  shouldDuplicatePropagationStore,
   shouldEvictOldestPropagationEntry,
   shouldEvictPropagationCatalogEntry,
+  shouldRejectPropagationStore,
+  stepPropagationStore,
+  stepPropagationStoreWithActions,
   type PropagationCatalogEntry,
   type PropagationQuotas,
   type PropagationRestorePlan,
-  type PropagationStorePlan
+  type PropagationStoreAction,
+  type PropagationStoreEvent,
+  type PropagationStorePlan,
+  type PropagationStoreState,
+  type PropagationStoreStepResult
 } from "./propagation-quota.js";
 export {
   planPropagationGet,
