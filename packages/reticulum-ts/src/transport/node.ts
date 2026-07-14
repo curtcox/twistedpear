@@ -2,8 +2,12 @@ import {
   DestinationProofStrategyCode,
   PATHFINDER_EXPIRY_SECONDS,
   PATHFINDER_MAX_HOPS,
+  PATH_AWAIT_TIMER_ID,
   PATH_REQUEST_GRACE_MS,
   PATH_REQUEST_TIMEOUT_SECONDS,
+  initialPathAwaitState,
+  shouldContinuePathAwait,
+  stepPathAwait,
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
   appendPathRandomBlob,
   canEmitDestinationProof,
@@ -326,16 +330,39 @@ export class LeafTransport {
     }
 
     this.requestPath(destinationHash);
-    const deadline = this.clock.now() + timeoutSeconds * 1000;
-    while (this.clock.now() < deadline) {
-      if (this.hasPath(destinationHash)) {
-        return true;
+    let state = stepPathAwait(initialPathAwaitState(), {
+      kind: "path-await/arm",
+      at: this.clock.now(),
+      timeoutMs: timeoutSeconds * 1000
+    } as never).state;
+
+    while (shouldContinuePathAwait(state.concluded)) {
+      state = stepPathAwait(state, {
+        kind: "path-await/path-status",
+        present: this.hasPath(destinationHash)
+      } as never).state;
+      if (state.concluded) {
+        return state.found;
       }
 
-      await this.delay(50);
+      const tick = stepPathAwait(state, {
+        kind: "timer/fired",
+        id: PATH_AWAIT_TIMER_ID,
+        at: this.clock.now()
+      });
+      state = tick.state;
+      if (state.concluded) {
+        return state.found || this.hasPath(destinationHash);
+      }
+
+      for (const intent of tick.intents) {
+        if (intent.kind === "timer/set" && intent.timer.id === PATH_AWAIT_TIMER_ID) {
+          await this.delay(intent.timer.delayMs);
+        }
+      }
     }
 
-    return this.hasPath(destinationHash);
+    return state.found || this.hasPath(destinationHash);
   }
 
   registerLink(link: Link): void {

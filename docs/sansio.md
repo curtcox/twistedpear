@@ -317,7 +317,8 @@
 > live in protocol; Link, TransportNode, PacketReceipt, LXMF, PropagationServer, Buffer,
 > and LeafTransport adapt them. **`stepResourceAdvertiseWait`** (queue until link ready
 > for a new resource; timer intents + queue actions) lives in protocol; `Resource.advertise`
-> adapts it.
+> adapts it. **`stepPathAwait`** (poll until path present or deadline; timer intents)
+> lives in protocol; `TransportNode.awaitPath` adapts it.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

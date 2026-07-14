@@ -240,6 +240,16 @@ export {
   type AnnounceRateState
 } from "./announce-rate.js";
 export {
+  PATH_AWAIT_DEFAULT_TIMEOUT_MS,
+  PATH_AWAIT_POLL_INTERVAL_MS,
+  PATH_AWAIT_TIMER_ID,
+  initialPathAwaitState,
+  shouldContinuePathAwait,
+  stepPathAwait,
+  type PathAwaitEvent,
+  type PathAwaitState
+} from "./path-await.js";
+export {
   PATHFINDER_EXPIRY_SECONDS,
   PATHFINDER_MAX_HOPS,
   PATH_REQUEST_GRACE_MS,
