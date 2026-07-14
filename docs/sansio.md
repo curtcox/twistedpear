@@ -63,7 +63,10 @@
 > **Transport wrap / strip / relay / hop-rewrite framing** (via
 > **`stepWrapTransportPacketWithActions`** / **`stepStripTransportHeadersWithActions`** /
 > **`stepRelayTransportPacketWithActions`** / **`stepRewritePacketHopsWithActions`**:
-> use-raw) and **resource proof** pack/validate live in protocol; transport +
+> use-raw) and **resource proof** framing (pack/split / decrypted-payload via
+> **`stepPackResourceProofWithActions`** / **`stepSplitResourceProofWithActions`** /
+> **`stepSplitResourceDecryptedPayloadWithActions`**: use-raw / use-fields|reject;
+> validate via **`stepResourceProofAcceptWithActions`**) live in protocol; `Link` +
 > `Resource` adapt them. **Transport hop-clone /
 > announce / path-response field planning** (via **`stepClonePacketWithHopsWithActions`** /
 > **`stepTransportAnnounceFieldsWithActions`** /
@@ -766,7 +769,9 @@
 > pack-announce-payload / parse-announce-payload /
 > pack-packet-proof / split-packet-proof /
 > pack-link-proof-data / split-link-proof-body /
-> pack-link-request-data / split-link-request-data reads
+> pack-link-request-data / split-link-request-data /
+> pack-resource-proof / split-resource-proof /
+> split-resource-decrypted-payload reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -821,6 +826,13 @@
 > link-proof / link-request pack / split apply only from those actions (no ad-hoc
 > `packLinkProofData` / `splitLinkProofBody` / `packLinkRequestData` /
 > `splitLinkRequestData` reads beside the step).
+> **`stepPackResourceProofWithActions`** /
+> **`stepSplitResourceProofWithActions`** /
+> **`stepSplitResourceDecryptedPayloadWithActions`** emit `use-raw` /
+> `use-fields`|`reject` / `use-raw`|`reject`; resource-proof pack / split and
+> decrypted-payload strip apply only from those actions (no ad-hoc
+> `packResourceProof` / `splitResourceProof` /
+> `splitResourceDecryptedPayload` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

@@ -114,7 +114,6 @@ import {
   shouldAcceptRemoteLinkTeardown,
   shouldAcceptResourceHashmapUpdateFrame,
   shouldAcceptResourceProofPayload,
-  shouldAcceptResourceProofSplit,
   shouldActivateLinkEstablish,
   shouldAskAppLinkResourceAdvertisement,
   shouldAttemptLinkProofCrypto,
@@ -181,8 +180,11 @@ import {
   splitInitiatorLinkEntropy,
   splitLinkIdentifyPayload,
   splitResourceHashmapUpdatePacket,
-  splitResourceProof,
   splitResponderLinkEntropy,
+  initialSplitResourceProofState,
+  resourceProofFieldsFromActions,
+  shouldRejectSplitResourceProof,
+  shouldUseSplitResourceProof,
   stepLinkAppRequestInboundWithActions,
   stepLinkAppRequestTransmitWithActions,
   stepLinkAppRequestWithActions,
@@ -197,6 +199,7 @@ import {
   stepLinkTokenAccessWithActions,
   stepLinkValidateRequestWithActions,
   stepLinkWatchdogWithActions,
+  stepSplitResourceProofWithActions,
   utf8Encode,
   type LinkAppRequestInboundAction,
   type LinkAppRequestInboundState,
@@ -1611,12 +1614,20 @@ export class Link {
     if (!shouldAcceptResourceProofPayload(packet.data.length)) {
       return;
     }
-    const split = splitResourceProof(packet.data);
-    if (!shouldAcceptResourceProofSplit(split !== null)) {
+    const stepped = stepSplitResourceProofWithActions(initialSplitResourceProofState(), {
+      kind: "resource-proof/split-gate",
+      proofData: packet.data
+    });
+    const split =
+      shouldRejectSplitResourceProof(stepped.actions) ||
+      !shouldUseSplitResourceProof(stepped.actions)
+        ? null
+        : resourceProofFieldsFromActions(stepped.actions);
+    if (split === null) {
       return;
     }
     for (const resource of this.outgoingResourcesList) {
-      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split!.resourceHash))) {
+      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split.resourceHash))) {
         resource.validateProof(packet.data);
         return;
       }

@@ -39,25 +39,36 @@ import {
   packResourceAdvertisement,
   packResourceHashmapUpdate,
   packResourceHashmapUpdatePacket,
-  packResourceProof,
+  packResourceProofRawFromActions,
   parseResourcePartRequest,
   applyResourceHashmapSlotWrites,
+  initialPackResourceProofState,
   initialResourceAssembleState,
   initialResourceHashmapUpdateAcceptState,
   initialResourcePartRequestState,
   initialResourceProofAcceptState,
   initialResourceReceivePartState,
   initialResourceRequestFulfillState,
+  initialSplitResourceDecryptedPayloadState,
+  initialSplitResourceProofState,
   resourceAdvertisementRoleFlagsFromActions,
+  resourceDecryptedPayloadFromActions,
   resourceHashmapSlotWritesFromActions,
   resourcePartRequestFromActions,
+  resourceProofFieldsFromActions,
   resourceReceivePartFromActions,
   resourceRequestFulfillFromActions,
   shouldApplyResourceHashmapUpdateAccept,
   shouldCompleteResourceAssemble,
   shouldCompleteResourceProofAccept,
+  shouldRejectSplitResourceDecryptedPayload,
+  shouldRejectSplitResourceProof,
+  shouldUsePackResourceProof,
   shouldUseResourceAdvertisementRoleFlags,
+  shouldUseSplitResourceDecryptedPayload,
+  shouldUseSplitResourceProof,
   shouldWriteResourceHashmapSlots,
+  stepPackResourceProofWithActions,
   stepResourceAdvertisementRoleFlagsWithActions,
   stepResourceAssembleWithActions,
   stepResourceHashmapSlotWritesWithActions,
@@ -66,6 +77,8 @@ import {
   stepResourceProofAcceptWithActions,
   stepResourceReceivePartWithActions,
   stepResourceRequestFulfillWithActions,
+  stepSplitResourceDecryptedPayloadWithActions,
+  stepSplitResourceProofWithActions,
   readResourceRequestHash,
   appendResourceMapHashCollisionGuard,
   containsResourceHash,
@@ -74,9 +87,7 @@ import {
   resourceHashMaterial,
   resourceHashmapMaxLen,
   resourcePartMapHashMaterial,
-  isValidResourceProof,
   isValidResourceRandomHashLength,
-  splitResourceDecryptedPayload,
   splitResourceHashmapUpdatePacket,
   shouldAcceptIncomingResourceAdvertisement,
   shouldAdvertiseResource,
@@ -848,7 +859,22 @@ export class Resource {
       this.applyStatus({ kind: "resource/assemble" });
       const stream = assembleByteArrays(this.receivedParts.map((part) => part!));
       const decrypted = this.link.decrypt(stream);
-      const payload = decrypted === null ? null : splitResourceDecryptedPayload(decrypted);
+      const decryptedStepped =
+        decrypted === null
+          ? null
+          : stepSplitResourceDecryptedPayloadWithActions(
+              initialSplitResourceDecryptedPayloadState(),
+              {
+                kind: "resource-proof/split-decrypted-gate",
+                decrypted
+              }
+            );
+      const payload =
+        decryptedStepped === null ||
+        shouldRejectSplitResourceDecryptedPayload(decryptedStepped.actions) ||
+        !shouldUseSplitResourceDecryptedPayload(decryptedStepped.actions)
+          ? null
+          : resourceDecryptedPayloadFromActions(decryptedStepped.actions);
       const calculatedHash =
         payload === null
           ? null
@@ -893,15 +919,36 @@ export class Resource {
       this.provider,
       resourceExpectedProofMaterial(this.data!, this.hash)
     );
-    const proofData = packResourceProof(this.hash, proof);
+    const stepped = stepPackResourceProofWithActions(initialPackResourceProofState(), {
+      kind: "resource-proof/pack-gate",
+      resourceHash: this.hash,
+      proofHash: proof
+    });
+    const proofData =
+      shouldUsePackResourceProof(stepped.actions)
+        ? packResourceProofRawFromActions(stepped.actions)
+        : null;
+    if (proofData === null) {
+      return;
+    }
     await this.link.sendProof(PacketContext.RESOURCE_PRF, proofData);
   }
 
   validateProof(proofData: Uint8Array): void {
+    const splitStepped = stepSplitResourceProofWithActions(initialSplitResourceProofState(), {
+      kind: "resource-proof/split-gate",
+      proofData
+    });
+    const split =
+      shouldRejectSplitResourceProof(splitStepped.actions) ||
+      !shouldUseSplitResourceProof(splitStepped.actions)
+        ? null
+        : resourceProofFieldsFromActions(splitStepped.actions);
     const { actions } = stepResourceProofAcceptWithActions(initialResourceProofAcceptState(), {
       kind: "resource/proof-accept-gate",
       status: this.status,
-      proofValid: isValidResourceProof(proofData, this.expectedProof)
+      proofValid:
+        split !== null && equalBytes(split.proofHash, this.expectedProof)
     });
     if (!shouldCompleteResourceProofAccept(actions)) {
       return;
