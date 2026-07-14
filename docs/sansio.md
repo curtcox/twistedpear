@@ -104,7 +104,9 @@
 > **Packet header** encode/decode (via **`stepEncodePacketRawWithActions`** /
 > **`stepDecodePacketRawWithActions`**: use-raw|reject / use-fields|reject),
 > flag packing, and hashable-part framing are pure protocol leaves; `Packet`
-> adapts them. **PKCS#7** padding and **LXMF delivery planning**
+> adapts them. **PKCS#7** padding (pad/unpad via
+> **`stepPkcs7PadWithActions`** / **`stepPkcs7UnpadWithActions`**: use-raw /
+> use-raw|reject) and **LXMF delivery planning**
 > (method/representation selection via **`stepLxmfDeliveryWithActions`**) are
 > pure protocol leaves; Token and `LXMessage` adapt them. **Token framing**
 > (key split / iv||ciphertext||hmac via **`stepPackTokenFrameWithActions`** /
@@ -865,7 +867,8 @@
 > decode-grant-record / pack-channel-envelope /
 > unpack-channel-envelope / pack-link-keepalive-probe /
 > pack-link-keepalive-reply / classify-link-keepalive /
-> pack-msgpack-float64 / unpack-msgpack-float reads
+> pack-msgpack-float64 / unpack-msgpack-float / pkcs7-pad /
+> pkcs7-unpad reads
 > beside the step).
 > **`stepPackStreamDataMessageWithActions`** /
 > **`stepUnpackStreamDataMessageWithActions`** emit `use-raw`|`reject` /
@@ -907,6 +910,9 @@
 > `use-fields`|`reject`; Link RTT msgpack float pack / unpack apply only
 > from those actions (no ad-hoc `msgpackPackFloat64` /
 > `msgpackUnpackFloat` reads beside the step).
+> **`stepPkcs7PadWithActions`** / **`stepPkcs7UnpadWithActions`** emit
+> `use-raw` / `use-raw`|`reject`; Token PKCS#7 pad / unpad apply only from
+> those actions (no ad-hoc `pkcs7Pad` / `pkcs7Unpad` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
 > only from those actions. **`stepChannelMessageHandlerUnregisterWithActions`**,

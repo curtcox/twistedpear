@@ -2141,7 +2141,28 @@ export {
   type PacketTypeCodeValue,
   type TransportTypeCodeValue
 } from "./packet-header.js";
-export { PKCS7_BLOCK_SIZE, pkcs7Pad, pkcs7Unpad } from "./pkcs7.js";
+export {
+  PKCS7_BLOCK_SIZE,
+  initialPackPkcs7State,
+  initialUnpackPkcs7State,
+  pkcs7Pad,
+  pkcs7PadRawFromActions,
+  pkcs7Unpad,
+  pkcs7UnpadRawFromActions,
+  shouldRejectPkcs7Unpad,
+  shouldUsePkcs7Pad,
+  shouldUsePkcs7Unpad,
+  stepPkcs7PadWithActions,
+  stepPkcs7UnpadWithActions,
+  type PackPkcs7Action,
+  type PackPkcs7Event,
+  type PackPkcs7State,
+  type PackPkcs7StepResult,
+  type UnpackPkcs7Action,
+  type UnpackPkcs7Event,
+  type UnpackPkcs7State,
+  type UnpackPkcs7StepResult
+} from "./pkcs7.js";
 export {
   LXMF_DESTINATION_LENGTH,
   LXMF_ENCRYPTED_PACKET_MAX_CONTENT,

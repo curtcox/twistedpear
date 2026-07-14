@@ -1,18 +1,25 @@
 import {
   TOKEN_IV_SIZE,
   TOKEN_OVERHEAD,
+  initialPackPkcs7State,
   initialPackTokenFrameState,
   initialSplitTokenFrameState,
+  initialUnpackPkcs7State,
   isValidTokenIvLength,
   packTokenFrameRawFromActions,
-  pkcs7Pad,
-  pkcs7Unpad,
+  pkcs7PadRawFromActions,
+  pkcs7UnpadRawFromActions,
   shouldAcceptTokenFrame,
   shouldRejectPackTokenFrame,
+  shouldRejectPkcs7Unpad,
   shouldUsePackTokenFrame,
+  shouldUsePkcs7Pad,
+  shouldUsePkcs7Unpad,
   shouldUseSplitTokenFrame,
   splitTokenKey,
   stepPackTokenFrameWithActions,
+  stepPkcs7PadWithActions,
+  stepPkcs7UnpadWithActions,
   stepSplitTokenFrameWithActions,
   tokenFrameFieldsFromActions,
   tokenHmacMatches,
@@ -77,10 +84,22 @@ export class Token {
       throw new Error(`Token IV must be ${TOKEN_IV_SIZE} bytes`);
     }
 
+    const padStepped = stepPkcs7PadWithActions(initialPackPkcs7State(), {
+      kind: "pkcs7/pad-gate",
+      data
+    });
+    if (!shouldUsePkcs7Pad(padStepped.actions)) {
+      throw new Error("Could not pad token plaintext");
+    }
+    const padded = pkcs7PadRawFromActions(padStepped.actions);
+    if (padded === null) {
+      throw new Error("Could not pad token plaintext");
+    }
+
     const ciphertext =
       this.mode === "aes256"
-        ? this.provider.aes256CbcEncrypt(pkcs7Pad(data), this.encryptionKey, iv)
-        : this.provider.aes128CbcEncrypt(pkcs7Pad(data), this.encryptionKey, iv);
+        ? this.provider.aes256CbcEncrypt(padded, this.encryptionKey, iv)
+        : this.provider.aes128CbcEncrypt(padded, this.encryptionKey, iv);
     const signedParts = tokenSignedMaterial(iv, ciphertext);
     const hmac = this.provider.hmacSha256(this.signingKey, signedParts);
     const stepped = stepPackTokenFrameWithActions(initialPackTokenFrameState(), {
@@ -122,7 +141,18 @@ export class Token {
         this.mode === "aes256"
           ? this.provider.aes256CbcDecrypt(frame!.ciphertext, this.encryptionKey, frame!.iv)
           : this.provider.aes128CbcDecrypt(frame!.ciphertext, this.encryptionKey, frame!.iv);
-      return pkcs7Unpad(decrypted);
+      const unpadStepped = stepPkcs7UnpadWithActions(initialUnpackPkcs7State(), {
+        kind: "pkcs7/unpad-gate",
+        data: decrypted
+      });
+      if (shouldRejectPkcs7Unpad(unpadStepped.actions) || !shouldUsePkcs7Unpad(unpadStepped.actions)) {
+        throw new Error("Could not decrypt token");
+      }
+      const plaintext = pkcs7UnpadRawFromActions(unpadStepped.actions);
+      if (plaintext === null) {
+        throw new Error("Could not decrypt token");
+      }
+      return plaintext;
     } catch {
       throw new Error("Could not decrypt token");
     }
