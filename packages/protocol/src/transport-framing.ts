@@ -1,7 +1,11 @@
 /**
  * Pure RNS transport header wrap / strip / relay framing.
  * Packet construction and iface send stay at the adapter edge.
+ * Wrap / strip / relay / hop-rewrite conclusions leave via machine actions
+ * (no ad-hoc `wrapTransportPacketBytes` / `stripTransportHeadersBytes` /
+ * `relayTransportPacketBytes` / `rewritePacketHopsBytes` reads beside the step).
  */
+import type { Event, Intent } from "@twistedpear/effects";
 
 export const PACKET_HEADER_1 = 0x00;
 export const PACKET_HEADER_2 = 0x01;
@@ -99,4 +103,263 @@ export function rewritePacketHopsBytes(raw: Uint8Array, hops: number): Uint8Arra
   output[1] = hops & 0xff;
   output.set(raw.subarray(2), 2);
   return output;
+}
+
+/**
+ * Transport wrap framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `wrapTransportPacketBytes`
+ * reads beside the step).
+ */
+export type WrapTransportPacketState = Record<string, never>;
+
+export type WrapTransportPacketEvent =
+  | Event
+  | {
+      readonly kind: "transport/wrap-packet-gate";
+      readonly packedFlags: number;
+      readonly hops: number;
+      readonly raw: Uint8Array;
+      readonly nextHop: Uint8Array;
+    };
+
+export type WrapTransportPacketAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface WrapTransportPacketStepResult {
+  readonly state: WrapTransportPacketState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly WrapTransportPacketAction[];
+}
+
+export function initialWrapTransportPacketState(): WrapTransportPacketState {
+  return {};
+}
+
+export function stepWrapTransportPacketWithActions(
+  state: WrapTransportPacketState,
+  event: WrapTransportPacketEvent
+): WrapTransportPacketStepResult {
+  if (event.kind === "transport/wrap-packet-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: wrapTransportPacketBytes({
+            packedFlags: event.packedFlags,
+            hops: event.hops,
+            raw: event.raw,
+            nextHop: event.nextHop
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseWrapTransportPacket(
+  actions: ReadonlyArray<WrapTransportPacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract wrap framing bytes from step actions; null when no `use-raw` action. */
+export function wrapTransportPacketRawFromActions(
+  actions: ReadonlyArray<WrapTransportPacketAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Transport header strip framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `stripTransportHeadersBytes`
+ * reads beside the step).
+ */
+export type StripTransportHeadersState = Record<string, never>;
+
+export type StripTransportHeadersEvent =
+  | Event
+  | {
+      readonly kind: "transport/strip-headers-gate";
+      readonly raw: Uint8Array;
+    };
+
+export type StripTransportHeadersAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface StripTransportHeadersStepResult {
+  readonly state: StripTransportHeadersState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly StripTransportHeadersAction[];
+}
+
+export function initialStripTransportHeadersState(): StripTransportHeadersState {
+  return {};
+}
+
+export function stepStripTransportHeadersWithActions(
+  state: StripTransportHeadersState,
+  event: StripTransportHeadersEvent
+): StripTransportHeadersStepResult {
+  if (event.kind === "transport/strip-headers-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-raw", raw: stripTransportHeadersBytes(event.raw) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseStripTransportHeaders(
+  actions: ReadonlyArray<StripTransportHeadersAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract strip framing bytes from step actions; null when no `use-raw` action. */
+export function stripTransportHeadersRawFromActions(
+  actions: ReadonlyArray<StripTransportHeadersAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Transport relay byte framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `relayTransportPacketBytes`
+ * reads beside the step).
+ */
+export type RelayTransportPacketState = Record<string, never>;
+
+export type RelayTransportPacketEvent =
+  | Event
+  | {
+      readonly kind: "transport/relay-packet-bytes-gate";
+      readonly raw: Uint8Array;
+      readonly hops: number;
+      readonly remainingHops: number;
+      readonly nextHop: Uint8Array;
+    };
+
+export type RelayTransportPacketAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface RelayTransportPacketStepResult {
+  readonly state: RelayTransportPacketState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RelayTransportPacketAction[];
+}
+
+export function initialRelayTransportPacketState(): RelayTransportPacketState {
+  return {};
+}
+
+export function stepRelayTransportPacketWithActions(
+  state: RelayTransportPacketState,
+  event: RelayTransportPacketEvent
+): RelayTransportPacketStepResult {
+  if (event.kind === "transport/relay-packet-bytes-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: relayTransportPacketBytes({
+            raw: event.raw,
+            hops: event.hops,
+            remainingHops: event.remainingHops,
+            nextHop: event.nextHop
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseRelayTransportPacket(
+  actions: ReadonlyArray<RelayTransportPacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract relay framing bytes from step actions; null when no `use-raw` action. */
+export function relayTransportPacketRawFromActions(
+  actions: ReadonlyArray<RelayTransportPacketAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Packet hop-byte rewrite is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `rewritePacketHopsBytes`
+ * reads beside the step).
+ */
+export type RewritePacketHopsState = Record<string, never>;
+
+export type RewritePacketHopsEvent =
+  | Event
+  | {
+      readonly kind: "transport/rewrite-packet-hops-gate";
+      readonly raw: Uint8Array;
+      readonly hops: number;
+    };
+
+export type RewritePacketHopsAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface RewritePacketHopsStepResult {
+  readonly state: RewritePacketHopsState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RewritePacketHopsAction[];
+}
+
+export function initialRewritePacketHopsState(): RewritePacketHopsState {
+  return {};
+}
+
+export function stepRewritePacketHopsWithActions(
+  state: RewritePacketHopsState,
+  event: RewritePacketHopsEvent
+): RewritePacketHopsStepResult {
+  if (event.kind === "transport/rewrite-packet-hops-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-raw", raw: rewritePacketHopsBytes(event.raw, event.hops) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseRewritePacketHops(
+  actions: ReadonlyArray<RewritePacketHopsAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract hop-rewrite framing bytes from step actions; null when no `use-raw` action. */
+export function rewritePacketHopsRawFromActions(
+  actions: ReadonlyArray<RewritePacketHopsAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
 }

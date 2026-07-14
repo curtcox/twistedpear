@@ -60,8 +60,11 @@
 > **`stepResourceRequestFulfillWithActions`** /
 > **`stepResourceHashmapUpdateAcceptWithActions`**) are pure protocol
 > leaves; `Resource` adapts them. Link RTT float encode/decode uses protocol msgpack.
-> **Transport wrap/strip/relay framing** and **resource proof** pack/validate are pure
-> protocol leaves; transport + `Resource` adapt them. **Transport hop-clone /
+> **Transport wrap / strip / relay / hop-rewrite framing** (via
+> **`stepWrapTransportPacketWithActions`** / **`stepStripTransportHeadersWithActions`** /
+> **`stepRelayTransportPacketWithActions`** / **`stepRewritePacketHopsWithActions`**:
+> use-raw) and **resource proof** pack/validate live in protocol; transport +
+> `Resource` adapt them. **Transport hop-clone /
 > announce / path-response field planning** (via **`stepClonePacketWithHopsWithActions`** /
 > **`stepTransportAnnounceFieldsWithActions`** /
 > **`stepPathResponseAnnounceFieldsWithActions`**: use-fields) lives in protocol;
@@ -98,11 +101,12 @@
 > **interface reconnect planning**, and Resource hashmap/part assembly via protocol
 > assemblers are pure protocol leaves; TCP/WebSocket clients and Resource adapt them.
 > **Transport announce / path-response / hop-clone field planning** applies only from
-> those `use-fields` actions (see above). Link proof paths use `splitIdentityPublicKey` for
+> those `use-fields` actions (see above). **Transport wrap / strip / relay /
+> hop-rewrite framing** applies only from those `use-raw` actions (see above).
+> Link proof paths use `splitIdentityPublicKey` for
 > owner/peer Ed25519 halves. **Interface reconnect** is now a pure step machine
 > (`timer/set` intents + connect/give-up actions); TCP/WebSocket clients adapt it.
-> **`rewritePacketHopsBytes`** frames forward/reverse relays; Link resource HMU/cancel
-> uses `splitResourceHashmapUpdatePacket`. Identity ratchet JSON, web-identity
+> Link resource HMU/cancel uses `splitResourceHashmapUpdatePacket`. Identity ratchet JSON, web-identity
 > passphrase bytes, and LXMF message text use protocol UTF-8 (no
 > `TextEncoder`/`TextDecoder`). **Hash truncation** (`truncateToTruncatedHash` /
 > `truncateToNameHash`), **packet context byte codes**, and **`utf8OrBytes`** are pure
@@ -742,7 +746,9 @@
 > link-initiator-mtu / link-request-responder-mtu / packet-hash-defer /
 > resource-advertisement-role-flags / resource-hashmap-slot-writes /
 > clone-packet-with-hops / transport-announce-fields /
-> path-response-announce-fields reads
+> path-response-announce-fields / wrap-transport-packet /
+> strip-transport-headers / relay-transport-packet-bytes /
+> rewrite-packet-hops reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -770,6 +776,12 @@
 > only from those actions (no ad-hoc `planClonePacketWithHops` /
 > `planTransportAnnounceFields` / `planPathResponseAnnounceFields` reads beside
 > the step).
+> **`stepWrapTransportPacketWithActions`** / **`stepStripTransportHeadersWithActions`** /
+> **`stepRelayTransportPacketWithActions`** / **`stepRewritePacketHopsWithActions`**
+> emit `use-raw`; transport wrap / strip / relay / hop-rewrite framing apply only
+> from those actions (no ad-hoc `wrapTransportPacketBytes` /
+> `stripTransportHeadersBytes` / `relayTransportPacketBytes` /
+> `rewritePacketHopsBytes` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

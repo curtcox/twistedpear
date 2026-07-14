@@ -104,7 +104,10 @@ import {
   shouldProveDestination,
   shouldAcceptPacketFilter,
   indexOfMatchingLinkId,
-  relayTransportPacketBytes,
+  initialRelayTransportPacketState,
+  initialRewritePacketHopsState,
+  initialStripTransportHeadersState,
+  initialWrapTransportPacketState,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
   shouldEmitPathRequest,
@@ -123,12 +126,22 @@ import {
   stepPathOutboundWithActions,
   stepPathRequestIngressWithActions,
   stepProofIngressWithActions,
+  stepRelayTransportPacketWithActions,
+  stepRewritePacketHopsWithActions,
+  stepStripTransportHeadersWithActions,
   stepTransportIngressDispatchWithActions,
   stepTransportMemberUnregisterWithActions,
+  stepWrapTransportPacketWithActions,
   transportMemberUnregisterIndex,
-  stripTransportHeadersBytes,
+  relayTransportPacketRawFromActions,
+  rewritePacketHopsRawFromActions,
+  shouldUseRelayTransportPacket,
+  shouldUseRewritePacketHops,
+  shouldUseStripTransportHeaders,
+  shouldUseWrapTransportPacket,
+  stripTransportHeadersRawFromActions,
   timebaseFromRandomBlobs as protocolTimebaseFromRandomBlobs,
-  wrapTransportPacketBytes,
+  wrapTransportPacketRawFromActions,
   type PacketHeaderFields
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "../crypto/provider.js";
@@ -1130,16 +1143,36 @@ export function timebaseFromRandomBlobs(randomBlobs: ReadonlyArray<Uint8Array>):
 }
 
 export function wrapTransportPacket(packet: Packet, nextHop: Uint8Array): Uint8Array {
-  return wrapTransportPacketBytes({
+  const stepped = stepWrapTransportPacketWithActions(initialWrapTransportPacketState(), {
+    kind: "transport/wrap-packet-gate",
     packedFlags: packet.packedFlags(),
     hops: packet.hops,
     raw: packet.raw,
     nextHop
   });
+  const raw =
+    shouldUseWrapTransportPacket(stepped.actions)
+      ? wrapTransportPacketRawFromActions(stepped.actions)
+      : null;
+  if (raw === null) {
+    throw new Error("wrapTransportPacket: missing use-raw action");
+  }
+  return raw;
 }
 
 export function stripTransportHeaders(raw: Uint8Array): Uint8Array {
-  return stripTransportHeadersBytes(raw);
+  const stepped = stepStripTransportHeadersWithActions(initialStripTransportHeadersState(), {
+    kind: "transport/strip-headers-gate",
+    raw
+  });
+  const stripped =
+    shouldUseStripTransportHeaders(stepped.actions)
+      ? stripTransportHeadersRawFromActions(stepped.actions)
+      : null;
+  if (stripped === null) {
+    throw new Error("stripTransportHeaders: missing use-raw action");
+  }
+  return stripped;
 }
 
 export function relayTransportPacket(
@@ -1147,12 +1180,37 @@ export function relayTransportPacket(
   remainingHops: number,
   nextHop: Uint8Array
 ): Uint8Array {
-  return relayTransportPacketBytes({
+  const stepped = stepRelayTransportPacketWithActions(initialRelayTransportPacketState(), {
+    kind: "transport/relay-packet-bytes-gate",
     raw: packet.raw,
     hops: packet.hops,
     remainingHops,
     nextHop
   });
+  const raw =
+    shouldUseRelayTransportPacket(stepped.actions)
+      ? relayTransportPacketRawFromActions(stepped.actions)
+      : null;
+  if (raw === null) {
+    throw new Error("relayTransportPacket: missing use-raw action");
+  }
+  return raw;
+}
+
+export function rewritePacketHops(raw: Uint8Array, hops: number): Uint8Array {
+  const stepped = stepRewritePacketHopsWithActions(initialRewritePacketHopsState(), {
+    kind: "transport/rewrite-packet-hops-gate",
+    raw,
+    hops
+  });
+  const rewritten =
+    shouldUseRewritePacketHops(stepped.actions)
+      ? rewritePacketHopsRawFromActions(stepped.actions)
+      : null;
+  if (rewritten === null) {
+    throw new Error("rewritePacketHops: missing use-raw action");
+  }
+  return rewritten;
 }
 
 export function buildTransportAnnounce(

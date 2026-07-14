@@ -14,7 +14,6 @@ import {
   initialPathRequestIngressState,
   initialReverseRelayOutcomeState,
   initialTransportIngressDispatchState,
-  rewritePacketHopsBytes,
   shouldApplyAnnounceRateLimit,
   shouldIgnoreLinkRelayTarget,
   shouldRebroadcastAnnounce,
@@ -86,6 +85,7 @@ import {
   cloneWithHops,
   hashKey,
   relayTransportPacket,
+  rewritePacketHops,
   type PathEntry
 } from "./node.js";
 import {
@@ -448,7 +448,7 @@ export class TransportNode extends LeafTransport {
       return false;
     }
 
-    const relayed = rewritePacketHopsBytes(packet.raw, packet.hops);
+    const relayed = rewritePacketHops(packet.raw, packet.hops);
     await this.transmit(outboundInterface!, relayed);
     return true;
   }
@@ -486,7 +486,7 @@ export class TransportNode extends LeafTransport {
       return false;
     }
 
-    const relayed = rewritePacketHopsBytes(packet.raw, packet.hops);
+    const relayed = rewritePacketHops(packet.raw, packet.hops);
     await this.transmit(entry!.receivedInterface, relayed);
     return true;
   }
