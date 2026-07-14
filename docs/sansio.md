@@ -153,7 +153,10 @@
 > **`stepStampCostFromAppDataWithActions`**: use-fields|reject) are pure
 > protocol leaves; Token and LXMF router adapt them. **Resource receive-part planning** (via
 > **`stepResourceReceivePartWithActions`**), **LXMF outer wire framing** (via
-> **`stepPackLxmfWireWithActions`** / **`stepSplitLxmfWireWithActions`**), and
+> **`stepPackLxmfWireWithActions`** / **`stepSplitLxmfWireWithActions`**;
+> hashable / signed / opportunistic via **`stepLxmfHashableMaterialWithActions`** /
+> **`stepLxmfSignedMaterialWithActions`** /
+> **`stepLxmfOpportunisticPayloadWithActions`**), and
 > PacketReceipt proof validation via **`stepSplitPacketProofWithActions`** /
 > **`stepPacketReceiptProofAcceptWithActions`** are pure protocol leaves.
 > **Identity ciphertext** framing (pack/split via
@@ -196,7 +199,11 @@
 > use-fields|reject) are pure protocol leaves; `Link` and `LXMFRouter` adapt them.
 > **LXMF outer wire framing** (pack/split via
 > **`stepPackLxmfWireWithActions`** / **`stepSplitLxmfWireWithActions`**: use-raw|reject /
-> use-fields|reject) is a pure protocol leaf; `LXMessage` adapts it. **Link proof signed
+> use-fields|reject; hashable / signed / opportunistic via
+> **`stepLxmfHashableMaterialWithActions`** /
+> **`stepLxmfSignedMaterialWithActions`** /
+> **`stepLxmfOpportunisticPayloadWithActions`**: use-raw / use-raw /
+> use-raw|reject) is a pure protocol leaf; `LXMessage` adapts it. **Link proof signed
 > material** / **link-request hashable truncation** (via
 > **`stepLinkProofSignedMaterialWithActions`** /
 > **`stepLinkRequestHashablePartWithActions`**: use-raw), **StreamDataMessage framing**
@@ -926,6 +933,8 @@
 > pack-token-frame / split-token-frame / split-token-key /
 > pack-identity-ciphertext / split-identity-ciphertext /
 > pack-lxmf-wire / split-lxmf-wire /
+> lxmf-hashable-material / lxmf-signed-material /
+> lxmf-opportunistic-payload /
 > pack-lxmf-destination-prefixed / split-lxmf-destination-prefixed /
 > lxmf-inbound-delivery / pack-link-identify-payload /
 > split-link-identify-payload / link-identify-signed-material /
@@ -1190,6 +1199,13 @@
 > **`stepSplitLxmfWireWithActions`** emit `use-raw`|`reject` /
 > `use-fields`|`reject`; LXMF outer wire pack / split apply only from those
 > actions (no ad-hoc `packLxmfWire` / `splitLxmfWire` reads beside the step).
+> **`stepLxmfHashableMaterialWithActions`** /
+> **`stepLxmfSignedMaterialWithActions`** /
+> **`stepLxmfOpportunisticPayloadWithActions`** emit `use-raw` / `use-raw` /
+> `use-raw`|`reject`; LXMF hashable / signed materials and opportunistic
+> payload strip apply only from those actions (no ad-hoc
+> `lxmfHashableMaterial` / `lxmfSignedMaterial` / `lxmfOpportunisticPayload`
+> reads beside the step).
 > **`stepPackLxmfDestinationPrefixedWithActions`** /
 > **`stepSplitLxmfDestinationPrefixedWithActions`** /
 > **`stepLxmfInboundDeliveryWithActions`** emit `use-raw`|`reject` /

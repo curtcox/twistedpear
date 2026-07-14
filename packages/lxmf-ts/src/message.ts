@@ -5,13 +5,13 @@ import {
   LXMF_LINK_PACKET_MAX_CONTENT,
   LXMF_LINK_PACKET_MDU,
   lxmfContentSizeFromPackedLength,
-  lxmfHashableMaterial,
-  lxmfOpportunisticPayload,
-  lxmfSignedMaterial,
   canExtractLxmfOpportunisticPayload,
   initialLxmfDeliveryState,
+  initialLxmfHashableMaterialState,
+  initialLxmfOpportunisticPayloadState,
   initialLxmfPackTimestampState,
   initialLxmfPropagatedPackPrepState,
+  initialLxmfSignedMaterialState,
   initialLxMessageInstancePackState,
   initialLxMessagePackState,
   initialLxmfSignatureState,
@@ -24,7 +24,10 @@ import {
   lxmPayloadFieldsFromActions,
   lxmfDeliveryDeliverParams,
   lxmfDeliveryOpportunisticRejectSizes,
+  lxmfHashableMaterialRawFromActions,
+  lxmfOpportunisticPayloadRawFromActions,
   lxmfSignatureOutcomeFromActions,
+  lxmfSignedMaterialRawFromActions,
   lxmfWireFieldsFromActions,
   packLxmPayloadRawFromActions,
   packLxmfDestinationPrefixedRawFromActions,
@@ -35,6 +38,7 @@ import {
   shouldAcceptLxmfWireFrame,
   shouldCommitRememberedLxmfHash,
   shouldProceedLxmfPropagatedPackPrep,
+  shouldRejectLxmfOpportunisticPayload,
   shouldRejectLxmfOpportunisticTooLarge,
   shouldRejectLxmfPropagatedPackMissingIdentity,
   shouldRejectLxmfPropagatedPackMissingTimestamp,
@@ -49,8 +53,11 @@ import {
   shouldRejectUnpackLxmPayload,
   shouldRememberLxmfMessage,
   shouldSelectLxmfDeliveryParameters,
+  shouldUseLxmfHashableMaterial,
+  shouldUseLxmfOpportunisticPayload,
   shouldUseLxmfPackNow,
   shouldUseLxmfPackTimestamp,
+  shouldUseLxmfSignedMaterial,
   shouldUsePackLxmPayload,
   shouldUsePackLxmfDestinationPrefixed,
   shouldUsePackLxmfWire,
@@ -58,9 +65,12 @@ import {
   shouldUseSplitLxmfWire,
   shouldUseUnpackLxmPayload,
   stepLxmfDeliveryWithActions,
+  stepLxmfHashableMaterialWithActions,
+  stepLxmfOpportunisticPayloadWithActions,
   stepLxmfPackTimestampWithActions,
   stepLxmfPropagatedPackPrepWithActions,
   stepLxmfSignatureWithActions,
+  stepLxmfSignedMaterialWithActions,
   stepLxMessageInstancePackWithActions,
   stepLxMessagePackWithActions,
   stepPackLxmPayloadWithActions,
@@ -259,9 +269,32 @@ export class LXMessage {
     if (payloadWithoutStamp === null) {
       throw new Error("Invalid LXMF payload");
     }
-    const hashedPart = lxmfHashableMaterial(destinationHash, sourceHash, payloadWithoutStamp);
+    const hashedStepped = stepLxmfHashableMaterialWithActions(initialLxmfHashableMaterialState(), {
+      kind: "lxmf-wire/hashable-material-gate",
+      destinationHash,
+      sourceHash,
+      payloadWithoutStamp
+    });
+    const hashedPart =
+      shouldUseLxmfHashableMaterial(hashedStepped.actions)
+        ? lxmfHashableMaterialRawFromActions(hashedStepped.actions)
+        : null;
+    if (hashedPart === null) {
+      throw new Error("LXMF hashable material: missing use-raw action");
+    }
     const messageHash = Identity.fullHash(options.provider, hashedPart);
-    const signedPart = lxmfSignedMaterial(hashedPart, messageHash);
+    const signedStepped = stepLxmfSignedMaterialWithActions(initialLxmfSignedMaterialState(), {
+      kind: "lxmf-wire/signed-material-gate",
+      hashableMaterial: hashedPart,
+      messageHash
+    });
+    const signedPart =
+      shouldUseLxmfSignedMaterial(signedStepped.actions)
+        ? lxmfSignedMaterialRawFromActions(signedStepped.actions)
+        : null;
+    if (signedPart === null) {
+      throw new Error("LXMF signed material: missing use-raw action");
+    }
 
     const sourceIdentity = options.sourceIdentity ?? Identity.recall(options.provider, sourceHash);
     const destinationIdentity = Identity.recall(options.provider, destinationHash);
@@ -353,7 +386,19 @@ export class LXMessage {
     if (payloadCore === null) {
       throw new Error("LXMessage failed to pack payload");
     }
-    const hashedPart = lxmfHashableMaterial(this.destination!.hash, this.source!.hash, payloadCore);
+    const hashedStepped = stepLxmfHashableMaterialWithActions(initialLxmfHashableMaterialState(), {
+      kind: "lxmf-wire/hashable-material-gate",
+      destinationHash: this.destination!.hash,
+      sourceHash: this.source!.hash,
+      payloadWithoutStamp: payloadCore
+    });
+    const hashedPart =
+      shouldUseLxmfHashableMaterial(hashedStepped.actions)
+        ? lxmfHashableMaterialRawFromActions(hashedStepped.actions)
+        : null;
+    if (hashedPart === null) {
+      throw new Error("LXMF hashable material: missing use-raw action");
+    }
     this.hash = Identity.fullHash(provider, hashedPart);
 
     let stamp: Uint8Array | null = null;
@@ -376,7 +421,18 @@ export class LXMessage {
     if (payload === null) {
       throw new Error("LXMessage failed to pack payload");
     }
-    const signedPart = lxmfSignedMaterial(hashedPart, this.hash);
+    const signedStepped = stepLxmfSignedMaterialWithActions(initialLxmfSignedMaterialState(), {
+      kind: "lxmf-wire/signed-material-gate",
+      hashableMaterial: hashedPart,
+      messageHash: this.hash
+    });
+    const signedPart =
+      shouldUseLxmfSignedMaterial(signedStepped.actions)
+        ? lxmfSignedMaterialRawFromActions(signedStepped.actions)
+        : null;
+    if (signedPart === null) {
+      throw new Error("LXMF signed material: missing use-raw action");
+    }
     this.signature = this.source!.identity!.sign(signedPart);
     this.signatureValidated = true;
     this.stamp = stamp;
@@ -431,7 +487,21 @@ export class LXMessage {
       throw new Error("LXMessage must be packed before extracting opportunistic payload");
     }
 
-    return lxmfOpportunisticPayload(this.packed!);
+    const stepped = stepLxmfOpportunisticPayloadWithActions(initialLxmfOpportunisticPayloadState(), {
+      kind: "lxmf-wire/opportunistic-payload-gate",
+      packed: this.packed!
+    });
+    if (
+      shouldRejectLxmfOpportunisticPayload(stepped.actions) ||
+      !shouldUseLxmfOpportunisticPayload(stepped.actions)
+    ) {
+      throw new Error("LXMF packed bytes too short for opportunistic payload");
+    }
+    const payload = lxmfOpportunisticPayloadRawFromActions(stepped.actions);
+    if (payload === null) {
+      throw new Error("LXMF packed bytes too short for opportunistic payload");
+    }
+    return payload;
   }
 
   private selectDeliveryParameters(provider: CryptoProvider): void {

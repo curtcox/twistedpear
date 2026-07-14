@@ -1,10 +1,11 @@
 /**
  * Pure LXMF outer wire framing (destination || source || signature || payload).
  * Signing / hashing stay at the crypto adapter edge.
- * Pack / split conclusions leave via machine actions (no ad-hoc
- * `packLxmfWire` / `splitLxmfWire` / `packLxmfDestinationPrefixed` /
- * `splitLxmfDestinationPrefixed` / `lxmfInboundDeliveryBytes` reads beside
- * the step).
+ * Pack / split / hashable / signed / opportunistic conclusions leave via
+ * machine actions (no ad-hoc `packLxmfWire` / `splitLxmfWire` /
+ * `packLxmfDestinationPrefixed` / `splitLxmfDestinationPrefixed` /
+ * `lxmfInboundDeliveryBytes` / `lxmfHashableMaterial` / `lxmfSignedMaterial` /
+ * `lxmfOpportunisticPayload` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import {
@@ -83,6 +84,211 @@ export function lxmfOpportunisticPayload(packed: Uint8Array): Uint8Array {
     throw new Error("LXMF packed bytes too short for opportunistic payload");
   }
   return packed.subarray(LXMF_DESTINATION_LENGTH);
+}
+
+/**
+ * LXMF hashable material is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `lxmfHashableMaterial`
+ * reads beside the step).
+ */
+export type LxmfHashableMaterialState = Record<string, never>;
+
+export type LxmfHashableMaterialEvent =
+  | Event
+  | {
+      readonly kind: "lxmf-wire/hashable-material-gate";
+      readonly destinationHash: Uint8Array;
+      readonly sourceHash: Uint8Array;
+      readonly payloadWithoutStamp: Uint8Array;
+    };
+
+export type LxmfHashableMaterialAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface LxmfHashableMaterialStepResult {
+  readonly state: LxmfHashableMaterialState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfHashableMaterialAction[];
+}
+
+export function initialLxmfHashableMaterialState(): LxmfHashableMaterialState {
+  return {};
+}
+
+export function stepLxmfHashableMaterialWithActions(
+  state: LxmfHashableMaterialState,
+  event: LxmfHashableMaterialEvent
+): LxmfHashableMaterialStepResult {
+  if (event.kind === "lxmf-wire/hashable-material-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: lxmfHashableMaterial(
+            event.destinationHash,
+            event.sourceHash,
+            event.payloadWithoutStamp
+          )
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseLxmfHashableMaterial(
+  actions: ReadonlyArray<LxmfHashableMaterialAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract LXMF hashable material from step actions; null when no `use-raw`. */
+export function lxmfHashableMaterialRawFromActions(
+  actions: ReadonlyArray<LxmfHashableMaterialAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * LXMF signed material is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `lxmfSignedMaterial` reads
+ * beside the step).
+ */
+export type LxmfSignedMaterialState = Record<string, never>;
+
+export type LxmfSignedMaterialEvent =
+  | Event
+  | {
+      readonly kind: "lxmf-wire/signed-material-gate";
+      readonly hashableMaterial: Uint8Array;
+      readonly messageHash: Uint8Array;
+    };
+
+export type LxmfSignedMaterialAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface LxmfSignedMaterialStepResult {
+  readonly state: LxmfSignedMaterialState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfSignedMaterialAction[];
+}
+
+export function initialLxmfSignedMaterialState(): LxmfSignedMaterialState {
+  return {};
+}
+
+export function stepLxmfSignedMaterialWithActions(
+  state: LxmfSignedMaterialState,
+  event: LxmfSignedMaterialEvent
+): LxmfSignedMaterialStepResult {
+  if (event.kind === "lxmf-wire/signed-material-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: lxmfSignedMaterial(event.hashableMaterial, event.messageHash)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseLxmfSignedMaterial(
+  actions: ReadonlyArray<LxmfSignedMaterialAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract LXMF signed material from step actions; null when no `use-raw`. */
+export function lxmfSignedMaterialRawFromActions(
+  actions: ReadonlyArray<LxmfSignedMaterialAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * LXMF opportunistic payload strip is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `lxmfOpportunisticPayload`
+ * reads beside the step). Short packed frames become `reject`.
+ */
+export type LxmfOpportunisticPayloadState = Record<string, never>;
+
+export type LxmfOpportunisticPayloadEvent =
+  | Event
+  | {
+      readonly kind: "lxmf-wire/opportunistic-payload-gate";
+      readonly packed: Uint8Array;
+    };
+
+export type LxmfOpportunisticPayloadAction =
+  | { readonly kind: "use-raw"; readonly raw: Uint8Array }
+  | { readonly kind: "reject" };
+
+export interface LxmfOpportunisticPayloadStepResult {
+  readonly state: LxmfOpportunisticPayloadState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfOpportunisticPayloadAction[];
+}
+
+export function initialLxmfOpportunisticPayloadState(): LxmfOpportunisticPayloadState {
+  return {};
+}
+
+export function stepLxmfOpportunisticPayloadWithActions(
+  state: LxmfOpportunisticPayloadState,
+  event: LxmfOpportunisticPayloadEvent
+): LxmfOpportunisticPayloadStepResult {
+  if (event.kind === "lxmf-wire/opportunistic-payload-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [
+          {
+            kind: "use-raw",
+            raw: lxmfOpportunisticPayload(event.packed)
+          }
+        ]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseLxmfOpportunisticPayload(
+  actions: ReadonlyArray<LxmfOpportunisticPayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+export function shouldRejectLxmfOpportunisticPayload(
+  actions: ReadonlyArray<LxmfOpportunisticPayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract opportunistic payload from step actions; null when no `use-raw`. */
+export function lxmfOpportunisticPayloadRawFromActions(
+  actions: ReadonlyArray<LxmfOpportunisticPayloadAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
 }
 
 /** Rebuild full LXMF bytes when an opportunistic packet carries only the trailing segment. */

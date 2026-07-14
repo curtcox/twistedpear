@@ -1,34 +1,47 @@
 import { describe, expect, it } from "vitest";
 import {
   LXMF_WIRE_HEADER_SIZE,
+  initialLxmfHashableMaterialState,
   initialLxmfInboundDeliveryState,
+  initialLxmfOpportunisticPayloadState,
+  initialLxmfSignedMaterialState,
   initialPackLxmfDestinationPrefixedState,
   initialPackLxmfWireState,
   initialSplitLxmfDestinationPrefixedState,
   initialSplitLxmfWireState,
   lxmfDestinationPrefixedFieldsFromActions,
   lxmfHashableMaterial,
+  lxmfHashableMaterialRawFromActions,
   lxmfInboundDeliveryBytes,
   lxmfInboundDeliveryRawFromActions,
   lxmfOpportunisticPayload,
+  lxmfOpportunisticPayloadRawFromActions,
   lxmfSignedMaterial,
+  lxmfSignedMaterialRawFromActions,
   lxmfWireFieldsFromActions,
   packLxmfDestinationPrefixed,
   packLxmfDestinationPrefixedRawFromActions,
   packLxmfWire,
   packLxmfWireRawFromActions,
+  shouldRejectLxmfOpportunisticPayload,
   shouldRejectPackLxmfDestinationPrefixed,
   shouldRejectPackLxmfWire,
   shouldRejectSplitLxmfDestinationPrefixed,
   shouldRejectSplitLxmfWire,
+  shouldUseLxmfHashableMaterial,
   shouldUseLxmfInboundDelivery,
+  shouldUseLxmfOpportunisticPayload,
+  shouldUseLxmfSignedMaterial,
   shouldUsePackLxmfDestinationPrefixed,
   shouldUsePackLxmfWire,
   shouldUseSplitLxmfDestinationPrefixed,
   shouldUseSplitLxmfWire,
   splitLxmfDestinationPrefixed,
   splitLxmfWire,
+  stepLxmfHashableMaterialWithActions,
   stepLxmfInboundDeliveryWithActions,
+  stepLxmfOpportunisticPayloadWithActions,
+  stepLxmfSignedMaterialWithActions,
   stepPackLxmfDestinationPrefixedWithActions,
   stepPackLxmfWireWithActions,
   stepSplitLxmfDestinationPrefixedWithActions,
@@ -70,6 +83,52 @@ describe("protocol lxmf wire", () => {
       ...signature,
       ...payload
     ]);
+  });
+
+  it("emits hashable / signed / opportunistic material from WithActions steps", () => {
+    const messageHash = new Uint8Array(32).fill(4);
+    const hashableStepped = stepLxmfHashableMaterialWithActions(initialLxmfHashableMaterialState(), {
+      kind: "lxmf-wire/hashable-material-gate",
+      destinationHash: destination,
+      sourceHash: source,
+      payloadWithoutStamp: payload
+    });
+    expect(shouldUseLxmfHashableMaterial(hashableStepped.actions)).toBe(true);
+    const hashable = lxmfHashableMaterialRawFromActions(hashableStepped.actions);
+    expect(hashable).not.toBeNull();
+    expect([...hashable!]).toEqual([...lxmfHashableMaterial(destination, source, payload)]);
+
+    const signedStepped = stepLxmfSignedMaterialWithActions(initialLxmfSignedMaterialState(), {
+      kind: "lxmf-wire/signed-material-gate",
+      hashableMaterial: hashable!,
+      messageHash
+    });
+    expect(shouldUseLxmfSignedMaterial(signedStepped.actions)).toBe(true);
+    const signed = lxmfSignedMaterialRawFromActions(signedStepped.actions);
+    expect(signed).not.toBeNull();
+    expect([...signed!]).toEqual([...lxmfSignedMaterial(hashable!, messageHash)]);
+
+    const packed = packedFrom(destination, source, signature, payload);
+    const opportunisticStepped = stepLxmfOpportunisticPayloadWithActions(
+      initialLxmfOpportunisticPayloadState(),
+      {
+        kind: "lxmf-wire/opportunistic-payload-gate",
+        packed
+      }
+    );
+    expect(shouldUseLxmfOpportunisticPayload(opportunisticStepped.actions)).toBe(true);
+    expect(shouldRejectLxmfOpportunisticPayload(opportunisticStepped.actions)).toBe(false);
+    const opportunistic = lxmfOpportunisticPayloadRawFromActions(opportunisticStepped.actions);
+    expect(opportunistic).not.toBeNull();
+    expect([...opportunistic!]).toEqual([...lxmfOpportunisticPayload(packed)]);
+
+    const rejected = stepLxmfOpportunisticPayloadWithActions(initialLxmfOpportunisticPayloadState(), {
+      kind: "lxmf-wire/opportunistic-payload-gate",
+      packed: new Uint8Array(4)
+    });
+    expect(shouldRejectLxmfOpportunisticPayload(rejected.actions)).toBe(true);
+    expect(shouldUseLxmfOpportunisticPayload(rejected.actions)).toBe(false);
+    expect(lxmfOpportunisticPayloadRawFromActions(rejected.actions)).toBeNull();
   });
 
   it("rebuilds opportunistic inbound delivery and destination-prefixed envelopes", () => {
