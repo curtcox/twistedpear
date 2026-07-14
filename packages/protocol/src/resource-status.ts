@@ -73,6 +73,19 @@ export function planResourceAdvertisePhase(linkReady: boolean): "queue" | "adver
   return linkReady ? "advertise" : "queue";
 }
 
+/** Whether Resource.prove may build and send a proof (assembled data present). */
+export function canProveResource(dataPresent: boolean): boolean {
+  return dataPresent;
+}
+
+/**
+ * Whether Resource.send should auto-advertise after construction.
+ * Default true when the option is omitted (`advertise !== false`).
+ */
+export function shouldAdvertiseResource(advertiseOption: boolean | undefined): boolean {
+  return advertiseOption !== false;
+}
+
 /**
  * Assemble validation outcome from crypto-edge booleans
  * (decrypt / payload split / hash match).

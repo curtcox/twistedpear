@@ -25,6 +25,9 @@ import {
   shouldIncludeLxmfStamp,
   shouldRememberLxmfMessage,
   canRegisterLxmfDeliveryIdentity,
+  canExtractLxmfOpportunisticPayload,
+  shouldSelectLxmfDeliveryParameters,
+  planLxmfPropagationSyncPrep,
   shouldTeardownLxmfPropagationLink
 } from "../src/lxmf-delivery.js";
 import { LxmfUnverifiedReason } from "../src/lxmf-fields.js";
@@ -473,5 +476,27 @@ describe("protocol lxmf delivery", () => {
     expect(canRegisterLxmfDeliveryIdentity(true)).toBe(false);
     expect(shouldTeardownLxmfPropagationLink(true)).toBe(true);
     expect(shouldTeardownLxmfPropagationLink(false)).toBe(false);
+    expect(canExtractLxmfOpportunisticPayload(true)).toBe(true);
+    expect(canExtractLxmfOpportunisticPayload(false)).toBe(false);
+    expect(shouldSelectLxmfDeliveryParameters(true)).toBe(true);
+    expect(shouldSelectLxmfDeliveryParameters(false)).toBe(false);
+    expect(
+      planLxmfPropagationSyncPrep({
+        nodeConfigured: false,
+        deliveryIdentityPresent: false
+      })
+    ).toBe("missing-node");
+    expect(
+      planLxmfPropagationSyncPrep({
+        nodeConfigured: true,
+        deliveryIdentityPresent: false
+      })
+    ).toBe("missing-delivery-identity");
+    expect(
+      planLxmfPropagationSyncPrep({
+        nodeConfigured: true,
+        deliveryIdentityPresent: true
+      })
+    ).toBe("ok");
   });
 });

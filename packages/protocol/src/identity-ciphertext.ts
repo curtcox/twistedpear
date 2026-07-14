@@ -104,3 +104,24 @@ export function planIdentityRecall(input: {
 export function canIdentityHash(identityHashPresent: boolean): boolean {
   return identityHashPresent;
 }
+
+/** Whether private-key ops (sign / decrypt / getPrivateKey) may proceed. */
+export function canIdentityUsePrivateKey(input: {
+  readonly privateKeyPresent: boolean;
+  readonly signaturePrivatePresent: boolean;
+}): boolean {
+  return input.privateKeyPresent && input.signaturePrivatePresent;
+}
+
+/** Whether public-key ops (validate / encrypt / getPublicKey) may proceed. */
+export function canIdentityUsePublicKey(input: {
+  readonly publicKeyPresent: boolean;
+  readonly signaturePublicPresent: boolean;
+}): boolean {
+  return input.publicKeyPresent && input.signaturePublicPresent;
+}
+
+/** Whether loadPrivateKey / loadPublicKey may accept a successful key split. */
+export function canLoadIdentityKeyMaterial(splitOk: boolean): boolean {
+  return splitOk;
+}

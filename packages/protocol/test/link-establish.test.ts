@@ -19,6 +19,7 @@ import {
   canProveLink,
   canResendLinkPacket,
   canSendLinkAppResponse,
+  canUpdateLinkKeepalive,
   canValidateLinkProof,
   computeLinkRttSeconds,
   initialLinkEstablishState,
@@ -33,10 +34,12 @@ import {
   planLinkProofValidateOutcome,
   planLinkRegisterList,
   planLinkRttOutcome,
+  planLinkTokenAccess,
   planLinkUnregisterMembership,
   planLinkValidateRequest,
   shouldAcceptLinkPacketInterface,
   shouldAttemptLinkProofCrypto,
+  shouldCreateLinkChannel,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
   shouldRegisterLinkMember,
@@ -137,6 +140,15 @@ describe("protocol link establish", () => {
     expect(canLinkRequest({ status: LinkStatus.ACTIVE, rtt: 0.1 })).toBe(true);
     expect(canLinkRequest({ status: LinkStatus.ACTIVE, rtt: null })).toBe(false);
     expect(canLinkRequest({ status: LinkStatus.PENDING, rtt: 0.1 })).toBe(false);
+    expect(canUpdateLinkKeepalive(true)).toBe(true);
+    expect(canUpdateLinkKeepalive(false)).toBe(false);
+    expect(shouldCreateLinkChannel(false)).toBe(true);
+    expect(shouldCreateLinkChannel(true)).toBe(false);
+    expect(planLinkTokenAccess({ derivedKeyPresent: false, tokenPresent: false })).toBe(
+      "reject-no-key"
+    );
+    expect(planLinkTokenAccess({ derivedKeyPresent: true, tokenPresent: false })).toBe("create");
+    expect(planLinkTokenAccess({ derivedKeyPresent: true, tokenPresent: true })).toBe("reuse");
     expect(
       planLinkAppRequest({
         status: LinkStatus.ACTIVE,

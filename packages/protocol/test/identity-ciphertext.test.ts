@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE,
   canIdentityHash,
+  canIdentityUsePrivateKey,
+  canIdentityUsePublicKey,
+  canLoadIdentityKeyMaterial,
   packIdentityCiphertext,
   planIdentityDecryptOutcome,
   planIdentityRecall,
@@ -88,5 +91,22 @@ describe("protocol identity ciphertext", () => {
     expect(planIdentityRecall({ recordPresent: true, publicKeyLoaded: true })).toBe("hit");
     expect(canIdentityHash(true)).toBe(true);
     expect(canIdentityHash(false)).toBe(false);
+  });
+
+  it("gates private/public key use and key-material load", () => {
+    expect(
+      canIdentityUsePrivateKey({ privateKeyPresent: true, signaturePrivatePresent: true })
+    ).toBe(true);
+    expect(
+      canIdentityUsePrivateKey({ privateKeyPresent: true, signaturePrivatePresent: false })
+    ).toBe(false);
+    expect(
+      canIdentityUsePublicKey({ publicKeyPresent: true, signaturePublicPresent: true })
+    ).toBe(true);
+    expect(
+      canIdentityUsePublicKey({ publicKeyPresent: false, signaturePublicPresent: true })
+    ).toBe(false);
+    expect(canLoadIdentityKeyMaterial(true)).toBe(true);
+    expect(canLoadIdentityKeyMaterial(false)).toBe(false);
   });
 });

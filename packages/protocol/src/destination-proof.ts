@@ -28,3 +28,8 @@ export function planDestinationProof(input: {
   }
   return false;
 }
+
+/** Whether transport may emit a destination delivery proof (identity required). */
+export function canEmitDestinationProof(identityPresent: boolean): boolean {
+  return identityPresent;
+}

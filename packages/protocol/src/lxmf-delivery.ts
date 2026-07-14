@@ -210,6 +210,35 @@ export function shouldTeardownLxmfPropagationLink(linkPresent: boolean): boolean
   return linkPresent;
 }
 
+/** Whether opportunistic payload extraction may proceed (message packed). */
+export function canExtractLxmfOpportunisticPayload(packedPresent: boolean): boolean {
+  return packedPresent;
+}
+
+/** Whether delivery-parameter selection may run (message packed). */
+export function shouldSelectLxmfDeliveryParameters(packedPresent: boolean): boolean {
+  return packedPresent;
+}
+
+export type LxmfPropagationSyncPrepPlan =
+  | "missing-node"
+  | "missing-delivery-identity"
+  | "ok";
+
+/** Preflight for PropagationClient.syncMessages (node + delivery identity). */
+export function planLxmfPropagationSyncPrep(input: {
+  readonly nodeConfigured: boolean;
+  readonly deliveryIdentityPresent: boolean;
+}): LxmfPropagationSyncPrepPlan {
+  if (!input.nodeConfigured) {
+    return "missing-node";
+  }
+  if (!input.deliveryIdentityPresent) {
+    return "missing-delivery-identity";
+  }
+  return "ok";
+}
+
 /** Whether propagation inbound targets this router's local delivery destination. */
 export function canAcceptLxmfPropagationLocalDelivery(input: {
   readonly deliveryDestinationPresent: boolean;

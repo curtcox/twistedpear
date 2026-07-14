@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DestinationProofStrategyCode,
+  canEmitDestinationProof,
   planDestinationProof
 } from "../src/destination-proof.js";
 import {
@@ -34,6 +35,11 @@ describe("destination proof planning", () => {
       })
     ).toBe(false);
     expect(planDestinationProof({ strategy: DestinationProofStrategyCode.PROVE_NONE })).toBe(false);
+  });
+
+  it("gates destination proof emission on identity presence", () => {
+    expect(canEmitDestinationProof(true)).toBe(true);
+    expect(canEmitDestinationProof(false)).toBe(false);
   });
 });
 

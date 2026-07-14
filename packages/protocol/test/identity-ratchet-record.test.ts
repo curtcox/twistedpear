@@ -6,7 +6,8 @@ import {
   encodeIdentityRatchetRecord,
   identityRatchetStoreKey,
   isIdentityRatchetRecordUsable,
-  planIdentityRatchetLookup
+  planIdentityRatchetLookup,
+  shouldPersistIdentityRatchet
 } from "../src/identity-ratchet-record.js";
 
 describe("protocol identity ratchet record", () => {
@@ -77,5 +78,10 @@ describe("protocol identity ratchet record", () => {
         usable: true
       })
     ).toBe("restore");
+  });
+
+  it("gates ratchet store persistence", () => {
+    expect(shouldPersistIdentityRatchet(true)).toBe(true);
+    expect(shouldPersistIdentityRatchet(false)).toBe(false);
   });
 });

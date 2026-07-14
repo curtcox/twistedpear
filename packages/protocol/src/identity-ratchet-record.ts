@@ -85,3 +85,8 @@ export function planIdentityRatchetLookup(input: {
   }
   return "restore";
 }
+
+/** Whether rememberRatchet should persist the record to an injected store. */
+export function shouldPersistIdentityRatchet(storePresent: boolean): boolean {
+  return storePresent;
+}

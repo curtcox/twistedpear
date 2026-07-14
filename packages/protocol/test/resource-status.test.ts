@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ResourceStatus } from "../src/resource-watchdog.js";
 import {
   applyResourceStatusEvent,
+  canProveResource,
   canReceiveResourcePart,
   canRequestResourceNext,
   canResourceContinueTransfer,
@@ -13,7 +14,8 @@ import {
   planResourceAdvertisePhase,
   planResourceAssembleOutcome,
   planResourceProofAccept,
-  shouldAcceptIncomingResourceAdvertisement
+  shouldAcceptIncomingResourceAdvertisement,
+  shouldAdvertiseResource
 } from "../src/resource-status.js";
 
 describe("protocol resource status", () => {
@@ -52,6 +54,11 @@ describe("protocol resource status", () => {
   it("plans advertise phase, assemble outcome, and proof accept", () => {
     expect(planResourceAdvertisePhase(false)).toBe("queue");
     expect(planResourceAdvertisePhase(true)).toBe("advertise");
+    expect(canProveResource(true)).toBe(true);
+    expect(canProveResource(false)).toBe(false);
+    expect(shouldAdvertiseResource(undefined)).toBe(true);
+    expect(shouldAdvertiseResource(true)).toBe(true);
+    expect(shouldAdvertiseResource(false)).toBe(false);
     expect(shouldAcceptIncomingResourceAdvertisement(false)).toBe(true);
     expect(shouldAcceptIncomingResourceAdvertisement(true)).toBe(false);
     expect(

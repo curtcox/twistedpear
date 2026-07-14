@@ -6,6 +6,7 @@ import {
   PATH_REQUEST_TIMEOUT_SECONDS,
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
   appendPathRandomBlob,
+  canEmitDestinationProof,
   computePathExpiry,
   isPathEntryExpired,
   parseAspectFilter,
@@ -680,12 +681,12 @@ export class LeafTransport {
   }
 
   protected async sendProof(destination: LocalDestination, packet: Packet, iface: PacketInterface): Promise<void> {
-    if (destination.identity === null) {
+    if (!canEmitDestinationProof(destination.identity !== null)) {
       return;
     }
 
     const packetHash = packet.hash();
-    await destination.identity.prove(
+    await destination.identity!.prove(
       packetHash,
       packet.proofDestinationHash(),
       async (proofDestinationHash: Uint8Array, proofData: Uint8Array) => {

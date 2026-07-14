@@ -19,6 +19,7 @@ import {
   applyResourceStatusEvent,
   assembleByteArrays,
   assembleResourceHashmapBytes,
+  canProveResource,
   canReceiveResourcePart,
   canRequestResourceNext,
   canResourceContinueTransfer,
@@ -46,6 +47,7 @@ import {
   planResourceReceivePart,
   planResourceRequestFulfill,
   shouldAcceptIncomingResourceAdvertisement,
+  shouldAdvertiseResource,
   readResourceRequestHash,
   appendResourceMapHashCollisionGuard,
   containsResourceHash,
@@ -417,7 +419,7 @@ export class Resource {
       ...(options.timeout === undefined ? {} : { timeout: options.timeout })
     });
 
-    if (options.advertise !== false) {
+    if (shouldAdvertiseResource(options.advertise)) {
       void resource.advertise();
     }
 
@@ -732,13 +734,13 @@ export class Resource {
   }
 
   async prove(): Promise<void> {
-    if (this.data === null) {
+    if (!canProveResource(this.data !== null)) {
       return;
     }
 
     const proof = Identity.fullHash(
       this.provider,
-      resourceExpectedProofMaterial(this.data, this.hash)
+      resourceExpectedProofMaterial(this.data!, this.hash)
     );
     const proofData = packResourceProof(this.hash, proof);
     await this.link.sendProof(PacketContext.RESOURCE_PRF, proofData);

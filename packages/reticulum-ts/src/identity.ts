@@ -8,6 +8,9 @@ import {
   TRUNCATED_HASH_BITS,
   TRUNCATED_HASH_BYTES,
   canIdentityHash,
+  canIdentityUsePrivateKey,
+  canIdentityUsePublicKey,
+  canLoadIdentityKeyMaterial,
   decodeIdentityRatchetRecord,
   encodeIdentityRatchetRecord,
   identityRatchetStoreKey,
@@ -19,6 +22,7 @@ import {
   planIdentityDecryptOutcome,
   planIdentityRatchetLookup,
   planIdentityRecall,
+  shouldPersistIdentityRatchet,
   splitIdentityCiphertext,
   splitIdentityEntropy,
   splitIdentityPrivateKey,
@@ -146,9 +150,9 @@ export class Identity {
     const key = bytesToHex(destinationHash);
     Identity.knownRatchets.set(key, Uint8Array.from(ratchet));
 
-    if (store !== undefined) {
+    if (shouldPersistIdentityRatchet(store !== undefined)) {
       const payload = encodeIdentityRatchetRecord({ ratchet, received: receivedAt });
-      void store.set(identityRatchetStoreKey(key), payload);
+      void store!.set(identityRatchetStoreKey(key), payload);
     }
   }
 
@@ -252,26 +256,26 @@ export class Identity {
 
   loadPrivateKey(privateKeyBytes: Uint8Array): boolean {
     const split = splitIdentityPrivateKey(privateKeyBytes);
-    if (split === null) {
+    if (!canLoadIdentityKeyMaterial(split !== null)) {
       return false;
     }
 
-    this.prvBytes = split.privateKey;
-    this.sigPrvBytes = split.signaturePrivateKey;
+    this.prvBytes = split!.privateKey;
+    this.sigPrvBytes = split!.signaturePrivateKey;
     this.updatePublicMaterial();
     return true;
   }
 
   loadPublicKey(publicKeyBytes: Uint8Array): boolean {
     const split = splitIdentityPublicKey(publicKeyBytes);
-    if (split === null) {
+    if (!canLoadIdentityKeyMaterial(split !== null)) {
       return false;
     }
 
     this.prvBytes = null;
     this.sigPrvBytes = null;
-    this.pubBytes = split.publicKey;
-    this.sigPubBytes = split.signaturePublicKey;
+    this.pubBytes = split!.publicKey;
+    this.sigPubBytes = split!.signaturePublicKey;
     this.updateHashes();
     return true;
   }
@@ -398,13 +402,23 @@ export class Identity {
   }
 
   private requirePrivateKey(): void {
-    if (this.prvBytes === null || this.sigPrvBytes === null) {
+    if (
+      !canIdentityUsePrivateKey({
+        privateKeyPresent: this.prvBytes !== null,
+        signaturePrivatePresent: this.sigPrvBytes !== null
+      })
+    ) {
       throw new Error("Identity does not hold a private key");
     }
   }
 
   private requirePublicKey(): void {
-    if (this.pubBytes === null || this.sigPubBytes === null) {
+    if (
+      !canIdentityUsePublicKey({
+        publicKeyPresent: this.pubBytes !== null,
+        signaturePublicPresent: this.sigPubBytes !== null
+      })
+    ) {
       throw new Error("Identity does not hold a public key");
     }
   }

@@ -10,6 +10,7 @@ import {
   lxmfSignedMaterial,
   packLxmfDestinationPrefixed,
   packLxmfWire,
+  canExtractLxmfOpportunisticPayload,
   planLxmfDelivery,
   planLxmfPackTimestamp,
   planLxmfPropagatedPackPrep,
@@ -18,6 +19,7 @@ import {
   planLxMessagePack,
   shouldIncludeLxmfStamp,
   shouldRememberLxmfMessage,
+  shouldSelectLxmfDeliveryParameters,
   splitLxmfWire,
   utf8Decode,
   utf8OrBytes
@@ -279,20 +281,21 @@ export class LXMessage {
   }
 
   opportunisticPayload(): Uint8Array {
-    if (this.packed === null) {
+    if (!canExtractLxmfOpportunisticPayload(this.packed !== null)) {
       throw new Error("LXMessage must be packed before extracting opportunistic payload");
     }
 
-    return lxmfOpportunisticPayload(this.packed);
+    return lxmfOpportunisticPayload(this.packed!);
   }
 
   private selectDeliveryParameters(provider: CryptoProvider): void {
-    if (this.packed === null) {
+    const packed = this.packed;
+    if (!shouldSelectLxmfDeliveryParameters(packed !== null)) {
       return;
     }
 
     const desiredMethod = this.desiredMethod ?? LXMessageMethod.DIRECT;
-    const contentSize = lxmfContentSizeFromPackedLength(this.packed.length);
+    const contentSize = lxmfContentSizeFromPackedLength(packed!.length);
 
     const prep = planLxmfPropagatedPackPrep({
       packedPresent: true,
@@ -308,7 +311,7 @@ export class LXMessage {
     }
     if (prep === "ok") {
       const encryptedPayload = this.destination!.identity!.encrypt(
-        this.packed.subarray(DESTINATION_LENGTH)
+        packed!.subarray(DESTINATION_LENGTH)
       );
       const lxmfData = packLxmfDestinationPrefixed(this.destination!.hash, encryptedPayload);
       this.transientId = Identity.fullHash(provider, lxmfData);

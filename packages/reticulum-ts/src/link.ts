@@ -35,6 +35,7 @@ import {
   canProveLink,
   canRequestLinkDestination,
   canResendLinkPacket,
+  canUpdateLinkKeepalive,
   canValidateLinkProof,
   classifyLinkProofPayload,
   computeLinkEstablishmentTimeout,
@@ -83,11 +84,13 @@ import {
   planLinkRttOutcome,
   planLinkTeardown,
   planLinkTeardownReason,
+  planLinkTokenAccess,
   planLinkValidateRequest,
   planUnregisterPendingLinkRequest,
   shouldAcceptLinkPacketInterface,
   shouldAcceptLinkTeardown,
   shouldAttemptLinkProofCrypto,
+  shouldCreateLinkChannel,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
   shouldHandleIncomingResourceByHash,
@@ -879,11 +882,11 @@ export class Link {
   }
 
   getChannel(): Channel {
-    if (this.channel === null) {
+    if (shouldCreateLinkChannel(this.channel !== null)) {
       this.channel = new Channel(new LinkChannelOutlet(this));
     }
 
-    return this.channel;
+    return this.channel!;
   }
 
   readyForNewResource(): boolean {
@@ -1327,14 +1330,14 @@ export class Link {
   }
 
   private updateKeepalive(): void {
-    if (this.rtt === null) {
+    if (!canUpdateLinkKeepalive(this.rtt !== null)) {
       return;
     }
 
     this.applyWatchdogResult(
       stepLinkWatchdogWithActions(this.snapshotWatchdogState(), {
         kind: "link/rtt-measured",
-        rtt: this.rtt
+        rtt: this.rtt!
       })
     );
   }
@@ -1419,14 +1422,17 @@ export class Link {
   }
 
   private tokenInstance(): Token {
-    if (this.derivedKey === null) {
+    const plan = planLinkTokenAccess({
+      derivedKeyPresent: this.derivedKey !== null,
+      tokenPresent: this.token !== null
+    });
+    if (plan === "reject-no-key") {
       throw new Error("Link has no derived key");
     }
-
-    if (this.token === null) {
-      this.token = new Token(this.provider, this.derivedKey);
+    if (plan === "create") {
+      this.token = new Token(this.provider, this.derivedKey!);
     }
 
-    return this.token;
+    return this.token!;
   }
 }

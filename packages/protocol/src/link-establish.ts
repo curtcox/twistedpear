@@ -167,6 +167,35 @@ export function canLinkRequest(input: {
   return input.status === LinkStatus.ACTIVE && input.rtt !== null;
 }
 
+/** Whether keepalive timing may be updated from a measured RTT. */
+export function canUpdateLinkKeepalive(rttPresent: boolean): boolean {
+  return rttPresent;
+}
+
+/** Whether getChannel should construct a lazy Channel outlet. */
+export function shouldCreateLinkChannel(channelPresent: boolean): boolean {
+  return !channelPresent;
+}
+
+export type LinkTokenAccessPlan = "reject-no-key" | "create" | "reuse";
+
+/**
+ * Token access for encrypt/decrypt: reject without derived key, create, or reuse.
+ * Token construction stays at the adapter when the plan is create.
+ */
+export function planLinkTokenAccess(input: {
+  readonly derivedKeyPresent: boolean;
+  readonly tokenPresent: boolean;
+}): LinkTokenAccessPlan {
+  if (!input.derivedKeyPresent) {
+    return "reject-no-key";
+  }
+  if (!input.tokenPresent) {
+    return "create";
+  }
+  return "reuse";
+}
+
 /**
  * Whether a packed application request may be sent (request gate + MDU fit).
  * Path hashing / encrypt / packet IO stay at the adapter edge.

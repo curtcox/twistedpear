@@ -27,10 +27,13 @@ import {
   DestinationAllowPolicyCode,
   canAcceptDestinationLinkRequest,
   canAnnounceDestination,
+  canAnnounceWithIdentity,
   canDestinationSend,
+  canOperateAttachedDestination,
   isValidDestinationRequestPath,
   planDestinationDecrypt,
   planDestinationEncrypt,
+  shouldInvokeDestinationProofCallback,
   shouldRegisterDestinationLink,
   utf8Encode,
   type DestinationAllowPolicyCodeValue
@@ -138,13 +141,13 @@ export class RegisteredDestination extends Destination {
     callbacks?: LinkCallbacks,
     options?: { readonly entropy?: Uint8Array }
   ): Link {
-    if (this.transport === null) {
+    if (!canOperateAttachedDestination(this.transport !== null)) {
       throw new Error("Destination is not attached to a Reticulum instance");
     }
 
     return Link.request({
       destination: this,
-      transport: this.transport,
+      transport: this.transport!,
       ...(callbacks === undefined ? {} : { callbacks }),
       ...(options?.entropy === undefined ? {} : { entropy: options.entropy })
     });
@@ -185,11 +188,11 @@ export class RegisteredDestination extends Destination {
   }
 
   shouldProve(packet: Packet): boolean {
-    if (this.proofRequestedCallback === null) {
+    if (!shouldInvokeDestinationProofCallback(this.proofRequestedCallback !== null)) {
       return false;
     }
 
-    return this.proofRequestedCallback(packet);
+    return this.proofRequestedCallback!(packet);
   }
 
   decrypt(ciphertext: Uint8Array): Uint8Array | null {
@@ -215,7 +218,7 @@ export class RegisteredDestination extends Destination {
       randomHash?: Uint8Array;
     } = {}
   ): Promise<void> {
-    if (this.transport === null) {
+    if (!canOperateAttachedDestination(this.transport !== null)) {
       throw new Error("Destination is not attached to a Reticulum instance");
     }
 
@@ -228,17 +231,17 @@ export class RegisteredDestination extends Destination {
       throw new Error("Only IN SINGLE destinations can be announced");
     }
 
-    if (this.identity === null) {
+    if (!canAnnounceWithIdentity(this.identity !== null)) {
       throw new Error("Announce destination must hold an identity");
     }
 
     const packet = Announce.buildPacket(this.cryptoProvider, this, {
-      entropy: this.transport.entropy,
+      entropy: this.transport!.entropy,
       ...(options.appData === undefined ? {} : { appData: options.appData }),
       ...(options.pathResponse === true ? { pathResponse: true } : {}),
       ...(options.randomHash === undefined ? {} : { randomHash: options.randomHash })
     });
-    await this.transport.sendPacket(packet, {
+    await this.transport!.sendPacket(packet, {
       attachedInterface: options.attachedInterface ?? null
     });
   }
@@ -251,7 +254,7 @@ export class RegisteredDestination extends Destination {
     data: Uint8Array,
     options: { createReceipt?: boolean; attachedInterface?: PacketInterface | null } = {}
   ): Promise<PacketReceipt | null> {
-    if (this.transport === null) {
+    if (!canOperateAttachedDestination(this.transport !== null)) {
       throw new Error("Destination is not attached to a Reticulum instance");
     }
 
@@ -269,7 +272,7 @@ export class RegisteredDestination extends Destination {
     } else if (plan === "reject") {
       throw new Error("Destination cannot encrypt outbound data");
     } else {
-      ciphertext = this.identity!.encrypt(data, { entropy: this.transport.entropy });
+      ciphertext = this.identity!.encrypt(data, { entropy: this.transport!.entropy });
     }
 
     const packet = Packet.fromFields(this.cryptoProvider, {
@@ -282,7 +285,7 @@ export class RegisteredDestination extends Destination {
       data: ciphertext
     });
 
-    return this.transport.sendPacket(packet, {
+    return this.transport!.sendPacket(packet, {
       createReceipt: options.createReceipt ?? false,
       attachedInterface: options.attachedInterface ?? null
     });

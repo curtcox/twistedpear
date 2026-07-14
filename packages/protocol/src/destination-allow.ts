@@ -38,6 +38,21 @@ export function canAnnounceDestination(input: {
   return input.typeSingle && input.directionIn;
 }
 
+/** Whether announce/send/requestLink may run (destination attached to transport). */
+export function canOperateAttachedDestination(transportPresent: boolean): boolean {
+  return transportPresent;
+}
+
+/** Whether announce may proceed after type/direction allow (identity required). */
+export function canAnnounceWithIdentity(identityPresent: boolean): boolean {
+  return identityPresent;
+}
+
+/** Whether PROVE_APP should invoke the destination proof-requested callback. */
+export function shouldInvokeDestinationProofCallback(callbackPresent: boolean): boolean {
+  return callbackPresent;
+}
+
 /** Whether this destination may send outbound packets (OUT only). */
 export function canDestinationSend(directionOut: boolean): boolean {
   return directionOut;

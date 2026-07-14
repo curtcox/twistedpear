@@ -66,7 +66,9 @@ export {
   DestinationAllowPolicyCode,
   canAcceptDestinationLinkRequest,
   canAnnounceDestination,
+  canAnnounceWithIdentity,
   canDestinationSend,
+  canOperateAttachedDestination,
   canRequestLinkDestination,
   isValidDestinationIdentityBinding,
   isValidDestinationRequestPath,
@@ -74,6 +76,7 @@ export {
   planDestinationDecrypt,
   planDestinationEncrypt,
   planDestinationRequestAllow,
+  shouldInvokeDestinationProofCallback,
   shouldRegisterDestinationLink,
   type DestinationAllowPolicyCodeValue,
   type DestinationConstructionPlan,
@@ -82,6 +85,7 @@ export {
 } from "./destination-allow.js";
 export {
   DestinationProofStrategyCode,
+  canEmitDestinationProof,
   planDestinationProof,
   type DestinationProofStrategyCodeValue
 } from "./destination-proof.js";
@@ -130,6 +134,7 @@ export {
 } from "./resource-watchdog.js";
 export {
   applyResourceStatusEvent,
+  canProveResource,
   canReceiveResourcePart,
   canRequestResourceNext,
   canResourceContinueTransfer,
@@ -143,6 +148,7 @@ export {
   planResourceAssembleOutcome,
   planResourceProofAccept,
   shouldAcceptIncomingResourceAdvertisement,
+  shouldAdvertiseResource,
   stepResourceStatus,
   type ResourceAssembleOutcome,
   type ResourceProofAcceptPlan,
@@ -467,6 +473,7 @@ export {
   canProveLink,
   canResendLinkPacket,
   canSendLinkAppResponse,
+  canUpdateLinkKeepalive,
   canValidateLinkProof,
   computeLinkRttSeconds,
   initialLinkEstablishState,
@@ -481,10 +488,12 @@ export {
   planLinkProofValidateOutcome,
   planLinkRegisterList,
   planLinkRttOutcome,
+  planLinkTokenAccess,
   planLinkUnregisterMembership,
   planLinkValidateRequest,
   shouldAcceptLinkPacketInterface,
   shouldAttemptLinkProofCrypto,
+  shouldCreateLinkChannel,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
   shouldRegisterLinkMember,
@@ -501,6 +510,7 @@ export {
   type LinkProofValidateOutcome,
   type LinkRegisterList,
   type LinkRttOutcome,
+  type LinkTokenAccessPlan,
   type LinkUnregisterMembershipPlan,
   type LinkValidateRequestPlan
 } from "./link-establish.js";
@@ -832,6 +842,7 @@ export {
   LxmfDeliveryRepresentation,
   lxmfContentSizeFromPackedLength,
   canAcceptLxmfPropagationLocalDelivery,
+  canExtractLxmfOpportunisticPayload,
   planLxmfDeliverableAccept,
   planLxmfDelivery,
   planLxmfDirectSend,
@@ -841,12 +852,14 @@ export {
   planLxmfPropagatedSend,
   planLxmfPropagationLinkReady,
   planLxmfPropagationLocalIngress,
+  planLxmfPropagationSyncPrep,
   planLxmfSendMethod,
   planLxmfSignatureOutcome,
   planLxMessageInstancePack,
   planLxMessagePack,
   shouldIncludeLxmfStamp,
   shouldRememberLxmfMessage,
+  shouldSelectLxmfDeliveryParameters,
   canRegisterLxmfDeliveryIdentity,
   shouldTeardownLxmfPropagationLink,
   type LxmfDeliverableAcceptPlan,
@@ -860,6 +873,7 @@ export {
   type LxmfPropagatedSendPlan,
   type LxmfPropagationLinkReadyPlan,
   type LxmfPropagationLocalIngressPlan,
+  type LxmfPropagationSyncPrepPlan,
   type LxmfSendMethodPlan,
   type LxmfSignatureOutcome,
   type LxMessageInstancePackGate,
@@ -905,6 +919,9 @@ export { stampCostFromAppData } from "./stamp-cost.js";
 export {
   IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE,
   canIdentityHash,
+  canIdentityUsePrivateKey,
+  canIdentityUsePublicKey,
+  canLoadIdentityKeyMaterial,
   packIdentityCiphertext,
   planIdentityDecryptOutcome,
   planIdentityRecall,
@@ -937,6 +954,7 @@ export {
   identityRatchetStoreKey,
   isIdentityRatchetRecordUsable,
   planIdentityRatchetLookup,
+  shouldPersistIdentityRatchet,
   type IdentityRatchetLookupPlan,
   type IdentityRatchetRecord
 } from "./identity-ratchet-record.js";

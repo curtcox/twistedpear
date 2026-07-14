@@ -3,7 +3,9 @@ import {
   DestinationAllowPolicyCode,
   canAcceptDestinationLinkRequest,
   canAnnounceDestination,
+  canAnnounceWithIdentity,
   canDestinationSend,
+  canOperateAttachedDestination,
   canRequestLinkDestination,
   isValidDestinationIdentityBinding,
   isValidDestinationRequestPath,
@@ -11,6 +13,7 @@ import {
   planDestinationDecrypt,
   planDestinationEncrypt,
   planDestinationRequestAllow,
+  shouldInvokeDestinationProofCallback,
   shouldRegisterDestinationLink
 } from "../src/destination-allow.js";
 import { DestinationDirectionCode, DestinationTypeCode } from "../src/packet-header.js";
@@ -70,6 +73,15 @@ describe("destination allow policy", () => {
     expect(canAnnounceDestination({ typeSingle: true, directionIn: true })).toBe(true);
     expect(canAnnounceDestination({ typeSingle: false, directionIn: true })).toBe(false);
     expect(canAnnounceDestination({ typeSingle: true, directionIn: false })).toBe(false);
+  });
+
+  it("gates attached ops, announce identity, and proof callbacks", () => {
+    expect(canOperateAttachedDestination(true)).toBe(true);
+    expect(canOperateAttachedDestination(false)).toBe(false);
+    expect(canAnnounceWithIdentity(true)).toBe(true);
+    expect(canAnnounceWithIdentity(false)).toBe(false);
+    expect(shouldInvokeDestinationProofCallback(true)).toBe(true);
+    expect(shouldInvokeDestinationProofCallback(false)).toBe(false);
   });
 
   it("allows sends only for OUT destinations", () => {
