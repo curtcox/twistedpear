@@ -55,7 +55,6 @@ import {
   initialLinkTokenAccessState,
   initialLinkValidateRequestState,
   isLinkClosed,
-  isLinkKeepaliveProbe,
   isExpectedLinkMode,
   isLinkModeEnabled,
   linkEstablishActivatedAction,
@@ -69,15 +68,16 @@ import {
   mergeLinkRtt,
   modeFromLinkProofData,
   modeFromLinkRequestData,
-  msgpackPackFloat64,
-  msgpackUnpackFloat,
+  msgpackFloatFromActions,
   mtuFromLinkProofData,
   mtuFromLinkRequestData,
-  packLinkKeepaliveProbe,
-  packLinkKeepaliveReply,
+  packLinkKeepaliveProbeRawFromActions,
+  packLinkKeepaliveReplyRawFromActions,
   packLinkIdentifyPayloadRawFromActions,
   packLinkProofDataRawFromActions,
   packLinkRequestDataRawFromActions,
+  packMsgpackFloat64RawFromActions,
+  initialClassifyLinkKeepaliveState,
   initialLinkAppRequestState,
   initialLinkAppRequestTransmitState,
   initialLinkDataContextState,
@@ -85,15 +85,19 @@ import {
   initialLinkRequestResponderMtuState,
   initialLinkResourceConcludeState,
   initialPackLinkIdentifyPayloadState,
+  initialPackLinkKeepaliveProbeState,
+  initialPackLinkKeepaliveReplyState,
   initialPackLinkProofDataState,
   initialPackLinkRequestDataState,
   initialPackLinkRequestState,
   initialPackLinkResponseState,
+  initialPackMsgpackFloat64State,
   initialSplitLinkIdentifyPayloadState,
   initialSplitLinkProofBodyState,
   initialSplitLinkRequestDataState,
   initialUnpackLinkRequestState,
   initialUnpackLinkResponseState,
+  initialUnpackMsgpackFloatState,
   linkIdentifyPayloadFieldsFromActions,
   linkInitiatorMtuFromActions,
   linkProofBodyFieldsFromActions,
@@ -103,36 +107,47 @@ import {
   linkResponseFieldsFromActions,
   packLinkRequestRawFromActions,
   packLinkResponseRawFromActions,
+  shouldClassifyLinkKeepaliveProbe,
   shouldRejectPackLinkIdentifyPayload,
   shouldRejectSplitLinkIdentifyPayload,
   shouldRejectSplitLinkProofBody,
   shouldRejectSplitLinkRequestData,
   shouldRejectUnpackLinkRequest,
   shouldRejectUnpackLinkResponse,
+  shouldRejectUnpackMsgpackFloat,
   shouldUseLinkInitiatorMtu,
   shouldUseLinkRequestResponderMtu,
   shouldUsePackLinkIdentifyPayload,
+  shouldUsePackLinkKeepaliveProbe,
+  shouldUsePackLinkKeepaliveReply,
   shouldUsePackLinkProofData,
   shouldUsePackLinkRequest,
   shouldUsePackLinkRequestData,
   shouldUsePackLinkResponse,
+  shouldUsePackMsgpackFloat64,
   shouldUseSplitLinkIdentifyPayload,
   shouldUseSplitLinkProofBody,
   shouldUseSplitLinkRequestData,
   shouldUseUnpackLinkRequest,
   shouldUseUnpackLinkResponse,
+  shouldUseUnpackMsgpackFloat,
+  stepClassifyLinkKeepaliveWithActions,
   stepLinkInitiatorMtuWithActions,
   stepLinkRequestResponderMtuWithActions,
   stepPackLinkIdentifyPayloadWithActions,
+  stepPackLinkKeepaliveProbeWithActions,
+  stepPackLinkKeepaliveReplyWithActions,
   stepPackLinkProofDataWithActions,
   stepPackLinkRequestDataWithActions,
   stepPackLinkRequestWithActions,
   stepPackLinkResponseWithActions,
+  stepPackMsgpackFloat64WithActions,
   stepSplitLinkIdentifyPayloadWithActions,
   stepSplitLinkProofBodyWithActions,
   stepSplitLinkRequestDataWithActions,
   stepUnpackLinkRequestWithActions,
   stepUnpackLinkResponseWithActions,
+  stepUnpackMsgpackFloatWithActions,
   initialPendingLinkRequestUnregisterState,
   pendingLinkRequestUnregisterIndex,
   shouldAcceptLinkEstablishRtt,
@@ -864,7 +879,20 @@ export class Link {
     if (shouldAcceptLinkEstablishRtt(actions)) {
       try {
         const measuredRtt = computeLinkRttSeconds(this.clock.now() / 1000, this.requestTime);
-        const remoteRtt = msgpackUnpackFloat(context?.rttPlaintext!);
+        const unpackRtt = stepUnpackMsgpackFloatWithActions(initialUnpackMsgpackFloatState(), {
+          kind: "msgpack-float/unpack-gate",
+          bytes: context?.rttPlaintext!
+        });
+        if (
+          shouldRejectUnpackMsgpackFloat(unpackRtt.actions) ||
+          !shouldUseUnpackMsgpackFloat(unpackRtt.actions)
+        ) {
+          throw new Error("Link.handleRtt: missing use-fields action");
+        }
+        const remoteRtt = msgpackFloatFromActions(unpackRtt.actions);
+        if (remoteRtt === null) {
+          throw new Error("Link.handleRtt: missing use-fields action");
+        }
         const nowSeconds = this.clock.now() / 1000;
         await this.applyLinkEstablishActions(
           stepLinkEstablishWithActions(
@@ -916,6 +944,17 @@ export class Link {
       this.transport.activateLink(this);
     }
     if (activated.sendRtt) {
+      const packRtt = stepPackMsgpackFloat64WithActions(initialPackMsgpackFloat64State(), {
+        kind: "msgpack-float/pack-gate",
+        value: this.rtt!
+      });
+      if (!shouldUsePackMsgpackFloat64(packRtt.actions)) {
+        throw new Error("Link.sendRtt: missing use-raw action");
+      }
+      const rttRaw = packMsgpackFloat64RawFromActions(packRtt.actions);
+      if (rttRaw === null) {
+        throw new Error("Link.sendRtt: missing use-raw action");
+      }
       const rttPacket = Packet.fromFields(this.provider, {
         headerType: PacketHeaderType.HEADER_1,
         transportType: TransportType.BROADCAST,
@@ -923,7 +962,7 @@ export class Link {
         packetType: PacketType.DATA,
         destinationHash: this.linkId,
         context: PacketContext.LRRTT,
-        data: this.encrypt(msgpackPackFloat64(this.rtt!))
+        data: this.encrypt(rttRaw)
       });
       await this.transport.sendPacket(rttPacket, { attachedInterface: this.attachedInterface });
       this.hadOutbound(false);
@@ -936,11 +975,20 @@ export class Link {
       return;
     }
 
+    const keepaliveClassify = stepClassifyLinkKeepaliveWithActions(
+      initialClassifyLinkKeepaliveState(),
+      {
+        kind: "link-keepalive/classify-gate",
+        data: packet.data
+      }
+    );
+    const probePayload = shouldClassifyLinkKeepaliveProbe(keepaliveClassify.actions);
+
     if (
       shouldIgnoreInitiatorKeepaliveProbe({
         initiator: this.initiator,
         contextKeepalive: isLinkKeepaliveContext(packet.context),
-        probePayload: isLinkKeepaliveProbe(packet.data)
+        probePayload
       })
     ) {
       return;
@@ -981,7 +1029,7 @@ export class Link {
       if (
         shouldReplyKeepaliveProbe({
           initiator: this.initiator,
-          probePayload: isLinkKeepaliveProbe(packet.data)
+          probePayload
         })
       ) {
         await this.sendKeepaliveReply();
@@ -1818,11 +1866,33 @@ export class Link {
   }
 
   private async sendKeepalive(): Promise<void> {
-    await this.sendContext(PacketContext.KEEPALIVE, packLinkKeepaliveProbe());
+    const packProbe = stepPackLinkKeepaliveProbeWithActions(
+      initialPackLinkKeepaliveProbeState(),
+      { kind: "link-keepalive/pack-probe-gate" }
+    );
+    if (!shouldUsePackLinkKeepaliveProbe(packProbe.actions)) {
+      throw new Error("Link.sendKeepalive: missing use-raw action");
+    }
+    const probe = packLinkKeepaliveProbeRawFromActions(packProbe.actions);
+    if (probe === null) {
+      throw new Error("Link.sendKeepalive: missing use-raw action");
+    }
+    await this.sendContext(PacketContext.KEEPALIVE, probe);
   }
 
   private async sendKeepaliveReply(): Promise<void> {
-    await this.sendContext(PacketContext.KEEPALIVE, packLinkKeepaliveReply());
+    const packReply = stepPackLinkKeepaliveReplyWithActions(
+      initialPackLinkKeepaliveReplyState(),
+      { kind: "link-keepalive/pack-reply-gate" }
+    );
+    if (!shouldUsePackLinkKeepaliveReply(packReply.actions)) {
+      throw new Error("Link.sendKeepaliveReply: missing use-raw action");
+    }
+    const reply = packLinkKeepaliveReplyRawFromActions(packReply.actions);
+    if (reply === null) {
+      throw new Error("Link.sendKeepaliveReply: missing use-raw action");
+    }
+    await this.sendContext(PacketContext.KEEPALIVE, reply);
   }
 
   private updateKeepalive(): void {

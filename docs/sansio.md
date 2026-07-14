@@ -72,7 +72,9 @@
 > **`stepResourceReceivePartWithActions`** /
 > **`stepResourceRequestFulfillWithActions`** /
 > **`stepResourceHashmapUpdateAcceptWithActions`**) are pure protocol
-> leaves; `Resource` + `Link` adapt them. Link RTT float encode/decode uses protocol msgpack.
+> leaves; `Resource` + `Link` adapt them. Link RTT float encode/decode uses protocol msgpack
+> (pack/unpack via **`stepPackMsgpackFloat64WithActions`** /
+> **`stepUnpackMsgpackFloatWithActions`**: use-raw / use-fields|reject).
 > **Transport wrap / strip / relay / hop-rewrite framing** (via
 > **`stepWrapTransportPacketWithActions`** / **`stepStripTransportHeadersWithActions`** /
 > **`stepRelayTransportPacketWithActions`** / **`stepRewritePacketHopsWithActions`**:
@@ -200,7 +202,10 @@
 > **peer-error code object** live in protocol; lxmf-ts re-exports aliases
 > (`DESTINATION_LENGTH`, `ENCRYPTED_PACKET_MAX_CONTENT`, `PeerError`, method/representation
 > enums). **Packet header enum objects** (`PacketTypeCode`, header/context-flag/transport/
-> destination-type/direction codes), **link keepalive probe/reply framing**, and proof/
+> destination-type/direction codes), **link keepalive probe/reply framing** (pack/classify
+> via **`stepPackLinkKeepaliveProbeWithActions`** /
+> **`stepPackLinkKeepaliveReplyWithActions`** /
+> **`stepClassifyLinkKeepaliveWithActions`**: use-raw / probe|reply|reject), and proof/
 > announce signature size aliases are pure protocol leaves; Packet, Destination, Link,
 > PacketReceipt, and Announce adapt them. **Link wire constants / enums** (modes, MTU
 > masks, sizes, keepalive/stale/traffic timeouts, status/teardown/resource-strategy)
@@ -858,7 +863,9 @@
 > split-identity-public-key / encode-identity-ratchet-record /
 > decode-identity-ratchet-record / encode-grant-record /
 > decode-grant-record / pack-channel-envelope /
-> unpack-channel-envelope reads
+> unpack-channel-envelope / pack-link-keepalive-probe /
+> pack-link-keepalive-reply / classify-link-keepalive /
+> pack-msgpack-float64 / unpack-msgpack-float reads
 > beside the step).
 > **`stepPackStreamDataMessageWithActions`** /
 > **`stepUnpackStreamDataMessageWithActions`** emit `use-raw`|`reject` /
@@ -888,6 +895,18 @@
 > `use-fields`|`reject`; Channel envelope framing pack / unpack apply only
 > from those actions (no ad-hoc `packChannelEnvelope` /
 > `unpackChannelEnvelope` reads beside the step).
+> **`stepPackLinkKeepaliveProbeWithActions`** /
+> **`stepPackLinkKeepaliveReplyWithActions`** /
+> **`stepClassifyLinkKeepaliveWithActions`** emit `use-raw` /
+> `probe`|`reply`|`reject`; Link keepalive pack / classify apply only from
+> those actions (no ad-hoc `packLinkKeepaliveProbe` /
+> `packLinkKeepaliveReply` / `isLinkKeepaliveProbe` /
+> `isLinkKeepaliveReply` reads beside the step).
+> **`stepPackMsgpackFloat64WithActions`** /
+> **`stepUnpackMsgpackFloatWithActions`** emit `use-raw` /
+> `use-fields`|`reject`; Link RTT msgpack float pack / unpack apply only
+> from those actions (no ad-hoc `msgpackPackFloat64` /
+> `msgpackUnpackFloat` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
 > only from those actions. **`stepChannelMessageHandlerUnregisterWithActions`**,

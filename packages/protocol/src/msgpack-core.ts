@@ -1,7 +1,11 @@
 /**
  * Shared pure msgpack primitives (no TextEncoder / DOM).
  * Higher-level RNS/LXMF codecs build on these in their packages.
+ * Float64 pack / float unpack (link RTT) conclusions leave via machine
+ * actions (no ad-hoc `msgpackPackFloat64` / `msgpackUnpackFloat` reads
+ * beside the step).
  */
+import type { Event, Intent } from "@twistedpear/effects";
 import { utf8Decode, utf8Encode } from "./utf8.js";
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
@@ -84,6 +88,131 @@ export function msgpackUnpackFloat(bytes: Uint8Array): number {
   }
 
   throw new Error("Expected msgpack float");
+}
+
+/**
+ * Msgpack float64 pack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `msgpackPackFloat64`
+ * reads beside the step).
+ */
+export type PackMsgpackFloat64State = Record<string, never>;
+
+export type PackMsgpackFloat64Event =
+  | Event
+  | {
+      readonly kind: "msgpack-float/pack-gate";
+      readonly value: number;
+    };
+
+export type PackMsgpackFloat64Action = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface PackMsgpackFloat64StepResult {
+  readonly state: PackMsgpackFloat64State;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackMsgpackFloat64Action[];
+}
+
+export function initialPackMsgpackFloat64State(): PackMsgpackFloat64State {
+  return {};
+}
+
+export function stepPackMsgpackFloat64WithActions(
+  state: PackMsgpackFloat64State,
+  event: PackMsgpackFloat64Event
+): PackMsgpackFloat64StepResult {
+  if (event.kind === "msgpack-float/pack-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-raw", raw: msgpackPackFloat64(event.value) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackMsgpackFloat64(
+  actions: ReadonlyArray<PackMsgpackFloat64Action>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract packed msgpack float64 from step actions; null when no `use-raw`. */
+export function packMsgpackFloat64RawFromActions(
+  actions: ReadonlyArray<PackMsgpackFloat64Action>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Msgpack float unpack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `msgpackUnpackFloat`
+ * reads beside the step). Non-float payloads become `reject`.
+ */
+export type UnpackMsgpackFloatState = Record<string, never>;
+
+export type UnpackMsgpackFloatEvent =
+  | Event
+  | {
+      readonly kind: "msgpack-float/unpack-gate";
+      readonly bytes: Uint8Array;
+    };
+
+export type UnpackMsgpackFloatAction =
+  | { readonly kind: "use-fields"; readonly value: number }
+  | { readonly kind: "reject" };
+
+export interface UnpackMsgpackFloatStepResult {
+  readonly state: UnpackMsgpackFloatState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly UnpackMsgpackFloatAction[];
+}
+
+export function initialUnpackMsgpackFloatState(): UnpackMsgpackFloatState {
+  return {};
+}
+
+export function stepUnpackMsgpackFloatWithActions(
+  state: UnpackMsgpackFloatState,
+  event: UnpackMsgpackFloatEvent
+): UnpackMsgpackFloatStepResult {
+  if (event.kind === "msgpack-float/unpack-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "use-fields", value: msgpackUnpackFloat(event.bytes) }]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseUnpackMsgpackFloat(
+  actions: ReadonlyArray<UnpackMsgpackFloatAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectUnpackMsgpackFloat(
+  actions: ReadonlyArray<UnpackMsgpackFloatAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract unpacked msgpack float from step actions; null when no `use-fields`. */
+export function msgpackFloatFromActions(
+  actions: ReadonlyArray<UnpackMsgpackFloatAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.value : null;
 }
 
 export function msgpackPackArray(items: ReadonlyArray<Uint8Array>): Uint8Array {

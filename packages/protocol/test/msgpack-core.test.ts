@@ -1,12 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
+  initialPackMsgpackFloat64State,
+  initialUnpackMsgpackFloatState,
+  msgpackFloatFromActions,
   msgpackPackArray,
   msgpackPackBin,
   msgpackPackFloat64,
   msgpackUnpackFloat,
   msgpackPackNil,
   msgpackPackUInt,
-  msgpackUnpackScalar
+  msgpackUnpackScalar,
+  packMsgpackFloat64RawFromActions,
+  shouldRejectUnpackMsgpackFloat,
+  shouldUsePackMsgpackFloat64,
+  shouldUseUnpackMsgpackFloat,
+  stepPackMsgpackFloat64WithActions,
+  stepUnpackMsgpackFloatWithActions
 } from "../src/msgpack-core.js";
 
 describe("protocol msgpack core", () => {
@@ -39,5 +48,28 @@ describe("protocol msgpack core", () => {
     const array = msgpackPackArray([msgpackPackUInt(1), msgpackPackUInt(2)]);
     expect(array[0]).toBe(0x92);
     expect([...array]).toEqual([...msgpackPackArray([msgpackPackUInt(1), msgpackPackUInt(2)])]);
+  });
+
+  it("packs and unpacks float via WithActions", () => {
+    const packed = stepPackMsgpackFloat64WithActions(initialPackMsgpackFloat64State(), {
+      kind: "msgpack-float/pack-gate",
+      value: 1.5
+    });
+    expect(shouldUsePackMsgpackFloat64(packed.actions)).toBe(true);
+    const raw = packMsgpackFloat64RawFromActions(packed.actions)!;
+    expect([...raw]).toEqual([...msgpackPackFloat64(1.5)]);
+
+    const unpacked = stepUnpackMsgpackFloatWithActions(initialUnpackMsgpackFloatState(), {
+      kind: "msgpack-float/unpack-gate",
+      bytes: raw
+    });
+    expect(shouldUseUnpackMsgpackFloat(unpacked.actions)).toBe(true);
+    expect(msgpackFloatFromActions(unpacked.actions)).toBe(1.5);
+
+    const reject = stepUnpackMsgpackFloatWithActions(initialUnpackMsgpackFloatState(), {
+      kind: "msgpack-float/unpack-gate",
+      bytes: new Uint8Array([0xc0])
+    });
+    expect(shouldRejectUnpackMsgpackFloat(reject.actions)).toBe(true);
   });
 });

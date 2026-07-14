@@ -60,12 +60,37 @@ export {
 export {
   LINK_KEEPALIVE_PROBE_BYTE,
   LINK_KEEPALIVE_REPLY_BYTE,
+  initialClassifyLinkKeepaliveState,
+  initialPackLinkKeepaliveProbeState,
+  initialPackLinkKeepaliveReplyState,
   isLinkKeepaliveProbe,
   isLinkKeepaliveReply,
   packLinkKeepaliveProbe,
+  packLinkKeepaliveProbeRawFromActions,
   packLinkKeepaliveReply,
+  packLinkKeepaliveReplyRawFromActions,
+  shouldClassifyLinkKeepaliveProbe,
+  shouldClassifyLinkKeepaliveReply,
   shouldIgnoreInitiatorKeepaliveProbe,
-  shouldReplyKeepaliveProbe
+  shouldRejectClassifyLinkKeepalive,
+  shouldReplyKeepaliveProbe,
+  shouldUsePackLinkKeepaliveProbe,
+  shouldUsePackLinkKeepaliveReply,
+  stepClassifyLinkKeepaliveWithActions,
+  stepPackLinkKeepaliveProbeWithActions,
+  stepPackLinkKeepaliveReplyWithActions,
+  type ClassifyLinkKeepaliveAction,
+  type ClassifyLinkKeepaliveEvent,
+  type ClassifyLinkKeepaliveState,
+  type ClassifyLinkKeepaliveStepResult,
+  type PackLinkKeepaliveProbeAction,
+  type PackLinkKeepaliveProbeEvent,
+  type PackLinkKeepaliveProbeState,
+  type PackLinkKeepaliveProbeStepResult,
+  type PackLinkKeepaliveReplyAction,
+  type PackLinkKeepaliveReplyEvent,
+  type PackLinkKeepaliveReplyState,
+  type PackLinkKeepaliveReplyStepResult
 } from "./link-keepalive.js";
 export {
   LinkRequestReceiptStatus,
@@ -606,6 +631,9 @@ export {
   type HdlcStreamState
 } from "./hdlc.js";
 export {
+  initialPackMsgpackFloat64State,
+  initialUnpackMsgpackFloatState,
+  msgpackFloatFromActions,
   msgpackPackArray,
   msgpackPackBin,
   msgpackPackFloat64,
@@ -619,8 +647,22 @@ export {
   msgpackUnpackFloat,
   msgpackUnpackScalar,
   msgpackUnpackStringKeyedMap,
+  packMsgpackFloat64RawFromActions,
+  shouldRejectUnpackMsgpackFloat,
+  shouldUsePackMsgpackFloat64,
+  shouldUseUnpackMsgpackFloat,
+  stepPackMsgpackFloat64WithActions,
+  stepUnpackMsgpackFloatWithActions,
   type MsgpackScalar,
-  type MsgpackValue
+  type MsgpackValue,
+  type PackMsgpackFloat64Action,
+  type PackMsgpackFloat64Event,
+  type PackMsgpackFloat64State,
+  type PackMsgpackFloat64StepResult,
+  type UnpackMsgpackFloatAction,
+  type UnpackMsgpackFloatEvent,
+  type UnpackMsgpackFloatState,
+  type UnpackMsgpackFloatStepResult
 } from "./msgpack-core.js";
 export {
   binListFieldsFromActions,

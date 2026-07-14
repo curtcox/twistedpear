@@ -2,12 +2,25 @@ import { describe, expect, it } from "vitest";
 import {
   LINK_KEEPALIVE_PROBE_BYTE,
   LINK_KEEPALIVE_REPLY_BYTE,
+  initialClassifyLinkKeepaliveState,
+  initialPackLinkKeepaliveProbeState,
+  initialPackLinkKeepaliveReplyState,
   isLinkKeepaliveProbe,
   isLinkKeepaliveReply,
   packLinkKeepaliveProbe,
+  packLinkKeepaliveProbeRawFromActions,
   packLinkKeepaliveReply,
+  packLinkKeepaliveReplyRawFromActions,
+  shouldClassifyLinkKeepaliveProbe,
+  shouldClassifyLinkKeepaliveReply,
   shouldIgnoreInitiatorKeepaliveProbe,
-  shouldReplyKeepaliveProbe
+  shouldRejectClassifyLinkKeepalive,
+  shouldReplyKeepaliveProbe,
+  shouldUsePackLinkKeepaliveProbe,
+  shouldUsePackLinkKeepaliveReply,
+  stepClassifyLinkKeepaliveWithActions,
+  stepPackLinkKeepaliveProbeWithActions,
+  stepPackLinkKeepaliveReplyWithActions
 } from "../src/link-keepalive.js";
 
 describe("link keepalive framing", () => {
@@ -21,6 +34,48 @@ describe("link keepalive framing", () => {
     expect(isLinkKeepaliveReply(packLinkKeepaliveReply())).toBe(true);
     expect(isLinkKeepaliveProbe(packLinkKeepaliveReply())).toBe(false);
     expect(isLinkKeepaliveReply(new Uint8Array([0xff, 0xfe]))).toBe(false);
+  });
+
+  it("packs probe and reply via WithActions", () => {
+    const probeStepped = stepPackLinkKeepaliveProbeWithActions(
+      initialPackLinkKeepaliveProbeState(),
+      { kind: "link-keepalive/pack-probe-gate" }
+    );
+    expect(shouldUsePackLinkKeepaliveProbe(probeStepped.actions)).toBe(true);
+    expect(Array.from(packLinkKeepaliveProbeRawFromActions(probeStepped.actions)!)).toEqual([
+      LINK_KEEPALIVE_PROBE_BYTE
+    ]);
+
+    const replyStepped = stepPackLinkKeepaliveReplyWithActions(
+      initialPackLinkKeepaliveReplyState(),
+      { kind: "link-keepalive/pack-reply-gate" }
+    );
+    expect(shouldUsePackLinkKeepaliveReply(replyStepped.actions)).toBe(true);
+    expect(Array.from(packLinkKeepaliveReplyRawFromActions(replyStepped.actions)!)).toEqual([
+      LINK_KEEPALIVE_REPLY_BYTE
+    ]);
+  });
+
+  it("classifies payloads via WithActions", () => {
+    const probe = stepClassifyLinkKeepaliveWithActions(initialClassifyLinkKeepaliveState(), {
+      kind: "link-keepalive/classify-gate",
+      data: packLinkKeepaliveProbe()
+    });
+    expect(shouldClassifyLinkKeepaliveProbe(probe.actions)).toBe(true);
+    expect(shouldClassifyLinkKeepaliveReply(probe.actions)).toBe(false);
+    expect(shouldRejectClassifyLinkKeepalive(probe.actions)).toBe(false);
+
+    const reply = stepClassifyLinkKeepaliveWithActions(initialClassifyLinkKeepaliveState(), {
+      kind: "link-keepalive/classify-gate",
+      data: packLinkKeepaliveReply()
+    });
+    expect(shouldClassifyLinkKeepaliveReply(reply.actions)).toBe(true);
+
+    const reject = stepClassifyLinkKeepaliveWithActions(initialClassifyLinkKeepaliveState(), {
+      kind: "link-keepalive/classify-gate",
+      data: new Uint8Array([0x00])
+    });
+    expect(shouldRejectClassifyLinkKeepalive(reject.actions)).toBe(true);
   });
 
   it("ignores initiator keepalive probes only", () => {
