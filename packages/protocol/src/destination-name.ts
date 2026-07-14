@@ -1,6 +1,10 @@
 /**
  * Pure RNS destination name expansion and hash-input material.
  * SHA truncation stays at the crypto adapter edge.
+ * Expansion / material / aspect-filter / name-part validation conclusions leave
+ * via machine actions (no ad-hoc `expandDestinationName` /
+ * `destinationNameHashMaterial` / `destinationHashMaterial` /
+ * `parseAspectFilter` / `validateDestinationNamePart` reads beside the step).
  * Identity-hash resolution conclusions leave via machine actions (no ad-hoc
  * `planDestinationIdentityHash` / `plan === "..."` reads beside the step).
  */
@@ -221,4 +225,347 @@ export function shouldMissDestinationIdentityHash(
   actions: ReadonlyArray<DestinationIdentityHashAction>
 ): boolean {
   return actions.some((action) => action.kind === "missing");
+}
+
+/**
+ * Destination name-part validation is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `validateDestinationNamePart` reads beside the step). Empty / dotted parts
+ * become `reject`.
+ */
+export type ValidateDestinationNamePartState = Record<string, never>;
+
+export type ValidateDestinationNamePartEvent =
+  | Event
+  | {
+      readonly kind: "destination/name-part-gate";
+      readonly value: string;
+      readonly label: string;
+    };
+
+export type ValidateDestinationNamePartAction =
+  | { readonly kind: "proceed" }
+  | { readonly kind: "reject" };
+
+export interface ValidateDestinationNamePartStepResult {
+  readonly state: ValidateDestinationNamePartState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ValidateDestinationNamePartAction[];
+}
+
+export function initialValidateDestinationNamePartState(): ValidateDestinationNamePartState {
+  return {};
+}
+
+export function stepValidateDestinationNamePartWithActions(
+  state: ValidateDestinationNamePartState,
+  event: ValidateDestinationNamePartEvent
+): ValidateDestinationNamePartStepResult {
+  if (event.kind === "destination/name-part-gate") {
+    try {
+      validateDestinationNamePart(event.value, event.label);
+      return { state, intents: [], actions: [{ kind: "proceed" }] };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldProceedValidateDestinationNamePart(
+  actions: ReadonlyArray<ValidateDestinationNamePartAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
+export function shouldRejectValidateDestinationNamePart(
+  actions: ReadonlyArray<ValidateDestinationNamePartAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+export interface ExpandDestinationNameFields {
+  readonly name: string;
+}
+
+/**
+ * Destination name expansion is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `expandDestinationName`
+ * reads beside the step). Invalid parts / identity-hash length become `reject`.
+ */
+export type ExpandDestinationNameState = Record<string, never>;
+
+export type ExpandDestinationNameEvent =
+  | Event
+  | {
+      readonly kind: "destination/expand-name-gate";
+      readonly identityHash: Uint8Array | null;
+      readonly appName: string;
+      readonly aspects?: ReadonlyArray<string>;
+    };
+
+export type ExpandDestinationNameAction =
+  | { readonly kind: "use-fields"; readonly fields: ExpandDestinationNameFields }
+  | { readonly kind: "reject" };
+
+export interface ExpandDestinationNameStepResult {
+  readonly state: ExpandDestinationNameState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ExpandDestinationNameAction[];
+}
+
+export function initialExpandDestinationNameState(): ExpandDestinationNameState {
+  return {};
+}
+
+export function stepExpandDestinationNameWithActions(
+  state: ExpandDestinationNameState,
+  event: ExpandDestinationNameEvent
+): ExpandDestinationNameStepResult {
+  if (event.kind === "destination/expand-name-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [
+          {
+            kind: "use-fields",
+            fields: {
+              name: expandDestinationName(
+                event.identityHash,
+                event.appName,
+                event.aspects ?? []
+              )
+            }
+          }
+        ]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseExpandDestinationName(
+  actions: ReadonlyArray<ExpandDestinationNameAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectExpandDestinationName(
+  actions: ReadonlyArray<ExpandDestinationNameAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract expanded destination name from step actions; null when no `use-fields`. */
+export function expandedDestinationNameFromActions(
+  actions: ReadonlyArray<ExpandDestinationNameAction>
+): string | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields.name : null;
+}
+
+/**
+ * Destination name-hash material is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `destinationNameHashMaterial` reads beside the step). Invalid name parts
+ * become `reject`.
+ */
+export type DestinationNameHashMaterialState = Record<string, never>;
+
+export type DestinationNameHashMaterialEvent =
+  | Event
+  | {
+      readonly kind: "destination/name-hash-material-gate";
+      readonly appName: string;
+      readonly aspects?: ReadonlyArray<string>;
+    };
+
+export type DestinationNameHashMaterialAction =
+  | { readonly kind: "use-raw"; readonly raw: Uint8Array }
+  | { readonly kind: "reject" };
+
+export interface DestinationNameHashMaterialStepResult {
+  readonly state: DestinationNameHashMaterialState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationNameHashMaterialAction[];
+}
+
+export function initialDestinationNameHashMaterialState(): DestinationNameHashMaterialState {
+  return {};
+}
+
+export function stepDestinationNameHashMaterialWithActions(
+  state: DestinationNameHashMaterialState,
+  event: DestinationNameHashMaterialEvent
+): DestinationNameHashMaterialStepResult {
+  if (event.kind === "destination/name-hash-material-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [
+          {
+            kind: "use-raw",
+            raw: destinationNameHashMaterial(event.appName, event.aspects ?? [])
+          }
+        ]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseDestinationNameHashMaterial(
+  actions: ReadonlyArray<DestinationNameHashMaterialAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+export function shouldRejectDestinationNameHashMaterial(
+  actions: ReadonlyArray<DestinationNameHashMaterialAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract name-hash material bytes from step actions; null when no `use-raw`. */
+export function destinationNameHashMaterialRawFromActions(
+  actions: ReadonlyArray<DestinationNameHashMaterialAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Destination hash material is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `destinationHashMaterial`
+ * reads beside the step).
+ */
+export type DestinationHashMaterialState = Record<string, never>;
+
+export type DestinationHashMaterialEvent =
+  | Event
+  | {
+      readonly kind: "destination/hash-material-gate";
+      readonly nameHash: Uint8Array;
+      readonly identityHash: Uint8Array | null;
+    };
+
+export type DestinationHashMaterialAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface DestinationHashMaterialStepResult {
+  readonly state: DestinationHashMaterialState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationHashMaterialAction[];
+}
+
+export function initialDestinationHashMaterialState(): DestinationHashMaterialState {
+  return {};
+}
+
+export function stepDestinationHashMaterialWithActions(
+  state: DestinationHashMaterialState,
+  event: DestinationHashMaterialEvent
+): DestinationHashMaterialStepResult {
+  if (event.kind === "destination/hash-material-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: destinationHashMaterial(event.nameHash, event.identityHash)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseDestinationHashMaterial(
+  actions: ReadonlyArray<DestinationHashMaterialAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract destination hash material bytes from step actions; null when no `use-raw`. */
+export function destinationHashMaterialRawFromActions(
+  actions: ReadonlyArray<DestinationHashMaterialAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Aspect-filter parse is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `parseAspectFilter` reads
+ * beside the step). Empty / all-empty filters become `reject`.
+ */
+export type ParseAspectFilterState = Record<string, never>;
+
+export type ParseAspectFilterEvent =
+  | Event
+  | {
+      readonly kind: "destination/aspect-filter-gate";
+      readonly filter: string;
+    };
+
+export type ParseAspectFilterAction =
+  | { readonly kind: "use-fields"; readonly fields: ParsedAspectFilter }
+  | { readonly kind: "reject" };
+
+export interface ParseAspectFilterStepResult {
+  readonly state: ParseAspectFilterState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ParseAspectFilterAction[];
+}
+
+export function initialParseAspectFilterState(): ParseAspectFilterState {
+  return {};
+}
+
+export function stepParseAspectFilterWithActions(
+  state: ParseAspectFilterState,
+  event: ParseAspectFilterEvent
+): ParseAspectFilterStepResult {
+  if (event.kind === "destination/aspect-filter-gate") {
+    const fields = parseAspectFilter(event.filter);
+    if (fields === null) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "use-fields", fields }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseParseAspectFilter(
+  actions: ReadonlyArray<ParseAspectFilterAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectParseAspectFilter(
+  actions: ReadonlyArray<ParseAspectFilterAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract parsed aspect filter from step actions; null when no `use-fields`. */
+export function aspectFilterFromActions(
+  actions: ReadonlyArray<ParseAspectFilterAction>
+): ParsedAspectFilter | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }

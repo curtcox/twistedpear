@@ -2,17 +2,40 @@ import { describe, expect, it } from "vitest";
 import {
   DESTINATION_IDENTITY_HASH_BYTES,
   DESTINATION_NAME_HASH_BYTES,
+  aspectFilterFromActions,
   destinationHashMaterial,
+  destinationHashMaterialRawFromActions,
   destinationNameHashMaterial,
+  destinationNameHashMaterialRawFromActions,
   expandDestinationName,
+  expandedDestinationNameFromActions,
+  initialDestinationHashMaterialState,
   initialDestinationIdentityHashState,
+  initialDestinationNameHashMaterialState,
+  initialExpandDestinationNameState,
+  initialParseAspectFilterState,
+  initialValidateDestinationNamePartState,
   parseAspectFilter,
   planDestinationIdentityHash,
   shouldMissDestinationIdentityHash,
+  shouldProceedValidateDestinationNamePart,
+  shouldRejectDestinationNameHashMaterial,
+  shouldRejectExpandDestinationName,
   shouldRejectLengthDestinationIdentityHash,
+  shouldRejectParseAspectFilter,
+  shouldRejectValidateDestinationNamePart,
   shouldUseBytesDestinationIdentityHash,
+  shouldUseDestinationHashMaterial,
+  shouldUseDestinationNameHashMaterial,
+  shouldUseExpandDestinationName,
   shouldUseObjectDestinationIdentityHash,
+  shouldUseParseAspectFilter,
+  stepDestinationHashMaterialWithActions,
   stepDestinationIdentityHashWithActions,
+  stepDestinationNameHashMaterialWithActions,
+  stepExpandDestinationNameWithActions,
+  stepParseAspectFilterWithActions,
+  stepValidateDestinationNamePartWithActions,
   validateDestinationNamePart
 } from "../src/destination-name.js";
 import { utf8Decode, utf8Encode } from "../src/utf8.js";
@@ -108,5 +131,90 @@ describe("protocol destination name", () => {
       bytesLength: 8
     });
     expect(shouldRejectLengthDestinationIdentityHash(bad.actions)).toBe(true);
+  });
+
+  it("expands / materials / aspect-filter via WithActions", () => {
+    const expanded = stepExpandDestinationNameWithActions(initialExpandDestinationNameState(), {
+      kind: "destination/expand-name-gate",
+      identityHash: null,
+      appName: "lxmf",
+      aspects: ["delivery"]
+    });
+    expect(shouldUseExpandDestinationName(expanded.actions)).toBe(true);
+    expect(expandedDestinationNameFromActions(expanded.actions)).toBe("lxmf.delivery");
+
+    const badExpand = stepExpandDestinationNameWithActions(initialExpandDestinationNameState(), {
+      kind: "destination/expand-name-gate",
+      identityHash: null,
+      appName: "",
+      aspects: []
+    });
+    expect(shouldRejectExpandDestinationName(badExpand.actions)).toBe(true);
+
+    const nameMaterial = stepDestinationNameHashMaterialWithActions(
+      initialDestinationNameHashMaterialState(),
+      {
+        kind: "destination/name-hash-material-gate",
+        appName: "rnstest",
+        aspects: ["aspect"]
+      }
+    );
+    expect(shouldUseDestinationNameHashMaterial(nameMaterial.actions)).toBe(true);
+    expect([...destinationNameHashMaterialRawFromActions(nameMaterial.actions)!]).toEqual([
+      ...utf8Encode("rnstest.aspect")
+    ]);
+    expect(shouldRejectDestinationNameHashMaterial(nameMaterial.actions)).toBe(false);
+
+    const nameHash = new Uint8Array(DESTINATION_NAME_HASH_BYTES).fill(1);
+    const identity = new Uint8Array(DESTINATION_IDENTITY_HASH_BYTES).fill(2);
+    const hashMaterial = stepDestinationHashMaterialWithActions(
+      initialDestinationHashMaterialState(),
+      {
+        kind: "destination/hash-material-gate",
+        nameHash,
+        identityHash: identity
+      }
+    );
+    expect(shouldUseDestinationHashMaterial(hashMaterial.actions)).toBe(true);
+    expect(destinationHashMaterialRawFromActions(hashMaterial.actions)!.length).toBe(
+      DESTINATION_NAME_HASH_BYTES + DESTINATION_IDENTITY_HASH_BYTES
+    );
+
+    const parsed = stepParseAspectFilterWithActions(initialParseAspectFilterState(), {
+      kind: "destination/aspect-filter-gate",
+      filter: "lxmf.delivery"
+    });
+    expect(shouldUseParseAspectFilter(parsed.actions)).toBe(true);
+    expect(aspectFilterFromActions(parsed.actions)).toEqual({
+      appName: "lxmf",
+      aspects: ["delivery"]
+    });
+
+    const rejectedFilter = stepParseAspectFilterWithActions(initialParseAspectFilterState(), {
+      kind: "destination/aspect-filter-gate",
+      filter: ""
+    });
+    expect(shouldRejectParseAspectFilter(rejectedFilter.actions)).toBe(true);
+    expect(aspectFilterFromActions(rejectedFilter.actions)).toBeNull();
+
+    const validPart = stepValidateDestinationNamePartWithActions(
+      initialValidateDestinationNamePartState(),
+      {
+        kind: "destination/name-part-gate",
+        value: "lxmf",
+        label: "app name"
+      }
+    );
+    expect(shouldProceedValidateDestinationNamePart(validPart.actions)).toBe(true);
+
+    const badPart = stepValidateDestinationNamePartWithActions(
+      initialValidateDestinationNamePartState(),
+      {
+        kind: "destination/name-part-gate",
+        value: "a.b",
+        label: "aspect"
+      }
+    );
+    expect(shouldRejectValidateDestinationNamePart(badPart.actions)).toBe(true);
   });
 });

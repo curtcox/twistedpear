@@ -44,7 +44,10 @@ import {
   shouldUseDestinationEncryptPlaintext,
   stepDestinationDecryptWithActions,
   stepDestinationEncryptWithActions,
-  utf8Encode,
+  stepUtf8EncodeWithActions,
+  initialUtf8EncodeState,
+  shouldUseUtf8Encode,
+  utf8EncodeRawFromActions,
   type DestinationAllowPolicyCodeValue
 } from "@twistedpear/protocol";
 
@@ -127,7 +130,7 @@ export class RegisteredDestination extends Destination {
       throw new Error("Invalid path specified");
     }
 
-    const pathHash = Identity.truncatedHash(this.cryptoProvider, utf8Encode(path));
+    const pathHash = Identity.truncatedHash(this.cryptoProvider, utf8EncodePath(path));
     this.requestHandlers.set(bytesToHex(pathHash), {
       path,
       pathHash,
@@ -138,7 +141,7 @@ export class RegisteredDestination extends Destination {
   }
 
   deregisterRequestHandler(path: string): boolean {
-    const pathHash = Identity.truncatedHash(this.cryptoProvider, utf8Encode(path));
+    const pathHash = Identity.truncatedHash(this.cryptoProvider, utf8EncodePath(path));
     return this.requestHandlers.delete(bytesToHex(pathHash));
   }
 
@@ -312,4 +315,16 @@ export class RegisteredDestination extends Destination {
       attachedInterface: options.attachedInterface ?? null
     });
   }
+}
+
+function utf8EncodePath(path: string): Uint8Array {
+  const stepped = stepUtf8EncodeWithActions(initialUtf8EncodeState(), {
+    kind: "utf8/encode-gate",
+    value: path
+  });
+  const raw = utf8EncodeRawFromActions(stepped.actions);
+  if (!shouldUseUtf8Encode(stepped.actions) || raw === null) {
+    throw new Error("utf8EncodePath: missing use-raw action");
+  }
+  return raw;
 }

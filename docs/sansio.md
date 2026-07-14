@@ -56,9 +56,15 @@
 > **`stepUnpackLinkRequestWithActions`** /
 > **`stepUnpackLinkResponseWithActions`**: use-raw / use-fields|reject) are
 > pure protocol leaves; `Link` adapts them (reticulum still re-exports the raw
-> helpers). **Destination name expansion / hash material** and shared **UTF-8** helpers are pure
-> protocol leaves; `Destination` and path-hash call sites adapt them (SHA stays at the
-> crypto edge). **Msgpack string / string-map** packing and **resource advertisement**
+> helpers). **Destination name expansion / hash material** (via
+> **`stepExpandDestinationNameWithActions`** /
+> **`stepDestinationNameHashMaterialWithActions`** /
+> **`stepDestinationHashMaterialWithActions`** /
+> **`stepValidateDestinationNamePartWithActions`** /
+> **`stepParseAspectFilterWithActions`**: use-fields|reject / use-raw|reject /
+> use-raw / proceed|reject / use-fields|reject) and shared **UTF-8** helpers are
+> pure protocol leaves; `Destination` and announce-handler path-hash call sites
+> adapt them (SHA stays at the crypto edge). **Msgpack string / string-map** packing and **resource advertisement**
 > codecs (pack/unpack + flag bits via **`stepPackResourceAdvertisementWithActions`** /
 > **`stepUnpackResourceAdvertisementWithActions`**: use-raw / use-fields|reject) are
 > pure protocol leaves; `ResourceAdvertisement` adapts them. **Resource hashmap-update** framing (pack/unpack / packet pack/split /
@@ -187,9 +193,12 @@
 > passphrase bytes, and LXMF message text use protocol UTF-8 (no
 > `TextEncoder`/`TextDecoder`). **Hash truncation** (via
 > **`stepTruncateHashBytesWithActions`**: use-raw|reject; truncated / name-hash
-> lengths), **packet context byte codes**, and **`utf8OrBytes`** are pure
-> protocol leaves; Identity/Destination/Announce/Packet, Link resource-proof matching,
-> and LXMF message text adapt them. **Grant-record** encode/decode (via
+> lengths), **packet context byte codes**, and **UTF-8** encode/decode/or-bytes
+> (via **`stepUtf8EncodeWithActions`** / **`stepUtf8DecodeWithActions`** /
+> **`stepUtf8OrBytesWithActions`**: use-raw / use-fields / use-raw) are pure
+> protocol leaves; Identity/Destination/Announce/Packet, Link path hashing,
+> web-identity passphrase bytes, msgpack string decode, and LXMF message text
+> adapt them. **Grant-record** encode/decode (via
 > **`stepEncodeGrantRecordWithActions`** /
 > **`stepDecodeGrantRecordWithActions`**: use-raw|reject / use-fields|reject)
 > is a pure protocol leaf; `stepGrantHost` and miniapp `GrantStore` adapt them.
@@ -870,7 +879,10 @@
 > unpack-channel-envelope / pack-link-keepalive-probe /
 > pack-link-keepalive-reply / classify-link-keepalive /
 > pack-msgpack-float64 / unpack-msgpack-float / pkcs7-pad /
-> pkcs7-unpad / stamp-cost-from-app-data / truncate-hash-bytes reads
+> pkcs7-unpad / stamp-cost-from-app-data / truncate-hash-bytes /
+> utf8-encode / utf8-decode / utf8-or-bytes / expand-destination-name /
+> destination-name-hash-material / destination-hash-material /
+> validate-destination-name-part / parse-aspect-filter reads
 > beside the step).
 > **`stepPackStreamDataMessageWithActions`** /
 > **`stepUnpackStreamDataMessageWithActions`** emit `use-raw`|`reject` /
@@ -922,6 +934,22 @@
 > Destination / Packet / Announce hash truncation apply only from those
 > actions (no ad-hoc `truncateHashBytes` / `truncateToNameHash` /
 > `truncateToTruncatedHash` reads beside the step).
+> **`stepUtf8EncodeWithActions`** / **`stepUtf8DecodeWithActions`** /
+> **`stepUtf8OrBytesWithActions`** emit `use-raw` / `use-fields` / `use-raw`;
+> Link / Destination path hashing, web-identity passphrase, msgpack string
+> decode, and LXMF title/content/or-bytes apply only from those actions (no
+> ad-hoc `utf8Encode` / `utf8Decode` / `utf8OrBytes` reads beside the step).
+> **`stepExpandDestinationNameWithActions`** /
+> **`stepDestinationNameHashMaterialWithActions`** /
+> **`stepDestinationHashMaterialWithActions`** /
+> **`stepValidateDestinationNamePartWithActions`** /
+> **`stepParseAspectFilterWithActions`** emit `use-fields`|`reject` /
+> `use-raw`|`reject` / `use-raw` / `proceed`|`reject` / `use-fields`|`reject`;
+> Destination expand / hash materials / name-part validation and
+> announce-handler aspect-filter parse apply only from those actions (no
+> ad-hoc `expandDestinationName` / `destinationNameHashMaterial` /
+> `destinationHashMaterial` / `validateDestinationNamePart` /
+> `parseAspectFilter` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
 > only from those actions. **`stepChannelMessageHandlerUnregisterWithActions`**,

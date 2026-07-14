@@ -6,14 +6,26 @@ import {
   TRUNCATED_HASH_BITS,
   TRUNCATED_HASH_BYTES,
   initialTruncateHashBytesState,
+  initialUtf8DecodeState,
+  initialUtf8EncodeState,
+  initialUtf8OrBytesState,
   shouldRejectTruncateHashBytes,
   shouldUseTruncateHashBytes,
+  shouldUseUtf8Decode,
+  shouldUseUtf8Encode,
+  shouldUseUtf8OrBytes,
   stepTruncateHashBytesWithActions,
+  stepUtf8DecodeWithActions,
+  stepUtf8EncodeWithActions,
+  stepUtf8OrBytesWithActions,
   truncateHashBytes,
   truncateHashBytesRawFromActions,
   truncateToNameHash,
   truncateToTruncatedHash,
-  utf8OrBytes
+  utf8DecodeTextFromActions,
+  utf8EncodeRawFromActions,
+  utf8OrBytes,
+  utf8OrBytesRawFromActions
 } from "../src/index.js";
 
 describe("hash-truncate", () => {
@@ -84,5 +96,37 @@ describe("utf8OrBytes", () => {
     const copied = utf8OrBytes(bytes);
     expect(Array.from(copied)).toEqual([1, 2, 3]);
     expect(copied).not.toBe(bytes);
+  });
+
+  it("encodes / decodes / or-bytes via WithActions", () => {
+    const encoded = stepUtf8EncodeWithActions(initialUtf8EncodeState(), {
+      kind: "utf8/encode-gate",
+      value: "ab"
+    });
+    expect(shouldUseUtf8Encode(encoded.actions)).toBe(true);
+    expect(Array.from(utf8EncodeRawFromActions(encoded.actions)!)).toEqual([97, 98]);
+
+    const decoded = stepUtf8DecodeWithActions(initialUtf8DecodeState(), {
+      kind: "utf8/decode-gate",
+      bytes: new Uint8Array([97, 98])
+    });
+    expect(shouldUseUtf8Decode(decoded.actions)).toBe(true);
+    expect(utf8DecodeTextFromActions(decoded.actions)).toBe("ab");
+
+    const fromString = stepUtf8OrBytesWithActions(initialUtf8OrBytesState(), {
+      kind: "utf8/or-bytes-gate",
+      value: "ab"
+    });
+    expect(shouldUseUtf8OrBytes(fromString.actions)).toBe(true);
+    expect(Array.from(utf8OrBytesRawFromActions(fromString.actions)!)).toEqual([97, 98]);
+
+    const source = new Uint8Array([1, 2, 3]);
+    const fromBytes = stepUtf8OrBytesWithActions(initialUtf8OrBytesState(), {
+      kind: "utf8/or-bytes-gate",
+      value: source
+    });
+    const copied = utf8OrBytesRawFromActions(fromBytes.actions)!;
+    expect(Array.from(copied)).toEqual([1, 2, 3]);
+    expect(copied).not.toBe(source);
   });
 });

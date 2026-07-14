@@ -1,6 +1,11 @@
 /** Adapter-facing msgpack helpers; codecs live in protocol. */
 
-import { utf8Decode } from "@twistedpear/protocol";
+import {
+  initialUtf8DecodeState,
+  shouldUseUtf8Decode,
+  stepUtf8DecodeWithActions,
+  utf8DecodeTextFromActions
+} from "@twistedpear/protocol";
 
 export {
   msgpackPackArray,
@@ -96,13 +101,13 @@ function msgpackUnpackAt(bytes: Uint8Array, offset: number): [MsgpackValue, numb
   if ((tag & 0xe0) === 0xa0) {
     const length = tag & 0x1f;
     const stringBytes = bytes.subarray(offset + 1, offset + 1 + length);
-    return [{ type: "string", string: utf8Decode(stringBytes) }, offset + 1 + length];
+    return [{ type: "string", string: utf8DecodeViaActions(stringBytes) }, offset + 1 + length];
   }
 
   if (tag === 0xd9) {
     const length = bytes[offset + 1]!;
     const stringBytes = bytes.subarray(offset + 2, offset + 2 + length);
-    return [{ type: "string", string: utf8Decode(stringBytes) }, offset + 2 + length];
+    return [{ type: "string", string: utf8DecodeViaActions(stringBytes) }, offset + 2 + length];
   }
 
   if (tag === 0xcc) {
@@ -124,4 +129,16 @@ function msgpackUnpackAt(bytes: Uint8Array, offset: number): [MsgpackValue, numb
   }
 
   throw new Error(`Unsupported msgpack tag 0x${tag.toString(16)}`);
+}
+
+function utf8DecodeViaActions(bytes: Uint8Array): string {
+  const stepped = stepUtf8DecodeWithActions(initialUtf8DecodeState(), {
+    kind: "utf8/decode-gate",
+    bytes
+  });
+  const text = utf8DecodeTextFromActions(stepped.actions);
+  if (!shouldUseUtf8Decode(stepped.actions) || text === null) {
+    throw new Error("msgpackUnpackAt: missing utf8 use-fields action");
+  }
+  return text;
 }

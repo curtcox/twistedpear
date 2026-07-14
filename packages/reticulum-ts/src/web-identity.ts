@@ -8,7 +8,10 @@ import {
   shouldUseSplitWebIdentityRecord,
   stepPackWebIdentityRecordWithActions,
   stepSplitWebIdentityRecordWithActions,
-  utf8Encode,
+  stepUtf8EncodeWithActions,
+  initialUtf8EncodeState,
+  shouldUseUtf8Encode,
+  utf8EncodeRawFromActions,
   WEB_IDENTITY_IV_BYTES,
   WEB_IDENTITY_SALT_BYTES,
   webIdentityRecordFieldsFromActions
@@ -122,9 +125,17 @@ async function decryptPrivateKey(packed: Uint8Array, options: WebIdentityUnlockO
 }
 
 async function deriveKey(subtle: WebCryptoSubtle, passphrase: string, salt: Uint8Array): Promise<WebCryptoKey> {
+  const encodeStepped = stepUtf8EncodeWithActions(initialUtf8EncodeState(), {
+    kind: "utf8/encode-gate",
+    value: passphrase
+  });
+  const passphraseBytes = utf8EncodeRawFromActions(encodeStepped.actions);
+  if (!shouldUseUtf8Encode(encodeStepped.actions) || passphraseBytes === null) {
+    throw new Error("deriveKey: missing utf8 use-raw action");
+  }
   const baseKey = await subtle.importKey(
     "raw",
-    utf8Encode(passphrase),
+    passphraseBytes,
     "PBKDF2",
     false,
     ["deriveKey"]

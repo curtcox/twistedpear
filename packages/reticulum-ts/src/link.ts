@@ -248,7 +248,10 @@ import {
   stepLinkWatchdogWithActions,
   stepSplitResourceHashmapUpdatePacketWithActions,
   stepSplitResourceProofWithActions,
-  utf8Encode,
+  stepUtf8EncodeWithActions,
+  initialUtf8EncodeState,
+  shouldUseUtf8Encode,
+  utf8EncodeRawFromActions,
   type LinkAppRequestInboundAction,
   type LinkAppRequestInboundState,
   type LinkEstablishAction,
@@ -1162,7 +1165,15 @@ export class Link {
       return false;
     }
 
-    const pathHash = Identity.truncatedHash(this.provider, utf8Encode(path));
+    const pathEncode = stepUtf8EncodeWithActions(initialUtf8EncodeState(), {
+      kind: "utf8/encode-gate",
+      value: path
+    });
+    const pathBytes = utf8EncodeRawFromActions(pathEncode.actions);
+    if (!shouldUseUtf8Encode(pathEncode.actions) || pathBytes === null) {
+      throw new Error("Link.request: missing utf8 use-raw action");
+    }
+    const pathHash = Identity.truncatedHash(this.provider, pathBytes);
     const packStepped = stepPackLinkRequestWithActions(initialPackLinkRequestState(), {
       kind: "link-request-codec/pack-gate",
       requestedAt: this.clock.now() / 1000,

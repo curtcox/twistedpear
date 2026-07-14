@@ -14,7 +14,11 @@ import {
   canEmitDestinationProof,
   computePathExpiry,
   isPathEntryExpired,
-  parseAspectFilter,
+  aspectFilterFromActions,
+  initialParseAspectFilterState,
+  shouldRejectParseAspectFilter,
+  shouldUseParseAspectFilter,
+  stepParseAspectFilterWithActions,
   clonePacketWithHopsFieldsFromActions,
   initialClonePacketWithHopsState,
   initialPathResponseAnnounceFieldsState,
@@ -768,7 +772,15 @@ export class LeafTransport {
       }
 
       if (handler.aspectFilter != null) {
-        const parsedFilter = parseAspectFilter(handler.aspectFilter);
+        const filterStepped = stepParseAspectFilterWithActions(initialParseAspectFilterState(), {
+          kind: "destination/aspect-filter-gate",
+          filter: handler.aspectFilter
+        });
+        const parsedFilter = shouldUseParseAspectFilter(filterStepped.actions)
+          ? aspectFilterFromActions(filterStepped.actions)
+          : null;
+        const filterParsed =
+          !shouldRejectParseAspectFilter(filterStepped.actions) && parsedFilter !== null;
         const expected =
           parsedFilter === null
             ? null
@@ -781,7 +793,7 @@ export class LeafTransport {
         if (
           !shouldMatchAnnounceAspect({
             hasFilter: true,
-            filterParsed: parsedFilter !== null,
+            filterParsed,
             hashMatches: expected !== null && equalBytes(packet.destinationHash, expected)
           })
         ) {

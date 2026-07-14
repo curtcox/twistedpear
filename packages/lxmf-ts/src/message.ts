@@ -69,8 +69,14 @@ import {
   stepPackPropagationEnvelopeWithActions,
   stepSplitLxmfWireWithActions,
   stepUnpackLxmPayloadWithActions,
-  utf8Decode,
-  utf8OrBytes
+  stepUtf8DecodeWithActions,
+  stepUtf8OrBytesWithActions,
+  initialUtf8DecodeState,
+  initialUtf8OrBytesState,
+  shouldUseUtf8Decode,
+  shouldUseUtf8OrBytes,
+  utf8DecodeTextFromActions,
+  utf8OrBytesRawFromActions
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import {
@@ -397,11 +403,27 @@ export class LXMessage {
   }
 
   titleAsString(): string {
-    return utf8Decode(this.title);
+    const stepped = stepUtf8DecodeWithActions(initialUtf8DecodeState(), {
+      kind: "utf8/decode-gate",
+      bytes: this.title
+    });
+    const text = utf8DecodeTextFromActions(stepped.actions);
+    if (!shouldUseUtf8Decode(stepped.actions) || text === null) {
+      throw new Error("LXMessage.titleAsString: missing use-fields action");
+    }
+    return text;
   }
 
   contentAsString(): string {
-    return utf8Decode(this.content);
+    const stepped = stepUtf8DecodeWithActions(initialUtf8DecodeState(), {
+      kind: "utf8/decode-gate",
+      bytes: this.content
+    });
+    const text = utf8DecodeTextFromActions(stepped.actions);
+    if (!shouldUseUtf8Decode(stepped.actions) || text === null) {
+      throw new Error("LXMessage.contentAsString: missing use-fields action");
+    }
+    return text;
   }
 
   opportunisticPayload(): Uint8Array {
@@ -518,7 +540,15 @@ export function propagationDestinationHash(provider: CryptoProvider, identity: I
 }
 
 function encodeTextOrBytes(value: string | Uint8Array): Uint8Array {
-  return utf8OrBytes(value);
+  const stepped = stepUtf8OrBytesWithActions(initialUtf8OrBytesState(), {
+    kind: "utf8/or-bytes-gate",
+    value
+  });
+  const raw = utf8OrBytesRawFromActions(stepped.actions);
+  if (!shouldUseUtf8OrBytes(stepped.actions) || raw === null) {
+    throw new Error("encodeTextOrBytes: missing use-raw action");
+  }
+  return raw;
 }
 
 export function rememberMessage(seen: Set<string>, message: LXMessage): void {
