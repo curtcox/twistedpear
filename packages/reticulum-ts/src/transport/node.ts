@@ -33,6 +33,7 @@ import {
   canDispatchAnnounceHandlers,
   shouldAcceptCachedPathResponsePacket,
   shouldAcceptLinkLrProofCandidate,
+  shouldAnswerPathWithEntry,
   shouldDispatchLocalLinkRequest,
   shouldIgnoreLocalAnnounce,
   shouldMatchAnnounceAspect,
@@ -44,6 +45,7 @@ import {
   shouldRegisterTransportMember,
   shouldRememberPathRequestTag,
   shouldTransmitOnInterface,
+  shouldUsePathForOutbound,
   indexOfMatchingLinkId,
   relayTransportPacketBytes,
   shouldAddPathEntry,
@@ -719,14 +721,14 @@ export class LeafTransport {
       pathHops: path?.hops ?? 0
     });
 
-    if (kind === "wrap" && path !== undefined) {
-      const wrapped = wrapTransportPacket(packet, path.nextHop);
-      await this.transmit(path.receivedInterface, wrapped);
+    if (kind === "wrap" && shouldUsePathForOutbound(path !== undefined)) {
+      const wrapped = wrapTransportPacket(packet, path!.nextHop);
+      await this.transmit(path!.receivedInterface, wrapped);
       return true;
     }
 
-    if (kind === "direct" && path !== undefined) {
-      await this.transmit(path.receivedInterface, packet.raw);
+    if (kind === "direct" && shouldUsePathForOutbound(path !== undefined)) {
+      await this.transmit(path!.receivedInterface, packet.raw);
       return true;
     }
 
@@ -797,8 +799,8 @@ export class LeafTransport {
       return;
     }
 
-    if (plan === "answer-path" && path !== undefined) {
-      await this.sendPathResponse(path, iface);
+    if (plan === "answer-path" && shouldAnswerPathWithEntry(path !== undefined)) {
+      await this.sendPathResponse(path!, iface);
     }
   }
 

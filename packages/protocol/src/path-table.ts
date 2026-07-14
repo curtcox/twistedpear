@@ -118,6 +118,16 @@ export function shouldRememberPathRequestTag(tagKeyPresent: boolean): boolean {
   return tagKeyPresent;
 }
 
+/** Whether wrap/direct outbound may use a resolved path-table entry. */
+export function shouldUsePathForOutbound(pathPresent: boolean): boolean {
+  return pathPresent;
+}
+
+/** Whether answer-path may send a response for a resolved path-table entry. */
+export function shouldAnswerPathWithEntry(pathPresent: boolean): boolean {
+  return pathPresent;
+}
+
 /** Whether a pending discovery path-request should be fulfilled by an announce. */
 export type DiscoveryPathRequestFulfillPlan = "ignore" | "drop-expired" | "fulfill";
 
@@ -132,6 +142,17 @@ export function planDiscoveryPathRequestFulfill(input: {
     return "drop-expired";
   }
   return "fulfill";
+}
+
+/**
+ * Whether discovery fulfill may transmit a path response (fulfill plan + pending present).
+ * Pending map delete stays at the adapter edge.
+ */
+export function shouldFulfillDiscoveryPending(input: {
+  readonly fulfillOk: boolean;
+  readonly pendingPresent: boolean;
+}): boolean {
+  return input.fulfillOk && input.pendingPresent;
 }
 
 /** How LeafTransport should send a packet given path-table state. */

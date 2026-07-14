@@ -21,10 +21,13 @@ import {
   canAnswerLocalPathRequest,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
+  shouldAnswerPathWithEntry,
   shouldBeginPathDiscovery,
   shouldClearExpiredDiscoveryPathRequest,
   shouldEmitPathRequest,
+  shouldFulfillDiscoveryPending,
   shouldRememberPathRequestTag,
+  shouldUsePathForOutbound,
   stepPathTable,
   initialPathTableState
 } from "../src/index.js";
@@ -358,6 +361,10 @@ describe("protocol path table", () => {
     expect(shouldClearExpiredDiscoveryPathRequest(false)).toBe(false);
     expect(shouldRememberPathRequestTag(true)).toBe(true);
     expect(shouldRememberPathRequestTag(false)).toBe(false);
+    expect(shouldUsePathForOutbound(true)).toBe(true);
+    expect(shouldUsePathForOutbound(false)).toBe(false);
+    expect(shouldAnswerPathWithEntry(true)).toBe(true);
+    expect(shouldAnswerPathWithEntry(false)).toBe(false);
   });
 
   it("plans discovery path-request fulfill from announce", () => {
@@ -379,6 +386,15 @@ describe("protocol path table", () => {
         expired: false
       })
     ).toBe("fulfill");
+    expect(
+      shouldFulfillDiscoveryPending({ fulfillOk: true, pendingPresent: true })
+    ).toBe(true);
+    expect(
+      shouldFulfillDiscoveryPending({ fulfillOk: true, pendingPresent: false })
+    ).toBe(false);
+    expect(
+      shouldFulfillDiscoveryPending({ fulfillOk: false, pendingPresent: true })
+    ).toBe(false);
   });
 
   it("plans path-table get miss/expired/hit", () => {

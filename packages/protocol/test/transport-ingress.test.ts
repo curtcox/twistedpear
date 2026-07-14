@@ -11,6 +11,7 @@ import {
   PacketContextCode,
   REVERSE_TIMEOUT_SECONDS,
   TRANSPORT_TRANSPORT,
+  canLookupLinkRelayEntry,
   canRelayLinkPacket,
   canRelayReversePacket,
   canRelayTransportPacket,
@@ -35,6 +36,7 @@ import {
   shouldRecordReverseTableEntry,
   shouldRegisterTransportMember,
   shouldRelayReverseOnInterface,
+  shouldTransmitLinkRelay,
   shouldTransmitOnInterface,
   planUnregisterTransportMember
 } from "../src/index.js";
@@ -190,6 +192,10 @@ describe("transport ingress", () => {
         takenHops: 1
       })
     ).toBeNull();
+    expect(canLookupLinkRelayEntry(true)).toBe(true);
+    expect(canLookupLinkRelayEntry(false)).toBe(false);
+    expect(shouldTransmitLinkRelay(true)).toBe(true);
+    expect(shouldTransmitLinkRelay(false)).toBe(false);
   });
 
   it("expires reverse-table entries past timeout", () => {

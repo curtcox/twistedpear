@@ -1,6 +1,7 @@
 import {
   LOCAL_REBROADCASTS_MAX as PROTOCOL_LOCAL_REBROADCASTS_MAX,
   REVERSE_TIMEOUT_SECONDS as PROTOCOL_REVERSE_TIMEOUT_SECONDS,
+  canLookupLinkRelayEntry,
   canRelayLinkPacket,
   canRelayReversePacket,
   canRelayTransportPacket,
@@ -9,6 +10,7 @@ import {
   planAnnounceIngressGates,
   planDiscoveryPathRequestFulfill,
   planLinkRelayTarget,
+  shouldTransmitLinkRelay,
   planPacketHashRemember,
   planPathRequestIngress,
   planReverseRelayOutcome,
@@ -16,10 +18,12 @@ import {
   rewritePacketHopsBytes,
   canAnswerLocalPathRequest,
   shouldAcceptTransportPacket,
+  shouldAnswerPathWithEntry,
   shouldBeginPathDiscovery,
   shouldClearExpiredDiscoveryPathRequest,
   shouldDeferPacketHash as planShouldDeferPacketHash,
   shouldAnswerPathRequest,
+  shouldFulfillDiscoveryPending,
   shouldMatchLocalInboundDestination,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
@@ -231,10 +235,10 @@ export class TransportNode extends LeafTransport {
     }
 
     if (plan === "answer-path") {
-      if (path === undefined) {
+      if (!shouldAnswerPathWithEntry(path !== undefined)) {
         return;
       }
-      await this.sendPathResponse(path, iface);
+      await this.sendPathResponse(path!, iface);
       return;
     }
 
@@ -352,31 +356,31 @@ export class TransportNode extends LeafTransport {
     }
 
     const entry = this.linkTable.get(hashKey(packet.destinationHash));
-    if (entry === undefined) {
+    if (!canLookupLinkRelayEntry(entry !== undefined)) {
       return false;
     }
 
     const target = planLinkRelayTarget({
-      sameInterface: entry.outboundInterface === entry.receivedInterface,
-      ifaceIsOutbound: iface === entry.outboundInterface,
-      ifaceIsReceived: iface === entry.receivedInterface,
+      sameInterface: entry!.outboundInterface === entry!.receivedInterface,
+      ifaceIsOutbound: iface === entry!.outboundInterface,
+      ifaceIsReceived: iface === entry!.receivedInterface,
       packetHops: packet.hops,
-      remainingHops: entry.remainingHops,
-      takenHops: entry.takenHops
+      remainingHops: entry!.remainingHops,
+      takenHops: entry!.takenHops
     });
     const outboundInterface =
       target === "outbound"
-        ? entry.outboundInterface
+        ? entry!.outboundInterface
         : target === "received"
-          ? entry.receivedInterface
+          ? entry!.receivedInterface
           : null;
 
-    if (outboundInterface === null) {
+    if (!shouldTransmitLinkRelay(outboundInterface !== null)) {
       return false;
     }
 
     const relayed = rewritePacketHopsBytes(packet.raw, packet.hops);
-    await this.transmit(outboundInterface, relayed);
+    await this.transmit(outboundInterface!, relayed);
     return true;
   }
 
@@ -447,12 +451,17 @@ export class TransportNode extends LeafTransport {
     }
 
     this.discoveryPathRequests.delete(destinationKey);
-    if (fulfill === "drop-expired" || pending === undefined) {
+    if (
+      !shouldFulfillDiscoveryPending({
+        fulfillOk: fulfill === "fulfill",
+        pendingPresent: pending !== undefined
+      })
+    ) {
       return;
     }
 
     const response = buildPathResponseAnnounce(this.provider, packet, this.transportIdentity, packet.hops);
-    await this.transmit(pending.requestingInterface, response.raw);
+    await this.transmit(pending!.requestingInterface, response.raw);
   }
 
   private forwardPathRequest(

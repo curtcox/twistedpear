@@ -109,6 +109,16 @@ export function planLinkRelayTarget(input: {
   return null;
 }
 
+/** Whether link-relay may proceed after a link-table lookup hit. */
+export function canLookupLinkRelayEntry(entryPresent: boolean): boolean {
+  return entryPresent;
+}
+
+/** Whether link-relay may transmit after {@link planLinkRelayTarget} resolves an iface. */
+export function shouldTransmitLinkRelay(outboundPresent: boolean): boolean {
+  return outboundPresent;
+}
+
 /** True when a reverse-table entry is past its lifetime. */
 export function isReverseEntryExpired(input: {
   readonly timestamp: number;

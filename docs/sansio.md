@@ -280,6 +280,10 @@
 > and **`shouldAcceptPropagationPeerResponse`** / **`shouldTreatPropagationListAsEmpty`** /
 > **`shouldRequestPropagationHavesAck`** live in protocol; Resource, Token, Link,
 > Channel, transport path helpers, and LXMF propagation adapt them.
+> **`shouldUsePathForOutbound`** / **`shouldAnswerPathWithEntry`** /
+> **`shouldFulfillDiscoveryPending`**, **`canLookupLinkRelayEntry`**, and
+> **`shouldTransmitLinkRelay`** live in protocol; LeafTransport and TransportNode adapt
+> them.
 > Remaining depth work: keep converting residual session IO into step machines.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
