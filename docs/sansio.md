@@ -79,6 +79,10 @@
 > (pack/split via **`stepPackPacketProofWithActions`** /
 > **`stepSplitPacketProofWithActions`**: use-raw / use-fields|reject; explicit/implicit)
 > are pure protocol leaves; `Announce` and `Packet` adapt them.
+> **Link-proof / link-request framing** (pack/split via
+> **`stepPackLinkProofDataWithActions`** / **`stepSplitLinkProofBodyWithActions`** /
+> **`stepPackLinkRequestDataWithActions`** / **`stepSplitLinkRequestDataWithActions`**:
+> use-raw / use-fields|reject) is a pure protocol leaf; `Link` adapts it.
 > **Packet header** encode/decode, flag packing, and hashable-part framing are pure
 > protocol leaves; `Packet` adapts them. **PKCS#7** padding and **LXMF delivery planning**
 > (method/representation selection via **`stepLxmfDeliveryWithActions`**) are
@@ -101,11 +105,12 @@
 > are pure protocol leaves; `Identity` adapts them. **Link establishment timeout** (`computeLinkEstablishmentTimeout`) and **LXMF
 > inbound delivery framing** (opportunistic rebuild + destination-prefixed pack/split)
 > are pure protocol leaves; `Link` and `LXMFRouter` adapt them. **Link proof signed
-> material / proof packing**, **StreamDataMessage framing**, and **resource hash/encrypt
+> material**, **StreamDataMessage framing**, and **resource hash/encrypt
 > materials** are pure protocol leaves; `Link`, `Buffer`, and `Resource` adapt them.
-> **Identity key pack/split**, **link-request pack/split/hashable truncation**, and
+> **Identity key pack/split**, link-request hashable truncation, and
 > **RESOURCE_HMU pack** are pure protocol leaves; Identity, Link, and Resource adapt
-> them (`Identity.prove` uses **`stepPackPacketProofWithActions`**). **Byte-array assembly** helpers,
+> them (`Identity.prove` uses **`stepPackPacketProofWithActions`**; link-request /
+> link-proof pack/split use the WithActions steps above). **Byte-array assembly** helpers,
 > **interface reconnect planning**, and Resource hashmap/part assembly via protocol
 > assemblers are pure protocol leaves; TCP/WebSocket clients and Resource adapt them.
 > **Transport announce / path-response / hop-clone field planning** applies only from
@@ -759,7 +764,9 @@
 > rewrite-packet-hops / build-path-request-data /
 > parse-path-request-data / path-request-tag-key /
 > pack-announce-payload / parse-announce-payload /
-> pack-packet-proof / split-packet-proof reads
+> pack-packet-proof / split-packet-proof /
+> pack-link-proof-data / split-link-proof-body /
+> pack-link-request-data / split-link-request-data reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -807,6 +814,13 @@
 > **`stepSplitPacketProofWithActions`** emit `use-raw` / `use-fields`|`reject`;
 > packet-proof pack / split apply only from those actions (no ad-hoc
 > `packPacketProof` / `splitPacketProof` reads beside the step).
+> **`stepPackLinkProofDataWithActions`** /
+> **`stepSplitLinkProofBodyWithActions`** /
+> **`stepPackLinkRequestDataWithActions`** /
+> **`stepSplitLinkRequestDataWithActions`** emit `use-raw` / `use-fields`|`reject`;
+> link-proof / link-request pack / split apply only from those actions (no ad-hoc
+> `packLinkProofData` / `splitLinkProofBody` / `packLinkRequestData` /
+> `splitLinkRequestData` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

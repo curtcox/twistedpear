@@ -76,20 +76,36 @@ import {
   packLinkIdentifyPayload,
   packLinkKeepaliveProbe,
   packLinkKeepaliveReply,
-  packLinkProofData,
-  packLinkRequestData,
+  packLinkProofDataRawFromActions,
+  packLinkRequestDataRawFromActions,
   initialLinkAppRequestState,
   initialLinkAppRequestTransmitState,
   initialLinkDataContextState,
   initialLinkInitiatorMtuState,
   initialLinkRequestResponderMtuState,
   initialLinkResourceConcludeState,
+  initialPackLinkProofDataState,
+  initialPackLinkRequestDataState,
+  initialSplitLinkProofBodyState,
+  initialSplitLinkRequestDataState,
   linkInitiatorMtuFromActions,
+  linkProofBodyFieldsFromActions,
+  linkRequestKeyFieldsFromActions,
   linkRequestResponderMtuFromActions,
+  shouldRejectSplitLinkProofBody,
+  shouldRejectSplitLinkRequestData,
   shouldUseLinkInitiatorMtu,
   shouldUseLinkRequestResponderMtu,
+  shouldUsePackLinkProofData,
+  shouldUsePackLinkRequestData,
+  shouldUseSplitLinkProofBody,
+  shouldUseSplitLinkRequestData,
   stepLinkInitiatorMtuWithActions,
   stepLinkRequestResponderMtuWithActions,
+  stepPackLinkProofDataWithActions,
+  stepPackLinkRequestDataWithActions,
+  stepSplitLinkProofBodyWithActions,
+  stepSplitLinkRequestDataWithActions,
   initialPendingLinkRequestUnregisterState,
   pendingLinkRequestUnregisterIndex,
   shouldAcceptLinkEstablishRtt,
@@ -164,8 +180,6 @@ import {
   splitIdentityPublicKey,
   splitInitiatorLinkEntropy,
   splitLinkIdentifyPayload,
-  splitLinkProofBody,
-  splitLinkRequestData,
   splitResourceHashmapUpdatePacket,
   splitResourceProof,
   splitResponderLinkEntropy,
@@ -411,11 +425,19 @@ export class Link {
     link.mtu = mtu;
     link.mode = LINK_MODE_DEFAULT;
     link.updateMdu();
-    const requestData = packLinkRequestData(
-      link.publicKeyBytes,
-      signaturePublicKeyBytes,
-      Link.signallingBytes(mtu, link.mode)
-    );
+    const packStepped = stepPackLinkRequestDataWithActions(initialPackLinkRequestDataState(), {
+      kind: "link-request/pack-gate",
+      publicKey: link.publicKeyBytes,
+      signaturePublicKey: signaturePublicKeyBytes,
+      signallingBytes: Link.signallingBytes(mtu, link.mode)
+    });
+    const requestData =
+      shouldUsePackLinkRequestData(packStepped.actions)
+        ? packLinkRequestDataRawFromActions(packStepped.actions)
+        : null;
+    if (requestData === null) {
+      throw new Error("Link.request: missing use-raw action");
+    }
     const packet = Packet.fromFields(provider, {
       headerType: PacketHeaderType.HEADER_1,
       transportType: TransportType.BROADCAST,
@@ -444,7 +466,15 @@ export class Link {
     iface: PacketInterface,
     options?: { readonly entropy?: Uint8Array }
   ): Link | null {
-    const request = splitLinkRequestData(packet.data);
+    const splitStepped = stepSplitLinkRequestDataWithActions(initialSplitLinkRequestDataState(), {
+      kind: "link-request/split-gate",
+      data: packet.data
+    });
+    const request =
+      shouldRejectSplitLinkRequestData(splitStepped.actions) ||
+      !shouldUseSplitLinkRequestData(splitStepped.actions)
+        ? null
+        : linkRequestKeyFieldsFromActions(splitStepped.actions);
     const early = stepLinkValidateRequestWithActions(initialLinkValidateRequestState(), {
       kind: "validate-request/gate",
       requestPresent: request !== null,
@@ -455,7 +485,8 @@ export class Link {
       !shouldContinueLinkValidateRequest({
         actions: early.actions,
         requestPresent: request !== null
-      })
+      }) ||
+      request === null
     ) {
       return null;
     }
@@ -473,14 +504,14 @@ export class Link {
       );
       link.privateKey = responderKeys.privateKey;
       link.publicKeyBytes = provider.x25519PublicFromPrivate(link.privateKey);
-      link.loadPeer(request!.publicKey, request!.signaturePublicKey);
+      link.loadPeer(request.publicKey, request.signaturePublicKey);
       link.setLinkId(packet);
 
       const responderMtuStepped = stepLinkRequestResponderMtuWithActions(
         initialLinkRequestResponderMtuState(),
         {
           kind: "link/request-responder-mtu-gate",
-          signallingPresent: request!.signallingBytes.length > 0,
+          signallingPresent: request.signallingBytes.length > 0,
           signallingMtu: Link.mtuFromLrPacket(packet),
           currentMtu: link.mtu,
           defaultMtu: RETICULUM_MTU
@@ -619,7 +650,19 @@ export class Link {
       signallingBytes
     );
     const signature = ownerIdentity.sign(signedData);
-    const proofData = packLinkProofData(signature, publicKeyBytes, signallingBytes);
+    const packStepped = stepPackLinkProofDataWithActions(initialPackLinkProofDataState(), {
+      kind: "link-proof/pack-gate",
+      signature,
+      publicKey: publicKeyBytes,
+      signallingBytes
+    });
+    const proofData =
+      shouldUsePackLinkProofData(packStepped.actions)
+        ? packLinkProofDataRawFromActions(packStepped.actions)
+        : null;
+    if (proofData === null) {
+      throw new Error("Link.prove: missing use-raw action");
+    }
     const proofPacket = Packet.fromFields(this.provider, {
       headerType: PacketHeaderType.HEADER_1,
       transportType: TransportType.BROADCAST,
@@ -664,7 +707,15 @@ export class Link {
         proofData = proofData.subarray(0, LINK_PROOF_BODY_SIZE);
       }
 
-      const body = splitLinkProofBody(proofData);
+      const bodyStepped = stepSplitLinkProofBodyWithActions(initialSplitLinkProofBodyState(), {
+        kind: "link-proof/split-body-gate",
+        data: proofData
+      });
+      const body =
+        shouldRejectSplitLinkProofBody(bodyStepped.actions) ||
+        !shouldUseSplitLinkProofBody(bodyStepped.actions)
+          ? null
+          : linkProofBodyFieldsFromActions(bodyStepped.actions);
       const peerPublic =
         body !== null ? splitIdentityPublicKey(destination.identity!.getPublicKey()) : null;
 

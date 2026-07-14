@@ -1,6 +1,10 @@
 /**
  * Pure RNS link-request / link-proof signalling and payload layout helpers.
+ * Pack / split conclusions leave via machine actions (no ad-hoc
+ * `packLinkProofData` / `splitLinkProofBody` / `packLinkRequestData` /
+ * `splitLinkRequestData` reads beside the step).
  */
+import type { Event, Intent } from "@twistedpear/effects";
 
 export const LINK_PROOF_SIGNATURE_SIZE = 64;
 export const LINK_PROOF_PUBLIC_KEY_SIZE = 32;
@@ -22,10 +26,12 @@ export function classifyLinkProofPayload(dataLength: number): LinkProofPayloadKi
   return "invalid";
 }
 
-export function splitLinkProofBody(data: Uint8Array): {
+export interface LinkProofBodyFields {
   readonly signature: Uint8Array;
   readonly peerPublicKey: Uint8Array;
-} | null {
+}
+
+export function splitLinkProofBody(data: Uint8Array): LinkProofBodyFields | null {
   if (data.length < LINK_PROOF_BODY_SIZE) {
     return null;
   }
@@ -170,4 +176,272 @@ export function linkRequestHashablePart(
   }
   const diff = requestDataLength - LINK_REQUEST_ECPUB_SIZE;
   return hashablePart.subarray(0, hashablePart.length - diff);
+}
+
+/**
+ * Link-proof pack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `packLinkProofData`
+ * reads beside the step).
+ */
+export type PackLinkProofDataState = Record<string, never>;
+
+export type PackLinkProofDataEvent =
+  | Event
+  | {
+      readonly kind: "link-proof/pack-gate";
+      readonly signature: Uint8Array;
+      readonly publicKey: Uint8Array;
+      readonly signallingBytes: Uint8Array;
+    };
+
+export type PackLinkProofDataAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface PackLinkProofDataStepResult {
+  readonly state: PackLinkProofDataState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackLinkProofDataAction[];
+}
+
+export function initialPackLinkProofDataState(): PackLinkProofDataState {
+  return {};
+}
+
+export function stepPackLinkProofDataWithActions(
+  state: PackLinkProofDataState,
+  event: PackLinkProofDataEvent
+): PackLinkProofDataStepResult {
+  if (event.kind === "link-proof/pack-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: packLinkProofData(event.signature, event.publicKey, event.signallingBytes)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackLinkProofData(
+  actions: ReadonlyArray<PackLinkProofDataAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract link-proof pack bytes from step actions; null when no `use-raw`. */
+export function packLinkProofDataRawFromActions(
+  actions: ReadonlyArray<PackLinkProofDataAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Link-proof body split framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `splitLinkProofBody`
+ * reads beside the step).
+ */
+export type SplitLinkProofBodyState = Record<string, never>;
+
+export type SplitLinkProofBodyEvent =
+  | Event
+  | {
+      readonly kind: "link-proof/split-body-gate";
+      readonly data: Uint8Array;
+    };
+
+export type SplitLinkProofBodyAction =
+  | { readonly kind: "use-fields"; readonly fields: LinkProofBodyFields }
+  | { readonly kind: "reject" };
+
+export interface SplitLinkProofBodyStepResult {
+  readonly state: SplitLinkProofBodyState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly SplitLinkProofBodyAction[];
+}
+
+export function initialSplitLinkProofBodyState(): SplitLinkProofBodyState {
+  return {};
+}
+
+export function stepSplitLinkProofBodyWithActions(
+  state: SplitLinkProofBodyState,
+  event: SplitLinkProofBodyEvent
+): SplitLinkProofBodyStepResult {
+  if (event.kind === "link-proof/split-body-gate") {
+    const fields = splitLinkProofBody(event.data);
+    if (fields === null) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-fields", fields }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseSplitLinkProofBody(
+  actions: ReadonlyArray<SplitLinkProofBodyAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectSplitLinkProofBody(
+  actions: ReadonlyArray<SplitLinkProofBodyAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract split link-proof body fields from step actions; null when no `use-fields`. */
+export function linkProofBodyFieldsFromActions(
+  actions: ReadonlyArray<SplitLinkProofBodyAction>
+): LinkProofBodyFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
+}
+
+/**
+ * Link-request pack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `packLinkRequestData`
+ * reads beside the step).
+ */
+export type PackLinkRequestDataState = Record<string, never>;
+
+export type PackLinkRequestDataEvent =
+  | Event
+  | {
+      readonly kind: "link-request/pack-gate";
+      readonly publicKey: Uint8Array;
+      readonly signaturePublicKey: Uint8Array;
+      readonly signallingBytes: Uint8Array;
+    };
+
+export type PackLinkRequestDataAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface PackLinkRequestDataStepResult {
+  readonly state: PackLinkRequestDataState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackLinkRequestDataAction[];
+}
+
+export function initialPackLinkRequestDataState(): PackLinkRequestDataState {
+  return {};
+}
+
+export function stepPackLinkRequestDataWithActions(
+  state: PackLinkRequestDataState,
+  event: PackLinkRequestDataEvent
+): PackLinkRequestDataStepResult {
+  if (event.kind === "link-request/pack-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: packLinkRequestData(
+            event.publicKey,
+            event.signaturePublicKey,
+            event.signallingBytes
+          )
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackLinkRequestData(
+  actions: ReadonlyArray<PackLinkRequestDataAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract link-request pack bytes from step actions; null when no `use-raw`. */
+export function packLinkRequestDataRawFromActions(
+  actions: ReadonlyArray<PackLinkRequestDataAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Link-request split framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `splitLinkRequestData`
+ * reads beside the step).
+ */
+export type SplitLinkRequestDataState = Record<string, never>;
+
+export type SplitLinkRequestDataEvent =
+  | Event
+  | {
+      readonly kind: "link-request/split-gate";
+      readonly data: Uint8Array;
+    };
+
+export type SplitLinkRequestDataAction =
+  | { readonly kind: "use-fields"; readonly fields: LinkRequestKeyFields }
+  | { readonly kind: "reject" };
+
+export interface SplitLinkRequestDataStepResult {
+  readonly state: SplitLinkRequestDataState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly SplitLinkRequestDataAction[];
+}
+
+export function initialSplitLinkRequestDataState(): SplitLinkRequestDataState {
+  return {};
+}
+
+export function stepSplitLinkRequestDataWithActions(
+  state: SplitLinkRequestDataState,
+  event: SplitLinkRequestDataEvent
+): SplitLinkRequestDataStepResult {
+  if (event.kind === "link-request/split-gate") {
+    const fields = splitLinkRequestData(event.data);
+    if (fields === null) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-fields", fields }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseSplitLinkRequestData(
+  actions: ReadonlyArray<SplitLinkRequestDataAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectSplitLinkRequestData(
+  actions: ReadonlyArray<SplitLinkRequestDataAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract split link-request fields from step actions; null when no `use-fields`. */
+export function linkRequestKeyFieldsFromActions(
+  actions: ReadonlyArray<SplitLinkRequestDataAction>
+): LinkRequestKeyFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }
