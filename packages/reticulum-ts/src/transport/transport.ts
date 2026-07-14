@@ -7,15 +7,21 @@ import {
   canRelayTransportPacket,
   isDiscoveryPathRequestExpired,
   isReverseEntryExpired,
+  initialAnnounceIngressGatesState,
   initialDiscoveryPathRequestFulfillState,
+  initialLinkRelayTargetState,
   initialPacketHashRememberState,
   initialPathRequestIngressState,
   initialReverseRelayOutcomeState,
   initialTransportIngressDispatchState,
-  planAnnounceIngressGates,
-  planLinkRelayTarget,
-  shouldTransmitLinkRelay,
   rewritePacketHopsBytes,
+  shouldApplyAnnounceRateLimit,
+  shouldIgnoreLinkRelayTarget,
+  shouldRebroadcastAnnounce,
+  shouldRecordAnnounceRate,
+  shouldRelayLinkOutbound,
+  shouldRelayLinkReceived,
+  shouldTransmitLinkRelay,
   canAnswerLocalPathRequest,
   shouldAcceptTransportPacket,
   shouldAnswerPathRequestLocal,
@@ -50,6 +56,8 @@ import {
   shouldStartPathRequestDiscovery,
   shouldTouchPathEntry,
   shouldTransmitReverseRelay,
+  stepAnnounceIngressGatesWithActions,
+  stepLinkRelayTargetWithActions,
   stepPacketHashRememberWithActions,
   stepReverseRelayOutcomeWithActions,
   stepTransportIngressDispatchWithActions,
@@ -201,12 +209,18 @@ export class TransportNode extends LeafTransport {
   protected override async handleAnnounce(packet: Packet, iface: PacketInterface): Promise<void> {
     const destinationKey = hashKey(packet.destinationHash);
     const now = this.clock.now() / 1000;
-    const gates = planAnnounceIngressGates(packet.context);
-    if (gates.applyRateLimit && this.announceRateLimiter.isBlocked(destinationKey, now)) {
+    const gates = stepAnnounceIngressGatesWithActions(initialAnnounceIngressGatesState(), {
+      kind: "announce/ingress-gates",
+      context: packet.context
+    });
+    if (
+      shouldApplyAnnounceRateLimit(gates.actions) &&
+      this.announceRateLimiter.isBlocked(destinationKey, now)
+    ) {
       return;
     }
 
-    if (gates.recordRate) {
+    if (shouldRecordAnnounceRate(gates.actions)) {
       this.announceRateLimiter.record(destinationKey, now);
     }
 
@@ -408,7 +422,8 @@ export class TransportNode extends LeafTransport {
       return false;
     }
 
-    const target = planLinkRelayTarget({
+    const relayStepped = stepLinkRelayTargetWithActions(initialLinkRelayTargetState(), {
+      kind: "transport/link-relay-gate",
       sameInterface: entry!.outboundInterface === entry!.receivedInterface,
       ifaceIsOutbound: iface === entry!.outboundInterface,
       ifaceIsReceived: iface === entry!.receivedInterface,
@@ -416,12 +431,14 @@ export class TransportNode extends LeafTransport {
       remainingHops: entry!.remainingHops,
       takenHops: entry!.takenHops
     });
-    const outboundInterface =
-      target === "outbound"
-        ? entry!.outboundInterface
-        : target === "received"
-          ? entry!.receivedInterface
-          : null;
+    if (shouldIgnoreLinkRelayTarget(relayStepped.actions)) {
+      return false;
+    }
+    const outboundInterface = shouldRelayLinkOutbound(relayStepped.actions)
+      ? entry!.outboundInterface
+      : shouldRelayLinkReceived(relayStepped.actions)
+        ? entry!.receivedInterface
+        : null;
 
     if (!shouldTransmitLinkRelay(outboundInterface !== null)) {
       return false;
@@ -471,7 +488,11 @@ export class TransportNode extends LeafTransport {
   }
 
   private async rebroadcastAnnounce(packet: Packet, iface: PacketInterface): Promise<void> {
-    if (!planAnnounceIngressGates(packet.context).rebroadcast) {
+    const gates = stepAnnounceIngressGatesWithActions(initialAnnounceIngressGatesState(), {
+      kind: "announce/ingress-gates",
+      context: packet.context
+    });
+    if (!shouldRebroadcastAnnounce(gates.actions)) {
       return;
     }
 

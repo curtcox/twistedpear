@@ -216,3 +216,91 @@ export function planLinkResourceConclude(input: {
 export function shouldRemoveLinkResourceListIndex(indexPresent: boolean): boolean {
   return indexPresent;
 }
+
+/**
+ * Link resource conclude is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LinkResourceConcludeState = Record<string, never>;
+
+export type LinkResourceConcludeEvent =
+  | Event
+  | {
+      readonly kind: "link/resource-conclude-gate";
+      readonly outgoingIndex: number;
+      readonly incomingIndex: number;
+    };
+
+export type LinkResourceConcludeAction =
+  | { readonly kind: "remove-outgoing"; readonly index: number }
+  | { readonly kind: "remove-incoming"; readonly index: number };
+
+export interface LinkResourceConcludeStepResult {
+  readonly state: LinkResourceConcludeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkResourceConcludeAction[];
+}
+
+export function initialLinkResourceConcludeState(): LinkResourceConcludeState {
+  return {};
+}
+
+export const stepLinkResourceConclude: StepFn<LinkResourceConcludeState> = (state, event) => {
+  const result = stepLinkResourceConcludeInner(state, event as LinkResourceConcludeEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkResourceConcludeWithActions(
+  state: LinkResourceConcludeState,
+  event: LinkResourceConcludeEvent
+): LinkResourceConcludeStepResult {
+  return stepLinkResourceConcludeInner(state, event);
+}
+
+export function outgoingLinkResourceConcludeIndex(
+  actions: ReadonlyArray<LinkResourceConcludeAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove-outgoing");
+  return action?.kind === "remove-outgoing" ? action.index : null;
+}
+
+export function incomingLinkResourceConcludeIndex(
+  actions: ReadonlyArray<LinkResourceConcludeAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove-incoming");
+  return action?.kind === "remove-incoming" ? action.index : null;
+}
+
+export function shouldRemoveOutgoingLinkResourceConclude(
+  actions: ReadonlyArray<LinkResourceConcludeAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove-outgoing");
+}
+
+export function shouldRemoveIncomingLinkResourceConclude(
+  actions: ReadonlyArray<LinkResourceConcludeAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove-incoming");
+}
+
+function stepLinkResourceConcludeInner(
+  state: LinkResourceConcludeState,
+  event: LinkResourceConcludeEvent
+): LinkResourceConcludeStepResult {
+  if (event.kind === "link/resource-conclude-gate") {
+    const plan = planLinkResourceConclude({
+      outgoingIndex: event.outgoingIndex,
+      incomingIndex: event.incomingIndex
+    });
+    const actions: LinkResourceConcludeAction[] = [];
+    if (plan.removeOutgoingIndex !== null) {
+      actions.push({ kind: "remove-outgoing", index: plan.removeOutgoingIndex });
+    }
+    if (plan.removeIncomingIndex !== null) {
+      actions.push({ kind: "remove-incoming", index: plan.removeIncomingIndex });
+    }
+    return { state, intents: [], actions };
+  }
+
+  return { state, intents: [], actions: [] };
+}

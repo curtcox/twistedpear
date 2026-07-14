@@ -78,10 +78,10 @@ import {
   packLinkKeepaliveReply,
   packLinkProofData,
   packLinkRequestData,
-  planLinkResourceConclude,
   initialLinkAppRequestState,
   initialLinkAppRequestTransmitState,
   initialLinkDataContextState,
+  initialLinkResourceConcludeState,
   planLinkInitiatorMtu,
   planLinkRequestResponderMtu,
   planUnregisterPendingLinkRequest,
@@ -139,7 +139,10 @@ import {
   shouldRejectLinkProofValidate,
   shouldRejectLinkResourceAdvertisement,
   shouldRejectLinkTokenNoKey,
-  shouldRemoveLinkResourceListIndex,
+  shouldRemoveIncomingLinkResourceConclude,
+  shouldRemoveOutgoingLinkResourceConclude,
+  incomingLinkResourceConcludeIndex,
+  outgoingLinkResourceConcludeIndex,
   shouldReplyKeepaliveProbe,
   shouldReuseLinkToken,
   shouldSendLinkAppRequest,
@@ -167,6 +170,7 @@ import {
   stepLinkIdentifyWithActions,
   stepLinkProofValidateWithActions,
   stepLinkResourceAdvertisementWithActions,
+  stepLinkResourceConcludeWithActions,
   stepLinkTeardownWithActions,
   stepLinkTokenAccessWithActions,
   stepLinkValidateRequestWithActions,
@@ -1070,15 +1074,18 @@ export class Link {
   }
 
   resourceConcluded(resource: Resource): void {
-    const plan = planLinkResourceConclude({
+    const concluded = stepLinkResourceConcludeWithActions(initialLinkResourceConcludeState(), {
+      kind: "link/resource-conclude-gate",
       outgoingIndex: this.outgoingResourcesList.indexOf(resource),
       incomingIndex: this.incomingResourcesList.indexOf(resource)
     });
-    if (shouldRemoveLinkResourceListIndex(plan.removeOutgoingIndex !== null)) {
-      this.outgoingResourcesList.splice(plan.removeOutgoingIndex!, 1);
+    const removeOutgoing = outgoingLinkResourceConcludeIndex(concluded.actions);
+    if (shouldRemoveOutgoingLinkResourceConclude(concluded.actions) && removeOutgoing !== null) {
+      this.outgoingResourcesList.splice(removeOutgoing, 1);
     }
-    if (shouldRemoveLinkResourceListIndex(plan.removeIncomingIndex !== null)) {
-      this.incomingResourcesList.splice(plan.removeIncomingIndex!, 1);
+    const removeIncoming = incomingLinkResourceConcludeIndex(concluded.actions);
+    if (shouldRemoveIncomingLinkResourceConclude(concluded.actions) && removeIncoming !== null) {
+      this.incomingResourcesList.splice(removeIncoming, 1);
     }
   }
 

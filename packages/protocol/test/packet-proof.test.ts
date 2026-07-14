@@ -4,11 +4,15 @@ import {
   PACKET_FULL_HASH_SIZE,
   PACKET_SIGNATURE_SIZE,
   isPacketTypeProof,
+  initialPacketReceiptProofAcceptState,
   packPacketProof,
   packetProofHashMatches,
   planPacketReceiptProofAccept,
   shouldAcceptPacketReceiptProof,
-  splitPacketProof
+  shouldAcceptPacketReceiptProofActions,
+  shouldRejectPacketReceiptProofActions,
+  splitPacketProof,
+  stepPacketReceiptProofAcceptWithActions
 } from "../src/packet-proof.js";
 import { PACKET_TYPE_DATA, PACKET_TYPE_PROOF } from "../src/packet-header.js";
 
@@ -84,5 +88,25 @@ describe("protocol packet proof framing", () => {
     expect(
       shouldAcceptPacketReceiptProof({ planAccept: false, splitPresent: true })
     ).toBe(false);
+  });
+
+  it("emits packet-receipt proof accept actions from WithActions step", () => {
+    const reject = stepPacketReceiptProofAcceptWithActions(initialPacketReceiptProofAcceptState(), {
+      kind: "receipt/proof-accept-gate",
+      splitOk: true,
+      hashMatches: true,
+      signatureValid: false
+    });
+    expect(shouldRejectPacketReceiptProofActions(reject.actions)).toBe(true);
+    expect(shouldAcceptPacketReceiptProofActions(reject.actions)).toBe(false);
+
+    const accept = stepPacketReceiptProofAcceptWithActions(initialPacketReceiptProofAcceptState(), {
+      kind: "receipt/proof-accept-gate",
+      splitOk: true,
+      hashMatches: true,
+      signatureValid: true
+    });
+    expect(shouldAcceptPacketReceiptProofActions(accept.actions)).toBe(true);
+    expect(shouldRejectPacketReceiptProofActions(accept.actions)).toBe(false);
   });
 });

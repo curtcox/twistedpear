@@ -638,6 +638,16 @@
 > `planLinkRegisterList` / `planLinkActivateMembership` /
 > `planLinkUnregisterMembership` / `planLinkAppRequest` /
 > `planLinkAppRequestTransmitOutcome` reads beside the step).
+> **`stepAnnounceIngressGatesWithActions`** emits `apply-rate-limit` /
+> `record-rate` / `rebroadcast`; **`stepLinkRelayTargetWithActions`** emits
+> `outbound` / `received` / `ignore`; **`stepLinkResourceConcludeWithActions`**
+> emits `remove-outgoing` / `remove-incoming`;
+> **`stepPacketReceiptProofAcceptWithActions`** emits `accept` / `reject`;
+> `TransportNode` announce ingress/rebroadcast, link-packet relay,
+> `Link.resourceConcluded`, and `PacketReceipt.validateProof` apply only from
+> those actions (no ad-hoc `planAnnounceIngressGates` / `planLinkRelayTarget` /
+> `planLinkResourceConclude` / `planPacketReceiptProofAccept` reads beside the
+> step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -703,7 +713,9 @@
 > packet-receipt-proof-ingress / link-data-context /
 > link-register-list / link-activate-membership /
 > link-unregister-membership / link-app-request /
-> link-app-request-transmit reads
+> link-app-request-transmit / announce-ingress-gates /
+> link-relay-target / link-resource-conclude /
+> packet-receipt-proof-accept reads
 > beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

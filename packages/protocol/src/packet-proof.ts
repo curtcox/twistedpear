@@ -1,7 +1,10 @@
 /**
  * Pure RNS packet proof framing (explicit hash+sig vs signature-only).
  * Signing / verification stay at the crypto adapter edge.
+ * Packet-receipt proof-accept conclusions leave via machine actions (no ad-hoc
+ * `planPacketReceiptProofAccept` reads beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_PROOF } from "./packet-header.js";
 import { equalByteArrays } from "./path-table.js";
 
@@ -101,4 +104,93 @@ export function shouldAcceptPacketReceiptProof(input: {
   readonly splitPresent: boolean;
 }): boolean {
   return input.planAccept && input.splitPresent;
+}
+
+/**
+ * Packet-receipt proof accept is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type PacketReceiptProofAcceptState = Record<string, never>;
+
+export type PacketReceiptProofAcceptEvent =
+  | Event
+  | {
+      readonly kind: "receipt/proof-accept-gate";
+      readonly splitOk: boolean;
+      readonly hashMatches: boolean;
+      readonly signatureValid: boolean;
+    };
+
+export type PacketReceiptProofAcceptAction = {
+  readonly kind: PacketReceiptProofAcceptPlan;
+};
+
+export interface PacketReceiptProofAcceptStepResult {
+  readonly state: PacketReceiptProofAcceptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketReceiptProofAcceptAction[];
+}
+
+export function initialPacketReceiptProofAcceptState(): PacketReceiptProofAcceptState {
+  return {};
+}
+
+export const stepPacketReceiptProofAccept: StepFn<PacketReceiptProofAcceptState> = (
+  state,
+  event
+) => {
+  const result = stepPacketReceiptProofAcceptInner(
+    state,
+    event as PacketReceiptProofAcceptEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepPacketReceiptProofAcceptWithActions(
+  state: PacketReceiptProofAcceptState,
+  event: PacketReceiptProofAcceptEvent
+): PacketReceiptProofAcceptStepResult {
+  return stepPacketReceiptProofAcceptInner(state, event);
+}
+
+export function packetReceiptProofAcceptFromActions(
+  actions: ReadonlyArray<PacketReceiptProofAcceptAction>
+): PacketReceiptProofAcceptPlan | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldAcceptPacketReceiptProofActions(
+  actions: ReadonlyArray<PacketReceiptProofAcceptAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldRejectPacketReceiptProofActions(
+  actions: ReadonlyArray<PacketReceiptProofAcceptAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+function stepPacketReceiptProofAcceptInner(
+  state: PacketReceiptProofAcceptState,
+  event: PacketReceiptProofAcceptEvent
+): PacketReceiptProofAcceptStepResult {
+  if (event.kind === "receipt/proof-accept-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planPacketReceiptProofAccept({
+            splitOk: event.splitOk,
+            hashMatches: event.hashMatches,
+            signatureValid: event.signatureValid
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
 }

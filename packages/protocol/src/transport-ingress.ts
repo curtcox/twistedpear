@@ -2,8 +2,8 @@
  * Pure transport ingress accept / filter / packet-hash deferral / relay decisions.
  * Hash tables and interface identity stay at the adapter edge as boolean inputs.
  * Ingress dispatch / link-data target / reverse-relay / hash-remember /
- * local plain-data conclusions leave via machine actions (no ad-hoc plan reads
- * beside the step).
+ * local plain-data / link-relay conclusions leave via machine actions (no ad-hoc
+ * plan reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -121,6 +121,101 @@ export function canLookupLinkRelayEntry(entryPresent: boolean): boolean {
 /** Whether link-relay may transmit after {@link planLinkRelayTarget} resolves an iface. */
 export function shouldTransmitLinkRelay(outboundPresent: boolean): boolean {
   return outboundPresent;
+}
+
+/**
+ * Link relay target is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LinkRelayTargetState = Record<string, never>;
+
+export type LinkRelayTargetEvent =
+  | Event
+  | {
+      readonly kind: "transport/link-relay-gate";
+      readonly sameInterface: boolean;
+      readonly ifaceIsOutbound: boolean;
+      readonly ifaceIsReceived: boolean;
+      readonly packetHops: number;
+      readonly remainingHops: number;
+      readonly takenHops: number;
+    };
+
+export type LinkRelayTargetAction = {
+  readonly kind: LinkRelayTarget | "ignore";
+};
+
+export interface LinkRelayTargetStepResult {
+  readonly state: LinkRelayTargetState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkRelayTargetAction[];
+}
+
+export function initialLinkRelayTargetState(): LinkRelayTargetState {
+  return {};
+}
+
+export const stepLinkRelayTarget: StepFn<LinkRelayTargetState> = (state, event) => {
+  const result = stepLinkRelayTargetInner(state, event as LinkRelayTargetEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkRelayTargetWithActions(
+  state: LinkRelayTargetState,
+  event: LinkRelayTargetEvent
+): LinkRelayTargetStepResult {
+  return stepLinkRelayTargetInner(state, event);
+}
+
+export function linkRelayTargetFromActions(
+  actions: ReadonlyArray<LinkRelayTargetAction>
+): LinkRelayTarget | null {
+  const action = actions[0];
+  if (action === undefined || action.kind === "ignore") {
+    return null;
+  }
+  return action.kind;
+}
+
+export function shouldRelayLinkOutbound(
+  actions: ReadonlyArray<LinkRelayTargetAction>
+): boolean {
+  return actions.some((action) => action.kind === "outbound");
+}
+
+export function shouldRelayLinkReceived(
+  actions: ReadonlyArray<LinkRelayTargetAction>
+): boolean {
+  return actions.some((action) => action.kind === "received");
+}
+
+export function shouldIgnoreLinkRelayTarget(
+  actions: ReadonlyArray<LinkRelayTargetAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+function stepLinkRelayTargetInner(
+  state: LinkRelayTargetState,
+  event: LinkRelayTargetEvent
+): LinkRelayTargetStepResult {
+  if (event.kind === "transport/link-relay-gate") {
+    const target = planLinkRelayTarget({
+      sameInterface: event.sameInterface,
+      ifaceIsOutbound: event.ifaceIsOutbound,
+      ifaceIsReceived: event.ifaceIsReceived,
+      packetHops: event.packetHops,
+      remainingHops: event.remainingHops,
+      takenHops: event.takenHops
+    });
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: target ?? "ignore" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 /** Whether reverse-table should delete an expired entry (delete-expired outcome). */

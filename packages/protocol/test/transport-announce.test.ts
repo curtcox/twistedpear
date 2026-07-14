@@ -2,15 +2,20 @@ import { describe, expect, it } from "vitest";
 import {
   PACKET_CONTEXT_NONE,
   PACKET_CONTEXT_PATH_RESPONSE,
+  initialAnnounceIngressGatesState,
   planAnnounceIngressGates,
   planClonePacketWithHops,
   planPathResponseAnnounceFields,
   planTransportAnnounceFields,
   canDispatchAnnounceHandlers,
   shouldAcceptCachedPathResponsePacket,
+  shouldApplyAnnounceRateLimit,
   shouldIgnoreLocalAnnounce,
   shouldMatchAnnounceAspect,
-  shouldReceiveAnnouncePathResponse
+  shouldRebroadcastAnnounce,
+  shouldReceiveAnnouncePathResponse,
+  shouldRecordAnnounceRate,
+  stepAnnounceIngressGatesWithActions
 } from "../src/transport-announce.js";
 import {
   PACKET_HEADER_1,
@@ -97,6 +102,24 @@ describe("protocol transport announce planning", () => {
       recordRate: false,
       rebroadcast: false
     });
+  });
+
+  it("emits announce ingress gate actions from WithActions step", () => {
+    const announce = stepAnnounceIngressGatesWithActions(initialAnnounceIngressGatesState(), {
+      kind: "announce/ingress-gates",
+      context: PACKET_CONTEXT_NONE
+    });
+    expect(shouldApplyAnnounceRateLimit(announce.actions)).toBe(true);
+    expect(shouldRecordAnnounceRate(announce.actions)).toBe(true);
+    expect(shouldRebroadcastAnnounce(announce.actions)).toBe(true);
+
+    const pathResponse = stepAnnounceIngressGatesWithActions(initialAnnounceIngressGatesState(), {
+      kind: "announce/ingress-gates",
+      context: PACKET_CONTEXT_PATH_RESPONSE
+    });
+    expect(shouldApplyAnnounceRateLimit(pathResponse.actions)).toBe(false);
+    expect(shouldRecordAnnounceRate(pathResponse.actions)).toBe(false);
+    expect(shouldRebroadcastAnnounce(pathResponse.actions)).toBe(false);
   });
 
   it("ignores announces for local inbound destinations", () => {

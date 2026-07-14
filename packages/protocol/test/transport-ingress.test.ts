@@ -18,12 +18,14 @@ import {
   isLocalPathRequestPacket,
   isReverseEntryExpired,
   initialLinkDataIngressTargetState,
+  initialLinkRelayTargetState,
   initialLocalPlainDataDeliveryState,
   initialPacketHashRememberState,
   initialProofIngressState,
   initialReverseRelayOutcomeState,
   initialTransportIngressDispatchState,
   linkDataIngressTargetFromActions,
+  linkRelayTargetFromActions,
   localPlainDataDeliveryFromActions,
   packetHashRememberFromActions,
   planLinkRelayTarget,
@@ -54,6 +56,7 @@ import {
   shouldHandleProofLrproof,
   shouldHandleProofReceipt,
   shouldHandleProofResourcePrf,
+  shouldIgnoreLinkRelayTarget,
   shouldIgnoreLocalPlainDataDelivery,
   shouldIgnoreReverseRelayOutcome,
   shouldIgnoreTransportIngressDispatch,
@@ -65,6 +68,8 @@ import {
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
   shouldRegisterTransportMember,
+  shouldRelayLinkOutbound,
+  shouldRelayLinkReceived,
   shouldRelayReverseOnInterface,
   shouldRelayReversePacketActions,
   shouldRememberPacketHashAfterRelay,
@@ -77,6 +82,7 @@ import {
   planUnregisterTransportMember,
   shouldUnregisterTransportMember,
   stepLinkDataIngressTargetWithActions,
+  stepLinkRelayTargetWithActions,
   stepLocalPlainDataDeliveryWithActions,
   stepPacketHashRememberWithActions,
   stepProofIngressWithActions,
@@ -240,6 +246,44 @@ describe("transport ingress", () => {
     expect(canLookupLinkRelayEntry(false)).toBe(false);
     expect(shouldTransmitLinkRelay(true)).toBe(true);
     expect(shouldTransmitLinkRelay(false)).toBe(false);
+  });
+
+  it("emits link relay target actions from WithActions step", () => {
+    const outbound = stepLinkRelayTargetWithActions(initialLinkRelayTargetState(), {
+      kind: "transport/link-relay-gate",
+      sameInterface: true,
+      ifaceIsOutbound: true,
+      ifaceIsReceived: true,
+      packetHops: 2,
+      remainingHops: 2,
+      takenHops: 1
+    });
+    expect(shouldRelayLinkOutbound(outbound.actions)).toBe(true);
+    expect(linkRelayTargetFromActions(outbound.actions)).toBe("outbound");
+
+    const received = stepLinkRelayTargetWithActions(initialLinkRelayTargetState(), {
+      kind: "transport/link-relay-gate",
+      sameInterface: false,
+      ifaceIsOutbound: true,
+      ifaceIsReceived: false,
+      packetHops: 3,
+      remainingHops: 3,
+      takenHops: 1
+    });
+    expect(shouldRelayLinkReceived(received.actions)).toBe(true);
+    expect(linkRelayTargetFromActions(received.actions)).toBe("received");
+
+    const ignored = stepLinkRelayTargetWithActions(initialLinkRelayTargetState(), {
+      kind: "transport/link-relay-gate",
+      sameInterface: false,
+      ifaceIsOutbound: false,
+      ifaceIsReceived: false,
+      packetHops: 1,
+      remainingHops: 3,
+      takenHops: 1
+    });
+    expect(shouldIgnoreLinkRelayTarget(ignored.actions)).toBe(true);
+    expect(linkRelayTargetFromActions(ignored.actions)).toBeNull();
   });
 
   it("expires reverse-table entries past timeout", () => {

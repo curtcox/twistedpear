@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   initialLinkResourceAdvertisementState,
+  initialLinkResourceConcludeState,
+  incomingLinkResourceConcludeIndex,
   linkReadyForNewResource,
+  outgoingLinkResourceConcludeIndex,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
   planLinkResourceAdvertisement,
@@ -13,9 +16,12 @@ import {
   shouldIgnoreLinkResourceAdvertisement,
   shouldRegisterLinkResource,
   shouldRejectLinkResourceAdvertisement,
+  shouldRemoveIncomingLinkResourceConclude,
   shouldRemoveLinkResourceListIndex,
+  shouldRemoveOutgoingLinkResourceConclude,
   stepLinkResourceAdvertisement,
-  stepLinkResourceAdvertisementWithActions
+  stepLinkResourceAdvertisementWithActions,
+  stepLinkResourceConcludeWithActions
 } from "../src/link-resource-accept.js";
 import { LinkResourceStrategy } from "../src/link-watchdog.js";
 
@@ -185,5 +191,25 @@ describe("protocol link resource accept", () => {
     ).toEqual({ removeOutgoingIndex: null, removeIncomingIndex: 0 });
     expect(shouldRemoveLinkResourceListIndex(true)).toBe(true);
     expect(shouldRemoveLinkResourceListIndex(false)).toBe(false);
+  });
+
+  it("emits link resource conclude actions from WithActions step", () => {
+    const outgoing = stepLinkResourceConcludeWithActions(initialLinkResourceConcludeState(), {
+      kind: "link/resource-conclude-gate",
+      outgoingIndex: 1,
+      incomingIndex: -1
+    });
+    expect(shouldRemoveOutgoingLinkResourceConclude(outgoing.actions)).toBe(true);
+    expect(outgoingLinkResourceConcludeIndex(outgoing.actions)).toBe(1);
+    expect(shouldRemoveIncomingLinkResourceConclude(outgoing.actions)).toBe(false);
+
+    const incoming = stepLinkResourceConcludeWithActions(initialLinkResourceConcludeState(), {
+      kind: "link/resource-conclude-gate",
+      outgoingIndex: -1,
+      incomingIndex: 0
+    });
+    expect(shouldRemoveIncomingLinkResourceConclude(incoming.actions)).toBe(true);
+    expect(incomingLinkResourceConcludeIndex(incoming.actions)).toBe(0);
+    expect(shouldRemoveOutgoingLinkResourceConclude(incoming.actions)).toBe(false);
   });
 });

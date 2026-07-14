@@ -1,7 +1,10 @@
 /**
  * Pure transport announce / path-response / hop-clone field planning.
  * Packet construction and identity hashing stay at the adapter edge.
+ * Announce ingress gate conclusions leave via machine actions (no ad-hoc
+ * `planAnnounceIngressGates` reads beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   PACKET_CONTEXT_PATH_RESPONSE,
   PACKET_CONTEXT_NONE
@@ -135,4 +138,84 @@ export function planAnnounceIngressGates(context: number): AnnounceIngressGates 
     recordRate: allow,
     rebroadcast: allow
   };
+}
+
+/**
+ * Announce ingress gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type AnnounceIngressGatesState = Record<string, never>;
+
+export type AnnounceIngressGatesEvent =
+  | Event
+  | {
+      readonly kind: "announce/ingress-gates";
+      readonly context: number;
+    };
+
+export type AnnounceIngressGatesAction =
+  | { readonly kind: "apply-rate-limit" }
+  | { readonly kind: "record-rate" }
+  | { readonly kind: "rebroadcast" };
+
+export interface AnnounceIngressGatesStepResult {
+  readonly state: AnnounceIngressGatesState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AnnounceIngressGatesAction[];
+}
+
+export function initialAnnounceIngressGatesState(): AnnounceIngressGatesState {
+  return {};
+}
+
+export const stepAnnounceIngressGates: StepFn<AnnounceIngressGatesState> = (state, event) => {
+  const result = stepAnnounceIngressGatesInner(state, event as AnnounceIngressGatesEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepAnnounceIngressGatesWithActions(
+  state: AnnounceIngressGatesState,
+  event: AnnounceIngressGatesEvent
+): AnnounceIngressGatesStepResult {
+  return stepAnnounceIngressGatesInner(state, event);
+}
+
+export function shouldApplyAnnounceRateLimit(
+  actions: ReadonlyArray<AnnounceIngressGatesAction>
+): boolean {
+  return actions.some((action) => action.kind === "apply-rate-limit");
+}
+
+export function shouldRecordAnnounceRate(
+  actions: ReadonlyArray<AnnounceIngressGatesAction>
+): boolean {
+  return actions.some((action) => action.kind === "record-rate");
+}
+
+export function shouldRebroadcastAnnounce(
+  actions: ReadonlyArray<AnnounceIngressGatesAction>
+): boolean {
+  return actions.some((action) => action.kind === "rebroadcast");
+}
+
+function stepAnnounceIngressGatesInner(
+  state: AnnounceIngressGatesState,
+  event: AnnounceIngressGatesEvent
+): AnnounceIngressGatesStepResult {
+  if (event.kind === "announce/ingress-gates") {
+    const plan = planAnnounceIngressGates(event.context);
+    const actions: AnnounceIngressGatesAction[] = [];
+    if (plan.applyRateLimit) {
+      actions.push({ kind: "apply-rate-limit" });
+    }
+    if (plan.recordRate) {
+      actions.push({ kind: "record-rate" });
+    }
+    if (plan.rebroadcast) {
+      actions.push({ kind: "rebroadcast" });
+    }
+    return { state, intents: [], actions };
+  }
+
+  return { state, intents: [], actions: [] };
 }

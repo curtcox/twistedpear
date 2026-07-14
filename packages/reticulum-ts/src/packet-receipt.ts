@@ -5,11 +5,13 @@ import {
   RECEIPT_TIMEOUT_TIMER_ID,
   isPacketTypeProof,
   packetProofHashMatches,
+  initialPacketReceiptProofAcceptState,
   planPacketReceiptCallback,
-  planPacketReceiptProofAccept,
   shouldAcceptPacketReceiptProof,
+  shouldAcceptPacketReceiptProofActions,
   shouldInvokePacketReceiptAction,
   splitPacketProof,
+  stepPacketReceiptProofAcceptWithActions,
   stepPacketReceiptTimeoutWithActions,
   type PacketReceiptStatusValue,
   type PacketReceiptTimeoutAction,
@@ -96,14 +98,18 @@ export class PacketReceipt {
     const hashMatches = split !== null && packetProofHashMatches(split, this.hash);
     const signatureValid =
       split !== null && hashMatches && identity.validate(split.signature, this.hash);
+    const acceptStepped = stepPacketReceiptProofAcceptWithActions(
+      initialPacketReceiptProofAcceptState(),
+      {
+        kind: "receipt/proof-accept-gate",
+        splitOk: split !== null,
+        hashMatches,
+        signatureValid
+      }
+    );
     if (
       !shouldAcceptPacketReceiptProof({
-        planAccept:
-          planPacketReceiptProofAccept({
-            splitOk: split !== null,
-            hashMatches,
-            signatureValid
-          }) === "accept",
+        planAccept: shouldAcceptPacketReceiptProofActions(acceptStepped.actions),
         splitPresent: split !== null
       })
     ) {
