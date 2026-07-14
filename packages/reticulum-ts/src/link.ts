@@ -24,7 +24,6 @@ import {
   LinkResourceStrategy,
   LinkStatus,
   LinkTeardownReason,
-  applyLinkEstablishEvent,
   canAcceptLinkIdentify,
   canAcceptLinkOwnerPublicKey,
   canAcceptLinkRtt,
@@ -52,6 +51,7 @@ import {
   isLinkKeepaliveProbe,
   isExpectedLinkMode,
   isLinkModeEnabled,
+  linkEstablishActivatedAction,
   linkHopsMatch,
   linkIdentifySignedMaterial,
   linkProofSignedMaterial,
@@ -94,6 +94,7 @@ import {
   shouldAcceptResourceHashmapUpdateFrame,
   shouldAcceptResourceProofPayload,
   shouldAcceptResourceProofSplit,
+  shouldActivateLinkEstablish,
   shouldAttemptLinkProofCrypto,
   shouldContinueLinkValidateRequest,
   shouldCreateLinkChannel,
@@ -101,6 +102,8 @@ import {
   shouldDeliverPendingLinkAppResponse,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
+  shouldEnterLinkHandshake,
+  shouldFailLinkEstablish,
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest,
   shouldIgnoreInitiatorKeepaliveProbe,
@@ -121,8 +124,10 @@ import {
   splitResourceHashmapUpdatePacket,
   splitResourceProof,
   splitResponderLinkEntropy,
+  stepLinkEstablishWithActions,
   stepLinkWatchdogWithActions,
   utf8Encode,
+  type LinkEstablishAction,
   type LinkModeValue,
   type LinkResourceStrategyValue,
   type LinkStatusValue,
@@ -495,11 +500,12 @@ export class Link {
       throw new Error("Invalid link state for handshake");
     }
 
-    const established = applyLinkEstablishEvent(
-      initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
-      { kind: "establish/handshake" }
+    void this.applyLinkEstablishActions(
+      stepLinkEstablishWithActions(
+        initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
+        { kind: "establish/handshake" }
+      ).actions
     );
-    this.status = established.status;
     const sharedKey = this.provider.x25519SharedSecret(privateKey, peerPublicKeyBytes);
     // ECDH at the crypto adapter edge; RNS HKDF length/salt selection is pure protocol.
     this.derivedKey = deriveRnsLinkKey(sharedKey, this.linkId, this.mode);
@@ -621,42 +627,31 @@ export class Link {
       }
 
       const nowSeconds = this.clock.now() / 1000;
-      const activated = applyLinkEstablishEvent(
-        initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
+      await this.applyLinkEstablishActions(
+        stepLinkEstablishWithActions(
+          initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
+          {
+            kind: "establish/activated",
+            atSeconds: nowSeconds,
+            rtt: computeLinkRttSeconds(nowSeconds, this.requestTime)
+          }
+        ).actions,
         {
-          kind: "establish/activated",
-          atSeconds: nowSeconds,
-          rtt: computeLinkRttSeconds(nowSeconds, this.requestTime)
+          prepareInitiatorActivate: () => {
+            this.attachedInterface = iface;
+            this.mtu = confirmedMtu ?? RETICULUM_MTU;
+            this.updateMdu();
+            this.establishmentCost += packet.raw.length;
+          }
         }
       );
-      this.rtt = activated.rtt;
-      this.attachedInterface = iface;
-      this.mtu = confirmedMtu ?? RETICULUM_MTU;
-      this.updateMdu();
-      this.updateKeepalive();
-      this.status = activated.status;
-      this.activatedAt = activated.activatedAt;
-      this.establishmentCost += packet.raw.length;
-      this.transport.activateLink(this);
-
-      const rttPacket = Packet.fromFields(this.provider, {
-        headerType: PacketHeaderType.HEADER_1,
-        transportType: TransportType.BROADCAST,
-        destinationType: DestinationType.LINK,
-        packetType: PacketType.DATA,
-        destinationHash: this.linkId,
-        context: PacketContext.LRRTT,
-        data: this.encrypt(msgpackPackFloat64(this.rtt!))
-      });
-      await this.transport.sendPacket(rttPacket, { attachedInterface: this.attachedInterface });
-      this.hadOutbound(false);
-      this.callbacks.linkEstablished?.(this);
     } catch {
-      const failed = applyLinkEstablishEvent(
-        initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
-        { kind: "establish/failed" }
+      await this.applyLinkEstablishActions(
+        stepLinkEstablishWithActions(
+          initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
+          { kind: "establish/failed" }
+        ).actions
       );
-      this.status = failed.status;
     }
   }
 
@@ -684,22 +679,69 @@ export class Link {
       const measuredRtt = computeLinkRttSeconds(this.clock.now() / 1000, this.requestTime);
       const remoteRtt = msgpackUnpackFloat(plaintext!);
       const nowSeconds = this.clock.now() / 1000;
-      const activated = applyLinkEstablishEvent(
-        initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
-        {
-          kind: "establish/activated",
-          atSeconds: nowSeconds,
-          rtt: mergeLinkRtt(measuredRtt, remoteRtt)
-        }
+      await this.applyLinkEstablishActions(
+        stepLinkEstablishWithActions(
+          initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
+          {
+            kind: "establish/activated",
+            atSeconds: nowSeconds,
+            rtt: mergeLinkRtt(measuredRtt, remoteRtt)
+          }
+        ).actions
       );
-      this.rtt = activated.rtt;
-      this.updateKeepalive();
-      this.status = activated.status;
-      this.activatedAt = activated.activatedAt;
-      this.callbacks.linkEstablished?.(this);
     } catch {
       await this.teardown();
     }
+  }
+
+  private async applyLinkEstablishActions(
+    actions: readonly LinkEstablishAction[],
+    context?: {
+      readonly prepareInitiatorActivate?: () => void;
+    }
+  ): Promise<void> {
+    if (shouldEnterLinkHandshake(actions)) {
+      this.status = LinkStatus.HANDSHAKE;
+    }
+
+    if (shouldFailLinkEstablish(actions)) {
+      this.status = LinkStatus.CLOSED;
+      return;
+    }
+
+    if (!shouldActivateLinkEstablish(actions)) {
+      return;
+    }
+
+    const activated = linkEstablishActivatedAction(actions);
+    if (activated === null) {
+      return;
+    }
+
+    this.status = LinkStatus.ACTIVE;
+    this.rtt = activated.rtt;
+    this.activatedAt = activated.activatedAt;
+    if (activated.activateMembership || activated.sendRtt) {
+      context?.prepareInitiatorActivate?.();
+    }
+    this.updateKeepalive();
+    if (activated.activateMembership) {
+      this.transport.activateLink(this);
+    }
+    if (activated.sendRtt) {
+      const rttPacket = Packet.fromFields(this.provider, {
+        headerType: PacketHeaderType.HEADER_1,
+        transportType: TransportType.BROADCAST,
+        destinationType: DestinationType.LINK,
+        packetType: PacketType.DATA,
+        destinationHash: this.linkId,
+        context: PacketContext.LRRTT,
+        data: this.encrypt(msgpackPackFloat64(this.rtt!))
+      });
+      await this.transport.sendPacket(rttPacket, { attachedInterface: this.attachedInterface });
+      this.hadOutbound(false);
+    }
+    this.callbacks.linkEstablished?.(this);
   }
 
   async receive(packet: Packet, iface: PacketInterface): Promise<void> {

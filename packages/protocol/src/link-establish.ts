@@ -1,6 +1,7 @@
 /**
  * Pure link establishment status transitions (handshake → proof/RTT → ACTIVE).
  * Crypto verification and packet IO stay at the adapter edge.
+ * Conclusions leave via machine actions (no ad-hoc status reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { planDestinationRequestAllow } from "./destination-allow.js";
@@ -24,6 +25,27 @@ export type LinkEstablishEvent =
       readonly rtt: number;
     }
   | { readonly kind: "establish/failed" };
+
+/**
+ * Adapter applies handshake / activate / fail only from these actions.
+ * Initiator activation also drives membership + LRRTT send flags.
+ */
+export type LinkEstablishAction =
+  | { readonly kind: "enter-handshake" }
+  | {
+      readonly kind: "activated";
+      readonly rtt: number;
+      readonly activatedAt: number;
+      readonly sendRtt: boolean;
+      readonly activateMembership: boolean;
+    }
+  | { readonly kind: "failed" };
+
+export interface LinkEstablishStepResult {
+  readonly state: LinkEstablishState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkEstablishAction[];
+}
 
 export function initialLinkEstablishState(options: {
   readonly initiator: boolean;
@@ -487,20 +509,63 @@ export function applyLinkEstablishEvent(
   return stepLinkEstablishInner(state, event).state;
 }
 
-export const stepLinkEstablish: StepFn<LinkEstablishState> = (state, event) =>
-  stepLinkEstablishInner(state, event as LinkEstablishEvent);
+export const stepLinkEstablish: StepFn<LinkEstablishState> = (state, event) => {
+  const result = stepLinkEstablishInner(state, event as LinkEstablishEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkEstablishWithActions(
+  state: LinkEstablishState,
+  event: LinkEstablishEvent
+): LinkEstablishStepResult {
+  return stepLinkEstablishInner(state, event);
+}
+
+/** Whether step actions include enter-handshake. */
+export function shouldEnterLinkHandshake(
+  actions: ReadonlyArray<LinkEstablishAction>
+): boolean {
+  return actions.some((action) => action.kind === "enter-handshake");
+}
+
+/** Whether step actions include activated. */
+export function shouldActivateLinkEstablish(
+  actions: ReadonlyArray<LinkEstablishAction>
+): boolean {
+  return actions.some((action) => action.kind === "activated");
+}
+
+/** Whether step actions include failed. */
+export function shouldFailLinkEstablish(
+  actions: ReadonlyArray<LinkEstablishAction>
+): boolean {
+  return actions.some((action) => action.kind === "failed");
+}
+
+/** Extract the activated action from an establish step, if any. */
+export function linkEstablishActivatedAction(
+  actions: ReadonlyArray<LinkEstablishAction>
+): Extract<LinkEstablishAction, { kind: "activated" }> | null {
+  for (const action of actions) {
+    if (action.kind === "activated") {
+      return action;
+    }
+  }
+  return null;
+}
 
 function stepLinkEstablishInner(
   state: LinkEstablishState,
   event: LinkEstablishEvent
-): { state: LinkEstablishState; intents: Intent[] } {
+): LinkEstablishStepResult {
   if (event.kind === "establish/handshake") {
     if (!canLinkHandshake(state.status)) {
-      return { state, intents: [] };
+      return { state, intents: [], actions: [] };
     }
     return {
       state: { ...state, status: LinkStatus.HANDSHAKE },
-      intents: []
+      intents: [],
+      actions: [{ kind: "enter-handshake" }]
     };
   }
 
@@ -512,7 +577,16 @@ function stepLinkEstablishInner(
         rtt: event.rtt,
         activatedAt: event.atSeconds
       },
-      intents: []
+      intents: [],
+      actions: [
+        {
+          kind: "activated",
+          rtt: event.rtt,
+          activatedAt: event.atSeconds,
+          sendRtt: state.initiator,
+          activateMembership: state.initiator
+        }
+      ]
     };
   }
 
@@ -524,9 +598,10 @@ function stepLinkEstablishInner(
         rtt: null,
         activatedAt: null
       },
-      intents: []
+      intents: [],
+      actions: [{ kind: "failed" }]
     };
   }
 
-  return { state, intents: [] };
+  return { state, intents: [], actions: [] };
 }

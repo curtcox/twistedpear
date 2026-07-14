@@ -26,6 +26,7 @@ import {
   initialLinkEstablishState,
   isLinkClosed,
   isLinkInboundDataPacket,
+  linkEstablishActivatedAction,
   mergeLinkRtt,
   planLinkActivateMembership,
   planLinkAppRequest,
@@ -39,12 +40,15 @@ import {
   planLinkUnregisterMembership,
   planLinkValidateRequest,
   shouldAcceptLinkPacketInterface,
+  shouldActivateLinkEstablish,
   shouldAppendActiveLinkMembership,
   shouldAttemptLinkProofCrypto,
   shouldContinueLinkValidateRequest,
   shouldCreateLinkChannel,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
+  shouldEnterLinkHandshake,
+  shouldFailLinkEstablish,
   shouldInvokeLinkAppRequestHandler,
   shouldRegisterLinkMember,
   shouldRemoveActiveLinkMembership,
@@ -52,7 +56,9 @@ import {
   shouldReuseActiveLink,
   shouldSendLinkAppRequestResponse,
   shouldTeardownLinkFromRtt,
-  shouldUpdateLinkLastData
+  shouldUpdateLinkLastData,
+  stepLinkEstablish,
+  stepLinkEstablishWithActions
 } from "../src/link-establish.js";
 import { DestinationAllowPolicyCode } from "../src/destination-allow.js";
 import { PacketTypeCode } from "../src/packet-header.js";
@@ -487,6 +493,91 @@ describe("protocol link establish", () => {
     expect(state.rtt).toBe(0.5);
     expect(state.activatedAt).toBe(10.5);
     expect(mergeLinkRtt(0.4, 0.7)).toBe(0.7);
+  });
+
+  it("emits establish actions for handshake / activate / fail", () => {
+    const pending = initialLinkEstablishState({ initiator: true });
+    const handshake = stepLinkEstablishWithActions(pending, { kind: "establish/handshake" });
+    expect(handshake.actions).toEqual([{ kind: "enter-handshake" }]);
+    expect(shouldEnterLinkHandshake(handshake.actions)).toBe(true);
+    expect(handshake.state.status).toBe(LinkStatus.HANDSHAKE);
+
+    const skipped = stepLinkEstablishWithActions(handshake.state, {
+      kind: "establish/handshake"
+    });
+    expect(skipped.actions).toEqual([]);
+    expect(shouldEnterLinkHandshake(skipped.actions)).toBe(false);
+
+    const activated = stepLinkEstablishWithActions(handshake.state, {
+      kind: "establish/activated",
+      atSeconds: 10.5,
+      rtt: 0.5
+    });
+    expect(activated.actions).toEqual([
+      {
+        kind: "activated",
+        rtt: 0.5,
+        activatedAt: 10.5,
+        sendRtt: true,
+        activateMembership: true
+      }
+    ]);
+    expect(shouldActivateLinkEstablish(activated.actions)).toBe(true);
+    expect(linkEstablishActivatedAction(activated.actions)).toEqual(activated.actions[0]);
+
+    const responder = stepLinkEstablishWithActions(
+      initialLinkEstablishState({ initiator: false, status: LinkStatus.HANDSHAKE }),
+      { kind: "establish/activated", atSeconds: 11, rtt: 0.8 }
+    );
+    expect(responder.actions).toEqual([
+      {
+        kind: "activated",
+        rtt: 0.8,
+        activatedAt: 11,
+        sendRtt: false,
+        activateMembership: false
+      }
+    ]);
+
+    const failed = stepLinkEstablishWithActions(handshake.state, { kind: "establish/failed" });
+    expect(failed.actions).toEqual([{ kind: "failed" }]);
+    expect(shouldFailLinkEstablish(failed.actions)).toBe(true);
+    expect(failed.state.status).toBe(LinkStatus.CLOSED);
+
+    const stripped = stepLinkEstablish(pending, { kind: "establish/handshake" });
+    expect(stripped).toEqual({
+      state: handshake.state,
+      intents: handshake.intents
+    });
+  });
+
+  it("establish actions double-run identically", () => {
+    const run = () => {
+      let state = initialLinkEstablishState({ initiator: true });
+      const steps = [];
+      steps.push(stepLinkEstablishWithActions(state, { kind: "establish/handshake" }));
+      state = steps[0]!.state;
+      steps.push(
+        stepLinkEstablishWithActions(state, {
+          kind: "establish/activated",
+          atSeconds: 10.5,
+          rtt: 0.5
+        })
+      );
+      steps.push(
+        stepLinkEstablishWithActions(initialLinkEstablishState({ initiator: false }), {
+          kind: "establish/failed"
+        })
+      );
+      return steps.map((s) => ({
+        status: s.state.status,
+        rtt: s.state.rtt,
+        activatedAt: s.state.activatedAt,
+        actions: s.actions,
+        intents: s.intents
+      }));
+    };
+    expect(run()).toEqual(run());
   });
 
   it("fails closed", () => {

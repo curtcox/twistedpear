@@ -5,6 +5,7 @@ import {
   CHANNEL_SEQ_MAX,
   CHANNEL_SEQ_MODULUS,
   ChannelWindowLimits,
+  canArmChannelPacketReceipt,
   canLinkSend,
   channelAllowsSend,
   channelEmplaceIndex,
