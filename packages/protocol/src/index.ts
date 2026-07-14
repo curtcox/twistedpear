@@ -177,6 +177,7 @@ export {
 export {
   DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
   DELIVERY_RECEIPT_POLL_INTERVAL_MS,
+  DELIVERY_RECEIPT_POLL_TIMER_ID,
   ReceiptPollStatus,
   initialDeliveryReceiptPollState,
   isTerminalReceiptStatus,

@@ -1,6 +1,6 @@
 /**
  * Pure path-await poll loop for TransportNode.awaitPath.
- * Path presence arrives as probe events; adapters sleep on timer intents.
+ * Path presence arrives as probe events; adapters schedule from timer intents.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PATH_REQUEST_TIMEOUT_SECONDS } from "./path-table.js";
@@ -53,7 +53,12 @@ function stepPathAwaitInner(
         concluded: false,
         found: false
       },
-      intents: []
+      intents: [
+        {
+          kind: "timer/set",
+          timer: { id: PATH_AWAIT_TIMER_ID, delayMs: PATH_AWAIT_POLL_INTERVAL_MS }
+        }
+      ]
     };
   }
 
@@ -69,7 +74,7 @@ function stepPathAwaitInner(
           concluded: true,
           found: true
         },
-        intents: []
+        intents: [{ kind: "timer/cancel", timer: { id: PATH_AWAIT_TIMER_ID } }]
       };
     }
     return {

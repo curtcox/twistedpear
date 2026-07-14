@@ -333,10 +333,14 @@
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
 > live in protocol; Link, Announce, TransportNode, and Identity adapt them.
-> Remaining depth work: **blocked for this incremental loop** — deny-list / presence leaves
-> and discrete timer→`step*` conversions in reticulum-ts/lxmf-ts are exhausted; further
-> progress needs larger Promise/callback session-shell redesign (Link/Channel/LXMF
-> orchestration), not another cheap pure leaf.
+> Residual session wait loops now schedule injected-clock timers from step
+> intents (no Promise.`delay`/`sleep` polls): **`stepPathAwait`** /
+> **`stepPathResponseGrace`** (`TransportNode`), **`stepDeliveryReceiptPoll`**
+> (LXMF router), and **`stepResourceAdvertiseWait`** (`Resource.advertise`).
+> Poll arms emit the first `timer/set`; terminal probes emit `timer/cancel`.
+> Remaining depth work: Link/Channel/LXMF orchestration shells that still
+> hold Promise/callback continuations around already-pure step cores (watchdog
+> ticks are already intent-driven).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

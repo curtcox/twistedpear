@@ -526,30 +526,62 @@ export class Resource {
   }
 
   async advertise(): Promise<void> {
-    let waitState = stepResourceAdvertiseWaitWithActions(initialResourceAdvertiseWaitState(), {
-      kind: "advertise-wait/arm"
-    }).state;
+    await new Promise<void>((resolve) => {
+      let waitState = stepResourceAdvertiseWaitWithActions(initialResourceAdvertiseWaitState(), {
+        kind: "advertise-wait/arm"
+      }).state;
+      let timer: ReturnType<LeafTransport["clock"]["setTimeout"]> | null = null;
 
-    while (shouldContinueResourceAdvertiseWait(waitState.concluded)) {
+      const finish = (): void => {
+        timer?.cancel();
+        timer = null;
+        resolve();
+      };
+
+      const applyActions = (
+        actions: ReturnType<typeof stepResourceAdvertiseWaitWithActions>["actions"]
+      ): void => {
+        for (const action of actions) {
+          if (action.kind === "queue") {
+            this.applyStatus({ kind: "resource/queue" });
+          }
+        }
+      };
+
+      const applyIntents = (
+        intents: ReturnType<typeof stepResourceAdvertiseWaitWithActions>["intents"]
+      ): void => {
+        for (const intent of intents) {
+          if (intent.kind === "timer/set" && intent.timer.id === RESOURCE_ADVERTISE_WAIT_TIMER_ID) {
+            timer?.cancel();
+            timer = this.link.linkTransport.clock.setTimeout(() => {
+              timer = null;
+              const probe = stepResourceAdvertiseWaitWithActions(waitState, {
+                kind: "advertise-wait/link-ready",
+                ready: this.link.readyForNewResource()
+              });
+              waitState = probe.state;
+              applyActions(probe.actions);
+              applyIntents(probe.intents);
+              if (!shouldContinueResourceAdvertiseWait(waitState.concluded)) {
+                finish();
+              }
+            }, intent.timer.delayMs);
+          }
+        }
+      };
+
       const probe = stepResourceAdvertiseWaitWithActions(waitState, {
         kind: "advertise-wait/link-ready",
         ready: this.link.readyForNewResource()
       });
       waitState = probe.state;
-      for (const action of probe.actions) {
-        if (action.kind === "queue") {
-          this.applyStatus({ kind: "resource/queue" });
-        }
-      }
+      applyActions(probe.actions);
+      applyIntents(probe.intents);
       if (!shouldContinueResourceAdvertiseWait(waitState.concluded)) {
-        break;
+        finish();
       }
-      for (const intent of probe.intents) {
-        if (intent.kind === "timer/set" && intent.timer.id === RESOURCE_ADVERTISE_WAIT_TIMER_ID) {
-          await this.sleep(intent.timer.delayMs);
-        }
-      }
-    }
+    });
 
     const packed = new ResourceAdvertisement(this).pack();
     this.applyStatus({ kind: "resource/advertise" });
@@ -830,12 +862,6 @@ export class Resource {
     this.watchdogTimer = this.link.linkTransport.clock.setTimeout(() => {
       void this.watchdogTick();
     }, delayMs);
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-      this.link.linkTransport.clock.setTimeout(() => resolve(), ms);
-    });
   }
 
   private async watchdogTick(): Promise<void> {

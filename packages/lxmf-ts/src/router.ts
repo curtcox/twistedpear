@@ -1,5 +1,6 @@
 import {
   DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
+  DELIVERY_RECEIPT_POLL_TIMER_ID,
   LINK_AWAIT_DEFAULT_TIMEOUT_MS,
   LINK_AWAIT_TIMER_ID,
   applyLxmfSendEvent,
@@ -33,6 +34,7 @@ import {
   type LxmfSendEvent,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
+import type { Intent } from "@twistedpear/effects";
 import type { CryptoProvider, Link, Packet, PacketReceipt, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
 import {
   Destination,
@@ -184,12 +186,6 @@ export class LXMFRouter {
     return this.reticulum.runtime.clock.now() / 1000;
   }
 
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-      this.reticulum.runtime.clock.setTimeout(() => resolve(), ms);
-    });
-  }
-
   private awaitOutboundLink(
     outbound: RegisteredDestination,
     options: {
@@ -246,41 +242,73 @@ export class LXMFRouter {
     });
   }
 
-  private async pollDeliveryReceipt(
+  private pollDeliveryReceipt(
     receipt: PacketReceipt,
     timeoutMs = DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS
   ): Promise<void> {
-    let state = stepDeliveryReceiptPoll(initialDeliveryReceiptPollState(), {
-      kind: "poll/arm",
-      at: this.reticulum.runtime.clock.now(),
-      timeoutMs
-    } as never).state;
+    return new Promise<void>((resolve) => {
+      const armed = stepDeliveryReceiptPoll(initialDeliveryReceiptPollState(), {
+        kind: "poll/arm",
+        at: this.reticulum.runtime.clock.now(),
+        timeoutMs
+      } as never);
+      let state = armed.state;
+      let timer: { cancel(): void } | null = null;
 
-    while (!state.concluded) {
-      state = stepDeliveryReceiptPoll(state, {
+      const finish = (): void => {
+        timer?.cancel();
+        timer = null;
+        resolve();
+      };
+
+      const applyIntents = (intents: readonly Intent[]): void => {
+        for (const intent of intents) {
+          if (intent.kind === "timer/cancel" && intent.timer.id === DELIVERY_RECEIPT_POLL_TIMER_ID) {
+            timer?.cancel();
+            timer = null;
+          }
+          if (intent.kind === "timer/set" && intent.timer.id === DELIVERY_RECEIPT_POLL_TIMER_ID) {
+            timer?.cancel();
+            timer = this.reticulum.runtime.clock.setTimeout(() => {
+              timer = null;
+              const probe = stepDeliveryReceiptPoll(state, {
+                kind: "poll/receipt-status",
+                status: receipt.status as ReceiptPollStatusValue
+              } as never);
+              state = probe.state;
+              applyIntents(probe.intents);
+              if (state.concluded) {
+                finish();
+                return;
+              }
+
+              const tick = stepDeliveryReceiptPoll(state, {
+                kind: "timer/fired",
+                id: DELIVERY_RECEIPT_POLL_TIMER_ID,
+                at: this.reticulum.runtime.clock.now()
+              });
+              state = tick.state;
+              applyIntents(tick.intents);
+              if (state.concluded) {
+                finish();
+              }
+            }, intent.timer.delayMs);
+          }
+        }
+      };
+
+      const immediate = stepDeliveryReceiptPoll(state, {
         kind: "poll/receipt-status",
         status: receipt.status as ReceiptPollStatusValue
-      } as never).state;
+      } as never);
+      state = immediate.state;
+      applyIntents(immediate.intents);
       if (state.concluded) {
+        finish();
         return;
       }
-
-      const tick = stepDeliveryReceiptPoll(state, {
-        kind: "timer/fired",
-        id: "delivery-poll",
-        at: this.reticulum.runtime.clock.now()
-      });
-      state = tick.state;
-      if (state.concluded) {
-        return;
-      }
-
-      for (const intent of tick.intents) {
-        if (intent.kind === "timer/set" && intent.timer.id === "delivery-poll") {
-          await this.delay(intent.timer.delayMs);
-        }
-      }
-    }
+      applyIntents(armed.intents);
+    });
   }
 
   packAndSend(options: Omit<LXMessagePackOptions, "provider">): Promise<void> {

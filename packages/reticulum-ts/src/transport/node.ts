@@ -7,7 +7,6 @@ import {
   PATH_RESPONSE_GRACE_TIMER_ID,
   initialPathAwaitState,
   initialPathResponseGraceState,
-  shouldContinuePathAwait,
   shouldTransmitPathResponse,
   stepPathAwait,
   stepPathResponseGraceWithActions,
@@ -90,7 +89,8 @@ import {
   TransportType,
   type PacketFields
 } from "../packet.js";
-import type { Clock, Entropy } from "../runtime/runtime.js";
+import type { Clock, Entropy, Timer } from "../runtime/runtime.js";
+import type { Intent } from "@twistedpear/effects";
 import {
   buildPathRequestData,
   parsePathRequestData,
@@ -184,12 +184,6 @@ export class LeafTransport {
 
   get entropy(): Entropy {
     return this.options.entropy;
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-      this.clock.setTimeout(() => resolve(), ms);
-    });
   }
 
   get transportIdentity(): Identity {
@@ -334,39 +328,69 @@ export class LeafTransport {
     }
 
     this.requestPath(destinationHash);
-    let state = stepPathAwait(initialPathAwaitState(), {
-      kind: "path-await/arm",
-      at: this.clock.now(),
-      timeoutMs: timeoutSeconds * 1000
-    } as never).state;
+    return new Promise<boolean>((resolve) => {
+      const armed = stepPathAwait(initialPathAwaitState(), {
+        kind: "path-await/arm",
+        at: this.clock.now(),
+        timeoutMs: timeoutSeconds * 1000
+      } as never);
+      let state = armed.state;
+      let timer: Timer | null = null;
 
-    while (shouldContinuePathAwait(state.concluded)) {
-      state = stepPathAwait(state, {
+      const finish = (found: boolean): void => {
+        timer?.cancel();
+        timer = null;
+        resolve(found);
+      };
+
+      const applyIntents = (intents: readonly Intent[]): void => {
+        for (const intent of intents) {
+          if (intent.kind === "timer/cancel" && intent.timer.id === PATH_AWAIT_TIMER_ID) {
+            timer?.cancel();
+            timer = null;
+          }
+          if (intent.kind === "timer/set" && intent.timer.id === PATH_AWAIT_TIMER_ID) {
+            timer?.cancel();
+            timer = this.clock.setTimeout(() => {
+              timer = null;
+              const probe = stepPathAwait(state, {
+                kind: "path-await/path-status",
+                present: this.hasPath(destinationHash)
+              } as never);
+              state = probe.state;
+              applyIntents(probe.intents);
+              if (state.concluded) {
+                finish(state.found);
+                return;
+              }
+
+              const tick = stepPathAwait(state, {
+                kind: "timer/fired",
+                id: PATH_AWAIT_TIMER_ID,
+                at: this.clock.now()
+              });
+              state = tick.state;
+              applyIntents(tick.intents);
+              if (state.concluded) {
+                finish(state.found || this.hasPath(destinationHash));
+              }
+            }, intent.timer.delayMs);
+          }
+        }
+      };
+
+      const immediate = stepPathAwait(state, {
         kind: "path-await/path-status",
         present: this.hasPath(destinationHash)
-      } as never).state;
+      } as never);
+      state = immediate.state;
+      applyIntents(immediate.intents);
       if (state.concluded) {
-        return state.found;
+        finish(state.found);
+        return;
       }
-
-      const tick = stepPathAwait(state, {
-        kind: "timer/fired",
-        id: PATH_AWAIT_TIMER_ID,
-        at: this.clock.now()
-      });
-      state = tick.state;
-      if (state.concluded) {
-        return state.found || this.hasPath(destinationHash);
-      }
-
-      for (const intent of tick.intents) {
-        if (intent.kind === "timer/set" && intent.timer.id === PATH_AWAIT_TIMER_ID) {
-          await this.delay(intent.timer.delayMs);
-        }
-      }
-    }
-
-    return state.found || this.hasPath(destinationHash);
+      applyIntents(armed.intents);
+    });
   }
 
   registerLink(link: Link): void {
@@ -855,42 +879,56 @@ export class LeafTransport {
   }
 
   protected async sendPathResponse(path: PathEntry, iface: PacketInterface): Promise<void> {
-    const armed = stepPathResponseGraceWithActions(initialPathResponseGraceState(), {
-      kind: "path-response-grace/arm"
-    } as never);
-    let state = armed.state;
+    return new Promise<void>((resolve, reject) => {
+      const armed = stepPathResponseGraceWithActions(initialPathResponseGraceState(), {
+        kind: "path-response-grace/arm"
+      } as never);
+      let state = armed.state;
 
-    for (const intent of armed.intents) {
-      if (intent.kind === "timer/set" && intent.timer.id === PATH_RESPONSE_GRACE_TIMER_ID) {
-        await this.delay(intent.timer.delayMs);
-      }
-    }
+      const applyIntents = (intents: readonly Intent[]): void => {
+        for (const intent of intents) {
+          if (intent.kind === "timer/set" && intent.timer.id === PATH_RESPONSE_GRACE_TIMER_ID) {
+            this.clock.setTimeout(() => {
+              const tick = stepPathResponseGraceWithActions(state, {
+                kind: "timer/fired",
+                id: PATH_RESPONSE_GRACE_TIMER_ID,
+                at: this.clock.now()
+              });
+              state = tick.state;
+              if (!shouldTransmitPathResponse(state)) {
+                resolve();
+                return;
+              }
 
-    const tick = stepPathResponseGraceWithActions(state, {
-      kind: "timer/fired",
-      id: PATH_RESPONSE_GRACE_TIMER_ID,
-      at: this.clock.now()
-    });
-    state = tick.state;
-    if (!shouldTransmitPathResponse(state)) {
-      return;
-    }
-
-    for (const action of tick.actions) {
-      if (action.kind === "transmit") {
-        const cached = Packet.decode(this.provider, path.announceRaw);
-        if (!shouldAcceptCachedPathResponsePacket(cached !== null)) {
-          return;
+              void (async () => {
+                try {
+                  for (const action of tick.actions) {
+                    if (action.kind === "transmit") {
+                      const cached = Packet.decode(this.provider, path.announceRaw);
+                      if (!shouldAcceptCachedPathResponsePacket(cached !== null)) {
+                        return;
+                      }
+                      const response = buildPathResponseAnnounce(
+                        this.provider,
+                        cached!,
+                        this.transportIdentity,
+                        path.hops
+                      );
+                      await this.outbound(response, iface);
+                    }
+                  }
+                  resolve();
+                } catch (error) {
+                  reject(error);
+                }
+              })();
+            }, intent.timer.delayMs);
+          }
         }
-        const response = buildPathResponseAnnounce(
-          this.provider,
-          cached!,
-          this.transportIdentity,
-          path.hops
-        );
-        await this.outbound(response, iface);
-      }
-    }
+      };
+
+      applyIntents(armed.intents);
+    });
   }
 
   protected packetFilter(packet: Packet): boolean {

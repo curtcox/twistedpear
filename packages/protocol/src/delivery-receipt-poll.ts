@@ -1,6 +1,6 @@
 /**
  * Pure delivery-receipt poll loop for LXMF opportunistic/propagated sends.
- * Time arrives only via event.at; adapters sleep on timer intents.
+ * Time arrives only via event.at; adapters schedule from timer intents.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -16,6 +16,7 @@ export type ReceiptPollStatusValue = (typeof ReceiptPollStatus)[keyof typeof Rec
 
 export const DELIVERY_RECEIPT_POLL_INTERVAL_MS = 10;
 export const DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS = 500;
+export const DELIVERY_RECEIPT_POLL_TIMER_ID = "delivery-poll";
 
 export interface DeliveryReceiptPollState {
   readonly armed: boolean;
@@ -57,7 +58,12 @@ function stepDeliveryReceiptPollInner(
         receiptStatus: ReceiptPollStatus.SENT,
         concluded: false
       },
-      intents: []
+      intents: [
+        {
+          kind: "timer/set",
+          timer: { id: DELIVERY_RECEIPT_POLL_TIMER_ID, delayMs: DELIVERY_RECEIPT_POLL_INTERVAL_MS }
+        }
+      ]
     };
   }
 
@@ -68,13 +74,13 @@ function stepDeliveryReceiptPollInner(
     if (isTerminalReceiptStatus(event.status)) {
       return {
         state: { ...state, receiptStatus: event.status, concluded: true },
-        intents: []
+        intents: [{ kind: "timer/cancel", timer: { id: DELIVERY_RECEIPT_POLL_TIMER_ID } }]
       };
     }
     return { state: { ...state, receiptStatus: event.status }, intents: [] };
   }
 
-  if (event.kind === "timer/fired" && event.id === "delivery-poll") {
+  if (event.kind === "timer/fired" && event.id === DELIVERY_RECEIPT_POLL_TIMER_ID) {
     if (!state.armed || state.concluded) {
       return { state, intents: [] };
     }
@@ -83,7 +89,12 @@ function stepDeliveryReceiptPollInner(
     }
     return {
       state,
-      intents: [{ kind: "timer/set", timer: { id: "delivery-poll", delayMs: DELIVERY_RECEIPT_POLL_INTERVAL_MS } }]
+      intents: [
+        {
+          kind: "timer/set",
+          timer: { id: DELIVERY_RECEIPT_POLL_TIMER_ID, delayMs: DELIVERY_RECEIPT_POLL_INTERVAL_MS }
+        }
+      ]
     };
   }
 

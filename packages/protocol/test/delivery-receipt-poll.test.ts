@@ -2,13 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
   DELIVERY_RECEIPT_POLL_INTERVAL_MS,
+  DELIVERY_RECEIPT_POLL_TIMER_ID,
   ReceiptPollStatus,
   initialDeliveryReceiptPollState,
   stepDeliveryReceiptPoll
 } from "../src/delivery-receipt-poll.js";
 
 describe("protocol delivery receipt poll", () => {
-  it("arms without scheduling until the first poll tick", () => {
+  it("arms with the first poll timer", () => {
     const result = stepDeliveryReceiptPoll(initialDeliveryReceiptPollState(), {
       kind: "poll/arm",
       at: 1_000,
@@ -16,10 +17,15 @@ describe("protocol delivery receipt poll", () => {
     } as never);
     expect(result.state.armed).toBe(true);
     expect(result.state.deadlineMs).toBe(1_500);
-    expect(result.intents).toEqual([]);
+    expect(result.intents).toEqual([
+      {
+        kind: "timer/set",
+        timer: { id: DELIVERY_RECEIPT_POLL_TIMER_ID, delayMs: DELIVERY_RECEIPT_POLL_INTERVAL_MS }
+      }
+    ]);
   });
 
-  it("concludes when receipt is delivered", () => {
+  it("concludes when receipt is delivered and cancels the poll timer", () => {
     let state = initialDeliveryReceiptPollState();
     state = stepDeliveryReceiptPoll(state, {
       kind: "poll/arm",
@@ -31,7 +37,9 @@ describe("protocol delivery receipt poll", () => {
       status: ReceiptPollStatus.DELIVERED
     } as never);
     expect(result.state.concluded).toBe(true);
-    expect(result.intents).toEqual([]);
+    expect(result.intents).toEqual([
+      { kind: "timer/cancel", timer: { id: DELIVERY_RECEIPT_POLL_TIMER_ID } }
+    ]);
   });
 
   it("keeps polling until deadline then concludes", () => {
@@ -45,7 +53,7 @@ describe("protocol delivery receipt poll", () => {
 
     intents = stepDeliveryReceiptPoll(state, {
       kind: "timer/fired",
-      id: "delivery-poll",
+      id: DELIVERY_RECEIPT_POLL_TIMER_ID,
       at: 10
     });
     expect(intents.state.concluded).toBe(false);
@@ -53,7 +61,7 @@ describe("protocol delivery receipt poll", () => {
 
     intents = stepDeliveryReceiptPoll(intents.state, {
       kind: "timer/fired",
-      id: "delivery-poll",
+      id: DELIVERY_RECEIPT_POLL_TIMER_ID,
       at: 30
     });
     expect(intents.state.concluded).toBe(true);

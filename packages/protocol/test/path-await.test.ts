@@ -9,7 +9,7 @@ import {
 } from "../src/path-await.js";
 
 describe("protocol path await", () => {
-  it("arms with a deadline from timeout", () => {
+  it("arms with a deadline and first poll timer", () => {
     const result = stepPathAwait(initialPathAwaitState(), {
       kind: "path-await/arm",
       at: 1_000,
@@ -18,10 +18,15 @@ describe("protocol path await", () => {
     expect(result.state.armed).toBe(true);
     expect(result.state.deadlineMs).toBe(1_000 + PATH_AWAIT_DEFAULT_TIMEOUT_MS);
     expect(result.state.concluded).toBe(false);
-    expect(result.intents).toEqual([]);
+    expect(result.intents).toEqual([
+      {
+        kind: "timer/set",
+        timer: { id: PATH_AWAIT_TIMER_ID, delayMs: PATH_AWAIT_POLL_INTERVAL_MS }
+      }
+    ]);
   });
 
-  it("concludes when a path becomes present", () => {
+  it("concludes when a path becomes present and cancels the poll timer", () => {
     let state = stepPathAwait(initialPathAwaitState(), {
       kind: "path-await/arm",
       at: 0,
@@ -34,6 +39,9 @@ describe("protocol path await", () => {
     expect(result.state.concluded).toBe(true);
     expect(result.state.found).toBe(true);
     expect(shouldContinuePathAwait(result.state.concluded)).toBe(false);
+    expect(result.intents).toEqual([
+      { kind: "timer/cancel", timer: { id: PATH_AWAIT_TIMER_ID } }
+    ]);
   });
 
   it("schedules polls until the deadline then concludes not-found", () => {
