@@ -18,11 +18,12 @@ import {
   initialIdentityRatchetLookupState,
   initialIdentityRecallAppDataState,
   initialIdentityRecallState,
+  initialPackPacketProofState,
   isIdentityRatchetRecordUsable,
   packIdentityCiphertext,
   packIdentityPrivateKey,
   packIdentityPublicKey,
-  packPacketProof,
+  packPacketProofRawFromActions,
   shouldAcceptIdentityDecrypt,
   shouldAttemptIdentityRatchetDecrypt,
   shouldAcceptIdentityCiphertextFrame,
@@ -35,11 +36,13 @@ import {
   shouldRejectIdentityDecryptFrame,
   shouldTryIdentityDecrypt,
   shouldUseCachedIdentityRatchet,
+  shouldUsePackPacketProof,
   splitIdentityCiphertext,
   stepIdentityDecryptWithActions,
   stepIdentityRatchetLookupWithActions,
   stepIdentityRecallAppDataWithActions,
   stepIdentityRecallWithActions,
+  stepPackPacketProofWithActions,
   splitIdentityEntropy,
   splitIdentityPrivateKey,
   splitIdentityPublicKey,
@@ -419,7 +422,19 @@ export class Identity {
     useImplicitProof = true
   ): Promise<void> {
     const signature = this.sign(packetHash);
-    const proofData = packPacketProof(packetHash, signature, !useImplicitProof);
+    const stepped = stepPackPacketProofWithActions(initialPackPacketProofState(), {
+      kind: "packet-proof/pack-gate",
+      packetHash,
+      signature,
+      explicit: !useImplicitProof
+    });
+    const proofData =
+      shouldUsePackPacketProof(stepped.actions)
+        ? packPacketProofRawFromActions(stepped.actions)
+        : null;
+    if (proofData === null) {
+      throw new Error("Identity.prove: missing use-raw action");
+    }
     return sendProof(proofDestinationHash, proofData);
   }
 

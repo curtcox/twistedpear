@@ -76,7 +76,9 @@
 > **Announce payload framing** (pack/parse via **`stepPackAnnouncePayloadWithActions`** /
 > **`stepParseAnnouncePayloadWithActions`**: use-raw / use-fields|reject; signed material)
 > and **packet proof framing**
-> (explicit/implicit) are pure protocol leaves; `Announce` and `Packet` adapt them.
+> (pack/split via **`stepPackPacketProofWithActions`** /
+> **`stepSplitPacketProofWithActions`**: use-raw / use-fields|reject; explicit/implicit)
+> are pure protocol leaves; `Announce` and `Packet` adapt them.
 > **Packet header** encode/decode, flag packing, and hashable-part framing are pure
 > protocol leaves; `Packet` adapts them. **PKCS#7** padding and **LXMF delivery planning**
 > (method/representation selection via **`stepLxmfDeliveryWithActions`**) are
@@ -85,7 +87,8 @@
 > extraction** from announce app-data are pure protocol leaves; Token and LXMF router
 > adapt them. **Resource receive-part planning** (via
 > **`stepResourceReceivePartWithActions`**), **LXMF outer wire framing**, and
-> PacketReceipt proof validation via packet-proof helpers are pure protocol leaves.
+> PacketReceipt proof validation via **`stepSplitPacketProofWithActions`** /
+> **`stepPacketReceiptProofAcceptWithActions`** are pure protocol leaves.
 > **Identity ciphertext** (ephemeral public || Token), **WS binary frame**
 > encode/decode, and **LXMF peer-error** msgpack decode are pure protocol leaves;
 > Identity, websocket-server, and propagation adapters use them. **Identity ratchet
@@ -102,7 +105,7 @@
 > materials** are pure protocol leaves; `Link`, `Buffer`, and `Resource` adapt them.
 > **Identity key pack/split**, **link-request pack/split/hashable truncation**, and
 > **RESOURCE_HMU pack** are pure protocol leaves; Identity, Link, and Resource adapt
-> them (`Identity.prove` uses `packPacketProof`). **Byte-array assembly** helpers,
+> them (`Identity.prove` uses **`stepPackPacketProofWithActions`**). **Byte-array assembly** helpers,
 > **interface reconnect planning**, and Resource hashmap/part assembly via protocol
 > assemblers are pure protocol leaves; TCP/WebSocket clients and Resource adapt them.
 > **Transport announce / path-response / hop-clone field planning** applies only from
@@ -755,7 +758,8 @@
 > strip-transport-headers / relay-transport-packet-bytes /
 > rewrite-packet-hops / build-path-request-data /
 > parse-path-request-data / path-request-tag-key /
-> pack-announce-payload / parse-announce-payload reads
+> pack-announce-payload / parse-announce-payload /
+> pack-packet-proof / split-packet-proof reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -799,6 +803,10 @@
 > **`stepParseAnnouncePayloadWithActions`** emit `use-raw` / `use-fields`|`reject`;
 > announce pack / parse apply only from those actions (no ad-hoc
 > `packAnnouncePayload` / `parseAnnouncePayload` reads beside the step).
+> **`stepPackPacketProofWithActions`** /
+> **`stepSplitPacketProofWithActions`** emit `use-raw` / `use-fields`|`reject`;
+> packet-proof pack / split apply only from those actions (no ad-hoc
+> `packPacketProof` / `splitPacketProof` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

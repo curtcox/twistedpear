@@ -1,7 +1,8 @@
 /**
  * Pure RNS packet proof framing (explicit hash+sig vs signature-only).
  * Signing / verification stay at the crypto adapter edge.
- * Packet-receipt proof-accept conclusions leave via machine actions (no ad-hoc
+ * Pack / split / packet-receipt proof-accept conclusions leave via machine
+ * actions (no ad-hoc `packPacketProof` / `splitPacketProof` /
  * `planPacketReceiptProofAccept` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
@@ -65,6 +66,138 @@ export function splitPacketProof(proof: Uint8Array): PacketProofFields | null {
     return { kind: "implicit", signature: proof };
   }
   return null;
+}
+
+/**
+ * Packet-proof pack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `packPacketProof`
+ * reads beside the step).
+ */
+export type PackPacketProofState = Record<string, never>;
+
+export type PackPacketProofEvent =
+  | Event
+  | {
+      readonly kind: "packet-proof/pack-gate";
+      readonly packetHash: Uint8Array;
+      readonly signature: Uint8Array;
+      readonly explicit: boolean;
+    };
+
+export type PackPacketProofAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface PackPacketProofStepResult {
+  readonly state: PackPacketProofState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackPacketProofAction[];
+}
+
+export function initialPackPacketProofState(): PackPacketProofState {
+  return {};
+}
+
+export function stepPackPacketProofWithActions(
+  state: PackPacketProofState,
+  event: PackPacketProofEvent
+): PackPacketProofStepResult {
+  if (event.kind === "packet-proof/pack-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: packPacketProof(event.packetHash, event.signature, event.explicit)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackPacketProof(
+  actions: ReadonlyArray<PackPacketProofAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract packet-proof pack bytes from step actions; null when no `use-raw`. */
+export function packPacketProofRawFromActions(
+  actions: ReadonlyArray<PackPacketProofAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Packet-proof split framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `splitPacketProof`
+ * reads beside the step).
+ */
+export type SplitPacketProofState = Record<string, never>;
+
+export type SplitPacketProofEvent =
+  | Event
+  | {
+      readonly kind: "packet-proof/split-gate";
+      readonly proof: Uint8Array;
+    };
+
+export type SplitPacketProofAction =
+  | { readonly kind: "use-fields"; readonly fields: PacketProofFields }
+  | { readonly kind: "reject" };
+
+export interface SplitPacketProofStepResult {
+  readonly state: SplitPacketProofState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly SplitPacketProofAction[];
+}
+
+export function initialSplitPacketProofState(): SplitPacketProofState {
+  return {};
+}
+
+export function stepSplitPacketProofWithActions(
+  state: SplitPacketProofState,
+  event: SplitPacketProofEvent
+): SplitPacketProofStepResult {
+  if (event.kind === "packet-proof/split-gate") {
+    const fields = splitPacketProof(event.proof);
+    if (fields === null) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-fields", fields }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseSplitPacketProof(
+  actions: ReadonlyArray<SplitPacketProofAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectSplitPacketProof(
+  actions: ReadonlyArray<SplitPacketProofAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract split packet-proof fields from step actions; null when no `use-fields`. */
+export function packetProofFieldsFromActions(
+  actions: ReadonlyArray<SplitPacketProofAction>
+): PacketProofFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }
 
 /** Whether an explicit proof's embedded hash matches the packet hash. */

@@ -4,17 +4,21 @@ import {
   PacketReceiptStatus,
   RECEIPT_TIMEOUT_TIMER_ID,
   isPacketTypeProof,
+  packetProofFieldsFromActions,
   packetProofHashMatches,
   initialPacketReceiptCallbackState,
   initialPacketReceiptProofAcceptState,
+  initialSplitPacketProofState,
   shouldAcceptPacketReceiptProof,
   shouldAcceptPacketReceiptProofActions,
   shouldClearPacketReceiptCallback,
   shouldInvokePacketReceiptAction,
-  splitPacketProof,
+  shouldRejectSplitPacketProof,
+  shouldUseSplitPacketProof,
   stepPacketReceiptCallbackWithActions,
   stepPacketReceiptProofAcceptWithActions,
   stepPacketReceiptTimeoutWithActions,
+  stepSplitPacketProofWithActions,
   type PacketReceiptStatusValue,
   type PacketReceiptTimeoutAction,
   type PacketReceiptTimeoutState
@@ -96,7 +100,15 @@ export class PacketReceipt {
   }
 
   validateProof(proof: Uint8Array, identity: Identity): boolean {
-    const split = splitPacketProof(proof);
+    const stepped = stepSplitPacketProofWithActions(initialSplitPacketProofState(), {
+      kind: "packet-proof/split-gate",
+      proof
+    });
+    const split =
+      shouldRejectSplitPacketProof(stepped.actions) ||
+      !shouldUseSplitPacketProof(stepped.actions)
+        ? null
+        : packetProofFieldsFromActions(stepped.actions);
     const hashMatches = split !== null && packetProofHashMatches(split, this.hash);
     const signatureValid =
       split !== null && hashMatches && identity.validate(split.signature, this.hash);

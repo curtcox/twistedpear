@@ -1,10 +1,13 @@
 import {
   decodePacketRaw,
   encodePacketRaw,
+  initialPackPacketProofState,
   initialPacketFromFieldsState,
+  initialSplitPacketProofState,
   packPacketFlags,
-  packPacketProof,
+  packPacketProofRawFromActions,
   packetHashablePart,
+  packetProofFieldsFromActions,
   packetProofHashMatches,
   PacketContextCode,
   PacketContextFlagCode,
@@ -20,8 +23,12 @@ import {
   shouldRejectPacketFromFieldsBadTransportId,
   shouldRejectPacketFromFieldsBadTransportType,
   shouldRejectPacketFromFieldsHeader2MissingTransportId,
-  splitPacketProof,
+  shouldRejectSplitPacketProof,
+  shouldUsePackPacketProof,
+  shouldUseSplitPacketProof,
+  stepPackPacketProofWithActions,
   stepPacketFromFieldsWithActions,
+  stepSplitPacketProofWithActions,
   truncateToTruncatedHash,
   TRUNCATED_HASH_BYTES
 } from "@twistedpear/protocol";
@@ -203,12 +210,35 @@ export class Packet {
   createProof(identity: Identity, options: PacketProofOptions = {}): Uint8Array {
     const packetHash = this.hash();
     const signature = identity.sign(packetHash);
-    return packPacketProof(packetHash, signature, options.explicit !== false);
+    const stepped = stepPackPacketProofWithActions(initialPackPacketProofState(), {
+      kind: "packet-proof/pack-gate",
+      packetHash,
+      signature,
+      explicit: options.explicit !== false
+    });
+    const raw =
+      shouldUsePackPacketProof(stepped.actions)
+        ? packPacketProofRawFromActions(stepped.actions)
+        : null;
+    if (raw === null) {
+      throw new Error("createProof: missing use-raw action");
+    }
+    return raw;
   }
 
   validateProof(identity: Identity, proof: Uint8Array): boolean {
     const packetHash = this.hash();
-    const split = splitPacketProof(proof);
+    const stepped = stepSplitPacketProofWithActions(initialSplitPacketProofState(), {
+      kind: "packet-proof/split-gate",
+      proof
+    });
+    if (shouldRejectSplitPacketProof(stepped.actions)) {
+      return false;
+    }
+    const split =
+      shouldUseSplitPacketProof(stepped.actions)
+        ? packetProofFieldsFromActions(stepped.actions)
+        : null;
     if (split === null || !packetProofHashMatches(split, packetHash)) {
       return false;
     }
