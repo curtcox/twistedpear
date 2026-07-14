@@ -5,11 +5,19 @@ import {
   initialLinkAppRequestAwaitState,
   initialLxmfPropagationLinkReadyState,
   initialLxmfPropagationSyncPrepState,
+  initialPackPropagationRequestState,
   initialPropagationGetState,
   initialPropagationTransferState,
+  initialUnpackBinListState,
+  initialUnpackPropagationEnvelopeState,
+  initialUnpackPropagationRequestState,
+  binListFieldsFromActions,
   lxmfPeerErrorFromActions,
+  packPropagationRequestRawFromActions,
+  propagationEnvelopeFieldsFromActions,
   propagationGetApplyIds,
   propagationGetListIds,
+  propagationRequestFieldsFromActions,
   shouldAcceptPropagationGetRequestData,
   shouldAcceptPropagationPeerResponse,
   shouldAcceptPropagationDeliveredMessage,
@@ -22,17 +30,28 @@ import {
   shouldRejectLxmfPropagationMissingNode,
   shouldRejectLxmfPropagationSyncMissingDeliveryIdentity,
   shouldRejectLxmfPropagationSyncMissingNode,
+  shouldRejectUnpackBinList,
+  shouldRejectUnpackPropagationEnvelope,
+  shouldRejectUnpackPropagationRequest,
   shouldRequestPropagationHavesAck,
   shouldReuseActiveLink,
   shouldTeardownLxmfPropagationLink,
   shouldTreatPropagationListAsEmpty,
   shouldUseDecodeLxmfPeerError,
+  shouldUsePackPropagationRequest,
+  shouldUseUnpackBinList,
+  shouldUseUnpackPropagationEnvelope,
+  shouldUseUnpackPropagationRequest,
   stepDecodeLxmfPeerErrorWithActions,
   stepLinkAppRequestAwaitWithActions,
   stepLxmfPropagationLinkReadyWithActions,
   stepLxmfPropagationSyncPrepWithActions,
+  stepPackPropagationRequestWithActions,
   stepPropagationGetWithActions,
   stepPropagationTransferWithActions,
+  stepUnpackBinListWithActions,
+  stepUnpackPropagationEnvelopeWithActions,
+  stepUnpackPropagationRequestWithActions,
   type PropagationGetAction,
   type PropagationTransferAction,
   type PropagationTransferMachineState,
@@ -54,12 +73,7 @@ import {
 import { LXMessage } from "./message.js";
 import {
   msgpackPackArray,
-  msgpackPackBin,
-  msgpackPackPropagationRequest,
-  msgpackUnpackMessageList,
-  msgpackUnpackPropagationEnvelope,
-  msgpackUnpackPropagationRequest,
-  msgpackUnpackTransientIdList
+  msgpackPackBin
 } from "./msgpack.js";
 import type { LXMFRouter } from "./router.js";
 
@@ -155,10 +169,25 @@ export class PropagationClient {
       if (action.kind === "identify") {
         link.identify(deliveryIdentity);
       } else if (action.kind === "request-list") {
+        const packListStepped = stepPackPropagationRequestWithActions(
+          initialPackPropagationRequestState(),
+          {
+            kind: "lxmf-codec/pack-propagation-request-gate",
+            wants: null,
+            haves: null
+          }
+        );
+        const listRequest = shouldUsePackPropagationRequest(packListStepped.actions)
+          ? packPropagationRequestRawFromActions(packListStepped.actions)
+          : null;
+        if (listRequest === null) {
+          this.applyTransfer({ kind: "xfer/list-malformed" });
+          return { state: this.state, messages: [] };
+        }
         const listResponse = await awaitLinkRequest(
           link,
           MESSAGE_GET_PATH,
-          msgpackPackPropagationRequest(null, null),
+          listRequest,
           action.timeoutSec
         );
 
@@ -180,13 +209,24 @@ export class PropagationClient {
           return { state: this.state, messages: [] };
         }
 
-        let transientIds: ReadonlyArray<Uint8Array>;
-        try {
-          transientIds = msgpackUnpackTransientIdList(listResponse!);
-        } catch {
+        const unpackListStepped = stepUnpackBinListWithActions(initialUnpackBinListState(), {
+          kind: "lxmf-codec/unpack-bin-list-gate",
+          data: listResponse!,
+          label: "transient id list"
+        });
+        if (
+          shouldRejectUnpackBinList(unpackListStepped.actions) ||
+          !shouldUseUnpackBinList(unpackListStepped.actions)
+        ) {
           this.applyTransfer({ kind: "xfer/list-malformed" });
           return { state: this.state, messages: [] };
         }
+        const listFields = binListFieldsFromActions(unpackListStepped.actions);
+        if (listFields === null) {
+          this.applyTransfer({ kind: "xfer/list-malformed" });
+          return { state: this.state, messages: [] };
+        }
+        const transientIds = listFields.entries;
 
         const wants =
           maxMessages === null ? [...transientIds] : transientIds.slice(0, Math.max(0, maxMessages));
@@ -218,10 +258,26 @@ export class PropagationClient {
         continue;
       }
 
+      const packDownloadStepped = stepPackPropagationRequestWithActions(
+        initialPackPropagationRequestState(),
+        {
+          kind: "lxmf-codec/pack-propagation-request-gate",
+          wants,
+          haves: null,
+          transferLimitKb: this.deliveryLimitKb
+        }
+      );
+      const downloadRequest = shouldUsePackPropagationRequest(packDownloadStepped.actions)
+        ? packPropagationRequestRawFromActions(packDownloadStepped.actions)
+        : null;
+      if (downloadRequest === null) {
+        this.applyTransfer({ kind: "xfer/download-malformed" });
+        return { state: this.state, messages: [] };
+      }
       const downloadResponse = await awaitLinkRequest(
         link,
         MESSAGE_GET_PATH,
-        msgpackPackPropagationRequest(wants, null, this.deliveryLimitKb),
+        downloadRequest,
         action.timeoutSec
       );
 
@@ -230,13 +286,24 @@ export class PropagationClient {
         return { state: this.state, messages: [] };
       }
 
-      let downloaded: ReadonlyArray<Uint8Array>;
-      try {
-        downloaded = msgpackUnpackMessageList(downloadResponse!);
-      } catch {
+      const unpackDownloadStepped = stepUnpackBinListWithActions(initialUnpackBinListState(), {
+        kind: "lxmf-codec/unpack-bin-list-gate",
+        data: downloadResponse!,
+        label: "message list response"
+      });
+      if (
+        shouldRejectUnpackBinList(unpackDownloadStepped.actions) ||
+        !shouldUseUnpackBinList(unpackDownloadStepped.actions)
+      ) {
         this.applyTransfer({ kind: "xfer/download-malformed" });
         return { state: this.state, messages: [] };
       }
+      const downloadFields = binListFieldsFromActions(unpackDownloadStepped.actions);
+      if (downloadFields === null) {
+        this.applyTransfer({ kind: "xfer/download-malformed" });
+        return { state: this.state, messages: [] };
+      }
+      const downloaded = downloadFields.entries;
 
       const messages: LXMessage[] = [];
       const haves: Uint8Array[] = [];
@@ -261,12 +328,25 @@ export class PropagationClient {
             haveCount: haves.length
           })
         ) {
-          await awaitLinkRequest(
-            link,
-            MESSAGE_GET_PATH,
-            msgpackPackPropagationRequest(null, haves),
-            next.timeoutSec
+          const packHavesStepped = stepPackPropagationRequestWithActions(
+            initialPackPropagationRequestState(),
+            {
+              kind: "lxmf-codec/pack-propagation-request-gate",
+              wants: null,
+              haves
+            }
           );
+          const havesRequest = shouldUsePackPropagationRequest(packHavesStepped.actions)
+            ? packPropagationRequestRawFromActions(packHavesStepped.actions)
+            : null;
+          if (havesRequest !== null) {
+            await awaitLinkRequest(
+              link,
+              MESSAGE_GET_PATH,
+              havesRequest,
+              next.timeoutSec
+            );
+          }
           this.applyTransfer({ kind: "xfer/haves-acked" });
         }
       }
@@ -455,13 +535,25 @@ export class PropagationNodeStore {
 
   private handlePropagationLink(link: Link): void {
     link.callbacks.packet = (data) => {
-      try {
-        const messages = msgpackUnpackPropagationEnvelope(data);
-        for (const lxmfData of messages) {
-          this.storePropagationData(lxmfData);
+      const unpackStepped = stepUnpackPropagationEnvelopeWithActions(
+        initialUnpackPropagationEnvelopeState(),
+        {
+          kind: "lxmf-codec/unpack-propagation-envelope-gate",
+          data
         }
-      } catch {
-        // Ignore malformed propagation envelopes.
+      );
+      if (
+        shouldRejectUnpackPropagationEnvelope(unpackStepped.actions) ||
+        !shouldUseUnpackPropagationEnvelope(unpackStepped.actions)
+      ) {
+        return;
+      }
+      const fields = propagationEnvelopeFieldsFromActions(unpackStepped.actions);
+      if (fields === null) {
+        return;
+      }
+      for (const lxmfData of fields.messages) {
+        this.storePropagationData(lxmfData);
       }
     };
   }
@@ -471,7 +563,24 @@ export class PropagationNodeStore {
       return null;
     }
 
-    const [wants, haves] = msgpackUnpackPropagationRequest(data!);
+    const unpackStepped = stepUnpackPropagationRequestWithActions(
+      initialUnpackPropagationRequestState(),
+      {
+        kind: "lxmf-codec/unpack-propagation-request-gate",
+        data: data!
+      }
+    );
+    if (
+      shouldRejectUnpackPropagationRequest(unpackStepped.actions) ||
+      !shouldUseUnpackPropagationRequest(unpackStepped.actions)
+    ) {
+      return null;
+    }
+    const requestFields = propagationRequestFieldsFromActions(unpackStepped.actions);
+    if (requestFields === null) {
+      return null;
+    }
+    const { wants, haves } = requestFields;
     const remoteDeliveryHash =
       remoteIdentity === null
         ? null

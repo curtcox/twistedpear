@@ -7,10 +7,14 @@ import {
   initialPropagationGetState,
   initialPropagationRestoreState,
   initialPropagationStoreState,
+  initialUnpackPropagationEnvelopeState,
+  initialUnpackPropagationRequestState,
   isPropagationMessageTooLarge,
   propagationDestinationHash,
+  propagationEnvelopeFieldsFromActions,
   propagationGetApplyIds,
   propagationGetListIds,
+  propagationRequestFieldsFromActions,
   propagationStoreAcceptEvictKeys,
   selectOldestPropagationKey,
   shouldAcceptPropagationGetRequestData,
@@ -23,10 +27,16 @@ import {
   shouldEvictPropagationCatalogEntry,
   shouldListPropagationGetIds,
   shouldRejectPropagationStore,
+  shouldRejectUnpackPropagationEnvelope,
+  shouldRejectUnpackPropagationRequest,
+  shouldUseUnpackPropagationEnvelope,
+  shouldUseUnpackPropagationRequest,
   stepPersistDebounceWithActions,
   stepPropagationGetWithActions,
   stepPropagationRestoreWithActions,
   stepPropagationStoreWithActions,
+  stepUnpackPropagationEnvelopeWithActions,
+  stepUnpackPropagationRequestWithActions,
   type ClientRateBucket,
   type PersistDebounceState,
   type PropagationGetAction,
@@ -45,9 +55,7 @@ import { APP_NAME, MESSAGE_GET_PATH, PeerError } from "./constants.js";
 import {
   msgpackPackArray,
   msgpackPackUInt,
-  msgpackPackBin,
-  msgpackUnpackPropagationEnvelope,
-  msgpackUnpackPropagationRequest
+  msgpackPackBin
 } from "./msgpack.js";
 
 export interface PropagationServerQuotas {
@@ -331,13 +339,25 @@ export class PropagationServer {
 
   private handlePropagationLink(link: Link): void {
     link.callbacks.packet = (data) => {
-      try {
-        const messages = msgpackUnpackPropagationEnvelope(data);
-        for (const lxmfData of messages) {
-          this.storePropagationData(lxmfData);
+      const unpackStepped = stepUnpackPropagationEnvelopeWithActions(
+        initialUnpackPropagationEnvelopeState(),
+        {
+          kind: "lxmf-codec/unpack-propagation-envelope-gate",
+          data
         }
-      } catch {
-        // Ignore malformed propagation envelopes.
+      );
+      if (
+        shouldRejectUnpackPropagationEnvelope(unpackStepped.actions) ||
+        !shouldUseUnpackPropagationEnvelope(unpackStepped.actions)
+      ) {
+        return;
+      }
+      const fields = propagationEnvelopeFieldsFromActions(unpackStepped.actions);
+      if (fields === null) {
+        return;
+      }
+      for (const lxmfData of fields.messages) {
+        this.storePropagationData(lxmfData);
       }
     };
   }
@@ -347,13 +367,24 @@ export class PropagationServer {
       return null;
     }
 
-    let wants: ReadonlyArray<Uint8Array> | null;
-    let haves: ReadonlyArray<Uint8Array> | null;
-    try {
-      [wants, haves] = msgpackUnpackPropagationRequest(data!);
-    } catch {
+    const unpackStepped = stepUnpackPropagationRequestWithActions(
+      initialUnpackPropagationRequestState(),
+      {
+        kind: "lxmf-codec/unpack-propagation-request-gate",
+        data: data!
+      }
+    );
+    if (
+      shouldRejectUnpackPropagationRequest(unpackStepped.actions) ||
+      !shouldUseUnpackPropagationRequest(unpackStepped.actions)
+    ) {
       return null;
     }
+    const requestFields = propagationRequestFieldsFromActions(unpackStepped.actions);
+    if (requestFields === null) {
+      return null;
+    }
+    const { wants, haves } = requestFields;
 
     const remoteDeliveryHash =
       remoteIdentity === null

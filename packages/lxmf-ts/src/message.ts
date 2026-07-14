@@ -15,15 +15,21 @@ import {
   initialLxMessageInstancePackState,
   initialLxMessagePackState,
   initialLxmfSignatureState,
+  initialPackLxmPayloadState,
   initialPackLxmfDestinationPrefixedState,
   initialPackLxmfWireState,
+  initialPackPropagationEnvelopeState,
   initialSplitLxmfWireState,
+  initialUnpackLxmPayloadState,
+  lxmPayloadFieldsFromActions,
   lxmfDeliveryDeliverParams,
   lxmfDeliveryOpportunisticRejectSizes,
   lxmfSignatureOutcomeFromActions,
   lxmfWireFieldsFromActions,
+  packLxmPayloadRawFromActions,
   packLxmfDestinationPrefixedRawFromActions,
   packLxmfWireRawFromActions,
+  packPropagationEnvelopeRawFromActions,
   shouldDeliverLxmf,
   shouldIncludeLxmfStamp,
   shouldAcceptLxmfWireFrame,
@@ -40,22 +46,29 @@ import {
   shouldRejectPackLxmfDestinationPrefixed,
   shouldRejectPackLxmfWire,
   shouldRejectSplitLxmfWire,
+  shouldRejectUnpackLxmPayload,
   shouldRememberLxmfMessage,
   shouldSelectLxmfDeliveryParameters,
   shouldUseLxmfPackNow,
   shouldUseLxmfPackTimestamp,
+  shouldUsePackLxmPayload,
   shouldUsePackLxmfDestinationPrefixed,
   shouldUsePackLxmfWire,
+  shouldUsePackPropagationEnvelope,
   shouldUseSplitLxmfWire,
+  shouldUseUnpackLxmPayload,
   stepLxmfDeliveryWithActions,
   stepLxmfPackTimestampWithActions,
   stepLxmfPropagatedPackPrepWithActions,
   stepLxmfSignatureWithActions,
   stepLxMessageInstancePackWithActions,
   stepLxMessagePackWithActions,
+  stepPackLxmPayloadWithActions,
   stepPackLxmfDestinationPrefixedWithActions,
   stepPackLxmfWireWithActions,
+  stepPackPropagationEnvelopeWithActions,
   stepSplitLxmfWireWithActions,
+  stepUnpackLxmPayloadWithActions,
   utf8Decode,
   utf8OrBytes
 } from "@twistedpear/protocol";
@@ -79,7 +92,6 @@ import {
   type LXMessageUnverifiedReasonValue,
   APP_NAME
 } from "./constants.js";
-import { msgpackPackLxmPayload, msgpackPackPropagationEnvelope, msgpackUnpackLxmPayload } from "./msgpack.js";
 
 /** Mirrors RNS/Packet.py encrypted MDU with LXMF timestamp allowance. */
 export const ENCRYPTED_PACKET_MDU = LXMF_ENCRYPTED_PACKET_MDU;
@@ -212,8 +224,35 @@ export class LXMessage {
     }
 
     const { destinationHash, sourceHash, signature, payload } = wire;
-    const { timestamp, title, content, fields, stamp } = msgpackUnpackLxmPayload(payload);
-    const payloadWithoutStamp = msgpackPackLxmPayload(timestamp, title, content, fields);
+    const unpackPayloadStepped = stepUnpackLxmPayloadWithActions(initialUnpackLxmPayloadState(), {
+      kind: "lxmf-codec/unpack-payload-gate",
+      data: payload
+    });
+    if (
+      shouldRejectUnpackLxmPayload(unpackPayloadStepped.actions) ||
+      !shouldUseUnpackLxmPayload(unpackPayloadStepped.actions)
+    ) {
+      throw new Error("Invalid LXMF payload");
+    }
+    const unpackedPayload = lxmPayloadFieldsFromActions(unpackPayloadStepped.actions);
+    if (unpackedPayload === null) {
+      throw new Error("Invalid LXMF payload");
+    }
+    const { timestamp, title, content, fields, stamp } = unpackedPayload;
+    const packCoreStepped = stepPackLxmPayloadWithActions(initialPackLxmPayloadState(), {
+      kind: "lxmf-codec/pack-payload-gate",
+      timestamp,
+      title,
+      content,
+      fields
+    });
+    if (!shouldUsePackLxmPayload(packCoreStepped.actions)) {
+      throw new Error("Invalid LXMF payload");
+    }
+    const payloadWithoutStamp = packLxmPayloadRawFromActions(packCoreStepped.actions);
+    if (payloadWithoutStamp === null) {
+      throw new Error("Invalid LXMF payload");
+    }
     const hashedPart = lxmfHashableMaterial(destinationHash, sourceHash, payloadWithoutStamp);
     const messageHash = Identity.fullHash(options.provider, hashedPart);
     const signedPart = lxmfSignedMaterial(hashedPart, messageHash);
@@ -294,7 +333,20 @@ export class LXMessage {
       throw new Error("LXMessage.pack requires timestamp to be set before packing");
     }
 
-    const payloadCore = msgpackPackLxmPayload(this.timestamp!, this.title, this.content, this.fields);
+    const packCoreStepped = stepPackLxmPayloadWithActions(initialPackLxmPayloadState(), {
+      kind: "lxmf-codec/pack-payload-gate",
+      timestamp: this.timestamp!,
+      title: this.title,
+      content: this.content,
+      fields: this.fields
+    });
+    if (!shouldUsePackLxmPayload(packCoreStepped.actions)) {
+      throw new Error("LXMessage failed to pack payload");
+    }
+    const payloadCore = packLxmPayloadRawFromActions(packCoreStepped.actions);
+    if (payloadCore === null) {
+      throw new Error("LXMessage failed to pack payload");
+    }
     const hashedPart = lxmfHashableMaterial(this.destination!.hash, this.source!.hash, payloadCore);
     this.hash = Identity.fullHash(provider, hashedPart);
 
@@ -303,7 +355,21 @@ export class LXMessage {
       stamp = options.stamp ?? null;
     }
 
-    const payload = msgpackPackLxmPayload(this.timestamp!, this.title, this.content, this.fields, stamp);
+    const packPayloadStepped = stepPackLxmPayloadWithActions(initialPackLxmPayloadState(), {
+      kind: "lxmf-codec/pack-payload-gate",
+      timestamp: this.timestamp!,
+      title: this.title,
+      content: this.content,
+      fields: this.fields,
+      stamp
+    });
+    if (!shouldUsePackLxmPayload(packPayloadStepped.actions)) {
+      throw new Error("LXMessage failed to pack payload");
+    }
+    const payload = packLxmPayloadRawFromActions(packPayloadStepped.actions);
+    if (payload === null) {
+      throw new Error("LXMessage failed to pack payload");
+    }
     const signedPart = lxmfSignedMaterial(hashedPart, this.hash);
     this.signature = this.source!.identity!.sign(signedPart);
     this.signatureValidated = true;
@@ -391,7 +457,22 @@ export class LXMessage {
         throw new Error(`destination hash must be ${DESTINATION_LENGTH} bytes`);
       }
       this.transientId = Identity.fullHash(provider, lxmfData);
-      this.propagationPacked = msgpackPackPropagationEnvelope(this.timestamp!, [lxmfData]);
+      const envelopeStepped = stepPackPropagationEnvelopeWithActions(
+        initialPackPropagationEnvelopeState(),
+        {
+          kind: "lxmf-codec/pack-propagation-envelope-gate",
+          timestamp: this.timestamp!,
+          messages: [lxmfData]
+        }
+      );
+      if (!shouldUsePackPropagationEnvelope(envelopeStepped.actions)) {
+        throw new Error("LXMessage failed to pack propagation envelope");
+      }
+      const propagationPacked = packPropagationEnvelopeRawFromActions(envelopeStepped.actions);
+      if (propagationPacked === null) {
+        throw new Error("LXMessage failed to pack propagation envelope");
+      }
+      this.propagationPacked = propagationPacked;
     }
 
     const stepped = stepLxmfDeliveryWithActions(initialLxmfDeliveryState(), {

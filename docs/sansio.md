@@ -119,9 +119,18 @@
 > **`stepDecodeWsClientFrameWithActions`**: use-raw / use-fields|reject),
 > **HDLC interface framing** (encode/decode via
 > **`stepEncodeHdlcFrameWithActions`** / **`stepDecodeHdlcFramesWithActions`**:
-> use-raw / use-fields), and **LXMF peer-error** msgpack decode (via
-> **`stepDecodeLxmfPeerErrorWithActions`**: use-fields|reject) are pure
-> protocol leaves; Identity, websocket-server, `HdlcPacketInterface`, and
+> use-raw / use-fields), **LXMF peer-error** msgpack decode (via
+> **`stepDecodeLxmfPeerErrorWithActions`**: use-fields|reject), and **LXMF
+> payload / propagation** codecs (pack/unpack via
+> **`stepPackLxmPayloadWithActions`** /
+> **`stepUnpackLxmPayloadWithActions`** /
+> **`stepPackPropagationRequestWithActions`** /
+> **`stepUnpackPropagationRequestWithActions`** /
+> **`stepPackPropagationEnvelopeWithActions`** /
+> **`stepUnpackPropagationEnvelopeWithActions`** /
+> **`stepUnpackBinListWithActions`**: use-raw /
+> use-fields|reject) are pure protocol leaves; Identity,
+> websocket-server, `HdlcPacketInterface`, `LXMessage`, and
 > propagation adapters use them. **Identity ratchet
 > persistence** (JSON encode/decode, store key, usability/expiry; lookup via
 > **`stepIdentityRatchetLookupWithActions`**) and **web-identity
@@ -817,7 +826,10 @@
 > split-link-identify-payload / pack-web-identity-record /
 > split-web-identity-record / encode-ws-binary-frame /
 > decode-ws-client-frame / encode-hdlc-frame / decode-hdlc-frames /
-> decode-lxmf-peer-error reads
+> decode-lxmf-peer-error / pack-lxm-payload / unpack-lxm-payload /
+> pack-propagation-request / unpack-propagation-request /
+> pack-propagation-envelope / unpack-propagation-envelope /
+> unpack-bin-list reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -945,6 +957,19 @@
 > **`stepDecodeLxmfPeerErrorWithActions`** emits `use-fields`|`reject`; LXMF
 > peer-error msgpack decode applies only from those actions (no ad-hoc
 > `decodeLxmfPeerError` reads beside the step).
+> **`stepPackLxmPayloadWithActions`** /
+> **`stepUnpackLxmPayloadWithActions`** /
+> **`stepPackPropagationRequestWithActions`** /
+> **`stepUnpackPropagationRequestWithActions`** /
+> **`stepPackPropagationEnvelopeWithActions`** /
+> **`stepUnpackPropagationEnvelopeWithActions`** /
+> **`stepUnpackBinListWithActions`** emit `use-raw` /
+> `use-fields`|`reject`; LXMF payload / propagation-request /
+> propagation-envelope / bin-list pack / unpack apply only from those
+> actions (no ad-hoc `packLxmPayload` / `unpackLxmPayload` /
+> `packPropagationRequest` / `unpackPropagationRequest` /
+> `packPropagationEnvelope` / `unpackPropagationEnvelope` /
+> `unpackBinList` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
