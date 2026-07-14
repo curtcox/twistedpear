@@ -4,6 +4,12 @@ import {
   LINK_PROOF_PUBLIC_KEY_SIZE,
   LINK_PROOF_SIGNATURE_SIZE,
   LINK_REQUEST_ECPUB_SIZE,
+  encodeLinkMtuBytes,
+  encodeLinkMtuBytesRawFromActions,
+  encodeLinkSignallingBytes,
+  encodeLinkSignallingBytesRawFromActions,
+  initialEncodeLinkMtuBytesState,
+  initialEncodeLinkSignallingBytesState,
   initialPackLinkProofDataState,
   initialPackLinkRequestDataState,
   initialSplitLinkProofBodyState,
@@ -18,11 +24,15 @@ import {
   packLinkRequestDataRawFromActions,
   shouldRejectSplitLinkProofBody,
   shouldRejectSplitLinkRequestData,
+  shouldUseEncodeLinkMtuBytes,
+  shouldUseEncodeLinkSignallingBytes,
   shouldUsePackLinkProofData,
   shouldUsePackLinkRequestData,
   shouldUseSplitLinkProofBody,
   shouldUseSplitLinkRequestData,
   splitLinkRequestData,
+  stepEncodeLinkMtuBytesWithActions,
+  stepEncodeLinkSignallingBytesWithActions,
   stepPackLinkProofDataWithActions,
   stepPackLinkRequestDataWithActions,
   stepSplitLinkProofBodyWithActions,
@@ -44,6 +54,29 @@ describe("protocol link proof materials", () => {
     expect([...packed.subarray(0, LINK_PROOF_SIGNATURE_SIZE)]).toEqual([...signature]);
   });
 
+  it("emits signalling and MTU encode bytes from WithActions steps", () => {
+    const signallingStepped = stepEncodeLinkSignallingBytesWithActions(
+      initialEncodeLinkSignallingBytesState(),
+      {
+        kind: "link-proof/encode-signalling-gate",
+        mtu: 500,
+        mode: 0x01
+      }
+    );
+    expect(shouldUseEncodeLinkSignallingBytes(signallingStepped.actions)).toBe(true);
+    const signalling = encodeLinkSignallingBytesRawFromActions(signallingStepped.actions);
+    expect(signalling).not.toBeNull();
+    expect([...signalling!]).toEqual([...encodeLinkSignallingBytes(500, 0x01)]);
+
+    const mtuStepped = stepEncodeLinkMtuBytesWithActions(initialEncodeLinkMtuBytesState(), {
+      kind: "link-proof/encode-mtu-gate",
+      mtu: 0x123456
+    });
+    expect(shouldUseEncodeLinkMtuBytes(mtuStepped.actions)).toBe(true);
+    const mtuBytes = encodeLinkMtuBytesRawFromActions(mtuStepped.actions);
+    expect(mtuBytes).not.toBeNull();
+    expect([...mtuBytes!]).toEqual([...encodeLinkMtuBytes(0x123456)]);
+  });
   it("packs and splits link-request payloads", () => {
     const publicKey = new Uint8Array(LINK_PROOF_PUBLIC_KEY_SIZE).fill(1);
     const signaturePublicKey = new Uint8Array(LINK_PROOF_PUBLIC_KEY_SIZE).fill(2);

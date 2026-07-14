@@ -1,8 +1,8 @@
 /**
  * Pure RNS Token key split and frame layout (iv || ciphertext || hmac).
  * AES / HMAC stay at the crypto adapter edge.
- * Pack / split conclusions leave via machine actions (no ad-hoc
- * `packTokenFrame` / `splitTokenFrame` reads beside the step).
+ * Key-split / pack / split conclusions leave via machine actions (no ad-hoc
+ * `splitTokenKey` / `packTokenFrame` / `splitTokenFrame` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 
@@ -110,6 +110,73 @@ export function isValidTokenIvLength(length: number): boolean {
 /** Whether a Token frame split succeeded (HMAC/AES stay at the edge). */
 export function shouldAcceptTokenFrame(framePresent: boolean): boolean {
   return framePresent;
+}
+
+/**
+ * Token key-split framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `splitTokenKey` reads
+ * beside the step). Invalid key lengths become `reject`.
+ */
+export type SplitTokenKeyState = Record<string, never>;
+
+export type SplitTokenKeyEvent =
+  | Event
+  | {
+      readonly kind: "token-framing/split-key-gate";
+      readonly key: Uint8Array;
+    };
+
+export type SplitTokenKeyAction =
+  | { readonly kind: "use-fields"; readonly fields: TokenKeyParts }
+  | { readonly kind: "reject" };
+
+export interface SplitTokenKeyStepResult {
+  readonly state: SplitTokenKeyState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly SplitTokenKeyAction[];
+}
+
+export function initialSplitTokenKeyState(): SplitTokenKeyState {
+  return {};
+}
+
+export function stepSplitTokenKeyWithActions(
+  state: SplitTokenKeyState,
+  event: SplitTokenKeyEvent
+): SplitTokenKeyStepResult {
+  if (event.kind === "token-framing/split-key-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "use-fields", fields: splitTokenKey(event.key) }]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseSplitTokenKey(
+  actions: ReadonlyArray<SplitTokenKeyAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectSplitTokenKey(
+  actions: ReadonlyArray<SplitTokenKeyAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract split token-key fields from step actions; null when no `use-fields`. */
+export function tokenKeyFieldsFromActions(
+  actions: ReadonlyArray<SplitTokenKeyAction>
+): TokenKeyParts | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }
 
 /**

@@ -1,8 +1,9 @@
 /**
  * Pure RNS link-request / link-proof signalling and payload layout helpers.
- * Pack / split conclusions leave via machine actions (no ad-hoc
- * `packLinkProofData` / `splitLinkProofBody` / `packLinkRequestData` /
- * `splitLinkRequestData` reads beside the step).
+ * Pack / split / signalling encode conclusions leave via machine actions (no
+ * ad-hoc `packLinkProofData` / `splitLinkProofBody` / `packLinkRequestData` /
+ * `splitLinkRequestData` / `encodeLinkSignallingBytes` / `encodeLinkMtuBytes`
+ * reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 
@@ -444,4 +445,126 @@ export function linkRequestKeyFieldsFromActions(
 ): LinkRequestKeyFields | null {
   const action = actions.find((entry) => entry.kind === "use-fields");
   return action?.kind === "use-fields" ? action.fields : null;
+}
+
+/**
+ * Link signalling-byte encode framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `encodeLinkSignallingBytes`
+ * reads beside the step).
+ */
+export type EncodeLinkSignallingBytesState = Record<string, never>;
+
+export type EncodeLinkSignallingBytesEvent =
+  | Event
+  | {
+      readonly kind: "link-proof/encode-signalling-gate";
+      readonly mtu: number;
+      readonly mode: number;
+    };
+
+export type EncodeLinkSignallingBytesAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface EncodeLinkSignallingBytesStepResult {
+  readonly state: EncodeLinkSignallingBytesState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly EncodeLinkSignallingBytesAction[];
+}
+
+export function initialEncodeLinkSignallingBytesState(): EncodeLinkSignallingBytesState {
+  return {};
+}
+
+export function stepEncodeLinkSignallingBytesWithActions(
+  state: EncodeLinkSignallingBytesState,
+  event: EncodeLinkSignallingBytesEvent
+): EncodeLinkSignallingBytesStepResult {
+  if (event.kind === "link-proof/encode-signalling-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: encodeLinkSignallingBytes(event.mtu, event.mode)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseEncodeLinkSignallingBytes(
+  actions: ReadonlyArray<EncodeLinkSignallingBytesAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract encoded signalling bytes from step actions; null when no `use-raw`. */
+export function encodeLinkSignallingBytesRawFromActions(
+  actions: ReadonlyArray<EncodeLinkSignallingBytesAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Link MTU-byte encode framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `encodeLinkMtuBytes` reads
+ * beside the step).
+ */
+export type EncodeLinkMtuBytesState = Record<string, never>;
+
+export type EncodeLinkMtuBytesEvent =
+  | Event
+  | {
+      readonly kind: "link-proof/encode-mtu-gate";
+      readonly mtu: number;
+    };
+
+export type EncodeLinkMtuBytesAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface EncodeLinkMtuBytesStepResult {
+  readonly state: EncodeLinkMtuBytesState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly EncodeLinkMtuBytesAction[];
+}
+
+export function initialEncodeLinkMtuBytesState(): EncodeLinkMtuBytesState {
+  return {};
+}
+
+export function stepEncodeLinkMtuBytesWithActions(
+  state: EncodeLinkMtuBytesState,
+  event: EncodeLinkMtuBytesEvent
+): EncodeLinkMtuBytesStepResult {
+  if (event.kind === "link-proof/encode-mtu-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-raw", raw: encodeLinkMtuBytes(event.mtu) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseEncodeLinkMtuBytes(
+  actions: ReadonlyArray<EncodeLinkMtuBytesAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract encoded MTU bytes from step actions; null when no `use-raw`. */
+export function encodeLinkMtuBytesRawFromActions(
+  actions: ReadonlyArray<EncodeLinkMtuBytesAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
 }

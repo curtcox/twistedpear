@@ -4,6 +4,7 @@ import {
   initialPackPkcs7State,
   initialPackTokenFrameState,
   initialSplitTokenFrameState,
+  initialSplitTokenKeyState,
   initialUnpackPkcs7State,
   isValidTokenIvLength,
   packTokenFrameRawFromActions,
@@ -12,17 +13,20 @@ import {
   shouldAcceptTokenFrame,
   shouldRejectPackTokenFrame,
   shouldRejectPkcs7Unpad,
+  shouldRejectSplitTokenKey,
   shouldUsePackTokenFrame,
   shouldUsePkcs7Pad,
   shouldUsePkcs7Unpad,
   shouldUseSplitTokenFrame,
-  splitTokenKey,
+  shouldUseSplitTokenKey,
   stepPackTokenFrameWithActions,
   stepPkcs7PadWithActions,
   stepPkcs7UnpadWithActions,
   stepSplitTokenFrameWithActions,
+  stepSplitTokenKeyWithActions,
   tokenFrameFieldsFromActions,
   tokenHmacMatches,
+  tokenKeyFieldsFromActions,
   tokenSignedMaterial
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./provider.js";
@@ -46,7 +50,18 @@ export class Token {
     private readonly provider: CryptoProvider,
     key: Uint8Array
   ) {
-    const parts = splitTokenKey(key);
+    const stepped = stepSplitTokenKeyWithActions(initialSplitTokenKeyState(), {
+      kind: "token-framing/split-key-gate",
+      key
+    });
+    const parts = tokenKeyFieldsFromActions(stepped.actions);
+    if (
+      shouldRejectSplitTokenKey(stepped.actions) ||
+      !shouldUseSplitTokenKey(stepped.actions) ||
+      parts === null
+    ) {
+      throw new Error(`Token key must be 32 or 64 bytes, not ${key.length}`);
+    }
     this.mode = parts.mode;
     this.signingKey = parts.signingKey;
     this.encryptionKey = parts.encryptionKey;

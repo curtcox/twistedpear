@@ -43,8 +43,8 @@ import {
   computeLinkRttSeconds,
   containsResourceHash,
   deriveRnsLinkKeyRawFromActions,
-  encodeLinkMtuBytes,
-  encodeLinkSignallingBytes,
+  encodeLinkMtuBytesRawFromActions,
+  encodeLinkSignallingBytesRawFromActions,
   indexOfPendingLinkAppRequest,
   initialLinkAppRequestInboundState,
   initialLinkEstablishState,
@@ -78,6 +78,8 @@ import {
   packLinkRequestDataRawFromActions,
   packMsgpackFloat64RawFromActions,
   initialClassifyLinkKeepaliveState,
+  initialEncodeLinkMtuBytesState,
+  initialEncodeLinkSignallingBytesState,
   initialLinkAppRequestState,
   initialLinkAppRequestTransmitState,
   initialLinkDataContextState,
@@ -115,6 +117,8 @@ import {
   shouldRejectUnpackLinkRequest,
   shouldRejectUnpackLinkResponse,
   shouldRejectUnpackMsgpackFloat,
+  shouldUseEncodeLinkMtuBytes,
+  shouldUseEncodeLinkSignallingBytes,
   shouldUseLinkInitiatorMtu,
   shouldUseLinkRequestResponderMtu,
   shouldUsePackLinkIdentifyPayload,
@@ -132,6 +136,8 @@ import {
   shouldUseUnpackLinkResponse,
   shouldUseUnpackMsgpackFloat,
   stepClassifyLinkKeepaliveWithActions,
+  stepEncodeLinkMtuBytesWithActions,
+  stepEncodeLinkSignallingBytesWithActions,
   stepLinkInitiatorMtuWithActions,
   stepLinkRequestResponderMtuWithActions,
   stepPackLinkIdentifyPayloadWithActions,
@@ -652,7 +658,19 @@ export class Link {
       throw new Error(`Requested link mode ${mode} is not enabled`);
     }
 
-    return encodeLinkSignallingBytes(mtu, mode);
+    const stepped = stepEncodeLinkSignallingBytesWithActions(
+      initialEncodeLinkSignallingBytesState(),
+      {
+        kind: "link-proof/encode-signalling-gate",
+        mtu,
+        mode
+      }
+    );
+    const raw = encodeLinkSignallingBytesRawFromActions(stepped.actions);
+    if (!shouldUseEncodeLinkSignallingBytes(stepped.actions) || raw === null) {
+      throw new Error("Could not encode link signalling bytes");
+    }
+    return raw;
   }
 
   static modeFromLrPacket(packet: Packet): LinkModeValue {
@@ -664,7 +682,15 @@ export class Link {
   }
 
   static mtuBytes(mtu: number): Uint8Array {
-    return encodeLinkMtuBytes(mtu);
+    const stepped = stepEncodeLinkMtuBytesWithActions(initialEncodeLinkMtuBytesState(), {
+      kind: "link-proof/encode-mtu-gate",
+      mtu
+    });
+    const raw = encodeLinkMtuBytesRawFromActions(stepped.actions);
+    if (!shouldUseEncodeLinkMtuBytes(stepped.actions) || raw === null) {
+      throw new Error("Could not encode link MTU bytes");
+    }
+    return raw;
   }
 
   static mtuFromLrPacket(packet: Packet): number | null {

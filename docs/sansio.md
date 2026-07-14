@@ -111,7 +111,10 @@
 > **Link-proof / link-request framing** (pack/split via
 > **`stepPackLinkProofDataWithActions`** / **`stepSplitLinkProofBodyWithActions`** /
 > **`stepPackLinkRequestDataWithActions`** / **`stepSplitLinkRequestDataWithActions`**:
-> use-raw / use-fields|reject) is a pure protocol leaf; `Link` adapts it.
+> use-raw / use-fields|reject; signalling/MTU encode via
+> **`stepEncodeLinkSignallingBytesWithActions`** /
+> **`stepEncodeLinkMtuBytesWithActions`**: use-raw) is a pure protocol leaf; `Link`
+> adapts it.
 > **Packet header** encode/decode (via **`stepEncodePacketRawWithActions`** /
 > **`stepDecodePacketRawWithActions`**: use-raw|reject / use-fields|reject),
 > flag packing, and hashable-part framing are pure protocol leaves; `Packet`
@@ -120,8 +123,10 @@
 > use-raw|reject) and **LXMF delivery planning**
 > (method/representation selection via **`stepLxmfDeliveryWithActions`**) are
 > pure protocol leaves; Token and `LXMessage` adapt them. **Token framing**
-> (key split / iv||ciphertext||hmac via **`stepPackTokenFrameWithActions`** /
-> **`stepSplitTokenFrameWithActions`**: use-raw|reject / use-fields|reject) and
+> (key split / iv||ciphertext||hmac via **`stepSplitTokenKeyWithActions`** /
+> **`stepPackTokenFrameWithActions`** /
+> **`stepSplitTokenFrameWithActions`**: use-fields|reject / use-raw|reject /
+> use-fields|reject) and
 > **stamp-cost extraction** from announce app-data (via
 > **`stepStampCostFromAppDataWithActions`**: use-fields|reject) are pure
 > protocol leaves; Token and LXMF router adapt them. **Resource receive-part planning** (via
@@ -859,6 +864,7 @@
 > encode-packet-raw / decode-packet-raw /
 > pack-link-proof-data / split-link-proof-body /
 > pack-link-request-data / split-link-request-data /
+> encode-link-signalling-bytes / encode-link-mtu-bytes /
 > pack-resource-proof / split-resource-proof /
 > split-resource-decrypted-payload /
 > pack-resource-hashmap-update / unpack-resource-hashmap-update /
@@ -866,7 +872,7 @@
 > parse-resource-part-request / pack-resource-advertisement /
 > unpack-resource-advertisement / pack-link-request /
 > pack-link-response / unpack-link-request / unpack-link-response /
-> pack-token-frame / split-token-frame /
+> pack-token-frame / split-token-frame / split-token-key /
 > pack-identity-ciphertext / split-identity-ciphertext /
 > pack-lxmf-wire / split-lxmf-wire /
 > pack-lxmf-destination-prefixed / split-lxmf-destination-prefixed /
@@ -1031,10 +1037,13 @@
 > **`stepPackLinkProofDataWithActions`** /
 > **`stepSplitLinkProofBodyWithActions`** /
 > **`stepPackLinkRequestDataWithActions`** /
-> **`stepSplitLinkRequestDataWithActions`** emit `use-raw` / `use-fields`|`reject`;
-> link-proof / link-request pack / split apply only from those actions (no ad-hoc
-> `packLinkProofData` / `splitLinkProofBody` / `packLinkRequestData` /
-> `splitLinkRequestData` reads beside the step).
+> **`stepSplitLinkRequestDataWithActions`** /
+> **`stepEncodeLinkSignallingBytesWithActions`** /
+> **`stepEncodeLinkMtuBytesWithActions`** emit `use-raw` / `use-fields`|`reject` /
+> `use-raw`; link-proof / link-request pack / split and signalling / MTU encode
+> apply only from those actions (no ad-hoc `packLinkProofData` /
+> `splitLinkProofBody` / `packLinkRequestData` / `splitLinkRequestData` /
+> `encodeLinkSignallingBytes` / `encodeLinkMtuBytes` reads beside the step).
 > **`stepPackResourceProofWithActions`** /
 > **`stepSplitResourceProofWithActions`** /
 > **`stepSplitResourceDecryptedPayloadWithActions`** emit `use-raw` /
@@ -1066,10 +1075,11 @@
 > `msgpackPackLinkResponse` / `msgpackUnpackLinkRequest` /
 > `msgpackUnpackLinkResponse` reads beside the step).
 > **`stepPackTokenFrameWithActions`** /
-> **`stepSplitTokenFrameWithActions`** emit `use-raw`|`reject` /
-> `use-fields`|`reject`; Token frame pack / split apply only from those
-> actions (no ad-hoc `packTokenFrame` / `splitTokenFrame` reads beside the
-> step).
+> **`stepSplitTokenFrameWithActions`** /
+> **`stepSplitTokenKeyWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject` / `use-fields`|`reject`; Token frame pack / split and
+> key-split apply only from those actions (no ad-hoc `packTokenFrame` /
+> `splitTokenFrame` / `splitTokenKey` reads beside the step).
 > **`stepPackIdentityCiphertextWithActions`** /
 > **`stepSplitIdentityCiphertextWithActions`** emit `use-raw`|`reject` /
 > `use-fields`|`reject`; Identity ciphertext pack / split apply only from

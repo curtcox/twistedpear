@@ -5,20 +5,25 @@ import {
   TOKEN_OVERHEAD,
   initialPackTokenFrameState,
   initialSplitTokenFrameState,
+  initialSplitTokenKeyState,
   isValidTokenIvLength,
   packTokenFrame,
   packTokenFrameRawFromActions,
   shouldAcceptTokenFrame,
   shouldRejectPackTokenFrame,
   shouldRejectSplitTokenFrame,
+  shouldRejectSplitTokenKey,
   shouldUsePackTokenFrame,
   shouldUseSplitTokenFrame,
+  shouldUseSplitTokenKey,
   splitTokenFrame,
   splitTokenKey,
   stepPackTokenFrameWithActions,
   stepSplitTokenFrameWithActions,
+  stepSplitTokenKeyWithActions,
   tokenFrameFieldsFromActions,
   tokenHmacMatches,
+  tokenKeyFieldsFromActions,
   tokenSignedMaterial
 } from "../src/token-framing.js";
 
@@ -34,6 +39,29 @@ describe("protocol token framing", () => {
     const parts256 = splitTokenKey(key256);
     expect(parts256.mode).toBe("aes256");
     expect(parts256.signingKey.length).toBe(32);
+  });
+
+  it("emits key-split fields or reject from WithActions steps", () => {
+    const key128 = new Uint8Array(32).map((_, i) => i);
+    const ok = stepSplitTokenKeyWithActions(initialSplitTokenKeyState(), {
+      kind: "token-framing/split-key-gate",
+      key: key128
+    });
+    expect(shouldUseSplitTokenKey(ok.actions)).toBe(true);
+    expect(shouldRejectSplitTokenKey(ok.actions)).toBe(false);
+    const fields = tokenKeyFieldsFromActions(ok.actions);
+    expect(fields).not.toBeNull();
+    expect(fields!.mode).toBe("aes128");
+    expect([...fields!.signingKey]).toEqual([...key128.subarray(0, 16)]);
+    expect([...fields!.encryptionKey]).toEqual([...key128.subarray(16, 32)]);
+
+    const rejected = stepSplitTokenKeyWithActions(initialSplitTokenKeyState(), {
+      kind: "token-framing/split-key-gate",
+      key: new Uint8Array(10)
+    });
+    expect(shouldRejectSplitTokenKey(rejected.actions)).toBe(true);
+    expect(shouldUseSplitTokenKey(rejected.actions)).toBe(false);
+    expect(tokenKeyFieldsFromActions(rejected.actions)).toBeNull();
   });
 
   it("packs and splits token frames", () => {
