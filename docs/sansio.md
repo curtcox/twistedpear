@@ -31,7 +31,11 @@
 > `LXMFRouter.send` adapts it. **LXMF per-method send gates** (via
 > **`stepLxmfOpportunisticSendWithActions`** / **`stepLxmfDirectSendWithActions`** /
 > **`stepLxmfPropagatedSendWithActions`**: proceed / reject-*) are pure protocol
-> leaves; `LXMFRouter` send paths adapt them. **Link request / response
+> leaves; `LXMFRouter` send paths adapt them. **LXMF propagation link-ready /
+> sync-prep gates** (via **`stepLxmfPropagationLinkReadyWithActions`**: reuse /
+> establish / reject-missing-node / reject-missing-identity; **`stepLxmfPropagationSyncPrepWithActions`**:
+> proceed / reject-missing-node / reject-missing-delivery-identity) are pure
+> protocol leaves; `LXMFRouter` and `PropagationClient` adapt them. **Link request / response
 > msgpack codecs** are pure protocol leaves; reticulum re-exports them.
 > **Destination name expansion / hash material** and shared **UTF-8** helpers are pure
 > protocol leaves; `Destination` and path-hash call sites adapt them (SHA stays at the
@@ -222,8 +226,9 @@
 > **`isLinkInboundDataPacket`** live in protocol; `Link.receive` adapts them.
 > **`planLxmfReceiptSendOutcome`** lives in protocol; opportunistic/propagated receipt →
 > send-state adapts it. **`planLxmfPropagationLocalIngress`** /
-> **`planLxmfPropagationLinkReady`** live in protocol; propagation ingress and outbound
-> link readiness adapt them. **`shouldAttemptLinkProofCrypto`** lives in protocol;
+> **`planLxmfPropagationLinkReady`** (via **`stepLxmfPropagationLinkReadyWithActions`**:
+> reuse / establish / reject-missing-node / reject-missing-identity) live in protocol;
+> propagation ingress and outbound link readiness adapt them. **`shouldAttemptLinkProofCrypto`** lives in protocol;
 > `Link.validateProof` adapts it. **`shouldEmitChannelImmediateDelivery`** lives in
 > protocol; Channel send/resend adapts it. **`planLxmfPackTimestamp`** /
 > **`shouldIncludeLxmfStamp`** live in protocol; `LXMessage.pack` adapts them.
@@ -269,9 +274,11 @@
 > **`canAnnounceWithIdentity`** / **`shouldInvokeDestinationProofCallback`** and
 > **`canEmitDestinationProof`** live in protocol; RegisteredDestination and transport
 > sendProof adapt them. **`canExtractLxmfOpportunisticPayload`** /
-> **`shouldSelectLxmfDeliveryParameters`** / **`planLxmfPropagationSyncPrep`** live in
+> **`shouldSelectLxmfDeliveryParameters`** / **`planLxmfPropagationSyncPrep`** (via
+> **`stepLxmfPropagationSyncPrepWithActions`**: proceed / reject-missing-node /
+> reject-missing-delivery-identity) live in
 > protocol; LXMessage and PropagationClient adapt them (ensurePropagationLink also uses
-> **`planLxmfPropagationLinkReady`**). **`canProveResource`** /
+> **`planLxmfPropagationLinkReady`** via **`stepLxmfPropagationLinkReadyWithActions`**). **`canProveResource`** /
 > **`shouldAdvertiseResource`**, **`canUpdateLinkKeepalive`** /
 > **`shouldCreateLinkChannel`** / **`planLinkTokenAccess`** live in protocol; Resource and
 > Link adapt them. **`shouldInvokeDestinationLinkEstablishedCallback`**,
@@ -402,6 +409,13 @@
 > proceed or throws only from those actions (no ad-hoc
 > `planLxmfOpportunisticSend` / `planLxmfDirectSend` /
 > `planLxmfPropagatedSend` reads beside the step).
+> **`stepLxmfPropagationLinkReadyWithActions`** emits `reuse` / `establish` /
+> `reject-missing-node` / `reject-missing-identity`;
+> **`stepLxmfPropagationSyncPrepWithActions`** emits `proceed` /
+> `reject-missing-node` / `reject-missing-delivery-identity`; `LXMFRouter` /
+> `PropagationClient` apply reuse/establish/proceed or throw only from those
+> actions (no ad-hoc `planLxmfPropagationLinkReady` /
+> `planLxmfPropagationSyncPrep` reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -442,10 +456,12 @@
 > invoke/response, Link LINKIDENTIFY reject/commit, propagation-store
 > reject/duplicate/accept, propagation /get list-ids/apply, LXMF
 > delivery-parameter select deliver/reject, LXMF send-method
-> reject/dispatch, and LXMF per-method send gates (opportunistic /
-> direct / propagated) also conclude via machine actions
+> reject/dispatch, LXMF per-method send gates (opportunistic /
+> direct / propagated), and LXMF propagation link-ready / sync-prep
+> gates also conclude via machine actions
 > (no ad-hoc `state.timedOut` / `plan.kind` / establish-status / dispatch /
-> identify-outcome / delivery-plan / send-method / send-gate reads beside the step).
+> identify-outcome / delivery-plan / send-method / send-gate /
+> propagation-link-ready / sync-prep reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

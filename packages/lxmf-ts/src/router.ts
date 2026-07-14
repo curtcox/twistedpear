@@ -14,14 +14,15 @@ import {
   initialLxmfDirectSendState,
   initialLxmfOpportunisticSendState,
   initialLxmfPropagatedSendState,
+  initialLxmfPropagationLinkReadyState,
   initialLxmfSendMethodState,
   planLxmfDeliverableAccept,
-  planLxmfPropagationLinkReady,
   planLxmfPropagationLocalIngress,
   planLxmfReceiptSendOutcome,
   shouldApplyLxmfReceiptSendState,
   shouldAwaitLxmfDeliveryReceipt,
   shouldDeliverLxmfPropagationLocalIngress,
+  shouldEstablishLxmfPropagationLink,
   shouldInvokeLxmfDeliveryCallback,
   shouldProceedLxmfDirectSend,
   shouldProceedLxmfOpportunisticSend,
@@ -32,10 +33,13 @@ import {
   shouldRejectLxmfPropagatedMissingNode,
   shouldRejectLxmfPropagatedMissingPacked,
   shouldRejectLxmfPropagatedResourceUnimplemented,
+  shouldRejectLxmfPropagationMissingIdentity,
+  shouldRejectLxmfPropagationMissingNode,
   shouldRejectLxmfSendUnpacked,
   shouldRejectLxmfSendUnsupported,
   shouldRememberLxmfMessage,
   shouldReuseActiveLink,
+  shouldReuseLxmfPropagationLink,
   shouldSendLxmfDirect,
   shouldSendLxmfOpportunistic,
   shouldSendLxmfPropagated,
@@ -46,6 +50,7 @@ import {
   stepLxmfDirectSendWithActions,
   stepLxmfOpportunisticSendWithActions,
   stepLxmfPropagatedSendWithActions,
+  stepLxmfPropagationLinkReadyWithActions,
   stepLxmfSendMethodWithActions,
   lxmfSendUnsupportedMethod,
   type LxmfSendEvent,
@@ -549,19 +554,29 @@ export class LXMFRouter {
       this.outboundPropagationNode === null
         ? null
         : this.reticulum.resolveDestinationIdentity(this.outboundPropagationNode);
-    const ready = planLxmfPropagationLinkReady({
-      canReuseLink: canReuse,
-      nodeConfigured,
-      nodeIdentityPresent: nodeIdentity !== null
-    });
-    if (ready === "reuse") {
+    const stepped = stepLxmfPropagationLinkReadyWithActions(
+      initialLxmfPropagationLinkReadyState(),
+      {
+        kind: "propagation-link/gate",
+        canReuseLink: canReuse,
+        nodeConfigured,
+        nodeIdentityPresent: nodeIdentity !== null
+      }
+    );
+    if (shouldReuseLxmfPropagationLink(stepped.actions)) {
       return this.outboundPropagationLink!;
     }
-    if (ready === "missing-node") {
+    if (shouldRejectLxmfPropagationMissingNode(stepped.actions)) {
       throw new Error("No outbound propagation node configured");
     }
-    if (ready === "missing-identity" || nodeIdentity === null) {
+    if (
+      shouldRejectLxmfPropagationMissingIdentity(stepped.actions) ||
+      nodeIdentity === null
+    ) {
       throw new Error("Propagation node identity is unknown");
+    }
+    if (!shouldEstablishLxmfPropagationLink(stepped.actions)) {
+      throw new Error("Propagation link establish rejected");
     }
 
     const outbound = this.reticulum.registerDestination({

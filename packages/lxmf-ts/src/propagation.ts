@@ -3,23 +3,31 @@ import {
   PropagationTransferState,
   decodeLxmfPeerError,
   initialLinkAppRequestAwaitState,
+  initialLxmfPropagationLinkReadyState,
+  initialLxmfPropagationSyncPrepState,
   initialPropagationGetState,
   initialPropagationTransferState,
-  planLxmfPropagationLinkReady,
-  planLxmfPropagationSyncPrep,
   propagationGetApplyIds,
   propagationGetListIds,
   shouldAcceptPropagationGetRequestData,
   shouldAcceptPropagationPeerResponse,
   shouldAcceptPropagationDeliveredMessage,
   shouldApplyPropagationGet,
+  shouldEstablishLxmfPropagationLink,
   shouldHandlePropagationPeerError,
   shouldListPropagationGetIds,
+  shouldProceedLxmfPropagationSyncPrep,
+  shouldRejectLxmfPropagationMissingIdentity,
+  shouldRejectLxmfPropagationMissingNode,
+  shouldRejectLxmfPropagationSyncMissingDeliveryIdentity,
+  shouldRejectLxmfPropagationSyncMissingNode,
   shouldRequestPropagationHavesAck,
   shouldReuseActiveLink,
   shouldTeardownLxmfPropagationLink,
   shouldTreatPropagationListAsEmpty,
   stepLinkAppRequestAwaitWithActions,
+  stepLxmfPropagationLinkReadyWithActions,
+  stepLxmfPropagationSyncPrepWithActions,
   stepPropagationGetWithActions,
   stepPropagationTransferWithActions,
   type PropagationGetAction,
@@ -105,18 +113,25 @@ export class PropagationClient {
   }
 
   async syncMessages(maxMessages: number | null = null): Promise<PropagationSyncResult> {
-    const prep = planLxmfPropagationSyncPrep({
+    const prep = stepLxmfPropagationSyncPrepWithActions(initialLxmfPropagationSyncPrepState(), {
+      kind: "propagation-sync-prep/gate",
       nodeConfigured: this.propagationNodeHash !== null,
       deliveryIdentityPresent: this.router.deliveryIdentity !== null
     });
-    if (prep === "missing-node") {
+    if (shouldRejectLxmfPropagationSyncMissingNode(prep.actions)) {
       throw new Error("No propagation node configured");
     }
-    if (prep === "missing-delivery-identity") {
+    if (shouldRejectLxmfPropagationSyncMissingDeliveryIdentity(prep.actions)) {
       throw new Error("Router must register a delivery identity before syncing");
     }
+    if (
+      !shouldProceedLxmfPropagationSyncPrep(prep.actions) ||
+      this.router.deliveryIdentity === null
+    ) {
+      throw new Error("Propagation sync prep rejected");
+    }
 
-    const deliveryIdentity = this.router.deliveryIdentity!;
+    const deliveryIdentity = this.router.deliveryIdentity;
 
     const begin = this.applyTransfer({ kind: "xfer/begin" });
     let link: Link;
@@ -346,16 +361,26 @@ export class PropagationClient {
       this.propagationNodeHash === null
         ? null
         : this.router.reticulum.resolveDestinationIdentity(this.propagationNodeHash);
-    const ready = planLxmfPropagationLinkReady({
-      canReuseLink: false,
-      nodeConfigured: this.propagationNodeHash !== null,
-      nodeIdentityPresent: nodeIdentity !== null
-    });
-    if (ready === "missing-node") {
+    const ready = stepLxmfPropagationLinkReadyWithActions(
+      initialLxmfPropagationLinkReadyState(),
+      {
+        kind: "propagation-link/gate",
+        canReuseLink: false,
+        nodeConfigured: this.propagationNodeHash !== null,
+        nodeIdentityPresent: nodeIdentity !== null
+      }
+    );
+    if (shouldRejectLxmfPropagationMissingNode(ready.actions)) {
       throw new Error("No propagation node configured");
     }
-    if (ready === "missing-identity" || nodeIdentity === null) {
+    if (
+      shouldRejectLxmfPropagationMissingIdentity(ready.actions) ||
+      nodeIdentity === null
+    ) {
       throw new Error("Propagation node identity is unknown");
+    }
+    if (!shouldEstablishLxmfPropagationLink(ready.actions)) {
+      throw new Error("Propagation link establish rejected");
     }
 
     const outbound = this.router.reticulum.registerDestination({

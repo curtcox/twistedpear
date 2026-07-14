@@ -410,6 +410,96 @@ export function planLxmfPropagationSyncPrep(input: {
   return "ok";
 }
 
+/**
+ * Propagation sync-prep gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LxmfPropagationSyncPrepState = Record<string, never>;
+
+export type LxmfPropagationSyncPrepEvent =
+  | Event
+  | {
+      readonly kind: "propagation-sync-prep/gate";
+      readonly nodeConfigured: boolean;
+      readonly deliveryIdentityPresent: boolean;
+    };
+
+export type LxmfPropagationSyncPrepAction =
+  | { readonly kind: "proceed" }
+  | { readonly kind: "reject-missing-node" }
+  | { readonly kind: "reject-missing-delivery-identity" };
+
+export interface LxmfPropagationSyncPrepStepResult {
+  readonly state: LxmfPropagationSyncPrepState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfPropagationSyncPrepAction[];
+}
+
+export function initialLxmfPropagationSyncPrepState(): LxmfPropagationSyncPrepState {
+  return {};
+}
+
+export const stepLxmfPropagationSyncPrep: StepFn<LxmfPropagationSyncPrepState> = (
+  state,
+  event
+) => {
+  const result = stepLxmfPropagationSyncPrepInner(
+    state,
+    event as LxmfPropagationSyncPrepEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxmfPropagationSyncPrepWithActions(
+  state: LxmfPropagationSyncPrepState,
+  event: LxmfPropagationSyncPrepEvent
+): LxmfPropagationSyncPrepStepResult {
+  return stepLxmfPropagationSyncPrepInner(state, event);
+}
+
+export function shouldProceedLxmfPropagationSyncPrep(
+  actions: ReadonlyArray<LxmfPropagationSyncPrepAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
+export function shouldRejectLxmfPropagationSyncMissingNode(
+  actions: ReadonlyArray<LxmfPropagationSyncPrepAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-node");
+}
+
+export function shouldRejectLxmfPropagationSyncMissingDeliveryIdentity(
+  actions: ReadonlyArray<LxmfPropagationSyncPrepAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-delivery-identity");
+}
+
+function stepLxmfPropagationSyncPrepInner(
+  state: LxmfPropagationSyncPrepState,
+  event: LxmfPropagationSyncPrepEvent
+): LxmfPropagationSyncPrepStepResult {
+  if (event.kind === "propagation-sync-prep/gate") {
+    const plan = planLxmfPropagationSyncPrep({
+      nodeConfigured: event.nodeConfigured,
+      deliveryIdentityPresent: event.deliveryIdentityPresent
+    });
+    if (plan === "missing-node") {
+      return { state, intents: [], actions: [{ kind: "reject-missing-node" }] };
+    }
+    if (plan === "missing-delivery-identity") {
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "reject-missing-delivery-identity" }]
+      };
+    }
+    return { state, intents: [], actions: [{ kind: "proceed" }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 /** Whether propagation inbound targets this router's local delivery destination. */
 export function canAcceptLxmfPropagationLocalDelivery(input: {
   readonly deliveryDestinationPresent: boolean;
@@ -485,6 +575,104 @@ export function planLxmfPropagationLinkReady(input: {
     return "missing-identity";
   }
   return "establish";
+}
+
+/**
+ * Propagation link-ready gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LxmfPropagationLinkReadyState = Record<string, never>;
+
+export type LxmfPropagationLinkReadyEvent =
+  | Event
+  | {
+      readonly kind: "propagation-link/gate";
+      readonly canReuseLink: boolean;
+      readonly nodeConfigured: boolean;
+      readonly nodeIdentityPresent: boolean;
+    };
+
+export type LxmfPropagationLinkReadyAction =
+  | { readonly kind: "reuse" }
+  | { readonly kind: "establish" }
+  | { readonly kind: "reject-missing-node" }
+  | { readonly kind: "reject-missing-identity" };
+
+export interface LxmfPropagationLinkReadyStepResult {
+  readonly state: LxmfPropagationLinkReadyState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfPropagationLinkReadyAction[];
+}
+
+export function initialLxmfPropagationLinkReadyState(): LxmfPropagationLinkReadyState {
+  return {};
+}
+
+export const stepLxmfPropagationLinkReady: StepFn<LxmfPropagationLinkReadyState> = (
+  state,
+  event
+) => {
+  const result = stepLxmfPropagationLinkReadyInner(
+    state,
+    event as LxmfPropagationLinkReadyEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxmfPropagationLinkReadyWithActions(
+  state: LxmfPropagationLinkReadyState,
+  event: LxmfPropagationLinkReadyEvent
+): LxmfPropagationLinkReadyStepResult {
+  return stepLxmfPropagationLinkReadyInner(state, event);
+}
+
+export function shouldReuseLxmfPropagationLink(
+  actions: ReadonlyArray<LxmfPropagationLinkReadyAction>
+): boolean {
+  return actions.some((action) => action.kind === "reuse");
+}
+
+export function shouldEstablishLxmfPropagationLink(
+  actions: ReadonlyArray<LxmfPropagationLinkReadyAction>
+): boolean {
+  return actions.some((action) => action.kind === "establish");
+}
+
+export function shouldRejectLxmfPropagationMissingNode(
+  actions: ReadonlyArray<LxmfPropagationLinkReadyAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-node");
+}
+
+export function shouldRejectLxmfPropagationMissingIdentity(
+  actions: ReadonlyArray<LxmfPropagationLinkReadyAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-identity");
+}
+
+function stepLxmfPropagationLinkReadyInner(
+  state: LxmfPropagationLinkReadyState,
+  event: LxmfPropagationLinkReadyEvent
+): LxmfPropagationLinkReadyStepResult {
+  if (event.kind === "propagation-link/gate") {
+    const plan = planLxmfPropagationLinkReady({
+      canReuseLink: event.canReuseLink,
+      nodeConfigured: event.nodeConfigured,
+      nodeIdentityPresent: event.nodeIdentityPresent
+    });
+    if (plan === "reuse") {
+      return { state, intents: [], actions: [{ kind: "reuse" }] };
+    }
+    if (plan === "missing-node") {
+      return { state, intents: [], actions: [{ kind: "reject-missing-node" }] };
+    }
+    if (plan === "missing-identity") {
+      return { state, intents: [], actions: [{ kind: "reject-missing-identity" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "establish" }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 export type LxmfPropagatedSendPlan =
