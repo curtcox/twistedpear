@@ -7,7 +7,8 @@ import {
   planLinkResourceConclude,
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest,
-  shouldRegisterLinkResource
+  shouldRegisterLinkResource,
+  shouldRemoveLinkResourceListIndex
 } from "../src/link-resource-accept.js";
 import { LinkResourceStrategy } from "../src/link-watchdog.js";
 
@@ -81,5 +82,7 @@ describe("protocol link resource accept", () => {
     expect(
       planLinkResourceConclude({ outgoingIndex: -1, incomingIndex: 0 })
     ).toEqual({ removeOutgoingIndex: null, removeIncomingIndex: 0 });
+    expect(shouldRemoveLinkResourceListIndex(true)).toBe(true);
+    expect(shouldRemoveLinkResourceListIndex(false)).toBe(false);
   });
 });

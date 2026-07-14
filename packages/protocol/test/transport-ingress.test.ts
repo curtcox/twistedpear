@@ -40,10 +40,12 @@ import {
   shouldRelayReverseOnInterface,
   shouldRememberPacketHashAfterRelay,
   shouldRememberPacketHashNow,
+  shouldDispatchLocalPlainDataDelivery,
   shouldTransmitLinkRelay,
   shouldTransmitOnInterface,
   shouldTransmitReverseRelay,
-  planUnregisterTransportMember
+  planUnregisterTransportMember,
+  shouldUnregisterTransportMember
 } from "../src/index.js";
 
 describe("transport ingress", () => {
@@ -411,6 +413,27 @@ describe("transport ingress", () => {
     expect(
       planLocalPlainDataDelivery({ destinationPresent: true, plaintextPresent: false })
     ).toBe("ignore");
+    expect(
+      shouldDispatchLocalPlainDataDelivery({
+        planDispatch: true,
+        destinationPresent: true,
+        plaintextPresent: true
+      })
+    ).toBe(true);
+    expect(
+      shouldDispatchLocalPlainDataDelivery({
+        planDispatch: true,
+        destinationPresent: true,
+        plaintextPresent: false
+      })
+    ).toBe(false);
+    expect(
+      shouldDispatchLocalPlainDataDelivery({
+        planDispatch: false,
+        destinationPresent: true,
+        plaintextPresent: true
+      })
+    ).toBe(false);
     expect(planPacketHashRemember(false)).toBe("now");
     expect(planPacketHashRemember(true)).toBe("after-relay");
     expect(shouldRememberPacketHashNow(true)).toBe(true);
@@ -454,5 +477,7 @@ describe("transport ingress", () => {
     expect(planUnregisterTransportMember(0)).toBe(0);
     expect(planUnregisterTransportMember(3)).toBe(3);
     expect(planUnregisterTransportMember(-1)).toBeNull();
+    expect(shouldUnregisterTransportMember(true)).toBe(true);
+    expect(shouldUnregisterTransportMember(false)).toBe(false);
   });
 });

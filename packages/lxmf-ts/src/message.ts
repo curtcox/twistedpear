@@ -18,6 +18,8 @@ import {
   planLxMessageInstancePack,
   planLxMessagePack,
   shouldIncludeLxmfStamp,
+  shouldAcceptLxmfWireFrame,
+  shouldCommitRememberedLxmfHash,
   shouldRejectLxmfPackEndpoints,
   shouldRejectLxmfPackTimestamp,
   shouldRememberLxmfMessage,
@@ -163,7 +165,7 @@ export class LXMessage {
 
   static unpackFromBytes(lxmfBytes: Uint8Array, options: LXMessageUnpackOptions): LXMessage {
     const wire = splitLxmfWire(lxmfBytes);
-    if (wire === null) {
+    if (!shouldAcceptLxmfWireFrame(wire !== null) || wire === null) {
       throw new Error("LXMF bytes too short");
     }
 
@@ -367,7 +369,7 @@ export function rememberMessage(seen: Set<string>, message: LXMessage): void {
     return;
   }
   const hash = message.hash;
-  if (hash === null) {
+  if (!shouldCommitRememberedLxmfHash(hash !== null) || hash === null) {
     return;
   }
 

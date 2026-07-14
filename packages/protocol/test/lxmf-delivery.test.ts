@@ -22,6 +22,9 @@ import {
   planLxmfPropagationLocalIngress,
   planLxmfSendMethod,
   planLxmfSignatureOutcome,
+  shouldAcceptLxmfWireFrame,
+  shouldCommitRememberedLxmfHash,
+  shouldDeliverLxmfPropagationLocalIngress,
   shouldIncludeLxmfStamp,
   shouldRejectLxmfPackEndpoints,
   shouldRejectLxmfPackTimestamp,
@@ -473,6 +476,31 @@ describe("protocol lxmf delivery", () => {
         decryptedPresent: false
       })
     ).toBe("reject-decrypt");
+    expect(
+      shouldDeliverLxmfPropagationLocalIngress({
+        planDeliver: true,
+        prefixedPresent: true,
+        decryptedPresent: true
+      })
+    ).toBe(true);
+    expect(
+      shouldDeliverLxmfPropagationLocalIngress({
+        planDeliver: true,
+        prefixedPresent: true,
+        decryptedPresent: false
+      })
+    ).toBe(false);
+    expect(
+      shouldDeliverLxmfPropagationLocalIngress({
+        planDeliver: false,
+        prefixedPresent: true,
+        decryptedPresent: true
+      })
+    ).toBe(false);
+    expect(shouldAcceptLxmfWireFrame(true)).toBe(true);
+    expect(shouldAcceptLxmfWireFrame(false)).toBe(false);
+    expect(shouldCommitRememberedLxmfHash(true)).toBe(true);
+    expect(shouldCommitRememberedLxmfHash(false)).toBe(false);
   });
 
   it("plans propagation link readiness", () => {

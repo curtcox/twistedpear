@@ -5,6 +5,8 @@ import {
   shouldAttachLinkRequestPacketReceipt,
   shouldInvokeLinkRequestReceiptAction,
   shouldRegisterPendingLinkRequest,
+  shouldUnregisterPendingLinkRequest,
+  planUnregisterPendingLinkRequest,
   stepLinkRequestReceipt
 } from "../src/link-request-receipt.js";
 
@@ -32,5 +34,9 @@ describe("protocol link request receipt", () => {
     expect(shouldRegisterPendingLinkRequest(true)).toBe(false);
     expect(shouldAttachLinkRequestPacketReceipt(true)).toBe(true);
     expect(shouldAttachLinkRequestPacketReceipt(false)).toBe(false);
+    expect(planUnregisterPendingLinkRequest(2)).toBe(2);
+    expect(planUnregisterPendingLinkRequest(-1)).toBeNull();
+    expect(shouldUnregisterPendingLinkRequest(true)).toBe(true);
+    expect(shouldUnregisterPendingLinkRequest(false)).toBe(false);
   });
 });

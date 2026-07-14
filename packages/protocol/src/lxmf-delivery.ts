@@ -195,6 +195,19 @@ export function shouldRememberLxmfMessage(hasHash: boolean): boolean {
   return hasHash;
 }
 
+/**
+ * Whether remember-message may commit after {@link shouldRememberLxmfMessage}
+ * and the hash reference remains present for narrowing.
+ */
+export function shouldCommitRememberedLxmfHash(hashPresent: boolean): boolean {
+  return hashPresent;
+}
+
+/** Whether LXMF wire bytes may unpack after {@link splitLxmfWire}. */
+export function shouldAcceptLxmfWireFrame(wirePresent: boolean): boolean {
+  return wirePresent;
+}
+
 /** Whether a router may register its (only) delivery identity. */
 export function canRegisterLxmfDeliveryIdentity(
   deliveryDestinationPresent: boolean
@@ -278,6 +291,18 @@ export function planLxmfPropagationLocalIngress(input: {
     return "reject-decrypt";
   }
   return "deliver";
+}
+
+/**
+ * Whether propagation local ingress may unpack after {@link planLxmfPropagationLocalIngress}
+ * and prefixed/decrypted references remain present for narrowing.
+ */
+export function shouldDeliverLxmfPropagationLocalIngress(input: {
+  readonly planDeliver: boolean;
+  readonly prefixedPresent: boolean;
+  readonly decryptedPresent: boolean;
+}): boolean {
+  return input.planDeliver && input.prefixedPresent && input.decryptedPresent;
 }
 
 export type LxmfPropagationLinkReadyPlan =

@@ -10,6 +10,7 @@ import {
   shouldApplyPropagationRestore,
   shouldCommitPropagationStoreEntry,
   shouldDeletePropagationCatalogEntry,
+  shouldEvictOldestPropagationEntry,
   shouldEvictPropagationCatalogEntry,
   type PropagationQuotas
 } from "../src/propagation-quota.js";
@@ -129,5 +130,14 @@ describe("protocol propagation quota", () => {
     expect(shouldDeletePropagationCatalogEntry(false)).toBe(false);
     expect(shouldEvictPropagationCatalogEntry(true)).toBe(true);
     expect(shouldEvictPropagationCatalogEntry(false)).toBe(false);
+    expect(
+      shouldEvictOldestPropagationEntry({ oldestKeyPresent: true, entryPresent: true })
+    ).toBe(true);
+    expect(
+      shouldEvictOldestPropagationEntry({ oldestKeyPresent: true, entryPresent: false })
+    ).toBe(false);
+    expect(
+      shouldEvictOldestPropagationEntry({ oldestKeyPresent: false, entryPresent: true })
+    ).toBe(false);
   });
 });

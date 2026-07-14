@@ -84,3 +84,8 @@ export function planLinkResourceConclude(input: {
     removeIncomingIndex: input.incomingIndex >= 0 ? input.incomingIndex : null
   };
 }
+
+/** Whether resource conclude may splice a list after {@link planLinkResourceConclude}. */
+export function shouldRemoveLinkResourceListIndex(indexPresent: boolean): boolean {
+  return indexPresent;
+}

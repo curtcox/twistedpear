@@ -17,6 +17,7 @@ import {
   planLxmfSendMethod,
   shouldApplyLxmfReceiptSendState,
   shouldAwaitLxmfDeliveryReceipt,
+  shouldDeliverLxmfPropagationLocalIngress,
   shouldInvokeLxmfDeliveryCallback,
   shouldRememberLxmfMessage,
   shouldReuseActiveLink,
@@ -466,19 +467,22 @@ export class LXMFRouter {
         : null;
 
     if (
-      planLxmfPropagationLocalIngress({
+      !shouldDeliverLxmfPropagationLocalIngress({
+        planDeliver:
+          planLxmfPropagationLocalIngress({
+            prefixedPresent: prefixed !== null,
+            deliveryDestinationPresent: deliveryDestination !== null,
+            destinationHashMatches,
+            decryptedPresent: decrypted !== null
+          }) === "deliver",
         prefixedPresent: prefixed !== null,
-        deliveryDestinationPresent: deliveryDestination !== null,
-        destinationHashMatches,
         decryptedPresent: decrypted !== null
-      }) !== "deliver" ||
-      prefixed === null ||
-      decrypted === null
+      })
     ) {
       return null;
     }
 
-    const deliveryData = packLxmfDestinationPrefixed(prefixed.destinationHash, decrypted);
+    const deliveryData = packLxmfDestinationPrefixed(prefixed!.destinationHash, decrypted!);
     const message = this.unpackDeliverable(deliveryData, LXMessageMethod.PROPAGATED);
     if (shouldInvokeLxmfDeliveryCallback(message !== null)) {
       this.deliveryCallback?.(message!);

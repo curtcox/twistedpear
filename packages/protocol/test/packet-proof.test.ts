@@ -7,6 +7,7 @@ import {
   packPacketProof,
   packetProofHashMatches,
   planPacketReceiptProofAccept,
+  shouldAcceptPacketReceiptProof,
   splitPacketProof
 } from "../src/packet-proof.js";
 import { PACKET_TYPE_DATA, PACKET_TYPE_PROOF } from "../src/packet-header.js";
@@ -74,5 +75,14 @@ describe("protocol packet proof framing", () => {
         signatureValid: true
       })
     ).toBe("accept");
+    expect(
+      shouldAcceptPacketReceiptProof({ planAccept: true, splitPresent: true })
+    ).toBe(true);
+    expect(
+      shouldAcceptPacketReceiptProof({ planAccept: true, splitPresent: false })
+    ).toBe(false);
+    expect(
+      shouldAcceptPacketReceiptProof({ planAccept: false, splitPresent: true })
+    ).toBe(false);
   });
 });

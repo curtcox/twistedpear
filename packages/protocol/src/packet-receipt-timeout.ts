@@ -190,6 +190,11 @@ export function planUnregisterPacketReceipt(index: number): number | null {
   return index >= 0 ? index : null;
 }
 
+/** Whether unregister may splice after {@link planUnregisterPacketReceipt}. */
+export function shouldUnregisterPacketReceipt(indexPresent: boolean): boolean {
+  return indexPresent;
+}
+
 /** Whether an outbound send should create and register a packet receipt. */
 export function shouldRegisterPacketReceipt(createReceipt: boolean): boolean {
   return createReceipt;

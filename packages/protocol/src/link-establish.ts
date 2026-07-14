@@ -97,6 +97,17 @@ export function planLinkValidateRequest(input: {
   return "ok";
 }
 
+/**
+ * Whether validateRequest may continue after {@link planLinkValidateRequest}
+ * and the parsed request remains present for narrowing.
+ */
+export function shouldContinueLinkValidateRequest(input: {
+  readonly planOk: boolean;
+  readonly requestPresent: boolean;
+}): boolean {
+  return input.planOk && input.requestPresent;
+}
+
 export function canValidateLinkProof(input: {
   readonly status: LinkStatusValue;
   readonly initiator: boolean;
@@ -375,6 +386,16 @@ export function planLinkActivateMembership(input: {
   };
 }
 
+/** Whether activate may splice pending after {@link planLinkActivateMembership}. */
+export function shouldRemovePendingLinkMembership(indexPresent: boolean): boolean {
+  return indexPresent;
+}
+
+/** Whether activate may unique-push to active after {@link planLinkActivateMembership}. */
+export function shouldAppendActiveLinkMembership(appendActive: boolean): boolean {
+  return appendActive;
+}
+
 export type LinkUnregisterMembershipPlan = {
   readonly removePendingIndex: number | null;
   readonly removeActiveIndex: number | null;
@@ -394,6 +415,11 @@ export function planLinkUnregisterMembership(input: {
   };
 }
 
+/** Whether unregister may splice active after {@link planLinkUnregisterMembership}. */
+export function shouldRemoveActiveLinkMembership(indexPresent: boolean): boolean {
+  return indexPresent;
+}
+
 export type LinkRttOutcome = "ignore" | "activate" | "teardown";
 
 /**
@@ -411,6 +437,17 @@ export function planLinkRttOutcome(input: {
     return "teardown";
   }
   return "activate";
+}
+
+/**
+ * Whether LRRTT handling should teardown after {@link planLinkRttOutcome}
+ * (explicit teardown or missing plaintext for narrowing).
+ */
+export function shouldTeardownLinkFromRtt(input: {
+  readonly outcomeTeardown: boolean;
+  readonly plaintextPresent: boolean;
+}): boolean {
+  return input.outcomeTeardown || !input.plaintextPresent;
 }
 
 /** Whether link plaintext DATA callback may fire after decrypt. */

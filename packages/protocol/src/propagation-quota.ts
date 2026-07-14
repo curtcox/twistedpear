@@ -109,6 +109,17 @@ export function shouldEvictPropagationCatalogEntry(entryPresent: boolean): boole
   return entryPresent;
 }
 
+/**
+ * Whether evict-oldest may delete after {@link selectOldestPropagationKey}
+ * and the catalog entry remains present.
+ */
+export function shouldEvictOldestPropagationEntry(input: {
+  readonly oldestKeyPresent: boolean;
+  readonly entryPresent: boolean;
+}): boolean {
+  return input.oldestKeyPresent && input.entryPresent;
+}
+
 /** Whether store may commit after destination-hash extraction succeeds. */
 export function shouldCommitPropagationStoreEntry(destinationHashPresent: boolean): boolean {
   return destinationHashPresent;

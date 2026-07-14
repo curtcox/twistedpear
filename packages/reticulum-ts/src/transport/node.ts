@@ -34,7 +34,9 @@ import {
   shouldAcceptCachedPathResponsePacket,
   shouldAcceptLinkLrProofCandidate,
   shouldAnswerPathWithEntry,
+  shouldAppendActiveLinkMembership,
   shouldDispatchLocalLinkRequest,
+  shouldDispatchLocalPlainDataDelivery,
   shouldDispatchResourceProofToLink,
   shouldFailAndDropOutboundReceipt,
   shouldIgnoreLocalAnnounce,
@@ -47,7 +49,11 @@ import {
   shouldRegisterPacketReceipt,
   shouldRegisterTransportMember,
   shouldRememberPathRequestTag,
+  shouldRemoveActiveLinkMembership,
+  shouldRemovePendingLinkMembership,
   shouldTransmitOnInterface,
+  shouldUnregisterPacketReceipt,
+  shouldUnregisterTransportMember,
   shouldUsePathForOutbound,
   indexOfMatchingLinkId,
   relayTransportPacketBytes,
@@ -209,8 +215,8 @@ export class LeafTransport {
 
   unregisterInterface(iface: PacketInterface): void {
     const index = planUnregisterTransportMember(this.interfaces.indexOf(iface));
-    if (index !== null) {
-      this.interfaces.splice(index, 1);
+    if (shouldUnregisterTransportMember(index !== null)) {
+      this.interfaces.splice(index!, 1);
     }
     this.interfaceTasks.delete(iface);
   }
@@ -350,10 +356,10 @@ export class LeafTransport {
       pendingIndex: this.pendingLinks.indexOf(link),
       alreadyActive: this.activeLinks.includes(link)
     });
-    if (plan.removePendingIndex !== null) {
-      this.pendingLinks.splice(plan.removePendingIndex, 1);
+    if (shouldRemovePendingLinkMembership(plan.removePendingIndex !== null)) {
+      this.pendingLinks.splice(plan.removePendingIndex!, 1);
     }
-    if (plan.appendActive) {
+    if (shouldAppendActiveLinkMembership(plan.appendActive)) {
       this.activeLinks.push(link);
     }
   }
@@ -363,11 +369,11 @@ export class LeafTransport {
       pendingIndex: this.pendingLinks.indexOf(link),
       activeIndex: this.activeLinks.indexOf(link)
     });
-    if (plan.removePendingIndex !== null) {
-      this.pendingLinks.splice(plan.removePendingIndex, 1);
+    if (shouldRemovePendingLinkMembership(plan.removePendingIndex !== null)) {
+      this.pendingLinks.splice(plan.removePendingIndex!, 1);
     }
-    if (plan.removeActiveIndex !== null) {
-      this.activeLinks.splice(plan.removeActiveIndex, 1);
+    if (shouldRemoveActiveLinkMembership(plan.removeActiveIndex !== null)) {
+      this.activeLinks.splice(plan.removeActiveIndex!, 1);
     }
   }
 
@@ -407,8 +413,8 @@ export class LeafTransport {
     ) {
       receipt!.markFailed();
       const index = planUnregisterPacketReceipt(this.receipts.indexOf(receipt!));
-      if (index !== null) {
-        this.receipts.splice(index, 1);
+      if (shouldUnregisterPacketReceipt(index !== null)) {
+        this.receipts.splice(index!, 1);
       }
       return null;
     }
@@ -624,25 +630,28 @@ export class LeafTransport {
     );
     const plaintext = destination === undefined ? null : destination.decrypt(packet.data);
     if (
-      planLocalPlainDataDelivery({
+      !shouldDispatchLocalPlainDataDelivery({
+        planDispatch:
+          planLocalPlainDataDelivery({
+            destinationPresent: destination !== undefined,
+            plaintextPresent: plaintext !== null
+          }) === "dispatch",
         destinationPresent: destination !== undefined,
         plaintextPresent: plaintext !== null
-      }) !== "dispatch" ||
-      destination === undefined ||
-      plaintext === null
+      })
     ) {
       return;
     }
 
-    destination.dispatchPacket(plaintext, packet);
+    destination!.dispatchPacket(plaintext!, packet);
 
     if (
       planDestinationProof({
-        strategy: destination.proofStrategy,
-        appWantsProof: destination.shouldProve(packet)
+        strategy: destination!.proofStrategy,
+        appWantsProof: destination!.shouldProve(packet)
       })
     ) {
-      await this.sendProof(destination, packet, iface);
+      await this.sendProof(destination!, packet, iface);
     }
   }
 
@@ -688,8 +697,8 @@ export class LeafTransport {
         }) === "remove-receipt"
       ) {
         const index = planUnregisterPacketReceipt(this.receipts.indexOf(receipt));
-        if (index !== null) {
-          this.receipts.splice(index, 1);
+        if (shouldUnregisterPacketReceipt(index !== null)) {
+          this.receipts.splice(index!, 1);
         }
       }
     }

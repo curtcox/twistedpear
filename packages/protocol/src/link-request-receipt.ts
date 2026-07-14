@@ -107,6 +107,11 @@ export function planUnregisterPendingLinkRequest(index: number): number | null {
   return index >= 0 ? index : null;
 }
 
+/** Whether unregister may splice after {@link planUnregisterPendingLinkRequest}. */
+export function shouldUnregisterPendingLinkRequest(indexPresent: boolean): boolean {
+  return indexPresent;
+}
+
 /** Whether step actions include a failed/response fanout for the adapter callback. */
 export function shouldInvokeLinkRequestReceiptAction(
   actions: ReadonlyArray<LinkRequestReceiptAction>,

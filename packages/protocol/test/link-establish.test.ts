@@ -39,14 +39,19 @@ import {
   planLinkUnregisterMembership,
   planLinkValidateRequest,
   shouldAcceptLinkPacketInterface,
+  shouldAppendActiveLinkMembership,
   shouldAttemptLinkProofCrypto,
+  shouldContinueLinkValidateRequest,
   shouldCreateLinkChannel,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
   shouldInvokeLinkAppRequestHandler,
   shouldRegisterLinkMember,
+  shouldRemoveActiveLinkMembership,
+  shouldRemovePendingLinkMembership,
   shouldReuseActiveLink,
   shouldSendLinkAppRequestResponse,
+  shouldTeardownLinkFromRtt,
   shouldUpdateLinkLastData
 } from "../src/link-establish.js";
 import { DestinationAllowPolicyCode } from "../src/destination-allow.js";
@@ -224,6 +229,15 @@ describe("protocol link establish", () => {
         modeEnabled: false
       })
     ).toBe("mode-disabled");
+    expect(
+      shouldContinueLinkValidateRequest({ planOk: true, requestPresent: true })
+    ).toBe(true);
+    expect(
+      shouldContinueLinkValidateRequest({ planOk: true, requestPresent: false })
+    ).toBe(false);
+    expect(
+      shouldContinueLinkValidateRequest({ planOk: false, requestPresent: true })
+    ).toBe(false);
   });
 
   it("plans initiator MTU from discovery and next-hop", () => {
@@ -494,15 +508,30 @@ describe("protocol link establish", () => {
     expect(
       planLinkActivateMembership({ pendingIndex: -1, alreadyActive: true })
     ).toEqual({ removePendingIndex: null, appendActive: false });
+    expect(shouldRemovePendingLinkMembership(true)).toBe(true);
+    expect(shouldRemovePendingLinkMembership(false)).toBe(false);
+    expect(shouldAppendActiveLinkMembership(true)).toBe(true);
+    expect(shouldAppendActiveLinkMembership(false)).toBe(false);
     expect(
       planLinkUnregisterMembership({ pendingIndex: 0, activeIndex: -1 })
     ).toEqual({ removePendingIndex: 0, removeActiveIndex: null });
     expect(
       planLinkUnregisterMembership({ pendingIndex: -1, activeIndex: 3 })
     ).toEqual({ removePendingIndex: null, removeActiveIndex: 3 });
+    expect(shouldRemoveActiveLinkMembership(true)).toBe(true);
+    expect(shouldRemoveActiveLinkMembership(false)).toBe(false);
     expect(planLinkRttOutcome({ canAccept: false, plaintextPresent: true })).toBe("ignore");
     expect(planLinkRttOutcome({ canAccept: true, plaintextPresent: false })).toBe("teardown");
     expect(planLinkRttOutcome({ canAccept: true, plaintextPresent: true })).toBe("activate");
+    expect(
+      shouldTeardownLinkFromRtt({ outcomeTeardown: true, plaintextPresent: true })
+    ).toBe(true);
+    expect(
+      shouldTeardownLinkFromRtt({ outcomeTeardown: false, plaintextPresent: false })
+    ).toBe(true);
+    expect(
+      shouldTeardownLinkFromRtt({ outcomeTeardown: false, plaintextPresent: true })
+    ).toBe(false);
     expect(shouldDispatchLinkPlaintext(true)).toBe(true);
     expect(shouldDispatchLinkPlaintext(false)).toBe(false);
     expect(

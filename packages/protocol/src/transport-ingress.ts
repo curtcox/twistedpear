@@ -332,6 +332,18 @@ export function planLocalPlainDataDelivery(input: {
   return "dispatch";
 }
 
+/**
+ * Whether local plain DATA may dispatch after {@link planLocalPlainDataDelivery}
+ * and destination/plaintext references remain present for narrowing.
+ */
+export function shouldDispatchLocalPlainDataDelivery(input: {
+  readonly planDispatch: boolean;
+  readonly destinationPresent: boolean;
+  readonly plaintextPresent: boolean;
+}): boolean {
+  return input.planDispatch && input.destinationPresent && input.plaintextPresent;
+}
+
 export type PacketHashRememberPlan = "now" | "after-relay";
 
 /**
@@ -419,4 +431,9 @@ export function shouldRegisterTransportMember(alreadyPresent: boolean): boolean 
  */
 export function planUnregisterTransportMember(index: number): number | null {
   return index >= 0 ? index : null;
+}
+
+/** Whether unregister may splice after {@link planUnregisterTransportMember}. */
+export function shouldUnregisterTransportMember(indexPresent: boolean): boolean {
+  return indexPresent;
 }

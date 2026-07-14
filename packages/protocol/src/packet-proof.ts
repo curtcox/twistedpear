@@ -91,3 +91,14 @@ export function planPacketReceiptProofAccept(input: {
   }
   return "accept";
 }
+
+/**
+ * Whether PacketReceipt may mark delivered after {@link planPacketReceiptProofAccept}
+ * and the split proof remains present for narrowing.
+ */
+export function shouldAcceptPacketReceiptProof(input: {
+  readonly planAccept: boolean;
+  readonly splitPresent: boolean;
+}): boolean {
+  return input.planAccept && input.splitPresent;
+}

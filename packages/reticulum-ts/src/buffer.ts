@@ -14,6 +14,7 @@ import {
   shouldMarkStreamEof,
   shouldRegisterStreamReadyCallback,
   shouldReturnStreamReadResult,
+  shouldUnregisterStreamReadyCallback,
   unpackStreamDataMessage
 } from "@twistedpear/protocol";
 import { Channel, type ChannelMessage } from "./channel.js";
@@ -120,8 +121,8 @@ export class RawChannelReader {
 
   removeReadyCallback(callback: StreamReadyCallback): void {
     const index = planUnregisterStreamReadyCallback(this.listeners.indexOf(callback));
-    if (index !== null) {
-      this.listeners.splice(index, 1);
+    if (shouldUnregisterStreamReadyCallback(index !== null)) {
+      this.listeners.splice(index!, 1);
     }
   }
 

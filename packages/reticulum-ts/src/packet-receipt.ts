@@ -6,6 +6,7 @@ import {
   packetProofHashMatches,
   planPacketReceiptCallback,
   planPacketReceiptProofAccept,
+  shouldAcceptPacketReceiptProof,
   shouldInvokePacketReceiptTimeoutCallback,
   splitPacketProof,
   stepPacketReceiptTimeout,
@@ -89,12 +90,15 @@ export class PacketReceipt {
     const signatureValid =
       split !== null && hashMatches && identity.validate(split.signature, this.hash);
     if (
-      planPacketReceiptProofAccept({
-        splitOk: split !== null,
-        hashMatches,
-        signatureValid
-      }) !== "accept" ||
-      split === null
+      !shouldAcceptPacketReceiptProof({
+        planAccept:
+          planPacketReceiptProofAccept({
+            splitOk: split !== null,
+            hashMatches,
+            signatureValid
+          }) === "accept",
+        splitPresent: split !== null
+      })
     ) {
       return false;
     }

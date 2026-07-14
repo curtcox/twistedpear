@@ -143,3 +143,8 @@ export function shouldRegisterStreamReadyCallback(callbackPresent: boolean): boo
 export function planUnregisterStreamReadyCallback(index: number): number | null {
   return index >= 0 ? index : null;
 }
+
+/** Whether unregister may splice after {@link planUnregisterStreamReadyCallback}. */
+export function shouldUnregisterStreamReadyCallback(indexPresent: boolean): boolean {
+  return indexPresent;
+}

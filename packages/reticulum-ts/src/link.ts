@@ -95,6 +95,7 @@ import {
   shouldAcceptResourceProofPayload,
   shouldAcceptResourceProofSplit,
   shouldAttemptLinkProofCrypto,
+  shouldContinueLinkValidateRequest,
   shouldCreateLinkChannel,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
@@ -103,7 +104,10 @@ import {
   shouldIgnoreInitiatorKeepaliveProbe,
   shouldRegisterLinkResource,
   shouldRegisterPendingLinkRequest,
+  shouldRemoveLinkResourceListIndex,
   shouldReplyKeepaliveProbe,
+  shouldTeardownLinkFromRtt,
+  shouldUnregisterPendingLinkRequest,
   shouldUpdateLinkLastData,
   isLinkInboundDataPacket,
   isLinkKeepaliveContext,
@@ -372,7 +376,12 @@ export class Link {
       ownerIdentityPresent: owner.identity !== null,
       modeEnabled: true
     });
-    if (early !== "ok" || request === null) {
+    if (
+      !shouldContinueLinkValidateRequest({
+        planOk: early === "ok",
+        requestPresent: request !== null
+      })
+    ) {
       return null;
     }
 
@@ -389,11 +398,11 @@ export class Link {
       );
       link.privateKey = responderKeys.privateKey;
       link.publicKeyBytes = provider.x25519PublicFromPrivate(link.privateKey);
-      link.loadPeer(request.publicKey, request.signaturePublicKey);
+      link.loadPeer(request!.publicKey, request!.signaturePublicKey);
       link.setLinkId(packet);
 
       link.mtu = planLinkRequestResponderMtu({
-        signallingPresent: request.signallingBytes.length > 0,
+        signallingPresent: request!.signallingBytes.length > 0,
         signallingMtu: Link.mtuFromLrPacket(packet),
         currentMtu: link.mtu,
         defaultMtu: RETICULUM_MTU
@@ -659,14 +668,19 @@ export class Link {
     if (outcome === "ignore") {
       return;
     }
-    if (outcome === "teardown" || plaintext === null) {
+    if (
+      shouldTeardownLinkFromRtt({
+        outcomeTeardown: outcome === "teardown",
+        plaintextPresent: plaintext !== null
+      })
+    ) {
       await this.teardown();
       return;
     }
 
     try {
       const measuredRtt = computeLinkRttSeconds(this.clock.now() / 1000, this.requestTime);
-      const remoteRtt = msgpackUnpackFloat(plaintext);
+      const remoteRtt = msgpackUnpackFloat(plaintext!);
       const nowSeconds = this.clock.now() / 1000;
       const activated = applyLinkEstablishEvent(
         initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
@@ -923,11 +937,11 @@ export class Link {
       outgoingIndex: this.outgoingResourcesList.indexOf(resource),
       incomingIndex: this.incomingResourcesList.indexOf(resource)
     });
-    if (plan.removeOutgoingIndex !== null) {
-      this.outgoingResourcesList.splice(plan.removeOutgoingIndex, 1);
+    if (shouldRemoveLinkResourceListIndex(plan.removeOutgoingIndex !== null)) {
+      this.outgoingResourcesList.splice(plan.removeOutgoingIndex!, 1);
     }
-    if (plan.removeIncomingIndex !== null) {
-      this.incomingResourcesList.splice(plan.removeIncomingIndex, 1);
+    if (shouldRemoveLinkResourceListIndex(plan.removeIncomingIndex !== null)) {
+      this.incomingResourcesList.splice(plan.removeIncomingIndex!, 1);
     }
   }
 
@@ -947,8 +961,8 @@ export class Link {
 
   unregisterPendingRequest(receipt: LinkRequestReceipt): void {
     const index = planUnregisterPendingLinkRequest(this.pendingRequests.indexOf(receipt));
-    if (index !== null) {
-      this.pendingRequests.splice(index, 1);
+    if (shouldUnregisterPendingLinkRequest(index !== null)) {
+      this.pendingRequests.splice(index!, 1);
     }
   }
 

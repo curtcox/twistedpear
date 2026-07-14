@@ -16,6 +16,7 @@ import {
   shouldMarkStreamEof,
   shouldRegisterStreamReadyCallback,
   shouldReturnStreamReadResult,
+  shouldUnregisterStreamReadyCallback,
   unpackStreamDataMessage
 } from "../src/stream-data.js";
 
@@ -112,5 +113,7 @@ describe("protocol stream data framing", () => {
     expect(planUnregisterStreamReadyCallback(0)).toBe(0);
     expect(planUnregisterStreamReadyCallback(4)).toBe(4);
     expect(planUnregisterStreamReadyCallback(-1)).toBeNull();
+    expect(shouldUnregisterStreamReadyCallback(true)).toBe(true);
+    expect(shouldUnregisterStreamReadyCallback(false)).toBe(false);
   });
 });

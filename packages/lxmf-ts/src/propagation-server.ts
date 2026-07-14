@@ -12,6 +12,7 @@ import {
   shouldApplyPropagationRestore,
   shouldCommitPropagationStoreEntry,
   shouldDeletePropagationCatalogEntry,
+  shouldEvictOldestPropagationEntry,
   shouldEvictPropagationCatalogEntry,
   stepPersistDebounceWithActions,
   type ClientRateBucket,
@@ -276,16 +277,17 @@ export class PropagationServer {
         storedAt: entry.storedAt
       }))
     );
-    if (oldestKey === null) {
+    const oldest = oldestKey === null ? undefined : this.entries.get(oldestKey);
+    if (
+      !shouldEvictOldestPropagationEntry({
+        oldestKeyPresent: oldestKey !== null,
+        entryPresent: oldest !== undefined
+      })
+    ) {
       return false;
     }
 
-    const oldest = this.entries.get(oldestKey);
-    if (oldest === undefined) {
-      return false;
-    }
-
-    this.delete(oldest.transientId);
+    this.delete(oldest!.transientId);
     this.evictions += 1;
     return true;
   }
