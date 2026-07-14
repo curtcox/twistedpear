@@ -12,6 +12,8 @@ import {
   initialClassifyLinkProofPayloadState,
   initialEncodeLinkMtuBytesState,
   initialEncodeLinkSignallingBytesState,
+  initialLinkProofSignedMaterialState,
+  initialLinkRequestHashablePartState,
   initialModeFromLinkProofDataState,
   initialModeFromLinkRequestDataState,
   initialMtuFromLinkProofDataState,
@@ -22,7 +24,9 @@ import {
   initialSplitLinkRequestDataState,
   linkProofBodyFieldsFromActions,
   linkProofSignedMaterial,
+  linkProofSignedMaterialRawFromActions,
   linkRequestHashablePart,
+  linkRequestHashablePartRawFromActions,
   linkRequestKeyFieldsFromActions,
   modeFromLinkProofData,
   modeFromLinkProofDataFromActions,
@@ -45,6 +49,8 @@ import {
   shouldRejectSplitLinkRequestData,
   shouldUseEncodeLinkMtuBytes,
   shouldUseEncodeLinkSignallingBytes,
+  shouldUseLinkProofSignedMaterial,
+  shouldUseLinkRequestHashablePart,
   shouldUseModeFromLinkProofData,
   shouldUseModeFromLinkRequestData,
   shouldUseMtuFromLinkProofData,
@@ -57,6 +63,8 @@ import {
   stepClassifyLinkProofPayloadWithActions,
   stepEncodeLinkMtuBytesWithActions,
   stepEncodeLinkSignallingBytesWithActions,
+  stepLinkProofSignedMaterialWithActions,
+  stepLinkRequestHashablePartWithActions,
   stepModeFromLinkProofDataWithActions,
   stepModeFromLinkRequestDataWithActions,
   stepMtuFromLinkProofDataWithActions,
@@ -75,6 +83,21 @@ describe("protocol link proof materials", () => {
     const signalling = new Uint8Array([4, 5, 6]);
     const signed = linkProofSignedMaterial(linkId, publicKey, ownerSig, signalling);
     expect(signed.length).toBe(linkId.length + publicKey.length + ownerSig.length + signalling.length);
+
+    const signedStepped = stepLinkProofSignedMaterialWithActions(
+      initialLinkProofSignedMaterialState(),
+      {
+        kind: "link-proof/signed-material-gate",
+        linkId,
+        publicKey,
+        ownerSigPublicKey: ownerSig,
+        signallingBytes: signalling
+      }
+    );
+    expect(shouldUseLinkProofSignedMaterial(signedStepped.actions)).toBe(true);
+    const signedFromActions = linkProofSignedMaterialRawFromActions(signedStepped.actions);
+    expect(signedFromActions).not.toBeNull();
+    expect([...signedFromActions!]).toEqual([...signed]);
 
     const signature = new Uint8Array(LINK_PROOF_SIGNATURE_SIZE).fill(7);
     const packed = packLinkProofData(signature, publicKey, signalling);
@@ -208,6 +231,22 @@ describe("protocol link proof materials", () => {
     const hashable = new Uint8Array(20).fill(9);
     expect([...linkRequestHashablePart(hashable, LINK_REQUEST_ECPUB_SIZE)]).toEqual([...hashable]);
     expect(linkRequestHashablePart(hashable, LINK_REQUEST_ECPUB_SIZE + 3).length).toBe(17);
+
+    const hashableStepped = stepLinkRequestHashablePartWithActions(
+      initialLinkRequestHashablePartState(),
+      {
+        kind: "link-proof/request-hashable-gate",
+        hashablePart: hashable,
+        requestDataLength: LINK_REQUEST_ECPUB_SIZE + 3
+      }
+    );
+    expect(shouldUseLinkRequestHashablePart(hashableStepped.actions)).toBe(true);
+    const truncated = linkRequestHashablePartRawFromActions(hashableStepped.actions);
+    expect(truncated).not.toBeNull();
+    expect(truncated!.length).toBe(17);
+    expect([...truncated!]).toEqual([
+      ...linkRequestHashablePart(hashable, LINK_REQUEST_ECPUB_SIZE + 3)
+    ]);
   });
 
   it("emits pack framing bytes from WithActions steps", () => {

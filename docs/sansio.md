@@ -111,7 +111,9 @@
 > **Link-proof / link-request framing** (pack/split via
 > **`stepPackLinkProofDataWithActions`** / **`stepSplitLinkProofBodyWithActions`** /
 > **`stepPackLinkRequestDataWithActions`** / **`stepSplitLinkRequestDataWithActions`**:
-> use-raw / use-fields|reject; signalling/MTU encode via
+> use-raw / use-fields|reject; signed material / hashable truncate via
+> **`stepLinkProofSignedMaterialWithActions`** /
+> **`stepLinkRequestHashablePartWithActions`**: use-raw; signalling/MTU encode via
 > **`stepEncodeLinkSignallingBytesWithActions`** /
 > **`stepEncodeLinkMtuBytesWithActions`**: use-raw; mode/MTU decode via
 > **`stepModeFromLinkRequestDataWithActions`** /
@@ -181,8 +183,10 @@
 > **LXMF outer wire framing** (pack/split via
 > **`stepPackLxmfWireWithActions`** / **`stepSplitLxmfWireWithActions`**: use-raw|reject /
 > use-fields|reject) is a pure protocol leaf; `LXMessage` adapts it. **Link proof signed
-> material**, **StreamDataMessage framing** (pack/unpack via
-> **`stepPackStreamDataMessageWithActions`** /
+> material** / **link-request hashable truncation** (via
+> **`stepLinkProofSignedMaterialWithActions`** /
+> **`stepLinkRequestHashablePartWithActions`**: use-raw), **StreamDataMessage framing**
+> (pack/unpack via **`stepPackStreamDataMessageWithActions`** /
 > **`stepUnpackStreamDataMessageWithActions`**: use-raw|reject /
 > use-fields|reject), and **resource hash/encrypt
 > materials** are pure protocol leaves; `Link`, `Buffer`, and `Resource` adapt them.
@@ -192,7 +196,7 @@
 > **`stepSplitIdentityPrivateKeyWithActions`** /
 > **`stepPackIdentityPublicKeyWithActions`** /
 > **`stepSplitIdentityPublicKeyWithActions`**: use-raw|reject /
-> use-fields|reject), link-request hashable truncation, and
+> use-fields|reject), and
 > **RESOURCE_HMU pack** are pure protocol leaves; Identity, Link, and Resource adapt
 > them (`Identity.prove` uses **`stepPackPacketProofWithActions`**; link-request /
 > link-proof pack/split use the WithActions steps above). **Byte-array assembly** helpers,
@@ -870,6 +874,7 @@
 > encode-packet-raw / decode-packet-raw /
 > pack-link-proof-data / split-link-proof-body /
 > pack-link-request-data / split-link-request-data /
+> link-proof-signed-material / link-request-hashable-part /
 > encode-link-signalling-bytes / encode-link-mtu-bytes /
 > mode-from-link-request-data / mode-from-link-proof-data /
 > mtu-from-link-request-data / mtu-from-link-proof-data /
@@ -1047,6 +1052,8 @@
 > **`stepSplitLinkProofBodyWithActions`** /
 > **`stepPackLinkRequestDataWithActions`** /
 > **`stepSplitLinkRequestDataWithActions`** /
+> **`stepLinkProofSignedMaterialWithActions`** /
+> **`stepLinkRequestHashablePartWithActions`** /
 > **`stepEncodeLinkSignallingBytesWithActions`** /
 > **`stepEncodeLinkMtuBytesWithActions`** /
 > **`stepModeFromLinkRequestDataWithActions`** /
@@ -1054,11 +1061,13 @@
 > **`stepMtuFromLinkRequestDataWithActions`** /
 > **`stepMtuFromLinkProofDataWithActions`** /
 > **`stepClassifyLinkProofPayloadWithActions`** emit `use-raw` /
-> `use-fields`|`reject` / `use-raw` / `use-mode` / `use-mtu`|`reject` /
-> `body-only`|`body-with-mtu`|`reject`; link-proof / link-request pack / split,
-> signalling / MTU encode, mode / MTU decode, and payload classify apply only
-> from those actions (no ad-hoc `packLinkProofData` /
-> `splitLinkProofBody` / `packLinkRequestData` / `splitLinkRequestData` /
+> `use-fields`|`reject` / `use-raw` / `use-raw` / `use-mode` /
+> `use-mtu`|`reject` / `body-only`|`body-with-mtu`|`reject`; link-proof /
+> link-request pack / split, signed material / hashable truncate, signalling /
+> MTU encode, mode / MTU decode, and payload classify apply only from those
+> actions (no ad-hoc `packLinkProofData` / `splitLinkProofBody` /
+> `packLinkRequestData` / `splitLinkRequestData` /
+> `linkProofSignedMaterial` / `linkRequestHashablePart` /
 > `encodeLinkSignallingBytes` / `encodeLinkMtuBytes` /
 > `modeFromLinkRequestData` / `modeFromLinkProofData` /
 > `mtuFromLinkRequestData` / `mtuFromLinkProofData` /

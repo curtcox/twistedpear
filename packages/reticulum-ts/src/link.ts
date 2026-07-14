@@ -59,9 +59,9 @@ import {
   linkEstablishActivatedAction,
   linkHopsMatch,
   linkIdentifySignedMaterial,
-  linkProofSignedMaterial,
+  linkProofSignedMaterialRawFromActions,
   linkReadyForNewResource,
-  linkRequestHashablePart,
+  linkRequestHashablePartRawFromActions,
   linkTeardownRemoteCloseAction,
   linkTeardownSendThenCloseAction,
   mergeLinkRtt,
@@ -80,6 +80,8 @@ import {
   initialClassifyLinkProofPayloadState,
   initialEncodeLinkMtuBytesState,
   initialEncodeLinkSignallingBytesState,
+  initialLinkProofSignedMaterialState,
+  initialLinkRequestHashablePartState,
   initialModeFromLinkProofDataState,
   initialModeFromLinkRequestDataState,
   initialMtuFromLinkProofDataState,
@@ -128,6 +130,8 @@ import {
   shouldUseEncodeLinkMtuBytes,
   shouldUseEncodeLinkSignallingBytes,
   shouldUseLinkInitiatorMtu,
+  shouldUseLinkProofSignedMaterial,
+  shouldUseLinkRequestHashablePart,
   shouldUseLinkRequestResponderMtu,
   shouldUseModeFromLinkProofData,
   shouldUseModeFromLinkRequestData,
@@ -151,6 +155,8 @@ import {
   stepClassifyLinkProofPayloadWithActions,
   stepEncodeLinkMtuBytesWithActions,
   stepEncodeLinkSignallingBytesWithActions,
+  stepLinkProofSignedMaterialWithActions,
+  stepLinkRequestHashablePartWithActions,
   stepModeFromLinkProofDataWithActions,
   stepModeFromLinkRequestDataWithActions,
   stepMtuFromLinkProofDataWithActions,
@@ -666,7 +672,18 @@ export class Link {
   }
 
   static linkIdFromLrPacket(provider: CryptoProvider, packet: Packet): Uint8Array {
-    const hashablePart = linkRequestHashablePart(packet.hashablePart(), packet.data.length);
+    const stepped = stepLinkRequestHashablePartWithActions(initialLinkRequestHashablePartState(), {
+      kind: "link-proof/request-hashable-gate",
+      hashablePart: packet.hashablePart(),
+      requestDataLength: packet.data.length
+    });
+    const hashablePart =
+      shouldUseLinkRequestHashablePart(stepped.actions)
+        ? linkRequestHashablePartRawFromActions(stepped.actions)
+        : null;
+    if (hashablePart === null) {
+      throw new Error("Link.linkIdFromLrPacket: missing use-raw action");
+    }
     return Identity.truncatedHash(provider, hashablePart);
   }
 
@@ -829,12 +846,23 @@ export class Link {
       throw new Error("Responder link owner public key is invalid");
     }
     const ownerSigPublicKey = ownerPublic!.signaturePublicKey;
-    const signedData = linkProofSignedMaterial(
-      this.linkId,
-      publicKeyBytes,
-      ownerSigPublicKey,
-      signallingBytes
+    const signedStepped = stepLinkProofSignedMaterialWithActions(
+      initialLinkProofSignedMaterialState(),
+      {
+        kind: "link-proof/signed-material-gate",
+        linkId: this.linkId,
+        publicKey: publicKeyBytes,
+        ownerSigPublicKey,
+        signallingBytes
+      }
     );
+    const signedData =
+      shouldUseLinkProofSignedMaterial(signedStepped.actions)
+        ? linkProofSignedMaterialRawFromActions(signedStepped.actions)
+        : null;
+    if (signedData === null) {
+      throw new Error("Link.prove: missing signed-material use-raw action");
+    }
     const signature = ownerIdentity.sign(signedData);
     const packStepped = stepPackLinkProofDataWithActions(initialPackLinkProofDataState(), {
       kind: "link-proof/pack-gate",
@@ -936,13 +964,23 @@ export class Link {
         this.loadPeer(body.peerPublicKey, peerPublic.signaturePublicKey);
         this.handshake();
 
-        const signedData = linkProofSignedMaterial(
-          this.linkId,
-          this.peerPublicKeyBytes!,
-          peerPublic.signaturePublicKey,
-          signallingBytes
+        const signedStepped = stepLinkProofSignedMaterialWithActions(
+          initialLinkProofSignedMaterialState(),
+          {
+            kind: "link-proof/signed-material-gate",
+            linkId: this.linkId,
+            publicKey: this.peerPublicKeyBytes!,
+            ownerSigPublicKey: peerPublic.signaturePublicKey,
+            signallingBytes
+          }
         );
-        signatureValid = destination.identity!.validate(body.signature, signedData);
+        const signedData =
+          shouldUseLinkProofSignedMaterial(signedStepped.actions)
+            ? linkProofSignedMaterialRawFromActions(signedStepped.actions)
+            : null;
+        signatureValid =
+          signedData !== null &&
+          destination.identity!.validate(body.signature, signedData);
       }
 
       const proofGate = stepLinkProofValidateWithActions(initialLinkProofValidateState(), {
