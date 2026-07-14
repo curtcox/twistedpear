@@ -20,9 +20,15 @@ import {
   encodePacketRawFromActions,
   initialDecodePacketRawState,
   initialEncodePacketRawState,
+  initialPackPacketFlagsState,
   initialPacketFromFieldsState,
+  initialPacketHashablePartState,
+  initialUnpackPacketFlagsState,
   packPacketFlags,
+  packPacketFlagsFromActions,
+  packetFlagsFieldsFromActions,
   packetHashablePart,
+  packetHashablePartRawFromActions,
   packetHeaderFieldsFromActions,
   planPacketFromFields,
   shouldProceedPacketFromFields,
@@ -34,9 +40,15 @@ import {
   shouldRejectPacketFromFieldsHeader2MissingTransportId,
   shouldUseDecodePacketRaw,
   shouldUseEncodePacketRaw,
+  shouldUsePackPacketFlags,
+  shouldUsePacketHashablePart,
+  shouldUseUnpackPacketFlags,
   stepDecodePacketRawWithActions,
   stepEncodePacketRawWithActions,
+  stepPackPacketFlagsWithActions,
   stepPacketFromFieldsWithActions,
+  stepPacketHashablePartWithActions,
+  stepUnpackPacketFlagsWithActions,
   unpackPacketFlags
 } from "../src/packet-header.js";
 
@@ -70,6 +82,70 @@ describe("protocol packet header", () => {
       destinationType: PACKET_DEST_TYPE_SINGLE,
       packetType: PACKET_TYPE_ANNOUNCE
     });
+  });
+
+  it("emits flag pack / unpack and hashable-part from WithActions steps", () => {
+    const packStepped = stepPackPacketFlagsWithActions(initialPackPacketFlagsState(), {
+      kind: "packet-header/pack-flags-gate",
+      headerType: PACKET_HEADER_2,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_TRANSPORT,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_ANNOUNCE
+    });
+    expect(shouldUsePackPacketFlags(packStepped.actions)).toBe(true);
+    const packed = packPacketFlagsFromActions(packStepped.actions);
+    expect(packed).toBe(
+      packPacketFlags({
+        headerType: PACKET_HEADER_2,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_TRANSPORT,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_ANNOUNCE
+      })
+    );
+
+    const unpackStepped = stepUnpackPacketFlagsWithActions(initialUnpackPacketFlagsState(), {
+      kind: "packet-header/unpack-flags-gate",
+      flags: packed!
+    });
+    expect(shouldUseUnpackPacketFlags(unpackStepped.actions)).toBe(true);
+    expect(packetFlagsFieldsFromActions(unpackStepped.actions)).toEqual({
+      headerType: PACKET_HEADER_2,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_TRANSPORT,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_ANNOUNCE
+    });
+
+    const raw = encodePacketRaw({
+      headerType: PACKET_HEADER_1,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      hops: 0,
+      destinationHash,
+      context: 0,
+      data,
+      transportId: null
+    });
+    const hashableStepped = stepPacketHashablePartWithActions(initialPacketHashablePartState(), {
+      kind: "packet-header/hashable-part-gate",
+      raw,
+      headerType: PACKET_HEADER_1
+    });
+    expect(shouldUsePacketHashablePart(hashableStepped.actions)).toBe(true);
+    const part = packetHashablePartRawFromActions(hashableStepped.actions);
+    expect([...part!]).toEqual([...packetHashablePart(raw, PACKET_HEADER_1)]);
+
+    expect(
+      stepPackPacketFlagsWithActions(initialPackPacketFlagsState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
   });
 
   it("round-trips HEADER_1 packets", () => {

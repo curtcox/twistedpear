@@ -4,6 +4,9 @@
  * fromFields conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  * Encode / decode conclusions leave via machine actions (no ad-hoc
  * `encodePacketRaw` / `decodePacketRaw` reads beside the step).
+ * Flag pack / unpack and hashable-part conclusions leave via machine actions
+ * (no ad-hoc `packPacketFlags` / `unpackPacketFlags` / `packetHashablePart`
+ * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -452,6 +455,204 @@ export function packetHashablePart(raw: Uint8Array, headerType: number): Uint8Ar
     return concatBytes(maskedFlags, raw.subarray(TRANSPORT_ID_BYTES + 2));
   }
   return concatBytes(maskedFlags, raw.subarray(2));
+}
+
+export type PacketFlagsFields = {
+  readonly headerType: number;
+  readonly contextFlag: number;
+  readonly transportType: number;
+  readonly destinationType: number;
+  readonly packetType: number;
+};
+
+/**
+ * Packet flag packing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `packPacketFlags` reads
+ * beside the step).
+ */
+export type PackPacketFlagsState = Record<string, never>;
+
+export type PackPacketFlagsEvent =
+  | Event
+  | ({
+      readonly kind: "packet-header/pack-flags-gate";
+    } & PacketFlagsFields);
+
+export type PackPacketFlagsAction = {
+  readonly kind: "use-flags";
+  readonly flags: number;
+};
+
+export interface PackPacketFlagsStepResult {
+  readonly state: PackPacketFlagsState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackPacketFlagsAction[];
+}
+
+export function initialPackPacketFlagsState(): PackPacketFlagsState {
+  return {};
+}
+
+export function stepPackPacketFlagsWithActions(
+  state: PackPacketFlagsState,
+  event: PackPacketFlagsEvent
+): PackPacketFlagsStepResult {
+  if (event.kind === "packet-header/pack-flags-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-flags",
+          flags: packPacketFlags({
+            headerType: event.headerType,
+            contextFlag: event.contextFlag,
+            transportType: event.transportType,
+            destinationType: event.destinationType,
+            packetType: event.packetType
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackPacketFlags(
+  actions: ReadonlyArray<PackPacketFlagsAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-flags");
+}
+
+/** Extract packed flags byte from step actions; null when no `use-flags`. */
+export function packPacketFlagsFromActions(
+  actions: ReadonlyArray<PackPacketFlagsAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-flags");
+  return action?.kind === "use-flags" ? action.flags : null;
+}
+
+/**
+ * Packet flag unpacking is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `unpackPacketFlags` reads
+ * beside the step).
+ */
+export type UnpackPacketFlagsState = Record<string, never>;
+
+export type UnpackPacketFlagsEvent =
+  | Event
+  | {
+      readonly kind: "packet-header/unpack-flags-gate";
+      readonly flags: number;
+    };
+
+export type UnpackPacketFlagsAction = {
+  readonly kind: "use-fields";
+  readonly fields: PacketFlagsFields;
+};
+
+export interface UnpackPacketFlagsStepResult {
+  readonly state: UnpackPacketFlagsState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly UnpackPacketFlagsAction[];
+}
+
+export function initialUnpackPacketFlagsState(): UnpackPacketFlagsState {
+  return {};
+}
+
+export function stepUnpackPacketFlagsWithActions(
+  state: UnpackPacketFlagsState,
+  event: UnpackPacketFlagsEvent
+): UnpackPacketFlagsStepResult {
+  if (event.kind === "packet-header/unpack-flags-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-fields", fields: unpackPacketFlags(event.flags) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseUnpackPacketFlags(
+  actions: ReadonlyArray<UnpackPacketFlagsAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+/** Extract unpacked flag fields from step actions; null when no `use-fields`. */
+export function packetFlagsFieldsFromActions(
+  actions: ReadonlyArray<UnpackPacketFlagsAction>
+): PacketFlagsFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
+}
+
+/**
+ * Packet hashable-part framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `packetHashablePart` reads
+ * beside the step).
+ */
+export type PacketHashablePartState = Record<string, never>;
+
+export type PacketHashablePartEvent =
+  | Event
+  | {
+      readonly kind: "packet-header/hashable-part-gate";
+      readonly raw: Uint8Array;
+      readonly headerType: number;
+    };
+
+export type PacketHashablePartAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface PacketHashablePartStepResult {
+  readonly state: PacketHashablePartState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketHashablePartAction[];
+}
+
+export function initialPacketHashablePartState(): PacketHashablePartState {
+  return {};
+}
+
+export function stepPacketHashablePartWithActions(
+  state: PacketHashablePartState,
+  event: PacketHashablePartEvent
+): PacketHashablePartStepResult {
+  if (event.kind === "packet-header/hashable-part-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: packetHashablePart(event.raw, event.headerType)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePacketHashablePart(
+  actions: ReadonlyArray<PacketHashablePartAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract hashable-part bytes from step actions; null when no `use-raw`. */
+export function packetHashablePartRawFromActions(
+  actions: ReadonlyArray<PacketHashablePartAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
 }
 
 export type EncodePacketRawFields = {

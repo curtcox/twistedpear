@@ -2,12 +2,14 @@ import {
   encodePacketRawFromActions,
   initialDecodePacketRawState,
   initialEncodePacketRawState,
+  initialPackPacketFlagsState,
   initialPackPacketProofState,
   initialPacketFromFieldsState,
+  initialPacketHashablePartState,
   initialSplitPacketProofState,
-  packPacketFlags,
+  packPacketFlagsFromActions,
   packPacketProofRawFromActions,
-  packetHashablePart,
+  packetHashablePartRawFromActions,
   packetHeaderFieldsFromActions,
   packetProofFieldsFromActions,
   packetProofHashMatches,
@@ -30,12 +32,16 @@ import {
   shouldRejectSplitPacketProof,
   shouldUseDecodePacketRaw,
   shouldUseEncodePacketRaw,
+  shouldUsePackPacketFlags,
   shouldUsePackPacketProof,
+  shouldUsePacketHashablePart,
   shouldUseSplitPacketProof,
   stepDecodePacketRawWithActions,
   stepEncodePacketRawWithActions,
+  stepPackPacketFlagsWithActions,
   stepPackPacketProofWithActions,
   stepPacketFromFieldsWithActions,
+  stepPacketHashablePartWithActions,
   stepSplitPacketProofWithActions,
   stepTruncateHashBytesWithActions,
   truncateHashBytesRawFromActions,
@@ -208,13 +214,22 @@ export class Packet {
   }
 
   packedFlags(): number {
-    return packPacketFlags({
+    const stepped = stepPackPacketFlagsWithActions(initialPackPacketFlagsState(), {
+      kind: "packet-header/pack-flags-gate",
       headerType: this.headerType,
       contextFlag: this.contextFlag,
       transportType: this.transportType,
       destinationType: this.destinationType,
       packetType: this.packetType
     });
+    const flags =
+      shouldUsePackPacketFlags(stepped.actions)
+        ? packPacketFlagsFromActions(stepped.actions)
+        : null;
+    if (flags === null) {
+      throw new Error("packedFlags: missing use-flags action");
+    }
+    return flags;
   }
 
   hash(): Uint8Array {
@@ -280,7 +295,19 @@ export class Packet {
   }
 
   hashablePart(): Uint8Array {
-    return packetHashablePart(this.raw, this.headerType);
+    const stepped = stepPacketHashablePartWithActions(initialPacketHashablePartState(), {
+      kind: "packet-header/hashable-part-gate",
+      raw: this.raw,
+      headerType: this.headerType
+    });
+    const raw =
+      shouldUsePacketHashablePart(stepped.actions)
+        ? packetHashablePartRawFromActions(stepped.actions)
+        : null;
+    if (raw === null) {
+      throw new Error("hashablePart: missing use-raw action");
+    }
+    return raw;
   }
 
   private static encodeRaw(fields: {

@@ -125,8 +125,10 @@
 > adapts it.
 > **Packet header** encode/decode (via **`stepEncodePacketRawWithActions`** /
 > **`stepDecodePacketRawWithActions`**: use-raw|reject / use-fields|reject),
-> flag packing, and hashable-part framing are pure protocol leaves; `Packet`
-> adapts them. **PKCS#7** padding (pad/unpad via
+> flag packing / unpacking (via **`stepPackPacketFlagsWithActions`** /
+> **`stepUnpackPacketFlagsWithActions`**: use-flags / use-fields), and
+> hashable-part framing (via **`stepPacketHashablePartWithActions`**: use-raw)
+> are pure protocol leaves; `Packet` adapts them. **PKCS#7** padding (pad/unpad via
 > **`stepPkcs7PadWithActions`** / **`stepPkcs7UnpadWithActions`**: use-raw /
 > use-raw|reject) and **LXMF delivery planning**
 > (method/representation selection via **`stepLxmfDeliveryWithActions`**) are
@@ -872,6 +874,7 @@
 > pack-announce-payload / parse-announce-payload /
 > pack-packet-proof / split-packet-proof /
 > encode-packet-raw / decode-packet-raw /
+> pack-packet-flags / unpack-packet-flags / packet-hashable-part /
 > pack-link-proof-data / split-link-proof-body /
 > pack-link-request-data / split-link-request-data /
 > link-proof-signed-material / link-request-hashable-part /
@@ -1048,6 +1051,12 @@
 > `use-fields`|`reject`; packet-header encode / decode apply only from those
 > actions (no ad-hoc `encodePacketRaw` / `decodePacketRaw` reads beside the
 > step).
+> **`stepPackPacketFlagsWithActions`** /
+> **`stepUnpackPacketFlagsWithActions`** /
+> **`stepPacketHashablePartWithActions`** emit `use-flags` / `use-fields` /
+> `use-raw`; packet flag pack / unpack and hashable-part framing apply only
+> from those actions (no ad-hoc `packPacketFlags` / `unpackPacketFlags` /
+> `packetHashablePart` reads beside the step).
 > **`stepPackLinkProofDataWithActions`** /
 > **`stepSplitLinkProofBodyWithActions`** /
 > **`stepPackLinkRequestDataWithActions`** /
