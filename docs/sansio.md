@@ -53,13 +53,18 @@
 > protocol leaves; `Destination` and path-hash call sites adapt them (SHA stays at the
 > crypto edge). **Msgpack string / string-map** packing and **resource advertisement**
 > codecs (pack/unpack + flag bits) are pure protocol leaves; `ResourceAdvertisement`
-> adapts them. **Resource hashmap-update** framing, part-request parsing, slot-write
-> planning, and **part-request / receive-part / request-fulfill / HMU-accept**
+> adapts them. **Resource hashmap-update** framing (pack/unpack / packet pack/split /
+> part-request parse via **`stepPackResourceHashmapUpdateWithActions`** /
+> **`stepUnpackResourceHashmapUpdateWithActions`** /
+> **`stepPackResourceHashmapUpdatePacketWithActions`** /
+> **`stepSplitResourceHashmapUpdatePacketWithActions`** /
+> **`stepParseResourcePartRequestWithActions`**: use-raw / use-fields|reject),
+> slot-write planning, and **part-request / receive-part / request-fulfill / HMU-accept**
 > (via **`stepResourcePartRequestWithActions`** /
 > **`stepResourceReceivePartWithActions`** /
 > **`stepResourceRequestFulfillWithActions`** /
 > **`stepResourceHashmapUpdateAcceptWithActions`**) are pure protocol
-> leaves; `Resource` adapts them. Link RTT float encode/decode uses protocol msgpack.
+> leaves; `Resource` + `Link` adapt them. Link RTT float encode/decode uses protocol msgpack.
 > **Transport wrap / strip / relay / hop-rewrite framing** (via
 > **`stepWrapTransportPacketWithActions`** / **`stepStripTransportHeadersWithActions`** /
 > **`stepRelayTransportPacketWithActions`** / **`stepRewritePacketHopsWithActions`**:
@@ -771,7 +776,10 @@
 > pack-link-proof-data / split-link-proof-body /
 > pack-link-request-data / split-link-request-data /
 > pack-resource-proof / split-resource-proof /
-> split-resource-decrypted-payload reads
+> split-resource-decrypted-payload /
+> pack-resource-hashmap-update / unpack-resource-hashmap-update /
+> pack-resource-hashmap-update-packet / split-resource-hashmap-update-packet /
+> parse-resource-part-request reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -833,6 +841,16 @@
 > decrypted-payload strip apply only from those actions (no ad-hoc
 > `packResourceProof` / `splitResourceProof` /
 > `splitResourceDecryptedPayload` reads beside the step).
+> **`stepPackResourceHashmapUpdateWithActions`** /
+> **`stepUnpackResourceHashmapUpdateWithActions`** /
+> **`stepPackResourceHashmapUpdatePacketWithActions`** /
+> **`stepSplitResourceHashmapUpdatePacketWithActions`** /
+> **`stepParseResourcePartRequestWithActions`** emit `use-raw` /
+> `use-fields`|`reject`; resource hashmap-update pack / unpack / packet pack /
+> packet split and part-request parse apply only from those actions (no ad-hoc
+> `packResourceHashmapUpdate` / `unpackResourceHashmapUpdate` /
+> `packResourceHashmapUpdatePacket` / `splitResourceHashmapUpdatePacket` /
+> `parseResourcePartRequest` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

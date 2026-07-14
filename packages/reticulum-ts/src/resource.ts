@@ -37,12 +37,14 @@ import {
   isResourceAdvertisementResponse,
   isResourceComplete,
   packResourceAdvertisement,
-  packResourceHashmapUpdate,
-  packResourceHashmapUpdatePacket,
+  packResourceHashmapUpdatePacketRawFromActions,
+  packResourceHashmapUpdateRawFromActions,
   packResourceProofRawFromActions,
-  parseResourcePartRequest,
   applyResourceHashmapSlotWrites,
+  initialPackResourceHashmapUpdatePacketState,
+  initialPackResourceHashmapUpdateState,
   initialPackResourceProofState,
+  initialParseResourcePartRequestState,
   initialResourceAssembleState,
   initialResourceHashmapUpdateAcceptState,
   initialResourcePartRequestState,
@@ -50,10 +52,15 @@ import {
   initialResourceReceivePartState,
   initialResourceRequestFulfillState,
   initialSplitResourceDecryptedPayloadState,
+  initialSplitResourceHashmapUpdatePacketState,
   initialSplitResourceProofState,
+  initialUnpackResourceHashmapUpdateState,
   resourceAdvertisementRoleFlagsFromActions,
   resourceDecryptedPayloadFromActions,
   resourceHashmapSlotWritesFromActions,
+  resourceHashmapUpdateFieldsFromActions,
+  resourceHashmapUpdatePacketFieldsFromActions,
+  resourcePartRequestFieldsFromActions,
   resourcePartRequestFromActions,
   resourceProofFieldsFromActions,
   resourceReceivePartFromActions,
@@ -61,14 +68,25 @@ import {
   shouldApplyResourceHashmapUpdateAccept,
   shouldCompleteResourceAssemble,
   shouldCompleteResourceProofAccept,
+  shouldRejectParseResourcePartRequest,
   shouldRejectSplitResourceDecryptedPayload,
+  shouldRejectSplitResourceHashmapUpdatePacket,
   shouldRejectSplitResourceProof,
+  shouldRejectUnpackResourceHashmapUpdate,
+  shouldUsePackResourceHashmapUpdate,
+  shouldUsePackResourceHashmapUpdatePacket,
   shouldUsePackResourceProof,
+  shouldUseParseResourcePartRequest,
   shouldUseResourceAdvertisementRoleFlags,
   shouldUseSplitResourceDecryptedPayload,
+  shouldUseSplitResourceHashmapUpdatePacket,
   shouldUseSplitResourceProof,
+  shouldUseUnpackResourceHashmapUpdate,
   shouldWriteResourceHashmapSlots,
+  stepPackResourceHashmapUpdatePacketWithActions,
+  stepPackResourceHashmapUpdateWithActions,
   stepPackResourceProofWithActions,
+  stepParseResourcePartRequestWithActions,
   stepResourceAdvertisementRoleFlagsWithActions,
   stepResourceAssembleWithActions,
   stepResourceHashmapSlotWritesWithActions,
@@ -78,7 +96,9 @@ import {
   stepResourceReceivePartWithActions,
   stepResourceRequestFulfillWithActions,
   stepSplitResourceDecryptedPayloadWithActions,
+  stepSplitResourceHashmapUpdatePacketWithActions,
   stepSplitResourceProofWithActions,
+  stepUnpackResourceHashmapUpdateWithActions,
   readResourceRequestHash,
   appendResourceMapHashCollisionGuard,
   containsResourceHash,
@@ -88,7 +108,6 @@ import {
   resourceHashmapMaxLen,
   resourcePartMapHashMaterial,
   isValidResourceRandomHashLength,
-  splitResourceHashmapUpdatePacket,
   shouldAcceptIncomingResourceAdvertisement,
   shouldAdvertiseResource,
   shouldAdvanceResourceAwaitingProof,
@@ -100,7 +119,6 @@ import {
   stepResourceAdvertiseWaitWithActions,
   stepResourceWatchdogWithActions,
   unpackResourceAdvertisement,
-  unpackResourceHashmapUpdate,
   type ResourceStatusEvent,
   type ResourceStatusValue,
   type ResourceWatchdogState,
@@ -658,7 +676,18 @@ export class Resource {
     this.retriesLeft = RESOURCE_MAX_RETRIES;
     this.startWatchdog();
 
-    const request = parseResourcePartRequest(requestData);
+    const parseStepped = stepParseResourcePartRequestWithActions(
+      initialParseResourcePartRequestState(),
+      {
+        kind: "resource-hashmap/parse-part-request-gate",
+        requestData
+      }
+    );
+    const request = shouldRejectParseResourcePartRequest(parseStepped.actions)
+      ? null
+      : shouldUseParseResourcePartRequest(parseStepped.actions)
+        ? resourcePartRequestFieldsFromActions(parseStepped.actions)
+        : null;
     if (!shouldFulfillResourcePartRequest(request !== null)) {
       return;
     }
@@ -701,14 +730,35 @@ export class Resource {
     this.receiverMinConsecutiveHeight = plan.nextReceiverMinConsecutiveHeight;
 
     if (shouldSendResourceHashmapUpdate(plan.hashmapUpdate !== null)) {
-      const update = packResourceHashmapUpdate(
-        plan.hashmapUpdate!.segment,
-        assembleResourceHashmapBytes(plan.hashmapUpdate!.mapHashes)
+      const packUpdateStepped = stepPackResourceHashmapUpdateWithActions(
+        initialPackResourceHashmapUpdateState(),
+        {
+          kind: "resource-hashmap/pack-update-gate",
+          segment: plan.hashmapUpdate!.segment,
+          hashmap: assembleResourceHashmapBytes(plan.hashmapUpdate!.mapHashes)
+        }
       );
-      await this.link.sendContext(
-        PacketContext.RESOURCE_HMU,
-        packResourceHashmapUpdatePacket(this.hash, update)
+      const update = shouldUsePackResourceHashmapUpdate(packUpdateStepped.actions)
+        ? packResourceHashmapUpdateRawFromActions(packUpdateStepped.actions)
+        : null;
+      if (update === null) {
+        return;
+      }
+      const packPacketStepped = stepPackResourceHashmapUpdatePacketWithActions(
+        initialPackResourceHashmapUpdatePacketState(),
+        {
+          kind: "resource-hashmap/pack-packet-gate",
+          resourceHash: this.hash,
+          updateBytes: update
+        }
       );
+      const packet = shouldUsePackResourceHashmapUpdatePacket(packPacketStepped.actions)
+        ? packResourceHashmapUpdatePacketRawFromActions(packPacketStepped.actions)
+        : null;
+      if (packet === null) {
+        return;
+      }
+      await this.link.sendContext(PacketContext.RESOURCE_HMU, packet);
     }
 
     if (shouldAdvanceResourceAwaitingProof(plan.status)) {
@@ -717,9 +767,31 @@ export class Resource {
   }
 
   hashmapUpdatePacket(plaintext: Uint8Array): void {
-    const split = splitResourceHashmapUpdatePacket(plaintext);
+    const splitStepped = stepSplitResourceHashmapUpdatePacketWithActions(
+      initialSplitResourceHashmapUpdatePacketState(),
+      {
+        kind: "resource-hashmap/split-packet-gate",
+        plaintext
+      }
+    );
+    const split = shouldRejectSplitResourceHashmapUpdatePacket(splitStepped.actions)
+      ? null
+      : shouldUseSplitResourceHashmapUpdatePacket(splitStepped.actions)
+        ? resourceHashmapUpdatePacketFieldsFromActions(splitStepped.actions)
+        : null;
+    const unpackStepped =
+      split === null
+        ? null
+        : stepUnpackResourceHashmapUpdateWithActions(initialUnpackResourceHashmapUpdateState(), {
+            kind: "resource-hashmap/unpack-update-gate",
+            bytes: split.updateBytes
+          });
     const update =
-      split === null ? null : unpackResourceHashmapUpdate(split.updateBytes);
+      unpackStepped === null || shouldRejectUnpackResourceHashmapUpdate(unpackStepped.actions)
+        ? null
+        : shouldUseUnpackResourceHashmapUpdate(unpackStepped.actions)
+          ? resourceHashmapUpdateFieldsFromActions(unpackStepped.actions)
+          : null;
     const { actions } = stepResourceHashmapUpdateAcceptWithActions(
       initialResourceHashmapUpdateAcceptState(),
       {

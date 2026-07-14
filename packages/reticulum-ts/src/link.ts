@@ -179,11 +179,14 @@ import {
   splitIdentityPublicKey,
   splitInitiatorLinkEntropy,
   splitLinkIdentifyPayload,
-  splitResourceHashmapUpdatePacket,
   splitResponderLinkEntropy,
+  initialSplitResourceHashmapUpdatePacketState,
   initialSplitResourceProofState,
+  resourceHashmapUpdatePacketFieldsFromActions,
   resourceProofFieldsFromActions,
+  shouldRejectSplitResourceHashmapUpdatePacket,
   shouldRejectSplitResourceProof,
+  shouldUseSplitResourceHashmapUpdatePacket,
   shouldUseSplitResourceProof,
   stepLinkAppRequestInboundWithActions,
   stepLinkAppRequestTransmitWithActions,
@@ -199,6 +202,7 @@ import {
   stepLinkTokenAccessWithActions,
   stepLinkValidateRequestWithActions,
   stepLinkWatchdogWithActions,
+  stepSplitResourceHashmapUpdatePacketWithActions,
   stepSplitResourceProofWithActions,
   utf8Encode,
   type LinkAppRequestInboundAction,
@@ -1579,7 +1583,18 @@ export class Link {
       return;
     }
 
-    const split = splitResourceHashmapUpdatePacket(plaintext!);
+    const splitStepped = stepSplitResourceHashmapUpdatePacketWithActions(
+      initialSplitResourceHashmapUpdatePacketState(),
+      {
+        kind: "resource-hashmap/split-packet-gate",
+        plaintext: plaintext!
+      }
+    );
+    const split = shouldRejectSplitResourceHashmapUpdatePacket(splitStepped.actions)
+      ? null
+      : shouldUseSplitResourceHashmapUpdatePacket(splitStepped.actions)
+        ? resourceHashmapUpdatePacketFieldsFromActions(splitStepped.actions)
+        : null;
     if (!shouldAcceptResourceHashmapUpdateFrame(split !== null)) {
       return;
     }
@@ -1597,7 +1612,18 @@ export class Link {
       return;
     }
 
-    const split = splitResourceHashmapUpdatePacket(plaintext!);
+    const splitStepped = stepSplitResourceHashmapUpdatePacketWithActions(
+      initialSplitResourceHashmapUpdatePacketState(),
+      {
+        kind: "resource-hashmap/split-packet-gate",
+        plaintext: plaintext!
+      }
+    );
+    const split = shouldRejectSplitResourceHashmapUpdatePacket(splitStepped.actions)
+      ? null
+      : shouldUseSplitResourceHashmapUpdatePacket(splitStepped.actions)
+        ? resourceHashmapUpdatePacketFieldsFromActions(splitStepped.actions)
+        : null;
     if (!shouldAcceptResourceHashmapUpdateFrame(split !== null)) {
       return;
     }

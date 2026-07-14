@@ -6,13 +6,20 @@ import {
   assembleResourceHashmapBytes,
   packResourceHashmapUpdate,
   packResourceHashmapUpdatePacket,
+  packResourceHashmapUpdatePacketRawFromActions,
+  packResourceHashmapUpdateRawFromActions,
   parseResourcePartRequest,
   applyResourceHashmapSlotWrites,
+  initialPackResourceHashmapUpdatePacketState,
+  initialPackResourceHashmapUpdateState,
+  initialParseResourcePartRequestState,
   initialResourceHashmapSlotWritesState,
   initialResourceHashmapUpdateAcceptState,
   initialResourcePartRequestState,
   initialResourceReceivePartState,
   initialResourceRequestFulfillState,
+  initialSplitResourceHashmapUpdatePacketState,
+  initialUnpackResourceHashmapUpdateState,
   planResourceHashmapSlotWrites,
   planResourceHashmapUpdateAccept,
   planResourcePartRequest,
@@ -24,9 +31,17 @@ import {
   indexOfResourceHash,
   resourceHashmapMaxLen,
   resourceHashmapSlotWritesFromActions,
+  resourceHashmapUpdateFieldsFromActions,
+  resourceHashmapUpdatePacketFieldsFromActions,
   resourceMapHashCollisionGuardLimit,
+  resourcePartRequestFieldsFromActions,
   shouldWriteResourceHashmapSlots,
+  stepPackResourceHashmapUpdatePacketWithActions,
+  stepPackResourceHashmapUpdateWithActions,
+  stepParseResourcePartRequestWithActions,
   stepResourceHashmapSlotWritesWithActions,
+  stepSplitResourceHashmapUpdatePacketWithActions,
+  stepUnpackResourceHashmapUpdateWithActions,
   resourcePartRequestFromActions,
   resourceReceivePartFromActions,
   resourceRequestFulfillFromActions,
@@ -39,7 +54,15 @@ import {
   shouldFulfillResourcePartRequest,
   shouldFulfillResourceRequest,
   shouldIgnoreResourceHashmapUpdateAccept,
+  shouldRejectParseResourcePartRequest,
+  shouldRejectSplitResourceHashmapUpdatePacket,
+  shouldRejectUnpackResourceHashmapUpdate,
   shouldSendResourceHashmapUpdate,
+  shouldUsePackResourceHashmapUpdate,
+  shouldUsePackResourceHashmapUpdatePacket,
+  shouldUseParseResourcePartRequest,
+  shouldUseSplitResourceHashmapUpdatePacket,
+  shouldUseUnpackResourceHashmapUpdate,
   splitResourceHashmapUpdatePacket,
   stepResourceHashmapUpdateAcceptWithActions,
   stepResourcePartRequestWithActions,
@@ -466,5 +489,114 @@ describe("protocol resource hashmap", () => {
       fulfillEvent
     );
     expect(fa).toEqual(fb);
+  });
+
+  it("emits pack/unpack framing from WithActions steps", () => {
+    const hashmap = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+    const packStepped = stepPackResourceHashmapUpdateWithActions(
+      initialPackResourceHashmapUpdateState(),
+      {
+        kind: "resource-hashmap/pack-update-gate",
+        segment: 2,
+        hashmap
+      }
+    );
+    expect(shouldUsePackResourceHashmapUpdate(packStepped.actions)).toBe(true);
+    const packed = packResourceHashmapUpdateRawFromActions(packStepped.actions);
+    expect(packed).not.toBeNull();
+    expect([...packed!]).toEqual([...packResourceHashmapUpdate(2, hashmap)]);
+
+    const unpackOk = stepUnpackResourceHashmapUpdateWithActions(
+      initialUnpackResourceHashmapUpdateState(),
+      {
+        kind: "resource-hashmap/unpack-update-gate",
+        bytes: packed!
+      }
+    );
+    expect(shouldUseUnpackResourceHashmapUpdate(unpackOk.actions)).toBe(true);
+    expect(shouldRejectUnpackResourceHashmapUpdate(unpackOk.actions)).toBe(false);
+    expect(resourceHashmapUpdateFieldsFromActions(unpackOk.actions)).toEqual({
+      segment: 2,
+      hashmap
+    });
+
+    const unpackRejected = stepUnpackResourceHashmapUpdateWithActions(
+      initialUnpackResourceHashmapUpdateState(),
+      {
+        kind: "resource-hashmap/unpack-update-gate",
+        bytes: new Uint8Array([0xff])
+      }
+    );
+    expect(shouldRejectUnpackResourceHashmapUpdate(unpackRejected.actions)).toBe(true);
+    expect(resourceHashmapUpdateFieldsFromActions(unpackRejected.actions)).toBeNull();
+  });
+
+  it("emits packet pack/split framing from WithActions steps", () => {
+    const hash = new Uint8Array(32).fill(9);
+    const update = packResourceHashmapUpdate(0, new Uint8Array([1, 2, 3, 4]));
+    const packStepped = stepPackResourceHashmapUpdatePacketWithActions(
+      initialPackResourceHashmapUpdatePacketState(),
+      {
+        kind: "resource-hashmap/pack-packet-gate",
+        resourceHash: hash,
+        updateBytes: update
+      }
+    );
+    expect(shouldUsePackResourceHashmapUpdatePacket(packStepped.actions)).toBe(true);
+    const plaintext = packResourceHashmapUpdatePacketRawFromActions(packStepped.actions);
+    expect(plaintext).not.toBeNull();
+    expect([...plaintext!]).toEqual([...packResourceHashmapUpdatePacket(hash, update)]);
+
+    const splitOk = stepSplitResourceHashmapUpdatePacketWithActions(
+      initialSplitResourceHashmapUpdatePacketState(),
+      {
+        kind: "resource-hashmap/split-packet-gate",
+        plaintext: plaintext!
+      }
+    );
+    expect(shouldUseSplitResourceHashmapUpdatePacket(splitOk.actions)).toBe(true);
+    expect(shouldRejectSplitResourceHashmapUpdatePacket(splitOk.actions)).toBe(false);
+    const fields = resourceHashmapUpdatePacketFieldsFromActions(splitOk.actions);
+    expect(fields).not.toBeNull();
+    expect([...fields!.resourceHash]).toEqual([...hash]);
+    expect([...fields!.updateBytes]).toEqual([...update]);
+
+    const splitRejected = stepSplitResourceHashmapUpdatePacketWithActions(
+      initialSplitResourceHashmapUpdatePacketState(),
+      {
+        kind: "resource-hashmap/split-packet-gate",
+        plaintext: new Uint8Array(8)
+      }
+    );
+    expect(shouldRejectSplitResourceHashmapUpdatePacket(splitRejected.actions)).toBe(true);
+    expect(resourceHashmapUpdatePacketFieldsFromActions(splitRejected.actions)).toBeNull();
+  });
+
+  it("emits part-request parse fields or reject from WithActions steps", () => {
+    const resourceHash = new Uint8Array(32).fill(1);
+    const mapHash = new Uint8Array([0xaa, 0xbb, 0xcc, 0xdd]);
+    const notExhausted = new Uint8Array(1 + 32 + 4);
+    notExhausted[0] = RESOURCE_HASHMAP_IS_NOT_EXHAUSTED;
+    notExhausted.set(resourceHash, 1);
+    notExhausted.set(mapHash, 33);
+
+    const ok = stepParseResourcePartRequestWithActions(initialParseResourcePartRequestState(), {
+      kind: "resource-hashmap/parse-part-request-gate",
+      requestData: notExhausted
+    });
+    expect(shouldUseParseResourcePartRequest(ok.actions)).toBe(true);
+    expect(shouldRejectParseResourcePartRequest(ok.actions)).toBe(false);
+    const fields = resourcePartRequestFieldsFromActions(ok.actions);
+    expect(fields).not.toBeNull();
+    expect(fields!.wantsMoreHashmap).toBe(false);
+    expect([...fields!.resourceHash]).toEqual([...resourceHash]);
+    expect(fields!.requestedMapHashes).toHaveLength(1);
+
+    const rejected = stepParseResourcePartRequestWithActions(initialParseResourcePartRequestState(), {
+      kind: "resource-hashmap/parse-part-request-gate",
+      requestData: new Uint8Array(2)
+    });
+    expect(shouldRejectParseResourcePartRequest(rejected.actions)).toBe(true);
+    expect(resourcePartRequestFieldsFromActions(rejected.actions)).toBeNull();
   });
 });
