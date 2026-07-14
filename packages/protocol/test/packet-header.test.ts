@@ -17,15 +17,25 @@ import {
   TransportTypeCode,
   decodePacketRaw,
   encodePacketRaw,
+  encodePacketRawFromActions,
+  initialDecodePacketRawState,
+  initialEncodePacketRawState,
   initialPacketFromFieldsState,
   packPacketFlags,
   packetHashablePart,
+  packetHeaderFieldsFromActions,
   planPacketFromFields,
   shouldProceedPacketFromFields,
+  shouldRejectDecodePacketRaw,
+  shouldRejectEncodePacketRaw,
   shouldRejectPacketFromFieldsBadDestinationHash,
   shouldRejectPacketFromFieldsBadHeaderType,
   shouldRejectPacketFromFieldsBadTransportId,
   shouldRejectPacketFromFieldsHeader2MissingTransportId,
+  shouldUseDecodePacketRaw,
+  shouldUseEncodePacketRaw,
+  stepDecodePacketRawWithActions,
+  stepEncodePacketRawWithActions,
   stepPacketFromFieldsWithActions,
   unpackPacketFlags
 } from "../src/packet-header.js";
@@ -117,6 +127,76 @@ describe("protocol packet header", () => {
     const part = packetHashablePart(raw, PACKET_HEADER_1);
     expect(part[0]).toBe(raw[0]! & 0x0f);
     expect([...part.subarray(1)]).toEqual([...raw.subarray(2)]);
+  });
+
+  it("emits encode / decode framing from WithActions steps", () => {
+    const encodeStepped = stepEncodePacketRawWithActions(initialEncodePacketRawState(), {
+      kind: "packet-header/encode-gate",
+      headerType: PACKET_HEADER_1,
+      contextFlag: 0,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      hops: 3,
+      destinationHash,
+      context: 0,
+      data,
+      transportId: null
+    });
+    expect(shouldUseEncodePacketRaw(encodeStepped.actions)).toBe(true);
+    expect(shouldRejectEncodePacketRaw(encodeStepped.actions)).toBe(false);
+    const packed = encodePacketRawFromActions(encodeStepped.actions);
+    expect(packed).not.toBeNull();
+    expect([...packed!]).toEqual([
+      ...encodePacketRaw({
+        headerType: PACKET_HEADER_1,
+        contextFlag: 0,
+        transportType: TRANSPORT_BROADCAST,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        hops: 3,
+        destinationHash,
+        context: 0,
+        data,
+        transportId: null
+      })
+    ]);
+
+    const rejectEncode = stepEncodePacketRawWithActions(initialEncodePacketRawState(), {
+      kind: "packet-header/encode-gate",
+      headerType: PACKET_HEADER_1,
+      contextFlag: 0,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      hops: 0,
+      destinationHash: new Uint8Array(4),
+      context: 0,
+      data,
+      transportId: null
+    });
+    expect(shouldRejectEncodePacketRaw(rejectEncode.actions)).toBe(true);
+    expect(shouldUseEncodePacketRaw(rejectEncode.actions)).toBe(false);
+    expect(encodePacketRawFromActions(rejectEncode.actions)).toBeNull();
+
+    const decodeStepped = stepDecodePacketRawWithActions(initialDecodePacketRawState(), {
+      kind: "packet-header/decode-gate",
+      raw: packed!
+    });
+    expect(shouldUseDecodePacketRaw(decodeStepped.actions)).toBe(true);
+    expect(shouldRejectDecodePacketRaw(decodeStepped.actions)).toBe(false);
+    const fields = packetHeaderFieldsFromActions(decodeStepped.actions);
+    expect(fields).not.toBeNull();
+    expect(fields!.hops).toBe(3);
+    expect([...fields!.data]).toEqual([...data]);
+
+    const rejectDecode = stepDecodePacketRawWithActions(initialDecodePacketRawState(), {
+      kind: "packet-header/decode-gate",
+      raw: new Uint8Array([0x00])
+    });
+    expect(shouldRejectDecodePacketRaw(rejectDecode.actions)).toBe(true);
+    expect(shouldUseDecodePacketRaw(rejectDecode.actions)).toBe(false);
+    expect(packetHeaderFieldsFromActions(rejectDecode.actions)).toBeNull();
   });
 
   it("plans fromFields construction gates", () => {

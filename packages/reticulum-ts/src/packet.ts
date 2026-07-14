@@ -1,12 +1,14 @@
 import {
-  decodePacketRaw,
-  encodePacketRaw,
+  encodePacketRawFromActions,
+  initialDecodePacketRawState,
+  initialEncodePacketRawState,
   initialPackPacketProofState,
   initialPacketFromFieldsState,
   initialSplitPacketProofState,
   packPacketFlags,
   packPacketProofRawFromActions,
   packetHashablePart,
+  packetHeaderFieldsFromActions,
   packetProofFieldsFromActions,
   packetProofHashMatches,
   PacketContextCode,
@@ -15,6 +17,8 @@ import {
   PacketTypeCode,
   TransportTypeCode,
   shouldProceedPacketFromFields,
+  shouldRejectDecodePacketRaw,
+  shouldRejectEncodePacketRaw,
   shouldRejectPacketFromFieldsBadContextFlag,
   shouldRejectPacketFromFieldsBadDestinationHash,
   shouldRejectPacketFromFieldsBadDestinationType,
@@ -24,8 +28,12 @@ import {
   shouldRejectPacketFromFieldsBadTransportType,
   shouldRejectPacketFromFieldsHeader2MissingTransportId,
   shouldRejectSplitPacketProof,
+  shouldUseDecodePacketRaw,
+  shouldUseEncodePacketRaw,
   shouldUsePackPacketProof,
   shouldUseSplitPacketProof,
+  stepDecodePacketRawWithActions,
+  stepEncodePacketRawWithActions,
   stepPackPacketProofWithActions,
   stepPacketFromFieldsWithActions,
   stepSplitPacketProofWithActions,
@@ -165,7 +173,17 @@ export class Packet {
   }
 
   static decode(provider: CryptoProvider, raw: Uint8Array): Packet | null {
-    const decoded = decodePacketRaw(raw);
+    const stepped = stepDecodePacketRawWithActions(initialDecodePacketRawState(), {
+      kind: "packet-header/decode-gate",
+      raw
+    });
+    if (
+      shouldRejectDecodePacketRaw(stepped.actions) ||
+      !shouldUseDecodePacketRaw(stepped.actions)
+    ) {
+      return null;
+    }
+    const decoded = packetHeaderFieldsFromActions(stepped.actions);
     if (decoded === null) {
       return null;
     }
@@ -261,6 +279,20 @@ export class Packet {
     readonly data: Uint8Array;
     readonly transportId: Uint8Array | null;
   }): Uint8Array {
-    return encodePacketRaw(fields);
+    const stepped = stepEncodePacketRawWithActions(initialEncodePacketRawState(), {
+      kind: "packet-header/encode-gate",
+      ...fields
+    });
+    if (
+      shouldRejectEncodePacketRaw(stepped.actions) ||
+      !shouldUseEncodePacketRaw(stepped.actions)
+    ) {
+      throw new Error("Packet encode rejected");
+    }
+    const raw = encodePacketRawFromActions(stepped.actions);
+    if (raw === null) {
+      throw new Error("Packet encode missing use-raw action");
+    }
+    return raw;
   }
 }

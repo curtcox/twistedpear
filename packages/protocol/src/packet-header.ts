@@ -2,6 +2,8 @@
  * Pure RNS packet header flag packing, raw encode/decode, and hashable-part framing.
  * Crypto hashing stays at the adapter edge.
  * fromFields conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Encode / decode conclusions leave via machine actions (no ad-hoc
+ * `encodePacketRaw` / `decodePacketRaw` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -450,4 +452,166 @@ export function packetHashablePart(raw: Uint8Array, headerType: number): Uint8Ar
     return concatBytes(maskedFlags, raw.subarray(TRANSPORT_ID_BYTES + 2));
   }
   return concatBytes(maskedFlags, raw.subarray(2));
+}
+
+export type EncodePacketRawFields = {
+  readonly headerType: number;
+  readonly contextFlag: number;
+  readonly transportType: number;
+  readonly destinationType: number;
+  readonly packetType: number;
+  readonly hops: number;
+  readonly destinationHash: Uint8Array;
+  readonly context: number;
+  readonly data: Uint8Array;
+  readonly transportId: Uint8Array | null;
+};
+
+/**
+ * Packet raw encode framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `encodePacketRaw` reads
+ * beside the step). Invalid sizes become `reject` (helper may throw).
+ */
+export type EncodePacketRawState = Record<string, never>;
+
+export type EncodePacketRawEvent =
+  | Event
+  | ({
+      readonly kind: "packet-header/encode-gate";
+    } & EncodePacketRawFields);
+
+export type EncodePacketRawAction =
+  | { readonly kind: "use-raw"; readonly raw: Uint8Array }
+  | { readonly kind: "reject" };
+
+export interface EncodePacketRawStepResult {
+  readonly state: EncodePacketRawState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly EncodePacketRawAction[];
+}
+
+export function initialEncodePacketRawState(): EncodePacketRawState {
+  return {};
+}
+
+export function stepEncodePacketRawWithActions(
+  state: EncodePacketRawState,
+  event: EncodePacketRawEvent
+): EncodePacketRawStepResult {
+  if (event.kind === "packet-header/encode-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [
+          {
+            kind: "use-raw",
+            raw: encodePacketRaw({
+              headerType: event.headerType,
+              contextFlag: event.contextFlag,
+              transportType: event.transportType,
+              destinationType: event.destinationType,
+              packetType: event.packetType,
+              hops: event.hops,
+              destinationHash: event.destinationHash,
+              context: event.context,
+              data: event.data,
+              transportId: event.transportId
+            })
+          }
+        ]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseEncodePacketRaw(
+  actions: ReadonlyArray<EncodePacketRawAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+export function shouldRejectEncodePacketRaw(
+  actions: ReadonlyArray<EncodePacketRawAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract packed packet bytes from step actions; null when no `use-raw`. */
+export function encodePacketRawFromActions(
+  actions: ReadonlyArray<EncodePacketRawAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Packet raw decode framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `decodePacketRaw` reads
+ * beside the step). Truncated / invalid frames become `reject`.
+ */
+export type DecodePacketRawState = Record<string, never>;
+
+export type DecodePacketRawEvent =
+  | Event
+  | {
+      readonly kind: "packet-header/decode-gate";
+      readonly raw: Uint8Array;
+    };
+
+export type DecodePacketRawAction =
+  | { readonly kind: "use-fields"; readonly fields: PacketHeaderFields }
+  | { readonly kind: "reject" };
+
+export interface DecodePacketRawStepResult {
+  readonly state: DecodePacketRawState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DecodePacketRawAction[];
+}
+
+export function initialDecodePacketRawState(): DecodePacketRawState {
+  return {};
+}
+
+export function stepDecodePacketRawWithActions(
+  state: DecodePacketRawState,
+  event: DecodePacketRawEvent
+): DecodePacketRawStepResult {
+  if (event.kind === "packet-header/decode-gate") {
+    const fields = decodePacketRaw(event.raw);
+    if (fields === null) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-fields", fields }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseDecodePacketRaw(
+  actions: ReadonlyArray<DecodePacketRawAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectDecodePacketRaw(
+  actions: ReadonlyArray<DecodePacketRawAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract decoded packet header fields from step actions; null when no `use-fields`. */
+export function packetHeaderFieldsFromActions(
+  actions: ReadonlyArray<DecodePacketRawAction>
+): PacketHeaderFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }

@@ -99,8 +99,10 @@
 > **`stepPackLinkProofDataWithActions`** / **`stepSplitLinkProofBodyWithActions`** /
 > **`stepPackLinkRequestDataWithActions`** / **`stepSplitLinkRequestDataWithActions`**:
 > use-raw / use-fields|reject) is a pure protocol leaf; `Link` adapts it.
-> **Packet header** encode/decode, flag packing, and hashable-part framing are pure
-> protocol leaves; `Packet` adapts them. **PKCS#7** padding and **LXMF delivery planning**
+> **Packet header** encode/decode (via **`stepEncodePacketRawWithActions`** /
+> **`stepDecodePacketRawWithActions`**: use-raw|reject / use-fields|reject),
+> flag packing, and hashable-part framing are pure protocol leaves; `Packet`
+> adapts them. **PKCS#7** padding and **LXMF delivery planning**
 > (method/representation selection via **`stepLxmfDeliveryWithActions`**) are
 > pure protocol leaves; Token and `LXMessage` adapt them. **Token framing**
 > (key split / iv||ciphertext||hmac via **`stepPackTokenFrameWithActions`** /
@@ -812,6 +814,7 @@
 > parse-path-request-data / path-request-tag-key /
 > pack-announce-payload / parse-announce-payload /
 > pack-packet-proof / split-packet-proof /
+> encode-packet-raw / decode-packet-raw /
 > pack-link-proof-data / split-link-proof-body /
 > pack-link-request-data / split-link-request-data /
 > pack-resource-proof / split-resource-proof /
@@ -886,6 +889,11 @@
 > **`stepSplitPacketProofWithActions`** emit `use-raw` / `use-fields`|`reject`;
 > packet-proof pack / split apply only from those actions (no ad-hoc
 > `packPacketProof` / `splitPacketProof` reads beside the step).
+> **`stepEncodePacketRawWithActions`** /
+> **`stepDecodePacketRawWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject`; packet-header encode / decode apply only from those
+> actions (no ad-hoc `encodePacketRaw` / `decodePacketRaw` reads beside the
+> step).
 > **`stepPackLinkProofDataWithActions`** /
 > **`stepSplitLinkProofBodyWithActions`** /
 > **`stepPackLinkRequestDataWithActions`** /
