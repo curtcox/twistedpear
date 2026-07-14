@@ -27,14 +27,14 @@ import {
   canRunResourceWatchdog,
   computeResourceTimeout,
   computeResourceTotalParts,
-  decodeResourceAdvertisementFlags,
-  encodeResourceAdvertisementFlags,
+  encodeResourceAdvertisementFlagsFromActions,
+  initialClassifyResourceAdvertisementState,
+  initialDecodeResourceAdvertisementFlagsState,
+  initialEncodeResourceAdvertisementFlagsState,
   initialResourceAdvertisementRoleFlagsState,
   initialResourceAdvertiseWaitState,
   initialResourceHashmapSlotWritesState,
   initialResourceStatusState,
-  isResourceAdvertisementRequest,
-  isResourceAdvertisementResponse,
   isResourceComplete,
   initialPackResourceAdvertisementState,
   initialUnpackResourceAdvertisementState,
@@ -58,6 +58,7 @@ import {
   initialSplitResourceProofState,
   initialUnpackResourceHashmapUpdateState,
   resourceAdvertisementFieldsFromActions,
+  resourceAdvertisementFlagFieldsFromActions,
   resourceAdvertisementRoleFlagsFromActions,
   resourceDecryptedPayloadFromActions,
   resourceHashmapSlotWritesFromActions,
@@ -71,12 +72,16 @@ import {
   shouldApplyResourceHashmapUpdateAccept,
   shouldCompleteResourceAssemble,
   shouldCompleteResourceProofAccept,
+  shouldClassifyResourceAdvertisementRequest,
+  shouldClassifyResourceAdvertisementResponse,
   shouldRejectUnpackResourceAdvertisement,
   shouldRejectParseResourcePartRequest,
   shouldRejectSplitResourceDecryptedPayload,
   shouldRejectSplitResourceHashmapUpdatePacket,
   shouldRejectSplitResourceProof,
   shouldRejectUnpackResourceHashmapUpdate,
+  shouldUseDecodeResourceAdvertisementFlags,
+  shouldUseEncodeResourceAdvertisementFlags,
   shouldUsePackResourceAdvertisement,
   shouldUsePackResourceHashmapUpdate,
   shouldUsePackResourceHashmapUpdatePacket,
@@ -89,6 +94,9 @@ import {
   shouldUseSplitResourceProof,
   shouldUseUnpackResourceHashmapUpdate,
   shouldWriteResourceHashmapSlots,
+  stepClassifyResourceAdvertisementWithActions,
+  stepDecodeResourceAdvertisementFlagsWithActions,
+  stepEncodeResourceAdvertisementFlagsWithActions,
   stepPackResourceAdvertisementWithActions,
   stepPackResourceHashmapUpdatePacketWithActions,
   stepPackResourceHashmapUpdateWithActions,
@@ -223,7 +231,17 @@ export class ResourceAdvertisement {
     const fields = shouldUseUnpackResourceAdvertisement(stepped.actions)
       ? resourceAdvertisementFieldsFromActions(stepped.actions)
       : null;
-    return fields !== null && isResourceAdvertisementRequest(fields);
+    if (fields === null) {
+      return false;
+    }
+    const classified = stepClassifyResourceAdvertisementWithActions(
+      initialClassifyResourceAdvertisementState(),
+      {
+        kind: "resource-advertisement/classify-gate",
+        fields
+      }
+    );
+    return shouldClassifyResourceAdvertisementRequest(classified.actions);
   }
 
   static isResponse(plaintext: Uint8Array): boolean {
@@ -240,7 +258,17 @@ export class ResourceAdvertisement {
     const fields = shouldUseUnpackResourceAdvertisement(stepped.actions)
       ? resourceAdvertisementFieldsFromActions(stepped.actions)
       : null;
-    return fields !== null && isResourceAdvertisementResponse(fields);
+    if (fields === null) {
+      return false;
+    }
+    const classified = stepClassifyResourceAdvertisementWithActions(
+      initialClassifyResourceAdvertisementState(),
+      {
+        kind: "resource-advertisement/classify-gate",
+        fields
+      }
+    );
+    return shouldClassifyResourceAdvertisementResponse(classified.actions);
   }
 
   static unpack(data: Uint8Array): ResourceAdvertisement {
@@ -261,7 +289,19 @@ export class ResourceAdvertisement {
     if (fields === null) {
       throw new Error("Invalid resource advertisement");
     }
-    const flags = decodeResourceAdvertisementFlags(fields.f);
+    const flagStepped = stepDecodeResourceAdvertisementFlagsWithActions(
+      initialDecodeResourceAdvertisementFlagsState(),
+      {
+        kind: "resource-advertisement/decode-flags-gate",
+        flags: fields.f
+      }
+    );
+    const flags = shouldUseDecodeResourceAdvertisementFlags(flagStepped.actions)
+      ? resourceAdvertisementFlagFieldsFromActions(flagStepped.actions)
+      : null;
+    if (flags === null) {
+      throw new Error("Invalid resource advertisement");
+    }
     const adv = new ResourceAdvertisement();
     adv.t = fields.t;
     adv.d = fields.d;
@@ -315,14 +355,27 @@ export class ResourceAdvertisement {
       : null;
     this.u = role?.u ?? false;
     this.p = role?.p ?? false;
-    this.f = encodeResourceAdvertisementFlags({
-      e: this.e,
-      c: this.c,
-      s: this.s,
-      u: this.u,
-      p: this.p,
-      x: this.x
-    });
+    const encodeStepped = stepEncodeResourceAdvertisementFlagsWithActions(
+      initialEncodeResourceAdvertisementFlagsState(),
+      {
+        kind: "resource-advertisement/encode-flags-gate",
+        flags: {
+          e: this.e,
+          c: this.c,
+          s: this.s,
+          u: this.u,
+          p: this.p,
+          x: this.x
+        }
+      }
+    );
+    const packedFlags = shouldUseEncodeResourceAdvertisementFlags(encodeStepped.actions)
+      ? encodeResourceAdvertisementFlagsFromActions(encodeStepped.actions)
+      : null;
+    if (packedFlags === null) {
+      throw new Error("Failed to encode resource advertisement flags");
+    }
+    this.f = packedFlags;
   }
 
   pack(): Uint8Array {

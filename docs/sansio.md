@@ -70,8 +70,12 @@
 > use-raw / proceed|reject / use-fields|reject) and shared **UTF-8** helpers are
 > pure protocol leaves; `Destination` and announce-handler path-hash call sites
 > adapt them (SHA stays at the crypto edge). **Msgpack string / string-map** packing and **resource advertisement**
-> codecs (pack/unpack + flag bits via **`stepPackResourceAdvertisementWithActions`** /
-> **`stepUnpackResourceAdvertisementWithActions`**: use-raw / use-fields|reject) are
+> codecs (pack/unpack via **`stepPackResourceAdvertisementWithActions`** /
+> **`stepUnpackResourceAdvertisementWithActions`**: use-raw / use-fields|reject;
+> flag encode/decode via **`stepEncodeResourceAdvertisementFlagsWithActions`** /
+> **`stepDecodeResourceAdvertisementFlagsWithActions`**: use-flags / use-fields;
+> request/response classify via **`stepClassifyResourceAdvertisementWithActions`**:
+> request|response|reject) are
 > pure protocol leaves; `ResourceAdvertisement` adapts them. **Resource hashmap-update** framing (pack/unpack / packet pack/split /
 > part-request parse via **`stepPackResourceHashmapUpdateWithActions`** /
 > **`stepUnpackResourceHashmapUpdateWithActions`** /
@@ -865,7 +869,9 @@
 > pending-link-request-unregister / stream-ready-callback-unregister /
 > packet-receipt-unregister / transport-member-unregister /
 > link-initiator-mtu / link-request-responder-mtu / packet-hash-defer /
-> resource-advertisement-role-flags / resource-hashmap-slot-writes /
+> resource-advertisement-role-flags / encode-resource-advertisement-flags /
+> decode-resource-advertisement-flags / classify-resource-advertisement /
+> resource-hashmap-slot-writes /
 > clone-packet-with-hops / transport-announce-fields /
 > path-response-announce-fields / wrap-transport-packet /
 > strip-transport-headers / relay-transport-packet-bytes /
@@ -887,7 +893,9 @@
 > pack-resource-hashmap-update / unpack-resource-hashmap-update /
 > pack-resource-hashmap-update-packet / split-resource-hashmap-update-packet /
 > parse-resource-part-request / pack-resource-advertisement /
-> unpack-resource-advertisement / pack-link-request /
+> unpack-resource-advertisement / encode-resource-advertisement-flags /
+> decode-resource-advertisement-flags / classify-resource-advertisement /
+> pack-link-request /
 > pack-link-response / unpack-link-request / unpack-link-response /
 > pack-token-frame / split-token-frame / split-token-key /
 > pack-identity-ciphertext / split-identity-ciphertext /
@@ -1103,6 +1111,14 @@
 > `use-fields`|`reject`; resource advertisement pack / unpack apply only from
 > those actions (no ad-hoc `packResourceAdvertisement` /
 > `unpackResourceAdvertisement` reads beside the step).
+> **`stepEncodeResourceAdvertisementFlagsWithActions`** /
+> **`stepDecodeResourceAdvertisementFlagsWithActions`** /
+> **`stepClassifyResourceAdvertisementWithActions`** emit `use-flags` /
+> `use-fields` / `request`|`response`|`reject`; resource advertisement flag
+> encode / decode and request/response classify apply only from those actions
+> (no ad-hoc `encodeResourceAdvertisementFlags` /
+> `decodeResourceAdvertisementFlags` / `isResourceAdvertisementRequest` /
+> `isResourceAdvertisementResponse` reads beside the step).
 > **`stepPackLinkRequestWithActions`** /
 > **`stepPackLinkResponseWithActions`** /
 > **`stepUnpackLinkRequestWithActions`** /

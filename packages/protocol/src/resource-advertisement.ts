@@ -1,9 +1,12 @@
 /**
  * Pure RNS resource advertisement msgpack codec and flag bits.
  * Hashing / link IO stay at the adapter edge.
- * Pack / unpack / role-flag conclusions leave via machine actions (no ad-hoc
+ * Pack / unpack / role-flag / flag encode-decode / request-response classify
+ * conclusions leave via machine actions (no ad-hoc
  * `packResourceAdvertisement` / `unpackResourceAdvertisement` /
- * `planResourceAdvertisementRoleFlags` reads beside the step).
+ * `planResourceAdvertisementRoleFlags` / `encodeResourceAdvertisementFlags` /
+ * `decodeResourceAdvertisementFlags` / `isResourceAdvertisementRequest` /
+ * `isResourceAdvertisementResponse` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import {
@@ -123,6 +126,197 @@ export function isResourceAdvertisementRequest(fields: ResourceAdvertisementFiel
 export function isResourceAdvertisementResponse(fields: ResourceAdvertisementFields): boolean {
   const flags = decodeResourceAdvertisementFlags(fields.f);
   return fields.q !== null && flags.p;
+}
+
+/**
+ * Resource advertisement flag encoding is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `encodeResourceAdvertisementFlags` reads beside the step).
+ */
+export type EncodeResourceAdvertisementFlagsState = Record<string, never>;
+
+export type EncodeResourceAdvertisementFlagsEvent =
+  | Event
+  | {
+      readonly kind: "resource-advertisement/encode-flags-gate";
+      readonly flags: ResourceAdvertisementFlags;
+    };
+
+export type EncodeResourceAdvertisementFlagsAction = {
+  readonly kind: "use-flags";
+  readonly flags: number;
+};
+
+export interface EncodeResourceAdvertisementFlagsStepResult {
+  readonly state: EncodeResourceAdvertisementFlagsState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly EncodeResourceAdvertisementFlagsAction[];
+}
+
+export function initialEncodeResourceAdvertisementFlagsState(): EncodeResourceAdvertisementFlagsState {
+  return {};
+}
+
+export function stepEncodeResourceAdvertisementFlagsWithActions(
+  state: EncodeResourceAdvertisementFlagsState,
+  event: EncodeResourceAdvertisementFlagsEvent
+): EncodeResourceAdvertisementFlagsStepResult {
+  if (event.kind === "resource-advertisement/encode-flags-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-flags",
+          flags: encodeResourceAdvertisementFlags(event.flags)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseEncodeResourceAdvertisementFlags(
+  actions: ReadonlyArray<EncodeResourceAdvertisementFlagsAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-flags");
+}
+
+/** Extract packed advertisement flags from step actions; null when no `use-flags`. */
+export function encodeResourceAdvertisementFlagsFromActions(
+  actions: ReadonlyArray<EncodeResourceAdvertisementFlagsAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-flags");
+  return action?.kind === "use-flags" ? action.flags : null;
+}
+
+/**
+ * Resource advertisement flag decoding is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `decodeResourceAdvertisementFlags` reads beside the step).
+ */
+export type DecodeResourceAdvertisementFlagsState = Record<string, never>;
+
+export type DecodeResourceAdvertisementFlagsEvent =
+  | Event
+  | {
+      readonly kind: "resource-advertisement/decode-flags-gate";
+      readonly flags: number;
+    };
+
+export type DecodeResourceAdvertisementFlagsAction = {
+  readonly kind: "use-fields";
+  readonly fields: ResourceAdvertisementFlags;
+};
+
+export interface DecodeResourceAdvertisementFlagsStepResult {
+  readonly state: DecodeResourceAdvertisementFlagsState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DecodeResourceAdvertisementFlagsAction[];
+}
+
+export function initialDecodeResourceAdvertisementFlagsState(): DecodeResourceAdvertisementFlagsState {
+  return {};
+}
+
+export function stepDecodeResourceAdvertisementFlagsWithActions(
+  state: DecodeResourceAdvertisementFlagsState,
+  event: DecodeResourceAdvertisementFlagsEvent
+): DecodeResourceAdvertisementFlagsStepResult {
+  if (event.kind === "resource-advertisement/decode-flags-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-fields",
+          fields: decodeResourceAdvertisementFlags(event.flags)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseDecodeResourceAdvertisementFlags(
+  actions: ReadonlyArray<DecodeResourceAdvertisementFlagsAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+/** Extract decoded advertisement flag fields from step actions; null when no `use-fields`. */
+export function resourceAdvertisementFlagFieldsFromActions(
+  actions: ReadonlyArray<DecodeResourceAdvertisementFlagsAction>
+): ResourceAdvertisementFlags | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
+}
+
+/**
+ * Resource advertisement request/response classification is event-driven; no durable
+ * session fields. Conclusions leave via machine actions (no ad-hoc
+ * `isResourceAdvertisementRequest` / `isResourceAdvertisementResponse` reads
+ * beside the step).
+ */
+export type ClassifyResourceAdvertisementState = Record<string, never>;
+
+export type ClassifyResourceAdvertisementEvent =
+  | Event
+  | {
+      readonly kind: "resource-advertisement/classify-gate";
+      readonly fields: ResourceAdvertisementFields;
+    };
+
+export type ClassifyResourceAdvertisementAction =
+  | { readonly kind: "request" }
+  | { readonly kind: "response" }
+  | { readonly kind: "reject" };
+
+export interface ClassifyResourceAdvertisementStepResult {
+  readonly state: ClassifyResourceAdvertisementState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ClassifyResourceAdvertisementAction[];
+}
+
+export function initialClassifyResourceAdvertisementState(): ClassifyResourceAdvertisementState {
+  return {};
+}
+
+export function stepClassifyResourceAdvertisementWithActions(
+  state: ClassifyResourceAdvertisementState,
+  event: ClassifyResourceAdvertisementEvent
+): ClassifyResourceAdvertisementStepResult {
+  if (event.kind === "resource-advertisement/classify-gate") {
+    if (isResourceAdvertisementRequest(event.fields)) {
+      return { state, intents: [], actions: [{ kind: "request" }] };
+    }
+    if (isResourceAdvertisementResponse(event.fields)) {
+      return { state, intents: [], actions: [{ kind: "response" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "reject" }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldClassifyResourceAdvertisementRequest(
+  actions: ReadonlyArray<ClassifyResourceAdvertisementAction>
+): boolean {
+  return actions.some((action) => action.kind === "request");
+}
+
+export function shouldClassifyResourceAdvertisementResponse(
+  actions: ReadonlyArray<ClassifyResourceAdvertisementAction>
+): boolean {
+  return actions.some((action) => action.kind === "response");
+}
+
+export function shouldRejectClassifyResourceAdvertisement(
+  actions: ReadonlyArray<ClassifyResourceAdvertisementAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
 }
 
 /**
