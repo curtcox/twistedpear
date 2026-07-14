@@ -10,6 +10,8 @@ import {
   planIdentityRecall,
   planIdentityRecallAppData,
   shouldAttemptIdentityRatchetDecrypt,
+  shouldAcceptIdentityCiphertextFrame,
+  shouldAcceptIdentityDecryptPlaintext,
   splitIdentityCiphertext
 } from "../src/identity-ciphertext.js";
 
@@ -26,6 +28,10 @@ describe("protocol identity ciphertext", () => {
 
   it("rejects short ciphertexts", () => {
     expect(splitIdentityCiphertext(new Uint8Array(IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE))).toBeNull();
+    expect(shouldAcceptIdentityCiphertextFrame(true)).toBe(true);
+    expect(shouldAcceptIdentityCiphertextFrame(false)).toBe(false);
+    expect(shouldAcceptIdentityDecryptPlaintext(true)).toBe(true);
+    expect(shouldAcceptIdentityDecryptPlaintext(false)).toBe(false);
   });
 
   it("plans decrypt outcomes after frame / ratchet / identity fallback", () => {

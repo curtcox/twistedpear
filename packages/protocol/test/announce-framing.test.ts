@@ -13,6 +13,8 @@ import {
   planAnnounceBuild,
   planAnnounceValidateOutcome,
   shouldAttemptAnnounceSignatureValidate,
+  shouldAcceptAnnouncePayload,
+  shouldAcceptParsedAnnounce,
   shouldCheckAnnounceDestinationHash
 } from "../src/announce-framing.js";
 import { PACKET_TYPE_ANNOUNCE, PACKET_TYPE_DATA } from "../src/packet-header.js";
@@ -232,5 +234,9 @@ describe("protocol announce framing", () => {
         onlyValidateSignature: true
       })
     ).toBe(false);
+    expect(shouldAcceptAnnouncePayload(true)).toBe(true);
+    expect(shouldAcceptAnnouncePayload(false)).toBe(false);
+    expect(shouldAcceptParsedAnnounce(true)).toBe(true);
+    expect(shouldAcceptParsedAnnounce(false)).toBe(false);
   });
 });

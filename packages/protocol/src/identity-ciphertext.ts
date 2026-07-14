@@ -45,6 +45,16 @@ export function splitIdentityCiphertext(
   };
 }
 
+/** Whether identity ciphertext split succeeded and may drive decrypt. */
+export function shouldAcceptIdentityCiphertextFrame(splitOk: boolean): boolean {
+  return splitOk;
+}
+
+/** Whether identity decrypt may return accepted plaintext after plan outcome. */
+export function shouldAcceptIdentityDecryptPlaintext(planAccept: boolean): boolean {
+  return planAccept;
+}
+
 export type IdentityDecryptPlan =
   | "reject-frame"
   | "accept"

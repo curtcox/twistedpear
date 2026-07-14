@@ -97,6 +97,8 @@ import {
   shouldAttemptLinkProofCrypto,
   shouldContinueLinkValidateRequest,
   shouldCreateLinkChannel,
+  shouldCommitLinkRemoteIdentity,
+  shouldDeliverPendingLinkAppResponse,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
   shouldHandleIncomingResourceByHash,
@@ -1112,20 +1114,23 @@ export class Link {
       );
 
     if (
-      planLinkIdentifyOutcome({
-        canAccept,
-        plaintextPresent: plaintext !== null,
-        partsPresent: parts !== null,
-        identityPresent: identity !== null,
-        signatureValid
-      }) === "reject" ||
-      identity === null
+      !shouldCommitLinkRemoteIdentity({
+        planAccept:
+          planLinkIdentifyOutcome({
+            canAccept,
+            plaintextPresent: plaintext !== null,
+            partsPresent: parts !== null,
+            identityPresent: identity !== null,
+            signatureValid
+          }) === "accept",
+        identityPresent: identity !== null
+      })
     ) {
       return;
     }
 
-    this.remoteIdentity = identity;
-    this.callbacks.remoteIdentified?.(this, identity);
+    this.remoteIdentity = identity!;
+    this.callbacks.remoteIdentified?.(this, identity!);
   }
 
   private async handleRequestPacket(packet: Packet): Promise<void> {
@@ -1203,8 +1208,8 @@ export class Link {
         requestIds: pending.map((entry) => entry.requestId),
         target: requestId
       });
-      if (index !== null) {
-        pending[index]!.responseReceived(responseData);
+      if (shouldDeliverPendingLinkAppResponse(index !== null)) {
+        pending[index!]!.responseReceived(responseData);
       }
     } catch {
       // Ignore malformed responses.

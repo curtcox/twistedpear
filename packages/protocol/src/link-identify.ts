@@ -37,6 +37,17 @@ export function planLinkIdentifyOutcome(input: {
   return "accept";
 }
 
+/**
+ * Whether LINKIDENTIFY may commit remoteIdentity after {@link planLinkIdentifyOutcome}
+ * and the identity reference remains present for narrowing.
+ */
+export function shouldCommitLinkRemoteIdentity(input: {
+  readonly planAccept: boolean;
+  readonly identityPresent: boolean;
+}): boolean {
+  return input.planAccept && input.identityPresent;
+}
+
 export function splitLinkIdentifyPayload(plaintext: Uint8Array): {
   readonly publicKey: Uint8Array;
   readonly signature: Uint8Array;

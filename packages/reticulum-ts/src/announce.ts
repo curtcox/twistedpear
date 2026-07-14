@@ -10,6 +10,7 @@ import {
   parseAnnouncePayload,
   planAnnounceBuild,
   planAnnounceValidateOutcome,
+  shouldAcceptAnnouncePayload,
   shouldAttemptAnnounceSignatureValidate,
   shouldCheckAnnounceDestinationHash,
   truncateToTruncatedHash
@@ -131,13 +132,13 @@ export class Announce {
     }
 
     const fields = parseAnnouncePayload(packet.data, packet.contextFlag === PacketContextFlag.SET);
-    if (fields === null) {
+    if (!shouldAcceptAnnouncePayload(fields !== null)) {
       return null;
     }
 
     return {
       destinationHash: packet.destinationHash,
-      ...fields
+      ...fields!
     };
   }
 

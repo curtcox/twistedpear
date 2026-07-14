@@ -24,6 +24,8 @@ import {
   planIdentityRecall,
   planIdentityRecallAppData,
   shouldAttemptIdentityRatchetDecrypt,
+  shouldAcceptIdentityCiphertextFrame,
+  shouldAcceptIdentityDecryptPlaintext,
   shouldPersistIdentityRatchet,
   shouldRestoreIdentityRatchetRecord,
   splitIdentityCiphertext,
@@ -331,9 +333,9 @@ export class Identity {
     let plaintext: Uint8Array | null = null;
     let ratchetId: Uint8Array | null = null;
 
-    if (split !== null) {
-      const peerPublicBytes = split.ephemeralPublicKey;
-      const ciphertext = split.tokenCiphertext;
+    if (shouldAcceptIdentityCiphertextFrame(split !== null)) {
+      const peerPublicBytes = split!.ephemeralPublicKey;
+      const ciphertext = split!.tokenCiphertext;
 
       if (shouldAttemptIdentityRatchetDecrypt(options.ratchets !== undefined)) {
         for (const ratchet of options.ratchets!) {
@@ -386,7 +388,7 @@ export class Identity {
       identityFallbackDone: true,
       identityPlaintextPresent: plaintext !== null
     });
-    if (afterIdentity !== "accept") {
+    if (!shouldAcceptIdentityDecryptPlaintext(afterIdentity === "accept")) {
       return { plaintext: null, ratchetId: null };
     }
     return { plaintext, ratchetId };

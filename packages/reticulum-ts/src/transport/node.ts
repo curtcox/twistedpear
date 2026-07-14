@@ -3,11 +3,14 @@ import {
   PATHFINDER_EXPIRY_SECONDS,
   PATHFINDER_MAX_HOPS,
   PATH_AWAIT_TIMER_ID,
-  PATH_REQUEST_GRACE_MS,
   PATH_REQUEST_TIMEOUT_SECONDS,
+  PATH_RESPONSE_GRACE_TIMER_ID,
   initialPathAwaitState,
+  initialPathResponseGraceState,
   shouldContinuePathAwait,
+  shouldTransmitPathResponse,
   stepPathAwait,
+  stepPathResponseGraceWithActions,
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
   appendPathRandomBlob,
   canEmitDestinationProof,
@@ -37,6 +40,7 @@ import {
   canDispatchAnnounceHandlers,
   shouldAcceptCachedPathResponsePacket,
   shouldAcceptLinkLrProofCandidate,
+  shouldAcceptParsedAnnounce,
   shouldAnswerPathWithEntry,
   shouldAppendActiveLinkMembership,
   shouldDispatchLocalLinkRequest,
@@ -529,9 +533,10 @@ export class LeafTransport {
     }
 
     const parsed = Announce.parse(packet);
-    if (parsed === null) {
+    if (!shouldAcceptParsedAnnounce(parsed !== null)) {
       return;
     }
+    const announce = parsed!;
 
     const localDestination = this.destinations.find((entry) =>
       shouldMatchLocalInboundDestination({
@@ -544,7 +549,7 @@ export class LeafTransport {
     }
 
     const receivedFrom = packet.transportId ?? packet.destinationHash;
-    const randomBlob = parsed.randomHash;
+    const randomBlob = announce.randomHash;
     const existing = this.pathTable.get(hashKey(packet.destinationHash));
     const now = this.clock.now() / 1000;
     const shouldAdd = shouldAddPathEntry({
@@ -585,8 +590,8 @@ export class LeafTransport {
     Identity.rememberDestination(
       packet.destinationHash,
       receivedFrom,
-      parsed.publicKey,
-      parsed.appData,
+      announce.publicKey,
+      announce.appData,
       now
     );
 
@@ -631,8 +636,8 @@ export class LeafTransport {
       handler.receivedAnnounce({
         destinationHash: packet.destinationHash,
         announcedIdentity: identity,
-        appData: parsed.appData,
-        announce: parsed,
+        appData: announce.appData,
+        announce,
         packet
       });
     }
@@ -849,21 +854,42 @@ export class LeafTransport {
   }
 
   protected async sendPathResponse(path: PathEntry, iface: PacketInterface): Promise<void> {
-    await new Promise<void>((resolve) => {
-      this.clock.setTimeout(() => {
-        void (async () => {
-          const cached = Packet.decode(this.provider, path.announceRaw);
-          if (!shouldAcceptCachedPathResponsePacket(cached !== null)) {
-            resolve();
-            return;
-          }
+    const armed = stepPathResponseGraceWithActions(initialPathResponseGraceState(), {
+      kind: "path-response-grace/arm"
+    } as never);
+    let state = armed.state;
 
-          const response = buildPathResponseAnnounce(this.provider, cached!, this.transportIdentity, path.hops);
-          await this.outbound(response, iface);
-          resolve();
-        })();
-      }, PATH_REQUEST_GRACE_MS);
+    for (const intent of armed.intents) {
+      if (intent.kind === "timer/set" && intent.timer.id === PATH_RESPONSE_GRACE_TIMER_ID) {
+        await this.delay(intent.timer.delayMs);
+      }
+    }
+
+    const tick = stepPathResponseGraceWithActions(state, {
+      kind: "timer/fired",
+      id: PATH_RESPONSE_GRACE_TIMER_ID,
+      at: this.clock.now()
     });
+    state = tick.state;
+    if (!shouldTransmitPathResponse(state)) {
+      return;
+    }
+
+    for (const action of tick.actions) {
+      if (action.kind === "transmit") {
+        const cached = Packet.decode(this.provider, path.announceRaw);
+        if (!shouldAcceptCachedPathResponsePacket(cached !== null)) {
+          return;
+        }
+        const response = buildPathResponseAnnounce(
+          this.provider,
+          cached!,
+          this.transportIdentity,
+          path.hops
+        );
+        await this.outbound(response, iface);
+      }
+    }
   }
 
   protected packetFilter(packet: Packet): boolean {

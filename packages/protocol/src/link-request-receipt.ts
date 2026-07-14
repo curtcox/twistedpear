@@ -89,6 +89,11 @@ export function indexOfPendingLinkAppRequest(input: {
   return null;
 }
 
+/** Whether RESPONSE dispatch may deliver after {@link indexOfPendingLinkAppRequest}. */
+export function shouldDeliverPendingLinkAppResponse(indexPresent: boolean): boolean {
+  return indexPresent;
+}
+
 /** Whether a pending link-request receipt list should receive a new member. */
 export function shouldRegisterPendingLinkRequest(alreadyPresent: boolean): boolean {
   return !alreadyPresent;

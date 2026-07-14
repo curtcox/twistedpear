@@ -5,6 +5,7 @@ import {
   linkIdentifySignedMaterial,
   packLinkIdentifyPayload,
   planLinkIdentifyOutcome,
+  shouldCommitLinkRemoteIdentity,
   splitLinkIdentifyPayload
 } from "../src/link-identify.js";
 import { computeLinkMdu, linkHopsMatch, linkPayloadFitsMdu } from "../src/link-metrics.js";
@@ -44,6 +45,15 @@ describe("protocol link identify", () => {
         signatureValid: false
       })
     ).toBe("reject");
+    expect(
+      shouldCommitLinkRemoteIdentity({ planAccept: true, identityPresent: true })
+    ).toBe(true);
+    expect(
+      shouldCommitLinkRemoteIdentity({ planAccept: true, identityPresent: false })
+    ).toBe(false);
+    expect(
+      shouldCommitLinkRemoteIdentity({ planAccept: false, identityPresent: true })
+    ).toBe(false);
   });
 
   it("splits and packs identify payloads", () => {

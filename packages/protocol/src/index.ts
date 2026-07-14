@@ -54,6 +54,7 @@ export {
   indexOfPendingLinkAppRequest,
   initialLinkRequestReceiptState,
   planUnregisterPendingLinkRequest,
+  shouldDeliverPendingLinkAppResponse,
   shouldUnregisterPendingLinkRequest,
   shouldRegisterPendingLinkRequest,
   shouldAttachLinkRequestPacketReceipt,
@@ -260,6 +261,17 @@ export {
   type LinkAwaitEvent,
   type LinkAwaitState
 } from "./link-await.js";
+export {
+  PATH_RESPONSE_GRACE_TIMER_ID,
+  initialPathResponseGraceState,
+  shouldTransmitPathResponse,
+  stepPathResponseGrace,
+  stepPathResponseGraceWithActions,
+  type PathResponseGraceAction,
+  type PathResponseGraceEvent,
+  type PathResponseGraceState,
+  type PathResponseGraceStepResult
+} from "./path-response-grace.js";
 export {
   PATHFINDER_EXPIRY_SECONDS,
   PATHFINDER_MAX_HOPS,
@@ -600,6 +612,7 @@ export {
   linkIdentifySignedMaterial,
   packLinkIdentifyPayload,
   planLinkIdentifyOutcome,
+  shouldCommitLinkRemoteIdentity,
   splitLinkIdentifyPayload,
   type LinkIdentifyOutcome
 } from "./link-identify.js";
@@ -881,6 +894,8 @@ export {
   parseAnnouncePayload,
   planAnnounceBuild,
   planAnnounceValidateOutcome,
+  shouldAcceptAnnouncePayload,
+  shouldAcceptParsedAnnounce,
   shouldAttemptAnnounceSignatureValidate,
   shouldCheckAnnounceDestinationHash,
   type AnnounceBuildPlan,
@@ -1047,6 +1062,8 @@ export {
   planIdentityRecall,
   planIdentityRecallAppData,
   shouldAttemptIdentityRatchetDecrypt,
+  shouldAcceptIdentityCiphertextFrame,
+  shouldAcceptIdentityDecryptPlaintext,
   splitIdentityCiphertext,
   type IdentityCiphertextFields,
   type IdentityDecryptPlan,

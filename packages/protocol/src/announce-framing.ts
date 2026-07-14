@@ -127,6 +127,16 @@ export function parseAnnouncePayload(
   };
 }
 
+/** Whether announce payload fields parsed successfully and may be retained. */
+export function shouldAcceptAnnouncePayload(fieldsPresent: boolean): boolean {
+  return fieldsPresent;
+}
+
+/** Whether a validated announce parse result may enter handleAnnounce. */
+export function shouldAcceptParsedAnnounce(parsedPresent: boolean): boolean {
+  return parsedPresent;
+}
+
 /** Material hashed then truncated for destination-hash check after announce validate. */
 export function announceDestinationHashMaterial(
   nameHash: Uint8Array,

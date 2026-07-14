@@ -321,7 +321,14 @@
 > lives in protocol; `TransportNode.awaitPath` adapts it. **`stepLinkAwait`** (outbound
 > link establish-or-timeout; timer set/cancel intents) lives in protocol; LXMF router
 > direct/propagation link waits and `PropagationClient` adapt it.
-> Remaining depth work: keep converting residual session IO into step machines.
+> **`stepPathResponseGrace`** (PATH_REQUEST_GRACE_MS delay then transmit action) lives in
+> protocol; `TransportNode.sendPathResponse` adapts it.
+> **`shouldDeliverPendingLinkAppResponse`** / **`shouldCommitLinkRemoteIdentity`**,
+> **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
+> **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
+> live in protocol; Link, Announce, TransportNode, and Identity adapt them.
+> Remaining depth work: switch residual session IO / timer loops into step machines
+> (cheap presence leaves in preferred Link/Announce/Identity paths are largely exhausted).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

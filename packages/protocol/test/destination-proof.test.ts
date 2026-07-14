@@ -15,6 +15,7 @@ import {
   indexOfPendingLinkAppRequest,
   initialLinkRequestReceiptState,
   planUnregisterPendingLinkRequest,
+  shouldDeliverPendingLinkAppResponse,
   shouldRegisterPendingLinkRequest,
   stepLinkRequestReceipt
 } from "../src/link-request-receipt.js";
@@ -102,6 +103,8 @@ describe("link request receipt step", () => {
         target: new Uint8Array([9, 9, 9])
       })
     ).toBeNull();
+    expect(shouldDeliverPendingLinkAppResponse(true)).toBe(true);
+    expect(shouldDeliverPendingLinkAppResponse(false)).toBe(false);
   });
 
   it("plans pending link-request register and unregister", () => {
