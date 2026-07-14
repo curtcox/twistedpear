@@ -3,15 +3,19 @@ import {
   CHANNEL_ENVELOPE_HEADER_SIZE,
   CHANNEL_SEQ_MODULUS,
   ChannelMessageState,
+  channelEnvelopeFieldsFromActions,
   channelMessageStateFromPacketReceipt,
   channelPayloadMdu,
   initialChannelEnvelopePackState,
   initialChannelEnvelopeUnpackState,
   initialChannelMessageHandlerUnregisterState,
   initialChannelMessageTypeRegistrationState,
+  initialPackChannelEnvelopeState,
+  initialUnpackChannelEnvelopeState,
   isChannelSystemMsgType,
   nextChannelSequence,
   packChannelEnvelope,
+  packChannelEnvelopeRawFromActions,
   planChannelEnvelopePack,
   planChannelEnvelopeUnpack,
   planChannelMessageTypeRegistration,
@@ -28,13 +32,19 @@ import {
   shouldRejectChannelEnvelopeUnpackTruncate,
   shouldRejectChannelMessageTypeMissingMsgtype,
   shouldRejectChannelMessageTypeSystemReserved,
+  shouldRejectPackChannelEnvelope,
+  shouldRejectUnpackChannelEnvelope,
   shouldRemoveChannelMessageHandler,
   shouldStopChannelHandlerFanout,
   shouldUnregisterChannelMessageHandler,
+  shouldUsePackChannelEnvelope,
+  shouldUseUnpackChannelEnvelope,
   stepChannelEnvelopePackWithActions,
   stepChannelEnvelopeUnpackWithActions,
   stepChannelMessageHandlerUnregisterWithActions,
   stepChannelMessageTypeRegistrationWithActions,
+  stepPackChannelEnvelopeWithActions,
+  stepUnpackChannelEnvelopeWithActions,
   unpackChannelEnvelope
 } from "../src/channel-envelope.js";
 import {
@@ -88,6 +98,40 @@ describe("protocol channel envelope", () => {
       payload: Uint8Array.from([1, 2, 3])
     });
     expect(unpackChannelEnvelope(packed.subarray(0, packed.length - 1))).toBeNull();
+  });
+
+  it("emits pack/unpack framing actions from WithActions steps", () => {
+    const fields = {
+      msgType: 0x0102,
+      sequence: 7,
+      payload: Uint8Array.from([9, 8, 7])
+    };
+    const packed = packChannelEnvelope(fields);
+
+    const packOk = stepPackChannelEnvelopeWithActions(initialPackChannelEnvelopeState(), {
+      kind: "channel-envelope/pack-gate",
+      ...fields
+    });
+    expect(shouldUsePackChannelEnvelope(packOk.actions)).toBe(true);
+    expect(shouldRejectPackChannelEnvelope(packOk.actions)).toBe(false);
+    expect([...packChannelEnvelopeRawFromActions(packOk.actions)!]).toEqual([...packed]);
+
+    const unpackOk = stepUnpackChannelEnvelopeWithActions(initialUnpackChannelEnvelopeState(), {
+      kind: "channel-envelope/unpack-gate",
+      raw: packed
+    });
+    expect(shouldUseUnpackChannelEnvelope(unpackOk.actions)).toBe(true);
+    const unpacked = channelEnvelopeFieldsFromActions(unpackOk.actions)!;
+    expect(unpacked.msgType).toBe(0x0102);
+    expect(unpacked.sequence).toBe(7);
+    expect([...unpacked.payload]).toEqual([9, 8, 7]);
+
+    const unpackReject = stepUnpackChannelEnvelopeWithActions(initialUnpackChannelEnvelopeState(), {
+      kind: "channel-envelope/unpack-gate",
+      raw: new Uint8Array(5)
+    });
+    expect(shouldRejectUnpackChannelEnvelope(unpackReject.actions)).toBe(true);
+    expect(channelEnvelopeFieldsFromActions(unpackReject.actions)).toBeNull();
   });
 
   it("classifies system msgtypes and payload MDU", () => {

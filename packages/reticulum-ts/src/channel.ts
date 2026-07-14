@@ -9,6 +9,7 @@ import {
   canLinkSend,
   channelAllowsSend,
   channelEmplaceIndex,
+  channelEnvelopeFieldsFromActions,
   channelMessageStateFromPacketReceipt,
   channelPacketTimeoutSeconds,
   channelPayloadMdu,
@@ -27,7 +28,9 @@ import {
   initialChannelSendState,
   initialChannelTxEnvelopeOpState,
   initialChannelTxReceiptTimeoutRefreshState,
-  packChannelEnvelope,
+  initialPackChannelEnvelopeState,
+  initialUnpackChannelEnvelopeState,
+  packChannelEnvelopeRawFromActions,
   shouldAcceptChannelSequence,
   shouldApplyChannelPacketReceiptTimeout,
   shouldApplyChannelTxReceiptTimeoutExtension,
@@ -50,10 +53,14 @@ import {
   shouldRejectChannelMessageTypeSystemReserved,
   shouldRejectChannelSendLinkNotReady,
   shouldRejectChannelSendTooBig,
+  shouldRejectPackChannelEnvelope,
+  shouldRejectUnpackChannelEnvelope,
   shouldRemoveChannelMessageHandler,
   shouldReplaceChannelResentPacket,
   shouldRetryChannelTxTimeout,
   shouldStopChannelHandlerFanout,
+  shouldUsePackChannelEnvelope,
+  shouldUseUnpackChannelEnvelope,
   channelMessageHandlerUnregisterIndex,
   channelTxReceiptTimeoutExtensions,
   stepChannelEnvelopePackWithActions,
@@ -65,9 +72,11 @@ import {
   stepChannelTxReceiptTimeoutRefreshWithActions,
   stepChannelTxTimeoutWithActions,
   stepChannelWindow,
-  unpackChannelEnvelope,
+  stepPackChannelEnvelopeWithActions,
+  stepUnpackChannelEnvelopeWithActions,
   type ChannelTxTimeoutAction,
-  type ChannelWindowState
+  type ChannelWindowState,
+  type UnpackedChannelEnvelope
 } from "@twistedpear/protocol";
 import type { Link } from "./link.js";
 import { PacketContext } from "./packet.js";
@@ -159,16 +168,40 @@ class Envelope {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope has no message");
     }
 
-    this.raw = packChannelEnvelope({
+    const packStepped = stepPackChannelEnvelopeWithActions(initialPackChannelEnvelopeState(), {
+      kind: "channel-envelope/pack-gate",
       msgType: this.message.MSGTYPE,
       sequence: this.sequence,
       payload: this.message.pack()
     });
+    if (
+      shouldRejectPackChannelEnvelope(packStepped.actions) ||
+      !shouldUsePackChannelEnvelope(packStepped.actions)
+    ) {
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope pack failed");
+    }
+    const packed = packChannelEnvelopeRawFromActions(packStepped.actions);
+    if (packed === null) {
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope pack failed");
+    }
+    this.raw = packed;
     return this.raw;
   }
 
   unpack(factories: ReadonlyMap<number, ChannelMessageConstructor>): ChannelMessage {
-    const unpacked = this.raw === null ? null : unpackChannelEnvelope(this.raw);
+    let unpacked: UnpackedChannelEnvelope | null = null;
+    if (this.raw !== null) {
+      const unpackStepped = stepUnpackChannelEnvelopeWithActions(initialUnpackChannelEnvelopeState(), {
+        kind: "channel-envelope/unpack-gate",
+        raw: this.raw
+      });
+      if (
+        !shouldRejectUnpackChannelEnvelope(unpackStepped.actions) &&
+        shouldUseUnpackChannelEnvelope(unpackStepped.actions)
+      ) {
+        unpacked = channelEnvelopeFieldsFromActions(unpackStepped.actions);
+      }
+    }
     const { actions } = stepChannelEnvelopeUnpackWithActions(initialChannelEnvelopeUnpackState(), {
       kind: "channel/envelope-unpack-gate",
       rawPresent: this.raw !== null,

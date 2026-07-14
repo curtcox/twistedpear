@@ -1,8 +1,10 @@
 /**
  * Pure capability-grant lifecycle for a single app on a host.
  * Persists via store/write intents; time arrives only as event.at.
+ * Encode / decode conclusions leave via machine actions (no ad-hoc
+ * `encodeGrantRecord` / `decodeGrantRecord` reads beside the step).
  */
-import type { Event, StepFn } from "@twistedpear/effects";
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
 export interface GrantRecord {
   readonly appId: string;
@@ -63,18 +65,27 @@ function stepGrantHostInner(state: GrantHostState, event: GrantEvent): {
     if (event.value === undefined) {
       return { state, intents: [] };
     }
-    try {
-      const record = decodeGrantRecord(event.value);
-      if (record.appId !== state.appId || record.publisherPublicKey !== state.publisherPublicKey) {
-        return {
-          state: { ...state, lastError: "grant record identity mismatch" },
-          intents: []
-        };
-      }
-      return { state: { ...state, record, lastError: null }, intents: [] };
-    } catch {
+    const decodeStepped = stepDecodeGrantRecordWithActions(initialDecodeGrantRecordState(), {
+      kind: "grant/decode-gate",
+      bytes: event.value
+    });
+    if (
+      shouldRejectDecodeGrantRecord(decodeStepped.actions) ||
+      !shouldUseDecodeGrantRecord(decodeStepped.actions)
+    ) {
       return { state: { ...state, lastError: "grant record decode failed" }, intents: [] };
     }
+    const record = grantRecordFromActions(decodeStepped.actions);
+    if (record === null) {
+      return { state: { ...state, lastError: "grant record decode failed" }, intents: [] };
+    }
+    if (record.appId !== state.appId || record.publisherPublicKey !== state.publisherPublicKey) {
+      return {
+        state: { ...state, lastError: "grant record identity mismatch" },
+        intents: []
+      };
+    }
+    return { state: { ...state, record, lastError: null }, intents: [] };
   }
 
   if (event.kind === "grant/set") {
@@ -95,6 +106,10 @@ function stepGrantHostInner(state: GrantHostState, event: GrantEvent): {
       granted,
       updatedAt: event.at
     };
+    const encoded = encodeGrantRecordRawFromGate(record);
+    if (encoded === null) {
+      return { state: { ...state, lastError: "grant record encode failed" }, intents: [] };
+    }
     return {
       state: { ...state, record, lastError: null },
       intents: [
@@ -102,7 +117,7 @@ function stepGrantHostInner(state: GrantHostState, event: GrantEvent): {
           kind: "store/write",
           write: {
             key: grantStoreKey(state.appId, state.publisherPublicKey),
-            value: encodeGrantRecord(record)
+            value: encoded
           }
         }
       ]
@@ -119,6 +134,10 @@ function stepGrantHostInner(state: GrantHostState, event: GrantEvent): {
       granted,
       updatedAt: event.at
     };
+    const encoded = encodeGrantRecordRawFromGate(record);
+    if (encoded === null) {
+      return { state: { ...state, lastError: "grant record encode failed" }, intents: [] };
+    }
     return {
       state: { ...state, record, lastError: null },
       intents: [
@@ -126,7 +145,7 @@ function stepGrantHostInner(state: GrantHostState, event: GrantEvent): {
           kind: "store/write",
           write: {
             key: grantStoreKey(state.appId, state.publisherPublicKey),
-            value: encodeGrantRecord(record)
+            value: encoded
           }
         }
       ]
@@ -134,6 +153,20 @@ function stepGrantHostInner(state: GrantHostState, event: GrantEvent): {
   }
 
   return { state, intents: [] };
+}
+
+function encodeGrantRecordRawFromGate(record: GrantRecord): Uint8Array | null {
+  const encodeStepped = stepEncodeGrantRecordWithActions(initialEncodeGrantRecordState(), {
+    kind: "grant/encode-gate",
+    record
+  });
+  if (
+    shouldRejectEncodeGrantRecord(encodeStepped.actions) ||
+    !shouldUseEncodeGrantRecord(encodeStepped.actions)
+  ) {
+    return null;
+  }
+  return encodeGrantRecordRawFromActions(encodeStepped.actions);
 }
 
 export function encodeGrantRecord(record: GrantRecord): Uint8Array {
@@ -162,6 +195,140 @@ export function decodeGrantRecord(bytes: Uint8Array): GrantRecord {
     granted: dedupe(parsed.granted.map(String)),
     updatedAt: parsed.updatedAt
   };
+}
+
+/**
+ * Grant-record encode framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `encodeGrantRecord`
+ * reads beside the step). Encode failures become `reject`.
+ */
+export type EncodeGrantRecordState = Record<string, never>;
+
+export type EncodeGrantRecordEvent =
+  | Event
+  | {
+      readonly kind: "grant/encode-gate";
+      readonly record: GrantRecord;
+    };
+
+export type EncodeGrantRecordAction =
+  | { readonly kind: "use-raw"; readonly raw: Uint8Array }
+  | { readonly kind: "reject" };
+
+export interface EncodeGrantRecordStepResult {
+  readonly state: EncodeGrantRecordState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly EncodeGrantRecordAction[];
+}
+
+export function initialEncodeGrantRecordState(): EncodeGrantRecordState {
+  return {};
+}
+
+export function stepEncodeGrantRecordWithActions(
+  state: EncodeGrantRecordState,
+  event: EncodeGrantRecordEvent
+): EncodeGrantRecordStepResult {
+  if (event.kind === "grant/encode-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "use-raw", raw: encodeGrantRecord(event.record) }]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseEncodeGrantRecord(
+  actions: ReadonlyArray<EncodeGrantRecordAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+export function shouldRejectEncodeGrantRecord(
+  actions: ReadonlyArray<EncodeGrantRecordAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract encoded grant record from step actions; null when no `use-raw`. */
+export function encodeGrantRecordRawFromActions(
+  actions: ReadonlyArray<EncodeGrantRecordAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Grant-record decode framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `decodeGrantRecord`
+ * reads beside the step). Invalid JSON / shape become `reject`.
+ */
+export type DecodeGrantRecordState = Record<string, never>;
+
+export type DecodeGrantRecordEvent =
+  | Event
+  | {
+      readonly kind: "grant/decode-gate";
+      readonly bytes: Uint8Array;
+    };
+
+export type DecodeGrantRecordAction =
+  | { readonly kind: "use-fields"; readonly fields: GrantRecord }
+  | { readonly kind: "reject" };
+
+export interface DecodeGrantRecordStepResult {
+  readonly state: DecodeGrantRecordState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DecodeGrantRecordAction[];
+}
+
+export function initialDecodeGrantRecordState(): DecodeGrantRecordState {
+  return {};
+}
+
+export function stepDecodeGrantRecordWithActions(
+  state: DecodeGrantRecordState,
+  event: DecodeGrantRecordEvent
+): DecodeGrantRecordStepResult {
+  if (event.kind === "grant/decode-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "use-fields", fields: decodeGrantRecord(event.bytes) }]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseDecodeGrantRecord(
+  actions: ReadonlyArray<DecodeGrantRecordAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectDecodeGrantRecord(
+  actions: ReadonlyArray<DecodeGrantRecordAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract decoded grant record from step actions; null when no `use-fields`. */
+export function grantRecordFromActions(
+  actions: ReadonlyArray<DecodeGrantRecordAction>
+): GrantRecord | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }
 
 function dedupe(values: readonly string[]): readonly string[] {

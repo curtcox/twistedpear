@@ -8,11 +8,22 @@ import type { Event } from "@twistedpear/effects";
 import {
   decodeGrantRecord,
   encodeGrantRecord,
+  encodeGrantRecordRawFromActions,
+  grantRecordFromActions,
   grantStoreKey,
+  initialDecodeGrantRecordState,
+  initialEncodeGrantRecordState,
   initialGrantHostState,
+  shouldRejectDecodeGrantRecord,
+  shouldRejectEncodeGrantRecord,
+  shouldUseDecodeGrantRecord,
+  shouldUseEncodeGrantRecord,
+  stepDecodeGrantRecordWithActions,
+  stepEncodeGrantRecordWithActions,
   stepGrantHost,
   type GrantRecord
 } from "../src/grants.js";
+import { utf8Encode } from "../src/utf8.js";
 
 const APP = "demo-app";
 const PUBKEY = "publisher-pk-hex";
@@ -34,6 +45,38 @@ describe("protocol grant host", () => {
       updatedAt: 42
     };
     expect(decodeGrantRecord(encodeGrantRecord(record))).toEqual(record);
+  });
+
+  it("emits encode/decode actions from WithActions steps", () => {
+    const record: GrantRecord = {
+      appId: APP,
+      publisherPublicKey: PUBKEY,
+      granted: ["read", "write"],
+      updatedAt: 42
+    };
+    const encoded = encodeGrantRecord(record);
+
+    const encodeOk = stepEncodeGrantRecordWithActions(initialEncodeGrantRecordState(), {
+      kind: "grant/encode-gate",
+      record
+    });
+    expect(shouldUseEncodeGrantRecord(encodeOk.actions)).toBe(true);
+    expect(shouldRejectEncodeGrantRecord(encodeOk.actions)).toBe(false);
+    expect([...encodeGrantRecordRawFromActions(encodeOk.actions)!]).toEqual([...encoded]);
+
+    const decodeOk = stepDecodeGrantRecordWithActions(initialDecodeGrantRecordState(), {
+      kind: "grant/decode-gate",
+      bytes: encoded
+    });
+    expect(shouldUseDecodeGrantRecord(decodeOk.actions)).toBe(true);
+    expect(grantRecordFromActions(decodeOk.actions)).toEqual(record);
+
+    const decodeReject = stepDecodeGrantRecordWithActions(initialDecodeGrantRecordState(), {
+      kind: "grant/decode-gate",
+      bytes: utf8Encode("not-json")
+    });
+    expect(shouldRejectDecodeGrantRecord(decodeReject.actions)).toBe(true);
+    expect(grantRecordFromActions(decodeReject.actions)).toBeNull();
   });
 
   it("persists grants via store intents", () => {

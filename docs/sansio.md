@@ -183,7 +183,14 @@
 > `TextEncoder`/`TextDecoder`). **Hash truncation** (`truncateToTruncatedHash` /
 > `truncateToNameHash`), **packet context byte codes**, and **`utf8OrBytes`** are pure
 > protocol leaves; Identity/Destination/Announce/Packet, Link resource-proof matching,
-> and LXMF message text adapt them. **Channel envelope pack/unpack**, **MSGTYPE
+> and LXMF message text adapt them. **Grant-record** encode/decode (via
+> **`stepEncodeGrantRecordWithActions`** /
+> **`stepDecodeGrantRecordWithActions`**: use-raw|reject / use-fields|reject)
+> is a pure protocol leaf; `stepGrantHost` and miniapp `GrantStore` adapt them.
+> **Channel envelope** framing pack/unpack (via
+> **`stepPackChannelEnvelopeWithActions`** /
+> **`stepUnpackChannelEnvelopeWithActions`**: use-raw|reject /
+> use-fields|reject), **envelope pack/unpack gates**, **MSGTYPE
 > registration**, and **channel send** (via **`stepChannelEnvelopePackWithActions`** /
 > **`stepChannelEnvelopeUnpackWithActions`** / **`stepChannelMessageTypeRegistrationWithActions`** /
 > **`stepChannelSendWithActions`**) are pure protocol leaves; `Channel` adapts them.
@@ -849,7 +856,9 @@
 > unpack-stream-data-message / pack-identity-private-key /
 > split-identity-private-key / pack-identity-public-key /
 > split-identity-public-key / encode-identity-ratchet-record /
-> decode-identity-ratchet-record reads
+> decode-identity-ratchet-record / encode-grant-record /
+> decode-grant-record / pack-channel-envelope /
+> unpack-channel-envelope reads
 > beside the step).
 > **`stepPackStreamDataMessageWithActions`** /
 > **`stepUnpackStreamDataMessageWithActions`** emit `use-raw`|`reject` /
@@ -869,6 +878,16 @@
 > `use-fields`|`reject`; Identity ratchet persist encode / decode apply only
 > from those actions (no ad-hoc `encodeIdentityRatchetRecord` /
 > `decodeIdentityRatchetRecord` reads beside the step).
+> **`stepEncodeGrantRecordWithActions`** /
+> **`stepDecodeGrantRecordWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject`; grant-record encode / decode (host persist +
+> `GrantStore` get) apply only from those actions (no ad-hoc
+> `encodeGrantRecord` / `decodeGrantRecord` reads beside the step).
+> **`stepPackChannelEnvelopeWithActions`** /
+> **`stepUnpackChannelEnvelopeWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject`; Channel envelope framing pack / unpack apply only
+> from those actions (no ad-hoc `packChannelEnvelope` /
+> `unpackChannelEnvelope` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
 > only from those actions. **`stepChannelMessageHandlerUnregisterWithActions`**,

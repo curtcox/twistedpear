@@ -1,8 +1,12 @@
 import type { Event } from "@twistedpear/effects";
 import {
-  decodeGrantRecord,
+  grantRecordFromActions,
   grantStoreKey as protocolGrantStoreKey,
+  initialDecodeGrantRecordState,
   initialGrantHostState,
+  shouldRejectDecodeGrantRecord,
+  shouldUseDecodeGrantRecord,
+  stepDecodeGrantRecordWithActions,
   stepGrantHost,
   type GrantEvent
 } from "@twistedpear/protocol";
@@ -149,7 +153,20 @@ export class GrantStore {
       return null;
     }
 
-    const parsed = decodeGrantRecord(raw);
+    const decodeStepped = stepDecodeGrantRecordWithActions(initialDecodeGrantRecordState(), {
+      kind: "grant/decode-gate",
+      bytes: raw
+    });
+    if (
+      shouldRejectDecodeGrantRecord(decodeStepped.actions) ||
+      !shouldUseDecodeGrantRecord(decodeStepped.actions)
+    ) {
+      throw new Error("invalid grant record");
+    }
+    const parsed = grantRecordFromActions(decodeStepped.actions);
+    if (parsed === null) {
+      throw new Error("invalid grant record");
+    }
     return {
       appId: parsed.appId,
       publisherPublicKey: parsed.publisherPublicKey,

@@ -1,7 +1,9 @@
 /**
  * Pure RNS Channel envelope framing (MSGTYPE + sequence + length + payload).
- * Pack / unpack / MSGTYPE-registration conclusions leave via machine actions
- * (no ad-hoc plan reads beside the step).
+ * Pack / unpack framing conclusions leave via machine actions (no ad-hoc
+ * `packChannelEnvelope` / `unpackChannelEnvelope` reads beside the step).
+ * Pack / unpack / MSGTYPE-registration gate conclusions leave via machine
+ * actions (no ad-hoc plan reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import type { PacketReceiptStatusValue } from "./packet-receipt-timeout.js";
@@ -99,6 +101,147 @@ export function unpackChannelEnvelope(raw: Uint8Array): UnpackedChannelEnvelope 
     length,
     payload: raw.subarray(CHANNEL_ENVELOPE_HEADER_SIZE, CHANNEL_ENVELOPE_HEADER_SIZE + length)
   };
+}
+
+/**
+ * Channel envelope pack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `packChannelEnvelope`
+ * reads beside the step). Pack failures become `reject`.
+ */
+export type PackChannelEnvelopeState = Record<string, never>;
+
+export type PackChannelEnvelopeEvent =
+  | Event
+  | {
+      readonly kind: "channel-envelope/pack-gate";
+      readonly msgType: number;
+      readonly sequence: number;
+      readonly payload: Uint8Array;
+    };
+
+export type PackChannelEnvelopeAction =
+  | { readonly kind: "use-raw"; readonly raw: Uint8Array }
+  | { readonly kind: "reject" };
+
+export interface PackChannelEnvelopeStepResult {
+  readonly state: PackChannelEnvelopeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackChannelEnvelopeAction[];
+}
+
+export function initialPackChannelEnvelopeState(): PackChannelEnvelopeState {
+  return {};
+}
+
+export function stepPackChannelEnvelopeWithActions(
+  state: PackChannelEnvelopeState,
+  event: PackChannelEnvelopeEvent
+): PackChannelEnvelopeStepResult {
+  if (event.kind === "channel-envelope/pack-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [
+          {
+            kind: "use-raw",
+            raw: packChannelEnvelope({
+              msgType: event.msgType,
+              sequence: event.sequence,
+              payload: event.payload
+            })
+          }
+        ]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackChannelEnvelope(
+  actions: ReadonlyArray<PackChannelEnvelopeAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+export function shouldRejectPackChannelEnvelope(
+  actions: ReadonlyArray<PackChannelEnvelopeAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract packed channel envelope from step actions; null when no `use-raw`. */
+export function packChannelEnvelopeRawFromActions(
+  actions: ReadonlyArray<PackChannelEnvelopeAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Channel envelope unpack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `unpackChannelEnvelope`
+ * reads beside the step). Truncated frames become `reject`.
+ */
+export type UnpackChannelEnvelopeState = Record<string, never>;
+
+export type UnpackChannelEnvelopeEvent =
+  | Event
+  | {
+      readonly kind: "channel-envelope/unpack-gate";
+      readonly raw: Uint8Array;
+    };
+
+export type UnpackChannelEnvelopeAction =
+  | { readonly kind: "use-fields"; readonly fields: UnpackedChannelEnvelope }
+  | { readonly kind: "reject" };
+
+export interface UnpackChannelEnvelopeStepResult {
+  readonly state: UnpackChannelEnvelopeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly UnpackChannelEnvelopeAction[];
+}
+
+export function initialUnpackChannelEnvelopeState(): UnpackChannelEnvelopeState {
+  return {};
+}
+
+export function stepUnpackChannelEnvelopeWithActions(
+  state: UnpackChannelEnvelopeState,
+  event: UnpackChannelEnvelopeEvent
+): UnpackChannelEnvelopeStepResult {
+  if (event.kind === "channel-envelope/unpack-gate") {
+    const fields = unpackChannelEnvelope(event.raw);
+    if (fields === null) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "use-fields", fields }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseUnpackChannelEnvelope(
+  actions: ReadonlyArray<UnpackChannelEnvelopeAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectUnpackChannelEnvelope(
+  actions: ReadonlyArray<UnpackChannelEnvelopeAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract unpacked channel envelope from step actions; null when no `use-fields`. */
+export function channelEnvelopeFieldsFromActions(
+  actions: ReadonlyArray<UnpackChannelEnvelopeAction>
+): UnpackedChannelEnvelope | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }
 
 export function isChannelSystemMsgType(msgType: number): boolean {
