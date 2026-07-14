@@ -18,6 +18,8 @@ import {
   planLxMessageInstancePack,
   planLxMessagePack,
   shouldIncludeLxmfStamp,
+  shouldRejectLxmfPackEndpoints,
+  shouldRejectLxmfPackTimestamp,
   shouldRememberLxmfMessage,
   shouldSelectLxmfDeliveryParameters,
   splitLxmfWire,
@@ -237,19 +239,26 @@ export class LXMessage {
       throw new Error("LXMessage is already packed");
     }
     if (
-      gate === "missing-endpoints" ||
-      this.destination === null ||
-      this.source === null ||
-      this.source.identity === null
+      shouldRejectLxmfPackEndpoints({
+        gateMissingEndpoints: gate === "missing-endpoints",
+        destinationPresent: this.destination !== null,
+        sourcePresent: this.source !== null,
+        sourceIdentityPresent: this.source?.identity !== null
+      })
     ) {
       throw new Error("LXMessage requires destination and source destinations to pack");
     }
-    if (gate === "missing-timestamp" || this.timestamp === null) {
+    if (
+      shouldRejectLxmfPackTimestamp({
+        gateMissingTimestamp: gate === "missing-timestamp",
+        timestampPresent: this.timestamp !== null
+      })
+    ) {
       throw new Error("LXMessage.pack requires timestamp to be set before packing");
     }
 
-    const payloadCore = msgpackPackLxmPayload(this.timestamp, this.title, this.content, this.fields);
-    const hashedPart = lxmfHashableMaterial(this.destination.hash, this.source.hash, payloadCore);
+    const payloadCore = msgpackPackLxmPayload(this.timestamp!, this.title, this.content, this.fields);
+    const hashedPart = lxmfHashableMaterial(this.destination!.hash, this.source!.hash, payloadCore);
     this.hash = Identity.fullHash(provider, hashedPart);
 
     let stamp: Uint8Array | null = null;
@@ -257,15 +266,15 @@ export class LXMessage {
       stamp = options.stamp ?? null;
     }
 
-    const payload = msgpackPackLxmPayload(this.timestamp, this.title, this.content, this.fields, stamp);
+    const payload = msgpackPackLxmPayload(this.timestamp!, this.title, this.content, this.fields, stamp);
     const signedPart = lxmfSignedMaterial(hashedPart, this.hash);
-    this.signature = this.source.identity.sign(signedPart);
+    this.signature = this.source!.identity!.sign(signedPart);
     this.signatureValidated = true;
     this.stamp = stamp;
 
     this.packed = packLxmfWire({
-      destinationHash: this.destination.hash,
-      sourceHash: this.source.hash,
+      destinationHash: this.destination!.hash,
+      sourceHash: this.source!.hash,
       signature: this.signature,
       payload
     });

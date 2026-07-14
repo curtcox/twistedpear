@@ -6,6 +6,7 @@ import {
   planLxmfPropagationLinkReady,
   planLxmfPropagationSyncPrep,
   planPropagationGet,
+  shouldAcceptPropagationGetRequestData,
   shouldAcceptPropagationPeerResponse,
   shouldAcceptPropagationDeliveredMessage,
   shouldHandlePropagationPeerError,
@@ -157,8 +158,11 @@ export class PropagationClient {
   cancel(): void {
     const result = this.applyTransfer({ kind: "xfer/cancel" });
     for (const action of result.actions) {
-      if (action.kind === "teardown-link" && this.propagationLink !== null) {
-        this.propagationLink.teardown();
+      if (
+        action.kind === "teardown-link" &&
+        shouldTeardownLxmfPropagationLink(this.propagationLink !== null)
+      ) {
+        this.propagationLink!.teardown();
         this.propagationLink = null;
       }
     }
@@ -350,11 +354,11 @@ export class PropagationNodeStore {
   }
 
   private handleGetRequest(data: Uint8Array | null, remoteIdentity: Identity | null): Uint8Array | null {
-    if (data === null) {
+    if (!shouldAcceptPropagationGetRequestData(data !== null)) {
       return null;
     }
 
-    const [wants, haves] = msgpackUnpackPropagationRequest(data);
+    const [wants, haves] = msgpackUnpackPropagationRequest(data!);
     const remoteDeliveryHash =
       remoteIdentity === null
         ? null

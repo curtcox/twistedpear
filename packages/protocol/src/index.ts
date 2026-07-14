@@ -152,6 +152,7 @@ export {
   planResourceProofAccept,
   shouldAcceptIncomingResourceAdvertisement,
   shouldAdvertiseResource,
+  shouldCommitResourceAssemblePayload,
   stepResourceStatus,
   type ResourceAssembleOutcome,
   type ResourceProofAcceptPlan,
@@ -406,6 +407,7 @@ export {
   planChannelSend,
   planChannelTxEnvelopeOp,
   shouldApplyChannelPacketReceiptTimeout,
+  shouldClearChannelEnvelopePacket,
   shouldExtendPacketReceiptTimeout,
   shouldReplaceChannelResentPacket,
   shouldResendChannelTimeoutPacket,
@@ -435,6 +437,7 @@ export {
   shouldEmitChannelImmediateDelivery,
   shouldRegisterChannelMessageHandler,
   shouldStopChannelHandlerFanout,
+  shouldUnregisterChannelMessageHandler,
   unpackChannelEnvelope,
   type ChannelEnvelopePackPlan,
   type ChannelEnvelopeUnpackPlan,
@@ -450,6 +453,7 @@ export {
   indexOfChannelRingSequence,
   insertChannelSequence,
   shouldAcceptChannelSequence,
+  shouldDrainChannelRingIndex,
   shouldEmplaceChannelEnvelope
 } from "./channel-reorder.js";
 export {
@@ -527,8 +531,10 @@ export {
   shouldCreateLinkChannel,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
+  shouldInvokeLinkAppRequestHandler,
   shouldRegisterLinkMember,
   shouldReuseActiveLink,
+  shouldSendLinkAppRequestResponse,
   shouldUpdateLinkLastData,
   stepLinkEstablish,
   type LinkActivateMembershipPlan,
@@ -575,6 +581,10 @@ export {
   propagationDestinationHash,
   propagationEntryVisibleToRecipient,
   selectOldestPropagationKey,
+  shouldApplyPropagationRestore,
+  shouldCommitPropagationStoreEntry,
+  shouldDeletePropagationCatalogEntry,
+  shouldEvictPropagationCatalogEntry,
   type PropagationCatalogEntry,
   type PropagationQuotas,
   type PropagationRestorePlan,
@@ -582,6 +592,7 @@ export {
 } from "./propagation-quota.js";
 export {
   planPropagationGet,
+  shouldAcceptPropagationGetRequestData,
   type PropagationGetCatalogEntry,
   type PropagationGetPlan
 } from "./propagation-get.js";
@@ -914,6 +925,8 @@ export {
   shouldAwaitLxmfDeliveryReceipt,
   shouldIncludeLxmfStamp,
   shouldInvokeLxmfDeliveryCallback,
+  shouldRejectLxmfPackEndpoints,
+  shouldRejectLxmfPackTimestamp,
   shouldRememberLxmfMessage,
   shouldSelectLxmfDeliveryParameters,
   canRegisterLxmfDeliveryIdentity,
@@ -1016,6 +1029,7 @@ export {
   isIdentityRatchetRecordUsable,
   planIdentityRatchetLookup,
   shouldPersistIdentityRatchet,
+  shouldRestoreIdentityRatchetRecord,
   type IdentityRatchetLookupPlan,
   type IdentityRatchetRecord
 } from "./identity-ratchet-record.js";

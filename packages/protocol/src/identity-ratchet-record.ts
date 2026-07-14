@@ -90,3 +90,14 @@ export function planIdentityRatchetLookup(input: {
 export function shouldPersistIdentityRatchet(storePresent: boolean): boolean {
   return storePresent;
 }
+
+/**
+ * Whether ratchet lookup may restore after {@link planIdentityRatchetLookup}
+ * returns restore and decoded record bytes remain present.
+ */
+export function shouldRestoreIdentityRatchetRecord(input: {
+  readonly planRestore: boolean;
+  readonly recordPresent: boolean;
+}): boolean {
+  return input.planRestore && input.recordPresent;
+}

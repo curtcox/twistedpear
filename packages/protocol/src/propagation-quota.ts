@@ -104,6 +104,32 @@ export function planPropagationStore(input: {
   return { kind: "accept", evictKeys };
 }
 
+/** Whether store eviction may delete a catalog entry for an eviction key. */
+export function shouldEvictPropagationCatalogEntry(entryPresent: boolean): boolean {
+  return entryPresent;
+}
+
+/** Whether store may commit after destination-hash extraction succeeds. */
+export function shouldCommitPropagationStoreEntry(destinationHashPresent: boolean): boolean {
+  return destinationHashPresent;
+}
+
+/** Whether delete may remove a catalog entry after lookup. */
+export function shouldDeletePropagationCatalogEntry(entryPresent: boolean): boolean {
+  return entryPresent;
+}
+
+/**
+ * Whether restore may insert after {@link planPropagationRestore} accepts
+ * and destination-hash bytes remain present.
+ */
+export function shouldApplyPropagationRestore(input: {
+  readonly planAccept: boolean;
+  readonly destinationHashPresent: boolean;
+}): boolean {
+  return input.planAccept && input.destinationHashPresent;
+}
+
 export type PropagationRestorePlan =
   | "reject-too-large"
   | "duplicate"

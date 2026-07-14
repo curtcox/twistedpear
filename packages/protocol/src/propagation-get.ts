@@ -71,3 +71,8 @@ export function planPropagationGet(input: {
 
   return { kind: "apply", deleteIds, fetchIds };
 }
+
+/** Whether a /get request body is present and may be unpacked. */
+export function shouldAcceptPropagationGetRequestData(dataPresent: boolean): boolean {
+  return dataPresent;
+}

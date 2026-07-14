@@ -15,6 +15,7 @@ import {
   shouldEmitChannelImmediateDelivery,
   shouldRegisterChannelMessageHandler,
   shouldStopChannelHandlerFanout,
+  shouldUnregisterChannelMessageHandler,
   unpackChannelEnvelope
 } from "../src/channel-envelope.js";
 import {
@@ -23,6 +24,7 @@ import {
   indexOfChannelRingSequence,
   insertChannelSequence,
   shouldAcceptChannelSequence,
+  shouldDrainChannelRingIndex,
   shouldEmplaceChannelEnvelope
 } from "../src/channel-reorder.js";
 
@@ -132,6 +134,8 @@ describe("protocol channel envelope", () => {
     expect(shouldRegisterChannelMessageHandler(true)).toBe(false);
     expect(planUnregisterChannelMessageHandler(1)).toBe(1);
     expect(planUnregisterChannelMessageHandler(-1)).toBeNull();
+    expect(shouldUnregisterChannelMessageHandler(true)).toBe(true);
+    expect(shouldUnregisterChannelMessageHandler(false)).toBe(false);
     expect(shouldStopChannelHandlerFanout(true)).toBe(true);
     expect(shouldStopChannelHandlerFanout(false)).toBe(false);
   });
@@ -165,6 +169,8 @@ describe("protocol channel reorder", () => {
     ).toBeNull();
     expect(shouldEmplaceChannelEnvelope(true)).toBe(true);
     expect(shouldEmplaceChannelEnvelope(false)).toBe(false);
+    expect(shouldDrainChannelRingIndex(true)).toBe(true);
+    expect(shouldDrainChannelRingIndex(false)).toBe(false);
 
     const inserted = insertChannelSequence([1, 4], 3, 1);
     expect(inserted.inserted).toBe(true);
@@ -184,5 +190,7 @@ describe("protocol channel reorder", () => {
   it("finds ring sequence indices", () => {
     expect(indexOfChannelRingSequence({ ringSequences: [2, 3, 5], target: 3 })).toBe(1);
     expect(indexOfChannelRingSequence({ ringSequences: [2, 3, 5], target: 9 })).toBeNull();
+    expect(shouldDrainChannelRingIndex(true)).toBe(true);
+    expect(shouldDrainChannelRingIndex(false)).toBe(false);
   });
 });

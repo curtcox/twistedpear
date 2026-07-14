@@ -424,6 +424,35 @@ export function planLxMessageInstancePack(input: {
   return "ok";
 }
 
+/**
+ * Whether LXMessage.pack should reject for missing destination/source endpoints
+ * after {@link planLxMessageInstancePack}.
+ */
+export function shouldRejectLxmfPackEndpoints(input: {
+  readonly gateMissingEndpoints: boolean;
+  readonly destinationPresent: boolean;
+  readonly sourcePresent: boolean;
+  readonly sourceIdentityPresent: boolean;
+}): boolean {
+  return (
+    input.gateMissingEndpoints ||
+    !input.destinationPresent ||
+    !input.sourcePresent ||
+    !input.sourceIdentityPresent
+  );
+}
+
+/**
+ * Whether LXMessage.pack should reject for a missing timestamp after
+ * {@link planLxMessageInstancePack}.
+ */
+export function shouldRejectLxmfPackTimestamp(input: {
+  readonly gateMissingTimestamp: boolean;
+  readonly timestampPresent: boolean;
+}): boolean {
+  return input.gateMissingTimestamp || !input.timestampPresent;
+}
+
 export type LxmfSignatureOutcome = {
   readonly signatureValidated: boolean;
   readonly unverifiedReason: LxmfUnverifiedReasonValue | null;

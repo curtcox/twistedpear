@@ -184,6 +184,11 @@ export function shouldResendChannelTimeoutPacket(packetPresent: boolean): boolea
   return packetPresent;
 }
 
+/** Whether shutdown may clear outlet callbacks for a TX-ring envelope packet. */
+export function shouldClearChannelEnvelopePacket(packetPresent: boolean): boolean {
+  return packetPresent;
+}
+
 /** Shrink window after a packet timeout / retry. */
 export function applyChannelTimeout(state: ChannelWindowState): ChannelWindowState {
   let window = state.window;

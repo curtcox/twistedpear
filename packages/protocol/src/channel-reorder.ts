@@ -54,6 +54,11 @@ export function shouldEmplaceChannelEnvelope(indexPresent: boolean): boolean {
   return indexPresent;
 }
 
+/** Whether RX drain may splice/unpack a contiguous ring sequence by lookup index. */
+export function shouldDrainChannelRingIndex(indexPresent: boolean): boolean {
+  return indexPresent;
+}
+
 /** Index of `target` in a ring of sequences, or null if absent. */
 export function indexOfChannelRingSequence(input: {
   readonly ringSequences: ReadonlyArray<number>;
@@ -100,8 +105,8 @@ export function drainContiguousChannelSequences(input: {
       contiguous.push(sequence);
       nextRxSequence = nextChannelSequence(nextRxSequence);
       const index = indexOfChannelRingSequence({ ringSequences: remaining, target: sequence });
-      if (index !== null) {
-        remaining.splice(index, 1);
+      if (shouldDrainChannelRingIndex(index !== null)) {
+        remaining.splice(index!, 1);
       }
     }
   }

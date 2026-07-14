@@ -8,6 +8,11 @@ import {
   planPropagationStore,
   propagationDestinationHash,
   selectOldestPropagationKey,
+  shouldAcceptPropagationGetRequestData,
+  shouldApplyPropagationRestore,
+  shouldCommitPropagationStoreEntry,
+  shouldDeletePropagationCatalogEntry,
+  shouldEvictPropagationCatalogEntry,
   stepPersistDebounceWithActions,
   type ClientRateBucket,
   type PersistDebounceState
@@ -161,21 +166,21 @@ export class PropagationServer {
 
     for (const evictKey of plan.evictKeys) {
       const entry = this.entries.get(evictKey);
-      if (entry !== undefined) {
-        this.delete(entry.transientId);
+      if (shouldEvictPropagationCatalogEntry(entry !== undefined)) {
+        this.delete(entry!.transientId);
         this.evictions += 1;
       }
     }
 
     const destinationHash = propagationDestinationHash(lxmfData);
-    if (destinationHash === null) {
+    if (!shouldCommitPropagationStoreEntry(destinationHash !== null)) {
       return null;
     }
 
     const storedAt = this.now();
     this.entries.set(key, {
       transientId,
-      destinationHash: Uint8Array.from(destinationHash),
+      destinationHash: Uint8Array.from(destinationHash!),
       lxmfData: Uint8Array.from(lxmfData),
       storedAt,
       size: lxmfData.length
@@ -188,12 +193,12 @@ export class PropagationServer {
   delete(transientId: Uint8Array): boolean {
     const key = Buffer.from(transientId).toString("hex");
     const entry = this.entries.get(key);
-    if (entry === undefined) {
+    if (!shouldDeletePropagationCatalogEntry(entry !== undefined)) {
       return false;
     }
 
     this.entries.delete(key);
-    this.usedBytes -= entry.size;
+    this.usedBytes -= entry!.size;
     this.schedulePersist();
     return true;
   }
@@ -206,13 +211,18 @@ export class PropagationServer {
       alreadyStored: this.entries.has(key),
       destinationHashPresent: destinationHash !== null
     });
-    if (plan !== "accept" || destinationHash === null) {
+    if (
+      !shouldApplyPropagationRestore({
+        planAccept: plan === "accept",
+        destinationHashPresent: destinationHash !== null
+      })
+    ) {
       return;
     }
 
     this.entries.set(key, {
       transientId: Uint8Array.from(entry.transientId),
-      destinationHash: Uint8Array.from(destinationHash),
+      destinationHash: Uint8Array.from(destinationHash!),
       lxmfData: Uint8Array.from(entry.lxmfData),
       storedAt: entry.storedAt,
       size: entry.lxmfData.length
@@ -303,14 +313,14 @@ export class PropagationServer {
   }
 
   private handleGetRequest(data: Uint8Array | null, remoteIdentity: Identity | null): Uint8Array | null {
-    if (data === null) {
+    if (!shouldAcceptPropagationGetRequestData(data !== null)) {
       return null;
     }
 
     let wants: ReadonlyArray<Uint8Array> | null;
     let haves: ReadonlyArray<Uint8Array> | null;
     try {
-      [wants, haves] = msgpackUnpackPropagationRequest(data);
+      [wants, haves] = msgpackUnpackPropagationRequest(data!);
     } catch {
       return null;
     }

@@ -73,6 +73,8 @@ import {
   planLinkAppRequestDispatch,
   planLinkAppRequestResponse,
   planLinkAppRequestTransmitOutcome,
+  shouldInvokeLinkAppRequestHandler,
+  shouldSendLinkAppRequestResponse,
   planLinkDataContext,
   planLinkIdentifyOutcome,
   planLinkInitiatorMtu,
@@ -1134,13 +1136,19 @@ export class Link {
         allowedList: handler?.allowedList ?? [],
         remoteIdentityHash: this.remoteIdentity?.hash ?? null
       });
-      if (dispatch !== "invoke-handler" || unpacked === null || handler === undefined) {
+      if (
+        !shouldInvokeLinkAppRequestHandler({
+          dispatchInvoke: dispatch === "invoke-handler",
+          unpackedPresent: unpacked !== null,
+          handlerPresent: handler !== undefined
+        })
+      ) {
         return;
       }
 
-      const [requestedAt, , requestData] = unpacked;
-      const response = await handler.responseGenerator(
-        handler.path,
+      const [requestedAt, , requestData] = unpacked!;
+      const response = await handler!.responseGenerator(
+        handler!.path,
         requestData,
         requestId,
         this.linkId,
@@ -1151,14 +1159,17 @@ export class Link {
       const packedResponse =
         response !== null ? msgpackPackResponse(requestId, response) : null;
       if (
-        planLinkAppRequestResponse({
-          responsePresent: packedResponse !== null,
-          packedLength: packedResponse?.length ?? 0,
-          mdu: this.mdu
-        }) === "send-response" &&
-        packedResponse !== null
+        shouldSendLinkAppRequestResponse({
+          planSend:
+            planLinkAppRequestResponse({
+              responsePresent: packedResponse !== null,
+              packedLength: packedResponse?.length ?? 0,
+              mdu: this.mdu
+            }) === "send-response",
+          packedPresent: packedResponse !== null
+        })
       ) {
-        await this.sendContext(PacketContext.RESPONSE, packedResponse);
+        await this.sendContext(PacketContext.RESPONSE, packedResponse!);
       }
     } catch {
       // Ignore malformed requests.

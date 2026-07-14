@@ -28,6 +28,8 @@ import {
   planChannelTxEnvelopeOp,
   planUnregisterChannelMessageHandler,
   shouldAcceptChannelSequence,
+  shouldClearChannelEnvelopePacket,
+  shouldDrainChannelRingIndex,
   shouldEmplaceChannelEnvelope,
   shouldApplyChannelPacketReceiptTimeout,
   shouldEmitChannelImmediateDelivery,
@@ -36,6 +38,7 @@ import {
   shouldReplaceChannelResentPacket,
   shouldResendChannelTimeoutPacket,
   shouldStopChannelHandlerFanout,
+  shouldUnregisterChannelMessageHandler,
   stepChannelWindow,
   unpackChannelEnvelope,
   type ChannelWindowState
@@ -245,8 +248,8 @@ export class Channel {
 
   removeMessageHandler(callback: ChannelMessageHandler): void {
     const index = planUnregisterChannelMessageHandler(this.messageCallbacks.indexOf(callback));
-    if (index !== null) {
-      this.messageCallbacks.splice(index, 1);
+    if (shouldUnregisterChannelMessageHandler(index !== null)) {
+      this.messageCallbacks.splice(index!, 1);
     }
   }
 
@@ -363,10 +366,10 @@ export class Channel {
         ringSequences: this.rxRing.map((candidate) => candidate.sequence),
         target: sequence
       });
-      if (index === null) {
+      if (!shouldDrainChannelRingIndex(index !== null)) {
         continue;
       }
-      const candidate = this.rxRing.splice(index, 1)[0]!;
+      const candidate = this.rxRing.splice(index!, 1)[0]!;
       const delivered = candidate.unpack(this.messageFactories);
 
       for (const callback of [...this.messageCallbacks]) {
@@ -380,9 +383,9 @@ export class Channel {
   shutdown(): void {
     this.messageCallbacks.length = 0;
     for (const envelope of this.txRing) {
-      if (envelope.packet !== null) {
-        this.outlet.setPacketTimeoutCallback(envelope.packet, null);
-        this.outlet.setPacketDeliveredCallback(envelope.packet, null);
+      if (shouldClearChannelEnvelopePacket(envelope.packet !== null)) {
+        this.outlet.setPacketTimeoutCallback(envelope.packet!, null);
+        this.outlet.setPacketDeliveredCallback(envelope.packet!, null);
       }
     }
 
@@ -437,16 +440,18 @@ export class Channel {
 
     envelope!.tries = plan.nextTries;
     if (shouldResendChannelTimeoutPacket(envelope!.packet !== null)) {
-      const resent = await this.outlet.resend(envelope!.packet!);
+      let packet = envelope!.packet!;
+      const resent = await this.outlet.resend(packet);
       if (shouldReplaceChannelResentPacket(resent !== null)) {
-        envelope!.packet = resent!;
+        packet = resent!;
+        envelope!.packet = packet;
       }
 
-      this.outlet.setPacketDeliveredCallback(envelope!.packet, (deliveredPacket) => {
+      this.outlet.setPacketDeliveredCallback(packet, (deliveredPacket) => {
         this.packetDelivered(deliveredPacket);
       });
       this.outlet.setPacketTimeoutCallback(
-        envelope!.packet,
+        packet,
         (timedOutPacket) => {
           void this.packetTimeout(timedOutPacket);
         },
@@ -454,8 +459,8 @@ export class Channel {
       );
       this.updatePacketTimeouts();
 
-      if (shouldEmitChannelImmediateDelivery(this.outlet.getPacketState(envelope!.packet))) {
-        this.packetDelivered(envelope!.packet);
+      if (shouldEmitChannelImmediateDelivery(this.outlet.getPacketState(packet))) {
+        this.packetDelivered(packet);
       }
     }
 

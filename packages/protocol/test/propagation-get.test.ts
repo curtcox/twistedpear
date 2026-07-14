@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planPropagationGet } from "../src/propagation-get.js";
+import { planPropagationGet, shouldAcceptPropagationGetRequestData } from "../src/propagation-get.js";
 
 describe("protocol propagation get planner", () => {
   const alice = new Uint8Array(16).map((_, i) => i + 1);
@@ -64,5 +64,10 @@ describe("protocol propagation get planner", () => {
       entries
     });
     expect(plan).toEqual({ kind: "apply", deleteIds: [idA], fetchIds: [] });
+  });
+
+  it("gates /get request body presence", () => {
+    expect(shouldAcceptPropagationGetRequestData(true)).toBe(true);
+    expect(shouldAcceptPropagationGetRequestData(false)).toBe(false);
   });
 });

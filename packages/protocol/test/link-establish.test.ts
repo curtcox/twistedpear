@@ -43,8 +43,10 @@ import {
   shouldCreateLinkChannel,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
+  shouldInvokeLinkAppRequestHandler,
   shouldRegisterLinkMember,
   shouldReuseActiveLink,
+  shouldSendLinkAppRequestResponse,
   shouldUpdateLinkLastData
 } from "../src/link-establish.js";
 import { DestinationAllowPolicyCode } from "../src/destination-allow.js";
@@ -421,6 +423,32 @@ describe("protocol link establish", () => {
         mdu: 100
       })
     ).toBe("response-too-big");
+    expect(
+      shouldInvokeLinkAppRequestHandler({
+        dispatchInvoke: true,
+        unpackedPresent: true,
+        handlerPresent: true
+      })
+    ).toBe(true);
+    expect(
+      shouldInvokeLinkAppRequestHandler({
+        dispatchInvoke: true,
+        unpackedPresent: false,
+        handlerPresent: true
+      })
+    ).toBe(false);
+    expect(
+      shouldSendLinkAppRequestResponse({
+        planSend: true,
+        packedPresent: true
+      })
+    ).toBe(true);
+    expect(
+      shouldSendLinkAppRequestResponse({
+        planSend: true,
+        packedPresent: false
+      })
+    ).toBe(false);
   });
 
   it("gates lastData refresh and DATA inbound dispatch", () => {

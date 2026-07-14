@@ -64,6 +64,7 @@ import {
   shouldAdvanceResourceAwaitingProof,
   shouldApplyResourceFulfillPart,
   shouldApplyResourceReceivePartSlot,
+  shouldCommitResourceAssemblePayload,
   shouldFulfillResourcePartRequest,
   shouldSendResourceHashmapUpdate,
   stepResourceWatchdogWithActions,
@@ -731,13 +732,18 @@ export class Resource {
           calculatedHash !== null && equalBytes(calculatedHash, this.hash)
       });
 
-      if (outcome === "corrupt" || payload === null) {
+      if (
+        !shouldCommitResourceAssemblePayload({
+          outcomeComplete: outcome === "complete",
+          payloadPresent: payload !== null
+        })
+      ) {
         this.applyStatus({ kind: "resource/corrupt" });
         this.cancel();
         return;
       }
 
-      this.data = payload;
+      this.data = payload!;
       this.applyStatus({ kind: "resource/complete" });
       this.progress = 1;
       await this.prove();

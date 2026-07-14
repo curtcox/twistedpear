@@ -25,6 +25,7 @@ import {
   planIdentityRecallAppData,
   shouldAttemptIdentityRatchetDecrypt,
   shouldPersistIdentityRatchet,
+  shouldRestoreIdentityRatchetRecord,
   splitIdentityCiphertext,
   splitIdentityEntropy,
   splitIdentityPrivateKey,
@@ -187,12 +188,17 @@ export class Identity {
       storedPresent: record !== null,
       usable: record !== null && isIdentityRatchetRecordUsable(record, nowSeconds)
     });
-    if (afterStore !== "restore" || record === null) {
+    if (
+      !shouldRestoreIdentityRatchetRecord({
+        planRestore: afterStore === "restore",
+        recordPresent: record !== null
+      })
+    ) {
       return null;
     }
 
-    Identity.knownRatchets.set(key, Uint8Array.from(record.ratchet));
-    return record.ratchet;
+    Identity.knownRatchets.set(key, Uint8Array.from(record!.ratchet));
+    return record!.ratchet;
   }
 
   static rememberDestination(

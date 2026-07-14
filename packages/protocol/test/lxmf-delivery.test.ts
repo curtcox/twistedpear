@@ -23,6 +23,8 @@ import {
   planLxmfSendMethod,
   planLxmfSignatureOutcome,
   shouldIncludeLxmfStamp,
+  shouldRejectLxmfPackEndpoints,
+  shouldRejectLxmfPackTimestamp,
   shouldRememberLxmfMessage,
   canRegisterLxmfDeliveryIdentity,
   canExtractLxmfOpportunisticPayload,
@@ -331,6 +333,34 @@ describe("protocol lxmf delivery", () => {
         timestampPresent: false
       })
     ).toBe("missing-timestamp");
+    expect(
+      shouldRejectLxmfPackEndpoints({
+        gateMissingEndpoints: true,
+        destinationPresent: true,
+        sourcePresent: true,
+        sourceIdentityPresent: true
+      })
+    ).toBe(true);
+    expect(
+      shouldRejectLxmfPackEndpoints({
+        gateMissingEndpoints: false,
+        destinationPresent: true,
+        sourcePresent: true,
+        sourceIdentityPresent: true
+      })
+    ).toBe(false);
+    expect(
+      shouldRejectLxmfPackTimestamp({
+        gateMissingTimestamp: true,
+        timestampPresent: true
+      })
+    ).toBe(true);
+    expect(
+      shouldRejectLxmfPackTimestamp({
+        gateMissingTimestamp: false,
+        timestampPresent: true
+      })
+    ).toBe(false);
   });
 
   it("plans LXMF signature outcomes", () => {

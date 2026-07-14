@@ -103,6 +103,17 @@ export function planResourceAssembleOutcome(input: {
   return "complete";
 }
 
+/**
+ * Whether assemble may commit payload after {@link planResourceAssembleOutcome}
+ * returns complete and split payload bytes remain present.
+ */
+export function shouldCommitResourceAssemblePayload(input: {
+  readonly outcomeComplete: boolean;
+  readonly payloadPresent: boolean;
+}): boolean {
+  return input.outcomeComplete && input.payloadPresent;
+}
+
 /** Sender proof validation → complete vs ignore. */
 export type ResourceProofAcceptPlan = "complete" | "ignore";
 

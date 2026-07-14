@@ -15,7 +15,8 @@ import {
   planResourceAssembleOutcome,
   planResourceProofAccept,
   shouldAcceptIncomingResourceAdvertisement,
-  shouldAdvertiseResource
+  shouldAdvertiseResource,
+  shouldCommitResourceAssemblePayload
 } from "../src/resource-status.js";
 
 describe("protocol resource status", () => {
@@ -89,6 +90,24 @@ describe("protocol resource status", () => {
         hashMatches: false
       })
     ).toBe("corrupt");
+    expect(
+      shouldCommitResourceAssemblePayload({
+        outcomeComplete: true,
+        payloadPresent: true
+      })
+    ).toBe(true);
+    expect(
+      shouldCommitResourceAssemblePayload({
+        outcomeComplete: true,
+        payloadPresent: false
+      })
+    ).toBe(false);
+    expect(
+      shouldCommitResourceAssemblePayload({
+        outcomeComplete: false,
+        payloadPresent: true
+      })
+    ).toBe(false);
     expect(
       planResourceProofAccept({
         status: ResourceStatus.AWAITING_PROOF,

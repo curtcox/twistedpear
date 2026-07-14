@@ -32,6 +32,7 @@ import {
   shouldRememberPacketHashAfterRelay,
   shouldRememberPacketHashNow,
   shouldRememberPathRequestTag,
+  shouldRelayReverseOnInterface,
   shouldTouchPathEntry,
   shouldTransmitReverseRelay,
   shouldTransmitOnInterface
@@ -404,7 +405,9 @@ export class TransportNode extends LeafTransport {
     const outcome = planReverseRelayOutcome({
       canRelay,
       entryExpired,
-      ifaceIsOutbound: entry !== undefined && iface === entry.outboundInterface
+      ifaceIsOutbound: shouldRelayReverseOnInterface(
+        entry !== undefined && iface === entry.outboundInterface
+      )
     });
 
     if (shouldDeleteExpiredReverseEntry(outcome === "delete-expired")) {

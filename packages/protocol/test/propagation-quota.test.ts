@@ -7,6 +7,10 @@ import {
   propagationDestinationHash,
   propagationEntryVisibleToRecipient,
   selectOldestPropagationKey,
+  shouldApplyPropagationRestore,
+  shouldCommitPropagationStoreEntry,
+  shouldDeletePropagationCatalogEntry,
+  shouldEvictPropagationCatalogEntry,
   type PropagationQuotas
 } from "../src/propagation-quota.js";
 
@@ -110,5 +114,20 @@ describe("protocol propagation quota", () => {
         destinationHashPresent: true
       })
     ).toBe("accept");
+    expect(
+      shouldApplyPropagationRestore({ planAccept: true, destinationHashPresent: true })
+    ).toBe(true);
+    expect(
+      shouldApplyPropagationRestore({ planAccept: true, destinationHashPresent: false })
+    ).toBe(false);
+    expect(
+      shouldApplyPropagationRestore({ planAccept: false, destinationHashPresent: true })
+    ).toBe(false);
+    expect(shouldCommitPropagationStoreEntry(true)).toBe(true);
+    expect(shouldCommitPropagationStoreEntry(false)).toBe(false);
+    expect(shouldDeletePropagationCatalogEntry(true)).toBe(true);
+    expect(shouldDeletePropagationCatalogEntry(false)).toBe(false);
+    expect(shouldEvictPropagationCatalogEntry(true)).toBe(true);
+    expect(shouldEvictPropagationCatalogEntry(false)).toBe(false);
   });
 });

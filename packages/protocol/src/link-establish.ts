@@ -265,6 +265,29 @@ export function planLinkAppRequestDispatch(input: {
 
 export type LinkAppRequestResponsePlan = "ignore" | "response-too-big" | "send-response";
 
+/**
+ * Whether inbound app-request handling may invoke the destination handler after
+ * {@link planLinkAppRequestDispatch} returns invoke-handler.
+ */
+export function shouldInvokeLinkAppRequestHandler(input: {
+  readonly dispatchInvoke: boolean;
+  readonly unpackedPresent: boolean;
+  readonly handlerPresent: boolean;
+}): boolean {
+  return input.dispatchInvoke && input.unpackedPresent && input.handlerPresent;
+}
+
+/**
+ * Whether a packed app-request response may be transmitted after
+ * {@link planLinkAppRequestResponse} returns send-response.
+ */
+export function shouldSendLinkAppRequestResponse(input: {
+  readonly planSend: boolean;
+  readonly packedPresent: boolean;
+}): boolean {
+  return input.planSend && input.packedPresent;
+}
+
 /** Whether a packed application response may be sent after the handler returns. */
 export function planLinkAppRequestResponse(input: {
   readonly responsePresent: boolean;
