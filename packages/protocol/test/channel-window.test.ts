@@ -7,6 +7,7 @@ import {
   channelAllowsSend,
   channelPacketTimeoutSeconds,
   channelRetryExhausted,
+  channelTxTimeoutRetryAction,
   countChannelTxOutstanding,
   canArmChannelPacketReceipt,
   initialChannelWindowState,
@@ -14,12 +15,18 @@ import {
   planChannelPacketTimeout,
   planChannelSend,
   planChannelTxEnvelopeOp,
+  planChannelTxReceiptTimeoutRefresh,
   shouldApplyChannelPacketReceiptTimeout,
+  shouldApplyChannelTxReceiptTimeoutExtension,
   shouldExtendPacketReceiptTimeout,
+  shouldGiveUpChannelTxTimeout,
   shouldReplaceChannelResentPacket,
   shouldResendChannelTimeoutPacket,
+  shouldRetryChannelTxTimeout,
   shouldClearChannelEnvelopePacket,
   indexOfChannelTxEnvelope,
+  stepChannelTxTimeout,
+  stepChannelTxTimeoutWithActions,
   stepChannelWindow
 } from "../src/channel-window.js";
 
@@ -202,5 +209,167 @@ describe("protocol channel window", () => {
     expect(state.window).toBe(2);
     state = stepChannelWindow(state, { kind: "channel/delivered", rtt: 0.5 }).state;
     expect(state.window).toBe(3);
+  });
+
+  it("TX timeout step emits give-up / retry actions and shrinks window on retry", () => {
+    let state = initialChannelWindowState(0.5);
+    state = { ...state, window: 4, windowMax: 7 };
+
+    const miss = stepChannelTxTimeoutWithActions(state, {
+      kind: "channel/tx-timeout",
+      indexOk: false,
+      envelopePresent: false,
+      delivered: false,
+      tries: 1,
+      maxTries: CHANNEL_MAX_TRIES,
+      packetPresent: true
+    });
+    expect(miss.actions).toEqual([]);
+    expect(miss.state.window).toBe(4);
+
+    const ignore = stepChannelTxTimeoutWithActions(state, {
+      kind: "channel/tx-timeout",
+      indexOk: true,
+      envelopePresent: true,
+      delivered: true,
+      tries: 1,
+      maxTries: CHANNEL_MAX_TRIES,
+      packetPresent: true
+    });
+    expect(ignore.actions).toEqual([]);
+    expect(ignore.state.window).toBe(4);
+
+    const giveUp = stepChannelTxTimeoutWithActions(state, {
+      kind: "channel/tx-timeout",
+      indexOk: true,
+      envelopePresent: true,
+      delivered: false,
+      tries: CHANNEL_MAX_TRIES,
+      maxTries: CHANNEL_MAX_TRIES,
+      packetPresent: true
+    });
+    expect(giveUp.actions).toEqual([{ kind: "give-up" }]);
+    expect(shouldGiveUpChannelTxTimeout(giveUp.actions)).toBe(true);
+    expect(giveUp.state.window).toBe(4);
+
+    const retry = stepChannelTxTimeoutWithActions(state, {
+      kind: "channel/tx-timeout",
+      indexOk: true,
+      envelopePresent: true,
+      delivered: false,
+      tries: 2,
+      maxTries: CHANNEL_MAX_TRIES,
+      packetPresent: true
+    });
+    expect(retry.actions).toEqual([{ kind: "retry", nextTries: 3, resend: true }]);
+    expect(shouldRetryChannelTxTimeout(retry.actions)).toBe(true);
+    expect(channelTxTimeoutRetryAction(retry.actions)).toEqual({
+      kind: "retry",
+      nextTries: 3,
+      resend: true
+    });
+    expect(retry.state.window).toBe(3);
+
+    const noResend = stepChannelTxTimeoutWithActions(state, {
+      kind: "channel/tx-timeout",
+      indexOk: true,
+      envelopePresent: true,
+      delivered: false,
+      tries: 1,
+      maxTries: CHANNEL_MAX_TRIES,
+      packetPresent: false
+    });
+    expect(noResend.actions).toEqual([{ kind: "retry", nextTries: 2, resend: false }]);
+  });
+
+  it("StepFn wrapper omits actions while WithActions preserves them", () => {
+    const state = { ...initialChannelWindowState(0.5), window: 3, windowMax: 7 };
+    const withActions = stepChannelTxTimeoutWithActions(state, {
+      kind: "channel/tx-timeout",
+      indexOk: true,
+      envelopePresent: true,
+      delivered: false,
+      tries: 1,
+      maxTries: CHANNEL_MAX_TRIES,
+      packetPresent: true
+    });
+    const stripped = stepChannelTxTimeout(state, {
+      kind: "channel/tx-timeout",
+      indexOk: true,
+      envelopePresent: true,
+      delivered: false,
+      tries: 1,
+      maxTries: CHANNEL_MAX_TRIES,
+      packetPresent: true
+    });
+    expect(withActions.actions).toEqual([{ kind: "retry", nextTries: 2, resend: true }]);
+    expect(stripped).toEqual({ state: withActions.state, intents: withActions.intents });
+  });
+
+  it("plans receipt timeout refresh extensions without ad-hoc extend checks", () => {
+    const extensions = planChannelTxReceiptTimeoutRefresh([
+      {
+        receiptPresent: false,
+        currentTimeout: 1,
+        tries: 1,
+        rtt: 0.2,
+        txRingLength: 1
+      },
+      {
+        receiptPresent: true,
+        currentTimeout: 0.01,
+        tries: 2,
+        rtt: 0.2,
+        txRingLength: 1
+      },
+      {
+        receiptPresent: true,
+        currentTimeout: 100,
+        tries: 1,
+        rtt: 0.2,
+        txRingLength: 1
+      }
+    ]);
+    expect(extensions).toHaveLength(1);
+    expect(extensions[0]!.index).toBe(1);
+    expect(extensions[0]!.timeoutSeconds).toBeGreaterThan(0.01);
+    expect(shouldApplyChannelTxReceiptTimeoutExtension(true)).toBe(true);
+    expect(shouldApplyChannelTxReceiptTimeoutExtension(false)).toBe(false);
+  });
+
+  it("TX timeout double-runs identically", () => {
+    const run = () => {
+      let state = { ...initialChannelWindowState(0.5), window: 4, windowMax: 7 };
+      const steps = [];
+      steps.push(
+        stepChannelTxTimeoutWithActions(state, {
+          kind: "channel/tx-timeout",
+          indexOk: true,
+          envelopePresent: true,
+          delivered: false,
+          tries: 1,
+          maxTries: CHANNEL_MAX_TRIES,
+          packetPresent: true
+        })
+      );
+      state = steps[0]!.state;
+      steps.push(
+        stepChannelTxTimeoutWithActions(state, {
+          kind: "channel/tx-timeout",
+          indexOk: true,
+          envelopePresent: true,
+          delivered: false,
+          tries: CHANNEL_MAX_TRIES,
+          maxTries: CHANNEL_MAX_TRIES,
+          packetPresent: true
+        })
+      );
+      return steps.map((s) => ({
+        window: s.state.window,
+        actions: s.actions,
+        intents: s.intents
+      }));
+    };
+    expect(run()).toEqual(run());
   });
 });

@@ -334,6 +334,10 @@
 > actions (`stepPacketReceiptTimeoutWithActions`); `PacketReceipt` schedules
 > from injected `clock` and invokes callbacks only from those actions (Channel /
 > LinkRequestReceipt callbacks fire on timer expiry).
+> **`stepChannelTxTimeoutWithActions`** composes envelope miss / ignore /
+> give-up / retry with window shrink; `Channel.packetTimeout` applies only
+> `give-up` / `retry` actions (no ad-hoc `plan.kind` reads). Receipt timeout
+> refresh uses **`planChannelTxReceiptTimeoutRefresh`**.
 > **`shouldDeliverPendingLinkAppResponse`** / **`shouldCommitLinkRemoteIdentity`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -361,15 +365,16 @@
 > **`stepLinkAppRequestAwait`** (arm → `send-request`; response/failed/send-
 > rejected → `resolve`) lives in protocol; LXMF `PropagationClient` list /
 > download / haves awaits adapt it (timeout stays on `LinkRequestReceipt`).
-> Remaining depth work: Link/Channel/LXMF orchestration shells that still
-> hold Promise/callback continuations around already-pure step cores (watchdog
+> Remaining depth work: Link/LXMF orchestration shells that still hold
+> Promise/callback continuations around already-pure step cores (watchdog
 > ticks are already intent-driven). Path-await, delivery-receipt, resource
 > advertise-wait, path-response grace, interface connect, propagation link
 > establish/timeout, LXMF outbound link-await, and propagation app-request
 > awaits all conclude via machine resolve/reject actions (adapters no longer
 > finish by reading `state.concluded` beside probes). PacketReceipt
-> timeout/delivery/failed also conclude via machine actions (no ad-hoc
-> `state.timedOut` reads beside the step).
+> timeout/delivery/failed and Channel TX timeout/retry/give-up also conclude
+> via machine actions (no ad-hoc `state.timedOut` / `plan.kind` reads beside
+> the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

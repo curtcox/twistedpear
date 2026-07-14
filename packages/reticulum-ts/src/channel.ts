@@ -5,13 +5,13 @@ import {
   CHANNEL_SEQ_MAX,
   CHANNEL_SEQ_MODULUS,
   ChannelWindowLimits,
-  canArmChannelPacketReceipt,
   canLinkSend,
   channelAllowsSend,
   channelEmplaceIndex,
   channelMessageStateFromPacketReceipt,
   channelPacketTimeoutSeconds,
   channelPayloadMdu,
+  channelTxTimeoutRetryAction,
   countChannelTxOutstanding,
   drainContiguousChannelSequences,
   indexOfChannelRingSequence,
@@ -23,24 +23,27 @@ import {
   planChannelEnvelopePack,
   planChannelEnvelopeUnpack,
   planChannelMessageTypeRegistration,
-  planChannelPacketTimeout,
   planChannelSend,
   planChannelTxEnvelopeOp,
+  planChannelTxReceiptTimeoutRefresh,
   planUnregisterChannelMessageHandler,
   shouldAcceptChannelSequence,
+  shouldApplyChannelPacketReceiptTimeout,
+  shouldApplyChannelTxReceiptTimeoutExtension,
   shouldClearChannelEnvelopePacket,
   shouldDrainChannelRingIndex,
   shouldEmplaceChannelEnvelope,
-  shouldApplyChannelPacketReceiptTimeout,
   shouldEmitChannelImmediateDelivery,
-  shouldExtendPacketReceiptTimeout,
+  shouldGiveUpChannelTxTimeout,
   shouldRegisterChannelMessageHandler,
   shouldReplaceChannelResentPacket,
-  shouldResendChannelTimeoutPacket,
+  shouldRetryChannelTxTimeout,
   shouldStopChannelHandlerFanout,
   shouldUnregisterChannelMessageHandler,
+  stepChannelTxTimeoutWithActions,
   stepChannelWindow,
   unpackChannelEnvelope,
+  type ChannelTxTimeoutAction,
   type ChannelWindowState
 } from "@twistedpear/protocol";
 import type { Link } from "./link.js";
@@ -415,56 +418,65 @@ export class Channel {
   private async packetTimeout(packet: ChannelPacket): Promise<void> {
     const index = this.indexOfTxEnvelope(packet);
     const envelope = index === null ? undefined : this.txRing[index];
-    if (planChannelTxEnvelopeOp({
+    const stepped = stepChannelTxTimeoutWithActions(this.windowState, {
+      kind: "channel/tx-timeout",
       indexOk: index !== null,
-      envelopePresent: envelope !== undefined
-    }) === "miss") {
-      return;
-    }
-
-    const plan = planChannelPacketTimeout({
+      envelopePresent: envelope !== undefined,
       delivered: this.outlet.getPacketState(packet) === MessageState.MSGSTATE_DELIVERED,
-      tries: envelope!.tries,
-      maxTries: this.maxTries
+      tries: envelope?.tries ?? 0,
+      maxTries: this.maxTries,
+      packetPresent: envelope?.packet != null
     });
+    this.windowState = stepped.state;
+    await this.applyChannelTxTimeoutActions(envelope, stepped.actions);
+  }
 
-    if (plan.kind === "ignore") {
-      return;
-    }
-
-    if (plan.kind === "give-up") {
+  private async applyChannelTxTimeoutActions(
+    envelope: Envelope | undefined,
+    actions: readonly ChannelTxTimeoutAction[]
+  ): Promise<void> {
+    if (shouldGiveUpChannelTxTimeout(actions)) {
       this.shutdown();
       this.outlet.timedOut();
       return;
     }
 
-    envelope!.tries = plan.nextTries;
-    if (shouldResendChannelTimeoutPacket(envelope!.packet !== null)) {
-      let packet = envelope!.packet!;
-      const resent = await this.outlet.resend(packet);
-      if (shouldReplaceChannelResentPacket(resent !== null)) {
-        packet = resent!;
-        envelope!.packet = packet;
-      }
-
-      this.outlet.setPacketDeliveredCallback(packet, (deliveredPacket) => {
-        this.packetDelivered(deliveredPacket);
-      });
-      this.outlet.setPacketTimeoutCallback(
-        packet,
-        (timedOutPacket) => {
-          void this.packetTimeout(timedOutPacket);
-        },
-        this.getPacketTimeoutTime(envelope!.tries)
-      );
-      this.updatePacketTimeouts();
-
-      if (shouldEmitChannelImmediateDelivery(this.outlet.getPacketState(packet))) {
-        this.packetDelivered(packet);
-      }
+    if (!shouldRetryChannelTxTimeout(actions) || envelope === undefined) {
+      return;
     }
 
-    this.windowState = stepChannelWindow(this.windowState, { kind: "channel/timeout" }).state;
+    const retry = channelTxTimeoutRetryAction(actions);
+    if (retry === null) {
+      return;
+    }
+
+    envelope.tries = retry.nextTries;
+    if (!retry.resend || envelope.packet === null) {
+      return;
+    }
+
+    let packet = envelope.packet;
+    const resent = await this.outlet.resend(packet);
+    if (shouldReplaceChannelResentPacket(resent !== null)) {
+      packet = resent!;
+      envelope.packet = packet;
+    }
+
+    this.outlet.setPacketDeliveredCallback(packet, (deliveredPacket) => {
+      this.packetDelivered(deliveredPacket);
+    });
+    this.outlet.setPacketTimeoutCallback(
+      packet,
+      (timedOutPacket) => {
+        void this.packetTimeout(timedOutPacket);
+      },
+      this.getPacketTimeoutTime(envelope.tries)
+    );
+    this.updatePacketTimeouts();
+
+    if (shouldEmitChannelImmediateDelivery(this.outlet.getPacketState(packet))) {
+      this.packetDelivered(packet);
+    }
   }
 
   private packetTxOp(packet: ChannelPacket, op: (envelope: Envelope) => boolean): void {
@@ -507,20 +519,19 @@ export class Channel {
   }
 
   private updatePacketTimeouts(): void {
-    for (const envelope of this.txRing) {
-      const receipt = envelope.packet?.receipt;
-      if (!canArmChannelPacketReceipt(receipt != null)) {
-        continue;
-      }
-
-      const updatedTimeout = this.getPacketTimeoutTime(envelope.tries);
-      if (
-        shouldExtendPacketReceiptTimeout({
-          currentTimeout: receipt!.timeout,
-          updatedTimeout
-        })
-      ) {
-        receipt!.setTimeout(updatedTimeout);
+    const extensions = planChannelTxReceiptTimeoutRefresh(
+      this.txRing.map((envelope) => ({
+        receiptPresent: envelope.packet?.receipt != null,
+        currentTimeout: envelope.packet?.receipt?.timeout ?? null,
+        tries: envelope.tries,
+        rtt: this.outlet.rtt,
+        txRingLength: this.txRing.length
+      }))
+    );
+    for (const extension of extensions) {
+      const receipt = this.txRing[extension.index]?.packet?.receipt;
+      if (shouldApplyChannelTxReceiptTimeoutExtension(receipt != null)) {
+        receipt!.setTimeout(extension.timeoutSeconds);
       }
     }
   }

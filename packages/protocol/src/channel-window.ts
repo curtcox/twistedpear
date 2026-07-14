@@ -1,8 +1,10 @@
 /**
  * Pure RNS Channel congestion window + packet timeout decisions.
  * Adapters own send/resend/timers; this owns window sizing and timeout formulas.
+ * TX timeout conclusions leave via machine actions (no ad-hoc `plan.kind`
+ * reads beside the step).
  */
-import type { Event, StepFn } from "@twistedpear/effects";
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
 import { linkPayloadFitsMdu } from "./link-metrics.js";
 
@@ -324,4 +326,157 @@ function stepChannelWindowInner(
     return { state: applyChannelDelivery(state, event.rtt), intents: [] };
   }
   return { state, intents: [] };
+}
+
+/**
+ * Channel TX-timeout step: compose envelope miss / ignore / give-up / retry
+ * with window shrink. Adapters apply give-up (shutdown) and retry (resend +
+ * re-arm) only from actions — not by reading `plan.kind` beside the step.
+ */
+export type ChannelTxTimeoutEvent =
+  | Event
+  | {
+      readonly kind: "channel/tx-timeout";
+      readonly indexOk: boolean;
+      readonly envelopePresent: boolean;
+      readonly delivered: boolean;
+      readonly tries: number;
+      readonly maxTries: number;
+      readonly packetPresent: boolean;
+    };
+
+export type ChannelTxTimeoutAction =
+  | { readonly kind: "give-up" }
+  | { readonly kind: "retry"; readonly nextTries: number; readonly resend: boolean };
+
+export interface ChannelTxTimeoutStepResult {
+  readonly state: ChannelWindowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelTxTimeoutAction[];
+}
+
+export const stepChannelTxTimeout: StepFn<ChannelWindowState> = (state, event) => {
+  const result = stepChannelTxTimeoutInner(state, event as ChannelTxTimeoutEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepChannelTxTimeoutWithActions(
+  state: ChannelWindowState,
+  event: ChannelTxTimeoutEvent
+): ChannelTxTimeoutStepResult {
+  return stepChannelTxTimeoutInner(state, event);
+}
+
+function stepChannelTxTimeoutInner(
+  state: ChannelWindowState,
+  event: ChannelTxTimeoutEvent
+): ChannelTxTimeoutStepResult {
+  if (event.kind !== "channel/tx-timeout") {
+    return { state, intents: [], actions: [] };
+  }
+
+  if (
+    planChannelTxEnvelopeOp({
+      indexOk: event.indexOk,
+      envelopePresent: event.envelopePresent
+    }) === "miss"
+  ) {
+    return { state, intents: [], actions: [] };
+  }
+
+  const plan = planChannelPacketTimeout({
+    delivered: event.delivered,
+    tries: event.tries,
+    maxTries: event.maxTries
+  });
+
+  if (plan.kind === "ignore") {
+    return { state, intents: [], actions: [] };
+  }
+
+  if (plan.kind === "give-up") {
+    return { state, intents: [], actions: [{ kind: "give-up" }] };
+  }
+
+  return {
+    state: applyChannelTimeout(state),
+    intents: [],
+    actions: [
+      {
+        kind: "retry",
+        nextTries: plan.nextTries,
+        resend: shouldResendChannelTimeoutPacket(event.packetPresent)
+      }
+    ]
+  };
+}
+
+/** Whether step actions include a give-up for channel TX timeout. */
+export function shouldGiveUpChannelTxTimeout(
+  actions: ReadonlyArray<ChannelTxTimeoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "give-up");
+}
+
+/** Whether step actions include a retry for channel TX timeout. */
+export function shouldRetryChannelTxTimeout(
+  actions: ReadonlyArray<ChannelTxTimeoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "retry");
+}
+
+/** Extract the retry action from a TX-timeout step, if any. */
+export function channelTxTimeoutRetryAction(
+  actions: ReadonlyArray<ChannelTxTimeoutAction>
+): Extract<ChannelTxTimeoutAction, { kind: "retry" }> | null {
+  for (const action of actions) {
+    if (action.kind === "retry") {
+      return action;
+    }
+  }
+  return null;
+}
+
+/**
+ * Plan which TX-ring receipts need a longer timeout after a send/retry.
+ * Adapter applies `setTimeout` only for returned indexes (no
+ * `shouldExtend…` beside the loop).
+ */
+export function planChannelTxReceiptTimeoutRefresh(
+  entries: ReadonlyArray<{
+    readonly receiptPresent: boolean;
+    readonly currentTimeout: number | null;
+    readonly tries: number;
+    readonly rtt: number;
+    readonly txRingLength: number;
+  }>
+): ReadonlyArray<{ readonly index: number; readonly timeoutSeconds: number }> {
+  const extensions: Array<{ index: number; timeoutSeconds: number }> = [];
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index]!;
+    if (!canArmChannelPacketReceipt(entry.receiptPresent)) {
+      continue;
+    }
+    const updatedTimeout = channelPacketTimeoutSeconds({
+      tries: entry.tries,
+      rtt: entry.rtt,
+      txRingLength: entry.txRingLength
+    });
+    if (
+      shouldExtendPacketReceiptTimeout({
+        currentTimeout: entry.currentTimeout,
+        updatedTimeout
+      })
+    ) {
+      extensions.push({ index, timeoutSeconds: updatedTimeout });
+    }
+  }
+  return extensions;
+}
+
+/** Whether the adapter should apply a planned receipt timeout extension. */
+export function shouldApplyChannelTxReceiptTimeoutExtension(
+  extensionPresent: boolean
+): boolean {
+  return extensionPresent;
 }
