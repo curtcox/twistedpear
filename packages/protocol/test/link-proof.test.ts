@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   LINK_PROOF_BODY_SIZE,
+  LINK_PROOF_MTU_SIZE,
   LINK_PROOF_PUBLIC_KEY_SIZE,
   LINK_PROOF_SIGNATURE_SIZE,
   LINK_REQUEST_ECPUB_SIZE,
@@ -8,8 +9,13 @@ import {
   encodeLinkMtuBytesRawFromActions,
   encodeLinkSignallingBytes,
   encodeLinkSignallingBytesRawFromActions,
+  initialClassifyLinkProofPayloadState,
   initialEncodeLinkMtuBytesState,
   initialEncodeLinkSignallingBytesState,
+  initialModeFromLinkProofDataState,
+  initialModeFromLinkRequestDataState,
+  initialMtuFromLinkProofDataState,
+  initialMtuFromLinkRequestDataState,
   initialPackLinkProofDataState,
   initialPackLinkRequestDataState,
   initialSplitLinkProofBodyState,
@@ -18,21 +24,43 @@ import {
   linkProofSignedMaterial,
   linkRequestHashablePart,
   linkRequestKeyFieldsFromActions,
+  modeFromLinkProofData,
+  modeFromLinkProofDataFromActions,
+  modeFromLinkRequestData,
+  modeFromLinkRequestDataFromActions,
+  mtuFromLinkProofData,
+  mtuFromLinkProofDataFromActions,
+  mtuFromLinkRequestData,
+  mtuFromLinkRequestDataFromActions,
   packLinkProofData,
   packLinkProofDataRawFromActions,
   packLinkRequestData,
   packLinkRequestDataRawFromActions,
+  shouldClassifyLinkProofPayloadBodyOnly,
+  shouldClassifyLinkProofPayloadBodyWithMtu,
+  shouldRejectClassifyLinkProofPayload,
+  shouldRejectMtuFromLinkProofData,
+  shouldRejectMtuFromLinkRequestData,
   shouldRejectSplitLinkProofBody,
   shouldRejectSplitLinkRequestData,
   shouldUseEncodeLinkMtuBytes,
   shouldUseEncodeLinkSignallingBytes,
+  shouldUseModeFromLinkProofData,
+  shouldUseModeFromLinkRequestData,
+  shouldUseMtuFromLinkProofData,
+  shouldUseMtuFromLinkRequestData,
   shouldUsePackLinkProofData,
   shouldUsePackLinkRequestData,
   shouldUseSplitLinkProofBody,
   shouldUseSplitLinkRequestData,
   splitLinkRequestData,
+  stepClassifyLinkProofPayloadWithActions,
   stepEncodeLinkMtuBytesWithActions,
   stepEncodeLinkSignallingBytesWithActions,
+  stepModeFromLinkProofDataWithActions,
+  stepModeFromLinkRequestDataWithActions,
+  stepMtuFromLinkProofDataWithActions,
+  stepMtuFromLinkRequestDataWithActions,
   stepPackLinkProofDataWithActions,
   stepPackLinkRequestDataWithActions,
   stepSplitLinkProofBodyWithActions,
@@ -77,6 +105,94 @@ describe("protocol link proof materials", () => {
     expect(mtuBytes).not.toBeNull();
     expect([...mtuBytes!]).toEqual([...encodeLinkMtuBytes(0x123456)]);
   });
+
+  it("emits mode / MTU decode and proof-payload classify from WithActions steps", () => {
+    const signalling = encodeLinkSignallingBytes(500, 0x01);
+    const publicKey = new Uint8Array(LINK_PROOF_PUBLIC_KEY_SIZE).fill(2);
+    const signaturePublicKey = new Uint8Array(LINK_PROOF_PUBLIC_KEY_SIZE).fill(3);
+    const requestData = packLinkRequestData(publicKey, signaturePublicKey, signalling);
+    const proofData = packLinkProofData(
+      new Uint8Array(LINK_PROOF_SIGNATURE_SIZE).fill(7),
+      publicKey,
+      signalling
+    );
+
+    const requestModeStepped = stepModeFromLinkRequestDataWithActions(
+      initialModeFromLinkRequestDataState(),
+      {
+        kind: "link-proof/mode-from-request-gate",
+        data: requestData,
+        defaultMode: 0
+      }
+    );
+    expect(shouldUseModeFromLinkRequestData(requestModeStepped.actions)).toBe(true);
+    expect(modeFromLinkRequestDataFromActions(requestModeStepped.actions)).toBe(
+      modeFromLinkRequestData(requestData, 0)
+    );
+
+    const proofModeStepped = stepModeFromLinkProofDataWithActions(initialModeFromLinkProofDataState(), {
+      kind: "link-proof/mode-from-proof-gate",
+      data: proofData,
+      defaultMode: 0
+    });
+    expect(shouldUseModeFromLinkProofData(proofModeStepped.actions)).toBe(true);
+    expect(modeFromLinkProofDataFromActions(proofModeStepped.actions)).toBe(
+      modeFromLinkProofData(proofData, 0)
+    );
+
+    const requestMtuOk = stepMtuFromLinkRequestDataWithActions(initialMtuFromLinkRequestDataState(), {
+      kind: "link-proof/mtu-from-request-gate",
+      data: requestData
+    });
+    expect(shouldUseMtuFromLinkRequestData(requestMtuOk.actions)).toBe(true);
+    expect(shouldRejectMtuFromLinkRequestData(requestMtuOk.actions)).toBe(false);
+    expect(mtuFromLinkRequestDataFromActions(requestMtuOk.actions)).toBe(mtuFromLinkRequestData(requestData));
+
+    const requestMtuRejected = stepMtuFromLinkRequestDataWithActions(
+      initialMtuFromLinkRequestDataState(),
+      {
+        kind: "link-proof/mtu-from-request-gate",
+        data: new Uint8Array(LINK_REQUEST_ECPUB_SIZE)
+      }
+    );
+    expect(shouldRejectMtuFromLinkRequestData(requestMtuRejected.actions)).toBe(true);
+    expect(mtuFromLinkRequestDataFromActions(requestMtuRejected.actions)).toBeNull();
+
+    const proofMtuOk = stepMtuFromLinkProofDataWithActions(initialMtuFromLinkProofDataState(), {
+      kind: "link-proof/mtu-from-proof-gate",
+      data: proofData
+    });
+    expect(shouldUseMtuFromLinkProofData(proofMtuOk.actions)).toBe(true);
+    expect(shouldRejectMtuFromLinkProofData(proofMtuOk.actions)).toBe(false);
+    expect(mtuFromLinkProofDataFromActions(proofMtuOk.actions)).toBe(mtuFromLinkProofData(proofData));
+
+    const proofMtuRejected = stepMtuFromLinkProofDataWithActions(initialMtuFromLinkProofDataState(), {
+      kind: "link-proof/mtu-from-proof-gate",
+      data: new Uint8Array(LINK_PROOF_BODY_SIZE)
+    });
+    expect(shouldRejectMtuFromLinkProofData(proofMtuRejected.actions)).toBe(true);
+    expect(mtuFromLinkProofDataFromActions(proofMtuRejected.actions)).toBeNull();
+
+    const bodyOnly = stepClassifyLinkProofPayloadWithActions(initialClassifyLinkProofPayloadState(), {
+      kind: "link-proof/classify-payload-gate",
+      dataLength: LINK_PROOF_BODY_SIZE
+    });
+    expect(shouldClassifyLinkProofPayloadBodyOnly(bodyOnly.actions)).toBe(true);
+    expect(shouldRejectClassifyLinkProofPayload(bodyOnly.actions)).toBe(false);
+
+    const bodyWithMtu = stepClassifyLinkProofPayloadWithActions(initialClassifyLinkProofPayloadState(), {
+      kind: "link-proof/classify-payload-gate",
+      dataLength: LINK_PROOF_BODY_SIZE + LINK_PROOF_MTU_SIZE
+    });
+    expect(shouldClassifyLinkProofPayloadBodyWithMtu(bodyWithMtu.actions)).toBe(true);
+
+    const rejected = stepClassifyLinkProofPayloadWithActions(initialClassifyLinkProofPayloadState(), {
+      kind: "link-proof/classify-payload-gate",
+      dataLength: 10
+    });
+    expect(shouldRejectClassifyLinkProofPayload(rejected.actions)).toBe(true);
+  });
+
   it("packs and splits link-request payloads", () => {
     const publicKey = new Uint8Array(LINK_PROOF_PUBLIC_KEY_SIZE).fill(1);
     const signaturePublicKey = new Uint8Array(LINK_PROOF_PUBLIC_KEY_SIZE).fill(2);

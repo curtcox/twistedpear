@@ -113,7 +113,13 @@
 > **`stepPackLinkRequestDataWithActions`** / **`stepSplitLinkRequestDataWithActions`**:
 > use-raw / use-fields|reject; signalling/MTU encode via
 > **`stepEncodeLinkSignallingBytesWithActions`** /
-> **`stepEncodeLinkMtuBytesWithActions`**: use-raw) is a pure protocol leaf; `Link`
+> **`stepEncodeLinkMtuBytesWithActions`**: use-raw; mode/MTU decode via
+> **`stepModeFromLinkRequestDataWithActions`** /
+> **`stepModeFromLinkProofDataWithActions`** /
+> **`stepMtuFromLinkRequestDataWithActions`** /
+> **`stepMtuFromLinkProofDataWithActions`**: use-mode / use-mtu|reject;
+> payload classify via **`stepClassifyLinkProofPayloadWithActions`**:
+> body-only|body-with-mtu|reject) is a pure protocol leaf; `Link`
 > adapts it.
 > **Packet header** encode/decode (via **`stepEncodePacketRawWithActions`** /
 > **`stepDecodePacketRawWithActions`**: use-raw|reject / use-fields|reject),
@@ -865,6 +871,9 @@
 > pack-link-proof-data / split-link-proof-body /
 > pack-link-request-data / split-link-request-data /
 > encode-link-signalling-bytes / encode-link-mtu-bytes /
+> mode-from-link-request-data / mode-from-link-proof-data /
+> mtu-from-link-request-data / mtu-from-link-proof-data /
+> classify-link-proof-payload /
 > pack-resource-proof / split-resource-proof /
 > split-resource-decrypted-payload /
 > pack-resource-hashmap-update / unpack-resource-hashmap-update /
@@ -1039,11 +1048,21 @@
 > **`stepPackLinkRequestDataWithActions`** /
 > **`stepSplitLinkRequestDataWithActions`** /
 > **`stepEncodeLinkSignallingBytesWithActions`** /
-> **`stepEncodeLinkMtuBytesWithActions`** emit `use-raw` / `use-fields`|`reject` /
-> `use-raw`; link-proof / link-request pack / split and signalling / MTU encode
-> apply only from those actions (no ad-hoc `packLinkProofData` /
+> **`stepEncodeLinkMtuBytesWithActions`** /
+> **`stepModeFromLinkRequestDataWithActions`** /
+> **`stepModeFromLinkProofDataWithActions`** /
+> **`stepMtuFromLinkRequestDataWithActions`** /
+> **`stepMtuFromLinkProofDataWithActions`** /
+> **`stepClassifyLinkProofPayloadWithActions`** emit `use-raw` /
+> `use-fields`|`reject` / `use-raw` / `use-mode` / `use-mtu`|`reject` /
+> `body-only`|`body-with-mtu`|`reject`; link-proof / link-request pack / split,
+> signalling / MTU encode, mode / MTU decode, and payload classify apply only
+> from those actions (no ad-hoc `packLinkProofData` /
 > `splitLinkProofBody` / `packLinkRequestData` / `splitLinkRequestData` /
-> `encodeLinkSignallingBytes` / `encodeLinkMtuBytes` reads beside the step).
+> `encodeLinkSignallingBytes` / `encodeLinkMtuBytes` /
+> `modeFromLinkRequestData` / `modeFromLinkProofData` /
+> `mtuFromLinkRequestData` / `mtuFromLinkProofData` /
+> `classifyLinkProofPayload` reads beside the step).
 > **`stepPackResourceProofWithActions`** /
 > **`stepSplitResourceProofWithActions`** /
 > **`stepSplitResourceDecryptedPayloadWithActions`** emit `use-raw` /

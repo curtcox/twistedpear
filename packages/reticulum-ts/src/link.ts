@@ -36,7 +36,6 @@ import {
   canResendLinkPacket,
   canUpdateLinkKeepalive,
   canValidateLinkProof,
-  classifyLinkProofPayload,
   computeLinkEstablishmentTimeout,
   computeLinkMdu,
   computeLinkRequestTimeout,
@@ -66,11 +65,11 @@ import {
   linkTeardownRemoteCloseAction,
   linkTeardownSendThenCloseAction,
   mergeLinkRtt,
-  modeFromLinkProofData,
-  modeFromLinkRequestData,
+  modeFromLinkProofDataFromActions,
+  modeFromLinkRequestDataFromActions,
   msgpackFloatFromActions,
-  mtuFromLinkProofData,
-  mtuFromLinkRequestData,
+  mtuFromLinkProofDataFromActions,
+  mtuFromLinkRequestDataFromActions,
   packLinkKeepaliveProbeRawFromActions,
   packLinkKeepaliveReplyRawFromActions,
   packLinkIdentifyPayloadRawFromActions,
@@ -78,8 +77,13 @@ import {
   packLinkRequestDataRawFromActions,
   packMsgpackFloat64RawFromActions,
   initialClassifyLinkKeepaliveState,
+  initialClassifyLinkProofPayloadState,
   initialEncodeLinkMtuBytesState,
   initialEncodeLinkSignallingBytesState,
+  initialModeFromLinkProofDataState,
+  initialModeFromLinkRequestDataState,
+  initialMtuFromLinkProofDataState,
+  initialMtuFromLinkRequestDataState,
   initialLinkAppRequestState,
   initialLinkAppRequestTransmitState,
   initialLinkDataContextState,
@@ -110,6 +114,10 @@ import {
   packLinkRequestRawFromActions,
   packLinkResponseRawFromActions,
   shouldClassifyLinkKeepaliveProbe,
+  shouldClassifyLinkProofPayloadBodyOnly,
+  shouldClassifyLinkProofPayloadBodyWithMtu,
+  shouldRejectMtuFromLinkProofData,
+  shouldRejectMtuFromLinkRequestData,
   shouldRejectPackLinkIdentifyPayload,
   shouldRejectSplitLinkIdentifyPayload,
   shouldRejectSplitLinkProofBody,
@@ -121,6 +129,10 @@ import {
   shouldUseEncodeLinkSignallingBytes,
   shouldUseLinkInitiatorMtu,
   shouldUseLinkRequestResponderMtu,
+  shouldUseModeFromLinkProofData,
+  shouldUseModeFromLinkRequestData,
+  shouldUseMtuFromLinkProofData,
+  shouldUseMtuFromLinkRequestData,
   shouldUsePackLinkIdentifyPayload,
   shouldUsePackLinkKeepaliveProbe,
   shouldUsePackLinkKeepaliveReply,
@@ -136,8 +148,13 @@ import {
   shouldUseUnpackLinkResponse,
   shouldUseUnpackMsgpackFloat,
   stepClassifyLinkKeepaliveWithActions,
+  stepClassifyLinkProofPayloadWithActions,
   stepEncodeLinkMtuBytesWithActions,
   stepEncodeLinkSignallingBytesWithActions,
+  stepModeFromLinkProofDataWithActions,
+  stepModeFromLinkRequestDataWithActions,
+  stepMtuFromLinkProofDataWithActions,
+  stepMtuFromLinkRequestDataWithActions,
   stepLinkInitiatorMtuWithActions,
   stepLinkRequestResponderMtuWithActions,
   stepPackLinkIdentifyPayloadWithActions,
@@ -674,11 +691,29 @@ export class Link {
   }
 
   static modeFromLrPacket(packet: Packet): LinkModeValue {
-    return modeFromLinkRequestData(packet.data, LINK_MODE_DEFAULT) as LinkModeValue;
+    const stepped = stepModeFromLinkRequestDataWithActions(initialModeFromLinkRequestDataState(), {
+      kind: "link-proof/mode-from-request-gate",
+      data: packet.data,
+      defaultMode: LINK_MODE_DEFAULT
+    });
+    const mode = modeFromLinkRequestDataFromActions(stepped.actions);
+    if (!shouldUseModeFromLinkRequestData(stepped.actions) || mode === null) {
+      throw new Error("Could not decode link-request mode");
+    }
+    return mode as LinkModeValue;
   }
 
   static modeFromLpPacket(packet: Packet): LinkModeValue {
-    return modeFromLinkProofData(packet.data, LINK_MODE_DEFAULT) as LinkModeValue;
+    const stepped = stepModeFromLinkProofDataWithActions(initialModeFromLinkProofDataState(), {
+      kind: "link-proof/mode-from-proof-gate",
+      data: packet.data,
+      defaultMode: LINK_MODE_DEFAULT
+    });
+    const mode = modeFromLinkProofDataFromActions(stepped.actions);
+    if (!shouldUseModeFromLinkProofData(stepped.actions) || mode === null) {
+      throw new Error("Could not decode link-proof mode");
+    }
+    return mode as LinkModeValue;
   }
 
   static mtuBytes(mtu: number): Uint8Array {
@@ -694,11 +729,25 @@ export class Link {
   }
 
   static mtuFromLrPacket(packet: Packet): number | null {
-    return mtuFromLinkRequestData(packet.data);
+    const stepped = stepMtuFromLinkRequestDataWithActions(initialMtuFromLinkRequestDataState(), {
+      kind: "link-proof/mtu-from-request-gate",
+      data: packet.data
+    });
+    if (shouldRejectMtuFromLinkRequestData(stepped.actions) || !shouldUseMtuFromLinkRequestData(stepped.actions)) {
+      return null;
+    }
+    return mtuFromLinkRequestDataFromActions(stepped.actions);
   }
 
   static mtuFromLpPacket(packet: Packet): number | null {
-    return mtuFromLinkProofData(packet.data);
+    const stepped = stepMtuFromLinkProofDataWithActions(initialMtuFromLinkProofDataState(), {
+      kind: "link-proof/mtu-from-proof-gate",
+      data: packet.data
+    });
+    if (shouldRejectMtuFromLinkProofData(stepped.actions) || !shouldUseMtuFromLinkProofData(stepped.actions)) {
+      return null;
+    }
+    return mtuFromLinkProofDataFromActions(stepped.actions);
   }
 
   setLinkId(packet: Packet): void {
@@ -836,9 +885,17 @@ export class Link {
       let signallingBytes = new Uint8Array(0);
       let confirmedMtu: number | null = null;
 
-      const layout = classifyLinkProofPayload(proofData.length);
-      const layoutValid = layout !== "invalid";
-      if (layout === "body-with-mtu") {
+      const layoutStepped = stepClassifyLinkProofPayloadWithActions(
+        initialClassifyLinkProofPayloadState(),
+        {
+          kind: "link-proof/classify-payload-gate",
+          dataLength: proofData.length
+        }
+      );
+      const layoutValid =
+        shouldClassifyLinkProofPayloadBodyOnly(layoutStepped.actions) ||
+        shouldClassifyLinkProofPayloadBodyWithMtu(layoutStepped.actions);
+      if (shouldClassifyLinkProofPayloadBodyWithMtu(layoutStepped.actions)) {
         confirmedMtu = Link.mtuFromLpPacket(packet);
         signallingBytes = Uint8Array.from(Link.signallingBytes(confirmedMtu ?? RETICULUM_MTU, mode));
         proofData = proofData.subarray(0, LINK_PROOF_BODY_SIZE);
