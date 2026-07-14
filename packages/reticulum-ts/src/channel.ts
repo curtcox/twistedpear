@@ -20,11 +20,11 @@ import {
   initialChannelWindowState,
   isChannelOutletTransmitOk,
   nextChannelSequence,
+  initialChannelEnvelopePackState,
+  initialChannelEnvelopeUnpackState,
+  initialChannelMessageTypeRegistrationState,
+  initialChannelSendState,
   packChannelEnvelope,
-  planChannelEnvelopePack,
-  planChannelEnvelopeUnpack,
-  planChannelMessageTypeRegistration,
-  planChannelSend,
   planChannelTxEnvelopeOp,
   planChannelTxReceiptTimeoutRefresh,
   planUnregisterChannelMessageHandler,
@@ -36,11 +36,27 @@ import {
   shouldEmplaceChannelEnvelope,
   shouldEmitChannelImmediateDelivery,
   shouldGiveUpChannelTxTimeout,
+  shouldProceedChannelEnvelopePack,
+  shouldProceedChannelEnvelopeUnpack,
+  shouldProceedChannelMessageTypeRegistration,
+  shouldProceedChannelSend,
   shouldRegisterChannelMessageHandler,
+  shouldRejectChannelEnvelopePackMissingMessage,
+  shouldRejectChannelEnvelopeUnpackMissingRaw,
+  shouldRejectChannelEnvelopeUnpackNotRegistered,
+  shouldRejectChannelEnvelopeUnpackTruncate,
+  shouldRejectChannelMessageTypeMissingMsgtype,
+  shouldRejectChannelMessageTypeSystemReserved,
+  shouldRejectChannelSendLinkNotReady,
+  shouldRejectChannelSendTooBig,
   shouldReplaceChannelResentPacket,
   shouldRetryChannelTxTimeout,
   shouldStopChannelHandlerFanout,
   shouldUnregisterChannelMessageHandler,
+  stepChannelEnvelopePackWithActions,
+  stepChannelEnvelopeUnpackWithActions,
+  stepChannelMessageTypeRegistrationWithActions,
+  stepChannelSendWithActions,
   stepChannelTxTimeoutWithActions,
   stepChannelWindow,
   unpackChannelEnvelope,
@@ -126,7 +142,14 @@ class Envelope {
   }
 
   pack(): Uint8Array {
-    if (planChannelEnvelopePack(this.message !== null) === "missing-message" || this.message === null) {
+    const { actions } = stepChannelEnvelopePackWithActions(initialChannelEnvelopePackState(), {
+      kind: "channel/envelope-pack-gate",
+      messagePresent: this.message !== null
+    });
+    if (shouldRejectChannelEnvelopePackMissingMessage(actions) || this.message === null) {
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope has no message");
+    }
+    if (!shouldProceedChannelEnvelopePack(actions)) {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope has no message");
     }
 
@@ -140,22 +163,26 @@ class Envelope {
 
   unpack(factories: ReadonlyMap<number, ChannelMessageConstructor>): ChannelMessage {
     const unpacked = this.raw === null ? null : unpackChannelEnvelope(this.raw);
-    const plan = planChannelEnvelopeUnpack({
+    const { actions } = stepChannelEnvelopeUnpackWithActions(initialChannelEnvelopeUnpackState(), {
+      kind: "channel/envelope-unpack-gate",
       rawPresent: this.raw !== null,
       framingOk: unpacked !== null,
       factoryRegistered: unpacked !== null && factories.has(unpacked.msgType)
     });
-    if (plan === "missing-raw") {
+    if (shouldRejectChannelEnvelopeUnpackMissingRaw(actions)) {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope has no raw data");
     }
-    if (plan === "truncated" || unpacked === null) {
+    if (shouldRejectChannelEnvelopeUnpackTruncate(actions) || unpacked === null) {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope framing is truncated");
     }
-    if (plan === "not-registered") {
+    if (shouldRejectChannelEnvelopeUnpackNotRegistered(actions)) {
       throw new ChannelException(
         ChannelExceptionType.ME_NOT_REGISTERED,
         `Unknown channel MSGTYPE ${unpacked.msgType.toString(16)}`
       );
+    }
+    if (!shouldProceedChannelEnvelopeUnpack(actions)) {
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Envelope unpack rejected");
     }
 
     this.sequence = unpacked.sequence;
@@ -230,15 +257,22 @@ export class Channel {
   }
 
   registerMessageType(messageClass: ChannelMessageConstructor, options: { readonly isSystemType?: boolean } = {}): void {
-    const plan = planChannelMessageTypeRegistration({
-      msgType: messageClass.MSGTYPE,
-      isSystemType: options.isSystemType === true
-    });
-    if (plan === "missing-msgtype") {
+    const { actions } = stepChannelMessageTypeRegistrationWithActions(
+      initialChannelMessageTypeRegistrationState(),
+      {
+        kind: "channel/message-type-registration-gate",
+        msgType: messageClass.MSGTYPE,
+        isSystemType: options.isSystemType === true
+      }
+    );
+    if (shouldRejectChannelMessageTypeMissingMsgtype(actions)) {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Message class lacks MSGTYPE");
     }
-    if (plan === "system-reserved") {
+    if (shouldRejectChannelMessageTypeSystemReserved(actions)) {
       throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Message type is system-reserved");
+    }
+    if (!shouldProceedChannelMessageTypeRegistration(actions)) {
+      throw new ChannelException(ChannelExceptionType.ME_INVALID_MSG_TYPE, "Message type registration rejected");
     }
 
     this.messageFactories.set(messageClass.MSGTYPE, messageClass);
@@ -279,30 +313,36 @@ export class Channel {
   }
 
   async send(message: ChannelMessage): Promise<Envelope> {
-    if (
-      planChannelSend({
-        ready: this.isReadyToSend(),
-        packedLength: null,
-        mdu: this.outlet.mdu
-      }) === "link-not-ready"
-    ) {
+    const readyGate = stepChannelSendWithActions(initialChannelSendState(), {
+      kind: "channel/send-gate",
+      ready: this.isReadyToSend(),
+      packedLength: null,
+      mdu: this.outlet.mdu
+    });
+    if (shouldRejectChannelSendLinkNotReady(readyGate.actions)) {
+      throw new ChannelException(ChannelExceptionType.ME_LINK_NOT_READY, "Link is not ready");
+    }
+    if (!shouldProceedChannelSend(readyGate.actions)) {
       throw new ChannelException(ChannelExceptionType.ME_LINK_NOT_READY, "Link is not ready");
     }
 
     const reservedSequence = this.nextSequence;
     const envelope = new Envelope(this.outlet, { message, sequence: reservedSequence });
     envelope.pack();
-    if (
-      planChannelSend({
-        ready: true,
-        packedLength: envelope.raw?.length ?? null,
-        mdu: this.outlet.mdu
-      }) === "too-big"
-    ) {
+    const sizeGate = stepChannelSendWithActions(initialChannelSendState(), {
+      kind: "channel/send-gate",
+      ready: true,
+      packedLength: envelope.raw?.length ?? null,
+      mdu: this.outlet.mdu
+    });
+    if (shouldRejectChannelSendTooBig(sizeGate.actions)) {
       throw new ChannelException(
         ChannelExceptionType.ME_TOO_BIG,
         `Packed message too big for packet: ${envelope.raw!.length} > ${this.outlet.mdu}`
       );
+    }
+    if (!shouldProceedChannelSend(sizeGate.actions)) {
+      throw new ChannelException(ChannelExceptionType.ME_LINK_NOT_READY, "Link is not ready");
     }
 
     this.nextSequence = nextChannelSequence(reservedSequence);

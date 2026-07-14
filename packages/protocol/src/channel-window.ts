@@ -77,6 +77,7 @@ export function channelAllowsSend(input: {
 /**
  * Channel send gate: ready-to-send and packed-payload MDU fitness.
  * Pass `packedLength: null` to check readiness only (before pack).
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  */
 export type ChannelSendPlan = "proceed" | "link-not-ready" | "too-big";
 
@@ -92,6 +93,75 @@ export function planChannelSend(input: {
     return "too-big";
   }
   return "proceed";
+}
+
+/**
+ * Channel send gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type ChannelSendState = Record<string, never>;
+
+export type ChannelSendEvent =
+  | Event
+  | {
+      readonly kind: "channel/send-gate";
+      readonly ready: boolean;
+      readonly packedLength: number | null;
+      readonly mdu: number;
+    };
+
+export type ChannelSendAction = { readonly kind: ChannelSendPlan };
+
+export interface ChannelSendStepResult {
+  readonly state: ChannelSendState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelSendAction[];
+}
+
+export function initialChannelSendState(): ChannelSendState {
+  return {};
+}
+
+export const stepChannelSend: StepFn<ChannelSendState> = (state, event) => {
+  const result = stepChannelSendInner(state, event as ChannelSendEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepChannelSendWithActions(
+  state: ChannelSendState,
+  event: ChannelSendEvent
+): ChannelSendStepResult {
+  return stepChannelSendInner(state, event);
+}
+
+export function shouldProceedChannelSend(actions: ReadonlyArray<ChannelSendAction>): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
+export function shouldRejectChannelSendLinkNotReady(
+  actions: ReadonlyArray<ChannelSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "link-not-ready");
+}
+
+export function shouldRejectChannelSendTooBig(actions: ReadonlyArray<ChannelSendAction>): boolean {
+  return actions.some((action) => action.kind === "too-big");
+}
+
+function stepChannelSendInner(
+  state: ChannelSendState,
+  event: ChannelSendEvent
+): ChannelSendStepResult {
+  if (event.kind === "channel/send-gate") {
+    const plan = planChannelSend({
+      ready: event.ready,
+      packedLength: event.packedLength,
+      mdu: event.mdu
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 /**

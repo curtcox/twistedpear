@@ -8,6 +8,8 @@ import {
   canResourceContinueTransfer,
   canRunResourceWatchdog,
   canValidateResourceProof,
+  initialResourceAssembleState,
+  initialResourceProofAcceptState,
   initialResourceStatusState,
   isResourceComplete,
   isResourceTerminal,
@@ -16,7 +18,13 @@ import {
   planResourceProofAccept,
   shouldAcceptIncomingResourceAdvertisement,
   shouldAdvertiseResource,
-  shouldCommitResourceAssemblePayload
+  shouldCommitResourceAssemblePayload,
+  shouldCompleteResourceAssemble,
+  shouldCompleteResourceProofAccept,
+  shouldCorruptResourceAssemble,
+  shouldIgnoreResourceProofAccept,
+  stepResourceAssembleWithActions,
+  stepResourceProofAcceptWithActions
 } from "../src/resource-status.js";
 
 describe("protocol resource status", () => {
@@ -126,6 +134,46 @@ describe("protocol resource status", () => {
         proofValid: true
       })
     ).toBe("ignore");
+  });
+
+  it("emits resource assemble/proof-accept actions from WithActions steps", () => {
+    const complete = stepResourceAssembleWithActions(initialResourceAssembleState(), {
+      kind: "resource/assemble-gate",
+      decryptedPresent: true,
+      payloadPresent: true,
+      hashMatches: true
+    });
+    expect(complete.actions).toEqual([{ kind: "complete" }]);
+    expect(shouldCompleteResourceAssemble(complete.actions)).toBe(true);
+    expect(
+      shouldCommitResourceAssemblePayload({
+        outcomeComplete: shouldCompleteResourceAssemble(complete.actions),
+        payloadPresent: true
+      })
+    ).toBe(true);
+
+    const corrupt = stepResourceAssembleWithActions(initialResourceAssembleState(), {
+      kind: "resource/assemble-gate",
+      decryptedPresent: false,
+      payloadPresent: true,
+      hashMatches: true
+    });
+    expect(shouldCorruptResourceAssemble(corrupt.actions)).toBe(true);
+
+    const accept = stepResourceProofAcceptWithActions(initialResourceProofAcceptState(), {
+      kind: "resource/proof-accept-gate",
+      status: ResourceStatus.AWAITING_PROOF,
+      proofValid: true
+    });
+    expect(accept.actions).toEqual([{ kind: "complete" }]);
+    expect(shouldCompleteResourceProofAccept(accept.actions)).toBe(true);
+
+    const ignore = stepResourceProofAcceptWithActions(initialResourceProofAcceptState(), {
+      kind: "resource/proof-accept-gate",
+      status: ResourceStatus.AWAITING_PROOF,
+      proofValid: false
+    });
+    expect(shouldIgnoreResourceProofAccept(ignore.actions)).toBe(true);
   });
 
   it("steps through advertise → transferring → awaiting-proof → complete", () => {

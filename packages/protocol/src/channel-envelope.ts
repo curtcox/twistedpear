@@ -1,6 +1,9 @@
 /**
  * Pure RNS Channel envelope framing (MSGTYPE + sequence + length + payload).
+ * Pack / unpack / MSGTYPE-registration conclusions leave via machine actions
+ * (no ad-hoc plan reads beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import type { PacketReceiptStatusValue } from "./packet-receipt-timeout.js";
 import { PacketReceiptStatus } from "./packet-receipt-timeout.js";
 
@@ -121,6 +124,85 @@ export function planChannelMessageTypeRegistration(input: {
   return "ok";
 }
 
+/**
+ * Channel MSGTYPE registration gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type ChannelMessageTypeRegistrationState = Record<string, never>;
+
+export type ChannelMessageTypeRegistrationEvent =
+  | Event
+  | {
+      readonly kind: "channel/message-type-registration-gate";
+      readonly msgType: number | undefined;
+      readonly isSystemType: boolean;
+    };
+
+export type ChannelMessageTypeRegistrationAction = {
+  readonly kind: ChannelMessageTypeRegistrationPlan;
+};
+
+export interface ChannelMessageTypeRegistrationStepResult {
+  readonly state: ChannelMessageTypeRegistrationState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelMessageTypeRegistrationAction[];
+}
+
+export function initialChannelMessageTypeRegistrationState(): ChannelMessageTypeRegistrationState {
+  return {};
+}
+
+export const stepChannelMessageTypeRegistration: StepFn<ChannelMessageTypeRegistrationState> = (
+  state,
+  event
+) => {
+  const result = stepChannelMessageTypeRegistrationInner(
+    state,
+    event as ChannelMessageTypeRegistrationEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepChannelMessageTypeRegistrationWithActions(
+  state: ChannelMessageTypeRegistrationState,
+  event: ChannelMessageTypeRegistrationEvent
+): ChannelMessageTypeRegistrationStepResult {
+  return stepChannelMessageTypeRegistrationInner(state, event);
+}
+
+export function shouldProceedChannelMessageTypeRegistration(
+  actions: ReadonlyArray<ChannelMessageTypeRegistrationAction>
+): boolean {
+  return actions.some((action) => action.kind === "ok");
+}
+
+export function shouldRejectChannelMessageTypeMissingMsgtype(
+  actions: ReadonlyArray<ChannelMessageTypeRegistrationAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing-msgtype");
+}
+
+export function shouldRejectChannelMessageTypeSystemReserved(
+  actions: ReadonlyArray<ChannelMessageTypeRegistrationAction>
+): boolean {
+  return actions.some((action) => action.kind === "system-reserved");
+}
+
+function stepChannelMessageTypeRegistrationInner(
+  state: ChannelMessageTypeRegistrationState,
+  event: ChannelMessageTypeRegistrationEvent
+): ChannelMessageTypeRegistrationStepResult {
+  if (event.kind === "channel/message-type-registration-gate") {
+    const plan = planChannelMessageTypeRegistration({
+      msgType: event.msgType,
+      isSystemType: event.isSystemType
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 export type ChannelEnvelopeUnpackPlan =
   | "ok"
   | "missing-raw"
@@ -145,11 +227,151 @@ export function planChannelEnvelopeUnpack(input: {
   return "ok";
 }
 
+/**
+ * Channel envelope unpack gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type ChannelEnvelopeUnpackState = Record<string, never>;
+
+export type ChannelEnvelopeUnpackEvent =
+  | Event
+  | {
+      readonly kind: "channel/envelope-unpack-gate";
+      readonly rawPresent: boolean;
+      readonly framingOk: boolean;
+      readonly factoryRegistered: boolean;
+    };
+
+export type ChannelEnvelopeUnpackAction = { readonly kind: ChannelEnvelopeUnpackPlan };
+
+export interface ChannelEnvelopeUnpackStepResult {
+  readonly state: ChannelEnvelopeUnpackState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelEnvelopeUnpackAction[];
+}
+
+export function initialChannelEnvelopeUnpackState(): ChannelEnvelopeUnpackState {
+  return {};
+}
+
+export const stepChannelEnvelopeUnpack: StepFn<ChannelEnvelopeUnpackState> = (state, event) => {
+  const result = stepChannelEnvelopeUnpackInner(state, event as ChannelEnvelopeUnpackEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepChannelEnvelopeUnpackWithActions(
+  state: ChannelEnvelopeUnpackState,
+  event: ChannelEnvelopeUnpackEvent
+): ChannelEnvelopeUnpackStepResult {
+  return stepChannelEnvelopeUnpackInner(state, event);
+}
+
+export function shouldProceedChannelEnvelopeUnpack(
+  actions: ReadonlyArray<ChannelEnvelopeUnpackAction>
+): boolean {
+  return actions.some((action) => action.kind === "ok");
+}
+
+export function shouldRejectChannelEnvelopeUnpackMissingRaw(
+  actions: ReadonlyArray<ChannelEnvelopeUnpackAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing-raw");
+}
+
+export function shouldRejectChannelEnvelopeUnpackTruncate(
+  actions: ReadonlyArray<ChannelEnvelopeUnpackAction>
+): boolean {
+  return actions.some((action) => action.kind === "truncated");
+}
+
+export function shouldRejectChannelEnvelopeUnpackNotRegistered(
+  actions: ReadonlyArray<ChannelEnvelopeUnpackAction>
+): boolean {
+  return actions.some((action) => action.kind === "not-registered");
+}
+
+function stepChannelEnvelopeUnpackInner(
+  state: ChannelEnvelopeUnpackState,
+  event: ChannelEnvelopeUnpackEvent
+): ChannelEnvelopeUnpackStepResult {
+  if (event.kind === "channel/envelope-unpack-gate") {
+    const plan = planChannelEnvelopeUnpack({
+      rawPresent: event.rawPresent,
+      framingOk: event.framingOk,
+      factoryRegistered: event.factoryRegistered
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 export type ChannelEnvelopePackPlan = "missing-message" | "ok";
 
 /** Whether Envelope.pack may serialize from a typed message. */
 export function planChannelEnvelopePack(messagePresent: boolean): ChannelEnvelopePackPlan {
   return messagePresent ? "ok" : "missing-message";
+}
+
+/**
+ * Channel envelope pack gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type ChannelEnvelopePackState = Record<string, never>;
+
+export type ChannelEnvelopePackEvent =
+  | Event
+  | {
+      readonly kind: "channel/envelope-pack-gate";
+      readonly messagePresent: boolean;
+    };
+
+export type ChannelEnvelopePackAction = { readonly kind: ChannelEnvelopePackPlan };
+
+export interface ChannelEnvelopePackStepResult {
+  readonly state: ChannelEnvelopePackState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelEnvelopePackAction[];
+}
+
+export function initialChannelEnvelopePackState(): ChannelEnvelopePackState {
+  return {};
+}
+
+export const stepChannelEnvelopePack: StepFn<ChannelEnvelopePackState> = (state, event) => {
+  const result = stepChannelEnvelopePackInner(state, event as ChannelEnvelopePackEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepChannelEnvelopePackWithActions(
+  state: ChannelEnvelopePackState,
+  event: ChannelEnvelopePackEvent
+): ChannelEnvelopePackStepResult {
+  return stepChannelEnvelopePackInner(state, event);
+}
+
+export function shouldProceedChannelEnvelopePack(
+  actions: ReadonlyArray<ChannelEnvelopePackAction>
+): boolean {
+  return actions.some((action) => action.kind === "ok");
+}
+
+export function shouldRejectChannelEnvelopePackMissingMessage(
+  actions: ReadonlyArray<ChannelEnvelopePackAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing-message");
+}
+
+function stepChannelEnvelopePackInner(
+  state: ChannelEnvelopePackState,
+  event: ChannelEnvelopePackEvent
+): ChannelEnvelopePackStepResult {
+  if (event.kind === "channel/envelope-pack-gate") {
+    const plan = planChannelEnvelopePack(event.messagePresent);
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 /** Whether a channel message-handler list should receive a new member. */

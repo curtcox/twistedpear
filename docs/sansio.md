@@ -98,7 +98,13 @@
 > `TextEncoder`/`TextDecoder`). **Hash truncation** (`truncateToTruncatedHash` /
 > `truncateToNameHash`), **packet context byte codes**, and **`utf8OrBytes`** are pure
 > protocol leaves; Identity/Destination/Announce/Packet, Link resource-proof matching,
-> and LXMF message text adapt them. **LXMF delivery sizes / MDU max-content** and
+> and LXMF message text adapt them. **Channel envelope pack/unpack**, **MSGTYPE
+> registration**, and **channel send** (via **`stepChannelEnvelopePackWithActions`** /
+> **`stepChannelEnvelopeUnpackWithActions`** / **`stepChannelMessageTypeRegistrationWithActions`** /
+> **`stepChannelSendWithActions`**) are pure protocol leaves; `Channel` adapts them.
+> **Resource assemble / proof-accept** (via **`stepResourceAssembleWithActions`** /
+> **`stepResourceProofAcceptWithActions`**) are pure protocol leaves; `Resource`
+> adapts them. **LXMF delivery sizes / MDU max-content** and
 > **peer-error code object** live in protocol; lxmf-ts re-exports aliases
 > (`DESTINATION_LENGTH`, `ENCRYPTED_PACKET_MAX_CONTENT`, `PeerError`, method/representation
 > enums). **Packet header enum objects** (`PacketTypeCode`, header/context-flag/transport/
@@ -192,8 +198,10 @@
 > adapts it.
 > **`shouldIgnoreInitiatorKeepaliveProbe`**, **`shouldAcceptLinkPacketInterface`**, and
 > **`shouldEncryptLinkPayload`** live in protocol; `Link.receive` / `sendContext` adapt them.
-> **`planChannelMessageTypeRegistration`** lives in protocol; `Channel.registerMessageType`
-> adapts it. **`canRelayTransportPacket`**, **`shouldRecordLinkRelayTableEntry`**,
+> **`planChannelMessageTypeRegistration`** (via
+> **`stepChannelMessageTypeRegistrationWithActions`**: ok / missing-msgtype /
+> system-reserved) lives in protocol; `Channel.registerMessageType` adapts it.
+> **`canRelayTransportPacket`**, **`shouldRecordLinkRelayTableEntry`**,
 > **`shouldRecordReverseTableEntry`**, and **`isLocalPathRequestPacket`** live in protocol;
 > transport relay / `LeafTransport.handleData` adapt them. **`isPacketTypeProof`** lives in
 > protocol; `PacketReceipt.validateProofPacket` adapts it. **`planLxmfDeliverableAccept`**
@@ -212,15 +220,18 @@
 > **`planPathRequestIngress`** and **`planDiscoveryPathRequestFulfill`** live in
 > protocol; leaf / transport path-request and discovery announce fulfill adapt them.
 > **`planLinkDataContext`** lives in protocol; `Link.receive` DATA dispatch adapts it.
-> **`planResourceAssembleOutcome`**, **`planResourceProofAccept`**,
+> **`planResourceAssembleOutcome`** (via **`stepResourceAssembleWithActions`**:
+> complete / corrupt), **`planResourceProofAccept`** (via
+> **`stepResourceProofAcceptWithActions`**: complete / ignore),
 > **`canRequestResourceNext`**, **`planResourceAdvertisePhase`**, and
 > **`shouldAcceptIncomingResourceAdvertisement`** live in protocol; `Resource` adapts them.
 > **`shouldHandleOutgoingResourceRequest`** / **`shouldHandleIncomingResourceByHash`**
 > live in protocol; `Link` resource REQ/HMU/cancel/proof dispatch adapts them.
 > **`planLxmfSendMethod`** (via **`stepLxmfSendMethodWithActions`**: reject-unpacked /
 > send-opportunistic / send-direct / send-propagated / reject-unsupported) lives in
-> protocol; `LXMFRouter.send` adapts it. **`planChannelSend`** lives in protocol;
-> `Channel.send` adapts it.
+> protocol; `LXMFRouter.send` adapts it. **`planChannelSend`** (via
+> **`stepChannelSendWithActions`**: proceed / link-not-ready / too-big) lives in
+> protocol; `Channel.send` adapts it.
 > **`canPerformLinkHandshake`**, **`canProveLink`**, **`canAcceptLinkRequestOwner`**,
 > **`planLinkAppRequest`**, **`canSendLinkAppResponse`**, and **`planLinkTokenAccess`**
 > (via **`stepLinkTokenAccessWithActions`**: reject-no-key / create / reuse) live in
@@ -246,8 +257,10 @@
 > **`planPacketFromFields`** (via **`stepPacketFromFieldsWithActions`**: ok /
 > bad-header-type / bad-context-flag / bad-transport-type / bad-destination-type /
 > bad-packet-type / bad-destination-hash / header2-missing-transport-id /
-> bad-transport-id) lives in protocol; `Packet.fromFields` adapts it. **`planChannelEnvelopeUnpack`** lives in protocol;
-> Channel `Envelope.unpack` adapts it. **`planLxmfPropagatedPackPrep`** (via
+> bad-transport-id) lives in protocol; `Packet.fromFields` adapts it.
+> **`planChannelEnvelopeUnpack`** (via **`stepChannelEnvelopeUnpackWithActions`**:
+> ok / missing-raw / truncate / not-registered) lives in protocol; Channel
+> `Envelope.unpack` adapts it. **`planLxmfPropagatedPackPrep`** (via
 > **`stepLxmfPropagatedPackPrepWithActions`**: skip / proceed /
 > reject-missing-identity / reject-missing-timestamp) lives in protocol;
 > `LXMessage` delivery-parameter selection adapts it. **`planLinkValidateRequest`**
@@ -282,7 +295,8 @@
 > **`shouldAcceptLinkLrProofCandidate`**, **`planLocalPlainDataDelivery`**, and
 > **`planPacketHashRemember`** live in protocol; transport node / LeafTransport adapt them.
 > **`indexOfPendingLinkAppRequest`**, **`planLinkRequestResponderMtu`**, and
-> **`planChannelEnvelopePack`** live in protocol; `Link` and `Channel` adapt them.
+> **`planChannelEnvelopePack`** (via **`stepChannelEnvelopePackWithActions`**: ok /
+> missing-message) live in protocol; `Link` and `Channel` adapt them.
 > **`planOutboundReceiptOutcome`** / **`planPacketReceiptProofIngress`** live in
 > protocol; transport sendPacket / receipt proofs adapt them. **`planLinkRegisterList`**,
 > **`indexOfMatchingLinkId`** / **`planLinkDataIngressTarget`**, and
@@ -530,6 +544,18 @@
 > continues only from those actions (no ad-hoc `planDestinationConstruction` /
 > `planDestinationDecrypt` / `planDestinationEncrypt` / `planPacketFromFields`
 > reads beside the step).
+> **`stepChannelMessageTypeRegistrationWithActions`** emits `ok` /
+> `missing-msgtype` / `system-reserved`; **`stepChannelEnvelopeUnpackWithActions`**
+> emits `ok` / `missing-raw` / `truncate` / `not-registered`;
+> **`stepChannelEnvelopePackWithActions`** emits `ok` / `missing-message`;
+> **`stepChannelSendWithActions`** emits `proceed` / `link-not-ready` /
+> `too-big`; `Channel` register/pack/unpack/send apply only from those actions.
+> **`stepResourceAssembleWithActions`** emits `complete` / `corrupt`;
+> **`stepResourceProofAcceptWithActions`** emits `complete` / `ignore`;
+> `Resource` assemble/validateProof apply only from those actions (no ad-hoc
+> `planChannelMessageTypeRegistration` / `planChannelEnvelopeUnpack` /
+> `planChannelEnvelopePack` / `planChannelSend` / `planResourceAssembleOutcome` /
+> `planResourceProofAccept` reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -583,7 +609,9 @@
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
 > identity-recall-app-data / destination-construction / destination-decrypt /
-> destination-encrypt / packet-from-fields reads
+> destination-encrypt / packet-from-fields / channel-message-type-registration /
+> channel-envelope-unpack / channel-envelope-pack / channel-send /
+> resource-assemble / resource-proof-accept reads
 > beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

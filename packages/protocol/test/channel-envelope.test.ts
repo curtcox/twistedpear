@@ -5,6 +5,9 @@ import {
   ChannelMessageState,
   channelMessageStateFromPacketReceipt,
   channelPayloadMdu,
+  initialChannelEnvelopePackState,
+  initialChannelEnvelopeUnpackState,
+  initialChannelMessageTypeRegistrationState,
   isChannelSystemMsgType,
   nextChannelSequence,
   packChannelEnvelope,
@@ -13,9 +16,21 @@ import {
   planChannelMessageTypeRegistration,
   planUnregisterChannelMessageHandler,
   shouldEmitChannelImmediateDelivery,
+  shouldProceedChannelEnvelopePack,
+  shouldProceedChannelEnvelopeUnpack,
+  shouldProceedChannelMessageTypeRegistration,
   shouldRegisterChannelMessageHandler,
+  shouldRejectChannelEnvelopePackMissingMessage,
+  shouldRejectChannelEnvelopeUnpackMissingRaw,
+  shouldRejectChannelEnvelopeUnpackNotRegistered,
+  shouldRejectChannelEnvelopeUnpackTruncate,
+  shouldRejectChannelMessageTypeMissingMsgtype,
+  shouldRejectChannelMessageTypeSystemReserved,
   shouldStopChannelHandlerFanout,
   shouldUnregisterChannelMessageHandler,
+  stepChannelEnvelopePackWithActions,
+  stepChannelEnvelopeUnpackWithActions,
+  stepChannelMessageTypeRegistrationWithActions,
   unpackChannelEnvelope
 } from "../src/channel-envelope.js";
 import {
@@ -127,6 +142,89 @@ describe("protocol channel envelope", () => {
   it("plans channel envelope pack gates", () => {
     expect(planChannelEnvelopePack(false)).toBe("missing-message");
     expect(planChannelEnvelopePack(true)).toBe("ok");
+  });
+
+  it("emits channel message-type registration actions from WithActions step", () => {
+    const missing = stepChannelMessageTypeRegistrationWithActions(
+      initialChannelMessageTypeRegistrationState(),
+      {
+        kind: "channel/message-type-registration-gate",
+        msgType: undefined,
+        isSystemType: false
+      }
+    );
+    expect(shouldRejectChannelMessageTypeMissingMsgtype(missing.actions)).toBe(true);
+
+    const reserved = stepChannelMessageTypeRegistrationWithActions(
+      initialChannelMessageTypeRegistrationState(),
+      {
+        kind: "channel/message-type-registration-gate",
+        msgType: 0xf000,
+        isSystemType: false
+      }
+    );
+    expect(shouldRejectChannelMessageTypeSystemReserved(reserved.actions)).toBe(true);
+
+    const ok = stepChannelMessageTypeRegistrationWithActions(
+      initialChannelMessageTypeRegistrationState(),
+      {
+        kind: "channel/message-type-registration-gate",
+        msgType: 0x0100,
+        isSystemType: false
+      }
+    );
+    expect(ok.actions).toEqual([{ kind: "ok" }]);
+    expect(shouldProceedChannelMessageTypeRegistration(ok.actions)).toBe(true);
+  });
+
+  it("emits channel envelope unpack actions from WithActions step", () => {
+    const missingRaw = stepChannelEnvelopeUnpackWithActions(initialChannelEnvelopeUnpackState(), {
+      kind: "channel/envelope-unpack-gate",
+      rawPresent: false,
+      framingOk: true,
+      factoryRegistered: true
+    });
+    expect(shouldRejectChannelEnvelopeUnpackMissingRaw(missingRaw.actions)).toBe(true);
+
+    const truncated = stepChannelEnvelopeUnpackWithActions(initialChannelEnvelopeUnpackState(), {
+      kind: "channel/envelope-unpack-gate",
+      rawPresent: true,
+      framingOk: false,
+      factoryRegistered: true
+    });
+    expect(shouldRejectChannelEnvelopeUnpackTruncate(truncated.actions)).toBe(true);
+
+    const notRegistered = stepChannelEnvelopeUnpackWithActions(initialChannelEnvelopeUnpackState(), {
+      kind: "channel/envelope-unpack-gate",
+      rawPresent: true,
+      framingOk: true,
+      factoryRegistered: false
+    });
+    expect(shouldRejectChannelEnvelopeUnpackNotRegistered(notRegistered.actions)).toBe(true);
+
+    const ok = stepChannelEnvelopeUnpackWithActions(initialChannelEnvelopeUnpackState(), {
+      kind: "channel/envelope-unpack-gate",
+      rawPresent: true,
+      framingOk: true,
+      factoryRegistered: true
+    });
+    expect(ok.actions).toEqual([{ kind: "ok" }]);
+    expect(shouldProceedChannelEnvelopeUnpack(ok.actions)).toBe(true);
+  });
+
+  it("emits channel envelope pack actions from WithActions step", () => {
+    const missing = stepChannelEnvelopePackWithActions(initialChannelEnvelopePackState(), {
+      kind: "channel/envelope-pack-gate",
+      messagePresent: false
+    });
+    expect(shouldRejectChannelEnvelopePackMissingMessage(missing.actions)).toBe(true);
+
+    const ok = stepChannelEnvelopePackWithActions(initialChannelEnvelopePackState(), {
+      kind: "channel/envelope-pack-gate",
+      messagePresent: true
+    });
+    expect(ok.actions).toEqual([{ kind: "ok" }]);
+    expect(shouldProceedChannelEnvelopePack(ok.actions)).toBe(true);
   });
 
   it("plans channel message-handler membership", () => {

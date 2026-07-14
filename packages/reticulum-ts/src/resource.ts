@@ -41,13 +41,17 @@ import {
   packResourceProof,
   parseResourcePartRequest,
   applyResourceHashmapSlotWrites,
-  planResourceAssembleOutcome,
+  initialResourceAssembleState,
+  initialResourceProofAcceptState,
   planResourceHashmapSlotWrites,
   planResourceHashmapUpdateAccept,
   planResourcePartRequest,
-  planResourceProofAccept,
   planResourceReceivePart,
   planResourceRequestFulfill,
+  shouldCompleteResourceAssemble,
+  shouldCompleteResourceProofAccept,
+  stepResourceAssembleWithActions,
+  stepResourceProofAcceptWithActions,
   readResourceRequestHash,
   appendResourceMapHashCollisionGuard,
   containsResourceHash,
@@ -791,7 +795,8 @@ export class Resource {
         payload === null
           ? null
           : Identity.fullHash(this.provider, resourceHashMaterial(payload, this.randomHash));
-      const outcome = planResourceAssembleOutcome({
+      const { actions } = stepResourceAssembleWithActions(initialResourceAssembleState(), {
+        kind: "resource/assemble-gate",
         decryptedPresent: decrypted !== null,
         payloadPresent: payload !== null,
         hashMatches:
@@ -800,7 +805,7 @@ export class Resource {
 
       if (
         !shouldCommitResourceAssemblePayload({
-          outcomeComplete: outcome === "complete",
+          outcomeComplete: shouldCompleteResourceAssemble(actions),
           payloadPresent: payload !== null
         })
       ) {
@@ -835,12 +840,12 @@ export class Resource {
   }
 
   validateProof(proofData: Uint8Array): void {
-    if (
-      planResourceProofAccept({
-        status: this.status,
-        proofValid: isValidResourceProof(proofData, this.expectedProof)
-      }) !== "complete"
-    ) {
+    const { actions } = stepResourceProofAcceptWithActions(initialResourceProofAcceptState(), {
+      kind: "resource/proof-accept-gate",
+      status: this.status,
+      proofValid: isValidResourceProof(proofData, this.expectedProof)
+    });
+    if (!shouldCompleteResourceProofAccept(actions)) {
       return;
     }
 

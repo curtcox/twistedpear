@@ -10,6 +10,7 @@ import {
   channelTxTimeoutRetryAction,
   countChannelTxOutstanding,
   canArmChannelPacketReceipt,
+  initialChannelSendState,
   initialChannelWindowState,
   isChannelOutletTransmitOk,
   planChannelPacketTimeout,
@@ -20,11 +21,15 @@ import {
   shouldApplyChannelTxReceiptTimeoutExtension,
   shouldExtendPacketReceiptTimeout,
   shouldGiveUpChannelTxTimeout,
+  shouldProceedChannelSend,
+  shouldRejectChannelSendLinkNotReady,
+  shouldRejectChannelSendTooBig,
   shouldReplaceChannelResentPacket,
   shouldResendChannelTimeoutPacket,
   shouldRetryChannelTxTimeout,
   shouldClearChannelEnvelopePacket,
   indexOfChannelTxEnvelope,
+  stepChannelSendWithActions,
   stepChannelTxTimeout,
   stepChannelTxTimeoutWithActions,
   stepChannelWindow
@@ -112,6 +117,33 @@ describe("protocol channel window", () => {
         mdu: 100
       })
     ).toBe("too-big");
+  });
+
+  it("emits channel send actions from WithActions step", () => {
+    const notReady = stepChannelSendWithActions(initialChannelSendState(), {
+      kind: "channel/send-gate",
+      ready: false,
+      packedLength: null,
+      mdu: 100
+    });
+    expect(shouldRejectChannelSendLinkNotReady(notReady.actions)).toBe(true);
+
+    const tooBig = stepChannelSendWithActions(initialChannelSendState(), {
+      kind: "channel/send-gate",
+      ready: true,
+      packedLength: 200,
+      mdu: 100
+    });
+    expect(shouldRejectChannelSendTooBig(tooBig.actions)).toBe(true);
+
+    const proceed = stepChannelSendWithActions(initialChannelSendState(), {
+      kind: "channel/send-gate",
+      ready: true,
+      packedLength: 50,
+      mdu: 100
+    });
+    expect(proceed.actions).toEqual([{ kind: "proceed" }]);
+    expect(shouldProceedChannelSend(proceed.actions)).toBe(true);
   });
 
   it("gates outlet transmit results", () => {
