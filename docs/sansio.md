@@ -229,8 +229,11 @@
 > signatureValidated / unverifiedReason) live in protocol; `LXMFRouter` /
 > `LXMessage.unpackFromBytes` adapt them.
 > **`shouldReuseActiveLink`** lives in protocol; LXMF direct/propagation link reuse adapts
-> it. **`planAnnounceBuild`** and **`planDestinationConstruction`** live in protocol;
-> `Announce` and `Destination` adapt them. **`planLinkInitiatorMtu`** lives in protocol;
+> it. **`planAnnounceBuild`** (via **`stepAnnounceBuildWithActions`**: proceed /
+> reject-not-announceable-type / reject-not-announceable-direction /
+> reject-missing-identity / reject-bad-random-hash / reject-bad-ratchet) and
+> **`planDestinationConstruction`** live in protocol; `Announce` and `Destination`
+> adapt them. **`planLinkInitiatorMtu`** lives in protocol;
 > `Link.request` adapts it. Destination type/direction code predicates
 > (`isDestinationTypeCode` / `isDestinationDirectionCode`) are exported for adapters.
 > **`planPacketFromFields`** lives in protocol; `Packet.fromFields` adapts it (enum /
@@ -262,7 +265,8 @@
 > protocol; Channel send/resend adapts it. **`planLxmfPackTimestamp`** (via
 > **`stepLxmfPackTimestampWithActions`**: use-timestamp / use-now / reject) /
 > **`shouldIncludeLxmfStamp`** live in protocol; `LXMessage.pack` adapts them.
-> **`planAnnounceValidateOutcome`** / **`isAnnouncePacketType`** and
+> **`planAnnounceValidateOutcome`** (via **`stepAnnounceValidateWithActions`**:
+> accept / accept-signature-only / reject-*) / **`isAnnouncePacketType`** and
 > **`planPacketReceiptProofAccept`** live in protocol; `Announce` and `PacketReceipt`
 > adapt them. **Local destination match gates** (`shouldMatchLocalInboundDestination`,
 > **`shouldMatchLocalTypedDestination`**, **`shouldDispatchLocalLinkRequest`**),
@@ -292,7 +296,9 @@
 > **`planPropagationRestore`**, and **`shouldRememberLxmfMessage`** live in protocol;
 > transport lists, receipt create/drop, Channel handlers, stream ready-callbacks,
 > destination link lists, path-table get, propagation restore, and LXMF seen-hash
-> remember adapt them. **`planIdentityDecryptOutcome`**, **`planIdentityRatchetLookup`**,
+> remember adapt them. **`planIdentityDecryptOutcome`** (via
+> **`stepIdentityDecryptWithActions`**: reject-frame / accept / reject-enforced /
+> try-identity / reject), **`planIdentityRatchetLookup`**,
 > **`planIdentityRecall`**, and **`canIdentityHash`** live in protocol; `Identity`
 > adapts them. **`canRegisterLxmfDeliveryIdentity`** / **`shouldTeardownLxmfPropagationLink`**
 > live in protocol; LXMF router and propagation client adapt them.
@@ -481,6 +487,16 @@
 > **`stepLinkTokenAccessWithActions`** emits `reject-no-key` / `create` /
 > `reuse`; `Link.tokenInstance` constructs or reuses Token only from those
 > actions (no ad-hoc `planLinkTokenAccess` reads beside the step).
+> **`stepAnnounceValidateWithActions`** emits `accept` / `accept-signature-only` /
+> `reject-*`; `Announce.validate` returns true only from those actions (no
+> ad-hoc `planAnnounceValidateOutcome` reads beside the step).
+> **`stepAnnounceBuildWithActions`** emits `proceed` / `reject-*`;
+> `Announce.buildPacket` throws or continues only from those actions (no
+> ad-hoc `planAnnounceBuild` reads beside the step).
+> **`stepIdentityDecryptWithActions`** emits `reject-frame` / `accept` /
+> `reject-enforced` / `try-identity` / `reject`; `Identity.decrypt` applies
+> ratchet/fallback outcomes only from those actions (no ad-hoc
+> `planIdentityDecryptOutcome` reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -531,7 +547,8 @@
 > dispatch / identify-outcome / delivery-plan / send-method / send-gate /
 > pack-gate / propagation-link-ready / sync-prep / deliverable-accept /
 > local-ingress / receipt-send / validate-request / proof-validate /
-> signature-outcome / token-access reads
+> signature-outcome / token-access / announce-validate / announce-build /
+> identity-decrypt reads
 > beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

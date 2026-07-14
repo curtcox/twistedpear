@@ -1,7 +1,9 @@
 /**
  * Pure RNS Identity encrypt wire layout: ephemeral X25519 public || Token ciphertext.
  * ECDH / Token crypto stay at the adapter edge.
+ * Decrypt conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
 export const IDENTITY_EPHEMERAL_PUBLIC_KEY_SIZE = 32;
 
@@ -89,6 +91,95 @@ export function planIdentityDecryptOutcome(input: {
     return "accept";
   }
   return "reject";
+}
+
+/**
+ * Identity decrypt gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type IdentityDecryptState = Record<string, never>;
+
+export type IdentityDecryptEvent =
+  | Event
+  | {
+      readonly kind: "identity/decrypt-gate";
+      readonly frameOk: boolean;
+      readonly ratchetPlaintextPresent: boolean;
+      readonly enforceRatchets: boolean;
+      readonly identityFallbackDone: boolean;
+      readonly identityPlaintextPresent: boolean;
+    };
+
+export type IdentityDecryptAction = { readonly kind: IdentityDecryptPlan };
+
+export interface IdentityDecryptStepResult {
+  readonly state: IdentityDecryptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IdentityDecryptAction[];
+}
+
+export function initialIdentityDecryptState(): IdentityDecryptState {
+  return {};
+}
+
+export const stepIdentityDecrypt: StepFn<IdentityDecryptState> = (state, event) => {
+  const result = stepIdentityDecryptInner(state, event as IdentityDecryptEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepIdentityDecryptWithActions(
+  state: IdentityDecryptState,
+  event: IdentityDecryptEvent
+): IdentityDecryptStepResult {
+  return stepIdentityDecryptInner(state, event);
+}
+
+export function shouldRejectIdentityDecryptFrame(
+  actions: ReadonlyArray<IdentityDecryptAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-frame");
+}
+
+export function shouldRejectIdentityDecryptEnforced(
+  actions: ReadonlyArray<IdentityDecryptAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-enforced");
+}
+
+export function shouldAcceptIdentityDecrypt(
+  actions: ReadonlyArray<IdentityDecryptAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldTryIdentityDecrypt(
+  actions: ReadonlyArray<IdentityDecryptAction>
+): boolean {
+  return actions.some((action) => action.kind === "try-identity");
+}
+
+export function shouldRejectIdentityDecrypt(
+  actions: ReadonlyArray<IdentityDecryptAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+function stepIdentityDecryptInner(
+  state: IdentityDecryptState,
+  event: IdentityDecryptEvent
+): IdentityDecryptStepResult {
+  if (event.kind === "identity/decrypt-gate") {
+    const plan = planIdentityDecryptOutcome({
+      frameOk: event.frameOk,
+      ratchetPlaintextPresent: event.ratchetPlaintextPresent,
+      enforceRatchets: event.enforceRatchets,
+      identityFallbackDone: event.identityFallbackDone,
+      identityPlaintextPresent: event.identityPlaintextPresent
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 export type IdentityRecallPlan = "miss" | "reject-key" | "hit";

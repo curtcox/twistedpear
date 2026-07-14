@@ -5,14 +5,23 @@ import {
   announceDestinationHashMaterial,
   announceDestinationHashMatches,
   announceSignedMaterial,
+  initialAnnounceBuildState,
+  initialAnnounceValidateState,
   isAnnouncePacketType,
   packAnnouncePayload,
   parseAnnouncePayload,
-  planAnnounceBuild,
-  planAnnounceValidateOutcome,
   shouldAcceptAnnouncePayload,
+  shouldAcceptAnnounceValidate,
   shouldAttemptAnnounceSignatureValidate,
   shouldCheckAnnounceDestinationHash,
+  shouldProceedAnnounceBuild,
+  shouldRejectAnnounceBuildBadRandomHash,
+  shouldRejectAnnounceBuildBadRatchet,
+  shouldRejectAnnounceBuildMissingIdentity,
+  shouldRejectAnnounceBuildNotAnnounceableDirection,
+  shouldRejectAnnounceBuildNotAnnounceableType,
+  stepAnnounceBuildWithActions,
+  stepAnnounceValidateWithActions,
   truncateToTruncatedHash
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
@@ -55,20 +64,24 @@ export class Announce {
     destination: Destination,
     options: AnnounceBuildOptions = {}
   ): Packet {
-    const early = planAnnounceBuild({
+    const early = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
+      kind: "announce/build-gate",
       typeSingle: destination.type === DestinationType.SINGLE,
       directionIn: destination.direction === DestinationDirection.IN,
       identityPresent: destination.identity !== null,
       randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
       ratchetPublicKeyLength: null
     });
-    if (early === "not-announceable-type") {
+    if (shouldRejectAnnounceBuildNotAnnounceableType(early.actions)) {
       throw new Error("Only SINGLE destinations can be announced");
     }
-    if (early === "not-announceable-direction") {
+    if (shouldRejectAnnounceBuildNotAnnounceableDirection(early.actions)) {
       throw new Error("Only IN destinations can be announced");
     }
-    if (early === "missing-identity" || destination.identity === null) {
+    if (
+      shouldRejectAnnounceBuildMissingIdentity(early.actions) ||
+      destination.identity === null
+    ) {
       throw new Error("Announce destination must hold an identity");
     }
 
@@ -78,7 +91,8 @@ export class Announce {
         ? options.entropy.randomBytes(ANNOUNCE_RANDOM_HASH_SIZE)
         : provider.randomBytes(ANNOUNCE_RANDOM_HASH_SIZE));
 
-    const plan = planAnnounceBuild({
+    const gate = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
+      kind: "announce/build-gate",
       typeSingle: true,
       directionIn: true,
       identityPresent: true,
@@ -86,11 +100,14 @@ export class Announce {
       ratchetPublicKeyLength:
         options.ratchetPublicKey === undefined ? null : options.ratchetPublicKey.length
     });
-    if (plan === "bad-random-hash") {
+    if (shouldRejectAnnounceBuildBadRandomHash(gate.actions)) {
       throw new Error(`Announce random hash must be ${ANNOUNCE_RANDOM_HASH_SIZE} bytes`);
     }
-    if (plan === "bad-ratchet") {
+    if (shouldRejectAnnounceBuildBadRatchet(gate.actions)) {
       throw new Error(`Announce ratchet public key must be ${ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE} bytes`);
+    }
+    if (!shouldProceedAnnounceBuild(gate.actions)) {
+      throw new Error("Announce build rejected");
     }
 
     const publicKey = destination.identity.getPublicKey();
@@ -183,13 +200,14 @@ export class Announce {
       destinationHashMatches = announceDestinationHashMatches(parsed!.destinationHash, expectedHash);
     }
 
-    const plan = planAnnounceValidateOutcome({
+    const gate = stepAnnounceValidateWithActions(initialAnnounceValidateState(), {
+      kind: "announce/validate-gate",
       parsedOk: parsed !== null,
       publicKeyLoaded,
       signatureValid,
       onlyValidateSignature,
       destinationHashMatches
     });
-    return plan === "accept" || plan === "accept-signature-only";
+    return shouldAcceptAnnounceValidate(gate.actions);
   }
 }

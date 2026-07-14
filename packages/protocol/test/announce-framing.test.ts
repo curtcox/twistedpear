@@ -7,15 +7,26 @@ import {
   ANNOUNCE_SIGNATURE_SIZE,
   announceDestinationHashMaterial,
   announceSignedMaterial,
+  initialAnnounceBuildState,
+  initialAnnounceValidateState,
   isAnnouncePacketType,
   packAnnouncePayload,
   parseAnnouncePayload,
   planAnnounceBuild,
   planAnnounceValidateOutcome,
-  shouldAttemptAnnounceSignatureValidate,
   shouldAcceptAnnouncePayload,
+  shouldAcceptAnnounceValidate,
   shouldAcceptParsedAnnounce,
-  shouldCheckAnnounceDestinationHash
+  shouldAttemptAnnounceSignatureValidate,
+  shouldCheckAnnounceDestinationHash,
+  shouldProceedAnnounceBuild,
+  shouldRejectAnnounceBuildBadRandomHash,
+  shouldRejectAnnounceBuildBadRatchet,
+  shouldRejectAnnounceBuildMissingIdentity,
+  shouldRejectAnnounceBuildNotAnnounceableDirection,
+  shouldRejectAnnounceBuildNotAnnounceableType,
+  stepAnnounceBuildWithActions,
+  stepAnnounceValidateWithActions
 } from "../src/announce-framing.js";
 import { PACKET_TYPE_ANNOUNCE, PACKET_TYPE_DATA } from "../src/packet-header.js";
 
@@ -145,6 +156,92 @@ describe("protocol announce framing", () => {
     ).toBe("ok");
   });
 
+  it("emits announce build actions from stepAnnounceBuildWithActions", () => {
+    const proceed = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
+      kind: "announce/build-gate",
+      typeSingle: true,
+      directionIn: true,
+      identityPresent: true,
+      randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+      ratchetPublicKeyLength: null
+    });
+    expect(proceed.actions).toEqual([{ kind: "proceed" }]);
+    expect(shouldProceedAnnounceBuild(proceed.actions)).toBe(true);
+
+    const typeReject = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
+      kind: "announce/build-gate",
+      typeSingle: false,
+      directionIn: true,
+      identityPresent: true,
+      randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+      ratchetPublicKeyLength: null
+    });
+    expect(typeReject.actions).toEqual([{ kind: "reject-not-announceable-type" }]);
+    expect(shouldRejectAnnounceBuildNotAnnounceableType(typeReject.actions)).toBe(true);
+
+    const directionReject = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
+      kind: "announce/build-gate",
+      typeSingle: true,
+      directionIn: false,
+      identityPresent: true,
+      randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+      ratchetPublicKeyLength: null
+    });
+    expect(directionReject.actions).toEqual([{ kind: "reject-not-announceable-direction" }]);
+    expect(shouldRejectAnnounceBuildNotAnnounceableDirection(directionReject.actions)).toBe(
+      true
+    );
+
+    const missingIdentity = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
+      kind: "announce/build-gate",
+      typeSingle: true,
+      directionIn: true,
+      identityPresent: false,
+      randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+      ratchetPublicKeyLength: null
+    });
+    expect(missingIdentity.actions).toEqual([{ kind: "reject-missing-identity" }]);
+    expect(shouldRejectAnnounceBuildMissingIdentity(missingIdentity.actions)).toBe(true);
+
+    const badHash = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
+      kind: "announce/build-gate",
+      typeSingle: true,
+      directionIn: true,
+      identityPresent: true,
+      randomHashLength: 3,
+      ratchetPublicKeyLength: null
+    });
+    expect(badHash.actions).toEqual([{ kind: "reject-bad-random-hash" }]);
+    expect(shouldRejectAnnounceBuildBadRandomHash(badHash.actions)).toBe(true);
+
+    const badRatchet = stepAnnounceBuildWithActions(initialAnnounceBuildState(), {
+      kind: "announce/build-gate",
+      typeSingle: true,
+      directionIn: true,
+      identityPresent: true,
+      randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+      ratchetPublicKeyLength: 8
+    });
+    expect(badRatchet.actions).toEqual([{ kind: "reject-bad-ratchet" }]);
+    expect(shouldRejectAnnounceBuildBadRatchet(badRatchet.actions)).toBe(true);
+  });
+
+  it("is deterministic for announce build gate events", () => {
+    const state = initialAnnounceBuildState();
+    const event = {
+      kind: "announce/build-gate" as const,
+      typeSingle: true,
+      directionIn: true,
+      identityPresent: true,
+      randomHashLength: ANNOUNCE_RANDOM_HASH_SIZE,
+      ratchetPublicKeyLength: null
+    };
+    const a = stepAnnounceBuildWithActions(state, event);
+    const b = stepAnnounceBuildWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
+  });
+
   it("recognizes announce packet types and plans validate outcomes", () => {
     expect(isAnnouncePacketType(PACKET_TYPE_ANNOUNCE)).toBe(true);
     expect(isAnnouncePacketType(PACKET_TYPE_DATA)).toBe(false);
@@ -202,6 +299,58 @@ describe("protocol announce framing", () => {
         destinationHashMatches: true
       })
     ).toBe("accept");
+
+    const accept = stepAnnounceValidateWithActions(initialAnnounceValidateState(), {
+      kind: "announce/validate-gate",
+      parsedOk: true,
+      publicKeyLoaded: true,
+      signatureValid: true,
+      onlyValidateSignature: false,
+      destinationHashMatches: true
+    });
+    expect(accept.actions).toEqual([{ kind: "accept" }]);
+    expect(shouldAcceptAnnounceValidate(accept.actions)).toBe(true);
+
+    const signatureOnly = stepAnnounceValidateWithActions(initialAnnounceValidateState(), {
+      kind: "announce/validate-gate",
+      parsedOk: true,
+      publicKeyLoaded: true,
+      signatureValid: true,
+      onlyValidateSignature: true,
+      destinationHashMatches: false
+    });
+    expect(signatureOnly.actions).toEqual([{ kind: "accept-signature-only" }]);
+    expect(shouldAcceptAnnounceValidate(signatureOnly.actions)).toBe(true);
+
+    const rejectParse = stepAnnounceValidateWithActions(initialAnnounceValidateState(), {
+      kind: "announce/validate-gate",
+      parsedOk: false,
+      publicKeyLoaded: false,
+      signatureValid: false,
+      onlyValidateSignature: false,
+      destinationHashMatches: false
+    });
+    expect(rejectParse.actions).toEqual([{ kind: "reject-parse" }]);
+    expect(shouldAcceptAnnounceValidate(rejectParse.actions)).toBe(false);
+
+    const a = stepAnnounceValidateWithActions(initialAnnounceValidateState(), {
+      kind: "announce/validate-gate",
+      parsedOk: true,
+      publicKeyLoaded: true,
+      signatureValid: true,
+      onlyValidateSignature: false,
+      destinationHashMatches: true
+    });
+    const b = stepAnnounceValidateWithActions(initialAnnounceValidateState(), {
+      kind: "announce/validate-gate",
+      parsedOk: true,
+      publicKeyLoaded: true,
+      signatureValid: true,
+      onlyValidateSignature: false,
+      destinationHashMatches: true
+    });
+    expect(a).toEqual(b);
+
     expect(
       shouldAttemptAnnounceSignatureValidate({
         parsedOk: true,

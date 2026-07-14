@@ -19,16 +19,20 @@ import {
   packIdentityPrivateKey,
   packIdentityPublicKey,
   packPacketProof,
-  planIdentityDecryptOutcome,
+  initialIdentityDecryptState,
   planIdentityRatchetLookup,
   planIdentityRecall,
   planIdentityRecallAppData,
+  shouldAcceptIdentityDecrypt,
   shouldAttemptIdentityRatchetDecrypt,
   shouldAcceptIdentityCiphertextFrame,
-  shouldAcceptIdentityDecryptPlaintext,
   shouldPersistIdentityRatchet,
+  shouldRejectIdentityDecryptEnforced,
+  shouldRejectIdentityDecryptFrame,
   shouldRestoreIdentityRatchetRecord,
+  shouldTryIdentityDecrypt,
   splitIdentityCiphertext,
+  stepIdentityDecryptWithActions,
   splitIdentityEntropy,
   splitIdentityPrivateKey,
   splitIdentityPublicKey,
@@ -354,18 +358,25 @@ export class Identity {
       }
     }
 
-    const afterRatchets = planIdentityDecryptOutcome({
+    const afterRatchets = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
       frameOk: split !== null,
       ratchetPlaintextPresent: plaintext !== null,
       enforceRatchets: options.enforceRatchets === true,
       identityFallbackDone: false,
       identityPlaintextPresent: false
     });
-    if (afterRatchets === "reject-frame" || afterRatchets === "reject-enforced") {
+    if (
+      shouldRejectIdentityDecryptFrame(afterRatchets.actions) ||
+      shouldRejectIdentityDecryptEnforced(afterRatchets.actions)
+    ) {
       return { plaintext: null, ratchetId: null };
     }
-    if (afterRatchets === "accept") {
+    if (shouldAcceptIdentityDecrypt(afterRatchets.actions)) {
       return { plaintext, ratchetId };
+    }
+    if (!shouldTryIdentityDecrypt(afterRatchets.actions)) {
+      return { plaintext: null, ratchetId: null };
     }
 
     try {
@@ -381,14 +392,15 @@ export class Identity {
       ratchetId = null;
     }
 
-    const afterIdentity = planIdentityDecryptOutcome({
+    const afterIdentity = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
       frameOk: true,
       ratchetPlaintextPresent: false,
       enforceRatchets: false,
       identityFallbackDone: true,
       identityPlaintextPresent: plaintext !== null
     });
-    if (!shouldAcceptIdentityDecryptPlaintext(afterIdentity === "accept")) {
+    if (!shouldAcceptIdentityDecrypt(afterIdentity.actions)) {
       return { plaintext: null, ratchetId: null };
     }
     return { plaintext, ratchetId };

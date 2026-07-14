@@ -1,7 +1,10 @@
 /**
  * Pure RNS announce payload framing and signed-material assembly.
  * Signing / hashing stay at the crypto adapter edge.
+ * Validate / build conclusions leave via machine actions (no ad-hoc
+ * `plan` string reads beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_ANNOUNCE } from "./packet-header.js";
 import { equalByteArrays } from "./path-table.js";
 
@@ -224,6 +227,74 @@ export function planAnnounceValidateOutcome(input: {
   return "accept";
 }
 
+/**
+ * Announce validate gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type AnnounceValidateState = Record<string, never>;
+
+export type AnnounceValidateEvent =
+  | Event
+  | {
+      readonly kind: "announce/validate-gate";
+      readonly parsedOk: boolean;
+      readonly publicKeyLoaded: boolean;
+      readonly signatureValid: boolean;
+      readonly onlyValidateSignature: boolean;
+      readonly destinationHashMatches: boolean;
+    };
+
+export type AnnounceValidateAction = { readonly kind: AnnounceValidatePlan };
+
+export interface AnnounceValidateStepResult {
+  readonly state: AnnounceValidateState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AnnounceValidateAction[];
+}
+
+export function initialAnnounceValidateState(): AnnounceValidateState {
+  return {};
+}
+
+export const stepAnnounceValidate: StepFn<AnnounceValidateState> = (state, event) => {
+  const result = stepAnnounceValidateInner(state, event as AnnounceValidateEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepAnnounceValidateWithActions(
+  state: AnnounceValidateState,
+  event: AnnounceValidateEvent
+): AnnounceValidateStepResult {
+  return stepAnnounceValidateInner(state, event);
+}
+
+/** Whether validate may return true from accept / accept-signature-only actions. */
+export function shouldAcceptAnnounceValidate(
+  actions: ReadonlyArray<AnnounceValidateAction>
+): boolean {
+  return actions.some(
+    (action) => action.kind === "accept" || action.kind === "accept-signature-only"
+  );
+}
+
+function stepAnnounceValidateInner(
+  state: AnnounceValidateState,
+  event: AnnounceValidateEvent
+): AnnounceValidateStepResult {
+  if (event.kind === "announce/validate-gate") {
+    const plan = planAnnounceValidateOutcome({
+      parsedOk: event.parsedOk,
+      publicKeyLoaded: event.publicKeyLoaded,
+      signatureValid: event.signatureValid,
+      onlyValidateSignature: event.onlyValidateSignature,
+      destinationHashMatches: event.destinationHashMatches
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 export type AnnounceBuildPlan =
   | "ok"
   | "not-announceable-type"
@@ -262,4 +333,124 @@ export function planAnnounceBuild(input: {
     return "bad-ratchet";
   }
   return "ok";
+}
+
+/**
+ * Announce build gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type AnnounceBuildState = Record<string, never>;
+
+export type AnnounceBuildEvent =
+  | Event
+  | {
+      readonly kind: "announce/build-gate";
+      readonly typeSingle: boolean;
+      readonly directionIn: boolean;
+      readonly identityPresent: boolean;
+      readonly randomHashLength: number;
+      readonly ratchetPublicKeyLength: number | null;
+    };
+
+export type AnnounceBuildAction =
+  | { readonly kind: "proceed" }
+  | { readonly kind: "reject-not-announceable-type" }
+  | { readonly kind: "reject-not-announceable-direction" }
+  | { readonly kind: "reject-missing-identity" }
+  | { readonly kind: "reject-bad-random-hash" }
+  | { readonly kind: "reject-bad-ratchet" };
+
+export interface AnnounceBuildStepResult {
+  readonly state: AnnounceBuildState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AnnounceBuildAction[];
+}
+
+export function initialAnnounceBuildState(): AnnounceBuildState {
+  return {};
+}
+
+export const stepAnnounceBuild: StepFn<AnnounceBuildState> = (state, event) => {
+  const result = stepAnnounceBuildInner(state, event as AnnounceBuildEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepAnnounceBuildWithActions(
+  state: AnnounceBuildState,
+  event: AnnounceBuildEvent
+): AnnounceBuildStepResult {
+  return stepAnnounceBuildInner(state, event);
+}
+
+export function shouldProceedAnnounceBuild(
+  actions: ReadonlyArray<AnnounceBuildAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
+export function shouldRejectAnnounceBuildNotAnnounceableType(
+  actions: ReadonlyArray<AnnounceBuildAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-not-announceable-type");
+}
+
+export function shouldRejectAnnounceBuildNotAnnounceableDirection(
+  actions: ReadonlyArray<AnnounceBuildAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-not-announceable-direction");
+}
+
+export function shouldRejectAnnounceBuildMissingIdentity(
+  actions: ReadonlyArray<AnnounceBuildAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-missing-identity");
+}
+
+export function shouldRejectAnnounceBuildBadRandomHash(
+  actions: ReadonlyArray<AnnounceBuildAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-bad-random-hash");
+}
+
+export function shouldRejectAnnounceBuildBadRatchet(
+  actions: ReadonlyArray<AnnounceBuildAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-bad-ratchet");
+}
+
+function stepAnnounceBuildInner(
+  state: AnnounceBuildState,
+  event: AnnounceBuildEvent
+): AnnounceBuildStepResult {
+  if (event.kind === "announce/build-gate") {
+    const plan = planAnnounceBuild({
+      typeSingle: event.typeSingle,
+      directionIn: event.directionIn,
+      identityPresent: event.identityPresent,
+      randomHashLength: event.randomHashLength,
+      ratchetPublicKeyLength: event.ratchetPublicKeyLength
+    });
+    if (plan === "ok") {
+      return { state, intents: [], actions: [{ kind: "proceed" }] };
+    }
+    if (plan === "not-announceable-type") {
+      return { state, intents: [], actions: [{ kind: "reject-not-announceable-type" }] };
+    }
+    if (plan === "not-announceable-direction") {
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "reject-not-announceable-direction" }]
+      };
+    }
+    if (plan === "missing-identity") {
+      return { state, intents: [], actions: [{ kind: "reject-missing-identity" }] };
+    }
+    if (plan === "bad-random-hash") {
+      return { state, intents: [], actions: [{ kind: "reject-bad-random-hash" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "reject-bad-ratchet" }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }

@@ -5,14 +5,21 @@ import {
   canIdentityUsePrivateKey,
   canIdentityUsePublicKey,
   canLoadIdentityKeyMaterial,
+  initialIdentityDecryptState,
   packIdentityCiphertext,
   planIdentityDecryptOutcome,
   planIdentityRecall,
   planIdentityRecallAppData,
+  shouldAcceptIdentityDecrypt,
   shouldAttemptIdentityRatchetDecrypt,
   shouldAcceptIdentityCiphertextFrame,
   shouldAcceptIdentityDecryptPlaintext,
-  splitIdentityCiphertext
+  shouldRejectIdentityDecrypt,
+  shouldRejectIdentityDecryptEnforced,
+  shouldRejectIdentityDecryptFrame,
+  shouldTryIdentityDecrypt,
+  splitIdentityCiphertext,
+  stepIdentityDecryptWithActions
 } from "../src/identity-ciphertext.js";
 
 describe("protocol identity ciphertext", () => {
@@ -89,6 +96,79 @@ describe("protocol identity ciphertext", () => {
         identityPlaintextPresent: false
       })
     ).toBe("reject");
+  });
+
+  it("emits identity decrypt actions from stepIdentityDecryptWithActions", () => {
+    const rejectFrame = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
+      frameOk: false,
+      ratchetPlaintextPresent: false,
+      enforceRatchets: false,
+      identityFallbackDone: false,
+      identityPlaintextPresent: false
+    });
+    expect(rejectFrame.actions).toEqual([{ kind: "reject-frame" }]);
+    expect(shouldRejectIdentityDecryptFrame(rejectFrame.actions)).toBe(true);
+
+    const accept = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
+      frameOk: true,
+      ratchetPlaintextPresent: true,
+      enforceRatchets: true,
+      identityFallbackDone: false,
+      identityPlaintextPresent: false
+    });
+    expect(accept.actions).toEqual([{ kind: "accept" }]);
+    expect(shouldAcceptIdentityDecrypt(accept.actions)).toBe(true);
+
+    const rejectEnforced = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
+      frameOk: true,
+      ratchetPlaintextPresent: false,
+      enforceRatchets: true,
+      identityFallbackDone: false,
+      identityPlaintextPresent: false
+    });
+    expect(rejectEnforced.actions).toEqual([{ kind: "reject-enforced" }]);
+    expect(shouldRejectIdentityDecryptEnforced(rejectEnforced.actions)).toBe(true);
+
+    const tryIdentity = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
+      frameOk: true,
+      ratchetPlaintextPresent: false,
+      enforceRatchets: false,
+      identityFallbackDone: false,
+      identityPlaintextPresent: false
+    });
+    expect(tryIdentity.actions).toEqual([{ kind: "try-identity" }]);
+    expect(shouldTryIdentityDecrypt(tryIdentity.actions)).toBe(true);
+
+    const reject = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
+      kind: "identity/decrypt-gate",
+      frameOk: true,
+      ratchetPlaintextPresent: false,
+      enforceRatchets: false,
+      identityFallbackDone: true,
+      identityPlaintextPresent: false
+    });
+    expect(reject.actions).toEqual([{ kind: "reject" }]);
+    expect(shouldRejectIdentityDecrypt(reject.actions)).toBe(true);
+  });
+
+  it("is deterministic for identity decrypt gate events", () => {
+    const state = initialIdentityDecryptState();
+    const event = {
+      kind: "identity/decrypt-gate" as const,
+      frameOk: true,
+      ratchetPlaintextPresent: false,
+      enforceRatchets: false,
+      identityFallbackDone: false,
+      identityPlaintextPresent: false
+    };
+    const a = stepIdentityDecryptWithActions(state, event);
+    const b = stepIdentityDecryptWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("plans recall and hash readiness", () => {
