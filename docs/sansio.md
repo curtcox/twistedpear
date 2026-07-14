@@ -104,7 +104,8 @@
 > **`stepSplitTokenFrameWithActions`**: use-raw|reject / use-fields|reject) and
 > **stamp-cost extraction** from announce app-data are pure protocol leaves;
 > Token and LXMF router adapt them. **Resource receive-part planning** (via
-> **`stepResourceReceivePartWithActions`**), **LXMF outer wire framing**, and
+> **`stepResourceReceivePartWithActions`**), **LXMF outer wire framing** (via
+> **`stepPackLxmfWireWithActions`** / **`stepSplitLxmfWireWithActions`**), and
 > PacketReceipt proof validation via **`stepSplitPacketProofWithActions`** /
 > **`stepPacketReceiptProofAcceptWithActions`** are pure protocol leaves.
 > **Identity ciphertext** framing (pack/split via
@@ -120,8 +121,14 @@
 > helpers. **Identity recall** / **recall-app-data** (via
 > **`stepIdentityRecallWithActions`** / **`stepIdentityRecallAppDataWithActions`**)
 > are pure protocol leaves; `Identity` adapts them. **Link establishment timeout** (`computeLinkEstablishmentTimeout`) and **LXMF
-> inbound delivery framing** (opportunistic rebuild + destination-prefixed pack/split)
-> are pure protocol leaves; `Link` and `LXMFRouter` adapt them. **Link proof signed
+> inbound delivery framing** (opportunistic rebuild + destination-prefixed pack/split
+> via **`stepLxmfInboundDeliveryWithActions`** /
+> **`stepPackLxmfDestinationPrefixedWithActions`** /
+> **`stepSplitLxmfDestinationPrefixedWithActions`**: use-raw / use-raw|reject /
+> use-fields|reject) are pure protocol leaves; `Link` and `LXMFRouter` adapt them.
+> **LXMF outer wire framing** (pack/split via
+> **`stepPackLxmfWireWithActions`** / **`stepSplitLxmfWireWithActions`**: use-raw|reject /
+> use-fields|reject) is a pure protocol leaf; `LXMessage` adapts it. **Link proof signed
 > material**, **StreamDataMessage framing**, and **resource hash/encrypt
 > materials** are pure protocol leaves; `Link`, `Buffer`, and `Resource` adapt them.
 > **Identity key pack/split**, link-request hashable truncation, and
@@ -792,7 +799,10 @@
 > unpack-resource-advertisement / pack-link-request /
 > pack-link-response / unpack-link-request / unpack-link-response /
 > pack-token-frame / split-token-frame /
-> pack-identity-ciphertext / split-identity-ciphertext reads
+> pack-identity-ciphertext / split-identity-ciphertext /
+> pack-lxmf-wire / split-lxmf-wire /
+> pack-lxmf-destination-prefixed / split-lxmf-destination-prefixed /
+> lxmf-inbound-delivery reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -887,6 +897,17 @@
 > `use-fields`|`reject`; Identity ciphertext pack / split apply only from
 > those actions (no ad-hoc `packIdentityCiphertext` /
 > `splitIdentityCiphertext` reads beside the step).
+> **`stepPackLxmfWireWithActions`** /
+> **`stepSplitLxmfWireWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject`; LXMF outer wire pack / split apply only from those
+> actions (no ad-hoc `packLxmfWire` / `splitLxmfWire` reads beside the step).
+> **`stepPackLxmfDestinationPrefixedWithActions`** /
+> **`stepSplitLxmfDestinationPrefixedWithActions`** /
+> **`stepLxmfInboundDeliveryWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject` / `use-raw`; destination-prefixed pack / split and
+> inbound-delivery rebuild apply only from those actions (no ad-hoc
+> `packLxmfDestinationPrefixed` / `splitLxmfDestinationPrefixed` /
+> `lxmfInboundDeliveryBytes` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

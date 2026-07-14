@@ -1,14 +1,38 @@
 import { describe, expect, it } from "vitest";
 import {
   LXMF_WIRE_HEADER_SIZE,
+  initialLxmfInboundDeliveryState,
+  initialPackLxmfDestinationPrefixedState,
+  initialPackLxmfWireState,
+  initialSplitLxmfDestinationPrefixedState,
+  initialSplitLxmfWireState,
+  lxmfDestinationPrefixedFieldsFromActions,
   lxmfHashableMaterial,
   lxmfInboundDeliveryBytes,
+  lxmfInboundDeliveryRawFromActions,
   lxmfOpportunisticPayload,
   lxmfSignedMaterial,
+  lxmfWireFieldsFromActions,
   packLxmfDestinationPrefixed,
+  packLxmfDestinationPrefixedRawFromActions,
   packLxmfWire,
+  packLxmfWireRawFromActions,
+  shouldRejectPackLxmfDestinationPrefixed,
+  shouldRejectPackLxmfWire,
+  shouldRejectSplitLxmfDestinationPrefixed,
+  shouldRejectSplitLxmfWire,
+  shouldUseLxmfInboundDelivery,
+  shouldUsePackLxmfDestinationPrefixed,
+  shouldUsePackLxmfWire,
+  shouldUseSplitLxmfDestinationPrefixed,
+  shouldUseSplitLxmfWire,
   splitLxmfDestinationPrefixed,
-  splitLxmfWire
+  splitLxmfWire,
+  stepLxmfInboundDeliveryWithActions,
+  stepPackLxmfDestinationPrefixedWithActions,
+  stepPackLxmfWireWithActions,
+  stepSplitLxmfDestinationPrefixedWithActions,
+  stepSplitLxmfWireWithActions
 } from "../src/lxmf-wire.js";
 import {
   LXMF_DESTINATION_LENGTH,
@@ -66,6 +90,127 @@ describe("protocol lxmf wire", () => {
     expect([...split!.destinationHash]).toEqual([...destination]);
     expect([...split!.remainder]).toEqual([...trailing]);
     expect(splitLxmfDestinationPrefixed(new Uint8Array(8))).toBeNull();
+  });
+
+  it("emits pack raw or reject from WithActions steps", () => {
+    const ok = stepPackLxmfWireWithActions(initialPackLxmfWireState(), {
+      kind: "lxmf-wire/pack-gate",
+      destinationHash: destination,
+      sourceHash: source,
+      signature,
+      payload
+    });
+    expect(shouldUsePackLxmfWire(ok.actions)).toBe(true);
+    expect(shouldRejectPackLxmfWire(ok.actions)).toBe(false);
+    const packed = packLxmfWireRawFromActions(ok.actions);
+    expect(packed).not.toBeNull();
+    expect([...packed!]).toEqual([
+      ...packLxmfWire({
+        destinationHash: destination,
+        sourceHash: source,
+        signature,
+        payload
+      })
+    ]);
+
+    const rejected = stepPackLxmfWireWithActions(initialPackLxmfWireState(), {
+      kind: "lxmf-wire/pack-gate",
+      destinationHash: new Uint8Array(8),
+      sourceHash: source,
+      signature,
+      payload
+    });
+    expect(shouldRejectPackLxmfWire(rejected.actions)).toBe(true);
+    expect(shouldUsePackLxmfWire(rejected.actions)).toBe(false);
+    expect(packLxmfWireRawFromActions(rejected.actions)).toBeNull();
+  });
+
+  it("emits split fields or reject from WithActions steps", () => {
+    const packed = packLxmfWire({
+      destinationHash: destination,
+      sourceHash: source,
+      signature,
+      payload
+    });
+    const ok = stepSplitLxmfWireWithActions(initialSplitLxmfWireState(), {
+      kind: "lxmf-wire/split-gate",
+      bytes: packed
+    });
+    expect(shouldUseSplitLxmfWire(ok.actions)).toBe(true);
+    expect(shouldRejectSplitLxmfWire(ok.actions)).toBe(false);
+    const fields = lxmfWireFieldsFromActions(ok.actions);
+    expect(fields).not.toBeNull();
+    expect([...fields!.destinationHash]).toEqual([...destination]);
+    expect([...fields!.payload]).toEqual([...payload]);
+
+    const rejected = stepSplitLxmfWireWithActions(initialSplitLxmfWireState(), {
+      kind: "lxmf-wire/split-gate",
+      bytes: new Uint8Array(LXMF_WIRE_HEADER_SIZE)
+    });
+    expect(shouldRejectSplitLxmfWire(rejected.actions)).toBe(true);
+    expect(shouldUseSplitLxmfWire(rejected.actions)).toBe(false);
+    expect(lxmfWireFieldsFromActions(rejected.actions)).toBeNull();
+  });
+
+  it("emits destination-prefixed pack/split and inbound rebuild from WithActions steps", () => {
+    const trailing = new Uint8Array([4, 5, 6]);
+    const packOk = stepPackLxmfDestinationPrefixedWithActions(
+      initialPackLxmfDestinationPrefixedState(),
+      {
+        kind: "lxmf-destination-prefixed/pack-gate",
+        destinationHash: destination,
+        remainder: trailing
+      }
+    );
+    expect(shouldUsePackLxmfDestinationPrefixed(packOk.actions)).toBe(true);
+    expect(shouldRejectPackLxmfDestinationPrefixed(packOk.actions)).toBe(false);
+    const packed = packLxmfDestinationPrefixedRawFromActions(packOk.actions);
+    expect(packed).not.toBeNull();
+    expect([...packed!]).toEqual([...packLxmfDestinationPrefixed(destination, trailing)]);
+
+    const packRejected = stepPackLxmfDestinationPrefixedWithActions(
+      initialPackLxmfDestinationPrefixedState(),
+      {
+        kind: "lxmf-destination-prefixed/pack-gate",
+        destinationHash: new Uint8Array(4),
+        remainder: trailing
+      }
+    );
+    expect(shouldRejectPackLxmfDestinationPrefixed(packRejected.actions)).toBe(true);
+    expect(packLxmfDestinationPrefixedRawFromActions(packRejected.actions)).toBeNull();
+
+    const splitOk = stepSplitLxmfDestinationPrefixedWithActions(
+      initialSplitLxmfDestinationPrefixedState(),
+      {
+        kind: "lxmf-destination-prefixed/split-gate",
+        bytes: packed!
+      }
+    );
+    expect(shouldUseSplitLxmfDestinationPrefixed(splitOk.actions)).toBe(true);
+    const fields = lxmfDestinationPrefixedFieldsFromActions(splitOk.actions);
+    expect(fields).not.toBeNull();
+    expect([...fields!.remainder]).toEqual([...trailing]);
+
+    const splitRejected = stepSplitLxmfDestinationPrefixedWithActions(
+      initialSplitLxmfDestinationPrefixedState(),
+      {
+        kind: "lxmf-destination-prefixed/split-gate",
+        bytes: new Uint8Array(8)
+      }
+    );
+    expect(shouldRejectSplitLxmfDestinationPrefixed(splitRejected.actions)).toBe(true);
+    expect(lxmfDestinationPrefixedFieldsFromActions(splitRejected.actions)).toBeNull();
+
+    const rebuild = stepLxmfInboundDeliveryWithActions(initialLxmfInboundDeliveryState(), {
+      kind: "lxmf-inbound-delivery/rebuild-gate",
+      method: LxmfDeliveryMethod.OPPORTUNISTIC,
+      destinationHash: destination,
+      packetData: trailing
+    });
+    expect(shouldUseLxmfInboundDelivery(rebuild.actions)).toBe(true);
+    const rebuilt = lxmfInboundDeliveryRawFromActions(rebuild.actions);
+    expect(rebuilt).not.toBeNull();
+    expect([...rebuilt!]).toEqual([...destination, ...trailing]);
   });
 });
 

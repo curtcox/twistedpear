@@ -8,8 +8,6 @@ import {
   lxmfHashableMaterial,
   lxmfOpportunisticPayload,
   lxmfSignedMaterial,
-  packLxmfDestinationPrefixed,
-  packLxmfWire,
   canExtractLxmfOpportunisticPayload,
   initialLxmfDeliveryState,
   initialLxmfPackTimestampState,
@@ -17,9 +15,15 @@ import {
   initialLxMessageInstancePackState,
   initialLxMessagePackState,
   initialLxmfSignatureState,
+  initialPackLxmfDestinationPrefixedState,
+  initialPackLxmfWireState,
+  initialSplitLxmfWireState,
   lxmfDeliveryDeliverParams,
   lxmfDeliveryOpportunisticRejectSizes,
   lxmfSignatureOutcomeFromActions,
+  lxmfWireFieldsFromActions,
+  packLxmfDestinationPrefixedRawFromActions,
+  packLxmfWireRawFromActions,
   shouldDeliverLxmf,
   shouldIncludeLxmfStamp,
   shouldAcceptLxmfWireFrame,
@@ -33,17 +37,25 @@ import {
   shouldRejectLxMessageInstanceMissingTimestamp,
   shouldRejectLxMessagePackBadDestination,
   shouldRejectLxMessagePackBadSource,
+  shouldRejectPackLxmfDestinationPrefixed,
+  shouldRejectPackLxmfWire,
+  shouldRejectSplitLxmfWire,
   shouldRememberLxmfMessage,
   shouldSelectLxmfDeliveryParameters,
   shouldUseLxmfPackNow,
   shouldUseLxmfPackTimestamp,
+  shouldUsePackLxmfDestinationPrefixed,
+  shouldUsePackLxmfWire,
+  shouldUseSplitLxmfWire,
   stepLxmfDeliveryWithActions,
   stepLxmfPackTimestampWithActions,
   stepLxmfPropagatedPackPrepWithActions,
   stepLxmfSignatureWithActions,
   stepLxMessageInstancePackWithActions,
   stepLxMessagePackWithActions,
-  splitLxmfWire,
+  stepPackLxmfDestinationPrefixedWithActions,
+  stepPackLxmfWireWithActions,
+  stepSplitLxmfWireWithActions,
   utf8Decode,
   utf8OrBytes
 } from "@twistedpear/protocol";
@@ -185,8 +197,17 @@ export class LXMessage {
   }
 
   static unpackFromBytes(lxmfBytes: Uint8Array, options: LXMessageUnpackOptions): LXMessage {
-    const wire = splitLxmfWire(lxmfBytes);
-    if (!shouldAcceptLxmfWireFrame(wire !== null) || wire === null) {
+    const splitStepped = stepSplitLxmfWireWithActions(initialSplitLxmfWireState(), {
+      kind: "lxmf-wire/split-gate",
+      bytes: lxmfBytes
+    });
+    const wire = lxmfWireFieldsFromActions(splitStepped.actions);
+    if (
+      shouldRejectSplitLxmfWire(splitStepped.actions) ||
+      !shouldUseSplitLxmfWire(splitStepped.actions) ||
+      !shouldAcceptLxmfWireFrame(wire !== null) ||
+      wire === null
+    ) {
       throw new Error("LXMF bytes too short");
     }
 
@@ -288,12 +309,24 @@ export class LXMessage {
     this.signatureValidated = true;
     this.stamp = stamp;
 
-    this.packed = packLxmfWire({
+    const packStepped = stepPackLxmfWireWithActions(initialPackLxmfWireState(), {
+      kind: "lxmf-wire/pack-gate",
       destinationHash: this.destination!.hash,
       sourceHash: this.source!.hash,
       signature: this.signature,
       payload
     });
+    if (
+      shouldRejectPackLxmfWire(packStepped.actions) ||
+      !shouldUsePackLxmfWire(packStepped.actions)
+    ) {
+      throw new Error(`destination hash must be ${DESTINATION_LENGTH} bytes`);
+    }
+    const packed = packLxmfWireRawFromActions(packStepped.actions);
+    if (packed === null) {
+      throw new Error(`destination hash must be ${DESTINATION_LENGTH} bytes`);
+    }
+    this.packed = packed;
     this.selectDeliveryParameters(provider);
   }
 
@@ -339,7 +372,24 @@ export class LXMessage {
       const encryptedPayload = this.destination!.identity!.encrypt(
         packed!.subarray(DESTINATION_LENGTH)
       );
-      const lxmfData = packLxmfDestinationPrefixed(this.destination!.hash, encryptedPayload);
+      const prefixStepped = stepPackLxmfDestinationPrefixedWithActions(
+        initialPackLxmfDestinationPrefixedState(),
+        {
+          kind: "lxmf-destination-prefixed/pack-gate",
+          destinationHash: this.destination!.hash,
+          remainder: encryptedPayload
+        }
+      );
+      if (
+        shouldRejectPackLxmfDestinationPrefixed(prefixStepped.actions) ||
+        !shouldUsePackLxmfDestinationPrefixed(prefixStepped.actions)
+      ) {
+        throw new Error(`destination hash must be ${DESTINATION_LENGTH} bytes`);
+      }
+      const lxmfData = packLxmfDestinationPrefixedRawFromActions(prefixStepped.actions);
+      if (lxmfData === null) {
+        throw new Error(`destination hash must be ${DESTINATION_LENGTH} bytes`);
+      }
       this.transientId = Identity.fullHash(provider, lxmfData);
       this.propagationPacked = msgpackPackPropagationEnvelope(this.timestamp!, [lxmfData]);
     }

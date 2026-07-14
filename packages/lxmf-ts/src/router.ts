@@ -11,6 +11,7 @@ import {
   initialLinkAwaitState,
   initialLxmfDeliverableAcceptState,
   initialLxmfDirectSendState,
+  initialLxmfInboundDeliveryState,
   initialLxmfOpportunisticSendState,
   initialLxmfPropagatedSendState,
   initialLxmfPropagationLinkReadyState,
@@ -18,10 +19,13 @@ import {
   initialLxmfReceiptSendState,
   initialLxmfSendMethodState,
   initialLxmfSendState,
-  lxmfInboundDeliveryBytes,
+  initialPackLxmfDestinationPrefixedState,
+  initialSplitLxmfDestinationPrefixedState,
+  lxmfDestinationPrefixedFieldsFromActions,
+  lxmfInboundDeliveryRawFromActions,
   lxmfReceiptSendApplyEvent,
   lxmfSendUnsupportedMethod,
-  packLxmfDestinationPrefixed,
+  packLxmfDestinationPrefixedRawFromActions,
   shouldAcceptLxmfDeliverable,
   shouldApplyLxmfReceiptSend,
   shouldAwaitLxmfDeliveryReceipt,
@@ -41,6 +45,8 @@ import {
   shouldRejectLxmfPropagationMissingNode,
   shouldRejectLxmfSendUnpacked,
   shouldRejectLxmfSendUnsupported,
+  shouldRejectPackLxmfDestinationPrefixed,
+  shouldRejectSplitLxmfDestinationPrefixed,
   shouldRememberLxmfMessage,
   shouldReuseActiveLink,
   shouldReuseLxmfPropagationLink,
@@ -48,17 +54,22 @@ import {
   shouldSendLxmfOpportunistic,
   shouldSendLxmfPropagated,
   shouldTeardownLxmfPropagationLink,
-  splitLxmfDestinationPrefixed,
+  shouldUseLxmfInboundDelivery,
+  shouldUsePackLxmfDestinationPrefixed,
+  shouldUseSplitLxmfDestinationPrefixed,
   stepDeliveryReceiptPollWithActions,
   stepLinkAwaitWithActions,
   stepLxmfDeliverableAcceptWithActions,
   stepLxmfDirectSendWithActions,
+  stepLxmfInboundDeliveryWithActions,
   stepLxmfOpportunisticSendWithActions,
   stepLxmfPropagatedSendWithActions,
   stepLxmfPropagationLinkReadyWithActions,
   stepLxmfPropagationLocalIngressWithActions,
   stepLxmfReceiptSendWithActions,
   stepLxmfSendMethodWithActions,
+  stepPackLxmfDestinationPrefixedWithActions,
+  stepSplitLxmfDestinationPrefixedWithActions,
   type LxmfSendEvent,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
@@ -611,7 +622,18 @@ export class LXMFRouter {
   }
 
   handleDeliveryPacket(data: Uint8Array, packet: Packet, method: LXMessageMethodValue): boolean {
-    const lxmfData = lxmfInboundDeliveryBytes(method, packet.destinationHash, data);
+    const rebuildStepped = stepLxmfInboundDeliveryWithActions(initialLxmfInboundDeliveryState(), {
+      kind: "lxmf-inbound-delivery/rebuild-gate",
+      method,
+      destinationHash: packet.destinationHash,
+      packetData: data
+    });
+    const lxmfData = shouldUseLxmfInboundDelivery(rebuildStepped.actions)
+      ? lxmfInboundDeliveryRawFromActions(rebuildStepped.actions)
+      : null;
+    if (lxmfData === null) {
+      return false;
+    }
     return this.deliver(lxmfData, method);
   }
 
@@ -633,7 +655,18 @@ export class LXMFRouter {
 
   /** Mirrors LXMF/LXMRouter.lxmf_propagation local-delivery branch. */
   handlePropagationData(lxmfData: Uint8Array): LXMessage | null {
-    const prefixed = splitLxmfDestinationPrefixed(lxmfData);
+    const splitStepped = stepSplitLxmfDestinationPrefixedWithActions(
+      initialSplitLxmfDestinationPrefixedState(),
+      {
+        kind: "lxmf-destination-prefixed/split-gate",
+        bytes: lxmfData
+      }
+    );
+    const prefixed =
+      shouldRejectSplitLxmfDestinationPrefixed(splitStepped.actions) ||
+      !shouldUseSplitLxmfDestinationPrefixed(splitStepped.actions)
+        ? null
+        : lxmfDestinationPrefixedFieldsFromActions(splitStepped.actions);
     const deliveryDestination = this.deliveryDestination;
     const destinationHashMatches =
       deliveryDestination !== null &&
@@ -670,7 +703,24 @@ export class LXMFRouter {
       return null;
     }
 
-    const deliveryData = packLxmfDestinationPrefixed(prefixed!.destinationHash, decrypted!);
+    const packStepped = stepPackLxmfDestinationPrefixedWithActions(
+      initialPackLxmfDestinationPrefixedState(),
+      {
+        kind: "lxmf-destination-prefixed/pack-gate",
+        destinationHash: prefixed!.destinationHash,
+        remainder: decrypted!
+      }
+    );
+    if (
+      shouldRejectPackLxmfDestinationPrefixed(packStepped.actions) ||
+      !shouldUsePackLxmfDestinationPrefixed(packStepped.actions)
+    ) {
+      return null;
+    }
+    const deliveryData = packLxmfDestinationPrefixedRawFromActions(packStepped.actions);
+    if (deliveryData === null) {
+      return null;
+    }
     const message = this.unpackDeliverable(deliveryData, LXMessageMethod.PROPAGATED);
     if (shouldInvokeLxmfDeliveryCallback(message !== null)) {
       this.deliveryCallback?.(message!);

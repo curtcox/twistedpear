@@ -612,7 +612,7 @@ export function shouldCommitRememberedLxmfHash(hashPresent: boolean): boolean {
   return hashPresent;
 }
 
-/** Whether LXMF wire bytes may unpack after {@link splitLxmfWire}. */
+/** Whether LXMF wire bytes may unpack after split WithActions `use-fields`. */
 export function shouldAcceptLxmfWireFrame(wirePresent: boolean): boolean {
   return wirePresent;
 }
