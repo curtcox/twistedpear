@@ -16,9 +16,10 @@ import {
   initialLxmfPropagatedPackPrepState,
   initialLxMessageInstancePackState,
   initialLxMessagePackState,
+  initialLxmfSignatureState,
   lxmfDeliveryDeliverParams,
   lxmfDeliveryOpportunisticRejectSizes,
-  planLxmfSignatureOutcome,
+  lxmfSignatureOutcomeFromActions,
   shouldDeliverLxmf,
   shouldIncludeLxmfStamp,
   shouldAcceptLxmfWireFrame,
@@ -39,6 +40,7 @@ import {
   stepLxmfDeliveryWithActions,
   stepLxmfPackTimestampWithActions,
   stepLxmfPropagatedPackPrepWithActions,
+  stepLxmfSignatureWithActions,
   stepLxMessageInstancePackWithActions,
   stepLxMessagePackWithActions,
   splitLxmfWire,
@@ -234,13 +236,17 @@ export class LXMessage {
     message.packed = Uint8Array.from(lxmfBytes);
     message.incoming = true;
 
-    const outcome = planLxmfSignatureOutcome({
+    const signatureGate = stepLxmfSignatureWithActions(initialLxmfSignatureState(), {
+      kind: "signature/outcome-gate",
       sourceIdentityPresent: sourceIdentity !== null,
       signatureValid:
         sourceIdentity !== null ? sourceIdentity.validate(signature, signedPart) : false
     });
-    message.signatureValidated = outcome.signatureValidated;
-    message.unverifiedReason = outcome.unverifiedReason;
+    const outcome = lxmfSignatureOutcomeFromActions(signatureGate.actions);
+    if (outcome !== null) {
+      message.signatureValidated = outcome.signatureValidated;
+      message.unverifiedReason = outcome.unverifiedReason;
+    }
 
     return message;
   }

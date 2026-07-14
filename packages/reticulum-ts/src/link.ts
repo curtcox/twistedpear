@@ -51,12 +51,13 @@ import {
   initialLinkIdentifyState,
   initialLinkProofValidateState,
   initialLinkResourceAdvertisementState,
+  initialLinkTeardownState,
+  initialLinkTokenAccessState,
   initialLinkValidateRequestState,
   isLinkClosed,
   isLinkKeepaliveProbe,
   isExpectedLinkMode,
   isLinkModeEnabled,
-  initialLinkTeardownState,
   linkEstablishActivatedAction,
   linkHopsMatch,
   linkIdentifySignedMaterial,
@@ -77,13 +78,12 @@ import {
   packLinkKeepaliveReply,
   packLinkProofData,
   packLinkRequestData,
+  planLinkResourceConclude,
   planLinkAppRequest,
   planLinkAppRequestTransmitOutcome,
   planLinkDataContext,
   planLinkInitiatorMtu,
   planLinkRequestResponderMtu,
-  planLinkResourceConclude,
-  planLinkTokenAccess,
   planUnregisterPendingLinkRequest,
   shouldAcceptLinkEstablishRtt,
   shouldAcceptLinkPacketInterface,
@@ -100,6 +100,7 @@ import {
   shouldContinueLinkValidateRequest,
   shouldProceedLinkValidateRequest,
   shouldCreateLinkChannel,
+  shouldCreateLinkToken,
   shouldDeliverPendingLinkAppResponse,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
@@ -120,8 +121,10 @@ import {
   shouldRejectLinkIdentify,
   shouldRejectLinkProofValidate,
   shouldRejectLinkResourceAdvertisement,
+  shouldRejectLinkTokenNoKey,
   shouldRemoveLinkResourceListIndex,
   shouldReplyKeepaliveProbe,
+  shouldReuseLinkToken,
   shouldSendLinkAppRequestInboundResponse,
   shouldSendLinkTeardownThenClose,
   shouldTeardownLinkEstablish,
@@ -143,6 +146,7 @@ import {
   stepLinkProofValidateWithActions,
   stepLinkResourceAdvertisementWithActions,
   stepLinkTeardownWithActions,
+  stepLinkTokenAccessWithActions,
   stepLinkValidateRequestWithActions,
   stepLinkWatchdogWithActions,
   utf8Encode,
@@ -1634,14 +1638,15 @@ export class Link {
   }
 
   private tokenInstance(): Token {
-    const plan = planLinkTokenAccess({
+    const gate = stepLinkTokenAccessWithActions(initialLinkTokenAccessState(), {
+      kind: "token/access-gate",
       derivedKeyPresent: this.derivedKey !== null,
       tokenPresent: this.token !== null
     });
-    if (plan === "reject-no-key") {
+    if (shouldRejectLinkTokenNoKey(gate.actions)) {
       throw new Error("Link has no derived key");
     }
-    if (plan === "create") {
+    if (shouldCreateLinkToken(gate.actions)) {
       this.token = new Token(this.provider, this.derivedKey!);
     }
 

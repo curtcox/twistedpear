@@ -216,14 +216,18 @@
 > protocol; `LXMFRouter.send` adapts it. **`planChannelSend`** lives in protocol;
 > `Channel.send` adapts it.
 > **`canPerformLinkHandshake`**, **`canProveLink`**, **`canAcceptLinkRequestOwner`**,
-> **`planLinkAppRequest`**, and **`canSendLinkAppResponse`** live in protocol; `Link`
-> adapts them. **`shouldAcceptLinkTeardown`** lives in protocol; LINKCLOSE handling
+> **`planLinkAppRequest`**, **`canSendLinkAppResponse`**, and **`planLinkTokenAccess`**
+> (via **`stepLinkTokenAccessWithActions`**: reject-no-key / create / reuse) live in
+> protocol; `Link` adapts them (`tokenInstance` via token-access actions).
+> **`shouldAcceptLinkTeardown`** lives in protocol; LINKCLOSE handling
 > adapts it. **`canValidateLinkProof`** also gates destination presence.
 > **`planLxmfDirectSend`** (via **`stepLxmfDirectSendWithActions`**: proceed /
 > reject-missing-destination / reject-missing-packed), **`planLxMessageInstancePack`**
 > (via **`stepLxMessageInstancePackWithActions`**: proceed / reject-already-packed /
 > reject-missing-endpoints / reject-missing-timestamp), and
-> **`planLxmfSignatureOutcome`** live in protocol; `LXMFRouter` / `LXMessage` adapt them.
+> **`planLxmfSignatureOutcome`** (via **`stepLxmfSignatureWithActions`**: apply with
+> signatureValidated / unverifiedReason) live in protocol; `LXMFRouter` /
+> `LXMessage.unpackFromBytes` adapt them.
 > **`shouldReuseActiveLink`** lives in protocol; LXMF direct/propagation link reuse adapts
 > it. **`planAnnounceBuild`** and **`planDestinationConstruction`** live in protocol;
 > `Announce` and `Destination` adapt them. **`planLinkInitiatorMtu`** lives in protocol;
@@ -306,8 +310,9 @@
 > protocol; LXMessage and PropagationClient adapt them (ensurePropagationLink also uses
 > **`planLxmfPropagationLinkReady`** via **`stepLxmfPropagationLinkReadyWithActions`**). **`canProveResource`** /
 > **`shouldAdvertiseResource`**, **`canUpdateLinkKeepalive`** /
-> **`shouldCreateLinkChannel`** / **`planLinkTokenAccess`** live in protocol; Resource and
-> Link adapt them. **`shouldInvokeDestinationLinkEstablishedCallback`**,
+> **`shouldCreateLinkChannel`** / **`planLinkTokenAccess`** (via
+> **`stepLinkTokenAccessWithActions`**: reject-no-key / create / reuse) live in
+> protocol; Resource and Link adapt them. **`shouldInvokeDestinationLinkEstablishedCallback`**,
 > **`canArmChannelPacketReceipt`**, **`planPacketReceiptCallback`**,
 > **`canDispatchAnnounceHandlers`**, **`shouldAttemptIdentityRatchetDecrypt`** /
 > **`planIdentityRecallAppData`**, **`shouldRegisterStreamReadyCallback`**,
@@ -470,6 +475,12 @@
 > proceed/encrypt or throw only from those actions (no ad-hoc
 > `planLxMessagePack` / `planLxmfPackTimestamp` / `planLxMessageInstancePack` /
 > `planLxmfPropagatedPackPrep` reads beside the step).
+> **`stepLxmfSignatureWithActions`** emits `apply` (with signatureValidated /
+> unverifiedReason); `LXMessage.unpackFromBytes` applies signature status only
+> from those actions (no ad-hoc `planLxmfSignatureOutcome` reads beside the step).
+> **`stepLinkTokenAccessWithActions`** emits `reject-no-key` / `create` /
+> `reuse`; `Link.tokenInstance` constructs or reuses Token only from those
+> actions (no ad-hoc `planLinkTokenAccess` reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -519,7 +530,8 @@
 > machine actions (no ad-hoc `state.timedOut` / `plan.kind` / establish-status /
 > dispatch / identify-outcome / delivery-plan / send-method / send-gate /
 > pack-gate / propagation-link-ready / sync-prep / deliverable-accept /
-> local-ingress / receipt-send / validate-request / proof-validate reads
+> local-ingress / receipt-send / validate-request / proof-validate /
+> signature-outcome / token-access reads
 > beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

@@ -423,6 +423,86 @@ export function planLinkTokenAccess(input: {
 }
 
 /**
+ * Token access gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LinkTokenAccessState = Record<string, never>;
+
+export type LinkTokenAccessEvent =
+  | Event
+  | {
+      readonly kind: "token/access-gate";
+      readonly derivedKeyPresent: boolean;
+      readonly tokenPresent: boolean;
+    };
+
+export type LinkTokenAccessAction =
+  | { readonly kind: "reject-no-key" }
+  | { readonly kind: "create" }
+  | { readonly kind: "reuse" };
+
+export interface LinkTokenAccessStepResult {
+  readonly state: LinkTokenAccessState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkTokenAccessAction[];
+}
+
+export function initialLinkTokenAccessState(): LinkTokenAccessState {
+  return {};
+}
+
+export const stepLinkTokenAccess: StepFn<LinkTokenAccessState> = (state, event) => {
+  const result = stepLinkTokenAccessInner(state, event as LinkTokenAccessEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkTokenAccessWithActions(
+  state: LinkTokenAccessState,
+  event: LinkTokenAccessEvent
+): LinkTokenAccessStepResult {
+  return stepLinkTokenAccessInner(state, event);
+}
+
+export function shouldRejectLinkTokenNoKey(
+  actions: ReadonlyArray<LinkTokenAccessAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-no-key");
+}
+
+export function shouldCreateLinkToken(
+  actions: ReadonlyArray<LinkTokenAccessAction>
+): boolean {
+  return actions.some((action) => action.kind === "create");
+}
+
+export function shouldReuseLinkToken(
+  actions: ReadonlyArray<LinkTokenAccessAction>
+): boolean {
+  return actions.some((action) => action.kind === "reuse");
+}
+
+function stepLinkTokenAccessInner(
+  state: LinkTokenAccessState,
+  event: LinkTokenAccessEvent
+): LinkTokenAccessStepResult {
+  if (event.kind === "token/access-gate") {
+    const plan = planLinkTokenAccess({
+      derivedKeyPresent: event.derivedKeyPresent,
+      tokenPresent: event.tokenPresent
+    });
+    if (plan === "reject-no-key") {
+      return { state, intents: [], actions: [{ kind: "reject-no-key" }] };
+    }
+    if (plan === "create") {
+      return { state, intents: [], actions: [{ kind: "create" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "reuse" }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
  * Whether a packed application request may be sent (request gate + MDU fit).
  * Path hashing / encrypt / packet IO stay at the adapter edge.
  */

@@ -26,6 +26,7 @@ import {
   initialLinkAppRequestInboundState,
   initialLinkEstablishState,
   initialLinkProofValidateState,
+  initialLinkTokenAccessState,
   initialLinkValidateRequestState,
   isLinkClosed,
   isLinkInboundDataPacket,
@@ -50,6 +51,7 @@ import {
   shouldAttemptLinkProofCrypto,
   shouldContinueLinkValidateRequest,
   shouldCreateLinkChannel,
+  shouldCreateLinkToken,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
   shouldEnterLinkHandshake,
@@ -64,12 +66,14 @@ import {
   shouldRegisterLinkMember,
   shouldRejectLinkAppRequestInboundTooBig,
   shouldRejectLinkProofValidate,
+  shouldRejectLinkTokenNoKey,
   shouldRejectLinkValidateBadRequest,
   shouldRejectLinkValidateModeDisabled,
   shouldRejectLinkValidateOwnerMissingIdentity,
   shouldRemoveActiveLinkMembership,
   shouldRemovePendingLinkMembership,
   shouldReuseActiveLink,
+  shouldReuseLinkToken,
   shouldSendLinkAppRequestInboundResponse,
   shouldSendLinkAppRequestResponse,
   shouldTeardownLinkEstablish,
@@ -80,6 +84,7 @@ import {
   stepLinkEstablish,
   stepLinkEstablishWithActions,
   stepLinkProofValidateWithActions,
+  stepLinkTokenAccessWithActions,
   stepLinkValidateRequestWithActions
 } from "../src/link-establish.js";
 import { DestinationAllowPolicyCode } from "../src/destination-allow.js";
@@ -187,6 +192,27 @@ describe("protocol link establish", () => {
     );
     expect(planLinkTokenAccess({ derivedKeyPresent: true, tokenPresent: false })).toBe("create");
     expect(planLinkTokenAccess({ derivedKeyPresent: true, tokenPresent: true })).toBe("reuse");
+    const rejectToken = stepLinkTokenAccessWithActions(initialLinkTokenAccessState(), {
+      kind: "token/access-gate",
+      derivedKeyPresent: false,
+      tokenPresent: false
+    });
+    expect(rejectToken.actions).toEqual([{ kind: "reject-no-key" }]);
+    expect(shouldRejectLinkTokenNoKey(rejectToken.actions)).toBe(true);
+    const createToken = stepLinkTokenAccessWithActions(initialLinkTokenAccessState(), {
+      kind: "token/access-gate",
+      derivedKeyPresent: true,
+      tokenPresent: false
+    });
+    expect(createToken.actions).toEqual([{ kind: "create" }]);
+    expect(shouldCreateLinkToken(createToken.actions)).toBe(true);
+    const reuseToken = stepLinkTokenAccessWithActions(initialLinkTokenAccessState(), {
+      kind: "token/access-gate",
+      derivedKeyPresent: true,
+      tokenPresent: true
+    });
+    expect(reuseToken.actions).toEqual([{ kind: "reuse" }]);
+    expect(shouldReuseLinkToken(reuseToken.actions)).toBe(true);
     expect(
       planLinkAppRequest({
         status: LinkStatus.ACTIVE,

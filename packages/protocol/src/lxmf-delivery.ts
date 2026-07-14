@@ -1667,6 +1667,94 @@ export function planLxmfSignatureOutcome(input: {
   };
 }
 
+/**
+ * Signature outcome gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LxmfSignatureState = Record<string, never>;
+
+export type LxmfSignatureEvent =
+  | Event
+  | {
+      readonly kind: "signature/outcome-gate";
+      readonly sourceIdentityPresent: boolean;
+      readonly signatureValid: boolean;
+    };
+
+export type LxmfSignatureAction = {
+  readonly kind: "apply";
+  readonly signatureValidated: boolean;
+  readonly unverifiedReason: LxmfUnverifiedReasonValue | null;
+};
+
+export interface LxmfSignatureStepResult {
+  readonly state: LxmfSignatureState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfSignatureAction[];
+}
+
+export function initialLxmfSignatureState(): LxmfSignatureState {
+  return {};
+}
+
+export const stepLxmfSignature: StepFn<LxmfSignatureState> = (state, event) => {
+  const result = stepLxmfSignatureInner(state, event as LxmfSignatureEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxmfSignatureWithActions(
+  state: LxmfSignatureState,
+  event: LxmfSignatureEvent
+): LxmfSignatureStepResult {
+  return stepLxmfSignatureInner(state, event);
+}
+
+export function shouldApplyLxmfSignature(
+  actions: ReadonlyArray<LxmfSignatureAction>
+): boolean {
+  return actions.some((action) => action.kind === "apply");
+}
+
+/** Outcome fields from an apply action, if present. */
+export function lxmfSignatureOutcomeFromActions(
+  actions: ReadonlyArray<LxmfSignatureAction>
+): LxmfSignatureOutcome | null {
+  for (const action of actions) {
+    if (action.kind === "apply") {
+      return {
+        signatureValidated: action.signatureValidated,
+        unverifiedReason: action.unverifiedReason
+      };
+    }
+  }
+  return null;
+}
+
+function stepLxmfSignatureInner(
+  state: LxmfSignatureState,
+  event: LxmfSignatureEvent
+): LxmfSignatureStepResult {
+  if (event.kind === "signature/outcome-gate") {
+    const outcome = planLxmfSignatureOutcome({
+      sourceIdentityPresent: event.sourceIdentityPresent,
+      signatureValid: event.signatureValid
+    });
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "apply",
+          signatureValidated: outcome.signatureValidated,
+          unverifiedReason: outcome.unverifiedReason
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 export type LxmfPropagatedPackPrepPlan =
   | "skip"
   | "ok"
