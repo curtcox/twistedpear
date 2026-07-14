@@ -1,9 +1,10 @@
 /**
  * Pure Identity private-key material extraction from injected entropy.
  * Public-key derivation stays at the crypto adapter edge.
- * Pack / split conclusions leave via machine actions (no ad-hoc
- * `packIdentityPrivateKey` / `packIdentityPublicKey` /
- * `splitIdentityPrivateKey` / `splitIdentityPublicKey` reads beside the step).
+ * Entropy-split and pack / split conclusions leave via machine actions (no
+ * ad-hoc `splitIdentityEntropy` / `packIdentityPrivateKey` /
+ * `packIdentityPublicKey` / `splitIdentityPrivateKey` /
+ * `splitIdentityPublicKey` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 
@@ -44,6 +45,73 @@ export function splitIdentityEntropy(entropy: Uint8Array): IdentityKeyMaterial {
       entropy.subarray(IDENTITY_HALF_KEY_SIZE, IDENTITY_KEY_ENTROPY_SIZE)
     )
   };
+}
+
+/**
+ * Identity keygen entropy split is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `splitIdentityEntropy`
+ * reads beside the step). Undersized entropy becomes `reject`.
+ */
+export type SplitIdentityEntropyState = Record<string, never>;
+
+export type SplitIdentityEntropyEvent =
+  | Event
+  | {
+      readonly kind: "identity-key/split-entropy-gate";
+      readonly entropy: Uint8Array;
+    };
+
+export type SplitIdentityEntropyAction =
+  | { readonly kind: "use-fields"; readonly fields: IdentityKeyMaterial }
+  | { readonly kind: "reject" };
+
+export interface SplitIdentityEntropyStepResult {
+  readonly state: SplitIdentityEntropyState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly SplitIdentityEntropyAction[];
+}
+
+export function initialSplitIdentityEntropyState(): SplitIdentityEntropyState {
+  return {};
+}
+
+export function stepSplitIdentityEntropyWithActions(
+  state: SplitIdentityEntropyState,
+  event: SplitIdentityEntropyEvent
+): SplitIdentityEntropyStepResult {
+  if (event.kind === "identity-key/split-entropy-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "use-fields", fields: splitIdentityEntropy(event.entropy) }]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseSplitIdentityEntropy(
+  actions: ReadonlyArray<SplitIdentityEntropyAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectSplitIdentityEntropy(
+  actions: ReadonlyArray<SplitIdentityEntropyAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract identity key material from step actions; null when no `use-fields`. */
+export function identityEntropyFieldsFromActions(
+  actions: ReadonlyArray<SplitIdentityEntropyAction>
+): IdentityKeyMaterial | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }
 
 export function packIdentityPrivateKey(

@@ -13,6 +13,7 @@ import {
   canLoadIdentityKeyMaterial,
   encodeIdentityRatchetRecordRawFromActions,
   identityCiphertextFieldsFromActions,
+  identityEntropyFieldsFromActions,
   identityPrivateKeyFieldsFromActions,
   identityPublicKeyFieldsFromActions,
   identityRatchetRecordFromActions,
@@ -28,6 +29,7 @@ import {
   initialPackIdentityPublicKeyState,
   initialPackPacketProofState,
   initialSplitIdentityCiphertextState,
+  initialSplitIdentityEntropyState,
   initialSplitIdentityPrivateKeyState,
   initialSplitIdentityPublicKeyState,
   isIdentityRatchetRecordUsable,
@@ -49,6 +51,7 @@ import {
   shouldRejectPackIdentityCiphertext,
   shouldRejectPackIdentityPrivateKey,
   shouldRejectPackIdentityPublicKey,
+  shouldRejectSplitIdentityEntropy,
   shouldTryIdentityDecrypt,
   shouldUseCachedIdentityRatchet,
   shouldUseDecodeIdentityRatchetRecord,
@@ -58,6 +61,7 @@ import {
   shouldUsePackIdentityPublicKey,
   shouldUsePackPacketProof,
   shouldUseSplitIdentityCiphertext,
+  shouldUseSplitIdentityEntropy,
   shouldUseSplitIdentityPrivateKey,
   shouldUseSplitIdentityPublicKey,
   stepDecodeIdentityRatchetRecordWithActions,
@@ -71,10 +75,10 @@ import {
   stepPackIdentityPublicKeyWithActions,
   stepPackPacketProofWithActions,
   stepSplitIdentityCiphertextWithActions,
+  stepSplitIdentityEntropyWithActions,
   stepSplitIdentityPrivateKeyWithActions,
   stepSplitIdentityPublicKeyWithActions,
   stepTruncateHashBytesWithActions,
-  splitIdentityEntropy,
   truncateHashBytesRawFromActions,
   shouldRejectTruncateHashBytes,
   shouldUseTruncateHashBytes,
@@ -345,11 +349,23 @@ export class Identity {
   }
 
   createKeys(entropy?: Entropy): void {
-    const material = splitIdentityEntropy(
-      entropy !== undefined
-        ? entropy.randomBytes(IDENTITY_KEY_ENTROPY_SIZE)
-        : this.provider.randomBytes(IDENTITY_KEY_ENTROPY_SIZE)
-    );
+    const stepped = stepSplitIdentityEntropyWithActions(initialSplitIdentityEntropyState(), {
+      kind: "identity-key/split-entropy-gate",
+      entropy:
+        entropy !== undefined
+          ? entropy.randomBytes(IDENTITY_KEY_ENTROPY_SIZE)
+          : this.provider.randomBytes(IDENTITY_KEY_ENTROPY_SIZE)
+    });
+    const material = identityEntropyFieldsFromActions(stepped.actions);
+    if (
+      shouldRejectSplitIdentityEntropy(stepped.actions) ||
+      !shouldUseSplitIdentityEntropy(stepped.actions) ||
+      material === null
+    ) {
+      throw new Error(
+        `Identity key entropy must be at least ${IDENTITY_KEY_ENTROPY_SIZE} bytes`
+      );
+    }
     this.prvBytes = material.privateKey;
     this.sigPrvBytes = material.signaturePrivateKey;
     this.updatePublicMaterial();

@@ -10,12 +10,14 @@
 > **`stepSplitResponderLinkEntropyWithActions`**: use-fields|reject) accept injected
 > entropy; **`Runtime.entropy`** is threaded through `LeafTransport` into Link keygen
 > (explicit override still wins). Announce builds prefer `transport.entropy` for the
-> random hash. **Identity**, **Token**, and **Resource** RNG now prefer
-> injected/`Runtime` entropy (transport identity keygen, path-request tags, link Token
-> IVs, destination encrypt, resource random hashes). **Channel congestion** (window
-> sizing, packet timeout formula, retry exhaustion) is a pure protocol leaf; `Channel`
-> adapts it. **Channel envelope framing** and **RX reorder/drain** are also pure
-> protocol leaves. **LXMF outbound send-state** (enqueue → sending → sent/delivered/
+> random hash. **Identity** keygen entropy split (via
+> **`stepSplitIdentityEntropyWithActions`**: use-fields|reject) plus **Identity**,
+> **Token**, and **Resource** RNG now prefer injected/`Runtime` entropy (transport
+> identity keygen, path-request tags, link Token IVs, destination encrypt, resource
+> random hashes). **Channel congestion** (window sizing, packet timeout formula,
+> retry exhaustion) is a pure protocol leaf; `Channel` adapts it. **Channel envelope
+> framing** and **RX reorder/drain** are also pure protocol leaves. **LXMF outbound
+> send-state** (enqueue → sending → sent/delivered/
 > failed + progress) is a pure protocol leaf; `LXMFRouter` adapts it. **Link proof framing**
 > and **establish status transitions** (handshake/proof/RTT/identify gates) are pure
 > protocol leaves; `Link` adapts them. **Link identify** payload framing (pack/split via
@@ -171,7 +173,9 @@
 > **`stepUnpackStreamDataMessageWithActions`**: use-raw|reject /
 > use-fields|reject), and **resource hash/encrypt
 > materials** are pure protocol leaves; `Link`, `Buffer`, and `Resource` adapt them.
-> **Identity key pack/split** (via **`stepPackIdentityPrivateKeyWithActions`** /
+> **Identity keygen entropy** (via **`stepSplitIdentityEntropyWithActions`**:
+> use-fields|reject) and **Identity key pack/split** (via
+> **`stepPackIdentityPrivateKeyWithActions`** /
 > **`stepSplitIdentityPrivateKeyWithActions`** /
 > **`stepPackIdentityPublicKeyWithActions`** /
 > **`stepSplitIdentityPublicKeyWithActions`**: use-raw|reject /
@@ -884,7 +888,8 @@
 > utf8-encode / utf8-decode / utf8-or-bytes / expand-destination-name /
 > destination-name-hash-material / destination-hash-material /
 > validate-destination-name-part / parse-aspect-filter /
-> split-initiator-link-entropy / split-responder-link-entropy reads
+> split-initiator-link-entropy / split-responder-link-entropy /
+> split-identity-entropy reads
 > beside the step).
 > **`stepPackStreamDataMessageWithActions`** /
 > **`stepUnpackStreamDataMessageWithActions`** emit `use-raw`|`reject` /
@@ -899,6 +904,8 @@
 > public-key splits apply only from those actions (no ad-hoc
 > `packIdentityPrivateKey` / `splitIdentityPrivateKey` /
 > `packIdentityPublicKey` / `splitIdentityPublicKey` reads beside the step).
+> Identity keygen entropy uses **`stepSplitIdentityEntropyWithActions`**
+> (see above).
 > **`stepEncodeIdentityRatchetRecordWithActions`** /
 > **`stepDecodeIdentityRatchetRecordWithActions`** emit `use-raw`|`reject` /
 > `use-fields`|`reject`; Identity ratchet persist encode / decode apply only
@@ -957,6 +964,9 @@
 > Link initiator / responder keygen entropy splits apply only from those
 > actions (no ad-hoc `splitInitiatorLinkEntropy` /
 > `splitResponderLinkEntropy` reads beside the step).
+> **`stepSplitIdentityEntropyWithActions`** emits `use-fields`|`reject`;
+> Identity keygen entropy split applies only from those actions (no ad-hoc
+> `splitIdentityEntropy` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
 > only from those actions. **`stepChannelMessageHandlerUnregisterWithActions`**,

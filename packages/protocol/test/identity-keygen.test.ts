@@ -3,10 +3,12 @@ import {
   IDENTITY_HALF_KEY_SIZE,
   IDENTITY_KEY_ENTROPY_SIZE,
   IDENTITY_KEY_SIZE,
+  identityEntropyFieldsFromActions,
   identityPrivateKeyFieldsFromActions,
   identityPublicKeyFieldsFromActions,
   initialPackIdentityPrivateKeyState,
   initialPackIdentityPublicKeyState,
+  initialSplitIdentityEntropyState,
   initialSplitIdentityPrivateKeyState,
   initialSplitIdentityPublicKeyState,
   packIdentityPrivateKey,
@@ -15,10 +17,12 @@ import {
   packIdentityPublicKeyRawFromActions,
   shouldRejectPackIdentityPrivateKey,
   shouldRejectPackIdentityPublicKey,
+  shouldRejectSplitIdentityEntropy,
   shouldRejectSplitIdentityPrivateKey,
   shouldRejectSplitIdentityPublicKey,
   shouldUsePackIdentityPrivateKey,
   shouldUsePackIdentityPublicKey,
+  shouldUseSplitIdentityEntropy,
   shouldUseSplitIdentityPrivateKey,
   shouldUseSplitIdentityPublicKey,
   splitIdentityEntropy,
@@ -26,6 +30,7 @@ import {
   splitIdentityPublicKey,
   stepPackIdentityPrivateKeyWithActions,
   stepPackIdentityPublicKeyWithActions,
+  stepSplitIdentityEntropyWithActions,
   stepSplitIdentityPrivateKeyWithActions,
   stepSplitIdentityPublicKeyWithActions
 } from "../src/identity-keygen.js";
@@ -40,6 +45,26 @@ describe("protocol identity keygen entropy", () => {
 
   it("rejects short entropy", () => {
     expect(() => splitIdentityEntropy(new Uint8Array(63))).toThrow(/at least 64/);
+  });
+
+  it("emits use-fields|reject actions for identity entropy split", () => {
+    const entropy = new Uint8Array(IDENTITY_KEY_ENTROPY_SIZE).map((_, i) => i + 1);
+    const ok = stepSplitIdentityEntropyWithActions(initialSplitIdentityEntropyState(), {
+      kind: "identity-key/split-entropy-gate",
+      entropy
+    });
+    expect(shouldUseSplitIdentityEntropy(ok.actions)).toBe(true);
+    expect(shouldRejectSplitIdentityEntropy(ok.actions)).toBe(false);
+    const fields = identityEntropyFieldsFromActions(ok.actions)!;
+    expect([...fields.privateKey]).toEqual([...entropy.subarray(0, 32)]);
+    expect([...fields.signaturePrivateKey]).toEqual([...entropy.subarray(32, 64)]);
+
+    const rejected = stepSplitIdentityEntropyWithActions(initialSplitIdentityEntropyState(), {
+      kind: "identity-key/split-entropy-gate",
+      entropy: new Uint8Array(63)
+    });
+    expect(shouldRejectSplitIdentityEntropy(rejected.actions)).toBe(true);
+    expect(identityEntropyFieldsFromActions(rejected.actions)).toBeNull();
   });
 
   it("packs and splits identity key material", () => {
@@ -139,6 +164,21 @@ describe("protocol identity keygen entropy", () => {
   });
 
   it("is deterministic for identical identity-key events", () => {
+    const entropy = new Uint8Array(IDENTITY_KEY_ENTROPY_SIZE).fill(7);
+    const entropyEvent = {
+      kind: "identity-key/split-entropy-gate" as const,
+      entropy
+    };
+    const entropyA = stepSplitIdentityEntropyWithActions(
+      initialSplitIdentityEntropyState(),
+      entropyEvent
+    );
+    const entropyB = stepSplitIdentityEntropyWithActions(
+      initialSplitIdentityEntropyState(),
+      entropyEvent
+    );
+    expect(entropyA).toEqual(entropyB);
+
     const left = new Uint8Array(IDENTITY_HALF_KEY_SIZE).fill(5);
     const right = new Uint8Array(IDENTITY_HALF_KEY_SIZE).fill(6);
     const event = {
