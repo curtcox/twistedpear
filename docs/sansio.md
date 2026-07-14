@@ -72,10 +72,13 @@
 > **Identity ciphertext** (ephemeral public || Token), **WS binary frame**
 > encode/decode, and **LXMF peer-error** msgpack decode are pure protocol leaves;
 > Identity, websocket-server, and propagation adapters use them. **Identity ratchet
-> persistence** (JSON encode/decode, store key, usability/expiry) and **web-identity
+> persistence** (JSON encode/decode, store key, usability/expiry; lookup via
+> **`stepIdentityRatchetLookupWithActions`**) and **web-identity
 > record framing** (salt||iv||ciphertext) are pure protocol leaves; Identity and
 > web-identity adapters use them. Shared `hexToBytesLower` lives with destination-name
-> helpers. **Link establishment timeout** (`computeLinkEstablishmentTimeout`) and **LXMF
+> helpers. **Identity recall** / **recall-app-data** (via
+> **`stepIdentityRecallWithActions`** / **`stepIdentityRecallAppDataWithActions`**)
+> are pure protocol leaves; `Identity` adapts them. **Link establishment timeout** (`computeLinkEstablishmentTimeout`) and **LXMF
 > inbound delivery framing** (opportunistic rebuild + destination-prefixed pack/split)
 > are pure protocol leaves; `Link` and `LXMFRouter` adapt them. **Link proof signed
 > material / proof packing**, **StreamDataMessage framing**, and **resource hash/encrypt
@@ -298,8 +301,12 @@
 > destination link lists, path-table get, propagation restore, and LXMF seen-hash
 > remember adapt them. **`planIdentityDecryptOutcome`** (via
 > **`stepIdentityDecryptWithActions`**: reject-frame / accept / reject-enforced /
-> try-identity / reject), **`planIdentityRatchetLookup`**,
-> **`planIdentityRecall`**, and **`canIdentityHash`** live in protocol; `Identity`
+> try-identity / reject), **`planIdentityRatchetLookup`** (via
+> **`stepIdentityRatchetLookupWithActions`**: use-cache / miss-no-store /
+> miss-store / reject-unusable / restore), **`planIdentityRecall`** (via
+> **`stepIdentityRecallWithActions`**: miss / reject-key / hit),
+> **`planIdentityRecallAppData`** (via **`stepIdentityRecallAppDataWithActions`**:
+> hit / miss), and **`canIdentityHash`** live in protocol; `Identity`
 > adapts them. **`canRegisterLxmfDeliveryIdentity`** / **`shouldTeardownLxmfPropagationLink`**
 > live in protocol; LXMF router and propagation client adapt them.
 > **`planDestinationIdentityHash`** lives in protocol; destination hash construction
@@ -320,8 +327,8 @@
 > **`stepLinkTokenAccessWithActions`**: reject-no-key / create / reuse) live in
 > protocol; Resource and Link adapt them. **`shouldInvokeDestinationLinkEstablishedCallback`**,
 > **`canArmChannelPacketReceipt`**, **`planPacketReceiptCallback`**,
-> **`canDispatchAnnounceHandlers`**, **`shouldAttemptIdentityRatchetDecrypt`** /
-> **`planIdentityRecallAppData`**, **`shouldRegisterStreamReadyCallback`**,
+> **`canDispatchAnnounceHandlers`**, **`shouldAttemptIdentityRatchetDecrypt`**,
+> **`shouldRegisterStreamReadyCallback`**,
 > **`shouldAttachLinkRequestPacketReceipt`**, **`shouldAwaitLxmfDeliveryReceipt`** /
 > **`shouldInvokeLxmfDeliveryCallback`**, and extended **`planLxmfPropagatedSend`**
 > (`missing-node`, via **`stepLxmfPropagatedSendWithActions`**) live in protocol; destination, Channel, PacketReceipt, transport
@@ -497,6 +504,15 @@
 > `reject-enforced` / `try-identity` / `reject`; `Identity.decrypt` applies
 > ratchet/fallback outcomes only from those actions (no ad-hoc
 > `planIdentityDecryptOutcome` reads beside the step).
+> **`stepIdentityRatchetLookupWithActions`** emits `use-cache` /
+> `miss-no-store` / `miss-store` / `reject-unusable` / `restore`;
+> `Identity.getRatchet` applies cache/store outcomes only from those actions
+> (no ad-hoc `planIdentityRatchetLookup` reads beside the step).
+> **`stepIdentityRecallWithActions`** emits `miss` / `reject-key` / `hit`;
+> **`stepIdentityRecallAppDataWithActions`** emits `hit` / `miss`;
+> `Identity.recall` / `recallAppData` return results only from those actions
+> (no ad-hoc `planIdentityRecall` / `planIdentityRecallAppData` reads beside
+> the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -548,7 +564,8 @@
 > pack-gate / propagation-link-ready / sync-prep / deliverable-accept /
 > local-ingress / receipt-send / validate-request / proof-validate /
 > signature-outcome / token-access / announce-validate / announce-build /
-> identity-decrypt reads
+> identity-decrypt / identity-ratchet-lookup / identity-recall /
+> identity-recall-app-data reads
 > beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

@@ -201,6 +201,77 @@ export function planIdentityRecall(input: {
   return "hit";
 }
 
+/**
+ * Identity recall gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type IdentityRecallState = Record<string, never>;
+
+export type IdentityRecallEvent =
+  | Event
+  | {
+      readonly kind: "identity/recall-gate";
+      readonly recordPresent: boolean;
+      readonly publicKeyLoaded: boolean;
+    };
+
+export type IdentityRecallAction = { readonly kind: IdentityRecallPlan };
+
+export interface IdentityRecallStepResult {
+  readonly state: IdentityRecallState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IdentityRecallAction[];
+}
+
+export function initialIdentityRecallState(): IdentityRecallState {
+  return {};
+}
+
+export const stepIdentityRecall: StepFn<IdentityRecallState> = (state, event) => {
+  const result = stepIdentityRecallInner(state, event as IdentityRecallEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepIdentityRecallWithActions(
+  state: IdentityRecallState,
+  event: IdentityRecallEvent
+): IdentityRecallStepResult {
+  return stepIdentityRecallInner(state, event);
+}
+
+export function shouldHitIdentityRecall(
+  actions: ReadonlyArray<IdentityRecallAction>
+): boolean {
+  return actions.some((action) => action.kind === "hit");
+}
+
+export function shouldMissIdentityRecall(
+  actions: ReadonlyArray<IdentityRecallAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
+export function shouldRejectIdentityRecallKey(
+  actions: ReadonlyArray<IdentityRecallAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-key");
+}
+
+function stepIdentityRecallInner(
+  state: IdentityRecallState,
+  event: IdentityRecallEvent
+): IdentityRecallStepResult {
+  if (event.kind === "identity/recall-gate") {
+    const plan = planIdentityRecall({
+      recordPresent: event.recordPresent,
+      publicKeyLoaded: event.publicKeyLoaded
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 export type IdentityRecallAppDataPlan = "hit" | "miss";
 
 /** Known-destination app-data recall: hit when record holds appData. */
@@ -212,6 +283,71 @@ export function planIdentityRecallAppData(input: {
     return "miss";
   }
   return "hit";
+}
+
+/**
+ * Identity app-data recall gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type IdentityRecallAppDataState = Record<string, never>;
+
+export type IdentityRecallAppDataEvent =
+  | Event
+  | {
+      readonly kind: "identity/recall-app-data-gate";
+      readonly recordPresent: boolean;
+      readonly appDataPresent: boolean;
+    };
+
+export type IdentityRecallAppDataAction = { readonly kind: IdentityRecallAppDataPlan };
+
+export interface IdentityRecallAppDataStepResult {
+  readonly state: IdentityRecallAppDataState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IdentityRecallAppDataAction[];
+}
+
+export function initialIdentityRecallAppDataState(): IdentityRecallAppDataState {
+  return {};
+}
+
+export const stepIdentityRecallAppData: StepFn<IdentityRecallAppDataState> = (state, event) => {
+  const result = stepIdentityRecallAppDataInner(state, event as IdentityRecallAppDataEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepIdentityRecallAppDataWithActions(
+  state: IdentityRecallAppDataState,
+  event: IdentityRecallAppDataEvent
+): IdentityRecallAppDataStepResult {
+  return stepIdentityRecallAppDataInner(state, event);
+}
+
+export function shouldHitIdentityRecallAppData(
+  actions: ReadonlyArray<IdentityRecallAppDataAction>
+): boolean {
+  return actions.some((action) => action.kind === "hit");
+}
+
+export function shouldMissIdentityRecallAppData(
+  actions: ReadonlyArray<IdentityRecallAppDataAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
+function stepIdentityRecallAppDataInner(
+  state: IdentityRecallAppDataState,
+  event: IdentityRecallAppDataEvent
+): IdentityRecallAppDataStepResult {
+  if (event.kind === "identity/recall-app-data-gate") {
+    const plan = planIdentityRecallAppData({
+      recordPresent: event.recordPresent,
+      appDataPresent: event.appDataPresent
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 /** Whether decrypt should attempt ratchet keys before identity-key fallback. */

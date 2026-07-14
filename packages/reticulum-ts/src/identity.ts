@@ -14,25 +14,32 @@ import {
   decodeIdentityRatchetRecord,
   encodeIdentityRatchetRecord,
   identityRatchetStoreKey,
+  initialIdentityDecryptState,
+  initialIdentityRatchetLookupState,
+  initialIdentityRecallAppDataState,
+  initialIdentityRecallState,
   isIdentityRatchetRecordUsable,
   packIdentityCiphertext,
   packIdentityPrivateKey,
   packIdentityPublicKey,
   packPacketProof,
-  initialIdentityDecryptState,
-  planIdentityRatchetLookup,
-  planIdentityRecall,
-  planIdentityRecallAppData,
   shouldAcceptIdentityDecrypt,
   shouldAttemptIdentityRatchetDecrypt,
   shouldAcceptIdentityCiphertextFrame,
+  shouldCommitRestoredIdentityRatchet,
+  shouldHitIdentityRecall,
+  shouldHitIdentityRecallAppData,
+  shouldMissIdentityRatchetNoStore,
   shouldPersistIdentityRatchet,
   shouldRejectIdentityDecryptEnforced,
   shouldRejectIdentityDecryptFrame,
-  shouldRestoreIdentityRatchetRecord,
   shouldTryIdentityDecrypt,
+  shouldUseCachedIdentityRatchet,
   splitIdentityCiphertext,
   stepIdentityDecryptWithActions,
+  stepIdentityRatchetLookupWithActions,
+  stepIdentityRecallAppDataWithActions,
+  stepIdentityRecallWithActions,
   splitIdentityEntropy,
   splitIdentityPrivateKey,
   splitIdentityPublicKey,
@@ -172,34 +179,31 @@ export class Identity {
   ): Promise<Uint8Array | null> {
     const key = bytesToHex(destinationHash);
     const cached = Identity.knownRatchets.get(key);
-    const beforeStore = planIdentityRatchetLookup({
+    const beforeStore = stepIdentityRatchetLookupWithActions(initialIdentityRatchetLookupState(), {
+      kind: "identity/ratchet-lookup-gate",
       cachedPresent: cached !== undefined,
       storePresent: store !== undefined,
       storedPresent: false,
       usable: false
     });
-    if (beforeStore === "use-cache") {
+    if (shouldUseCachedIdentityRatchet(beforeStore.actions)) {
       return Uint8Array.from(cached!);
     }
-    if (beforeStore === "miss-no-store") {
+    if (shouldMissIdentityRatchetNoStore(beforeStore.actions)) {
       return null;
     }
 
     const stored = await store!.get(identityRatchetStoreKey(key));
     const record =
       stored === undefined ? null : decodeIdentityRatchetRecord(stored);
-    const afterStore = planIdentityRatchetLookup({
+    const afterStore = stepIdentityRatchetLookupWithActions(initialIdentityRatchetLookupState(), {
+      kind: "identity/ratchet-lookup-gate",
       cachedPresent: false,
       storePresent: true,
       storedPresent: record !== null,
       usable: record !== null && isIdentityRatchetRecordUsable(record, nowSeconds)
     });
-    if (
-      !shouldRestoreIdentityRatchetRecord({
-        planRestore: afterStore === "restore",
-        recordPresent: record !== null
-      })
-    ) {
+    if (!shouldCommitRestoredIdentityRatchet(afterStore.actions, record !== null)) {
       return null;
     }
 
@@ -227,20 +231,22 @@ export class Identity {
     const identity = new Identity(provider, false);
     const publicKeyLoaded =
       record !== undefined ? identity.loadPublicKey(record.publicKey) : false;
-    const plan = planIdentityRecall({
+    const gate = stepIdentityRecallWithActions(initialIdentityRecallState(), {
+      kind: "identity/recall-gate",
       recordPresent: record !== undefined,
       publicKeyLoaded
     });
-    return plan === "hit" ? identity : null;
+    return shouldHitIdentityRecall(gate.actions) ? identity : null;
   }
 
   static recallAppData(destinationHash: Uint8Array): Uint8Array | null {
     const record = Identity.knownDestinations.get(bytesToHex(destinationHash));
-    const plan = planIdentityRecallAppData({
+    const gate = stepIdentityRecallAppDataWithActions(initialIdentityRecallAppDataState(), {
+      kind: "identity/recall-app-data-gate",
       recordPresent: record !== undefined,
       appDataPresent: record?.appData !== undefined
     });
-    return plan === "hit" ? record!.appData! : null;
+    return shouldHitIdentityRecallAppData(gate.actions) ? record!.appData! : null;
   }
 
   get hash(): Uint8Array {

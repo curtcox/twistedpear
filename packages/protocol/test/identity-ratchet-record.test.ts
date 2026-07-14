@@ -5,10 +5,18 @@ import {
   decodeIdentityRatchetRecord,
   encodeIdentityRatchetRecord,
   identityRatchetStoreKey,
+  initialIdentityRatchetLookupState,
   isIdentityRatchetRecordUsable,
   planIdentityRatchetLookup,
+  shouldCommitRestoredIdentityRatchet,
+  shouldMissIdentityRatchetNoStore,
+  shouldMissIdentityRatchetStore,
   shouldPersistIdentityRatchet,
-  shouldRestoreIdentityRatchetRecord
+  shouldRejectIdentityRatchetUnusable,
+  shouldRestoreIdentityRatchetLookup,
+  shouldRestoreIdentityRatchetRecord,
+  shouldUseCachedIdentityRatchet,
+  stepIdentityRatchetLookupWithActions
 } from "../src/identity-ratchet-record.js";
 
 describe("protocol identity ratchet record", () => {
@@ -79,6 +87,74 @@ describe("protocol identity ratchet record", () => {
         usable: true
       })
     ).toBe("restore");
+  });
+
+  it("emits ratchet lookup actions from stepIdentityRatchetLookupWithActions", () => {
+    const cached = stepIdentityRatchetLookupWithActions(initialIdentityRatchetLookupState(), {
+      kind: "identity/ratchet-lookup-gate",
+      cachedPresent: true,
+      storePresent: false,
+      storedPresent: false,
+      usable: false
+    });
+    expect(cached.actions).toEqual([{ kind: "use-cache" }]);
+    expect(shouldUseCachedIdentityRatchet(cached.actions)).toBe(true);
+
+    const missNoStore = stepIdentityRatchetLookupWithActions(initialIdentityRatchetLookupState(), {
+      kind: "identity/ratchet-lookup-gate",
+      cachedPresent: false,
+      storePresent: false,
+      storedPresent: false,
+      usable: false
+    });
+    expect(missNoStore.actions).toEqual([{ kind: "miss-no-store" }]);
+    expect(shouldMissIdentityRatchetNoStore(missNoStore.actions)).toBe(true);
+
+    const missStore = stepIdentityRatchetLookupWithActions(initialIdentityRatchetLookupState(), {
+      kind: "identity/ratchet-lookup-gate",
+      cachedPresent: false,
+      storePresent: true,
+      storedPresent: false,
+      usable: false
+    });
+    expect(missStore.actions).toEqual([{ kind: "miss-store" }]);
+    expect(shouldMissIdentityRatchetStore(missStore.actions)).toBe(true);
+
+    const reject = stepIdentityRatchetLookupWithActions(initialIdentityRatchetLookupState(), {
+      kind: "identity/ratchet-lookup-gate",
+      cachedPresent: false,
+      storePresent: true,
+      storedPresent: true,
+      usable: false
+    });
+    expect(reject.actions).toEqual([{ kind: "reject-unusable" }]);
+    expect(shouldRejectIdentityRatchetUnusable(reject.actions)).toBe(true);
+
+    const restore = stepIdentityRatchetLookupWithActions(initialIdentityRatchetLookupState(), {
+      kind: "identity/ratchet-lookup-gate",
+      cachedPresent: false,
+      storePresent: true,
+      storedPresent: true,
+      usable: true
+    });
+    expect(restore.actions).toEqual([{ kind: "restore" }]);
+    expect(shouldRestoreIdentityRatchetLookup(restore.actions)).toBe(true);
+    expect(shouldCommitRestoredIdentityRatchet(restore.actions, true)).toBe(true);
+    expect(shouldCommitRestoredIdentityRatchet(restore.actions, false)).toBe(false);
+  });
+
+  it("is deterministic for identical ratchet lookup events", () => {
+    const event = {
+      kind: "identity/ratchet-lookup-gate" as const,
+      cachedPresent: false,
+      storePresent: true,
+      storedPresent: true,
+      usable: true
+    };
+    const a = stepIdentityRatchetLookupWithActions(initialIdentityRatchetLookupState(), event);
+    const b = stepIdentityRatchetLookupWithActions(initialIdentityRatchetLookupState(), event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("gates ratchet store persistence", () => {

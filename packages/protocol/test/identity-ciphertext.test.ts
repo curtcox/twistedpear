@@ -6,6 +6,8 @@ import {
   canIdentityUsePublicKey,
   canLoadIdentityKeyMaterial,
   initialIdentityDecryptState,
+  initialIdentityRecallAppDataState,
+  initialIdentityRecallState,
   packIdentityCiphertext,
   planIdentityDecryptOutcome,
   planIdentityRecall,
@@ -14,12 +16,19 @@ import {
   shouldAttemptIdentityRatchetDecrypt,
   shouldAcceptIdentityCiphertextFrame,
   shouldAcceptIdentityDecryptPlaintext,
+  shouldHitIdentityRecall,
+  shouldHitIdentityRecallAppData,
+  shouldMissIdentityRecall,
+  shouldMissIdentityRecallAppData,
   shouldRejectIdentityDecrypt,
   shouldRejectIdentityDecryptEnforced,
   shouldRejectIdentityDecryptFrame,
+  shouldRejectIdentityRecallKey,
   shouldTryIdentityDecrypt,
   splitIdentityCiphertext,
-  stepIdentityDecryptWithActions
+  stepIdentityDecryptWithActions,
+  stepIdentityRecallAppDataWithActions,
+  stepIdentityRecallWithActions
 } from "../src/identity-ciphertext.js";
 
 describe("protocol identity ciphertext", () => {
@@ -190,6 +199,60 @@ describe("protocol identity ciphertext", () => {
     expect(shouldAttemptIdentityRatchetDecrypt(false)).toBe(false);
     expect(canIdentityHash(true)).toBe(true);
     expect(canIdentityHash(false)).toBe(false);
+  });
+
+  it("emits identity recall actions from stepIdentityRecallWithActions", () => {
+    const miss = stepIdentityRecallWithActions(initialIdentityRecallState(), {
+      kind: "identity/recall-gate",
+      recordPresent: false,
+      publicKeyLoaded: false
+    });
+    expect(miss.actions).toEqual([{ kind: "miss" }]);
+    expect(shouldMissIdentityRecall(miss.actions)).toBe(true);
+
+    const rejectKey = stepIdentityRecallWithActions(initialIdentityRecallState(), {
+      kind: "identity/recall-gate",
+      recordPresent: true,
+      publicKeyLoaded: false
+    });
+    expect(rejectKey.actions).toEqual([{ kind: "reject-key" }]);
+    expect(shouldRejectIdentityRecallKey(rejectKey.actions)).toBe(true);
+
+    const hit = stepIdentityRecallWithActions(initialIdentityRecallState(), {
+      kind: "identity/recall-gate",
+      recordPresent: true,
+      publicKeyLoaded: true
+    });
+    expect(hit.actions).toEqual([{ kind: "hit" }]);
+    expect(shouldHitIdentityRecall(hit.actions)).toBe(true);
+
+    const appMiss = stepIdentityRecallAppDataWithActions(initialIdentityRecallAppDataState(), {
+      kind: "identity/recall-app-data-gate",
+      recordPresent: true,
+      appDataPresent: false
+    });
+    expect(appMiss.actions).toEqual([{ kind: "miss" }]);
+    expect(shouldMissIdentityRecallAppData(appMiss.actions)).toBe(true);
+
+    const appHit = stepIdentityRecallAppDataWithActions(initialIdentityRecallAppDataState(), {
+      kind: "identity/recall-app-data-gate",
+      recordPresent: true,
+      appDataPresent: true
+    });
+    expect(appHit.actions).toEqual([{ kind: "hit" }]);
+    expect(shouldHitIdentityRecallAppData(appHit.actions)).toBe(true);
+  });
+
+  it("is deterministic for identical identity recall events", () => {
+    const event = {
+      kind: "identity/recall-gate" as const,
+      recordPresent: true,
+      publicKeyLoaded: true
+    };
+    const a = stepIdentityRecallWithActions(initialIdentityRecallState(), event);
+    const b = stepIdentityRecallWithActions(initialIdentityRecallState(), event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("gates private/public key use and key-material load", () => {

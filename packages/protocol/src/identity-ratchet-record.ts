@@ -1,7 +1,9 @@
 /**
  * Pure Identity ratchet persistence record (JSON over UTF-8).
  * Store IO and expiry clock stay at the adapter edge.
+ * Lookup conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { bytesToHexLower, hexToBytesLower } from "./destination-name.js";
 import { utf8Decode, utf8Encode } from "./utf8.js";
 
@@ -86,18 +88,116 @@ export function planIdentityRatchetLookup(input: {
   return "restore";
 }
 
+/**
+ * Identity ratchet lookup gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type IdentityRatchetLookupState = Record<string, never>;
+
+export type IdentityRatchetLookupEvent =
+  | Event
+  | {
+      readonly kind: "identity/ratchet-lookup-gate";
+      readonly cachedPresent: boolean;
+      readonly storePresent: boolean;
+      readonly storedPresent: boolean;
+      readonly usable: boolean;
+    };
+
+export type IdentityRatchetLookupAction = { readonly kind: IdentityRatchetLookupPlan };
+
+export interface IdentityRatchetLookupStepResult {
+  readonly state: IdentityRatchetLookupState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IdentityRatchetLookupAction[];
+}
+
+export function initialIdentityRatchetLookupState(): IdentityRatchetLookupState {
+  return {};
+}
+
+export const stepIdentityRatchetLookup: StepFn<IdentityRatchetLookupState> = (state, event) => {
+  const result = stepIdentityRatchetLookupInner(state, event as IdentityRatchetLookupEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepIdentityRatchetLookupWithActions(
+  state: IdentityRatchetLookupState,
+  event: IdentityRatchetLookupEvent
+): IdentityRatchetLookupStepResult {
+  return stepIdentityRatchetLookupInner(state, event);
+}
+
+export function shouldUseCachedIdentityRatchet(
+  actions: ReadonlyArray<IdentityRatchetLookupAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-cache");
+}
+
+export function shouldMissIdentityRatchetNoStore(
+  actions: ReadonlyArray<IdentityRatchetLookupAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss-no-store");
+}
+
+export function shouldMissIdentityRatchetStore(
+  actions: ReadonlyArray<IdentityRatchetLookupAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss-store");
+}
+
+export function shouldRejectIdentityRatchetUnusable(
+  actions: ReadonlyArray<IdentityRatchetLookupAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-unusable");
+}
+
+export function shouldRestoreIdentityRatchetLookup(
+  actions: ReadonlyArray<IdentityRatchetLookupAction>
+): boolean {
+  return actions.some((action) => action.kind === "restore");
+}
+
+function stepIdentityRatchetLookupInner(
+  state: IdentityRatchetLookupState,
+  event: IdentityRatchetLookupEvent
+): IdentityRatchetLookupStepResult {
+  if (event.kind === "identity/ratchet-lookup-gate") {
+    const plan = planIdentityRatchetLookup({
+      cachedPresent: event.cachedPresent,
+      storePresent: event.storePresent,
+      storedPresent: event.storedPresent,
+      usable: event.usable
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 /** Whether rememberRatchet should persist the record to an injected store. */
 export function shouldPersistIdentityRatchet(storePresent: boolean): boolean {
   return storePresent;
 }
 
 /**
- * Whether ratchet lookup may restore after {@link planIdentityRatchetLookup}
- * returns restore and decoded record bytes remain present.
+ * Whether ratchet lookup may restore after restore actions and decoded
+ * record bytes remain present.
  */
 export function shouldRestoreIdentityRatchetRecord(input: {
   readonly planRestore: boolean;
   readonly recordPresent: boolean;
 }): boolean {
   return input.planRestore && input.recordPresent;
+}
+
+/** Whether restore actions may apply when decoded record bytes remain present. */
+export function shouldCommitRestoredIdentityRatchet(
+  actions: ReadonlyArray<IdentityRatchetLookupAction>,
+  recordPresent: boolean
+): boolean {
+  return shouldRestoreIdentityRatchetRecord({
+    planRestore: shouldRestoreIdentityRatchetLookup(actions),
+    recordPresent
+  });
 }
