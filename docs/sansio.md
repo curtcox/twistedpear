@@ -115,7 +115,9 @@
 > **`stepPackIdentityCiphertextWithActions`** /
 > **`stepSplitIdentityCiphertextWithActions`**: use-raw|reject /
 > use-fields|reject; ephemeral public || Token), **WS binary frame**
-> encode/decode, and **LXMF peer-error** msgpack decode are pure protocol leaves;
+> encode/decode (via **`stepEncodeWsBinaryFrameWithActions`** /
+> **`stepDecodeWsClientFrameWithActions`**: use-raw / use-fields|reject), and
+> **LXMF peer-error** msgpack decode are pure protocol leaves;
 > Identity, websocket-server, and propagation adapters use them. **Identity ratchet
 > persistence** (JSON encode/decode, store key, usability/expiry; lookup via
 > **`stepIdentityRatchetLookupWithActions`**) and **web-identity
@@ -809,7 +811,8 @@
 > pack-lxmf-destination-prefixed / split-lxmf-destination-prefixed /
 > lxmf-inbound-delivery / pack-link-identify-payload /
 > split-link-identify-payload / pack-web-identity-record /
-> split-web-identity-record reads
+> split-web-identity-record / encode-ws-binary-frame /
+> decode-ws-client-frame reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -925,6 +928,11 @@
 > `use-fields`|`reject`; web-identity salt||iv||ciphertext pack / split apply
 > only from those actions (no ad-hoc `packWebIdentityRecord` /
 > `splitWebIdentityRecord` reads beside the step).
+> **`stepEncodeWsBinaryFrameWithActions`** /
+> **`stepDecodeWsClientFrameWithActions`** emit `use-raw` /
+> `use-fields`|`reject`; WS binary frame encode / decode apply only from those
+> actions (no ad-hoc `encodeWsBinaryFrame` / `decodeWsClientFrame` reads beside
+> the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

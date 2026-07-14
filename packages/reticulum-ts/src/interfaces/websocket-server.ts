@@ -6,8 +6,15 @@ import type { Duplex } from "node:stream";
 import {
   WS_OPCODE_BINARY,
   WS_OPCODE_CLOSE,
-  decodeWsClientFrame,
-  encodeWsBinaryFrame
+  encodeWsBinaryFrameRawFromActions,
+  initialDecodeWsClientFrameState,
+  initialEncodeWsBinaryFrameState,
+  shouldRejectDecodeWsClientFrame,
+  shouldUseDecodeWsClientFrame,
+  shouldUseEncodeWsBinaryFrame,
+  stepDecodeWsClientFrameWithActions,
+  stepEncodeWsBinaryFrameWithActions,
+  wsClientFrameFromActions
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "../crypto/provider.js";
 import type { Reticulum } from "../reticulum.js";
@@ -247,7 +254,18 @@ class NodeWebSocketConnection implements WebSocketLike {
       throw new Error("WebSocket is closed");
     }
 
-    this.socket.write(Buffer.from(encodeWsBinaryFrame(data)));
+    const encodeStepped = stepEncodeWsBinaryFrameWithActions(initialEncodeWsBinaryFrameState(), {
+      kind: "ws-frame/encode-gate",
+      data
+    });
+    if (!shouldUseEncodeWsBinaryFrame(encodeStepped.actions)) {
+      throw new Error("ws frame: missing use-raw action");
+    }
+    const raw = encodeWsBinaryFrameRawFromActions(encodeStepped.actions);
+    if (raw === null) {
+      throw new Error("ws frame: missing use-raw action");
+    }
+    this.socket.write(Buffer.from(raw));
   }
 
   close(): void {
@@ -277,7 +295,17 @@ class NodeWebSocketConnection implements WebSocketLike {
     this.buffer = Buffer.concat([this.buffer, chunk]);
 
     while (true) {
-      const frame = decodeWsClientFrame(this.buffer);
+      const decodeStepped = stepDecodeWsClientFrameWithActions(initialDecodeWsClientFrameState(), {
+        kind: "ws-frame/decode-gate",
+        buffer: this.buffer
+      });
+      if (
+        shouldRejectDecodeWsClientFrame(decodeStepped.actions) ||
+        !shouldUseDecodeWsClientFrame(decodeStepped.actions)
+      ) {
+        return;
+      }
+      const frame = wsClientFrameFromActions(decodeStepped.actions);
       if (frame === null) {
         return;
       }

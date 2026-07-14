@@ -2,7 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
   WS_OPCODE_BINARY,
   decodeWsClientFrame,
-  encodeWsBinaryFrame
+  encodeWsBinaryFrame,
+  encodeWsBinaryFrameRawFromActions,
+  initialDecodeWsClientFrameState,
+  initialEncodeWsBinaryFrameState,
+  shouldRejectDecodeWsClientFrame,
+  shouldUseDecodeWsClientFrame,
+  shouldUseEncodeWsBinaryFrame,
+  stepDecodeWsClientFrameWithActions,
+  stepEncodeWsBinaryFrameWithActions,
+  wsClientFrameFromActions
 } from "../src/websocket-frame.js";
 
 describe("protocol ws binary frames", () => {
@@ -40,5 +49,47 @@ describe("protocol ws binary frames", () => {
 
   it("returns null for incomplete frames", () => {
     expect(decodeWsClientFrame(new Uint8Array([0x82]))).toBeNull();
+  });
+
+  it("encodes via use-raw actions", () => {
+    const data = new Uint8Array([1, 2, 3]);
+    const stepped = stepEncodeWsBinaryFrameWithActions(initialEncodeWsBinaryFrameState(), {
+      kind: "ws-frame/encode-gate",
+      data
+    });
+    expect(shouldUseEncodeWsBinaryFrame(stepped.actions)).toBe(true);
+    const raw = encodeWsBinaryFrameRawFromActions(stepped.actions);
+    expect([...raw!]).toEqual([...encodeWsBinaryFrame(data)]);
+  });
+
+  it("decodes via use-fields or reject actions", () => {
+    const payload = new Uint8Array([0x10, 0x20, 0x30]);
+    const mask = new Uint8Array([0xaa, 0xbb, 0xcc, 0xdd]);
+    const header = new Uint8Array([0x82, 0x80 | payload.length, ...mask]);
+    const masked = new Uint8Array(payload.length);
+    for (let i = 0; i < payload.length; i += 1) {
+      masked[i] = payload[i]! ^ mask[i % 4]!;
+    }
+    const frameBytes = new Uint8Array(header.length + masked.length);
+    frameBytes.set(header, 0);
+    frameBytes.set(masked, header.length);
+
+    const ok = stepDecodeWsClientFrameWithActions(initialDecodeWsClientFrameState(), {
+      kind: "ws-frame/decode-gate",
+      buffer: frameBytes
+    });
+    expect(shouldUseDecodeWsClientFrame(ok.actions)).toBe(true);
+    expect(shouldRejectDecodeWsClientFrame(ok.actions)).toBe(false);
+    const fields = wsClientFrameFromActions(ok.actions);
+    expect(fields).not.toBeNull();
+    expect(fields!.opcode).toBe(WS_OPCODE_BINARY);
+    expect([...fields!.payload]).toEqual([...payload]);
+
+    const incomplete = stepDecodeWsClientFrameWithActions(initialDecodeWsClientFrameState(), {
+      kind: "ws-frame/decode-gate",
+      buffer: new Uint8Array([0x82])
+    });
+    expect(shouldRejectDecodeWsClientFrame(incomplete.actions)).toBe(true);
+    expect(wsClientFrameFromActions(incomplete.actions)).toBeNull();
   });
 });

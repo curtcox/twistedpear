@@ -2267,6 +2267,23 @@ export {
   WS_OPCODE_CLOSE,
   decodeWsClientFrame,
   encodeWsBinaryFrame,
+  encodeWsBinaryFrameRawFromActions,
+  initialDecodeWsClientFrameState,
+  initialEncodeWsBinaryFrameState,
+  shouldRejectDecodeWsClientFrame,
+  shouldUseDecodeWsClientFrame,
+  shouldUseEncodeWsBinaryFrame,
+  stepDecodeWsClientFrameWithActions,
+  stepEncodeWsBinaryFrameWithActions,
+  wsClientFrameFromActions,
+  type DecodeWsClientFrameAction,
+  type DecodeWsClientFrameEvent,
+  type DecodeWsClientFrameState,
+  type DecodeWsClientFrameStepResult,
+  type EncodeWsBinaryFrameAction,
+  type EncodeWsBinaryFrameEvent,
+  type EncodeWsBinaryFrameState,
+  type EncodeWsBinaryFrameStepResult,
   type WsBinaryFrame
 } from "./websocket-frame.js";
 export {
