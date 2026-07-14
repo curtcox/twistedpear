@@ -17,8 +17,13 @@ import {
   shouldUseObjectDestinationIdentityHash,
   stepDestinationConstructionWithActions,
   stepDestinationIdentityHashWithActions,
-  truncateToNameHash,
-  truncateToTruncatedHash,
+  stepTruncateHashBytesWithActions,
+  truncateHashBytesRawFromActions,
+  shouldRejectTruncateHashBytes,
+  shouldUseTruncateHashBytes,
+  NAME_HASH_BYTES,
+  TRUNCATED_HASH_BYTES,
+  initialTruncateHashBytesState,
   validateDestinationNamePart
 } from "@twistedpear/protocol";
 import { bytesToHex } from "./crypto/bytes.js";
@@ -104,7 +109,20 @@ export class Destination {
   }
 
   static nameHash(provider: CryptoProvider, appName: string, ...aspects: ReadonlyArray<string>): Uint8Array {
-    return truncateToNameHash(Identity.fullHash(provider, destinationNameHashMaterial(appName, aspects)));
+    const stepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
+      kind: "hash-truncate/truncate-gate",
+      digest: Identity.fullHash(provider, destinationNameHashMaterial(appName, aspects)),
+      length: NAME_HASH_BYTES
+    });
+    const raw = truncateHashBytesRawFromActions(stepped.actions);
+    if (
+      shouldRejectTruncateHashBytes(stepped.actions) ||
+      !shouldUseTruncateHashBytes(stepped.actions) ||
+      raw === null
+    ) {
+      throw new Error(`digest must be at least ${NAME_HASH_BYTES} bytes`);
+    }
+    return raw;
   }
 
   static hash(
@@ -115,9 +133,20 @@ export class Destination {
   ): Uint8Array {
     const nameHash = Destination.nameHash(provider, appName, ...aspects);
     const identityHash = identityHashBytes(identity);
-    return truncateToTruncatedHash(
-      Identity.fullHash(provider, destinationHashMaterial(nameHash, identityHash))
-    );
+    const stepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
+      kind: "hash-truncate/truncate-gate",
+      digest: Identity.fullHash(provider, destinationHashMaterial(nameHash, identityHash)),
+      length: TRUNCATED_HASH_BYTES
+    });
+    const raw = truncateHashBytesRawFromActions(stepped.actions);
+    if (
+      shouldRejectTruncateHashBytes(stepped.actions) ||
+      !shouldUseTruncateHashBytes(stepped.actions) ||
+      raw === null
+    ) {
+      throw new Error(`digest must be at least ${TRUNCATED_HASH_BYTES} bytes`);
+    }
+    return raw;
   }
 }
 

@@ -5,7 +5,12 @@ import {
   PacketContextCode,
   TRUNCATED_HASH_BITS,
   TRUNCATED_HASH_BYTES,
+  initialTruncateHashBytesState,
+  shouldRejectTruncateHashBytes,
+  shouldUseTruncateHashBytes,
+  stepTruncateHashBytesWithActions,
   truncateHashBytes,
+  truncateHashBytesRawFromActions,
   truncateToNameHash,
   truncateToTruncatedHash,
   utf8OrBytes
@@ -30,6 +35,36 @@ describe("hash-truncate", () => {
 
   it("rejects undersized digests", () => {
     expect(() => truncateHashBytes(new Uint8Array(8), 16)).toThrow(/at least 16/);
+  });
+
+  it("truncates via use-raw actions", () => {
+    const digest = Uint8Array.from({ length: 32 }, (_, i) => i + 1);
+    const truncated = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
+      kind: "hash-truncate/truncate-gate",
+      digest
+    });
+    expect(shouldUseTruncateHashBytes(truncated.actions)).toBe(true);
+    expect(shouldRejectTruncateHashBytes(truncated.actions)).toBe(false);
+    expect(Array.from(truncateHashBytesRawFromActions(truncated.actions)!)).toEqual(
+      Array.from(digest.subarray(0, 16))
+    );
+
+    const nameHash = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
+      kind: "hash-truncate/truncate-gate",
+      digest,
+      length: NAME_HASH_BYTES
+    });
+    expect(Array.from(truncateHashBytesRawFromActions(nameHash.actions)!)).toEqual(
+      Array.from(digest.subarray(0, 10))
+    );
+
+    const rejected = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
+      kind: "hash-truncate/truncate-gate",
+      digest: new Uint8Array(8),
+      length: 16
+    });
+    expect(shouldRejectTruncateHashBytes(rejected.actions)).toBe(true);
+    expect(truncateHashBytesRawFromActions(rejected.actions)).toBeNull();
   });
 });
 

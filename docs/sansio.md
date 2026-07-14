@@ -185,8 +185,9 @@
 > **`stepDecodeIdentityRatchetRecordWithActions`**: use-raw|reject /
 > use-fields|reject), web-identity
 > passphrase bytes, and LXMF message text use protocol UTF-8 (no
-> `TextEncoder`/`TextDecoder`). **Hash truncation** (`truncateToTruncatedHash` /
-> `truncateToNameHash`), **packet context byte codes**, and **`utf8OrBytes`** are pure
+> `TextEncoder`/`TextDecoder`). **Hash truncation** (via
+> **`stepTruncateHashBytesWithActions`**: use-raw|reject; truncated / name-hash
+> lengths), **packet context byte codes**, and **`utf8OrBytes`** are pure
 > protocol leaves; Identity/Destination/Announce/Packet, Link resource-proof matching,
 > and LXMF message text adapt them. **Grant-record** encode/decode (via
 > **`stepEncodeGrantRecordWithActions`** /
@@ -869,7 +870,7 @@
 > unpack-channel-envelope / pack-link-keepalive-probe /
 > pack-link-keepalive-reply / classify-link-keepalive /
 > pack-msgpack-float64 / unpack-msgpack-float / pkcs7-pad /
-> pkcs7-unpad / stamp-cost-from-app-data reads
+> pkcs7-unpad / stamp-cost-from-app-data / truncate-hash-bytes reads
 > beside the step).
 > **`stepPackStreamDataMessageWithActions`** /
 > **`stepUnpackStreamDataMessageWithActions`** emit `use-raw`|`reject` /
@@ -917,6 +918,10 @@
 > **`stepStampCostFromAppDataWithActions`** emits `use-fields`|`reject`;
 > LXMF stamp-cost extraction from announce app-data applies only from those
 > actions (no ad-hoc `stampCostFromAppData` reads beside the step).
+> **`stepTruncateHashBytesWithActions`** emits `use-raw`|`reject`; Identity /
+> Destination / Packet / Announce hash truncation apply only from those
+> actions (no ad-hoc `truncateHashBytes` / `truncateToNameHash` /
+> `truncateToTruncatedHash` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
 > only from those actions. **`stepChannelMessageHandlerUnregisterWithActions`**,

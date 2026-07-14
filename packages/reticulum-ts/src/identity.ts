@@ -73,9 +73,13 @@ import {
   stepSplitIdentityCiphertextWithActions,
   stepSplitIdentityPrivateKeyWithActions,
   stepSplitIdentityPublicKeyWithActions,
+  stepTruncateHashBytesWithActions,
   splitIdentityEntropy,
-  truncateToNameHash,
-  truncateToTruncatedHash
+  truncateHashBytesRawFromActions,
+  shouldRejectTruncateHashBytes,
+  shouldUseTruncateHashBytes,
+  NAME_HASH_BYTES,
+  initialTruncateHashBytesState
 } from "@twistedpear/protocol";
 import { bytesToHex } from "./crypto/bytes.js";
 import { rnsHkdf } from "./crypto/hkdf.js";
@@ -177,7 +181,19 @@ export class Identity {
   }
 
   static truncatedHash(provider: CryptoProvider, data: Uint8Array): Uint8Array {
-    return truncateToTruncatedHash(Identity.fullHash(provider, data));
+    const stepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
+      kind: "hash-truncate/truncate-gate",
+      digest: Identity.fullHash(provider, data)
+    });
+    const raw = truncateHashBytesRawFromActions(stepped.actions);
+    if (
+      shouldRejectTruncateHashBytes(stepped.actions) ||
+      !shouldUseTruncateHashBytes(stepped.actions) ||
+      raw === null
+    ) {
+      throw new Error(`digest must be at least ${TRUNCATED_HASH_BYTES} bytes`);
+    }
+    return raw;
   }
 
   static ratchetPublicBytes(provider: CryptoProvider, ratchetPrivate: Uint8Array): Uint8Array {
@@ -185,7 +201,20 @@ export class Identity {
   }
 
   static ratchetId(provider: CryptoProvider, ratchetPublicBytes: Uint8Array): Uint8Array {
-    return truncateToNameHash(Identity.fullHash(provider, ratchetPublicBytes));
+    const stepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
+      kind: "hash-truncate/truncate-gate",
+      digest: Identity.fullHash(provider, ratchetPublicBytes),
+      length: NAME_HASH_BYTES
+    });
+    const raw = truncateHashBytesRawFromActions(stepped.actions);
+    if (
+      shouldRejectTruncateHashBytes(stepped.actions) ||
+      !shouldUseTruncateHashBytes(stepped.actions) ||
+      raw === null
+    ) {
+      throw new Error(`digest must be at least ${NAME_HASH_BYTES} bytes`);
+    }
+    return raw;
   }
 
   static rememberRatchet(

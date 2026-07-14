@@ -28,7 +28,12 @@ import {
   stepAnnounceValidateWithActions,
   stepPackAnnouncePayloadWithActions,
   stepParseAnnouncePayloadWithActions,
-  truncateToTruncatedHash
+  stepTruncateHashBytesWithActions,
+  truncateHashBytesRawFromActions,
+  shouldRejectTruncateHashBytes,
+  shouldUseTruncateHashBytes,
+  initialTruncateHashBytesState,
+  TRUNCATED_HASH_BYTES
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { Destination, DestinationDirection, DestinationType } from "./destination.js";
@@ -219,10 +224,20 @@ export class Announce {
         onlyValidateSignature
       })
     ) {
-      const expectedHash = truncateToTruncatedHash(
-        Identity.fullHash(provider, announceDestinationHashMaterial(parsed!.nameHash, identity!.hash))
-      );
-      destinationHashMatches = announceDestinationHashMatches(parsed!.destinationHash, expectedHash);
+      const truncateStepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
+        kind: "hash-truncate/truncate-gate",
+        digest: Identity.fullHash(
+          provider,
+          announceDestinationHashMaterial(parsed!.nameHash, identity!.hash)
+        ),
+        length: TRUNCATED_HASH_BYTES
+      });
+      const expectedHash = truncateHashBytesRawFromActions(truncateStepped.actions);
+      destinationHashMatches =
+        expectedHash !== null &&
+        shouldUseTruncateHashBytes(truncateStepped.actions) &&
+        !shouldRejectTruncateHashBytes(truncateStepped.actions) &&
+        announceDestinationHashMatches(parsed!.destinationHash, expectedHash);
     }
 
     const gate = stepAnnounceValidateWithActions(initialAnnounceValidateState(), {

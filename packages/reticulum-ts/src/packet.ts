@@ -37,7 +37,11 @@ import {
   stepPackPacketProofWithActions,
   stepPacketFromFieldsWithActions,
   stepSplitPacketProofWithActions,
-  truncateToTruncatedHash,
+  stepTruncateHashBytesWithActions,
+  truncateHashBytesRawFromActions,
+  shouldRejectTruncateHashBytes,
+  shouldUseTruncateHashBytes,
+  initialTruncateHashBytesState,
   TRUNCATED_HASH_BYTES
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
@@ -222,7 +226,19 @@ export class Packet {
   }
 
   proofDestinationHash(): Uint8Array {
-    return truncateToTruncatedHash(this.hash());
+    const stepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
+      kind: "hash-truncate/truncate-gate",
+      digest: this.hash()
+    });
+    const raw = truncateHashBytesRawFromActions(stepped.actions);
+    if (
+      shouldRejectTruncateHashBytes(stepped.actions) ||
+      !shouldUseTruncateHashBytes(stepped.actions) ||
+      raw === null
+    ) {
+      throw new Error(`digest must be at least ${TRUNCATED_HASH_BYTES} bytes`);
+    }
+    return raw;
   }
 
   createProof(identity: Identity, options: PacketProofOptions = {}): Uint8Array {

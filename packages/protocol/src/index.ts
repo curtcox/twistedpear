@@ -1409,9 +1409,18 @@ export {
   NAME_HASH_BYTES,
   TRUNCATED_HASH_BITS,
   TRUNCATED_HASH_BYTES,
+  initialTruncateHashBytesState,
+  shouldRejectTruncateHashBytes,
+  shouldUseTruncateHashBytes,
+  stepTruncateHashBytesWithActions,
   truncateHashBytes,
+  truncateHashBytesRawFromActions,
   truncateToNameHash,
-  truncateToTruncatedHash
+  truncateToTruncatedHash,
+  type TruncateHashBytesAction,
+  type TruncateHashBytesEvent,
+  type TruncateHashBytesState,
+  type TruncateHashBytesStepResult
 } from "./hash-truncate.js";
 export {
   PACKET_CONTEXT_NONE,
