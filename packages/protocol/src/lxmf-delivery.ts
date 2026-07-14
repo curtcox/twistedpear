@@ -1,7 +1,10 @@
 /**
  * Pure LXMF delivery method / representation planning.
  * Encryption and hashing stay at the adapter edge.
+ * Conclusions leave via machine actions (no ad-hoc `plan.kind` reads
+ * beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LxmfUnverifiedReason,
   type LxmfUnverifiedReasonValue
@@ -133,6 +136,161 @@ export function planLxmfDelivery(input: {
   }
 
   return { kind: "reject-unsupported-method", method: desiredMethod };
+}
+
+/**
+ * Delivery planning is event-driven; no durable session fields.
+ */
+export type LxmfDeliveryState = Record<string, never>;
+
+export type LxmfDeliveryEvent =
+  | Event
+  | {
+      readonly kind: "delivery/select";
+      readonly desiredMethod: number;
+      readonly contentSize: number;
+      readonly encryptedPacketMaxContent: number;
+      readonly linkPacketMaxContent: number;
+      readonly propagationPackedLength?: number;
+    };
+
+/**
+ * Adapter applies deliver / reject only from these actions.
+ */
+export type LxmfDeliveryAction =
+  | {
+      readonly kind: "deliver";
+      readonly method: LxmfDeliveryMethodValue;
+      readonly representation: LxmfDeliveryRepresentationValue;
+    }
+  | {
+      readonly kind: "reject-opportunistic-too-large";
+      readonly contentSize: number;
+      readonly maxContent: number;
+    }
+  | {
+      readonly kind: "reject-unsupported-method";
+      readonly method: number;
+    };
+
+export interface LxmfDeliveryStepResult {
+  readonly state: LxmfDeliveryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfDeliveryAction[];
+}
+
+export function initialLxmfDeliveryState(): LxmfDeliveryState {
+  return {};
+}
+
+export const stepLxmfDelivery: StepFn<LxmfDeliveryState> = (state, event) => {
+  const result = stepLxmfDeliveryInner(state, event as LxmfDeliveryEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxmfDeliveryWithActions(
+  state: LxmfDeliveryState,
+  event: LxmfDeliveryEvent
+): LxmfDeliveryStepResult {
+  return stepLxmfDeliveryInner(state, event);
+}
+
+/** Whether step actions include deliver (set method + representation). */
+export function shouldDeliverLxmf(
+  actions: ReadonlyArray<LxmfDeliveryAction>
+): boolean {
+  return actions.some((action) => action.kind === "deliver");
+}
+
+/** Whether step actions reject opportunistic content as too large. */
+export function shouldRejectLxmfOpportunisticTooLarge(
+  actions: ReadonlyArray<LxmfDeliveryAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-opportunistic-too-large");
+}
+
+/** Whether step actions reject an unsupported delivery method. */
+export function shouldRejectLxmfUnsupportedMethod(
+  actions: ReadonlyArray<LxmfDeliveryAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-unsupported-method");
+}
+
+/** Deliver method/representation from a deliver action, if present. */
+export function lxmfDeliveryDeliverParams(
+  actions: ReadonlyArray<LxmfDeliveryAction>
+): {
+  readonly method: LxmfDeliveryMethodValue;
+  readonly representation: LxmfDeliveryRepresentationValue;
+} | null {
+  for (const action of actions) {
+    if (action.kind === "deliver") {
+      return { method: action.method, representation: action.representation };
+    }
+  }
+  return null;
+}
+
+/** Size bounds from a reject-opportunistic-too-large action, if present. */
+export function lxmfDeliveryOpportunisticRejectSizes(
+  actions: ReadonlyArray<LxmfDeliveryAction>
+): { readonly contentSize: number; readonly maxContent: number } | null {
+  for (const action of actions) {
+    if (action.kind === "reject-opportunistic-too-large") {
+      return { contentSize: action.contentSize, maxContent: action.maxContent };
+    }
+  }
+  return null;
+}
+
+function stepLxmfDeliveryInner(
+  state: LxmfDeliveryState,
+  event: LxmfDeliveryEvent
+): LxmfDeliveryStepResult {
+  if (event.kind === "delivery/select") {
+    const plan = planLxmfDelivery({
+      desiredMethod: event.desiredMethod,
+      contentSize: event.contentSize,
+      encryptedPacketMaxContent: event.encryptedPacketMaxContent,
+      linkPacketMaxContent: event.linkPacketMaxContent,
+      ...(event.propagationPackedLength !== undefined
+        ? { propagationPackedLength: event.propagationPackedLength }
+        : {})
+    });
+    if (plan.kind === "reject-opportunistic-too-large") {
+      return {
+        state,
+        intents: [],
+        actions: [
+          {
+            kind: "reject-opportunistic-too-large",
+            contentSize: plan.contentSize,
+            maxContent: plan.maxContent
+          }
+        ]
+      };
+    }
+    if (plan.kind === "reject-unsupported-method") {
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "reject-unsupported-method", method: plan.method }]
+      };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "deliver",
+          method: plan.method,
+          representation: plan.representation
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 export type LxMessagePackGate = "ok" | "bad-destination" | "bad-source";

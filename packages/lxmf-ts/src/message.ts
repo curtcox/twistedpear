@@ -11,19 +11,24 @@ import {
   packLxmfDestinationPrefixed,
   packLxmfWire,
   canExtractLxmfOpportunisticPayload,
-  planLxmfDelivery,
+  initialLxmfDeliveryState,
+  lxmfDeliveryDeliverParams,
+  lxmfDeliveryOpportunisticRejectSizes,
   planLxmfPackTimestamp,
   planLxmfPropagatedPackPrep,
   planLxmfSignatureOutcome,
   planLxMessageInstancePack,
   planLxMessagePack,
+  shouldDeliverLxmf,
   shouldIncludeLxmfStamp,
   shouldAcceptLxmfWireFrame,
   shouldCommitRememberedLxmfHash,
+  shouldRejectLxmfOpportunisticTooLarge,
   shouldRejectLxmfPackEndpoints,
   shouldRejectLxmfPackTimestamp,
   shouldRememberLxmfMessage,
   shouldSelectLxmfDeliveryParameters,
+  stepLxmfDeliveryWithActions,
   splitLxmfWire,
   utf8Decode,
   utf8OrBytes
@@ -329,7 +334,8 @@ export class LXMessage {
       this.propagationPacked = msgpackPackPropagationEnvelope(this.timestamp!, [lxmfData]);
     }
 
-    const plan = planLxmfDelivery({
+    const stepped = stepLxmfDeliveryWithActions(initialLxmfDeliveryState(), {
+      kind: "delivery/select",
       desiredMethod,
       contentSize,
       encryptedPacketMaxContent: ENCRYPTED_PACKET_MAX_CONTENT,
@@ -338,17 +344,27 @@ export class LXMessage {
         ? { propagationPackedLength: this.propagationPacked!.length }
         : {})
     });
+    this.applyLxmfDeliveryActions(stepped.actions);
+  }
 
-    if (plan.kind === "reject-opportunistic-too-large") {
+  private applyLxmfDeliveryActions(
+    actions: ReturnType<typeof stepLxmfDeliveryWithActions>["actions"]
+  ): void {
+    if (shouldRejectLxmfOpportunisticTooLarge(actions)) {
+      const sizes = lxmfDeliveryOpportunisticRejectSizes(actions);
       throw new TypeError(
-        `Opportunistic LXMF content of length ${plan.contentSize} exceeds single-packet limit ${plan.maxContent}`
+        `Opportunistic LXMF content of length ${sizes!.contentSize} exceeds single-packet limit ${sizes!.maxContent}`
       );
     }
-
-    if (plan.kind === "deliver") {
-      this.method = plan.method as LXMessageMethodValue;
-      this.representation = plan.representation as LXMessageRepresentationValue;
+    if (!shouldDeliverLxmf(actions)) {
+      return;
     }
+    const params = lxmfDeliveryDeliverParams(actions);
+    if (params === null) {
+      return;
+    }
+    this.method = params.method as LXMessageMethodValue;
+    this.representation = params.representation as LXMessageRepresentationValue;
   }
 }
 

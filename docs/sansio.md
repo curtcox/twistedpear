@@ -22,7 +22,10 @@
 > planning** (store via **`stepPropagationStoreWithActions`**) and **propagation /get
 > request planning** (via **`stepPropagationGetWithActions`**: list-ids / apply
 > delete+fetch) are pure protocol leaves; `PropagationServer` and peer
-> propagation adapt them. **Link request / response
+> propagation adapt them. **LXMF delivery method / representation selection**
+> (via **`stepLxmfDeliveryWithActions`**: deliver / reject-opportunistic-too-
+> large / reject-unsupported-method) is a pure protocol leaf; `LXMessage`
+> adapts it. **Link request / response
 > msgpack codecs** are pure protocol leaves; reticulum re-exports them.
 > **Destination name expansion / hash material** and shared **UTF-8** helpers are pure
 > protocol leaves; `Destination` and path-hash call sites adapt them (SHA stays at the
@@ -38,8 +41,9 @@
 > (explicit/implicit) are pure protocol leaves; `Announce` and `Packet` adapt them.
 > **Packet header** encode/decode, flag packing, and hashable-part framing are pure
 > protocol leaves; `Packet` adapts them. **PKCS#7** padding and **LXMF delivery planning**
-> (method/representation selection) are pure protocol leaves; Token and `LXMessage`
-> adapt them. **Token framing** (key split / iv||ciphertext||hmac) and **stamp-cost
+> (method/representation selection via **`stepLxmfDeliveryWithActions`**) are
+> pure protocol leaves; Token and `LXMessage` adapt them. **Token framing**
+> (key split / iv||ciphertext||hmac) and **stamp-cost
 > extraction** from announce app-data are pure protocol leaves; Token and LXMF router
 > adapt them. **Resource receive-part planning**, **LXMF outer wire framing**, and
 > PacketReceipt proof validation via packet-proof helpers are pure protocol leaves.
@@ -369,6 +373,10 @@
 > fetch ids); `PropagationServer` and `PropagationNodeStore` /get handlers
 > pack responses only from those actions (no ad-hoc `plan.kind` reads beside
 > the step).
+> **`stepLxmfDeliveryWithActions`** emits `deliver` / `reject-opportunistic-
+> too-large` / `reject-unsupported-method`; `LXMessage.selectDeliveryParameters`
+> applies method/representation or throws only from those actions (no
+> ad-hoc `planLxmfDelivery` / `plan.kind` reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -407,9 +415,10 @@
 > handshake/activate/fail/LRRTT, Link teardown local/remote close, Link
 > RESOURCE_ADV accept/ask-app/reject, Link inbound app-request
 > invoke/response, Link LINKIDENTIFY reject/commit, propagation-store
-> reject/duplicate/accept, and propagation /get list-ids/apply also conclude
-> via machine actions (no ad-hoc `state.timedOut` / `plan.kind` /
-> establish-status / dispatch / identify-outcome reads beside the step).
+> reject/duplicate/accept, propagation /get list-ids/apply, and LXMF
+> delivery-parameter select deliver/reject also conclude via machine actions
+> (no ad-hoc `state.timedOut` / `plan.kind` / establish-status / dispatch /
+> identify-outcome / delivery-plan reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

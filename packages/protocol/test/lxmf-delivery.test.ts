@@ -10,6 +10,9 @@ import {
   lxmfContentSizeFromPackedLength,
   canAcceptLxmfPropagationLocalDelivery,
   planLxmfDelivery,
+  initialLxmfDeliveryState,
+  lxmfDeliveryDeliverParams,
+  lxmfDeliveryOpportunisticRejectSizes,
   planLxMessageInstancePack,
   planLxMessagePack,
   planLxmfDeliverableAccept,
@@ -24,10 +27,13 @@ import {
   planLxmfSignatureOutcome,
   shouldAcceptLxmfWireFrame,
   shouldCommitRememberedLxmfHash,
+  shouldDeliverLxmf,
   shouldDeliverLxmfPropagationLocalIngress,
   shouldIncludeLxmfStamp,
+  shouldRejectLxmfOpportunisticTooLarge,
   shouldRejectLxmfPackEndpoints,
   shouldRejectLxmfPackTimestamp,
+  shouldRejectLxmfUnsupportedMethod,
   shouldRememberLxmfMessage,
   canRegisterLxmfDeliveryIdentity,
   canExtractLxmfOpportunisticPayload,
@@ -35,7 +41,8 @@ import {
   planLxmfPropagationSyncPrep,
   shouldAwaitLxmfDeliveryReceipt,
   shouldInvokeLxmfDeliveryCallback,
-  shouldTeardownLxmfPropagationLink
+  shouldTeardownLxmfPropagationLink,
+  stepLxmfDeliveryWithActions
 } from "../src/lxmf-delivery.js";
 import { LxmfUnverifiedReason } from "../src/lxmf-fields.js";
 
@@ -118,6 +125,69 @@ describe("protocol lxmf delivery", () => {
         propagationPackedLength: 80
       }).representation
     ).toBe(LxmfDeliveryRepresentation.RESOURCE);
+  });
+
+  it("emits deliver / reject actions from delivery/select", () => {
+    const delivered = stepLxmfDeliveryWithActions(initialLxmfDeliveryState(), {
+      kind: "delivery/select",
+      desiredMethod: LxmfDeliveryMethod.DIRECT,
+      contentSize: 80,
+      encryptedPacketMaxContent: 100,
+      linkPacketMaxContent: 50
+    });
+    expect(shouldDeliverLxmf(delivered.actions)).toBe(true);
+    expect(shouldRejectLxmfOpportunisticTooLarge(delivered.actions)).toBe(false);
+    expect(lxmfDeliveryDeliverParams(delivered.actions)).toEqual({
+      method: LxmfDeliveryMethod.DIRECT,
+      representation: LxmfDeliveryRepresentation.RESOURCE
+    });
+
+    const rejected = stepLxmfDeliveryWithActions(initialLxmfDeliveryState(), {
+      kind: "delivery/select",
+      desiredMethod: LxmfDeliveryMethod.OPPORTUNISTIC,
+      contentSize: 200,
+      encryptedPacketMaxContent: 100,
+      linkPacketMaxContent: 50
+    });
+    expect(shouldRejectLxmfOpportunisticTooLarge(rejected.actions)).toBe(true);
+    expect(shouldDeliverLxmf(rejected.actions)).toBe(false);
+    expect(lxmfDeliveryOpportunisticRejectSizes(rejected.actions)).toEqual({
+      contentSize: 200,
+      maxContent: 100
+    });
+
+    const unsupported = stepLxmfDeliveryWithActions(initialLxmfDeliveryState(), {
+      kind: "delivery/select",
+      desiredMethod: 0xff,
+      contentSize: 10,
+      encryptedPacketMaxContent: 100,
+      linkPacketMaxContent: 50
+    });
+    expect(shouldRejectLxmfUnsupportedMethod(unsupported.actions)).toBe(true);
+    expect(shouldDeliverLxmf(unsupported.actions)).toBe(false);
+
+    expect(
+      stepLxmfDeliveryWithActions(initialLxmfDeliveryState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
+  });
+
+  it("is deterministic for delivery select events", () => {
+    const state = initialLxmfDeliveryState();
+    const event = {
+      kind: "delivery/select" as const,
+      desiredMethod: LxmfDeliveryMethod.OPPORTUNISTIC,
+      contentSize: 10,
+      encryptedPacketMaxContent: 100,
+      linkPacketMaxContent: 50
+    };
+    const a = stepLxmfDeliveryWithActions(state, event);
+    const b = stepLxmfDeliveryWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("plans LXMessage pack gates for destination and source", () => {
