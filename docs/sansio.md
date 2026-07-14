@@ -355,7 +355,11 @@
 > `invoke-handler` / `send-response` / `ignore-response` / `response-too-big`;
 > `Link.handleRequestPacket` applies responseGenerator / send only from those
 > actions (no ad-hoc dispatch/`plan.kind` reads beside the step).
-> **`shouldDeliverPendingLinkAppResponse`** / **`shouldCommitLinkRemoteIdentity`**,
+> **`stepLinkIdentifyWithActions`** emits `reject` / `commit`; `Link`
+> LINKIDENTIFY handling applies remoteIdentity + callback only from those
+> actions (no ad-hoc `planLinkIdentifyOutcome` / `shouldCommitLinkRemoteIdentity`
+> reads beside the step).
+> **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
 > live in protocol; Link, Announce, TransportNode, and Identity adapt them.
@@ -391,9 +395,10 @@
 > finish by reading `state.concluded` beside probes). PacketReceipt
 > timeout/delivery/failed, Channel TX timeout/retry/give-up, Link establish
 > handshake/activate/fail/LRRTT, Link teardown local/remote close, Link
-> RESOURCE_ADV accept/ask-app/reject, and Link inbound app-request
-> invoke/response also conclude via machine actions (no ad-hoc `state.timedOut` /
-> `plan.kind` / establish-status / dispatch reads beside the step).
+> RESOURCE_ADV accept/ask-app/reject, Link inbound app-request
+> invoke/response, and Link LINKIDENTIFY reject/commit also conclude via
+> machine actions (no ad-hoc `state.timedOut` / `plan.kind` / establish-status /
+> dispatch / identify-outcome reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

@@ -48,6 +48,7 @@ import {
   indexOfPendingLinkAppRequest,
   initialLinkAppRequestInboundState,
   initialLinkEstablishState,
+  initialLinkIdentifyState,
   initialLinkResourceAdvertisementState,
   isLinkClosed,
   isLinkKeepaliveProbe,
@@ -77,7 +78,6 @@ import {
   planLinkAppRequest,
   planLinkAppRequestTransmitOutcome,
   planLinkDataContext,
-  planLinkIdentifyOutcome,
   planLinkInitiatorMtu,
   planLinkProofValidateOutcome,
   planLinkRequestResponderMtu,
@@ -96,9 +96,9 @@ import {
   shouldAskAppLinkResourceAdvertisement,
   shouldAttemptLinkProofCrypto,
   shouldCloseOnlyLinkTeardown,
+  shouldCommitLinkIdentify,
   shouldContinueLinkValidateRequest,
   shouldCreateLinkChannel,
-  shouldCommitLinkRemoteIdentity,
   shouldDeliverPendingLinkAppResponse,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
@@ -116,6 +116,7 @@ import {
   shouldRegisterLinkResource,
   shouldRegisterPendingLinkRequest,
   shouldRejectLinkAppRequestInboundTooBig,
+  shouldRejectLinkIdentify,
   shouldRejectLinkResourceAdvertisement,
   shouldRemoveLinkResourceListIndex,
   shouldReplyKeepaliveProbe,
@@ -136,6 +137,7 @@ import {
   splitResponderLinkEntropy,
   stepLinkAppRequestInboundWithActions,
   stepLinkEstablishWithActions,
+  stepLinkIdentifyWithActions,
   stepLinkResourceAdvertisementWithActions,
   stepLinkTeardownWithActions,
   stepLinkWatchdogWithActions,
@@ -143,6 +145,7 @@ import {
   type LinkAppRequestInboundAction,
   type LinkAppRequestInboundState,
   type LinkEstablishAction,
+  type LinkIdentifyAction,
   type LinkModeValue,
   type LinkResourceAdvertisementAction,
   type LinkResourceAdvertisementState,
@@ -1166,8 +1169,9 @@ export class Link {
   }
 
   private async handleIdentifyPacket(packet: Packet): Promise<void> {
-    const canAccept = canAcceptLinkIdentify(this.initiator);
-    const plaintext = canAccept ? this.decrypt(packet.data) : null;
+    const plaintext = canAcceptLinkIdentify(this.initiator)
+      ? this.decrypt(packet.data)
+      : null;
     const parts = plaintext !== null ? splitLinkIdentifyPayload(plaintext) : null;
     const identity =
       parts !== null ? Identity.fromPublicKey(this.provider, parts.publicKey) : null;
@@ -1179,24 +1183,31 @@ export class Link {
         linkIdentifySignedMaterial(this.linkId, parts.publicKey)
       );
 
-    if (
-      !shouldCommitLinkRemoteIdentity({
-        planAccept:
-          planLinkIdentifyOutcome({
-            canAccept,
-            plaintextPresent: plaintext !== null,
-            partsPresent: parts !== null,
-            identityPresent: identity !== null,
-            signatureValid
-          }) === "accept",
-        identityPresent: identity !== null
-      })
-    ) {
+    const stepped = stepLinkIdentifyWithActions(
+      initialLinkIdentifyState({ initiator: this.initiator }),
+      {
+        kind: "identify/received",
+        plaintextPresent: plaintext !== null,
+        partsPresent: parts !== null,
+        identityPresent: identity !== null,
+        signatureValid
+      }
+    );
+    this.applyLinkIdentifyActions(stepped.actions, identity);
+  }
+
+  private applyLinkIdentifyActions(
+    actions: readonly LinkIdentifyAction[],
+    identity: Identity | null
+  ): void {
+    if (shouldRejectLinkIdentify(actions)) {
       return;
     }
 
-    this.remoteIdentity = identity!;
-    this.callbacks.remoteIdentified?.(this, identity!);
+    if (shouldCommitLinkIdentify(actions) && identity !== null) {
+      this.remoteIdentity = identity;
+      this.callbacks.remoteIdentified?.(this, identity);
+    }
   }
 
   private async handleRequestPacket(packet: Packet): Promise<void> {

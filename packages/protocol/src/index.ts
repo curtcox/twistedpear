@@ -709,12 +709,21 @@ export {
   LINK_IDENTIFY_PUBLIC_KEY_SIZE,
   LINK_IDENTIFY_SIGNATURE_SIZE,
   canAcceptLinkIdentify,
+  initialLinkIdentifyState,
   linkIdentifySignedMaterial,
   packLinkIdentifyPayload,
   planLinkIdentifyOutcome,
+  shouldCommitLinkIdentify,
   shouldCommitLinkRemoteIdentity,
+  shouldRejectLinkIdentify,
   splitLinkIdentifyPayload,
-  type LinkIdentifyOutcome
+  stepLinkIdentify,
+  stepLinkIdentifyWithActions,
+  type LinkIdentifyAction,
+  type LinkIdentifyEvent,
+  type LinkIdentifyOutcome,
+  type LinkIdentifyState,
+  type LinkIdentifyStepResult
 } from "./link-identify.js";
 export {
   LINK_MDU_BLOCK_SIZE,

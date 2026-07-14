@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   LINK_IDENTIFY_PAYLOAD_SIZE,
   canAcceptLinkIdentify,
+  initialLinkIdentifyState,
   linkIdentifySignedMaterial,
   packLinkIdentifyPayload,
   planLinkIdentifyOutcome,
+  shouldCommitLinkIdentify,
   shouldCommitLinkRemoteIdentity,
-  splitLinkIdentifyPayload
+  shouldRejectLinkIdentify,
+  splitLinkIdentifyPayload,
+  stepLinkIdentifyWithActions
 } from "../src/link-identify.js";
 import { computeLinkMdu, linkHopsMatch, linkPayloadFitsMdu } from "../src/link-metrics.js";
 import { PATHFINDER_MAX_HOPS } from "../src/path-table.js";
@@ -54,6 +58,81 @@ describe("protocol link identify", () => {
     expect(
       shouldCommitLinkRemoteIdentity({ planAccept: false, identityPresent: true })
     ).toBe(false);
+  });
+
+  it("emits reject / commit actions from identify/received", () => {
+    const initiator = stepLinkIdentifyWithActions(
+      initialLinkIdentifyState({ initiator: true }),
+      {
+        kind: "identify/received",
+        plaintextPresent: true,
+        partsPresent: true,
+        identityPresent: true,
+        signatureValid: true
+      }
+    );
+    expect(shouldRejectLinkIdentify(initiator.actions)).toBe(true);
+    expect(shouldCommitLinkIdentify(initiator.actions)).toBe(false);
+
+    const badSig = stepLinkIdentifyWithActions(
+      initialLinkIdentifyState({ initiator: false }),
+      {
+        kind: "identify/received",
+        plaintextPresent: true,
+        partsPresent: true,
+        identityPresent: true,
+        signatureValid: false
+      }
+    );
+    expect(shouldRejectLinkIdentify(badSig.actions)).toBe(true);
+
+    const accepted = stepLinkIdentifyWithActions(
+      initialLinkIdentifyState({ initiator: false }),
+      {
+        kind: "identify/received",
+        plaintextPresent: true,
+        partsPresent: true,
+        identityPresent: true,
+        signatureValid: true
+      }
+    );
+    expect(shouldCommitLinkIdentify(accepted.actions)).toBe(true);
+    expect(shouldRejectLinkIdentify(accepted.actions)).toBe(false);
+
+    const missingIdentity = stepLinkIdentifyWithActions(
+      initialLinkIdentifyState({ initiator: false }),
+      {
+        kind: "identify/received",
+        plaintextPresent: true,
+        partsPresent: true,
+        identityPresent: false,
+        signatureValid: true
+      }
+    );
+    expect(shouldRejectLinkIdentify(missingIdentity.actions)).toBe(true);
+
+    expect(
+      stepLinkIdentifyWithActions(initialLinkIdentifyState({ initiator: false }), {
+        kind: "timer/fired",
+        id: "x",
+        atMs: 0
+      }).actions
+    ).toEqual([]);
+  });
+
+  it("is deterministic for identify receive events", () => {
+    const state = initialLinkIdentifyState({ initiator: false });
+    const event = {
+      kind: "identify/received" as const,
+      plaintextPresent: true,
+      partsPresent: true,
+      identityPresent: true,
+      signatureValid: true
+    };
+    const a = stepLinkIdentifyWithActions(state, event);
+    const b = stepLinkIdentifyWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("splits and packs identify payloads", () => {

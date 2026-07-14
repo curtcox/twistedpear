@@ -1,7 +1,9 @@
 /**
  * Pure LINKIDENTIFY payload layout and acceptance gates.
  * Signature verification stays at the crypto adapter edge.
+ * Conclusions leave via machine actions (no ad-hoc `plan.kind` reads beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
 export const LINK_IDENTIFY_PUBLIC_KEY_SIZE = 64;
 export const LINK_IDENTIFY_SIGNATURE_SIZE = 64;
@@ -46,6 +48,91 @@ export function shouldCommitLinkRemoteIdentity(input: {
   readonly identityPresent: boolean;
 }): boolean {
   return input.planAccept && input.identityPresent;
+}
+
+export interface LinkIdentifyState {
+  readonly initiator: boolean;
+}
+
+export type LinkIdentifyEvent =
+  | Event
+  | {
+      readonly kind: "identify/received";
+      readonly plaintextPresent: boolean;
+      readonly partsPresent: boolean;
+      readonly identityPresent: boolean;
+      readonly signatureValid: boolean;
+    };
+
+/**
+ * Adapter applies reject / commit only from these actions.
+ */
+export type LinkIdentifyAction =
+  | { readonly kind: "reject" }
+  | { readonly kind: "commit" };
+
+export interface LinkIdentifyStepResult {
+  readonly state: LinkIdentifyState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkIdentifyAction[];
+}
+
+export function initialLinkIdentifyState(input: {
+  readonly initiator: boolean;
+}): LinkIdentifyState {
+  return { initiator: input.initiator };
+}
+
+export const stepLinkIdentify: StepFn<LinkIdentifyState> = (state, event) => {
+  const result = stepLinkIdentifyInner(state, event as LinkIdentifyEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkIdentifyWithActions(
+  state: LinkIdentifyState,
+  event: LinkIdentifyEvent
+): LinkIdentifyStepResult {
+  return stepLinkIdentifyInner(state, event);
+}
+
+/** Whether step actions include reject. */
+export function shouldRejectLinkIdentify(
+  actions: ReadonlyArray<LinkIdentifyAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Whether step actions include commit (set remoteIdentity + callback). */
+export function shouldCommitLinkIdentify(
+  actions: ReadonlyArray<LinkIdentifyAction>
+): boolean {
+  return actions.some((action) => action.kind === "commit");
+}
+
+function stepLinkIdentifyInner(
+  state: LinkIdentifyState,
+  event: LinkIdentifyEvent
+): LinkIdentifyStepResult {
+  if (event.kind === "identify/received") {
+    const outcome = planLinkIdentifyOutcome({
+      canAccept: canAcceptLinkIdentify(state.initiator),
+      plaintextPresent: event.plaintextPresent,
+      partsPresent: event.partsPresent,
+      identityPresent: event.identityPresent,
+      signatureValid: event.signatureValid
+    });
+    if (
+      !shouldCommitLinkRemoteIdentity({
+        planAccept: outcome === "accept",
+        identityPresent: event.identityPresent
+      })
+    ) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "commit" }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 export function splitLinkIdentifyPayload(plaintext: Uint8Array): {
