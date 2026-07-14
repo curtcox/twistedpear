@@ -86,26 +86,44 @@ import {
   initialLinkResourceConcludeState,
   initialPackLinkProofDataState,
   initialPackLinkRequestDataState,
+  initialPackLinkRequestState,
+  initialPackLinkResponseState,
   initialSplitLinkProofBodyState,
   initialSplitLinkRequestDataState,
+  initialUnpackLinkRequestState,
+  initialUnpackLinkResponseState,
   linkInitiatorMtuFromActions,
   linkProofBodyFieldsFromActions,
+  linkRequestFieldsFromActions,
   linkRequestKeyFieldsFromActions,
   linkRequestResponderMtuFromActions,
+  linkResponseFieldsFromActions,
+  packLinkRequestRawFromActions,
+  packLinkResponseRawFromActions,
   shouldRejectSplitLinkProofBody,
   shouldRejectSplitLinkRequestData,
+  shouldRejectUnpackLinkRequest,
+  shouldRejectUnpackLinkResponse,
   shouldUseLinkInitiatorMtu,
   shouldUseLinkRequestResponderMtu,
   shouldUsePackLinkProofData,
+  shouldUsePackLinkRequest,
   shouldUsePackLinkRequestData,
+  shouldUsePackLinkResponse,
   shouldUseSplitLinkProofBody,
   shouldUseSplitLinkRequestData,
+  shouldUseUnpackLinkRequest,
+  shouldUseUnpackLinkResponse,
   stepLinkInitiatorMtuWithActions,
   stepLinkRequestResponderMtuWithActions,
   stepPackLinkProofDataWithActions,
   stepPackLinkRequestDataWithActions,
+  stepPackLinkRequestWithActions,
+  stepPackLinkResponseWithActions,
   stepSplitLinkProofBodyWithActions,
   stepSplitLinkRequestDataWithActions,
+  stepUnpackLinkRequestWithActions,
+  stepUnpackLinkResponseWithActions,
   initialPendingLinkRequestUnregisterState,
   pendingLinkRequestUnregisterIndex,
   shouldAcceptLinkEstablishRtt,
@@ -210,6 +228,7 @@ import {
   type LinkEstablishAction,
   type LinkIdentifyAction,
   type LinkModeValue,
+  type LinkRequestFields,
   type LinkResourceAdvertisementAction,
   type LinkResourceAdvertisementState,
   type LinkResourceStrategyValue,
@@ -228,12 +247,6 @@ import { DestinationDirection, DestinationType } from "./destination.js";
 import { Identity } from "./identity.js";
 import type { PacketInterface } from "./interfaces/interface.js";
 import { LinkRequestReceipt } from "./link-request-receipt.js";
-import {
-  msgpackPackRequest,
-  msgpackPackResponse,
-  msgpackUnpackRequest,
-  msgpackUnpackResponse
-} from "./msgpack.js";
 import {
   Packet,
   PacketContext,
@@ -1058,7 +1071,18 @@ export class Link {
     }
 
     const pathHash = Identity.truncatedHash(this.provider, utf8Encode(path));
-    const packedRequest = msgpackPackRequest(this.clock.now() / 1000, pathHash, data);
+    const packStepped = stepPackLinkRequestWithActions(initialPackLinkRequestState(), {
+      kind: "link-request-codec/pack-gate",
+      requestedAt: this.clock.now() / 1000,
+      pathHash,
+      data
+    });
+    const packedRequest = shouldUsePackLinkRequest(packStepped.actions)
+      ? packLinkRequestRawFromActions(packStepped.actions)
+      : null;
+    if (packedRequest === null) {
+      return false;
+    }
     const timeout = options.timeout ?? computeLinkRequestTimeout(this.rtt!);
 
     const appRequestStepped = stepLinkAppRequestWithActions(initialLinkAppRequestState(), {
@@ -1368,49 +1392,53 @@ export class Link {
     const requestId = packet.truncatedHash();
     const plaintext = this.decrypt(packet.data);
 
-    try {
-      const unpacked =
-        plaintext !== null ? msgpackUnpackRequest(plaintext) : null;
-      const handlerDestination = this.owner ?? this.destination;
-      const pathHash = unpacked?.[1] ?? null;
-      const handler =
-        handlerDestination !== null && pathHash !== null
-          ? handlerDestination.getRequestHandler(pathHash)
-          : undefined;
+    const unpackStepped =
+      plaintext !== null
+        ? stepUnpackLinkRequestWithActions(initialUnpackLinkRequestState(), {
+            kind: "link-request-codec/unpack-gate",
+            data: plaintext
+          })
+        : null;
+    const unpacked =
+      unpackStepped !== null &&
+      !shouldRejectUnpackLinkRequest(unpackStepped.actions) &&
+      shouldUseUnpackLinkRequest(unpackStepped.actions)
+        ? linkRequestFieldsFromActions(unpackStepped.actions)
+        : null;
 
-      const stepped = stepLinkAppRequestInboundWithActions(
-        initialLinkAppRequestInboundState({ mdu: this.mdu }),
-        {
-          kind: "app-request/received",
-          plaintextPresent: plaintext !== null,
-          handlerDestinationPresent: handlerDestination !== null,
-          handlerPresent: handler !== undefined,
-          allow: handler?.allow ?? 0,
-          allowedList: handler?.allowedList ?? [],
-          remoteIdentityHash: this.remoteIdentity?.hash ?? null,
-          unpackedPresent: unpacked !== null
-        }
-      );
-      await this.applyLinkAppRequestInboundActions(
-        stepped.state,
-        stepped.actions,
-        {
-          unpacked,
-          handler,
-          requestId,
-          packedResponse: null
-        }
-      );
-    } catch {
-      // Ignore malformed requests.
-    }
+    const handlerDestination = this.owner ?? this.destination;
+    const pathHash = unpacked?.pathHash ?? null;
+    const handler =
+      handlerDestination !== null && pathHash !== null
+        ? handlerDestination.getRequestHandler(pathHash)
+        : undefined;
+
+    const stepped = stepLinkAppRequestInboundWithActions(
+      initialLinkAppRequestInboundState({ mdu: this.mdu }),
+      {
+        kind: "app-request/received",
+        plaintextPresent: plaintext !== null,
+        handlerDestinationPresent: handlerDestination !== null,
+        handlerPresent: handler !== undefined,
+        allow: handler?.allow ?? 0,
+        allowedList: handler?.allowedList ?? [],
+        remoteIdentityHash: this.remoteIdentity?.hash ?? null,
+        unpackedPresent: unpacked !== null
+      }
+    );
+    await this.applyLinkAppRequestInboundActions(stepped.state, stepped.actions, {
+      unpacked,
+      handler,
+      requestId,
+      packedResponse: null
+    });
   }
 
   private async applyLinkAppRequestInboundActions(
     state: LinkAppRequestInboundState,
     actions: readonly LinkAppRequestInboundAction[],
     ctx: {
-      readonly unpacked: ReturnType<typeof msgpackUnpackRequest> | null;
+      readonly unpacked: LinkRequestFields | null;
       readonly handler: RequestHandler | undefined;
       readonly requestId: Uint8Array;
       readonly packedResponse: Uint8Array | null;
@@ -1424,18 +1452,27 @@ export class Link {
     }
 
     if (shouldInvokeLinkAppRequestInbound(actions)) {
-      const [requestedAt, , requestData] = ctx.unpacked!;
       const response = await ctx.handler!.responseGenerator(
         ctx.handler!.path,
-        requestData,
+        ctx.unpacked!.data,
         ctx.requestId,
         this.linkId,
         this.remoteIdentity,
-        requestedAt
+        ctx.unpacked!.requestedAt
       );
 
+      const packStepped =
+        response !== null
+          ? stepPackLinkResponseWithActions(initialPackLinkResponseState(), {
+              kind: "link-response-codec/pack-gate",
+              requestId: ctx.requestId,
+              response
+            })
+          : null;
       const packedResponse =
-        response !== null ? msgpackPackResponse(ctx.requestId, response) : null;
+        packStepped !== null && shouldUsePackLinkResponse(packStepped.actions)
+          ? packLinkResponseRawFromActions(packStepped.actions)
+          : null;
       const next = stepLinkAppRequestInboundWithActions(state, {
         kind: "app-request/handler-result",
         responsePresent: packedResponse !== null,
@@ -1469,18 +1506,30 @@ export class Link {
       return;
     }
 
-    try {
-      const [requestId, responseData] = msgpackUnpackResponse(plaintext!);
-      const pending = [...this.pendingRequests];
-      const index = indexOfPendingLinkAppRequest({
-        requestIds: pending.map((entry) => entry.requestId),
-        target: requestId
-      });
-      if (shouldDeliverPendingLinkAppResponse(index !== null)) {
-        pending[index!]!.responseReceived(responseData);
+    const unpackStepped = stepUnpackLinkResponseWithActions(
+      initialUnpackLinkResponseState(),
+      {
+        kind: "link-response-codec/unpack-gate",
+        data: plaintext!
       }
-    } catch {
-      // Ignore malformed responses.
+    );
+    if (
+      shouldRejectUnpackLinkResponse(unpackStepped.actions) ||
+      !shouldUseUnpackLinkResponse(unpackStepped.actions)
+    ) {
+      return;
+    }
+    const fields = linkResponseFieldsFromActions(unpackStepped.actions);
+    if (fields === null) {
+      return;
+    }
+    const pending = [...this.pendingRequests];
+    const index = indexOfPendingLinkAppRequest({
+      requestIds: pending.map((entry) => entry.requestId),
+      target: fields.requestId
+    });
+    if (shouldDeliverPendingLinkAppResponse(index !== null)) {
+      pending[index!]!.responseReceived(fields.response);
     }
   }
 

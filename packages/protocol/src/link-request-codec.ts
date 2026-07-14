@@ -1,6 +1,10 @@
 /**
  * Pure RNS link request/response msgpack payloads.
+ * Pack / unpack conclusions leave via machine actions (no ad-hoc
+ * `msgpackPackLinkRequest` / `msgpackPackLinkResponse` /
+ * `msgpackUnpackLinkRequest` / `msgpackUnpackLinkResponse` reads beside the step).
  */
+import type { Event, Intent } from "@twistedpear/effects";
 import {
   msgpackPackArray,
   msgpackPackBin,
@@ -8,6 +12,17 @@ import {
   msgpackPackNil,
   msgpackUnpack
 } from "./msgpack-core.js";
+
+export interface LinkRequestFields {
+  readonly requestedAt: number;
+  readonly pathHash: Uint8Array;
+  readonly data: Uint8Array | null;
+}
+
+export interface LinkResponseFields {
+  readonly requestId: Uint8Array;
+  readonly response: Uint8Array | null;
+}
 
 export function msgpackPackLinkRequest(
   requestedAt: number,
@@ -31,13 +46,7 @@ export function msgpackPackLinkResponse(
   ]);
 }
 
-export function msgpackUnpackLinkRequest(
-  bytes: Uint8Array
-): {
-  readonly requestedAt: number;
-  readonly pathHash: Uint8Array;
-  readonly data: Uint8Array | null;
-} {
+export function msgpackUnpackLinkRequest(bytes: Uint8Array): LinkRequestFields {
   const value = msgpackUnpack(bytes);
   if (value.type !== "array" || value.array.length !== 3) {
     throw new Error("Invalid request payload");
@@ -67,10 +76,7 @@ export function msgpackUnpackLinkRequest(
   };
 }
 
-export function msgpackUnpackLinkResponse(bytes: Uint8Array): {
-  readonly requestId: Uint8Array;
-  readonly response: Uint8Array | null;
-} {
+export function msgpackUnpackLinkResponse(bytes: Uint8Array): LinkResponseFields {
   const value = msgpackUnpack(bytes);
   if (value.type !== "array" || value.array.length !== 2) {
     throw new Error("Invalid response payload");
@@ -114,4 +120,269 @@ export function msgpackUnpackLinkResponseTuple(
 ): [Uint8Array, Uint8Array | null] {
   const unpacked = msgpackUnpackLinkResponse(bytes);
   return [unpacked.requestId, unpacked.response];
+}
+
+/**
+ * Link-request pack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `msgpackPackLinkRequest`
+ * reads beside the step).
+ */
+export type PackLinkRequestState = Record<string, never>;
+
+export type PackLinkRequestEvent =
+  | Event
+  | {
+      readonly kind: "link-request-codec/pack-gate";
+      readonly requestedAt: number;
+      readonly pathHash: Uint8Array;
+      readonly data: Uint8Array | null;
+    };
+
+export type PackLinkRequestAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface PackLinkRequestStepResult {
+  readonly state: PackLinkRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackLinkRequestAction[];
+}
+
+export function initialPackLinkRequestState(): PackLinkRequestState {
+  return {};
+}
+
+export function stepPackLinkRequestWithActions(
+  state: PackLinkRequestState,
+  event: PackLinkRequestEvent
+): PackLinkRequestStepResult {
+  if (event.kind === "link-request-codec/pack-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: msgpackPackLinkRequest(event.requestedAt, event.pathHash, event.data)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackLinkRequest(
+  actions: ReadonlyArray<PackLinkRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract link-request pack bytes from step actions; null when no `use-raw`. */
+export function packLinkRequestRawFromActions(
+  actions: ReadonlyArray<PackLinkRequestAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Link-response pack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `msgpackPackLinkResponse`
+ * reads beside the step).
+ */
+export type PackLinkResponseState = Record<string, never>;
+
+export type PackLinkResponseEvent =
+  | Event
+  | {
+      readonly kind: "link-response-codec/pack-gate";
+      readonly requestId: Uint8Array;
+      readonly response: Uint8Array | null;
+    };
+
+export type PackLinkResponseAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface PackLinkResponseStepResult {
+  readonly state: PackLinkResponseState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackLinkResponseAction[];
+}
+
+export function initialPackLinkResponseState(): PackLinkResponseState {
+  return {};
+}
+
+export function stepPackLinkResponseWithActions(
+  state: PackLinkResponseState,
+  event: PackLinkResponseEvent
+): PackLinkResponseStepResult {
+  if (event.kind === "link-response-codec/pack-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: msgpackPackLinkResponse(event.requestId, event.response)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackLinkResponse(
+  actions: ReadonlyArray<PackLinkResponseAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract link-response pack bytes from step actions; null when no `use-raw`. */
+export function packLinkResponseRawFromActions(
+  actions: ReadonlyArray<PackLinkResponseAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Link-request unpack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `msgpackUnpackLinkRequest`
+ * reads beside the step). Malformed frames become `reject` (helpers may throw).
+ */
+export type UnpackLinkRequestState = Record<string, never>;
+
+export type UnpackLinkRequestEvent =
+  | Event
+  | {
+      readonly kind: "link-request-codec/unpack-gate";
+      readonly data: Uint8Array;
+    };
+
+export type UnpackLinkRequestAction =
+  | { readonly kind: "use-fields"; readonly fields: LinkRequestFields }
+  | { readonly kind: "reject" };
+
+export interface UnpackLinkRequestStepResult {
+  readonly state: UnpackLinkRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly UnpackLinkRequestAction[];
+}
+
+export function initialUnpackLinkRequestState(): UnpackLinkRequestState {
+  return {};
+}
+
+export function stepUnpackLinkRequestWithActions(
+  state: UnpackLinkRequestState,
+  event: UnpackLinkRequestEvent
+): UnpackLinkRequestStepResult {
+  if (event.kind === "link-request-codec/unpack-gate") {
+    try {
+      const fields = msgpackUnpackLinkRequest(event.data);
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "use-fields", fields }]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseUnpackLinkRequest(
+  actions: ReadonlyArray<UnpackLinkRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectUnpackLinkRequest(
+  actions: ReadonlyArray<UnpackLinkRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract unpacked link-request fields from step actions; null when no `use-fields`. */
+export function linkRequestFieldsFromActions(
+  actions: ReadonlyArray<UnpackLinkRequestAction>
+): LinkRequestFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
+}
+
+/**
+ * Link-response unpack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `msgpackUnpackLinkResponse`
+ * reads beside the step). Malformed frames become `reject` (helpers may throw).
+ */
+export type UnpackLinkResponseState = Record<string, never>;
+
+export type UnpackLinkResponseEvent =
+  | Event
+  | {
+      readonly kind: "link-response-codec/unpack-gate";
+      readonly data: Uint8Array;
+    };
+
+export type UnpackLinkResponseAction =
+  | { readonly kind: "use-fields"; readonly fields: LinkResponseFields }
+  | { readonly kind: "reject" };
+
+export interface UnpackLinkResponseStepResult {
+  readonly state: UnpackLinkResponseState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly UnpackLinkResponseAction[];
+}
+
+export function initialUnpackLinkResponseState(): UnpackLinkResponseState {
+  return {};
+}
+
+export function stepUnpackLinkResponseWithActions(
+  state: UnpackLinkResponseState,
+  event: UnpackLinkResponseEvent
+): UnpackLinkResponseStepResult {
+  if (event.kind === "link-response-codec/unpack-gate") {
+    try {
+      const fields = msgpackUnpackLinkResponse(event.data);
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "use-fields", fields }]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseUnpackLinkResponse(
+  actions: ReadonlyArray<UnpackLinkResponseAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectUnpackLinkResponse(
+  actions: ReadonlyArray<UnpackLinkResponseAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract unpacked link-response fields from step actions; null when no `use-fields`. */
+export function linkResponseFieldsFromActions(
+  actions: ReadonlyArray<UnpackLinkResponseAction>
+): LinkResponseFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }

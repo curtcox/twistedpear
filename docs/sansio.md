@@ -47,9 +47,13 @@
 > **propagation local ingress** (via **`stepLxmfPropagationLocalIngressWithActions`**:
 > deliver / reject-prefix / reject-destination / reject-decrypt), and **receipt → send-state
 > mapping** (via **`stepLxmfReceiptSendWithActions`**: apply / skip) are pure protocol leaves;
-> `LXMFRouter` adapts them. **Link request / response
-> msgpack codecs** are pure protocol leaves; reticulum re-exports them.
-> **Destination name expansion / hash material** and shared **UTF-8** helpers are pure
+> `LXMFRouter` adapts them. **Link request / response msgpack codecs**
+> (pack/unpack via **`stepPackLinkRequestWithActions`** /
+> **`stepPackLinkResponseWithActions`** /
+> **`stepUnpackLinkRequestWithActions`** /
+> **`stepUnpackLinkResponseWithActions`**: use-raw / use-fields|reject) are
+> pure protocol leaves; `Link` adapts them (reticulum still re-exports the raw
+> helpers). **Destination name expansion / hash material** and shared **UTF-8** helpers are pure
 > protocol leaves; `Destination` and path-hash call sites adapt them (SHA stays at the
 > crypto edge). **Msgpack string / string-map** packing and **resource advertisement**
 > codecs (pack/unpack + flag bits via **`stepPackResourceAdvertisementWithActions`** /
@@ -781,7 +785,8 @@
 > pack-resource-hashmap-update / unpack-resource-hashmap-update /
 > pack-resource-hashmap-update-packet / split-resource-hashmap-update-packet /
 > parse-resource-part-request / pack-resource-advertisement /
-> unpack-resource-advertisement reads
+> unpack-resource-advertisement / pack-link-request /
+> pack-link-response / unpack-link-request / unpack-link-response reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -858,6 +863,14 @@
 > `use-fields`|`reject`; resource advertisement pack / unpack apply only from
 > those actions (no ad-hoc `packResourceAdvertisement` /
 > `unpackResourceAdvertisement` reads beside the step).
+> **`stepPackLinkRequestWithActions`** /
+> **`stepPackLinkResponseWithActions`** /
+> **`stepUnpackLinkRequestWithActions`** /
+> **`stepUnpackLinkResponseWithActions`** emit `use-raw` /
+> `use-fields`|`reject`; link request/response msgpack pack / unpack apply
+> only from those actions (no ad-hoc `msgpackPackLinkRequest` /
+> `msgpackPackLinkResponse` / `msgpackUnpackLinkRequest` /
+> `msgpackUnpackLinkResponse` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
