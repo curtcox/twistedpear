@@ -348,9 +348,10 @@
 > `xfer/link-arrived` gates late establishes (no ad-hoc phase read). Cancel /
 > link-ready / link-timeout emit `timer/cancel`.
 > **`stepLinkAwaitWithActions`** emits a `request-link` action on arm (plus the
-> link-await timer intents); LXMF `awaitOutboundLink` adapts it — same
-> action+intent path as propagation establish, still sharing the Promise shell
-> for the public async API.
+> link-await timer intents) and concludes via `resolve` / `reject` actions;
+> LXMF `awaitOutboundLink` adapts it — same action+intent path as propagation
+> establish (`resolve-link-wait` / `reject-link-wait`), still sharing the Promise
+> shell for the public async API.
 > **`stepLinkAppRequestAwait`** (arm → `send-request`; response/failed/send-
 > rejected → `resolve`) lives in protocol; LXMF `PropagationClient` list /
 > download / haves awaits adapt it (timeout stays on `LinkRequestReceipt`).
@@ -359,9 +360,10 @@
 > ticks are already intent-driven). Path-await, delivery-receipt, and resource
 > advertise-wait polls emit `probe` machine actions; adapters observe path /
 > receipt / link-ready status only when applying those actions. Propagation
-> link establish/timeout now concludes via transfer-machine actions as well;
-> propagation app-request awaits conclude via `stepLinkAppRequestAwait`
-> resolve actions.
+> link establish/timeout and LXMF outbound link-await now conclude via machine
+> resolve/reject actions; propagation app-request awaits conclude via
+> `stepLinkAppRequestAwait` resolve actions. Delivery-receipt and path-await
+> polls still finish by reading `state.concluded` beside probe actions.
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

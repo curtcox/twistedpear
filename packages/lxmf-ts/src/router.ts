@@ -9,8 +9,6 @@ import {
   initialDeliveryReceiptPollState,
   initialLinkAwaitState,
   initialLxmfSendState,
-  isLinkAwaitEstablished,
-  isLinkAwaitTimedOut,
   lxmfInboundDeliveryBytes,
   packLxmfDestinationPrefixed,
   planLxmfDeliverableAccept,
@@ -202,12 +200,14 @@ export class LXMFRouter {
       let state = armed.state;
       let timer: { cancel(): void } | null = null;
       let concluded = false;
+      let pendingLink: Link | null = null;
 
       const finish = (result: { ok: true; link: Link } | { ok: false }): void => {
         if (concluded) {
           return;
         }
         concluded = true;
+        pendingLink = null;
         if (result.ok) {
           resolve(result.link);
           return;
@@ -232,9 +232,6 @@ export class LXMFRouter {
               state = tick.state;
               applyIntents(tick.intents);
               applyActions(tick.actions);
-              if (isLinkAwaitTimedOut(state)) {
-                finish({ ok: false });
-              }
             }, intent.timer.delayMs);
           }
           if (intent.kind === "timer/cancel" && intent.timer.id === LINK_AWAIT_TIMER_ID) {
@@ -251,17 +248,24 @@ export class LXMFRouter {
           if (action.kind === "request-link") {
             outbound.requestLink({
               linkEstablished(establishLink) {
+                pendingLink = establishLink;
                 const result = stepLinkAwaitWithActions(state, {
                   kind: "link-await/established"
                 });
                 state = result.state;
                 applyIntents(result.intents);
                 applyActions(result.actions);
-                if (isLinkAwaitEstablished(state)) {
-                  finish({ ok: true, link: establishLink });
-                }
               }
             });
+          }
+          if (action.kind === "resolve") {
+            const link = pendingLink;
+            if (link !== null) {
+              finish({ ok: true, link });
+            }
+          }
+          if (action.kind === "reject") {
+            finish({ ok: false });
           }
         }
       };

@@ -43,7 +43,7 @@ describe("protocol link await", () => {
     expect(isLinkAwaitTimedOut(result.state)).toBe(false);
     expect(shouldContinueLinkAwait(result.state.concluded)).toBe(false);
     expect(result.intents).toEqual([{ kind: "timer/cancel", timer: { id: LINK_AWAIT_TIMER_ID } }]);
-    expect(result.actions).toEqual([]);
+    expect(result.actions).toEqual([{ kind: "resolve" }]);
   });
 
   it("concludes timed-out when the timer fires", () => {
@@ -59,7 +59,7 @@ describe("protocol link await", () => {
     expect(isLinkAwaitTimedOut(result.state)).toBe(true);
     expect(isLinkAwaitEstablished(result.state)).toBe(false);
     expect(result.intents).toEqual([]);
-    expect(result.actions).toEqual([]);
+    expect(result.actions).toEqual([{ kind: "reject", reason: "timeout" }]);
   });
 
   it("ignores establish and timer events when not armed or already concluded", () => {

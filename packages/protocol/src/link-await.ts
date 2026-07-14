@@ -1,6 +1,8 @@
 /**
  * Pure outbound link-await: arm a timeout, conclude on established or timeout.
- * Adapters run requestLink from the request-link action and sleep/cancel timers from intents.
+ * Adapters run requestLink from the request-link action, schedule/cancel timers
+ * from intents, and conclude the Promise shell only via resolve/reject actions
+ * (link object stays at the adapter; same shape as propagation resolve-link-wait).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -19,10 +21,10 @@ export type LinkAwaitEvent =
   | { readonly kind: "link-await/arm"; readonly timeoutMs: number }
   | { readonly kind: "link-await/established" };
 
-export type LinkAwaitAction = {
-  readonly kind: "request-link";
-  readonly timeoutMs: number;
-};
+export type LinkAwaitAction =
+  | { readonly kind: "request-link"; readonly timeoutMs: number }
+  | { readonly kind: "resolve" }
+  | { readonly kind: "reject"; readonly reason: "timeout" };
 
 export interface LinkAwaitStepResult {
   readonly state: LinkAwaitState;
@@ -100,7 +102,7 @@ function stepLinkAwaitInner(
         timedOut: false
       },
       intents: [{ kind: "timer/cancel", timer: { id: LINK_AWAIT_TIMER_ID } }],
-      actions: []
+      actions: [{ kind: "resolve" }]
     };
   }
 
@@ -116,7 +118,7 @@ function stepLinkAwaitInner(
         timedOut: true
       },
       intents: [],
-      actions: []
+      actions: [{ kind: "reject", reason: "timeout" }]
     };
   }
 
