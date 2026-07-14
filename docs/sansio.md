@@ -200,7 +200,7 @@
 > **`planLinkAppRequestResponse`** and **`planLinkProofValidateOutcome`** live in
 > protocol; `Link` app-request and proof validation adapt them.
 > **`planLinkResourceAdvertisement`** (request bypass + strategy) lives in protocol;
-> `Link` RESOURCE_ADV adapts it. **`planLxmfOpportunisticSend`** lives in protocol;
+> `Link` RESOURCE_ADV adapts it via **`stepLinkResourceAdvertisementWithActions`**. **`planLxmfOpportunisticSend`** lives in protocol;
 > `LXMFRouter` adapts it. **`shouldUpdateLinkLastData`** /
 > **`isLinkInboundDataPacket`** live in protocol; `Link.receive` adapts them.
 > **`planLxmfReceiptSendOutcome`** lives in protocol; opportunistic/propagated receipt →
@@ -346,6 +346,9 @@
 > `send-teardown-then-close` (with reason) / `accept-remote-close`; `Link`
 > teardown and LINKCLOSE handling apply send/reason/close only from those
 > actions (no ad-hoc `plan.kind` reads).
+> **`stepLinkResourceAdvertisementWithActions`** emits `ignore` / `ask-app` /
+> `accept` / `reject`; `Link` RESOURCE_ADV handling applies unpack/app-callback /
+> accept/reject only from those actions (no ad-hoc `plan.kind` reads).
 > **`shouldDeliverPendingLinkAppResponse`** / **`shouldCommitLinkRemoteIdentity`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -381,9 +384,10 @@
 > awaits all conclude via machine resolve/reject actions (adapters no longer
 > finish by reading `state.concluded` beside probes). PacketReceipt
 > timeout/delivery/failed, Channel TX timeout/retry/give-up, Link establish
-> handshake/activate/fail, and Link teardown local/remote close also conclude
-> via machine actions (no ad-hoc `state.timedOut` / `plan.kind` /
-> establish-status reads beside the step).
+> handshake/activate/fail, Link teardown local/remote close, and Link
+> RESOURCE_ADV accept/ask-app/reject also conclude via machine actions (no
+> ad-hoc `state.timedOut` / `plan.kind` / establish-status reads beside the
+> step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

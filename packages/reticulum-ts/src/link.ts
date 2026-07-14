@@ -47,6 +47,7 @@ import {
   encodeLinkSignallingBytes,
   indexOfPendingLinkAppRequest,
   initialLinkEstablishState,
+  initialLinkResourceAdvertisementState,
   isLinkClosed,
   isLinkKeepaliveProbe,
   isExpectedLinkMode,
@@ -83,19 +84,19 @@ import {
   planLinkInitiatorMtu,
   planLinkProofValidateOutcome,
   planLinkRequestResponderMtu,
-  planLinkResourceAcceptAppResult,
-  planLinkResourceAdvertisement,
   planLinkResourceConclude,
   planLinkRttOutcome,
   planLinkTokenAccess,
   planLinkValidateRequest,
   planUnregisterPendingLinkRequest,
   shouldAcceptLinkPacketInterface,
+  shouldAcceptLinkResourceAdvertisement,
   shouldAcceptRemoteLinkTeardown,
   shouldAcceptResourceHashmapUpdateFrame,
   shouldAcceptResourceProofPayload,
   shouldAcceptResourceProofSplit,
   shouldActivateLinkEstablish,
+  shouldAskAppLinkResourceAdvertisement,
   shouldAttemptLinkProofCrypto,
   shouldCloseOnlyLinkTeardown,
   shouldContinueLinkValidateRequest,
@@ -109,8 +110,10 @@ import {
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest,
   shouldIgnoreInitiatorKeepaliveProbe,
+  shouldIgnoreLinkResourceAdvertisement,
   shouldRegisterLinkResource,
   shouldRegisterPendingLinkRequest,
+  shouldRejectLinkResourceAdvertisement,
   shouldRemoveLinkResourceListIndex,
   shouldReplyKeepaliveProbe,
   shouldSendLinkTeardownThenClose,
@@ -128,11 +131,14 @@ import {
   splitResourceProof,
   splitResponderLinkEntropy,
   stepLinkEstablishWithActions,
+  stepLinkResourceAdvertisementWithActions,
   stepLinkTeardownWithActions,
   stepLinkWatchdogWithActions,
   utf8Encode,
   type LinkEstablishAction,
   type LinkModeValue,
+  type LinkResourceAdvertisementAction,
+  type LinkResourceAdvertisementState,
   type LinkResourceStrategyValue,
   type LinkStatusValue,
   type LinkTeardownAction,
@@ -1272,27 +1278,59 @@ export class Link {
       return;
     }
 
-    const plan = planLinkResourceAdvertisement({
-      isRequest: ResourceAdvertisement.isRequest(plaintext!),
-      strategy: this.resourceStrategy
-    });
-    if (plan.kind === "ignore") {
+    const stepped = stepLinkResourceAdvertisementWithActions(
+      initialLinkResourceAdvertisementState({ strategy: this.resourceStrategy }),
+      {
+        kind: "resource-adv/received",
+        isRequest: ResourceAdvertisement.isRequest(plaintext!)
+      }
+    );
+    await this.applyLinkResourceAdvertisementActions(
+      stepped.state,
+      stepped.actions,
+      plaintext!,
+      packet
+    );
+  }
+
+  private async applyLinkResourceAdvertisementActions(
+    state: LinkResourceAdvertisementState,
+    actions: readonly LinkResourceAdvertisementAction[],
+    plaintext: Uint8Array,
+    packet: Packet
+  ): Promise<void> {
+    if (shouldIgnoreLinkResourceAdvertisement(actions)) {
       return;
     }
 
-    if (plan.kind === "ask-app") {
+    if (shouldAskAppLinkResourceAdvertisement(actions)) {
       try {
-        const advertisement = ResourceAdvertisement.unpack(plaintext!);
-        if (planLinkResourceAcceptAppResult(this.callbacks.resource?.(advertisement) === true) === "reject") {
-          Resource.reject(this, plaintext!);
-          return;
-        }
+        const advertisement = ResourceAdvertisement.unpack(plaintext);
+        const next = stepLinkResourceAdvertisementWithActions(state, {
+          kind: "resource-adv/app-result",
+          accepted: this.callbacks.resource?.(advertisement) === true
+        });
+        await this.applyLinkResourceAdvertisementActions(
+          next.state,
+          next.actions,
+          plaintext,
+          packet
+        );
       } catch {
         return;
       }
+      return;
     }
 
-    Resource.accept(this, plaintext!, packet, {
+    if (shouldRejectLinkResourceAdvertisement(actions)) {
+      Resource.reject(this, plaintext);
+      return;
+    }
+
+    if (!shouldAcceptLinkResourceAdvertisement(actions)) {
+      return;
+    }
+    Resource.accept(this, plaintext, packet, {
       callback: (resource) => this.callbacks.resourceConcluded?.(resource)
     });
   }

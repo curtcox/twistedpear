@@ -1,14 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
+  initialLinkResourceAdvertisementState,
   linkReadyForNewResource,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
   planLinkResourceAdvertisement,
   planLinkResourceConclude,
+  shouldAcceptLinkResourceAdvertisement,
+  shouldAskAppLinkResourceAdvertisement,
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest,
+  shouldIgnoreLinkResourceAdvertisement,
   shouldRegisterLinkResource,
-  shouldRemoveLinkResourceListIndex
+  shouldRejectLinkResourceAdvertisement,
+  shouldRemoveLinkResourceListIndex,
+  stepLinkResourceAdvertisement,
+  stepLinkResourceAdvertisementWithActions
 } from "../src/link-resource-accept.js";
 import { LinkResourceStrategy } from "../src/link-watchdog.js";
 
@@ -48,6 +55,100 @@ describe("protocol link resource accept", () => {
         strategy: LinkResourceStrategy.ACCEPT_ALL
       })
     ).toEqual({ kind: "accept" });
+  });
+
+  it("emits resource-adv actions for ignore / ask-app / accept / reject", () => {
+    const none = initialLinkResourceAdvertisementState({
+      strategy: LinkResourceStrategy.ACCEPT_NONE
+    });
+    const ignored = stepLinkResourceAdvertisementWithActions(none, {
+      kind: "resource-adv/received",
+      isRequest: false
+    });
+    expect(ignored.actions).toEqual([{ kind: "ignore" }]);
+    expect(shouldIgnoreLinkResourceAdvertisement(ignored.actions)).toBe(true);
+
+    const request = stepLinkResourceAdvertisementWithActions(none, {
+      kind: "resource-adv/received",
+      isRequest: true
+    });
+    expect(request.actions).toEqual([{ kind: "accept" }]);
+    expect(shouldAcceptLinkResourceAdvertisement(request.actions)).toBe(true);
+
+    const app = initialLinkResourceAdvertisementState({
+      strategy: LinkResourceStrategy.ACCEPT_APP
+    });
+    const ask = stepLinkResourceAdvertisementWithActions(app, {
+      kind: "resource-adv/received",
+      isRequest: false
+    });
+    expect(ask.actions).toEqual([{ kind: "ask-app" }]);
+    expect(shouldAskAppLinkResourceAdvertisement(ask.actions)).toBe(true);
+    expect(ask.state.waitingApp).toBe(true);
+
+    const rejected = stepLinkResourceAdvertisementWithActions(ask.state, {
+      kind: "resource-adv/app-result",
+      accepted: false
+    });
+    expect(rejected.actions).toEqual([{ kind: "reject" }]);
+    expect(shouldRejectLinkResourceAdvertisement(rejected.actions)).toBe(true);
+    expect(rejected.state.waitingApp).toBe(false);
+
+    const accepted = stepLinkResourceAdvertisementWithActions(ask.state, {
+      kind: "resource-adv/app-result",
+      accepted: true
+    });
+    expect(accepted.actions).toEqual([{ kind: "accept" }]);
+
+    const stray = stepLinkResourceAdvertisementWithActions(app, {
+      kind: "resource-adv/app-result",
+      accepted: true
+    });
+    expect(stray.actions).toEqual([]);
+
+    const stripped = stepLinkResourceAdvertisement(none, {
+      kind: "resource-adv/received",
+      isRequest: false
+    });
+    expect(stripped).toEqual({
+      state: ignored.state,
+      intents: ignored.intents
+    });
+  });
+
+  it("resource-adv actions double-run identically", () => {
+    const run = () => {
+      const steps = [];
+      const none = initialLinkResourceAdvertisementState({
+        strategy: LinkResourceStrategy.ACCEPT_NONE
+      });
+      steps.push(
+        stepLinkResourceAdvertisementWithActions(none, {
+          kind: "resource-adv/received",
+          isRequest: false
+        })
+      );
+      const app = initialLinkResourceAdvertisementState({
+        strategy: LinkResourceStrategy.ACCEPT_APP
+      });
+      const ask = stepLinkResourceAdvertisementWithActions(app, {
+        kind: "resource-adv/received",
+        isRequest: false
+      });
+      steps.push(ask);
+      steps.push(
+        stepLinkResourceAdvertisementWithActions(ask.state, {
+          kind: "resource-adv/app-result",
+          accepted: false
+        })
+      );
+      return steps.map((s) => ({
+        waitingApp: s.state.waitingApp,
+        actions: s.actions,
+        intents: s.intents
+      }));
+    };
+    expect(run()).toEqual(run());
   });
 
   it("gates outgoing request and incoming hash match", () => {

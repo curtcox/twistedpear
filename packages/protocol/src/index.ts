@@ -95,16 +95,27 @@ export {
   type DestinationProofStrategyCodeValue
 } from "./destination-proof.js";
 export {
+  initialLinkResourceAdvertisementState,
   linkReadyForNewResource,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
   planLinkResourceAdvertisement,
   planLinkResourceConclude,
+  shouldAcceptLinkResourceAdvertisement,
+  shouldAskAppLinkResourceAdvertisement,
+  shouldIgnoreLinkResourceAdvertisement,
+  shouldRejectLinkResourceAdvertisement,
   shouldRemoveLinkResourceListIndex,
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest,
   shouldRegisterLinkResource,
+  stepLinkResourceAdvertisement,
+  stepLinkResourceAdvertisementWithActions,
   type LinkResourceAcceptPlan,
+  type LinkResourceAdvertisementAction,
+  type LinkResourceAdvertisementEvent,
+  type LinkResourceAdvertisementState,
+  type LinkResourceAdvertisementStepResult,
   type LinkResourceConcludePlan
 } from "./link-resource-accept.js";
 export {

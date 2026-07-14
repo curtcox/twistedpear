@@ -1,7 +1,9 @@
 /**
  * Pure link inbound resource-advertisement acceptance planning.
  * Decrypt / unpack / app callbacks stay at the adapter edge.
+ * Conclusions leave via machine actions (no ad-hoc `plan.kind` reads beside the step).
  */
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LinkResourceStrategy,
   type LinkResourceStrategyValue
@@ -11,6 +13,40 @@ export type LinkResourceAcceptPlan =
   | { readonly kind: "ignore" }
   | { readonly kind: "accept" }
   | { readonly kind: "ask-app" };
+
+export interface LinkResourceAdvertisementState {
+  readonly strategy: LinkResourceStrategyValue | number;
+  readonly waitingApp: boolean;
+}
+
+export type LinkResourceAdvertisementEvent =
+  | Event
+  | { readonly kind: "resource-adv/received"; readonly isRequest: boolean }
+  | { readonly kind: "resource-adv/app-result"; readonly accepted: boolean };
+
+/**
+ * Adapter applies ignore / ask-app / accept / reject only from these actions.
+ */
+export type LinkResourceAdvertisementAction =
+  | { readonly kind: "ignore" }
+  | { readonly kind: "ask-app" }
+  | { readonly kind: "accept" }
+  | { readonly kind: "reject" };
+
+export interface LinkResourceAdvertisementStepResult {
+  readonly state: LinkResourceAdvertisementState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkResourceAdvertisementAction[];
+}
+
+export function initialLinkResourceAdvertisementState(input: {
+  readonly strategy: LinkResourceStrategyValue | number;
+}): LinkResourceAdvertisementState {
+  return {
+    strategy: input.strategy,
+    waitingApp: false
+  };
+}
 
 export function planLinkResourceAccept(
   strategy: LinkResourceStrategyValue | number
@@ -41,6 +77,97 @@ export function planLinkResourceAdvertisement(input: {
 /** After ask-app, map the app callback result to accept/reject. */
 export function planLinkResourceAcceptAppResult(appAccepted: boolean): "accept" | "reject" {
   return appAccepted ? "accept" : "reject";
+}
+
+export const stepLinkResourceAdvertisement: StepFn<LinkResourceAdvertisementState> = (
+  state,
+  event
+) => {
+  const result = stepLinkResourceAdvertisementInner(
+    state,
+    event as LinkResourceAdvertisementEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkResourceAdvertisementWithActions(
+  state: LinkResourceAdvertisementState,
+  event: LinkResourceAdvertisementEvent
+): LinkResourceAdvertisementStepResult {
+  return stepLinkResourceAdvertisementInner(state, event);
+}
+
+/** Whether step actions include ignore. */
+export function shouldIgnoreLinkResourceAdvertisement(
+  actions: ReadonlyArray<LinkResourceAdvertisementAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+/** Whether step actions include ask-app. */
+export function shouldAskAppLinkResourceAdvertisement(
+  actions: ReadonlyArray<LinkResourceAdvertisementAction>
+): boolean {
+  return actions.some((action) => action.kind === "ask-app");
+}
+
+/** Whether step actions include accept. */
+export function shouldAcceptLinkResourceAdvertisement(
+  actions: ReadonlyArray<LinkResourceAdvertisementAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+/** Whether step actions include reject. */
+export function shouldRejectLinkResourceAdvertisement(
+  actions: ReadonlyArray<LinkResourceAdvertisementAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+function stepLinkResourceAdvertisementInner(
+  state: LinkResourceAdvertisementState,
+  event: LinkResourceAdvertisementEvent
+): LinkResourceAdvertisementStepResult {
+  if (event.kind === "resource-adv/received") {
+    const plan = planLinkResourceAdvertisement({
+      isRequest: event.isRequest,
+      strategy: state.strategy
+    });
+    if (plan.kind === "ignore") {
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "ignore" }]
+      };
+    }
+    if (plan.kind === "ask-app") {
+      return {
+        state: { ...state, waitingApp: true },
+        intents: [],
+        actions: [{ kind: "ask-app" }]
+      };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "accept" }]
+    };
+  }
+
+  if (event.kind === "resource-adv/app-result") {
+    if (!state.waitingApp) {
+      return { state, intents: [], actions: [] };
+    }
+    const outcome = planLinkResourceAcceptAppResult(event.accepted);
+    return {
+      state: { ...state, waitingApp: false },
+      intents: [],
+      actions: [{ kind: outcome }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 /** Whether the link may start another outbound resource transfer (no outgoing in flight). */
