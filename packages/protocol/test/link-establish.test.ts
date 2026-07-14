@@ -25,6 +25,8 @@ import {
   computeLinkRttSeconds,
   initialLinkAppRequestInboundState,
   initialLinkEstablishState,
+  initialLinkProofValidateState,
+  initialLinkValidateRequestState,
   isLinkClosed,
   isLinkInboundDataPacket,
   linkEstablishActivatedAction,
@@ -42,6 +44,7 @@ import {
   planLinkValidateRequest,
   shouldAcceptLinkEstablishRtt,
   shouldAcceptLinkPacketInterface,
+  shouldAcceptLinkProofValidate,
   shouldActivateLinkEstablish,
   shouldAppendActiveLinkMembership,
   shouldAttemptLinkProofCrypto,
@@ -57,8 +60,13 @@ import {
   shouldIgnoreLinkEstablishRtt,
   shouldInvokeLinkAppRequestHandler,
   shouldInvokeLinkAppRequestInbound,
+  shouldProceedLinkValidateRequest,
   shouldRegisterLinkMember,
   shouldRejectLinkAppRequestInboundTooBig,
+  shouldRejectLinkProofValidate,
+  shouldRejectLinkValidateBadRequest,
+  shouldRejectLinkValidateModeDisabled,
+  shouldRejectLinkValidateOwnerMissingIdentity,
   shouldRemoveActiveLinkMembership,
   shouldRemovePendingLinkMembership,
   shouldReuseActiveLink,
@@ -70,7 +78,9 @@ import {
   stepLinkAppRequestInbound,
   stepLinkAppRequestInboundWithActions,
   stepLinkEstablish,
-  stepLinkEstablishWithActions
+  stepLinkEstablishWithActions,
+  stepLinkProofValidateWithActions,
+  stepLinkValidateRequestWithActions
 } from "../src/link-establish.js";
 import { DestinationAllowPolicyCode } from "../src/destination-allow.js";
 import { PacketTypeCode } from "../src/packet-header.js";
@@ -247,15 +257,56 @@ describe("protocol link establish", () => {
         modeEnabled: false
       })
     ).toBe("mode-disabled");
+
+    const proceed = stepLinkValidateRequestWithActions(initialLinkValidateRequestState(), {
+      kind: "validate-request/gate",
+      requestPresent: true,
+      ownerIdentityPresent: true,
+      modeEnabled: true
+    });
+    expect(shouldProceedLinkValidateRequest(proceed.actions)).toBe(true);
     expect(
-      shouldContinueLinkValidateRequest({ planOk: true, requestPresent: true })
+      shouldContinueLinkValidateRequest({
+        actions: proceed.actions,
+        requestPresent: true
+      })
     ).toBe(true);
     expect(
-      shouldContinueLinkValidateRequest({ planOk: true, requestPresent: false })
+      shouldContinueLinkValidateRequest({
+        actions: proceed.actions,
+        requestPresent: false
+      })
     ).toBe(false);
+
+    const badRequest = stepLinkValidateRequestWithActions(initialLinkValidateRequestState(), {
+      kind: "validate-request/gate",
+      requestPresent: false,
+      ownerIdentityPresent: true,
+      modeEnabled: true
+    });
+    expect(shouldRejectLinkValidateBadRequest(badRequest.actions)).toBe(true);
     expect(
-      shouldContinueLinkValidateRequest({ planOk: false, requestPresent: true })
+      shouldContinueLinkValidateRequest({
+        actions: badRequest.actions,
+        requestPresent: true
+      })
     ).toBe(false);
+
+    const ownerMissing = stepLinkValidateRequestWithActions(initialLinkValidateRequestState(), {
+      kind: "validate-request/gate",
+      requestPresent: true,
+      ownerIdentityPresent: false,
+      modeEnabled: true
+    });
+    expect(shouldRejectLinkValidateOwnerMissingIdentity(ownerMissing.actions)).toBe(true);
+
+    const modeDisabled = stepLinkValidateRequestWithActions(initialLinkValidateRequestState(), {
+      kind: "validate-request/gate",
+      requestPresent: true,
+      ownerIdentityPresent: true,
+      modeEnabled: false
+    });
+    expect(shouldRejectLinkValidateModeDisabled(modeDisabled.actions)).toBe(true);
   });
 
   it("plans initiator MTU from discovery and next-hop", () => {
@@ -374,6 +425,31 @@ describe("protocol link establish", () => {
         signatureValid: false
       })
     ).toBe("reject");
+
+    const accept = stepLinkProofValidateWithActions(initialLinkProofValidateState(), {
+      kind: "proof/validate-gate",
+      canValidate: true,
+      modeMatches: true,
+      layoutValid: true,
+      bodyPresent: true,
+      peerPublicPresent: true,
+      signatureValid: true
+    });
+    expect(shouldAcceptLinkProofValidate(accept.actions)).toBe(true);
+    expect(shouldRejectLinkProofValidate(accept.actions)).toBe(false);
+
+    const reject = stepLinkProofValidateWithActions(initialLinkProofValidateState(), {
+      kind: "proof/validate-gate",
+      canValidate: true,
+      modeMatches: true,
+      layoutValid: true,
+      bodyPresent: true,
+      peerPublicPresent: true,
+      signatureValid: false
+    });
+    expect(shouldRejectLinkProofValidate(reject.actions)).toBe(true);
+    expect(shouldAcceptLinkProofValidate(reject.actions)).toBe(false);
+
     expect(
       shouldAttemptLinkProofCrypto({
         modeMatches: true,

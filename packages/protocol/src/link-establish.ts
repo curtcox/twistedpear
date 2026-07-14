@@ -128,14 +128,116 @@ export function planLinkValidateRequest(input: {
 }
 
 /**
- * Whether validateRequest may continue after {@link planLinkValidateRequest}
+ * Validate-request gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LinkValidateRequestState = Record<string, never>;
+
+export type LinkValidateRequestEvent =
+  | Event
+  | {
+      readonly kind: "validate-request/gate";
+      readonly requestPresent: boolean;
+      readonly ownerIdentityPresent: boolean;
+      readonly modeEnabled: boolean;
+    };
+
+export type LinkValidateRequestAction =
+  | { readonly kind: "proceed" }
+  | { readonly kind: "reject-bad-request" }
+  | { readonly kind: "reject-owner-missing-identity" }
+  | { readonly kind: "reject-mode-disabled" };
+
+export interface LinkValidateRequestStepResult {
+  readonly state: LinkValidateRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkValidateRequestAction[];
+}
+
+export function initialLinkValidateRequestState(): LinkValidateRequestState {
+  return {};
+}
+
+export const stepLinkValidateRequest: StepFn<LinkValidateRequestState> = (
+  state,
+  event
+) => {
+  const result = stepLinkValidateRequestInner(
+    state,
+    event as LinkValidateRequestEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkValidateRequestWithActions(
+  state: LinkValidateRequestState,
+  event: LinkValidateRequestEvent
+): LinkValidateRequestStepResult {
+  return stepLinkValidateRequestInner(state, event);
+}
+
+export function shouldProceedLinkValidateRequest(
+  actions: ReadonlyArray<LinkValidateRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
+export function shouldRejectLinkValidateBadRequest(
+  actions: ReadonlyArray<LinkValidateRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-bad-request");
+}
+
+export function shouldRejectLinkValidateOwnerMissingIdentity(
+  actions: ReadonlyArray<LinkValidateRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-owner-missing-identity");
+}
+
+export function shouldRejectLinkValidateModeDisabled(
+  actions: ReadonlyArray<LinkValidateRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-mode-disabled");
+}
+
+/**
+ * Whether validateRequest may continue after step actions say proceed
  * and the parsed request remains present for narrowing.
  */
 export function shouldContinueLinkValidateRequest(input: {
-  readonly planOk: boolean;
+  readonly actions: ReadonlyArray<LinkValidateRequestAction>;
   readonly requestPresent: boolean;
 }): boolean {
-  return input.planOk && input.requestPresent;
+  return shouldProceedLinkValidateRequest(input.actions) && input.requestPresent;
+}
+
+function stepLinkValidateRequestInner(
+  state: LinkValidateRequestState,
+  event: LinkValidateRequestEvent
+): LinkValidateRequestStepResult {
+  if (event.kind === "validate-request/gate") {
+    const plan = planLinkValidateRequest({
+      requestPresent: event.requestPresent,
+      ownerIdentityPresent: event.ownerIdentityPresent,
+      modeEnabled: event.modeEnabled
+    });
+    if (plan === "bad-request") {
+      return { state, intents: [], actions: [{ kind: "reject-bad-request" }] };
+    }
+    if (plan === "owner-missing-identity") {
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "reject-owner-missing-identity" }]
+      };
+    }
+    if (plan === "mode-disabled") {
+      return { state, intents: [], actions: [{ kind: "reject-mode-disabled" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "proceed" }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 export function canValidateLinkProof(input: {
@@ -174,6 +276,84 @@ export function planLinkProofValidateOutcome(input: {
     return "reject";
   }
   return "accept";
+}
+
+/**
+ * Link proof validate gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LinkProofValidateState = Record<string, never>;
+
+export type LinkProofValidateEvent =
+  | Event
+  | {
+      readonly kind: "proof/validate-gate";
+      readonly canValidate: boolean;
+      readonly modeMatches: boolean;
+      readonly layoutValid: boolean;
+      readonly bodyPresent: boolean;
+      readonly peerPublicPresent: boolean;
+      readonly signatureValid: boolean;
+    };
+
+export type LinkProofValidateAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "reject" };
+
+export interface LinkProofValidateStepResult {
+  readonly state: LinkProofValidateState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkProofValidateAction[];
+}
+
+export function initialLinkProofValidateState(): LinkProofValidateState {
+  return {};
+}
+
+export const stepLinkProofValidate: StepFn<LinkProofValidateState> = (state, event) => {
+  const result = stepLinkProofValidateInner(state, event as LinkProofValidateEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLinkProofValidateWithActions(
+  state: LinkProofValidateState,
+  event: LinkProofValidateEvent
+): LinkProofValidateStepResult {
+  return stepLinkProofValidateInner(state, event);
+}
+
+export function shouldAcceptLinkProofValidate(
+  actions: ReadonlyArray<LinkProofValidateAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldRejectLinkProofValidate(
+  actions: ReadonlyArray<LinkProofValidateAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+function stepLinkProofValidateInner(
+  state: LinkProofValidateState,
+  event: LinkProofValidateEvent
+): LinkProofValidateStepResult {
+  if (event.kind === "proof/validate-gate") {
+    const outcome = planLinkProofValidateOutcome({
+      canValidate: event.canValidate,
+      modeMatches: event.modeMatches,
+      layoutValid: event.layoutValid,
+      bodyPresent: event.bodyPresent,
+      peerPublicPresent: event.peerPublicPresent,
+      signatureValid: event.signatureValid
+    });
+    if (outcome === "reject") {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "accept" }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 /** Whether loadPeer/handshake/signature verify may run for a link proof. */

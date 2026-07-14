@@ -49,7 +49,9 @@ import {
   initialLinkAppRequestInboundState,
   initialLinkEstablishState,
   initialLinkIdentifyState,
+  initialLinkProofValidateState,
   initialLinkResourceAdvertisementState,
+  initialLinkValidateRequestState,
   isLinkClosed,
   isLinkKeepaliveProbe,
   isExpectedLinkMode,
@@ -79,11 +81,9 @@ import {
   planLinkAppRequestTransmitOutcome,
   planLinkDataContext,
   planLinkInitiatorMtu,
-  planLinkProofValidateOutcome,
   planLinkRequestResponderMtu,
   planLinkResourceConclude,
   planLinkTokenAccess,
-  planLinkValidateRequest,
   planUnregisterPendingLinkRequest,
   shouldAcceptLinkEstablishRtt,
   shouldAcceptLinkPacketInterface,
@@ -98,6 +98,7 @@ import {
   shouldCloseOnlyLinkTeardown,
   shouldCommitLinkIdentify,
   shouldContinueLinkValidateRequest,
+  shouldProceedLinkValidateRequest,
   shouldCreateLinkChannel,
   shouldDeliverPendingLinkAppResponse,
   shouldDispatchLinkPlaintext,
@@ -117,6 +118,7 @@ import {
   shouldRegisterPendingLinkRequest,
   shouldRejectLinkAppRequestInboundTooBig,
   shouldRejectLinkIdentify,
+  shouldRejectLinkProofValidate,
   shouldRejectLinkResourceAdvertisement,
   shouldRemoveLinkResourceListIndex,
   shouldReplyKeepaliveProbe,
@@ -138,8 +140,10 @@ import {
   stepLinkAppRequestInboundWithActions,
   stepLinkEstablishWithActions,
   stepLinkIdentifyWithActions,
+  stepLinkProofValidateWithActions,
   stepLinkResourceAdvertisementWithActions,
   stepLinkTeardownWithActions,
+  stepLinkValidateRequestWithActions,
   stepLinkWatchdogWithActions,
   utf8Encode,
   type LinkAppRequestInboundAction,
@@ -399,14 +403,15 @@ export class Link {
     options?: { readonly entropy?: Uint8Array }
   ): Link | null {
     const request = splitLinkRequestData(packet.data);
-    const early = planLinkValidateRequest({
+    const early = stepLinkValidateRequestWithActions(initialLinkValidateRequestState(), {
+      kind: "validate-request/gate",
       requestPresent: request !== null,
       ownerIdentityPresent: owner.identity !== null,
       modeEnabled: true
     });
     if (
       !shouldContinueLinkValidateRequest({
-        planOk: early === "ok",
+        actions: early.actions,
         requestPresent: request !== null
       })
     ) {
@@ -437,13 +442,13 @@ export class Link {
       });
 
       link.mode = Link.modeFromLrPacket(packet);
-      if (
-        planLinkValidateRequest({
-          requestPresent: true,
-          ownerIdentityPresent: true,
-          modeEnabled: isLinkModeEnabled(link.mode)
-        }) !== "ok"
-      ) {
+      const modeGate = stepLinkValidateRequestWithActions(initialLinkValidateRequestState(), {
+        kind: "validate-request/gate",
+        requestPresent: true,
+        ownerIdentityPresent: true,
+        modeEnabled: isLinkModeEnabled(link.mode)
+      });
+      if (!shouldProceedLinkValidateRequest(modeGate.actions)) {
         return null;
       }
 
@@ -634,16 +639,16 @@ export class Link {
         signatureValid = destination.identity!.validate(body.signature, signedData);
       }
 
-      if (
-        planLinkProofValidateOutcome({
-          canValidate: true,
-          modeMatches,
-          layoutValid,
-          bodyPresent: body !== null,
-          peerPublicPresent: peerPublic !== null,
-          signatureValid
-        }) === "reject"
-      ) {
+      const proofGate = stepLinkProofValidateWithActions(initialLinkProofValidateState(), {
+        kind: "proof/validate-gate",
+        canValidate: true,
+        modeMatches,
+        layoutValid,
+        bodyPresent: body !== null,
+        peerPublicPresent: peerPublic !== null,
+        signatureValid
+      });
+      if (shouldRejectLinkProofValidate(proofGate.actions)) {
         throw new Error("Invalid link request proof");
       }
 

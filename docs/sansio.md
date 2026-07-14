@@ -234,11 +234,15 @@
 > Channel `Envelope.unpack` adapts it. **`planLxmfPropagatedPackPrep`** (via
 > **`stepLxmfPropagatedPackPrepWithActions`**: skip / proceed /
 > reject-missing-identity / reject-missing-timestamp) lives in protocol;
-> `LXMessage` delivery-parameter selection adapts it. **`planLinkValidateRequest`** and
-> **`planLinkIdentifyOutcome`** live in protocol; `Link.validateRequest` /
-> `handleIdentifyPacket` adapt them. **`planLinkAppRequestDispatch`** /
-> **`planLinkAppRequestResponse`** and **`planLinkProofValidateOutcome`** live in
-> protocol; `Link` app-request and proof validation adapt them.
+> `LXMessage` delivery-parameter selection adapts it. **`planLinkValidateRequest`**
+> (via **`stepLinkValidateRequestWithActions`**: proceed / reject-bad-request /
+> reject-owner-missing-identity / reject-mode-disabled) and
+> **`planLinkIdentifyOutcome`** (via **`stepLinkIdentifyWithActions`**) live in
+> protocol; `Link.validateRequest` / `handleIdentifyPacket` adapt them.
+> **`planLinkAppRequestDispatch`** / **`planLinkAppRequestResponse`** and
+> **`planLinkProofValidateOutcome`** (via **`stepLinkProofValidateWithActions`**:
+> accept / reject) live in protocol; `Link` app-request and proof validation
+> adapt them.
 > **`planLinkResourceAdvertisement`** (request bypass + strategy) lives in protocol;
 > `Link` RESOURCE_ADV adapts it via **`stepLinkResourceAdvertisementWithActions`**. **`planLxmfOpportunisticSend`** (via **`stepLxmfOpportunisticSendWithActions`**: proceed / reject-missing-destination) lives in protocol;
 > `LXMFRouter` adapts it. **`shouldUpdateLinkLastData`** /
@@ -405,6 +409,14 @@
 > LINKIDENTIFY handling applies remoteIdentity + callback only from those
 > actions (no ad-hoc `planLinkIdentifyOutcome` / `shouldCommitLinkRemoteIdentity`
 > reads beside the step).
+> **`stepLinkValidateRequestWithActions`** emits `proceed` /
+> `reject-bad-request` / `reject-owner-missing-identity` /
+> `reject-mode-disabled`; `Link.validateRequest` applies continue/mode
+> gates only from those actions (no ad-hoc `planLinkValidateRequest` /
+> `plan.kind` reads beside the step).
+> **`stepLinkProofValidateWithActions`** emits `accept` / `reject`;
+> `Link.validateProof` applies activation gate only from those actions
+> (no ad-hoc `planLinkProofValidateOutcome` reads beside the step).
 > **`stepPropagationStoreWithActions`** emits `reject` / `duplicate` /
 > `accept` (with evict keys); `PropagationServer.storePropagationData` applies
 > eviction + commit only from those actions (no ad-hoc `plan.kind` /
@@ -501,12 +513,14 @@
 > reject/dispatch, LXMF per-method send gates (opportunistic /
 > direct / propagated), LXMF pack gates (static pack / timestamp /
 > instance pack / propagated pack prep), LXMF propagation link-ready /
-> sync-prep gates, LXMF deliverable accept, propagation local ingress, and
-> LXMF receipt → send-state mapping also conclude via machine actions
-> (no ad-hoc `state.timedOut` / `plan.kind` / establish-status / dispatch /
-> identify-outcome / delivery-plan / send-method / send-gate / pack-gate /
-> propagation-link-ready / sync-prep / deliverable-accept /
-> local-ingress / receipt-send reads beside the step).
+> sync-prep gates, LXMF deliverable accept, propagation local ingress,
+> LXMF receipt → send-state mapping, Link validate-request
+> proceed/reject, and Link proof-validate accept/reject also conclude via
+> machine actions (no ad-hoc `state.timedOut` / `plan.kind` / establish-status /
+> dispatch / identify-outcome / delivery-plan / send-method / send-gate /
+> pack-gate / propagation-link-ready / sync-prep / deliverable-accept /
+> local-ingress / receipt-send / validate-request / proof-validate reads
+> beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
