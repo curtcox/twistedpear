@@ -25,7 +25,10 @@
 > propagation adapt them. **LXMF delivery method / representation selection**
 > (via **`stepLxmfDeliveryWithActions`**: deliver / reject-opportunistic-too-
 > large / reject-unsupported-method) is a pure protocol leaf; `LXMessage`
-> adapts it. **Link request / response
+> adapts it. **LXMF outbound send-method dispatch** (via
+> **`stepLxmfSendMethodWithActions`**: reject-unpacked / send-opportunistic /
+> send-direct / send-propagated / reject-unsupported) is a pure protocol leaf;
+> `LXMFRouter.send` adapts it. **Link request / response
 > msgpack codecs** are pure protocol leaves; reticulum re-exports them.
 > **Destination name expansion / hash material** and shared **UTF-8** helpers are pure
 > protocol leaves; `Destination` and path-hash call sites adapt them (SHA stays at the
@@ -184,8 +187,10 @@
 > **`shouldAcceptIncomingResourceAdvertisement`** live in protocol; `Resource` adapts them.
 > **`shouldHandleOutgoingResourceRequest`** / **`shouldHandleIncomingResourceByHash`**
 > live in protocol; `Link` resource REQ/HMU/cancel/proof dispatch adapts them.
-> **`planLxmfSendMethod`** lives in protocol; `LXMFRouter.send` adapts it.
-> **`planChannelSend`** lives in protocol; `Channel.send` adapts it.
+> **`planLxmfSendMethod`** (via **`stepLxmfSendMethodWithActions`**: reject-unpacked /
+> send-opportunistic / send-direct / send-propagated / reject-unsupported) lives in
+> protocol; `LXMFRouter.send` adapts it. **`planChannelSend`** lives in protocol;
+> `Channel.send` adapts it.
 > **`canPerformLinkHandshake`**, **`canProveLink`**, **`canAcceptLinkRequestOwner`**,
 > **`planLinkAppRequest`**, and **`canSendLinkAppResponse`** live in protocol; `Link`
 > adapts them. **`shouldAcceptLinkTeardown`** lives in protocol; LINKCLOSE handling
@@ -377,6 +382,11 @@
 > too-large` / `reject-unsupported-method`; `LXMessage.selectDeliveryParameters`
 > applies method/representation or throws only from those actions (no
 > ad-hoc `planLxmfDelivery` / `plan.kind` reads beside the step).
+> **`stepLxmfSendMethodWithActions`** emits `reject-unpacked` /
+> `send-opportunistic` / `send-direct` / `send-propagated` /
+> `reject-unsupported`; `LXMFRouter.send` applies enqueue + method dispatch
+> or throws only from those actions (no ad-hoc `planLxmfSendMethod` reads
+> beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -415,10 +425,11 @@
 > handshake/activate/fail/LRRTT, Link teardown local/remote close, Link
 > RESOURCE_ADV accept/ask-app/reject, Link inbound app-request
 > invoke/response, Link LINKIDENTIFY reject/commit, propagation-store
-> reject/duplicate/accept, propagation /get list-ids/apply, and LXMF
-> delivery-parameter select deliver/reject also conclude via machine actions
+> reject/duplicate/accept, propagation /get list-ids/apply, LXMF
+> delivery-parameter select deliver/reject, and LXMF send-method
+> reject/dispatch also conclude via machine actions
 > (no ad-hoc `state.timedOut` / `plan.kind` / establish-status / dispatch /
-> identify-outcome / delivery-plan reads beside the step).
+> identify-outcome / delivery-plan / send-method reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

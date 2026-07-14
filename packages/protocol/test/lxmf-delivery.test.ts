@@ -33,8 +33,13 @@ import {
   shouldRejectLxmfOpportunisticTooLarge,
   shouldRejectLxmfPackEndpoints,
   shouldRejectLxmfPackTimestamp,
+  shouldRejectLxmfSendUnpacked,
+  shouldRejectLxmfSendUnsupported,
   shouldRejectLxmfUnsupportedMethod,
   shouldRememberLxmfMessage,
+  shouldSendLxmfDirect,
+  shouldSendLxmfOpportunistic,
+  shouldSendLxmfPropagated,
   canRegisterLxmfDeliveryIdentity,
   canExtractLxmfOpportunisticPayload,
   shouldSelectLxmfDeliveryParameters,
@@ -42,7 +47,10 @@ import {
   shouldAwaitLxmfDeliveryReceipt,
   shouldInvokeLxmfDeliveryCallback,
   shouldTeardownLxmfPropagationLink,
-  stepLxmfDeliveryWithActions
+  initialLxmfSendMethodState,
+  lxmfSendUnsupportedMethod,
+  stepLxmfDeliveryWithActions,
+  stepLxmfSendMethodWithActions
 } from "../src/lxmf-delivery.js";
 import { LxmfUnverifiedReason } from "../src/lxmf-fields.js";
 
@@ -336,6 +344,66 @@ describe("protocol lxmf delivery", () => {
         method: LxmfDeliveryMethod.PAPER
       })
     ).toBe("reject-unsupported");
+  });
+
+  it("emits send / reject actions from send/dispatch", () => {
+    const unpacked = stepLxmfSendMethodWithActions(initialLxmfSendMethodState(), {
+      kind: "send/dispatch",
+      packed: false,
+      method: LxmfDeliveryMethod.DIRECT
+    });
+    expect(shouldRejectLxmfSendUnpacked(unpacked.actions)).toBe(true);
+    expect(shouldSendLxmfDirect(unpacked.actions)).toBe(false);
+
+    const opportunistic = stepLxmfSendMethodWithActions(initialLxmfSendMethodState(), {
+      kind: "send/dispatch",
+      packed: true,
+      method: LxmfDeliveryMethod.OPPORTUNISTIC
+    });
+    expect(shouldSendLxmfOpportunistic(opportunistic.actions)).toBe(true);
+
+    const direct = stepLxmfSendMethodWithActions(initialLxmfSendMethodState(), {
+      kind: "send/dispatch",
+      packed: true,
+      method: LxmfDeliveryMethod.DIRECT
+    });
+    expect(shouldSendLxmfDirect(direct.actions)).toBe(true);
+
+    const propagated = stepLxmfSendMethodWithActions(initialLxmfSendMethodState(), {
+      kind: "send/dispatch",
+      packed: true,
+      method: LxmfDeliveryMethod.PROPAGATED
+    });
+    expect(shouldSendLxmfPropagated(propagated.actions)).toBe(true);
+
+    const unsupported = stepLxmfSendMethodWithActions(initialLxmfSendMethodState(), {
+      kind: "send/dispatch",
+      packed: true,
+      method: LxmfDeliveryMethod.PAPER
+    });
+    expect(shouldRejectLxmfSendUnsupported(unsupported.actions)).toBe(true);
+    expect(lxmfSendUnsupportedMethod(unsupported.actions)).toBe(LxmfDeliveryMethod.PAPER);
+
+    expect(
+      stepLxmfSendMethodWithActions(initialLxmfSendMethodState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
+  });
+
+  it("is deterministic for send/dispatch events", () => {
+    const state = initialLxmfSendMethodState();
+    const event = {
+      kind: "send/dispatch" as const,
+      packed: true,
+      method: LxmfDeliveryMethod.DIRECT
+    };
+    const a = stepLxmfSendMethodWithActions(state, event);
+    const b = stepLxmfSendMethodWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("plans DIRECT send preconditions", () => {

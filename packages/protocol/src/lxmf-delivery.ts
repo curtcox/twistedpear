@@ -548,6 +548,130 @@ export function planLxmfSendMethod(input: {
   return "reject-unsupported";
 }
 
+/**
+ * Send-method dispatch is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LxmfSendMethodState = Record<string, never>;
+
+export type LxmfSendMethodEvent =
+  | Event
+  | {
+      readonly kind: "send/dispatch";
+      readonly packed: boolean;
+      readonly method: number;
+    };
+
+/**
+ * Adapter applies reject / method-send only from these actions.
+ */
+export type LxmfSendMethodAction =
+  | { readonly kind: "reject-unpacked" }
+  | { readonly kind: "send-opportunistic" }
+  | { readonly kind: "send-direct" }
+  | { readonly kind: "send-propagated" }
+  | { readonly kind: "reject-unsupported"; readonly method: number };
+
+export interface LxmfSendMethodStepResult {
+  readonly state: LxmfSendMethodState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfSendMethodAction[];
+}
+
+export function initialLxmfSendMethodState(): LxmfSendMethodState {
+  return {};
+}
+
+export const stepLxmfSendMethod: StepFn<LxmfSendMethodState> = (state, event) => {
+  const result = stepLxmfSendMethodInner(state, event as LxmfSendMethodEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxmfSendMethodWithActions(
+  state: LxmfSendMethodState,
+  event: LxmfSendMethodEvent
+): LxmfSendMethodStepResult {
+  return stepLxmfSendMethodInner(state, event);
+}
+
+/** Whether step actions reject an unpacked send. */
+export function shouldRejectLxmfSendUnpacked(
+  actions: ReadonlyArray<LxmfSendMethodAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-unpacked");
+}
+
+/** Whether step actions dispatch opportunistic send. */
+export function shouldSendLxmfOpportunistic(
+  actions: ReadonlyArray<LxmfSendMethodAction>
+): boolean {
+  return actions.some((action) => action.kind === "send-opportunistic");
+}
+
+/** Whether step actions dispatch direct send. */
+export function shouldSendLxmfDirect(
+  actions: ReadonlyArray<LxmfSendMethodAction>
+): boolean {
+  return actions.some((action) => action.kind === "send-direct");
+}
+
+/** Whether step actions dispatch propagated send. */
+export function shouldSendLxmfPropagated(
+  actions: ReadonlyArray<LxmfSendMethodAction>
+): boolean {
+  return actions.some((action) => action.kind === "send-propagated");
+}
+
+/** Whether step actions reject an unsupported delivery method. */
+export function shouldRejectLxmfSendUnsupported(
+  actions: ReadonlyArray<LxmfSendMethodAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-unsupported");
+}
+
+/** Unsupported method code from a reject-unsupported action, if present. */
+export function lxmfSendUnsupportedMethod(
+  actions: ReadonlyArray<LxmfSendMethodAction>
+): number | null {
+  for (const action of actions) {
+    if (action.kind === "reject-unsupported") {
+      return action.method;
+    }
+  }
+  return null;
+}
+
+function stepLxmfSendMethodInner(
+  state: LxmfSendMethodState,
+  event: LxmfSendMethodEvent
+): LxmfSendMethodStepResult {
+  if (event.kind === "send/dispatch") {
+    const plan = planLxmfSendMethod({
+      packed: event.packed,
+      method: event.method
+    });
+    if (plan === "reject-unpacked") {
+      return { state, intents: [], actions: [{ kind: "reject-unpacked" }] };
+    }
+    if (plan === "opportunistic") {
+      return { state, intents: [], actions: [{ kind: "send-opportunistic" }] };
+    }
+    if (plan === "direct") {
+      return { state, intents: [], actions: [{ kind: "send-direct" }] };
+    }
+    if (plan === "propagated") {
+      return { state, intents: [], actions: [{ kind: "send-propagated" }] };
+    }
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "reject-unsupported", method: event.method }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 export type LxmfDirectSendPlan = "ok" | "missing-destination" | "missing-packed";
 
 /** Whether DIRECT send may proceed (destination identity + packed envelope). */

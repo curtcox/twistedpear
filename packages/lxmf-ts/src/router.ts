@@ -11,6 +11,7 @@ import {
   initialLxmfSendState,
   lxmfInboundDeliveryBytes,
   packLxmfDestinationPrefixed,
+  initialLxmfSendMethodState,
   planLxmfDeliverableAccept,
   planLxmfDirectSend,
   planLxmfOpportunisticSend,
@@ -18,17 +19,23 @@ import {
   planLxmfPropagationLinkReady,
   planLxmfPropagationLocalIngress,
   planLxmfReceiptSendOutcome,
-  planLxmfSendMethod,
   shouldApplyLxmfReceiptSendState,
   shouldAwaitLxmfDeliveryReceipt,
   shouldDeliverLxmfPropagationLocalIngress,
   shouldInvokeLxmfDeliveryCallback,
+  shouldRejectLxmfSendUnpacked,
+  shouldRejectLxmfSendUnsupported,
   shouldRememberLxmfMessage,
   shouldReuseActiveLink,
+  shouldSendLxmfDirect,
+  shouldSendLxmfOpportunistic,
+  shouldSendLxmfPropagated,
   shouldTeardownLxmfPropagationLink,
   splitLxmfDestinationPrefixed,
   stepDeliveryReceiptPollWithActions,
   stepLinkAwaitWithActions,
+  stepLxmfSendMethodWithActions,
+  lxmfSendUnsupportedMethod,
   type LxmfSendEvent,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
@@ -141,32 +148,40 @@ export class LXMFRouter {
   }
 
   async send(message: LXMessage): Promise<void> {
-    const plan = planLxmfSendMethod({
+    const stepped = stepLxmfSendMethodWithActions(initialLxmfSendMethodState(), {
+      kind: "send/dispatch",
       packed: message.packed !== null,
       method: message.method
     });
-    if (plan === "reject-unpacked") {
+    await this.applyLxmfSendMethodActions(message, stepped.actions);
+  }
+
+  private async applyLxmfSendMethodActions(
+    message: LXMessage,
+    actions: ReturnType<typeof stepLxmfSendMethodWithActions>["actions"]
+  ): Promise<void> {
+    if (shouldRejectLxmfSendUnpacked(actions)) {
       throw new Error("LXMessage must be packed before sending");
     }
 
     this.applySendState(message, { kind: "lxmf/enqueue" });
 
-    if (plan === "opportunistic") {
+    if (shouldSendLxmfOpportunistic(actions)) {
       await this.sendOpportunistic(message);
       return;
     }
-
-    if (plan === "direct") {
+    if (shouldSendLxmfDirect(actions)) {
       await this.sendDirect(message);
       return;
     }
-
-    if (plan === "propagated") {
+    if (shouldSendLxmfPropagated(actions)) {
       await this.sendPropagated(message);
       return;
     }
-
-    throw new Error(`Unsupported LXMF delivery method: ${message.method}`);
+    if (shouldRejectLxmfSendUnsupported(actions)) {
+      const method = lxmfSendUnsupportedMethod(actions) ?? message.method;
+      throw new Error(`Unsupported LXMF delivery method: ${method}`);
+    }
   }
 
   private applySendState(message: LXMessage, event: LxmfSendEvent): void {
