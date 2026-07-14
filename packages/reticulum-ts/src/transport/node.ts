@@ -15,9 +15,18 @@ import {
   computePathExpiry,
   isPathEntryExpired,
   parseAspectFilter,
-  planClonePacketWithHops,
-  planPathResponseAnnounceFields,
-  planTransportAnnounceFields,
+  clonePacketWithHopsFieldsFromActions,
+  initialClonePacketWithHopsState,
+  initialPathResponseAnnounceFieldsState,
+  initialTransportAnnounceFieldsState,
+  pathResponseAnnounceFieldsFromActions,
+  shouldUseClonePacketWithHops,
+  shouldUsePathResponseAnnounceFields,
+  shouldUseTransportAnnounceFields,
+  stepClonePacketWithHopsWithActions,
+  stepPathResponseAnnounceFieldsWithActions,
+  stepTransportAnnounceFieldsWithActions,
+  transportAnnounceFieldsFromActions,
   canAnswerLocalPathRequest,
   canDispatchAnnounceHandlers,
   activeLinkUnregisterRemoveIndex,
@@ -1097,10 +1106,19 @@ export function hashKey(bytes: Uint8Array): string {
 }
 
 export function cloneWithHops(provider: CryptoProvider, packet: Packet, hops: number): Packet {
-  return Packet.fromFields(
-    provider,
-    planClonePacketWithHops(packetHeaderFields(packet), hops) as PacketFields
-  );
+  const stepped = stepClonePacketWithHopsWithActions(initialClonePacketWithHopsState(), {
+    kind: "transport/clone-packet-with-hops-gate",
+    source: packetHeaderFields(packet),
+    hops
+  });
+  const fields =
+    shouldUseClonePacketWithHops(stepped.actions)
+      ? clonePacketWithHopsFieldsFromActions(stepped.actions)
+      : null;
+  if (fields === null) {
+    throw new Error("cloneWithHops: missing use-fields action");
+  }
+  return Packet.fromFields(provider, fields as PacketFields);
 }
 
 export function announceEmittedFromRandomBlob(randomBlob: Uint8Array): number {
@@ -1143,20 +1161,27 @@ export function buildTransportAnnounce(
   transportIdentity: Identity,
   hops: number
 ): Packet {
-  return Packet.fromFields(
-    provider,
-    planTransportAnnounceFields({
-      source: {
-        contextFlag: source.contextFlag,
-        destinationType: source.destinationType,
-        destinationHash: source.destinationHash,
-        context: source.context,
-        data: source.data
-      },
-      transportId: transportIdentity.hash,
-      hops
-    }) as PacketFields
-  );
+  const announceSource = {
+    contextFlag: source.contextFlag,
+    destinationType: source.destinationType,
+    destinationHash: source.destinationHash,
+    context: source.context,
+    data: source.data
+  };
+  const stepped = stepTransportAnnounceFieldsWithActions(initialTransportAnnounceFieldsState(), {
+    kind: "transport/announce-fields-gate",
+    source: announceSource,
+    transportId: transportIdentity.hash,
+    hops
+  });
+  const fields =
+    shouldUseTransportAnnounceFields(stepped.actions)
+      ? transportAnnounceFieldsFromActions(stepped.actions)
+      : null;
+  if (fields === null) {
+    throw new Error("buildTransportAnnounce: missing use-fields action");
+  }
+  return Packet.fromFields(provider, fields as PacketFields);
 }
 
 export function buildPathResponseAnnounce(
@@ -1165,20 +1190,30 @@ export function buildPathResponseAnnounce(
   transportIdentity: Identity,
   hops: number
 ): Packet {
-  return Packet.fromFields(
-    provider,
-    planPathResponseAnnounceFields({
-      source: {
-        contextFlag: source.contextFlag,
-        destinationType: source.destinationType,
-        destinationHash: source.destinationHash,
-        context: source.context,
-        data: source.data
-      },
+  const announceSource = {
+    contextFlag: source.contextFlag,
+    destinationType: source.destinationType,
+    destinationHash: source.destinationHash,
+    context: source.context,
+    data: source.data
+  };
+  const stepped = stepPathResponseAnnounceFieldsWithActions(
+    initialPathResponseAnnounceFieldsState(),
+    {
+      kind: "transport/path-response-announce-fields-gate",
+      source: announceSource,
       transportId: transportIdentity.hash,
       hops
-    }) as PacketFields
+    }
   );
+  const fields =
+    shouldUsePathResponseAnnounceFields(stepped.actions)
+      ? pathResponseAnnounceFieldsFromActions(stepped.actions)
+      : null;
+  if (fields === null) {
+    throw new Error("buildPathResponseAnnounce: missing use-fields action");
+  }
+  return Packet.fromFields(provider, fields as PacketFields);
 }
 
 function packetHeaderFields(packet: Packet): PacketHeaderFields {

@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   PACKET_CONTEXT_NONE,
   PACKET_CONTEXT_PATH_RESPONSE,
+  clonePacketWithHopsFieldsFromActions,
   initialAnnounceIngressGatesState,
+  initialClonePacketWithHopsState,
+  initialPathResponseAnnounceFieldsState,
+  initialTransportAnnounceFieldsState,
+  pathResponseAnnounceFieldsFromActions,
   planAnnounceIngressGates,
   planClonePacketWithHops,
   planPathResponseAnnounceFields,
@@ -15,7 +20,14 @@ import {
   shouldRebroadcastAnnounce,
   shouldReceiveAnnouncePathResponse,
   shouldRecordAnnounceRate,
-  stepAnnounceIngressGatesWithActions
+  shouldUseClonePacketWithHops,
+  shouldUsePathResponseAnnounceFields,
+  shouldUseTransportAnnounceFields,
+  stepAnnounceIngressGatesWithActions,
+  stepClonePacketWithHopsWithActions,
+  stepPathResponseAnnounceFieldsWithActions,
+  stepTransportAnnounceFieldsWithActions,
+  transportAnnounceFieldsFromActions
 } from "../src/transport-announce.js";
 import {
   PACKET_HEADER_1,
@@ -50,6 +62,31 @@ describe("protocol transport announce planning", () => {
     expect(cloned.destinationHash).toBe(destinationHash);
   });
 
+  it("emits hop-clone fields from WithActions step", () => {
+    const source: PacketHeaderFields = {
+      headerType: PACKET_HEADER_1,
+      contextFlag: 0,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: 0,
+      packetType: PACKET_TYPE_DATA,
+      hops: 3,
+      transportId: null,
+      destinationHash,
+      context: 0,
+      data
+    };
+    const stepped = stepClonePacketWithHopsWithActions(initialClonePacketWithHopsState(), {
+      kind: "transport/clone-packet-with-hops-gate",
+      source,
+      hops: 7
+    });
+    expect(shouldUseClonePacketWithHops(stepped.actions)).toBe(true);
+    const fields = clonePacketWithHopsFieldsFromActions(stepped.actions);
+    expect(fields?.hops).toBe(7);
+    expect(fields?.packetType).toBe(PACKET_TYPE_DATA);
+    expect(fields?.destinationHash).toBe(destinationHash);
+  });
+
   it("plans transport and path-response announce fields", () => {
     const source = {
       contextFlag: 0,
@@ -69,6 +106,47 @@ describe("protocol transport announce planning", () => {
     const pathResponse = planPathResponseAnnounceFields({ source, transportId, hops: 2 });
     expect(pathResponse.context).toBe(PACKET_CONTEXT_PATH_RESPONSE);
     expect(pathResponse.headerType).toBe(PACKET_HEADER_2);
+  });
+
+  it("emits transport and path-response announce fields from WithActions steps", () => {
+    const source = {
+      contextFlag: 0,
+      destinationType: 0,
+      destinationHash,
+      context: 0,
+      data
+    };
+    const transportStepped = stepTransportAnnounceFieldsWithActions(
+      initialTransportAnnounceFieldsState(),
+      {
+        kind: "transport/announce-fields-gate",
+        source,
+        transportId,
+        hops: 5
+      }
+    );
+    expect(shouldUseTransportAnnounceFields(transportStepped.actions)).toBe(true);
+    const transport = transportAnnounceFieldsFromActions(transportStepped.actions);
+    expect(transport?.headerType).toBe(PACKET_HEADER_2);
+    expect(transport?.transportType).toBe(TRANSPORT_TRANSPORT);
+    expect(transport?.packetType).toBe(PACKET_TYPE_ANNOUNCE);
+    expect(transport?.hops).toBe(5);
+    expect([...transport!.transportId!]).toEqual([...transportId]);
+
+    const pathStepped = stepPathResponseAnnounceFieldsWithActions(
+      initialPathResponseAnnounceFieldsState(),
+      {
+        kind: "transport/path-response-announce-fields-gate",
+        source,
+        transportId,
+        hops: 2
+      }
+    );
+    expect(shouldUsePathResponseAnnounceFields(pathStepped.actions)).toBe(true);
+    const pathResponse = pathResponseAnnounceFieldsFromActions(pathStepped.actions);
+    expect(pathResponse?.context).toBe(PACKET_CONTEXT_PATH_RESPONSE);
+    expect(pathResponse?.headerType).toBe(PACKET_HEADER_2);
+    expect(pathResponse?.hops).toBe(2);
   });
 
   it("gates PATH_RESPONSE delivery on handler opt-in", () => {

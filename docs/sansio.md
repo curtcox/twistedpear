@@ -61,7 +61,11 @@
 > **`stepResourceHashmapUpdateAcceptWithActions`**) are pure protocol
 > leaves; `Resource` adapts them. Link RTT float encode/decode uses protocol msgpack.
 > **Transport wrap/strip/relay framing** and **resource proof** pack/validate are pure
-> protocol leaves; transport + `Resource` adapt them. **Path-request payload framing**
+> protocol leaves; transport + `Resource` adapt them. **Transport hop-clone /
+> announce / path-response field planning** (via **`stepClonePacketWithHopsWithActions`** /
+> **`stepTransportAnnounceFieldsWithActions`** /
+> **`stepPathResponseAnnounceFieldsWithActions`**: use-fields) lives in protocol;
+> leaf transport adapts it. **Path-request payload framing**
 > (build/parse/tag key) is a pure protocol leaf; transport path helpers adapt it.
 > **Announce payload framing** (pack/parse/signed material) and **packet proof framing**
 > (explicit/implicit) are pure protocol leaves; `Announce` and `Packet` adapt them.
@@ -93,8 +97,8 @@
 > them (`Identity.prove` uses `packPacketProof`). **Byte-array assembly** helpers,
 > **interface reconnect planning**, and Resource hashmap/part assembly via protocol
 > assemblers are pure protocol leaves; TCP/WebSocket clients and Resource adapt them.
-> **Transport announce / path-response / hop-clone field planning** is a pure protocol
-> leaf; leaf transport adapts it. Link proof paths use `splitIdentityPublicKey` for
+> **Transport announce / path-response / hop-clone field planning** applies only from
+> those `use-fields` actions (see above). Link proof paths use `splitIdentityPublicKey` for
 > owner/peer Ed25519 halves. **Interface reconnect** is now a pure step machine
 > (`timer/set` intents + connect/give-up actions); TCP/WebSocket clients adapt it.
 > **`rewritePacketHopsBytes`** frames forward/reverse relays; Link resource HMU/cancel
@@ -736,7 +740,9 @@
 > pending-link-request-unregister / stream-ready-callback-unregister /
 > packet-receipt-unregister / transport-member-unregister /
 > link-initiator-mtu / link-request-responder-mtu / packet-hash-defer /
-> resource-advertisement-role-flags / resource-hashmap-slot-writes reads
+> resource-advertisement-role-flags / resource-hashmap-slot-writes /
+> clone-packet-with-hops / transport-announce-fields /
+> path-response-announce-fields reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -758,6 +764,12 @@
 > (no ad-hoc `planLinkInitiatorMtu` / `planLinkRequestResponderMtu` /
 > `shouldDeferPacketHash` / `planResourceAdvertisementRoleFlags` /
 > `planResourceHashmapSlotWrites` reads beside the step).
+> **`stepClonePacketWithHopsWithActions`** / **`stepTransportAnnounceFieldsWithActions`** /
+> **`stepPathResponseAnnounceFieldsWithActions`** emit `use-fields`; hop-clone,
+> transport announce rebroadcast, and path-response announce field planning apply
+> only from those actions (no ad-hoc `planClonePacketWithHops` /
+> `planTransportAnnounceFields` / `planPathResponseAnnounceFields` reads beside
+> the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
