@@ -139,13 +139,16 @@
 > awaiting-proof) lives in protocol; `Resource`
 > adapts it. **`planLinkRelayTarget`** and **`isReverseEntryExpired`** live in protocol;
 > `TransportNode` adapts them (reverse-table timeout now applied). **`planPathOutbound`**
-> (wrap / direct / flood) lives in protocol; `LeafTransport` adapts it. **`stepResourceStatus`**
+> (wrap / direct / flood via **`stepPathOutboundWithActions`**) lives in protocol;
+> `LeafTransport` adapts it. **`stepResourceStatus`**
 > (queue → advertise → transferring → awaiting-proof / assemble → complete/corrupt/failed +
 > gates) lives in protocol; `Resource` adapts it. **`planPacketFilter`** (foreign transport-id +
 > seen-hash allow rules) lives in protocol; `LeafTransport` adapts it.
 > **`isDiscoveryPathRequestExpired`** lives in protocol; `TransportNode` adapts it (discovery
-> path-request timeout now applied). **`isPathEntryExpired`** lives in protocol; path-table
-> lookups (`hasPath` / `getPathEntry` / outbound / path-request) treat expired paths as missing.
+> path-request timeout now applied). **`isPathEntryExpired`** / **`planPathEntryLookup`**
+> (via **`stepPathEntryLookupWithActions`**: miss / expired / hit) live in protocol;
+> path-table lookups (`hasPath` / `getPathEntry` / outbound / path-request) treat expired
+> paths as missing.
 > **`receipt/failed`** on `stepPacketReceiptTimeout` lives in protocol; `PacketReceipt.markFailed`
 > / `LeafTransport.sendPacket` adapt it. **`Link.updateKeepalive`** and keepalive outbound route
 > through `stepLinkWatchdog` `link/rtt-measured` / `link/keepalive-sent`.
@@ -223,8 +226,11 @@
 > **`planLxmfPropagatedSend`** (via **`stepLxmfPropagatedSendWithActions`**: proceed /
 > reject-missing-node / reject-missing-packed / reject-resource-unimplemented) live
 > in protocol; `LXMFRouter` adapts them.
-> **`planPathRequestIngress`** and **`planDiscoveryPathRequestFulfill`** live in
-> protocol; leaf / transport path-request and discovery announce fulfill adapt them.
+> **`planPathRequestIngress`** (via **`stepPathRequestIngressWithActions`**:
+> ignore-unparsed / ignore-seen-tag / answer-local / answer-path / ignore /
+> ignore-in-flight-discovery / start-discovery) and **`planDiscoveryPathRequestFulfill`**
+> (via **`stepDiscoveryPathRequestFulfillWithActions`**: ignore / drop-expired / fulfill)
+> live in protocol; leaf / transport path-request and discovery announce fulfill adapt them.
 > **`planLinkDataContext`** lives in protocol; `Link.receive` DATA dispatch adapts it.
 > **`planResourceAssembleOutcome`** (via **`stepResourceAssembleWithActions`**:
 > complete / corrupt), **`planResourceProofAccept`** (via
@@ -321,7 +327,8 @@
 > **`planUnregisterPacketReceipt`**, **`shouldRegisterPacketReceipt`**,
 > **`shouldRegisterChannelMessageHandler`** / **`planUnregisterChannelMessageHandler`**,
 > **`shouldStopChannelHandlerFanout`**, **`planUnregisterStreamReadyCallback`**,
-> **`shouldRegisterDestinationLink`**, **`planPathEntryLookup`**,
+> **`shouldRegisterDestinationLink`**, **`planPathEntryLookup`** (via
+> **`stepPathEntryLookupWithActions`**),
 > **`planPropagationRestore`**, and **`shouldRememberLxmfMessage`** live in protocol;
 > transport lists, receipt create/drop, Channel handlers, stream ready-callbacks,
 > destination link lists, path-table get, propagation restore, and LXMF seen-hash
@@ -570,6 +577,16 @@
 > those actions (no ad-hoc `planResourceRequestFulfill` /
 > `planResourceReceivePart` / `planResourcePartRequest` /
 > `planResourceHashmapUpdateAccept` reads beside the step).
+> **`stepPathRequestIngressWithActions`** emits `ignore-unparsed` /
+> `ignore-seen-tag` / `answer-local` / `answer-path` / `ignore` /
+> `ignore-in-flight-discovery` / `start-discovery`;
+> **`stepDiscoveryPathRequestFulfillWithActions`** emits `ignore` /
+> `drop-expired` / `fulfill`; **`stepPathOutboundWithActions`** emits
+> `wrap` / `direct` / `flood`; **`stepPathEntryLookupWithActions`** emits
+> `miss` / `expired` / `hit`; `LeafTransport` / `TransportNode` path-request,
+> discovery fulfill, outbound, and path-table get apply only from those actions
+> (no ad-hoc `planPathRequestIngress` / `planDiscoveryPathRequestFulfill` /
+> `planPathOutbound` / `planPathEntryLookup` reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -627,7 +644,8 @@
 > channel-envelope-unpack / channel-envelope-pack / channel-send /
 > resource-assemble / resource-proof-accept / resource-request-fulfill /
 > resource-receive-part / resource-part-request /
-> resource-hashmap-update-accept reads
+> resource-hashmap-update-accept / path-request-ingress /
+> discovery-path-request-fulfill / path-outbound / path-entry-lookup reads
 > beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:

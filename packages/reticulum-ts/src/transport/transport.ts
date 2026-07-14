@@ -7,25 +7,32 @@ import {
   canRelayTransportPacket,
   isDiscoveryPathRequestExpired,
   isReverseEntryExpired,
+  initialDiscoveryPathRequestFulfillState,
+  initialPathRequestIngressState,
   planAnnounceIngressGates,
-  planDiscoveryPathRequestFulfill,
   planLinkRelayTarget,
   shouldTransmitLinkRelay,
   planPacketHashRemember,
-  planPathRequestIngress,
   planReverseRelayOutcome,
   planTransportIngressDispatch,
   rewritePacketHopsBytes,
   canAnswerLocalPathRequest,
   shouldAcceptTransportPacket,
+  shouldAnswerPathRequestLocal,
+  shouldAnswerPathRequestPath,
   shouldAnswerPathWithEntry,
   shouldBeginPathDiscovery,
   shouldClearExpiredDiscoveryPathRequest,
   shouldDeferPacketHash as planShouldDeferPacketHash,
   shouldAnswerPathRequest,
   shouldDeleteExpiredReverseEntry,
+  shouldFulfillDiscoveryPathRequest,
   shouldFulfillDiscoveryPending,
-  shouldIgnoreDiscoveryPathFulfill,
+  shouldIgnoreDiscoveryPathFulfillActions,
+  shouldIgnorePathRequestInFlightDiscovery,
+  shouldIgnorePathRequestIngress,
+  shouldIgnorePathRequestSeenTag,
+  shouldIgnorePathRequestUnparsed,
   shouldMatchLocalInboundDestination,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
@@ -33,9 +40,12 @@ import {
   shouldRememberPacketHashNow,
   shouldRememberPathRequestTag,
   shouldRelayReverseOnInterface,
+  shouldStartPathRequestDiscovery,
   shouldTouchPathEntry,
   shouldTransmitReverseRelay,
-  shouldTransmitOnInterface
+  shouldTransmitOnInterface,
+  stepDiscoveryPathRequestFulfillWithActions,
+  stepPathRequestIngressWithActions
 } from "@twistedpear/protocol";
 import { equalBytes } from "../crypto/bytes.js";
 import { DestinationDirection, DestinationType } from "../destination.js";
@@ -210,7 +220,8 @@ export class TransportNode extends LeafTransport {
       existingDiscovery !== undefined &&
       isDiscoveryPathRequestExpired({ timeoutAt: existingDiscovery.timeout, nowSeconds });
 
-    const plan = planPathRequestIngress({
+    const stepped = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
       parsedOk: parsed !== null,
       hasTag: parsed?.tag !== null && parsed?.tag !== undefined,
       tagAlreadySeen: tagKey !== null && this.discoveryPrTags.has(tagKey),
@@ -225,7 +236,10 @@ export class TransportNode extends LeafTransport {
       allowDiscovery: true
     });
 
-    if (plan === "ignore-unparsed" || plan === "ignore-seen-tag") {
+    if (
+      shouldIgnorePathRequestUnparsed(stepped.actions) ||
+      shouldIgnorePathRequestSeenTag(stepped.actions)
+    ) {
       return;
     }
 
@@ -233,7 +247,7 @@ export class TransportNode extends LeafTransport {
       this.discoveryPrTags.add(tagKey!);
     }
 
-    if (plan === "answer-local") {
+    if (shouldAnswerPathRequestLocal(stepped.actions)) {
       if (!canAnswerLocalPathRequest(localDestination?.answerPathRequest !== undefined)) {
         return;
       }
@@ -241,7 +255,7 @@ export class TransportNode extends LeafTransport {
       return;
     }
 
-    if (plan === "answer-path") {
+    if (shouldAnswerPathRequestPath(stepped.actions)) {
       if (!shouldAnswerPathWithEntry(path !== undefined)) {
         return;
       }
@@ -249,7 +263,14 @@ export class TransportNode extends LeafTransport {
       return;
     }
 
-    if (plan === "ignore" || plan === "ignore-in-flight-discovery") {
+    if (
+      shouldIgnorePathRequestIngress(stepped.actions) ||
+      shouldIgnorePathRequestInFlightDiscovery(stepped.actions)
+    ) {
+      return;
+    }
+
+    if (!shouldStartPathRequestDiscovery(stepped.actions)) {
       return;
     }
 
@@ -453,21 +474,25 @@ export class TransportNode extends LeafTransport {
     const destinationKey = hashKey(packet.destinationHash);
     const pending = this.discoveryPathRequests.get(destinationKey);
     const nowSeconds = this.clock.now() / 1000;
-    const fulfill = planDiscoveryPathRequestFulfill({
-      hasPending: pending !== undefined,
-      expired:
-        pending !== undefined &&
-        isDiscoveryPathRequestExpired({ timeoutAt: pending.timeout, nowSeconds })
-    });
+    const stepped = stepDiscoveryPathRequestFulfillWithActions(
+      initialDiscoveryPathRequestFulfillState(),
+      {
+        kind: "path-request/discovery-fulfill-gate",
+        hasPending: pending !== undefined,
+        expired:
+          pending !== undefined &&
+          isDiscoveryPathRequestExpired({ timeoutAt: pending.timeout, nowSeconds })
+      }
+    );
 
-    if (shouldIgnoreDiscoveryPathFulfill(fulfill === "ignore")) {
+    if (shouldIgnoreDiscoveryPathFulfillActions(stepped.actions)) {
       return;
     }
 
     this.discoveryPathRequests.delete(destinationKey);
     if (
       !shouldFulfillDiscoveryPending({
-        fulfillOk: fulfill === "fulfill",
+        fulfillOk: shouldFulfillDiscoveryPathRequest(stepped.actions),
         pendingPresent: pending !== undefined
       })
     ) {

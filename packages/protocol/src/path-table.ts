@@ -1,8 +1,10 @@
 /**
  * Pure path-table / pathfinder decisions for announce ingress and path requests.
  * No IO — time and bytes arrive only as event/parameters.
+ * Path-request ingress / discovery fulfill / outbound / entry-lookup conclusions
+ * leave via machine actions (no ad-hoc plan reads beside the step).
  */
-import type { Event, StepFn } from "@twistedpear/effects";
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { TRUNCATED_HASH_BYTES } from "./hash-truncate.js";
 import {
   PACKET_DEST_TYPE_GROUP,
@@ -91,6 +93,126 @@ export function planPathRequestIngress(input: {
   return "start-discovery";
 }
 
+/**
+ * Path-request ingress is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type PathRequestIngressState = Record<string, never>;
+
+export type PathRequestIngressEvent =
+  | Event
+  | {
+      readonly kind: "path-request/ingress-gate";
+      readonly parsedOk: boolean;
+      readonly hasTag: boolean;
+      readonly tagAlreadySeen: boolean;
+      readonly hasLocalAnswerer: boolean;
+      readonly transportEnabled: boolean;
+      readonly hasPath: boolean;
+      readonly shouldAnswerPath: boolean;
+      readonly discoveryPresent: boolean;
+      readonly discoveryExpired: boolean;
+      readonly allowDiscovery?: boolean;
+    };
+
+export type PathRequestIngressAction = {
+  readonly kind: PathRequestIngressPlan;
+};
+
+export interface PathRequestIngressStepResult {
+  readonly state: PathRequestIngressState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PathRequestIngressAction[];
+}
+
+export function initialPathRequestIngressState(): PathRequestIngressState {
+  return {};
+}
+
+export const stepPathRequestIngress: StepFn<PathRequestIngressState> = (state, event) => {
+  const result = stepPathRequestIngressInner(state, event as PathRequestIngressEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepPathRequestIngressWithActions(
+  state: PathRequestIngressState,
+  event: PathRequestIngressEvent
+): PathRequestIngressStepResult {
+  return stepPathRequestIngressInner(state, event);
+}
+
+export function pathRequestIngressFromActions(
+  actions: ReadonlyArray<PathRequestIngressAction>
+): PathRequestIngressPlan | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldIgnorePathRequestUnparsed(
+  actions: ReadonlyArray<PathRequestIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore-unparsed");
+}
+
+export function shouldIgnorePathRequestSeenTag(
+  actions: ReadonlyArray<PathRequestIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore-seen-tag");
+}
+
+export function shouldAnswerPathRequestLocal(
+  actions: ReadonlyArray<PathRequestIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "answer-local");
+}
+
+export function shouldAnswerPathRequestPath(
+  actions: ReadonlyArray<PathRequestIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "answer-path");
+}
+
+export function shouldIgnorePathRequestIngress(
+  actions: ReadonlyArray<PathRequestIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+export function shouldIgnorePathRequestInFlightDiscovery(
+  actions: ReadonlyArray<PathRequestIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore-in-flight-discovery");
+}
+
+export function shouldStartPathRequestDiscovery(
+  actions: ReadonlyArray<PathRequestIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "start-discovery");
+}
+
+function stepPathRequestIngressInner(
+  state: PathRequestIngressState,
+  event: PathRequestIngressEvent
+): PathRequestIngressStepResult {
+  if (event.kind === "path-request/ingress-gate") {
+    const plan = planPathRequestIngress({
+      parsedOk: event.parsedOk,
+      hasTag: event.hasTag,
+      tagAlreadySeen: event.tagAlreadySeen,
+      hasLocalAnswerer: event.hasLocalAnswerer,
+      transportEnabled: event.transportEnabled,
+      hasPath: event.hasPath,
+      shouldAnswerPath: event.shouldAnswerPath,
+      discoveryPresent: event.discoveryPresent,
+      discoveryExpired: event.discoveryExpired,
+      ...(event.allowDiscovery !== undefined ? { allowDiscovery: event.allowDiscovery } : {})
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 /** Whether answer-local may invoke the local destination path-request handler. */
 export function canAnswerLocalPathRequest(handlerPresent: boolean): boolean {
   return handlerPresent;
@@ -150,6 +272,92 @@ export function planDiscoveryPathRequestFulfill(input: {
 }
 
 /**
+ * Discovery path-request fulfill is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type DiscoveryPathRequestFulfillState = Record<string, never>;
+
+export type DiscoveryPathRequestFulfillEvent =
+  | Event
+  | {
+      readonly kind: "path-request/discovery-fulfill-gate";
+      readonly hasPending: boolean;
+      readonly expired: boolean;
+    };
+
+export type DiscoveryPathRequestFulfillAction = {
+  readonly kind: DiscoveryPathRequestFulfillPlan;
+};
+
+export interface DiscoveryPathRequestFulfillStepResult {
+  readonly state: DiscoveryPathRequestFulfillState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DiscoveryPathRequestFulfillAction[];
+}
+
+export function initialDiscoveryPathRequestFulfillState(): DiscoveryPathRequestFulfillState {
+  return {};
+}
+
+export const stepDiscoveryPathRequestFulfill: StepFn<DiscoveryPathRequestFulfillState> = (
+  state,
+  event
+) => {
+  const result = stepDiscoveryPathRequestFulfillInner(
+    state,
+    event as DiscoveryPathRequestFulfillEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepDiscoveryPathRequestFulfillWithActions(
+  state: DiscoveryPathRequestFulfillState,
+  event: DiscoveryPathRequestFulfillEvent
+): DiscoveryPathRequestFulfillStepResult {
+  return stepDiscoveryPathRequestFulfillInner(state, event);
+}
+
+export function discoveryPathRequestFulfillFromActions(
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>
+): DiscoveryPathRequestFulfillPlan | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldIgnoreDiscoveryPathFulfillActions(
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+export function shouldDropExpiredDiscoveryPathRequest(
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>
+): boolean {
+  return actions.some((action) => action.kind === "drop-expired");
+}
+
+export function shouldFulfillDiscoveryPathRequest(
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillAction>
+): boolean {
+  return actions.some((action) => action.kind === "fulfill");
+}
+
+function stepDiscoveryPathRequestFulfillInner(
+  state: DiscoveryPathRequestFulfillState,
+  event: DiscoveryPathRequestFulfillEvent
+): DiscoveryPathRequestFulfillStepResult {
+  if (event.kind === "path-request/discovery-fulfill-gate") {
+    const plan = planDiscoveryPathRequestFulfill({
+      hasPending: event.hasPending,
+      expired: event.expired
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/**
  * Whether discovery fulfill may transmit a path response (fulfill plan + pending present).
  * Pending map delete stays at the adapter edge.
  */
@@ -194,6 +402,86 @@ export function planPathOutbound(input: {
     }
   }
   return "flood";
+}
+
+/**
+ * Path outbound routing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type PathOutboundState = Record<string, never>;
+
+export type PathOutboundEvent =
+  | Event
+  | {
+      readonly kind: "path/outbound-gate";
+      readonly packetType: number;
+      readonly destinationType: number;
+      readonly headerType: number;
+      readonly hasPath: boolean;
+      readonly pathHops: number;
+    };
+
+export type PathOutboundAction = {
+  readonly kind: PathOutboundKind;
+};
+
+export interface PathOutboundStepResult {
+  readonly state: PathOutboundState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PathOutboundAction[];
+}
+
+export function initialPathOutboundState(): PathOutboundState {
+  return {};
+}
+
+export const stepPathOutbound: StepFn<PathOutboundState> = (state, event) => {
+  const result = stepPathOutboundInner(state, event as PathOutboundEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepPathOutboundWithActions(
+  state: PathOutboundState,
+  event: PathOutboundEvent
+): PathOutboundStepResult {
+  return stepPathOutboundInner(state, event);
+}
+
+export function pathOutboundFromActions(
+  actions: ReadonlyArray<PathOutboundAction>
+): PathOutboundKind | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldWrapPathOutbound(actions: ReadonlyArray<PathOutboundAction>): boolean {
+  return actions.some((action) => action.kind === "wrap");
+}
+
+export function shouldDirectPathOutbound(actions: ReadonlyArray<PathOutboundAction>): boolean {
+  return actions.some((action) => action.kind === "direct");
+}
+
+export function shouldFloodPathOutbound(actions: ReadonlyArray<PathOutboundAction>): boolean {
+  return actions.some((action) => action.kind === "flood");
+}
+
+function stepPathOutboundInner(
+  state: PathOutboundState,
+  event: PathOutboundEvent
+): PathOutboundStepResult {
+  if (event.kind === "path/outbound-gate") {
+    const plan = planPathOutbound({
+      packetType: event.packetType,
+      destinationType: event.destinationType,
+      headerType: event.headerType,
+      hasPath: event.hasPath,
+      pathHops: event.pathHops
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 export interface PathTableEntryView {
@@ -307,6 +595,86 @@ export function planPathEntryLookup(input: {
     return "expired";
   }
   return "hit";
+}
+
+/**
+ * Path-entry lookup is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type PathEntryLookupState = Record<string, never>;
+
+export type PathEntryLookupEvent =
+  | Event
+  | {
+      readonly kind: "path/entry-lookup-gate";
+      readonly entryPresent: boolean;
+      readonly expired: boolean;
+    };
+
+export type PathEntryLookupAction = {
+  readonly kind: PathEntryLookupPlan;
+};
+
+export interface PathEntryLookupStepResult {
+  readonly state: PathEntryLookupState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PathEntryLookupAction[];
+}
+
+export function initialPathEntryLookupState(): PathEntryLookupState {
+  return {};
+}
+
+export const stepPathEntryLookup: StepFn<PathEntryLookupState> = (state, event) => {
+  const result = stepPathEntryLookupInner(state, event as PathEntryLookupEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepPathEntryLookupWithActions(
+  state: PathEntryLookupState,
+  event: PathEntryLookupEvent
+): PathEntryLookupStepResult {
+  return stepPathEntryLookupInner(state, event);
+}
+
+export function pathEntryLookupFromActions(
+  actions: ReadonlyArray<PathEntryLookupAction>
+): PathEntryLookupPlan | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldMissPathEntryLookup(
+  actions: ReadonlyArray<PathEntryLookupAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
+export function shouldExpirePathEntryLookup(
+  actions: ReadonlyArray<PathEntryLookupAction>
+): boolean {
+  return actions.some((action) => action.kind === "expired");
+}
+
+export function shouldHitPathEntryLookup(
+  actions: ReadonlyArray<PathEntryLookupAction>
+): boolean {
+  return actions.some((action) => action.kind === "hit");
+}
+
+function stepPathEntryLookupInner(
+  state: PathEntryLookupState,
+  event: PathEntryLookupEvent
+): PathEntryLookupStepResult {
+  if (event.kind === "path/entry-lookup-gate") {
+    const plan = planPathEntryLookup({
+      entryPresent: event.entryPresent,
+      expired: event.expired
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 /**

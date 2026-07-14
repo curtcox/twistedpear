@@ -25,9 +25,6 @@ import {
   planOutboundReceiptOutcome,
   planPacketFilter,
   planPacketReceiptProofIngress,
-  planPathEntryLookup,
-  planPathOutbound,
-  planPathRequestIngress,
   planPathResponseAnnounceFields,
   planProofIngressKind,
   planTransportAnnounceFields,
@@ -36,18 +33,30 @@ import {
   planUnregisterTransportMember,
   canAnswerLocalPathRequest,
   canDispatchAnnounceHandlers,
+  initialPathEntryLookupState,
+  initialPathOutboundState,
+  initialPathRequestIngressState,
   shouldAcceptCachedPathResponsePacket,
   shouldAcceptLinkLrProofCandidate,
   shouldAcceptParsedAnnounce,
+  shouldAnswerPathRequestLocal,
+  shouldAnswerPathRequestPath,
   shouldAnswerPathWithEntry,
   shouldAppendActiveLinkMembership,
+  shouldDirectPathOutbound,
   shouldDispatchLocalLinkRequest,
   shouldDispatchLocalPlainDataDelivery,
   shouldDispatchResourceProofToLink,
+  shouldExpirePathEntryLookup,
   shouldFailAndDropOutboundReceipt,
+  shouldHitPathEntryLookup,
   shouldIgnoreLocalAnnounce,
+  shouldIgnorePathRequestSeenTag,
+  shouldIgnorePathRequestUnparsed,
   shouldKeepOutboundReceipt,
   shouldMatchAnnounceAspect,
+  shouldMissPathEntryLookup,
+  shouldWrapPathOutbound,
   shouldMatchLocalInboundDestination,
   shouldMatchLocalTypedDestination,
   shouldReceiveAnnouncePathResponse,
@@ -67,6 +76,9 @@ import {
   shouldAnswerPathRequest,
   shouldEmitPathRequest,
   isLocalPathRequestPacket,
+  stepPathEntryLookupWithActions,
+  stepPathOutboundWithActions,
+  stepPathRequestIngressWithActions,
   stripTransportHeadersBytes,
   timebaseFromRandomBlobs as protocolTimebaseFromRandomBlobs,
   wrapTransportPacketBytes,
@@ -256,17 +268,21 @@ export class LeafTransport {
   getPathEntry(destinationHash: Uint8Array): PathEntry | undefined {
     const key = hashKey(destinationHash);
     const entry = this.pathTable.get(key);
-    const plan = planPathEntryLookup({
+    const stepped = stepPathEntryLookupWithActions(initialPathEntryLookupState(), {
+      kind: "path/entry-lookup-gate",
       entryPresent: entry !== undefined,
       expired:
         entry !== undefined &&
         isPathEntryExpired({ expires: entry.expires, nowSeconds: this.clock.now() / 1000 })
     });
-    if (plan === "miss") {
+    if (shouldMissPathEntryLookup(stepped.actions)) {
       return undefined;
     }
-    if (plan === "expired") {
+    if (shouldExpirePathEntryLookup(stepped.actions)) {
       this.pathTable.delete(key);
+      return undefined;
+    }
+    if (!shouldHitPathEntryLookup(stepped.actions)) {
       return undefined;
     }
     return entry;
@@ -790,7 +806,8 @@ export class LeafTransport {
 
   protected async outbound(packet: Packet, attachedInterface: PacketInterface | null): Promise<boolean> {
     const path = this.getPathEntry(packet.destinationHash);
-    const kind = planPathOutbound({
+    const stepped = stepPathOutboundWithActions(initialPathOutboundState(), {
+      kind: "path/outbound-gate",
       packetType: packet.packetType,
       destinationType: packet.destinationType,
       headerType: packet.headerType,
@@ -798,13 +815,13 @@ export class LeafTransport {
       pathHops: path?.hops ?? 0
     });
 
-    if (kind === "wrap" && shouldUsePathForOutbound(path !== undefined)) {
+    if (shouldWrapPathOutbound(stepped.actions) && shouldUsePathForOutbound(path !== undefined)) {
       const wrapped = wrapTransportPacket(packet, path!.nextHop);
       await this.transmit(path!.receivedInterface, wrapped);
       return true;
     }
 
-    if (kind === "direct" && shouldUsePathForOutbound(path !== undefined)) {
+    if (shouldDirectPathOutbound(stepped.actions) && shouldUsePathForOutbound(path !== undefined)) {
       await this.transmit(path!.receivedInterface, packet.raw);
       return true;
     }
@@ -845,7 +862,8 @@ export class LeafTransport {
       parsed !== null && parsed.tag !== null
         ? pathRequestTagKey(parsed.destinationHash, parsed.tag)
         : null;
-    const plan = planPathRequestIngress({
+    const stepped = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
       parsedOk: parsed !== null,
       hasTag: parsed?.tag !== null && parsed?.tag !== undefined,
       tagAlreadySeen: tagKey !== null && this.discoveryPrTags.has(tagKey),
@@ -860,7 +878,10 @@ export class LeafTransport {
       allowDiscovery: false
     });
 
-    if (plan === "ignore-unparsed" || plan === "ignore-seen-tag") {
+    if (
+      shouldIgnorePathRequestUnparsed(stepped.actions) ||
+      shouldIgnorePathRequestSeenTag(stepped.actions)
+    ) {
       return;
     }
 
@@ -868,7 +889,7 @@ export class LeafTransport {
       this.discoveryPrTags.add(tagKey!);
     }
 
-    if (plan === "answer-local") {
+    if (shouldAnswerPathRequestLocal(stepped.actions)) {
       if (!canAnswerLocalPathRequest(localDestination?.answerPathRequest !== undefined)) {
         return;
       }
@@ -876,7 +897,10 @@ export class LeafTransport {
       return;
     }
 
-    if (plan === "answer-path" && shouldAnswerPathWithEntry(path !== undefined)) {
+    if (
+      shouldAnswerPathRequestPath(stepped.actions) &&
+      shouldAnswerPathWithEntry(path !== undefined)
+    ) {
       await this.sendPathResponse(path!, iface);
     }
   }

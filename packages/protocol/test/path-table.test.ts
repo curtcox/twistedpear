@@ -12,8 +12,16 @@ import {
   PACKET_TYPE_DATA,
   announceEmittedFromRandomBlob,
   appendPathRandomBlob,
+  discoveryPathRequestFulfillFromActions,
+  initialDiscoveryPathRequestFulfillState,
+  initialPathEntryLookupState,
+  initialPathOutboundState,
+  initialPathRequestIngressState,
   isDiscoveryPathRequestExpired,
   isPathEntryExpired,
+  pathEntryLookupFromActions,
+  pathOutboundFromActions,
+  pathRequestIngressFromActions,
   planDiscoveryPathRequestFulfill,
   planPathEntryLookup,
   planPathOutbound,
@@ -21,17 +29,38 @@ import {
   canAnswerLocalPathRequest,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
+  shouldAnswerPathRequestLocal,
+  shouldAnswerPathRequestPath,
   shouldAnswerPathWithEntry,
   shouldBeginPathDiscovery,
   shouldClearExpiredDiscoveryPathRequest,
+  shouldDirectPathOutbound,
+  shouldDropExpiredDiscoveryPathRequest,
   shouldEmitPathRequest,
+  shouldExpirePathEntryLookup,
+  shouldFloodPathOutbound,
+  shouldFulfillDiscoveryPathRequest,
   shouldFulfillDiscoveryPending,
+  shouldHitPathEntryLookup,
   shouldIgnoreDiscoveryPathFulfill,
+  shouldIgnoreDiscoveryPathFulfillActions,
+  shouldIgnorePathRequestInFlightDiscovery,
+  shouldIgnorePathRequestIngress,
+  shouldIgnorePathRequestSeenTag,
+  shouldIgnorePathRequestUnparsed,
+  shouldMissPathEntryLookup,
   shouldRememberPathRequestTag,
+  shouldStartPathRequestDiscovery,
   shouldTouchPathEntry,
   shouldUsePathForOutbound,
+  shouldWrapPathOutbound,
+  stepDiscoveryPathRequestFulfillWithActions,
+  stepPathEntryLookupWithActions,
+  stepPathOutboundWithActions,
+  stepPathRequestIngressWithActions,
   stepPathTable,
-  initialPathTableState
+  initialPathTableState,
+  timebaseFromRandomBlobs
 } from "../src/index.js";
 
 function blobWithEmitted(emitted: number): Uint8Array {
@@ -407,5 +436,185 @@ describe("protocol path table", () => {
     expect(planPathEntryLookup({ entryPresent: false, expired: false })).toBe("miss");
     expect(planPathEntryLookup({ entryPresent: true, expired: true })).toBe("expired");
     expect(planPathEntryLookup({ entryPresent: true, expired: false })).toBe("hit");
+  });
+
+  it("emits path-request ingress actions from the gate step", () => {
+    const ignoreUnparsed = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: false,
+      hasTag: false,
+      tagAlreadySeen: false,
+      hasLocalAnswerer: false,
+      transportEnabled: true,
+      hasPath: false,
+      shouldAnswerPath: false,
+      discoveryPresent: false,
+      discoveryExpired: false
+    });
+    expect(pathRequestIngressFromActions(ignoreUnparsed.actions)).toBe("ignore-unparsed");
+    expect(shouldIgnorePathRequestUnparsed(ignoreUnparsed.actions)).toBe(true);
+
+    const answerLocal = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: true,
+      hasTag: true,
+      tagAlreadySeen: false,
+      hasLocalAnswerer: true,
+      transportEnabled: true,
+      hasPath: true,
+      shouldAnswerPath: true,
+      discoveryPresent: false,
+      discoveryExpired: false
+    });
+    expect(shouldAnswerPathRequestLocal(answerLocal.actions)).toBe(true);
+
+    const answerPath = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: true,
+      hasTag: true,
+      tagAlreadySeen: false,
+      hasLocalAnswerer: false,
+      transportEnabled: true,
+      hasPath: true,
+      shouldAnswerPath: true,
+      discoveryPresent: false,
+      discoveryExpired: false
+    });
+    expect(shouldAnswerPathRequestPath(answerPath.actions)).toBe(true);
+
+    const startDiscovery = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: true,
+      hasTag: true,
+      tagAlreadySeen: false,
+      hasLocalAnswerer: false,
+      transportEnabled: true,
+      hasPath: false,
+      shouldAnswerPath: false,
+      discoveryPresent: false,
+      discoveryExpired: false,
+      allowDiscovery: true
+    });
+    expect(shouldStartPathRequestDiscovery(startDiscovery.actions)).toBe(true);
+    expect(shouldIgnorePathRequestSeenTag(startDiscovery.actions)).toBe(false);
+    expect(shouldIgnorePathRequestIngress(startDiscovery.actions)).toBe(false);
+    expect(shouldIgnorePathRequestInFlightDiscovery(startDiscovery.actions)).toBe(false);
+
+    const again = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
+      kind: "path-request/ingress-gate",
+      parsedOk: true,
+      hasTag: true,
+      tagAlreadySeen: false,
+      hasLocalAnswerer: false,
+      transportEnabled: true,
+      hasPath: false,
+      shouldAnswerPath: false,
+      discoveryPresent: false,
+      discoveryExpired: false,
+      allowDiscovery: true
+    });
+    expect(again.actions).toEqual(startDiscovery.actions);
+  });
+
+  it("emits discovery fulfill actions from the gate step", () => {
+    const ignore = stepDiscoveryPathRequestFulfillWithActions(
+      initialDiscoveryPathRequestFulfillState(),
+      { kind: "path-request/discovery-fulfill-gate", hasPending: false, expired: false }
+    );
+    expect(discoveryPathRequestFulfillFromActions(ignore.actions)).toBe("ignore");
+    expect(shouldIgnoreDiscoveryPathFulfillActions(ignore.actions)).toBe(true);
+
+    const dropExpired = stepDiscoveryPathRequestFulfillWithActions(
+      initialDiscoveryPathRequestFulfillState(),
+      { kind: "path-request/discovery-fulfill-gate", hasPending: true, expired: true }
+    );
+    expect(shouldDropExpiredDiscoveryPathRequest(dropExpired.actions)).toBe(true);
+
+    const fulfill = stepDiscoveryPathRequestFulfillWithActions(
+      initialDiscoveryPathRequestFulfillState(),
+      { kind: "path-request/discovery-fulfill-gate", hasPending: true, expired: false }
+    );
+    expect(shouldFulfillDiscoveryPathRequest(fulfill.actions)).toBe(true);
+    expect(
+      stepDiscoveryPathRequestFulfillWithActions(initialDiscoveryPathRequestFulfillState(), {
+        kind: "path-request/discovery-fulfill-gate",
+        hasPending: true,
+        expired: false
+      }).actions
+    ).toEqual(fulfill.actions);
+  });
+
+  it("emits path outbound actions from the gate step", () => {
+    const wrap = stepPathOutboundWithActions(initialPathOutboundState(), {
+      kind: "path/outbound-gate",
+      packetType: PACKET_TYPE_DATA,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      headerType: PACKET_HEADER_1,
+      hasPath: true,
+      pathHops: 3
+    });
+    expect(pathOutboundFromActions(wrap.actions)).toBe("wrap");
+    expect(shouldWrapPathOutbound(wrap.actions)).toBe(true);
+
+    const direct = stepPathOutboundWithActions(initialPathOutboundState(), {
+      kind: "path/outbound-gate",
+      packetType: PACKET_TYPE_DATA,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      headerType: PACKET_HEADER_1,
+      hasPath: true,
+      pathHops: 1
+    });
+    expect(shouldDirectPathOutbound(direct.actions)).toBe(true);
+
+    const flood = stepPathOutboundWithActions(initialPathOutboundState(), {
+      kind: "path/outbound-gate",
+      packetType: PACKET_TYPE_ANNOUNCE,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      headerType: PACKET_HEADER_1,
+      hasPath: true,
+      pathHops: 3
+    });
+    expect(shouldFloodPathOutbound(flood.actions)).toBe(true);
+    expect(
+      stepPathOutboundWithActions(initialPathOutboundState(), {
+        kind: "path/outbound-gate",
+        packetType: PACKET_TYPE_ANNOUNCE,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        headerType: PACKET_HEADER_1,
+        hasPath: true,
+        pathHops: 3
+      }).actions
+    ).toEqual(flood.actions);
+  });
+
+  it("emits path entry lookup actions from the gate step", () => {
+    const miss = stepPathEntryLookupWithActions(initialPathEntryLookupState(), {
+      kind: "path/entry-lookup-gate",
+      entryPresent: false,
+      expired: false
+    });
+    expect(pathEntryLookupFromActions(miss.actions)).toBe("miss");
+    expect(shouldMissPathEntryLookup(miss.actions)).toBe(true);
+
+    const expired = stepPathEntryLookupWithActions(initialPathEntryLookupState(), {
+      kind: "path/entry-lookup-gate",
+      entryPresent: true,
+      expired: true
+    });
+    expect(shouldExpirePathEntryLookup(expired.actions)).toBe(true);
+
+    const hit = stepPathEntryLookupWithActions(initialPathEntryLookupState(), {
+      kind: "path/entry-lookup-gate",
+      entryPresent: true,
+      expired: false
+    });
+    expect(shouldHitPathEntryLookup(hit.actions)).toBe(true);
+    expect(
+      stepPathEntryLookupWithActions(initialPathEntryLookupState(), {
+        kind: "path/entry-lookup-gate",
+        entryPresent: true,
+        expired: false
+      }).actions
+    ).toEqual(hit.actions);
   });
 });
