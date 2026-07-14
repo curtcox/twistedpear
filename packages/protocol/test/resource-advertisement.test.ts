@@ -2,14 +2,23 @@ import { describe, expect, it } from "vitest";
 import {
   decodeResourceAdvertisementFlags,
   encodeResourceAdvertisementFlags,
+  initialPackResourceAdvertisementState,
   initialResourceAdvertisementRoleFlagsState,
+  initialUnpackResourceAdvertisementState,
   isResourceAdvertisementRequest,
   isResourceAdvertisementResponse,
   packResourceAdvertisement,
+  packResourceAdvertisementRawFromActions,
   planResourceAdvertisementRoleFlags,
+  resourceAdvertisementFieldsFromActions,
   resourceAdvertisementRoleFlagsFromActions,
+  shouldRejectUnpackResourceAdvertisement,
+  shouldUsePackResourceAdvertisement,
   shouldUseResourceAdvertisementRoleFlags,
+  shouldUseUnpackResourceAdvertisement,
+  stepPackResourceAdvertisementWithActions,
   stepResourceAdvertisementRoleFlagsWithActions,
+  stepUnpackResourceAdvertisementWithActions,
   unpackResourceAdvertisement
 } from "../src/resource-advertisement.js";
 import { msgpackPackString, msgpackPackStringMap, msgpackPackUInt } from "../src/msgpack-core.js";
@@ -150,5 +159,47 @@ describe("protocol resource advertisement", () => {
       u: false,
       p: true
     });
+  });
+
+  it("emits pack framing bytes from WithActions steps", () => {
+    const stepped = stepPackResourceAdvertisementWithActions(
+      initialPackResourceAdvertisementState(),
+      {
+        kind: "resource-advertisement/pack-gate",
+        fields
+      }
+    );
+    expect(shouldUsePackResourceAdvertisement(stepped.actions)).toBe(true);
+    const packed = packResourceAdvertisementRawFromActions(stepped.actions);
+    expect(packed).not.toBeNull();
+    expect([...packed!]).toEqual([...packResourceAdvertisement(fields)]);
+  });
+
+  it("emits unpack fields or reject from WithActions steps", () => {
+    const packed = packResourceAdvertisement(fields);
+    const ok = stepUnpackResourceAdvertisementWithActions(
+      initialUnpackResourceAdvertisementState(),
+      {
+        kind: "resource-advertisement/unpack-gate",
+        data: packed
+      }
+    );
+    expect(shouldUseUnpackResourceAdvertisement(ok.actions)).toBe(true);
+    expect(shouldRejectUnpackResourceAdvertisement(ok.actions)).toBe(false);
+    const unpacked = resourceAdvertisementFieldsFromActions(ok.actions);
+    expect(unpacked).not.toBeNull();
+    expect(unpacked!.t).toBe(1);
+    expect([...unpacked!.m]).toEqual([9, 8, 7]);
+
+    const rejected = stepUnpackResourceAdvertisementWithActions(
+      initialUnpackResourceAdvertisementState(),
+      {
+        kind: "resource-advertisement/unpack-gate",
+        data: new Uint8Array([0xff])
+      }
+    );
+    expect(shouldRejectUnpackResourceAdvertisement(rejected.actions)).toBe(true);
+    expect(shouldUseUnpackResourceAdvertisement(rejected.actions)).toBe(false);
+    expect(resourceAdvertisementFieldsFromActions(rejected.actions)).toBeNull();
   });
 });

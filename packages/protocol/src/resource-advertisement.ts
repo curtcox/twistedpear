@@ -1,7 +1,8 @@
 /**
  * Pure RNS resource advertisement msgpack codec and flag bits.
  * Hashing / link IO stay at the adapter edge.
- * Role-flag conclusions leave via machine actions (no ad-hoc
+ * Pack / unpack / role-flag conclusions leave via machine actions (no ad-hoc
+ * `packResourceAdvertisement` / `unpackResourceAdvertisement` /
  * `planResourceAdvertisementRoleFlags` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
@@ -200,4 +201,135 @@ export function resourceAdvertisementRoleFlagsFromActions(
 ): { readonly u: boolean; readonly p: boolean } | null {
   const action = actions.find((entry) => entry.kind === "use-flags");
   return action?.kind === "use-flags" ? { u: action.u, p: action.p } : null;
+}
+
+/**
+ * Resource advertisement pack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `packResourceAdvertisement`
+ * reads beside the step).
+ */
+export type PackResourceAdvertisementState = Record<string, never>;
+
+export type PackResourceAdvertisementEvent =
+  | Event
+  | {
+      readonly kind: "resource-advertisement/pack-gate";
+      readonly fields: ResourceAdvertisementFields;
+    };
+
+export type PackResourceAdvertisementAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface PackResourceAdvertisementStepResult {
+  readonly state: PackResourceAdvertisementState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PackResourceAdvertisementAction[];
+}
+
+export function initialPackResourceAdvertisementState(): PackResourceAdvertisementState {
+  return {};
+}
+
+export function stepPackResourceAdvertisementWithActions(
+  state: PackResourceAdvertisementState,
+  event: PackResourceAdvertisementEvent
+): PackResourceAdvertisementStepResult {
+  if (event.kind === "resource-advertisement/pack-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: packResourceAdvertisement(event.fields)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePackResourceAdvertisement(
+  actions: ReadonlyArray<PackResourceAdvertisementAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract advertisement pack bytes from step actions; null when no `use-raw`. */
+export function packResourceAdvertisementRawFromActions(
+  actions: ReadonlyArray<PackResourceAdvertisementAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Resource advertisement unpack framing is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `unpackResourceAdvertisement`
+ * reads beside the step). Malformed frames become `reject` (helpers may throw).
+ */
+export type UnpackResourceAdvertisementState = Record<string, never>;
+
+export type UnpackResourceAdvertisementEvent =
+  | Event
+  | {
+      readonly kind: "resource-advertisement/unpack-gate";
+      readonly data: Uint8Array;
+    };
+
+export type UnpackResourceAdvertisementAction =
+  | { readonly kind: "use-fields"; readonly fields: ResourceAdvertisementFields }
+  | { readonly kind: "reject" };
+
+export interface UnpackResourceAdvertisementStepResult {
+  readonly state: UnpackResourceAdvertisementState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly UnpackResourceAdvertisementAction[];
+}
+
+export function initialUnpackResourceAdvertisementState(): UnpackResourceAdvertisementState {
+  return {};
+}
+
+export function stepUnpackResourceAdvertisementWithActions(
+  state: UnpackResourceAdvertisementState,
+  event: UnpackResourceAdvertisementEvent
+): UnpackResourceAdvertisementStepResult {
+  if (event.kind === "resource-advertisement/unpack-gate") {
+    try {
+      const fields = unpackResourceAdvertisement(event.data);
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "use-fields", fields }]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseUnpackResourceAdvertisement(
+  actions: ReadonlyArray<UnpackResourceAdvertisementAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+export function shouldRejectUnpackResourceAdvertisement(
+  actions: ReadonlyArray<UnpackResourceAdvertisementAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract unpacked advertisement fields from step actions; null when no `use-fields`. */
+export function resourceAdvertisementFieldsFromActions(
+  actions: ReadonlyArray<UnpackResourceAdvertisementAction>
+): ResourceAdvertisementFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
 }

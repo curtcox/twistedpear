@@ -36,7 +36,9 @@ import {
   isResourceAdvertisementRequest,
   isResourceAdvertisementResponse,
   isResourceComplete,
-  packResourceAdvertisement,
+  initialPackResourceAdvertisementState,
+  initialUnpackResourceAdvertisementState,
+  packResourceAdvertisementRawFromActions,
   packResourceHashmapUpdatePacketRawFromActions,
   packResourceHashmapUpdateRawFromActions,
   packResourceProofRawFromActions,
@@ -55,6 +57,7 @@ import {
   initialSplitResourceHashmapUpdatePacketState,
   initialSplitResourceProofState,
   initialUnpackResourceHashmapUpdateState,
+  resourceAdvertisementFieldsFromActions,
   resourceAdvertisementRoleFlagsFromActions,
   resourceDecryptedPayloadFromActions,
   resourceHashmapSlotWritesFromActions,
@@ -68,26 +71,31 @@ import {
   shouldApplyResourceHashmapUpdateAccept,
   shouldCompleteResourceAssemble,
   shouldCompleteResourceProofAccept,
+  shouldRejectUnpackResourceAdvertisement,
   shouldRejectParseResourcePartRequest,
   shouldRejectSplitResourceDecryptedPayload,
   shouldRejectSplitResourceHashmapUpdatePacket,
   shouldRejectSplitResourceProof,
   shouldRejectUnpackResourceHashmapUpdate,
+  shouldUsePackResourceAdvertisement,
   shouldUsePackResourceHashmapUpdate,
   shouldUsePackResourceHashmapUpdatePacket,
   shouldUsePackResourceProof,
   shouldUseParseResourcePartRequest,
   shouldUseResourceAdvertisementRoleFlags,
+  shouldUseUnpackResourceAdvertisement,
   shouldUseSplitResourceDecryptedPayload,
   shouldUseSplitResourceHashmapUpdatePacket,
   shouldUseSplitResourceProof,
   shouldUseUnpackResourceHashmapUpdate,
   shouldWriteResourceHashmapSlots,
+  stepPackResourceAdvertisementWithActions,
   stepPackResourceHashmapUpdatePacketWithActions,
   stepPackResourceHashmapUpdateWithActions,
   stepPackResourceProofWithActions,
   stepParseResourcePartRequestWithActions,
   stepResourceAdvertisementRoleFlagsWithActions,
+  stepUnpackResourceAdvertisementWithActions,
   stepResourceAssembleWithActions,
   stepResourceHashmapSlotWritesWithActions,
   stepResourceHashmapUpdateAcceptWithActions,
@@ -118,7 +126,6 @@ import {
   shouldSendResourceHashmapUpdate,
   stepResourceAdvertiseWaitWithActions,
   stepResourceWatchdogWithActions,
-  unpackResourceAdvertisement,
   type ResourceStatusEvent,
   type ResourceStatusValue,
   type ResourceWatchdogState,
@@ -203,23 +210,57 @@ export class ResourceAdvertisement {
   x = false;
 
   static isRequest(plaintext: Uint8Array): boolean {
-    try {
-      return isResourceAdvertisementRequest(unpackResourceAdvertisement(plaintext));
-    } catch {
+    const stepped = stepUnpackResourceAdvertisementWithActions(
+      initialUnpackResourceAdvertisementState(),
+      {
+        kind: "resource-advertisement/unpack-gate",
+        data: plaintext
+      }
+    );
+    if (shouldRejectUnpackResourceAdvertisement(stepped.actions)) {
       return false;
     }
+    const fields = shouldUseUnpackResourceAdvertisement(stepped.actions)
+      ? resourceAdvertisementFieldsFromActions(stepped.actions)
+      : null;
+    return fields !== null && isResourceAdvertisementRequest(fields);
   }
 
   static isResponse(plaintext: Uint8Array): boolean {
-    try {
-      return isResourceAdvertisementResponse(unpackResourceAdvertisement(plaintext));
-    } catch {
+    const stepped = stepUnpackResourceAdvertisementWithActions(
+      initialUnpackResourceAdvertisementState(),
+      {
+        kind: "resource-advertisement/unpack-gate",
+        data: plaintext
+      }
+    );
+    if (shouldRejectUnpackResourceAdvertisement(stepped.actions)) {
       return false;
     }
+    const fields = shouldUseUnpackResourceAdvertisement(stepped.actions)
+      ? resourceAdvertisementFieldsFromActions(stepped.actions)
+      : null;
+    return fields !== null && isResourceAdvertisementResponse(fields);
   }
 
   static unpack(data: Uint8Array): ResourceAdvertisement {
-    const fields = unpackResourceAdvertisement(data);
+    const stepped = stepUnpackResourceAdvertisementWithActions(
+      initialUnpackResourceAdvertisementState(),
+      {
+        kind: "resource-advertisement/unpack-gate",
+        data
+      }
+    );
+    if (
+      shouldRejectUnpackResourceAdvertisement(stepped.actions) ||
+      !shouldUseUnpackResourceAdvertisement(stepped.actions)
+    ) {
+      throw new Error("Invalid resource advertisement");
+    }
+    const fields = resourceAdvertisementFieldsFromActions(stepped.actions);
+    if (fields === null) {
+      throw new Error("Invalid resource advertisement");
+    }
     const flags = decodeResourceAdvertisementFlags(fields.f);
     const adv = new ResourceAdvertisement();
     adv.t = fields.t;
@@ -285,19 +326,32 @@ export class ResourceAdvertisement {
   }
 
   pack(): Uint8Array {
-    return packResourceAdvertisement({
-      t: this.t,
-      d: this.d,
-      n: this.n,
-      h: this.h,
-      r: this.r,
-      o: this.o,
-      m: this.m,
-      f: this.f,
-      i: this.i,
-      l: this.l,
-      q: this.q
-    });
+    const stepped = stepPackResourceAdvertisementWithActions(
+      initialPackResourceAdvertisementState(),
+      {
+        kind: "resource-advertisement/pack-gate",
+        fields: {
+          t: this.t,
+          d: this.d,
+          n: this.n,
+          h: this.h,
+          r: this.r,
+          o: this.o,
+          m: this.m,
+          f: this.f,
+          i: this.i,
+          l: this.l,
+          q: this.q
+        }
+      }
+    );
+    const packed = shouldUsePackResourceAdvertisement(stepped.actions)
+      ? packResourceAdvertisementRawFromActions(stepped.actions)
+      : null;
+    if (packed === null) {
+      throw new Error("Failed to pack resource advertisement");
+    }
+    return packed;
   }
 }
 

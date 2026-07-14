@@ -52,8 +52,9 @@
 > **Destination name expansion / hash material** and shared **UTF-8** helpers are pure
 > protocol leaves; `Destination` and path-hash call sites adapt them (SHA stays at the
 > crypto edge). **Msgpack string / string-map** packing and **resource advertisement**
-> codecs (pack/unpack + flag bits) are pure protocol leaves; `ResourceAdvertisement`
-> adapts them. **Resource hashmap-update** framing (pack/unpack / packet pack/split /
+> codecs (pack/unpack + flag bits via **`stepPackResourceAdvertisementWithActions`** /
+> **`stepUnpackResourceAdvertisementWithActions`**: use-raw / use-fields|reject) are
+> pure protocol leaves; `ResourceAdvertisement` adapts them. **Resource hashmap-update** framing (pack/unpack / packet pack/split /
 > part-request parse via **`stepPackResourceHashmapUpdateWithActions`** /
 > **`stepUnpackResourceHashmapUpdateWithActions`** /
 > **`stepPackResourceHashmapUpdatePacketWithActions`** /
@@ -779,7 +780,8 @@
 > split-resource-decrypted-payload /
 > pack-resource-hashmap-update / unpack-resource-hashmap-update /
 > pack-resource-hashmap-update-packet / split-resource-hashmap-update-packet /
-> parse-resource-part-request reads
+> parse-resource-part-request / pack-resource-advertisement /
+> unpack-resource-advertisement reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -851,6 +853,11 @@
 > `packResourceHashmapUpdate` / `unpackResourceHashmapUpdate` /
 > `packResourceHashmapUpdatePacket` / `splitResourceHashmapUpdatePacket` /
 > `parseResourcePartRequest` reads beside the step).
+> **`stepPackResourceAdvertisementWithActions`** /
+> **`stepUnpackResourceAdvertisementWithActions`** emit `use-raw` /
+> `use-fields`|`reject`; resource advertisement pack / unpack apply only from
+> those actions (no ad-hoc `packResourceAdvertisement` /
+> `unpackResourceAdvertisement` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
