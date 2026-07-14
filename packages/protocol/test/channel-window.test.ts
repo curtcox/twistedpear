@@ -17,6 +17,7 @@ import {
   shouldApplyChannelPacketReceiptTimeout,
   shouldExtendPacketReceiptTimeout,
   shouldReplaceChannelResentPacket,
+  shouldResendChannelTimeoutPacket,
   indexOfChannelTxEnvelope,
   stepChannelWindow
 } from "../src/channel-window.js";
@@ -162,6 +163,8 @@ describe("protocol channel window", () => {
     expect(shouldApplyChannelPacketReceiptTimeout(false)).toBe(false);
     expect(shouldReplaceChannelResentPacket(true)).toBe(true);
     expect(shouldReplaceChannelResentPacket(false)).toBe(false);
+    expect(shouldResendChannelTimeoutPacket(true)).toBe(true);
+    expect(shouldResendChannelTimeoutPacket(false)).toBe(false);
   });
 
   it("finds TX envelope index by packet id", () => {

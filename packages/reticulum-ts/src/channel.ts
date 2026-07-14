@@ -34,6 +34,7 @@ import {
   shouldExtendPacketReceiptTimeout,
   shouldRegisterChannelMessageHandler,
   shouldReplaceChannelResentPacket,
+  shouldResendChannelTimeoutPacket,
   shouldStopChannelHandlerFanout,
   stepChannelWindow,
   unpackChannelEnvelope,
@@ -435,8 +436,8 @@ export class Channel {
     }
 
     envelope!.tries = plan.nextTries;
-    if (envelope!.packet !== null) {
-      const resent = await this.outlet.resend(envelope!.packet);
+    if (shouldResendChannelTimeoutPacket(envelope!.packet !== null)) {
+      const resent = await this.outlet.resend(envelope!.packet!);
       if (shouldReplaceChannelResentPacket(resent !== null)) {
         envelope!.packet = resent!;
       }

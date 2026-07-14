@@ -156,6 +156,36 @@ export type AnnounceValidatePlan =
   | "accept";
 
 /**
+ * Whether Announce.validate may attempt signature crypto at the edge.
+ */
+export function shouldAttemptAnnounceSignatureValidate(input: {
+  readonly parsedOk: boolean;
+  readonly identityPresent: boolean;
+  readonly publicKeyLoaded: boolean;
+}): boolean {
+  return input.parsedOk && input.identityPresent && input.publicKeyLoaded;
+}
+
+/**
+ * Whether Announce.validate may check destination-hash material after signature.
+ */
+export function shouldCheckAnnounceDestinationHash(input: {
+  readonly parsedOk: boolean;
+  readonly identityPresent: boolean;
+  readonly publicKeyLoaded: boolean;
+  readonly signatureValid: boolean;
+  readonly onlyValidateSignature: boolean;
+}): boolean {
+  return (
+    input.parsedOk &&
+    input.identityPresent &&
+    input.publicKeyLoaded &&
+    input.signatureValid &&
+    !input.onlyValidateSignature
+  );
+}
+
+/**
  * Announce.validate outcome from parse / key / signature / dest-hash gates.
  * Crypto loadPublicKey + validate stay at the adapter edge as booleans.
  */

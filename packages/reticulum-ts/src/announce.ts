@@ -10,6 +10,8 @@ import {
   parseAnnouncePayload,
   planAnnounceBuild,
   planAnnounceValidateOutcome,
+  shouldAttemptAnnounceSignatureValidate,
+  shouldCheckAnnounceDestinationHash,
   truncateToTruncatedHash
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./crypto/provider.js";
@@ -146,24 +148,38 @@ export class Announce {
       identity !== null && parsed !== null && identity.loadPublicKey(parsed.publicKey);
 
     let signatureValid = false;
-    if (parsed !== null && identity !== null && publicKeyLoaded) {
+    if (
+      shouldAttemptAnnounceSignatureValidate({
+        parsedOk: parsed !== null,
+        identityPresent: identity !== null,
+        publicKeyLoaded
+      })
+    ) {
       const signedData = announceSignedMaterial({
-        destinationHash: parsed.destinationHash,
-        publicKey: parsed.publicKey,
-        nameHash: parsed.nameHash,
-        randomHash: parsed.randomHash,
-        ratchetPublicKey: parsed.ratchetPublicKey,
-        appData: parsed.appData
+        destinationHash: parsed!.destinationHash,
+        publicKey: parsed!.publicKey,
+        nameHash: parsed!.nameHash,
+        randomHash: parsed!.randomHash,
+        ratchetPublicKey: parsed!.ratchetPublicKey,
+        appData: parsed!.appData
       });
-      signatureValid = identity.validate(parsed.signature, signedData);
+      signatureValid = identity!.validate(parsed!.signature, signedData);
     }
 
     let destinationHashMatches = false;
-    if (parsed !== null && identity !== null && publicKeyLoaded && signatureValid && !onlyValidateSignature) {
+    if (
+      shouldCheckAnnounceDestinationHash({
+        parsedOk: parsed !== null,
+        identityPresent: identity !== null,
+        publicKeyLoaded,
+        signatureValid,
+        onlyValidateSignature
+      })
+    ) {
       const expectedHash = truncateToTruncatedHash(
-        Identity.fullHash(provider, announceDestinationHashMaterial(parsed.nameHash, identity.hash))
+        Identity.fullHash(provider, announceDestinationHashMaterial(parsed!.nameHash, identity!.hash))
       );
-      destinationHashMatches = announceDestinationHashMatches(parsed.destinationHash, expectedHash);
+      destinationHashMatches = announceDestinationHashMatches(parsed!.destinationHash, expectedHash);
     }
 
     const plan = planAnnounceValidateOutcome({

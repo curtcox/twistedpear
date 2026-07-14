@@ -508,3 +508,23 @@ export function shouldFulfillResourcePartRequest(requestPresent: boolean): boole
 export function shouldApplyResourceFulfillPart(partPresent: boolean): boolean {
   return partPresent;
 }
+
+/** Whether a receive-part plan should write the matched slot. */
+export function shouldApplyResourceReceivePartSlot(input: {
+  readonly matched: boolean;
+  readonly slotPresent: boolean;
+}): boolean {
+  return input.matched && input.slotPresent;
+}
+
+/** Whether fulfill should emit a hashmap-update frame. */
+export function shouldSendResourceHashmapUpdate(hashmapUpdatePresent: boolean): boolean {
+  return hashmapUpdatePresent;
+}
+
+/** Whether fulfill should advance status to awaiting-proof. */
+export function shouldAdvanceResourceAwaitingProof(
+  status: "transferring" | "awaiting-proof"
+): boolean {
+  return status === "awaiting-proof";
+}

@@ -179,6 +179,11 @@ export function shouldReplaceChannelResentPacket(resentPresent: boolean): boolea
   return resentPresent;
 }
 
+/** Whether a timed-out channel envelope still has a packet to resend. */
+export function shouldResendChannelTimeoutPacket(packetPresent: boolean): boolean {
+  return packetPresent;
+}
+
 /** Shrink window after a packet timeout / retry. */
 export function applyChannelTimeout(state: ChannelWindowState): ChannelWindowState {
   let window = state.window;

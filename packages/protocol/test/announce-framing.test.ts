@@ -11,7 +11,9 @@ import {
   packAnnouncePayload,
   parseAnnouncePayload,
   planAnnounceBuild,
-  planAnnounceValidateOutcome
+  planAnnounceValidateOutcome,
+  shouldAttemptAnnounceSignatureValidate,
+  shouldCheckAnnounceDestinationHash
 } from "../src/announce-framing.js";
 import { PACKET_TYPE_ANNOUNCE, PACKET_TYPE_DATA } from "../src/packet-header.js";
 
@@ -198,5 +200,37 @@ describe("protocol announce framing", () => {
         destinationHashMatches: true
       })
     ).toBe("accept");
+    expect(
+      shouldAttemptAnnounceSignatureValidate({
+        parsedOk: true,
+        identityPresent: true,
+        publicKeyLoaded: true
+      })
+    ).toBe(true);
+    expect(
+      shouldAttemptAnnounceSignatureValidate({
+        parsedOk: true,
+        identityPresent: true,
+        publicKeyLoaded: false
+      })
+    ).toBe(false);
+    expect(
+      shouldCheckAnnounceDestinationHash({
+        parsedOk: true,
+        identityPresent: true,
+        publicKeyLoaded: true,
+        signatureValid: true,
+        onlyValidateSignature: false
+      })
+    ).toBe(true);
+    expect(
+      shouldCheckAnnounceDestinationHash({
+        parsedOk: true,
+        identityPresent: true,
+        publicKeyLoaded: true,
+        signatureValid: true,
+        onlyValidateSignature: true
+      })
+    ).toBe(false);
   });
 });

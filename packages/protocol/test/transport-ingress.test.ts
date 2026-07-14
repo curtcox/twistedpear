@@ -31,6 +31,7 @@ import {
   shouldDeferPacketHash,
   shouldDeleteExpiredReverseEntry,
   shouldDispatchLocalLinkRequest,
+  shouldDispatchResourceProofToLink,
   shouldMatchLocalInboundDestination,
   shouldMatchLocalTypedDestination,
   shouldRecordLinkRelayTableEntry,
@@ -423,6 +424,8 @@ describe("transport ingress", () => {
     const b = new Uint8Array([4, 5, 6]);
     expect(indexOfMatchingLinkId({ linkIds: [a, b], target: new Uint8Array([4, 5, 6]) })).toBe(1);
     expect(indexOfMatchingLinkId({ linkIds: [a, b], target: new Uint8Array([9]) })).toBeNull();
+    expect(shouldDispatchResourceProofToLink(true)).toBe(true);
+    expect(shouldDispatchResourceProofToLink(false)).toBe(false);
     expect(planLinkDataIngressTarget({ activeIndex: 0, pendingIndex: 1 })).toBe("active");
     expect(planLinkDataIngressTarget({ activeIndex: null, pendingIndex: 2 })).toBe("pending");
     expect(planLinkDataIngressTarget({ activeIndex: null, pendingIndex: null })).toBe("none");

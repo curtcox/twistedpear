@@ -20,8 +20,11 @@ import {
   resourceHashmapMaxLen,
   resourceMapHashCollisionGuardLimit,
   shouldAcceptResourceHashmapUpdateFrame,
+  shouldAdvanceResourceAwaitingProof,
   shouldApplyResourceFulfillPart,
+  shouldApplyResourceReceivePartSlot,
   shouldFulfillResourcePartRequest,
+  shouldSendResourceHashmapUpdate,
   splitResourceHashmapUpdatePacket,
   unpackResourceHashmapUpdate
 } from "../src/resource-hashmap.js";
@@ -276,5 +279,12 @@ describe("protocol resource hashmap", () => {
     expect(shouldFulfillResourcePartRequest(false)).toBe(false);
     expect(shouldApplyResourceFulfillPart(true)).toBe(true);
     expect(shouldApplyResourceFulfillPart(false)).toBe(false);
+    expect(shouldSendResourceHashmapUpdate(true)).toBe(true);
+    expect(shouldSendResourceHashmapUpdate(false)).toBe(false);
+    expect(shouldAdvanceResourceAwaitingProof("awaiting-proof")).toBe(true);
+    expect(shouldAdvanceResourceAwaitingProof("transferring")).toBe(false);
+    expect(shouldApplyResourceReceivePartSlot({ matched: true, slotPresent: true })).toBe(true);
+    expect(shouldApplyResourceReceivePartSlot({ matched: true, slotPresent: false })).toBe(false);
+    expect(shouldApplyResourceReceivePartSlot({ matched: false, slotPresent: true })).toBe(false);
   });
 });

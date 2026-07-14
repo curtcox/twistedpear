@@ -61,8 +61,11 @@ import {
   splitResourceHashmapUpdatePacket,
   shouldAcceptIncomingResourceAdvertisement,
   shouldAdvertiseResource,
+  shouldAdvanceResourceAwaitingProof,
   shouldApplyResourceFulfillPart,
+  shouldApplyResourceReceivePartSlot,
   shouldFulfillResourcePartRequest,
+  shouldSendResourceHashmapUpdate,
   stepResourceWatchdogWithActions,
   unpackResourceAdvertisement,
   unpackResourceHashmapUpdate,
@@ -583,10 +586,10 @@ export class Resource {
     this.sentParts = plan.nextSentParts;
     this.receiverMinConsecutiveHeight = plan.nextReceiverMinConsecutiveHeight;
 
-    if (plan.hashmapUpdate !== null) {
+    if (shouldSendResourceHashmapUpdate(plan.hashmapUpdate !== null)) {
       const update = packResourceHashmapUpdate(
-        plan.hashmapUpdate.segment,
-        assembleResourceHashmapBytes(plan.hashmapUpdate.mapHashes)
+        plan.hashmapUpdate!.segment,
+        assembleResourceHashmapBytes(plan.hashmapUpdate!.mapHashes)
       );
       await this.link.sendContext(
         PacketContext.RESOURCE_HMU,
@@ -594,7 +597,7 @@ export class Resource {
       );
     }
 
-    if (plan.status === "awaiting-proof") {
+    if (shouldAdvanceResourceAwaitingProof(plan.status)) {
       this.applyStatus({ kind: "resource/awaiting-proof" });
     }
   }
@@ -662,8 +665,13 @@ export class Resource {
       assemblyStarted: this.assemblyStarted
     });
 
-    if (plan.matched && plan.slot !== null) {
-      this.receivedParts[plan.slot] = Uint8Array.from(partData);
+    if (
+      shouldApplyResourceReceivePartSlot({
+        matched: plan.matched,
+        slotPresent: plan.slot !== null
+      })
+    ) {
+      this.receivedParts[plan.slot!] = Uint8Array.from(partData);
       this.receivedCount = plan.receivedCount;
       this.outstandingParts = plan.outstandingParts;
       this.consecutiveCompletedHeight = plan.consecutiveCompletedHeight;

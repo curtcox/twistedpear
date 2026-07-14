@@ -352,6 +352,11 @@ export function shouldRememberPacketHashAfterRelay(rememberAfterRelay: boolean):
   return rememberAfterRelay;
 }
 
+/** Whether RESOURCE_PRF ingress should dispatch to a matched active link. */
+export function shouldDispatchResourceProofToLink(activeIndexPresent: boolean): boolean {
+  return activeIndexPresent;
+}
+
 /** Index of a link-id in a list (link-data / resource-prf ingress). */
 export function indexOfMatchingLinkId(input: {
   readonly linkIds: ReadonlyArray<Uint8Array>;

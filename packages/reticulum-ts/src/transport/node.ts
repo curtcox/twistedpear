@@ -35,6 +35,7 @@ import {
   shouldAcceptLinkLrProofCandidate,
   shouldAnswerPathWithEntry,
   shouldDispatchLocalLinkRequest,
+  shouldDispatchResourceProofToLink,
   shouldFailAndDropOutboundReceipt,
   shouldIgnoreLocalAnnounce,
   shouldKeepOutboundReceipt,
@@ -667,8 +668,8 @@ export class LeafTransport {
         linkIds: this.activeLinks.map((link) => link.linkId),
         target: packet.destinationHash
       });
-      if (activeIndex !== null) {
-        await this.activeLinks[activeIndex]!.handleResourceProof(packet);
+      if (shouldDispatchResourceProofToLink(activeIndex !== null)) {
+        await this.activeLinks[activeIndex!]!.handleResourceProof(packet);
       }
       return;
     }
