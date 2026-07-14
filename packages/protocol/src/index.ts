@@ -273,6 +273,16 @@ export {
   type LinkAwaitStepResult
 } from "./link-await.js";
 export {
+  initialLinkAppRequestAwaitState,
+  shouldContinueLinkAppRequestAwait,
+  stepLinkAppRequestAwait,
+  stepLinkAppRequestAwaitWithActions,
+  type LinkAppRequestAwaitAction,
+  type LinkAppRequestAwaitEvent,
+  type LinkAppRequestAwaitState,
+  type LinkAppRequestAwaitStepResult
+} from "./link-app-request-await.js";
+export {
   PATH_RESPONSE_GRACE_TIMER_ID,
   initialPathResponseGraceState,
   shouldTransmitPathResponse,

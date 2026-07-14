@@ -2,6 +2,7 @@ import {
   PROPAGATION_LINK_TIMER_ID,
   PropagationTransferState,
   decodeLxmfPeerError,
+  initialLinkAppRequestAwaitState,
   initialPropagationTransferState,
   planLxmfPropagationLinkReady,
   planLxmfPropagationSyncPrep,
@@ -14,6 +15,7 @@ import {
   shouldReuseActiveLink,
   shouldTeardownLxmfPropagationLink,
   shouldTreatPropagationListAsEmpty,
+  stepLinkAppRequestAwaitWithActions,
   stepPropagationTransferWithActions,
   type PropagationTransferAction,
   type PropagationTransferMachineState,
@@ -499,16 +501,61 @@ async function awaitLinkRequest(
   timeout: number
 ): Promise<Uint8Array | null> {
   return new Promise((resolve) => {
-    void link
-      .request(path, data, {
-        timeout,
-        response: (receipt) => resolve(receipt.response),
-        failed: () => resolve(null)
-      })
-      .then((receipt) => {
-        if (receipt === false) {
-          resolve(null);
+    const armed = stepLinkAppRequestAwaitWithActions(initialLinkAppRequestAwaitState(), {
+      kind: "app-request-await/arm",
+      timeoutSec: timeout
+    });
+    let state = armed.state;
+    let concluded = false;
+
+    const finish = (response: Uint8Array | null): void => {
+      if (concluded) {
+        return;
+      }
+      concluded = true;
+      resolve(response);
+    };
+
+    const applyActions = (
+      actions: ReturnType<typeof stepLinkAppRequestAwaitWithActions>["actions"]
+    ): void => {
+      for (const action of actions) {
+        if (action.kind === "send-request") {
+          void link
+            .request(path, data, {
+              timeout: action.timeoutSec,
+              response: (receipt) => {
+                const result = stepLinkAppRequestAwaitWithActions(state, {
+                  kind: "app-request-await/response",
+                  response: receipt.response
+                });
+                state = result.state;
+                applyActions(result.actions);
+              },
+              failed: () => {
+                const result = stepLinkAppRequestAwaitWithActions(state, {
+                  kind: "app-request-await/failed"
+                });
+                state = result.state;
+                applyActions(result.actions);
+              }
+            })
+            .then((receipt) => {
+              if (receipt === false) {
+                const result = stepLinkAppRequestAwaitWithActions(state, {
+                  kind: "app-request-await/send-rejected"
+                });
+                state = result.state;
+                applyActions(result.actions);
+              }
+            });
         }
-      });
+        if (action.kind === "resolve") {
+          finish(action.response);
+        }
+      }
+    };
+
+    applyActions(armed.actions);
   });
 }
