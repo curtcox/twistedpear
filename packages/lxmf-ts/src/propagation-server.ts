@@ -1,6 +1,8 @@
 import {
   allowClientRequest as checkClientRateLimit,
-  decodeLxmfPeerError,
+  initialDecodeLxmfPeerErrorState,
+  lxmfPeerErrorFromActions,
+  stepDecodeLxmfPeerErrorWithActions,
   initialPersistDebounceState,
   initialPropagationGetState,
   initialPropagationRestoreState,
@@ -407,5 +409,9 @@ export class PropagationServer {
 }
 
 export function decodePropagationPeerError(response: Uint8Array): number | null {
-  return decodeLxmfPeerError(response);
+  const stepped = stepDecodeLxmfPeerErrorWithActions(initialDecodeLxmfPeerErrorState(), {
+    kind: "lxmf/peer-error-decode-gate",
+    response
+  });
+  return lxmfPeerErrorFromActions(stepped.actions);
 }

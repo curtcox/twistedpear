@@ -119,7 +119,8 @@
 > **`stepDecodeWsClientFrameWithActions`**: use-raw / use-fields|reject),
 > **HDLC interface framing** (encode/decode via
 > **`stepEncodeHdlcFrameWithActions`** / **`stepDecodeHdlcFramesWithActions`**:
-> use-raw / use-fields), and **LXMF peer-error** msgpack decode are pure
+> use-raw / use-fields), and **LXMF peer-error** msgpack decode (via
+> **`stepDecodeLxmfPeerErrorWithActions`**: use-fields|reject) are pure
 > protocol leaves; Identity, websocket-server, `HdlcPacketInterface`, and
 > propagation adapters use them. **Identity ratchet
 > persistence** (JSON encode/decode, store key, usability/expiry; lookup via
@@ -815,7 +816,8 @@
 > lxmf-inbound-delivery / pack-link-identify-payload /
 > split-link-identify-payload / pack-web-identity-record /
 > split-web-identity-record / encode-ws-binary-frame /
-> decode-ws-client-frame / encode-hdlc-frame / decode-hdlc-frames reads
+> decode-ws-client-frame / encode-hdlc-frame / decode-hdlc-frames /
+> decode-lxmf-peer-error reads
 > beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
@@ -940,6 +942,9 @@
 > **`stepDecodeHdlcFramesWithActions`** emit `use-raw` / `use-fields`; HDLC
 > interface encode / decode apply only from those actions (no ad-hoc
 > `encodeHdlcFrame` / `decodeHdlcFrames` reads beside the step).
+> **`stepDecodeLxmfPeerErrorWithActions`** emits `use-fields`|`reject`; LXMF
+> peer-error msgpack decode applies only from those actions (no ad-hoc
+> `decodeLxmfPeerError` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

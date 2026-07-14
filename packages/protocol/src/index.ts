@@ -2308,6 +2308,16 @@ export {
   LXMF_PEER_ERROR_TIMEOUT,
   LxmfPeerError,
   decodeLxmfPeerError,
+  initialDecodeLxmfPeerErrorState,
+  lxmfPeerErrorFromActions,
+  shouldRejectDecodeLxmfPeerError,
+  shouldUseDecodeLxmfPeerError,
+  stepDecodeLxmfPeerErrorWithActions,
+  type DecodeLxmfPeerErrorAction,
+  type DecodeLxmfPeerErrorEvent,
+  type DecodeLxmfPeerErrorState,
+  type DecodeLxmfPeerErrorStepResult,
+  type LxmfPeerErrorFields,
   type LxmfPeerErrorValue
 } from "./lxmf-peer-error.js";
 export {

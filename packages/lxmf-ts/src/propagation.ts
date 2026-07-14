@@ -1,12 +1,13 @@
 import {
   PROPAGATION_LINK_TIMER_ID,
   PropagationTransferState,
-  decodeLxmfPeerError,
+  initialDecodeLxmfPeerErrorState,
   initialLinkAppRequestAwaitState,
   initialLxmfPropagationLinkReadyState,
   initialLxmfPropagationSyncPrepState,
   initialPropagationGetState,
   initialPropagationTransferState,
+  lxmfPeerErrorFromActions,
   propagationGetApplyIds,
   propagationGetListIds,
   shouldAcceptPropagationGetRequestData,
@@ -25,6 +26,8 @@ import {
   shouldReuseActiveLink,
   shouldTeardownLxmfPropagationLink,
   shouldTreatPropagationListAsEmpty,
+  shouldUseDecodeLxmfPeerError,
+  stepDecodeLxmfPeerErrorWithActions,
   stepLinkAppRequestAwaitWithActions,
   stepLxmfPropagationLinkReadyWithActions,
   stepLxmfPropagationSyncPrepWithActions,
@@ -164,8 +167,15 @@ export class PropagationClient {
           return { state: this.state, messages: [] };
         }
 
-        const listError = decodeLxmfPeerError(listResponse!);
-        if (shouldHandlePropagationPeerError(listError !== null)) {
+        const listErrorStepped = stepDecodeLxmfPeerErrorWithActions(
+          initialDecodeLxmfPeerErrorState(),
+          {
+            kind: "lxmf/peer-error-decode-gate",
+            response: listResponse!
+          }
+        );
+        if (shouldHandlePropagationPeerError(shouldUseDecodeLxmfPeerError(listErrorStepped.actions))) {
+          const listError = lxmfPeerErrorFromActions(listErrorStepped.actions);
           this.applyTransfer({ kind: "xfer/list-peer-error", code: listError! });
           return { state: this.state, messages: [] };
         }
