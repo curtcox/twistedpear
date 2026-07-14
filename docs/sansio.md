@@ -325,6 +325,9 @@
 > protocol; `TransportNode.sendPathResponse` adapts it.
 > **`stepInterfaceConnect`** (initial socket connect timeout / open / fail) lives in
 > protocol; WebSocket client adapts it (TCP/WebSocket share `INTERFACE_CONNECT_TIMEOUT_MS`).
+> **`stepPacketReceiptTimeout`** emits `timer/set` / `timer/cancel` for
+> `receipt-timeout`; `PacketReceipt` schedules from injected `clock` (Channel /
+> LinkRequestReceipt callbacks fire on timer expiry).
 > **`shouldDeliverPendingLinkAppResponse`** / **`shouldCommitLinkRemoteIdentity`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**

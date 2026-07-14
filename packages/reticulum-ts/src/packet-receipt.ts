@@ -2,6 +2,7 @@ import {
   PACKET_EXPLICIT_PROOF_SIZE,
   PACKET_SIGNATURE_SIZE,
   PacketReceiptStatus,
+  RECEIPT_TIMEOUT_TIMER_ID,
   isPacketTypeProof,
   packetProofHashMatches,
   planPacketReceiptCallback,
@@ -13,9 +14,10 @@ import {
   type PacketReceiptStatusValue,
   type PacketReceiptTimeoutState
 } from "@twistedpear/protocol";
+import type { Intent } from "@twistedpear/effects";
 import type { Identity } from "./identity.js";
 import { Packet } from "./packet.js";
-import type { Timer } from "./runtime/runtime.js";
+import type { Clock, Timer } from "./runtime/runtime.js";
 
 /** Mirrors RNS/Packet.py PacketReceipt constants. */
 export { PacketReceiptStatus, type PacketReceiptStatusValue };
@@ -34,6 +36,8 @@ export interface PacketReceiptCallbacks {
 export interface PacketReceiptOptions {
   readonly sentAt: number;
   readonly now: NowSeconds;
+  /** When provided, timeout arms schedule real timers from protocol intents. */
+  readonly clock?: Clock;
 }
 
 export class PacketReceipt {
@@ -54,6 +58,7 @@ export class PacketReceipt {
     timedOut: false
   };
   private readonly now: NowSeconds;
+  private readonly clock: Clock | null;
 
   get status(): PacketReceiptStatusValue {
     return this.receiptState.status;
@@ -82,6 +87,7 @@ export class PacketReceipt {
     this.targetDestinationHash = targetDestinationHash;
     this.sentAt = options.sentAt;
     this.now = options.now;
+    this.clock = options.clock ?? null;
   }
 
   validateProof(proof: Uint8Array, identity: Identity): boolean {
@@ -103,10 +109,12 @@ export class PacketReceipt {
       return false;
     }
 
-    this.receiptState = stepPacketReceiptTimeout(this.receiptState, {
-      kind: "receipt/delivered",
-      at: this.now()
-    }).state;
+    this.applyReceiptStep(
+      stepPacketReceiptTimeout(this.receiptState, {
+        kind: "receipt/delivered",
+        at: this.now()
+      })
+    );
     this.proved = true;
     this.callbacks.delivery?.(this);
     return true;
@@ -126,11 +134,13 @@ export class PacketReceipt {
 
   setTimeout(seconds: number): void {
     this.timeout = seconds;
-    this.receiptState = stepPacketReceiptTimeout(this.receiptState, {
-      kind: "receipt/arm",
-      at: this.now(),
-      timeoutSeconds: seconds
-    }).state;
+    this.applyReceiptStep(
+      stepPacketReceiptTimeout(this.receiptState, {
+        kind: "receipt/arm",
+        at: this.now(),
+        timeoutSeconds: seconds
+      })
+    );
   }
 
   setTimeoutCallback(callback: ((receipt: PacketReceipt) => void) | null): void {
@@ -156,7 +166,7 @@ export class PacketReceipt {
       kind: "receipt/check",
       at: nowSeconds
     });
-    this.receiptState = stepped.state;
+    this.applyReceiptStep(stepped);
     if (!shouldInvokePacketReceiptTimeoutCallback(stepped.state.timedOut)) {
       return false;
     }
@@ -167,14 +177,51 @@ export class PacketReceipt {
 
   /** Mark the receipt failed (e.g. outbound send could not transmit). */
   markFailed(atSeconds = this.now()): void {
-    this.receiptState = stepPacketReceiptTimeout(this.receiptState, {
-      kind: "receipt/failed",
-      at: atSeconds
-    }).state;
+    this.applyReceiptStep(
+      stepPacketReceiptTimeout(this.receiptState, {
+        kind: "receipt/failed",
+        at: atSeconds
+      })
+    );
   }
 
   cancelTimeoutTimer(): void {
     this.timeoutTimer?.cancel();
     this.timeoutTimer = null;
+  }
+
+  private applyReceiptStep(result: {
+    readonly state: PacketReceiptTimeoutState;
+    readonly intents: readonly Intent[];
+  }): void {
+    this.receiptState = result.state;
+    for (const intent of result.intents) {
+      if (intent.kind === "timer/cancel" && intent.timer.id === RECEIPT_TIMEOUT_TIMER_ID) {
+        this.cancelTimeoutTimer();
+      }
+      if (intent.kind === "timer/set" && intent.timer.id === RECEIPT_TIMEOUT_TIMER_ID) {
+        this.scheduleTimeout(intent.timer.delayMs);
+      }
+    }
+  }
+
+  private scheduleTimeout(delayMs: number): void {
+    this.cancelTimeoutTimer();
+    if (this.clock === null) {
+      return;
+    }
+
+    this.timeoutTimer = this.clock.setTimeout(() => {
+      this.timeoutTimer = null;
+      const stepped = stepPacketReceiptTimeout(this.receiptState, {
+        kind: "timer/fired",
+        id: RECEIPT_TIMEOUT_TIMER_ID,
+        at: this.clock!.now()
+      });
+      this.applyReceiptStep(stepped);
+      if (shouldInvokePacketReceiptTimeoutCallback(stepped.state.timedOut)) {
+        this.callbacks.timeout?.(this);
+      }
+    }, delayMs);
   }
 }

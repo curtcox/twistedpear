@@ -1,8 +1,10 @@
 /**
  * Pure packet-receipt timeout conclusion.
- * Adapters own callbacks/timers; this only decides FAILED transitions.
+ * Adapters schedule/cancel clocks from timer intents and own callbacks.
  */
-import type { Event, StepFn } from "@twistedpear/effects";
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
+
+export const RECEIPT_TIMEOUT_TIMER_ID = "receipt-timeout";
 
 export const PacketReceiptStatus = {
   FAILED: 0x00,
@@ -60,14 +62,31 @@ export function checkPacketReceiptTimeout(input: {
   return { timedOut: false, status: input.status, concludedAt: null };
 }
 
+/** Whether a packet-receipt timeout timer should be armed from intents. */
+export function shouldArmPacketReceiptTimeoutTimer(timeoutSeconds: number): boolean {
+  return timeoutSeconds > 0;
+}
+
 export const stepPacketReceiptTimeout: StepFn<PacketReceiptTimeoutState> = (state, event) =>
   stepPacketReceiptTimeoutInner(state, event as PacketReceiptTimeoutEvent);
 
 function stepPacketReceiptTimeoutInner(
   state: PacketReceiptTimeoutState,
   event: PacketReceiptTimeoutEvent
-): { state: PacketReceiptTimeoutState; intents: [] } {
+): { state: PacketReceiptTimeoutState; intents: Intent[] } {
   if (event.kind === "receipt/arm") {
+    const intents: Intent[] = [
+      { kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }
+    ];
+    if (shouldArmPacketReceiptTimeoutTimer(event.timeoutSeconds)) {
+      intents.push({
+        kind: "timer/set",
+        timer: {
+          id: RECEIPT_TIMEOUT_TIMER_ID,
+          delayMs: event.timeoutSeconds * 1000
+        }
+      });
+    }
     return {
       state: {
         status: PacketReceiptStatus.SENT,
@@ -75,7 +94,7 @@ function stepPacketReceiptTimeoutInner(
         concludedAt: null,
         timedOut: false
       },
-      intents: []
+      intents
     };
   }
 
@@ -87,7 +106,7 @@ function stepPacketReceiptTimeoutInner(
         concludedAt: event.at,
         timedOut: false
       },
-      intents: []
+      intents: [{ kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }]
     };
   }
 
@@ -105,11 +124,14 @@ function stepPacketReceiptTimeoutInner(
         concludedAt: event.at,
         timedOut: false
       },
-      intents: []
+      intents: [{ kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }]
     };
   }
 
-  if (event.kind === "receipt/check" || (event.kind === "timer/fired" && event.id === "receipt-timeout")) {
+  if (
+    event.kind === "receipt/check" ||
+    (event.kind === "timer/fired" && event.id === RECEIPT_TIMEOUT_TIMER_ID)
+  ) {
     const at = event.kind === "receipt/check" ? event.at : event.at / 1000;
     const result = checkPacketReceiptTimeout({
       status: state.status,
@@ -126,7 +148,10 @@ function stepPacketReceiptTimeoutInner(
         concludedAt: result.concludedAt,
         timedOut: true
       },
-      intents: []
+      intents:
+        event.kind === "receipt/check"
+          ? [{ kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }]
+          : []
     };
   }
 

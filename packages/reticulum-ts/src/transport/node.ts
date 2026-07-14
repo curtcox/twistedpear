@@ -429,7 +429,8 @@ export class LeafTransport {
       const nowSeconds = () => this.clock.now() / 1000;
       receipt = new PacketReceipt(packet.hash(), packet.truncatedHash(), packet.destinationHash, {
         sentAt: nowSeconds(),
-        now: nowSeconds
+        now: nowSeconds,
+        clock: this.clock
       });
       this.receipts.push(receipt);
     }

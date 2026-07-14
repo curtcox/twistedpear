@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   PacketReceiptStatus,
+  RECEIPT_TIMEOUT_TIMER_ID,
   checkPacketReceiptTimeout,
   initialPacketReceiptTimeoutState,
   planOutboundReceiptOutcome,
   planPacketReceiptCallback,
   planPacketReceiptProofIngress,
   planUnregisterPacketReceipt,
+  shouldArmPacketReceiptTimeoutTimer,
   shouldFailAndDropOutboundReceipt,
   shouldInvokePacketReceiptTimeoutCallback,
   shouldKeepOutboundReceipt,
@@ -45,40 +47,76 @@ describe("protocol packet receipt timeout", () => {
     ).toBe(false);
   });
 
-  it("step machine arms and concludes", () => {
-    let state = initialPacketReceiptTimeoutState();
-    state = stepPacketReceiptTimeout(state, {
+  it("step machine arms with timer intents and concludes", () => {
+    const armed = stepPacketReceiptTimeout(initialPacketReceiptTimeoutState(), {
       kind: "receipt/arm",
       at: 1000,
       timeoutSeconds: 5
-    } as never).state;
-    expect(state.timeoutAt).toBe(1005);
+    } as never);
+    expect(armed.state.timeoutAt).toBe(1005);
+    expect(shouldArmPacketReceiptTimeoutTimer(5)).toBe(true);
+    expect(armed.intents).toEqual([
+      { kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } },
+      {
+        kind: "timer/set",
+        timer: { id: RECEIPT_TIMEOUT_TIMER_ID, delayMs: 5_000 }
+      }
+    ]);
 
-    state = stepPacketReceiptTimeout(state, { kind: "receipt/check", at: 1005 } as never).state;
-    expect(state.timedOut).toBe(true);
-    expect(state.status).toBe(PacketReceiptStatus.FAILED);
+    const checked = stepPacketReceiptTimeout(armed.state, {
+      kind: "receipt/check",
+      at: 1005
+    } as never);
+    expect(checked.state.timedOut).toBe(true);
+    expect(checked.state.status).toBe(PacketReceiptStatus.FAILED);
+    expect(checked.intents).toEqual([
+      { kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }
+    ]);
   });
 
-  it("marks send-failure as failed without timing out", () => {
-    let state = initialPacketReceiptTimeoutState();
-    state = stepPacketReceiptTimeout(state, {
+  it("cancels the timer on deliver/fail and concludes on timer/fired", () => {
+    let state = stepPacketReceiptTimeout(initialPacketReceiptTimeoutState(), {
       kind: "receipt/arm",
       at: 10,
       timeoutSeconds: 5
     } as never).state;
-    state = stepPacketReceiptTimeout(state, { kind: "receipt/failed", at: 11 } as never).state;
-    expect(state.status).toBe(PacketReceiptStatus.FAILED);
-    expect(state.concludedAt).toBe(11);
-    expect(state.timedOut).toBe(false);
 
-    const delivered = stepPacketReceiptTimeout(
-      stepPacketReceiptTimeout(initialPacketReceiptTimeoutState(), {
-        kind: "receipt/delivered",
-        at: 1
-      } as never).state,
-      { kind: "receipt/failed", at: 2 } as never
-    ).state;
-    expect(delivered.status).toBe(PacketReceiptStatus.DELIVERED);
+    const failed = stepPacketReceiptTimeout(state, {
+      kind: "receipt/failed",
+      at: 11
+    } as never);
+    expect(failed.state.status).toBe(PacketReceiptStatus.FAILED);
+    expect(failed.state.concludedAt).toBe(11);
+    expect(failed.state.timedOut).toBe(false);
+    expect(failed.intents).toEqual([
+      { kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }
+    ]);
+
+    const delivered = stepPacketReceiptTimeout(initialPacketReceiptTimeoutState(), {
+      kind: "receipt/delivered",
+      at: 1
+    } as never);
+    expect(delivered.intents).toEqual([
+      { kind: "timer/cancel", timer: { id: RECEIPT_TIMEOUT_TIMER_ID } }
+    ]);
+    expect(
+      stepPacketReceiptTimeout(delivered.state, { kind: "receipt/failed", at: 2 } as never).state
+        .status
+    ).toBe(PacketReceiptStatus.DELIVERED);
+
+    state = stepPacketReceiptTimeout(initialPacketReceiptTimeoutState(), {
+      kind: "receipt/arm",
+      at: 1,
+      timeoutSeconds: 2
+    } as never).state;
+    const fired = stepPacketReceiptTimeout(state, {
+      kind: "timer/fired",
+      id: RECEIPT_TIMEOUT_TIMER_ID,
+      at: 3_000
+    });
+    expect(fired.state.timedOut).toBe(true);
+    expect(fired.state.status).toBe(PacketReceiptStatus.FAILED);
+    expect(fired.intents).toEqual([]);
   });
 
   it("plans outbound receipt and receipt-proof ingress outcomes", () => {
@@ -119,5 +157,35 @@ describe("protocol packet receipt timeout", () => {
     expect(planPacketReceiptCallback(false)).toBe("clear");
     expect(shouldInvokePacketReceiptTimeoutCallback(true)).toBe(true);
     expect(shouldInvokePacketReceiptTimeoutCallback(false)).toBe(false);
+    expect(shouldArmPacketReceiptTimeoutTimer(0)).toBe(false);
+  });
+
+  it("double-runs identically", () => {
+    const run = () => {
+      const steps = [];
+      let state = initialPacketReceiptTimeoutState();
+      steps.push(
+        stepPacketReceiptTimeout(state, {
+          kind: "receipt/arm",
+          at: 100,
+          timeoutSeconds: 1
+        } as never)
+      );
+      state = steps[0]!.state;
+      steps.push(
+        stepPacketReceiptTimeout(state, {
+          kind: "timer/fired",
+          id: RECEIPT_TIMEOUT_TIMER_ID,
+          at: 1_100
+        })
+      );
+      return steps.map((step) => ({
+        status: step.state.status,
+        timedOut: step.state.timedOut,
+        concludedAt: step.state.concludedAt,
+        intents: step.intents
+      }));
+    };
+    expect(run()).toEqual(run());
   });
 });
