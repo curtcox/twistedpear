@@ -42,7 +42,7 @@ import {
   computeLinkRequestTimeout,
   computeLinkRttSeconds,
   containsResourceHash,
-  deriveRnsLinkKey,
+  deriveRnsLinkKeyRawFromActions,
   encodeLinkMtuBytes,
   encodeLinkSignallingBytes,
   indexOfPendingLinkAppRequest,
@@ -220,16 +220,20 @@ import {
   isLinkKeepaliveContext,
   identityPublicKeyFieldsFromActions,
   initialSplitIdentityPublicKeyState,
+  initialDeriveRnsLinkKeyState,
   initialSplitInitiatorLinkEntropyState,
   initialSplitResponderLinkEntropyState,
   initiatorLinkEntropyFieldsFromActions,
   responderLinkEntropyFieldsFromActions,
+  shouldRejectDeriveRnsLinkKey,
   shouldRejectSplitInitiatorLinkEntropy,
+  shouldUseDeriveRnsLinkKey,
   shouldRejectSplitResponderLinkEntropy,
   shouldUseSplitIdentityPublicKey,
   shouldUseSplitInitiatorLinkEntropy,
   shouldUseSplitResponderLinkEntropy,
   stepSplitIdentityPublicKeyWithActions,
+  stepDeriveRnsLinkKeyWithActions,
   stepSplitInitiatorLinkEntropyWithActions,
   stepSplitResponderLinkEntropyWithActions,
   initialSplitResourceHashmapUpdatePacketState,
@@ -704,7 +708,21 @@ export class Link {
     );
     const sharedKey = this.provider.x25519SharedSecret(privateKey, peerPublicKeyBytes);
     // ECDH at the crypto adapter edge; RNS HKDF length/salt selection is pure protocol.
-    this.derivedKey = deriveRnsLinkKey(sharedKey, this.linkId, this.mode);
+    const deriveStepped = stepDeriveRnsLinkKeyWithActions(initialDeriveRnsLinkKeyState(), {
+      kind: "link-key/derive-gate",
+      sharedSecret: sharedKey,
+      linkId: this.linkId,
+      mode: this.mode
+    });
+    const derivedKey = deriveRnsLinkKeyRawFromActions(deriveStepped.actions);
+    if (
+      shouldRejectDeriveRnsLinkKey(deriveStepped.actions) ||
+      !shouldUseDeriveRnsLinkKey(deriveStepped.actions) ||
+      derivedKey === null
+    ) {
+      throw new Error("Cannot derive key from empty input material");
+    }
+    this.derivedKey = derivedKey;
   }
 
   async prove(): Promise<void> {

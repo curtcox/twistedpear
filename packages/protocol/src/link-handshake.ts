@@ -1,13 +1,21 @@
 /**
  * Pure sim-oriented link crypto handshake.
  * Key material arrives only via events (adapters supply entropy or ECDH shared secrets);
- * derivation uses RNS HKDF via {@link deriveRnsLinkKey}.
+ * derivation uses RNS HKDF via {@link stepDeriveRnsLinkKeyWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
   LinkKeyMode,
-  deriveRnsLinkKey,
-  orderIndependentSharedSecret
+  deriveRnsLinkKeyRawFromActions,
+  initialDeriveRnsLinkKeyState,
+  initialOrderIndependentSharedSecretState,
+  orderIndependentSharedSecretRawFromActions,
+  shouldRejectDeriveRnsLinkKey,
+  shouldRejectOrderIndependentSharedSecret,
+  shouldUseDeriveRnsLinkKey,
+  shouldUseOrderIndependentSharedSecret,
+  stepDeriveRnsLinkKeyWithActions,
+  stepOrderIndependentSharedSecretWithActions
 } from "./link-key-derive.js";
 
 export const LINK_HANDSHAKE_KEY_SIZE = 32;
@@ -86,6 +94,8 @@ export function initialLinkHandshakeState(options: {
 /**
  * Commutative sim key derivation via order-independent shared secret + RNS HKDF.
  * Not wire ECDH — adapters should inject `handshake/shared-secret` for real X25519.
+ * Conclusions leave via machine actions (no ad-hoc `orderIndependentSharedSecret` /
+ * `deriveRnsLinkKey` reads beside the step).
  */
 export function deriveSimSessionKey(
   localMaterial: Uint8Array,
@@ -93,8 +103,37 @@ export function deriveSimSessionKey(
   linkId: Uint8Array,
   mode: number = LinkKeyMode.MODE_AES256_CBC
 ): Uint8Array {
-  const shared = orderIndependentSharedSecret(localMaterial, peerMaterial);
-  return deriveRnsLinkKey(shared, linkId, mode);
+  const sharedStepped = stepOrderIndependentSharedSecretWithActions(
+    initialOrderIndependentSharedSecretState(),
+    {
+      kind: "link-key/order-independent-shared-secret-gate",
+      a: localMaterial,
+      b: peerMaterial
+    }
+  );
+  const shared = orderIndependentSharedSecretRawFromActions(sharedStepped.actions);
+  if (
+    shouldRejectOrderIndependentSharedSecret(sharedStepped.actions) ||
+    !shouldUseOrderIndependentSharedSecret(sharedStepped.actions) ||
+    shared === null
+  ) {
+    throw new Error("Cannot derive key from empty input material");
+  }
+  const derived = stepDeriveRnsLinkKeyWithActions(initialDeriveRnsLinkKeyState(), {
+    kind: "link-key/derive-gate",
+    sharedSecret: shared,
+    linkId,
+    mode
+  });
+  const key = deriveRnsLinkKeyRawFromActions(derived.actions);
+  if (
+    shouldRejectDeriveRnsLinkKey(derived.actions) ||
+    !shouldUseDeriveRnsLinkKey(derived.actions) ||
+    key === null
+  ) {
+    throw new Error("Cannot derive key from empty input material");
+  }
+  return key;
 }
 
 export const stepLinkHandshake: StepFn<LinkHandshakeState> = (state, event) => {
@@ -147,11 +186,24 @@ export function stepLinkHandshakeWithActions(
 
   if (event.kind === "handshake/shared-secret") {
     const linkId = Uint8Array.from(event.linkId);
-    const sessionKey = deriveRnsLinkKey(
-      event.sharedSecret,
+    const derived = stepDeriveRnsLinkKeyWithActions(initialDeriveRnsLinkKeyState(), {
+      kind: "link-key/derive-gate",
+      sharedSecret: event.sharedSecret,
       linkId,
-      event.mode ?? LinkKeyMode.MODE_AES256_CBC
-    );
+      mode: event.mode ?? LinkKeyMode.MODE_AES256_CBC
+    });
+    const sessionKey = deriveRnsLinkKeyRawFromActions(derived.actions);
+    if (
+      shouldRejectDeriveRnsLinkKey(derived.actions) ||
+      !shouldUseDeriveRnsLinkKey(derived.actions) ||
+      sessionKey === null
+    ) {
+      return {
+        state: { ...state, phase: LinkHandshakePhase.FAILED, sessionKey: null },
+        intents: [],
+        actions: []
+      };
+    }
     return {
       state: {
         ...state,

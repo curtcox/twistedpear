@@ -1,5 +1,12 @@
 import type { CryptoProvider } from "./provider.js";
-import { normalizeRnsHkdfParams, rnsHkdfSha256 } from "@twistedpear/protocol";
+import {
+  initialRnsHkdfSha256State,
+  normalizeRnsHkdfParams,
+  rnsHkdfSha256RawFromActions,
+  shouldRejectRnsHkdfSha256,
+  shouldUseRnsHkdfSha256,
+  stepRnsHkdfSha256WithActions
+} from "@twistedpear/protocol";
 
 /** Mirrors RNS/Cryptography/HKDF.py parameter handling — delegates to protocol pure HKDF. */
 export function rnsHkdf(
@@ -28,5 +35,22 @@ export function rnsHkdfPure(
   salt: Uint8Array | null | undefined,
   context: Uint8Array | null | undefined
 ): Uint8Array {
-  return rnsHkdfSha256({ length, deriveFrom, salt, context });
+  const stepped = stepRnsHkdfSha256WithActions(initialRnsHkdfSha256State(), {
+    kind: "rns-hkdf/derive-gate",
+    length,
+    deriveFrom,
+    salt,
+    context
+  });
+  const raw = rnsHkdfSha256RawFromActions(stepped.actions);
+  if (
+    shouldRejectRnsHkdfSha256(stepped.actions) ||
+    !shouldUseRnsHkdfSha256(stepped.actions) ||
+    raw === null
+  ) {
+    throw new Error(
+      length < 1 ? "Invalid output key length" : "Cannot derive key from empty input material"
+    );
+  }
+  return raw;
 }

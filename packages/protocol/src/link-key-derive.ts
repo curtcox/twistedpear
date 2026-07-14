@@ -1,8 +1,18 @@
 /**
  * Pure RNS link session-key derivation from an ECDH shared secret.
  * ECDH itself stays at the adapter edge; this owns length selection + HKDF.
+ * Derive conclusions leave via machine actions (no ad-hoc `deriveRnsLinkKey`
+ * / `orderIndependentSharedSecret` reads beside the step).
  */
-import { rnsHkdfSha256 } from "./rns-hkdf.js";
+import type { Event, Intent } from "@twistedpear/effects";
+import {
+  initialRnsHkdfSha256State,
+  rnsHkdfSha256,
+  rnsHkdfSha256RawFromActions,
+  shouldRejectRnsHkdfSha256,
+  shouldUseRnsHkdfSha256,
+  stepRnsHkdfSha256WithActions
+} from "./rns-hkdf.js";
 
 /** Mirrors RNS/Link.py link mode constants used for key length. */
 export const LinkKeyMode = {
@@ -83,4 +93,152 @@ function compareBytes(left: Uint8Array, right: Uint8Array): number {
     }
   }
   return left.length - right.length;
+}
+
+/**
+ * Link session-key derive is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `deriveRnsLinkKey` reads
+ * beside the step). Empty shared-secret / invalid length become `reject`.
+ */
+export type DeriveRnsLinkKeyState = Record<string, never>;
+
+export type DeriveRnsLinkKeyEvent =
+  | Event
+  | {
+      readonly kind: "link-key/derive-gate";
+      readonly sharedSecret: Uint8Array;
+      readonly linkId: Uint8Array;
+      readonly mode?: LinkKeyModeValue | number;
+    };
+
+export type DeriveRnsLinkKeyAction =
+  | { readonly kind: "use-raw"; readonly raw: Uint8Array }
+  | { readonly kind: "reject" };
+
+export interface DeriveRnsLinkKeyStepResult {
+  readonly state: DeriveRnsLinkKeyState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DeriveRnsLinkKeyAction[];
+}
+
+export function initialDeriveRnsLinkKeyState(): DeriveRnsLinkKeyState {
+  return {};
+}
+
+export function stepDeriveRnsLinkKeyWithActions(
+  state: DeriveRnsLinkKeyState,
+  event: DeriveRnsLinkKeyEvent
+): DeriveRnsLinkKeyStepResult {
+  if (event.kind === "link-key/derive-gate") {
+    const mode = event.mode ?? LinkKeyMode.MODE_AES256_CBC;
+    const hkdf = stepRnsHkdfSha256WithActions(initialRnsHkdfSha256State(), {
+      kind: "rns-hkdf/derive-gate",
+      length: linkDerivedKeyLength(mode),
+      deriveFrom: event.sharedSecret,
+      salt: event.linkId,
+      context: null
+    });
+    if (
+      shouldRejectRnsHkdfSha256(hkdf.actions) ||
+      !shouldUseRnsHkdfSha256(hkdf.actions)
+    ) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    const raw = rnsHkdfSha256RawFromActions(hkdf.actions);
+    if (raw === null) {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "use-raw", raw }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseDeriveRnsLinkKey(
+  actions: ReadonlyArray<DeriveRnsLinkKeyAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+export function shouldRejectDeriveRnsLinkKey(
+  actions: ReadonlyArray<DeriveRnsLinkKeyAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract derived link key from step actions; null when no `use-raw`. */
+export function deriveRnsLinkKeyRawFromActions(
+  actions: ReadonlyArray<DeriveRnsLinkKeyAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
+/**
+ * Order-independent shared-secret framing is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `orderIndependentSharedSecret` reads beside the step). Empty joined material
+ * becomes `reject`.
+ */
+export type OrderIndependentSharedSecretState = Record<string, never>;
+
+export type OrderIndependentSharedSecretEvent =
+  | Event
+  | {
+      readonly kind: "link-key/order-independent-shared-secret-gate";
+      readonly a: Uint8Array;
+      readonly b: Uint8Array;
+    };
+
+export type OrderIndependentSharedSecretAction =
+  | { readonly kind: "use-raw"; readonly raw: Uint8Array }
+  | { readonly kind: "reject" };
+
+export interface OrderIndependentSharedSecretStepResult {
+  readonly state: OrderIndependentSharedSecretState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly OrderIndependentSharedSecretAction[];
+}
+
+export function initialOrderIndependentSharedSecretState(): OrderIndependentSharedSecretState {
+  return {};
+}
+
+export function stepOrderIndependentSharedSecretWithActions(
+  state: OrderIndependentSharedSecretState,
+  event: OrderIndependentSharedSecretEvent
+): OrderIndependentSharedSecretStepResult {
+  if (event.kind === "link-key/order-independent-shared-secret-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [{ kind: "use-raw", raw: orderIndependentSharedSecret(event.a, event.b) }]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseOrderIndependentSharedSecret(
+  actions: ReadonlyArray<OrderIndependentSharedSecretAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+export function shouldRejectOrderIndependentSharedSecret(
+  actions: ReadonlyArray<OrderIndependentSharedSecretAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract shared secret from step actions; null when no `use-raw`. */
+export function orderIndependentSharedSecretRawFromActions(
+  actions: ReadonlyArray<OrderIndependentSharedSecretAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
 }

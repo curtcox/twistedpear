@@ -756,10 +756,19 @@ export {
   type LinkHandshakeStepResult
 } from "./link-handshake.js";
 export {
+  initialRnsHkdfSha256State,
   normalizeRnsHkdfParams,
   rnsHkdfSha256,
+  rnsHkdfSha256RawFromActions,
+  shouldRejectRnsHkdfSha256,
+  shouldUseRnsHkdfSha256,
+  stepRnsHkdfSha256WithActions,
   type NormalizedHkdfParams,
-  type RnsHkdfInput
+  type RnsHkdfInput,
+  type RnsHkdfSha256Action,
+  type RnsHkdfSha256Event,
+  type RnsHkdfSha256State,
+  type RnsHkdfSha256StepResult
 } from "./rns-hkdf.js";
 export {
   LINK_ENABLED_MODES,
@@ -767,12 +776,30 @@ export {
   LinkKeyMode,
   LinkMode,
   deriveRnsLinkKey,
+  deriveRnsLinkKeyRawFromActions,
+  initialDeriveRnsLinkKeyState,
+  initialOrderIndependentSharedSecretState,
   isExpectedLinkMode,
   isLinkModeEnabled,
   linkDerivedKeyLength,
   orderIndependentSharedSecret,
+  orderIndependentSharedSecretRawFromActions,
+  shouldRejectDeriveRnsLinkKey,
+  shouldRejectOrderIndependentSharedSecret,
+  shouldUseDeriveRnsLinkKey,
+  shouldUseOrderIndependentSharedSecret,
+  stepDeriveRnsLinkKeyWithActions,
+  stepOrderIndependentSharedSecretWithActions,
+  type DeriveRnsLinkKeyAction,
+  type DeriveRnsLinkKeyEvent,
+  type DeriveRnsLinkKeyState,
+  type DeriveRnsLinkKeyStepResult,
   type LinkKeyModeValue,
-  type LinkModeValue
+  type LinkModeValue,
+  type OrderIndependentSharedSecretAction,
+  type OrderIndependentSharedSecretEvent,
+  type OrderIndependentSharedSecretState,
+  type OrderIndependentSharedSecretStepResult
 } from "./link-key-derive.js";
 export {
   LINK_INITIATOR_ENTROPY_SIZE,

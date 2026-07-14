@@ -3,9 +3,11 @@
 > **Status:** Protocol deny-list ratchet is **empty**. Inventory reports 0 violations under
 > configured roots (adapters remain outside the scan). Effects package, sim determinism,
 > tripwire (scoped to `packages/protocol/test/**`), ESLint, and dependency-cruiser gates
-> are green via `npm run sansio`. **RNS HKDF** and **link key derive** are pure protocol
-> cores (`@noble/hashes`); `Link.handshake` performs ECDH at the crypto edge then calls
-> `deriveRnsLinkKey`. Handshake sims use RNS HKDF over order-independent shared secrets.
+> are green via `npm run sansio`. **RNS HKDF** (via **`stepRnsHkdfSha256WithActions`**:
+> use-raw|reject) and **link key derive** (via **`stepDeriveRnsLinkKeyWithActions`** /
+> **`stepOrderIndependentSharedSecretWithActions`**: use-raw|reject) are pure protocol
+> cores (`@noble/hashes`); `Link.handshake` performs ECDH at the crypto edge then applies
+> derive actions. Handshake sims use RNS HKDF over order-independent shared secrets.
 > **Link keygen** entropy splits (via **`stepSplitInitiatorLinkEntropyWithActions`** /
 > **`stepSplitResponderLinkEntropyWithActions`**: use-fields|reject) accept injected
 > entropy; **`Runtime.entropy`** is threaded through `LeafTransport` into Link keygen
@@ -889,7 +891,8 @@
 > destination-name-hash-material / destination-hash-material /
 > validate-destination-name-part / parse-aspect-filter /
 > split-initiator-link-entropy / split-responder-link-entropy /
-> split-identity-entropy reads
+> split-identity-entropy / rns-hkdf / derive-rns-link-key /
+> order-independent-shared-secret reads
 > beside the step).
 > **`stepPackStreamDataMessageWithActions`** /
 > **`stepUnpackStreamDataMessageWithActions`** emit `use-raw`|`reject` /
@@ -967,6 +970,13 @@
 > **`stepSplitIdentityEntropyWithActions`** emits `use-fields`|`reject`;
 > Identity keygen entropy split applies only from those actions (no ad-hoc
 > `splitIdentityEntropy` reads beside the step).
+> **`stepRnsHkdfSha256WithActions`** emits `use-raw`|`reject`; RNS HKDF-SHA256
+> apply only from those actions (no ad-hoc `rnsHkdfSha256` reads beside the
+> step). **`stepDeriveRnsLinkKeyWithActions`** /
+> **`stepOrderIndependentSharedSecretWithActions`** emit `use-raw`|`reject`;
+> Link session-key derive and sim order-independent shared secrets apply only
+> from those actions (no ad-hoc `deriveRnsLinkKey` /
+> `orderIndependentSharedSecret` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
 > only from those actions. **`stepChannelMessageHandlerUnregisterWithActions`**,
