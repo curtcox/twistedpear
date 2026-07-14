@@ -162,6 +162,18 @@ export {
   type ResourceStatusState
 } from "./resource-status.js";
 export {
+  RESOURCE_ADVERTISE_WAIT_MS,
+  RESOURCE_ADVERTISE_WAIT_TIMER_ID,
+  initialResourceAdvertiseWaitState,
+  shouldContinueResourceAdvertiseWait,
+  stepResourceAdvertiseWait,
+  stepResourceAdvertiseWaitWithActions,
+  type ResourceAdvertiseWaitAction,
+  type ResourceAdvertiseWaitEvent,
+  type ResourceAdvertiseWaitState,
+  type ResourceAdvertiseWaitStepResult
+} from "./resource-advertise-wait.js";
+export {
   DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS,
   DELIVERY_RECEIPT_POLL_INTERVAL_MS,
   ReceiptPollStatus,

@@ -9,6 +9,7 @@ import {
   RESOURCE_PROCESSING_GRACE,
   RESOURCE_RANDOM_HASH_SIZE,
   RESOURCE_SENDER_GRACE_TIME,
+  RESOURCE_ADVERTISE_WAIT_TIMER_ID,
   RESOURCE_WINDOW,
   RESOURCE_WINDOW_FLEXIBILITY,
   RESOURCE_WINDOW_MAX,
@@ -29,6 +30,7 @@ import {
   decodeResourceAdvertisementFlags,
   encodeResourceAdvertisementFlags,
   planResourceAdvertisementRoleFlags,
+  initialResourceAdvertiseWaitState,
   initialResourceStatusState,
   isResourceAdvertisementRequest,
   isResourceAdvertisementResponse,
@@ -39,7 +41,6 @@ import {
   packResourceProof,
   parseResourcePartRequest,
   applyResourceHashmapSlotWrites,
-  planResourceAdvertisePhase,
   planResourceAssembleOutcome,
   planResourceHashmapSlotWrites,
   planResourceHashmapUpdateAccept,
@@ -65,8 +66,10 @@ import {
   shouldApplyResourceFulfillPart,
   shouldApplyResourceReceivePartSlot,
   shouldCommitResourceAssemblePayload,
+  shouldContinueResourceAdvertiseWait,
   shouldFulfillResourcePartRequest,
   shouldSendResourceHashmapUpdate,
+  stepResourceAdvertiseWaitWithActions,
   stepResourceWatchdogWithActions,
   unpackResourceAdvertisement,
   unpackResourceHashmapUpdate,
@@ -523,9 +526,29 @@ export class Resource {
   }
 
   async advertise(): Promise<void> {
-    while (planResourceAdvertisePhase(this.link.readyForNewResource()) === "queue") {
-      this.applyStatus({ kind: "resource/queue" });
-      await this.sleep(250);
+    let waitState = stepResourceAdvertiseWaitWithActions(initialResourceAdvertiseWaitState(), {
+      kind: "advertise-wait/arm"
+    }).state;
+
+    while (shouldContinueResourceAdvertiseWait(waitState.concluded)) {
+      const probe = stepResourceAdvertiseWaitWithActions(waitState, {
+        kind: "advertise-wait/link-ready",
+        ready: this.link.readyForNewResource()
+      });
+      waitState = probe.state;
+      for (const action of probe.actions) {
+        if (action.kind === "queue") {
+          this.applyStatus({ kind: "resource/queue" });
+        }
+      }
+      if (!shouldContinueResourceAdvertiseWait(waitState.concluded)) {
+        break;
+      }
+      for (const intent of probe.intents) {
+        if (intent.kind === "timer/set" && intent.timer.id === RESOURCE_ADVERTISE_WAIT_TIMER_ID) {
+          await this.sleep(intent.timer.delayMs);
+        }
+      }
     }
 
     const packed = new ResourceAdvertisement(this).pack();
