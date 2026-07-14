@@ -15,6 +15,7 @@ import {
   planLxmfPropagationLocalIngress,
   planLxmfReceiptSendOutcome,
   planLxmfSendMethod,
+  shouldApplyLxmfReceiptSendState,
   shouldAwaitLxmfDeliveryReceipt,
   shouldInvokeLxmfDeliveryCallback,
   shouldRememberLxmfMessage,
@@ -253,8 +254,8 @@ export class LXMFRouter {
       receiptPresent: receipt !== null,
       delivered: false
     });
-    if (afterSend !== null) {
-      this.applySendState(message, afterSend);
+    if (shouldApplyLxmfReceiptSendState(afterSend !== null)) {
+      this.applySendState(message, afterSend!);
     }
     if (!shouldAwaitLxmfDeliveryReceipt(receipt !== null)) {
       return;
@@ -267,8 +268,8 @@ export class LXMFRouter {
       receiptPresent: true,
       delivered: receipt!.status === PacketReceiptStatus.DELIVERED
     });
-    if (afterPoll !== null) {
-      this.applySendState(message, afterPoll);
+    if (shouldApplyLxmfReceiptSendState(afterPoll !== null)) {
+      this.applySendState(message, afterPoll!);
     }
   }
 
@@ -356,8 +357,8 @@ export class LXMFRouter {
       receiptPresent: result.receipt !== null,
       delivered: false
     });
-    if (afterSend !== null) {
-      this.applySendState(message, afterSend);
+    if (shouldApplyLxmfReceiptSendState(afterSend !== null)) {
+      this.applySendState(message, afterSend!);
     }
 
     if (shouldAwaitLxmfDeliveryReceipt(result.receipt !== null)) {
@@ -369,8 +370,8 @@ export class LXMFRouter {
       receiptPresent: result.receipt !== null,
       delivered: result.receipt?.status === PacketReceiptStatus.DELIVERED
     });
-    if (afterPoll !== null) {
-      this.applySendState(message, afterPoll);
+    if (shouldApplyLxmfReceiptSendState(afterPoll !== null)) {
+      this.applySendState(message, afterPoll!);
     }
   }
 

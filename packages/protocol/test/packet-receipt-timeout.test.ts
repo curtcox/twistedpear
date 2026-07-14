@@ -7,7 +7,9 @@ import {
   planPacketReceiptCallback,
   planPacketReceiptProofIngress,
   planUnregisterPacketReceipt,
+  shouldFailAndDropOutboundReceipt,
   shouldInvokePacketReceiptTimeoutCallback,
+  shouldKeepOutboundReceipt,
   shouldRegisterPacketReceipt,
   stepPacketReceiptTimeout
 } from "../src/packet-receipt-timeout.js";
@@ -84,6 +86,14 @@ describe("protocol packet receipt timeout", () => {
     expect(planOutboundReceiptOutcome({ createReceipt: true, sent: false })).toBe(
       "fail-and-drop-receipt"
     );
+    expect(
+      shouldFailAndDropOutboundReceipt({ failAndDrop: true, receiptPresent: true })
+    ).toBe(true);
+    expect(
+      shouldFailAndDropOutboundReceipt({ failAndDrop: true, receiptPresent: false })
+    ).toBe(false);
+    expect(shouldKeepOutboundReceipt(true)).toBe(true);
+    expect(shouldKeepOutboundReceipt(false)).toBe(false);
     expect(
       planPacketReceiptProofIngress({
         truncatedHashMatches: true,

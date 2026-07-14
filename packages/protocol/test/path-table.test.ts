@@ -26,7 +26,9 @@ import {
   shouldClearExpiredDiscoveryPathRequest,
   shouldEmitPathRequest,
   shouldFulfillDiscoveryPending,
+  shouldIgnoreDiscoveryPathFulfill,
   shouldRememberPathRequestTag,
+  shouldTouchPathEntry,
   shouldUsePathForOutbound,
   stepPathTable,
   initialPathTableState
@@ -365,6 +367,8 @@ describe("protocol path table", () => {
     expect(shouldUsePathForOutbound(false)).toBe(false);
     expect(shouldAnswerPathWithEntry(true)).toBe(true);
     expect(shouldAnswerPathWithEntry(false)).toBe(false);
+    expect(shouldTouchPathEntry(true)).toBe(true);
+    expect(shouldTouchPathEntry(false)).toBe(false);
   });
 
   it("plans discovery path-request fulfill from announce", () => {
@@ -395,6 +399,8 @@ describe("protocol path table", () => {
     expect(
       shouldFulfillDiscoveryPending({ fulfillOk: false, pendingPresent: true })
     ).toBe(false);
+    expect(shouldIgnoreDiscoveryPathFulfill(true)).toBe(true);
+    expect(shouldIgnoreDiscoveryPathFulfill(false)).toBe(false);
   });
 
   it("plans path-table get miss/expired/hit", () => {

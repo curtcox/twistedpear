@@ -35,7 +35,9 @@ import {
   shouldAcceptLinkLrProofCandidate,
   shouldAnswerPathWithEntry,
   shouldDispatchLocalLinkRequest,
+  shouldFailAndDropOutboundReceipt,
   shouldIgnoreLocalAnnounce,
+  shouldKeepOutboundReceipt,
   shouldMatchAnnounceAspect,
   shouldMatchLocalInboundDestination,
   shouldMatchLocalTypedDestination,
@@ -396,15 +398,20 @@ export class LeafTransport {
 
     const sent = await this.outbound(packet, options.attachedInterface ?? null);
     const outcome = planOutboundReceiptOutcome({ createReceipt, sent });
-    if (outcome === "fail-and-drop-receipt" && receipt !== null) {
-      receipt.markFailed();
-      const index = planUnregisterPacketReceipt(this.receipts.indexOf(receipt));
+    if (
+      shouldFailAndDropOutboundReceipt({
+        failAndDrop: outcome === "fail-and-drop-receipt",
+        receiptPresent: receipt !== null
+      })
+    ) {
+      receipt!.markFailed();
+      const index = planUnregisterPacketReceipt(this.receipts.indexOf(receipt!));
       if (index !== null) {
         this.receipts.splice(index, 1);
       }
       return null;
     }
-    if (outcome === "none" || !sent) {
+    if (!shouldKeepOutboundReceipt(outcome === "keep-receipt" && sent)) {
       return null;
     }
 

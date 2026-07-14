@@ -128,6 +128,11 @@ export function shouldAnswerPathWithEntry(pathPresent: boolean): boolean {
   return pathPresent;
 }
 
+/** Whether path-table touch may refresh a resolved entry's timestamp. */
+export function shouldTouchPathEntry(pathPresent: boolean): boolean {
+  return pathPresent;
+}
+
 /** Whether a pending discovery path-request should be fulfilled by an announce. */
 export type DiscoveryPathRequestFulfillPlan = "ignore" | "drop-expired" | "fulfill";
 
@@ -153,6 +158,11 @@ export function shouldFulfillDiscoveryPending(input: {
   readonly pendingPresent: boolean;
 }): boolean {
   return input.fulfillOk && input.pendingPresent;
+}
+
+/** Whether discovery fulfill should early-out with no pending map mutation. */
+export function shouldIgnoreDiscoveryPathFulfill(ignore: boolean): boolean {
+  return ignore;
 }
 
 /** How LeafTransport should send a packet given path-table state. */

@@ -152,6 +152,19 @@ export function planOutboundReceiptOutcome(input: {
   return "fail-and-drop-receipt";
 }
 
+/** Whether outbound send should fail+drop a created receipt after transmit failure. */
+export function shouldFailAndDropOutboundReceipt(input: {
+  readonly failAndDrop: boolean;
+  readonly receiptPresent: boolean;
+}): boolean {
+  return input.failAndDrop && input.receiptPresent;
+}
+
+/** Whether outbound send should return a kept receipt to the caller. */
+export function shouldKeepOutboundReceipt(keepReceipt: boolean): boolean {
+  return keepReceipt;
+}
+
 export type PacketReceiptProofIngressPlan = "remove-receipt" | "continue";
 
 /**

@@ -29,6 +29,7 @@ import {
   shouldAcceptLinkLrProofCandidate,
   shouldAcceptTransportPacket,
   shouldDeferPacketHash,
+  shouldDeleteExpiredReverseEntry,
   shouldDispatchLocalLinkRequest,
   shouldMatchLocalInboundDestination,
   shouldMatchLocalTypedDestination,
@@ -36,8 +37,11 @@ import {
   shouldRecordReverseTableEntry,
   shouldRegisterTransportMember,
   shouldRelayReverseOnInterface,
+  shouldRememberPacketHashAfterRelay,
+  shouldRememberPacketHashNow,
   shouldTransmitLinkRelay,
   shouldTransmitOnInterface,
+  shouldTransmitReverseRelay,
   planUnregisterTransportMember
 } from "../src/index.js";
 
@@ -408,6 +412,10 @@ describe("transport ingress", () => {
     ).toBe("ignore");
     expect(planPacketHashRemember(false)).toBe("now");
     expect(planPacketHashRemember(true)).toBe("after-relay");
+    expect(shouldRememberPacketHashNow(true)).toBe(true);
+    expect(shouldRememberPacketHashNow(false)).toBe(false);
+    expect(shouldRememberPacketHashAfterRelay(true)).toBe(true);
+    expect(shouldRememberPacketHashAfterRelay(false)).toBe(false);
   });
 
   it("indexes link-ids and plans reverse-relay / link-data ingress", () => {
@@ -430,6 +438,11 @@ describe("transport ingress", () => {
     expect(
       planReverseRelayOutcome({ canRelay: true, entryExpired: false, ifaceIsOutbound: true })
     ).toBe("relay");
+    expect(shouldDeleteExpiredReverseEntry(true)).toBe(true);
+    expect(shouldDeleteExpiredReverseEntry(false)).toBe(false);
+    expect(shouldTransmitReverseRelay({ relayOk: true, entryPresent: true })).toBe(true);
+    expect(shouldTransmitReverseRelay({ relayOk: true, entryPresent: false })).toBe(false);
+    expect(shouldTransmitReverseRelay({ relayOk: false, entryPresent: true })).toBe(false);
   });
 
   it("plans transport list membership register/unregister", () => {

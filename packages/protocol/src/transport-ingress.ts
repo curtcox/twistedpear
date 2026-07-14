@@ -119,6 +119,22 @@ export function shouldTransmitLinkRelay(outboundPresent: boolean): boolean {
   return outboundPresent;
 }
 
+/** Whether reverse-table should delete an expired entry (delete-expired outcome). */
+export function shouldDeleteExpiredReverseEntry(deleteExpired: boolean): boolean {
+  return deleteExpired;
+}
+
+/**
+ * Whether reverse relay may transmit after {@link planReverseRelayOutcome} resolves relay
+ * and a table entry is still present.
+ */
+export function shouldTransmitReverseRelay(input: {
+  readonly relayOk: boolean;
+  readonly entryPresent: boolean;
+}): boolean {
+  return input.relayOk && input.entryPresent;
+}
+
 /** True when a reverse-table entry is past its lifetime. */
 export function isReverseEntryExpired(input: {
   readonly timestamp: number;
@@ -324,6 +340,16 @@ export type PacketHashRememberPlan = "now" | "after-relay";
  */
 export function planPacketHashRemember(deferred: boolean): PacketHashRememberPlan {
   return deferred ? "after-relay" : "now";
+}
+
+/** Whether inbound should record the packet hash immediately (non-deferred). */
+export function shouldRememberPacketHashNow(rememberNow: boolean): boolean {
+  return rememberNow;
+}
+
+/** Whether inbound should record the packet hash after deferred relay attempts. */
+export function shouldRememberPacketHashAfterRelay(rememberAfterRelay: boolean): boolean {
+  return rememberAfterRelay;
 }
 
 /** Index of a link-id in a list (link-data / resource-prf ingress). */

@@ -129,6 +129,11 @@ export type LxmfReceiptSendPhase = "after-send" | "after-poll";
  * Opportunistic: missing receipt → fail; present → sent; delivered → DELIVERED (else noop).
  * Propagated: after-send → progress; after-poll → receipt-result (SENT on deliver, else FAILED).
  */
+/** Whether an LXMF receipt send-outcome event should be applied to send-state. */
+export function shouldApplyLxmfReceiptSendState(outcomePresent: boolean): boolean {
+  return outcomePresent;
+}
+
 export function planLxmfReceiptSendOutcome(input: {
   readonly mode: LxmfOutboundSendMode;
   readonly phase: LxmfReceiptSendPhase;

@@ -23,11 +23,17 @@ import {
   shouldClearExpiredDiscoveryPathRequest,
   shouldDeferPacketHash as planShouldDeferPacketHash,
   shouldAnswerPathRequest,
+  shouldDeleteExpiredReverseEntry,
   shouldFulfillDiscoveryPending,
+  shouldIgnoreDiscoveryPathFulfill,
   shouldMatchLocalInboundDestination,
   shouldRecordLinkRelayTableEntry,
   shouldRecordReverseTableEntry,
+  shouldRememberPacketHashAfterRelay,
+  shouldRememberPacketHashNow,
   shouldRememberPathRequestTag,
+  shouldTouchPathEntry,
+  shouldTransmitReverseRelay,
   shouldTransmitOnInterface
 } from "@twistedpear/protocol";
 import { equalBytes } from "../crypto/bytes.js";
@@ -109,19 +115,19 @@ export class TransportNode extends LeafTransport {
     }
 
     const rememberWhen = planPacketHashRemember(this.shouldDeferPacketHash(workingPacket));
-    if (rememberWhen === "now") {
+    if (shouldRememberPacketHashNow(rememberWhen === "now")) {
       this.packetHashes.add(hashKey(workingPacket.hash()));
     }
 
     if (await this.relayTransportPacket(workingPacket, iface)) {
-      if (rememberWhen === "after-relay") {
+      if (shouldRememberPacketHashAfterRelay(rememberWhen === "after-relay")) {
         this.packetHashes.add(hashKey(workingPacket.hash()));
       }
       return;
     }
 
     if (await this.relayLinkPacket(workingPacket, iface)) {
-      if (rememberWhen === "after-relay") {
+      if (shouldRememberPacketHashAfterRelay(rememberWhen === "after-relay")) {
         this.packetHashes.add(hashKey(workingPacket.hash()));
       }
       return;
@@ -131,7 +137,7 @@ export class TransportNode extends LeafTransport {
       return;
     }
 
-    if (rememberWhen === "after-relay") {
+    if (shouldRememberPacketHashAfterRelay(rememberWhen === "after-relay")) {
       this.packetHashes.add(hashKey(workingPacket.hash()));
     }
 
@@ -401,16 +407,21 @@ export class TransportNode extends LeafTransport {
       ifaceIsOutbound: entry !== undefined && iface === entry.outboundInterface
     });
 
-    if (outcome === "delete-expired") {
+    if (shouldDeleteExpiredReverseEntry(outcome === "delete-expired")) {
       this.reverseTable.delete(key);
       return false;
     }
-    if (outcome !== "relay" || entry === undefined) {
+    if (
+      !shouldTransmitReverseRelay({
+        relayOk: outcome === "relay",
+        entryPresent: entry !== undefined
+      })
+    ) {
       return false;
     }
 
     const relayed = rewritePacketHopsBytes(packet.raw, packet.hops);
-    await this.transmit(entry.receivedInterface, relayed);
+    await this.transmit(entry!.receivedInterface, relayed);
     return true;
   }
 
@@ -446,7 +457,7 @@ export class TransportNode extends LeafTransport {
         isDiscoveryPathRequestExpired({ timeoutAt: pending.timeout, nowSeconds })
     });
 
-    if (fulfill === "ignore") {
+    if (shouldIgnoreDiscoveryPathFulfill(fulfill === "ignore")) {
       return;
     }
 
@@ -486,12 +497,12 @@ export class TransportNode extends LeafTransport {
   private touchPathEntry(destinationHash: Uint8Array): void {
     const key = hashKey(destinationHash);
     const existing = this.pathTable.get(key);
-    if (existing === undefined) {
+    if (!shouldTouchPathEntry(existing !== undefined)) {
       return;
     }
 
     const updated: PathEntry = {
-      ...existing,
+      ...existing!,
       timestamp: this.clock.now() / 1000
     };
     this.pathTable.set(key, updated);

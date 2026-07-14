@@ -7,6 +7,8 @@ import {
   planLxmfPropagationSyncPrep,
   planPropagationGet,
   shouldAcceptPropagationPeerResponse,
+  shouldAcceptPropagationDeliveredMessage,
+  shouldHandlePropagationPeerError,
   shouldRequestPropagationHavesAck,
   shouldReuseActiveLink,
   shouldTeardownLxmfPropagationLink,
@@ -123,8 +125,8 @@ export class PropagationClient {
         }
 
         const listError = decodeLxmfPeerError(listResponse!);
-        if (listError !== null) {
-          this.applyTransfer({ kind: "xfer/list-peer-error", code: listError });
+        if (shouldHandlePropagationPeerError(listError !== null)) {
+          this.applyTransfer({ kind: "xfer/list-peer-error", code: listError! });
           return { state: this.state, messages: [] };
         }
 
@@ -196,8 +198,8 @@ export class PropagationClient {
       const haves: Uint8Array[] = [];
       for (const lxmfData of downloaded) {
         const message = this.router.handlePropagationData(lxmfData);
-        if (message !== null) {
-          messages.push(message);
+        if (shouldAcceptPropagationDeliveredMessage(message !== null)) {
+          messages.push(message!);
         }
         haves.push(Identity.fullHash(this.provider, lxmfData));
       }

@@ -229,6 +229,16 @@ export function shouldAcceptPropagationPeerResponse(responsePresent: boolean): b
   return responsePresent;
 }
 
+/** Whether a decoded peer-error code should drive xfer/list-peer-error. */
+export function shouldHandlePropagationPeerError(errorPresent: boolean): boolean {
+  return errorPresent;
+}
+
+/** Whether a locally delivered propagation message should be collected. */
+export function shouldAcceptPropagationDeliveredMessage(messagePresent: boolean): boolean {
+  return messagePresent;
+}
+
 /** Whether a filtered want-list should complete as empty (xfer/list-empty). */
 export function shouldTreatPropagationListAsEmpty(wantCount: number): boolean {
   return wantCount === 0;

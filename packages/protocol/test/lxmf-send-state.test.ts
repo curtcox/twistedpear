@@ -4,6 +4,7 @@ import {
   applyLxmfSendEvent,
   initialLxmfSendState,
   planLxmfReceiptSendOutcome,
+  shouldApplyLxmfReceiptSendState,
   stepLxmfSend
 } from "../src/lxmf-send-state.js";
 
@@ -117,6 +118,8 @@ describe("protocol LXMF send-state", () => {
       delivered: false,
       onDelivered: "sent"
     });
+    expect(shouldApplyLxmfReceiptSendState(true)).toBe(true);
+    expect(shouldApplyLxmfReceiptSendState(false)).toBe(false);
   });
 
   it("is deterministic under double-run", () => {

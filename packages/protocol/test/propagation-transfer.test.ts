@@ -5,6 +5,8 @@ import {
   PropagationTransferState,
   initialPropagationTransferState,
   shouldAcceptPropagationPeerResponse,
+  shouldAcceptPropagationDeliveredMessage,
+  shouldHandlePropagationPeerError,
   shouldRequestPropagationHavesAck,
   shouldTreatPropagationListAsEmpty,
   stepPropagationTransferWithActions
@@ -71,6 +73,10 @@ describe("protocol propagation transfer", () => {
   it("gates peer response, empty list, and haves-ack", () => {
     expect(shouldAcceptPropagationPeerResponse(true)).toBe(true);
     expect(shouldAcceptPropagationPeerResponse(false)).toBe(false);
+    expect(shouldHandlePropagationPeerError(true)).toBe(true);
+    expect(shouldHandlePropagationPeerError(false)).toBe(false);
+    expect(shouldAcceptPropagationDeliveredMessage(true)).toBe(true);
+    expect(shouldAcceptPropagationDeliveredMessage(false)).toBe(false);
     expect(shouldTreatPropagationListAsEmpty(0)).toBe(true);
     expect(shouldTreatPropagationListAsEmpty(2)).toBe(false);
     expect(
