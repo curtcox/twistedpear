@@ -166,3 +166,89 @@ export function planLxmfReceiptSendOutcome(input: {
     onDelivered: "sent"
   };
 }
+
+/**
+ * Receipt → send-state mapping is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LxmfReceiptSendState = Record<string, never>;
+
+export type LxmfReceiptSendEvent =
+  | Event
+  | {
+      readonly kind: "receipt-send/map";
+      readonly mode: LxmfOutboundSendMode;
+      readonly phase: LxmfReceiptSendPhase;
+      readonly receiptPresent: boolean;
+      readonly delivered: boolean;
+    };
+
+export type LxmfReceiptSendAction =
+  | { readonly kind: "apply"; readonly event: LxmfSendEvent }
+  | { readonly kind: "skip" };
+
+export interface LxmfReceiptSendStepResult {
+  readonly state: LxmfReceiptSendState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfReceiptSendAction[];
+}
+
+export function initialLxmfReceiptSendState(): LxmfReceiptSendState {
+  return {};
+}
+
+export const stepLxmfReceiptSend: StepFn<LxmfReceiptSendState> = (state, event) => {
+  const result = stepLxmfReceiptSendInner(state, event as LxmfReceiptSendEvent);
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxmfReceiptSendWithActions(
+  state: LxmfReceiptSendState,
+  event: LxmfReceiptSendEvent
+): LxmfReceiptSendStepResult {
+  return stepLxmfReceiptSendInner(state, event);
+}
+
+export function shouldApplyLxmfReceiptSend(
+  actions: ReadonlyArray<LxmfReceiptSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "apply");
+}
+
+export function shouldSkipLxmfReceiptSend(
+  actions: ReadonlyArray<LxmfReceiptSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/** Send-state event from an apply action, if present. */
+export function lxmfReceiptSendApplyEvent(
+  actions: ReadonlyArray<LxmfReceiptSendAction>
+): LxmfSendEvent | null {
+  for (const action of actions) {
+    if (action.kind === "apply") {
+      return action.event;
+    }
+  }
+  return null;
+}
+
+function stepLxmfReceiptSendInner(
+  state: LxmfReceiptSendState,
+  event: LxmfReceiptSendEvent
+): LxmfReceiptSendStepResult {
+  if (event.kind === "receipt-send/map") {
+    const outcome = planLxmfReceiptSendOutcome({
+      mode: event.mode,
+      phase: event.phase,
+      receiptPresent: event.receiptPresent,
+      delivered: event.delivered
+    });
+    if (outcome === null) {
+      return { state, intents: [], actions: [{ kind: "skip" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "apply", event: outcome }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}

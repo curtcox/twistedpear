@@ -58,23 +58,34 @@ import {
   shouldSendLxmfPropagated,
   canRegisterLxmfDeliveryIdentity,
   canExtractLxmfOpportunisticPayload,
+  canUnpackLxmfPropagationLocalIngress,
   shouldSelectLxmfDeliveryParameters,
   planLxmfPropagationSyncPrep,
   shouldAwaitLxmfDeliveryReceipt,
   shouldInvokeLxmfDeliveryCallback,
   shouldTeardownLxmfPropagationLink,
+  initialLxmfDeliverableAcceptState,
   initialLxmfDirectSendState,
   initialLxmfOpportunisticSendState,
   initialLxmfPropagatedSendState,
   initialLxmfPropagationLinkReadyState,
+  initialLxmfPropagationLocalIngressState,
   initialLxmfPropagationSyncPrepState,
   initialLxmfSendMethodState,
   lxmfSendUnsupportedMethod,
+  shouldAcceptLxmfDeliverable,
+  shouldRejectLxmfDeliverableSeen,
+  shouldRejectLxmfDeliverableUnsigned,
+  shouldRejectLxmfPropagationLocalDecrypt,
+  shouldRejectLxmfPropagationLocalDestination,
+  shouldRejectLxmfPropagationLocalPrefix,
+  stepLxmfDeliverableAcceptWithActions,
   stepLxmfDeliveryWithActions,
   stepLxmfDirectSendWithActions,
   stepLxmfOpportunisticSendWithActions,
   stepLxmfPropagatedSendWithActions,
   stepLxmfPropagationLinkReadyWithActions,
+  stepLxmfPropagationLocalIngressWithActions,
   stepLxmfPropagationSyncPrepWithActions,
   stepLxmfSendMethodWithActions
 } from "../src/lxmf-delivery.js";
@@ -284,6 +295,56 @@ describe("protocol lxmf delivery", () => {
         alreadySeen: true
       })
     ).toBe("accept");
+  });
+
+  it("emits deliverable accept-gate actions from stepLxmfDeliverableAcceptWithActions", () => {
+    const accept = stepLxmfDeliverableAcceptWithActions(initialLxmfDeliverableAcceptState(), {
+      kind: "deliverable/accept-gate",
+      signatureValidated: true,
+      hasHash: true,
+      alreadySeen: false
+    });
+    expect(shouldAcceptLxmfDeliverable(accept.actions)).toBe(true);
+    expect(shouldRejectLxmfDeliverableUnsigned(accept.actions)).toBe(false);
+
+    const unsigned = stepLxmfDeliverableAcceptWithActions(initialLxmfDeliverableAcceptState(), {
+      kind: "deliverable/accept-gate",
+      signatureValidated: false,
+      hasHash: true,
+      alreadySeen: false
+    });
+    expect(shouldRejectLxmfDeliverableUnsigned(unsigned.actions)).toBe(true);
+    expect(shouldAcceptLxmfDeliverable(unsigned.actions)).toBe(false);
+
+    const seen = stepLxmfDeliverableAcceptWithActions(initialLxmfDeliverableAcceptState(), {
+      kind: "deliverable/accept-gate",
+      signatureValidated: true,
+      hasHash: true,
+      alreadySeen: true
+    });
+    expect(shouldRejectLxmfDeliverableSeen(seen.actions)).toBe(true);
+
+    expect(
+      stepLxmfDeliverableAcceptWithActions(initialLxmfDeliverableAcceptState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
+  });
+
+  it("is deterministic for deliverable/accept-gate events", () => {
+    const state = initialLxmfDeliverableAcceptState();
+    const event = {
+      kind: "deliverable/accept-gate" as const,
+      signatureValidated: true,
+      hasHash: true,
+      alreadySeen: false
+    };
+    const a = stepLxmfDeliverableAcceptWithActions(state, event);
+    const b = stepLxmfDeliverableAcceptWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("gates propagation local delivery and propagated send", () => {
@@ -781,22 +842,22 @@ describe("protocol lxmf delivery", () => {
       })
     ).toBe("reject-decrypt");
     expect(
-      shouldDeliverLxmfPropagationLocalIngress({
-        planDeliver: true,
+      canUnpackLxmfPropagationLocalIngress({
+        deliver: true,
         prefixedPresent: true,
         decryptedPresent: true
       })
     ).toBe(true);
     expect(
-      shouldDeliverLxmfPropagationLocalIngress({
-        planDeliver: true,
+      canUnpackLxmfPropagationLocalIngress({
+        deliver: true,
         prefixedPresent: true,
         decryptedPresent: false
       })
     ).toBe(false);
     expect(
-      shouldDeliverLxmfPropagationLocalIngress({
-        planDeliver: false,
+      canUnpackLxmfPropagationLocalIngress({
+        deliver: false,
         prefixedPresent: true,
         decryptedPresent: true
       })
@@ -805,6 +866,80 @@ describe("protocol lxmf delivery", () => {
     expect(shouldAcceptLxmfWireFrame(false)).toBe(false);
     expect(shouldCommitRememberedLxmfHash(true)).toBe(true);
     expect(shouldCommitRememberedLxmfHash(false)).toBe(false);
+  });
+
+  it("emits propagation local-ingress gate actions from stepLxmfPropagationLocalIngressWithActions", () => {
+    const deliver = stepLxmfPropagationLocalIngressWithActions(
+      initialLxmfPropagationLocalIngressState(),
+      {
+        kind: "propagation-local-ingress/gate",
+        prefixedPresent: true,
+        deliveryDestinationPresent: true,
+        destinationHashMatches: true,
+        decryptedPresent: true
+      }
+    );
+    expect(shouldDeliverLxmfPropagationLocalIngress(deliver.actions)).toBe(true);
+    expect(shouldRejectLxmfPropagationLocalPrefix(deliver.actions)).toBe(false);
+
+    const prefix = stepLxmfPropagationLocalIngressWithActions(
+      initialLxmfPropagationLocalIngressState(),
+      {
+        kind: "propagation-local-ingress/gate",
+        prefixedPresent: false,
+        deliveryDestinationPresent: true,
+        destinationHashMatches: true,
+        decryptedPresent: true
+      }
+    );
+    expect(shouldRejectLxmfPropagationLocalPrefix(prefix.actions)).toBe(true);
+
+    const destination = stepLxmfPropagationLocalIngressWithActions(
+      initialLxmfPropagationLocalIngressState(),
+      {
+        kind: "propagation-local-ingress/gate",
+        prefixedPresent: true,
+        deliveryDestinationPresent: true,
+        destinationHashMatches: false,
+        decryptedPresent: true
+      }
+    );
+    expect(shouldRejectLxmfPropagationLocalDestination(destination.actions)).toBe(true);
+
+    const decrypt = stepLxmfPropagationLocalIngressWithActions(
+      initialLxmfPropagationLocalIngressState(),
+      {
+        kind: "propagation-local-ingress/gate",
+        prefixedPresent: true,
+        deliveryDestinationPresent: true,
+        destinationHashMatches: true,
+        decryptedPresent: false
+      }
+    );
+    expect(shouldRejectLxmfPropagationLocalDecrypt(decrypt.actions)).toBe(true);
+
+    expect(
+      stepLxmfPropagationLocalIngressWithActions(initialLxmfPropagationLocalIngressState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
+  });
+
+  it("is deterministic for propagation-local-ingress/gate events", () => {
+    const state = initialLxmfPropagationLocalIngressState();
+    const event = {
+      kind: "propagation-local-ingress/gate" as const,
+      prefixedPresent: true,
+      deliveryDestinationPresent: true,
+      destinationHashMatches: true,
+      decryptedPresent: true
+    };
+    const a = stepLxmfPropagationLocalIngressWithActions(state, event);
+    const b = stepLxmfPropagationLocalIngressWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("plans propagation link readiness", () => {

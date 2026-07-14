@@ -35,7 +35,12 @@
 > sync-prep gates** (via **`stepLxmfPropagationLinkReadyWithActions`**: reuse /
 > establish / reject-missing-node / reject-missing-identity; **`stepLxmfPropagationSyncPrepWithActions`**:
 > proceed / reject-missing-node / reject-missing-delivery-identity) are pure
-> protocol leaves; `LXMFRouter` and `PropagationClient` adapt them. **Link request / response
+> protocol leaves; `LXMFRouter` and `PropagationClient` adapt them. **LXMF deliverable accept**
+> (via **`stepLxmfDeliverableAcceptWithActions`**: accept / reject-unsigned / reject-seen),
+> **propagation local ingress** (via **`stepLxmfPropagationLocalIngressWithActions`**:
+> deliver / reject-prefix / reject-destination / reject-decrypt), and **receipt → send-state
+> mapping** (via **`stepLxmfReceiptSendWithActions`**: apply / skip) are pure protocol leaves;
+> `LXMFRouter` adapts them. **Link request / response
 > msgpack codecs** are pure protocol leaves; reticulum re-exports them.
 > **Destination name expansion / hash material** and shared **UTF-8** helpers are pure
 > protocol leaves; `Destination` and path-hash call sites adapt them (SHA stays at the
@@ -177,7 +182,8 @@
 > **`shouldRecordReverseTableEntry`**, and **`isLocalPathRequestPacket`** live in protocol;
 > transport relay / `LeafTransport.handleData` adapt them. **`isPacketTypeProof`** lives in
 > protocol; `PacketReceipt.validateProofPacket` adapts it. **`planLxmfDeliverableAccept`**
-> lives in protocol; `LXMFRouter` unpack adapts it. **`canRelayLinkPacket`**,
+> (via **`stepLxmfDeliverableAcceptWithActions`**) lives in protocol; `LXMFRouter` unpack
+> adapts it. **`canRelayLinkPacket`**,
 > **`canRelayReversePacket`**, **`shouldRelayReverseOnInterface`**,
 > **`planTransportIngressDispatch`**, **`planProofIngressKind`**, and
 > **`shouldTransmitOnInterface`** live in protocol; `TransportNode` /
@@ -224,8 +230,10 @@
 > `Link` RESOURCE_ADV adapts it via **`stepLinkResourceAdvertisementWithActions`**. **`planLxmfOpportunisticSend`** (via **`stepLxmfOpportunisticSendWithActions`**: proceed / reject-missing-destination) lives in protocol;
 > `LXMFRouter` adapts it. **`shouldUpdateLinkLastData`** /
 > **`isLinkInboundDataPacket`** live in protocol; `Link.receive` adapts them.
-> **`planLxmfReceiptSendOutcome`** lives in protocol; opportunistic/propagated receipt →
-> send-state adapts it. **`planLxmfPropagationLocalIngress`** /
+> **`planLxmfReceiptSendOutcome`** (via **`stepLxmfReceiptSendWithActions`**: apply /
+> skip) lives in protocol; opportunistic/propagated receipt → send-state adapts it.
+> **`planLxmfPropagationLocalIngress`** (via **`stepLxmfPropagationLocalIngressWithActions`**:
+> deliver / reject-*) /
 > **`planLxmfPropagationLinkReady`** (via **`stepLxmfPropagationLinkReadyWithActions`**:
 > reuse / establish / reject-missing-node / reject-missing-identity) live in protocol;
 > propagation ingress and outbound link readiness adapt them. **`shouldAttemptLinkProofCrypto`** lives in protocol;
@@ -416,6 +424,16 @@
 > `PropagationClient` apply reuse/establish/proceed or throw only from those
 > actions (no ad-hoc `planLxmfPropagationLinkReady` /
 > `planLxmfPropagationSyncPrep` reads beside the step).
+> **`stepLxmfDeliverableAcceptWithActions`** emits `accept` / `reject-unsigned` /
+> `reject-seen`; `LXMFRouter.unpackDeliverable` accepts or drops only from those
+> actions (no ad-hoc `planLxmfDeliverableAccept` reads beside the step).
+> **`stepLxmfPropagationLocalIngressWithActions`** emits `deliver` /
+> `reject-prefix` / `reject-destination` / `reject-decrypt`;
+> `LXMFRouter.handlePropagationData` unpacks only from those actions (no ad-hoc
+> `planLxmfPropagationLocalIngress` reads beside the step).
+> **`stepLxmfReceiptSendWithActions`** emits `apply` (with send-state event) /
+> `skip`; opportunistic/propagated send paths update send-state only from those
+> actions (no ad-hoc `planLxmfReceiptSendOutcome` reads beside the step).
 > **`shouldDeliverPendingLinkAppResponse`**,
 > **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
 > **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
@@ -457,11 +475,13 @@
 > reject/duplicate/accept, propagation /get list-ids/apply, LXMF
 > delivery-parameter select deliver/reject, LXMF send-method
 > reject/dispatch, LXMF per-method send gates (opportunistic /
-> direct / propagated), and LXMF propagation link-ready / sync-prep
-> gates also conclude via machine actions
+> direct / propagated), LXMF propagation link-ready / sync-prep
+> gates, LXMF deliverable accept, propagation local ingress, and
+> LXMF receipt → send-state mapping also conclude via machine actions
 > (no ad-hoc `state.timedOut` / `plan.kind` / establish-status / dispatch /
 > identify-outcome / delivery-plan / send-method / send-gate /
-> propagation-link-ready / sync-prep reads beside the step).
+> propagation-link-ready / sync-prep / deliverable-accept /
+> local-ingress / receipt-send reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

@@ -6,20 +6,24 @@ import {
   applyLxmfSendEvent,
   canAcceptLxmfPropagationLocalDelivery,
   canRegisterLxmfDeliveryIdentity,
+  canUnpackLxmfPropagationLocalIngress,
   initialDeliveryReceiptPollState,
   initialLinkAwaitState,
-  initialLxmfSendState,
-  lxmfInboundDeliveryBytes,
-  packLxmfDestinationPrefixed,
+  initialLxmfDeliverableAcceptState,
   initialLxmfDirectSendState,
   initialLxmfOpportunisticSendState,
   initialLxmfPropagatedSendState,
   initialLxmfPropagationLinkReadyState,
+  initialLxmfPropagationLocalIngressState,
+  initialLxmfReceiptSendState,
   initialLxmfSendMethodState,
-  planLxmfDeliverableAccept,
-  planLxmfPropagationLocalIngress,
-  planLxmfReceiptSendOutcome,
-  shouldApplyLxmfReceiptSendState,
+  initialLxmfSendState,
+  lxmfInboundDeliveryBytes,
+  lxmfReceiptSendApplyEvent,
+  lxmfSendUnsupportedMethod,
+  packLxmfDestinationPrefixed,
+  shouldAcceptLxmfDeliverable,
+  shouldApplyLxmfReceiptSend,
   shouldAwaitLxmfDeliveryReceipt,
   shouldDeliverLxmfPropagationLocalIngress,
   shouldEstablishLxmfPropagationLink,
@@ -47,12 +51,14 @@ import {
   splitLxmfDestinationPrefixed,
   stepDeliveryReceiptPollWithActions,
   stepLinkAwaitWithActions,
+  stepLxmfDeliverableAcceptWithActions,
   stepLxmfDirectSendWithActions,
   stepLxmfOpportunisticSendWithActions,
   stepLxmfPropagatedSendWithActions,
   stepLxmfPropagationLinkReadyWithActions,
+  stepLxmfPropagationLocalIngressWithActions,
+  stepLxmfReceiptSendWithActions,
   stepLxmfSendMethodWithActions,
-  lxmfSendUnsupportedMethod,
   type LxmfSendEvent,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
@@ -414,28 +420,32 @@ export class LXMFRouter {
     });
 
     const receipt = await outbound.send(message.opportunisticPayload(), { createReceipt: true });
-    const afterSend = planLxmfReceiptSendOutcome({
+    const afterSend = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
+      kind: "receipt-send/map",
       mode: "opportunistic",
       phase: "after-send",
       receiptPresent: receipt !== null,
       delivered: false
     });
-    if (shouldApplyLxmfReceiptSendState(afterSend !== null)) {
-      this.applySendState(message, afterSend!);
+    const afterSendEvent = lxmfReceiptSendApplyEvent(afterSend.actions);
+    if (shouldApplyLxmfReceiptSend(afterSend.actions) && afterSendEvent !== null) {
+      this.applySendState(message, afterSendEvent);
     }
     if (!shouldAwaitLxmfDeliveryReceipt(receipt !== null)) {
       return;
     }
 
     await this.pollDeliveryReceipt(receipt!);
-    const afterPoll = planLxmfReceiptSendOutcome({
+    const afterPoll = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
+      kind: "receipt-send/map",
       mode: "opportunistic",
       phase: "after-poll",
       receiptPresent: true,
       delivered: receipt!.status === PacketReceiptStatus.DELIVERED
     });
-    if (shouldApplyLxmfReceiptSendState(afterPoll !== null)) {
-      this.applySendState(message, afterPoll!);
+    const afterPollEvent = lxmfReceiptSendApplyEvent(afterPoll.actions);
+    if (shouldApplyLxmfReceiptSend(afterPoll.actions) && afterPollEvent !== null) {
+      this.applySendState(message, afterPollEvent);
     }
   }
 
@@ -520,27 +530,31 @@ export class LXMFRouter {
       createReceipt: true
     });
 
-    const afterSend = planLxmfReceiptSendOutcome({
+    const afterSend = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
+      kind: "receipt-send/map",
       mode: "propagated",
       phase: "after-send",
       receiptPresent: result.receipt !== null,
       delivered: false
     });
-    if (shouldApplyLxmfReceiptSendState(afterSend !== null)) {
-      this.applySendState(message, afterSend!);
+    const afterSendEvent = lxmfReceiptSendApplyEvent(afterSend.actions);
+    if (shouldApplyLxmfReceiptSend(afterSend.actions) && afterSendEvent !== null) {
+      this.applySendState(message, afterSendEvent);
     }
 
     if (shouldAwaitLxmfDeliveryReceipt(result.receipt !== null)) {
       await this.pollDeliveryReceipt(result.receipt!);
     }
-    const afterPoll = planLxmfReceiptSendOutcome({
+    const afterPoll = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
+      kind: "receipt-send/map",
       mode: "propagated",
       phase: "after-poll",
       receiptPresent: result.receipt !== null,
       delivered: result.receipt?.status === PacketReceiptStatus.DELIVERED
     });
-    if (shouldApplyLxmfReceiptSendState(afterPoll !== null)) {
-      this.applySendState(message, afterPoll!);
+    const afterPollEvent = lxmfReceiptSendApplyEvent(afterPoll.actions);
+    if (shouldApplyLxmfReceiptSend(afterPoll.actions) && afterPollEvent !== null) {
+      this.applySendState(message, afterPollEvent);
     }
   }
 
@@ -635,15 +649,20 @@ export class LXMFRouter {
         ? deliveryDestination.decrypt(prefixed.remainder)
         : null;
 
+    const ingress = stepLxmfPropagationLocalIngressWithActions(
+      initialLxmfPropagationLocalIngressState(),
+      {
+        kind: "propagation-local-ingress/gate",
+        prefixedPresent: prefixed !== null,
+        deliveryDestinationPresent: deliveryDestination !== null,
+        destinationHashMatches,
+        decryptedPresent: decrypted !== null
+      }
+    );
+
     if (
-      !shouldDeliverLxmfPropagationLocalIngress({
-        planDeliver:
-          planLxmfPropagationLocalIngress({
-            prefixedPresent: prefixed !== null,
-            deliveryDestinationPresent: deliveryDestination !== null,
-            destinationHashMatches,
-            decryptedPresent: decrypted !== null
-          }) === "deliver",
+      !canUnpackLxmfPropagationLocalIngress({
+        deliver: shouldDeliverLxmfPropagationLocalIngress(ingress.actions),
         prefixedPresent: prefixed !== null,
         decryptedPresent: decrypted !== null
       })
@@ -672,14 +691,14 @@ export class LXMFRouter {
         originalMethod: method
       });
 
-      if (
-        planLxmfDeliverableAccept({
-          signatureValidated: message.signatureValidated,
-          hasHash: message.hash !== null,
-          alreadySeen:
-            message.hash !== null && this.seenMessages.has(bytesToHex(message.hash))
-        }) !== "accept"
-      ) {
+      const accept = stepLxmfDeliverableAcceptWithActions(initialLxmfDeliverableAcceptState(), {
+        kind: "deliverable/accept-gate",
+        signatureValidated: message.signatureValidated,
+        hasHash: message.hash !== null,
+        alreadySeen:
+          message.hash !== null && this.seenMessages.has(bytesToHex(message.hash))
+      });
+      if (!shouldAcceptLxmfDeliverable(accept.actions)) {
         return null;
       }
 

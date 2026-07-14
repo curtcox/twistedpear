@@ -348,6 +348,94 @@ export function planLxmfDeliverableAccept(input: {
   return "accept";
 }
 
+/**
+ * Deliverable accept gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LxmfDeliverableAcceptState = Record<string, never>;
+
+export type LxmfDeliverableAcceptEvent =
+  | Event
+  | {
+      readonly kind: "deliverable/accept-gate";
+      readonly signatureValidated: boolean;
+      readonly hasHash: boolean;
+      readonly alreadySeen: boolean;
+    };
+
+export type LxmfDeliverableAcceptAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "reject-unsigned" }
+  | { readonly kind: "reject-seen" };
+
+export interface LxmfDeliverableAcceptStepResult {
+  readonly state: LxmfDeliverableAcceptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfDeliverableAcceptAction[];
+}
+
+export function initialLxmfDeliverableAcceptState(): LxmfDeliverableAcceptState {
+  return {};
+}
+
+export const stepLxmfDeliverableAccept: StepFn<LxmfDeliverableAcceptState> = (
+  state,
+  event
+) => {
+  const result = stepLxmfDeliverableAcceptInner(
+    state,
+    event as LxmfDeliverableAcceptEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxmfDeliverableAcceptWithActions(
+  state: LxmfDeliverableAcceptState,
+  event: LxmfDeliverableAcceptEvent
+): LxmfDeliverableAcceptStepResult {
+  return stepLxmfDeliverableAcceptInner(state, event);
+}
+
+export function shouldAcceptLxmfDeliverable(
+  actions: ReadonlyArray<LxmfDeliverableAcceptAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldRejectLxmfDeliverableUnsigned(
+  actions: ReadonlyArray<LxmfDeliverableAcceptAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-unsigned");
+}
+
+export function shouldRejectLxmfDeliverableSeen(
+  actions: ReadonlyArray<LxmfDeliverableAcceptAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-seen");
+}
+
+function stepLxmfDeliverableAcceptInner(
+  state: LxmfDeliverableAcceptState,
+  event: LxmfDeliverableAcceptEvent
+): LxmfDeliverableAcceptStepResult {
+  if (event.kind === "deliverable/accept-gate") {
+    const plan = planLxmfDeliverableAccept({
+      signatureValidated: event.signatureValidated,
+      hasHash: event.hasHash,
+      alreadySeen: event.alreadySeen
+    });
+    if (plan === "reject-unsigned") {
+      return { state, intents: [], actions: [{ kind: "reject-unsigned" }] };
+    }
+    if (plan === "reject-seen") {
+      return { state, intents: [], actions: [{ kind: "reject-seen" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "accept" }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
 /** Whether an accepted LXMF deliverable hash should be remembered in the seen set. */
 export function shouldRememberLxmfMessage(hasHash: boolean): boolean {
   return hasHash;
@@ -542,15 +630,115 @@ export function planLxmfPropagationLocalIngress(input: {
 }
 
 /**
- * Whether propagation local ingress may unpack after {@link planLxmfPropagationLocalIngress}
+ * Propagation local-ingress gates are event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
+export type LxmfPropagationLocalIngressState = Record<string, never>;
+
+export type LxmfPropagationLocalIngressEvent =
+  | Event
+  | {
+      readonly kind: "propagation-local-ingress/gate";
+      readonly prefixedPresent: boolean;
+      readonly deliveryDestinationPresent: boolean;
+      readonly destinationHashMatches: boolean;
+      readonly decryptedPresent: boolean;
+    };
+
+export type LxmfPropagationLocalIngressAction =
+  | { readonly kind: "deliver" }
+  | { readonly kind: "reject-prefix" }
+  | { readonly kind: "reject-destination" }
+  | { readonly kind: "reject-decrypt" };
+
+export interface LxmfPropagationLocalIngressStepResult {
+  readonly state: LxmfPropagationLocalIngressState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfPropagationLocalIngressAction[];
+}
+
+export function initialLxmfPropagationLocalIngressState(): LxmfPropagationLocalIngressState {
+  return {};
+}
+
+export const stepLxmfPropagationLocalIngress: StepFn<LxmfPropagationLocalIngressState> = (
+  state,
+  event
+) => {
+  const result = stepLxmfPropagationLocalIngressInner(
+    state,
+    event as LxmfPropagationLocalIngressEvent
+  );
+  return { state: result.state, intents: result.intents };
+};
+
+export function stepLxmfPropagationLocalIngressWithActions(
+  state: LxmfPropagationLocalIngressState,
+  event: LxmfPropagationLocalIngressEvent
+): LxmfPropagationLocalIngressStepResult {
+  return stepLxmfPropagationLocalIngressInner(state, event);
+}
+
+export function shouldDeliverLxmfPropagationLocalIngress(
+  actions: ReadonlyArray<LxmfPropagationLocalIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "deliver");
+}
+
+export function shouldRejectLxmfPropagationLocalPrefix(
+  actions: ReadonlyArray<LxmfPropagationLocalIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-prefix");
+}
+
+export function shouldRejectLxmfPropagationLocalDestination(
+  actions: ReadonlyArray<LxmfPropagationLocalIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-destination");
+}
+
+export function shouldRejectLxmfPropagationLocalDecrypt(
+  actions: ReadonlyArray<LxmfPropagationLocalIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-decrypt");
+}
+
+/**
+ * Whether propagation local ingress may unpack after a deliver action
  * and prefixed/decrypted references remain present for narrowing.
  */
-export function shouldDeliverLxmfPropagationLocalIngress(input: {
-  readonly planDeliver: boolean;
+export function canUnpackLxmfPropagationLocalIngress(input: {
+  readonly deliver: boolean;
   readonly prefixedPresent: boolean;
   readonly decryptedPresent: boolean;
 }): boolean {
-  return input.planDeliver && input.prefixedPresent && input.decryptedPresent;
+  return input.deliver && input.prefixedPresent && input.decryptedPresent;
+}
+
+function stepLxmfPropagationLocalIngressInner(
+  state: LxmfPropagationLocalIngressState,
+  event: LxmfPropagationLocalIngressEvent
+): LxmfPropagationLocalIngressStepResult {
+  if (event.kind === "propagation-local-ingress/gate") {
+    const plan = planLxmfPropagationLocalIngress({
+      prefixedPresent: event.prefixedPresent,
+      deliveryDestinationPresent: event.deliveryDestinationPresent,
+      destinationHashMatches: event.destinationHashMatches,
+      decryptedPresent: event.decryptedPresent
+    });
+    if (plan === "reject-prefix") {
+      return { state, intents: [], actions: [{ kind: "reject-prefix" }] };
+    }
+    if (plan === "reject-destination") {
+      return { state, intents: [], actions: [{ kind: "reject-destination" }] };
+    }
+    if (plan === "reject-decrypt") {
+      return { state, intents: [], actions: [{ kind: "reject-decrypt" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "deliver" }] };
+  }
+
+  return { state, intents: [], actions: [] };
 }
 
 export type LxmfPropagationLinkReadyPlan =
