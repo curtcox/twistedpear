@@ -82,7 +82,13 @@
 > **`stepUnpackResourceHashmapUpdateWithActions`** /
 > **`stepPackResourceHashmapUpdatePacketWithActions`** /
 > **`stepSplitResourceHashmapUpdatePacketWithActions`** /
-> **`stepParseResourcePartRequestWithActions`**: use-raw / use-fields|reject),
+> **`stepParseResourcePartRequestWithActions`**: use-raw / use-fields|reject;
+> collision-guard / assemble / membership / request-hash via
+> **`stepAppendResourceMapHashCollisionGuardWithActions`** /
+> **`stepAssembleResourceHashmapBytesWithActions`** /
+> **`stepContainsResourceHashWithActions`** /
+> **`stepReadResourceRequestHashWithActions`**: append|collide / use-raw /
+> present|absent / use-raw),
 > slot-write planning, and **part-request / receive-part / request-fulfill / HMU-accept**
 > (via **`stepResourcePartRequestWithActions`** /
 > **`stepResourceReceivePartWithActions`** /
@@ -295,9 +301,12 @@
 > **`countChannelTxOutstanding`** lives in protocol; `Channel.isReadyToSend` adapts it.
 > **`shouldExtendPacketReceiptTimeout`** lives in protocol; `Channel.updatePacketTimeouts`
 > adapts it. **`indexOfChannelTxEnvelope`** lives in protocol; Channel timeout/delivery TX-ring
-> lookup adapts it. **`appendResourceMapHashCollisionGuard`** lives in protocol; `Resource.send`
-> adapts it. **`containsResourceHash`** / **`indexOfResourceHash`** live in protocol;
-> `Resource.accept` and `Link.hasIncomingResource` adapt them. **`indexOfChannelRingSequence`**
+> lookup adapts it. **`stepAppendResourceMapHashCollisionGuardWithActions`** lives in protocol; `Resource.send`
+> adapts it. **`stepContainsResourceHashWithActions`** lives in protocol;
+> `Resource.accept` and `Link.hasIncomingResource` adapt it.
+> **`stepAssembleResourceHashmapBytesWithActions`** / **`stepReadResourceRequestHashWithActions`**
+> live in protocol; `Resource.send` / fulfill / `readRequestHash` adapt them.
+> **`indexOfChannelRingSequence`**
 > lives in protocol; Channel RX drain adapts it. **`applyResourceHashmapSlotWrites`** lives in
 > protocol; `Resource.hashmapUpdate` adapts it. **`appendPathRandomBlob`** lives in protocol;
 > path-table announce update adapts it. **`parseAspectFilter`** lives in protocol; announce-handler
@@ -860,7 +869,9 @@
 > channel-envelope-unpack / channel-envelope-pack / channel-send /
 > resource-assemble / resource-proof-accept / resource-request-fulfill /
 > resource-receive-part / resource-part-request /
-> resource-hashmap-update-accept / path-request-ingress /
+> resource-hashmap-update-accept / append-resource-map-hash-collision-guard /
+> assemble-resource-hashmap-bytes / contains-resource-hash /
+> read-resource-request-hash / path-request-ingress /
 > discovery-path-request-fulfill / path-outbound / path-entry-lookup /
 > transport-ingress-dispatch / link-data-ingress-target /
 > reverse-relay-outcome / packet-hash-remember /
@@ -903,7 +914,9 @@
 > split-resource-decrypted-payload /
 > pack-resource-hashmap-update / unpack-resource-hashmap-update /
 > pack-resource-hashmap-update-packet / split-resource-hashmap-update-packet /
-> parse-resource-part-request / pack-resource-advertisement /
+> parse-resource-part-request / append-resource-map-hash-collision-guard /
+> assemble-resource-hashmap-bytes / contains-resource-hash /
+> read-resource-request-hash / pack-resource-advertisement /
 > unpack-resource-advertisement / encode-resource-advertisement-flags /
 > decode-resource-advertisement-flags / classify-resource-advertisement /
 > resource-encrypt-material / resource-hash-material /
@@ -1122,6 +1135,15 @@
 > `packResourceHashmapUpdate` / `unpackResourceHashmapUpdate` /
 > `packResourceHashmapUpdatePacket` / `splitResourceHashmapUpdatePacket` /
 > `parseResourcePartRequest` reads beside the step).
+> **`stepAppendResourceMapHashCollisionGuardWithActions`** /
+> **`stepAssembleResourceHashmapBytesWithActions`** /
+> **`stepContainsResourceHashWithActions`** /
+> **`stepReadResourceRequestHashWithActions`** emit `append`|`collide` /
+> `use-raw` / `present`|`absent` / `use-raw`; resource collision-guard append,
+> hashmap assemble, hash membership, and request-hash read apply only from
+> those actions (no ad-hoc `appendResourceMapHashCollisionGuard` /
+> `assembleResourceHashmapBytes` / `containsResourceHash` /
+> `indexOfResourceHash` / `readResourceRequestHash` reads beside the step).
 > **`stepPackResourceAdvertisementWithActions`** /
 > **`stepUnpackResourceAdvertisementWithActions`** emit `use-raw` /
 > `use-fields`|`reject`; resource advertisement pack / unpack apply only from

@@ -19,7 +19,7 @@ import {
   ResourceStatus,
   applyResourceStatusEvent,
   assembleByteArrays,
-  assembleResourceHashmapBytes,
+  assembleResourceHashmapBytesRawFromActions,
   canProveResource,
   canReceiveResourcePart,
   canRequestResourceNext,
@@ -27,8 +27,11 @@ import {
   canRunResourceWatchdog,
   computeResourceTimeout,
   encodeResourceAdvertisementFlagsFromActions,
+  initialAppendResourceMapHashCollisionGuardState,
+  initialAssembleResourceHashmapBytesState,
   initialClassifyResourceAdvertisementState,
   initialComputeResourceTotalPartsState,
+  initialContainsResourceHashState,
   initialDecodeResourceAdvertisementFlagsState,
   initialEncodeResourceAdvertisementFlagsState,
   initialResourceAdvertisementRoleFlagsState,
@@ -41,6 +44,7 @@ import {
   initialResourceStatusState,
   isResourceComplete,
   initialPackResourceAdvertisementState,
+  initialReadResourceRequestHashState,
   initialUnpackResourceAdvertisementState,
   packResourceAdvertisementRawFromActions,
   packResourceHashmapUpdatePacketRawFromActions,
@@ -68,22 +72,28 @@ import {
   resourceHashmapSlotWritesFromActions,
   resourceHashmapUpdateFieldsFromActions,
   resourceHashmapUpdatePacketFieldsFromActions,
+  resourceMapHashCollisionGuardFromActions,
   resourcePartRequestFieldsFromActions,
   resourcePartRequestFromActions,
   resourceProofFieldsFromActions,
   resourceReceivePartFromActions,
   resourceRequestFulfillFromActions,
+  readResourceRequestHashRawFromActions,
+  shouldAppendResourceMapHashCollisionGuard,
   shouldApplyResourceHashmapUpdateAccept,
+  shouldCollideResourceMapHashCollisionGuard,
   shouldCompleteResourceAssemble,
   shouldCompleteResourceProofAccept,
   shouldClassifyResourceAdvertisementRequest,
   shouldClassifyResourceAdvertisementResponse,
+  shouldPresentResourceHash,
   shouldRejectUnpackResourceAdvertisement,
   shouldRejectParseResourcePartRequest,
   shouldRejectSplitResourceDecryptedPayload,
   shouldRejectSplitResourceHashmapUpdatePacket,
   shouldRejectSplitResourceProof,
   shouldRejectUnpackResourceHashmapUpdate,
+  shouldUseAssembleResourceHashmapBytes,
   shouldUseDecodeResourceAdvertisementFlags,
   shouldUseEncodeResourceAdvertisementFlags,
   shouldUsePackResourceAdvertisement,
@@ -91,6 +101,7 @@ import {
   shouldUsePackResourceHashmapUpdatePacket,
   shouldUsePackResourceProof,
   shouldUseParseResourcePartRequest,
+  shouldUseReadResourceRequestHash,
   shouldUseResourceAdvertisementRoleFlags,
   shouldUseUnpackResourceAdvertisement,
   shouldUseSplitResourceDecryptedPayload,
@@ -98,11 +109,15 @@ import {
   shouldUseSplitResourceProof,
   shouldUseUnpackResourceHashmapUpdate,
   shouldWriteResourceHashmapSlots,
+  stepAppendResourceMapHashCollisionGuardWithActions,
+  stepAssembleResourceHashmapBytesWithActions,
   stepClassifyResourceAdvertisementWithActions,
   stepComputeResourceTotalPartsWithActions,
+  stepContainsResourceHashWithActions,
   stepDecodeResourceAdvertisementFlagsWithActions,
   stepEncodeResourceAdvertisementFlagsWithActions,
   stepPackResourceAdvertisementWithActions,
+  stepReadResourceRequestHashWithActions,
   stepResourceEncryptMaterialWithActions,
   stepResourceExpectedProofMaterialWithActions,
   stepResourceHashMaterialWithActions,
@@ -124,9 +139,6 @@ import {
   stepSplitResourceHashmapUpdatePacketWithActions,
   stepSplitResourceProofWithActions,
   stepUnpackResourceHashmapUpdateWithActions,
-  readResourceRequestHash,
-  appendResourceMapHashCollisionGuard,
-  containsResourceHash,
   resourceEncryptMaterialRawFromActions,
   resourceExpectedProofMaterialRawFromActions,
   resourceHashMaterialRawFromActions,
@@ -636,16 +648,28 @@ export class Resource {
           RESOURCE_MAPHASH_LEN
         );
 
-        const appended = appendResourceMapHashCollisionGuard({
-          guard: collisionGuard,
-          mapHash,
-          hashmapMaxLen: ResourceAdvertisement.HASHMAP_MAX_LEN
-        });
-        if (appended.collided) {
+        const collisionStepped = stepAppendResourceMapHashCollisionGuardWithActions(
+          initialAppendResourceMapHashCollisionGuardState(),
+          {
+            kind: "resource-hashmap/collision-guard-gate",
+            guard: collisionGuard,
+            mapHash,
+            hashmapMaxLen: ResourceAdvertisement.HASHMAP_MAX_LEN
+          }
+        );
+        if (shouldCollideResourceMapHashCollisionGuard(collisionStepped.actions)) {
           hashmapOk = false;
           break;
         }
-        collisionGuard = [...appended.guard];
+        const nextGuard = resourceMapHashCollisionGuardFromActions(collisionStepped.actions);
+        if (
+          !shouldAppendResourceMapHashCollisionGuard(collisionStepped.actions) ||
+          nextGuard === null
+        ) {
+          hashmapOk = false;
+          break;
+        }
+        collisionGuard = [...nextGuard];
 
         const packet = Packet.fromFields(provider, {
           headerType: PacketHeaderType.HEADER_1,
@@ -667,7 +691,19 @@ export class Resource {
       }
     }
 
-    const hashmapBytes = assembleResourceHashmapBytes(mapHashes);
+    const assembleStepped = stepAssembleResourceHashmapBytesWithActions(
+      initialAssembleResourceHashmapBytesState(),
+      {
+        kind: "resource-hashmap/assemble-bytes-gate",
+        mapHashes
+      }
+    );
+    const hashmapBytes = shouldUseAssembleResourceHashmapBytes(assembleStepped.actions)
+      ? assembleResourceHashmapBytesRawFromActions(assembleStepped.actions)
+      : null;
+    if (hashmapBytes === null) {
+      throw new Error("Resource hashmap assemble rejected");
+    }
 
     const resource = new Resource(provider, link, {
       initiator: true,
@@ -705,12 +741,14 @@ export class Resource {
     try {
       const adv = ResourceAdvertisement.unpack(plaintext);
       const provider = link.cryptoProvider;
+      const containsStepped = stepContainsResourceHashWithActions(initialContainsResourceHashState(), {
+        kind: "resource-hashmap/contains-hash-gate",
+        hashes: link.incomingResources.map((resource) => resource.hash),
+        target: adv.h
+      });
       if (
         !shouldAcceptIncomingResourceAdvertisement(
-          containsResourceHash({
-            hashes: link.incomingResources.map((resource) => resource.hash),
-            target: adv.h
-          })
+          shouldPresentResourceHash(containsStepped.actions)
         )
       ) {
         return null;
@@ -761,7 +799,17 @@ export class Resource {
   }
 
   static readRequestHash(requestData: Uint8Array): Uint8Array {
-    return readResourceRequestHash(requestData);
+    const stepped = stepReadResourceRequestHashWithActions(initialReadResourceRequestHashState(), {
+      kind: "resource-hashmap/read-request-hash-gate",
+      requestData
+    });
+    const hash = shouldUseReadResourceRequestHash(stepped.actions)
+      ? readResourceRequestHashRawFromActions(stepped.actions)
+      : null;
+    if (hash === null) {
+      throw new Error("Resource request hash read rejected");
+    }
+    return hash;
   }
 
   getTransferSize(): number {
@@ -932,12 +980,25 @@ export class Resource {
     this.receiverMinConsecutiveHeight = plan.nextReceiverMinConsecutiveHeight;
 
     if (shouldSendResourceHashmapUpdate(plan.hashmapUpdate !== null)) {
+      const assembleStepped = stepAssembleResourceHashmapBytesWithActions(
+        initialAssembleResourceHashmapBytesState(),
+        {
+          kind: "resource-hashmap/assemble-bytes-gate",
+          mapHashes: plan.hashmapUpdate!.mapHashes
+        }
+      );
+      const hashmap = shouldUseAssembleResourceHashmapBytes(assembleStepped.actions)
+        ? assembleResourceHashmapBytesRawFromActions(assembleStepped.actions)
+        : null;
+      if (hashmap === null) {
+        return;
+      }
       const packUpdateStepped = stepPackResourceHashmapUpdateWithActions(
         initialPackResourceHashmapUpdateState(),
         {
           kind: "resource-hashmap/pack-update-gate",
           segment: plan.hashmapUpdate!.segment,
-          hashmap: assembleResourceHashmapBytes(plan.hashmapUpdate!.mapHashes)
+          hashmap
         }
       );
       const update = shouldUsePackResourceHashmapUpdate(packUpdateStepped.actions)

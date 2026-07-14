@@ -4,15 +4,20 @@ import {
   RESOURCE_HASHMAP_IS_NOT_EXHAUSTED,
   RESOURCE_MAPHASH_LEN,
   assembleResourceHashmapBytes,
+  assembleResourceHashmapBytesRawFromActions,
   packResourceHashmapUpdate,
   packResourceHashmapUpdatePacket,
   packResourceHashmapUpdatePacketRawFromActions,
   packResourceHashmapUpdateRawFromActions,
   parseResourcePartRequest,
   applyResourceHashmapSlotWrites,
+  initialAppendResourceMapHashCollisionGuardState,
+  initialAssembleResourceHashmapBytesState,
+  initialContainsResourceHashState,
   initialPackResourceHashmapUpdatePacketState,
   initialPackResourceHashmapUpdateState,
   initialParseResourcePartRequestState,
+  initialReadResourceRequestHashState,
   initialResourceHashmapSlotWritesState,
   initialResourceHashmapUpdateAcceptState,
   initialResourcePartRequestState,
@@ -26,19 +31,32 @@ import {
   planResourceReceivePart,
   planResourceRequestFulfill,
   readResourceRequestHash,
+  readResourceRequestHashRawFromActions,
   appendResourceMapHashCollisionGuard,
   containsResourceHash,
   indexOfResourceHash,
+  resourceHashIndexFromActions,
   resourceHashmapMaxLen,
   resourceHashmapSlotWritesFromActions,
   resourceHashmapUpdateFieldsFromActions,
   resourceHashmapUpdatePacketFieldsFromActions,
+  resourceMapHashCollisionGuardFromActions,
   resourceMapHashCollisionGuardLimit,
   resourcePartRequestFieldsFromActions,
+  shouldAbsentResourceHash,
+  shouldAppendResourceMapHashCollisionGuard,
+  shouldCollideResourceMapHashCollisionGuard,
+  shouldPresentResourceHash,
+  shouldUseAssembleResourceHashmapBytes,
+  shouldUseReadResourceRequestHash,
   shouldWriteResourceHashmapSlots,
+  stepAppendResourceMapHashCollisionGuardWithActions,
+  stepAssembleResourceHashmapBytesWithActions,
+  stepContainsResourceHashWithActions,
   stepPackResourceHashmapUpdatePacketWithActions,
   stepPackResourceHashmapUpdateWithActions,
   stepParseResourcePartRequestWithActions,
+  stepReadResourceRequestHashWithActions,
   stepResourceHashmapSlotWritesWithActions,
   stepSplitResourceHashmapUpdatePacketWithActions,
   stepUnpackResourceHashmapUpdateWithActions,
@@ -84,20 +102,47 @@ describe("protocol resource hashmap", () => {
     let guard: readonly Uint8Array[] = [];
     for (let index = 0; index < limit + 2; index += 1) {
       const mapHash = new Uint8Array([index, 0, 0, 0]);
-      const result = appendResourceMapHashCollisionGuard({ guard, mapHash, hashmapMaxLen });
-      expect(result.collided).toBe(false);
-      if (!result.collided) {
-        guard = result.guard;
+      const stepped = stepAppendResourceMapHashCollisionGuardWithActions(
+        initialAppendResourceMapHashCollisionGuardState(),
+        {
+          kind: "resource-hashmap/collision-guard-gate",
+          guard,
+          mapHash,
+          hashmapMaxLen
+        }
+      );
+      expect(shouldAppendResourceMapHashCollisionGuard(stepped.actions)).toBe(true);
+      expect(shouldCollideResourceMapHashCollisionGuard(stepped.actions)).toBe(false);
+      const next = resourceMapHashCollisionGuardFromActions(stepped.actions);
+      expect(next).not.toBeNull();
+      const bare = appendResourceMapHashCollisionGuard({ guard, mapHash, hashmapMaxLen });
+      expect(bare.collided).toBe(false);
+      if (!bare.collided) {
+        expect(next).toHaveLength(bare.guard.length);
       }
+      guard = next!;
     }
     expect(guard).toHaveLength(limit);
 
-    const collided = appendResourceMapHashCollisionGuard({
-      guard,
-      mapHash: guard[0]!,
-      hashmapMaxLen
-    });
-    expect(collided.collided).toBe(true);
+    const collided = stepAppendResourceMapHashCollisionGuardWithActions(
+      initialAppendResourceMapHashCollisionGuardState(),
+      {
+        kind: "resource-hashmap/collision-guard-gate",
+        guard,
+        mapHash: guard[0]!,
+        hashmapMaxLen
+      }
+    );
+    expect(shouldCollideResourceMapHashCollisionGuard(collided.actions)).toBe(true);
+    expect(shouldAppendResourceMapHashCollisionGuard(collided.actions)).toBe(false);
+    expect(resourceMapHashCollisionGuardFromActions(collided.actions)).toBeNull();
+    expect(
+      appendResourceMapHashCollisionGuard({
+        guard,
+        mapHash: guard[0]!,
+        hashmapMaxLen
+      }).collided
+    ).toBe(true);
   });
 
   it("finds resource hashes by membership", () => {
@@ -106,6 +151,24 @@ describe("protocol resource hashmap", () => {
     expect(indexOfResourceHash({ hashes: [a, b], target: new Uint8Array([4, 5, 6]) })).toBe(1);
     expect(containsResourceHash({ hashes: [a, b], target: a })).toBe(true);
     expect(containsResourceHash({ hashes: [a], target: b })).toBe(false);
+
+    const present = stepContainsResourceHashWithActions(initialContainsResourceHashState(), {
+      kind: "resource-hashmap/contains-hash-gate",
+      hashes: [a, b],
+      target: new Uint8Array([4, 5, 6])
+    });
+    expect(shouldPresentResourceHash(present.actions)).toBe(true);
+    expect(shouldAbsentResourceHash(present.actions)).toBe(false);
+    expect(resourceHashIndexFromActions(present.actions)).toBe(1);
+
+    const absent = stepContainsResourceHashWithActions(initialContainsResourceHashState(), {
+      kind: "resource-hashmap/contains-hash-gate",
+      hashes: [a],
+      target: b
+    });
+    expect(shouldAbsentResourceHash(absent.actions)).toBe(true);
+    expect(shouldPresentResourceHash(absent.actions)).toBe(false);
+    expect(resourceHashIndexFromActions(absent.actions)).toBeNull();
   });
 
   it("round-trips hashmap update msgpack", () => {
@@ -143,18 +206,38 @@ describe("protocol resource hashmap", () => {
     exhausted[0] = RESOURCE_HASHMAP_IS_EXHAUSTED;
     exhausted.set(last, 1);
     exhausted.set(resourceHash, 1 + RESOURCE_MAPHASH_LEN);
+    const readStepped = stepReadResourceRequestHashWithActions(initialReadResourceRequestHashState(), {
+      kind: "resource-hashmap/read-request-hash-gate",
+      requestData: exhausted
+    });
+    expect(shouldUseReadResourceRequestHash(readStepped.actions)).toBe(true);
+    const requestHash = readResourceRequestHashRawFromActions(readStepped.actions);
+    expect(requestHash).not.toBeNull();
+    expect([...requestHash!]).toEqual([...resourceHash]);
     expect([...readResourceRequestHash(exhausted)]).toEqual([...resourceHash]);
     expect([...parseResourcePartRequest(exhausted)!.lastMapHash!]).toEqual([...last]);
   });
 
   it("plans slot writes and assembles hashmap bytes", () => {
-    const hashmap = assembleResourceHashmapBytes([
-      new Uint8Array([1, 2, 3, 4]),
-      new Uint8Array([5, 6, 7, 8])
+    const assembleStepped = stepAssembleResourceHashmapBytesWithActions(
+      initialAssembleResourceHashmapBytesState(),
+      {
+        kind: "resource-hashmap/assemble-bytes-gate",
+        mapHashes: [new Uint8Array([1, 2, 3, 4]), new Uint8Array([5, 6, 7, 8])]
+      }
+    );
+    expect(shouldUseAssembleResourceHashmapBytes(assembleStepped.actions)).toBe(true);
+    const hashmap = assembleResourceHashmapBytesRawFromActions(assembleStepped.actions);
+    expect(hashmap).not.toBeNull();
+    expect([...hashmap!]).toEqual([
+      ...assembleResourceHashmapBytes([
+        new Uint8Array([1, 2, 3, 4]),
+        new Uint8Array([5, 6, 7, 8])
+      ])
     ]);
     const writes = planResourceHashmapSlotWrites({
       segment: 1,
-      hashmap,
+      hashmap: hashmap!,
       hashmapMaxLen: 10
     });
     expect(writes).toHaveLength(2);
@@ -164,7 +247,7 @@ describe("protocol resource hashmap", () => {
     const stepped = stepResourceHashmapSlotWritesWithActions(initialResourceHashmapSlotWritesState(), {
       kind: "resource/hashmap-slot-writes-gate",
       segment: 1,
-      hashmap,
+      hashmap: hashmap!,
       hashmapMaxLen: 10
     });
     expect(shouldWriteResourceHashmapSlots(stepped.actions)).toBe(true);

@@ -40,8 +40,8 @@ import {
   computeLinkMdu,
   computeLinkRequestTimeout,
   computeLinkRttSeconds,
-  containsResourceHash,
   deriveRnsLinkKeyRawFromActions,
+  initialContainsResourceHashState,
   encodeLinkMtuBytesRawFromActions,
   encodeLinkSignallingBytesRawFromActions,
   indexOfPendingLinkAppRequest,
@@ -227,6 +227,7 @@ import {
   shouldIgnoreLinkResourceAdvertisement,
   shouldInvokeLinkAppRequestInbound,
   shouldKeepPendingLinkAppRequestTransmit,
+  shouldPresentResourceHash,
   shouldRegisterLinkResource,
   shouldRegisterPendingLinkRequest,
   shouldRejectLinkAppRequest,
@@ -284,6 +285,7 @@ import {
   stepLinkIdentifyWithActions,
   stepLinkProofValidateWithActions,
   stepLinkResourceAdvertisementWithActions,
+  stepContainsResourceHashWithActions,
   stepLinkResourceConcludeWithActions,
   stepPendingLinkRequestUnregisterWithActions,
   stepLinkTeardownWithActions,
@@ -1469,10 +1471,12 @@ export class Link {
   }
 
   hasIncomingResource(resource: Resource): boolean {
-    return containsResourceHash({
+    const stepped = stepContainsResourceHashWithActions(initialContainsResourceHashState(), {
+      kind: "resource-hashmap/contains-hash-gate",
       hashes: this.incomingResourcesList.map((incoming) => incoming.hash),
       target: resource.hash
     });
+    return shouldPresentResourceHash(stepped.actions);
   }
 
   resourceConcluded(resource: Resource): void {
