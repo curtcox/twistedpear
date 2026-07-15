@@ -4,7 +4,8 @@
  * Pack / split / hash-match / packet-type / packet-receipt proof-accept
  * conclusions leave via machine actions (no ad-hoc `packPacketProof` /
  * `splitPacketProof` / `packetProofHashMatches` / `isPacketTypeProof` /
- * `planPacketReceiptProofAccept` reads beside the step).
+ * `planPacketReceiptProofAccept` reads beside the step). Plan nested via
+ * {@link stepPacketReceiptProofAcceptPlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_PROOF } from "./packet-header.js";
@@ -423,8 +424,85 @@ export function shouldSkipAcceptPacketReceiptProof(
 }
 
 /**
+ * Packet-receipt proof-accept plan gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `planPacketReceiptProofAccept` / `plan ===` reads beside the step). Nested
+ * under {@link stepPacketReceiptProofAcceptWithActions}.
+ */
+export type PacketReceiptProofAcceptPlanState = Record<string, never>;
+
+export type PacketReceiptProofAcceptPlanEvent =
+  | Event
+  | {
+      readonly kind: "receipt/proof-accept-plan-gate";
+      readonly splitOk: boolean;
+      readonly hashMatches: boolean;
+      readonly signatureValid: boolean;
+    };
+
+export type PacketReceiptProofAcceptPlanAction = {
+  readonly kind: PacketReceiptProofAcceptPlan;
+};
+
+export interface PacketReceiptProofAcceptPlanStepResult {
+  readonly state: PacketReceiptProofAcceptPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketReceiptProofAcceptPlanAction[];
+}
+
+export function initialPacketReceiptProofAcceptPlanState(): PacketReceiptProofAcceptPlanState {
+  return {};
+}
+
+export function stepPacketReceiptProofAcceptPlanWithActions(
+  state: PacketReceiptProofAcceptPlanState,
+  event: PacketReceiptProofAcceptPlanEvent
+): PacketReceiptProofAcceptPlanStepResult {
+  if (event.kind === "receipt/proof-accept-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planPacketReceiptProofAccept({
+            splitOk: event.splitOk,
+            hashMatches: event.hashMatches,
+            signatureValid: event.signatureValid
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function packetReceiptProofAcceptPlanFromActions(
+  actions: ReadonlyArray<PacketReceiptProofAcceptPlanAction>
+): PacketReceiptProofAcceptPlan | null {
+  const action = actions.find(
+    (entry) => entry.kind === "accept" || entry.kind === "reject"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldAcceptPacketReceiptProofAcceptPlan(
+  actions: ReadonlyArray<PacketReceiptProofAcceptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldRejectPacketReceiptProofAcceptPlan(
+  actions: ReadonlyArray<PacketReceiptProofAcceptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/**
  * Packet-receipt proof accept is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepPacketReceiptProofAcceptPlanWithActions}
+ * (`accept`|`reject`).
  */
 export type PacketReceiptProofAcceptState = Record<string, never>;
 
@@ -437,6 +515,10 @@ export type PacketReceiptProofAcceptEvent =
       readonly signatureValid: boolean;
     };
 
+/**
+ * Plan nested via {@link stepPacketReceiptProofAcceptPlanWithActions}
+ * (`accept`|`reject`).
+ */
 export type PacketReceiptProofAcceptAction = {
   readonly kind: PacketReceiptProofAcceptPlan;
 };
@@ -493,19 +575,20 @@ function stepPacketReceiptProofAcceptInner(
   event: PacketReceiptProofAcceptEvent
 ): PacketReceiptProofAcceptStepResult {
   if (event.kind === "receipt/proof-accept-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: planPacketReceiptProofAccept({
-            splitOk: event.splitOk,
-            hashMatches: event.hashMatches,
-            signatureValid: event.signatureValid
-          })
-        }
-      ]
-    };
+    const planActions = stepPacketReceiptProofAcceptPlanWithActions(
+      initialPacketReceiptProofAcceptPlanState(),
+      {
+        kind: "receipt/proof-accept-plan-gate",
+        splitOk: event.splitOk,
+        hashMatches: event.hashMatches,
+        signatureValid: event.signatureValid
+      }
+    ).actions;
+    const plan = packetReceiptProofAcceptPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
+    return { state, intents: [], actions: [{ kind: plan }] };
   }
 
   return { state, intents: [], actions: [] };

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   PacketContextCode,
+  initialLinkDataContextPlanState,
   initialLinkDataContextState,
   initialLinkKeepaliveContextState,
   isLinkKeepaliveContext,
   linkDataContextFromActions,
+  linkDataContextPlanFromActions,
   planLinkDataContext,
   shouldHandleLinkDataChannel,
   shouldHandleLinkDataClose,
@@ -23,6 +25,7 @@ import {
   shouldIgnoreLinkDataContext,
   shouldTreatLinkKeepaliveContext,
   shouldTreatLinkKeepaliveOther,
+  stepLinkDataContextPlanWithActions,
   stepLinkDataContextWithActions,
   stepLinkKeepaliveContextWithActions
 } from "../src/packet-context.js";
@@ -66,6 +69,12 @@ describe("protocol packet context", () => {
     ];
 
     for (const entry of cases) {
+      const planned = stepLinkDataContextPlanWithActions(initialLinkDataContextPlanState(), {
+        kind: "link/data-context-plan-gate",
+        context: entry.context
+      });
+      expect(linkDataContextPlanFromActions(planned.actions)).toBe(entry.kind);
+
       const stepped = stepLinkDataContextWithActions(initialLinkDataContextState(), {
         kind: "link/data-context-gate",
         context: entry.context

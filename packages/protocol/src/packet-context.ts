@@ -2,7 +2,8 @@
  * Pure RNS packet context byte constants.
  * Packet construction stays at the adapter edge.
  * Link DATA context dispatch conclusions leave via machine actions (no ad-hoc
- * plan reads beside the step).
+ * plan reads beside the step). Plan nested via
+ * {@link stepLinkDataContextPlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -155,8 +156,62 @@ export function shouldTreatLinkKeepaliveOther(
 }
 
 /**
+ * Link DATA context plan gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkDataContext` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLinkDataContextWithActions}.
+ */
+export type LinkDataContextPlanState = Record<string, never>;
+
+export type LinkDataContextPlanEvent =
+  | Event
+  | {
+      readonly kind: "link/data-context-plan-gate";
+      readonly context: number;
+    };
+
+export type LinkDataContextPlanAction = {
+  readonly kind: LinkDataContextKind;
+};
+
+export interface LinkDataContextPlanStepResult {
+  readonly state: LinkDataContextPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkDataContextPlanAction[];
+}
+
+export function initialLinkDataContextPlanState(): LinkDataContextPlanState {
+  return {};
+}
+
+export function stepLinkDataContextPlanWithActions(
+  state: LinkDataContextPlanState,
+  event: LinkDataContextPlanEvent
+): LinkDataContextPlanStepResult {
+  if (event.kind === "link/data-context-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: planLinkDataContext(event.context) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function linkDataContextPlanFromActions(
+  actions: ReadonlyArray<LinkDataContextPlanAction>
+): LinkDataContextKind | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+/**
  * Link DATA context dispatch is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLinkDataContextPlanWithActions}
+ * (`rtt`|`keepalive`|`close`|`identify`|`request`|`response`|`channel`|
+ * `resource-*`|`plaintext`|`ignore`).
  */
 export type LinkDataContextState = Record<string, never>;
 
@@ -167,6 +222,11 @@ export type LinkDataContextEvent =
       readonly context: number;
     };
 
+/**
+ * Plan nested via {@link stepLinkDataContextPlanWithActions}
+ * (`rtt`|`keepalive`|`close`|`identify`|`request`|`response`|`channel`|
+ * `resource-*`|`plaintext`|`ignore`).
+ */
 export type LinkDataContextAction = {
   readonly kind: LinkDataContextKind;
 };
@@ -295,11 +355,18 @@ function stepLinkDataContextInner(
   event: LinkDataContextEvent
 ): LinkDataContextStepResult {
   if (event.kind === "link/data-context-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: planLinkDataContext(event.context) }]
-    };
+    const planActions = stepLinkDataContextPlanWithActions(
+      initialLinkDataContextPlanState(),
+      {
+        kind: "link/data-context-plan-gate",
+        context: event.context
+      }
+    ).actions;
+    const plan = linkDataContextPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
+    return { state, intents: [], actions: [{ kind: plan }] };
   }
 
   return { state, intents: [], actions: [] };

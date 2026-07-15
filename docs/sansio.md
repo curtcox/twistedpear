@@ -175,7 +175,12 @@
 > none|keep-receipt|fail-and-drop-receipt — nested under outbound-receipt;
 > **`stepPacketReceiptProofIngressPlanWithActions`**: remove-receipt|continue —
 > nested under packet-receipt-proof-ingress; **`stepPacketReceiptCallbackPlanWithActions`**:
-> clear|set — nested under packet-receipt-callback),
+> clear|set — nested under packet-receipt-callback;
+> **`stepLinkDataContextPlanWithActions`**:
+> rtt|keepalive|close|identify|request|response|channel|resource-*|plaintext|ignore —
+> nested under link-data-context;
+> **`stepPacketReceiptProofAcceptPlanWithActions`**: accept|reject — nested under
+> packet-receipt-proof-accept),
 > **Channel TX-envelope-op / destination-proof / packet-filter /
 > link-teardown-reason / channel-packet-timeout / destination-request-allow /
 > link-app-request-dispatch / interface-reconnect /
@@ -784,7 +789,9 @@
 > **`stepLxmfOpportunisticPayloadWithActions`**), and
 > PacketReceipt proof validation via **`stepSplitPacketProofWithActions`** /
 > **`stepPacketProofHashMatchWithActions`** /
-> **`stepPacketReceiptProofAcceptWithActions`** are pure protocol leaves.
+> **`stepPacketReceiptProofAcceptWithActions`** (plan nested via
+> **`stepPacketReceiptProofAcceptPlanWithActions`**: accept|reject) are pure
+> protocol leaves.
 > **Identity ciphertext** framing (pack/split via
 > **`stepPackIdentityCiphertextWithActions`** /
 > **`stepSplitIdentityCiphertextWithActions`**: use-raw|reject /
@@ -1217,7 +1224,9 @@
 > live in protocol; leaf / transport path-request and discovery announce fulfill adapt them.
 > **`planLinkDataContext`** (via **`stepLinkDataContextWithActions`**: rtt /
 > keepalive / close / identify / request / response / channel / resource-* /
-> plaintext / ignore) lives in protocol; `Link.receive` DATA dispatch adapts it.
+> plaintext / ignore; plan nested via **`stepLinkDataContextPlanWithActions`**:
+> rtt|keepalive|close|identify|request|response|channel|resource-*|plaintext|ignore)
+> lives in protocol; `Link.receive` DATA dispatch adapts it.
 > **`planResourceAssembleOutcome`** (via **`stepResourceAssembleWithActions`**:
 > complete / corrupt; plan nested via
 > **`stepResourceAssembleOutcomePlanWithActions`**: complete|corrupt),
@@ -1414,8 +1423,10 @@
 > **`stepAnnounceValidateOutcomePlanWithActions`**:
 > accept|accept-signature-only|reject-*) / **`isAnnouncePacketType`** (via
 > **`stepAnnouncePacketTypeWithActions`**: announce|other) and
-> **`planPacketReceiptProofAccept`** live in protocol; `Announce` and `PacketReceipt`
-> adapt them. **Local destination match gates** (`shouldMatchLocalInboundDestination`
+> **`planPacketReceiptProofAccept`** (via
+> **`stepPacketReceiptProofAcceptWithActions`**: accept / reject; plan nested via
+> **`stepPacketReceiptProofAcceptPlanWithActions`**: accept|reject) live in
+> protocol; `Announce` and `PacketReceipt` adapt them. **Local destination match gates** (`shouldMatchLocalInboundDestination`
 > via **`stepMatchLocalInboundDestinationWithActions`**: match|mismatch;
 > **`shouldMatchLocalTypedDestination`** via
 > **`stepMatchLocalTypedDestinationWithActions`**: match|mismatch;
@@ -2175,8 +2186,10 @@
 > beside the step).
 > **`stepLinkDataContextWithActions`** emits `rtt` / `keepalive` / `close` /
 > `identify` / `request` / `response` / `channel` / `resource-*` /
-> `plaintext` / `ignore`; `Link.receive` DATA dispatch applies only from
-> those actions (no ad-hoc `planLinkDataContext` reads beside the step).
+> `plaintext` / `ignore` (plan nested via **`stepLinkDataContextPlanWithActions`**:
+> rtt|keepalive|close|identify|request|response|channel|resource-*|plaintext|ignore);
+> `Link.receive` DATA dispatch applies only from those actions (no ad-hoc
+> `planLinkDataContext` / `plan ===` reads beside the step).
 > **`stepLinkRegisterListWithActions`** emits `pending` / `active` (plan nested via
 > **`stepLinkRegisterListPlanWithActions`**: pending|active);
 > **`stepLinkActivateMembershipWithActions`** emits `remove-pending` /
@@ -2224,7 +2237,8 @@
 > **`stepLinkResourceConcludeWithActions`**
 > emits `remove-outgoing` / `remove-incoming` (plan nested via
 > **`stepLinkResourceConcludePlanWithActions`**);
-> **`stepPacketReceiptProofAcceptWithActions`** emits `accept` / `reject`;
+> **`stepPacketReceiptProofAcceptWithActions`** emits `accept` / `reject` (plan
+> nested via **`stepPacketReceiptProofAcceptPlanWithActions`**: accept|reject);
 > **`stepAcceptPacketReceiptProofWithActions`** emits `accept`|`skip`;
 > `TransportNode` announce ingress/rebroadcast, transport/link/reverse-packet
 > relay, interface transmit, local destination match/dispatch, LR-proof /
@@ -2510,6 +2524,7 @@
 > outbound-receipt-plan / packet-receipt-proof-ingress /
 > packet-receipt-proof-ingress-plan / packet-receipt-callback /
 > packet-receipt-callback-plan / link-data-context /
+> link-data-context-plan /
 > link-register-list / link-register-list-plan / link-activate-membership /
 > link-activate-membership-plan / link-unregister-membership /
 > link-unregister-membership-plan / link-app-request /
@@ -2528,7 +2543,8 @@
 > accept-link-lr-proof-candidate / dispatch-resource-proof-to-link /
 > register-transport-member /
 > link-resource-conclude / link-resource-conclude-plan /
-> packet-receipt-proof-accept / accept-packet-receipt-proof /
+> packet-receipt-proof-accept / packet-receipt-proof-accept-plan /
+> accept-packet-receipt-proof /
 > commit-resource-assemble-payload / dispatch-local-plain-data-delivery /
 > propagation-restore / propagation-restore-plan /
 > deliver-pending-link-app-response / accept-announce-payload /

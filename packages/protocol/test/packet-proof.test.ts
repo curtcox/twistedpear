@@ -7,6 +7,7 @@ import {
   initialAcceptPacketReceiptProofState,
   initialPackPacketProofState,
   initialPacketProofHashMatchState,
+  initialPacketReceiptProofAcceptPlanState,
   initialPacketReceiptProofAcceptState,
   initialPacketTypeProofState,
   initialSplitPacketProofState,
@@ -14,12 +15,15 @@ import {
   packPacketProofRawFromActions,
   packetProofFieldsFromActions,
   packetProofHashMatches,
+  packetReceiptProofAcceptPlanFromActions,
   planPacketReceiptProofAccept,
   shouldAcceptPacketReceiptProof,
+  shouldAcceptPacketReceiptProofAcceptPlan,
   shouldAcceptPacketReceiptProofActions,
   shouldAcceptPacketReceiptProofNow,
   shouldMatchPacketProofHash,
   shouldMismatchPacketProofHash,
+  shouldRejectPacketReceiptProofAcceptPlan,
   shouldRejectPacketReceiptProofActions,
   shouldRejectSplitPacketProof,
   shouldSkipAcceptPacketReceiptProof,
@@ -31,6 +35,7 @@ import {
   stepAcceptPacketReceiptProofWithActions,
   stepPackPacketProofWithActions,
   stepPacketProofHashMatchWithActions,
+  stepPacketReceiptProofAcceptPlanWithActions,
   stepPacketReceiptProofAcceptWithActions,
   stepPacketTypeProofWithActions,
   stepSplitPacketProofWithActions
@@ -200,6 +205,19 @@ describe("protocol packet proof framing", () => {
   });
 
   it("emits packet-receipt proof accept actions from WithActions step", () => {
+    const rejectPlan = stepPacketReceiptProofAcceptPlanWithActions(
+      initialPacketReceiptProofAcceptPlanState(),
+      {
+        kind: "receipt/proof-accept-plan-gate",
+        splitOk: true,
+        hashMatches: true,
+        signatureValid: false
+      }
+    );
+    expect(shouldRejectPacketReceiptProofAcceptPlan(rejectPlan.actions)).toBe(true);
+    expect(shouldAcceptPacketReceiptProofAcceptPlan(rejectPlan.actions)).toBe(false);
+    expect(packetReceiptProofAcceptPlanFromActions(rejectPlan.actions)).toBe("reject");
+
     const reject = stepPacketReceiptProofAcceptWithActions(initialPacketReceiptProofAcceptState(), {
       kind: "receipt/proof-accept-gate",
       splitOk: true,
@@ -208,6 +226,18 @@ describe("protocol packet proof framing", () => {
     });
     expect(shouldRejectPacketReceiptProofActions(reject.actions)).toBe(true);
     expect(shouldAcceptPacketReceiptProofActions(reject.actions)).toBe(false);
+
+    const acceptPlan = stepPacketReceiptProofAcceptPlanWithActions(
+      initialPacketReceiptProofAcceptPlanState(),
+      {
+        kind: "receipt/proof-accept-plan-gate",
+        splitOk: true,
+        hashMatches: true,
+        signatureValid: true
+      }
+    );
+    expect(shouldAcceptPacketReceiptProofAcceptPlan(acceptPlan.actions)).toBe(true);
+    expect(packetReceiptProofAcceptPlanFromActions(acceptPlan.actions)).toBe("accept");
 
     const accept = stepPacketReceiptProofAcceptWithActions(initialPacketReceiptProofAcceptState(), {
       kind: "receipt/proof-accept-gate",
