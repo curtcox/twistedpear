@@ -7,7 +7,8 @@
  * machine actions (no ad-hoc `canAcceptDestinationLinkRequest` /
  * `canAnnounceDestination` / `canDestinationSend` /
  * `canOperateAttachedDestination` / `canAnnounceWithIdentity` /
- * `canRequestLinkDestination` / `shouldInvokeDestinationProofCallback` /
+ * `canRequestLinkDestination` / `planDestinationRequestAllow` /
+ * `shouldInvokeDestinationProofCallback` /
  * `shouldInvokeDestinationLinkEstablishedCallback` /
  * `shouldRegisterDestinationLink` / `isValidDestinationRequestPath` reads
  * beside the step).
@@ -963,6 +964,73 @@ export function planDestinationRequestAllow(input: {
     }
   }
   return false;
+}
+
+/**
+ * Destination request-allow (ALLOW_ALL / ALLOW_LIST) gate is event-driven; no
+ * durable session fields. Conclusions leave via machine actions (no ad-hoc
+ * `planDestinationRequestAllow` reads beside the step).
+ */
+export type DestinationRequestAllowState = Record<string, never>;
+
+export type DestinationRequestAllowEvent =
+  | Event
+  | {
+      readonly kind: "destination/request-allow-gate";
+      readonly allow: number;
+      readonly allowedList: ReadonlyArray<Uint8Array>;
+      readonly remoteIdentityHash: Uint8Array | null;
+    };
+
+export type DestinationRequestAllowAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface DestinationRequestAllowStepResult {
+  readonly state: DestinationRequestAllowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationRequestAllowAction[];
+}
+
+export function initialDestinationRequestAllowState(): DestinationRequestAllowState {
+  return {};
+}
+
+export function stepDestinationRequestAllowWithActions(
+  state: DestinationRequestAllowState,
+  event: DestinationRequestAllowEvent
+): DestinationRequestAllowStepResult {
+  if (event.kind === "destination/request-allow-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planDestinationRequestAllow({
+            allow: event.allow,
+            allowedList: event.allowedList,
+            remoteIdentityHash: event.remoteIdentityHash
+          })
+            ? "allow"
+            : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowDestinationRequest(
+  actions: ReadonlyArray<DestinationRequestAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyDestinationRequest(
+  actions: ReadonlyArray<DestinationRequestAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
 }
 
 /** Whether a validated link should be registered on the destination link list. */

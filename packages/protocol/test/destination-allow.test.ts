@@ -15,6 +15,7 @@ import {
   initialDestinationEncryptState,
   initialDestinationLinkEstablishedCallbackState,
   initialDestinationProofCallbackState,
+  initialDestinationRequestAllowState,
   initialDestinationRequestPathValidState,
   initialDestinationSendState,
   initialOperateAttachedDestinationState,
@@ -30,6 +31,7 @@ import {
   shouldAllowAnnounceWithIdentity,
   shouldAllowDestinationAnnounce,
   shouldAllowDestinationLinkRequest,
+  shouldAllowDestinationRequest,
   shouldAllowDestinationSend,
   shouldAllowOperateAttachedDestination,
   shouldAllowRequestLinkDestination,
@@ -37,6 +39,7 @@ import {
   shouldDenyAnnounceWithIdentity,
   shouldDenyDestinationAnnounce,
   shouldDenyDestinationLinkRequest,
+  shouldDenyDestinationRequest,
   shouldDenyDestinationSend,
   shouldDenyOperateAttachedDestination,
   shouldDenyRequestLinkDestination,
@@ -67,6 +70,7 @@ import {
   stepDestinationEncryptWithActions,
   stepDestinationLinkEstablishedCallbackWithActions,
   stepDestinationProofCallbackWithActions,
+  stepDestinationRequestAllowWithActions,
   stepDestinationRequestPathValidWithActions,
   stepDestinationSendWithActions,
   stepOperateAttachedDestinationWithActions,
@@ -114,6 +118,42 @@ describe("destination allow policy", () => {
         remoteIdentityHash: new Uint8Array([9, 9, 9])
       })
     ).toBe(false);
+
+    const allowAll = stepDestinationRequestAllowWithActions(
+      initialDestinationRequestAllowState(),
+      {
+        kind: "destination/request-allow-gate",
+        allow: DestinationAllowPolicyCode.ALLOW_ALL,
+        allowedList: [],
+        remoteIdentityHash: null
+      }
+    );
+    expect(shouldAllowDestinationRequest(allowAll.actions)).toBe(true);
+    expect(shouldDenyDestinationRequest(allowAll.actions)).toBe(false);
+
+    const denyNone = stepDestinationRequestAllowWithActions(
+      initialDestinationRequestAllowState(),
+      {
+        kind: "destination/request-allow-gate",
+        allow: DestinationAllowPolicyCode.ALLOW_NONE,
+        allowedList: [hash],
+        remoteIdentityHash: hash
+      }
+    );
+    expect(shouldAllowDestinationRequest(denyNone.actions)).toBe(false);
+    expect(shouldDenyDestinationRequest(denyNone.actions)).toBe(true);
+
+    const allowList = stepDestinationRequestAllowWithActions(
+      initialDestinationRequestAllowState(),
+      {
+        kind: "destination/request-allow-gate",
+        allow: DestinationAllowPolicyCode.ALLOW_LIST,
+        allowedList: [hash],
+        remoteIdentityHash: hash
+      }
+    );
+    expect(shouldAllowDestinationRequest(allowList.actions)).toBe(true);
+    expect(shouldDenyDestinationRequest(allowList.actions)).toBe(false);
   });
 
   it("rejects empty request-handler paths", () => {

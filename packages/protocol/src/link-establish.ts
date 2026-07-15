@@ -24,9 +24,15 @@
  * reads beside the step).
  * Continue-validate-request apply gate conclusions leave via machine actions
  * (no ad-hoc `shouldContinueLinkValidateRequest` reads beside the step).
+ * Destination request-allow conclusions leave via machine actions (no ad-hoc
+ * `planDestinationRequestAllow` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
-import { planDestinationRequestAllow } from "./destination-allow.js";
+import {
+  initialDestinationRequestAllowState,
+  shouldAllowDestinationRequest,
+  stepDestinationRequestAllowWithActions
+} from "./destination-allow.js";
 import { linkPayloadFitsMdu } from "./link-metrics.js";
 import { PacketTypeCode } from "./packet-header.js";
 import { LinkStatus, type LinkStatusValue } from "./link-watchdog.js";
@@ -1241,14 +1247,14 @@ export type LinkAppRequestDispatchPlan = "ignore" | "forbidden" | "invoke-handle
 /**
  * Whether an inbound application request may invoke the destination handler.
  * Decrypt / unpack / responseGenerator / encrypt stay at the adapter edge.
+ * Allow-policy is supplied via {@link stepDestinationRequestAllowWithActions}
+ * (`requestAllowed`); do not re-read `planDestinationRequestAllow` beside the step.
  */
 export function planLinkAppRequestDispatch(input: {
   readonly plaintextPresent: boolean;
   readonly handlerDestinationPresent: boolean;
   readonly handlerPresent: boolean;
-  readonly allow: number;
-  readonly allowedList: ReadonlyArray<Uint8Array>;
-  readonly remoteIdentityHash: Uint8Array | null;
+  readonly requestAllowed: boolean;
 }): LinkAppRequestDispatchPlan {
   if (
     !input.plaintextPresent ||
@@ -1257,13 +1263,7 @@ export function planLinkAppRequestDispatch(input: {
   ) {
     return "ignore";
   }
-  if (
-    !planDestinationRequestAllow({
-      allow: input.allow,
-      allowedList: input.allowedList,
-      remoteIdentityHash: input.remoteIdentityHash
-    })
-  ) {
+  if (!input.requestAllowed) {
     return "forbidden";
   }
   return "invoke-handler";
@@ -1445,8 +1445,8 @@ export function planLinkAppRequestResponse(input: {
  * Pure inbound link application-request dispatch (handler invoke → response send).
  * Decrypt / unpack / responseGenerator / encrypt stay at the adapter edge.
  * Conclusions leave via machine actions (no ad-hoc plan outcome /
- * `shouldInvokeLinkAppRequestHandler` / `shouldSendLinkAppRequestResponse`
- * reads beside the step).
+ * `planDestinationRequestAllow` / `shouldInvokeLinkAppRequestHandler` /
+ * `shouldSendLinkAppRequestResponse` reads beside the step).
  */
 export interface LinkAppRequestInboundState {
   readonly waitingHandler: boolean;
@@ -1562,13 +1562,19 @@ function stepLinkAppRequestInboundInner(
   event: LinkAppRequestInboundEvent
 ): LinkAppRequestInboundStepResult {
   if (event.kind === "app-request/received") {
+    const requestAllowed = shouldAllowDestinationRequest(
+      stepDestinationRequestAllowWithActions(initialDestinationRequestAllowState(), {
+        kind: "destination/request-allow-gate",
+        allow: event.allow,
+        allowedList: event.allowedList,
+        remoteIdentityHash: event.remoteIdentityHash
+      }).actions
+    );
     const plan = planLinkAppRequestDispatch({
       plaintextPresent: event.plaintextPresent,
       handlerDestinationPresent: event.handlerDestinationPresent,
       handlerPresent: event.handlerPresent,
-      allow: event.allow,
-      allowedList: event.allowedList,
-      remoteIdentityHash: event.remoteIdentityHash
+      requestAllowed
     });
     if (plan === "ignore") {
       return { state, intents: [], actions: [{ kind: "ignore" }] };

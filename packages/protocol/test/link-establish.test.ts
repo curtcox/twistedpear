@@ -963,15 +963,12 @@ describe("protocol link establish", () => {
   });
 
   it("plans app request dispatch and response gates", () => {
-    const hash = new Uint8Array([1, 2, 3]);
     expect(
       planLinkAppRequestDispatch({
         plaintextPresent: true,
         handlerDestinationPresent: true,
         handlerPresent: true,
-        allow: DestinationAllowPolicyCode.ALLOW_ALL,
-        allowedList: [],
-        remoteIdentityHash: null
+        requestAllowed: true
       })
     ).toBe("invoke-handler");
     expect(
@@ -979,9 +976,7 @@ describe("protocol link establish", () => {
         plaintextPresent: false,
         handlerDestinationPresent: true,
         handlerPresent: true,
-        allow: DestinationAllowPolicyCode.ALLOW_ALL,
-        allowedList: [],
-        remoteIdentityHash: null
+        requestAllowed: true
       })
     ).toBe("ignore");
     expect(
@@ -989,9 +984,7 @@ describe("protocol link establish", () => {
         plaintextPresent: true,
         handlerDestinationPresent: true,
         handlerPresent: true,
-        allow: DestinationAllowPolicyCode.ALLOW_NONE,
-        allowedList: [],
-        remoteIdentityHash: null
+        requestAllowed: false
       })
     ).toBe("forbidden");
     expect(
@@ -999,9 +992,7 @@ describe("protocol link establish", () => {
         plaintextPresent: true,
         handlerDestinationPresent: true,
         handlerPresent: true,
-        allow: DestinationAllowPolicyCode.ALLOW_LIST,
-        allowedList: [hash],
-        remoteIdentityHash: hash
+        requestAllowed: true
       })
     ).toBe("invoke-handler");
     expect(

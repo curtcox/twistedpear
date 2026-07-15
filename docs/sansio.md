@@ -153,7 +153,9 @@
 > **`stepDestinationLinkEstablishedCallbackWithActions`**: invoke|skip /
 > **`stepRegisterDestinationLinkWithActions`**: register|skip /
 > **`stepEmitDestinationProofWithActions`**: emit|skip) are pure protocol
-> leaves; RegisteredDestination / Link / transport adapt them. **Pending
+> leaves; RegisteredDestination / Link / transport adapt them. **Destination
+> request-allow** (via **`stepDestinationRequestAllowWithActions`**: allow|deny)
+> is a pure protocol leaf; Link inbound app-request adapts it. **Pending
 > link-request register / packet-receipt attach** (via
 > **`stepPendingLinkRequestRegisterWithActions`**: register|skip /
 > **`stepAttachLinkRequestPacketReceiptWithActions`**: attach|skip) are pure
@@ -507,7 +509,8 @@
 > (status/window/retry) and **resource timeout** (via
 > **`stepComputeResourceTimeoutWithActions`**: use-timeout) live in protocol;
 > Resource adapts them. **LinkRequestReceiptStatus**, **DestinationAllowPolicyCode**, and
-> **`planDestinationRequestAllow`** live in protocol; LinkRequestReceipt,
+> **`planDestinationRequestAllow`** (via **`stepDestinationRequestAllowWithActions`**:
+> allow|deny) live in protocol; LinkRequestReceipt,
 > RegisteredDestination, and Link adapt them. **Destination proof strategy /
 > `planDestinationProof`**, **link resource-accept planning**, **`stepLinkRequestReceipt`**,
 > and **ChannelExceptionType** live in protocol; LeafTransport, Link, LinkRequestReceipt,
@@ -834,7 +837,8 @@
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip) live in
 > protocol; `Link.validateRequest` / `handleIdentifyPacket` adapt them.
 > **`planLinkAppRequestDispatch`** / **`planLinkAppRequestResponse`** (via
-> **`stepLinkAppRequestInboundWithActions`**; invoke via
+> **`stepLinkAppRequestInboundWithActions`**; allow via
+> **`stepDestinationRequestAllowWithActions`**: allow|deny; invoke via
 > **`stepInvokeLinkAppRequestHandlerWithActions`**: invoke|skip; send via
 > **`stepSendLinkAppRequestResponseWithActions`**: send|skip) and
 > **`planLinkProofValidateOutcome`** (via **`stepLinkProofValidateWithActions`**:
@@ -1487,7 +1491,8 @@
 > **`stepDestinationSendWithActions`** /
 > **`stepOperateAttachedDestinationWithActions`** /
 > **`stepAnnounceWithIdentityWithActions`** /
-> **`stepRequestLinkDestinationWithActions`** emit `allow`|`deny`;
+> **`stepRequestLinkDestinationWithActions`** /
+> **`stepDestinationRequestAllowWithActions`** emit `allow`|`deny`;
 > **`stepDestinationRequestPathValidWithActions`** emits `valid`|`invalid`;
 > **`stepDestinationProofCallbackWithActions`** /
 > **`stepDestinationLinkEstablishedCallbackWithActions`** emit `invoke`|`skip`;
@@ -1499,7 +1504,8 @@
 > apply only from those actions (no ad-hoc `canAcceptDestinationLinkRequest` /
 > `canAnnounceDestination` / `canDestinationSend` /
 > `canOperateAttachedDestination` / `canAnnounceWithIdentity` /
-> `canRequestLinkDestination` / `isValidDestinationRequestPath` /
+> `canRequestLinkDestination` / `planDestinationRequestAllow` /
+> `isValidDestinationRequestPath` /
 > `shouldInvokeDestinationProofCallback` /
 > `shouldInvokeDestinationLinkEstablishedCallback` /
 > `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
@@ -1709,7 +1715,8 @@
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
-> destination-request-path-valid / destination-proof-callback /
+> destination-request-allow / destination-request-path-valid /
+> destination-proof-callback /
 > destination-link-established-callback / register-destination-link /
 > emit-destination-proof / pending-link-request-register /
 > attach-link-request-packet-receipt /
@@ -1771,7 +1778,8 @@
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
-> destination-request-path-valid / destination-proof-callback /
+> destination-request-allow / destination-request-path-valid /
+> destination-proof-callback /
 > destination-link-established-callback / register-destination-link /
 > emit-destination-proof / pending-link-request-register /
 > attach-link-request-packet-receipt /
@@ -2124,7 +2132,8 @@
 > **`stepDestinationSendWithActions`** /
 > **`stepOperateAttachedDestinationWithActions`** /
 > **`stepAnnounceWithIdentityWithActions`** /
-> **`stepRequestLinkDestinationWithActions`** emit `allow`|`deny`;
+> **`stepRequestLinkDestinationWithActions`** /
+> **`stepDestinationRequestAllowWithActions`** emit `allow`|`deny`;
 > **`stepDestinationRequestPathValidWithActions`** emits `valid`|`invalid`;
 > **`stepDestinationProofCallbackWithActions`** /
 > **`stepDestinationLinkEstablishedCallbackWithActions`** emit `invoke`|`skip`;
@@ -2136,7 +2145,8 @@
 > apply only from those actions (no ad-hoc `canAcceptDestinationLinkRequest` /
 > `canAnnounceDestination` / `canDestinationSend` /
 > `canOperateAttachedDestination` / `canAnnounceWithIdentity` /
-> `canRequestLinkDestination` / `isValidDestinationRequestPath` /
+> `canRequestLinkDestination` / `planDestinationRequestAllow` /
+> `isValidDestinationRequestPath` /
 > `shouldInvokeDestinationProofCallback` /
 > `shouldInvokeDestinationLinkEstablishedCallback` /
 > `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
@@ -2318,7 +2328,8 @@
 > `canAcceptDestinationLinkRequest` / `canAnnounceDestination` /
 > `canDestinationSend` / `canOperateAttachedDestination` /
 > `canAnnounceWithIdentity` / `canRequestLinkDestination` /
-> `isValidDestinationRequestPath` / `shouldInvokeDestinationProofCallback` /
+> `planDestinationRequestAllow` / `isValidDestinationRequestPath` /
+> `shouldInvokeDestinationProofCallback` /
 > `shouldInvokeDestinationLinkEstablishedCallback` /
 > `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
 > `shouldRegisterPendingLinkRequest` /
@@ -2648,7 +2659,8 @@
 > **`stepDestinationSendWithActions`** /
 > **`stepOperateAttachedDestinationWithActions`** /
 > **`stepAnnounceWithIdentityWithActions`** /
-> **`stepRequestLinkDestinationWithActions`** emit `allow`|`deny`;
+> **`stepRequestLinkDestinationWithActions`** /
+> **`stepDestinationRequestAllowWithActions`** emit `allow`|`deny`;
 > **`stepDestinationRequestPathValidWithActions`** emits `valid`|`invalid`;
 > **`stepDestinationProofCallbackWithActions`** /
 > **`stepDestinationLinkEstablishedCallbackWithActions`** emit `invoke`|`skip`;
@@ -2660,7 +2672,8 @@
 > apply only from those actions (no ad-hoc `canAcceptDestinationLinkRequest` /
 > `canAnnounceDestination` / `canDestinationSend` /
 > `canOperateAttachedDestination` / `canAnnounceWithIdentity` /
-> `canRequestLinkDestination` / `isValidDestinationRequestPath` /
+> `canRequestLinkDestination` / `planDestinationRequestAllow` /
+> `isValidDestinationRequestPath` /
 > `shouldInvokeDestinationProofCallback` /
 > `shouldInvokeDestinationLinkEstablishedCallback` /
 > `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
