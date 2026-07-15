@@ -17,6 +17,7 @@ import {
   initialAcceptIdentityCiphertextFrameState,
   initialAcceptIdentityDecryptPlaintextState,
   initialAttemptIdentityRatchetDecryptState,
+  initialCommitRestoredIdentityRatchetState,
   initialDecodeIdentityRatchetRecordState,
   initialEncodeIdentityRatchetRecordState,
   initialIdentityDecryptState,
@@ -49,11 +50,12 @@ import {
   shouldAllowIdentityUsePublicKey,
   shouldAllowLoadIdentityKeyMaterial,
   shouldAttemptIdentityRatchetDecryptNow,
-  shouldCommitRestoredIdentityRatchet,
+  shouldCommitRestoredIdentityRatchetNow,
   shouldHitIdentityRecall,
   shouldHitIdentityRecallAppData,
   shouldMissIdentityRatchetNoStore,
   shouldPersistIdentityRatchetNow,
+  shouldRestoreIdentityRatchetLookup,
   shouldRejectEncodeIdentityRatchetRecord,
   shouldRejectIdentityDecryptEnforced,
   shouldRejectIdentityDecryptFrame,
@@ -79,6 +81,7 @@ import {
   stepAcceptIdentityCiphertextFrameWithActions,
   stepAcceptIdentityDecryptPlaintextWithActions,
   stepAttemptIdentityRatchetDecryptWithActions,
+  stepCommitRestoredIdentityRatchetWithActions,
   stepIdentityDecryptWithActions,
   stepIdentityHashAllowWithActions,
   stepIdentityRatchetLookupWithActions,
@@ -329,7 +332,15 @@ export class Identity {
       storedPresent: record !== null,
       usable
     });
-    if (!shouldCommitRestoredIdentityRatchet(afterStore.actions, record !== null)) {
+    if (
+      !shouldCommitRestoredIdentityRatchetNow(
+        stepCommitRestoredIdentityRatchetWithActions(initialCommitRestoredIdentityRatchetState(), {
+          kind: "identity/commit-restored-ratchet-gate",
+          planRestore: shouldRestoreIdentityRatchetLookup(afterStore.actions),
+          recordPresent: record !== null
+        }).actions
+      )
+    ) {
       return null;
     }
 

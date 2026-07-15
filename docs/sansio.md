@@ -24,7 +24,8 @@
 > **`stepLoadIdentityKeyMaterialWithActions`**: allow|deny;
 > **`stepAttemptIdentityRatchetDecryptWithActions`**: attempt|skip;
 > **`stepPersistIdentityRatchetWithActions`**: persist|skip;
-> **`stepIdentityRatchetRecordUsableWithActions`**: usable|unusable) are pure
+> **`stepIdentityRatchetRecordUsableWithActions`**: usable|unusable;
+> **`stepCommitRestoredIdentityRatchetWithActions`**: commit|skip) are pure
 > protocol leaves; `Identity` adapts them. **Channel message-state-from-receipt**
 > (via **`stepChannelMessageStateFromPacketReceiptWithActions`**: use-state) and
 > **announce rate** blocked / record (via **`stepAnnounceBlockedWithActions`**:
@@ -950,7 +951,9 @@
 > **`shouldPersistIdentityRatchet`** (via
 > **`stepPersistIdentityRatchetWithActions`**: persist|skip) /
 > **`isIdentityRatchetRecordUsable`** (via
-> **`stepIdentityRatchetRecordUsableWithActions`**: usable|unusable) live in
+> **`stepIdentityRatchetRecordUsableWithActions`**: usable|unusable) /
+> **`shouldRestoreIdentityRatchetRecord`** (via
+> **`stepCommitRestoredIdentityRatchetWithActions`**: commit|skip) live in
 > protocol; Identity adapts them. **`canOperateAttachedDestination`** (via
 > **`stepOperateAttachedDestinationWithActions`**: allow|deny) /
 > **`canAnnounceWithIdentity`** (via **`stepAnnounceWithIdentityWithActions`**:
@@ -1120,7 +1123,8 @@
 > **`shouldRelayReverseOnInterface`**, **`shouldInvokeLinkAppRequestHandler`** (via
 > **`stepInvokeLinkAppRequestHandlerWithActions`**: invoke|skip) /
 > **`shouldSendLinkAppRequestResponse`** (via
-> **`stepSendLinkAppRequestResponseWithActions`**: send|skip), **`shouldRestoreIdentityRatchetRecord`**,
+> **`stepSendLinkAppRequestResponseWithActions`**: send|skip), **`shouldRestoreIdentityRatchetRecord`**
+> (via **`stepCommitRestoredIdentityRatchetWithActions`**: commit|skip),
 > **`shouldCommitResourceAssemblePayload`** (via
 > **`stepCommitResourceAssemblePayloadWithActions`**: commit|skip), and
 > **`shouldRejectLxmfPackEndpoints`** /
@@ -1279,6 +1283,9 @@
 > **`stepIdentityRatchetRecordUsableWithActions`** emits `usable`|`unusable`;
 > `Identity.getRatchet` usability for stored records applies only from those
 > actions (no ad-hoc `isIdentityRatchetRecordUsable` reads beside the step).
+> **`stepCommitRestoredIdentityRatchetWithActions`** emits `commit`|`skip`;
+> `Identity.getRatchet` restore-to-cache applies only from those actions (no
+> ad-hoc `shouldRestoreIdentityRatchetRecord` reads beside the step).
 > **`stepIdentityRecallWithActions`** emits `miss` / `reject-key` / `hit`;
 > **`stepIdentityRecallAppDataWithActions`** emits `hit` / `miss`;
 > `Identity.recall` / `recallAppData` return results only from those actions
@@ -1581,7 +1588,7 @@
 > identity-recall-app-data / identity-hash-allow / identity-use-private-key /
 > identity-use-public-key / load-identity-key-material /
 > attempt-identity-ratchet-decrypt / persist-identity-ratchet /
-> identity-ratchet-record-usable /
+> identity-ratchet-record-usable / commit-restored-identity-ratchet /
 > destination-construction / destination-decrypt /
 > destination-encrypt / packet-from-fields / channel-message-type-registration /
 > channel-envelope-unpack / channel-envelope-pack / channel-send /
@@ -1655,7 +1662,7 @@
 > identity-hash-allow / identity-use-private-key /
 > identity-use-public-key / load-identity-key-material /
 > attempt-identity-ratchet-decrypt / persist-identity-ratchet /
-> identity-ratchet-record-usable /
+> identity-ratchet-record-usable / commit-restored-identity-ratchet /
 > channel-message-state-from-receipt / announce-blocked / record-announce /
 > allow-client-request / propagation-message-too-large /
 > select-oldest-propagation-key / commit-propagation-store-entry /
@@ -1714,7 +1721,7 @@
 > identity-hash-allow / identity-use-private-key /
 > identity-use-public-key / load-identity-key-material /
 > attempt-identity-ratchet-decrypt / persist-identity-ratchet /
-> identity-ratchet-record-usable /
+> identity-ratchet-record-usable / commit-restored-identity-ratchet /
 > channel-message-state-from-receipt / announce-blocked / record-announce /
 > allow-client-request / propagation-message-too-large /
 > select-oldest-propagation-key / commit-propagation-store-entry /
@@ -1875,6 +1882,9 @@
 > **`stepIdentityRatchetRecordUsableWithActions`** emits `usable`|`unusable`;
 > Identity ratchet store restore usability applies only from those actions
 > (no ad-hoc `isIdentityRatchetRecordUsable` reads beside the step).
+> **`stepCommitRestoredIdentityRatchetWithActions`** emits `commit`|`skip`;
+> Identity ratchet restore-to-cache applies only from those actions (no
+> ad-hoc `shouldRestoreIdentityRatchetRecord` reads beside the step).
 > **`stepEncodeGrantRecordWithActions`** /
 > **`stepDecodeGrantRecordWithActions`** emit `use-raw`|`reject` /
 > `use-fields`|`reject`; grant-record encode / decode (host persist +
@@ -2042,15 +2052,19 @@
 > **`stepLoadIdentityKeyMaterialWithActions`** emit `allow`|`deny`;
 > **`stepAttemptIdentityRatchetDecryptWithActions`** emits `attempt`|`skip`;
 > **`stepPersistIdentityRatchetWithActions`** emits `persist`|`skip`;
+> **`stepIdentityRatchetRecordUsableWithActions`** emits `usable`|`unusable`;
+> **`stepCommitRestoredIdentityRatchetWithActions`** emits `commit`|`skip`;
 > Link RESPONSE / Announce parse / handleAnnounce / Identity decrypt, hash,
-> key-use, load, ratchet-decrypt attempt, and ratchet persist apply only
+> key-use, load, ratchet-decrypt attempt, ratchet persist, ratchet usable, and
+> restored-ratchet commit apply only
 > from those actions (no ad-hoc `shouldDeliverPendingLinkAppResponse` /
 > `shouldAcceptAnnouncePayload` / `shouldAcceptParsedAnnounce` /
 > `shouldAcceptIdentityCiphertextFrame` /
 > `shouldAcceptIdentityDecryptPlaintext` / `canIdentityHash` /
 > `canIdentityUsePrivateKey` / `canIdentityUsePublicKey` /
 > `canLoadIdentityKeyMaterial` / `shouldAttemptIdentityRatchetDecrypt` /
-> `shouldPersistIdentityRatchet` / `shouldAttemptAnnounceSignatureValidate` /
+> `shouldPersistIdentityRatchet` / `isIdentityRatchetRecordUsable` /
+> `shouldRestoreIdentityRatchetRecord` / `shouldAttemptAnnounceSignatureValidate` /
 > `shouldCheckAnnounceDestinationHash` / `canAcceptLinkIdentify` /
 > `shouldCommitLinkRemoteIdentity` / `shouldInvokeLinkAppRequestHandler` /
 > `shouldSendLinkAppRequestResponse` /
@@ -2552,15 +2566,19 @@
 > **`stepLoadIdentityKeyMaterialWithActions`** emit `allow`|`deny`;
 > **`stepAttemptIdentityRatchetDecryptWithActions`** emits `attempt`|`skip`;
 > **`stepPersistIdentityRatchetWithActions`** emits `persist`|`skip`;
+> **`stepIdentityRatchetRecordUsableWithActions`** emits `usable`|`unusable`;
+> **`stepCommitRestoredIdentityRatchetWithActions`** emits `commit`|`skip`;
 > Link RESPONSE / Announce parse / handleAnnounce / Identity decrypt, hash,
-> key-use, load, ratchet-decrypt attempt, and ratchet persist apply only
+> key-use, load, ratchet-decrypt attempt, ratchet persist, ratchet usable, and
+> restored-ratchet commit apply only
 > from those actions (no ad-hoc `shouldDeliverPendingLinkAppResponse` /
 > `shouldAcceptAnnouncePayload` / `shouldAcceptParsedAnnounce` /
 > `shouldAcceptIdentityCiphertextFrame` /
 > `shouldAcceptIdentityDecryptPlaintext` / `canIdentityHash` /
 > `canIdentityUsePrivateKey` / `canIdentityUsePublicKey` /
 > `canLoadIdentityKeyMaterial` / `shouldAttemptIdentityRatchetDecrypt` /
-> `shouldPersistIdentityRatchet` / `shouldAttemptAnnounceSignatureValidate` /
+> `shouldPersistIdentityRatchet` / `isIdentityRatchetRecordUsable` /
+> `shouldRestoreIdentityRatchetRecord` / `shouldAttemptAnnounceSignatureValidate` /
 > `shouldCheckAnnounceDestinationHash` / `canAcceptLinkIdentify` /
 > `shouldCommitLinkRemoteIdentity` / `shouldInvokeLinkAppRequestHandler` /
 > `shouldSendLinkAppRequestResponse` /

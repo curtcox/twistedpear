@@ -8,6 +8,8 @@
  * `shouldPersistIdentityRatchet` reads beside the step).
  * Usability gate conclusions leave via machine actions (no ad-hoc
  * `isIdentityRatchetRecordUsable` reads beside the step).
+ * Commit-restored-ratchet apply gate conclusions leave via machine actions
+ * (no ad-hoc `shouldRestoreIdentityRatchetRecord` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { bytesToHexLower, hexToBytesLower } from "./destination-name.js";
@@ -479,13 +481,67 @@ export function shouldRestoreIdentityRatchetRecord(input: {
   return input.planRestore && input.recordPresent;
 }
 
-/** Whether restore actions may apply when decoded record bytes remain present. */
-export function shouldCommitRestoredIdentityRatchet(
-  actions: ReadonlyArray<IdentityRatchetLookupAction>,
-  recordPresent: boolean
+/**
+ * Commit-restored identity-ratchet apply gate is event-driven; no durable
+ * session fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldRestoreIdentityRatchetRecord` reads beside the step).
+ */
+export type CommitRestoredIdentityRatchetState = Record<string, never>;
+
+export type CommitRestoredIdentityRatchetEvent =
+  | Event
+  | {
+      readonly kind: "identity/commit-restored-ratchet-gate";
+      readonly planRestore: boolean;
+      readonly recordPresent: boolean;
+    };
+
+export type CommitRestoredIdentityRatchetAction =
+  | { readonly kind: "commit" }
+  | { readonly kind: "skip" };
+
+export interface CommitRestoredIdentityRatchetStepResult {
+  readonly state: CommitRestoredIdentityRatchetState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly CommitRestoredIdentityRatchetAction[];
+}
+
+export function initialCommitRestoredIdentityRatchetState(): CommitRestoredIdentityRatchetState {
+  return {};
+}
+
+export function stepCommitRestoredIdentityRatchetWithActions(
+  state: CommitRestoredIdentityRatchetState,
+  event: CommitRestoredIdentityRatchetEvent
+): CommitRestoredIdentityRatchetStepResult {
+  if (event.kind === "identity/commit-restored-ratchet-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRestoreIdentityRatchetRecord({
+            planRestore: event.planRestore,
+            recordPresent: event.recordPresent
+          })
+            ? "commit"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldCommitRestoredIdentityRatchetNow(
+  actions: ReadonlyArray<CommitRestoredIdentityRatchetAction>
 ): boolean {
-  return shouldRestoreIdentityRatchetRecord({
-    planRestore: shouldRestoreIdentityRatchetLookup(actions),
-    recordPresent
-  });
+  return actions.some((action) => action.kind === "commit");
+}
+
+export function shouldSkipCommitRestoredIdentityRatchet(
+  actions: ReadonlyArray<CommitRestoredIdentityRatchetAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }

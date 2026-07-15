@@ -7,6 +7,7 @@ import {
   encodeIdentityRatchetRecordRawFromActions,
   identityRatchetRecordFromActions,
   identityRatchetStoreKey,
+  initialCommitRestoredIdentityRatchetState,
   initialDecodeIdentityRatchetRecordState,
   initialEncodeIdentityRatchetRecordState,
   initialIdentityRatchetLookupState,
@@ -14,7 +15,7 @@ import {
   initialPersistIdentityRatchetState,
   isIdentityRatchetRecordUsable,
   planIdentityRatchetLookup,
-  shouldCommitRestoredIdentityRatchet,
+  shouldCommitRestoredIdentityRatchetNow,
   shouldMissIdentityRatchetNoStore,
   shouldMissIdentityRatchetStore,
   shouldPersistIdentityRatchet,
@@ -24,12 +25,14 @@ import {
   shouldRejectIdentityRatchetUnusable,
   shouldRestoreIdentityRatchetLookup,
   shouldRestoreIdentityRatchetRecord,
+  shouldSkipCommitRestoredIdentityRatchet,
   shouldSkipPersistIdentityRatchet,
   shouldTreatIdentityRatchetRecordUnusable,
   shouldTreatIdentityRatchetRecordUsable,
   shouldUseCachedIdentityRatchet,
   shouldUseDecodeIdentityRatchetRecord,
   shouldUseEncodeIdentityRatchetRecord,
+  stepCommitRestoredIdentityRatchetWithActions,
   stepDecodeIdentityRatchetRecordWithActions,
   stepEncodeIdentityRatchetRecordWithActions,
   stepIdentityRatchetLookupWithActions,
@@ -241,8 +244,28 @@ describe("protocol identity ratchet record", () => {
     });
     expect(restore.actions).toEqual([{ kind: "restore" }]);
     expect(shouldRestoreIdentityRatchetLookup(restore.actions)).toBe(true);
-    expect(shouldCommitRestoredIdentityRatchet(restore.actions, true)).toBe(true);
-    expect(shouldCommitRestoredIdentityRatchet(restore.actions, false)).toBe(false);
+
+    const commit = stepCommitRestoredIdentityRatchetWithActions(
+      initialCommitRestoredIdentityRatchetState(),
+      {
+        kind: "identity/commit-restored-ratchet-gate",
+        planRestore: shouldRestoreIdentityRatchetLookup(restore.actions),
+        recordPresent: true
+      }
+    );
+    expect(commit.actions).toEqual([{ kind: "commit" }]);
+    expect(shouldCommitRestoredIdentityRatchetNow(commit.actions)).toBe(true);
+
+    const skipMissing = stepCommitRestoredIdentityRatchetWithActions(
+      initialCommitRestoredIdentityRatchetState(),
+      {
+        kind: "identity/commit-restored-ratchet-gate",
+        planRestore: shouldRestoreIdentityRatchetLookup(restore.actions),
+        recordPresent: false
+      }
+    );
+    expect(skipMissing.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldSkipCommitRestoredIdentityRatchet(skipMissing.actions)).toBe(true);
   });
 
   it("is deterministic for identical ratchet lookup events", () => {
@@ -288,5 +311,24 @@ describe("protocol identity ratchet record", () => {
     });
     expect(skip.actions).toEqual([{ kind: "skip" }]);
     expect(shouldSkipPersistIdentityRatchet(skip.actions)).toBe(true);
+
+    const commitBoth = stepCommitRestoredIdentityRatchetWithActions(
+      initialCommitRestoredIdentityRatchetState(),
+      {
+        kind: "identity/commit-restored-ratchet-gate",
+        planRestore: true,
+        recordPresent: true
+      }
+    );
+    expect(shouldCommitRestoredIdentityRatchetNow(commitBoth.actions)).toBe(true);
+    const skipPlan = stepCommitRestoredIdentityRatchetWithActions(
+      initialCommitRestoredIdentityRatchetState(),
+      {
+        kind: "identity/commit-restored-ratchet-gate",
+        planRestore: false,
+        recordPresent: true
+      }
+    );
+    expect(shouldSkipCommitRestoredIdentityRatchet(skipPlan.actions)).toBe(true);
   });
 });
