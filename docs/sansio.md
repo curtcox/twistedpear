@@ -356,7 +356,9 @@
 > immediate delivery via **`stepEmitChannelImmediateDeliveryWithActions`**:
 > emit|skip; envelope clear via **`stepClearChannelEnvelopePacketWithActions`**:
 > clear|skip; receipt arm via **`stepArmChannelPacketReceiptWithActions`**:
-> arm|skip (nested under TX receipt-timeout refresh); receipt timeout via
+> arm|skip (nested under TX receipt-timeout refresh); packet-timeout formula
+> via **`stepChannelPacketTimeoutSecondsWithActions`**: use-timeout (also
+> nested under TX receipt-timeout refresh); receipt timeout via
 > **`stepApplyChannelPacketReceiptTimeoutWithActions`**: apply|skip; resent
 > replace via **`stepReplaceChannelResentPacketWithActions`**: replace|skip;
 > TX receipt-timeout extension via
@@ -1082,7 +1084,8 @@
 > **`stepClearChannelEnvelopePacketWithActions`**: clear|skip) /
 > **`canArmChannelPacketReceipt`** (via
 > **`stepArmChannelPacketReceiptWithActions`**: arm|skip; nested under
-> **`planChannelTxReceiptTimeoutRefresh`**) /
+> **`planChannelTxReceiptTimeoutRefresh`**; timeout formula nested via
+> **`stepChannelPacketTimeoutSecondsWithActions`**: use-timeout) /
 > **`shouldApplyChannelPacketReceiptTimeout`** (via
 > **`stepApplyChannelPacketReceiptTimeoutWithActions`**: apply|skip) /
 > **`shouldReplaceChannelResentPacket`** (via
@@ -1223,8 +1226,9 @@
 > give-up / retry with window shrink; `Channel.packetTimeout` applies only
 > `give-up` / `retry` actions (no ad-hoc `plan.kind` reads). Receipt timeout
 > refresh uses **`planChannelTxReceiptTimeoutRefresh`** (arm nested via
-> **`stepArmChannelPacketReceiptWithActions`**: arm|skip; extend nested via
-> **`stepExtendPacketReceiptTimeoutWithActions`**: extend|skip).
+> **`stepArmChannelPacketReceiptWithActions`**: arm|skip; timeout formula nested
+> via **`stepChannelPacketTimeoutSecondsWithActions`**: use-timeout; extend
+> nested via **`stepExtendPacketReceiptTimeoutWithActions`**: extend|skip).
 > **`stepLinkEstablishWithActions`** emits `enter-handshake` / `activated`
 > (with initiator `sendRtt` + `activateMembership` flags) / `failed` / LRRTT
 > `ignore` / `accept-rtt` / `teardown`; `Link` handshake, validateProof, and
@@ -2052,11 +2056,12 @@
 > `orderIndependentSharedSecret` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
 > (per refreshed TX-ring receipt; arm nested via
-> **`stepArmChannelPacketReceiptWithActions`**: arm|skip; extend decision
-> nested via **`stepExtendPacketReceiptTimeoutWithActions`**: extend|skip);
-> Channel receipt-timeout refresh applies only from those actions (no ad-hoc
-> `planChannelTxReceiptTimeoutRefresh` / `canArmChannelPacketReceipt` reads
-> beside the step). **`stepChannelMessageHandlerUnregisterWithActions`**,
+> **`stepArmChannelPacketReceiptWithActions`**: arm|skip; timeout formula nested
+> via **`stepChannelPacketTimeoutSecondsWithActions`**: use-timeout; extend
+> decision nested via **`stepExtendPacketReceiptTimeoutWithActions`**:
+> extend|skip); Channel receipt-timeout refresh applies only from those actions
+> (no ad-hoc `planChannelTxReceiptTimeoutRefresh` / `canArmChannelPacketReceipt` /
+> `channelPacketTimeoutSeconds` reads beside the step). **`stepChannelMessageHandlerUnregisterWithActions`**,
 > **`stepPendingLinkRequestUnregisterWithActions`**,
 > **`stepStreamReadyCallbackUnregisterWithActions`**,
 > **`stepPacketReceiptUnregisterWithActions`**, and
@@ -2083,8 +2088,8 @@
 > applies only from those actions (no ad-hoc `computeKeepalive` reads beside the
 > step).
 > **`stepChannelPacketTimeoutSecondsWithActions`** emits `use-timeout`;
-> `Channel.getPacketTimeoutTime` applies only from those actions (no ad-hoc
-> `channelPacketTimeoutSeconds` reads beside the step).
+> `Channel.getPacketTimeoutTime` and TX receipt-timeout refresh apply only from
+> those actions (no ad-hoc `channelPacketTimeoutSeconds` reads beside the step).
 > **`stepExtendPacketReceiptTimeoutWithActions`** emits `extend`|`skip`;
 > Channel TX receipt-timeout refresh applies only from those actions (no
 > ad-hoc `shouldExtendPacketReceiptTimeout` reads beside the step).
@@ -2624,8 +2629,8 @@
 > applies only from those actions (no ad-hoc `computeKeepalive` reads beside the
 > step).
 > **`stepChannelPacketTimeoutSecondsWithActions`** emits `use-timeout`;
-> `Channel.getPacketTimeoutTime` applies only from those actions (no ad-hoc
-> `channelPacketTimeoutSeconds` reads beside the step).
+> `Channel.getPacketTimeoutTime` and TX receipt-timeout refresh apply only from
+> those actions (no ad-hoc `channelPacketTimeoutSeconds` reads beside the step).
 > **`stepExtendPacketReceiptTimeoutWithActions`** emits `extend`|`skip`;
 > Channel TX receipt-timeout refresh applies only from those actions (no
 > ad-hoc `shouldExtendPacketReceiptTimeout` reads beside the step).

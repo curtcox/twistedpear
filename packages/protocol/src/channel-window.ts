@@ -8,6 +8,8 @@
  * `channelAllowsSend` / `isChannelOutletTransmitOk` /
  * `indexOfChannelTxEnvelope` / `canArmChannelPacketReceipt` /
  * `shouldExtendPacketReceiptTimeout` / `plan.kind` reads beside the step).
+ * TX receipt-timeout refresh nests packet-timeout-seconds via
+ * `stepChannelPacketTimeoutSecondsWithActions` (`use-timeout`).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -1289,7 +1291,8 @@ export function channelTxTimeoutRetryAction(
 /**
  * Plan which TX-ring receipts need a longer timeout after a send/retry.
  * Adapter applies `setTimeout` only for returned indexes (arm gate nested via
- * `stepArmChannelPacketReceiptWithActions`; extend decisions only from
+ * `stepArmChannelPacketReceiptWithActions`; timeout formula nested via
+ * `stepChannelPacketTimeoutSecondsWithActions`; extend decisions only from
  * `stepExtendPacketReceiptTimeoutWithActions` actions).
  */
 export function planChannelTxReceiptTimeoutRefresh(
@@ -1314,11 +1317,17 @@ export function planChannelTxReceiptTimeoutRefresh(
     ) {
       continue;
     }
-    const updatedTimeout = channelPacketTimeoutSeconds({
-      tries: entry.tries,
-      rtt: entry.rtt,
-      txRingLength: entry.txRingLength
-    });
+    const updatedTimeout = channelPacketTimeoutFromActions(
+      stepChannelPacketTimeoutSecondsWithActions(initialChannelPacketTimeoutSecondsState(), {
+        kind: "channel/packet-timeout-gate",
+        tries: entry.tries,
+        rtt: entry.rtt,
+        txRingLength: entry.txRingLength
+      }).actions
+    );
+    if (updatedTimeout === null) {
+      continue;
+    }
     if (
       shouldExtendPacketReceiptTimeoutNow(
         stepExtendPacketReceiptTimeoutWithActions(initialExtendPacketReceiptTimeoutState(), {
@@ -1405,9 +1414,10 @@ export function shouldSkipApplyChannelTxReceiptTimeoutExtension(
 /**
  * Channel TX receipt-timeout refresh is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc
- * `planChannelTxReceiptTimeoutRefresh` / `canArmChannelPacketReceipt` reads
- * beside the step). Arm gate nested via
- * `stepArmChannelPacketReceiptWithActions` (`arm`|`skip`).
+ * `planChannelTxReceiptTimeoutRefresh` / `canArmChannelPacketReceipt` /
+ * `channelPacketTimeoutSeconds` reads beside the step). Arm gate nested via
+ * `stepArmChannelPacketReceiptWithActions` (`arm`|`skip`); timeout formula
+ * nested via `stepChannelPacketTimeoutSecondsWithActions` (`use-timeout`).
  */
 export type ChannelTxReceiptTimeoutRefreshState = Record<string, never>;
 
