@@ -11,8 +11,10 @@ import {
   packResourceHashmapUpdateRawFromActions,
   parseResourcePartRequest,
   applyResourceHashmapSlotWrites,
+  applyResourceHashmapSlotWritesFieldsFromActions,
   initialAppendResourceMapHashCollisionGuardState,
   initialApplyResourceFulfillPartState,
+  initialApplyResourceHashmapSlotWritesState,
   initialAssembleResourceHashmapBytesState,
   initialContainsResourceHashState,
   initialPackResourceHashmapUpdatePacketState,
@@ -48,10 +50,12 @@ import {
   shouldAppendResourceMapHashCollisionGuard,
   shouldCollideResourceMapHashCollisionGuard,
   shouldPresentResourceHash,
+  shouldUseApplyResourceHashmapSlotWrites,
   shouldUseAssembleResourceHashmapBytes,
   shouldUseReadResourceRequestHash,
   shouldWriteResourceHashmapSlots,
   stepAppendResourceMapHashCollisionGuardWithActions,
+  stepApplyResourceHashmapSlotWritesWithActions,
   stepAssembleResourceHashmapBytesWithActions,
   stepContainsResourceHashWithActions,
   stepPackResourceHashmapUpdatePacketWithActions,
@@ -299,6 +303,22 @@ describe("protocol resource hashmap", () => {
     expect([...applied.hashmap[0]!]).toEqual([9, 9, 9, 9]);
     expect([...applied.hashmap[1]!]).toEqual([5, 6, 7, 8]);
     expect(applied.hashmapHeight).toBe(2);
+
+    const stepped = stepApplyResourceHashmapSlotWritesWithActions(
+      initialApplyResourceHashmapSlotWritesState(),
+      {
+        kind: "resource-hashmap/apply-slot-writes-gate",
+        hashmap: [existing, null],
+        hashmapHeight: 1,
+        writes
+      }
+    );
+    expect(shouldUseApplyResourceHashmapSlotWrites(stepped.actions)).toBe(true);
+    const fromActions = applyResourceHashmapSlotWritesFieldsFromActions(stepped.actions);
+    expect(fromActions).not.toBeNull();
+    expect([...fromActions!.hashmap[0]!]).toEqual([9, 9, 9, 9]);
+    expect([...fromActions!.hashmap[1]!]).toEqual([5, 6, 7, 8]);
+    expect(fromActions!.hashmapHeight).toBe(2);
   });
 
   it("plans part requests within the receive window", () => {

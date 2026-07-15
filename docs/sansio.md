@@ -229,8 +229,10 @@
 > **`stepAssembleResourceHashmapBytesWithActions`** /
 > **`stepContainsResourceHashWithActions`** /
 > **`stepReadResourceRequestHashWithActions`**: append|collide / use-raw /
-> present|absent / use-raw),
-> slot-write planning, and **part-request / receive-part / request-fulfill / HMU-accept**
+> present|absent / use-raw; slot-write plan / apply via
+> **`stepResourceHashmapSlotWritesWithActions`** /
+> **`stepApplyResourceHashmapSlotWritesWithActions`**: write / use-fields),
+> and **part-request / receive-part / request-fulfill / HMU-accept**
 > (via **`stepResourcePartRequestWithActions`** /
 > **`stepResourceReceivePartWithActions`** /
 > **`stepResourceRequestFulfillWithActions`** /
@@ -556,7 +558,9 @@
 > **`stepAssembleResourceHashmapBytesWithActions`** / **`stepReadResourceRequestHashWithActions`**
 > live in protocol; `Resource.send` / fulfill / `readRequestHash` adapt them.
 > **`indexOfChannelRingSequence`** (via **`stepIndexOfChannelRingSequenceWithActions`**:
-> use-index|miss) lives in protocol; Channel RX drain adapts it. **`applyResourceHashmapSlotWrites`** lives in
+> use-index|miss) lives in protocol; Channel RX drain adapts it.
+> **`applyResourceHashmapSlotWrites`** (via
+> **`stepApplyResourceHashmapSlotWritesWithActions`**: use-fields) lives in
 > protocol; `Resource.hashmapUpdate` adapts it. **`appendPathRandomBlob`** (via
 > **`stepAppendPathRandomBlobWithActions`**: use-fields) and **`computePathExpiry`**
 > (via **`stepComputePathExpiryWithActions`**: use-expiry) live in protocol;
@@ -1663,6 +1667,7 @@
 > resource-encrypt-material / resource-hash-material /
 > resource-expected-proof-material / resource-part-map-hash-material /
 > compute-resource-total-parts / resource-hashmap-slot-writes /
+> apply-resource-hashmap-slot-writes /
 > clone-packet-with-hops / transport-announce-fields /
 > path-response-announce-fields / wrap-transport-packet /
 > strip-transport-headers / relay-transport-packet-bytes /
@@ -2095,6 +2100,7 @@
 > transport ingress hash deferral applies only from those actions.
 > **`stepResourceAdvertisementRoleFlagsWithActions`** emits `use-flags`;
 > **`stepResourceHashmapSlotWritesWithActions`** emits `write` (per slot);
+> **`stepApplyResourceHashmapSlotWritesWithActions`** emits `use-fields`;
 > Resource advertisement + hashmap-update apply only from those actions
 > (no ad-hoc `planLinkInitiatorMtu` / `planLinkRequestResponderMtu` /
 > `linkHopsMatch` / `computeLinkMdu` / `computeLinkEstablishmentTimeout` /
@@ -2127,7 +2133,7 @@
 > `computeLinkRttSeconds` / `mergeLinkRtt` /
 > `computePathExpiry` / `shouldDeferPacketHash` /
 > `planResourceAdvertisementRoleFlags` /
-> `planResourceHashmapSlotWrites` reads beside the step).
+> `planResourceHashmapSlotWrites` / `applyResourceHashmapSlotWrites` reads beside the step).
 > **`stepClonePacketWithHopsWithActions`** / **`stepTransportAnnounceFieldsWithActions`** /
 > **`stepPathResponseAnnounceFieldsWithActions`** emit `use-fields`; hop-clone,
 > transport announce rebroadcast, and path-response announce field planning apply
@@ -2222,12 +2228,14 @@
 > **`stepAppendResourceMapHashCollisionGuardWithActions`** /
 > **`stepAssembleResourceHashmapBytesWithActions`** /
 > **`stepContainsResourceHashWithActions`** /
-> **`stepReadResourceRequestHashWithActions`** emit `append`|`collide` /
-> `use-raw` / `present`|`absent` / `use-raw`; resource collision-guard append,
-> hashmap assemble, hash membership, and request-hash read apply only from
+> **`stepReadResourceRequestHashWithActions`** /
+> **`stepApplyResourceHashmapSlotWritesWithActions`** emit `append`|`collide` /
+> `use-raw` / `present`|`absent` / `use-raw` / `use-fields`; resource collision-guard append,
+> hashmap assemble, hash membership, request-hash read, and slot-write apply apply only from
 > those actions (no ad-hoc `appendResourceMapHashCollisionGuard` /
 > `assembleResourceHashmapBytes` / `containsResourceHash` /
-> `indexOfResourceHash` / `readResourceRequestHash` reads beside the step).
+> `indexOfResourceHash` / `readResourceRequestHash` /
+> `applyResourceHashmapSlotWrites` reads beside the step).
 > **`stepPackResourceAdvertisementWithActions`** /
 > **`stepUnpackResourceAdvertisementWithActions`** emit `use-raw` /
 > `use-fields`|`reject`; resource advertisement pack / unpack apply only from

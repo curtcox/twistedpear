@@ -300,6 +300,80 @@ export function applyResourceHashmapSlotWrites(input: {
   return { hashmap, hashmapHeight };
 }
 
+/**
+ * Resource hashmap slot-write apply is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `applyResourceHashmapSlotWrites`
+ * reads beside the step).
+ */
+export type ApplyResourceHashmapSlotWritesState = Record<string, never>;
+
+export type ApplyResourceHashmapSlotWritesEvent =
+  | Intent
+  | {
+      readonly kind: "resource-hashmap/apply-slot-writes-gate";
+      readonly hashmap: ReadonlyArray<Uint8Array | null>;
+      readonly hashmapHeight: number;
+      readonly writes: ReadonlyArray<ResourceHashmapSlotWrite>;
+    };
+
+export type ApplyResourceHashmapSlotWritesAction = {
+  readonly kind: "use-fields";
+  readonly hashmap: Array<Uint8Array | null>;
+  readonly hashmapHeight: number;
+};
+
+export interface ApplyResourceHashmapSlotWritesStepResult {
+  readonly state: ApplyResourceHashmapSlotWritesState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ApplyResourceHashmapSlotWritesAction[];
+}
+
+export function initialApplyResourceHashmapSlotWritesState(): ApplyResourceHashmapSlotWritesState {
+  return {};
+}
+
+export function stepApplyResourceHashmapSlotWritesWithActions(
+  state: ApplyResourceHashmapSlotWritesState,
+  event: ApplyResourceHashmapSlotWritesEvent
+): ApplyResourceHashmapSlotWritesStepResult {
+  if (event.kind === "resource-hashmap/apply-slot-writes-gate") {
+    const applied = applyResourceHashmapSlotWrites({
+      hashmap: event.hashmap,
+      hashmapHeight: event.hashmapHeight,
+      writes: event.writes
+    });
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-fields",
+          hashmap: applied.hashmap,
+          hashmapHeight: applied.hashmapHeight
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseApplyResourceHashmapSlotWrites(
+  actions: ReadonlyArray<ApplyResourceHashmapSlotWritesAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+/** Extract applied hashmap fields from step actions; null when no `use-fields`. */
+export function applyResourceHashmapSlotWritesFieldsFromActions(
+  actions: ReadonlyArray<ApplyResourceHashmapSlotWritesAction>
+): { readonly hashmap: Array<Uint8Array | null>; readonly hashmapHeight: number } | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields"
+    ? { hashmap: action.hashmap, hashmapHeight: action.hashmapHeight }
+    : null;
+}
+
 export function assembleResourceHashmapBytes(mapHashes: ReadonlyArray<Uint8Array>): Uint8Array {
   return assembleByteArrays(mapHashes);
 }

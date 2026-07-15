@@ -53,7 +53,8 @@ import {
   packResourceHashmapUpdatePacketRawFromActions,
   packResourceHashmapUpdateRawFromActions,
   packResourceProofRawFromActions,
-  applyResourceHashmapSlotWrites,
+  applyResourceHashmapSlotWritesFieldsFromActions,
+  initialApplyResourceHashmapSlotWritesState,
   initialPackResourceHashmapUpdatePacketState,
   initialPackResourceHashmapUpdateState,
   initialPackResourceProofState,
@@ -96,6 +97,7 @@ import {
   shouldRejectSplitResourceHashmapUpdatePacket,
   shouldRejectSplitResourceProof,
   shouldRejectUnpackResourceHashmapUpdate,
+  shouldUseApplyResourceHashmapSlotWrites,
   shouldUseAssembleByteArrays,
   shouldUseAssembleResourceHashmapBytes,
   shouldUseDecodeResourceAdvertisementFlags,
@@ -114,6 +116,7 @@ import {
   shouldUseUnpackResourceHashmapUpdate,
   shouldWriteResourceHashmapSlots,
   stepAppendResourceMapHashCollisionGuardWithActions,
+  stepApplyResourceHashmapSlotWritesWithActions,
   stepAssembleByteArraysWithActions,
   stepAssembleResourceHashmapBytesWithActions,
   stepClassifyResourceAdvertisementWithActions,
@@ -1210,13 +1213,23 @@ export class Resource {
     const writes = shouldWriteResourceHashmapSlots(writesStepped.actions)
       ? resourceHashmapSlotWritesFromActions(writesStepped.actions)
       : [];
-    const applied = applyResourceHashmapSlotWrites({
-      hashmap: this.hashmap,
-      hashmapHeight: this.hashmapHeight,
-      writes
-    });
-    this.hashmap = applied.hashmap;
-    this.hashmapHeight = applied.hashmapHeight;
+    const appliedStepped = stepApplyResourceHashmapSlotWritesWithActions(
+      initialApplyResourceHashmapSlotWritesState(),
+      {
+        kind: "resource-hashmap/apply-slot-writes-gate",
+        hashmap: this.hashmap,
+        hashmapHeight: this.hashmapHeight,
+        writes
+      }
+    );
+    /* Apply slot fills only from `use-fields` (no ad-hoc `applyResourceHashmapSlotWrites` reads). */
+    if (shouldUseApplyResourceHashmapSlotWrites(appliedStepped.actions)) {
+      const applied = applyResourceHashmapSlotWritesFieldsFromActions(appliedStepped.actions);
+      if (applied !== null) {
+        this.hashmap = applied.hashmap;
+        this.hashmapHeight = applied.hashmapHeight;
+      }
+    }
 
     this.waitingForHashmap = false;
     void this.requestNext();
