@@ -66,6 +66,14 @@
 > **`stepLxmfSendMethodPlanWithActions`**:
 > opportunistic|direct|propagated|reject-unpacked|reject-unsupported — nested under
 > send-method),
+> **LXMF opportunistic / direct / propagated send-plan** (via
+> **`stepLxmfOpportunisticSendPlanWithActions`**: ok|missing-destination —
+> nested under opportunistic-send;
+> **`stepLxmfDirectSendPlanWithActions`**:
+> ok|missing-destination|missing-packed — nested under direct-send;
+> **`stepLxmfPropagatedSendPlanWithActions`**:
+> ok|missing-node|missing-packed|resource-unimplemented — nested under
+> propagated-send),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -232,8 +240,15 @@
 > deliver|reject-opportunistic-too-large|reject-unsupported-method
 > (nested under delivery) /
 > **`stepLxmfSendMethodPlanWithActions`**:
-> opportunistic|direct|propagated|reject-unpacked|reject-unsupported
+> opportunistic|direct|propagated|reject-unpacked|reject-unsupported)
 > (nested under send-method) /
+> **`stepLxmfOpportunisticSendPlanWithActions`**: ok|missing-destination
+> (nested under opportunistic-send) /
+> **`stepLxmfDirectSendPlanWithActions`**:
+> ok|missing-destination|missing-packed (nested under direct-send) /
+> **`stepLxmfPropagatedSendPlanWithActions`**:
+> ok|missing-node|missing-packed|resource-unimplemented
+> (nested under propagated-send) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -281,7 +296,12 @@
 > opportunistic|direct|propagated|reject-unpacked|reject-unsupported) is a pure
 > protocol leaf; `LXMFRouter.send` adapts it. **LXMF per-method send gates** (via
 > **`stepLxmfOpportunisticSendWithActions`** / **`stepLxmfDirectSendWithActions`** /
-> **`stepLxmfPropagatedSendWithActions`**: proceed / reject-*) are pure protocol
+> **`stepLxmfPropagatedSendWithActions`**: proceed / reject-*; plan nested via
+> **`stepLxmfOpportunisticSendPlanWithActions`**: ok|missing-destination /
+> **`stepLxmfDirectSendPlanWithActions`**:
+> ok|missing-destination|missing-packed /
+> **`stepLxmfPropagatedSendPlanWithActions`**:
+> ok|missing-node|missing-packed|resource-unimplemented) are pure protocol
 > leaves; `LXMFRouter` send paths adapt them. **LXMF pack gates** (via
 > **`stepLxMessagePackWithActions`**: proceed / reject-bad-destination /
 > reject-bad-source; **`stepLxmfPackTimestampWithActions`**: use-timestamp /
@@ -834,7 +854,9 @@
 > **`canUnpackLxmfPropagationLocalIngress`** (via
 > **`stepUnpackLxmfPropagationLocalIngressWithActions`**: unpack|skip) and
 > **`planLxmfPropagatedSend`** (via **`stepLxmfPropagatedSendWithActions`**: proceed /
-> reject-missing-node / reject-missing-packed / reject-resource-unimplemented) live
+> reject-missing-node / reject-missing-packed / reject-resource-unimplemented; plan
+> nested via **`stepLxmfPropagatedSendPlanWithActions`**:
+> ok|missing-node|missing-packed|resource-unimplemented) live
 > in protocol; `LXMFRouter` adapts them.
 > **`planPathRequestIngress`** (via **`stepPathRequestIngressWithActions`**:
 > ignore-unparsed / ignore-seen-tag / answer-local / answer-path / ignore /
@@ -887,7 +909,8 @@
 > **`stepLinkTeardownWithActions`**).
 > **`canValidateLinkProof`** (via **`stepValidateLinkProofAllowWithActions`**: allow|deny) also gates destination presence.
 > **`planLxmfDirectSend`** (via **`stepLxmfDirectSendWithActions`**: proceed /
-> reject-missing-destination / reject-missing-packed), **`planLxMessageInstancePack`**
+> reject-missing-destination / reject-missing-packed; plan nested via
+> **`stepLxmfDirectSendPlanWithActions`**: ok|missing-destination|missing-packed), **`planLxMessageInstancePack`**
 > (via **`stepLxMessageInstancePackWithActions`**: proceed / reject-already-packed /
 > reject-missing-endpoints / reject-missing-timestamp), and
 > **`planLxmfSignatureOutcome`** (via **`stepLxmfSignatureWithActions`**: apply with
@@ -945,7 +968,7 @@
 > **`stepLinkResourceAdvertisementPlanWithActions`**: ignore|ask-app|accept;
 > app-result plan nested via
 > **`stepLinkResourceAcceptAppResultPlanWithActions`**: accept|reject) lives in protocol;
-> `Link` RESOURCE_ADV adapts it. **`planLxmfOpportunisticSend`** (via **`stepLxmfOpportunisticSendWithActions`**: proceed / reject-missing-destination) lives in protocol;
+> `Link` RESOURCE_ADV adapts it. **`planLxmfOpportunisticSend`** (via **`stepLxmfOpportunisticSendWithActions`**: proceed / reject-missing-destination; plan nested via **`stepLxmfOpportunisticSendPlanWithActions`**: ok|missing-destination) lives in protocol;
 > `LXMFRouter` adapts it. **`shouldUpdateLinkLastData`** (via
 > **`stepUpdateLinkLastDataWithActions`**: update|skip) /
 > **`isLinkInboundDataPacket`** (via **`stepLinkInboundDataPacketWithActions`**:
@@ -1415,14 +1438,20 @@
 > `LXMFRouter.send` applies enqueue + method dispatch or throws only from those
 > actions (no ad-hoc `planLxmfSendMethod` / `plan ===` reads beside the step).
 > **`stepLxmfOpportunisticSendWithActions`** emits `proceed` /
-> `reject-missing-destination`; **`stepLxmfDirectSendWithActions`** emits
-> `proceed` / `reject-missing-destination` / `reject-missing-packed`;
+> `reject-missing-destination`; plan nested via
+> **`stepLxmfOpportunisticSendPlanWithActions`** (`ok`|`missing-destination`);
+> **`stepLxmfDirectSendWithActions`** emits
+> `proceed` / `reject-missing-destination` / `reject-missing-packed`; plan nested
+> via **`stepLxmfDirectSendPlanWithActions`**
+> (`ok`|`missing-destination`|`missing-packed`);
 > **`stepLxmfPropagatedSendWithActions`** emits `proceed` /
 > `reject-missing-node` / `reject-missing-packed` /
-> `reject-resource-unimplemented`; `LXMFRouter` per-method send applies
-> proceed or throws only from those actions (no ad-hoc
+> `reject-resource-unimplemented`; plan nested via
+> **`stepLxmfPropagatedSendPlanWithActions`**
+> (`ok`|`missing-node`|`missing-packed`|`resource-unimplemented`); `LXMFRouter`
+> per-method send applies proceed or throws only from those actions (no ad-hoc
 > `planLxmfOpportunisticSend` / `planLxmfDirectSend` /
-> `planLxmfPropagatedSend` reads beside the step).
+> `planLxmfPropagatedSend` / `plan ===` reads beside the step).
 > **`stepLxmfPropagationLinkReadyWithActions`** emits `reuse` / `establish` /
 > `reject-missing-node` / `reject-missing-identity`;
 > **`stepLxmfPropagationSyncPrepWithActions`** emits `proceed` /
@@ -1788,7 +1817,8 @@
 > propagation-get-plan, LXMF
 > delivery-parameter select deliver/reject / lxmf-delivery-plan, LXMF send-method
 > reject/dispatch / lxmf-send-method-plan, LXMF per-method send gates (opportunistic /
-> direct / propagated), LXMF pack gates (static pack / timestamp /
+> direct / propagated) / lxmf-opportunistic-send-plan / lxmf-direct-send-plan /
+> lxmf-propagated-send-plan, LXMF pack gates (static pack / timestamp /
 > instance pack / propagated pack prep), LXMF propagation link-ready /
 > sync-prep gates, LXMF deliverable accept, propagation local ingress,
 > LXMF receipt → send-state mapping, Link validate-request
@@ -1798,14 +1828,15 @@
 > link-teardown-reason / link-teardown-plan also conclude via
 > machine actions (no ad-hoc `state.timedOut` / `plan.kind` / establish-status /
 > dispatch / identify-outcome / delivery-plan / send-method /
-> lxmf-send-method-plan / send-gate /
+> lxmf-send-method-plan / send-gate / lxmf-opportunistic-send-plan /
+> lxmf-direct-send-plan / lxmf-propagated-send-plan /
 > pack-gate / propagation-link-ready / sync-prep / deliverable-accept /
 > local-ingress / receipt-send / include-lxmf-stamp / remember-lxmf-message /
 > commit-remembered-lxmf-hash / accept-lxmf-wire-frame /
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
@@ -1915,7 +1946,8 @@
 > link-proof-validate-outcome-plan / link-identify-outcome-plan /
 > link-resource-advertisement-plan / link-resource-accept-app-result-plan /
 > propagation-store-plan / propagation-get-plan / lxmf-delivery-plan /
-> lxmf-send-method-plan /
+> lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan /
+> lxmf-propagated-send-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /

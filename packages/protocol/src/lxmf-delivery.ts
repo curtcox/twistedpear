@@ -1811,8 +1811,108 @@ export function planLxmfPropagatedSend(input: {
 }
 
 /**
+ * PROPAGATED send-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLxmfPropagatedSend` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLxmfPropagatedSendWithActions}.
+ */
+export type LxmfPropagatedSendPlanState = Record<string, never>;
+
+export type LxmfPropagatedSendPlanEvent =
+  | Event
+  | {
+      readonly kind: "propagated-send/plan-gate";
+      readonly nodeConfigured: boolean;
+      readonly hasPropagationPacked: boolean;
+      readonly representation: number;
+    };
+
+export type LxmfPropagatedSendPlanAction =
+  | { readonly kind: "ok" }
+  | { readonly kind: "missing-node" }
+  | { readonly kind: "missing-packed" }
+  | { readonly kind: "resource-unimplemented" };
+
+export interface LxmfPropagatedSendPlanStepResult {
+  readonly state: LxmfPropagatedSendPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfPropagatedSendPlanAction[];
+}
+
+export function initialLxmfPropagatedSendPlanState(): LxmfPropagatedSendPlanState {
+  return {};
+}
+
+export function stepLxmfPropagatedSendPlanWithActions(
+  state: LxmfPropagatedSendPlanState,
+  event: LxmfPropagatedSendPlanEvent
+): LxmfPropagatedSendPlanStepResult {
+  if (event.kind === "propagated-send/plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLxmfPropagatedSend({
+            nodeConfigured: event.nodeConfigured,
+            hasPropagationPacked: event.hasPropagationPacked,
+            representation: event.representation
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Whether plan actions allow PROPAGATED send to proceed. */
+export function shouldPlanLxmfPropagatedSendOk(
+  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ok");
+}
+
+/** Whether plan actions reject a missing propagation node. */
+export function shouldRejectLxmfPropagatedSendPlanMissingNode(
+  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing-node");
+}
+
+/** Whether plan actions reject a missing packed envelope. */
+export function shouldRejectLxmfPropagatedSendPlanMissingPacked(
+  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing-packed");
+}
+
+/** Whether plan actions reject unimplemented RESOURCE representation. */
+export function shouldRejectLxmfPropagatedSendPlanResourceUnimplemented(
+  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "resource-unimplemented");
+}
+
+/** Extract the PROPAGATED send plan from actions; null when empty. */
+export function lxmfPropagatedSendPlanFromActions(
+  actions: ReadonlyArray<LxmfPropagatedSendPlanAction>
+): LxmfPropagatedSendPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ok" ||
+      entry.kind === "missing-node" ||
+      entry.kind === "missing-packed" ||
+      entry.kind === "resource-unimplemented"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * PROPAGATED send gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLxmfPropagatedSendPlanWithActions}
+ * (`ok`|`missing-node`|`missing-packed`|`resource-unimplemented`).
  */
 export type LxmfPropagatedSendState = Record<string, never>;
 
@@ -1825,6 +1925,11 @@ export type LxmfPropagatedSendEvent =
       readonly representation: number;
     };
 
+/**
+ * Adapter applies proceed / reject only from these actions.
+ * Plan nested via {@link stepLxmfPropagatedSendPlanWithActions}
+ * (`ok`|`missing-node`|`missing-packed`|`resource-unimplemented`).
+ */
 export type LxmfPropagatedSendAction =
   | { readonly kind: "proceed" }
   | { readonly kind: "reject-missing-node" }
@@ -1882,19 +1987,26 @@ function stepLxmfPropagatedSendInner(
   event: LxmfPropagatedSendEvent
 ): LxmfPropagatedSendStepResult {
   if (event.kind === "propagated-send/gate") {
-    const plan = planLxmfPropagatedSend({
-      nodeConfigured: event.nodeConfigured,
-      hasPropagationPacked: event.hasPropagationPacked,
-      representation: event.representation
-    });
-    if (plan === "missing-node") {
+    const planActions = stepLxmfPropagatedSendPlanWithActions(
+      initialLxmfPropagatedSendPlanState(),
+      {
+        kind: "propagated-send/plan-gate",
+        nodeConfigured: event.nodeConfigured,
+        hasPropagationPacked: event.hasPropagationPacked,
+        representation: event.representation
+      }
+    ).actions;
+    if (shouldRejectLxmfPropagatedSendPlanMissingNode(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-missing-node" }] };
     }
-    if (plan === "missing-packed") {
+    if (shouldRejectLxmfPropagatedSendPlanMissingPacked(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-missing-packed" }] };
     }
-    if (plan === "resource-unimplemented") {
+    if (shouldRejectLxmfPropagatedSendPlanResourceUnimplemented(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-resource-unimplemented" }] };
+    }
+    if (!shouldPlanLxmfPropagatedSendOk(planActions)) {
+      return { state, intents: [], actions: [] };
     }
     return { state, intents: [], actions: [{ kind: "proceed" }] };
   }
@@ -2312,8 +2424,99 @@ export function planLxmfDirectSend(input: {
 }
 
 /**
+ * DIRECT send-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLxmfDirectSend` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLxmfDirectSendWithActions}.
+ */
+export type LxmfDirectSendPlanState = Record<string, never>;
+
+export type LxmfDirectSendPlanEvent =
+  | Event
+  | {
+      readonly kind: "direct-send/plan-gate";
+      readonly destinationPresent: boolean;
+      readonly destinationIdentityPresent: boolean;
+      readonly packed: boolean;
+    };
+
+export type LxmfDirectSendPlanAction =
+  | { readonly kind: "ok" }
+  | { readonly kind: "missing-destination" }
+  | { readonly kind: "missing-packed" };
+
+export interface LxmfDirectSendPlanStepResult {
+  readonly state: LxmfDirectSendPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfDirectSendPlanAction[];
+}
+
+export function initialLxmfDirectSendPlanState(): LxmfDirectSendPlanState {
+  return {};
+}
+
+export function stepLxmfDirectSendPlanWithActions(
+  state: LxmfDirectSendPlanState,
+  event: LxmfDirectSendPlanEvent
+): LxmfDirectSendPlanStepResult {
+  if (event.kind === "direct-send/plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLxmfDirectSend({
+            destinationPresent: event.destinationPresent,
+            destinationIdentityPresent: event.destinationIdentityPresent,
+            packed: event.packed
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Whether plan actions allow DIRECT send to proceed. */
+export function shouldPlanLxmfDirectSendOk(
+  actions: ReadonlyArray<LxmfDirectSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ok");
+}
+
+/** Whether plan actions reject a missing destination / identity. */
+export function shouldRejectLxmfDirectSendPlanMissingDestination(
+  actions: ReadonlyArray<LxmfDirectSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing-destination");
+}
+
+/** Whether plan actions reject a missing packed envelope. */
+export function shouldRejectLxmfDirectSendPlanMissingPacked(
+  actions: ReadonlyArray<LxmfDirectSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing-packed");
+}
+
+/** Extract the DIRECT send plan from actions; null when empty. */
+export function lxmfDirectSendPlanFromActions(
+  actions: ReadonlyArray<LxmfDirectSendPlanAction>
+): LxmfDirectSendPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ok" ||
+      entry.kind === "missing-destination" ||
+      entry.kind === "missing-packed"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * DIRECT send gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLxmfDirectSendPlanWithActions}
+ * (`ok`|`missing-destination`|`missing-packed`).
  */
 export type LxmfDirectSendState = Record<string, never>;
 
@@ -2326,6 +2529,11 @@ export type LxmfDirectSendEvent =
       readonly packed: boolean;
     };
 
+/**
+ * Adapter applies proceed / reject only from these actions.
+ * Plan nested via {@link stepLxmfDirectSendPlanWithActions}
+ * (`ok`|`missing-destination`|`missing-packed`).
+ */
 export type LxmfDirectSendAction =
   | { readonly kind: "proceed" }
   | { readonly kind: "reject-missing-destination" }
@@ -2376,16 +2584,20 @@ function stepLxmfDirectSendInner(
   event: LxmfDirectSendEvent
 ): LxmfDirectSendStepResult {
   if (event.kind === "direct-send/gate") {
-    const plan = planLxmfDirectSend({
+    const planActions = stepLxmfDirectSendPlanWithActions(initialLxmfDirectSendPlanState(), {
+      kind: "direct-send/plan-gate",
       destinationPresent: event.destinationPresent,
       destinationIdentityPresent: event.destinationIdentityPresent,
       packed: event.packed
-    });
-    if (plan === "missing-destination") {
+    }).actions;
+    if (shouldRejectLxmfDirectSendPlanMissingDestination(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-missing-destination" }] };
     }
-    if (plan === "missing-packed") {
+    if (shouldRejectLxmfDirectSendPlanMissingPacked(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-missing-packed" }] };
+    }
+    if (!shouldPlanLxmfDirectSendOk(planActions)) {
+      return { state, intents: [], actions: [] };
     }
     return { state, intents: [], actions: [{ kind: "proceed" }] };
   }
@@ -2406,8 +2618,84 @@ export function planLxmfOpportunisticSend(input: {
 }
 
 /**
+ * OPPORTUNISTIC send-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLxmfOpportunisticSend` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLxmfOpportunisticSendWithActions}.
+ */
+export type LxmfOpportunisticSendPlanState = Record<string, never>;
+
+export type LxmfOpportunisticSendPlanEvent =
+  | Event
+  | {
+      readonly kind: "opportunistic-send/plan-gate";
+      readonly destinationPresent: boolean;
+    };
+
+export type LxmfOpportunisticSendPlanAction =
+  | { readonly kind: "ok" }
+  | { readonly kind: "missing-destination" };
+
+export interface LxmfOpportunisticSendPlanStepResult {
+  readonly state: LxmfOpportunisticSendPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfOpportunisticSendPlanAction[];
+}
+
+export function initialLxmfOpportunisticSendPlanState(): LxmfOpportunisticSendPlanState {
+  return {};
+}
+
+export function stepLxmfOpportunisticSendPlanWithActions(
+  state: LxmfOpportunisticSendPlanState,
+  event: LxmfOpportunisticSendPlanEvent
+): LxmfOpportunisticSendPlanStepResult {
+  if (event.kind === "opportunistic-send/plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLxmfOpportunisticSend({
+            destinationPresent: event.destinationPresent
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Whether plan actions allow OPPORTUNISTIC send to proceed. */
+export function shouldPlanLxmfOpportunisticSendOk(
+  actions: ReadonlyArray<LxmfOpportunisticSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ok");
+}
+
+/** Whether plan actions reject a missing destination. */
+export function shouldRejectLxmfOpportunisticSendPlanMissingDestination(
+  actions: ReadonlyArray<LxmfOpportunisticSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing-destination");
+}
+
+/** Extract the OPPORTUNISTIC send plan from actions; null when empty. */
+export function lxmfOpportunisticSendPlanFromActions(
+  actions: ReadonlyArray<LxmfOpportunisticSendPlanAction>
+): LxmfOpportunisticSendPlan | null {
+  const action = actions.find(
+    (entry) => entry.kind === "ok" || entry.kind === "missing-destination"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * OPPORTUNISTIC send gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLxmfOpportunisticSendPlanWithActions}
+ * (`ok`|`missing-destination`).
  */
 export type LxmfOpportunisticSendState = Record<string, never>;
 
@@ -2418,6 +2706,11 @@ export type LxmfOpportunisticSendEvent =
       readonly destinationPresent: boolean;
     };
 
+/**
+ * Adapter applies proceed / reject only from these actions.
+ * Plan nested via {@link stepLxmfOpportunisticSendPlanWithActions}
+ * (`ok`|`missing-destination`).
+ */
 export type LxmfOpportunisticSendAction =
   | { readonly kind: "proceed" }
   | { readonly kind: "reject-missing-destination" };
@@ -2461,11 +2754,18 @@ function stepLxmfOpportunisticSendInner(
   event: LxmfOpportunisticSendEvent
 ): LxmfOpportunisticSendStepResult {
   if (event.kind === "opportunistic-send/gate") {
-    const plan = planLxmfOpportunisticSend({
-      destinationPresent: event.destinationPresent
-    });
-    if (plan === "missing-destination") {
+    const planActions = stepLxmfOpportunisticSendPlanWithActions(
+      initialLxmfOpportunisticSendPlanState(),
+      {
+        kind: "opportunistic-send/plan-gate",
+        destinationPresent: event.destinationPresent
+      }
+    ).actions;
+    if (shouldRejectLxmfOpportunisticSendPlanMissingDestination(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-missing-destination" }] };
+    }
+    if (!shouldPlanLxmfOpportunisticSendOk(planActions)) {
+      return { state, intents: [], actions: [] };
     }
     return { state, intents: [], actions: [{ kind: "proceed" }] };
   }

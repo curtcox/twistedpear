@@ -34,11 +34,26 @@ import {
   planLxmfPropagationLocalIngress,
   planLxmfSendMethod,
   planLxmfSignatureOutcome,
+  initialLxmfDirectSendPlanState,
+  initialLxmfOpportunisticSendPlanState,
+  initialLxmfPropagatedSendPlanState,
   initialLxmfSendMethodPlanState,
+  lxmfDirectSendPlanFromActions,
+  lxmfOpportunisticSendPlanFromActions,
+  lxmfPropagatedSendPlanFromActions,
   lxmfSendMethodPlanFromActions,
+  shouldPlanLxmfDirectSendOk,
+  shouldPlanLxmfOpportunisticSendOk,
+  shouldPlanLxmfPropagatedSendOk,
   shouldPlanLxmfSendMethodDirect,
   shouldPlanLxmfSendMethodOpportunistic,
   shouldPlanLxmfSendMethodPropagated,
+  shouldRejectLxmfDirectSendPlanMissingDestination,
+  shouldRejectLxmfDirectSendPlanMissingPacked,
+  shouldRejectLxmfOpportunisticSendPlanMissingDestination,
+  shouldRejectLxmfPropagatedSendPlanMissingNode,
+  shouldRejectLxmfPropagatedSendPlanMissingPacked,
+  shouldRejectLxmfPropagatedSendPlanResourceUnimplemented,
   shouldRejectLxmfSendMethodPlanUnpacked,
   shouldRejectLxmfSendMethodPlanUnsupported,
   shouldAcceptLxmfWireFrame,
@@ -161,10 +176,13 @@ import {
   stepLxmfDeliverableAcceptWithActions,
   stepLxmfDeliveryPlanWithActions,
   stepLxmfDeliveryWithActions,
+  stepLxmfDirectSendPlanWithActions,
   stepLxmfDirectSendWithActions,
+  stepLxmfOpportunisticSendPlanWithActions,
   stepLxmfOpportunisticSendWithActions,
   stepLxmfPackTimestampWithActions,
   stepLxmfPropagatedPackPrepWithActions,
+  stepLxmfPropagatedSendPlanWithActions,
   stepLxmfPropagatedSendWithActions,
   stepLxmfPropagationLinkReadyWithActions,
   stepLxmfPropagationLocalIngressWithActions,
@@ -636,6 +654,58 @@ describe("protocol lxmf delivery", () => {
     expect(shouldSkipInvokeLxmfDeliveryCallback(invokeSkip.actions)).toBe(true);
   });
 
+  it("emits PROPAGATED send-plan actions only from propagated-send/plan-gate", () => {
+    const ok = stepLxmfPropagatedSendPlanWithActions(initialLxmfPropagatedSendPlanState(), {
+      kind: "propagated-send/plan-gate",
+      nodeConfigured: true,
+      hasPropagationPacked: true,
+      representation: LxmfDeliveryRepresentation.PACKET
+    });
+    expect(shouldPlanLxmfPropagatedSendOk(ok.actions)).toBe(true);
+    expect(lxmfPropagatedSendPlanFromActions(ok.actions)).toBe("ok");
+
+    const missingNode = stepLxmfPropagatedSendPlanWithActions(
+      initialLxmfPropagatedSendPlanState(),
+      {
+        kind: "propagated-send/plan-gate",
+        nodeConfigured: false,
+        hasPropagationPacked: true,
+        representation: LxmfDeliveryRepresentation.PACKET
+      }
+    );
+    expect(shouldRejectLxmfPropagatedSendPlanMissingNode(missingNode.actions)).toBe(true);
+    expect(lxmfPropagatedSendPlanFromActions(missingNode.actions)).toBe("missing-node");
+
+    const missingPacked = stepLxmfPropagatedSendPlanWithActions(
+      initialLxmfPropagatedSendPlanState(),
+      {
+        kind: "propagated-send/plan-gate",
+        nodeConfigured: true,
+        hasPropagationPacked: false,
+        representation: LxmfDeliveryRepresentation.PACKET
+      }
+    );
+    expect(shouldRejectLxmfPropagatedSendPlanMissingPacked(missingPacked.actions)).toBe(true);
+    expect(lxmfPropagatedSendPlanFromActions(missingPacked.actions)).toBe("missing-packed");
+
+    const resource = stepLxmfPropagatedSendPlanWithActions(initialLxmfPropagatedSendPlanState(), {
+      kind: "propagated-send/plan-gate",
+      nodeConfigured: true,
+      hasPropagationPacked: true,
+      representation: LxmfDeliveryRepresentation.RESOURCE
+    });
+    expect(shouldRejectLxmfPropagatedSendPlanResourceUnimplemented(resource.actions)).toBe(true);
+    expect(lxmfPropagatedSendPlanFromActions(resource.actions)).toBe("resource-unimplemented");
+
+    expect(
+      stepLxmfPropagatedSendPlanWithActions(initialLxmfPropagatedSendPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
+  });
+
   it("emits PROPAGATED send gate actions from stepLxmfPropagatedSendWithActions", () => {
     const ok = stepLxmfPropagatedSendWithActions(initialLxmfPropagatedSendState(), {
       kind: "propagated-send/gate",
@@ -865,6 +935,45 @@ describe("protocol lxmf delivery", () => {
         packed: false
       })
     ).toBe("missing-packed");
+  });
+
+  it("emits DIRECT send-plan actions only from direct-send/plan-gate", () => {
+    const ok = stepLxmfDirectSendPlanWithActions(initialLxmfDirectSendPlanState(), {
+      kind: "direct-send/plan-gate",
+      destinationPresent: true,
+      destinationIdentityPresent: true,
+      packed: true
+    });
+    expect(shouldPlanLxmfDirectSendOk(ok.actions)).toBe(true);
+    expect(lxmfDirectSendPlanFromActions(ok.actions)).toBe("ok");
+
+    const missingDestination = stepLxmfDirectSendPlanWithActions(initialLxmfDirectSendPlanState(), {
+      kind: "direct-send/plan-gate",
+      destinationPresent: false,
+      destinationIdentityPresent: true,
+      packed: true
+    });
+    expect(shouldRejectLxmfDirectSendPlanMissingDestination(missingDestination.actions)).toBe(
+      true
+    );
+    expect(lxmfDirectSendPlanFromActions(missingDestination.actions)).toBe("missing-destination");
+
+    const missingPacked = stepLxmfDirectSendPlanWithActions(initialLxmfDirectSendPlanState(), {
+      kind: "direct-send/plan-gate",
+      destinationPresent: true,
+      destinationIdentityPresent: true,
+      packed: false
+    });
+    expect(shouldRejectLxmfDirectSendPlanMissingPacked(missingPacked.actions)).toBe(true);
+    expect(lxmfDirectSendPlanFromActions(missingPacked.actions)).toBe("missing-packed");
+
+    expect(
+      stepLxmfDirectSendPlanWithActions(initialLxmfDirectSendPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
   });
 
   it("emits DIRECT send gate actions from stepLxmfDirectSendWithActions", () => {
@@ -1246,6 +1355,33 @@ describe("protocol lxmf delivery", () => {
     expect(planLxmfOpportunisticSend({ destinationPresent: false })).toBe(
       "missing-destination"
     );
+  });
+
+  it("emits OPPORTUNISTIC send-plan actions only from opportunistic-send/plan-gate", () => {
+    const ok = stepLxmfOpportunisticSendPlanWithActions(initialLxmfOpportunisticSendPlanState(), {
+      kind: "opportunistic-send/plan-gate",
+      destinationPresent: true
+    });
+    expect(shouldPlanLxmfOpportunisticSendOk(ok.actions)).toBe(true);
+    expect(lxmfOpportunisticSendPlanFromActions(ok.actions)).toBe("ok");
+
+    const missing = stepLxmfOpportunisticSendPlanWithActions(
+      initialLxmfOpportunisticSendPlanState(),
+      {
+        kind: "opportunistic-send/plan-gate",
+        destinationPresent: false
+      }
+    );
+    expect(shouldRejectLxmfOpportunisticSendPlanMissingDestination(missing.actions)).toBe(true);
+    expect(lxmfOpportunisticSendPlanFromActions(missing.actions)).toBe("missing-destination");
+
+    expect(
+      stepLxmfOpportunisticSendPlanWithActions(initialLxmfOpportunisticSendPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
   });
 
   it("emits OPPORTUNISTIC send gate actions from stepLxmfOpportunisticSendWithActions", () => {
