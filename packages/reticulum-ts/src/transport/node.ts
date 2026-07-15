@@ -62,17 +62,17 @@ import {
   pendingLinkMembershipRemoveIndex,
   pendingLinkUnregisterRemoveIndex,
   shouldAcceptCachedPathResponsePacket,
-  shouldAcceptLinkLrProofCandidate,
+  shouldAcceptLinkLrProofCandidateNow,
   shouldAcceptParsedAnnounceNow,
   shouldAnswerPathRequestLocal,
   shouldAnswerPathRequestPath,
   shouldAnswerPathWithEntry,
   shouldAppendActiveLinkMembershipActions,
   shouldDirectPathOutbound,
-  shouldDispatchLocalLinkRequest,
+  shouldDispatchLocalLinkRequestNow,
   shouldDispatchLocalPlainDataDelivery,
   shouldDispatchLocalPlainDataDeliveryActions,
-  shouldDispatchResourceProofToLink,
+  shouldDispatchResourceProofToLinkNow,
   shouldDispatchTransportAnnounce,
   shouldDispatchTransportLinkData,
   shouldDispatchTransportLinkRequest,
@@ -94,8 +94,8 @@ import {
   shouldMatchAnnounceAspect,
   shouldMissPathEntryLookup,
   shouldWrapPathOutbound,
-  shouldMatchLocalInboundDestination,
-  shouldMatchLocalTypedDestination,
+  shouldMatchLocalInboundDestinationNow,
+  shouldMatchLocalTypedDestinationNow,
   shouldOutboundFailAndDropReceipt,
   shouldOutboundKeepReceipt,
   shouldReceiveAnnouncePathResponse,
@@ -103,13 +103,13 @@ import {
   shouldRegisterLinkMember,
   shouldRegisterLinkPending,
   shouldRegisterPacketReceipt,
-  shouldRegisterTransportMember,
+  shouldRegisterTransportMemberNow,
   shouldRememberPathRequestTag,
   shouldRemoveActiveLinkUnregisterActions,
   shouldRemovePacketReceiptProofIngress,
   shouldRemovePendingLinkMembershipActions,
   shouldRemovePendingLinkUnregisterActions,
-  shouldTransmitOnInterface,
+  shouldTransmitOnInterfaceNow,
   shouldRemovePacketReceipt,
   shouldRemoveTransportMember,
   shouldUsePathForOutbound,
@@ -117,10 +117,17 @@ import {
   shouldAcceptPacketFilter,
   shouldUseMatchingLinkIdIndex,
   matchingLinkIdIndexFromActions,
+  initialAcceptLinkLrProofCandidateState,
+  initialDispatchLocalLinkRequestState,
+  initialDispatchResourceProofToLinkState,
   initialIndexOfMatchingLinkIdState,
+  initialMatchLocalInboundDestinationState,
+  initialMatchLocalTypedDestinationState,
+  initialRegisterTransportMemberState,
   initialRelayTransportPacketState,
   initialRewritePacketHopsState,
   initialStripTransportHeadersState,
+  initialTransmitOnInterfaceState,
   initialWrapTransportPacketState,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
@@ -128,13 +135,18 @@ import {
   isLocalPathRequestPacket,
   stepDestinationProofWithActions,
   stepEmitDestinationProofWithActions,
+  stepAcceptLinkLrProofCandidateWithActions,
   stepAcceptParsedAnnounceWithActions,
+  stepDispatchLocalLinkRequestWithActions,
+  stepDispatchResourceProofToLinkWithActions,
   stepIndexOfMatchingLinkIdWithActions,
   stepLinkActivateMembershipWithActions,
   stepLinkDataIngressTargetWithActions,
   stepLinkRegisterListWithActions,
   stepLinkUnregisterMembershipWithActions,
   stepLocalPlainDataDeliveryWithActions,
+  stepMatchLocalInboundDestinationWithActions,
+  stepMatchLocalTypedDestinationWithActions,
   stepOutboundReceiptWithActions,
   stepPacketFilterWithActions,
   stepPacketReceiptProofIngressWithActions,
@@ -143,9 +155,11 @@ import {
   stepPathOutboundWithActions,
   stepPathRequestIngressWithActions,
   stepProofIngressWithActions,
+  stepRegisterTransportMemberWithActions,
   stepRelayTransportPacketWithActions,
   stepRewritePacketHopsWithActions,
   stepStripTransportHeadersWithActions,
+  stepTransmitOnInterfaceWithActions,
   stepTransportIngressDispatchWithActions,
   stepTransportMemberUnregisterWithActions,
   stepWrapTransportPacketWithActions,
@@ -282,7 +296,14 @@ export class LeafTransport {
   }
 
   registerInterface(iface: PacketInterface): void {
-    if (!shouldRegisterTransportMember(this.interfaces.includes(iface))) {
+    const stepped = stepRegisterTransportMemberWithActions(
+      initialRegisterTransportMemberState(),
+      {
+        kind: "transport/member-register-gate",
+        alreadyPresent: this.interfaces.includes(iface)
+      }
+    );
+    if (!shouldRegisterTransportMemberNow(stepped.actions)) {
       return;
     }
 
@@ -319,7 +340,14 @@ export class LeafTransport {
   }
 
   registerDestination(destination: LocalDestination): void {
-    if (shouldRegisterTransportMember(this.destinations.includes(destination))) {
+    const stepped = stepRegisterTransportMemberWithActions(
+      initialRegisterTransportMemberState(),
+      {
+        kind: "transport/member-register-gate",
+        alreadyPresent: this.destinations.includes(destination)
+      }
+    );
+    if (shouldRegisterTransportMemberNow(stepped.actions)) {
       this.destinations.push(destination);
     }
   }
@@ -329,7 +357,14 @@ export class LeafTransport {
   }
 
   registerAnnounceHandler(handler: AnnounceHandler): void {
-    if (shouldRegisterTransportMember(this.announceHandlers.includes(handler))) {
+    const stepped = stepRegisterTransportMemberWithActions(
+      initialRegisterTransportMemberState(),
+      {
+        kind: "transport/member-register-gate",
+        alreadyPresent: this.announceHandlers.includes(handler)
+      }
+    );
+    if (shouldRegisterTransportMemberNow(stepped.actions)) {
       this.announceHandlers.push(handler);
     }
   }
@@ -663,13 +698,16 @@ export class LeafTransport {
 
   protected async handleLinkRequest(packet: Packet, iface: PacketInterface): Promise<void> {
     for (const destination of this.destinations) {
-      if (
-        shouldDispatchLocalLinkRequest({
+      const stepped = stepDispatchLocalLinkRequestWithActions(
+        initialDispatchLocalLinkRequestState(),
+        {
+          kind: "transport/dispatch-local-link-request-gate",
           hashMatches: equalBytes(destination.hash, packet.destinationHash),
           typeMatches: destination.type === packet.destinationType,
           handlerPresent: destination.handleLinkRequest !== undefined
-        })
-      ) {
+        }
+      );
+      if (shouldDispatchLocalLinkRequestNow(stepped.actions)) {
         destination.handleLinkRequest!(packet, iface);
         return;
       }
@@ -717,10 +755,16 @@ export class LeafTransport {
     const announce = parsed!;
 
     const localDestination = this.destinations.find((entry) =>
-      shouldMatchLocalInboundDestination({
-        hashMatches: equalBytes(entry.hash, packet.destinationHash),
-        directionIn: entry.direction === DestinationDirection.IN
-      })
+      shouldMatchLocalInboundDestinationNow(
+        stepMatchLocalInboundDestinationWithActions(
+          initialMatchLocalInboundDestinationState(),
+          {
+            kind: "transport/match-local-inbound-destination-gate",
+            hashMatches: equalBytes(entry.hash, packet.destinationHash),
+            directionIn: entry.direction === DestinationDirection.IN
+          }
+        ).actions
+      )
     );
     if (shouldIgnoreLocalAnnounce(localDestination !== undefined)) {
       return;
@@ -862,10 +906,13 @@ export class LeafTransport {
     }
 
     const destination = this.destinations.find((entry) =>
-      shouldMatchLocalTypedDestination({
-        hashMatches: equalBytes(entry.hash, packet.destinationHash),
-        typeMatches: entry.type === packet.destinationType
-      })
+      shouldMatchLocalTypedDestinationNow(
+        stepMatchLocalTypedDestinationWithActions(initialMatchLocalTypedDestinationState(), {
+          kind: "transport/match-local-typed-destination-gate",
+          hashMatches: equalBytes(entry.hash, packet.destinationHash),
+          typeMatches: entry.type === packet.destinationType
+        }).actions
+      )
     );
     const plaintext = destination === undefined ? null : destination.decrypt(packet.data);
     const deliveryStepped = stepLocalPlainDataDeliveryWithActions(
@@ -906,10 +953,13 @@ export class LeafTransport {
     if (shouldHandleProofLrproof(proofStepped.actions)) {
       for (const link of this.pendingLinks) {
         if (
-          shouldAcceptLinkLrProofCandidate({
-            linkIdMatches: equalBytes(link.linkId, packet.destinationHash),
-            hopsMatch: link.hopsMatch(packet)
-          })
+          shouldAcceptLinkLrProofCandidateNow(
+            stepAcceptLinkLrProofCandidateWithActions(initialAcceptLinkLrProofCandidateState(), {
+              kind: "transport/accept-link-lr-proof-candidate-gate",
+              linkIdMatches: equalBytes(link.linkId, packet.destinationHash),
+              hopsMatch: link.hopsMatch(packet)
+            }).actions
+          )
         ) {
           await link.validateProof(packet, iface);
           return;
@@ -920,7 +970,14 @@ export class LeafTransport {
 
     if (shouldHandleProofResourcePrf(proofStepped.actions)) {
       const activeIndex = this.indexOfMatchingLink(this.activeLinks, packet.destinationHash);
-      if (shouldDispatchResourceProofToLink(activeIndex !== null)) {
+      if (
+        shouldDispatchResourceProofToLinkNow(
+          stepDispatchResourceProofToLinkWithActions(initialDispatchResourceProofToLinkState(), {
+            kind: "transport/dispatch-resource-proof-to-link-gate",
+            activeIndexPresent: activeIndex !== null
+          }).actions
+        )
+      ) {
         await this.activeLinks[activeIndex!]!.handleResourceProof(packet);
       }
       return;
@@ -1014,11 +1071,14 @@ export class LeafTransport {
     let sent = false;
     for (const iface of this.interfaces) {
       if (
-        !shouldTransmitOnInterface({
-          outgoing: iface.outgoing,
-          requireAttached: attachedInterface !== null,
-          isAttached: attachedInterface !== null && iface === attachedInterface
-        })
+        !shouldTransmitOnInterfaceNow(
+          stepTransmitOnInterfaceWithActions(initialTransmitOnInterfaceState(), {
+            kind: "transport/transmit-on-interface-gate",
+            outgoing: iface.outgoing,
+            requireAttached: attachedInterface !== null,
+            isAttached: attachedInterface !== null && iface === attachedInterface
+          }).actions
+        )
       ) {
         continue;
       }
@@ -1038,10 +1098,16 @@ export class LeafTransport {
       parsed === null
         ? undefined
         : this.destinations.find((entry) =>
-            shouldMatchLocalInboundDestination({
-              hashMatches: equalBytes(entry.hash, parsed.destinationHash),
-              directionIn: entry.direction === DestinationDirection.IN
-            })
+            shouldMatchLocalInboundDestinationNow(
+              stepMatchLocalInboundDestinationWithActions(
+                initialMatchLocalInboundDestinationState(),
+                {
+                  kind: "transport/match-local-inbound-destination-gate",
+                  hashMatches: equalBytes(entry.hash, parsed.destinationHash),
+                  directionIn: entry.direction === DestinationDirection.IN
+                }
+              ).actions
+            )
           );
     const tagKey =
       parsed !== null && parsed.tag !== null

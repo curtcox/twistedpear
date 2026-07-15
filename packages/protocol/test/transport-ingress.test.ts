@@ -95,15 +95,21 @@ import {
   shouldRemoveTransportMember,
   initialTransportMemberUnregisterState,
   transportMemberUnregisterIndex,
+  stepAcceptLinkLrProofCandidateWithActions,
+  stepDispatchLocalLinkRequestWithActions,
+  stepDispatchResourceProofToLinkWithActions,
   stepLinkDataIngressTargetWithActions,
   stepLinkRelayTargetWithActions,
   stepLocalPlainDataDeliveryWithActions,
   stepLookupLinkRelayEntryWithActions,
+  stepMatchLocalInboundDestinationWithActions,
+  stepMatchLocalTypedDestinationWithActions,
   stepPacketFilterWithActions,
   stepPacketHashRememberWithActions,
   stepProofIngressWithActions,
   stepRecordLinkRelayTableEntryWithActions,
   stepRecordReverseTableEntryWithActions,
+  stepRegisterTransportMemberWithActions,
   stepRelayLinkPacketAllowWithActions,
   stepRelayReverseOnInterfaceWithActions,
   stepRelayReversePacketAllowWithActions,
@@ -111,6 +117,7 @@ import {
   stepReverseEntryExpiredWithActions,
   stepReverseRelayOutcomeWithActions,
   stepTransmitLinkRelayWithActions,
+  stepTransmitOnInterfaceWithActions,
   stepTransmitReverseRelayWithActions,
   stepTransportIngressDispatchWithActions,
   stepTransportMemberUnregisterWithActions,
@@ -124,25 +131,46 @@ import {
   shouldMissLookupLinkRelayEntry,
   shouldMatchRelayReverseOnInterface,
   shouldMismatchRelayReverseOnInterface,
+  shouldMatchLocalInboundDestinationNow,
+  shouldMismatchLocalInboundDestination,
+  shouldMatchLocalTypedDestinationNow,
+  shouldMismatchLocalTypedDestination,
+  shouldDispatchLocalLinkRequestNow,
+  shouldSkipDispatchLocalLinkRequest,
+  shouldAcceptLinkLrProofCandidateNow,
+  shouldRejectLinkLrProofCandidate,
+  shouldDispatchResourceProofToLinkNow,
+  shouldSkipDispatchResourceProofToLink,
+  shouldRegisterTransportMemberNow,
+  shouldSkipRegisterTransportMember,
   shouldRecordLinkRelayTableEntryNow,
   shouldRecordReverseTableEntryNow,
   shouldSkipRecordLinkRelayTableEntry,
   shouldSkipRecordReverseTableEntry,
   shouldSkipTransmitLinkRelay,
+  shouldSkipTransmitOnInterface,
   shouldSkipTransmitReverseRelay,
   shouldTransmitLinkRelayNow,
+  shouldTransmitOnInterfaceNow,
   shouldTransmitReverseRelayNow,
   shouldTreatReverseEntryExpired,
   shouldTreatReverseEntryLive,
+  initialAcceptLinkLrProofCandidateState,
+  initialDispatchLocalLinkRequestState,
+  initialDispatchResourceProofToLinkState,
   initialLookupLinkRelayEntryState,
+  initialMatchLocalInboundDestinationState,
+  initialMatchLocalTypedDestinationState,
   initialRecordLinkRelayTableEntryState,
   initialRecordReverseTableEntryState,
+  initialRegisterTransportMemberState,
   initialRelayLinkPacketAllowState,
   initialRelayReverseOnInterfaceState,
   initialRelayReversePacketAllowState,
   initialRelayTransportPacketAllowState,
   initialReverseEntryExpiredState,
   initialTransmitLinkRelayState,
+  initialTransmitOnInterfaceState,
   initialTransmitReverseRelayState,
   transportIngressDispatchFromActions
 } from "../src/index.js";
@@ -1095,6 +1123,138 @@ describe("transport ingress", () => {
           kind: "transport/transmit-reverse-relay-gate",
           relayOk: true,
           entryPresent: false
+        }).actions
+      )
+    ).toBe(true);
+  });
+
+  it("concludes interface transmit / local match / register gates via actions", () => {
+    expect(
+      shouldTransmitOnInterfaceNow(
+        stepTransmitOnInterfaceWithActions(initialTransmitOnInterfaceState(), {
+          kind: "transport/transmit-on-interface-gate",
+          outgoing: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipTransmitOnInterface(
+        stepTransmitOnInterfaceWithActions(initialTransmitOnInterfaceState(), {
+          kind: "transport/transmit-on-interface-gate",
+          outgoing: true,
+          isExcludedInterface: true
+        }).actions
+      )
+    ).toBe(true);
+
+    expect(
+      shouldMatchLocalInboundDestinationNow(
+        stepMatchLocalInboundDestinationWithActions(initialMatchLocalInboundDestinationState(), {
+          kind: "transport/match-local-inbound-destination-gate",
+          hashMatches: true,
+          directionIn: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldMismatchLocalInboundDestination(
+        stepMatchLocalInboundDestinationWithActions(initialMatchLocalInboundDestinationState(), {
+          kind: "transport/match-local-inbound-destination-gate",
+          hashMatches: true,
+          directionIn: false
+        }).actions
+      )
+    ).toBe(true);
+
+    expect(
+      shouldMatchLocalTypedDestinationNow(
+        stepMatchLocalTypedDestinationWithActions(initialMatchLocalTypedDestinationState(), {
+          kind: "transport/match-local-typed-destination-gate",
+          hashMatches: true,
+          typeMatches: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldMismatchLocalTypedDestination(
+        stepMatchLocalTypedDestinationWithActions(initialMatchLocalTypedDestinationState(), {
+          kind: "transport/match-local-typed-destination-gate",
+          hashMatches: true,
+          typeMatches: false
+        }).actions
+      )
+    ).toBe(true);
+
+    expect(
+      shouldDispatchLocalLinkRequestNow(
+        stepDispatchLocalLinkRequestWithActions(initialDispatchLocalLinkRequestState(), {
+          kind: "transport/dispatch-local-link-request-gate",
+          hashMatches: true,
+          typeMatches: true,
+          handlerPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipDispatchLocalLinkRequest(
+        stepDispatchLocalLinkRequestWithActions(initialDispatchLocalLinkRequestState(), {
+          kind: "transport/dispatch-local-link-request-gate",
+          hashMatches: true,
+          typeMatches: true,
+          handlerPresent: false
+        }).actions
+      )
+    ).toBe(true);
+
+    expect(
+      shouldAcceptLinkLrProofCandidateNow(
+        stepAcceptLinkLrProofCandidateWithActions(initialAcceptLinkLrProofCandidateState(), {
+          kind: "transport/accept-link-lr-proof-candidate-gate",
+          linkIdMatches: true,
+          hopsMatch: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldRejectLinkLrProofCandidate(
+        stepAcceptLinkLrProofCandidateWithActions(initialAcceptLinkLrProofCandidateState(), {
+          kind: "transport/accept-link-lr-proof-candidate-gate",
+          linkIdMatches: true,
+          hopsMatch: false
+        }).actions
+      )
+    ).toBe(true);
+
+    expect(
+      shouldDispatchResourceProofToLinkNow(
+        stepDispatchResourceProofToLinkWithActions(initialDispatchResourceProofToLinkState(), {
+          kind: "transport/dispatch-resource-proof-to-link-gate",
+          activeIndexPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipDispatchResourceProofToLink(
+        stepDispatchResourceProofToLinkWithActions(initialDispatchResourceProofToLinkState(), {
+          kind: "transport/dispatch-resource-proof-to-link-gate",
+          activeIndexPresent: false
+        }).actions
+      )
+    ).toBe(true);
+
+    expect(
+      shouldRegisterTransportMemberNow(
+        stepRegisterTransportMemberWithActions(initialRegisterTransportMemberState(), {
+          kind: "transport/member-register-gate",
+          alreadyPresent: false
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipRegisterTransportMember(
+        stepRegisterTransportMemberWithActions(initialRegisterTransportMemberState(), {
+          kind: "transport/member-register-gate",
+          alreadyPresent: true
         }).actions
       )
     ).toBe(true);

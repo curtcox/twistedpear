@@ -7,12 +7,18 @@
  * beside the step).
  * Transport-wrap relay allow, link/reverse table-record, link-packet relay allow,
  * link-table lookup, link-relay transmit, reverse-packet allow, reverse iface
- * match, reverse-entry expiry, and reverse-relay transmit conclude via machine
- * actions (no ad-hoc `canRelayTransportPacket` / `shouldRecordLinkRelayTableEntry` /
+ * match, reverse-entry expiry, reverse-relay transmit, interface transmit, local
+ * destination match/dispatch, LR-proof accept, resource-prf dispatch, and
+ * transport-member register conclude via machine actions (no ad-hoc
+ * `canRelayTransportPacket` / `shouldRecordLinkRelayTableEntry` /
  * `shouldRecordReverseTableEntry` / `canRelayLinkPacket` /
  * `canLookupLinkRelayEntry` / `shouldTransmitLinkRelay` /
  * `canRelayReversePacket` / `shouldRelayReverseOnInterface` /
- * `isReverseEntryExpired` / `shouldTransmitReverseRelay` reads beside the step).
+ * `isReverseEntryExpired` / `shouldTransmitReverseRelay` /
+ * `shouldTransmitOnInterface` / `shouldMatchLocalInboundDestination` /
+ * `shouldMatchLocalTypedDestination` / `shouldDispatchLocalLinkRequest` /
+ * `shouldAcceptLinkLrProofCandidate` / `shouldDispatchResourceProofToLink` /
+ * `shouldRegisterTransportMember` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -1126,6 +1132,79 @@ export function shouldTransmitOnInterface(input: {
   return true;
 }
 
+/**
+ * shouldTransmitOnInterface gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldTransmitOnInterface`
+ * reads beside the step).
+ */
+export type TransmitOnInterfaceState = Record<string, never>;
+
+export type TransmitOnInterfaceEvent =
+  | Event
+  | {
+      readonly kind: "transport/transmit-on-interface-gate";
+      readonly outgoing: boolean;
+      readonly isExcludedInterface?: boolean;
+      readonly requireAttached?: boolean;
+      readonly isAttached?: boolean;
+    };
+
+export type TransmitOnInterfaceAction =
+  | { readonly kind: "transmit" }
+  | { readonly kind: "skip" };
+
+export interface TransmitOnInterfaceStepResult {
+  readonly state: TransmitOnInterfaceState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TransmitOnInterfaceAction[];
+}
+
+export function initialTransmitOnInterfaceState(): TransmitOnInterfaceState {
+  return {};
+}
+
+export function stepTransmitOnInterfaceWithActions(
+  state: TransmitOnInterfaceState,
+  event: TransmitOnInterfaceEvent
+): TransmitOnInterfaceStepResult {
+  if (event.kind === "transport/transmit-on-interface-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldTransmitOnInterface({
+            outgoing: event.outgoing,
+            ...(event.isExcludedInterface !== undefined
+              ? { isExcludedInterface: event.isExcludedInterface }
+              : {}),
+            ...(event.requireAttached !== undefined
+              ? { requireAttached: event.requireAttached }
+              : {}),
+            ...(event.isAttached !== undefined ? { isAttached: event.isAttached } : {})
+          })
+            ? "transmit"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTransmitOnInterfaceNow(
+  actions: ReadonlyArray<TransmitOnInterfaceAction>
+): boolean {
+  return actions.some((action) => action.kind === "transmit");
+}
+
+export function shouldSkipTransmitOnInterface(
+  actions: ReadonlyArray<TransmitOnInterfaceAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Local IN destination match (announce / path-request answerer). */
 export function shouldMatchLocalInboundDestination(input: {
   readonly hashMatches: boolean;
@@ -1134,12 +1213,142 @@ export function shouldMatchLocalInboundDestination(input: {
   return input.hashMatches && input.directionIn;
 }
 
+/**
+ * shouldMatchLocalInboundDestination gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldMatchLocalInboundDestination` reads beside the step).
+ */
+export type MatchLocalInboundDestinationState = Record<string, never>;
+
+export type MatchLocalInboundDestinationEvent =
+  | Event
+  | {
+      readonly kind: "transport/match-local-inbound-destination-gate";
+      readonly hashMatches: boolean;
+      readonly directionIn: boolean;
+    };
+
+export type MatchLocalInboundDestinationAction =
+  | { readonly kind: "match" }
+  | { readonly kind: "mismatch" };
+
+export interface MatchLocalInboundDestinationStepResult {
+  readonly state: MatchLocalInboundDestinationState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly MatchLocalInboundDestinationAction[];
+}
+
+export function initialMatchLocalInboundDestinationState(): MatchLocalInboundDestinationState {
+  return {};
+}
+
+export function stepMatchLocalInboundDestinationWithActions(
+  state: MatchLocalInboundDestinationState,
+  event: MatchLocalInboundDestinationEvent
+): MatchLocalInboundDestinationStepResult {
+  if (event.kind === "transport/match-local-inbound-destination-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldMatchLocalInboundDestination({
+            hashMatches: event.hashMatches,
+            directionIn: event.directionIn
+          })
+            ? "match"
+            : "mismatch"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldMatchLocalInboundDestinationNow(
+  actions: ReadonlyArray<MatchLocalInboundDestinationAction>
+): boolean {
+  return actions.some((action) => action.kind === "match");
+}
+
+export function shouldMismatchLocalInboundDestination(
+  actions: ReadonlyArray<MatchLocalInboundDestinationAction>
+): boolean {
+  return actions.some((action) => action.kind === "mismatch");
+}
+
 /** Local typed destination match (plain DATA delivery). */
 export function shouldMatchLocalTypedDestination(input: {
   readonly hashMatches: boolean;
   readonly typeMatches: boolean;
 }): boolean {
   return input.hashMatches && input.typeMatches;
+}
+
+/**
+ * shouldMatchLocalTypedDestination gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldMatchLocalTypedDestination` reads beside the step).
+ */
+export type MatchLocalTypedDestinationState = Record<string, never>;
+
+export type MatchLocalTypedDestinationEvent =
+  | Event
+  | {
+      readonly kind: "transport/match-local-typed-destination-gate";
+      readonly hashMatches: boolean;
+      readonly typeMatches: boolean;
+    };
+
+export type MatchLocalTypedDestinationAction =
+  | { readonly kind: "match" }
+  | { readonly kind: "mismatch" };
+
+export interface MatchLocalTypedDestinationStepResult {
+  readonly state: MatchLocalTypedDestinationState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly MatchLocalTypedDestinationAction[];
+}
+
+export function initialMatchLocalTypedDestinationState(): MatchLocalTypedDestinationState {
+  return {};
+}
+
+export function stepMatchLocalTypedDestinationWithActions(
+  state: MatchLocalTypedDestinationState,
+  event: MatchLocalTypedDestinationEvent
+): MatchLocalTypedDestinationStepResult {
+  if (event.kind === "transport/match-local-typed-destination-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldMatchLocalTypedDestination({
+            hashMatches: event.hashMatches,
+            typeMatches: event.typeMatches
+          })
+            ? "match"
+            : "mismatch"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldMatchLocalTypedDestinationNow(
+  actions: ReadonlyArray<MatchLocalTypedDestinationAction>
+): boolean {
+  return actions.some((action) => action.kind === "match");
+}
+
+export function shouldMismatchLocalTypedDestination(
+  actions: ReadonlyArray<MatchLocalTypedDestinationAction>
+): boolean {
+  return actions.some((action) => action.kind === "mismatch");
 }
 
 /** Local LINKREQUEST dispatch (typed destination + handler present). */
@@ -1152,6 +1361,73 @@ export function shouldDispatchLocalLinkRequest(input: {
 }
 
 /**
+ * shouldDispatchLocalLinkRequest gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldDispatchLocalLinkRequest` reads beside the step).
+ */
+export type DispatchLocalLinkRequestState = Record<string, never>;
+
+export type DispatchLocalLinkRequestEvent =
+  | Event
+  | {
+      readonly kind: "transport/dispatch-local-link-request-gate";
+      readonly hashMatches: boolean;
+      readonly typeMatches: boolean;
+      readonly handlerPresent: boolean;
+    };
+
+export type DispatchLocalLinkRequestAction =
+  | { readonly kind: "dispatch" }
+  | { readonly kind: "skip" };
+
+export interface DispatchLocalLinkRequestStepResult {
+  readonly state: DispatchLocalLinkRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DispatchLocalLinkRequestAction[];
+}
+
+export function initialDispatchLocalLinkRequestState(): DispatchLocalLinkRequestState {
+  return {};
+}
+
+export function stepDispatchLocalLinkRequestWithActions(
+  state: DispatchLocalLinkRequestState,
+  event: DispatchLocalLinkRequestEvent
+): DispatchLocalLinkRequestStepResult {
+  if (event.kind === "transport/dispatch-local-link-request-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldDispatchLocalLinkRequest({
+            hashMatches: event.hashMatches,
+            typeMatches: event.typeMatches,
+            handlerPresent: event.handlerPresent
+          })
+            ? "dispatch"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldDispatchLocalLinkRequestNow(
+  actions: ReadonlyArray<DispatchLocalLinkRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "dispatch");
+}
+
+export function shouldSkipDispatchLocalLinkRequest(
+  actions: ReadonlyArray<DispatchLocalLinkRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/**
  * After `planProofIngressKind === "lrproof"`: whether this pending link may validate.
  * `linkIdMatches` and hopsMatch stay as adapter-supplied booleans.
  */
@@ -1160,6 +1436,71 @@ export function shouldAcceptLinkLrProofCandidate(input: {
   readonly hopsMatch: boolean;
 }): boolean {
   return input.linkIdMatches && input.hopsMatch;
+}
+
+/**
+ * shouldAcceptLinkLrProofCandidate gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldAcceptLinkLrProofCandidate` reads beside the step).
+ */
+export type AcceptLinkLrProofCandidateState = Record<string, never>;
+
+export type AcceptLinkLrProofCandidateEvent =
+  | Event
+  | {
+      readonly kind: "transport/accept-link-lr-proof-candidate-gate";
+      readonly linkIdMatches: boolean;
+      readonly hopsMatch: boolean;
+    };
+
+export type AcceptLinkLrProofCandidateAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "reject" };
+
+export interface AcceptLinkLrProofCandidateStepResult {
+  readonly state: AcceptLinkLrProofCandidateState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptLinkLrProofCandidateAction[];
+}
+
+export function initialAcceptLinkLrProofCandidateState(): AcceptLinkLrProofCandidateState {
+  return {};
+}
+
+export function stepAcceptLinkLrProofCandidateWithActions(
+  state: AcceptLinkLrProofCandidateState,
+  event: AcceptLinkLrProofCandidateEvent
+): AcceptLinkLrProofCandidateStepResult {
+  if (event.kind === "transport/accept-link-lr-proof-candidate-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptLinkLrProofCandidate({
+            linkIdMatches: event.linkIdMatches,
+            hopsMatch: event.hopsMatch
+          })
+            ? "accept"
+            : "reject"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptLinkLrProofCandidateNow(
+  actions: ReadonlyArray<AcceptLinkLrProofCandidateAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldRejectLinkLrProofCandidate(
+  actions: ReadonlyArray<AcceptLinkLrProofCandidateAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
 }
 
 export type LocalPlainDataDeliveryPlan = "ignore" | "dispatch";
@@ -1213,6 +1554,67 @@ export function shouldRememberPacketHashAfterRelay(rememberAfterRelay: boolean):
 /** Whether RESOURCE_PRF ingress should dispatch to a matched active link. */
 export function shouldDispatchResourceProofToLink(activeIndexPresent: boolean): boolean {
   return activeIndexPresent;
+}
+
+/**
+ * shouldDispatchResourceProofToLink gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldDispatchResourceProofToLink` reads beside the step).
+ */
+export type DispatchResourceProofToLinkState = Record<string, never>;
+
+export type DispatchResourceProofToLinkEvent =
+  | Event
+  | {
+      readonly kind: "transport/dispatch-resource-proof-to-link-gate";
+      readonly activeIndexPresent: boolean;
+    };
+
+export type DispatchResourceProofToLinkAction =
+  | { readonly kind: "dispatch" }
+  | { readonly kind: "skip" };
+
+export interface DispatchResourceProofToLinkStepResult {
+  readonly state: DispatchResourceProofToLinkState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DispatchResourceProofToLinkAction[];
+}
+
+export function initialDispatchResourceProofToLinkState(): DispatchResourceProofToLinkState {
+  return {};
+}
+
+export function stepDispatchResourceProofToLinkWithActions(
+  state: DispatchResourceProofToLinkState,
+  event: DispatchResourceProofToLinkEvent
+): DispatchResourceProofToLinkStepResult {
+  if (event.kind === "transport/dispatch-resource-proof-to-link-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldDispatchResourceProofToLink(event.activeIndexPresent)
+            ? "dispatch"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldDispatchResourceProofToLinkNow(
+  actions: ReadonlyArray<DispatchResourceProofToLinkAction>
+): boolean {
+  return actions.some((action) => action.kind === "dispatch");
+}
+
+export function shouldSkipDispatchResourceProofToLink(
+  actions: ReadonlyArray<DispatchResourceProofToLinkAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Index of a link-id in a list (link-data / resource-prf ingress). */
@@ -1340,6 +1742,65 @@ export function planReverseRelayOutcome(input: {
 /** Whether a transport list should receive a new member (not already present). */
 export function shouldRegisterTransportMember(alreadyPresent: boolean): boolean {
   return !alreadyPresent;
+}
+
+/**
+ * shouldRegisterTransportMember gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldRegisterTransportMember` reads beside the step).
+ */
+export type RegisterTransportMemberState = Record<string, never>;
+
+export type RegisterTransportMemberEvent =
+  | Event
+  | {
+      readonly kind: "transport/member-register-gate";
+      readonly alreadyPresent: boolean;
+    };
+
+export type RegisterTransportMemberAction =
+  | { readonly kind: "register" }
+  | { readonly kind: "skip" };
+
+export interface RegisterTransportMemberStepResult {
+  readonly state: RegisterTransportMemberState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RegisterTransportMemberAction[];
+}
+
+export function initialRegisterTransportMemberState(): RegisterTransportMemberState {
+  return {};
+}
+
+export function stepRegisterTransportMemberWithActions(
+  state: RegisterTransportMemberState,
+  event: RegisterTransportMemberEvent
+): RegisterTransportMemberStepResult {
+  if (event.kind === "transport/member-register-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRegisterTransportMember(event.alreadyPresent) ? "register" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRegisterTransportMemberNow(
+  actions: ReadonlyArray<RegisterTransportMemberAction>
+): boolean {
+  return actions.some((action) => action.kind === "register");
+}
+
+export function shouldSkipRegisterTransportMember(
+  actions: ReadonlyArray<RegisterTransportMemberAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**

@@ -399,7 +399,14 @@
 > **`stepRelayReversePacketAllowWithActions`** /
 > **`stepRelayReverseOnInterfaceWithActions`** /
 > **`stepReverseEntryExpiredWithActions`** /
-> **`stepTransmitReverseRelayWithActions`**) live in protocol;
+> **`stepTransmitReverseRelayWithActions`** /
+> **`stepTransmitOnInterfaceWithActions`** /
+> **`stepMatchLocalInboundDestinationWithActions`** /
+> **`stepMatchLocalTypedDestinationWithActions`** /
+> **`stepDispatchLocalLinkRequestWithActions`** /
+> **`stepAcceptLinkLrProofCandidateWithActions`** /
+> **`stepDispatchResourceProofToLinkWithActions`** /
+> **`stepRegisterTransportMemberWithActions`**) live in protocol;
 > `TransportNode` adapts them (reverse-table timeout now applied). **`planPathOutbound`**
 > (wrap / direct / flood via **`stepPathOutboundWithActions`**) lives in protocol;
 > `LeafTransport` adapts it. **`stepResourceStatus`**
@@ -553,7 +560,8 @@
 > **`stepTransportIngressDispatchWithActions`**: announce / link-request /
 > link-data / plain-data / proof / ignore), **`planProofIngressKind`** (via
 > **`stepProofIngressWithActions`**: lrproof / resource-prf / receipt), and
-> **`shouldTransmitOnInterface`** live in protocol; `TransportNode` /
+> **`shouldTransmitOnInterface`** (via **`stepTransmitOnInterfaceWithActions`**:
+> transmit|skip) live in protocol; `TransportNode` /
 > `LeafTransport` adapt them. **`shouldIgnoreLocalAnnounce`** /
 > **`shouldMatchAnnounceAspect`** live in protocol; announce ingress adapts them.
 > **`shouldReplyKeepaliveProbe`** (via **`stepReplyKeepaliveProbeWithActions`**:
@@ -646,9 +654,15 @@
 > **`planAnnounceValidateOutcome`** (via **`stepAnnounceValidateWithActions`**:
 > accept / accept-signature-only / reject-*) / **`isAnnouncePacketType`** and
 > **`planPacketReceiptProofAccept`** live in protocol; `Announce` and `PacketReceipt`
-> adapt them. **Local destination match gates** (`shouldMatchLocalInboundDestination`,
-> **`shouldMatchLocalTypedDestination`**, **`shouldDispatchLocalLinkRequest`**),
-> **`shouldAcceptLinkLrProofCandidate`**, **`planLocalPlainDataDelivery`** (via
+> adapt them. **Local destination match gates** (`shouldMatchLocalInboundDestination`
+> via **`stepMatchLocalInboundDestinationWithActions`**: match|mismatch;
+> **`shouldMatchLocalTypedDestination`** via
+> **`stepMatchLocalTypedDestinationWithActions`**: match|mismatch;
+> **`shouldDispatchLocalLinkRequest`** via
+> **`stepDispatchLocalLinkRequestWithActions`**: dispatch|skip),
+> **`shouldAcceptLinkLrProofCandidate`** (via
+> **`stepAcceptLinkLrProofCandidateWithActions`**: accept|reject),
+> **`planLocalPlainDataDelivery`** (via
 > **`stepLocalPlainDataDeliveryWithActions`**: dispatch / ignore), and
 > **`planPacketHashRemember`** (via **`stepPacketHashRememberWithActions`**: now /
 > after-relay) live in protocol; transport node / LeafTransport adapt them.
@@ -690,7 +704,9 @@
 > **`planUnregisterPendingLinkRequest`** (via
 > **`stepPendingLinkRequestUnregisterWithActions`**)
 > live in protocol; `Link` resource and pending-request lists adapt them.
-> **`shouldRegisterTransportMember`** / **`planUnregisterTransportMember`**,
+> **`shouldRegisterTransportMember`** (via
+> **`stepRegisterTransportMemberWithActions`**: register|skip) /
+> **`planUnregisterTransportMember`**,
 > **`planUnregisterPacketReceipt`**, **`shouldRegisterPacketReceipt`**,
 > **`shouldRegisterChannelMessageHandler`** / **`planUnregisterChannelMessageHandler`**,
 > **`shouldStopChannelHandlerFanout`**, **`planUnregisterStreamReadyCallback`**,
@@ -772,7 +788,9 @@
 > reverse/receipt adapters and LXMF router/propagation adapt them.
 > **`shouldApplyResourceReceivePartSlot`** / **`shouldSendResourceHashmapUpdate`** /
 > **`shouldAdvanceResourceAwaitingProof`**, **`shouldResendChannelTimeoutPacket`**,
-> **`shouldDispatchResourceProofToLink`**, and **`shouldAttemptAnnounceSignatureValidate`** /
+> **`shouldDispatchResourceProofToLink`** (via
+> **`stepDispatchResourceProofToLinkWithActions`**: dispatch|skip), and
+> **`shouldAttemptAnnounceSignatureValidate`** /
 > **`shouldCheckAnnounceDestinationHash`** live in protocol; Resource, Channel,
 > TransportNode, and Announce adapt them.
 > **`shouldDrainChannelRingIndex`** / **`shouldClearChannelEnvelopePacket`** /
@@ -1010,17 +1028,30 @@
 > **`stepRelayReverseOnInterfaceWithActions`** emits `match`|`mismatch`;
 > **`stepReverseEntryExpiredWithActions`** emits `expired`|`live`;
 > **`stepTransmitReverseRelayWithActions`** emits `transmit`|`skip`;
+> **`stepTransmitOnInterfaceWithActions`** emits `transmit`|`skip`;
+> **`stepMatchLocalInboundDestinationWithActions`** /
+> **`stepMatchLocalTypedDestinationWithActions`** emit `match`|`mismatch`;
+> **`stepDispatchLocalLinkRequestWithActions`** emits `dispatch`|`skip`;
+> **`stepAcceptLinkLrProofCandidateWithActions`** emits `accept`|`reject`;
+> **`stepDispatchResourceProofToLinkWithActions`** emits `dispatch`|`skip`;
+> **`stepRegisterTransportMemberWithActions`** emits `register`|`skip`;
 > **`stepLinkResourceConcludeWithActions`**
 > emits `remove-outgoing` / `remove-incoming`;
 > **`stepPacketReceiptProofAcceptWithActions`** emits `accept` / `reject`;
 > `TransportNode` announce ingress/rebroadcast, transport/link/reverse-packet
-> relay, `Link.resourceConcluded`, and `PacketReceipt.validateProof` apply only
-> from those actions (no ad-hoc `planAnnounceIngressGates` / `planLinkRelayTarget` /
+> relay, interface transmit, local destination match/dispatch, LR-proof /
+> resource-prf target, transport-member register, `Link.resourceConcluded`, and
+> `PacketReceipt.validateProof` apply only from those actions (no ad-hoc
+> `planAnnounceIngressGates` / `planLinkRelayTarget` /
 > `canRelayTransportPacket` / `shouldRecordLinkRelayTableEntry` /
 > `shouldRecordReverseTableEntry` / `canRelayLinkPacket` /
 > `canLookupLinkRelayEntry` / `shouldTransmitLinkRelay` /
 > `canRelayReversePacket` / `shouldRelayReverseOnInterface` /
 > `isReverseEntryExpired` / `shouldTransmitReverseRelay` /
+> `shouldTransmitOnInterface` / `shouldMatchLocalInboundDestination` /
+> `shouldMatchLocalTypedDestination` / `shouldDispatchLocalLinkRequest` /
+> `shouldAcceptLinkLrProofCandidate` / `shouldDispatchResourceProofToLink` /
+> `shouldRegisterTransportMember` /
 > `planLinkResourceConclude` / `planPacketReceiptProofAccept` reads beside the
 > step).
 > **`stepDeliverPendingLinkAppResponseWithActions`** emits `deliver`|`skip`;
@@ -1180,6 +1211,10 @@
 > relay-link-packet-allow / lookup-link-relay-entry / transmit-link-relay /
 > relay-reverse-packet-allow / relay-reverse-on-interface /
 > reverse-entry-expired / transmit-reverse-relay /
+> transmit-on-interface / match-local-inbound-destination /
+> match-local-typed-destination / dispatch-local-link-request /
+> accept-link-lr-proof-candidate / dispatch-resource-proof-to-link /
+> register-transport-member /
 > link-resource-conclude /
 > packet-receipt-proof-accept / propagation-restore /
 > deliver-pending-link-app-response / accept-announce-payload /

@@ -55,7 +55,8 @@ import {
   shouldIgnorePathRequestSeenTag,
   shouldIgnorePathRequestUnparsed,
   shouldIgnoreTransportIngressDispatch,
-  shouldMatchLocalInboundDestination,
+  shouldMatchLocalInboundDestinationNow,
+  initialMatchLocalInboundDestinationState,
   initialPacketHashDeferState,
   stepPacketHashDeferWithActions,
   shouldRelayReversePacketActions,
@@ -70,6 +71,7 @@ import {
   stepAnnounceIngressGatesWithActions,
   stepLinkRelayTargetWithActions,
   stepLookupLinkRelayEntryWithActions,
+  stepMatchLocalInboundDestinationWithActions,
   stepPacketHashRememberWithActions,
   stepRecordLinkRelayTableEntryWithActions,
   stepRecordReverseTableEntryWithActions,
@@ -80,9 +82,11 @@ import {
   stepReverseEntryExpiredWithActions,
   stepReverseRelayOutcomeWithActions,
   stepTransmitLinkRelayWithActions,
+  stepTransmitOnInterfaceWithActions,
   stepTransmitReverseRelayWithActions,
   stepTransportIngressDispatchWithActions,
-  shouldTransmitOnInterface,
+  shouldTransmitOnInterfaceNow,
+  initialTransmitOnInterfaceState,
   stepDiscoveryPathRequestFulfillWithActions,
   stepPathRequestIngressWithActions
 } from "@twistedpear/protocol";
@@ -258,10 +262,16 @@ export class TransportNode extends LeafTransport {
       parsed === null
         ? undefined
         : this.destinations.find((entry) =>
-            shouldMatchLocalInboundDestination({
-              hashMatches: equalBytes(entry.hash, parsed.destinationHash),
-              directionIn: entry.direction === DestinationDirection.IN
-            })
+            shouldMatchLocalInboundDestinationNow(
+              stepMatchLocalInboundDestinationWithActions(
+                initialMatchLocalInboundDestinationState(),
+                {
+                  kind: "transport/match-local-inbound-destination-gate",
+                  hashMatches: equalBytes(entry.hash, parsed.destinationHash),
+                  directionIn: entry.direction === DestinationDirection.IN
+                }
+              ).actions
+            )
           );
     const tagKey =
       parsed !== null && parsed.tag !== null
@@ -354,10 +364,13 @@ export class TransportNode extends LeafTransport {
 
     for (const outbound of this.interfaces) {
       if (
-        !shouldTransmitOnInterface({
-          outgoing: outbound.outgoing,
-          isExcludedInterface: outbound === iface
-        })
+        !shouldTransmitOnInterfaceNow(
+          stepTransmitOnInterfaceWithActions(initialTransmitOnInterfaceState(), {
+            kind: "transport/transmit-on-interface-gate",
+            outgoing: outbound.outgoing,
+            isExcludedInterface: outbound === iface
+          }).actions
+        )
       ) {
         continue;
       }
@@ -573,10 +586,13 @@ export class TransportNode extends LeafTransport {
     const rebroadcast = buildTransportAnnounce(this.provider, packet, this.transportIdentity, packet.hops);
     for (const outbound of this.interfaces) {
       if (
-        !shouldTransmitOnInterface({
-          outgoing: outbound.outgoing,
-          isExcludedInterface: outbound === iface
-        })
+        !shouldTransmitOnInterfaceNow(
+          stepTransmitOnInterfaceWithActions(initialTransmitOnInterfaceState(), {
+            kind: "transport/transmit-on-interface-gate",
+            outgoing: outbound.outgoing,
+            isExcludedInterface: outbound === iface
+          }).actions
+        )
       ) {
         continue;
       }
