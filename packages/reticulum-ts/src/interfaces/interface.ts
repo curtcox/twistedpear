@@ -1,20 +1,38 @@
 import {
-  canInterfaceSend,
   encodeHdlcFrameRawFromActions,
   hdlcDecodeResultFromActions,
   initialDecodeHdlcFramesState,
+  initialDeliverQueuedPacketState,
   initialEncodeHdlcFrameState,
-  isInterfaceClosed,
-  isValidInterfaceName,
-  packetFitsInterfaceMtu,
-  shouldDeliverQueuedPacket,
-  shouldEnqueueDecodedPacket,
-  shouldEnqueueRawInterfaceFrame,
+  initialEnqueueDecodedPacketState,
+  initialEnqueueRawInterfaceFrameState,
+  initialInterfaceClosedState,
+  initialInterfaceMtuFitState,
+  initialInterfaceNameValidState,
+  initialInterfaceSendAllowState,
+  initialYieldBufferedPacketState,
+  shouldAcceptInterfaceName,
+  shouldAllowInterfaceSend,
+  shouldDeliverQueuedPacketNow,
+  shouldEnqueueDecodedPacketNow,
+  shouldEnqueueRawInterfaceFrameNow,
+  shouldInterfaceClosedNow,
+  shouldInterfaceMtuFit,
+  shouldInterfaceMtuOverflow,
+  shouldRejectInterfaceName,
   shouldUseDecodeHdlcFrames,
   shouldUseEncodeHdlcFrame,
-  shouldYieldBufferedPacket,
+  shouldYieldBufferedPacketNow,
   stepDecodeHdlcFramesWithActions,
+  stepDeliverQueuedPacketWithActions,
   stepEncodeHdlcFrameWithActions,
+  stepEnqueueDecodedPacketWithActions,
+  stepEnqueueRawInterfaceFrameWithActions,
+  stepInterfaceClosedWithActions,
+  stepInterfaceMtuFitWithActions,
+  stepInterfaceNameValidWithActions,
+  stepInterfaceSendAllowWithActions,
+  stepYieldBufferedPacketWithActions,
   type HdlcDecodeState
 } from "@twistedpear/protocol";
 import type { Packet } from "../packet.js";
@@ -51,7 +69,11 @@ export abstract class AbstractPacketInterface implements PacketInterface {
   private closed = false;
 
   protected constructor(options: ReticulumInterfaceOptions, incoming = true, outgoing = options.outgoing ?? true) {
-    if (!isValidInterfaceName(options.name)) {
+    const nameStepped = stepInterfaceNameValidWithActions(initialInterfaceNameValidState(), {
+      kind: "iface/name-valid-gate",
+      name: options.name
+    });
+    if (shouldRejectInterfaceName(nameStepped.actions) || !shouldAcceptInterfaceName(nameStepped.actions)) {
       throw new Error("Interface name cannot be empty");
     }
 
@@ -67,14 +89,28 @@ export abstract class AbstractPacketInterface implements PacketInterface {
   }
 
   async send(packet: Packet): Promise<void> {
-    if (!canInterfaceSend({ closed: this.closed, outgoing: this.outgoing })) {
-      if (isInterfaceClosed(this.closed)) {
+    const allowStepped = stepInterfaceSendAllowWithActions(initialInterfaceSendAllowState(), {
+      kind: "iface/send-allow-gate",
+      closed: this.closed,
+      outgoing: this.outgoing
+    });
+    if (!shouldAllowInterfaceSend(allowStepped.actions)) {
+      const closedStepped = stepInterfaceClosedWithActions(initialInterfaceClosedState(), {
+        kind: "iface/closed-gate",
+        closed: this.closed
+      });
+      if (shouldInterfaceClosedNow(closedStepped.actions)) {
         throw new Error(`Interface ${this.name} is closed`);
       }
       throw new Error(`Interface ${this.name} is not configured for outbound traffic`);
     }
 
-    if (!packetFitsInterfaceMtu(packet.raw.length, this.mtu)) {
+    const mtuStepped = stepInterfaceMtuFitWithActions(initialInterfaceMtuFitState(), {
+      kind: "iface/mtu-fit-gate",
+      rawLength: packet.raw.length,
+      mtu: this.mtu
+    });
+    if (shouldInterfaceMtuOverflow(mtuStepped.actions) || !shouldInterfaceMtuFit(mtuStepped.actions)) {
       throw new Error(`Packet exceeds interface MTU (${packet.raw.length} > ${this.mtu})`);
     }
 
@@ -82,7 +118,11 @@ export abstract class AbstractPacketInterface implements PacketInterface {
   }
 
   async close(): Promise<void> {
-    if (isInterfaceClosed(this.closed)) {
+    const closedStepped = stepInterfaceClosedWithActions(initialInterfaceClosedState(), {
+      kind: "iface/closed-gate",
+      closed: this.closed
+    });
+    if (shouldInterfaceClosedNow(closedStepped.actions)) {
       return;
     }
 
@@ -93,13 +133,21 @@ export abstract class AbstractPacketInterface implements PacketInterface {
   }
 
   protected receiveBytes(bytes: Uint8Array): void {
-    if (isInterfaceClosed(this.closed)) {
+    const closedStepped = stepInterfaceClosedWithActions(initialInterfaceClosedState(), {
+      kind: "iface/closed-gate",
+      closed: this.closed
+    });
+    if (shouldInterfaceClosedNow(closedStepped.actions)) {
       return;
     }
 
     for (const frame of this.decodeIncoming(bytes)) {
       const packet = this.decodePacket(frame);
-      if (shouldEnqueueDecodedPacket(packet !== null)) {
+      const enqueueStepped = stepEnqueueDecodedPacketWithActions(initialEnqueueDecodedPacketState(), {
+        kind: "iface/enqueue-decoded-packet-gate",
+        packetPresent: packet !== null
+      });
+      if (shouldEnqueueDecodedPacketNow(enqueueStepped.actions)) {
         this.queue.push(packet!);
       }
     }
@@ -157,7 +205,14 @@ export abstract class RawPacketInterface extends AbstractPacketInterface {
   }
 
   protected override decodeIncoming(bytes: Uint8Array): ReadonlyArray<Uint8Array> {
-    return shouldEnqueueRawInterfaceFrame(bytes.length) ? [bytes] : [];
+    const enqueueStepped = stepEnqueueRawInterfaceFrameWithActions(
+      initialEnqueueRawInterfaceFrameState(),
+      {
+        kind: "iface/enqueue-raw-frame-gate",
+        length: bytes.length
+      }
+    );
+    return shouldEnqueueRawInterfaceFrameNow(enqueueStepped.actions) ? [bytes] : [];
   }
 }
 
@@ -168,7 +223,11 @@ class AsyncPacketQueue implements AsyncIterable<Packet> {
 
   push(packet: Packet): void {
     const waiter = this.waiters.shift();
-    if (shouldDeliverQueuedPacket(waiter !== undefined)) {
+    const deliverStepped = stepDeliverQueuedPacketWithActions(initialDeliverQueuedPacketState(), {
+      kind: "iface/deliver-queued-packet-gate",
+      waiterPresent: waiter !== undefined
+    });
+    if (shouldDeliverQueuedPacketNow(deliverStepped.actions)) {
       waiter!({ done: false, value: packet });
       return;
     }
@@ -177,7 +236,11 @@ class AsyncPacketQueue implements AsyncIterable<Packet> {
   }
 
   close(): void {
-    if (isInterfaceClosed(this.closed)) {
+    const closedStepped = stepInterfaceClosedWithActions(initialInterfaceClosedState(), {
+      kind: "iface/closed-gate",
+      closed: this.closed
+    });
+    if (shouldInterfaceClosedNow(closedStepped.actions)) {
       return;
     }
 
@@ -191,11 +254,19 @@ class AsyncPacketQueue implements AsyncIterable<Packet> {
     return {
       next: async () => {
         const value = this.values.shift();
-        if (shouldYieldBufferedPacket(value !== undefined)) {
+        const yieldStepped = stepYieldBufferedPacketWithActions(initialYieldBufferedPacketState(), {
+          kind: "iface/yield-buffered-packet-gate",
+          valuePresent: value !== undefined
+        });
+        if (shouldYieldBufferedPacketNow(yieldStepped.actions)) {
           return { done: false, value: value! };
         }
 
-        if (isInterfaceClosed(this.closed)) {
+        const closedStepped = stepInterfaceClosedWithActions(initialInterfaceClosedState(), {
+          kind: "iface/closed-gate",
+          closed: this.closed
+        });
+        if (shouldInterfaceClosedNow(closedStepped.actions)) {
           return { done: true, value: undefined };
         }
 

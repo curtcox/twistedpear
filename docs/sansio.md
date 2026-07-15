@@ -43,7 +43,17 @@
 > **`stepStreamIdAssignedWithActions`**: assigned|unassigned /
 > **`stepStreamDataMessageHandleWithActions`**: handle|ignore /
 > **`stepStreamReadyCallbackRegisterWithActions`**: register|skip)
-> are pure protocol leaves; Buffer adapts them. **Channel envelope
+> are pure protocol leaves; Buffer adapts them. **Interface name / MTU /
+> closed / send-allow / enqueue / deliver / yield** gates (via
+> **`stepInterfaceNameValidWithActions`**: valid|invalid /
+> **`stepInterfaceMtuFitWithActions`**: fit|overflow /
+> **`stepInterfaceClosedWithActions`**: closed|open /
+> **`stepInterfaceSendAllowWithActions`**: allow|deny /
+> **`stepEnqueueRawInterfaceFrameWithActions`**: enqueue|skip /
+> **`stepEnqueueDecodedPacketWithActions`**: enqueue|skip /
+> **`stepDeliverQueuedPacketWithActions`**: deliver|buffer /
+> **`stepYieldBufferedPacketWithActions`**: yield|skip) are pure protocol
+> leaves; `AbstractPacketInterface` adapts them. **Channel envelope
 > framing** and **RX reorder/drain** are also pure protocol leaves. **LXMF outbound
 > send-state** (enqueue → sending → sent/delivered/
 > failed + progress) is a pure protocol leaf; `LXMFRouter` adapts it. **Link proof framing**
@@ -391,16 +401,26 @@
 > yield|skip) lives in protocol; `RawChannelReader.read` result gate adapts it.
 > **`clampStreamChunkTake`** (via **`stepClampStreamChunkTakeWithActions`**: use-take)
 > lives in protocol; `RawChannelReader.read` per-chunk take adapts it.
-> **`isValidInterfaceName`** lives in protocol; `AbstractPacketInterface` construction adapts it.
-> **`packetFitsInterfaceMtu`** lives in protocol; `AbstractPacketInterface.send` adapts it.
-> **`canInterfaceSend`** lives in protocol; `AbstractPacketInterface.send` closed/outgoing gates adapt it.
-> **`isInterfaceClosed`** lives in protocol; interface close / receiveBytes early-outs adapt it.
-> **`shouldEnqueueRawInterfaceFrame`** lives in protocol; `RawPacketInterface.decodeIncoming` adapts it.
+> **`isValidInterfaceName`** (via **`stepInterfaceNameValidWithActions`**:
+> valid|invalid) lives in protocol; `AbstractPacketInterface` construction adapts it.
+> **`packetFitsInterfaceMtu`** (via **`stepInterfaceMtuFitWithActions`**:
+> fit|overflow) lives in protocol; `AbstractPacketInterface.send` adapts it.
+> **`canInterfaceSend`** (via **`stepInterfaceSendAllowWithActions`**: allow|deny)
+> lives in protocol; `AbstractPacketInterface.send` closed/outgoing gates adapt it.
+> **`isInterfaceClosed`** (via **`stepInterfaceClosedWithActions`**: closed|open)
+> lives in protocol; interface close / receiveBytes early-outs adapt it.
+> **`shouldEnqueueRawInterfaceFrame`** (via
+> **`stepEnqueueRawInterfaceFrameWithActions`**: enqueue|skip) lives in protocol;
+> `RawPacketInterface.decodeIncoming` adapts it.
 > **`shouldConsumeStreamChunk`** (via **`stepStreamChunkConsumeWithActions`**:
 > consume|residual) lives in protocol; `RawChannelReader.read` chunk-consume branch adapts it.
-> **`shouldEnqueueDecodedPacket`** lives in protocol; `AbstractPacketInterface.receiveBytes` adapts it.
-> **`shouldDeliverQueuedPacket`** lives in protocol; `AsyncPacketQueue.push` adapts it.
-> **`shouldYieldBufferedPacket`** lives in protocol; `AsyncPacketQueue` iterator `next` adapts it.
+> **`shouldEnqueueDecodedPacket`** (via
+> **`stepEnqueueDecodedPacketWithActions`**: enqueue|skip) lives in protocol;
+> `AbstractPacketInterface.receiveBytes` adapts it.
+> **`shouldDeliverQueuedPacket`** (via **`stepDeliverQueuedPacketWithActions`**:
+> deliver|buffer) lives in protocol; `AsyncPacketQueue.push` adapts it.
+> **`shouldYieldBufferedPacket`** (via **`stepYieldBufferedPacketWithActions`**:
+> yield|skip) lives in protocol; `AsyncPacketQueue` iterator `next` adapts it.
 > **`shouldMarkStreamEof`** (via **`stepStreamEofMarkWithActions`**: mark|skip)
 > lives in protocol; `RawChannelReader` message handler adapts it.
 > **`canAcceptDestinationLinkRequest`** lives in protocol; `RegisteredDestination.handleLinkRequest` adapts it.
@@ -974,7 +994,10 @@
 > clamp-stream-chunk-take / append-stream-data / stream-read-defer /
 > stream-read-return / stream-chunk-consume / stream-eof-mark /
 > stream-id-assigned / stream-data-message-handle /
-> stream-ready-callback-register /
+> stream-ready-callback-register / interface-name-valid /
+> interface-mtu-fit / interface-closed / interface-send-allow /
+> enqueue-raw-interface-frame / enqueue-decoded-packet /
+> deliver-queued-packet / yield-buffered-packet /
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
@@ -1197,6 +1220,19 @@
 > `shouldMarkStreamEof` / `isStreamIdAssigned` /
 > `shouldHandleStreamDataMessage` / `shouldRegisterStreamReadyCallback`
 > reads beside the step).
+> **`stepInterfaceNameValidWithActions`** emits `valid`|`invalid`;
+> **`stepInterfaceMtuFitWithActions`** emits `fit`|`overflow`;
+> **`stepInterfaceClosedWithActions`** emits `closed`|`open`;
+> **`stepInterfaceSendAllowWithActions`** emits `allow`|`deny`;
+> **`stepEnqueueRawInterfaceFrameWithActions`** emits `enqueue`|`skip`;
+> **`stepEnqueueDecodedPacketWithActions`** emits `enqueue`|`skip`;
+> **`stepDeliverQueuedPacketWithActions`** emits `deliver`|`buffer`;
+> **`stepYieldBufferedPacketWithActions`** emits `yield`|`skip`;
+> interface adaptors apply only from those actions (no ad-hoc
+> `isValidInterfaceName` / `packetFitsInterfaceMtu` / `isInterfaceClosed` /
+> `canInterfaceSend` / `shouldEnqueueRawInterfaceFrame` /
+> `shouldEnqueueDecodedPacket` / `shouldDeliverQueuedPacket` /
+> `shouldYieldBufferedPacket` reads beside the step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT measure / merge apply only from those
 > actions (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the
@@ -1228,6 +1264,10 @@
 > `shouldConsumeStreamChunk` / `shouldMarkStreamEof` /
 > `isStreamIdAssigned` / `shouldHandleStreamDataMessage` /
 > `shouldRegisterStreamReadyCallback` /
+> `isValidInterfaceName` / `packetFitsInterfaceMtu` /
+> `isInterfaceClosed` / `canInterfaceSend` /
+> `shouldEnqueueRawInterfaceFrame` / `shouldEnqueueDecodedPacket` /
+> `shouldDeliverQueuedPacket` / `shouldYieldBufferedPacket` /
 > `computeLinkRttSeconds` / `mergeLinkRtt` /
 > `computePathExpiry` / `shouldDeferPacketHash` /
 > `planResourceAdvertisementRoleFlags` /
@@ -1476,6 +1516,19 @@
 > `shouldMarkStreamEof` / `isStreamIdAssigned` /
 > `shouldHandleStreamDataMessage` / `shouldRegisterStreamReadyCallback`
 > reads beside the step).
+> **`stepInterfaceNameValidWithActions`** emits `valid`|`invalid`;
+> **`stepInterfaceMtuFitWithActions`** emits `fit`|`overflow`;
+> **`stepInterfaceClosedWithActions`** emits `closed`|`open`;
+> **`stepInterfaceSendAllowWithActions`** emits `allow`|`deny`;
+> **`stepEnqueueRawInterfaceFrameWithActions`** emits `enqueue`|`skip`;
+> **`stepEnqueueDecodedPacketWithActions`** emits `enqueue`|`skip`;
+> **`stepDeliverQueuedPacketWithActions`** emits `deliver`|`buffer`;
+> **`stepYieldBufferedPacketWithActions`** emits `yield`|`skip`;
+> interface adaptors apply only from those actions (no ad-hoc
+> `isValidInterfaceName` / `packetFitsInterfaceMtu` / `isInterfaceClosed` /
+> `canInterfaceSend` / `shouldEnqueueRawInterfaceFrame` /
+> `shouldEnqueueDecodedPacket` / `shouldDeliverQueuedPacket` /
+> `shouldYieldBufferedPacket` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 
