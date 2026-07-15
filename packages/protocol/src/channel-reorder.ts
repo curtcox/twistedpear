@@ -1,6 +1,9 @@
 /**
  * Pure RNS Channel RX sequence acceptance, ring insertion, and contiguous drain.
+ * Ring-sequence index conclusions leave via machine actions (no ad-hoc
+ * `indexOfChannelRingSequence` reads beside the step).
  */
+import type { Event, Intent } from "@twistedpear/effects";
 import { CHANNEL_SEQ_MAX, CHANNEL_SEQ_MODULUS, nextChannelSequence } from "./channel-envelope.js";
 
 /** Whether an inbound sequence is inside the acceptable RX window. */
@@ -70,6 +73,77 @@ export function indexOfChannelRingSequence(input: {
     }
   }
   return null;
+}
+
+/**
+ * Channel ring-sequence index lookup is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `indexOfChannelRingSequence`
+ * reads beside the step).
+ */
+export type IndexOfChannelRingSequenceState = Record<string, never>;
+
+export type IndexOfChannelRingSequenceEvent =
+  | Event
+  | {
+      readonly kind: "channel/ring-sequence-index-gate";
+      readonly ringSequences: ReadonlyArray<number>;
+      readonly target: number;
+    };
+
+export type IndexOfChannelRingSequenceAction =
+  | { readonly kind: "use-index"; readonly index: number }
+  | { readonly kind: "miss" };
+
+export interface IndexOfChannelRingSequenceStepResult {
+  readonly state: IndexOfChannelRingSequenceState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IndexOfChannelRingSequenceAction[];
+}
+
+export function initialIndexOfChannelRingSequenceState(): IndexOfChannelRingSequenceState {
+  return {};
+}
+
+export function stepIndexOfChannelRingSequenceWithActions(
+  state: IndexOfChannelRingSequenceState,
+  event: IndexOfChannelRingSequenceEvent
+): IndexOfChannelRingSequenceStepResult {
+  if (event.kind === "channel/ring-sequence-index-gate") {
+    const index = indexOfChannelRingSequence({
+      ringSequences: event.ringSequences,
+      target: event.target
+    });
+    return {
+      state,
+      intents: [],
+      actions:
+        index === null
+          ? [{ kind: "miss" }]
+          : [{ kind: "use-index", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseChannelRingSequenceIndex(
+  actions: ReadonlyArray<IndexOfChannelRingSequenceAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-index");
+}
+
+export function shouldMissChannelRingSequenceIndex(
+  actions: ReadonlyArray<IndexOfChannelRingSequenceAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
+/** Extract ring-sequence index from step actions; null when no `use-index`. */
+export function channelRingSequenceIndexFromActions(
+  actions: ReadonlyArray<IndexOfChannelRingSequenceAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-index");
+  return action?.kind === "use-index" ? action.index : null;
 }
 
 export function insertChannelSequence(

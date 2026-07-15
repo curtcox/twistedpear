@@ -12,16 +12,18 @@ import {
   channelMessageStateFromPacketReceipt,
   channelPacketTimeoutFromActions,
   channelPayloadMdu,
+  channelRingSequenceIndexFromActions,
+  channelTxEnvelopeIndexFromActions,
   channelTxOutstandingCountFromActions,
   channelTxTimeoutRetryAction,
   drainContiguousChannelSequences,
-  indexOfChannelRingSequence,
-  indexOfChannelTxEnvelope,
   initialChannelAllowsSendState,
+  initialChannelOutletTransmitState,
   initialChannelPacketTimeoutSecondsState,
   initialChannelWindowState,
   initialCountChannelTxOutstandingState,
-  isChannelOutletTransmitOk,
+  initialIndexOfChannelRingSequenceState,
+  initialIndexOfChannelTxEnvelopeState,
   nextChannelSequence,
   initialChannelEnvelopePackState,
   initialChannelEnvelopeUnpackState,
@@ -33,6 +35,7 @@ import {
   initialPackChannelEnvelopeState,
   initialUnpackChannelEnvelopeState,
   packChannelEnvelopeRawFromActions,
+  shouldAcceptChannelOutletTransmit,
   shouldAcceptChannelSequence,
   shouldAllowChannelSend,
   shouldApplyChannelPacketReceiptTimeout,
@@ -63,6 +66,8 @@ import {
   shouldRetryChannelTxTimeout,
   shouldStopChannelHandlerFanout,
   shouldUseChannelPacketTimeout,
+  shouldUseChannelRingSequenceIndex,
+  shouldUseChannelTxEnvelopeIndex,
   shouldUseChannelTxOutstandingCount,
   shouldUsePackChannelEnvelope,
   shouldUseUnpackChannelEnvelope,
@@ -73,6 +78,7 @@ import {
   stepChannelEnvelopeUnpackWithActions,
   stepChannelMessageHandlerUnregisterWithActions,
   stepChannelMessageTypeRegistrationWithActions,
+  stepChannelOutletTransmitWithActions,
   stepChannelPacketTimeoutSecondsWithActions,
   stepChannelSendWithActions,
   stepChannelTxEnvelopeOpWithActions,
@@ -80,6 +86,8 @@ import {
   stepChannelTxTimeoutWithActions,
   stepChannelWindow,
   stepCountChannelTxOutstandingWithActions,
+  stepIndexOfChannelRingSequenceWithActions,
+  stepIndexOfChannelTxEnvelopeWithActions,
   stepPackChannelEnvelopeWithActions,
   stepUnpackChannelEnvelopeWithActions,
   type ChannelTxTimeoutAction,
@@ -415,14 +423,18 @@ export class Channel {
 
     this.nextSequence = nextChannelSequence(reservedSequence);
     const packet = await this.outlet.send(envelope.raw!);
-    if (
-      packet === null ||
-      !isChannelOutletTransmitOk({
-        packetPresent: true,
-        rawLength: packet.raw.length,
-        receiptPresent: packet.receipt !== null
-      })
-    ) {
+    /** Adapt outlet-transmit via protocol actions (no ad-hoc
+     * `isChannelOutletTransmitOk` reads). */
+    const transmitStepped = stepChannelOutletTransmitWithActions(
+      initialChannelOutletTransmitState(),
+      {
+        kind: "channel/outlet-transmit-gate",
+        packetPresent: packet !== null,
+        rawLength: packet?.raw.length ?? 0,
+        receiptPresent: packet?.receipt !== null
+      }
+    );
+    if (packet === null || !shouldAcceptChannelOutletTransmit(transmitStepped.actions)) {
       this.nextSequence = reservedSequence;
       throw new ChannelException(ChannelExceptionType.ME_LINK_NOT_READY, "Outlet did not transmit packet");
     }
@@ -474,10 +486,19 @@ export class Channel {
     this.nextRxSequence = drained.nextRxSequence;
 
     for (const sequence of drained.contiguous) {
-      const index = indexOfChannelRingSequence({
-        ringSequences: this.rxRing.map((candidate) => candidate.sequence),
-        target: sequence
-      });
+      /** Adapt ring-sequence index via protocol actions (no ad-hoc
+       * `indexOfChannelRingSequence` reads). */
+      const indexStepped = stepIndexOfChannelRingSequenceWithActions(
+        initialIndexOfChannelRingSequenceState(),
+        {
+          kind: "channel/ring-sequence-index-gate",
+          ringSequences: this.rxRing.map((candidate) => candidate.sequence),
+          target: sequence
+        }
+      );
+      const index = shouldUseChannelRingSequenceIndex(indexStepped.actions)
+        ? channelRingSequenceIndexFromActions(indexStepped.actions)
+        : null;
       if (!shouldDrainChannelRingIndex(index !== null)) {
         continue;
       }
@@ -611,12 +632,21 @@ export class Channel {
   }
 
   private indexOfTxEnvelope(packet: ChannelPacket): number | null {
-    return indexOfChannelTxEnvelope({
-      packetIds: this.txRing.map((candidate) =>
-        candidate.packet === null ? null : this.outlet.getPacketId(candidate.packet)
-      ),
-      targetId: this.outlet.getPacketId(packet)
-    });
+    /** Adapt TX-envelope index via protocol actions (no ad-hoc
+     * `indexOfChannelTxEnvelope` reads). */
+    const stepped = stepIndexOfChannelTxEnvelopeWithActions(
+      initialIndexOfChannelTxEnvelopeState(),
+      {
+        kind: "channel/tx-envelope-index-gate",
+        packetIds: this.txRing.map((candidate) =>
+          candidate.packet === null ? null : this.outlet.getPacketId(candidate.packet)
+        ),
+        targetId: this.outlet.getPacketId(packet)
+      }
+    );
+    return shouldUseChannelTxEnvelopeIndex(stepped.actions)
+      ? channelTxEnvelopeIndexFromActions(stepped.actions)
+      : null;
   }
 
   private getPacketTimeoutTime(tries: number): number {

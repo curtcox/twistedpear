@@ -49,12 +49,17 @@ import {
 } from "../src/channel-envelope.js";
 import {
   channelEmplaceIndex,
+  channelRingSequenceIndexFromActions,
   drainContiguousChannelSequences,
   indexOfChannelRingSequence,
+  initialIndexOfChannelRingSequenceState,
   insertChannelSequence,
   shouldAcceptChannelSequence,
   shouldDrainChannelRingIndex,
-  shouldEmplaceChannelEnvelope
+  shouldEmplaceChannelEnvelope,
+  shouldMissChannelRingSequenceIndex,
+  shouldUseChannelRingSequenceIndex,
+  stepIndexOfChannelRingSequenceWithActions
 } from "../src/channel-reorder.js";
 
 describe("protocol channel envelope", () => {
@@ -352,5 +357,41 @@ describe("protocol channel reorder", () => {
     expect(indexOfChannelRingSequence({ ringSequences: [2, 3, 5], target: 9 })).toBeNull();
     expect(shouldDrainChannelRingIndex(true)).toBe(true);
     expect(shouldDrainChannelRingIndex(false)).toBe(false);
+  });
+
+  it("emits ring-sequence index only from use-index/miss actions", () => {
+    const hit = stepIndexOfChannelRingSequenceWithActions(
+      initialIndexOfChannelRingSequenceState(),
+      {
+        kind: "channel/ring-sequence-index-gate",
+        ringSequences: [2, 3, 5],
+        target: 3
+      }
+    );
+    expect(shouldUseChannelRingSequenceIndex(hit.actions)).toBe(true);
+    expect(shouldMissChannelRingSequenceIndex(hit.actions)).toBe(false);
+    expect(channelRingSequenceIndexFromActions(hit.actions)).toBe(1);
+
+    const miss = stepIndexOfChannelRingSequenceWithActions(
+      initialIndexOfChannelRingSequenceState(),
+      {
+        kind: "channel/ring-sequence-index-gate",
+        ringSequences: [2, 3, 5],
+        target: 9
+      }
+    );
+    expect(shouldUseChannelRingSequenceIndex(miss.actions)).toBe(false);
+    expect(shouldMissChannelRingSequenceIndex(miss.actions)).toBe(true);
+    expect(channelRingSequenceIndexFromActions(miss.actions)).toBeNull();
+
+    const empty = stepIndexOfChannelRingSequenceWithActions(
+      initialIndexOfChannelRingSequenceState(),
+      {
+        kind: "noop"
+      } as never
+    );
+    expect(shouldUseChannelRingSequenceIndex(empty.actions)).toBe(false);
+    expect(shouldMissChannelRingSequenceIndex(empty.actions)).toBe(false);
+    expect(channelRingSequenceIndexFromActions(empty.actions)).toBeNull();
   });
 });

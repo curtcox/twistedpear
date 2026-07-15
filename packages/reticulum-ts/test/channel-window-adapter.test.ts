@@ -6,19 +6,36 @@ import {
   channelAllowsSend,
   channelPacketTimeoutFromActions,
   channelPacketTimeoutSeconds,
+  channelRingSequenceIndexFromActions,
+  channelTxEnvelopeIndexFromActions,
   channelTxOutstandingCountFromActions,
   countChannelTxOutstanding,
+  indexOfChannelRingSequence,
+  indexOfChannelTxEnvelope,
   initialChannelAllowsSendState,
+  initialChannelOutletTransmitState,
   initialChannelPacketTimeoutSecondsState,
   initialChannelWindowState,
   initialCountChannelTxOutstandingState,
+  initialIndexOfChannelRingSequenceState,
+  initialIndexOfChannelTxEnvelopeState,
+  isChannelOutletTransmitOk,
+  shouldAcceptChannelOutletTransmit,
   shouldAllowChannelSend,
   shouldDenyChannelSend,
+  shouldMissChannelRingSequenceIndex,
+  shouldMissChannelTxEnvelopeIndex,
+  shouldRejectChannelOutletTransmit,
   shouldUseChannelPacketTimeout,
+  shouldUseChannelRingSequenceIndex,
+  shouldUseChannelTxEnvelopeIndex,
   shouldUseChannelTxOutstandingCount,
   stepChannelAllowsSendWithActions,
+  stepChannelOutletTransmitWithActions,
   stepChannelPacketTimeoutSecondsWithActions,
-  stepCountChannelTxOutstandingWithActions
+  stepCountChannelTxOutstandingWithActions,
+  stepIndexOfChannelRingSequenceWithActions,
+  stepIndexOfChannelTxEnvelopeWithActions
 } from "@twistedpear/protocol";
 
 describe("Channel window adapter", () => {
@@ -117,5 +134,82 @@ describe("Channel window adapter", () => {
         })
       );
     }
+  });
+
+  it("matches outlet-transmit via ok/reject actions", () => {
+    const cases = [
+      { packetPresent: true, rawLength: 10, receiptPresent: true, ok: true },
+      { packetPresent: false, rawLength: 10, receiptPresent: true, ok: false },
+      { packetPresent: true, rawLength: 0, receiptPresent: true, ok: false },
+      { packetPresent: true, rawLength: 10, receiptPresent: false, ok: false }
+    ];
+    for (const input of cases) {
+      const stepped = stepChannelOutletTransmitWithActions(initialChannelOutletTransmitState(), {
+        kind: "channel/outlet-transmit-gate",
+        packetPresent: input.packetPresent,
+        rawLength: input.rawLength,
+        receiptPresent: input.receiptPresent
+      });
+      expect(shouldAcceptChannelOutletTransmit(stepped.actions)).toBe(input.ok);
+      expect(shouldRejectChannelOutletTransmit(stepped.actions)).toBe(!input.ok);
+      expect(shouldAcceptChannelOutletTransmit(stepped.actions)).toBe(
+        isChannelOutletTransmitOk({
+          packetPresent: input.packetPresent,
+          rawLength: input.rawLength,
+          receiptPresent: input.receiptPresent
+        })
+      );
+    }
+  });
+
+  it("matches TX-envelope index via use-index/miss actions", () => {
+    const a = new Uint8Array([1, 2]);
+    const b = new Uint8Array([3, 4]);
+    const hit = stepIndexOfChannelTxEnvelopeWithActions(initialIndexOfChannelTxEnvelopeState(), {
+      kind: "channel/tx-envelope-index-gate",
+      packetIds: [null, a, b],
+      targetId: new Uint8Array([3, 4])
+    });
+    expect(shouldUseChannelTxEnvelopeIndex(hit.actions)).toBe(true);
+    expect(channelTxEnvelopeIndexFromActions(hit.actions)).toBe(
+      indexOfChannelTxEnvelope({
+        packetIds: [null, a, b],
+        targetId: new Uint8Array([3, 4])
+      })
+    );
+
+    const miss = stepIndexOfChannelTxEnvelopeWithActions(initialIndexOfChannelTxEnvelopeState(), {
+      kind: "channel/tx-envelope-index-gate",
+      packetIds: [a],
+      targetId: null
+    });
+    expect(shouldMissChannelTxEnvelopeIndex(miss.actions)).toBe(true);
+    expect(channelTxEnvelopeIndexFromActions(miss.actions)).toBeNull();
+  });
+
+  it("matches ring-sequence index via use-index/miss actions", () => {
+    const hit = stepIndexOfChannelRingSequenceWithActions(
+      initialIndexOfChannelRingSequenceState(),
+      {
+        kind: "channel/ring-sequence-index-gate",
+        ringSequences: [2, 3, 5],
+        target: 3
+      }
+    );
+    expect(shouldUseChannelRingSequenceIndex(hit.actions)).toBe(true);
+    expect(channelRingSequenceIndexFromActions(hit.actions)).toBe(
+      indexOfChannelRingSequence({ ringSequences: [2, 3, 5], target: 3 })
+    );
+
+    const miss = stepIndexOfChannelRingSequenceWithActions(
+      initialIndexOfChannelRingSequenceState(),
+      {
+        kind: "channel/ring-sequence-index-gate",
+        ringSequences: [2, 3, 5],
+        target: 9
+      }
+    );
+    expect(shouldMissChannelRingSequenceIndex(miss.actions)).toBe(true);
+    expect(channelRingSequenceIndexFromActions(miss.actions)).toBeNull();
   });
 });

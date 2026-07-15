@@ -1,10 +1,11 @@
 /**
  * Pure RNS Channel congestion window + packet timeout decisions.
  * Adapters own send/resend/timers; this owns window sizing and timeout formulas.
- * Packet-timeout-seconds / TX outstanding / send-allow / TX timeout conclusions
- * leave via machine actions (no ad-hoc `channelPacketTimeoutSeconds` /
- * `countChannelTxOutstanding` / `channelAllowsSend` / `plan.kind` reads beside
- * the step).
+ * Packet-timeout-seconds / TX outstanding / send-allow / outlet-transmit /
+ * TX-envelope index / TX timeout conclusions leave via machine actions (no
+ * ad-hoc `channelPacketTimeoutSeconds` / `countChannelTxOutstanding` /
+ * `channelAllowsSend` / `isChannelOutletTransmitOk` /
+ * `indexOfChannelTxEnvelope` / `plan.kind` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -314,6 +315,73 @@ export function isChannelOutletTransmitOk(input: {
 }
 
 /**
+ * Channel outlet-transmit gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isChannelOutletTransmitOk`
+ * reads beside the step).
+ */
+export type ChannelOutletTransmitState = Record<string, never>;
+
+export type ChannelOutletTransmitEvent =
+  | Event
+  | {
+      readonly kind: "channel/outlet-transmit-gate";
+      readonly packetPresent: boolean;
+      readonly rawLength: number;
+      readonly receiptPresent: boolean;
+    };
+
+export type ChannelOutletTransmitAction =
+  | { readonly kind: "ok" }
+  | { readonly kind: "reject" };
+
+export interface ChannelOutletTransmitStepResult {
+  readonly state: ChannelOutletTransmitState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelOutletTransmitAction[];
+}
+
+export function initialChannelOutletTransmitState(): ChannelOutletTransmitState {
+  return {};
+}
+
+export function stepChannelOutletTransmitWithActions(
+  state: ChannelOutletTransmitState,
+  event: ChannelOutletTransmitEvent
+): ChannelOutletTransmitStepResult {
+  if (event.kind === "channel/outlet-transmit-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isChannelOutletTransmitOk({
+            packetPresent: event.packetPresent,
+            rawLength: event.rawLength,
+            receiptPresent: event.receiptPresent
+          })
+            ? "ok"
+            : "reject"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptChannelOutletTransmit(
+  actions: ReadonlyArray<ChannelOutletTransmitAction>
+): boolean {
+  return actions.some((action) => action.kind === "ok");
+}
+
+export function shouldRejectChannelOutletTransmit(
+  actions: ReadonlyArray<ChannelOutletTransmitAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/**
  * Count TX-ring entries that still occupy window (unsent or not yet delivered).
  * Packet presence / delivery status are supplied by the adapter.
  */
@@ -426,6 +494,77 @@ export function indexOfChannelTxEnvelope(input: {
     }
   }
   return null;
+}
+
+/**
+ * Channel TX-envelope index lookup is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `indexOfChannelTxEnvelope`
+ * reads beside the step).
+ */
+export type IndexOfChannelTxEnvelopeState = Record<string, never>;
+
+export type IndexOfChannelTxEnvelopeEvent =
+  | Event
+  | {
+      readonly kind: "channel/tx-envelope-index-gate";
+      readonly packetIds: ReadonlyArray<Uint8Array | null>;
+      readonly targetId: Uint8Array | null;
+    };
+
+export type IndexOfChannelTxEnvelopeAction =
+  | { readonly kind: "use-index"; readonly index: number }
+  | { readonly kind: "miss" };
+
+export interface IndexOfChannelTxEnvelopeStepResult {
+  readonly state: IndexOfChannelTxEnvelopeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IndexOfChannelTxEnvelopeAction[];
+}
+
+export function initialIndexOfChannelTxEnvelopeState(): IndexOfChannelTxEnvelopeState {
+  return {};
+}
+
+export function stepIndexOfChannelTxEnvelopeWithActions(
+  state: IndexOfChannelTxEnvelopeState,
+  event: IndexOfChannelTxEnvelopeEvent
+): IndexOfChannelTxEnvelopeStepResult {
+  if (event.kind === "channel/tx-envelope-index-gate") {
+    const index = indexOfChannelTxEnvelope({
+      packetIds: event.packetIds,
+      targetId: event.targetId
+    });
+    return {
+      state,
+      intents: [],
+      actions:
+        index === null
+          ? [{ kind: "miss" }]
+          : [{ kind: "use-index", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseChannelTxEnvelopeIndex(
+  actions: ReadonlyArray<IndexOfChannelTxEnvelopeAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-index");
+}
+
+export function shouldMissChannelTxEnvelopeIndex(
+  actions: ReadonlyArray<IndexOfChannelTxEnvelopeAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
+/** Extract TX-envelope index from step actions; null when no `use-index`. */
+export function channelTxEnvelopeIndexFromActions(
+  actions: ReadonlyArray<IndexOfChannelTxEnvelopeAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-index");
+  return action?.kind === "use-index" ? action.index : null;
 }
 
 export type ChannelTxEnvelopeOpPlan = "miss" | "process";

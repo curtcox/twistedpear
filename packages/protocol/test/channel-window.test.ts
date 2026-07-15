@@ -8,23 +8,27 @@ import {
   channelPacketTimeoutFromActions,
   channelPacketTimeoutSeconds,
   channelRetryExhausted,
+  channelTxEnvelopeIndexFromActions,
   channelTxOutstandingCountFromActions,
   channelTxTimeoutRetryAction,
   channelTxReceiptTimeoutExtensions,
   countChannelTxOutstanding,
   canArmChannelPacketReceipt,
   initialChannelAllowsSendState,
+  initialChannelOutletTransmitState,
   initialChannelPacketTimeoutSecondsState,
   initialChannelSendState,
   initialChannelTxEnvelopeOpState,
   initialChannelTxReceiptTimeoutRefreshState,
   initialChannelWindowState,
   initialCountChannelTxOutstandingState,
+  initialIndexOfChannelTxEnvelopeState,
   isChannelOutletTransmitOk,
   planChannelPacketTimeout,
   planChannelSend,
   planChannelTxEnvelopeOp,
   planChannelTxReceiptTimeoutRefresh,
+  shouldAcceptChannelOutletTransmit,
   shouldAllowChannelSend,
   shouldApplyChannelPacketReceiptTimeout,
   shouldApplyChannelTxReceiptTimeoutExtension,
@@ -32,19 +36,23 @@ import {
   shouldExtendChannelTxReceiptTimeout,
   shouldExtendPacketReceiptTimeout,
   shouldGiveUpChannelTxTimeout,
+  shouldMissChannelTxEnvelopeIndex,
   shouldMissChannelTxEnvelopeOp,
   shouldProceedChannelSend,
   shouldProcessChannelTxEnvelopeOp,
+  shouldRejectChannelOutletTransmit,
   shouldRejectChannelSendLinkNotReady,
   shouldRejectChannelSendTooBig,
   shouldReplaceChannelResentPacket,
   shouldResendChannelTimeoutPacket,
   shouldRetryChannelTxTimeout,
   shouldUseChannelPacketTimeout,
+  shouldUseChannelTxEnvelopeIndex,
   shouldUseChannelTxOutstandingCount,
   shouldClearChannelEnvelopePacket,
   indexOfChannelTxEnvelope,
   stepChannelAllowsSendWithActions,
+  stepChannelOutletTransmitWithActions,
   stepChannelPacketTimeoutSecondsWithActions,
   stepChannelSendWithActions,
   stepChannelTxEnvelopeOpWithActions,
@@ -52,7 +60,8 @@ import {
   stepChannelTxTimeout,
   stepChannelTxTimeoutWithActions,
   stepChannelWindow,
-  stepCountChannelTxOutstandingWithActions
+  stepCountChannelTxOutstandingWithActions,
+  stepIndexOfChannelTxEnvelopeWithActions
 } from "../src/channel-window.js";
 
 describe("protocol channel window", () => {
@@ -261,6 +270,32 @@ describe("protocol channel window", () => {
     ).toBe(false);
   });
 
+  it("emits outlet-transmit only from ok/reject actions", () => {
+    const ok = stepChannelOutletTransmitWithActions(initialChannelOutletTransmitState(), {
+      kind: "channel/outlet-transmit-gate",
+      packetPresent: true,
+      rawLength: 10,
+      receiptPresent: true
+    });
+    expect(shouldAcceptChannelOutletTransmit(ok.actions)).toBe(true);
+    expect(shouldRejectChannelOutletTransmit(ok.actions)).toBe(false);
+
+    const reject = stepChannelOutletTransmitWithActions(initialChannelOutletTransmitState(), {
+      kind: "channel/outlet-transmit-gate",
+      packetPresent: true,
+      rawLength: 0,
+      receiptPresent: true
+    });
+    expect(shouldAcceptChannelOutletTransmit(reject.actions)).toBe(false);
+    expect(shouldRejectChannelOutletTransmit(reject.actions)).toBe(true);
+
+    const empty = stepChannelOutletTransmitWithActions(initialChannelOutletTransmitState(), {
+      kind: "noop"
+    } as never);
+    expect(shouldAcceptChannelOutletTransmit(empty.actions)).toBe(false);
+    expect(shouldRejectChannelOutletTransmit(empty.actions)).toBe(false);
+  });
+
   it("counts TX outstanding from packet presence and delivery", () => {
     expect(
       countChannelTxOutstanding([
@@ -347,6 +382,35 @@ describe("protocol channel window", () => {
     expect(
       indexOfChannelTxEnvelope({ packetIds: [a], targetId: new Uint8Array([9, 9]) })
     ).toBeNull();
+  });
+
+  it("emits TX-envelope index only from use-index/miss actions", () => {
+    const a = new Uint8Array([1, 2]);
+    const b = new Uint8Array([3, 4]);
+    const hit = stepIndexOfChannelTxEnvelopeWithActions(initialIndexOfChannelTxEnvelopeState(), {
+      kind: "channel/tx-envelope-index-gate",
+      packetIds: [null, a, b],
+      targetId: new Uint8Array([3, 4])
+    });
+    expect(shouldUseChannelTxEnvelopeIndex(hit.actions)).toBe(true);
+    expect(shouldMissChannelTxEnvelopeIndex(hit.actions)).toBe(false);
+    expect(channelTxEnvelopeIndexFromActions(hit.actions)).toBe(2);
+
+    const miss = stepIndexOfChannelTxEnvelopeWithActions(initialIndexOfChannelTxEnvelopeState(), {
+      kind: "channel/tx-envelope-index-gate",
+      packetIds: [a],
+      targetId: new Uint8Array([9, 9])
+    });
+    expect(shouldUseChannelTxEnvelopeIndex(miss.actions)).toBe(false);
+    expect(shouldMissChannelTxEnvelopeIndex(miss.actions)).toBe(true);
+    expect(channelTxEnvelopeIndexFromActions(miss.actions)).toBeNull();
+
+    const empty = stepIndexOfChannelTxEnvelopeWithActions(initialIndexOfChannelTxEnvelopeState(), {
+      kind: "noop"
+    } as never);
+    expect(shouldUseChannelTxEnvelopeIndex(empty.actions)).toBe(false);
+    expect(shouldMissChannelTxEnvelopeIndex(empty.actions)).toBe(false);
+    expect(channelTxEnvelopeIndexFromActions(empty.actions)).toBeNull();
   });
 
   it("plans packet timeout ignore / retry / give-up", () => {

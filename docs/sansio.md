@@ -19,7 +19,11 @@
 > random hashes). **Channel congestion** (window sizing, packet timeout formula
 > via **`stepChannelPacketTimeoutSecondsWithActions`**: use-timeout; TX
 > outstanding via **`stepCountChannelTxOutstandingWithActions`**: use-count;
-> send-allow via **`stepChannelAllowsSendWithActions`**: allow|deny; retry
+> send-allow via **`stepChannelAllowsSendWithActions`**: allow|deny; outlet
+> transmit via **`stepChannelOutletTransmitWithActions`**: ok|reject; TX-
+> envelope / RX ring-sequence index via
+> **`stepIndexOfChannelTxEnvelopeWithActions`** /
+> **`stepIndexOfChannelRingSequenceWithActions`**: use-index|miss; retry
 > exhaustion) is a pure protocol leaf; `Channel` adapts it. **Channel envelope
 > framing** and **RX reorder/drain** are also pure protocol leaves. **LXMF outbound
 > send-state** (enqueue → sending → sent/delivered/
@@ -323,14 +327,15 @@
 > use-count) and **`channelAllowsSend`** (via **`stepChannelAllowsSendWithActions`**:
 > allow|deny) live in protocol; `Channel.isReadyToSend` adapts them.
 > **`shouldExtendPacketReceiptTimeout`** lives in protocol; `Channel.updatePacketTimeouts`
-> adapts it. **`indexOfChannelTxEnvelope`** lives in protocol; Channel timeout/delivery TX-ring
-> lookup adapts it. **`stepAppendResourceMapHashCollisionGuardWithActions`** lives in protocol; `Resource.send`
+> adapts it. **`indexOfChannelTxEnvelope`** (via **`stepIndexOfChannelTxEnvelopeWithActions`**:
+> use-index|miss) lives in protocol; Channel timeout/delivery TX-ring lookup
+> adapts it. **`stepAppendResourceMapHashCollisionGuardWithActions`** lives in protocol; `Resource.send`
 > adapts it. **`stepContainsResourceHashWithActions`** lives in protocol;
 > `Resource.accept` and `Link.hasIncomingResource` adapt it.
 > **`stepAssembleResourceHashmapBytesWithActions`** / **`stepReadResourceRequestHashWithActions`**
 > live in protocol; `Resource.send` / fulfill / `readRequestHash` adapt them.
-> **`indexOfChannelRingSequence`**
-> lives in protocol; Channel RX drain adapts it. **`applyResourceHashmapSlotWrites`** lives in
+> **`indexOfChannelRingSequence`** (via **`stepIndexOfChannelRingSequenceWithActions`**:
+> use-index|miss) lives in protocol; Channel RX drain adapts it. **`applyResourceHashmapSlotWrites`** lives in
 > protocol; `Resource.hashmapUpdate` adapts it. **`appendPathRandomBlob`** (via
 > **`stepAppendPathRandomBlobWithActions`**: use-fields) and **`computePathExpiry`**
 > (via **`stepComputePathExpiryWithActions`**: use-expiry) live in protocol;
@@ -346,7 +351,8 @@
 > **`linkReadyForNewResource`** lives in protocol; `Link.readyForNewResource` adapts it.
 > **`isLinkModeEnabled`** lives in protocol; link validate/signalling adapts it.
 > **`isLinkClosed`** lives in protocol; `Link.receive` / watchdog early-outs adapt it.
-> **`isChannelOutletTransmitOk`** lives in protocol; `Channel.send` outlet-result gate adapts it.
+> **`isChannelOutletTransmitOk`** (via **`stepChannelOutletTransmitWithActions`**:
+> ok|reject) lives in protocol; `Channel.send` outlet-result gate adapts it.
 > **`isValidDestinationRequestPath`** lives in protocol; `registerRequestHandler` adapts it.
 > **`clampStreamDataChunkLength`** lives in protocol; `RawChannelWriter.write` adapts it.
 > **`shouldAppendStreamData`** lives in protocol; `RawChannelReader` append gating adapts it.
@@ -917,7 +923,8 @@
 > compute-link-request-timeout / compute-link-rtt-seconds / merge-link-rtt /
 > compute-resource-timeout / compute-keepalive /
 > channel-packet-timeout-seconds / count-channel-tx-outstanding /
-> channel-allows-send /
+> channel-allows-send / channel-outlet-transmit /
+> index-of-channel-tx-envelope / index-of-channel-ring-sequence /
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
@@ -1105,6 +1112,15 @@
 > **`stepChannelAllowsSendWithActions`** emits `allow`|`deny`;
 > `Channel.isReadyToSend` applies only from those actions (no ad-hoc
 > `countChannelTxOutstanding` / `channelAllowsSend` reads beside the step).
+> **`stepChannelOutletTransmitWithActions`** emits `ok`|`reject`;
+> `Channel.send` outlet-result gate applies only from those actions (no ad-hoc
+> `isChannelOutletTransmitOk` reads beside the step).
+> **`stepIndexOfChannelTxEnvelopeWithActions`** emits `use-index`|`miss`;
+> Channel TX-ring timeout/delivery lookup applies only from those actions (no
+> ad-hoc `indexOfChannelTxEnvelope` reads beside the step).
+> **`stepIndexOfChannelRingSequenceWithActions`** emits `use-index`|`miss`;
+> Channel RX drain applies only from those actions (no ad-hoc
+> `indexOfChannelRingSequence` reads beside the step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT measure / merge apply only from those
 > actions (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the
@@ -1127,7 +1143,9 @@
 > `linkHopsMatch` / `computeLinkMdu` / `computeLinkEstablishmentTimeout` /
 > `computeLinkRequestTimeout` / `computeResourceTimeout` / `computeKeepalive` /
 > `channelPacketTimeoutSeconds` / `countChannelTxOutstanding` /
-> `channelAllowsSend` / `computeLinkRttSeconds` / `mergeLinkRtt` /
+> `channelAllowsSend` / `isChannelOutletTransmitOk` /
+> `indexOfChannelTxEnvelope` / `indexOfChannelRingSequence` /
+> `computeLinkRttSeconds` / `mergeLinkRtt` /
 > `computePathExpiry` / `shouldDeferPacketHash` /
 > `planResourceAdvertisementRoleFlags` /
 > `planResourceHashmapSlotWrites` reads beside the step).
