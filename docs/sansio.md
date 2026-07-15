@@ -197,6 +197,8 @@
 > send-response (nested under inbound app-request) /
 > **`stepLinkTokenAccessPlanWithActions`**: reject-no-key|create|reuse
 > (nested under token-access) /
+> **`stepLinkProofValidateOutcomePlanWithActions`**: accept|reject
+> (nested under proof-validate) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -885,7 +887,9 @@
 > **`stepInvokeLinkAppRequestHandlerWithActions`**: invoke|skip; send via
 > **`stepSendLinkAppRequestResponseWithActions`**: send|skip) and
 > **`planLinkProofValidateOutcome`** (via **`stepLinkProofValidateWithActions`**:
-> accept / reject) live in protocol; `Link` app-request and proof validation
+> accept / reject; plan nested via
+> **`stepLinkProofValidateOutcomePlanWithActions`**: accept|reject) live in
+> protocol; `Link` app-request and proof validation
 > adapt them.
 > **`planLinkResourceAdvertisement`** (request bypass + strategy) lives in protocol;
 > `Link` RESOURCE_ADV adapts it via **`stepLinkResourceAdvertisementWithActions`**. **`planLxmfOpportunisticSend`** (via **`stepLxmfOpportunisticSendWithActions`**: proceed / reject-missing-destination) lives in protocol;
@@ -1312,9 +1316,11 @@
 > gates only from those actions (no ad-hoc `planLinkValidateRequest` /
 > `plan.kind` / `canAcceptLinkRequestOwner` /
 > `shouldContinueLinkValidateRequest` reads beside the step).
-> **`stepLinkProofValidateWithActions`** emits `accept` / `reject`;
+> **`stepLinkProofValidateWithActions`** emits `accept` / `reject` (plan nested
+> via **`stepLinkProofValidateOutcomePlanWithActions`**: accept|reject);
 > `Link.validateProof` applies activation gate only from those actions
-> (no ad-hoc `planLinkProofValidateOutcome` reads beside the step).
+> (no ad-hoc `planLinkProofValidateOutcome` / `outcome ===` reads beside the
+> step).
 > **`stepPropagationStoreWithActions`** emits `reject` / `duplicate` /
 > `accept` (with evict keys); **`stepCommitPropagationStoreEntryWithActions`**
 > emits `commit` / `skip`; **`stepApplyPropagationStoreCommitWithActions`**
@@ -1714,7 +1720,8 @@
 > instance pack / propagated pack prep), LXMF propagation link-ready /
 > sync-prep gates, LXMF deliverable accept, propagation local ingress,
 > LXMF receipt → send-state mapping, Link validate-request
-> proceed/reject / continue, Link proof-validate accept/reject, and Link
+> proceed/reject / continue, Link proof-validate accept/reject /
+> link-proof-validate-outcome-plan, and Link
 > LRRTT accept/teardown-from-rtt / link-rtt-outcome-plan / LINKCLOSE accept-link-teardown /
 > link-teardown-reason / link-teardown-plan also conclude via
 > machine actions (no ad-hoc `state.timedOut` / `plan.kind` / establish-status /
@@ -1725,7 +1732,7 @@
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
@@ -1832,6 +1839,7 @@
 > perform-link-handshake-allow / prove-link-allow /
 > accept-link-owner-public-key / accept-link-request-owner / validate-link-proof-allow /
 > attempt-link-proof-crypto / accept-link-rtt / link-rtt-outcome-plan / teardown-link-from-rtt /
+> link-proof-validate-outcome-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /

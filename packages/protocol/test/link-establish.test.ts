@@ -121,6 +121,7 @@ import {
   initialLinkAppRequestTransmitState,
   initialLinkEstablishState,
   initialLinkProofValidateState,
+  initialLinkProofValidateOutcomePlanState,
   initialLinkRegisterListState,
   initialRegisterLinkMemberState,
   initialLinkRttOutcomePlanState,
@@ -138,6 +139,7 @@ import {
   linkAppRequestResponsePlanFromActions,
   linkAppRequestTransmitFromActions,
   linkEstablishActivatedAction,
+  linkProofValidateOutcomePlanFromActions,
   linkRegisterListFromActions,
   linkRttOutcomePlanFromActions,
   linkRttSecondsFromActions,
@@ -162,6 +164,7 @@ import {
   shouldAcceptLinkEstablishRtt,
   shouldAcceptLinkPacketInterface,
   shouldAcceptLinkProofValidate,
+  shouldAcceptLinkProofValidateOutcomePlan,
   shouldActivateLinkEstablish,
   shouldActivateLinkRttOutcomePlan,
   shouldAppendActiveLinkMembership,
@@ -202,6 +205,7 @@ import {
   shouldRejectLinkAppRequestInboundTooBig,
   shouldRejectLinkAppRequestResponseTooBigPlan,
   shouldRejectLinkProofValidate,
+  shouldRejectLinkProofValidateOutcomePlan,
   shouldRejectLinkTokenNoKey,
   shouldRejectLinkValidateBadRequest,
   shouldRejectLinkValidateModeDisabled,
@@ -243,6 +247,7 @@ import {
   stepLinkAppRequestWithActions,
   stepLinkEstablish,
   stepLinkEstablishWithActions,
+  stepLinkProofValidateOutcomePlanWithActions,
   stepLinkProofValidateWithActions,
   stepLinkRegisterListWithActions,
   stepLinkRttOutcomePlanWithActions,
@@ -1028,6 +1033,36 @@ describe("protocol link establish", () => {
         signatureValid: false
       })
     ).toBe("reject");
+
+    const acceptPlan = stepLinkProofValidateOutcomePlanWithActions(
+      initialLinkProofValidateOutcomePlanState(),
+      {
+        kind: "proof/validate-outcome-plan-gate",
+        canValidate: true,
+        modeMatches: true,
+        layoutValid: true,
+        bodyPresent: true,
+        peerPublicPresent: true,
+        signatureValid: true
+      }
+    );
+    expect(shouldAcceptLinkProofValidateOutcomePlan(acceptPlan.actions)).toBe(true);
+    expect(linkProofValidateOutcomePlanFromActions(acceptPlan.actions)).toBe("accept");
+
+    const rejectPlan = stepLinkProofValidateOutcomePlanWithActions(
+      initialLinkProofValidateOutcomePlanState(),
+      {
+        kind: "proof/validate-outcome-plan-gate",
+        canValidate: true,
+        modeMatches: true,
+        layoutValid: true,
+        bodyPresent: true,
+        peerPublicPresent: true,
+        signatureValid: false
+      }
+    );
+    expect(shouldRejectLinkProofValidateOutcomePlan(rejectPlan.actions)).toBe(true);
+    expect(linkProofValidateOutcomePlanFromActions(rejectPlan.actions)).toBe("reject");
 
     const accept = stepLinkProofValidateWithActions(initialLinkProofValidateState(), {
       kind: "proof/validate-gate",

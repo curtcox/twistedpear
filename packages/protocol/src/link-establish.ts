@@ -808,8 +808,92 @@ export function planLinkProofValidateOutcome(input: {
 }
 
 /**
+ * Proof-validate outcome plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkProofValidateOutcome` /
+ * `outcome ===` reads beside the step). Nested under
+ * {@link stepLinkProofValidateWithActions}.
+ */
+export type LinkProofValidateOutcomePlanState = Record<string, never>;
+
+export type LinkProofValidateOutcomePlanEvent =
+  | Intent
+  | {
+      readonly kind: "proof/validate-outcome-plan-gate";
+      readonly canValidate: boolean;
+      readonly modeMatches: boolean;
+      readonly layoutValid: boolean;
+      readonly bodyPresent: boolean;
+      readonly peerPublicPresent: boolean;
+      readonly signatureValid: boolean;
+    };
+
+export type LinkProofValidateOutcomePlanAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "reject" };
+
+export interface LinkProofValidateOutcomePlanStepResult {
+  readonly state: LinkProofValidateOutcomePlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkProofValidateOutcomePlanAction[];
+}
+
+export function initialLinkProofValidateOutcomePlanState(): LinkProofValidateOutcomePlanState {
+  return {};
+}
+
+export function stepLinkProofValidateOutcomePlanWithActions(
+  state: LinkProofValidateOutcomePlanState,
+  event: LinkProofValidateOutcomePlanEvent
+): LinkProofValidateOutcomePlanStepResult {
+  if (event.kind === "proof/validate-outcome-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLinkProofValidateOutcome({
+            canValidate: event.canValidate,
+            modeMatches: event.modeMatches,
+            layoutValid: event.layoutValid,
+            bodyPresent: event.bodyPresent,
+            peerPublicPresent: event.peerPublicPresent,
+            signatureValid: event.signatureValid
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptLinkProofValidateOutcomePlan(
+  actions: ReadonlyArray<LinkProofValidateOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldRejectLinkProofValidateOutcomePlan(
+  actions: ReadonlyArray<LinkProofValidateOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract the proof-validate outcome plan from actions; null when empty. */
+export function linkProofValidateOutcomePlanFromActions(
+  actions: ReadonlyArray<LinkProofValidateOutcomePlanAction>
+): LinkProofValidateOutcome | null {
+  const action = actions.find(
+    (entry) => entry.kind === "accept" || entry.kind === "reject"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * Link proof validate gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLinkProofValidateOutcomePlanWithActions}
+ * (`accept`|`reject`).
  */
 export type LinkProofValidateState = Record<string, never>;
 
@@ -868,16 +952,23 @@ function stepLinkProofValidateInner(
   event: LinkProofValidateEvent
 ): LinkProofValidateStepResult {
   if (event.kind === "proof/validate-gate") {
-    const outcome = planLinkProofValidateOutcome({
-      canValidate: event.canValidate,
-      modeMatches: event.modeMatches,
-      layoutValid: event.layoutValid,
-      bodyPresent: event.bodyPresent,
-      peerPublicPresent: event.peerPublicPresent,
-      signatureValid: event.signatureValid
-    });
-    if (outcome === "reject") {
+    const planActions = stepLinkProofValidateOutcomePlanWithActions(
+      initialLinkProofValidateOutcomePlanState(),
+      {
+        kind: "proof/validate-outcome-plan-gate",
+        canValidate: event.canValidate,
+        modeMatches: event.modeMatches,
+        layoutValid: event.layoutValid,
+        bodyPresent: event.bodyPresent,
+        peerPublicPresent: event.peerPublicPresent,
+        signatureValid: event.signatureValid
+      }
+    ).actions;
+    if (shouldRejectLinkProofValidateOutcomePlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+    if (!shouldAcceptLinkProofValidateOutcomePlan(planActions)) {
+      return { state, intents: [], actions: [] };
     }
     return { state, intents: [], actions: [{ kind: "accept" }] };
   }
