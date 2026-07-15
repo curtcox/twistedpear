@@ -23,6 +23,7 @@ import {
   canUpdateLinkKeepalive,
   canValidateLinkProof,
   computeLinkRttSeconds,
+  initialComputeLinkRttSecondsState,
   initialLinkActivateMembershipState,
   initialLinkAppRequestInboundState,
   initialLinkAppRequestState,
@@ -33,13 +34,16 @@ import {
   initialLinkTokenAccessState,
   initialLinkUnregisterMembershipState,
   initialLinkValidateRequestState,
+  initialMergeLinkRttState,
   isLinkClosed,
   isLinkInboundDataPacket,
   linkAppRequestFromActions,
   linkAppRequestTransmitFromActions,
   linkEstablishActivatedAction,
   linkRegisterListFromActions,
+  linkRttSecondsFromActions,
   mergeLinkRtt,
+  mergeLinkRttFromActions,
   pendingLinkMembershipRemoveIndex,
   pendingLinkUnregisterRemoveIndex,
   activeLinkUnregisterRemoveIndex,
@@ -100,6 +104,9 @@ import {
   shouldTeardownLinkFromRtt,
   shouldUnregisterLinkAppRequestTransmit,
   shouldUpdateLinkLastData,
+  shouldUseLinkRttSeconds,
+  shouldUseMergeLinkRtt,
+  stepComputeLinkRttSecondsWithActions,
   stepLinkActivateMembershipWithActions,
   stepLinkAppRequestInbound,
   stepLinkAppRequestInboundWithActions,
@@ -111,7 +118,8 @@ import {
   stepLinkRegisterListWithActions,
   stepLinkTokenAccessWithActions,
   stepLinkUnregisterMembershipWithActions,
-  stepLinkValidateRequestWithActions
+  stepLinkValidateRequestWithActions,
+  stepMergeLinkRttWithActions
 } from "../src/link-establish.js";
 import { DestinationAllowPolicyCode } from "../src/destination-allow.js";
 import { PacketTypeCode } from "../src/packet-header.js";
@@ -805,6 +813,36 @@ describe("protocol link establish", () => {
     expect(state.rtt).toBe(0.5);
     expect(state.activatedAt).toBe(10.5);
     expect(mergeLinkRtt(0.4, 0.7)).toBe(0.7);
+  });
+
+  it("emits RTT seconds and merge only from use-rtt actions", () => {
+    const seconds = stepComputeLinkRttSecondsWithActions(initialComputeLinkRttSecondsState(), {
+      kind: "link/rtt-seconds-gate",
+      nowSeconds: 10.5,
+      requestTimeSeconds: 10
+    });
+    expect(shouldUseLinkRttSeconds(seconds.actions)).toBe(true);
+    expect(linkRttSecondsFromActions(seconds.actions)).toBe(0.5);
+
+    const emptySeconds = stepComputeLinkRttSecondsWithActions(initialComputeLinkRttSecondsState(), {
+      kind: "noop"
+    } as never);
+    expect(shouldUseLinkRttSeconds(emptySeconds.actions)).toBe(false);
+    expect(linkRttSecondsFromActions(emptySeconds.actions)).toBeNull();
+
+    const merged = stepMergeLinkRttWithActions(initialMergeLinkRttState(), {
+      kind: "link/merge-rtt-gate",
+      measuredSeconds: 0.4,
+      remoteSeconds: 0.7
+    });
+    expect(shouldUseMergeLinkRtt(merged.actions)).toBe(true);
+    expect(mergeLinkRttFromActions(merged.actions)).toBe(0.7);
+
+    const emptyMerge = stepMergeLinkRttWithActions(initialMergeLinkRttState(), {
+      kind: "noop"
+    } as never);
+    expect(shouldUseMergeLinkRtt(emptyMerge.actions)).toBe(false);
+    expect(mergeLinkRttFromActions(emptyMerge.actions)).toBeNull();
   });
 
   it("emits establish actions for handshake / activate / fail", () => {

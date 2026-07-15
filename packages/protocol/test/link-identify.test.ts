@@ -28,11 +28,15 @@ import {
 } from "../src/link-identify.js";
 import {
   computeLinkMdu,
+  initialComputeLinkMduState,
   initialLinkHopsMatchState,
   linkHopsMatch,
+  linkMduFromActions,
   linkPayloadFitsMdu,
   shouldMatchLinkHops,
   shouldMismatchLinkHops,
+  shouldUseLinkMdu,
+  stepComputeLinkMduWithActions,
   stepLinkHopsMatchWithActions
 } from "../src/link-metrics.js";
 import { PATHFINDER_MAX_HOPS } from "../src/path-table.js";
@@ -285,6 +289,21 @@ describe("protocol link metrics", () => {
     expect(computeLinkMdu(500)).toBe(
       Math.floor((500 - 18 - 48) / 16) * 16 - 1
     );
+  });
+
+  it("emits MDU only from use-mdu actions", () => {
+    const stepped = stepComputeLinkMduWithActions(initialComputeLinkMduState(), {
+      kind: "link/mdu-gate",
+      mtu: 500
+    });
+    expect(shouldUseLinkMdu(stepped.actions)).toBe(true);
+    expect(linkMduFromActions(stepped.actions)).toBe(computeLinkMdu(500));
+
+    const empty = stepComputeLinkMduWithActions(initialComputeLinkMduState(), {
+      kind: "noop"
+    } as never);
+    expect(shouldUseLinkMdu(empty.actions)).toBe(false);
+    expect(linkMduFromActions(empty.actions)).toBeNull();
   });
 
   it("matches hops with pathfinder wildcard", () => {

@@ -3,7 +3,8 @@
  * and inbound application-request dispatch (handler invoke → response send).
  * Crypto verification and packet IO stay at the adapter edge.
  * Conclusions leave via machine actions (no ad-hoc status / plan.kind reads
- * beside the step).
+ * beside the step). RTT compute / merge conclusions leave via machine actions
+ * (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { planDestinationRequestAllow } from "./destination-allow.js";
@@ -1353,6 +1354,132 @@ export function computeLinkRttSeconds(nowSeconds: number, requestTimeSeconds: nu
 
 export function mergeLinkRtt(measuredSeconds: number, remoteSeconds: number): number {
   return Math.max(measuredSeconds, remoteSeconds);
+}
+
+/**
+ * Link RTT-seconds computation is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `computeLinkRttSeconds`
+ * reads beside the step).
+ */
+export type ComputeLinkRttSecondsState = Record<string, never>;
+
+export type ComputeLinkRttSecondsEvent =
+  | Event
+  | {
+      readonly kind: "link/rtt-seconds-gate";
+      readonly nowSeconds: number;
+      readonly requestTimeSeconds: number;
+    };
+
+export type ComputeLinkRttSecondsAction = {
+  readonly kind: "use-rtt";
+  readonly rtt: number;
+};
+
+export interface ComputeLinkRttSecondsStepResult {
+  readonly state: ComputeLinkRttSecondsState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ComputeLinkRttSecondsAction[];
+}
+
+export function initialComputeLinkRttSecondsState(): ComputeLinkRttSecondsState {
+  return {};
+}
+
+export function stepComputeLinkRttSecondsWithActions(
+  state: ComputeLinkRttSecondsState,
+  event: ComputeLinkRttSecondsEvent
+): ComputeLinkRttSecondsStepResult {
+  if (event.kind === "link/rtt-seconds-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-rtt",
+          rtt: computeLinkRttSeconds(event.nowSeconds, event.requestTimeSeconds)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseLinkRttSeconds(
+  actions: ReadonlyArray<ComputeLinkRttSecondsAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-rtt");
+}
+
+/** Extract RTT seconds from step actions; null when no `use-rtt`. */
+export function linkRttSecondsFromActions(
+  actions: ReadonlyArray<ComputeLinkRttSecondsAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-rtt");
+  return action?.kind === "use-rtt" ? action.rtt : null;
+}
+
+/**
+ * Link RTT merge is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `mergeLinkRtt` reads
+ * beside the step).
+ */
+export type MergeLinkRttState = Record<string, never>;
+
+export type MergeLinkRttEvent =
+  | Event
+  | {
+      readonly kind: "link/merge-rtt-gate";
+      readonly measuredSeconds: number;
+      readonly remoteSeconds: number;
+    };
+
+export type MergeLinkRttAction = {
+  readonly kind: "use-rtt";
+  readonly rtt: number;
+};
+
+export interface MergeLinkRttStepResult {
+  readonly state: MergeLinkRttState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly MergeLinkRttAction[];
+}
+
+export function initialMergeLinkRttState(): MergeLinkRttState {
+  return {};
+}
+
+export function stepMergeLinkRttWithActions(
+  state: MergeLinkRttState,
+  event: MergeLinkRttEvent
+): MergeLinkRttStepResult {
+  if (event.kind === "link/merge-rtt-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-rtt",
+          rtt: mergeLinkRtt(event.measuredSeconds, event.remoteSeconds)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseMergeLinkRtt(actions: ReadonlyArray<MergeLinkRttAction>): boolean {
+  return actions.some((action) => action.kind === "use-rtt");
+}
+
+/** Extract merged RTT from step actions; null when no `use-rtt`. */
+export function mergeLinkRttFromActions(
+  actions: ReadonlyArray<MergeLinkRttAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-rtt");
+  return action?.kind === "use-rtt" ? action.rtt : null;
 }
 
 export function applyLinkEstablishEvent(

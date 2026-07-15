@@ -3,6 +3,8 @@
  * Initiator/responder MTU selection and hops-match conclusions leave via
  * machine actions (no ad-hoc `planLinkInitiatorMtu` /
  * `planLinkRequestResponderMtu` / `linkHopsMatch` reads beside the step).
+ * MDU computation conclusions leave via machine actions (no ad-hoc
+ * `computeLinkMdu` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 
@@ -20,6 +22,67 @@ export function computeLinkMdu(mtu: number): number {
       LINK_MDU_BLOCK_SIZE -
     1
   );
+}
+
+/**
+ * Link MDU computation is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `computeLinkMdu`
+ * reads beside the step).
+ */
+export type ComputeLinkMduState = Record<string, never>;
+
+export type ComputeLinkMduEvent =
+  | Event
+  | {
+      readonly kind: "link/mdu-gate";
+      readonly mtu: number;
+    };
+
+export type ComputeLinkMduAction = {
+  readonly kind: "use-mdu";
+  readonly mdu: number;
+};
+
+export interface ComputeLinkMduStepResult {
+  readonly state: ComputeLinkMduState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ComputeLinkMduAction[];
+}
+
+export function initialComputeLinkMduState(): ComputeLinkMduState {
+  return {};
+}
+
+export function stepComputeLinkMduWithActions(
+  state: ComputeLinkMduState,
+  event: ComputeLinkMduEvent
+): ComputeLinkMduStepResult {
+  if (event.kind === "link/mdu-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-mdu",
+          mdu: computeLinkMdu(event.mtu)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseLinkMdu(actions: ReadonlyArray<ComputeLinkMduAction>): boolean {
+  return actions.some((action) => action.kind === "use-mdu");
+}
+
+/** Extract MDU from step actions; null when no `use-mdu`. */
+export function linkMduFromActions(
+  actions: ReadonlyArray<ComputeLinkMduAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-mdu");
+  return action?.kind === "use-mdu" ? action.mdu : null;
 }
 
 /** Whether a packed payload fits within the link (or outlet) MDU. */

@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-15T00:34:40.307Z",
+  "generatedAt": "2026-07-15T00:48:29.275Z",
   "canaryProcedure": "Add `void Date.now();` to packages/protocol/src/echo.ts on a scratch branch, then run npm run sansio.",
   "layers": [
     {
       "name": "tsc-protocol",
       "command": "npm run build --workspace=@twistedpear/protocol",
       "catches": "Type errors for DOM/Node APIs when lib excludes them; Date.now itself remains typed via ES2022 Date",
-      "expectedOnDateNow": "miss (Date.now is in ES lib) \u2014 rely on eslint/ratchet/tripwire"
+      "expectedOnDateNow": "miss (Date.now is in ES lib) — rely on eslint/ratchet/tripwire"
     },
     {
       "name": "eslint",

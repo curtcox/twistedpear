@@ -3,6 +3,8 @@
  * No IO — time and bytes arrive only as event/parameters.
  * Path-request ingress / discovery fulfill / outbound / entry-lookup conclusions
  * leave via machine actions (no ad-hoc plan reads beside the step).
+ * Path random-blob append / expiry conclusions leave via machine actions (no
+ * ad-hoc `appendPathRandomBlob` / `computePathExpiry` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { TRUNCATED_HASH_BYTES } from "./hash-truncate.js";
@@ -568,6 +570,69 @@ export function shouldAddPathEntry(input: PathAddDecisionInput): boolean {
 
 export function computePathExpiry(nowSeconds: number): number {
   return nowSeconds + PATHFINDER_EXPIRY_SECONDS;
+}
+
+/**
+ * Path expiry computation is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `computePathExpiry`
+ * reads beside the step).
+ */
+export type ComputePathExpiryState = Record<string, never>;
+
+export type ComputePathExpiryEvent =
+  | Event
+  | {
+      readonly kind: "path/expiry-gate";
+      readonly nowSeconds: number;
+    };
+
+export type ComputePathExpiryAction = {
+  readonly kind: "use-expiry";
+  readonly expires: number;
+};
+
+export interface ComputePathExpiryStepResult {
+  readonly state: ComputePathExpiryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ComputePathExpiryAction[];
+}
+
+export function initialComputePathExpiryState(): ComputePathExpiryState {
+  return {};
+}
+
+export function stepComputePathExpiryWithActions(
+  state: ComputePathExpiryState,
+  event: ComputePathExpiryEvent
+): ComputePathExpiryStepResult {
+  if (event.kind === "path/expiry-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-expiry",
+          expires: computePathExpiry(event.nowSeconds)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePathExpiry(
+  actions: ReadonlyArray<ComputePathExpiryAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-expiry");
+}
+
+/** Extract path expiry instant from step actions; null when no `use-expiry`. */
+export function pathExpiryFromActions(
+  actions: ReadonlyArray<ComputePathExpiryAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-expiry");
+  return action?.kind === "use-expiry" ? action.expires : null;
 }
 
 /** True when a path-table entry is past its expiry instant. */

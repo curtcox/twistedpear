@@ -1,6 +1,9 @@
 /**
  * Pure link keepalive / stale / establishment-timeout watchdog.
  * Mirrors the scheduling decisions in reticulum-ts Link.watchdogTick without IO.
+ * Establishment / request timeout conclusions leave via machine actions (no
+ * ad-hoc `computeLinkEstablishmentTimeout` / `computeLinkRequestTimeout`
+ * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -126,6 +129,141 @@ export function computeLinkEstablishmentTimeout(
   keepalive: number = LINK_KEEPALIVE_DEFAULT
 ): number {
   return LINK_ESTABLISHMENT_TIMEOUT_PER_HOP * Math.max(1, hops) + keepalive;
+}
+
+/**
+ * Link establishment-timeout computation is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `computeLinkEstablishmentTimeout`
+ * reads beside the step).
+ */
+export type ComputeLinkEstablishmentTimeoutState = Record<string, never>;
+
+export type ComputeLinkEstablishmentTimeoutEvent =
+  | Event
+  | {
+      readonly kind: "link/establishment-timeout-gate";
+      readonly hops: number;
+      readonly keepalive?: number;
+    };
+
+export type ComputeLinkEstablishmentTimeoutAction = {
+  readonly kind: "use-timeout";
+  readonly timeout: number;
+};
+
+export interface ComputeLinkEstablishmentTimeoutStepResult {
+  readonly state: ComputeLinkEstablishmentTimeoutState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ComputeLinkEstablishmentTimeoutAction[];
+}
+
+export function initialComputeLinkEstablishmentTimeoutState(): ComputeLinkEstablishmentTimeoutState {
+  return {};
+}
+
+export function stepComputeLinkEstablishmentTimeoutWithActions(
+  state: ComputeLinkEstablishmentTimeoutState,
+  event: ComputeLinkEstablishmentTimeoutEvent
+): ComputeLinkEstablishmentTimeoutStepResult {
+  if (event.kind === "link/establishment-timeout-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-timeout",
+          timeout: computeLinkEstablishmentTimeout(event.hops, event.keepalive)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseLinkEstablishmentTimeout(
+  actions: ReadonlyArray<ComputeLinkEstablishmentTimeoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-timeout");
+}
+
+/** Extract establishment timeout from step actions; null when no `use-timeout`. */
+export function linkEstablishmentTimeoutFromActions(
+  actions: ReadonlyArray<ComputeLinkEstablishmentTimeoutAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-timeout");
+  return action?.kind === "use-timeout" ? action.timeout : null;
+}
+
+/**
+ * Link request-timeout computation is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `computeLinkRequestTimeout`
+ * reads beside the step).
+ */
+export type ComputeLinkRequestTimeoutState = Record<string, never>;
+
+export type ComputeLinkRequestTimeoutEvent =
+  | Event
+  | {
+      readonly kind: "link/request-timeout-gate";
+      readonly rtt: number;
+      readonly trafficTimeoutFactor?: number;
+      readonly responseMaxGraceTime?: number;
+      readonly graceFactor?: number;
+    };
+
+export type ComputeLinkRequestTimeoutAction = {
+  readonly kind: "use-timeout";
+  readonly timeout: number;
+};
+
+export interface ComputeLinkRequestTimeoutStepResult {
+  readonly state: ComputeLinkRequestTimeoutState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ComputeLinkRequestTimeoutAction[];
+}
+
+export function initialComputeLinkRequestTimeoutState(): ComputeLinkRequestTimeoutState {
+  return {};
+}
+
+export function stepComputeLinkRequestTimeoutWithActions(
+  state: ComputeLinkRequestTimeoutState,
+  event: ComputeLinkRequestTimeoutEvent
+): ComputeLinkRequestTimeoutStepResult {
+  if (event.kind === "link/request-timeout-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-timeout",
+          timeout: computeLinkRequestTimeout(
+            event.rtt,
+            event.trafficTimeoutFactor,
+            event.responseMaxGraceTime,
+            event.graceFactor
+          )
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseLinkRequestTimeout(
+  actions: ReadonlyArray<ComputeLinkRequestTimeoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-timeout");
+}
+
+/** Extract request timeout from step actions; null when no `use-timeout`. */
+export function linkRequestTimeoutFromActions(
+  actions: ReadonlyArray<ComputeLinkRequestTimeoutAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-timeout");
+  return action?.kind === "use-timeout" ? action.timeout : null;
 }
 
 export const stepLinkWatchdog: StepFn<LinkWatchdogState> = (state, event) => {

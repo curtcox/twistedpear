@@ -12,19 +12,22 @@ import {
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
   appendPathRandomBlobFieldsFromActions,
   canEmitDestinationProof,
-  computePathExpiry,
   isPathEntryExpired,
   aspectFilterFromActions,
   initialParseAspectFilterState,
   shouldRejectParseAspectFilter,
   shouldUseAppendPathRandomBlob,
   shouldUseParseAspectFilter,
+  shouldUsePathExpiry,
   stepAppendPathRandomBlobWithActions,
+  stepComputePathExpiryWithActions,
   stepParseAspectFilterWithActions,
   clonePacketWithHopsFieldsFromActions,
   initialClonePacketWithHopsState,
+  initialComputePathExpiryState,
   initialPathResponseAnnounceFieldsState,
   initialTransportAnnounceFieldsState,
+  pathExpiryFromActions,
   pathResponseAnnounceFieldsFromActions,
   shouldUseClonePacketWithHops,
   shouldUsePathResponseAnnounceFields,
@@ -748,11 +751,22 @@ export class LeafTransport {
       return;
     }
 
+    const expiryStepped = stepComputePathExpiryWithActions(initialComputePathExpiryState(), {
+      kind: "path/expiry-gate",
+      nowSeconds: now
+    });
+    const expires = shouldUsePathExpiry(expiryStepped.actions)
+      ? pathExpiryFromActions(expiryStepped.actions)
+      : null;
+    if (expires === null) {
+      return;
+    }
+
     const entry: PathEntry = {
       timestamp: now,
       nextHop: Uint8Array.from(receivedFrom),
       hops: packet.hops,
-      expires: computePathExpiry(now),
+      expires,
       randomBlobs,
       receivedInterface: iface,
       packetHash: packet.hash(),

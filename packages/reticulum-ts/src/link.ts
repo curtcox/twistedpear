@@ -36,15 +36,15 @@ import {
   canResendLinkPacket,
   canUpdateLinkKeepalive,
   canValidateLinkProof,
-  computeLinkEstablishmentTimeout,
-  computeLinkMdu,
-  computeLinkRequestTimeout,
-  computeLinkRttSeconds,
   deriveRnsLinkKeyRawFromActions,
-  initialContainsResourceHashState,
   encodeLinkMtuBytesRawFromActions,
   encodeLinkSignallingBytesRawFromActions,
   indexOfPendingLinkAppRequest,
+  initialComputeLinkEstablishmentTimeoutState,
+  initialComputeLinkMduState,
+  initialComputeLinkRequestTimeoutState,
+  initialComputeLinkRttSecondsState,
+  initialContainsResourceHashState,
   initialLinkAppRequestInboundState,
   initialLinkEstablishState,
   initialLinkIdentifyState,
@@ -53,17 +53,22 @@ import {
   initialLinkTeardownState,
   initialLinkTokenAccessState,
   initialLinkValidateRequestState,
+  initialMergeLinkRttState,
   isLinkClosed,
   isExpectedLinkMode,
   isLinkModeEnabled,
   linkEstablishActivatedAction,
+  linkEstablishmentTimeoutFromActions,
   linkIdentifySignedMaterialRawFromActions,
+  linkMduFromActions,
   linkProofSignedMaterialRawFromActions,
   linkReadyForNewResource,
   linkRequestHashablePartRawFromActions,
+  linkRequestTimeoutFromActions,
+  linkRttSecondsFromActions,
   linkTeardownRemoteCloseAction,
   linkTeardownSendThenCloseAction,
-  mergeLinkRtt,
+  mergeLinkRttFromActions,
   modeFromLinkProofDataFromActions,
   modeFromLinkRequestDataFromActions,
   msgpackFloatFromActions,
@@ -131,10 +136,15 @@ import {
   shouldUseEncodeLinkMtuBytes,
   shouldUseEncodeLinkSignallingBytes,
   shouldMatchLinkHops,
+  shouldUseLinkEstablishmentTimeout,
   shouldUseLinkInitiatorMtu,
+  shouldUseLinkMdu,
   shouldUseLinkProofSignedMaterial,
   shouldUseLinkRequestHashablePart,
   shouldUseLinkRequestResponderMtu,
+  shouldUseLinkRequestTimeout,
+  shouldUseLinkRttSeconds,
+  shouldUseMergeLinkRtt,
   shouldUseModeFromLinkProofData,
   shouldUseModeFromLinkRequestData,
   shouldUseMtuFromLinkProofData,
@@ -156,10 +166,15 @@ import {
   shouldUseUnpackMsgpackFloat,
   stepClassifyLinkKeepaliveWithActions,
   stepClassifyLinkProofPayloadWithActions,
+  stepComputeLinkEstablishmentTimeoutWithActions,
+  stepComputeLinkMduWithActions,
+  stepComputeLinkRequestTimeoutWithActions,
+  stepComputeLinkRttSecondsWithActions,
   stepEncodeLinkMtuBytesWithActions,
   stepEncodeLinkSignallingBytesWithActions,
   stepLinkProofSignedMaterialWithActions,
   stepLinkRequestHashablePartWithActions,
+  stepMergeLinkRttWithActions,
   stepModeFromLinkProofDataWithActions,
   stepModeFromLinkRequestDataWithActions,
   stepMtuFromLinkProofDataWithActions,
@@ -405,6 +420,83 @@ export interface LinkSendContextResult {
   readonly receipt: PacketReceipt | null;
 }
 
+function linkEstablishmentTimeoutForHops(hops: number, keepalive = LINK_KEEPALIVE): number {
+  const stepped = stepComputeLinkEstablishmentTimeoutWithActions(
+    initialComputeLinkEstablishmentTimeoutState(),
+    {
+      kind: "link/establishment-timeout-gate",
+      hops,
+      keepalive
+    }
+  );
+  const timeout = shouldUseLinkEstablishmentTimeout(stepped.actions)
+    ? linkEstablishmentTimeoutFromActions(stepped.actions)
+    : null;
+  if (timeout === null) {
+    throw new Error("Link: missing use-timeout action for establishment timeout");
+  }
+  return timeout;
+}
+
+function linkRttSecondsForRequest(nowSeconds: number, requestTimeSeconds: number): number {
+  const stepped = stepComputeLinkRttSecondsWithActions(initialComputeLinkRttSecondsState(), {
+    kind: "link/rtt-seconds-gate",
+    nowSeconds,
+    requestTimeSeconds
+  });
+  const rtt = shouldUseLinkRttSeconds(stepped.actions)
+    ? linkRttSecondsFromActions(stepped.actions)
+    : null;
+  if (rtt === null) {
+    throw new Error("Link: missing use-rtt action for RTT seconds");
+  }
+  return rtt;
+}
+
+function mergedLinkRtt(measuredSeconds: number, remoteSeconds: number): number {
+  const stepped = stepMergeLinkRttWithActions(initialMergeLinkRttState(), {
+    kind: "link/merge-rtt-gate",
+    measuredSeconds,
+    remoteSeconds
+  });
+  const rtt = shouldUseMergeLinkRtt(stepped.actions)
+    ? mergeLinkRttFromActions(stepped.actions)
+    : null;
+  if (rtt === null) {
+    throw new Error("Link: missing use-rtt action for merged RTT");
+  }
+  return rtt;
+}
+
+function linkRequestTimeoutForRtt(rtt: number): number {
+  const stepped = stepComputeLinkRequestTimeoutWithActions(
+    initialComputeLinkRequestTimeoutState(),
+    {
+      kind: "link/request-timeout-gate",
+      rtt
+    }
+  );
+  const timeout = shouldUseLinkRequestTimeout(stepped.actions)
+    ? linkRequestTimeoutFromActions(stepped.actions)
+    : null;
+  if (timeout === null) {
+    throw new Error("Link: missing use-timeout action for request timeout");
+  }
+  return timeout;
+}
+
+function linkMduForMtu(mtu: number): number {
+  const stepped = stepComputeLinkMduWithActions(initialComputeLinkMduState(), {
+    kind: "link/mdu-gate",
+    mtu
+  });
+  const mdu = shouldUseLinkMdu(stepped.actions) ? linkMduFromActions(stepped.actions) : null;
+  if (mdu === null) {
+    throw new Error("Link: missing use-mdu action");
+  }
+  return mdu;
+}
+
 /** Mirrors RNS/Link.py link establishment and encrypted sessions. */
 export class Link {
   readonly type = DestinationType.LINK;
@@ -430,7 +522,7 @@ export class Link {
   lastData = 0;
   keepalive = LINK_KEEPALIVE;
   staleTime = LINK_KEEPALIVE * LINK_STALE_FACTOR;
-  establishmentTimeout = computeLinkEstablishmentTimeout(1, LINK_KEEPALIVE);
+  establishmentTimeout = linkEstablishmentTimeoutForHops(1, LINK_KEEPALIVE);
   teardownReason: LinkTeardownReasonValue | null = null;
   remoteIdentity: Identity | null = null;
   mode: LinkModeValue = LINK_MODE_DEFAULT;
@@ -516,7 +608,7 @@ export class Link {
     );
     link.expectedHops = options.transport.hopsTo(destination.hash);
     link.requestTime = options.transport.clock.now() / 1000;
-    link.establishmentTimeout = computeLinkEstablishmentTimeout(
+    link.establishmentTimeout = linkEstablishmentTimeoutForHops(
       link.expectedHops ?? 1,
       LINK_KEEPALIVE
     );
@@ -668,7 +760,7 @@ export class Link {
       link.handshake();
       link.requestTime = transport.clock.now() / 1000;
       link.lastInbound = link.requestTime;
-      link.establishmentTimeout = computeLinkEstablishmentTimeout(packet.hops, LINK_KEEPALIVE);
+      link.establishmentTimeout = linkEstablishmentTimeoutForHops(packet.hops, LINK_KEEPALIVE);
       transport.registerLink(link);
       link.startWatchdog();
       void link.prove();
@@ -1010,7 +1102,7 @@ export class Link {
           {
             kind: "establish/activated",
             atSeconds: nowSeconds,
-            rtt: computeLinkRttSeconds(nowSeconds, this.requestTime)
+            rtt: linkRttSecondsForRequest(nowSeconds, this.requestTime)
           }
         ).actions,
         {
@@ -1065,7 +1157,7 @@ export class Link {
 
     if (shouldAcceptLinkEstablishRtt(actions)) {
       try {
-        const measuredRtt = computeLinkRttSeconds(this.clock.now() / 1000, this.requestTime);
+        const measuredRtt = linkRttSecondsForRequest(this.clock.now() / 1000, this.requestTime);
         const unpackRtt = stepUnpackMsgpackFloatWithActions(initialUnpackMsgpackFloatState(), {
           kind: "msgpack-float/unpack-gate",
           bytes: context?.rttPlaintext!
@@ -1087,7 +1179,7 @@ export class Link {
             {
               kind: "establish/activated",
               atSeconds: nowSeconds,
-              rtt: mergeLinkRtt(measuredRtt, remoteRtt)
+              rtt: mergedLinkRtt(measuredRtt, remoteRtt)
             }
           ).actions
         );
@@ -1385,7 +1477,7 @@ export class Link {
     if (packedRequest === null) {
       return false;
     }
-    const timeout = options.timeout ?? computeLinkRequestTimeout(this.rtt!);
+    const timeout = options.timeout ?? linkRequestTimeoutForRtt(this.rtt!);
 
     const appRequestStepped = stepLinkAppRequestWithActions(initialLinkAppRequestState(), {
       kind: "link/app-request-gate",
@@ -1623,7 +1715,7 @@ export class Link {
   }
 
   updateMdu(): void {
-    this.mdu = computeLinkMdu(this.mtu);
+    this.mdu = linkMduForMtu(this.mtu);
   }
 
   hadOutbound(isKeepalive = false): void {

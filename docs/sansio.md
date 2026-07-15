@@ -196,7 +196,9 @@
 > adapters use them. Shared `hexToBytesLower` lives with destination-name
 > helpers. **Identity recall** / **recall-app-data** (via
 > **`stepIdentityRecallWithActions`** / **`stepIdentityRecallAppDataWithActions`**)
-> are pure protocol leaves; `Identity` adapts them. **Link establishment timeout** (`computeLinkEstablishmentTimeout`) and **LXMF
+> are pure protocol leaves; `Identity` adapts them. **Link establishment timeout**
+> (`computeLinkEstablishmentTimeout` via **`stepComputeLinkEstablishmentTimeoutWithActions`**:
+> use-timeout; **`stepComputeLinkRequestTimeoutWithActions`**: use-timeout) and **LXMF
 > inbound delivery framing** (opportunistic rebuild + destination-prefixed pack/split
 > via **`stepLxmfInboundDeliveryWithActions`** /
 > **`stepPackLxmfDestinationPrefixedWithActions`** /
@@ -322,8 +324,9 @@
 > **`indexOfChannelRingSequence`**
 > lives in protocol; Channel RX drain adapts it. **`applyResourceHashmapSlotWrites`** lives in
 > protocol; `Resource.hashmapUpdate` adapts it. **`appendPathRandomBlob`** (via
-> **`stepAppendPathRandomBlobWithActions`**: use-fields) lives in protocol;
-> path-table announce update adapts it. **`parseAspectFilter`** lives in protocol; announce-handler
+> **`stepAppendPathRandomBlobWithActions`**: use-fields) and **`computePathExpiry`**
+> (via **`stepComputePathExpiryWithActions`**: use-expiry) live in protocol;
+> path-table announce update adapts them. **`parseAspectFilter`** lives in protocol; announce-handler
 > matching adapts it (SHA stays at the edge). **`shouldReceiveAnnouncePathResponse`** lives in
 > protocol; announce-handler PATH_RESPONSE opt-in adapts it. **`planAnnounceIngressGates`**
 > (rate-limit / record / rebroadcast for PATH_RESPONSE) lives in protocol; `TransportNode`
@@ -902,7 +905,9 @@
 > pending-link-request-unregister / stream-ready-callback-unregister /
 > packet-receipt-unregister / transport-member-unregister /
 > link-initiator-mtu / link-request-responder-mtu / link-hops-match /
-> assemble-byte-arrays / append-path-random-blob /
+> compute-link-mdu / compute-link-establishment-timeout /
+> compute-link-request-timeout / compute-link-rtt-seconds / merge-link-rtt /
+> assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
 > decode-resource-advertisement-flags / classify-resource-advertisement /
@@ -1066,8 +1071,19 @@
 > step).
 > **`stepLinkInitiatorMtuWithActions`** / **`stepLinkRequestResponderMtuWithActions`**
 > emit `use-mtu`; Link establish applies MTU only from those actions.
+> **`stepComputeLinkMduWithActions`** emits `use-mdu`; `Link.updateMdu` applies only
+> from those actions (no ad-hoc `computeLinkMdu` reads beside the step).
 > **`stepLinkHopsMatchWithActions`** emits `match`|`mismatch`; `Link.hopsMatch`
 > applies only from those actions (no ad-hoc `linkHopsMatch` reads beside the
+> step).
+> **`stepComputeLinkEstablishmentTimeoutWithActions`** /
+> **`stepComputeLinkRequestTimeoutWithActions`** emit `use-timeout`; Link
+> establishment / app-request timeouts apply only from those actions (no
+> ad-hoc `computeLinkEstablishmentTimeout` / `computeLinkRequestTimeout` reads
+> beside the step).
+> **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
+> emit `use-rtt`; Link establish RTT measure / merge apply only from those
+> actions (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the
 > step).
 > **`stepAssembleByteArraysWithActions`** emits `use-raw`; `Resource.assemble`
 > applies only from those actions (no ad-hoc `assembleByteArrays` reads beside
@@ -1075,13 +1091,18 @@
 > **`stepAppendPathRandomBlobWithActions`** emits `use-fields`; path-table
 > announce update applies only from those actions (no ad-hoc
 > `appendPathRandomBlob` reads beside the step).
+> **`stepComputePathExpiryWithActions`** emits `use-expiry`; path-table announce
+> update applies only from those actions (no ad-hoc `computePathExpiry` reads
+> beside the step).
 > **`stepPacketHashDeferWithActions`** emits `defer` / `remember-now`;
 > transport ingress hash deferral applies only from those actions.
 > **`stepResourceAdvertisementRoleFlagsWithActions`** emits `use-flags`;
 > **`stepResourceHashmapSlotWritesWithActions`** emits `write` (per slot);
 > Resource advertisement + hashmap-update apply only from those actions
 > (no ad-hoc `planLinkInitiatorMtu` / `planLinkRequestResponderMtu` /
-> `linkHopsMatch` / `shouldDeferPacketHash` /
+> `linkHopsMatch` / `computeLinkMdu` / `computeLinkEstablishmentTimeout` /
+> `computeLinkRequestTimeout` / `computeLinkRttSeconds` / `mergeLinkRtt` /
+> `computePathExpiry` / `shouldDeferPacketHash` /
 > `planResourceAdvertisementRoleFlags` /
 > `planResourceHashmapSlotWrites` reads beside the step).
 > **`stepClonePacketWithHopsWithActions`** / **`stepTransportAnnounceFieldsWithActions`** /
@@ -1283,6 +1304,19 @@
 > **`stepAppendPathRandomBlobWithActions`** emits `use-fields`; TransportNode
 > path-table announce update applies only from those actions (no ad-hoc
 > `appendPathRandomBlob` reads beside the step).
+> **`stepComputePathExpiryWithActions`** emits `use-expiry`; TransportNode
+> path-table announce update applies only from those actions (no ad-hoc
+> `computePathExpiry` reads beside the step).
+> **`stepComputeLinkEstablishmentTimeoutWithActions`** /
+> **`stepComputeLinkRequestTimeoutWithActions`** emit `use-timeout`; Link
+> establishment / request timeouts apply only from those actions (no ad-hoc
+> `computeLinkEstablishmentTimeout` / `computeLinkRequestTimeout` reads beside
+> the step).
+> **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
+> emit `use-rtt`; Link establish RTT apply only from those actions (no ad-hoc
+> `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the step).
+> **`stepComputeLinkMduWithActions`** emits `use-mdu`; `Link.updateMdu` applies
+> only from those actions (no ad-hoc `computeLinkMdu` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

@@ -13,9 +13,14 @@ import {
   announceEmittedFromRandomBlob,
   appendPathRandomBlob,
   appendPathRandomBlobFieldsFromActions,
+  computePathExpiry,
   initialAppendPathRandomBlobState,
+  initialComputePathExpiryState,
   shouldUseAppendPathRandomBlob,
+  shouldUsePathExpiry,
   stepAppendPathRandomBlobWithActions,
+  stepComputePathExpiryWithActions,
+  pathExpiryFromActions,
   discoveryPathRequestFulfillFromActions,
   initialDiscoveryPathRequestFulfillState,
   initialPathEntryLookupState,
@@ -187,6 +192,21 @@ describe("protocol path table", () => {
     } as never);
     expect(shouldUseAppendPathRandomBlob(empty.actions)).toBe(false);
     expect(appendPathRandomBlobFieldsFromActions(empty.actions)).toBeNull();
+  });
+
+  it("emits path expiry only from use-expiry actions", () => {
+    const stepped = stepComputePathExpiryWithActions(initialComputePathExpiryState(), {
+      kind: "path/expiry-gate",
+      nowSeconds: 100
+    });
+    expect(shouldUsePathExpiry(stepped.actions)).toBe(true);
+    expect(pathExpiryFromActions(stepped.actions)).toBe(computePathExpiry(100));
+
+    const empty = stepComputePathExpiryWithActions(initialComputePathExpiryState(), {
+      kind: "noop"
+    } as never);
+    expect(shouldUsePathExpiry(empty.actions)).toBe(false);
+    expect(pathExpiryFromActions(empty.actions)).toBeNull();
   });
 
   it("plans wrap, direct, and flood outbound kinds", () => {

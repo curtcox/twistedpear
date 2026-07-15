@@ -9,7 +9,15 @@ import {
   computeKeepalive,
   computeLinkEstablishmentTimeout,
   computeLinkRequestTimeout,
+  initialComputeLinkEstablishmentTimeoutState,
+  initialComputeLinkRequestTimeoutState,
   initialLinkWatchdogState,
+  linkEstablishmentTimeoutFromActions,
+  linkRequestTimeoutFromActions,
+  shouldUseLinkEstablishmentTimeout,
+  shouldUseLinkRequestTimeout,
+  stepComputeLinkEstablishmentTimeoutWithActions,
+  stepComputeLinkRequestTimeoutWithActions,
   stepLinkWatchdogWithActions
 } from "../src/link-watchdog.js";
 
@@ -25,10 +33,50 @@ describe("protocol link watchdog", () => {
     expect(computeLinkEstablishmentTimeout(0)).toBe(366);
   });
 
+  it("emits establishment timeout only from use-timeout actions", () => {
+    const stepped = stepComputeLinkEstablishmentTimeoutWithActions(
+      initialComputeLinkEstablishmentTimeoutState(),
+      {
+        kind: "link/establishment-timeout-gate",
+        hops: 3
+      }
+    );
+    expect(shouldUseLinkEstablishmentTimeout(stepped.actions)).toBe(true);
+    expect(linkEstablishmentTimeoutFromActions(stepped.actions)).toBe(
+      computeLinkEstablishmentTimeout(3)
+    );
+
+    const empty = stepComputeLinkEstablishmentTimeoutWithActions(
+      initialComputeLinkEstablishmentTimeoutState(),
+      { kind: "noop" } as never
+    );
+    expect(shouldUseLinkEstablishmentTimeout(empty.actions)).toBe(false);
+    expect(linkEstablishmentTimeoutFromActions(empty.actions)).toBeNull();
+  });
+
   it("computes link request timeout from rtt", () => {
     expect(computeLinkRequestTimeout(1)).toBe(
       LINK_TRAFFIC_TIMEOUT_FACTOR + LINK_RESPONSE_MAX_GRACE_TIME * 1.125
     );
+  });
+
+  it("emits request timeout only from use-timeout actions", () => {
+    const stepped = stepComputeLinkRequestTimeoutWithActions(
+      initialComputeLinkRequestTimeoutState(),
+      {
+        kind: "link/request-timeout-gate",
+        rtt: 1
+      }
+    );
+    expect(shouldUseLinkRequestTimeout(stepped.actions)).toBe(true);
+    expect(linkRequestTimeoutFromActions(stepped.actions)).toBe(computeLinkRequestTimeout(1));
+
+    const empty = stepComputeLinkRequestTimeoutWithActions(
+      initialComputeLinkRequestTimeoutState(),
+      { kind: "noop" } as never
+    );
+    expect(shouldUseLinkRequestTimeout(empty.actions)).toBe(false);
+    expect(linkRequestTimeoutFromActions(empty.actions)).toBeNull();
   });
 
   it("exposes traffic timeout and resource strategy constants", () => {
