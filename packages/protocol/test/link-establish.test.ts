@@ -113,6 +113,7 @@ import {
   canValidateLinkProof,
   computeLinkRttSeconds,
   initialComputeLinkRttSecondsState,
+  initialLinkActivateMembershipPlanState,
   initialLinkActivateMembershipState,
   initialLinkAppRequestDispatchState,
   initialLinkAppRequestInboundState,
@@ -124,11 +125,13 @@ import {
   initialLinkEstablishState,
   initialLinkProofValidateState,
   initialLinkProofValidateOutcomePlanState,
+  initialLinkRegisterListPlanState,
   initialLinkRegisterListState,
   initialRegisterLinkMemberState,
   initialLinkRttOutcomePlanState,
   initialLinkTokenAccessPlanState,
   initialLinkTokenAccessState,
+  initialLinkUnregisterMembershipPlanState,
   initialLinkUnregisterMembershipState,
   initialLinkValidateRequestPlanState,
   initialLinkValidateRequestState,
@@ -144,10 +147,13 @@ import {
   linkAppRequestTransmitOutcomePlanFromActions,
   linkEstablishActivatedAction,
   linkProofValidateOutcomePlanFromActions,
+  linkActivateMembershipPlanFromActions,
   linkRegisterListFromActions,
+  linkRegisterListPlanFromActions,
   linkRttOutcomePlanFromActions,
   linkRttSecondsFromActions,
   linkTokenAccessPlanFromActions,
+  linkUnregisterMembershipPlanFromActions,
   linkValidateRequestPlanFromActions,
   mergeLinkRtt,
   mergeLinkRttFromActions,
@@ -203,9 +209,11 @@ import {
   shouldOwnerMissingIdentityLinkValidateRequestPlan,
   shouldProceedLinkValidateRequest,
   shouldRegisterLinkActive,
+  shouldRegisterLinkActivePlan,
   shouldRegisterLinkMember,
   shouldRegisterLinkMemberNow,
   shouldRegisterLinkPending,
+  shouldRegisterLinkPendingPlan,
   shouldRejectLinkAppRequest,
   shouldRejectLinkAppRequestInboundTooBig,
   shouldRejectLinkAppRequestPlan,
@@ -246,6 +254,7 @@ import {
   stepComputeLinkRttSecondsWithActions,
   stepContinueLinkValidateRequestWithActions,
   stepInvokeLinkAppRequestHandlerWithActions,
+  stepLinkActivateMembershipPlanWithActions,
   stepLinkActivateMembershipWithActions,
   stepLinkAppRequestDispatchWithActions,
   stepLinkAppRequestInbound,
@@ -259,12 +268,14 @@ import {
   stepLinkEstablishWithActions,
   stepLinkProofValidateOutcomePlanWithActions,
   stepLinkProofValidateWithActions,
+  stepLinkRegisterListPlanWithActions,
   stepLinkRegisterListWithActions,
   stepLinkRttOutcomePlanWithActions,
   stepRegisterLinkMemberWithActions,
   stepSendLinkAppRequestResponseWithActions,
   stepLinkTokenAccessPlanWithActions,
   stepLinkTokenAccessWithActions,
+  stepLinkUnregisterMembershipPlanWithActions,
   stepLinkUnregisterMembershipWithActions,
   stepLinkValidateRequestPlanWithActions,
   stepLinkValidateRequestWithActions,
@@ -1728,6 +1739,13 @@ describe("protocol link establish", () => {
   });
 
   it("emits register / membership / app-request actions from gate steps", () => {
+    const pendingPlan = stepLinkRegisterListPlanWithActions(initialLinkRegisterListPlanState(), {
+      kind: "link/register-list-plan-gate",
+      initiator: true
+    });
+    expect(linkRegisterListPlanFromActions(pendingPlan.actions)).toBe("pending");
+    expect(shouldRegisterLinkPendingPlan(pendingPlan.actions)).toBe(true);
+
     const pending = stepLinkRegisterListWithActions(initialLinkRegisterListState(), {
       kind: "link/register-list-gate",
       initiator: true
@@ -1735,11 +1753,31 @@ describe("protocol link establish", () => {
     expect(linkRegisterListFromActions(pending.actions)).toBe("pending");
     expect(shouldRegisterLinkPending(pending.actions)).toBe(true);
 
+    const activePlan = stepLinkRegisterListPlanWithActions(initialLinkRegisterListPlanState(), {
+      kind: "link/register-list-plan-gate",
+      initiator: false
+    });
+    expect(shouldRegisterLinkActivePlan(activePlan.actions)).toBe(true);
+    expect(linkRegisterListPlanFromActions(activePlan.actions)).toBe("active");
+
     const active = stepLinkRegisterListWithActions(initialLinkRegisterListState(), {
       kind: "link/register-list-gate",
       initiator: false
     });
     expect(shouldRegisterLinkActive(active.actions)).toBe(true);
+
+    const activatePlan = stepLinkActivateMembershipPlanWithActions(
+      initialLinkActivateMembershipPlanState(),
+      {
+        kind: "link/activate-membership-plan-gate",
+        pendingIndex: 2,
+        alreadyActive: false
+      }
+    );
+    expect(linkActivateMembershipPlanFromActions(activatePlan.actions)).toEqual({
+      removePendingIndex: 2,
+      appendActive: true
+    });
 
     const activate = stepLinkActivateMembershipWithActions(initialLinkActivateMembershipState(), {
       kind: "link/activate-membership-gate",
@@ -1749,6 +1787,19 @@ describe("protocol link establish", () => {
     expect(pendingLinkMembershipRemoveIndex(activate.actions)).toBe(2);
     expect(shouldRemovePendingLinkMembershipActions(activate.actions)).toBe(true);
     expect(shouldAppendActiveLinkMembershipActions(activate.actions)).toBe(true);
+
+    const unregisterMembershipPlan = stepLinkUnregisterMembershipPlanWithActions(
+      initialLinkUnregisterMembershipPlanState(),
+      {
+        kind: "link/unregister-membership-plan-gate",
+        pendingIndex: 0,
+        activeIndex: 3
+      }
+    );
+    expect(linkUnregisterMembershipPlanFromActions(unregisterMembershipPlan.actions)).toEqual({
+      removePendingIndex: 0,
+      removeActiveIndex: 3
+    });
 
     const unregister = stepLinkUnregisterMembershipWithActions(
       initialLinkUnregisterMembershipState(),

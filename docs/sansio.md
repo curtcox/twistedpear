@@ -136,10 +136,18 @@
 > complete|ignore — nested under resource-proof-accept;
 > **`stepResourceAdvertisePhasePlanWithActions`**: queue|advertise — nested
 > under resource-advertise-wait),
-> **Link app-request / app-request-transmit-outcome plans** (via
+> **Link app-request / app-request-transmit-outcome / link-register-list /
+> link-activate-membership / link-unregister-membership /
+> link-resource-conclude plans** (via
 > **`stepLinkAppRequestPlanWithActions`**: send|reject — nested under
 > link-app-request; **`stepLinkAppRequestTransmitOutcomePlanWithActions`**:
-> keep-pending|unregister — nested under link-app-request-transmit),
+> keep-pending|unregister — nested under link-app-request-transmit;
+> **`stepLinkRegisterListPlanWithActions`**: pending|active — nested under
+> link-register-list; **`stepLinkActivateMembershipPlanWithActions`**: plan —
+> nested under link-activate-membership; **`stepLinkUnregisterMembershipPlanWithActions`**:
+> plan — nested under link-unregister-membership;
+> **`stepLinkResourceConcludePlanWithActions`**: plan — nested under
+> link-resource-conclude),
 > **Path-request ingress / path-outbound / discovery-fulfill / path-entry-lookup /
 > transport-ingress-dispatch / link-data-ingress-target / link-relay-target /
 > reverse-relay-outcome / packet-hash-remember / local-plain-data-delivery /
@@ -418,6 +426,14 @@
 > (nested under link-app-request) /
 > **`stepLinkAppRequestTransmitOutcomePlanWithActions`**: keep-pending|unregister
 > (nested under link-app-request-transmit) /
+> **`stepLinkRegisterListPlanWithActions`**: pending|active
+> (nested under link-register-list) /
+> **`stepLinkActivateMembershipPlanWithActions`**: plan
+> (nested under link-activate-membership) /
+> **`stepLinkUnregisterMembershipPlanWithActions`**: plan
+> (nested under link-unregister-membership) /
+> **`stepLinkResourceConcludePlanWithActions`**: plan
+> (nested under link-resource-conclude) /
 > **`stepPathRequestIngressPlanWithActions`**: ignore-unparsed|ignore-seen-tag|
 > answer-local|answer-path|ignore|ignore-in-flight-discovery|start-discovery
 > (nested under path-request-ingress) /
@@ -1306,7 +1322,8 @@
 > clear / set; plan nested via **`stepPacketReceiptCallbackPlanWithActions`**:
 > clear|set) live in
 > protocol; transport sendPacket / receipt proofs adapt them. **`planLinkRegisterList`**
-> (via **`stepLinkRegisterListWithActions`**: pending / active),
+> (via **`stepLinkRegisterListWithActions`**: pending / active; plan nested via
+> **`stepLinkRegisterListPlanWithActions`**: pending|active),
 > **`indexOfMatchingLinkId`** (via
 > **`stepIndexOfMatchingLinkIdWithActions`**: use-index|miss) /
 > **`planLinkDataIngressTarget`** (via
@@ -1337,15 +1354,19 @@
 > protocol; `Resource` + `Link` adapt them. **`shouldRegisterLinkMember`** (via
 > **`stepRegisterLinkMemberWithActions`**: register|skip),
 > **`planLinkActivateMembership`** (via **`stepLinkActivateMembershipWithActions`**:
-> remove-pending / append-active), and **`planLinkUnregisterMembership`** (via
-> **`stepLinkUnregisterMembershipWithActions`**: remove-pending / remove-active) live in
+> remove-pending / append-active; plan nested via
+> **`stepLinkActivateMembershipPlanWithActions`**), and **`planLinkUnregisterMembership`** (via
+> **`stepLinkUnregisterMembershipWithActions`**: remove-pending / remove-active; plan nested via
+> **`stepLinkUnregisterMembershipPlanWithActions`**) live in
 > protocol; transport link register/activate/unregister adapt them.
 > **`shouldRegisterLinkResource`** (via **`stepRegisterLinkResourceWithActions`**: register|skip) /
 > **`shouldHandleOutgoingResourceRequest`** (via
 > **`stepHandleOutgoingResourceRequestWithActions`**: handle|skip) /
 > **`shouldHandleIncomingResourceByHash`** (via
 > **`stepHandleIncomingResourceByHashWithActions`**: handle|skip) /
-> **`planLinkResourceConclude`** and
+> **`planLinkResourceConclude`** (via **`stepLinkResourceConcludeWithActions`**:
+> remove-outgoing / remove-incoming; plan nested via
+> **`stepLinkResourceConcludePlanWithActions`**) and
 > **`shouldRegisterPendingLinkRequest`** (via
 > **`stepPendingLinkRequestRegisterWithActions`**: register|skip) /
 > **`planUnregisterPendingLinkRequest`** (via
@@ -2000,10 +2021,14 @@
 > `identify` / `request` / `response` / `channel` / `resource-*` /
 > `plaintext` / `ignore`; `Link.receive` DATA dispatch applies only from
 > those actions (no ad-hoc `planLinkDataContext` reads beside the step).
-> **`stepLinkRegisterListWithActions`** emits `pending` / `active`;
+> **`stepLinkRegisterListWithActions`** emits `pending` / `active` (plan nested via
+> **`stepLinkRegisterListPlanWithActions`**: pending|active);
 > **`stepLinkActivateMembershipWithActions`** emits `remove-pending` /
-> `append-active`; **`stepLinkUnregisterMembershipWithActions`** emits
-> `remove-pending` / `remove-active`; **`stepLinkAppRequestWithActions`**
+> `append-active` (plan nested via **`stepLinkActivateMembershipPlanWithActions`**);
+> **`stepLinkUnregisterMembershipWithActions`** emits
+> `remove-pending` / `remove-active` (plan nested via
+> **`stepLinkUnregisterMembershipPlanWithActions`**);
+> **`stepLinkAppRequestWithActions`**
 > emits `send` / `reject` (plan nested via
 > **`stepLinkAppRequestPlanWithActions`**: `send`|`reject`);
 > **`stepLinkAppRequestTransmitWithActions`** emits
@@ -2039,7 +2064,8 @@
 > **`stepDispatchResourceProofToLinkWithActions`** emits `dispatch`|`skip`;
 > **`stepRegisterTransportMemberWithActions`** emits `register`|`skip`;
 > **`stepLinkResourceConcludeWithActions`**
-> emits `remove-outgoing` / `remove-incoming`;
+> emits `remove-outgoing` / `remove-incoming` (plan nested via
+> **`stepLinkResourceConcludePlanWithActions`**);
 > **`stepPacketReceiptProofAcceptWithActions`** emits `accept` / `reject`;
 > **`stepAcceptPacketReceiptProofWithActions`** emits `accept`|`skip`;
 > `TransportNode` announce ingress/rebroadcast, transport/link/reverse-packet
@@ -2286,7 +2312,7 @@
 > resource-random-hash-length-valid / handle-propagation-peer-error /
 > accept-propagation-delivered-message / treat-propagation-list-as-empty /
 > request-propagation-haves-ack /
-> resource-assemble / resource-assemble-outcome-plan / resource-proof-accept / resource-proof-accept-plan / resource-advertise-wait / resource-advertise-phase-plan / link-app-request / link-app-request-plan / link-app-request-transmit / link-app-request-transmit-outcome-plan / resource-continue-transfer /
+> resource-assemble / resource-assemble-outcome-plan / resource-proof-accept / resource-proof-accept-plan / resource-advertise-wait / resource-advertise-phase-plan / link-app-request / link-app-request-plan / link-app-request-transmit / link-app-request-transmit-outcome-plan / link-register-list-plan / link-activate-membership-plan / link-unregister-membership-plan / link-resource-conclude-plan / resource-continue-transfer /
 > resource-complete /
 > resource-receive-part-allow / resource-request-next-allow /
 > resource-watchdog-allow / prove-resource-allow / advertise-resource /
@@ -2305,8 +2331,9 @@
 > outbound-receipt-plan / packet-receipt-proof-ingress /
 > packet-receipt-proof-ingress-plan / packet-receipt-callback /
 > packet-receipt-callback-plan / link-data-context /
-> link-register-list / link-activate-membership /
-> link-unregister-membership / link-app-request /
+> link-register-list / link-register-list-plan / link-activate-membership /
+> link-activate-membership-plan / link-unregister-membership /
+> link-unregister-membership-plan / link-app-request /
 > link-app-request-transmit / announce-ingress-gates /
 > ignore-local-announce / dispatch-announce-handlers /
 > receive-announce-path-response / match-announce-aspect /
@@ -2320,7 +2347,7 @@
 > match-local-typed-destination / dispatch-local-link-request /
 > accept-link-lr-proof-candidate / dispatch-resource-proof-to-link /
 > register-transport-member /
-> link-resource-conclude /
+> link-resource-conclude / link-resource-conclude-plan /
 > packet-receipt-proof-accept / accept-packet-receipt-proof /
 > commit-resource-assemble-payload / dispatch-local-plain-data-delivery /
 > propagation-restore /
@@ -2373,7 +2400,9 @@
 > channel-envelope-pack-plan / channel-send-plan /
 > resource-assemble-outcome-plan / resource-proof-accept-plan /
 > resource-advertise-phase-plan / link-app-request-plan /
-> link-app-request-transmit-outcome-plan /
+> link-app-request-transmit-outcome-plan / link-register-list-plan /
+> link-activate-membership-plan / link-unregister-membership-plan /
+> link-resource-conclude-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /

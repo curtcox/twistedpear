@@ -37,6 +37,10 @@
  * `planLinkAppRequestDispatch` / `planLinkAppRequestResponse` /
  * `planLinkAppRequestTransmitOutcome` / `planLinkTokenAccess` / `plan ===`
  * reads beside the parent step).
+ * Link register-list / activate-membership / unregister-membership plans nested via
+ * {@link stepLinkRegisterListPlanWithActions} /
+ * {@link stepLinkActivateMembershipPlanWithActions} /
+ * {@link stepLinkUnregisterMembershipPlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -2805,6 +2809,70 @@ export function planLinkRegisterList(initiator: boolean): LinkRegisterList {
   return initiator ? "pending" : "active";
 }
 
+/**
+ * Link register-list plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkRegisterList` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLinkRegisterListWithActions}.
+ */
+export type LinkRegisterListPlanState = Record<string, never>;
+
+export type LinkRegisterListPlanEvent =
+  | Event
+  | {
+      readonly kind: "link/register-list-plan-gate";
+      readonly initiator: boolean;
+    };
+
+export type LinkRegisterListPlanAction = {
+  readonly kind: LinkRegisterList;
+};
+
+export interface LinkRegisterListPlanStepResult {
+  readonly state: LinkRegisterListPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkRegisterListPlanAction[];
+}
+
+export function initialLinkRegisterListPlanState(): LinkRegisterListPlanState {
+  return {};
+}
+
+export function stepLinkRegisterListPlanWithActions(
+  state: LinkRegisterListPlanState,
+  event: LinkRegisterListPlanEvent
+): LinkRegisterListPlanStepResult {
+  if (event.kind === "link/register-list-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: planLinkRegisterList(event.initiator) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the link register-list plan from actions; null when empty. */
+export function linkRegisterListPlanFromActions(
+  actions: ReadonlyArray<LinkRegisterListPlanAction>
+): LinkRegisterList | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldRegisterLinkPendingPlan(
+  actions: ReadonlyArray<LinkRegisterListPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "pending");
+}
+
+export function shouldRegisterLinkActivePlan(
+  actions: ReadonlyArray<LinkRegisterListPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "active");
+}
+
 /** Whether a transport link list should receive a new member (not already present). */
 export function shouldRegisterLinkMember(alreadyPresent: boolean): boolean {
   return !alreadyPresent;
@@ -2888,6 +2956,76 @@ export function planLinkActivateMembership(input: {
   };
 }
 
+/**
+ * Link activate-membership plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkActivateMembership`
+ * reads beside the step). Nested under {@link stepLinkActivateMembershipWithActions}.
+ */
+export type LinkActivateMembershipPlanState = Record<string, never>;
+
+export type LinkActivateMembershipPlanEvent =
+  | Event
+  | {
+      readonly kind: "link/activate-membership-plan-gate";
+      readonly pendingIndex: number;
+      readonly alreadyActive: boolean;
+    };
+
+export type LinkActivateMembershipPlanAction = {
+  readonly kind: "plan";
+  readonly removePendingIndex: number | null;
+  readonly appendActive: boolean;
+};
+
+export interface LinkActivateMembershipPlanStepResult {
+  readonly state: LinkActivateMembershipPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkActivateMembershipPlanAction[];
+}
+
+export function initialLinkActivateMembershipPlanState(): LinkActivateMembershipPlanState {
+  return {};
+}
+
+export function stepLinkActivateMembershipPlanWithActions(
+  state: LinkActivateMembershipPlanState,
+  event: LinkActivateMembershipPlanEvent
+): LinkActivateMembershipPlanStepResult {
+  if (event.kind === "link/activate-membership-plan-gate") {
+    const plan = planLinkActivateMembership({
+      pendingIndex: event.pendingIndex,
+      alreadyActive: event.alreadyActive
+    });
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "plan",
+          removePendingIndex: plan.removePendingIndex,
+          appendActive: plan.appendActive
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the activate-membership plan from actions; null when empty. */
+export function linkActivateMembershipPlanFromActions(
+  actions: ReadonlyArray<LinkActivateMembershipPlanAction>
+): LinkActivateMembershipPlan | null {
+  const action = actions.find((entry) => entry.kind === "plan");
+  if (action === undefined) {
+    return null;
+  }
+  return {
+    removePendingIndex: action.removePendingIndex,
+    appendActive: action.appendActive
+  };
+}
+
 /** Whether activate may splice pending after {@link planLinkActivateMembership}. */
 export function shouldRemovePendingLinkMembership(indexPresent: boolean): boolean {
   return indexPresent;
@@ -2917,6 +3055,76 @@ export function planLinkUnregisterMembership(input: {
   };
 }
 
+/**
+ * Link unregister-membership plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkUnregisterMembership`
+ * reads beside the step). Nested under {@link stepLinkUnregisterMembershipWithActions}.
+ */
+export type LinkUnregisterMembershipPlanState = Record<string, never>;
+
+export type LinkUnregisterMembershipPlanEvent =
+  | Event
+  | {
+      readonly kind: "link/unregister-membership-plan-gate";
+      readonly pendingIndex: number;
+      readonly activeIndex: number;
+    };
+
+export type LinkUnregisterMembershipPlanAction = {
+  readonly kind: "plan";
+  readonly removePendingIndex: number | null;
+  readonly removeActiveIndex: number | null;
+};
+
+export interface LinkUnregisterMembershipPlanStepResult {
+  readonly state: LinkUnregisterMembershipPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkUnregisterMembershipPlanAction[];
+}
+
+export function initialLinkUnregisterMembershipPlanState(): LinkUnregisterMembershipPlanState {
+  return {};
+}
+
+export function stepLinkUnregisterMembershipPlanWithActions(
+  state: LinkUnregisterMembershipPlanState,
+  event: LinkUnregisterMembershipPlanEvent
+): LinkUnregisterMembershipPlanStepResult {
+  if (event.kind === "link/unregister-membership-plan-gate") {
+    const plan = planLinkUnregisterMembership({
+      pendingIndex: event.pendingIndex,
+      activeIndex: event.activeIndex
+    });
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "plan",
+          removePendingIndex: plan.removePendingIndex,
+          removeActiveIndex: plan.removeActiveIndex
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the unregister-membership plan from actions; null when empty. */
+export function linkUnregisterMembershipPlanFromActions(
+  actions: ReadonlyArray<LinkUnregisterMembershipPlanAction>
+): LinkUnregisterMembershipPlan | null {
+  const action = actions.find((entry) => entry.kind === "plan");
+  if (action === undefined) {
+    return null;
+  }
+  return {
+    removePendingIndex: action.removePendingIndex,
+    removeActiveIndex: action.removeActiveIndex
+  };
+}
+
 /** Whether unregister may splice active after {@link planLinkUnregisterMembership}. */
 export function shouldRemoveActiveLinkMembership(indexPresent: boolean): boolean {
   return indexPresent;
@@ -2925,6 +3133,7 @@ export function shouldRemoveActiveLinkMembership(indexPresent: boolean): boolean
 /**
  * Link register-list choice is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLinkRegisterListPlanWithActions} (`pending`|`active`).
  */
 export type LinkRegisterListState = Record<string, never>;
 
@@ -2985,11 +3194,15 @@ function stepLinkRegisterListInner(
   event: LinkRegisterListEvent
 ): LinkRegisterListStepResult {
   if (event.kind === "link/register-list-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: planLinkRegisterList(event.initiator) }]
-    };
+    const planActions = stepLinkRegisterListPlanWithActions(initialLinkRegisterListPlanState(), {
+      kind: "link/register-list-plan-gate",
+      initiator: event.initiator
+    }).actions;
+    const plan = linkRegisterListPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
+    return { state, intents: [], actions: [{ kind: plan }] };
   }
 
   return { state, intents: [], actions: [] };
@@ -2998,6 +3211,7 @@ function stepLinkRegisterListInner(
 /**
  * Link activate-membership is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLinkActivateMembershipPlanWithActions}.
  */
 export type LinkActivateMembershipState = Record<string, never>;
 
@@ -3059,10 +3273,18 @@ function stepLinkActivateMembershipInner(
   event: LinkActivateMembershipEvent
 ): LinkActivateMembershipStepResult {
   if (event.kind === "link/activate-membership-gate") {
-    const plan = planLinkActivateMembership({
-      pendingIndex: event.pendingIndex,
-      alreadyActive: event.alreadyActive
-    });
+    const planActions = stepLinkActivateMembershipPlanWithActions(
+      initialLinkActivateMembershipPlanState(),
+      {
+        kind: "link/activate-membership-plan-gate",
+        pendingIndex: event.pendingIndex,
+        alreadyActive: event.alreadyActive
+      }
+    ).actions;
+    const plan = linkActivateMembershipPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     const actions: LinkActivateMembershipAction[] = [];
     if (plan.removePendingIndex !== null) {
       actions.push({ kind: "remove-pending", index: plan.removePendingIndex });
@@ -3079,6 +3301,7 @@ function stepLinkActivateMembershipInner(
 /**
  * Link unregister-membership is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLinkUnregisterMembershipPlanWithActions}.
  */
 export type LinkUnregisterMembershipState = Record<string, never>;
 
@@ -3153,10 +3376,18 @@ function stepLinkUnregisterMembershipInner(
   event: LinkUnregisterMembershipEvent
 ): LinkUnregisterMembershipStepResult {
   if (event.kind === "link/unregister-membership-gate") {
-    const plan = planLinkUnregisterMembership({
-      pendingIndex: event.pendingIndex,
-      activeIndex: event.activeIndex
-    });
+    const planActions = stepLinkUnregisterMembershipPlanWithActions(
+      initialLinkUnregisterMembershipPlanState(),
+      {
+        kind: "link/unregister-membership-plan-gate",
+        pendingIndex: event.pendingIndex,
+        activeIndex: event.activeIndex
+      }
+    ).actions;
+    const plan = linkUnregisterMembershipPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     const actions: LinkUnregisterMembershipAction[] = [];
     if (plan.removePendingIndex !== null) {
       actions.push({ kind: "remove-pending", index: plan.removePendingIndex });

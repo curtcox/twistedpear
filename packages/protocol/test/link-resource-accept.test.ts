@@ -3,6 +3,7 @@ import {
   initialLinkResourceAcceptAppResultPlanState,
   initialLinkResourceAdvertisementPlanState,
   initialLinkResourceAdvertisementState,
+  initialLinkResourceConcludePlanState,
   initialLinkResourceConcludeState,
   incomingLinkResourceConcludeIndex,
   linkReadyForNewResource,
@@ -12,6 +13,7 @@ import {
   stepLinkReadyForNewResourceWithActions,
   linkResourceAcceptAppResultPlanFromActions,
   linkResourceAdvertisementPlanFromActions,
+  linkResourceConcludePlanFromActions,
   outgoingLinkResourceConcludeIndex,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
@@ -48,6 +50,7 @@ import {
   stepLinkResourceAdvertisement,
   stepLinkResourceAdvertisementPlanWithActions,
   stepLinkResourceAdvertisementWithActions,
+  stepLinkResourceConcludePlanWithActions,
   stepLinkResourceConcludeWithActions
 } from "../src/link-resource-accept.js";
 import { LinkResourceStrategy } from "../src/link-watchdog.js";
@@ -317,6 +320,19 @@ describe("protocol link resource accept", () => {
   });
 
   it("emits link resource conclude actions from WithActions step", () => {
+    const outgoingPlan = stepLinkResourceConcludePlanWithActions(
+      initialLinkResourceConcludePlanState(),
+      {
+        kind: "link/resource-conclude-plan-gate",
+        outgoingIndex: 1,
+        incomingIndex: -1
+      }
+    );
+    expect(linkResourceConcludePlanFromActions(outgoingPlan.actions)).toEqual({
+      removeOutgoingIndex: 1,
+      removeIncomingIndex: null
+    });
+
     const outgoing = stepLinkResourceConcludeWithActions(initialLinkResourceConcludeState(), {
       kind: "link/resource-conclude-gate",
       outgoingIndex: 1,
@@ -325,6 +341,19 @@ describe("protocol link resource accept", () => {
     expect(shouldRemoveOutgoingLinkResourceConclude(outgoing.actions)).toBe(true);
     expect(outgoingLinkResourceConcludeIndex(outgoing.actions)).toBe(1);
     expect(shouldRemoveIncomingLinkResourceConclude(outgoing.actions)).toBe(false);
+
+    const incomingPlan = stepLinkResourceConcludePlanWithActions(
+      initialLinkResourceConcludePlanState(),
+      {
+        kind: "link/resource-conclude-plan-gate",
+        outgoingIndex: -1,
+        incomingIndex: 0
+      }
+    );
+    expect(linkResourceConcludePlanFromActions(incomingPlan.actions)).toEqual({
+      removeOutgoingIndex: null,
+      removeIncomingIndex: 0
+    });
 
     const incoming = stepLinkResourceConcludeWithActions(initialLinkResourceConcludeState(), {
       kind: "link/resource-conclude-gate",

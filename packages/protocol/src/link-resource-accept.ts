@@ -10,6 +10,7 @@
  * Outgoing RESOURCE_REQ match and incoming-by-hash match conclude via machine
  * actions (no ad-hoc `shouldHandleOutgoingResourceRequest` /
  * `shouldHandleIncomingResourceByHash` reads beside the step).
+ * Resource-conclude plan nested via {@link stepLinkResourceConcludePlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -636,6 +637,76 @@ export function planLinkResourceConclude(input: {
   };
 }
 
+/**
+ * Link resource-conclude plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkResourceConclude`
+ * reads beside the step). Nested under {@link stepLinkResourceConcludeWithActions}.
+ */
+export type LinkResourceConcludePlanState = Record<string, never>;
+
+export type LinkResourceConcludePlanEvent =
+  | Intent
+  | {
+      readonly kind: "link/resource-conclude-plan-gate";
+      readonly outgoingIndex: number;
+      readonly incomingIndex: number;
+    };
+
+export type LinkResourceConcludePlanAction = {
+  readonly kind: "plan";
+  readonly removeOutgoingIndex: number | null;
+  readonly removeIncomingIndex: number | null;
+};
+
+export interface LinkResourceConcludePlanStepResult {
+  readonly state: LinkResourceConcludePlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkResourceConcludePlanAction[];
+}
+
+export function initialLinkResourceConcludePlanState(): LinkResourceConcludePlanState {
+  return {};
+}
+
+export function stepLinkResourceConcludePlanWithActions(
+  state: LinkResourceConcludePlanState,
+  event: LinkResourceConcludePlanEvent
+): LinkResourceConcludePlanStepResult {
+  if (event.kind === "link/resource-conclude-plan-gate") {
+    const plan = planLinkResourceConclude({
+      outgoingIndex: event.outgoingIndex,
+      incomingIndex: event.incomingIndex
+    });
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "plan",
+          removeOutgoingIndex: plan.removeOutgoingIndex,
+          removeIncomingIndex: plan.removeIncomingIndex
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the resource-conclude plan from actions; null when empty. */
+export function linkResourceConcludePlanFromActions(
+  actions: ReadonlyArray<LinkResourceConcludePlanAction>
+): LinkResourceConcludePlan | null {
+  const action = actions.find((entry) => entry.kind === "plan");
+  if (action === undefined) {
+    return null;
+  }
+  return {
+    removeOutgoingIndex: action.removeOutgoingIndex,
+    removeIncomingIndex: action.removeIncomingIndex
+  };
+}
+
 /** Whether resource conclude may splice a list after {@link planLinkResourceConclude}. */
 export function shouldRemoveLinkResourceListIndex(indexPresent: boolean): boolean {
   return indexPresent;
@@ -644,6 +715,7 @@ export function shouldRemoveLinkResourceListIndex(indexPresent: boolean): boolea
 /**
  * Link resource conclude is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLinkResourceConcludePlanWithActions}.
  */
 export type LinkResourceConcludeState = Record<string, never>;
 
@@ -712,10 +784,18 @@ function stepLinkResourceConcludeInner(
   event: LinkResourceConcludeEvent
 ): LinkResourceConcludeStepResult {
   if (event.kind === "link/resource-conclude-gate") {
-    const plan = planLinkResourceConclude({
-      outgoingIndex: event.outgoingIndex,
-      incomingIndex: event.incomingIndex
-    });
+    const planActions = stepLinkResourceConcludePlanWithActions(
+      initialLinkResourceConcludePlanState(),
+      {
+        kind: "link/resource-conclude-plan-gate",
+        outgoingIndex: event.outgoingIndex,
+        incomingIndex: event.incomingIndex
+      }
+    ).actions;
+    const plan = linkResourceConcludePlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     const actions: LinkResourceConcludeAction[] = [];
     if (plan.removeOutgoingIndex !== null) {
       actions.push({ kind: "remove-outgoing", index: plan.removeOutgoingIndex });
