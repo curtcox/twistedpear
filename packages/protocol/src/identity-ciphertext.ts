@@ -7,6 +7,11 @@
  * Ciphertext-frame / decrypt-plaintext accept gates conclude via machine
  * actions (no ad-hoc `shouldAcceptIdentityCiphertextFrame` /
  * `shouldAcceptIdentityDecryptPlaintext` reads beside the step).
+ * Hash / private-key / public-key / load-key / ratchet-decrypt-attempt gates
+ * conclude via machine actions (no ad-hoc `canIdentityHash` /
+ * `canIdentityUsePrivateKey` / `canIdentityUsePublicKey` /
+ * `canLoadIdentityKeyMaterial` / `shouldAttemptIdentityRatchetDecrypt`
+ * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -618,9 +623,129 @@ export function shouldAttemptIdentityRatchetDecrypt(ratchetsPresent: boolean): b
   return ratchetsPresent;
 }
 
+/**
+ * Identity ratchet-decrypt attempt gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldAttemptIdentityRatchetDecrypt` reads beside the step).
+ */
+export type AttemptIdentityRatchetDecryptState = Record<string, never>;
+
+export type AttemptIdentityRatchetDecryptEvent =
+  | Event
+  | {
+      readonly kind: "identity/attempt-ratchet-decrypt-gate";
+      readonly ratchetsPresent: boolean;
+    };
+
+export type AttemptIdentityRatchetDecryptAction =
+  | { readonly kind: "attempt" }
+  | { readonly kind: "skip" };
+
+export interface AttemptIdentityRatchetDecryptStepResult {
+  readonly state: AttemptIdentityRatchetDecryptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AttemptIdentityRatchetDecryptAction[];
+}
+
+export function initialAttemptIdentityRatchetDecryptState(): AttemptIdentityRatchetDecryptState {
+  return {};
+}
+
+export function stepAttemptIdentityRatchetDecryptWithActions(
+  state: AttemptIdentityRatchetDecryptState,
+  event: AttemptIdentityRatchetDecryptEvent
+): AttemptIdentityRatchetDecryptStepResult {
+  if (event.kind === "identity/attempt-ratchet-decrypt-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAttemptIdentityRatchetDecrypt(event.ratchetsPresent)
+            ? "attempt"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAttemptIdentityRatchetDecryptNow(
+  actions: ReadonlyArray<AttemptIdentityRatchetDecryptAction>
+): boolean {
+  return actions.some((action) => action.kind === "attempt");
+}
+
+export function shouldSkipIdentityRatchetDecrypt(
+  actions: ReadonlyArray<AttemptIdentityRatchetDecryptAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether Identity.hash may be read (key material loaded). */
 export function canIdentityHash(identityHashPresent: boolean): boolean {
   return identityHashPresent;
+}
+
+/**
+ * Identity hash-read allow gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canIdentityHash` reads
+ * beside the step).
+ */
+export type IdentityHashAllowState = Record<string, never>;
+
+export type IdentityHashAllowEvent =
+  | Event
+  | {
+      readonly kind: "identity/hash-allow-gate";
+      readonly identityHashPresent: boolean;
+    };
+
+export type IdentityHashAllowAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface IdentityHashAllowStepResult {
+  readonly state: IdentityHashAllowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IdentityHashAllowAction[];
+}
+
+export function initialIdentityHashAllowState(): IdentityHashAllowState {
+  return {};
+}
+
+export function stepIdentityHashAllowWithActions(
+  state: IdentityHashAllowState,
+  event: IdentityHashAllowEvent
+): IdentityHashAllowStepResult {
+  if (event.kind === "identity/hash-allow-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canIdentityHash(event.identityHashPresent) ? "allow" : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowIdentityHash(
+  actions: ReadonlyArray<IdentityHashAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyIdentityHash(
+  actions: ReadonlyArray<IdentityHashAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
 }
 
 /** Whether private-key ops (sign / decrypt / getPrivateKey) may proceed. */
@@ -631,6 +756,71 @@ export function canIdentityUsePrivateKey(input: {
   return input.privateKeyPresent && input.signaturePrivatePresent;
 }
 
+/**
+ * Identity private-key use allow gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `canIdentityUsePrivateKey` reads beside the step).
+ */
+export type IdentityUsePrivateKeyState = Record<string, never>;
+
+export type IdentityUsePrivateKeyEvent =
+  | Event
+  | {
+      readonly kind: "identity/use-private-key-gate";
+      readonly privateKeyPresent: boolean;
+      readonly signaturePrivatePresent: boolean;
+    };
+
+export type IdentityUsePrivateKeyAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface IdentityUsePrivateKeyStepResult {
+  readonly state: IdentityUsePrivateKeyState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IdentityUsePrivateKeyAction[];
+}
+
+export function initialIdentityUsePrivateKeyState(): IdentityUsePrivateKeyState {
+  return {};
+}
+
+export function stepIdentityUsePrivateKeyWithActions(
+  state: IdentityUsePrivateKeyState,
+  event: IdentityUsePrivateKeyEvent
+): IdentityUsePrivateKeyStepResult {
+  if (event.kind === "identity/use-private-key-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canIdentityUsePrivateKey({
+            privateKeyPresent: event.privateKeyPresent,
+            signaturePrivatePresent: event.signaturePrivatePresent
+          })
+            ? "allow"
+            : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowIdentityUsePrivateKey(
+  actions: ReadonlyArray<IdentityUsePrivateKeyAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyIdentityUsePrivateKey(
+  actions: ReadonlyArray<IdentityUsePrivateKeyAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
+}
+
 /** Whether public-key ops (validate / encrypt / getPublicKey) may proceed. */
 export function canIdentityUsePublicKey(input: {
   readonly publicKeyPresent: boolean;
@@ -639,7 +829,131 @@ export function canIdentityUsePublicKey(input: {
   return input.publicKeyPresent && input.signaturePublicPresent;
 }
 
+/**
+ * Identity public-key use allow gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `canIdentityUsePublicKey` reads beside the step).
+ */
+export type IdentityUsePublicKeyState = Record<string, never>;
+
+export type IdentityUsePublicKeyEvent =
+  | Event
+  | {
+      readonly kind: "identity/use-public-key-gate";
+      readonly publicKeyPresent: boolean;
+      readonly signaturePublicPresent: boolean;
+    };
+
+export type IdentityUsePublicKeyAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface IdentityUsePublicKeyStepResult {
+  readonly state: IdentityUsePublicKeyState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IdentityUsePublicKeyAction[];
+}
+
+export function initialIdentityUsePublicKeyState(): IdentityUsePublicKeyState {
+  return {};
+}
+
+export function stepIdentityUsePublicKeyWithActions(
+  state: IdentityUsePublicKeyState,
+  event: IdentityUsePublicKeyEvent
+): IdentityUsePublicKeyStepResult {
+  if (event.kind === "identity/use-public-key-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canIdentityUsePublicKey({
+            publicKeyPresent: event.publicKeyPresent,
+            signaturePublicPresent: event.signaturePublicPresent
+          })
+            ? "allow"
+            : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowIdentityUsePublicKey(
+  actions: ReadonlyArray<IdentityUsePublicKeyAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyIdentityUsePublicKey(
+  actions: ReadonlyArray<IdentityUsePublicKeyAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
+}
+
 /** Whether loadPrivateKey / loadPublicKey may accept a successful key split. */
 export function canLoadIdentityKeyMaterial(splitOk: boolean): boolean {
   return splitOk;
+}
+
+/**
+ * Identity load-key-material allow gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `canLoadIdentityKeyMaterial` reads beside the step).
+ */
+export type LoadIdentityKeyMaterialState = Record<string, never>;
+
+export type LoadIdentityKeyMaterialEvent =
+  | Event
+  | {
+      readonly kind: "identity/load-key-material-gate";
+      readonly splitOk: boolean;
+    };
+
+export type LoadIdentityKeyMaterialAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface LoadIdentityKeyMaterialStepResult {
+  readonly state: LoadIdentityKeyMaterialState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LoadIdentityKeyMaterialAction[];
+}
+
+export function initialLoadIdentityKeyMaterialState(): LoadIdentityKeyMaterialState {
+  return {};
+}
+
+export function stepLoadIdentityKeyMaterialWithActions(
+  state: LoadIdentityKeyMaterialState,
+  event: LoadIdentityKeyMaterialEvent
+): LoadIdentityKeyMaterialStepResult {
+  if (event.kind === "identity/load-key-material-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canLoadIdentityKeyMaterial(event.splitOk) ? "allow" : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowLoadIdentityKeyMaterial(
+  actions: ReadonlyArray<LoadIdentityKeyMaterialAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyLoadIdentityKeyMaterial(
+  actions: ReadonlyArray<LoadIdentityKeyMaterialAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
 }

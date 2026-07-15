@@ -10,23 +10,27 @@ import {
   initialDecodeIdentityRatchetRecordState,
   initialEncodeIdentityRatchetRecordState,
   initialIdentityRatchetLookupState,
+  initialPersistIdentityRatchetState,
   isIdentityRatchetRecordUsable,
   planIdentityRatchetLookup,
   shouldCommitRestoredIdentityRatchet,
   shouldMissIdentityRatchetNoStore,
   shouldMissIdentityRatchetStore,
   shouldPersistIdentityRatchet,
+  shouldPersistIdentityRatchetNow,
   shouldRejectDecodeIdentityRatchetRecord,
   shouldRejectEncodeIdentityRatchetRecord,
   shouldRejectIdentityRatchetUnusable,
   shouldRestoreIdentityRatchetLookup,
   shouldRestoreIdentityRatchetRecord,
+  shouldSkipPersistIdentityRatchet,
   shouldUseCachedIdentityRatchet,
   shouldUseDecodeIdentityRatchetRecord,
   shouldUseEncodeIdentityRatchetRecord,
   stepDecodeIdentityRatchetRecordWithActions,
   stepEncodeIdentityRatchetRecordWithActions,
-  stepIdentityRatchetLookupWithActions
+  stepIdentityRatchetLookupWithActions,
+  stepPersistIdentityRatchetWithActions
 } from "../src/identity-ratchet-record.js";
 import { utf8Encode } from "../src/utf8.js";
 
@@ -224,5 +228,19 @@ describe("protocol identity ratchet record", () => {
         recordPresent: false
       })
     ).toBe(false);
+
+    const persist = stepPersistIdentityRatchetWithActions(initialPersistIdentityRatchetState(), {
+      kind: "identity/persist-ratchet-gate",
+      storePresent: true
+    });
+    expect(persist.actions).toEqual([{ kind: "persist" }]);
+    expect(shouldPersistIdentityRatchetNow(persist.actions)).toBe(true);
+
+    const skip = stepPersistIdentityRatchetWithActions(initialPersistIdentityRatchetState(), {
+      kind: "identity/persist-ratchet-gate",
+      storePresent: false
+    });
+    expect(skip.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldSkipPersistIdentityRatchet(skip.actions)).toBe(true);
   });
 });

@@ -16,7 +16,15 @@
 > **`stepSplitIdentityEntropyWithActions`**: use-fields|reject) plus **Identity**,
 > **Token**, and **Resource** RNG now prefer injected/`Runtime` entropy (transport
 > identity keygen, path-request tags, link Token IVs, destination encrypt, resource
-> random hashes). **Propagation catalog /get-request-data** gates (catalog
+> random hashes). **Identity hash / private-key / public-key / load-key /
+> ratchet-decrypt-attempt / ratchet-persist** gates (via
+> **`stepIdentityHashAllowWithActions`**: allow|deny;
+> **`stepIdentityUsePrivateKeyWithActions`**: allow|deny;
+> **`stepIdentityUsePublicKeyWithActions`**: allow|deny;
+> **`stepLoadIdentityKeyMaterialWithActions`**: allow|deny;
+> **`stepAttemptIdentityRatchetDecryptWithActions`**: attempt|skip;
+> **`stepPersistIdentityRatchetWithActions`**: persist|skip) are pure protocol
+> leaves; `Identity` adapts them. **Propagation catalog /get-request-data** gates (catalog
 > evict via **`stepEvictPropagationCatalogEntryWithActions`**: evict|skip;
 > catalog delete via **`stepDeletePropagationCatalogEntryWithActions`**:
 > delete|skip; evict-oldest via
@@ -839,7 +847,8 @@
 > miss-store / reject-unusable / restore), **`planIdentityRecall`** (via
 > **`stepIdentityRecallWithActions`**: miss / reject-key / hit),
 > **`planIdentityRecallAppData`** (via **`stepIdentityRecallAppDataWithActions`**:
-> hit / miss), and **`canIdentityHash`** live in protocol; `Identity`
+> hit / miss), and **`canIdentityHash`** (via
+> **`stepIdentityHashAllowWithActions`**: allow|deny) live in protocol; `Identity`
 > adapts them. **`canRegisterLxmfDeliveryIdentity`** (via
 > **`stepRegisterLxmfDeliveryIdentityWithActions`**: register|skip) /
 > **`shouldTeardownLxmfPropagationLink`** (via
@@ -847,8 +856,15 @@
 > protocol; LXMF router and propagation client adapt them.
 > **`planDestinationIdentityHash`** lives in protocol; destination hash construction
 > adapts it.
-> **`canIdentityUsePrivateKey`** / **`canIdentityUsePublicKey`** /
-> **`canLoadIdentityKeyMaterial`** and **`shouldPersistIdentityRatchet`** live in
+> **`canIdentityUsePrivateKey`** (via **`stepIdentityUsePrivateKeyWithActions`**:
+> allow|deny) / **`canIdentityUsePublicKey`** (via
+> **`stepIdentityUsePublicKeyWithActions`**: allow|deny) /
+> **`canLoadIdentityKeyMaterial`** (via
+> **`stepLoadIdentityKeyMaterialWithActions`**: allow|deny),
+> **`shouldAttemptIdentityRatchetDecrypt`** (via
+> **`stepAttemptIdentityRatchetDecryptWithActions`**: attempt|skip), and
+> **`shouldPersistIdentityRatchet`** (via
+> **`stepPersistIdentityRatchetWithActions`**: persist|skip) live in
 > protocol; Identity adapts them. **`canOperateAttachedDestination`** (via
 > **`stepOperateAttachedDestinationWithActions`**: allow|deny) /
 > **`canAnnounceWithIdentity`** (via **`stepAnnounceWithIdentityWithActions`**:
@@ -1435,7 +1451,10 @@
 > accept-transport-packet / validate-request / proof-validate /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
-> identity-recall-app-data / destination-construction / destination-decrypt /
+> identity-recall-app-data / identity-hash-allow / identity-use-private-key /
+> identity-use-public-key / load-identity-key-material /
+> attempt-identity-ratchet-decrypt / persist-identity-ratchet /
+> destination-construction / destination-decrypt /
 > destination-encrypt / packet-from-fields / channel-message-type-registration /
 > channel-envelope-unpack / channel-envelope-pack / channel-send /
 > emplace-channel-envelope / accept-channel-sequence /
@@ -1489,6 +1508,9 @@
 > deliver-pending-link-app-response / accept-announce-payload /
 > accept-parsed-announce / accept-identity-ciphertext-frame /
 > accept-identity-decrypt-plaintext /
+> identity-hash-allow / identity-use-private-key /
+> identity-use-public-key / load-identity-key-material /
+> attempt-identity-ratchet-decrypt / persist-identity-ratchet /
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
@@ -1532,6 +1554,9 @@
 > deliver-pending-link-app-response / accept-announce-payload /
 > accept-parsed-announce / accept-identity-ciphertext-frame /
 > accept-identity-decrypt-plaintext /
+> identity-hash-allow / identity-use-private-key /
+> identity-use-public-key / load-identity-key-material /
+> attempt-identity-ratchet-decrypt / persist-identity-ratchet /
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
@@ -1832,11 +1857,21 @@
 > **`stepAcceptParsedAnnounceWithActions`** emits `accept`|`skip`;
 > **`stepAcceptIdentityCiphertextFrameWithActions`** emits `accept`|`skip`;
 > **`stepAcceptIdentityDecryptPlaintextWithActions`** emits `accept`|`skip`;
-> Link RESPONSE / Announce parse / handleAnnounce / Identity decrypt apply only
+> **`stepIdentityHashAllowWithActions`** emits `allow`|`deny`;
+> **`stepIdentityUsePrivateKeyWithActions`** /
+> **`stepIdentityUsePublicKeyWithActions`** /
+> **`stepLoadIdentityKeyMaterialWithActions`** emit `allow`|`deny`;
+> **`stepAttemptIdentityRatchetDecryptWithActions`** emits `attempt`|`skip`;
+> **`stepPersistIdentityRatchetWithActions`** emits `persist`|`skip`;
+> Link RESPONSE / Announce parse / handleAnnounce / Identity decrypt, hash,
+> key-use, load, ratchet-decrypt attempt, and ratchet persist apply only
 > from those actions (no ad-hoc `shouldDeliverPendingLinkAppResponse` /
 > `shouldAcceptAnnouncePayload` / `shouldAcceptParsedAnnounce` /
 > `shouldAcceptIdentityCiphertextFrame` /
-> `shouldAcceptIdentityDecryptPlaintext` reads beside the step).
+> `shouldAcceptIdentityDecryptPlaintext` / `canIdentityHash` /
+> `canIdentityUsePrivateKey` / `canIdentityUsePublicKey` /
+> `canLoadIdentityKeyMaterial` / `shouldAttemptIdentityRatchetDecrypt` /
+> `shouldPersistIdentityRatchet` reads beside the step).
 > **`stepAcceptDestinationLinkRequestWithActions`** /
 > **`stepAnnounceDestinationWithActions`** /
 > **`stepDestinationSendWithActions`** /
@@ -2290,11 +2325,21 @@
 > **`stepAcceptParsedAnnounceWithActions`** emits `accept`|`skip`;
 > **`stepAcceptIdentityCiphertextFrameWithActions`** emits `accept`|`skip`;
 > **`stepAcceptIdentityDecryptPlaintextWithActions`** emits `accept`|`skip`;
-> Link RESPONSE / Announce parse / handleAnnounce / Identity decrypt apply only
+> **`stepIdentityHashAllowWithActions`** emits `allow`|`deny`;
+> **`stepIdentityUsePrivateKeyWithActions`** /
+> **`stepIdentityUsePublicKeyWithActions`** /
+> **`stepLoadIdentityKeyMaterialWithActions`** emit `allow`|`deny`;
+> **`stepAttemptIdentityRatchetDecryptWithActions`** emits `attempt`|`skip`;
+> **`stepPersistIdentityRatchetWithActions`** emits `persist`|`skip`;
+> Link RESPONSE / Announce parse / handleAnnounce / Identity decrypt, hash,
+> key-use, load, ratchet-decrypt attempt, and ratchet persist apply only
 > from those actions (no ad-hoc `shouldDeliverPendingLinkAppResponse` /
 > `shouldAcceptAnnouncePayload` / `shouldAcceptParsedAnnounce` /
 > `shouldAcceptIdentityCiphertextFrame` /
-> `shouldAcceptIdentityDecryptPlaintext` reads beside the step).
+> `shouldAcceptIdentityDecryptPlaintext` / `canIdentityHash` /
+> `canIdentityUsePrivateKey` / `canIdentityUsePublicKey` /
+> `canLoadIdentityKeyMaterial` / `shouldAttemptIdentityRatchetDecrypt` /
+> `shouldPersistIdentityRatchet` reads beside the step).
 > **`stepAcceptDestinationLinkRequestWithActions`** /
 > **`stepAnnounceDestinationWithActions`** /
 > **`stepDestinationSendWithActions`** /

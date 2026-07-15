@@ -4,6 +4,8 @@
  * Encode / decode conclusions leave via machine actions (no ad-hoc
  * `encodeIdentityRatchetRecord` / `decodeIdentityRatchetRecord` reads beside the step).
  * Lookup conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Persist-to-store gate conclusions leave via machine actions (no ad-hoc
+ * `shouldPersistIdentityRatchet` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { bytesToHexLower, hexToBytesLower } from "./destination-name.js";
@@ -324,6 +326,65 @@ function stepIdentityRatchetLookupInner(
 /** Whether rememberRatchet should persist the record to an injected store. */
 export function shouldPersistIdentityRatchet(storePresent: boolean): boolean {
   return storePresent;
+}
+
+/**
+ * Identity ratchet persist-to-store gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldPersistIdentityRatchet` reads beside the step).
+ */
+export type PersistIdentityRatchetState = Record<string, never>;
+
+export type PersistIdentityRatchetEvent =
+  | Event
+  | {
+      readonly kind: "identity/persist-ratchet-gate";
+      readonly storePresent: boolean;
+    };
+
+export type PersistIdentityRatchetAction =
+  | { readonly kind: "persist" }
+  | { readonly kind: "skip" };
+
+export interface PersistIdentityRatchetStepResult {
+  readonly state: PersistIdentityRatchetState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PersistIdentityRatchetAction[];
+}
+
+export function initialPersistIdentityRatchetState(): PersistIdentityRatchetState {
+  return {};
+}
+
+export function stepPersistIdentityRatchetWithActions(
+  state: PersistIdentityRatchetState,
+  event: PersistIdentityRatchetEvent
+): PersistIdentityRatchetStepResult {
+  if (event.kind === "identity/persist-ratchet-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldPersistIdentityRatchet(event.storePresent) ? "persist" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldPersistIdentityRatchetNow(
+  actions: ReadonlyArray<PersistIdentityRatchetAction>
+): boolean {
+  return actions.some((action) => action.kind === "persist");
+}
+
+export function shouldSkipPersistIdentityRatchet(
+  actions: ReadonlyArray<PersistIdentityRatchetAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**

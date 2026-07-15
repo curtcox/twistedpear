@@ -7,10 +7,6 @@ import {
   NAME_HASH_BITS,
   TRUNCATED_HASH_BITS,
   TRUNCATED_HASH_BYTES,
-  canIdentityHash,
-  canIdentityUsePrivateKey,
-  canIdentityUsePublicKey,
-  canLoadIdentityKeyMaterial,
   encodeIdentityRatchetRecordRawFromActions,
   identityCiphertextFieldsFromActions,
   identityEntropyFieldsFromActions,
@@ -20,16 +16,22 @@ import {
   identityRatchetStoreKey,
   initialAcceptIdentityCiphertextFrameState,
   initialAcceptIdentityDecryptPlaintextState,
+  initialAttemptIdentityRatchetDecryptState,
   initialDecodeIdentityRatchetRecordState,
   initialEncodeIdentityRatchetRecordState,
   initialIdentityDecryptState,
+  initialIdentityHashAllowState,
   initialIdentityRatchetLookupState,
   initialIdentityRecallAppDataState,
   initialIdentityRecallState,
+  initialIdentityUsePrivateKeyState,
+  initialIdentityUsePublicKeyState,
+  initialLoadIdentityKeyMaterialState,
   initialPackIdentityCiphertextState,
   initialPackIdentityPrivateKeyState,
   initialPackIdentityPublicKeyState,
   initialPackPacketProofState,
+  initialPersistIdentityRatchetState,
   initialSplitIdentityCiphertextState,
   initialSplitIdentityEntropyState,
   initialSplitIdentityPrivateKeyState,
@@ -42,12 +44,16 @@ import {
   shouldAcceptIdentityDecrypt,
   shouldAcceptIdentityCiphertextFrameNow,
   shouldAcceptIdentityDecryptPlaintextNow,
-  shouldAttemptIdentityRatchetDecrypt,
+  shouldAllowIdentityHash,
+  shouldAllowIdentityUsePrivateKey,
+  shouldAllowIdentityUsePublicKey,
+  shouldAllowLoadIdentityKeyMaterial,
+  shouldAttemptIdentityRatchetDecryptNow,
   shouldCommitRestoredIdentityRatchet,
   shouldHitIdentityRecall,
   shouldHitIdentityRecallAppData,
   shouldMissIdentityRatchetNoStore,
-  shouldPersistIdentityRatchet,
+  shouldPersistIdentityRatchetNow,
   shouldRejectEncodeIdentityRatchetRecord,
   shouldRejectIdentityDecryptEnforced,
   shouldRejectIdentityDecryptFrame,
@@ -71,14 +77,20 @@ import {
   stepEncodeIdentityRatchetRecordWithActions,
   stepAcceptIdentityCiphertextFrameWithActions,
   stepAcceptIdentityDecryptPlaintextWithActions,
+  stepAttemptIdentityRatchetDecryptWithActions,
   stepIdentityDecryptWithActions,
+  stepIdentityHashAllowWithActions,
   stepIdentityRatchetLookupWithActions,
   stepIdentityRecallAppDataWithActions,
   stepIdentityRecallWithActions,
+  stepIdentityUsePrivateKeyWithActions,
+  stepIdentityUsePublicKeyWithActions,
+  stepLoadIdentityKeyMaterialWithActions,
   stepPackIdentityCiphertextWithActions,
   stepPackIdentityPrivateKeyWithActions,
   stepPackIdentityPublicKeyWithActions,
   stepPackPacketProofWithActions,
+  stepPersistIdentityRatchetWithActions,
   stepSplitIdentityCiphertextWithActions,
   stepSplitIdentityEntropyWithActions,
   stepSplitIdentityPrivateKeyWithActions,
@@ -235,7 +247,14 @@ export class Identity {
     const key = bytesToHex(destinationHash);
     Identity.knownRatchets.set(key, Uint8Array.from(ratchet));
 
-    if (shouldPersistIdentityRatchet(store !== undefined)) {
+    if (
+      shouldPersistIdentityRatchetNow(
+        stepPersistIdentityRatchetWithActions(initialPersistIdentityRatchetState(), {
+          kind: "identity/persist-ratchet-gate",
+          storePresent: store !== undefined
+        }).actions
+      )
+    ) {
       const encodeStepped = stepEncodeIdentityRatchetRecordWithActions(
         initialEncodeIdentityRatchetRecordState(),
         {
@@ -346,7 +365,14 @@ export class Identity {
   }
 
   get hash(): Uint8Array {
-    if (!canIdentityHash(this.identityHash !== null)) {
+    if (
+      !shouldAllowIdentityHash(
+        stepIdentityHashAllowWithActions(initialIdentityHashAllowState(), {
+          kind: "identity/hash-allow-gate",
+          identityHashPresent: this.identityHash !== null
+        }).actions
+      )
+    ) {
       throw new Error("Identity has no loaded key material");
     }
 
@@ -427,7 +453,14 @@ export class Identity {
     const split = shouldUseSplitIdentityPrivateKey(splitStepped.actions)
       ? identityPrivateKeyFieldsFromActions(splitStepped.actions)
       : null;
-    if (!canLoadIdentityKeyMaterial(split !== null)) {
+    if (
+      !shouldAllowLoadIdentityKeyMaterial(
+        stepLoadIdentityKeyMaterialWithActions(initialLoadIdentityKeyMaterialState(), {
+          kind: "identity/load-key-material-gate",
+          splitOk: split !== null
+        }).actions
+      )
+    ) {
       return false;
     }
 
@@ -448,7 +481,14 @@ export class Identity {
     const split = shouldUseSplitIdentityPublicKey(splitStepped.actions)
       ? identityPublicKeyFieldsFromActions(splitStepped.actions)
       : null;
-    if (!canLoadIdentityKeyMaterial(split !== null)) {
+    if (
+      !shouldAllowLoadIdentityKeyMaterial(
+        stepLoadIdentityKeyMaterialWithActions(initialLoadIdentityKeyMaterialState(), {
+          kind: "identity/load-key-material-gate",
+          splitOk: split !== null
+        }).actions
+      )
+    ) {
       return false;
     }
 
@@ -540,7 +580,17 @@ export class Identity {
       const peerPublicBytes = split!.ephemeralPublicKey;
       const ciphertext = split!.tokenCiphertext;
 
-      if (shouldAttemptIdentityRatchetDecrypt(options.ratchets !== undefined)) {
+      if (
+        shouldAttemptIdentityRatchetDecryptNow(
+          stepAttemptIdentityRatchetDecryptWithActions(
+            initialAttemptIdentityRatchetDecryptState(),
+            {
+              kind: "identity/attempt-ratchet-decrypt-gate",
+              ratchetsPresent: options.ratchets !== undefined
+            }
+          ).actions
+        )
+      ) {
         for (const ratchet of options.ratchets!) {
           try {
             const ratchetPublicBytes = Identity.ratchetPublicBytes(this.provider, ratchet);
@@ -660,10 +710,13 @@ export class Identity {
 
   private requirePrivateKey(): void {
     if (
-      !canIdentityUsePrivateKey({
-        privateKeyPresent: this.prvBytes !== null,
-        signaturePrivatePresent: this.sigPrvBytes !== null
-      })
+      !shouldAllowIdentityUsePrivateKey(
+        stepIdentityUsePrivateKeyWithActions(initialIdentityUsePrivateKeyState(), {
+          kind: "identity/use-private-key-gate",
+          privateKeyPresent: this.prvBytes !== null,
+          signaturePrivatePresent: this.sigPrvBytes !== null
+        }).actions
+      )
     ) {
       throw new Error("Identity does not hold a private key");
     }
@@ -671,10 +724,13 @@ export class Identity {
 
   private requirePublicKey(): void {
     if (
-      !canIdentityUsePublicKey({
-        publicKeyPresent: this.pubBytes !== null,
-        signaturePublicPresent: this.sigPubBytes !== null
-      })
+      !shouldAllowIdentityUsePublicKey(
+        stepIdentityUsePublicKeyWithActions(initialIdentityUsePublicKeyState(), {
+          kind: "identity/use-public-key-gate",
+          publicKeyPresent: this.pubBytes !== null,
+          signaturePublicPresent: this.sigPubBytes !== null
+        }).actions
+      )
     ) {
       throw new Error("Identity does not hold a public key");
     }

@@ -8,9 +8,14 @@ import {
   identityCiphertextFieldsFromActions,
   initialAcceptIdentityCiphertextFrameState,
   initialAcceptIdentityDecryptPlaintextState,
+  initialAttemptIdentityRatchetDecryptState,
   initialIdentityDecryptState,
+  initialIdentityHashAllowState,
   initialIdentityRecallAppDataState,
   initialIdentityRecallState,
+  initialIdentityUsePrivateKeyState,
+  initialIdentityUsePublicKeyState,
+  initialLoadIdentityKeyMaterialState,
   initialPackIdentityCiphertextState,
   initialSplitIdentityCiphertextState,
   packIdentityCiphertext,
@@ -19,11 +24,20 @@ import {
   planIdentityRecall,
   planIdentityRecallAppData,
   shouldAcceptIdentityDecrypt,
+  shouldAllowIdentityHash,
+  shouldAllowIdentityUsePrivateKey,
+  shouldAllowIdentityUsePublicKey,
+  shouldAllowLoadIdentityKeyMaterial,
   shouldAttemptIdentityRatchetDecrypt,
+  shouldAttemptIdentityRatchetDecryptNow,
   shouldAcceptIdentityCiphertextFrame,
   shouldAcceptIdentityCiphertextFrameNow,
   shouldAcceptIdentityDecryptPlaintext,
   shouldAcceptIdentityDecryptPlaintextNow,
+  shouldDenyIdentityHash,
+  shouldDenyIdentityUsePrivateKey,
+  shouldDenyIdentityUsePublicKey,
+  shouldDenyLoadIdentityKeyMaterial,
   shouldHitIdentityRecall,
   shouldHitIdentityRecallAppData,
   shouldMissIdentityRecall,
@@ -36,15 +50,21 @@ import {
   shouldRejectSplitIdentityCiphertext,
   shouldSkipIdentityCiphertextFrameAccept,
   shouldSkipIdentityDecryptPlaintextAccept,
+  shouldSkipIdentityRatchetDecrypt,
   shouldTryIdentityDecrypt,
   shouldUsePackIdentityCiphertext,
   shouldUseSplitIdentityCiphertext,
   splitIdentityCiphertext,
   stepAcceptIdentityCiphertextFrameWithActions,
   stepAcceptIdentityDecryptPlaintextWithActions,
+  stepAttemptIdentityRatchetDecryptWithActions,
   stepIdentityDecryptWithActions,
+  stepIdentityHashAllowWithActions,
   stepIdentityRecallAppDataWithActions,
   stepIdentityRecallWithActions,
+  stepIdentityUsePrivateKeyWithActions,
+  stepIdentityUsePublicKeyWithActions,
+  stepLoadIdentityKeyMaterialWithActions,
   stepPackIdentityCiphertextWithActions,
   stepSplitIdentityCiphertextWithActions
 } from "../src/identity-ciphertext.js";
@@ -376,5 +396,111 @@ describe("protocol identity ciphertext", () => {
     ).toBe(false);
     expect(canLoadIdentityKeyMaterial(true)).toBe(true);
     expect(canLoadIdentityKeyMaterial(false)).toBe(false);
+  });
+
+  it("emits hash / key-use / load / ratchet-decrypt actions from WithActions steps", () => {
+    const hashAllow = stepIdentityHashAllowWithActions(initialIdentityHashAllowState(), {
+      kind: "identity/hash-allow-gate",
+      identityHashPresent: true
+    });
+    expect(hashAllow.actions).toEqual([{ kind: "allow" }]);
+    expect(shouldAllowIdentityHash(hashAllow.actions)).toBe(true);
+
+    const hashDeny = stepIdentityHashAllowWithActions(initialIdentityHashAllowState(), {
+      kind: "identity/hash-allow-gate",
+      identityHashPresent: false
+    });
+    expect(hashDeny.actions).toEqual([{ kind: "deny" }]);
+    expect(shouldDenyIdentityHash(hashDeny.actions)).toBe(true);
+
+    const privateAllow = stepIdentityUsePrivateKeyWithActions(
+      initialIdentityUsePrivateKeyState(),
+      {
+        kind: "identity/use-private-key-gate",
+        privateKeyPresent: true,
+        signaturePrivatePresent: true
+      }
+    );
+    expect(privateAllow.actions).toEqual([{ kind: "allow" }]);
+    expect(shouldAllowIdentityUsePrivateKey(privateAllow.actions)).toBe(true);
+
+    const privateDeny = stepIdentityUsePrivateKeyWithActions(
+      initialIdentityUsePrivateKeyState(),
+      {
+        kind: "identity/use-private-key-gate",
+        privateKeyPresent: true,
+        signaturePrivatePresent: false
+      }
+    );
+    expect(privateDeny.actions).toEqual([{ kind: "deny" }]);
+    expect(shouldDenyIdentityUsePrivateKey(privateDeny.actions)).toBe(true);
+
+    const publicAllow = stepIdentityUsePublicKeyWithActions(initialIdentityUsePublicKeyState(), {
+      kind: "identity/use-public-key-gate",
+      publicKeyPresent: true,
+      signaturePublicPresent: true
+    });
+    expect(publicAllow.actions).toEqual([{ kind: "allow" }]);
+    expect(shouldAllowIdentityUsePublicKey(publicAllow.actions)).toBe(true);
+
+    const publicDeny = stepIdentityUsePublicKeyWithActions(initialIdentityUsePublicKeyState(), {
+      kind: "identity/use-public-key-gate",
+      publicKeyPresent: false,
+      signaturePublicPresent: true
+    });
+    expect(publicDeny.actions).toEqual([{ kind: "deny" }]);
+    expect(shouldDenyIdentityUsePublicKey(publicDeny.actions)).toBe(true);
+
+    const loadAllow = stepLoadIdentityKeyMaterialWithActions(
+      initialLoadIdentityKeyMaterialState(),
+      {
+        kind: "identity/load-key-material-gate",
+        splitOk: true
+      }
+    );
+    expect(loadAllow.actions).toEqual([{ kind: "allow" }]);
+    expect(shouldAllowLoadIdentityKeyMaterial(loadAllow.actions)).toBe(true);
+
+    const loadDeny = stepLoadIdentityKeyMaterialWithActions(
+      initialLoadIdentityKeyMaterialState(),
+      {
+        kind: "identity/load-key-material-gate",
+        splitOk: false
+      }
+    );
+    expect(loadDeny.actions).toEqual([{ kind: "deny" }]);
+    expect(shouldDenyLoadIdentityKeyMaterial(loadDeny.actions)).toBe(true);
+
+    const attempt = stepAttemptIdentityRatchetDecryptWithActions(
+      initialAttemptIdentityRatchetDecryptState(),
+      {
+        kind: "identity/attempt-ratchet-decrypt-gate",
+        ratchetsPresent: true
+      }
+    );
+    expect(attempt.actions).toEqual([{ kind: "attempt" }]);
+    expect(shouldAttemptIdentityRatchetDecryptNow(attempt.actions)).toBe(true);
+
+    const skip = stepAttemptIdentityRatchetDecryptWithActions(
+      initialAttemptIdentityRatchetDecryptState(),
+      {
+        kind: "identity/attempt-ratchet-decrypt-gate",
+        ratchetsPresent: false
+      }
+    );
+    expect(skip.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldSkipIdentityRatchetDecrypt(skip.actions)).toBe(true);
+  });
+
+  it("is deterministic for identical identity key-access gate events", () => {
+    const event = {
+      kind: "identity/use-private-key-gate" as const,
+      privateKeyPresent: true,
+      signaturePrivatePresent: true
+    };
+    const a = stepIdentityUsePrivateKeyWithActions(initialIdentityUsePrivateKeyState(), event);
+    const b = stepIdentityUsePrivateKeyWithActions(initialIdentityUsePrivateKeyState(), event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 });
