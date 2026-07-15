@@ -34,7 +34,13 @@
 > **propagation message-too-large** (via
 > **`stepPropagationMessageTooLargeWithActions`**: too-large|fit), and
 > **select-oldest propagation key** (via
-> **`stepSelectOldestPropagationKeyWithActions`**: use-key|miss) are pure
+> **`stepSelectOldestPropagationKeyWithActions`**: use-key|miss),
+> **propagation store-commit** (via
+> **`stepCommitPropagationStoreEntryWithActions`**: commit|skip),
+> **propagation restore-apply** (via
+> **`stepApplyPropagationRestoreWithActions`**: apply|skip), and
+> **propagation store-apply-commit** (via
+> **`stepApplyPropagationStoreCommitWithActions`**: apply|skip) are pure
 > protocol leaves; `PropagationServer` adapts them.
 > **Announce signature-attempt / destination-hash-check**
 > gates (via **`stepAttemptAnnounceSignatureValidateWithActions`**: attempt|skip;
@@ -498,8 +504,14 @@
 > `AnnounceRateLimiter` adapts them. **Client rate allow** (via
 > **`stepAllowClientRequestWithActions`**: allow|deny), **propagation
 > message-too-large** (via **`stepPropagationMessageTooLargeWithActions`**:
-> too-large|fit), and **select-oldest propagation key** (via
-> **`stepSelectOldestPropagationKeyWithActions`**: use-key|miss) live in
+> too-large|fit), **select-oldest propagation key** (via
+> **`stepSelectOldestPropagationKeyWithActions`**: use-key|miss),
+> **propagation store-commit** (via
+> **`stepCommitPropagationStoreEntryWithActions`**: commit|skip),
+> **propagation restore-apply** (via
+> **`stepApplyPropagationRestoreWithActions`**: apply|skip), and
+> **propagation store-apply-commit** (via
+> **`stepApplyPropagationStoreCommitWithActions`**: apply|skip) live in
 > protocol; `PropagationServer` adapts them. **`planChannelPacketTimeout`**
 > (`CHANNEL_MAX_TRIES`), **`shouldEmitPathRequest`** (via
 > **`stepEmitPathRequestWithActions`**: emit|skip), and link-watchdog **`link/inbound`**
@@ -1082,12 +1094,16 @@
 > **`shouldUnregisterChannelMessageHandler`**,
 > **`shouldEvictPropagationCatalogEntry`** (via
 > **`stepEvictPropagationCatalogEntryWithActions`**: evict|skip) /
-> **`shouldCommitPropagationStoreEntry`** /
+> **`shouldCommitPropagationStoreEntry`** (via
+> **`stepCommitPropagationStoreEntryWithActions`**: commit|skip) /
 > **`shouldDeletePropagationCatalogEntry`** (via
 > **`stepDeletePropagationCatalogEntryWithActions`**: delete|skip) /
 > **`shouldEvictOldestPropagationEntry`** (via
 > **`stepEvictOldestPropagationEntryWithActions`**: evict|skip) /
-> **`shouldApplyPropagationRestore`**, and
+> **`shouldApplyPropagationRestore`** (via
+> **`stepApplyPropagationRestoreWithActions`**: apply|skip) /
+> **`shouldApplyPropagationStoreCommit`** (via
+> **`stepApplyPropagationStoreCommitWithActions`**: apply|skip), and
 > **`shouldAcceptPropagationGetRequestData`** (via
 > **`stepAcceptPropagationGetRequestDataWithActions`**: accept|skip) live in protocol; Channel and
 > PropagationServer / PropagationClient adapt them.
@@ -1165,9 +1181,16 @@
 > `Link.validateProof` applies activation gate only from those actions
 > (no ad-hoc `planLinkProofValidateOutcome` reads beside the step).
 > **`stepPropagationStoreWithActions`** emits `reject` / `duplicate` /
-> `accept` (with evict keys); `PropagationServer.storePropagationData` applies
+> `accept` (with evict keys); **`stepCommitPropagationStoreEntryWithActions`**
+> emits `commit` / `skip`; **`stepApplyPropagationStoreCommitWithActions`**
+> emits `apply` / `skip`; `PropagationServer.storePropagationData` applies
 > eviction + commit only from those actions (no ad-hoc `plan.kind` /
-> `shouldCommitPropagationStoreEntry` reads beside the step).
+> `shouldCommitPropagationStoreEntry` / `shouldApplyPropagationStoreCommit`
+> reads beside the step).
+> **`stepApplyPropagationRestoreWithActions`** emits `apply` / `skip`;
+> `PropagationServer` restore applies catalog insert only from those actions
+> (no ad-hoc `shouldApplyPropagationRestore` / accept+hash reads beside the
+> step).
 > **`stepPropagationGetWithActions`** emits `list-ids` / `apply` (delete +
 > fetch ids); `PropagationServer` and `PropagationNodeStore` /get handlers
 > pack responses only from those actions (no ad-hoc `plan.kind` reads beside
@@ -1551,7 +1574,8 @@
 > stop-channel-handler-fanout / emit-channel-immediate-delivery /
 > channel-message-state-from-receipt / announce-blocked / record-announce /
 > allow-client-request / propagation-message-too-large /
-> select-oldest-propagation-key /
+> select-oldest-propagation-key / commit-propagation-store-entry /
+> apply-propagation-restore / apply-propagation-store-commit /
 > clear-channel-envelope-packet / arm-channel-packet-receipt /
 > apply-channel-packet-receipt-timeout / replace-channel-resent-packet /
 > apply-channel-tx-receipt-timeout-extension / link-keepalive-context /
@@ -1616,7 +1640,8 @@
 > identity-ratchet-record-usable /
 > channel-message-state-from-receipt / announce-blocked / record-announce /
 > allow-client-request / propagation-message-too-large /
-> select-oldest-propagation-key /
+> select-oldest-propagation-key / commit-propagation-store-entry /
+> apply-propagation-restore / apply-propagation-store-commit /
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
@@ -1672,7 +1697,8 @@
 > identity-ratchet-record-usable /
 > channel-message-state-from-receipt / announce-blocked / record-announce /
 > allow-client-request / propagation-message-too-large /
-> select-oldest-propagation-key /
+> select-oldest-propagation-key / commit-propagation-store-entry /
+> apply-propagation-restore / apply-propagation-store-commit /
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
@@ -2097,12 +2123,17 @@
 > **`stepAllowClientRequestWithActions`** emits `allow` / `deny`;
 > **`stepPropagationMessageTooLargeWithActions`** emits `too-large` / `fit`;
 > **`stepSelectOldestPropagationKeyWithActions`** emits `use-key` / `miss`;
+> **`stepCommitPropagationStoreEntryWithActions`** emits `commit` / `skip`;
+> **`stepApplyPropagationRestoreWithActions`** emits `apply` / `skip`;
+> **`stepApplyPropagationStoreCommitWithActions`** emits `apply` / `skip`;
 > **`stepClearChannelEnvelopePacketWithActions`** emits `clear` / `skip`;
 > Channel message-state, announce-rate, client-rate, and PropagationServer
 > adapters apply only from those actions (no ad-hoc
 > `channelMessageStateFromPacketReceipt` / `isAnnounceBlocked` /
 > `recordAnnounce` / `allowClientRequest` / `isPropagationMessageTooLarge` /
-> `selectOldestPropagationKey` reads beside the step).
+> `selectOldestPropagationKey` / `shouldCommitPropagationStoreEntry` /
+> `shouldApplyPropagationRestore` / `shouldApplyPropagationStoreCommit`
+> reads beside the step).
 > **`stepArmChannelPacketReceiptWithActions`** emits `arm` / `skip`;
 > **`stepApplyChannelPacketReceiptTimeoutWithActions`** emits `apply` / `skip`;
 > **`stepReplaceChannelResentPacketWithActions`** emits `replace` / `skip`;

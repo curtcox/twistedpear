@@ -1,5 +1,7 @@
 import {
   initialAcceptPropagationGetRequestDataState,
+  initialApplyPropagationRestoreState,
+  initialApplyPropagationStoreCommitState,
   initialClientRateLimitState,
   initialDecodeLxmfPeerErrorState,
   initialDeletePropagationCatalogEntryState,
@@ -26,6 +28,8 @@ import {
   shouldAcceptPropagationStore,
   shouldAllowClientRequest,
   shouldApplyPropagationGet,
+  shouldApplyPropagationRestoreNow,
+  shouldApplyPropagationStoreCommitNow,
   shouldDeletePropagationCatalogEntryNow,
   shouldDuplicatePropagationStore,
   shouldEvictOldestPropagationEntryNow,
@@ -39,6 +43,8 @@ import {
   shouldUseUnpackPropagationRequest,
   stepAcceptPropagationGetRequestDataWithActions,
   stepAllowClientRequestWithActions,
+  stepApplyPropagationRestoreWithActions,
+  stepApplyPropagationStoreCommitWithActions,
   stepDecodeLxmfPeerErrorWithActions,
   stepDeletePropagationCatalogEntryWithActions,
   stepEvictOldestPropagationEntryWithActions,
@@ -220,7 +226,16 @@ export class PropagationServer {
     if (shouldDuplicatePropagationStore(actions)) {
       return input.transientId;
     }
-    if (!shouldAcceptPropagationStore(actions) || input.destinationHash === null) {
+    const applyStepped = stepApplyPropagationStoreCommitWithActions(
+      initialApplyPropagationStoreCommitState(),
+      {
+        kind: "propagation/apply-store-commit-gate",
+        planAccept: shouldAcceptPropagationStore(actions),
+        destinationHashPresent: input.destinationHash !== null
+      }
+    );
+    /* Commit store only from `apply` (no ad-hoc accept / destinationHash reads). */
+    if (!shouldApplyPropagationStoreCommitNow(applyStepped.actions)) {
       return null;
     }
 
@@ -243,7 +258,7 @@ export class PropagationServer {
     const storedAt = this.now();
     this.entries.set(input.key, {
       transientId: input.transientId,
-      destinationHash: Uint8Array.from(input.destinationHash),
+      destinationHash: Uint8Array.from(input.destinationHash!),
       lxmfData: Uint8Array.from(input.lxmfData),
       storedAt,
       size: input.lxmfData.length
@@ -290,13 +305,22 @@ export class PropagationServer {
       alreadyStored: this.entries.has(key),
       destinationHashPresent: destinationHash !== null
     });
-    if (!shouldAcceptPropagationRestore(stepped.actions) || destinationHash === null) {
+    const applyStepped = stepApplyPropagationRestoreWithActions(
+      initialApplyPropagationRestoreState(),
+      {
+        kind: "propagation/apply-restore-gate",
+        planAccept: shouldAcceptPropagationRestore(stepped.actions),
+        destinationHashPresent: destinationHash !== null
+      }
+    );
+    /* Apply restore insert only from `apply` (no ad-hoc accept / destinationHash reads). */
+    if (!shouldApplyPropagationRestoreNow(applyStepped.actions)) {
       return;
     }
 
     this.entries.set(key, {
       transientId: Uint8Array.from(entry.transientId),
-      destinationHash: Uint8Array.from(destinationHash),
+      destinationHash: Uint8Array.from(destinationHash!),
       lxmfData: Uint8Array.from(entry.lxmfData),
       storedAt: entry.storedAt,
       size: entry.lxmfData.length

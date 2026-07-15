@@ -2,10 +2,12 @@
  * Pure LXMF propagation-server quota and eviction planning.
  * Persistence and hashing stay at the adapter edge.
  * Store / restore / catalog-evict / catalog-delete / evict-oldest /
- * message-too-large / select-oldest-key conclusions leave via machine actions
- * (no ad-hoc `plan.kind` / `plan === "accept"` / `shouldEvict*` /
- * `shouldDelete*` / `isPropagationMessageTooLarge` /
- * `selectOldestPropagationKey` reads beside the step).
+ * message-too-large / select-oldest-key / store-commit / restore-apply /
+ * store-apply-commit conclusions leave via machine actions (no ad-hoc
+ * `plan.kind` / `plan === "accept"` / `shouldEvict*` / `shouldDelete*` /
+ * `isPropagationMessageTooLarge` / `selectOldestPropagationKey` /
+ * `shouldCommitPropagationStoreEntry` / `shouldApplyPropagationRestore` /
+ * `shouldApplyPropagationStoreCommit` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -382,6 +384,142 @@ export function shouldCommitPropagationStoreEntry(destinationHashPresent: boolea
 }
 
 /**
+ * Propagation store destination-hash commit gate is event-driven; no durable
+ * session fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldCommitPropagationStoreEntry` reads beside the step).
+ */
+export type CommitPropagationStoreEntryState = Record<string, never>;
+
+export type CommitPropagationStoreEntryEvent =
+  | Event
+  | {
+      readonly kind: "propagation/commit-store-entry-gate";
+      readonly destinationHashPresent: boolean;
+    };
+
+export type CommitPropagationStoreEntryAction =
+  | { readonly kind: "commit" }
+  | { readonly kind: "skip" };
+
+export interface CommitPropagationStoreEntryStepResult {
+  readonly state: CommitPropagationStoreEntryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly CommitPropagationStoreEntryAction[];
+}
+
+export function initialCommitPropagationStoreEntryState(): CommitPropagationStoreEntryState {
+  return {};
+}
+
+export function stepCommitPropagationStoreEntryWithActions(
+  state: CommitPropagationStoreEntryState,
+  event: CommitPropagationStoreEntryEvent
+): CommitPropagationStoreEntryStepResult {
+  if (event.kind === "propagation/commit-store-entry-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldCommitPropagationStoreEntry(event.destinationHashPresent)
+            ? "commit"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldCommitPropagationStoreEntryNow(
+  actions: ReadonlyArray<CommitPropagationStoreEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "commit");
+}
+
+export function shouldSkipCommitPropagationStoreEntry(
+  actions: ReadonlyArray<CommitPropagationStoreEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/**
+ * Whether store accept actions may apply when destination-hash bytes remain present.
+ */
+export function shouldApplyPropagationStoreCommit(input: {
+  readonly planAccept: boolean;
+  readonly destinationHashPresent: boolean;
+}): boolean {
+  return input.planAccept && input.destinationHashPresent;
+}
+
+/**
+ * Propagation store accept+hash apply gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldApplyPropagationStoreCommit` reads beside the step).
+ */
+export type ApplyPropagationStoreCommitState = Record<string, never>;
+
+export type ApplyPropagationStoreCommitEvent =
+  | Event
+  | {
+      readonly kind: "propagation/apply-store-commit-gate";
+      readonly planAccept: boolean;
+      readonly destinationHashPresent: boolean;
+    };
+
+export type ApplyPropagationStoreCommitAction =
+  | { readonly kind: "apply" }
+  | { readonly kind: "skip" };
+
+export interface ApplyPropagationStoreCommitStepResult {
+  readonly state: ApplyPropagationStoreCommitState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ApplyPropagationStoreCommitAction[];
+}
+
+export function initialApplyPropagationStoreCommitState(): ApplyPropagationStoreCommitState {
+  return {};
+}
+
+export function stepApplyPropagationStoreCommitWithActions(
+  state: ApplyPropagationStoreCommitState,
+  event: ApplyPropagationStoreCommitEvent
+): ApplyPropagationStoreCommitStepResult {
+  if (event.kind === "propagation/apply-store-commit-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldApplyPropagationStoreCommit({
+            planAccept: event.planAccept,
+            destinationHashPresent: event.destinationHashPresent
+          })
+            ? "apply"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldApplyPropagationStoreCommitNow(
+  actions: ReadonlyArray<ApplyPropagationStoreCommitAction>
+): boolean {
+  return actions.some((action) => action.kind === "apply");
+}
+
+export function shouldSkipApplyPropagationStoreCommit(
+  actions: ReadonlyArray<ApplyPropagationStoreCommitAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/**
  * Store planning is event-driven; no durable session fields.
  */
 export type PropagationStoreState = Record<string, never>;
@@ -480,7 +618,14 @@ function stepPropagationStoreInner(
     if (plan.kind === "duplicate") {
       return { state, intents: [], actions: [{ kind: "duplicate" }] };
     }
-    if (!shouldCommitPropagationStoreEntry(event.destinationHashPresent)) {
+    const commitStepped = stepCommitPropagationStoreEntryWithActions(
+      initialCommitPropagationStoreEntryState(),
+      {
+        kind: "propagation/commit-store-entry-gate",
+        destinationHashPresent: event.destinationHashPresent
+      }
+    );
+    if (!shouldCommitPropagationStoreEntryNow(commitStepped.actions)) {
       return { state, intents: [], actions: [{ kind: "reject" }] };
     }
     return {
@@ -566,6 +711,71 @@ export function shouldApplyPropagationRestore(input: {
   readonly destinationHashPresent: boolean;
 }): boolean {
   return input.planAccept && input.destinationHashPresent;
+}
+
+/**
+ * Propagation restore accept+hash apply gate is event-driven; no durable
+ * session fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldApplyPropagationRestore` reads beside the step).
+ */
+export type ApplyPropagationRestoreState = Record<string, never>;
+
+export type ApplyPropagationRestoreEvent =
+  | Event
+  | {
+      readonly kind: "propagation/apply-restore-gate";
+      readonly planAccept: boolean;
+      readonly destinationHashPresent: boolean;
+    };
+
+export type ApplyPropagationRestoreAction =
+  | { readonly kind: "apply" }
+  | { readonly kind: "skip" };
+
+export interface ApplyPropagationRestoreStepResult {
+  readonly state: ApplyPropagationRestoreState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ApplyPropagationRestoreAction[];
+}
+
+export function initialApplyPropagationRestoreState(): ApplyPropagationRestoreState {
+  return {};
+}
+
+export function stepApplyPropagationRestoreWithActions(
+  state: ApplyPropagationRestoreState,
+  event: ApplyPropagationRestoreEvent
+): ApplyPropagationRestoreStepResult {
+  if (event.kind === "propagation/apply-restore-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldApplyPropagationRestore({
+            planAccept: event.planAccept,
+            destinationHashPresent: event.destinationHashPresent
+          })
+            ? "apply"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldApplyPropagationRestoreNow(
+  actions: ReadonlyArray<ApplyPropagationRestoreAction>
+): boolean {
+  return actions.some((action) => action.kind === "apply");
+}
+
+export function shouldSkipApplyPropagationRestore(
+  actions: ReadonlyArray<ApplyPropagationRestoreAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 export type PropagationRestorePlan =

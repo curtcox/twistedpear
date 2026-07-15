@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   PROPAGATION_DESTINATION_HASH_SIZE,
+  initialApplyPropagationRestoreState,
+  initialApplyPropagationStoreCommitState,
+  initialCommitPropagationStoreEntryState,
   initialDeletePropagationCatalogEntryState,
   initialEvictOldestPropagationEntryState,
   initialEvictPropagationCatalogEntryState,
@@ -19,7 +22,11 @@ import {
   shouldAcceptPropagationRestore,
   shouldAcceptPropagationStore,
   shouldApplyPropagationRestore,
+  shouldApplyPropagationRestoreNow,
+  shouldApplyPropagationStoreCommit,
+  shouldApplyPropagationStoreCommitNow,
   shouldCommitPropagationStoreEntry,
+  shouldCommitPropagationStoreEntryNow,
   shouldDeletePropagationCatalogEntry,
   shouldDeletePropagationCatalogEntryNow,
   shouldDuplicatePropagationStore,
@@ -29,12 +36,18 @@ import {
   shouldEvictPropagationCatalogEntryNow,
   shouldMissOldestPropagationKey,
   shouldRejectPropagationStore,
+  shouldSkipApplyPropagationRestore,
+  shouldSkipApplyPropagationStoreCommit,
+  shouldSkipCommitPropagationStoreEntry,
   shouldSkipDeletePropagationCatalogEntry,
   shouldSkipEvictOldestPropagationEntry,
   shouldSkipEvictPropagationCatalogEntry,
   shouldTreatPropagationMessageFit,
   shouldTreatPropagationMessageTooLarge,
   shouldUseOldestPropagationKey,
+  stepApplyPropagationRestoreWithActions,
+  stepApplyPropagationStoreCommitWithActions,
+  stepCommitPropagationStoreEntryWithActions,
   stepDeletePropagationCatalogEntryWithActions,
   stepEvictOldestPropagationEntryWithActions,
   stepEvictPropagationCatalogEntryWithActions,
@@ -202,6 +215,71 @@ describe("protocol propagation quota", () => {
     ).toBe(false);
     expect(shouldCommitPropagationStoreEntry(true)).toBe(true);
     expect(shouldCommitPropagationStoreEntry(false)).toBe(false);
+    expect(
+      shouldApplyPropagationStoreCommit({ planAccept: true, destinationHashPresent: true })
+    ).toBe(true);
+    expect(
+      shouldApplyPropagationStoreCommit({ planAccept: true, destinationHashPresent: false })
+    ).toBe(false);
+    expect(
+      shouldApplyPropagationStoreCommit({ planAccept: false, destinationHashPresent: true })
+    ).toBe(false);
+
+    const restoreApply = stepApplyPropagationRestoreWithActions(
+      initialApplyPropagationRestoreState(),
+      {
+        kind: "propagation/apply-restore-gate",
+        planAccept: true,
+        destinationHashPresent: true
+      }
+    );
+    expect(shouldApplyPropagationRestoreNow(restoreApply.actions)).toBe(true);
+    expect(shouldSkipApplyPropagationRestore(restoreApply.actions)).toBe(false);
+    const restoreSkip = stepApplyPropagationRestoreWithActions(
+      initialApplyPropagationRestoreState(),
+      {
+        kind: "propagation/apply-restore-gate",
+        planAccept: true,
+        destinationHashPresent: false
+      }
+    );
+    expect(shouldSkipApplyPropagationRestore(restoreSkip.actions)).toBe(true);
+    expect(shouldApplyPropagationRestoreNow(restoreSkip.actions)).toBe(false);
+
+    const commitOk = stepCommitPropagationStoreEntryWithActions(
+      initialCommitPropagationStoreEntryState(),
+      { kind: "propagation/commit-store-entry-gate", destinationHashPresent: true }
+    );
+    expect(shouldCommitPropagationStoreEntryNow(commitOk.actions)).toBe(true);
+    expect(shouldSkipCommitPropagationStoreEntry(commitOk.actions)).toBe(false);
+    const commitSkip = stepCommitPropagationStoreEntryWithActions(
+      initialCommitPropagationStoreEntryState(),
+      { kind: "propagation/commit-store-entry-gate", destinationHashPresent: false }
+    );
+    expect(shouldSkipCommitPropagationStoreEntry(commitSkip.actions)).toBe(true);
+    expect(shouldCommitPropagationStoreEntryNow(commitSkip.actions)).toBe(false);
+
+    const storeApply = stepApplyPropagationStoreCommitWithActions(
+      initialApplyPropagationStoreCommitState(),
+      {
+        kind: "propagation/apply-store-commit-gate",
+        planAccept: true,
+        destinationHashPresent: true
+      }
+    );
+    expect(shouldApplyPropagationStoreCommitNow(storeApply.actions)).toBe(true);
+    expect(shouldSkipApplyPropagationStoreCommit(storeApply.actions)).toBe(false);
+    const storeSkip = stepApplyPropagationStoreCommitWithActions(
+      initialApplyPropagationStoreCommitState(),
+      {
+        kind: "propagation/apply-store-commit-gate",
+        planAccept: false,
+        destinationHashPresent: true
+      }
+    );
+    expect(shouldSkipApplyPropagationStoreCommit(storeSkip.actions)).toBe(true);
+    expect(shouldApplyPropagationStoreCommitNow(storeSkip.actions)).toBe(false);
+
     expect(shouldDeletePropagationCatalogEntry(true)).toBe(true);
     expect(shouldDeletePropagationCatalogEntry(false)).toBe(false);
     expect(shouldEvictPropagationCatalogEntry(true)).toBe(true);
