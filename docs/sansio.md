@@ -491,6 +491,7 @@
 > table-record gates (via **`stepRelayTransportPacketAllowWithActions`** /
 > **`stepRecordLinkRelayTableEntryWithActions`** /
 > **`stepRecordReverseTableEntryWithActions`** /
+> **`stepLocalPathRequestPacketWithActions`** /
 > **`stepRelayLinkPacketAllowWithActions`** /
 > **`stepLookupLinkRelayEntryWithActions`** /
 > **`stepTransmitLinkRelayWithActions`** /
@@ -662,8 +663,10 @@
 > **`stepRecordLinkRelayTableEntryWithActions`**: record|skip),
 > **`shouldRecordReverseTableEntry`** (via
 > **`stepRecordReverseTableEntryWithActions`**: record|skip), and
-> **`isLocalPathRequestPacket`** live in protocol; transport relay /
-> `LeafTransport.handleData` adapt them. **`isPacketTypeProof`** (via
+> **`isLocalPathRequestPacket`** (via
+> **`stepLocalPathRequestPacketWithActions`**: path-request|other) live in
+> protocol; transport relay / `LeafTransport.handleData` adapt them.
+> **`isPacketTypeProof`** (via
 > **`stepPacketTypeProofWithActions`**: proof|other) lives in
 > protocol; `PacketReceipt.validateProofPacket` adapts it. **`planLxmfDeliverableAccept`**
 > (via **`stepLxmfDeliverableAcceptWithActions`**) lives in protocol; `LXMFRouter` unpack
@@ -1324,6 +1327,7 @@
 > `outbound` / `received` / `ignore`; **`stepRelayTransportPacketAllowWithActions`**
 > emits `allow`|`deny`; **`stepRecordLinkRelayTableEntryWithActions`** /
 > **`stepRecordReverseTableEntryWithActions`** emit `record`|`skip`;
+> **`stepLocalPathRequestPacketWithActions`** emits `path-request`|`other`;
 > **`stepRelayLinkPacketAllowWithActions`** emits `allow`|`deny`;
 > **`stepLookupLinkRelayEntryWithActions`** emits `hit`|`miss`;
 > **`stepTransmitLinkRelayWithActions`** emits `transmit`|`skip`;
@@ -1348,7 +1352,8 @@
 > `PacketReceipt.validateProof` apply only from those actions (no ad-hoc
 > `planAnnounceIngressGates` / `planLinkRelayTarget` /
 > `canRelayTransportPacket` / `shouldRecordLinkRelayTableEntry` /
-> `shouldRecordReverseTableEntry` / `canRelayLinkPacket` /
+> `shouldRecordReverseTableEntry` / `isLocalPathRequestPacket` /
+> `canRelayLinkPacket` /
 > `canLookupLinkRelayEntry` / `shouldTransmitLinkRelay` /
 > `canRelayReversePacket` / `shouldRelayReverseOnInterface` /
 > `isReverseEntryExpired` / `shouldTransmitReverseRelay` /
@@ -1544,7 +1549,8 @@
 > receive-announce-path-response / match-announce-aspect /
 > link-relay-target / relay-transport-packet-allow /
 > record-link-relay-table-entry / record-reverse-table-entry /
-> relay-link-packet-allow / lookup-link-relay-entry / transmit-link-relay /
+> local-path-request-packet / relay-link-packet-allow /
+> lookup-link-relay-entry / transmit-link-relay /
 > relay-reverse-packet-allow / relay-reverse-on-interface /
 > reverse-entry-expired / transmit-reverse-relay /
 > transmit-on-interface / match-local-inbound-destination /

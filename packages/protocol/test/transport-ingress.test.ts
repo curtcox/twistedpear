@@ -17,6 +17,7 @@ import {
   canRelayTransportPacket,
   isLocalPathRequestPacket,
   isReverseEntryExpired,
+  initialLocalPathRequestPacketState,
   initialAcceptTransportPacketState,
   initialLinkDataIngressTargetState,
   initialLinkRelayTargetState,
@@ -108,6 +109,7 @@ import {
   stepDispatchResourceProofToLinkWithActions,
   stepLinkDataIngressTargetWithActions,
   stepLinkRelayTargetWithActions,
+  stepLocalPathRequestPacketWithActions,
   stepLocalPlainDataDeliveryWithActions,
   stepLookupLinkRelayEntryWithActions,
   stepMatchLocalInboundDestinationWithActions,
@@ -161,6 +163,8 @@ import {
   shouldTransmitLinkRelayNow,
   shouldTransmitOnInterfaceNow,
   shouldTransmitReverseRelayNow,
+  shouldTreatLocalPathRequestPacket,
+  shouldTreatLocalPathRequestPacketOther,
   shouldTreatReverseEntryExpired,
   shouldTreatReverseEntryLive,
   initialAcceptLinkLrProofCandidateState,
@@ -528,6 +532,32 @@ describe("transport ingress", () => {
         destinationHashMatches: true
       })
     ).toBe(false);
+
+    const pathRequest = stepLocalPathRequestPacketWithActions(
+      initialLocalPathRequestPacketState(),
+      {
+        kind: "transport/local-path-request-packet-gate",
+        destinationTypePlain: true,
+        destinationHashMatches: true
+      }
+    );
+    expect(shouldTreatLocalPathRequestPacket(pathRequest.actions)).toBe(true);
+    expect(shouldTreatLocalPathRequestPacketOther(pathRequest.actions)).toBe(false);
+
+    const other = stepLocalPathRequestPacketWithActions(initialLocalPathRequestPacketState(), {
+      kind: "transport/local-path-request-packet-gate",
+      destinationTypePlain: false,
+      destinationHashMatches: true
+    });
+    expect(shouldTreatLocalPathRequestPacket(other.actions)).toBe(false);
+    expect(shouldTreatLocalPathRequestPacketOther(other.actions)).toBe(true);
+
+    const empty = stepLocalPathRequestPacketWithActions(initialLocalPathRequestPacketState(), {
+      kind: "timer/fired",
+      timer: { id: "x" }
+    });
+    expect(shouldTreatLocalPathRequestPacket(empty.actions)).toBe(false);
+    expect(shouldTreatLocalPathRequestPacketOther(empty.actions)).toBe(false);
   });
 
   it("gates link and reverse relay eligibility", () => {

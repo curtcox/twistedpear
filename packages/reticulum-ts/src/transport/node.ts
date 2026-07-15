@@ -142,6 +142,7 @@ import {
   initialFailAndDropOutboundReceiptState,
   initialIndexOfMatchingLinkIdState,
   initialKeepOutboundReceiptState,
+  initialLocalPathRequestPacketState,
   initialMatchLocalInboundDestinationState,
   initialMatchLocalTypedDestinationState,
   initialPathEntryExpiredState,
@@ -155,8 +156,9 @@ import {
   initialWrapTransportPacketState,
   shouldAddPathEntryNow,
   shouldEmitPathRequestNow,
+  shouldTreatLocalPathRequestPacket,
   shouldTreatPathEntryExpired,
-  isLocalPathRequestPacket,
+  isReverseEntryExpired,
   stepDestinationProofWithActions,
   stepEmitDestinationProofWithActions,
   stepAcceptLinkLrProofCandidateWithActions,
@@ -173,6 +175,7 @@ import {
   stepLinkDataIngressTargetWithActions,
   stepLinkRegisterListWithActions,
   stepLinkUnregisterMembershipWithActions,
+  stepLocalPathRequestPacketWithActions,
   stepLocalPlainDataDeliveryWithActions,
   stepMatchAnnounceAspectWithActions,
   stepMatchLocalInboundDestinationWithActions,
@@ -988,12 +991,16 @@ export class LeafTransport {
   }
 
   protected async handleData(packet: Packet, iface: PacketInterface): Promise<void> {
-    if (
-      isLocalPathRequestPacket({
+    const pathRequestStepped = stepLocalPathRequestPacketWithActions(
+      initialLocalPathRequestPacketState(),
+      {
+        kind: "transport/local-path-request-packet-gate",
         destinationTypePlain: packet.destinationType === DestinationType.PLAIN,
         destinationHashMatches: equalBytes(packet.destinationHash, this.pathRequestHash)
-      })
-    ) {
+      }
+    );
+    /* Handle path-request DATA only from `path-request` (no ad-hoc `isLocalPathRequestPacket` reads). */
+    if (shouldTreatLocalPathRequestPacket(pathRequestStepped.actions)) {
       await this.handlePathRequest(packet, iface);
       return;
     }

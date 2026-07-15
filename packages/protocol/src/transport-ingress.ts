@@ -11,14 +11,15 @@
  * destination match/dispatch, LR-proof accept, resource-prf dispatch, and
  * transport-member register conclude via machine actions (no ad-hoc
  * `canRelayTransportPacket` / `shouldRecordLinkRelayTableEntry` /
- * `shouldRecordReverseTableEntry` / `canRelayLinkPacket` /
- * `canLookupLinkRelayEntry` / `shouldTransmitLinkRelay` /
- * `canRelayReversePacket` / `shouldRelayReverseOnInterface` /
- * `isReverseEntryExpired` / `shouldTransmitReverseRelay` /
- * `shouldTransmitOnInterface` / `shouldMatchLocalInboundDestination` /
- * `shouldMatchLocalTypedDestination` / `shouldDispatchLocalLinkRequest` /
- * `shouldAcceptLinkLrProofCandidate` / `shouldDispatchResourceProofToLink` /
- * `shouldRegisterTransportMember` reads beside the step).
+ * `shouldRecordReverseTableEntry` / `isLocalPathRequestPacket` /
+ * `canRelayLinkPacket` / `canLookupLinkRelayEntry` /
+ * `shouldTransmitLinkRelay` / `canRelayReversePacket` /
+ * `shouldRelayReverseOnInterface` / `isReverseEntryExpired` /
+ * `shouldTransmitReverseRelay` / `shouldTransmitOnInterface` /
+ * `shouldMatchLocalInboundDestination` / `shouldMatchLocalTypedDestination` /
+ * `shouldDispatchLocalLinkRequest` / `shouldAcceptLinkLrProofCandidate` /
+ * `shouldDispatchResourceProofToLink` / `shouldRegisterTransportMember`
+ * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -930,6 +931,71 @@ export function isLocalPathRequestPacket(input: {
   readonly destinationHashMatches: boolean;
 }): boolean {
   return input.destinationTypePlain && input.destinationHashMatches;
+}
+
+/**
+ * Local path-request packet gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isLocalPathRequestPacket`
+ * reads beside the step).
+ */
+export type LocalPathRequestPacketState = Record<string, never>;
+
+export type LocalPathRequestPacketEvent =
+  | Intent
+  | {
+      readonly kind: "transport/local-path-request-packet-gate";
+      readonly destinationTypePlain: boolean;
+      readonly destinationHashMatches: boolean;
+    };
+
+export type LocalPathRequestPacketAction =
+  | { readonly kind: "path-request" }
+  | { readonly kind: "other" };
+
+export interface LocalPathRequestPacketStepResult {
+  readonly state: LocalPathRequestPacketState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LocalPathRequestPacketAction[];
+}
+
+export function initialLocalPathRequestPacketState(): LocalPathRequestPacketState {
+  return {};
+}
+
+export function stepLocalPathRequestPacketWithActions(
+  state: LocalPathRequestPacketState,
+  event: LocalPathRequestPacketEvent
+): LocalPathRequestPacketStepResult {
+  if (event.kind === "transport/local-path-request-packet-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isLocalPathRequestPacket({
+            destinationTypePlain: event.destinationTypePlain,
+            destinationHashMatches: event.destinationHashMatches
+          })
+            ? "path-request"
+            : "other"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatLocalPathRequestPacket(
+  actions: ReadonlyArray<LocalPathRequestPacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "path-request");
+}
+
+export function shouldTreatLocalPathRequestPacketOther(
+  actions: ReadonlyArray<LocalPathRequestPacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "other");
 }
 
 /**
