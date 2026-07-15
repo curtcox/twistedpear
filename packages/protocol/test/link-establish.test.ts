@@ -123,6 +123,7 @@ import {
   initialLinkProofValidateState,
   initialLinkRegisterListState,
   initialRegisterLinkMemberState,
+  initialLinkRttOutcomePlanState,
   initialLinkTokenAccessPlanState,
   initialLinkTokenAccessState,
   initialLinkUnregisterMembershipState,
@@ -138,6 +139,7 @@ import {
   linkAppRequestTransmitFromActions,
   linkEstablishActivatedAction,
   linkRegisterListFromActions,
+  linkRttOutcomePlanFromActions,
   linkRttSecondsFromActions,
   linkTokenAccessPlanFromActions,
   linkValidateRequestPlanFromActions,
@@ -161,6 +163,7 @@ import {
   shouldAcceptLinkPacketInterface,
   shouldAcceptLinkProofValidate,
   shouldActivateLinkEstablish,
+  shouldActivateLinkRttOutcomePlan,
   shouldAppendActiveLinkMembership,
   shouldAppendActiveLinkMembershipActions,
   shouldAttemptLinkProofCrypto,
@@ -181,6 +184,7 @@ import {
   shouldIgnoreLinkAppRequestInboundResponse,
   shouldIgnoreLinkAppRequestResponsePlan,
   shouldIgnoreLinkEstablishRtt,
+  shouldIgnoreLinkRttOutcomePlan,
   shouldInvokeLinkAppRequestDispatch,
   shouldInvokeLinkAppRequestHandler,
   shouldInvokeLinkAppRequestHandlerNow,
@@ -222,6 +226,7 @@ import {
   shouldSkipSendLinkAppRequestResponse,
   shouldTeardownLinkEstablish,
   shouldTeardownLinkFromRtt,
+  shouldTeardownLinkRttOutcomePlan,
   shouldUnregisterLinkAppRequestTransmit,
   shouldUpdateLinkLastData,
   shouldUseLinkRttSeconds,
@@ -240,6 +245,7 @@ import {
   stepLinkEstablishWithActions,
   stepLinkProofValidateWithActions,
   stepLinkRegisterListWithActions,
+  stepLinkRttOutcomePlanWithActions,
   stepRegisterLinkMemberWithActions,
   stepSendLinkAppRequestResponseWithActions,
   stepLinkTokenAccessPlanWithActions,
@@ -1534,6 +1540,32 @@ describe("protocol link establish", () => {
     });
     expect(unpackFail.actions).toEqual([{ kind: "teardown" }]);
     expect(unpackFail.state.status).toBe(LinkStatus.CLOSED);
+  });
+
+  it("nests LRRTT outcome plan under establish via WithActions", () => {
+    const ignorePlan = stepLinkRttOutcomePlanWithActions(initialLinkRttOutcomePlanState(), {
+      kind: "rtt/outcome-plan-gate",
+      canAccept: false,
+      plaintextPresent: true
+    });
+    expect(shouldIgnoreLinkRttOutcomePlan(ignorePlan.actions)).toBe(true);
+    expect(linkRttOutcomePlanFromActions(ignorePlan.actions)).toBe("ignore");
+
+    const teardownPlan = stepLinkRttOutcomePlanWithActions(initialLinkRttOutcomePlanState(), {
+      kind: "rtt/outcome-plan-gate",
+      canAccept: true,
+      plaintextPresent: false
+    });
+    expect(shouldTeardownLinkRttOutcomePlan(teardownPlan.actions)).toBe(true);
+    expect(linkRttOutcomePlanFromActions(teardownPlan.actions)).toBe("teardown");
+
+    const activatePlan = stepLinkRttOutcomePlanWithActions(initialLinkRttOutcomePlanState(), {
+      kind: "rtt/outcome-plan-gate",
+      canAccept: true,
+      plaintextPresent: true
+    });
+    expect(shouldActivateLinkRttOutcomePlan(activatePlan.actions)).toBe(true);
+    expect(linkRttOutcomePlanFromActions(activatePlan.actions)).toBe("activate");
   });
 
   it("establish actions double-run identically", () => {

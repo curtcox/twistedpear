@@ -199,6 +199,8 @@
 > (nested under token-access) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
+> **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
+> (nested under establish LRRTT) /
 > **`stepTeardownLinkFromRttWithActions`**: teardown|skip /
 > **`stepAcceptLinkTeardownWithActions`**: accept|skip /
 > **`stepLinkTeardownReasonWithActions`**: use-reason /
@@ -938,7 +940,9 @@
 > relay / delete-expired / ignore) live in protocol; transport link + reverse relay adapt
 > them. **`planLinkRttOutcome`** (via **`stepLinkEstablishWithActions`**
 > `establish/rtt`; accept via **`stepAcceptLinkRttWithActions`**: accept|skip;
-> teardown via **`stepTeardownLinkFromRttWithActions`**: teardown|skip), **`shouldDispatchLinkPlaintext`** (via **`stepDispatchLinkPlaintextWithActions`**: dispatch|skip),
+> outcome plan nested via **`stepLinkRttOutcomePlanWithActions`**:
+> ignore|activate|teardown; teardown via
+> **`stepTeardownLinkFromRttWithActions`**: teardown|skip), **`shouldDispatchLinkPlaintext`** (via **`stepDispatchLinkPlaintextWithActions`**: dispatch|skip),
 > **`canResendLinkPacket`** (via **`stepResendLinkPacketAllowWithActions`**: allow|deny), and **`planLinkAppRequestTransmitOutcome`** (via
 > **`stepLinkAppRequestTransmitWithActions`**: keep-pending / unregister) live in
 > protocol; `Link` adapts them. **`planResourceHashmapUpdateAccept`** (via
@@ -1257,9 +1261,14 @@
 > nested via **`stepExtendPacketReceiptTimeoutWithActions`**: extend|skip).
 > **`stepLinkEstablishWithActions`** emits `enter-handshake` / `activated`
 > (with initiator `sendRtt` + `activateMembership` flags) / `failed` / LRRTT
-> `ignore` / `accept-rtt` / `teardown`; `Link` handshake, validateProof, and
+> `ignore` / `accept-rtt` / `teardown` (accept-RTT nested via
+> **`stepAcceptLinkRttWithActions`**: accept|skip; outcome plan nested via
+> **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown;
+> teardown-from-RTT nested via **`stepTeardownLinkFromRttWithActions`**:
+> teardown|skip); `Link` handshake, validateProof, and
 > handleRtt apply status and edge IO only from those actions (no ad-hoc
-> `planLinkRttOutcome` reads beside the step).
+> `planLinkRttOutcome` / `outcome ===` / `canAcceptLinkRtt` /
+> `shouldTeardownLinkFromRtt` reads beside the step).
 > **`stepLinkTeardownWithActions`** emits `close-only` /
 > `send-teardown-then-close` (with reason) / `accept-remote-close`; remote
 > accept nested via **`stepAcceptLinkTeardownWithActions`** (`accept`|`skip`);
@@ -1706,7 +1715,7 @@
 > sync-prep gates, LXMF deliverable accept, propagation local ingress,
 > LXMF receipt → send-state mapping, Link validate-request
 > proceed/reject / continue, Link proof-validate accept/reject, and Link
-> LRRTT accept/teardown-from-rtt / LINKCLOSE accept-link-teardown /
+> LRRTT accept/teardown-from-rtt / link-rtt-outcome-plan / LINKCLOSE accept-link-teardown /
 > link-teardown-reason / link-teardown-plan also conclude via
 > machine actions (no ad-hoc `state.timedOut` / `plan.kind` / establish-status /
 > dispatch / identify-outcome / delivery-plan / send-method / send-gate /
@@ -1716,7 +1725,7 @@
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / teardown-link-from-rtt / accept-link-teardown /
+> proof-validate / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
@@ -1822,7 +1831,7 @@
 > link-ready-for-new-resource /
 > perform-link-handshake-allow / prove-link-allow /
 > accept-link-owner-public-key / accept-link-request-owner / validate-link-proof-allow /
-> attempt-link-proof-crypto / accept-link-rtt / teardown-link-from-rtt /
+> attempt-link-proof-crypto / accept-link-rtt / link-rtt-outcome-plan / teardown-link-from-rtt /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /

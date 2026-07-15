@@ -3181,6 +3181,90 @@ export function planLinkRttOutcome(input: {
 }
 
 /**
+ * LRRTT outcome plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkRttOutcome` /
+ * `outcome ===` reads beside the step). Nested under
+ * {@link stepLinkEstablishWithActions} (`establish/rtt`).
+ */
+export type LinkRttOutcomePlanState = Record<string, never>;
+
+export type LinkRttOutcomePlanEvent =
+  | Event
+  | {
+      readonly kind: "rtt/outcome-plan-gate";
+      readonly canAccept: boolean;
+      readonly plaintextPresent: boolean;
+    };
+
+export type LinkRttOutcomePlanAction =
+  | { readonly kind: "ignore" }
+  | { readonly kind: "activate" }
+  | { readonly kind: "teardown" };
+
+export interface LinkRttOutcomePlanStepResult {
+  readonly state: LinkRttOutcomePlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkRttOutcomePlanAction[];
+}
+
+export function initialLinkRttOutcomePlanState(): LinkRttOutcomePlanState {
+  return {};
+}
+
+export function stepLinkRttOutcomePlanWithActions(
+  state: LinkRttOutcomePlanState,
+  event: LinkRttOutcomePlanEvent
+): LinkRttOutcomePlanStepResult {
+  if (event.kind === "rtt/outcome-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLinkRttOutcome({
+            canAccept: event.canAccept,
+            plaintextPresent: event.plaintextPresent
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldIgnoreLinkRttOutcomePlan(
+  actions: ReadonlyArray<LinkRttOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+export function shouldActivateLinkRttOutcomePlan(
+  actions: ReadonlyArray<LinkRttOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "activate");
+}
+
+export function shouldTeardownLinkRttOutcomePlan(
+  actions: ReadonlyArray<LinkRttOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "teardown");
+}
+
+/** Extract the LRRTT outcome plan from actions; null when empty. */
+export function linkRttOutcomePlanFromActions(
+  actions: ReadonlyArray<LinkRttOutcomePlanAction>
+): LinkRttOutcome | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ignore" ||
+      entry.kind === "activate" ||
+      entry.kind === "teardown"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * Whether LRRTT handling should teardown after {@link planLinkRttOutcome}
  * (explicit teardown or missing plaintext for narrowing).
  */
@@ -3663,23 +3747,27 @@ function stepLinkEstablishInner(
         initiator: state.initiator
       }).actions
     );
-    const outcome = planLinkRttOutcome({
+    const planActions = stepLinkRttOutcomePlanWithActions(initialLinkRttOutcomePlanState(), {
+      kind: "rtt/outcome-plan-gate",
       canAccept,
       plaintextPresent: event.plaintextPresent
-    });
-    if (outcome === "ignore") {
+    }).actions;
+    if (shouldIgnoreLinkRttOutcomePlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "ignore" }] };
     }
     if (
       shouldTeardownLinkFromRttNow(
         stepTeardownLinkFromRttWithActions(initialTeardownLinkFromRttState(), {
           kind: "link/teardown-from-rtt-gate",
-          outcomeTeardown: outcome === "teardown",
+          outcomeTeardown: shouldTeardownLinkRttOutcomePlan(planActions),
           plaintextPresent: event.plaintextPresent
         }).actions
       )
     ) {
       return { state, intents: [], actions: [{ kind: "teardown" }] };
+    }
+    if (!shouldActivateLinkRttOutcomePlan(planActions)) {
+      return { state, intents: [], actions: [] };
     }
     return { state, intents: [], actions: [{ kind: "accept-rtt" }] };
   }
