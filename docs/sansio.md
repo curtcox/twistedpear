@@ -103,6 +103,8 @@
 > **`stepIndexOfChannelTxEnvelopeWithActions`** /
 > **`stepIndexOfChannelRingSequenceWithActions`**: use-index|miss; TX-envelope
 > op via **`stepChannelTxEnvelopeOpWithActions`**: miss|process (nested under
+> TX timeout); packet-timeout plan via
+> **`stepChannelPacketTimeoutWithActions`**: ignore|give-up|retry (nested under
 > TX timeout); arm-
 > packet-receipt via **`stepArmChannelPacketReceiptWithActions`**: arm|skip;
 > extend-packet-receipt-timeout via **`stepExtendPacketReceiptTimeoutWithActions`**:
@@ -548,7 +550,9 @@
 > **propagation store-apply-commit** (via
 > **`stepApplyPropagationStoreCommitWithActions`**: apply|skip) live in
 > protocol; `PropagationServer` adapts them. **`planChannelPacketTimeout`**
-> (`CHANNEL_MAX_TRIES`), **`shouldEmitPathRequest`** (via
+> (via **`stepChannelPacketTimeoutWithActions`**: ignore|give-up|retry;
+> `CHANNEL_MAX_TRIES`; nested under **`stepChannelTxTimeoutWithActions`**),
+> **`shouldEmitPathRequest`** (via
 > **`stepEmitPathRequestWithActions`**: emit|skip), and link-watchdog **`link/inbound`**
 > STALE→ACTIVE revive live in protocol; Channel, LeafTransport, and Link adapt them.
 > **`stepChannelWindow`**, **transport ingress accept/hash-defer planners** (+ rebroadcast/
@@ -1052,6 +1056,8 @@
 > **`stepFulfillResourcePartRequestWithActions`**: fulfill|skip),
 > **`planChannelTxEnvelopeOp`** (via **`stepChannelTxEnvelopeOpWithActions`**:
 > miss|process; nested under **`stepChannelTxTimeoutWithActions`**) /
+> **`planChannelPacketTimeout`** (via **`stepChannelPacketTimeoutWithActions`**:
+> ignore|give-up|retry; nested under **`stepChannelTxTimeoutWithActions`**) /
 > **`shouldApplyChannelPacketReceiptTimeout`** (via
 > **`stepApplyChannelPacketReceiptTimeoutWithActions`**: apply|skip) /
 > **`shouldReplaceChannelResentPacket`** (via
@@ -1228,9 +1234,11 @@
 > LinkRequestReceipt callbacks fire on timer expiry).
 > **`stepChannelTxTimeoutWithActions`** composes envelope miss / ignore /
 > give-up / retry with window shrink (envelope-op nested via
-> **`stepChannelTxEnvelopeOpWithActions`**: miss|process); `Channel.packetTimeout`
-> applies only `give-up` / `retry` actions (no ad-hoc `plan.kind` /
-> `planChannelTxEnvelopeOp` reads). Receipt timeout
+> **`stepChannelTxEnvelopeOpWithActions`**: miss|process; packet-timeout plan
+> nested via **`stepChannelPacketTimeoutWithActions`**: ignore|give-up|retry);
+> `Channel.packetTimeout` applies only `give-up` / `retry` actions (no ad-hoc
+> `plan.kind` / `planChannelTxEnvelopeOp` / `planChannelPacketTimeout` reads).
+> Receipt timeout
 > refresh uses **`planChannelTxReceiptTimeoutRefresh`** (arm nested via
 > **`stepArmChannelPacketReceiptWithActions`**: arm|skip; timeout formula nested
 > via **`stepChannelPacketTimeoutSecondsWithActions`**: use-timeout; extend
@@ -1626,6 +1634,10 @@
 > **`stepChannelTxEnvelopeOpWithActions`** emits `miss` / `process`; Channel
 > TX-ring timeout/delivery applies only from those actions (nested under
 > **`stepChannelTxTimeoutWithActions`**).
+> **`stepChannelPacketTimeoutWithActions`** emits `ignore` / `give-up` /
+> `retry`; Channel TX-timeout plan applies only from those actions (nested under
+> **`stepChannelTxTimeoutWithActions`**; no ad-hoc `planChannelPacketTimeout` /
+> `plan.kind` reads beside the step).
 > **`stepDestinationProofWithActions`** emits `prove` / `skip`;
 > **`stepPacketFilterWithActions`** emits `accept` / `reject`; transport node
 > local plain DATA prove and packet-filter apply only from those actions.
@@ -1796,6 +1808,7 @@
 > register-link-resource / handle-outgoing-resource-request /
 > handle-incoming-resource-by-hash / link-mode-enabled / expected-link-mode /
 > destination-identity-hash / channel-tx-envelope-op /
+> channel-packet-timeout /
 > destination-proof / packet-filter / packet-receipt-callback /
 > channel-tx-receipt-timeout-refresh / extend-packet-receipt-timeout /
 > resend-channel-timeout-packet /
@@ -2097,6 +2110,10 @@
 > **`stepChannelPacketTimeoutSecondsWithActions`** emits `use-timeout`;
 > `Channel.getPacketTimeoutTime` and TX receipt-timeout refresh apply only from
 > those actions (no ad-hoc `channelPacketTimeoutSeconds` reads beside the step).
+> **`stepChannelPacketTimeoutWithActions`** emits `ignore`|`give-up`|`retry`;
+> Channel TX-timeout plan applies only from those actions (nested under
+> **`stepChannelTxTimeoutWithActions`**; no ad-hoc `planChannelPacketTimeout` /
+> `plan.kind` reads beside the step).
 > **`stepExtendPacketReceiptTimeoutWithActions`** emits `extend`|`skip`;
 > Channel TX receipt-timeout refresh applies only from those actions (no
 > ad-hoc `shouldExtendPacketReceiptTimeout` reads beside the step).
@@ -2638,6 +2655,10 @@
 > **`stepChannelPacketTimeoutSecondsWithActions`** emits `use-timeout`;
 > `Channel.getPacketTimeoutTime` and TX receipt-timeout refresh apply only from
 > those actions (no ad-hoc `channelPacketTimeoutSeconds` reads beside the step).
+> **`stepChannelPacketTimeoutWithActions`** emits `ignore`|`give-up`|`retry`;
+> Channel TX-timeout plan applies only from those actions (nested under
+> **`stepChannelTxTimeoutWithActions`**; no ad-hoc `planChannelPacketTimeout` /
+> `plan.kind` reads beside the step).
 > **`stepExtendPacketReceiptTimeoutWithActions`** emits `extend`|`skip`;
 > Channel TX receipt-timeout refresh applies only from those actions (no
 > ad-hoc `shouldExtendPacketReceiptTimeout` reads beside the step).

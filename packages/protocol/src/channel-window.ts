@@ -1,17 +1,19 @@
 /**
  * Pure RNS Channel congestion window + packet timeout decisions.
  * Adapters own send/resend/timers; this owns window sizing and timeout formulas.
- * Packet-timeout-seconds / TX outstanding / send-allow / outlet-transmit /
- * TX-envelope index / TX timeout / arm-packet-receipt /
+ * Packet-timeout-seconds / packet-timeout plan / TX outstanding / send-allow /
+ * outlet-transmit / TX-envelope index / TX timeout / arm-packet-receipt /
  * extend-packet-receipt-timeout conclusions leave via machine actions (no
- * ad-hoc `channelPacketTimeoutSeconds` / `countChannelTxOutstanding` /
- * `channelAllowsSend` / `isChannelOutletTransmitOk` /
- * `indexOfChannelTxEnvelope` / `canArmChannelPacketReceipt` /
- * `shouldExtendPacketReceiptTimeout` / `plan.kind` reads beside the step).
+ * ad-hoc `channelPacketTimeoutSeconds` / `planChannelPacketTimeout` /
+ * `countChannelTxOutstanding` / `channelAllowsSend` /
+ * `isChannelOutletTransmitOk` / `indexOfChannelTxEnvelope` /
+ * `canArmChannelPacketReceipt` / `shouldExtendPacketReceiptTimeout` /
+ * `plan.kind` reads beside the step).
  * TX receipt-timeout refresh nests packet-timeout-seconds via
  * `stepChannelPacketTimeoutSecondsWithActions` (`use-timeout`).
  * TX timeout nests envelope-op via `stepChannelTxEnvelopeOpWithActions`
- * (`miss`|`process`).
+ * (`miss`|`process`) and packet-timeout plan via
+ * `stepChannelPacketTimeoutWithActions` (`ignore`|`give-up`|`retry`).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -1152,6 +1154,99 @@ export function planChannelPacketTimeout(input: {
   return { kind: "retry", nextTries: input.tries + 1 };
 }
 
+/**
+ * Channel packet-timeout plan is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planChannelPacketTimeout`
+ * / `plan.kind` reads beside the step).
+ */
+export type ChannelPacketTimeoutState = Record<string, never>;
+
+export type ChannelPacketTimeoutEvent =
+  | Event
+  | {
+      readonly kind: "channel/packet-timeout-plan-gate";
+      readonly delivered: boolean;
+      readonly tries: number;
+      readonly maxTries?: number;
+    };
+
+export type ChannelPacketTimeoutAction =
+  | { readonly kind: "ignore" }
+  | { readonly kind: "give-up" }
+  | { readonly kind: "retry"; readonly nextTries: number };
+
+export interface ChannelPacketTimeoutStepResult {
+  readonly state: ChannelPacketTimeoutState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelPacketTimeoutAction[];
+}
+
+export function initialChannelPacketTimeoutState(): ChannelPacketTimeoutState {
+  return {};
+}
+
+export function stepChannelPacketTimeoutWithActions(
+  state: ChannelPacketTimeoutState,
+  event: ChannelPacketTimeoutEvent
+): ChannelPacketTimeoutStepResult {
+  if (event.kind === "channel/packet-timeout-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        planChannelPacketTimeout({
+          delivered: event.delivered,
+          tries: event.tries,
+          ...(event.maxTries !== undefined ? { maxTries: event.maxTries } : {})
+        })
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldIgnoreChannelPacketTimeoutPlan(
+  actions: ReadonlyArray<ChannelPacketTimeoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+export function shouldGiveUpChannelPacketTimeoutPlan(
+  actions: ReadonlyArray<ChannelPacketTimeoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "give-up");
+}
+
+export function shouldRetryChannelPacketTimeoutPlan(
+  actions: ReadonlyArray<ChannelPacketTimeoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "retry");
+}
+
+/** Extract the retry plan action, if any. */
+export function channelPacketTimeoutRetryFromActions(
+  actions: ReadonlyArray<ChannelPacketTimeoutAction>
+): Extract<ChannelPacketTimeoutAction, { kind: "retry" }> | null {
+  for (const action of actions) {
+    if (action.kind === "retry") {
+      return action;
+    }
+  }
+  return null;
+}
+
+/** Extract the full plan from actions; null when empty. */
+export function channelPacketTimeoutPlanFromActions(
+  actions: ReadonlyArray<ChannelPacketTimeoutAction>
+): ChannelPacketTimeoutPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ignore" || entry.kind === "give-up" || entry.kind === "retry"
+  );
+  return action ?? null;
+}
+
 export type ChannelWindowEvent =
   | Event
   | { readonly kind: "channel/init"; readonly rtt: number }
@@ -1185,9 +1280,11 @@ function stepChannelWindowInner(
  * Channel TX-timeout step: compose envelope miss / ignore / give-up / retry
  * with window shrink. Adapters apply give-up (shutdown) and retry (resend +
  * re-arm) only from actions — not by reading `plan.kind` /
- * `planChannelTxEnvelopeOp` beside the step. Envelope-op nested via
- * `stepChannelTxEnvelopeOpWithActions` (`miss`|`process`). Resend itself is
- * gated separately via `stepResendChannelTimeoutPacketWithActions`.
+ * `planChannelTxEnvelopeOp` / `planChannelPacketTimeout` beside the step.
+ * Envelope-op nested via `stepChannelTxEnvelopeOpWithActions` (`miss`|`process`).
+ * Packet-timeout plan nested via `stepChannelPacketTimeoutWithActions`
+ * (`ignore`|`give-up`|`retry`). Resend itself is gated separately via
+ * `stepResendChannelTimeoutPacketWithActions`.
  */
 export type ChannelTxTimeoutEvent =
   | Event
@@ -1242,18 +1339,24 @@ function stepChannelTxTimeoutInner(
     return { state, intents: [], actions: [] };
   }
 
-  const plan = planChannelPacketTimeout({
+  const planActions = stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+    kind: "channel/packet-timeout-plan-gate",
     delivered: event.delivered,
     tries: event.tries,
     maxTries: event.maxTries
-  });
+  }).actions;
 
-  if (plan.kind === "ignore") {
+  if (shouldIgnoreChannelPacketTimeoutPlan(planActions)) {
     return { state, intents: [], actions: [] };
   }
 
-  if (plan.kind === "give-up") {
+  if (shouldGiveUpChannelPacketTimeoutPlan(planActions)) {
     return { state, intents: [], actions: [{ kind: "give-up" }] };
+  }
+
+  const retry = channelPacketTimeoutRetryFromActions(planActions);
+  if (retry === null) {
+    return { state, intents: [], actions: [] };
   }
 
   return {
@@ -1262,7 +1365,7 @@ function stepChannelTxTimeoutInner(
     actions: [
       {
         kind: "retry",
-        nextTries: plan.nextTries
+        nextTries: retry.nextTries
       }
     ]
   };

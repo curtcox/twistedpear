@@ -6,6 +6,8 @@ import {
   applyChannelTimeout,
   channelAllowsSend,
   channelPacketTimeoutFromActions,
+  channelPacketTimeoutPlanFromActions,
+  channelPacketTimeoutRetryFromActions,
   channelPacketTimeoutSeconds,
   channelRetryExhausted,
   channelTxEnvelopeIndexFromActions,
@@ -20,6 +22,7 @@ import {
   initialChannelAllowsSendState,
   initialChannelOutletTransmitState,
   initialChannelPacketTimeoutSecondsState,
+  initialChannelPacketTimeoutState,
   initialChannelSendState,
   initialChannelTxEnvelopeOpState,
   initialChannelTxReceiptTimeoutRefreshState,
@@ -45,7 +48,9 @@ import {
   shouldExtendChannelTxReceiptTimeout,
   shouldExtendPacketReceiptTimeout,
   shouldExtendPacketReceiptTimeoutNow,
+  shouldGiveUpChannelPacketTimeoutPlan,
   shouldGiveUpChannelTxTimeout,
+  shouldIgnoreChannelPacketTimeoutPlan,
   shouldMissChannelTxEnvelopeIndex,
   shouldMissChannelTxEnvelopeOp,
   shouldProceedChannelSend,
@@ -57,6 +62,7 @@ import {
   shouldReplaceChannelResentPacketNow,
   shouldResendChannelTimeoutPacket,
   shouldResendChannelTimeoutPacketNow,
+  shouldRetryChannelPacketTimeoutPlan,
   shouldRetryChannelTxTimeout,
   shouldSkipApplyChannelPacketReceiptTimeout,
   shouldSkipApplyChannelTxReceiptTimeoutExtension,
@@ -78,6 +84,7 @@ import {
   stepChannelAllowsSendWithActions,
   stepChannelOutletTransmitWithActions,
   stepChannelPacketTimeoutSecondsWithActions,
+  stepChannelPacketTimeoutWithActions,
   stepChannelSendWithActions,
   stepChannelTxEnvelopeOpWithActions,
   stepChannelTxReceiptTimeoutRefreshWithActions,
@@ -551,7 +558,7 @@ describe("protocol channel window", () => {
     expect(channelTxEnvelopeIndexFromActions(empty.actions)).toBeNull();
   });
 
-  it("plans packet timeout ignore / retry / give-up", () => {
+  it("plans packet timeout ignore / retry / give-up without ad-hoc plan.kind reads", () => {
     expect(CHANNEL_MAX_TRIES).toBe(5);
     expect(planChannelPacketTimeout({ delivered: true, tries: 1 })).toEqual({ kind: "ignore" });
     expect(planChannelPacketTimeout({ delivered: false, tries: 2 })).toEqual({
@@ -559,6 +566,45 @@ describe("protocol channel window", () => {
       nextTries: 3
     });
     expect(planChannelPacketTimeout({ delivered: false, tries: 5 })).toEqual({ kind: "give-up" });
+
+    const ignore = stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+      kind: "channel/packet-timeout-plan-gate",
+      delivered: true,
+      tries: 1
+    });
+    expect(shouldIgnoreChannelPacketTimeoutPlan(ignore.actions)).toBe(true);
+    expect(shouldGiveUpChannelPacketTimeoutPlan(ignore.actions)).toBe(false);
+    expect(shouldRetryChannelPacketTimeoutPlan(ignore.actions)).toBe(false);
+    expect(channelPacketTimeoutPlanFromActions(ignore.actions)).toEqual({ kind: "ignore" });
+
+    const retry = stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+      kind: "channel/packet-timeout-plan-gate",
+      delivered: false,
+      tries: 2
+    });
+    expect(shouldRetryChannelPacketTimeoutPlan(retry.actions)).toBe(true);
+    expect(channelPacketTimeoutRetryFromActions(retry.actions)).toEqual({
+      kind: "retry",
+      nextTries: 3
+    });
+    expect(channelPacketTimeoutPlanFromActions(retry.actions)).toEqual({
+      kind: "retry",
+      nextTries: 3
+    });
+
+    const giveUp = stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+      kind: "channel/packet-timeout-plan-gate",
+      delivered: false,
+      tries: 5
+    });
+    expect(shouldGiveUpChannelPacketTimeoutPlan(giveUp.actions)).toBe(true);
+    expect(channelPacketTimeoutRetryFromActions(giveUp.actions)).toBeNull();
+
+    const empty = stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+      kind: "noop"
+    } as never);
+    expect(shouldIgnoreChannelPacketTimeoutPlan(empty.actions)).toBe(false);
+    expect(channelPacketTimeoutPlanFromActions(empty.actions)).toBeNull();
   });
 
   it("steps window timeout and delivery events", () => {
@@ -605,6 +651,17 @@ describe("protocol channel window", () => {
     });
     expect(ignore.actions).toEqual([]);
     expect(ignore.state.window).toBe(4);
+    // Nested packet-timeout plan: delivered envelopes are ignore.
+    expect(
+      shouldIgnoreChannelPacketTimeoutPlan(
+        stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+          kind: "channel/packet-timeout-plan-gate",
+          delivered: true,
+          tries: 1,
+          maxTries: CHANNEL_MAX_TRIES
+        }).actions
+      )
+    ).toBe(true);
 
     const giveUp = stepChannelTxTimeoutWithActions(state, {
       kind: "channel/tx-timeout",
@@ -617,6 +674,16 @@ describe("protocol channel window", () => {
     expect(giveUp.actions).toEqual([{ kind: "give-up" }]);
     expect(shouldGiveUpChannelTxTimeout(giveUp.actions)).toBe(true);
     expect(giveUp.state.window).toBe(4);
+    expect(
+      shouldGiveUpChannelPacketTimeoutPlan(
+        stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+          kind: "channel/packet-timeout-plan-gate",
+          delivered: false,
+          tries: CHANNEL_MAX_TRIES,
+          maxTries: CHANNEL_MAX_TRIES
+        }).actions
+      )
+    ).toBe(true);
 
     const retry = stepChannelTxTimeoutWithActions(state, {
       kind: "channel/tx-timeout",
@@ -633,6 +700,16 @@ describe("protocol channel window", () => {
       nextTries: 3
     });
     expect(retry.state.window).toBe(3);
+    expect(
+      channelPacketTimeoutRetryFromActions(
+        stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
+          kind: "channel/packet-timeout-plan-gate",
+          delivered: false,
+          tries: 2,
+          maxTries: CHANNEL_MAX_TRIES
+        }).actions
+      )
+    ).toEqual({ kind: "retry", nextTries: 3 });
   });
 
   it("StepFn wrapper omits actions while WithActions preserves them", () => {
