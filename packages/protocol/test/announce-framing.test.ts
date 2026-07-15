@@ -6,10 +6,14 @@ import {
   ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE,
   ANNOUNCE_SIGNATURE_SIZE,
   announceDestinationHashMaterial,
+  announceDestinationHashMaterialRawFromActions,
+  announceDestinationHashMatches,
   announcePayloadFieldsFromActions,
   announceSignedMaterial,
   announceSignedMaterialRawFromActions,
   initialAnnounceBuildState,
+  initialAnnounceDestinationHashMatchState,
+  initialAnnounceDestinationHashMaterialState,
   initialAnnounceSignedMaterialState,
   initialAnnounceValidateState,
   initialPackAnnouncePayloadState,
@@ -25,6 +29,8 @@ import {
   shouldAcceptParsedAnnounce,
   shouldAttemptAnnounceSignatureValidate,
   shouldCheckAnnounceDestinationHash,
+  shouldMatchAnnounceDestinationHash,
+  shouldMismatchAnnounceDestinationHash,
   shouldProceedAnnounceBuild,
   shouldRejectAnnounceBuildBadRandomHash,
   shouldRejectAnnounceBuildBadRatchet,
@@ -32,10 +38,13 @@ import {
   shouldRejectAnnounceBuildNotAnnounceableDirection,
   shouldRejectAnnounceBuildNotAnnounceableType,
   shouldRejectParseAnnouncePayload,
+  shouldUseAnnounceDestinationHashMaterial,
   shouldUseAnnounceSignedMaterial,
   shouldUsePackAnnouncePayload,
   shouldUseParseAnnouncePayload,
   stepAnnounceBuildWithActions,
+  stepAnnounceDestinationHashMatchWithActions,
+  stepAnnounceDestinationHashMaterialWithActions,
   stepAnnounceSignedMaterialWithActions,
   stepAnnounceValidateWithActions,
   stepPackAnnouncePayloadWithActions,
@@ -119,6 +128,45 @@ describe("protocol announce framing", () => {
 
     const material = announceDestinationHashMaterial(nameHash, destinationHash);
     expect(material.length).toBe(nameHash.length + destinationHash.length);
+
+    const materialStepped = stepAnnounceDestinationHashMaterialWithActions(
+      initialAnnounceDestinationHashMaterialState(),
+      {
+        kind: "announce/destination-hash-material-gate",
+        nameHash,
+        identityHash: destinationHash
+      }
+    );
+    expect(shouldUseAnnounceDestinationHashMaterial(materialStepped.actions)).toBe(true);
+    const materialFromActions = announceDestinationHashMaterialRawFromActions(
+      materialStepped.actions
+    );
+    expect(materialFromActions).not.toBeNull();
+    expect([...materialFromActions!]).toEqual([...material]);
+
+    const expected = material.subarray(0, nameHash.length);
+    expect(announceDestinationHashMatches(nameHash, expected)).toBe(true);
+    const matchStepped = stepAnnounceDestinationHashMatchWithActions(
+      initialAnnounceDestinationHashMatchState(),
+      {
+        kind: "announce/destination-hash-match-gate",
+        destinationHash: nameHash,
+        expectedTruncatedHash: expected
+      }
+    );
+    expect(shouldMatchAnnounceDestinationHash(matchStepped.actions)).toBe(true);
+    expect(shouldMismatchAnnounceDestinationHash(matchStepped.actions)).toBe(false);
+
+    const mismatchStepped = stepAnnounceDestinationHashMatchWithActions(
+      initialAnnounceDestinationHashMatchState(),
+      {
+        kind: "announce/destination-hash-match-gate",
+        destinationHash: nameHash,
+        expectedTruncatedHash: new Uint8Array(ANNOUNCE_NAME_HASH_SIZE).fill(9)
+      }
+    );
+    expect(shouldMatchAnnounceDestinationHash(mismatchStepped.actions)).toBe(false);
+    expect(shouldMismatchAnnounceDestinationHash(mismatchStepped.actions)).toBe(true);
   });
 
   it("plans announce build gates", () => {

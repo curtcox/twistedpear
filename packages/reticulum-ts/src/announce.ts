@@ -2,11 +2,12 @@ import {
   ANNOUNCE_RANDOM_HASH_SIZE,
   ANNOUNCE_RATCHET_PUBLIC_KEY_SIZE,
   ANNOUNCE_SIGNATURE_SIZE as PROTOCOL_ANNOUNCE_SIGNATURE_SIZE,
-  announceDestinationHashMaterial,
-  announceDestinationHashMatches,
+  announceDestinationHashMaterialRawFromActions,
   announcePayloadFieldsFromActions,
   announceSignedMaterialRawFromActions,
   initialAnnounceBuildState,
+  initialAnnounceDestinationHashMatchState,
+  initialAnnounceDestinationHashMaterialState,
   initialAnnounceSignedMaterialState,
   initialAnnounceValidateState,
   initialPackAnnouncePayloadState,
@@ -16,6 +17,7 @@ import {
   shouldAcceptAnnounceValidate,
   shouldAttemptAnnounceSignatureValidate,
   shouldCheckAnnounceDestinationHash,
+  shouldMatchAnnounceDestinationHash,
   shouldProceedAnnounceBuild,
   shouldRejectAnnounceBuildBadRandomHash,
   shouldRejectAnnounceBuildBadRatchet,
@@ -23,10 +25,13 @@ import {
   shouldRejectAnnounceBuildNotAnnounceableDirection,
   shouldRejectAnnounceBuildNotAnnounceableType,
   shouldRejectParseAnnouncePayload,
+  shouldUseAnnounceDestinationHashMaterial,
   shouldUseAnnounceSignedMaterial,
   shouldUsePackAnnouncePayload,
   shouldUseParseAnnouncePayload,
   stepAnnounceBuildWithActions,
+  stepAnnounceDestinationHashMatchWithActions,
+  stepAnnounceDestinationHashMaterialWithActions,
   stepAnnounceSignedMaterialWithActions,
   stepAnnounceValidateWithActions,
   stepPackAnnouncePayloadWithActions,
@@ -247,20 +252,41 @@ export class Announce {
         onlyValidateSignature
       })
     ) {
-      const truncateStepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
-        kind: "hash-truncate/truncate-gate",
-        digest: Identity.fullHash(
-          provider,
-          announceDestinationHashMaterial(parsed!.nameHash, identity!.hash)
-        ),
-        length: TRUNCATED_HASH_BYTES
-      });
-      const expectedHash = truncateHashBytesRawFromActions(truncateStepped.actions);
-      destinationHashMatches =
-        expectedHash !== null &&
-        shouldUseTruncateHashBytes(truncateStepped.actions) &&
-        !shouldRejectTruncateHashBytes(truncateStepped.actions) &&
-        announceDestinationHashMatches(parsed!.destinationHash, expectedHash);
+      const materialStepped = stepAnnounceDestinationHashMaterialWithActions(
+        initialAnnounceDestinationHashMaterialState(),
+        {
+          kind: "announce/destination-hash-material-gate",
+          nameHash: parsed!.nameHash,
+          identityHash: identity!.hash
+        }
+      );
+      const material =
+        shouldUseAnnounceDestinationHashMaterial(materialStepped.actions)
+          ? announceDestinationHashMaterialRawFromActions(materialStepped.actions)
+          : null;
+      if (material !== null) {
+        const truncateStepped = stepTruncateHashBytesWithActions(initialTruncateHashBytesState(), {
+          kind: "hash-truncate/truncate-gate",
+          digest: Identity.fullHash(provider, material),
+          length: TRUNCATED_HASH_BYTES
+        });
+        const expectedHash = truncateHashBytesRawFromActions(truncateStepped.actions);
+        if (
+          expectedHash !== null &&
+          shouldUseTruncateHashBytes(truncateStepped.actions) &&
+          !shouldRejectTruncateHashBytes(truncateStepped.actions)
+        ) {
+          const matchStepped = stepAnnounceDestinationHashMatchWithActions(
+            initialAnnounceDestinationHashMatchState(),
+            {
+              kind: "announce/destination-hash-match-gate",
+              destinationHash: parsed!.destinationHash,
+              expectedTruncatedHash: expectedHash
+            }
+          );
+          destinationHashMatches = shouldMatchAnnounceDestinationHash(matchStepped.actions);
+        }
+      }
     }
 
     const gate = stepAnnounceValidateWithActions(initialAnnounceValidateState(), {

@@ -1,9 +1,11 @@
 /**
  * Pure RNS announce payload framing and signed-material assembly.
  * Signing / hashing stay at the crypto adapter edge.
- * Pack / parse / validate / build / signed-material conclusions leave via
- * machine actions (no ad-hoc `packAnnouncePayload` / `parseAnnouncePayload` /
- * `announceSignedMaterial` / `plan` string reads beside the step).
+ * Pack / parse / validate / build / signed-material / destination-hash
+ * material and match conclusions leave via machine actions (no ad-hoc
+ * `packAnnouncePayload` / `parseAnnouncePayload` / `announceSignedMaterial` /
+ * `announceDestinationHashMaterial` / `announceDestinationHashMatches` /
+ * `plan` string reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_ANNOUNCE } from "./packet-header.js";
@@ -367,11 +369,140 @@ export function announceDestinationHashMaterial(
   return concatBytes(nameHash, identityHash);
 }
 
+/**
+ * Announce destination-hash material assembly is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `announceDestinationHashMaterial` reads beside the step).
+ */
+export type AnnounceDestinationHashMaterialState = Record<string, never>;
+
+export type AnnounceDestinationHashMaterialEvent =
+  | Event
+  | {
+      readonly kind: "announce/destination-hash-material-gate";
+      readonly nameHash: Uint8Array;
+      readonly identityHash: Uint8Array;
+    };
+
+export type AnnounceDestinationHashMaterialAction = {
+  readonly kind: "use-raw";
+  readonly raw: Uint8Array;
+};
+
+export interface AnnounceDestinationHashMaterialStepResult {
+  readonly state: AnnounceDestinationHashMaterialState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AnnounceDestinationHashMaterialAction[];
+}
+
+export function initialAnnounceDestinationHashMaterialState(): AnnounceDestinationHashMaterialState {
+  return {};
+}
+
+export function stepAnnounceDestinationHashMaterialWithActions(
+  state: AnnounceDestinationHashMaterialState,
+  event: AnnounceDestinationHashMaterialEvent
+): AnnounceDestinationHashMaterialStepResult {
+  if (event.kind === "announce/destination-hash-material-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-raw",
+          raw: announceDestinationHashMaterial(event.nameHash, event.identityHash)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseAnnounceDestinationHashMaterial(
+  actions: ReadonlyArray<AnnounceDestinationHashMaterialAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+/** Extract announce destination-hash material from step actions; null when no `use-raw`. */
+export function announceDestinationHashMaterialRawFromActions(
+  actions: ReadonlyArray<AnnounceDestinationHashMaterialAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
 export function announceDestinationHashMatches(
   destinationHash: Uint8Array,
   expectedTruncatedHash: Uint8Array
 ): boolean {
   return equalByteArrays(destinationHash, expectedTruncatedHash);
+}
+
+/**
+ * Announce destination-hash match is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `announceDestinationHashMatches` reads beside the step).
+ */
+export type AnnounceDestinationHashMatchState = Record<string, never>;
+
+export type AnnounceDestinationHashMatchEvent =
+  | Event
+  | {
+      readonly kind: "announce/destination-hash-match-gate";
+      readonly destinationHash: Uint8Array;
+      readonly expectedTruncatedHash: Uint8Array;
+    };
+
+export type AnnounceDestinationHashMatchAction =
+  | { readonly kind: "match" }
+  | { readonly kind: "mismatch" };
+
+export interface AnnounceDestinationHashMatchStepResult {
+  readonly state: AnnounceDestinationHashMatchState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AnnounceDestinationHashMatchAction[];
+}
+
+export function initialAnnounceDestinationHashMatchState(): AnnounceDestinationHashMatchState {
+  return {};
+}
+
+export function stepAnnounceDestinationHashMatchWithActions(
+  state: AnnounceDestinationHashMatchState,
+  event: AnnounceDestinationHashMatchEvent
+): AnnounceDestinationHashMatchStepResult {
+  if (event.kind === "announce/destination-hash-match-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: announceDestinationHashMatches(
+            event.destinationHash,
+            event.expectedTruncatedHash
+          )
+            ? "match"
+            : "mismatch"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldMatchAnnounceDestinationHash(
+  actions: ReadonlyArray<AnnounceDestinationHashMatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "match");
+}
+
+export function shouldMismatchAnnounceDestinationHash(
+  actions: ReadonlyArray<AnnounceDestinationHashMatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "mismatch");
 }
 
 /** Whether a packet is an ANNOUNCE type eligible for announce parse. */

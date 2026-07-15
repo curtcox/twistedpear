@@ -115,7 +115,9 @@
 > use-key) is a pure protocol leaf; transport path helpers adapt it.
 > **Announce payload framing** (pack/parse via **`stepPackAnnouncePayloadWithActions`** /
 > **`stepParseAnnouncePayloadWithActions`**: use-raw / use-fields|reject; signed material via
-> **`stepAnnounceSignedMaterialWithActions`**: use-raw)
+> **`stepAnnounceSignedMaterialWithActions`**: use-raw; destination-hash material / match via
+> **`stepAnnounceDestinationHashMaterialWithActions`** /
+> **`stepAnnounceDestinationHashMatchWithActions`**: use-raw / match|mismatch)
 > and **packet proof framing**
 > (pack/split via **`stepPackPacketProofWithActions`** /
 > **`stepSplitPacketProofWithActions`**: use-raw / use-fields|reject; explicit/implicit;
@@ -909,6 +911,7 @@
 > parse-path-request-data / path-request-tag-key /
 > pack-announce-payload / parse-announce-payload /
 > announce-signed-material /
+> announce-destination-hash-material / announce-destination-hash-match /
 > pack-packet-proof / split-packet-proof / packet-proof-hash-match /
 > encode-packet-raw / decode-packet-raw /
 > pack-packet-flags / unpack-packet-flags / packet-hashable-part /
@@ -1086,10 +1089,15 @@
 > `pathRequestTagKey` reads beside the step).
 > **`stepPackAnnouncePayloadWithActions`** /
 > **`stepParseAnnouncePayloadWithActions`** /
-> **`stepAnnounceSignedMaterialWithActions`** emit `use-raw` /
-> `use-fields`|`reject` / `use-raw`; announce pack / parse / signed-material
-> apply only from those actions (no ad-hoc `packAnnouncePayload` /
-> `parseAnnouncePayload` / `announceSignedMaterial` reads beside the step).
+> **`stepAnnounceSignedMaterialWithActions`** /
+> **`stepAnnounceDestinationHashMaterialWithActions`** /
+> **`stepAnnounceDestinationHashMatchWithActions`** emit `use-raw` /
+> `use-fields`|`reject` / `use-raw` / `use-raw` / `match`|`mismatch`; announce
+> pack / parse / signed-material / destination-hash material / match apply only
+> from those actions (no ad-hoc `packAnnouncePayload` /
+> `parseAnnouncePayload` / `announceSignedMaterial` /
+> `announceDestinationHashMaterial` / `announceDestinationHashMatches` reads
+> beside the step).
 > **`stepPackPacketProofWithActions`** /
 > **`stepSplitPacketProofWithActions`** /
 > **`stepPacketProofHashMatchWithActions`** emit `use-raw` /
