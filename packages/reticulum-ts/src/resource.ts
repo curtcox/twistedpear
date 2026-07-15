@@ -45,7 +45,7 @@ import {
   initialResourceRequestNextAllowState,
   initialResourceStatusState,
   initialResourceWatchdogAllowState,
-  isResourceComplete,
+  initialResourceCompleteState,
   initialPackResourceAdvertisementState,
   initialReadResourceRequestHashState,
   initialUnpackResourceAdvertisementState,
@@ -181,6 +181,7 @@ import {
   shouldContinueResourceTransfer,
   shouldFulfillResourcePartRequestNow,
   shouldSendResourceHashmapUpdateNow,
+  shouldTreatResourceComplete,
   stepAcceptIncomingResourceAdvertisementWithActions,
   stepAdvertiseResourceWithActions,
   stepAdvanceResourceAwaitingProofWithActions,
@@ -189,6 +190,7 @@ import {
   stepFulfillResourcePartRequestWithActions,
   stepProveResourceAllowWithActions,
   stepResourceAdvertiseWaitWithActions,
+  stepResourceCompleteWithActions,
   stepResourceContinueTransferWithActions,
   stepResourceReceivePartAllowWithActions,
   stepResourceRequestNextAllowWithActions,
@@ -903,7 +905,12 @@ export class Resource {
   }
 
   isComplete(): boolean {
-    return isResourceComplete(this.status);
+    return shouldTreatResourceComplete(
+      stepResourceCompleteWithActions(initialResourceCompleteState(), {
+        kind: "resource/complete-gate",
+        status: this.status
+      }).actions
+    );
   }
 
   async advertise(): Promise<void> {

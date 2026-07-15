@@ -22,6 +22,7 @@ import {
   initialIdentityDecryptState,
   initialIdentityHashAllowState,
   initialIdentityRatchetLookupState,
+  initialIdentityRatchetRecordUsableState,
   initialIdentityRecallAppDataState,
   initialIdentityRecallState,
   initialIdentityUsePrivateKeyState,
@@ -36,7 +37,6 @@ import {
   initialSplitIdentityEntropyState,
   initialSplitIdentityPrivateKeyState,
   initialSplitIdentityPublicKeyState,
-  isIdentityRatchetRecordUsable,
   packIdentityCiphertextRawFromActions,
   packIdentityPrivateKeyRawFromActions,
   packIdentityPublicKeyRawFromActions,
@@ -61,6 +61,7 @@ import {
   shouldRejectPackIdentityPrivateKey,
   shouldRejectPackIdentityPublicKey,
   shouldRejectSplitIdentityEntropy,
+  shouldTreatIdentityRatchetRecordUsable,
   shouldTryIdentityDecrypt,
   shouldUseCachedIdentityRatchet,
   shouldUseDecodeIdentityRatchetRecord,
@@ -81,6 +82,7 @@ import {
   stepIdentityDecryptWithActions,
   stepIdentityHashAllowWithActions,
   stepIdentityRatchetLookupWithActions,
+  stepIdentityRatchetRecordUsableWithActions,
   stepIdentityRecallAppDataWithActions,
   stepIdentityRecallWithActions,
   stepIdentityUsePrivateKeyWithActions,
@@ -311,12 +313,21 @@ export class Identity {
         record = identityRatchetRecordFromActions(decodeStepped.actions);
       }
     }
+    const usable =
+      record !== null &&
+      shouldTreatIdentityRatchetRecordUsable(
+        stepIdentityRatchetRecordUsableWithActions(initialIdentityRatchetRecordUsableState(), {
+          kind: "identity-ratchet/usable-gate",
+          record,
+          nowSeconds
+        }).actions
+      );
     const afterStore = stepIdentityRatchetLookupWithActions(initialIdentityRatchetLookupState(), {
       kind: "identity/ratchet-lookup-gate",
       cachedPresent: false,
       storePresent: true,
       storedPresent: record !== null,
-      usable: record !== null && isIdentityRatchetRecordUsable(record, nowSeconds)
+      usable
     });
     if (!shouldCommitRestoredIdentityRatchet(afterStore.actions, record !== null)) {
       return null;

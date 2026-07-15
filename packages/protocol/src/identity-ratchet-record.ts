@@ -6,6 +6,8 @@
  * Lookup conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  * Persist-to-store gate conclusions leave via machine actions (no ad-hoc
  * `shouldPersistIdentityRatchet` reads beside the step).
+ * Usability gate conclusions leave via machine actions (no ad-hoc
+ * `isIdentityRatchetRecordUsable` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { bytesToHexLower, hexToBytesLower } from "./destination-name.js";
@@ -202,6 +204,85 @@ export function isIdentityRatchetRecordUsable(
     return false;
   }
   return nowSeconds < record.received + expirySeconds;
+}
+
+/**
+ * Identity-ratchet usability gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isIdentityRatchetRecordUsable`
+ * reads beside the step).
+ */
+export type IdentityRatchetRecordUsableState = Record<string, never>;
+
+export type IdentityRatchetRecordUsableEvent =
+  | Event
+  | {
+      readonly kind: "identity-ratchet/usable-gate";
+      readonly record: IdentityRatchetRecord;
+      readonly nowSeconds: number;
+      readonly expirySeconds?: number;
+      readonly ratchetBytes?: number;
+    };
+
+export type IdentityRatchetRecordUsableAction =
+  | { readonly kind: "usable" }
+  | { readonly kind: "unusable" };
+
+export interface IdentityRatchetRecordUsableStepResult {
+  readonly state: IdentityRatchetRecordUsableState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IdentityRatchetRecordUsableAction[];
+}
+
+export function initialIdentityRatchetRecordUsableState(): IdentityRatchetRecordUsableState {
+  return {};
+}
+
+export function stepIdentityRatchetRecordUsableWithActions(
+  state: IdentityRatchetRecordUsableState,
+  event: IdentityRatchetRecordUsableEvent
+): IdentityRatchetRecordUsableStepResult {
+  if (event.kind === "identity-ratchet/usable-gate") {
+    const options =
+      event.expirySeconds === undefined && event.ratchetBytes === undefined
+        ? undefined
+        : {
+            ...(event.expirySeconds !== undefined
+              ? { expirySeconds: event.expirySeconds }
+              : {}),
+            ...(event.ratchetBytes !== undefined
+              ? { ratchetBytes: event.ratchetBytes }
+              : {})
+          };
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isIdentityRatchetRecordUsable(
+            event.record,
+            event.nowSeconds,
+            options ?? {}
+          )
+            ? "usable"
+            : "unusable"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatIdentityRatchetRecordUsable(
+  actions: ReadonlyArray<IdentityRatchetRecordUsableAction>
+): boolean {
+  return actions.some((action) => action.kind === "usable");
+}
+
+export function shouldTreatIdentityRatchetRecordUnusable(
+  actions: ReadonlyArray<IdentityRatchetRecordUsableAction>
+): boolean {
+  return actions.some((action) => action.kind === "unusable");
 }
 
 export type IdentityRatchetLookupPlan =

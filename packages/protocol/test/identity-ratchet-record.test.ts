@@ -10,6 +10,7 @@ import {
   initialDecodeIdentityRatchetRecordState,
   initialEncodeIdentityRatchetRecordState,
   initialIdentityRatchetLookupState,
+  initialIdentityRatchetRecordUsableState,
   initialPersistIdentityRatchetState,
   isIdentityRatchetRecordUsable,
   planIdentityRatchetLookup,
@@ -24,12 +25,15 @@ import {
   shouldRestoreIdentityRatchetLookup,
   shouldRestoreIdentityRatchetRecord,
   shouldSkipPersistIdentityRatchet,
+  shouldTreatIdentityRatchetRecordUnusable,
+  shouldTreatIdentityRatchetRecordUsable,
   shouldUseCachedIdentityRatchet,
   shouldUseDecodeIdentityRatchetRecord,
   shouldUseEncodeIdentityRatchetRecord,
   stepDecodeIdentityRatchetRecordWithActions,
   stepEncodeIdentityRatchetRecordWithActions,
   stepIdentityRatchetLookupWithActions,
+  stepIdentityRatchetRecordUsableWithActions,
   stepPersistIdentityRatchetWithActions
 } from "../src/identity-ratchet-record.js";
 import { utf8Encode } from "../src/utf8.js";
@@ -100,6 +104,48 @@ describe("protocol identity ratchet record", () => {
         100
       )
     ).toBe(false);
+
+    const usable = stepIdentityRatchetRecordUsableWithActions(
+      initialIdentityRatchetRecordUsableState(),
+      {
+        kind: "identity-ratchet/usable-gate",
+        record: good,
+        nowSeconds: 100
+      }
+    );
+    expect(shouldTreatIdentityRatchetRecordUsable(usable.actions)).toBe(true);
+    expect(shouldTreatIdentityRatchetRecordUnusable(usable.actions)).toBe(false);
+
+    const expired = stepIdentityRatchetRecordUsableWithActions(
+      initialIdentityRatchetRecordUsableState(),
+      {
+        kind: "identity-ratchet/usable-gate",
+        record: good,
+        nowSeconds: 100 + IDENTITY_RATCHET_EXPIRY_SECONDS
+      }
+    );
+    expect(shouldTreatIdentityRatchetRecordUsable(expired.actions)).toBe(false);
+    expect(shouldTreatIdentityRatchetRecordUnusable(expired.actions)).toBe(true);
+
+    const badLength = stepIdentityRatchetRecordUsableWithActions(
+      initialIdentityRatchetRecordUsableState(),
+      {
+        kind: "identity-ratchet/usable-gate",
+        record: { ratchet: new Uint8Array(8), received: 100 },
+        nowSeconds: 100
+      }
+    );
+    expect(shouldTreatIdentityRatchetRecordUnusable(badLength.actions)).toBe(true);
+
+    const empty = stepIdentityRatchetRecordUsableWithActions(
+      initialIdentityRatchetRecordUsableState(),
+      {
+        kind: "timer/fired",
+        timer: { id: "x" }
+      }
+    );
+    expect(shouldTreatIdentityRatchetRecordUsable(empty.actions)).toBe(false);
+    expect(shouldTreatIdentityRatchetRecordUnusable(empty.actions)).toBe(false);
   });
 
   it("plans ratchet lookup across cache and store", () => {

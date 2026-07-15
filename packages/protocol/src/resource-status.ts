@@ -38,6 +38,65 @@ export function isResourceComplete(status: ResourceStatusValue): boolean {
   return status === ResourceStatus.COMPLETE;
 }
 
+/**
+ * Resource complete gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isResourceComplete`
+ * reads beside the step).
+ */
+export type ResourceCompleteState = Record<string, never>;
+
+export type ResourceCompleteEvent =
+  | Event
+  | {
+      readonly kind: "resource/complete-gate";
+      readonly status: ResourceStatusValue;
+    };
+
+export type ResourceCompleteAction =
+  | { readonly kind: "complete" }
+  | { readonly kind: "incomplete" };
+
+export interface ResourceCompleteStepResult {
+  readonly state: ResourceCompleteState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceCompleteAction[];
+}
+
+export function initialResourceCompleteState(): ResourceCompleteState {
+  return {};
+}
+
+export function stepResourceCompleteWithActions(
+  state: ResourceCompleteState,
+  event: ResourceCompleteEvent
+): ResourceCompleteStepResult {
+  if (event.kind === "resource/complete-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isResourceComplete(event.status) ? "complete" : "incomplete"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatResourceComplete(
+  actions: ReadonlyArray<ResourceCompleteAction>
+): boolean {
+  return actions.some((action) => action.kind === "complete");
+}
+
+export function shouldTreatResourceIncomplete(
+  actions: ReadonlyArray<ResourceCompleteAction>
+): boolean {
+  return actions.some((action) => action.kind === "incomplete");
+}
+
 export function isResourceTerminal(status: ResourceStatusValue): boolean {
   return status === ResourceStatus.COMPLETE || status === ResourceStatus.FAILED;
 }

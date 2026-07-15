@@ -17,14 +17,15 @@
 > **Token**, and **Resource** RNG now prefer injected/`Runtime` entropy (transport
 > identity keygen, path-request tags, link Token IVs, destination encrypt, resource
 > random hashes). **Identity hash / private-key / public-key / load-key /
-> ratchet-decrypt-attempt / ratchet-persist** gates (via
+> ratchet-decrypt-attempt / ratchet-persist / ratchet-usable** gates (via
 > **`stepIdentityHashAllowWithActions`**: allow|deny;
 > **`stepIdentityUsePrivateKeyWithActions`**: allow|deny;
 > **`stepIdentityUsePublicKeyWithActions`**: allow|deny;
 > **`stepLoadIdentityKeyMaterialWithActions`**: allow|deny;
 > **`stepAttemptIdentityRatchetDecryptWithActions`**: attempt|skip;
-> **`stepPersistIdentityRatchetWithActions`**: persist|skip) are pure protocol
-> leaves; `Identity` adapts them. **Announce signature-attempt / destination-hash-check**
+> **`stepPersistIdentityRatchetWithActions`**: persist|skip;
+> **`stepIdentityRatchetRecordUsableWithActions`**: usable|unusable) are pure
+> protocol leaves; `Identity` adapts them. **Announce signature-attempt / destination-hash-check**
 > gates (via **`stepAttemptAnnounceSignatureValidateWithActions`**: attempt|skip;
 > **`stepCheckAnnounceDestinationHashWithActions`**: check|skip),
 > **LINKIDENTIFY accept** (via **`stepAcceptLinkIdentifyWithActions`**: accept|skip),
@@ -63,7 +64,8 @@
 > advance via **`stepAdvanceResourceAwaitingProofWithActions`**: advance|skip)
 > are pure protocol leaves; `Resource` + `Link` adapt them. **Resource
 > transfer/status** gates (continue-transfer via
-> **`stepResourceContinueTransferWithActions`**: continue|stop; receive-part /
+> **`stepResourceContinueTransferWithActions`**: continue|stop; complete via
+> **`stepResourceCompleteWithActions`**: complete|incomplete; receive-part /
 > request-next / watchdog / prove allow via
 > **`stepResourceReceivePartAllowWithActions`** /
 > **`stepResourceRequestNextAllowWithActions`** /
@@ -510,7 +512,8 @@
 > (wrap / direct / flood via **`stepPathOutboundWithActions`**) lives in protocol;
 > `LeafTransport` adapts it. **`stepResourceStatus`**
 > (queue → advertise → transferring → awaiting-proof / assemble → complete/corrupt/failed +
-> gates) lives in protocol; `Resource` adapts it. **`planPacketFilter`** (foreign transport-id +
+> gates) and **`isResourceComplete`** (via **`stepResourceCompleteWithActions`**:
+> complete|incomplete) live in protocol; `Resource` adapts them. **`planPacketFilter`** (foreign transport-id +
 > seen-hash allow rules) lives in protocol; `LeafTransport` adapts it.
 > **`isDiscoveryPathRequestExpired`** (via
 > **`stepDiscoveryPathRequestExpiredWithActions`**: expired|live) lives in protocol;
@@ -712,7 +715,9 @@
 > complete / corrupt), **`planResourceProofAccept`** (via
 > **`stepResourceProofAcceptWithActions`**: complete / ignore),
 > **`canResourceContinueTransfer`** (via **`stepResourceContinueTransferWithActions`**:
-> continue|stop), **`canReceiveResourcePart`** (via
+> continue|stop), **`isResourceComplete`** (via
+> **`stepResourceCompleteWithActions`**: complete|incomplete),
+> **`canReceiveResourcePart`** (via
 > **`stepResourceReceivePartAllowWithActions`**: allow|deny),
 > **`canRequestResourceNext`** (via **`stepResourceRequestNextAllowWithActions`**:
 > allow|deny), **`canRunResourceWatchdog`** (via
@@ -901,7 +906,9 @@
 > **`shouldAttemptIdentityRatchetDecrypt`** (via
 > **`stepAttemptIdentityRatchetDecryptWithActions`**: attempt|skip), and
 > **`shouldPersistIdentityRatchet`** (via
-> **`stepPersistIdentityRatchetWithActions`**: persist|skip) live in
+> **`stepPersistIdentityRatchetWithActions`**: persist|skip) /
+> **`isIdentityRatchetRecordUsable`** (via
+> **`stepIdentityRatchetRecordUsableWithActions`**: usable|unusable) live in
 > protocol; Identity adapts them. **`canOperateAttachedDestination`** (via
 > **`stepOperateAttachedDestinationWithActions`**: allow|deny) /
 > **`canAnnounceWithIdentity`** (via **`stepAnnounceWithIdentityWithActions`**:
@@ -1208,6 +1215,9 @@
 > `miss-no-store` / `miss-store` / `reject-unusable` / `restore`;
 > `Identity.getRatchet` applies cache/store outcomes only from those actions
 > (no ad-hoc `planIdentityRatchetLookup` reads beside the step).
+> **`stepIdentityRatchetRecordUsableWithActions`** emits `usable`|`unusable`;
+> `Identity.getRatchet` usability for stored records applies only from those
+> actions (no ad-hoc `isIdentityRatchetRecordUsable` reads beside the step).
 > **`stepIdentityRecallWithActions`** emits `miss` / `reject-key` / `hit`;
 > **`stepIdentityRecallAppDataWithActions`** emits `hit` / `miss`;
 > `Identity.recall` / `recallAppData` return results only from those actions
@@ -1232,6 +1242,9 @@
 > `too-big`; `Channel` register/pack/unpack/send apply only from those actions.
 > **`stepResourceAssembleWithActions`** emits `complete` / `corrupt`;
 > **`stepCommitResourceAssemblePayloadWithActions`** emits `commit`|`skip`;
+> **`stepResourceCompleteWithActions`** emits `complete`|`incomplete`;
+> `Resource.isComplete` applies only from those actions (no ad-hoc
+> `isResourceComplete` reads beside the step).
 > **`stepResourceProofAcceptWithActions`** emits `complete` / `ignore`;
 > **`stepResourceContinueTransferWithActions`** emits `continue`|`stop`;
 > **`stepResourceReceivePartAllowWithActions`** /
@@ -1507,6 +1520,7 @@
 > identity-recall-app-data / identity-hash-allow / identity-use-private-key /
 > identity-use-public-key / load-identity-key-material /
 > attempt-identity-ratchet-decrypt / persist-identity-ratchet /
+> identity-ratchet-record-usable /
 > destination-construction / destination-decrypt /
 > destination-encrypt / packet-from-fields / channel-message-type-registration /
 > channel-envelope-unpack / channel-envelope-pack / channel-send /
@@ -1529,6 +1543,7 @@
 > accept-propagation-delivered-message / treat-propagation-list-as-empty /
 > request-propagation-haves-ack /
 > resource-assemble / resource-proof-accept / resource-continue-transfer /
+> resource-complete /
 > resource-receive-part-allow / resource-request-next-allow /
 > resource-watchdog-allow / prove-resource-allow / advertise-resource /
 > accept-incoming-resource-advertisement / resource-request-fulfill /
@@ -1573,6 +1588,7 @@
 > identity-hash-allow / identity-use-private-key /
 > identity-use-public-key / load-identity-key-material /
 > attempt-identity-ratchet-decrypt / persist-identity-ratchet /
+> identity-ratchet-record-usable /
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
@@ -1625,6 +1641,7 @@
 > identity-hash-allow / identity-use-private-key /
 > identity-use-public-key / load-identity-key-material /
 > attempt-identity-ratchet-decrypt / persist-identity-ratchet /
+> identity-ratchet-record-usable /
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
@@ -1776,6 +1793,9 @@
 > `use-fields`|`reject`; Identity ratchet persist encode / decode apply only
 > from those actions (no ad-hoc `encodeIdentityRatchetRecord` /
 > `decodeIdentityRatchetRecord` reads beside the step).
+> **`stepIdentityRatchetRecordUsableWithActions`** emits `usable`|`unusable`;
+> Identity ratchet store restore usability applies only from those actions
+> (no ad-hoc `isIdentityRatchetRecordUsable` reads beside the step).
 > **`stepEncodeGrantRecordWithActions`** /
 > **`stepDecodeGrantRecordWithActions`** emit `use-raw`|`reject` /
 > `use-fields`|`reject`; grant-record encode / decode (host persist +

@@ -13,6 +13,7 @@ import {
   initialCommitResourceAssemblePayloadState,
   initialProveResourceAllowState,
   initialResourceAssembleState,
+  initialResourceCompleteState,
   initialResourceContinueTransferState,
   initialResourceProofAcceptState,
   initialResourceReceivePartAllowState,
@@ -47,11 +48,14 @@ import {
   shouldSkipCommitResourceAssemblePayload,
   shouldSkipIncomingResourceAdvertisement,
   shouldStopResourceTransfer,
+  shouldTreatResourceComplete,
+  shouldTreatResourceIncomplete,
   stepAcceptIncomingResourceAdvertisementWithActions,
   stepAdvertiseResourceWithActions,
   stepCommitResourceAssemblePayloadWithActions,
   stepProveResourceAllowWithActions,
   stepResourceAssembleWithActions,
+  stepResourceCompleteWithActions,
   stepResourceContinueTransferWithActions,
   stepResourceProofAcceptWithActions,
   stepResourceReceivePartAllowWithActions,
@@ -72,6 +76,30 @@ describe("protocol resource status", () => {
     expect(canRunResourceWatchdog(ResourceStatus.COMPLETE)).toBe(false);
     expect(isResourceTerminal(ResourceStatus.FAILED)).toBe(true);
     expect(isResourceComplete(ResourceStatus.COMPLETE)).toBe(true);
+    expect(
+      shouldTreatResourceComplete(
+        stepResourceCompleteWithActions(initialResourceCompleteState(), {
+          kind: "resource/complete-gate",
+          status: ResourceStatus.COMPLETE
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldTreatResourceIncomplete(
+        stepResourceCompleteWithActions(initialResourceCompleteState(), {
+          kind: "resource/complete-gate",
+          status: ResourceStatus.TRANSFERRING
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldTreatResourceComplete(
+        stepResourceCompleteWithActions(initialResourceCompleteState(), {
+          kind: "timer/fired",
+          timer: { id: "x" }
+        }).actions
+      )
+    ).toBe(false);
     expect(
       canRequestResourceNext({
         status: ResourceStatus.TRANSFERRING,
