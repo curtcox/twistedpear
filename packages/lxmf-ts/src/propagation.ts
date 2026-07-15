@@ -36,8 +36,9 @@ import {
   shouldRequestPropagationHavesAck,
   shouldReuseActiveLinkNow,
   initialReuseActiveLinkState,
+  initialTeardownLxmfPropagationLinkState,
   stepReuseActiveLinkWithActions,
-  shouldTeardownLxmfPropagationLink,
+  shouldTeardownLxmfPropagationLinkNow,
   shouldTreatPropagationListAsEmpty,
   shouldUseDecodeLxmfPeerError,
   shouldUsePackPropagationRequest,
@@ -48,6 +49,7 @@ import {
   stepLinkAppRequestAwaitWithActions,
   stepLxmfPropagationLinkReadyWithActions,
   stepLxmfPropagationSyncPrepWithActions,
+  stepTeardownLxmfPropagationLinkWithActions,
   stepPackPropagationRequestWithActions,
   stepPropagationGetWithActions,
   stepPropagationTransferWithActions,
@@ -117,7 +119,17 @@ export class PropagationClient {
 
   setPropagationNode(destinationHash: Uint8Array): void {
     this.propagationNodeHash = Uint8Array.from(destinationHash);
-    if (shouldTeardownLxmfPropagationLink(this.propagationLink !== null)) {
+    if (
+      shouldTeardownLxmfPropagationLinkNow(
+        stepTeardownLxmfPropagationLinkWithActions(
+          initialTeardownLxmfPropagationLinkState(),
+          {
+            kind: "lxmf/teardown-propagation-link-gate",
+            linkPresent: this.propagationLink !== null
+          }
+        ).actions
+      )
+    ) {
       this.propagationLink!.teardown();
       this.propagationLink = null;
     }
@@ -397,7 +409,15 @@ export class PropagationClient {
     for (const action of actions) {
       if (
         action.kind === "teardown-link" &&
-        shouldTeardownLxmfPropagationLink(this.propagationLink !== null)
+        shouldTeardownLxmfPropagationLinkNow(
+          stepTeardownLxmfPropagationLinkWithActions(
+            initialTeardownLxmfPropagationLinkState(),
+            {
+              kind: "lxmf/teardown-propagation-link-gate",
+              linkPresent: this.propagationLink !== null
+            }
+          ).actions
+        )
       ) {
         this.propagationLink!.teardown();
         this.propagationLink = null;

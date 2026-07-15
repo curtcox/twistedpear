@@ -494,6 +494,65 @@ export function shouldIncludeLxmfStamp(deferStamp: boolean | undefined): boolean
   return deferStamp !== true;
 }
 
+/**
+ * shouldIncludeLxmfStamp gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldIncludeLxmfStamp`
+ * reads beside the step).
+ */
+export type IncludeLxmfStampState = Record<string, never>;
+
+export type IncludeLxmfStampEvent =
+  | Event
+  | {
+      readonly kind: "lxmf/include-stamp-gate";
+      readonly deferStamp: boolean | undefined;
+    };
+
+export type IncludeLxmfStampAction =
+  | { readonly kind: "include" }
+  | { readonly kind: "skip" };
+
+export interface IncludeLxmfStampStepResult {
+  readonly state: IncludeLxmfStampState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IncludeLxmfStampAction[];
+}
+
+export function initialIncludeLxmfStampState(): IncludeLxmfStampState {
+  return {};
+}
+
+export function stepIncludeLxmfStampWithActions(
+  state: IncludeLxmfStampState,
+  event: IncludeLxmfStampEvent
+): IncludeLxmfStampStepResult {
+  if (event.kind === "lxmf/include-stamp-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldIncludeLxmfStamp(event.deferStamp) ? "include" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldIncludeLxmfStampNow(
+  actions: ReadonlyArray<IncludeLxmfStampAction>
+): boolean {
+  return actions.some((action) => action.kind === "include");
+}
+
+export function shouldSkipIncludeLxmfStamp(
+  actions: ReadonlyArray<IncludeLxmfStampAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 export type LxmfDeliverableAcceptPlan = "accept" | "reject-unsigned" | "reject-seen";
 
 /** Whether an unpacked LXMF deliverable should be accepted (sig + seen-hash). */
@@ -605,6 +664,65 @@ export function shouldRememberLxmfMessage(hasHash: boolean): boolean {
 }
 
 /**
+ * shouldRememberLxmfMessage gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldRememberLxmfMessage`
+ * reads beside the step).
+ */
+export type RememberLxmfMessageState = Record<string, never>;
+
+export type RememberLxmfMessageEvent =
+  | Event
+  | {
+      readonly kind: "lxmf/remember-message-gate";
+      readonly hasHash: boolean;
+    };
+
+export type RememberLxmfMessageAction =
+  | { readonly kind: "remember" }
+  | { readonly kind: "skip" };
+
+export interface RememberLxmfMessageStepResult {
+  readonly state: RememberLxmfMessageState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RememberLxmfMessageAction[];
+}
+
+export function initialRememberLxmfMessageState(): RememberLxmfMessageState {
+  return {};
+}
+
+export function stepRememberLxmfMessageWithActions(
+  state: RememberLxmfMessageState,
+  event: RememberLxmfMessageEvent
+): RememberLxmfMessageStepResult {
+  if (event.kind === "lxmf/remember-message-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRememberLxmfMessage(event.hasHash) ? "remember" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRememberLxmfMessageNow(
+  actions: ReadonlyArray<RememberLxmfMessageAction>
+): boolean {
+  return actions.some((action) => action.kind === "remember");
+}
+
+export function shouldSkipRememberLxmfMessage(
+  actions: ReadonlyArray<RememberLxmfMessageAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/**
  * Whether remember-message may commit after {@link shouldRememberLxmfMessage}
  * and the hash reference remains present for narrowing.
  */
@@ -612,9 +730,129 @@ export function shouldCommitRememberedLxmfHash(hashPresent: boolean): boolean {
   return hashPresent;
 }
 
+/**
+ * shouldCommitRememberedLxmfHash gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldCommitRememberedLxmfHash`
+ * reads beside the step).
+ */
+export type CommitRememberedLxmfHashState = Record<string, never>;
+
+export type CommitRememberedLxmfHashEvent =
+  | Event
+  | {
+      readonly kind: "lxmf/commit-remembered-hash-gate";
+      readonly hashPresent: boolean;
+    };
+
+export type CommitRememberedLxmfHashAction =
+  | { readonly kind: "commit" }
+  | { readonly kind: "skip" };
+
+export interface CommitRememberedLxmfHashStepResult {
+  readonly state: CommitRememberedLxmfHashState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly CommitRememberedLxmfHashAction[];
+}
+
+export function initialCommitRememberedLxmfHashState(): CommitRememberedLxmfHashState {
+  return {};
+}
+
+export function stepCommitRememberedLxmfHashWithActions(
+  state: CommitRememberedLxmfHashState,
+  event: CommitRememberedLxmfHashEvent
+): CommitRememberedLxmfHashStepResult {
+  if (event.kind === "lxmf/commit-remembered-hash-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldCommitRememberedLxmfHash(event.hashPresent)
+            ? "commit"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldCommitRememberedLxmfHashNow(
+  actions: ReadonlyArray<CommitRememberedLxmfHashAction>
+): boolean {
+  return actions.some((action) => action.kind === "commit");
+}
+
+export function shouldSkipCommitRememberedLxmfHash(
+  actions: ReadonlyArray<CommitRememberedLxmfHashAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether LXMF wire bytes may unpack after split WithActions `use-fields`. */
 export function shouldAcceptLxmfWireFrame(wirePresent: boolean): boolean {
   return wirePresent;
+}
+
+/**
+ * shouldAcceptLxmfWireFrame gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldAcceptLxmfWireFrame`
+ * reads beside the step).
+ */
+export type AcceptLxmfWireFrameState = Record<string, never>;
+
+export type AcceptLxmfWireFrameEvent =
+  | Event
+  | {
+      readonly kind: "lxmf/accept-wire-frame-gate";
+      readonly wirePresent: boolean;
+    };
+
+export type AcceptLxmfWireFrameAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptLxmfWireFrameStepResult {
+  readonly state: AcceptLxmfWireFrameState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptLxmfWireFrameAction[];
+}
+
+export function initialAcceptLxmfWireFrameState(): AcceptLxmfWireFrameState {
+  return {};
+}
+
+export function stepAcceptLxmfWireFrameWithActions(
+  state: AcceptLxmfWireFrameState,
+  event: AcceptLxmfWireFrameEvent
+): AcceptLxmfWireFrameStepResult {
+  if (event.kind === "lxmf/accept-wire-frame-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptLxmfWireFrame(event.wirePresent) ? "accept" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptLxmfWireFrameNow(
+  actions: ReadonlyArray<AcceptLxmfWireFrameAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAcceptLxmfWireFrame(
+  actions: ReadonlyArray<AcceptLxmfWireFrameAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a router may register its (only) delivery identity. */
@@ -625,6 +863,67 @@ export function canRegisterLxmfDeliveryIdentity(
 }
 
 /**
+ * canRegisterLxmfDeliveryIdentity gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canRegisterLxmfDeliveryIdentity`
+ * reads beside the step).
+ */
+export type RegisterLxmfDeliveryIdentityState = Record<string, never>;
+
+export type RegisterLxmfDeliveryIdentityEvent =
+  | Event
+  | {
+      readonly kind: "lxmf/register-delivery-identity-gate";
+      readonly deliveryDestinationPresent: boolean;
+    };
+
+export type RegisterLxmfDeliveryIdentityAction =
+  | { readonly kind: "register" }
+  | { readonly kind: "skip" };
+
+export interface RegisterLxmfDeliveryIdentityStepResult {
+  readonly state: RegisterLxmfDeliveryIdentityState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RegisterLxmfDeliveryIdentityAction[];
+}
+
+export function initialRegisterLxmfDeliveryIdentityState(): RegisterLxmfDeliveryIdentityState {
+  return {};
+}
+
+export function stepRegisterLxmfDeliveryIdentityWithActions(
+  state: RegisterLxmfDeliveryIdentityState,
+  event: RegisterLxmfDeliveryIdentityEvent
+): RegisterLxmfDeliveryIdentityStepResult {
+  if (event.kind === "lxmf/register-delivery-identity-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canRegisterLxmfDeliveryIdentity(event.deliveryDestinationPresent)
+            ? "register"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRegisterLxmfDeliveryIdentityNow(
+  actions: ReadonlyArray<RegisterLxmfDeliveryIdentityAction>
+): boolean {
+  return actions.some((action) => action.kind === "register");
+}
+
+export function shouldSkipRegisterLxmfDeliveryIdentity(
+  actions: ReadonlyArray<RegisterLxmfDeliveryIdentityAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/**
  * Whether changing the outbound/propagation node hash should tear down an
  * existing propagation link before the adapter clears it.
  */
@@ -632,14 +931,197 @@ export function shouldTeardownLxmfPropagationLink(linkPresent: boolean): boolean
   return linkPresent;
 }
 
+/**
+ * shouldTeardownLxmfPropagationLink gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldTeardownLxmfPropagationLink`
+ * reads beside the step).
+ */
+export type TeardownLxmfPropagationLinkState = Record<string, never>;
+
+export type TeardownLxmfPropagationLinkEvent =
+  | Event
+  | {
+      readonly kind: "lxmf/teardown-propagation-link-gate";
+      readonly linkPresent: boolean;
+    };
+
+export type TeardownLxmfPropagationLinkAction =
+  | { readonly kind: "teardown" }
+  | { readonly kind: "skip" };
+
+export interface TeardownLxmfPropagationLinkStepResult {
+  readonly state: TeardownLxmfPropagationLinkState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TeardownLxmfPropagationLinkAction[];
+}
+
+export function initialTeardownLxmfPropagationLinkState(): TeardownLxmfPropagationLinkState {
+  return {};
+}
+
+export function stepTeardownLxmfPropagationLinkWithActions(
+  state: TeardownLxmfPropagationLinkState,
+  event: TeardownLxmfPropagationLinkEvent
+): TeardownLxmfPropagationLinkStepResult {
+  if (event.kind === "lxmf/teardown-propagation-link-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldTeardownLxmfPropagationLink(event.linkPresent)
+            ? "teardown"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTeardownLxmfPropagationLinkNow(
+  actions: ReadonlyArray<TeardownLxmfPropagationLinkAction>
+): boolean {
+  return actions.some((action) => action.kind === "teardown");
+}
+
+export function shouldSkipTeardownLxmfPropagationLink(
+  actions: ReadonlyArray<TeardownLxmfPropagationLinkAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether opportunistic payload extraction may proceed (message packed). */
 export function canExtractLxmfOpportunisticPayload(packedPresent: boolean): boolean {
   return packedPresent;
 }
 
+/**
+ * canExtractLxmfOpportunisticPayload gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canExtractLxmfOpportunisticPayload`
+ * reads beside the step).
+ */
+export type ExtractLxmfOpportunisticPayloadState = Record<string, never>;
+
+export type ExtractLxmfOpportunisticPayloadEvent =
+  | Event
+  | {
+      readonly kind: "lxmf/extract-opportunistic-payload-gate";
+      readonly packedPresent: boolean;
+    };
+
+export type ExtractLxmfOpportunisticPayloadAction =
+  | { readonly kind: "extract" }
+  | { readonly kind: "skip" };
+
+export interface ExtractLxmfOpportunisticPayloadStepResult {
+  readonly state: ExtractLxmfOpportunisticPayloadState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ExtractLxmfOpportunisticPayloadAction[];
+}
+
+export function initialExtractLxmfOpportunisticPayloadState(): ExtractLxmfOpportunisticPayloadState {
+  return {};
+}
+
+export function stepExtractLxmfOpportunisticPayloadWithActions(
+  state: ExtractLxmfOpportunisticPayloadState,
+  event: ExtractLxmfOpportunisticPayloadEvent
+): ExtractLxmfOpportunisticPayloadStepResult {
+  if (event.kind === "lxmf/extract-opportunistic-payload-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canExtractLxmfOpportunisticPayload(event.packedPresent)
+            ? "extract"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldExtractLxmfOpportunisticPayloadNow(
+  actions: ReadonlyArray<ExtractLxmfOpportunisticPayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "extract");
+}
+
+export function shouldSkipExtractLxmfOpportunisticPayload(
+  actions: ReadonlyArray<ExtractLxmfOpportunisticPayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether delivery-parameter selection may run (message packed). */
 export function shouldSelectLxmfDeliveryParameters(packedPresent: boolean): boolean {
   return packedPresent;
+}
+
+/**
+ * shouldSelectLxmfDeliveryParameters gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldSelectLxmfDeliveryParameters`
+ * reads beside the step).
+ */
+export type SelectLxmfDeliveryParametersState = Record<string, never>;
+
+export type SelectLxmfDeliveryParametersEvent =
+  | Event
+  | {
+      readonly kind: "lxmf/select-delivery-parameters-gate";
+      readonly packedPresent: boolean;
+    };
+
+export type SelectLxmfDeliveryParametersAction =
+  | { readonly kind: "select" }
+  | { readonly kind: "skip" };
+
+export interface SelectLxmfDeliveryParametersStepResult {
+  readonly state: SelectLxmfDeliveryParametersState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly SelectLxmfDeliveryParametersAction[];
+}
+
+export function initialSelectLxmfDeliveryParametersState(): SelectLxmfDeliveryParametersState {
+  return {};
+}
+
+export function stepSelectLxmfDeliveryParametersWithActions(
+  state: SelectLxmfDeliveryParametersState,
+  event: SelectLxmfDeliveryParametersEvent
+): SelectLxmfDeliveryParametersStepResult {
+  if (event.kind === "lxmf/select-delivery-parameters-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldSelectLxmfDeliveryParameters(event.packedPresent)
+            ? "select"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldSelectLxmfDeliveryParametersNow(
+  actions: ReadonlyArray<SelectLxmfDeliveryParametersAction>
+): boolean {
+  return actions.some((action) => action.kind === "select");
+}
+
+export function shouldSkipSelectLxmfDeliveryParameters(
+  actions: ReadonlyArray<SelectLxmfDeliveryParametersAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 export type LxmfPropagationSyncPrepPlan =

@@ -5,7 +5,6 @@ import {
   LINK_AWAIT_TIMER_ID,
   applyLxmfSendEvent,
   canAcceptLxmfPropagationLocalDelivery,
-  canRegisterLxmfDeliveryIdentity,
   canUnpackLxmfPropagationLocalIngress,
   initialDeliveryReceiptPollState,
   initialLinkAwaitState,
@@ -20,8 +19,11 @@ import {
   initialLxmfSendMethodState,
   initialLxmfSendState,
   initialPackLxmfDestinationPrefixedState,
+  initialRegisterLxmfDeliveryIdentityState,
+  initialRememberLxmfMessageState,
   initialSplitLxmfDestinationPrefixedState,
   initialStampCostFromAppDataState,
+  initialTeardownLxmfPropagationLinkState,
   lxmfDestinationPrefixedFieldsFromActions,
   lxmfInboundDeliveryRawFromActions,
   lxmfReceiptSendApplyEvent,
@@ -49,7 +51,8 @@ import {
   shouldRejectLxmfSendUnsupported,
   shouldRejectPackLxmfDestinationPrefixed,
   shouldRejectSplitLxmfDestinationPrefixed,
-  shouldRememberLxmfMessage,
+  shouldRegisterLxmfDeliveryIdentityNow,
+  shouldRememberLxmfMessageNow,
   shouldReuseActiveLinkNow,
   initialReuseActiveLinkState,
   stepReuseActiveLinkWithActions,
@@ -57,7 +60,7 @@ import {
   shouldSendLxmfDirect,
   shouldSendLxmfOpportunistic,
   shouldSendLxmfPropagated,
-  shouldTeardownLxmfPropagationLink,
+  shouldTeardownLxmfPropagationLinkNow,
   shouldUseLxmfInboundDelivery,
   shouldUsePackLxmfDestinationPrefixed,
   shouldUseSplitLxmfDestinationPrefixed,
@@ -73,8 +76,11 @@ import {
   stepLxmfReceiptSendWithActions,
   stepLxmfSendMethodWithActions,
   stepPackLxmfDestinationPrefixedWithActions,
+  stepRegisterLxmfDeliveryIdentityWithActions,
+  stepRememberLxmfMessageWithActions,
   stepSplitLxmfDestinationPrefixedWithActions,
   stepStampCostFromAppDataWithActions,
+  stepTeardownLxmfPropagationLinkWithActions,
   type LxmfSendEvent,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
@@ -116,7 +122,17 @@ export class LXMFRouter {
   }
 
   registerDeliveryIdentity(identity: Identity): RegisteredDestination {
-    if (!canRegisterLxmfDeliveryIdentity(this.deliveryDestination !== null)) {
+    if (
+      !shouldRegisterLxmfDeliveryIdentityNow(
+        stepRegisterLxmfDeliveryIdentityWithActions(
+          initialRegisterLxmfDeliveryIdentityState(),
+          {
+            kind: "lxmf/register-delivery-identity-gate",
+            deliveryDestinationPresent: this.deliveryDestination !== null
+          }
+        ).actions
+      )
+    ) {
       throw new Error("Only one delivery identity is supported per LXMF router instance");
     }
 
@@ -156,7 +172,17 @@ export class LXMFRouter {
 
   setOutboundPropagationNode(destinationHash: Uint8Array): void {
     this.outboundPropagationNode = Uint8Array.from(destinationHash);
-    if (shouldTeardownLxmfPropagationLink(this.outboundPropagationLink !== null)) {
+    if (
+      shouldTeardownLxmfPropagationLinkNow(
+        stepTeardownLxmfPropagationLinkWithActions(
+          initialTeardownLxmfPropagationLinkState(),
+          {
+            kind: "lxmf/teardown-propagation-link-gate",
+            linkPresent: this.outboundPropagationLink !== null
+          }
+        ).actions
+      )
+    ) {
       this.outboundPropagationLink!.teardown();
       this.outboundPropagationLink = null;
     }
@@ -759,7 +785,14 @@ export class LXMFRouter {
         return null;
       }
 
-      if (shouldRememberLxmfMessage(message.hash !== null)) {
+      if (
+        shouldRememberLxmfMessageNow(
+          stepRememberLxmfMessageWithActions(initialRememberLxmfMessageState(), {
+            kind: "lxmf/remember-message-gate",
+            hasHash: message.hash !== null
+          }).actions
+        )
+      ) {
         rememberMessage(this.seenMessages, message);
       }
 

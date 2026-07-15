@@ -5,7 +5,10 @@ import {
   LXMF_LINK_PACKET_MAX_CONTENT,
   LXMF_LINK_PACKET_MDU,
   lxmfContentSizeFromPackedLength,
-  canExtractLxmfOpportunisticPayload,
+  initialAcceptLxmfWireFrameState,
+  initialCommitRememberedLxmfHashState,
+  initialExtractLxmfOpportunisticPayloadState,
+  initialIncludeLxmfStampState,
   initialLxmfDeliveryState,
   initialLxmfHashableMaterialState,
   initialLxmfOpportunisticPayloadState,
@@ -19,6 +22,8 @@ import {
   initialPackLxmfDestinationPrefixedState,
   initialPackLxmfWireState,
   initialPackPropagationEnvelopeState,
+  initialRememberLxmfMessageState,
+  initialSelectLxmfDeliveryParametersState,
   initialSplitLxmfWireState,
   initialUnpackLxmPayloadState,
   lxmPayloadFieldsFromActions,
@@ -33,10 +38,11 @@ import {
   packLxmfDestinationPrefixedRawFromActions,
   packLxmfWireRawFromActions,
   packPropagationEnvelopeRawFromActions,
+  shouldAcceptLxmfWireFrameNow,
+  shouldCommitRememberedLxmfHashNow,
   shouldDeliverLxmf,
-  shouldIncludeLxmfStamp,
-  shouldAcceptLxmfWireFrame,
-  shouldCommitRememberedLxmfHash,
+  shouldExtractLxmfOpportunisticPayloadNow,
+  shouldIncludeLxmfStampNow,
   shouldProceedLxmfPropagatedPackPrep,
   shouldRejectLxmfOpportunisticPayload,
   shouldRejectLxmfOpportunisticTooLarge,
@@ -51,8 +57,8 @@ import {
   shouldRejectPackLxmfWire,
   shouldRejectSplitLxmfWire,
   shouldRejectUnpackLxmPayload,
-  shouldRememberLxmfMessage,
-  shouldSelectLxmfDeliveryParameters,
+  shouldRememberLxmfMessageNow,
+  shouldSelectLxmfDeliveryParametersNow,
   shouldUseLxmfHashableMaterial,
   shouldUseLxmfOpportunisticPayload,
   shouldUseLxmfPackNow,
@@ -64,6 +70,10 @@ import {
   shouldUsePackPropagationEnvelope,
   shouldUseSplitLxmfWire,
   shouldUseUnpackLxmPayload,
+  stepAcceptLxmfWireFrameWithActions,
+  stepCommitRememberedLxmfHashWithActions,
+  stepExtractLxmfOpportunisticPayloadWithActions,
+  stepIncludeLxmfStampWithActions,
   stepLxmfDeliveryWithActions,
   stepLxmfHashableMaterialWithActions,
   stepLxmfOpportunisticPayloadWithActions,
@@ -77,6 +87,8 @@ import {
   stepPackLxmfDestinationPrefixedWithActions,
   stepPackLxmfWireWithActions,
   stepPackPropagationEnvelopeWithActions,
+  stepRememberLxmfMessageWithActions,
+  stepSelectLxmfDeliveryParametersWithActions,
   stepSplitLxmfWireWithActions,
   stepUnpackLxmPayloadWithActions,
   stepUtf8DecodeWithActions,
@@ -233,7 +245,12 @@ export class LXMessage {
     if (
       shouldRejectSplitLxmfWire(splitStepped.actions) ||
       !shouldUseSplitLxmfWire(splitStepped.actions) ||
-      !shouldAcceptLxmfWireFrame(wire !== null) ||
+      !shouldAcceptLxmfWireFrameNow(
+        stepAcceptLxmfWireFrameWithActions(initialAcceptLxmfWireFrameState(), {
+          kind: "lxmf/accept-wire-frame-gate",
+          wirePresent: wire !== null
+        }).actions
+      ) ||
       wire === null
     ) {
       throw new Error("LXMF bytes too short");
@@ -402,7 +419,14 @@ export class LXMessage {
     this.hash = Identity.fullHash(provider, hashedPart);
 
     let stamp: Uint8Array | null = null;
-    if (shouldIncludeLxmfStamp(options.deferStamp)) {
+    if (
+      shouldIncludeLxmfStampNow(
+        stepIncludeLxmfStampWithActions(initialIncludeLxmfStampState(), {
+          kind: "lxmf/include-stamp-gate",
+          deferStamp: options.deferStamp
+        }).actions
+      )
+    ) {
       stamp = options.stamp ?? null;
     }
 
@@ -483,7 +507,17 @@ export class LXMessage {
   }
 
   opportunisticPayload(): Uint8Array {
-    if (!canExtractLxmfOpportunisticPayload(this.packed !== null)) {
+    if (
+      !shouldExtractLxmfOpportunisticPayloadNow(
+        stepExtractLxmfOpportunisticPayloadWithActions(
+          initialExtractLxmfOpportunisticPayloadState(),
+          {
+            kind: "lxmf/extract-opportunistic-payload-gate",
+            packedPresent: this.packed !== null
+          }
+        ).actions
+      )
+    ) {
       throw new Error("LXMessage must be packed before extracting opportunistic payload");
     }
 
@@ -506,7 +540,17 @@ export class LXMessage {
 
   private selectDeliveryParameters(provider: CryptoProvider): void {
     const packed = this.packed;
-    if (!shouldSelectLxmfDeliveryParameters(packed !== null)) {
+    if (
+      !shouldSelectLxmfDeliveryParametersNow(
+        stepSelectLxmfDeliveryParametersWithActions(
+          initialSelectLxmfDeliveryParametersState(),
+          {
+            kind: "lxmf/select-delivery-parameters-gate",
+            packedPresent: packed !== null
+          }
+        ).actions
+      )
+    ) {
       return;
     }
 
@@ -622,11 +666,26 @@ function encodeTextOrBytes(value: string | Uint8Array): Uint8Array {
 }
 
 export function rememberMessage(seen: Set<string>, message: LXMessage): void {
-  if (!shouldRememberLxmfMessage(message.hash !== null)) {
+  if (
+    !shouldRememberLxmfMessageNow(
+      stepRememberLxmfMessageWithActions(initialRememberLxmfMessageState(), {
+        kind: "lxmf/remember-message-gate",
+        hasHash: message.hash !== null
+      }).actions
+    )
+  ) {
     return;
   }
   const hash = message.hash;
-  if (!shouldCommitRememberedLxmfHash(hash !== null) || hash === null) {
+  if (
+    !shouldCommitRememberedLxmfHashNow(
+      stepCommitRememberedLxmfHashWithActions(initialCommitRememberedLxmfHashState(), {
+        kind: "lxmf/commit-remembered-hash-gate",
+        hashPresent: hash !== null
+      }).actions
+    ) ||
+    hash === null
+  ) {
     return;
   }
 

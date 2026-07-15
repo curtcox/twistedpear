@@ -674,7 +674,8 @@
 > `Link.validateProof` adapts it. **`shouldEmitChannelImmediateDelivery`** lives in
 > protocol; Channel send/resend adapts it. **`planLxmfPackTimestamp`** (via
 > **`stepLxmfPackTimestampWithActions`**: use-timestamp / use-now / reject) /
-> **`shouldIncludeLxmfStamp`** live in protocol; `LXMessage.pack` adapts them.
+> **`shouldIncludeLxmfStamp`** (via **`stepIncludeLxmfStampWithActions`**:
+> include|skip) live in protocol; `LXMessage.pack` adapts them.
 > **`planAnnounceValidateOutcome`** (via **`stepAnnounceValidateWithActions`**:
 > accept / accept-signature-only / reject-*) / **`isAnnouncePacketType`** and
 > **`planPacketReceiptProofAccept`** live in protocol; `Announce` and `PacketReceipt`
@@ -737,7 +738,8 @@
 > **`shouldRegisterDestinationLink`** (via
 > **`stepRegisterDestinationLinkWithActions`**: register|skip), **`planPathEntryLookup`** (via
 > **`stepPathEntryLookupWithActions`**),
-> **`planPropagationRestore`**, and **`shouldRememberLxmfMessage`** live in protocol;
+> **`planPropagationRestore`**, and **`shouldRememberLxmfMessage`** (via
+> **`stepRememberLxmfMessageWithActions`**: remember|skip) live in protocol;
 > transport lists, receipt create/drop, Channel handlers, stream ready-callbacks,
 > destination link lists, path-table get, propagation restore, and LXMF seen-hash
 > remember adapt them. **`planIdentityDecryptOutcome`** (via
@@ -748,8 +750,11 @@
 > **`stepIdentityRecallWithActions`**: miss / reject-key / hit),
 > **`planIdentityRecallAppData`** (via **`stepIdentityRecallAppDataWithActions`**:
 > hit / miss), and **`canIdentityHash`** live in protocol; `Identity`
-> adapts them. **`canRegisterLxmfDeliveryIdentity`** / **`shouldTeardownLxmfPropagationLink`**
-> live in protocol; LXMF router and propagation client adapt them.
+> adapts them. **`canRegisterLxmfDeliveryIdentity`** (via
+> **`stepRegisterLxmfDeliveryIdentityWithActions`**: register|skip) /
+> **`shouldTeardownLxmfPropagationLink`** (via
+> **`stepTeardownLxmfPropagationLinkWithActions`**: teardown|skip) live in
+> protocol; LXMF router and propagation client adapt them.
 > **`planDestinationIdentityHash`** lives in protocol; destination hash construction
 > adapts it.
 > **`canIdentityUsePrivateKey`** / **`canIdentityUsePublicKey`** /
@@ -761,8 +766,11 @@
 > **`stepDestinationProofCallbackWithActions`**: invoke|skip) and
 > **`canEmitDestinationProof`** (via **`stepEmitDestinationProofWithActions`**:
 > emit|skip) live in protocol; RegisteredDestination and transport
-> sendProof adapt them. **`canExtractLxmfOpportunisticPayload`** /
-> **`shouldSelectLxmfDeliveryParameters`** / **`planLxmfPropagationSyncPrep`** (via
+> sendProof adapt them. **`canExtractLxmfOpportunisticPayload`** (via
+> **`stepExtractLxmfOpportunisticPayloadWithActions`**: extract|skip) /
+> **`shouldSelectLxmfDeliveryParameters`** (via
+> **`stepSelectLxmfDeliveryParametersWithActions`**: select|skip) /
+> **`planLxmfPropagationSyncPrep`** (via
 > **`stepLxmfPropagationSyncPrepWithActions`**: proceed / reject-missing-node /
 > reject-missing-delivery-identity) live in
 > protocol; LXMessage and PropagationClient adapt them (ensurePropagationLink also uses
@@ -845,8 +853,11 @@
 > **`shouldRemovePendingLinkMembership`** / **`shouldAppendActiveLinkMembership`** /
 > **`shouldRemoveActiveLinkMembership`**, **`shouldUnregisterPendingLinkRequest`** /
 > **`shouldRemoveLinkResourceListIndex`**, **`shouldAcceptPacketReceiptProof`** /
-> **`shouldUnregisterPacketReceipt`**, **`shouldAcceptLxmfWireFrame`** /
-> **`shouldCommitRememberedLxmfHash`** / **`shouldDeliverLxmfPropagationLocalIngress`**,
+> **`shouldUnregisterPacketReceipt`**, **`shouldAcceptLxmfWireFrame`** (via
+> **`stepAcceptLxmfWireFrameWithActions`**: accept|skip) /
+> **`shouldCommitRememberedLxmfHash`** (via
+> **`stepCommitRememberedLxmfHashWithActions`**: commit|skip) /
+> **`shouldDeliverLxmfPropagationLocalIngress`**,
 > **`shouldEvictOldestPropagationEntry`**, **`shouldUnregisterStreamReadyCallback`**,
 > **`shouldDispatchLocalPlainDataDelivery`**, and **`shouldUnregisterTransportMember`**
 > live in protocol; Link, TransportNode, PacketReceipt, LXMF, PropagationServer, Buffer,
@@ -1235,7 +1246,11 @@
 > machine actions (no ad-hoc `state.timedOut` / `plan.kind` / establish-status /
 > dispatch / identify-outcome / delivery-plan / send-method / send-gate /
 > pack-gate / propagation-link-ready / sync-prep / deliverable-accept /
-> local-ingress / receipt-send / validate-request / proof-validate /
+> local-ingress / receipt-send / include-lxmf-stamp / remember-lxmf-message /
+> commit-remembered-lxmf-hash / accept-lxmf-wire-frame /
+> register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
+> extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
+> validate-request / proof-validate /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
 > identity-recall-app-data / destination-construction / destination-decrypt /
@@ -1333,6 +1348,10 @@
 > clear-expired-discovery-path-request / use-path-for-outbound /
 > answer-path-with-entry / touch-path-entry / answer-path-request /
 > fulfill-discovery-pending / accept-cached-path-response-packet /
+> include-lxmf-stamp / remember-lxmf-message / commit-remembered-lxmf-hash /
+> accept-lxmf-wire-frame / register-lxmf-delivery-identity /
+> teardown-lxmf-propagation-link / extract-lxmf-opportunistic-payload /
+> select-lxmf-delivery-parameters /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
 > decode-resource-advertisement-flags / classify-resource-advertisement /
@@ -1639,6 +1658,22 @@
 > `shouldAnswerPathWithEntry` / `shouldTouchPathEntry` /
 > `shouldAnswerPathRequest` / `shouldFulfillDiscoveryPending` /
 > `shouldAcceptCachedPathResponsePacket` reads beside the step).
+> **`stepIncludeLxmfStampWithActions`** emits `include` / `skip`;
+> **`stepRememberLxmfMessageWithActions`** emits `remember` / `skip`;
+> **`stepCommitRememberedLxmfHashWithActions`** emits `commit` / `skip`;
+> **`stepAcceptLxmfWireFrameWithActions`** emits `accept` / `skip`;
+> **`stepRegisterLxmfDeliveryIdentityWithActions`** emits `register` / `skip`;
+> **`stepTeardownLxmfPropagationLinkWithActions`** emits `teardown` / `skip`;
+> **`stepExtractLxmfOpportunisticPayloadWithActions`** emits `extract` / `skip`;
+> **`stepSelectLxmfDeliveryParametersWithActions`** emits `select` / `skip`;
+> LXMF stamp include / seen-hash remember / commit / wire-frame accept /
+> delivery-identity register / propagation-link teardown / opportunistic extract /
+> delivery-parameter select apply only from those actions (no ad-hoc
+> `shouldIncludeLxmfStamp` / `shouldRememberLxmfMessage` /
+> `shouldCommitRememberedLxmfHash` / `shouldAcceptLxmfWireFrame` /
+> `canRegisterLxmfDeliveryIdentity` / `shouldTeardownLxmfPropagationLink` /
+> `canExtractLxmfOpportunisticPayload` / `shouldSelectLxmfDeliveryParameters`
+> reads beside the step).
 > **`stepIgnoreLocalAnnounceWithActions`** emits `ignore`|`proceed`;
 > **`stepDispatchAnnounceHandlersWithActions`** emits `dispatch`|`skip`;
 > **`stepReceiveAnnouncePathResponseWithActions`** emits `receive`|`skip`;

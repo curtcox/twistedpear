@@ -26,11 +26,15 @@ import {
   planLxmfSendMethod,
   planLxmfSignatureOutcome,
   shouldAcceptLxmfWireFrame,
+  shouldAcceptLxmfWireFrameNow,
   shouldCommitRememberedLxmfHash,
+  shouldCommitRememberedLxmfHashNow,
   shouldDeliverLxmf,
   shouldDeliverLxmfPropagationLocalIngress,
   shouldEstablishLxmfPropagationLink,
+  shouldExtractLxmfOpportunisticPayloadNow,
   shouldIncludeLxmfStamp,
+  shouldIncludeLxmfStampNow,
   shouldProceedLxmfDirectSend,
   shouldProceedLxmfOpportunisticSend,
   shouldProceedLxmfPropagatedSend,
@@ -52,10 +56,21 @@ import {
   shouldRejectLxmfSendUnsupported,
   shouldRejectLxmfUnsupportedMethod,
   shouldRememberLxmfMessage,
+  shouldRememberLxmfMessageNow,
+  shouldRegisterLxmfDeliveryIdentityNow,
   shouldReuseLxmfPropagationLink,
+  shouldSelectLxmfDeliveryParametersNow,
   shouldSendLxmfDirect,
   shouldSendLxmfOpportunistic,
   shouldSendLxmfPropagated,
+  shouldSkipAcceptLxmfWireFrame,
+  shouldSkipCommitRememberedLxmfHash,
+  shouldSkipExtractLxmfOpportunisticPayload,
+  shouldSkipIncludeLxmfStamp,
+  shouldSkipRegisterLxmfDeliveryIdentity,
+  shouldSkipRememberLxmfMessage,
+  shouldSkipSelectLxmfDeliveryParameters,
+  shouldSkipTeardownLxmfPropagationLink,
   canRegisterLxmfDeliveryIdentity,
   canExtractLxmfOpportunisticPayload,
   canUnpackLxmfPropagationLocalIngress,
@@ -64,6 +79,11 @@ import {
   shouldAwaitLxmfDeliveryReceipt,
   shouldInvokeLxmfDeliveryCallback,
   shouldTeardownLxmfPropagationLink,
+  shouldTeardownLxmfPropagationLinkNow,
+  initialAcceptLxmfWireFrameState,
+  initialCommitRememberedLxmfHashState,
+  initialExtractLxmfOpportunisticPayloadState,
+  initialIncludeLxmfStampState,
   initialLxmfDeliverableAcceptState,
   initialLxmfDirectSendState,
   initialLxmfOpportunisticSendState,
@@ -77,6 +97,10 @@ import {
   initialLxmfSignatureState,
   initialLxMessageInstancePackState,
   initialLxMessagePackState,
+  initialRegisterLxmfDeliveryIdentityState,
+  initialRememberLxmfMessageState,
+  initialSelectLxmfDeliveryParametersState,
+  initialTeardownLxmfPropagationLinkState,
   lxmfSendUnsupportedMethod,
   lxmfSignatureOutcomeFromActions,
   shouldAcceptLxmfDeliverable,
@@ -100,6 +124,10 @@ import {
   shouldSkipLxmfPropagatedPackPrep,
   shouldUseLxmfPackNow,
   shouldUseLxmfPackTimestamp,
+  stepAcceptLxmfWireFrameWithActions,
+  stepCommitRememberedLxmfHashWithActions,
+  stepExtractLxmfOpportunisticPayloadWithActions,
+  stepIncludeLxmfStampWithActions,
   stepLxmfDeliverableAcceptWithActions,
   stepLxmfDeliveryWithActions,
   stepLxmfDirectSendWithActions,
@@ -113,7 +141,11 @@ import {
   stepLxmfSendMethodWithActions,
   stepLxmfSignatureWithActions,
   stepLxMessageInstancePackWithActions,
-  stepLxMessagePackWithActions
+  stepLxMessagePackWithActions,
+  stepRegisterLxmfDeliveryIdentityWithActions,
+  stepRememberLxmfMessageWithActions,
+  stepSelectLxmfDeliveryParametersWithActions,
+  stepTeardownLxmfPropagationLinkWithActions
 } from "../src/lxmf-delivery.js";
 import { LxmfUnverifiedReason } from "../src/lxmf-fields.js";
 
@@ -1123,6 +1155,38 @@ describe("protocol lxmf delivery", () => {
     expect(shouldAcceptLxmfWireFrame(false)).toBe(false);
     expect(shouldCommitRememberedLxmfHash(true)).toBe(true);
     expect(shouldCommitRememberedLxmfHash(false)).toBe(false);
+    expect(
+      shouldAcceptLxmfWireFrameNow(
+        stepAcceptLxmfWireFrameWithActions(initialAcceptLxmfWireFrameState(), {
+          kind: "lxmf/accept-wire-frame-gate",
+          wirePresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipAcceptLxmfWireFrame(
+        stepAcceptLxmfWireFrameWithActions(initialAcceptLxmfWireFrameState(), {
+          kind: "lxmf/accept-wire-frame-gate",
+          wirePresent: false
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldCommitRememberedLxmfHashNow(
+        stepCommitRememberedLxmfHashWithActions(initialCommitRememberedLxmfHashState(), {
+          kind: "lxmf/commit-remembered-hash-gate",
+          hashPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipCommitRememberedLxmfHash(
+        stepCommitRememberedLxmfHashWithActions(initialCommitRememberedLxmfHashState(), {
+          kind: "lxmf/commit-remembered-hash-gate",
+          hashPresent: false
+        }).actions
+      )
+    ).toBe(true);
   });
 
   it("emits propagation local-ingress gate actions from stepLxmfPropagationLocalIngressWithActions", () => {
@@ -1309,6 +1373,38 @@ describe("protocol lxmf delivery", () => {
     expect(shouldIncludeLxmfStamp(true)).toBe(false);
     expect(shouldRememberLxmfMessage(true)).toBe(true);
     expect(shouldRememberLxmfMessage(false)).toBe(false);
+    expect(
+      shouldIncludeLxmfStampNow(
+        stepIncludeLxmfStampWithActions(initialIncludeLxmfStampState(), {
+          kind: "lxmf/include-stamp-gate",
+          deferStamp: undefined
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipIncludeLxmfStamp(
+        stepIncludeLxmfStampWithActions(initialIncludeLxmfStampState(), {
+          kind: "lxmf/include-stamp-gate",
+          deferStamp: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldRememberLxmfMessageNow(
+        stepRememberLxmfMessageWithActions(initialRememberLxmfMessageState(), {
+          kind: "lxmf/remember-message-gate",
+          hasHash: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipRememberLxmfMessage(
+        stepRememberLxmfMessageWithActions(initialRememberLxmfMessageState(), {
+          kind: "lxmf/remember-message-gate",
+          hasHash: false
+        }).actions
+      )
+    ).toBe(true);
   });
 
   it("emits pack timestamp actions from stepLxmfPackTimestampWithActions", () => {
@@ -1359,6 +1455,94 @@ describe("protocol lxmf delivery", () => {
     expect(canExtractLxmfOpportunisticPayload(false)).toBe(false);
     expect(shouldSelectLxmfDeliveryParameters(true)).toBe(true);
     expect(shouldSelectLxmfDeliveryParameters(false)).toBe(false);
+    expect(
+      shouldRegisterLxmfDeliveryIdentityNow(
+        stepRegisterLxmfDeliveryIdentityWithActions(
+          initialRegisterLxmfDeliveryIdentityState(),
+          {
+            kind: "lxmf/register-delivery-identity-gate",
+            deliveryDestinationPresent: false
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipRegisterLxmfDeliveryIdentity(
+        stepRegisterLxmfDeliveryIdentityWithActions(
+          initialRegisterLxmfDeliveryIdentityState(),
+          {
+            kind: "lxmf/register-delivery-identity-gate",
+            deliveryDestinationPresent: true
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldTeardownLxmfPropagationLinkNow(
+        stepTeardownLxmfPropagationLinkWithActions(
+          initialTeardownLxmfPropagationLinkState(),
+          {
+            kind: "lxmf/teardown-propagation-link-gate",
+            linkPresent: true
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipTeardownLxmfPropagationLink(
+        stepTeardownLxmfPropagationLinkWithActions(
+          initialTeardownLxmfPropagationLinkState(),
+          {
+            kind: "lxmf/teardown-propagation-link-gate",
+            linkPresent: false
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldExtractLxmfOpportunisticPayloadNow(
+        stepExtractLxmfOpportunisticPayloadWithActions(
+          initialExtractLxmfOpportunisticPayloadState(),
+          {
+            kind: "lxmf/extract-opportunistic-payload-gate",
+            packedPresent: true
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipExtractLxmfOpportunisticPayload(
+        stepExtractLxmfOpportunisticPayloadWithActions(
+          initialExtractLxmfOpportunisticPayloadState(),
+          {
+            kind: "lxmf/extract-opportunistic-payload-gate",
+            packedPresent: false
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSelectLxmfDeliveryParametersNow(
+        stepSelectLxmfDeliveryParametersWithActions(
+          initialSelectLxmfDeliveryParametersState(),
+          {
+            kind: "lxmf/select-delivery-parameters-gate",
+            packedPresent: true
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipSelectLxmfDeliveryParameters(
+        stepSelectLxmfDeliveryParametersWithActions(
+          initialSelectLxmfDeliveryParametersState(),
+          {
+            kind: "lxmf/select-delivery-parameters-gate",
+            packedPresent: false
+          }
+        ).actions
+      )
+    ).toBe(true);
     expect(
       planLxmfPropagationSyncPrep({
         nodeConfigured: false,
