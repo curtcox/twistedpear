@@ -17,6 +17,7 @@ import {
   canRelayTransportPacket,
   isLocalPathRequestPacket,
   isReverseEntryExpired,
+  initialAcceptTransportPacketState,
   initialLinkDataIngressTargetState,
   initialLinkRelayTargetState,
   initialLocalPlainDataDeliveryState,
@@ -46,11 +47,14 @@ import {
   shouldAcceptLinkLrProofCandidate,
   shouldAcceptPacketFilter,
   shouldAcceptTransportPacket,
+  shouldAcceptTransportPacketNow,
+  shouldSkipAcceptTransportPacket,
   shouldDeferPacketHash,
   shouldDeferPacketHashActions,
   shouldRememberPacketHashImmediately,
   shouldMissMatchingLinkIdIndex,
   shouldUseMatchingLinkIdIndex,
+  stepAcceptTransportPacketWithActions,
   stepIndexOfMatchingLinkIdWithActions,
   stepPacketHashDeferWithActions,
   shouldDeleteExpiredReverseEntry,
@@ -209,6 +213,45 @@ describe("transport ingress", () => {
         alreadySeenHash: true
       })
     ).toBe(false);
+  });
+
+  it("emits transport-packet accept or skip from WithActions steps", () => {
+    expect(
+      shouldAcceptTransportPacketNow(
+        stepAcceptTransportPacketWithActions(initialAcceptTransportPacketState(), {
+          kind: "transport/accept-packet-gate",
+          filterPassed: true,
+          packetType: PACKET_TYPE_ANNOUNCE,
+          transportType: TRANSPORT_TRANSPORT,
+          hasForeignTransportId: false,
+          alreadySeenHash: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldAcceptTransportPacketNow(
+        stepAcceptTransportPacketWithActions(initialAcceptTransportPacketState(), {
+          kind: "transport/accept-packet-gate",
+          filterPassed: false,
+          packetType: PACKET_TYPE_ANNOUNCE,
+          transportType: TRANSPORT_TRANSPORT,
+          hasForeignTransportId: true,
+          alreadySeenHash: false
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipAcceptTransportPacket(
+        stepAcceptTransportPacketWithActions(initialAcceptTransportPacketState(), {
+          kind: "transport/accept-packet-gate",
+          filterPassed: false,
+          packetType: PACKET_TYPE_ANNOUNCE,
+          transportType: TRANSPORT_TRANSPORT,
+          hasForeignTransportId: true,
+          alreadySeenHash: true
+        }).actions
+      )
+    ).toBe(true);
   });
 
   it("plans packet filter for transport-id and seen-hash rules", () => {

@@ -239,11 +239,12 @@
 > (key split / iv||ciphertext||hmac via **`stepSplitTokenKeyWithActions`** /
 > **`stepPackTokenFrameWithActions`** /
 > **`stepSplitTokenFrameWithActions`**: use-fields|reject / use-raw|reject /
-> use-fields|reject) and
+> use-fields|reject; IV-length / frame-accept via
+> **`stepTokenIvLengthValidWithActions`** /
+> **`stepAcceptTokenFrameWithActions`**: valid|invalid / accept|skip) and
 > **stamp-cost extraction** from announce app-data (via
 > **`stepStampCostFromAppDataWithActions`**: use-fields|reject) are pure
-> protocol leaves; Token and LXMF router adapt them. **Resource receive-part planning** (via
-> **`stepResourceReceivePartWithActions`**), **LXMF outer wire framing** (via
+> protocol leaves; Token and LXMF router adapt them. **Resource receive-part planning** (via **`stepResourceReceivePartWithActions`**), **LXMF outer wire framing** (via
 > **`stepPackLxmfWireWithActions`** / **`stepSplitLxmfWireWithActions`**;
 > hashable / signed / opportunistic via **`stepLxmfHashableMaterialWithActions`** /
 > **`stepLxmfSignedMaterialWithActions`** /
@@ -803,8 +804,10 @@
 > **`shouldInvokePacketReceiptTimeoutCallback`**, and
 > **`shouldInvokeLinkRequestReceiptAction`** live in protocol; Link, Resource, Channel,
 > transport path-request, PacketReceipt, and LinkRequestReceipt adapt them.
-> **`planResourceAdvertisementRoleFlags`**, **`isValidTokenIvLength`** /
-> **`shouldAcceptTokenFrame`**, **`isLinkKeepaliveContext`**,
+> **`planResourceAdvertisementRoleFlags`**, **`isValidTokenIvLength`** (via
+> **`stepTokenIvLengthValidWithActions`**: valid|invalid) /
+> **`shouldAcceptTokenFrame`** (via **`stepAcceptTokenFrameWithActions`**:
+> accept|skip), **`isLinkKeepaliveContext`**,
 > **`shouldAcceptResourceProofSplit`**, **`shouldEmplaceChannelEnvelope`**,
 > **`shouldApplyResourceFulfillPart`**, **`shouldClearExpiredDiscoveryPathRequest`** (via
 > **`stepClearExpiredDiscoveryPathRequestWithActions`**: clear|skip) /
@@ -1250,7 +1253,7 @@
 > commit-remembered-lxmf-hash / accept-lxmf-wire-frame /
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
-> validate-request / proof-validate /
+> accept-transport-packet / validate-request / proof-validate /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
 > identity-recall-app-data / destination-construction / destination-decrypt /
@@ -1262,7 +1265,8 @@
 > assemble-resource-hashmap-bytes / contains-resource-hash /
 > read-resource-request-hash / path-request-ingress /
 > discovery-path-request-fulfill / path-outbound / path-entry-lookup /
-> transport-ingress-dispatch / link-data-ingress-target /
+> transport-ingress-dispatch / accept-transport-packet /
+> link-data-ingress-target /
 > reverse-relay-outcome / packet-hash-remember /
 > local-plain-data-delivery / proof-ingress / outbound-receipt /
 > packet-receipt-proof-ingress / link-data-context /
@@ -1352,7 +1356,7 @@
 > accept-lxmf-wire-frame / register-lxmf-delivery-identity /
 > teardown-lxmf-propagation-link / extract-lxmf-opportunistic-payload /
 > select-lxmf-delivery-parameters /
-> packet-hash-defer /
+> accept-transport-packet / packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
 > decode-resource-advertisement-flags / classify-resource-advertisement /
 > resource-encrypt-material / resource-hash-material /
@@ -1390,6 +1394,7 @@
 > compute-resource-total-parts / pack-link-request /
 > pack-link-response / unpack-link-request / unpack-link-response /
 > pack-token-frame / split-token-frame / split-token-key /
+> token-iv-length-valid / accept-token-frame /
 > pack-identity-ciphertext / split-identity-ciphertext /
 > pack-lxmf-wire / split-lxmf-wire /
 > lxmf-hashable-material / lxmf-signed-material /
@@ -1674,6 +1679,9 @@
 > `canRegisterLxmfDeliveryIdentity` / `shouldTeardownLxmfPropagationLink` /
 > `canExtractLxmfOpportunisticPayload` / `shouldSelectLxmfDeliveryParameters`
 > reads beside the step).
+> **`stepAcceptTransportPacketWithActions`** emits `accept` / `skip`;
+> transport ingress packet accept applies only from those actions (no ad-hoc
+> `shouldAcceptTransportPacket` reads beside the step).
 > **`stepIgnoreLocalAnnounceWithActions`** emits `ignore`|`proceed`;
 > **`stepDispatchAnnounceHandlersWithActions`** emits `dispatch`|`skip`;
 > **`stepReceiveAnnouncePathResponseWithActions`** emits `receive`|`skip`;
@@ -1848,10 +1856,14 @@
 > `msgpackUnpackLinkResponse` reads beside the step).
 > **`stepPackTokenFrameWithActions`** /
 > **`stepSplitTokenFrameWithActions`** /
-> **`stepSplitTokenKeyWithActions`** emit `use-raw`|`reject` /
-> `use-fields`|`reject` / `use-fields`|`reject`; Token frame pack / split and
-> key-split apply only from those actions (no ad-hoc `packTokenFrame` /
-> `splitTokenFrame` / `splitTokenKey` reads beside the step).
+> **`stepSplitTokenKeyWithActions`** /
+> **`stepTokenIvLengthValidWithActions`** /
+> **`stepAcceptTokenFrameWithActions`** emit `use-raw`|`reject` /
+> `use-fields`|`reject` / `use-fields`|`reject` / `valid`|`invalid` /
+> `accept`|`skip`; Token frame pack / split, key-split, IV-length, and
+> frame-accept apply only from those actions (no ad-hoc `packTokenFrame` /
+> `splitTokenFrame` / `splitTokenKey` / `isValidTokenIvLength` /
+> `shouldAcceptTokenFrame` reads beside the step).
 > **`stepPackIdentityCiphertextWithActions`** /
 > **`stepSplitIdentityCiphertextWithActions`** emit `use-raw`|`reject` /
 > `use-fields`|`reject`; Identity ciphertext pack / split apply only from

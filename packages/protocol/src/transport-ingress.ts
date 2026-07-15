@@ -144,6 +144,77 @@ export function shouldAcceptTransportPacket(input: {
   return false;
 }
 
+/**
+ * Transport-packet accept gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldAcceptTransportPacket`
+ * reads beside the step).
+ */
+export type AcceptTransportPacketState = Record<string, never>;
+
+export type AcceptTransportPacketEvent =
+  | Event
+  | {
+      readonly kind: "transport/accept-packet-gate";
+      readonly filterPassed: boolean;
+      readonly packetType: number;
+      readonly transportType: number;
+      readonly hasForeignTransportId: boolean;
+      readonly alreadySeenHash: boolean;
+    };
+
+export type AcceptTransportPacketAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptTransportPacketStepResult {
+  readonly state: AcceptTransportPacketState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptTransportPacketAction[];
+}
+
+export function initialAcceptTransportPacketState(): AcceptTransportPacketState {
+  return {};
+}
+
+export function stepAcceptTransportPacketWithActions(
+  state: AcceptTransportPacketState,
+  event: AcceptTransportPacketEvent
+): AcceptTransportPacketStepResult {
+  if (event.kind === "transport/accept-packet-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptTransportPacket({
+            filterPassed: event.filterPassed,
+            packetType: event.packetType,
+            transportType: event.transportType,
+            hasForeignTransportId: event.hasForeignTransportId,
+            alreadySeenHash: event.alreadySeenHash
+          })
+            ? "accept"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptTransportPacketNow(
+  actions: ReadonlyArray<AcceptTransportPacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAcceptTransportPacket(
+  actions: ReadonlyArray<AcceptTransportPacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 export function shouldDeferPacketHash(input: {
   readonly packetType: number;
   readonly context: number;

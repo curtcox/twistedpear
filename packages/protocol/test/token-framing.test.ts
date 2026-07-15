@@ -3,24 +3,32 @@ import {
   TOKEN_HMAC_SIZE,
   TOKEN_IV_SIZE,
   TOKEN_OVERHEAD,
+  initialAcceptTokenFrameState,
   initialPackTokenFrameState,
   initialSplitTokenFrameState,
   initialSplitTokenKeyState,
+  initialTokenIvLengthValidState,
   isValidTokenIvLength,
   packTokenFrame,
   packTokenFrameRawFromActions,
   shouldAcceptTokenFrame,
+  shouldAcceptTokenFrameNow,
+  shouldAcceptTokenIvLength,
   shouldRejectPackTokenFrame,
   shouldRejectSplitTokenFrame,
   shouldRejectSplitTokenKey,
+  shouldRejectTokenIvLength,
+  shouldSkipAcceptTokenFrame,
   shouldUsePackTokenFrame,
   shouldUseSplitTokenFrame,
   shouldUseSplitTokenKey,
   splitTokenFrame,
   splitTokenKey,
+  stepAcceptTokenFrameWithActions,
   stepPackTokenFrameWithActions,
   stepSplitTokenFrameWithActions,
   stepSplitTokenKeyWithActions,
+  stepTokenIvLengthValidWithActions,
   tokenFrameFieldsFromActions,
   tokenHmacMatches,
   tokenKeyFieldsFromActions,
@@ -89,6 +97,44 @@ describe("protocol token framing", () => {
     expect(isValidTokenIvLength(8)).toBe(false);
     expect(shouldAcceptTokenFrame(true)).toBe(true);
     expect(shouldAcceptTokenFrame(false)).toBe(false);
+  });
+
+  it("emits IV-length valid or invalid from WithActions steps", () => {
+    expect(
+      shouldAcceptTokenIvLength(
+        stepTokenIvLengthValidWithActions(initialTokenIvLengthValidState(), {
+          kind: "token-framing/iv-length-valid-gate",
+          length: TOKEN_IV_SIZE
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldRejectTokenIvLength(
+        stepTokenIvLengthValidWithActions(initialTokenIvLengthValidState(), {
+          kind: "token-framing/iv-length-valid-gate",
+          length: 8
+        }).actions
+      )
+    ).toBe(true);
+  });
+
+  it("emits frame accept or skip from WithActions steps", () => {
+    expect(
+      shouldAcceptTokenFrameNow(
+        stepAcceptTokenFrameWithActions(initialAcceptTokenFrameState(), {
+          kind: "token-framing/accept-frame-gate",
+          framePresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipAcceptTokenFrame(
+        stepAcceptTokenFrameWithActions(initialAcceptTokenFrameState(), {
+          kind: "token-framing/accept-frame-gate",
+          framePresent: false
+        }).actions
+      )
+    ).toBe(true);
   });
 
   it("emits pack raw or reject from WithActions steps", () => {

@@ -107,9 +107,123 @@ export function isValidTokenIvLength(length: number): boolean {
   return length === TOKEN_IV_SIZE;
 }
 
+/**
+ * Token IV-length gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isValidTokenIvLength`
+ * reads beside the step).
+ */
+export type TokenIvLengthValidState = Record<string, never>;
+
+export type TokenIvLengthValidEvent =
+  | Event
+  | {
+      readonly kind: "token-framing/iv-length-valid-gate";
+      readonly length: number;
+    };
+
+export type TokenIvLengthValidAction =
+  | { readonly kind: "valid" }
+  | { readonly kind: "invalid" };
+
+export interface TokenIvLengthValidStepResult {
+  readonly state: TokenIvLengthValidState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TokenIvLengthValidAction[];
+}
+
+export function initialTokenIvLengthValidState(): TokenIvLengthValidState {
+  return {};
+}
+
+export function stepTokenIvLengthValidWithActions(
+  state: TokenIvLengthValidState,
+  event: TokenIvLengthValidEvent
+): TokenIvLengthValidStepResult {
+  if (event.kind === "token-framing/iv-length-valid-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: isValidTokenIvLength(event.length) ? "valid" : "invalid" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptTokenIvLength(
+  actions: ReadonlyArray<TokenIvLengthValidAction>
+): boolean {
+  return actions.some((action) => action.kind === "valid");
+}
+
+export function shouldRejectTokenIvLength(
+  actions: ReadonlyArray<TokenIvLengthValidAction>
+): boolean {
+  return actions.some((action) => action.kind === "invalid");
+}
+
 /** Whether a Token frame split succeeded (HMAC/AES stay at the edge). */
 export function shouldAcceptTokenFrame(framePresent: boolean): boolean {
   return framePresent;
+}
+
+/**
+ * Token-frame accept gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldAcceptTokenFrame`
+ * reads beside the step).
+ */
+export type AcceptTokenFrameState = Record<string, never>;
+
+export type AcceptTokenFrameEvent =
+  | Event
+  | {
+      readonly kind: "token-framing/accept-frame-gate";
+      readonly framePresent: boolean;
+    };
+
+export type AcceptTokenFrameAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptTokenFrameStepResult {
+  readonly state: AcceptTokenFrameState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptTokenFrameAction[];
+}
+
+export function initialAcceptTokenFrameState(): AcceptTokenFrameState {
+  return {};
+}
+
+export function stepAcceptTokenFrameWithActions(
+  state: AcceptTokenFrameState,
+  event: AcceptTokenFrameEvent
+): AcceptTokenFrameStepResult {
+  if (event.kind === "token-framing/accept-frame-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptTokenFrame(event.framePresent) ? "accept" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptTokenFrameNow(
+  actions: ReadonlyArray<AcceptTokenFrameAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAcceptTokenFrame(
+  actions: ReadonlyArray<AcceptTokenFrameAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**

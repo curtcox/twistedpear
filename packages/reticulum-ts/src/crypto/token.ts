@@ -1,16 +1,18 @@
 import {
   TOKEN_IV_SIZE,
   TOKEN_OVERHEAD,
+  initialAcceptTokenFrameState,
   initialPackPkcs7State,
   initialPackTokenFrameState,
   initialSplitTokenFrameState,
   initialSplitTokenKeyState,
+  initialTokenIvLengthValidState,
   initialUnpackPkcs7State,
-  isValidTokenIvLength,
   packTokenFrameRawFromActions,
   pkcs7PadRawFromActions,
   pkcs7UnpadRawFromActions,
-  shouldAcceptTokenFrame,
+  shouldAcceptTokenFrameNow,
+  shouldAcceptTokenIvLength,
   shouldRejectPackTokenFrame,
   shouldRejectPkcs7Unpad,
   shouldRejectSplitTokenKey,
@@ -19,11 +21,13 @@ import {
   shouldUsePkcs7Unpad,
   shouldUseSplitTokenFrame,
   shouldUseSplitTokenKey,
+  stepAcceptTokenFrameWithActions,
   stepPackTokenFrameWithActions,
   stepPkcs7PadWithActions,
   stepPkcs7UnpadWithActions,
   stepSplitTokenFrameWithActions,
   stepSplitTokenKeyWithActions,
+  stepTokenIvLengthValidWithActions,
   tokenFrameFieldsFromActions,
   tokenHmacMatches,
   tokenKeyFieldsFromActions,
@@ -77,7 +81,11 @@ export class Token {
       token
     });
     const frame = tokenFrameFieldsFromActions(stepped.actions);
-    if (!shouldUseSplitTokenFrame(stepped.actions) || !shouldAcceptTokenFrame(frame !== null)) {
+    const acceptStepped = stepAcceptTokenFrameWithActions(initialAcceptTokenFrameState(), {
+      kind: "token-framing/accept-frame-gate",
+      framePresent: frame !== null
+    });
+    if (!shouldUseSplitTokenFrame(stepped.actions) || !shouldAcceptTokenFrameNow(acceptStepped.actions)) {
       throw new Error(`Cannot verify HMAC on token of only ${token.length} bytes`);
     }
 
@@ -95,7 +103,11 @@ export class Token {
       (options.entropy !== undefined
         ? options.entropy.randomBytes(TOKEN_IV_SIZE)
         : this.provider.randomBytes(TOKEN_IV_SIZE));
-    if (!isValidTokenIvLength(iv.length)) {
+    const ivLengthStepped = stepTokenIvLengthValidWithActions(initialTokenIvLengthValidState(), {
+      kind: "token-framing/iv-length-valid-gate",
+      length: iv.length
+    });
+    if (!shouldAcceptTokenIvLength(ivLengthStepped.actions)) {
       throw new Error(`Token IV must be ${TOKEN_IV_SIZE} bytes`);
     }
 
@@ -147,7 +159,11 @@ export class Token {
       token
     });
     const frame = tokenFrameFieldsFromActions(stepped.actions);
-    if (!shouldUseSplitTokenFrame(stepped.actions) || !shouldAcceptTokenFrame(frame !== null)) {
+    const acceptStepped = stepAcceptTokenFrameWithActions(initialAcceptTokenFrameState(), {
+      kind: "token-framing/accept-frame-gate",
+      framePresent: frame !== null
+    });
+    if (!shouldUseSplitTokenFrame(stepped.actions) || !shouldAcceptTokenFrameNow(acceptStepped.actions)) {
       throw new Error("Token HMAC was invalid");
     }
 

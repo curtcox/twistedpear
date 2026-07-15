@@ -33,7 +33,7 @@ import {
   shouldRelayLinkOutbound,
   shouldRelayLinkReceived,
   shouldTransmitLinkRelayNow,
-  shouldAcceptTransportPacket,
+  shouldAcceptTransportPacketNow,
   shouldAnswerPathRequestLocal,
   shouldAnswerPathRequestPath,
   shouldBeginPathDiscoveryNow,
@@ -52,6 +52,7 @@ import {
   shouldIgnorePathRequestUnparsed,
   shouldIgnoreTransportIngressDispatch,
   shouldMatchLocalInboundDestinationNow,
+  initialAcceptTransportPacketState,
   initialAnswerLocalPathRequestState,
   initialAnswerPathRequestState,
   initialAnswerPathWithEntryState,
@@ -61,6 +62,7 @@ import {
   initialPacketHashDeferState,
   initialRememberPathRequestTagState,
   initialTouchPathEntryState,
+  stepAcceptTransportPacketWithActions,
   stepPacketHashDeferWithActions,
   shouldRelayReversePacketActions,
   shouldRememberPacketHashAfterRelayActions,
@@ -444,15 +446,18 @@ export class TransportNode extends LeafTransport {
   }
 
   private shouldAcceptPacket(packet: Packet): boolean {
-    return shouldAcceptTransportPacket({
-      filterPassed: this.packetFilter(packet),
-      packetType: packet.packetType,
-      transportType: packet.transportType,
-      hasForeignTransportId:
-        packet.transportId !== null &&
-        !equalBytes(packet.transportId, this.transportIdentity.hash),
-      alreadySeenHash: this.packetHashes.has(hashKey(packet.hash()))
-    });
+    return shouldAcceptTransportPacketNow(
+      stepAcceptTransportPacketWithActions(initialAcceptTransportPacketState(), {
+        kind: "transport/accept-packet-gate",
+        filterPassed: this.packetFilter(packet),
+        packetType: packet.packetType,
+        transportType: packet.transportType,
+        hasForeignTransportId:
+          packet.transportId !== null &&
+          !equalBytes(packet.transportId, this.transportIdentity.hash),
+        alreadySeenHash: this.packetHashes.has(hashKey(packet.hash()))
+      }).actions
+    );
   }
 
   private shouldDeferPacketHash(packet: Packet): boolean {
