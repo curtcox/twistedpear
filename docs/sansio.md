@@ -180,6 +180,7 @@
 > **`stepContinueLinkValidateRequestWithActions`**: continue|skip /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
+> **`stepTeardownLinkFromRttWithActions`**: teardown|skip /
 > **`stepIdentifyOnLinkAllowWithActions`**: allow|deny /
 > **`stepDispatchLinkPlaintextWithActions`**: dispatch|skip /
 > **`stepResendLinkPacketAllowWithActions`**: allow|deny /
@@ -891,7 +892,8 @@
 > **`planReverseRelayOutcome`** (via **`stepReverseRelayOutcomeWithActions`**:
 > relay / delete-expired / ignore) live in protocol; transport link + reverse relay adapt
 > them. **`planLinkRttOutcome`** (via **`stepLinkEstablishWithActions`**
-> `establish/rtt`), **`shouldDispatchLinkPlaintext`** (via **`stepDispatchLinkPlaintextWithActions`**: dispatch|skip),
+> `establish/rtt`; accept via **`stepAcceptLinkRttWithActions`**: accept|skip;
+> teardown via **`stepTeardownLinkFromRttWithActions`**: teardown|skip), **`shouldDispatchLinkPlaintext`** (via **`stepDispatchLinkPlaintextWithActions`**: dispatch|skip),
 > **`canResendLinkPacket`** (via **`stepResendLinkPacketAllowWithActions`**: allow|deny), and **`planLinkAppRequestTransmitOutcome`** (via
 > **`stepLinkAppRequestTransmitWithActions`**: keep-pending / unregister) live in
 > protocol; `Link` adapts them. **`planResourceHashmapUpdateAccept`** (via
@@ -1154,7 +1156,8 @@
 > Link, Identity, Resource, and LXMessage adapt them.
 > **`shouldContinueLinkValidateRequest`** (via
 > **`stepContinueLinkValidateRequestWithActions`**: continue|skip) /
-> **`shouldTeardownLinkFromRtt`** /
+> **`shouldTeardownLinkFromRtt`** (via
+> **`stepTeardownLinkFromRttWithActions`**: teardown|skip) /
 > **`shouldRemovePendingLinkMembership`** / **`shouldAppendActiveLinkMembership`** /
 > **`shouldRemoveActiveLinkMembership`**, **`shouldUnregisterPendingLinkRequest`** /
 > **`shouldRemoveLinkResourceListIndex`**, **`shouldAcceptPacketReceiptProof`** (via
@@ -1529,6 +1532,7 @@
 > **`stepContinueLinkValidateRequestWithActions`** /
 > **`stepAttemptLinkProofCryptoWithActions`** /
 > **`stepAcceptLinkRttWithActions`** /
+> **`stepTeardownLinkFromRttWithActions`** /
 > **`stepIdentifyOnLinkAllowWithActions`** /
 > **`stepDispatchLinkPlaintextWithActions`** /
 > **`stepResendLinkPacketAllowWithActions`** /
@@ -1537,12 +1541,13 @@
 > **`stepHandleIncomingResourceByHashWithActions`** /
 > **`stepLinkModeEnabledWithActions`** /
 > **`stepExpectedLinkModeWithActions`** emit allow|deny / accept|reject /
-> continue|skip / attempt|skip / accept|skip / dispatch|skip / register|skip /
+> continue|skip / attempt|skip / accept|skip / teardown|skip / dispatch|skip / register|skip /
 > handle|skip /
 > enabled|disabled / match|mismatch; `Link` adapts them (no ad-hoc
 > `canPerformLinkHandshake` / `canProveLink` / `canAcceptLinkOwnerPublicKey` /
 > `canValidateLinkProof` / `shouldContinueLinkValidateRequest` /
 > `shouldAttemptLinkProofCrypto` / `canAcceptLinkRtt` /
+> `shouldTeardownLinkFromRtt` /
 > `canIdentifyOnLink` / `shouldDispatchLinkPlaintext` / `canResendLinkPacket` /
 > `shouldRegisterLinkResource` / `shouldHandleOutgoingResourceRequest` /
 > `shouldHandleIncomingResourceByHash` / `isLinkModeEnabled` /
@@ -1602,7 +1607,8 @@
 > instance pack / propagated pack prep), LXMF propagation link-ready /
 > sync-prep gates, LXMF deliverable accept, propagation local ingress,
 > LXMF receipt → send-state mapping, Link validate-request
-> proceed/reject / continue, and Link proof-validate accept/reject also conclude via
+> proceed/reject / continue, Link proof-validate accept/reject, and Link
+> LRRTT accept/teardown-from-rtt also conclude via
 > machine actions (no ad-hoc `state.timedOut` / `plan.kind` / establish-status /
 > dispatch / identify-outcome / delivery-plan / send-method / send-gate /
 > pack-gate / propagation-link-ready / sync-prep / deliverable-accept /
@@ -1611,7 +1617,7 @@
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate /
+> proof-validate / teardown-link-from-rtt /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
 > identity-recall-app-data / identity-hash-allow / identity-use-private-key /
@@ -1715,7 +1721,8 @@
 > link-ready-for-new-resource /
 > perform-link-handshake-allow / prove-link-allow /
 > accept-link-owner-public-key / validate-link-proof-allow /
-> attempt-link-proof-crypto / accept-link-rtt / identify-on-link-allow /
+> attempt-link-proof-crypto / accept-link-rtt / teardown-link-from-rtt /
+> identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /
 > handle-incoming-resource-by-hash / link-mode-enabled / expected-link-mode /

@@ -15,7 +15,8 @@
  * `isLinkInboundDataPacket` / `canUpdateLinkKeepalive` /
  * `shouldCreateLinkChannel` / `canPerformLinkHandshake` / `canProveLink` /
  * `canAcceptLinkOwnerPublicKey` / `canValidateLinkProof` /
- * `shouldAttemptLinkProofCrypto` / `canAcceptLinkRtt` / `canIdentifyOnLink` /
+ * `shouldAttemptLinkProofCrypto` / `canAcceptLinkRtt` /
+ * `shouldTeardownLinkFromRtt` / `canIdentifyOnLink` /
  * `shouldDispatchLinkPlaintext` / `canResendLinkPacket` reads beside the step).
  * Link-member register / invoke-app-request-handler / send-app-request-response
  * gates conclude via machine actions (no ad-hoc `shouldRegisterLinkMember` /
@@ -2650,6 +2651,71 @@ export function shouldTeardownLinkFromRtt(input: {
   return input.outcomeTeardown || !input.plaintextPresent;
 }
 
+/**
+ * shouldTeardownLinkFromRtt gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldTeardownLinkFromRtt` reads beside
+ * the step).
+ */
+export type TeardownLinkFromRttState = Record<string, never>;
+
+export type TeardownLinkFromRttEvent =
+  | Event
+  | {
+      readonly kind: "link/teardown-from-rtt-gate";
+      readonly outcomeTeardown: boolean;
+      readonly plaintextPresent: boolean;
+    };
+
+export type TeardownLinkFromRttAction =
+  | { readonly kind: "teardown" }
+  | { readonly kind: "skip" };
+
+export interface TeardownLinkFromRttStepResult {
+  readonly state: TeardownLinkFromRttState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TeardownLinkFromRttAction[];
+}
+
+export function initialTeardownLinkFromRttState(): TeardownLinkFromRttState {
+  return {};
+}
+
+export function stepTeardownLinkFromRttWithActions(
+  state: TeardownLinkFromRttState,
+  event: TeardownLinkFromRttEvent
+): TeardownLinkFromRttStepResult {
+  if (event.kind === "link/teardown-from-rtt-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldTeardownLinkFromRtt({
+            outcomeTeardown: event.outcomeTeardown,
+            plaintextPresent: event.plaintextPresent
+          })
+            ? "teardown"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTeardownLinkFromRttNow(
+  actions: ReadonlyArray<TeardownLinkFromRttAction>
+): boolean {
+  return actions.some((action) => action.kind === "teardown");
+}
+
+export function shouldSkipTeardownLinkFromRtt(
+  actions: ReadonlyArray<TeardownLinkFromRttAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether link plaintext DATA callback may fire after decrypt. */
 export function shouldDispatchLinkPlaintext(plaintextPresent: boolean): boolean {
   return plaintextPresent;
@@ -3050,10 +3116,13 @@ function stepLinkEstablishInner(
   }
 
   if (event.kind === "establish/rtt") {
-    const canAccept = canAcceptLinkRtt({
-      status: state.status,
-      initiator: state.initiator
-    });
+    const canAccept = shouldAcceptLinkRttNow(
+      stepAcceptLinkRttWithActions(initialAcceptLinkRttState(), {
+        kind: "link/accept-rtt-gate",
+        status: state.status,
+        initiator: state.initiator
+      }).actions
+    );
     const outcome = planLinkRttOutcome({
       canAccept,
       plaintextPresent: event.plaintextPresent
@@ -3062,10 +3131,13 @@ function stepLinkEstablishInner(
       return { state, intents: [], actions: [{ kind: "ignore" }] };
     }
     if (
-      shouldTeardownLinkFromRtt({
-        outcomeTeardown: outcome === "teardown",
-        plaintextPresent: event.plaintextPresent
-      })
+      shouldTeardownLinkFromRttNow(
+        stepTeardownLinkFromRttWithActions(initialTeardownLinkFromRttState(), {
+          kind: "link/teardown-from-rtt-gate",
+          outcomeTeardown: outcome === "teardown",
+          plaintextPresent: event.plaintextPresent
+        }).actions
+      )
     ) {
       return { state, intents: [], actions: [{ kind: "teardown" }] };
     }

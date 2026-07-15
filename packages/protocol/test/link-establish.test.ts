@@ -65,6 +65,7 @@ import {
   initialPerformLinkHandshakeAllowState,
   initialProveLinkAllowState,
   initialResendLinkPacketAllowState,
+  initialTeardownLinkFromRttState,
   initialValidateLinkProofAllowState,
   shouldAcceptLinkOwnerPublicKeyNow,
   shouldAcceptLinkRttNow,
@@ -84,6 +85,8 @@ import {
   shouldSkipLinkPlaintextDispatch,
   shouldSkipLinkProofCrypto,
   shouldSkipLinkRttAccept,
+  shouldSkipTeardownLinkFromRtt,
+  shouldTeardownLinkFromRttNow,
   stepAcceptLinkOwnerPublicKeyWithActions,
   stepAcceptLinkRttWithActions,
   stepAttemptLinkProofCryptoWithActions,
@@ -92,6 +95,7 @@ import {
   stepPerformLinkHandshakeAllowWithActions,
   stepProveLinkAllowWithActions,
   stepResendLinkPacketAllowWithActions,
+  stepTeardownLinkFromRttWithActions,
   stepValidateLinkProofAllowWithActions,
   canPerformLinkHandshake,
   canProveLink,
@@ -592,6 +596,19 @@ describe("protocol link establish", () => {
       initiator: true
     });
     expect(shouldSkipLinkRttAccept(rttSkip.actions)).toBe(true);
+
+    const teardownRtt = stepTeardownLinkFromRttWithActions(initialTeardownLinkFromRttState(), {
+      kind: "link/teardown-from-rtt-gate",
+      outcomeTeardown: true,
+      plaintextPresent: true
+    });
+    expect(shouldTeardownLinkFromRttNow(teardownRtt.actions)).toBe(true);
+    const teardownRttSkip = stepTeardownLinkFromRttWithActions(initialTeardownLinkFromRttState(), {
+      kind: "link/teardown-from-rtt-gate",
+      outcomeTeardown: false,
+      plaintextPresent: true
+    });
+    expect(shouldSkipTeardownLinkFromRtt(teardownRttSkip.actions)).toBe(true);
 
     const identify = stepIdentifyOnLinkAllowWithActions(initialIdentifyOnLinkAllowState(), {
       kind: "link/identify-allow-gate",
