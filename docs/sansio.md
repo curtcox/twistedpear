@@ -2396,15 +2396,18 @@
 > `status` for delivery-receipt). Timer callbacks only re-enter via `timer/fired`
 > → probe actions (no ad-hoc status reads beside the machine).
 > **`stepPropagationTransfer`** link-establish timeout (`PROPAGATION_LINK_TIMER_ID`)
-> is adapted by `PropagationClient`: timer callbacks only emit `timer/fired`;
-> `reject-link-wait` / `resolve-link-wait` conclude the Promise shell;
-> `xfer/link-arrived` gates late establishes (no ad-hoc phase read). Cancel /
-> link-ready / link-timeout emit `timer/cancel`.
+> is adapted by `PropagationClient`: `xfer/begin` emits `establish-link` and the
+> adapter applies `requestLink` only from that action (reuse skips establish IO
+> when no wait is armed); timer callbacks only emit `timer/fired`;
+> `reject-link-wait` / `resolve-link-wait` conclude the Promise shell (no ad-hoc
+> `phase` / `LINK_FAILED` reads beside the machine);
+> `xfer/link-arrived` gates late establishes. Cancel / link-ready /
+> link-timeout emit `timer/cancel`.
 > **`stepLinkAwaitWithActions`** emits a `request-link` action on arm (plus the
 > link-await timer intents) and concludes via `resolve` / `reject` actions;
 > LXMF `awaitOutboundLink` adapts it — same action+intent path as propagation
-> establish (`resolve-link-wait` / `reject-link-wait`), still sharing the Promise
-> shell for the public async API.
+> establish (`establish-link` / `resolve-link-wait` / `reject-link-wait`), still
+> sharing the Promise shell for the public async API.
 > **`stepLinkAppRequestAwait`** (arm → `send-request`; response/failed/send-
 > rejected → `resolve`) lives in protocol; LXMF `PropagationClient` list /
 > download / haves awaits adapt it (timeout stays on `LinkRequestReceipt`).
@@ -2412,9 +2415,10 @@
 > Promise/callback continuations around already-pure step cores (watchdog
 > ticks are already intent-driven). Path-await, delivery-receipt, resource
 > advertise-wait, path-response grace, interface connect, propagation link
-> establish/timeout, LXMF outbound link-await, and propagation app-request
+> establish/timeout (`establish-link` → `requestLink` from actions; no ad-hoc
+> phase reads), LXMF outbound link-await, and propagation app-request
 > awaits all conclude via machine resolve/reject actions (adapters no longer
-> finish by reading `state.concluded` beside probes). PacketReceipt
+> finish by reading `state.concluded` / `phase` / `LINK_FAILED` beside probes). PacketReceipt
 > timeout/delivery/failed, Channel TX timeout/retry/give-up, Link establish
 > handshake/activate/fail/LRRTT, Link teardown local/remote close, Link
 > RESOURCE_ADV accept/ask-app/reject / link-resource-advertisement-plan /

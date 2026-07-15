@@ -1,6 +1,5 @@
 import {
   PROPAGATION_LINK_TIMER_ID,
-  PropagationTransferState,
   initialAcceptPropagationDeliveredMessageState,
   initialAcceptPropagationGetRequestDataState,
   initialAcceptPropagationPeerResponseState,
@@ -122,6 +121,7 @@ export class PropagationClient {
   private pendingLinkResolve: ((link: Link) => void) | null = null;
   private pendingLinkReject: ((error: Error) => void) | null = null;
   private pendingEstablishedLink: Link | null = null;
+  private pendingEstablishOutbound: RegisteredDestination | null = null;
 
   constructor(options: PropagationClientOptions) {
     this.router = options.router;
@@ -176,19 +176,9 @@ export class PropagationClient {
 
     const deliveryIdentity = this.router.deliveryIdentity;
 
-    const begin = this.applyTransfer({ kind: "xfer/begin" });
-    let link: Link;
-    try {
-      link = await this.ensurePropagationLink(begin.actions);
-    } catch (error) {
-      if (this.transferMachine.phase === PropagationTransferState.LINK_ESTABLISHING) {
-        this.applyTransfer({ kind: "xfer/link-timeout" });
-      }
-      throw error;
-    }
-    if (this.state === PropagationTransferState.LINK_FAILED) {
-      throw new Error("Propagation link timeout");
-    }
+    // Link wait concludes only via resolve-link-wait / reject-link-wait actions
+    // (no ad-hoc phase / LINK_FAILED reads beside the machine).
+    const link = await this.ensurePropagationLink();
     const afterLink = this.applyTransfer({ kind: "xfer/link-ready" });
 
     for (const action of afterLink.actions) {
@@ -433,10 +423,6 @@ export class PropagationClient {
         }
       }
 
-      if (this.state !== PropagationTransferState.COMPLETE && haves.length === 0) {
-        // download-ready with 0 already completed in the step machine
-      }
-
       return { state: this.state, messages };
     }
 
@@ -475,6 +461,19 @@ export class PropagationClient {
 
   private applyTransferActions(actions: ReadonlyArray<PropagationTransferAction>): void {
     for (const action of actions) {
+      if (action.kind === "establish-link") {
+        // Reuse path applies begin without arming a wait — ignore establish IO.
+        const outbound = this.pendingEstablishOutbound;
+        if (this.pendingLinkResolve === null || outbound === null) {
+          continue;
+        }
+        outbound.requestLink({
+          linkEstablished: (establishLink) => {
+            this.pendingEstablishedLink = establishLink;
+            this.applyTransfer({ kind: "xfer/link-arrived" });
+          }
+        });
+      }
       if (
         action.kind === "teardown-link" &&
         shouldTeardownLxmfPropagationLinkNow(
@@ -512,31 +511,22 @@ export class PropagationClient {
   private clearPendingLinkWait(): void {
     this.pendingLinkResolve = null;
     this.pendingLinkReject = null;
+    this.pendingEstablishOutbound = null;
   }
 
-  private async ensurePropagationLink(
-    actions: ReadonlyArray<PropagationTransferAction>
-  ): Promise<Link> {
+  private async ensurePropagationLink(): Promise<Link> {
     const reuseStepped = stepReuseActiveLinkWithActions(initialReuseActiveLinkState(), {
       kind: "link/reuse-active-gate",
       linkPresent: this.propagationLink !== null,
       status: this.propagationLink?.status ?? 0
     });
     if (shouldReuseActiveLinkNow(reuseStepped.actions)) {
+      // Keep transfer phase in sync; establish-link is ignored without a pending wait.
+      this.applyTransfer({ kind: "xfer/begin" });
       return this.propagationLink!;
     }
 
-    let hasEstablish = false;
-    for (const action of actions) {
-      if (action.kind === "establish-link") {
-        hasEstablish = true;
-        break;
-      }
-    }
-    if (!hasEstablish) {
-      throw new Error("Propagation transfer did not request a link");
-    }
-
+    // Preflight before arming so prep failures never leave LINK_ESTABLISHING armed.
     const nodeIdentity =
       this.propagationNodeHash === null
         ? null
@@ -575,12 +565,10 @@ export class PropagationClient {
     return new Promise<Link>((resolve, reject) => {
       this.pendingLinkResolve = resolve;
       this.pendingLinkReject = reject;
-      outbound.requestLink({
-        linkEstablished: (establishLink) => {
-          this.pendingEstablishedLink = establishLink;
-          this.applyTransfer({ kind: "xfer/link-arrived" });
-        }
-      });
+      this.pendingEstablishOutbound = outbound;
+      // establish-link is applied inside applyTransferActions (same path as
+      // awaitOutboundLink's request-link).
+      this.applyTransfer({ kind: "xfer/begin" });
     });
   }
 }
