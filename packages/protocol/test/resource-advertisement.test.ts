@@ -7,6 +7,7 @@ import {
   initialDecodeResourceAdvertisementFlagsState,
   initialEncodeResourceAdvertisementFlagsState,
   initialPackResourceAdvertisementState,
+  initialResourceAdvertisementRoleFlagsPlanState,
   initialResourceAdvertisementRoleFlagsState,
   initialUnpackResourceAdvertisementState,
   isResourceAdvertisementRequest,
@@ -17,6 +18,7 @@ import {
   resourceAdvertisementFieldsFromActions,
   resourceAdvertisementFlagFieldsFromActions,
   resourceAdvertisementRoleFlagsFromActions,
+  resourceAdvertisementRoleFlagsPlanFromActions,
   shouldClassifyResourceAdvertisementRequest,
   shouldClassifyResourceAdvertisementResponse,
   shouldRejectClassifyResourceAdvertisement,
@@ -25,11 +27,13 @@ import {
   shouldUseEncodeResourceAdvertisementFlags,
   shouldUsePackResourceAdvertisement,
   shouldUseResourceAdvertisementRoleFlags,
+  shouldUseResourceAdvertisementRoleFlagsPlan,
   shouldUseUnpackResourceAdvertisement,
   stepClassifyResourceAdvertisementWithActions,
   stepDecodeResourceAdvertisementFlagsWithActions,
   stepEncodeResourceAdvertisementFlagsWithActions,
   stepPackResourceAdvertisementWithActions,
+  stepResourceAdvertisementRoleFlagsPlanWithActions,
   stepResourceAdvertisementRoleFlagsWithActions,
   stepUnpackResourceAdvertisementWithActions,
   unpackResourceAdvertisement
@@ -214,6 +218,20 @@ describe("protocol resource advertisement", () => {
         isResponse: false
       })
     ).toEqual({ u: false, p: false });
+
+    const requestPlan = stepResourceAdvertisementRoleFlagsPlanWithActions(
+      initialResourceAdvertisementRoleFlagsPlanState(),
+      {
+        kind: "resource/advertisement-role-flags-plan-gate",
+        requestIdPresent: true,
+        isResponse: false
+      }
+    );
+    expect(shouldUseResourceAdvertisementRoleFlagsPlan(requestPlan.actions)).toBe(true);
+    expect(resourceAdvertisementRoleFlagsPlanFromActions(requestPlan.actions)).toEqual({
+      u: true,
+      p: false
+    });
 
     const request = stepResourceAdvertisementRoleFlagsWithActions(
       initialResourceAdvertisementRoleFlagsState(),

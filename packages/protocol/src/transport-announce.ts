@@ -5,7 +5,11 @@
  * `planAnnounceIngressGates` reads beside the step). Hop-clone / transport
  * announce / path-response field conclusions leave via machine actions
  * (no ad-hoc `planClonePacketWithHops` / `planTransportAnnounceFields` /
- * `planPathResponseAnnounceFields` reads beside the step). Local-announce
+ * `planPathResponseAnnounceFields` reads beside the step). Hop-clone /
+ * transport-announce plans nest via
+ * {@link stepClonePacketWithHopsPlanWithActions} /
+ * {@link stepTransportAnnounceFieldsPlanWithActions} (`use-fields`).
+ * Local-announce
  * ignore / handler dispatch / PATH_RESPONSE receive / aspect-filter match
  * conclusions leave via machine actions (no ad-hoc
  * `shouldIgnoreLocalAnnounce` / `canDispatchAnnounceHandlers` /
@@ -54,9 +58,74 @@ export function planClonePacketWithHops(
 }
 
 /**
+ * Packet hop-clone field plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planClonePacketWithHops`
+ * reads beside the step). Nested under {@link stepClonePacketWithHopsWithActions}.
+ */
+export type ClonePacketWithHopsPlanState = Record<string, never>;
+
+export type ClonePacketWithHopsPlanEvent =
+  | Event
+  | {
+      readonly kind: "transport/clone-packet-with-hops-plan-gate";
+      readonly source: PacketHeaderFields;
+      readonly hops: number;
+    };
+
+export type ClonePacketWithHopsPlanAction = {
+  readonly kind: "use-fields";
+  readonly fields: PacketHeaderFields;
+};
+
+export interface ClonePacketWithHopsPlanStepResult {
+  readonly state: ClonePacketWithHopsPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ClonePacketWithHopsPlanAction[];
+}
+
+export function initialClonePacketWithHopsPlanState(): ClonePacketWithHopsPlanState {
+  return {};
+}
+
+export function stepClonePacketWithHopsPlanWithActions(
+  state: ClonePacketWithHopsPlanState,
+  event: ClonePacketWithHopsPlanEvent
+): ClonePacketWithHopsPlanStepResult {
+  if (event.kind === "transport/clone-packet-with-hops-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-fields",
+          fields: planClonePacketWithHops(event.source, event.hops)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseClonePacketWithHopsPlan(
+  actions: ReadonlyArray<ClonePacketWithHopsPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+/** Extract hop-clone fields from plan actions; null when no `use-fields` action. */
+export function clonePacketWithHopsPlanFieldsFromActions(
+  actions: ReadonlyArray<ClonePacketWithHopsPlanAction>
+): PacketHeaderFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
+}
+
+/**
  * Packet hop-clone field planning is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planClonePacketWithHops`
  * reads beside the step).
+ * Plan nested via {@link stepClonePacketWithHopsPlanWithActions} (`use-fields`).
  */
 export type ClonePacketWithHopsState = Record<string, never>;
 
@@ -88,13 +157,25 @@ export function stepClonePacketWithHopsWithActions(
   event: ClonePacketWithHopsEvent
 ): ClonePacketWithHopsStepResult {
   if (event.kind === "transport/clone-packet-with-hops-gate") {
+    const planActions = stepClonePacketWithHopsPlanWithActions(
+      initialClonePacketWithHopsPlanState(),
+      {
+        kind: "transport/clone-packet-with-hops-plan-gate",
+        source: event.source,
+        hops: event.hops
+      }
+    ).actions;
+    const fields = clonePacketWithHopsPlanFieldsFromActions(planActions);
+    if (fields === null) {
+      return { state, intents: [], actions: [] };
+    }
     return {
       state,
       intents: [],
       actions: [
         {
           kind: "use-fields",
-          fields: planClonePacketWithHops(event.source, event.hops)
+          fields
         }
       ]
     };
@@ -138,9 +219,80 @@ export function planTransportAnnounceFields(input: {
 }
 
 /**
+ * Transport announce field plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planTransportAnnounceFields`
+ * reads beside the step). Nested under
+ * {@link stepTransportAnnounceFieldsWithActions}.
+ */
+export type TransportAnnounceFieldsPlanState = Record<string, never>;
+
+export type TransportAnnounceFieldsPlanEvent =
+  | Event
+  | {
+      readonly kind: "transport/announce-fields-plan-gate";
+      readonly source: TransportAnnounceSource;
+      readonly transportId: Uint8Array;
+      readonly hops: number;
+    };
+
+export type TransportAnnounceFieldsPlanAction = {
+  readonly kind: "use-fields";
+  readonly fields: PacketHeaderFields;
+};
+
+export interface TransportAnnounceFieldsPlanStepResult {
+  readonly state: TransportAnnounceFieldsPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TransportAnnounceFieldsPlanAction[];
+}
+
+export function initialTransportAnnounceFieldsPlanState(): TransportAnnounceFieldsPlanState {
+  return {};
+}
+
+export function stepTransportAnnounceFieldsPlanWithActions(
+  state: TransportAnnounceFieldsPlanState,
+  event: TransportAnnounceFieldsPlanEvent
+): TransportAnnounceFieldsPlanStepResult {
+  if (event.kind === "transport/announce-fields-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-fields",
+          fields: planTransportAnnounceFields({
+            source: event.source,
+            transportId: event.transportId,
+            hops: event.hops
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseTransportAnnounceFieldsPlan(
+  actions: ReadonlyArray<TransportAnnounceFieldsPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+/** Extract transport announce fields from plan actions; null when no `use-fields`. */
+export function transportAnnounceFieldsPlanFromActions(
+  actions: ReadonlyArray<TransportAnnounceFieldsPlanAction>
+): PacketHeaderFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
+}
+
+/**
  * Transport announce field planning is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planTransportAnnounceFields`
  * reads beside the step).
+ * Plan nested via {@link stepTransportAnnounceFieldsPlanWithActions} (`use-fields`).
  */
 export type TransportAnnounceFieldsState = Record<string, never>;
 
@@ -173,17 +325,26 @@ export function stepTransportAnnounceFieldsWithActions(
   event: TransportAnnounceFieldsEvent
 ): TransportAnnounceFieldsStepResult {
   if (event.kind === "transport/announce-fields-gate") {
+    const planActions = stepTransportAnnounceFieldsPlanWithActions(
+      initialTransportAnnounceFieldsPlanState(),
+      {
+        kind: "transport/announce-fields-plan-gate",
+        source: event.source,
+        transportId: event.transportId,
+        hops: event.hops
+      }
+    ).actions;
+    const fields = transportAnnounceFieldsPlanFromActions(planActions);
+    if (fields === null) {
+      return { state, intents: [], actions: [] };
+    }
     return {
       state,
       intents: [],
       actions: [
         {
           kind: "use-fields",
-          fields: planTransportAnnounceFields({
-            source: event.source,
-            transportId: event.transportId,
-            hops: event.hops
-          })
+          fields
         }
       ]
     };

@@ -7,6 +7,7 @@
  * `planResourceAdvertisementRoleFlags` / `encodeResourceAdvertisementFlags` /
  * `decodeResourceAdvertisementFlags` / `isResourceAdvertisementRequest` /
  * `isResourceAdvertisementResponse` reads beside the step).
+ * Role-flag plan nested via {@link stepResourceAdvertisementRoleFlagsPlanWithActions}.
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import {
@@ -334,9 +335,76 @@ export function planResourceAdvertisementRoleFlags(input: {
 }
 
 /**
+ * Resource advertisement role-flag plan leaf is event-driven; no durable
+ * session fields. Conclusions leave via machine actions (no ad-hoc
+ * `planResourceAdvertisementRoleFlags` reads beside the step). Nested under
+ * {@link stepResourceAdvertisementRoleFlagsWithActions}.
+ */
+export type ResourceAdvertisementRoleFlagsPlanState = Record<string, never>;
+
+export type ResourceAdvertisementRoleFlagsPlanEvent =
+  | Event
+  | {
+      readonly kind: "resource/advertisement-role-flags-plan-gate";
+      readonly requestIdPresent: boolean;
+      readonly isResponse: boolean;
+    };
+
+export type ResourceAdvertisementRoleFlagsPlanAction = {
+  readonly kind: "use-flags";
+  readonly u: boolean;
+  readonly p: boolean;
+};
+
+export interface ResourceAdvertisementRoleFlagsPlanStepResult {
+  readonly state: ResourceAdvertisementRoleFlagsPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceAdvertisementRoleFlagsPlanAction[];
+}
+
+export function initialResourceAdvertisementRoleFlagsPlanState(): ResourceAdvertisementRoleFlagsPlanState {
+  return {};
+}
+
+export function stepResourceAdvertisementRoleFlagsPlanWithActions(
+  state: ResourceAdvertisementRoleFlagsPlanState,
+  event: ResourceAdvertisementRoleFlagsPlanEvent
+): ResourceAdvertisementRoleFlagsPlanStepResult {
+  if (event.kind === "resource/advertisement-role-flags-plan-gate") {
+    const flags = planResourceAdvertisementRoleFlags({
+      requestIdPresent: event.requestIdPresent,
+      isResponse: event.isResponse
+    });
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: "use-flags", u: flags.u, p: flags.p }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseResourceAdvertisementRoleFlagsPlan(
+  actions: ReadonlyArray<ResourceAdvertisementRoleFlagsPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-flags");
+}
+
+/** Extract role flags from plan actions; null when no `use-flags` action. */
+export function resourceAdvertisementRoleFlagsPlanFromActions(
+  actions: ReadonlyArray<ResourceAdvertisementRoleFlagsPlanAction>
+): { readonly u: boolean; readonly p: boolean } | null {
+  const action = actions.find((entry) => entry.kind === "use-flags");
+  return action?.kind === "use-flags" ? { u: action.u, p: action.p } : null;
+}
+
+/**
  * Resource advertisement role-flag selection is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc
  * `planResourceAdvertisementRoleFlags` reads beside the step).
+ * Plan nested via {@link stepResourceAdvertisementRoleFlagsPlanWithActions}
+ * (`use-flags`).
  */
 export type ResourceAdvertisementRoleFlagsState = Record<string, never>;
 
@@ -369,10 +437,18 @@ export function stepResourceAdvertisementRoleFlagsWithActions(
   event: ResourceAdvertisementRoleFlagsEvent
 ): ResourceAdvertisementRoleFlagsStepResult {
   if (event.kind === "resource/advertisement-role-flags-gate") {
-    const flags = planResourceAdvertisementRoleFlags({
-      requestIdPresent: event.requestIdPresent,
-      isResponse: event.isResponse
-    });
+    const planActions = stepResourceAdvertisementRoleFlagsPlanWithActions(
+      initialResourceAdvertisementRoleFlagsPlanState(),
+      {
+        kind: "resource/advertisement-role-flags-plan-gate",
+        requestIdPresent: event.requestIdPresent,
+        isResponse: event.isResponse
+      }
+    ).actions;
+    const flags = resourceAdvertisementRoleFlagsPlanFromActions(planActions);
+    if (flags === null) {
+      return { state, intents: [], actions: [] };
+    }
     return {
       state,
       intents: [],

@@ -180,7 +180,9 @@
 > link-teardown-reason / channel-packet-timeout / destination-request-allow /
 > link-app-request-dispatch / interface-reconnect /
 > channel-tx-receipt-timeout-refresh / destination-identity-hash /
-> link-initiator-mtu / link-request-responder-mtu plans** (via
+> link-initiator-mtu / link-request-responder-mtu /
+> resource-advertisement-role-flags / resource-hashmap-slot-writes /
+> clone-packet-with-hops / transport-announce-fields plans** (via
 > **`stepChannelTxEnvelopeOpPlanWithActions`**: miss|process — nested under
 > channel-tx-envelope-op; **`stepDestinationProofPlanWithActions`**: prove|skip —
 > nested under destination-proof; **`stepPacketFilterPlanWithActions`**:
@@ -198,7 +200,13 @@
 > missing|use-object|reject-length|use-bytes — nested under
 > destination-identity-hash; **`stepLinkInitiatorMtuPlanWithActions`** /
 > **`stepLinkRequestResponderMtuPlanWithActions`**: use-mtu — nested under
-> link-initiator-mtu / link-request-responder-mtu),
+> link-initiator-mtu / link-request-responder-mtu;
+> **`stepResourceAdvertisementRoleFlagsPlanWithActions`**: use-flags — nested
+> under resource-advertisement-role-flags;
+> **`stepResourceHashmapSlotWritesPlanWithActions`**: write — nested under
+> resource-hashmap-slot-writes; **`stepClonePacketWithHopsPlanWithActions`** /
+> **`stepTransportAnnounceFieldsPlanWithActions`**: use-fields — nested under
+> clone-packet-with-hops / transport-announce-fields),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -627,7 +635,9 @@
 > **`stepReadResourceRequestHashWithActions`**: append|collide / use-raw /
 > present|absent / use-raw; slot-write plan / apply via
 > **`stepResourceHashmapSlotWritesWithActions`** /
-> **`stepApplyResourceHashmapSlotWritesWithActions`**: write / use-fields),
+> **`stepApplyResourceHashmapSlotWritesWithActions`**: write / use-fields;
+> slot-write plan nested via **`stepResourceHashmapSlotWritesPlanWithActions`**:
+> write),
 > and **part-request / receive-part / request-fulfill / HMU-accept**
 > (via **`stepResourcePartRequestWithActions`** /
 > **`stepResourceReceivePartWithActions`** /
@@ -646,7 +656,10 @@
 > `Resource` adapt them. **Transport hop-clone /
 > announce / path-response field planning** (via **`stepClonePacketWithHopsWithActions`** /
 > **`stepTransportAnnounceFieldsWithActions`** /
-> **`stepPathResponseAnnounceFieldsWithActions`**: use-fields) lives in protocol;
+> **`stepPathResponseAnnounceFieldsWithActions`**: use-fields; hop-clone /
+> transport-announce plans nested via
+> **`stepClonePacketWithHopsPlanWithActions`** /
+> **`stepTransportAnnounceFieldsPlanWithActions`**: use-fields) lives in protocol;
 > leaf transport adapts it. **Path-request payload framing**
 > (build/parse/tag key via **`stepBuildPathRequestDataWithActions`** /
 > **`stepParsePathRequestDataWithActions`** /
@@ -1267,8 +1280,20 @@
 > **`stepLinkInitiatorMtuPlanWithActions`**: use-mtu) /
 > **`planLinkRequestResponderMtu`** (via
 > **`stepLinkRequestResponderMtuWithActions`**: use-mtu; plan nested via
-> **`stepLinkRequestResponderMtuPlanWithActions`**: use-mtu) live in protocol;
-> `Link.request` adapts them. Destination type/direction code predicates
+> **`stepLinkRequestResponderMtuPlanWithActions`**: use-mtu) /
+> **`planResourceAdvertisementRoleFlags`** (via
+> **`stepResourceAdvertisementRoleFlagsWithActions`**: use-flags; plan nested via
+> **`stepResourceAdvertisementRoleFlagsPlanWithActions`**: use-flags) /
+> **`planResourceHashmapSlotWrites`** (via
+> **`stepResourceHashmapSlotWritesWithActions`**: write; plan nested via
+> **`stepResourceHashmapSlotWritesPlanWithActions`**: write) /
+> **`planClonePacketWithHops`** (via **`stepClonePacketWithHopsWithActions`**:
+> use-fields; plan nested via **`stepClonePacketWithHopsPlanWithActions`**:
+> use-fields) /
+> **`planTransportAnnounceFields`** (via
+> **`stepTransportAnnounceFieldsWithActions`**: use-fields; plan nested via
+> **`stepTransportAnnounceFieldsPlanWithActions`**: use-fields) live in protocol;
+> `Link.request`, `Resource`, and leaf transport adapt them. Destination type/direction code predicates
 > (`isDestinationTypeCode` / `isDestinationDirectionCode`) are exported for adapters.
 > **`planPacketFromFields`** (via **`stepPacketFromFieldsWithActions`**: ok /
 > bad-header-type / bad-context-flag / bad-transport-type / bad-destination-type /
@@ -1563,7 +1588,9 @@
 > **`shouldInvokePacketReceiptTimeoutCallback`**, and
 > **`shouldInvokeLinkRequestReceiptAction`** live in protocol; Link, Resource, Channel,
 > transport path-request, PacketReceipt, and LinkRequestReceipt adapt them.
-> **`planResourceAdvertisementRoleFlags`**, **`isValidTokenIvLength`** (via
+> **`planResourceAdvertisementRoleFlags`** (via
+> **`stepResourceAdvertisementRoleFlagsWithActions`**: use-flags; plan nested via
+> **`stepResourceAdvertisementRoleFlagsPlanWithActions`**: use-flags), **`isValidTokenIvLength`** (via
 > **`stepTokenIvLengthValidWithActions`**: valid|invalid) /
 > **`shouldAcceptTokenFrame`** (via **`stepAcceptTokenFrameWithActions`**:
 > accept|skip), **`isLinkKeepaliveContext`** (via
@@ -2597,13 +2624,15 @@
 > resource-random-hash-length-valid / handle-propagation-peer-error /
 > accept-propagation-delivered-message / treat-propagation-list-as-empty /
 > request-propagation-haves-ack /
-> resource-advertisement-role-flags / encode-resource-advertisement-flags /
+> resource-advertisement-role-flags / resource-advertisement-role-flags-plan /
+> encode-resource-advertisement-flags /
 > decode-resource-advertisement-flags / classify-resource-advertisement /
 > resource-encrypt-material / resource-hash-material /
 > resource-expected-proof-material / resource-part-map-hash-material /
 > compute-resource-total-parts / resource-hashmap-slot-writes /
-> apply-resource-hashmap-slot-writes /
-> clone-packet-with-hops / transport-announce-fields /
+> resource-hashmap-slot-writes-plan / apply-resource-hashmap-slot-writes /
+> clone-packet-with-hops / clone-packet-with-hops-plan /
+> transport-announce-fields / transport-announce-fields-plan /
 > path-response-announce-fields / wrap-transport-packet /
 > strip-transport-headers / relay-transport-packet-bytes /
 > rewrite-packet-hops / build-path-request-data /
@@ -3092,11 +3121,16 @@
 > beside the step).
 > **`stepPacketHashDeferWithActions`** emits `defer` / `remember-now`;
 > transport ingress hash deferral applies only from those actions.
-> **`stepResourceAdvertisementRoleFlagsWithActions`** emits `use-flags`;
-> **`stepResourceHashmapSlotWritesWithActions`** emits `write` (per slot);
+> **`stepResourceAdvertisementRoleFlagsWithActions`** emits `use-flags`
+> (plan nested via **`stepResourceAdvertisementRoleFlagsPlanWithActions`**:
+> use-flags);
+> **`stepResourceHashmapSlotWritesWithActions`** emits `write` (per slot;
+> plan nested via **`stepResourceHashmapSlotWritesPlanWithActions`**: write);
 > **`stepApplyResourceHashmapSlotWritesWithActions`** emits `use-fields`;
 > Resource advertisement + hashmap-update apply only from those actions
-> (no ad-hoc `planLinkInitiatorMtu` / `planLinkRequestResponderMtu` /
+> (no ad-hoc `planResourceAdvertisementRoleFlags` /
+> `planResourceHashmapSlotWrites` / `applyResourceHashmapSlotWrites` /
+> `planLinkInitiatorMtu` / `planLinkRequestResponderMtu` /
 > `linkHopsMatch` / `computeLinkMdu` / `computeLinkEstablishmentTimeout` /
 > `computeLinkRequestTimeout` / `computeResourceTimeout` / `computeKeepalive` /
 > `channelPacketTimeoutSeconds` / `countChannelTxOutstanding` /
@@ -3131,7 +3165,10 @@
 > `planResourceAdvertisementRoleFlags` /
 > `planResourceHashmapSlotWrites` / `applyResourceHashmapSlotWrites` reads beside the step).
 > **`stepClonePacketWithHopsWithActions`** / **`stepTransportAnnounceFieldsWithActions`** /
-> **`stepPathResponseAnnounceFieldsWithActions`** emit `use-fields`; hop-clone,
+> **`stepPathResponseAnnounceFieldsWithActions`** emit `use-fields` (hop-clone /
+> transport-announce plans nested via
+> **`stepClonePacketWithHopsPlanWithActions`** /
+> **`stepTransportAnnounceFieldsPlanWithActions`**: use-fields); hop-clone,
 > transport announce rebroadcast, and path-response announce field planning apply
 > only from those actions (no ad-hoc `planClonePacketWithHops` /
 > `planTransportAnnounceFields` / `planPathResponseAnnounceFields` reads beside

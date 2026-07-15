@@ -8,7 +8,8 @@
  * `parseResourcePartRequest` / `appendResourceMapHashCollisionGuard` /
  * `containsResourceHash` / `indexOfResourceHash` /
  * `assembleResourceHashmapBytes` / `readResourceRequestHash` reads beside
- * the step).
+ * the step). Slot-write plan nested via
+ * {@link stepResourceHashmapSlotWritesPlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { assembleByteArrays, concatByteArrays } from "./bytes.js";
@@ -211,9 +212,81 @@ export function planResourceHashmapSlotWrites(input: {
 }
 
 /**
+ * Resource hashmap slot-write plan leaf is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `planResourceHashmapSlotWrites` reads beside the step). Nested under
+ * {@link stepResourceHashmapSlotWritesWithActions}.
+ */
+export type ResourceHashmapSlotWritesPlanState = Record<string, never>;
+
+export type ResourceHashmapSlotWritesPlanEvent =
+  | Event
+  | {
+      readonly kind: "resource/hashmap-slot-writes-plan-gate";
+      readonly segment: number;
+      readonly hashmap: Uint8Array;
+      readonly hashmapMaxLen: number;
+    };
+
+export type ResourceHashmapSlotWritesPlanAction = {
+  readonly kind: "write";
+  readonly slot: number;
+  readonly mapHash: Uint8Array;
+};
+
+export interface ResourceHashmapSlotWritesPlanStepResult {
+  readonly state: ResourceHashmapSlotWritesPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceHashmapSlotWritesPlanAction[];
+}
+
+export function initialResourceHashmapSlotWritesPlanState(): ResourceHashmapSlotWritesPlanState {
+  return {};
+}
+
+export function stepResourceHashmapSlotWritesPlanWithActions(
+  state: ResourceHashmapSlotWritesPlanState,
+  event: ResourceHashmapSlotWritesPlanEvent
+): ResourceHashmapSlotWritesPlanStepResult {
+  if (event.kind === "resource/hashmap-slot-writes-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: planResourceHashmapSlotWrites({
+        segment: event.segment,
+        hashmap: event.hashmap,
+        hashmapMaxLen: event.hashmapMaxLen
+      }).map((write) => ({
+        kind: "write" as const,
+        slot: write.slot,
+        mapHash: write.mapHash
+      }))
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldWriteResourceHashmapSlotsPlan(
+  actions: ReadonlyArray<ResourceHashmapSlotWritesPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "write");
+}
+
+/** Extract slot writes from plan actions for {@link applyResourceHashmapSlotWrites}. */
+export function resourceHashmapSlotWritesPlanFromActions(
+  actions: ReadonlyArray<ResourceHashmapSlotWritesPlanAction>
+): readonly ResourceHashmapSlotWrite[] {
+  return actions
+    .filter((action): action is ResourceHashmapSlotWritesPlanAction => action.kind === "write")
+    .map((action) => ({ slot: action.slot, mapHash: action.mapHash }));
+}
+
+/**
  * Resource hashmap slot-write planning is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planResourceHashmapSlotWrites`
  * reads beside the step).
+ * Plan nested via {@link stepResourceHashmapSlotWritesPlanWithActions} (`write`).
  */
 export type ResourceHashmapSlotWritesState = Record<string, never>;
 
@@ -247,14 +320,19 @@ export function stepResourceHashmapSlotWritesWithActions(
   event: ResourceHashmapSlotWritesEvent
 ): ResourceHashmapSlotWritesStepResult {
   if (event.kind === "resource/hashmap-slot-writes-gate") {
-    return {
-      state,
-      intents: [],
-      actions: planResourceHashmapSlotWrites({
+    const planActions = stepResourceHashmapSlotWritesPlanWithActions(
+      initialResourceHashmapSlotWritesPlanState(),
+      {
+        kind: "resource/hashmap-slot-writes-plan-gate",
         segment: event.segment,
         hashmap: event.hashmap,
         hashmapMaxLen: event.hashmapMaxLen
-      }).map((write) => ({
+      }
+    ).actions;
+    return {
+      state,
+      intents: [],
+      actions: resourceHashmapSlotWritesPlanFromActions(planActions).map((write) => ({
         kind: "write" as const,
         slot: write.slot,
         mapHash: write.mapHash

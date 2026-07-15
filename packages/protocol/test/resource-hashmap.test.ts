@@ -21,6 +21,7 @@ import {
   initialPackResourceHashmapUpdateState,
   initialParseResourcePartRequestState,
   initialReadResourceRequestHashState,
+  initialResourceHashmapSlotWritesPlanState,
   initialResourceHashmapSlotWritesState,
   initialResourceHashmapUpdateAcceptState,
   initialResourcePartRequestState,
@@ -41,6 +42,7 @@ import {
   resourceHashIndexFromActions,
   resourceHashmapMaxLen,
   resourceHashmapSlotWritesFromActions,
+  resourceHashmapSlotWritesPlanFromActions,
   resourceHashmapUpdateFieldsFromActions,
   resourceHashmapUpdatePacketFieldsFromActions,
   resourceMapHashCollisionGuardFromActions,
@@ -54,6 +56,7 @@ import {
   shouldUseAssembleResourceHashmapBytes,
   shouldUseReadResourceRequestHash,
   shouldWriteResourceHashmapSlots,
+  shouldWriteResourceHashmapSlotsPlan,
   stepAppendResourceMapHashCollisionGuardWithActions,
   stepApplyResourceHashmapSlotWritesWithActions,
   stepAssembleResourceHashmapBytesWithActions,
@@ -62,6 +65,7 @@ import {
   stepPackResourceHashmapUpdateWithActions,
   stepParseResourcePartRequestWithActions,
   stepReadResourceRequestHashWithActions,
+  stepResourceHashmapSlotWritesPlanWithActions,
   stepResourceHashmapSlotWritesWithActions,
   stepSplitResourceHashmapUpdatePacketWithActions,
   stepUnpackResourceHashmapUpdateWithActions,
@@ -271,6 +275,20 @@ describe("protocol resource hashmap", () => {
     expect(writes).toHaveLength(2);
     expect(writes[0]!.slot).toBe(10);
     expect([...writes[1]!.mapHash]).toEqual([5, 6, 7, 8]);
+
+    const planStepped = stepResourceHashmapSlotWritesPlanWithActions(
+      initialResourceHashmapSlotWritesPlanState(),
+      {
+        kind: "resource/hashmap-slot-writes-plan-gate",
+        segment: 1,
+        hashmap: hashmap!,
+        hashmapMaxLen: 10
+      }
+    );
+    expect(shouldWriteResourceHashmapSlotsPlan(planStepped.actions)).toBe(true);
+    const fromPlan = resourceHashmapSlotWritesPlanFromActions(planStepped.actions);
+    expect(fromPlan).toHaveLength(2);
+    expect(fromPlan[0]!.slot).toBe(10);
 
     const stepped = stepResourceHashmapSlotWritesWithActions(initialResourceHashmapSlotWritesState(), {
       kind: "resource/hashmap-slot-writes-gate",

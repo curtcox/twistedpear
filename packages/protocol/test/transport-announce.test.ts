@@ -3,13 +3,16 @@ import {
   PACKET_CONTEXT_NONE,
   PACKET_CONTEXT_PATH_RESPONSE,
   clonePacketWithHopsFieldsFromActions,
+  clonePacketWithHopsPlanFieldsFromActions,
   initialAnnounceIngressGatesState,
+  initialClonePacketWithHopsPlanState,
   initialClonePacketWithHopsState,
   initialDispatchAnnounceHandlersState,
   initialIgnoreLocalAnnounceState,
   initialMatchAnnounceAspectState,
   initialPathResponseAnnounceFieldsState,
   initialReceiveAnnouncePathResponseState,
+  initialTransportAnnounceFieldsPlanState,
   initialTransportAnnounceFieldsState,
   pathResponseAnnounceFieldsFromActions,
   planAnnounceIngressGates,
@@ -35,18 +38,23 @@ import {
   shouldSkipAnnouncePathResponse,
   shouldSkipDispatchAnnounceHandlers,
   shouldUseClonePacketWithHops,
+  shouldUseClonePacketWithHopsPlan,
   shouldUsePathResponseAnnounceFields,
   shouldUseTransportAnnounceFields,
+  shouldUseTransportAnnounceFieldsPlan,
   stepAcceptCachedPathResponsePacketWithActions,
   stepAnnounceIngressGatesWithActions,
+  stepClonePacketWithHopsPlanWithActions,
   stepClonePacketWithHopsWithActions,
   stepDispatchAnnounceHandlersWithActions,
   stepIgnoreLocalAnnounceWithActions,
   stepMatchAnnounceAspectWithActions,
   stepPathResponseAnnounceFieldsWithActions,
   stepReceiveAnnouncePathResponseWithActions,
+  stepTransportAnnounceFieldsPlanWithActions,
   stepTransportAnnounceFieldsWithActions,
   transportAnnounceFieldsFromActions,
+  transportAnnounceFieldsPlanFromActions,
   initialAcceptCachedPathResponsePacketState
 } from "../src/transport-announce.js";
 import {
@@ -95,6 +103,17 @@ describe("protocol transport announce planning", () => {
       context: 0,
       data
     };
+    const planStepped = stepClonePacketWithHopsPlanWithActions(
+      initialClonePacketWithHopsPlanState(),
+      {
+        kind: "transport/clone-packet-with-hops-plan-gate",
+        source,
+        hops: 7
+      }
+    );
+    expect(shouldUseClonePacketWithHopsPlan(planStepped.actions)).toBe(true);
+    expect(clonePacketWithHopsPlanFieldsFromActions(planStepped.actions)?.hops).toBe(7);
+
     const stepped = stepClonePacketWithHopsWithActions(initialClonePacketWithHopsState(), {
       kind: "transport/clone-packet-with-hops-gate",
       source,
@@ -136,6 +155,18 @@ describe("protocol transport announce planning", () => {
       context: 0,
       data
     };
+    const transportPlan = stepTransportAnnounceFieldsPlanWithActions(
+      initialTransportAnnounceFieldsPlanState(),
+      {
+        kind: "transport/announce-fields-plan-gate",
+        source,
+        transportId,
+        hops: 5
+      }
+    );
+    expect(shouldUseTransportAnnounceFieldsPlan(transportPlan.actions)).toBe(true);
+    expect(transportAnnounceFieldsPlanFromActions(transportPlan.actions)?.hops).toBe(5);
+
     const transportStepped = stepTransportAnnounceFieldsWithActions(
       initialTransportAnnounceFieldsState(),
       {
