@@ -1,26 +1,34 @@
 import {
   LOCAL_REBROADCASTS_MAX as PROTOCOL_LOCAL_REBROADCASTS_MAX,
   REVERSE_TIMEOUT_SECONDS as PROTOCOL_REVERSE_TIMEOUT_SECONDS,
-  canLookupLinkRelayEntry,
-  canRelayLinkPacket,
   canRelayReversePacket,
-  canRelayTransportPacket,
   isDiscoveryPathRequestExpired,
   isReverseEntryExpired,
   initialAnnounceIngressGatesState,
   initialDiscoveryPathRequestFulfillState,
   initialLinkRelayTargetState,
+  initialLookupLinkRelayEntryState,
   initialPacketHashRememberState,
   initialPathRequestIngressState,
+  initialRecordLinkRelayTableEntryState,
+  initialRecordReverseTableEntryState,
+  initialRelayLinkPacketAllowState,
+  initialRelayTransportPacketAllowState,
   initialReverseRelayOutcomeState,
+  initialTransmitLinkRelayState,
   initialTransportIngressDispatchState,
+  shouldAllowRelayLinkPacket,
+  shouldAllowRelayTransportPacket,
   shouldApplyAnnounceRateLimit,
+  shouldHitLookupLinkRelayEntry,
   shouldIgnoreLinkRelayTarget,
   shouldRebroadcastAnnounce,
   shouldRecordAnnounceRate,
+  shouldRecordLinkRelayTableEntryNow,
+  shouldRecordReverseTableEntryNow,
   shouldRelayLinkOutbound,
   shouldRelayLinkReceived,
-  shouldTransmitLinkRelay,
+  shouldTransmitLinkRelayNow,
   canAnswerLocalPathRequest,
   shouldAcceptTransportPacket,
   shouldAnswerPathRequestLocal,
@@ -45,8 +53,6 @@ import {
   shouldIgnorePathRequestUnparsed,
   shouldIgnoreTransportIngressDispatch,
   shouldMatchLocalInboundDestination,
-  shouldRecordLinkRelayTableEntry,
-  shouldRecordReverseTableEntry,
   initialPacketHashDeferState,
   stepPacketHashDeferWithActions,
   shouldRelayReversePacketActions,
@@ -59,8 +65,14 @@ import {
   shouldTransmitReverseRelay,
   stepAnnounceIngressGatesWithActions,
   stepLinkRelayTargetWithActions,
+  stepLookupLinkRelayEntryWithActions,
   stepPacketHashRememberWithActions,
+  stepRecordLinkRelayTableEntryWithActions,
+  stepRecordReverseTableEntryWithActions,
+  stepRelayLinkPacketAllowWithActions,
+  stepRelayTransportPacketAllowWithActions,
   stepReverseRelayOutcomeWithActions,
+  stepTransmitLinkRelayWithActions,
   stepTransportIngressDispatchWithActions,
   shouldTransmitOnInterface,
   stepDiscoveryPathRequestFulfillWithActions,
@@ -372,14 +384,17 @@ export class TransportNode extends LeafTransport {
     const path = this.getPathEntry(packet.destinationHash);
     if (
       path === undefined ||
-      !canRelayTransportPacket({
-        transportIdPresent: packet.transportId !== null,
-        isAnnounce: packet.packetType === PacketType.ANNOUNCE,
-        transportIdMatchesLocal:
-          packet.transportId !== null &&
-          equalBytes(packet.transportId, this.transportIdentity.hash),
-        hasPath: true
-      })
+      !shouldAllowRelayTransportPacket(
+        stepRelayTransportPacketAllowWithActions(initialRelayTransportPacketAllowState(), {
+          kind: "transport/relay-transport-packet-allow-gate",
+          transportIdPresent: packet.transportId !== null,
+          isAnnounce: packet.packetType === PacketType.ANNOUNCE,
+          transportIdMatchesLocal:
+            packet.transportId !== null &&
+            equalBytes(packet.transportId, this.transportIdentity.hash),
+          hasPath: true
+        }).actions
+      )
     ) {
       return false;
     }
@@ -387,7 +402,14 @@ export class TransportNode extends LeafTransport {
     const relayed = relayTransportPacket(packet, path.hops, path.nextHop);
     const outboundInterface = path.receivedInterface;
 
-    if (shouldRecordLinkRelayTableEntry(packet.packetType)) {
+    if (
+      shouldRecordLinkRelayTableEntryNow(
+        stepRecordLinkRelayTableEntryWithActions(initialRecordLinkRelayTableEntryState(), {
+          kind: "transport/record-link-relay-table-entry-gate",
+          packetType: packet.packetType
+        }).actions
+      )
+    ) {
       const linkId = Link.linkIdFromLrPacket(this.provider, packet);
       this.linkTable.set(hashKey(linkId), {
         timestamp: this.clock.now() / 1000,
@@ -399,10 +421,13 @@ export class TransportNode extends LeafTransport {
         destinationHash: packet.destinationHash
       });
     } else if (
-      shouldRecordReverseTableEntry({
-        packetType: packet.packetType,
-        context: packet.context
-      })
+      shouldRecordReverseTableEntryNow(
+        stepRecordReverseTableEntryWithActions(initialRecordReverseTableEntryState(), {
+          kind: "transport/record-reverse-table-entry-gate",
+          packetType: packet.packetType,
+          context: packet.context
+        }).actions
+      )
     ) {
       this.reverseTable.set(hashKey(packet.truncatedHash()), {
         receivedInterface: iface,
@@ -417,12 +442,26 @@ export class TransportNode extends LeafTransport {
   }
 
   private async relayLinkPacket(packet: Packet, iface: PacketInterface): Promise<boolean> {
-    if (!canRelayLinkPacket(packet.packetType)) {
+    if (
+      !shouldAllowRelayLinkPacket(
+        stepRelayLinkPacketAllowWithActions(initialRelayLinkPacketAllowState(), {
+          kind: "transport/relay-link-packet-allow-gate",
+          packetType: packet.packetType
+        }).actions
+      )
+    ) {
       return false;
     }
 
     const entry = this.linkTable.get(hashKey(packet.destinationHash));
-    if (!canLookupLinkRelayEntry(entry !== undefined)) {
+    if (
+      !shouldHitLookupLinkRelayEntry(
+        stepLookupLinkRelayEntryWithActions(initialLookupLinkRelayEntryState(), {
+          kind: "transport/lookup-link-relay-entry-gate",
+          entryPresent: entry !== undefined
+        }).actions
+      )
+    ) {
       return false;
     }
 
@@ -444,7 +483,14 @@ export class TransportNode extends LeafTransport {
         ? entry!.receivedInterface
         : null;
 
-    if (!shouldTransmitLinkRelay(outboundInterface !== null)) {
+    if (
+      !shouldTransmitLinkRelayNow(
+        stepTransmitLinkRelayWithActions(initialTransmitLinkRelayState(), {
+          kind: "transport/transmit-link-relay-gate",
+          outboundPresent: outboundInterface !== null
+        }).actions
+      )
+    ) {
       return false;
     }
 

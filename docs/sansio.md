@@ -389,7 +389,7 @@
 > TransportNode, and Link adapt them. **`planResourceRequestFulfill`** (sender RESOURCE_REQ
 > fulfill via **`stepResourceRequestFulfillWithActions`**: part send/resend + optional HMU +
 > awaiting-proof) lives in protocol; `Resource`
-> adapts it. **`planLinkRelayTarget`** and **`isReverseEntryExpired`** live in protocol;
+> adapts it. **`planLinkRelayTarget`**, transport-wrap / link-relay allow + table-record gates (via **`stepRelayTransportPacketAllowWithActions`** / **`stepRecordLinkRelayTableEntryWithActions`** / **`stepRecordReverseTableEntryWithActions`** / **`stepRelayLinkPacketAllowWithActions`** / **`stepLookupLinkRelayEntryWithActions`** / **`stepTransmitLinkRelayWithActions`**), and **`isReverseEntryExpired`** live in protocol;
 > `TransportNode` adapts them (reverse-table timeout now applied). **`planPathOutbound`**
 > (wrap / direct / flood via **`stepPathOutboundWithActions`**) lives in protocol;
 > `LeafTransport` adapts it. **`stepResourceStatus`**
@@ -519,12 +519,20 @@
 > **`planChannelMessageTypeRegistration`** (via
 > **`stepChannelMessageTypeRegistrationWithActions`**: ok / missing-msgtype /
 > system-reserved) lives in protocol; `Channel.registerMessageType` adapts it.
-> **`canRelayTransportPacket`**, **`shouldRecordLinkRelayTableEntry`**,
-> **`shouldRecordReverseTableEntry`**, and **`isLocalPathRequestPacket`** live in protocol;
-> transport relay / `LeafTransport.handleData` adapt them. **`isPacketTypeProof`** lives in
+> **`canRelayTransportPacket`** (via **`stepRelayTransportPacketAllowWithActions`**:
+> allow|deny), **`shouldRecordLinkRelayTableEntry`** (via
+> **`stepRecordLinkRelayTableEntryWithActions`**: record|skip),
+> **`shouldRecordReverseTableEntry`** (via
+> **`stepRecordReverseTableEntryWithActions`**: record|skip), and
+> **`isLocalPathRequestPacket`** live in protocol; transport relay /
+> `LeafTransport.handleData` adapt them. **`isPacketTypeProof`** lives in
 > protocol; `PacketReceipt.validateProofPacket` adapts it. **`planLxmfDeliverableAccept`**
 > (via **`stepLxmfDeliverableAcceptWithActions`**) lives in protocol; `LXMFRouter` unpack
-> adapts it. **`canRelayLinkPacket`**,
+> adapts it. **`canRelayLinkPacket`** (via **`stepRelayLinkPacketAllowWithActions`**:
+> allow|deny), **`canLookupLinkRelayEntry`** (via
+> **`stepLookupLinkRelayEntryWithActions`**: hit|miss),
+> **`shouldTransmitLinkRelay`** (via **`stepTransmitLinkRelayWithActions`**:
+> transmit|skip),
 > **`canRelayReversePacket`**, **`shouldRelayReverseOnInterface`**,
 > **`planTransportIngressDispatch`** (via
 > **`stepTransportIngressDispatchWithActions`**: announce / link-request /
@@ -977,12 +985,21 @@
 > `planLinkAppRequestTransmitOutcome` reads beside the step).
 > **`stepAnnounceIngressGatesWithActions`** emits `apply-rate-limit` /
 > `record-rate` / `rebroadcast`; **`stepLinkRelayTargetWithActions`** emits
-> `outbound` / `received` / `ignore`; **`stepLinkResourceConcludeWithActions`**
+> `outbound` / `received` / `ignore`; **`stepRelayTransportPacketAllowWithActions`**
+> emits `allow`|`deny`; **`stepRecordLinkRelayTableEntryWithActions`** /
+> **`stepRecordReverseTableEntryWithActions`** emit `record`|`skip`;
+> **`stepRelayLinkPacketAllowWithActions`** emits `allow`|`deny`;
+> **`stepLookupLinkRelayEntryWithActions`** emits `hit`|`miss`;
+> **`stepTransmitLinkRelayWithActions`** emits `transmit`|`skip`;
+> **`stepLinkResourceConcludeWithActions`**
 > emits `remove-outgoing` / `remove-incoming`;
 > **`stepPacketReceiptProofAcceptWithActions`** emits `accept` / `reject`;
-> `TransportNode` announce ingress/rebroadcast, link-packet relay,
+> `TransportNode` announce ingress/rebroadcast, transport/link-packet relay,
 > `Link.resourceConcluded`, and `PacketReceipt.validateProof` apply only from
 > those actions (no ad-hoc `planAnnounceIngressGates` / `planLinkRelayTarget` /
+> `canRelayTransportPacket` / `shouldRecordLinkRelayTableEntry` /
+> `shouldRecordReverseTableEntry` / `canRelayLinkPacket` /
+> `canLookupLinkRelayEntry` / `shouldTransmitLinkRelay` /
 > `planLinkResourceConclude` / `planPacketReceiptProofAccept` reads beside the
 > step).
 > **`stepDeliverPendingLinkAppResponseWithActions`** emits `deliver`|`skip`;
@@ -1137,7 +1154,10 @@
 > link-register-list / link-activate-membership /
 > link-unregister-membership / link-app-request /
 > link-app-request-transmit / announce-ingress-gates /
-> link-relay-target / link-resource-conclude /
+> link-relay-target / relay-transport-packet-allow /
+> record-link-relay-table-entry / record-reverse-table-entry /
+> relay-link-packet-allow / lookup-link-relay-entry / transmit-link-relay /
+> link-resource-conclude /
 > packet-receipt-proof-accept / propagation-restore /
 > deliver-pending-link-app-response / accept-announce-payload /
 > accept-parsed-announce / accept-identity-ciphertext-frame /

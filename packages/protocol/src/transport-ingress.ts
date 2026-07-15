@@ -5,6 +5,11 @@
  * hash-remember / packet-hash defer / local plain-data / link-relay conclusions
  * leave via machine actions (no ad-hoc plan / `indexOfMatchingLinkId` reads
  * beside the step).
+ * Transport-wrap relay allow, link/reverse table-record, link-packet relay allow,
+ * link-table lookup, and link-relay transmit conclude via machine actions (no
+ * ad-hoc `canRelayTransportPacket` / `shouldRecordLinkRelayTableEntry` /
+ * `shouldRecordReverseTableEntry` / `canRelayLinkPacket` /
+ * `canLookupLinkRelayEntry` / `shouldTransmitLinkRelay` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -241,9 +246,121 @@ export function canLookupLinkRelayEntry(entryPresent: boolean): boolean {
   return entryPresent;
 }
 
+/**
+ * canLookupLinkRelayEntry gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canLookupLinkRelayEntry`
+ * reads beside the step).
+ */
+export type LookupLinkRelayEntryState = Record<string, never>;
+
+export type LookupLinkRelayEntryEvent =
+  | Event
+  | {
+      readonly kind: "transport/lookup-link-relay-entry-gate";
+      readonly entryPresent: boolean;
+    };
+
+export type LookupLinkRelayEntryAction =
+  | { readonly kind: "hit" }
+  | { readonly kind: "miss" };
+
+export interface LookupLinkRelayEntryStepResult {
+  readonly state: LookupLinkRelayEntryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LookupLinkRelayEntryAction[];
+}
+
+export function initialLookupLinkRelayEntryState(): LookupLinkRelayEntryState {
+  return {};
+}
+
+export function stepLookupLinkRelayEntryWithActions(
+  state: LookupLinkRelayEntryState,
+  event: LookupLinkRelayEntryEvent
+): LookupLinkRelayEntryStepResult {
+  if (event.kind === "transport/lookup-link-relay-entry-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: canLookupLinkRelayEntry(event.entryPresent) ? "hit" : "miss" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldHitLookupLinkRelayEntry(
+  actions: ReadonlyArray<LookupLinkRelayEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "hit");
+}
+
+export function shouldMissLookupLinkRelayEntry(
+  actions: ReadonlyArray<LookupLinkRelayEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
 /** Whether link-relay may transmit after {@link planLinkRelayTarget} resolves an iface. */
 export function shouldTransmitLinkRelay(outboundPresent: boolean): boolean {
   return outboundPresent;
+}
+
+/**
+ * shouldTransmitLinkRelay gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldTransmitLinkRelay`
+ * reads beside the step).
+ */
+export type TransmitLinkRelayState = Record<string, never>;
+
+export type TransmitLinkRelayEvent =
+  | Event
+  | {
+      readonly kind: "transport/transmit-link-relay-gate";
+      readonly outboundPresent: boolean;
+    };
+
+export type TransmitLinkRelayAction =
+  | { readonly kind: "transmit" }
+  | { readonly kind: "skip" };
+
+export interface TransmitLinkRelayStepResult {
+  readonly state: TransmitLinkRelayState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TransmitLinkRelayAction[];
+}
+
+export function initialTransmitLinkRelayState(): TransmitLinkRelayState {
+  return {};
+}
+
+export function stepTransmitLinkRelayWithActions(
+  state: TransmitLinkRelayState,
+  event: TransmitLinkRelayEvent
+): TransmitLinkRelayStepResult {
+  if (event.kind === "transport/transmit-link-relay-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        { kind: shouldTransmitLinkRelay(event.outboundPresent) ? "transmit" : "skip" }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTransmitLinkRelayNow(
+  actions: ReadonlyArray<TransmitLinkRelayAction>
+): boolean {
+  return actions.some((action) => action.kind === "transmit");
+}
+
+export function shouldSkipTransmitLinkRelay(
+  actions: ReadonlyArray<TransmitLinkRelayAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**
@@ -385,9 +502,137 @@ export function canRelayTransportPacket(input: {
   );
 }
 
+/**
+ * canRelayTransportPacket gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canRelayTransportPacket`
+ * reads beside the step).
+ */
+export type RelayTransportPacketAllowState = Record<string, never>;
+
+export type RelayTransportPacketAllowEvent =
+  | Event
+  | {
+      readonly kind: "transport/relay-transport-packet-allow-gate";
+      readonly transportIdPresent: boolean;
+      readonly isAnnounce: boolean;
+      readonly transportIdMatchesLocal: boolean;
+      readonly hasPath: boolean;
+    };
+
+export type RelayTransportPacketAllowAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface RelayTransportPacketAllowStepResult {
+  readonly state: RelayTransportPacketAllowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RelayTransportPacketAllowAction[];
+}
+
+export function initialRelayTransportPacketAllowState(): RelayTransportPacketAllowState {
+  return {};
+}
+
+export function stepRelayTransportPacketAllowWithActions(
+  state: RelayTransportPacketAllowState,
+  event: RelayTransportPacketAllowEvent
+): RelayTransportPacketAllowStepResult {
+  if (event.kind === "transport/relay-transport-packet-allow-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canRelayTransportPacket({
+            transportIdPresent: event.transportIdPresent,
+            isAnnounce: event.isAnnounce,
+            transportIdMatchesLocal: event.transportIdMatchesLocal,
+            hasPath: event.hasPath
+          })
+            ? "allow"
+            : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowRelayTransportPacket(
+  actions: ReadonlyArray<RelayTransportPacketAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyRelayTransportPacket(
+  actions: ReadonlyArray<RelayTransportPacketAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
+}
+
 /** Whether a relayed packet should create/update a link-relay table entry. */
 export function shouldRecordLinkRelayTableEntry(packetType: number): boolean {
   return packetType === PACKET_TYPE_LINKREQUEST;
+}
+
+/**
+ * shouldRecordLinkRelayTableEntry gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldRecordLinkRelayTableEntry`
+ * reads beside the step).
+ */
+export type RecordLinkRelayTableEntryState = Record<string, never>;
+
+export type RecordLinkRelayTableEntryEvent =
+  | Event
+  | {
+      readonly kind: "transport/record-link-relay-table-entry-gate";
+      readonly packetType: number;
+    };
+
+export type RecordLinkRelayTableEntryAction =
+  | { readonly kind: "record" }
+  | { readonly kind: "skip" };
+
+export interface RecordLinkRelayTableEntryStepResult {
+  readonly state: RecordLinkRelayTableEntryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RecordLinkRelayTableEntryAction[];
+}
+
+export function initialRecordLinkRelayTableEntryState(): RecordLinkRelayTableEntryState {
+  return {};
+}
+
+export function stepRecordLinkRelayTableEntryWithActions(
+  state: RecordLinkRelayTableEntryState,
+  event: RecordLinkRelayTableEntryEvent
+): RecordLinkRelayTableEntryStepResult {
+  if (event.kind === "transport/record-link-relay-table-entry-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRecordLinkRelayTableEntry(event.packetType) ? "record" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRecordLinkRelayTableEntryNow(
+  actions: ReadonlyArray<RecordLinkRelayTableEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "record");
+}
+
+export function shouldSkipRecordLinkRelayTableEntry(
+  actions: ReadonlyArray<RecordLinkRelayTableEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**
@@ -402,6 +647,71 @@ export function shouldRecordReverseTableEntry(input: {
     input.packetType === PACKET_TYPE_PROOF &&
     input.context === PacketContextCode.LRPROOF
   );
+}
+
+/**
+ * shouldRecordReverseTableEntry gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldRecordReverseTableEntry`
+ * reads beside the step).
+ */
+export type RecordReverseTableEntryState = Record<string, never>;
+
+export type RecordReverseTableEntryEvent =
+  | Event
+  | {
+      readonly kind: "transport/record-reverse-table-entry-gate";
+      readonly packetType: number;
+      readonly context: number;
+    };
+
+export type RecordReverseTableEntryAction =
+  | { readonly kind: "record" }
+  | { readonly kind: "skip" };
+
+export interface RecordReverseTableEntryStepResult {
+  readonly state: RecordReverseTableEntryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RecordReverseTableEntryAction[];
+}
+
+export function initialRecordReverseTableEntryState(): RecordReverseTableEntryState {
+  return {};
+}
+
+export function stepRecordReverseTableEntryWithActions(
+  state: RecordReverseTableEntryState,
+  event: RecordReverseTableEntryEvent
+): RecordReverseTableEntryStepResult {
+  if (event.kind === "transport/record-reverse-table-entry-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRecordReverseTableEntry({
+            packetType: event.packetType,
+            context: event.context
+          })
+            ? "record"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRecordReverseTableEntryNow(
+  actions: ReadonlyArray<RecordReverseTableEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "record");
+}
+
+export function shouldSkipRecordReverseTableEntry(
+  actions: ReadonlyArray<RecordReverseTableEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether inbound DATA is a local path-request (PLAIN + path-request hash). */
@@ -420,6 +730,61 @@ export function canRelayLinkPacket(packetType: number): boolean {
   return (
     packetType !== PACKET_TYPE_ANNOUNCE && packetType !== PACKET_TYPE_LINKREQUEST
   );
+}
+
+/**
+ * canRelayLinkPacket gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canRelayLinkPacket` reads
+ * beside the step).
+ */
+export type RelayLinkPacketAllowState = Record<string, never>;
+
+export type RelayLinkPacketAllowEvent =
+  | Event
+  | {
+      readonly kind: "transport/relay-link-packet-allow-gate";
+      readonly packetType: number;
+    };
+
+export type RelayLinkPacketAllowAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface RelayLinkPacketAllowStepResult {
+  readonly state: RelayLinkPacketAllowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RelayLinkPacketAllowAction[];
+}
+
+export function initialRelayLinkPacketAllowState(): RelayLinkPacketAllowState {
+  return {};
+}
+
+export function stepRelayLinkPacketAllowWithActions(
+  state: RelayLinkPacketAllowState,
+  event: RelayLinkPacketAllowEvent
+): RelayLinkPacketAllowStepResult {
+  if (event.kind === "transport/relay-link-packet-allow-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: canRelayLinkPacket(event.packetType) ? "allow" : "deny" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowRelayLinkPacket(
+  actions: ReadonlyArray<RelayLinkPacketAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyRelayLinkPacket(
+  actions: ReadonlyArray<RelayLinkPacketAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
 }
 
 /**

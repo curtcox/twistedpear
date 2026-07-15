@@ -98,12 +98,36 @@ import {
   stepLinkDataIngressTargetWithActions,
   stepLinkRelayTargetWithActions,
   stepLocalPlainDataDeliveryWithActions,
+  stepLookupLinkRelayEntryWithActions,
   stepPacketFilterWithActions,
   stepPacketHashRememberWithActions,
   stepProofIngressWithActions,
+  stepRecordLinkRelayTableEntryWithActions,
+  stepRecordReverseTableEntryWithActions,
+  stepRelayLinkPacketAllowWithActions,
+  stepRelayTransportPacketAllowWithActions,
   stepReverseRelayOutcomeWithActions,
+  stepTransmitLinkRelayWithActions,
   stepTransportIngressDispatchWithActions,
   stepTransportMemberUnregisterWithActions,
+  shouldAllowRelayLinkPacket,
+  shouldAllowRelayTransportPacket,
+  shouldDenyRelayLinkPacket,
+  shouldDenyRelayTransportPacket,
+  shouldHitLookupLinkRelayEntry,
+  shouldMissLookupLinkRelayEntry,
+  shouldRecordLinkRelayTableEntryNow,
+  shouldRecordReverseTableEntryNow,
+  shouldSkipRecordLinkRelayTableEntry,
+  shouldSkipRecordReverseTableEntry,
+  shouldSkipTransmitLinkRelay,
+  shouldTransmitLinkRelayNow,
+  initialLookupLinkRelayEntryState,
+  initialRecordLinkRelayTableEntryState,
+  initialRecordReverseTableEntryState,
+  initialRelayLinkPacketAllowState,
+  initialRelayTransportPacketAllowState,
+  initialTransmitLinkRelayState,
   transportIngressDispatchFromActions
 } from "../src/index.js";
 
@@ -865,5 +889,119 @@ describe("transport ingress", () => {
         context: PacketContextCode.LRPROOF
       }).actions
     ).toEqual(lrproof.actions);
+  });
+
+  it("emits transport relay / table-record / link-relay edge actions from WithActions steps", () => {
+    const allowRelay = stepRelayTransportPacketAllowWithActions(
+      initialRelayTransportPacketAllowState(),
+      {
+        kind: "transport/relay-transport-packet-allow-gate",
+        transportIdPresent: true,
+        isAnnounce: false,
+        transportIdMatchesLocal: true,
+        hasPath: true
+      }
+    );
+    expect(shouldAllowRelayTransportPacket(allowRelay.actions)).toBe(true);
+    expect(shouldDenyRelayTransportPacket(allowRelay.actions)).toBe(false);
+
+    const denyRelay = stepRelayTransportPacketAllowWithActions(
+      initialRelayTransportPacketAllowState(),
+      {
+        kind: "transport/relay-transport-packet-allow-gate",
+        transportIdPresent: true,
+        isAnnounce: true,
+        transportIdMatchesLocal: true,
+        hasPath: true
+      }
+    );
+    expect(shouldDenyRelayTransportPacket(denyRelay.actions)).toBe(true);
+
+    const recordLink = stepRecordLinkRelayTableEntryWithActions(
+      initialRecordLinkRelayTableEntryState(),
+      {
+        kind: "transport/record-link-relay-table-entry-gate",
+        packetType: PACKET_TYPE_LINKREQUEST
+      }
+    );
+    expect(shouldRecordLinkRelayTableEntryNow(recordLink.actions)).toBe(true);
+    expect(
+      shouldSkipRecordLinkRelayTableEntry(
+        stepRecordLinkRelayTableEntryWithActions(initialRecordLinkRelayTableEntryState(), {
+          kind: "transport/record-link-relay-table-entry-gate",
+          packetType: PACKET_TYPE_DATA
+        }).actions
+      )
+    ).toBe(true);
+
+    const recordReverse = stepRecordReverseTableEntryWithActions(
+      initialRecordReverseTableEntryState(),
+      {
+        kind: "transport/record-reverse-table-entry-gate",
+        packetType: PACKET_TYPE_DATA,
+        context: PacketContextCode.NONE
+      }
+    );
+    expect(shouldRecordReverseTableEntryNow(recordReverse.actions)).toBe(true);
+    expect(
+      shouldSkipRecordReverseTableEntry(
+        stepRecordReverseTableEntryWithActions(initialRecordReverseTableEntryState(), {
+          kind: "transport/record-reverse-table-entry-gate",
+          packetType: PACKET_TYPE_PROOF,
+          context: PacketContextCode.LRPROOF
+        }).actions
+      )
+    ).toBe(true);
+
+    expect(
+      shouldAllowRelayLinkPacket(
+        stepRelayLinkPacketAllowWithActions(initialRelayLinkPacketAllowState(), {
+          kind: "transport/relay-link-packet-allow-gate",
+          packetType: PACKET_TYPE_DATA
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldDenyRelayLinkPacket(
+        stepRelayLinkPacketAllowWithActions(initialRelayLinkPacketAllowState(), {
+          kind: "transport/relay-link-packet-allow-gate",
+          packetType: PACKET_TYPE_ANNOUNCE
+        }).actions
+      )
+    ).toBe(true);
+
+    expect(
+      shouldHitLookupLinkRelayEntry(
+        stepLookupLinkRelayEntryWithActions(initialLookupLinkRelayEntryState(), {
+          kind: "transport/lookup-link-relay-entry-gate",
+          entryPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldMissLookupLinkRelayEntry(
+        stepLookupLinkRelayEntryWithActions(initialLookupLinkRelayEntryState(), {
+          kind: "transport/lookup-link-relay-entry-gate",
+          entryPresent: false
+        }).actions
+      )
+    ).toBe(true);
+
+    expect(
+      shouldTransmitLinkRelayNow(
+        stepTransmitLinkRelayWithActions(initialTransmitLinkRelayState(), {
+          kind: "transport/transmit-link-relay-gate",
+          outboundPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipTransmitLinkRelay(
+        stepTransmitLinkRelayWithActions(initialTransmitLinkRelayState(), {
+          kind: "transport/transmit-link-relay-gate",
+          outboundPresent: false
+        }).actions
+      )
+    ).toBe(true);
   });
 });
