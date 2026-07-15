@@ -262,7 +262,9 @@ import {
   shouldCloseOnlyLinkTeardown,
   shouldCommitLinkIdentify,
   shouldCommitLinkRemoteIdentityNow,
-  shouldContinueLinkValidateRequest,
+  shouldContinueLinkValidateRequestNow,
+  initialContinueLinkValidateRequestState,
+  stepContinueLinkValidateRequestWithActions,
   shouldProceedLinkValidateRequest,
   shouldCreateLinkChannelNow,
   initialCreateLinkChannelState,
@@ -775,10 +777,13 @@ export class Link {
       modeEnabled: true
     });
     if (
-      !shouldContinueLinkValidateRequest({
-        actions: early.actions,
-        requestPresent: request !== null
-      }) ||
+      !shouldContinueLinkValidateRequestNow(
+        stepContinueLinkValidateRequestWithActions(initialContinueLinkValidateRequestState(), {
+          kind: "validate-request/continue-gate",
+          planProceed: shouldProceedLinkValidateRequest(early.actions),
+          requestPresent: request !== null
+        }).actions
+      ) ||
       request === null
     ) {
       return null;

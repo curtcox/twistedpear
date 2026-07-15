@@ -173,6 +173,7 @@
 > **`stepProveLinkAllowWithActions`**: allow|deny /
 > **`stepAcceptLinkOwnerPublicKeyWithActions`**: accept|reject /
 > **`stepValidateLinkProofAllowWithActions`**: allow|deny /
+> **`stepContinueLinkValidateRequestWithActions`**: continue|skip /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepIdentifyOnLinkAllowWithActions`**: allow|deny /
@@ -812,6 +813,8 @@
 > `LXMessage` delivery-parameter selection adapts it. **`planLinkValidateRequest`**
 > (via **`stepLinkValidateRequestWithActions`**: proceed / reject-bad-request /
 > reject-owner-missing-identity / reject-mode-disabled) and
+> **`shouldContinueLinkValidateRequest`** (via
+> **`stepContinueLinkValidateRequestWithActions`**: continue|skip) and
 > **`planLinkIdentifyOutcome`** (via **`stepLinkIdentifyWithActions`**) and
 > **`canAcceptLinkIdentify`** (via **`stepAcceptLinkIdentifyWithActions`**:
 > accept|skip) and **`shouldCommitLinkRemoteIdentity`** (via
@@ -1130,7 +1133,9 @@
 > **`shouldRejectLxmfPackEndpoints`** /
 > **`shouldRejectLxmfPackTimestamp`** live in protocol; LeafTransport reverse relay,
 > Link, Identity, Resource, and LXMessage adapt them.
-> **`shouldContinueLinkValidateRequest`** / **`shouldTeardownLinkFromRtt`** /
+> **`shouldContinueLinkValidateRequest`** (via
+> **`stepContinueLinkValidateRequestWithActions`**: continue|skip) /
+> **`shouldTeardownLinkFromRtt`** /
 > **`shouldRemovePendingLinkMembership`** / **`shouldAppendActiveLinkMembership`** /
 > **`shouldRemoveActiveLinkMembership`**, **`shouldUnregisterPendingLinkRequest`** /
 > **`shouldRemoveLinkResourceListIndex`**, **`shouldAcceptPacketReceiptProof`** (via
@@ -1194,9 +1199,10 @@
 > `shouldCommitLinkRemoteIdentity` reads beside the step).
 > **`stepLinkValidateRequestWithActions`** emits `proceed` /
 > `reject-bad-request` / `reject-owner-missing-identity` /
-> `reject-mode-disabled`; `Link.validateRequest` applies continue/mode
+> `reject-mode-disabled`; **`stepContinueLinkValidateRequestWithActions`**
+> emits `continue`|`skip`; `Link.validateRequest` applies continue/mode
 > gates only from those actions (no ad-hoc `planLinkValidateRequest` /
-> `plan.kind` reads beside the step).
+> `plan.kind` / `shouldContinueLinkValidateRequest` reads beside the step).
 > **`stepLinkProofValidateWithActions`** emits `accept` / `reject`;
 > `Link.validateProof` applies activation gate only from those actions
 > (no ad-hoc `planLinkProofValidateOutcome` reads beside the step).
@@ -1501,6 +1507,7 @@
 > **`stepProveLinkAllowWithActions`** /
 > **`stepAcceptLinkOwnerPublicKeyWithActions`** /
 > **`stepValidateLinkProofAllowWithActions`** /
+> **`stepContinueLinkValidateRequestWithActions`** /
 > **`stepAttemptLinkProofCryptoWithActions`** /
 > **`stepAcceptLinkRttWithActions`** /
 > **`stepIdentifyOnLinkAllowWithActions`** /
@@ -1511,10 +1518,12 @@
 > **`stepHandleIncomingResourceByHashWithActions`** /
 > **`stepLinkModeEnabledWithActions`** /
 > **`stepExpectedLinkModeWithActions`** emit allow|deny / accept|reject /
-> attempt|skip / accept|skip / dispatch|skip / register|skip / handle|skip /
+> continue|skip / attempt|skip / accept|skip / dispatch|skip / register|skip /
+> handle|skip /
 > enabled|disabled / match|mismatch; `Link` adapts them (no ad-hoc
 > `canPerformLinkHandshake` / `canProveLink` / `canAcceptLinkOwnerPublicKey` /
-> `canValidateLinkProof` / `shouldAttemptLinkProofCrypto` / `canAcceptLinkRtt` /
+> `canValidateLinkProof` / `shouldContinueLinkValidateRequest` /
+> `shouldAttemptLinkProofCrypto` / `canAcceptLinkRtt` /
 > `canIdentifyOnLink` / `shouldDispatchLinkPlaintext` / `canResendLinkPacket` /
 > `shouldRegisterLinkResource` / `shouldHandleOutgoingResourceRequest` /
 > `shouldHandleIncomingResourceByHash` / `isLinkModeEnabled` /
@@ -1574,7 +1583,7 @@
 > instance pack / propagated pack prep), LXMF propagation link-ready /
 > sync-prep gates, LXMF deliverable accept, propagation local ingress,
 > LXMF receipt → send-state mapping, Link validate-request
-> proceed/reject, and Link proof-validate accept/reject also conclude via
+> proceed/reject / continue, and Link proof-validate accept/reject also conclude via
 > machine actions (no ad-hoc `state.timedOut` / `plan.kind` / establish-status /
 > dispatch / identify-outcome / delivery-plan / send-method / send-gate /
 > pack-gate / propagation-link-ready / sync-prep / deliverable-accept /
@@ -1582,7 +1591,8 @@
 > commit-remembered-lxmf-hash / accept-lxmf-wire-frame /
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
-> accept-transport-packet / validate-request / proof-validate /
+> accept-transport-packet / validate-request / continue-link-validate-request /
+> proof-validate /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
 > identity-recall-app-data / identity-hash-allow / identity-use-private-key /

@@ -21,6 +21,8 @@
  * gates conclude via machine actions (no ad-hoc `shouldRegisterLinkMember` /
  * `shouldInvokeLinkAppRequestHandler` / `shouldSendLinkAppRequestResponse`
  * reads beside the step).
+ * Continue-validate-request apply gate conclusions leave via machine actions
+ * (no ad-hoc `shouldContinueLinkValidateRequest` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { planDestinationRequestAllow } from "./destination-allow.js";
@@ -402,14 +404,79 @@ export function shouldRejectLinkValidateModeDisabled(
 }
 
 /**
- * Whether validateRequest may continue after step actions say proceed
+ * Whether validateRequest may continue after validate actions say proceed
  * and the parsed request remains present for narrowing.
  */
 export function shouldContinueLinkValidateRequest(input: {
-  readonly actions: ReadonlyArray<LinkValidateRequestAction>;
+  readonly planProceed: boolean;
   readonly requestPresent: boolean;
 }): boolean {
-  return shouldProceedLinkValidateRequest(input.actions) && input.requestPresent;
+  return input.planProceed && input.requestPresent;
+}
+
+/**
+ * Continue-validate-request apply gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldContinueLinkValidateRequest` reads beside the step).
+ */
+export type ContinueLinkValidateRequestState = Record<string, never>;
+
+export type ContinueLinkValidateRequestEvent =
+  | Event
+  | {
+      readonly kind: "validate-request/continue-gate";
+      readonly planProceed: boolean;
+      readonly requestPresent: boolean;
+    };
+
+export type ContinueLinkValidateRequestAction =
+  | { readonly kind: "continue" }
+  | { readonly kind: "skip" };
+
+export interface ContinueLinkValidateRequestStepResult {
+  readonly state: ContinueLinkValidateRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ContinueLinkValidateRequestAction[];
+}
+
+export function initialContinueLinkValidateRequestState(): ContinueLinkValidateRequestState {
+  return {};
+}
+
+export function stepContinueLinkValidateRequestWithActions(
+  state: ContinueLinkValidateRequestState,
+  event: ContinueLinkValidateRequestEvent
+): ContinueLinkValidateRequestStepResult {
+  if (event.kind === "validate-request/continue-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldContinueLinkValidateRequest({
+            planProceed: event.planProceed,
+            requestPresent: event.requestPresent
+          })
+            ? "continue"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldContinueLinkValidateRequestNow(
+  actions: ReadonlyArray<ContinueLinkValidateRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "continue");
+}
+
+export function shouldSkipContinueLinkValidateRequest(
+  actions: ReadonlyArray<ContinueLinkValidateRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 function stepLinkValidateRequestInner(

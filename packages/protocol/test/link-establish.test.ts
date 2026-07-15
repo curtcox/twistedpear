@@ -112,6 +112,7 @@ import {
   initialLinkTokenAccessState,
   initialLinkUnregisterMembershipState,
   initialLinkValidateRequestState,
+  initialContinueLinkValidateRequestState,
   initialMergeLinkRttState,
   isLinkClosed,
   isLinkInboundDataPacket,
@@ -144,6 +145,7 @@ import {
   shouldAppendActiveLinkMembershipActions,
   shouldAttemptLinkProofCrypto,
   shouldContinueLinkValidateRequest,
+  shouldContinueLinkValidateRequestNow,
   shouldCreateLinkChannel,
   shouldCreateLinkToken,
   shouldDispatchLinkPlaintext,
@@ -181,6 +183,7 @@ import {
   shouldSendLinkAppRequestInboundResponse,
   shouldSendLinkAppRequestResponse,
   shouldSendLinkAppRequestResponseNow,
+  shouldSkipContinueLinkValidateRequest,
   shouldSkipInvokeLinkAppRequestHandler,
   shouldSkipRegisterLinkMember,
   shouldSkipSendLinkAppRequestResponse,
@@ -191,6 +194,7 @@ import {
   shouldUseLinkRttSeconds,
   shouldUseMergeLinkRtt,
   stepComputeLinkRttSecondsWithActions,
+  stepContinueLinkValidateRequestWithActions,
   stepInvokeLinkAppRequestHandlerWithActions,
   stepLinkActivateMembershipWithActions,
   stepLinkAppRequestInbound,
@@ -670,15 +674,35 @@ describe("protocol link establish", () => {
       modeEnabled: true
     });
     expect(shouldProceedLinkValidateRequest(proceed.actions)).toBe(true);
+    const continueOk = stepContinueLinkValidateRequestWithActions(
+      initialContinueLinkValidateRequestState(),
+      {
+        kind: "validate-request/continue-gate",
+        planProceed: shouldProceedLinkValidateRequest(proceed.actions),
+        requestPresent: true
+      }
+    );
+    expect(continueOk.actions).toEqual([{ kind: "continue" }]);
+    expect(shouldContinueLinkValidateRequestNow(continueOk.actions)).toBe(true);
     expect(
       shouldContinueLinkValidateRequest({
-        actions: proceed.actions,
+        planProceed: shouldProceedLinkValidateRequest(proceed.actions),
         requestPresent: true
       })
     ).toBe(true);
+    const skipMissing = stepContinueLinkValidateRequestWithActions(
+      initialContinueLinkValidateRequestState(),
+      {
+        kind: "validate-request/continue-gate",
+        planProceed: shouldProceedLinkValidateRequest(proceed.actions),
+        requestPresent: false
+      }
+    );
+    expect(skipMissing.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldSkipContinueLinkValidateRequest(skipMissing.actions)).toBe(true);
     expect(
       shouldContinueLinkValidateRequest({
-        actions: proceed.actions,
+        planProceed: shouldProceedLinkValidateRequest(proceed.actions),
         requestPresent: false
       })
     ).toBe(false);
@@ -690,9 +714,18 @@ describe("protocol link establish", () => {
       modeEnabled: true
     });
     expect(shouldRejectLinkValidateBadRequest(badRequest.actions)).toBe(true);
+    const skipBad = stepContinueLinkValidateRequestWithActions(
+      initialContinueLinkValidateRequestState(),
+      {
+        kind: "validate-request/continue-gate",
+        planProceed: shouldProceedLinkValidateRequest(badRequest.actions),
+        requestPresent: true
+      }
+    );
+    expect(skipBad.actions).toEqual([{ kind: "skip" }]);
     expect(
       shouldContinueLinkValidateRequest({
-        actions: badRequest.actions,
+        planProceed: shouldProceedLinkValidateRequest(badRequest.actions),
         requestPresent: true
       })
     ).toBe(false);
