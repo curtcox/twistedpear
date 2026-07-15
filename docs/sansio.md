@@ -101,7 +101,9 @@
 > transmit via **`stepChannelOutletTransmitWithActions`**: ok|reject; TX-
 > envelope / RX ring-sequence index via
 > **`stepIndexOfChannelTxEnvelopeWithActions`** /
-> **`stepIndexOfChannelRingSequenceWithActions`**: use-index|miss; arm-
+> **`stepIndexOfChannelRingSequenceWithActions`**: use-index|miss; TX-envelope
+> op via **`stepChannelTxEnvelopeOpWithActions`**: miss|process (nested under
+> TX timeout); arm-
 > packet-receipt via **`stepArmChannelPacketReceiptWithActions`**: arm|skip;
 > extend-packet-receipt-timeout via **`stepExtendPacketReceiptTimeoutWithActions`**:
 > extend|skip; resend-timeout-packet via
@@ -1048,7 +1050,9 @@
 > **`stepAcceptResourceHashmapUpdateFrameWithActions`**: accept|skip) /
 > **`shouldFulfillResourcePartRequest`** (via
 > **`stepFulfillResourcePartRequestWithActions`**: fulfill|skip),
-> **`planChannelTxEnvelopeOp`** / **`shouldApplyChannelPacketReceiptTimeout`** (via
+> **`planChannelTxEnvelopeOp`** (via **`stepChannelTxEnvelopeOpWithActions`**:
+> miss|process; nested under **`stepChannelTxTimeoutWithActions`**) /
+> **`shouldApplyChannelPacketReceiptTimeout`** (via
 > **`stepApplyChannelPacketReceiptTimeoutWithActions`**: apply|skip) /
 > **`shouldReplaceChannelResentPacket`** (via
 > **`stepReplaceChannelResentPacketWithActions`**: replace|skip), **`canAnswerLocalPathRequest`** (via
@@ -1223,8 +1227,10 @@
 > from injected `clock` and invokes callbacks only from those actions (Channel /
 > LinkRequestReceipt callbacks fire on timer expiry).
 > **`stepChannelTxTimeoutWithActions`** composes envelope miss / ignore /
-> give-up / retry with window shrink; `Channel.packetTimeout` applies only
-> `give-up` / `retry` actions (no ad-hoc `plan.kind` reads). Receipt timeout
+> give-up / retry with window shrink (envelope-op nested via
+> **`stepChannelTxEnvelopeOpWithActions`**: miss|process); `Channel.packetTimeout`
+> applies only `give-up` / `retry` actions (no ad-hoc `plan.kind` /
+> `planChannelTxEnvelopeOp` reads). Receipt timeout
 > refresh uses **`planChannelTxReceiptTimeoutRefresh`** (arm nested via
 > **`stepArmChannelPacketReceiptWithActions`**: arm|skip; timeout formula nested
 > via **`stepChannelPacketTimeoutSecondsWithActions`**: use-timeout; extend
@@ -1618,7 +1624,8 @@
 > `missing` / `use-object` / `reject-length` / `use-bytes`; `Destination` hash
 > construction applies only from those actions.
 > **`stepChannelTxEnvelopeOpWithActions`** emits `miss` / `process`; Channel
-> TX-ring timeout/delivery applies only from those actions.
+> TX-ring timeout/delivery applies only from those actions (nested under
+> **`stepChannelTxTimeoutWithActions`**).
 > **`stepDestinationProofWithActions`** emits `prove` / `skip`;
 > **`stepPacketFilterWithActions`** emits `accept` / `reject`; transport node
 > local plain DATA prove and packet-filter apply only from those actions.

@@ -584,6 +584,16 @@ describe("protocol channel window", () => {
     });
     expect(miss.actions).toEqual([]);
     expect(miss.state.window).toBe(4);
+    // Nested envelope-op gate: miss index never processes.
+    expect(
+      shouldMissChannelTxEnvelopeOp(
+        stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
+          kind: "channel/tx-envelope-op-gate",
+          indexOk: false,
+          envelopePresent: false
+        }).actions
+      )
+    ).toBe(true);
 
     const ignore = stepChannelTxTimeoutWithActions(state, {
       kind: "channel/tx-timeout",

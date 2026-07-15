@@ -10,6 +10,8 @@
  * `shouldExtendPacketReceiptTimeout` / `plan.kind` reads beside the step).
  * TX receipt-timeout refresh nests packet-timeout-seconds via
  * `stepChannelPacketTimeoutSecondsWithActions` (`use-timeout`).
+ * TX timeout nests envelope-op via `stepChannelTxEnvelopeOpWithActions`
+ * (`miss`|`process`).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -1182,9 +1184,10 @@ function stepChannelWindowInner(
 /**
  * Channel TX-timeout step: compose envelope miss / ignore / give-up / retry
  * with window shrink. Adapters apply give-up (shutdown) and retry (resend +
- * re-arm) only from actions — not by reading `plan.kind` beside the step.
- * Resend itself is gated separately via
- * `stepResendChannelTimeoutPacketWithActions`.
+ * re-arm) only from actions — not by reading `plan.kind` /
+ * `planChannelTxEnvelopeOp` beside the step. Envelope-op nested via
+ * `stepChannelTxEnvelopeOpWithActions` (`miss`|`process`). Resend itself is
+ * gated separately via `stepResendChannelTimeoutPacketWithActions`.
  */
 export type ChannelTxTimeoutEvent =
   | Event
@@ -1228,10 +1231,13 @@ function stepChannelTxTimeoutInner(
   }
 
   if (
-    planChannelTxEnvelopeOp({
-      indexOk: event.indexOk,
-      envelopePresent: event.envelopePresent
-    }) === "miss"
+    shouldMissChannelTxEnvelopeOp(
+      stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
+        kind: "channel/tx-envelope-op-gate",
+        indexOk: event.indexOk,
+        envelopePresent: event.envelopePresent
+      }).actions
+    )
   ) {
     return { state, intents: [], actions: [] };
   }
