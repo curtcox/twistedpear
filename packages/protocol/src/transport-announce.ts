@@ -8,7 +8,10 @@
  * `planPathResponseAnnounceFields` reads beside the step). Hop-clone /
  * transport-announce plans nest via
  * {@link stepClonePacketWithHopsPlanWithActions} /
- * {@link stepTransportAnnounceFieldsPlanWithActions} (`use-fields`).
+ * {@link stepTransportAnnounceFieldsPlanWithActions} /
+ * {@link stepPathResponseAnnounceFieldsPlanWithActions} (`use-fields`).
+ * Announce ingress plan nested via
+ * {@link stepAnnounceIngressGatesPlanWithActions} (`use-gates`).
  * Local-announce
  * ignore / handler dispatch / PATH_RESPONSE receive / aspect-filter match
  * conclusions leave via machine actions (no ad-hoc
@@ -380,9 +383,81 @@ export function planPathResponseAnnounceFields(input: {
 }
 
 /**
+ * Path-response announce field plan leaf is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `planPathResponseAnnounceFields` reads beside the step). Nested under
+ * {@link stepPathResponseAnnounceFieldsWithActions}.
+ */
+export type PathResponseAnnounceFieldsPlanState = Record<string, never>;
+
+export type PathResponseAnnounceFieldsPlanEvent =
+  | Event
+  | {
+      readonly kind: "transport/path-response-announce-fields-plan-gate";
+      readonly source: TransportAnnounceSource;
+      readonly transportId: Uint8Array;
+      readonly hops: number;
+    };
+
+export type PathResponseAnnounceFieldsPlanAction = {
+  readonly kind: "use-fields";
+  readonly fields: PacketHeaderFields;
+};
+
+export interface PathResponseAnnounceFieldsPlanStepResult {
+  readonly state: PathResponseAnnounceFieldsPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PathResponseAnnounceFieldsPlanAction[];
+}
+
+export function initialPathResponseAnnounceFieldsPlanState(): PathResponseAnnounceFieldsPlanState {
+  return {};
+}
+
+export function stepPathResponseAnnounceFieldsPlanWithActions(
+  state: PathResponseAnnounceFieldsPlanState,
+  event: PathResponseAnnounceFieldsPlanEvent
+): PathResponseAnnounceFieldsPlanStepResult {
+  if (event.kind === "transport/path-response-announce-fields-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-fields",
+          fields: planPathResponseAnnounceFields({
+            source: event.source,
+            transportId: event.transportId,
+            hops: event.hops
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePathResponseAnnounceFieldsPlan(
+  actions: ReadonlyArray<PathResponseAnnounceFieldsPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+/** Extract path-response announce fields from plan actions; null when no `use-fields`. */
+export function pathResponseAnnounceFieldsPlanFromActions(
+  actions: ReadonlyArray<PathResponseAnnounceFieldsPlanAction>
+): PacketHeaderFields | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.fields : null;
+}
+
+/**
  * Path-response announce field planning is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc
  * `planPathResponseAnnounceFields` reads beside the step).
+ * Plan nested via {@link stepPathResponseAnnounceFieldsPlanWithActions}
+ * (`use-fields`).
  */
 export type PathResponseAnnounceFieldsState = Record<string, never>;
 
@@ -415,17 +490,26 @@ export function stepPathResponseAnnounceFieldsWithActions(
   event: PathResponseAnnounceFieldsEvent
 ): PathResponseAnnounceFieldsStepResult {
   if (event.kind === "transport/path-response-announce-fields-gate") {
+    const planActions = stepPathResponseAnnounceFieldsPlanWithActions(
+      initialPathResponseAnnounceFieldsPlanState(),
+      {
+        kind: "transport/path-response-announce-fields-plan-gate",
+        source: event.source,
+        transportId: event.transportId,
+        hops: event.hops
+      }
+    ).actions;
+    const fields = pathResponseAnnounceFieldsPlanFromActions(planActions);
+    if (fields === null) {
+      return { state, intents: [], actions: [] };
+    }
     return {
       state,
       intents: [],
       actions: [
         {
           kind: "use-fields",
-          fields: planPathResponseAnnounceFields({
-            source: event.source,
-            transportId: event.transportId,
-            hops: event.hops
-          })
+          fields
         }
       ]
     };
@@ -825,8 +909,83 @@ export function planAnnounceIngressGates(context: number): AnnounceIngressGates 
 }
 
 /**
+ * Announce ingress gates plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planAnnounceIngressGates`
+ * reads beside the step). Nested under {@link stepAnnounceIngressGatesWithActions}.
+ */
+export type AnnounceIngressGatesPlanState = Record<string, never>;
+
+export type AnnounceIngressGatesPlanEvent =
+  | Event
+  | {
+      readonly kind: "announce/ingress-gates-plan-gate";
+      readonly context: number;
+    };
+
+export type AnnounceIngressGatesPlanAction = {
+  readonly kind: "use-gates";
+  readonly applyRateLimit: boolean;
+  readonly recordRate: boolean;
+  readonly rebroadcast: boolean;
+};
+
+export interface AnnounceIngressGatesPlanStepResult {
+  readonly state: AnnounceIngressGatesPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AnnounceIngressGatesPlanAction[];
+}
+
+export function initialAnnounceIngressGatesPlanState(): AnnounceIngressGatesPlanState {
+  return {};
+}
+
+export function stepAnnounceIngressGatesPlanWithActions(
+  state: AnnounceIngressGatesPlanState,
+  event: AnnounceIngressGatesPlanEvent
+): AnnounceIngressGatesPlanStepResult {
+  if (event.kind === "announce/ingress-gates-plan-gate") {
+    const gates = planAnnounceIngressGates(event.context);
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-gates",
+          applyRateLimit: gates.applyRateLimit,
+          recordRate: gates.recordRate,
+          rebroadcast: gates.rebroadcast
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseAnnounceIngressGatesPlan(
+  actions: ReadonlyArray<AnnounceIngressGatesPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-gates");
+}
+
+/** Extract announce ingress gates from plan actions; null when no `use-gates`. */
+export function announceIngressGatesPlanFromActions(
+  actions: ReadonlyArray<AnnounceIngressGatesPlanAction>
+): AnnounceIngressGates | null {
+  const action = actions.find((entry) => entry.kind === "use-gates");
+  return action?.kind === "use-gates"
+    ? {
+        applyRateLimit: action.applyRateLimit,
+        recordRate: action.recordRate,
+        rebroadcast: action.rebroadcast
+      }
+    : null;
+}
+
+/**
  * Announce ingress gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepAnnounceIngressGatesPlanWithActions} (`use-gates`).
  */
 export type AnnounceIngressGatesState = Record<string, never>;
 
@@ -887,7 +1046,17 @@ function stepAnnounceIngressGatesInner(
   event: AnnounceIngressGatesEvent
 ): AnnounceIngressGatesStepResult {
   if (event.kind === "announce/ingress-gates") {
-    const plan = planAnnounceIngressGates(event.context);
+    const planActions = stepAnnounceIngressGatesPlanWithActions(
+      initialAnnounceIngressGatesPlanState(),
+      {
+        kind: "announce/ingress-gates-plan-gate",
+        context: event.context
+      }
+    ).actions;
+    const plan = announceIngressGatesPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     const actions: AnnounceIngressGatesAction[] = [];
     if (plan.applyRateLimit) {
       actions.push({ kind: "apply-rate-limit" });

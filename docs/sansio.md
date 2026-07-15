@@ -182,7 +182,10 @@
 > channel-tx-receipt-timeout-refresh / destination-identity-hash /
 > link-initiator-mtu / link-request-responder-mtu /
 > resource-advertisement-role-flags / resource-hashmap-slot-writes /
-> clone-packet-with-hops / transport-announce-fields plans** (via
+> clone-packet-with-hops / transport-announce-fields /
+> path-response-announce-fields / announce-ingress-gates /
+> resource-part-request / resource-receive-part / resource-request-fulfill /
+> resource-hashmap-update-accept / propagation-restore plans** (via
 > **`stepChannelTxEnvelopeOpPlanWithActions`**: miss|process — nested under
 > channel-tx-envelope-op; **`stepDestinationProofPlanWithActions`**: prove|skip —
 > nested under destination-proof; **`stepPacketFilterPlanWithActions`**:
@@ -205,8 +208,20 @@
 > under resource-advertisement-role-flags;
 > **`stepResourceHashmapSlotWritesPlanWithActions`**: write — nested under
 > resource-hashmap-slot-writes; **`stepClonePacketWithHopsPlanWithActions`** /
-> **`stepTransportAnnounceFieldsPlanWithActions`**: use-fields — nested under
-> clone-packet-with-hops / transport-announce-fields),
+> **`stepTransportAnnounceFieldsPlanWithActions`** /
+> **`stepPathResponseAnnounceFieldsPlanWithActions`**: use-fields — nested under
+> clone-packet-with-hops / transport-announce-fields /
+> path-response-announce-fields; **`stepAnnounceIngressGatesPlanWithActions`**:
+> use-gates — nested under announce-ingress-gates;
+> **`stepResourcePartRequestPlanWithActions`**: request — nested under
+> resource-part-request; **`stepResourceReceivePartPlanWithActions`**: receive —
+> nested under resource-receive-part;
+> **`stepResourceRequestFulfillPlanWithActions`**: fulfill — nested under
+> resource-request-fulfill; **`stepResourceHashmapUpdateAcceptPlanWithActions`**:
+> apply|ignore — nested under resource-hashmap-update-accept;
+> **`stepPropagationRestorePlanWithActions`**:
+> reject-too-large|duplicate|reject-hash|accept — nested under
+> propagation-restore),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -642,7 +657,11 @@
 > (via **`stepResourcePartRequestWithActions`** /
 > **`stepResourceReceivePartWithActions`** /
 > **`stepResourceRequestFulfillWithActions`** /
-> **`stepResourceHashmapUpdateAcceptWithActions`**) are pure protocol
+> **`stepResourceHashmapUpdateAcceptWithActions`**; plans nested via
+> **`stepResourcePartRequestPlanWithActions`**: request /
+> **`stepResourceReceivePartPlanWithActions`**: receive /
+> **`stepResourceRequestFulfillPlanWithActions`**: fulfill /
+> **`stepResourceHashmapUpdateAcceptPlanWithActions`**: apply|ignore) are pure protocol
 > leaves; `Resource` + `Link` adapt them. Link RTT float encode/decode uses protocol msgpack
 > (pack/unpack via **`stepPackMsgpackFloat64WithActions`** /
 > **`stepUnpackMsgpackFloatWithActions`**: use-raw / use-fields|reject).
@@ -657,9 +676,10 @@
 > announce / path-response field planning** (via **`stepClonePacketWithHopsWithActions`** /
 > **`stepTransportAnnounceFieldsWithActions`** /
 > **`stepPathResponseAnnounceFieldsWithActions`**: use-fields; hop-clone /
-> transport-announce plans nested via
+> transport-announce / path-response plans nested via
 > **`stepClonePacketWithHopsPlanWithActions`** /
-> **`stepTransportAnnounceFieldsPlanWithActions`**: use-fields) lives in protocol;
+> **`stepTransportAnnounceFieldsPlanWithActions`** /
+> **`stepPathResponseAnnounceFieldsPlanWithActions`**: use-fields) lives in protocol;
 > leaf transport adapts it. **Path-request payload framing**
 > (build/parse/tag key via **`stepBuildPathRequestDataWithActions`** /
 > **`stepParsePathRequestDataWithActions`** /
@@ -1292,8 +1312,28 @@
 > use-fields) /
 > **`planTransportAnnounceFields`** (via
 > **`stepTransportAnnounceFieldsWithActions`**: use-fields; plan nested via
-> **`stepTransportAnnounceFieldsPlanWithActions`**: use-fields) live in protocol;
-> `Link.request`, `Resource`, and leaf transport adapt them. Destination type/direction code predicates
+> **`stepTransportAnnounceFieldsPlanWithActions`**: use-fields) /
+> **`planPathResponseAnnounceFields`** (via
+> **`stepPathResponseAnnounceFieldsWithActions`**: use-fields; plan nested via
+> **`stepPathResponseAnnounceFieldsPlanWithActions`**: use-fields) /
+> **`planAnnounceIngressGates`** (via **`stepAnnounceIngressGatesWithActions`**:
+> apply-rate-limit|record-rate|rebroadcast; plan nested via
+> **`stepAnnounceIngressGatesPlanWithActions`**: use-gates) /
+> **`planResourcePartRequest`** (via **`stepResourcePartRequestWithActions`**:
+> request; plan nested via **`stepResourcePartRequestPlanWithActions`**: request) /
+> **`planResourceReceivePart`** (via **`stepResourceReceivePartWithActions`**:
+> receive; plan nested via **`stepResourceReceivePartPlanWithActions`**: receive) /
+> **`planResourceRequestFulfill`** (via **`stepResourceRequestFulfillWithActions`**:
+> fulfill; plan nested via **`stepResourceRequestFulfillPlanWithActions`**:
+> fulfill) /
+> **`planResourceHashmapUpdateAccept`** (via
+> **`stepResourceHashmapUpdateAcceptWithActions`**: apply|ignore; plan nested via
+> **`stepResourceHashmapUpdateAcceptPlanWithActions`**: apply|ignore) /
+> **`planPropagationRestore`** (via **`stepPropagationRestoreWithActions`**:
+> reject-too-large|duplicate|reject-hash|accept; plan nested via
+> **`stepPropagationRestorePlanWithActions`**:
+> reject-too-large|duplicate|reject-hash|accept) live in protocol;
+> `Link.request`, `Resource`, leaf transport, and `PropagationServer` adapt them. Destination type/direction code predicates
 > (`isDestinationTypeCode` / `isDestinationDirectionCode`) are exported for adapters.
 > **`planPacketFromFields`** (via **`stepPacketFromFieldsWithActions`**: ok /
 > bad-header-type / bad-context-flag / bad-transport-type / bad-destination-type /
@@ -2041,10 +2081,17 @@
 > `canRunResourceWatchdog` / `canProveResource` / `shouldAdvertiseResource` /
 > `shouldAcceptIncomingResourceAdvertisement` reads beside the step).
 > **`stepResourceRequestFulfillWithActions`** emits `fulfill` (part send/resend +
-> optional HMU + counters/status); **`stepResourceReceivePartWithActions`** emits
-> `receive` (slot/counters + assemble/request-next); **`stepResourcePartRequestWithActions`**
-> emits `request`; **`stepResourceHashmapUpdateAcceptWithActions`** emits
-> `apply` / `ignore`; **`stepAcceptResourceHashmapUpdateFrameWithActions`** emits
+> optional HMU + counters/status; plan nested via
+> **`stepResourceRequestFulfillPlanWithActions`**: fulfill);
+> **`stepResourceReceivePartWithActions`** emits
+> `receive` (slot/counters + assemble/request-next; plan nested via
+> **`stepResourceReceivePartPlanWithActions`**: receive);
+> **`stepResourcePartRequestWithActions`**
+> emits `request` (plan nested via **`stepResourcePartRequestPlanWithActions`**:
+> request); **`stepResourceHashmapUpdateAcceptWithActions`** emits
+> `apply` / `ignore` (plan nested via
+> **`stepResourceHashmapUpdateAcceptPlanWithActions`**: apply|ignore);
+> **`stepAcceptResourceHashmapUpdateFrameWithActions`** emits
 > `accept`|`skip`; **`stepFulfillResourcePartRequestWithActions`** emits
 > `fulfill`|`skip`; **`stepApplyResourceReceivePartSlotWithActions`** emits
 > `apply`|`skip`; **`stepSendResourceHashmapUpdateWithActions`** emits
@@ -2140,7 +2187,9 @@
 > `planLinkUnregisterMembership` / `planLinkAppRequest` /
 > `planLinkAppRequestTransmitOutcome` / `plan ===` reads beside the step).
 > **`stepAnnounceIngressGatesWithActions`** emits `apply-rate-limit` /
-> `record-rate` / `rebroadcast`; **`stepIgnoreLocalAnnounceWithActions`** emits
+> `record-rate` / `rebroadcast` (plan nested via
+> **`stepAnnounceIngressGatesPlanWithActions`**: use-gates);
+> **`stepIgnoreLocalAnnounceWithActions`** emits
 > `ignore`|`proceed`; **`stepDispatchAnnounceHandlersWithActions`** emits
 > `dispatch`|`skip`; **`stepReceiveAnnouncePathResponseWithActions`** emits
 > `receive`|`skip`; **`stepMatchAnnounceAspectWithActions`** emits
@@ -2276,9 +2325,11 @@
 > `shouldHandleIncomingResourceByHash` / `isLinkModeEnabled` /
 > `isExpectedLinkMode` reads beside the step).
 > **`stepPropagationRestoreWithActions`** emits `reject-too-large` / `duplicate` /
-> `reject-hash` / `accept`; `PropagationServer` restore applies catalog insert only
-> from those actions (no ad-hoc `planPropagationRestore` / `plan === "accept"`
-> reads beside the step). **`stepDestinationIdentityHashWithActions`** emits
+> `reject-hash` / `accept` (plan nested via
+> **`stepPropagationRestorePlanWithActions`**:
+> reject-too-large|duplicate|reject-hash|accept); `PropagationServer` restore
+> applies catalog insert only from those actions (no ad-hoc
+> `planPropagationRestore` / `plan === "accept"` reads beside the step). **`stepDestinationIdentityHashWithActions`** emits
 > `missing` / `use-object` / `reject-length` / `use-bytes` (plan nested via
 > **`stepDestinationIdentityHashPlanWithActions`**:
 > missing|use-object|reject-length|use-bytes); `Destination` hash
@@ -2454,6 +2505,7 @@
 > link-activate-membership-plan / link-unregister-membership /
 > link-unregister-membership-plan / link-app-request /
 > link-app-request-transmit / announce-ingress-gates /
+> announce-ingress-gates-plan /
 > ignore-local-announce / dispatch-announce-handlers /
 > receive-announce-path-response / match-announce-aspect /
 > link-relay-target / relay-transport-packet-allow /
@@ -2469,7 +2521,7 @@
 > link-resource-conclude / link-resource-conclude-plan /
 > packet-receipt-proof-accept / accept-packet-receipt-proof /
 > commit-resource-assemble-payload / dispatch-local-plain-data-delivery /
-> propagation-restore /
+> propagation-restore / propagation-restore-plan /
 > deliver-pending-link-app-response / accept-announce-payload /
 > accept-parsed-announce / accept-identity-ciphertext-frame /
 > attempt-announce-signature-validate / check-announce-destination-hash /
@@ -2633,7 +2685,14 @@
 > resource-hashmap-slot-writes-plan / apply-resource-hashmap-slot-writes /
 > clone-packet-with-hops / clone-packet-with-hops-plan /
 > transport-announce-fields / transport-announce-fields-plan /
-> path-response-announce-fields / wrap-transport-packet /
+> path-response-announce-fields / path-response-announce-fields-plan /
+> announce-ingress-gates / announce-ingress-gates-plan /
+> resource-part-request / resource-part-request-plan /
+> resource-receive-part / resource-receive-part-plan /
+> resource-request-fulfill / resource-request-fulfill-plan /
+> resource-hashmap-update-accept / resource-hashmap-update-accept-plan /
+> propagation-restore / propagation-restore-plan /
+> wrap-transport-packet /
 > strip-transport-headers / relay-transport-packet-bytes /
 > rewrite-packet-hops / build-path-request-data /
 > parse-path-request-data / path-request-tag-key /
@@ -3166,9 +3225,10 @@
 > `planResourceHashmapSlotWrites` / `applyResourceHashmapSlotWrites` reads beside the step).
 > **`stepClonePacketWithHopsWithActions`** / **`stepTransportAnnounceFieldsWithActions`** /
 > **`stepPathResponseAnnounceFieldsWithActions`** emit `use-fields` (hop-clone /
-> transport-announce plans nested via
+> transport-announce / path-response plans nested via
 > **`stepClonePacketWithHopsPlanWithActions`** /
-> **`stepTransportAnnounceFieldsPlanWithActions`**: use-fields); hop-clone,
+> **`stepTransportAnnounceFieldsPlanWithActions`** /
+> **`stepPathResponseAnnounceFieldsPlanWithActions`**: use-fields); hop-clone,
 > transport announce rebroadcast, and path-response announce field planning apply
 > only from those actions (no ad-hoc `planClonePacketWithHops` /
 > `planTransportAnnounceFields` / `planPathResponseAnnounceFields` reads beside

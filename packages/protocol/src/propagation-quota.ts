@@ -1,13 +1,15 @@
 /**
  * Pure LXMF propagation-server quota and eviction planning.
  * Persistence and hashing stay at the adapter edge.
- * Store / store-plan / restore / catalog-evict / catalog-delete / evict-oldest /
- * message-too-large / select-oldest-key / store-commit / restore-apply /
- * store-apply-commit conclusions leave via machine actions (no ad-hoc
- * `plan.kind` / `planPropagationStore` / `plan === "accept"` / `shouldEvict*` /
- * `shouldDelete*` / `isPropagationMessageTooLarge` / `selectOldestPropagationKey` /
+ * Store / store-plan / restore / restore-plan / catalog-evict / catalog-delete /
+ * evict-oldest / message-too-large / select-oldest-key / store-commit /
+ * restore-apply / store-apply-commit conclusions leave via machine actions
+ * (no ad-hoc `plan.kind` / `planPropagationStore` / `planPropagationRestore` /
+ * `plan === "accept"` / `shouldEvict*` / `shouldDelete*` /
+ * `isPropagationMessageTooLarge` / `selectOldestPropagationKey` /
  * `shouldCommitPropagationStoreEntry` / `shouldApplyPropagationRestore` /
  * `shouldApplyPropagationStoreCommit` reads beside the step).
+ * Restore plan nested via {@link stepPropagationRestorePlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -930,9 +932,78 @@ export function planPropagationRestore(input: {
 }
 
 /**
+ * Propagation restore plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planPropagationRestore`
+ * reads beside the step). Nested under {@link stepPropagationRestoreWithActions}.
+ */
+export type PropagationRestorePlanState = Record<string, never>;
+
+export type PropagationRestorePlanEvent =
+  | Event
+  | {
+      readonly kind: "propagation/restore-plan-gate";
+      readonly tooLarge: boolean;
+      readonly alreadyStored: boolean;
+      readonly destinationHashPresent: boolean;
+    };
+
+export type PropagationRestorePlanAction =
+  | { readonly kind: "reject-too-large" }
+  | { readonly kind: "duplicate" }
+  | { readonly kind: "reject-hash" }
+  | { readonly kind: "accept" };
+
+export interface PropagationRestorePlanStepResult {
+  readonly state: PropagationRestorePlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PropagationRestorePlanAction[];
+}
+
+export function initialPropagationRestorePlanState(): PropagationRestorePlanState {
+  return {};
+}
+
+export function stepPropagationRestorePlanWithActions(
+  state: PropagationRestorePlanState,
+  event: PropagationRestorePlanEvent
+): PropagationRestorePlanStepResult {
+  if (event.kind === "propagation/restore-plan-gate") {
+    const plan = planPropagationRestore({
+      tooLarge: event.tooLarge,
+      alreadyStored: event.alreadyStored,
+      destinationHashPresent: event.destinationHashPresent
+    });
+    return { state, intents: [], actions: [{ kind: plan }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptPropagationRestorePlan(
+  actions: ReadonlyArray<PropagationRestorePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function propagationRestorePlanFromActions(
+  actions: ReadonlyArray<PropagationRestorePlanAction>
+): PropagationRestorePlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "accept" ||
+      entry.kind === "duplicate" ||
+      entry.kind === "reject-too-large" ||
+      entry.kind === "reject-hash"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * Propagation restore is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planPropagationRestore`
  * / `plan === "accept"` reads beside the step).
+ * Plan nested via {@link stepPropagationRestorePlanWithActions}
+ * (`reject-too-large`|`duplicate`|`reject-hash`|`accept`).
  */
 export type PropagationRestoreState = Record<string, never>;
 
@@ -985,11 +1056,19 @@ function stepPropagationRestoreInner(
   event: PropagationRestoreEvent
 ): PropagationRestoreStepResult {
   if (event.kind === "propagation/restore-gate") {
-    const plan = planPropagationRestore({
-      tooLarge: event.tooLarge,
-      alreadyStored: event.alreadyStored,
-      destinationHashPresent: event.destinationHashPresent
-    });
+    const planActions = stepPropagationRestorePlanWithActions(
+      initialPropagationRestorePlanState(),
+      {
+        kind: "propagation/restore-plan-gate",
+        tooLarge: event.tooLarge,
+        alreadyStored: event.alreadyStored,
+        destinationHashPresent: event.destinationHashPresent
+      }
+    ).actions;
+    const plan = propagationRestorePlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 

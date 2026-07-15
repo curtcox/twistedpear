@@ -8,6 +8,7 @@ import {
   initialEvictOldestPropagationEntryState,
   initialEvictPropagationCatalogEntryState,
   initialPropagationMessageTooLargeState,
+  initialPropagationRestorePlanState,
   initialPropagationRestoreState,
   initialPropagationStorePlanState,
   initialPropagationStoreState,
@@ -18,11 +19,13 @@ import {
   planPropagationStore,
   propagationDestinationHash,
   propagationEntryVisibleToRecipient,
+  propagationRestorePlanFromActions,
   propagationStoreAcceptEvictKeys,
   propagationStorePlanEvictKeys,
   propagationStorePlanFromActions,
   selectOldestPropagationKey,
   shouldAcceptPropagationRestore,
+  shouldAcceptPropagationRestorePlan,
   shouldAcceptPropagationStore,
   shouldAcceptPropagationStorePlan,
   shouldApplyPropagationRestore,
@@ -60,6 +63,7 @@ import {
   stepEvictOldestPropagationEntryWithActions,
   stepEvictPropagationCatalogEntryWithActions,
   stepPropagationMessageTooLargeWithActions,
+  stepPropagationRestorePlanWithActions,
   stepPropagationRestoreWithActions,
   stepPropagationStorePlanWithActions,
   stepPropagationStoreWithActions,
@@ -419,6 +423,18 @@ describe("protocol propagation quota", () => {
   });
 
   it("emits restore reject / duplicate / reject-hash / accept actions from restore-gate", () => {
+    const tooLargePlan = stepPropagationRestorePlanWithActions(
+      initialPropagationRestorePlanState(),
+      {
+        kind: "propagation/restore-plan-gate",
+        tooLarge: true,
+        alreadyStored: false,
+        destinationHashPresent: true
+      }
+    );
+    expect(propagationRestorePlanFromActions(tooLargePlan.actions)).toBe("reject-too-large");
+    expect(shouldAcceptPropagationRestorePlan(tooLargePlan.actions)).toBe(false);
+
     const tooLarge = stepPropagationRestoreWithActions(initialPropagationRestoreState(), {
       kind: "propagation/restore-gate",
       tooLarge: true,
@@ -443,6 +459,17 @@ describe("protocol propagation quota", () => {
       destinationHashPresent: false
     });
     expect(missingHash.actions).toEqual([{ kind: "reject-hash" }]);
+
+    const acceptedPlan = stepPropagationRestorePlanWithActions(
+      initialPropagationRestorePlanState(),
+      {
+        kind: "propagation/restore-plan-gate",
+        tooLarge: false,
+        alreadyStored: false,
+        destinationHashPresent: true
+      }
+    );
+    expect(shouldAcceptPropagationRestorePlan(acceptedPlan.actions)).toBe(true);
 
     const accepted = stepPropagationRestoreWithActions(initialPropagationRestoreState(), {
       kind: "propagation/restore-gate",

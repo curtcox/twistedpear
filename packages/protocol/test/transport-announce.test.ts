@@ -4,17 +4,21 @@ import {
   PACKET_CONTEXT_PATH_RESPONSE,
   clonePacketWithHopsFieldsFromActions,
   clonePacketWithHopsPlanFieldsFromActions,
+  announceIngressGatesPlanFromActions,
+  initialAnnounceIngressGatesPlanState,
   initialAnnounceIngressGatesState,
   initialClonePacketWithHopsPlanState,
   initialClonePacketWithHopsState,
   initialDispatchAnnounceHandlersState,
   initialIgnoreLocalAnnounceState,
   initialMatchAnnounceAspectState,
+  initialPathResponseAnnounceFieldsPlanState,
   initialPathResponseAnnounceFieldsState,
   initialReceiveAnnouncePathResponseState,
   initialTransportAnnounceFieldsPlanState,
   initialTransportAnnounceFieldsState,
   pathResponseAnnounceFieldsFromActions,
+  pathResponseAnnounceFieldsPlanFromActions,
   planAnnounceIngressGates,
   planClonePacketWithHops,
   planPathResponseAnnounceFields,
@@ -37,18 +41,22 @@ import {
   shouldSkipAcceptCachedPathResponsePacket,
   shouldSkipAnnouncePathResponse,
   shouldSkipDispatchAnnounceHandlers,
+  shouldUseAnnounceIngressGatesPlan,
   shouldUseClonePacketWithHops,
   shouldUseClonePacketWithHopsPlan,
   shouldUsePathResponseAnnounceFields,
+  shouldUsePathResponseAnnounceFieldsPlan,
   shouldUseTransportAnnounceFields,
   shouldUseTransportAnnounceFieldsPlan,
   stepAcceptCachedPathResponsePacketWithActions,
+  stepAnnounceIngressGatesPlanWithActions,
   stepAnnounceIngressGatesWithActions,
   stepClonePacketWithHopsPlanWithActions,
   stepClonePacketWithHopsWithActions,
   stepDispatchAnnounceHandlersWithActions,
   stepIgnoreLocalAnnounceWithActions,
   stepMatchAnnounceAspectWithActions,
+  stepPathResponseAnnounceFieldsPlanWithActions,
   stepPathResponseAnnounceFieldsWithActions,
   stepReceiveAnnouncePathResponseWithActions,
   stepTransportAnnounceFieldsPlanWithActions,
@@ -184,6 +192,20 @@ describe("protocol transport announce planning", () => {
     expect(transport?.hops).toBe(5);
     expect([...transport!.transportId!]).toEqual([...transportId]);
 
+    const pathPlan = stepPathResponseAnnounceFieldsPlanWithActions(
+      initialPathResponseAnnounceFieldsPlanState(),
+      {
+        kind: "transport/path-response-announce-fields-plan-gate",
+        source,
+        transportId,
+        hops: 2
+      }
+    );
+    expect(shouldUsePathResponseAnnounceFieldsPlan(pathPlan.actions)).toBe(true);
+    expect(pathResponseAnnounceFieldsPlanFromActions(pathPlan.actions)?.context).toBe(
+      PACKET_CONTEXT_PATH_RESPONSE
+    );
+
     const pathStepped = stepPathResponseAnnounceFieldsWithActions(
       initialPathResponseAnnounceFieldsState(),
       {
@@ -234,6 +256,20 @@ describe("protocol transport announce planning", () => {
   });
 
   it("emits announce ingress gate actions from WithActions step", () => {
+    const announcePlan = stepAnnounceIngressGatesPlanWithActions(
+      initialAnnounceIngressGatesPlanState(),
+      {
+        kind: "announce/ingress-gates-plan-gate",
+        context: PACKET_CONTEXT_NONE
+      }
+    );
+    expect(shouldUseAnnounceIngressGatesPlan(announcePlan.actions)).toBe(true);
+    expect(announceIngressGatesPlanFromActions(announcePlan.actions)).toEqual({
+      applyRateLimit: true,
+      recordRate: true,
+      rebroadcast: true
+    });
+
     const announce = stepAnnounceIngressGatesWithActions(initialAnnounceIngressGatesState(), {
       kind: "announce/ingress-gates",
       context: PACKET_CONTEXT_NONE
@@ -241,6 +277,19 @@ describe("protocol transport announce planning", () => {
     expect(shouldApplyAnnounceRateLimit(announce.actions)).toBe(true);
     expect(shouldRecordAnnounceRate(announce.actions)).toBe(true);
     expect(shouldRebroadcastAnnounce(announce.actions)).toBe(true);
+
+    const pathResponsePlan = stepAnnounceIngressGatesPlanWithActions(
+      initialAnnounceIngressGatesPlanState(),
+      {
+        kind: "announce/ingress-gates-plan-gate",
+        context: PACKET_CONTEXT_PATH_RESPONSE
+      }
+    );
+    expect(announceIngressGatesPlanFromActions(pathResponsePlan.actions)).toEqual({
+      applyRateLimit: false,
+      recordRate: false,
+      rebroadcast: false
+    });
 
     const pathResponse = stepAnnounceIngressGatesWithActions(initialAnnounceIngressGatesState(), {
       kind: "announce/ingress-gates",

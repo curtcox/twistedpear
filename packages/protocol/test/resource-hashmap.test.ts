@@ -23,9 +23,13 @@ import {
   initialReadResourceRequestHashState,
   initialResourceHashmapSlotWritesPlanState,
   initialResourceHashmapSlotWritesState,
+  initialResourceHashmapUpdateAcceptPlanState,
   initialResourceHashmapUpdateAcceptState,
+  initialResourcePartRequestPlanState,
   initialResourcePartRequestState,
+  initialResourceReceivePartPlanState,
   initialResourceReceivePartState,
+  initialResourceRequestFulfillPlanState,
   initialResourceRequestFulfillState,
   initialSplitResourceHashmapUpdatePacketState,
   initialUnpackResourceHashmapUpdateState,
@@ -48,6 +52,13 @@ import {
   resourceMapHashCollisionGuardFromActions,
   resourceMapHashCollisionGuardLimit,
   resourcePartRequestFieldsFromActions,
+  resourcePartRequestFromActions,
+  resourcePartRequestPlanFromActions,
+  resourceReceivePartFromActions,
+  resourceReceivePartPlanFromActions,
+  resourceRequestFulfillFromActions,
+  resourceRequestFulfillPlanFromActions,
+  resourceHashmapUpdateAcceptPlanFromActions,
   shouldAbsentResourceHash,
   shouldAppendResourceMapHashCollisionGuard,
   shouldCollideResourceMapHashCollisionGuard,
@@ -69,9 +80,6 @@ import {
   stepResourceHashmapSlotWritesWithActions,
   stepSplitResourceHashmapUpdatePacketWithActions,
   stepUnpackResourceHashmapUpdateWithActions,
-  resourcePartRequestFromActions,
-  resourceReceivePartFromActions,
-  resourceRequestFulfillFromActions,
   shouldAcceptResourceHashmapUpdateFrame,
   shouldAcceptResourceHashmapUpdateFrameNow,
   shouldAdvanceResourceAwaitingProof,
@@ -79,13 +87,18 @@ import {
   shouldApplyResourceFulfillPart,
   shouldApplyResourceFulfillPartNow,
   shouldApplyResourceHashmapUpdateAccept,
+  shouldApplyResourceHashmapUpdateAcceptPlan,
+  shouldApplyResourceReceivePartPlan,
   shouldApplyResourceReceivePartSlot,
   shouldApplyResourceReceivePartSlotNow,
   shouldEmitResourcePartRequest,
+  shouldEmitResourcePartRequestPlan,
   shouldFulfillResourcePartRequest,
   shouldFulfillResourcePartRequestNow,
   shouldFulfillResourceRequest,
+  shouldFulfillResourceRequestPlan,
   shouldIgnoreResourceHashmapUpdateAccept,
+  shouldIgnoreResourceHashmapUpdateAcceptPlan,
   shouldRejectParseResourcePartRequest,
   shouldRejectSplitResourceHashmapUpdatePacket,
   shouldRejectUnpackResourceHashmapUpdate,
@@ -108,9 +121,13 @@ import {
   stepApplyResourceFulfillPartWithActions,
   stepApplyResourceReceivePartSlotWithActions,
   stepFulfillResourcePartRequestWithActions,
+  stepResourceHashmapUpdateAcceptPlanWithActions,
   stepResourceHashmapUpdateAcceptWithActions,
+  stepResourcePartRequestPlanWithActions,
   stepResourcePartRequestWithActions,
+  stepResourceReceivePartPlanWithActions,
   stepResourceReceivePartWithActions,
+  stepResourceRequestFulfillPlanWithActions,
   stepResourceRequestFulfillWithActions,
   stepSendResourceHashmapUpdateWithActions,
   initialAcceptResourceHashmapUpdateFrameState,
@@ -595,6 +612,30 @@ describe("protocol resource hashmap", () => {
   it("emits fulfill / receive / part-request / hashmap-update-accept actions", () => {
     const mapA = new Uint8Array([1, 2, 3, 4]);
     const mapB = new Uint8Array([5, 6, 7, 8]);
+    const fulfillPlan = stepResourceRequestFulfillPlanWithActions(
+      initialResourceRequestFulfillPlanState(),
+      {
+        kind: "resource/request-fulfill-plan-gate",
+        request: {
+          wantsMoreHashmap: false,
+          lastMapHash: null,
+          resourceHash: new Uint8Array(32),
+          requestedMapHashes: [mapA, mapB]
+        },
+        partMapHashes: [mapA, mapB],
+        partSent: [false, true],
+        receiverMinConsecutiveHeight: 0,
+        hashmapMaxLen: 10,
+        windowMax: 4,
+        totalParts: 2,
+        sentParts: 1
+      }
+    );
+    expect(shouldFulfillResourceRequestPlan(fulfillPlan.actions)).toBe(true);
+    expect(resourceRequestFulfillPlanFromActions(fulfillPlan.actions)?.status).toBe(
+      "awaiting-proof"
+    );
+
     const fulfilled = stepResourceRequestFulfillWithActions(initialResourceRequestFulfillState(), {
       kind: "resource/request-fulfill-gate",
       request: {
@@ -623,6 +664,24 @@ describe("protocol resource hashmap", () => {
       status: "awaiting-proof"
     });
 
+    const receivePlan = stepResourceReceivePartPlanWithActions(
+      initialResourceReceivePartPlanState(),
+      {
+        kind: "resource/receive-part-plan-gate",
+        partHash: mapA,
+        hashmap: [mapA, mapB],
+        receivedParts: [null, null],
+        consecutiveCompletedHeight: -1,
+        window: 4,
+        receivedCount: 0,
+        outstandingParts: 1,
+        totalParts: 2,
+        assemblyStarted: false
+      }
+    );
+    expect(shouldApplyResourceReceivePartPlan(receivePlan.actions)).toBe(true);
+    expect(resourceReceivePartPlanFromActions(receivePlan.actions)?.slot).toBe(0);
+
     const received = stepResourceReceivePartWithActions(initialResourceReceivePartState(), {
       kind: "resource/receive-part-gate",
       partHash: mapA,
@@ -647,6 +706,21 @@ describe("protocol resource hashmap", () => {
     });
 
     const hash = new Uint8Array(32).fill(7);
+    const requestPlan = stepResourcePartRequestPlanWithActions(
+      initialResourcePartRequestPlanState(),
+      {
+        kind: "resource/part-request-plan-gate",
+        receivedParts: [null],
+        hashmap: [mapA],
+        consecutiveCompletedHeight: -1,
+        window: 4,
+        hashmapHeight: 1,
+        resourceHash: hash
+      }
+    );
+    expect(shouldEmitResourcePartRequestPlan(requestPlan.actions)).toBe(true);
+    expect(resourcePartRequestPlanFromActions(requestPlan.actions)?.outstandingParts).toBe(1);
+
     const requested = stepResourcePartRequestWithActions(initialResourcePartRequestState(), {
       kind: "resource/part-request-gate",
       receivedParts: [null],
@@ -657,10 +731,22 @@ describe("protocol resource hashmap", () => {
       resourceHash: hash
     });
     expect(shouldEmitResourcePartRequest(requested.actions)).toBe(true);
-    const requestPlan = resourcePartRequestFromActions(requested.actions);
-    expect(requestPlan).not.toBeNull();
-    expect(requestPlan!.outstandingParts).toBe(1);
-    expect(requestPlan!.waitingForHashmap).toBe(false);
+    const partRequestPlan = resourcePartRequestFromActions(requested.actions);
+    expect(partRequestPlan).not.toBeNull();
+    expect(partRequestPlan!.outstandingParts).toBe(1);
+    expect(partRequestPlan!.waitingForHashmap).toBe(false);
+
+    const acceptPlan = stepResourceHashmapUpdateAcceptPlanWithActions(
+      initialResourceHashmapUpdateAcceptPlanState(),
+      {
+        kind: "resource/hashmap-update-accept-plan-gate",
+        canContinue: true,
+        splitOk: true,
+        unpackOk: true
+      }
+    );
+    expect(shouldApplyResourceHashmapUpdateAcceptPlan(acceptPlan.actions)).toBe(true);
+    expect(resourceHashmapUpdateAcceptPlanFromActions(acceptPlan.actions)).toBe("apply");
 
     const accepted = stepResourceHashmapUpdateAcceptWithActions(
       initialResourceHashmapUpdateAcceptState(),
@@ -673,6 +759,17 @@ describe("protocol resource hashmap", () => {
     );
     expect(shouldApplyResourceHashmapUpdateAccept(accepted.actions)).toBe(true);
     expect(shouldIgnoreResourceHashmapUpdateAccept(accepted.actions)).toBe(false);
+
+    const ignorePlan = stepResourceHashmapUpdateAcceptPlanWithActions(
+      initialResourceHashmapUpdateAcceptPlanState(),
+      {
+        kind: "resource/hashmap-update-accept-plan-gate",
+        canContinue: false,
+        splitOk: true,
+        unpackOk: true
+      }
+    );
+    expect(shouldIgnoreResourceHashmapUpdateAcceptPlan(ignorePlan.actions)).toBe(true);
 
     const ignored = stepResourceHashmapUpdateAcceptWithActions(
       initialResourceHashmapUpdateAcceptState(),
