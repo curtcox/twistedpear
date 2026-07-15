@@ -25,22 +25,36 @@ import {
   LinkStatus,
   LinkTeardownReason,
   canAcceptLinkIdentify,
-  canAcceptLinkOwnerPublicKey,
-  canAcceptLinkRtt,
-  canIdentifyOnLink,
+  shouldAcceptLinkOwnerPublicKeyNow,
+  initialAcceptLinkOwnerPublicKeyState,
+  stepAcceptLinkOwnerPublicKeyWithActions,
+  shouldAcceptLinkRttNow,
+  initialAcceptLinkRttState,
+  stepAcceptLinkRttWithActions,
+  shouldAllowIdentifyOnLink,
+  initialIdentifyOnLinkAllowState,
+  stepIdentifyOnLinkAllowWithActions,
   shouldAllowLinkRequest,
   initialLinkRequestAllowState,
   stepLinkRequestAllowWithActions,
   shouldAllowLinkSend,
   initialLinkSendAllowState,
   stepLinkSendAllowWithActions,
-  canPerformLinkHandshake,
-  canProveLink,
-  canResendLinkPacket,
+  shouldAllowPerformLinkHandshake,
+  initialPerformLinkHandshakeAllowState,
+  stepPerformLinkHandshakeAllowWithActions,
+  shouldAllowProveLink,
+  initialProveLinkAllowState,
+  stepProveLinkAllowWithActions,
+  shouldAllowResendLinkPacket,
+  initialResendLinkPacketAllowState,
+  stepResendLinkPacketAllowWithActions,
   shouldAllowUpdateLinkKeepalive,
   initialUpdateLinkKeepaliveAllowState,
   stepUpdateLinkKeepaliveAllowWithActions,
-  canValidateLinkProof,
+  shouldAllowValidateLinkProof,
+  initialValidateLinkProofAllowState,
+  stepValidateLinkProofAllowWithActions,
   deriveRnsLinkKeyRawFromActions,
   encodeLinkMtuBytesRawFromActions,
   encodeLinkSignallingBytesRawFromActions,
@@ -66,8 +80,12 @@ import {
   shouldTreatLinkClosed,
   initialLinkClosedState,
   stepLinkClosedWithActions,
-  isExpectedLinkMode,
-  isLinkModeEnabled,
+  shouldMatchExpectedLinkMode,
+  initialExpectedLinkModeState,
+  stepExpectedLinkModeWithActions,
+  shouldTreatLinkModeEnabled,
+  initialLinkModeEnabledState,
+  stepLinkModeEnabledWithActions,
   linkEstablishActivatedAction,
   linkEstablishmentTimeoutFromActions,
   linkIdentifySignedMaterialRawFromActions,
@@ -228,7 +246,9 @@ import {
   shouldActivateLinkEstablish,
   shouldAllowRequestLinkDestination,
   shouldAskAppLinkResourceAdvertisement,
-  shouldAttemptLinkProofCrypto,
+  shouldAttemptLinkProofCryptoNow,
+  initialAttemptLinkProofCryptoState,
+  stepAttemptLinkProofCryptoWithActions,
   shouldCloseOnlyLinkTeardown,
   shouldCommitLinkIdentify,
   shouldContinueLinkValidateRequest,
@@ -237,7 +257,9 @@ import {
   initialCreateLinkChannelState,
   stepCreateLinkChannelWithActions,
   shouldCreateLinkToken,
-  shouldDispatchLinkPlaintext,
+  shouldDispatchLinkPlaintextNow,
+  initialDispatchLinkPlaintextState,
+  stepDispatchLinkPlaintextWithActions,
   shouldUsePendingLinkAppRequestIndex,
   pendingLinkAppRequestIndexFromActions,
   shouldDeliverPendingLinkAppResponseNow,
@@ -274,7 +296,9 @@ import {
   shouldInvokeLinkAppRequestInbound,
   shouldKeepPendingLinkAppRequestTransmit,
   shouldPresentResourceHash,
-  shouldRegisterLinkResource,
+  shouldRegisterLinkResourceNow,
+  initialRegisterLinkResourceState,
+  stepRegisterLinkResourceWithActions,
   shouldRegisterPendingLinkRequestNow,
   shouldRejectLinkAppRequest,
   shouldRejectLinkAppRequestInboundTooBig,
@@ -788,7 +812,12 @@ export class Link {
         kind: "validate-request/gate",
         requestPresent: true,
         ownerIdentityPresent: true,
-        modeEnabled: isLinkModeEnabled(link.mode)
+        modeEnabled: shouldTreatLinkModeEnabled(
+          stepLinkModeEnabledWithActions(initialLinkModeEnabledState(), {
+            kind: "link/mode-enabled-gate",
+            mode: link.mode
+          }).actions
+        )
       });
       if (!shouldProceedLinkValidateRequest(modeGate.actions)) {
         return null;
@@ -827,7 +856,11 @@ export class Link {
   }
 
   static signallingBytes(mtu: number, mode: LinkModeValue): Uint8Array {
-    if (!isLinkModeEnabled(mode)) {
+    const modeEnabled = stepLinkModeEnabledWithActions(initialLinkModeEnabledState(), {
+      kind: "link/mode-enabled-gate",
+      mode
+    });
+    if (!shouldTreatLinkModeEnabled(modeEnabled.actions)) {
       throw new Error(`Requested link mode ${mode} is not enabled`);
     }
 
@@ -919,12 +952,17 @@ export class Link {
   handshake(): void {
     const privateKey = this.privateKey;
     const peerPublicKeyBytes = this.peerPublicKeyBytes;
-    if (
-      !canPerformLinkHandshake({
+    const handshakeAllow = stepPerformLinkHandshakeAllowWithActions(
+      initialPerformLinkHandshakeAllowState(),
+      {
+        kind: "link/perform-handshake-allow-gate",
         status: this.status,
         privateKeyPresent: privateKey !== null,
         peerPublicKeyPresent: peerPublicKeyBytes !== null
-      }) ||
+      }
+    );
+    if (
+      !shouldAllowPerformLinkHandshake(handshakeAllow.actions) ||
       privateKey === null ||
       peerPublicKeyBytes === null
     ) {
@@ -960,12 +998,14 @@ export class Link {
     const owner = this.owner;
     const publicKeyBytes = this.publicKeyBytes;
     const ownerIdentity = owner?.identity ?? null;
+    const proveAllow = stepProveLinkAllowWithActions(initialProveLinkAllowState(), {
+      kind: "link/prove-allow-gate",
+      ownerPresent: owner !== null,
+      publicKeyPresent: publicKeyBytes !== null,
+      ownerIdentityPresent: ownerIdentity !== null
+    });
     if (
-      !canProveLink({
-        ownerPresent: owner !== null,
-        publicKeyPresent: publicKeyBytes !== null,
-        ownerIdentityPresent: ownerIdentity !== null
-      }) ||
+      !shouldAllowProveLink(proveAllow.actions) ||
       owner === null ||
       publicKeyBytes === null ||
       ownerIdentity === null
@@ -981,7 +1021,14 @@ export class Link {
     const ownerPublic = shouldUseSplitIdentityPublicKey(ownerSplit.actions)
       ? identityPublicKeyFieldsFromActions(ownerSplit.actions)
       : null;
-    if (!canAcceptLinkOwnerPublicKey(ownerPublic !== null)) {
+    const ownerKeyAllow = stepAcceptLinkOwnerPublicKeyWithActions(
+      initialAcceptLinkOwnerPublicKeyState(),
+      {
+        kind: "link/accept-owner-public-key-gate",
+        splitOk: ownerPublic !== null
+      }
+    );
+    if (!shouldAcceptLinkOwnerPublicKeyNow(ownerKeyAllow.actions)) {
       throw new Error("Responder link owner public key is invalid");
     }
     const ownerSigPublicKey = ownerPublic!.signaturePublicKey;
@@ -1035,18 +1082,27 @@ export class Link {
 
   async validateProof(packet: Packet, iface: PacketInterface): Promise<void> {
     const destination = this.destination;
-    const canValidate = canValidateLinkProof({
-      status: this.status,
-      initiator: this.initiator,
-      destinationPresent: destination !== null
-    });
-    if (!canValidate || destination === null) {
+    const validateAllow = stepValidateLinkProofAllowWithActions(
+      initialValidateLinkProofAllowState(),
+      {
+        kind: "link/validate-proof-allow-gate",
+        status: this.status,
+        initiator: this.initiator,
+        destinationPresent: destination !== null
+      }
+    );
+    if (!shouldAllowValidateLinkProof(validateAllow.actions) || destination === null) {
       return;
     }
 
     try {
       const mode = Link.modeFromLpPacket(packet);
-      const modeMatches = isExpectedLinkMode({ expected: this.mode, received: mode });
+      const modeMatch = stepExpectedLinkModeWithActions(initialExpectedLinkModeState(), {
+        kind: "link/expected-mode-gate",
+        expected: this.mode,
+        received: mode
+      });
+      const modeMatches = shouldMatchExpectedLinkMode(modeMatch.actions);
 
       let proofData = packet.data;
       let signallingBytes = new Uint8Array(0);
@@ -1090,13 +1146,18 @@ export class Link {
           : null;
 
       let signatureValid = false;
-      if (
-        shouldAttemptLinkProofCrypto({
+      const proofCrypto = stepAttemptLinkProofCryptoWithActions(
+        initialAttemptLinkProofCryptoState(),
+        {
+          kind: "link/attempt-proof-crypto-gate",
           modeMatches,
           layoutValid,
           bodyPresent: body !== null,
           peerPublicPresent: peerPublic !== null
-        }) &&
+        }
+      );
+      if (
+        shouldAttemptLinkProofCryptoNow(proofCrypto.actions) &&
         body !== null &&
         peerPublic !== null
       ) {
@@ -1165,8 +1226,14 @@ export class Link {
   }
 
   async handleRttPacket(packet: Packet): Promise<void> {
-    const canAccept = canAcceptLinkRtt({ status: this.status, initiator: this.initiator });
-    const plaintext = canAccept ? this.decrypt(packet.data) : null;
+    const rttAccept = stepAcceptLinkRttWithActions(initialAcceptLinkRttState(), {
+      kind: "link/accept-rtt-gate",
+      status: this.status,
+      initiator: this.initiator
+    });
+    const plaintext = shouldAcceptLinkRttNow(rttAccept.actions)
+      ? this.decrypt(packet.data)
+      : null;
     await this.applyLinkEstablishActions(
       stepLinkEstablishWithActions(
         initialLinkEstablishState({ initiator: this.initiator, status: this.status }),
@@ -1419,7 +1486,12 @@ export class Link {
     }
     if (shouldHandleLinkDataPlaintext(contextStepped.actions)) {
       const plaintext = this.decrypt(packet.data);
-      if (shouldDispatchLinkPlaintext(plaintext !== null) && plaintext !== null) {
+      if (shouldDispatchLinkPlaintextNow(
+        stepDispatchLinkPlaintextWithActions(initialDispatchLinkPlaintextState(), {
+          kind: "link/dispatch-plaintext-gate",
+          plaintextPresent: plaintext !== null
+        }).actions
+      ) && plaintext !== null) {
         this.callbacks.packet?.(plaintext, packet);
       }
       return;
@@ -1430,7 +1502,12 @@ export class Link {
   }
 
   identify(identity: Identity): void {
-    if (!canIdentifyOnLink({ status: this.status, initiator: this.initiator }) || identity === null) {
+    const identifyAllow = stepIdentifyOnLinkAllowWithActions(initialIdentifyOnLinkAllowState(), {
+      kind: "link/identify-allow-gate",
+      status: this.status,
+      initiator: this.initiator
+    });
+    if (!shouldAllowIdentifyOnLink(identifyAllow.actions) || identity === null) {
       return;
     }
 
@@ -1624,13 +1701,27 @@ export class Link {
   }
 
   registerOutgoingResource(resource: Resource): void {
-    if (shouldRegisterLinkResource(this.outgoingResourcesList.includes(resource))) {
+    const registerOutgoing = stepRegisterLinkResourceWithActions(
+      initialRegisterLinkResourceState(),
+      {
+        kind: "link/register-resource-gate",
+        alreadyPresent: this.outgoingResourcesList.includes(resource)
+      }
+    );
+    if (shouldRegisterLinkResourceNow(registerOutgoing.actions)) {
       this.outgoingResourcesList.push(resource);
     }
   }
 
   registerIncomingResource(resource: Resource): void {
-    if (shouldRegisterLinkResource(this.incomingResourcesList.includes(resource))) {
+    const registerIncoming = stepRegisterLinkResourceWithActions(
+      initialRegisterLinkResourceState(),
+      {
+        kind: "link/register-resource-gate",
+        alreadyPresent: this.incomingResourcesList.includes(resource)
+      }
+    );
+    if (shouldRegisterLinkResourceNow(registerIncoming.actions)) {
       this.incomingResourcesList.push(resource);
     }
   }
@@ -1755,13 +1846,15 @@ export class Link {
 
   async resendPacket(raw: Uint8Array, options: { createReceipt?: boolean } = {}): Promise<LinkSendContextResult | null> {
     const packet = Packet.decode(this.provider, raw);
-    if (
-      !canResendLinkPacket({
+    const resendAllow = stepResendLinkPacketAllowWithActions(
+      initialResendLinkPacketAllowState(),
+      {
+        kind: "link/resend-packet-allow-gate",
         packetDecoded: packet !== null,
         attachedInterfacePresent: this.attachedInterface !== null
-      }) ||
-      packet === null
-    ) {
+      }
+    );
+    if (!shouldAllowResendLinkPacket(resendAllow.actions) || packet === null) {
       return null;
     }
 
@@ -2008,7 +2101,12 @@ export class Link {
 
   private async handleResponsePacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (!shouldDispatchLinkPlaintext(plaintext !== null)) {
+    if (!shouldDispatchLinkPlaintextNow(
+        stepDispatchLinkPlaintextWithActions(initialDispatchLinkPlaintextState(), {
+          kind: "link/dispatch-plaintext-gate",
+          plaintextPresent: plaintext !== null
+        }).actions
+      )) {
       return;
     }
 
@@ -2057,7 +2155,12 @@ export class Link {
 
   private async handleChannelPacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (!shouldDispatchLinkPlaintext(plaintext !== null)) {
+    if (!shouldDispatchLinkPlaintextNow(
+        stepDispatchLinkPlaintextWithActions(initialDispatchLinkPlaintextState(), {
+          kind: "link/dispatch-plaintext-gate",
+          plaintextPresent: plaintext !== null
+        }).actions
+      )) {
       return;
     }
 
@@ -2066,7 +2169,12 @@ export class Link {
 
   private async handleResourceAdvertisementPacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (!shouldDispatchLinkPlaintext(plaintext !== null)) {
+    if (!shouldDispatchLinkPlaintextNow(
+        stepDispatchLinkPlaintextWithActions(initialDispatchLinkPlaintextState(), {
+          kind: "link/dispatch-plaintext-gate",
+          plaintextPresent: plaintext !== null
+        }).actions
+      )) {
       return;
     }
 
@@ -2129,7 +2237,12 @@ export class Link {
 
   private async handleResourceRequestPacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (!shouldDispatchLinkPlaintext(plaintext !== null)) {
+    if (!shouldDispatchLinkPlaintextNow(
+        stepDispatchLinkPlaintextWithActions(initialDispatchLinkPlaintextState(), {
+          kind: "link/dispatch-plaintext-gate",
+          plaintextPresent: plaintext !== null
+        }).actions
+      )) {
       return;
     }
 
@@ -2150,7 +2263,12 @@ export class Link {
 
   private async handleResourceHashmapUpdatePacket(packet: Packet): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (!shouldDispatchLinkPlaintext(plaintext !== null)) {
+    if (!shouldDispatchLinkPlaintextNow(
+        stepDispatchLinkPlaintextWithActions(initialDispatchLinkPlaintextState(), {
+          kind: "link/dispatch-plaintext-gate",
+          plaintextPresent: plaintext !== null
+        }).actions
+      )) {
       return;
     }
 
@@ -2179,7 +2297,12 @@ export class Link {
 
   private async handleResourceCancelPacket(packet: Packet, incoming: boolean): Promise<void> {
     const plaintext = this.decrypt(packet.data);
-    if (!shouldDispatchLinkPlaintext(plaintext !== null)) {
+    if (!shouldDispatchLinkPlaintextNow(
+        stepDispatchLinkPlaintextWithActions(initialDispatchLinkPlaintextState(), {
+          kind: "link/dispatch-plaintext-gate",
+          plaintextPresent: plaintext !== null
+        }).actions
+      )) {
       return;
     }
 

@@ -19,6 +19,10 @@ import {
   shouldHandleOutgoingResourceRequest,
   shouldIgnoreLinkResourceAdvertisement,
   shouldRegisterLinkResource,
+  initialRegisterLinkResourceState,
+  shouldRegisterLinkResourceNow,
+  shouldSkipRegisterLinkResource,
+  stepRegisterLinkResourceWithActions,
   shouldRejectLinkResourceAdvertisement,
   shouldRemoveIncomingLinkResourceConclude,
   shouldRemoveLinkResourceListIndex,
@@ -187,6 +191,16 @@ describe("protocol link resource accept", () => {
   it("plans unique resource register and conclude membership", () => {
     expect(shouldRegisterLinkResource(false)).toBe(true);
     expect(shouldRegisterLinkResource(true)).toBe(false);
+    const register = stepRegisterLinkResourceWithActions(initialRegisterLinkResourceState(), {
+      kind: "link/register-resource-gate",
+      alreadyPresent: false
+    });
+    expect(shouldRegisterLinkResourceNow(register.actions)).toBe(true);
+    const skip = stepRegisterLinkResourceWithActions(initialRegisterLinkResourceState(), {
+      kind: "link/register-resource-gate",
+      alreadyPresent: true
+    });
+    expect(shouldSkipRegisterLinkResource(skip.actions)).toBe(true);
     expect(
       planLinkResourceConclude({ outgoingIndex: 1, incomingIndex: -1 })
     ).toEqual({ removeOutgoingIndex: 1, removeIncomingIndex: null });

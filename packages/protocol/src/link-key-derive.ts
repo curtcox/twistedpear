@@ -3,6 +3,8 @@
  * ECDH itself stays at the adapter edge; this owns length selection + HKDF.
  * Derive conclusions leave via machine actions (no ad-hoc `deriveRnsLinkKey`
  * / `orderIndependentSharedSecret` reads beside the step).
+ * Mode-enabled / expected-mode gates conclude via machine actions (no ad-hoc
+ * `isLinkModeEnabled` / `isExpectedLinkMode` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import {
@@ -35,12 +37,133 @@ export function isLinkModeEnabled(mode: LinkKeyModeValue | number): boolean {
   return (LINK_ENABLED_MODES as ReadonlyArray<number>).includes(mode);
 }
 
+
+/**
+ * isLinkModeEnabled gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isLinkModeEnabled` reads beside
+ * the step).
+ */
+export type LinkModeEnabledState = Record<string, never>;
+
+export type LinkModeEnabledEvent =
+  | Event
+  | {
+      readonly kind: "link/mode-enabled-gate";
+      readonly mode: LinkKeyModeValue | number;
+    };
+
+export type LinkModeEnabledAction =
+  | { readonly kind: "enabled" }
+  | { readonly kind: "disabled" };
+
+export interface LinkModeEnabledStepResult {
+  readonly state: LinkModeEnabledState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkModeEnabledAction[];
+}
+
+export function initialLinkModeEnabledState(): LinkModeEnabledState {
+  return {};
+}
+
+export function stepLinkModeEnabledWithActions(
+  state: LinkModeEnabledState,
+  event: LinkModeEnabledEvent
+): LinkModeEnabledStepResult {
+  if (event.kind === "link/mode-enabled-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isLinkModeEnabled(event.mode) ? "enabled" : "disabled"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatLinkModeEnabled(
+  actions: ReadonlyArray<LinkModeEnabledAction>
+): boolean {
+  return actions.some((action) => action.kind === "enabled");
+}
+
+export function shouldTreatLinkModeDisabled(
+  actions: ReadonlyArray<LinkModeEnabledAction>
+): boolean {
+  return actions.some((action) => action.kind === "disabled");
+}
+
 /** Whether a received link-proof mode matches the expected session mode. */
 export function isExpectedLinkMode(input: {
   readonly expected: LinkKeyModeValue | number;
   readonly received: LinkKeyModeValue | number;
 }): boolean {
   return input.expected === input.received;
+}
+
+
+/**
+ * isExpectedLinkMode gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isExpectedLinkMode` reads beside
+ * the step).
+ */
+export type ExpectedLinkModeState = Record<string, never>;
+
+export type ExpectedLinkModeEvent =
+  | Event
+  | {
+      readonly kind: "link/expected-mode-gate";
+      readonly expected: LinkKeyModeValue | number;
+      readonly received: LinkKeyModeValue | number;
+    };
+
+export type ExpectedLinkModeAction =
+  | { readonly kind: "match" }
+  | { readonly kind: "mismatch" };
+
+export interface ExpectedLinkModeStepResult {
+  readonly state: ExpectedLinkModeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ExpectedLinkModeAction[];
+}
+
+export function initialExpectedLinkModeState(): ExpectedLinkModeState {
+  return {};
+}
+
+export function stepExpectedLinkModeWithActions(
+  state: ExpectedLinkModeState,
+  event: ExpectedLinkModeEvent
+): ExpectedLinkModeStepResult {
+  if (event.kind === "link/expected-mode-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isExpectedLinkMode({ expected: event.expected, received: event.received }) ? "match" : "mismatch"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldMatchExpectedLinkMode(
+  actions: ReadonlyArray<ExpectedLinkModeAction>
+): boolean {
+  return actions.some((action) => action.kind === "match");
+}
+
+export function shouldMismatchExpectedLinkMode(
+  actions: ReadonlyArray<ExpectedLinkModeAction>
+): boolean {
+  return actions.some((action) => action.kind === "mismatch");
 }
 
 export function linkDerivedKeyLength(mode: LinkKeyModeValue | number): number {

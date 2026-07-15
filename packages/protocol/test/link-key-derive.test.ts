@@ -18,6 +18,14 @@ import {
   initialDeriveRnsLinkKeyState,
   initialOrderIndependentSharedSecretState,
   isExpectedLinkMode,
+  initialExpectedLinkModeState,
+  initialLinkModeEnabledState,
+  shouldMatchExpectedLinkMode,
+  shouldMismatchExpectedLinkMode,
+  shouldTreatLinkModeDisabled,
+  shouldTreatLinkModeEnabled,
+  stepExpectedLinkModeWithActions,
+  stepLinkModeEnabledWithActions,
   isLinkModeEnabled,
   linkDerivedKeyLength,
   orderIndependentSharedSecret,
@@ -66,6 +74,30 @@ describe("protocol RNS HKDF / link key derive", () => {
         received: LinkKeyMode.MODE_AES128_CBC
       })
     ).toBe(false);
+
+    const enabled = stepLinkModeEnabledWithActions(initialLinkModeEnabledState(), {
+      kind: "link/mode-enabled-gate",
+      mode: LinkKeyMode.MODE_AES256_CBC
+    });
+    expect(shouldTreatLinkModeEnabled(enabled.actions)).toBe(true);
+    const disabled = stepLinkModeEnabledWithActions(initialLinkModeEnabledState(), {
+      kind: "link/mode-enabled-gate",
+      mode: LinkKeyMode.MODE_AES128_CBC
+    });
+    expect(shouldTreatLinkModeDisabled(disabled.actions)).toBe(true);
+
+    const match = stepExpectedLinkModeWithActions(initialExpectedLinkModeState(), {
+      kind: "link/expected-mode-gate",
+      expected: LinkKeyMode.MODE_AES256_CBC,
+      received: LinkKeyMode.MODE_AES256_CBC
+    });
+    expect(shouldMatchExpectedLinkMode(match.actions)).toBe(true);
+    const mismatch = stepExpectedLinkModeWithActions(initialExpectedLinkModeState(), {
+      kind: "link/expected-mode-gate",
+      expected: LinkKeyMode.MODE_AES256_CBC,
+      received: LinkKeyMode.MODE_AES128_CBC
+    });
+    expect(shouldMismatchExpectedLinkMode(mismatch.actions)).toBe(true);
   });
 
   it("derives link keys deterministically", () => {

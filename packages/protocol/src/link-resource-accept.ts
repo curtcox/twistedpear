@@ -2,6 +2,8 @@
  * Pure link inbound resource-advertisement acceptance planning.
  * Decrypt / unpack / app callbacks stay at the adapter edge.
  * Conclusions leave via machine actions (no ad-hoc `plan.kind` reads beside the step).
+ * Resource register membership concludes via machine actions (no ad-hoc
+ * `shouldRegisterLinkResource` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -251,6 +253,66 @@ export function shouldHandleIncomingResourceByHash(hashMatches: boolean): boolea
 /** Whether a link resource list should receive a new member (not already present). */
 export function shouldRegisterLinkResource(alreadyPresent: boolean): boolean {
   return !alreadyPresent;
+}
+
+
+/**
+ * shouldRegisterLinkResource gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldRegisterLinkResource` reads beside
+ * the step).
+ */
+export type RegisterLinkResourceState = Record<string, never>;
+
+export type RegisterLinkResourceEvent =
+  | Event
+  | {
+      readonly kind: "link/register-resource-gate";
+      readonly alreadyPresent: boolean;
+    };
+
+export type RegisterLinkResourceAction =
+  | { readonly kind: "register" }
+  | { readonly kind: "skip" };
+
+export interface RegisterLinkResourceStepResult {
+  readonly state: RegisterLinkResourceState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RegisterLinkResourceAction[];
+}
+
+export function initialRegisterLinkResourceState(): RegisterLinkResourceState {
+  return {};
+}
+
+export function stepRegisterLinkResourceWithActions(
+  state: RegisterLinkResourceState,
+  event: RegisterLinkResourceEvent
+): RegisterLinkResourceStepResult {
+  if (event.kind === "link/register-resource-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRegisterLinkResource(event.alreadyPresent) ? "register" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRegisterLinkResourceNow(
+  actions: ReadonlyArray<RegisterLinkResourceAction>
+): boolean {
+  return actions.some((action) => action.kind === "register");
+}
+
+export function shouldSkipRegisterLinkResource(
+  actions: ReadonlyArray<RegisterLinkResourceAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 export type LinkResourceConcludePlan = {

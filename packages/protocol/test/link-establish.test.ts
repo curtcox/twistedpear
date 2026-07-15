@@ -55,6 +55,42 @@ import {
   stepReuseActiveLinkWithActions,
   stepUpdateLinkKeepaliveAllowWithActions,
   stepUpdateLinkLastDataWithActions,
+  initialAcceptLinkOwnerPublicKeyState,
+  initialAcceptLinkRttState,
+  initialAttemptLinkProofCryptoState,
+  initialDispatchLinkPlaintextState,
+  initialIdentifyOnLinkAllowState,
+  initialPerformLinkHandshakeAllowState,
+  initialProveLinkAllowState,
+  initialResendLinkPacketAllowState,
+  initialValidateLinkProofAllowState,
+  shouldAcceptLinkOwnerPublicKeyNow,
+  shouldAcceptLinkRttNow,
+  shouldAllowIdentifyOnLink,
+  shouldAllowPerformLinkHandshake,
+  shouldAllowProveLink,
+  shouldAllowResendLinkPacket,
+  shouldAllowValidateLinkProof,
+  shouldAttemptLinkProofCryptoNow,
+  shouldDenyIdentifyOnLink,
+  shouldDenyPerformLinkHandshake,
+  shouldDenyProveLink,
+  shouldDenyResendLinkPacket,
+  shouldDenyValidateLinkProof,
+  shouldDispatchLinkPlaintextNow,
+  shouldRejectLinkOwnerPublicKey,
+  shouldSkipLinkPlaintextDispatch,
+  shouldSkipLinkProofCrypto,
+  shouldSkipLinkRttAccept,
+  stepAcceptLinkOwnerPublicKeyWithActions,
+  stepAcceptLinkRttWithActions,
+  stepAttemptLinkProofCryptoWithActions,
+  stepDispatchLinkPlaintextWithActions,
+  stepIdentifyOnLinkAllowWithActions,
+  stepPerformLinkHandshakeAllowWithActions,
+  stepProveLinkAllowWithActions,
+  stepResendLinkPacketAllowWithActions,
+  stepValidateLinkProofAllowWithActions,
   canPerformLinkHandshake,
   canProveLink,
   canResendLinkPacket,
@@ -443,6 +479,140 @@ describe("protocol link establish", () => {
       channelPresent: true
     });
     expect(shouldReuseLinkChannel(reuseCh.actions)).toBe(true);
+  });
+
+
+  it("concludes handshake / prove / validate / identify / rtt / plaintext / resend via actions", () => {
+    const handshake = stepPerformLinkHandshakeAllowWithActions(
+      initialPerformLinkHandshakeAllowState(),
+      {
+        kind: "link/perform-handshake-allow-gate",
+        status: LinkStatus.PENDING,
+        privateKeyPresent: true,
+        peerPublicKeyPresent: true
+      }
+    );
+    expect(shouldAllowPerformLinkHandshake(handshake.actions)).toBe(true);
+    const handshakeDeny = stepPerformLinkHandshakeAllowWithActions(
+      initialPerformLinkHandshakeAllowState(),
+      {
+        kind: "link/perform-handshake-allow-gate",
+        status: LinkStatus.HANDSHAKE,
+        privateKeyPresent: true,
+        peerPublicKeyPresent: true
+      }
+    );
+    expect(shouldDenyPerformLinkHandshake(handshakeDeny.actions)).toBe(true);
+
+    const prove = stepProveLinkAllowWithActions(initialProveLinkAllowState(), {
+      kind: "link/prove-allow-gate",
+      ownerPresent: true,
+      publicKeyPresent: true,
+      ownerIdentityPresent: true
+    });
+    expect(shouldAllowProveLink(prove.actions)).toBe(true);
+    const proveDeny = stepProveLinkAllowWithActions(initialProveLinkAllowState(), {
+      kind: "link/prove-allow-gate",
+      ownerPresent: true,
+      publicKeyPresent: true,
+      ownerIdentityPresent: false
+    });
+    expect(shouldDenyProveLink(proveDeny.actions)).toBe(true);
+
+    const ownerKey = stepAcceptLinkOwnerPublicKeyWithActions(
+      initialAcceptLinkOwnerPublicKeyState(),
+      { kind: "link/accept-owner-public-key-gate", splitOk: true }
+    );
+    expect(shouldAcceptLinkOwnerPublicKeyNow(ownerKey.actions)).toBe(true);
+    const ownerKeyReject = stepAcceptLinkOwnerPublicKeyWithActions(
+      initialAcceptLinkOwnerPublicKeyState(),
+      { kind: "link/accept-owner-public-key-gate", splitOk: false }
+    );
+    expect(shouldRejectLinkOwnerPublicKey(ownerKeyReject.actions)).toBe(true);
+
+    const validate = stepValidateLinkProofAllowWithActions(initialValidateLinkProofAllowState(), {
+      kind: "link/validate-proof-allow-gate",
+      status: LinkStatus.PENDING,
+      initiator: true
+    });
+    expect(shouldAllowValidateLinkProof(validate.actions)).toBe(true);
+    const validateDeny = stepValidateLinkProofAllowWithActions(
+      initialValidateLinkProofAllowState(),
+      {
+        kind: "link/validate-proof-allow-gate",
+        status: LinkStatus.PENDING,
+        initiator: true,
+        destinationPresent: false
+      }
+    );
+    expect(shouldDenyValidateLinkProof(validateDeny.actions)).toBe(true);
+
+    const crypto = stepAttemptLinkProofCryptoWithActions(initialAttemptLinkProofCryptoState(), {
+      kind: "link/attempt-proof-crypto-gate",
+      modeMatches: true,
+      layoutValid: true,
+      bodyPresent: true,
+      peerPublicPresent: true
+    });
+    expect(shouldAttemptLinkProofCryptoNow(crypto.actions)).toBe(true);
+    const cryptoSkip = stepAttemptLinkProofCryptoWithActions(initialAttemptLinkProofCryptoState(), {
+      kind: "link/attempt-proof-crypto-gate",
+      modeMatches: false,
+      layoutValid: true,
+      bodyPresent: true,
+      peerPublicPresent: true
+    });
+    expect(shouldSkipLinkProofCrypto(cryptoSkip.actions)).toBe(true);
+
+    const rtt = stepAcceptLinkRttWithActions(initialAcceptLinkRttState(), {
+      kind: "link/accept-rtt-gate",
+      status: LinkStatus.ACTIVE,
+      initiator: false
+    });
+    expect(shouldAcceptLinkRttNow(rtt.actions)).toBe(true);
+    const rttSkip = stepAcceptLinkRttWithActions(initialAcceptLinkRttState(), {
+      kind: "link/accept-rtt-gate",
+      status: LinkStatus.ACTIVE,
+      initiator: true
+    });
+    expect(shouldSkipLinkRttAccept(rttSkip.actions)).toBe(true);
+
+    const identify = stepIdentifyOnLinkAllowWithActions(initialIdentifyOnLinkAllowState(), {
+      kind: "link/identify-allow-gate",
+      status: LinkStatus.ACTIVE,
+      initiator: true
+    });
+    expect(shouldAllowIdentifyOnLink(identify.actions)).toBe(true);
+    const identifyDeny = stepIdentifyOnLinkAllowWithActions(initialIdentifyOnLinkAllowState(), {
+      kind: "link/identify-allow-gate",
+      status: LinkStatus.ACTIVE,
+      initiator: false
+    });
+    expect(shouldDenyIdentifyOnLink(identifyDeny.actions)).toBe(true);
+
+    const plaintext = stepDispatchLinkPlaintextWithActions(initialDispatchLinkPlaintextState(), {
+      kind: "link/dispatch-plaintext-gate",
+      plaintextPresent: true
+    });
+    expect(shouldDispatchLinkPlaintextNow(plaintext.actions)).toBe(true);
+    const plaintextSkip = stepDispatchLinkPlaintextWithActions(
+      initialDispatchLinkPlaintextState(),
+      { kind: "link/dispatch-plaintext-gate", plaintextPresent: false }
+    );
+    expect(shouldSkipLinkPlaintextDispatch(plaintextSkip.actions)).toBe(true);
+
+    const resend = stepResendLinkPacketAllowWithActions(initialResendLinkPacketAllowState(), {
+      kind: "link/resend-packet-allow-gate",
+      packetDecoded: true,
+      attachedInterfacePresent: true
+    });
+    expect(shouldAllowResendLinkPacket(resend.actions)).toBe(true);
+    const resendDeny = stepResendLinkPacketAllowWithActions(initialResendLinkPacketAllowState(), {
+      kind: "link/resend-packet-allow-gate",
+      packetDecoded: true,
+      attachedInterfacePresent: false
+    });
+    expect(shouldDenyResendLinkPacket(resendDeny.actions)).toBe(true);
   });
 
   it("reuses present ACTIVE links", () => {
