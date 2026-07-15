@@ -243,8 +243,93 @@ export function planChannelSend(input: {
 }
 
 /**
+ * Channel-send-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planChannelSend` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepChannelSendWithActions}.
+ */
+export type ChannelSendPlanState = Record<string, never>;
+
+export type ChannelSendPlanEvent =
+  | Event
+  | {
+      readonly kind: "channel/send-plan-gate";
+      readonly ready: boolean;
+      readonly packedLength: number | null;
+      readonly mdu: number;
+    };
+
+export type ChannelSendPlanAction = { readonly kind: ChannelSendPlan };
+
+export interface ChannelSendPlanStepResult {
+  readonly state: ChannelSendPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelSendPlanAction[];
+}
+
+export function initialChannelSendPlanState(): ChannelSendPlanState {
+  return {};
+}
+
+export function stepChannelSendPlanWithActions(
+  state: ChannelSendPlanState,
+  event: ChannelSendPlanEvent
+): ChannelSendPlanStepResult {
+  if (event.kind === "channel/send-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planChannelSend({
+            ready: event.ready,
+            packedLength: event.packedLength,
+            mdu: event.mdu
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the send plan from actions; null when empty. */
+export function channelSendPlanFromActions(
+  actions: ReadonlyArray<ChannelSendPlanAction>
+): ChannelSendPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "proceed" ||
+      entry.kind === "link-not-ready" ||
+      entry.kind === "too-big"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldProceedChannelSendPlan(
+  actions: ReadonlyArray<ChannelSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
+export function shouldRejectChannelSendPlanLinkNotReady(
+  actions: ReadonlyArray<ChannelSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "link-not-ready");
+}
+
+export function shouldRejectChannelSendPlanTooBig(
+  actions: ReadonlyArray<ChannelSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "too-big");
+}
+
+/**
  * Channel send gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepChannelSendPlanWithActions}
+ * (`proceed`|`link-not-ready`|`too-big`).
  */
 export type ChannelSendState = Record<string, never>;
 
@@ -257,6 +342,11 @@ export type ChannelSendEvent =
       readonly mdu: number;
     };
 
+/**
+ * Adapter throws or continues only from these actions.
+ * Plan nested via {@link stepChannelSendPlanWithActions}
+ * (`proceed`|`link-not-ready`|`too-big`).
+ */
 export type ChannelSendAction = { readonly kind: ChannelSendPlan };
 
 export interface ChannelSendStepResult {
@@ -300,11 +390,16 @@ function stepChannelSendInner(
   event: ChannelSendEvent
 ): ChannelSendStepResult {
   if (event.kind === "channel/send-gate") {
-    const plan = planChannelSend({
+    const planActions = stepChannelSendPlanWithActions(initialChannelSendPlanState(), {
+      kind: "channel/send-plan-gate",
       ready: event.ready,
       packedLength: event.packedLength,
       mdu: event.mdu
-    });
+    }).actions;
+    const plan = channelSendPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 

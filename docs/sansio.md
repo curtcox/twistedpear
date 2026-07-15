@@ -122,6 +122,14 @@
 > use-plaintext|reject|encrypt-with-identity — nested under destination-encrypt;
 > **`stepPacketFromFieldsPlanWithActions`**:
 > ok|bad-*|header2-missing-transport-id — nested under packet-from-fields),
+> **Channel MSGTYPE registration / envelope unpack / pack / send plans** (via
+> **`stepChannelMessageTypeRegistrationPlanWithActions`**:
+> ok|missing-msgtype|system-reserved — nested under
+> channel-message-type-registration; **`stepChannelEnvelopeUnpackPlanWithActions`**:
+> ok|missing-raw|truncated|not-registered — nested under channel-envelope-unpack;
+> **`stepChannelEnvelopePackPlanWithActions`**: ok|missing-message — nested under
+> channel-envelope-pack; **`stepChannelSendPlanWithActions`**:
+> proceed|link-not-ready|too-big — nested under channel-send),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -352,6 +360,16 @@
 > **`stepPacketFromFieldsPlanWithActions`**:
 > ok|bad-*|header2-missing-transport-id
 > (nested under packet-from-fields) /
+> **`stepChannelMessageTypeRegistrationPlanWithActions`**:
+> ok|missing-msgtype|system-reserved
+> (nested under channel-message-type-registration) /
+> **`stepChannelEnvelopeUnpackPlanWithActions`**:
+> ok|missing-raw|truncated|not-registered
+> (nested under channel-envelope-unpack) /
+> **`stepChannelEnvelopePackPlanWithActions`**: ok|missing-message
+> (nested under channel-envelope-pack) /
+> **`stepChannelSendPlanWithActions`**: proceed|link-not-ready|too-big
+> (nested under channel-send) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -706,7 +724,11 @@
 > use-fields|reject), **envelope pack/unpack gates**, **MSGTYPE
 > registration**, and **channel send** (via **`stepChannelEnvelopePackWithActions`** /
 > **`stepChannelEnvelopeUnpackWithActions`** / **`stepChannelMessageTypeRegistrationWithActions`** /
-> **`stepChannelSendWithActions`**) are pure protocol leaves; `Channel` adapts them.
+> **`stepChannelSendWithActions`**; plans nested via
+> **`stepChannelEnvelopePackPlanWithActions`** /
+> **`stepChannelEnvelopeUnpackPlanWithActions`** /
+> **`stepChannelMessageTypeRegistrationPlanWithActions`** /
+> **`stepChannelSendPlanWithActions`**) are pure protocol leaves; `Channel` adapts them.
 > **Resource assemble / proof-accept** (via **`stepResourceAssembleWithActions`** /
 > **`stepResourceProofAcceptWithActions`**) are pure protocol leaves; `Resource`
 > adapts them. **LXMF delivery sizes / MDU max-content** and
@@ -946,7 +968,9 @@
 > encrypt|plaintext) live in protocol; `Link.receive` / `sendContext` adapt them.
 > **`planChannelMessageTypeRegistration`** (via
 > **`stepChannelMessageTypeRegistrationWithActions`**: ok / missing-msgtype /
-> system-reserved) lives in protocol; `Channel.registerMessageType` adapts it.
+> system-reserved; plan nested via
+> **`stepChannelMessageTypeRegistrationPlanWithActions`**:
+> ok|missing-msgtype|system-reserved) lives in protocol; `Channel.registerMessageType` adapts it.
 > **`canRelayTransportPacket`** (via **`stepRelayTransportPacketAllowWithActions`**:
 > allow|deny), **`shouldRecordLinkRelayTableEntry`** (via
 > **`stepRecordLinkRelayTableEntryWithActions`**: record|skip),
@@ -1028,7 +1052,8 @@
 > nested via **`stepLxmfSendMethodPlanWithActions`**:
 > opportunistic|direct|propagated|reject-unpacked|reject-unsupported) lives in
 > protocol; `LXMFRouter.send` adapts it. **`planChannelSend`** (via
-> **`stepChannelSendWithActions`**: proceed / link-not-ready / too-big) lives in
+> **`stepChannelSendWithActions`**: proceed / link-not-ready / too-big; plan nested via
+> **`stepChannelSendPlanWithActions`**: proceed|link-not-ready|too-big) lives in
 > protocol; `Channel.send` adapts it.
 > **`canPerformLinkHandshake`** (via **`stepPerformLinkHandshakeAllowWithActions`**: allow|deny), **`canProveLink`** (via **`stepProveLinkAllowWithActions`**: allow|deny), **`canAcceptLinkRequestOwner`** (via **`stepAcceptLinkRequestOwnerWithActions`**: accept|reject),
 > **`planLinkAppRequest`** (via **`stepLinkAppRequestWithActions`**: send / reject),
@@ -1076,7 +1101,9 @@
 > ok|bad-*|header2-missing-transport-id) lives in protocol; `Packet.fromFields`
 > adapts it.
 > **`planChannelEnvelopeUnpack`** (via **`stepChannelEnvelopeUnpackWithActions`**:
-> ok / missing-raw / truncate / not-registered) lives in protocol; Channel
+> ok / missing-raw / truncate / not-registered; plan nested via
+> **`stepChannelEnvelopeUnpackPlanWithActions`**:
+> ok|missing-raw|truncated|not-registered) lives in protocol; Channel
 > `Envelope.unpack` adapts it. **`planLxmfPropagatedPackPrep`** (via
 > **`stepLxmfPropagatedPackPrepWithActions`**: skip / proceed /
 > reject-missing-identity / reject-missing-timestamp; plan nested via
@@ -1160,7 +1187,8 @@
 > **`stepIndexOfPendingLinkAppRequestWithActions`**: use-index|miss),
 > **`planLinkRequestResponderMtu`**, and
 > **`planChannelEnvelopePack`** (via **`stepChannelEnvelopePackWithActions`**: ok /
-> missing-message) live in protocol; `Link` and `Channel` adapt them.
+> missing-message; plan nested via **`stepChannelEnvelopePackPlanWithActions`**:
+> ok|missing-message) live in protocol; `Link` and `Channel` adapt them.
 > **`planOutboundReceiptOutcome`** (via **`stepOutboundReceiptWithActions`**:
 > none / keep-receipt / fail-and-drop-receipt) /
 > **`planPacketReceiptProofIngress`** (via
@@ -1732,11 +1760,20 @@
 > continues only from those actions (no ad-hoc `isValidDestinationIdentityBinding` /
 > `planPacketFromFields` / `plan ===` reads beside the step).
 > **`stepChannelMessageTypeRegistrationWithActions`** emits `ok` /
-> `missing-msgtype` / `system-reserved`; **`stepChannelEnvelopeUnpackWithActions`**
-> emits `ok` / `missing-raw` / `truncate` / `not-registered`;
-> **`stepChannelEnvelopePackWithActions`** emits `ok` / `missing-message`;
+> `missing-msgtype` / `system-reserved` (plan nested via
+> **`stepChannelMessageTypeRegistrationPlanWithActions`**:
+> `ok`|`missing-msgtype`|`system-reserved`); **`stepChannelEnvelopeUnpackWithActions`**
+> emits `ok` / `missing-raw` / `truncate` / `not-registered` (plan nested via
+> **`stepChannelEnvelopeUnpackPlanWithActions`**:
+> `ok`|`missing-raw`|`truncated`|`not-registered`);
+> **`stepChannelEnvelopePackWithActions`** emits `ok` / `missing-message` (plan nested via
+> **`stepChannelEnvelopePackPlanWithActions`**: `ok`|`missing-message`);
 > **`stepChannelSendWithActions`** emits `proceed` / `link-not-ready` /
-> `too-big`; `Channel` register/pack/unpack/send apply only from those actions.
+> `too-big` (plan nested via **`stepChannelSendPlanWithActions`**:
+> `proceed`|`link-not-ready`|`too-big`); `Channel` register/pack/unpack/send apply only
+> from those actions (no ad-hoc `planChannelMessageTypeRegistration` /
+> `planChannelEnvelopeUnpack` / `planChannelEnvelopePack` / `planChannelSend` /
+> `plan ===` reads beside the step).
 > **`stepResourceAssembleWithActions`** emits `complete` / `corrupt`;
 > **`stepCommitResourceAssemblePayloadWithActions`** emits `commit`|`skip`;
 > **`stepResourceCompleteWithActions`** emits `complete`|`incomplete`;
@@ -1752,8 +1789,7 @@
 > **`stepAcceptIncomingResourceAdvertisementWithActions`** emits
 > `accept`|`skip`; `Resource` assemble/validateProof/transfer gates apply only
 > from those actions (no ad-hoc
-> `planChannelMessageTypeRegistration` / `planChannelEnvelopeUnpack` /
-> `planChannelEnvelopePack` / `planChannelSend` / `planResourceAssembleOutcome` /
+> `planResourceAssembleOutcome` /
 > `shouldCommitResourceAssemblePayload` / `planResourceProofAccept` /
 > `canResourceContinueTransfer` /
 > `canReceiveResourcePart` / `canRequestResourceNext` /
@@ -2051,7 +2087,7 @@
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / lxmf-receipt-send-plan / lxmf-signature-outcome-plan / announce-validate-outcome-plan / announce-build-plan / identity-decrypt-outcome-plan / identity-ratchet-lookup-plan / identity-recall-plan / identity-recall-app-data-plan / destination-construction-plan / destination-decrypt-plan / destination-encrypt-plan / packet-from-fields-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / lxmf-receipt-send-plan / lxmf-signature-outcome-plan / announce-validate-outcome-plan / announce-build-plan / identity-decrypt-outcome-plan / identity-ratchet-lookup-plan / identity-recall-plan / identity-recall-app-data-plan / destination-construction-plan / destination-decrypt-plan / destination-encrypt-plan / packet-from-fields-plan / channel-message-type-registration-plan / channel-envelope-unpack-plan / channel-envelope-pack-plan / channel-send-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate /
 > announce-validate-outcome-plan / announce-build / announce-build-plan /
@@ -2064,8 +2100,10 @@
 > destination-construction / destination-construction-plan / destination-decrypt /
 > destination-decrypt-plan / destination-encrypt / destination-encrypt-plan /
 > packet-from-fields / packet-from-fields-plan /
-> channel-message-type-registration /
-> channel-envelope-unpack / channel-envelope-pack / channel-send /
+> channel-message-type-registration / channel-message-type-registration-plan /
+> channel-envelope-unpack / channel-envelope-unpack-plan /
+> channel-envelope-pack / channel-envelope-pack-plan /
+> channel-send / channel-send-plan /
 > emplace-channel-envelope / accept-channel-sequence /
 > drain-channel-ring-index / register-channel-message-handler /
 > stop-channel-handler-fanout / emit-channel-immediate-delivery /
@@ -2171,6 +2209,8 @@
 > identity-recall-plan / identity-recall-app-data-plan /
 > destination-construction-plan / destination-decrypt-plan /
 > destination-encrypt-plan / packet-from-fields-plan /
+> channel-message-type-registration-plan / channel-envelope-unpack-plan /
+> channel-envelope-pack-plan / channel-send-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /

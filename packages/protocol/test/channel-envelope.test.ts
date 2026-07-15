@@ -4,13 +4,20 @@ import {
   CHANNEL_SEQ_MODULUS,
   ChannelMessageState,
   channelEnvelopeFieldsFromActions,
+  channelEnvelopePackPlanFromActions,
+  channelEnvelopeUnpackPlanFromActions,
+  channelMessageHandlerUnregisterIndex,
   channelMessageStateFromActions,
   channelMessageStateFromPacketReceipt,
+  channelMessageTypeRegistrationPlanFromActions,
   channelPayloadMdu,
+  initialChannelEnvelopePackPlanState,
   initialChannelEnvelopePackState,
+  initialChannelEnvelopeUnpackPlanState,
   initialChannelEnvelopeUnpackState,
   initialChannelMessageHandlerUnregisterState,
   initialChannelMessageStateFromPacketReceiptState,
+  initialChannelMessageTypeRegistrationPlanState,
   initialChannelMessageTypeRegistrationState,
   initialEmitChannelImmediateDeliveryState,
   initialPackChannelEnvelopeState,
@@ -25,19 +32,28 @@ import {
   planChannelEnvelopeUnpack,
   planChannelMessageTypeRegistration,
   planUnregisterChannelMessageHandler,
-  channelMessageHandlerUnregisterIndex,
+  shouldContinueChannelHandlerFanout,
   shouldEmitChannelImmediateDelivery,
   shouldEmitChannelImmediateDeliveryNow,
   shouldProceedChannelEnvelopePack,
+  shouldProceedChannelEnvelopePackPlan,
   shouldProceedChannelEnvelopeUnpack,
+  shouldProceedChannelEnvelopeUnpackPlan,
   shouldProceedChannelMessageTypeRegistration,
+  shouldProceedChannelMessageTypeRegistrationPlan,
   shouldRegisterChannelMessageHandler,
   shouldRegisterChannelMessageHandlerNow,
   shouldRejectChannelEnvelopePackMissingMessage,
+  shouldRejectChannelEnvelopePackPlanMissingMessage,
   shouldRejectChannelEnvelopeUnpackMissingRaw,
   shouldRejectChannelEnvelopeUnpackNotRegistered,
+  shouldRejectChannelEnvelopeUnpackPlanMissingRaw,
+  shouldRejectChannelEnvelopeUnpackPlanNotRegistered,
+  shouldRejectChannelEnvelopeUnpackPlanTruncate,
   shouldRejectChannelEnvelopeUnpackTruncate,
   shouldRejectChannelMessageTypeMissingMsgtype,
+  shouldRejectChannelMessageTypeRegistrationPlanMissingMsgtype,
+  shouldRejectChannelMessageTypeRegistrationPlanSystemReserved,
   shouldRejectChannelMessageTypeSystemReserved,
   shouldRejectPackChannelEnvelope,
   shouldRejectUnpackChannelEnvelope,
@@ -46,15 +62,17 @@ import {
   shouldSkipRegisterChannelMessageHandler,
   shouldStopChannelHandlerFanout,
   shouldStopChannelHandlerFanoutNow,
-  shouldContinueChannelHandlerFanout,
   shouldUnregisterChannelMessageHandler,
   shouldUseChannelMessageStateFromPacketReceipt,
   shouldUsePackChannelEnvelope,
   shouldUseUnpackChannelEnvelope,
+  stepChannelEnvelopePackPlanWithActions,
   stepChannelEnvelopePackWithActions,
+  stepChannelEnvelopeUnpackPlanWithActions,
   stepChannelEnvelopeUnpackWithActions,
   stepChannelMessageHandlerUnregisterWithActions,
   stepChannelMessageStateFromPacketReceiptWithActions,
+  stepChannelMessageTypeRegistrationPlanWithActions,
   stepChannelMessageTypeRegistrationWithActions,
   stepEmitChannelImmediateDeliveryWithActions,
   stepPackChannelEnvelopeWithActions,
@@ -331,6 +349,109 @@ describe("protocol channel envelope", () => {
     });
     expect(ok.actions).toEqual([{ kind: "ok" }]);
     expect(shouldProceedChannelEnvelopePack(ok.actions)).toBe(true);
+  });
+
+  it("emits channel MSGTYPE/envelope pack-unpack-plan actions from PlanWithActions", () => {
+    const missingMsgtype = stepChannelMessageTypeRegistrationPlanWithActions(
+      initialChannelMessageTypeRegistrationPlanState(),
+      {
+        kind: "channel/message-type-registration-plan-gate",
+        msgType: undefined,
+        isSystemType: false
+      }
+    );
+    expect(shouldRejectChannelMessageTypeRegistrationPlanMissingMsgtype(missingMsgtype.actions)).toBe(
+      true
+    );
+    expect(channelMessageTypeRegistrationPlanFromActions(missingMsgtype.actions)).toBe(
+      "missing-msgtype"
+    );
+
+    const reserved = stepChannelMessageTypeRegistrationPlanWithActions(
+      initialChannelMessageTypeRegistrationPlanState(),
+      {
+        kind: "channel/message-type-registration-plan-gate",
+        msgType: 0xf000,
+        isSystemType: false
+      }
+    );
+    expect(shouldRejectChannelMessageTypeRegistrationPlanSystemReserved(reserved.actions)).toBe(
+      true
+    );
+
+    const regOk = stepChannelMessageTypeRegistrationPlanWithActions(
+      initialChannelMessageTypeRegistrationPlanState(),
+      {
+        kind: "channel/message-type-registration-plan-gate",
+        msgType: 0x0100,
+        isSystemType: false
+      }
+    );
+    expect(shouldProceedChannelMessageTypeRegistrationPlan(regOk.actions)).toBe(true);
+    expect(channelMessageTypeRegistrationPlanFromActions(regOk.actions)).toBe("ok");
+
+    const missingRaw = stepChannelEnvelopeUnpackPlanWithActions(
+      initialChannelEnvelopeUnpackPlanState(),
+      {
+        kind: "channel/envelope-unpack-plan-gate",
+        rawPresent: false,
+        framingOk: true,
+        factoryRegistered: true
+      }
+    );
+    expect(shouldRejectChannelEnvelopeUnpackPlanMissingRaw(missingRaw.actions)).toBe(true);
+    expect(channelEnvelopeUnpackPlanFromActions(missingRaw.actions)).toBe("missing-raw");
+
+    const truncated = stepChannelEnvelopeUnpackPlanWithActions(
+      initialChannelEnvelopeUnpackPlanState(),
+      {
+        kind: "channel/envelope-unpack-plan-gate",
+        rawPresent: true,
+        framingOk: false,
+        factoryRegistered: true
+      }
+    );
+    expect(shouldRejectChannelEnvelopeUnpackPlanTruncate(truncated.actions)).toBe(true);
+
+    const notRegistered = stepChannelEnvelopeUnpackPlanWithActions(
+      initialChannelEnvelopeUnpackPlanState(),
+      {
+        kind: "channel/envelope-unpack-plan-gate",
+        rawPresent: true,
+        framingOk: true,
+        factoryRegistered: false
+      }
+    );
+    expect(shouldRejectChannelEnvelopeUnpackPlanNotRegistered(notRegistered.actions)).toBe(true);
+
+    const unpackOk = stepChannelEnvelopeUnpackPlanWithActions(
+      initialChannelEnvelopeUnpackPlanState(),
+      {
+        kind: "channel/envelope-unpack-plan-gate",
+        rawPresent: true,
+        framingOk: true,
+        factoryRegistered: true
+      }
+    );
+    expect(shouldProceedChannelEnvelopeUnpackPlan(unpackOk.actions)).toBe(true);
+    expect(channelEnvelopeUnpackPlanFromActions(unpackOk.actions)).toBe("ok");
+
+    const packMissing = stepChannelEnvelopePackPlanWithActions(
+      initialChannelEnvelopePackPlanState(),
+      {
+        kind: "channel/envelope-pack-plan-gate",
+        messagePresent: false
+      }
+    );
+    expect(shouldRejectChannelEnvelopePackPlanMissingMessage(packMissing.actions)).toBe(true);
+    expect(channelEnvelopePackPlanFromActions(packMissing.actions)).toBe("missing-message");
+
+    const packOk = stepChannelEnvelopePackPlanWithActions(initialChannelEnvelopePackPlanState(), {
+      kind: "channel/envelope-pack-plan-gate",
+      messagePresent: true
+    });
+    expect(shouldProceedChannelEnvelopePackPlan(packOk.actions)).toBe(true);
+    expect(channelEnvelopePackPlanFromActions(packOk.actions)).toBe("ok");
   });
 
   it("plans channel message-handler membership", () => {

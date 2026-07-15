@@ -23,6 +23,7 @@ import {
   initialChannelOutletTransmitState,
   initialChannelPacketTimeoutSecondsState,
   initialChannelPacketTimeoutState,
+  initialChannelSendPlanState,
   initialChannelSendState,
   initialChannelTxEnvelopeOpState,
   initialChannelTxReceiptTimeoutRefreshState,
@@ -37,6 +38,7 @@ import {
   planChannelSend,
   planChannelTxEnvelopeOp,
   planChannelTxReceiptTimeoutRefresh,
+  channelSendPlanFromActions,
   shouldAcceptChannelOutletTransmit,
   shouldAllowChannelSend,
   shouldApplyChannelPacketReceiptTimeout,
@@ -54,9 +56,12 @@ import {
   shouldMissChannelTxEnvelopeIndex,
   shouldMissChannelTxEnvelopeOp,
   shouldProceedChannelSend,
+  shouldProceedChannelSendPlan,
   shouldProcessChannelTxEnvelopeOp,
   shouldRejectChannelOutletTransmit,
   shouldRejectChannelSendLinkNotReady,
+  shouldRejectChannelSendPlanLinkNotReady,
+  shouldRejectChannelSendPlanTooBig,
   shouldRejectChannelSendTooBig,
   shouldReplaceChannelResentPacket,
   shouldReplaceChannelResentPacketNow,
@@ -85,6 +90,7 @@ import {
   stepChannelOutletTransmitWithActions,
   stepChannelPacketTimeoutSecondsWithActions,
   stepChannelPacketTimeoutWithActions,
+  stepChannelSendPlanWithActions,
   stepChannelSendWithActions,
   stepChannelTxEnvelopeOpWithActions,
   stepChannelTxReceiptTimeoutRefreshWithActions,
@@ -288,6 +294,35 @@ describe("protocol channel window", () => {
     });
     expect(proceed.actions).toEqual([{ kind: "proceed" }]);
     expect(shouldProceedChannelSend(proceed.actions)).toBe(true);
+  });
+
+  it("emits channel send-plan actions from PlanWithActions", () => {
+    const notReady = stepChannelSendPlanWithActions(initialChannelSendPlanState(), {
+      kind: "channel/send-plan-gate",
+      ready: false,
+      packedLength: null,
+      mdu: 100
+    });
+    expect(shouldRejectChannelSendPlanLinkNotReady(notReady.actions)).toBe(true);
+    expect(channelSendPlanFromActions(notReady.actions)).toBe("link-not-ready");
+
+    const tooBig = stepChannelSendPlanWithActions(initialChannelSendPlanState(), {
+      kind: "channel/send-plan-gate",
+      ready: true,
+      packedLength: 200,
+      mdu: 100
+    });
+    expect(shouldRejectChannelSendPlanTooBig(tooBig.actions)).toBe(true);
+    expect(channelSendPlanFromActions(tooBig.actions)).toBe("too-big");
+
+    const proceed = stepChannelSendPlanWithActions(initialChannelSendPlanState(), {
+      kind: "channel/send-plan-gate",
+      ready: true,
+      packedLength: 50,
+      mdu: 100
+    });
+    expect(shouldProceedChannelSendPlan(proceed.actions)).toBe(true);
+    expect(channelSendPlanFromActions(proceed.actions)).toBe("proceed");
   });
 
   it("gates outlet transmit results", () => {
