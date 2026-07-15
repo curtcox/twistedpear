@@ -106,6 +106,7 @@ import {
   initialLinkEstablishState,
   initialLinkProofValidateState,
   initialLinkRegisterListState,
+  initialRegisterLinkMemberState,
   initialLinkTokenAccessState,
   initialLinkUnregisterMembershipState,
   initialLinkValidateRequestState,
@@ -157,6 +158,7 @@ import {
   shouldProceedLinkValidateRequest,
   shouldRegisterLinkActive,
   shouldRegisterLinkMember,
+  shouldRegisterLinkMemberNow,
   shouldRegisterLinkPending,
   shouldRejectLinkAppRequest,
   shouldRejectLinkAppRequestInboundTooBig,
@@ -175,6 +177,7 @@ import {
   shouldSendLinkAppRequest,
   shouldSendLinkAppRequestInboundResponse,
   shouldSendLinkAppRequestResponse,
+  shouldSkipRegisterLinkMember,
   shouldTeardownLinkEstablish,
   shouldTeardownLinkFromRtt,
   shouldUnregisterLinkAppRequestTransmit,
@@ -191,6 +194,7 @@ import {
   stepLinkEstablishWithActions,
   stepLinkProofValidateWithActions,
   stepLinkRegisterListWithActions,
+  stepRegisterLinkMemberWithActions,
   stepLinkTokenAccessWithActions,
   stepLinkUnregisterMembershipWithActions,
   stepLinkValidateRequestWithActions,
@@ -1330,6 +1334,20 @@ describe("protocol link establish", () => {
     expect(planLinkRegisterList(false)).toBe("active");
     expect(shouldRegisterLinkMember(false)).toBe(true);
     expect(shouldRegisterLinkMember(true)).toBe(false);
+    const registerMember = stepRegisterLinkMemberWithActions(initialRegisterLinkMemberState(), {
+      kind: "link/register-member-gate",
+      alreadyPresent: false
+    });
+    expect(registerMember.actions).toEqual([{ kind: "register" }]);
+    expect(shouldRegisterLinkMemberNow(registerMember.actions)).toBe(true);
+    expect(shouldSkipRegisterLinkMember(registerMember.actions)).toBe(false);
+    const skipMember = stepRegisterLinkMemberWithActions(initialRegisterLinkMemberState(), {
+      kind: "link/register-member-gate",
+      alreadyPresent: true
+    });
+    expect(skipMember.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldRegisterLinkMemberNow(skipMember.actions)).toBe(false);
+    expect(shouldSkipRegisterLinkMember(skipMember.actions)).toBe(true);
     expect(
       planLinkActivateMembership({ pendingIndex: 2, alreadyActive: false })
     ).toEqual({ removePendingIndex: 2, appendActive: true });

@@ -24,7 +24,17 @@
 > **`stepLoadIdentityKeyMaterialWithActions`**: allow|deny;
 > **`stepAttemptIdentityRatchetDecryptWithActions`**: attempt|skip;
 > **`stepPersistIdentityRatchetWithActions`**: persist|skip) are pure protocol
-> leaves; `Identity` adapts them. **Propagation catalog /get-request-data** gates (catalog
+> leaves; `Identity` adapts them. **Announce signature-attempt / destination-hash-check**
+> gates (via **`stepAttemptAnnounceSignatureValidateWithActions`**: attempt|skip;
+> **`stepCheckAnnounceDestinationHashWithActions`**: check|skip),
+> **LINKIDENTIFY accept** (via **`stepAcceptLinkIdentifyWithActions`**: accept|skip),
+> **packet-receipt register / keep / fail-and-drop** (via
+> **`stepRegisterPacketReceiptWithActions`**: register|skip;
+> **`stepKeepOutboundReceiptWithActions`**: keep|skip;
+> **`stepFailAndDropOutboundReceiptWithActions`**: fail-and-drop|skip), and
+> **link-member register** (via **`stepRegisterLinkMemberWithActions`**: register|skip)
+> are pure protocol leaves; `Announce`, `Link`, and `TransportNode` adapt them.
+> **Propagation catalog /get-request-data** gates (catalog
 > evict via **`stepEvictPropagationCatalogEntryWithActions`**: evict|skip;
 > catalog delete via **`stepDeletePropagationCatalogEntryWithActions`**:
 > delete|skip; evict-oldest via
@@ -739,7 +749,9 @@
 > `LXMessage` delivery-parameter selection adapts it. **`planLinkValidateRequest`**
 > (via **`stepLinkValidateRequestWithActions`**: proceed / reject-bad-request /
 > reject-owner-missing-identity / reject-mode-disabled) and
-> **`planLinkIdentifyOutcome`** (via **`stepLinkIdentifyWithActions`**) live in
+> **`planLinkIdentifyOutcome`** (via **`stepLinkIdentifyWithActions`**) and
+> **`canAcceptLinkIdentify`** (via **`stepAcceptLinkIdentifyWithActions`**:
+> accept|skip) live in
 > protocol; `Link.validateRequest` / `handleIdentifyPacket` adapt them.
 > **`planLinkAppRequestDispatch`** / **`planLinkAppRequestResponse`** and
 > **`planLinkProofValidateOutcome`** (via **`stepLinkProofValidateWithActions`**:
@@ -811,7 +823,8 @@
 > **`stepSendResourceHashmapUpdateWithActions`**: send|skip) /
 > **`shouldAdvanceResourceAwaitingProof`** (via
 > **`stepAdvanceResourceAwaitingProofWithActions`**: advance|skip) live in
-> protocol; `Resource` + `Link` adapt them. **`shouldRegisterLinkMember`**,
+> protocol; `Resource` + `Link` adapt them. **`shouldRegisterLinkMember`** (via
+> **`stepRegisterLinkMemberWithActions`**: register|skip),
 > **`planLinkActivateMembership`** (via **`stepLinkActivateMembershipWithActions`**:
 > remove-pending / append-active), and **`planLinkUnregisterMembership`** (via
 > **`stepLinkUnregisterMembershipWithActions`**: remove-pending / remove-active) live in
@@ -830,7 +843,11 @@
 > **`shouldRegisterTransportMember`** (via
 > **`stepRegisterTransportMemberWithActions`**: register|skip) /
 > **`planUnregisterTransportMember`**,
-> **`planUnregisterPacketReceipt`**, **`shouldRegisterPacketReceipt`**,
+> **`planUnregisterPacketReceipt`**, **`shouldRegisterPacketReceipt`** (via
+> **`stepRegisterPacketReceiptWithActions`**: register|skip),
+> **`shouldKeepOutboundReceipt`** (via **`stepKeepOutboundReceiptWithActions`**: keep|skip),
+> **`shouldFailAndDropOutboundReceipt`** (via
+> **`stepFailAndDropOutboundReceiptWithActions`**: fail-and-drop|skip),
 > **`shouldRegisterChannelMessageHandler`** / **`planUnregisterChannelMessageHandler`**,
 > **`shouldStopChannelHandlerFanout`**, **`planUnregisterStreamReadyCallback`**,
 > **`shouldRegisterDestinationLink`** (via
@@ -1004,8 +1021,10 @@
 > **`stepAdvanceResourceAwaitingProofWithActions`**: advance|skip), **`shouldResendChannelTimeoutPacket`**,
 > **`shouldDispatchResourceProofToLink`** (via
 > **`stepDispatchResourceProofToLinkWithActions`**: dispatch|skip), and
-> **`shouldAttemptAnnounceSignatureValidate`** /
-> **`shouldCheckAnnounceDestinationHash`** live in protocol; Resource, Channel,
+> **`shouldAttemptAnnounceSignatureValidate`** (via
+> **`stepAttemptAnnounceSignatureValidateWithActions`**: attempt|skip) /
+> **`shouldCheckAnnounceDestinationHash`** (via
+> **`stepCheckAnnounceDestinationHashWithActions`**: check|skip) live in protocol; Resource, Channel,
 > TransportNode, and Announce adapt them.
 > **`shouldDrainChannelRingIndex`** (via
 > **`stepDrainChannelRingIndexWithActions`**: drain|skip) /
@@ -1078,10 +1097,11 @@
 > `invoke-handler` / `send-response` / `ignore-response` / `response-too-big`;
 > `Link.handleRequestPacket` applies responseGenerator / send only from those
 > actions (no ad-hoc dispatch/`plan.kind` reads beside the step).
-> **`stepLinkIdentifyWithActions`** emits `reject` / `commit`; `Link`
-> LINKIDENTIFY handling applies remoteIdentity + callback only from those
-> actions (no ad-hoc `planLinkIdentifyOutcome` / `shouldCommitLinkRemoteIdentity`
-> reads beside the step).
+> **`stepLinkIdentifyWithActions`** emits `reject` / `commit`;
+> **`stepAcceptLinkIdentifyWithActions`** emits `accept`|`skip`; `Link`
+> LINKIDENTIFY handling applies decrypt-accept / remoteIdentity + callback only from those
+> actions (no ad-hoc `canAcceptLinkIdentify` / `planLinkIdentifyOutcome` /
+> `shouldCommitLinkRemoteIdentity` reads beside the step).
 > **`stepLinkValidateRequestWithActions`** emits `proceed` /
 > `reject-bad-request` / `reject-owner-missing-identity` /
 > `reject-mode-disabled`; `Link.validateRequest` applies continue/mode
@@ -1507,7 +1527,13 @@
 > packet-receipt-proof-accept / propagation-restore /
 > deliver-pending-link-app-response / accept-announce-payload /
 > accept-parsed-announce / accept-identity-ciphertext-frame /
+> attempt-announce-signature-validate / check-announce-destination-hash /
+> accept-link-identify / register-packet-receipt / keep-outbound-receipt /
+> fail-and-drop-outbound-receipt / register-link-member /
 > accept-identity-decrypt-plaintext /
+> attempt-announce-signature-validate / check-announce-destination-hash /
+> accept-link-identify / register-packet-receipt / keep-outbound-receipt /
+> fail-and-drop-outbound-receipt / register-link-member /
 > identity-hash-allow / identity-use-private-key /
 > identity-use-public-key / load-identity-key-material /
 > attempt-identity-ratchet-decrypt / persist-identity-ratchet /
@@ -1553,7 +1579,13 @@
 > deliver-queued-packet / yield-buffered-packet /
 > deliver-pending-link-app-response / accept-announce-payload /
 > accept-parsed-announce / accept-identity-ciphertext-frame /
+> attempt-announce-signature-validate / check-announce-destination-hash /
+> accept-link-identify / register-packet-receipt / keep-outbound-receipt /
+> fail-and-drop-outbound-receipt / register-link-member /
 > accept-identity-decrypt-plaintext /
+> attempt-announce-signature-validate / check-announce-destination-hash /
+> accept-link-identify / register-packet-receipt / keep-outbound-receipt /
+> fail-and-drop-outbound-receipt / register-link-member /
 > identity-hash-allow / identity-use-private-key /
 > identity-use-public-key / load-identity-key-material /
 > attempt-identity-ratchet-decrypt / persist-identity-ratchet /
@@ -1855,6 +1887,13 @@
 > **`stepDeliverPendingLinkAppResponseWithActions`** emits `deliver`|`skip`;
 > **`stepAcceptAnnouncePayloadWithActions`** emits `accept`|`skip`;
 > **`stepAcceptParsedAnnounceWithActions`** emits `accept`|`skip`;
+> **`stepAttemptAnnounceSignatureValidateWithActions`** emits `attempt`|`skip`;
+> **`stepCheckAnnounceDestinationHashWithActions`** emits `check`|`skip`;
+> **`stepAcceptLinkIdentifyWithActions`** emits `accept`|`skip`;
+> **`stepRegisterPacketReceiptWithActions`** emits `register`|`skip`;
+> **`stepKeepOutboundReceiptWithActions`** emits `keep`|`skip`;
+> **`stepFailAndDropOutboundReceiptWithActions`** emits `fail-and-drop`|`skip`;
+> **`stepRegisterLinkMemberWithActions`** emits `register`|`skip`;
 > **`stepAcceptIdentityCiphertextFrameWithActions`** emits `accept`|`skip`;
 > **`stepAcceptIdentityDecryptPlaintextWithActions`** emits `accept`|`skip`;
 > **`stepIdentityHashAllowWithActions`** emits `allow`|`deny`;
@@ -1871,7 +1910,10 @@
 > `shouldAcceptIdentityDecryptPlaintext` / `canIdentityHash` /
 > `canIdentityUsePrivateKey` / `canIdentityUsePublicKey` /
 > `canLoadIdentityKeyMaterial` / `shouldAttemptIdentityRatchetDecrypt` /
-> `shouldPersistIdentityRatchet` reads beside the step).
+> `shouldPersistIdentityRatchet` / `shouldAttemptAnnounceSignatureValidate` /
+> `shouldCheckAnnounceDestinationHash` / `canAcceptLinkIdentify` /
+> `shouldRegisterPacketReceipt` / `shouldKeepOutboundReceipt` /
+> `shouldFailAndDropOutboundReceipt` / `shouldRegisterLinkMember` reads beside the step).
 > **`stepAcceptDestinationLinkRequestWithActions`** /
 > **`stepAnnounceDestinationWithActions`** /
 > **`stepDestinationSendWithActions`** /
@@ -2323,6 +2365,13 @@
 > **`stepDeliverPendingLinkAppResponseWithActions`** emits `deliver`|`skip`;
 > **`stepAcceptAnnouncePayloadWithActions`** emits `accept`|`skip`;
 > **`stepAcceptParsedAnnounceWithActions`** emits `accept`|`skip`;
+> **`stepAttemptAnnounceSignatureValidateWithActions`** emits `attempt`|`skip`;
+> **`stepCheckAnnounceDestinationHashWithActions`** emits `check`|`skip`;
+> **`stepAcceptLinkIdentifyWithActions`** emits `accept`|`skip`;
+> **`stepRegisterPacketReceiptWithActions`** emits `register`|`skip`;
+> **`stepKeepOutboundReceiptWithActions`** emits `keep`|`skip`;
+> **`stepFailAndDropOutboundReceiptWithActions`** emits `fail-and-drop`|`skip`;
+> **`stepRegisterLinkMemberWithActions`** emits `register`|`skip`;
 > **`stepAcceptIdentityCiphertextFrameWithActions`** emits `accept`|`skip`;
 > **`stepAcceptIdentityDecryptPlaintextWithActions`** emits `accept`|`skip`;
 > **`stepIdentityHashAllowWithActions`** emits `allow`|`deny`;
@@ -2339,7 +2388,10 @@
 > `shouldAcceptIdentityDecryptPlaintext` / `canIdentityHash` /
 > `canIdentityUsePrivateKey` / `canIdentityUsePublicKey` /
 > `canLoadIdentityKeyMaterial` / `shouldAttemptIdentityRatchetDecrypt` /
-> `shouldPersistIdentityRatchet` reads beside the step).
+> `shouldPersistIdentityRatchet` / `shouldAttemptAnnounceSignatureValidate` /
+> `shouldCheckAnnounceDestinationHash` / `canAcceptLinkIdentify` /
+> `shouldRegisterPacketReceipt` / `shouldKeepOutboundReceipt` /
+> `shouldFailAndDropOutboundReceipt` / `shouldRegisterLinkMember` reads beside the step).
 > **`stepAcceptDestinationLinkRequestWithActions`** /
 > **`stepAnnounceDestinationWithActions`** /
 > **`stepDestinationSendWithActions`** /

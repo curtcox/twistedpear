@@ -102,12 +102,12 @@ import {
   shouldIngressLinkDataActive,
   shouldIngressLinkDataPending,
   shouldExpirePathEntryLookup,
-  shouldFailAndDropOutboundReceipt,
+  shouldFailAndDropOutboundReceiptNow,
   shouldHitPathEntryLookup,
   shouldIgnoreLocalAnnounceNow,
   shouldIgnorePathRequestSeenTag,
   shouldIgnorePathRequestUnparsed,
-  shouldKeepOutboundReceipt,
+  shouldKeepOutboundReceiptNow,
   shouldDispatchAnnounceHandlersNow,
   shouldMatchAnnounceAspectNow,
   shouldMissPathEntryLookup,
@@ -118,9 +118,9 @@ import {
   shouldOutboundKeepReceipt,
   shouldReceiveAnnouncePathResponseNow,
   shouldRegisterLinkActive,
-  shouldRegisterLinkMember,
+  shouldRegisterLinkMemberNow,
   shouldRegisterLinkPending,
-  shouldRegisterPacketReceipt,
+  shouldRegisterPacketReceiptNow,
   shouldRegisterTransportMemberNow,
   shouldRemoveActiveLinkUnregisterActions,
   shouldRemovePacketReceiptProofIngress,
@@ -138,10 +138,14 @@ import {
   initialDispatchLocalLinkRequestState,
   initialDispatchResourceProofToLinkState,
   initialEmitPathRequestState,
+  initialFailAndDropOutboundReceiptState,
   initialIndexOfMatchingLinkIdState,
+  initialKeepOutboundReceiptState,
   initialMatchLocalInboundDestinationState,
   initialMatchLocalTypedDestinationState,
   initialPathEntryExpiredState,
+  initialRegisterLinkMemberState,
+  initialRegisterPacketReceiptState,
   initialRegisterTransportMemberState,
   initialRelayTransportPacketState,
   initialRewritePacketHopsState,
@@ -171,6 +175,8 @@ import {
   stepMatchAnnounceAspectWithActions,
   stepMatchLocalInboundDestinationWithActions,
   stepMatchLocalTypedDestinationWithActions,
+  stepFailAndDropOutboundReceiptWithActions,
+  stepKeepOutboundReceiptWithActions,
   stepOutboundReceiptWithActions,
   stepPacketFilterWithActions,
   stepPacketReceiptProofIngressWithActions,
@@ -181,6 +187,8 @@ import {
   stepPathRequestIngressWithActions,
   stepProofIngressWithActions,
   stepReceiveAnnouncePathResponseWithActions,
+  stepRegisterLinkMemberWithActions,
+  stepRegisterPacketReceiptWithActions,
   stepRegisterTransportMemberWithActions,
   stepRelayTransportPacketWithActions,
   stepRewritePacketHopsWithActions,
@@ -574,14 +582,22 @@ export class LeafTransport {
       initiator: link.initiator
     });
     if (shouldRegisterLinkPending(registerStepped.actions)) {
-      if (shouldRegisterLinkMember(this.pendingLinks.includes(link))) {
+      const memberStepped = stepRegisterLinkMemberWithActions(initialRegisterLinkMemberState(), {
+        kind: "link/register-member-gate",
+        alreadyPresent: this.pendingLinks.includes(link)
+      });
+      if (shouldRegisterLinkMemberNow(memberStepped.actions)) {
         this.pendingLinks.push(link);
       }
       return;
     }
 
     if (shouldRegisterLinkActive(registerStepped.actions)) {
-      if (shouldRegisterLinkMember(this.activeLinks.includes(link))) {
+      const memberStepped = stepRegisterLinkMemberWithActions(initialRegisterLinkMemberState(), {
+        kind: "link/register-member-gate",
+        alreadyPresent: this.activeLinks.includes(link)
+      });
+      if (shouldRegisterLinkMemberNow(memberStepped.actions)) {
         this.activeLinks.push(link);
       }
     }
@@ -647,7 +663,14 @@ export class LeafTransport {
     const createReceipt = options.createReceipt === true;
     let receipt: PacketReceipt | null = null;
 
-    if (shouldRegisterPacketReceipt(createReceipt)) {
+    const registerStepped = stepRegisterPacketReceiptWithActions(
+      initialRegisterPacketReceiptState(),
+      {
+        kind: "receipt/register-gate",
+        createReceipt
+      }
+    );
+    if (shouldRegisterPacketReceiptNow(registerStepped.actions)) {
       const nowSeconds = () => this.clock.now() / 1000;
       receipt = new PacketReceipt(packet.hash(), packet.truncatedHash(), packet.destinationHash, {
         sentAt: nowSeconds(),
@@ -663,12 +686,15 @@ export class LeafTransport {
       createReceipt,
       sent
     });
-    if (
-      shouldFailAndDropOutboundReceipt({
+    const failAndDropStepped = stepFailAndDropOutboundReceiptWithActions(
+      initialFailAndDropOutboundReceiptState(),
+      {
+        kind: "receipt/fail-and-drop-gate",
         failAndDrop: shouldOutboundFailAndDropReceipt(outcomeStepped.actions),
         receiptPresent: receipt !== null
-      })
-    ) {
+      }
+    );
+    if (shouldFailAndDropOutboundReceiptNow(failAndDropStepped.actions)) {
       receipt!.markFailed();
       const receiptStepped = stepPacketReceiptUnregisterWithActions(
         initialPacketReceiptUnregisterState(),
@@ -683,11 +709,11 @@ export class LeafTransport {
       }
       return null;
     }
-    if (
-      !shouldKeepOutboundReceipt(
-        shouldOutboundKeepReceipt(outcomeStepped.actions) && sent
-      )
-    ) {
+    const keepStepped = stepKeepOutboundReceiptWithActions(initialKeepOutboundReceiptState(), {
+      kind: "receipt/keep-outbound-gate",
+      keepReceipt: shouldOutboundKeepReceipt(outcomeStepped.actions) && sent
+    });
+    if (!shouldKeepOutboundReceiptNow(keepStepped.actions)) {
       return null;
     }
 

@@ -18,6 +18,8 @@ import {
   initialAnnounceDestinationHashMaterialState,
   initialAnnounceSignedMaterialState,
   initialAnnounceValidateState,
+  initialAttemptAnnounceSignatureValidateState,
+  initialCheckAnnounceDestinationHashState,
   initialPackAnnouncePayloadState,
   initialParseAnnouncePayloadState,
   isAnnouncePacketType,
@@ -32,7 +34,9 @@ import {
   shouldAcceptParsedAnnounce,
   shouldAcceptParsedAnnounceNow,
   shouldAttemptAnnounceSignatureValidate,
+  shouldAttemptAnnounceSignatureValidateNow,
   shouldCheckAnnounceDestinationHash,
+  shouldCheckAnnounceDestinationHashNow,
   shouldMatchAnnounceDestinationHash,
   shouldMismatchAnnounceDestinationHash,
   shouldProceedAnnounceBuild,
@@ -42,7 +46,9 @@ import {
   shouldRejectAnnounceBuildNotAnnounceableDirection,
   shouldRejectAnnounceBuildNotAnnounceableType,
   shouldRejectParseAnnouncePayload,
+  shouldSkipAnnounceDestinationHashCheck,
   shouldSkipAnnouncePayloadAccept,
+  shouldSkipAnnounceSignatureValidate,
   shouldSkipParsedAnnounceAccept,
   shouldUseAnnounceDestinationHashMaterial,
   shouldUseAnnounceSignedMaterial,
@@ -55,6 +61,8 @@ import {
   stepAnnounceDestinationHashMaterialWithActions,
   stepAnnounceSignedMaterialWithActions,
   stepAnnounceValidateWithActions,
+  stepAttemptAnnounceSignatureValidateWithActions,
+  stepCheckAnnounceDestinationHashWithActions,
   stepPackAnnouncePayloadWithActions,
   stepParseAnnouncePayloadWithActions
 } from "../src/announce-framing.js";
@@ -474,6 +482,62 @@ describe("protocol announce framing", () => {
     expect(shouldAcceptAnnouncePayload(false)).toBe(false);
     expect(shouldAcceptParsedAnnounce(true)).toBe(true);
     expect(shouldAcceptParsedAnnounce(false)).toBe(false);
+
+    const attemptSig = stepAttemptAnnounceSignatureValidateWithActions(
+      initialAttemptAnnounceSignatureValidateState(),
+      {
+        kind: "announce/attempt-signature-validate-gate",
+        parsedOk: true,
+        identityPresent: true,
+        publicKeyLoaded: true
+      }
+    );
+    expect(attemptSig.actions).toEqual([{ kind: "attempt" }]);
+    expect(shouldAttemptAnnounceSignatureValidateNow(attemptSig.actions)).toBe(true);
+    expect(shouldSkipAnnounceSignatureValidate(attemptSig.actions)).toBe(false);
+
+    const skipSig = stepAttemptAnnounceSignatureValidateWithActions(
+      initialAttemptAnnounceSignatureValidateState(),
+      {
+        kind: "announce/attempt-signature-validate-gate",
+        parsedOk: true,
+        identityPresent: true,
+        publicKeyLoaded: false
+      }
+    );
+    expect(skipSig.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldAttemptAnnounceSignatureValidateNow(skipSig.actions)).toBe(false);
+    expect(shouldSkipAnnounceSignatureValidate(skipSig.actions)).toBe(true);
+
+    const checkHash = stepCheckAnnounceDestinationHashWithActions(
+      initialCheckAnnounceDestinationHashState(),
+      {
+        kind: "announce/check-destination-hash-gate",
+        parsedOk: true,
+        identityPresent: true,
+        publicKeyLoaded: true,
+        signatureValid: true,
+        onlyValidateSignature: false
+      }
+    );
+    expect(checkHash.actions).toEqual([{ kind: "check" }]);
+    expect(shouldCheckAnnounceDestinationHashNow(checkHash.actions)).toBe(true);
+    expect(shouldSkipAnnounceDestinationHashCheck(checkHash.actions)).toBe(false);
+
+    const skipHash = stepCheckAnnounceDestinationHashWithActions(
+      initialCheckAnnounceDestinationHashState(),
+      {
+        kind: "announce/check-destination-hash-gate",
+        parsedOk: true,
+        identityPresent: true,
+        publicKeyLoaded: true,
+        signatureValid: true,
+        onlyValidateSignature: true
+      }
+    );
+    expect(skipHash.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldCheckAnnounceDestinationHashNow(skipHash.actions)).toBe(false);
+    expect(shouldSkipAnnounceDestinationHashCheck(skipHash.actions)).toBe(true);
 
     const acceptPayload = stepAcceptAnnouncePayloadWithActions(
       initialAcceptAnnouncePayloadState(),

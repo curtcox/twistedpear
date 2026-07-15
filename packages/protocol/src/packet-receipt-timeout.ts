@@ -3,6 +3,9 @@
  * Adapters schedule/cancel clocks from timer intents and invoke
  * delivery/timeout callbacks only via machine actions (no ad-hoc
  * `state.timedOut` reads beside the step).
+ * Register / keep / fail-and-drop gates conclude via machine actions (no
+ * ad-hoc `shouldRegisterPacketReceipt` / `shouldKeepOutboundReceipt` /
+ * `shouldFailAndDropOutboundReceipt` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -211,9 +214,133 @@ export function shouldFailAndDropOutboundReceipt(input: {
   return input.failAndDrop && input.receiptPresent;
 }
 
+/**
+ * Outbound fail-and-drop gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldFailAndDropOutboundReceipt` reads beside the step).
+ */
+export type FailAndDropOutboundReceiptState = Record<string, never>;
+
+export type FailAndDropOutboundReceiptEvent =
+  | Event
+  | {
+      readonly kind: "receipt/fail-and-drop-gate";
+      readonly failAndDrop: boolean;
+      readonly receiptPresent: boolean;
+    };
+
+export type FailAndDropOutboundReceiptAction =
+  | { readonly kind: "fail-and-drop" }
+  | { readonly kind: "skip" };
+
+export interface FailAndDropOutboundReceiptStepResult {
+  readonly state: FailAndDropOutboundReceiptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly FailAndDropOutboundReceiptAction[];
+}
+
+export function initialFailAndDropOutboundReceiptState(): FailAndDropOutboundReceiptState {
+  return {};
+}
+
+export function stepFailAndDropOutboundReceiptWithActions(
+  state: FailAndDropOutboundReceiptState,
+  event: FailAndDropOutboundReceiptEvent
+): FailAndDropOutboundReceiptStepResult {
+  if (event.kind === "receipt/fail-and-drop-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldFailAndDropOutboundReceipt({
+            failAndDrop: event.failAndDrop,
+            receiptPresent: event.receiptPresent
+          })
+            ? "fail-and-drop"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldFailAndDropOutboundReceiptNow(
+  actions: ReadonlyArray<FailAndDropOutboundReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "fail-and-drop");
+}
+
+export function shouldSkipFailAndDropOutboundReceipt(
+  actions: ReadonlyArray<FailAndDropOutboundReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether outbound send should return a kept receipt to the caller. */
 export function shouldKeepOutboundReceipt(keepReceipt: boolean): boolean {
   return keepReceipt;
+}
+
+/**
+ * Outbound keep-receipt gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldKeepOutboundReceipt`
+ * reads beside the step).
+ */
+export type KeepOutboundReceiptState = Record<string, never>;
+
+export type KeepOutboundReceiptEvent =
+  | Event
+  | {
+      readonly kind: "receipt/keep-outbound-gate";
+      readonly keepReceipt: boolean;
+    };
+
+export type KeepOutboundReceiptAction =
+  | { readonly kind: "keep" }
+  | { readonly kind: "skip" };
+
+export interface KeepOutboundReceiptStepResult {
+  readonly state: KeepOutboundReceiptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly KeepOutboundReceiptAction[];
+}
+
+export function initialKeepOutboundReceiptState(): KeepOutboundReceiptState {
+  return {};
+}
+
+export function stepKeepOutboundReceiptWithActions(
+  state: KeepOutboundReceiptState,
+  event: KeepOutboundReceiptEvent
+): KeepOutboundReceiptStepResult {
+  if (event.kind === "receipt/keep-outbound-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldKeepOutboundReceipt(event.keepReceipt) ? "keep" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldKeepOutboundReceiptNow(
+  actions: ReadonlyArray<KeepOutboundReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "keep");
+}
+
+export function shouldSkipKeepOutboundReceipt(
+  actions: ReadonlyArray<KeepOutboundReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 export type PacketReceiptProofIngressPlan = "remove-receipt" | "continue";
@@ -307,6 +434,65 @@ export function shouldRemovePacketReceipt(
 /** Whether an outbound send should create and register a packet receipt. */
 export function shouldRegisterPacketReceipt(createReceipt: boolean): boolean {
   return createReceipt;
+}
+
+/**
+ * Packet-receipt register gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldRegisterPacketReceipt` reads beside the step).
+ */
+export type RegisterPacketReceiptState = Record<string, never>;
+
+export type RegisterPacketReceiptEvent =
+  | Event
+  | {
+      readonly kind: "receipt/register-gate";
+      readonly createReceipt: boolean;
+    };
+
+export type RegisterPacketReceiptAction =
+  | { readonly kind: "register" }
+  | { readonly kind: "skip" };
+
+export interface RegisterPacketReceiptStepResult {
+  readonly state: RegisterPacketReceiptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RegisterPacketReceiptAction[];
+}
+
+export function initialRegisterPacketReceiptState(): RegisterPacketReceiptState {
+  return {};
+}
+
+export function stepRegisterPacketReceiptWithActions(
+  state: RegisterPacketReceiptState,
+  event: RegisterPacketReceiptEvent
+): RegisterPacketReceiptStepResult {
+  if (event.kind === "receipt/register-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRegisterPacketReceipt(event.createReceipt) ? "register" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRegisterPacketReceiptNow(
+  actions: ReadonlyArray<RegisterPacketReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "register");
+}
+
+export function shouldSkipRegisterPacketReceipt(
+  actions: ReadonlyArray<RegisterPacketReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 export type PacketReceiptCallbackPlan = "clear" | "set";

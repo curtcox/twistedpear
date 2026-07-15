@@ -4,6 +4,8 @@
  * Pack / split / signed-material / acceptance conclusions leave via machine
  * actions (no ad-hoc `packLinkIdentifyPayload` / `splitLinkIdentifyPayload` /
  * `linkIdentifySignedMaterial` / `plan.kind` reads beside the step).
+ * Accept-before-decrypt gate concludes via machine actions (no ad-hoc
+ * `canAcceptLinkIdentify` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -14,6 +16,65 @@ export const LINK_IDENTIFY_PAYLOAD_SIZE =
 
 export function canAcceptLinkIdentify(initiator: boolean): boolean {
   return !initiator;
+}
+
+/**
+ * Link-identify accept gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canAcceptLinkIdentify`
+ * reads beside the step).
+ */
+export type AcceptLinkIdentifyState = Record<string, never>;
+
+export type AcceptLinkIdentifyEvent =
+  | Event
+  | {
+      readonly kind: "link-identify/accept-gate";
+      readonly initiator: boolean;
+    };
+
+export type AcceptLinkIdentifyAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptLinkIdentifyStepResult {
+  readonly state: AcceptLinkIdentifyState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptLinkIdentifyAction[];
+}
+
+export function initialAcceptLinkIdentifyState(): AcceptLinkIdentifyState {
+  return {};
+}
+
+export function stepAcceptLinkIdentifyWithActions(
+  state: AcceptLinkIdentifyState,
+  event: AcceptLinkIdentifyEvent
+): AcceptLinkIdentifyStepResult {
+  if (event.kind === "link-identify/accept-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canAcceptLinkIdentify(event.initiator) ? "accept" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptLinkIdentifyNow(
+  actions: ReadonlyArray<AcceptLinkIdentifyAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipLinkIdentifyAccept(
+  actions: ReadonlyArray<AcceptLinkIdentifyAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 export type LinkIdentifyOutcome = "accept" | "reject";

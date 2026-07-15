@@ -9,6 +9,9 @@
  * Payload / parsed-announce accept gates conclude via machine actions (no
  * ad-hoc `shouldAcceptAnnouncePayload` / `shouldAcceptParsedAnnounce` reads
  * beside the step).
+ * Signature-attempt / destination-hash-check gates conclude via machine
+ * actions (no ad-hoc `shouldAttemptAnnounceSignatureValidate` /
+ * `shouldCheckAnnounceDestinationHash` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_ANNOUNCE } from "./packet-header.js";
@@ -651,6 +654,73 @@ export function shouldAttemptAnnounceSignatureValidate(input: {
 }
 
 /**
+ * Announce signature-attempt gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldAttemptAnnounceSignatureValidate` reads beside the step).
+ */
+export type AttemptAnnounceSignatureValidateState = Record<string, never>;
+
+export type AttemptAnnounceSignatureValidateEvent =
+  | Event
+  | {
+      readonly kind: "announce/attempt-signature-validate-gate";
+      readonly parsedOk: boolean;
+      readonly identityPresent: boolean;
+      readonly publicKeyLoaded: boolean;
+    };
+
+export type AttemptAnnounceSignatureValidateAction =
+  | { readonly kind: "attempt" }
+  | { readonly kind: "skip" };
+
+export interface AttemptAnnounceSignatureValidateStepResult {
+  readonly state: AttemptAnnounceSignatureValidateState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AttemptAnnounceSignatureValidateAction[];
+}
+
+export function initialAttemptAnnounceSignatureValidateState(): AttemptAnnounceSignatureValidateState {
+  return {};
+}
+
+export function stepAttemptAnnounceSignatureValidateWithActions(
+  state: AttemptAnnounceSignatureValidateState,
+  event: AttemptAnnounceSignatureValidateEvent
+): AttemptAnnounceSignatureValidateStepResult {
+  if (event.kind === "announce/attempt-signature-validate-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAttemptAnnounceSignatureValidate({
+            parsedOk: event.parsedOk,
+            identityPresent: event.identityPresent,
+            publicKeyLoaded: event.publicKeyLoaded
+          })
+            ? "attempt"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAttemptAnnounceSignatureValidateNow(
+  actions: ReadonlyArray<AttemptAnnounceSignatureValidateAction>
+): boolean {
+  return actions.some((action) => action.kind === "attempt");
+}
+
+export function shouldSkipAnnounceSignatureValidate(
+  actions: ReadonlyArray<AttemptAnnounceSignatureValidateAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/**
  * Whether Announce.validate may check destination-hash material after signature.
  */
 export function shouldCheckAnnounceDestinationHash(input: {
@@ -667,6 +737,77 @@ export function shouldCheckAnnounceDestinationHash(input: {
     input.signatureValid &&
     !input.onlyValidateSignature
   );
+}
+
+/**
+ * Announce destination-hash check gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldCheckAnnounceDestinationHash` reads beside the step).
+ */
+export type CheckAnnounceDestinationHashState = Record<string, never>;
+
+export type CheckAnnounceDestinationHashEvent =
+  | Event
+  | {
+      readonly kind: "announce/check-destination-hash-gate";
+      readonly parsedOk: boolean;
+      readonly identityPresent: boolean;
+      readonly publicKeyLoaded: boolean;
+      readonly signatureValid: boolean;
+      readonly onlyValidateSignature: boolean;
+    };
+
+export type CheckAnnounceDestinationHashAction =
+  | { readonly kind: "check" }
+  | { readonly kind: "skip" };
+
+export interface CheckAnnounceDestinationHashStepResult {
+  readonly state: CheckAnnounceDestinationHashState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly CheckAnnounceDestinationHashAction[];
+}
+
+export function initialCheckAnnounceDestinationHashState(): CheckAnnounceDestinationHashState {
+  return {};
+}
+
+export function stepCheckAnnounceDestinationHashWithActions(
+  state: CheckAnnounceDestinationHashState,
+  event: CheckAnnounceDestinationHashEvent
+): CheckAnnounceDestinationHashStepResult {
+  if (event.kind === "announce/check-destination-hash-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldCheckAnnounceDestinationHash({
+            parsedOk: event.parsedOk,
+            identityPresent: event.identityPresent,
+            publicKeyLoaded: event.publicKeyLoaded,
+            signatureValid: event.signatureValid,
+            onlyValidateSignature: event.onlyValidateSignature
+          })
+            ? "check"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldCheckAnnounceDestinationHashNow(
+  actions: ReadonlyArray<CheckAnnounceDestinationHashAction>
+): boolean {
+  return actions.some((action) => action.kind === "check");
+}
+
+export function shouldSkipAnnounceDestinationHashCheck(
+  actions: ReadonlyArray<CheckAnnounceDestinationHashAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**

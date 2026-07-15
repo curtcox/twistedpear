@@ -11,14 +11,16 @@ import {
   initialAnnounceDestinationHashMaterialState,
   initialAnnounceSignedMaterialState,
   initialAnnounceValidateState,
+  initialAttemptAnnounceSignatureValidateState,
+  initialCheckAnnounceDestinationHashState,
   initialPackAnnouncePayloadState,
   initialParseAnnouncePayloadState,
   isAnnouncePacketType,
   packAnnouncePayloadRawFromActions,
   shouldAcceptAnnouncePayloadNow,
   shouldAcceptAnnounceValidate,
-  shouldAttemptAnnounceSignatureValidate,
-  shouldCheckAnnounceDestinationHash,
+  shouldAttemptAnnounceSignatureValidateNow,
+  shouldCheckAnnounceDestinationHashNow,
   shouldMatchAnnounceDestinationHash,
   shouldProceedAnnounceBuild,
   shouldRejectAnnounceBuildBadRandomHash,
@@ -37,6 +39,8 @@ import {
   stepAnnounceDestinationHashMaterialWithActions,
   stepAnnounceSignedMaterialWithActions,
   stepAnnounceValidateWithActions,
+  stepAttemptAnnounceSignatureValidateWithActions,
+  stepCheckAnnounceDestinationHashWithActions,
   stepPackAnnouncePayloadWithActions,
   stepParseAnnouncePayloadWithActions,
   stepTruncateHashBytesWithActions,
@@ -227,13 +231,16 @@ export class Announce {
       identity !== null && parsed !== null && identity.loadPublicKey(parsed.publicKey);
 
     let signatureValid = false;
-    if (
-      shouldAttemptAnnounceSignatureValidate({
+    const attemptSignature = stepAttemptAnnounceSignatureValidateWithActions(
+      initialAttemptAnnounceSignatureValidateState(),
+      {
+        kind: "announce/attempt-signature-validate-gate",
         parsedOk: parsed !== null,
         identityPresent: identity !== null,
         publicKeyLoaded
-      })
-    ) {
+      }
+    );
+    if (shouldAttemptAnnounceSignatureValidateNow(attemptSignature.actions)) {
       const signedStepped = stepAnnounceSignedMaterialWithActions(
         initialAnnounceSignedMaterialState(),
         {
@@ -255,15 +262,18 @@ export class Announce {
     }
 
     let destinationHashMatches = false;
-    if (
-      shouldCheckAnnounceDestinationHash({
+    const checkDestHash = stepCheckAnnounceDestinationHashWithActions(
+      initialCheckAnnounceDestinationHashState(),
+      {
+        kind: "announce/check-destination-hash-gate",
         parsedOk: parsed !== null,
         identityPresent: identity !== null,
         publicKeyLoaded,
         signatureValid,
         onlyValidateSignature
-      })
-    ) {
+      }
+    );
+    if (shouldCheckAnnounceDestinationHashNow(checkDestHash.actions)) {
       const materialStepped = stepAnnounceDestinationHashMaterialWithActions(
         initialAnnounceDestinationHashMaterialState(),
         {

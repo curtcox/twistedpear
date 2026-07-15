@@ -17,6 +17,8 @@
  * `canAcceptLinkOwnerPublicKey` / `canValidateLinkProof` /
  * `shouldAttemptLinkProofCrypto` / `canAcceptLinkRtt` / `canIdentifyOnLink` /
  * `shouldDispatchLinkPlaintext` / `canResendLinkPacket` reads beside the step).
+ * Link-member register gate concludes via machine actions (no ad-hoc
+ * `shouldRegisterLinkMember` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { planDestinationRequestAllow } from "./destination-allow.js";
@@ -1889,6 +1891,65 @@ export function planLinkRegisterList(initiator: boolean): LinkRegisterList {
 /** Whether a transport link list should receive a new member (not already present). */
 export function shouldRegisterLinkMember(alreadyPresent: boolean): boolean {
   return !alreadyPresent;
+}
+
+/**
+ * Link-member register gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldRegisterLinkMember`
+ * reads beside the step).
+ */
+export type RegisterLinkMemberState = Record<string, never>;
+
+export type RegisterLinkMemberEvent =
+  | Event
+  | {
+      readonly kind: "link/register-member-gate";
+      readonly alreadyPresent: boolean;
+    };
+
+export type RegisterLinkMemberAction =
+  | { readonly kind: "register" }
+  | { readonly kind: "skip" };
+
+export interface RegisterLinkMemberStepResult {
+  readonly state: RegisterLinkMemberState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RegisterLinkMemberAction[];
+}
+
+export function initialRegisterLinkMemberState(): RegisterLinkMemberState {
+  return {};
+}
+
+export function stepRegisterLinkMemberWithActions(
+  state: RegisterLinkMemberState,
+  event: RegisterLinkMemberEvent
+): RegisterLinkMemberStepResult {
+  if (event.kind === "link/register-member-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRegisterLinkMember(event.alreadyPresent) ? "register" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRegisterLinkMemberNow(
+  actions: ReadonlyArray<RegisterLinkMemberAction>
+): boolean {
+  return actions.some((action) => action.kind === "register");
+}
+
+export function shouldSkipRegisterLinkMember(
+  actions: ReadonlyArray<RegisterLinkMemberAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 export type LinkActivateMembershipPlan = {

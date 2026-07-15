@@ -3,11 +3,14 @@ import {
   PacketReceiptStatus,
   RECEIPT_TIMEOUT_TIMER_ID,
   checkPacketReceiptTimeout,
+  initialFailAndDropOutboundReceiptState,
+  initialKeepOutboundReceiptState,
   initialOutboundReceiptState,
   initialPacketReceiptCallbackState,
   initialPacketReceiptProofIngressState,
   initialPacketReceiptTimeoutState,
   initialPacketReceiptUnregisterState,
+  initialRegisterPacketReceiptState,
   outboundReceiptOutcomeFromActions,
   packetReceiptProofIngressFromActions,
   packetReceiptUnregisterIndex,
@@ -19,23 +22,32 @@ import {
   shouldClearPacketReceiptCallback,
   shouldContinuePacketReceiptProofIngress,
   shouldFailAndDropOutboundReceipt,
+  shouldFailAndDropOutboundReceiptNow,
   shouldInvokePacketReceiptAction,
   shouldInvokePacketReceiptTimeoutCallback,
   shouldKeepOutboundReceipt,
+  shouldKeepOutboundReceiptNow,
   shouldOutboundFailAndDropReceipt,
   shouldOutboundKeepReceipt,
   shouldOutboundReceiptNone,
   shouldRegisterPacketReceipt,
+  shouldRegisterPacketReceiptNow,
   shouldRemovePacketReceipt,
   shouldRemovePacketReceiptProofIngress,
   shouldSetPacketReceiptCallback,
+  shouldSkipFailAndDropOutboundReceipt,
+  shouldSkipKeepOutboundReceipt,
+  shouldSkipRegisterPacketReceipt,
   shouldUnregisterPacketReceipt,
+  stepFailAndDropOutboundReceiptWithActions,
+  stepKeepOutboundReceiptWithActions,
   stepOutboundReceiptWithActions,
   stepPacketReceiptCallbackWithActions,
   stepPacketReceiptProofIngressWithActions,
   stepPacketReceiptTimeout,
   stepPacketReceiptTimeoutWithActions,
-  stepPacketReceiptUnregisterWithActions
+  stepPacketReceiptUnregisterWithActions,
+  stepRegisterPacketReceiptWithActions
 } from "../src/packet-receipt-timeout.js";
 
 describe("protocol packet receipt timeout", () => {
@@ -162,6 +174,65 @@ describe("protocol packet receipt timeout", () => {
     ).toBe(false);
     expect(shouldKeepOutboundReceipt(true)).toBe(true);
     expect(shouldKeepOutboundReceipt(false)).toBe(false);
+    expect(shouldRegisterPacketReceipt(true)).toBe(true);
+    expect(shouldRegisterPacketReceipt(false)).toBe(false);
+
+    const register = stepRegisterPacketReceiptWithActions(initialRegisterPacketReceiptState(), {
+      kind: "receipt/register-gate",
+      createReceipt: true
+    });
+    expect(register.actions).toEqual([{ kind: "register" }]);
+    expect(shouldRegisterPacketReceiptNow(register.actions)).toBe(true);
+    expect(shouldSkipRegisterPacketReceipt(register.actions)).toBe(false);
+
+    const skipRegister = stepRegisterPacketReceiptWithActions(initialRegisterPacketReceiptState(), {
+      kind: "receipt/register-gate",
+      createReceipt: false
+    });
+    expect(skipRegister.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldRegisterPacketReceiptNow(skipRegister.actions)).toBe(false);
+    expect(shouldSkipRegisterPacketReceipt(skipRegister.actions)).toBe(true);
+
+    const keep = stepKeepOutboundReceiptWithActions(initialKeepOutboundReceiptState(), {
+      kind: "receipt/keep-outbound-gate",
+      keepReceipt: true
+    });
+    expect(keep.actions).toEqual([{ kind: "keep" }]);
+    expect(shouldKeepOutboundReceiptNow(keep.actions)).toBe(true);
+    expect(shouldSkipKeepOutboundReceipt(keep.actions)).toBe(false);
+
+    const skipKeep = stepKeepOutboundReceiptWithActions(initialKeepOutboundReceiptState(), {
+      kind: "receipt/keep-outbound-gate",
+      keepReceipt: false
+    });
+    expect(skipKeep.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldKeepOutboundReceiptNow(skipKeep.actions)).toBe(false);
+    expect(shouldSkipKeepOutboundReceipt(skipKeep.actions)).toBe(true);
+
+    const failDrop = stepFailAndDropOutboundReceiptWithActions(
+      initialFailAndDropOutboundReceiptState(),
+      {
+        kind: "receipt/fail-and-drop-gate",
+        failAndDrop: true,
+        receiptPresent: true
+      }
+    );
+    expect(failDrop.actions).toEqual([{ kind: "fail-and-drop" }]);
+    expect(shouldFailAndDropOutboundReceiptNow(failDrop.actions)).toBe(true);
+    expect(shouldSkipFailAndDropOutboundReceipt(failDrop.actions)).toBe(false);
+
+    const skipFailDrop = stepFailAndDropOutboundReceiptWithActions(
+      initialFailAndDropOutboundReceiptState(),
+      {
+        kind: "receipt/fail-and-drop-gate",
+        failAndDrop: true,
+        receiptPresent: false
+      }
+    );
+    expect(skipFailDrop.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldFailAndDropOutboundReceiptNow(skipFailDrop.actions)).toBe(false);
+    expect(shouldSkipFailAndDropOutboundReceipt(skipFailDrop.actions)).toBe(true);
+
     expect(
       planPacketReceiptProofIngress({
         truncatedHashMatches: true,
@@ -192,8 +263,6 @@ describe("protocol packet receipt timeout", () => {
     });
     expect(shouldRemovePacketReceipt(skip.actions)).toBe(false);
     expect(packetReceiptUnregisterIndex(skip.actions)).toBeNull();
-    expect(shouldRegisterPacketReceipt(true)).toBe(true);
-    expect(shouldRegisterPacketReceipt(false)).toBe(false);
     expect(planPacketReceiptCallback(true)).toBe("set");
     expect(planPacketReceiptCallback(false)).toBe("clear");
     expect(shouldInvokePacketReceiptTimeoutCallback([{ kind: "timeout" }])).toBe(true);

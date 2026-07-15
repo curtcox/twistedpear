@@ -24,7 +24,9 @@ import {
   LinkResourceStrategy,
   LinkStatus,
   LinkTeardownReason,
-  canAcceptLinkIdentify,
+  shouldAcceptLinkIdentifyNow,
+  initialAcceptLinkIdentifyState,
+  stepAcceptLinkIdentifyWithActions,
   shouldAcceptLinkOwnerPublicKeyNow,
   initialAcceptLinkOwnerPublicKeyState,
   stepAcceptLinkOwnerPublicKeyWithActions,
@@ -1954,7 +1956,11 @@ export class Link {
   }
 
   private async handleIdentifyPacket(packet: Packet): Promise<void> {
-    const plaintext = canAcceptLinkIdentify(this.initiator)
+    const acceptStepped = stepAcceptLinkIdentifyWithActions(initialAcceptLinkIdentifyState(), {
+      kind: "link-identify/accept-gate",
+      initiator: this.initiator
+    });
+    const plaintext = shouldAcceptLinkIdentifyNow(acceptStepped.actions)
       ? this.decrypt(packet.data)
       : null;
     const splitStepped =

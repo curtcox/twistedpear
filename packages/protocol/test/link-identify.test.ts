@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   LINK_IDENTIFY_PAYLOAD_SIZE,
   canAcceptLinkIdentify,
+  initialAcceptLinkIdentifyState,
   initialLinkIdentifyState,
   initialLinkIdentifySignedMaterialState,
   initialPackLinkIdentifyPayloadState,
@@ -12,15 +13,18 @@ import {
   packLinkIdentifyPayload,
   packLinkIdentifyPayloadRawFromActions,
   planLinkIdentifyOutcome,
+  shouldAcceptLinkIdentifyNow,
   shouldCommitLinkIdentify,
   shouldCommitLinkRemoteIdentity,
   shouldRejectLinkIdentify,
   shouldRejectPackLinkIdentifyPayload,
   shouldRejectSplitLinkIdentifyPayload,
+  shouldSkipLinkIdentifyAccept,
   shouldUseLinkIdentifySignedMaterial,
   shouldUsePackLinkIdentifyPayload,
   shouldUseSplitLinkIdentifyPayload,
   splitLinkIdentifyPayload,
+  stepAcceptLinkIdentifyWithActions,
   stepLinkIdentifyWithActions,
   stepLinkIdentifySignedMaterialWithActions,
   stepPackLinkIdentifyPayloadWithActions,
@@ -45,6 +49,22 @@ describe("protocol link identify", () => {
   it("accepts identify only on responder links", () => {
     expect(canAcceptLinkIdentify(false)).toBe(true);
     expect(canAcceptLinkIdentify(true)).toBe(false);
+
+    const accept = stepAcceptLinkIdentifyWithActions(initialAcceptLinkIdentifyState(), {
+      kind: "link-identify/accept-gate",
+      initiator: false
+    });
+    expect(accept.actions).toEqual([{ kind: "accept" }]);
+    expect(shouldAcceptLinkIdentifyNow(accept.actions)).toBe(true);
+    expect(shouldSkipLinkIdentifyAccept(accept.actions)).toBe(false);
+
+    const skip = stepAcceptLinkIdentifyWithActions(initialAcceptLinkIdentifyState(), {
+      kind: "link-identify/accept-gate",
+      initiator: true
+    });
+    expect(skip.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldAcceptLinkIdentifyNow(skip.actions)).toBe(false);
+    expect(shouldSkipLinkIdentifyAccept(skip.actions)).toBe(true);
   });
 
   it("plans identify outcome from crypto edge flags", () => {
