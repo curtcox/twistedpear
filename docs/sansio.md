@@ -242,9 +242,16 @@
 > use-fields|reject; IV-length / frame-accept via
 > **`stepTokenIvLengthValidWithActions`** /
 > **`stepAcceptTokenFrameWithActions`**: valid|invalid / accept|skip) and
+> **link keepalive-context** (via **`stepLinkKeepaliveContextWithActions`**:
+> keepalive|other), **channel envelope emplace** (via
+> **`stepEmplaceChannelEnvelopeWithActions`**: emplace|skip), **resource
+> fulfill-part apply** (via **`stepApplyResourceFulfillPartWithActions`**:
+> apply|skip), **propagation peer-response accept** (via
+> **`stepAcceptPropagationPeerResponseWithActions`**: accept|skip), and
 > **stamp-cost extraction** from announce app-data (via
 > **`stepStampCostFromAppDataWithActions`**: use-fields|reject) are pure
-> protocol leaves; Token and LXMF router adapt them. **Resource receive-part planning** (via **`stepResourceReceivePartWithActions`**), **LXMF outer wire framing** (via
+> protocol leaves; Token, Link, Channel, Resource, LXMF propagation, and LXMF
+> router adapt them. **Resource receive-part planning** (via **`stepResourceReceivePartWithActions`**), **LXMF outer wire framing** (via
 > **`stepPackLxmfWireWithActions`** / **`stepSplitLxmfWireWithActions`**;
 > hashable / signed / opportunistic via **`stepLxmfHashableMaterialWithActions`** /
 > **`stepLxmfSignedMaterialWithActions`** /
@@ -807,15 +814,21 @@
 > **`planResourceAdvertisementRoleFlags`**, **`isValidTokenIvLength`** (via
 > **`stepTokenIvLengthValidWithActions`**: valid|invalid) /
 > **`shouldAcceptTokenFrame`** (via **`stepAcceptTokenFrameWithActions`**:
-> accept|skip), **`isLinkKeepaliveContext`**,
-> **`shouldAcceptResourceProofSplit`**, **`shouldEmplaceChannelEnvelope`**,
-> **`shouldApplyResourceFulfillPart`**, **`shouldClearExpiredDiscoveryPathRequest`** (via
+> accept|skip), **`isLinkKeepaliveContext`** (via
+> **`stepLinkKeepaliveContextWithActions`**: keepalive|other),
+> **`shouldAcceptResourceProofSplit`**, **`shouldEmplaceChannelEnvelope`** (via
+> **`stepEmplaceChannelEnvelopeWithActions`**: emplace|skip),
+> **`shouldApplyResourceFulfillPart`** (via
+> **`stepApplyResourceFulfillPartWithActions`**: apply|skip),
+> **`shouldClearExpiredDiscoveryPathRequest`** (via
 > **`stepClearExpiredDiscoveryPathRequestWithActions`**: clear|skip) /
 > **`shouldRememberPathRequestTag`** (via
 > **`stepRememberPathRequestTagWithActions`**: remember|skip),
 > **`shouldAcceptCachedPathResponsePacket`** (via
 > **`stepAcceptCachedPathResponsePacketWithActions`**: accept|skip),
-> and **`shouldAcceptPropagationPeerResponse`** / **`shouldTreatPropagationListAsEmpty`** /
+> and **`shouldAcceptPropagationPeerResponse`** (via
+> **`stepAcceptPropagationPeerResponseWithActions`**: accept|skip) /
+> **`shouldTreatPropagationListAsEmpty`** /
 > **`shouldRequestPropagationHavesAck`** live in protocol; Resource, Token, Link,
 > Channel, transport path helpers, and LXMF propagation adapt them.
 > **`shouldUsePathForOutbound`** (via **`stepUsePathForOutboundWithActions`**:
@@ -1259,6 +1272,8 @@
 > identity-recall-app-data / destination-construction / destination-decrypt /
 > destination-encrypt / packet-from-fields / channel-message-type-registration /
 > channel-envelope-unpack / channel-envelope-pack / channel-send /
+> emplace-channel-envelope / link-keepalive-context /
+> apply-resource-fulfill-part / accept-propagation-peer-response /
 > resource-assemble / resource-proof-accept / resource-request-fulfill /
 > resource-receive-part / resource-part-request /
 > resource-hashmap-update-accept / append-resource-map-hash-collision-guard /
@@ -1357,6 +1372,8 @@
 > teardown-lxmf-propagation-link / extract-lxmf-opportunistic-payload /
 > select-lxmf-delivery-parameters /
 > accept-transport-packet / packet-hash-defer /
+> emplace-channel-envelope / link-keepalive-context /
+> apply-resource-fulfill-part / accept-propagation-peer-response /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
 > decode-resource-advertisement-flags / classify-resource-advertisement /
 > resource-encrypt-material / resource-hash-material /
@@ -1395,6 +1412,8 @@
 > pack-link-response / unpack-link-request / unpack-link-response /
 > pack-token-frame / split-token-frame / split-token-key /
 > token-iv-length-valid / accept-token-frame /
+> link-keepalive-context / emplace-channel-envelope /
+> apply-resource-fulfill-part / accept-propagation-peer-response /
 > pack-identity-ciphertext / split-identity-ciphertext /
 > pack-lxmf-wire / split-lxmf-wire /
 > lxmf-hashable-material / lxmf-signed-material /
@@ -1682,6 +1701,15 @@
 > **`stepAcceptTransportPacketWithActions`** emits `accept` / `skip`;
 > transport ingress packet accept applies only from those actions (no ad-hoc
 > `shouldAcceptTransportPacket` reads beside the step).
+> **`stepLinkKeepaliveContextWithActions`** emits `keepalive` / `other`;
+> **`stepEmplaceChannelEnvelopeWithActions`** emits `emplace` / `skip`;
+> **`stepApplyResourceFulfillPartWithActions`** emits `apply` / `skip`;
+> **`stepAcceptPropagationPeerResponseWithActions`** emits `accept` / `skip`;
+> link keepalive-context, channel envelope emplace, resource fulfill-part, and
+> propagation peer-response accept apply only from those actions (no ad-hoc
+> `isLinkKeepaliveContext` / `shouldEmplaceChannelEnvelope` /
+> `shouldApplyResourceFulfillPart` / `shouldAcceptPropagationPeerResponse`
+> reads beside the step).
 > **`stepIgnoreLocalAnnounceWithActions`** emits `ignore`|`proceed`;
 > **`stepDispatchAnnounceHandlersWithActions`** emits `dispatch`|`skip`;
 > **`stepReceiveAnnouncePathResponseWithActions`** emits `receive`|`skip`;

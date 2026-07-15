@@ -52,13 +52,17 @@ import {
   channelRingSequenceIndexFromActions,
   drainContiguousChannelSequences,
   indexOfChannelRingSequence,
+  initialEmplaceChannelEnvelopeState,
   initialIndexOfChannelRingSequenceState,
   insertChannelSequence,
   shouldAcceptChannelSequence,
   shouldDrainChannelRingIndex,
   shouldEmplaceChannelEnvelope,
+  shouldEmplaceChannelEnvelopeNow,
   shouldMissChannelRingSequenceIndex,
+  shouldSkipEmplaceChannelEnvelope,
   shouldUseChannelRingSequenceIndex,
+  stepEmplaceChannelEnvelopeWithActions,
   stepIndexOfChannelRingSequenceWithActions
 } from "../src/channel-reorder.js";
 
@@ -336,6 +340,23 @@ describe("protocol channel reorder", () => {
     expect(shouldEmplaceChannelEnvelope(false)).toBe(false);
     expect(shouldDrainChannelRingIndex(true)).toBe(true);
     expect(shouldDrainChannelRingIndex(false)).toBe(false);
+
+    const emplace = stepEmplaceChannelEnvelopeWithActions(initialEmplaceChannelEnvelopeState(), {
+      kind: "channel/emplace-envelope-gate",
+      indexPresent: true
+    });
+    expect(shouldEmplaceChannelEnvelopeNow(emplace.actions)).toBe(true);
+    expect(shouldSkipEmplaceChannelEnvelope(emplace.actions)).toBe(false);
+
+    const skipEmplace = stepEmplaceChannelEnvelopeWithActions(
+      initialEmplaceChannelEnvelopeState(),
+      {
+        kind: "channel/emplace-envelope-gate",
+        indexPresent: false
+      }
+    );
+    expect(shouldEmplaceChannelEnvelopeNow(skipEmplace.actions)).toBe(false);
+    expect(shouldSkipEmplaceChannelEnvelope(skipEmplace.actions)).toBe(true);
 
     const inserted = insertChannelSequence([1, 4], 3, 1);
     expect(inserted.inserted).toBe(true);

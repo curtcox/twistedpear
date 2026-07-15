@@ -4,12 +4,16 @@ import {
   PROPAGATION_LINK_TIMER_ID,
   PropagationPeerError,
   PropagationTransferState,
+  initialAcceptPropagationPeerResponseState,
   initialPropagationTransferState,
   shouldAcceptPropagationPeerResponse,
+  shouldAcceptPropagationPeerResponseNow,
   shouldAcceptPropagationDeliveredMessage,
   shouldHandlePropagationPeerError,
   shouldRequestPropagationHavesAck,
+  shouldSkipAcceptPropagationPeerResponse,
   shouldTreatPropagationListAsEmpty,
+  stepAcceptPropagationPeerResponseWithActions,
   stepPropagationTransferWithActions
 } from "../src/propagation-transfer.js";
 
@@ -124,6 +128,28 @@ describe("protocol propagation transfer", () => {
   it("gates peer response, empty list, and haves-ack", () => {
     expect(shouldAcceptPropagationPeerResponse(true)).toBe(true);
     expect(shouldAcceptPropagationPeerResponse(false)).toBe(false);
+    expect(
+      shouldAcceptPropagationPeerResponseNow(
+        stepAcceptPropagationPeerResponseWithActions(
+          initialAcceptPropagationPeerResponseState(),
+          {
+            kind: "propagation-transfer/accept-peer-response-gate",
+            responsePresent: true
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipAcceptPropagationPeerResponse(
+        stepAcceptPropagationPeerResponseWithActions(
+          initialAcceptPropagationPeerResponseState(),
+          {
+            kind: "propagation-transfer/accept-peer-response-gate",
+            responsePresent: false
+          }
+        ).actions
+      )
+    ).toBe(true);
     expect(shouldHandlePropagationPeerError(true)).toBe(true);
     expect(shouldHandlePropagationPeerError(false)).toBe(false);
     expect(shouldAcceptPropagationDeliveredMessage(true)).toBe(true);

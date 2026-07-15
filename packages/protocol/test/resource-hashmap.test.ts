@@ -12,6 +12,7 @@ import {
   parseResourcePartRequest,
   applyResourceHashmapSlotWrites,
   initialAppendResourceMapHashCollisionGuardState,
+  initialApplyResourceFulfillPartState,
   initialAssembleResourceHashmapBytesState,
   initialContainsResourceHashState,
   initialPackResourceHashmapUpdatePacketState,
@@ -66,6 +67,7 @@ import {
   shouldAcceptResourceHashmapUpdateFrame,
   shouldAdvanceResourceAwaitingProof,
   shouldApplyResourceFulfillPart,
+  shouldApplyResourceFulfillPartNow,
   shouldApplyResourceHashmapUpdateAccept,
   shouldApplyResourceReceivePartSlot,
   shouldEmitResourcePartRequest,
@@ -76,12 +78,14 @@ import {
   shouldRejectSplitResourceHashmapUpdatePacket,
   shouldRejectUnpackResourceHashmapUpdate,
   shouldSendResourceHashmapUpdate,
+  shouldSkipApplyResourceFulfillPart,
   shouldUsePackResourceHashmapUpdate,
   shouldUsePackResourceHashmapUpdatePacket,
   shouldUseParseResourcePartRequest,
   shouldUseSplitResourceHashmapUpdatePacket,
   shouldUseUnpackResourceHashmapUpdate,
   splitResourceHashmapUpdatePacket,
+  stepApplyResourceFulfillPartWithActions,
   stepResourceHashmapUpdateAcceptWithActions,
   stepResourcePartRequestWithActions,
   stepResourceReceivePartWithActions,
@@ -416,6 +420,20 @@ describe("protocol resource hashmap", () => {
     expect(shouldFulfillResourcePartRequest(false)).toBe(false);
     expect(shouldApplyResourceFulfillPart(true)).toBe(true);
     expect(shouldApplyResourceFulfillPart(false)).toBe(false);
+
+    const apply = stepApplyResourceFulfillPartWithActions(initialApplyResourceFulfillPartState(), {
+      kind: "resource-hashmap/apply-fulfill-part-gate",
+      partPresent: true
+    });
+    expect(shouldApplyResourceFulfillPartNow(apply.actions)).toBe(true);
+    expect(shouldSkipApplyResourceFulfillPart(apply.actions)).toBe(false);
+
+    const skip = stepApplyResourceFulfillPartWithActions(initialApplyResourceFulfillPartState(), {
+      kind: "resource-hashmap/apply-fulfill-part-gate",
+      partPresent: false
+    });
+    expect(shouldApplyResourceFulfillPartNow(skip.actions)).toBe(false);
+    expect(shouldSkipApplyResourceFulfillPart(skip.actions)).toBe(true);
     expect(shouldSendResourceHashmapUpdate(true)).toBe(true);
     expect(shouldSendResourceHashmapUpdate(false)).toBe(false);
     expect(shouldAdvanceResourceAwaitingProof("awaiting-proof")).toBe(true);

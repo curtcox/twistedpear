@@ -57,6 +57,65 @@ export function shouldEmplaceChannelEnvelope(indexPresent: boolean): boolean {
   return indexPresent;
 }
 
+/**
+ * Channel envelope emplace gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldEmplaceChannelEnvelope`
+ * reads beside the step).
+ */
+export type EmplaceChannelEnvelopeState = Record<string, never>;
+
+export type EmplaceChannelEnvelopeEvent =
+  | Event
+  | {
+      readonly kind: "channel/emplace-envelope-gate";
+      readonly indexPresent: boolean;
+    };
+
+export type EmplaceChannelEnvelopeAction =
+  | { readonly kind: "emplace" }
+  | { readonly kind: "skip" };
+
+export interface EmplaceChannelEnvelopeStepResult {
+  readonly state: EmplaceChannelEnvelopeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly EmplaceChannelEnvelopeAction[];
+}
+
+export function initialEmplaceChannelEnvelopeState(): EmplaceChannelEnvelopeState {
+  return {};
+}
+
+export function stepEmplaceChannelEnvelopeWithActions(
+  state: EmplaceChannelEnvelopeState,
+  event: EmplaceChannelEnvelopeEvent
+): EmplaceChannelEnvelopeStepResult {
+  if (event.kind === "channel/emplace-envelope-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldEmplaceChannelEnvelope(event.indexPresent) ? "emplace" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldEmplaceChannelEnvelopeNow(
+  actions: ReadonlyArray<EmplaceChannelEnvelopeAction>
+): boolean {
+  return actions.some((action) => action.kind === "emplace");
+}
+
+export function shouldSkipEmplaceChannelEnvelope(
+  actions: ReadonlyArray<EmplaceChannelEnvelopeAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether RX drain may splice/unpack a contiguous ring sequence by lookup index. */
 export function shouldDrainChannelRingIndex(indexPresent: boolean): boolean {
   return indexPresent;

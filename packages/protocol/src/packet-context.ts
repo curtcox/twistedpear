@@ -96,6 +96,65 @@ export function isLinkKeepaliveContext(context: number): boolean {
 }
 
 /**
+ * Link keepalive-context gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isLinkKeepaliveContext`
+ * reads beside the step).
+ */
+export type LinkKeepaliveContextState = Record<string, never>;
+
+export type LinkKeepaliveContextEvent =
+  | Event
+  | {
+      readonly kind: "link/keepalive-context-gate";
+      readonly context: number;
+    };
+
+export type LinkKeepaliveContextAction =
+  | { readonly kind: "keepalive" }
+  | { readonly kind: "other" };
+
+export interface LinkKeepaliveContextStepResult {
+  readonly state: LinkKeepaliveContextState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkKeepaliveContextAction[];
+}
+
+export function initialLinkKeepaliveContextState(): LinkKeepaliveContextState {
+  return {};
+}
+
+export function stepLinkKeepaliveContextWithActions(
+  state: LinkKeepaliveContextState,
+  event: LinkKeepaliveContextEvent
+): LinkKeepaliveContextStepResult {
+  if (event.kind === "link/keepalive-context-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isLinkKeepaliveContext(event.context) ? "keepalive" : "other"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatLinkKeepaliveContext(
+  actions: ReadonlyArray<LinkKeepaliveContextAction>
+): boolean {
+  return actions.some((action) => action.kind === "keepalive");
+}
+
+export function shouldTreatLinkKeepaliveOther(
+  actions: ReadonlyArray<LinkKeepaliveContextAction>
+): boolean {
+  return actions.some((action) => action.kind === "other");
+}
+
+/**
  * Link DATA context dispatch is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  */

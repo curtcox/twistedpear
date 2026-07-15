@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   PacketContextCode,
   initialLinkDataContextState,
+  initialLinkKeepaliveContextState,
   isLinkKeepaliveContext,
   linkDataContextFromActions,
   planLinkDataContext,
@@ -20,7 +21,10 @@ import {
   shouldHandleLinkDataResponse,
   shouldHandleLinkDataRtt,
   shouldIgnoreLinkDataContext,
-  stepLinkDataContextWithActions
+  shouldTreatLinkKeepaliveContext,
+  shouldTreatLinkKeepaliveOther,
+  stepLinkDataContextWithActions,
+  stepLinkKeepaliveContextWithActions
 } from "../src/packet-context.js";
 
 describe("protocol packet context", () => {
@@ -74,5 +78,28 @@ describe("protocol packet context", () => {
   it("recognizes keepalive context bytes", () => {
     expect(isLinkKeepaliveContext(PacketContextCode.KEEPALIVE)).toBe(true);
     expect(isLinkKeepaliveContext(PacketContextCode.NONE)).toBe(false);
+  });
+
+  it("emits keepalive-context only from keepalive/other actions", () => {
+    const keepalive = stepLinkKeepaliveContextWithActions(initialLinkKeepaliveContextState(), {
+      kind: "link/keepalive-context-gate",
+      context: PacketContextCode.KEEPALIVE
+    });
+    expect(shouldTreatLinkKeepaliveContext(keepalive.actions)).toBe(true);
+    expect(shouldTreatLinkKeepaliveOther(keepalive.actions)).toBe(false);
+
+    const other = stepLinkKeepaliveContextWithActions(initialLinkKeepaliveContextState(), {
+      kind: "link/keepalive-context-gate",
+      context: PacketContextCode.NONE
+    });
+    expect(shouldTreatLinkKeepaliveContext(other.actions)).toBe(false);
+    expect(shouldTreatLinkKeepaliveOther(other.actions)).toBe(true);
+
+    const empty = stepLinkKeepaliveContextWithActions(initialLinkKeepaliveContextState(), {
+      kind: "timer/fired",
+      timer: { id: "x" }
+    });
+    expect(shouldTreatLinkKeepaliveContext(empty.actions)).toBe(false);
+    expect(shouldTreatLinkKeepaliveOther(empty.actions)).toBe(false);
   });
 });

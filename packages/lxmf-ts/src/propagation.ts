@@ -1,6 +1,7 @@
 import {
   PROPAGATION_LINK_TIMER_ID,
   PropagationTransferState,
+  initialAcceptPropagationPeerResponseState,
   initialDecodeLxmfPeerErrorState,
   initialLinkAppRequestAwaitState,
   initialLxmfPropagationLinkReadyState,
@@ -19,7 +20,7 @@ import {
   propagationGetListIds,
   propagationRequestFieldsFromActions,
   shouldAcceptPropagationGetRequestData,
-  shouldAcceptPropagationPeerResponse,
+  shouldAcceptPropagationPeerResponseNow,
   shouldAcceptPropagationDeliveredMessage,
   shouldApplyPropagationGet,
   shouldEstablishLxmfPropagationLink,
@@ -45,6 +46,7 @@ import {
   shouldUseUnpackBinList,
   shouldUseUnpackPropagationEnvelope,
   shouldUseUnpackPropagationRequest,
+  stepAcceptPropagationPeerResponseWithActions,
   stepDecodeLxmfPeerErrorWithActions,
   stepLinkAppRequestAwaitWithActions,
   stepLxmfPropagationLinkReadyWithActions,
@@ -205,7 +207,17 @@ export class PropagationClient {
           action.timeoutSec
         );
 
-        if (!shouldAcceptPropagationPeerResponse(listResponse !== null)) {
+        if (
+          !shouldAcceptPropagationPeerResponseNow(
+            stepAcceptPropagationPeerResponseWithActions(
+              initialAcceptPropagationPeerResponseState(),
+              {
+                kind: "propagation-transfer/accept-peer-response-gate",
+                responsePresent: listResponse !== null
+              }
+            ).actions
+          )
+        ) {
           this.applyTransfer({ kind: "xfer/list-null" });
           return { state: this.state, messages: [] };
         }
@@ -295,7 +307,17 @@ export class PropagationClient {
         action.timeoutSec
       );
 
-      if (!shouldAcceptPropagationPeerResponse(downloadResponse !== null)) {
+      if (
+        !shouldAcceptPropagationPeerResponseNow(
+          stepAcceptPropagationPeerResponseWithActions(
+            initialAcceptPropagationPeerResponseState(),
+            {
+              kind: "propagation-transfer/accept-peer-response-gate",
+              responsePresent: downloadResponse !== null
+            }
+          ).actions
+        )
+      ) {
         this.applyTransfer({ kind: "xfer/download-null" });
         return { state: this.state, messages: [] };
       }

@@ -330,8 +330,8 @@ import {
   shouldDispatchLinkInboundData,
   initialLinkInboundDataPacketState,
   stepLinkInboundDataPacketWithActions,
-  isLinkKeepaliveContext,
   identityPublicKeyFieldsFromActions,
+  initialLinkKeepaliveContextState,
   initialSplitIdentityPublicKeyState,
   initialDeriveRnsLinkKeyState,
   initialSplitInitiatorLinkEntropyState,
@@ -342,9 +342,12 @@ import {
   shouldRejectSplitInitiatorLinkEntropy,
   shouldUseDeriveRnsLinkKey,
   shouldRejectSplitResponderLinkEntropy,
+  shouldTreatLinkKeepaliveContext,
+  shouldTreatLinkKeepaliveOther,
   shouldUseSplitIdentityPublicKey,
   shouldUseSplitInitiatorLinkEntropy,
   shouldUseSplitResponderLinkEntropy,
+  stepLinkKeepaliveContextWithActions,
   stepSplitIdentityPublicKeyWithActions,
   stepDeriveRnsLinkKeyWithActions,
   stepSplitInitiatorLinkEntropyWithActions,
@@ -1378,12 +1381,21 @@ export class Link {
     );
     const probePayload = shouldClassifyLinkKeepaliveProbe(keepaliveClassify.actions);
 
+    const keepaliveContext = stepLinkKeepaliveContextWithActions(
+      initialLinkKeepaliveContextState(),
+      {
+        kind: "link/keepalive-context-gate",
+        context: packet.context
+      }
+    );
+    const contextKeepalive = shouldTreatLinkKeepaliveContext(keepaliveContext.actions);
+
     const ignoreProbe = stepIgnoreInitiatorKeepaliveProbeWithActions(
       initialIgnoreInitiatorKeepaliveProbeState(),
       {
         kind: "link-keepalive/ignore-initiator-probe-gate",
         initiator: this.initiator,
-        contextKeepalive: isLinkKeepaliveContext(packet.context),
+        contextKeepalive,
         probePayload
       }
     );
@@ -1411,7 +1423,7 @@ export class Link {
     );
     const lastDataStepped = stepUpdateLinkLastDataWithActions(initialUpdateLinkLastDataState(), {
       kind: "link/update-last-data-gate",
-      contextKeepalive: isLinkKeepaliveContext(packet.context)
+      contextKeepalive
     });
     if (shouldUpdateLinkLastDataNow(lastDataStepped.actions)) {
       this.lastData = this.lastInbound;
@@ -1840,7 +1852,14 @@ export class Link {
       attachedInterface: this.attachedInterface,
       createReceipt: options.createReceipt ?? false
     });
-    this.hadOutbound(isLinkKeepaliveContext(context));
+    this.hadOutbound(
+      shouldTreatLinkKeepaliveContext(
+        stepLinkKeepaliveContextWithActions(initialLinkKeepaliveContextState(), {
+          kind: "link/keepalive-context-gate",
+          context
+        }).actions
+      )
+    );
     return { raw: packet.raw, receipt };
   }
 

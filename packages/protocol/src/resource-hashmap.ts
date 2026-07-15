@@ -588,6 +588,65 @@ export function shouldApplyResourceFulfillPart(partPresent: boolean): boolean {
   return partPresent;
 }
 
+/**
+ * Resource fulfill-part apply gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldApplyResourceFulfillPart`
+ * reads beside the step).
+ */
+export type ApplyResourceFulfillPartState = Record<string, never>;
+
+export type ApplyResourceFulfillPartEvent =
+  | Event
+  | {
+      readonly kind: "resource-hashmap/apply-fulfill-part-gate";
+      readonly partPresent: boolean;
+    };
+
+export type ApplyResourceFulfillPartAction =
+  | { readonly kind: "apply" }
+  | { readonly kind: "skip" };
+
+export interface ApplyResourceFulfillPartStepResult {
+  readonly state: ApplyResourceFulfillPartState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ApplyResourceFulfillPartAction[];
+}
+
+export function initialApplyResourceFulfillPartState(): ApplyResourceFulfillPartState {
+  return {};
+}
+
+export function stepApplyResourceFulfillPartWithActions(
+  state: ApplyResourceFulfillPartState,
+  event: ApplyResourceFulfillPartEvent
+): ApplyResourceFulfillPartStepResult {
+  if (event.kind === "resource-hashmap/apply-fulfill-part-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldApplyResourceFulfillPart(event.partPresent) ? "apply" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldApplyResourceFulfillPartNow(
+  actions: ReadonlyArray<ApplyResourceFulfillPartAction>
+): boolean {
+  return actions.some((action) => action.kind === "apply");
+}
+
+export function shouldSkipApplyResourceFulfillPart(
+  actions: ReadonlyArray<ApplyResourceFulfillPartAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether a receive-part plan should write the matched slot. */
 export function shouldApplyResourceReceivePartSlot(input: {
   readonly matched: boolean;

@@ -24,6 +24,7 @@ import {
   initialChannelPacketTimeoutSecondsState,
   initialChannelWindowState,
   initialCountChannelTxOutstandingState,
+  initialEmplaceChannelEnvelopeState,
   initialIndexOfChannelRingSequenceState,
   initialIndexOfChannelTxEnvelopeState,
   nextChannelSequence,
@@ -44,7 +45,7 @@ import {
   shouldApplyChannelTxReceiptTimeoutExtension,
   shouldClearChannelEnvelopePacket,
   shouldDrainChannelRingIndex,
-  shouldEmplaceChannelEnvelope,
+  shouldEmplaceChannelEnvelopeNow,
   shouldEmitChannelImmediateDelivery,
   shouldGiveUpChannelTxTimeout,
   shouldMissChannelTxEnvelopeOp,
@@ -88,6 +89,7 @@ import {
   stepChannelTxTimeoutWithActions,
   stepChannelWindow,
   stepCountChannelTxOutstandingWithActions,
+  stepEmplaceChannelEnvelopeWithActions,
   stepIndexOfChannelRingSequenceWithActions,
   stepIndexOfChannelTxEnvelopeWithActions,
   stepPackChannelEnvelopeWithActions,
@@ -534,7 +536,14 @@ export class Channel {
       ringSequences: ring.map((existing) => existing.sequence),
       wrapBaseSequence: this.nextRxSequence
     });
-    if (!shouldEmplaceChannelEnvelope(index !== null)) {
+    const emplaceStepped = stepEmplaceChannelEnvelopeWithActions(
+      initialEmplaceChannelEnvelopeState(),
+      {
+        kind: "channel/emplace-envelope-gate",
+        indexPresent: index !== null
+      }
+    );
+    if (!shouldEmplaceChannelEnvelopeNow(emplaceStepped.actions)) {
       return false;
     }
 

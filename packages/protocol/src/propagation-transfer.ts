@@ -251,6 +251,67 @@ export function shouldAcceptPropagationPeerResponse(responsePresent: boolean): b
   return responsePresent;
 }
 
+/**
+ * Propagation peer-response accept gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldAcceptPropagationPeerResponse` reads beside the step).
+ */
+export type AcceptPropagationPeerResponseState = Record<string, never>;
+
+export type AcceptPropagationPeerResponseEvent =
+  | Event
+  | {
+      readonly kind: "propagation-transfer/accept-peer-response-gate";
+      readonly responsePresent: boolean;
+    };
+
+export type AcceptPropagationPeerResponseAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptPropagationPeerResponseStepResult {
+  readonly state: AcceptPropagationPeerResponseState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptPropagationPeerResponseAction[];
+}
+
+export function initialAcceptPropagationPeerResponseState(): AcceptPropagationPeerResponseState {
+  return {};
+}
+
+export function stepAcceptPropagationPeerResponseWithActions(
+  state: AcceptPropagationPeerResponseState,
+  event: AcceptPropagationPeerResponseEvent
+): AcceptPropagationPeerResponseStepResult {
+  if (event.kind === "propagation-transfer/accept-peer-response-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptPropagationPeerResponse(event.responsePresent)
+            ? "accept"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptPropagationPeerResponseNow(
+  actions: ReadonlyArray<AcceptPropagationPeerResponseAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAcceptPropagationPeerResponse(
+  actions: ReadonlyArray<AcceptPropagationPeerResponseAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether a decoded peer-error code should drive xfer/list-peer-error. */
 export function shouldHandlePropagationPeerError(errorPresent: boolean): boolean {
   return errorPresent;

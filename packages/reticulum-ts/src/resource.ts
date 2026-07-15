@@ -163,13 +163,15 @@ import {
   shouldAcceptIncomingResourceAdvertisement,
   shouldAdvertiseResource,
   shouldAdvanceResourceAwaitingProof,
-  shouldApplyResourceFulfillPart,
+  shouldApplyResourceFulfillPartNow,
   shouldApplyResourceReceivePartSlot,
   shouldCommitResourceAssemblePayload,
   shouldFulfillResourcePartRequest,
   shouldSendResourceHashmapUpdate,
+  stepApplyResourceFulfillPartWithActions,
   stepResourceAdvertiseWaitWithActions,
   stepResourceWatchdogWithActions,
+  initialApplyResourceFulfillPartState,
   type ResourceStatusEvent,
   type ResourceStatusValue,
   type ResourceWatchdogState,
@@ -990,7 +992,14 @@ export class Resource {
 
     for (const action of plan.partActions) {
       const part = this.parts[action.index];
-      if (!shouldApplyResourceFulfillPart(part !== undefined)) {
+      const applyStepped = stepApplyResourceFulfillPartWithActions(
+        initialApplyResourceFulfillPartState(),
+        {
+          kind: "resource-hashmap/apply-fulfill-part-gate",
+          partPresent: part !== undefined
+        }
+      );
+      if (!shouldApplyResourceFulfillPartNow(applyStepped.actions)) {
         continue;
       }
       if (action.kind === "send") {
