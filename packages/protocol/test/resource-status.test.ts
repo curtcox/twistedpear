@@ -8,23 +8,51 @@ import {
   canResourceContinueTransfer,
   canRunResourceWatchdog,
   canValidateResourceProof,
+  initialAcceptIncomingResourceAdvertisementState,
+  initialAdvertiseResourceState,
+  initialProveResourceAllowState,
   initialResourceAssembleState,
+  initialResourceContinueTransferState,
   initialResourceProofAcceptState,
+  initialResourceReceivePartAllowState,
+  initialResourceRequestNextAllowState,
   initialResourceStatusState,
+  initialResourceWatchdogAllowState,
   isResourceComplete,
   isResourceTerminal,
   planResourceAdvertisePhase,
   planResourceAssembleOutcome,
   planResourceProofAccept,
   shouldAcceptIncomingResourceAdvertisement,
+  shouldAcceptIncomingResourceAdvertisementNow,
   shouldAdvertiseResource,
+  shouldAdvertiseResourceNow,
+  shouldAllowProveResource,
+  shouldAllowResourceReceivePart,
+  shouldAllowResourceRequestNext,
+  shouldAllowResourceWatchdog,
   shouldCommitResourceAssemblePayload,
   shouldCompleteResourceAssemble,
   shouldCompleteResourceProofAccept,
+  shouldContinueResourceTransfer,
   shouldCorruptResourceAssemble,
+  shouldDenyProveResource,
+  shouldDenyResourceReceivePart,
+  shouldDenyResourceRequestNext,
+  shouldDenyResourceWatchdog,
   shouldIgnoreResourceProofAccept,
+  shouldSkipAdvertiseResource,
+  shouldSkipIncomingResourceAdvertisement,
+  shouldStopResourceTransfer,
+  stepAcceptIncomingResourceAdvertisementWithActions,
+  stepAdvertiseResourceWithActions,
+  stepProveResourceAllowWithActions,
   stepResourceAssembleWithActions,
-  stepResourceProofAcceptWithActions
+  stepResourceContinueTransferWithActions,
+  stepResourceProofAcceptWithActions,
+  stepResourceReceivePartAllowWithActions,
+  stepResourceRequestNextAllowWithActions,
+  stepResourceWatchdogAllowWithActions
 } from "../src/resource-status.js";
 
 describe("protocol resource status", () => {
@@ -174,6 +202,119 @@ describe("protocol resource status", () => {
       proofValid: false
     });
     expect(shouldIgnoreResourceProofAccept(ignore.actions)).toBe(true);
+  });
+
+  it("emits transfer/status gate actions from WithActions steps", () => {
+    const continueOk = stepResourceContinueTransferWithActions(
+      initialResourceContinueTransferState(),
+      {
+        kind: "resource/continue-transfer-gate",
+        status: ResourceStatus.TRANSFERRING
+      }
+    );
+    expect(continueOk.actions).toEqual([{ kind: "continue" }]);
+    expect(shouldContinueResourceTransfer(continueOk.actions)).toBe(true);
+
+    const continueStop = stepResourceContinueTransferWithActions(
+      initialResourceContinueTransferState(),
+      {
+        kind: "resource/continue-transfer-gate",
+        status: ResourceStatus.FAILED
+      }
+    );
+    expect(shouldStopResourceTransfer(continueStop.actions)).toBe(true);
+
+    const receiveOk = stepResourceReceivePartAllowWithActions(
+      initialResourceReceivePartAllowState(),
+      {
+        kind: "resource/receive-part-allow-gate",
+        status: ResourceStatus.TRANSFERRING
+      }
+    );
+    expect(shouldAllowResourceReceivePart(receiveOk.actions)).toBe(true);
+
+    const receiveDeny = stepResourceReceivePartAllowWithActions(
+      initialResourceReceivePartAllowState(),
+      {
+        kind: "resource/receive-part-allow-gate",
+        status: ResourceStatus.COMPLETE
+      }
+    );
+    expect(shouldDenyResourceReceivePart(receiveDeny.actions)).toBe(true);
+
+    const requestOk = stepResourceRequestNextAllowWithActions(
+      initialResourceRequestNextAllowState(),
+      {
+        kind: "resource/request-next-allow-gate",
+        status: ResourceStatus.TRANSFERRING,
+        waitingForHashmap: false
+      }
+    );
+    expect(shouldAllowResourceRequestNext(requestOk.actions)).toBe(true);
+
+    const requestDeny = stepResourceRequestNextAllowWithActions(
+      initialResourceRequestNextAllowState(),
+      {
+        kind: "resource/request-next-allow-gate",
+        status: ResourceStatus.TRANSFERRING,
+        waitingForHashmap: true
+      }
+    );
+    expect(shouldDenyResourceRequestNext(requestDeny.actions)).toBe(true);
+
+    const watchdogOk = stepResourceWatchdogAllowWithActions(initialResourceWatchdogAllowState(), {
+      kind: "resource/watchdog-allow-gate",
+      status: ResourceStatus.ADVERTISED
+    });
+    expect(shouldAllowResourceWatchdog(watchdogOk.actions)).toBe(true);
+
+    const watchdogDeny = stepResourceWatchdogAllowWithActions(initialResourceWatchdogAllowState(), {
+      kind: "resource/watchdog-allow-gate",
+      status: ResourceStatus.FAILED
+    });
+    expect(shouldDenyResourceWatchdog(watchdogDeny.actions)).toBe(true);
+
+    const proveOk = stepProveResourceAllowWithActions(initialProveResourceAllowState(), {
+      kind: "resource/prove-allow-gate",
+      dataPresent: true
+    });
+    expect(shouldAllowProveResource(proveOk.actions)).toBe(true);
+
+    const proveDeny = stepProveResourceAllowWithActions(initialProveResourceAllowState(), {
+      kind: "resource/prove-allow-gate",
+      dataPresent: false
+    });
+    expect(shouldDenyProveResource(proveDeny.actions)).toBe(true);
+
+    const advertiseOk = stepAdvertiseResourceWithActions(initialAdvertiseResourceState(), {
+      kind: "resource/advertise-option-gate",
+      advertiseOption: undefined
+    });
+    expect(shouldAdvertiseResourceNow(advertiseOk.actions)).toBe(true);
+
+    const advertiseSkip = stepAdvertiseResourceWithActions(initialAdvertiseResourceState(), {
+      kind: "resource/advertise-option-gate",
+      advertiseOption: false
+    });
+    expect(shouldSkipAdvertiseResource(advertiseSkip.actions)).toBe(true);
+
+    const incomingOk = stepAcceptIncomingResourceAdvertisementWithActions(
+      initialAcceptIncomingResourceAdvertisementState(),
+      {
+        kind: "resource/accept-incoming-adv-gate",
+        alreadyIncoming: false
+      }
+    );
+    expect(shouldAcceptIncomingResourceAdvertisementNow(incomingOk.actions)).toBe(true);
+
+    const incomingSkip = stepAcceptIncomingResourceAdvertisementWithActions(
+      initialAcceptIncomingResourceAdvertisementState(),
+      {
+        kind: "resource/accept-incoming-adv-gate",
+        alreadyIncoming: true
+      }
+    );
+    expect(shouldSkipIncomingResourceAdvertisement(incomingSkip.actions)).toBe(true);
   });
 
   it("steps through advertise → transferring → awaiting-proof → complete", () => {

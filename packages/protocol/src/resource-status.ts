@@ -1,8 +1,10 @@
 /**
  * Pure resource transfer status transitions and gates.
  * Crypto, link send, and timers stay at the adapter edge.
- * Assemble / proof-accept conclusions leave via machine actions
- * (no ad-hoc plan reads beside the step).
+ * Continue-transfer / receive-part / request-next / watchdog /
+ * prove / advertise / incoming-adv / assemble / proof-accept
+ * conclusions leave via machine actions (no ad-hoc plan /
+ * `can*` / `should*` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { ResourceStatus, type ResourceStatusValue } from "./resource-watchdog.js";
@@ -45,8 +47,126 @@ export function canResourceContinueTransfer(status: ResourceStatusValue): boolea
   return status !== ResourceStatus.FAILED;
 }
 
+/**
+ * Resource continue-transfer gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canResourceContinueTransfer`
+ * reads beside the step).
+ */
+export type ResourceContinueTransferState = Record<string, never>;
+
+export type ResourceContinueTransferEvent =
+  | Event
+  | {
+      readonly kind: "resource/continue-transfer-gate";
+      readonly status: ResourceStatusValue;
+    };
+
+export type ResourceContinueTransferAction =
+  | { readonly kind: "continue" }
+  | { readonly kind: "stop" };
+
+export interface ResourceContinueTransferStepResult {
+  readonly state: ResourceContinueTransferState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceContinueTransferAction[];
+}
+
+export function initialResourceContinueTransferState(): ResourceContinueTransferState {
+  return {};
+}
+
+export function stepResourceContinueTransferWithActions(
+  state: ResourceContinueTransferState,
+  event: ResourceContinueTransferEvent
+): ResourceContinueTransferStepResult {
+  if (event.kind === "resource/continue-transfer-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canResourceContinueTransfer(event.status) ? "continue" : "stop"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldContinueResourceTransfer(
+  actions: ReadonlyArray<ResourceContinueTransferAction>
+): boolean {
+  return actions.some((action) => action.kind === "continue");
+}
+
+export function shouldStopResourceTransfer(
+  actions: ReadonlyArray<ResourceContinueTransferAction>
+): boolean {
+  return actions.some((action) => action.kind === "stop");
+}
+
 export function canReceiveResourcePart(status: ResourceStatusValue): boolean {
   return status !== ResourceStatus.FAILED && status !== ResourceStatus.COMPLETE;
+}
+
+/**
+ * Resource receive-part allow gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canReceiveResourcePart`
+ * reads beside the step).
+ */
+export type ResourceReceivePartAllowState = Record<string, never>;
+
+export type ResourceReceivePartAllowEvent =
+  | Event
+  | {
+      readonly kind: "resource/receive-part-allow-gate";
+      readonly status: ResourceStatusValue;
+    };
+
+export type ResourceReceivePartAllowAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface ResourceReceivePartAllowStepResult {
+  readonly state: ResourceReceivePartAllowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceReceivePartAllowAction[];
+}
+
+export function initialResourceReceivePartAllowState(): ResourceReceivePartAllowState {
+  return {};
+}
+
+export function stepResourceReceivePartAllowWithActions(
+  state: ResourceReceivePartAllowState,
+  event: ResourceReceivePartAllowEvent
+): ResourceReceivePartAllowStepResult {
+  if (event.kind === "resource/receive-part-allow-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canReceiveResourcePart(event.status) ? "allow" : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowResourceReceivePart(
+  actions: ReadonlyArray<ResourceReceivePartAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyResourceReceivePart(
+  actions: ReadonlyArray<ResourceReceivePartAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
 }
 
 export function canValidateResourceProof(status: ResourceStatusValue): boolean {
@@ -57,6 +177,65 @@ export function canRunResourceWatchdog(status: ResourceStatusValue): boolean {
   return !isResourceTerminal(status);
 }
 
+/**
+ * Resource watchdog-allow gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canRunResourceWatchdog`
+ * reads beside the step).
+ */
+export type ResourceWatchdogAllowState = Record<string, never>;
+
+export type ResourceWatchdogAllowEvent =
+  | Event
+  | {
+      readonly kind: "resource/watchdog-allow-gate";
+      readonly status: ResourceStatusValue;
+    };
+
+export type ResourceWatchdogAllowAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface ResourceWatchdogAllowStepResult {
+  readonly state: ResourceWatchdogAllowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceWatchdogAllowAction[];
+}
+
+export function initialResourceWatchdogAllowState(): ResourceWatchdogAllowState {
+  return {};
+}
+
+export function stepResourceWatchdogAllowWithActions(
+  state: ResourceWatchdogAllowState,
+  event: ResourceWatchdogAllowEvent
+): ResourceWatchdogAllowStepResult {
+  if (event.kind === "resource/watchdog-allow-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canRunResourceWatchdog(event.status) ? "allow" : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowResourceWatchdog(
+  actions: ReadonlyArray<ResourceWatchdogAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyResourceWatchdog(
+  actions: ReadonlyArray<ResourceWatchdogAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
+}
+
 /** Gate for requestNext early-out (failed status or waiting for hashmap). */
 export function canRequestResourceNext(input: {
   readonly status: ResourceStatusValue;
@@ -65,9 +244,135 @@ export function canRequestResourceNext(input: {
   return canResourceContinueTransfer(input.status) && !input.waitingForHashmap;
 }
 
+/**
+ * Resource request-next allow gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canRequestResourceNext`
+ * reads beside the step).
+ */
+export type ResourceRequestNextAllowState = Record<string, never>;
+
+export type ResourceRequestNextAllowEvent =
+  | Event
+  | {
+      readonly kind: "resource/request-next-allow-gate";
+      readonly status: ResourceStatusValue;
+      readonly waitingForHashmap: boolean;
+    };
+
+export type ResourceRequestNextAllowAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface ResourceRequestNextAllowStepResult {
+  readonly state: ResourceRequestNextAllowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceRequestNextAllowAction[];
+}
+
+export function initialResourceRequestNextAllowState(): ResourceRequestNextAllowState {
+  return {};
+}
+
+export function stepResourceRequestNextAllowWithActions(
+  state: ResourceRequestNextAllowState,
+  event: ResourceRequestNextAllowEvent
+): ResourceRequestNextAllowStepResult {
+  if (event.kind === "resource/request-next-allow-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canRequestResourceNext({
+            status: event.status,
+            waitingForHashmap: event.waitingForHashmap
+          })
+            ? "allow"
+            : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowResourceRequestNext(
+  actions: ReadonlyArray<ResourceRequestNextAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyResourceRequestNext(
+  actions: ReadonlyArray<ResourceRequestNextAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
+}
+
 /** Whether an incoming ADV should create a new resource (not already incoming). */
 export function shouldAcceptIncomingResourceAdvertisement(alreadyIncoming: boolean): boolean {
   return !alreadyIncoming;
+}
+
+/**
+ * Incoming resource ADV accept gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldAcceptIncomingResourceAdvertisement` reads beside the step).
+ */
+export type AcceptIncomingResourceAdvertisementState = Record<string, never>;
+
+export type AcceptIncomingResourceAdvertisementEvent =
+  | Event
+  | {
+      readonly kind: "resource/accept-incoming-adv-gate";
+      readonly alreadyIncoming: boolean;
+    };
+
+export type AcceptIncomingResourceAdvertisementAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptIncomingResourceAdvertisementStepResult {
+  readonly state: AcceptIncomingResourceAdvertisementState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptIncomingResourceAdvertisementAction[];
+}
+
+export function initialAcceptIncomingResourceAdvertisementState(): AcceptIncomingResourceAdvertisementState {
+  return {};
+}
+
+export function stepAcceptIncomingResourceAdvertisementWithActions(
+  state: AcceptIncomingResourceAdvertisementState,
+  event: AcceptIncomingResourceAdvertisementEvent
+): AcceptIncomingResourceAdvertisementStepResult {
+  if (event.kind === "resource/accept-incoming-adv-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptIncomingResourceAdvertisement(event.alreadyIncoming)
+            ? "accept"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptIncomingResourceAdvertisementNow(
+  actions: ReadonlyArray<AcceptIncomingResourceAdvertisementAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipIncomingResourceAdvertisement(
+  actions: ReadonlyArray<AcceptIncomingResourceAdvertisementAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Map link readiness to the next advertise-phase status event. */
@@ -81,11 +386,129 @@ export function canProveResource(dataPresent: boolean): boolean {
 }
 
 /**
+ * Resource prove-allow gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canProveResource` reads
+ * beside the step).
+ */
+export type ProveResourceAllowState = Record<string, never>;
+
+export type ProveResourceAllowEvent =
+  | Event
+  | {
+      readonly kind: "resource/prove-allow-gate";
+      readonly dataPresent: boolean;
+    };
+
+export type ProveResourceAllowAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface ProveResourceAllowStepResult {
+  readonly state: ProveResourceAllowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ProveResourceAllowAction[];
+}
+
+export function initialProveResourceAllowState(): ProveResourceAllowState {
+  return {};
+}
+
+export function stepProveResourceAllowWithActions(
+  state: ProveResourceAllowState,
+  event: ProveResourceAllowEvent
+): ProveResourceAllowStepResult {
+  if (event.kind === "resource/prove-allow-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canProveResource(event.dataPresent) ? "allow" : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowProveResource(
+  actions: ReadonlyArray<ProveResourceAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyProveResource(
+  actions: ReadonlyArray<ProveResourceAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
+}
+
+/**
  * Whether Resource.send should auto-advertise after construction.
  * Default true when the option is omitted (`advertise !== false`).
  */
 export function shouldAdvertiseResource(advertiseOption: boolean | undefined): boolean {
   return advertiseOption !== false;
+}
+
+/**
+ * Resource advertise-option gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldAdvertiseResource`
+ * reads beside the step).
+ */
+export type AdvertiseResourceState = Record<string, never>;
+
+export type AdvertiseResourceEvent =
+  | Event
+  | {
+      readonly kind: "resource/advertise-option-gate";
+      readonly advertiseOption: boolean | undefined;
+    };
+
+export type AdvertiseResourceAction =
+  | { readonly kind: "advertise" }
+  | { readonly kind: "skip" };
+
+export interface AdvertiseResourceStepResult {
+  readonly state: AdvertiseResourceState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AdvertiseResourceAction[];
+}
+
+export function initialAdvertiseResourceState(): AdvertiseResourceState {
+  return {};
+}
+
+export function stepAdvertiseResourceWithActions(
+  state: AdvertiseResourceState,
+  event: AdvertiseResourceEvent
+): AdvertiseResourceStepResult {
+  if (event.kind === "resource/advertise-option-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAdvertiseResource(event.advertiseOption) ? "advertise" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAdvertiseResourceNow(
+  actions: ReadonlyArray<AdvertiseResourceAction>
+): boolean {
+  return actions.some((action) => action.kind === "advertise");
+}
+
+export function shouldSkipAdvertiseResource(
+  actions: ReadonlyArray<AdvertiseResourceAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**

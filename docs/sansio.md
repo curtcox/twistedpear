@@ -16,7 +16,16 @@
 > **`stepSplitIdentityEntropyWithActions`**: use-fields|reject) plus **Identity**,
 > **Token**, and **Resource** RNG now prefer injected/`Runtime` entropy (transport
 > identity keygen, path-request tags, link Token IVs, destination encrypt, resource
-> random hashes). **Channel congestion** (window sizing, packet timeout formula
+> random hashes). **Resource transfer/status** gates (continue-transfer via
+> **`stepResourceContinueTransferWithActions`**: continue|stop; receive-part /
+> request-next / watchdog / prove allow via
+> **`stepResourceReceivePartAllowWithActions`** /
+> **`stepResourceRequestNextAllowWithActions`** /
+> **`stepResourceWatchdogAllowWithActions`** /
+> **`stepProveResourceAllowWithActions`**: allow|deny; advertise via
+> **`stepAdvertiseResourceWithActions`**: advertise|skip; incoming ADV via
+> **`stepAcceptIncomingResourceAdvertisementWithActions`**: accept|skip) are pure
+> protocol leaves; `Resource` adapts them. **Channel congestion** (window sizing, packet timeout formula
 > via **`stepChannelPacketTimeoutSecondsWithActions`**: use-timeout; TX
 > outstanding via **`stepCountChannelTxOutstandingWithActions`**: use-count;
 > send-allow via **`stepChannelAllowsSendWithActions`**: allow|deny; outlet
@@ -635,8 +644,18 @@
 > **`planResourceAssembleOutcome`** (via **`stepResourceAssembleWithActions`**:
 > complete / corrupt), **`planResourceProofAccept`** (via
 > **`stepResourceProofAcceptWithActions`**: complete / ignore),
-> **`canRequestResourceNext`**, **`planResourceAdvertisePhase`**, and
-> **`shouldAcceptIncomingResourceAdvertisement`** live in protocol; `Resource` adapts them.
+> **`canResourceContinueTransfer`** (via **`stepResourceContinueTransferWithActions`**:
+> continue|stop), **`canReceiveResourcePart`** (via
+> **`stepResourceReceivePartAllowWithActions`**: allow|deny),
+> **`canRequestResourceNext`** (via **`stepResourceRequestNextAllowWithActions`**:
+> allow|deny), **`canRunResourceWatchdog`** (via
+> **`stepResourceWatchdogAllowWithActions`**: allow|deny), **`canProveResource`**
+> (via **`stepProveResourceAllowWithActions`**: allow|deny),
+> **`shouldAdvertiseResource`** (via **`stepAdvertiseResourceWithActions`**:
+> advertise|skip), **`planResourceAdvertisePhase`**, and
+> **`shouldAcceptIncomingResourceAdvertisement`** (via
+> **`stepAcceptIncomingResourceAdvertisementWithActions`**: accept|skip) live in
+> protocol; `Resource` adapts them.
 > **`shouldHandleOutgoingResourceRequest`** (via
 > **`stepHandleOutgoingResourceRequestWithActions`**: handle|skip) /
 > **`shouldHandleIncomingResourceByHash`** (via
@@ -804,8 +823,10 @@
 > **`stepLxmfPropagationSyncPrepWithActions`**: proceed / reject-missing-node /
 > reject-missing-delivery-identity) live in
 > protocol; LXMessage and PropagationClient adapt them (ensurePropagationLink also uses
-> **`planLxmfPropagationLinkReady`** via **`stepLxmfPropagationLinkReadyWithActions`**). **`canProveResource`** /
-> **`shouldAdvertiseResource`**, **`canUpdateLinkKeepalive`** (via
+> **`planLxmfPropagationLinkReady`** via **`stepLxmfPropagationLinkReadyWithActions`**). **`canProveResource`**
+> (via **`stepProveResourceAllowWithActions`**: allow|deny) /
+> **`shouldAdvertiseResource`** (via **`stepAdvertiseResourceWithActions`**:
+> advertise|skip), **`canUpdateLinkKeepalive`** (via
 > **`stepUpdateLinkKeepaliveAllowWithActions`**: allow|deny) /
 > **`shouldCreateLinkChannel`** (via **`stepCreateLinkChannelWithActions`**:
 > create|reuse) / **`planLinkTokenAccess`** (via
@@ -1083,10 +1104,21 @@
 > `too-big`; `Channel` register/pack/unpack/send apply only from those actions.
 > **`stepResourceAssembleWithActions`** emits `complete` / `corrupt`;
 > **`stepResourceProofAcceptWithActions`** emits `complete` / `ignore`;
-> `Resource` assemble/validateProof apply only from those actions (no ad-hoc
+> **`stepResourceContinueTransferWithActions`** emits `continue`|`stop`;
+> **`stepResourceReceivePartAllowWithActions`** /
+> **`stepResourceRequestNextAllowWithActions`** /
+> **`stepResourceWatchdogAllowWithActions`** /
+> **`stepProveResourceAllowWithActions`** emit `allow`|`deny`;
+> **`stepAdvertiseResourceWithActions`** emits `advertise`|`skip`;
+> **`stepAcceptIncomingResourceAdvertisementWithActions`** emits
+> `accept`|`skip`; `Resource` assemble/validateProof/transfer gates apply only
+> from those actions (no ad-hoc
 > `planChannelMessageTypeRegistration` / `planChannelEnvelopeUnpack` /
 > `planChannelEnvelopePack` / `planChannelSend` / `planResourceAssembleOutcome` /
-> `planResourceProofAccept` reads beside the step).
+> `planResourceProofAccept` / `canResourceContinueTransfer` /
+> `canReceiveResourcePart` / `canRequestResourceNext` /
+> `canRunResourceWatchdog` / `canProveResource` / `shouldAdvertiseResource` /
+> `shouldAcceptIncomingResourceAdvertisement` reads beside the step).
 > **`stepResourceRequestFulfillWithActions`** emits `fulfill` (part send/resend +
 > optional HMU + counters/status); **`stepResourceReceivePartWithActions`** emits
 > `receive` (slot/counters + assemble/request-next); **`stepResourcePartRequestWithActions`**
@@ -1342,7 +1374,10 @@
 > resource-random-hash-length-valid / handle-propagation-peer-error /
 > accept-propagation-delivered-message / treat-propagation-list-as-empty /
 > request-propagation-haves-ack /
-> resource-assemble / resource-proof-accept / resource-request-fulfill /
+> resource-assemble / resource-proof-accept / resource-continue-transfer /
+> resource-receive-part-allow / resource-request-next-allow /
+> resource-watchdog-allow / prove-resource-allow / advertise-resource /
+> accept-incoming-resource-advertisement / resource-request-fulfill /
 > resource-receive-part / resource-part-request /
 > resource-hashmap-update-accept / append-resource-map-hash-collision-guard /
 > assemble-resource-hashmap-bytes / contains-resource-hash /

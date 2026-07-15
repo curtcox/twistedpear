@@ -20,12 +20,9 @@ import {
   applyResourceStatusEvent,
   assembleByteArraysRawFromActions,
   assembleResourceHashmapBytesRawFromActions,
-  canProveResource,
-  canReceiveResourcePart,
-  canRequestResourceNext,
-  canResourceContinueTransfer,
-  canRunResourceWatchdog,
   encodeResourceAdvertisementFlagsFromActions,
+  initialAcceptIncomingResourceAdvertisementState,
+  initialAdvertiseResourceState,
   initialAppendResourceMapHashCollisionGuardState,
   initialAssembleByteArraysState,
   initialAssembleResourceHashmapBytesState,
@@ -35,14 +32,19 @@ import {
   initialContainsResourceHashState,
   initialDecodeResourceAdvertisementFlagsState,
   initialEncodeResourceAdvertisementFlagsState,
+  initialProveResourceAllowState,
   initialResourceAdvertisementRoleFlagsState,
   initialResourceAdvertiseWaitState,
+  initialResourceContinueTransferState,
   initialResourceEncryptMaterialState,
   initialResourceExpectedProofMaterialState,
   initialResourceHashMaterialState,
   initialResourceHashmapSlotWritesState,
   initialResourcePartMapHashMaterialState,
+  initialResourceReceivePartAllowState,
+  initialResourceRequestNextAllowState,
   initialResourceStatusState,
+  initialResourceWatchdogAllowState,
   isResourceComplete,
   initialPackResourceAdvertisementState,
   initialReadResourceRequestHashState,
@@ -162,16 +164,28 @@ import {
   shouldUseResourceExpectedProofMaterial,
   shouldUseResourceHashMaterial,
   shouldUseResourcePartMapHashMaterial,
-  shouldAcceptIncomingResourceAdvertisement,
-  shouldAdvertiseResource,
+  shouldAcceptIncomingResourceAdvertisementNow,
+  shouldAdvertiseResourceNow,
   shouldAdvanceResourceAwaitingProof,
+  shouldAllowProveResource,
+  shouldAllowResourceReceivePart,
+  shouldAllowResourceRequestNext,
+  shouldAllowResourceWatchdog,
   shouldApplyResourceFulfillPartNow,
   shouldApplyResourceReceivePartSlot,
   shouldCommitResourceAssemblePayload,
+  shouldContinueResourceTransfer,
   shouldFulfillResourcePartRequest,
   shouldSendResourceHashmapUpdate,
+  stepAcceptIncomingResourceAdvertisementWithActions,
+  stepAdvertiseResourceWithActions,
   stepApplyResourceFulfillPartWithActions,
+  stepProveResourceAllowWithActions,
   stepResourceAdvertiseWaitWithActions,
+  stepResourceContinueTransferWithActions,
+  stepResourceReceivePartAllowWithActions,
+  stepResourceRequestNextAllowWithActions,
+  stepResourceWatchdogAllowWithActions,
   stepResourceWatchdogWithActions,
   initialApplyResourceFulfillPartState,
   type ResourceStatusEvent,
@@ -763,7 +777,14 @@ export class Resource {
       ...(options.timeout === undefined ? {} : { timeout: options.timeout })
     });
 
-    if (shouldAdvertiseResource(options.advertise)) {
+    if (
+      shouldAdvertiseResourceNow(
+        stepAdvertiseResourceWithActions(initialAdvertiseResourceState(), {
+          kind: "resource/advertise-option-gate",
+          advertiseOption: options.advertise
+        }).actions
+      )
+    ) {
       void resource.advertise();
     }
 
@@ -785,8 +806,14 @@ export class Resource {
         target: adv.h
       });
       if (
-        !shouldAcceptIncomingResourceAdvertisement(
-          shouldPresentResourceHash(containsStepped.actions)
+        !shouldAcceptIncomingResourceAdvertisementNow(
+          stepAcceptIncomingResourceAdvertisementWithActions(
+            initialAcceptIncomingResourceAdvertisementState(),
+            {
+              kind: "resource/accept-incoming-adv-gate",
+              alreadyIncoming: shouldPresentResourceHash(containsStepped.actions)
+            }
+          ).actions
         )
       ) {
         return null;
@@ -956,7 +983,14 @@ export class Resource {
   }
 
   async handleRequest(requestData: Uint8Array): Promise<void> {
-    if (!canResourceContinueTransfer(this.status)) {
+    if (
+      !shouldContinueResourceTransfer(
+        stepResourceContinueTransferWithActions(initialResourceContinueTransferState(), {
+          kind: "resource/continue-transfer-gate",
+          status: this.status
+        }).actions
+      )
+    ) {
       return;
     }
 
@@ -1104,7 +1138,12 @@ export class Resource {
       initialResourceHashmapUpdateAcceptState(),
       {
         kind: "resource/hashmap-update-accept-gate",
-        canContinue: canResourceContinueTransfer(this.status),
+        canContinue: shouldContinueResourceTransfer(
+          stepResourceContinueTransferWithActions(initialResourceContinueTransferState(), {
+            kind: "resource/continue-transfer-gate",
+            status: this.status
+          }).actions
+        ),
         splitOk: split !== null,
         unpackOk: update !== null
       }
@@ -1116,7 +1155,14 @@ export class Resource {
   }
 
   hashmapUpdate(segment: number, hashmap: Uint8Array): void {
-    if (!canResourceContinueTransfer(this.status)) {
+    if (
+      !shouldContinueResourceTransfer(
+        stepResourceContinueTransferWithActions(initialResourceContinueTransferState(), {
+          kind: "resource/continue-transfer-gate",
+          status: this.status
+        }).actions
+      )
+    ) {
       return;
     }
 
@@ -1146,7 +1192,14 @@ export class Resource {
   }
 
   receivePart(packet: Packet): void {
-    if (!canReceiveResourcePart(this.status)) {
+    if (
+      !shouldAllowResourceReceivePart(
+        stepResourceReceivePartAllowWithActions(initialResourceReceivePartAllowState(), {
+          kind: "resource/receive-part-allow-gate",
+          status: this.status
+        }).actions
+      )
+    ) {
       return;
     }
 
@@ -1220,10 +1273,13 @@ export class Resource {
 
   async requestNext(): Promise<void> {
     if (
-      !canRequestResourceNext({
-        status: this.status,
-        waitingForHashmap: this.waitingForHashmap
-      })
+      !shouldAllowResourceRequestNext(
+        stepResourceRequestNextAllowWithActions(initialResourceRequestNextAllowState(), {
+          kind: "resource/request-next-allow-gate",
+          status: this.status,
+          waitingForHashmap: this.waitingForHashmap
+        }).actions
+      )
     ) {
       return;
     }
@@ -1247,7 +1303,14 @@ export class Resource {
   }
 
   async assemble(): Promise<void> {
-    if (!canResourceContinueTransfer(this.status)) {
+    if (
+      !shouldContinueResourceTransfer(
+        stepResourceContinueTransferWithActions(initialResourceContinueTransferState(), {
+          kind: "resource/continue-transfer-gate",
+          status: this.status
+        }).actions
+      )
+    ) {
       return;
     }
 
@@ -1331,7 +1394,14 @@ export class Resource {
   }
 
   async prove(): Promise<void> {
-    if (!canProveResource(this.data !== null)) {
+    if (
+      !shouldAllowProveResource(
+        stepProveResourceAllowWithActions(initialProveResourceAllowState(), {
+          kind: "resource/prove-allow-gate",
+          dataPresent: this.data !== null
+        }).actions
+      )
+    ) {
       return;
     }
 
@@ -1420,7 +1490,14 @@ export class Resource {
   }
 
   private async watchdogTick(): Promise<void> {
-    if (!canRunResourceWatchdog(this.status)) {
+    if (
+      !shouldAllowResourceWatchdog(
+        stepResourceWatchdogAllowWithActions(initialResourceWatchdogAllowState(), {
+          kind: "resource/watchdog-allow-gate",
+          status: this.status
+        }).actions
+      )
+    ) {
       return;
     }
 
