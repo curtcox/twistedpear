@@ -166,20 +166,23 @@ import {
   shouldUseResourcePartMapHashMaterial,
   shouldAcceptIncomingResourceAdvertisementNow,
   shouldAdvertiseResourceNow,
-  shouldAdvanceResourceAwaitingProof,
+  shouldAdvanceResourceAwaitingProofNow,
   shouldAllowProveResource,
   shouldAllowResourceReceivePart,
   shouldAllowResourceRequestNext,
   shouldAllowResourceWatchdog,
   shouldApplyResourceFulfillPartNow,
-  shouldApplyResourceReceivePartSlot,
+  shouldApplyResourceReceivePartSlotNow,
   shouldCommitResourceAssemblePayload,
   shouldContinueResourceTransfer,
-  shouldFulfillResourcePartRequest,
-  shouldSendResourceHashmapUpdate,
+  shouldFulfillResourcePartRequestNow,
+  shouldSendResourceHashmapUpdateNow,
   stepAcceptIncomingResourceAdvertisementWithActions,
   stepAdvertiseResourceWithActions,
+  stepAdvanceResourceAwaitingProofWithActions,
   stepApplyResourceFulfillPartWithActions,
+  stepApplyResourceReceivePartSlotWithActions,
+  stepFulfillResourcePartRequestWithActions,
   stepProveResourceAllowWithActions,
   stepResourceAdvertiseWaitWithActions,
   stepResourceContinueTransferWithActions,
@@ -187,7 +190,12 @@ import {
   stepResourceRequestNextAllowWithActions,
   stepResourceWatchdogAllowWithActions,
   stepResourceWatchdogWithActions,
+  stepSendResourceHashmapUpdateWithActions,
+  initialAdvanceResourceAwaitingProofState,
   initialApplyResourceFulfillPartState,
+  initialApplyResourceReceivePartSlotState,
+  initialFulfillResourcePartRequestState,
+  initialSendResourceHashmapUpdateState,
   type ResourceStatusEvent,
   type ResourceStatusValue,
   type ResourceWatchdogState,
@@ -1010,7 +1018,14 @@ export class Resource {
       : shouldUseParseResourcePartRequest(parseStepped.actions)
         ? resourcePartRequestFieldsFromActions(parseStepped.actions)
         : null;
-    if (!shouldFulfillResourcePartRequest(request !== null)) {
+    if (
+      !shouldFulfillResourcePartRequestNow(
+        stepFulfillResourcePartRequestWithActions(initialFulfillResourcePartRequestState(), {
+          kind: "resource-hashmap/fulfill-part-request-gate",
+          requestPresent: request !== null
+        }).actions
+      )
+    ) {
       return;
     }
 
@@ -1058,7 +1073,14 @@ export class Resource {
     this.sentParts = plan.nextSentParts;
     this.receiverMinConsecutiveHeight = plan.nextReceiverMinConsecutiveHeight;
 
-    if (shouldSendResourceHashmapUpdate(plan.hashmapUpdate !== null)) {
+    if (
+      shouldSendResourceHashmapUpdateNow(
+        stepSendResourceHashmapUpdateWithActions(initialSendResourceHashmapUpdateState(), {
+          kind: "resource-hashmap/send-hashmap-update-gate",
+          hashmapUpdatePresent: plan.hashmapUpdate !== null
+        }).actions
+      )
+    ) {
       const assembleStepped = stepAssembleResourceHashmapBytesWithActions(
         initialAssembleResourceHashmapBytesState(),
         {
@@ -1103,7 +1125,14 @@ export class Resource {
       await this.link.sendContext(PacketContext.RESOURCE_HMU, packet);
     }
 
-    if (shouldAdvanceResourceAwaitingProof(plan.status)) {
+    if (
+      shouldAdvanceResourceAwaitingProofNow(
+        stepAdvanceResourceAwaitingProofWithActions(initialAdvanceResourceAwaitingProofState(), {
+          kind: "resource-hashmap/advance-awaiting-proof-gate",
+          status: plan.status
+        }).actions
+      )
+    ) {
       this.applyStatus({ kind: "resource/awaiting-proof" });
     }
   }
@@ -1250,10 +1279,13 @@ export class Resource {
     }
 
     if (
-      shouldApplyResourceReceivePartSlot({
-        matched: plan.matched,
-        slotPresent: plan.slot !== null
-      })
+      shouldApplyResourceReceivePartSlotNow(
+        stepApplyResourceReceivePartSlotWithActions(initialApplyResourceReceivePartSlotState(), {
+          kind: "resource-hashmap/apply-receive-part-slot-gate",
+          matched: plan.matched,
+          slotPresent: plan.slot !== null
+        }).actions
+      )
     ) {
       this.receivedParts[plan.slot!] = Uint8Array.from(partData);
       this.receivedCount = plan.receivedCount;

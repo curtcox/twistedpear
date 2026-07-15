@@ -16,7 +16,15 @@
 > **`stepSplitIdentityEntropyWithActions`**: use-fields|reject) plus **Identity**,
 > **Token**, and **Resource** RNG now prefer injected/`Runtime` entropy (transport
 > identity keygen, path-request tags, link Token IVs, destination encrypt, resource
-> random hashes). **Resource transfer/status** gates (continue-transfer via
+> random hashes). **Resource hashmap-update gates** (frame accept via
+> **`stepAcceptResourceHashmapUpdateFrameWithActions`**: accept|skip;
+> part-request fulfill via **`stepFulfillResourcePartRequestWithActions`**:
+> fulfill|skip; receive-part slot write via
+> **`stepApplyResourceReceivePartSlotWithActions`**: apply|skip; HMU emit via
+> **`stepSendResourceHashmapUpdateWithActions`**: send|skip; awaiting-proof
+> advance via **`stepAdvanceResourceAwaitingProofWithActions`**: advance|skip)
+> are pure protocol leaves; `Resource` + `Link` adapt them. **Resource
+> transfer/status** gates (continue-transfer via
 > **`stepResourceContinueTransferWithActions`**: continue|stop; receive-part /
 > request-next / watchdog / prove allow via
 > **`stepResourceReceivePartAllowWithActions`** /
@@ -268,7 +276,13 @@
 > TX receipt-timeout extension via
 > **`stepApplyChannelTxReceiptTimeoutExtensionWithActions`**: apply|skip), **resource
 > fulfill-part apply** (via **`stepApplyResourceFulfillPartWithActions`**:
-> apply|skip), **propagation peer-response accept** (via
+> apply|skip; frame accept / part-request fulfill / receive-part slot / HMU emit /
+> awaiting-proof advance via
+> **`stepAcceptResourceHashmapUpdateFrameWithActions`**: accept|skip /
+> **`stepFulfillResourcePartRequestWithActions`**: fulfill|skip /
+> **`stepApplyResourceReceivePartSlotWithActions`**: apply|skip /
+> **`stepSendResourceHashmapUpdateWithActions`**: send|skip /
+> **`stepAdvanceResourceAwaitingProofWithActions`**: advance|skip), **propagation peer-response accept** (via
 > **`stepAcceptPropagationPeerResponseWithActions`**: accept|skip),
 > **resource-proof payload / split / random-hash length** (via
 > **`stepAcceptResourceProofPayloadWithActions`** /
@@ -761,8 +775,19 @@
 > `establish/rtt`), **`shouldDispatchLinkPlaintext`** (via **`stepDispatchLinkPlaintextWithActions`**: dispatch|skip),
 > **`canResendLinkPacket`** (via **`stepResendLinkPacketAllowWithActions`**: allow|deny), and **`planLinkAppRequestTransmitOutcome`** (via
 > **`stepLinkAppRequestTransmitWithActions`**: keep-pending / unregister) live in
-> protocol; `Link` adapts them. **`planResourceHashmapUpdateAccept`** lives in
-> protocol; `Resource` adapts it. **`shouldRegisterLinkMember`**,
+> protocol; `Link` adapts them. **`planResourceHashmapUpdateAccept`** (via
+> **`stepResourceHashmapUpdateAcceptWithActions`**) /
+> **`shouldAcceptResourceHashmapUpdateFrame`** (via
+> **`stepAcceptResourceHashmapUpdateFrameWithActions`**: accept|skip) /
+> **`shouldFulfillResourcePartRequest`** (via
+> **`stepFulfillResourcePartRequestWithActions`**: fulfill|skip) /
+> **`shouldApplyResourceReceivePartSlot`** (via
+> **`stepApplyResourceReceivePartSlotWithActions`**: apply|skip) /
+> **`shouldSendResourceHashmapUpdate`** (via
+> **`stepSendResourceHashmapUpdateWithActions`**: send|skip) /
+> **`shouldAdvanceResourceAwaitingProof`** (via
+> **`stepAdvanceResourceAwaitingProofWithActions`**: advance|skip) live in
+> protocol; `Resource` + `Link` adapt them. **`shouldRegisterLinkMember`**,
 > **`planLinkActivateMembership`** (via **`stepLinkActivateMembershipWithActions`**:
 > remove-pending / append-active), and **`planLinkUnregisterMembership`** (via
 > **`stepLinkUnregisterMembershipWithActions`**: remove-pending / remove-active) live in
@@ -849,7 +874,10 @@
 > **`stepAcceptResourceProofPayloadWithActions`**: accept|skip) /
 > **`isValidResourceRandomHashLength`** (via
 > **`stepResourceRandomHashLengthValidWithActions`**: valid|invalid),
-> **`shouldAcceptResourceHashmapUpdateFrame`** / **`shouldFulfillResourcePartRequest`**,
+> **`shouldAcceptResourceHashmapUpdateFrame`** (via
+> **`stepAcceptResourceHashmapUpdateFrameWithActions`**: accept|skip) /
+> **`shouldFulfillResourcePartRequest`** (via
+> **`stepFulfillResourcePartRequestWithActions`**: fulfill|skip),
 > **`planChannelTxEnvelopeOp`** / **`shouldApplyChannelPacketReceiptTimeout`** (via
 > **`stepApplyChannelPacketReceiptTimeoutWithActions`**: apply|skip) /
 > **`shouldReplaceChannelResentPacket`** (via
@@ -890,7 +918,17 @@
 > **`shouldApplyChannelTxReceiptTimeoutExtension`** (via
 > **`stepApplyChannelTxReceiptTimeoutExtensionWithActions`**: apply|skip),
 > **`shouldApplyResourceFulfillPart`** (via
-> **`stepApplyResourceFulfillPartWithActions`**: apply|skip),
+> **`stepApplyResourceFulfillPartWithActions`**: apply|skip) /
+> **`shouldAcceptResourceHashmapUpdateFrame`** (via
+> **`stepAcceptResourceHashmapUpdateFrameWithActions`**: accept|skip) /
+> **`shouldFulfillResourcePartRequest`** (via
+> **`stepFulfillResourcePartRequestWithActions`**: fulfill|skip) /
+> **`shouldApplyResourceReceivePartSlot`** (via
+> **`stepApplyResourceReceivePartSlotWithActions`**: apply|skip) /
+> **`shouldSendResourceHashmapUpdate`** (via
+> **`stepSendResourceHashmapUpdateWithActions`**: send|skip) /
+> **`shouldAdvanceResourceAwaitingProof`** (via
+> **`stepAdvanceResourceAwaitingProofWithActions`**: advance|skip),
 > **`shouldClearExpiredDiscoveryPathRequest`** (via
 > **`stepClearExpiredDiscoveryPathRequestWithActions`**: clear|skip) /
 > **`shouldRememberPathRequestTag`** (via
@@ -924,8 +962,12 @@
 > **`stepAcceptPropagationDeliveredMessageWithActions`**: accept|skip) live in
 > protocol; transport path/hash/
 > reverse/receipt adapters and LXMF router/propagation adapt them.
-> **`shouldApplyResourceReceivePartSlot`** / **`shouldSendResourceHashmapUpdate`** /
-> **`shouldAdvanceResourceAwaitingProof`**, **`shouldResendChannelTimeoutPacket`**,
+> **`shouldApplyResourceReceivePartSlot`** (via
+> **`stepApplyResourceReceivePartSlotWithActions`**: apply|skip) /
+> **`shouldSendResourceHashmapUpdate`** (via
+> **`stepSendResourceHashmapUpdateWithActions`**: send|skip) /
+> **`shouldAdvanceResourceAwaitingProof`** (via
+> **`stepAdvanceResourceAwaitingProofWithActions`**: advance|skip), **`shouldResendChannelTimeoutPacket`**,
 > **`shouldDispatchResourceProofToLink`** (via
 > **`stepDispatchResourceProofToLinkWithActions`**: dispatch|skip), and
 > **`shouldAttemptAnnounceSignatureValidate`** /
@@ -1123,10 +1165,18 @@
 > optional HMU + counters/status); **`stepResourceReceivePartWithActions`** emits
 > `receive` (slot/counters + assemble/request-next); **`stepResourcePartRequestWithActions`**
 > emits `request`; **`stepResourceHashmapUpdateAcceptWithActions`** emits
-> `apply` / `ignore`; `Resource` REQ/HMU/receive/request-next apply only from
-> those actions (no ad-hoc `planResourceRequestFulfill` /
+> `apply` / `ignore`; **`stepAcceptResourceHashmapUpdateFrameWithActions`** emits
+> `accept`|`skip`; **`stepFulfillResourcePartRequestWithActions`** emits
+> `fulfill`|`skip`; **`stepApplyResourceReceivePartSlotWithActions`** emits
+> `apply`|`skip`; **`stepSendResourceHashmapUpdateWithActions`** emits
+> `send`|`skip`; **`stepAdvanceResourceAwaitingProofWithActions`** emits
+> `advance`|`skip`; `Resource` + `Link` REQ/HMU/receive/request-next apply only
+> from those actions (no ad-hoc `planResourceRequestFulfill` /
 > `planResourceReceivePart` / `planResourcePartRequest` /
-> `planResourceHashmapUpdateAccept` reads beside the step).
+> `planResourceHashmapUpdateAccept` / `shouldAcceptResourceHashmapUpdateFrame` /
+> `shouldFulfillResourcePartRequest` / `shouldApplyResourceReceivePartSlot` /
+> `shouldSendResourceHashmapUpdate` / `shouldAdvanceResourceAwaitingProof`
+> reads beside the step).
 > **`stepPathRequestIngressWithActions`** emits `ignore-unparsed` /
 > `ignore-seen-tag` / `answer-local` / `answer-path` / `ignore` /
 > `ignore-in-flight-discovery` / `start-discovery`;
@@ -1369,7 +1419,10 @@
 > clear-channel-envelope-packet / arm-channel-packet-receipt /
 > apply-channel-packet-receipt-timeout / replace-channel-resent-packet /
 > apply-channel-tx-receipt-timeout-extension / link-keepalive-context /
-> apply-resource-fulfill-part / accept-propagation-peer-response /
+> apply-resource-fulfill-part / accept-resource-hashmap-update-frame /
+> fulfill-resource-part-request / apply-resource-receive-part-slot /
+> send-resource-hashmap-update / advance-resource-awaiting-proof /
+> accept-propagation-peer-response /
 > accept-resource-proof-payload / accept-resource-proof-split /
 > resource-random-hash-length-valid / handle-propagation-peer-error /
 > accept-propagation-delivered-message / treat-propagation-list-as-empty /
@@ -1481,7 +1534,10 @@
 > clear-channel-envelope-packet / arm-channel-packet-receipt /
 > apply-channel-packet-receipt-timeout / replace-channel-resent-packet /
 > apply-channel-tx-receipt-timeout-extension / link-keepalive-context /
-> apply-resource-fulfill-part / accept-propagation-peer-response /
+> apply-resource-fulfill-part / accept-resource-hashmap-update-frame /
+> fulfill-resource-part-request / apply-resource-receive-part-slot /
+> send-resource-hashmap-update / advance-resource-awaiting-proof /
+> accept-propagation-peer-response /
 > accept-resource-proof-payload / accept-resource-proof-split /
 > resource-random-hash-length-valid / handle-propagation-peer-error /
 > accept-propagation-delivered-message / treat-propagation-list-as-empty /
@@ -1530,7 +1586,10 @@
 > emit-channel-immediate-delivery / clear-channel-envelope-packet /
 > arm-channel-packet-receipt / apply-channel-packet-receipt-timeout /
 > replace-channel-resent-packet / apply-channel-tx-receipt-timeout-extension /
-> apply-resource-fulfill-part / accept-propagation-peer-response /
+> apply-resource-fulfill-part / accept-resource-hashmap-update-frame /
+> fulfill-resource-part-request / apply-resource-receive-part-slot /
+> send-resource-hashmap-update / advance-resource-awaiting-proof /
+> accept-propagation-peer-response /
 > accept-resource-proof-payload / accept-resource-proof-split /
 > resource-random-hash-length-valid / handle-propagation-peer-error /
 > accept-propagation-delivered-message / treat-propagation-list-as-empty /
@@ -1835,6 +1894,11 @@
 > **`stepReplaceChannelResentPacketWithActions`** emits `replace` / `skip`;
 > **`stepApplyChannelTxReceiptTimeoutExtensionWithActions`** emits `apply` / `skip`;
 > **`stepApplyResourceFulfillPartWithActions`** emits `apply` / `skip`;
+> **`stepAcceptResourceHashmapUpdateFrameWithActions`** emits `accept` / `skip`;
+> **`stepFulfillResourcePartRequestWithActions`** emits `fulfill` / `skip`;
+> **`stepApplyResourceReceivePartSlotWithActions`** emits `apply` / `skip`;
+> **`stepSendResourceHashmapUpdateWithActions`** emits `send` / `skip`;
+> **`stepAdvanceResourceAwaitingProofWithActions`** emits `advance` / `skip`;
 > **`stepAcceptPropagationPeerResponseWithActions`** emits `accept` / `skip`;
 > **`stepAcceptResourceProofPayloadWithActions`** emits `accept` / `skip`;
 > **`stepAcceptResourceProofSplitWithActions`** emits `accept` / `skip`;
@@ -1844,7 +1908,8 @@
 > **`stepTreatPropagationListAsEmptyWithActions`** emits `empty` / `nonempty`;
 > **`stepRequestPropagationHavesAckWithActions`** emits `request` / `skip`;
 > link keepalive-context, channel envelope emplace / RX-TX lifecycle,
-> resource fulfill-part, propagation peer-response accept, resource-proof
+> resource fulfill-part / hashmap-update frame accept / part-request fulfill /
+> receive-part slot / HMU emit / awaiting-proof advance, propagation peer-response accept, resource-proof
 > payload/split/random-hash, and propagation peer-error / delivered-message /
 > list-empty / haves-ack apply only from those actions (no ad-hoc
 > `isLinkKeepaliveContext` / `shouldEmplaceChannelEnvelope` /
@@ -1854,7 +1919,10 @@
 > `canArmChannelPacketReceipt` / `shouldApplyChannelPacketReceiptTimeout` /
 > `shouldReplaceChannelResentPacket` /
 > `shouldApplyChannelTxReceiptTimeoutExtension` /
-> `shouldApplyResourceFulfillPart` / `shouldAcceptPropagationPeerResponse` /
+> `shouldApplyResourceFulfillPart` / `shouldAcceptResourceHashmapUpdateFrame` /
+> `shouldFulfillResourcePartRequest` / `shouldApplyResourceReceivePartSlot` /
+> `shouldSendResourceHashmapUpdate` / `shouldAdvanceResourceAwaitingProof` /
+> `shouldAcceptPropagationPeerResponse` /
 > `shouldAcceptResourceProofPayload` / `shouldAcceptResourceProofSplit` /
 > `isValidResourceRandomHashLength` / `shouldHandlePropagationPeerError` /
 > `shouldAcceptPropagationDeliveredMessage` /

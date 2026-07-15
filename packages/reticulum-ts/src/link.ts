@@ -241,7 +241,7 @@ import {
   stepAcceptLinkPacketInterfaceWithActions,
   shouldAcceptLinkResourceAdvertisement,
   shouldAcceptRemoteLinkTeardown,
-  shouldAcceptResourceHashmapUpdateFrame,
+  shouldAcceptResourceHashmapUpdateFrameNow,
   shouldAcceptResourceProofPayloadNow,
   initialAcceptResourceProofPayloadState,
   stepAcceptResourceProofPayloadWithActions,
@@ -358,6 +358,7 @@ import {
   stepSplitInitiatorLinkEntropyWithActions,
   stepSplitResponderLinkEntropyWithActions,
   initialSplitResourceHashmapUpdatePacketState,
+  initialAcceptResourceHashmapUpdateFrameState,
   initialSplitResourceProofState,
   resourceHashmapUpdatePacketFieldsFromActions,
   resourceProofFieldsFromActions,
@@ -383,6 +384,7 @@ import {
   stepLinkValidateRequestWithActions,
   stepLinkWatchdogWithActions,
   stepSplitResourceHashmapUpdatePacketWithActions,
+  stepAcceptResourceHashmapUpdateFrameWithActions,
   stepSplitResourceProofWithActions,
   stepUtf8EncodeWithActions,
   initialUtf8EncodeState,
@@ -2318,7 +2320,17 @@ export class Link {
       : shouldUseSplitResourceHashmapUpdatePacket(splitStepped.actions)
         ? resourceHashmapUpdatePacketFieldsFromActions(splitStepped.actions)
         : null;
-    if (!shouldAcceptResourceHashmapUpdateFrame(split !== null)) {
+    if (
+      !shouldAcceptResourceHashmapUpdateFrameNow(
+        stepAcceptResourceHashmapUpdateFrameWithActions(
+          initialAcceptResourceHashmapUpdateFrameState(),
+          {
+            kind: "resource-hashmap/accept-update-frame-gate",
+            splitOk: split !== null
+          }
+        ).actions
+      )
+    ) {
       return;
     }
     for (const resource of this.incomingResourcesList) {
@@ -2362,7 +2374,17 @@ export class Link {
       : shouldUseSplitResourceHashmapUpdatePacket(splitStepped.actions)
         ? resourceHashmapUpdatePacketFieldsFromActions(splitStepped.actions)
         : null;
-    if (!shouldAcceptResourceHashmapUpdateFrame(split !== null)) {
+    if (
+      !shouldAcceptResourceHashmapUpdateFrameNow(
+        stepAcceptResourceHashmapUpdateFrameWithActions(
+          initialAcceptResourceHashmapUpdateFrameState(),
+          {
+            kind: "resource-hashmap/accept-update-frame-gate",
+            splitOk: split !== null
+          }
+        ).actions
+      )
+    ) {
       return;
     }
     const resources = incoming ? this.incomingResourcesList : this.outgoingResourcesList;

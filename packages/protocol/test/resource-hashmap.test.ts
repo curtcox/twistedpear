@@ -65,31 +65,51 @@ import {
   resourceReceivePartFromActions,
   resourceRequestFulfillFromActions,
   shouldAcceptResourceHashmapUpdateFrame,
+  shouldAcceptResourceHashmapUpdateFrameNow,
   shouldAdvanceResourceAwaitingProof,
+  shouldAdvanceResourceAwaitingProofNow,
   shouldApplyResourceFulfillPart,
   shouldApplyResourceFulfillPartNow,
   shouldApplyResourceHashmapUpdateAccept,
   shouldApplyResourceReceivePartSlot,
+  shouldApplyResourceReceivePartSlotNow,
   shouldEmitResourcePartRequest,
   shouldFulfillResourcePartRequest,
+  shouldFulfillResourcePartRequestNow,
   shouldFulfillResourceRequest,
   shouldIgnoreResourceHashmapUpdateAccept,
   shouldRejectParseResourcePartRequest,
   shouldRejectSplitResourceHashmapUpdatePacket,
   shouldRejectUnpackResourceHashmapUpdate,
   shouldSendResourceHashmapUpdate,
+  shouldSendResourceHashmapUpdateNow,
+  shouldSkipAcceptResourceHashmapUpdateFrame,
+  shouldSkipAdvanceResourceAwaitingProof,
   shouldSkipApplyResourceFulfillPart,
+  shouldSkipApplyResourceReceivePartSlot,
+  shouldSkipFulfillResourcePartRequest,
+  shouldSkipSendResourceHashmapUpdate,
   shouldUsePackResourceHashmapUpdate,
   shouldUsePackResourceHashmapUpdatePacket,
   shouldUseParseResourcePartRequest,
   shouldUseSplitResourceHashmapUpdatePacket,
   shouldUseUnpackResourceHashmapUpdate,
   splitResourceHashmapUpdatePacket,
+  stepAcceptResourceHashmapUpdateFrameWithActions,
+  stepAdvanceResourceAwaitingProofWithActions,
   stepApplyResourceFulfillPartWithActions,
+  stepApplyResourceReceivePartSlotWithActions,
+  stepFulfillResourcePartRequestWithActions,
   stepResourceHashmapUpdateAcceptWithActions,
   stepResourcePartRequestWithActions,
   stepResourceReceivePartWithActions,
   stepResourceRequestFulfillWithActions,
+  stepSendResourceHashmapUpdateWithActions,
+  initialAcceptResourceHashmapUpdateFrameState,
+  initialAdvanceResourceAwaitingProofState,
+  initialApplyResourceReceivePartSlotState,
+  initialFulfillResourcePartRequestState,
+  initialSendResourceHashmapUpdateState,
   unpackResourceHashmapUpdate
 } from "../src/resource-hashmap.js";
 
@@ -421,6 +441,44 @@ describe("protocol resource hashmap", () => {
     expect(shouldApplyResourceFulfillPart(true)).toBe(true);
     expect(shouldApplyResourceFulfillPart(false)).toBe(false);
 
+    const acceptFrame = stepAcceptResourceHashmapUpdateFrameWithActions(
+      initialAcceptResourceHashmapUpdateFrameState(),
+      {
+        kind: "resource-hashmap/accept-update-frame-gate",
+        splitOk: true
+      }
+    );
+    expect(shouldAcceptResourceHashmapUpdateFrameNow(acceptFrame.actions)).toBe(true);
+    expect(shouldSkipAcceptResourceHashmapUpdateFrame(acceptFrame.actions)).toBe(false);
+    const skipFrame = stepAcceptResourceHashmapUpdateFrameWithActions(
+      initialAcceptResourceHashmapUpdateFrameState(),
+      {
+        kind: "resource-hashmap/accept-update-frame-gate",
+        splitOk: false
+      }
+    );
+    expect(shouldAcceptResourceHashmapUpdateFrameNow(skipFrame.actions)).toBe(false);
+    expect(shouldSkipAcceptResourceHashmapUpdateFrame(skipFrame.actions)).toBe(true);
+
+    const fulfillReq = stepFulfillResourcePartRequestWithActions(
+      initialFulfillResourcePartRequestState(),
+      {
+        kind: "resource-hashmap/fulfill-part-request-gate",
+        requestPresent: true
+      }
+    );
+    expect(shouldFulfillResourcePartRequestNow(fulfillReq.actions)).toBe(true);
+    expect(shouldSkipFulfillResourcePartRequest(fulfillReq.actions)).toBe(false);
+    const skipFulfillReq = stepFulfillResourcePartRequestWithActions(
+      initialFulfillResourcePartRequestState(),
+      {
+        kind: "resource-hashmap/fulfill-part-request-gate",
+        requestPresent: false
+      }
+    );
+    expect(shouldFulfillResourcePartRequestNow(skipFulfillReq.actions)).toBe(false);
+    expect(shouldSkipFulfillResourcePartRequest(skipFulfillReq.actions)).toBe(true);
+
     const apply = stepApplyResourceFulfillPartWithActions(initialApplyResourceFulfillPartState(), {
       kind: "resource-hashmap/apply-fulfill-part-gate",
       partPresent: true
@@ -441,6 +499,59 @@ describe("protocol resource hashmap", () => {
     expect(shouldApplyResourceReceivePartSlot({ matched: true, slotPresent: true })).toBe(true);
     expect(shouldApplyResourceReceivePartSlot({ matched: true, slotPresent: false })).toBe(false);
     expect(shouldApplyResourceReceivePartSlot({ matched: false, slotPresent: true })).toBe(false);
+
+    const sendHmu = stepSendResourceHashmapUpdateWithActions(initialSendResourceHashmapUpdateState(), {
+      kind: "resource-hashmap/send-hashmap-update-gate",
+      hashmapUpdatePresent: true
+    });
+    expect(shouldSendResourceHashmapUpdateNow(sendHmu.actions)).toBe(true);
+    expect(shouldSkipSendResourceHashmapUpdate(sendHmu.actions)).toBe(false);
+    const skipHmu = stepSendResourceHashmapUpdateWithActions(initialSendResourceHashmapUpdateState(), {
+      kind: "resource-hashmap/send-hashmap-update-gate",
+      hashmapUpdatePresent: false
+    });
+    expect(shouldSendResourceHashmapUpdateNow(skipHmu.actions)).toBe(false);
+    expect(shouldSkipSendResourceHashmapUpdate(skipHmu.actions)).toBe(true);
+
+    const advance = stepAdvanceResourceAwaitingProofWithActions(
+      initialAdvanceResourceAwaitingProofState(),
+      {
+        kind: "resource-hashmap/advance-awaiting-proof-gate",
+        status: "awaiting-proof"
+      }
+    );
+    expect(shouldAdvanceResourceAwaitingProofNow(advance.actions)).toBe(true);
+    expect(shouldSkipAdvanceResourceAwaitingProof(advance.actions)).toBe(false);
+    const skipAdvance = stepAdvanceResourceAwaitingProofWithActions(
+      initialAdvanceResourceAwaitingProofState(),
+      {
+        kind: "resource-hashmap/advance-awaiting-proof-gate",
+        status: "transferring"
+      }
+    );
+    expect(shouldAdvanceResourceAwaitingProofNow(skipAdvance.actions)).toBe(false);
+    expect(shouldSkipAdvanceResourceAwaitingProof(skipAdvance.actions)).toBe(true);
+
+    const applySlot = stepApplyResourceReceivePartSlotWithActions(
+      initialApplyResourceReceivePartSlotState(),
+      {
+        kind: "resource-hashmap/apply-receive-part-slot-gate",
+        matched: true,
+        slotPresent: true
+      }
+    );
+    expect(shouldApplyResourceReceivePartSlotNow(applySlot.actions)).toBe(true);
+    expect(shouldSkipApplyResourceReceivePartSlot(applySlot.actions)).toBe(false);
+    const skipSlot = stepApplyResourceReceivePartSlotWithActions(
+      initialApplyResourceReceivePartSlotState(),
+      {
+        kind: "resource-hashmap/apply-receive-part-slot-gate",
+        matched: true,
+        slotPresent: false
+      }
+    );
+    expect(shouldApplyResourceReceivePartSlotNow(skipSlot.actions)).toBe(false);
+    expect(shouldSkipApplyResourceReceivePartSlot(skipSlot.actions)).toBe(true);
   });
 
   it("emits fulfill / receive / part-request / hashmap-update-accept actions", () => {

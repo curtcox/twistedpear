@@ -578,9 +578,127 @@ export function shouldAcceptResourceHashmapUpdateFrame(splitOk: boolean): boolea
   return splitOk;
 }
 
+/**
+ * Resource hashmap-update frame accept gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldAcceptResourceHashmapUpdateFrame` reads beside the step).
+ */
+export type AcceptResourceHashmapUpdateFrameState = Record<string, never>;
+
+export type AcceptResourceHashmapUpdateFrameEvent =
+  | Event
+  | {
+      readonly kind: "resource-hashmap/accept-update-frame-gate";
+      readonly splitOk: boolean;
+    };
+
+export type AcceptResourceHashmapUpdateFrameAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptResourceHashmapUpdateFrameStepResult {
+  readonly state: AcceptResourceHashmapUpdateFrameState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptResourceHashmapUpdateFrameAction[];
+}
+
+export function initialAcceptResourceHashmapUpdateFrameState(): AcceptResourceHashmapUpdateFrameState {
+  return {};
+}
+
+export function stepAcceptResourceHashmapUpdateFrameWithActions(
+  state: AcceptResourceHashmapUpdateFrameState,
+  event: AcceptResourceHashmapUpdateFrameEvent
+): AcceptResourceHashmapUpdateFrameStepResult {
+  if (event.kind === "resource-hashmap/accept-update-frame-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptResourceHashmapUpdateFrame(event.splitOk) ? "accept" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptResourceHashmapUpdateFrameNow(
+  actions: ReadonlyArray<AcceptResourceHashmapUpdateFrameAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAcceptResourceHashmapUpdateFrame(
+  actions: ReadonlyArray<AcceptResourceHashmapUpdateFrameAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether a parsed RESOURCE_REQ may be fulfilled. */
 export function shouldFulfillResourcePartRequest(requestPresent: boolean): boolean {
   return requestPresent;
+}
+
+/**
+ * Resource part-request fulfill gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldFulfillResourcePartRequest` reads beside the step).
+ */
+export type FulfillResourcePartRequestState = Record<string, never>;
+
+export type FulfillResourcePartRequestEvent =
+  | Event
+  | {
+      readonly kind: "resource-hashmap/fulfill-part-request-gate";
+      readonly requestPresent: boolean;
+    };
+
+export type FulfillResourcePartRequestAction =
+  | { readonly kind: "fulfill" }
+  | { readonly kind: "skip" };
+
+export interface FulfillResourcePartRequestStepResult {
+  readonly state: FulfillResourcePartRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly FulfillResourcePartRequestAction[];
+}
+
+export function initialFulfillResourcePartRequestState(): FulfillResourcePartRequestState {
+  return {};
+}
+
+export function stepFulfillResourcePartRequestWithActions(
+  state: FulfillResourcePartRequestState,
+  event: FulfillResourcePartRequestEvent
+): FulfillResourcePartRequestStepResult {
+  if (event.kind === "resource-hashmap/fulfill-part-request-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldFulfillResourcePartRequest(event.requestPresent) ? "fulfill" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldFulfillResourcePartRequestNow(
+  actions: ReadonlyArray<FulfillResourcePartRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "fulfill");
+}
+
+export function shouldSkipFulfillResourcePartRequest(
+  actions: ReadonlyArray<FulfillResourcePartRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a planned fulfill part action has a matching local part slot. */
@@ -655,9 +773,133 @@ export function shouldApplyResourceReceivePartSlot(input: {
   return input.matched && input.slotPresent;
 }
 
+/**
+ * Resource receive-part slot-write gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldApplyResourceReceivePartSlot` reads beside the step).
+ */
+export type ApplyResourceReceivePartSlotState = Record<string, never>;
+
+export type ApplyResourceReceivePartSlotEvent =
+  | Event
+  | {
+      readonly kind: "resource-hashmap/apply-receive-part-slot-gate";
+      readonly matched: boolean;
+      readonly slotPresent: boolean;
+    };
+
+export type ApplyResourceReceivePartSlotAction =
+  | { readonly kind: "apply" }
+  | { readonly kind: "skip" };
+
+export interface ApplyResourceReceivePartSlotStepResult {
+  readonly state: ApplyResourceReceivePartSlotState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ApplyResourceReceivePartSlotAction[];
+}
+
+export function initialApplyResourceReceivePartSlotState(): ApplyResourceReceivePartSlotState {
+  return {};
+}
+
+export function stepApplyResourceReceivePartSlotWithActions(
+  state: ApplyResourceReceivePartSlotState,
+  event: ApplyResourceReceivePartSlotEvent
+): ApplyResourceReceivePartSlotStepResult {
+  if (event.kind === "resource-hashmap/apply-receive-part-slot-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldApplyResourceReceivePartSlot({
+            matched: event.matched,
+            slotPresent: event.slotPresent
+          })
+            ? "apply"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldApplyResourceReceivePartSlotNow(
+  actions: ReadonlyArray<ApplyResourceReceivePartSlotAction>
+): boolean {
+  return actions.some((action) => action.kind === "apply");
+}
+
+export function shouldSkipApplyResourceReceivePartSlot(
+  actions: ReadonlyArray<ApplyResourceReceivePartSlotAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether fulfill should emit a hashmap-update frame. */
 export function shouldSendResourceHashmapUpdate(hashmapUpdatePresent: boolean): boolean {
   return hashmapUpdatePresent;
+}
+
+/**
+ * Resource fulfill hashmap-update emit gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldSendResourceHashmapUpdate` reads beside the step).
+ */
+export type SendResourceHashmapUpdateState = Record<string, never>;
+
+export type SendResourceHashmapUpdateEvent =
+  | Event
+  | {
+      readonly kind: "resource-hashmap/send-hashmap-update-gate";
+      readonly hashmapUpdatePresent: boolean;
+    };
+
+export type SendResourceHashmapUpdateAction =
+  | { readonly kind: "send" }
+  | { readonly kind: "skip" };
+
+export interface SendResourceHashmapUpdateStepResult {
+  readonly state: SendResourceHashmapUpdateState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly SendResourceHashmapUpdateAction[];
+}
+
+export function initialSendResourceHashmapUpdateState(): SendResourceHashmapUpdateState {
+  return {};
+}
+
+export function stepSendResourceHashmapUpdateWithActions(
+  state: SendResourceHashmapUpdateState,
+  event: SendResourceHashmapUpdateEvent
+): SendResourceHashmapUpdateStepResult {
+  if (event.kind === "resource-hashmap/send-hashmap-update-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldSendResourceHashmapUpdate(event.hashmapUpdatePresent) ? "send" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldSendResourceHashmapUpdateNow(
+  actions: ReadonlyArray<SendResourceHashmapUpdateAction>
+): boolean {
+  return actions.some((action) => action.kind === "send");
+}
+
+export function shouldSkipSendResourceHashmapUpdate(
+  actions: ReadonlyArray<SendResourceHashmapUpdateAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether fulfill should advance status to awaiting-proof. */
@@ -665,6 +907,65 @@ export function shouldAdvanceResourceAwaitingProof(
   status: "transferring" | "awaiting-proof"
 ): boolean {
   return status === "awaiting-proof";
+}
+
+/**
+ * Resource fulfill awaiting-proof advance gate is event-driven; no durable
+ * session fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldAdvanceResourceAwaitingProof` reads beside the step).
+ */
+export type AdvanceResourceAwaitingProofState = Record<string, never>;
+
+export type AdvanceResourceAwaitingProofEvent =
+  | Event
+  | {
+      readonly kind: "resource-hashmap/advance-awaiting-proof-gate";
+      readonly status: "transferring" | "awaiting-proof";
+    };
+
+export type AdvanceResourceAwaitingProofAction =
+  | { readonly kind: "advance" }
+  | { readonly kind: "skip" };
+
+export interface AdvanceResourceAwaitingProofStepResult {
+  readonly state: AdvanceResourceAwaitingProofState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AdvanceResourceAwaitingProofAction[];
+}
+
+export function initialAdvanceResourceAwaitingProofState(): AdvanceResourceAwaitingProofState {
+  return {};
+}
+
+export function stepAdvanceResourceAwaitingProofWithActions(
+  state: AdvanceResourceAwaitingProofState,
+  event: AdvanceResourceAwaitingProofEvent
+): AdvanceResourceAwaitingProofStepResult {
+  if (event.kind === "resource-hashmap/advance-awaiting-proof-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAdvanceResourceAwaitingProof(event.status) ? "advance" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAdvanceResourceAwaitingProofNow(
+  actions: ReadonlyArray<AdvanceResourceAwaitingProofAction>
+): boolean {
+  return actions.some((action) => action.kind === "advance");
+}
+
+export function shouldSkipAdvanceResourceAwaitingProof(
+  actions: ReadonlyArray<AdvanceResourceAwaitingProofAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**
