@@ -421,9 +421,24 @@
 > **`shouldAddPathEntry`** (via **`stepAddPathEntryWithActions`**: add|skip) /
 > **`shouldBeginPathDiscovery`** (via **`stepBeginPathDiscoveryWithActions`**:
 > begin|skip) / **`planPathEntryLookup`** (via **`stepPathEntryLookupWithActions`**:
-> miss / expired / hit) live in protocol; path-table lookups
-> (`hasPath` / `getPathEntry` / outbound / path-request) treat expired paths as
-> missing.
+> miss / expired / hit) / **`canAnswerLocalPathRequest`** (via
+> **`stepAnswerLocalPathRequestWithActions`**: answer|skip) /
+> **`shouldRememberPathRequestTag`** (via
+> **`stepRememberPathRequestTagWithActions`**: remember|skip) /
+> **`shouldClearExpiredDiscoveryPathRequest`** (via
+> **`stepClearExpiredDiscoveryPathRequestWithActions`**: clear|skip) /
+> **`shouldUsePathForOutbound`** (via **`stepUsePathForOutboundWithActions`**:
+> use|skip) / **`shouldAnswerPathWithEntry`** (via
+> **`stepAnswerPathWithEntryWithActions`**: answer|skip) /
+> **`shouldTouchPathEntry`** (via **`stepTouchPathEntryWithActions`**:
+> touch|skip) / **`shouldAnswerPathRequest`** (via
+> **`stepAnswerPathRequestWithActions`**: answer|skip) /
+> **`shouldFulfillDiscoveryPending`** (via
+> **`stepFulfillDiscoveryPendingWithActions`**: fulfill|skip) /
+> **`shouldAcceptCachedPathResponsePacket`** (via
+> **`stepAcceptCachedPathResponsePacketWithActions`**: accept|skip) live in
+> protocol; path-table lookups (`hasPath` / `getPathEntry` / outbound /
+> path-request) treat expired paths as missing.
 > **`receipt/failed`** on `stepPacketReceiptTimeout` lives in protocol; `PacketReceipt.markFailed`
 > / `LeafTransport.sendPacket` adapt it. **`Link.updateKeepalive`** applies keepalive via
 > **`stepComputeKeepaliveWithActions`** (`use-keepalive`) then syncs watchdog via
@@ -773,7 +788,8 @@
 > **`shouldAcceptResourceProofPayload`** / **`isValidResourceRandomHashLength`**,
 > **`shouldAcceptResourceHashmapUpdateFrame`** / **`shouldFulfillResourcePartRequest`**,
 > **`planChannelTxEnvelopeOp`** / **`shouldApplyChannelPacketReceiptTimeout`** /
-> **`shouldReplaceChannelResentPacket`**, **`canAnswerLocalPathRequest`** /
+> **`shouldReplaceChannelResentPacket`**, **`canAnswerLocalPathRequest`** (via
+> **`stepAnswerLocalPathRequestWithActions`**: answer|skip) /
 > **`shouldBeginPathDiscovery`** (via **`stepBeginPathDiscoveryWithActions`**:
 > begin|skip), **`canAcceptLinkOwnerPublicKey`** (via **`stepAcceptLinkOwnerPublicKeyWithActions`**: accept|reject),
 > **`shouldInvokePacketReceiptTimeoutCallback`**, and
@@ -782,15 +798,25 @@
 > **`planResourceAdvertisementRoleFlags`**, **`isValidTokenIvLength`** /
 > **`shouldAcceptTokenFrame`**, **`isLinkKeepaliveContext`**,
 > **`shouldAcceptResourceProofSplit`**, **`shouldEmplaceChannelEnvelope`**,
-> **`shouldApplyResourceFulfillPart`**, **`shouldClearExpiredDiscoveryPathRequest`** /
-> **`shouldRememberPathRequestTag`**, **`shouldAcceptCachedPathResponsePacket`**,
+> **`shouldApplyResourceFulfillPart`**, **`shouldClearExpiredDiscoveryPathRequest`** (via
+> **`stepClearExpiredDiscoveryPathRequestWithActions`**: clear|skip) /
+> **`shouldRememberPathRequestTag`** (via
+> **`stepRememberPathRequestTagWithActions`**: remember|skip),
+> **`shouldAcceptCachedPathResponsePacket`** (via
+> **`stepAcceptCachedPathResponsePacketWithActions`**: accept|skip),
 > and **`shouldAcceptPropagationPeerResponse`** / **`shouldTreatPropagationListAsEmpty`** /
 > **`shouldRequestPropagationHavesAck`** live in protocol; Resource, Token, Link,
 > Channel, transport path helpers, and LXMF propagation adapt them.
-> **`shouldUsePathForOutbound`** / **`shouldAnswerPathWithEntry`** /
-> **`shouldFulfillDiscoveryPending`**, **`canLookupLinkRelayEntry`**, and
+> **`shouldUsePathForOutbound`** (via **`stepUsePathForOutboundWithActions`**:
+> use|skip) / **`shouldAnswerPathWithEntry`** (via
+> **`stepAnswerPathWithEntryWithActions`**: answer|skip) /
+> **`shouldFulfillDiscoveryPending`** (via
+> **`stepFulfillDiscoveryPendingWithActions`**: fulfill|skip), **`canLookupLinkRelayEntry`**, and
 > **`shouldTransmitLinkRelay`** live in protocol; LeafTransport and TransportNode adapt
-> them. **`shouldTouchPathEntry`** / **`shouldIgnoreDiscoveryPathFulfill`**,
+> them. **`shouldTouchPathEntry`** (via **`stepTouchPathEntryWithActions`**:
+> touch|skip) / **`shouldAnswerPathRequest`** (via
+> **`stepAnswerPathRequestWithActions`**: answer|skip) /
+> **`shouldIgnoreDiscoveryPathFulfill`**,
 > **`shouldRememberPacketHashNow`** / **`shouldRememberPacketHashAfterRelay`**,
 > **`shouldDeleteExpiredReverseEntry`** / **`shouldTransmitReverseRelay`**,
 > **`shouldFailAndDropOutboundReceipt`** / **`shouldKeepOutboundReceipt`**,
@@ -1303,6 +1329,10 @@
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > emit-path-request / discovery-path-request-expired / begin-path-discovery /
 > path-entry-expired / add-path-entry /
+> answer-local-path-request / remember-path-request-tag /
+> clear-expired-discovery-path-request / use-path-for-outbound /
+> answer-path-with-entry / touch-path-entry / answer-path-request /
+> fulfill-discovery-pending / accept-cached-path-response-packet /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
 > decode-resource-advertisement-flags / classify-resource-advertisement /
@@ -1587,11 +1617,28 @@
 > **`stepDiscoveryPathRequestExpiredWithActions`** /
 > **`stepPathEntryExpiredWithActions`** emit `expired` / `live`;
 > **`stepBeginPathDiscoveryWithActions`** emits `begin` / `skip`;
-> **`stepAddPathEntryWithActions`** emits `add` / `skip`; path-request emit,
-> discovery/path expiry, begin-discovery, and path-table add apply only from
+> **`stepAddPathEntryWithActions`** emits `add` / `skip`;
+> **`stepAnswerLocalPathRequestWithActions`** emits `answer` / `skip`;
+> **`stepRememberPathRequestTagWithActions`** emits `remember` / `skip`;
+> **`stepClearExpiredDiscoveryPathRequestWithActions`** emits `clear` / `skip`;
+> **`stepUsePathForOutboundWithActions`** emits `use` / `skip`;
+> **`stepAnswerPathWithEntryWithActions`** emits `answer` / `skip`;
+> **`stepTouchPathEntryWithActions`** emits `touch` / `skip`;
+> **`stepAnswerPathRequestWithActions`** emits `answer` / `skip`;
+> **`stepFulfillDiscoveryPendingWithActions`** emits `fulfill` / `skip`;
+> **`stepAcceptCachedPathResponsePacketWithActions`** emits `accept` / `skip`;
+> path-request emit, discovery/path expiry, begin-discovery, path-table add,
+> answer-local / remember-tag / clear-expired-discovery / use-path-for-outbound /
+> answer-path-with-entry / touch-path-entry / answer-path-request /
+> fulfill-discovery-pending / accept-cached-path-response apply only from
 > those actions (no ad-hoc `shouldEmitPathRequest` /
 > `isDiscoveryPathRequestExpired` / `isPathEntryExpired` /
-> `shouldBeginPathDiscovery` / `shouldAddPathEntry` reads beside the step).
+> `shouldBeginPathDiscovery` / `shouldAddPathEntry` /
+> `canAnswerLocalPathRequest` / `shouldRememberPathRequestTag` /
+> `shouldClearExpiredDiscoveryPathRequest` / `shouldUsePathForOutbound` /
+> `shouldAnswerPathWithEntry` / `shouldTouchPathEntry` /
+> `shouldAnswerPathRequest` / `shouldFulfillDiscoveryPending` /
+> `shouldAcceptCachedPathResponsePacket` reads beside the step).
 > **`stepIgnoreLocalAnnounceWithActions`** emits `ignore`|`proceed`;
 > **`stepDispatchAnnounceHandlersWithActions`** emits `dispatch`|`skip`;
 > **`stepReceiveAnnouncePathResponseWithActions`** emits `receive`|`skip`;

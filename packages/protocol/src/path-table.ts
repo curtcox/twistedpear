@@ -9,7 +9,13 @@
  * add-entry conclusions leave via machine actions (no ad-hoc
  * `shouldEmitPathRequest` / `isDiscoveryPathRequestExpired` /
  * `shouldBeginPathDiscovery` / `isPathEntryExpired` / `shouldAddPathEntry`
- * reads beside the step).
+ * reads beside the step). Answer-local / remember-tag / clear-expired-discovery /
+ * use-path-for-outbound / answer-path-with-entry / touch-path-entry conclusions
+ * leave via machine actions (no ad-hoc `canAnswerLocalPathRequest` /
+ * `shouldRememberPathRequestTag` / `shouldClearExpiredDiscoveryPathRequest` /
+ * `shouldUsePathForOutbound` / `shouldAnswerPathWithEntry` /
+ * `shouldTouchPathEntry` / `shouldAnswerPathRequest` /
+ * `shouldFulfillDiscoveryPending` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { TRUNCATED_HASH_BYTES } from "./hash-truncate.js";
@@ -360,6 +366,65 @@ export function canAnswerLocalPathRequest(handlerPresent: boolean): boolean {
 }
 
 /**
+ * canAnswerLocalPathRequest gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canAnswerLocalPathRequest`
+ * reads beside the step).
+ */
+export type AnswerLocalPathRequestState = Record<string, never>;
+
+export type AnswerLocalPathRequestEvent =
+  | Event
+  | {
+      readonly kind: "path-request/answer-local-handler-gate";
+      readonly handlerPresent: boolean;
+    };
+
+export type AnswerLocalPathRequestAction =
+  | { readonly kind: "answer" }
+  | { readonly kind: "skip" };
+
+export interface AnswerLocalPathRequestStepResult {
+  readonly state: AnswerLocalPathRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AnswerLocalPathRequestAction[];
+}
+
+export function initialAnswerLocalPathRequestState(): AnswerLocalPathRequestState {
+  return {};
+}
+
+export function stepAnswerLocalPathRequestWithActions(
+  state: AnswerLocalPathRequestState,
+  event: AnswerLocalPathRequestEvent
+): AnswerLocalPathRequestStepResult {
+  if (event.kind === "path-request/answer-local-handler-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canAnswerLocalPathRequest(event.handlerPresent) ? "answer" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAnswerLocalPathRequestNow(
+  actions: ReadonlyArray<AnswerLocalPathRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "answer");
+}
+
+export function shouldSkipAnswerLocalPathRequest(
+  actions: ReadonlyArray<AnswerLocalPathRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/**
  * Whether start-discovery may record a pending request and flood peers.
  * Tag / destination-key extraction stays at the adapter edge as booleans.
  */
@@ -443,9 +508,129 @@ export function shouldClearExpiredDiscoveryPathRequest(discoveryExpired: boolean
   return discoveryExpired;
 }
 
+/**
+ * shouldClearExpiredDiscoveryPathRequest gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldClearExpiredDiscoveryPathRequest` reads beside the step).
+ */
+export type ClearExpiredDiscoveryPathRequestState = Record<string, never>;
+
+export type ClearExpiredDiscoveryPathRequestEvent =
+  | Event
+  | {
+      readonly kind: "path-request/clear-expired-discovery-gate";
+      readonly discoveryExpired: boolean;
+    };
+
+export type ClearExpiredDiscoveryPathRequestAction =
+  | { readonly kind: "clear" }
+  | { readonly kind: "skip" };
+
+export interface ClearExpiredDiscoveryPathRequestStepResult {
+  readonly state: ClearExpiredDiscoveryPathRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ClearExpiredDiscoveryPathRequestAction[];
+}
+
+export function initialClearExpiredDiscoveryPathRequestState(): ClearExpiredDiscoveryPathRequestState {
+  return {};
+}
+
+export function stepClearExpiredDiscoveryPathRequestWithActions(
+  state: ClearExpiredDiscoveryPathRequestState,
+  event: ClearExpiredDiscoveryPathRequestEvent
+): ClearExpiredDiscoveryPathRequestStepResult {
+  if (event.kind === "path-request/clear-expired-discovery-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldClearExpiredDiscoveryPathRequest(event.discoveryExpired)
+            ? "clear"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldClearExpiredDiscoveryPathRequestNow(
+  actions: ReadonlyArray<ClearExpiredDiscoveryPathRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "clear");
+}
+
+export function shouldSkipClearExpiredDiscoveryPathRequest(
+  actions: ReadonlyArray<ClearExpiredDiscoveryPathRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether a path-request tag key should be remembered in the seen-tag set. */
 export function shouldRememberPathRequestTag(tagKeyPresent: boolean): boolean {
   return tagKeyPresent;
+}
+
+/**
+ * shouldRememberPathRequestTag gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldRememberPathRequestTag`
+ * reads beside the step).
+ */
+export type RememberPathRequestTagState = Record<string, never>;
+
+export type RememberPathRequestTagEvent =
+  | Event
+  | {
+      readonly kind: "path-request/remember-tag-gate";
+      readonly tagKeyPresent: boolean;
+    };
+
+export type RememberPathRequestTagAction =
+  | { readonly kind: "remember" }
+  | { readonly kind: "skip" };
+
+export interface RememberPathRequestTagStepResult {
+  readonly state: RememberPathRequestTagState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RememberPathRequestTagAction[];
+}
+
+export function initialRememberPathRequestTagState(): RememberPathRequestTagState {
+  return {};
+}
+
+export function stepRememberPathRequestTagWithActions(
+  state: RememberPathRequestTagState,
+  event: RememberPathRequestTagEvent
+): RememberPathRequestTagStepResult {
+  if (event.kind === "path-request/remember-tag-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRememberPathRequestTag(event.tagKeyPresent) ? "remember" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRememberPathRequestTagNow(
+  actions: ReadonlyArray<RememberPathRequestTagAction>
+): boolean {
+  return actions.some((action) => action.kind === "remember");
+}
+
+export function shouldSkipRememberPathRequestTag(
+  actions: ReadonlyArray<RememberPathRequestTagAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether wrap/direct outbound may use a resolved path-table entry. */
@@ -453,14 +638,191 @@ export function shouldUsePathForOutbound(pathPresent: boolean): boolean {
   return pathPresent;
 }
 
+/**
+ * shouldUsePathForOutbound gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldUsePathForOutbound`
+ * reads beside the step).
+ */
+export type UsePathForOutboundState = Record<string, never>;
+
+export type UsePathForOutboundEvent =
+  | Event
+  | {
+      readonly kind: "path/use-for-outbound-gate";
+      readonly pathPresent: boolean;
+    };
+
+export type UsePathForOutboundAction =
+  | { readonly kind: "use" }
+  | { readonly kind: "skip" };
+
+export interface UsePathForOutboundStepResult {
+  readonly state: UsePathForOutboundState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly UsePathForOutboundAction[];
+}
+
+export function initialUsePathForOutboundState(): UsePathForOutboundState {
+  return {};
+}
+
+export function stepUsePathForOutboundWithActions(
+  state: UsePathForOutboundState,
+  event: UsePathForOutboundEvent
+): UsePathForOutboundStepResult {
+  if (event.kind === "path/use-for-outbound-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldUsePathForOutbound(event.pathPresent) ? "use" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePathForOutboundNow(
+  actions: ReadonlyArray<UsePathForOutboundAction>
+): boolean {
+  return actions.some((action) => action.kind === "use");
+}
+
+export function shouldSkipUsePathForOutbound(
+  actions: ReadonlyArray<UsePathForOutboundAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether answer-path may send a response for a resolved path-table entry. */
 export function shouldAnswerPathWithEntry(pathPresent: boolean): boolean {
   return pathPresent;
 }
 
+/**
+ * shouldAnswerPathWithEntry gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldAnswerPathWithEntry`
+ * reads beside the step).
+ */
+export type AnswerPathWithEntryState = Record<string, never>;
+
+export type AnswerPathWithEntryEvent =
+  | Event
+  | {
+      readonly kind: "path-request/answer-path-entry-gate";
+      readonly pathPresent: boolean;
+    };
+
+export type AnswerPathWithEntryAction =
+  | { readonly kind: "answer" }
+  | { readonly kind: "skip" };
+
+export interface AnswerPathWithEntryStepResult {
+  readonly state: AnswerPathWithEntryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AnswerPathWithEntryAction[];
+}
+
+export function initialAnswerPathWithEntryState(): AnswerPathWithEntryState {
+  return {};
+}
+
+export function stepAnswerPathWithEntryWithActions(
+  state: AnswerPathWithEntryState,
+  event: AnswerPathWithEntryEvent
+): AnswerPathWithEntryStepResult {
+  if (event.kind === "path-request/answer-path-entry-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAnswerPathWithEntry(event.pathPresent) ? "answer" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAnswerPathWithEntryNow(
+  actions: ReadonlyArray<AnswerPathWithEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "answer");
+}
+
+export function shouldSkipAnswerPathWithEntry(
+  actions: ReadonlyArray<AnswerPathWithEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether path-table touch may refresh a resolved entry's timestamp. */
 export function shouldTouchPathEntry(pathPresent: boolean): boolean {
   return pathPresent;
+}
+
+/**
+ * shouldTouchPathEntry gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldTouchPathEntry`
+ * reads beside the step).
+ */
+export type TouchPathEntryState = Record<string, never>;
+
+export type TouchPathEntryEvent =
+  | Event
+  | {
+      readonly kind: "path/touch-entry-gate";
+      readonly pathPresent: boolean;
+    };
+
+export type TouchPathEntryAction =
+  | { readonly kind: "touch" }
+  | { readonly kind: "skip" };
+
+export interface TouchPathEntryStepResult {
+  readonly state: TouchPathEntryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TouchPathEntryAction[];
+}
+
+export function initialTouchPathEntryState(): TouchPathEntryState {
+  return {};
+}
+
+export function stepTouchPathEntryWithActions(
+  state: TouchPathEntryState,
+  event: TouchPathEntryEvent
+): TouchPathEntryStepResult {
+  if (event.kind === "path/touch-entry-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldTouchPathEntry(event.pathPresent) ? "touch" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTouchPathEntryNow(
+  actions: ReadonlyArray<TouchPathEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "touch");
+}
+
+export function shouldSkipTouchPathEntry(
+  actions: ReadonlyArray<TouchPathEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a pending discovery path-request should be fulfilled by an announce. */
@@ -574,6 +936,71 @@ export function shouldFulfillDiscoveryPending(input: {
   readonly pendingPresent: boolean;
 }): boolean {
   return input.fulfillOk && input.pendingPresent;
+}
+
+/**
+ * shouldFulfillDiscoveryPending gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldFulfillDiscoveryPending`
+ * reads beside the step).
+ */
+export type FulfillDiscoveryPendingState = Record<string, never>;
+
+export type FulfillDiscoveryPendingEvent =
+  | Event
+  | {
+      readonly kind: "path-request/fulfill-pending-gate";
+      readonly fulfillOk: boolean;
+      readonly pendingPresent: boolean;
+    };
+
+export type FulfillDiscoveryPendingAction =
+  | { readonly kind: "fulfill" }
+  | { readonly kind: "skip" };
+
+export interface FulfillDiscoveryPendingStepResult {
+  readonly state: FulfillDiscoveryPendingState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly FulfillDiscoveryPendingAction[];
+}
+
+export function initialFulfillDiscoveryPendingState(): FulfillDiscoveryPendingState {
+  return {};
+}
+
+export function stepFulfillDiscoveryPendingWithActions(
+  state: FulfillDiscoveryPendingState,
+  event: FulfillDiscoveryPendingEvent
+): FulfillDiscoveryPendingStepResult {
+  if (event.kind === "path-request/fulfill-pending-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldFulfillDiscoveryPending({
+            fulfillOk: event.fulfillOk,
+            pendingPresent: event.pendingPresent
+          })
+            ? "fulfill"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldFulfillDiscoveryPendingNow(
+  actions: ReadonlyArray<FulfillDiscoveryPendingAction>
+): boolean {
+  return actions.some((action) => action.kind === "fulfill");
+}
+
+export function shouldSkipFulfillDiscoveryPending(
+  actions: ReadonlyArray<FulfillDiscoveryPendingAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether discovery fulfill should early-out with no pending map mutation. */
@@ -747,6 +1174,68 @@ export function shouldAnswerPathRequest(
     return true;
   }
   return !equalByteArrays(nextHop, requestorTransportId);
+}
+
+/**
+ * shouldAnswerPathRequest gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldAnswerPathRequest`
+ * reads beside the step).
+ */
+export type AnswerPathRequestState = Record<string, never>;
+
+export type AnswerPathRequestEvent =
+  | Event
+  | {
+      readonly kind: "path-request/answer-path-gate";
+      readonly nextHop: Uint8Array;
+      readonly requestorTransportId: Uint8Array | null;
+    };
+
+export type AnswerPathRequestAction =
+  | { readonly kind: "answer" }
+  | { readonly kind: "skip" };
+
+export interface AnswerPathRequestStepResult {
+  readonly state: AnswerPathRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AnswerPathRequestAction[];
+}
+
+export function initialAnswerPathRequestState(): AnswerPathRequestState {
+  return {};
+}
+
+export function stepAnswerPathRequestWithActions(
+  state: AnswerPathRequestState,
+  event: AnswerPathRequestEvent
+): AnswerPathRequestStepResult {
+  if (event.kind === "path-request/answer-path-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAnswerPathRequest(event.nextHop, event.requestorTransportId)
+            ? "answer"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAnswerPathRequestNow(
+  actions: ReadonlyArray<AnswerPathRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "answer");
+}
+
+export function shouldSkipAnswerPathRequest(
+  actions: ReadonlyArray<AnswerPathRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**

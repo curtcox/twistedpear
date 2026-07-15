@@ -9,8 +9,8 @@
  * ignore / handler dispatch / PATH_RESPONSE receive / aspect-filter match
  * conclusions leave via machine actions (no ad-hoc
  * `shouldIgnoreLocalAnnounce` / `canDispatchAnnounceHandlers` /
- * `shouldReceiveAnnouncePathResponse` / `shouldMatchAnnounceAspect` reads
- * beside the step).
+ * `shouldReceiveAnnouncePathResponse` / `shouldMatchAnnounceAspect` /
+ * `shouldAcceptCachedPathResponsePacket` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -290,6 +290,65 @@ export function pathResponseAnnounceFieldsFromActions(
 /** Whether a cached path-response announce packet decoded successfully. */
 export function shouldAcceptCachedPathResponsePacket(decodedOk: boolean): boolean {
   return decodedOk;
+}
+
+/**
+ * shouldAcceptCachedPathResponsePacket gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldAcceptCachedPathResponsePacket` reads beside the step).
+ */
+export type AcceptCachedPathResponsePacketState = Record<string, never>;
+
+export type AcceptCachedPathResponsePacketEvent =
+  | Event
+  | {
+      readonly kind: "path-response/accept-cached-packet-gate";
+      readonly decodedOk: boolean;
+    };
+
+export type AcceptCachedPathResponsePacketAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptCachedPathResponsePacketStepResult {
+  readonly state: AcceptCachedPathResponsePacketState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptCachedPathResponsePacketAction[];
+}
+
+export function initialAcceptCachedPathResponsePacketState(): AcceptCachedPathResponsePacketState {
+  return {};
+}
+
+export function stepAcceptCachedPathResponsePacketWithActions(
+  state: AcceptCachedPathResponsePacketState,
+  event: AcceptCachedPathResponsePacketEvent
+): AcceptCachedPathResponsePacketStepResult {
+  if (event.kind === "path-response/accept-cached-packet-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptCachedPathResponsePacket(event.decodedOk) ? "accept" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptCachedPathResponsePacketNow(
+  actions: ReadonlyArray<AcceptCachedPathResponsePacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAcceptCachedPathResponsePacket(
+  actions: ReadonlyArray<AcceptCachedPathResponsePacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**

@@ -36,7 +36,24 @@ import {
   stepPathResponseAnnounceFieldsWithActions,
   stepTransportAnnounceFieldsWithActions,
   transportAnnounceFieldsFromActions,
-  canAnswerLocalPathRequest,
+  initialAcceptCachedPathResponsePacketState,
+  initialAnswerLocalPathRequestState,
+  initialAnswerPathRequestState,
+  initialAnswerPathWithEntryState,
+  initialRememberPathRequestTagState,
+  initialUsePathForOutboundState,
+  shouldAcceptCachedPathResponsePacketNow,
+  shouldAnswerLocalPathRequestNow,
+  shouldAnswerPathRequestNow,
+  shouldAnswerPathWithEntryNow,
+  shouldRememberPathRequestTagNow,
+  shouldUsePathForOutboundNow,
+  stepAcceptCachedPathResponsePacketWithActions,
+  stepAnswerLocalPathRequestWithActions,
+  stepAnswerPathRequestWithActions,
+  stepAnswerPathWithEntryWithActions,
+  stepRememberPathRequestTagWithActions,
+  stepUsePathForOutboundWithActions,
   activeLinkUnregisterRemoveIndex,
   initialAcceptParsedAnnounceState,
   initialAppendPathRandomBlobState,
@@ -63,12 +80,10 @@ import {
   packetReceiptUnregisterIndex,
   pendingLinkMembershipRemoveIndex,
   pendingLinkUnregisterRemoveIndex,
-  shouldAcceptCachedPathResponsePacket,
   shouldAcceptLinkLrProofCandidateNow,
   shouldAcceptParsedAnnounceNow,
   shouldAnswerPathRequestLocal,
   shouldAnswerPathRequestPath,
-  shouldAnswerPathWithEntry,
   shouldAppendActiveLinkMembershipActions,
   shouldDirectPathOutbound,
   shouldDispatchLocalLinkRequestNow,
@@ -107,7 +122,6 @@ import {
   shouldRegisterLinkPending,
   shouldRegisterPacketReceipt,
   shouldRegisterTransportMemberNow,
-  shouldRememberPathRequestTag,
   shouldRemoveActiveLinkUnregisterActions,
   shouldRemovePacketReceiptProofIngress,
   shouldRemovePendingLinkMembershipActions,
@@ -115,7 +129,6 @@ import {
   shouldTransmitOnInterfaceNow,
   shouldRemovePacketReceipt,
   shouldRemoveTransportMember,
-  shouldUsePathForOutbound,
   shouldProveDestination,
   shouldAcceptPacketFilter,
   shouldUseMatchingLinkIdIndex,
@@ -136,7 +149,6 @@ import {
   initialTransmitOnInterfaceState,
   initialWrapTransportPacketState,
   shouldAddPathEntryNow,
-  shouldAnswerPathRequest,
   shouldEmitPathRequestNow,
   shouldTreatPathEntryExpired,
   isLocalPathRequestPacket,
@@ -1110,13 +1122,29 @@ export class LeafTransport {
       pathHops: path?.hops ?? 0
     });
 
-    if (shouldWrapPathOutbound(stepped.actions) && shouldUsePathForOutbound(path !== undefined)) {
+    if (
+      shouldWrapPathOutbound(stepped.actions) &&
+      shouldUsePathForOutboundNow(
+        stepUsePathForOutboundWithActions(initialUsePathForOutboundState(), {
+          kind: "path/use-for-outbound-gate",
+          pathPresent: path !== undefined
+        }).actions
+      )
+    ) {
       const wrapped = wrapTransportPacket(packet, path!.nextHop);
       await this.transmit(path!.receivedInterface, wrapped);
       return true;
     }
 
-    if (shouldDirectPathOutbound(stepped.actions) && shouldUsePathForOutbound(path !== undefined)) {
+    if (
+      shouldDirectPathOutbound(stepped.actions) &&
+      shouldUsePathForOutboundNow(
+        stepUsePathForOutboundWithActions(initialUsePathForOutboundState(), {
+          kind: "path/use-for-outbound-gate",
+          pathPresent: path !== undefined
+        }).actions
+      )
+    ) {
       await this.transmit(path!.receivedInterface, packet.raw);
       return true;
     }
@@ -1176,7 +1204,13 @@ export class LeafTransport {
       hasPath: path !== undefined,
       shouldAnswerPath:
         path !== undefined &&
-        shouldAnswerPathRequest(path.nextHop, parsed?.requestorTransportId ?? null),
+        shouldAnswerPathRequestNow(
+          stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
+            kind: "path-request/answer-path-gate",
+            nextHop: path.nextHop,
+            requestorTransportId: parsed?.requestorTransportId ?? null
+          }).actions
+        ),
       discoveryPresent: false,
       discoveryExpired: false,
       allowDiscovery: false
@@ -1189,12 +1223,26 @@ export class LeafTransport {
       return;
     }
 
-    if (shouldRememberPathRequestTag(tagKey !== null)) {
+    if (
+      shouldRememberPathRequestTagNow(
+        stepRememberPathRequestTagWithActions(initialRememberPathRequestTagState(), {
+          kind: "path-request/remember-tag-gate",
+          tagKeyPresent: tagKey !== null
+        }).actions
+      )
+    ) {
       this.discoveryPrTags.add(tagKey!);
     }
 
     if (shouldAnswerPathRequestLocal(stepped.actions)) {
-      if (!canAnswerLocalPathRequest(localDestination?.answerPathRequest !== undefined)) {
+      if (
+        !shouldAnswerLocalPathRequestNow(
+          stepAnswerLocalPathRequestWithActions(initialAnswerLocalPathRequestState(), {
+            kind: "path-request/answer-local-handler-gate",
+            handlerPresent: localDestination?.answerPathRequest !== undefined
+          }).actions
+        )
+      ) {
         return;
       }
       await localDestination!.answerPathRequest!(iface);
@@ -1203,7 +1251,12 @@ export class LeafTransport {
 
     if (
       shouldAnswerPathRequestPath(stepped.actions) &&
-      shouldAnswerPathWithEntry(path !== undefined)
+      shouldAnswerPathWithEntryNow(
+        stepAnswerPathWithEntryWithActions(initialAnswerPathWithEntryState(), {
+          kind: "path-request/answer-path-entry-gate",
+          pathPresent: path !== undefined
+        }).actions
+      )
     ) {
       await this.sendPathResponse(path!, iface);
     }
@@ -1250,7 +1303,17 @@ export class LeafTransport {
         for (const action of actions) {
           if (action.kind === "transmit") {
             const cached = Packet.decode(this.provider, path.announceRaw);
-            if (!shouldAcceptCachedPathResponsePacket(cached !== null)) {
+            if (
+              !shouldAcceptCachedPathResponsePacketNow(
+                stepAcceptCachedPathResponsePacketWithActions(
+                  initialAcceptCachedPathResponsePacketState(),
+                  {
+                    kind: "path-response/accept-cached-packet-gate",
+                    decodedOk: cached !== null
+                  }
+                ).actions
+              )
+            ) {
               return;
             }
             const response = buildPathResponseAnnounce(

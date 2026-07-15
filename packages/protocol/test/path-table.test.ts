@@ -41,33 +41,65 @@ import {
   planPathOutbound,
   planPathRequestIngress,
   canAnswerLocalPathRequest,
+  initialAnswerLocalPathRequestState,
+  initialAnswerPathRequestState,
+  initialAnswerPathWithEntryState,
+  initialClearExpiredDiscoveryPathRequestState,
+  initialFulfillDiscoveryPendingState,
+  initialRememberPathRequestTagState,
+  initialTouchPathEntryState,
+  initialUsePathForOutboundState,
   shouldAddPathEntry,
   shouldAddPathEntryNow,
+  shouldAnswerLocalPathRequestNow,
   shouldAnswerPathRequest,
   shouldAnswerPathRequestLocal,
+  shouldAnswerPathRequestNow,
   shouldAnswerPathRequestPath,
   shouldAnswerPathWithEntry,
+  shouldAnswerPathWithEntryNow,
   shouldBeginPathDiscovery,
   shouldBeginPathDiscoveryNow,
   shouldClearExpiredDiscoveryPathRequest,
+  shouldClearExpiredDiscoveryPathRequestNow,
   shouldDirectPathOutbound,
   shouldDropExpiredDiscoveryPathRequest,
   shouldEmitPathRequest,
   shouldEmitPathRequestNow,
   shouldExpirePathEntryLookup,
   shouldFloodPathOutbound,
+  shouldFulfillDiscoveryPendingNow,
+  shouldRememberPathRequestTagNow,
   shouldSkipAddPathEntry,
+  shouldSkipAnswerLocalPathRequest,
+  shouldSkipAnswerPathRequest,
+  shouldSkipAnswerPathWithEntry,
   shouldSkipBeginPathDiscovery,
+  shouldSkipClearExpiredDiscoveryPathRequest,
   shouldSkipEmitPathRequest,
+  shouldSkipFulfillDiscoveryPending,
+  shouldSkipRememberPathRequestTag,
+  shouldSkipTouchPathEntry,
+  shouldSkipUsePathForOutbound,
+  shouldTouchPathEntryNow,
   shouldTreatDiscoveryPathRequestExpired,
   shouldTreatDiscoveryPathRequestLive,
   shouldTreatPathEntryExpired,
   shouldTreatPathEntryLive,
+  shouldUsePathForOutboundNow,
   stepAddPathEntryWithActions,
+  stepAnswerLocalPathRequestWithActions,
+  stepAnswerPathRequestWithActions,
+  stepAnswerPathWithEntryWithActions,
   stepBeginPathDiscoveryWithActions,
+  stepClearExpiredDiscoveryPathRequestWithActions,
   stepDiscoveryPathRequestExpiredWithActions,
   stepEmitPathRequestWithActions,
+  stepFulfillDiscoveryPendingWithActions,
   stepPathEntryExpiredWithActions,
+  stepRememberPathRequestTagWithActions,
+  stepTouchPathEntryWithActions,
+  stepUsePathForOutboundWithActions,
   shouldFulfillDiscoveryPathRequest,
   shouldFulfillDiscoveryPending,
   shouldHitPathEntryLookup,
@@ -108,6 +140,25 @@ describe("protocol path table", () => {
     expect(shouldAnswerPathRequest(nextHop, null)).toBe(true);
     expect(shouldAnswerPathRequest(nextHop, new Uint8Array([9, 9, 9]))).toBe(true);
     expect(shouldAnswerPathRequest(nextHop, nextHop)).toBe(false);
+
+    expect(
+      shouldAnswerPathRequestNow(
+        stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
+          kind: "path-request/answer-path-gate",
+          nextHop,
+          requestorTransportId: null
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipAnswerPathRequest(
+        stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
+          kind: "path-request/answer-path-gate",
+          nextHop,
+          requestorTransportId: nextHop
+        }).actions
+      )
+    ).toBe(true);
   });
 
   it("adds first path under max hops", () => {
@@ -493,6 +544,22 @@ describe("protocol path table", () => {
     expect(canAnswerLocalPathRequest(true)).toBe(true);
     expect(canAnswerLocalPathRequest(false)).toBe(false);
     expect(
+      shouldAnswerLocalPathRequestNow(
+        stepAnswerLocalPathRequestWithActions(initialAnswerLocalPathRequestState(), {
+          kind: "path-request/answer-local-handler-gate",
+          handlerPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipAnswerLocalPathRequest(
+        stepAnswerLocalPathRequestWithActions(initialAnswerLocalPathRequestState(), {
+          kind: "path-request/answer-local-handler-gate",
+          handlerPresent: false
+        }).actions
+      )
+    ).toBe(true);
+    expect(
       shouldBeginPathDiscovery({
         parsedOk: true,
         tagPresent: true,
@@ -528,14 +595,100 @@ describe("protocol path table", () => {
     ).toBe(true);
     expect(shouldClearExpiredDiscoveryPathRequest(true)).toBe(true);
     expect(shouldClearExpiredDiscoveryPathRequest(false)).toBe(false);
+    expect(
+      shouldClearExpiredDiscoveryPathRequestNow(
+        stepClearExpiredDiscoveryPathRequestWithActions(
+          initialClearExpiredDiscoveryPathRequestState(),
+          {
+            kind: "path-request/clear-expired-discovery-gate",
+            discoveryExpired: true
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipClearExpiredDiscoveryPathRequest(
+        stepClearExpiredDiscoveryPathRequestWithActions(
+          initialClearExpiredDiscoveryPathRequestState(),
+          {
+            kind: "path-request/clear-expired-discovery-gate",
+            discoveryExpired: false
+          }
+        ).actions
+      )
+    ).toBe(true);
     expect(shouldRememberPathRequestTag(true)).toBe(true);
     expect(shouldRememberPathRequestTag(false)).toBe(false);
+    expect(
+      shouldRememberPathRequestTagNow(
+        stepRememberPathRequestTagWithActions(initialRememberPathRequestTagState(), {
+          kind: "path-request/remember-tag-gate",
+          tagKeyPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipRememberPathRequestTag(
+        stepRememberPathRequestTagWithActions(initialRememberPathRequestTagState(), {
+          kind: "path-request/remember-tag-gate",
+          tagKeyPresent: false
+        }).actions
+      )
+    ).toBe(true);
     expect(shouldUsePathForOutbound(true)).toBe(true);
     expect(shouldUsePathForOutbound(false)).toBe(false);
+    expect(
+      shouldUsePathForOutboundNow(
+        stepUsePathForOutboundWithActions(initialUsePathForOutboundState(), {
+          kind: "path/use-for-outbound-gate",
+          pathPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipUsePathForOutbound(
+        stepUsePathForOutboundWithActions(initialUsePathForOutboundState(), {
+          kind: "path/use-for-outbound-gate",
+          pathPresent: false
+        }).actions
+      )
+    ).toBe(true);
     expect(shouldAnswerPathWithEntry(true)).toBe(true);
     expect(shouldAnswerPathWithEntry(false)).toBe(false);
+    expect(
+      shouldAnswerPathWithEntryNow(
+        stepAnswerPathWithEntryWithActions(initialAnswerPathWithEntryState(), {
+          kind: "path-request/answer-path-entry-gate",
+          pathPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipAnswerPathWithEntry(
+        stepAnswerPathWithEntryWithActions(initialAnswerPathWithEntryState(), {
+          kind: "path-request/answer-path-entry-gate",
+          pathPresent: false
+        }).actions
+      )
+    ).toBe(true);
     expect(shouldTouchPathEntry(true)).toBe(true);
     expect(shouldTouchPathEntry(false)).toBe(false);
+    expect(
+      shouldTouchPathEntryNow(
+        stepTouchPathEntryWithActions(initialTouchPathEntryState(), {
+          kind: "path/touch-entry-gate",
+          pathPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipTouchPathEntry(
+        stepTouchPathEntryWithActions(initialTouchPathEntryState(), {
+          kind: "path/touch-entry-gate",
+          pathPresent: false
+        }).actions
+      )
+    ).toBe(true);
   });
 
   it("concludes path add-entry via actions", () => {
@@ -591,6 +744,24 @@ describe("protocol path table", () => {
     expect(
       shouldFulfillDiscoveryPending({ fulfillOk: false, pendingPresent: true })
     ).toBe(false);
+    expect(
+      shouldFulfillDiscoveryPendingNow(
+        stepFulfillDiscoveryPendingWithActions(initialFulfillDiscoveryPendingState(), {
+          kind: "path-request/fulfill-pending-gate",
+          fulfillOk: true,
+          pendingPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipFulfillDiscoveryPending(
+        stepFulfillDiscoveryPendingWithActions(initialFulfillDiscoveryPendingState(), {
+          kind: "path-request/fulfill-pending-gate",
+          fulfillOk: false,
+          pendingPresent: true
+        }).actions
+      )
+    ).toBe(true);
     expect(shouldIgnoreDiscoveryPathFulfill(true)).toBe(true);
     expect(shouldIgnoreDiscoveryPathFulfill(false)).toBe(false);
   });

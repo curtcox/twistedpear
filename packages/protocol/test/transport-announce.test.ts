@@ -18,6 +18,7 @@ import {
   planTransportAnnounceFields,
   canDispatchAnnounceHandlers,
   shouldAcceptCachedPathResponsePacket,
+  shouldAcceptCachedPathResponsePacketNow,
   shouldApplyAnnounceRateLimit,
   shouldDispatchAnnounceHandlersNow,
   shouldIgnoreLocalAnnounce,
@@ -30,11 +31,13 @@ import {
   shouldReceiveAnnouncePathResponse,
   shouldReceiveAnnouncePathResponseNow,
   shouldRecordAnnounceRate,
+  shouldSkipAcceptCachedPathResponsePacket,
   shouldSkipAnnouncePathResponse,
   shouldSkipDispatchAnnounceHandlers,
   shouldUseClonePacketWithHops,
   shouldUsePathResponseAnnounceFields,
   shouldUseTransportAnnounceFields,
+  stepAcceptCachedPathResponsePacketWithActions,
   stepAnnounceIngressGatesWithActions,
   stepClonePacketWithHopsWithActions,
   stepDispatchAnnounceHandlersWithActions,
@@ -43,7 +46,8 @@ import {
   stepPathResponseAnnounceFieldsWithActions,
   stepReceiveAnnouncePathResponseWithActions,
   stepTransportAnnounceFieldsWithActions,
-  transportAnnounceFieldsFromActions
+  transportAnnounceFieldsFromActions,
+  initialAcceptCachedPathResponsePacketState
 } from "../src/transport-announce.js";
 import {
   PACKET_HEADER_1,
@@ -241,6 +245,29 @@ describe("protocol transport announce planning", () => {
   it("accepts cached path-response packets when decode succeeds", () => {
     expect(shouldAcceptCachedPathResponsePacket(true)).toBe(true);
     expect(shouldAcceptCachedPathResponsePacket(false)).toBe(false);
+
+    expect(
+      shouldAcceptCachedPathResponsePacketNow(
+        stepAcceptCachedPathResponsePacketWithActions(
+          initialAcceptCachedPathResponsePacketState(),
+          {
+            kind: "path-response/accept-cached-packet-gate",
+            decodedOk: true
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipAcceptCachedPathResponsePacket(
+        stepAcceptCachedPathResponsePacketWithActions(
+          initialAcceptCachedPathResponsePacketState(),
+          {
+            kind: "path-response/accept-cached-packet-gate",
+            decodedOk: false
+          }
+        ).actions
+      )
+    ).toBe(true);
   });
 
   it("dispatches announce handlers when identity recall succeeds", () => {

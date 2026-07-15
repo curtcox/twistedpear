@@ -33,14 +33,10 @@ import {
   shouldRelayLinkOutbound,
   shouldRelayLinkReceived,
   shouldTransmitLinkRelayNow,
-  canAnswerLocalPathRequest,
   shouldAcceptTransportPacket,
   shouldAnswerPathRequestLocal,
   shouldAnswerPathRequestPath,
-  shouldAnswerPathWithEntry,
   shouldBeginPathDiscoveryNow,
-  shouldClearExpiredDiscoveryPathRequest,
-  shouldAnswerPathRequest,
   shouldDeleteExpiredReverseEntryActions,
   shouldDeferPacketHashActions,
   shouldDispatchTransportAnnounce,
@@ -49,7 +45,6 @@ import {
   shouldDispatchTransportPlainData,
   shouldDispatchTransportProof,
   shouldFulfillDiscoveryPathRequest,
-  shouldFulfillDiscoveryPending,
   shouldIgnoreDiscoveryPathFulfillActions,
   shouldIgnorePathRequestInFlightDiscovery,
   shouldIgnorePathRequestIngress,
@@ -57,22 +52,39 @@ import {
   shouldIgnorePathRequestUnparsed,
   shouldIgnoreTransportIngressDispatch,
   shouldMatchLocalInboundDestinationNow,
+  initialAnswerLocalPathRequestState,
+  initialAnswerPathRequestState,
+  initialAnswerPathWithEntryState,
+  initialClearExpiredDiscoveryPathRequestState,
+  initialFulfillDiscoveryPendingState,
   initialMatchLocalInboundDestinationState,
   initialPacketHashDeferState,
+  initialRememberPathRequestTagState,
+  initialTouchPathEntryState,
   stepPacketHashDeferWithActions,
   shouldRelayReversePacketActions,
   shouldRememberPacketHashAfterRelayActions,
   shouldRememberPacketHashNowActions,
-  shouldRememberPathRequestTag,
+  shouldAnswerLocalPathRequestNow,
+  shouldAnswerPathRequestNow,
+  shouldAnswerPathWithEntryNow,
+  shouldClearExpiredDiscoveryPathRequestNow,
+  shouldFulfillDiscoveryPendingNow,
+  shouldRememberPathRequestTagNow,
+  shouldTouchPathEntryNow,
   shouldMatchRelayReverseOnInterface,
   shouldStartPathRequestDiscovery,
-  shouldTouchPathEntry,
   shouldTransmitReverseRelayNow,
   shouldTreatDiscoveryPathRequestExpired,
   shouldTreatReverseEntryExpired,
   stepAnnounceIngressGatesWithActions,
+  stepAnswerLocalPathRequestWithActions,
+  stepAnswerPathRequestWithActions,
+  stepAnswerPathWithEntryWithActions,
   stepBeginPathDiscoveryWithActions,
+  stepClearExpiredDiscoveryPathRequestWithActions,
   stepDiscoveryPathRequestExpiredWithActions,
+  stepFulfillDiscoveryPendingWithActions,
   stepLinkRelayTargetWithActions,
   stepLookupLinkRelayEntryWithActions,
   stepMatchLocalInboundDestinationWithActions,
@@ -83,8 +95,10 @@ import {
   stepRelayReverseOnInterfaceWithActions,
   stepRelayReversePacketAllowWithActions,
   stepRelayTransportPacketAllowWithActions,
+  stepRememberPathRequestTagWithActions,
   stepReverseEntryExpiredWithActions,
   stepReverseRelayOutcomeWithActions,
+  stepTouchPathEntryWithActions,
   stepTransmitLinkRelayWithActions,
   stepTransmitOnInterfaceWithActions,
   stepTransmitReverseRelayWithActions,
@@ -306,7 +320,13 @@ export class TransportNode extends LeafTransport {
       hasPath: path !== undefined,
       shouldAnswerPath:
         path !== undefined &&
-        shouldAnswerPathRequest(path.nextHop, parsed?.requestorTransportId ?? null),
+        shouldAnswerPathRequestNow(
+          stepAnswerPathRequestWithActions(initialAnswerPathRequestState(), {
+            kind: "path-request/answer-path-gate",
+            nextHop: path.nextHop,
+            requestorTransportId: parsed?.requestorTransportId ?? null
+          }).actions
+        ),
       discoveryPresent: existingDiscovery !== undefined,
       discoveryExpired,
       allowDiscovery: true
@@ -319,12 +339,26 @@ export class TransportNode extends LeafTransport {
       return;
     }
 
-    if (shouldRememberPathRequestTag(tagKey !== null)) {
+    if (
+      shouldRememberPathRequestTagNow(
+        stepRememberPathRequestTagWithActions(initialRememberPathRequestTagState(), {
+          kind: "path-request/remember-tag-gate",
+          tagKeyPresent: tagKey !== null
+        }).actions
+      )
+    ) {
       this.discoveryPrTags.add(tagKey!);
     }
 
     if (shouldAnswerPathRequestLocal(stepped.actions)) {
-      if (!canAnswerLocalPathRequest(localDestination?.answerPathRequest !== undefined)) {
+      if (
+        !shouldAnswerLocalPathRequestNow(
+          stepAnswerLocalPathRequestWithActions(initialAnswerLocalPathRequestState(), {
+            kind: "path-request/answer-local-handler-gate",
+            handlerPresent: localDestination?.answerPathRequest !== undefined
+          }).actions
+        )
+      ) {
         return;
       }
       await localDestination!.answerPathRequest!(iface);
@@ -332,7 +366,14 @@ export class TransportNode extends LeafTransport {
     }
 
     if (shouldAnswerPathRequestPath(stepped.actions)) {
-      if (!shouldAnswerPathWithEntry(path !== undefined)) {
+      if (
+        !shouldAnswerPathWithEntryNow(
+          stepAnswerPathWithEntryWithActions(initialAnswerPathWithEntryState(), {
+            kind: "path-request/answer-path-entry-gate",
+            pathPresent: path !== undefined
+          }).actions
+        )
+      ) {
         return;
       }
       await this.sendPathResponse(path!, iface);
@@ -366,7 +407,17 @@ export class TransportNode extends LeafTransport {
 
     const discoveryKey = destinationKey!;
     const discoveryParsed = parsed!;
-    if (shouldClearExpiredDiscoveryPathRequest(discoveryExpired)) {
+    if (
+      shouldClearExpiredDiscoveryPathRequestNow(
+        stepClearExpiredDiscoveryPathRequestWithActions(
+          initialClearExpiredDiscoveryPathRequestState(),
+          {
+            kind: "path-request/clear-expired-discovery-gate",
+            discoveryExpired
+          }
+        ).actions
+      )
+    ) {
       this.discoveryPathRequests.delete(discoveryKey);
     }
 
@@ -642,10 +693,13 @@ export class TransportNode extends LeafTransport {
 
     this.discoveryPathRequests.delete(destinationKey);
     if (
-      !shouldFulfillDiscoveryPending({
-        fulfillOk: shouldFulfillDiscoveryPathRequest(stepped.actions),
-        pendingPresent: pending !== undefined
-      })
+      !shouldFulfillDiscoveryPendingNow(
+        stepFulfillDiscoveryPendingWithActions(initialFulfillDiscoveryPendingState(), {
+          kind: "path-request/fulfill-pending-gate",
+          fulfillOk: shouldFulfillDiscoveryPathRequest(stepped.actions),
+          pendingPresent: pending !== undefined
+        }).actions
+      )
     ) {
       return;
     }
@@ -676,7 +730,14 @@ export class TransportNode extends LeafTransport {
   private touchPathEntry(destinationHash: Uint8Array): void {
     const key = hashKey(destinationHash);
     const existing = this.pathTable.get(key);
-    if (!shouldTouchPathEntry(existing !== undefined)) {
+    if (
+      !shouldTouchPathEntryNow(
+        stepTouchPathEntryWithActions(initialTouchPathEntryState(), {
+          kind: "path/touch-entry-gate",
+          pathPresent: existing !== undefined
+        }).actions
+      )
+    ) {
       return;
     }
 
