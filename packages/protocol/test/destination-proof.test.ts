@@ -3,9 +3,13 @@ import {
   DestinationProofStrategyCode,
   canEmitDestinationProof,
   initialDestinationProofState,
+  initialEmitDestinationProofState,
   planDestinationProof,
+  shouldEmitDestinationProofNow,
   shouldProveDestination,
-  stepDestinationProofWithActions
+  shouldSkipEmitDestinationProof,
+  stepDestinationProofWithActions,
+  stepEmitDestinationProofWithActions
 } from "../src/destination-proof.js";
 import {
   linkReadyForNewResource,
@@ -19,17 +23,21 @@ import {
   initialDeliverPendingLinkAppResponseState,
   initialIndexOfPendingLinkAppRequestState,
   initialLinkRequestReceiptState,
+  initialPendingLinkRequestRegisterState,
   pendingLinkAppRequestIndexFromActions,
   planUnregisterPendingLinkRequest,
   shouldDeliverPendingLinkAppResponse,
   shouldDeliverPendingLinkAppResponseNow,
   shouldMissPendingLinkAppRequestIndex,
   shouldRegisterPendingLinkRequest,
+  shouldRegisterPendingLinkRequestNow,
   shouldSkipPendingLinkAppResponseDeliver,
+  shouldSkipPendingLinkRequestRegister,
   shouldUsePendingLinkAppRequestIndex,
   stepDeliverPendingLinkAppResponseWithActions,
   stepIndexOfPendingLinkAppRequestWithActions,
-  stepLinkRequestReceipt
+  stepLinkRequestReceipt,
+  stepPendingLinkRequestRegisterWithActions
 } from "../src/link-request-receipt.js";
 
 describe("destination proof planning", () => {
@@ -74,6 +82,20 @@ describe("destination proof planning", () => {
   it("gates destination proof emission on identity presence", () => {
     expect(canEmitDestinationProof(true)).toBe(true);
     expect(canEmitDestinationProof(false)).toBe(false);
+
+    const emit = stepEmitDestinationProofWithActions(initialEmitDestinationProofState(), {
+      kind: "destination/emit-proof-gate",
+      identityPresent: true
+    });
+    expect(shouldEmitDestinationProofNow(emit.actions)).toBe(true);
+    expect(shouldSkipEmitDestinationProof(emit.actions)).toBe(false);
+
+    const skip = stepEmitDestinationProofWithActions(initialEmitDestinationProofState(), {
+      kind: "destination/emit-proof-gate",
+      identityPresent: false
+    });
+    expect(shouldEmitDestinationProofNow(skip.actions)).toBe(false);
+    expect(shouldSkipEmitDestinationProof(skip.actions)).toBe(true);
   });
 });
 
@@ -203,5 +225,25 @@ describe("link request receipt step", () => {
     expect(shouldRegisterPendingLinkRequest(true)).toBe(false);
     expect(planUnregisterPendingLinkRequest(2)).toBe(2);
     expect(planUnregisterPendingLinkRequest(-1)).toBeNull();
+
+    const register = stepPendingLinkRequestRegisterWithActions(
+      initialPendingLinkRequestRegisterState(),
+      {
+        kind: "link/pending-request-register-gate",
+        alreadyPresent: false
+      }
+    );
+    expect(shouldRegisterPendingLinkRequestNow(register.actions)).toBe(true);
+    expect(shouldSkipPendingLinkRequestRegister(register.actions)).toBe(false);
+
+    const skip = stepPendingLinkRequestRegisterWithActions(
+      initialPendingLinkRequestRegisterState(),
+      {
+        kind: "link/pending-request-register-gate",
+        alreadyPresent: true
+      }
+    );
+    expect(shouldRegisterPendingLinkRequestNow(skip.actions)).toBe(false);
+    expect(shouldSkipPendingLinkRequestRegister(skip.actions)).toBe(true);
   });
 });

@@ -55,7 +55,24 @@
 > **`stepEnqueueDecodedPacketWithActions`**: enqueue|skip /
 > **`stepDeliverQueuedPacketWithActions`**: deliver|buffer /
 > **`stepYieldBufferedPacketWithActions`**: yield|skip) are pure protocol
-> leaves; `AbstractPacketInterface` adapts them. **Channel envelope
+> leaves; `AbstractPacketInterface` adapts them. **Destination allow / attach /
+> announce / send / request-link / register / proof-callback / emit** gates (via
+> **`stepAcceptDestinationLinkRequestWithActions`**: allow|deny /
+> **`stepAnnounceDestinationWithActions`**: allow|deny /
+> **`stepDestinationSendWithActions`**: allow|deny /
+> **`stepOperateAttachedDestinationWithActions`**: allow|deny /
+> **`stepAnnounceWithIdentityWithActions`**: allow|deny /
+> **`stepRequestLinkDestinationWithActions`**: allow|deny /
+> **`stepDestinationRequestPathValidWithActions`**: valid|invalid /
+> **`stepDestinationProofCallbackWithActions`**: invoke|skip /
+> **`stepDestinationLinkEstablishedCallbackWithActions`**: invoke|skip /
+> **`stepRegisterDestinationLinkWithActions`**: register|skip /
+> **`stepEmitDestinationProofWithActions`**: emit|skip) are pure protocol
+> leaves; RegisteredDestination / Link / transport adapt them. **Pending
+> link-request register / packet-receipt attach** (via
+> **`stepPendingLinkRequestRegisterWithActions`**: register|skip /
+> **`stepAttachLinkRequestPacketReceiptWithActions`**: attach|skip) are pure
+> protocol leaves; `Link` and `LinkRequestReceipt` adapt them. **Channel envelope
 > framing** and **RX reorder/drain** are also pure protocol leaves. **LXMF outbound
 > send-state** (enqueue → sending → sent/delivered/
 > failed + progress) is a pure protocol leaf; `LXMFRouter` adapts it. **Link proof framing**
@@ -394,7 +411,9 @@
 > **`isLinkClosed`** lives in protocol; `Link.receive` / watchdog early-outs adapt it.
 > **`isChannelOutletTransmitOk`** (via **`stepChannelOutletTransmitWithActions`**:
 > ok|reject) lives in protocol; `Channel.send` outlet-result gate adapts it.
-> **`isValidDestinationRequestPath`** lives in protocol; `registerRequestHandler` adapts it.
+> **`isValidDestinationRequestPath`** (via
+> **`stepDestinationRequestPathValidWithActions`**: valid|invalid) lives in
+> protocol; `registerRequestHandler` adapts it.
 > **`clampStreamDataChunkLength`** (via **`stepClampStreamDataChunkLengthWithActions`**:
 > use-length) lives in protocol; `RawChannelWriter.write` adapts it.
 > **`shouldAppendStreamData`** (via **`stepAppendStreamDataWithActions`**:
@@ -429,9 +448,13 @@
 > yield|skip) lives in protocol; `AsyncPacketQueue` iterator `next` adapts it.
 > **`shouldMarkStreamEof`** (via **`stepStreamEofMarkWithActions`**: mark|skip)
 > lives in protocol; `RawChannelReader` message handler adapts it.
-> **`canAcceptDestinationLinkRequest`** lives in protocol; `RegisteredDestination.handleLinkRequest` adapts it.
-> **`canAnnounceDestination`** lives in protocol; `RegisteredDestination.announce` adapts it.
-> **`canDestinationSend`** lives in protocol; `RegisteredDestination.send` adapts it.
+> **`canAcceptDestinationLinkRequest`** (via
+> **`stepAcceptDestinationLinkRequestWithActions`**: allow|deny) lives in
+> protocol; `RegisteredDestination.handleLinkRequest` adapts it.
+> **`canAnnounceDestination`** (via **`stepAnnounceDestinationWithActions`**:
+> allow|deny) lives in protocol; `RegisteredDestination.announce` adapts it.
+> **`canDestinationSend`** (via **`stepDestinationSendWithActions`**: allow|deny)
+> lives in protocol; `RegisteredDestination.send` adapts it.
 > **`isStreamIdAssigned`** (via **`stepStreamIdAssignedWithActions`**:
 > assigned|unassigned) lives in protocol; `StreamDataMessage.pack` adapts it.
 > **`shouldHandleStreamDataMessage`** (via
@@ -445,7 +468,9 @@
 > `RegisteredDestination.decrypt` adapts it. **`planDestinationEncrypt`** (via
 > **`stepDestinationEncryptWithActions`**: use-plaintext / reject /
 > encrypt-with-identity) lives in protocol; `RegisteredDestination.send` adapts it.
-> **`canRequestLinkDestination`** lives in protocol; `Link.request` adapts it.
+> **`canRequestLinkDestination`** (via
+> **`stepRequestLinkDestinationWithActions`**: allow|deny) lives in protocol;
+> `Link.request` adapts it.
 > **`isValidDestinationIdentityBinding`** lives in protocol; `Destination` construction
 > adapts it. **`Announce.buildPacket`** reuses **`canAnnounceDestination`**.
 > **`planLxMessagePack`** (via **`stepLxMessagePackWithActions`**: proceed /
@@ -588,13 +613,17 @@
 > **`stepLinkUnregisterMembershipWithActions`**: remove-pending / remove-active) live in
 > protocol; transport link register/activate/unregister adapt them.
 > **`shouldRegisterLinkResource`** / **`planLinkResourceConclude`** and
-> **`shouldRegisterPendingLinkRequest`** / **`planUnregisterPendingLinkRequest`**
+> **`shouldRegisterPendingLinkRequest`** (via
+> **`stepPendingLinkRequestRegisterWithActions`**: register|skip) /
+> **`planUnregisterPendingLinkRequest`** (via
+> **`stepPendingLinkRequestUnregisterWithActions`**)
 > live in protocol; `Link` resource and pending-request lists adapt them.
 > **`shouldRegisterTransportMember`** / **`planUnregisterTransportMember`**,
 > **`planUnregisterPacketReceipt`**, **`shouldRegisterPacketReceipt`**,
 > **`shouldRegisterChannelMessageHandler`** / **`planUnregisterChannelMessageHandler`**,
 > **`shouldStopChannelHandlerFanout`**, **`planUnregisterStreamReadyCallback`**,
-> **`shouldRegisterDestinationLink`**, **`planPathEntryLookup`** (via
+> **`shouldRegisterDestinationLink`** (via
+> **`stepRegisterDestinationLinkWithActions`**: register|skip), **`planPathEntryLookup`** (via
 > **`stepPathEntryLookupWithActions`**),
 > **`planPropagationRestore`**, and **`shouldRememberLxmfMessage`** live in protocol;
 > transport lists, receipt create/drop, Channel handlers, stream ready-callbacks,
@@ -613,9 +642,13 @@
 > adapts it.
 > **`canIdentityUsePrivateKey`** / **`canIdentityUsePublicKey`** /
 > **`canLoadIdentityKeyMaterial`** and **`shouldPersistIdentityRatchet`** live in
-> protocol; Identity adapts them. **`canOperateAttachedDestination`** /
-> **`canAnnounceWithIdentity`** / **`shouldInvokeDestinationProofCallback`** and
-> **`canEmitDestinationProof`** live in protocol; RegisteredDestination and transport
+> protocol; Identity adapts them. **`canOperateAttachedDestination`** (via
+> **`stepOperateAttachedDestinationWithActions`**: allow|deny) /
+> **`canAnnounceWithIdentity`** (via **`stepAnnounceWithIdentityWithActions`**:
+> allow|deny) / **`shouldInvokeDestinationProofCallback`** (via
+> **`stepDestinationProofCallbackWithActions`**: invoke|skip) and
+> **`canEmitDestinationProof`** (via **`stepEmitDestinationProofWithActions`**:
+> emit|skip) live in protocol; RegisteredDestination and transport
 > sendProof adapt them. **`canExtractLxmfOpportunisticPayload`** /
 > **`shouldSelectLxmfDeliveryParameters`** / **`planLxmfPropagationSyncPrep`** (via
 > **`stepLxmfPropagationSyncPrepWithActions`**: proceed / reject-missing-node /
@@ -625,12 +658,14 @@
 > **`shouldAdvertiseResource`**, **`canUpdateLinkKeepalive`** /
 > **`shouldCreateLinkChannel`** / **`planLinkTokenAccess`** (via
 > **`stepLinkTokenAccessWithActions`**: reject-no-key / create / reuse) live in
-> protocol; Resource and Link adapt them. **`shouldInvokeDestinationLinkEstablishedCallback`**,
+> protocol; Resource and Link adapt them. **`shouldInvokeDestinationLinkEstablishedCallback`**
+> (via **`stepDestinationLinkEstablishedCallbackWithActions`**: invoke|skip),
 > **`canArmChannelPacketReceipt`**, **`planPacketReceiptCallback`**,
 > **`canDispatchAnnounceHandlers`**, **`shouldAttemptIdentityRatchetDecrypt`**,
 > **`shouldRegisterStreamReadyCallback`** (via
 > **`stepStreamReadyCallbackRegisterWithActions`**: register|skip),
-> **`shouldAttachLinkRequestPacketReceipt`**, **`shouldAwaitLxmfDeliveryReceipt`** /
+> **`shouldAttachLinkRequestPacketReceipt`** (via
+> **`stepAttachLinkRequestPacketReceiptWithActions`**: attach|skip), **`shouldAwaitLxmfDeliveryReceipt`** /
 > **`shouldInvokeLxmfDeliveryCallback`**, and extended **`planLxmfPropagatedSend`**
 > (`missing-node`, via **`stepLxmfPropagatedSendWithActions`**) live in protocol; destination, Channel, PacketReceipt, transport
 > announce, Identity, Buffer, LinkRequestReceipt, and LXMF router adapt them. Link
@@ -908,6 +943,29 @@
 > `shouldAcceptAnnouncePayload` / `shouldAcceptParsedAnnounce` /
 > `shouldAcceptIdentityCiphertextFrame` /
 > `shouldAcceptIdentityDecryptPlaintext` reads beside the step).
+> **`stepAcceptDestinationLinkRequestWithActions`** /
+> **`stepAnnounceDestinationWithActions`** /
+> **`stepDestinationSendWithActions`** /
+> **`stepOperateAttachedDestinationWithActions`** /
+> **`stepAnnounceWithIdentityWithActions`** /
+> **`stepRequestLinkDestinationWithActions`** emit `allow`|`deny`;
+> **`stepDestinationRequestPathValidWithActions`** emits `valid`|`invalid`;
+> **`stepDestinationProofCallbackWithActions`** /
+> **`stepDestinationLinkEstablishedCallbackWithActions`** emit `invoke`|`skip`;
+> **`stepRegisterDestinationLinkWithActions`** emits `register`|`skip`;
+> **`stepEmitDestinationProofWithActions`** emits `emit`|`skip`;
+> **`stepPendingLinkRequestRegisterWithActions`** emits `register`|`skip`;
+> **`stepAttachLinkRequestPacketReceiptWithActions`** emits `attach`|`skip`;
+> RegisteredDestination / Link / LinkRequestReceipt / transport sendProof
+> apply only from those actions (no ad-hoc `canAcceptDestinationLinkRequest` /
+> `canAnnounceDestination` / `canDestinationSend` /
+> `canOperateAttachedDestination` / `canAnnounceWithIdentity` /
+> `canRequestLinkDestination` / `isValidDestinationRequestPath` /
+> `shouldInvokeDestinationProofCallback` /
+> `shouldInvokeDestinationLinkEstablishedCallback` /
+> `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
+> `shouldRegisterPendingLinkRequest` /
+> `shouldAttachLinkRequestPacketReceipt` reads beside the step).
 > **`stepPropagationRestoreWithActions`** emits `reject-too-large` / `duplicate` /
 > `reject-hash` / `accept`; `PropagationServer` restore applies catalog insert only
 > from those actions (no ad-hoc `planPropagationRestore` / `plan === "accept"`
@@ -991,6 +1049,13 @@
 > deliver-pending-link-app-response / accept-announce-payload /
 > accept-parsed-announce / accept-identity-ciphertext-frame /
 > accept-identity-decrypt-plaintext /
+> accept-destination-link-request / announce-destination /
+> destination-send / operate-attached-destination /
+> announce-with-identity / request-link-destination /
+> destination-request-path-valid / destination-proof-callback /
+> destination-link-established-callback / register-destination-link /
+> emit-destination-proof / pending-link-request-register /
+> attach-link-request-packet-receipt /
 > destination-identity-hash / channel-tx-envelope-op /
 > destination-proof / packet-filter / packet-receipt-callback /
 > channel-tx-receipt-timeout-refresh / channel-message-handler-unregister /
@@ -1015,6 +1080,13 @@
 > deliver-pending-link-app-response / accept-announce-payload /
 > accept-parsed-announce / accept-identity-ciphertext-frame /
 > accept-identity-decrypt-plaintext /
+> accept-destination-link-request / announce-destination /
+> destination-send / operate-attached-destination /
+> announce-with-identity / request-link-destination /
+> destination-request-path-valid / destination-proof-callback /
+> destination-link-established-callback / register-destination-link /
+> emit-destination-proof / pending-link-request-register /
+> attach-link-request-packet-receipt /
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
@@ -1260,6 +1332,29 @@
 > `shouldAcceptAnnouncePayload` / `shouldAcceptParsedAnnounce` /
 > `shouldAcceptIdentityCiphertextFrame` /
 > `shouldAcceptIdentityDecryptPlaintext` reads beside the step).
+> **`stepAcceptDestinationLinkRequestWithActions`** /
+> **`stepAnnounceDestinationWithActions`** /
+> **`stepDestinationSendWithActions`** /
+> **`stepOperateAttachedDestinationWithActions`** /
+> **`stepAnnounceWithIdentityWithActions`** /
+> **`stepRequestLinkDestinationWithActions`** emit `allow`|`deny`;
+> **`stepDestinationRequestPathValidWithActions`** emits `valid`|`invalid`;
+> **`stepDestinationProofCallbackWithActions`** /
+> **`stepDestinationLinkEstablishedCallbackWithActions`** emit `invoke`|`skip`;
+> **`stepRegisterDestinationLinkWithActions`** emits `register`|`skip`;
+> **`stepEmitDestinationProofWithActions`** emits `emit`|`skip`;
+> **`stepPendingLinkRequestRegisterWithActions`** emits `register`|`skip`;
+> **`stepAttachLinkRequestPacketReceiptWithActions`** emits `attach`|`skip`;
+> RegisteredDestination / Link / LinkRequestReceipt / transport sendProof
+> apply only from those actions (no ad-hoc `canAcceptDestinationLinkRequest` /
+> `canAnnounceDestination` / `canDestinationSend` /
+> `canOperateAttachedDestination` / `canAnnounceWithIdentity` /
+> `canRequestLinkDestination` / `isValidDestinationRequestPath` /
+> `shouldInvokeDestinationProofCallback` /
+> `shouldInvokeDestinationLinkEstablishedCallback` /
+> `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
+> `shouldRegisterPendingLinkRequest` /
+> `shouldAttachLinkRequestPacketReceipt` reads beside the step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT measure / merge apply only from those
 > actions (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the
@@ -1298,6 +1393,14 @@
 > `shouldDeliverPendingLinkAppResponse` / `shouldAcceptAnnouncePayload` /
 > `shouldAcceptParsedAnnounce` / `shouldAcceptIdentityCiphertextFrame` /
 > `shouldAcceptIdentityDecryptPlaintext` /
+> `canAcceptDestinationLinkRequest` / `canAnnounceDestination` /
+> `canDestinationSend` / `canOperateAttachedDestination` /
+> `canAnnounceWithIdentity` / `canRequestLinkDestination` /
+> `isValidDestinationRequestPath` / `shouldInvokeDestinationProofCallback` /
+> `shouldInvokeDestinationLinkEstablishedCallback` /
+> `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
+> `shouldRegisterPendingLinkRequest` /
+> `shouldAttachLinkRequestPacketReceipt` /
 > `computeLinkRttSeconds` / `mergeLinkRtt` /
 > `computePathExpiry` / `shouldDeferPacketHash` /
 > `planResourceAdvertisementRoleFlags` /
@@ -1569,6 +1672,29 @@
 > `shouldAcceptAnnouncePayload` / `shouldAcceptParsedAnnounce` /
 > `shouldAcceptIdentityCiphertextFrame` /
 > `shouldAcceptIdentityDecryptPlaintext` reads beside the step).
+> **`stepAcceptDestinationLinkRequestWithActions`** /
+> **`stepAnnounceDestinationWithActions`** /
+> **`stepDestinationSendWithActions`** /
+> **`stepOperateAttachedDestinationWithActions`** /
+> **`stepAnnounceWithIdentityWithActions`** /
+> **`stepRequestLinkDestinationWithActions`** emit `allow`|`deny`;
+> **`stepDestinationRequestPathValidWithActions`** emits `valid`|`invalid`;
+> **`stepDestinationProofCallbackWithActions`** /
+> **`stepDestinationLinkEstablishedCallbackWithActions`** emit `invoke`|`skip`;
+> **`stepRegisterDestinationLinkWithActions`** emits `register`|`skip`;
+> **`stepEmitDestinationProofWithActions`** emits `emit`|`skip`;
+> **`stepPendingLinkRequestRegisterWithActions`** emits `register`|`skip`;
+> **`stepAttachLinkRequestPacketReceiptWithActions`** emits `attach`|`skip`;
+> RegisteredDestination / Link / LinkRequestReceipt / transport sendProof
+> apply only from those actions (no ad-hoc `canAcceptDestinationLinkRequest` /
+> `canAnnounceDestination` / `canDestinationSend` /
+> `canOperateAttachedDestination` / `canAnnounceWithIdentity` /
+> `canRequestLinkDestination` / `isValidDestinationRequestPath` /
+> `shouldInvokeDestinationProofCallback` /
+> `shouldInvokeDestinationLinkEstablishedCallback` /
+> `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
+> `shouldRegisterPendingLinkRequest` /
+> `shouldAttachLinkRequestPacketReceipt` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

@@ -25,25 +25,43 @@ import {
 } from "./transport/node.js";
 import {
   DestinationAllowPolicyCode,
-  canAcceptDestinationLinkRequest,
-  canAnnounceDestination,
-  canAnnounceWithIdentity,
-  canDestinationSend,
-  canOperateAttachedDestination,
+  initialAcceptDestinationLinkRequestState,
+  initialAnnounceDestinationState,
+  initialAnnounceWithIdentityState,
   initialDestinationDecryptState,
   initialDestinationEncryptState,
-  isValidDestinationRequestPath,
+  initialDestinationLinkEstablishedCallbackState,
+  initialDestinationProofCallbackState,
+  initialDestinationRequestPathValidState,
+  initialDestinationSendState,
+  initialOperateAttachedDestinationState,
+  initialRegisterDestinationLinkState,
+  shouldAcceptDestinationRequestPath,
+  shouldAllowAnnounceWithIdentity,
+  shouldAllowDestinationAnnounce,
+  shouldAllowDestinationLinkRequest,
+  shouldAllowDestinationSend,
+  shouldAllowOperateAttachedDestination,
   shouldDecryptDestinationWithIdentity,
   shouldEncryptDestinationWithIdentity,
-  shouldInvokeDestinationLinkEstablishedCallback,
-  shouldInvokeDestinationProofCallback,
-  shouldRegisterDestinationLink,
+  shouldInvokeDestinationLinkEstablishedCallbackNow,
+  shouldInvokeDestinationProofCallbackNow,
+  shouldRegisterDestinationLinkNow,
   shouldRejectDestinationDecrypt,
   shouldRejectDestinationEncrypt,
   shouldReturnDestinationDecryptCiphertext,
   shouldUseDestinationEncryptPlaintext,
+  stepAcceptDestinationLinkRequestWithActions,
+  stepAnnounceDestinationWithActions,
+  stepAnnounceWithIdentityWithActions,
   stepDestinationDecryptWithActions,
   stepDestinationEncryptWithActions,
+  stepDestinationLinkEstablishedCallbackWithActions,
+  stepDestinationProofCallbackWithActions,
+  stepDestinationRequestPathValidWithActions,
+  stepDestinationSendWithActions,
+  stepOperateAttachedDestinationWithActions,
+  stepRegisterDestinationLinkWithActions,
   stepUtf8EncodeWithActions,
   initialUtf8EncodeState,
   shouldUseUtf8Encode,
@@ -126,7 +144,14 @@ export class RegisteredDestination extends Destination {
     allow: DestinationAllowPolicyValue = DestinationAllowPolicy.ALLOW_NONE,
     allowedList: ReadonlyArray<Uint8Array> = []
   ): void {
-    if (!isValidDestinationRequestPath(path)) {
+    const pathGate = stepDestinationRequestPathValidWithActions(
+      initialDestinationRequestPathValidState(),
+      {
+        kind: "destination/request-path-valid-gate",
+        path
+      }
+    );
+    if (!shouldAcceptDestinationRequestPath(pathGate.actions)) {
       throw new Error("Invalid path specified");
     }
 
@@ -153,7 +178,14 @@ export class RegisteredDestination extends Destination {
     callbacks?: LinkCallbacks,
     options?: { readonly entropy?: Uint8Array }
   ): Link {
-    if (!canOperateAttachedDestination(this.transport !== null)) {
+    const attached = stepOperateAttachedDestinationWithActions(
+      initialOperateAttachedDestinationState(),
+      {
+        kind: "destination/operate-attached-gate",
+        transportPresent: this.transport !== null
+      }
+    );
+    if (!shouldAllowOperateAttachedDestination(attached.actions)) {
       throw new Error("Destination is not attached to a Reticulum instance");
     }
 
@@ -166,24 +198,41 @@ export class RegisteredDestination extends Destination {
   }
 
   handleLinkRequest(packet: Packet, iface: PacketInterface): void {
-    if (
-      !canAcceptDestinationLinkRequest({
+    const accept = stepAcceptDestinationLinkRequestWithActions(
+      initialAcceptDestinationLinkRequestState(),
+      {
+        kind: "destination/accept-link-request-gate",
         acceptLinkRequests: this.acceptLinkRequests,
         directionIn: this.direction === DestinationDirection.IN
-      })
-    ) {
+      }
+    );
+    if (!shouldAllowDestinationLinkRequest(accept.actions)) {
       return;
     }
 
     const link = Link.validateRequest(this, this.transport!, packet, iface);
-    if (!shouldRegisterDestinationLink(link !== null)) {
+    const register = stepRegisterDestinationLinkWithActions(
+      initialRegisterDestinationLinkState(),
+      {
+        kind: "destination/register-link-gate",
+        validatedLinkPresent: link !== null
+      }
+    );
+    if (!shouldRegisterDestinationLinkNow(register.actions)) {
       return;
     }
     if (link === null) {
       return;
     }
 
-    if (shouldInvokeDestinationLinkEstablishedCallback(this.linkEstablishedCallback !== null)) {
+    const established = stepDestinationLinkEstablishedCallbackWithActions(
+      initialDestinationLinkEstablishedCallbackState(),
+      {
+        kind: "destination/link-established-callback-gate",
+        callbackPresent: this.linkEstablishedCallback !== null
+      }
+    );
+    if (shouldInvokeDestinationLinkEstablishedCallbackNow(established.actions)) {
       const callback = this.linkEstablishedCallback!;
       const existing = link.callbacks.linkEstablished;
       link.callbacks.linkEstablished = (establishedLink) => {
@@ -200,7 +249,14 @@ export class RegisteredDestination extends Destination {
   }
 
   shouldProve(packet: Packet): boolean {
-    if (!shouldInvokeDestinationProofCallback(this.proofRequestedCallback !== null)) {
+    const proofCallback = stepDestinationProofCallbackWithActions(
+      initialDestinationProofCallbackState(),
+      {
+        kind: "destination/proof-callback-gate",
+        callbackPresent: this.proofRequestedCallback !== null
+      }
+    );
+    if (!shouldInvokeDestinationProofCallbackNow(proofCallback.actions)) {
       return false;
     }
 
@@ -237,20 +293,31 @@ export class RegisteredDestination extends Destination {
       randomHash?: Uint8Array;
     } = {}
   ): Promise<void> {
-    if (!canOperateAttachedDestination(this.transport !== null)) {
+    const attached = stepOperateAttachedDestinationWithActions(
+      initialOperateAttachedDestinationState(),
+      {
+        kind: "destination/operate-attached-gate",
+        transportPresent: this.transport !== null
+      }
+    );
+    if (!shouldAllowOperateAttachedDestination(attached.actions)) {
       throw new Error("Destination is not attached to a Reticulum instance");
     }
 
-    if (
-      !canAnnounceDestination({
-        typeSingle: this.type === DestinationType.SINGLE,
-        directionIn: this.direction === DestinationDirection.IN
-      })
-    ) {
+    const announce = stepAnnounceDestinationWithActions(initialAnnounceDestinationState(), {
+      kind: "destination/announce-gate",
+      typeSingle: this.type === DestinationType.SINGLE,
+      directionIn: this.direction === DestinationDirection.IN
+    });
+    if (!shouldAllowDestinationAnnounce(announce.actions)) {
       throw new Error("Only IN SINGLE destinations can be announced");
     }
 
-    if (!canAnnounceWithIdentity(this.identity !== null)) {
+    const withIdentity = stepAnnounceWithIdentityWithActions(initialAnnounceWithIdentityState(), {
+      kind: "destination/announce-with-identity-gate",
+      identityPresent: this.identity !== null
+    });
+    if (!shouldAllowAnnounceWithIdentity(withIdentity.actions)) {
       throw new Error("Announce destination must hold an identity");
     }
 
@@ -273,11 +340,22 @@ export class RegisteredDestination extends Destination {
     data: Uint8Array,
     options: { createReceipt?: boolean; attachedInterface?: PacketInterface | null } = {}
   ): Promise<PacketReceipt | null> {
-    if (!canOperateAttachedDestination(this.transport !== null)) {
+    const attached = stepOperateAttachedDestinationWithActions(
+      initialOperateAttachedDestinationState(),
+      {
+        kind: "destination/operate-attached-gate",
+        transportPresent: this.transport !== null
+      }
+    );
+    if (!shouldAllowOperateAttachedDestination(attached.actions)) {
       throw new Error("Destination is not attached to a Reticulum instance");
     }
 
-    if (!canDestinationSend(this.direction === DestinationDirection.OUT)) {
+    const send = stepDestinationSendWithActions(initialDestinationSendState(), {
+      kind: "destination/send-gate",
+      directionOut: this.direction === DestinationDirection.OUT
+    });
+    if (!shouldAllowDestinationSend(send.actions)) {
       throw new Error("Only OUT destinations can send packets");
     }
 

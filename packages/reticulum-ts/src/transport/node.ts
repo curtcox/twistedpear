@@ -11,10 +11,11 @@ import {
   stepPathResponseGraceWithActions,
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
   appendPathRandomBlobFieldsFromActions,
-  canEmitDestinationProof,
   isPathEntryExpired,
   aspectFilterFromActions,
+  initialEmitDestinationProofState,
   initialParseAspectFilterState,
+  shouldEmitDestinationProofNow,
   shouldRejectParseAspectFilter,
   shouldUseAppendPathRandomBlob,
   shouldUseParseAspectFilter,
@@ -126,6 +127,7 @@ import {
   shouldEmitPathRequest,
   isLocalPathRequestPacket,
   stepDestinationProofWithActions,
+  stepEmitDestinationProofWithActions,
   stepAcceptParsedAnnounceWithActions,
   stepIndexOfMatchingLinkIdWithActions,
   stepLinkActivateMembershipWithActions,
@@ -960,7 +962,11 @@ export class LeafTransport {
   }
 
   protected async sendProof(destination: LocalDestination, packet: Packet, iface: PacketInterface): Promise<void> {
-    if (!canEmitDestinationProof(destination.identity !== null)) {
+    const emit = stepEmitDestinationProofWithActions(initialEmitDestinationProofState(), {
+      kind: "destination/emit-proof-gate",
+      identityPresent: destination.identity !== null
+    });
+    if (!shouldEmitDestinationProofNow(emit.actions)) {
       return;
     }
 

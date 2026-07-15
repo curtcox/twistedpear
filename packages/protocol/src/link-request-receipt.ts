@@ -234,9 +234,131 @@ export function shouldRegisterPendingLinkRequest(alreadyPresent: boolean): boole
   return !alreadyPresent;
 }
 
+/**
+ * Pending link-request register gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldRegisterPendingLinkRequest` reads beside the step).
+ */
+export type PendingLinkRequestRegisterState = Record<string, never>;
+
+export type PendingLinkRequestRegisterEvent =
+  | Event
+  | {
+      readonly kind: "link/pending-request-register-gate";
+      readonly alreadyPresent: boolean;
+    };
+
+export type PendingLinkRequestRegisterAction =
+  | { readonly kind: "register" }
+  | { readonly kind: "skip" };
+
+export interface PendingLinkRequestRegisterStepResult {
+  readonly state: PendingLinkRequestRegisterState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PendingLinkRequestRegisterAction[];
+}
+
+export function initialPendingLinkRequestRegisterState(): PendingLinkRequestRegisterState {
+  return {};
+}
+
+export function stepPendingLinkRequestRegisterWithActions(
+  state: PendingLinkRequestRegisterState,
+  event: PendingLinkRequestRegisterEvent
+): PendingLinkRequestRegisterStepResult {
+  if (event.kind === "link/pending-request-register-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRegisterPendingLinkRequest(event.alreadyPresent)
+            ? "register"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRegisterPendingLinkRequestNow(
+  actions: ReadonlyArray<PendingLinkRequestRegisterAction>
+): boolean {
+  return actions.some((action) => action.kind === "register");
+}
+
+export function shouldSkipPendingLinkRequestRegister(
+  actions: ReadonlyArray<PendingLinkRequestRegisterAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether construction should attach an outbound packet receipt to the request receipt. */
 export function shouldAttachLinkRequestPacketReceipt(packetReceiptPresent: boolean): boolean {
   return packetReceiptPresent;
+}
+
+/**
+ * Link-request packet-receipt attach gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldAttachLinkRequestPacketReceipt` reads beside the step).
+ */
+export type AttachLinkRequestPacketReceiptState = Record<string, never>;
+
+export type AttachLinkRequestPacketReceiptEvent =
+  | Event
+  | {
+      readonly kind: "link/attach-request-packet-receipt-gate";
+      readonly packetReceiptPresent: boolean;
+    };
+
+export type AttachLinkRequestPacketReceiptAction =
+  | { readonly kind: "attach" }
+  | { readonly kind: "skip" };
+
+export interface AttachLinkRequestPacketReceiptStepResult {
+  readonly state: AttachLinkRequestPacketReceiptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AttachLinkRequestPacketReceiptAction[];
+}
+
+export function initialAttachLinkRequestPacketReceiptState(): AttachLinkRequestPacketReceiptState {
+  return {};
+}
+
+export function stepAttachLinkRequestPacketReceiptWithActions(
+  state: AttachLinkRequestPacketReceiptState,
+  event: AttachLinkRequestPacketReceiptEvent
+): AttachLinkRequestPacketReceiptStepResult {
+  if (event.kind === "link/attach-request-packet-receipt-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAttachLinkRequestPacketReceipt(event.packetReceiptPresent)
+            ? "attach"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAttachLinkRequestPacketReceiptNow(
+  actions: ReadonlyArray<AttachLinkRequestPacketReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "attach");
+}
+
+export function shouldSkipLinkRequestPacketReceiptAttach(
+  actions: ReadonlyArray<AttachLinkRequestPacketReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**

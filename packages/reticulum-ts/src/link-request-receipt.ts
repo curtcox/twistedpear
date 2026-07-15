@@ -3,9 +3,11 @@ import { equalBytes } from "./crypto/bytes.js";
 import type { NowSeconds, PacketReceipt } from "./packet-receipt.js";
 import {
   LinkRequestReceiptStatus,
+  initialAttachLinkRequestPacketReceiptState,
   initialLinkRequestReceiptState,
-  shouldAttachLinkRequestPacketReceipt,
+  shouldAttachLinkRequestPacketReceiptNow,
   shouldInvokeLinkRequestReceiptAction,
+  stepAttachLinkRequestPacketReceiptWithActions,
   stepLinkRequestReceipt,
   type LinkRequestReceiptState,
   type LinkRequestReceiptStatusValue
@@ -89,7 +91,14 @@ export class LinkRequestReceipt {
     this.sentAt = options.now();
     this.startedAt = this.sentAt;
 
-    if (shouldAttachLinkRequestPacketReceipt(this.packetReceipt !== null)) {
+    const attach = stepAttachLinkRequestPacketReceiptWithActions(
+      initialAttachLinkRequestPacketReceiptState(),
+      {
+        kind: "link/attach-request-packet-receipt-gate",
+        packetReceiptPresent: this.packetReceipt !== null
+      }
+    );
+    if (shouldAttachLinkRequestPacketReceiptNow(attach.actions)) {
       this.attachPacketReceipt(this.packetReceipt!);
     }
 

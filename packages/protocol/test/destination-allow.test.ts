@@ -7,34 +7,81 @@ import {
   canDestinationSend,
   canOperateAttachedDestination,
   canRequestLinkDestination,
+  initialAcceptDestinationLinkRequestState,
+  initialAnnounceDestinationState,
+  initialAnnounceWithIdentityState,
   initialDestinationConstructionState,
   initialDestinationDecryptState,
   initialDestinationEncryptState,
+  initialDestinationLinkEstablishedCallbackState,
+  initialDestinationProofCallbackState,
+  initialDestinationRequestPathValidState,
+  initialDestinationSendState,
+  initialOperateAttachedDestinationState,
+  initialRegisterDestinationLinkState,
+  initialRequestLinkDestinationState,
   isValidDestinationIdentityBinding,
   isValidDestinationRequestPath,
   planDestinationConstruction,
   planDestinationDecrypt,
   planDestinationEncrypt,
   planDestinationRequestAllow,
+  shouldAcceptDestinationRequestPath,
+  shouldAllowAnnounceWithIdentity,
+  shouldAllowDestinationAnnounce,
+  shouldAllowDestinationLinkRequest,
+  shouldAllowDestinationSend,
+  shouldAllowOperateAttachedDestination,
+  shouldAllowRequestLinkDestination,
   shouldDecryptDestinationWithIdentity,
+  shouldDenyAnnounceWithIdentity,
+  shouldDenyDestinationAnnounce,
+  shouldDenyDestinationLinkRequest,
+  shouldDenyDestinationSend,
+  shouldDenyOperateAttachedDestination,
+  shouldDenyRequestLinkDestination,
   shouldEncryptDestinationWithIdentity,
   shouldInvokeDestinationLinkEstablishedCallback,
+  shouldInvokeDestinationLinkEstablishedCallbackNow,
   shouldInvokeDestinationProofCallback,
+  shouldInvokeDestinationProofCallbackNow,
   shouldProceedDestinationConstruction,
   shouldRegisterDestinationLink,
+  shouldRegisterDestinationLinkNow,
   shouldRejectDestinationConstructionBadDirection,
   shouldRejectDestinationConstructionBadIdentityBinding,
   shouldRejectDestinationConstructionBadType,
   shouldRejectDestinationDecrypt,
   shouldRejectDestinationEncrypt,
+  shouldRejectDestinationRequestPath,
   shouldReturnDestinationDecryptCiphertext,
+  shouldSkipDestinationLinkEstablishedCallback,
+  shouldSkipDestinationLinkRegister,
+  shouldSkipDestinationProofCallback,
   shouldUseDestinationEncryptPlaintext,
+  stepAcceptDestinationLinkRequestWithActions,
+  stepAnnounceDestinationWithActions,
+  stepAnnounceWithIdentityWithActions,
   stepDestinationConstructionWithActions,
   stepDestinationDecryptWithActions,
-  stepDestinationEncryptWithActions
+  stepDestinationEncryptWithActions,
+  stepDestinationLinkEstablishedCallbackWithActions,
+  stepDestinationProofCallbackWithActions,
+  stepDestinationRequestPathValidWithActions,
+  stepDestinationSendWithActions,
+  stepOperateAttachedDestinationWithActions,
+  stepRegisterDestinationLinkWithActions,
+  stepRequestLinkDestinationWithActions
 } from "../src/destination-allow.js";
 import { DestinationDirectionCode, DestinationTypeCode } from "../src/packet-header.js";
-import { LinkRequestReceiptStatus, shouldAttachLinkRequestPacketReceipt } from "../src/link-request-receipt.js";
+import {
+  LinkRequestReceiptStatus,
+  initialAttachLinkRequestPacketReceiptState,
+  shouldAttachLinkRequestPacketReceipt,
+  shouldAttachLinkRequestPacketReceiptNow,
+  shouldSkipLinkRequestPacketReceiptAttach,
+  stepAttachLinkRequestPacketReceiptWithActions
+} from "../src/link-request-receipt.js";
 
 describe("destination allow policy", () => {
   it("allows ALL and LIST matches", () => {
@@ -72,6 +119,26 @@ describe("destination allow policy", () => {
   it("rejects empty request-handler paths", () => {
     expect(isValidDestinationRequestPath("")).toBe(false);
     expect(isValidDestinationRequestPath("/echo")).toBe(true);
+
+    const valid = stepDestinationRequestPathValidWithActions(
+      initialDestinationRequestPathValidState(),
+      {
+        kind: "destination/request-path-valid-gate",
+        path: "/echo"
+      }
+    );
+    expect(shouldAcceptDestinationRequestPath(valid.actions)).toBe(true);
+    expect(shouldRejectDestinationRequestPath(valid.actions)).toBe(false);
+
+    const invalid = stepDestinationRequestPathValidWithActions(
+      initialDestinationRequestPathValidState(),
+      {
+        kind: "destination/request-path-valid-gate",
+        path: ""
+      }
+    );
+    expect(shouldAcceptDestinationRequestPath(invalid.actions)).toBe(false);
+    expect(shouldRejectDestinationRequestPath(invalid.actions)).toBe(true);
   });
 
   it("accepts inbound link requests only when enabled and IN", () => {
@@ -84,12 +151,50 @@ describe("destination allow policy", () => {
     expect(
       canAcceptDestinationLinkRequest({ acceptLinkRequests: true, directionIn: false })
     ).toBe(false);
+
+    const allow = stepAcceptDestinationLinkRequestWithActions(
+      initialAcceptDestinationLinkRequestState(),
+      {
+        kind: "destination/accept-link-request-gate",
+        acceptLinkRequests: true,
+        directionIn: true
+      }
+    );
+    expect(shouldAllowDestinationLinkRequest(allow.actions)).toBe(true);
+    expect(shouldDenyDestinationLinkRequest(allow.actions)).toBe(false);
+
+    const deny = stepAcceptDestinationLinkRequestWithActions(
+      initialAcceptDestinationLinkRequestState(),
+      {
+        kind: "destination/accept-link-request-gate",
+        acceptLinkRequests: false,
+        directionIn: true
+      }
+    );
+    expect(shouldAllowDestinationLinkRequest(deny.actions)).toBe(false);
+    expect(shouldDenyDestinationLinkRequest(deny.actions)).toBe(true);
   });
 
   it("allows announces only for IN SINGLE destinations", () => {
     expect(canAnnounceDestination({ typeSingle: true, directionIn: true })).toBe(true);
     expect(canAnnounceDestination({ typeSingle: false, directionIn: true })).toBe(false);
     expect(canAnnounceDestination({ typeSingle: true, directionIn: false })).toBe(false);
+
+    const allow = stepAnnounceDestinationWithActions(initialAnnounceDestinationState(), {
+      kind: "destination/announce-gate",
+      typeSingle: true,
+      directionIn: true
+    });
+    expect(shouldAllowDestinationAnnounce(allow.actions)).toBe(true);
+    expect(shouldDenyDestinationAnnounce(allow.actions)).toBe(false);
+
+    const deny = stepAnnounceDestinationWithActions(initialAnnounceDestinationState(), {
+      kind: "destination/announce-gate",
+      typeSingle: false,
+      directionIn: true
+    });
+    expect(shouldAllowDestinationAnnounce(deny.actions)).toBe(false);
+    expect(shouldDenyDestinationAnnounce(deny.actions)).toBe(true);
   });
 
   it("gates attached ops, announce identity, and proof/link-established callbacks", () => {
@@ -101,17 +206,128 @@ describe("destination allow policy", () => {
     expect(shouldInvokeDestinationProofCallback(false)).toBe(false);
     expect(shouldInvokeDestinationLinkEstablishedCallback(true)).toBe(true);
     expect(shouldInvokeDestinationLinkEstablishedCallback(false)).toBe(false);
+
+    const attached = stepOperateAttachedDestinationWithActions(
+      initialOperateAttachedDestinationState(),
+      {
+        kind: "destination/operate-attached-gate",
+        transportPresent: true
+      }
+    );
+    expect(shouldAllowOperateAttachedDestination(attached.actions)).toBe(true);
+    expect(shouldDenyOperateAttachedDestination(attached.actions)).toBe(false);
+
+    const detached = stepOperateAttachedDestinationWithActions(
+      initialOperateAttachedDestinationState(),
+      {
+        kind: "destination/operate-attached-gate",
+        transportPresent: false
+      }
+    );
+    expect(shouldAllowOperateAttachedDestination(detached.actions)).toBe(false);
+    expect(shouldDenyOperateAttachedDestination(detached.actions)).toBe(true);
+
+    const withIdentity = stepAnnounceWithIdentityWithActions(initialAnnounceWithIdentityState(), {
+      kind: "destination/announce-with-identity-gate",
+      identityPresent: true
+    });
+    expect(shouldAllowAnnounceWithIdentity(withIdentity.actions)).toBe(true);
+    expect(shouldDenyAnnounceWithIdentity(withIdentity.actions)).toBe(false);
+
+    const withoutIdentity = stepAnnounceWithIdentityWithActions(
+      initialAnnounceWithIdentityState(),
+      {
+        kind: "destination/announce-with-identity-gate",
+        identityPresent: false
+      }
+    );
+    expect(shouldAllowAnnounceWithIdentity(withoutIdentity.actions)).toBe(false);
+    expect(shouldDenyAnnounceWithIdentity(withoutIdentity.actions)).toBe(true);
+
+    const proofInvoke = stepDestinationProofCallbackWithActions(
+      initialDestinationProofCallbackState(),
+      {
+        kind: "destination/proof-callback-gate",
+        callbackPresent: true
+      }
+    );
+    expect(shouldInvokeDestinationProofCallbackNow(proofInvoke.actions)).toBe(true);
+    expect(shouldSkipDestinationProofCallback(proofInvoke.actions)).toBe(false);
+
+    const proofSkip = stepDestinationProofCallbackWithActions(
+      initialDestinationProofCallbackState(),
+      {
+        kind: "destination/proof-callback-gate",
+        callbackPresent: false
+      }
+    );
+    expect(shouldInvokeDestinationProofCallbackNow(proofSkip.actions)).toBe(false);
+    expect(shouldSkipDestinationProofCallback(proofSkip.actions)).toBe(true);
+
+    const establishedInvoke = stepDestinationLinkEstablishedCallbackWithActions(
+      initialDestinationLinkEstablishedCallbackState(),
+      {
+        kind: "destination/link-established-callback-gate",
+        callbackPresent: true
+      }
+    );
+    expect(shouldInvokeDestinationLinkEstablishedCallbackNow(establishedInvoke.actions)).toBe(
+      true
+    );
+    expect(shouldSkipDestinationLinkEstablishedCallback(establishedInvoke.actions)).toBe(false);
+
+    const establishedSkip = stepDestinationLinkEstablishedCallbackWithActions(
+      initialDestinationLinkEstablishedCallbackState(),
+      {
+        kind: "destination/link-established-callback-gate",
+        callbackPresent: false
+      }
+    );
+    expect(shouldInvokeDestinationLinkEstablishedCallbackNow(establishedSkip.actions)).toBe(
+      false
+    );
+    expect(shouldSkipDestinationLinkEstablishedCallback(establishedSkip.actions)).toBe(true);
   });
 
   it("allows sends only for OUT destinations", () => {
     expect(canDestinationSend(true)).toBe(true);
     expect(canDestinationSend(false)).toBe(false);
+
+    const allow = stepDestinationSendWithActions(initialDestinationSendState(), {
+      kind: "destination/send-gate",
+      directionOut: true
+    });
+    expect(shouldAllowDestinationSend(allow.actions)).toBe(true);
+    expect(shouldDenyDestinationSend(allow.actions)).toBe(false);
+
+    const deny = stepDestinationSendWithActions(initialDestinationSendState(), {
+      kind: "destination/send-gate",
+      directionOut: false
+    });
+    expect(shouldAllowDestinationSend(deny.actions)).toBe(false);
+    expect(shouldDenyDestinationSend(deny.actions)).toBe(true);
   });
 
   it("allows link requests only to OUT SINGLE destinations", () => {
     expect(canRequestLinkDestination({ typeSingle: true, directionOut: true })).toBe(true);
     expect(canRequestLinkDestination({ typeSingle: false, directionOut: true })).toBe(false);
     expect(canRequestLinkDestination({ typeSingle: true, directionOut: false })).toBe(false);
+
+    const allow = stepRequestLinkDestinationWithActions(initialRequestLinkDestinationState(), {
+      kind: "destination/request-link-gate",
+      typeSingle: true,
+      directionOut: true
+    });
+    expect(shouldAllowRequestLinkDestination(allow.actions)).toBe(true);
+    expect(shouldDenyRequestLinkDestination(allow.actions)).toBe(false);
+
+    const deny = stepRequestLinkDestinationWithActions(initialRequestLinkDestinationState(), {
+      kind: "destination/request-link-gate",
+      typeSingle: false,
+      directionOut: true
+    });
+    expect(shouldAllowRequestLinkDestination(deny.actions)).toBe(false);
+    expect(shouldDenyRequestLinkDestination(deny.actions)).toBe(true);
   });
 
   it("validates destination identity binding by type", () => {
@@ -289,6 +505,20 @@ describe("destination allow policy", () => {
   it("registers destination links when validation succeeded", () => {
     expect(shouldRegisterDestinationLink(true)).toBe(true);
     expect(shouldRegisterDestinationLink(false)).toBe(false);
+
+    const register = stepRegisterDestinationLinkWithActions(initialRegisterDestinationLinkState(), {
+      kind: "destination/register-link-gate",
+      validatedLinkPresent: true
+    });
+    expect(shouldRegisterDestinationLinkNow(register.actions)).toBe(true);
+    expect(shouldSkipDestinationLinkRegister(register.actions)).toBe(false);
+
+    const skip = stepRegisterDestinationLinkWithActions(initialRegisterDestinationLinkState(), {
+      kind: "destination/register-link-gate",
+      validatedLinkPresent: false
+    });
+    expect(shouldRegisterDestinationLinkNow(skip.actions)).toBe(false);
+    expect(shouldSkipDestinationLinkRegister(skip.actions)).toBe(true);
   });
 });
 
@@ -301,5 +531,25 @@ describe("link request receipt status", () => {
   it("attaches packet receipts when present", () => {
     expect(shouldAttachLinkRequestPacketReceipt(true)).toBe(true);
     expect(shouldAttachLinkRequestPacketReceipt(false)).toBe(false);
+
+    const attach = stepAttachLinkRequestPacketReceiptWithActions(
+      initialAttachLinkRequestPacketReceiptState(),
+      {
+        kind: "link/attach-request-packet-receipt-gate",
+        packetReceiptPresent: true
+      }
+    );
+    expect(shouldAttachLinkRequestPacketReceiptNow(attach.actions)).toBe(true);
+    expect(shouldSkipLinkRequestPacketReceiptAttach(attach.actions)).toBe(false);
+
+    const skip = stepAttachLinkRequestPacketReceiptWithActions(
+      initialAttachLinkRequestPacketReceiptState(),
+      {
+        kind: "link/attach-request-packet-receipt-gate",
+        packetReceiptPresent: false
+      }
+    );
+    expect(shouldAttachLinkRequestPacketReceiptNow(skip.actions)).toBe(false);
+    expect(shouldSkipLinkRequestPacketReceiptAttach(skip.actions)).toBe(true);
   });
 });

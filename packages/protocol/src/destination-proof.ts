@@ -1,8 +1,8 @@
 /**
  * Pure destination proof-strategy codes and prove decision.
  * App `shouldProve` evaluation stays at the adapter edge.
- * Prove conclusions leave via machine actions (no ad-hoc
- * `planDestinationProof` reads beside the step).
+ * Prove / emit conclusions leave via machine actions (no ad-hoc
+ * `planDestinationProof` / `canEmitDestinationProof` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 
@@ -35,6 +35,65 @@ export function planDestinationProof(input: {
 /** Whether transport may emit a destination delivery proof (identity required). */
 export function canEmitDestinationProof(identityPresent: boolean): boolean {
   return identityPresent;
+}
+
+/**
+ * Destination proof-emit gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canEmitDestinationProof`
+ * reads beside the step).
+ */
+export type EmitDestinationProofState = Record<string, never>;
+
+export type EmitDestinationProofEvent =
+  | Event
+  | {
+      readonly kind: "destination/emit-proof-gate";
+      readonly identityPresent: boolean;
+    };
+
+export type EmitDestinationProofAction =
+  | { readonly kind: "emit" }
+  | { readonly kind: "skip" };
+
+export interface EmitDestinationProofStepResult {
+  readonly state: EmitDestinationProofState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly EmitDestinationProofAction[];
+}
+
+export function initialEmitDestinationProofState(): EmitDestinationProofState {
+  return {};
+}
+
+export function stepEmitDestinationProofWithActions(
+  state: EmitDestinationProofState,
+  event: EmitDestinationProofEvent
+): EmitDestinationProofStepResult {
+  if (event.kind === "destination/emit-proof-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canEmitDestinationProof(event.identityPresent) ? "emit" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldEmitDestinationProofNow(
+  actions: ReadonlyArray<EmitDestinationProofAction>
+): boolean {
+  return actions.some((action) => action.kind === "emit");
+}
+
+export function shouldSkipEmitDestinationProof(
+  actions: ReadonlyArray<EmitDestinationProofAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**

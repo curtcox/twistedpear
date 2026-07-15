@@ -1,16 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
   LinkRequestReceiptStatus,
+  initialAttachLinkRequestPacketReceiptState,
   initialLinkRequestReceiptState,
   shouldAttachLinkRequestPacketReceipt,
+  shouldAttachLinkRequestPacketReceiptNow,
   shouldInvokeLinkRequestReceiptAction,
   shouldRegisterPendingLinkRequest,
+  shouldRegisterPendingLinkRequestNow,
   shouldRemovePendingLinkRequest,
+  shouldSkipLinkRequestPacketReceiptAttach,
+  shouldSkipPendingLinkRequestRegister,
   shouldUnregisterPendingLinkRequest,
+  initialPendingLinkRequestRegisterState,
   initialPendingLinkRequestUnregisterState,
   pendingLinkRequestUnregisterIndex,
   planUnregisterPendingLinkRequest,
+  stepAttachLinkRequestPacketReceiptWithActions,
   stepLinkRequestReceipt,
+  stepPendingLinkRequestRegisterWithActions,
   stepPendingLinkRequestUnregisterWithActions
 } from "../src/link-request-receipt.js";
 
@@ -42,6 +50,46 @@ describe("protocol link request receipt", () => {
     expect(planUnregisterPendingLinkRequest(-1)).toBeNull();
     expect(shouldUnregisterPendingLinkRequest(true)).toBe(true);
     expect(shouldUnregisterPendingLinkRequest(false)).toBe(false);
+
+    const register = stepPendingLinkRequestRegisterWithActions(
+      initialPendingLinkRequestRegisterState(),
+      {
+        kind: "link/pending-request-register-gate",
+        alreadyPresent: false
+      }
+    );
+    expect(shouldRegisterPendingLinkRequestNow(register.actions)).toBe(true);
+    expect(shouldSkipPendingLinkRequestRegister(register.actions)).toBe(false);
+
+    const skipRegister = stepPendingLinkRequestRegisterWithActions(
+      initialPendingLinkRequestRegisterState(),
+      {
+        kind: "link/pending-request-register-gate",
+        alreadyPresent: true
+      }
+    );
+    expect(shouldRegisterPendingLinkRequestNow(skipRegister.actions)).toBe(false);
+    expect(shouldSkipPendingLinkRequestRegister(skipRegister.actions)).toBe(true);
+
+    const attach = stepAttachLinkRequestPacketReceiptWithActions(
+      initialAttachLinkRequestPacketReceiptState(),
+      {
+        kind: "link/attach-request-packet-receipt-gate",
+        packetReceiptPresent: true
+      }
+    );
+    expect(shouldAttachLinkRequestPacketReceiptNow(attach.actions)).toBe(true);
+    expect(shouldSkipLinkRequestPacketReceiptAttach(attach.actions)).toBe(false);
+
+    const skipAttach = stepAttachLinkRequestPacketReceiptWithActions(
+      initialAttachLinkRequestPacketReceiptState(),
+      {
+        kind: "link/attach-request-packet-receipt-gate",
+        packetReceiptPresent: false
+      }
+    );
+    expect(shouldAttachLinkRequestPacketReceiptNow(skipAttach.actions)).toBe(false);
+    expect(shouldSkipLinkRequestPacketReceiptAttach(skipAttach.actions)).toBe(true);
 
     const remove = stepPendingLinkRequestUnregisterWithActions(
       initialPendingLinkRequestUnregisterState(),

@@ -32,7 +32,6 @@ import {
   canLinkSend,
   canPerformLinkHandshake,
   canProveLink,
-  canRequestLinkDestination,
   canResendLinkPacket,
   canUpdateLinkKeepalive,
   canValidateLinkProof,
@@ -56,6 +55,8 @@ import {
   initialLinkTokenAccessState,
   initialLinkValidateRequestState,
   initialMergeLinkRttState,
+  initialPendingLinkRequestRegisterState,
+  initialRequestLinkDestinationState,
   isLinkClosed,
   isExpectedLinkMode,
   isLinkModeEnabled,
@@ -213,6 +214,7 @@ import {
   shouldAcceptResourceHashmapUpdateFrame,
   shouldAcceptResourceProofPayload,
   shouldActivateLinkEstablish,
+  shouldAllowRequestLinkDestination,
   shouldAskAppLinkResourceAdvertisement,
   shouldAttemptLinkProofCrypto,
   shouldCloseOnlyLinkTeardown,
@@ -255,7 +257,7 @@ import {
   shouldKeepPendingLinkAppRequestTransmit,
   shouldPresentResourceHash,
   shouldRegisterLinkResource,
-  shouldRegisterPendingLinkRequest,
+  shouldRegisterPendingLinkRequestNow,
   shouldRejectLinkAppRequest,
   shouldRejectLinkAppRequestInboundTooBig,
   shouldRejectLinkIdentify,
@@ -313,7 +315,9 @@ import {
   stepLinkResourceAdvertisementWithActions,
   stepContainsResourceHashWithActions,
   stepLinkResourceConcludeWithActions,
+  stepPendingLinkRequestRegisterWithActions,
   stepPendingLinkRequestUnregisterWithActions,
+  stepRequestLinkDestinationWithActions,
   stepLinkTeardownWithActions,
   stepLinkTokenAccessWithActions,
   stepLinkValidateRequestWithActions,
@@ -575,12 +579,15 @@ export class Link {
 
   static request(options: InitiatorLinkOptions): Link {
     const destination = options.destination;
-    if (
-      !canRequestLinkDestination({
+    const requestLink = stepRequestLinkDestinationWithActions(
+      initialRequestLinkDestinationState(),
+      {
+        kind: "destination/request-link-gate",
         typeSingle: destination.type === DestinationType.SINGLE,
         directionOut: destination.direction === DestinationDirection.OUT
-      })
-    ) {
+      }
+    );
+    if (!shouldAllowRequestLinkDestination(requestLink.actions)) {
       throw new Error("Links can only be established to OUT SINGLE destinations");
     }
 
@@ -1607,7 +1614,14 @@ export class Link {
   }
 
   registerPendingRequest(receipt: LinkRequestReceipt): void {
-    if (shouldRegisterPendingLinkRequest(this.pendingRequests.includes(receipt))) {
+    const register = stepPendingLinkRequestRegisterWithActions(
+      initialPendingLinkRequestRegisterState(),
+      {
+        kind: "link/pending-request-register-gate",
+        alreadyPresent: this.pendingRequests.includes(receipt)
+      }
+    );
+    if (shouldRegisterPendingLinkRequestNow(register.actions)) {
       this.pendingRequests.push(receipt);
     }
   }
