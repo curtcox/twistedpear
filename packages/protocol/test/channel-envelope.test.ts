@@ -10,7 +10,10 @@ import {
   initialChannelEnvelopeUnpackState,
   initialChannelMessageHandlerUnregisterState,
   initialChannelMessageTypeRegistrationState,
+  initialEmitChannelImmediateDeliveryState,
   initialPackChannelEnvelopeState,
+  initialRegisterChannelMessageHandlerState,
+  initialStopChannelHandlerFanoutState,
   initialUnpackChannelEnvelopeState,
   isChannelSystemMsgType,
   nextChannelSequence,
@@ -22,10 +25,12 @@ import {
   planUnregisterChannelMessageHandler,
   channelMessageHandlerUnregisterIndex,
   shouldEmitChannelImmediateDelivery,
+  shouldEmitChannelImmediateDeliveryNow,
   shouldProceedChannelEnvelopePack,
   shouldProceedChannelEnvelopeUnpack,
   shouldProceedChannelMessageTypeRegistration,
   shouldRegisterChannelMessageHandler,
+  shouldRegisterChannelMessageHandlerNow,
   shouldRejectChannelEnvelopePackMissingMessage,
   shouldRejectChannelEnvelopeUnpackMissingRaw,
   shouldRejectChannelEnvelopeUnpackNotRegistered,
@@ -35,7 +40,11 @@ import {
   shouldRejectPackChannelEnvelope,
   shouldRejectUnpackChannelEnvelope,
   shouldRemoveChannelMessageHandler,
+  shouldSkipEmitChannelImmediateDelivery,
+  shouldSkipRegisterChannelMessageHandler,
   shouldStopChannelHandlerFanout,
+  shouldStopChannelHandlerFanoutNow,
+  shouldContinueChannelHandlerFanout,
   shouldUnregisterChannelMessageHandler,
   shouldUsePackChannelEnvelope,
   shouldUseUnpackChannelEnvelope,
@@ -43,7 +52,10 @@ import {
   stepChannelEnvelopeUnpackWithActions,
   stepChannelMessageHandlerUnregisterWithActions,
   stepChannelMessageTypeRegistrationWithActions,
+  stepEmitChannelImmediateDeliveryWithActions,
   stepPackChannelEnvelopeWithActions,
+  stepRegisterChannelMessageHandlerWithActions,
+  stepStopChannelHandlerFanoutWithActions,
   stepUnpackChannelEnvelopeWithActions,
   unpackChannelEnvelope
 } from "../src/channel-envelope.js";
@@ -52,16 +64,24 @@ import {
   channelRingSequenceIndexFromActions,
   drainContiguousChannelSequences,
   indexOfChannelRingSequence,
+  initialAcceptChannelSequenceState,
+  initialDrainChannelRingIndexState,
   initialEmplaceChannelEnvelopeState,
   initialIndexOfChannelRingSequenceState,
   insertChannelSequence,
   shouldAcceptChannelSequence,
+  shouldAcceptChannelSequenceNow,
   shouldDrainChannelRingIndex,
+  shouldDrainChannelRingIndexNow,
   shouldEmplaceChannelEnvelope,
   shouldEmplaceChannelEnvelopeNow,
   shouldMissChannelRingSequenceIndex,
+  shouldSkipAcceptChannelSequence,
+  shouldSkipDrainChannelRingIndex,
   shouldSkipEmplaceChannelEnvelope,
   shouldUseChannelRingSequenceIndex,
+  stepAcceptChannelSequenceWithActions,
+  stepDrainChannelRingIndexWithActions,
   stepEmplaceChannelEnvelopeWithActions,
   stepIndexOfChannelRingSequenceWithActions
 } from "../src/channel-reorder.js";
@@ -294,6 +314,54 @@ describe("protocol channel envelope", () => {
     expect(shouldStopChannelHandlerFanout(true)).toBe(true);
     expect(shouldStopChannelHandlerFanout(false)).toBe(false);
 
+    const register = stepRegisterChannelMessageHandlerWithActions(
+      initialRegisterChannelMessageHandlerState(),
+      { kind: "channel/register-message-handler-gate", alreadyPresent: false }
+    );
+    expect(shouldRegisterChannelMessageHandlerNow(register.actions)).toBe(true);
+    expect(shouldSkipRegisterChannelMessageHandler(register.actions)).toBe(false);
+
+    const skipRegister = stepRegisterChannelMessageHandlerWithActions(
+      initialRegisterChannelMessageHandlerState(),
+      { kind: "channel/register-message-handler-gate", alreadyPresent: true }
+    );
+    expect(shouldRegisterChannelMessageHandlerNow(skipRegister.actions)).toBe(false);
+    expect(shouldSkipRegisterChannelMessageHandler(skipRegister.actions)).toBe(true);
+
+    const stop = stepStopChannelHandlerFanoutWithActions(initialStopChannelHandlerFanoutState(), {
+      kind: "channel/stop-handler-fanout-gate",
+      handled: true
+    });
+    expect(shouldStopChannelHandlerFanoutNow(stop.actions)).toBe(true);
+    expect(shouldContinueChannelHandlerFanout(stop.actions)).toBe(false);
+
+    const continueFanout = stepStopChannelHandlerFanoutWithActions(
+      initialStopChannelHandlerFanoutState(),
+      { kind: "channel/stop-handler-fanout-gate", handled: false }
+    );
+    expect(shouldStopChannelHandlerFanoutNow(continueFanout.actions)).toBe(false);
+    expect(shouldContinueChannelHandlerFanout(continueFanout.actions)).toBe(true);
+
+    const emit = stepEmitChannelImmediateDeliveryWithActions(
+      initialEmitChannelImmediateDeliveryState(),
+      {
+        kind: "channel/emit-immediate-delivery-gate",
+        packetState: ChannelMessageState.MSGSTATE_DELIVERED
+      }
+    );
+    expect(shouldEmitChannelImmediateDeliveryNow(emit.actions)).toBe(true);
+    expect(shouldSkipEmitChannelImmediateDelivery(emit.actions)).toBe(false);
+
+    const skipEmit = stepEmitChannelImmediateDeliveryWithActions(
+      initialEmitChannelImmediateDeliveryState(),
+      {
+        kind: "channel/emit-immediate-delivery-gate",
+        packetState: ChannelMessageState.MSGSTATE_SENT
+      }
+    );
+    expect(shouldEmitChannelImmediateDeliveryNow(skipEmit.actions)).toBe(false);
+    expect(shouldSkipEmitChannelImmediateDelivery(skipEmit.actions)).toBe(true);
+
     const remove = stepChannelMessageHandlerUnregisterWithActions(
       initialChannelMessageHandlerUnregisterState(),
       { kind: "channel/message-handler-unregister-gate", index: 1 }
@@ -327,6 +395,24 @@ describe("protocol channel reorder", () => {
         windowMax: 48
       })
     ).toBe(true);
+
+    const accept = stepAcceptChannelSequenceWithActions(initialAcceptChannelSequenceState(), {
+      kind: "channel/accept-sequence-gate",
+      sequence: 5,
+      nextRxSequence: 5,
+      windowMax: 48
+    });
+    expect(shouldAcceptChannelSequenceNow(accept.actions)).toBe(true);
+    expect(shouldSkipAcceptChannelSequence(accept.actions)).toBe(false);
+
+    const skip = stepAcceptChannelSequenceWithActions(initialAcceptChannelSequenceState(), {
+      kind: "channel/accept-sequence-gate",
+      sequence: 4,
+      nextRxSequence: 5,
+      windowMax: 48
+    });
+    expect(shouldAcceptChannelSequenceNow(skip.actions)).toBe(false);
+    expect(shouldSkipAcceptChannelSequence(skip.actions)).toBe(true);
   });
 
   it("inserts ordered sequences and rejects duplicates", () => {
@@ -357,6 +443,20 @@ describe("protocol channel reorder", () => {
     );
     expect(shouldEmplaceChannelEnvelopeNow(skipEmplace.actions)).toBe(false);
     expect(shouldSkipEmplaceChannelEnvelope(skipEmplace.actions)).toBe(true);
+
+    const drain = stepDrainChannelRingIndexWithActions(initialDrainChannelRingIndexState(), {
+      kind: "channel/drain-ring-index-gate",
+      indexPresent: true
+    });
+    expect(shouldDrainChannelRingIndexNow(drain.actions)).toBe(true);
+    expect(shouldSkipDrainChannelRingIndex(drain.actions)).toBe(false);
+
+    const skipDrain = stepDrainChannelRingIndexWithActions(initialDrainChannelRingIndexState(), {
+      kind: "channel/drain-ring-index-gate",
+      indexPresent: false
+    });
+    expect(shouldDrainChannelRingIndexNow(skipDrain.actions)).toBe(false);
+    expect(shouldSkipDrainChannelRingIndex(skipDrain.actions)).toBe(true);
 
     const inserted = insertChannelSequence([1, 4], 3, 1);
     expect(inserted.inserted).toBe(true);

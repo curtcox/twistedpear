@@ -468,6 +468,65 @@ export function canArmChannelPacketReceipt(receiptPresent: boolean): boolean {
   return receiptPresent;
 }
 
+/**
+ * Channel packet-receipt arm gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canArmChannelPacketReceipt`
+ * reads beside the step).
+ */
+export type ArmChannelPacketReceiptState = Record<string, never>;
+
+export type ArmChannelPacketReceiptEvent =
+  | Event
+  | {
+      readonly kind: "channel/arm-packet-receipt-gate";
+      readonly receiptPresent: boolean;
+    };
+
+export type ArmChannelPacketReceiptAction =
+  | { readonly kind: "arm" }
+  | { readonly kind: "skip" };
+
+export interface ArmChannelPacketReceiptStepResult {
+  readonly state: ArmChannelPacketReceiptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ArmChannelPacketReceiptAction[];
+}
+
+export function initialArmChannelPacketReceiptState(): ArmChannelPacketReceiptState {
+  return {};
+}
+
+export function stepArmChannelPacketReceiptWithActions(
+  state: ArmChannelPacketReceiptState,
+  event: ArmChannelPacketReceiptEvent
+): ArmChannelPacketReceiptStepResult {
+  if (event.kind === "channel/arm-packet-receipt-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canArmChannelPacketReceipt(event.receiptPresent) ? "arm" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldArmChannelPacketReceiptNow(
+  actions: ReadonlyArray<ArmChannelPacketReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "arm");
+}
+
+export function shouldSkipArmChannelPacketReceipt(
+  actions: ReadonlyArray<ArmChannelPacketReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether a recomputed channel packet timeout should replace the receipt's current timeout. */
 export function shouldExtendPacketReceiptTimeout(input: {
   readonly currentTimeout: number | null;
@@ -654,9 +713,129 @@ export function shouldApplyChannelPacketReceiptTimeout(timeoutPresent: boolean):
   return timeoutPresent;
 }
 
+/**
+ * Channel packet-receipt timeout apply gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldApplyChannelPacketReceiptTimeout` reads beside the step).
+ */
+export type ApplyChannelPacketReceiptTimeoutState = Record<string, never>;
+
+export type ApplyChannelPacketReceiptTimeoutEvent =
+  | Event
+  | {
+      readonly kind: "channel/apply-packet-receipt-timeout-gate";
+      readonly timeoutPresent: boolean;
+    };
+
+export type ApplyChannelPacketReceiptTimeoutAction =
+  | { readonly kind: "apply" }
+  | { readonly kind: "skip" };
+
+export interface ApplyChannelPacketReceiptTimeoutStepResult {
+  readonly state: ApplyChannelPacketReceiptTimeoutState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ApplyChannelPacketReceiptTimeoutAction[];
+}
+
+export function initialApplyChannelPacketReceiptTimeoutState(): ApplyChannelPacketReceiptTimeoutState {
+  return {};
+}
+
+export function stepApplyChannelPacketReceiptTimeoutWithActions(
+  state: ApplyChannelPacketReceiptTimeoutState,
+  event: ApplyChannelPacketReceiptTimeoutEvent
+): ApplyChannelPacketReceiptTimeoutStepResult {
+  if (event.kind === "channel/apply-packet-receipt-timeout-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldApplyChannelPacketReceiptTimeout(event.timeoutPresent)
+            ? "apply"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldApplyChannelPacketReceiptTimeoutNow(
+  actions: ReadonlyArray<ApplyChannelPacketReceiptTimeoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "apply");
+}
+
+export function shouldSkipApplyChannelPacketReceiptTimeout(
+  actions: ReadonlyArray<ApplyChannelPacketReceiptTimeoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether a successful resend should replace the envelope's tracked packet. */
 export function shouldReplaceChannelResentPacket(resentPresent: boolean): boolean {
   return resentPresent;
+}
+
+/**
+ * Channel resent-packet replace gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldReplaceChannelResentPacket`
+ * reads beside the step).
+ */
+export type ReplaceChannelResentPacketState = Record<string, never>;
+
+export type ReplaceChannelResentPacketEvent =
+  | Event
+  | {
+      readonly kind: "channel/replace-resent-packet-gate";
+      readonly resentPresent: boolean;
+    };
+
+export type ReplaceChannelResentPacketAction =
+  | { readonly kind: "replace" }
+  | { readonly kind: "skip" };
+
+export interface ReplaceChannelResentPacketStepResult {
+  readonly state: ReplaceChannelResentPacketState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ReplaceChannelResentPacketAction[];
+}
+
+export function initialReplaceChannelResentPacketState(): ReplaceChannelResentPacketState {
+  return {};
+}
+
+export function stepReplaceChannelResentPacketWithActions(
+  state: ReplaceChannelResentPacketState,
+  event: ReplaceChannelResentPacketEvent
+): ReplaceChannelResentPacketStepResult {
+  if (event.kind === "channel/replace-resent-packet-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldReplaceChannelResentPacket(event.resentPresent) ? "replace" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldReplaceChannelResentPacketNow(
+  actions: ReadonlyArray<ReplaceChannelResentPacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "replace");
+}
+
+export function shouldSkipReplaceChannelResentPacket(
+  actions: ReadonlyArray<ReplaceChannelResentPacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a timed-out channel envelope still has a packet to resend. */
@@ -667,6 +846,65 @@ export function shouldResendChannelTimeoutPacket(packetPresent: boolean): boolea
 /** Whether shutdown may clear outlet callbacks for a TX-ring envelope packet. */
 export function shouldClearChannelEnvelopePacket(packetPresent: boolean): boolean {
   return packetPresent;
+}
+
+/**
+ * Channel envelope-packet clear gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldClearChannelEnvelopePacket`
+ * reads beside the step).
+ */
+export type ClearChannelEnvelopePacketState = Record<string, never>;
+
+export type ClearChannelEnvelopePacketEvent =
+  | Event
+  | {
+      readonly kind: "channel/clear-envelope-packet-gate";
+      readonly packetPresent: boolean;
+    };
+
+export type ClearChannelEnvelopePacketAction =
+  | { readonly kind: "clear" }
+  | { readonly kind: "skip" };
+
+export interface ClearChannelEnvelopePacketStepResult {
+  readonly state: ClearChannelEnvelopePacketState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ClearChannelEnvelopePacketAction[];
+}
+
+export function initialClearChannelEnvelopePacketState(): ClearChannelEnvelopePacketState {
+  return {};
+}
+
+export function stepClearChannelEnvelopePacketWithActions(
+  state: ClearChannelEnvelopePacketState,
+  event: ClearChannelEnvelopePacketEvent
+): ClearChannelEnvelopePacketStepResult {
+  if (event.kind === "channel/clear-envelope-packet-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldClearChannelEnvelopePacket(event.packetPresent) ? "clear" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldClearChannelEnvelopePacketNow(
+  actions: ReadonlyArray<ClearChannelEnvelopePacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "clear");
+}
+
+export function shouldSkipClearChannelEnvelopePacket(
+  actions: ReadonlyArray<ClearChannelEnvelopePacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Shrink window after a packet timeout / retry. */
@@ -961,6 +1199,67 @@ export function shouldApplyChannelTxReceiptTimeoutExtension(
   extensionPresent: boolean
 ): boolean {
   return extensionPresent;
+}
+
+/**
+ * Channel TX receipt-timeout extension apply gate is event-driven; no durable
+ * session fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldApplyChannelTxReceiptTimeoutExtension` reads beside the step).
+ */
+export type ApplyChannelTxReceiptTimeoutExtensionState = Record<string, never>;
+
+export type ApplyChannelTxReceiptTimeoutExtensionEvent =
+  | Event
+  | {
+      readonly kind: "channel/apply-tx-receipt-timeout-extension-gate";
+      readonly extensionPresent: boolean;
+    };
+
+export type ApplyChannelTxReceiptTimeoutExtensionAction =
+  | { readonly kind: "apply" }
+  | { readonly kind: "skip" };
+
+export interface ApplyChannelTxReceiptTimeoutExtensionStepResult {
+  readonly state: ApplyChannelTxReceiptTimeoutExtensionState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ApplyChannelTxReceiptTimeoutExtensionAction[];
+}
+
+export function initialApplyChannelTxReceiptTimeoutExtensionState(): ApplyChannelTxReceiptTimeoutExtensionState {
+  return {};
+}
+
+export function stepApplyChannelTxReceiptTimeoutExtensionWithActions(
+  state: ApplyChannelTxReceiptTimeoutExtensionState,
+  event: ApplyChannelTxReceiptTimeoutExtensionEvent
+): ApplyChannelTxReceiptTimeoutExtensionStepResult {
+  if (event.kind === "channel/apply-tx-receipt-timeout-extension-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldApplyChannelTxReceiptTimeoutExtension(event.extensionPresent)
+            ? "apply"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldApplyChannelTxReceiptTimeoutExtensionNow(
+  actions: ReadonlyArray<ApplyChannelTxReceiptTimeoutExtensionAction>
+): boolean {
+  return actions.some((action) => action.kind === "apply");
+}
+
+export function shouldSkipApplyChannelTxReceiptTimeoutExtension(
+  actions: ReadonlyArray<ApplyChannelTxReceiptTimeoutExtensionAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**

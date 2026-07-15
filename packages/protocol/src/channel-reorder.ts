@@ -25,6 +25,73 @@ export function shouldAcceptChannelSequence(input: {
 }
 
 /**
+ * Channel RX sequence accept gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldAcceptChannelSequence`
+ * reads beside the step).
+ */
+export type AcceptChannelSequenceState = Record<string, never>;
+
+export type AcceptChannelSequenceEvent =
+  | Event
+  | {
+      readonly kind: "channel/accept-sequence-gate";
+      readonly sequence: number;
+      readonly nextRxSequence: number;
+      readonly windowMax: number;
+    };
+
+export type AcceptChannelSequenceAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptChannelSequenceStepResult {
+  readonly state: AcceptChannelSequenceState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptChannelSequenceAction[];
+}
+
+export function initialAcceptChannelSequenceState(): AcceptChannelSequenceState {
+  return {};
+}
+
+export function stepAcceptChannelSequenceWithActions(
+  state: AcceptChannelSequenceState,
+  event: AcceptChannelSequenceEvent
+): AcceptChannelSequenceStepResult {
+  if (event.kind === "channel/accept-sequence-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptChannelSequence({
+            sequence: event.sequence,
+            nextRxSequence: event.nextRxSequence,
+            windowMax: event.windowMax
+          })
+            ? "accept"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptChannelSequenceNow(
+  actions: ReadonlyArray<AcceptChannelSequenceAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAcceptChannelSequence(
+  actions: ReadonlyArray<AcceptChannelSequenceAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/**
  * Insert index for a sequence into an ordered ring, or null if duplicate.
  * `wrapBaseSequence` mirrors RNS Channel.next_rx_sequence used for wrap-aware ordering.
  */
@@ -119,6 +186,65 @@ export function shouldSkipEmplaceChannelEnvelope(
 /** Whether RX drain may splice/unpack a contiguous ring sequence by lookup index. */
 export function shouldDrainChannelRingIndex(indexPresent: boolean): boolean {
   return indexPresent;
+}
+
+/**
+ * Channel RX ring-index drain gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldDrainChannelRingIndex`
+ * reads beside the step).
+ */
+export type DrainChannelRingIndexState = Record<string, never>;
+
+export type DrainChannelRingIndexEvent =
+  | Event
+  | {
+      readonly kind: "channel/drain-ring-index-gate";
+      readonly indexPresent: boolean;
+    };
+
+export type DrainChannelRingIndexAction =
+  | { readonly kind: "drain" }
+  | { readonly kind: "skip" };
+
+export interface DrainChannelRingIndexStepResult {
+  readonly state: DrainChannelRingIndexState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DrainChannelRingIndexAction[];
+}
+
+export function initialDrainChannelRingIndexState(): DrainChannelRingIndexState {
+  return {};
+}
+
+export function stepDrainChannelRingIndexWithActions(
+  state: DrainChannelRingIndexState,
+  event: DrainChannelRingIndexEvent
+): DrainChannelRingIndexStepResult {
+  if (event.kind === "channel/drain-ring-index-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldDrainChannelRingIndex(event.indexPresent) ? "drain" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldDrainChannelRingIndexNow(
+  actions: ReadonlyArray<DrainChannelRingIndexAction>
+): boolean {
+  return actions.some((action) => action.kind === "drain");
+}
+
+export function shouldSkipDrainChannelRingIndex(
+  actions: ReadonlyArray<DrainChannelRingIndexAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Index of `target` in a ring of sequences, or null if absent. */

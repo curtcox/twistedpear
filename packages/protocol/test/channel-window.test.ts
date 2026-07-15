@@ -14,6 +14,9 @@ import {
   channelTxReceiptTimeoutExtensions,
   countChannelTxOutstanding,
   canArmChannelPacketReceipt,
+  initialApplyChannelPacketReceiptTimeoutState,
+  initialApplyChannelTxReceiptTimeoutExtensionState,
+  initialArmChannelPacketReceiptState,
   initialChannelAllowsSendState,
   initialChannelOutletTransmitState,
   initialChannelPacketTimeoutSecondsState,
@@ -21,8 +24,10 @@ import {
   initialChannelTxEnvelopeOpState,
   initialChannelTxReceiptTimeoutRefreshState,
   initialChannelWindowState,
+  initialClearChannelEnvelopePacketState,
   initialCountChannelTxOutstandingState,
   initialIndexOfChannelTxEnvelopeState,
+  initialReplaceChannelResentPacketState,
   isChannelOutletTransmitOk,
   planChannelPacketTimeout,
   planChannelSend,
@@ -31,7 +36,10 @@ import {
   shouldAcceptChannelOutletTransmit,
   shouldAllowChannelSend,
   shouldApplyChannelPacketReceiptTimeout,
+  shouldApplyChannelPacketReceiptTimeoutNow,
   shouldApplyChannelTxReceiptTimeoutExtension,
+  shouldApplyChannelTxReceiptTimeoutExtensionNow,
+  shouldArmChannelPacketReceiptNow,
   shouldDenyChannelSend,
   shouldExtendChannelTxReceiptTimeout,
   shouldExtendPacketReceiptTimeout,
@@ -44,13 +52,23 @@ import {
   shouldRejectChannelSendLinkNotReady,
   shouldRejectChannelSendTooBig,
   shouldReplaceChannelResentPacket,
+  shouldReplaceChannelResentPacketNow,
   shouldResendChannelTimeoutPacket,
   shouldRetryChannelTxTimeout,
+  shouldSkipApplyChannelPacketReceiptTimeout,
+  shouldSkipApplyChannelTxReceiptTimeoutExtension,
+  shouldSkipArmChannelPacketReceipt,
+  shouldSkipClearChannelEnvelopePacket,
+  shouldSkipReplaceChannelResentPacket,
   shouldUseChannelPacketTimeout,
   shouldUseChannelTxEnvelopeIndex,
   shouldUseChannelTxOutstandingCount,
   shouldClearChannelEnvelopePacket,
+  shouldClearChannelEnvelopePacketNow,
   indexOfChannelTxEnvelope,
+  stepApplyChannelPacketReceiptTimeoutWithActions,
+  stepApplyChannelTxReceiptTimeoutExtensionWithActions,
+  stepArmChannelPacketReceiptWithActions,
   stepChannelAllowsSendWithActions,
   stepChannelOutletTransmitWithActions,
   stepChannelPacketTimeoutSecondsWithActions,
@@ -60,8 +78,10 @@ import {
   stepChannelTxTimeout,
   stepChannelTxTimeoutWithActions,
   stepChannelWindow,
+  stepClearChannelEnvelopePacketWithActions,
   stepCountChannelTxOutstandingWithActions,
-  stepIndexOfChannelTxEnvelopeWithActions
+  stepIndexOfChannelTxEnvelopeWithActions,
+  stepReplaceChannelResentPacketWithActions
 } from "../src/channel-window.js";
 
 describe("protocol channel window", () => {
@@ -322,6 +342,20 @@ describe("protocol channel window", () => {
   it("arms channel packet receipts when present", () => {
     expect(canArmChannelPacketReceipt(true)).toBe(true);
     expect(canArmChannelPacketReceipt(false)).toBe(false);
+
+    const arm = stepArmChannelPacketReceiptWithActions(initialArmChannelPacketReceiptState(), {
+      kind: "channel/arm-packet-receipt-gate",
+      receiptPresent: true
+    });
+    expect(shouldArmChannelPacketReceiptNow(arm.actions)).toBe(true);
+    expect(shouldSkipArmChannelPacketReceipt(arm.actions)).toBe(false);
+
+    const skip = stepArmChannelPacketReceiptWithActions(initialArmChannelPacketReceiptState(), {
+      kind: "channel/arm-packet-receipt-gate",
+      receiptPresent: false
+    });
+    expect(shouldArmChannelPacketReceiptNow(skip.actions)).toBe(false);
+    expect(shouldSkipArmChannelPacketReceipt(skip.actions)).toBe(true);
   });
 
   it("plans TX envelope ops and receipt timeout / resent gates", () => {
@@ -342,6 +376,48 @@ describe("protocol channel window", () => {
     expect(shouldResendChannelTimeoutPacket(false)).toBe(false);
     expect(shouldClearChannelEnvelopePacket(true)).toBe(true);
     expect(shouldClearChannelEnvelopePacket(false)).toBe(false);
+
+    const applyTimeout = stepApplyChannelPacketReceiptTimeoutWithActions(
+      initialApplyChannelPacketReceiptTimeoutState(),
+      { kind: "channel/apply-packet-receipt-timeout-gate", timeoutPresent: true }
+    );
+    expect(shouldApplyChannelPacketReceiptTimeoutNow(applyTimeout.actions)).toBe(true);
+    expect(shouldSkipApplyChannelPacketReceiptTimeout(applyTimeout.actions)).toBe(false);
+
+    const skipTimeout = stepApplyChannelPacketReceiptTimeoutWithActions(
+      initialApplyChannelPacketReceiptTimeoutState(),
+      { kind: "channel/apply-packet-receipt-timeout-gate", timeoutPresent: false }
+    );
+    expect(shouldApplyChannelPacketReceiptTimeoutNow(skipTimeout.actions)).toBe(false);
+    expect(shouldSkipApplyChannelPacketReceiptTimeout(skipTimeout.actions)).toBe(true);
+
+    const replace = stepReplaceChannelResentPacketWithActions(
+      initialReplaceChannelResentPacketState(),
+      { kind: "channel/replace-resent-packet-gate", resentPresent: true }
+    );
+    expect(shouldReplaceChannelResentPacketNow(replace.actions)).toBe(true);
+    expect(shouldSkipReplaceChannelResentPacket(replace.actions)).toBe(false);
+
+    const skipReplace = stepReplaceChannelResentPacketWithActions(
+      initialReplaceChannelResentPacketState(),
+      { kind: "channel/replace-resent-packet-gate", resentPresent: false }
+    );
+    expect(shouldReplaceChannelResentPacketNow(skipReplace.actions)).toBe(false);
+    expect(shouldSkipReplaceChannelResentPacket(skipReplace.actions)).toBe(true);
+
+    const clear = stepClearChannelEnvelopePacketWithActions(
+      initialClearChannelEnvelopePacketState(),
+      { kind: "channel/clear-envelope-packet-gate", packetPresent: true }
+    );
+    expect(shouldClearChannelEnvelopePacketNow(clear.actions)).toBe(true);
+    expect(shouldSkipClearChannelEnvelopePacket(clear.actions)).toBe(false);
+
+    const skipClear = stepClearChannelEnvelopePacketWithActions(
+      initialClearChannelEnvelopePacketState(),
+      { kind: "channel/clear-envelope-packet-gate", packetPresent: false }
+    );
+    expect(shouldClearChannelEnvelopePacketNow(skipClear.actions)).toBe(false);
+    expect(shouldSkipClearChannelEnvelopePacket(skipClear.actions)).toBe(true);
   });
 
   it("emits miss / process actions from channel/tx-envelope-op-gate", () => {
@@ -557,6 +633,26 @@ describe("protocol channel window", () => {
     expect(extensions[0]!.timeoutSeconds).toBeGreaterThan(0.01);
     expect(shouldApplyChannelTxReceiptTimeoutExtension(true)).toBe(true);
     expect(shouldApplyChannelTxReceiptTimeoutExtension(false)).toBe(false);
+
+    const applyExtension = stepApplyChannelTxReceiptTimeoutExtensionWithActions(
+      initialApplyChannelTxReceiptTimeoutExtensionState(),
+      {
+        kind: "channel/apply-tx-receipt-timeout-extension-gate",
+        extensionPresent: true
+      }
+    );
+    expect(shouldApplyChannelTxReceiptTimeoutExtensionNow(applyExtension.actions)).toBe(true);
+    expect(shouldSkipApplyChannelTxReceiptTimeoutExtension(applyExtension.actions)).toBe(false);
+
+    const skipExtension = stepApplyChannelTxReceiptTimeoutExtensionWithActions(
+      initialApplyChannelTxReceiptTimeoutExtensionState(),
+      {
+        kind: "channel/apply-tx-receipt-timeout-extension-gate",
+        extensionPresent: false
+      }
+    );
+    expect(shouldApplyChannelTxReceiptTimeoutExtensionNow(skipExtension.actions)).toBe(false);
+    expect(shouldSkipApplyChannelTxReceiptTimeoutExtension(skipExtension.actions)).toBe(true);
 
     const stepped = stepChannelTxReceiptTimeoutRefreshWithActions(
       initialChannelTxReceiptTimeoutRefreshState(),

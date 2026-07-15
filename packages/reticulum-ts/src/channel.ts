@@ -5,7 +5,6 @@ import {
   CHANNEL_SEQ_MAX,
   CHANNEL_SEQ_MODULUS,
   ChannelWindowLimits,
-  canArmChannelPacketReceipt,
   shouldAllowLinkSend,
   initialLinkSendAllowState,
   stepLinkSendAllowWithActions,
@@ -19,14 +18,24 @@ import {
   channelTxOutstandingCountFromActions,
   channelTxTimeoutRetryAction,
   drainContiguousChannelSequences,
+  initialAcceptChannelSequenceState,
+  initialApplyChannelPacketReceiptTimeoutState,
+  initialApplyChannelTxReceiptTimeoutExtensionState,
+  initialArmChannelPacketReceiptState,
   initialChannelAllowsSendState,
   initialChannelOutletTransmitState,
   initialChannelPacketTimeoutSecondsState,
   initialChannelWindowState,
+  initialClearChannelEnvelopePacketState,
   initialCountChannelTxOutstandingState,
+  initialDrainChannelRingIndexState,
   initialEmplaceChannelEnvelopeState,
+  initialEmitChannelImmediateDeliveryState,
   initialIndexOfChannelRingSequenceState,
   initialIndexOfChannelTxEnvelopeState,
+  initialRegisterChannelMessageHandlerState,
+  initialReplaceChannelResentPacketState,
+  initialStopChannelHandlerFanoutState,
   nextChannelSequence,
   initialChannelEnvelopePackState,
   initialChannelEnvelopeUnpackState,
@@ -39,21 +48,22 @@ import {
   initialUnpackChannelEnvelopeState,
   packChannelEnvelopeRawFromActions,
   shouldAcceptChannelOutletTransmit,
-  shouldAcceptChannelSequence,
+  shouldAcceptChannelSequenceNow,
   shouldAllowChannelSend,
-  shouldApplyChannelPacketReceiptTimeout,
-  shouldApplyChannelTxReceiptTimeoutExtension,
-  shouldClearChannelEnvelopePacket,
-  shouldDrainChannelRingIndex,
+  shouldApplyChannelPacketReceiptTimeoutNow,
+  shouldApplyChannelTxReceiptTimeoutExtensionNow,
+  shouldArmChannelPacketReceiptNow,
+  shouldClearChannelEnvelopePacketNow,
+  shouldDrainChannelRingIndexNow,
   shouldEmplaceChannelEnvelopeNow,
-  shouldEmitChannelImmediateDelivery,
+  shouldEmitChannelImmediateDeliveryNow,
   shouldGiveUpChannelTxTimeout,
   shouldMissChannelTxEnvelopeOp,
   shouldProceedChannelEnvelopePack,
   shouldProceedChannelEnvelopeUnpack,
   shouldProceedChannelMessageTypeRegistration,
   shouldProceedChannelSend,
-  shouldRegisterChannelMessageHandler,
+  shouldRegisterChannelMessageHandlerNow,
   shouldRejectChannelEnvelopePackMissingMessage,
   shouldRejectChannelEnvelopeUnpackMissingRaw,
   shouldRejectChannelEnvelopeUnpackNotRegistered,
@@ -65,9 +75,9 @@ import {
   shouldRejectPackChannelEnvelope,
   shouldRejectUnpackChannelEnvelope,
   shouldRemoveChannelMessageHandler,
-  shouldReplaceChannelResentPacket,
+  shouldReplaceChannelResentPacketNow,
   shouldRetryChannelTxTimeout,
-  shouldStopChannelHandlerFanout,
+  shouldStopChannelHandlerFanoutNow,
   shouldUseChannelPacketTimeout,
   shouldUseChannelRingSequenceIndex,
   shouldUseChannelTxEnvelopeIndex,
@@ -76,6 +86,10 @@ import {
   shouldUseUnpackChannelEnvelope,
   channelMessageHandlerUnregisterIndex,
   channelTxReceiptTimeoutExtensions,
+  stepAcceptChannelSequenceWithActions,
+  stepApplyChannelPacketReceiptTimeoutWithActions,
+  stepApplyChannelTxReceiptTimeoutExtensionWithActions,
+  stepArmChannelPacketReceiptWithActions,
   stepChannelAllowsSendWithActions,
   stepChannelEnvelopePackWithActions,
   stepChannelEnvelopeUnpackWithActions,
@@ -88,11 +102,17 @@ import {
   stepChannelTxReceiptTimeoutRefreshWithActions,
   stepChannelTxTimeoutWithActions,
   stepChannelWindow,
+  stepClearChannelEnvelopePacketWithActions,
   stepCountChannelTxOutstandingWithActions,
+  stepDrainChannelRingIndexWithActions,
   stepEmplaceChannelEnvelopeWithActions,
+  stepEmitChannelImmediateDeliveryWithActions,
   stepIndexOfChannelRingSequenceWithActions,
   stepIndexOfChannelTxEnvelopeWithActions,
   stepPackChannelEnvelopeWithActions,
+  stepRegisterChannelMessageHandlerWithActions,
+  stepReplaceChannelResentPacketWithActions,
+  stepStopChannelHandlerFanoutWithActions,
   stepUnpackChannelEnvelopeWithActions,
   type ChannelTxTimeoutAction,
   type ChannelWindowState,
@@ -338,7 +358,17 @@ export class Channel {
   }
 
   addMessageHandler(callback: ChannelMessageHandler): void {
-    if (shouldRegisterChannelMessageHandler(this.messageCallbacks.includes(callback))) {
+    if (
+      shouldRegisterChannelMessageHandlerNow(
+        stepRegisterChannelMessageHandlerWithActions(
+          initialRegisterChannelMessageHandlerState(),
+          {
+            kind: "channel/register-message-handler-gate",
+            alreadyPresent: this.messageCallbacks.includes(callback)
+          }
+        ).actions
+      )
+    ) {
       this.messageCallbacks.push(callback);
     }
   }
@@ -458,7 +488,17 @@ export class Channel {
     );
     this.updatePacketTimeouts();
 
-    if (shouldEmitChannelImmediateDelivery(this.outlet.getPacketState(packet))) {
+    if (
+      shouldEmitChannelImmediateDeliveryNow(
+        stepEmitChannelImmediateDeliveryWithActions(
+          initialEmitChannelImmediateDeliveryState(),
+          {
+            kind: "channel/emit-immediate-delivery-gate",
+            packetState: this.outlet.getPacketState(packet)
+          }
+        ).actions
+      )
+    ) {
       this.packetDelivered(packet);
     }
 
@@ -470,11 +510,14 @@ export class Channel {
     envelope.unpack(this.messageFactories);
 
     if (
-      !shouldAcceptChannelSequence({
-        sequence: envelope.sequence,
-        nextRxSequence: this.nextRxSequence,
-        windowMax: Channel.WINDOW_MAX
-      })
+      !shouldAcceptChannelSequenceNow(
+        stepAcceptChannelSequenceWithActions(initialAcceptChannelSequenceState(), {
+          kind: "channel/accept-sequence-gate",
+          sequence: envelope.sequence,
+          nextRxSequence: this.nextRxSequence,
+          windowMax: Channel.WINDOW_MAX
+        }).actions
+      )
     ) {
       return;
     }
@@ -503,14 +546,28 @@ export class Channel {
       const index = shouldUseChannelRingSequenceIndex(indexStepped.actions)
         ? channelRingSequenceIndexFromActions(indexStepped.actions)
         : null;
-      if (!shouldDrainChannelRingIndex(index !== null)) {
+      if (
+        !shouldDrainChannelRingIndexNow(
+          stepDrainChannelRingIndexWithActions(initialDrainChannelRingIndexState(), {
+            kind: "channel/drain-ring-index-gate",
+            indexPresent: index !== null
+          }).actions
+        )
+      ) {
         continue;
       }
       const candidate = this.rxRing.splice(index!, 1)[0]!;
       const delivered = candidate.unpack(this.messageFactories);
 
       for (const callback of [...this.messageCallbacks]) {
-        if (shouldStopChannelHandlerFanout(callback(delivered))) {
+        if (
+          shouldStopChannelHandlerFanoutNow(
+            stepStopChannelHandlerFanoutWithActions(initialStopChannelHandlerFanoutState(), {
+              kind: "channel/stop-handler-fanout-gate",
+              handled: callback(delivered)
+            }).actions
+          )
+        ) {
           break;
         }
       }
@@ -520,7 +577,14 @@ export class Channel {
   shutdown(): void {
     this.messageCallbacks.length = 0;
     for (const envelope of this.txRing) {
-      if (shouldClearChannelEnvelopePacket(envelope.packet !== null)) {
+      if (
+        shouldClearChannelEnvelopePacketNow(
+          stepClearChannelEnvelopePacketWithActions(initialClearChannelEnvelopePacketState(), {
+            kind: "channel/clear-envelope-packet-gate",
+            packetPresent: envelope.packet !== null
+          }).actions
+        )
+      ) {
         this.outlet.setPacketTimeoutCallback(envelope.packet!, null);
         this.outlet.setPacketDeliveredCallback(envelope.packet!, null);
       }
@@ -598,7 +662,14 @@ export class Channel {
 
     let packet = envelope.packet;
     const resent = await this.outlet.resend(packet);
-    if (shouldReplaceChannelResentPacket(resent !== null)) {
+    if (
+      shouldReplaceChannelResentPacketNow(
+        stepReplaceChannelResentPacketWithActions(initialReplaceChannelResentPacketState(), {
+          kind: "channel/replace-resent-packet-gate",
+          resentPresent: resent !== null
+        }).actions
+      )
+    ) {
       packet = resent!;
       envelope.packet = packet;
     }
@@ -615,7 +686,17 @@ export class Channel {
     );
     this.updatePacketTimeouts();
 
-    if (shouldEmitChannelImmediateDelivery(this.outlet.getPacketState(packet))) {
+    if (
+      shouldEmitChannelImmediateDeliveryNow(
+        stepEmitChannelImmediateDeliveryWithActions(
+          initialEmitChannelImmediateDeliveryState(),
+          {
+            kind: "channel/emit-immediate-delivery-gate",
+            packetState: this.outlet.getPacketState(packet)
+          }
+        ).actions
+      )
+    ) {
       this.packetDelivered(packet);
     }
   }
@@ -696,7 +777,17 @@ export class Channel {
     );
     for (const extension of channelTxReceiptTimeoutExtensions(stepped.actions)) {
       const receipt = this.txRing[extension.index]?.packet?.receipt;
-      if (shouldApplyChannelTxReceiptTimeoutExtension(receipt != null)) {
+      if (
+        shouldApplyChannelTxReceiptTimeoutExtensionNow(
+          stepApplyChannelTxReceiptTimeoutExtensionWithActions(
+            initialApplyChannelTxReceiptTimeoutExtensionState(),
+            {
+              kind: "channel/apply-tx-receipt-timeout-extension-gate",
+              extensionPresent: receipt != null
+            }
+          ).actions
+        )
+      ) {
         receipt!.setTimeout(extension.timeoutSeconds);
       }
     }
@@ -763,11 +854,28 @@ export class LinkChannelOutlet implements ChannelOutlet {
     callback: ((packet: ChannelPacket) => void) | null,
     timeout: number | null = null
   ): void {
-    if (!canArmChannelPacketReceipt(packet.receipt !== null)) {
+    if (
+      !shouldArmChannelPacketReceiptNow(
+        stepArmChannelPacketReceiptWithActions(initialArmChannelPacketReceiptState(), {
+          kind: "channel/arm-packet-receipt-gate",
+          receiptPresent: packet.receipt !== null
+        }).actions
+      )
+    ) {
       return;
     }
 
-    if (shouldApplyChannelPacketReceiptTimeout(timeout !== null)) {
+    if (
+      shouldApplyChannelPacketReceiptTimeoutNow(
+        stepApplyChannelPacketReceiptTimeoutWithActions(
+          initialApplyChannelPacketReceiptTimeoutState(),
+          {
+            kind: "channel/apply-packet-receipt-timeout-gate",
+            timeoutPresent: timeout !== null
+          }
+        ).actions
+      )
+    ) {
       packet.receipt!.setTimeout(timeout!);
     }
 
@@ -782,7 +890,14 @@ export class LinkChannelOutlet implements ChannelOutlet {
     packet: ChannelPacket,
     callback: ((packet: ChannelPacket) => void) | null
   ): void {
-    if (!canArmChannelPacketReceipt(packet.receipt !== null)) {
+    if (
+      !shouldArmChannelPacketReceiptNow(
+        stepArmChannelPacketReceiptWithActions(initialArmChannelPacketReceiptState(), {
+          kind: "channel/arm-packet-receipt-gate",
+          receiptPresent: packet.receipt !== null
+        }).actions
+      )
+    ) {
       return;
     }
 

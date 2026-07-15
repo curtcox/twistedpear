@@ -244,7 +244,20 @@
 > **`stepAcceptTokenFrameWithActions`**: valid|invalid / accept|skip) and
 > **link keepalive-context** (via **`stepLinkKeepaliveContextWithActions`**:
 > keepalive|other), **channel envelope emplace** (via
-> **`stepEmplaceChannelEnvelopeWithActions`**: emplace|skip), **resource
+> **`stepEmplaceChannelEnvelopeWithActions`**: emplace|skip), **channel RX/TX
+> lifecycle** (sequence accept via **`stepAcceptChannelSequenceWithActions`**:
+> accept|skip; ring drain via **`stepDrainChannelRingIndexWithActions`**:
+> drain|skip; handler register via
+> **`stepRegisterChannelMessageHandlerWithActions`**: register|skip; fan-out
+> stop via **`stepStopChannelHandlerFanoutWithActions`**: stop|continue;
+> immediate delivery via **`stepEmitChannelImmediateDeliveryWithActions`**:
+> emit|skip; envelope clear via **`stepClearChannelEnvelopePacketWithActions`**:
+> clear|skip; receipt arm via **`stepArmChannelPacketReceiptWithActions`**:
+> arm|skip; receipt timeout via
+> **`stepApplyChannelPacketReceiptTimeoutWithActions`**: apply|skip; resent
+> replace via **`stepReplaceChannelResentPacketWithActions`**: replace|skip;
+> TX receipt-timeout extension via
+> **`stepApplyChannelTxReceiptTimeoutExtensionWithActions`**: apply|skip), **resource
 > fulfill-part apply** (via **`stepApplyResourceFulfillPartWithActions`**:
 > apply|skip), **propagation peer-response accept** (via
 > **`stepAcceptPropagationPeerResponseWithActions`**: accept|skip),
@@ -799,7 +812,8 @@
 > **`stepLinkTokenAccessWithActions`**: reject-no-key / create / reuse) live in
 > protocol; Resource and Link adapt them. **`shouldInvokeDestinationLinkEstablishedCallback`**
 > (via **`stepDestinationLinkEstablishedCallbackWithActions`**: invoke|skip),
-> **`canArmChannelPacketReceipt`**, **`planPacketReceiptCallback`**,
+> **`canArmChannelPacketReceipt`** (via
+> **`stepArmChannelPacketReceiptWithActions`**: arm|skip), **`planPacketReceiptCallback`**,
 > **`canDispatchAnnounceHandlers`** (via
 > **`stepDispatchAnnounceHandlersWithActions`**: dispatch|skip), **`shouldAttemptIdentityRatchetDecrypt`**,
 > **`shouldRegisterStreamReadyCallback`** (via
@@ -815,8 +829,10 @@
 > **`isValidResourceRandomHashLength`** (via
 > **`stepResourceRandomHashLengthValidWithActions`**: valid|invalid),
 > **`shouldAcceptResourceHashmapUpdateFrame`** / **`shouldFulfillResourcePartRequest`**,
-> **`planChannelTxEnvelopeOp`** / **`shouldApplyChannelPacketReceiptTimeout`** /
-> **`shouldReplaceChannelResentPacket`**, **`canAnswerLocalPathRequest`** (via
+> **`planChannelTxEnvelopeOp`** / **`shouldApplyChannelPacketReceiptTimeout`** (via
+> **`stepApplyChannelPacketReceiptTimeoutWithActions`**: apply|skip) /
+> **`shouldReplaceChannelResentPacket`** (via
+> **`stepReplaceChannelResentPacketWithActions`**: replace|skip), **`canAnswerLocalPathRequest`** (via
 > **`stepAnswerLocalPathRequestWithActions`**: answer|skip) /
 > **`shouldBeginPathDiscovery`** (via **`stepBeginPathDiscoveryWithActions`**:
 > begin|skip), **`canAcceptLinkOwnerPublicKey`** (via **`stepAcceptLinkOwnerPublicKeyWithActions`**: accept|reject),
@@ -832,6 +848,26 @@
 > **`stepAcceptResourceProofSplitWithActions`**: accept|skip),
 > **`shouldEmplaceChannelEnvelope`** (via
 > **`stepEmplaceChannelEnvelopeWithActions`**: emplace|skip),
+> **`shouldAcceptChannelSequence`** (via
+> **`stepAcceptChannelSequenceWithActions`**: accept|skip) /
+> **`shouldDrainChannelRingIndex`** (via
+> **`stepDrainChannelRingIndexWithActions`**: drain|skip) /
+> **`shouldRegisterChannelMessageHandler`** (via
+> **`stepRegisterChannelMessageHandlerWithActions`**: register|skip) /
+> **`shouldStopChannelHandlerFanout`** (via
+> **`stepStopChannelHandlerFanoutWithActions`**: stop|continue) /
+> **`shouldEmitChannelImmediateDelivery`** (via
+> **`stepEmitChannelImmediateDeliveryWithActions`**: emit|skip) /
+> **`shouldClearChannelEnvelopePacket`** (via
+> **`stepClearChannelEnvelopePacketWithActions`**: clear|skip) /
+> **`canArmChannelPacketReceipt`** (via
+> **`stepArmChannelPacketReceiptWithActions`**: arm|skip) /
+> **`shouldApplyChannelPacketReceiptTimeout`** (via
+> **`stepApplyChannelPacketReceiptTimeoutWithActions`**: apply|skip) /
+> **`shouldReplaceChannelResentPacket`** (via
+> **`stepReplaceChannelResentPacketWithActions`**: replace|skip) /
+> **`shouldApplyChannelTxReceiptTimeoutExtension`** (via
+> **`stepApplyChannelTxReceiptTimeoutExtensionWithActions`**: apply|skip),
 > **`shouldApplyResourceFulfillPart`** (via
 > **`stepApplyResourceFulfillPartWithActions`**: apply|skip),
 > **`shouldClearExpiredDiscoveryPathRequest`** (via
@@ -874,7 +910,10 @@
 > **`shouldAttemptAnnounceSignatureValidate`** /
 > **`shouldCheckAnnounceDestinationHash`** live in protocol; Resource, Channel,
 > TransportNode, and Announce adapt them.
-> **`shouldDrainChannelRingIndex`** / **`shouldClearChannelEnvelopePacket`** /
+> **`shouldDrainChannelRingIndex`** (via
+> **`stepDrainChannelRingIndexWithActions`**: drain|skip) /
+> **`shouldClearChannelEnvelopePacket`** (via
+> **`stepClearChannelEnvelopePacketWithActions`**: clear|skip) /
 > **`shouldUnregisterChannelMessageHandler`**,
 > **`shouldEvictPropagationCatalogEntry`** / **`shouldCommitPropagationStoreEntry`** /
 > **`shouldDeletePropagationCatalogEntry`** / **`shouldApplyPropagationRestore`**, and
@@ -1292,7 +1331,12 @@
 > identity-recall-app-data / destination-construction / destination-decrypt /
 > destination-encrypt / packet-from-fields / channel-message-type-registration /
 > channel-envelope-unpack / channel-envelope-pack / channel-send /
-> emplace-channel-envelope / link-keepalive-context /
+> emplace-channel-envelope / accept-channel-sequence /
+> drain-channel-ring-index / register-channel-message-handler /
+> stop-channel-handler-fanout / emit-channel-immediate-delivery /
+> clear-channel-envelope-packet / arm-channel-packet-receipt /
+> apply-channel-packet-receipt-timeout / replace-channel-resent-packet /
+> apply-channel-tx-receipt-timeout-extension / link-keepalive-context /
 > apply-resource-fulfill-part / accept-propagation-peer-response /
 > accept-resource-proof-payload / accept-resource-proof-split /
 > resource-random-hash-length-valid / handle-propagation-peer-error /
@@ -1396,7 +1440,12 @@
 > teardown-lxmf-propagation-link / extract-lxmf-opportunistic-payload /
 > select-lxmf-delivery-parameters /
 > accept-transport-packet / packet-hash-defer /
-> emplace-channel-envelope / link-keepalive-context /
+> emplace-channel-envelope / accept-channel-sequence /
+> drain-channel-ring-index / register-channel-message-handler /
+> stop-channel-handler-fanout / emit-channel-immediate-delivery /
+> clear-channel-envelope-packet / arm-channel-packet-receipt /
+> apply-channel-packet-receipt-timeout / replace-channel-resent-packet /
+> apply-channel-tx-receipt-timeout-extension / link-keepalive-context /
 > apply-resource-fulfill-part / accept-propagation-peer-response /
 > accept-resource-proof-payload / accept-resource-proof-split /
 > resource-random-hash-length-valid / handle-propagation-peer-error /
@@ -1441,6 +1490,11 @@
 > pack-token-frame / split-token-frame / split-token-key /
 > token-iv-length-valid / accept-token-frame /
 > link-keepalive-context / emplace-channel-envelope /
+> accept-channel-sequence / drain-channel-ring-index /
+> register-channel-message-handler / stop-channel-handler-fanout /
+> emit-channel-immediate-delivery / clear-channel-envelope-packet /
+> arm-channel-packet-receipt / apply-channel-packet-receipt-timeout /
+> replace-channel-resent-packet / apply-channel-tx-receipt-timeout-extension /
 > apply-resource-fulfill-part / accept-propagation-peer-response /
 > accept-resource-proof-payload / accept-resource-proof-split /
 > resource-random-hash-length-valid / handle-propagation-peer-error /
@@ -1735,6 +1789,16 @@
 > `shouldAcceptTransportPacket` reads beside the step).
 > **`stepLinkKeepaliveContextWithActions`** emits `keepalive` / `other`;
 > **`stepEmplaceChannelEnvelopeWithActions`** emits `emplace` / `skip`;
+> **`stepAcceptChannelSequenceWithActions`** emits `accept` / `skip`;
+> **`stepDrainChannelRingIndexWithActions`** emits `drain` / `skip`;
+> **`stepRegisterChannelMessageHandlerWithActions`** emits `register` / `skip`;
+> **`stepStopChannelHandlerFanoutWithActions`** emits `stop` / `continue`;
+> **`stepEmitChannelImmediateDeliveryWithActions`** emits `emit` / `skip`;
+> **`stepClearChannelEnvelopePacketWithActions`** emits `clear` / `skip`;
+> **`stepArmChannelPacketReceiptWithActions`** emits `arm` / `skip`;
+> **`stepApplyChannelPacketReceiptTimeoutWithActions`** emits `apply` / `skip`;
+> **`stepReplaceChannelResentPacketWithActions`** emits `replace` / `skip`;
+> **`stepApplyChannelTxReceiptTimeoutExtensionWithActions`** emits `apply` / `skip`;
 > **`stepApplyResourceFulfillPartWithActions`** emits `apply` / `skip`;
 > **`stepAcceptPropagationPeerResponseWithActions`** emits `accept` / `skip`;
 > **`stepAcceptResourceProofPayloadWithActions`** emits `accept` / `skip`;
@@ -1744,11 +1808,17 @@
 > **`stepAcceptPropagationDeliveredMessageWithActions`** emits `accept` / `skip`;
 > **`stepTreatPropagationListAsEmptyWithActions`** emits `empty` / `nonempty`;
 > **`stepRequestPropagationHavesAckWithActions`** emits `request` / `skip`;
-> link keepalive-context, channel envelope emplace, resource fulfill-part,
-> propagation peer-response accept, resource-proof payload/split/random-hash,
-> and propagation peer-error / delivered-message / list-empty / haves-ack apply
-> only from those actions (no ad-hoc
+> link keepalive-context, channel envelope emplace / RX-TX lifecycle,
+> resource fulfill-part, propagation peer-response accept, resource-proof
+> payload/split/random-hash, and propagation peer-error / delivered-message /
+> list-empty / haves-ack apply only from those actions (no ad-hoc
 > `isLinkKeepaliveContext` / `shouldEmplaceChannelEnvelope` /
+> `shouldAcceptChannelSequence` / `shouldDrainChannelRingIndex` /
+> `shouldRegisterChannelMessageHandler` / `shouldStopChannelHandlerFanout` /
+> `shouldEmitChannelImmediateDelivery` / `shouldClearChannelEnvelopePacket` /
+> `canArmChannelPacketReceipt` / `shouldApplyChannelPacketReceiptTimeout` /
+> `shouldReplaceChannelResentPacket` /
+> `shouldApplyChannelTxReceiptTimeoutExtension` /
 > `shouldApplyResourceFulfillPart` / `shouldAcceptPropagationPeerResponse` /
 > `shouldAcceptResourceProofPayload` / `shouldAcceptResourceProofSplit` /
 > `isValidResourceRandomHashLength` / `shouldHandlePropagationPeerError` /

@@ -59,6 +59,65 @@ export function shouldEmitChannelImmediateDelivery(packetState: number): boolean
   return packetState === ChannelMessageState.MSGSTATE_DELIVERED;
 }
 
+/**
+ * Channel immediate-delivery emit gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldEmitChannelImmediateDelivery`
+ * reads beside the step).
+ */
+export type EmitChannelImmediateDeliveryState = Record<string, never>;
+
+export type EmitChannelImmediateDeliveryEvent =
+  | Event
+  | {
+      readonly kind: "channel/emit-immediate-delivery-gate";
+      readonly packetState: number;
+    };
+
+export type EmitChannelImmediateDeliveryAction =
+  | { readonly kind: "emit" }
+  | { readonly kind: "skip" };
+
+export interface EmitChannelImmediateDeliveryStepResult {
+  readonly state: EmitChannelImmediateDeliveryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly EmitChannelImmediateDeliveryAction[];
+}
+
+export function initialEmitChannelImmediateDeliveryState(): EmitChannelImmediateDeliveryState {
+  return {};
+}
+
+export function stepEmitChannelImmediateDeliveryWithActions(
+  state: EmitChannelImmediateDeliveryState,
+  event: EmitChannelImmediateDeliveryEvent
+): EmitChannelImmediateDeliveryStepResult {
+  if (event.kind === "channel/emit-immediate-delivery-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldEmitChannelImmediateDelivery(event.packetState) ? "emit" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldEmitChannelImmediateDeliveryNow(
+  actions: ReadonlyArray<EmitChannelImmediateDeliveryAction>
+): boolean {
+  return actions.some((action) => action.kind === "emit");
+}
+
+export function shouldSkipEmitChannelImmediateDelivery(
+  actions: ReadonlyArray<EmitChannelImmediateDeliveryAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 export interface PackedChannelEnvelope {
   readonly msgType: number;
   readonly sequence: number;
@@ -523,6 +582,67 @@ export function shouldRegisterChannelMessageHandler(alreadyPresent: boolean): bo
 }
 
 /**
+ * Channel message-handler register gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldRegisterChannelMessageHandler`
+ * reads beside the step).
+ */
+export type RegisterChannelMessageHandlerState = Record<string, never>;
+
+export type RegisterChannelMessageHandlerEvent =
+  | Event
+  | {
+      readonly kind: "channel/register-message-handler-gate";
+      readonly alreadyPresent: boolean;
+    };
+
+export type RegisterChannelMessageHandlerAction =
+  | { readonly kind: "register" }
+  | { readonly kind: "skip" };
+
+export interface RegisterChannelMessageHandlerStepResult {
+  readonly state: RegisterChannelMessageHandlerState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RegisterChannelMessageHandlerAction[];
+}
+
+export function initialRegisterChannelMessageHandlerState(): RegisterChannelMessageHandlerState {
+  return {};
+}
+
+export function stepRegisterChannelMessageHandlerWithActions(
+  state: RegisterChannelMessageHandlerState,
+  event: RegisterChannelMessageHandlerEvent
+): RegisterChannelMessageHandlerStepResult {
+  if (event.kind === "channel/register-message-handler-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRegisterChannelMessageHandler(event.alreadyPresent)
+            ? "register"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRegisterChannelMessageHandlerNow(
+  actions: ReadonlyArray<RegisterChannelMessageHandlerAction>
+): boolean {
+  return actions.some((action) => action.kind === "register");
+}
+
+export function shouldSkipRegisterChannelMessageHandler(
+  actions: ReadonlyArray<RegisterChannelMessageHandlerAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/**
  * Unregister a channel message handler: splice index or skip when absent.
  * Splice stays at the adapter.
  */
@@ -596,6 +716,65 @@ export function shouldRemoveChannelMessageHandler(
 /** Whether channel message-handler fan-out should stop after a handler returns handled. */
 export function shouldStopChannelHandlerFanout(handled: boolean): boolean {
   return handled;
+}
+
+/**
+ * Channel message-handler fan-out stop gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldStopChannelHandlerFanout`
+ * reads beside the step).
+ */
+export type StopChannelHandlerFanoutState = Record<string, never>;
+
+export type StopChannelHandlerFanoutEvent =
+  | Event
+  | {
+      readonly kind: "channel/stop-handler-fanout-gate";
+      readonly handled: boolean;
+    };
+
+export type StopChannelHandlerFanoutAction =
+  | { readonly kind: "stop" }
+  | { readonly kind: "continue" };
+
+export interface StopChannelHandlerFanoutStepResult {
+  readonly state: StopChannelHandlerFanoutState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly StopChannelHandlerFanoutAction[];
+}
+
+export function initialStopChannelHandlerFanoutState(): StopChannelHandlerFanoutState {
+  return {};
+}
+
+export function stepStopChannelHandlerFanoutWithActions(
+  state: StopChannelHandlerFanoutState,
+  event: StopChannelHandlerFanoutEvent
+): StopChannelHandlerFanoutStepResult {
+  if (event.kind === "channel/stop-handler-fanout-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldStopChannelHandlerFanout(event.handled) ? "stop" : "continue"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldStopChannelHandlerFanoutNow(
+  actions: ReadonlyArray<StopChannelHandlerFanoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "stop");
+}
+
+export function shouldContinueChannelHandlerFanout(
+  actions: ReadonlyArray<StopChannelHandlerFanoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "continue");
 }
 
 export function channelPayloadMdu(outletMdu: number): number {
