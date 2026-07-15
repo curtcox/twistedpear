@@ -130,10 +130,16 @@
 > **`stepChannelEnvelopePackPlanWithActions`**: ok|missing-message — nested under
 > channel-envelope-pack; **`stepChannelSendPlanWithActions`**:
 > proceed|link-not-ready|too-big — nested under channel-send),
-> **Resource assemble-outcome / proof-accept plans** (via
+> **Resource assemble-outcome / proof-accept / advertise-phase plans** (via
 > **`stepResourceAssembleOutcomePlanWithActions`**: complete|corrupt — nested
 > under resource-assemble; **`stepResourceProofAcceptPlanWithActions`**:
-> complete|ignore — nested under resource-proof-accept),
+> complete|ignore — nested under resource-proof-accept;
+> **`stepResourceAdvertisePhasePlanWithActions`**: queue|advertise — nested
+> under resource-advertise-wait),
+> **Link app-request / app-request-transmit-outcome plans** (via
+> **`stepLinkAppRequestPlanWithActions`**: send|reject — nested under
+> link-app-request; **`stepLinkAppRequestTransmitOutcomePlanWithActions`**:
+> keep-pending|unregister — nested under link-app-request-transmit),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -378,6 +384,12 @@
 > (nested under resource-assemble) /
 > **`stepResourceProofAcceptPlanWithActions`**: complete|ignore
 > (nested under resource-proof-accept) /
+> **`stepResourceAdvertisePhasePlanWithActions`**: queue|advertise
+> (nested under resource-advertise-wait) /
+> **`stepLinkAppRequestPlanWithActions`**: send|reject
+> (nested under link-app-request) /
+> **`stepLinkAppRequestTransmitOutcomePlanWithActions`**: keep-pending|unregister
+> (nested under link-app-request-transmit) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -737,11 +749,14 @@
 > **`stepChannelEnvelopeUnpackPlanWithActions`** /
 > **`stepChannelMessageTypeRegistrationPlanWithActions`** /
 > **`stepChannelSendPlanWithActions`**) are pure protocol leaves; `Channel` adapts them.
-> **Resource assemble / proof-accept** (via **`stepResourceAssembleWithActions`** /
-> **`stepResourceProofAcceptWithActions`**; plans nested via
+> **Resource assemble / proof-accept / advertise-phase** (via
+> **`stepResourceAssembleWithActions`** /
+> **`stepResourceProofAcceptWithActions`** /
+> **`stepResourceAdvertiseWaitWithActions`**; plans nested via
 > **`stepResourceAssembleOutcomePlanWithActions`** /
-> **`stepResourceProofAcceptPlanWithActions`**) are pure protocol leaves; `Resource`
-> adapts them. **LXMF delivery sizes / MDU max-content** and
+> **`stepResourceProofAcceptPlanWithActions`** /
+> **`stepResourceAdvertisePhasePlanWithActions`**) are pure protocol leaves;
+> `Resource` adapts them. **LXMF delivery sizes / MDU max-content** and
 > **peer-error code object** live in protocol; lxmf-ts re-exports aliases
 > (`DESTINATION_LENGTH`, `ENCRYPTED_PACKET_MAX_CONTENT`, `PeerError`, method/representation
 > enums). **Packet header enum objects** (`PacketTypeCode`, header/context-flag/transport/
@@ -1051,7 +1066,9 @@
 > **`stepResourceWatchdogAllowWithActions`**: allow|deny), **`canProveResource`**
 > (via **`stepProveResourceAllowWithActions`**: allow|deny),
 > **`shouldAdvertiseResource`** (via **`stepAdvertiseResourceWithActions`**:
-> advertise|skip), **`planResourceAdvertisePhase`**, and
+> advertise|skip), **`planResourceAdvertisePhase`** (via
+> **`stepResourceAdvertiseWaitWithActions`**: queue / resolve; plan nested via
+> **`stepResourceAdvertisePhasePlanWithActions`**: queue|advertise), and
 > **`shouldAcceptIncomingResourceAdvertisement`** (via
 > **`stepAcceptIncomingResourceAdvertisementWithActions`**: accept|skip) live in
 > protocol; `Resource` adapts them.
@@ -1069,7 +1086,12 @@
 > **`stepChannelSendPlanWithActions`**: proceed|link-not-ready|too-big) lives in
 > protocol; `Channel.send` adapts it.
 > **`canPerformLinkHandshake`** (via **`stepPerformLinkHandshakeAllowWithActions`**: allow|deny), **`canProveLink`** (via **`stepProveLinkAllowWithActions`**: allow|deny), **`canAcceptLinkRequestOwner`** (via **`stepAcceptLinkRequestOwnerWithActions`**: accept|reject),
-> **`planLinkAppRequest`** (via **`stepLinkAppRequestWithActions`**: send / reject),
+> **`planLinkAppRequest`** (via **`stepLinkAppRequestWithActions`**: send /
+> reject; plan nested via **`stepLinkAppRequestPlanWithActions`**: send|reject),
+> **`planLinkAppRequestTransmitOutcome`** (via
+> **`stepLinkAppRequestTransmitWithActions`**: keep-pending / unregister; plan
+> nested via **`stepLinkAppRequestTransmitOutcomePlanWithActions`**:
+> keep-pending|unregister),
 > **`canSendLinkAppResponse`** (via **`stepSendLinkAppResponseAllowWithActions`**: allow|deny), and **`planLinkTokenAccess`**
 > (via **`stepLinkTokenAccessWithActions`**: reject-no-key / create / reuse) live in
 > protocol; `Link` adapts them (`tokenInstance` via token-access actions).
@@ -1795,6 +1817,9 @@
 > `isResourceComplete` reads beside the step).
 > **`stepResourceProofAcceptWithActions`** emits `complete` / `ignore` (plan nested via
 > **`stepResourceProofAcceptPlanWithActions`**: `complete`|`ignore`);
+> **`stepResourceAdvertiseWaitWithActions`** emits `probe` / `queue` / `resolve`
+> (plan nested via **`stepResourceAdvertisePhasePlanWithActions`**:
+> `queue`|`advertise`);
 > **`stepResourceContinueTransferWithActions`** emits `continue`|`stop`;
 > **`stepResourceReceivePartAllowWithActions`** /
 > **`stepResourceRequestNextAllowWithActions`** /
@@ -1802,10 +1827,11 @@
 > **`stepProveResourceAllowWithActions`** emit `allow`|`deny`;
 > **`stepAdvertiseResourceWithActions`** emits `advertise`|`skip`;
 > **`stepAcceptIncomingResourceAdvertisementWithActions`** emits
-> `accept`|`skip`; `Resource` assemble/validateProof/transfer gates apply only
-> from those actions (no ad-hoc
+> `accept`|`skip`; `Resource` assemble/validateProof/transfer/advertise-wait gates
+> apply only from those actions (no ad-hoc
 > `planResourceAssembleOutcome` /
 > `shouldCommitResourceAssemblePayload` / `planResourceProofAccept` /
+> `planResourceAdvertisePhase` /
 > `plan ===` /
 > `canResourceContinueTransfer` /
 > `canReceiveResourcePart` / `canRequestResourceNext` /
@@ -1874,12 +1900,16 @@
 > **`stepLinkActivateMembershipWithActions`** emits `remove-pending` /
 > `append-active`; **`stepLinkUnregisterMembershipWithActions`** emits
 > `remove-pending` / `remove-active`; **`stepLinkAppRequestWithActions`**
-> emits `send` / `reject`; **`stepLinkAppRequestTransmitWithActions`** emits
-> `keep-pending` / `unregister`; transport link register/activate/unregister
+> emits `send` / `reject` (plan nested via
+> **`stepLinkAppRequestPlanWithActions`**: `send`|`reject`);
+> **`stepLinkAppRequestTransmitWithActions`** emits
+> `keep-pending` / `unregister` (plan nested via
+> **`stepLinkAppRequestTransmitOutcomePlanWithActions`**:
+> `keep-pending`|`unregister`); transport link register/activate/unregister
 > and `Link.request` apply only from those actions (no ad-hoc
 > `planLinkRegisterList` / `planLinkActivateMembership` /
 > `planLinkUnregisterMembership` / `planLinkAppRequest` /
-> `planLinkAppRequestTransmitOutcome` reads beside the step).
+> `planLinkAppRequestTransmitOutcome` / `plan ===` reads beside the step).
 > **`stepAnnounceIngressGatesWithActions`** emits `apply-rate-limit` /
 > `record-rate` / `rebroadcast`; **`stepIgnoreLocalAnnounceWithActions`** emits
 > `ignore`|`proceed`; **`stepDispatchAnnounceHandlersWithActions`** emits
@@ -2122,6 +2152,9 @@
 > channel-send / channel-send-plan /
 > resource-assemble / resource-assemble-outcome-plan /
 > resource-proof-accept / resource-proof-accept-plan /
+> resource-advertise-wait / resource-advertise-phase-plan /
+> link-app-request / link-app-request-plan /
+> link-app-request-transmit / link-app-request-transmit-outcome-plan /
 > emplace-channel-envelope / accept-channel-sequence /
 > drain-channel-ring-index / register-channel-message-handler /
 > stop-channel-handler-fanout / emit-channel-immediate-delivery /
@@ -2148,7 +2181,7 @@
 > resource-random-hash-length-valid / handle-propagation-peer-error /
 > accept-propagation-delivered-message / treat-propagation-list-as-empty /
 > request-propagation-haves-ack /
-> resource-assemble / resource-assemble-outcome-plan / resource-proof-accept / resource-proof-accept-plan / resource-continue-transfer /
+> resource-assemble / resource-assemble-outcome-plan / resource-proof-accept / resource-proof-accept-plan / resource-advertise-wait / resource-advertise-phase-plan / link-app-request / link-app-request-plan / link-app-request-transmit / link-app-request-transmit-outcome-plan / resource-continue-transfer /
 > resource-complete /
 > resource-receive-part-allow / resource-request-next-allow /
 > resource-watchdog-allow / prove-resource-allow / advertise-resource /
@@ -2230,6 +2263,8 @@
 > channel-message-type-registration-plan / channel-envelope-unpack-plan /
 > channel-envelope-pack-plan / channel-send-plan /
 > resource-assemble-outcome-plan / resource-proof-accept-plan /
+> resource-advertise-phase-plan / link-app-request-plan /
+> link-app-request-transmit-outcome-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /

@@ -31,10 +31,12 @@
  * `canAcceptLinkRequestOwner` reads beside the step).
  * Send-link-app-response-allow conclusions leave via machine actions (no ad-hoc
  * `canSendLinkAppResponse` reads beside the step).
- * Validate-request / app-request-dispatch / app-request-response / token-access
- * plan leaves conclude via machine actions (no ad-hoc `planLinkValidateRequest` /
+ * Validate-request / app-request / app-request-dispatch / app-request-response /
+ * app-request-transmit-outcome / token-access plan leaves conclude via machine
+ * actions (no ad-hoc `planLinkValidateRequest` / `planLinkAppRequest` /
  * `planLinkAppRequestDispatch` / `planLinkAppRequestResponse` /
- * `planLinkTokenAccess` / `plan ===` reads beside the parent step).
+ * `planLinkAppRequestTransmitOutcome` / `planLinkTokenAccess` / `plan ===`
+ * reads beside the parent step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -1599,6 +1601,80 @@ export function planLinkAppRequest(input: {
   return "send";
 }
 
+/**
+ * App-request send plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkAppRequest` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLinkAppRequestWithActions}.
+ */
+export type LinkAppRequestPlanState = Record<string, never>;
+
+export type LinkAppRequestPlanEvent =
+  | Event
+  | {
+      readonly kind: "link/app-request-plan-gate";
+      readonly status: LinkStatusValue;
+      readonly rtt: number | null;
+      readonly packedLength: number;
+      readonly mdu: number;
+    };
+
+export type LinkAppRequestPlanAction = { readonly kind: LinkAppRequestPlan };
+
+export interface LinkAppRequestPlanStepResult {
+  readonly state: LinkAppRequestPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkAppRequestPlanAction[];
+}
+
+export function initialLinkAppRequestPlanState(): LinkAppRequestPlanState {
+  return {};
+}
+
+export function stepLinkAppRequestPlanWithActions(
+  state: LinkAppRequestPlanState,
+  event: LinkAppRequestPlanEvent
+): LinkAppRequestPlanStepResult {
+  if (event.kind === "link/app-request-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLinkAppRequest({
+            status: event.status,
+            rtt: event.rtt,
+            packedLength: event.packedLength,
+            mdu: event.mdu
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the app-request plan from actions; null when empty. */
+export function linkAppRequestPlanFromActions(
+  actions: ReadonlyArray<LinkAppRequestPlanAction>
+): LinkAppRequestPlan | null {
+  const action = actions.find((entry) => entry.kind === "send" || entry.kind === "reject");
+  return action?.kind ?? null;
+}
+
+export function shouldSendLinkAppRequestPlan(
+  actions: ReadonlyArray<LinkAppRequestPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "send");
+}
+
+export function shouldRejectLinkAppRequestPlan(
+  actions: ReadonlyArray<LinkAppRequestPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
 /** Whether a packed application response fits the link MDU. */
 export function canSendLinkAppResponse(input: {
   readonly packedLength: number;
@@ -3097,6 +3173,7 @@ function stepLinkUnregisterMembershipInner(
 /**
  * Link app-request send gate is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLinkAppRequestPlanWithActions} (`send`|`reject`).
  */
 export type LinkAppRequestState = Record<string, never>;
 
@@ -3160,20 +3237,18 @@ function stepLinkAppRequestInner(
   event: LinkAppRequestEvent
 ): LinkAppRequestStepResult {
   if (event.kind === "link/app-request-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: planLinkAppRequest({
-            status: event.status,
-            rtt: event.rtt,
-            packedLength: event.packedLength,
-            mdu: event.mdu
-          })
-        }
-      ]
-    };
+    const planActions = stepLinkAppRequestPlanWithActions(initialLinkAppRequestPlanState(), {
+      kind: "link/app-request-plan-gate",
+      status: event.status,
+      rtt: event.rtt,
+      packedLength: event.packedLength,
+      mdu: event.mdu
+    }).actions;
+    const plan = linkAppRequestPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
+    return { state, intents: [], actions: [{ kind: plan }] };
   }
 
   return { state, intents: [], actions: [] };
@@ -3182,6 +3257,8 @@ function stepLinkAppRequestInner(
 /**
  * Link app-request transmit outcome is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLinkAppRequestTransmitOutcomePlanWithActions}
+ * (`keep-pending`|`unregister`).
  */
 export type LinkAppRequestTransmitState = Record<string, never>;
 
@@ -3242,11 +3319,18 @@ function stepLinkAppRequestTransmitInner(
   event: LinkAppRequestTransmitEvent
 ): LinkAppRequestTransmitStepResult {
   if (event.kind === "link/app-request-transmit-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: planLinkAppRequestTransmitOutcome(event.receiptPresent) }]
-    };
+    const planActions = stepLinkAppRequestTransmitOutcomePlanWithActions(
+      initialLinkAppRequestTransmitOutcomePlanState(),
+      {
+        kind: "link/app-request-transmit-outcome-plan-gate",
+        receiptPresent: event.receiptPresent
+      }
+    ).actions;
+    const plan = linkAppRequestTransmitOutcomePlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
+    return { state, intents: [], actions: [{ kind: plan }] };
   }
 
   return { state, intents: [], actions: [] };
@@ -3572,6 +3656,72 @@ export function planLinkAppRequestTransmitOutcome(
   receiptPresent: boolean
 ): LinkAppRequestTransmitOutcome {
   return receiptPresent ? "keep-pending" : "unregister";
+}
+
+/**
+ * App-request transmit-outcome plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `planLinkAppRequestTransmitOutcome` / `plan ===` reads beside the step). Nested
+ * under {@link stepLinkAppRequestTransmitWithActions}.
+ */
+export type LinkAppRequestTransmitOutcomePlanState = Record<string, never>;
+
+export type LinkAppRequestTransmitOutcomePlanEvent =
+  | Event
+  | {
+      readonly kind: "link/app-request-transmit-outcome-plan-gate";
+      readonly receiptPresent: boolean;
+    };
+
+export type LinkAppRequestTransmitOutcomePlanAction = {
+  readonly kind: LinkAppRequestTransmitOutcome;
+};
+
+export interface LinkAppRequestTransmitOutcomePlanStepResult {
+  readonly state: LinkAppRequestTransmitOutcomePlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkAppRequestTransmitOutcomePlanAction[];
+}
+
+export function initialLinkAppRequestTransmitOutcomePlanState(): LinkAppRequestTransmitOutcomePlanState {
+  return {};
+}
+
+export function stepLinkAppRequestTransmitOutcomePlanWithActions(
+  state: LinkAppRequestTransmitOutcomePlanState,
+  event: LinkAppRequestTransmitOutcomePlanEvent
+): LinkAppRequestTransmitOutcomePlanStepResult {
+  if (event.kind === "link/app-request-transmit-outcome-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: planLinkAppRequestTransmitOutcome(event.receiptPresent) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the transmit-outcome plan from actions; null when empty. */
+export function linkAppRequestTransmitOutcomePlanFromActions(
+  actions: ReadonlyArray<LinkAppRequestTransmitOutcomePlanAction>
+): LinkAppRequestTransmitOutcome | null {
+  const action = actions.find(
+    (entry) => entry.kind === "keep-pending" || entry.kind === "unregister"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldKeepPendingLinkAppRequestTransmitOutcomePlan(
+  actions: ReadonlyArray<LinkAppRequestTransmitOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "keep-pending");
+}
+
+export function shouldUnregisterLinkAppRequestTransmitOutcomePlan(
+  actions: ReadonlyArray<LinkAppRequestTransmitOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "unregister");
 }
 
 export function computeLinkRttSeconds(nowSeconds: number, requestTimeSeconds: number): number {

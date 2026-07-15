@@ -117,6 +117,8 @@ import {
   initialLinkAppRequestDispatchState,
   initialLinkAppRequestInboundState,
   initialLinkAppRequestResponsePlanState,
+  initialLinkAppRequestPlanState,
+  initialLinkAppRequestTransmitOutcomePlanState,
   initialLinkAppRequestState,
   initialLinkAppRequestTransmitState,
   initialLinkEstablishState,
@@ -136,8 +138,10 @@ import {
   isLinkInboundDataPacket,
   linkAppRequestDispatchFromActions,
   linkAppRequestFromActions,
+  linkAppRequestPlanFromActions,
   linkAppRequestResponsePlanFromActions,
   linkAppRequestTransmitFromActions,
+  linkAppRequestTransmitOutcomePlanFromActions,
   linkEstablishActivatedAction,
   linkProofValidateOutcomePlanFromActions,
   linkRegisterListFromActions,
@@ -193,6 +197,7 @@ import {
   shouldInvokeLinkAppRequestHandlerNow,
   shouldInvokeLinkAppRequestInbound,
   shouldKeepPendingLinkAppRequestTransmit,
+  shouldKeepPendingLinkAppRequestTransmitOutcomePlan,
   shouldModeDisabledLinkValidateRequestPlan,
   shouldOkLinkValidateRequestPlan,
   shouldOwnerMissingIdentityLinkValidateRequestPlan,
@@ -203,6 +208,7 @@ import {
   shouldRegisterLinkPending,
   shouldRejectLinkAppRequest,
   shouldRejectLinkAppRequestInboundTooBig,
+  shouldRejectLinkAppRequestPlan,
   shouldRejectLinkAppRequestResponseTooBigPlan,
   shouldRejectLinkProofValidate,
   shouldRejectLinkProofValidateOutcomePlan,
@@ -221,6 +227,7 @@ import {
   shouldReuseLinkTokenAccessPlan,
   shouldSendLinkAppRequest,
   shouldSendLinkAppRequestInboundResponse,
+  shouldSendLinkAppRequestPlan,
   shouldSendLinkAppRequestResponse,
   shouldSendLinkAppRequestResponseNow,
   shouldSendLinkAppRequestResponsePlan,
@@ -232,6 +239,7 @@ import {
   shouldTeardownLinkFromRtt,
   shouldTeardownLinkRttOutcomePlan,
   shouldUnregisterLinkAppRequestTransmit,
+  shouldUnregisterLinkAppRequestTransmitOutcomePlan,
   shouldUpdateLinkLastData,
   shouldUseLinkRttSeconds,
   shouldUseMergeLinkRtt,
@@ -242,7 +250,9 @@ import {
   stepLinkAppRequestDispatchWithActions,
   stepLinkAppRequestInbound,
   stepLinkAppRequestInboundWithActions,
+  stepLinkAppRequestPlanWithActions,
   stepLinkAppRequestResponsePlanWithActions,
+  stepLinkAppRequestTransmitOutcomePlanWithActions,
   stepLinkAppRequestTransmitWithActions,
   stepLinkAppRequestWithActions,
   stepLinkEstablish,
@@ -1763,6 +1773,16 @@ describe("protocol link establish", () => {
     expect(linkAppRequestFromActions(send.actions)).toBe("send");
     expect(shouldSendLinkAppRequest(send.actions)).toBe(true);
 
+    const sendPlan = stepLinkAppRequestPlanWithActions(initialLinkAppRequestPlanState(), {
+      kind: "link/app-request-plan-gate",
+      status: LinkStatus.ACTIVE,
+      rtt: 0.1,
+      packedLength: 10,
+      mdu: 500
+    });
+    expect(shouldSendLinkAppRequestPlan(sendPlan.actions)).toBe(true);
+    expect(linkAppRequestPlanFromActions(sendPlan.actions)).toBe("send");
+
     const reject = stepLinkAppRequestWithActions(initialLinkAppRequestState(), {
       kind: "link/app-request-gate",
       status: LinkStatus.PENDING,
@@ -1772,12 +1792,32 @@ describe("protocol link establish", () => {
     });
     expect(shouldRejectLinkAppRequest(reject.actions)).toBe(true);
 
+    const rejectPlan = stepLinkAppRequestPlanWithActions(initialLinkAppRequestPlanState(), {
+      kind: "link/app-request-plan-gate",
+      status: LinkStatus.PENDING,
+      rtt: null,
+      packedLength: 10,
+      mdu: 500
+    });
+    expect(shouldRejectLinkAppRequestPlan(rejectPlan.actions)).toBe(true);
+    expect(linkAppRequestPlanFromActions(rejectPlan.actions)).toBe("reject");
+
     const keep = stepLinkAppRequestTransmitWithActions(initialLinkAppRequestTransmitState(), {
       kind: "link/app-request-transmit-gate",
       receiptPresent: true
     });
     expect(linkAppRequestTransmitFromActions(keep.actions)).toBe("keep-pending");
     expect(shouldKeepPendingLinkAppRequestTransmit(keep.actions)).toBe(true);
+
+    const keepPlan = stepLinkAppRequestTransmitOutcomePlanWithActions(
+      initialLinkAppRequestTransmitOutcomePlanState(),
+      {
+        kind: "link/app-request-transmit-outcome-plan-gate",
+        receiptPresent: true
+      }
+    );
+    expect(shouldKeepPendingLinkAppRequestTransmitOutcomePlan(keepPlan.actions)).toBe(true);
+    expect(linkAppRequestTransmitOutcomePlanFromActions(keepPlan.actions)).toBe("keep-pending");
 
     const unregisterTx = stepLinkAppRequestTransmitWithActions(
       initialLinkAppRequestTransmitState(),
@@ -1787,5 +1827,17 @@ describe("protocol link establish", () => {
       }
     );
     expect(shouldUnregisterLinkAppRequestTransmit(unregisterTx.actions)).toBe(true);
+
+    const unregisterPlan = stepLinkAppRequestTransmitOutcomePlanWithActions(
+      initialLinkAppRequestTransmitOutcomePlanState(),
+      {
+        kind: "link/app-request-transmit-outcome-plan-gate",
+        receiptPresent: false
+      }
+    );
+    expect(shouldUnregisterLinkAppRequestTransmitOutcomePlan(unregisterPlan.actions)).toBe(true);
+    expect(linkAppRequestTransmitOutcomePlanFromActions(unregisterPlan.actions)).toBe(
+      "unregister"
+    );
   });
 });

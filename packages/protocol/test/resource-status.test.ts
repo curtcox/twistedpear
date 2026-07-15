@@ -12,6 +12,7 @@ import {
   initialAdvertiseResourceState,
   initialCommitResourceAssemblePayloadState,
   initialProveResourceAllowState,
+  initialResourceAdvertisePhasePlanState,
   initialResourceAssembleOutcomePlanState,
   initialResourceAssembleState,
   initialResourceCompleteState,
@@ -27,11 +28,13 @@ import {
   planResourceAdvertisePhase,
   planResourceAssembleOutcome,
   planResourceProofAccept,
+  resourceAdvertisePhasePlanFromActions,
   resourceAssembleOutcomePlanFromActions,
   resourceProofAcceptPlanFromActions,
   shouldAcceptIncomingResourceAdvertisement,
   shouldAcceptIncomingResourceAdvertisementNow,
   shouldAdvertiseResource,
+  shouldAdvertiseResourceAdvertisePhasePlan,
   shouldAdvertiseResourceNow,
   shouldAllowProveResource,
   shouldAllowResourceReceivePart,
@@ -52,6 +55,7 @@ import {
   shouldDenyResourceWatchdog,
   shouldIgnoreResourceProofAccept,
   shouldIgnoreResourceProofAcceptPlan,
+  shouldQueueResourceAdvertisePhasePlan,
   shouldSkipAdvertiseResource,
   shouldSkipCommitResourceAssemblePayload,
   shouldSkipIncomingResourceAdvertisement,
@@ -62,6 +66,7 @@ import {
   stepAdvertiseResourceWithActions,
   stepCommitResourceAssemblePayloadWithActions,
   stepProveResourceAllowWithActions,
+  stepResourceAdvertisePhasePlanWithActions,
   stepResourceAssembleOutcomePlanWithActions,
   stepResourceAssembleWithActions,
   stepResourceCompleteWithActions,
@@ -133,6 +138,27 @@ describe("protocol resource status", () => {
   it("plans advertise phase, assemble outcome, and proof accept", () => {
     expect(planResourceAdvertisePhase(false)).toBe("queue");
     expect(planResourceAdvertisePhase(true)).toBe("advertise");
+
+    const queuePhase = stepResourceAdvertisePhasePlanWithActions(
+      initialResourceAdvertisePhasePlanState(),
+      {
+        kind: "resource/advertise-phase-plan-gate",
+        linkReady: false
+      }
+    );
+    expect(shouldQueueResourceAdvertisePhasePlan(queuePhase.actions)).toBe(true);
+    expect(resourceAdvertisePhasePlanFromActions(queuePhase.actions)).toBe("queue");
+
+    const advertisePhase = stepResourceAdvertisePhasePlanWithActions(
+      initialResourceAdvertisePhasePlanState(),
+      {
+        kind: "resource/advertise-phase-plan-gate",
+        linkReady: true
+      }
+    );
+    expect(shouldAdvertiseResourceAdvertisePhasePlan(advertisePhase.actions)).toBe(true);
+    expect(resourceAdvertisePhasePlanFromActions(advertisePhase.actions)).toBe("advertise");
+
     expect(canProveResource(true)).toBe(true);
     expect(canProveResource(false)).toBe(false);
     expect(shouldAdvertiseResource(undefined)).toBe(true);

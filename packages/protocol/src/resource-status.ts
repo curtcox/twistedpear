@@ -5,9 +5,10 @@
  * prove / advertise / incoming-adv / assemble / proof-accept
  * conclusions leave via machine actions (no ad-hoc plan /
  * `can*` / `should*` / `plan ===` reads beside the step).
- * Assemble and proof-accept plans nested via
+ * Assemble, proof-accept, and advertise-phase plans nested via
  * {@link stepResourceAssembleOutcomePlanWithActions} /
- * {@link stepResourceProofAcceptPlanWithActions}.
+ * {@link stepResourceProofAcceptPlanWithActions} /
+ * {@link stepResourceAdvertisePhasePlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { ResourceStatus, type ResourceStatusValue } from "./resource-watchdog.js";
@@ -440,6 +441,70 @@ export function shouldSkipIncomingResourceAdvertisement(
 /** Map link readiness to the next advertise-phase status event. */
 export function planResourceAdvertisePhase(linkReady: boolean): "queue" | "advertise" {
   return linkReady ? "advertise" : "queue";
+}
+
+export type ResourceAdvertisePhasePlan = "queue" | "advertise";
+
+/**
+ * Resource-advertise-phase plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planResourceAdvertisePhase` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepResourceAdvertiseWaitWithActions}.
+ */
+export type ResourceAdvertisePhasePlanState = Record<string, never>;
+
+export type ResourceAdvertisePhasePlanEvent =
+  | Event
+  | {
+      readonly kind: "resource/advertise-phase-plan-gate";
+      readonly linkReady: boolean;
+    };
+
+export type ResourceAdvertisePhasePlanAction = { readonly kind: ResourceAdvertisePhasePlan };
+
+export interface ResourceAdvertisePhasePlanStepResult {
+  readonly state: ResourceAdvertisePhasePlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceAdvertisePhasePlanAction[];
+}
+
+export function initialResourceAdvertisePhasePlanState(): ResourceAdvertisePhasePlanState {
+  return {};
+}
+
+export function stepResourceAdvertisePhasePlanWithActions(
+  state: ResourceAdvertisePhasePlanState,
+  event: ResourceAdvertisePhasePlanEvent
+): ResourceAdvertisePhasePlanStepResult {
+  if (event.kind === "resource/advertise-phase-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: planResourceAdvertisePhase(event.linkReady) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the advertise-phase plan from actions; null when empty. */
+export function resourceAdvertisePhasePlanFromActions(
+  actions: ReadonlyArray<ResourceAdvertisePhasePlanAction>
+): ResourceAdvertisePhasePlan | null {
+  const action = actions.find((entry) => entry.kind === "queue" || entry.kind === "advertise");
+  return action?.kind ?? null;
+}
+
+export function shouldQueueResourceAdvertisePhasePlan(
+  actions: ReadonlyArray<ResourceAdvertisePhasePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "queue");
+}
+
+export function shouldAdvertiseResourceAdvertisePhasePlan(
+  actions: ReadonlyArray<ResourceAdvertisePhasePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "advertise");
 }
 
 /** Whether Resource.prove may build and send a proof (assembled data present). */
