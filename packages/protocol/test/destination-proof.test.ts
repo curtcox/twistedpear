@@ -2,12 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   DestinationProofStrategyCode,
   canEmitDestinationProof,
+  destinationProofPlanFromActions,
+  initialDestinationProofPlanState,
   initialDestinationProofState,
   initialEmitDestinationProofState,
   planDestinationProof,
   shouldEmitDestinationProofNow,
   shouldProveDestination,
+  shouldProveDestinationPlan,
+  shouldSkipDestinationProof,
+  shouldSkipDestinationProofPlan,
   shouldSkipEmitDestinationProof,
+  stepDestinationProofPlanWithActions,
   stepDestinationProofWithActions,
   stepEmitDestinationProofWithActions
 } from "../src/destination-proof.js";
@@ -59,17 +65,34 @@ describe("destination proof planning", () => {
   });
 
   it("emits prove / skip actions from destination/proof-gate", () => {
+    const proveAllPlan = stepDestinationProofPlanWithActions(initialDestinationProofPlanState(), {
+      kind: "destination/proof-plan-gate",
+      strategy: DestinationProofStrategyCode.PROVE_ALL
+    });
+    expect(destinationProofPlanFromActions(proveAllPlan.actions)).toBe("prove");
+    expect(shouldProveDestinationPlan(proveAllPlan.actions)).toBe(true);
+    expect(shouldSkipDestinationProofPlan(proveAllPlan.actions)).toBe(false);
+
     const proveAll = stepDestinationProofWithActions(initialDestinationProofState(), {
       kind: "destination/proof-gate",
       strategy: DestinationProofStrategyCode.PROVE_ALL
     });
     expect(shouldProveDestination(proveAll.actions)).toBe(true);
+    expect(shouldSkipDestinationProof(proveAll.actions)).toBe(false);
+
+    const skipNonePlan = stepDestinationProofPlanWithActions(initialDestinationProofPlanState(), {
+      kind: "destination/proof-plan-gate",
+      strategy: DestinationProofStrategyCode.PROVE_NONE
+    });
+    expect(destinationProofPlanFromActions(skipNonePlan.actions)).toBe("skip");
+    expect(shouldSkipDestinationProofPlan(skipNonePlan.actions)).toBe(true);
 
     const skipNone = stepDestinationProofWithActions(initialDestinationProofState(), {
       kind: "destination/proof-gate",
       strategy: DestinationProofStrategyCode.PROVE_NONE
     });
     expect(shouldProveDestination(skipNone.actions)).toBe(false);
+    expect(shouldSkipDestinationProof(skipNone.actions)).toBe(true);
 
     const proveApp = stepDestinationProofWithActions(initialDestinationProofState(), {
       kind: "destination/proof-gate",
@@ -77,6 +100,7 @@ describe("destination proof planning", () => {
       appWantsProof: true
     });
     expect(shouldProveDestination(proveApp.actions)).toBe(true);
+    expect(destinationProofPlanFromActions([])).toBeNull();
   });
 
   it("gates destination proof emission on identity presence", () => {

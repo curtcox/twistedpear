@@ -176,6 +176,14 @@
 > **`stepPacketReceiptProofIngressPlanWithActions`**: remove-receipt|continue —
 > nested under packet-receipt-proof-ingress; **`stepPacketReceiptCallbackPlanWithActions`**:
 > clear|set — nested under packet-receipt-callback),
+> **Channel TX-envelope-op / destination-proof / packet-filter /
+> link-teardown-reason plans** (via
+> **`stepChannelTxEnvelopeOpPlanWithActions`**: miss|process — nested under
+> channel-tx-envelope-op; **`stepDestinationProofPlanWithActions`**: prove|skip —
+> nested under destination-proof; **`stepPacketFilterPlanWithActions`**:
+> accept|reject — nested under packet-filter;
+> **`stepLinkTeardownReasonPlanWithActions`**: use-reason — nested under
+> link-teardown-reason),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -233,7 +241,8 @@
 > **`stepIndexOfChannelTxEnvelopeWithActions`** /
 > **`stepIndexOfChannelRingSequenceWithActions`**: use-index|miss; TX-envelope
 > op via **`stepChannelTxEnvelopeOpWithActions`**: miss|process (nested under
-> TX timeout); packet-timeout plan via
+> TX timeout; plan nested via **`stepChannelTxEnvelopeOpPlanWithActions`**:
+> miss|process); packet-timeout plan via
 > **`stepChannelPacketTimeoutWithActions`**: ignore|give-up|retry (nested under
 > TX timeout); arm-
 > packet-receipt via **`stepArmChannelPacketReceiptWithActions`**: arm|skip;
@@ -464,6 +473,12 @@
 > (nested under packet-receipt-proof-ingress) /
 > **`stepPacketReceiptCallbackPlanWithActions`**: clear|set
 > (nested under packet-receipt-callback) /
+> **`stepChannelTxEnvelopeOpPlanWithActions`**: miss|process
+> (nested under channel-tx-envelope-op) /
+> **`stepDestinationProofPlanWithActions`**: prove|skip
+> (nested under destination-proof) /
+> **`stepPacketFilterPlanWithActions`**: accept|reject
+> (nested under packet-filter) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -471,6 +486,8 @@
 > **`stepTeardownLinkFromRttWithActions`**: teardown|skip /
 > **`stepAcceptLinkTeardownWithActions`**: accept|skip /
 > **`stepLinkTeardownReasonWithActions`**: use-reason /
+> **`stepLinkTeardownReasonPlanWithActions`**: use-reason
+> (nested under teardown-reason) /
 > **`stepLinkTeardownPlanWithActions`**: close-only|send-teardown-then-close /
 > **`stepIdentifyOnLinkAllowWithActions`**: allow|deny /
 > **`stepDispatchLinkPlaintextWithActions`**: dispatch|skip /
@@ -851,13 +868,16 @@
 > **`planDestinationRequestAllow`** (via **`stepDestinationRequestAllowWithActions`**:
 > allow|deny) live in protocol; LinkRequestReceipt,
 > RegisteredDestination, and Link adapt them. **Destination proof strategy /
-> `planDestinationProof`**, **link resource-accept planning**, **`stepLinkRequestReceipt`**,
+> `planDestinationProof`** (via **`stepDestinationProofWithActions`**: prove|skip;
+> plan nested via **`stepDestinationProofPlanWithActions`**: prove|skip),
+> **link resource-accept planning**, **`stepLinkRequestReceipt`**,
 > and **ChannelExceptionType** live in protocol; LeafTransport, Link, LinkRequestReceipt,
 > and Channel adapt them. **`channelMessageStateFromPacketReceipt`** (via
 > **`stepChannelMessageStateFromPacketReceiptWithActions`**: use-state), **link teardown
 > planning** (via **`stepLinkTeardownWithActions`**; remote accept nested via
 > **`stepAcceptLinkTeardownWithActions`**: accept|skip; reason nested via
-> **`stepLinkTeardownReasonWithActions`**: use-reason; plan nested via
+> **`stepLinkTeardownReasonWithActions`**: use-reason; reason plan nested via
+> **`stepLinkTeardownReasonPlanWithActions`**: use-reason; plan nested via
 > **`stepLinkTeardownPlanWithActions`**: close-only|send-teardown-then-close), and PacketReceipt delivery/timeout via **`stepPacketReceiptTimeoutWithActions`**
 > (`timeout` / `delivered` / `failed` actions) live in
 > protocol; Channel, Link, and PacketReceipt adapt them. **Announce rate** blocked /
@@ -913,7 +933,9 @@
 > (queue → advertise → transferring → awaiting-proof / assemble → complete/corrupt/failed +
 > gates) and **`isResourceComplete`** (via **`stepResourceCompleteWithActions`**:
 > complete|incomplete) live in protocol; `Resource` adapts them. **`planPacketFilter`** (foreign transport-id +
-> seen-hash allow rules) lives in protocol; `LeafTransport` adapts it.
+> seen-hash allow rules; via **`stepPacketFilterWithActions`**: accept|reject;
+> plan nested via **`stepPacketFilterPlanWithActions`**: accept|reject) lives in
+> protocol; `LeafTransport` adapts it.
 > **`isDiscoveryPathRequestExpired`** (via
 > **`stepDiscoveryPathRequestExpiredWithActions`**: expired|live) lives in protocol;
 > `TransportNode` adapts it (discovery path-request timeout now applied).
@@ -1184,6 +1206,7 @@
 > **`shouldAcceptLinkTeardown`** (via
 > **`stepAcceptLinkTeardownWithActions`**: accept|skip),
 > **`planLinkTeardownReason`** (via **`stepLinkTeardownReasonWithActions`**:
+> use-reason; plan nested via **`stepLinkTeardownReasonPlanWithActions`**:
 > use-reason), and **`planLinkTeardown`** (via
 > **`stepLinkTeardownPlanWithActions`**: close-only|send-teardown-then-close)
 > live in protocol; LINKCLOSE handling adapts them (nested under
@@ -1483,6 +1506,7 @@
 > **`shouldFulfillResourcePartRequest`** (via
 > **`stepFulfillResourcePartRequestWithActions`**: fulfill|skip),
 > **`planChannelTxEnvelopeOp`** (via **`stepChannelTxEnvelopeOpWithActions`**:
+> miss|process; plan nested via **`stepChannelTxEnvelopeOpPlanWithActions`**:
 > miss|process; nested under **`stepChannelTxTimeoutWithActions`**) /
 > **`planChannelPacketTimeout`** (via **`stepChannelPacketTimeoutWithActions`**:
 > ignore|give-up|retry; nested under **`stepChannelTxTimeoutWithActions`**) /
@@ -1662,7 +1686,8 @@
 > LinkRequestReceipt callbacks fire on timer expiry).
 > **`stepChannelTxTimeoutWithActions`** composes envelope miss / ignore /
 > give-up / retry with window shrink (envelope-op nested via
-> **`stepChannelTxEnvelopeOpWithActions`**: miss|process; packet-timeout plan
+> **`stepChannelTxEnvelopeOpWithActions`**: miss|process; plan nested via
+> **`stepChannelTxEnvelopeOpPlanWithActions`**: miss|process; packet-timeout plan
 > nested via **`stepChannelPacketTimeoutWithActions`**: ignore|give-up|retry);
 > `Channel.packetTimeout` applies only `give-up` / `retry` actions (no ad-hoc
 > `plan.kind` / `planChannelTxEnvelopeOp` / `planChannelPacketTimeout` reads).
@@ -1684,7 +1709,9 @@
 > **`stepLinkTeardownWithActions`** emits `close-only` /
 > `send-teardown-then-close` (with reason) / `accept-remote-close`; remote
 > accept nested via **`stepAcceptLinkTeardownWithActions`** (`accept`|`skip`);
-> reason nested via **`stepLinkTeardownReasonWithActions`** (`use-reason`);
+> reason nested via **`stepLinkTeardownReasonWithActions`** (`use-reason`;
+> reason plan nested via **`stepLinkTeardownReasonPlanWithActions`**:
+> use-reason);
 > plan nested via **`stepLinkTeardownPlanWithActions`**
 > (`close-only`|`send-teardown-then-close`);
 > `Link` teardown and LINKCLOSE handling apply send/reason/close only from those
@@ -2181,15 +2208,18 @@
 > reads beside the step). **`stepDestinationIdentityHashWithActions`** emits
 > `missing` / `use-object` / `reject-length` / `use-bytes`; `Destination` hash
 > construction applies only from those actions.
-> **`stepChannelTxEnvelopeOpWithActions`** emits `miss` / `process`; Channel
+> **`stepChannelTxEnvelopeOpWithActions`** emits `miss` / `process` (plan nested
+> via **`stepChannelTxEnvelopeOpPlanWithActions`**: miss|process); Channel
 > TX-ring timeout/delivery applies only from those actions (nested under
 > **`stepChannelTxTimeoutWithActions`**).
 > **`stepChannelPacketTimeoutWithActions`** emits `ignore` / `give-up` /
 > `retry`; Channel TX-timeout plan applies only from those actions (nested under
 > **`stepChannelTxTimeoutWithActions`**; no ad-hoc `planChannelPacketTimeout` /
 > `plan.kind` reads beside the step).
-> **`stepDestinationProofWithActions`** emits `prove` / `skip`;
-> **`stepPacketFilterWithActions`** emits `accept` / `reject`; transport node
+> **`stepDestinationProofWithActions`** emits `prove` / `skip` (plan nested via
+> **`stepDestinationProofPlanWithActions`**: prove|skip);
+> **`stepPacketFilterWithActions`** emits `accept` / `reject` (plan nested via
+> **`stepPacketFilterPlanWithActions`**: accept|reject); transport node
 > local plain DATA prove and packet-filter apply only from those actions.
 > **`stepPacketReceiptCallbackWithActions`** emits `clear` / `set` (plan nested via
 > **`stepPacketReceiptCallbackPlanWithActions`**: clear|set);

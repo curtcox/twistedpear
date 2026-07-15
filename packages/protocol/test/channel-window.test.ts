@@ -25,6 +25,7 @@ import {
   initialChannelPacketTimeoutState,
   initialChannelSendPlanState,
   initialChannelSendState,
+  initialChannelTxEnvelopeOpPlanState,
   initialChannelTxEnvelopeOpState,
   initialChannelTxReceiptTimeoutRefreshState,
   initialChannelWindowState,
@@ -39,6 +40,7 @@ import {
   planChannelTxEnvelopeOp,
   planChannelTxReceiptTimeoutRefresh,
   channelSendPlanFromActions,
+  channelTxEnvelopeOpPlanFromActions,
   shouldAcceptChannelOutletTransmit,
   shouldAllowChannelSend,
   shouldApplyChannelPacketReceiptTimeout,
@@ -55,9 +57,11 @@ import {
   shouldIgnoreChannelPacketTimeoutPlan,
   shouldMissChannelTxEnvelopeIndex,
   shouldMissChannelTxEnvelopeOp,
+  shouldMissChannelTxEnvelopeOpPlan,
   shouldProceedChannelSend,
   shouldProceedChannelSendPlan,
   shouldProcessChannelTxEnvelopeOp,
+  shouldProcessChannelTxEnvelopeOpPlan,
   shouldRejectChannelOutletTransmit,
   shouldRejectChannelSendLinkNotReady,
   shouldRejectChannelSendPlanLinkNotReady,
@@ -92,6 +96,7 @@ import {
   stepChannelPacketTimeoutWithActions,
   stepChannelSendPlanWithActions,
   stepChannelSendWithActions,
+  stepChannelTxEnvelopeOpPlanWithActions,
   stepChannelTxEnvelopeOpWithActions,
   stepChannelTxReceiptTimeoutRefreshWithActions,
   stepChannelTxTimeout,
@@ -525,6 +530,18 @@ describe("protocol channel window", () => {
   });
 
   it("emits miss / process actions from channel/tx-envelope-op-gate", () => {
+    const processPlan = stepChannelTxEnvelopeOpPlanWithActions(
+      initialChannelTxEnvelopeOpPlanState(),
+      {
+        kind: "channel/tx-envelope-op-plan-gate",
+        indexOk: true,
+        envelopePresent: true
+      }
+    );
+    expect(channelTxEnvelopeOpPlanFromActions(processPlan.actions)).toBe("process");
+    expect(shouldProcessChannelTxEnvelopeOpPlan(processPlan.actions)).toBe(true);
+    expect(shouldMissChannelTxEnvelopeOpPlan(processPlan.actions)).toBe(false);
+
     const process = stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
       kind: "channel/tx-envelope-op-gate",
       indexOk: true,
@@ -540,6 +557,18 @@ describe("protocol channel window", () => {
     });
     expect(shouldMissChannelTxEnvelopeOp(missIndex.actions)).toBe(true);
 
+    const missOpPlan = stepChannelTxEnvelopeOpPlanWithActions(
+      initialChannelTxEnvelopeOpPlanState(),
+      {
+        kind: "channel/tx-envelope-op-plan-gate",
+        indexOk: true,
+        envelopePresent: true,
+        opOk: false
+      }
+    );
+    expect(channelTxEnvelopeOpPlanFromActions(missOpPlan.actions)).toBe("miss");
+    expect(shouldMissChannelTxEnvelopeOpPlan(missOpPlan.actions)).toBe(true);
+
     const missOp = stepChannelTxEnvelopeOpWithActions(initialChannelTxEnvelopeOpState(), {
       kind: "channel/tx-envelope-op-gate",
       indexOk: true,
@@ -547,6 +576,7 @@ describe("protocol channel window", () => {
       opOk: false
     });
     expect(shouldMissChannelTxEnvelopeOp(missOp.actions)).toBe(true);
+    expect(channelTxEnvelopeOpPlanFromActions([])).toBeNull();
   });
 
   it("finds TX envelope index by packet id", () => {

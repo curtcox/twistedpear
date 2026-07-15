@@ -5,14 +5,15 @@
  * hash-remember / packet-hash defer / local plain-data / link-relay conclusions
  * leave via machine actions (no ad-hoc plan / `indexOfMatchingLinkId` reads
  * beside the step). Ingress-dispatch / link-data-ingress-target / link-relay-target /
- * reverse-relay / packet-hash-remember / local-plain-data / proof-ingress plans
- * nested via {@link stepTransportIngressDispatchPlanWithActions} /
+ * reverse-relay / packet-hash-remember / local-plain-data / proof-ingress /
+ * packet-filter plans nested via {@link stepTransportIngressDispatchPlanWithActions} /
  * {@link stepLinkDataIngressTargetPlanWithActions} /
  * {@link stepLinkRelayTargetPlanWithActions} /
  * {@link stepReverseRelayOutcomePlanWithActions} /
  * {@link stepPacketHashRememberPlanWithActions} /
  * {@link stepLocalPlainDataDeliveryPlanWithActions} /
- * {@link stepProofIngressPlanWithActions}.
+ * {@link stepProofIngressPlanWithActions} /
+ * {@link stepPacketFilterPlanWithActions}.
  * Transport-wrap relay allow, link/reverse table-record, link-packet relay allow,
  * link-table lookup, link-relay transmit, reverse-packet allow, reverse iface
  * match, reverse-entry expiry, reverse-relay transmit, interface transmit, local
@@ -72,9 +73,86 @@ export function planPacketFilter(input: {
 }
 
 /**
+ * Packet-filter plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planPacketFilter` reads
+ * beside the step). Nested under {@link stepPacketFilterWithActions}.
+ */
+export type PacketFilterPlan = "accept" | "reject";
+
+export type PacketFilterPlanState = Record<string, never>;
+
+export type PacketFilterPlanEvent =
+  | Event
+  | {
+      readonly kind: "transport/packet-filter-plan-gate";
+      readonly transportId: Uint8Array | null;
+      readonly localTransportHash: Uint8Array;
+      readonly packetType: number;
+      readonly destinationType: number;
+      readonly alreadySeenHash: boolean;
+    };
+
+export type PacketFilterPlanAction = { readonly kind: PacketFilterPlan };
+
+export interface PacketFilterPlanStepResult {
+  readonly state: PacketFilterPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketFilterPlanAction[];
+}
+
+export function initialPacketFilterPlanState(): PacketFilterPlanState {
+  return {};
+}
+
+export function stepPacketFilterPlanWithActions(
+  state: PacketFilterPlanState,
+  event: PacketFilterPlanEvent
+): PacketFilterPlanStepResult {
+  if (event.kind === "transport/packet-filter-plan-gate") {
+    const accept = planPacketFilter({
+      transportId: event.transportId,
+      localTransportHash: event.localTransportHash,
+      packetType: event.packetType,
+      destinationType: event.destinationType,
+      alreadySeenHash: event.alreadySeenHash
+    });
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: accept ? "accept" : "reject" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the packet-filter plan from actions; null when empty. */
+export function packetFilterPlanFromActions(
+  actions: ReadonlyArray<PacketFilterPlanAction>
+): PacketFilterPlan | null {
+  const action = actions.find(
+    (entry) => entry.kind === "accept" || entry.kind === "reject"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldAcceptPacketFilterPlan(
+  actions: ReadonlyArray<PacketFilterPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldRejectPacketFilterPlan(
+  actions: ReadonlyArray<PacketFilterPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/**
  * Packet filter gate is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planPacketFilter` reads
  * beside the step).
+ * Plan nested via {@link stepPacketFilterPlanWithActions} (`accept`|`reject`).
  */
 export type PacketFilterState = Record<string, never>;
 
@@ -108,17 +186,22 @@ export function stepPacketFilterWithActions(
   event: PacketFilterEvent
 ): PacketFilterStepResult {
   if (event.kind === "transport/packet-filter-gate") {
-    const accept = planPacketFilter({
+    const planActions = stepPacketFilterPlanWithActions(initialPacketFilterPlanState(), {
+      kind: "transport/packet-filter-plan-gate",
       transportId: event.transportId,
       localTransportHash: event.localTransportHash,
       packetType: event.packetType,
       destinationType: event.destinationType,
       alreadySeenHash: event.alreadySeenHash
-    });
+    }).actions;
+    const plan = packetFilterPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return {
       state,
       intents: [],
-      actions: [{ kind: accept ? "accept" : "reject" }]
+      actions: [{ kind: plan }]
     };
   }
 
@@ -129,6 +212,12 @@ export function shouldAcceptPacketFilter(
   actions: ReadonlyArray<PacketFilterAction>
 ): boolean {
   return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldRejectPacketFilter(
+  actions: ReadonlyArray<PacketFilterAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
 }
 
 export function shouldAcceptTransportPacket(input: {

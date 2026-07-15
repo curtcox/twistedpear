@@ -3,6 +3,8 @@
  * App `shouldProve` evaluation stays at the adapter edge.
  * Prove / emit conclusions leave via machine actions (no ad-hoc
  * `planDestinationProof` / `canEmitDestinationProof` reads beside the step).
+ * Proof plan nested via {@link stepDestinationProofPlanWithActions}
+ * (`prove`|`skip`).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 
@@ -97,9 +99,80 @@ export function shouldSkipEmitDestinationProof(
 }
 
 /**
+ * Destination-proof plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planDestinationProof`
+ * reads beside the step). Nested under {@link stepDestinationProofWithActions}.
+ */
+export type DestinationProofPlan = "prove" | "skip";
+
+export type DestinationProofPlanState = Record<string, never>;
+
+export type DestinationProofPlanEvent =
+  | Event
+  | {
+      readonly kind: "destination/proof-plan-gate";
+      readonly strategy: number;
+      readonly appWantsProof?: boolean;
+    };
+
+export type DestinationProofPlanAction = { readonly kind: DestinationProofPlan };
+
+export interface DestinationProofPlanStepResult {
+  readonly state: DestinationProofPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationProofPlanAction[];
+}
+
+export function initialDestinationProofPlanState(): DestinationProofPlanState {
+  return {};
+}
+
+export function stepDestinationProofPlanWithActions(
+  state: DestinationProofPlanState,
+  event: DestinationProofPlanEvent
+): DestinationProofPlanStepResult {
+  if (event.kind === "destination/proof-plan-gate") {
+    const prove = planDestinationProof({
+      strategy: event.strategy,
+      ...(event.appWantsProof !== undefined ? { appWantsProof: event.appWantsProof } : {})
+    });
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: prove ? "prove" : "skip" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the destination-proof plan from actions; null when empty. */
+export function destinationProofPlanFromActions(
+  actions: ReadonlyArray<DestinationProofPlanAction>
+): DestinationProofPlan | null {
+  const action = actions.find(
+    (entry) => entry.kind === "prove" || entry.kind === "skip"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldProveDestinationPlan(
+  actions: ReadonlyArray<DestinationProofPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "prove");
+}
+
+export function shouldSkipDestinationProofPlan(
+  actions: ReadonlyArray<DestinationProofPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/**
  * Destination proof gate is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planDestinationProof`
  * reads beside the step).
+ * Plan nested via {@link stepDestinationProofPlanWithActions} (`prove`|`skip`).
  */
 export type DestinationProofState = Record<string, never>;
 
@@ -130,14 +203,22 @@ export function stepDestinationProofWithActions(
   event: DestinationProofEvent
 ): DestinationProofStepResult {
   if (event.kind === "destination/proof-gate") {
-    const prove = planDestinationProof({
-      strategy: event.strategy,
-      ...(event.appWantsProof !== undefined ? { appWantsProof: event.appWantsProof } : {})
-    });
+    const planActions = stepDestinationProofPlanWithActions(
+      initialDestinationProofPlanState(),
+      {
+        kind: "destination/proof-plan-gate",
+        strategy: event.strategy,
+        ...(event.appWantsProof !== undefined ? { appWantsProof: event.appWantsProof } : {})
+      }
+    ).actions;
+    const plan = destinationProofPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return {
       state,
       intents: [],
-      actions: [{ kind: prove ? "prove" : "skip" }]
+      actions: [{ kind: plan }]
     };
   }
 
@@ -148,4 +229,10 @@ export function shouldProveDestination(
   actions: ReadonlyArray<DestinationProofAction>
 ): boolean {
   return actions.some((action) => action.kind === "prove");
+}
+
+export function shouldSkipDestinationProof(
+  actions: ReadonlyArray<DestinationProofAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }

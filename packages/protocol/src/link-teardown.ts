@@ -4,6 +4,8 @@
  * Conclusions leave via machine actions (no ad-hoc `plan.kind` /
  * `planLinkTeardown` / `shouldAcceptLinkTeardown` / `planLinkTeardownReason`
  * reads beside the step).
+ * Teardown plan nested via {@link stepLinkTeardownPlanWithActions}.
+ * Reason plan nested via {@link stepLinkTeardownReasonPlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -158,7 +160,75 @@ export function planLinkTeardownReason(input: {
 /**
  * planLinkTeardownReason planning is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkTeardownReason`
+ * reads beside the step). Nested under {@link stepLinkTeardownReasonWithActions}.
+ */
+export type LinkTeardownReasonPlanState = Record<string, never>;
+
+export type LinkTeardownReasonPlanEvent =
+  | Event
+  | {
+      readonly kind: "link/teardown-reason-plan-gate";
+      readonly initiator: boolean;
+      readonly remote: boolean;
+    };
+
+export type LinkTeardownReasonPlanAction = {
+  readonly kind: "use-reason";
+  readonly reason: LinkTeardownReasonValue;
+};
+
+export interface LinkTeardownReasonPlanStepResult {
+  readonly state: LinkTeardownReasonPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkTeardownReasonPlanAction[];
+}
+
+export function initialLinkTeardownReasonPlanState(): LinkTeardownReasonPlanState {
+  return {};
+}
+
+export function stepLinkTeardownReasonPlanWithActions(
+  state: LinkTeardownReasonPlanState,
+  event: LinkTeardownReasonPlanEvent
+): LinkTeardownReasonPlanStepResult {
+  if (event.kind === "link/teardown-reason-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-reason",
+          reason: planLinkTeardownReason({
+            initiator: event.initiator,
+            remote: event.remote
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseLinkTeardownReasonPlan(
+  actions: ReadonlyArray<LinkTeardownReasonPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-reason");
+}
+
+/** Extract teardown reason from plan-step actions; null when no `use-reason`. */
+export function linkTeardownReasonPlanFromActions(
+  actions: ReadonlyArray<LinkTeardownReasonPlanAction>
+): LinkTeardownReasonValue | null {
+  const action = actions.find((entry) => entry.kind === "use-reason");
+  return action?.kind === "use-reason" ? action.reason : null;
+}
+
+/**
+ * Teardown-reason gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkTeardownReason`
  * reads beside the step).
+ * Plan nested via {@link stepLinkTeardownReasonPlanWithActions} (`use-reason`).
  */
 export type LinkTeardownReasonState = Record<string, never>;
 
@@ -190,18 +260,22 @@ export function stepLinkTeardownReasonWithActions(
   event: LinkTeardownReasonEvent
 ): LinkTeardownReasonStepResult {
   if (event.kind === "link/teardown-reason-gate") {
+    const planActions = stepLinkTeardownReasonPlanWithActions(
+      initialLinkTeardownReasonPlanState(),
+      {
+        kind: "link/teardown-reason-plan-gate",
+        initiator: event.initiator,
+        remote: event.remote
+      }
+    ).actions;
+    const reason = linkTeardownReasonPlanFromActions(planActions);
+    if (reason === null) {
+      return { state, intents: [], actions: [] };
+    }
     return {
       state,
       intents: [],
-      actions: [
-        {
-          kind: "use-reason",
-          reason: planLinkTeardownReason({
-            initiator: event.initiator,
-            remote: event.remote
-          })
-        }
-      ]
+      actions: [{ kind: "use-reason", reason }]
     };
   }
 

@@ -815,9 +815,85 @@ export function planChannelTxEnvelopeOp(input: {
 }
 
 /**
+ * Channel TX-envelope-op plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planChannelTxEnvelopeOp`
+ * / `plan === "miss"` reads beside the step). Nested under
+ * {@link stepChannelTxEnvelopeOpWithActions}.
+ */
+export type ChannelTxEnvelopeOpPlanState = Record<string, never>;
+
+export type ChannelTxEnvelopeOpPlanEvent =
+  | Event
+  | {
+      readonly kind: "channel/tx-envelope-op-plan-gate";
+      readonly indexOk: boolean;
+      readonly envelopePresent: boolean;
+      readonly opOk?: boolean;
+    };
+
+export type ChannelTxEnvelopeOpPlanAction = { readonly kind: ChannelTxEnvelopeOpPlan };
+
+export interface ChannelTxEnvelopeOpPlanStepResult {
+  readonly state: ChannelTxEnvelopeOpPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelTxEnvelopeOpPlanAction[];
+}
+
+export function initialChannelTxEnvelopeOpPlanState(): ChannelTxEnvelopeOpPlanState {
+  return {};
+}
+
+export function stepChannelTxEnvelopeOpPlanWithActions(
+  state: ChannelTxEnvelopeOpPlanState,
+  event: ChannelTxEnvelopeOpPlanEvent
+): ChannelTxEnvelopeOpPlanStepResult {
+  if (event.kind === "channel/tx-envelope-op-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planChannelTxEnvelopeOp({
+            indexOk: event.indexOk,
+            envelopePresent: event.envelopePresent,
+            ...(event.opOk !== undefined ? { opOk: event.opOk } : {})
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the TX-envelope-op plan from actions; null when empty. */
+export function channelTxEnvelopeOpPlanFromActions(
+  actions: ReadonlyArray<ChannelTxEnvelopeOpPlanAction>
+): ChannelTxEnvelopeOpPlan | null {
+  const action = actions.find(
+    (entry) => entry.kind === "miss" || entry.kind === "process"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldMissChannelTxEnvelopeOpPlan(
+  actions: ReadonlyArray<ChannelTxEnvelopeOpPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
+export function shouldProcessChannelTxEnvelopeOpPlan(
+  actions: ReadonlyArray<ChannelTxEnvelopeOpPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "process");
+}
+
+/**
  * Channel TX-envelope op gate is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planChannelTxEnvelopeOp`
  * / `plan === "miss"` reads beside the step).
+ * Plan nested via {@link stepChannelTxEnvelopeOpPlanWithActions}
+ * (`miss`|`process`).
  */
 export type ChannelTxEnvelopeOpState = Record<string, never>;
 
@@ -849,19 +925,20 @@ export function stepChannelTxEnvelopeOpWithActions(
   event: ChannelTxEnvelopeOpEvent
 ): ChannelTxEnvelopeOpStepResult {
   if (event.kind === "channel/tx-envelope-op-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: planChannelTxEnvelopeOp({
-            indexOk: event.indexOk,
-            envelopePresent: event.envelopePresent,
-            ...(event.opOk !== undefined ? { opOk: event.opOk } : {})
-          })
-        }
-      ]
-    };
+    const planActions = stepChannelTxEnvelopeOpPlanWithActions(
+      initialChannelTxEnvelopeOpPlanState(),
+      {
+        kind: "channel/tx-envelope-op-plan-gate",
+        indexOk: event.indexOk,
+        envelopePresent: event.envelopePresent,
+        ...(event.opOk !== undefined ? { opOk: event.opOk } : {})
+      }
+    ).actions;
+    const plan = channelTxEnvelopeOpPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
+    return { state, intents: [], actions: [{ kind: plan }] };
   }
 
   return { state, intents: [], actions: [] };
@@ -1376,7 +1453,8 @@ function stepChannelWindowInner(
  * with window shrink. Adapters apply give-up (shutdown) and retry (resend +
  * re-arm) only from actions — not by reading `plan.kind` /
  * `planChannelTxEnvelopeOp` / `planChannelPacketTimeout` beside the step.
- * Envelope-op nested via `stepChannelTxEnvelopeOpWithActions` (`miss`|`process`).
+ * Envelope-op nested via `stepChannelTxEnvelopeOpWithActions` (`miss`|`process`;
+ * plan nested via {@link stepChannelTxEnvelopeOpPlanWithActions}: miss|process).
  * Packet-timeout plan nested via `stepChannelPacketTimeoutWithActions`
  * (`ignore`|`give-up`|`retry`). Resend itself is gated separately via
  * `stepResendChannelTimeoutPacketWithActions`.
