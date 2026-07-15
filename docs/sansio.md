@@ -98,6 +98,8 @@
 > **`stepDispatchLinkPlaintextWithActions`**: dispatch|skip /
 > **`stepResendLinkPacketAllowWithActions`**: allow|deny /
 > **`stepRegisterLinkResourceWithActions`**: register|skip /
+> **`stepHandleOutgoingResourceRequestWithActions`**: handle|skip /
+> **`stepHandleIncomingResourceByHashWithActions`**: handle|skip /
 > **`stepLinkModeEnabledWithActions`**: enabled|disabled /
 > **`stepExpectedLinkModeWithActions`**: match|mismatch) are pure protocol
 > leaves; `Link`, Channel outlet, and LXMF link-reuse adapt them. **Channel envelope
@@ -550,8 +552,11 @@
 > **`stepResourceProofAcceptWithActions`**: complete / ignore),
 > **`canRequestResourceNext`**, **`planResourceAdvertisePhase`**, and
 > **`shouldAcceptIncomingResourceAdvertisement`** live in protocol; `Resource` adapts them.
-> **`shouldHandleOutgoingResourceRequest`** / **`shouldHandleIncomingResourceByHash`**
-> live in protocol; `Link` resource REQ/HMU/cancel/proof dispatch adapts them.
+> **`shouldHandleOutgoingResourceRequest`** (via
+> **`stepHandleOutgoingResourceRequestWithActions`**: handle|skip) /
+> **`shouldHandleIncomingResourceByHash`** (via
+> **`stepHandleIncomingResourceByHashWithActions`**: handle|skip) live in
+> protocol; `Link` resource REQ/HMU/cancel/proof dispatch adapts them.
 > **`planLxmfSendMethod`** (via **`stepLxmfSendMethodWithActions`**: reject-unpacked /
 > send-opportunistic / send-direct / send-propagated / reject-unsupported) lives in
 > protocol; `LXMFRouter.send` adapts it. **`planChannelSend`** (via
@@ -651,7 +656,12 @@
 > remove-pending / append-active), and **`planLinkUnregisterMembership`** (via
 > **`stepLinkUnregisterMembershipWithActions`**: remove-pending / remove-active) live in
 > protocol; transport link register/activate/unregister adapt them.
-> **`shouldRegisterLinkResource`** (via **`stepRegisterLinkResourceWithActions`**: register|skip) / **`planLinkResourceConclude`** and
+> **`shouldRegisterLinkResource`** (via **`stepRegisterLinkResourceWithActions`**: register|skip) /
+> **`shouldHandleOutgoingResourceRequest`** (via
+> **`stepHandleOutgoingResourceRequestWithActions`**: handle|skip) /
+> **`shouldHandleIncomingResourceByHash`** (via
+> **`stepHandleIncomingResourceByHashWithActions`**: handle|skip) /
+> **`planLinkResourceConclude`** and
 > **`shouldRegisterPendingLinkRequest`** (via
 > **`stepPendingLinkRequestRegisterWithActions`**: register|skip) /
 > **`planUnregisterPendingLinkRequest`** (via
@@ -1037,15 +1047,18 @@
 > **`stepDispatchLinkPlaintextWithActions`** /
 > **`stepResendLinkPacketAllowWithActions`** /
 > **`stepRegisterLinkResourceWithActions`** /
+> **`stepHandleOutgoingResourceRequestWithActions`** /
+> **`stepHandleIncomingResourceByHashWithActions`** /
 > **`stepLinkModeEnabledWithActions`** /
 > **`stepExpectedLinkModeWithActions`** emit allow|deny / accept|reject /
-> attempt|skip / accept|skip / dispatch|skip / register|skip /
+> attempt|skip / accept|skip / dispatch|skip / register|skip / handle|skip /
 > enabled|disabled / match|mismatch; `Link` adapts them (no ad-hoc
 > `canPerformLinkHandshake` / `canProveLink` / `canAcceptLinkOwnerPublicKey` /
 > `canValidateLinkProof` / `shouldAttemptLinkProofCrypto` / `canAcceptLinkRtt` /
 > `canIdentifyOnLink` / `shouldDispatchLinkPlaintext` / `canResendLinkPacket` /
-> `shouldRegisterLinkResource` / `isLinkModeEnabled` / `isExpectedLinkMode`
-> reads beside the step).
+> `shouldRegisterLinkResource` / `shouldHandleOutgoingResourceRequest` /
+> `shouldHandleIncomingResourceByHash` / `isLinkModeEnabled` /
+> `isExpectedLinkMode` reads beside the step).
 > **`stepPropagationRestoreWithActions`** emits `reject-too-large` / `duplicate` /
 > `reject-hash` / `accept`; `PropagationServer` restore applies catalog insert only
 > from those actions (no ad-hoc `planPropagationRestore` / `plan === "accept"`
@@ -1146,7 +1159,8 @@
 > accept-link-owner-public-key / validate-link-proof-allow /
 > attempt-link-proof-crypto / accept-link-rtt / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
-> register-link-resource / link-mode-enabled / expected-link-mode /
+> register-link-resource / handle-outgoing-resource-request /
+> handle-incoming-resource-by-hash / link-mode-enabled / expected-link-mode /
 > destination-identity-hash / channel-tx-envelope-op /
 > destination-proof / packet-filter / packet-receipt-callback /
 > channel-tx-receipt-timeout-refresh / channel-message-handler-unregister /

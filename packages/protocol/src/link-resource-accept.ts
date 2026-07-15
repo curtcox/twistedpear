@@ -4,6 +4,9 @@
  * Conclusions leave via machine actions (no ad-hoc `plan.kind` reads beside the step).
  * Resource register membership concludes via machine actions (no ad-hoc
  * `shouldRegisterLinkResource` reads beside the step).
+ * Outgoing RESOURCE_REQ match and incoming-by-hash match conclude via machine
+ * actions (no ad-hoc `shouldHandleOutgoingResourceRequest` /
+ * `shouldHandleIncomingResourceByHash` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -245,9 +248,133 @@ export function shouldHandleOutgoingResourceRequest(input: {
   return input.hashMatches && !input.alreadySeen;
 }
 
+/**
+ * shouldHandleOutgoingResourceRequest gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldHandleOutgoingResourceRequest`
+ * reads beside the step).
+ */
+export type HandleOutgoingResourceRequestState = Record<string, never>;
+
+export type HandleOutgoingResourceRequestEvent =
+  | Event
+  | {
+      readonly kind: "link/handle-outgoing-resource-request-gate";
+      readonly hashMatches: boolean;
+      readonly alreadySeen: boolean;
+    };
+
+export type HandleOutgoingResourceRequestAction =
+  | { readonly kind: "handle" }
+  | { readonly kind: "skip" };
+
+export interface HandleOutgoingResourceRequestStepResult {
+  readonly state: HandleOutgoingResourceRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly HandleOutgoingResourceRequestAction[];
+}
+
+export function initialHandleOutgoingResourceRequestState(): HandleOutgoingResourceRequestState {
+  return {};
+}
+
+export function stepHandleOutgoingResourceRequestWithActions(
+  state: HandleOutgoingResourceRequestState,
+  event: HandleOutgoingResourceRequestEvent
+): HandleOutgoingResourceRequestStepResult {
+  if (event.kind === "link/handle-outgoing-resource-request-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldHandleOutgoingResourceRequest({
+            hashMatches: event.hashMatches,
+            alreadySeen: event.alreadySeen
+          })
+            ? "handle"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldHandleOutgoingResourceRequestNow(
+  actions: ReadonlyArray<HandleOutgoingResourceRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "handle");
+}
+
+export function shouldSkipHandleOutgoingResourceRequest(
+  actions: ReadonlyArray<HandleOutgoingResourceRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether an incoming resource matches a hashmap/cancel/part packet by hash. */
 export function shouldHandleIncomingResourceByHash(hashMatches: boolean): boolean {
   return hashMatches;
+}
+
+/**
+ * shouldHandleIncomingResourceByHash gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldHandleIncomingResourceByHash`
+ * reads beside the step).
+ */
+export type HandleIncomingResourceByHashState = Record<string, never>;
+
+export type HandleIncomingResourceByHashEvent =
+  | Event
+  | {
+      readonly kind: "link/handle-incoming-resource-by-hash-gate";
+      readonly hashMatches: boolean;
+    };
+
+export type HandleIncomingResourceByHashAction =
+  | { readonly kind: "handle" }
+  | { readonly kind: "skip" };
+
+export interface HandleIncomingResourceByHashStepResult {
+  readonly state: HandleIncomingResourceByHashState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly HandleIncomingResourceByHashAction[];
+}
+
+export function initialHandleIncomingResourceByHashState(): HandleIncomingResourceByHashState {
+  return {};
+}
+
+export function stepHandleIncomingResourceByHashWithActions(
+  state: HandleIncomingResourceByHashState,
+  event: HandleIncomingResourceByHashEvent
+): HandleIncomingResourceByHashStepResult {
+  if (event.kind === "link/handle-incoming-resource-by-hash-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldHandleIncomingResourceByHash(event.hashMatches) ? "handle" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldHandleIncomingResourceByHashNow(
+  actions: ReadonlyArray<HandleIncomingResourceByHashAction>
+): boolean {
+  return actions.some((action) => action.kind === "handle");
+}
+
+export function shouldSkipHandleIncomingResourceByHash(
+  actions: ReadonlyArray<HandleIncomingResourceByHashAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a link resource list should receive a new member (not already present). */

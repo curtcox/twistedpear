@@ -269,8 +269,12 @@ import {
   shouldEnterLinkHandshake,
   shouldFailLinkEstablish,
   shouldForbidLinkAppRequestInbound,
-  shouldHandleIncomingResourceByHash,
-  shouldHandleOutgoingResourceRequest,
+  shouldHandleIncomingResourceByHashNow,
+  initialHandleIncomingResourceByHashState,
+  stepHandleIncomingResourceByHashWithActions,
+  shouldHandleOutgoingResourceRequestNow,
+  initialHandleOutgoingResourceRequestState,
+  stepHandleOutgoingResourceRequestWithActions,
   shouldIgnoreInitiatorKeepaliveProbeNow,
   initialIgnoreInitiatorKeepaliveProbeState,
   stepIgnoreInitiatorKeepaliveProbeWithActions,
@@ -2249,10 +2253,16 @@ export class Link {
     const resourceHash = Resource.readRequestHash(plaintext!);
     for (const resource of this.outgoingResourcesList) {
       if (
-        shouldHandleOutgoingResourceRequest({
-          hashMatches: equalBytes(resource.hash, resourceHash),
-          alreadySeen: resource.hasSeenRequest(packet)
-        })
+        shouldHandleOutgoingResourceRequestNow(
+          stepHandleOutgoingResourceRequestWithActions(
+            initialHandleOutgoingResourceRequestState(),
+            {
+              kind: "link/handle-outgoing-resource-request-gate",
+              hashMatches: equalBytes(resource.hash, resourceHash),
+              alreadySeen: resource.hasSeenRequest(packet)
+            }
+          ).actions
+        )
       ) {
         resource.trackRequest(packet);
         await resource.handleRequest(plaintext!);
@@ -2288,7 +2298,17 @@ export class Link {
       return;
     }
     for (const resource of this.incomingResourcesList) {
-      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split!.resourceHash))) {
+      if (
+        shouldHandleIncomingResourceByHashNow(
+          stepHandleIncomingResourceByHashWithActions(
+            initialHandleIncomingResourceByHashState(),
+            {
+              kind: "link/handle-incoming-resource-by-hash-gate",
+              hashMatches: equalBytes(resource.hash, split!.resourceHash)
+            }
+          ).actions
+        )
+      ) {
         resource.hashmapUpdatePacket(plaintext!);
         return;
       }
@@ -2323,7 +2343,17 @@ export class Link {
     }
     const resources = incoming ? this.incomingResourcesList : this.outgoingResourcesList;
     for (const resource of resources) {
-      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split!.resourceHash))) {
+      if (
+        shouldHandleIncomingResourceByHashNow(
+          stepHandleIncomingResourceByHashWithActions(
+            initialHandleIncomingResourceByHashState(),
+            {
+              kind: "link/handle-incoming-resource-by-hash-gate",
+              hashMatches: equalBytes(resource.hash, split!.resourceHash)
+            }
+          ).actions
+        )
+      ) {
         resource.cancel();
         return;
       }
@@ -2347,7 +2377,17 @@ export class Link {
       return;
     }
     for (const resource of this.outgoingResourcesList) {
-      if (shouldHandleIncomingResourceByHash(equalBytes(resource.hash, split.resourceHash))) {
+      if (
+        shouldHandleIncomingResourceByHashNow(
+          stepHandleIncomingResourceByHashWithActions(
+            initialHandleIncomingResourceByHashState(),
+            {
+              kind: "link/handle-incoming-resource-by-hash-gate",
+              hashMatches: equalBytes(resource.hash, split.resourceHash)
+            }
+          ).actions
+        )
+      ) {
         resource.validateProof(packet.data);
         return;
       }

@@ -16,7 +16,15 @@ import {
   shouldAcceptLinkResourceAdvertisement,
   shouldAskAppLinkResourceAdvertisement,
   shouldHandleIncomingResourceByHash,
+  initialHandleIncomingResourceByHashState,
+  shouldHandleIncomingResourceByHashNow,
+  shouldSkipHandleIncomingResourceByHash,
+  stepHandleIncomingResourceByHashWithActions,
   shouldHandleOutgoingResourceRequest,
+  initialHandleOutgoingResourceRequestState,
+  shouldHandleOutgoingResourceRequestNow,
+  shouldSkipHandleOutgoingResourceRequest,
+  stepHandleOutgoingResourceRequestWithActions,
   shouldIgnoreLinkResourceAdvertisement,
   shouldRegisterLinkResource,
   initialRegisterLinkResourceState,
@@ -186,6 +194,42 @@ describe("protocol link resource accept", () => {
     ).toBe(false);
     expect(shouldHandleIncomingResourceByHash(true)).toBe(true);
     expect(shouldHandleIncomingResourceByHash(false)).toBe(false);
+
+    const handleOutgoing = stepHandleOutgoingResourceRequestWithActions(
+      initialHandleOutgoingResourceRequestState(),
+      {
+        kind: "link/handle-outgoing-resource-request-gate",
+        hashMatches: true,
+        alreadySeen: false
+      }
+    );
+    expect(shouldHandleOutgoingResourceRequestNow(handleOutgoing.actions)).toBe(true);
+    const skipOutgoing = stepHandleOutgoingResourceRequestWithActions(
+      initialHandleOutgoingResourceRequestState(),
+      {
+        kind: "link/handle-outgoing-resource-request-gate",
+        hashMatches: true,
+        alreadySeen: true
+      }
+    );
+    expect(shouldSkipHandleOutgoingResourceRequest(skipOutgoing.actions)).toBe(true);
+
+    const handleIncoming = stepHandleIncomingResourceByHashWithActions(
+      initialHandleIncomingResourceByHashState(),
+      {
+        kind: "link/handle-incoming-resource-by-hash-gate",
+        hashMatches: true
+      }
+    );
+    expect(shouldHandleIncomingResourceByHashNow(handleIncoming.actions)).toBe(true);
+    const skipIncoming = stepHandleIncomingResourceByHashWithActions(
+      initialHandleIncomingResourceByHashState(),
+      {
+        kind: "link/handle-incoming-resource-by-hash-gate",
+        hashMatches: false
+      }
+    );
+    expect(shouldSkipHandleIncomingResourceByHash(skipIncoming.actions)).toBe(true);
   });
 
   it("plans unique resource register and conclude membership", () => {
