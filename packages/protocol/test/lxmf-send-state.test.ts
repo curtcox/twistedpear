@@ -2,13 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   LxmfMessageState,
   applyLxmfSendEvent,
+  initialLxmfReceiptSendPlanState,
   initialLxmfReceiptSendState,
   initialLxmfSendState,
   lxmfReceiptSendApplyEvent,
+  lxmfReceiptSendPlanApplyEvent,
   planLxmfReceiptSendOutcome,
   shouldApplyLxmfReceiptSend,
+  shouldApplyLxmfReceiptSendPlan,
   shouldApplyLxmfReceiptSendState,
   shouldSkipLxmfReceiptSend,
+  shouldSkipLxmfReceiptSendPlan,
+  stepLxmfReceiptSendPlanWithActions,
   stepLxmfReceiptSendWithActions,
   stepLxmfSend
 } from "../src/lxmf-send-state.js";
@@ -127,6 +132,52 @@ describe("protocol LXMF send-state", () => {
     expect(shouldApplyLxmfReceiptSendState(false)).toBe(false);
   });
 
+  it("emits receipt-send plan-gate actions from stepLxmfReceiptSendPlanWithActions", () => {
+    const apply = stepLxmfReceiptSendPlanWithActions(initialLxmfReceiptSendPlanState(), {
+      kind: "receipt-send/plan-gate",
+      mode: "opportunistic",
+      phase: "after-send",
+      receiptPresent: true,
+      delivered: false
+    });
+    expect(shouldApplyLxmfReceiptSendPlan(apply.actions)).toBe(true);
+    expect(lxmfReceiptSendPlanApplyEvent(apply.actions)).toEqual({
+      kind: "lxmf/mark-sent",
+      progress: 0.5
+    });
+
+    const skip = stepLxmfReceiptSendPlanWithActions(initialLxmfReceiptSendPlanState(), {
+      kind: "receipt-send/plan-gate",
+      mode: "opportunistic",
+      phase: "after-poll",
+      receiptPresent: true,
+      delivered: false
+    });
+    expect(shouldSkipLxmfReceiptSendPlan(skip.actions)).toBe(true);
+    expect(lxmfReceiptSendPlanApplyEvent(skip.actions)).toBeNull();
+
+    const propagated = stepLxmfReceiptSendPlanWithActions(initialLxmfReceiptSendPlanState(), {
+      kind: "receipt-send/plan-gate",
+      mode: "propagated",
+      phase: "after-poll",
+      receiptPresent: true,
+      delivered: true
+    });
+    expect(lxmfReceiptSendPlanApplyEvent(propagated.actions)).toEqual({
+      kind: "lxmf/receipt-result",
+      delivered: true,
+      onDelivered: "sent"
+    });
+
+    expect(
+      stepLxmfReceiptSendPlanWithActions(initialLxmfReceiptSendPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
+  });
+
   it("emits receipt-send map actions from stepLxmfReceiptSendWithActions", () => {
     const afterSend = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
       kind: "receipt-send/map",
@@ -171,6 +222,21 @@ describe("protocol LXMF send-state", () => {
         at: 0
       }).actions
     ).toEqual([]);
+  });
+
+  it("is deterministic for receipt-send plan-gate events", () => {
+    const state = initialLxmfReceiptSendPlanState();
+    const event = {
+      kind: "receipt-send/plan-gate" as const,
+      mode: "opportunistic" as const,
+      phase: "after-send" as const,
+      receiptPresent: true,
+      delivered: false
+    };
+    const a = stepLxmfReceiptSendPlanWithActions(state, event);
+    const b = stepLxmfReceiptSendPlanWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });
 
   it("is deterministic for receipt-send/map events", () => {

@@ -34,6 +34,7 @@ import {
   planLxmfPropagationLocalIngress,
   planLxmfSendMethod,
   planLxmfSignatureOutcome,
+  initialLxmfSignatureOutcomePlanState,
   initialLxmfDirectSendPlanState,
   initialLxmfOpportunisticSendPlanState,
   initialLxmfPackTimestampPlanState,
@@ -189,6 +190,7 @@ import {
   initialTeardownLxmfPropagationLinkState,
   lxmfSendUnsupportedMethod,
   lxmfSignatureOutcomeFromActions,
+  lxmfSignatureOutcomePlanFromActions,
   shouldAcceptLxmfDeliverable,
   shouldApplyLxmfSignature,
   shouldProceedLxMessageInstancePack,
@@ -239,6 +241,7 @@ import {
   stepLxmfPropagationSyncPrepWithActions,
   stepLxmfSendMethodPlanWithActions,
   stepLxmfSendMethodWithActions,
+  stepLxmfSignatureOutcomePlanWithActions,
   stepLxmfSignatureWithActions,
   stepLxMessageInstancePackPlanWithActions,
   stepLxMessageInstancePackWithActions,
@@ -1370,6 +1373,55 @@ describe("protocol lxmf delivery", () => {
     });
   });
 
+  it("emits LXMF signature outcome-plan actions from stepLxmfSignatureOutcomePlanWithActions", () => {
+    const validated = stepLxmfSignatureOutcomePlanWithActions(
+      initialLxmfSignatureOutcomePlanState(),
+      {
+        kind: "signature/outcome-plan-gate",
+        sourceIdentityPresent: true,
+        signatureValid: true
+      }
+    );
+    expect(lxmfSignatureOutcomePlanFromActions(validated.actions)).toEqual({
+      signatureValidated: true,
+      unverifiedReason: null
+    });
+
+    const invalid = stepLxmfSignatureOutcomePlanWithActions(
+      initialLxmfSignatureOutcomePlanState(),
+      {
+        kind: "signature/outcome-plan-gate",
+        sourceIdentityPresent: true,
+        signatureValid: false
+      }
+    );
+    expect(lxmfSignatureOutcomePlanFromActions(invalid.actions)).toEqual({
+      signatureValidated: false,
+      unverifiedReason: LxmfUnverifiedReason.SIGNATURE_INVALID
+    });
+
+    const unknown = stepLxmfSignatureOutcomePlanWithActions(
+      initialLxmfSignatureOutcomePlanState(),
+      {
+        kind: "signature/outcome-plan-gate",
+        sourceIdentityPresent: false,
+        signatureValid: false
+      }
+    );
+    expect(lxmfSignatureOutcomePlanFromActions(unknown.actions)).toEqual({
+      signatureValidated: false,
+      unverifiedReason: LxmfUnverifiedReason.SOURCE_UNKNOWN
+    });
+
+    expect(
+      stepLxmfSignatureOutcomePlanWithActions(initialLxmfSignatureOutcomePlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
+  });
+
   it("emits LXMF signature apply actions from stepLxmfSignatureWithActions", () => {
     const validated = stepLxmfSignatureWithActions(initialLxmfSignatureState(), {
       kind: "signature/outcome-gate",
@@ -1429,6 +1481,19 @@ describe("protocol lxmf delivery", () => {
     };
     const a = stepLxmfSignatureWithActions(state, event);
     const b = stepLxmfSignatureWithActions(state, event);
+    expect(a).toEqual(b);
+    expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
+  });
+
+  it("is deterministic for LXMF signature outcome-plan events", () => {
+    const state = initialLxmfSignatureOutcomePlanState();
+    const event = {
+      kind: "signature/outcome-plan-gate" as const,
+      sourceIdentityPresent: true,
+      signatureValid: true
+    };
+    const a = stepLxmfSignatureOutcomePlanWithActions(state, event);
+    const b = stepLxmfSignatureOutcomePlanWithActions(state, event);
     expect(a).toEqual(b);
     expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
   });

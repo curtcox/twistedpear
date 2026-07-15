@@ -3706,8 +3706,80 @@ export function planLxmfSignatureOutcome(input: {
 }
 
 /**
+ * Signature-outcome-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLxmfSignatureOutcome`
+ * reads beside the step). Nested under {@link stepLxmfSignatureWithActions}.
+ */
+export type LxmfSignatureOutcomePlanState = Record<string, never>;
+
+export type LxmfSignatureOutcomePlanEvent =
+  | Event
+  | {
+      readonly kind: "signature/outcome-plan-gate";
+      readonly sourceIdentityPresent: boolean;
+      readonly signatureValid: boolean;
+    };
+
+export type LxmfSignatureOutcomePlanAction = {
+  readonly kind: "outcome";
+  readonly signatureValidated: boolean;
+  readonly unverifiedReason: LxmfUnverifiedReasonValue | null;
+};
+
+export interface LxmfSignatureOutcomePlanStepResult {
+  readonly state: LxmfSignatureOutcomePlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfSignatureOutcomePlanAction[];
+}
+
+export function initialLxmfSignatureOutcomePlanState(): LxmfSignatureOutcomePlanState {
+  return {};
+}
+
+export function stepLxmfSignatureOutcomePlanWithActions(
+  state: LxmfSignatureOutcomePlanState,
+  event: LxmfSignatureOutcomePlanEvent
+): LxmfSignatureOutcomePlanStepResult {
+  if (event.kind === "signature/outcome-plan-gate") {
+    const outcome = planLxmfSignatureOutcome({
+      sourceIdentityPresent: event.sourceIdentityPresent,
+      signatureValid: event.signatureValid
+    });
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "outcome",
+          signatureValidated: outcome.signatureValidated,
+          unverifiedReason: outcome.unverifiedReason
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Outcome fields from a plan outcome action, if present. */
+export function lxmfSignatureOutcomePlanFromActions(
+  actions: ReadonlyArray<LxmfSignatureOutcomePlanAction>
+): LxmfSignatureOutcome | null {
+  for (const action of actions) {
+    if (action.kind === "outcome") {
+      return {
+        signatureValidated: action.signatureValidated,
+        unverifiedReason: action.unverifiedReason
+      };
+    }
+  }
+  return null;
+}
+
+/**
  * Signature outcome gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLxmfSignatureOutcomePlanWithActions} (`outcome`).
  */
 export type LxmfSignatureState = Record<string, never>;
 
@@ -3719,6 +3791,10 @@ export type LxmfSignatureEvent =
       readonly signatureValid: boolean;
     };
 
+/**
+ * Adapter applies signatureValidated / unverifiedReason only from these actions.
+ * Plan nested via {@link stepLxmfSignatureOutcomePlanWithActions} (`outcome`).
+ */
 export type LxmfSignatureAction = {
   readonly kind: "apply";
   readonly signatureValidated: boolean;
@@ -3773,10 +3849,18 @@ function stepLxmfSignatureInner(
   event: LxmfSignatureEvent
 ): LxmfSignatureStepResult {
   if (event.kind === "signature/outcome-gate") {
-    const outcome = planLxmfSignatureOutcome({
-      sourceIdentityPresent: event.sourceIdentityPresent,
-      signatureValid: event.signatureValid
-    });
+    const planActions = stepLxmfSignatureOutcomePlanWithActions(
+      initialLxmfSignatureOutcomePlanState(),
+      {
+        kind: "signature/outcome-plan-gate",
+        sourceIdentityPresent: event.sourceIdentityPresent,
+        signatureValid: event.signatureValid
+      }
+    ).actions;
+    const outcome = lxmfSignatureOutcomePlanFromActions(planActions);
+    if (outcome === null) {
+      return { state, intents: [], actions: [] };
+    }
     return {
       state,
       intents: [],

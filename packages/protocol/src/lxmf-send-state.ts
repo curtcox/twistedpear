@@ -168,8 +168,86 @@ export function planLxmfReceiptSendOutcome(input: {
 }
 
 /**
+ * Receipt-send-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLxmfReceiptSendOutcome`
+ * reads beside the step). Nested under {@link stepLxmfReceiptSendWithActions}.
+ */
+export type LxmfReceiptSendPlanState = Record<string, never>;
+
+export type LxmfReceiptSendPlanEvent =
+  | Event
+  | {
+      readonly kind: "receipt-send/plan-gate";
+      readonly mode: LxmfOutboundSendMode;
+      readonly phase: LxmfReceiptSendPhase;
+      readonly receiptPresent: boolean;
+      readonly delivered: boolean;
+    };
+
+export type LxmfReceiptSendPlanAction =
+  | { readonly kind: "apply"; readonly event: LxmfSendEvent }
+  | { readonly kind: "skip" };
+
+export interface LxmfReceiptSendPlanStepResult {
+  readonly state: LxmfReceiptSendPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfReceiptSendPlanAction[];
+}
+
+export function initialLxmfReceiptSendPlanState(): LxmfReceiptSendPlanState {
+  return {};
+}
+
+export function stepLxmfReceiptSendPlanWithActions(
+  state: LxmfReceiptSendPlanState,
+  event: LxmfReceiptSendPlanEvent
+): LxmfReceiptSendPlanStepResult {
+  if (event.kind === "receipt-send/plan-gate") {
+    const outcome = planLxmfReceiptSendOutcome({
+      mode: event.mode,
+      phase: event.phase,
+      receiptPresent: event.receiptPresent,
+      delivered: event.delivered
+    });
+    if (outcome === null) {
+      return { state, intents: [], actions: [{ kind: "skip" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "apply", event: outcome }] };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Whether plan actions apply a send-state event. */
+export function shouldApplyLxmfReceiptSendPlan(
+  actions: ReadonlyArray<LxmfReceiptSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "apply");
+}
+
+/** Whether plan actions skip send-state update. */
+export function shouldSkipLxmfReceiptSendPlan(
+  actions: ReadonlyArray<LxmfReceiptSendPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/** Send-state event from a plan apply action, if present. */
+export function lxmfReceiptSendPlanApplyEvent(
+  actions: ReadonlyArray<LxmfReceiptSendPlanAction>
+): LxmfSendEvent | null {
+  for (const action of actions) {
+    if (action.kind === "apply") {
+      return action.event;
+    }
+  }
+  return null;
+}
+
+/**
  * Receipt → send-state mapping is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLxmfReceiptSendPlanWithActions} (`apply`|`skip`).
  */
 export type LxmfReceiptSendState = Record<string, never>;
 
@@ -183,6 +261,10 @@ export type LxmfReceiptSendEvent =
       readonly delivered: boolean;
     };
 
+/**
+ * Adapter applies send-state update or skip only from these actions.
+ * Plan nested via {@link stepLxmfReceiptSendPlanWithActions} (`apply`|`skip`).
+ */
 export type LxmfReceiptSendAction =
   | { readonly kind: "apply"; readonly event: LxmfSendEvent }
   | { readonly kind: "skip" };
@@ -238,16 +320,24 @@ function stepLxmfReceiptSendInner(
   event: LxmfReceiptSendEvent
 ): LxmfReceiptSendStepResult {
   if (event.kind === "receipt-send/map") {
-    const outcome = planLxmfReceiptSendOutcome({
-      mode: event.mode,
-      phase: event.phase,
-      receiptPresent: event.receiptPresent,
-      delivered: event.delivered
-    });
-    if (outcome === null) {
+    const planActions = stepLxmfReceiptSendPlanWithActions(
+      initialLxmfReceiptSendPlanState(),
+      {
+        kind: "receipt-send/plan-gate",
+        mode: event.mode,
+        phase: event.phase,
+        receiptPresent: event.receiptPresent,
+        delivered: event.delivered
+      }
+    ).actions;
+    if (shouldSkipLxmfReceiptSendPlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "skip" }] };
     }
-    return { state, intents: [], actions: [{ kind: "apply", event: outcome }] };
+    const planned = lxmfReceiptSendPlanApplyEvent(planActions);
+    if (planned === null) {
+      return { state, intents: [], actions: [{ kind: "skip" }] };
+    }
+    return { state, intents: [], actions: [{ kind: "apply", event: planned }] };
   }
 
   return { state, intents: [], actions: [] };

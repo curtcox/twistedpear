@@ -94,6 +94,10 @@
 > **`stepLxmfPropagationLocalIngressPlanWithActions`**:
 > deliver|reject-prefix|reject-destination|reject-decrypt — nested under
 > propagation-local-ingress),
+> **LXMF receipt-send / signature-outcome plans** (via
+> **`stepLxmfReceiptSendPlanWithActions`**: apply|skip — nested under
+> receipt-send; **`stepLxmfSignatureOutcomePlanWithActions`**: outcome —
+> nested under signature),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -291,6 +295,10 @@
 > **`stepLxmfPropagationLocalIngressPlanWithActions`**:
 > deliver|reject-prefix|reject-destination|reject-decrypt
 > (nested under propagation-local-ingress) /
+> **`stepLxmfReceiptSendPlanWithActions`**: apply|skip
+> (nested under receipt-send) /
+> **`stepLxmfSignatureOutcomePlanWithActions`**: outcome
+> (nested under signature) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -379,7 +387,11 @@
 > **`stepLxmfPropagationLocalIngressPlanWithActions`**:
 > deliver|reject-prefix|reject-destination|reject-decrypt — nested under
 > propagation-local-ingress) and **receipt → send-state
-> mapping** (via **`stepLxmfReceiptSendWithActions`**: apply / skip) are pure protocol leaves;
+> mapping** (via **`stepLxmfReceiptSendWithActions`**: apply / skip; plan
+> nested via **`stepLxmfReceiptSendPlanWithActions`**: apply|skip) and
+> **signature outcome** (via **`stepLxmfSignatureWithActions`**: apply with
+> signatureValidated / unverifiedReason; plan nested via
+> **`stepLxmfSignatureOutcomePlanWithActions`**: outcome) are pure protocol leaves;
 > `LXMFRouter` and `PropagationClient` adapt them. **Link request / response msgpack codecs**
 > (pack/unpack via **`stepPackLinkRequestWithActions`** /
 > **`stepPackLinkResponseWithActions`** /
@@ -981,7 +993,8 @@
 > **`stepLxMessageInstancePackPlanWithActions`**:
 > ok|already-packed|missing-endpoints|missing-timestamp), and
 > **`planLxmfSignatureOutcome`** (via **`stepLxmfSignatureWithActions`**: apply with
-> signatureValidated / unverifiedReason) live in protocol; `LXMFRouter` /
+> signatureValidated / unverifiedReason; plan nested via
+> **`stepLxmfSignatureOutcomePlanWithActions`**: outcome) live in protocol; `LXMFRouter` /
 > `LXMessage.unpackFromBytes` adapt them.
 > **`shouldReuseActiveLink`** (via **`stepReuseActiveLinkWithActions`**: reuse|skip)
 > lives in protocol; LXMF direct/propagation link reuse adapts it. **`planAnnounceBuild`** (via **`stepAnnounceBuildWithActions`**: proceed /
@@ -1043,7 +1056,8 @@
 > **`isLinkInboundDataPacket`** (via **`stepLinkInboundDataPacketWithActions`**:
 > data|other) live in protocol; `Link.receive` adapts them.
 > **`planLxmfReceiptSendOutcome`** (via **`stepLxmfReceiptSendWithActions`**: apply /
-> skip) lives in protocol; opportunistic/propagated receipt → send-state adapts it.
+> skip; plan nested via **`stepLxmfReceiptSendPlanWithActions`**: apply|skip)
+> lives in protocol; opportunistic/propagated receipt → send-state adapts it.
 > **`planLxmfPropagationLocalIngress`** (via **`stepLxmfPropagationLocalIngressWithActions`**:
 > deliver / reject-*; plan nested via **`stepLxmfPropagationLocalIngressPlanWithActions`**:
 > deliver|reject-prefix|reject-destination|reject-decrypt) /
@@ -1552,8 +1566,9 @@
 > `LXMFRouter.handlePropagationData` unpacks only from those actions (no ad-hoc
 > `planLxmfPropagationLocalIngress` / `plan ===` reads beside the step).
 > **`stepLxmfReceiptSendWithActions`** emits `apply` (with send-state event) /
-> `skip`; opportunistic/propagated send paths update send-state only from those
-> actions (no ad-hoc `planLxmfReceiptSendOutcome` reads beside the step).
+> `skip` (plan nested via **`stepLxmfReceiptSendPlanWithActions`**:
+> `apply`|`skip`); opportunistic/propagated send paths update send-state only from those
+> actions (no ad-hoc `planLxmfReceiptSendOutcome` / `plan ===` reads beside the step).
 > **`stepLxMessagePackWithActions`** emits `proceed` / `reject-bad-destination` /
 > `reject-bad-source` (plan nested via **`stepLxMessagePackPlanWithActions`**:
 > `ok`|`bad-destination`|`bad-source`); **`stepLxmfPackTimestampWithActions`** emits
@@ -1573,8 +1588,10 @@
 > `planLxMessagePack` / `planLxmfPackTimestamp` / `planLxMessageInstancePack` /
 > `planLxmfPropagatedPackPrep` / `plan ===` reads beside the step).
 > **`stepLxmfSignatureWithActions`** emits `apply` (with signatureValidated /
-> unverifiedReason); `LXMessage.unpackFromBytes` applies signature status only
-> from those actions (no ad-hoc `planLxmfSignatureOutcome` reads beside the step).
+> unverifiedReason; plan nested via **`stepLxmfSignatureOutcomePlanWithActions`**:
+> `outcome`); `LXMessage.unpackFromBytes` applies signature status only
+> from those actions (no ad-hoc `planLxmfSignatureOutcome` / `outcome ===` reads
+> beside the step).
 > **`stepLinkTokenAccessWithActions`** emits `reject-no-key` / `create` /
 > `reuse` (plan nested via **`stepLinkTokenAccessPlanWithActions`**:
 > reject-no-key|create|reuse); `Link.tokenInstance` constructs or reuses Token
@@ -1932,12 +1949,14 @@
 > propagation-link-ready / sync-prep / deliverable-accept /
 > local-ingress / lxmf-propagation-link-ready-plan /
 > lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan /
-> lxmf-propagation-local-ingress-plan / receipt-send / include-lxmf-stamp / remember-lxmf-message /
+> lxmf-propagation-local-ingress-plan / receipt-send /
+> lxmf-receipt-send-plan / signature-outcome /
+> lxmf-signature-outcome-plan / include-lxmf-stamp / remember-lxmf-message /
 > commit-remembered-lxmf-hash / accept-lxmf-wire-frame /
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / lxmf-receipt-send-plan / lxmf-signature-outcome-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
