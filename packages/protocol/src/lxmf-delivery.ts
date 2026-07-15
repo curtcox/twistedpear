@@ -1,8 +1,11 @@
 /**
  * Pure LXMF delivery method / representation planning.
  * Encryption and hashing stay at the adapter edge.
- * Conclusions leave via machine actions (no ad-hoc `plan.kind` reads
- * beside the step).
+ * Conclusions leave via machine actions (no ad-hoc `plan.kind` /
+ * `canAcceptLxmfPropagationLocalDelivery` /
+ * `canUnpackLxmfPropagationLocalIngress` /
+ * `shouldAwaitLxmfDeliveryReceipt` / `shouldInvokeLxmfDeliveryCallback`
+ * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -1241,6 +1244,71 @@ export function canAcceptLxmfPropagationLocalDelivery(input: {
   return input.deliveryDestinationPresent && input.destinationHashMatches;
 }
 
+/**
+ * Propagation local-delivery accept gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `canAcceptLxmfPropagationLocalDelivery` reads beside the step).
+ */
+export type AcceptLxmfPropagationLocalDeliveryState = Record<string, never>;
+
+export type AcceptLxmfPropagationLocalDeliveryEvent =
+  | Event
+  | {
+      readonly kind: "propagation-local-delivery/accept-gate";
+      readonly deliveryDestinationPresent: boolean;
+      readonly destinationHashMatches: boolean;
+    };
+
+export type AcceptLxmfPropagationLocalDeliveryAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptLxmfPropagationLocalDeliveryStepResult {
+  readonly state: AcceptLxmfPropagationLocalDeliveryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptLxmfPropagationLocalDeliveryAction[];
+}
+
+export function initialAcceptLxmfPropagationLocalDeliveryState(): AcceptLxmfPropagationLocalDeliveryState {
+  return {};
+}
+
+export function stepAcceptLxmfPropagationLocalDeliveryWithActions(
+  state: AcceptLxmfPropagationLocalDeliveryState,
+  event: AcceptLxmfPropagationLocalDeliveryEvent
+): AcceptLxmfPropagationLocalDeliveryStepResult {
+  if (event.kind === "propagation-local-delivery/accept-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canAcceptLxmfPropagationLocalDelivery({
+            deliveryDestinationPresent: event.deliveryDestinationPresent,
+            destinationHashMatches: event.destinationHashMatches
+          })
+            ? "accept"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptLxmfPropagationLocalDeliveryNow(
+  actions: ReadonlyArray<AcceptLxmfPropagationLocalDeliveryAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAcceptLxmfPropagationLocalDelivery(
+  actions: ReadonlyArray<AcceptLxmfPropagationLocalDeliveryAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 export type LxmfPropagationLocalIngressPlan =
   | "reject-prefix"
   | "reject-destination"
@@ -1358,6 +1426,73 @@ export function canUnpackLxmfPropagationLocalIngress(input: {
   readonly decryptedPresent: boolean;
 }): boolean {
   return input.deliver && input.prefixedPresent && input.decryptedPresent;
+}
+
+/**
+ * Propagation local-ingress unpack gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `canUnpackLxmfPropagationLocalIngress` reads beside the step).
+ */
+export type UnpackLxmfPropagationLocalIngressState = Record<string, never>;
+
+export type UnpackLxmfPropagationLocalIngressEvent =
+  | Event
+  | {
+      readonly kind: "propagation-local-ingress/unpack-gate";
+      readonly deliver: boolean;
+      readonly prefixedPresent: boolean;
+      readonly decryptedPresent: boolean;
+    };
+
+export type UnpackLxmfPropagationLocalIngressAction =
+  | { readonly kind: "unpack" }
+  | { readonly kind: "skip" };
+
+export interface UnpackLxmfPropagationLocalIngressStepResult {
+  readonly state: UnpackLxmfPropagationLocalIngressState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly UnpackLxmfPropagationLocalIngressAction[];
+}
+
+export function initialUnpackLxmfPropagationLocalIngressState(): UnpackLxmfPropagationLocalIngressState {
+  return {};
+}
+
+export function stepUnpackLxmfPropagationLocalIngressWithActions(
+  state: UnpackLxmfPropagationLocalIngressState,
+  event: UnpackLxmfPropagationLocalIngressEvent
+): UnpackLxmfPropagationLocalIngressStepResult {
+  if (event.kind === "propagation-local-ingress/unpack-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canUnpackLxmfPropagationLocalIngress({
+            deliver: event.deliver,
+            prefixedPresent: event.prefixedPresent,
+            decryptedPresent: event.decryptedPresent
+          })
+            ? "unpack"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUnpackLxmfPropagationLocalIngressNow(
+  actions: ReadonlyArray<UnpackLxmfPropagationLocalIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "unpack");
+}
+
+export function shouldSkipUnpackLxmfPropagationLocalIngress(
+  actions: ReadonlyArray<UnpackLxmfPropagationLocalIngressAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 function stepLxmfPropagationLocalIngressInner(
@@ -1629,9 +1764,127 @@ export function shouldAwaitLxmfDeliveryReceipt(receiptPresent: boolean): boolean
   return receiptPresent;
 }
 
+/**
+ * LXMF delivery-receipt await gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldAwaitLxmfDeliveryReceipt` reads beside the step).
+ */
+export type AwaitLxmfDeliveryReceiptState = Record<string, never>;
+
+export type AwaitLxmfDeliveryReceiptEvent =
+  | Event
+  | {
+      readonly kind: "lxmf/await-delivery-receipt-gate";
+      readonly receiptPresent: boolean;
+    };
+
+export type AwaitLxmfDeliveryReceiptAction =
+  | { readonly kind: "await" }
+  | { readonly kind: "skip" };
+
+export interface AwaitLxmfDeliveryReceiptStepResult {
+  readonly state: AwaitLxmfDeliveryReceiptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AwaitLxmfDeliveryReceiptAction[];
+}
+
+export function initialAwaitLxmfDeliveryReceiptState(): AwaitLxmfDeliveryReceiptState {
+  return {};
+}
+
+export function stepAwaitLxmfDeliveryReceiptWithActions(
+  state: AwaitLxmfDeliveryReceiptState,
+  event: AwaitLxmfDeliveryReceiptEvent
+): AwaitLxmfDeliveryReceiptStepResult {
+  if (event.kind === "lxmf/await-delivery-receipt-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAwaitLxmfDeliveryReceipt(event.receiptPresent) ? "await" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAwaitLxmfDeliveryReceiptNow(
+  actions: ReadonlyArray<AwaitLxmfDeliveryReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "await");
+}
+
+export function shouldSkipAwaitLxmfDeliveryReceipt(
+  actions: ReadonlyArray<AwaitLxmfDeliveryReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether an unpacked deliverable should invoke the delivery callback. */
 export function shouldInvokeLxmfDeliveryCallback(messagePresent: boolean): boolean {
   return messagePresent;
+}
+
+/**
+ * LXMF delivery-callback invoke gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldInvokeLxmfDeliveryCallback` reads beside the step).
+ */
+export type InvokeLxmfDeliveryCallbackState = Record<string, never>;
+
+export type InvokeLxmfDeliveryCallbackEvent =
+  | Event
+  | {
+      readonly kind: "lxmf/invoke-delivery-callback-gate";
+      readonly messagePresent: boolean;
+    };
+
+export type InvokeLxmfDeliveryCallbackAction =
+  | { readonly kind: "invoke" }
+  | { readonly kind: "skip" };
+
+export interface InvokeLxmfDeliveryCallbackStepResult {
+  readonly state: InvokeLxmfDeliveryCallbackState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly InvokeLxmfDeliveryCallbackAction[];
+}
+
+export function initialInvokeLxmfDeliveryCallbackState(): InvokeLxmfDeliveryCallbackState {
+  return {};
+}
+
+export function stepInvokeLxmfDeliveryCallbackWithActions(
+  state: InvokeLxmfDeliveryCallbackState,
+  event: InvokeLxmfDeliveryCallbackEvent
+): InvokeLxmfDeliveryCallbackStepResult {
+  if (event.kind === "lxmf/invoke-delivery-callback-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldInvokeLxmfDeliveryCallback(event.messagePresent) ? "invoke" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldInvokeLxmfDeliveryCallbackNow(
+  actions: ReadonlyArray<InvokeLxmfDeliveryCallbackAction>
+): boolean {
+  return actions.some((action) => action.kind === "invoke");
+}
+
+export function shouldSkipInvokeLxmfDeliveryCallback(
+  actions: ReadonlyArray<InvokeLxmfDeliveryCallbackAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** LXMFRouter.send method dispatch after packed-envelope check. */

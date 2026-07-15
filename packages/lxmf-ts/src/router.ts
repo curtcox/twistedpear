@@ -4,9 +4,10 @@ import {
   LINK_AWAIT_DEFAULT_TIMEOUT_MS,
   LINK_AWAIT_TIMER_ID,
   applyLxmfSendEvent,
-  canAcceptLxmfPropagationLocalDelivery,
-  canUnpackLxmfPropagationLocalIngress,
+  initialAcceptLxmfPropagationLocalDeliveryState,
+  initialAwaitLxmfDeliveryReceiptState,
   initialDeliveryReceiptPollState,
+  initialInvokeLxmfDeliveryCallbackState,
   initialLinkAwaitState,
   initialLxmfDeliverableAcceptState,
   initialLxmfDirectSendState,
@@ -24,6 +25,7 @@ import {
   initialSplitLxmfDestinationPrefixedState,
   initialStampCostFromAppDataState,
   initialTeardownLxmfPropagationLinkState,
+  initialUnpackLxmfPropagationLocalIngressState,
   lxmfDestinationPrefixedFieldsFromActions,
   lxmfInboundDeliveryRawFromActions,
   lxmfReceiptSendApplyEvent,
@@ -31,11 +33,12 @@ import {
   packLxmfDestinationPrefixedRawFromActions,
   stampCostFromActions,
   shouldAcceptLxmfDeliverable,
+  shouldAcceptLxmfPropagationLocalDeliveryNow,
   shouldApplyLxmfReceiptSend,
-  shouldAwaitLxmfDeliveryReceipt,
+  shouldAwaitLxmfDeliveryReceiptNow,
   shouldDeliverLxmfPropagationLocalIngress,
   shouldEstablishLxmfPropagationLink,
-  shouldInvokeLxmfDeliveryCallback,
+  shouldInvokeLxmfDeliveryCallbackNow,
   shouldProceedLxmfDirectSend,
   shouldProceedLxmfOpportunisticSend,
   shouldProceedLxmfPropagatedSend,
@@ -61,10 +64,14 @@ import {
   shouldSendLxmfOpportunistic,
   shouldSendLxmfPropagated,
   shouldTeardownLxmfPropagationLinkNow,
+  shouldUnpackLxmfPropagationLocalIngressNow,
   shouldUseLxmfInboundDelivery,
   shouldUsePackLxmfDestinationPrefixed,
   shouldUseSplitLxmfDestinationPrefixed,
+  stepAcceptLxmfPropagationLocalDeliveryWithActions,
+  stepAwaitLxmfDeliveryReceiptWithActions,
   stepDeliveryReceiptPollWithActions,
+  stepInvokeLxmfDeliveryCallbackWithActions,
   stepLinkAwaitWithActions,
   stepLxmfDeliverableAcceptWithActions,
   stepLxmfDirectSendWithActions,
@@ -81,6 +88,7 @@ import {
   stepSplitLxmfDestinationPrefixedWithActions,
   stepStampCostFromAppDataWithActions,
   stepTeardownLxmfPropagationLinkWithActions,
+  stepUnpackLxmfPropagationLocalIngressWithActions,
   type LxmfSendEvent,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
@@ -473,7 +481,14 @@ export class LXMFRouter {
     if (shouldApplyLxmfReceiptSend(afterSend.actions) && afterSendEvent !== null) {
       this.applySendState(message, afterSendEvent);
     }
-    if (!shouldAwaitLxmfDeliveryReceipt(receipt !== null)) {
+    const awaitReceipt = stepAwaitLxmfDeliveryReceiptWithActions(
+      initialAwaitLxmfDeliveryReceiptState(),
+      {
+        kind: "lxmf/await-delivery-receipt-gate",
+        receiptPresent: receipt !== null
+      }
+    );
+    if (!shouldAwaitLxmfDeliveryReceiptNow(awaitReceipt.actions)) {
       return;
     }
 
@@ -584,7 +599,14 @@ export class LXMFRouter {
       this.applySendState(message, afterSendEvent);
     }
 
-    if (shouldAwaitLxmfDeliveryReceipt(result.receipt !== null)) {
+    const awaitReceipt = stepAwaitLxmfDeliveryReceiptWithActions(
+      initialAwaitLxmfDeliveryReceiptState(),
+      {
+        kind: "lxmf/await-delivery-receipt-gate",
+        receiptPresent: result.receipt !== null
+      }
+    );
+    if (shouldAwaitLxmfDeliveryReceiptNow(awaitReceipt.actions)) {
       await this.pollDeliveryReceipt(result.receipt!);
     }
     const afterPoll = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
@@ -678,7 +700,14 @@ export class LXMFRouter {
 
   deliver(lxmfData: Uint8Array, method: LXMessageMethodValue = LXMessageMethod.DIRECT): boolean {
     const message = this.unpackDeliverable(lxmfData, method);
-    if (!shouldInvokeLxmfDeliveryCallback(message !== null)) {
+    const invoke = stepInvokeLxmfDeliveryCallbackWithActions(
+      initialInvokeLxmfDeliveryCallbackState(),
+      {
+        kind: "lxmf/invoke-delivery-callback-gate",
+        messagePresent: message !== null
+      }
+    );
+    if (!shouldInvokeLxmfDeliveryCallbackNow(invoke.actions)) {
       return false;
     }
 
@@ -705,12 +734,17 @@ export class LXMFRouter {
       deliveryDestination !== null &&
       prefixed !== null &&
       equalBytes(deliveryDestination.hash, prefixed.destinationHash);
-    const decrypted =
-      prefixed !== null &&
-      canAcceptLxmfPropagationLocalDelivery({
+    const localDelivery = stepAcceptLxmfPropagationLocalDeliveryWithActions(
+      initialAcceptLxmfPropagationLocalDeliveryState(),
+      {
+        kind: "propagation-local-delivery/accept-gate",
         deliveryDestinationPresent: deliveryDestination !== null,
         destinationHashMatches
-      }) &&
+      }
+    );
+    const decrypted =
+      prefixed !== null &&
+      shouldAcceptLxmfPropagationLocalDeliveryNow(localDelivery.actions) &&
       deliveryDestination !== null
         ? deliveryDestination.decrypt(prefixed.remainder)
         : null;
@@ -726,13 +760,16 @@ export class LXMFRouter {
       }
     );
 
-    if (
-      !canUnpackLxmfPropagationLocalIngress({
+    const unpackIngress = stepUnpackLxmfPropagationLocalIngressWithActions(
+      initialUnpackLxmfPropagationLocalIngressState(),
+      {
+        kind: "propagation-local-ingress/unpack-gate",
         deliver: shouldDeliverLxmfPropagationLocalIngress(ingress.actions),
         prefixedPresent: prefixed !== null,
         decryptedPresent: decrypted !== null
-      })
-    ) {
+      }
+    );
+    if (!shouldUnpackLxmfPropagationLocalIngressNow(unpackIngress.actions)) {
       return null;
     }
 
@@ -755,7 +792,14 @@ export class LXMFRouter {
       return null;
     }
     const message = this.unpackDeliverable(deliveryData, LXMessageMethod.PROPAGATED);
-    if (shouldInvokeLxmfDeliveryCallback(message !== null)) {
+    const invoke = stepInvokeLxmfDeliveryCallbackWithActions(
+      initialInvokeLxmfDeliveryCallbackState(),
+      {
+        kind: "lxmf/invoke-delivery-callback-gate",
+        messagePresent: message !== null
+      }
+    );
+    if (shouldInvokeLxmfDeliveryCallbackNow(invoke.actions)) {
       this.deliveryCallback?.(message!);
     }
 

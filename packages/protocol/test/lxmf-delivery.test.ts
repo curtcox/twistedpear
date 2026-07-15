@@ -10,7 +10,11 @@ import {
   lxmfContentSizeFromPackedLength,
   canAcceptLxmfPropagationLocalDelivery,
   planLxmfDelivery,
+  initialAcceptLxmfPropagationLocalDeliveryState,
+  initialAwaitLxmfDeliveryReceiptState,
+  initialInvokeLxmfDeliveryCallbackState,
   initialLxmfDeliveryState,
+  initialUnpackLxmfPropagationLocalIngressState,
   lxmfDeliveryDeliverParams,
   lxmfDeliveryOpportunisticRejectSizes,
   planLxMessageInstancePack,
@@ -77,7 +81,15 @@ import {
   shouldSelectLxmfDeliveryParameters,
   planLxmfPropagationSyncPrep,
   shouldAwaitLxmfDeliveryReceipt,
+  shouldAwaitLxmfDeliveryReceiptNow,
   shouldInvokeLxmfDeliveryCallback,
+  shouldInvokeLxmfDeliveryCallbackNow,
+  shouldAcceptLxmfPropagationLocalDeliveryNow,
+  shouldSkipAcceptLxmfPropagationLocalDelivery,
+  shouldSkipAwaitLxmfDeliveryReceipt,
+  shouldSkipInvokeLxmfDeliveryCallback,
+  shouldSkipUnpackLxmfPropagationLocalIngress,
+  shouldUnpackLxmfPropagationLocalIngressNow,
   shouldTeardownLxmfPropagationLink,
   shouldTeardownLxmfPropagationLinkNow,
   initialAcceptLxmfWireFrameState,
@@ -124,10 +136,13 @@ import {
   shouldSkipLxmfPropagatedPackPrep,
   shouldUseLxmfPackNow,
   shouldUseLxmfPackTimestamp,
+  stepAcceptLxmfPropagationLocalDeliveryWithActions,
   stepAcceptLxmfWireFrameWithActions,
+  stepAwaitLxmfDeliveryReceiptWithActions,
   stepCommitRememberedLxmfHashWithActions,
   stepExtractLxmfOpportunisticPayloadWithActions,
   stepIncludeLxmfStampWithActions,
+  stepInvokeLxmfDeliveryCallbackWithActions,
   stepLxmfDeliverableAcceptWithActions,
   stepLxmfDeliveryWithActions,
   stepLxmfDirectSendWithActions,
@@ -145,7 +160,8 @@ import {
   stepRegisterLxmfDeliveryIdentityWithActions,
   stepRememberLxmfMessageWithActions,
   stepSelectLxmfDeliveryParametersWithActions,
-  stepTeardownLxmfPropagationLinkWithActions
+  stepTeardownLxmfPropagationLinkWithActions,
+  stepUnpackLxmfPropagationLocalIngressWithActions
 } from "../src/lxmf-delivery.js";
 import { LxmfUnverifiedReason } from "../src/lxmf-fields.js";
 
@@ -467,6 +483,27 @@ describe("protocol lxmf delivery", () => {
         destinationHashMatches: true
       })
     ).toBe(false);
+
+    const localOk = stepAcceptLxmfPropagationLocalDeliveryWithActions(
+      initialAcceptLxmfPropagationLocalDeliveryState(),
+      {
+        kind: "propagation-local-delivery/accept-gate",
+        deliveryDestinationPresent: true,
+        destinationHashMatches: true
+      }
+    );
+    expect(shouldAcceptLxmfPropagationLocalDeliveryNow(localOk.actions)).toBe(true);
+    expect(shouldSkipAcceptLxmfPropagationLocalDelivery(localOk.actions)).toBe(false);
+    const localSkip = stepAcceptLxmfPropagationLocalDeliveryWithActions(
+      initialAcceptLxmfPropagationLocalDeliveryState(),
+      {
+        kind: "propagation-local-delivery/accept-gate",
+        deliveryDestinationPresent: true,
+        destinationHashMatches: false
+      }
+    );
+    expect(shouldSkipAcceptLxmfPropagationLocalDelivery(localSkip.actions)).toBe(true);
+
     expect(
       planLxmfPropagatedSend({
         nodeConfigured: true,
@@ -499,6 +536,30 @@ describe("protocol lxmf delivery", () => {
     expect(shouldAwaitLxmfDeliveryReceipt(false)).toBe(false);
     expect(shouldInvokeLxmfDeliveryCallback(true)).toBe(true);
     expect(shouldInvokeLxmfDeliveryCallback(false)).toBe(false);
+
+    const awaitOk = stepAwaitLxmfDeliveryReceiptWithActions(
+      initialAwaitLxmfDeliveryReceiptState(),
+      { kind: "lxmf/await-delivery-receipt-gate", receiptPresent: true }
+    );
+    expect(shouldAwaitLxmfDeliveryReceiptNow(awaitOk.actions)).toBe(true);
+    expect(shouldSkipAwaitLxmfDeliveryReceipt(awaitOk.actions)).toBe(false);
+    const awaitSkip = stepAwaitLxmfDeliveryReceiptWithActions(
+      initialAwaitLxmfDeliveryReceiptState(),
+      { kind: "lxmf/await-delivery-receipt-gate", receiptPresent: false }
+    );
+    expect(shouldSkipAwaitLxmfDeliveryReceipt(awaitSkip.actions)).toBe(true);
+
+    const invokeOk = stepInvokeLxmfDeliveryCallbackWithActions(
+      initialInvokeLxmfDeliveryCallbackState(),
+      { kind: "lxmf/invoke-delivery-callback-gate", messagePresent: true }
+    );
+    expect(shouldInvokeLxmfDeliveryCallbackNow(invokeOk.actions)).toBe(true);
+    expect(shouldSkipInvokeLxmfDeliveryCallback(invokeOk.actions)).toBe(false);
+    const invokeSkip = stepInvokeLxmfDeliveryCallbackWithActions(
+      initialInvokeLxmfDeliveryCallbackState(),
+      { kind: "lxmf/invoke-delivery-callback-gate", messagePresent: false }
+    );
+    expect(shouldSkipInvokeLxmfDeliveryCallback(invokeSkip.actions)).toBe(true);
   });
 
   it("emits PROPAGATED send gate actions from stepLxmfPropagatedSendWithActions", () => {
@@ -1151,6 +1212,29 @@ describe("protocol lxmf delivery", () => {
         decryptedPresent: true
       })
     ).toBe(false);
+
+    const unpackOk = stepUnpackLxmfPropagationLocalIngressWithActions(
+      initialUnpackLxmfPropagationLocalIngressState(),
+      {
+        kind: "propagation-local-ingress/unpack-gate",
+        deliver: true,
+        prefixedPresent: true,
+        decryptedPresent: true
+      }
+    );
+    expect(shouldUnpackLxmfPropagationLocalIngressNow(unpackOk.actions)).toBe(true);
+    expect(shouldSkipUnpackLxmfPropagationLocalIngress(unpackOk.actions)).toBe(false);
+    const unpackSkip = stepUnpackLxmfPropagationLocalIngressWithActions(
+      initialUnpackLxmfPropagationLocalIngressState(),
+      {
+        kind: "propagation-local-ingress/unpack-gate",
+        deliver: false,
+        prefixedPresent: true,
+        decryptedPresent: true
+      }
+    );
+    expect(shouldSkipUnpackLxmfPropagationLocalIngress(unpackSkip.actions)).toBe(true);
+
     expect(shouldAcceptLxmfWireFrame(true)).toBe(true);
     expect(shouldAcceptLxmfWireFrame(false)).toBe(false);
     expect(shouldCommitRememberedLxmfHash(true)).toBe(true);

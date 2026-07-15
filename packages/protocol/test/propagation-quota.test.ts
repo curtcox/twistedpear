@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   PROPAGATION_DESTINATION_HASH_SIZE,
+  initialDeletePropagationCatalogEntryState,
+  initialEvictOldestPropagationEntryState,
+  initialEvictPropagationCatalogEntryState,
   initialPropagationRestoreState,
   initialPropagationStoreState,
   isPropagationMessageTooLarge,
@@ -15,10 +18,19 @@ import {
   shouldApplyPropagationRestore,
   shouldCommitPropagationStoreEntry,
   shouldDeletePropagationCatalogEntry,
+  shouldDeletePropagationCatalogEntryNow,
   shouldDuplicatePropagationStore,
   shouldEvictOldestPropagationEntry,
+  shouldEvictOldestPropagationEntryNow,
   shouldEvictPropagationCatalogEntry,
+  shouldEvictPropagationCatalogEntryNow,
   shouldRejectPropagationStore,
+  shouldSkipDeletePropagationCatalogEntry,
+  shouldSkipEvictOldestPropagationEntry,
+  shouldSkipEvictPropagationCatalogEntry,
+  stepDeletePropagationCatalogEntryWithActions,
+  stepEvictOldestPropagationEntryWithActions,
+  stepEvictPropagationCatalogEntryWithActions,
   stepPropagationRestoreWithActions,
   stepPropagationStoreWithActions,
   type PropagationQuotas
@@ -148,6 +160,50 @@ describe("protocol propagation quota", () => {
     expect(
       shouldEvictOldestPropagationEntry({ oldestKeyPresent: false, entryPresent: true })
     ).toBe(false);
+
+    const deleteOk = stepDeletePropagationCatalogEntryWithActions(
+      initialDeletePropagationCatalogEntryState(),
+      { kind: "propagation/delete-catalog-entry-gate", entryPresent: true }
+    );
+    expect(shouldDeletePropagationCatalogEntryNow(deleteOk.actions)).toBe(true);
+    expect(shouldSkipDeletePropagationCatalogEntry(deleteOk.actions)).toBe(false);
+    const deleteSkip = stepDeletePropagationCatalogEntryWithActions(
+      initialDeletePropagationCatalogEntryState(),
+      { kind: "propagation/delete-catalog-entry-gate", entryPresent: false }
+    );
+    expect(shouldSkipDeletePropagationCatalogEntry(deleteSkip.actions)).toBe(true);
+
+    const evictOk = stepEvictPropagationCatalogEntryWithActions(
+      initialEvictPropagationCatalogEntryState(),
+      { kind: "propagation/evict-catalog-entry-gate", entryPresent: true }
+    );
+    expect(shouldEvictPropagationCatalogEntryNow(evictOk.actions)).toBe(true);
+    expect(shouldSkipEvictPropagationCatalogEntry(evictOk.actions)).toBe(false);
+    const evictSkip = stepEvictPropagationCatalogEntryWithActions(
+      initialEvictPropagationCatalogEntryState(),
+      { kind: "propagation/evict-catalog-entry-gate", entryPresent: false }
+    );
+    expect(shouldSkipEvictPropagationCatalogEntry(evictSkip.actions)).toBe(true);
+
+    const oldestOk = stepEvictOldestPropagationEntryWithActions(
+      initialEvictOldestPropagationEntryState(),
+      {
+        kind: "propagation/evict-oldest-entry-gate",
+        oldestKeyPresent: true,
+        entryPresent: true
+      }
+    );
+    expect(shouldEvictOldestPropagationEntryNow(oldestOk.actions)).toBe(true);
+    expect(shouldSkipEvictOldestPropagationEntry(oldestOk.actions)).toBe(false);
+    const oldestSkip = stepEvictOldestPropagationEntryWithActions(
+      initialEvictOldestPropagationEntryState(),
+      {
+        kind: "propagation/evict-oldest-entry-gate",
+        oldestKeyPresent: true,
+        entryPresent: false
+      }
+    );
+    expect(shouldSkipEvictOldestPropagationEntry(oldestSkip.actions)).toBe(true);
   });
 
   it("emits restore reject / duplicate / reject-hash / accept actions from restore-gate", () => {

@@ -1,8 +1,9 @@
 /**
  * Pure LXMF propagation-server quota and eviction planning.
  * Persistence and hashing stay at the adapter edge.
- * Store / restore conclusions leave via machine actions (no ad-hoc `plan.kind`
- * / `plan === "accept"` reads beside the step).
+ * Store / restore / catalog-evict / catalog-delete / evict-oldest conclusions
+ * leave via machine actions (no ad-hoc `plan.kind` / `plan === "accept"` /
+ * `shouldEvict*` / `shouldDelete*` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -113,6 +114,65 @@ export function shouldEvictPropagationCatalogEntry(entryPresent: boolean): boole
 }
 
 /**
+ * Propagation catalog-entry eviction gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldEvictPropagationCatalogEntry` reads beside the step).
+ */
+export type EvictPropagationCatalogEntryState = Record<string, never>;
+
+export type EvictPropagationCatalogEntryEvent =
+  | Event
+  | {
+      readonly kind: "propagation/evict-catalog-entry-gate";
+      readonly entryPresent: boolean;
+    };
+
+export type EvictPropagationCatalogEntryAction =
+  | { readonly kind: "evict" }
+  | { readonly kind: "skip" };
+
+export interface EvictPropagationCatalogEntryStepResult {
+  readonly state: EvictPropagationCatalogEntryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly EvictPropagationCatalogEntryAction[];
+}
+
+export function initialEvictPropagationCatalogEntryState(): EvictPropagationCatalogEntryState {
+  return {};
+}
+
+export function stepEvictPropagationCatalogEntryWithActions(
+  state: EvictPropagationCatalogEntryState,
+  event: EvictPropagationCatalogEntryEvent
+): EvictPropagationCatalogEntryStepResult {
+  if (event.kind === "propagation/evict-catalog-entry-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldEvictPropagationCatalogEntry(event.entryPresent) ? "evict" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldEvictPropagationCatalogEntryNow(
+  actions: ReadonlyArray<EvictPropagationCatalogEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "evict");
+}
+
+export function shouldSkipEvictPropagationCatalogEntry(
+  actions: ReadonlyArray<EvictPropagationCatalogEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/**
  * Whether evict-oldest may delete after {@link selectOldestPropagationKey}
  * and the catalog entry remains present.
  */
@@ -121,6 +181,71 @@ export function shouldEvictOldestPropagationEntry(input: {
   readonly entryPresent: boolean;
 }): boolean {
   return input.oldestKeyPresent && input.entryPresent;
+}
+
+/**
+ * Propagation evict-oldest gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldEvictOldestPropagationEntry` reads beside the step).
+ */
+export type EvictOldestPropagationEntryState = Record<string, never>;
+
+export type EvictOldestPropagationEntryEvent =
+  | Event
+  | {
+      readonly kind: "propagation/evict-oldest-entry-gate";
+      readonly oldestKeyPresent: boolean;
+      readonly entryPresent: boolean;
+    };
+
+export type EvictOldestPropagationEntryAction =
+  | { readonly kind: "evict" }
+  | { readonly kind: "skip" };
+
+export interface EvictOldestPropagationEntryStepResult {
+  readonly state: EvictOldestPropagationEntryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly EvictOldestPropagationEntryAction[];
+}
+
+export function initialEvictOldestPropagationEntryState(): EvictOldestPropagationEntryState {
+  return {};
+}
+
+export function stepEvictOldestPropagationEntryWithActions(
+  state: EvictOldestPropagationEntryState,
+  event: EvictOldestPropagationEntryEvent
+): EvictOldestPropagationEntryStepResult {
+  if (event.kind === "propagation/evict-oldest-entry-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldEvictOldestPropagationEntry({
+            oldestKeyPresent: event.oldestKeyPresent,
+            entryPresent: event.entryPresent
+          })
+            ? "evict"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldEvictOldestPropagationEntryNow(
+  actions: ReadonlyArray<EvictOldestPropagationEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "evict");
+}
+
+export function shouldSkipEvictOldestPropagationEntry(
+  actions: ReadonlyArray<EvictOldestPropagationEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether store may commit after destination-hash extraction succeeds. */
@@ -243,6 +368,65 @@ function stepPropagationStoreInner(
 /** Whether delete may remove a catalog entry after lookup. */
 export function shouldDeletePropagationCatalogEntry(entryPresent: boolean): boolean {
   return entryPresent;
+}
+
+/**
+ * Propagation catalog delete gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldDeletePropagationCatalogEntry` reads beside the step).
+ */
+export type DeletePropagationCatalogEntryState = Record<string, never>;
+
+export type DeletePropagationCatalogEntryEvent =
+  | Event
+  | {
+      readonly kind: "propagation/delete-catalog-entry-gate";
+      readonly entryPresent: boolean;
+    };
+
+export type DeletePropagationCatalogEntryAction =
+  | { readonly kind: "delete" }
+  | { readonly kind: "skip" };
+
+export interface DeletePropagationCatalogEntryStepResult {
+  readonly state: DeletePropagationCatalogEntryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DeletePropagationCatalogEntryAction[];
+}
+
+export function initialDeletePropagationCatalogEntryState(): DeletePropagationCatalogEntryState {
+  return {};
+}
+
+export function stepDeletePropagationCatalogEntryWithActions(
+  state: DeletePropagationCatalogEntryState,
+  event: DeletePropagationCatalogEntryEvent
+): DeletePropagationCatalogEntryStepResult {
+  if (event.kind === "propagation/delete-catalog-entry-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldDeletePropagationCatalogEntry(event.entryPresent) ? "delete" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldDeletePropagationCatalogEntryNow(
+  actions: ReadonlyArray<DeletePropagationCatalogEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "delete");
+}
+
+export function shouldSkipDeletePropagationCatalogEntry(
+  actions: ReadonlyArray<DeletePropagationCatalogEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**

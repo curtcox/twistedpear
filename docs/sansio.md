@@ -16,7 +16,20 @@
 > **`stepSplitIdentityEntropyWithActions`**: use-fields|reject) plus **Identity**,
 > **Token**, and **Resource** RNG now prefer injected/`Runtime` entropy (transport
 > identity keygen, path-request tags, link Token IVs, destination encrypt, resource
-> random hashes). **Resource hashmap-update gates** (frame accept via
+> random hashes). **Propagation catalog /get-request-data** gates (catalog
+> evict via **`stepEvictPropagationCatalogEntryWithActions`**: evict|skip;
+> catalog delete via **`stepDeletePropagationCatalogEntryWithActions`**:
+> delete|skip; evict-oldest via
+> **`stepEvictOldestPropagationEntryWithActions`**: evict|skip; /get
+> request-data via **`stepAcceptPropagationGetRequestDataWithActions`**:
+> accept|skip) are pure protocol leaves; `PropagationServer` + propagation
+> client adapt them. **LXMF delivery-receipt await / callback /
+> local-delivery accept / ingress unpack** gates (via
+> **`stepAwaitLxmfDeliveryReceiptWithActions`**: await|skip;
+> **`stepInvokeLxmfDeliveryCallbackWithActions`**: invoke|skip;
+> **`stepAcceptLxmfPropagationLocalDeliveryWithActions`**: accept|skip;
+> **`stepUnpackLxmfPropagationLocalIngressWithActions`**: unpack|skip) are pure
+> protocol leaves; `LXMFRouter` adapts them. **Resource hashmap-update gates** (frame accept via
 > **`stepAcceptResourceHashmapUpdateFrameWithActions`**: accept|skip;
 > part-request fulfill via **`stepFulfillResourcePartRequestWithActions`**:
 > fulfill|skip; receive-part slot write via
@@ -643,7 +656,10 @@
 > match|mismatch) live in protocol; announce ingress adapts them.
 > **`shouldReplyKeepaliveProbe`** (via **`stepReplyKeepaliveProbeWithActions`**:
 > reply|skip) and **`isExpectedLinkMode`** (via **`stepExpectedLinkModeWithActions`**:
-> match|mismatch) live in protocol; `Link` adapts them. **`canAcceptLxmfPropagationLocalDelivery`** and
+> match|mismatch) live in protocol; `Link` adapts them. **`canAcceptLxmfPropagationLocalDelivery`** (via
+> **`stepAcceptLxmfPropagationLocalDeliveryWithActions`**: accept|skip) /
+> **`canUnpackLxmfPropagationLocalIngress`** (via
+> **`stepUnpackLxmfPropagationLocalIngressWithActions`**: unpack|skip) and
 > **`planLxmfPropagatedSend`** (via **`stepLxmfPropagatedSendWithActions`**: proceed /
 > reject-missing-node / reject-missing-packed / reject-resource-unimplemented) live
 > in protocol; `LXMFRouter` adapts them.
@@ -865,8 +881,10 @@
 > **`shouldRegisterStreamReadyCallback`** (via
 > **`stepStreamReadyCallbackRegisterWithActions`**: register|skip),
 > **`shouldAttachLinkRequestPacketReceipt`** (via
-> **`stepAttachLinkRequestPacketReceiptWithActions`**: attach|skip), **`shouldAwaitLxmfDeliveryReceipt`** /
-> **`shouldInvokeLxmfDeliveryCallback`**, and extended **`planLxmfPropagatedSend`**
+> **`stepAttachLinkRequestPacketReceiptWithActions`**: attach|skip), **`shouldAwaitLxmfDeliveryReceipt`** (via
+> **`stepAwaitLxmfDeliveryReceiptWithActions`**: await|skip) /
+> **`shouldInvokeLxmfDeliveryCallback`** (via
+> **`stepInvokeLxmfDeliveryCallbackWithActions`**: invoke|skip), and extended **`planLxmfPropagatedSend`**
 > (`missing-node`, via **`stepLxmfPropagatedSendWithActions`**) live in protocol; destination, Channel, PacketReceipt, transport
 > announce, Identity, Buffer, LinkRequestReceipt, and LXMF router adapt them. Link
 > resource/response/channel plaintext early-outs reuse **`shouldDispatchLinkPlaintext`** (via **`stepDispatchLinkPlaintextWithActions`**).
@@ -978,9 +996,16 @@
 > **`shouldClearChannelEnvelopePacket`** (via
 > **`stepClearChannelEnvelopePacketWithActions`**: clear|skip) /
 > **`shouldUnregisterChannelMessageHandler`**,
-> **`shouldEvictPropagationCatalogEntry`** / **`shouldCommitPropagationStoreEntry`** /
-> **`shouldDeletePropagationCatalogEntry`** / **`shouldApplyPropagationRestore`**, and
-> **`shouldAcceptPropagationGetRequestData`** live in protocol; Channel and
+> **`shouldEvictPropagationCatalogEntry`** (via
+> **`stepEvictPropagationCatalogEntryWithActions`**: evict|skip) /
+> **`shouldCommitPropagationStoreEntry`** /
+> **`shouldDeletePropagationCatalogEntry`** (via
+> **`stepDeletePropagationCatalogEntryWithActions`**: delete|skip) /
+> **`shouldEvictOldestPropagationEntry`** (via
+> **`stepEvictOldestPropagationEntryWithActions`**: evict|skip) /
+> **`shouldApplyPropagationRestore`**, and
+> **`shouldAcceptPropagationGetRequestData`** (via
+> **`stepAcceptPropagationGetRequestDataWithActions`**: accept|skip) live in protocol; Channel and
 > PropagationServer / PropagationClient adapt them.
 > **`shouldRelayReverseOnInterface`**, **`shouldInvokeLinkAppRequestHandler`** /
 > **`shouldSendLinkAppRequestResponse`**, **`shouldRestoreIdentityRatchetRecord`**,
@@ -1423,6 +1448,10 @@
 > fulfill-resource-part-request / apply-resource-receive-part-slot /
 > send-resource-hashmap-update / advance-resource-awaiting-proof /
 > accept-propagation-peer-response /
+> evict-propagation-catalog-entry / delete-propagation-catalog-entry /
+> evict-oldest-propagation-entry / accept-propagation-get-request-data /
+> await-lxmf-delivery-receipt / invoke-lxmf-delivery-callback /
+> accept-lxmf-propagation-local-delivery / unpack-lxmf-propagation-local-ingress /
 > accept-resource-proof-payload / accept-resource-proof-split /
 > resource-random-hash-length-valid / handle-propagation-peer-error /
 > accept-propagation-delivered-message / treat-propagation-list-as-empty /
@@ -1538,6 +1567,10 @@
 > fulfill-resource-part-request / apply-resource-receive-part-slot /
 > send-resource-hashmap-update / advance-resource-awaiting-proof /
 > accept-propagation-peer-response /
+> evict-propagation-catalog-entry / delete-propagation-catalog-entry /
+> evict-oldest-propagation-entry / accept-propagation-get-request-data /
+> await-lxmf-delivery-receipt / invoke-lxmf-delivery-callback /
+> accept-lxmf-propagation-local-delivery / unpack-lxmf-propagation-local-ingress /
 > accept-resource-proof-payload / accept-resource-proof-split /
 > resource-random-hash-length-valid / handle-propagation-peer-error /
 > accept-propagation-delivered-message / treat-propagation-list-as-empty /
@@ -1590,6 +1623,10 @@
 > fulfill-resource-part-request / apply-resource-receive-part-slot /
 > send-resource-hashmap-update / advance-resource-awaiting-proof /
 > accept-propagation-peer-response /
+> evict-propagation-catalog-entry / delete-propagation-catalog-entry /
+> evict-oldest-propagation-entry / accept-propagation-get-request-data /
+> await-lxmf-delivery-receipt / invoke-lxmf-delivery-callback /
+> accept-lxmf-propagation-local-delivery / unpack-lxmf-propagation-local-ingress /
 > accept-resource-proof-payload / accept-resource-proof-split /
 > resource-random-hash-length-valid / handle-propagation-peer-error /
 > accept-propagation-delivered-message / treat-propagation-list-as-empty /
@@ -1900,6 +1937,14 @@
 > **`stepSendResourceHashmapUpdateWithActions`** emits `send` / `skip`;
 > **`stepAdvanceResourceAwaitingProofWithActions`** emits `advance` / `skip`;
 > **`stepAcceptPropagationPeerResponseWithActions`** emits `accept` / `skip`;
+> **`stepEvictPropagationCatalogEntryWithActions`** emits `evict` / `skip`;
+> **`stepDeletePropagationCatalogEntryWithActions`** emits `delete` / `skip`;
+> **`stepEvictOldestPropagationEntryWithActions`** emits `evict` / `skip`;
+> **`stepAcceptPropagationGetRequestDataWithActions`** emits `accept` / `skip`;
+> **`stepAwaitLxmfDeliveryReceiptWithActions`** emits `await` / `skip`;
+> **`stepInvokeLxmfDeliveryCallbackWithActions`** emits `invoke` / `skip`;
+> **`stepAcceptLxmfPropagationLocalDeliveryWithActions`** emits `accept` / `skip`;
+> **`stepUnpackLxmfPropagationLocalIngressWithActions`** emits `unpack` / `skip`;
 > **`stepAcceptResourceProofPayloadWithActions`** emits `accept` / `skip`;
 > **`stepAcceptResourceProofSplitWithActions`** emits `accept` / `skip`;
 > **`stepResourceRandomHashLengthValidWithActions`** emits `valid` / `invalid`;
@@ -1909,7 +1954,9 @@
 > **`stepRequestPropagationHavesAckWithActions`** emits `request` / `skip`;
 > link keepalive-context, channel envelope emplace / RX-TX lifecycle,
 > resource fulfill-part / hashmap-update frame accept / part-request fulfill /
-> receive-part slot / HMU emit / awaiting-proof advance, propagation peer-response accept, resource-proof
+> receive-part slot / HMU emit / awaiting-proof advance, propagation peer-response accept /
+> catalog evict / delete / evict-oldest / get-request-data accept, LXMF
+> receipt-await / callback-invoke / local-delivery accept / ingress unpack, resource-proof
 > payload/split/random-hash, and propagation peer-error / delivered-message /
 > list-empty / haves-ack apply only from those actions (no ad-hoc
 > `isLinkKeepaliveContext` / `shouldEmplaceChannelEnvelope` /
@@ -1923,6 +1970,10 @@
 > `shouldFulfillResourcePartRequest` / `shouldApplyResourceReceivePartSlot` /
 > `shouldSendResourceHashmapUpdate` / `shouldAdvanceResourceAwaitingProof` /
 > `shouldAcceptPropagationPeerResponse` /
+> `shouldEvictPropagationCatalogEntry` / `shouldDeletePropagationCatalogEntry` /
+> `shouldEvictOldestPropagationEntry` / `shouldAcceptPropagationGetRequestData` /
+> `shouldAwaitLxmfDeliveryReceipt` / `shouldInvokeLxmfDeliveryCallback` /
+> `canAcceptLxmfPropagationLocalDelivery` / `canUnpackLxmfPropagationLocalIngress` /
 > `shouldAcceptResourceProofPayload` / `shouldAcceptResourceProofSplit` /
 > `isValidResourceRandomHashLength` / `shouldHandlePropagationPeerError` /
 > `shouldAcceptPropagationDeliveredMessage` /

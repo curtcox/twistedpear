@@ -2,6 +2,7 @@ import {
   PROPAGATION_LINK_TIMER_ID,
   PropagationTransferState,
   initialAcceptPropagationDeliveredMessageState,
+  initialAcceptPropagationGetRequestDataState,
   initialAcceptPropagationPeerResponseState,
   initialDecodeLxmfPeerErrorState,
   initialHandlePropagationPeerErrorState,
@@ -23,7 +24,7 @@ import {
   propagationGetApplyIds,
   propagationGetListIds,
   propagationRequestFieldsFromActions,
-  shouldAcceptPropagationGetRequestData,
+  shouldAcceptPropagationGetRequestDataNow,
   shouldAcceptPropagationPeerResponseNow,
   shouldAcceptPropagationDeliveredMessageNow,
   shouldApplyPropagationGet,
@@ -51,6 +52,7 @@ import {
   shouldUseUnpackPropagationEnvelope,
   shouldUseUnpackPropagationRequest,
   stepAcceptPropagationDeliveredMessageWithActions,
+  stepAcceptPropagationGetRequestDataWithActions,
   stepAcceptPropagationPeerResponseWithActions,
   stepDecodeLxmfPeerErrorWithActions,
   stepHandlePropagationPeerErrorWithActions,
@@ -647,7 +649,14 @@ export class PropagationNodeStore {
   }
 
   private handleGetRequest(data: Uint8Array | null, remoteIdentity: Identity | null): Uint8Array | null {
-    if (!shouldAcceptPropagationGetRequestData(data !== null)) {
+    const acceptStepped = stepAcceptPropagationGetRequestDataWithActions(
+      initialAcceptPropagationGetRequestDataState(),
+      {
+        kind: "propagation/accept-get-request-data-gate",
+        dataPresent: data !== null
+      }
+    );
+    if (!shouldAcceptPropagationGetRequestDataNow(acceptStepped.actions)) {
       return null;
     }
 

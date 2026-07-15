@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  initialAcceptPropagationGetRequestDataState,
   initialPropagationGetState,
   planPropagationGet,
   propagationGetApplyIds,
   propagationGetListIds,
   shouldAcceptPropagationGetRequestData,
+  shouldAcceptPropagationGetRequestDataNow,
   shouldApplyPropagationGet,
   shouldListPropagationGetIds,
+  shouldSkipAcceptPropagationGetRequestData,
+  stepAcceptPropagationGetRequestDataWithActions,
   stepPropagationGetWithActions
 } from "../src/propagation-get.js";
 
@@ -78,6 +82,20 @@ describe("protocol propagation get planner", () => {
   it("gates /get request body presence", () => {
     expect(shouldAcceptPropagationGetRequestData(true)).toBe(true);
     expect(shouldAcceptPropagationGetRequestData(false)).toBe(false);
+
+    const accept = stepAcceptPropagationGetRequestDataWithActions(
+      initialAcceptPropagationGetRequestDataState(),
+      { kind: "propagation/accept-get-request-data-gate", dataPresent: true }
+    );
+    expect(shouldAcceptPropagationGetRequestDataNow(accept.actions)).toBe(true);
+    expect(shouldSkipAcceptPropagationGetRequestData(accept.actions)).toBe(false);
+
+    const skip = stepAcceptPropagationGetRequestDataWithActions(
+      initialAcceptPropagationGetRequestDataState(),
+      { kind: "propagation/accept-get-request-data-gate", dataPresent: false }
+    );
+    expect(shouldSkipAcceptPropagationGetRequestData(skip.actions)).toBe(true);
+    expect(shouldAcceptPropagationGetRequestDataNow(skip.actions)).toBe(false);
   });
 
   it("emits list-ids / apply actions from get/received", () => {

@@ -1,8 +1,9 @@
 /**
  * Pure LXMF propagation /get request planning.
  * Packing responses and mutating the store stay at the adapter edge.
- * Conclusions leave via machine actions (no ad-hoc `plan.kind` reads
- * beside the step).
+ * Request-data accept / list-ids / apply conclusions leave via machine
+ * actions (no ad-hoc `plan.kind` / `shouldAcceptPropagationGetRequestData`
+ * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -78,6 +79,65 @@ export function planPropagationGet(input: {
 /** Whether a /get request body is present and may be unpacked. */
 export function shouldAcceptPropagationGetRequestData(dataPresent: boolean): boolean {
   return dataPresent;
+}
+
+/**
+ * Propagation /get request-data accept gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldAcceptPropagationGetRequestData` reads beside the step).
+ */
+export type AcceptPropagationGetRequestDataState = Record<string, never>;
+
+export type AcceptPropagationGetRequestDataEvent =
+  | Event
+  | {
+      readonly kind: "propagation/accept-get-request-data-gate";
+      readonly dataPresent: boolean;
+    };
+
+export type AcceptPropagationGetRequestDataAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptPropagationGetRequestDataStepResult {
+  readonly state: AcceptPropagationGetRequestDataState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptPropagationGetRequestDataAction[];
+}
+
+export function initialAcceptPropagationGetRequestDataState(): AcceptPropagationGetRequestDataState {
+  return {};
+}
+
+export function stepAcceptPropagationGetRequestDataWithActions(
+  state: AcceptPropagationGetRequestDataState,
+  event: AcceptPropagationGetRequestDataEvent
+): AcceptPropagationGetRequestDataStepResult {
+  if (event.kind === "propagation/accept-get-request-data-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptPropagationGetRequestData(event.dataPresent) ? "accept" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptPropagationGetRequestDataNow(
+  actions: ReadonlyArray<AcceptPropagationGetRequestDataAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAcceptPropagationGetRequestData(
+  actions: ReadonlyArray<AcceptPropagationGetRequestDataAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**

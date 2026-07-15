@@ -3,6 +3,10 @@ import {
   initialDecodeLxmfPeerErrorState,
   lxmfPeerErrorFromActions,
   stepDecodeLxmfPeerErrorWithActions,
+  initialAcceptPropagationGetRequestDataState,
+  initialDeletePropagationCatalogEntryState,
+  initialEvictOldestPropagationEntryState,
+  initialEvictPropagationCatalogEntryState,
   initialPersistDebounceState,
   initialPropagationGetState,
   initialPropagationRestoreState,
@@ -17,20 +21,24 @@ import {
   propagationRequestFieldsFromActions,
   propagationStoreAcceptEvictKeys,
   selectOldestPropagationKey,
-  shouldAcceptPropagationGetRequestData,
+  shouldAcceptPropagationGetRequestDataNow,
   shouldAcceptPropagationRestore,
   shouldAcceptPropagationStore,
   shouldApplyPropagationGet,
-  shouldDeletePropagationCatalogEntry,
+  shouldDeletePropagationCatalogEntryNow,
   shouldDuplicatePropagationStore,
-  shouldEvictOldestPropagationEntry,
-  shouldEvictPropagationCatalogEntry,
+  shouldEvictOldestPropagationEntryNow,
+  shouldEvictPropagationCatalogEntryNow,
   shouldListPropagationGetIds,
   shouldRejectPropagationStore,
   shouldRejectUnpackPropagationEnvelope,
   shouldRejectUnpackPropagationRequest,
   shouldUseUnpackPropagationEnvelope,
   shouldUseUnpackPropagationRequest,
+  stepAcceptPropagationGetRequestDataWithActions,
+  stepDeletePropagationCatalogEntryWithActions,
+  stepEvictOldestPropagationEntryWithActions,
+  stepEvictPropagationCatalogEntryWithActions,
   stepPersistDebounceWithActions,
   stepPropagationGetWithActions,
   stepPropagationRestoreWithActions,
@@ -212,7 +220,14 @@ export class PropagationServer {
     const evictKeys = propagationStoreAcceptEvictKeys(actions) ?? [];
     for (const evictKey of evictKeys) {
       const entry = this.entries.get(evictKey);
-      if (shouldEvictPropagationCatalogEntry(entry !== undefined)) {
+      const evictStepped = stepEvictPropagationCatalogEntryWithActions(
+        initialEvictPropagationCatalogEntryState(),
+        {
+          kind: "propagation/evict-catalog-entry-gate",
+          entryPresent: entry !== undefined
+        }
+      );
+      if (shouldEvictPropagationCatalogEntryNow(evictStepped.actions)) {
         this.delete(entry!.transientId);
         this.evictions += 1;
       }
@@ -234,7 +249,14 @@ export class PropagationServer {
   delete(transientId: Uint8Array): boolean {
     const key = Buffer.from(transientId).toString("hex");
     const entry = this.entries.get(key);
-    if (!shouldDeletePropagationCatalogEntry(entry !== undefined)) {
+    const deleteStepped = stepDeletePropagationCatalogEntryWithActions(
+      initialDeletePropagationCatalogEntryState(),
+      {
+        kind: "propagation/delete-catalog-entry-gate",
+        entryPresent: entry !== undefined
+      }
+    );
+    if (!shouldDeletePropagationCatalogEntryNow(deleteStepped.actions)) {
       return false;
     }
 
@@ -314,12 +336,15 @@ export class PropagationServer {
       }))
     );
     const oldest = oldestKey === null ? undefined : this.entries.get(oldestKey);
-    if (
-      !shouldEvictOldestPropagationEntry({
+    const evictStepped = stepEvictOldestPropagationEntryWithActions(
+      initialEvictOldestPropagationEntryState(),
+      {
+        kind: "propagation/evict-oldest-entry-gate",
         oldestKeyPresent: oldestKey !== null,
         entryPresent: oldest !== undefined
-      })
-    ) {
+      }
+    );
+    if (!shouldEvictOldestPropagationEntryNow(evictStepped.actions)) {
       return false;
     }
 
@@ -363,7 +388,14 @@ export class PropagationServer {
   }
 
   private handleGetRequest(data: Uint8Array | null, remoteIdentity: Identity | null): Uint8Array | null {
-    if (!shouldAcceptPropagationGetRequestData(data !== null)) {
+    const acceptStepped = stepAcceptPropagationGetRequestDataWithActions(
+      initialAcceptPropagationGetRequestDataState(),
+      {
+        kind: "propagation/accept-get-request-data-gate",
+        dataPresent: data !== null
+      }
+    );
+    if (!shouldAcceptPropagationGetRequestDataNow(acceptStepped.actions)) {
       return null;
     }
 
