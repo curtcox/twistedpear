@@ -10,8 +10,8 @@
  * `canRequestLinkDestination` / `planDestinationRequestAllow` /
  * `shouldInvokeDestinationProofCallback` /
  * `shouldInvokeDestinationLinkEstablishedCallback` /
- * `shouldRegisterDestinationLink` / `isValidDestinationRequestPath` reads
- * beside the step).
+ * `shouldRegisterDestinationLink` / `isValidDestinationRequestPath` /
+ * `isValidDestinationIdentityBinding` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -650,17 +650,87 @@ export function isValidDestinationIdentityBinding(input: {
   return input.identityPresent;
 }
 
+/**
+ * isValidDestinationIdentityBinding gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `isValidDestinationIdentityBinding` reads beside the step).
+ */
+export type DestinationIdentityBindingValidState = Record<string, never>;
+
+export type DestinationIdentityBindingValidEvent =
+  | Event
+  | {
+      readonly kind: "destination/identity-binding-valid-gate";
+      readonly typePlain: boolean;
+      readonly identityPresent: boolean;
+    };
+
+export type DestinationIdentityBindingValidAction =
+  | { readonly kind: "valid" }
+  | { readonly kind: "invalid" };
+
+export interface DestinationIdentityBindingValidStepResult {
+  readonly state: DestinationIdentityBindingValidState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationIdentityBindingValidAction[];
+}
+
+export function initialDestinationIdentityBindingValidState(): DestinationIdentityBindingValidState {
+  return {};
+}
+
+export function stepDestinationIdentityBindingValidWithActions(
+  state: DestinationIdentityBindingValidState,
+  event: DestinationIdentityBindingValidEvent
+): DestinationIdentityBindingValidStepResult {
+  if (event.kind === "destination/identity-binding-valid-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isValidDestinationIdentityBinding({
+            typePlain: event.typePlain,
+            identityPresent: event.identityPresent
+          })
+            ? "valid"
+            : "invalid"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptDestinationIdentityBinding(
+  actions: ReadonlyArray<DestinationIdentityBindingValidAction>
+): boolean {
+  return actions.some((action) => action.kind === "valid");
+}
+
+export function shouldRejectDestinationIdentityBinding(
+  actions: ReadonlyArray<DestinationIdentityBindingValidAction>
+): boolean {
+  return actions.some((action) => action.kind === "invalid");
+}
+
 export type DestinationConstructionPlan =
   | "ok"
   | "bad-direction"
   | "bad-type"
   | "bad-identity-binding";
 
-/** Whether destination construction may proceed (direction / type / identity). */
+/**
+ * Whether destination construction may proceed (direction / type / identity).
+ * Pass `identityBindingValid` from {@link stepDestinationIdentityBindingValidWithActions}
+ * (`shouldAcceptDestinationIdentityBinding`); do not re-read
+ * `isValidDestinationIdentityBinding` beside the step.
+ */
 export function planDestinationConstruction(input: {
   readonly direction: number;
   readonly type: number;
-  readonly identityPresent: boolean;
+  readonly identityBindingValid: boolean;
 }): DestinationConstructionPlan {
   if (!isDestinationDirectionCode(input.direction)) {
     return "bad-direction";
@@ -668,12 +738,7 @@ export function planDestinationConstruction(input: {
   if (!isDestinationTypeCode(input.type)) {
     return "bad-type";
   }
-  if (
-    !isValidDestinationIdentityBinding({
-      typePlain: input.type === DestinationTypeCode.PLAIN,
-      identityPresent: input.identityPresent
-    })
-  ) {
+  if (!input.identityBindingValid) {
     return "bad-identity-binding";
   }
   return "ok";
@@ -681,7 +746,8 @@ export function planDestinationConstruction(input: {
 
 /**
  * Destination construction gates are event-driven; no durable session fields.
- * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Conclusions leave via machine actions (no ad-hoc plan /
+ * `isValidDestinationIdentityBinding` reads beside the step).
  */
 export type DestinationConstructionState = Record<string, never>;
 
@@ -753,10 +819,20 @@ function stepDestinationConstructionInner(
   event: DestinationConstructionEvent
 ): DestinationConstructionStepResult {
   if (event.kind === "destination/construction-gate") {
+    const identityBindingValid = shouldAcceptDestinationIdentityBinding(
+      stepDestinationIdentityBindingValidWithActions(
+        initialDestinationIdentityBindingValidState(),
+        {
+          kind: "destination/identity-binding-valid-gate",
+          typePlain: event.type === DestinationTypeCode.PLAIN,
+          identityPresent: event.identityPresent
+        }
+      ).actions
+    );
     const plan = planDestinationConstruction({
       direction: event.direction,
       type: event.type,
-      identityPresent: event.identityPresent
+      identityBindingValid
     });
     return { state, intents: [], actions: [{ kind: plan }] };
   }

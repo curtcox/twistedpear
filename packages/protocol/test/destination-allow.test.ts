@@ -13,6 +13,7 @@ import {
   initialDestinationConstructionState,
   initialDestinationDecryptState,
   initialDestinationEncryptState,
+  initialDestinationIdentityBindingValidState,
   initialDestinationLinkEstablishedCallbackState,
   initialDestinationProofCallbackState,
   initialDestinationRequestAllowState,
@@ -27,6 +28,7 @@ import {
   planDestinationDecrypt,
   planDestinationEncrypt,
   planDestinationRequestAllow,
+  shouldAcceptDestinationIdentityBinding,
   shouldAcceptDestinationRequestPath,
   shouldAllowAnnounceWithIdentity,
   shouldAllowDestinationAnnounce,
@@ -56,6 +58,7 @@ import {
   shouldRejectDestinationConstructionBadType,
   shouldRejectDestinationDecrypt,
   shouldRejectDestinationEncrypt,
+  shouldRejectDestinationIdentityBinding,
   shouldRejectDestinationRequestPath,
   shouldReturnDestinationDecryptCiphertext,
   shouldSkipDestinationLinkEstablishedCallback,
@@ -68,6 +71,7 @@ import {
   stepDestinationConstructionWithActions,
   stepDestinationDecryptWithActions,
   stepDestinationEncryptWithActions,
+  stepDestinationIdentityBindingValidWithActions,
   stepDestinationLinkEstablishedCallbackWithActions,
   stepDestinationProofCallbackWithActions,
   stepDestinationRequestAllowWithActions,
@@ -383,6 +387,30 @@ describe("destination allow policy", () => {
     expect(
       isValidDestinationIdentityBinding({ typePlain: false, identityPresent: false })
     ).toBe(false);
+
+    const valid = stepDestinationIdentityBindingValidWithActions(
+      initialDestinationIdentityBindingValidState(),
+      {
+        kind: "destination/identity-binding-valid-gate",
+        typePlain: true,
+        identityPresent: false
+      }
+    );
+    expect(valid.actions).toEqual([{ kind: "valid" }]);
+    expect(shouldAcceptDestinationIdentityBinding(valid.actions)).toBe(true);
+    expect(shouldRejectDestinationIdentityBinding(valid.actions)).toBe(false);
+
+    const invalid = stepDestinationIdentityBindingValidWithActions(
+      initialDestinationIdentityBindingValidState(),
+      {
+        kind: "destination/identity-binding-valid-gate",
+        typePlain: true,
+        identityPresent: true
+      }
+    );
+    expect(invalid.actions).toEqual([{ kind: "invalid" }]);
+    expect(shouldAcceptDestinationIdentityBinding(invalid.actions)).toBe(false);
+    expect(shouldRejectDestinationIdentityBinding(invalid.actions)).toBe(true);
   });
 
   it("plans destination construction", () => {
@@ -390,35 +418,35 @@ describe("destination allow policy", () => {
       planDestinationConstruction({
         direction: DestinationDirectionCode.IN,
         type: DestinationTypeCode.SINGLE,
-        identityPresent: true
+        identityBindingValid: true
       })
     ).toBe("ok");
     expect(
       planDestinationConstruction({
         direction: 0,
         type: DestinationTypeCode.SINGLE,
-        identityPresent: true
+        identityBindingValid: true
       })
     ).toBe("bad-direction");
     expect(
       planDestinationConstruction({
         direction: DestinationDirectionCode.OUT,
         type: 99,
-        identityPresent: true
+        identityBindingValid: true
       })
     ).toBe("bad-type");
     expect(
       planDestinationConstruction({
         direction: DestinationDirectionCode.OUT,
         type: DestinationTypeCode.PLAIN,
-        identityPresent: true
+        identityBindingValid: false
       })
     ).toBe("bad-identity-binding");
     expect(
       planDestinationConstruction({
         direction: DestinationDirectionCode.OUT,
         type: DestinationTypeCode.SINGLE,
-        identityPresent: false
+        identityBindingValid: false
       })
     ).toBe("bad-identity-binding");
   });

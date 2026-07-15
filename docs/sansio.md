@@ -151,6 +151,7 @@
 > **`stepAnnounceWithIdentityWithActions`**: allow|deny /
 > **`stepRequestLinkDestinationWithActions`**: allow|deny /
 > **`stepDestinationRequestPathValidWithActions`**: valid|invalid /
+> **`stepDestinationIdentityBindingValidWithActions`**: valid|invalid /
 > **`stepDestinationProofCallbackWithActions`**: invoke|skip /
 > **`stepDestinationLinkEstablishedCallbackWithActions`**: invoke|skip /
 > **`stepRegisterDestinationLinkWithActions`**: register|skip /
@@ -706,8 +707,9 @@
 > **`canRequestLinkDestination`** (via
 > **`stepRequestLinkDestinationWithActions`**: allow|deny) lives in protocol;
 > `Link.request` adapts it.
-> **`isValidDestinationIdentityBinding`** lives in protocol; `Destination` construction
-> adapts it. **`Announce.buildPacket`** reuses **`canAnnounceDestination`**.
+> **`isValidDestinationIdentityBinding`** (via
+> **`stepDestinationIdentityBindingValidWithActions`**: valid|invalid) lives in
+> protocol; `Destination` construction adapts it. **`Announce.buildPacket`** reuses **`canAnnounceDestination`**.
 > **`planLxMessagePack`** (via **`stepLxMessagePackWithActions`**: proceed /
 > reject-bad-destination / reject-bad-source) lives in protocol; `LXMessage.pack`
 > adapts it.
@@ -816,7 +818,8 @@
 > reject-not-announceable-type / reject-not-announceable-direction /
 > reject-missing-identity / reject-bad-random-hash / reject-bad-ratchet) and
 > **`planDestinationConstruction`** (via **`stepDestinationConstructionWithActions`**:
-> ok / bad-direction / bad-type / bad-identity-binding) live in protocol; `Announce`
+> ok / bad-direction / bad-type / bad-identity-binding; identity binding nested via
+> **`stepDestinationIdentityBindingValidWithActions`**: valid|invalid) lives in protocol; `Announce`
 > and `Destination` adapt them. **`planLinkInitiatorMtu`** lives in protocol;
 > `Link.request` adapts it. Destination type/direction code predicates
 > (`isDestinationTypeCode` / `isDestinationDirectionCode`) are exported for adapters.
@@ -1336,7 +1339,9 @@
 > (no ad-hoc `planIdentityRecall` / `planIdentityRecallAppData` reads beside
 > the step).
 > **`stepDestinationConstructionWithActions`** emits `ok` / `bad-direction` /
-> `bad-type` / `bad-identity-binding`; `Destination` construction throws or
+> `bad-type` / `bad-identity-binding`; identity binding nested via
+> **`stepDestinationIdentityBindingValidWithActions`** (`valid`|`invalid`);
+> `Destination` construction throws or
 > continues only from those actions. **`stepDestinationDecryptWithActions`**
 > emits `return-ciphertext` / `reject` / `decrypt-with-identity`;
 > **`stepDestinationEncryptWithActions`** emits `use-plaintext` / `reject` /
@@ -1344,6 +1349,7 @@
 > from those actions. **`stepPacketFromFieldsWithActions`** emits `ok` /
 > `bad-*` / `header2-missing-transport-id`; `Packet.fromFields` throws or
 > continues only from those actions (no ad-hoc `planDestinationConstruction` /
+> `isValidDestinationIdentityBinding` /
 > `planDestinationDecrypt` / `planDestinationEncrypt` / `planPacketFromFields`
 > reads beside the step).
 > **`stepChannelMessageTypeRegistrationWithActions`** emits `ok` /
@@ -1506,6 +1512,7 @@
 > **`stepRequestLinkDestinationWithActions`** /
 > **`stepDestinationRequestAllowWithActions`** emit `allow`|`deny`;
 > **`stepDestinationRequestPathValidWithActions`** emits `valid`|`invalid`;
+> **`stepDestinationIdentityBindingValidWithActions`** emits `valid`|`invalid`;
 > **`stepDestinationProofCallbackWithActions`** /
 > **`stepDestinationLinkEstablishedCallbackWithActions`** emit `invoke`|`skip`;
 > **`stepRegisterDestinationLinkWithActions`** emits `register`|`skip`;
@@ -1517,7 +1524,7 @@
 > `canAnnounceDestination` / `canDestinationSend` /
 > `canOperateAttachedDestination` / `canAnnounceWithIdentity` /
 > `canRequestLinkDestination` / `planDestinationRequestAllow` /
-> `isValidDestinationRequestPath` /
+> `isValidDestinationRequestPath` / `isValidDestinationIdentityBinding` /
 > `shouldInvokeDestinationProofCallback` /
 > `shouldInvokeDestinationLinkEstablishedCallback` /
 > `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
@@ -2149,6 +2156,7 @@
 > **`stepRequestLinkDestinationWithActions`** /
 > **`stepDestinationRequestAllowWithActions`** emit `allow`|`deny`;
 > **`stepDestinationRequestPathValidWithActions`** emits `valid`|`invalid`;
+> **`stepDestinationIdentityBindingValidWithActions`** emits `valid`|`invalid`;
 > **`stepDestinationProofCallbackWithActions`** /
 > **`stepDestinationLinkEstablishedCallbackWithActions`** emit `invoke`|`skip`;
 > **`stepRegisterDestinationLinkWithActions`** emits `register`|`skip`;
@@ -2160,7 +2168,7 @@
 > `canAnnounceDestination` / `canDestinationSend` /
 > `canOperateAttachedDestination` / `canAnnounceWithIdentity` /
 > `canRequestLinkDestination` / `planDestinationRequestAllow` /
-> `isValidDestinationRequestPath` /
+> `isValidDestinationRequestPath` / `isValidDestinationIdentityBinding` /
 > `shouldInvokeDestinationProofCallback` /
 > `shouldInvokeDestinationLinkEstablishedCallback` /
 > `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
@@ -2343,6 +2351,7 @@
 > `canDestinationSend` / `canOperateAttachedDestination` /
 > `canAnnounceWithIdentity` / `canRequestLinkDestination` /
 > `planDestinationRequestAllow` / `isValidDestinationRequestPath` /
+> `isValidDestinationIdentityBinding` /
 > `shouldInvokeDestinationProofCallback` /
 > `shouldInvokeDestinationLinkEstablishedCallback` /
 > `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
@@ -2677,6 +2686,7 @@
 > **`stepRequestLinkDestinationWithActions`** /
 > **`stepDestinationRequestAllowWithActions`** emit `allow`|`deny`;
 > **`stepDestinationRequestPathValidWithActions`** emits `valid`|`invalid`;
+> **`stepDestinationIdentityBindingValidWithActions`** emits `valid`|`invalid`;
 > **`stepDestinationProofCallbackWithActions`** /
 > **`stepDestinationLinkEstablishedCallbackWithActions`** emit `invoke`|`skip`;
 > **`stepRegisterDestinationLinkWithActions`** emits `register`|`skip`;
@@ -2688,7 +2698,7 @@
 > `canAnnounceDestination` / `canDestinationSend` /
 > `canOperateAttachedDestination` / `canAnnounceWithIdentity` /
 > `canRequestLinkDestination` / `planDestinationRequestAllow` /
-> `isValidDestinationRequestPath` /
+> `isValidDestinationRequestPath` / `isValidDestinationIdentityBinding` /
 > `shouldInvokeDestinationProofCallback` /
 > `shouldInvokeDestinationLinkEstablishedCallback` /
 > `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
