@@ -289,7 +289,7 @@ import {
 } from "../src/link-establish.js";
 import { DestinationAllowPolicyCode } from "../src/destination-allow.js";
 import { PacketTypeCode } from "../src/packet-header.js";
-import { planLinkInitiatorMtu, planLinkRequestResponderMtu, initialLinkInitiatorMtuState, initialLinkRequestResponderMtuState, linkInitiatorMtuFromActions, linkRequestResponderMtuFromActions, shouldUseLinkInitiatorMtu, shouldUseLinkRequestResponderMtu, stepLinkInitiatorMtuWithActions, stepLinkRequestResponderMtuWithActions } from "../src/link-metrics.js";
+import { planLinkInitiatorMtu, planLinkRequestResponderMtu, initialLinkInitiatorMtuPlanState, initialLinkInitiatorMtuState, initialLinkRequestResponderMtuPlanState, initialLinkRequestResponderMtuState, linkInitiatorMtuFromActions, linkInitiatorMtuPlanFromActions, linkRequestResponderMtuFromActions, linkRequestResponderMtuPlanFromActions, shouldUseLinkInitiatorMtu, shouldUseLinkInitiatorMtuPlan, shouldUseLinkRequestResponderMtu, shouldUseLinkRequestResponderMtuPlan, stepLinkInitiatorMtuPlanWithActions, stepLinkInitiatorMtuWithActions, stepLinkRequestResponderMtuPlanWithActions, stepLinkRequestResponderMtuWithActions } from "../src/link-metrics.js";
 import { LinkStatus } from "../src/link-watchdog.js";
 
 describe("protocol link proof framing", () => {
@@ -928,6 +928,15 @@ describe("protocol link establish", () => {
       })
     ).toBe(500);
 
+    const discoveredPlan = stepLinkInitiatorMtuPlanWithActions(initialLinkInitiatorMtuPlanState(), {
+      kind: "link/initiator-mtu-plan-gate",
+      discoveryEnabled: true,
+      nextHopMtu: 420,
+      defaultMtu: 500
+    });
+    expect(shouldUseLinkInitiatorMtuPlan(discoveredPlan.actions)).toBe(true);
+    expect(linkInitiatorMtuPlanFromActions(discoveredPlan.actions)).toBe(420);
+
     const discovered = stepLinkInitiatorMtuWithActions(initialLinkInitiatorMtuState(), {
       kind: "link/initiator-mtu-gate",
       discoveryEnabled: true,
@@ -971,6 +980,19 @@ describe("protocol link establish", () => {
         defaultMtu: 480
       })
     ).toBe(480);
+
+    const keepCurrentPlan = stepLinkRequestResponderMtuPlanWithActions(
+      initialLinkRequestResponderMtuPlanState(),
+      {
+        kind: "link/request-responder-mtu-plan-gate",
+        signallingPresent: false,
+        signallingMtu: 420,
+        currentMtu: 500,
+        defaultMtu: 500
+      }
+    );
+    expect(shouldUseLinkRequestResponderMtuPlan(keepCurrentPlan.actions)).toBe(true);
+    expect(linkRequestResponderMtuPlanFromActions(keepCurrentPlan.actions)).toBe(500);
 
     const keepCurrent = stepLinkRequestResponderMtuWithActions(initialLinkRequestResponderMtuState(), {
       kind: "link/request-responder-mtu-gate",

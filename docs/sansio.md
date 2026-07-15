@@ -178,7 +178,9 @@
 > clear|set — nested under packet-receipt-callback),
 > **Channel TX-envelope-op / destination-proof / packet-filter /
 > link-teardown-reason / channel-packet-timeout / destination-request-allow /
-> link-app-request-dispatch / interface-reconnect plans** (via
+> link-app-request-dispatch / interface-reconnect /
+> channel-tx-receipt-timeout-refresh / destination-identity-hash /
+> link-initiator-mtu / link-request-responder-mtu plans** (via
 > **`stepChannelTxEnvelopeOpPlanWithActions`**: miss|process — nested under
 > channel-tx-envelope-op; **`stepDestinationProofPlanWithActions`**: prove|skip —
 > nested under destination-proof; **`stepPacketFilterPlanWithActions`**:
@@ -190,7 +192,13 @@
 > destination-request-allow; **`stepLinkAppRequestDispatchPlanWithActions`**:
 > ignore|forbidden|invoke-handler — nested under link-app-request-dispatch;
 > **`stepInterfaceReconnectPlanWithActions`**: reconnect|give-up — nested under
-> interface-reconnect),
+> interface-reconnect; **`stepChannelTxReceiptTimeoutRefreshPlanWithActions`**:
+> extend — nested under channel-tx-receipt-timeout-refresh;
+> **`stepDestinationIdentityHashPlanWithActions`**:
+> missing|use-object|reject-length|use-bytes — nested under
+> destination-identity-hash; **`stepLinkInitiatorMtuPlanWithActions`** /
+> **`stepLinkRequestResponderMtuPlanWithActions`**: use-mtu — nested under
+> link-initiator-mtu / link-request-responder-mtu),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -1254,8 +1262,13 @@
 > **`stepDestinationIdentityBindingValidWithActions`**: valid|invalid; plan nested via
 > **`stepDestinationConstructionPlanWithActions`**:
 > ok|bad-direction|bad-type|bad-identity-binding) lives in protocol; `Announce`
-> and `Destination` adapt them. **`planLinkInitiatorMtu`** lives in protocol;
-> `Link.request` adapts it. Destination type/direction code predicates
+> and `Destination` adapt them. **`planLinkInitiatorMtu`** (via
+> **`stepLinkInitiatorMtuWithActions`**: use-mtu; plan nested via
+> **`stepLinkInitiatorMtuPlanWithActions`**: use-mtu) /
+> **`planLinkRequestResponderMtu`** (via
+> **`stepLinkRequestResponderMtuWithActions`**: use-mtu; plan nested via
+> **`stepLinkRequestResponderMtuPlanWithActions`**: use-mtu) live in protocol;
+> `Link.request` adapts them. Destination type/direction code predicates
 > (`isDestinationTypeCode` / `isDestinationDirectionCode`) are exported for adapters.
 > **`planPacketFromFields`** (via **`stepPacketFromFieldsWithActions`**: ok /
 > bad-header-type / bad-context-flag / bad-transport-type / bad-destination-type /
@@ -1458,8 +1471,12 @@
 > **`shouldTeardownLxmfPropagationLink`** (via
 > **`stepTeardownLxmfPropagationLinkWithActions`**: teardown|skip) live in
 > protocol; LXMF router and propagation client adapt them.
-> **`planDestinationIdentityHash`** lives in protocol; destination hash construction
-> adapts it.
+> **`planDestinationIdentityHash`** (via
+> **`stepDestinationIdentityHashWithActions`**:
+> missing|use-object|reject-length|use-bytes; plan nested via
+> **`stepDestinationIdentityHashPlanWithActions`**:
+> missing|use-object|reject-length|use-bytes) lives in protocol; destination
+> hash construction adapts it.
 > **`canIdentityUsePrivateKey`** (via **`stepIdentityUsePrivateKeyWithActions`**:
 > allow|deny) / **`canIdentityUsePublicKey`** (via
 > **`stepIdentityUsePublicKeyWithActions`**: allow|deny) /
@@ -1504,7 +1521,8 @@
 > **`canArmChannelPacketReceipt`** (via
 > **`stepArmChannelPacketReceiptWithActions`**: arm|skip; nested under
 > **`planChannelTxReceiptTimeoutRefresh`** /
-> **`stepChannelTxReceiptTimeoutRefreshWithActions`**), **`planPacketReceiptCallback`**
+> **`stepChannelTxReceiptTimeoutRefreshWithActions`**; plan nested via
+> **`stepChannelTxReceiptTimeoutRefreshPlanWithActions`**: extend), **`planPacketReceiptCallback`**
 > (via **`stepPacketReceiptCallbackWithActions`**: clear / set; plan nested via
 > **`stepPacketReceiptCallbackPlanWithActions`**: clear|set),
 > **`canDispatchAnnounceHandlers`** (via
@@ -1718,7 +1736,9 @@
 > `Channel.packetTimeout` applies only `give-up` / `retry` actions (no ad-hoc
 > `plan.kind` / `planChannelTxEnvelopeOp` / `planChannelPacketTimeout` reads).
 > Receipt timeout
-> refresh uses **`planChannelTxReceiptTimeoutRefresh`** (arm nested via
+> refresh uses **`planChannelTxReceiptTimeoutRefresh`** (via
+> **`stepChannelTxReceiptTimeoutRefreshWithActions`**: extend; plan nested via
+> **`stepChannelTxReceiptTimeoutRefreshPlanWithActions`**: extend; arm nested via
 > **`stepArmChannelPacketReceiptWithActions`**: arm|skip; timeout formula nested
 > via **`stepChannelPacketTimeoutSecondsWithActions`**: use-timeout; extend
 > nested via **`stepExtendPacketReceiptTimeoutWithActions`**: extend|skip).
@@ -2232,7 +2252,9 @@
 > `reject-hash` / `accept`; `PropagationServer` restore applies catalog insert only
 > from those actions (no ad-hoc `planPropagationRestore` / `plan === "accept"`
 > reads beside the step). **`stepDestinationIdentityHashWithActions`** emits
-> `missing` / `use-object` / `reject-length` / `use-bytes`; `Destination` hash
+> `missing` / `use-object` / `reject-length` / `use-bytes` (plan nested via
+> **`stepDestinationIdentityHashPlanWithActions`**:
+> missing|use-object|reject-length|use-bytes); `Destination` hash
 > construction applies only from those actions.
 > **`stepChannelTxEnvelopeOpWithActions`** emits `miss` / `process` (plan nested
 > via **`stepChannelTxEnvelopeOpPlanWithActions`**: miss|process); Channel
@@ -2478,17 +2500,21 @@
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /
 > handle-incoming-resource-by-hash / link-mode-enabled / expected-link-mode /
-> destination-identity-hash / channel-tx-envelope-op /
+> destination-identity-hash / destination-identity-hash-plan /
+> channel-tx-envelope-op /
 > channel-tx-envelope-op-plan / channel-packet-timeout /
 > channel-packet-timeout-plan /
 > destination-proof / destination-proof-plan / packet-filter /
 > packet-filter-plan / packet-receipt-callback /
-> channel-tx-receipt-timeout-refresh / extend-packet-receipt-timeout /
+> channel-tx-receipt-timeout-refresh / channel-tx-receipt-timeout-refresh-plan /
+> extend-packet-receipt-timeout /
 > resend-channel-timeout-packet /
 > channel-message-handler-unregister /
 > pending-link-request-unregister / stream-ready-callback-unregister /
 > packet-receipt-unregister / transport-member-unregister /
-> link-initiator-mtu / link-request-responder-mtu / link-hops-match /
+> link-initiator-mtu / link-initiator-mtu-plan /
+> link-request-responder-mtu / link-request-responder-mtu-plan /
+> link-hops-match /
 > compute-link-mdu / compute-link-establishment-timeout /
 > compute-link-request-timeout / compute-link-rtt-seconds / merge-link-rtt /
 > compute-resource-timeout / compute-keepalive /
@@ -2750,7 +2776,8 @@
 > from those actions (no ad-hoc `deriveRnsLinkKey` /
 > `orderIndependentSharedSecret` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
-> (per refreshed TX-ring receipt; arm nested via
+> (per refreshed TX-ring receipt; plan nested via
+> **`stepChannelTxReceiptTimeoutRefreshPlanWithActions`**: extend; arm nested via
 > **`stepArmChannelPacketReceiptWithActions`**: arm|skip; timeout formula nested
 > via **`stepChannelPacketTimeoutSecondsWithActions`**: use-timeout; extend
 > decision nested via **`stepExtendPacketReceiptTimeoutWithActions`**:
@@ -2765,7 +2792,10 @@
 > actions (no ad-hoc `planUnregister*` / `index !== null` reads beside the
 > step).
 > **`stepLinkInitiatorMtuWithActions`** / **`stepLinkRequestResponderMtuWithActions`**
-> emit `use-mtu`; Link establish applies MTU only from those actions.
+> emit `use-mtu` (plans nested via
+> **`stepLinkInitiatorMtuPlanWithActions`** /
+> **`stepLinkRequestResponderMtuPlanWithActions`**: use-mtu); Link establish
+> applies MTU only from those actions.
 > **`stepComputeLinkMduWithActions`** emits `use-mdu`; `Link.updateMdu` applies only
 > from those actions (no ad-hoc `computeLinkMdu` reads beside the step).
 > **`stepLinkHopsMatchWithActions`** emits `match`|`mismatch`; `Link.hopsMatch`

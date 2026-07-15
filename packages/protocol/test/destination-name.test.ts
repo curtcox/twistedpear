@@ -10,6 +10,7 @@ import {
   expandDestinationName,
   expandedDestinationNameFromActions,
   initialDestinationHashMaterialState,
+  initialDestinationIdentityHashPlanState,
   initialDestinationIdentityHashState,
   initialDestinationNameHashMaterialState,
   initialExpandDestinationNameState,
@@ -18,19 +19,25 @@ import {
   parseAspectFilter,
   planDestinationIdentityHash,
   shouldMissDestinationIdentityHash,
+  shouldMissDestinationIdentityHashPlan,
   shouldProceedValidateDestinationNamePart,
   shouldRejectDestinationNameHashMaterial,
   shouldRejectExpandDestinationName,
   shouldRejectLengthDestinationIdentityHash,
+  shouldRejectLengthDestinationIdentityHashPlan,
   shouldRejectParseAspectFilter,
   shouldRejectValidateDestinationNamePart,
   shouldUseBytesDestinationIdentityHash,
+  shouldUseBytesDestinationIdentityHashPlan,
   shouldUseDestinationHashMaterial,
   shouldUseDestinationNameHashMaterial,
   shouldUseExpandDestinationName,
   shouldUseObjectDestinationIdentityHash,
+  shouldUseObjectDestinationIdentityHashPlan,
   shouldUseParseAspectFilter,
   stepDestinationHashMaterialWithActions,
+  destinationIdentityHashPlanFromActions,
+  stepDestinationIdentityHashPlanWithActions,
   stepDestinationIdentityHashWithActions,
   stepDestinationNameHashMaterialWithActions,
   stepExpandDestinationNameWithActions,
@@ -103,6 +110,45 @@ describe("protocol destination name", () => {
     expect(planDestinationIdentityHash({ kind: "bytes", bytesLength: 8 })).toBe(
       "reject-length"
     );
+
+    const missingPlan = stepDestinationIdentityHashPlanWithActions(
+      initialDestinationIdentityHashPlanState(),
+      {
+        kind: "destination/identity-hash-plan-gate",
+        identityKind: "missing"
+      }
+    );
+    expect(shouldMissDestinationIdentityHashPlan(missingPlan.actions)).toBe(true);
+    expect(destinationIdentityHashPlanFromActions(missingPlan.actions)).toBe("missing");
+
+    const objectPlan = stepDestinationIdentityHashPlanWithActions(
+      initialDestinationIdentityHashPlanState(),
+      {
+        kind: "destination/identity-hash-plan-gate",
+        identityKind: "object"
+      }
+    );
+    expect(shouldUseObjectDestinationIdentityHashPlan(objectPlan.actions)).toBe(true);
+
+    const bytesPlan = stepDestinationIdentityHashPlanWithActions(
+      initialDestinationIdentityHashPlanState(),
+      {
+        kind: "destination/identity-hash-plan-gate",
+        identityKind: "bytes",
+        bytesLength: DESTINATION_IDENTITY_HASH_BYTES
+      }
+    );
+    expect(shouldUseBytesDestinationIdentityHashPlan(bytesPlan.actions)).toBe(true);
+
+    const badPlan = stepDestinationIdentityHashPlanWithActions(
+      initialDestinationIdentityHashPlanState(),
+      {
+        kind: "destination/identity-hash-plan-gate",
+        identityKind: "bytes",
+        bytesLength: 8
+      }
+    );
+    expect(shouldRejectLengthDestinationIdentityHashPlan(badPlan.actions)).toBe(true);
   });
 
   it("emits identity-hash actions from destination/identity-hash-gate", () => {

@@ -7,6 +7,9 @@
  * `parseAspectFilter` / `validateDestinationNamePart` reads beside the step).
  * Identity-hash resolution conclusions leave via machine actions (no ad-hoc
  * `planDestinationIdentityHash` / `plan === "..."` reads beside the step).
+ * Identity-hash plan nested via
+ * {@link stepDestinationIdentityHashPlanWithActions}
+ * (`missing`|`use-object`|`reject-length`|`use-bytes`).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import { NAME_HASH_BYTES, TRUNCATED_HASH_BYTES } from "./hash-truncate.js";
@@ -150,9 +153,107 @@ export function planDestinationIdentityHash(input: {
 }
 
 /**
+ * Destination identity-hash plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planDestinationIdentityHash`
+ * / `plan === "..."` reads beside the step). Nested under
+ * {@link stepDestinationIdentityHashWithActions}.
+ */
+export type DestinationIdentityHashPlanState = Record<string, never>;
+
+export type DestinationIdentityHashPlanEvent =
+  | Event
+  | {
+      readonly kind: "destination/identity-hash-plan-gate";
+      readonly identityKind: "missing" | "object" | "bytes";
+      readonly bytesLength?: number;
+      readonly expectedLength?: number;
+    };
+
+export type DestinationIdentityHashPlanAction =
+  | { readonly kind: "missing" }
+  | { readonly kind: "use-object" }
+  | { readonly kind: "reject-length" }
+  | { readonly kind: "use-bytes" };
+
+export interface DestinationIdentityHashPlanStepResult {
+  readonly state: DestinationIdentityHashPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationIdentityHashPlanAction[];
+}
+
+export function initialDestinationIdentityHashPlanState(): DestinationIdentityHashPlanState {
+  return {};
+}
+
+export function stepDestinationIdentityHashPlanWithActions(
+  state: DestinationIdentityHashPlanState,
+  event: DestinationIdentityHashPlanEvent
+): DestinationIdentityHashPlanStepResult {
+  if (event.kind === "destination/identity-hash-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planDestinationIdentityHash({
+            kind: event.identityKind,
+            ...(event.bytesLength !== undefined ? { bytesLength: event.bytesLength } : {}),
+            ...(event.expectedLength !== undefined
+              ? { expectedLength: event.expectedLength }
+              : {})
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the identity-hash plan from actions; null when empty. */
+export function destinationIdentityHashPlanFromActions(
+  actions: ReadonlyArray<DestinationIdentityHashPlanAction>
+): DestinationIdentityHashPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "missing" ||
+      entry.kind === "use-object" ||
+      entry.kind === "reject-length" ||
+      entry.kind === "use-bytes"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldMissDestinationIdentityHashPlan(
+  actions: ReadonlyArray<DestinationIdentityHashPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing");
+}
+
+export function shouldUseObjectDestinationIdentityHashPlan(
+  actions: ReadonlyArray<DestinationIdentityHashPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-object");
+}
+
+export function shouldUseBytesDestinationIdentityHashPlan(
+  actions: ReadonlyArray<DestinationIdentityHashPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-bytes");
+}
+
+export function shouldRejectLengthDestinationIdentityHashPlan(
+  actions: ReadonlyArray<DestinationIdentityHashPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-length");
+}
+
+/**
  * Destination identity-hash resolution is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planDestinationIdentityHash`
  * / `plan === "..."` reads beside the step).
+ * Plan nested via {@link stepDestinationIdentityHashPlanWithActions}
+ * (`missing`|`use-object`|`reject-length`|`use-bytes`).
  */
 export type DestinationIdentityHashState = Record<string, never>;
 
@@ -186,11 +287,19 @@ export function stepDestinationIdentityHashWithActions(
   event: DestinationIdentityHashEvent
 ): DestinationIdentityHashStepResult {
   if (event.kind === "destination/identity-hash-gate") {
-    const plan = planDestinationIdentityHash({
-      kind: event.identityKind,
-      ...(event.bytesLength !== undefined ? { bytesLength: event.bytesLength } : {}),
-      ...(event.expectedLength !== undefined ? { expectedLength: event.expectedLength } : {})
-    });
+    const planActions = stepDestinationIdentityHashPlanWithActions(
+      initialDestinationIdentityHashPlanState(),
+      {
+        kind: "destination/identity-hash-plan-gate",
+        identityKind: event.identityKind,
+        ...(event.bytesLength !== undefined ? { bytesLength: event.bytesLength } : {}),
+        ...(event.expectedLength !== undefined ? { expectedLength: event.expectedLength } : {})
+      }
+    ).actions;
+    const plan = destinationIdentityHashPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 

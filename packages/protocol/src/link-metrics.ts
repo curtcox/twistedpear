@@ -3,6 +3,9 @@
  * Initiator/responder MTU selection and hops-match conclusions leave via
  * machine actions (no ad-hoc `planLinkInitiatorMtu` /
  * `planLinkRequestResponderMtu` / `linkHopsMatch` reads beside the step).
+ * Initiator/responder MTU plans nested via
+ * {@link stepLinkInitiatorMtuPlanWithActions} /
+ * {@link stepLinkRequestResponderMtuPlanWithActions} (`use-mtu`).
  * MDU computation conclusions leave via machine actions (no ad-hoc
  * `computeLinkMdu` reads beside the step).
  */
@@ -103,6 +106,75 @@ export function planLinkInitiatorMtu(input: {
 }
 
 /**
+ * Link initiator MTU plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkInitiatorMtu`
+ * reads beside the step). Nested under {@link stepLinkInitiatorMtuWithActions}.
+ */
+export type LinkInitiatorMtuPlanState = Record<string, never>;
+
+export type LinkInitiatorMtuPlanEvent =
+  | Event
+  | {
+      readonly kind: "link/initiator-mtu-plan-gate";
+      readonly discoveryEnabled: boolean;
+      readonly nextHopMtu: number | null;
+      readonly defaultMtu: number;
+    };
+
+export type LinkInitiatorMtuPlanAction = {
+  readonly kind: "use-mtu";
+  readonly mtu: number;
+};
+
+export interface LinkInitiatorMtuPlanStepResult {
+  readonly state: LinkInitiatorMtuPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkInitiatorMtuPlanAction[];
+}
+
+export function initialLinkInitiatorMtuPlanState(): LinkInitiatorMtuPlanState {
+  return {};
+}
+
+export function stepLinkInitiatorMtuPlanWithActions(
+  state: LinkInitiatorMtuPlanState,
+  event: LinkInitiatorMtuPlanEvent
+): LinkInitiatorMtuPlanStepResult {
+  if (event.kind === "link/initiator-mtu-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-mtu",
+          mtu: planLinkInitiatorMtu({
+            discoveryEnabled: event.discoveryEnabled,
+            nextHopMtu: event.nextHopMtu,
+            defaultMtu: event.defaultMtu
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract initiator MTU from plan actions; null when no `use-mtu` action. */
+export function linkInitiatorMtuPlanFromActions(
+  actions: ReadonlyArray<LinkInitiatorMtuPlanAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-mtu");
+  return action?.kind === "use-mtu" ? action.mtu : null;
+}
+
+export function shouldUseLinkInitiatorMtuPlan(
+  actions: ReadonlyArray<LinkInitiatorMtuPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-mtu");
+}
+
+/**
  * Responder MTU from LINKREQUEST signalling (keep current when absent).
  * `signallingMtu` is pre-parsed via {@link mtuFromLinkRequestData} at the edge.
  */
@@ -116,6 +188,78 @@ export function planLinkRequestResponderMtu(input: {
     return input.currentMtu;
   }
   return input.signallingMtu ?? input.defaultMtu;
+}
+
+/**
+ * Link responder MTU plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkRequestResponderMtu`
+ * reads beside the step). Nested under
+ * {@link stepLinkRequestResponderMtuWithActions}.
+ */
+export type LinkRequestResponderMtuPlanState = Record<string, never>;
+
+export type LinkRequestResponderMtuPlanEvent =
+  | Event
+  | {
+      readonly kind: "link/request-responder-mtu-plan-gate";
+      readonly signallingPresent: boolean;
+      readonly signallingMtu: number | null;
+      readonly currentMtu: number;
+      readonly defaultMtu: number;
+    };
+
+export type LinkRequestResponderMtuPlanAction = {
+  readonly kind: "use-mtu";
+  readonly mtu: number;
+};
+
+export interface LinkRequestResponderMtuPlanStepResult {
+  readonly state: LinkRequestResponderMtuPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkRequestResponderMtuPlanAction[];
+}
+
+export function initialLinkRequestResponderMtuPlanState(): LinkRequestResponderMtuPlanState {
+  return {};
+}
+
+export function stepLinkRequestResponderMtuPlanWithActions(
+  state: LinkRequestResponderMtuPlanState,
+  event: LinkRequestResponderMtuPlanEvent
+): LinkRequestResponderMtuPlanStepResult {
+  if (event.kind === "link/request-responder-mtu-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-mtu",
+          mtu: planLinkRequestResponderMtu({
+            signallingPresent: event.signallingPresent,
+            signallingMtu: event.signallingMtu,
+            currentMtu: event.currentMtu,
+            defaultMtu: event.defaultMtu
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract responder MTU from plan actions; null when no `use-mtu` action. */
+export function linkRequestResponderMtuPlanFromActions(
+  actions: ReadonlyArray<LinkRequestResponderMtuPlanAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-mtu");
+  return action?.kind === "use-mtu" ? action.mtu : null;
+}
+
+export function shouldUseLinkRequestResponderMtuPlan(
+  actions: ReadonlyArray<LinkRequestResponderMtuPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-mtu");
 }
 
 export function linkHopsMatch(input: {
@@ -203,6 +347,7 @@ export function shouldMismatchLinkHops(
  * Link initiator MTU selection is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkInitiatorMtu`
  * reads beside the step).
+ * Plan nested via {@link stepLinkInitiatorMtuPlanWithActions} (`use-mtu`).
  */
 export type LinkInitiatorMtuState = Record<string, never>;
 
@@ -235,17 +380,23 @@ export function stepLinkInitiatorMtuWithActions(
   event: LinkInitiatorMtuEvent
 ): LinkInitiatorMtuStepResult {
   if (event.kind === "link/initiator-mtu-gate") {
+    const planActions = stepLinkInitiatorMtuPlanWithActions(initialLinkInitiatorMtuPlanState(), {
+      kind: "link/initiator-mtu-plan-gate",
+      discoveryEnabled: event.discoveryEnabled,
+      nextHopMtu: event.nextHopMtu,
+      defaultMtu: event.defaultMtu
+    }).actions;
+    const mtu = linkInitiatorMtuPlanFromActions(planActions);
+    if (mtu === null) {
+      return { state, intents: [], actions: [] };
+    }
     return {
       state,
       intents: [],
       actions: [
         {
           kind: "use-mtu",
-          mtu: planLinkInitiatorMtu({
-            discoveryEnabled: event.discoveryEnabled,
-            nextHopMtu: event.nextHopMtu,
-            defaultMtu: event.defaultMtu
-          })
+          mtu
         }
       ]
     };
@@ -272,6 +423,7 @@ export function shouldUseLinkInitiatorMtu(
  * Link responder MTU selection is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkRequestResponderMtu`
  * reads beside the step).
+ * Plan nested via {@link stepLinkRequestResponderMtuPlanWithActions} (`use-mtu`).
  */
 export type LinkRequestResponderMtuState = Record<string, never>;
 
@@ -305,18 +457,27 @@ export function stepLinkRequestResponderMtuWithActions(
   event: LinkRequestResponderMtuEvent
 ): LinkRequestResponderMtuStepResult {
   if (event.kind === "link/request-responder-mtu-gate") {
+    const planActions = stepLinkRequestResponderMtuPlanWithActions(
+      initialLinkRequestResponderMtuPlanState(),
+      {
+        kind: "link/request-responder-mtu-plan-gate",
+        signallingPresent: event.signallingPresent,
+        signallingMtu: event.signallingMtu,
+        currentMtu: event.currentMtu,
+        defaultMtu: event.defaultMtu
+      }
+    ).actions;
+    const mtu = linkRequestResponderMtuPlanFromActions(planActions);
+    if (mtu === null) {
+      return { state, intents: [], actions: [] };
+    }
     return {
       state,
       intents: [],
       actions: [
         {
           kind: "use-mtu",
-          mtu: planLinkRequestResponderMtu({
-            signallingPresent: event.signallingPresent,
-            signallingMtu: event.signallingMtu,
-            currentMtu: event.currentMtu,
-            defaultMtu: event.defaultMtu
-          })
+          mtu
         }
       ]
     };

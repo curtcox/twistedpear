@@ -14,6 +14,7 @@ import {
   channelTxOutstandingCountFromActions,
   channelTxTimeoutRetryAction,
   channelTxReceiptTimeoutExtensions,
+  channelTxReceiptTimeoutRefreshPlanExtensions,
   countChannelTxOutstanding,
   canArmChannelPacketReceipt,
   initialApplyChannelPacketReceiptTimeoutState,
@@ -28,6 +29,7 @@ import {
   initialChannelSendState,
   initialChannelTxEnvelopeOpPlanState,
   initialChannelTxEnvelopeOpState,
+  initialChannelTxReceiptTimeoutRefreshPlanState,
   initialChannelTxReceiptTimeoutRefreshState,
   initialChannelWindowState,
   initialClearChannelEnvelopePacketState,
@@ -51,6 +53,7 @@ import {
   shouldArmChannelPacketReceiptNow,
   shouldDenyChannelSend,
   shouldExtendChannelTxReceiptTimeout,
+  shouldExtendChannelTxReceiptTimeoutRefreshPlan,
   shouldExtendPacketReceiptTimeout,
   shouldExtendPacketReceiptTimeoutNow,
   shouldGiveUpChannelPacketTimeout,
@@ -103,6 +106,7 @@ import {
   stepChannelSendWithActions,
   stepChannelTxEnvelopeOpPlanWithActions,
   stepChannelTxEnvelopeOpWithActions,
+  stepChannelTxReceiptTimeoutRefreshPlanWithActions,
   stepChannelTxReceiptTimeoutRefreshWithActions,
   stepChannelTxTimeout,
   stepChannelTxTimeoutWithActions,
@@ -916,6 +920,16 @@ describe("protocol channel window", () => {
     );
     expect(shouldApplyChannelTxReceiptTimeoutExtensionNow(skipExtension.actions)).toBe(false);
     expect(shouldSkipApplyChannelTxReceiptTimeoutExtension(skipExtension.actions)).toBe(true);
+
+    const planned = stepChannelTxReceiptTimeoutRefreshPlanWithActions(
+      initialChannelTxReceiptTimeoutRefreshPlanState(),
+      {
+        kind: "channel/tx-receipt-timeout-refresh-plan-gate",
+        entries
+      }
+    );
+    expect(channelTxReceiptTimeoutRefreshPlanExtensions(planned.actions)).toEqual(extensions);
+    expect(shouldExtendChannelTxReceiptTimeoutRefreshPlan(planned.actions)).toBe(true);
 
     const stepped = stepChannelTxReceiptTimeoutRefreshWithActions(
       initialChannelTxReceiptTimeoutRefreshState(),
