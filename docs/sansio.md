@@ -141,7 +141,9 @@
 > link-app-request; **`stepLinkAppRequestTransmitOutcomePlanWithActions`**:
 > keep-pending|unregister — nested under link-app-request-transmit),
 > **Path-request ingress / path-outbound / discovery-fulfill / path-entry-lookup /
-> transport-ingress-dispatch / link-data-ingress-target plans** (via
+> transport-ingress-dispatch / link-data-ingress-target / link-relay-target /
+> reverse-relay-outcome / packet-hash-remember / local-plain-data-delivery /
+> proof-ingress plans** (via
 > **`stepPathRequestIngressPlanWithActions`**: ignore-unparsed|ignore-seen-tag|
 > answer-local|answer-path|ignore|ignore-in-flight-discovery|start-discovery —
 > nested under path-request-ingress; **`stepPathOutboundPlanWithActions`**:
@@ -152,7 +154,15 @@
 > path-entry-lookup; **`stepTransportIngressDispatchPlanWithActions`**:
 > announce|link-request|link-data|plain-data|proof|ignore — nested under
 > transport-ingress-dispatch; **`stepLinkDataIngressTargetPlanWithActions`**:
-> active|pending|none — nested under link-data-ingress-target),
+> active|pending|none — nested under link-data-ingress-target;
+> **`stepLinkRelayTargetPlanWithActions`**: outbound|received|ignore — nested under
+> link-relay-target; **`stepReverseRelayOutcomePlanWithActions`**:
+> relay|delete-expired|ignore — nested under reverse-relay-outcome;
+> **`stepPacketHashRememberPlanWithActions`**: now|after-relay — nested under
+> packet-hash-remember; **`stepLocalPlainDataDeliveryPlanWithActions`**:
+> dispatch|ignore — nested under local-plain-data-delivery;
+> **`stepProofIngressPlanWithActions`**: lrproof|resource-prf|receipt — nested under
+> proof-ingress),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -417,6 +427,16 @@
 > (nested under transport-ingress-dispatch) /
 > **`stepLinkDataIngressTargetPlanWithActions`**: active|pending|none
 > (nested under link-data-ingress-target) /
+> **`stepLinkRelayTargetPlanWithActions`**: outbound|received|ignore
+> (nested under link-relay-target) /
+> **`stepReverseRelayOutcomePlanWithActions`**: relay|delete-expired|ignore
+> (nested under reverse-relay-outcome) /
+> **`stepPacketHashRememberPlanWithActions`**: now|after-relay
+> (nested under packet-hash-remember) /
+> **`stepLocalPlainDataDeliveryPlanWithActions`**: dispatch|ignore
+> (nested under local-plain-data-delivery) /
+> **`stepProofIngressPlanWithActions`**: lrproof|resource-prf|receipt
+> (nested under proof-ingress) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -838,7 +858,9 @@
 > TransportNode, and Link adapt them. **`planResourceRequestFulfill`** (sender RESOURCE_REQ
 > fulfill via **`stepResourceRequestFulfillWithActions`**: part send/resend + optional HMU +
 > awaiting-proof) lives in protocol; `Resource`
-> adapts it. **`planLinkRelayTarget`**, transport-wrap / link-relay / reverse-relay allow +
+> adapts it. **`planLinkRelayTarget`** (via **`stepLinkRelayTargetWithActions`**:
+> outbound / received / ignore; plan nested via **`stepLinkRelayTargetPlanWithActions`**:
+> outbound|received|ignore), transport-wrap / link-relay / reverse-relay allow +
 > table-record gates (via **`stepRelayTransportPacketAllowWithActions`** /
 > **`stepRecordLinkRelayTableEntryWithActions`** /
 > **`stepRecordReverseTableEntryWithActions`** /
@@ -1055,7 +1077,8 @@
 > link-data / plain-data / proof / ignore; plan nested via
 > **`stepTransportIngressDispatchPlanWithActions`**: announce|link-request|
 > link-data|plain-data|proof|ignore), **`planProofIngressKind`** (via
-> **`stepProofIngressWithActions`**: lrproof / resource-prf / receipt), and
+> **`stepProofIngressWithActions`**: lrproof / resource-prf / receipt; plan nested via
+> **`stepProofIngressPlanWithActions`**: lrproof|resource-prf|receipt), and
 > **`shouldTransmitOnInterface`** (via **`stepTransmitOnInterfaceWithActions`**:
 > transmit|skip) live in protocol; `TransportNode` /
 > `LeafTransport` adapt them. **`shouldIgnoreLocalAnnounce`** (via
@@ -1251,9 +1274,11 @@
 > **`shouldAcceptLinkLrProofCandidate`** (via
 > **`stepAcceptLinkLrProofCandidateWithActions`**: accept|reject),
 > **`planLocalPlainDataDelivery`** (via
-> **`stepLocalPlainDataDeliveryWithActions`**: dispatch / ignore), and
+> **`stepLocalPlainDataDeliveryWithActions`**: dispatch / ignore; plan nested via
+> **`stepLocalPlainDataDeliveryPlanWithActions`**: dispatch|ignore), and
 > **`planPacketHashRemember`** (via **`stepPacketHashRememberWithActions`**: now /
-> after-relay) live in protocol; transport node / LeafTransport adapt them.
+> after-relay; plan nested via **`stepPacketHashRememberPlanWithActions`**:
+> now|after-relay) live in protocol; transport node / LeafTransport adapt them.
 > **`indexOfPendingLinkAppRequest`** (via
 > **`stepIndexOfPendingLinkAppRequestWithActions`**: use-index|miss),
 > **`planLinkRequestResponderMtu`**, and
@@ -1272,8 +1297,9 @@
 > **`stepLinkDataIngressTargetWithActions`**: active / pending / none; plan nested via
 > **`stepLinkDataIngressTargetPlanWithActions`**: active|pending|none), and
 > **`planReverseRelayOutcome`** (via **`stepReverseRelayOutcomeWithActions`**:
-> relay / delete-expired / ignore) live in protocol; transport link + reverse relay adapt
-> them. **`planLinkRttOutcome`** (via **`stepLinkEstablishWithActions`**
+> relay / delete-expired / ignore; plan nested via
+> **`stepReverseRelayOutcomePlanWithActions`**: relay|delete-expired|ignore) live in
+> protocol; transport link + reverse relay adapt them. **`planLinkRttOutcome`** (via **`stepLinkEstablishWithActions`**
 > `establish/rtt`; accept via **`stepAcceptLinkRttWithActions`**: accept|skip;
 > outcome plan nested via **`stepLinkRttOutcomePlanWithActions`**:
 > ignore|activate|teardown; teardown via
@@ -1922,16 +1948,22 @@
 > link-data|plain-data|proof|ignore);
 > **`stepLinkDataIngressTargetWithActions`** emits `active` / `pending` /
 > `none` (plan nested via **`stepLinkDataIngressTargetPlanWithActions`**:
-> active|pending|none); **`stepReverseRelayOutcomeWithActions`** emits `relay` /
-> `delete-expired` / `ignore`; **`stepPacketHashRememberWithActions`** emits
-> `now` / `after-relay`; **`stepLocalPlainDataDeliveryWithActions`** emits
-> `dispatch` / `ignore`; **`stepDispatchLocalPlainDataDeliveryWithActions`**
+> active|pending|none); **`stepLinkRelayTargetWithActions`** emits `outbound` /
+> `received` / `ignore` (plan nested via **`stepLinkRelayTargetPlanWithActions`**:
+> outbound|received|ignore); **`stepReverseRelayOutcomeWithActions`** emits `relay` /
+> `delete-expired` / `ignore` (plan nested via **`stepReverseRelayOutcomePlanWithActions`**:
+> relay|delete-expired|ignore); **`stepPacketHashRememberWithActions`** emits
+> `now` / `after-relay` (plan nested via **`stepPacketHashRememberPlanWithActions`**:
+> now|after-relay); **`stepLocalPlainDataDeliveryWithActions`** emits
+> `dispatch` / `ignore` (plan nested via **`stepLocalPlainDataDeliveryPlanWithActions`**:
+> dispatch|ignore); **`stepDispatchLocalPlainDataDeliveryWithActions`**
 > emits `dispatch`|`skip`; **`stepProofIngressWithActions`** emits
-> `lrproof` / `resource-prf` / `receipt`; `LeafTransport` / `TransportNode`
-> ingress dispatch, link-data target, reverse relay, hash remember, local
-> plain DATA, and proof ingress apply only from those actions (no ad-hoc
-> `planTransportIngressDispatch` / `planLinkDataIngressTarget` /
-> `planReverseRelayOutcome` / `planPacketHashRemember` /
+> `lrproof` / `resource-prf` / `receipt` (plan nested via
+> **`stepProofIngressPlanWithActions`**: lrproof|resource-prf|receipt); `LeafTransport` /
+> `TransportNode` ingress dispatch, link relay target, link-data target, reverse relay,
+> hash remember, local plain DATA, and proof ingress apply only from those actions (no
+> ad-hoc `planTransportIngressDispatch` / `planLinkDataIngressTarget` /
+> `planLinkRelayTarget` / `planReverseRelayOutcome` / `planPacketHashRemember` /
 > `planLocalPlainDataDelivery` / `shouldDispatchLocalPlainDataDelivery` /
 > `planProofIngressKind` reads beside the
 > step).

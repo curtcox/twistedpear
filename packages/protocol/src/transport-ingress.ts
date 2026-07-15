@@ -4,9 +4,15 @@
  * Ingress dispatch / matching-link-id index / link-data target / reverse-relay /
  * hash-remember / packet-hash defer / local plain-data / link-relay conclusions
  * leave via machine actions (no ad-hoc plan / `indexOfMatchingLinkId` reads
- * beside the step). Ingress-dispatch / link-data-ingress-target plans nested via
- * {@link stepTransportIngressDispatchPlanWithActions} /
- * {@link stepLinkDataIngressTargetPlanWithActions}.
+ * beside the step). Ingress-dispatch / link-data-ingress-target / link-relay-target /
+ * reverse-relay / packet-hash-remember / local-plain-data / proof-ingress plans
+ * nested via {@link stepTransportIngressDispatchPlanWithActions} /
+ * {@link stepLinkDataIngressTargetPlanWithActions} /
+ * {@link stepLinkRelayTargetPlanWithActions} /
+ * {@link stepReverseRelayOutcomePlanWithActions} /
+ * {@link stepPacketHashRememberPlanWithActions} /
+ * {@link stepLocalPlainDataDeliveryPlanWithActions} /
+ * {@link stepProofIngressPlanWithActions}.
  * Transport-wrap relay allow, link/reverse table-record, link-packet relay allow,
  * link-table lookup, link-relay transmit, reverse-packet allow, reverse iface
  * match, reverse-entry expiry, reverse-relay transmit, interface transmit, local
@@ -324,6 +330,96 @@ export function planLinkRelayTarget(input: {
   return null;
 }
 
+/**
+ * Link relay target plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkRelayTarget` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLinkRelayTargetWithActions}.
+ */
+export type LinkRelayTargetPlanState = Record<string, never>;
+
+export type LinkRelayTargetPlanEvent =
+  | Event
+  | {
+      readonly kind: "transport/link-relay-plan-gate";
+      readonly sameInterface: boolean;
+      readonly ifaceIsOutbound: boolean;
+      readonly ifaceIsReceived: boolean;
+      readonly packetHops: number;
+      readonly remainingHops: number;
+      readonly takenHops: number;
+    };
+
+export type LinkRelayTargetPlanAction = {
+  readonly kind: LinkRelayTarget | "ignore";
+};
+
+export interface LinkRelayTargetPlanStepResult {
+  readonly state: LinkRelayTargetPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkRelayTargetPlanAction[];
+}
+
+export function initialLinkRelayTargetPlanState(): LinkRelayTargetPlanState {
+  return {};
+}
+
+export function stepLinkRelayTargetPlanWithActions(
+  state: LinkRelayTargetPlanState,
+  event: LinkRelayTargetPlanEvent
+): LinkRelayTargetPlanStepResult {
+  if (event.kind === "transport/link-relay-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind:
+            planLinkRelayTarget({
+              sameInterface: event.sameInterface,
+              ifaceIsOutbound: event.ifaceIsOutbound,
+              ifaceIsReceived: event.ifaceIsReceived,
+              packetHops: event.packetHops,
+              remainingHops: event.remainingHops,
+              takenHops: event.takenHops
+            }) ?? "ignore"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the link relay target plan from actions; null when empty or ignore. */
+export function linkRelayTargetPlanFromActions(
+  actions: ReadonlyArray<LinkRelayTargetPlanAction>
+): LinkRelayTarget | null {
+  const action = actions[0];
+  if (action === undefined || action.kind === "ignore") {
+    return null;
+  }
+  return action.kind;
+}
+
+export function shouldRelayLinkOutboundPlan(
+  actions: ReadonlyArray<LinkRelayTargetPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "outbound");
+}
+
+export function shouldRelayLinkReceivedPlan(
+  actions: ReadonlyArray<LinkRelayTargetPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "received");
+}
+
+export function shouldIgnoreLinkRelayTargetPlan(
+  actions: ReadonlyArray<LinkRelayTargetPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
 /** Whether link-relay may proceed after a link-table lookup hit. */
 export function canLookupLinkRelayEntry(entryPresent: boolean): boolean {
   return entryPresent;
@@ -449,6 +545,8 @@ export function shouldSkipTransmitLinkRelay(
 /**
  * Link relay target is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLinkRelayTargetPlanWithActions}
+ * (`outbound`|`received`|`ignore`).
  */
 export type LinkRelayTargetState = Record<string, never>;
 
@@ -523,14 +621,16 @@ function stepLinkRelayTargetInner(
   event: LinkRelayTargetEvent
 ): LinkRelayTargetStepResult {
   if (event.kind === "transport/link-relay-gate") {
-    const target = planLinkRelayTarget({
+    const planActions = stepLinkRelayTargetPlanWithActions(initialLinkRelayTargetPlanState(), {
+      kind: "transport/link-relay-plan-gate",
       sameInterface: event.sameInterface,
       ifaceIsOutbound: event.ifaceIsOutbound,
       ifaceIsReceived: event.ifaceIsReceived,
       packetHops: event.packetHops,
       remainingHops: event.remainingHops,
       takenHops: event.takenHops
-    });
+    }).actions;
+    const target = linkRelayTargetPlanFromActions(planActions);
     return {
       state,
       intents: [],
@@ -1354,6 +1454,73 @@ export function planProofIngressKind(context: number): ProofIngressKind {
 }
 
 /**
+ * Proof ingress plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planProofIngressKind` /
+ * `plan ===` reads beside the step). Nested under {@link stepProofIngressWithActions}.
+ */
+export type ProofIngressPlanState = Record<string, never>;
+
+export type ProofIngressPlanEvent =
+  | Event
+  | {
+      readonly kind: "transport/proof-ingress-plan-gate";
+      readonly context: number;
+    };
+
+export type ProofIngressPlanAction = { readonly kind: ProofIngressKind };
+
+export interface ProofIngressPlanStepResult {
+  readonly state: ProofIngressPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ProofIngressPlanAction[];
+}
+
+export function initialProofIngressPlanState(): ProofIngressPlanState {
+  return {};
+}
+
+export function stepProofIngressPlanWithActions(
+  state: ProofIngressPlanState,
+  event: ProofIngressPlanEvent
+): ProofIngressPlanStepResult {
+  if (event.kind === "transport/proof-ingress-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: planProofIngressKind(event.context) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the proof ingress plan from actions; null when empty. */
+export function proofIngressPlanFromActions(
+  actions: ReadonlyArray<ProofIngressPlanAction>
+): ProofIngressKind | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldHandleProofLrproofPlan(
+  actions: ReadonlyArray<ProofIngressPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "lrproof");
+}
+
+export function shouldHandleProofResourcePrfPlan(
+  actions: ReadonlyArray<ProofIngressPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "resource-prf");
+}
+
+export function shouldHandleProofReceiptPlan(
+  actions: ReadonlyArray<ProofIngressPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "receipt");
+}
+
+/**
  * Whether a packet should leave on this interface (outgoing + optional exclude /
  * attached-interface constraints).
  */
@@ -1763,6 +1930,78 @@ export function planLocalPlainDataDelivery(input: {
 }
 
 /**
+ * Local plain-data delivery plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLocalPlainDataDelivery` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLocalPlainDataDeliveryWithActions}.
+ */
+export type LocalPlainDataDeliveryPlanState = Record<string, never>;
+
+export type LocalPlainDataDeliveryPlanEvent =
+  | Event
+  | {
+      readonly kind: "transport/local-plain-data-plan-gate";
+      readonly destinationPresent: boolean;
+      readonly plaintextPresent: boolean;
+    };
+
+export type LocalPlainDataDeliveryPlanAction = {
+  readonly kind: LocalPlainDataDeliveryPlan;
+};
+
+export interface LocalPlainDataDeliveryPlanStepResult {
+  readonly state: LocalPlainDataDeliveryPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LocalPlainDataDeliveryPlanAction[];
+}
+
+export function initialLocalPlainDataDeliveryPlanState(): LocalPlainDataDeliveryPlanState {
+  return {};
+}
+
+export function stepLocalPlainDataDeliveryPlanWithActions(
+  state: LocalPlainDataDeliveryPlanState,
+  event: LocalPlainDataDeliveryPlanEvent
+): LocalPlainDataDeliveryPlanStepResult {
+  if (event.kind === "transport/local-plain-data-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLocalPlainDataDelivery({
+            destinationPresent: event.destinationPresent,
+            plaintextPresent: event.plaintextPresent
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the local plain-data delivery plan from actions; null when empty. */
+export function localPlainDataDeliveryPlanFromActions(
+  actions: ReadonlyArray<LocalPlainDataDeliveryPlanAction>
+): LocalPlainDataDeliveryPlan | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldDispatchLocalPlainDataDeliveryPlan(
+  actions: ReadonlyArray<LocalPlainDataDeliveryPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "dispatch");
+}
+
+export function shouldIgnoreLocalPlainDataDeliveryPlan(
+  actions: ReadonlyArray<LocalPlainDataDeliveryPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+/**
  * Whether local plain DATA may dispatch after {@link planLocalPlainDataDelivery}
  * and destination/plaintext references remain present for narrowing.
  */
@@ -1849,6 +2088,68 @@ export type PacketHashRememberPlan = "now" | "after-relay";
  */
 export function planPacketHashRemember(deferred: boolean): PacketHashRememberPlan {
   return deferred ? "after-relay" : "now";
+}
+
+/**
+ * Packet-hash remember plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planPacketHashRemember` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepPacketHashRememberWithActions}.
+ */
+export type PacketHashRememberPlanState = Record<string, never>;
+
+export type PacketHashRememberPlanEvent =
+  | Event
+  | {
+      readonly kind: "transport/packet-hash-remember-plan-gate";
+      readonly deferred: boolean;
+    };
+
+export type PacketHashRememberPlanAction = { readonly kind: PacketHashRememberPlan };
+
+export interface PacketHashRememberPlanStepResult {
+  readonly state: PacketHashRememberPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketHashRememberPlanAction[];
+}
+
+export function initialPacketHashRememberPlanState(): PacketHashRememberPlanState {
+  return {};
+}
+
+export function stepPacketHashRememberPlanWithActions(
+  state: PacketHashRememberPlanState,
+  event: PacketHashRememberPlanEvent
+): PacketHashRememberPlanStepResult {
+  if (event.kind === "transport/packet-hash-remember-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: planPacketHashRemember(event.deferred) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the packet-hash remember plan from actions; null when empty. */
+export function packetHashRememberPlanFromActions(
+  actions: ReadonlyArray<PacketHashRememberPlanAction>
+): PacketHashRememberPlan | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldRememberPacketHashNowPlan(
+  actions: ReadonlyArray<PacketHashRememberPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "now");
+}
+
+export function shouldRememberPacketHashAfterRelayPlan(
+  actions: ReadonlyArray<PacketHashRememberPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "after-relay");
 }
 
 /** Whether inbound should record the packet hash immediately (non-deferred). */
@@ -2125,6 +2426,84 @@ export function planReverseRelayOutcome(input: {
     return "ignore";
   }
   return "relay";
+}
+
+/**
+ * Reverse-relay outcome plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planReverseRelayOutcome` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepReverseRelayOutcomeWithActions}.
+ */
+export type ReverseRelayOutcomePlanState = Record<string, never>;
+
+export type ReverseRelayOutcomePlanEvent =
+  | Event
+  | {
+      readonly kind: "transport/reverse-relay-plan-gate";
+      readonly canRelay: boolean;
+      readonly entryExpired: boolean;
+      readonly ifaceIsOutbound: boolean;
+    };
+
+export type ReverseRelayOutcomePlanAction = { readonly kind: ReverseRelayOutcome };
+
+export interface ReverseRelayOutcomePlanStepResult {
+  readonly state: ReverseRelayOutcomePlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ReverseRelayOutcomePlanAction[];
+}
+
+export function initialReverseRelayOutcomePlanState(): ReverseRelayOutcomePlanState {
+  return {};
+}
+
+export function stepReverseRelayOutcomePlanWithActions(
+  state: ReverseRelayOutcomePlanState,
+  event: ReverseRelayOutcomePlanEvent
+): ReverseRelayOutcomePlanStepResult {
+  if (event.kind === "transport/reverse-relay-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planReverseRelayOutcome({
+            canRelay: event.canRelay,
+            entryExpired: event.entryExpired,
+            ifaceIsOutbound: event.ifaceIsOutbound
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the reverse-relay outcome plan from actions; null when empty. */
+export function reverseRelayOutcomePlanFromActions(
+  actions: ReadonlyArray<ReverseRelayOutcomePlanAction>
+): ReverseRelayOutcome | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldRelayReversePacketPlan(
+  actions: ReadonlyArray<ReverseRelayOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "relay");
+}
+
+export function shouldDeleteExpiredReverseEntryPlan(
+  actions: ReadonlyArray<ReverseRelayOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "delete-expired");
+}
+
+export function shouldIgnoreReverseRelayOutcomePlan(
+  actions: ReadonlyArray<ReverseRelayOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
 }
 
 /** Whether a transport list should receive a new member (not already present). */
@@ -2469,6 +2848,8 @@ function stepLinkDataIngressTargetInner(
 /**
  * Reverse-relay outcome is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepReverseRelayOutcomePlanWithActions}
+ * (`relay`|`delete-expired`|`ignore`).
  */
 export type ReverseRelayOutcomeState = Record<string, never>;
 
@@ -2537,11 +2918,19 @@ function stepReverseRelayOutcomeInner(
   event: ReverseRelayOutcomeEvent
 ): ReverseRelayOutcomeStepResult {
   if (event.kind === "transport/reverse-relay-gate") {
-    const plan = planReverseRelayOutcome({
-      canRelay: event.canRelay,
-      entryExpired: event.entryExpired,
-      ifaceIsOutbound: event.ifaceIsOutbound
-    });
+    const planActions = stepReverseRelayOutcomePlanWithActions(
+      initialReverseRelayOutcomePlanState(),
+      {
+        kind: "transport/reverse-relay-plan-gate",
+        canRelay: event.canRelay,
+        entryExpired: event.entryExpired,
+        ifaceIsOutbound: event.ifaceIsOutbound
+      }
+    ).actions;
+    const plan = reverseRelayOutcomePlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 
@@ -2551,6 +2940,7 @@ function stepReverseRelayOutcomeInner(
 /**
  * Packet-hash remember timing is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepPacketHashRememberPlanWithActions} (`now`|`after-relay`).
  */
 export type PacketHashRememberState = Record<string, never>;
 
@@ -2611,7 +3001,17 @@ function stepPacketHashRememberInner(
   event: PacketHashRememberEvent
 ): PacketHashRememberStepResult {
   if (event.kind === "transport/packet-hash-remember-gate") {
-    const plan = planPacketHashRemember(event.deferred);
+    const planActions = stepPacketHashRememberPlanWithActions(
+      initialPacketHashRememberPlanState(),
+      {
+        kind: "transport/packet-hash-remember-plan-gate",
+        deferred: event.deferred
+      }
+    ).actions;
+    const plan = packetHashRememberPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 
@@ -2621,6 +3021,8 @@ function stepPacketHashRememberInner(
 /**
  * Local plain-data delivery is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLocalPlainDataDeliveryPlanWithActions}
+ * (`dispatch`|`ignore`).
  */
 export type LocalPlainDataDeliveryState = Record<string, never>;
 
@@ -2682,10 +3084,18 @@ function stepLocalPlainDataDeliveryInner(
   event: LocalPlainDataDeliveryEvent
 ): LocalPlainDataDeliveryStepResult {
   if (event.kind === "transport/local-plain-data-gate") {
-    const plan = planLocalPlainDataDelivery({
-      destinationPresent: event.destinationPresent,
-      plaintextPresent: event.plaintextPresent
-    });
+    const planActions = stepLocalPlainDataDeliveryPlanWithActions(
+      initialLocalPlainDataDeliveryPlanState(),
+      {
+        kind: "transport/local-plain-data-plan-gate",
+        destinationPresent: event.destinationPresent,
+        plaintextPresent: event.plaintextPresent
+      }
+    ).actions;
+    const plan = localPlainDataDeliveryPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 
@@ -2695,6 +3105,8 @@ function stepLocalPlainDataDeliveryInner(
 /**
  * Proof ingress kind is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepProofIngressPlanWithActions}
+ * (`lrproof`|`resource-prf`|`receipt`).
  */
 export type ProofIngressState = Record<string, never>;
 
@@ -2761,11 +3173,15 @@ function stepProofIngressInner(
   event: ProofIngressEvent
 ): ProofIngressStepResult {
   if (event.kind === "transport/proof-ingress-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: planProofIngressKind(event.context) }]
-    };
+    const planActions = stepProofIngressPlanWithActions(initialProofIngressPlanState(), {
+      kind: "transport/proof-ingress-plan-gate",
+      context: event.context
+    }).actions;
+    const plan = proofIngressPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
+    return { state, intents: [], actions: [{ kind: plan }] };
   }
 
   return { state, intents: [], actions: [] };

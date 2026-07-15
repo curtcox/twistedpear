@@ -21,21 +21,29 @@ import {
   initialAcceptTransportPacketState,
   initialLinkDataIngressTargetPlanState,
   initialLinkDataIngressTargetState,
+  initialLinkRelayTargetPlanState,
   initialLinkRelayTargetState,
+  initialLocalPlainDataDeliveryPlanState,
   initialLocalPlainDataDeliveryState,
   initialDispatchLocalPlainDataDeliveryState,
   initialPacketFilterState,
   initialPacketHashDeferState,
+  initialPacketHashRememberPlanState,
   initialPacketHashRememberState,
+  initialProofIngressPlanState,
   initialProofIngressState,
+  initialReverseRelayOutcomePlanState,
   initialReverseRelayOutcomeState,
   initialTransportIngressDispatchPlanState,
   initialTransportIngressDispatchState,
   linkDataIngressTargetFromActions,
   linkDataIngressTargetPlanFromActions,
   linkRelayTargetFromActions,
+  linkRelayTargetPlanFromActions,
   localPlainDataDeliveryFromActions,
+  localPlainDataDeliveryPlanFromActions,
   packetHashRememberFromActions,
+  packetHashRememberPlanFromActions,
   planLinkRelayTarget,
   planLocalPlainDataDelivery,
   planLinkDataIngressTarget,
@@ -48,7 +56,9 @@ import {
   initialIndexOfMatchingLinkIdState,
   matchingLinkIdIndexFromActions,
   proofIngressKindFromActions,
+  proofIngressPlanFromActions,
   reverseRelayOutcomeFromActions,
+  reverseRelayOutcomePlanFromActions,
   shouldAcceptLinkLrProofCandidate,
   shouldAcceptPacketFilter,
   shouldAcceptTransportPacket,
@@ -64,9 +74,11 @@ import {
   stepPacketHashDeferWithActions,
   shouldDeleteExpiredReverseEntry,
   shouldDeleteExpiredReverseEntryActions,
+  shouldDeleteExpiredReverseEntryPlan,
   shouldDispatchLocalLinkRequest,
   shouldDispatchLocalPlainDataDelivery,
   shouldDispatchLocalPlainDataDeliveryActions,
+  shouldDispatchLocalPlainDataDeliveryPlan,
   shouldDispatchLocalPlainDataDeliveryNow,
   shouldDispatchResourceProofToLink,
   shouldDispatchTransportAnnounce,
@@ -80,9 +92,15 @@ import {
   shouldDispatchTransportProof,
   shouldDispatchTransportProofPlan,
   shouldHandleProofLrproof,
+  shouldHandleProofLrproofPlan,
+  shouldHandleProofReceiptPlan,
+  shouldHandleProofResourcePrfPlan,
   shouldHandleProofReceipt,
   shouldHandleProofResourcePrf,
   shouldIgnoreLinkRelayTarget,
+  shouldIgnoreLinkRelayTargetPlan,
+  shouldIgnoreLocalPlainDataDeliveryPlan,
+  shouldIgnoreReverseRelayOutcomePlan,
   shouldIgnoreLocalPlainDataDelivery,
   shouldSkipDispatchLocalPlainDataDelivery,
   shouldIgnoreReverseRelayOutcome,
@@ -100,13 +118,18 @@ import {
   shouldRecordReverseTableEntry,
   shouldRegisterTransportMember,
   shouldRelayLinkOutbound,
+  shouldRelayLinkOutboundPlan,
+  shouldRelayLinkReceivedPlan,
   shouldRelayLinkReceived,
   shouldRelayReverseOnInterface,
   shouldRelayReversePacketActions,
+  shouldRelayReversePacketPlan,
   shouldRememberPacketHashAfterRelay,
   shouldRememberPacketHashAfterRelayActions,
   shouldRememberPacketHashNow,
   shouldRememberPacketHashNowActions,
+  shouldRememberPacketHashNowPlan,
+  shouldRememberPacketHashAfterRelayPlan,
   shouldTransmitLinkRelay,
   shouldTransmitOnInterface,
   shouldTransmitReverseRelay,
@@ -121,14 +144,18 @@ import {
   stepDispatchResourceProofToLinkWithActions,
   stepLinkDataIngressTargetPlanWithActions,
   stepLinkDataIngressTargetWithActions,
+  stepLinkRelayTargetPlanWithActions,
   stepLinkRelayTargetWithActions,
   stepLocalPathRequestPacketWithActions,
+  stepLocalPlainDataDeliveryPlanWithActions,
   stepLocalPlainDataDeliveryWithActions,
   stepLookupLinkRelayEntryWithActions,
   stepMatchLocalInboundDestinationWithActions,
   stepMatchLocalTypedDestinationWithActions,
   stepPacketFilterWithActions,
+  stepPacketHashRememberPlanWithActions,
   stepPacketHashRememberWithActions,
+  stepProofIngressPlanWithActions,
   stepProofIngressWithActions,
   stepRecordLinkRelayTableEntryWithActions,
   stepRecordReverseTableEntryWithActions,
@@ -138,6 +165,7 @@ import {
   stepRelayReversePacketAllowWithActions,
   stepRelayTransportPacketAllowWithActions,
   stepReverseEntryExpiredWithActions,
+  stepReverseRelayOutcomePlanWithActions,
   stepReverseRelayOutcomeWithActions,
   stepTransmitLinkRelayWithActions,
   stepTransmitOnInterfaceWithActions,
@@ -440,6 +468,18 @@ describe("transport ingress", () => {
   });
 
   it("emits link relay target actions from WithActions step", () => {
+    const outboundPlan = stepLinkRelayTargetPlanWithActions(initialLinkRelayTargetPlanState(), {
+      kind: "transport/link-relay-plan-gate",
+      sameInterface: true,
+      ifaceIsOutbound: true,
+      ifaceIsReceived: true,
+      packetHops: 2,
+      remainingHops: 2,
+      takenHops: 1
+    });
+    expect(shouldRelayLinkOutboundPlan(outboundPlan.actions)).toBe(true);
+    expect(linkRelayTargetPlanFromActions(outboundPlan.actions)).toBe("outbound");
+
     const outbound = stepLinkRelayTargetWithActions(initialLinkRelayTargetState(), {
       kind: "transport/link-relay-gate",
       sameInterface: true,
@@ -451,6 +491,18 @@ describe("transport ingress", () => {
     });
     expect(shouldRelayLinkOutbound(outbound.actions)).toBe(true);
     expect(linkRelayTargetFromActions(outbound.actions)).toBe("outbound");
+
+    const receivedPlan = stepLinkRelayTargetPlanWithActions(initialLinkRelayTargetPlanState(), {
+      kind: "transport/link-relay-plan-gate",
+      sameInterface: false,
+      ifaceIsOutbound: true,
+      ifaceIsReceived: false,
+      packetHops: 3,
+      remainingHops: 3,
+      takenHops: 1
+    });
+    expect(shouldRelayLinkReceivedPlan(receivedPlan.actions)).toBe(true);
+    expect(linkRelayTargetPlanFromActions(receivedPlan.actions)).toBe("received");
 
     const received = stepLinkRelayTargetWithActions(initialLinkRelayTargetState(), {
       kind: "transport/link-relay-gate",
@@ -464,6 +516,18 @@ describe("transport ingress", () => {
     expect(shouldRelayLinkReceived(received.actions)).toBe(true);
     expect(linkRelayTargetFromActions(received.actions)).toBe("received");
 
+    const ignoredPlan = stepLinkRelayTargetPlanWithActions(initialLinkRelayTargetPlanState(), {
+      kind: "transport/link-relay-plan-gate",
+      sameInterface: false,
+      ifaceIsOutbound: false,
+      ifaceIsReceived: false,
+      packetHops: 1,
+      remainingHops: 3,
+      takenHops: 1
+    });
+    expect(shouldIgnoreLinkRelayTargetPlan(ignoredPlan.actions)).toBe(true);
+    expect(linkRelayTargetPlanFromActions(ignoredPlan.actions)).toBeNull();
+
     const ignored = stepLinkRelayTargetWithActions(initialLinkRelayTargetState(), {
       kind: "transport/link-relay-gate",
       sameInterface: false,
@@ -475,6 +539,28 @@ describe("transport ingress", () => {
     });
     expect(shouldIgnoreLinkRelayTarget(ignored.actions)).toBe(true);
     expect(linkRelayTargetFromActions(ignored.actions)).toBeNull();
+    expect(
+      stepLinkRelayTargetWithActions(initialLinkRelayTargetState(), {
+        kind: "transport/link-relay-gate",
+        sameInterface: true,
+        ifaceIsOutbound: true,
+        ifaceIsReceived: true,
+        packetHops: 2,
+        remainingHops: 2,
+        takenHops: 1
+      }).actions
+    ).toEqual(outbound.actions);
+    expect(
+      stepLinkRelayTargetPlanWithActions(initialLinkRelayTargetPlanState(), {
+        kind: "transport/link-relay-plan-gate",
+        sameInterface: true,
+        ifaceIsOutbound: true,
+        ifaceIsReceived: true,
+        packetHops: 2,
+        remainingHops: 2,
+        takenHops: 1
+      }).actions
+    ).toEqual(outboundPlan.actions);
   });
 
   it("expires reverse-table entries past timeout", () => {
@@ -1029,6 +1115,18 @@ describe("transport ingress", () => {
   });
 
   it("emits reverse-relay outcome actions from the gate step", () => {
+    const deleteExpiredPlan = stepReverseRelayOutcomePlanWithActions(
+      initialReverseRelayOutcomePlanState(),
+      {
+        kind: "transport/reverse-relay-plan-gate",
+        canRelay: false,
+        entryExpired: true,
+        ifaceIsOutbound: true
+      }
+    );
+    expect(reverseRelayOutcomePlanFromActions(deleteExpiredPlan.actions)).toBe("delete-expired");
+    expect(shouldDeleteExpiredReverseEntryPlan(deleteExpiredPlan.actions)).toBe(true);
+
     const deleteExpired = stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
       kind: "transport/reverse-relay-gate",
       canRelay: false,
@@ -1038,6 +1136,17 @@ describe("transport ingress", () => {
     expect(reverseRelayOutcomeFromActions(deleteExpired.actions)).toBe("delete-expired");
     expect(shouldDeleteExpiredReverseEntryActions(deleteExpired.actions)).toBe(true);
 
+    const ignorePlan = stepReverseRelayOutcomePlanWithActions(
+      initialReverseRelayOutcomePlanState(),
+      {
+        kind: "transport/reverse-relay-plan-gate",
+        canRelay: true,
+        entryExpired: false,
+        ifaceIsOutbound: false
+      }
+    );
+    expect(shouldIgnoreReverseRelayOutcomePlan(ignorePlan.actions)).toBe(true);
+
     const ignore = stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
       kind: "transport/reverse-relay-gate",
       canRelay: true,
@@ -1045,6 +1154,18 @@ describe("transport ingress", () => {
       ifaceIsOutbound: false
     });
     expect(shouldIgnoreReverseRelayOutcome(ignore.actions)).toBe(true);
+
+    const relayPlan = stepReverseRelayOutcomePlanWithActions(
+      initialReverseRelayOutcomePlanState(),
+      {
+        kind: "transport/reverse-relay-plan-gate",
+        canRelay: true,
+        entryExpired: false,
+        ifaceIsOutbound: true
+      }
+    );
+    expect(shouldRelayReversePacketPlan(relayPlan.actions)).toBe(true);
+    expect(reverseRelayOutcomePlanFromActions(relayPlan.actions)).toBe("relay");
 
     const relay = stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
       kind: "transport/reverse-relay-gate",
@@ -1061,15 +1182,40 @@ describe("transport ingress", () => {
         ifaceIsOutbound: true
       }).actions
     ).toEqual(relay.actions);
+    expect(
+      stepReverseRelayOutcomePlanWithActions(initialReverseRelayOutcomePlanState(), {
+        kind: "transport/reverse-relay-plan-gate",
+        canRelay: true,
+        entryExpired: false,
+        ifaceIsOutbound: true
+      }).actions
+    ).toEqual(relayPlan.actions);
   });
 
   it("emits packet-hash remember actions from the gate step", () => {
+    const nowPlan = stepPacketHashRememberPlanWithActions(initialPacketHashRememberPlanState(), {
+      kind: "transport/packet-hash-remember-plan-gate",
+      deferred: false
+    });
+    expect(packetHashRememberPlanFromActions(nowPlan.actions)).toBe("now");
+    expect(shouldRememberPacketHashNowPlan(nowPlan.actions)).toBe(true);
+
     const now = stepPacketHashRememberWithActions(initialPacketHashRememberState(), {
       kind: "transport/packet-hash-remember-gate",
       deferred: false
     });
     expect(packetHashRememberFromActions(now.actions)).toBe("now");
     expect(shouldRememberPacketHashNowActions(now.actions)).toBe(true);
+
+    const afterRelayPlan = stepPacketHashRememberPlanWithActions(
+      initialPacketHashRememberPlanState(),
+      {
+        kind: "transport/packet-hash-remember-plan-gate",
+        deferred: true
+      }
+    );
+    expect(shouldRememberPacketHashAfterRelayPlan(afterRelayPlan.actions)).toBe(true);
+    expect(packetHashRememberPlanFromActions(afterRelayPlan.actions)).toBe("after-relay");
 
     const afterRelay = stepPacketHashRememberWithActions(initialPacketHashRememberState(), {
       kind: "transport/packet-hash-remember-gate",
@@ -1082,9 +1228,26 @@ describe("transport ingress", () => {
         deferred: false
       }).actions
     ).toEqual(now.actions);
+    expect(
+      stepPacketHashRememberPlanWithActions(initialPacketHashRememberPlanState(), {
+        kind: "transport/packet-hash-remember-plan-gate",
+        deferred: false
+      }).actions
+    ).toEqual(nowPlan.actions);
   });
 
   it("emits local plain-data delivery actions from the gate step", () => {
+    const dispatchPlan = stepLocalPlainDataDeliveryPlanWithActions(
+      initialLocalPlainDataDeliveryPlanState(),
+      {
+        kind: "transport/local-plain-data-plan-gate",
+        destinationPresent: true,
+        plaintextPresent: true
+      }
+    );
+    expect(localPlainDataDeliveryPlanFromActions(dispatchPlan.actions)).toBe("dispatch");
+    expect(shouldDispatchLocalPlainDataDeliveryPlan(dispatchPlan.actions)).toBe(true);
+
     const dispatch = stepLocalPlainDataDeliveryWithActions(initialLocalPlainDataDeliveryState(), {
       kind: "transport/local-plain-data-gate",
       destinationPresent: true,
@@ -1117,6 +1280,17 @@ describe("transport ingress", () => {
     expect(shouldDispatchLocalPlainDataDeliveryNow(skipNarrow.actions)).toBe(false);
     expect(shouldSkipDispatchLocalPlainDataDelivery(skipNarrow.actions)).toBe(true);
 
+    const ignorePlan = stepLocalPlainDataDeliveryPlanWithActions(
+      initialLocalPlainDataDeliveryPlanState(),
+      {
+        kind: "transport/local-plain-data-plan-gate",
+        destinationPresent: true,
+        plaintextPresent: false
+      }
+    );
+    expect(shouldIgnoreLocalPlainDataDeliveryPlan(ignorePlan.actions)).toBe(true);
+    expect(localPlainDataDeliveryPlanFromActions(ignorePlan.actions)).toBe("ignore");
+
     const ignore = stepLocalPlainDataDeliveryWithActions(initialLocalPlainDataDeliveryState(), {
       kind: "transport/local-plain-data-gate",
       destinationPresent: true,
@@ -1130,9 +1304,23 @@ describe("transport ingress", () => {
         plaintextPresent: true
       }).actions
     ).toEqual(dispatch.actions);
+    expect(
+      stepLocalPlainDataDeliveryPlanWithActions(initialLocalPlainDataDeliveryPlanState(), {
+        kind: "transport/local-plain-data-plan-gate",
+        destinationPresent: true,
+        plaintextPresent: true
+      }).actions
+    ).toEqual(dispatchPlan.actions);
   });
 
   it("emits proof ingress actions from the gate step", () => {
+    const lrproofPlan = stepProofIngressPlanWithActions(initialProofIngressPlanState(), {
+      kind: "transport/proof-ingress-plan-gate",
+      context: PacketContextCode.LRPROOF
+    });
+    expect(proofIngressPlanFromActions(lrproofPlan.actions)).toBe("lrproof");
+    expect(shouldHandleProofLrproofPlan(lrproofPlan.actions)).toBe(true);
+
     const lrproof = stepProofIngressWithActions(initialProofIngressState(), {
       kind: "transport/proof-ingress-gate",
       context: PacketContextCode.LRPROOF
@@ -1140,11 +1328,25 @@ describe("transport ingress", () => {
     expect(proofIngressKindFromActions(lrproof.actions)).toBe("lrproof");
     expect(shouldHandleProofLrproof(lrproof.actions)).toBe(true);
 
+    const resourcePrfPlan = stepProofIngressPlanWithActions(initialProofIngressPlanState(), {
+      kind: "transport/proof-ingress-plan-gate",
+      context: PacketContextCode.RESOURCE_PRF
+    });
+    expect(shouldHandleProofResourcePrfPlan(resourcePrfPlan.actions)).toBe(true);
+    expect(proofIngressPlanFromActions(resourcePrfPlan.actions)).toBe("resource-prf");
+
     const resourcePrf = stepProofIngressWithActions(initialProofIngressState(), {
       kind: "transport/proof-ingress-gate",
       context: PacketContextCode.RESOURCE_PRF
     });
     expect(shouldHandleProofResourcePrf(resourcePrf.actions)).toBe(true);
+
+    const receiptPlan = stepProofIngressPlanWithActions(initialProofIngressPlanState(), {
+      kind: "transport/proof-ingress-plan-gate",
+      context: PacketContextCode.NONE
+    });
+    expect(shouldHandleProofReceiptPlan(receiptPlan.actions)).toBe(true);
+    expect(proofIngressPlanFromActions(receiptPlan.actions)).toBe("receipt");
 
     const receipt = stepProofIngressWithActions(initialProofIngressState(), {
       kind: "transport/proof-ingress-gate",
@@ -1157,6 +1359,12 @@ describe("transport ingress", () => {
         context: PacketContextCode.LRPROOF
       }).actions
     ).toEqual(lrproof.actions);
+    expect(
+      stepProofIngressPlanWithActions(initialProofIngressPlanState(), {
+        kind: "transport/proof-ingress-plan-gate",
+        context: PacketContextCode.LRPROOF
+      }).actions
+    ).toEqual(lrproofPlan.actions);
   });
 
   it("emits transport relay / table-record / link-relay edge actions from WithActions steps", () => {
