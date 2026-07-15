@@ -177,13 +177,20 @@
 > nested under packet-receipt-proof-ingress; **`stepPacketReceiptCallbackPlanWithActions`**:
 > clear|set — nested under packet-receipt-callback),
 > **Channel TX-envelope-op / destination-proof / packet-filter /
-> link-teardown-reason plans** (via
+> link-teardown-reason / channel-packet-timeout / destination-request-allow /
+> link-app-request-dispatch / interface-reconnect plans** (via
 > **`stepChannelTxEnvelopeOpPlanWithActions`**: miss|process — nested under
 > channel-tx-envelope-op; **`stepDestinationProofPlanWithActions`**: prove|skip —
 > nested under destination-proof; **`stepPacketFilterPlanWithActions`**:
 > accept|reject — nested under packet-filter;
 > **`stepLinkTeardownReasonPlanWithActions`**: use-reason — nested under
-> link-teardown-reason),
+> link-teardown-reason; **`stepChannelPacketTimeoutPlanWithActions`**:
+> ignore|give-up|retry — nested under channel-packet-timeout;
+> **`stepDestinationRequestAllowPlanWithActions`**: allow|deny — nested under
+> destination-request-allow; **`stepLinkAppRequestDispatchPlanWithActions`**:
+> ignore|forbidden|invoke-handler — nested under link-app-request-dispatch;
+> **`stepInterfaceReconnectPlanWithActions`**: reconnect|give-up — nested under
+> interface-reconnect),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -244,7 +251,8 @@
 > TX timeout; plan nested via **`stepChannelTxEnvelopeOpPlanWithActions`**:
 > miss|process); packet-timeout plan via
 > **`stepChannelPacketTimeoutWithActions`**: ignore|give-up|retry (nested under
-> TX timeout); arm-
+> TX timeout; plan nested via **`stepChannelPacketTimeoutPlanWithActions`**:
+> ignore|give-up|retry); arm-
 > packet-receipt via **`stepArmChannelPacketReceiptWithActions`**: arm|skip;
 > extend-packet-receipt-timeout via **`stepExtendPacketReceiptTimeoutWithActions`**:
 > extend|skip; resend-timeout-packet via
@@ -301,7 +309,8 @@
 > **`stepRegisterDestinationLinkWithActions`**: register|skip /
 > **`stepEmitDestinationProofWithActions`**: emit|skip) are pure protocol
 > leaves; RegisteredDestination / Link / transport adapt them. **Destination
-> request-allow** (via **`stepDestinationRequestAllowWithActions`**: allow|deny)
+> request-allow** (via **`stepDestinationRequestAllowWithActions`**: allow|deny;
+> plan nested via **`stepDestinationRequestAllowPlanWithActions`**: allow|deny)
 > is a pure protocol leaf; Link inbound app-request adapts it. **Pending
 > link-request register / packet-receipt attach** (via
 > **`stepPendingLinkRequestRegisterWithActions`**: register|skip /
@@ -331,7 +340,9 @@
 > owner-missing-identity|mode-disabled (nested under validate-request) /
 > **`stepContinueLinkValidateRequestWithActions`**: continue|skip /
 > **`stepLinkAppRequestDispatchWithActions`**: ignore|forbidden|invoke-handler
-> (nested under inbound app-request) /
+> (nested under inbound app-request; plan nested via
+> **`stepLinkAppRequestDispatchPlanWithActions`**:
+> ignore|forbidden|invoke-handler) /
 > **`stepLinkAppRequestResponsePlanWithActions`**: ignore|response-too-big|
 > send-response (nested under inbound app-request) /
 > **`stepLinkTokenAccessPlanWithActions`**: reject-no-key|create|reuse
@@ -812,7 +823,9 @@
 > hop-rewrite framing** applies only from those `use-raw` actions (see above).
 > Link proof paths use **`stepSplitIdentityPublicKeyWithActions`** for
 > owner/peer Ed25519 halves. **Interface reconnect** is now a pure step machine
-> (`timer/set` intents + connect/give-up actions); TCP/WebSocket clients adapt it.
+> (`timer/set` intents + connect/give-up actions; plan nested via
+> **`stepInterfaceReconnectPlanWithActions`**: reconnect|give-up);
+> TCP/WebSocket clients adapt it.
 > Link resource HMU/cancel uses `splitResourceHashmapUpdatePacket`. Identity ratchet JSON
 > (encode/decode via **`stepEncodeIdentityRatchetRecordWithActions`** /
 > **`stepDecodeIdentityRatchetRecordWithActions`**: use-raw|reject /
@@ -896,10 +909,16 @@
 > **`stepApplyPropagationStoreCommitWithActions`**: apply|skip) live in
 > protocol; `PropagationServer` adapts them. **`planChannelPacketTimeout`**
 > (via **`stepChannelPacketTimeoutWithActions`**: ignore|give-up|retry;
-> `CHANNEL_MAX_TRIES`; nested under **`stepChannelTxTimeoutWithActions`**),
+> plan nested via **`stepChannelPacketTimeoutPlanWithActions`**:
+> ignore|give-up|retry; `CHANNEL_MAX_TRIES`; nested under
+> **`stepChannelTxTimeoutWithActions`**),
+> **`planInterfaceReconnect`** (via **`stepInterfaceReconnectWithActions`**;
+> plan nested via **`stepInterfaceReconnectPlanWithActions`**:
+> reconnect|give-up),
 > **`shouldEmitPathRequest`** (via
 > **`stepEmitPathRequestWithActions`**: emit|skip), and link-watchdog **`link/inbound`**
-> STALE→ACTIVE revive live in protocol; Channel, LeafTransport, and Link adapt them.
+> STALE→ACTIVE revive live in protocol; Channel, LeafTransport, interface
+> clients, and Link adapt them.
 > **`stepChannelWindow`**, **transport ingress accept/hash-defer planners** (+ rebroadcast/
 > reverse-timeout constants), and **`computeLinkRequestTimeout`** live in protocol; Channel,
 > TransportNode, and Link adapt them. **`planResourceRequestFulfill`** (sender RESOURCE_REQ
@@ -1269,10 +1288,13 @@
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip) live in
 > protocol; `Link.validateRequest` / `handleIdentifyPacket` adapt them.
 > **`planLinkAppRequestDispatch`** / **`planLinkAppRequestResponse`** (via
-> **`stepLinkAppRequestDispatchWithActions`**: ignore|forbidden|invoke-handler and
+> **`stepLinkAppRequestDispatchWithActions`**: ignore|forbidden|invoke-handler
+> (plan nested via **`stepLinkAppRequestDispatchPlanWithActions`**:
+> ignore|forbidden|invoke-handler) and
 > **`stepLinkAppRequestResponsePlanWithActions`**: ignore|response-too-big|
 > send-response, nested under **`stepLinkAppRequestInboundWithActions`**; allow via
-> **`stepDestinationRequestAllowWithActions`**: allow|deny; response MDU via
+> **`stepDestinationRequestAllowWithActions`**: allow|deny (plan nested via
+> **`stepDestinationRequestAllowPlanWithActions`**: allow|deny); response MDU via
 > **`stepSendLinkAppResponseAllowWithActions`**: allow|deny; invoke via
 > **`stepInvokeLinkAppRequestHandlerWithActions`**: invoke|skip; send via
 > **`stepSendLinkAppRequestResponseWithActions`**: send|skip) and
@@ -1509,7 +1531,9 @@
 > miss|process; plan nested via **`stepChannelTxEnvelopeOpPlanWithActions`**:
 > miss|process; nested under **`stepChannelTxTimeoutWithActions`**) /
 > **`planChannelPacketTimeout`** (via **`stepChannelPacketTimeoutWithActions`**:
-> ignore|give-up|retry; nested under **`stepChannelTxTimeoutWithActions`**) /
+> ignore|give-up|retry; plan nested via
+> **`stepChannelPacketTimeoutPlanWithActions`**: ignore|give-up|retry; nested
+> under **`stepChannelTxTimeoutWithActions`**) /
 > **`shouldApplyChannelPacketReceiptTimeout`** (via
 > **`stepApplyChannelPacketReceiptTimeoutWithActions`**: apply|skip) /
 > **`shouldReplaceChannelResentPacket`** (via
@@ -1687,8 +1711,10 @@
 > **`stepChannelTxTimeoutWithActions`** composes envelope miss / ignore /
 > give-up / retry with window shrink (envelope-op nested via
 > **`stepChannelTxEnvelopeOpWithActions`**: miss|process; plan nested via
-> **`stepChannelTxEnvelopeOpPlanWithActions`**: miss|process; packet-timeout plan
-> nested via **`stepChannelPacketTimeoutWithActions`**: ignore|give-up|retry);
+> **`stepChannelTxEnvelopeOpPlanWithActions`**: miss|process; packet-timeout
+> nested via **`stepChannelPacketTimeoutWithActions`**: ignore|give-up|retry;
+> plan nested via **`stepChannelPacketTimeoutPlanWithActions`**:
+> ignore|give-up|retry);
 > `Channel.packetTimeout` applies only `give-up` / `retry` actions (no ad-hoc
 > `plan.kind` / `planChannelTxEnvelopeOp` / `planChannelPacketTimeout` reads).
 > Receipt timeout
@@ -2213,9 +2239,20 @@
 > TX-ring timeout/delivery applies only from those actions (nested under
 > **`stepChannelTxTimeoutWithActions`**).
 > **`stepChannelPacketTimeoutWithActions`** emits `ignore` / `give-up` /
-> `retry`; Channel TX-timeout plan applies only from those actions (nested under
-> **`stepChannelTxTimeoutWithActions`**; no ad-hoc `planChannelPacketTimeout` /
-> `plan.kind` reads beside the step).
+> `retry` (plan nested via **`stepChannelPacketTimeoutPlanWithActions`**:
+> ignore|give-up|retry); Channel TX-timeout plan applies only from those actions
+> (nested under **`stepChannelTxTimeoutWithActions`**; no ad-hoc
+> `planChannelPacketTimeout` / `plan.kind` reads beside the step).
+> **`stepDestinationRequestAllowWithActions`** emits `allow` / `deny` (plan
+> nested via **`stepDestinationRequestAllowPlanWithActions`**: allow|deny);
+> Link inbound app-request allow applies only from those actions.
+> **`stepLinkAppRequestDispatchWithActions`** emits `ignore` / `forbidden` /
+> `invoke-handler` (plan nested via
+> **`stepLinkAppRequestDispatchPlanWithActions`**:
+> ignore|forbidden|invoke-handler); Link inbound app-request dispatch applies
+> only from those actions.
+> **`stepInterfaceReconnectPlanWithActions`** emits `reconnect` / `give-up`;
+> interface reconnect timer-fired outcomes apply only from those actions.
 > **`stepDestinationProofWithActions`** emits `prove` / `skip` (plan nested via
 > **`stepDestinationProofPlanWithActions`**: prove|skip);
 > **`stepPacketFilterWithActions`** emits `accept` / `reject` (plan nested via
@@ -2295,7 +2332,10 @@
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
 > proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / lxmf-receipt-send-plan / lxmf-signature-outcome-plan / announce-validate-outcome-plan / announce-build-plan / identity-decrypt-outcome-plan / identity-ratchet-lookup-plan / identity-recall-plan / identity-recall-app-data-plan / destination-construction-plan / destination-decrypt-plan / destination-encrypt-plan / packet-from-fields-plan / channel-message-type-registration-plan / channel-envelope-unpack-plan / channel-envelope-pack-plan / channel-send-plan / resource-assemble-outcome-plan / resource-proof-accept-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
-> link-teardown-reason / link-teardown-plan /
+> link-teardown-reason / link-teardown-reason-plan / channel-packet-timeout-plan /
+> destination-request-allow-plan / link-app-request-dispatch-plan /
+> interface-reconnect-plan /
+> link-teardown-plan /
 > signature-outcome / token-access / announce-validate /
 > announce-validate-outcome-plan / announce-build / announce-build-plan /
 > identity-decrypt / identity-decrypt-outcome-plan / identity-ratchet-lookup /
@@ -2403,7 +2443,8 @@
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
-> destination-request-allow / destination-request-path-valid /
+> destination-request-allow / destination-request-allow-plan /
+> destination-request-path-valid /
 > destination-proof-callback /
 > destination-link-established-callback / register-destination-link /
 > emit-destination-proof / pending-link-request-register /
@@ -2438,8 +2479,10 @@
 > register-link-resource / handle-outgoing-resource-request /
 > handle-incoming-resource-by-hash / link-mode-enabled / expected-link-mode /
 > destination-identity-hash / channel-tx-envelope-op /
-> channel-packet-timeout /
-> destination-proof / packet-filter / packet-receipt-callback /
+> channel-tx-envelope-op-plan / channel-packet-timeout /
+> channel-packet-timeout-plan /
+> destination-proof / destination-proof-plan / packet-filter /
+> packet-filter-plan / packet-receipt-callback /
 > channel-tx-receipt-timeout-refresh / extend-packet-receipt-timeout /
 > resend-channel-timeout-packet /
 > channel-message-handler-unregister /
@@ -2459,6 +2502,7 @@
 > stream-id-assigned / stream-data-message-handle /
 > stream-ready-callback-register / interface-name-valid /
 > interface-mtu-fit / interface-closed / interface-send-allow /
+> interface-reconnect-plan /
 > enqueue-raw-interface-frame / enqueue-decoded-packet /
 > deliver-queued-packet / yield-buffered-packet /
 > deliver-pending-link-app-response / accept-announce-payload /
@@ -2483,7 +2527,8 @@
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
-> destination-request-allow / destination-request-path-valid /
+> destination-request-allow / destination-request-allow-plan /
+> destination-request-path-valid /
 > destination-proof-callback /
 > destination-link-established-callback / register-destination-link /
 > emit-destination-proof / pending-link-request-register /

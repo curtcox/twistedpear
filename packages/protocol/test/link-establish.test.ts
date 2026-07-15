@@ -115,6 +115,7 @@ import {
   initialComputeLinkRttSecondsState,
   initialLinkActivateMembershipPlanState,
   initialLinkActivateMembershipState,
+  initialLinkAppRequestDispatchPlanState,
   initialLinkAppRequestDispatchState,
   initialLinkAppRequestInboundState,
   initialLinkAppRequestResponsePlanState,
@@ -140,6 +141,7 @@ import {
   isLinkClosed,
   isLinkInboundDataPacket,
   linkAppRequestDispatchFromActions,
+  linkAppRequestDispatchPlanFromActions,
   linkAppRequestFromActions,
   linkAppRequestPlanFromActions,
   linkAppRequestResponsePlanFromActions,
@@ -191,14 +193,17 @@ import {
   shouldEnterLinkHandshake,
   shouldFailLinkEstablish,
   shouldForbidLinkAppRequestDispatch,
+  shouldForbidLinkAppRequestDispatchPlan,
   shouldForbidLinkAppRequestInbound,
   shouldIgnoreLinkAppRequestDispatch,
+  shouldIgnoreLinkAppRequestDispatchPlan,
   shouldIgnoreLinkAppRequestInbound,
   shouldIgnoreLinkAppRequestInboundResponse,
   shouldIgnoreLinkAppRequestResponsePlan,
   shouldIgnoreLinkEstablishRtt,
   shouldIgnoreLinkRttOutcomePlan,
   shouldInvokeLinkAppRequestDispatch,
+  shouldInvokeLinkAppRequestDispatchPlan,
   shouldInvokeLinkAppRequestHandler,
   shouldInvokeLinkAppRequestHandlerNow,
   shouldInvokeLinkAppRequestInbound,
@@ -256,6 +261,7 @@ import {
   stepInvokeLinkAppRequestHandlerWithActions,
   stepLinkActivateMembershipPlanWithActions,
   stepLinkActivateMembershipWithActions,
+  stepLinkAppRequestDispatchPlanWithActions,
   stepLinkAppRequestDispatchWithActions,
   stepLinkAppRequestInbound,
   stepLinkAppRequestInboundWithActions,
@@ -1178,6 +1184,21 @@ describe("protocol link establish", () => {
         responseFitsMdu: false
       })
     ).toBe("response-too-big");
+
+    const invokeDispatchPlan = stepLinkAppRequestDispatchPlanWithActions(
+      initialLinkAppRequestDispatchPlanState(),
+      {
+        kind: "link/app-request-dispatch-plan-gate",
+        plaintextPresent: true,
+        handlerDestinationPresent: true,
+        handlerPresent: true,
+        requestAllowed: true
+      }
+    );
+    expect(shouldInvokeLinkAppRequestDispatchPlan(invokeDispatchPlan.actions)).toBe(true);
+    expect(linkAppRequestDispatchPlanFromActions(invokeDispatchPlan.actions)).toBe(
+      "invoke-handler"
+    );
 
     const invokeDispatch = stepLinkAppRequestDispatchWithActions(
       initialLinkAppRequestDispatchState(),

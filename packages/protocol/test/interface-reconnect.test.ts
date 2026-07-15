@@ -9,6 +9,7 @@ import {
   initialInterfaceClosedState,
   initialInterfaceMtuFitState,
   initialInterfaceNameValidState,
+  initialInterfaceReconnectPlanState,
   initialInterfaceReconnectState,
   initialInterfaceSendAllowState,
   initialYieldBufferedPacketState,
@@ -16,6 +17,9 @@ import {
   isValidInterfaceName,
   packetFitsInterfaceMtu,
   planInterfaceReconnect,
+  interfaceReconnectGiveUpFromActions,
+  interfaceReconnectPlanFromActions,
+  interfaceReconnectRetryFromActions,
   shouldAcceptInterfaceName,
   shouldAllowInterfaceSend,
   shouldBufferQueuedPacket,
@@ -31,6 +35,8 @@ import {
   shouldInterfaceMtuOverflow,
   shouldInterfaceOpenNow,
   shouldRejectInterfaceName,
+  shouldGiveUpInterfaceReconnectPlan,
+  shouldReconnectInterfacePlan,
   shouldSkipBufferedPacketYield,
   shouldSkipDecodedPacketEnqueue,
   shouldSkipRawInterfaceFrameEnqueue,
@@ -42,6 +48,7 @@ import {
   stepInterfaceClosedWithActions,
   stepInterfaceMtuFitWithActions,
   stepInterfaceNameValidWithActions,
+  stepInterfaceReconnectPlanWithActions,
   stepInterfaceReconnectWithActions,
   stepInterfaceSendAllowWithActions,
   stepYieldBufferedPacketWithActions
@@ -212,6 +219,22 @@ describe("protocol interface reconnect", () => {
       delayMs: INTERFACE_RECONNECT_WAIT_MS,
       attempt: 1
     });
+
+    const plan = stepInterfaceReconnectPlanWithActions(initialInterfaceReconnectPlanState(), {
+      kind: "iface/reconnect-plan-gate",
+      attempts: 0
+    });
+    expect(shouldReconnectInterfacePlan(plan.actions)).toBe(true);
+    expect(interfaceReconnectRetryFromActions(plan.actions)).toEqual({
+      kind: "reconnect",
+      delayMs: INTERFACE_RECONNECT_WAIT_MS,
+      attempt: 1
+    });
+    expect(interfaceReconnectPlanFromActions(plan.actions)).toEqual({
+      kind: "reconnect",
+      delayMs: INTERFACE_RECONNECT_WAIT_MS,
+      attempt: 1
+    });
   });
 
   it("gives up after max tries", () => {
@@ -222,6 +245,20 @@ describe("protocol interface reconnect", () => {
     expect(
       planInterfaceReconnect({ attempts: 1, maxTries: 3, waitMs: 1000 })
     ).toEqual({ kind: "reconnect", delayMs: 1000, attempt: 2 });
+
+    const giveUpPlan = stepInterfaceReconnectPlanWithActions(
+      initialInterfaceReconnectPlanState(),
+      {
+        kind: "iface/reconnect-plan-gate",
+        attempts: 2,
+        maxTries: 2
+      }
+    );
+    expect(shouldGiveUpInterfaceReconnectPlan(giveUpPlan.actions)).toBe(true);
+    expect(interfaceReconnectGiveUpFromActions(giveUpPlan.actions)).toEqual({
+      kind: "give-up",
+      attempt: 3
+    });
   });
 
   it("arms a reconnect timer on disconnect and connects on fire", () => {

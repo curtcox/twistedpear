@@ -12,8 +12,10 @@
  * TX receipt-timeout refresh nests packet-timeout-seconds via
  * `stepChannelPacketTimeoutSecondsWithActions` (`use-timeout`).
  * TX timeout nests envelope-op via `stepChannelTxEnvelopeOpWithActions`
- * (`miss`|`process`) and packet-timeout plan via
- * `stepChannelPacketTimeoutWithActions` (`ignore`|`give-up`|`retry`).
+ * (`miss`|`process`; plan nested via {@link stepChannelTxEnvelopeOpPlanWithActions})
+ * and packet-timeout via `stepChannelPacketTimeoutWithActions`
+ * (`ignore`|`give-up`|`retry`; plan nested via
+ * {@link stepChannelPacketTimeoutPlanWithActions}: ignore|give-up|retry).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -1327,16 +1329,112 @@ export function planChannelPacketTimeout(input: {
 }
 
 /**
- * Channel packet-timeout plan is event-driven; no durable session fields.
+ * Channel packet-timeout plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planChannelPacketTimeout`
+ * / `plan.kind` reads beside the step). Nested under
+ * {@link stepChannelPacketTimeoutWithActions}.
+ */
+export type ChannelPacketTimeoutPlanState = Record<string, never>;
+
+export type ChannelPacketTimeoutPlanEvent =
+  | Event
+  | {
+      readonly kind: "channel/packet-timeout-plan-gate";
+      readonly delivered: boolean;
+      readonly tries: number;
+      readonly maxTries?: number;
+    };
+
+export type ChannelPacketTimeoutPlanAction =
+  | { readonly kind: "ignore" }
+  | { readonly kind: "give-up" }
+  | { readonly kind: "retry"; readonly nextTries: number };
+
+export interface ChannelPacketTimeoutPlanStepResult {
+  readonly state: ChannelPacketTimeoutPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelPacketTimeoutPlanAction[];
+}
+
+export function initialChannelPacketTimeoutPlanState(): ChannelPacketTimeoutPlanState {
+  return {};
+}
+
+export function stepChannelPacketTimeoutPlanWithActions(
+  state: ChannelPacketTimeoutPlanState,
+  event: ChannelPacketTimeoutPlanEvent
+): ChannelPacketTimeoutPlanStepResult {
+  if (event.kind === "channel/packet-timeout-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        planChannelPacketTimeout({
+          delivered: event.delivered,
+          tries: event.tries,
+          ...(event.maxTries !== undefined ? { maxTries: event.maxTries } : {})
+        })
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldIgnoreChannelPacketTimeoutPlan(
+  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+export function shouldGiveUpChannelPacketTimeoutPlan(
+  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "give-up");
+}
+
+export function shouldRetryChannelPacketTimeoutPlan(
+  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "retry");
+}
+
+/** Extract the retry plan action, if any. */
+export function channelPacketTimeoutRetryFromActions(
+  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>
+): Extract<ChannelPacketTimeoutPlanAction, { kind: "retry" }> | null {
+  for (const action of actions) {
+    if (action.kind === "retry") {
+      return action;
+    }
+  }
+  return null;
+}
+
+/** Extract the full plan from actions; null when empty. */
+export function channelPacketTimeoutPlanFromActions(
+  actions: ReadonlyArray<ChannelPacketTimeoutPlanAction>
+): ChannelPacketTimeoutPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ignore" || entry.kind === "give-up" || entry.kind === "retry"
+  );
+  return action ?? null;
+}
+
+/**
+ * Channel packet-timeout gate is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planChannelPacketTimeout`
  * / `plan.kind` reads beside the step).
+ * Plan nested via {@link stepChannelPacketTimeoutPlanWithActions}
+ * (`ignore`|`give-up`|`retry`).
  */
 export type ChannelPacketTimeoutState = Record<string, never>;
 
 export type ChannelPacketTimeoutEvent =
   | Event
   | {
-      readonly kind: "channel/packet-timeout-plan-gate";
+      readonly kind: "channel/packet-timeout-gate";
       readonly delivered: boolean;
       readonly tries: number;
       readonly maxTries?: number;
@@ -1361,62 +1459,42 @@ export function stepChannelPacketTimeoutWithActions(
   state: ChannelPacketTimeoutState,
   event: ChannelPacketTimeoutEvent
 ): ChannelPacketTimeoutStepResult {
-  if (event.kind === "channel/packet-timeout-plan-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        planChannelPacketTimeout({
-          delivered: event.delivered,
-          tries: event.tries,
-          ...(event.maxTries !== undefined ? { maxTries: event.maxTries } : {})
-        })
-      ]
-    };
+  if (event.kind === "channel/packet-timeout-gate") {
+    const planActions = stepChannelPacketTimeoutPlanWithActions(
+      initialChannelPacketTimeoutPlanState(),
+      {
+        kind: "channel/packet-timeout-plan-gate",
+        delivered: event.delivered,
+        tries: event.tries,
+        ...(event.maxTries !== undefined ? { maxTries: event.maxTries } : {})
+      }
+    ).actions;
+    const plan = channelPacketTimeoutPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
+    return { state, intents: [], actions: [plan] };
   }
 
   return { state, intents: [], actions: [] };
 }
 
-export function shouldIgnoreChannelPacketTimeoutPlan(
+export function shouldIgnoreChannelPacketTimeout(
   actions: ReadonlyArray<ChannelPacketTimeoutAction>
 ): boolean {
   return actions.some((action) => action.kind === "ignore");
 }
 
-export function shouldGiveUpChannelPacketTimeoutPlan(
+export function shouldGiveUpChannelPacketTimeout(
   actions: ReadonlyArray<ChannelPacketTimeoutAction>
 ): boolean {
   return actions.some((action) => action.kind === "give-up");
 }
 
-export function shouldRetryChannelPacketTimeoutPlan(
+export function shouldRetryChannelPacketTimeout(
   actions: ReadonlyArray<ChannelPacketTimeoutAction>
 ): boolean {
   return actions.some((action) => action.kind === "retry");
-}
-
-/** Extract the retry plan action, if any. */
-export function channelPacketTimeoutRetryFromActions(
-  actions: ReadonlyArray<ChannelPacketTimeoutAction>
-): Extract<ChannelPacketTimeoutAction, { kind: "retry" }> | null {
-  for (const action of actions) {
-    if (action.kind === "retry") {
-      return action;
-    }
-  }
-  return null;
-}
-
-/** Extract the full plan from actions; null when empty. */
-export function channelPacketTimeoutPlanFromActions(
-  actions: ReadonlyArray<ChannelPacketTimeoutAction>
-): ChannelPacketTimeoutPlan | null {
-  const action = actions.find(
-    (entry) =>
-      entry.kind === "ignore" || entry.kind === "give-up" || entry.kind === "retry"
-  );
-  return action ?? null;
 }
 
 export type ChannelWindowEvent =
@@ -1455,8 +1533,10 @@ function stepChannelWindowInner(
  * `planChannelTxEnvelopeOp` / `planChannelPacketTimeout` beside the step.
  * Envelope-op nested via `stepChannelTxEnvelopeOpWithActions` (`miss`|`process`;
  * plan nested via {@link stepChannelTxEnvelopeOpPlanWithActions}: miss|process).
- * Packet-timeout plan nested via `stepChannelPacketTimeoutWithActions`
- * (`ignore`|`give-up`|`retry`). Resend itself is gated separately via
+ * Packet-timeout nested via `stepChannelPacketTimeoutWithActions`
+ * (`ignore`|`give-up`|`retry`; plan nested via
+ * {@link stepChannelPacketTimeoutPlanWithActions}: ignore|give-up|retry).
+ * Resend itself is gated separately via
  * `stepResendChannelTimeoutPacketWithActions`.
  */
 export type ChannelTxTimeoutEvent =
@@ -1513,17 +1593,17 @@ function stepChannelTxTimeoutInner(
   }
 
   const planActions = stepChannelPacketTimeoutWithActions(initialChannelPacketTimeoutState(), {
-    kind: "channel/packet-timeout-plan-gate",
+    kind: "channel/packet-timeout-gate",
     delivered: event.delivered,
     tries: event.tries,
     maxTries: event.maxTries
   }).actions;
 
-  if (shouldIgnoreChannelPacketTimeoutPlan(planActions)) {
+  if (shouldIgnoreChannelPacketTimeout(planActions)) {
     return { state, intents: [], actions: [] };
   }
 
-  if (shouldGiveUpChannelPacketTimeoutPlan(planActions)) {
+  if (shouldGiveUpChannelPacketTimeout(planActions)) {
     return { state, intents: [], actions: [{ kind: "give-up" }] };
   }
 

@@ -22,6 +22,7 @@ import {
   initialDestinationIdentityBindingValidState,
   initialDestinationLinkEstablishedCallbackState,
   initialDestinationProofCallbackState,
+  initialDestinationRequestAllowPlanState,
   initialDestinationRequestAllowState,
   initialDestinationRequestPathValidState,
   initialDestinationSendState,
@@ -34,12 +35,14 @@ import {
   planDestinationDecrypt,
   planDestinationEncrypt,
   planDestinationRequestAllow,
+  destinationRequestAllowPlanFromActions,
   shouldAcceptDestinationIdentityBinding,
   shouldAcceptDestinationRequestPath,
   shouldAllowAnnounceWithIdentity,
   shouldAllowDestinationAnnounce,
   shouldAllowDestinationLinkRequest,
   shouldAllowDestinationRequest,
+  shouldAllowDestinationRequestPlan,
   shouldAllowDestinationSend,
   shouldAllowOperateAttachedDestination,
   shouldAllowRequestLinkDestination,
@@ -49,6 +52,7 @@ import {
   shouldDenyDestinationAnnounce,
   shouldDenyDestinationLinkRequest,
   shouldDenyDestinationRequest,
+  shouldDenyDestinationRequestPlan,
   shouldDenyDestinationSend,
   shouldDenyOperateAttachedDestination,
   shouldDenyRequestLinkDestination,
@@ -93,6 +97,7 @@ import {
   stepDestinationIdentityBindingValidWithActions,
   stepDestinationLinkEstablishedCallbackWithActions,
   stepDestinationProofCallbackWithActions,
+  stepDestinationRequestAllowPlanWithActions,
   stepDestinationRequestAllowWithActions,
   stepDestinationRequestPathValidWithActions,
   stepDestinationSendWithActions,
@@ -142,6 +147,18 @@ describe("destination allow policy", () => {
       })
     ).toBe(false);
 
+    const allowAllPlan = stepDestinationRequestAllowPlanWithActions(
+      initialDestinationRequestAllowPlanState(),
+      {
+        kind: "destination/request-allow-plan-gate",
+        allow: DestinationAllowPolicyCode.ALLOW_ALL,
+        allowedList: [],
+        remoteIdentityHash: null
+      }
+    );
+    expect(shouldAllowDestinationRequestPlan(allowAllPlan.actions)).toBe(true);
+    expect(destinationRequestAllowPlanFromActions(allowAllPlan.actions)).toBe("allow");
+
     const allowAll = stepDestinationRequestAllowWithActions(
       initialDestinationRequestAllowState(),
       {
@@ -153,6 +170,18 @@ describe("destination allow policy", () => {
     );
     expect(shouldAllowDestinationRequest(allowAll.actions)).toBe(true);
     expect(shouldDenyDestinationRequest(allowAll.actions)).toBe(false);
+
+    const denyNonePlan = stepDestinationRequestAllowPlanWithActions(
+      initialDestinationRequestAllowPlanState(),
+      {
+        kind: "destination/request-allow-plan-gate",
+        allow: DestinationAllowPolicyCode.ALLOW_NONE,
+        allowedList: [hash],
+        remoteIdentityHash: hash
+      }
+    );
+    expect(shouldDenyDestinationRequestPlan(denyNonePlan.actions)).toBe(true);
+    expect(destinationRequestAllowPlanFromActions(denyNonePlan.actions)).toBe("deny");
 
     const denyNone = stepDestinationRequestAllowWithActions(
       initialDestinationRequestAllowState(),

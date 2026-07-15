@@ -6,7 +6,8 @@
  * `packetFitsInterfaceMtu` / `isInterfaceClosed` / `canInterfaceSend` /
  * `shouldEnqueueRawInterfaceFrame` / `shouldEnqueueDecodedPacket` /
  * `shouldDeliverQueuedPacket` / `shouldYieldBufferedPacket` reads beside
- * the step).
+ * the step). Reconnect plan nested via
+ * {@link stepInterfaceReconnectPlanWithActions} (`reconnect`|`give-up`).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -545,6 +546,104 @@ export function planInterfaceReconnect(input: {
   };
 }
 
+/**
+ * Interface-reconnect plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planInterfaceReconnect` /
+ * `plan.kind` reads beside the step). Nested under
+ * {@link stepInterfaceReconnectWithActions}.
+ */
+export type InterfaceReconnectPlanState = Record<string, never>;
+
+export type InterfaceReconnectPlanEvent =
+  | Event
+  | {
+      readonly kind: "iface/reconnect-plan-gate";
+      readonly attempts: number;
+      readonly maxTries?: number | null;
+      readonly waitMs?: number;
+    };
+
+export type InterfaceReconnectPlanAction =
+  | { readonly kind: "reconnect"; readonly delayMs: number; readonly attempt: number }
+  | { readonly kind: "give-up"; readonly attempt: number };
+
+export interface InterfaceReconnectPlanStepResult {
+  readonly state: InterfaceReconnectPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly InterfaceReconnectPlanAction[];
+}
+
+export function initialInterfaceReconnectPlanState(): InterfaceReconnectPlanState {
+  return {};
+}
+
+export function stepInterfaceReconnectPlanWithActions(
+  state: InterfaceReconnectPlanState,
+  event: InterfaceReconnectPlanEvent
+): InterfaceReconnectPlanStepResult {
+  if (event.kind === "iface/reconnect-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        planInterfaceReconnect({
+          attempts: event.attempts,
+          ...(event.maxTries !== undefined ? { maxTries: event.maxTries } : {}),
+          ...(event.waitMs !== undefined ? { waitMs: event.waitMs } : {})
+        })
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldReconnectInterfacePlan(
+  actions: ReadonlyArray<InterfaceReconnectPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reconnect");
+}
+
+export function shouldGiveUpInterfaceReconnectPlan(
+  actions: ReadonlyArray<InterfaceReconnectPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "give-up");
+}
+
+/** Extract give-up plan action, if any. */
+export function interfaceReconnectGiveUpFromActions(
+  actions: ReadonlyArray<InterfaceReconnectPlanAction>
+): Extract<InterfaceReconnectPlanAction, { kind: "give-up" }> | null {
+  for (const action of actions) {
+    if (action.kind === "give-up") {
+      return action;
+    }
+  }
+  return null;
+}
+
+/** Extract reconnect plan action, if any. */
+export function interfaceReconnectRetryFromActions(
+  actions: ReadonlyArray<InterfaceReconnectPlanAction>
+): Extract<InterfaceReconnectPlanAction, { kind: "reconnect" }> | null {
+  for (const action of actions) {
+    if (action.kind === "reconnect") {
+      return action;
+    }
+  }
+  return null;
+}
+
+/** Extract the reconnect plan from actions; null when empty. */
+export function interfaceReconnectPlanFromActions(
+  actions: ReadonlyArray<InterfaceReconnectPlanAction>
+): InterfaceReconnectPlan | null {
+  const action = actions.find(
+    (entry) => entry.kind === "reconnect" || entry.kind === "give-up"
+  );
+  return action ?? null;
+}
+
 export interface InterfaceReconnectState {
   readonly attempts: number;
   readonly maxTries: number | null;
@@ -643,22 +742,31 @@ function stepInterfaceReconnectInner(
     if (!state.waiting) {
       return { state, intents: [], actions: [] };
     }
-    const plan = planInterfaceReconnect({
-      attempts: state.attempts,
-      maxTries: state.maxTries,
-      waitMs: state.waitMs
-    });
-    if (plan.kind === "give-up") {
+    const planActions = stepInterfaceReconnectPlanWithActions(
+      initialInterfaceReconnectPlanState(),
+      {
+        kind: "iface/reconnect-plan-gate",
+        attempts: state.attempts,
+        maxTries: state.maxTries,
+        waitMs: state.waitMs
+      }
+    ).actions;
+    const giveUp = interfaceReconnectGiveUpFromActions(planActions);
+    if (giveUp !== null) {
       return {
-        state: { ...state, attempts: plan.attempt, waiting: false },
+        state: { ...state, attempts: giveUp.attempt, waiting: false },
         intents: [],
-        actions: [{ kind: "give-up", attempt: plan.attempt }]
+        actions: [{ kind: "give-up", attempt: giveUp.attempt }]
       };
     }
+    const reconnect = interfaceReconnectRetryFromActions(planActions);
+    if (reconnect === null) {
+      return { state, intents: [], actions: [] };
+    }
     return {
-      state: { ...state, attempts: plan.attempt, waiting: false },
+      state: { ...state, attempts: reconnect.attempt, waiting: false },
       intents: [],
-      actions: [{ kind: "connect", attempt: plan.attempt }]
+      actions: [{ kind: "connect", attempt: reconnect.attempt }]
     };
   }
 

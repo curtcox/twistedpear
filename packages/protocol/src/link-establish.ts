@@ -1783,7 +1783,97 @@ export function planLinkAppRequestDispatch(input: {
  * App-request dispatch plan leaf is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planLinkAppRequestDispatch` /
  * `plan ===` reads beside the step). Nested under
+ * {@link stepLinkAppRequestDispatchWithActions}.
+ */
+export type LinkAppRequestDispatchPlanState = Record<string, never>;
+
+export type LinkAppRequestDispatchPlanEvent =
+  | Event
+  | {
+      readonly kind: "link/app-request-dispatch-plan-gate";
+      readonly plaintextPresent: boolean;
+      readonly handlerDestinationPresent: boolean;
+      readonly handlerPresent: boolean;
+      readonly requestAllowed: boolean;
+    };
+
+export type LinkAppRequestDispatchPlanAction =
+  | { readonly kind: "ignore" }
+  | { readonly kind: "forbidden" }
+  | { readonly kind: "invoke-handler" };
+
+export interface LinkAppRequestDispatchPlanStepResult {
+  readonly state: LinkAppRequestDispatchPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkAppRequestDispatchPlanAction[];
+}
+
+export function initialLinkAppRequestDispatchPlanState(): LinkAppRequestDispatchPlanState {
+  return {};
+}
+
+export function stepLinkAppRequestDispatchPlanWithActions(
+  state: LinkAppRequestDispatchPlanState,
+  event: LinkAppRequestDispatchPlanEvent
+): LinkAppRequestDispatchPlanStepResult {
+  if (event.kind === "link/app-request-dispatch-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLinkAppRequestDispatch({
+            plaintextPresent: event.plaintextPresent,
+            handlerDestinationPresent: event.handlerDestinationPresent,
+            handlerPresent: event.handlerPresent,
+            requestAllowed: event.requestAllowed
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldIgnoreLinkAppRequestDispatchPlan(
+  actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+export function shouldForbidLinkAppRequestDispatchPlan(
+  actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "forbidden");
+}
+
+export function shouldInvokeLinkAppRequestDispatchPlan(
+  actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "invoke-handler");
+}
+
+/** Extract the dispatch plan from actions; null when empty. */
+export function linkAppRequestDispatchPlanFromActions(
+  actions: ReadonlyArray<LinkAppRequestDispatchPlanAction>
+): LinkAppRequestDispatchPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ignore" ||
+      entry.kind === "forbidden" ||
+      entry.kind === "invoke-handler"
+  );
+  return action?.kind ?? null;
+}
+
+/**
+ * App-request dispatch gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkAppRequestDispatch` /
+ * `plan ===` reads beside the step). Nested under
  * {@link stepLinkAppRequestInboundWithActions}.
+ * Plan nested via {@link stepLinkAppRequestDispatchPlanWithActions}
+ * (`ignore`|`forbidden`|`invoke-handler`).
  */
 export type LinkAppRequestDispatchState = Record<string, never>;
 
@@ -1817,20 +1907,21 @@ export function stepLinkAppRequestDispatchWithActions(
   event: LinkAppRequestDispatchEvent
 ): LinkAppRequestDispatchStepResult {
   if (event.kind === "link/app-request-dispatch-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: planLinkAppRequestDispatch({
-            plaintextPresent: event.plaintextPresent,
-            handlerDestinationPresent: event.handlerDestinationPresent,
-            handlerPresent: event.handlerPresent,
-            requestAllowed: event.requestAllowed
-          })
-        }
-      ]
-    };
+    const planActions = stepLinkAppRequestDispatchPlanWithActions(
+      initialLinkAppRequestDispatchPlanState(),
+      {
+        kind: "link/app-request-dispatch-plan-gate",
+        plaintextPresent: event.plaintextPresent,
+        handlerDestinationPresent: event.handlerDestinationPresent,
+        handlerPresent: event.handlerPresent,
+        requestAllowed: event.requestAllowed
+      }
+    ).actions;
+    const plan = linkAppRequestDispatchPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
+    return { state, intents: [], actions: [{ kind: plan }] };
   }
 
   return { state, intents: [], actions: [] };
@@ -2136,7 +2227,9 @@ export function linkAppRequestResponsePlanFromActions(
  * `shouldSendLinkAppRequestResponse` /
  * `planLinkAppRequestDispatch` / `planLinkAppRequestResponse` / `plan ===`
  * reads beside the step). Dispatch nested via
- * {@link stepLinkAppRequestDispatchWithActions}; response plan nested via
+ * {@link stepLinkAppRequestDispatchWithActions} (plan nested via
+ * {@link stepLinkAppRequestDispatchPlanWithActions}:
+ * ignore|forbidden|invoke-handler); response plan nested via
  * {@link stepLinkAppRequestResponsePlanWithActions}.
  */
 export interface LinkAppRequestInboundState {

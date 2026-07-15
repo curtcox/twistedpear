@@ -9,7 +9,9 @@
  * `canAcceptDestinationLinkRequest` / `canAnnounceDestination` /
  * `canDestinationSend` / `canOperateAttachedDestination` /
  * `canAnnounceWithIdentity` / `canRequestLinkDestination` /
- * `planDestinationRequestAllow` / `shouldInvokeDestinationProofCallback` /
+ * `planDestinationRequestAllow` (via {@link stepDestinationRequestAllowWithActions};
+ * plan nested via {@link stepDestinationRequestAllowPlanWithActions}: allow|deny) /
+ * `shouldInvokeDestinationProofCallback` /
  * `shouldInvokeDestinationLinkEstablishedCallback` /
  * `shouldRegisterDestinationLink` / `isValidDestinationRequestPath` /
  * `isValidDestinationIdentityBinding` reads beside the step).
@@ -1341,9 +1343,91 @@ export function planDestinationRequestAllow(input: {
 }
 
 /**
+ * Destination request-allow plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planDestinationRequestAllow`
+ * reads beside the step). Nested under
+ * {@link stepDestinationRequestAllowWithActions}.
+ */
+export type DestinationRequestAllowPlan = "allow" | "deny";
+
+export type DestinationRequestAllowPlanState = Record<string, never>;
+
+export type DestinationRequestAllowPlanEvent =
+  | Event
+  | {
+      readonly kind: "destination/request-allow-plan-gate";
+      readonly allow: number;
+      readonly allowedList: ReadonlyArray<Uint8Array>;
+      readonly remoteIdentityHash: Uint8Array | null;
+    };
+
+export type DestinationRequestAllowPlanAction = {
+  readonly kind: DestinationRequestAllowPlan;
+};
+
+export interface DestinationRequestAllowPlanStepResult {
+  readonly state: DestinationRequestAllowPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationRequestAllowPlanAction[];
+}
+
+export function initialDestinationRequestAllowPlanState(): DestinationRequestAllowPlanState {
+  return {};
+}
+
+export function stepDestinationRequestAllowPlanWithActions(
+  state: DestinationRequestAllowPlanState,
+  event: DestinationRequestAllowPlanEvent
+): DestinationRequestAllowPlanStepResult {
+  if (event.kind === "destination/request-allow-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planDestinationRequestAllow({
+            allow: event.allow,
+            allowedList: event.allowedList,
+            remoteIdentityHash: event.remoteIdentityHash
+          })
+            ? "allow"
+            : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the request-allow plan from actions; null when empty. */
+export function destinationRequestAllowPlanFromActions(
+  actions: ReadonlyArray<DestinationRequestAllowPlanAction>
+): DestinationRequestAllowPlan | null {
+  const action = actions.find(
+    (entry) => entry.kind === "allow" || entry.kind === "deny"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldAllowDestinationRequestPlan(
+  actions: ReadonlyArray<DestinationRequestAllowPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyDestinationRequestPlan(
+  actions: ReadonlyArray<DestinationRequestAllowPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
+}
+
+/**
  * Destination request-allow (ALLOW_ALL / ALLOW_LIST) gate is event-driven; no
  * durable session fields. Conclusions leave via machine actions (no ad-hoc
  * `planDestinationRequestAllow` reads beside the step).
+ * Plan nested via {@link stepDestinationRequestAllowPlanWithActions}
+ * (`allow`|`deny`).
  */
 export type DestinationRequestAllowState = Record<string, never>;
 
@@ -1375,21 +1459,20 @@ export function stepDestinationRequestAllowWithActions(
   event: DestinationRequestAllowEvent
 ): DestinationRequestAllowStepResult {
   if (event.kind === "destination/request-allow-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: planDestinationRequestAllow({
-            allow: event.allow,
-            allowedList: event.allowedList,
-            remoteIdentityHash: event.remoteIdentityHash
-          })
-            ? "allow"
-            : "deny"
-        }
-      ]
-    };
+    const planActions = stepDestinationRequestAllowPlanWithActions(
+      initialDestinationRequestAllowPlanState(),
+      {
+        kind: "destination/request-allow-plan-gate",
+        allow: event.allow,
+        allowedList: event.allowedList,
+        remoteIdentityHash: event.remoteIdentityHash
+      }
+    ).actions;
+    const plan = destinationRequestAllowPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
+    return { state, intents: [], actions: [{ kind: plan }] };
   }
 
   return { state, intents: [], actions: [] };
