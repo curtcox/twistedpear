@@ -22,12 +22,15 @@ import {
   stepComputePathExpiryWithActions,
   pathExpiryFromActions,
   discoveryPathRequestFulfillFromActions,
+  discoveryPathRequestFulfillPlanFromActions,
   initialAddPathEntryState,
   initialDiscoveryPathRequestExpiredState,
+  initialDiscoveryPathRequestFulfillPlanState,
   initialDiscoveryPathRequestFulfillState,
   initialBeginPathDiscoveryState,
   initialEmitPathRequestState,
   initialPathEntryExpiredState,
+  initialPathEntryLookupPlanState,
   initialPathEntryLookupState,
   initialPathOutboundPlanState,
   initialPathOutboundState,
@@ -36,6 +39,7 @@ import {
   isDiscoveryPathRequestExpired,
   isPathEntryExpired,
   pathEntryLookupFromActions,
+  pathEntryLookupPlanFromActions,
   pathOutboundFromActions,
   pathOutboundPlanFromActions,
   pathRequestIngressFromActions,
@@ -69,12 +73,15 @@ import {
   shouldDirectPathOutbound,
   shouldDirectPathOutboundPlan,
   shouldDropExpiredDiscoveryPathRequest,
+  shouldDropExpiredDiscoveryPathRequestPlan,
   shouldEmitPathRequest,
   shouldEmitPathRequestNow,
   shouldExpirePathEntryLookup,
+  shouldExpirePathEntryLookupPlan,
   shouldFloodPathOutbound,
   shouldFloodPathOutboundPlan,
   shouldFulfillDiscoveryPendingNow,
+  shouldFulfillDiscoveryPathRequestPlan,
   shouldRememberPathRequestTagNow,
   shouldSkipAddPathEntry,
   shouldSkipAnswerLocalPathRequest,
@@ -109,20 +116,25 @@ import {
   shouldFulfillDiscoveryPathRequest,
   shouldFulfillDiscoveryPending,
   shouldHitPathEntryLookup,
+  shouldHitPathEntryLookupPlan,
   shouldIgnoreDiscoveryPathFulfill,
   shouldIgnoreDiscoveryPathFulfillActions,
+  shouldIgnoreDiscoveryPathFulfillPlan,
   shouldIgnorePathRequestInFlightDiscovery,
   shouldIgnorePathRequestIngress,
   shouldIgnorePathRequestSeenTag,
   shouldIgnorePathRequestUnparsed,
   shouldMissPathEntryLookup,
+  shouldMissPathEntryLookupPlan,
   shouldRememberPathRequestTag,
   shouldStartPathRequestDiscovery,
   shouldTouchPathEntry,
   shouldUsePathForOutbound,
   shouldWrapPathOutbound,
   shouldWrapPathOutboundPlan,
+  stepDiscoveryPathRequestFulfillPlanWithActions,
   stepDiscoveryPathRequestFulfillWithActions,
+  stepPathEntryLookupPlanWithActions,
   stepPathEntryLookupWithActions,
   stepPathOutboundPlanWithActions,
   stepPathOutboundWithActions,
@@ -927,6 +939,17 @@ describe("protocol path table", () => {
   });
 
   it("emits discovery fulfill actions from the gate step", () => {
+    const ignorePlan = stepDiscoveryPathRequestFulfillPlanWithActions(
+      initialDiscoveryPathRequestFulfillPlanState(),
+      {
+        kind: "path-request/discovery-fulfill-plan-gate",
+        hasPending: false,
+        expired: false
+      }
+    );
+    expect(discoveryPathRequestFulfillPlanFromActions(ignorePlan.actions)).toBe("ignore");
+    expect(shouldIgnoreDiscoveryPathFulfillPlan(ignorePlan.actions)).toBe(true);
+
     const ignore = stepDiscoveryPathRequestFulfillWithActions(
       initialDiscoveryPathRequestFulfillState(),
       { kind: "path-request/discovery-fulfill-gate", hasPending: false, expired: false }
@@ -934,11 +957,35 @@ describe("protocol path table", () => {
     expect(discoveryPathRequestFulfillFromActions(ignore.actions)).toBe("ignore");
     expect(shouldIgnoreDiscoveryPathFulfillActions(ignore.actions)).toBe(true);
 
+    const dropExpiredPlan = stepDiscoveryPathRequestFulfillPlanWithActions(
+      initialDiscoveryPathRequestFulfillPlanState(),
+      {
+        kind: "path-request/discovery-fulfill-plan-gate",
+        hasPending: true,
+        expired: true
+      }
+    );
+    expect(shouldDropExpiredDiscoveryPathRequestPlan(dropExpiredPlan.actions)).toBe(true);
+    expect(discoveryPathRequestFulfillPlanFromActions(dropExpiredPlan.actions)).toBe(
+      "drop-expired"
+    );
+
     const dropExpired = stepDiscoveryPathRequestFulfillWithActions(
       initialDiscoveryPathRequestFulfillState(),
       { kind: "path-request/discovery-fulfill-gate", hasPending: true, expired: true }
     );
     expect(shouldDropExpiredDiscoveryPathRequest(dropExpired.actions)).toBe(true);
+
+    const fulfillPlan = stepDiscoveryPathRequestFulfillPlanWithActions(
+      initialDiscoveryPathRequestFulfillPlanState(),
+      {
+        kind: "path-request/discovery-fulfill-plan-gate",
+        hasPending: true,
+        expired: false
+      }
+    );
+    expect(shouldFulfillDiscoveryPathRequestPlan(fulfillPlan.actions)).toBe(true);
+    expect(discoveryPathRequestFulfillPlanFromActions(fulfillPlan.actions)).toBe("fulfill");
 
     const fulfill = stepDiscoveryPathRequestFulfillWithActions(
       initialDiscoveryPathRequestFulfillState(),
@@ -952,6 +999,16 @@ describe("protocol path table", () => {
         expired: false
       }).actions
     ).toEqual(fulfill.actions);
+    expect(
+      stepDiscoveryPathRequestFulfillPlanWithActions(
+        initialDiscoveryPathRequestFulfillPlanState(),
+        {
+          kind: "path-request/discovery-fulfill-plan-gate",
+          hasPending: true,
+          expired: false
+        }
+      ).actions
+    ).toEqual(fulfillPlan.actions);
   });
 
   it("emits path outbound actions from the gate step", () => {
@@ -1041,6 +1098,14 @@ describe("protocol path table", () => {
   });
 
   it("emits path entry lookup actions from the gate step", () => {
+    const missPlan = stepPathEntryLookupPlanWithActions(initialPathEntryLookupPlanState(), {
+      kind: "path/entry-lookup-plan-gate",
+      entryPresent: false,
+      expired: false
+    });
+    expect(pathEntryLookupPlanFromActions(missPlan.actions)).toBe("miss");
+    expect(shouldMissPathEntryLookupPlan(missPlan.actions)).toBe(true);
+
     const miss = stepPathEntryLookupWithActions(initialPathEntryLookupState(), {
       kind: "path/entry-lookup-gate",
       entryPresent: false,
@@ -1049,12 +1114,28 @@ describe("protocol path table", () => {
     expect(pathEntryLookupFromActions(miss.actions)).toBe("miss");
     expect(shouldMissPathEntryLookup(miss.actions)).toBe(true);
 
+    const expiredPlan = stepPathEntryLookupPlanWithActions(initialPathEntryLookupPlanState(), {
+      kind: "path/entry-lookup-plan-gate",
+      entryPresent: true,
+      expired: true
+    });
+    expect(shouldExpirePathEntryLookupPlan(expiredPlan.actions)).toBe(true);
+    expect(pathEntryLookupPlanFromActions(expiredPlan.actions)).toBe("expired");
+
     const expired = stepPathEntryLookupWithActions(initialPathEntryLookupState(), {
       kind: "path/entry-lookup-gate",
       entryPresent: true,
       expired: true
     });
     expect(shouldExpirePathEntryLookup(expired.actions)).toBe(true);
+
+    const hitPlan = stepPathEntryLookupPlanWithActions(initialPathEntryLookupPlanState(), {
+      kind: "path/entry-lookup-plan-gate",
+      entryPresent: true,
+      expired: false
+    });
+    expect(shouldHitPathEntryLookupPlan(hitPlan.actions)).toBe(true);
+    expect(pathEntryLookupPlanFromActions(hitPlan.actions)).toBe("hit");
 
     const hit = stepPathEntryLookupWithActions(initialPathEntryLookupState(), {
       kind: "path/entry-lookup-gate",
@@ -1069,5 +1150,12 @@ describe("protocol path table", () => {
         expired: false
       }).actions
     ).toEqual(hit.actions);
+    expect(
+      stepPathEntryLookupPlanWithActions(initialPathEntryLookupPlanState(), {
+        kind: "path/entry-lookup-plan-gate",
+        entryPresent: true,
+        expired: false
+      }).actions
+    ).toEqual(hitPlan.actions);
   });
 });

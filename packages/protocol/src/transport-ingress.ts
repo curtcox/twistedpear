@@ -4,8 +4,9 @@
  * Ingress dispatch / matching-link-id index / link-data target / reverse-relay /
  * hash-remember / packet-hash defer / local plain-data / link-relay conclusions
  * leave via machine actions (no ad-hoc plan / `indexOfMatchingLinkId` reads
- * beside the step). Ingress-dispatch plan nested via
- * {@link stepTransportIngressDispatchPlanWithActions}.
+ * beside the step). Ingress-dispatch / link-data-ingress-target plans nested via
+ * {@link stepTransportIngressDispatchPlanWithActions} /
+ * {@link stepLinkDataIngressTargetPlanWithActions}.
  * Transport-wrap relay allow, link/reverse table-record, link-packet relay allow,
  * link-table lookup, link-relay transmit, reverse-packet allow, reverse iface
  * match, reverse-entry expiry, reverse-relay transmit, interface transmit, local
@@ -2029,6 +2030,84 @@ export function planLinkDataIngressTarget(input: {
   return "none";
 }
 
+/**
+ * Link-data ingress target plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkDataIngressTarget` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLinkDataIngressTargetWithActions}.
+ */
+export type LinkDataIngressTargetPlanState = Record<string, never>;
+
+export type LinkDataIngressTargetPlanEvent =
+  | Event
+  | {
+      readonly kind: "transport/link-data-ingress-plan-gate";
+      readonly activeIndex: number | null;
+      readonly pendingIndex: number | null;
+    };
+
+export type LinkDataIngressTargetPlanAction = { readonly kind: LinkDataIngressTarget };
+
+export interface LinkDataIngressTargetPlanStepResult {
+  readonly state: LinkDataIngressTargetPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkDataIngressTargetPlanAction[];
+}
+
+export function initialLinkDataIngressTargetPlanState(): LinkDataIngressTargetPlanState {
+  return {};
+}
+
+export function stepLinkDataIngressTargetPlanWithActions(
+  state: LinkDataIngressTargetPlanState,
+  event: LinkDataIngressTargetPlanEvent
+): LinkDataIngressTargetPlanStepResult {
+  if (event.kind === "transport/link-data-ingress-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLinkDataIngressTarget({
+            activeIndex: event.activeIndex,
+            pendingIndex: event.pendingIndex
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the link-data ingress target plan from actions; null when empty. */
+export function linkDataIngressTargetPlanFromActions(
+  actions: ReadonlyArray<LinkDataIngressTargetPlanAction>
+): LinkDataIngressTarget | null {
+  const action = actions.find(
+    (entry) => entry.kind === "active" || entry.kind === "pending" || entry.kind === "none"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldIngressLinkDataActivePlan(
+  actions: ReadonlyArray<LinkDataIngressTargetPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "active");
+}
+
+export function shouldIngressLinkDataPendingPlan(
+  actions: ReadonlyArray<LinkDataIngressTargetPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "pending");
+}
+
+export function shouldIngressLinkDataNonePlan(
+  actions: ReadonlyArray<LinkDataIngressTargetPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "none");
+}
+
 export type ReverseRelayOutcome = "relay" | "delete-expired" | "ignore";
 
 /**
@@ -2300,6 +2379,8 @@ function stepTransportIngressDispatchInner(
 /**
  * Link-data ingress target is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLinkDataIngressTargetPlanWithActions}
+ * (`active`|`pending`|`none`).
  */
 export type LinkDataIngressTargetState = Record<string, never>;
 
@@ -2367,10 +2448,18 @@ function stepLinkDataIngressTargetInner(
   event: LinkDataIngressTargetEvent
 ): LinkDataIngressTargetStepResult {
   if (event.kind === "transport/link-data-ingress-gate") {
-    const plan = planLinkDataIngressTarget({
-      activeIndex: event.activeIndex,
-      pendingIndex: event.pendingIndex
-    });
+    const planActions = stepLinkDataIngressTargetPlanWithActions(
+      initialLinkDataIngressTargetPlanState(),
+      {
+        kind: "transport/link-data-ingress-plan-gate",
+        activeIndex: event.activeIndex,
+        pendingIndex: event.pendingIndex
+      }
+    ).actions;
+    const plan = linkDataIngressTargetPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 

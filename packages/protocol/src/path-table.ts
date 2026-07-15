@@ -4,7 +4,9 @@
  * Path-request ingress / discovery fulfill / outbound / entry-lookup conclusions
  * leave via machine actions (no ad-hoc plan reads beside the step). Plans nested via
  * {@link stepPathRequestIngressPlanWithActions} /
- * {@link stepPathOutboundPlanWithActions}.
+ * {@link stepPathOutboundPlanWithActions} /
+ * {@link stepDiscoveryPathRequestFulfillPlanWithActions} /
+ * {@link stepPathEntryLookupPlanWithActions}.
  * Path random-blob append / expiry conclusions leave via machine actions (no
  * ad-hoc `appendPathRandomBlob` / `computePathExpiry` reads beside the step).
  * Path-request emit / discovery-expired / begin-discovery / path-entry expired /
@@ -936,8 +938,91 @@ export function planDiscoveryPathRequestFulfill(input: {
 }
 
 /**
+ * Discovery path-request fulfill plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planDiscoveryPathRequestFulfill` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepDiscoveryPathRequestFulfillWithActions}.
+ */
+export type DiscoveryPathRequestFulfillPlanState = Record<string, never>;
+
+export type DiscoveryPathRequestFulfillPlanEvent =
+  | Event
+  | {
+      readonly kind: "path-request/discovery-fulfill-plan-gate";
+      readonly hasPending: boolean;
+      readonly expired: boolean;
+    };
+
+export type DiscoveryPathRequestFulfillPlanAction = {
+  readonly kind: DiscoveryPathRequestFulfillPlan;
+};
+
+export interface DiscoveryPathRequestFulfillPlanStepResult {
+  readonly state: DiscoveryPathRequestFulfillPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DiscoveryPathRequestFulfillPlanAction[];
+}
+
+export function initialDiscoveryPathRequestFulfillPlanState(): DiscoveryPathRequestFulfillPlanState {
+  return {};
+}
+
+export function stepDiscoveryPathRequestFulfillPlanWithActions(
+  state: DiscoveryPathRequestFulfillPlanState,
+  event: DiscoveryPathRequestFulfillPlanEvent
+): DiscoveryPathRequestFulfillPlanStepResult {
+  if (event.kind === "path-request/discovery-fulfill-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planDiscoveryPathRequestFulfill({
+            hasPending: event.hasPending,
+            expired: event.expired
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the discovery path-request fulfill plan from actions; null when empty. */
+export function discoveryPathRequestFulfillPlanFromActions(
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>
+): DiscoveryPathRequestFulfillPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ignore" || entry.kind === "drop-expired" || entry.kind === "fulfill"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldIgnoreDiscoveryPathFulfillPlan(
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+export function shouldDropExpiredDiscoveryPathRequestPlan(
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "drop-expired");
+}
+
+export function shouldFulfillDiscoveryPathRequestPlan(
+  actions: ReadonlyArray<DiscoveryPathRequestFulfillPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "fulfill");
+}
+
+/**
  * Discovery path-request fulfill is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepDiscoveryPathRequestFulfillPlanWithActions}
+ * (`ignore`|`drop-expired`|`fulfill`).
  */
 export type DiscoveryPathRequestFulfillState = Record<string, never>;
 
@@ -1011,10 +1096,18 @@ function stepDiscoveryPathRequestFulfillInner(
   event: DiscoveryPathRequestFulfillEvent
 ): DiscoveryPathRequestFulfillStepResult {
   if (event.kind === "path-request/discovery-fulfill-gate") {
-    const plan = planDiscoveryPathRequestFulfill({
-      hasPending: event.hasPending,
-      expired: event.expired
-    });
+    const planActions = stepDiscoveryPathRequestFulfillPlanWithActions(
+      initialDiscoveryPathRequestFulfillPlanState(),
+      {
+        kind: "path-request/discovery-fulfill-plan-gate",
+        hasPending: event.hasPending,
+        expired: event.expired
+      }
+    ).actions;
+    const plan = discoveryPathRequestFulfillPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 
@@ -1677,8 +1770,88 @@ export function planPathEntryLookup(input: {
 }
 
 /**
+ * Path-entry lookup plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planPathEntryLookup` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepPathEntryLookupWithActions}.
+ */
+export type PathEntryLookupPlanState = Record<string, never>;
+
+export type PathEntryLookupPlanEvent =
+  | Event
+  | {
+      readonly kind: "path/entry-lookup-plan-gate";
+      readonly entryPresent: boolean;
+      readonly expired: boolean;
+    };
+
+export type PathEntryLookupPlanAction = { readonly kind: PathEntryLookupPlan };
+
+export interface PathEntryLookupPlanStepResult {
+  readonly state: PathEntryLookupPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PathEntryLookupPlanAction[];
+}
+
+export function initialPathEntryLookupPlanState(): PathEntryLookupPlanState {
+  return {};
+}
+
+export function stepPathEntryLookupPlanWithActions(
+  state: PathEntryLookupPlanState,
+  event: PathEntryLookupPlanEvent
+): PathEntryLookupPlanStepResult {
+  if (event.kind === "path/entry-lookup-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planPathEntryLookup({
+            entryPresent: event.entryPresent,
+            expired: event.expired
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the path-entry lookup plan from actions; null when empty. */
+export function pathEntryLookupPlanFromActions(
+  actions: ReadonlyArray<PathEntryLookupPlanAction>
+): PathEntryLookupPlan | null {
+  const action = actions.find(
+    (entry) => entry.kind === "miss" || entry.kind === "expired" || entry.kind === "hit"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldMissPathEntryLookupPlan(
+  actions: ReadonlyArray<PathEntryLookupPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
+export function shouldExpirePathEntryLookupPlan(
+  actions: ReadonlyArray<PathEntryLookupPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "expired");
+}
+
+export function shouldHitPathEntryLookupPlan(
+  actions: ReadonlyArray<PathEntryLookupPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "hit");
+}
+
+/**
  * Path-entry lookup is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepPathEntryLookupPlanWithActions}
+ * (`miss`|`expired`|`hit`).
  */
 export type PathEntryLookupState = Record<string, never>;
 
@@ -1746,10 +1919,15 @@ function stepPathEntryLookupInner(
   event: PathEntryLookupEvent
 ): PathEntryLookupStepResult {
   if (event.kind === "path/entry-lookup-gate") {
-    const plan = planPathEntryLookup({
+    const planActions = stepPathEntryLookupPlanWithActions(initialPathEntryLookupPlanState(), {
+      kind: "path/entry-lookup-plan-gate",
       entryPresent: event.entryPresent,
       expired: event.expired
-    });
+    }).actions;
+    const plan = pathEntryLookupPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 

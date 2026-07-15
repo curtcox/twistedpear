@@ -19,6 +19,7 @@ import {
   isReverseEntryExpired,
   initialLocalPathRequestPacketState,
   initialAcceptTransportPacketState,
+  initialLinkDataIngressTargetPlanState,
   initialLinkDataIngressTargetState,
   initialLinkRelayTargetState,
   initialLocalPlainDataDeliveryState,
@@ -31,6 +32,7 @@ import {
   initialTransportIngressDispatchPlanState,
   initialTransportIngressDispatchState,
   linkDataIngressTargetFromActions,
+  linkDataIngressTargetPlanFromActions,
   linkRelayTargetFromActions,
   localPlainDataDeliveryFromActions,
   packetHashRememberFromActions,
@@ -87,8 +89,11 @@ import {
   shouldIgnoreTransportIngressDispatch,
   shouldIgnoreTransportIngressDispatchPlan,
   shouldIngressLinkDataActive,
+  shouldIngressLinkDataActivePlan,
   shouldIngressLinkDataNone,
+  shouldIngressLinkDataNonePlan,
   shouldIngressLinkDataPending,
+  shouldIngressLinkDataPendingPlan,
   shouldMatchLocalInboundDestination,
   shouldMatchLocalTypedDestination,
   shouldRecordLinkRelayTableEntry,
@@ -114,6 +119,7 @@ import {
   stepDispatchLocalLinkRequestWithActions,
   stepDispatchLocalPlainDataDeliveryWithActions,
   stepDispatchResourceProofToLinkWithActions,
+  stepLinkDataIngressTargetPlanWithActions,
   stepLinkDataIngressTargetWithActions,
   stepLinkRelayTargetWithActions,
   stepLocalPathRequestPacketWithActions,
@@ -952,6 +958,17 @@ describe("transport ingress", () => {
   });
 
   it("emits link-data ingress target actions from the gate step", () => {
+    const activePlan = stepLinkDataIngressTargetPlanWithActions(
+      initialLinkDataIngressTargetPlanState(),
+      {
+        kind: "transport/link-data-ingress-plan-gate",
+        activeIndex: 0,
+        pendingIndex: 1
+      }
+    );
+    expect(linkDataIngressTargetPlanFromActions(activePlan.actions)).toBe("active");
+    expect(shouldIngressLinkDataActivePlan(activePlan.actions)).toBe(true);
+
     const active = stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
       kind: "transport/link-data-ingress-gate",
       activeIndex: 0,
@@ -960,12 +977,34 @@ describe("transport ingress", () => {
     expect(linkDataIngressTargetFromActions(active.actions)).toBe("active");
     expect(shouldIngressLinkDataActive(active.actions)).toBe(true);
 
+    const pendingPlan = stepLinkDataIngressTargetPlanWithActions(
+      initialLinkDataIngressTargetPlanState(),
+      {
+        kind: "transport/link-data-ingress-plan-gate",
+        activeIndex: null,
+        pendingIndex: 2
+      }
+    );
+    expect(shouldIngressLinkDataPendingPlan(pendingPlan.actions)).toBe(true);
+    expect(linkDataIngressTargetPlanFromActions(pendingPlan.actions)).toBe("pending");
+
     const pending = stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
       kind: "transport/link-data-ingress-gate",
       activeIndex: null,
       pendingIndex: 2
     });
     expect(shouldIngressLinkDataPending(pending.actions)).toBe(true);
+
+    const nonePlan = stepLinkDataIngressTargetPlanWithActions(
+      initialLinkDataIngressTargetPlanState(),
+      {
+        kind: "transport/link-data-ingress-plan-gate",
+        activeIndex: null,
+        pendingIndex: null
+      }
+    );
+    expect(shouldIngressLinkDataNonePlan(nonePlan.actions)).toBe(true);
+    expect(linkDataIngressTargetPlanFromActions(nonePlan.actions)).toBe("none");
 
     const none = stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
       kind: "transport/link-data-ingress-gate",
@@ -980,6 +1019,13 @@ describe("transport ingress", () => {
         pendingIndex: 1
       }).actions
     ).toEqual(active.actions);
+    expect(
+      stepLinkDataIngressTargetPlanWithActions(initialLinkDataIngressTargetPlanState(), {
+        kind: "transport/link-data-ingress-plan-gate",
+        activeIndex: 0,
+        pendingIndex: 1
+      }).actions
+    ).toEqual(activePlan.actions);
   });
 
   it("emits reverse-relay outcome actions from the gate step", () => {

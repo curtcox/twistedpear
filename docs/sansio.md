@@ -140,13 +140,19 @@
 > **`stepLinkAppRequestPlanWithActions`**: send|reject — nested under
 > link-app-request; **`stepLinkAppRequestTransmitOutcomePlanWithActions`**:
 > keep-pending|unregister — nested under link-app-request-transmit),
-> **Path-request ingress / path-outbound / transport-ingress-dispatch plans** (via
+> **Path-request ingress / path-outbound / discovery-fulfill / path-entry-lookup /
+> transport-ingress-dispatch / link-data-ingress-target plans** (via
 > **`stepPathRequestIngressPlanWithActions`**: ignore-unparsed|ignore-seen-tag|
 > answer-local|answer-path|ignore|ignore-in-flight-discovery|start-discovery —
 > nested under path-request-ingress; **`stepPathOutboundPlanWithActions`**:
 > wrap|direct|flood — nested under path-outbound;
-> **`stepTransportIngressDispatchPlanWithActions`**: announce|link-request|
-> link-data|plain-data|proof|ignore — nested under transport-ingress-dispatch),
+> **`stepDiscoveryPathRequestFulfillPlanWithActions`**: ignore|drop-expired|fulfill —
+> nested under discovery-path-request-fulfill;
+> **`stepPathEntryLookupPlanWithActions`**: miss|expired|hit — nested under
+> path-entry-lookup; **`stepTransportIngressDispatchPlanWithActions`**:
+> announce|link-request|link-data|plain-data|proof|ignore — nested under
+> transport-ingress-dispatch; **`stepLinkDataIngressTargetPlanWithActions`**:
+> active|pending|none — nested under link-data-ingress-target),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -402,9 +408,15 @@
 > (nested under path-request-ingress) /
 > **`stepPathOutboundPlanWithActions`**: wrap|direct|flood
 > (nested under path-outbound) /
+> **`stepDiscoveryPathRequestFulfillPlanWithActions`**: ignore|drop-expired|fulfill
+> (nested under discovery-path-request-fulfill) /
+> **`stepPathEntryLookupPlanWithActions`**: miss|expired|hit
+> (nested under path-entry-lookup) /
 > **`stepTransportIngressDispatchPlanWithActions`**: announce|link-request|
 > link-data|plain-data|proof|ignore
 > (nested under transport-ingress-dispatch) /
+> **`stepLinkDataIngressTargetPlanWithActions`**: active|pending|none
+> (nested under link-data-ingress-target) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -860,7 +872,8 @@
 > **`shouldAddPathEntry`** (via **`stepAddPathEntryWithActions`**: add|skip) /
 > **`shouldBeginPathDiscovery`** (via **`stepBeginPathDiscoveryWithActions`**:
 > begin|skip) / **`planPathEntryLookup`** (via **`stepPathEntryLookupWithActions`**:
-> miss / expired / hit) / **`canAnswerLocalPathRequest`** (via
+> miss / expired / hit; plan nested via **`stepPathEntryLookupPlanWithActions`**:
+> miss|expired|hit) / **`canAnswerLocalPathRequest`** (via
 > **`stepAnswerLocalPathRequestWithActions`**: answer|skip) /
 > **`shouldRememberPathRequestTag`** (via
 > **`stepRememberPathRequestTagWithActions`**: remember|skip) /
@@ -1066,7 +1079,9 @@
 > **`stepPathRequestIngressPlanWithActions`**: ignore-unparsed|ignore-seen-tag|
 > answer-local|answer-path|ignore|ignore-in-flight-discovery|start-discovery) and
 > **`planDiscoveryPathRequestFulfill`**
-> (via **`stepDiscoveryPathRequestFulfillWithActions`**: ignore / drop-expired / fulfill)
+> (via **`stepDiscoveryPathRequestFulfillWithActions`**: ignore / drop-expired / fulfill;
+> plan nested via **`stepDiscoveryPathRequestFulfillPlanWithActions`**:
+> ignore|drop-expired|fulfill)
 > live in protocol; leaf / transport path-request and discovery announce fulfill adapt them.
 > **`planLinkDataContext`** (via **`stepLinkDataContextWithActions`**: rtt /
 > keepalive / close / identify / request / response / channel / resource-* /
@@ -1254,7 +1269,8 @@
 > **`indexOfMatchingLinkId`** (via
 > **`stepIndexOfMatchingLinkIdWithActions`**: use-index|miss) /
 > **`planLinkDataIngressTarget`** (via
-> **`stepLinkDataIngressTargetWithActions`**: active / pending / none), and
+> **`stepLinkDataIngressTargetWithActions`**: active / pending / none; plan nested via
+> **`stepLinkDataIngressTargetPlanWithActions`**: active|pending|none), and
 > **`planReverseRelayOutcome`** (via **`stepReverseRelayOutcomeWithActions`**:
 > relay / delete-expired / ignore) live in protocol; transport link + reverse relay adapt
 > them. **`planLinkRttOutcome`** (via **`stepLinkEstablishWithActions`**
@@ -1306,7 +1322,8 @@
 > **`shouldStopChannelHandlerFanout`**, **`planUnregisterStreamReadyCallback`**,
 > **`shouldRegisterDestinationLink`** (via
 > **`stepRegisterDestinationLinkWithActions`**: register|skip), **`planPathEntryLookup`** (via
-> **`stepPathEntryLookupWithActions`**),
+> **`stepPathEntryLookupWithActions`**; plan nested via
+> **`stepPathEntryLookupPlanWithActions`**: miss|expired|hit),
 > **`planPropagationRestore`**, and **`shouldRememberLxmfMessage`** (via
 > **`stepRememberLxmfMessageWithActions`**: remember|skip) live in protocol;
 > transport lists, receipt create/drop, Channel handlers, stream ready-callbacks,
@@ -1880,11 +1897,15 @@
 > **`stepPathRequestIngressPlanWithActions`**: ignore-unparsed|ignore-seen-tag|
 > answer-local|answer-path|ignore|ignore-in-flight-discovery|start-discovery);
 > **`stepDiscoveryPathRequestFulfillWithActions`** emits `ignore` /
-> `drop-expired` / `fulfill`; **`stepPathOutboundWithActions`** emits
+> `drop-expired` / `fulfill` (plan nested via
+> **`stepDiscoveryPathRequestFulfillPlanWithActions`**:
+> ignore|drop-expired|fulfill); **`stepPathOutboundWithActions`** emits
 > `wrap` / `direct` / `flood` (plan nested via
 > **`stepPathOutboundPlanWithActions`**: wrap|direct|flood);
 > **`stepPathEntryLookupWithActions`** emits
-> `miss` / `expired` / `hit`; **`stepEmitPathRequestWithActions`** emits
+> `miss` / `expired` / `hit` (plan nested via
+> **`stepPathEntryLookupPlanWithActions`**: miss|expired|hit);
+> **`stepEmitPathRequestWithActions`** emits
 > `emit` / `skip`; **`stepDiscoveryPathRequestExpiredWithActions`** /
 > **`stepPathEntryExpiredWithActions`** emit `expired` / `live`;
 > **`stepBeginPathDiscoveryWithActions`** emits `begin` / `skip`;
@@ -1900,7 +1921,8 @@
 > via **`stepTransportIngressDispatchPlanWithActions`**: announce|link-request|
 > link-data|plain-data|proof|ignore);
 > **`stepLinkDataIngressTargetWithActions`** emits `active` / `pending` /
-> `none`; **`stepReverseRelayOutcomeWithActions`** emits `relay` /
+> `none` (plan nested via **`stepLinkDataIngressTargetPlanWithActions`**:
+> active|pending|none); **`stepReverseRelayOutcomeWithActions`** emits `relay` /
 > `delete-expired` / `ignore`; **`stepPacketHashRememberWithActions`** emits
 > `now` / `after-relay`; **`stepLocalPlainDataDeliveryWithActions`** emits
 > `dispatch` / `ignore`; **`stepDispatchLocalPlainDataDeliveryWithActions`**
@@ -2217,9 +2239,11 @@
 > resource-hashmap-update-accept / append-resource-map-hash-collision-guard /
 > assemble-resource-hashmap-bytes / contains-resource-hash /
 > read-resource-request-hash / path-request-ingress /
-> discovery-path-request-fulfill / path-outbound / path-entry-lookup /
-> transport-ingress-dispatch / accept-transport-packet /
-> link-data-ingress-target /
+> path-request-ingress-plan / discovery-path-request-fulfill /
+> discovery-path-request-fulfill-plan / path-outbound / path-outbound-plan /
+> path-entry-lookup / path-entry-lookup-plan / transport-ingress-dispatch /
+> transport-ingress-dispatch-plan / accept-transport-packet /
+> link-data-ingress-target / link-data-ingress-target-plan /
 > reverse-relay-outcome / packet-hash-remember /
 > local-plain-data-delivery / proof-ingress / outbound-receipt /
 > packet-receipt-proof-ingress / link-data-context /
