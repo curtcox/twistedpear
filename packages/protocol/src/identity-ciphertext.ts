@@ -3,7 +3,9 @@
  * ECDH / Token crypto stay at the adapter edge.
  * Pack / split conclusions leave via machine actions (no ad-hoc
  * `packIdentityCiphertext` / `splitIdentityCiphertext` reads beside the step).
- * Decrypt conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Decrypt / recall / recall-app-data conclusions leave via machine actions (no
+ * ad-hoc `planIdentityDecryptOutcome` / `planIdentityRecall` /
+ * `planIdentityRecallAppData` / `plan ===` reads beside the step).
  * Ciphertext-frame / decrypt-plaintext accept gates conclude via machine
  * actions (no ad-hoc `shouldAcceptIdentityCiphertextFrame` /
  * `shouldAcceptIdentityDecryptPlaintext` reads beside the step).
@@ -362,8 +364,111 @@ export function planIdentityDecryptOutcome(input: {
 }
 
 /**
+ * Identity-decrypt-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planIdentityDecryptOutcome`
+ * / `plan ===` reads beside the step). Nested under
+ * {@link stepIdentityDecryptWithActions}.
+ */
+export type IdentityDecryptOutcomePlanState = Record<string, never>;
+
+export type IdentityDecryptOutcomePlanEvent =
+  | Event
+  | {
+      readonly kind: "identity/decrypt-outcome-plan-gate";
+      readonly frameOk: boolean;
+      readonly ratchetPlaintextPresent: boolean;
+      readonly enforceRatchets: boolean;
+      readonly identityFallbackDone: boolean;
+      readonly identityPlaintextPresent: boolean;
+    };
+
+export type IdentityDecryptOutcomePlanAction = { readonly kind: IdentityDecryptPlan };
+
+export interface IdentityDecryptOutcomePlanStepResult {
+  readonly state: IdentityDecryptOutcomePlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IdentityDecryptOutcomePlanAction[];
+}
+
+export function initialIdentityDecryptOutcomePlanState(): IdentityDecryptOutcomePlanState {
+  return {};
+}
+
+export function stepIdentityDecryptOutcomePlanWithActions(
+  state: IdentityDecryptOutcomePlanState,
+  event: IdentityDecryptOutcomePlanEvent
+): IdentityDecryptOutcomePlanStepResult {
+  if (event.kind === "identity/decrypt-outcome-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planIdentityDecryptOutcome({
+            frameOk: event.frameOk,
+            ratchetPlaintextPresent: event.ratchetPlaintextPresent,
+            enforceRatchets: event.enforceRatchets,
+            identityFallbackDone: event.identityFallbackDone,
+            identityPlaintextPresent: event.identityPlaintextPresent
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the decrypt plan from actions; null when empty. */
+export function identityDecryptOutcomePlanFromActions(
+  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>
+): IdentityDecryptPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "reject-frame" ||
+      entry.kind === "accept" ||
+      entry.kind === "reject-enforced" ||
+      entry.kind === "try-identity" ||
+      entry.kind === "reject"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldRejectIdentityDecryptOutcomePlanFrame(
+  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-frame");
+}
+
+export function shouldAcceptIdentityDecryptOutcomePlan(
+  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldRejectIdentityDecryptOutcomePlanEnforced(
+  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-enforced");
+}
+
+export function shouldTryIdentityDecryptOutcomePlan(
+  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "try-identity");
+}
+
+export function shouldRejectIdentityDecryptOutcomePlan(
+  actions: ReadonlyArray<IdentityDecryptOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/**
  * Identity decrypt gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepIdentityDecryptOutcomePlanWithActions}
+ * (`reject-frame`|`accept`|`reject-enforced`|`try-identity`|`reject`).
  */
 export type IdentityDecryptState = Record<string, never>;
 
@@ -378,6 +483,11 @@ export type IdentityDecryptEvent =
       readonly identityPlaintextPresent: boolean;
     };
 
+/**
+ * Adapter applies ratchet/fallback outcomes only from these actions.
+ * Plan nested via {@link stepIdentityDecryptOutcomePlanWithActions}
+ * (`reject-frame`|`accept`|`reject-enforced`|`try-identity`|`reject`).
+ */
 export type IdentityDecryptAction = { readonly kind: IdentityDecryptPlan };
 
 export interface IdentityDecryptStepResult {
@@ -437,13 +547,21 @@ function stepIdentityDecryptInner(
   event: IdentityDecryptEvent
 ): IdentityDecryptStepResult {
   if (event.kind === "identity/decrypt-gate") {
-    const plan = planIdentityDecryptOutcome({
-      frameOk: event.frameOk,
-      ratchetPlaintextPresent: event.ratchetPlaintextPresent,
-      enforceRatchets: event.enforceRatchets,
-      identityFallbackDone: event.identityFallbackDone,
-      identityPlaintextPresent: event.identityPlaintextPresent
-    });
+    const planActions = stepIdentityDecryptOutcomePlanWithActions(
+      initialIdentityDecryptOutcomePlanState(),
+      {
+        kind: "identity/decrypt-outcome-plan-gate",
+        frameOk: event.frameOk,
+        ratchetPlaintextPresent: event.ratchetPlaintextPresent,
+        enforceRatchets: event.enforceRatchets,
+        identityFallbackDone: event.identityFallbackDone,
+        identityPlaintextPresent: event.identityPlaintextPresent
+      }
+    ).actions;
+    const plan = identityDecryptOutcomePlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 
@@ -470,8 +588,89 @@ export function planIdentityRecall(input: {
 }
 
 /**
+ * Identity-recall-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planIdentityRecall` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepIdentityRecallWithActions}.
+ */
+export type IdentityRecallPlanState = Record<string, never>;
+
+export type IdentityRecallPlanEvent =
+  | Event
+  | {
+      readonly kind: "identity/recall-plan-gate";
+      readonly recordPresent: boolean;
+      readonly publicKeyLoaded: boolean;
+    };
+
+export type IdentityRecallPlanAction = { readonly kind: IdentityRecallPlan };
+
+export interface IdentityRecallPlanStepResult {
+  readonly state: IdentityRecallPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IdentityRecallPlanAction[];
+}
+
+export function initialIdentityRecallPlanState(): IdentityRecallPlanState {
+  return {};
+}
+
+export function stepIdentityRecallPlanWithActions(
+  state: IdentityRecallPlanState,
+  event: IdentityRecallPlanEvent
+): IdentityRecallPlanStepResult {
+  if (event.kind === "identity/recall-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planIdentityRecall({
+            recordPresent: event.recordPresent,
+            publicKeyLoaded: event.publicKeyLoaded
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the recall plan from actions; null when empty. */
+export function identityRecallPlanFromActions(
+  actions: ReadonlyArray<IdentityRecallPlanAction>
+): IdentityRecallPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "miss" || entry.kind === "reject-key" || entry.kind === "hit"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldMissIdentityRecallPlan(
+  actions: ReadonlyArray<IdentityRecallPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
+export function shouldRejectIdentityRecallPlanKey(
+  actions: ReadonlyArray<IdentityRecallPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-key");
+}
+
+export function shouldHitIdentityRecallPlan(
+  actions: ReadonlyArray<IdentityRecallPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "hit");
+}
+
+/**
  * Identity recall gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepIdentityRecallPlanWithActions}
+ * (`miss`|`reject-key`|`hit`).
  */
 export type IdentityRecallState = Record<string, never>;
 
@@ -483,6 +682,11 @@ export type IdentityRecallEvent =
       readonly publicKeyLoaded: boolean;
     };
 
+/**
+ * Adapter returns recall results only from these actions.
+ * Plan nested via {@link stepIdentityRecallPlanWithActions}
+ * (`miss`|`reject-key`|`hit`).
+ */
 export type IdentityRecallAction = { readonly kind: IdentityRecallPlan };
 
 export interface IdentityRecallStepResult {
@@ -530,10 +734,15 @@ function stepIdentityRecallInner(
   event: IdentityRecallEvent
 ): IdentityRecallStepResult {
   if (event.kind === "identity/recall-gate") {
-    const plan = planIdentityRecall({
+    const planActions = stepIdentityRecallPlanWithActions(initialIdentityRecallPlanState(), {
+      kind: "identity/recall-plan-gate",
       recordPresent: event.recordPresent,
       publicKeyLoaded: event.publicKeyLoaded
-    });
+    }).actions;
+    const plan = identityRecallPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 
@@ -554,8 +763,80 @@ export function planIdentityRecallAppData(input: {
 }
 
 /**
+ * Identity-recall-app-data-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planIdentityRecallAppData`
+ * / `plan ===` reads beside the step). Nested under
+ * {@link stepIdentityRecallAppDataWithActions}.
+ */
+export type IdentityRecallAppDataPlanState = Record<string, never>;
+
+export type IdentityRecallAppDataPlanEvent =
+  | Event
+  | {
+      readonly kind: "identity/recall-app-data-plan-gate";
+      readonly recordPresent: boolean;
+      readonly appDataPresent: boolean;
+    };
+
+export type IdentityRecallAppDataPlanAction = { readonly kind: IdentityRecallAppDataPlan };
+
+export interface IdentityRecallAppDataPlanStepResult {
+  readonly state: IdentityRecallAppDataPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IdentityRecallAppDataPlanAction[];
+}
+
+export function initialIdentityRecallAppDataPlanState(): IdentityRecallAppDataPlanState {
+  return {};
+}
+
+export function stepIdentityRecallAppDataPlanWithActions(
+  state: IdentityRecallAppDataPlanState,
+  event: IdentityRecallAppDataPlanEvent
+): IdentityRecallAppDataPlanStepResult {
+  if (event.kind === "identity/recall-app-data-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planIdentityRecallAppData({
+            recordPresent: event.recordPresent,
+            appDataPresent: event.appDataPresent
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the recall-app-data plan from actions; null when empty. */
+export function identityRecallAppDataPlanFromActions(
+  actions: ReadonlyArray<IdentityRecallAppDataPlanAction>
+): IdentityRecallAppDataPlan | null {
+  const action = actions.find((entry) => entry.kind === "hit" || entry.kind === "miss");
+  return action?.kind ?? null;
+}
+
+export function shouldHitIdentityRecallAppDataPlan(
+  actions: ReadonlyArray<IdentityRecallAppDataPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "hit");
+}
+
+export function shouldMissIdentityRecallAppDataPlan(
+  actions: ReadonlyArray<IdentityRecallAppDataPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
+/**
  * Identity app-data recall gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepIdentityRecallAppDataPlanWithActions}
+ * (`hit`|`miss`).
  */
 export type IdentityRecallAppDataState = Record<string, never>;
 
@@ -567,6 +848,11 @@ export type IdentityRecallAppDataEvent =
       readonly appDataPresent: boolean;
     };
 
+/**
+ * Adapter returns app-data recall results only from these actions.
+ * Plan nested via {@link stepIdentityRecallAppDataPlanWithActions}
+ * (`hit`|`miss`).
+ */
 export type IdentityRecallAppDataAction = { readonly kind: IdentityRecallAppDataPlan };
 
 export interface IdentityRecallAppDataStepResult {
@@ -608,10 +894,18 @@ function stepIdentityRecallAppDataInner(
   event: IdentityRecallAppDataEvent
 ): IdentityRecallAppDataStepResult {
   if (event.kind === "identity/recall-app-data-gate") {
-    const plan = planIdentityRecallAppData({
-      recordPresent: event.recordPresent,
-      appDataPresent: event.appDataPresent
-    });
+    const planActions = stepIdentityRecallAppDataPlanWithActions(
+      initialIdentityRecallAppDataPlanState(),
+      {
+        kind: "identity/recall-app-data-plan-gate",
+        recordPresent: event.recordPresent,
+        appDataPresent: event.appDataPresent
+      }
+    ).actions;
+    const plan = identityRecallAppDataPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 

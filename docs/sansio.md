@@ -104,6 +104,15 @@
 > **`stepAnnounceBuildPlanWithActions`**:
 > ok|not-announceable-type|not-announceable-direction|missing-identity|
 > bad-random-hash|bad-ratchet — nested under announce-build),
+> **Identity decrypt / ratchet-lookup / recall / recall-app-data plans** (via
+> **`stepIdentityDecryptOutcomePlanWithActions`**:
+> reject-frame|accept|reject-enforced|try-identity|reject — nested under
+> identity-decrypt; **`stepIdentityRatchetLookupPlanWithActions`**:
+> use-cache|miss-no-store|miss-store|reject-unusable|restore — nested under
+> identity-ratchet-lookup; **`stepIdentityRecallPlanWithActions`**:
+> miss|reject-key|hit — nested under identity-recall;
+> **`stepIdentityRecallAppDataPlanWithActions`**: hit|miss — nested under
+> identity-recall-app-data),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -312,6 +321,16 @@
 > ok|not-announceable-type|not-announceable-direction|missing-identity|
 > bad-random-hash|bad-ratchet
 > (nested under announce-build) /
+> **`stepIdentityDecryptOutcomePlanWithActions`**:
+> reject-frame|accept|reject-enforced|try-identity|reject
+> (nested under identity-decrypt) /
+> **`stepIdentityRatchetLookupPlanWithActions`**:
+> use-cache|miss-no-store|miss-store|reject-unusable|restore
+> (nested under identity-ratchet-lookup) /
+> **`stepIdentityRecallPlanWithActions`**: miss|reject-key|hit
+> (nested under identity-recall) /
+> **`stepIdentityRecallAppDataPlanWithActions`**: hit|miss
+> (nested under identity-recall-app-data) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -1180,12 +1199,20 @@
 > destination link lists, path-table get, propagation restore, and LXMF seen-hash
 > remember adapt them. **`planIdentityDecryptOutcome`** (via
 > **`stepIdentityDecryptWithActions`**: reject-frame / accept / reject-enforced /
-> try-identity / reject), **`planIdentityRatchetLookup`** (via
+> try-identity / reject; plan nested via
+> **`stepIdentityDecryptOutcomePlanWithActions`**:
+> reject-frame|accept|reject-enforced|try-identity|reject),
+> **`planIdentityRatchetLookup`** (via
 > **`stepIdentityRatchetLookupWithActions`**: use-cache / miss-no-store /
-> miss-store / reject-unusable / restore), **`planIdentityRecall`** (via
-> **`stepIdentityRecallWithActions`**: miss / reject-key / hit),
+> miss-store / reject-unusable / restore; plan nested via
+> **`stepIdentityRatchetLookupPlanWithActions`**:
+> use-cache|miss-no-store|miss-store|reject-unusable|restore),
+> **`planIdentityRecall`** (via
+> **`stepIdentityRecallWithActions`**: miss / reject-key / hit; plan nested via
+> **`stepIdentityRecallPlanWithActions`**: miss|reject-key|hit),
 > **`planIdentityRecallAppData`** (via **`stepIdentityRecallAppDataWithActions`**:
-> hit / miss), and **`canIdentityHash`** (via
+> hit / miss; plan nested via **`stepIdentityRecallAppDataPlanWithActions`**:
+> hit|miss), and **`canIdentityHash`** (via
 > **`stepIdentityHashAllowWithActions`**: allow|deny) live in protocol; `Identity`
 > adapts them. **`canRegisterLxmfDeliveryIdentity`** (via
 > **`stepRegisterLxmfDeliveryIdentityWithActions`**: register|skip) /
@@ -1626,24 +1653,31 @@
 > `Announce.buildPacket` throws or continues only from those actions (no
 > ad-hoc `planAnnounceBuild` / `plan ===` reads beside the step).
 > **`stepIdentityDecryptWithActions`** emits `reject-frame` / `accept` /
-> `reject-enforced` / `try-identity` / `reject`; `Identity.decrypt` applies
-> ratchet/fallback outcomes only from those actions (no ad-hoc
-> `planIdentityDecryptOutcome` reads beside the step).
+> `reject-enforced` / `try-identity` / `reject` (plan nested via
+> **`stepIdentityDecryptOutcomePlanWithActions`**:
+> `reject-frame`|`accept`|`reject-enforced`|`try-identity`|`reject`);
+> `Identity.decrypt` applies ratchet/fallback outcomes only from those actions (no
+> ad-hoc `planIdentityDecryptOutcome` / `plan ===` reads beside the step).
 > **`stepIdentityRatchetLookupWithActions`** emits `use-cache` /
-> `miss-no-store` / `miss-store` / `reject-unusable` / `restore`;
+> `miss-no-store` / `miss-store` / `reject-unusable` / `restore` (plan nested via
+> **`stepIdentityRatchetLookupPlanWithActions`**:
+> `use-cache`|`miss-no-store`|`miss-store`|`reject-unusable`|`restore`);
 > `Identity.getRatchet` applies cache/store outcomes only from those actions
-> (no ad-hoc `planIdentityRatchetLookup` reads beside the step).
+> (no ad-hoc `planIdentityRatchetLookup` / `plan ===` reads beside the step).
 > **`stepIdentityRatchetRecordUsableWithActions`** emits `usable`|`unusable`;
 > `Identity.getRatchet` usability for stored records applies only from those
 > actions (no ad-hoc `isIdentityRatchetRecordUsable` reads beside the step).
 > **`stepCommitRestoredIdentityRatchetWithActions`** emits `commit`|`skip`;
 > `Identity.getRatchet` restore-to-cache applies only from those actions (no
 > ad-hoc `shouldRestoreIdentityRatchetRecord` reads beside the step).
-> **`stepIdentityRecallWithActions`** emits `miss` / `reject-key` / `hit`;
-> **`stepIdentityRecallAppDataWithActions`** emits `hit` / `miss`;
+> **`stepIdentityRecallWithActions`** emits `miss` / `reject-key` / `hit` (plan
+> nested via **`stepIdentityRecallPlanWithActions`**:
+> `miss`|`reject-key`|`hit`);
+> **`stepIdentityRecallAppDataWithActions`** emits `hit` / `miss` (plan nested
+> via **`stepIdentityRecallAppDataPlanWithActions`**: `hit`|`miss`);
 > `Identity.recall` / `recallAppData` return results only from those actions
-> (no ad-hoc `planIdentityRecall` / `planIdentityRecallAppData` reads beside
-> the step).
+> (no ad-hoc `planIdentityRecall` / `planIdentityRecallAppData` / `plan ===`
+> reads beside the step).
 > **`stepDestinationConstructionWithActions`** emits `ok` / `bad-direction` /
 > `bad-type` / `bad-identity-binding`; identity binding nested via
 > **`stepDestinationIdentityBindingValidWithActions`** (`valid`|`invalid`);
@@ -1978,12 +2012,13 @@
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / lxmf-receipt-send-plan / lxmf-signature-outcome-plan / announce-validate-outcome-plan / announce-build-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / lxmf-receipt-send-plan / lxmf-signature-outcome-plan / announce-validate-outcome-plan / announce-build-plan / identity-decrypt-outcome-plan / identity-ratchet-lookup-plan / identity-recall-plan / identity-recall-app-data-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate /
 > announce-validate-outcome-plan / announce-build / announce-build-plan /
-> identity-decrypt / identity-ratchet-lookup / identity-recall /
-> identity-recall-app-data / identity-hash-allow / identity-use-private-key /
+> identity-decrypt / identity-decrypt-outcome-plan / identity-ratchet-lookup /
+> identity-ratchet-lookup-plan / identity-recall / identity-recall-plan /
+> identity-recall-app-data / identity-recall-app-data-plan / identity-hash-allow / identity-use-private-key /
 > identity-use-public-key / load-identity-key-material /
 > attempt-identity-ratchet-decrypt / persist-identity-ratchet /
 > identity-ratchet-record-usable / commit-restored-identity-ratchet /
@@ -2091,6 +2126,8 @@
 > propagation-store-plan / propagation-get-plan / lxmf-delivery-plan /
 > lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan /
 > lxmf-propagated-send-plan / announce-validate-outcome-plan / announce-build-plan /
+> identity-decrypt-outcome-plan / identity-ratchet-lookup-plan /
+> identity-recall-plan / identity-recall-app-data-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /

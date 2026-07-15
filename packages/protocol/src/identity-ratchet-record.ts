@@ -3,7 +3,8 @@
  * Store IO and expiry clock stay at the adapter edge.
  * Encode / decode conclusions leave via machine actions (no ad-hoc
  * `encodeIdentityRatchetRecord` / `decodeIdentityRatchetRecord` reads beside the step).
- * Lookup conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Lookup conclusions leave via machine actions (no ad-hoc
+ * `planIdentityRatchetLookup` / `plan ===` reads beside the step).
  * Persist-to-store gate conclusions leave via machine actions (no ad-hoc
  * `shouldPersistIdentityRatchet` reads beside the step).
  * Usability gate conclusions leave via machine actions (no ad-hoc
@@ -320,8 +321,109 @@ export function planIdentityRatchetLookup(input: {
 }
 
 /**
+ * Identity-ratchet-lookup-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planIdentityRatchetLookup`
+ * / `plan ===` reads beside the step). Nested under
+ * {@link stepIdentityRatchetLookupWithActions}.
+ */
+export type IdentityRatchetLookupPlanState = Record<string, never>;
+
+export type IdentityRatchetLookupPlanEvent =
+  | Event
+  | {
+      readonly kind: "identity/ratchet-lookup-plan-gate";
+      readonly cachedPresent: boolean;
+      readonly storePresent: boolean;
+      readonly storedPresent: boolean;
+      readonly usable: boolean;
+    };
+
+export type IdentityRatchetLookupPlanAction = { readonly kind: IdentityRatchetLookupPlan };
+
+export interface IdentityRatchetLookupPlanStepResult {
+  readonly state: IdentityRatchetLookupPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IdentityRatchetLookupPlanAction[];
+}
+
+export function initialIdentityRatchetLookupPlanState(): IdentityRatchetLookupPlanState {
+  return {};
+}
+
+export function stepIdentityRatchetLookupPlanWithActions(
+  state: IdentityRatchetLookupPlanState,
+  event: IdentityRatchetLookupPlanEvent
+): IdentityRatchetLookupPlanStepResult {
+  if (event.kind === "identity/ratchet-lookup-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planIdentityRatchetLookup({
+            cachedPresent: event.cachedPresent,
+            storePresent: event.storePresent,
+            storedPresent: event.storedPresent,
+            usable: event.usable
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the ratchet-lookup plan from actions; null when empty. */
+export function identityRatchetLookupPlanFromActions(
+  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>
+): IdentityRatchetLookupPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "use-cache" ||
+      entry.kind === "miss-no-store" ||
+      entry.kind === "miss-store" ||
+      entry.kind === "reject-unusable" ||
+      entry.kind === "restore"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldUseCachedIdentityRatchetLookupPlan(
+  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-cache");
+}
+
+export function shouldMissIdentityRatchetLookupPlanNoStore(
+  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss-no-store");
+}
+
+export function shouldMissIdentityRatchetLookupPlanStore(
+  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss-store");
+}
+
+export function shouldRejectIdentityRatchetLookupPlanUnusable(
+  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-unusable");
+}
+
+export function shouldRestoreIdentityRatchetLookupPlan(
+  actions: ReadonlyArray<IdentityRatchetLookupPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "restore");
+}
+
+/**
  * Identity ratchet lookup gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepIdentityRatchetLookupPlanWithActions}
+ * (`use-cache`|`miss-no-store`|`miss-store`|`reject-unusable`|`restore`).
  */
 export type IdentityRatchetLookupState = Record<string, never>;
 
@@ -335,6 +437,11 @@ export type IdentityRatchetLookupEvent =
       readonly usable: boolean;
     };
 
+/**
+ * Adapter applies cache/store outcomes only from these actions.
+ * Plan nested via {@link stepIdentityRatchetLookupPlanWithActions}
+ * (`use-cache`|`miss-no-store`|`miss-store`|`reject-unusable`|`restore`).
+ */
 export type IdentityRatchetLookupAction = { readonly kind: IdentityRatchetLookupPlan };
 
 export interface IdentityRatchetLookupStepResult {
@@ -394,12 +501,20 @@ function stepIdentityRatchetLookupInner(
   event: IdentityRatchetLookupEvent
 ): IdentityRatchetLookupStepResult {
   if (event.kind === "identity/ratchet-lookup-gate") {
-    const plan = planIdentityRatchetLookup({
-      cachedPresent: event.cachedPresent,
-      storePresent: event.storePresent,
-      storedPresent: event.storedPresent,
-      usable: event.usable
-    });
+    const planActions = stepIdentityRatchetLookupPlanWithActions(
+      initialIdentityRatchetLookupPlanState(),
+      {
+        kind: "identity/ratchet-lookup-plan-gate",
+        cachedPresent: event.cachedPresent,
+        storePresent: event.storePresent,
+        storedPresent: event.storedPresent,
+        usable: event.usable
+      }
+    ).actions;
+    const plan = identityRatchetLookupPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 

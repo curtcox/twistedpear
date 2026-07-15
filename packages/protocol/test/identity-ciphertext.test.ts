@@ -6,12 +6,18 @@ import {
   canIdentityUsePublicKey,
   canLoadIdentityKeyMaterial,
   identityCiphertextFieldsFromActions,
+  identityDecryptOutcomePlanFromActions,
+  identityRecallAppDataPlanFromActions,
+  identityRecallPlanFromActions,
   initialAcceptIdentityCiphertextFrameState,
   initialAcceptIdentityDecryptPlaintextState,
   initialAttemptIdentityRatchetDecryptState,
+  initialIdentityDecryptOutcomePlanState,
   initialIdentityDecryptState,
   initialIdentityHashAllowState,
+  initialIdentityRecallAppDataPlanState,
   initialIdentityRecallAppDataState,
+  initialIdentityRecallPlanState,
   initialIdentityRecallState,
   initialIdentityUsePrivateKeyState,
   initialIdentityUsePublicKeyState,
@@ -24,6 +30,7 @@ import {
   planIdentityRecall,
   planIdentityRecallAppData,
   shouldAcceptIdentityDecrypt,
+  shouldAcceptIdentityDecryptOutcomePlan,
   shouldAllowIdentityHash,
   shouldAllowIdentityUsePrivateKey,
   shouldAllowIdentityUsePublicKey,
@@ -40,27 +47,39 @@ import {
   shouldDenyLoadIdentityKeyMaterial,
   shouldHitIdentityRecall,
   shouldHitIdentityRecallAppData,
+  shouldHitIdentityRecallAppDataPlan,
+  shouldHitIdentityRecallPlan,
   shouldMissIdentityRecall,
   shouldMissIdentityRecallAppData,
+  shouldMissIdentityRecallAppDataPlan,
+  shouldMissIdentityRecallPlan,
   shouldRejectIdentityDecrypt,
   shouldRejectIdentityDecryptEnforced,
   shouldRejectIdentityDecryptFrame,
+  shouldRejectIdentityDecryptOutcomePlan,
+  shouldRejectIdentityDecryptOutcomePlanEnforced,
+  shouldRejectIdentityDecryptOutcomePlanFrame,
   shouldRejectIdentityRecallKey,
+  shouldRejectIdentityRecallPlanKey,
   shouldRejectPackIdentityCiphertext,
   shouldRejectSplitIdentityCiphertext,
   shouldSkipIdentityCiphertextFrameAccept,
   shouldSkipIdentityDecryptPlaintextAccept,
   shouldSkipIdentityRatchetDecrypt,
   shouldTryIdentityDecrypt,
+  shouldTryIdentityDecryptOutcomePlan,
   shouldUsePackIdentityCiphertext,
   shouldUseSplitIdentityCiphertext,
   splitIdentityCiphertext,
   stepAcceptIdentityCiphertextFrameWithActions,
   stepAcceptIdentityDecryptPlaintextWithActions,
   stepAttemptIdentityRatchetDecryptWithActions,
+  stepIdentityDecryptOutcomePlanWithActions,
   stepIdentityDecryptWithActions,
   stepIdentityHashAllowWithActions,
+  stepIdentityRecallAppDataPlanWithActions,
   stepIdentityRecallAppDataWithActions,
+  stepIdentityRecallPlanWithActions,
   stepIdentityRecallWithActions,
   stepIdentityUsePrivateKeyWithActions,
   stepIdentityUsePublicKeyWithActions,
@@ -233,6 +252,76 @@ describe("protocol identity ciphertext", () => {
     ).toBe("reject");
   });
 
+  it("emits identity decrypt-outcome-plan actions from PlanWithActions", () => {
+    const rejectFrame = stepIdentityDecryptOutcomePlanWithActions(
+      initialIdentityDecryptOutcomePlanState(),
+      {
+        kind: "identity/decrypt-outcome-plan-gate",
+        frameOk: false,
+        ratchetPlaintextPresent: false,
+        enforceRatchets: false,
+        identityFallbackDone: false,
+        identityPlaintextPresent: false
+      }
+    );
+    expect(shouldRejectIdentityDecryptOutcomePlanFrame(rejectFrame.actions)).toBe(true);
+    expect(identityDecryptOutcomePlanFromActions(rejectFrame.actions)).toBe("reject-frame");
+
+    const accept = stepIdentityDecryptOutcomePlanWithActions(
+      initialIdentityDecryptOutcomePlanState(),
+      {
+        kind: "identity/decrypt-outcome-plan-gate",
+        frameOk: true,
+        ratchetPlaintextPresent: true,
+        enforceRatchets: true,
+        identityFallbackDone: false,
+        identityPlaintextPresent: false
+      }
+    );
+    expect(shouldAcceptIdentityDecryptOutcomePlan(accept.actions)).toBe(true);
+    expect(identityDecryptOutcomePlanFromActions(accept.actions)).toBe("accept");
+
+    const rejectEnforced = stepIdentityDecryptOutcomePlanWithActions(
+      initialIdentityDecryptOutcomePlanState(),
+      {
+        kind: "identity/decrypt-outcome-plan-gate",
+        frameOk: true,
+        ratchetPlaintextPresent: false,
+        enforceRatchets: true,
+        identityFallbackDone: false,
+        identityPlaintextPresent: false
+      }
+    );
+    expect(shouldRejectIdentityDecryptOutcomePlanEnforced(rejectEnforced.actions)).toBe(true);
+
+    const tryIdentity = stepIdentityDecryptOutcomePlanWithActions(
+      initialIdentityDecryptOutcomePlanState(),
+      {
+        kind: "identity/decrypt-outcome-plan-gate",
+        frameOk: true,
+        ratchetPlaintextPresent: false,
+        enforceRatchets: false,
+        identityFallbackDone: false,
+        identityPlaintextPresent: false
+      }
+    );
+    expect(shouldTryIdentityDecryptOutcomePlan(tryIdentity.actions)).toBe(true);
+
+    const reject = stepIdentityDecryptOutcomePlanWithActions(
+      initialIdentityDecryptOutcomePlanState(),
+      {
+        kind: "identity/decrypt-outcome-plan-gate",
+        frameOk: true,
+        ratchetPlaintextPresent: false,
+        enforceRatchets: false,
+        identityFallbackDone: true,
+        identityPlaintextPresent: false
+      }
+    );
+    expect(shouldRejectIdentityDecryptOutcomePlan(reject.actions)).toBe(true);
+    expect(identityDecryptOutcomePlanFromActions(reject.actions)).toBe("reject");
+  });
+
   it("emits identity decrypt actions from stepIdentityDecryptWithActions", () => {
     const rejectFrame = stepIdentityDecryptWithActions(initialIdentityDecryptState(), {
       kind: "identity/decrypt-gate",
@@ -325,6 +414,54 @@ describe("protocol identity ciphertext", () => {
     expect(shouldAttemptIdentityRatchetDecrypt(false)).toBe(false);
     expect(canIdentityHash(true)).toBe(true);
     expect(canIdentityHash(false)).toBe(false);
+  });
+
+  it("emits identity recall-plan actions from PlanWithActions", () => {
+    const miss = stepIdentityRecallPlanWithActions(initialIdentityRecallPlanState(), {
+      kind: "identity/recall-plan-gate",
+      recordPresent: false,
+      publicKeyLoaded: false
+    });
+    expect(shouldMissIdentityRecallPlan(miss.actions)).toBe(true);
+    expect(identityRecallPlanFromActions(miss.actions)).toBe("miss");
+
+    const rejectKey = stepIdentityRecallPlanWithActions(initialIdentityRecallPlanState(), {
+      kind: "identity/recall-plan-gate",
+      recordPresent: true,
+      publicKeyLoaded: false
+    });
+    expect(shouldRejectIdentityRecallPlanKey(rejectKey.actions)).toBe(true);
+    expect(identityRecallPlanFromActions(rejectKey.actions)).toBe("reject-key");
+
+    const hit = stepIdentityRecallPlanWithActions(initialIdentityRecallPlanState(), {
+      kind: "identity/recall-plan-gate",
+      recordPresent: true,
+      publicKeyLoaded: true
+    });
+    expect(shouldHitIdentityRecallPlan(hit.actions)).toBe(true);
+    expect(identityRecallPlanFromActions(hit.actions)).toBe("hit");
+
+    const appMiss = stepIdentityRecallAppDataPlanWithActions(
+      initialIdentityRecallAppDataPlanState(),
+      {
+        kind: "identity/recall-app-data-plan-gate",
+        recordPresent: true,
+        appDataPresent: false
+      }
+    );
+    expect(shouldMissIdentityRecallAppDataPlan(appMiss.actions)).toBe(true);
+    expect(identityRecallAppDataPlanFromActions(appMiss.actions)).toBe("miss");
+
+    const appHit = stepIdentityRecallAppDataPlanWithActions(
+      initialIdentityRecallAppDataPlanState(),
+      {
+        kind: "identity/recall-app-data-plan-gate",
+        recordPresent: true,
+        appDataPresent: true
+      }
+    );
+    expect(shouldHitIdentityRecallAppDataPlan(appHit.actions)).toBe(true);
+    expect(identityRecallAppDataPlanFromActions(appHit.actions)).toBe("hit");
   });
 
   it("emits identity recall actions from stepIdentityRecallWithActions", () => {

@@ -5,36 +5,44 @@ import {
   decodeIdentityRatchetRecord,
   encodeIdentityRatchetRecord,
   encodeIdentityRatchetRecordRawFromActions,
+  identityRatchetLookupPlanFromActions,
   identityRatchetRecordFromActions,
   identityRatchetStoreKey,
   initialCommitRestoredIdentityRatchetState,
   initialDecodeIdentityRatchetRecordState,
   initialEncodeIdentityRatchetRecordState,
+  initialIdentityRatchetLookupPlanState,
   initialIdentityRatchetLookupState,
   initialIdentityRatchetRecordUsableState,
   initialPersistIdentityRatchetState,
   isIdentityRatchetRecordUsable,
   planIdentityRatchetLookup,
   shouldCommitRestoredIdentityRatchetNow,
+  shouldMissIdentityRatchetLookupPlanNoStore,
+  shouldMissIdentityRatchetLookupPlanStore,
   shouldMissIdentityRatchetNoStore,
   shouldMissIdentityRatchetStore,
   shouldPersistIdentityRatchet,
   shouldPersistIdentityRatchetNow,
   shouldRejectDecodeIdentityRatchetRecord,
   shouldRejectEncodeIdentityRatchetRecord,
+  shouldRejectIdentityRatchetLookupPlanUnusable,
   shouldRejectIdentityRatchetUnusable,
   shouldRestoreIdentityRatchetLookup,
+  shouldRestoreIdentityRatchetLookupPlan,
   shouldRestoreIdentityRatchetRecord,
   shouldSkipCommitRestoredIdentityRatchet,
   shouldSkipPersistIdentityRatchet,
   shouldTreatIdentityRatchetRecordUnusable,
   shouldTreatIdentityRatchetRecordUsable,
   shouldUseCachedIdentityRatchet,
+  shouldUseCachedIdentityRatchetLookupPlan,
   shouldUseDecodeIdentityRatchetRecord,
   shouldUseEncodeIdentityRatchetRecord,
   stepCommitRestoredIdentityRatchetWithActions,
   stepDecodeIdentityRatchetRecordWithActions,
   stepEncodeIdentityRatchetRecordWithActions,
+  stepIdentityRatchetLookupPlanWithActions,
   stepIdentityRatchetLookupWithActions,
   stepIdentityRatchetRecordUsableWithActions,
   stepPersistIdentityRatchetWithActions
@@ -192,6 +200,70 @@ describe("protocol identity ratchet record", () => {
         usable: true
       })
     ).toBe("restore");
+  });
+
+  it("emits ratchet lookup-plan actions from PlanWithActions", () => {
+    const cached = stepIdentityRatchetLookupPlanWithActions(
+      initialIdentityRatchetLookupPlanState(),
+      {
+        kind: "identity/ratchet-lookup-plan-gate",
+        cachedPresent: true,
+        storePresent: false,
+        storedPresent: false,
+        usable: false
+      }
+    );
+    expect(shouldUseCachedIdentityRatchetLookupPlan(cached.actions)).toBe(true);
+    expect(identityRatchetLookupPlanFromActions(cached.actions)).toBe("use-cache");
+
+    const missNoStore = stepIdentityRatchetLookupPlanWithActions(
+      initialIdentityRatchetLookupPlanState(),
+      {
+        kind: "identity/ratchet-lookup-plan-gate",
+        cachedPresent: false,
+        storePresent: false,
+        storedPresent: false,
+        usable: false
+      }
+    );
+    expect(shouldMissIdentityRatchetLookupPlanNoStore(missNoStore.actions)).toBe(true);
+
+    const missStore = stepIdentityRatchetLookupPlanWithActions(
+      initialIdentityRatchetLookupPlanState(),
+      {
+        kind: "identity/ratchet-lookup-plan-gate",
+        cachedPresent: false,
+        storePresent: true,
+        storedPresent: false,
+        usable: false
+      }
+    );
+    expect(shouldMissIdentityRatchetLookupPlanStore(missStore.actions)).toBe(true);
+
+    const reject = stepIdentityRatchetLookupPlanWithActions(
+      initialIdentityRatchetLookupPlanState(),
+      {
+        kind: "identity/ratchet-lookup-plan-gate",
+        cachedPresent: false,
+        storePresent: true,
+        storedPresent: true,
+        usable: false
+      }
+    );
+    expect(shouldRejectIdentityRatchetLookupPlanUnusable(reject.actions)).toBe(true);
+
+    const restore = stepIdentityRatchetLookupPlanWithActions(
+      initialIdentityRatchetLookupPlanState(),
+      {
+        kind: "identity/ratchet-lookup-plan-gate",
+        cachedPresent: false,
+        storePresent: true,
+        storedPresent: true,
+        usable: true
+      }
+    );
+    expect(shouldRestoreIdentityRatchetLookupPlan(restore.actions)).toBe(true);
+    expect(identityRatchetLookupPlanFromActions(restore.actions)).toBe("restore");
   });
 
   it("emits ratchet lookup actions from stepIdentityRatchetLookupWithActions", () => {
