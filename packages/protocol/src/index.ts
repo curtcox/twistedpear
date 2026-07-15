@@ -447,14 +447,17 @@ export {
   PATH_REQUEST_TIMEOUT_SECONDS,
   announceEmittedFromRandomBlob,
   appendPathRandomBlob,
+  appendPathRandomBlobFieldsFromActions,
   computePathExpiry,
   equalByteArrays,
+  initialAppendPathRandomBlobState,
   initialPathTableState,
   isDiscoveryPathRequestExpired,
   isPathEntryExpired,
   shouldAddPathEntry,
   shouldAnswerPathRequest,
   shouldEmitPathRequest,
+  shouldUseAppendPathRandomBlob,
   canAnswerLocalPathRequest,
   planDiscoveryPathRequestFulfill,
   planPathEntryLookup,
@@ -468,6 +471,7 @@ export {
   initialPathEntryLookupState,
   initialPathOutboundState,
   initialPathRequestIngressState,
+  stepAppendPathRandomBlobWithActions,
   shouldAnswerPathRequestLocal,
   shouldAnswerPathRequestPath,
   shouldAnswerPathWithEntry,
@@ -502,6 +506,10 @@ export {
   stepPathRequestIngressWithActions,
   stepPathTable,
   timebaseFromRandomBlobs,
+  type AppendPathRandomBlobAction,
+  type AppendPathRandomBlobEvent,
+  type AppendPathRandomBlobState,
+  type AppendPathRandomBlobStepResult,
   type DiscoveryPathRequestFulfillAction,
   type DiscoveryPathRequestFulfillEvent,
   type DiscoveryPathRequestFulfillPlan,
@@ -1628,7 +1636,18 @@ export {
   type LinkDataContextStepResult,
   type PacketContextCodeValue
 } from "./packet-context.js";
-export { assembleByteArrays, concatByteArrays } from "./bytes.js";
+export {
+  assembleByteArrays,
+  assembleByteArraysRawFromActions,
+  concatByteArrays,
+  initialAssembleByteArraysState,
+  shouldUseAssembleByteArrays,
+  stepAssembleByteArraysWithActions,
+  type AssembleByteArraysAction,
+  type AssembleByteArraysEvent,
+  type AssembleByteArraysState,
+  type AssembleByteArraysStepResult
+} from "./bytes.js";
 export {
   INTERFACE_RECONNECT_TIMER_ID,
   INTERFACE_RECONNECT_WAIT_MS,

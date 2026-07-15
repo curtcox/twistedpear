@@ -690,6 +690,73 @@ export function appendPathRandomBlob(input: {
   return [...input.randomBlobs, input.randomBlob];
 }
 
+/**
+ * Path random-blob append is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `appendPathRandomBlob`
+ * reads beside the step).
+ */
+export type AppendPathRandomBlobState = Record<string, never>;
+
+export type AppendPathRandomBlobEvent =
+  | Event
+  | {
+      readonly kind: "path/append-random-blob-gate";
+      readonly randomBlobs: ReadonlyArray<Uint8Array>;
+      readonly randomBlob: Uint8Array;
+    };
+
+export type AppendPathRandomBlobAction = {
+  readonly kind: "use-fields";
+  readonly randomBlobs: readonly Uint8Array[];
+};
+
+export interface AppendPathRandomBlobStepResult {
+  readonly state: AppendPathRandomBlobState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AppendPathRandomBlobAction[];
+}
+
+export function initialAppendPathRandomBlobState(): AppendPathRandomBlobState {
+  return {};
+}
+
+export function stepAppendPathRandomBlobWithActions(
+  state: AppendPathRandomBlobState,
+  event: AppendPathRandomBlobEvent
+): AppendPathRandomBlobStepResult {
+  if (event.kind === "path/append-random-blob-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-fields",
+          randomBlobs: appendPathRandomBlob({
+            randomBlobs: event.randomBlobs,
+            randomBlob: event.randomBlob
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseAppendPathRandomBlob(
+  actions: ReadonlyArray<AppendPathRandomBlobAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-fields");
+}
+
+/** Extract appended random-blob list from step actions; null when no `use-fields`. */
+export function appendPathRandomBlobFieldsFromActions(
+  actions: ReadonlyArray<AppendPathRandomBlobAction>
+): readonly Uint8Array[] | null {
+  const action = actions.find((entry) => entry.kind === "use-fields");
+  return action?.kind === "use-fields" ? action.randomBlobs : null;
+}
+
 /** Lightweight path-table step for sim: tracks hops per destination key. */
 export interface PathTableState {
   readonly entries: ReadonlyMap<

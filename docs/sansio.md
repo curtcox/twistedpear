@@ -230,7 +230,8 @@
 > use-fields|reject), and
 > **RESOURCE_HMU pack** are pure protocol leaves; Identity, Link, and Resource adapt
 > them (`Identity.prove` uses **`stepPackPacketProofWithActions`**; link-request /
-> link-proof pack/split use the WithActions steps above). **Byte-array assembly** helpers,
+> link-proof pack/split use the WithActions steps above). **Byte-array assembly**
+> (via **`stepAssembleByteArraysWithActions`**: use-raw),
 > **interface reconnect planning**, and Resource hashmap/part assembly via protocol
 > assemblers are pure protocol leaves; TCP/WebSocket clients and Resource adapt them.
 > **Transport announce / path-response / hop-clone field planning** applies only from
@@ -320,7 +321,8 @@
 > live in protocol; `Resource.send` / fulfill / `readRequestHash` adapt them.
 > **`indexOfChannelRingSequence`**
 > lives in protocol; Channel RX drain adapts it. **`applyResourceHashmapSlotWrites`** lives in
-> protocol; `Resource.hashmapUpdate` adapts it. **`appendPathRandomBlob`** lives in protocol;
+> protocol; `Resource.hashmapUpdate` adapts it. **`appendPathRandomBlob`** (via
+> **`stepAppendPathRandomBlobWithActions`**: use-fields) lives in protocol;
 > path-table announce update adapts it. **`parseAspectFilter`** lives in protocol; announce-handler
 > matching adapts it (SHA stays at the edge). **`shouldReceiveAnnouncePathResponse`** lives in
 > protocol; announce-handler PATH_RESPONSE opt-in adapts it. **`planAnnounceIngressGates`**
@@ -900,6 +902,7 @@
 > pending-link-request-unregister / stream-ready-callback-unregister /
 > packet-receipt-unregister / transport-member-unregister /
 > link-initiator-mtu / link-request-responder-mtu / link-hops-match /
+> assemble-byte-arrays / append-path-random-blob /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
 > decode-resource-advertisement-flags / classify-resource-advertisement /
@@ -1066,6 +1069,12 @@
 > **`stepLinkHopsMatchWithActions`** emits `match`|`mismatch`; `Link.hopsMatch`
 > applies only from those actions (no ad-hoc `linkHopsMatch` reads beside the
 > step).
+> **`stepAssembleByteArraysWithActions`** emits `use-raw`; `Resource.assemble`
+> applies only from those actions (no ad-hoc `assembleByteArrays` reads beside
+> the step).
+> **`stepAppendPathRandomBlobWithActions`** emits `use-fields`; path-table
+> announce update applies only from those actions (no ad-hoc
+> `appendPathRandomBlob` reads beside the step).
 > **`stepPacketHashDeferWithActions`** emits `defer` / `remember-now`;
 > transport ingress hash deferral applies only from those actions.
 > **`stepResourceAdvertisementRoleFlagsWithActions`** emits `use-flags`;
@@ -1268,6 +1277,12 @@
 > `packPropagationRequest` / `unpackPropagationRequest` /
 > `packPropagationEnvelope` / `unpackPropagationEnvelope` /
 > `unpackBinList` reads beside the step).
+> **`stepAssembleByteArraysWithActions`** emits `use-raw`; Resource assemble
+> applies only from those actions (no ad-hoc `assembleByteArrays` reads beside
+> the step).
+> **`stepAppendPathRandomBlobWithActions`** emits `use-fields`; TransportNode
+> path-table announce update applies only from those actions (no ad-hoc
+> `appendPathRandomBlob` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

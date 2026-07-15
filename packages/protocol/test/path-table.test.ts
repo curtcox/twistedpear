@@ -12,6 +12,10 @@ import {
   PACKET_TYPE_DATA,
   announceEmittedFromRandomBlob,
   appendPathRandomBlob,
+  appendPathRandomBlobFieldsFromActions,
+  initialAppendPathRandomBlobState,
+  shouldUseAppendPathRandomBlob,
+  stepAppendPathRandomBlobWithActions,
   discoveryPathRequestFulfillFromActions,
   initialDiscoveryPathRequestFulfillState,
   initialPathEntryLookupState,
@@ -166,6 +170,23 @@ describe("protocol path table", () => {
     expect(once).toHaveLength(1);
     expect(appendPathRandomBlob({ randomBlobs: once, randomBlob: first })).toHaveLength(1);
     expect(appendPathRandomBlob({ randomBlobs: once, randomBlob: second })).toHaveLength(2);
+
+    const stepped = stepAppendPathRandomBlobWithActions(initialAppendPathRandomBlobState(), {
+      kind: "path/append-random-blob-gate",
+      randomBlobs: once,
+      randomBlob: second
+    });
+    expect(shouldUseAppendPathRandomBlob(stepped.actions)).toBe(true);
+    const fields = appendPathRandomBlobFieldsFromActions(stepped.actions);
+    expect(fields).not.toBeNull();
+    expect(fields).toHaveLength(2);
+    expect([...fields![1]!]).toEqual([...second]);
+
+    const empty = stepAppendPathRandomBlobWithActions(initialAppendPathRandomBlobState(), {
+      kind: "noop"
+    } as never);
+    expect(shouldUseAppendPathRandomBlob(empty.actions)).toBe(false);
+    expect(appendPathRandomBlobFieldsFromActions(empty.actions)).toBeNull();
   });
 
   it("plans wrap, direct, and flood outbound kinds", () => {

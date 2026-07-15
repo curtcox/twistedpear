@@ -18,7 +18,7 @@ import {
   RESOURCE_WINDOW_MIN,
   ResourceStatus,
   applyResourceStatusEvent,
-  assembleByteArrays,
+  assembleByteArraysRawFromActions,
   assembleResourceHashmapBytesRawFromActions,
   canProveResource,
   canReceiveResourcePart,
@@ -28,6 +28,7 @@ import {
   computeResourceTimeout,
   encodeResourceAdvertisementFlagsFromActions,
   initialAppendResourceMapHashCollisionGuardState,
+  initialAssembleByteArraysState,
   initialAssembleResourceHashmapBytesState,
   initialClassifyResourceAdvertisementState,
   initialComputeResourceTotalPartsState,
@@ -93,6 +94,7 @@ import {
   shouldRejectSplitResourceHashmapUpdatePacket,
   shouldRejectSplitResourceProof,
   shouldRejectUnpackResourceHashmapUpdate,
+  shouldUseAssembleByteArrays,
   shouldUseAssembleResourceHashmapBytes,
   shouldUseDecodeResourceAdvertisementFlags,
   shouldUseEncodeResourceAdvertisementFlags,
@@ -110,6 +112,7 @@ import {
   shouldUseUnpackResourceHashmapUpdate,
   shouldWriteResourceHashmapSlots,
   stepAppendResourceMapHashCollisionGuardWithActions,
+  stepAssembleByteArraysWithActions,
   stepAssembleResourceHashmapBytesWithActions,
   stepClassifyResourceAdvertisementWithActions,
   stepComputeResourceTotalPartsWithActions,
@@ -1208,7 +1211,19 @@ export class Resource {
 
     try {
       this.applyStatus({ kind: "resource/assemble" });
-      const stream = assembleByteArrays(this.receivedParts.map((part) => part!));
+      const assembleStepped = stepAssembleByteArraysWithActions(
+        initialAssembleByteArraysState(),
+        {
+          kind: "bytes/assemble-gate",
+          parts: this.receivedParts.map((part) => part!)
+        }
+      );
+      const stream = shouldUseAssembleByteArrays(assembleStepped.actions)
+        ? assembleByteArraysRawFromActions(assembleStepped.actions)
+        : null;
+      if (stream === null) {
+        return;
+      }
       const decrypted = this.link.decrypt(stream);
       const decryptedStepped =
         decrypted === null

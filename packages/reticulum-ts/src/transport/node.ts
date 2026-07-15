@@ -10,14 +10,16 @@ import {
   stepPathAwaitWithActions,
   stepPathResponseGraceWithActions,
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
-  appendPathRandomBlob,
+  appendPathRandomBlobFieldsFromActions,
   canEmitDestinationProof,
   computePathExpiry,
   isPathEntryExpired,
   aspectFilterFromActions,
   initialParseAspectFilterState,
   shouldRejectParseAspectFilter,
+  shouldUseAppendPathRandomBlob,
   shouldUseParseAspectFilter,
+  stepAppendPathRandomBlobWithActions,
   stepParseAspectFilterWithActions,
   clonePacketWithHopsFieldsFromActions,
   initialClonePacketWithHopsState,
@@ -34,6 +36,7 @@ import {
   canAnswerLocalPathRequest,
   canDispatchAnnounceHandlers,
   activeLinkUnregisterRemoveIndex,
+  initialAppendPathRandomBlobState,
   initialDestinationProofState,
   initialLinkActivateMembershipState,
   initialLinkDataIngressTargetState,
@@ -730,10 +733,20 @@ export class LeafTransport {
       return;
     }
 
-    const randomBlobs = appendPathRandomBlob({
-      randomBlobs: existing?.randomBlobs ?? [],
-      randomBlob
-    });
+    const blobStepped = stepAppendPathRandomBlobWithActions(
+      initialAppendPathRandomBlobState(),
+      {
+        kind: "path/append-random-blob-gate",
+        randomBlobs: existing?.randomBlobs ?? [],
+        randomBlob
+      }
+    );
+    const randomBlobs = shouldUseAppendPathRandomBlob(blobStepped.actions)
+      ? appendPathRandomBlobFieldsFromActions(blobStepped.actions)
+      : null;
+    if (randomBlobs === null) {
+      return;
+    }
 
     const entry: PathEntry = {
       timestamp: now,
