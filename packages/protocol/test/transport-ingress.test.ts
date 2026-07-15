@@ -105,29 +105,45 @@ import {
   stepRecordLinkRelayTableEntryWithActions,
   stepRecordReverseTableEntryWithActions,
   stepRelayLinkPacketAllowWithActions,
+  stepRelayReverseOnInterfaceWithActions,
+  stepRelayReversePacketAllowWithActions,
   stepRelayTransportPacketAllowWithActions,
+  stepReverseEntryExpiredWithActions,
   stepReverseRelayOutcomeWithActions,
   stepTransmitLinkRelayWithActions,
+  stepTransmitReverseRelayWithActions,
   stepTransportIngressDispatchWithActions,
   stepTransportMemberUnregisterWithActions,
   shouldAllowRelayLinkPacket,
+  shouldAllowRelayReversePacket,
   shouldAllowRelayTransportPacket,
   shouldDenyRelayLinkPacket,
+  shouldDenyRelayReversePacket,
   shouldDenyRelayTransportPacket,
   shouldHitLookupLinkRelayEntry,
   shouldMissLookupLinkRelayEntry,
+  shouldMatchRelayReverseOnInterface,
+  shouldMismatchRelayReverseOnInterface,
   shouldRecordLinkRelayTableEntryNow,
   shouldRecordReverseTableEntryNow,
   shouldSkipRecordLinkRelayTableEntry,
   shouldSkipRecordReverseTableEntry,
   shouldSkipTransmitLinkRelay,
+  shouldSkipTransmitReverseRelay,
   shouldTransmitLinkRelayNow,
+  shouldTransmitReverseRelayNow,
+  shouldTreatReverseEntryExpired,
+  shouldTreatReverseEntryLive,
   initialLookupLinkRelayEntryState,
   initialRecordLinkRelayTableEntryState,
   initialRecordReverseTableEntryState,
   initialRelayLinkPacketAllowState,
+  initialRelayReverseOnInterfaceState,
+  initialRelayReversePacketAllowState,
   initialRelayTransportPacketAllowState,
+  initialReverseEntryExpiredState,
   initialTransmitLinkRelayState,
+  initialTransmitReverseRelayState,
   transportIngressDispatchFromActions
 } from "../src/index.js";
 
@@ -1000,6 +1016,85 @@ describe("transport ingress", () => {
         stepTransmitLinkRelayWithActions(initialTransmitLinkRelayState(), {
           kind: "transport/transmit-link-relay-gate",
           outboundPresent: false
+        }).actions
+      )
+    ).toBe(true);
+  });
+
+  it("emits reverse-relay edge actions from WithActions steps", () => {
+    expect(
+      shouldTreatReverseEntryLive(
+        stepReverseEntryExpiredWithActions(initialReverseEntryExpiredState(), {
+          kind: "transport/reverse-entry-expired-gate",
+          timestamp: 100,
+          nowSeconds: 100 + REVERSE_TIMEOUT_SECONDS,
+          timeoutSeconds: REVERSE_TIMEOUT_SECONDS
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldTreatReverseEntryExpired(
+        stepReverseEntryExpiredWithActions(initialReverseEntryExpiredState(), {
+          kind: "transport/reverse-entry-expired-gate",
+          timestamp: 100,
+          nowSeconds: 100 + REVERSE_TIMEOUT_SECONDS + 1
+        }).actions
+      )
+    ).toBe(true);
+
+    expect(
+      shouldAllowRelayReversePacket(
+        stepRelayReversePacketAllowWithActions(initialRelayReversePacketAllowState(), {
+          kind: "transport/relay-reverse-packet-allow-gate",
+          isProof: true,
+          hasEntry: true,
+          entryExpired: false
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldDenyRelayReversePacket(
+        stepRelayReversePacketAllowWithActions(initialRelayReversePacketAllowState(), {
+          kind: "transport/relay-reverse-packet-allow-gate",
+          isProof: true,
+          hasEntry: true,
+          entryExpired: true
+        }).actions
+      )
+    ).toBe(true);
+
+    expect(
+      shouldMatchRelayReverseOnInterface(
+        stepRelayReverseOnInterfaceWithActions(initialRelayReverseOnInterfaceState(), {
+          kind: "transport/relay-reverse-on-interface-gate",
+          ifaceIsOutbound: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldMismatchRelayReverseOnInterface(
+        stepRelayReverseOnInterfaceWithActions(initialRelayReverseOnInterfaceState(), {
+          kind: "transport/relay-reverse-on-interface-gate",
+          ifaceIsOutbound: false
+        }).actions
+      )
+    ).toBe(true);
+
+    expect(
+      shouldTransmitReverseRelayNow(
+        stepTransmitReverseRelayWithActions(initialTransmitReverseRelayState(), {
+          kind: "transport/transmit-reverse-relay-gate",
+          relayOk: true,
+          entryPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipTransmitReverseRelay(
+        stepTransmitReverseRelayWithActions(initialTransmitReverseRelayState(), {
+          kind: "transport/transmit-reverse-relay-gate",
+          relayOk: true,
+          entryPresent: false
         }).actions
       )
     ).toBe(true);

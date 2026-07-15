@@ -6,10 +6,13 @@
  * leave via machine actions (no ad-hoc plan / `indexOfMatchingLinkId` reads
  * beside the step).
  * Transport-wrap relay allow, link/reverse table-record, link-packet relay allow,
- * link-table lookup, and link-relay transmit conclude via machine actions (no
- * ad-hoc `canRelayTransportPacket` / `shouldRecordLinkRelayTableEntry` /
+ * link-table lookup, link-relay transmit, reverse-packet allow, reverse iface
+ * match, reverse-entry expiry, and reverse-relay transmit conclude via machine
+ * actions (no ad-hoc `canRelayTransportPacket` / `shouldRecordLinkRelayTableEntry` /
  * `shouldRecordReverseTableEntry` / `canRelayLinkPacket` /
- * `canLookupLinkRelayEntry` / `shouldTransmitLinkRelay` reads beside the step).
+ * `canLookupLinkRelayEntry` / `shouldTransmitLinkRelay` /
+ * `canRelayReversePacket` / `shouldRelayReverseOnInterface` /
+ * `isReverseEntryExpired` / `shouldTransmitReverseRelay` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -474,6 +477,71 @@ export function shouldTransmitReverseRelay(input: {
   return input.relayOk && input.entryPresent;
 }
 
+/**
+ * shouldTransmitReverseRelay gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldTransmitReverseRelay`
+ * reads beside the step).
+ */
+export type TransmitReverseRelayState = Record<string, never>;
+
+export type TransmitReverseRelayEvent =
+  | Event
+  | {
+      readonly kind: "transport/transmit-reverse-relay-gate";
+      readonly relayOk: boolean;
+      readonly entryPresent: boolean;
+    };
+
+export type TransmitReverseRelayAction =
+  | { readonly kind: "transmit" }
+  | { readonly kind: "skip" };
+
+export interface TransmitReverseRelayStepResult {
+  readonly state: TransmitReverseRelayState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TransmitReverseRelayAction[];
+}
+
+export function initialTransmitReverseRelayState(): TransmitReverseRelayState {
+  return {};
+}
+
+export function stepTransmitReverseRelayWithActions(
+  state: TransmitReverseRelayState,
+  event: TransmitReverseRelayEvent
+): TransmitReverseRelayStepResult {
+  if (event.kind === "transport/transmit-reverse-relay-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldTransmitReverseRelay({
+            relayOk: event.relayOk,
+            entryPresent: event.entryPresent
+          })
+            ? "transmit"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTransmitReverseRelayNow(
+  actions: ReadonlyArray<TransmitReverseRelayAction>
+): boolean {
+  return actions.some((action) => action.kind === "transmit");
+}
+
+export function shouldSkipTransmitReverseRelay(
+  actions: ReadonlyArray<TransmitReverseRelayAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** True when a reverse-table entry is past its lifetime. */
 export function isReverseEntryExpired(input: {
   readonly timestamp: number;
@@ -482,6 +550,71 @@ export function isReverseEntryExpired(input: {
 }): boolean {
   const timeoutSeconds = input.timeoutSeconds ?? REVERSE_TIMEOUT_SECONDS;
   return input.nowSeconds > input.timestamp + timeoutSeconds;
+}
+
+/**
+ * isReverseEntryExpired gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isReverseEntryExpired`
+ * reads beside the step).
+ */
+export type ReverseEntryExpiredState = Record<string, never>;
+
+export type ReverseEntryExpiredEvent =
+  | Event
+  | {
+      readonly kind: "transport/reverse-entry-expired-gate";
+      readonly timestamp: number;
+      readonly nowSeconds: number;
+      readonly timeoutSeconds?: number;
+    };
+
+export type ReverseEntryExpiredAction =
+  | { readonly kind: "expired" }
+  | { readonly kind: "live" };
+
+export interface ReverseEntryExpiredStepResult {
+  readonly state: ReverseEntryExpiredState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ReverseEntryExpiredAction[];
+}
+
+export function initialReverseEntryExpiredState(): ReverseEntryExpiredState {
+  return {};
+}
+
+export function stepReverseEntryExpiredWithActions(
+  state: ReverseEntryExpiredState,
+  event: ReverseEntryExpiredEvent
+): ReverseEntryExpiredStepResult {
+  if (event.kind === "transport/reverse-entry-expired-gate") {
+    const expiredInput =
+      event.timeoutSeconds === undefined
+        ? { timestamp: event.timestamp, nowSeconds: event.nowSeconds }
+        : {
+            timestamp: event.timestamp,
+            nowSeconds: event.nowSeconds,
+            timeoutSeconds: event.timeoutSeconds
+          };
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: isReverseEntryExpired(expiredInput) ? "expired" : "live" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatReverseEntryExpired(
+  actions: ReadonlyArray<ReverseEntryExpiredAction>
+): boolean {
+  return actions.some((action) => action.kind === "expired");
+}
+
+export function shouldTreatReverseEntryLive(
+  actions: ReadonlyArray<ReverseEntryExpiredAction>
+): boolean {
+  return actions.some((action) => action.kind === "live");
 }
 
 /**
@@ -799,9 +932,135 @@ export function canRelayReversePacket(input: {
   return input.isProof && input.hasEntry && !input.entryExpired;
 }
 
+/**
+ * canRelayReversePacket gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canRelayReversePacket`
+ * reads beside the step).
+ */
+export type RelayReversePacketAllowState = Record<string, never>;
+
+export type RelayReversePacketAllowEvent =
+  | Event
+  | {
+      readonly kind: "transport/relay-reverse-packet-allow-gate";
+      readonly isProof: boolean;
+      readonly hasEntry: boolean;
+      readonly entryExpired: boolean;
+    };
+
+export type RelayReversePacketAllowAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface RelayReversePacketAllowStepResult {
+  readonly state: RelayReversePacketAllowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RelayReversePacketAllowAction[];
+}
+
+export function initialRelayReversePacketAllowState(): RelayReversePacketAllowState {
+  return {};
+}
+
+export function stepRelayReversePacketAllowWithActions(
+  state: RelayReversePacketAllowState,
+  event: RelayReversePacketAllowEvent
+): RelayReversePacketAllowStepResult {
+  if (event.kind === "transport/relay-reverse-packet-allow-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canRelayReversePacket({
+            isProof: event.isProof,
+            hasEntry: event.hasEntry,
+            entryExpired: event.entryExpired
+          })
+            ? "allow"
+            : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowRelayReversePacket(
+  actions: ReadonlyArray<RelayReversePacketAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyRelayReversePacket(
+  actions: ReadonlyArray<RelayReversePacketAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
+}
+
 /** Whether reverse relay should use this iface (must be the reverse entry's outbound). */
 export function shouldRelayReverseOnInterface(ifaceIsOutbound: boolean): boolean {
   return ifaceIsOutbound;
+}
+
+/**
+ * shouldRelayReverseOnInterface gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldRelayReverseOnInterface`
+ * reads beside the step).
+ */
+export type RelayReverseOnInterfaceState = Record<string, never>;
+
+export type RelayReverseOnInterfaceEvent =
+  | Event
+  | {
+      readonly kind: "transport/relay-reverse-on-interface-gate";
+      readonly ifaceIsOutbound: boolean;
+    };
+
+export type RelayReverseOnInterfaceAction =
+  | { readonly kind: "match" }
+  | { readonly kind: "mismatch" };
+
+export interface RelayReverseOnInterfaceStepResult {
+  readonly state: RelayReverseOnInterfaceState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RelayReverseOnInterfaceAction[];
+}
+
+export function initialRelayReverseOnInterfaceState(): RelayReverseOnInterfaceState {
+  return {};
+}
+
+export function stepRelayReverseOnInterfaceWithActions(
+  state: RelayReverseOnInterfaceState,
+  event: RelayReverseOnInterfaceEvent
+): RelayReverseOnInterfaceStepResult {
+  if (event.kind === "transport/relay-reverse-on-interface-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRelayReverseOnInterface(event.ifaceIsOutbound) ? "match" : "mismatch"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldMatchRelayReverseOnInterface(
+  actions: ReadonlyArray<RelayReverseOnInterfaceAction>
+): boolean {
+  return actions.some((action) => action.kind === "match");
+}
+
+export function shouldMismatchRelayReverseOnInterface(
+  actions: ReadonlyArray<RelayReverseOnInterfaceAction>
+): boolean {
+  return actions.some((action) => action.kind === "mismatch");
 }
 
 /** Pure type → handler dispatch after transport accept / relay. */

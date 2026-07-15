@@ -389,7 +389,17 @@
 > TransportNode, and Link adapt them. **`planResourceRequestFulfill`** (sender RESOURCE_REQ
 > fulfill via **`stepResourceRequestFulfillWithActions`**: part send/resend + optional HMU +
 > awaiting-proof) lives in protocol; `Resource`
-> adapts it. **`planLinkRelayTarget`**, transport-wrap / link-relay allow + table-record gates (via **`stepRelayTransportPacketAllowWithActions`** / **`stepRecordLinkRelayTableEntryWithActions`** / **`stepRecordReverseTableEntryWithActions`** / **`stepRelayLinkPacketAllowWithActions`** / **`stepLookupLinkRelayEntryWithActions`** / **`stepTransmitLinkRelayWithActions`**), and **`isReverseEntryExpired`** live in protocol;
+> adapts it. **`planLinkRelayTarget`**, transport-wrap / link-relay / reverse-relay allow +
+> table-record gates (via **`stepRelayTransportPacketAllowWithActions`** /
+> **`stepRecordLinkRelayTableEntryWithActions`** /
+> **`stepRecordReverseTableEntryWithActions`** /
+> **`stepRelayLinkPacketAllowWithActions`** /
+> **`stepLookupLinkRelayEntryWithActions`** /
+> **`stepTransmitLinkRelayWithActions`** /
+> **`stepRelayReversePacketAllowWithActions`** /
+> **`stepRelayReverseOnInterfaceWithActions`** /
+> **`stepReverseEntryExpiredWithActions`** /
+> **`stepTransmitReverseRelayWithActions`**) live in protocol;
 > `TransportNode` adapts them (reverse-table timeout now applied). **`planPathOutbound`**
 > (wrap / direct / flood via **`stepPathOutboundWithActions`**) lives in protocol;
 > `LeafTransport` adapts it. **`stepResourceStatus`**
@@ -533,7 +543,12 @@
 > **`stepLookupLinkRelayEntryWithActions`**: hit|miss),
 > **`shouldTransmitLinkRelay`** (via **`stepTransmitLinkRelayWithActions`**:
 > transmit|skip),
-> **`canRelayReversePacket`**, **`shouldRelayReverseOnInterface`**,
+> **`canRelayReversePacket`** (via **`stepRelayReversePacketAllowWithActions`**:
+> allow|deny), **`shouldRelayReverseOnInterface`** (via
+> **`stepRelayReverseOnInterfaceWithActions`**: match|mismatch),
+> **`isReverseEntryExpired`** (via **`stepReverseEntryExpiredWithActions`**:
+> expired|live), **`shouldTransmitReverseRelay`** (via
+> **`stepTransmitReverseRelayWithActions`**: transmit|skip),
 > **`planTransportIngressDispatch`** (via
 > **`stepTransportIngressDispatchWithActions`**: announce / link-request /
 > link-data / plain-data / proof / ignore), **`planProofIngressKind`** (via
@@ -991,15 +1006,21 @@
 > **`stepRelayLinkPacketAllowWithActions`** emits `allow`|`deny`;
 > **`stepLookupLinkRelayEntryWithActions`** emits `hit`|`miss`;
 > **`stepTransmitLinkRelayWithActions`** emits `transmit`|`skip`;
+> **`stepRelayReversePacketAllowWithActions`** emits `allow`|`deny`;
+> **`stepRelayReverseOnInterfaceWithActions`** emits `match`|`mismatch`;
+> **`stepReverseEntryExpiredWithActions`** emits `expired`|`live`;
+> **`stepTransmitReverseRelayWithActions`** emits `transmit`|`skip`;
 > **`stepLinkResourceConcludeWithActions`**
 > emits `remove-outgoing` / `remove-incoming`;
 > **`stepPacketReceiptProofAcceptWithActions`** emits `accept` / `reject`;
-> `TransportNode` announce ingress/rebroadcast, transport/link-packet relay,
-> `Link.resourceConcluded`, and `PacketReceipt.validateProof` apply only from
-> those actions (no ad-hoc `planAnnounceIngressGates` / `planLinkRelayTarget` /
+> `TransportNode` announce ingress/rebroadcast, transport/link/reverse-packet
+> relay, `Link.resourceConcluded`, and `PacketReceipt.validateProof` apply only
+> from those actions (no ad-hoc `planAnnounceIngressGates` / `planLinkRelayTarget` /
 > `canRelayTransportPacket` / `shouldRecordLinkRelayTableEntry` /
 > `shouldRecordReverseTableEntry` / `canRelayLinkPacket` /
 > `canLookupLinkRelayEntry` / `shouldTransmitLinkRelay` /
+> `canRelayReversePacket` / `shouldRelayReverseOnInterface` /
+> `isReverseEntryExpired` / `shouldTransmitReverseRelay` /
 > `planLinkResourceConclude` / `planPacketReceiptProofAccept` reads beside the
 > step).
 > **`stepDeliverPendingLinkAppResponseWithActions`** emits `deliver`|`skip`;
@@ -1157,6 +1178,8 @@
 > link-relay-target / relay-transport-packet-allow /
 > record-link-relay-table-entry / record-reverse-table-entry /
 > relay-link-packet-allow / lookup-link-relay-entry / transmit-link-relay /
+> relay-reverse-packet-allow / relay-reverse-on-interface /
+> reverse-entry-expired / transmit-reverse-relay /
 > link-resource-conclude /
 > packet-receipt-proof-accept / propagation-restore /
 > deliver-pending-link-app-response / accept-announce-payload /

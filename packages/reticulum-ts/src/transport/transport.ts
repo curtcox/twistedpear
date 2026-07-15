@@ -1,9 +1,7 @@
 import {
   LOCAL_REBROADCASTS_MAX as PROTOCOL_LOCAL_REBROADCASTS_MAX,
   REVERSE_TIMEOUT_SECONDS as PROTOCOL_REVERSE_TIMEOUT_SECONDS,
-  canRelayReversePacket,
   isDiscoveryPathRequestExpired,
-  isReverseEntryExpired,
   initialAnnounceIngressGatesState,
   initialDiscoveryPathRequestFulfillState,
   initialLinkRelayTargetState,
@@ -13,11 +11,16 @@ import {
   initialRecordLinkRelayTableEntryState,
   initialRecordReverseTableEntryState,
   initialRelayLinkPacketAllowState,
+  initialRelayReverseOnInterfaceState,
+  initialRelayReversePacketAllowState,
   initialRelayTransportPacketAllowState,
+  initialReverseEntryExpiredState,
   initialReverseRelayOutcomeState,
   initialTransmitLinkRelayState,
+  initialTransmitReverseRelayState,
   initialTransportIngressDispatchState,
   shouldAllowRelayLinkPacket,
+  shouldAllowRelayReversePacket,
   shouldAllowRelayTransportPacket,
   shouldApplyAnnounceRateLimit,
   shouldHitLookupLinkRelayEntry,
@@ -59,10 +62,11 @@ import {
   shouldRememberPacketHashAfterRelayActions,
   shouldRememberPacketHashNowActions,
   shouldRememberPathRequestTag,
-  shouldRelayReverseOnInterface,
+  shouldMatchRelayReverseOnInterface,
   shouldStartPathRequestDiscovery,
   shouldTouchPathEntry,
-  shouldTransmitReverseRelay,
+  shouldTransmitReverseRelayNow,
+  shouldTreatReverseEntryExpired,
   stepAnnounceIngressGatesWithActions,
   stepLinkRelayTargetWithActions,
   stepLookupLinkRelayEntryWithActions,
@@ -70,9 +74,13 @@ import {
   stepRecordLinkRelayTableEntryWithActions,
   stepRecordReverseTableEntryWithActions,
   stepRelayLinkPacketAllowWithActions,
+  stepRelayReverseOnInterfaceWithActions,
+  stepRelayReversePacketAllowWithActions,
   stepRelayTransportPacketAllowWithActions,
+  stepReverseEntryExpiredWithActions,
   stepReverseRelayOutcomeWithActions,
   stepTransmitLinkRelayWithActions,
+  stepTransmitReverseRelayWithActions,
   stepTransportIngressDispatchWithActions,
   shouldTransmitOnInterface,
   stepDiscoveryPathRequestFulfillWithActions,
@@ -504,18 +512,31 @@ export class TransportNode extends LeafTransport {
     const entry = this.reverseTable.get(key);
     const nowSeconds = this.clock.now() / 1000;
     const entryExpired =
-      entry !== undefined && isReverseEntryExpired({ timestamp: entry.timestamp, nowSeconds });
-    const canRelay = canRelayReversePacket({
-      isProof: packet.packetType === PacketType.PROOF,
-      hasEntry: entry !== undefined,
-      entryExpired
-    });
+      entry !== undefined &&
+      shouldTreatReverseEntryExpired(
+        stepReverseEntryExpiredWithActions(initialReverseEntryExpiredState(), {
+          kind: "transport/reverse-entry-expired-gate",
+          timestamp: entry.timestamp,
+          nowSeconds
+        }).actions
+      );
+    const canRelay = shouldAllowRelayReversePacket(
+      stepRelayReversePacketAllowWithActions(initialRelayReversePacketAllowState(), {
+        kind: "transport/relay-reverse-packet-allow-gate",
+        isProof: packet.packetType === PacketType.PROOF,
+        hasEntry: entry !== undefined,
+        entryExpired
+      }).actions
+    );
     const stepped = stepReverseRelayOutcomeWithActions(initialReverseRelayOutcomeState(), {
       kind: "transport/reverse-relay-gate",
       canRelay,
       entryExpired,
-      ifaceIsOutbound: shouldRelayReverseOnInterface(
-        entry !== undefined && iface === entry.outboundInterface
+      ifaceIsOutbound: shouldMatchRelayReverseOnInterface(
+        stepRelayReverseOnInterfaceWithActions(initialRelayReverseOnInterfaceState(), {
+          kind: "transport/relay-reverse-on-interface-gate",
+          ifaceIsOutbound: entry !== undefined && iface === entry.outboundInterface
+        }).actions
       )
     });
 
@@ -524,10 +545,13 @@ export class TransportNode extends LeafTransport {
       return false;
     }
     if (
-      !shouldTransmitReverseRelay({
-        relayOk: shouldRelayReversePacketActions(stepped.actions),
-        entryPresent: entry !== undefined
-      })
+      !shouldTransmitReverseRelayNow(
+        stepTransmitReverseRelayWithActions(initialTransmitReverseRelayState(), {
+          kind: "transport/transmit-reverse-relay-gate",
+          relayOk: shouldRelayReversePacketActions(stepped.actions),
+          entryPresent: entry !== undefined
+        }).actions
+      )
     ) {
       return false;
     }
