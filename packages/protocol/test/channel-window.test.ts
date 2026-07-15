@@ -56,6 +56,7 @@ import {
   shouldReplaceChannelResentPacket,
   shouldReplaceChannelResentPacketNow,
   shouldResendChannelTimeoutPacket,
+  shouldResendChannelTimeoutPacketNow,
   shouldRetryChannelTxTimeout,
   shouldSkipApplyChannelPacketReceiptTimeout,
   shouldSkipApplyChannelTxReceiptTimeoutExtension,
@@ -63,12 +64,14 @@ import {
   shouldSkipClearChannelEnvelopePacket,
   shouldSkipExtendPacketReceiptTimeout,
   shouldSkipReplaceChannelResentPacket,
+  shouldSkipResendChannelTimeoutPacket,
   shouldUseChannelPacketTimeout,
   shouldUseChannelTxEnvelopeIndex,
   shouldUseChannelTxOutstandingCount,
   shouldClearChannelEnvelopePacket,
   shouldClearChannelEnvelopePacketNow,
   indexOfChannelTxEnvelope,
+  initialResendChannelTimeoutPacketState,
   stepApplyChannelPacketReceiptTimeoutWithActions,
   stepApplyChannelTxReceiptTimeoutExtensionWithActions,
   stepArmChannelPacketReceiptWithActions,
@@ -85,7 +88,8 @@ import {
   stepCountChannelTxOutstandingWithActions,
   stepExtendPacketReceiptTimeoutWithActions,
   stepIndexOfChannelTxEnvelopeWithActions,
-  stepReplaceChannelResentPacketWithActions
+  stepReplaceChannelResentPacketWithActions,
+  stepResendChannelTimeoutPacketWithActions
 } from "../src/channel-window.js";
 
 describe("protocol channel window", () => {
@@ -449,6 +453,20 @@ describe("protocol channel window", () => {
     expect(shouldReplaceChannelResentPacketNow(skipReplace.actions)).toBe(false);
     expect(shouldSkipReplaceChannelResentPacket(skipReplace.actions)).toBe(true);
 
+    const resend = stepResendChannelTimeoutPacketWithActions(
+      initialResendChannelTimeoutPacketState(),
+      { kind: "channel/resend-timeout-packet-gate", packetPresent: true }
+    );
+    expect(shouldResendChannelTimeoutPacketNow(resend.actions)).toBe(true);
+    expect(shouldSkipResendChannelTimeoutPacket(resend.actions)).toBe(false);
+
+    const skipResend = stepResendChannelTimeoutPacketWithActions(
+      initialResendChannelTimeoutPacketState(),
+      { kind: "channel/resend-timeout-packet-gate", packetPresent: false }
+    );
+    expect(shouldResendChannelTimeoutPacketNow(skipResend.actions)).toBe(false);
+    expect(shouldSkipResendChannelTimeoutPacket(skipResend.actions)).toBe(true);
+
     const clear = stepClearChannelEnvelopePacketWithActions(
       initialClearChannelEnvelopePacketState(),
       { kind: "channel/clear-envelope-packet-gate", packetPresent: true }
@@ -562,8 +580,7 @@ describe("protocol channel window", () => {
       envelopePresent: false,
       delivered: false,
       tries: 1,
-      maxTries: CHANNEL_MAX_TRIES,
-      packetPresent: true
+      maxTries: CHANNEL_MAX_TRIES
     });
     expect(miss.actions).toEqual([]);
     expect(miss.state.window).toBe(4);
@@ -574,8 +591,7 @@ describe("protocol channel window", () => {
       envelopePresent: true,
       delivered: true,
       tries: 1,
-      maxTries: CHANNEL_MAX_TRIES,
-      packetPresent: true
+      maxTries: CHANNEL_MAX_TRIES
     });
     expect(ignore.actions).toEqual([]);
     expect(ignore.state.window).toBe(4);
@@ -586,8 +602,7 @@ describe("protocol channel window", () => {
       envelopePresent: true,
       delivered: false,
       tries: CHANNEL_MAX_TRIES,
-      maxTries: CHANNEL_MAX_TRIES,
-      packetPresent: true
+      maxTries: CHANNEL_MAX_TRIES
     });
     expect(giveUp.actions).toEqual([{ kind: "give-up" }]);
     expect(shouldGiveUpChannelTxTimeout(giveUp.actions)).toBe(true);
@@ -599,28 +614,15 @@ describe("protocol channel window", () => {
       envelopePresent: true,
       delivered: false,
       tries: 2,
-      maxTries: CHANNEL_MAX_TRIES,
-      packetPresent: true
+      maxTries: CHANNEL_MAX_TRIES
     });
-    expect(retry.actions).toEqual([{ kind: "retry", nextTries: 3, resend: true }]);
+    expect(retry.actions).toEqual([{ kind: "retry", nextTries: 3 }]);
     expect(shouldRetryChannelTxTimeout(retry.actions)).toBe(true);
     expect(channelTxTimeoutRetryAction(retry.actions)).toEqual({
       kind: "retry",
-      nextTries: 3,
-      resend: true
+      nextTries: 3
     });
     expect(retry.state.window).toBe(3);
-
-    const noResend = stepChannelTxTimeoutWithActions(state, {
-      kind: "channel/tx-timeout",
-      indexOk: true,
-      envelopePresent: true,
-      delivered: false,
-      tries: 1,
-      maxTries: CHANNEL_MAX_TRIES,
-      packetPresent: false
-    });
-    expect(noResend.actions).toEqual([{ kind: "retry", nextTries: 2, resend: false }]);
   });
 
   it("StepFn wrapper omits actions while WithActions preserves them", () => {
@@ -631,8 +633,7 @@ describe("protocol channel window", () => {
       envelopePresent: true,
       delivered: false,
       tries: 1,
-      maxTries: CHANNEL_MAX_TRIES,
-      packetPresent: true
+      maxTries: CHANNEL_MAX_TRIES
     });
     const stripped = stepChannelTxTimeout(state, {
       kind: "channel/tx-timeout",
@@ -640,10 +641,9 @@ describe("protocol channel window", () => {
       envelopePresent: true,
       delivered: false,
       tries: 1,
-      maxTries: CHANNEL_MAX_TRIES,
-      packetPresent: true
+      maxTries: CHANNEL_MAX_TRIES
     });
-    expect(withActions.actions).toEqual([{ kind: "retry", nextTries: 2, resend: true }]);
+    expect(withActions.actions).toEqual([{ kind: "retry", nextTries: 2 }]);
     expect(stripped).toEqual({ state: withActions.state, intents: withActions.intents });
   });
 
@@ -720,8 +720,7 @@ describe("protocol channel window", () => {
           envelopePresent: true,
           delivered: false,
           tries: 1,
-          maxTries: CHANNEL_MAX_TRIES,
-          packetPresent: true
+          maxTries: CHANNEL_MAX_TRIES
         })
       );
       state = steps[0]!.state;
@@ -732,8 +731,7 @@ describe("protocol channel window", () => {
           envelopePresent: true,
           delivered: false,
           tries: CHANNEL_MAX_TRIES,
-          maxTries: CHANNEL_MAX_TRIES,
-          packetPresent: true
+          maxTries: CHANNEL_MAX_TRIES
         })
       );
       return steps.map((s) => ({

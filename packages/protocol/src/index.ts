@@ -1406,6 +1406,7 @@ export {
   initialExtendPacketReceiptTimeoutState,
   initialIndexOfChannelTxEnvelopeState,
   initialReplaceChannelResentPacketState,
+  initialResendChannelTimeoutPacketState,
   isChannelOutletTransmitOk,
   planChannelPacketTimeout,
   planChannelSend,
@@ -1435,6 +1436,7 @@ export {
   shouldReplaceChannelResentPacket,
   shouldReplaceChannelResentPacketNow,
   shouldResendChannelTimeoutPacket,
+  shouldResendChannelTimeoutPacketNow,
   shouldRetryChannelTxTimeout,
   shouldSkipApplyChannelPacketReceiptTimeout,
   shouldSkipApplyChannelTxReceiptTimeoutExtension,
@@ -1442,6 +1444,7 @@ export {
   shouldSkipClearChannelEnvelopePacket,
   shouldSkipExtendPacketReceiptTimeout,
   shouldSkipReplaceChannelResentPacket,
+  shouldSkipResendChannelTimeoutPacket,
   shouldUseChannelPacketTimeout,
   shouldUseChannelTxEnvelopeIndex,
   shouldUseChannelTxOutstandingCount,
@@ -1464,6 +1467,7 @@ export {
   stepExtendPacketReceiptTimeoutWithActions,
   stepIndexOfChannelTxEnvelopeWithActions,
   stepReplaceChannelResentPacketWithActions,
+  stepResendChannelTimeoutPacketWithActions,
   type ApplyChannelPacketReceiptTimeoutAction,
   type ApplyChannelPacketReceiptTimeoutEvent,
   type ApplyChannelPacketReceiptTimeoutState,
@@ -1527,7 +1531,11 @@ export {
   type ReplaceChannelResentPacketAction,
   type ReplaceChannelResentPacketEvent,
   type ReplaceChannelResentPacketState,
-  type ReplaceChannelResentPacketStepResult
+  type ReplaceChannelResentPacketStepResult,
+  type ResendChannelTimeoutPacketAction,
+  type ResendChannelTimeoutPacketEvent,
+  type ResendChannelTimeoutPacketState,
+  type ResendChannelTimeoutPacketStepResult
 } from "./channel-window.js";
 export {
   CHANNEL_ENVELOPE_HEADER_SIZE,

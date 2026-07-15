@@ -912,6 +912,65 @@ export function shouldResendChannelTimeoutPacket(packetPresent: boolean): boolea
   return packetPresent;
 }
 
+/**
+ * Channel TX-timeout resend gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldResendChannelTimeoutPacket`
+ * reads beside the step).
+ */
+export type ResendChannelTimeoutPacketState = Record<string, never>;
+
+export type ResendChannelTimeoutPacketEvent =
+  | Event
+  | {
+      readonly kind: "channel/resend-timeout-packet-gate";
+      readonly packetPresent: boolean;
+    };
+
+export type ResendChannelTimeoutPacketAction =
+  | { readonly kind: "resend" }
+  | { readonly kind: "skip" };
+
+export interface ResendChannelTimeoutPacketStepResult {
+  readonly state: ResendChannelTimeoutPacketState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResendChannelTimeoutPacketAction[];
+}
+
+export function initialResendChannelTimeoutPacketState(): ResendChannelTimeoutPacketState {
+  return {};
+}
+
+export function stepResendChannelTimeoutPacketWithActions(
+  state: ResendChannelTimeoutPacketState,
+  event: ResendChannelTimeoutPacketEvent
+): ResendChannelTimeoutPacketStepResult {
+  if (event.kind === "channel/resend-timeout-packet-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldResendChannelTimeoutPacket(event.packetPresent) ? "resend" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldResendChannelTimeoutPacketNow(
+  actions: ReadonlyArray<ResendChannelTimeoutPacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "resend");
+}
+
+export function shouldSkipResendChannelTimeoutPacket(
+  actions: ReadonlyArray<ResendChannelTimeoutPacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether shutdown may clear outlet callbacks for a TX-ring envelope packet. */
 export function shouldClearChannelEnvelopePacket(packetPresent: boolean): boolean {
   return packetPresent;
@@ -1121,6 +1180,8 @@ function stepChannelWindowInner(
  * Channel TX-timeout step: compose envelope miss / ignore / give-up / retry
  * with window shrink. Adapters apply give-up (shutdown) and retry (resend +
  * re-arm) only from actions — not by reading `plan.kind` beside the step.
+ * Resend itself is gated separately via
+ * `stepResendChannelTimeoutPacketWithActions`.
  */
 export type ChannelTxTimeoutEvent =
   | Event
@@ -1131,12 +1192,11 @@ export type ChannelTxTimeoutEvent =
       readonly delivered: boolean;
       readonly tries: number;
       readonly maxTries: number;
-      readonly packetPresent: boolean;
     };
 
 export type ChannelTxTimeoutAction =
   | { readonly kind: "give-up" }
-  | { readonly kind: "retry"; readonly nextTries: number; readonly resend: boolean };
+  | { readonly kind: "retry"; readonly nextTries: number };
 
 export interface ChannelTxTimeoutStepResult {
   readonly state: ChannelWindowState;
@@ -1193,8 +1253,7 @@ function stepChannelTxTimeoutInner(
     actions: [
       {
         kind: "retry",
-        nextTries: plan.nextTries,
-        resend: shouldResendChannelTimeoutPacket(event.packetPresent)
+        nextTries: plan.nextTries
       }
     ]
   };

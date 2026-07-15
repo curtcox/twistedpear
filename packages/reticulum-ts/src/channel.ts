@@ -36,6 +36,7 @@ import {
   initialIndexOfChannelTxEnvelopeState,
   initialRegisterChannelMessageHandlerState,
   initialReplaceChannelResentPacketState,
+  initialResendChannelTimeoutPacketState,
   initialStopChannelHandlerFanoutState,
   nextChannelSequence,
   initialChannelEnvelopePackState,
@@ -77,6 +78,7 @@ import {
   shouldRejectUnpackChannelEnvelope,
   shouldRemoveChannelMessageHandler,
   shouldReplaceChannelResentPacketNow,
+  shouldResendChannelTimeoutPacketNow,
   shouldRetryChannelTxTimeout,
   shouldStopChannelHandlerFanoutNow,
   shouldUseChannelPacketTimeout,
@@ -114,6 +116,7 @@ import {
   stepPackChannelEnvelopeWithActions,
   stepRegisterChannelMessageHandlerWithActions,
   stepReplaceChannelResentPacketWithActions,
+  stepResendChannelTimeoutPacketWithActions,
   stepStopChannelHandlerFanoutWithActions,
   stepUnpackChannelEnvelopeWithActions,
   type ChannelTxTimeoutAction,
@@ -631,8 +634,7 @@ export class Channel {
       envelopePresent: envelope !== undefined,
       delivered: this.outlet.getPacketState(packet) === MessageState.MSGSTATE_DELIVERED,
       tries: envelope?.tries ?? 0,
-      maxTries: this.maxTries,
-      packetPresent: envelope?.packet != null
+      maxTries: this.maxTries
     });
     this.windowState = stepped.state;
     await this.applyChannelTxTimeoutActions(envelope, stepped.actions);
@@ -658,7 +660,15 @@ export class Channel {
     }
 
     envelope.tries = retry.nextTries;
-    if (!retry.resend || envelope.packet === null) {
+    if (
+      !shouldResendChannelTimeoutPacketNow(
+        stepResendChannelTimeoutPacketWithActions(initialResendChannelTimeoutPacketState(), {
+          kind: "channel/resend-timeout-packet-gate",
+          packetPresent: envelope.packet !== null
+        }).actions
+      ) ||
+      envelope.packet === null
+    ) {
       return;
     }
 
