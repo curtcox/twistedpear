@@ -39,19 +39,27 @@ import {
   initialLxmfPackTimestampPlanState,
   initialLxmfPropagatedPackPrepPlanState,
   initialLxmfPropagatedSendPlanState,
+  initialLxmfPropagationLinkReadyPlanState,
+  initialLxmfPropagationLocalIngressPlanState,
+  initialLxmfPropagationSyncPrepPlanState,
   initialLxmfSendMethodPlanState,
   initialLxMessageInstancePackPlanState,
   initialLxMessagePackPlanState,
   lxMessageInstancePackPlanFromActions,
   lxMessagePackPlanFromActions,
+  lxmfDeliverableAcceptPlanFromActions,
   lxmfDirectSendPlanFromActions,
   lxmfOpportunisticSendPlanFromActions,
   lxmfPackTimestampPlanFromActions,
   lxmfPropagatedPackPrepPlanFromActions,
   lxmfPropagatedSendPlanFromActions,
+  lxmfPropagationLinkReadyPlanFromActions,
+  lxmfPropagationLocalIngressPlanFromActions,
+  lxmfPropagationSyncPrepPlanFromActions,
   lxmfSendMethodPlanFromActions,
   shouldPlanLxMessageInstancePackOk,
   shouldPlanLxMessagePackOk,
+  shouldPlanLxmfDeliverableAccept,
   shouldPlanLxmfDirectSendOk,
   shouldPlanLxmfOpportunisticSendOk,
   shouldPlanLxmfPackTimestampUseNow,
@@ -59,6 +67,10 @@ import {
   shouldPlanLxmfPropagatedPackPrepOk,
   shouldPlanLxmfPropagatedPackPrepSkip,
   shouldPlanLxmfPropagatedSendOk,
+  shouldPlanLxmfPropagationLinkReadyEstablish,
+  shouldPlanLxmfPropagationLinkReadyReuse,
+  shouldPlanLxmfPropagationLocalIngressDeliver,
+  shouldPlanLxmfPropagationSyncPrepOk,
   shouldPlanLxmfSendMethodDirect,
   shouldPlanLxmfSendMethodOpportunistic,
   shouldPlanLxmfSendMethodPropagated,
@@ -67,6 +79,8 @@ import {
   shouldRejectLxMessageInstancePackPlanMissingTimestamp,
   shouldRejectLxMessagePackPlanBadDestination,
   shouldRejectLxMessagePackPlanBadSource,
+  shouldRejectLxmfDeliverableAcceptPlanSeen,
+  shouldRejectLxmfDeliverableAcceptPlanUnsigned,
   shouldRejectLxmfDirectSendPlanMissingDestination,
   shouldRejectLxmfDirectSendPlanMissingPacked,
   shouldRejectLxmfOpportunisticSendPlanMissingDestination,
@@ -76,6 +90,13 @@ import {
   shouldRejectLxmfPropagatedSendPlanMissingNode,
   shouldRejectLxmfPropagatedSendPlanMissingPacked,
   shouldRejectLxmfPropagatedSendPlanResourceUnimplemented,
+  shouldRejectLxmfPropagationLinkReadyPlanMissingIdentity,
+  shouldRejectLxmfPropagationLinkReadyPlanMissingNode,
+  shouldRejectLxmfPropagationLocalIngressPlanDecrypt,
+  shouldRejectLxmfPropagationLocalIngressPlanDestination,
+  shouldRejectLxmfPropagationLocalIngressPlanPrefix,
+  shouldRejectLxmfPropagationSyncPrepPlanMissingDeliveryIdentity,
+  shouldRejectLxmfPropagationSyncPrepPlanMissingNode,
   shouldRejectLxmfSendMethodPlanUnpacked,
   shouldRejectLxmfSendMethodPlanUnsupported,
   shouldAcceptLxmfWireFrame,
@@ -148,6 +169,7 @@ import {
   initialCommitRememberedLxmfHashState,
   initialExtractLxmfOpportunisticPayloadState,
   initialIncludeLxmfStampState,
+  initialLxmfDeliverableAcceptPlanState,
   initialLxmfDeliverableAcceptState,
   initialLxmfDirectSendState,
   initialLxmfOpportunisticSendState,
@@ -195,6 +217,7 @@ import {
   stepExtractLxmfOpportunisticPayloadWithActions,
   stepIncludeLxmfStampWithActions,
   stepInvokeLxmfDeliveryCallbackWithActions,
+  stepLxmfDeliverableAcceptPlanWithActions,
   stepLxmfDeliverableAcceptWithActions,
   stepLxmfDeliveryPlanWithActions,
   stepLxmfDeliveryWithActions,
@@ -208,8 +231,11 @@ import {
   stepLxmfPropagatedPackPrepWithActions,
   stepLxmfPropagatedSendPlanWithActions,
   stepLxmfPropagatedSendWithActions,
+  stepLxmfPropagationLinkReadyPlanWithActions,
   stepLxmfPropagationLinkReadyWithActions,
+  stepLxmfPropagationLocalIngressPlanWithActions,
   stepLxmfPropagationLocalIngressWithActions,
+  stepLxmfPropagationSyncPrepPlanWithActions,
   stepLxmfPropagationSyncPrepWithActions,
   stepLxmfSendMethodPlanWithActions,
   stepLxmfSendMethodWithActions,
@@ -567,6 +593,52 @@ describe("protocol lxmf delivery", () => {
         alreadySeen: true
       })
     ).toBe("accept");
+  });
+
+  it("emits deliverable-accept-plan actions only from deliverable/plan-gate", () => {
+    const accept = stepLxmfDeliverableAcceptPlanWithActions(
+      initialLxmfDeliverableAcceptPlanState(),
+      {
+        kind: "deliverable/plan-gate",
+        signatureValidated: true,
+        hasHash: true,
+        alreadySeen: false
+      }
+    );
+    expect(shouldPlanLxmfDeliverableAccept(accept.actions)).toBe(true);
+    expect(lxmfDeliverableAcceptPlanFromActions(accept.actions)).toBe("accept");
+
+    const unsigned = stepLxmfDeliverableAcceptPlanWithActions(
+      initialLxmfDeliverableAcceptPlanState(),
+      {
+        kind: "deliverable/plan-gate",
+        signatureValidated: false,
+        hasHash: true,
+        alreadySeen: false
+      }
+    );
+    expect(shouldRejectLxmfDeliverableAcceptPlanUnsigned(unsigned.actions)).toBe(true);
+    expect(lxmfDeliverableAcceptPlanFromActions(unsigned.actions)).toBe("reject-unsigned");
+
+    const seen = stepLxmfDeliverableAcceptPlanWithActions(
+      initialLxmfDeliverableAcceptPlanState(),
+      {
+        kind: "deliverable/plan-gate",
+        signatureValidated: true,
+        hasHash: true,
+        alreadySeen: true
+      }
+    );
+    expect(shouldRejectLxmfDeliverableAcceptPlanSeen(seen.actions)).toBe(true);
+    expect(lxmfDeliverableAcceptPlanFromActions(seen.actions)).toBe("reject-seen");
+
+    expect(
+      stepLxmfDeliverableAcceptPlanWithActions(initialLxmfDeliverableAcceptPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
   });
 
   it("emits deliverable accept-gate actions from stepLxmfDeliverableAcceptWithActions", () => {
@@ -1707,6 +1779,75 @@ describe("protocol lxmf delivery", () => {
     ).toBe(true);
   });
 
+  it("emits propagation local-ingress-plan actions only from propagation-local-ingress/plan-gate", () => {
+    const deliver = stepLxmfPropagationLocalIngressPlanWithActions(
+      initialLxmfPropagationLocalIngressPlanState(),
+      {
+        kind: "propagation-local-ingress/plan-gate",
+        prefixedPresent: true,
+        deliveryDestinationPresent: true,
+        destinationHashMatches: true,
+        decryptedPresent: true
+      }
+    );
+    expect(shouldPlanLxmfPropagationLocalIngressDeliver(deliver.actions)).toBe(true);
+    expect(lxmfPropagationLocalIngressPlanFromActions(deliver.actions)).toBe("deliver");
+
+    const prefix = stepLxmfPropagationLocalIngressPlanWithActions(
+      initialLxmfPropagationLocalIngressPlanState(),
+      {
+        kind: "propagation-local-ingress/plan-gate",
+        prefixedPresent: false,
+        deliveryDestinationPresent: true,
+        destinationHashMatches: true,
+        decryptedPresent: true
+      }
+    );
+    expect(shouldRejectLxmfPropagationLocalIngressPlanPrefix(prefix.actions)).toBe(true);
+    expect(lxmfPropagationLocalIngressPlanFromActions(prefix.actions)).toBe("reject-prefix");
+
+    const destination = stepLxmfPropagationLocalIngressPlanWithActions(
+      initialLxmfPropagationLocalIngressPlanState(),
+      {
+        kind: "propagation-local-ingress/plan-gate",
+        prefixedPresent: true,
+        deliveryDestinationPresent: true,
+        destinationHashMatches: false,
+        decryptedPresent: true
+      }
+    );
+    expect(shouldRejectLxmfPropagationLocalIngressPlanDestination(destination.actions)).toBe(
+      true
+    );
+    expect(lxmfPropagationLocalIngressPlanFromActions(destination.actions)).toBe(
+      "reject-destination"
+    );
+
+    const decrypt = stepLxmfPropagationLocalIngressPlanWithActions(
+      initialLxmfPropagationLocalIngressPlanState(),
+      {
+        kind: "propagation-local-ingress/plan-gate",
+        prefixedPresent: true,
+        deliveryDestinationPresent: true,
+        destinationHashMatches: true,
+        decryptedPresent: false
+      }
+    );
+    expect(shouldRejectLxmfPropagationLocalIngressPlanDecrypt(decrypt.actions)).toBe(true);
+    expect(lxmfPropagationLocalIngressPlanFromActions(decrypt.actions)).toBe("reject-decrypt");
+
+    expect(
+      stepLxmfPropagationLocalIngressPlanWithActions(
+        initialLxmfPropagationLocalIngressPlanState(),
+        {
+          kind: "timer/fired",
+          id: "x",
+          at: 0
+        }
+      ).actions
+    ).toEqual([]);
+  });
+
   it("emits propagation local-ingress gate actions from stepLxmfPropagationLocalIngressWithActions", () => {
     const deliver = stepLxmfPropagationLocalIngressWithActions(
       initialLxmfPropagationLocalIngressState(),
@@ -1810,6 +1951,68 @@ describe("protocol lxmf delivery", () => {
         nodeIdentityPresent: true
       })
     ).toBe("establish");
+  });
+
+  it("emits propagation link-ready-plan actions only from propagation-link/plan-gate", () => {
+    const reuse = stepLxmfPropagationLinkReadyPlanWithActions(
+      initialLxmfPropagationLinkReadyPlanState(),
+      {
+        kind: "propagation-link/plan-gate",
+        canReuseLink: true,
+        nodeConfigured: true,
+        nodeIdentityPresent: true
+      }
+    );
+    expect(shouldPlanLxmfPropagationLinkReadyReuse(reuse.actions)).toBe(true);
+    expect(lxmfPropagationLinkReadyPlanFromActions(reuse.actions)).toBe("reuse");
+
+    const missingNode = stepLxmfPropagationLinkReadyPlanWithActions(
+      initialLxmfPropagationLinkReadyPlanState(),
+      {
+        kind: "propagation-link/plan-gate",
+        canReuseLink: false,
+        nodeConfigured: false,
+        nodeIdentityPresent: false
+      }
+    );
+    expect(shouldRejectLxmfPropagationLinkReadyPlanMissingNode(missingNode.actions)).toBe(true);
+    expect(lxmfPropagationLinkReadyPlanFromActions(missingNode.actions)).toBe("missing-node");
+
+    const missingIdentity = stepLxmfPropagationLinkReadyPlanWithActions(
+      initialLxmfPropagationLinkReadyPlanState(),
+      {
+        kind: "propagation-link/plan-gate",
+        canReuseLink: false,
+        nodeConfigured: true,
+        nodeIdentityPresent: false
+      }
+    );
+    expect(
+      shouldRejectLxmfPropagationLinkReadyPlanMissingIdentity(missingIdentity.actions)
+    ).toBe(true);
+    expect(lxmfPropagationLinkReadyPlanFromActions(missingIdentity.actions)).toBe(
+      "missing-identity"
+    );
+
+    const establish = stepLxmfPropagationLinkReadyPlanWithActions(
+      initialLxmfPropagationLinkReadyPlanState(),
+      {
+        kind: "propagation-link/plan-gate",
+        canReuseLink: false,
+        nodeConfigured: true,
+        nodeIdentityPresent: true
+      }
+    );
+    expect(shouldPlanLxmfPropagationLinkReadyEstablish(establish.actions)).toBe(true);
+    expect(lxmfPropagationLinkReadyPlanFromActions(establish.actions)).toBe("establish");
+
+    expect(
+      stepLxmfPropagationLinkReadyPlanWithActions(initialLxmfPropagationLinkReadyPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
   });
 
   it("emits propagation link-ready gate actions from stepLxmfPropagationLinkReadyWithActions", () => {
@@ -2113,6 +2316,53 @@ describe("protocol lxmf delivery", () => {
         deliveryIdentityPresent: true
       })
     ).toBe("ok");
+  });
+
+  it("emits propagation sync-prep-plan actions only from propagation-sync-prep/plan-gate", () => {
+    const ok = stepLxmfPropagationSyncPrepPlanWithActions(
+      initialLxmfPropagationSyncPrepPlanState(),
+      {
+        kind: "propagation-sync-prep/plan-gate",
+        nodeConfigured: true,
+        deliveryIdentityPresent: true
+      }
+    );
+    expect(shouldPlanLxmfPropagationSyncPrepOk(ok.actions)).toBe(true);
+    expect(lxmfPropagationSyncPrepPlanFromActions(ok.actions)).toBe("ok");
+
+    const missingNode = stepLxmfPropagationSyncPrepPlanWithActions(
+      initialLxmfPropagationSyncPrepPlanState(),
+      {
+        kind: "propagation-sync-prep/plan-gate",
+        nodeConfigured: false,
+        deliveryIdentityPresent: false
+      }
+    );
+    expect(shouldRejectLxmfPropagationSyncPrepPlanMissingNode(missingNode.actions)).toBe(true);
+    expect(lxmfPropagationSyncPrepPlanFromActions(missingNode.actions)).toBe("missing-node");
+
+    const missingIdentity = stepLxmfPropagationSyncPrepPlanWithActions(
+      initialLxmfPropagationSyncPrepPlanState(),
+      {
+        kind: "propagation-sync-prep/plan-gate",
+        nodeConfigured: true,
+        deliveryIdentityPresent: false
+      }
+    );
+    expect(
+      shouldRejectLxmfPropagationSyncPrepPlanMissingDeliveryIdentity(missingIdentity.actions)
+    ).toBe(true);
+    expect(lxmfPropagationSyncPrepPlanFromActions(missingIdentity.actions)).toBe(
+      "missing-delivery-identity"
+    );
+
+    expect(
+      stepLxmfPropagationSyncPrepPlanWithActions(initialLxmfPropagationSyncPrepPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
   });
 
   it("emits propagation sync-prep gate actions from stepLxmfPropagationSyncPrepWithActions", () => {

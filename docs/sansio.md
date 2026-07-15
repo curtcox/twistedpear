@@ -83,6 +83,17 @@
 > instance-pack; **`stepLxmfPropagatedPackPrepPlanWithActions`**:
 > skip|ok|missing-identity|missing-timestamp — nested under
 > propagated-pack-prep),
+> **LXMF propagation link-ready / sync-prep / deliverable-accept /
+> local-ingress plans** (via
+> **`stepLxmfPropagationLinkReadyPlanWithActions`**:
+> reuse|establish|missing-node|missing-identity — nested under
+> propagation-link-ready; **`stepLxmfPropagationSyncPrepPlanWithActions`**:
+> ok|missing-node|missing-delivery-identity — nested under
+> propagation-sync-prep; **`stepLxmfDeliverableAcceptPlanWithActions`**:
+> accept|reject-unsigned|reject-seen — nested under deliverable-accept;
+> **`stepLxmfPropagationLocalIngressPlanWithActions`**:
+> deliver|reject-prefix|reject-destination|reject-decrypt — nested under
+> propagation-local-ingress),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -268,6 +279,18 @@
 > **`stepLxmfPropagatedPackPrepPlanWithActions`**:
 > skip|ok|missing-identity|missing-timestamp
 > (nested under propagated-pack-prep) /
+> **`stepLxmfPropagationLinkReadyPlanWithActions`**:
+> reuse|establish|missing-node|missing-identity
+> (nested under propagation-link-ready) /
+> **`stepLxmfPropagationSyncPrepPlanWithActions`**:
+> ok|missing-node|missing-delivery-identity
+> (nested under propagation-sync-prep) /
+> **`stepLxmfDeliverableAcceptPlanWithActions`**:
+> accept|reject-unsigned|reject-seen
+> (nested under deliverable-accept) /
+> **`stepLxmfPropagationLocalIngressPlanWithActions`**:
+> deliver|reject-prefix|reject-destination|reject-decrypt
+> (nested under propagation-local-ingress) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -338,15 +361,26 @@
 > skip|ok|missing-identity|missing-timestamp — nested under
 > propagated-pack-prep) are pure protocol leaves; `LXMessage` adapts them.
 > **LXMF propagation link-ready /
-> sync-prep gates** (via **`stepLxmfPropagationLinkReadyWithActions`**: reuse /
-> establish / reject-missing-node / reject-missing-identity; **`stepLxmfPropagationSyncPrepWithActions`**:
-> proceed / reject-missing-node / reject-missing-delivery-identity) are pure
-> protocol leaves; `LXMFRouter` and `PropagationClient` adapt them. **LXMF deliverable accept**
-> (via **`stepLxmfDeliverableAcceptWithActions`**: accept / reject-unsigned / reject-seen),
-> **propagation local ingress** (via **`stepLxmfPropagationLocalIngressWithActions`**:
-> deliver / reject-prefix / reject-destination / reject-decrypt), and **receipt → send-state
+> sync-prep / deliverable-accept / local-ingress gates** (via
+> **`stepLxmfPropagationLinkReadyWithActions`**: reuse /
+> establish / reject-missing-node / reject-missing-identity; plan nested via
+> **`stepLxmfPropagationLinkReadyPlanWithActions`**:
+> reuse|establish|missing-node|missing-identity — nested under
+> propagation-link-ready; **`stepLxmfPropagationSyncPrepWithActions`**:
+> proceed / reject-missing-node / reject-missing-delivery-identity; plan nested via
+> **`stepLxmfPropagationSyncPrepPlanWithActions`**:
+> ok|missing-node|missing-delivery-identity — nested under
+> propagation-sync-prep; **`stepLxmfDeliverableAcceptWithActions`**: accept /
+> reject-unsigned / reject-seen; plan nested via
+> **`stepLxmfDeliverableAcceptPlanWithActions`**:
+> accept|reject-unsigned|reject-seen — nested under deliverable-accept;
+> **`stepLxmfPropagationLocalIngressWithActions`**: deliver / reject-prefix /
+> reject-destination / reject-decrypt; plan nested via
+> **`stepLxmfPropagationLocalIngressPlanWithActions`**:
+> deliver|reject-prefix|reject-destination|reject-decrypt — nested under
+> propagation-local-ingress) and **receipt → send-state
 > mapping** (via **`stepLxmfReceiptSendWithActions`**: apply / skip) are pure protocol leaves;
-> `LXMFRouter` adapts them. **Link request / response msgpack codecs**
+> `LXMFRouter` and `PropagationClient` adapt them. **Link request / response msgpack codecs**
 > (pack/unpack via **`stepPackLinkRequestWithActions`** /
 > **`stepPackLinkResponseWithActions`** /
 > **`stepUnpackLinkRequestWithActions`** /
@@ -854,7 +888,9 @@
 > **`isPacketTypeProof`** (via
 > **`stepPacketTypeProofWithActions`**: proof|other) lives in
 > protocol; `PacketReceipt.validateProofPacket` adapts it. **`planLxmfDeliverableAccept`**
-> (via **`stepLxmfDeliverableAcceptWithActions`**) lives in protocol; `LXMFRouter` unpack
+> (via **`stepLxmfDeliverableAcceptWithActions`**: accept / reject-unsigned /
+> reject-seen; plan nested via **`stepLxmfDeliverableAcceptPlanWithActions`**:
+> accept|reject-unsigned|reject-seen) lives in protocol; `LXMFRouter` unpack
 > adapts it. **`canRelayLinkPacket`** (via **`stepRelayLinkPacketAllowWithActions`**:
 > allow|deny), **`canLookupLinkRelayEntry`** (via
 > **`stepLookupLinkRelayEntryWithActions`**: hit|miss),
@@ -1009,9 +1045,12 @@
 > **`planLxmfReceiptSendOutcome`** (via **`stepLxmfReceiptSendWithActions`**: apply /
 > skip) lives in protocol; opportunistic/propagated receipt → send-state adapts it.
 > **`planLxmfPropagationLocalIngress`** (via **`stepLxmfPropagationLocalIngressWithActions`**:
-> deliver / reject-*) /
+> deliver / reject-*; plan nested via **`stepLxmfPropagationLocalIngressPlanWithActions`**:
+> deliver|reject-prefix|reject-destination|reject-decrypt) /
 > **`planLxmfPropagationLinkReady`** (via **`stepLxmfPropagationLinkReadyWithActions`**:
-> reuse / establish / reject-missing-node / reject-missing-identity) live in protocol;
+> reuse / establish / reject-missing-node / reject-missing-identity; plan nested via
+> **`stepLxmfPropagationLinkReadyPlanWithActions`**:
+> reuse|establish|missing-node|missing-identity) live in protocol;
 > propagation ingress and outbound link readiness adapt them. **`shouldAttemptLinkProofCrypto`** (via **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip) lives in protocol;
 > `Link.validateProof` adapts it. **`shouldEmitChannelImmediateDelivery`** lives in
 > protocol; Channel send/resend adapts it. **`planLxmfPackTimestamp`** (via
@@ -1149,9 +1188,12 @@
 > **`stepSelectLxmfDeliveryParametersWithActions`**: select|skip) /
 > **`planLxmfPropagationSyncPrep`** (via
 > **`stepLxmfPropagationSyncPrepWithActions`**: proceed / reject-missing-node /
-> reject-missing-delivery-identity) live in
+> reject-missing-delivery-identity; plan nested via
+> **`stepLxmfPropagationSyncPrepPlanWithActions`**:
+> ok|missing-node|missing-delivery-identity) live in
 > protocol; LXMessage and PropagationClient adapt them (ensurePropagationLink also uses
-> **`planLxmfPropagationLinkReady`** via **`stepLxmfPropagationLinkReadyWithActions`**). **`canProveResource`**
+> **`planLxmfPropagationLinkReady`** via **`stepLxmfPropagationLinkReadyWithActions`**;
+> plan nested via **`stepLxmfPropagationLinkReadyPlanWithActions`**). **`canProveResource`**
 > (via **`stepProveResourceAllowWithActions`**: allow|deny) /
 > **`shouldAdvertiseResource`** (via **`stepAdvertiseResourceWithActions`**:
 > advertise|skip), **`canUpdateLinkKeepalive`** (via
@@ -1488,19 +1530,27 @@
 > `planLxmfOpportunisticSend` / `planLxmfDirectSend` /
 > `planLxmfPropagatedSend` / `plan ===` reads beside the step).
 > **`stepLxmfPropagationLinkReadyWithActions`** emits `reuse` / `establish` /
-> `reject-missing-node` / `reject-missing-identity`;
+> `reject-missing-node` / `reject-missing-identity` (plan nested via
+> **`stepLxmfPropagationLinkReadyPlanWithActions`**:
+> `reuse`|`establish`|`missing-node`|`missing-identity`);
 > **`stepLxmfPropagationSyncPrepWithActions`** emits `proceed` /
-> `reject-missing-node` / `reject-missing-delivery-identity`; `LXMFRouter` /
+> `reject-missing-node` / `reject-missing-delivery-identity` (plan nested via
+> **`stepLxmfPropagationSyncPrepPlanWithActions`**:
+> `ok`|`missing-node`|`missing-delivery-identity`); `LXMFRouter` /
 > `PropagationClient` apply reuse/establish/proceed or throw only from those
 > actions (no ad-hoc `planLxmfPropagationLinkReady` /
-> `planLxmfPropagationSyncPrep` reads beside the step).
+> `planLxmfPropagationSyncPrep` / `plan ===` reads beside the step).
 > **`stepLxmfDeliverableAcceptWithActions`** emits `accept` / `reject-unsigned` /
-> `reject-seen`; `LXMFRouter.unpackDeliverable` accepts or drops only from those
-> actions (no ad-hoc `planLxmfDeliverableAccept` reads beside the step).
+> `reject-seen` (plan nested via **`stepLxmfDeliverableAcceptPlanWithActions`**:
+> `accept`|`reject-unsigned`|`reject-seen`); `LXMFRouter.unpackDeliverable` accepts
+> or drops only from those actions (no ad-hoc `planLxmfDeliverableAccept` /
+> `plan ===` reads beside the step).
 > **`stepLxmfPropagationLocalIngressWithActions`** emits `deliver` /
-> `reject-prefix` / `reject-destination` / `reject-decrypt`;
+> `reject-prefix` / `reject-destination` / `reject-decrypt` (plan nested via
+> **`stepLxmfPropagationLocalIngressPlanWithActions`**:
+> `deliver`|`reject-prefix`|`reject-destination`|`reject-decrypt`);
 > `LXMFRouter.handlePropagationData` unpacks only from those actions (no ad-hoc
-> `planLxmfPropagationLocalIngress` reads beside the step).
+> `planLxmfPropagationLocalIngress` / `plan ===` reads beside the step).
 > **`stepLxmfReceiptSendWithActions`** emits `apply` (with send-state event) /
 > `skip`; opportunistic/propagated send paths update send-state only from those
 > actions (no ad-hoc `planLxmfReceiptSendOutcome` reads beside the step).
@@ -1865,7 +1915,9 @@
 > instance pack / propagated pack prep) / lxmessage-pack-plan /
 > lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan /
 > lxmf-propagated-pack-prep-plan, LXMF propagation link-ready /
-> sync-prep gates, LXMF deliverable accept, propagation local ingress,
+> sync-prep / deliverable-accept / local-ingress gates /
+> lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan /
+> lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan,
 > LXMF receipt → send-state mapping, Link validate-request
 > proceed/reject / continue, Link proof-validate accept/reject /
 > link-proof-validate-outcome-plan, and Link
@@ -1878,12 +1930,14 @@
 > pack-gate / lxmessage-pack-plan / lxmf-pack-timestamp-plan /
 > lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan /
 > propagation-link-ready / sync-prep / deliverable-accept /
-> local-ingress / receipt-send / include-lxmf-stamp / remember-lxmf-message /
+> local-ingress / lxmf-propagation-link-ready-plan /
+> lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan /
+> lxmf-propagation-local-ingress-plan / receipt-send / include-lxmf-stamp / remember-lxmf-message /
 > commit-remembered-lxmf-hash / accept-lxmf-wire-frame /
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /

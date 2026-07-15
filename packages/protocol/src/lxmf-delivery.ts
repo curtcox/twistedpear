@@ -918,8 +918,99 @@ export function planLxmfDeliverableAccept(input: {
 }
 
 /**
+ * Deliverable-accept-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLxmfDeliverableAccept` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLxmfDeliverableAcceptWithActions}.
+ */
+export type LxmfDeliverableAcceptPlanState = Record<string, never>;
+
+export type LxmfDeliverableAcceptPlanEvent =
+  | Event
+  | {
+      readonly kind: "deliverable/plan-gate";
+      readonly signatureValidated: boolean;
+      readonly hasHash: boolean;
+      readonly alreadySeen: boolean;
+    };
+
+export type LxmfDeliverableAcceptPlanAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "reject-unsigned" }
+  | { readonly kind: "reject-seen" };
+
+export interface LxmfDeliverableAcceptPlanStepResult {
+  readonly state: LxmfDeliverableAcceptPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfDeliverableAcceptPlanAction[];
+}
+
+export function initialLxmfDeliverableAcceptPlanState(): LxmfDeliverableAcceptPlanState {
+  return {};
+}
+
+export function stepLxmfDeliverableAcceptPlanWithActions(
+  state: LxmfDeliverableAcceptPlanState,
+  event: LxmfDeliverableAcceptPlanEvent
+): LxmfDeliverableAcceptPlanStepResult {
+  if (event.kind === "deliverable/plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLxmfDeliverableAccept({
+            signatureValidated: event.signatureValidated,
+            hasHash: event.hasHash,
+            alreadySeen: event.alreadySeen
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Whether plan actions accept the deliverable. */
+export function shouldPlanLxmfDeliverableAccept(
+  actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+/** Whether plan actions reject an unsigned deliverable. */
+export function shouldRejectLxmfDeliverableAcceptPlanUnsigned(
+  actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-unsigned");
+}
+
+/** Whether plan actions reject an already-seen deliverable. */
+export function shouldRejectLxmfDeliverableAcceptPlanSeen(
+  actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-seen");
+}
+
+/** Extract the deliverable-accept plan from actions; null when empty. */
+export function lxmfDeliverableAcceptPlanFromActions(
+  actions: ReadonlyArray<LxmfDeliverableAcceptPlanAction>
+): LxmfDeliverableAcceptPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "accept" ||
+      entry.kind === "reject-unsigned" ||
+      entry.kind === "reject-seen"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * Deliverable accept gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLxmfDeliverableAcceptPlanWithActions}
+ * (`accept`|`reject-unsigned`|`reject-seen`).
  */
 export type LxmfDeliverableAcceptState = Record<string, never>;
 
@@ -932,6 +1023,11 @@ export type LxmfDeliverableAcceptEvent =
       readonly alreadySeen: boolean;
     };
 
+/**
+ * Adapter applies accept / reject only from these actions.
+ * Plan nested via {@link stepLxmfDeliverableAcceptPlanWithActions}
+ * (`accept`|`reject-unsigned`|`reject-seen`).
+ */
 export type LxmfDeliverableAcceptAction =
   | { readonly kind: "accept" }
   | { readonly kind: "reject-unsigned" }
@@ -988,16 +1084,23 @@ function stepLxmfDeliverableAcceptInner(
   event: LxmfDeliverableAcceptEvent
 ): LxmfDeliverableAcceptStepResult {
   if (event.kind === "deliverable/accept-gate") {
-    const plan = planLxmfDeliverableAccept({
-      signatureValidated: event.signatureValidated,
-      hasHash: event.hasHash,
-      alreadySeen: event.alreadySeen
-    });
-    if (plan === "reject-unsigned") {
+    const planActions = stepLxmfDeliverableAcceptPlanWithActions(
+      initialLxmfDeliverableAcceptPlanState(),
+      {
+        kind: "deliverable/plan-gate",
+        signatureValidated: event.signatureValidated,
+        hasHash: event.hasHash,
+        alreadySeen: event.alreadySeen
+      }
+    ).actions;
+    if (shouldRejectLxmfDeliverableAcceptPlanUnsigned(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-unsigned" }] };
     }
-    if (plan === "reject-seen") {
+    if (shouldRejectLxmfDeliverableAcceptPlanSeen(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-seen" }] };
+    }
+    if (!shouldPlanLxmfDeliverableAccept(planActions)) {
+      return { state, intents: [], actions: [] };
     }
     return { state, intents: [], actions: [{ kind: "accept" }] };
   }
@@ -1491,8 +1594,97 @@ export function planLxmfPropagationSyncPrep(input: {
 }
 
 /**
+ * Propagation sync-prep-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLxmfPropagationSyncPrep` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLxmfPropagationSyncPrepWithActions}.
+ */
+export type LxmfPropagationSyncPrepPlanState = Record<string, never>;
+
+export type LxmfPropagationSyncPrepPlanEvent =
+  | Event
+  | {
+      readonly kind: "propagation-sync-prep/plan-gate";
+      readonly nodeConfigured: boolean;
+      readonly deliveryIdentityPresent: boolean;
+    };
+
+export type LxmfPropagationSyncPrepPlanAction =
+  | { readonly kind: "ok" }
+  | { readonly kind: "missing-node" }
+  | { readonly kind: "missing-delivery-identity" };
+
+export interface LxmfPropagationSyncPrepPlanStepResult {
+  readonly state: LxmfPropagationSyncPrepPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfPropagationSyncPrepPlanAction[];
+}
+
+export function initialLxmfPropagationSyncPrepPlanState(): LxmfPropagationSyncPrepPlanState {
+  return {};
+}
+
+export function stepLxmfPropagationSyncPrepPlanWithActions(
+  state: LxmfPropagationSyncPrepPlanState,
+  event: LxmfPropagationSyncPrepPlanEvent
+): LxmfPropagationSyncPrepPlanStepResult {
+  if (event.kind === "propagation-sync-prep/plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLxmfPropagationSyncPrep({
+            nodeConfigured: event.nodeConfigured,
+            deliveryIdentityPresent: event.deliveryIdentityPresent
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Whether plan actions allow propagation sync to proceed. */
+export function shouldPlanLxmfPropagationSyncPrepOk(
+  actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ok");
+}
+
+/** Whether plan actions reject a missing propagation node. */
+export function shouldRejectLxmfPropagationSyncPrepPlanMissingNode(
+  actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing-node");
+}
+
+/** Whether plan actions reject a missing delivery identity. */
+export function shouldRejectLxmfPropagationSyncPrepPlanMissingDeliveryIdentity(
+  actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing-delivery-identity");
+}
+
+/** Extract the sync-prep plan from actions; null when empty. */
+export function lxmfPropagationSyncPrepPlanFromActions(
+  actions: ReadonlyArray<LxmfPropagationSyncPrepPlanAction>
+): LxmfPropagationSyncPrepPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ok" ||
+      entry.kind === "missing-node" ||
+      entry.kind === "missing-delivery-identity"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * Propagation sync-prep gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLxmfPropagationSyncPrepPlanWithActions}
+ * (`ok`|`missing-node`|`missing-delivery-identity`).
  */
 export type LxmfPropagationSyncPrepState = Record<string, never>;
 
@@ -1504,6 +1696,11 @@ export type LxmfPropagationSyncPrepEvent =
       readonly deliveryIdentityPresent: boolean;
     };
 
+/**
+ * Adapter applies proceed / reject only from these actions.
+ * Plan nested via {@link stepLxmfPropagationSyncPrepPlanWithActions}
+ * (`ok`|`missing-node`|`missing-delivery-identity`).
+ */
 export type LxmfPropagationSyncPrepAction =
   | { readonly kind: "proceed" }
   | { readonly kind: "reject-missing-node" }
@@ -1560,19 +1757,26 @@ function stepLxmfPropagationSyncPrepInner(
   event: LxmfPropagationSyncPrepEvent
 ): LxmfPropagationSyncPrepStepResult {
   if (event.kind === "propagation-sync-prep/gate") {
-    const plan = planLxmfPropagationSyncPrep({
-      nodeConfigured: event.nodeConfigured,
-      deliveryIdentityPresent: event.deliveryIdentityPresent
-    });
-    if (plan === "missing-node") {
+    const planActions = stepLxmfPropagationSyncPrepPlanWithActions(
+      initialLxmfPropagationSyncPrepPlanState(),
+      {
+        kind: "propagation-sync-prep/plan-gate",
+        nodeConfigured: event.nodeConfigured,
+        deliveryIdentityPresent: event.deliveryIdentityPresent
+      }
+    ).actions;
+    if (shouldRejectLxmfPropagationSyncPrepPlanMissingNode(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-missing-node" }] };
     }
-    if (plan === "missing-delivery-identity") {
+    if (shouldRejectLxmfPropagationSyncPrepPlanMissingDeliveryIdentity(planActions)) {
       return {
         state,
         intents: [],
         actions: [{ kind: "reject-missing-delivery-identity" }]
       };
+    }
+    if (!shouldPlanLxmfPropagationSyncPrepOk(planActions)) {
+      return { state, intents: [], actions: [] };
     }
     return { state, intents: [], actions: [{ kind: "proceed" }] };
   }
@@ -1687,8 +1891,110 @@ export function planLxmfPropagationLocalIngress(input: {
 }
 
 /**
+ * Propagation local-ingress-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLxmfPropagationLocalIngress` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLxmfPropagationLocalIngressWithActions}.
+ */
+export type LxmfPropagationLocalIngressPlanState = Record<string, never>;
+
+export type LxmfPropagationLocalIngressPlanEvent =
+  | Event
+  | {
+      readonly kind: "propagation-local-ingress/plan-gate";
+      readonly prefixedPresent: boolean;
+      readonly deliveryDestinationPresent: boolean;
+      readonly destinationHashMatches: boolean;
+      readonly decryptedPresent: boolean;
+    };
+
+export type LxmfPropagationLocalIngressPlanAction =
+  | { readonly kind: "deliver" }
+  | { readonly kind: "reject-prefix" }
+  | { readonly kind: "reject-destination" }
+  | { readonly kind: "reject-decrypt" };
+
+export interface LxmfPropagationLocalIngressPlanStepResult {
+  readonly state: LxmfPropagationLocalIngressPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfPropagationLocalIngressPlanAction[];
+}
+
+export function initialLxmfPropagationLocalIngressPlanState(): LxmfPropagationLocalIngressPlanState {
+  return {};
+}
+
+export function stepLxmfPropagationLocalIngressPlanWithActions(
+  state: LxmfPropagationLocalIngressPlanState,
+  event: LxmfPropagationLocalIngressPlanEvent
+): LxmfPropagationLocalIngressPlanStepResult {
+  if (event.kind === "propagation-local-ingress/plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLxmfPropagationLocalIngress({
+            prefixedPresent: event.prefixedPresent,
+            deliveryDestinationPresent: event.deliveryDestinationPresent,
+            destinationHashMatches: event.destinationHashMatches,
+            decryptedPresent: event.decryptedPresent
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Whether plan actions allow local-ingress delivery. */
+export function shouldPlanLxmfPropagationLocalIngressDeliver(
+  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "deliver");
+}
+
+/** Whether plan actions reject a missing prefix. */
+export function shouldRejectLxmfPropagationLocalIngressPlanPrefix(
+  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-prefix");
+}
+
+/** Whether plan actions reject a destination mismatch. */
+export function shouldRejectLxmfPropagationLocalIngressPlanDestination(
+  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-destination");
+}
+
+/** Whether plan actions reject a failed decrypt. */
+export function shouldRejectLxmfPropagationLocalIngressPlanDecrypt(
+  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-decrypt");
+}
+
+/** Extract the local-ingress plan from actions; null when empty. */
+export function lxmfPropagationLocalIngressPlanFromActions(
+  actions: ReadonlyArray<LxmfPropagationLocalIngressPlanAction>
+): LxmfPropagationLocalIngressPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "deliver" ||
+      entry.kind === "reject-prefix" ||
+      entry.kind === "reject-destination" ||
+      entry.kind === "reject-decrypt"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * Propagation local-ingress gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLxmfPropagationLocalIngressPlanWithActions}
+ * (`deliver`|`reject-prefix`|`reject-destination`|`reject-decrypt`).
  */
 export type LxmfPropagationLocalIngressState = Record<string, never>;
 
@@ -1702,6 +2008,11 @@ export type LxmfPropagationLocalIngressEvent =
       readonly decryptedPresent: boolean;
     };
 
+/**
+ * Adapter applies deliver / reject only from these actions.
+ * Plan nested via {@link stepLxmfPropagationLocalIngressPlanWithActions}
+ * (`deliver`|`reject-prefix`|`reject-destination`|`reject-decrypt`).
+ */
 export type LxmfPropagationLocalIngressAction =
   | { readonly kind: "deliver" }
   | { readonly kind: "reject-prefix" }
@@ -1844,20 +2155,27 @@ function stepLxmfPropagationLocalIngressInner(
   event: LxmfPropagationLocalIngressEvent
 ): LxmfPropagationLocalIngressStepResult {
   if (event.kind === "propagation-local-ingress/gate") {
-    const plan = planLxmfPropagationLocalIngress({
-      prefixedPresent: event.prefixedPresent,
-      deliveryDestinationPresent: event.deliveryDestinationPresent,
-      destinationHashMatches: event.destinationHashMatches,
-      decryptedPresent: event.decryptedPresent
-    });
-    if (plan === "reject-prefix") {
+    const planActions = stepLxmfPropagationLocalIngressPlanWithActions(
+      initialLxmfPropagationLocalIngressPlanState(),
+      {
+        kind: "propagation-local-ingress/plan-gate",
+        prefixedPresent: event.prefixedPresent,
+        deliveryDestinationPresent: event.deliveryDestinationPresent,
+        destinationHashMatches: event.destinationHashMatches,
+        decryptedPresent: event.decryptedPresent
+      }
+    ).actions;
+    if (shouldRejectLxmfPropagationLocalIngressPlanPrefix(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-prefix" }] };
     }
-    if (plan === "reject-destination") {
+    if (shouldRejectLxmfPropagationLocalIngressPlanDestination(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-destination" }] };
     }
-    if (plan === "reject-decrypt") {
+    if (shouldRejectLxmfPropagationLocalIngressPlanDecrypt(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-decrypt" }] };
+    }
+    if (!shouldPlanLxmfPropagationLocalIngressDeliver(planActions)) {
+      return { state, intents: [], actions: [] };
     }
     return { state, intents: [], actions: [{ kind: "deliver" }] };
   }
@@ -1890,8 +2208,108 @@ export function planLxmfPropagationLinkReady(input: {
 }
 
 /**
+ * Propagation link-ready-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLxmfPropagationLinkReady` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLxmfPropagationLinkReadyWithActions}.
+ */
+export type LxmfPropagationLinkReadyPlanState = Record<string, never>;
+
+export type LxmfPropagationLinkReadyPlanEvent =
+  | Event
+  | {
+      readonly kind: "propagation-link/plan-gate";
+      readonly canReuseLink: boolean;
+      readonly nodeConfigured: boolean;
+      readonly nodeIdentityPresent: boolean;
+    };
+
+export type LxmfPropagationLinkReadyPlanAction =
+  | { readonly kind: "reuse" }
+  | { readonly kind: "establish" }
+  | { readonly kind: "missing-node" }
+  | { readonly kind: "missing-identity" };
+
+export interface LxmfPropagationLinkReadyPlanStepResult {
+  readonly state: LxmfPropagationLinkReadyPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfPropagationLinkReadyPlanAction[];
+}
+
+export function initialLxmfPropagationLinkReadyPlanState(): LxmfPropagationLinkReadyPlanState {
+  return {};
+}
+
+export function stepLxmfPropagationLinkReadyPlanWithActions(
+  state: LxmfPropagationLinkReadyPlanState,
+  event: LxmfPropagationLinkReadyPlanEvent
+): LxmfPropagationLinkReadyPlanStepResult {
+  if (event.kind === "propagation-link/plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLxmfPropagationLinkReady({
+            canReuseLink: event.canReuseLink,
+            nodeConfigured: event.nodeConfigured,
+            nodeIdentityPresent: event.nodeIdentityPresent
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Whether plan actions reuse an existing propagation link. */
+export function shouldPlanLxmfPropagationLinkReadyReuse(
+  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reuse");
+}
+
+/** Whether plan actions establish a new propagation link. */
+export function shouldPlanLxmfPropagationLinkReadyEstablish(
+  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "establish");
+}
+
+/** Whether plan actions reject a missing propagation node. */
+export function shouldRejectLxmfPropagationLinkReadyPlanMissingNode(
+  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing-node");
+}
+
+/** Whether plan actions reject a missing node identity. */
+export function shouldRejectLxmfPropagationLinkReadyPlanMissingIdentity(
+  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "missing-identity");
+}
+
+/** Extract the link-ready plan from actions; null when empty. */
+export function lxmfPropagationLinkReadyPlanFromActions(
+  actions: ReadonlyArray<LxmfPropagationLinkReadyPlanAction>
+): LxmfPropagationLinkReadyPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "reuse" ||
+      entry.kind === "establish" ||
+      entry.kind === "missing-node" ||
+      entry.kind === "missing-identity"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * Propagation link-ready gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLxmfPropagationLinkReadyPlanWithActions}
+ * (`reuse`|`establish`|`missing-node`|`missing-identity`).
  */
 export type LxmfPropagationLinkReadyState = Record<string, never>;
 
@@ -1904,6 +2322,11 @@ export type LxmfPropagationLinkReadyEvent =
       readonly nodeIdentityPresent: boolean;
     };
 
+/**
+ * Adapter applies reuse / establish / reject only from these actions.
+ * Plan nested via {@link stepLxmfPropagationLinkReadyPlanWithActions}
+ * (`reuse`|`establish`|`missing-node`|`missing-identity`).
+ */
 export type LxmfPropagationLinkReadyAction =
   | { readonly kind: "reuse" }
   | { readonly kind: "establish" }
@@ -1967,19 +2390,26 @@ function stepLxmfPropagationLinkReadyInner(
   event: LxmfPropagationLinkReadyEvent
 ): LxmfPropagationLinkReadyStepResult {
   if (event.kind === "propagation-link/gate") {
-    const plan = planLxmfPropagationLinkReady({
-      canReuseLink: event.canReuseLink,
-      nodeConfigured: event.nodeConfigured,
-      nodeIdentityPresent: event.nodeIdentityPresent
-    });
-    if (plan === "reuse") {
+    const planActions = stepLxmfPropagationLinkReadyPlanWithActions(
+      initialLxmfPropagationLinkReadyPlanState(),
+      {
+        kind: "propagation-link/plan-gate",
+        canReuseLink: event.canReuseLink,
+        nodeConfigured: event.nodeConfigured,
+        nodeIdentityPresent: event.nodeIdentityPresent
+      }
+    ).actions;
+    if (shouldPlanLxmfPropagationLinkReadyReuse(planActions)) {
       return { state, intents: [], actions: [{ kind: "reuse" }] };
     }
-    if (plan === "missing-node") {
+    if (shouldRejectLxmfPropagationLinkReadyPlanMissingNode(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-missing-node" }] };
     }
-    if (plan === "missing-identity") {
+    if (shouldRejectLxmfPropagationLinkReadyPlanMissingIdentity(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-missing-identity" }] };
+    }
+    if (!shouldPlanLxmfPropagationLinkReadyEstablish(planActions)) {
+      return { state, intents: [], actions: [] };
     }
     return { state, intents: [], actions: [{ kind: "establish" }] };
   }
