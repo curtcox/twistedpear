@@ -69,8 +69,10 @@ import {
   initialComputeLinkRttSecondsState,
   initialContainsResourceHashState,
   initialLinkAppRequestInboundState,
+  initialInvokeLinkAppRequestHandlerState,
   initialLinkEstablishState,
   initialLinkIdentifyState,
+  initialCommitLinkRemoteIdentityState,
   initialLinkProofValidateState,
   initialLinkResourceAdvertisementState,
   initialLinkTeardownState,
@@ -79,6 +81,7 @@ import {
   initialMergeLinkRttState,
   initialPendingLinkRequestRegisterState,
   initialRequestLinkDestinationState,
+  initialSendLinkAppRequestResponseState,
   shouldTreatLinkClosed,
   initialLinkClosedState,
   stepLinkClosedWithActions,
@@ -258,6 +261,7 @@ import {
   stepAttemptLinkProofCryptoWithActions,
   shouldCloseOnlyLinkTeardown,
   shouldCommitLinkIdentify,
+  shouldCommitLinkRemoteIdentityNow,
   shouldContinueLinkValidateRequest,
   shouldProceedLinkValidateRequest,
   shouldCreateLinkChannelNow,
@@ -304,6 +308,7 @@ import {
   shouldHandleLinkDataRtt,
   shouldIgnoreLinkDataContext,
   shouldIgnoreLinkResourceAdvertisement,
+  shouldInvokeLinkAppRequestHandlerNow,
   shouldInvokeLinkAppRequestInbound,
   shouldKeepPendingLinkAppRequestTransmit,
   shouldPresentResourceHash,
@@ -327,6 +332,7 @@ import {
   shouldReuseLinkToken,
   shouldSendLinkAppRequest,
   shouldSendLinkAppRequestInboundResponse,
+  shouldSendLinkAppRequestResponseNow,
   shouldSendLinkTeardownThenClose,
   shouldTeardownLinkEstablish,
   shouldUnregisterLinkAppRequestTransmit,
@@ -371,9 +377,12 @@ import {
   stepLinkAppRequestInboundWithActions,
   stepLinkAppRequestTransmitWithActions,
   stepLinkAppRequestWithActions,
+  stepInvokeLinkAppRequestHandlerWithActions,
+  stepSendLinkAppRequestResponseWithActions,
   stepLinkDataContextWithActions,
   stepLinkEstablishWithActions,
   stepLinkIdentifyWithActions,
+  stepCommitLinkRemoteIdentityWithActions,
   stepLinkProofValidateWithActions,
   stepLinkResourceAdvertisementWithActions,
   stepContainsResourceHashWithActions,
@@ -2017,10 +2026,20 @@ export class Link {
       return;
     }
 
-    if (shouldCommitLinkIdentify(actions) && identity !== null) {
-      this.remoteIdentity = identity;
-      this.callbacks.remoteIdentified?.(this, identity);
+    const commitStepped = stepCommitLinkRemoteIdentityWithActions(
+      initialCommitLinkRemoteIdentityState(),
+      {
+        kind: "link-identify/commit-remote-identity-gate",
+        planAccept: shouldCommitLinkIdentify(actions),
+        identityPresent: identity !== null
+      }
+    );
+    /* Commit remoteIdentity only from `commit` (no ad-hoc identity !== null). */
+    if (!shouldCommitLinkRemoteIdentityNow(commitStepped.actions)) {
+      return;
     }
+    this.remoteIdentity = identity!;
+    this.callbacks.remoteIdentified?.(this, identity!);
   }
 
   private async handleRequestPacket(packet: Packet): Promise<void> {
@@ -2086,7 +2105,17 @@ export class Link {
       return;
     }
 
-    if (shouldInvokeLinkAppRequestInbound(actions)) {
+    const invokeStepped = stepInvokeLinkAppRequestHandlerWithActions(
+      initialInvokeLinkAppRequestHandlerState(),
+      {
+        kind: "link/invoke-app-request-handler-gate",
+        dispatchInvoke: shouldInvokeLinkAppRequestInbound(actions),
+        unpackedPresent: ctx.unpacked !== null,
+        handlerPresent: ctx.handler !== undefined
+      }
+    );
+    /* Invoke handler only from `invoke` (no ad-hoc unpacked/handler presence). */
+    if (shouldInvokeLinkAppRequestHandlerNow(invokeStepped.actions)) {
       const response = await ctx.handler!.responseGenerator(
         ctx.handler!.path,
         ctx.unpacked!.data,
@@ -2127,11 +2156,17 @@ export class Link {
       return;
     }
 
-    if (
-      shouldSendLinkAppRequestInboundResponse(actions) &&
-      ctx.packedResponse !== null
-    ) {
-      await this.sendContext(PacketContext.RESPONSE, ctx.packedResponse);
+    const sendStepped = stepSendLinkAppRequestResponseWithActions(
+      initialSendLinkAppRequestResponseState(),
+      {
+        kind: "link/send-app-request-response-gate",
+        planSend: shouldSendLinkAppRequestInboundResponse(actions),
+        packedPresent: ctx.packedResponse !== null
+      }
+    );
+    /* Transmit packed response only from `send` (no ad-hoc packedResponse reads). */
+    if (shouldSendLinkAppRequestResponseNow(sendStepped.actions)) {
+      await this.sendContext(PacketContext.RESPONSE, ctx.packedResponse!);
     }
   }
 

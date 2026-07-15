@@ -3,6 +3,7 @@ import {
   LINK_IDENTIFY_PAYLOAD_SIZE,
   canAcceptLinkIdentify,
   initialAcceptLinkIdentifyState,
+  initialCommitLinkRemoteIdentityState,
   initialLinkIdentifyState,
   initialLinkIdentifySignedMaterialState,
   initialPackLinkIdentifyPayloadState,
@@ -16,15 +17,18 @@ import {
   shouldAcceptLinkIdentifyNow,
   shouldCommitLinkIdentify,
   shouldCommitLinkRemoteIdentity,
+  shouldCommitLinkRemoteIdentityNow,
   shouldRejectLinkIdentify,
   shouldRejectPackLinkIdentifyPayload,
   shouldRejectSplitLinkIdentifyPayload,
+  shouldSkipCommitLinkRemoteIdentity,
   shouldSkipLinkIdentifyAccept,
   shouldUseLinkIdentifySignedMaterial,
   shouldUsePackLinkIdentifyPayload,
   shouldUseSplitLinkIdentifyPayload,
   splitLinkIdentifyPayload,
   stepAcceptLinkIdentifyWithActions,
+  stepCommitLinkRemoteIdentityWithActions,
   stepLinkIdentifyWithActions,
   stepLinkIdentifySignedMaterialWithActions,
   stepPackLinkIdentifyPayloadWithActions,
@@ -104,6 +108,28 @@ describe("protocol link identify", () => {
     expect(
       shouldCommitLinkRemoteIdentity({ planAccept: false, identityPresent: true })
     ).toBe(false);
+
+    const commitApply = stepCommitLinkRemoteIdentityWithActions(
+      initialCommitLinkRemoteIdentityState(),
+      {
+        kind: "link-identify/commit-remote-identity-gate",
+        planAccept: true,
+        identityPresent: true
+      }
+    );
+    expect(shouldCommitLinkRemoteIdentityNow(commitApply.actions)).toBe(true);
+    expect(shouldSkipCommitLinkRemoteIdentity(commitApply.actions)).toBe(false);
+
+    const commitSkip = stepCommitLinkRemoteIdentityWithActions(
+      initialCommitLinkRemoteIdentityState(),
+      {
+        kind: "link-identify/commit-remote-identity-gate",
+        planAccept: true,
+        identityPresent: false
+      }
+    );
+    expect(shouldCommitLinkRemoteIdentityNow(commitSkip.actions)).toBe(false);
+    expect(shouldSkipCommitLinkRemoteIdentity(commitSkip.actions)).toBe(true);
   });
 
   it("emits reject / commit actions from identify/received", () => {

@@ -17,8 +17,10 @@
  * `canAcceptLinkOwnerPublicKey` / `canValidateLinkProof` /
  * `shouldAttemptLinkProofCrypto` / `canAcceptLinkRtt` / `canIdentifyOnLink` /
  * `shouldDispatchLinkPlaintext` / `canResendLinkPacket` reads beside the step).
- * Link-member register gate concludes via machine actions (no ad-hoc
- * `shouldRegisterLinkMember` reads beside the step).
+ * Link-member register / invoke-app-request-handler / send-app-request-response
+ * gates conclude via machine actions (no ad-hoc `shouldRegisterLinkMember` /
+ * `shouldInvokeLinkAppRequestHandler` / `shouldSendLinkAppRequestResponse`
+ * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { planDestinationRequestAllow } from "./destination-allow.js";
@@ -1214,6 +1216,73 @@ export function shouldInvokeLinkAppRequestHandler(input: {
 }
 
 /**
+ * Link app-request invoke-handler apply gate is event-driven; no durable
+ * session fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldInvokeLinkAppRequestHandler` reads beside the step).
+ */
+export type InvokeLinkAppRequestHandlerState = Record<string, never>;
+
+export type InvokeLinkAppRequestHandlerEvent =
+  | Event
+  | {
+      readonly kind: "link/invoke-app-request-handler-gate";
+      readonly dispatchInvoke: boolean;
+      readonly unpackedPresent: boolean;
+      readonly handlerPresent: boolean;
+    };
+
+export type InvokeLinkAppRequestHandlerAction =
+  | { readonly kind: "invoke" }
+  | { readonly kind: "skip" };
+
+export interface InvokeLinkAppRequestHandlerStepResult {
+  readonly state: InvokeLinkAppRequestHandlerState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly InvokeLinkAppRequestHandlerAction[];
+}
+
+export function initialInvokeLinkAppRequestHandlerState(): InvokeLinkAppRequestHandlerState {
+  return {};
+}
+
+export function stepInvokeLinkAppRequestHandlerWithActions(
+  state: InvokeLinkAppRequestHandlerState,
+  event: InvokeLinkAppRequestHandlerEvent
+): InvokeLinkAppRequestHandlerStepResult {
+  if (event.kind === "link/invoke-app-request-handler-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldInvokeLinkAppRequestHandler({
+            dispatchInvoke: event.dispatchInvoke,
+            unpackedPresent: event.unpackedPresent,
+            handlerPresent: event.handlerPresent
+          })
+            ? "invoke"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldInvokeLinkAppRequestHandlerNow(
+  actions: ReadonlyArray<InvokeLinkAppRequestHandlerAction>
+): boolean {
+  return actions.some((action) => action.kind === "invoke");
+}
+
+export function shouldSkipInvokeLinkAppRequestHandler(
+  actions: ReadonlyArray<InvokeLinkAppRequestHandlerAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/**
  * Whether a packed app-request response may be transmitted after
  * {@link planLinkAppRequestResponse} returns send-response.
  */
@@ -1222,6 +1291,71 @@ export function shouldSendLinkAppRequestResponse(input: {
   readonly packedPresent: boolean;
 }): boolean {
   return input.planSend && input.packedPresent;
+}
+
+/**
+ * Link app-request send-response apply gate is event-driven; no durable
+ * session fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldSendLinkAppRequestResponse` reads beside the step).
+ */
+export type SendLinkAppRequestResponseState = Record<string, never>;
+
+export type SendLinkAppRequestResponseEvent =
+  | Event
+  | {
+      readonly kind: "link/send-app-request-response-gate";
+      readonly planSend: boolean;
+      readonly packedPresent: boolean;
+    };
+
+export type SendLinkAppRequestResponseAction =
+  | { readonly kind: "send" }
+  | { readonly kind: "skip" };
+
+export interface SendLinkAppRequestResponseStepResult {
+  readonly state: SendLinkAppRequestResponseState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly SendLinkAppRequestResponseAction[];
+}
+
+export function initialSendLinkAppRequestResponseState(): SendLinkAppRequestResponseState {
+  return {};
+}
+
+export function stepSendLinkAppRequestResponseWithActions(
+  state: SendLinkAppRequestResponseState,
+  event: SendLinkAppRequestResponseEvent
+): SendLinkAppRequestResponseStepResult {
+  if (event.kind === "link/send-app-request-response-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldSendLinkAppRequestResponse({
+            planSend: event.planSend,
+            packedPresent: event.packedPresent
+          })
+            ? "send"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldSendLinkAppRequestResponseNow(
+  actions: ReadonlyArray<SendLinkAppRequestResponseAction>
+): boolean {
+  return actions.some((action) => action.kind === "send");
+}
+
+export function shouldSkipSendLinkAppRequestResponse(
+  actions: ReadonlyArray<SendLinkAppRequestResponseAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a packed application response may be sent after the handler returns. */
@@ -1242,7 +1376,9 @@ export function planLinkAppRequestResponse(input: {
 /**
  * Pure inbound link application-request dispatch (handler invoke → response send).
  * Decrypt / unpack / responseGenerator / encrypt stay at the adapter edge.
- * Conclusions leave via machine actions (no ad-hoc plan outcome reads beside the step).
+ * Conclusions leave via machine actions (no ad-hoc plan outcome /
+ * `shouldInvokeLinkAppRequestHandler` / `shouldSendLinkAppRequestResponse`
+ * reads beside the step).
  */
 export interface LinkAppRequestInboundState {
   readonly waitingHandler: boolean;
@@ -1372,13 +1508,16 @@ function stepLinkAppRequestInboundInner(
     if (plan === "forbidden") {
       return { state, intents: [], actions: [{ kind: "forbidden" }] };
     }
-    if (
-      !shouldInvokeLinkAppRequestHandler({
+    const invokeStepped = stepInvokeLinkAppRequestHandlerWithActions(
+      initialInvokeLinkAppRequestHandlerState(),
+      {
+        kind: "link/invoke-app-request-handler-gate",
         dispatchInvoke: true,
         unpackedPresent: event.unpackedPresent,
         handlerPresent: event.handlerPresent
-      })
-    ) {
+      }
+    );
+    if (!shouldInvokeLinkAppRequestHandlerNow(invokeStepped.actions)) {
       return { state, intents: [], actions: [{ kind: "ignore" }] };
     }
     return {
@@ -1404,12 +1543,15 @@ function stepLinkAppRequestInboundInner(
     if (plan === "response-too-big") {
       return { state: next, intents: [], actions: [{ kind: "response-too-big" }] };
     }
-    if (
-      !shouldSendLinkAppRequestResponse({
+    const sendStepped = stepSendLinkAppRequestResponseWithActions(
+      initialSendLinkAppRequestResponseState(),
+      {
+        kind: "link/send-app-request-response-gate",
         planSend: true,
         packedPresent: event.responsePresent
-      })
-    ) {
+      }
+    );
+    if (!shouldSendLinkAppRequestResponseNow(sendStepped.actions)) {
       return { state: next, intents: [], actions: [{ kind: "ignore-response" }] };
     }
     return { state: next, intents: [], actions: [{ kind: "send-response" }] };

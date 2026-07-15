@@ -19,11 +19,13 @@ import {
   initialAcceptLinkPacketInterfaceState,
   initialCreateLinkChannelState,
   initialEncryptLinkPayloadState,
+  initialInvokeLinkAppRequestHandlerState,
   initialLinkClosedState,
   initialLinkInboundDataPacketState,
   initialLinkRequestAllowState,
   initialLinkSendAllowState,
   initialReuseActiveLinkState,
+  initialSendLinkAppRequestResponseState,
   initialUpdateLinkKeepaliveAllowState,
   initialUpdateLinkLastDataState,
   shouldAcceptLinkPacketInterfaceNow,
@@ -153,6 +155,7 @@ import {
   shouldIgnoreLinkAppRequestInboundResponse,
   shouldIgnoreLinkEstablishRtt,
   shouldInvokeLinkAppRequestHandler,
+  shouldInvokeLinkAppRequestHandlerNow,
   shouldInvokeLinkAppRequestInbound,
   shouldKeepPendingLinkAppRequestTransmit,
   shouldProceedLinkValidateRequest,
@@ -177,7 +180,10 @@ import {
   shouldSendLinkAppRequest,
   shouldSendLinkAppRequestInboundResponse,
   shouldSendLinkAppRequestResponse,
+  shouldSendLinkAppRequestResponseNow,
+  shouldSkipInvokeLinkAppRequestHandler,
   shouldSkipRegisterLinkMember,
+  shouldSkipSendLinkAppRequestResponse,
   shouldTeardownLinkEstablish,
   shouldTeardownLinkFromRtt,
   shouldUnregisterLinkAppRequestTransmit,
@@ -185,6 +191,7 @@ import {
   shouldUseLinkRttSeconds,
   shouldUseMergeLinkRtt,
   stepComputeLinkRttSecondsWithActions,
+  stepInvokeLinkAppRequestHandlerWithActions,
   stepLinkActivateMembershipWithActions,
   stepLinkAppRequestInbound,
   stepLinkAppRequestInboundWithActions,
@@ -195,6 +202,7 @@ import {
   stepLinkProofValidateWithActions,
   stepLinkRegisterListWithActions,
   stepRegisterLinkMemberWithActions,
+  stepSendLinkAppRequestResponseWithActions,
   stepLinkTokenAccessWithActions,
   stepLinkUnregisterMembershipWithActions,
   stepLinkValidateRequestWithActions,
@@ -993,6 +1001,52 @@ describe("protocol link establish", () => {
         packedPresent: false
       })
     ).toBe(false);
+
+    const invokeApply = stepInvokeLinkAppRequestHandlerWithActions(
+      initialInvokeLinkAppRequestHandlerState(),
+      {
+        kind: "link/invoke-app-request-handler-gate",
+        dispatchInvoke: true,
+        unpackedPresent: true,
+        handlerPresent: true
+      }
+    );
+    expect(shouldInvokeLinkAppRequestHandlerNow(invokeApply.actions)).toBe(true);
+    expect(shouldSkipInvokeLinkAppRequestHandler(invokeApply.actions)).toBe(false);
+
+    const invokeSkip = stepInvokeLinkAppRequestHandlerWithActions(
+      initialInvokeLinkAppRequestHandlerState(),
+      {
+        kind: "link/invoke-app-request-handler-gate",
+        dispatchInvoke: true,
+        unpackedPresent: false,
+        handlerPresent: true
+      }
+    );
+    expect(shouldInvokeLinkAppRequestHandlerNow(invokeSkip.actions)).toBe(false);
+    expect(shouldSkipInvokeLinkAppRequestHandler(invokeSkip.actions)).toBe(true);
+
+    const sendApply = stepSendLinkAppRequestResponseWithActions(
+      initialSendLinkAppRequestResponseState(),
+      {
+        kind: "link/send-app-request-response-gate",
+        planSend: true,
+        packedPresent: true
+      }
+    );
+    expect(shouldSendLinkAppRequestResponseNow(sendApply.actions)).toBe(true);
+    expect(shouldSkipSendLinkAppRequestResponse(sendApply.actions)).toBe(false);
+
+    const sendSkip = stepSendLinkAppRequestResponseWithActions(
+      initialSendLinkAppRequestResponseState(),
+      {
+        kind: "link/send-app-request-response-gate",
+        planSend: true,
+        packedPresent: false
+      }
+    );
+    expect(shouldSendLinkAppRequestResponseNow(sendSkip.actions)).toBe(false);
+    expect(shouldSkipSendLinkAppRequestResponse(sendSkip.actions)).toBe(true);
   });
 
   it("emits app-request inbound actions for ignore / invoke / response", () => {

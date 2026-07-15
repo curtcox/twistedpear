@@ -4,8 +4,9 @@
  * Pack / split / signed-material / acceptance conclusions leave via machine
  * actions (no ad-hoc `packLinkIdentifyPayload` / `splitLinkIdentifyPayload` /
  * `linkIdentifySignedMaterial` / `plan.kind` reads beside the step).
- * Accept-before-decrypt gate concludes via machine actions (no ad-hoc
- * `canAcceptLinkIdentify` reads beside the step).
+ * Accept-before-decrypt / commit-remote-identity gates conclude via machine
+ * actions (no ad-hoc `canAcceptLinkIdentify` /
+ * `shouldCommitLinkRemoteIdentity` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -113,6 +114,71 @@ export function shouldCommitLinkRemoteIdentity(input: {
   return input.planAccept && input.identityPresent;
 }
 
+/**
+ * LINKIDENTIFY commit-remote-identity apply gate is event-driven; no durable
+ * session fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldCommitLinkRemoteIdentity` reads beside the step).
+ */
+export type CommitLinkRemoteIdentityState = Record<string, never>;
+
+export type CommitLinkRemoteIdentityEvent =
+  | Event
+  | {
+      readonly kind: "link-identify/commit-remote-identity-gate";
+      readonly planAccept: boolean;
+      readonly identityPresent: boolean;
+    };
+
+export type CommitLinkRemoteIdentityAction =
+  | { readonly kind: "commit" }
+  | { readonly kind: "skip" };
+
+export interface CommitLinkRemoteIdentityStepResult {
+  readonly state: CommitLinkRemoteIdentityState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly CommitLinkRemoteIdentityAction[];
+}
+
+export function initialCommitLinkRemoteIdentityState(): CommitLinkRemoteIdentityState {
+  return {};
+}
+
+export function stepCommitLinkRemoteIdentityWithActions(
+  state: CommitLinkRemoteIdentityState,
+  event: CommitLinkRemoteIdentityEvent
+): CommitLinkRemoteIdentityStepResult {
+  if (event.kind === "link-identify/commit-remote-identity-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldCommitLinkRemoteIdentity({
+            planAccept: event.planAccept,
+            identityPresent: event.identityPresent
+          })
+            ? "commit"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldCommitLinkRemoteIdentityNow(
+  actions: ReadonlyArray<CommitLinkRemoteIdentityAction>
+): boolean {
+  return actions.some((action) => action.kind === "commit");
+}
+
+export function shouldSkipCommitLinkRemoteIdentity(
+  actions: ReadonlyArray<CommitLinkRemoteIdentityAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 export interface LinkIdentifyState {
   readonly initiator: boolean;
 }
@@ -184,12 +250,15 @@ function stepLinkIdentifyInner(
       identityPresent: event.identityPresent,
       signatureValid: event.signatureValid
     });
-    if (
-      !shouldCommitLinkRemoteIdentity({
+    const commitStepped = stepCommitLinkRemoteIdentityWithActions(
+      initialCommitLinkRemoteIdentityState(),
+      {
+        kind: "link-identify/commit-remote-identity-gate",
         planAccept: outcome === "accept",
         identityPresent: event.identityPresent
-      })
-    ) {
+      }
+    );
+    if (!shouldCommitLinkRemoteIdentityNow(commitStepped.actions)) {
       return { state, intents: [], actions: [{ kind: "reject" }] };
     }
     return { state, intents: [], actions: [{ kind: "commit" }] };
