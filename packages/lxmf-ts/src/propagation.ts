@@ -1,14 +1,18 @@
 import {
   PROPAGATION_LINK_TIMER_ID,
   PropagationTransferState,
+  initialAcceptPropagationDeliveredMessageState,
   initialAcceptPropagationPeerResponseState,
   initialDecodeLxmfPeerErrorState,
+  initialHandlePropagationPeerErrorState,
   initialLinkAppRequestAwaitState,
   initialLxmfPropagationLinkReadyState,
   initialLxmfPropagationSyncPrepState,
   initialPackPropagationRequestState,
   initialPropagationGetState,
   initialPropagationTransferState,
+  initialRequestPropagationHavesAckState,
+  initialTreatPropagationListAsEmptyState,
   initialUnpackBinListState,
   initialUnpackPropagationEnvelopeState,
   initialUnpackPropagationRequestState,
@@ -21,10 +25,10 @@ import {
   propagationRequestFieldsFromActions,
   shouldAcceptPropagationGetRequestData,
   shouldAcceptPropagationPeerResponseNow,
-  shouldAcceptPropagationDeliveredMessage,
+  shouldAcceptPropagationDeliveredMessageNow,
   shouldApplyPropagationGet,
   shouldEstablishLxmfPropagationLink,
-  shouldHandlePropagationPeerError,
+  shouldHandlePropagationPeerErrorNow,
   shouldListPropagationGetIds,
   shouldProceedLxmfPropagationSyncPrep,
   shouldRejectLxmfPropagationMissingIdentity,
@@ -34,20 +38,22 @@ import {
   shouldRejectUnpackBinList,
   shouldRejectUnpackPropagationEnvelope,
   shouldRejectUnpackPropagationRequest,
-  shouldRequestPropagationHavesAck,
+  shouldRequestPropagationHavesAckNow,
   shouldReuseActiveLinkNow,
   initialReuseActiveLinkState,
   initialTeardownLxmfPropagationLinkState,
   stepReuseActiveLinkWithActions,
   shouldTeardownLxmfPropagationLinkNow,
-  shouldTreatPropagationListAsEmpty,
+  shouldTreatPropagationListAsEmptyNow,
   shouldUseDecodeLxmfPeerError,
   shouldUsePackPropagationRequest,
   shouldUseUnpackBinList,
   shouldUseUnpackPropagationEnvelope,
   shouldUseUnpackPropagationRequest,
+  stepAcceptPropagationDeliveredMessageWithActions,
   stepAcceptPropagationPeerResponseWithActions,
   stepDecodeLxmfPeerErrorWithActions,
+  stepHandlePropagationPeerErrorWithActions,
   stepLinkAppRequestAwaitWithActions,
   stepLxmfPropagationLinkReadyWithActions,
   stepLxmfPropagationSyncPrepWithActions,
@@ -55,6 +61,8 @@ import {
   stepPackPropagationRequestWithActions,
   stepPropagationGetWithActions,
   stepPropagationTransferWithActions,
+  stepRequestPropagationHavesAckWithActions,
+  stepTreatPropagationListAsEmptyWithActions,
   stepUnpackBinListWithActions,
   stepUnpackPropagationEnvelopeWithActions,
   stepUnpackPropagationRequestWithActions,
@@ -229,7 +237,17 @@ export class PropagationClient {
             response: listResponse!
           }
         );
-        if (shouldHandlePropagationPeerError(shouldUseDecodeLxmfPeerError(listErrorStepped.actions))) {
+        if (
+          shouldHandlePropagationPeerErrorNow(
+            stepHandlePropagationPeerErrorWithActions(
+              initialHandlePropagationPeerErrorState(),
+              {
+                kind: "propagation-transfer/handle-peer-error-gate",
+                errorPresent: shouldUseDecodeLxmfPeerError(listErrorStepped.actions)
+              }
+            ).actions
+          )
+        ) {
           const listError = lxmfPeerErrorFromActions(listErrorStepped.actions);
           this.applyTransfer({ kind: "xfer/list-peer-error", code: listError! });
           return { state: this.state, messages: [] };
@@ -257,7 +275,17 @@ export class PropagationClient {
         const wants =
           maxMessages === null ? [...transientIds] : transientIds.slice(0, Math.max(0, maxMessages));
 
-        if (shouldTreatPropagationListAsEmpty(wants.length)) {
+        if (
+          shouldTreatPropagationListAsEmptyNow(
+            stepTreatPropagationListAsEmptyWithActions(
+              initialTreatPropagationListAsEmptyState(),
+              {
+                kind: "propagation-transfer/list-as-empty-gate",
+                wantCount: wants.length
+              }
+            ).actions
+          )
+        ) {
           this.applyTransfer({ kind: "xfer/list-empty" });
           return { state: this.state, messages: [] };
         }
@@ -345,7 +373,17 @@ export class PropagationClient {
       const haves: Uint8Array[] = [];
       for (const lxmfData of downloaded) {
         const message = this.router.handlePropagationData(lxmfData);
-        if (shouldAcceptPropagationDeliveredMessage(message !== null)) {
+        if (
+          shouldAcceptPropagationDeliveredMessageNow(
+            stepAcceptPropagationDeliveredMessageWithActions(
+              initialAcceptPropagationDeliveredMessageState(),
+              {
+                kind: "propagation-transfer/accept-delivered-message-gate",
+                messagePresent: message !== null
+              }
+            ).actions
+          )
+        ) {
           messages.push(message!);
         }
         haves.push(Identity.fullHash(this.provider, lxmfData));
@@ -359,10 +397,16 @@ export class PropagationClient {
       for (const next of afterDownload.actions) {
         if (
           next.kind === "request-haves-ack" &&
-          shouldRequestPropagationHavesAck({
-            actionIsHavesAck: true,
-            haveCount: haves.length
-          })
+          shouldRequestPropagationHavesAckNow(
+            stepRequestPropagationHavesAckWithActions(
+              initialRequestPropagationHavesAckState(),
+              {
+                kind: "propagation-transfer/request-haves-ack-gate",
+                actionIsHavesAck: true,
+                haveCount: haves.length
+              }
+            ).actions
+          )
         ) {
           const packHavesStepped = stepPackPropagationRequestWithActions(
             initialPackPropagationRequestState(),

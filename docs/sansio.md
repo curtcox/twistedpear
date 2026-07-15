@@ -247,7 +247,16 @@
 > **`stepEmplaceChannelEnvelopeWithActions`**: emplace|skip), **resource
 > fulfill-part apply** (via **`stepApplyResourceFulfillPartWithActions`**:
 > apply|skip), **propagation peer-response accept** (via
-> **`stepAcceptPropagationPeerResponseWithActions`**: accept|skip), and
+> **`stepAcceptPropagationPeerResponseWithActions`**: accept|skip),
+> **resource-proof payload / split / random-hash length** (via
+> **`stepAcceptResourceProofPayloadWithActions`** /
+> **`stepAcceptResourceProofSplitWithActions`**: accept|skip;
+> **`stepResourceRandomHashLengthValidWithActions`**: valid|invalid),
+> **propagation peer-error / delivered-message / list-empty / haves-ack** (via
+> **`stepHandlePropagationPeerErrorWithActions`**: handle|skip;
+> **`stepAcceptPropagationDeliveredMessageWithActions`**: accept|skip;
+> **`stepTreatPropagationListAsEmptyWithActions`**: empty|nonempty;
+> **`stepRequestPropagationHavesAckWithActions`**: request|skip), and
 > **stamp-cost extraction** from announce app-data (via
 > **`stepStampCostFromAppDataWithActions`**: use-fields|reject) are pure
 > protocol leaves; Token, Link, Channel, Resource, LXMF propagation, and LXMF
@@ -801,7 +810,10 @@
 > (`missing-node`, via **`stepLxmfPropagatedSendWithActions`**) live in protocol; destination, Channel, PacketReceipt, transport
 > announce, Identity, Buffer, LinkRequestReceipt, and LXMF router adapt them. Link
 > resource/response/channel plaintext early-outs reuse **`shouldDispatchLinkPlaintext`** (via **`stepDispatchLinkPlaintextWithActions`**).
-> **`shouldAcceptResourceProofPayload`** / **`isValidResourceRandomHashLength`**,
+> **`shouldAcceptResourceProofPayload`** (via
+> **`stepAcceptResourceProofPayloadWithActions`**: accept|skip) /
+> **`isValidResourceRandomHashLength`** (via
+> **`stepResourceRandomHashLengthValidWithActions`**: valid|invalid),
 > **`shouldAcceptResourceHashmapUpdateFrame`** / **`shouldFulfillResourcePartRequest`**,
 > **`planChannelTxEnvelopeOp`** / **`shouldApplyChannelPacketReceiptTimeout`** /
 > **`shouldReplaceChannelResentPacket`**, **`canAnswerLocalPathRequest`** (via
@@ -816,7 +828,9 @@
 > **`shouldAcceptTokenFrame`** (via **`stepAcceptTokenFrameWithActions`**:
 > accept|skip), **`isLinkKeepaliveContext`** (via
 > **`stepLinkKeepaliveContextWithActions`**: keepalive|other),
-> **`shouldAcceptResourceProofSplit`**, **`shouldEmplaceChannelEnvelope`** (via
+> **`shouldAcceptResourceProofSplit`** (via
+> **`stepAcceptResourceProofSplitWithActions`**: accept|skip),
+> **`shouldEmplaceChannelEnvelope`** (via
 > **`stepEmplaceChannelEnvelopeWithActions`**: emplace|skip),
 > **`shouldApplyResourceFulfillPart`** (via
 > **`stepApplyResourceFulfillPartWithActions`**: apply|skip),
@@ -828,8 +842,11 @@
 > **`stepAcceptCachedPathResponsePacketWithActions`**: accept|skip),
 > and **`shouldAcceptPropagationPeerResponse`** (via
 > **`stepAcceptPropagationPeerResponseWithActions`**: accept|skip) /
-> **`shouldTreatPropagationListAsEmpty`** /
-> **`shouldRequestPropagationHavesAck`** live in protocol; Resource, Token, Link,
+> **`shouldTreatPropagationListAsEmpty`** (via
+> **`stepTreatPropagationListAsEmptyWithActions`**: empty|nonempty) /
+> **`shouldRequestPropagationHavesAck`** (via
+> **`stepRequestPropagationHavesAckWithActions`**: request|skip) live in
+> protocol; Resource, Token, Link,
 > Channel, transport path helpers, and LXMF propagation adapt them.
 > **`shouldUsePathForOutbound`** (via **`stepUsePathForOutboundWithActions`**:
 > use|skip) / **`shouldAnswerPathWithEntry`** (via
@@ -844,8 +861,11 @@
 > **`shouldRememberPacketHashNow`** / **`shouldRememberPacketHashAfterRelay`**,
 > **`shouldDeleteExpiredReverseEntry`** / **`shouldTransmitReverseRelay`**,
 > **`shouldFailAndDropOutboundReceipt`** / **`shouldKeepOutboundReceipt`**,
-> **`shouldApplyLxmfReceiptSendState`**, and **`shouldHandlePropagationPeerError`** /
-> **`shouldAcceptPropagationDeliveredMessage`** live in protocol; transport path/hash/
+> **`shouldApplyLxmfReceiptSendState`**, and **`shouldHandlePropagationPeerError`** (via
+> **`stepHandlePropagationPeerErrorWithActions`**: handle|skip) /
+> **`shouldAcceptPropagationDeliveredMessage`** (via
+> **`stepAcceptPropagationDeliveredMessageWithActions`**: accept|skip) live in
+> protocol; transport path/hash/
 > reverse/receipt adapters and LXMF router/propagation adapt them.
 > **`shouldApplyResourceReceivePartSlot`** / **`shouldSendResourceHashmapUpdate`** /
 > **`shouldAdvanceResourceAwaitingProof`**, **`shouldResendChannelTimeoutPacket`**,
@@ -1274,6 +1294,10 @@
 > channel-envelope-unpack / channel-envelope-pack / channel-send /
 > emplace-channel-envelope / link-keepalive-context /
 > apply-resource-fulfill-part / accept-propagation-peer-response /
+> accept-resource-proof-payload / accept-resource-proof-split /
+> resource-random-hash-length-valid / handle-propagation-peer-error /
+> accept-propagation-delivered-message / treat-propagation-list-as-empty /
+> request-propagation-haves-ack /
 > resource-assemble / resource-proof-accept / resource-request-fulfill /
 > resource-receive-part / resource-part-request /
 > resource-hashmap-update-accept / append-resource-map-hash-collision-guard /
@@ -1374,6 +1398,10 @@
 > accept-transport-packet / packet-hash-defer /
 > emplace-channel-envelope / link-keepalive-context /
 > apply-resource-fulfill-part / accept-propagation-peer-response /
+> accept-resource-proof-payload / accept-resource-proof-split /
+> resource-random-hash-length-valid / handle-propagation-peer-error /
+> accept-propagation-delivered-message / treat-propagation-list-as-empty /
+> request-propagation-haves-ack /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
 > decode-resource-advertisement-flags / classify-resource-advertisement /
 > resource-encrypt-material / resource-hash-material /
@@ -1414,6 +1442,10 @@
 > token-iv-length-valid / accept-token-frame /
 > link-keepalive-context / emplace-channel-envelope /
 > apply-resource-fulfill-part / accept-propagation-peer-response /
+> accept-resource-proof-payload / accept-resource-proof-split /
+> resource-random-hash-length-valid / handle-propagation-peer-error /
+> accept-propagation-delivered-message / treat-propagation-list-as-empty /
+> request-propagation-haves-ack /
 > pack-identity-ciphertext / split-identity-ciphertext /
 > pack-lxmf-wire / split-lxmf-wire /
 > lxmf-hashable-material / lxmf-signed-material /
@@ -1705,10 +1737,23 @@
 > **`stepEmplaceChannelEnvelopeWithActions`** emits `emplace` / `skip`;
 > **`stepApplyResourceFulfillPartWithActions`** emits `apply` / `skip`;
 > **`stepAcceptPropagationPeerResponseWithActions`** emits `accept` / `skip`;
-> link keepalive-context, channel envelope emplace, resource fulfill-part, and
-> propagation peer-response accept apply only from those actions (no ad-hoc
+> **`stepAcceptResourceProofPayloadWithActions`** emits `accept` / `skip`;
+> **`stepAcceptResourceProofSplitWithActions`** emits `accept` / `skip`;
+> **`stepResourceRandomHashLengthValidWithActions`** emits `valid` / `invalid`;
+> **`stepHandlePropagationPeerErrorWithActions`** emits `handle` / `skip`;
+> **`stepAcceptPropagationDeliveredMessageWithActions`** emits `accept` / `skip`;
+> **`stepTreatPropagationListAsEmptyWithActions`** emits `empty` / `nonempty`;
+> **`stepRequestPropagationHavesAckWithActions`** emits `request` / `skip`;
+> link keepalive-context, channel envelope emplace, resource fulfill-part,
+> propagation peer-response accept, resource-proof payload/split/random-hash,
+> and propagation peer-error / delivered-message / list-empty / haves-ack apply
+> only from those actions (no ad-hoc
 > `isLinkKeepaliveContext` / `shouldEmplaceChannelEnvelope` /
-> `shouldApplyResourceFulfillPart` / `shouldAcceptPropagationPeerResponse`
+> `shouldApplyResourceFulfillPart` / `shouldAcceptPropagationPeerResponse` /
+> `shouldAcceptResourceProofPayload` / `shouldAcceptResourceProofSplit` /
+> `isValidResourceRandomHashLength` / `shouldHandlePropagationPeerError` /
+> `shouldAcceptPropagationDeliveredMessage` /
+> `shouldTreatPropagationListAsEmpty` / `shouldRequestPropagationHavesAck`
 > reads beside the step).
 > **`stepIgnoreLocalAnnounceWithActions`** emits `ignore`|`proceed`;
 > **`stepDispatchAnnounceHandlersWithActions`** emits `dispatch`|`skip`;

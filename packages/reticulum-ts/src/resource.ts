@@ -150,7 +150,9 @@ import {
   resourcePartMapHashMaterialRawFromActions,
   resourceTimeoutFromActions,
   resourceTotalPartsFromActions,
-  isValidResourceRandomHashLength,
+  shouldAcceptResourceRandomHashLength,
+  initialResourceRandomHashLengthValidState,
+  stepResourceRandomHashLengthValidWithActions,
   shouldRejectResourceEncryptMaterial,
   shouldRejectResourceHashMaterial,
   shouldRejectResourcePartMapHashMaterial,
@@ -568,7 +570,17 @@ export class Resource {
             0,
             RESOURCE_RANDOM_HASH_SIZE
           );
-    if (!isValidResourceRandomHashLength(randomHash.length)) {
+    if (
+      !shouldAcceptResourceRandomHashLength(
+        stepResourceRandomHashLengthValidWithActions(
+          initialResourceRandomHashLengthValidState(),
+          {
+            kind: "resource-proof/random-hash-length-valid-gate",
+            length: randomHash.length
+          }
+        ).actions
+      )
+    ) {
       throw new Error(`Resource random hash must be ${RESOURCE_RANDOM_HASH_SIZE} bytes`);
     }
     const encryptStepped = stepResourceEncryptMaterialWithActions(

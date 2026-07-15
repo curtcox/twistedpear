@@ -4,17 +4,33 @@ import {
   PROPAGATION_LINK_TIMER_ID,
   PropagationPeerError,
   PropagationTransferState,
+  initialAcceptPropagationDeliveredMessageState,
   initialAcceptPropagationPeerResponseState,
+  initialHandlePropagationPeerErrorState,
   initialPropagationTransferState,
+  initialRequestPropagationHavesAckState,
+  initialTreatPropagationListAsEmptyState,
   shouldAcceptPropagationPeerResponse,
   shouldAcceptPropagationPeerResponseNow,
   shouldAcceptPropagationDeliveredMessage,
+  shouldAcceptPropagationDeliveredMessageNow,
   shouldHandlePropagationPeerError,
+  shouldHandlePropagationPeerErrorNow,
   shouldRequestPropagationHavesAck,
+  shouldRequestPropagationHavesAckNow,
+  shouldSkipAcceptPropagationDeliveredMessage,
   shouldSkipAcceptPropagationPeerResponse,
+  shouldSkipHandlePropagationPeerError,
+  shouldSkipRequestPropagationHavesAck,
   shouldTreatPropagationListAsEmpty,
+  shouldTreatPropagationListAsEmptyNow,
+  shouldTreatPropagationListAsNonempty,
+  stepAcceptPropagationDeliveredMessageWithActions,
   stepAcceptPropagationPeerResponseWithActions,
-  stepPropagationTransferWithActions
+  stepHandlePropagationPeerErrorWithActions,
+  stepPropagationTransferWithActions,
+  stepRequestPropagationHavesAckWithActions,
+  stepTreatPropagationListAsEmptyWithActions
 } from "../src/propagation-transfer.js";
 
 describe("protocol propagation transfer", () => {
@@ -152,10 +168,76 @@ describe("protocol propagation transfer", () => {
     ).toBe(true);
     expect(shouldHandlePropagationPeerError(true)).toBe(true);
     expect(shouldHandlePropagationPeerError(false)).toBe(false);
+    expect(
+      shouldHandlePropagationPeerErrorNow(
+        stepHandlePropagationPeerErrorWithActions(
+          initialHandlePropagationPeerErrorState(),
+          {
+            kind: "propagation-transfer/handle-peer-error-gate",
+            errorPresent: true
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipHandlePropagationPeerError(
+        stepHandlePropagationPeerErrorWithActions(
+          initialHandlePropagationPeerErrorState(),
+          {
+            kind: "propagation-transfer/handle-peer-error-gate",
+            errorPresent: false
+          }
+        ).actions
+      )
+    ).toBe(true);
     expect(shouldAcceptPropagationDeliveredMessage(true)).toBe(true);
     expect(shouldAcceptPropagationDeliveredMessage(false)).toBe(false);
+    expect(
+      shouldAcceptPropagationDeliveredMessageNow(
+        stepAcceptPropagationDeliveredMessageWithActions(
+          initialAcceptPropagationDeliveredMessageState(),
+          {
+            kind: "propagation-transfer/accept-delivered-message-gate",
+            messagePresent: true
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipAcceptPropagationDeliveredMessage(
+        stepAcceptPropagationDeliveredMessageWithActions(
+          initialAcceptPropagationDeliveredMessageState(),
+          {
+            kind: "propagation-transfer/accept-delivered-message-gate",
+            messagePresent: false
+          }
+        ).actions
+      )
+    ).toBe(true);
     expect(shouldTreatPropagationListAsEmpty(0)).toBe(true);
     expect(shouldTreatPropagationListAsEmpty(2)).toBe(false);
+    expect(
+      shouldTreatPropagationListAsEmptyNow(
+        stepTreatPropagationListAsEmptyWithActions(
+          initialTreatPropagationListAsEmptyState(),
+          {
+            kind: "propagation-transfer/list-as-empty-gate",
+            wantCount: 0
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldTreatPropagationListAsNonempty(
+        stepTreatPropagationListAsEmptyWithActions(
+          initialTreatPropagationListAsEmptyState(),
+          {
+            kind: "propagation-transfer/list-as-empty-gate",
+            wantCount: 2
+          }
+        ).actions
+      )
+    ).toBe(true);
     expect(
       shouldRequestPropagationHavesAck({
         actionIsHavesAck: true,
@@ -174,6 +256,30 @@ describe("protocol propagation transfer", () => {
         haveCount: 3
       })
     ).toBe(false);
+    expect(
+      shouldRequestPropagationHavesAckNow(
+        stepRequestPropagationHavesAckWithActions(
+          initialRequestPropagationHavesAckState(),
+          {
+            kind: "propagation-transfer/request-haves-ack-gate",
+            actionIsHavesAck: true,
+            haveCount: 1
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipRequestPropagationHavesAck(
+        stepRequestPropagationHavesAckWithActions(
+          initialRequestPropagationHavesAckState(),
+          {
+            kind: "propagation-transfer/request-haves-ack-gate",
+            actionIsHavesAck: true,
+            haveCount: 0
+          }
+        ).actions
+      )
+    ).toBe(true);
   });
 
   it("marks link failed on timeout and emits reject-link-wait", () => {

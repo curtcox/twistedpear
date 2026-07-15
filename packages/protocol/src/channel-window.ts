@@ -787,8 +787,12 @@ export type ChannelWindowEvent =
   | { readonly kind: "channel/timeout" }
   | { readonly kind: "channel/delivered"; readonly rtt: number };
 
-export const stepChannelWindow: StepFn<ChannelWindowState> = (state, event) =>
-  stepChannelWindowInner(state, event as ChannelWindowEvent);
+export function stepChannelWindow(
+  state: ChannelWindowState,
+  event: ChannelWindowEvent
+): { state: ChannelWindowState; intents: [] } {
+  return stepChannelWindowInner(state, event);
+}
 
 function stepChannelWindowInner(
   state: ChannelWindowState,

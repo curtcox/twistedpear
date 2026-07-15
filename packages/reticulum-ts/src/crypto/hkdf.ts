@@ -16,7 +16,12 @@ export function rnsHkdf(
   salt: Uint8Array | null | undefined,
   context: Uint8Array | null | undefined
 ): Uint8Array {
-  const params = normalizeRnsHkdfParams({ length, deriveFrom, salt, context });
+  const params = normalizeRnsHkdfParams({
+    length,
+    deriveFrom,
+    ...(salt !== undefined ? { salt } : {}),
+    ...(context !== undefined ? { context } : {})
+  });
   // Prefer provider.hkdf when available so node/bare backends stay authoritative,
   // but params (and length checks) come from the pure protocol core.
   return provider.hkdf({
@@ -39,8 +44,8 @@ export function rnsHkdfPure(
     kind: "rns-hkdf/derive-gate",
     length,
     deriveFrom,
-    salt,
-    context
+    ...(salt !== undefined ? { salt } : {}),
+    ...(context !== undefined ? { context } : {})
   });
   const raw = rnsHkdfSha256RawFromActions(stepped.actions);
   if (

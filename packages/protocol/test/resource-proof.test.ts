@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   RESOURCE_PROOF_SIZE,
   RESOURCE_RANDOM_HASH_SIZE,
+  initialAcceptResourceProofPayloadState,
+  initialAcceptResourceProofSplitState,
   initialPackResourceProofState,
+  initialResourceRandomHashLengthValidState,
   initialSplitResourceDecryptedPayloadState,
   initialSplitResourceProofState,
   isValidResourceProof,
@@ -12,15 +15,24 @@ import {
   resourceDecryptedPayloadFromActions,
   resourceProofFieldsFromActions,
   shouldAcceptResourceProofPayload,
+  shouldAcceptResourceProofPayloadNow,
   shouldAcceptResourceProofSplit,
+  shouldAcceptResourceProofSplitNow,
+  shouldAcceptResourceRandomHashLength,
+  shouldRejectResourceRandomHashLength,
   shouldRejectSplitResourceDecryptedPayload,
   shouldRejectSplitResourceProof,
+  shouldSkipAcceptResourceProofPayload,
+  shouldSkipAcceptResourceProofSplit,
   shouldUsePackResourceProof,
   shouldUseSplitResourceDecryptedPayload,
   shouldUseSplitResourceProof,
   splitResourceDecryptedPayload,
   splitResourceProof,
+  stepAcceptResourceProofPayloadWithActions,
+  stepAcceptResourceProofSplitWithActions,
   stepPackResourceProofWithActions,
+  stepResourceRandomHashLengthValidWithActions,
   stepSplitResourceDecryptedPayloadWithActions,
   stepSplitResourceProofWithActions
 } from "../src/resource-proof.js";
@@ -40,10 +52,70 @@ describe("protocol resource proof", () => {
   it("gates proof payload length and random-hash size", () => {
     expect(shouldAcceptResourceProofPayload(RESOURCE_PROOF_SIZE)).toBe(true);
     expect(shouldAcceptResourceProofPayload(10)).toBe(false);
+    expect(
+      shouldAcceptResourceProofPayloadNow(
+        stepAcceptResourceProofPayloadWithActions(
+          initialAcceptResourceProofPayloadState(),
+          {
+            kind: "resource-proof/accept-payload-gate",
+            dataLength: RESOURCE_PROOF_SIZE
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipAcceptResourceProofPayload(
+        stepAcceptResourceProofPayloadWithActions(
+          initialAcceptResourceProofPayloadState(),
+          {
+            kind: "resource-proof/accept-payload-gate",
+            dataLength: 10
+          }
+        ).actions
+      )
+    ).toBe(true);
     expect(shouldAcceptResourceProofSplit(true)).toBe(true);
     expect(shouldAcceptResourceProofSplit(false)).toBe(false);
+    expect(
+      shouldAcceptResourceProofSplitNow(
+        stepAcceptResourceProofSplitWithActions(initialAcceptResourceProofSplitState(), {
+          kind: "resource-proof/accept-split-gate",
+          splitOk: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipAcceptResourceProofSplit(
+        stepAcceptResourceProofSplitWithActions(initialAcceptResourceProofSplitState(), {
+          kind: "resource-proof/accept-split-gate",
+          splitOk: false
+        }).actions
+      )
+    ).toBe(true);
     expect(isValidResourceRandomHashLength(RESOURCE_RANDOM_HASH_SIZE)).toBe(true);
     expect(isValidResourceRandomHashLength(3)).toBe(false);
+    expect(
+      shouldAcceptResourceRandomHashLength(
+        stepResourceRandomHashLengthValidWithActions(
+          initialResourceRandomHashLengthValidState(),
+          {
+            kind: "resource-proof/random-hash-length-valid-gate",
+            length: RESOURCE_RANDOM_HASH_SIZE
+          }
+        ).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldRejectResourceRandomHashLength(
+        stepResourceRandomHashLengthValidWithActions(
+          initialResourceRandomHashLengthValidState(),
+          {
+            kind: "resource-proof/random-hash-length-valid-gate",
+            length: 3
+          }
+        ).actions
+      )
+    ).toBe(true);
   });
 
   it("validates expected proof bytes", () => {

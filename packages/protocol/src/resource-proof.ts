@@ -59,14 +59,191 @@ export function shouldAcceptResourceProofPayload(dataLength: number): boolean {
   return dataLength === RESOURCE_PROOF_SIZE;
 }
 
+/**
+ * Resource-proof payload accept gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldAcceptResourceProofPayload`
+ * reads beside the step).
+ */
+export type AcceptResourceProofPayloadState = Record<string, never>;
+
+export type AcceptResourceProofPayloadEvent =
+  | Event
+  | {
+      readonly kind: "resource-proof/accept-payload-gate";
+      readonly dataLength: number;
+    };
+
+export type AcceptResourceProofPayloadAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptResourceProofPayloadStepResult {
+  readonly state: AcceptResourceProofPayloadState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptResourceProofPayloadAction[];
+}
+
+export function initialAcceptResourceProofPayloadState(): AcceptResourceProofPayloadState {
+  return {};
+}
+
+export function stepAcceptResourceProofPayloadWithActions(
+  state: AcceptResourceProofPayloadState,
+  event: AcceptResourceProofPayloadEvent
+): AcceptResourceProofPayloadStepResult {
+  if (event.kind === "resource-proof/accept-payload-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptResourceProofPayload(event.dataLength) ? "accept" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptResourceProofPayloadNow(
+  actions: ReadonlyArray<AcceptResourceProofPayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAcceptResourceProofPayload(
+  actions: ReadonlyArray<AcceptResourceProofPayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether a RESOURCE_PRF split produced hash halves. */
 export function shouldAcceptResourceProofSplit(splitOk: boolean): boolean {
   return splitOk;
 }
 
+/**
+ * Resource-proof split accept gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldAcceptResourceProofSplit`
+ * reads beside the step).
+ */
+export type AcceptResourceProofSplitState = Record<string, never>;
+
+export type AcceptResourceProofSplitEvent =
+  | Event
+  | {
+      readonly kind: "resource-proof/accept-split-gate";
+      readonly splitOk: boolean;
+    };
+
+export type AcceptResourceProofSplitAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptResourceProofSplitStepResult {
+  readonly state: AcceptResourceProofSplitState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptResourceProofSplitAction[];
+}
+
+export function initialAcceptResourceProofSplitState(): AcceptResourceProofSplitState {
+  return {};
+}
+
+export function stepAcceptResourceProofSplitWithActions(
+  state: AcceptResourceProofSplitState,
+  event: AcceptResourceProofSplitEvent
+): AcceptResourceProofSplitStepResult {
+  if (event.kind === "resource-proof/accept-split-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptResourceProofSplit(event.splitOk) ? "accept" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptResourceProofSplitNow(
+  actions: ReadonlyArray<AcceptResourceProofSplitAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAcceptResourceProofSplit(
+  actions: ReadonlyArray<AcceptResourceProofSplitAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether a resource random-hash prefix has the RNS size. */
 export function isValidResourceRandomHashLength(length: number): boolean {
   return length === RESOURCE_RANDOM_HASH_SIZE;
+}
+
+/**
+ * Resource random-hash length gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isValidResourceRandomHashLength`
+ * reads beside the step).
+ */
+export type ResourceRandomHashLengthValidState = Record<string, never>;
+
+export type ResourceRandomHashLengthValidEvent =
+  | Event
+  | {
+      readonly kind: "resource-proof/random-hash-length-valid-gate";
+      readonly length: number;
+    };
+
+export type ResourceRandomHashLengthValidAction =
+  | { readonly kind: "valid" }
+  | { readonly kind: "invalid" };
+
+export interface ResourceRandomHashLengthValidStepResult {
+  readonly state: ResourceRandomHashLengthValidState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceRandomHashLengthValidAction[];
+}
+
+export function initialResourceRandomHashLengthValidState(): ResourceRandomHashLengthValidState {
+  return {};
+}
+
+export function stepResourceRandomHashLengthValidWithActions(
+  state: ResourceRandomHashLengthValidState,
+  event: ResourceRandomHashLengthValidEvent
+): ResourceRandomHashLengthValidStepResult {
+  if (event.kind === "resource-proof/random-hash-length-valid-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isValidResourceRandomHashLength(event.length) ? "valid" : "invalid"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptResourceRandomHashLength(
+  actions: ReadonlyArray<ResourceRandomHashLengthValidAction>
+): boolean {
+  return actions.some((action) => action.kind === "valid");
+}
+
+export function shouldRejectResourceRandomHashLength(
+  actions: ReadonlyArray<ResourceRandomHashLengthValidAction>
+): boolean {
+  return actions.some((action) => action.kind === "invalid");
 }
 
 /** After link decrypt, drop the leading random-hash prefix. */

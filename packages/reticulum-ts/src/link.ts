@@ -242,7 +242,12 @@ import {
   shouldAcceptLinkResourceAdvertisement,
   shouldAcceptRemoteLinkTeardown,
   shouldAcceptResourceHashmapUpdateFrame,
-  shouldAcceptResourceProofPayload,
+  shouldAcceptResourceProofPayloadNow,
+  initialAcceptResourceProofPayloadState,
+  stepAcceptResourceProofPayloadWithActions,
+  shouldAcceptResourceProofSplitNow,
+  initialAcceptResourceProofSplitState,
+  stepAcceptResourceProofSplitWithActions,
   shouldActivateLinkEstablish,
   shouldAllowRequestLinkDestination,
   shouldAskAppLinkResourceAdvertisement,
@@ -2380,7 +2385,17 @@ export class Link {
   }
 
   async handleResourceProof(packet: Packet): Promise<void> {
-    if (!shouldAcceptResourceProofPayload(packet.data.length)) {
+    if (
+      !shouldAcceptResourceProofPayloadNow(
+        stepAcceptResourceProofPayloadWithActions(
+          initialAcceptResourceProofPayloadState(),
+          {
+            kind: "resource-proof/accept-payload-gate",
+            dataLength: packet.data.length
+          }
+        ).actions
+      )
+    ) {
       return;
     }
     const stepped = stepSplitResourceProofWithActions(initialSplitResourceProofState(), {
@@ -2392,9 +2407,17 @@ export class Link {
       !shouldUseSplitResourceProof(stepped.actions)
         ? null
         : resourceProofFieldsFromActions(stepped.actions);
-    if (split === null) {
+    if (
+      !shouldAcceptResourceProofSplitNow(
+        stepAcceptResourceProofSplitWithActions(initialAcceptResourceProofSplitState(), {
+          kind: "resource-proof/accept-split-gate",
+          splitOk: split !== null
+        }).actions
+      )
+    ) {
       return;
     }
+    const proofFields = split!;
     for (const resource of this.outgoingResourcesList) {
       if (
         shouldHandleIncomingResourceByHashNow(
@@ -2402,7 +2425,7 @@ export class Link {
             initialHandleIncomingResourceByHashState(),
             {
               kind: "link/handle-incoming-resource-by-hash-gate",
-              hashMatches: equalBytes(resource.hash, split.resourceHash)
+              hashMatches: equalBytes(resource.hash, proofFields.resourceHash)
             }
           ).actions
         )

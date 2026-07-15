@@ -317,14 +317,193 @@ export function shouldHandlePropagationPeerError(errorPresent: boolean): boolean
   return errorPresent;
 }
 
+/**
+ * Propagation peer-error handle gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldHandlePropagationPeerError`
+ * reads beside the step).
+ */
+export type HandlePropagationPeerErrorState = Record<string, never>;
+
+export type HandlePropagationPeerErrorEvent =
+  | Event
+  | {
+      readonly kind: "propagation-transfer/handle-peer-error-gate";
+      readonly errorPresent: boolean;
+    };
+
+export type HandlePropagationPeerErrorAction =
+  | { readonly kind: "handle" }
+  | { readonly kind: "skip" };
+
+export interface HandlePropagationPeerErrorStepResult {
+  readonly state: HandlePropagationPeerErrorState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly HandlePropagationPeerErrorAction[];
+}
+
+export function initialHandlePropagationPeerErrorState(): HandlePropagationPeerErrorState {
+  return {};
+}
+
+export function stepHandlePropagationPeerErrorWithActions(
+  state: HandlePropagationPeerErrorState,
+  event: HandlePropagationPeerErrorEvent
+): HandlePropagationPeerErrorStepResult {
+  if (event.kind === "propagation-transfer/handle-peer-error-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldHandlePropagationPeerError(event.errorPresent) ? "handle" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldHandlePropagationPeerErrorNow(
+  actions: ReadonlyArray<HandlePropagationPeerErrorAction>
+): boolean {
+  return actions.some((action) => action.kind === "handle");
+}
+
+export function shouldSkipHandlePropagationPeerError(
+  actions: ReadonlyArray<HandlePropagationPeerErrorAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether a locally delivered propagation message should be collected. */
 export function shouldAcceptPropagationDeliveredMessage(messagePresent: boolean): boolean {
   return messagePresent;
 }
 
+/**
+ * Propagation delivered-message accept gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldAcceptPropagationDeliveredMessage` reads beside the step).
+ */
+export type AcceptPropagationDeliveredMessageState = Record<string, never>;
+
+export type AcceptPropagationDeliveredMessageEvent =
+  | Event
+  | {
+      readonly kind: "propagation-transfer/accept-delivered-message-gate";
+      readonly messagePresent: boolean;
+    };
+
+export type AcceptPropagationDeliveredMessageAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptPropagationDeliveredMessageStepResult {
+  readonly state: AcceptPropagationDeliveredMessageState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptPropagationDeliveredMessageAction[];
+}
+
+export function initialAcceptPropagationDeliveredMessageState(): AcceptPropagationDeliveredMessageState {
+  return {};
+}
+
+export function stepAcceptPropagationDeliveredMessageWithActions(
+  state: AcceptPropagationDeliveredMessageState,
+  event: AcceptPropagationDeliveredMessageEvent
+): AcceptPropagationDeliveredMessageStepResult {
+  if (event.kind === "propagation-transfer/accept-delivered-message-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptPropagationDeliveredMessage(event.messagePresent)
+            ? "accept"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptPropagationDeliveredMessageNow(
+  actions: ReadonlyArray<AcceptPropagationDeliveredMessageAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAcceptPropagationDeliveredMessage(
+  actions: ReadonlyArray<AcceptPropagationDeliveredMessageAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether a filtered want-list should complete as empty (xfer/list-empty). */
 export function shouldTreatPropagationListAsEmpty(wantCount: number): boolean {
   return wantCount === 0;
+}
+
+/**
+ * Propagation list-empty gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldTreatPropagationListAsEmpty`
+ * reads beside the step).
+ */
+export type TreatPropagationListAsEmptyState = Record<string, never>;
+
+export type TreatPropagationListAsEmptyEvent =
+  | Event
+  | {
+      readonly kind: "propagation-transfer/list-as-empty-gate";
+      readonly wantCount: number;
+    };
+
+export type TreatPropagationListAsEmptyAction =
+  | { readonly kind: "empty" }
+  | { readonly kind: "nonempty" };
+
+export interface TreatPropagationListAsEmptyStepResult {
+  readonly state: TreatPropagationListAsEmptyState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TreatPropagationListAsEmptyAction[];
+}
+
+export function initialTreatPropagationListAsEmptyState(): TreatPropagationListAsEmptyState {
+  return {};
+}
+
+export function stepTreatPropagationListAsEmptyWithActions(
+  state: TreatPropagationListAsEmptyState,
+  event: TreatPropagationListAsEmptyEvent
+): TreatPropagationListAsEmptyStepResult {
+  if (event.kind === "propagation-transfer/list-as-empty-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldTreatPropagationListAsEmpty(event.wantCount) ? "empty" : "nonempty"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatPropagationListAsEmptyNow(
+  actions: ReadonlyArray<TreatPropagationListAsEmptyAction>
+): boolean {
+  return actions.some((action) => action.kind === "empty");
+}
+
+export function shouldTreatPropagationListAsNonempty(
+  actions: ReadonlyArray<TreatPropagationListAsEmptyAction>
+): boolean {
+  return actions.some((action) => action.kind === "nonempty");
 }
 
 /** Whether haves-ack request should run after download-ready. */
@@ -333,4 +512,69 @@ export function shouldRequestPropagationHavesAck(input: {
   readonly haveCount: number;
 }): boolean {
   return input.actionIsHavesAck && input.haveCount > 0;
+}
+
+/**
+ * Propagation haves-ack request gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldRequestPropagationHavesAck`
+ * reads beside the step).
+ */
+export type RequestPropagationHavesAckState = Record<string, never>;
+
+export type RequestPropagationHavesAckEvent =
+  | Event
+  | {
+      readonly kind: "propagation-transfer/request-haves-ack-gate";
+      readonly actionIsHavesAck: boolean;
+      readonly haveCount: number;
+    };
+
+export type RequestPropagationHavesAckAction =
+  | { readonly kind: "request" }
+  | { readonly kind: "skip" };
+
+export interface RequestPropagationHavesAckStepResult {
+  readonly state: RequestPropagationHavesAckState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RequestPropagationHavesAckAction[];
+}
+
+export function initialRequestPropagationHavesAckState(): RequestPropagationHavesAckState {
+  return {};
+}
+
+export function stepRequestPropagationHavesAckWithActions(
+  state: RequestPropagationHavesAckState,
+  event: RequestPropagationHavesAckEvent
+): RequestPropagationHavesAckStepResult {
+  if (event.kind === "propagation-transfer/request-haves-ack-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRequestPropagationHavesAck({
+            actionIsHavesAck: event.actionIsHavesAck,
+            haveCount: event.haveCount
+          })
+            ? "request"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRequestPropagationHavesAckNow(
+  actions: ReadonlyArray<RequestPropagationHavesAckAction>
+): boolean {
+  return actions.some((action) => action.kind === "request");
+}
+
+export function shouldSkipRequestPropagationHavesAck(
+  actions: ReadonlyArray<RequestPropagationHavesAckAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
