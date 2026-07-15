@@ -72,7 +72,23 @@
 > link-request register / packet-receipt attach** (via
 > **`stepPendingLinkRequestRegisterWithActions`**: register|skip /
 > **`stepAttachLinkRequestPacketReceiptWithActions`**: attach|skip) are pure
-> protocol leaves; `Link` and `LinkRequestReceipt` adapt them. **Channel envelope
+> protocol leaves; `Link` and `LinkRequestReceipt` adapt them. **Link send / closed /
+> reuse / packet-interface / encrypt / request-allow / last-data / inbound-DATA /
+> keepalive ignore+reply / keepalive-update / create-channel / ready-for-resource**
+> gates (via **`stepLinkSendAllowWithActions`**: allow|deny /
+> **`stepLinkClosedWithActions`**: closed|open /
+> **`stepReuseActiveLinkWithActions`**: reuse|skip /
+> **`stepAcceptLinkPacketInterfaceWithActions`**: accept|skip /
+> **`stepEncryptLinkPayloadWithActions`**: encrypt|plaintext /
+> **`stepLinkRequestAllowWithActions`**: allow|deny /
+> **`stepUpdateLinkLastDataWithActions`**: update|skip /
+> **`stepLinkInboundDataPacketWithActions`**: data|other /
+> **`stepIgnoreInitiatorKeepaliveProbeWithActions`**: ignore|proceed /
+> **`stepReplyKeepaliveProbeWithActions`**: reply|skip /
+> **`stepUpdateLinkKeepaliveAllowWithActions`**: allow|deny /
+> **`stepCreateLinkChannelWithActions`**: create|reuse /
+> **`stepLinkReadyForNewResourceWithActions`**: ready|busy) are pure protocol
+> leaves; `Link`, Channel outlet, and LXMF link-reuse adapt them. **Channel envelope
 > framing** and **RX reorder/drain** are also pure protocol leaves. **LXMF outbound
 > send-state** (enqueue → sending → sent/delivered/
 > failed + progress) is a pure protocol leaf; `LXMFRouter` adapts it. **Link proof framing**
@@ -402,13 +418,17 @@
 > protocol; announce-handler PATH_RESPONSE opt-in adapts it. **`planAnnounceIngressGates`**
 > (rate-limit / record / rebroadcast for PATH_RESPONSE) lives in protocol; `TransportNode`
 > adapts it. **`linkPayloadFitsMdu`** lives in protocol; Link request/response and Channel send
-> adapt it. **`canLinkRequest`** lives in protocol; `Link.request` adapts it. **`canLinkSend`**
-> lives in protocol; `Link.sendContext`, Channel outlet usability, and LXMF link reuse adapt it.
+> adapt it. **`canLinkRequest`** (via **`stepLinkRequestAllowWithActions`**: allow|deny)
+> lives in protocol; `Link.request` adapts it. **`canLinkSend`** (via
+> **`stepLinkSendAllowWithActions`**: allow|deny) lives in protocol; `Link.sendContext`
+> and Channel outlet usability adapt it.
 > **`computeResourceTotalParts`** (via **`stepComputeResourceTotalPartsWithActions`**:
 > use-parts) lives in protocol; `Resource.send` adapts it.
-> **`linkReadyForNewResource`** lives in protocol; `Link.readyForNewResource` adapts it.
+> **`linkReadyForNewResource`** (via **`stepLinkReadyForNewResourceWithActions`**:
+> ready|busy) lives in protocol; `Link.readyForNewResource` adapts it.
 > **`isLinkModeEnabled`** lives in protocol; link validate/signalling adapts it.
-> **`isLinkClosed`** lives in protocol; `Link.receive` / watchdog early-outs adapt it.
+> **`isLinkClosed`** (via **`stepLinkClosedWithActions`**: closed|open) lives in
+> protocol; `Link.receive` / watchdog early-outs adapt it.
 > **`isChannelOutletTransmitOk`** (via **`stepChannelOutletTransmitWithActions`**:
 > ok|reject) lives in protocol; `Channel.send` outlet-result gate adapts it.
 > **`isValidDestinationRequestPath`** (via
@@ -476,8 +496,12 @@
 > **`planLxMessagePack`** (via **`stepLxMessagePackWithActions`**: proceed /
 > reject-bad-destination / reject-bad-source) lives in protocol; `LXMessage.pack`
 > adapts it.
-> **`shouldIgnoreInitiatorKeepaliveProbe`**, **`shouldAcceptLinkPacketInterface`**, and
-> **`shouldEncryptLinkPayload`** live in protocol; `Link.receive` / `sendContext` adapt them.
+> **`shouldIgnoreInitiatorKeepaliveProbe`** (via
+> **`stepIgnoreInitiatorKeepaliveProbeWithActions`**: ignore|proceed),
+> **`shouldAcceptLinkPacketInterface`** (via
+> **`stepAcceptLinkPacketInterfaceWithActions`**: accept|skip), and
+> **`shouldEncryptLinkPayload`** (via **`stepEncryptLinkPayloadWithActions`**:
+> encrypt|plaintext) live in protocol; `Link.receive` / `sendContext` adapt them.
 > **`planChannelMessageTypeRegistration`** (via
 > **`stepChannelMessageTypeRegistrationWithActions`**: ok / missing-msgtype /
 > system-reserved) lives in protocol; `Channel.registerMessageType` adapts it.
@@ -495,8 +519,8 @@
 > **`shouldTransmitOnInterface`** live in protocol; `TransportNode` /
 > `LeafTransport` adapt them. **`shouldIgnoreLocalAnnounce`** /
 > **`shouldMatchAnnounceAspect`** live in protocol; announce ingress adapts them.
-> **`shouldReplyKeepaliveProbe`** and **`isExpectedLinkMode`** live in protocol;
-> `Link` adapts them. **`canAcceptLxmfPropagationLocalDelivery`** and
+> **`shouldReplyKeepaliveProbe`** (via **`stepReplyKeepaliveProbeWithActions`**:
+> reply|skip) and **`isExpectedLinkMode`** live in protocol; `Link` adapts them. **`canAcceptLxmfPropagationLocalDelivery`** and
 > **`planLxmfPropagatedSend`** (via **`stepLxmfPropagatedSendWithActions`**: proceed /
 > reject-missing-node / reject-missing-packed / reject-resource-unimplemented) live
 > in protocol; `LXMFRouter` adapts them.
@@ -534,8 +558,8 @@
 > **`planLxmfSignatureOutcome`** (via **`stepLxmfSignatureWithActions`**: apply with
 > signatureValidated / unverifiedReason) live in protocol; `LXMFRouter` /
 > `LXMessage.unpackFromBytes` adapt them.
-> **`shouldReuseActiveLink`** lives in protocol; LXMF direct/propagation link reuse adapts
-> it. **`planAnnounceBuild`** (via **`stepAnnounceBuildWithActions`**: proceed /
+> **`shouldReuseActiveLink`** (via **`stepReuseActiveLinkWithActions`**: reuse|skip)
+> lives in protocol; LXMF direct/propagation link reuse adapts it. **`planAnnounceBuild`** (via **`stepAnnounceBuildWithActions`**: proceed /
 > reject-not-announceable-type / reject-not-announceable-direction /
 > reject-missing-identity / reject-bad-random-hash / reject-bad-ratchet) and
 > **`planDestinationConstruction`** (via **`stepDestinationConstructionWithActions`**:
@@ -563,8 +587,10 @@
 > adapt them.
 > **`planLinkResourceAdvertisement`** (request bypass + strategy) lives in protocol;
 > `Link` RESOURCE_ADV adapts it via **`stepLinkResourceAdvertisementWithActions`**. **`planLxmfOpportunisticSend`** (via **`stepLxmfOpportunisticSendWithActions`**: proceed / reject-missing-destination) lives in protocol;
-> `LXMFRouter` adapts it. **`shouldUpdateLinkLastData`** /
-> **`isLinkInboundDataPacket`** live in protocol; `Link.receive` adapts them.
+> `LXMFRouter` adapts it. **`shouldUpdateLinkLastData`** (via
+> **`stepUpdateLinkLastDataWithActions`**: update|skip) /
+> **`isLinkInboundDataPacket`** (via **`stepLinkInboundDataPacketWithActions`**:
+> data|other) live in protocol; `Link.receive` adapts them.
 > **`planLxmfReceiptSendOutcome`** (via **`stepLxmfReceiptSendWithActions`**: apply /
 > skip) lives in protocol; opportunistic/propagated receipt → send-state adapts it.
 > **`planLxmfPropagationLocalIngress`** (via **`stepLxmfPropagationLocalIngressWithActions`**:
@@ -655,8 +681,10 @@
 > reject-missing-delivery-identity) live in
 > protocol; LXMessage and PropagationClient adapt them (ensurePropagationLink also uses
 > **`planLxmfPropagationLinkReady`** via **`stepLxmfPropagationLinkReadyWithActions`**). **`canProveResource`** /
-> **`shouldAdvertiseResource`**, **`canUpdateLinkKeepalive`** /
-> **`shouldCreateLinkChannel`** / **`planLinkTokenAccess`** (via
+> **`shouldAdvertiseResource`**, **`canUpdateLinkKeepalive`** (via
+> **`stepUpdateLinkKeepaliveAllowWithActions`**: allow|deny) /
+> **`shouldCreateLinkChannel`** (via **`stepCreateLinkChannelWithActions`**:
+> create|reuse) / **`planLinkTokenAccess`** (via
 > **`stepLinkTokenAccessWithActions`**: reject-no-key / create / reuse) live in
 > protocol; Resource and Link adapt them. **`shouldInvokeDestinationLinkEstablishedCallback`**
 > (via **`stepDestinationLinkEstablishedCallbackWithActions`**: invoke|skip),
@@ -966,6 +994,26 @@
 > `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
 > `shouldRegisterPendingLinkRequest` /
 > `shouldAttachLinkRequestPacketReceipt` reads beside the step).
+> **`stepLinkSendAllowWithActions`** / **`stepLinkClosedWithActions`** /
+> **`stepReuseActiveLinkWithActions`** /
+> **`stepAcceptLinkPacketInterfaceWithActions`** /
+> **`stepEncryptLinkPayloadWithActions`** /
+> **`stepLinkRequestAllowWithActions`** /
+> **`stepUpdateLinkLastDataWithActions`** /
+> **`stepLinkInboundDataPacketWithActions`** /
+> **`stepIgnoreInitiatorKeepaliveProbeWithActions`** /
+> **`stepReplyKeepaliveProbeWithActions`** /
+> **`stepUpdateLinkKeepaliveAllowWithActions`** /
+> **`stepCreateLinkChannelWithActions`** /
+> **`stepLinkReadyForNewResourceWithActions`** emit allow|deny / closed|open /
+> reuse|skip / accept|skip / encrypt|plaintext / update|skip / data|other /
+> ignore|proceed / reply|skip / create|reuse / ready|busy; `Link`, Channel outlet,
+> and LXMF link-reuse adapt them (no ad-hoc `canLinkSend` / `isLinkClosed` /
+> `shouldReuseActiveLink` / `shouldAcceptLinkPacketInterface` /
+> `shouldEncryptLinkPayload` / `canLinkRequest` / `shouldUpdateLinkLastData` /
+> `isLinkInboundDataPacket` / `shouldIgnoreInitiatorKeepaliveProbe` /
+> `shouldReplyKeepaliveProbe` / `canUpdateLinkKeepalive` /
+> `shouldCreateLinkChannel` / `linkReadyForNewResource` reads beside the step).
 > **`stepPropagationRestoreWithActions`** emits `reject-too-large` / `duplicate` /
 > `reject-hash` / `accept`; `PropagationServer` restore applies catalog insert only
 > from those actions (no ad-hoc `planPropagationRestore` / `plan === "accept"`
@@ -1056,6 +1104,12 @@
 > destination-link-established-callback / register-destination-link /
 > emit-destination-proof / pending-link-request-register /
 > attach-link-request-packet-receipt /
+> link-send-allow / link-closed / reuse-active-link /
+> accept-link-packet-interface / encrypt-link-payload / link-request-allow /
+> update-link-last-data / link-inbound-data-packet /
+> ignore-initiator-keepalive-probe / reply-keepalive-probe /
+> update-link-keepalive-allow / create-link-channel /
+> link-ready-for-new-resource /
 > destination-identity-hash / channel-tx-envelope-op /
 > destination-proof / packet-filter / packet-receipt-callback /
 > channel-tx-receipt-timeout-refresh / channel-message-handler-unregister /
@@ -1087,6 +1141,12 @@
 > destination-link-established-callback / register-destination-link /
 > emit-destination-proof / pending-link-request-register /
 > attach-link-request-packet-receipt /
+> link-send-allow / link-closed / reuse-active-link /
+> accept-link-packet-interface / encrypt-link-payload / link-request-allow /
+> update-link-last-data / link-inbound-data-packet /
+> ignore-initiator-keepalive-probe / reply-keepalive-probe /
+> update-link-keepalive-allow / create-link-channel /
+> link-ready-for-new-resource /
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
@@ -1695,6 +1755,26 @@
 > `shouldRegisterDestinationLink` / `canEmitDestinationProof` /
 > `shouldRegisterPendingLinkRequest` /
 > `shouldAttachLinkRequestPacketReceipt` reads beside the step).
+> **`stepLinkSendAllowWithActions`** / **`stepLinkClosedWithActions`** /
+> **`stepReuseActiveLinkWithActions`** /
+> **`stepAcceptLinkPacketInterfaceWithActions`** /
+> **`stepEncryptLinkPayloadWithActions`** /
+> **`stepLinkRequestAllowWithActions`** /
+> **`stepUpdateLinkLastDataWithActions`** /
+> **`stepLinkInboundDataPacketWithActions`** /
+> **`stepIgnoreInitiatorKeepaliveProbeWithActions`** /
+> **`stepReplyKeepaliveProbeWithActions`** /
+> **`stepUpdateLinkKeepaliveAllowWithActions`** /
+> **`stepCreateLinkChannelWithActions`** /
+> **`stepLinkReadyForNewResourceWithActions`** emit allow|deny / closed|open /
+> reuse|skip / accept|skip / encrypt|plaintext / update|skip / data|other /
+> ignore|proceed / reply|skip / create|reuse / ready|busy; `Link`, Channel outlet,
+> and LXMF link-reuse adapt them (no ad-hoc `canLinkSend` / `isLinkClosed` /
+> `shouldReuseActiveLink` / `shouldAcceptLinkPacketInterface` /
+> `shouldEncryptLinkPayload` / `canLinkRequest` / `shouldUpdateLinkLastData` /
+> `isLinkInboundDataPacket` / `shouldIgnoreInitiatorKeepaliveProbe` /
+> `shouldReplyKeepaliveProbe` / `canUpdateLinkKeepalive` /
+> `shouldCreateLinkChannel` / `linkReadyForNewResource` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

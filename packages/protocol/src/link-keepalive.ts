@@ -3,6 +3,9 @@
  * Pack / classify framing conclusions leave via machine actions (no ad-hoc
  * `packLinkKeepaliveProbe` / `packLinkKeepaliveReply` /
  * `isLinkKeepaliveProbe` / `isLinkKeepaliveReply` reads beside the step).
+ * Initiator ignore / responder reply gates conclude via machine actions
+ * (no ad-hoc `shouldIgnoreInitiatorKeepaliveProbe` /
+ * `shouldReplyKeepaliveProbe` reads beside the step).
  * Timing stays in link-watchdog; send/receive stays at the adapter edge.
  */
 import type { Event, Intent } from "@twistedpear/effects";
@@ -35,6 +38,68 @@ export function shouldIgnoreInitiatorKeepaliveProbe(input: {
   return input.initiator && input.contextKeepalive && input.probePayload;
 }
 
+
+/**
+ * shouldIgnoreInitiatorKeepaliveProbe gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldIgnoreInitiatorKeepaliveProbe` reads beside
+ * the step).
+ */
+export type IgnoreInitiatorKeepaliveProbeState = Record<string, never>;
+
+export type IgnoreInitiatorKeepaliveProbeEvent =
+  | Event
+  | {
+      readonly kind: "link-keepalive/ignore-initiator-probe-gate";
+
+      readonly initiator: boolean;
+      readonly contextKeepalive: boolean;
+      readonly probePayload: boolean;
+    };
+
+export type IgnoreInitiatorKeepaliveProbeAction =
+  | { readonly kind: "ignore" }
+  | { readonly kind: "proceed" };
+
+export interface IgnoreInitiatorKeepaliveProbeStepResult {
+  readonly state: IgnoreInitiatorKeepaliveProbeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IgnoreInitiatorKeepaliveProbeAction[];
+}
+
+export function initialIgnoreInitiatorKeepaliveProbeState(): IgnoreInitiatorKeepaliveProbeState {
+  return {};
+}
+
+export function stepIgnoreInitiatorKeepaliveProbeWithActions(
+  state: IgnoreInitiatorKeepaliveProbeState,
+  event: IgnoreInitiatorKeepaliveProbeEvent
+): IgnoreInitiatorKeepaliveProbeStepResult {
+  if (event.kind === "link-keepalive/ignore-initiator-probe-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldIgnoreInitiatorKeepaliveProbe({ initiator: event.initiator, contextKeepalive: event.contextKeepalive, probePayload: event.probePayload }) ? "ignore" : "proceed"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldIgnoreInitiatorKeepaliveProbeNow(
+  actions: ReadonlyArray<IgnoreInitiatorKeepaliveProbeAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+export function shouldProceedInitiatorKeepaliveProbe(
+  actions: ReadonlyArray<IgnoreInitiatorKeepaliveProbeAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
 /** Whether a responder should reply to an inbound keepalive probe. */
 export function shouldReplyKeepaliveProbe(input: {
   readonly initiator: boolean;
@@ -43,6 +108,67 @@ export function shouldReplyKeepaliveProbe(input: {
   return !input.initiator && input.probePayload;
 }
 
+
+/**
+ * shouldReplyKeepaliveProbe gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldReplyKeepaliveProbe` reads beside
+ * the step).
+ */
+export type ReplyKeepaliveProbeState = Record<string, never>;
+
+export type ReplyKeepaliveProbeEvent =
+  | Event
+  | {
+      readonly kind: "link-keepalive/reply-probe-gate";
+
+      readonly initiator: boolean;
+      readonly probePayload: boolean;
+    };
+
+export type ReplyKeepaliveProbeAction =
+  | { readonly kind: "reply" }
+  | { readonly kind: "skip" };
+
+export interface ReplyKeepaliveProbeStepResult {
+  readonly state: ReplyKeepaliveProbeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ReplyKeepaliveProbeAction[];
+}
+
+export function initialReplyKeepaliveProbeState(): ReplyKeepaliveProbeState {
+  return {};
+}
+
+export function stepReplyKeepaliveProbeWithActions(
+  state: ReplyKeepaliveProbeState,
+  event: ReplyKeepaliveProbeEvent
+): ReplyKeepaliveProbeStepResult {
+  if (event.kind === "link-keepalive/reply-probe-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldReplyKeepaliveProbe({ initiator: event.initiator, probePayload: event.probePayload }) ? "reply" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldReplyKeepaliveProbeNow(
+  actions: ReadonlyArray<ReplyKeepaliveProbeAction>
+): boolean {
+  return actions.some((action) => action.kind === "reply");
+}
+
+export function shouldSkipKeepaliveProbeReply(
+  actions: ReadonlyArray<ReplyKeepaliveProbeAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
 /**
  * Keepalive probe pack framing is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `packLinkKeepaliveProbe`

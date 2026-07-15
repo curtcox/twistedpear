@@ -4,6 +4,10 @@ import {
   initialLinkResourceConcludeState,
   incomingLinkResourceConcludeIndex,
   linkReadyForNewResource,
+  initialLinkReadyForNewResourceState,
+  shouldLinkBusyForNewResource,
+  shouldLinkReadyForNewResource,
+  stepLinkReadyForNewResourceWithActions,
   outgoingLinkResourceConcludeIndex,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
@@ -212,4 +216,18 @@ describe("protocol link resource accept", () => {
     expect(incomingLinkResourceConcludeIndex(incoming.actions)).toBe(0);
     expect(shouldRemoveOutgoingLinkResourceConclude(incoming.actions)).toBe(false);
   });
+
+  it("concludes link ready for new resource via actions", () => {
+    const ready = stepLinkReadyForNewResourceWithActions(initialLinkReadyForNewResourceState(), {
+      kind: "link/ready-for-new-resource-gate",
+      outgoingCount: 0
+    });
+    expect(shouldLinkReadyForNewResource(ready.actions)).toBe(true);
+    const busy = stepLinkReadyForNewResourceWithActions(initialLinkReadyForNewResourceState(), {
+      kind: "link/ready-for-new-resource-gate",
+      outgoingCount: 1
+    });
+    expect(shouldLinkBusyForNewResource(busy.actions)).toBe(true);
+  });
+
 });

@@ -175,6 +175,66 @@ export function linkReadyForNewResource(outgoingCount: number): boolean {
   return outgoingCount === 0;
 }
 
+
+/**
+ * linkReadyForNewResource gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `linkReadyForNewResource` reads beside
+ * the step).
+ */
+export type LinkReadyForNewResourceState = Record<string, never>;
+
+export type LinkReadyForNewResourceEvent =
+  | Event
+  | {
+      readonly kind: "link/ready-for-new-resource-gate";
+
+      readonly outgoingCount: number;
+    };
+
+export type LinkReadyForNewResourceAction =
+  | { readonly kind: "ready" }
+  | { readonly kind: "busy" };
+
+export interface LinkReadyForNewResourceStepResult {
+  readonly state: LinkReadyForNewResourceState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkReadyForNewResourceAction[];
+}
+
+export function initialLinkReadyForNewResourceState(): LinkReadyForNewResourceState {
+  return {};
+}
+
+export function stepLinkReadyForNewResourceWithActions(
+  state: LinkReadyForNewResourceState,
+  event: LinkReadyForNewResourceEvent
+): LinkReadyForNewResourceStepResult {
+  if (event.kind === "link/ready-for-new-resource-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: linkReadyForNewResource(event.outgoingCount) ? "ready" : "busy"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldLinkReadyForNewResource(
+  actions: ReadonlyArray<LinkReadyForNewResourceAction>
+): boolean {
+  return actions.some((action) => action.kind === "ready");
+}
+
+export function shouldLinkBusyForNewResource(
+  actions: ReadonlyArray<LinkReadyForNewResourceAction>
+): boolean {
+  return actions.some((action) => action.kind === "busy");
+}
 /** Whether an outgoing resource should handle this RESOURCE_REQ packet. */
 export function shouldHandleOutgoingResourceRequest(input: {
   readonly hashMatches: boolean;

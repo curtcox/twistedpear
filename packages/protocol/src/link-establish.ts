@@ -5,6 +5,13 @@
  * Conclusions leave via machine actions (no ad-hoc status / plan.kind reads
  * beside the step). RTT compute / merge conclusions leave via machine actions
  * (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the step).
+ * Send / closed / reuse / packet-interface / encrypt / request-allow /
+ * last-data / inbound-DATA / keepalive-update / create-channel gates conclude
+ * via machine actions (no ad-hoc `canLinkSend` / `isLinkClosed` /
+ * `shouldReuseActiveLink` / `shouldAcceptLinkPacketInterface` /
+ * `shouldEncryptLinkPayload` / `canLinkRequest` / `shouldUpdateLinkLastData` /
+ * `isLinkInboundDataPacket` / `canUpdateLinkKeepalive` /
+ * `shouldCreateLinkChannel` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { planDestinationRequestAllow } from "./destination-allow.js";
@@ -394,16 +401,197 @@ export function canLinkRequest(input: {
   return input.status === LinkStatus.ACTIVE && input.rtt !== null;
 }
 
+
+/**
+ * canLinkRequest gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canLinkRequest` reads beside
+ * the step).
+ */
+export type LinkRequestAllowState = Record<string, never>;
+
+export type LinkRequestAllowEvent =
+  | Event
+  | {
+      readonly kind: "link/request-allow-gate";
+
+      readonly status: LinkStatusValue;
+      readonly rtt: number | null;
+    };
+
+export type LinkRequestAllowAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface LinkRequestAllowStepResult {
+  readonly state: LinkRequestAllowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkRequestAllowAction[];
+}
+
+export function initialLinkRequestAllowState(): LinkRequestAllowState {
+  return {};
+}
+
+export function stepLinkRequestAllowWithActions(
+  state: LinkRequestAllowState,
+  event: LinkRequestAllowEvent
+): LinkRequestAllowStepResult {
+  if (event.kind === "link/request-allow-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canLinkRequest({ status: event.status, rtt: event.rtt }) ? "allow" : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowLinkRequest(
+  actions: ReadonlyArray<LinkRequestAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyLinkRequest(
+  actions: ReadonlyArray<LinkRequestAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
+}
 /** Whether keepalive timing may be updated from a measured RTT. */
 export function canUpdateLinkKeepalive(rttPresent: boolean): boolean {
   return rttPresent;
 }
 
+
+/**
+ * canUpdateLinkKeepalive gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canUpdateLinkKeepalive` reads beside
+ * the step).
+ */
+export type UpdateLinkKeepaliveAllowState = Record<string, never>;
+
+export type UpdateLinkKeepaliveAllowEvent =
+  | Event
+  | {
+      readonly kind: "link/update-keepalive-allow-gate";
+
+      readonly rttPresent: boolean;
+    };
+
+export type UpdateLinkKeepaliveAllowAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface UpdateLinkKeepaliveAllowStepResult {
+  readonly state: UpdateLinkKeepaliveAllowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly UpdateLinkKeepaliveAllowAction[];
+}
+
+export function initialUpdateLinkKeepaliveAllowState(): UpdateLinkKeepaliveAllowState {
+  return {};
+}
+
+export function stepUpdateLinkKeepaliveAllowWithActions(
+  state: UpdateLinkKeepaliveAllowState,
+  event: UpdateLinkKeepaliveAllowEvent
+): UpdateLinkKeepaliveAllowStepResult {
+  if (event.kind === "link/update-keepalive-allow-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canUpdateLinkKeepalive(event.rttPresent) ? "allow" : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowUpdateLinkKeepalive(
+  actions: ReadonlyArray<UpdateLinkKeepaliveAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyUpdateLinkKeepalive(
+  actions: ReadonlyArray<UpdateLinkKeepaliveAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
+}
 /** Whether getChannel should construct a lazy Channel outlet. */
 export function shouldCreateLinkChannel(channelPresent: boolean): boolean {
   return !channelPresent;
 }
 
+
+/**
+ * shouldCreateLinkChannel gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldCreateLinkChannel` reads beside
+ * the step).
+ */
+export type CreateLinkChannelState = Record<string, never>;
+
+export type CreateLinkChannelEvent =
+  | Event
+  | {
+      readonly kind: "link/create-channel-gate";
+
+      readonly channelPresent: boolean;
+    };
+
+export type CreateLinkChannelAction =
+  | { readonly kind: "create" }
+  | { readonly kind: "reuse" };
+
+export interface CreateLinkChannelStepResult {
+  readonly state: CreateLinkChannelState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly CreateLinkChannelAction[];
+}
+
+export function initialCreateLinkChannelState(): CreateLinkChannelState {
+  return {};
+}
+
+export function stepCreateLinkChannelWithActions(
+  state: CreateLinkChannelState,
+  event: CreateLinkChannelEvent
+): CreateLinkChannelStepResult {
+  if (event.kind === "link/create-channel-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldCreateLinkChannel(event.channelPresent) ? "create" : "reuse"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldCreateLinkChannelNow(
+  actions: ReadonlyArray<CreateLinkChannelAction>
+): boolean {
+  return actions.some((action) => action.kind === "create");
+}
+
+export function shouldReuseLinkChannel(
+  actions: ReadonlyArray<CreateLinkChannelAction>
+): boolean {
+  return actions.some((action) => action.kind === "reuse");
+}
 export type LinkTokenAccessPlan = "reject-no-key" | "create" | "reuse";
 
 /**
@@ -789,16 +977,196 @@ export function shouldUpdateLinkLastData(contextKeepalive: boolean): boolean {
   return !contextKeepalive;
 }
 
+
+/**
+ * shouldUpdateLinkLastData gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldUpdateLinkLastData` reads beside
+ * the step).
+ */
+export type UpdateLinkLastDataState = Record<string, never>;
+
+export type UpdateLinkLastDataEvent =
+  | Event
+  | {
+      readonly kind: "link/update-last-data-gate";
+
+      readonly contextKeepalive: boolean;
+    };
+
+export type UpdateLinkLastDataAction =
+  | { readonly kind: "update" }
+  | { readonly kind: "skip" };
+
+export interface UpdateLinkLastDataStepResult {
+  readonly state: UpdateLinkLastDataState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly UpdateLinkLastDataAction[];
+}
+
+export function initialUpdateLinkLastDataState(): UpdateLinkLastDataState {
+  return {};
+}
+
+export function stepUpdateLinkLastDataWithActions(
+  state: UpdateLinkLastDataState,
+  event: UpdateLinkLastDataEvent
+): UpdateLinkLastDataStepResult {
+  if (event.kind === "link/update-last-data-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldUpdateLinkLastData(event.contextKeepalive) ? "update" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUpdateLinkLastDataNow(
+  actions: ReadonlyArray<UpdateLinkLastDataAction>
+): boolean {
+  return actions.some((action) => action.kind === "update");
+}
+
+export function shouldSkipLinkLastDataUpdate(
+  actions: ReadonlyArray<UpdateLinkLastDataAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
 /** Whether inbound link receive should dispatch DATA context handlers. */
 export function isLinkInboundDataPacket(packetType: number): boolean {
   return packetType === PacketTypeCode.DATA;
 }
 
+
+/**
+ * isLinkInboundDataPacket gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isLinkInboundDataPacket` reads beside
+ * the step).
+ */
+export type LinkInboundDataPacketState = Record<string, never>;
+
+export type LinkInboundDataPacketEvent =
+  | Event
+  | {
+      readonly kind: "link/inbound-data-packet-gate";
+
+      readonly packetType: number;
+    };
+
+export type LinkInboundDataPacketAction =
+  | { readonly kind: "data" }
+  | { readonly kind: "other" };
+
+export interface LinkInboundDataPacketStepResult {
+  readonly state: LinkInboundDataPacketState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkInboundDataPacketAction[];
+}
+
+export function initialLinkInboundDataPacketState(): LinkInboundDataPacketState {
+  return {};
+}
+
+export function stepLinkInboundDataPacketWithActions(
+  state: LinkInboundDataPacketState,
+  event: LinkInboundDataPacketEvent
+): LinkInboundDataPacketStepResult {
+  if (event.kind === "link/inbound-data-packet-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isLinkInboundDataPacket(event.packetType) ? "data" : "other"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldDispatchLinkInboundData(
+  actions: ReadonlyArray<LinkInboundDataPacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "data");
+}
+
+export function shouldIgnoreLinkInboundNonData(
+  actions: ReadonlyArray<LinkInboundDataPacketAction>
+): boolean {
+  return actions.some((action) => action.kind === "other");
+}
 /** Whether the link may send application/context data (ACTIVE). */
 export function canLinkSend(status: LinkStatusValue): boolean {
   return status === LinkStatus.ACTIVE;
 }
 
+
+/**
+ * canLinkSend gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canLinkSend` reads beside
+ * the step).
+ */
+export type LinkSendAllowState = Record<string, never>;
+
+export type LinkSendAllowEvent =
+  | Event
+  | {
+      readonly kind: "link/send-allow-gate";
+
+      readonly status: LinkStatusValue;
+    };
+
+export type LinkSendAllowAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface LinkSendAllowStepResult {
+  readonly state: LinkSendAllowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkSendAllowAction[];
+}
+
+export function initialLinkSendAllowState(): LinkSendAllowState {
+  return {};
+}
+
+export function stepLinkSendAllowWithActions(
+  state: LinkSendAllowState,
+  event: LinkSendAllowEvent
+): LinkSendAllowStepResult {
+  if (event.kind === "link/send-allow-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canLinkSend(event.status) ? "allow" : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowLinkSend(
+  actions: ReadonlyArray<LinkSendAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyLinkSend(
+  actions: ReadonlyArray<LinkSendAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
+}
 /** Whether an existing link may be reused for outbound send (present + ACTIVE). */
 export function shouldReuseActiveLink(input: {
   readonly linkPresent: boolean;
@@ -807,6 +1175,67 @@ export function shouldReuseActiveLink(input: {
   return input.linkPresent && canLinkSend(input.status);
 }
 
+
+/**
+ * shouldReuseActiveLink gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldReuseActiveLink` reads beside
+ * the step).
+ */
+export type ReuseActiveLinkState = Record<string, never>;
+
+export type ReuseActiveLinkEvent =
+  | Event
+  | {
+      readonly kind: "link/reuse-active-gate";
+
+      readonly linkPresent: boolean;
+      readonly status: LinkStatusValue;
+    };
+
+export type ReuseActiveLinkAction =
+  | { readonly kind: "reuse" }
+  | { readonly kind: "skip" };
+
+export interface ReuseActiveLinkStepResult {
+  readonly state: ReuseActiveLinkState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ReuseActiveLinkAction[];
+}
+
+export function initialReuseActiveLinkState(): ReuseActiveLinkState {
+  return {};
+}
+
+export function stepReuseActiveLinkWithActions(
+  state: ReuseActiveLinkState,
+  event: ReuseActiveLinkEvent
+): ReuseActiveLinkStepResult {
+  if (event.kind === "link/reuse-active-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldReuseActiveLink({ linkPresent: event.linkPresent, status: event.status }) ? "reuse" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldReuseActiveLinkNow(
+  actions: ReadonlyArray<ReuseActiveLinkAction>
+): boolean {
+  return actions.some((action) => action.kind === "reuse");
+}
+
+export function shouldSkipReuseActiveLink(
+  actions: ReadonlyArray<ReuseActiveLinkAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
 /** Whether inbound link traffic should be accepted from this interface attachment. */
 export function shouldAcceptLinkPacketInterface(input: {
   readonly hasAttachedInterface: boolean;
@@ -815,16 +1244,197 @@ export function shouldAcceptLinkPacketInterface(input: {
   return !input.hasAttachedInterface || input.sameInterface;
 }
 
+
+/**
+ * shouldAcceptLinkPacketInterface gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldAcceptLinkPacketInterface` reads beside
+ * the step).
+ */
+export type AcceptLinkPacketInterfaceState = Record<string, never>;
+
+export type AcceptLinkPacketInterfaceEvent =
+  | Event
+  | {
+      readonly kind: "link/accept-packet-interface-gate";
+
+      readonly hasAttachedInterface: boolean;
+      readonly sameInterface: boolean;
+    };
+
+export type AcceptLinkPacketInterfaceAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptLinkPacketInterfaceStepResult {
+  readonly state: AcceptLinkPacketInterfaceState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptLinkPacketInterfaceAction[];
+}
+
+export function initialAcceptLinkPacketInterfaceState(): AcceptLinkPacketInterfaceState {
+  return {};
+}
+
+export function stepAcceptLinkPacketInterfaceWithActions(
+  state: AcceptLinkPacketInterfaceState,
+  event: AcceptLinkPacketInterfaceEvent
+): AcceptLinkPacketInterfaceStepResult {
+  if (event.kind === "link/accept-packet-interface-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptLinkPacketInterface({ hasAttachedInterface: event.hasAttachedInterface, sameInterface: event.sameInterface }) ? "accept" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptLinkPacketInterfaceNow(
+  actions: ReadonlyArray<AcceptLinkPacketInterfaceAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipLinkPacketInterface(
+  actions: ReadonlyArray<AcceptLinkPacketInterfaceAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
 /** Whether link sendContext should encrypt the payload (default yes unless encrypt:false). */
 export function shouldEncryptLinkPayload(encryptOption: boolean | undefined): boolean {
   return encryptOption !== false;
 }
 
+
+/**
+ * shouldEncryptLinkPayload gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldEncryptLinkPayload` reads beside
+ * the step).
+ */
+export type EncryptLinkPayloadState = Record<string, never>;
+
+export type EncryptLinkPayloadEvent =
+  | Event
+  | {
+      readonly kind: "link/encrypt-payload-gate";
+
+      readonly encryptOption: boolean | undefined;
+    };
+
+export type EncryptLinkPayloadAction =
+  | { readonly kind: "encrypt" }
+  | { readonly kind: "plaintext" };
+
+export interface EncryptLinkPayloadStepResult {
+  readonly state: EncryptLinkPayloadState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly EncryptLinkPayloadAction[];
+}
+
+export function initialEncryptLinkPayloadState(): EncryptLinkPayloadState {
+  return {};
+}
+
+export function stepEncryptLinkPayloadWithActions(
+  state: EncryptLinkPayloadState,
+  event: EncryptLinkPayloadEvent
+): EncryptLinkPayloadStepResult {
+  if (event.kind === "link/encrypt-payload-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldEncryptLinkPayload(event.encryptOption) ? "encrypt" : "plaintext"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldEncryptLinkPayloadNow(
+  actions: ReadonlyArray<EncryptLinkPayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "encrypt");
+}
+
+export function shouldSendLinkPayloadPlaintext(
+  actions: ReadonlyArray<EncryptLinkPayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "plaintext");
+}
 /** Whether the link is closed (no further receive / watchdog work). */
 export function isLinkClosed(status: LinkStatusValue): boolean {
   return status === LinkStatus.CLOSED;
 }
 
+
+/**
+ * isLinkClosed gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isLinkClosed` reads beside
+ * the step).
+ */
+export type LinkClosedState = Record<string, never>;
+
+export type LinkClosedEvent =
+  | Event
+  | {
+      readonly kind: "link/closed-gate";
+
+      readonly status: LinkStatusValue;
+    };
+
+export type LinkClosedAction =
+  | { readonly kind: "closed" }
+  | { readonly kind: "open" };
+
+export interface LinkClosedStepResult {
+  readonly state: LinkClosedState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkClosedAction[];
+}
+
+export function initialLinkClosedState(): LinkClosedState {
+  return {};
+}
+
+export function stepLinkClosedWithActions(
+  state: LinkClosedState,
+  event: LinkClosedEvent
+): LinkClosedStepResult {
+  if (event.kind === "link/closed-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isLinkClosed(event.status) ? "closed" : "open"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatLinkClosed(
+  actions: ReadonlyArray<LinkClosedAction>
+): boolean {
+  return actions.some((action) => action.kind === "closed");
+}
+
+export function shouldTreatLinkOpen(
+  actions: ReadonlyArray<LinkClosedAction>
+): boolean {
+  return actions.some((action) => action.kind === "open");
+}
 export type LinkRegisterList = "pending" | "active";
 
 /** Which transport link list should receive a newly registered link. */

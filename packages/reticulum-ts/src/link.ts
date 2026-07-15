@@ -28,12 +28,18 @@ import {
   canAcceptLinkOwnerPublicKey,
   canAcceptLinkRtt,
   canIdentifyOnLink,
-  canLinkRequest,
-  canLinkSend,
+  shouldAllowLinkRequest,
+  initialLinkRequestAllowState,
+  stepLinkRequestAllowWithActions,
+  shouldAllowLinkSend,
+  initialLinkSendAllowState,
+  stepLinkSendAllowWithActions,
   canPerformLinkHandshake,
   canProveLink,
   canResendLinkPacket,
-  canUpdateLinkKeepalive,
+  shouldAllowUpdateLinkKeepalive,
+  initialUpdateLinkKeepaliveAllowState,
+  stepUpdateLinkKeepaliveAllowWithActions,
   canValidateLinkProof,
   deriveRnsLinkKeyRawFromActions,
   encodeLinkMtuBytesRawFromActions,
@@ -57,7 +63,9 @@ import {
   initialMergeLinkRttState,
   initialPendingLinkRequestRegisterState,
   initialRequestLinkDestinationState,
-  isLinkClosed,
+  shouldTreatLinkClosed,
+  initialLinkClosedState,
+  stepLinkClosedWithActions,
   isExpectedLinkMode,
   isLinkModeEnabled,
   linkEstablishActivatedAction,
@@ -66,7 +74,9 @@ import {
   linkKeepaliveFromActions,
   linkMduFromActions,
   linkProofSignedMaterialRawFromActions,
-  linkReadyForNewResource,
+  shouldLinkReadyForNewResource,
+  initialLinkReadyForNewResourceState,
+  stepLinkReadyForNewResourceWithActions,
   linkRequestHashablePartRawFromActions,
   linkRequestTimeoutFromActions,
   linkRttSecondsFromActions,
@@ -208,7 +218,9 @@ import {
   initialPendingLinkRequestUnregisterState,
   pendingLinkRequestUnregisterIndex,
   shouldAcceptLinkEstablishRtt,
-  shouldAcceptLinkPacketInterface,
+  shouldAcceptLinkPacketInterfaceNow,
+  initialAcceptLinkPacketInterfaceState,
+  stepAcceptLinkPacketInterfaceWithActions,
   shouldAcceptLinkResourceAdvertisement,
   shouldAcceptRemoteLinkTeardown,
   shouldAcceptResourceHashmapUpdateFrame,
@@ -221,19 +233,25 @@ import {
   shouldCommitLinkIdentify,
   shouldContinueLinkValidateRequest,
   shouldProceedLinkValidateRequest,
-  shouldCreateLinkChannel,
+  shouldCreateLinkChannelNow,
+  initialCreateLinkChannelState,
+  stepCreateLinkChannelWithActions,
   shouldCreateLinkToken,
   shouldDispatchLinkPlaintext,
   shouldUsePendingLinkAppRequestIndex,
   pendingLinkAppRequestIndexFromActions,
   shouldDeliverPendingLinkAppResponseNow,
-  shouldEncryptLinkPayload,
+  shouldEncryptLinkPayloadNow,
+  initialEncryptLinkPayloadState,
+  stepEncryptLinkPayloadWithActions,
   shouldEnterLinkHandshake,
   shouldFailLinkEstablish,
   shouldForbidLinkAppRequestInbound,
   shouldHandleIncomingResourceByHash,
   shouldHandleOutgoingResourceRequest,
-  shouldIgnoreInitiatorKeepaliveProbe,
+  shouldIgnoreInitiatorKeepaliveProbeNow,
+  initialIgnoreInitiatorKeepaliveProbeState,
+  stepIgnoreInitiatorKeepaliveProbeWithActions,
   shouldIgnoreLinkAppRequestInbound,
   shouldIgnoreLinkAppRequestInboundResponse,
   shouldIgnoreLinkEstablishRtt,
@@ -268,7 +286,9 @@ import {
   shouldRemoveOutgoingLinkResourceConclude,
   incomingLinkResourceConcludeIndex,
   outgoingLinkResourceConcludeIndex,
-  shouldReplyKeepaliveProbe,
+  shouldReplyKeepaliveProbeNow,
+  initialReplyKeepaliveProbeState,
+  stepReplyKeepaliveProbeWithActions,
   shouldReuseLinkToken,
   shouldSendLinkAppRequest,
   shouldSendLinkAppRequestInboundResponse,
@@ -276,8 +296,12 @@ import {
   shouldTeardownLinkEstablish,
   shouldUnregisterLinkAppRequestTransmit,
   shouldRemovePendingLinkRequest,
-  shouldUpdateLinkLastData,
-  isLinkInboundDataPacket,
+  shouldUpdateLinkLastDataNow,
+  initialUpdateLinkLastDataState,
+  stepUpdateLinkLastDataWithActions,
+  shouldDispatchLinkInboundData,
+  initialLinkInboundDataPacketState,
+  stepLinkInboundDataPacketWithActions,
   isLinkKeepaliveContext,
   identityPublicKeyFieldsFromActions,
   initialSplitIdentityPublicKeyState,
@@ -1266,7 +1290,11 @@ export class Link {
   }
 
   async receive(packet: Packet, iface: PacketInterface): Promise<void> {
-    if (isLinkClosed(this.status)) {
+    const closedStepped = stepLinkClosedWithActions(initialLinkClosedState(), {
+      kind: "link/closed-gate",
+      status: this.status
+    });
+    if (shouldTreatLinkClosed(closedStepped.actions)) {
       return;
     }
 
@@ -1279,22 +1307,28 @@ export class Link {
     );
     const probePayload = shouldClassifyLinkKeepaliveProbe(keepaliveClassify.actions);
 
-    if (
-      shouldIgnoreInitiatorKeepaliveProbe({
+    const ignoreProbe = stepIgnoreInitiatorKeepaliveProbeWithActions(
+      initialIgnoreInitiatorKeepaliveProbeState(),
+      {
+        kind: "link-keepalive/ignore-initiator-probe-gate",
         initiator: this.initiator,
         contextKeepalive: isLinkKeepaliveContext(packet.context),
         probePayload
-      })
-    ) {
+      }
+    );
+    if (shouldIgnoreInitiatorKeepaliveProbeNow(ignoreProbe.actions)) {
       return;
     }
 
-    if (
-      !shouldAcceptLinkPacketInterface({
+    const ifaceStepped = stepAcceptLinkPacketInterfaceWithActions(
+      initialAcceptLinkPacketInterfaceState(),
+      {
+        kind: "link/accept-packet-interface-gate",
         hasAttachedInterface: this.attachedInterface !== null,
         sameInterface: iface === this.attachedInterface
-      })
-    ) {
+      }
+    );
+    if (!shouldAcceptLinkPacketInterfaceNow(ifaceStepped.actions)) {
       return;
     }
 
@@ -1304,11 +1338,19 @@ export class Link {
         at: this.clock.now() / 1000
       })
     );
-    if (shouldUpdateLinkLastData(isLinkKeepaliveContext(packet.context))) {
+    const lastDataStepped = stepUpdateLinkLastDataWithActions(initialUpdateLinkLastDataState(), {
+      kind: "link/update-last-data-gate",
+      contextKeepalive: isLinkKeepaliveContext(packet.context)
+    });
+    if (shouldUpdateLinkLastDataNow(lastDataStepped.actions)) {
       this.lastData = this.lastInbound;
     }
 
-    if (!isLinkInboundDataPacket(packet.packetType)) {
+    const inboundData = stepLinkInboundDataPacketWithActions(initialLinkInboundDataPacketState(), {
+      kind: "link/inbound-data-packet-gate",
+      packetType: packet.packetType
+    });
+    if (!shouldDispatchLinkInboundData(inboundData.actions)) {
       return;
     }
 
@@ -1321,12 +1363,12 @@ export class Link {
       return;
     }
     if (shouldHandleLinkDataKeepalive(contextStepped.actions)) {
-      if (
-        shouldReplyKeepaliveProbe({
-          initiator: this.initiator,
-          probePayload
-        })
-      ) {
+      const replyStepped = stepReplyKeepaliveProbeWithActions(initialReplyKeepaliveProbeState(), {
+        kind: "link-keepalive/reply-probe-gate",
+        initiator: this.initiator,
+        probePayload
+      });
+      if (shouldReplyKeepaliveProbeNow(replyStepped.actions)) {
         await this.sendKeepaliveReply();
       }
       return;
@@ -1468,7 +1510,12 @@ export class Link {
     data: Uint8Array | null = null,
     options: LinkRequestOptions = {}
   ): Promise<LinkRequestReceipt | false> {
-    if (!canLinkRequest({ status: this.status, rtt: this.rtt })) {
+    const requestAllow = stepLinkRequestAllowWithActions(initialLinkRequestAllowState(), {
+      kind: "link/request-allow-gate",
+      status: this.status,
+      rtt: this.rtt
+    });
+    if (!shouldAllowLinkRequest(requestAllow.actions)) {
       return false;
     }
 
@@ -1557,7 +1604,11 @@ export class Link {
   }
 
   getChannel(): Channel {
-    if (shouldCreateLinkChannel(this.channel !== null)) {
+    const createChannel = stepCreateLinkChannelWithActions(initialCreateLinkChannelState(), {
+      kind: "link/create-channel-gate",
+      channelPresent: this.channel !== null
+    });
+    if (shouldCreateLinkChannelNow(createChannel.actions)) {
       this.channel = new Channel(new LinkChannelOutlet(this));
     }
 
@@ -1565,7 +1616,11 @@ export class Link {
   }
 
   readyForNewResource(): boolean {
-    return linkReadyForNewResource(this.outgoingResourcesList.length);
+    const ready = stepLinkReadyForNewResourceWithActions(initialLinkReadyForNewResourceState(), {
+      kind: "link/ready-for-new-resource-gate",
+      outgoingCount: this.outgoingResourcesList.length
+    });
+    return shouldLinkReadyForNewResource(ready.actions);
   }
 
   registerOutgoingResource(resource: Resource): void {
@@ -1661,11 +1716,19 @@ export class Link {
     data: Uint8Array,
     options: { createReceipt?: boolean; encrypt?: boolean } = {}
   ): Promise<LinkSendContextResult> {
-    if (!canLinkSend(this.status)) {
+    const sendAllow = stepLinkSendAllowWithActions(initialLinkSendAllowState(), {
+      kind: "link/send-allow-gate",
+      status: this.status
+    });
+    if (!shouldAllowLinkSend(sendAllow.actions)) {
       throw new Error("Cannot send on inactive link");
     }
 
-    const payload = shouldEncryptLinkPayload(options.encrypt)
+    const encryptStepped = stepEncryptLinkPayloadWithActions(initialEncryptLinkPayloadState(), {
+      kind: "link/encrypt-payload-gate",
+      encryptOption: options.encrypt
+    });
+    const payload = shouldEncryptLinkPayloadNow(encryptStepped.actions)
       ? this.encrypt(data)
       : data;
     const packet = Packet.fromFields(this.provider, {
@@ -2251,7 +2314,14 @@ export class Link {
   }
 
   private updateKeepalive(): void {
-    if (!canUpdateLinkKeepalive(this.rtt !== null)) {
+    const keepaliveAllow = stepUpdateLinkKeepaliveAllowWithActions(
+      initialUpdateLinkKeepaliveAllowState(),
+      {
+        kind: "link/update-keepalive-allow-gate",
+        rttPresent: this.rtt !== null
+      }
+    );
+    if (!shouldAllowUpdateLinkKeepalive(keepaliveAllow.actions)) {
       return;
     }
 
@@ -2296,7 +2366,11 @@ export class Link {
   }
 
   private watchdogTick(): void {
-    if (isLinkClosed(this.status)) {
+    const closedStepped = stepLinkClosedWithActions(initialLinkClosedState(), {
+      kind: "link/closed-gate",
+      status: this.status
+    });
+    if (shouldTreatLinkClosed(closedStepped.actions)) {
       return;
     }
 

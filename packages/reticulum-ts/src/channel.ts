@@ -6,7 +6,9 @@ import {
   CHANNEL_SEQ_MODULUS,
   ChannelWindowLimits,
   canArmChannelPacketReceipt,
-  canLinkSend,
+  shouldAllowLinkSend,
+  initialLinkSendAllowState,
+  stepLinkSendAllowWithActions,
   channelEmplaceIndex,
   channelEnvelopeFieldsFromActions,
   channelMessageStateFromPacketReceipt,
@@ -712,7 +714,11 @@ export class LinkChannelOutlet implements ChannelOutlet {
   }
 
   get isUsable(): boolean {
-    return canLinkSend(this.link.status);
+    const sendAllow = stepLinkSendAllowWithActions(initialLinkSendAllowState(), {
+      kind: "link/send-allow-gate",
+      status: this.link.status
+    });
+    return shouldAllowLinkSend(sendAllow.actions);
   }
 
   async send(raw: Uint8Array): Promise<ChannelPacket | null> {

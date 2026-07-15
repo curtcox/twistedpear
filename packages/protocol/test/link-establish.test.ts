@@ -16,6 +16,45 @@ import {
   canIdentifyOnLink,
   canLinkRequest,
   canLinkSend,
+  initialAcceptLinkPacketInterfaceState,
+  initialCreateLinkChannelState,
+  initialEncryptLinkPayloadState,
+  initialLinkClosedState,
+  initialLinkInboundDataPacketState,
+  initialLinkRequestAllowState,
+  initialLinkSendAllowState,
+  initialReuseActiveLinkState,
+  initialUpdateLinkKeepaliveAllowState,
+  initialUpdateLinkLastDataState,
+  shouldAcceptLinkPacketInterfaceNow,
+  shouldAllowLinkRequest,
+  shouldAllowLinkSend,
+  shouldAllowUpdateLinkKeepalive,
+  shouldCreateLinkChannelNow,
+  shouldDenyLinkRequest,
+  shouldDenyLinkSend,
+  shouldDispatchLinkInboundData,
+  shouldEncryptLinkPayloadNow,
+  shouldIgnoreLinkInboundNonData,
+  shouldReuseActiveLinkNow,
+  shouldReuseLinkChannel,
+  shouldSendLinkPayloadPlaintext,
+  shouldSkipLinkLastDataUpdate,
+  shouldSkipLinkPacketInterface,
+  shouldSkipReuseActiveLink,
+  shouldTreatLinkClosed,
+  shouldTreatLinkOpen,
+  shouldUpdateLinkLastDataNow,
+  stepAcceptLinkPacketInterfaceWithActions,
+  stepCreateLinkChannelWithActions,
+  stepEncryptLinkPayloadWithActions,
+  stepLinkClosedWithActions,
+  stepLinkInboundDataPacketWithActions,
+  stepLinkRequestAllowWithActions,
+  stepLinkSendAllowWithActions,
+  stepReuseActiveLinkWithActions,
+  stepUpdateLinkKeepaliveAllowWithActions,
+  stepUpdateLinkLastDataWithActions,
   canPerformLinkHandshake,
   canProveLink,
   canResendLinkPacket,
@@ -280,6 +319,130 @@ describe("protocol link establish", () => {
     expect(canLinkSend(LinkStatus.PENDING)).toBe(false);
     expect(canLinkSend(LinkStatus.HANDSHAKE)).toBe(false);
     expect(canLinkSend(LinkStatus.CLOSED)).toBe(false);
+  });
+
+  it("concludes link send allow via actions", () => {
+    const allow = stepLinkSendAllowWithActions(initialLinkSendAllowState(), {
+      kind: "link/send-allow-gate",
+      status: LinkStatus.ACTIVE
+    });
+    expect(shouldAllowLinkSend(allow.actions)).toBe(true);
+    expect(shouldDenyLinkSend(allow.actions)).toBe(false);
+    const deny = stepLinkSendAllowWithActions(initialLinkSendAllowState(), {
+      kind: "link/send-allow-gate",
+      status: LinkStatus.PENDING
+    });
+    expect(shouldDenyLinkSend(deny.actions)).toBe(true);
+  });
+
+  it("concludes reuse active link via actions", () => {
+    const reuse = stepReuseActiveLinkWithActions(initialReuseActiveLinkState(), {
+      kind: "link/reuse-active-gate",
+      linkPresent: true,
+      status: LinkStatus.ACTIVE
+    });
+    expect(shouldReuseActiveLinkNow(reuse.actions)).toBe(true);
+    const skip = stepReuseActiveLinkWithActions(initialReuseActiveLinkState(), {
+      kind: "link/reuse-active-gate",
+      linkPresent: false,
+      status: LinkStatus.ACTIVE
+    });
+    expect(shouldSkipReuseActiveLink(skip.actions)).toBe(true);
+  });
+
+  it("concludes link closed / packet-interface / encrypt / request / last-data via actions", () => {
+    const closed = stepLinkClosedWithActions(initialLinkClosedState(), {
+      kind: "link/closed-gate",
+      status: LinkStatus.CLOSED
+    });
+    expect(shouldTreatLinkClosed(closed.actions)).toBe(true);
+    const open = stepLinkClosedWithActions(initialLinkClosedState(), {
+      kind: "link/closed-gate",
+      status: LinkStatus.ACTIVE
+    });
+    expect(shouldTreatLinkOpen(open.actions)).toBe(true);
+
+    const acceptIface = stepAcceptLinkPacketInterfaceWithActions(
+      initialAcceptLinkPacketInterfaceState(),
+      {
+        kind: "link/accept-packet-interface-gate",
+        hasAttachedInterface: true,
+        sameInterface: true
+      }
+    );
+    expect(shouldAcceptLinkPacketInterfaceNow(acceptIface.actions)).toBe(true);
+    const skipIface = stepAcceptLinkPacketInterfaceWithActions(
+      initialAcceptLinkPacketInterfaceState(),
+      {
+        kind: "link/accept-packet-interface-gate",
+        hasAttachedInterface: true,
+        sameInterface: false
+      }
+    );
+    expect(shouldSkipLinkPacketInterface(skipIface.actions)).toBe(true);
+
+    const encrypt = stepEncryptLinkPayloadWithActions(initialEncryptLinkPayloadState(), {
+      kind: "link/encrypt-payload-gate",
+      encryptOption: undefined
+    });
+    expect(shouldEncryptLinkPayloadNow(encrypt.actions)).toBe(true);
+    const plaintext = stepEncryptLinkPayloadWithActions(initialEncryptLinkPayloadState(), {
+      kind: "link/encrypt-payload-gate",
+      encryptOption: false
+    });
+    expect(shouldSendLinkPayloadPlaintext(plaintext.actions)).toBe(true);
+
+    const requestAllow = stepLinkRequestAllowWithActions(initialLinkRequestAllowState(), {
+      kind: "link/request-allow-gate",
+      status: LinkStatus.ACTIVE,
+      rtt: 0.1
+    });
+    expect(shouldAllowLinkRequest(requestAllow.actions)).toBe(true);
+    const requestDeny = stepLinkRequestAllowWithActions(initialLinkRequestAllowState(), {
+      kind: "link/request-allow-gate",
+      status: LinkStatus.ACTIVE,
+      rtt: null
+    });
+    expect(shouldDenyLinkRequest(requestDeny.actions)).toBe(true);
+
+    const update = stepUpdateLinkLastDataWithActions(initialUpdateLinkLastDataState(), {
+      kind: "link/update-last-data-gate",
+      contextKeepalive: false
+    });
+    expect(shouldUpdateLinkLastDataNow(update.actions)).toBe(true);
+    const skipUpdate = stepUpdateLinkLastDataWithActions(initialUpdateLinkLastDataState(), {
+      kind: "link/update-last-data-gate",
+      contextKeepalive: true
+    });
+    expect(shouldSkipLinkLastDataUpdate(skipUpdate.actions)).toBe(true);
+
+    const data = stepLinkInboundDataPacketWithActions(initialLinkInboundDataPacketState(), {
+      kind: "link/inbound-data-packet-gate",
+      packetType: PacketTypeCode.DATA
+    });
+    expect(shouldDispatchLinkInboundData(data.actions)).toBe(true);
+    const other = stepLinkInboundDataPacketWithActions(initialLinkInboundDataPacketState(), {
+      kind: "link/inbound-data-packet-gate",
+      packetType: PacketTypeCode.PROOF
+    });
+    expect(shouldIgnoreLinkInboundNonData(other.actions)).toBe(true);
+
+    const keepaliveAllow = stepUpdateLinkKeepaliveAllowWithActions(
+      initialUpdateLinkKeepaliveAllowState(),
+      { kind: "link/update-keepalive-allow-gate", rttPresent: true }
+    );
+    expect(shouldAllowUpdateLinkKeepalive(keepaliveAllow.actions)).toBe(true);
+
+    const create = stepCreateLinkChannelWithActions(initialCreateLinkChannelState(), {
+      kind: "link/create-channel-gate",
+      channelPresent: false
+    });
+    expect(shouldCreateLinkChannelNow(create.actions)).toBe(true);
+    const reuseCh = stepCreateLinkChannelWithActions(initialCreateLinkChannelState(), {
+      kind: "link/create-channel-gate",
+      channelPresent: true
+    });
+    expect(shouldReuseLinkChannel(reuseCh.actions)).toBe(true);
   });
 
   it("reuses present ACTIVE links", () => {

@@ -34,7 +34,9 @@ import {
   shouldRejectUnpackPropagationEnvelope,
   shouldRejectUnpackPropagationRequest,
   shouldRequestPropagationHavesAck,
-  shouldReuseActiveLink,
+  shouldReuseActiveLinkNow,
+  initialReuseActiveLinkState,
+  stepReuseActiveLinkWithActions,
   shouldTeardownLxmfPropagationLink,
   shouldTreatPropagationListAsEmpty,
   shouldUseDecodeLxmfPeerError,
@@ -427,12 +429,12 @@ export class PropagationClient {
   private async ensurePropagationLink(
     actions: ReadonlyArray<PropagationTransferAction>
   ): Promise<Link> {
-    if (
-      shouldReuseActiveLink({
-        linkPresent: this.propagationLink !== null,
-        status: this.propagationLink?.status ?? 0
-      })
-    ) {
+    const reuseStepped = stepReuseActiveLinkWithActions(initialReuseActiveLinkState(), {
+      kind: "link/reuse-active-gate",
+      linkPresent: this.propagationLink !== null,
+      status: this.propagationLink?.status ?? 0
+    });
+    if (shouldReuseActiveLinkNow(reuseStepped.actions)) {
       return this.propagationLink!;
     }
 

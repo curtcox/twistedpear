@@ -14,8 +14,16 @@ import {
   shouldClassifyLinkKeepaliveProbe,
   shouldClassifyLinkKeepaliveReply,
   shouldIgnoreInitiatorKeepaliveProbe,
+  shouldIgnoreInitiatorKeepaliveProbeNow,
+  shouldProceedInitiatorKeepaliveProbe,
+  initialIgnoreInitiatorKeepaliveProbeState,
+  stepIgnoreInitiatorKeepaliveProbeWithActions,
   shouldRejectClassifyLinkKeepalive,
   shouldReplyKeepaliveProbe,
+  shouldReplyKeepaliveProbeNow,
+  shouldSkipKeepaliveProbeReply,
+  initialReplyKeepaliveProbeState,
+  stepReplyKeepaliveProbeWithActions,
   shouldUsePackLinkKeepaliveProbe,
   shouldUsePackLinkKeepaliveReply,
   stepClassifyLinkKeepaliveWithActions,
@@ -122,4 +130,41 @@ describe("link keepalive framing", () => {
       })
     ).toBe(false);
   });
+
+  it("concludes initiator ignore / responder reply via actions", () => {
+    const ignore = stepIgnoreInitiatorKeepaliveProbeWithActions(
+      initialIgnoreInitiatorKeepaliveProbeState(),
+      {
+        kind: "link-keepalive/ignore-initiator-probe-gate",
+        initiator: true,
+        contextKeepalive: true,
+        probePayload: true
+      }
+    );
+    expect(shouldIgnoreInitiatorKeepaliveProbeNow(ignore.actions)).toBe(true);
+    const proceed = stepIgnoreInitiatorKeepaliveProbeWithActions(
+      initialIgnoreInitiatorKeepaliveProbeState(),
+      {
+        kind: "link-keepalive/ignore-initiator-probe-gate",
+        initiator: false,
+        contextKeepalive: true,
+        probePayload: true
+      }
+    );
+    expect(shouldProceedInitiatorKeepaliveProbe(proceed.actions)).toBe(true);
+
+    const reply = stepReplyKeepaliveProbeWithActions(initialReplyKeepaliveProbeState(), {
+      kind: "link-keepalive/reply-probe-gate",
+      initiator: false,
+      probePayload: true
+    });
+    expect(shouldReplyKeepaliveProbeNow(reply.actions)).toBe(true);
+    const skip = stepReplyKeepaliveProbeWithActions(initialReplyKeepaliveProbeState(), {
+      kind: "link-keepalive/reply-probe-gate",
+      initiator: true,
+      probePayload: true
+    });
+    expect(shouldSkipKeepaliveProbeReply(skip.actions)).toBe(true);
+  });
+
 });

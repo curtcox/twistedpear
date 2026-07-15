@@ -50,7 +50,9 @@ import {
   shouldRejectPackLxmfDestinationPrefixed,
   shouldRejectSplitLxmfDestinationPrefixed,
   shouldRememberLxmfMessage,
-  shouldReuseActiveLink,
+  shouldReuseActiveLinkNow,
+  initialReuseActiveLinkState,
+  stepReuseActiveLinkWithActions,
   shouldReuseLxmfPropagationLink,
   shouldSendLxmfDirect,
   shouldSendLxmfOpportunistic,
@@ -488,12 +490,12 @@ export class LXMFRouter {
     const recipientIdentity = destination.identity;
     const destinationKey = bytesToHex(destination.hash);
     let link = this.directLinks.get(destinationKey) ?? null;
-    if (
-      !shouldReuseActiveLink({
-        linkPresent: link !== null,
-        status: link?.status ?? 0
-      })
-    ) {
+    const reuseDirect = stepReuseActiveLinkWithActions(initialReuseActiveLinkState(), {
+      kind: "link/reuse-active-gate",
+      linkPresent: link !== null,
+      status: link?.status ?? 0
+    });
+    if (!shouldReuseActiveLinkNow(reuseDirect.actions)) {
       const outbound = this.reticulum.registerDestination({
         provider: this.provider,
         identity: recipientIdentity,
@@ -573,10 +575,12 @@ export class LXMFRouter {
   }
 
   private async ensureOutboundPropagationLink(): Promise<Link> {
-    const canReuse = shouldReuseActiveLink({
+    const reuseStepped = stepReuseActiveLinkWithActions(initialReuseActiveLinkState(), {
+      kind: "link/reuse-active-gate",
       linkPresent: this.outboundPropagationLink !== null,
       status: this.outboundPropagationLink?.status ?? 0
     });
+    const canReuse = shouldReuseActiveLinkNow(reuseStepped.actions);
     const nodeConfigured = this.outboundPropagationNode !== null;
     const nodeIdentity =
       this.outboundPropagationNode === null
