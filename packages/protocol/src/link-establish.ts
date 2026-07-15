@@ -14,7 +14,8 @@
  * `shouldEncryptLinkPayload` / `canLinkRequest` / `shouldUpdateLinkLastData` /
  * `isLinkInboundDataPacket` / `canUpdateLinkKeepalive` /
  * `shouldCreateLinkChannel` / `canPerformLinkHandshake` / `canProveLink` /
- * `canAcceptLinkOwnerPublicKey` / `canValidateLinkProof` /
+ * `canAcceptLinkOwnerPublicKey` / `canAcceptLinkRequestOwner` /
+ * `canValidateLinkProof` /
  * `shouldAttemptLinkProofCrypto` / `canAcceptLinkRtt` /
  * `shouldTeardownLinkFromRtt` / `canIdentifyOnLink` /
  * `shouldDispatchLinkPlaintext` / `canResendLinkPacket` reads beside the step).
@@ -26,6 +27,8 @@
  * (no ad-hoc `shouldContinueLinkValidateRequest` reads beside the step).
  * Destination request-allow conclusions leave via machine actions (no ad-hoc
  * `planDestinationRequestAllow` reads beside the step).
+ * Accept-link-request-owner conclusions leave via machine actions (no ad-hoc
+ * `canAcceptLinkRequestOwner` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -313,22 +316,88 @@ export function canAcceptLinkRequestOwner(identityPresent: boolean): boolean {
   return identityPresent;
 }
 
+/**
+ * canAcceptLinkRequestOwner gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canAcceptLinkRequestOwner`
+ * reads beside the step).
+ */
+export type AcceptLinkRequestOwnerState = Record<string, never>;
+
+export type AcceptLinkRequestOwnerEvent =
+  | Event
+  | {
+      readonly kind: "link/accept-request-owner-gate";
+      readonly identityPresent: boolean;
+    };
+
+export type AcceptLinkRequestOwnerAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "reject" };
+
+export interface AcceptLinkRequestOwnerStepResult {
+  readonly state: AcceptLinkRequestOwnerState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptLinkRequestOwnerAction[];
+}
+
+export function initialAcceptLinkRequestOwnerState(): AcceptLinkRequestOwnerState {
+  return {};
+}
+
+export function stepAcceptLinkRequestOwnerWithActions(
+  state: AcceptLinkRequestOwnerState,
+  event: AcceptLinkRequestOwnerEvent
+): AcceptLinkRequestOwnerStepResult {
+  if (event.kind === "link/accept-request-owner-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canAcceptLinkRequestOwner(event.identityPresent)
+            ? "accept"
+            : "reject"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptLinkRequestOwnerNow(
+  actions: ReadonlyArray<AcceptLinkRequestOwnerAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldRejectLinkRequestOwner(
+  actions: ReadonlyArray<AcceptLinkRequestOwnerAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
 export type LinkValidateRequestPlan =
   | "ok"
   | "bad-request"
   | "owner-missing-identity"
   | "mode-disabled";
 
-/** Whether validateRequest may proceed (parsed request + owner + enabled mode). */
+/**
+ * Whether validateRequest may proceed (parsed request + owner + enabled mode).
+ * Pass `ownerIdentityAccepted` from {@link stepAcceptLinkRequestOwnerWithActions}
+ * (`shouldAcceptLinkRequestOwnerNow`); do not re-read `canAcceptLinkRequestOwner`
+ * beside the step.
+ */
 export function planLinkValidateRequest(input: {
   readonly requestPresent: boolean;
-  readonly ownerIdentityPresent: boolean;
+  readonly ownerIdentityAccepted: boolean;
   readonly modeEnabled: boolean;
 }): LinkValidateRequestPlan {
   if (!input.requestPresent) {
     return "bad-request";
   }
-  if (!canAcceptLinkRequestOwner(input.ownerIdentityPresent)) {
+  if (!input.ownerIdentityAccepted) {
     return "owner-missing-identity";
   }
   if (!input.modeEnabled) {
@@ -491,9 +560,15 @@ function stepLinkValidateRequestInner(
   event: LinkValidateRequestEvent
 ): LinkValidateRequestStepResult {
   if (event.kind === "validate-request/gate") {
+    const ownerIdentityAccepted = shouldAcceptLinkRequestOwnerNow(
+      stepAcceptLinkRequestOwnerWithActions(initialAcceptLinkRequestOwnerState(), {
+        kind: "link/accept-request-owner-gate",
+        identityPresent: event.ownerIdentityPresent
+      }).actions
+    );
     const plan = planLinkValidateRequest({
       requestPresent: event.requestPresent,
-      ownerIdentityPresent: event.ownerIdentityPresent,
+      ownerIdentityAccepted,
       modeEnabled: event.modeEnabled
     });
     if (plan === "bad-request") {

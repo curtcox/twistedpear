@@ -58,6 +58,7 @@ import {
   stepUpdateLinkKeepaliveAllowWithActions,
   stepUpdateLinkLastDataWithActions,
   initialAcceptLinkOwnerPublicKeyState,
+  initialAcceptLinkRequestOwnerState,
   initialAcceptLinkRttState,
   initialAttemptLinkProofCryptoState,
   initialDispatchLinkPlaintextState,
@@ -68,6 +69,7 @@ import {
   initialTeardownLinkFromRttState,
   initialValidateLinkProofAllowState,
   shouldAcceptLinkOwnerPublicKeyNow,
+  shouldAcceptLinkRequestOwnerNow,
   shouldAcceptLinkRttNow,
   shouldAllowIdentifyOnLink,
   shouldAllowPerformLinkHandshake,
@@ -82,12 +84,14 @@ import {
   shouldDenyValidateLinkProof,
   shouldDispatchLinkPlaintextNow,
   shouldRejectLinkOwnerPublicKey,
+  shouldRejectLinkRequestOwner,
   shouldSkipLinkPlaintextDispatch,
   shouldSkipLinkProofCrypto,
   shouldSkipLinkRttAccept,
   shouldSkipTeardownLinkFromRtt,
   shouldTeardownLinkFromRttNow,
   stepAcceptLinkOwnerPublicKeyWithActions,
+  stepAcceptLinkRequestOwnerWithActions,
   stepAcceptLinkRttWithActions,
   stepAttemptLinkProofCryptoWithActions,
   stepDispatchLinkPlaintextWithActions,
@@ -550,6 +554,17 @@ describe("protocol link establish", () => {
     );
     expect(shouldRejectLinkOwnerPublicKey(ownerKeyReject.actions)).toBe(true);
 
+    const requestOwner = stepAcceptLinkRequestOwnerWithActions(
+      initialAcceptLinkRequestOwnerState(),
+      { kind: "link/accept-request-owner-gate", identityPresent: true }
+    );
+    expect(shouldAcceptLinkRequestOwnerNow(requestOwner.actions)).toBe(true);
+    const requestOwnerReject = stepAcceptLinkRequestOwnerWithActions(
+      initialAcceptLinkRequestOwnerState(),
+      { kind: "link/accept-request-owner-gate", identityPresent: false }
+    );
+    expect(shouldRejectLinkRequestOwner(requestOwnerReject.actions)).toBe(true);
+
     const validate = stepValidateLinkProofAllowWithActions(initialValidateLinkProofAllowState(), {
       kind: "link/validate-proof-allow-gate",
       status: LinkStatus.PENDING,
@@ -658,28 +673,28 @@ describe("protocol link establish", () => {
     expect(
       planLinkValidateRequest({
         requestPresent: true,
-        ownerIdentityPresent: true,
+        ownerIdentityAccepted: true,
         modeEnabled: true
       })
     ).toBe("ok");
     expect(
       planLinkValidateRequest({
         requestPresent: false,
-        ownerIdentityPresent: true,
+        ownerIdentityAccepted: true,
         modeEnabled: true
       })
     ).toBe("bad-request");
     expect(
       planLinkValidateRequest({
         requestPresent: true,
-        ownerIdentityPresent: false,
+        ownerIdentityAccepted: false,
         modeEnabled: true
       })
     ).toBe("owner-missing-identity");
     expect(
       planLinkValidateRequest({
         requestPresent: true,
-        ownerIdentityPresent: true,
+        ownerIdentityAccepted: true,
         modeEnabled: false
       })
     ).toBe("mode-disabled");

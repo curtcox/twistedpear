@@ -178,6 +178,7 @@
 > **`stepPerformLinkHandshakeAllowWithActions`**: allow|deny /
 > **`stepProveLinkAllowWithActions`**: allow|deny /
 > **`stepAcceptLinkOwnerPublicKeyWithActions`**: accept|reject /
+> **`stepAcceptLinkRequestOwnerWithActions`**: accept|reject /
 > **`stepValidateLinkProofAllowWithActions`**: allow|deny /
 > **`stepContinueLinkValidateRequestWithActions`**: continue|skip /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
@@ -794,7 +795,7 @@
 > protocol; `LXMFRouter.send` adapts it. **`planChannelSend`** (via
 > **`stepChannelSendWithActions`**: proceed / link-not-ready / too-big) lives in
 > protocol; `Channel.send` adapts it.
-> **`canPerformLinkHandshake`** (via **`stepPerformLinkHandshakeAllowWithActions`**: allow|deny), **`canProveLink`** (via **`stepProveLinkAllowWithActions`**: allow|deny), **`canAcceptLinkRequestOwner`**,
+> **`canPerformLinkHandshake`** (via **`stepPerformLinkHandshakeAllowWithActions`**: allow|deny), **`canProveLink`** (via **`stepProveLinkAllowWithActions`**: allow|deny), **`canAcceptLinkRequestOwner`** (via **`stepAcceptLinkRequestOwnerWithActions`**: accept|reject),
 > **`planLinkAppRequest`** (via **`stepLinkAppRequestWithActions`**: send / reject),
 > **`canSendLinkAppResponse`**, and **`planLinkTokenAccess`**
 > (via **`stepLinkTokenAccessWithActions`**: reject-no-key / create / reuse) live in
@@ -828,7 +829,8 @@
 > reject-missing-identity / reject-missing-timestamp) lives in protocol;
 > `LXMessage` delivery-parameter selection adapts it. **`planLinkValidateRequest`**
 > (via **`stepLinkValidateRequestWithActions`**: proceed / reject-bad-request /
-> reject-owner-missing-identity / reject-mode-disabled) and
+> reject-owner-missing-identity / reject-mode-disabled; owner acceptance nested via
+> **`stepAcceptLinkRequestOwnerWithActions`**: accept|reject) and
 > **`shouldContinueLinkValidateRequest`** (via
 > **`stepContinueLinkValidateRequestWithActions`**: continue|skip) and
 > **`planLinkIdentifyOutcome`** (via **`stepLinkIdentifyWithActions`**) and
@@ -1030,6 +1032,7 @@
 > **`stepAnswerLocalPathRequestWithActions`**: answer|skip) /
 > **`shouldBeginPathDiscovery`** (via **`stepBeginPathDiscoveryWithActions`**:
 > begin|skip), **`canAcceptLinkOwnerPublicKey`** (via **`stepAcceptLinkOwnerPublicKeyWithActions`**: accept|reject),
+> **`canAcceptLinkRequestOwner`** (via **`stepAcceptLinkRequestOwnerWithActions`**: accept|reject),
 > **`shouldInvokePacketReceiptTimeoutCallback`**, and
 > **`shouldInvokeLinkRequestReceiptAction`** live in protocol; Link, Resource, Channel,
 > transport path-request, PacketReceipt, and LinkRequestReceipt adapt them.
@@ -1225,10 +1228,13 @@
 > `shouldCommitLinkRemoteIdentity` reads beside the step).
 > **`stepLinkValidateRequestWithActions`** emits `proceed` /
 > `reject-bad-request` / `reject-owner-missing-identity` /
-> `reject-mode-disabled`; **`stepContinueLinkValidateRequestWithActions`**
+> `reject-mode-disabled` (owner acceptance nested via
+> **`stepAcceptLinkRequestOwnerWithActions`**: accept|reject);
+> **`stepContinueLinkValidateRequestWithActions`**
 > emits `continue`|`skip`; `Link.validateRequest` applies continue/mode
 > gates only from those actions (no ad-hoc `planLinkValidateRequest` /
-> `plan.kind` / `shouldContinueLinkValidateRequest` reads beside the step).
+> `plan.kind` / `canAcceptLinkRequestOwner` /
+> `shouldContinueLinkValidateRequest` reads beside the step).
 > **`stepLinkProofValidateWithActions`** emits `accept` / `reject`;
 > `Link.validateProof` applies activation gate only from those actions
 > (no ad-hoc `planLinkProofValidateOutcome` reads beside the step).
@@ -1534,6 +1540,7 @@
 > **`stepPerformLinkHandshakeAllowWithActions`** /
 > **`stepProveLinkAllowWithActions`** /
 > **`stepAcceptLinkOwnerPublicKeyWithActions`** /
+> **`stepAcceptLinkRequestOwnerWithActions`** /
 > **`stepValidateLinkProofAllowWithActions`** /
 > **`stepContinueLinkValidateRequestWithActions`** /
 > **`stepAttemptLinkProofCryptoWithActions`** /
@@ -1551,7 +1558,7 @@
 > handle|skip /
 > enabled|disabled / match|mismatch; `Link` adapts them (no ad-hoc
 > `canPerformLinkHandshake` / `canProveLink` / `canAcceptLinkOwnerPublicKey` /
-> `canValidateLinkProof` / `shouldContinueLinkValidateRequest` /
+> `canAcceptLinkRequestOwner` / `canValidateLinkProof` / `shouldContinueLinkValidateRequest` /
 > `shouldAttemptLinkProofCrypto` / `canAcceptLinkRtt` /
 > `shouldTeardownLinkFromRtt` /
 > `canIdentifyOnLink` / `shouldDispatchLinkPlaintext` / `canResendLinkPacket` /
@@ -1727,7 +1734,7 @@
 > update-link-keepalive-allow / create-link-channel /
 > link-ready-for-new-resource /
 > perform-link-handshake-allow / prove-link-allow /
-> accept-link-owner-public-key / validate-link-proof-allow /
+> accept-link-owner-public-key / accept-link-request-owner / validate-link-proof-allow /
 > attempt-link-proof-crypto / accept-link-rtt / teardown-link-from-rtt /
 > identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
