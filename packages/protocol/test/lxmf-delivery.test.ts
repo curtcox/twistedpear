@@ -34,6 +34,13 @@ import {
   planLxmfPropagationLocalIngress,
   planLxmfSendMethod,
   planLxmfSignatureOutcome,
+  initialLxmfSendMethodPlanState,
+  lxmfSendMethodPlanFromActions,
+  shouldPlanLxmfSendMethodDirect,
+  shouldPlanLxmfSendMethodOpportunistic,
+  shouldPlanLxmfSendMethodPropagated,
+  shouldRejectLxmfSendMethodPlanUnpacked,
+  shouldRejectLxmfSendMethodPlanUnsupported,
   shouldAcceptLxmfWireFrame,
   shouldAcceptLxmfWireFrameNow,
   shouldCommitRememberedLxmfHash,
@@ -162,6 +169,7 @@ import {
   stepLxmfPropagationLinkReadyWithActions,
   stepLxmfPropagationLocalIngressWithActions,
   stepLxmfPropagationSyncPrepWithActions,
+  stepLxmfSendMethodPlanWithActions,
   stepLxmfSendMethodWithActions,
   stepLxmfSignatureWithActions,
   stepLxMessageInstancePackWithActions,
@@ -715,6 +723,57 @@ describe("protocol lxmf delivery", () => {
         method: LxmfDeliveryMethod.PAPER
       })
     ).toBe("reject-unsupported");
+  });
+
+  it("emits send-method-plan actions only from send/plan-gate", () => {
+    const unpacked = stepLxmfSendMethodPlanWithActions(initialLxmfSendMethodPlanState(), {
+      kind: "send/plan-gate",
+      packed: false,
+      method: LxmfDeliveryMethod.DIRECT
+    });
+    expect(shouldRejectLxmfSendMethodPlanUnpacked(unpacked.actions)).toBe(true);
+    expect(shouldPlanLxmfSendMethodDirect(unpacked.actions)).toBe(false);
+    expect(lxmfSendMethodPlanFromActions(unpacked.actions)).toBe("reject-unpacked");
+
+    const opportunistic = stepLxmfSendMethodPlanWithActions(initialLxmfSendMethodPlanState(), {
+      kind: "send/plan-gate",
+      packed: true,
+      method: LxmfDeliveryMethod.OPPORTUNISTIC
+    });
+    expect(shouldPlanLxmfSendMethodOpportunistic(opportunistic.actions)).toBe(true);
+    expect(lxmfSendMethodPlanFromActions(opportunistic.actions)).toBe("opportunistic");
+
+    const direct = stepLxmfSendMethodPlanWithActions(initialLxmfSendMethodPlanState(), {
+      kind: "send/plan-gate",
+      packed: true,
+      method: LxmfDeliveryMethod.DIRECT
+    });
+    expect(shouldPlanLxmfSendMethodDirect(direct.actions)).toBe(true);
+    expect(lxmfSendMethodPlanFromActions(direct.actions)).toBe("direct");
+
+    const propagated = stepLxmfSendMethodPlanWithActions(initialLxmfSendMethodPlanState(), {
+      kind: "send/plan-gate",
+      packed: true,
+      method: LxmfDeliveryMethod.PROPAGATED
+    });
+    expect(shouldPlanLxmfSendMethodPropagated(propagated.actions)).toBe(true);
+    expect(lxmfSendMethodPlanFromActions(propagated.actions)).toBe("propagated");
+
+    const unsupported = stepLxmfSendMethodPlanWithActions(initialLxmfSendMethodPlanState(), {
+      kind: "send/plan-gate",
+      packed: true,
+      method: LxmfDeliveryMethod.PAPER
+    });
+    expect(shouldRejectLxmfSendMethodPlanUnsupported(unsupported.actions)).toBe(true);
+    expect(lxmfSendMethodPlanFromActions(unsupported.actions)).toBe("reject-unsupported");
+
+    expect(
+      stepLxmfSendMethodPlanWithActions(initialLxmfSendMethodPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
   });
 
   it("emits send / reject actions from send/dispatch", () => {

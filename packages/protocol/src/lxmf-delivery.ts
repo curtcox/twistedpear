@@ -2058,8 +2058,115 @@ export function planLxmfSendMethod(input: {
 }
 
 /**
+ * Send-method-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLxmfSendMethod` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLxmfSendMethodWithActions}.
+ */
+export type LxmfSendMethodPlanState = Record<string, never>;
+
+export type LxmfSendMethodPlanEvent =
+  | Event
+  | {
+      readonly kind: "send/plan-gate";
+      readonly packed: boolean;
+      readonly method: number;
+    };
+
+export type LxmfSendMethodPlanAction =
+  | { readonly kind: "opportunistic" }
+  | { readonly kind: "direct" }
+  | { readonly kind: "propagated" }
+  | { readonly kind: "reject-unpacked" }
+  | { readonly kind: "reject-unsupported" };
+
+export interface LxmfSendMethodPlanStepResult {
+  readonly state: LxmfSendMethodPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfSendMethodPlanAction[];
+}
+
+export function initialLxmfSendMethodPlanState(): LxmfSendMethodPlanState {
+  return {};
+}
+
+export function stepLxmfSendMethodPlanWithActions(
+  state: LxmfSendMethodPlanState,
+  event: LxmfSendMethodPlanEvent
+): LxmfSendMethodPlanStepResult {
+  if (event.kind === "send/plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLxmfSendMethod({
+            packed: event.packed,
+            method: event.method
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Whether plan actions reject an unpacked send. */
+export function shouldRejectLxmfSendMethodPlanUnpacked(
+  actions: ReadonlyArray<LxmfSendMethodPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-unpacked");
+}
+
+/** Whether plan actions select opportunistic send. */
+export function shouldPlanLxmfSendMethodOpportunistic(
+  actions: ReadonlyArray<LxmfSendMethodPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "opportunistic");
+}
+
+/** Whether plan actions select direct send. */
+export function shouldPlanLxmfSendMethodDirect(
+  actions: ReadonlyArray<LxmfSendMethodPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "direct");
+}
+
+/** Whether plan actions select propagated send. */
+export function shouldPlanLxmfSendMethodPropagated(
+  actions: ReadonlyArray<LxmfSendMethodPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "propagated");
+}
+
+/** Whether plan actions reject an unsupported delivery method. */
+export function shouldRejectLxmfSendMethodPlanUnsupported(
+  actions: ReadonlyArray<LxmfSendMethodPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-unsupported");
+}
+
+/** Extract the send-method plan from actions; null when empty. */
+export function lxmfSendMethodPlanFromActions(
+  actions: ReadonlyArray<LxmfSendMethodPlanAction>
+): LxmfSendMethodPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "opportunistic" ||
+      entry.kind === "direct" ||
+      entry.kind === "propagated" ||
+      entry.kind === "reject-unpacked" ||
+      entry.kind === "reject-unsupported"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * Send-method dispatch is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLxmfSendMethodPlanWithActions}
+ * (`opportunistic`|`direct`|`propagated`|`reject-unpacked`|`reject-unsupported`).
  */
 export type LxmfSendMethodState = Record<string, never>;
 
@@ -2073,6 +2180,8 @@ export type LxmfSendMethodEvent =
 
 /**
  * Adapter applies reject / method-send only from these actions.
+ * Plan nested via {@link stepLxmfSendMethodPlanWithActions}
+ * (`opportunistic`|`direct`|`propagated`|`reject-unpacked`|`reject-unsupported`).
  */
 export type LxmfSendMethodAction =
   | { readonly kind: "reject-unpacked" }
@@ -2155,21 +2264,25 @@ function stepLxmfSendMethodInner(
   event: LxmfSendMethodEvent
 ): LxmfSendMethodStepResult {
   if (event.kind === "send/dispatch") {
-    const plan = planLxmfSendMethod({
+    const planActions = stepLxmfSendMethodPlanWithActions(initialLxmfSendMethodPlanState(), {
+      kind: "send/plan-gate",
       packed: event.packed,
       method: event.method
-    });
-    if (plan === "reject-unpacked") {
+    }).actions;
+    if (shouldRejectLxmfSendMethodPlanUnpacked(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-unpacked" }] };
     }
-    if (plan === "opportunistic") {
+    if (shouldPlanLxmfSendMethodOpportunistic(planActions)) {
       return { state, intents: [], actions: [{ kind: "send-opportunistic" }] };
     }
-    if (plan === "direct") {
+    if (shouldPlanLxmfSendMethodDirect(planActions)) {
       return { state, intents: [], actions: [{ kind: "send-direct" }] };
     }
-    if (plan === "propagated") {
+    if (shouldPlanLxmfSendMethodPropagated(planActions)) {
       return { state, intents: [], actions: [{ kind: "send-propagated" }] };
+    }
+    if (!shouldRejectLxmfSendMethodPlanUnsupported(planActions)) {
+      return { state, intents: [], actions: [] };
     }
     return {
       state,

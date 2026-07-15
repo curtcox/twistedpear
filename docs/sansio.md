@@ -62,6 +62,10 @@
 > **`stepLxmfDeliveryPlanWithActions`**:
 > deliver|reject-opportunistic-too-large|reject-unsupported-method — nested under
 > delivery),
+> **LXMF send-method-plan** (via
+> **`stepLxmfSendMethodPlanWithActions`**:
+> opportunistic|direct|propagated|reject-unpacked|reject-unsupported — nested under
+> send-method),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -227,6 +231,9 @@
 > **`stepLxmfDeliveryPlanWithActions`**:
 > deliver|reject-opportunistic-too-large|reject-unsupported-method
 > (nested under delivery) /
+> **`stepLxmfSendMethodPlanWithActions`**:
+> opportunistic|direct|propagated|reject-unpacked|reject-unsupported
+> (nested under send-method) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -269,8 +276,10 @@
 > deliver|reject-opportunistic-too-large|reject-unsupported-method) is a pure
 > protocol leaf; `LXMessage` adapts it. **LXMF outbound send-method dispatch** (via
 > **`stepLxmfSendMethodWithActions`**: reject-unpacked / send-opportunistic /
-> send-direct / send-propagated / reject-unsupported) is a pure protocol leaf;
-> `LXMFRouter.send` adapts it. **LXMF per-method send gates** (via
+> send-direct / send-propagated / reject-unsupported; plan nested via
+> **`stepLxmfSendMethodPlanWithActions`**:
+> opportunistic|direct|propagated|reject-unpacked|reject-unsupported) is a pure
+> protocol leaf; `LXMFRouter.send` adapts it. **LXMF per-method send gates** (via
 > **`stepLxmfOpportunisticSendWithActions`** / **`stepLxmfDirectSendWithActions`** /
 > **`stepLxmfPropagatedSendWithActions`**: proceed / reject-*) are pure protocol
 > leaves; `LXMFRouter` send paths adapt them. **LXMF pack gates** (via
@@ -858,7 +867,9 @@
 > **`stepHandleIncomingResourceByHashWithActions`**: handle|skip) live in
 > protocol; `Link` resource REQ/HMU/cancel/proof dispatch adapts them.
 > **`planLxmfSendMethod`** (via **`stepLxmfSendMethodWithActions`**: reject-unpacked /
-> send-opportunistic / send-direct / send-propagated / reject-unsupported) lives in
+> send-opportunistic / send-direct / send-propagated / reject-unsupported; plan
+> nested via **`stepLxmfSendMethodPlanWithActions`**:
+> opportunistic|direct|propagated|reject-unpacked|reject-unsupported) lives in
 > protocol; `LXMFRouter.send` adapts it. **`planChannelSend`** (via
 > **`stepChannelSendWithActions`**: proceed / link-not-ready / too-big) lives in
 > protocol; `Channel.send` adapts it.
@@ -1398,9 +1409,11 @@
 > beside the step).
 > **`stepLxmfSendMethodWithActions`** emits `reject-unpacked` /
 > `send-opportunistic` / `send-direct` / `send-propagated` /
-> `reject-unsupported`; `LXMFRouter.send` applies enqueue + method dispatch
-> or throws only from those actions (no ad-hoc `planLxmfSendMethod` reads
-> beside the step).
+> `reject-unsupported`; plan nested via
+> **`stepLxmfSendMethodPlanWithActions`**
+> (`opportunistic`|`direct`|`propagated`|`reject-unpacked`|`reject-unsupported`);
+> `LXMFRouter.send` applies enqueue + method dispatch or throws only from those
+> actions (no ad-hoc `planLxmfSendMethod` / `plan ===` reads beside the step).
 > **`stepLxmfOpportunisticSendWithActions`** emits `proceed` /
 > `reject-missing-destination`; **`stepLxmfDirectSendWithActions`** emits
 > `proceed` / `reject-missing-destination` / `reject-missing-packed`;
@@ -1774,7 +1787,7 @@
 > reject/duplicate/accept / propagation-store-plan, propagation /get list-ids/apply /
 > propagation-get-plan, LXMF
 > delivery-parameter select deliver/reject / lxmf-delivery-plan, LXMF send-method
-> reject/dispatch, LXMF per-method send gates (opportunistic /
+> reject/dispatch / lxmf-send-method-plan, LXMF per-method send gates (opportunistic /
 > direct / propagated), LXMF pack gates (static pack / timestamp /
 > instance pack / propagated pack prep), LXMF propagation link-ready /
 > sync-prep gates, LXMF deliverable accept, propagation local ingress,
@@ -1784,14 +1797,15 @@
 > LRRTT accept/teardown-from-rtt / link-rtt-outcome-plan / LINKCLOSE accept-link-teardown /
 > link-teardown-reason / link-teardown-plan also conclude via
 > machine actions (no ad-hoc `state.timedOut` / `plan.kind` / establish-status /
-> dispatch / identify-outcome / delivery-plan / send-method / send-gate /
+> dispatch / identify-outcome / delivery-plan / send-method /
+> lxmf-send-method-plan / send-gate /
 > pack-gate / propagation-link-ready / sync-prep / deliverable-accept /
 > local-ingress / receipt-send / include-lxmf-stamp / remember-lxmf-message /
 > commit-remembered-lxmf-hash / accept-lxmf-wire-frame /
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
@@ -1901,6 +1915,7 @@
 > link-proof-validate-outcome-plan / link-identify-outcome-plan /
 > link-resource-advertisement-plan / link-resource-accept-app-result-plan /
 > propagation-store-plan / propagation-get-plan / lxmf-delivery-plan /
+> lxmf-send-method-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /
