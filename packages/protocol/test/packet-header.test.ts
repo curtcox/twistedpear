@@ -21,23 +21,30 @@ import {
   initialDecodePacketRawState,
   initialEncodePacketRawState,
   initialPackPacketFlagsState,
+  initialPacketFromFieldsPlanState,
   initialPacketFromFieldsState,
   initialPacketHashablePartState,
   initialUnpackPacketFlagsState,
   packPacketFlags,
   packPacketFlagsFromActions,
   packetFlagsFieldsFromActions,
+  packetFromFieldsPlanFromActions,
   packetHashablePart,
   packetHashablePartRawFromActions,
   packetHeaderFieldsFromActions,
   planPacketFromFields,
   shouldProceedPacketFromFields,
+  shouldProceedPacketFromFieldsPlan,
   shouldRejectDecodePacketRaw,
   shouldRejectEncodePacketRaw,
   shouldRejectPacketFromFieldsBadDestinationHash,
   shouldRejectPacketFromFieldsBadHeaderType,
   shouldRejectPacketFromFieldsBadTransportId,
   shouldRejectPacketFromFieldsHeader2MissingTransportId,
+  shouldRejectPacketFromFieldsPlanBadDestinationHash,
+  shouldRejectPacketFromFieldsPlanBadHeaderType,
+  shouldRejectPacketFromFieldsPlanBadTransportId,
+  shouldRejectPacketFromFieldsPlanHeader2MissingTransportId,
   shouldUseDecodePacketRaw,
   shouldUseEncodePacketRaw,
   shouldUsePackPacketFlags,
@@ -46,6 +53,7 @@ import {
   stepDecodePacketRawWithActions,
   stepEncodePacketRawWithActions,
   stepPackPacketFlagsWithActions,
+  stepPacketFromFieldsPlanWithActions,
   stepPacketFromFieldsWithActions,
   stepPacketHashablePartWithActions,
   stepUnpackPacketFlagsWithActions,
@@ -348,6 +356,80 @@ describe("protocol packet header", () => {
         transportIdLength: TRANSPORT_ID_BYTES
       })
     ).toBe("ok");
+  });
+
+  it("emits fromFields-plan actions from PlanWithActions", () => {
+    const ok = stepPacketFromFieldsPlanWithActions(initialPacketFromFieldsPlanState(), {
+      kind: "packet/from-fields-plan-gate",
+      headerType: PACKET_HEADER_1,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      destinationHashLength: TRANSPORT_ID_BYTES,
+      transportIdPresent: false,
+      transportIdLength: 0
+    });
+    expect(shouldProceedPacketFromFieldsPlan(ok.actions)).toBe(true);
+    expect(packetFromFieldsPlanFromActions(ok.actions)).toBe("ok");
+
+    const badHeader = stepPacketFromFieldsPlanWithActions(initialPacketFromFieldsPlanState(), {
+      kind: "packet/from-fields-plan-gate",
+      headerType: 9,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      destinationHashLength: TRANSPORT_ID_BYTES,
+      transportIdPresent: false,
+      transportIdLength: 0
+    });
+    expect(shouldRejectPacketFromFieldsPlanBadHeaderType(badHeader.actions)).toBe(true);
+    expect(packetFromFieldsPlanFromActions(badHeader.actions)).toBe("bad-header-type");
+
+    const badHash = stepPacketFromFieldsPlanWithActions(initialPacketFromFieldsPlanState(), {
+      kind: "packet/from-fields-plan-gate",
+      headerType: PACKET_HEADER_1,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_BROADCAST,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      destinationHashLength: 4,
+      transportIdPresent: false,
+      transportIdLength: 0
+    });
+    expect(shouldRejectPacketFromFieldsPlanBadDestinationHash(badHash.actions)).toBe(true);
+
+    const missingTransport = stepPacketFromFieldsPlanWithActions(
+      initialPacketFromFieldsPlanState(),
+      {
+        kind: "packet/from-fields-plan-gate",
+        headerType: PACKET_HEADER_2,
+        contextFlag: PACKET_CONTEXT_FLAG_SET,
+        transportType: TRANSPORT_TRANSPORT,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        packetType: PACKET_TYPE_DATA,
+        destinationHashLength: TRANSPORT_ID_BYTES,
+        transportIdPresent: false,
+        transportIdLength: 0
+      }
+    );
+    expect(
+      shouldRejectPacketFromFieldsPlanHeader2MissingTransportId(missingTransport.actions)
+    ).toBe(true);
+
+    const badTransportId = stepPacketFromFieldsPlanWithActions(initialPacketFromFieldsPlanState(), {
+      kind: "packet/from-fields-plan-gate",
+      headerType: PACKET_HEADER_2,
+      contextFlag: PACKET_CONTEXT_FLAG_SET,
+      transportType: TRANSPORT_TRANSPORT,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      packetType: PACKET_TYPE_DATA,
+      destinationHashLength: TRANSPORT_ID_BYTES,
+      transportIdPresent: true,
+      transportIdLength: 4
+    });
+    expect(shouldRejectPacketFromFieldsPlanBadTransportId(badTransportId.actions)).toBe(true);
   });
 
   it("emits fromFields actions from stepPacketFromFieldsWithActions", () => {

@@ -1,14 +1,15 @@
 /**
  * Pure destination request allow-policy codes and allow decision.
  * Construction / encrypt / decrypt conclusions leave via machine actions
- * (no ad-hoc plan reads beside the step). Link-accept / announce / send /
- * attached / announce-identity / request-link / proof-callback /
- * link-established-callback / register-link / request-path gates conclude via
- * machine actions (no ad-hoc `canAcceptDestinationLinkRequest` /
- * `canAnnounceDestination` / `canDestinationSend` /
- * `canOperateAttachedDestination` / `canAnnounceWithIdentity` /
- * `canRequestLinkDestination` / `planDestinationRequestAllow` /
- * `shouldInvokeDestinationProofCallback` /
+ * (no ad-hoc `planDestinationConstruction` / `planDestinationDecrypt` /
+ * `planDestinationEncrypt` / `plan ===` reads beside the step). Link-accept /
+ * announce / send / attached / announce-identity / request-link /
+ * proof-callback / link-established-callback / register-link / request-path
+ * gates conclude via machine actions (no ad-hoc
+ * `canAcceptDestinationLinkRequest` / `canAnnounceDestination` /
+ * `canDestinationSend` / `canOperateAttachedDestination` /
+ * `canAnnounceWithIdentity` / `canRequestLinkDestination` /
+ * `planDestinationRequestAllow` / `shouldInvokeDestinationProofCallback` /
  * `shouldInvokeDestinationLinkEstablishedCallback` /
  * `shouldRegisterDestinationLink` / `isValidDestinationRequestPath` /
  * `isValidDestinationIdentityBinding` reads beside the step).
@@ -745,9 +746,101 @@ export function planDestinationConstruction(input: {
 }
 
 /**
+ * Destination-construction-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planDestinationConstruction`
+ * / `plan ===` reads beside the step). Nested under
+ * {@link stepDestinationConstructionWithActions}.
+ */
+export type DestinationConstructionPlanState = Record<string, never>;
+
+export type DestinationConstructionPlanEvent =
+  | Event
+  | {
+      readonly kind: "destination/construction-plan-gate";
+      readonly direction: number;
+      readonly type: number;
+      readonly identityBindingValid: boolean;
+    };
+
+export type DestinationConstructionPlanAction = { readonly kind: DestinationConstructionPlan };
+
+export interface DestinationConstructionPlanStepResult {
+  readonly state: DestinationConstructionPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationConstructionPlanAction[];
+}
+
+export function initialDestinationConstructionPlanState(): DestinationConstructionPlanState {
+  return {};
+}
+
+export function stepDestinationConstructionPlanWithActions(
+  state: DestinationConstructionPlanState,
+  event: DestinationConstructionPlanEvent
+): DestinationConstructionPlanStepResult {
+  if (event.kind === "destination/construction-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planDestinationConstruction({
+            direction: event.direction,
+            type: event.type,
+            identityBindingValid: event.identityBindingValid
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the construction plan from actions; null when empty. */
+export function destinationConstructionPlanFromActions(
+  actions: ReadonlyArray<DestinationConstructionPlanAction>
+): DestinationConstructionPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ok" ||
+      entry.kind === "bad-direction" ||
+      entry.kind === "bad-type" ||
+      entry.kind === "bad-identity-binding"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldProceedDestinationConstructionPlan(
+  actions: ReadonlyArray<DestinationConstructionPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ok");
+}
+
+export function shouldRejectDestinationConstructionPlanBadDirection(
+  actions: ReadonlyArray<DestinationConstructionPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-direction");
+}
+
+export function shouldRejectDestinationConstructionPlanBadType(
+  actions: ReadonlyArray<DestinationConstructionPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-type");
+}
+
+export function shouldRejectDestinationConstructionPlanBadIdentityBinding(
+  actions: ReadonlyArray<DestinationConstructionPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-identity-binding");
+}
+
+/**
  * Destination construction gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan /
  * `isValidDestinationIdentityBinding` reads beside the step).
+ * Plan nested via {@link stepDestinationConstructionPlanWithActions}
+ * (`ok`|`bad-direction`|`bad-type`|`bad-identity-binding`).
  */
 export type DestinationConstructionState = Record<string, never>;
 
@@ -760,6 +853,11 @@ export type DestinationConstructionEvent =
       readonly identityPresent: boolean;
     };
 
+/**
+ * Adapter throws or continues only from these actions.
+ * Plan nested via {@link stepDestinationConstructionPlanWithActions}
+ * (`ok`|`bad-direction`|`bad-type`|`bad-identity-binding`).
+ */
 export type DestinationConstructionAction = { readonly kind: DestinationConstructionPlan };
 
 export interface DestinationConstructionStepResult {
@@ -829,11 +927,19 @@ function stepDestinationConstructionInner(
         }
       ).actions
     );
-    const plan = planDestinationConstruction({
-      direction: event.direction,
-      type: event.type,
-      identityBindingValid
-    });
+    const planActions = stepDestinationConstructionPlanWithActions(
+      initialDestinationConstructionPlanState(),
+      {
+        kind: "destination/construction-plan-gate",
+        direction: event.direction,
+        type: event.type,
+        identityBindingValid
+      }
+    ).actions;
+    const plan = destinationConstructionPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 
@@ -860,8 +966,91 @@ export function planDestinationDecrypt(input: {
 }
 
 /**
+ * Destination-decrypt-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planDestinationDecrypt` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepDestinationDecryptWithActions}.
+ */
+export type DestinationDecryptPlanState = Record<string, never>;
+
+export type DestinationDecryptPlanEvent =
+  | Event
+  | {
+      readonly kind: "destination/decrypt-plan-gate";
+      readonly typePlain: boolean;
+      readonly identityPresent: boolean;
+    };
+
+export type DestinationDecryptPlanAction = { readonly kind: DestinationDecryptPlan };
+
+export interface DestinationDecryptPlanStepResult {
+  readonly state: DestinationDecryptPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationDecryptPlanAction[];
+}
+
+export function initialDestinationDecryptPlanState(): DestinationDecryptPlanState {
+  return {};
+}
+
+export function stepDestinationDecryptPlanWithActions(
+  state: DestinationDecryptPlanState,
+  event: DestinationDecryptPlanEvent
+): DestinationDecryptPlanStepResult {
+  if (event.kind === "destination/decrypt-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planDestinationDecrypt({
+            typePlain: event.typePlain,
+            identityPresent: event.identityPresent
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the decrypt plan from actions; null when empty. */
+export function destinationDecryptPlanFromActions(
+  actions: ReadonlyArray<DestinationDecryptPlanAction>
+): DestinationDecryptPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "return-ciphertext" ||
+      entry.kind === "reject" ||
+      entry.kind === "decrypt-with-identity"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldReturnDestinationDecryptPlanCiphertext(
+  actions: ReadonlyArray<DestinationDecryptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "return-ciphertext");
+}
+
+export function shouldRejectDestinationDecryptPlan(
+  actions: ReadonlyArray<DestinationDecryptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+export function shouldDecryptDestinationPlanWithIdentity(
+  actions: ReadonlyArray<DestinationDecryptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "decrypt-with-identity");
+}
+
+/**
  * Destination decrypt gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepDestinationDecryptPlanWithActions}
+ * (`return-ciphertext`|`reject`|`decrypt-with-identity`).
  */
 export type DestinationDecryptState = Record<string, never>;
 
@@ -873,6 +1062,11 @@ export type DestinationDecryptEvent =
       readonly identityPresent: boolean;
     };
 
+/**
+ * Adapter applies decrypt outcomes only from these actions.
+ * Plan nested via {@link stepDestinationDecryptPlanWithActions}
+ * (`return-ciphertext`|`reject`|`decrypt-with-identity`).
+ */
 export type DestinationDecryptAction = { readonly kind: DestinationDecryptPlan };
 
 export interface DestinationDecryptStepResult {
@@ -920,10 +1114,18 @@ function stepDestinationDecryptInner(
   event: DestinationDecryptEvent
 ): DestinationDecryptStepResult {
   if (event.kind === "destination/decrypt-gate") {
-    const plan = planDestinationDecrypt({
-      typePlain: event.typePlain,
-      identityPresent: event.identityPresent
-    });
+    const planActions = stepDestinationDecryptPlanWithActions(
+      initialDestinationDecryptPlanState(),
+      {
+        kind: "destination/decrypt-plan-gate",
+        typePlain: event.typePlain,
+        identityPresent: event.identityPresent
+      }
+    ).actions;
+    const plan = destinationDecryptPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 
@@ -950,8 +1152,91 @@ export function planDestinationEncrypt(input: {
 }
 
 /**
+ * Destination-encrypt-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planDestinationEncrypt` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepDestinationEncryptWithActions}.
+ */
+export type DestinationEncryptPlanState = Record<string, never>;
+
+export type DestinationEncryptPlanEvent =
+  | Event
+  | {
+      readonly kind: "destination/encrypt-plan-gate";
+      readonly typePlain: boolean;
+      readonly identityPresent: boolean;
+    };
+
+export type DestinationEncryptPlanAction = { readonly kind: DestinationEncryptPlan };
+
+export interface DestinationEncryptPlanStepResult {
+  readonly state: DestinationEncryptPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DestinationEncryptPlanAction[];
+}
+
+export function initialDestinationEncryptPlanState(): DestinationEncryptPlanState {
+  return {};
+}
+
+export function stepDestinationEncryptPlanWithActions(
+  state: DestinationEncryptPlanState,
+  event: DestinationEncryptPlanEvent
+): DestinationEncryptPlanStepResult {
+  if (event.kind === "destination/encrypt-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planDestinationEncrypt({
+            typePlain: event.typePlain,
+            identityPresent: event.identityPresent
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the encrypt plan from actions; null when empty. */
+export function destinationEncryptPlanFromActions(
+  actions: ReadonlyArray<DestinationEncryptPlanAction>
+): DestinationEncryptPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "use-plaintext" ||
+      entry.kind === "reject" ||
+      entry.kind === "encrypt-with-identity"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldUseDestinationEncryptPlanPlaintext(
+  actions: ReadonlyArray<DestinationEncryptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-plaintext");
+}
+
+export function shouldRejectDestinationEncryptPlan(
+  actions: ReadonlyArray<DestinationEncryptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+export function shouldEncryptDestinationPlanWithIdentity(
+  actions: ReadonlyArray<DestinationEncryptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "encrypt-with-identity");
+}
+
+/**
  * Destination encrypt gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepDestinationEncryptPlanWithActions}
+ * (`use-plaintext`|`reject`|`encrypt-with-identity`).
  */
 export type DestinationEncryptState = Record<string, never>;
 
@@ -963,6 +1248,11 @@ export type DestinationEncryptEvent =
       readonly identityPresent: boolean;
     };
 
+/**
+ * Adapter applies encrypt outcomes only from these actions.
+ * Plan nested via {@link stepDestinationEncryptPlanWithActions}
+ * (`use-plaintext`|`reject`|`encrypt-with-identity`).
+ */
 export type DestinationEncryptAction = { readonly kind: DestinationEncryptPlan };
 
 export interface DestinationEncryptStepResult {
@@ -1010,10 +1300,18 @@ function stepDestinationEncryptInner(
   event: DestinationEncryptEvent
 ): DestinationEncryptStepResult {
   if (event.kind === "destination/encrypt-gate") {
-    const plan = planDestinationEncrypt({
-      typePlain: event.typePlain,
-      identityPresent: event.identityPresent
-    });
+    const planActions = stepDestinationEncryptPlanWithActions(
+      initialDestinationEncryptPlanState(),
+      {
+        kind: "destination/encrypt-plan-gate",
+        typePlain: event.typePlain,
+        identityPresent: event.identityPresent
+      }
+    ).actions;
+    const plan = destinationEncryptPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 

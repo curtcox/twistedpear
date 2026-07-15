@@ -113,6 +113,15 @@
 > miss|reject-key|hit — nested under identity-recall;
 > **`stepIdentityRecallAppDataPlanWithActions`**: hit|miss — nested under
 > identity-recall-app-data),
+> **Destination construction / decrypt / encrypt / packet-from-fields plans** (via
+> **`stepDestinationConstructionPlanWithActions`**:
+> ok|bad-direction|bad-type|bad-identity-binding — nested under
+> destination-construction; **`stepDestinationDecryptPlanWithActions`**:
+> return-ciphertext|reject|decrypt-with-identity — nested under
+> destination-decrypt; **`stepDestinationEncryptPlanWithActions`**:
+> use-plaintext|reject|encrypt-with-identity — nested under destination-encrypt;
+> **`stepPacketFromFieldsPlanWithActions`**:
+> ok|bad-*|header2-missing-transport-id — nested under packet-from-fields),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -331,6 +340,18 @@
 > (nested under identity-recall) /
 > **`stepIdentityRecallAppDataPlanWithActions`**: hit|miss
 > (nested under identity-recall-app-data) /
+> **`stepDestinationConstructionPlanWithActions`**:
+> ok|bad-direction|bad-type|bad-identity-binding
+> (nested under destination-construction) /
+> **`stepDestinationDecryptPlanWithActions`**:
+> return-ciphertext|reject|decrypt-with-identity
+> (nested under destination-decrypt) /
+> **`stepDestinationEncryptPlanWithActions`**:
+> use-plaintext|reject|encrypt-with-identity
+> (nested under destination-encrypt) /
+> **`stepPacketFromFieldsPlanWithActions`**:
+> ok|bad-*|header2-missing-transport-id
+> (nested under packet-from-fields) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -898,10 +919,15 @@
 > **`stepStreamReadyCallbackRegisterWithActions`**: register|skip) lives in
 > protocol; `Buffer.createReader` adapts it.
 > **`planDestinationDecrypt`** (via **`stepDestinationDecryptWithActions`**:
-> return-ciphertext / reject / decrypt-with-identity) lives in protocol;
+> return-ciphertext / reject / decrypt-with-identity; plan nested via
+> **`stepDestinationDecryptPlanWithActions`**:
+> return-ciphertext|reject|decrypt-with-identity) lives in protocol;
 > `RegisteredDestination.decrypt` adapts it. **`planDestinationEncrypt`** (via
 > **`stepDestinationEncryptWithActions`**: use-plaintext / reject /
-> encrypt-with-identity) lives in protocol; `RegisteredDestination.send` adapts it.
+> encrypt-with-identity; plan nested via
+> **`stepDestinationEncryptPlanWithActions`**:
+> use-plaintext|reject|encrypt-with-identity) lives in protocol;
+> `RegisteredDestination.send` adapts it.
 > **`canRequestLinkDestination`** (via
 > **`stepRequestLinkDestinationWithActions`**: allow|deny) lives in protocol;
 > `Link.request` adapts it.
@@ -1037,14 +1063,18 @@
 > bad-random-hash|bad-ratchet) and
 > **`planDestinationConstruction`** (via **`stepDestinationConstructionWithActions`**:
 > ok / bad-direction / bad-type / bad-identity-binding; identity binding nested via
-> **`stepDestinationIdentityBindingValidWithActions`**: valid|invalid) lives in protocol; `Announce`
+> **`stepDestinationIdentityBindingValidWithActions`**: valid|invalid; plan nested via
+> **`stepDestinationConstructionPlanWithActions`**:
+> ok|bad-direction|bad-type|bad-identity-binding) lives in protocol; `Announce`
 > and `Destination` adapt them. **`planLinkInitiatorMtu`** lives in protocol;
 > `Link.request` adapts it. Destination type/direction code predicates
 > (`isDestinationTypeCode` / `isDestinationDirectionCode`) are exported for adapters.
 > **`planPacketFromFields`** (via **`stepPacketFromFieldsWithActions`**: ok /
 > bad-header-type / bad-context-flag / bad-transport-type / bad-destination-type /
 > bad-packet-type / bad-destination-hash / header2-missing-transport-id /
-> bad-transport-id) lives in protocol; `Packet.fromFields` adapts it.
+> bad-transport-id; plan nested via **`stepPacketFromFieldsPlanWithActions`**:
+> ok|bad-*|header2-missing-transport-id) lives in protocol; `Packet.fromFields`
+> adapts it.
 > **`planChannelEnvelopeUnpack`** (via **`stepChannelEnvelopeUnpackWithActions`**:
 > ok / missing-raw / truncate / not-registered) lives in protocol; Channel
 > `Envelope.unpack` adapts it. **`planLxmfPropagatedPackPrep`** (via
@@ -1679,19 +1709,28 @@
 > (no ad-hoc `planIdentityRecall` / `planIdentityRecallAppData` / `plan ===`
 > reads beside the step).
 > **`stepDestinationConstructionWithActions`** emits `ok` / `bad-direction` /
-> `bad-type` / `bad-identity-binding`; identity binding nested via
+> `bad-type` / `bad-identity-binding` (plan nested via
+> **`stepDestinationConstructionPlanWithActions`**:
+> `ok`|`bad-direction`|`bad-type`|`bad-identity-binding`); identity binding nested via
 > **`stepDestinationIdentityBindingValidWithActions`** (`valid`|`invalid`);
 > `Destination` construction throws or
-> continues only from those actions. **`stepDestinationDecryptWithActions`**
-> emits `return-ciphertext` / `reject` / `decrypt-with-identity`;
-> **`stepDestinationEncryptWithActions`** emits `use-plaintext` / `reject` /
-> `encrypt-with-identity`; `RegisteredDestination` decrypt/send apply only
-> from those actions. **`stepPacketFromFieldsWithActions`** emits `ok` /
-> `bad-*` / `header2-missing-transport-id`; `Packet.fromFields` throws or
 > continues only from those actions (no ad-hoc `planDestinationConstruction` /
-> `isValidDestinationIdentityBinding` /
-> `planDestinationDecrypt` / `planDestinationEncrypt` / `planPacketFromFields`
-> reads beside the step).
+> `plan ===` reads beside the step). **`stepDestinationDecryptWithActions`**
+> emits `return-ciphertext` / `reject` / `decrypt-with-identity` (plan nested via
+> **`stepDestinationDecryptPlanWithActions`**:
+> `return-ciphertext`|`reject`|`decrypt-with-identity`);
+> **`stepDestinationEncryptWithActions`** emits `use-plaintext` / `reject` /
+> `encrypt-with-identity` (plan nested via
+> **`stepDestinationEncryptPlanWithActions`**:
+> `use-plaintext`|`reject`|`encrypt-with-identity`); `RegisteredDestination`
+> decrypt/send apply only from those actions (no ad-hoc `planDestinationDecrypt` /
+> `planDestinationEncrypt` / `plan ===` reads beside the step).
+> **`stepPacketFromFieldsWithActions`** emits `ok` /
+> `bad-*` / `header2-missing-transport-id` (plan nested via
+> **`stepPacketFromFieldsPlanWithActions`**:
+> `ok`|`bad-*`|`header2-missing-transport-id`); `Packet.fromFields` throws or
+> continues only from those actions (no ad-hoc `isValidDestinationIdentityBinding` /
+> `planPacketFromFields` / `plan ===` reads beside the step).
 > **`stepChannelMessageTypeRegistrationWithActions`** emits `ok` /
 > `missing-msgtype` / `system-reserved`; **`stepChannelEnvelopeUnpackWithActions`**
 > emits `ok` / `missing-raw` / `truncate` / `not-registered`;
@@ -2012,7 +2051,7 @@
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / lxmf-receipt-send-plan / lxmf-signature-outcome-plan / announce-validate-outcome-plan / announce-build-plan / identity-decrypt-outcome-plan / identity-ratchet-lookup-plan / identity-recall-plan / identity-recall-app-data-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / lxmf-receipt-send-plan / lxmf-signature-outcome-plan / announce-validate-outcome-plan / announce-build-plan / identity-decrypt-outcome-plan / identity-ratchet-lookup-plan / identity-recall-plan / identity-recall-app-data-plan / destination-construction-plan / destination-decrypt-plan / destination-encrypt-plan / packet-from-fields-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate /
 > announce-validate-outcome-plan / announce-build / announce-build-plan /
@@ -2022,8 +2061,10 @@
 > identity-use-public-key / load-identity-key-material /
 > attempt-identity-ratchet-decrypt / persist-identity-ratchet /
 > identity-ratchet-record-usable / commit-restored-identity-ratchet /
-> destination-construction / destination-decrypt /
-> destination-encrypt / packet-from-fields / channel-message-type-registration /
+> destination-construction / destination-construction-plan / destination-decrypt /
+> destination-decrypt-plan / destination-encrypt / destination-encrypt-plan /
+> packet-from-fields / packet-from-fields-plan /
+> channel-message-type-registration /
 > channel-envelope-unpack / channel-envelope-pack / channel-send /
 > emplace-channel-envelope / accept-channel-sequence /
 > drain-channel-ring-index / register-channel-message-handler /
@@ -2128,6 +2169,8 @@
 > lxmf-propagated-send-plan / announce-validate-outcome-plan / announce-build-plan /
 > identity-decrypt-outcome-plan / identity-ratchet-lookup-plan /
 > identity-recall-plan / identity-recall-app-data-plan /
+> destination-construction-plan / destination-decrypt-plan /
+> destination-encrypt-plan / packet-from-fields-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /

@@ -7,11 +7,17 @@ import {
   canDestinationSend,
   canOperateAttachedDestination,
   canRequestLinkDestination,
+  destinationConstructionPlanFromActions,
+  destinationDecryptPlanFromActions,
+  destinationEncryptPlanFromActions,
   initialAcceptDestinationLinkRequestState,
   initialAnnounceDestinationState,
   initialAnnounceWithIdentityState,
+  initialDestinationConstructionPlanState,
   initialDestinationConstructionState,
+  initialDestinationDecryptPlanState,
   initialDestinationDecryptState,
+  initialDestinationEncryptPlanState,
   initialDestinationEncryptState,
   initialDestinationIdentityBindingValidState,
   initialDestinationLinkEstablishedCallbackState,
@@ -37,6 +43,7 @@ import {
   shouldAllowDestinationSend,
   shouldAllowOperateAttachedDestination,
   shouldAllowRequestLinkDestination,
+  shouldDecryptDestinationPlanWithIdentity,
   shouldDecryptDestinationWithIdentity,
   shouldDenyAnnounceWithIdentity,
   shouldDenyDestinationAnnounce,
@@ -45,31 +52,43 @@ import {
   shouldDenyDestinationSend,
   shouldDenyOperateAttachedDestination,
   shouldDenyRequestLinkDestination,
+  shouldEncryptDestinationPlanWithIdentity,
   shouldEncryptDestinationWithIdentity,
   shouldInvokeDestinationLinkEstablishedCallback,
   shouldInvokeDestinationLinkEstablishedCallbackNow,
   shouldInvokeDestinationProofCallback,
   shouldInvokeDestinationProofCallbackNow,
   shouldProceedDestinationConstruction,
+  shouldProceedDestinationConstructionPlan,
   shouldRegisterDestinationLink,
   shouldRegisterDestinationLinkNow,
   shouldRejectDestinationConstructionBadDirection,
   shouldRejectDestinationConstructionBadIdentityBinding,
   shouldRejectDestinationConstructionBadType,
+  shouldRejectDestinationConstructionPlanBadDirection,
+  shouldRejectDestinationConstructionPlanBadIdentityBinding,
+  shouldRejectDestinationConstructionPlanBadType,
   shouldRejectDestinationDecrypt,
+  shouldRejectDestinationDecryptPlan,
   shouldRejectDestinationEncrypt,
+  shouldRejectDestinationEncryptPlan,
   shouldRejectDestinationIdentityBinding,
   shouldRejectDestinationRequestPath,
   shouldReturnDestinationDecryptCiphertext,
+  shouldReturnDestinationDecryptPlanCiphertext,
   shouldSkipDestinationLinkEstablishedCallback,
   shouldSkipDestinationLinkRegister,
   shouldSkipDestinationProofCallback,
   shouldUseDestinationEncryptPlaintext,
+  shouldUseDestinationEncryptPlanPlaintext,
   stepAcceptDestinationLinkRequestWithActions,
   stepAnnounceDestinationWithActions,
   stepAnnounceWithIdentityWithActions,
+  stepDestinationConstructionPlanWithActions,
   stepDestinationConstructionWithActions,
+  stepDestinationDecryptPlanWithActions,
   stepDestinationDecryptWithActions,
+  stepDestinationEncryptPlanWithActions,
   stepDestinationEncryptWithActions,
   stepDestinationIdentityBindingValidWithActions,
   stepDestinationLinkEstablishedCallbackWithActions,
@@ -469,6 +488,106 @@ describe("destination allow policy", () => {
     expect(planDestinationEncrypt({ typePlain: false, identityPresent: true })).toBe(
       "encrypt-with-identity"
     );
+  });
+
+  it("emits destination construction/decrypt/encrypt-plan actions from PlanWithActions", () => {
+    const ok = stepDestinationConstructionPlanWithActions(
+      initialDestinationConstructionPlanState(),
+      {
+        kind: "destination/construction-plan-gate",
+        direction: DestinationDirectionCode.IN,
+        type: DestinationTypeCode.SINGLE,
+        identityBindingValid: true
+      }
+    );
+    expect(shouldProceedDestinationConstructionPlan(ok.actions)).toBe(true);
+    expect(destinationConstructionPlanFromActions(ok.actions)).toBe("ok");
+
+    const badDirection = stepDestinationConstructionPlanWithActions(
+      initialDestinationConstructionPlanState(),
+      {
+        kind: "destination/construction-plan-gate",
+        direction: 0,
+        type: DestinationTypeCode.SINGLE,
+        identityBindingValid: true
+      }
+    );
+    expect(shouldRejectDestinationConstructionPlanBadDirection(badDirection.actions)).toBe(true);
+    expect(destinationConstructionPlanFromActions(badDirection.actions)).toBe("bad-direction");
+
+    const badType = stepDestinationConstructionPlanWithActions(
+      initialDestinationConstructionPlanState(),
+      {
+        kind: "destination/construction-plan-gate",
+        direction: DestinationDirectionCode.OUT,
+        type: 99,
+        identityBindingValid: true
+      }
+    );
+    expect(shouldRejectDestinationConstructionPlanBadType(badType.actions)).toBe(true);
+
+    const badBinding = stepDestinationConstructionPlanWithActions(
+      initialDestinationConstructionPlanState(),
+      {
+        kind: "destination/construction-plan-gate",
+        direction: DestinationDirectionCode.OUT,
+        type: DestinationTypeCode.PLAIN,
+        identityBindingValid: false
+      }
+    );
+    expect(shouldRejectDestinationConstructionPlanBadIdentityBinding(badBinding.actions)).toBe(
+      true
+    );
+
+    const plain = stepDestinationDecryptPlanWithActions(initialDestinationDecryptPlanState(), {
+      kind: "destination/decrypt-plan-gate",
+      typePlain: true,
+      identityPresent: false
+    });
+    expect(shouldReturnDestinationDecryptPlanCiphertext(plain.actions)).toBe(true);
+    expect(destinationDecryptPlanFromActions(plain.actions)).toBe("return-ciphertext");
+
+    const reject = stepDestinationDecryptPlanWithActions(initialDestinationDecryptPlanState(), {
+      kind: "destination/decrypt-plan-gate",
+      typePlain: false,
+      identityPresent: false
+    });
+    expect(shouldRejectDestinationDecryptPlan(reject.actions)).toBe(true);
+    expect(destinationDecryptPlanFromActions(reject.actions)).toBe("reject");
+
+    const decrypt = stepDestinationDecryptPlanWithActions(initialDestinationDecryptPlanState(), {
+      kind: "destination/decrypt-plan-gate",
+      typePlain: false,
+      identityPresent: true
+    });
+    expect(shouldDecryptDestinationPlanWithIdentity(decrypt.actions)).toBe(true);
+    expect(destinationDecryptPlanFromActions(decrypt.actions)).toBe("decrypt-with-identity");
+
+    const usePlain = stepDestinationEncryptPlanWithActions(initialDestinationEncryptPlanState(), {
+      kind: "destination/encrypt-plan-gate",
+      typePlain: true,
+      identityPresent: false
+    });
+    expect(shouldUseDestinationEncryptPlanPlaintext(usePlain.actions)).toBe(true);
+    expect(destinationEncryptPlanFromActions(usePlain.actions)).toBe("use-plaintext");
+
+    const encryptReject = stepDestinationEncryptPlanWithActions(
+      initialDestinationEncryptPlanState(),
+      {
+        kind: "destination/encrypt-plan-gate",
+        typePlain: false,
+        identityPresent: false
+      }
+    );
+    expect(shouldRejectDestinationEncryptPlan(encryptReject.actions)).toBe(true);
+
+    const encrypt = stepDestinationEncryptPlanWithActions(initialDestinationEncryptPlanState(), {
+      kind: "destination/encrypt-plan-gate",
+      typePlain: false,
+      identityPresent: true
+    });
+    expect(shouldEncryptDestinationPlanWithIdentity(encrypt.actions)).toBe(true);
+    expect(destinationEncryptPlanFromActions(encrypt.actions)).toBe("encrypt-with-identity");
   });
 
   it("emits destination construction actions from stepDestinationConstructionWithActions", () => {

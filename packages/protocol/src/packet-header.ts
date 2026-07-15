@@ -1,7 +1,8 @@
 /**
  * Pure RNS packet header flag packing, raw encode/decode, and hashable-part framing.
  * Crypto hashing stays at the adapter edge.
- * fromFields conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * fromFields conclusions leave via machine actions (no ad-hoc
+ * `planPacketFromFields` / `plan ===` reads beside the step).
  * Encode / decode conclusions leave via machine actions (no ad-hoc
  * `encodePacketRaw` / `decodePacketRaw` reads beside the step).
  * Flag pack / unpack and hashable-part conclusions leave via machine actions
@@ -254,8 +255,145 @@ export function planPacketFromFields(input: {
 }
 
 /**
+ * Packet-from-fields-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planPacketFromFields` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepPacketFromFieldsWithActions}.
+ */
+export type PacketFromFieldsPlanState = Record<string, never>;
+
+export type PacketFromFieldsPlanEvent =
+  | Event
+  | {
+      readonly kind: "packet/from-fields-plan-gate";
+      readonly headerType: number;
+      readonly contextFlag: number;
+      readonly transportType: number;
+      readonly destinationType: number;
+      readonly packetType: number;
+      readonly destinationHashLength: number;
+      readonly transportIdPresent: boolean;
+      readonly transportIdLength: number;
+    };
+
+export type PacketFromFieldsPlanAction = { readonly kind: PacketFromFieldsPlan };
+
+export interface PacketFromFieldsPlanStepResult {
+  readonly state: PacketFromFieldsPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketFromFieldsPlanAction[];
+}
+
+export function initialPacketFromFieldsPlanState(): PacketFromFieldsPlanState {
+  return {};
+}
+
+export function stepPacketFromFieldsPlanWithActions(
+  state: PacketFromFieldsPlanState,
+  event: PacketFromFieldsPlanEvent
+): PacketFromFieldsPlanStepResult {
+  if (event.kind === "packet/from-fields-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planPacketFromFields({
+            headerType: event.headerType,
+            contextFlag: event.contextFlag,
+            transportType: event.transportType,
+            destinationType: event.destinationType,
+            packetType: event.packetType,
+            destinationHashLength: event.destinationHashLength,
+            transportIdPresent: event.transportIdPresent,
+            transportIdLength: event.transportIdLength
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the fromFields plan from actions; null when empty. */
+export function packetFromFieldsPlanFromActions(
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+): PacketFromFieldsPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ok" ||
+      entry.kind === "bad-header-type" ||
+      entry.kind === "bad-context-flag" ||
+      entry.kind === "bad-transport-type" ||
+      entry.kind === "bad-destination-type" ||
+      entry.kind === "bad-packet-type" ||
+      entry.kind === "bad-destination-hash" ||
+      entry.kind === "header2-missing-transport-id" ||
+      entry.kind === "bad-transport-id"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldProceedPacketFromFieldsPlan(
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ok");
+}
+
+export function shouldRejectPacketFromFieldsPlanBadHeaderType(
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-header-type");
+}
+
+export function shouldRejectPacketFromFieldsPlanBadContextFlag(
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-context-flag");
+}
+
+export function shouldRejectPacketFromFieldsPlanBadTransportType(
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-transport-type");
+}
+
+export function shouldRejectPacketFromFieldsPlanBadDestinationType(
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-destination-type");
+}
+
+export function shouldRejectPacketFromFieldsPlanBadPacketType(
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-packet-type");
+}
+
+export function shouldRejectPacketFromFieldsPlanBadDestinationHash(
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-destination-hash");
+}
+
+export function shouldRejectPacketFromFieldsPlanHeader2MissingTransportId(
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "header2-missing-transport-id");
+}
+
+export function shouldRejectPacketFromFieldsPlanBadTransportId(
+  actions: ReadonlyArray<PacketFromFieldsPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-transport-id");
+}
+
+/**
  * Packet fromFields gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepPacketFromFieldsPlanWithActions}
+ * (`ok`|`bad-*`|`header2-missing-transport-id`).
  */
 export type PacketFromFieldsState = Record<string, never>;
 
@@ -273,6 +411,11 @@ export type PacketFromFieldsEvent =
       readonly transportIdLength: number;
     };
 
+/**
+ * Adapter throws or continues only from these actions.
+ * Plan nested via {@link stepPacketFromFieldsPlanWithActions}
+ * (`ok`|`bad-*`|`header2-missing-transport-id`).
+ */
 export type PacketFromFieldsAction = { readonly kind: PacketFromFieldsPlan };
 
 export interface PacketFromFieldsStepResult {
@@ -356,7 +499,8 @@ function stepPacketFromFieldsInner(
   event: PacketFromFieldsEvent
 ): PacketFromFieldsStepResult {
   if (event.kind === "packet/from-fields-gate") {
-    const plan = planPacketFromFields({
+    const planActions = stepPacketFromFieldsPlanWithActions(initialPacketFromFieldsPlanState(), {
+      kind: "packet/from-fields-plan-gate",
       headerType: event.headerType,
       contextFlag: event.contextFlag,
       transportType: event.transportType,
@@ -365,7 +509,11 @@ function stepPacketFromFieldsInner(
       destinationHashLength: event.destinationHashLength,
       transportIdPresent: event.transportIdPresent,
       transportIdLength: event.transportIdLength
-    });
+    }).actions;
+    const plan = packetFromFieldsPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 
