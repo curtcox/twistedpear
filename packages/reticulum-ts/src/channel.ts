@@ -10,7 +10,7 @@ import {
   stepLinkSendAllowWithActions,
   channelEmplaceIndex,
   channelEnvelopeFieldsFromActions,
-  channelMessageStateFromPacketReceipt,
+  channelMessageStateFromActions,
   channelPacketTimeoutFromActions,
   channelPayloadMdu,
   channelRingSequenceIndexFromActions,
@@ -31,6 +31,7 @@ import {
   initialDrainChannelRingIndexState,
   initialEmplaceChannelEnvelopeState,
   initialEmitChannelImmediateDeliveryState,
+  initialChannelMessageStateFromPacketReceiptState,
   initialIndexOfChannelRingSequenceState,
   initialIndexOfChannelTxEnvelopeState,
   initialRegisterChannelMessageHandlerState,
@@ -107,6 +108,7 @@ import {
   stepDrainChannelRingIndexWithActions,
   stepEmplaceChannelEnvelopeWithActions,
   stepEmitChannelImmediateDeliveryWithActions,
+  stepChannelMessageStateFromPacketReceiptWithActions,
   stepIndexOfChannelRingSequenceWithActions,
   stepIndexOfChannelTxEnvelopeWithActions,
   stepPackChannelEnvelopeWithActions,
@@ -840,9 +842,19 @@ export class LinkChannelOutlet implements ChannelOutlet {
   }
 
   getPacketState(packet: ChannelPacket): MessageStateValue {
-    return channelMessageStateFromPacketReceipt(
-      packet.receipt === null ? null : packet.receipt.getStatus()
+    const messageState = channelMessageStateFromActions(
+      stepChannelMessageStateFromPacketReceiptWithActions(
+        initialChannelMessageStateFromPacketReceiptState(),
+        {
+          kind: "channel/message-state-from-receipt-gate",
+          receiptStatus: packet.receipt === null ? null : packet.receipt.getStatus()
+        }
+      ).actions
     );
+    if (messageState === null) {
+      throw new Error("getPacketState: missing use-state action");
+    }
+    return messageState;
   }
 
   timedOut(): void {

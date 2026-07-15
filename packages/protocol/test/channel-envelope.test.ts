@@ -4,11 +4,13 @@ import {
   CHANNEL_SEQ_MODULUS,
   ChannelMessageState,
   channelEnvelopeFieldsFromActions,
+  channelMessageStateFromActions,
   channelMessageStateFromPacketReceipt,
   channelPayloadMdu,
   initialChannelEnvelopePackState,
   initialChannelEnvelopeUnpackState,
   initialChannelMessageHandlerUnregisterState,
+  initialChannelMessageStateFromPacketReceiptState,
   initialChannelMessageTypeRegistrationState,
   initialEmitChannelImmediateDeliveryState,
   initialPackChannelEnvelopeState,
@@ -46,11 +48,13 @@ import {
   shouldStopChannelHandlerFanoutNow,
   shouldContinueChannelHandlerFanout,
   shouldUnregisterChannelMessageHandler,
+  shouldUseChannelMessageStateFromPacketReceipt,
   shouldUsePackChannelEnvelope,
   shouldUseUnpackChannelEnvelope,
   stepChannelEnvelopePackWithActions,
   stepChannelEnvelopeUnpackWithActions,
   stepChannelMessageHandlerUnregisterWithActions,
+  stepChannelMessageStateFromPacketReceiptWithActions,
   stepChannelMessageTypeRegistrationWithActions,
   stepEmitChannelImmediateDeliveryWithActions,
   stepPackChannelEnvelopeWithActions,
@@ -97,6 +101,31 @@ describe("protocol channel envelope", () => {
     expect(channelMessageStateFromPacketReceipt(null)).toBe(ChannelMessageState.MSGSTATE_FAILED);
     expect(channelMessageStateFromPacketReceipt(0x01)).toBe(ChannelMessageState.MSGSTATE_SENT);
     expect(channelMessageStateFromPacketReceipt(0x02)).toBe(ChannelMessageState.MSGSTATE_DELIVERED);
+  });
+
+  it("emits channel message state only from use-state actions", () => {
+    const stepped = stepChannelMessageStateFromPacketReceiptWithActions(
+      initialChannelMessageStateFromPacketReceiptState(),
+      {
+        kind: "channel/message-state-from-receipt-gate",
+        receiptStatus: 0x02
+      }
+    );
+    expect(shouldUseChannelMessageStateFromPacketReceipt(stepped.actions)).toBe(true);
+    expect(channelMessageStateFromActions(stepped.actions)).toBe(
+      ChannelMessageState.MSGSTATE_DELIVERED
+    );
+    expect(
+      channelMessageStateFromActions(
+        stepChannelMessageStateFromPacketReceiptWithActions(
+          initialChannelMessageStateFromPacketReceiptState(),
+          {
+            kind: "channel/message-state-from-receipt-gate",
+            receiptStatus: null
+          }
+        ).actions
+      )
+    ).toBe(ChannelMessageState.MSGSTATE_FAILED);
   });
 
   it("gates immediate delivery callbacks", () => {

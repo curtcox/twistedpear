@@ -2,8 +2,10 @@
 import {
   MAX_ANNOUNCE_RATE_TIMESTAMPS,
   initialAnnounceRateState,
-  isAnnounceBlocked,
-  recordAnnounce,
+  shouldTreatAnnounceBlocked,
+  shouldTreatRecordAnnounceBlocked,
+  stepAnnounceBlockedWithActions,
+  stepRecordAnnounceWithActions,
   type AnnounceRateEntry as ProtocolAnnounceRateEntry,
   type AnnounceRateOptions as ProtocolAnnounceRateOptions,
   type AnnounceRateState
@@ -29,13 +31,23 @@ export class AnnounceRateLimiter {
   }
 
   isBlocked(destinationKey: string, now: number): boolean {
-    return isAnnounceBlocked(this.state, destinationKey, now);
+    return shouldTreatAnnounceBlocked(
+      stepAnnounceBlockedWithActions(this.state, {
+        kind: "announce/blocked-gate",
+        destinationKey,
+        at: now
+      }).actions
+    );
   }
 
   record(destinationKey: string, now: number): boolean {
-    const result = recordAnnounce(this.state, destinationKey, now);
-    this.state = result.state;
-    return result.blocked;
+    const stepped = stepRecordAnnounceWithActions(this.state, {
+      kind: "announce/record-gate",
+      destinationKey,
+      at: now
+    });
+    this.state = stepped.state;
+    return shouldTreatRecordAnnounceBlocked(stepped.actions);
   }
 
   /** Test/debug helper: snapshot current table entries. */

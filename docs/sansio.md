@@ -25,7 +25,12 @@
 > **`stepAttemptIdentityRatchetDecryptWithActions`**: attempt|skip;
 > **`stepPersistIdentityRatchetWithActions`**: persist|skip;
 > **`stepIdentityRatchetRecordUsableWithActions`**: usable|unusable) are pure
-> protocol leaves; `Identity` adapts them. **Announce signature-attempt / destination-hash-check**
+> protocol leaves; `Identity` adapts them. **Channel message-state-from-receipt**
+> (via **`stepChannelMessageStateFromPacketReceiptWithActions`**: use-state) and
+> **announce rate** blocked / record (via **`stepAnnounceBlockedWithActions`**:
+> blocked|live; **`stepRecordAnnounceWithActions`**: blocked|clear) are pure
+> protocol leaves; `Channel` / `AnnounceRateLimiter` adapt them.
+> **Announce signature-attempt / destination-hash-check**
 > gates (via **`stepAttemptAnnounceSignatureValidateWithActions`**: attempt|skip;
 > **`stepCheckAnnounceDestinationHashWithActions`**: check|skip),
 > **LINKIDENTIFY accept** (via **`stepAcceptLinkIdentifyWithActions`**: accept|skip),
@@ -477,10 +482,14 @@
 > RegisteredDestination, and Link adapt them. **Destination proof strategy /
 > `planDestinationProof`**, **link resource-accept planning**, **`stepLinkRequestReceipt`**,
 > and **ChannelExceptionType** live in protocol; LeafTransport, Link, LinkRequestReceipt,
-> and Channel adapt them. **`channelMessageStateFromPacketReceipt`**, **link teardown
+> and Channel adapt them. **`channelMessageStateFromPacketReceipt`** (via
+> **`stepChannelMessageStateFromPacketReceiptWithActions`**: use-state), **link teardown
 > planning**, and PacketReceipt delivery/timeout via **`stepPacketReceiptTimeoutWithActions`**
 > (`timeout` / `delivered` / `failed` actions) live in
-> protocol; Channel, Link, and PacketReceipt adapt them. **`planChannelPacketTimeout`**
+> protocol; Channel, Link, and PacketReceipt adapt them. **Announce rate** blocked /
+> record gates (via **`stepAnnounceBlockedWithActions`**: blocked|live;
+> **`stepRecordAnnounceWithActions`**: blocked|clear) live in protocol;
+> `AnnounceRateLimiter` adapts them. **`planChannelPacketTimeout`**
 > (`CHANNEL_MAX_TRIES`), **`shouldEmitPathRequest`** (via
 > **`stepEmitPathRequestWithActions`**: emit|skip), and link-watchdog **`link/inbound`**
 > STALE→ACTIVE revive live in protocol; Channel, LeafTransport, and Link adapt them.
@@ -985,6 +994,8 @@
 > **`stepStopChannelHandlerFanoutWithActions`**: stop|continue) /
 > **`shouldEmitChannelImmediateDelivery`** (via
 > **`stepEmitChannelImmediateDeliveryWithActions`**: emit|skip) /
+> **`channelMessageStateFromPacketReceipt`** (via
+> **`stepChannelMessageStateFromPacketReceiptWithActions`**: use-state) /
 > **`shouldClearChannelEnvelopePacket`** (via
 > **`stepClearChannelEnvelopePacketWithActions`**: clear|skip) /
 > **`canArmChannelPacketReceipt`** (via
@@ -1527,6 +1538,7 @@
 > emplace-channel-envelope / accept-channel-sequence /
 > drain-channel-ring-index / register-channel-message-handler /
 > stop-channel-handler-fanout / emit-channel-immediate-delivery /
+> channel-message-state-from-receipt / announce-blocked / record-announce /
 > clear-channel-envelope-packet / arm-channel-packet-receipt /
 > apply-channel-packet-receipt-timeout / replace-channel-resent-packet /
 > apply-channel-tx-receipt-timeout-extension / link-keepalive-context /
@@ -1589,6 +1601,7 @@
 > identity-use-public-key / load-identity-key-material /
 > attempt-identity-ratchet-decrypt / persist-identity-ratchet /
 > identity-ratchet-record-usable /
+> channel-message-state-from-receipt / announce-blocked / record-announce /
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
@@ -1642,6 +1655,7 @@
 > identity-use-public-key / load-identity-key-material /
 > attempt-identity-ratchet-decrypt / persist-identity-ratchet /
 > identity-ratchet-record-usable /
+> channel-message-state-from-receipt / announce-blocked / record-announce /
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
@@ -2060,7 +2074,13 @@
 > **`stepRegisterChannelMessageHandlerWithActions`** emits `register` / `skip`;
 > **`stepStopChannelHandlerFanoutWithActions`** emits `stop` / `continue`;
 > **`stepEmitChannelImmediateDeliveryWithActions`** emits `emit` / `skip`;
+> **`stepChannelMessageStateFromPacketReceiptWithActions`** emits `use-state`;
+> **`stepAnnounceBlockedWithActions`** emits `blocked` / `live`;
+> **`stepRecordAnnounceWithActions`** emits `blocked` / `clear`;
 > **`stepClearChannelEnvelopePacketWithActions`** emits `clear` / `skip`;
+> Channel message-state and announce-rate adapters apply only from those
+> actions (no ad-hoc `channelMessageStateFromPacketReceipt` /
+> `isAnnounceBlocked` / `recordAnnounce` reads beside the step).
 > **`stepArmChannelPacketReceiptWithActions`** emits `arm` / `skip`;
 > **`stepApplyChannelPacketReceiptTimeoutWithActions`** emits `apply` / `skip`;
 > **`stepReplaceChannelResentPacketWithActions`** emits `replace` / `skip`;

@@ -3,7 +3,13 @@ import {
   initialAnnounceRateState,
   isAnnounceBlocked,
   recordAnnounce,
-  stepAnnounceRate
+  shouldTreatAnnounceBlocked,
+  shouldTreatAnnounceLive,
+  shouldTreatRecordAnnounceBlocked,
+  shouldTreatRecordAnnounceClear,
+  stepAnnounceBlockedWithActions,
+  stepAnnounceRate,
+  stepRecordAnnounceWithActions
 } from "../src/announce-rate.js";
 
 describe("protocol announce rate", () => {
@@ -21,6 +27,44 @@ describe("protocol announce rate", () => {
 
     expect(isAnnounceBlocked(state, key, 100.1)).toBe(true);
     expect(isAnnounceBlocked(state, key, 111)).toBe(false);
+  });
+
+  it("emits announce blocked/live only from machine actions", () => {
+    let state = initialAnnounceRateState({ rateTarget: 0.2, rateGrace: 0, ratePenalty: 10 });
+    const key = "deadbeef";
+
+    state = stepRecordAnnounceWithActions(state, {
+      kind: "announce/record-gate",
+      destinationKey: key,
+      at: 100
+    }).state;
+    const recordBlocked = stepRecordAnnounceWithActions(state, {
+      kind: "announce/record-gate",
+      destinationKey: key,
+      at: 100.1
+    });
+    state = recordBlocked.state;
+    expect(shouldTreatRecordAnnounceBlocked(recordBlocked.actions)).toBe(true);
+    expect(shouldTreatRecordAnnounceClear(recordBlocked.actions)).toBe(false);
+
+    expect(
+      shouldTreatAnnounceBlocked(
+        stepAnnounceBlockedWithActions(state, {
+          kind: "announce/blocked-gate",
+          destinationKey: key,
+          at: 100.1
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldTreatAnnounceLive(
+        stepAnnounceBlockedWithActions(state, {
+          kind: "announce/blocked-gate",
+          destinationKey: key,
+          at: 111
+        }).actions
+      )
+    ).toBe(true);
   });
 
   it("stepAnnounceRate mirrors record decisions", () => {
@@ -45,9 +89,23 @@ describe("protocol announce rate", () => {
       let state = initialAnnounceRateState({ rateTarget: 0.2, rateGrace: 0, ratePenalty: 10 });
       const times = [100, 100.05, 100.1, 110, 120];
       return times.map((at) => {
-        const result = recordAnnounce(state, "dest", at);
-        state = result.state;
-        return { at, blocked: result.blocked, isBlocked: isAnnounceBlocked(state, "dest", at) };
+        const stepped = stepRecordAnnounceWithActions(state, {
+          kind: "announce/record-gate",
+          destinationKey: "dest",
+          at
+        });
+        state = stepped.state;
+        return {
+          at,
+          blocked: shouldTreatRecordAnnounceBlocked(stepped.actions),
+          isBlocked: shouldTreatAnnounceBlocked(
+            stepAnnounceBlockedWithActions(state, {
+              kind: "announce/blocked-gate",
+              destinationKey: "dest",
+              at
+            }).actions
+          )
+        };
       });
     };
     expect(run()).toEqual(run());

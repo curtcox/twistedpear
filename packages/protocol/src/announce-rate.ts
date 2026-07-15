@@ -1,8 +1,10 @@
 /**
  * Pure announce ingress rate limiting.
  * Mirrors RNS/Transport.py announce_rate_table decisions; time arrives as `now` only.
+ * Blocked-gate / record-gate conclusions leave via machine actions (no ad-hoc
+ * `isAnnounceBlocked` / `recordAnnounce` reads beside the step).
  */
-import type { Event, StepFn } from "@twistedpear/effects";
+import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
 export const MAX_ANNOUNCE_RATE_TIMESTAMPS = 16;
 export const DEFAULT_ANNOUNCE_RATE_TARGET = 0.2;
@@ -55,6 +57,62 @@ export function isAnnounceBlocked(
     return false;
   }
   return now <= entry.blockedUntil;
+}
+
+/**
+ * Announce blocked gate is event-driven over the rate-table state.
+ * Conclusions leave via machine actions (no ad-hoc `isAnnounceBlocked` reads
+ * beside the step).
+ */
+export type AnnounceBlockedEvent =
+  | Event
+  | {
+      readonly kind: "announce/blocked-gate";
+      readonly destinationKey: string;
+      readonly at: number;
+    };
+
+export type AnnounceBlockedAction =
+  | { readonly kind: "blocked" }
+  | { readonly kind: "live" };
+
+export interface AnnounceBlockedStepResult {
+  readonly state: AnnounceRateState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AnnounceBlockedAction[];
+}
+
+export function stepAnnounceBlockedWithActions(
+  state: AnnounceRateState,
+  event: AnnounceBlockedEvent
+): AnnounceBlockedStepResult {
+  if (event.kind === "announce/blocked-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isAnnounceBlocked(state, event.destinationKey, event.at)
+            ? "blocked"
+            : "live"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatAnnounceBlocked(
+  actions: ReadonlyArray<AnnounceBlockedAction>
+): boolean {
+  return actions.some((action) => action.kind === "blocked");
+}
+
+export function shouldTreatAnnounceLive(
+  actions: ReadonlyArray<AnnounceBlockedAction>
+): boolean {
+  return actions.some((action) => action.kind === "live");
 }
 
 export function recordAnnounce(
@@ -114,6 +172,57 @@ export function recordAnnounce(
   const table = new Map(state.table);
   table.set(destinationKey, entry);
   return { state: { ...state, table, lastBlocked: false }, blocked: false };
+}
+
+/**
+ * Announce record gate is event-driven over the rate-table state.
+ * Conclusions leave via machine actions (no ad-hoc `recordAnnounce` reads
+ * beside the step).
+ */
+export type RecordAnnounceEvent =
+  | Event
+  | {
+      readonly kind: "announce/record-gate";
+      readonly destinationKey: string;
+      readonly at: number;
+    };
+
+export type RecordAnnounceAction =
+  | { readonly kind: "blocked" }
+  | { readonly kind: "clear" };
+
+export interface RecordAnnounceStepResult {
+  readonly state: AnnounceRateState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly RecordAnnounceAction[];
+}
+
+export function stepRecordAnnounceWithActions(
+  state: AnnounceRateState,
+  event: RecordAnnounceEvent
+): RecordAnnounceStepResult {
+  if (event.kind === "announce/record-gate") {
+    const result = recordAnnounce(state, event.destinationKey, event.at);
+    return {
+      state: result.state,
+      intents: [],
+      actions: [{ kind: result.blocked ? "blocked" : "clear" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatRecordAnnounceBlocked(
+  actions: ReadonlyArray<RecordAnnounceAction>
+): boolean {
+  return actions.some((action) => action.kind === "blocked");
+}
+
+export function shouldTreatRecordAnnounceClear(
+  actions: ReadonlyArray<RecordAnnounceAction>
+): boolean {
+  return actions.some((action) => action.kind === "clear");
 }
 
 export const stepAnnounceRate: StepFn<AnnounceRateState> = (state, event) =>

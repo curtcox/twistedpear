@@ -4,6 +4,8 @@
  * `packChannelEnvelope` / `unpackChannelEnvelope` reads beside the step).
  * Pack / unpack / MSGTYPE-registration gate conclusions leave via machine
  * actions (no ad-hoc plan reads beside the step).
+ * Message-state-from-receipt mapping conclusions leave via machine actions
+ * (no ad-hoc `channelMessageStateFromPacketReceipt` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import type { PacketReceiptStatusValue } from "./packet-receipt-timeout.js";
@@ -52,6 +54,69 @@ export function channelMessageStateFromPacketReceipt(
     return ChannelMessageState.MSGSTATE_DELIVERED;
   }
   return ChannelMessageState.MSGSTATE_FAILED;
+}
+
+/**
+ * Channel message-state mapping is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `channelMessageStateFromPacketReceipt` reads beside the step).
+ */
+export type ChannelMessageStateFromPacketReceiptState = Record<string, never>;
+
+export type ChannelMessageStateFromPacketReceiptEvent =
+  | Event
+  | {
+      readonly kind: "channel/message-state-from-receipt-gate";
+      readonly receiptStatus: PacketReceiptStatusValue | null;
+    };
+
+export type ChannelMessageStateFromPacketReceiptAction = {
+  readonly kind: "use-state";
+  readonly messageState: ChannelMessageStateValue;
+};
+
+export interface ChannelMessageStateFromPacketReceiptStepResult {
+  readonly state: ChannelMessageStateFromPacketReceiptState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelMessageStateFromPacketReceiptAction[];
+}
+
+export function initialChannelMessageStateFromPacketReceiptState(): ChannelMessageStateFromPacketReceiptState {
+  return {};
+}
+
+export function stepChannelMessageStateFromPacketReceiptWithActions(
+  state: ChannelMessageStateFromPacketReceiptState,
+  event: ChannelMessageStateFromPacketReceiptEvent
+): ChannelMessageStateFromPacketReceiptStepResult {
+  if (event.kind === "channel/message-state-from-receipt-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-state",
+          messageState: channelMessageStateFromPacketReceipt(event.receiptStatus)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseChannelMessageStateFromPacketReceipt(
+  actions: ReadonlyArray<ChannelMessageStateFromPacketReceiptAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-state");
+}
+
+/** Extract channel message state from step actions; null when no `use-state`. */
+export function channelMessageStateFromActions(
+  actions: ReadonlyArray<ChannelMessageStateFromPacketReceiptAction>
+): ChannelMessageStateValue | null {
+  const action = actions.find((entry) => entry.kind === "use-state");
+  return action?.kind === "use-state" ? action.messageState : null;
 }
 
 /** Whether send/resend should immediately fire packetDelivered for an already-delivered outlet state. */
