@@ -50,6 +50,10 @@
 > **LINKIDENTIFY outcome-plan** (via
 > **`stepLinkIdentifyOutcomePlanWithActions`**: accept|reject — nested under
 > identify),
+> **RESOURCE_ADV advertisement-plan / app-result-plan** (via
+> **`stepLinkResourceAdvertisementPlanWithActions`**: ignore|ask-app|accept —
+> nested under resource-adv; **`stepLinkResourceAcceptAppResultPlanWithActions`**:
+> accept|reject — nested under resource-adv),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -204,6 +208,10 @@
 > (nested under proof-validate) /
 > **`stepLinkIdentifyOutcomePlanWithActions`**: accept|reject
 > (nested under identify) /
+> **`stepLinkResourceAdvertisementPlanWithActions`**: ignore|ask-app|accept
+> (nested under resource-adv) /
+> **`stepLinkResourceAcceptAppResultPlanWithActions`**: accept|reject
+> (nested under resource-adv) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -898,8 +906,12 @@
 > **`stepLinkProofValidateOutcomePlanWithActions`**: accept|reject) live in
 > protocol; `Link` app-request and proof validation
 > adapt them.
-> **`planLinkResourceAdvertisement`** (request bypass + strategy) lives in protocol;
-> `Link` RESOURCE_ADV adapts it via **`stepLinkResourceAdvertisementWithActions`**. **`planLxmfOpportunisticSend`** (via **`stepLxmfOpportunisticSendWithActions`**: proceed / reject-missing-destination) lives in protocol;
+> **`planLinkResourceAdvertisement`** (via **`stepLinkResourceAdvertisementWithActions`**:
+> ignore / ask-app / accept / reject; plan nested via
+> **`stepLinkResourceAdvertisementPlanWithActions`**: ignore|ask-app|accept;
+> app-result plan nested via
+> **`stepLinkResourceAcceptAppResultPlanWithActions`**: accept|reject) lives in protocol;
+> `Link` RESOURCE_ADV adapts it. **`planLxmfOpportunisticSend`** (via **`stepLxmfOpportunisticSendWithActions`**: proceed / reject-missing-destination) lives in protocol;
 > `LXMFRouter` adapts it. **`shouldUpdateLinkLastData`** (via
 > **`stepUpdateLinkLastDataWithActions`**: update|skip) /
 > **`isLinkInboundDataPacket`** (via **`stepLinkInboundDataPacketWithActions`**:
@@ -1290,8 +1302,14 @@
 > actions (no ad-hoc `plan.kind` / `planLinkTeardown` /
 > `shouldAcceptLinkTeardown` / `planLinkTeardownReason` reads beside the step).
 > **`stepLinkResourceAdvertisementWithActions`** emits `ignore` / `ask-app` /
-> `accept` / `reject`; `Link` RESOURCE_ADV handling applies unpack/app-callback /
-> accept/reject only from those actions (no ad-hoc `plan.kind` reads).
+> `accept` / `reject` (advertisement plan nested via
+> **`stepLinkResourceAdvertisementPlanWithActions`**: ignore|ask-app|accept;
+> app-result plan nested via
+> **`stepLinkResourceAcceptAppResultPlanWithActions`**: accept|reject);
+> `Link` RESOURCE_ADV handling applies unpack/app-callback /
+> accept/reject only from those actions (no ad-hoc `planLinkResourceAdvertisement` /
+> `planLinkResourceAcceptAppResult` / `plan.kind` / `outcome ===` reads beside the
+> step).
 > **`stepLinkAppRequestInboundWithActions`** emits `ignore` / `forbidden` /
 > `invoke-handler` / `send-response` / `ignore-response` / `response-too-big`
 > (dispatch nested via **`stepLinkAppRequestDispatchWithActions`**:
@@ -1719,7 +1737,8 @@
 > finish by reading `state.concluded` beside probes). PacketReceipt
 > timeout/delivery/failed, Channel TX timeout/retry/give-up, Link establish
 > handshake/activate/fail/LRRTT, Link teardown local/remote close, Link
-> RESOURCE_ADV accept/ask-app/reject, Link inbound app-request
+> RESOURCE_ADV accept/ask-app/reject / link-resource-advertisement-plan /
+> link-resource-accept-app-result-plan, Link inbound app-request
 > invoke/response, Link LINKIDENTIFY reject/commit /
 > link-identify-outcome-plan, propagation-store
 > reject/duplicate/accept, propagation /get list-ids/apply, LXMF
@@ -1741,7 +1760,7 @@
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
@@ -1849,6 +1868,7 @@
 > accept-link-owner-public-key / accept-link-request-owner / validate-link-proof-allow /
 > attempt-link-proof-crypto / accept-link-rtt / link-rtt-outcome-plan / teardown-link-from-rtt /
 > link-proof-validate-outcome-plan / link-identify-outcome-plan /
+> link-resource-advertisement-plan / link-resource-accept-app-result-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /

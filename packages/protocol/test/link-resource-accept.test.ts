@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  initialLinkResourceAcceptAppResultPlanState,
+  initialLinkResourceAdvertisementPlanState,
   initialLinkResourceAdvertisementState,
   initialLinkResourceConcludeState,
   incomingLinkResourceConcludeIndex,
@@ -8,13 +10,18 @@ import {
   shouldLinkBusyForNewResource,
   shouldLinkReadyForNewResource,
   stepLinkReadyForNewResourceWithActions,
+  linkResourceAcceptAppResultPlanFromActions,
+  linkResourceAdvertisementPlanFromActions,
   outgoingLinkResourceConcludeIndex,
   planLinkResourceAccept,
   planLinkResourceAcceptAppResult,
   planLinkResourceAdvertisement,
   planLinkResourceConclude,
+  shouldAcceptLinkResourceAcceptAppResultPlan,
   shouldAcceptLinkResourceAdvertisement,
+  shouldAcceptLinkResourceAdvertisementPlan,
   shouldAskAppLinkResourceAdvertisement,
+  shouldAskAppLinkResourceAdvertisementPlan,
   shouldHandleIncomingResourceByHash,
   initialHandleIncomingResourceByHashState,
   shouldHandleIncomingResourceByHashNow,
@@ -26,16 +33,20 @@ import {
   shouldSkipHandleOutgoingResourceRequest,
   stepHandleOutgoingResourceRequestWithActions,
   shouldIgnoreLinkResourceAdvertisement,
+  shouldIgnoreLinkResourceAdvertisementPlan,
   shouldRegisterLinkResource,
   initialRegisterLinkResourceState,
   shouldRegisterLinkResourceNow,
   shouldSkipRegisterLinkResource,
   stepRegisterLinkResourceWithActions,
+  shouldRejectLinkResourceAcceptAppResultPlan,
   shouldRejectLinkResourceAdvertisement,
   shouldRemoveIncomingLinkResourceConclude,
   shouldRemoveLinkResourceListIndex,
   shouldRemoveOutgoingLinkResourceConclude,
+  stepLinkResourceAcceptAppResultPlanWithActions,
   stepLinkResourceAdvertisement,
+  stepLinkResourceAdvertisementPlanWithActions,
   stepLinkResourceAdvertisementWithActions,
   stepLinkResourceConcludeWithActions
 } from "../src/link-resource-accept.js";
@@ -77,6 +88,56 @@ describe("protocol link resource accept", () => {
         strategy: LinkResourceStrategy.ACCEPT_ALL
       })
     ).toEqual({ kind: "accept" });
+
+    const acceptPlan = stepLinkResourceAdvertisementPlanWithActions(
+      initialLinkResourceAdvertisementPlanState(),
+      {
+        kind: "resource-adv/advertisement-plan-gate",
+        isRequest: true,
+        strategy: LinkResourceStrategy.ACCEPT_NONE
+      }
+    );
+    expect(shouldAcceptLinkResourceAdvertisementPlan(acceptPlan.actions)).toBe(true);
+    expect(linkResourceAdvertisementPlanFromActions(acceptPlan.actions)).toEqual({
+      kind: "accept"
+    });
+
+    const ignorePlan = stepLinkResourceAdvertisementPlanWithActions(
+      initialLinkResourceAdvertisementPlanState(),
+      {
+        kind: "resource-adv/advertisement-plan-gate",
+        isRequest: false,
+        strategy: LinkResourceStrategy.ACCEPT_NONE
+      }
+    );
+    expect(shouldIgnoreLinkResourceAdvertisementPlan(ignorePlan.actions)).toBe(true);
+    expect(linkResourceAdvertisementPlanFromActions(ignorePlan.actions)).toEqual({
+      kind: "ignore"
+    });
+
+    const askPlan = stepLinkResourceAdvertisementPlanWithActions(
+      initialLinkResourceAdvertisementPlanState(),
+      {
+        kind: "resource-adv/advertisement-plan-gate",
+        isRequest: false,
+        strategy: LinkResourceStrategy.ACCEPT_APP
+      }
+    );
+    expect(shouldAskAppLinkResourceAdvertisementPlan(askPlan.actions)).toBe(true);
+
+    const acceptApp = stepLinkResourceAcceptAppResultPlanWithActions(
+      initialLinkResourceAcceptAppResultPlanState(),
+      { kind: "resource-adv/app-result-plan-gate", accepted: true }
+    );
+    expect(shouldAcceptLinkResourceAcceptAppResultPlan(acceptApp.actions)).toBe(true);
+    expect(linkResourceAcceptAppResultPlanFromActions(acceptApp.actions)).toBe("accept");
+
+    const rejectApp = stepLinkResourceAcceptAppResultPlanWithActions(
+      initialLinkResourceAcceptAppResultPlanState(),
+      { kind: "resource-adv/app-result-plan-gate", accepted: false }
+    );
+    expect(shouldRejectLinkResourceAcceptAppResultPlan(rejectApp.actions)).toBe(true);
+    expect(linkResourceAcceptAppResultPlanFromActions(rejectApp.actions)).toBe("reject");
   });
 
   it("emits resource-adv actions for ignore / ask-app / accept / reject", () => {
