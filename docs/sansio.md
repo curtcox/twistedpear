@@ -98,6 +98,12 @@
 > **`stepLxmfReceiptSendPlanWithActions`**: apply|skip — nested under
 > receipt-send; **`stepLxmfSignatureOutcomePlanWithActions`**: outcome —
 > nested under signature),
+> **Announce validate / build plans** (via
+> **`stepAnnounceValidateOutcomePlanWithActions`**:
+> accept|accept-signature-only|reject-* — nested under announce-validate;
+> **`stepAnnounceBuildPlanWithActions`**:
+> ok|not-announceable-type|not-announceable-direction|missing-identity|
+> bad-random-hash|bad-ratchet — nested under announce-build),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -299,6 +305,13 @@
 > (nested under receipt-send) /
 > **`stepLxmfSignatureOutcomePlanWithActions`**: outcome
 > (nested under signature) /
+> **`stepAnnounceValidateOutcomePlanWithActions`**:
+> accept|accept-signature-only|reject-*
+> (nested under announce-validate) /
+> **`stepAnnounceBuildPlanWithActions`**:
+> ok|not-announceable-type|not-announceable-direction|missing-identity|
+> bad-random-hash|bad-ratchet
+> (nested under announce-build) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -999,7 +1012,10 @@
 > **`shouldReuseActiveLink`** (via **`stepReuseActiveLinkWithActions`**: reuse|skip)
 > lives in protocol; LXMF direct/propagation link reuse adapts it. **`planAnnounceBuild`** (via **`stepAnnounceBuildWithActions`**: proceed /
 > reject-not-announceable-type / reject-not-announceable-direction /
-> reject-missing-identity / reject-bad-random-hash / reject-bad-ratchet) and
+> reject-missing-identity / reject-bad-random-hash / reject-bad-ratchet; plan
+> nested via **`stepAnnounceBuildPlanWithActions`**:
+> ok|not-announceable-type|not-announceable-direction|missing-identity|
+> bad-random-hash|bad-ratchet) and
 > **`planDestinationConstruction`** (via **`stepDestinationConstructionWithActions`**:
 > ok / bad-direction / bad-type / bad-identity-binding; identity binding nested via
 > **`stepDestinationIdentityBindingValidWithActions`**: valid|invalid) lives in protocol; `Announce`
@@ -1074,7 +1090,9 @@
 > **`shouldIncludeLxmfStamp`** (via **`stepIncludeLxmfStampWithActions`**:
 > include|skip) live in protocol; `LXMessage.pack` adapts them.
 > **`planAnnounceValidateOutcome`** (via **`stepAnnounceValidateWithActions`**:
-> accept / accept-signature-only / reject-*) / **`isAnnouncePacketType`** (via
+> accept / accept-signature-only / reject-*; plan nested via
+> **`stepAnnounceValidateOutcomePlanWithActions`**:
+> accept|accept-signature-only|reject-*) / **`isAnnouncePacketType`** (via
 > **`stepAnnouncePacketTypeWithActions`**: announce|other) and
 > **`planPacketReceiptProofAccept`** live in protocol; `Announce` and `PacketReceipt`
 > adapt them. **Local destination match gates** (`shouldMatchLocalInboundDestination`
@@ -1598,11 +1616,15 @@
 > only from those actions (no ad-hoc `planLinkTokenAccess` / `plan ===` reads
 > beside the step).
 > **`stepAnnounceValidateWithActions`** emits `accept` / `accept-signature-only` /
-> `reject-*`; `Announce.validate` returns true only from those actions (no
-> ad-hoc `planAnnounceValidateOutcome` reads beside the step).
-> **`stepAnnounceBuildWithActions`** emits `proceed` / `reject-*`;
+> `reject-*` (plan nested via **`stepAnnounceValidateOutcomePlanWithActions`**:
+> `accept`|`accept-signature-only`|`reject-*`); `Announce.validate` returns true only from those actions (no
+> ad-hoc `planAnnounceValidateOutcome` / `plan ===` reads beside the step).
+> **`stepAnnounceBuildWithActions`** emits `proceed` / `reject-*` (plan nested via
+> **`stepAnnounceBuildPlanWithActions`**:
+> `ok`|`not-announceable-type`|`not-announceable-direction`|`missing-identity`|
+> `bad-random-hash`|`bad-ratchet`);
 > `Announce.buildPacket` throws or continues only from those actions (no
-> ad-hoc `planAnnounceBuild` reads beside the step).
+> ad-hoc `planAnnounceBuild` / `plan ===` reads beside the step).
 > **`stepIdentityDecryptWithActions`** emits `reject-frame` / `accept` /
 > `reject-enforced` / `try-identity` / `reject`; `Identity.decrypt` applies
 > ratchet/fallback outcomes only from those actions (no ad-hoc
@@ -1956,9 +1978,10 @@
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / lxmf-receipt-send-plan / lxmf-signature-outcome-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / lxmf-receipt-send-plan / lxmf-signature-outcome-plan / announce-validate-outcome-plan / announce-build-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
-> signature-outcome / token-access / announce-validate / announce-build /
+> signature-outcome / token-access / announce-validate /
+> announce-validate-outcome-plan / announce-build / announce-build-plan /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
 > identity-recall-app-data / identity-hash-allow / identity-use-private-key /
 > identity-use-public-key / load-identity-key-material /
@@ -2067,7 +2090,7 @@
 > link-resource-advertisement-plan / link-resource-accept-app-result-plan /
 > propagation-store-plan / propagation-get-plan / lxmf-delivery-plan /
 > lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan /
-> lxmf-propagated-send-plan /
+> lxmf-propagated-send-plan / announce-validate-outcome-plan / announce-build-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /
