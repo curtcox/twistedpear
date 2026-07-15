@@ -101,8 +101,9 @@
 > transmit via **`stepChannelOutletTransmitWithActions`**: ok|reject; TX-
 > envelope / RX ring-sequence index via
 > **`stepIndexOfChannelTxEnvelopeWithActions`** /
-> **`stepIndexOfChannelRingSequenceWithActions`**: use-index|miss; extend-
-> packet-receipt-timeout via **`stepExtendPacketReceiptTimeoutWithActions`**:
+> **`stepIndexOfChannelRingSequenceWithActions`**: use-index|miss; arm-
+> packet-receipt via **`stepArmChannelPacketReceiptWithActions`**: arm|skip;
+> extend-packet-receipt-timeout via **`stepExtendPacketReceiptTimeoutWithActions`**:
 > extend|skip; resend-timeout-packet via
 > **`stepResendChannelTimeoutPacketWithActions`**: resend|skip; retry exhaustion)
 > is a pure protocol leaf; `Channel` adapts it.
@@ -355,7 +356,7 @@
 > immediate delivery via **`stepEmitChannelImmediateDeliveryWithActions`**:
 > emit|skip; envelope clear via **`stepClearChannelEnvelopePacketWithActions`**:
 > clear|skip; receipt arm via **`stepArmChannelPacketReceiptWithActions`**:
-> arm|skip; receipt timeout via
+> arm|skip (nested under TX receipt-timeout refresh); receipt timeout via
 > **`stepApplyChannelPacketReceiptTimeoutWithActions`**: apply|skip; resent
 > replace via **`stepReplaceChannelResentPacketWithActions`**: replace|skip;
 > TX receipt-timeout extension via
@@ -1022,7 +1023,9 @@
 > protocol; Resource and Link adapt them. **`shouldInvokeDestinationLinkEstablishedCallback`**
 > (via **`stepDestinationLinkEstablishedCallbackWithActions`**: invoke|skip),
 > **`canArmChannelPacketReceipt`** (via
-> **`stepArmChannelPacketReceiptWithActions`**: arm|skip), **`planPacketReceiptCallback`**,
+> **`stepArmChannelPacketReceiptWithActions`**: arm|skip; nested under
+> **`planChannelTxReceiptTimeoutRefresh`** /
+> **`stepChannelTxReceiptTimeoutRefreshWithActions`**), **`planPacketReceiptCallback`**,
 > **`canDispatchAnnounceHandlers`** (via
 > **`stepDispatchAnnounceHandlersWithActions`**: dispatch|skip), **`shouldAttemptIdentityRatchetDecrypt`**,
 > **`shouldRegisterStreamReadyCallback`** (via
@@ -1078,7 +1081,8 @@
 > **`shouldClearChannelEnvelopePacket`** (via
 > **`stepClearChannelEnvelopePacketWithActions`**: clear|skip) /
 > **`canArmChannelPacketReceipt`** (via
-> **`stepArmChannelPacketReceiptWithActions`**: arm|skip) /
+> **`stepArmChannelPacketReceiptWithActions`**: arm|skip; nested under
+> **`planChannelTxReceiptTimeoutRefresh`**) /
 > **`shouldApplyChannelPacketReceiptTimeout`** (via
 > **`stepApplyChannelPacketReceiptTimeoutWithActions`**: apply|skip) /
 > **`shouldReplaceChannelResentPacket`** (via
@@ -1218,7 +1222,9 @@
 > **`stepChannelTxTimeoutWithActions`** composes envelope miss / ignore /
 > give-up / retry with window shrink; `Channel.packetTimeout` applies only
 > `give-up` / `retry` actions (no ad-hoc `plan.kind` reads). Receipt timeout
-> refresh uses **`planChannelTxReceiptTimeoutRefresh`**.
+> refresh uses **`planChannelTxReceiptTimeoutRefresh`** (arm nested via
+> **`stepArmChannelPacketReceiptWithActions`**: arm|skip; extend nested via
+> **`stepExtendPacketReceiptTimeoutWithActions`**: extend|skip).
 > **`stepLinkEstablishWithActions`** emits `enter-handshake` / `activated`
 > (with initiator `sendRtt` + `activateMembership` flags) / `failed` / LRRTT
 > `ignore` / `accept-rtt` / `teardown`; `Link` handshake, validateProof, and
@@ -2045,8 +2051,12 @@
 > from those actions (no ad-hoc `deriveRnsLinkKey` /
 > `orderIndependentSharedSecret` reads beside the step).
 > **`stepChannelTxReceiptTimeoutRefreshWithActions`** emits `extend`
-> (per refreshed TX-ring receipt); Channel receipt-timeout refresh applies
-> only from those actions. **`stepChannelMessageHandlerUnregisterWithActions`**,
+> (per refreshed TX-ring receipt; arm nested via
+> **`stepArmChannelPacketReceiptWithActions`**: arm|skip; extend decision
+> nested via **`stepExtendPacketReceiptTimeoutWithActions`**: extend|skip);
+> Channel receipt-timeout refresh applies only from those actions (no ad-hoc
+> `planChannelTxReceiptTimeoutRefresh` / `canArmChannelPacketReceipt` reads
+> beside the step). **`stepChannelMessageHandlerUnregisterWithActions`**,
 > **`stepPendingLinkRequestUnregisterWithActions`**,
 > **`stepStreamReadyCallbackUnregisterWithActions`**,
 > **`stepPacketReceiptUnregisterWithActions`**, and

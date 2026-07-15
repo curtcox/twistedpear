@@ -2,10 +2,11 @@
  * Pure RNS Channel congestion window + packet timeout decisions.
  * Adapters own send/resend/timers; this owns window sizing and timeout formulas.
  * Packet-timeout-seconds / TX outstanding / send-allow / outlet-transmit /
- * TX-envelope index / TX timeout / extend-packet-receipt-timeout conclusions
- * leave via machine actions (no ad-hoc `channelPacketTimeoutSeconds` /
- * `countChannelTxOutstanding` / `channelAllowsSend` /
- * `isChannelOutletTransmitOk` / `indexOfChannelTxEnvelope` /
+ * TX-envelope index / TX timeout / arm-packet-receipt /
+ * extend-packet-receipt-timeout conclusions leave via machine actions (no
+ * ad-hoc `channelPacketTimeoutSeconds` / `countChannelTxOutstanding` /
+ * `channelAllowsSend` / `isChannelOutletTransmitOk` /
+ * `indexOfChannelTxEnvelope` / `canArmChannelPacketReceipt` /
  * `shouldExtendPacketReceiptTimeout` / `plan.kind` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
@@ -1287,8 +1288,9 @@ export function channelTxTimeoutRetryAction(
 
 /**
  * Plan which TX-ring receipts need a longer timeout after a send/retry.
- * Adapter applies `setTimeout` only for returned indexes (extend decisions
- * only from `stepExtendPacketReceiptTimeoutWithActions` actions).
+ * Adapter applies `setTimeout` only for returned indexes (arm gate nested via
+ * `stepArmChannelPacketReceiptWithActions`; extend decisions only from
+ * `stepExtendPacketReceiptTimeoutWithActions` actions).
  */
 export function planChannelTxReceiptTimeoutRefresh(
   entries: ReadonlyArray<{
@@ -1302,7 +1304,14 @@ export function planChannelTxReceiptTimeoutRefresh(
   const extensions: Array<{ index: number; timeoutSeconds: number }> = [];
   for (let index = 0; index < entries.length; index += 1) {
     const entry = entries[index]!;
-    if (!canArmChannelPacketReceipt(entry.receiptPresent)) {
+    if (
+      !shouldArmChannelPacketReceiptNow(
+        stepArmChannelPacketReceiptWithActions(initialArmChannelPacketReceiptState(), {
+          kind: "channel/arm-packet-receipt-gate",
+          receiptPresent: entry.receiptPresent
+        }).actions
+      )
+    ) {
       continue;
     }
     const updatedTimeout = channelPacketTimeoutSeconds({
@@ -1396,7 +1405,9 @@ export function shouldSkipApplyChannelTxReceiptTimeoutExtension(
 /**
  * Channel TX receipt-timeout refresh is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc
- * `planChannelTxReceiptTimeoutRefresh` reads beside the step).
+ * `planChannelTxReceiptTimeoutRefresh` / `canArmChannelPacketReceipt` reads
+ * beside the step). Arm gate nested via
+ * `stepArmChannelPacketReceiptWithActions` (`arm`|`skip`).
  */
 export type ChannelTxReceiptTimeoutRefreshState = Record<string, never>;
 

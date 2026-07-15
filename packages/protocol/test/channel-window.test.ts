@@ -647,7 +647,7 @@ describe("protocol channel window", () => {
     expect(stripped).toEqual({ state: withActions.state, intents: withActions.intents });
   });
 
-  it("plans receipt timeout refresh extensions without ad-hoc extend checks", () => {
+  it("plans receipt timeout refresh extensions without ad-hoc arm / extend checks", () => {
     const entries = [
       {
         receiptPresent: false,
@@ -675,6 +675,15 @@ describe("protocol channel window", () => {
     expect(extensions).toHaveLength(1);
     expect(extensions[0]!.index).toBe(1);
     expect(extensions[0]!.timeoutSeconds).toBeGreaterThan(0.01);
+    // Nested arm gate: absent receipt never extends.
+    expect(
+      shouldArmChannelPacketReceiptNow(
+        stepArmChannelPacketReceiptWithActions(initialArmChannelPacketReceiptState(), {
+          kind: "channel/arm-packet-receipt-gate",
+          receiptPresent: false
+        }).actions
+      )
+    ).toBe(false);
     expect(shouldApplyChannelTxReceiptTimeoutExtension(true)).toBe(true);
     expect(shouldApplyChannelTxReceiptTimeoutExtension(false)).toBe(false);
 
