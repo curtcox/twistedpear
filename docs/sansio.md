@@ -3,7 +3,9 @@
 > **Status:** Protocol deny-list ratchet is **empty**. Inventory reports 0 violations under
 > configured roots (adapters remain outside the scan). Effects package, sim determinism,
 > tripwire (scoped to `packages/protocol/test/**`), ESLint, and dependency-cruiser gates
-> are green via `npm run sansio`. **RNS HKDF** (via **`stepRnsHkdfSha256WithActions`**:
+> are green via `npm run sansio`; the canary now seeds a temporary `Date.now()`
+> protocol violation and verifies ESLint, inventory, and the runtime tripwire all
+> catch it before restoring the fixture and baseline report. **RNS HKDF** (via **`stepRnsHkdfSha256WithActions`**:
 > use-raw|reject) and **link key derive** (via **`stepDeriveRnsLinkKeyWithActions`** /
 > **`stepOrderIndependentSharedSecretWithActions`**: use-raw|reject) are pure protocol
 > cores (`@noble/hashes`); `Link.handshake` performs ECDH at the crypto edge then applies

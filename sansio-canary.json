@@ -1,51 +1,33 @@
 {
-  "generatedAt": "2026-07-15T21:59:59.620Z",
-  "canaryProcedure": "Add `void Date.now();` to packages/protocol/src/echo.ts on a scratch branch, then run npm run sansio.",
+  "generatedAt": "2026-07-15T23:32:00.243Z",
+  "canary": "temporary Date.now() call in a protocol source file",
+  "fixture": "packages/protocol/src/__sansio_canary__.ts",
+  "minimumIndependentLayers": 3,
+  "caughtCount": 3,
+  "passed": true,
   "layers": [
     {
-      "name": "tsc-protocol",
-      "command": "npm run build --workspace=@twistedpear/protocol",
-      "catches": "Type errors for DOM/Node APIs when lib excludes them; Date.now itself remains typed via ES2022 Date",
-      "expectedOnDateNow": "miss (Date.now is in ES lib) — rely on eslint/ratchet/tripwire"
-    },
-    {
       "name": "eslint",
-      "command": "npm run sansio:eslint",
-      "catches": "no-restricted-syntax for Date.now / Math.random / setTimeout / console / process.env",
-      "expectedOnDateNow": "catch"
+      "command": "eslint --no-inline-config --max-warnings 0 packages/protocol/src/__sansio_canary__.ts",
+      "caught": true,
+      "evidence": "  3:10  error  Sans-IO: use injected Clock instead of Date.now  no-restricted-syntax"
     },
     {
       "name": "ratchet-inventory",
-      "command": "npm run sansio:ratchet",
-      "catches": "deny-list scan; fails if violating file is not excepted",
-      "expectedOnDateNow": "catch"
+      "command": "node scripts/sansio-inventory.mjs",
+      "caught": true,
+      "evidence": "packages/protocol/src/__sansio_canary__.ts:3 Date.now"
     },
     {
       "name": "tripwire",
-      "command": "npm test -- packages/effects/test/tripwire.test.ts",
-      "catches": "runtime replacement of Date.now / Math.random / setTimeout / fetch",
-      "expectedOnDateNow": "catch (when test bootstrap installs tripwire before protocol import)"
-    },
-    {
-      "name": "determinism",
-      "command": "npm test -- packages/effects/test/determinism.test.ts packages/protocol/test/echo.test.ts",
-      "catches": "nondeterministic wall-clock reads that diverge double-runs",
-      "expectedOnDateNow": "catch if Date.now affects trace; may miss if value unused"
-    },
-    {
-      "name": "dependency-cruiser",
-      "command": "npm run sansio:depcruise",
-      "catches": "imports from protocol into adapters/ or node builtins",
-      "expectedOnDateNow": "miss (Date.now is not an import)"
+      "command": "vitest run --project protocol-tripwire packages/protocol/test/__sansio_canary__.test.ts",
+      "caught": true,
+      "evidence": "protocol test observed SansIOViolation from Date.now"
     }
   ],
-  "lastVerified": {
-    "note": "Baseline recorded at foundation land. Re-verify with scratch-branch canary when enforcement config changes.",
-    "layersExpectedToCatchDateNow": [
-      "eslint",
-      "ratchet-inventory",
-      "tripwire"
-    ],
-    "minimumIndependentLayers": 3
+  "cleanup": {
+    "fixtureRestored": true,
+    "testRestored": true,
+    "inventoryRestored": true
   }
 }
