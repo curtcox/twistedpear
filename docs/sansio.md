@@ -17,7 +17,9 @@
 > **Token**, and **Resource** RNG now prefer injected/`Runtime` entropy (transport
 > identity keygen, path-request tags, link Token IVs, destination encrypt, resource
 > random hashes). **Channel congestion** (window sizing, packet timeout formula
-> via **`stepChannelPacketTimeoutSecondsWithActions`**: use-timeout, retry
+> via **`stepChannelPacketTimeoutSecondsWithActions`**: use-timeout; TX
+> outstanding via **`stepCountChannelTxOutstandingWithActions`**: use-count;
+> send-allow via **`stepChannelAllowsSendWithActions`**: allow|deny; retry
 > exhaustion) is a pure protocol leaf; `Channel` adapts it. **Channel envelope
 > framing** and **RX reorder/drain** are also pure protocol leaves. **LXMF outbound
 > send-state** (enqueue → sending → sent/delivered/
@@ -317,7 +319,9 @@
 > / `LeafTransport.sendPacket` adapt it. **`Link.updateKeepalive`** applies keepalive via
 > **`stepComputeKeepaliveWithActions`** (`use-keepalive`) then syncs watchdog via
 > `link/rtt-measured`; keepalive outbound routes through `link/keepalive-sent`.
-> **`countChannelTxOutstanding`** lives in protocol; `Channel.isReadyToSend` adapts it.
+> **`countChannelTxOutstanding`** (via **`stepCountChannelTxOutstandingWithActions`**:
+> use-count) and **`channelAllowsSend`** (via **`stepChannelAllowsSendWithActions`**:
+> allow|deny) live in protocol; `Channel.isReadyToSend` adapts them.
 > **`shouldExtendPacketReceiptTimeout`** lives in protocol; `Channel.updatePacketTimeouts`
 > adapts it. **`indexOfChannelTxEnvelope`** lives in protocol; Channel timeout/delivery TX-ring
 > lookup adapts it. **`stepAppendResourceMapHashCollisionGuardWithActions`** lives in protocol; `Resource.send`
@@ -912,7 +916,8 @@
 > compute-link-mdu / compute-link-establishment-timeout /
 > compute-link-request-timeout / compute-link-rtt-seconds / merge-link-rtt /
 > compute-resource-timeout / compute-keepalive /
-> channel-packet-timeout-seconds /
+> channel-packet-timeout-seconds / count-channel-tx-outstanding /
+> channel-allows-send /
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
@@ -1096,6 +1101,10 @@
 > **`stepChannelPacketTimeoutSecondsWithActions`** emits `use-timeout`;
 > `Channel.getPacketTimeoutTime` applies only from those actions (no ad-hoc
 > `channelPacketTimeoutSeconds` reads beside the step).
+> **`stepCountChannelTxOutstandingWithActions`** emits `use-count`;
+> **`stepChannelAllowsSendWithActions`** emits `allow`|`deny`;
+> `Channel.isReadyToSend` applies only from those actions (no ad-hoc
+> `countChannelTxOutstanding` / `channelAllowsSend` reads beside the step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT measure / merge apply only from those
 > actions (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the
@@ -1117,7 +1126,8 @@
 > (no ad-hoc `planLinkInitiatorMtu` / `planLinkRequestResponderMtu` /
 > `linkHopsMatch` / `computeLinkMdu` / `computeLinkEstablishmentTimeout` /
 > `computeLinkRequestTimeout` / `computeResourceTimeout` / `computeKeepalive` /
-> `channelPacketTimeoutSeconds` / `computeLinkRttSeconds` / `mergeLinkRtt` /
+> `channelPacketTimeoutSeconds` / `countChannelTxOutstanding` /
+> `channelAllowsSend` / `computeLinkRttSeconds` / `mergeLinkRtt` /
 > `computePathExpiry` / `shouldDeferPacketHash` /
 > `planResourceAdvertisementRoleFlags` /
 > `planResourceHashmapSlotWrites` reads beside the step).
@@ -1337,6 +1347,10 @@
 > **`stepChannelPacketTimeoutSecondsWithActions`** emits `use-timeout`;
 > `Channel.getPacketTimeoutTime` applies only from those actions (no ad-hoc
 > `channelPacketTimeoutSeconds` reads beside the step).
+> **`stepCountChannelTxOutstandingWithActions`** emits `use-count`;
+> **`stepChannelAllowsSendWithActions`** emits `allow`|`deny`;
+> `Channel.isReadyToSend` applies only from those actions (no ad-hoc
+> `countChannelTxOutstanding` / `channelAllowsSend` reads beside the step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT apply only from those actions (no ad-hoc
 > `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the step).

@@ -7,19 +7,20 @@ import {
   ChannelWindowLimits,
   canArmChannelPacketReceipt,
   canLinkSend,
-  channelAllowsSend,
   channelEmplaceIndex,
   channelEnvelopeFieldsFromActions,
   channelMessageStateFromPacketReceipt,
   channelPacketTimeoutFromActions,
   channelPayloadMdu,
+  channelTxOutstandingCountFromActions,
   channelTxTimeoutRetryAction,
-  countChannelTxOutstanding,
   drainContiguousChannelSequences,
   indexOfChannelRingSequence,
   indexOfChannelTxEnvelope,
+  initialChannelAllowsSendState,
   initialChannelPacketTimeoutSecondsState,
   initialChannelWindowState,
+  initialCountChannelTxOutstandingState,
   isChannelOutletTransmitOk,
   nextChannelSequence,
   initialChannelEnvelopePackState,
@@ -33,6 +34,7 @@ import {
   initialUnpackChannelEnvelopeState,
   packChannelEnvelopeRawFromActions,
   shouldAcceptChannelSequence,
+  shouldAllowChannelSend,
   shouldApplyChannelPacketReceiptTimeout,
   shouldApplyChannelTxReceiptTimeoutExtension,
   shouldClearChannelEnvelopePacket,
@@ -61,10 +63,12 @@ import {
   shouldRetryChannelTxTimeout,
   shouldStopChannelHandlerFanout,
   shouldUseChannelPacketTimeout,
+  shouldUseChannelTxOutstandingCount,
   shouldUsePackChannelEnvelope,
   shouldUseUnpackChannelEnvelope,
   channelMessageHandlerUnregisterIndex,
   channelTxReceiptTimeoutExtensions,
+  stepChannelAllowsSendWithActions,
   stepChannelEnvelopePackWithActions,
   stepChannelEnvelopeUnpackWithActions,
   stepChannelMessageHandlerUnregisterWithActions,
@@ -75,6 +79,7 @@ import {
   stepChannelTxReceiptTimeoutRefreshWithActions,
   stepChannelTxTimeoutWithActions,
   stepChannelWindow,
+  stepCountChannelTxOutstandingWithActions,
   stepPackChannelEnvelopeWithActions,
   stepUnpackChannelEnvelopeWithActions,
   type ChannelTxTimeoutAction,
@@ -345,20 +350,34 @@ export class Channel {
   }
 
   isReadyToSend(): boolean {
-    const outstanding = countChannelTxOutstanding(
-      this.txRing.map((envelope) => ({
-        packetPresent: envelope.packet !== null,
-        delivered:
-          envelope.packet !== null &&
-          this.outlet.getPacketState(envelope.packet) === MessageState.MSGSTATE_DELIVERED
-      }))
+    /** Adapt TX outstanding / send-allow via protocol actions (no ad-hoc
+     * `countChannelTxOutstanding` / `channelAllowsSend` reads). */
+    const outstandingStepped = stepCountChannelTxOutstandingWithActions(
+      initialCountChannelTxOutstandingState(),
+      {
+        kind: "channel/tx-outstanding-gate",
+        entries: this.txRing.map((envelope) => ({
+          packetPresent: envelope.packet !== null,
+          delivered:
+            envelope.packet !== null &&
+            this.outlet.getPacketState(envelope.packet) === MessageState.MSGSTATE_DELIVERED
+        }))
+      }
     );
+    const outstanding = shouldUseChannelTxOutstandingCount(outstandingStepped.actions)
+      ? channelTxOutstandingCountFromActions(outstandingStepped.actions)
+      : null;
+    if (outstanding === null) {
+      throw new Error("Channel.isReadyToSend: missing use-count action");
+    }
 
-    return channelAllowsSend({
+    const allowStepped = stepChannelAllowsSendWithActions(initialChannelAllowsSendState(), {
+      kind: "channel/allows-send-gate",
       isUsable: this.outlet.isUsable,
       outstanding,
       window: this.windowState.window
     });
+    return shouldAllowChannelSend(allowStepped.actions);
   }
 
   async send(message: ChannelMessage): Promise<Envelope> {

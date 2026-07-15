@@ -1,8 +1,10 @@
 /**
  * Pure RNS Channel congestion window + packet timeout decisions.
  * Adapters own send/resend/timers; this owns window sizing and timeout formulas.
- * Packet-timeout-seconds / TX timeout conclusions leave via machine actions
- * (no ad-hoc `channelPacketTimeoutSeconds` / `plan.kind` reads beside the step).
+ * Packet-timeout-seconds / TX outstanding / send-allow / TX timeout conclusions
+ * leave via machine actions (no ad-hoc `channelPacketTimeoutSeconds` /
+ * `countChannelTxOutstanding` / `channelAllowsSend` / `plan.kind` reads beside
+ * the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -144,6 +146,73 @@ export function channelAllowsSend(input: {
 }
 
 /**
+ * Channel send-allow gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `channelAllowsSend` reads
+ * beside the step).
+ */
+export type ChannelAllowsSendState = Record<string, never>;
+
+export type ChannelAllowsSendEvent =
+  | Event
+  | {
+      readonly kind: "channel/allows-send-gate";
+      readonly isUsable: boolean;
+      readonly outstanding: number;
+      readonly window: number;
+    };
+
+export type ChannelAllowsSendAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface ChannelAllowsSendStepResult {
+  readonly state: ChannelAllowsSendState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelAllowsSendAction[];
+}
+
+export function initialChannelAllowsSendState(): ChannelAllowsSendState {
+  return {};
+}
+
+export function stepChannelAllowsSendWithActions(
+  state: ChannelAllowsSendState,
+  event: ChannelAllowsSendEvent
+): ChannelAllowsSendStepResult {
+  if (event.kind === "channel/allows-send-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: channelAllowsSend({
+            isUsable: event.isUsable,
+            outstanding: event.outstanding,
+            window: event.window
+          })
+            ? "allow"
+            : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowChannelSend(
+  actions: ReadonlyArray<ChannelAllowsSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenyChannelSend(
+  actions: ReadonlyArray<ChannelAllowsSendAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
+}
+
+/**
  * Channel send gate: ready-to-send and packed-payload MDU fitness.
  * Pass `packedLength: null` to check readiness only (before pack).
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
@@ -258,6 +327,72 @@ export function countChannelTxOutstanding(
     }
   }
   return outstanding;
+}
+
+/**
+ * Channel TX-outstanding count is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `countChannelTxOutstanding`
+ * reads beside the step).
+ */
+export type CountChannelTxOutstandingState = Record<string, never>;
+
+export type CountChannelTxOutstandingEvent =
+  | Event
+  | {
+      readonly kind: "channel/tx-outstanding-gate";
+      readonly entries: ReadonlyArray<{
+        readonly packetPresent: boolean;
+        readonly delivered: boolean;
+      }>;
+    };
+
+export type CountChannelTxOutstandingAction = {
+  readonly kind: "use-count";
+  readonly count: number;
+};
+
+export interface CountChannelTxOutstandingStepResult {
+  readonly state: CountChannelTxOutstandingState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly CountChannelTxOutstandingAction[];
+}
+
+export function initialCountChannelTxOutstandingState(): CountChannelTxOutstandingState {
+  return {};
+}
+
+export function stepCountChannelTxOutstandingWithActions(
+  state: CountChannelTxOutstandingState,
+  event: CountChannelTxOutstandingEvent
+): CountChannelTxOutstandingStepResult {
+  if (event.kind === "channel/tx-outstanding-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-count",
+          count: countChannelTxOutstanding(event.entries)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseChannelTxOutstandingCount(
+  actions: ReadonlyArray<CountChannelTxOutstandingAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-count");
+}
+
+/** Extract outstanding count from step actions; null when no `use-count`. */
+export function channelTxOutstandingCountFromActions(
+  actions: ReadonlyArray<CountChannelTxOutstandingAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-count");
+  return action?.kind === "use-count" ? action.count : null;
 }
 
 /** Whether channel TX timeout refresh / receipt callback arming may use a packet receipt. */

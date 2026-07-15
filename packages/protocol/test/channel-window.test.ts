@@ -8,22 +8,27 @@ import {
   channelPacketTimeoutFromActions,
   channelPacketTimeoutSeconds,
   channelRetryExhausted,
+  channelTxOutstandingCountFromActions,
   channelTxTimeoutRetryAction,
   channelTxReceiptTimeoutExtensions,
   countChannelTxOutstanding,
   canArmChannelPacketReceipt,
+  initialChannelAllowsSendState,
   initialChannelPacketTimeoutSecondsState,
   initialChannelSendState,
   initialChannelTxEnvelopeOpState,
   initialChannelTxReceiptTimeoutRefreshState,
   initialChannelWindowState,
+  initialCountChannelTxOutstandingState,
   isChannelOutletTransmitOk,
   planChannelPacketTimeout,
   planChannelSend,
   planChannelTxEnvelopeOp,
   planChannelTxReceiptTimeoutRefresh,
+  shouldAllowChannelSend,
   shouldApplyChannelPacketReceiptTimeout,
   shouldApplyChannelTxReceiptTimeoutExtension,
+  shouldDenyChannelSend,
   shouldExtendChannelTxReceiptTimeout,
   shouldExtendPacketReceiptTimeout,
   shouldGiveUpChannelTxTimeout,
@@ -36,15 +41,18 @@ import {
   shouldResendChannelTimeoutPacket,
   shouldRetryChannelTxTimeout,
   shouldUseChannelPacketTimeout,
+  shouldUseChannelTxOutstandingCount,
   shouldClearChannelEnvelopePacket,
   indexOfChannelTxEnvelope,
+  stepChannelAllowsSendWithActions,
   stepChannelPacketTimeoutSecondsWithActions,
   stepChannelSendWithActions,
   stepChannelTxEnvelopeOpWithActions,
   stepChannelTxReceiptTimeoutRefreshWithActions,
   stepChannelTxTimeout,
   stepChannelTxTimeoutWithActions,
-  stepChannelWindow
+  stepChannelWindow,
+  stepCountChannelTxOutstandingWithActions
 } from "../src/channel-window.js";
 
 describe("protocol channel window", () => {
@@ -123,6 +131,61 @@ describe("protocol channel window", () => {
     expect(channelAllowsSend({ isUsable: false, outstanding: 0, window: 2 })).toBe(false);
     expect(channelRetryExhausted(5, 5)).toBe(true);
     expect(channelRetryExhausted(4, 5)).toBe(false);
+  });
+
+  it("emits TX outstanding only from use-count actions", () => {
+    const entries = [
+      { packetPresent: true, delivered: false },
+      { packetPresent: true, delivered: true },
+      { packetPresent: false, delivered: false }
+    ];
+    const stepped = stepCountChannelTxOutstandingWithActions(
+      initialCountChannelTxOutstandingState(),
+      {
+        kind: "channel/tx-outstanding-gate",
+        entries
+      }
+    );
+    expect(shouldUseChannelTxOutstandingCount(stepped.actions)).toBe(true);
+    expect(channelTxOutstandingCountFromActions(stepped.actions)).toBe(
+      countChannelTxOutstanding(entries)
+    );
+    expect(channelTxOutstandingCountFromActions(stepped.actions)).toBe(2);
+
+    const empty = stepCountChannelTxOutstandingWithActions(
+      initialCountChannelTxOutstandingState(),
+      {
+        kind: "noop"
+      } as never
+    );
+    expect(shouldUseChannelTxOutstandingCount(empty.actions)).toBe(false);
+    expect(channelTxOutstandingCountFromActions(empty.actions)).toBeNull();
+  });
+
+  it("emits send-allow only from allow/deny actions", () => {
+    const allowed = stepChannelAllowsSendWithActions(initialChannelAllowsSendState(), {
+      kind: "channel/allows-send-gate",
+      isUsable: true,
+      outstanding: 1,
+      window: 2
+    });
+    expect(shouldAllowChannelSend(allowed.actions)).toBe(true);
+    expect(shouldDenyChannelSend(allowed.actions)).toBe(false);
+
+    const denied = stepChannelAllowsSendWithActions(initialChannelAllowsSendState(), {
+      kind: "channel/allows-send-gate",
+      isUsable: true,
+      outstanding: 2,
+      window: 2
+    });
+    expect(shouldAllowChannelSend(denied.actions)).toBe(false);
+    expect(shouldDenyChannelSend(denied.actions)).toBe(true);
+
+    const empty = stepChannelAllowsSendWithActions(initialChannelAllowsSendState(), {
+      kind: "noop"
+    } as never);
+    expect(shouldAllowChannelSend(empty.actions)).toBe(false);
+    expect(shouldDenyChannelSend(empty.actions)).toBe(false);
   });
 
   it("plans channel send ready / too-big / proceed", () => {
