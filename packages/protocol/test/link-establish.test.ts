@@ -26,6 +26,7 @@ import {
   initialLinkSendAllowState,
   initialReuseActiveLinkState,
   initialSendLinkAppRequestResponseState,
+  initialSendLinkAppResponseAllowState,
   initialUpdateLinkKeepaliveAllowState,
   initialUpdateLinkLastDataState,
   shouldAcceptLinkPacketInterfaceNow,
@@ -75,12 +76,14 @@ import {
   shouldAllowPerformLinkHandshake,
   shouldAllowProveLink,
   shouldAllowResendLinkPacket,
+  shouldAllowSendLinkAppResponse,
   shouldAllowValidateLinkProof,
   shouldAttemptLinkProofCryptoNow,
   shouldDenyIdentifyOnLink,
   shouldDenyPerformLinkHandshake,
   shouldDenyProveLink,
   shouldDenyResendLinkPacket,
+  shouldDenySendLinkAppResponse,
   shouldDenyValidateLinkProof,
   shouldDispatchLinkPlaintextNow,
   shouldRejectLinkOwnerPublicKey,
@@ -99,6 +102,7 @@ import {
   stepPerformLinkHandshakeAllowWithActions,
   stepProveLinkAllowWithActions,
   stepResendLinkPacketAllowWithActions,
+  stepSendLinkAppResponseAllowWithActions,
   stepTeardownLinkFromRttWithActions,
   stepValidateLinkProofAllowWithActions,
   canPerformLinkHandshake,
@@ -372,6 +376,16 @@ describe("protocol link establish", () => {
     ).toBe("reject");
     expect(canSendLinkAppResponse({ packedLength: 10, mdu: 100 })).toBe(true);
     expect(canSendLinkAppResponse({ packedLength: 200, mdu: 100 })).toBe(false);
+    const responseAllow = stepSendLinkAppResponseAllowWithActions(
+      initialSendLinkAppResponseAllowState(),
+      { kind: "link/send-app-response-allow-gate", packedLength: 10, mdu: 100 }
+    );
+    expect(shouldAllowSendLinkAppResponse(responseAllow.actions)).toBe(true);
+    const responseDeny = stepSendLinkAppResponseAllowWithActions(
+      initialSendLinkAppResponseAllowState(),
+      { kind: "link/send-app-response-allow-gate", packedLength: 200, mdu: 100 }
+    );
+    expect(shouldDenySendLinkAppResponse(responseDeny.actions)).toBe(true);
   });
 
   it("gates sends on ACTIVE only", () => {
@@ -1013,22 +1027,19 @@ describe("protocol link establish", () => {
     expect(
       planLinkAppRequestResponse({
         responsePresent: true,
-        packedLength: 10,
-        mdu: 100
+        responseFitsMdu: true
       })
     ).toBe("send-response");
     expect(
       planLinkAppRequestResponse({
         responsePresent: false,
-        packedLength: 0,
-        mdu: 100
+        responseFitsMdu: true
       })
     ).toBe("ignore");
     expect(
       planLinkAppRequestResponse({
         responsePresent: true,
-        packedLength: 200,
-        mdu: 100
+        responseFitsMdu: false
       })
     ).toBe("response-too-big");
     expect(

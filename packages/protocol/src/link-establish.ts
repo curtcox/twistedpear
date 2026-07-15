@@ -29,6 +29,8 @@
  * `planDestinationRequestAllow` reads beside the step).
  * Accept-link-request-owner conclusions leave via machine actions (no ad-hoc
  * `canAcceptLinkRequestOwner` reads beside the step).
+ * Send-link-app-response-allow conclusions leave via machine actions (no ad-hoc
+ * `canSendLinkAppResponse` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -1317,6 +1319,71 @@ export function canSendLinkAppResponse(input: {
   return linkPayloadFitsMdu(input.packedLength, input.mdu);
 }
 
+/**
+ * canSendLinkAppResponse gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canSendLinkAppResponse`
+ * reads beside the step).
+ */
+export type SendLinkAppResponseAllowState = Record<string, never>;
+
+export type SendLinkAppResponseAllowEvent =
+  | Event
+  | {
+      readonly kind: "link/send-app-response-allow-gate";
+      readonly packedLength: number;
+      readonly mdu: number;
+    };
+
+export type SendLinkAppResponseAllowAction =
+  | { readonly kind: "allow" }
+  | { readonly kind: "deny" };
+
+export interface SendLinkAppResponseAllowStepResult {
+  readonly state: SendLinkAppResponseAllowState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly SendLinkAppResponseAllowAction[];
+}
+
+export function initialSendLinkAppResponseAllowState(): SendLinkAppResponseAllowState {
+  return {};
+}
+
+export function stepSendLinkAppResponseAllowWithActions(
+  state: SendLinkAppResponseAllowState,
+  event: SendLinkAppResponseAllowEvent
+): SendLinkAppResponseAllowStepResult {
+  if (event.kind === "link/send-app-response-allow-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canSendLinkAppResponse({
+            packedLength: event.packedLength,
+            mdu: event.mdu
+          })
+            ? "allow"
+            : "deny"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAllowSendLinkAppResponse(
+  actions: ReadonlyArray<SendLinkAppResponseAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "allow");
+}
+
+export function shouldDenySendLinkAppResponse(
+  actions: ReadonlyArray<SendLinkAppResponseAllowAction>
+): boolean {
+  return actions.some((action) => action.kind === "deny");
+}
+
 export type LinkAppRequestDispatchPlan = "ignore" | "forbidden" | "invoke-handler";
 
 /**
@@ -1501,16 +1568,20 @@ export function shouldSkipSendLinkAppRequestResponse(
   return actions.some((action) => action.kind === "skip");
 }
 
-/** Whether a packed application response may be sent after the handler returns. */
+/**
+ * Whether a packed application response may be sent after the handler returns.
+ * Pass `responseFitsMdu` from {@link stepSendLinkAppResponseAllowWithActions}
+ * (`shouldAllowSendLinkAppResponse`); do not re-read `canSendLinkAppResponse`
+ * beside the step.
+ */
 export function planLinkAppRequestResponse(input: {
   readonly responsePresent: boolean;
-  readonly packedLength: number;
-  readonly mdu: number;
+  readonly responseFitsMdu: boolean;
 }): LinkAppRequestResponsePlan {
   if (!input.responsePresent) {
     return "ignore";
   }
-  if (!canSendLinkAppResponse({ packedLength: input.packedLength, mdu: input.mdu })) {
+  if (!input.responseFitsMdu) {
     return "response-too-big";
   }
   return "send-response";
@@ -1520,7 +1591,8 @@ export function planLinkAppRequestResponse(input: {
  * Pure inbound link application-request dispatch (handler invoke → response send).
  * Decrypt / unpack / responseGenerator / encrypt stay at the adapter edge.
  * Conclusions leave via machine actions (no ad-hoc plan outcome /
- * `planDestinationRequestAllow` / `shouldInvokeLinkAppRequestHandler` /
+ * `planDestinationRequestAllow` / `canSendLinkAppResponse` /
+ * `shouldInvokeLinkAppRequestHandler` /
  * `shouldSendLinkAppRequestResponse` reads beside the step).
  */
 export interface LinkAppRequestInboundState {
@@ -1680,10 +1752,16 @@ function stepLinkAppRequestInboundInner(
     if (!state.waitingHandler) {
       return { state, intents: [], actions: [] };
     }
+    const responseFitsMdu = shouldAllowSendLinkAppResponse(
+      stepSendLinkAppResponseAllowWithActions(initialSendLinkAppResponseAllowState(), {
+        kind: "link/send-app-response-allow-gate",
+        packedLength: event.packedLength,
+        mdu: state.mdu
+      }).actions
+    );
     const plan = planLinkAppRequestResponse({
       responsePresent: event.responsePresent,
-      packedLength: event.packedLength,
-      mdu: state.mdu
+      responseFitsMdu
     });
     const next = { ...state, waitingHandler: false };
     if (plan === "ignore") {

@@ -112,9 +112,11 @@
 > **pending RESPONSE deliver** (via
 > **`stepDeliverPendingLinkAppResponseWithActions`**: deliver|skip),
 > **link app-request invoke-handler** (via
-> **`stepInvokeLinkAppRequestHandlerWithActions`**: invoke|skip), and
+> **`stepInvokeLinkAppRequestHandlerWithActions`**: invoke|skip),
 > **link app-request send-response** (via
-> **`stepSendLinkAppRequestResponseWithActions`**: send|skip) are pure
+> **`stepSendLinkAppRequestResponseWithActions`**: send|skip), and
+> **send-link-app-response allow** (via
+> **`stepSendLinkAppResponseAllowWithActions`**: allow|deny) are pure
 > protocol leaves; `TransportNode` and `Link` adapt them. **Stream write
 > chunk-length / read-size / chunk-take clamps** (via
 > **`stepClampStreamDataChunkLengthWithActions`** /
@@ -797,7 +799,7 @@
 > protocol; `Channel.send` adapts it.
 > **`canPerformLinkHandshake`** (via **`stepPerformLinkHandshakeAllowWithActions`**: allow|deny), **`canProveLink`** (via **`stepProveLinkAllowWithActions`**: allow|deny), **`canAcceptLinkRequestOwner`** (via **`stepAcceptLinkRequestOwnerWithActions`**: accept|reject),
 > **`planLinkAppRequest`** (via **`stepLinkAppRequestWithActions`**: send / reject),
-> **`canSendLinkAppResponse`**, and **`planLinkTokenAccess`**
+> **`canSendLinkAppResponse`** (via **`stepSendLinkAppResponseAllowWithActions`**: allow|deny), and **`planLinkTokenAccess`**
 > (via **`stepLinkTokenAccessWithActions`**: reject-no-key / create / reuse) live in
 > protocol; `Link` adapts them (`tokenInstance` via token-access actions).
 > **`shouldAcceptLinkTeardown`** lives in protocol; LINKCLOSE handling
@@ -840,7 +842,8 @@
 > protocol; `Link.validateRequest` / `handleIdentifyPacket` adapt them.
 > **`planLinkAppRequestDispatch`** / **`planLinkAppRequestResponse`** (via
 > **`stepLinkAppRequestInboundWithActions`**; allow via
-> **`stepDestinationRequestAllowWithActions`**: allow|deny; invoke via
+> **`stepDestinationRequestAllowWithActions`**: allow|deny; response MDU via
+> **`stepSendLinkAppResponseAllowWithActions`**: allow|deny; invoke via
 > **`stepInvokeLinkAppRequestHandlerWithActions`**: invoke|skip; send via
 > **`stepSendLinkAppRequestResponseWithActions`**: send|skip) and
 > **`planLinkProofValidateOutcome`** (via **`stepLinkProofValidateWithActions`**:
@@ -1214,11 +1217,14 @@
 > `accept` / `reject`; `Link` RESOURCE_ADV handling applies unpack/app-callback /
 > accept/reject only from those actions (no ad-hoc `plan.kind` reads).
 > **`stepLinkAppRequestInboundWithActions`** emits `ignore` / `forbidden` /
-> `invoke-handler` / `send-response` / `ignore-response` / `response-too-big`;
+> `invoke-handler` / `send-response` / `ignore-response` / `response-too-big`
+> (response MDU fit nested via **`stepSendLinkAppResponseAllowWithActions`**:
+> allow|deny);
 > **`stepInvokeLinkAppRequestHandlerWithActions`** emits `invoke` / `skip`;
 > **`stepSendLinkAppRequestResponseWithActions`** emits `send` / `skip`;
 > `Link.handleRequestPacket` applies responseGenerator / send only from those
-> actions (no ad-hoc dispatch/`plan.kind` / `shouldInvokeLinkAppRequestHandler` /
+> actions (no ad-hoc dispatch/`plan.kind` / `canSendLinkAppResponse` /
+> `shouldInvokeLinkAppRequestHandler` /
 > `shouldSendLinkAppRequestResponse` reads beside the step).
 > **`stepLinkIdentifyWithActions`** emits `reject` / `commit`;
 > **`stepAcceptLinkIdentifyWithActions`** emits `accept`|`skip`;
@@ -1648,7 +1654,7 @@
 > select-oldest-propagation-key / commit-propagation-store-entry /
 > apply-propagation-restore / apply-propagation-store-commit /
 > commit-link-remote-identity / invoke-link-app-request-handler /
-> send-link-app-request-response /
+> send-link-app-request-response / send-link-app-response-allow /
 > clear-channel-envelope-packet / arm-channel-packet-receipt /
 > apply-channel-packet-receipt-timeout / replace-channel-resent-packet /
 > apply-channel-tx-receipt-timeout-extension /
@@ -1718,7 +1724,7 @@
 > select-oldest-propagation-key / commit-propagation-store-entry /
 > apply-propagation-restore / apply-propagation-store-commit /
 > commit-link-remote-identity / invoke-link-app-request-handler /
-> send-link-app-request-response /
+> send-link-app-request-response / send-link-app-response-allow /
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
@@ -1781,7 +1787,7 @@
 > select-oldest-propagation-key / commit-propagation-store-entry /
 > apply-propagation-restore / apply-propagation-store-commit /
 > commit-link-remote-identity / invoke-link-app-request-handler /
-> send-link-app-request-response /
+> send-link-app-request-response / send-link-app-response-allow /
 > accept-destination-link-request / announce-destination /
 > destination-send / operate-attached-destination /
 > announce-with-identity / request-link-destination /
@@ -2104,6 +2110,7 @@
 > **`stepCommitLinkRemoteIdentityWithActions`** emits `commit`|`skip`;
 > **`stepInvokeLinkAppRequestHandlerWithActions`** emits `invoke`|`skip`;
 > **`stepSendLinkAppRequestResponseWithActions`** emits `send`|`skip`;
+> **`stepSendLinkAppResponseAllowWithActions`** emits `allow`|`deny`;
 > **`stepRegisterPacketReceiptWithActions`** emits `register`|`skip`;
 > **`stepKeepOutboundReceiptWithActions`** emits `keep`|`skip` (planKeep×sent);
 > **`stepFailAndDropOutboundReceiptWithActions`** emits `fail-and-drop`|`skip`;
@@ -2131,7 +2138,7 @@
 > `shouldRestoreIdentityRatchetRecord` / `shouldAttemptAnnounceSignatureValidate` /
 > `shouldCheckAnnounceDestinationHash` / `canAcceptLinkIdentify` /
 > `shouldCommitLinkRemoteIdentity` / `shouldInvokeLinkAppRequestHandler` /
-> `shouldSendLinkAppRequestResponse` /
+> `shouldSendLinkAppRequestResponse` / `canSendLinkAppResponse` /
 > `shouldRegisterPacketReceipt` / `shouldKeepOutboundReceipt` /
 > `shouldFailAndDropOutboundReceipt` / `shouldRegisterLinkMember` reads beside the step).
 > **`stepAcceptDestinationLinkRequestWithActions`** /
@@ -2631,6 +2638,7 @@
 > **`stepCommitLinkRemoteIdentityWithActions`** emits `commit`|`skip`;
 > **`stepInvokeLinkAppRequestHandlerWithActions`** emits `invoke`|`skip`;
 > **`stepSendLinkAppRequestResponseWithActions`** emits `send`|`skip`;
+> **`stepSendLinkAppResponseAllowWithActions`** emits `allow`|`deny`;
 > **`stepRegisterPacketReceiptWithActions`** emits `register`|`skip`;
 > **`stepKeepOutboundReceiptWithActions`** emits `keep`|`skip` (planKeep×sent);
 > **`stepFailAndDropOutboundReceiptWithActions`** emits `fail-and-drop`|`skip`;
@@ -2658,7 +2666,7 @@
 > `shouldRestoreIdentityRatchetRecord` / `shouldAttemptAnnounceSignatureValidate` /
 > `shouldCheckAnnounceDestinationHash` / `canAcceptLinkIdentify` /
 > `shouldCommitLinkRemoteIdentity` / `shouldInvokeLinkAppRequestHandler` /
-> `shouldSendLinkAppRequestResponse` /
+> `shouldSendLinkAppRequestResponse` / `canSendLinkAppResponse` /
 > `shouldRegisterPacketReceipt` / `shouldKeepOutboundReceipt` /
 > `shouldFailAndDropOutboundReceipt` / `shouldRegisterLinkMember` reads beside the step).
 > **`stepAcceptDestinationLinkRequestWithActions`** /
