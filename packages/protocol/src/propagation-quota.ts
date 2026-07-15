@@ -1,9 +1,11 @@
 /**
  * Pure LXMF propagation-server quota and eviction planning.
  * Persistence and hashing stay at the adapter edge.
- * Store / restore / catalog-evict / catalog-delete / evict-oldest conclusions
- * leave via machine actions (no ad-hoc `plan.kind` / `plan === "accept"` /
- * `shouldEvict*` / `shouldDelete*` reads beside the step).
+ * Store / restore / catalog-evict / catalog-delete / evict-oldest /
+ * message-too-large / select-oldest-key conclusions leave via machine actions
+ * (no ad-hoc `plan.kind` / `plan === "accept"` / `shouldEvict*` /
+ * `shouldDelete*` / `isPropagationMessageTooLarge` /
+ * `selectOldestPropagationKey` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -45,6 +47,68 @@ export function isPropagationMessageTooLarge(
   return messageBytes > quotas.maxMessageBytes;
 }
 
+/**
+ * Propagation message-too-large gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isPropagationMessageTooLarge`
+ * reads beside the step).
+ */
+export type PropagationMessageTooLargeState = Record<string, never>;
+
+export type PropagationMessageTooLargeEvent =
+  | Event
+  | {
+      readonly kind: "propagation/message-too-large-gate";
+      readonly messageBytes: number;
+      readonly quotas: PropagationQuotas;
+    };
+
+export type PropagationMessageTooLargeAction =
+  | { readonly kind: "too-large" }
+  | { readonly kind: "fit" };
+
+export interface PropagationMessageTooLargeStepResult {
+  readonly state: PropagationMessageTooLargeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PropagationMessageTooLargeAction[];
+}
+
+export function initialPropagationMessageTooLargeState(): PropagationMessageTooLargeState {
+  return {};
+}
+
+export function stepPropagationMessageTooLargeWithActions(
+  state: PropagationMessageTooLargeState,
+  event: PropagationMessageTooLargeEvent
+): PropagationMessageTooLargeStepResult {
+  if (event.kind === "propagation/message-too-large-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isPropagationMessageTooLarge(event.messageBytes, event.quotas)
+            ? "too-large"
+            : "fit"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatPropagationMessageTooLarge(
+  actions: ReadonlyArray<PropagationMessageTooLargeAction>
+): boolean {
+  return actions.some((action) => action.kind === "too-large");
+}
+
+export function shouldTreatPropagationMessageFit(
+  actions: ReadonlyArray<PropagationMessageTooLargeAction>
+): boolean {
+  return actions.some((action) => action.kind === "fit");
+}
+
 export function selectOldestPropagationKey(
   entries: ReadonlyArray<PropagationCatalogEntry>
 ): string | null {
@@ -55,6 +119,70 @@ export function selectOldestPropagationKey(
     }
   }
   return oldest?.key ?? null;
+}
+
+/**
+ * Select-oldest propagation key is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `selectOldestPropagationKey`
+ * reads beside the step).
+ */
+export type SelectOldestPropagationKeyState = Record<string, never>;
+
+export type SelectOldestPropagationKeyEvent =
+  | Event
+  | {
+      readonly kind: "propagation/select-oldest-key-gate";
+      readonly entries: ReadonlyArray<PropagationCatalogEntry>;
+    };
+
+export type SelectOldestPropagationKeyAction =
+  | { readonly kind: "use-key"; readonly key: string }
+  | { readonly kind: "miss" };
+
+export interface SelectOldestPropagationKeyStepResult {
+  readonly state: SelectOldestPropagationKeyState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly SelectOldestPropagationKeyAction[];
+}
+
+export function initialSelectOldestPropagationKeyState(): SelectOldestPropagationKeyState {
+  return {};
+}
+
+export function stepSelectOldestPropagationKeyWithActions(
+  state: SelectOldestPropagationKeyState,
+  event: SelectOldestPropagationKeyEvent
+): SelectOldestPropagationKeyStepResult {
+  if (event.kind === "propagation/select-oldest-key-gate") {
+    const key = selectOldestPropagationKey(event.entries);
+    return {
+      state,
+      intents: [],
+      actions: key === null ? [{ kind: "miss" }] : [{ kind: "use-key", key }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseOldestPropagationKey(
+  actions: ReadonlyArray<SelectOldestPropagationKeyAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-key");
+}
+
+export function shouldMissOldestPropagationKey(
+  actions: ReadonlyArray<SelectOldestPropagationKeyAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
+/** Extract oldest propagation key from step actions; null when no `use-key`. */
+export function oldestPropagationKeyFromActions(
+  actions: ReadonlyArray<SelectOldestPropagationKeyAction>
+): string | null {
+  const action = actions.find((entry) => entry.kind === "use-key");
+  return action?.kind === "use-key" ? action.key : null;
 }
 
 /** When remoteDeliveryHash is null, all entries are visible. */

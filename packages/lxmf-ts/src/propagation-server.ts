@@ -1,29 +1,30 @@
 import {
-  allowClientRequest as checkClientRateLimit,
-  initialDecodeLxmfPeerErrorState,
-  lxmfPeerErrorFromActions,
-  stepDecodeLxmfPeerErrorWithActions,
   initialAcceptPropagationGetRequestDataState,
+  initialClientRateLimitState,
+  initialDecodeLxmfPeerErrorState,
   initialDeletePropagationCatalogEntryState,
   initialEvictOldestPropagationEntryState,
   initialEvictPropagationCatalogEntryState,
   initialPersistDebounceState,
   initialPropagationGetState,
+  initialPropagationMessageTooLargeState,
   initialPropagationRestoreState,
   initialPropagationStoreState,
+  initialSelectOldestPropagationKeyState,
   initialUnpackPropagationEnvelopeState,
   initialUnpackPropagationRequestState,
-  isPropagationMessageTooLarge,
+  lxmfPeerErrorFromActions,
+  oldestPropagationKeyFromActions,
   propagationDestinationHash,
   propagationEnvelopeFieldsFromActions,
   propagationGetApplyIds,
   propagationGetListIds,
   propagationRequestFieldsFromActions,
   propagationStoreAcceptEvictKeys,
-  selectOldestPropagationKey,
   shouldAcceptPropagationGetRequestDataNow,
   shouldAcceptPropagationRestore,
   shouldAcceptPropagationStore,
+  shouldAllowClientRequest,
   shouldApplyPropagationGet,
   shouldDeletePropagationCatalogEntryNow,
   shouldDuplicatePropagationStore,
@@ -33,19 +34,24 @@ import {
   shouldRejectPropagationStore,
   shouldRejectUnpackPropagationEnvelope,
   shouldRejectUnpackPropagationRequest,
+  shouldTreatPropagationMessageTooLarge,
   shouldUseUnpackPropagationEnvelope,
   shouldUseUnpackPropagationRequest,
   stepAcceptPropagationGetRequestDataWithActions,
+  stepAllowClientRequestWithActions,
+  stepDecodeLxmfPeerErrorWithActions,
   stepDeletePropagationCatalogEntryWithActions,
   stepEvictOldestPropagationEntryWithActions,
   stepEvictPropagationCatalogEntryWithActions,
   stepPersistDebounceWithActions,
   stepPropagationGetWithActions,
+  stepPropagationMessageTooLargeWithActions,
   stepPropagationRestoreWithActions,
   stepPropagationStoreWithActions,
+  stepSelectOldestPropagationKeyWithActions,
   stepUnpackPropagationEnvelopeWithActions,
   stepUnpackPropagationRequestWithActions,
-  type ClientRateBucket,
+  type ClientRateLimitState,
   type PersistDebounceState,
   type PropagationGetAction,
   type PropagationStoreAction
@@ -123,7 +129,7 @@ export class PropagationServer {
   private readonly entries = new Map<string, StoredPropagationMessage>();
   private usedBytes = 0;
   private evictions = 0;
-  private readonly clientBuckets = new Map<string, ClientRateBucket>();
+  private clientRateState: ClientRateLimitState;
   private readonly persistence: PropagationPersistence | null;
   private readonly now: () => number;
   private readonly schedule: (ms: number, callback: () => void) => PropagationServerTimer;
@@ -135,6 +141,7 @@ export class PropagationServer {
     private readonly quotas: PropagationServerQuotas = DEFAULT_PROPAGATION_QUOTAS,
     options: PropagationServerOptions
   ) {
+    this.clientRateState = initialClientRateLimitState(quotas.perClientRequestsPerMinute);
     this.persistence = options.persistence ?? null;
     this.now = options.now;
     this.schedule = options.schedule;
@@ -269,9 +276,17 @@ export class PropagationServer {
   private restoreEntry(entry: PropagationStoredEntry): void {
     const key = Buffer.from(entry.transientId).toString("hex");
     const destinationHash = propagationDestinationHash(entry.lxmfData);
+    const tooLargeStepped = stepPropagationMessageTooLargeWithActions(
+      initialPropagationMessageTooLargeState(),
+      {
+        kind: "propagation/message-too-large-gate",
+        messageBytes: entry.lxmfData.length,
+        quotas: this.quotas
+      }
+    );
     const stepped = stepPropagationRestoreWithActions(initialPropagationRestoreState(), {
       kind: "propagation/restore-gate",
-      tooLarge: isPropagationMessageTooLarge(entry.lxmfData.length, this.quotas),
+      tooLarge: shouldTreatPropagationMessageTooLarge(tooLargeStepped.actions),
       alreadyStored: this.entries.has(key),
       destinationHashPresent: destinationHash !== null
     });
@@ -328,13 +343,18 @@ export class PropagationServer {
   }
 
   private evictOldest(): boolean {
-    const oldestKey = selectOldestPropagationKey(
-      [...this.entries.entries()].map(([key, entry]) => ({
-        key,
-        size: entry.size,
-        storedAt: entry.storedAt
-      }))
+    const selectStepped = stepSelectOldestPropagationKeyWithActions(
+      initialSelectOldestPropagationKeyState(),
+      {
+        kind: "propagation/select-oldest-key-gate",
+        entries: [...this.entries.entries()].map(([key, entry]) => ({
+          key,
+          size: entry.size,
+          storedAt: entry.storedAt
+        }))
+      }
     );
+    const oldestKey = oldestPropagationKeyFromActions(selectStepped.actions);
     const oldest = oldestKey === null ? undefined : this.entries.get(oldestKey);
     const evictStepped = stepEvictOldestPropagationEntryWithActions(
       initialEvictOldestPropagationEntryState(),
@@ -354,12 +374,13 @@ export class PropagationServer {
   }
 
   private allowClientRequest(clientKey: string): boolean {
-    return checkClientRateLimit(
-      this.clientBuckets,
+    const stepped = stepAllowClientRequestWithActions(this.clientRateState, {
+      kind: "rate/allow-gate",
       clientKey,
-      this.now(),
-      this.quotas.perClientRequestsPerMinute
-    );
+      at: this.now()
+    });
+    this.clientRateState = stepped.state;
+    return shouldAllowClientRequest(stepped.actions);
   }
 
   private handlePropagationLink(link: Link): void {

@@ -4,9 +4,12 @@ import {
   initialDeletePropagationCatalogEntryState,
   initialEvictOldestPropagationEntryState,
   initialEvictPropagationCatalogEntryState,
+  initialPropagationMessageTooLargeState,
   initialPropagationRestoreState,
   initialPropagationStoreState,
+  initialSelectOldestPropagationKeyState,
   isPropagationMessageTooLarge,
+  oldestPropagationKeyFromActions,
   planPropagationRestore,
   planPropagationStore,
   propagationDestinationHash,
@@ -24,15 +27,21 @@ import {
   shouldEvictOldestPropagationEntryNow,
   shouldEvictPropagationCatalogEntry,
   shouldEvictPropagationCatalogEntryNow,
+  shouldMissOldestPropagationKey,
   shouldRejectPropagationStore,
   shouldSkipDeletePropagationCatalogEntry,
   shouldSkipEvictOldestPropagationEntry,
   shouldSkipEvictPropagationCatalogEntry,
+  shouldTreatPropagationMessageFit,
+  shouldTreatPropagationMessageTooLarge,
+  shouldUseOldestPropagationKey,
   stepDeletePropagationCatalogEntryWithActions,
   stepEvictOldestPropagationEntryWithActions,
   stepEvictPropagationCatalogEntryWithActions,
+  stepPropagationMessageTooLargeWithActions,
   stepPropagationRestoreWithActions,
   stepPropagationStoreWithActions,
+  stepSelectOldestPropagationKeyWithActions,
   type PropagationQuotas
 } from "../src/propagation-quota.js";
 
@@ -105,6 +114,52 @@ describe("protocol propagation quota", () => {
     expect(propagationEntryVisibleToRecipient(dest, null)).toBe(true);
     expect(propagationEntryVisibleToRecipient(dest, dest)).toBe(true);
     expect(propagationEntryVisibleToRecipient(dest, new Uint8Array(16))).toBe(false);
+  });
+
+  it("emits message-too-large / fit and oldest-key use/miss only from machine actions", () => {
+    const tooLarge = stepPropagationMessageTooLargeWithActions(
+      initialPropagationMessageTooLargeState(),
+      {
+        kind: "propagation/message-too-large-gate",
+        messageBytes: 51,
+        quotas
+      }
+    );
+    expect(shouldTreatPropagationMessageTooLarge(tooLarge.actions)).toBe(true);
+    expect(shouldTreatPropagationMessageFit(tooLarge.actions)).toBe(false);
+
+    const fit = stepPropagationMessageTooLargeWithActions(
+      initialPropagationMessageTooLargeState(),
+      {
+        kind: "propagation/message-too-large-gate",
+        messageBytes: 50,
+        quotas
+      }
+    );
+    expect(shouldTreatPropagationMessageFit(fit.actions)).toBe(true);
+    expect(shouldTreatPropagationMessageTooLarge(fit.actions)).toBe(false);
+
+    const selected = stepSelectOldestPropagationKeyWithActions(
+      initialSelectOldestPropagationKeyState(),
+      {
+        kind: "propagation/select-oldest-key-gate",
+        entries: [
+          { key: "b", size: 1, storedAt: 5 },
+          { key: "a", size: 1, storedAt: 1 }
+        ]
+      }
+    );
+    expect(shouldUseOldestPropagationKey(selected.actions)).toBe(true);
+    expect(shouldMissOldestPropagationKey(selected.actions)).toBe(false);
+    expect(oldestPropagationKeyFromActions(selected.actions)).toBe("a");
+
+    const miss = stepSelectOldestPropagationKeyWithActions(
+      initialSelectOldestPropagationKeyState(),
+      { kind: "propagation/select-oldest-key-gate", entries: [] }
+    );
+    expect(shouldMissOldestPropagationKey(miss.actions)).toBe(true);
+    expect(shouldUseOldestPropagationKey(miss.actions)).toBe(false);
+    expect(oldestPropagationKeyFromActions(miss.actions)).toBeNull();
   });
 
   it("plans propagation restore gates", () => {

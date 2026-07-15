@@ -3,6 +3,9 @@ import {
   CLIENT_RATE_WINDOW_MS,
   allowClientRequest,
   initialClientRateLimitState,
+  shouldAllowClientRequest,
+  shouldDenyClientRequest,
+  stepAllowClientRequestWithActions,
   stepClientRateLimit
 } from "../src/client-rate-limit.js";
 
@@ -40,12 +43,54 @@ describe("protocol client rate limit", () => {
     expect(allowClientRequest(buckets, "c", CLIENT_RATE_WINDOW_MS, 1)).toBe(true);
   });
 
+  it("emits allow/deny only from machine actions", () => {
+    let state = initialClientRateLimitState(1);
+    const allowed = stepAllowClientRequestWithActions(state, {
+      kind: "rate/allow-gate",
+      clientKey: "a",
+      at: 0
+    });
+    state = allowed.state;
+    expect(shouldAllowClientRequest(allowed.actions)).toBe(true);
+    expect(shouldDenyClientRequest(allowed.actions)).toBe(false);
+
+    const denied = stepAllowClientRequestWithActions(state, {
+      kind: "rate/allow-gate",
+      clientKey: "a",
+      at: 1
+    });
+    expect(shouldDenyClientRequest(denied.actions)).toBe(true);
+    expect(shouldAllowClientRequest(denied.actions)).toBe(false);
+
+    const reset = stepAllowClientRequestWithActions(denied.state, {
+      kind: "rate/allow-gate",
+      clientKey: "a",
+      at: CLIENT_RATE_WINDOW_MS
+    });
+    expect(shouldAllowClientRequest(reset.actions)).toBe(true);
+  });
+
   it("double-runs identically", () => {
     const run = () => {
       let state = initialClientRateLimitState(2);
-      state = stepClientRateLimit(state, { kind: "rate/check", clientKey: "x", at: 10 }).state;
-      state = stepClientRateLimit(state, { kind: "rate/check", clientKey: "x", at: 11 }).state;
-      return { lastAllowed: state.lastAllowed, count: state.buckets.get("x")?.count };
+      const first = stepAllowClientRequestWithActions(state, {
+        kind: "rate/allow-gate",
+        clientKey: "x",
+        at: 10
+      });
+      state = first.state;
+      const second = stepAllowClientRequestWithActions(state, {
+        kind: "rate/allow-gate",
+        clientKey: "x",
+        at: 11
+      });
+      state = second.state;
+      return {
+        firstAllowed: shouldAllowClientRequest(first.actions),
+        secondAllowed: shouldAllowClientRequest(second.actions),
+        lastAllowed: state.lastAllowed,
+        count: state.buckets.get("x")?.count
+      };
     };
     expect(run()).toEqual(run());
   });
