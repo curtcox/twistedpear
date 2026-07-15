@@ -282,8 +282,10 @@
 > **LXMF Field / unverified-reason / peer paths / app name**, **ChannelMessageState**,
 > **stream SMT_STREAM_DATA**, and **PacketReceiptStatus** live in protocol; lxmf-ts and
 > reticulum Channel/Buffer/PacketReceipt adapt them. **Resource session constants**
-> (status/window/retry), **LinkRequestReceiptStatus**, **DestinationAllowPolicyCode**, and
-> **`planDestinationRequestAllow`** live in protocol; Resource, LinkRequestReceipt,
+> (status/window/retry) and **resource timeout** (via
+> **`stepComputeResourceTimeoutWithActions`**: use-timeout) live in protocol;
+> Resource adapts them. **LinkRequestReceiptStatus**, **DestinationAllowPolicyCode**, and
+> **`planDestinationRequestAllow`** live in protocol; LinkRequestReceipt,
 > RegisteredDestination, and Link adapt them. **Destination proof strategy /
 > `planDestinationProof`**, **link resource-accept planning**, **`stepLinkRequestReceipt`**,
 > and **ChannelExceptionType** live in protocol; LeafTransport, Link, LinkRequestReceipt,
@@ -907,6 +909,7 @@
 > link-initiator-mtu / link-request-responder-mtu / link-hops-match /
 > compute-link-mdu / compute-link-establishment-timeout /
 > compute-link-request-timeout / compute-link-rtt-seconds / merge-link-rtt /
+> compute-resource-timeout /
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
@@ -1081,6 +1084,9 @@
 > establishment / app-request timeouts apply only from those actions (no
 > ad-hoc `computeLinkEstablishmentTimeout` / `computeLinkRequestTimeout` reads
 > beside the step).
+> **`stepComputeResourceTimeoutWithActions`** emits `use-timeout`; `Resource`
+> construction applies only from those actions (no ad-hoc
+> `computeResourceTimeout` reads beside the step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT measure / merge apply only from those
 > actions (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the
@@ -1101,7 +1107,8 @@
 > Resource advertisement + hashmap-update apply only from those actions
 > (no ad-hoc `planLinkInitiatorMtu` / `planLinkRequestResponderMtu` /
 > `linkHopsMatch` / `computeLinkMdu` / `computeLinkEstablishmentTimeout` /
-> `computeLinkRequestTimeout` / `computeLinkRttSeconds` / `mergeLinkRtt` /
+> `computeLinkRequestTimeout` / `computeResourceTimeout` /
+> `computeLinkRttSeconds` / `mergeLinkRtt` /
 > `computePathExpiry` / `shouldDeferPacketHash` /
 > `planResourceAdvertisementRoleFlags` /
 > `planResourceHashmapSlotWrites` reads beside the step).
@@ -1312,6 +1319,9 @@
 > establishment / request timeouts apply only from those actions (no ad-hoc
 > `computeLinkEstablishmentTimeout` / `computeLinkRequestTimeout` reads beside
 > the step).
+> **`stepComputeResourceTimeoutWithActions`** emits `use-timeout`; Resource
+> construction applies only from those actions (no ad-hoc
+> `computeResourceTimeout` reads beside the step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT apply only from those actions (no ad-hoc
 > `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the step).

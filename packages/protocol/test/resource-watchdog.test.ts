@@ -4,7 +4,11 @@ import {
   RESOURCE_PROCESSING_GRACE,
   RESOURCE_WATCHDOG_PERIOD_MS,
   computeResourceTimeout,
+  initialComputeResourceTimeoutState,
   initialResourceWatchdogState,
+  resourceTimeoutFromActions,
+  shouldUseResourceTimeout,
+  stepComputeResourceTimeoutWithActions,
   stepResourceWatchdogWithActions
 } from "../src/resource-watchdog.js";
 
@@ -12,6 +16,26 @@ describe("protocol resource watchdog", () => {
   it("computes timeout from rtt and traffic factor", () => {
     expect(computeResourceTimeout(1, 6)).toBe(16);
     expect(computeResourceTimeout(0.5, 4)).toBe(12);
+  });
+
+  it("emits resource timeout only from use-timeout actions", () => {
+    const stepped = stepComputeResourceTimeoutWithActions(
+      initialComputeResourceTimeoutState(),
+      {
+        kind: "resource/timeout-gate",
+        rtt: 1,
+        trafficTimeoutFactor: 6
+      }
+    );
+    expect(shouldUseResourceTimeout(stepped.actions)).toBe(true);
+    expect(resourceTimeoutFromActions(stepped.actions)).toBe(computeResourceTimeout(1, 6));
+
+    const empty = stepComputeResourceTimeoutWithActions(
+      initialComputeResourceTimeoutState(),
+      { kind: "noop" } as never
+    );
+    expect(shouldUseResourceTimeout(empty.actions)).toBe(false);
+    expect(resourceTimeoutFromActions(empty.actions)).toBeNull();
   });
 
   it("cancels advertised transfers when retries are exhausted", () => {

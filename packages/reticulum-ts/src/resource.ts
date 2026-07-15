@@ -25,12 +25,12 @@ import {
   canRequestResourceNext,
   canResourceContinueTransfer,
   canRunResourceWatchdog,
-  computeResourceTimeout,
   encodeResourceAdvertisementFlagsFromActions,
   initialAppendResourceMapHashCollisionGuardState,
   initialAssembleByteArraysState,
   initialAssembleResourceHashmapBytesState,
   initialClassifyResourceAdvertisementState,
+  initialComputeResourceTimeoutState,
   initialComputeResourceTotalPartsState,
   initialContainsResourceHashState,
   initialDecodeResourceAdvertisementFlagsState,
@@ -115,6 +115,7 @@ import {
   stepAssembleByteArraysWithActions,
   stepAssembleResourceHashmapBytesWithActions,
   stepClassifyResourceAdvertisementWithActions,
+  stepComputeResourceTimeoutWithActions,
   stepComputeResourceTotalPartsWithActions,
   stepContainsResourceHashWithActions,
   stepDecodeResourceAdvertisementFlagsWithActions,
@@ -147,12 +148,14 @@ import {
   resourceHashMaterialRawFromActions,
   resourceHashmapMaxLen,
   resourcePartMapHashMaterialRawFromActions,
+  resourceTimeoutFromActions,
   resourceTotalPartsFromActions,
   isValidResourceRandomHashLength,
   shouldRejectResourceEncryptMaterial,
   shouldRejectResourceHashMaterial,
   shouldRejectResourcePartMapHashMaterial,
   shouldUseComputeResourceTotalParts,
+  shouldUseResourceTimeout,
   shouldUseResourceEncryptMaterial,
   shouldUseResourceExpectedProofMaterial,
   shouldUseResourceHashMaterial,
@@ -442,6 +445,25 @@ export class ResourceAdvertisement {
 }
 
 /** Mirrors RNS/Resource.py bulk transfer over links. */
+/** Adapt resource timeout via protocol actions (no ad-hoc `computeResourceTimeout` reads). */
+function resourceTimeoutForLink(link: Link): number {
+  const stepped = stepComputeResourceTimeoutWithActions(
+    initialComputeResourceTimeoutState(),
+    {
+      kind: "resource/timeout-gate",
+      rtt: link.rtt ?? 1,
+      trafficTimeoutFactor: link.trafficTimeoutFactor
+    }
+  );
+  const timeout = shouldUseResourceTimeout(stepped.actions)
+    ? resourceTimeoutFromActions(stepped.actions)
+    : null;
+  if (timeout === null) {
+    throw new Error("Resource: missing use-timeout action");
+  }
+  return timeout;
+}
+
 export class Resource {
   readonly link: Link;
   readonly initiator: boolean;
@@ -532,8 +554,7 @@ export class Resource {
     this.isResponse = options.isResponse ?? false;
     this.callbacks = options.callbacks ?? {};
     this.sdu = link.mdu;
-    this.timeout =
-      options.timeout ?? computeResourceTimeout(link.rtt ?? 1, link.trafficTimeoutFactor);
+    this.timeout = options.timeout ?? resourceTimeoutForLink(link);
   }
 
   static send(link: Link, data: Uint8Array, options: ResourceOptions = {}): Resource {

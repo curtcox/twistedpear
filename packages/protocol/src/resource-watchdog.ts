@@ -93,6 +93,70 @@ export function computeResourceTimeout(rtt: number, trafficTimeoutFactor: number
   return rtt * trafficTimeoutFactor + RESOURCE_SENDER_GRACE_TIME;
 }
 
+/**
+ * Resource timeout computation is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `computeResourceTimeout`
+ * reads beside the step).
+ */
+export type ComputeResourceTimeoutState = Record<string, never>;
+
+export type ComputeResourceTimeoutEvent =
+  | Event
+  | {
+      readonly kind: "resource/timeout-gate";
+      readonly rtt: number;
+      readonly trafficTimeoutFactor: number;
+    };
+
+export type ComputeResourceTimeoutAction = {
+  readonly kind: "use-timeout";
+  readonly timeout: number;
+};
+
+export interface ComputeResourceTimeoutStepResult {
+  readonly state: ComputeResourceTimeoutState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ComputeResourceTimeoutAction[];
+}
+
+export function initialComputeResourceTimeoutState(): ComputeResourceTimeoutState {
+  return {};
+}
+
+export function stepComputeResourceTimeoutWithActions(
+  state: ComputeResourceTimeoutState,
+  event: ComputeResourceTimeoutEvent
+): ComputeResourceTimeoutStepResult {
+  if (event.kind === "resource/timeout-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-timeout",
+          timeout: computeResourceTimeout(event.rtt, event.trafficTimeoutFactor)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseResourceTimeout(
+  actions: ReadonlyArray<ComputeResourceTimeoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-timeout");
+}
+
+/** Extract resource timeout from step actions; null when no `use-timeout`. */
+export function resourceTimeoutFromActions(
+  actions: ReadonlyArray<ComputeResourceTimeoutAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-timeout");
+  return action?.kind === "use-timeout" ? action.timeout : null;
+}
+
 export const stepResourceWatchdog: StepFn<ResourceWatchdogState> = (state, event) => {
   const result = stepResourceWatchdogInner(state, event as ResourceWatchdogEvent);
   return { state: result.state, intents: result.intents };

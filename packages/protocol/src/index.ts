@@ -242,7 +242,11 @@ export {
 } from "./link-teardown.js";
 export {
   computeResourceTimeout,
+  initialComputeResourceTimeoutState,
   initialResourceWatchdogState,
+  resourceTimeoutFromActions,
+  shouldUseResourceTimeout,
+  stepComputeResourceTimeoutWithActions,
   stepResourceWatchdog,
   stepResourceWatchdogWithActions,
   RESOURCE_MAX_ADV_RETRIES,
@@ -259,6 +263,10 @@ export {
   RESOURCE_WINDOW_MIN,
   ResourceStatus,
   ResourceStatus as ProtocolResourceStatus,
+  type ComputeResourceTimeoutAction,
+  type ComputeResourceTimeoutEvent,
+  type ComputeResourceTimeoutState,
+  type ComputeResourceTimeoutStepResult,
   type ResourceStatusValue,
   type ResourceWatchdogAction,
   type ResourceWatchdogEvent,
