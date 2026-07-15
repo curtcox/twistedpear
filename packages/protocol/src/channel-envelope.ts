@@ -1005,9 +1005,70 @@ export function shouldUnregisterChannelMessageHandler(indexPresent: boolean): bo
 }
 
 /**
+ * Channel message-handler unregister plan leaf is event-driven; no durable
+ * session fields. Conclusions leave via machine actions (no ad-hoc
+ * `planUnregisterChannelMessageHandler` reads beside the step). Nested under
+ * {@link stepChannelMessageHandlerUnregisterWithActions}.
+ */
+export type ChannelMessageHandlerUnregisterPlanState = Record<string, never>;
+
+export type ChannelMessageHandlerUnregisterPlanEvent =
+  | Event
+  | {
+      readonly kind: "channel/message-handler-unregister-plan-gate";
+      readonly index: number;
+    };
+
+export type ChannelMessageHandlerUnregisterPlanAction = {
+  readonly kind: "remove";
+  readonly index: number;
+};
+
+export interface ChannelMessageHandlerUnregisterPlanStepResult {
+  readonly state: ChannelMessageHandlerUnregisterPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelMessageHandlerUnregisterPlanAction[];
+}
+
+export function initialChannelMessageHandlerUnregisterPlanState(): ChannelMessageHandlerUnregisterPlanState {
+  return {};
+}
+
+export function stepChannelMessageHandlerUnregisterPlanWithActions(
+  state: ChannelMessageHandlerUnregisterPlanState,
+  event: ChannelMessageHandlerUnregisterPlanEvent
+): ChannelMessageHandlerUnregisterPlanStepResult {
+  if (event.kind === "channel/message-handler-unregister-plan-gate") {
+    const index = planUnregisterChannelMessageHandler(event.index);
+    return {
+      state,
+      intents: [],
+      actions: index === null ? [] : [{ kind: "remove", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function channelMessageHandlerUnregisterPlanIndex(
+  actions: ReadonlyArray<ChannelMessageHandlerUnregisterPlanAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove");
+  return action?.kind === "remove" ? action.index : null;
+}
+
+export function shouldRemoveChannelMessageHandlerUnregisterPlan(
+  actions: ReadonlyArray<ChannelMessageHandlerUnregisterPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove");
+}
+
+/**
  * Channel message-handler unregister is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc
  * `planUnregisterChannelMessageHandler` reads beside the step).
+ * Plan nested via {@link stepChannelMessageHandlerUnregisterPlanWithActions}
+ * (`remove`).
  */
 export type ChannelMessageHandlerUnregisterState = Record<string, never>;
 
@@ -1038,7 +1099,14 @@ export function stepChannelMessageHandlerUnregisterWithActions(
   event: ChannelMessageHandlerUnregisterEvent
 ): ChannelMessageHandlerUnregisterStepResult {
   if (event.kind === "channel/message-handler-unregister-gate") {
-    const index = planUnregisterChannelMessageHandler(event.index);
+    const planActions = stepChannelMessageHandlerUnregisterPlanWithActions(
+      initialChannelMessageHandlerUnregisterPlanState(),
+      {
+        kind: "channel/message-handler-unregister-plan-gate",
+        index: event.index
+      }
+    ).actions;
+    const index = channelMessageHandlerUnregisterPlanIndex(planActions);
     return {
       state,
       intents: [],

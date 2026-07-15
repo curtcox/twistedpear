@@ -141,8 +141,11 @@ import {
   planUnregisterTransportMember,
   shouldUnregisterTransportMember,
   shouldRemoveTransportMember,
+  shouldRemoveTransportMemberUnregisterPlan,
+  initialTransportMemberUnregisterPlanState,
   initialTransportMemberUnregisterState,
   transportMemberUnregisterIndex,
+  transportMemberUnregisterPlanIndex,
   stepAcceptLinkLrProofCandidateWithActions,
   stepDispatchLocalLinkRequestWithActions,
   stepDispatchLocalPlainDataDeliveryWithActions,
@@ -178,6 +181,7 @@ import {
   stepTransmitReverseRelayWithActions,
   stepTransportIngressDispatchPlanWithActions,
   stepTransportIngressDispatchWithActions,
+  stepTransportMemberUnregisterPlanWithActions,
   stepTransportMemberUnregisterWithActions,
   transportIngressDispatchFromActions,
   transportIngressDispatchPlanFromActions,
@@ -928,12 +932,32 @@ describe("transport ingress", () => {
     expect(shouldUnregisterTransportMember(true)).toBe(true);
     expect(shouldUnregisterTransportMember(false)).toBe(false);
 
+    const removePlan = stepTransportMemberUnregisterPlanWithActions(
+      initialTransportMemberUnregisterPlanState(),
+      {
+        kind: "transport/member-unregister-plan-gate",
+        index: 3
+      }
+    );
+    expect(shouldRemoveTransportMemberUnregisterPlan(removePlan.actions)).toBe(true);
+    expect(transportMemberUnregisterPlanIndex(removePlan.actions)).toBe(3);
+
     const remove = stepTransportMemberUnregisterWithActions(initialTransportMemberUnregisterState(), {
       kind: "transport/member-unregister-gate",
       index: 3
     });
     expect(shouldRemoveTransportMember(remove.actions)).toBe(true);
     expect(transportMemberUnregisterIndex(remove.actions)).toBe(3);
+
+    const skipPlan = stepTransportMemberUnregisterPlanWithActions(
+      initialTransportMemberUnregisterPlanState(),
+      {
+        kind: "transport/member-unregister-plan-gate",
+        index: -1
+      }
+    );
+    expect(shouldRemoveTransportMemberUnregisterPlan(skipPlan.actions)).toBe(false);
+    expect(transportMemberUnregisterPlanIndex(skipPlan.actions)).toBeNull();
 
     const skip = stepTransportMemberUnregisterWithActions(initialTransportMemberUnregisterState(), {
       kind: "transport/member-unregister-gate",

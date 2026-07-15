@@ -6,10 +6,12 @@
  * Register / keep / fail-and-drop gates conclude via machine actions (no
  * ad-hoc `shouldRegisterPacketReceipt` / `shouldKeepOutboundReceipt` /
  * `shouldFailAndDropOutboundReceipt` reads beside the step).
- * Outbound-receipt / packet-receipt-proof-ingress / packet-receipt-callback
- * plans nested via {@link stepOutboundReceiptPlanWithActions} /
+ * Outbound-receipt / packet-receipt-proof-ingress / packet-receipt-callback /
+ * packet-receipt-unregister plans nested via
+ * {@link stepOutboundReceiptPlanWithActions} /
  * {@link stepPacketReceiptProofIngressPlanWithActions} /
- * {@link stepPacketReceiptCallbackPlanWithActions}.
+ * {@link stepPacketReceiptCallbackPlanWithActions} /
+ * {@link stepPacketReceiptUnregisterPlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -542,9 +544,69 @@ export function shouldUnregisterPacketReceipt(indexPresent: boolean): boolean {
 }
 
 /**
+ * Packet-receipt unregister plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `planUnregisterPacketReceipt` reads beside the step). Nested under
+ * {@link stepPacketReceiptUnregisterWithActions}.
+ */
+export type PacketReceiptUnregisterPlanState = Record<string, never>;
+
+export type PacketReceiptUnregisterPlanEvent =
+  | Event
+  | {
+      readonly kind: "receipt/unregister-plan-gate";
+      readonly index: number;
+    };
+
+export type PacketReceiptUnregisterPlanAction = {
+  readonly kind: "remove";
+  readonly index: number;
+};
+
+export interface PacketReceiptUnregisterPlanStepResult {
+  readonly state: PacketReceiptUnregisterPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketReceiptUnregisterPlanAction[];
+}
+
+export function initialPacketReceiptUnregisterPlanState(): PacketReceiptUnregisterPlanState {
+  return {};
+}
+
+export function stepPacketReceiptUnregisterPlanWithActions(
+  state: PacketReceiptUnregisterPlanState,
+  event: PacketReceiptUnregisterPlanEvent
+): PacketReceiptUnregisterPlanStepResult {
+  if (event.kind === "receipt/unregister-plan-gate") {
+    const index = planUnregisterPacketReceipt(event.index);
+    return {
+      state,
+      intents: [],
+      actions: index === null ? [] : [{ kind: "remove", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function packetReceiptUnregisterPlanIndex(
+  actions: ReadonlyArray<PacketReceiptUnregisterPlanAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove");
+  return action?.kind === "remove" ? action.index : null;
+}
+
+export function shouldRemovePacketReceiptUnregisterPlan(
+  actions: ReadonlyArray<PacketReceiptUnregisterPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove");
+}
+
+/**
  * Packet-receipt unregister is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc
  * `planUnregisterPacketReceipt` reads beside the step).
+ * Plan nested via {@link stepPacketReceiptUnregisterPlanWithActions} (`remove`).
  */
 export type PacketReceiptUnregisterState = Record<string, never>;
 
@@ -575,7 +637,14 @@ export function stepPacketReceiptUnregisterWithActions(
   event: PacketReceiptUnregisterEvent
 ): PacketReceiptUnregisterStepResult {
   if (event.kind === "receipt/unregister-gate") {
-    const index = planUnregisterPacketReceipt(event.index);
+    const planActions = stepPacketReceiptUnregisterPlanWithActions(
+      initialPacketReceiptUnregisterPlanState(),
+      {
+        kind: "receipt/unregister-plan-gate",
+        index: event.index
+      }
+    ).actions;
+    const index = packetReceiptUnregisterPlanIndex(planActions);
     return {
       state,
       intents: [],

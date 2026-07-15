@@ -1493,19 +1493,28 @@
 > **`shouldRegisterPendingLinkRequest`** (via
 > **`stepPendingLinkRequestRegisterWithActions`**: register|skip) /
 > **`planUnregisterPendingLinkRequest`** (via
-> **`stepPendingLinkRequestUnregisterWithActions`**)
+> **`stepPendingLinkRequestUnregisterWithActions`**: remove; plan nested via
+> **`stepPendingLinkRequestUnregisterPlanWithActions`**: remove)
 > live in protocol; `Link` resource and pending-request lists adapt them.
 > **`shouldRegisterTransportMember`** (via
 > **`stepRegisterTransportMemberWithActions`**: register|skip) /
-> **`planUnregisterTransportMember`**,
-> **`planUnregisterPacketReceipt`**, **`shouldRegisterPacketReceipt`** (via
+> **`planUnregisterTransportMember`** (via
+> **`stepTransportMemberUnregisterWithActions`**: remove; plan nested via
+> **`stepTransportMemberUnregisterPlanWithActions`**: remove),
+> **`planUnregisterPacketReceipt`** (via
+> **`stepPacketReceiptUnregisterWithActions`**: remove; plan nested via
+> **`stepPacketReceiptUnregisterPlanWithActions`**: remove), **`shouldRegisterPacketReceipt`** (via
 > **`stepRegisterPacketReceiptWithActions`**: register|skip),
 > **`shouldKeepOutboundReceipt`** (via **`stepKeepOutboundReceiptWithActions`**:
 > keep|skip — planKeep×sent),
 > **`shouldFailAndDropOutboundReceipt`** (via
 > **`stepFailAndDropOutboundReceiptWithActions`**: fail-and-drop|skip),
-> **`shouldRegisterChannelMessageHandler`** / **`planUnregisterChannelMessageHandler`**,
-> **`shouldStopChannelHandlerFanout`**, **`planUnregisterStreamReadyCallback`**,
+> **`shouldRegisterChannelMessageHandler`** / **`planUnregisterChannelMessageHandler`**
+> (via **`stepChannelMessageHandlerUnregisterWithActions`**: remove; plan nested via
+> **`stepChannelMessageHandlerUnregisterPlanWithActions`**: remove),
+> **`shouldStopChannelHandlerFanout`**, **`planUnregisterStreamReadyCallback`**
+> (via **`stepStreamReadyCallbackUnregisterWithActions`**: remove; plan nested via
+> **`stepStreamReadyCallbackUnregisterPlanWithActions`**: remove),
 > **`shouldRegisterDestinationLink`** (via
 > **`stepRegisterDestinationLinkWithActions`**: register|skip), **`planPathEntryLookup`** (via
 > **`stepPathEntryLookupWithActions`**; plan nested via
@@ -2589,8 +2598,11 @@
 > extend-packet-receipt-timeout /
 > resend-channel-timeout-packet /
 > channel-message-handler-unregister /
-> pending-link-request-unregister / stream-ready-callback-unregister /
-> packet-receipt-unregister / transport-member-unregister /
+> channel-message-handler-unregister-plan /
+> pending-link-request-unregister / pending-link-request-unregister-plan /
+> stream-ready-callback-unregister / stream-ready-callback-unregister-plan /
+> packet-receipt-unregister / packet-receipt-unregister-plan /
+> transport-member-unregister / transport-member-unregister-plan /
 > link-initiator-mtu / link-initiator-mtu-plan /
 > link-request-responder-mtu / link-request-responder-mtu-plan /
 > link-hops-match /
@@ -2875,7 +2887,12 @@
 > **`stepPendingLinkRequestUnregisterWithActions`**,
 > **`stepStreamReadyCallbackUnregisterWithActions`**,
 > **`stepPacketReceiptUnregisterWithActions`**, and
-> **`stepTransportMemberUnregisterWithActions`** emit `remove` (with index);
+> **`stepTransportMemberUnregisterWithActions`** emit `remove` (with index; plans
+> nested via **`stepChannelMessageHandlerUnregisterPlanWithActions`** /
+> **`stepPendingLinkRequestUnregisterPlanWithActions`** /
+> **`stepStreamReadyCallbackUnregisterPlanWithActions`** /
+> **`stepPacketReceiptUnregisterPlanWithActions`** /
+> **`stepTransportMemberUnregisterPlanWithActions`**: remove);
 > Channel, Link, Buffer, and TransportNode list splices apply only from those
 > actions (no ad-hoc `planUnregister*` / `index !== null` reads beside the
 > step).

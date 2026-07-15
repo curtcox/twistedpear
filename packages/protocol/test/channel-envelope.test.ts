@@ -7,6 +7,7 @@ import {
   channelEnvelopePackPlanFromActions,
   channelEnvelopeUnpackPlanFromActions,
   channelMessageHandlerUnregisterIndex,
+  channelMessageHandlerUnregisterPlanIndex,
   channelMessageStateFromActions,
   channelMessageStateFromPacketReceipt,
   channelMessageTypeRegistrationPlanFromActions,
@@ -15,6 +16,7 @@ import {
   initialChannelEnvelopePackState,
   initialChannelEnvelopeUnpackPlanState,
   initialChannelEnvelopeUnpackState,
+  initialChannelMessageHandlerUnregisterPlanState,
   initialChannelMessageHandlerUnregisterState,
   initialChannelMessageStateFromPacketReceiptState,
   initialChannelMessageTypeRegistrationPlanState,
@@ -58,6 +60,7 @@ import {
   shouldRejectPackChannelEnvelope,
   shouldRejectUnpackChannelEnvelope,
   shouldRemoveChannelMessageHandler,
+  shouldRemoveChannelMessageHandlerUnregisterPlan,
   shouldSkipEmitChannelImmediateDelivery,
   shouldSkipRegisterChannelMessageHandler,
   shouldStopChannelHandlerFanout,
@@ -70,6 +73,7 @@ import {
   stepChannelEnvelopePackWithActions,
   stepChannelEnvelopeUnpackPlanWithActions,
   stepChannelEnvelopeUnpackWithActions,
+  stepChannelMessageHandlerUnregisterPlanWithActions,
   stepChannelMessageHandlerUnregisterWithActions,
   stepChannelMessageStateFromPacketReceiptWithActions,
   stepChannelMessageTypeRegistrationPlanWithActions,
@@ -512,12 +516,26 @@ describe("protocol channel envelope", () => {
     expect(shouldEmitChannelImmediateDeliveryNow(skipEmit.actions)).toBe(false);
     expect(shouldSkipEmitChannelImmediateDelivery(skipEmit.actions)).toBe(true);
 
+    const removePlan = stepChannelMessageHandlerUnregisterPlanWithActions(
+      initialChannelMessageHandlerUnregisterPlanState(),
+      { kind: "channel/message-handler-unregister-plan-gate", index: 1 }
+    );
+    expect(shouldRemoveChannelMessageHandlerUnregisterPlan(removePlan.actions)).toBe(true);
+    expect(channelMessageHandlerUnregisterPlanIndex(removePlan.actions)).toBe(1);
+
     const remove = stepChannelMessageHandlerUnregisterWithActions(
       initialChannelMessageHandlerUnregisterState(),
       { kind: "channel/message-handler-unregister-gate", index: 1 }
     );
     expect(shouldRemoveChannelMessageHandler(remove.actions)).toBe(true);
     expect(channelMessageHandlerUnregisterIndex(remove.actions)).toBe(1);
+
+    const skipPlan = stepChannelMessageHandlerUnregisterPlanWithActions(
+      initialChannelMessageHandlerUnregisterPlanState(),
+      { kind: "channel/message-handler-unregister-plan-gate", index: -1 }
+    );
+    expect(shouldRemoveChannelMessageHandlerUnregisterPlan(skipPlan.actions)).toBe(false);
+    expect(channelMessageHandlerUnregisterPlanIndex(skipPlan.actions)).toBeNull();
 
     const skip = stepChannelMessageHandlerUnregisterWithActions(
       initialChannelMessageHandlerUnregisterState(),

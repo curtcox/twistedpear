@@ -4,6 +4,7 @@
  * machine actions (no ad-hoc `indexOfPendingLinkAppRequest` /
  * `planUnregisterPendingLinkRequest` /
  * `shouldDeliverPendingLinkAppResponse` reads beside the step).
+ * Unregister plan nested via {@link stepPendingLinkRequestUnregisterPlanWithActions}.
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -375,9 +376,70 @@ export function shouldUnregisterPendingLinkRequest(indexPresent: boolean): boole
 }
 
 /**
+ * Pending link-request unregister plan leaf is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `planUnregisterPendingLinkRequest` reads beside the step). Nested under
+ * {@link stepPendingLinkRequestUnregisterWithActions}.
+ */
+export type PendingLinkRequestUnregisterPlanState = Record<string, never>;
+
+export type PendingLinkRequestUnregisterPlanEvent =
+  | Event
+  | {
+      readonly kind: "link/pending-request-unregister-plan-gate";
+      readonly index: number;
+    };
+
+export type PendingLinkRequestUnregisterPlanAction = {
+  readonly kind: "remove";
+  readonly index: number;
+};
+
+export interface PendingLinkRequestUnregisterPlanStepResult {
+  readonly state: PendingLinkRequestUnregisterPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PendingLinkRequestUnregisterPlanAction[];
+}
+
+export function initialPendingLinkRequestUnregisterPlanState(): PendingLinkRequestUnregisterPlanState {
+  return {};
+}
+
+export function stepPendingLinkRequestUnregisterPlanWithActions(
+  state: PendingLinkRequestUnregisterPlanState,
+  event: PendingLinkRequestUnregisterPlanEvent
+): PendingLinkRequestUnregisterPlanStepResult {
+  if (event.kind === "link/pending-request-unregister-plan-gate") {
+    const index = planUnregisterPendingLinkRequest(event.index);
+    return {
+      state,
+      intents: [],
+      actions: index === null ? [] : [{ kind: "remove", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function pendingLinkRequestUnregisterPlanIndex(
+  actions: ReadonlyArray<PendingLinkRequestUnregisterPlanAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove");
+  return action?.kind === "remove" ? action.index : null;
+}
+
+export function shouldRemovePendingLinkRequestUnregisterPlan(
+  actions: ReadonlyArray<PendingLinkRequestUnregisterPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove");
+}
+
+/**
  * Pending link-request unregister is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc
  * `planUnregisterPendingLinkRequest` reads beside the step).
+ * Plan nested via {@link stepPendingLinkRequestUnregisterPlanWithActions}
+ * (`remove`).
  */
 export type PendingLinkRequestUnregisterState = Record<string, never>;
 
@@ -408,7 +470,14 @@ export function stepPendingLinkRequestUnregisterWithActions(
   event: PendingLinkRequestUnregisterEvent
 ): PendingLinkRequestUnregisterStepResult {
   if (event.kind === "link/pending-request-unregister-gate") {
-    const index = planUnregisterPendingLinkRequest(event.index);
+    const planActions = stepPendingLinkRequestUnregisterPlanWithActions(
+      initialPendingLinkRequestUnregisterPlanState(),
+      {
+        kind: "link/pending-request-unregister-plan-gate",
+        index: event.index
+      }
+    ).actions;
+    const index = pendingLinkRequestUnregisterPlanIndex(planActions);
     return {
       state,
       intents: [],

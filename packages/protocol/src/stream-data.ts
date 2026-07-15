@@ -5,6 +5,7 @@
  * `packStreamDataMessage` / `unpackStreamDataMessage` reads beside the step).
  * Stream ready-callback unregister conclusions leave via machine actions
  * (no ad-hoc `planUnregisterStreamReadyCallback` reads beside the step).
+ * Unregister plan nested via {@link stepStreamReadyCallbackUnregisterPlanWithActions}.
  * Write chunk-length / read-size / chunk-take clamp conclusions leave via
  * machine actions (no ad-hoc `clampStreamDataChunkLength` /
  * `clampStreamReadSize` / `clampStreamChunkTake` reads beside the step).
@@ -987,9 +988,70 @@ export function shouldUnregisterStreamReadyCallback(indexPresent: boolean): bool
 }
 
 /**
+ * Stream ready-callback unregister plan leaf is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `planUnregisterStreamReadyCallback` reads beside the step). Nested under
+ * {@link stepStreamReadyCallbackUnregisterWithActions}.
+ */
+export type StreamReadyCallbackUnregisterPlanState = Record<string, never>;
+
+export type StreamReadyCallbackUnregisterPlanEvent =
+  | Event
+  | {
+      readonly kind: "stream/ready-callback-unregister-plan-gate";
+      readonly index: number;
+    };
+
+export type StreamReadyCallbackUnregisterPlanAction = {
+  readonly kind: "remove";
+  readonly index: number;
+};
+
+export interface StreamReadyCallbackUnregisterPlanStepResult {
+  readonly state: StreamReadyCallbackUnregisterPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly StreamReadyCallbackUnregisterPlanAction[];
+}
+
+export function initialStreamReadyCallbackUnregisterPlanState(): StreamReadyCallbackUnregisterPlanState {
+  return {};
+}
+
+export function stepStreamReadyCallbackUnregisterPlanWithActions(
+  state: StreamReadyCallbackUnregisterPlanState,
+  event: StreamReadyCallbackUnregisterPlanEvent
+): StreamReadyCallbackUnregisterPlanStepResult {
+  if (event.kind === "stream/ready-callback-unregister-plan-gate") {
+    const index = planUnregisterStreamReadyCallback(event.index);
+    return {
+      state,
+      intents: [],
+      actions: index === null ? [] : [{ kind: "remove", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function streamReadyCallbackUnregisterPlanIndex(
+  actions: ReadonlyArray<StreamReadyCallbackUnregisterPlanAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove");
+  return action?.kind === "remove" ? action.index : null;
+}
+
+export function shouldRemoveStreamReadyCallbackUnregisterPlan(
+  actions: ReadonlyArray<StreamReadyCallbackUnregisterPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove");
+}
+
+/**
  * Stream ready-callback unregister is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc
  * `planUnregisterStreamReadyCallback` reads beside the step).
+ * Plan nested via {@link stepStreamReadyCallbackUnregisterPlanWithActions}
+ * (`remove`).
  */
 export type StreamReadyCallbackUnregisterState = Record<string, never>;
 
@@ -1020,7 +1082,14 @@ export function stepStreamReadyCallbackUnregisterWithActions(
   event: StreamReadyCallbackUnregisterEvent
 ): StreamReadyCallbackUnregisterStepResult {
   if (event.kind === "stream/ready-callback-unregister-gate") {
-    const index = planUnregisterStreamReadyCallback(event.index);
+    const planActions = stepStreamReadyCallbackUnregisterPlanWithActions(
+      initialStreamReadyCallbackUnregisterPlanState(),
+      {
+        kind: "stream/ready-callback-unregister-plan-gate",
+        index: event.index
+      }
+    ).actions;
+    const index = streamReadyCallbackUnregisterPlanIndex(planActions);
     return {
       state,
       intents: [],

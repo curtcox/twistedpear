@@ -18,6 +18,7 @@ import {
   initialStreamReadDeferState,
   initialStreamReadReturnState,
   initialStreamReadyCallbackRegisterState,
+  initialStreamReadyCallbackUnregisterPlanState,
   initialStreamReadyCallbackUnregisterState,
   initialUnpackStreamDataMessageState,
   isStreamIdAssigned,
@@ -37,6 +38,7 @@ import {
   shouldRejectPackStreamDataMessage,
   shouldRejectUnpackStreamDataMessage,
   shouldRemoveStreamReadyCallback,
+  shouldRemoveStreamReadyCallbackUnregisterPlan,
   shouldReturnStreamReadResult,
   shouldSkipStreamAppend,
   shouldSkipStreamEofMark,
@@ -68,6 +70,7 @@ import {
   stepStreamReadDeferWithActions,
   stepStreamReadReturnWithActions,
   stepStreamReadyCallbackRegisterWithActions,
+  stepStreamReadyCallbackUnregisterPlanWithActions,
   stepStreamReadyCallbackUnregisterWithActions,
   stepUnpackStreamDataMessageWithActions,
   streamChunkTakeFromActions,
@@ -75,6 +78,7 @@ import {
   streamDataMessageFieldsFromActions,
   streamReadSizeFromActions,
   streamReadyCallbackUnregisterIndex,
+  streamReadyCallbackUnregisterPlanIndex,
   unpackStreamDataMessage
 } from "../src/stream-data.js";
 
@@ -396,12 +400,26 @@ describe("protocol stream data framing", () => {
     expect(shouldRegisterStreamReadyNow(skipRegister.actions)).toBe(false);
     expect(shouldSkipStreamReadyRegister(skipRegister.actions)).toBe(true);
 
+    const removePlan = stepStreamReadyCallbackUnregisterPlanWithActions(
+      initialStreamReadyCallbackUnregisterPlanState(),
+      { kind: "stream/ready-callback-unregister-plan-gate", index: 4 }
+    );
+    expect(shouldRemoveStreamReadyCallbackUnregisterPlan(removePlan.actions)).toBe(true);
+    expect(streamReadyCallbackUnregisterPlanIndex(removePlan.actions)).toBe(4);
+
     const remove = stepStreamReadyCallbackUnregisterWithActions(
       initialStreamReadyCallbackUnregisterState(),
       { kind: "stream/ready-callback-unregister-gate", index: 4 }
     );
     expect(shouldRemoveStreamReadyCallback(remove.actions)).toBe(true);
     expect(streamReadyCallbackUnregisterIndex(remove.actions)).toBe(4);
+
+    const skipPlan = stepStreamReadyCallbackUnregisterPlanWithActions(
+      initialStreamReadyCallbackUnregisterPlanState(),
+      { kind: "stream/ready-callback-unregister-plan-gate", index: -1 }
+    );
+    expect(shouldRemoveStreamReadyCallbackUnregisterPlan(skipPlan.actions)).toBe(false);
+    expect(streamReadyCallbackUnregisterPlanIndex(skipPlan.actions)).toBeNull();
 
     const skip = stepStreamReadyCallbackUnregisterWithActions(
       initialStreamReadyCallbackUnregisterState(),

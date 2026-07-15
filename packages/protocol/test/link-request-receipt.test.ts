@@ -9,16 +9,20 @@ import {
   shouldRegisterPendingLinkRequest,
   shouldRegisterPendingLinkRequestNow,
   shouldRemovePendingLinkRequest,
+  shouldRemovePendingLinkRequestUnregisterPlan,
   shouldSkipLinkRequestPacketReceiptAttach,
   shouldSkipPendingLinkRequestRegister,
   shouldUnregisterPendingLinkRequest,
   initialPendingLinkRequestRegisterState,
+  initialPendingLinkRequestUnregisterPlanState,
   initialPendingLinkRequestUnregisterState,
   pendingLinkRequestUnregisterIndex,
+  pendingLinkRequestUnregisterPlanIndex,
   planUnregisterPendingLinkRequest,
   stepAttachLinkRequestPacketReceiptWithActions,
   stepLinkRequestReceipt,
   stepPendingLinkRequestRegisterWithActions,
+  stepPendingLinkRequestUnregisterPlanWithActions,
   stepPendingLinkRequestUnregisterWithActions
 } from "../src/link-request-receipt.js";
 
@@ -91,12 +95,26 @@ describe("protocol link request receipt", () => {
     expect(shouldAttachLinkRequestPacketReceiptNow(skipAttach.actions)).toBe(false);
     expect(shouldSkipLinkRequestPacketReceiptAttach(skipAttach.actions)).toBe(true);
 
+    const removePlan = stepPendingLinkRequestUnregisterPlanWithActions(
+      initialPendingLinkRequestUnregisterPlanState(),
+      { kind: "link/pending-request-unregister-plan-gate", index: 2 }
+    );
+    expect(shouldRemovePendingLinkRequestUnregisterPlan(removePlan.actions)).toBe(true);
+    expect(pendingLinkRequestUnregisterPlanIndex(removePlan.actions)).toBe(2);
+
     const remove = stepPendingLinkRequestUnregisterWithActions(
       initialPendingLinkRequestUnregisterState(),
       { kind: "link/pending-request-unregister-gate", index: 2 }
     );
     expect(shouldRemovePendingLinkRequest(remove.actions)).toBe(true);
     expect(pendingLinkRequestUnregisterIndex(remove.actions)).toBe(2);
+
+    const skipPlan = stepPendingLinkRequestUnregisterPlanWithActions(
+      initialPendingLinkRequestUnregisterPlanState(),
+      { kind: "link/pending-request-unregister-plan-gate", index: -1 }
+    );
+    expect(shouldRemovePendingLinkRequestUnregisterPlan(skipPlan.actions)).toBe(false);
+    expect(pendingLinkRequestUnregisterPlanIndex(skipPlan.actions)).toBeNull();
 
     const skip = stepPendingLinkRequestUnregisterWithActions(
       initialPendingLinkRequestUnregisterState(),

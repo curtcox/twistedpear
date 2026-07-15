@@ -2673,9 +2673,70 @@ export function shouldUnregisterTransportMember(indexPresent: boolean): boolean 
 }
 
 /**
+ * Transport-member unregister plan leaf is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `planUnregisterTransportMember` reads beside the step). Nested under
+ * {@link stepTransportMemberUnregisterWithActions}.
+ */
+export type TransportMemberUnregisterPlanState = Record<string, never>;
+
+export type TransportMemberUnregisterPlanEvent =
+  | Event
+  | {
+      readonly kind: "transport/member-unregister-plan-gate";
+      readonly index: number;
+    };
+
+export type TransportMemberUnregisterPlanAction = {
+  readonly kind: "remove";
+  readonly index: number;
+};
+
+export interface TransportMemberUnregisterPlanStepResult {
+  readonly state: TransportMemberUnregisterPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TransportMemberUnregisterPlanAction[];
+}
+
+export function initialTransportMemberUnregisterPlanState(): TransportMemberUnregisterPlanState {
+  return {};
+}
+
+export function stepTransportMemberUnregisterPlanWithActions(
+  state: TransportMemberUnregisterPlanState,
+  event: TransportMemberUnregisterPlanEvent
+): TransportMemberUnregisterPlanStepResult {
+  if (event.kind === "transport/member-unregister-plan-gate") {
+    const index = planUnregisterTransportMember(event.index);
+    return {
+      state,
+      intents: [],
+      actions: index === null ? [] : [{ kind: "remove", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function transportMemberUnregisterPlanIndex(
+  actions: ReadonlyArray<TransportMemberUnregisterPlanAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "remove");
+  return action?.kind === "remove" ? action.index : null;
+}
+
+export function shouldRemoveTransportMemberUnregisterPlan(
+  actions: ReadonlyArray<TransportMemberUnregisterPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove");
+}
+
+/**
  * Transport-member unregister is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc
  * `planUnregisterTransportMember` reads beside the step).
+ * Plan nested via {@link stepTransportMemberUnregisterPlanWithActions}
+ * (`remove`).
  */
 export type TransportMemberUnregisterState = Record<string, never>;
 
@@ -2706,7 +2767,14 @@ export function stepTransportMemberUnregisterWithActions(
   event: TransportMemberUnregisterEvent
 ): TransportMemberUnregisterStepResult {
   if (event.kind === "transport/member-unregister-gate") {
-    const index = planUnregisterTransportMember(event.index);
+    const planActions = stepTransportMemberUnregisterPlanWithActions(
+      initialTransportMemberUnregisterPlanState(),
+      {
+        kind: "transport/member-unregister-plan-gate",
+        index: event.index
+      }
+    ).actions;
+    const index = transportMemberUnregisterPlanIndex(planActions);
     return {
       state,
       intents: [],
