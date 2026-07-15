@@ -5,7 +5,11 @@ import {
   clonePacketWithHopsFieldsFromActions,
   initialAnnounceIngressGatesState,
   initialClonePacketWithHopsState,
+  initialDispatchAnnounceHandlersState,
+  initialIgnoreLocalAnnounceState,
+  initialMatchAnnounceAspectState,
   initialPathResponseAnnounceFieldsState,
+  initialReceiveAnnouncePathResponseState,
   initialTransportAnnounceFieldsState,
   pathResponseAnnounceFieldsFromActions,
   planAnnounceIngressGates,
@@ -15,17 +19,29 @@ import {
   canDispatchAnnounceHandlers,
   shouldAcceptCachedPathResponsePacket,
   shouldApplyAnnounceRateLimit,
+  shouldDispatchAnnounceHandlersNow,
   shouldIgnoreLocalAnnounce,
+  shouldIgnoreLocalAnnounceNow,
   shouldMatchAnnounceAspect,
+  shouldMatchAnnounceAspectNow,
+  shouldMismatchAnnounceAspect,
+  shouldProceedLocalAnnounce,
   shouldRebroadcastAnnounce,
   shouldReceiveAnnouncePathResponse,
+  shouldReceiveAnnouncePathResponseNow,
   shouldRecordAnnounceRate,
+  shouldSkipAnnouncePathResponse,
+  shouldSkipDispatchAnnounceHandlers,
   shouldUseClonePacketWithHops,
   shouldUsePathResponseAnnounceFields,
   shouldUseTransportAnnounceFields,
   stepAnnounceIngressGatesWithActions,
   stepClonePacketWithHopsWithActions,
+  stepDispatchAnnounceHandlersWithActions,
+  stepIgnoreLocalAnnounceWithActions,
+  stepMatchAnnounceAspectWithActions,
   stepPathResponseAnnounceFieldsWithActions,
+  stepReceiveAnnouncePathResponseWithActions,
   stepTransportAnnounceFieldsWithActions,
   transportAnnounceFieldsFromActions
 } from "../src/transport-announce.js";
@@ -203,6 +219,23 @@ describe("protocol transport announce planning", () => {
   it("ignores announces for local inbound destinations", () => {
     expect(shouldIgnoreLocalAnnounce(true)).toBe(true);
     expect(shouldIgnoreLocalAnnounce(false)).toBe(false);
+
+    expect(
+      shouldIgnoreLocalAnnounceNow(
+        stepIgnoreLocalAnnounceWithActions(initialIgnoreLocalAnnounceState(), {
+          kind: "announce/ignore-local-gate",
+          hasLocalInboundDestination: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldProceedLocalAnnounce(
+        stepIgnoreLocalAnnounceWithActions(initialIgnoreLocalAnnounceState(), {
+          kind: "announce/ignore-local-gate",
+          hasLocalInboundDestination: false
+        }).actions
+      )
+    ).toBe(true);
   });
 
   it("accepts cached path-response packets when decode succeeds", () => {
@@ -213,6 +246,68 @@ describe("protocol transport announce planning", () => {
   it("dispatches announce handlers when identity recall succeeds", () => {
     expect(canDispatchAnnounceHandlers(true)).toBe(true);
     expect(canDispatchAnnounceHandlers(false)).toBe(false);
+
+    expect(
+      shouldDispatchAnnounceHandlersNow(
+        stepDispatchAnnounceHandlersWithActions(initialDispatchAnnounceHandlersState(), {
+          kind: "announce/dispatch-handlers-gate",
+          identityPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipDispatchAnnounceHandlers(
+        stepDispatchAnnounceHandlersWithActions(initialDispatchAnnounceHandlersState(), {
+          kind: "announce/dispatch-handlers-gate",
+          identityPresent: false
+        }).actions
+      )
+    ).toBe(true);
+  });
+
+  it("receives PATH_RESPONSE announces only when handlers opt in", () => {
+    expect(
+      shouldReceiveAnnouncePathResponse({
+        context: PACKET_CONTEXT_NONE
+      })
+    ).toBe(true);
+    expect(
+      shouldReceiveAnnouncePathResponse({
+        context: PACKET_CONTEXT_PATH_RESPONSE
+      })
+    ).toBe(false);
+    expect(
+      shouldReceiveAnnouncePathResponse({
+        context: PACKET_CONTEXT_PATH_RESPONSE,
+        receivePathResponses: true
+      })
+    ).toBe(true);
+
+    expect(
+      shouldReceiveAnnouncePathResponseNow(
+        stepReceiveAnnouncePathResponseWithActions(initialReceiveAnnouncePathResponseState(), {
+          kind: "announce/receive-path-response-gate",
+          context: PACKET_CONTEXT_NONE
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipAnnouncePathResponse(
+        stepReceiveAnnouncePathResponseWithActions(initialReceiveAnnouncePathResponseState(), {
+          kind: "announce/receive-path-response-gate",
+          context: PACKET_CONTEXT_PATH_RESPONSE
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldReceiveAnnouncePathResponseNow(
+        stepReceiveAnnouncePathResponseWithActions(initialReceiveAnnouncePathResponseState(), {
+          kind: "announce/receive-path-response-gate",
+          context: PACKET_CONTEXT_PATH_RESPONSE,
+          receivePathResponses: true
+        }).actions
+      )
+    ).toBe(true);
   });
 
   it("matches optional announce aspect filters", () => {
@@ -243,6 +338,27 @@ describe("protocol transport announce planning", () => {
         filterParsed: true,
         hashMatches: true
       })
+    ).toBe(true);
+
+    expect(
+      shouldMatchAnnounceAspectNow(
+        stepMatchAnnounceAspectWithActions(initialMatchAnnounceAspectState(), {
+          kind: "announce/match-aspect-gate",
+          hasFilter: false,
+          filterParsed: false,
+          hashMatches: false
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldMismatchAnnounceAspect(
+        stepMatchAnnounceAspectWithActions(initialMatchAnnounceAspectState(), {
+          kind: "announce/match-aspect-gate",
+          hasFilter: true,
+          filterParsed: true,
+          hashMatches: false
+        }).actions
+      )
     ).toBe(true);
   });
 });

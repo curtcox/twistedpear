@@ -37,16 +37,18 @@ import {
   stepTransportAnnounceFieldsWithActions,
   transportAnnounceFieldsFromActions,
   canAnswerLocalPathRequest,
-  canDispatchAnnounceHandlers,
   activeLinkUnregisterRemoveIndex,
   initialAcceptParsedAnnounceState,
   initialAppendPathRandomBlobState,
   initialDestinationProofState,
+  initialDispatchAnnounceHandlersState,
+  initialIgnoreLocalAnnounceState,
   initialLinkActivateMembershipState,
   initialLinkDataIngressTargetState,
   initialLinkRegisterListState,
   initialLinkUnregisterMembershipState,
   initialLocalPlainDataDeliveryState,
+  initialMatchAnnounceAspectState,
   initialOutboundReceiptState,
   initialPacketFilterState,
   initialPacketReceiptProofIngressState,
@@ -55,6 +57,7 @@ import {
   initialPathOutboundState,
   initialPathRequestIngressState,
   initialProofIngressState,
+  initialReceiveAnnouncePathResponseState,
   initialTransportIngressDispatchState,
   initialTransportMemberUnregisterState,
   packetReceiptUnregisterIndex,
@@ -86,18 +89,19 @@ import {
   shouldExpirePathEntryLookup,
   shouldFailAndDropOutboundReceipt,
   shouldHitPathEntryLookup,
-  shouldIgnoreLocalAnnounce,
+  shouldIgnoreLocalAnnounceNow,
   shouldIgnorePathRequestSeenTag,
   shouldIgnorePathRequestUnparsed,
   shouldKeepOutboundReceipt,
-  shouldMatchAnnounceAspect,
+  shouldDispatchAnnounceHandlersNow,
+  shouldMatchAnnounceAspectNow,
   shouldMissPathEntryLookup,
   shouldWrapPathOutbound,
   shouldMatchLocalInboundDestinationNow,
   shouldMatchLocalTypedDestinationNow,
   shouldOutboundFailAndDropReceipt,
   shouldOutboundKeepReceipt,
-  shouldReceiveAnnouncePathResponse,
+  shouldReceiveAnnouncePathResponseNow,
   shouldRegisterLinkActive,
   shouldRegisterLinkMember,
   shouldRegisterLinkPending,
@@ -141,15 +145,18 @@ import {
   stepAcceptLinkLrProofCandidateWithActions,
   stepAcceptParsedAnnounceWithActions,
   stepAddPathEntryWithActions,
+  stepDispatchAnnounceHandlersWithActions,
   stepDispatchLocalLinkRequestWithActions,
   stepDispatchResourceProofToLinkWithActions,
   stepEmitPathRequestWithActions,
+  stepIgnoreLocalAnnounceWithActions,
   stepIndexOfMatchingLinkIdWithActions,
   stepLinkActivateMembershipWithActions,
   stepLinkDataIngressTargetWithActions,
   stepLinkRegisterListWithActions,
   stepLinkUnregisterMembershipWithActions,
   stepLocalPlainDataDeliveryWithActions,
+  stepMatchAnnounceAspectWithActions,
   stepMatchLocalInboundDestinationWithActions,
   stepMatchLocalTypedDestinationWithActions,
   stepOutboundReceiptWithActions,
@@ -161,6 +168,7 @@ import {
   stepPathOutboundWithActions,
   stepPathRequestIngressWithActions,
   stepProofIngressWithActions,
+  stepReceiveAnnouncePathResponseWithActions,
   stepRegisterTransportMemberWithActions,
   stepRelayTransportPacketWithActions,
   stepRewritePacketHopsWithActions,
@@ -786,7 +794,14 @@ export class LeafTransport {
         ).actions
       )
     );
-    if (shouldIgnoreLocalAnnounce(localDestination !== undefined)) {
+    if (
+      shouldIgnoreLocalAnnounceNow(
+        stepIgnoreLocalAnnounceWithActions(initialIgnoreLocalAnnounceState(), {
+          kind: "announce/ignore-local-gate",
+          hasLocalInboundDestination: localDestination !== undefined
+        }).actions
+      )
+    ) {
       return;
     }
 
@@ -862,17 +877,29 @@ export class LeafTransport {
     );
 
     const announcedIdentity = Identity.recall(this.options.provider, packet.destinationHash);
-    if (!canDispatchAnnounceHandlers(announcedIdentity !== null)) {
+    if (
+      !shouldDispatchAnnounceHandlersNow(
+        stepDispatchAnnounceHandlersWithActions(initialDispatchAnnounceHandlersState(), {
+          kind: "announce/dispatch-handlers-gate",
+          identityPresent: announcedIdentity !== null
+        }).actions
+      )
+    ) {
       return;
     }
     const identity = announcedIdentity!;
 
     for (const handler of this.announceHandlers) {
       if (
-        !shouldReceiveAnnouncePathResponse({
-          context: packet.context,
-          receivePathResponses: handler.receivePathResponses
-        })
+        !shouldReceiveAnnouncePathResponseNow(
+          stepReceiveAnnouncePathResponseWithActions(initialReceiveAnnouncePathResponseState(), {
+            kind: "announce/receive-path-response-gate",
+            context: packet.context,
+            ...(handler.receivePathResponses !== undefined
+              ? { receivePathResponses: handler.receivePathResponses }
+              : {})
+          }).actions
+        )
       ) {
         continue;
       }
@@ -897,11 +924,14 @@ export class LeafTransport {
                 ...parsedFilter.aspects
               );
         if (
-          !shouldMatchAnnounceAspect({
-            hasFilter: true,
-            filterParsed,
-            hashMatches: expected !== null && equalBytes(packet.destinationHash, expected)
-          })
+          !shouldMatchAnnounceAspectNow(
+            stepMatchAnnounceAspectWithActions(initialMatchAnnounceAspectState(), {
+              kind: "announce/match-aspect-gate",
+              hasFilter: true,
+              filterParsed,
+              hashMatches: expected !== null && equalBytes(packet.destinationHash, expected)
+            }).actions
+          )
         ) {
           continue;
         }

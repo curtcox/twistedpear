@@ -451,7 +451,8 @@
 > **`stepAppendPathRandomBlobWithActions`**: use-fields) and **`computePathExpiry`**
 > (via **`stepComputePathExpiryWithActions`**: use-expiry) live in protocol;
 > path-table announce update adapts them. **`parseAspectFilter`** lives in protocol; announce-handler
-> matching adapts it (SHA stays at the edge). **`shouldReceiveAnnouncePathResponse`** lives in
+> matching adapts it (SHA stays at the edge). **`shouldReceiveAnnouncePathResponse`** (via
+> **`stepReceiveAnnouncePathResponseWithActions`**: receive|skip) lives in
 > protocol; announce-handler PATH_RESPONSE opt-in adapts it. **`planAnnounceIngressGates`**
 > (rate-limit / record / rebroadcast for PATH_RESPONSE) lives in protocol; `TransportNode`
 > adapts it. **`linkPayloadFitsMdu`** lives in protocol; Link request/response and Channel send
@@ -568,8 +569,10 @@
 > **`stepProofIngressWithActions`**: lrproof / resource-prf / receipt), and
 > **`shouldTransmitOnInterface`** (via **`stepTransmitOnInterfaceWithActions`**:
 > transmit|skip) live in protocol; `TransportNode` /
-> `LeafTransport` adapt them. **`shouldIgnoreLocalAnnounce`** /
-> **`shouldMatchAnnounceAspect`** live in protocol; announce ingress adapts them.
+> `LeafTransport` adapt them. **`shouldIgnoreLocalAnnounce`** (via
+> **`stepIgnoreLocalAnnounceWithActions`**: ignore|proceed) /
+> **`shouldMatchAnnounceAspect`** (via **`stepMatchAnnounceAspectWithActions`**:
+> match|mismatch) live in protocol; announce ingress adapts them.
 > **`shouldReplyKeepaliveProbe`** (via **`stepReplyKeepaliveProbeWithActions`**:
 > reply|skip) and **`isExpectedLinkMode`** (via **`stepExpectedLinkModeWithActions`**:
 > match|mismatch) live in protocol; `Link` adapts them. **`canAcceptLxmfPropagationLocalDelivery`** and
@@ -757,7 +760,8 @@
 > protocol; Resource and Link adapt them. **`shouldInvokeDestinationLinkEstablishedCallback`**
 > (via **`stepDestinationLinkEstablishedCallbackWithActions`**: invoke|skip),
 > **`canArmChannelPacketReceipt`**, **`planPacketReceiptCallback`**,
-> **`canDispatchAnnounceHandlers`**, **`shouldAttemptIdentityRatchetDecrypt`**,
+> **`canDispatchAnnounceHandlers`** (via
+> **`stepDispatchAnnounceHandlersWithActions`**: dispatch|skip), **`shouldAttemptIdentityRatchetDecrypt`**,
 > **`shouldRegisterStreamReadyCallback`** (via
 > **`stepStreamReadyCallbackRegisterWithActions`**: register|skip),
 > **`shouldAttachLinkRequestPacketReceipt`** (via
@@ -1031,7 +1035,11 @@
 > `planLinkUnregisterMembership` / `planLinkAppRequest` /
 > `planLinkAppRequestTransmitOutcome` reads beside the step).
 > **`stepAnnounceIngressGatesWithActions`** emits `apply-rate-limit` /
-> `record-rate` / `rebroadcast`; **`stepLinkRelayTargetWithActions`** emits
+> `record-rate` / `rebroadcast`; **`stepIgnoreLocalAnnounceWithActions`** emits
+> `ignore`|`proceed`; **`stepDispatchAnnounceHandlersWithActions`** emits
+> `dispatch`|`skip`; **`stepReceiveAnnouncePathResponseWithActions`** emits
+> `receive`|`skip`; **`stepMatchAnnounceAspectWithActions`** emits
+> `match`|`mismatch`; **`stepLinkRelayTargetWithActions`** emits
 > `outbound` / `received` / `ignore`; **`stepRelayTransportPacketAllowWithActions`**
 > emits `allow`|`deny`; **`stepRecordLinkRelayTableEntryWithActions`** /
 > **`stepRecordReverseTableEntryWithActions`** emit `record`|`skip`;
@@ -1220,6 +1228,8 @@
 > link-register-list / link-activate-membership /
 > link-unregister-membership / link-app-request /
 > link-app-request-transmit / announce-ingress-gates /
+> ignore-local-announce / dispatch-announce-handlers /
+> receive-announce-path-response / match-announce-aspect /
 > link-relay-target / relay-transport-packet-allow /
 > record-link-relay-table-entry / record-reverse-table-entry /
 > relay-link-packet-allow / lookup-link-relay-entry / transmit-link-relay /
@@ -1582,6 +1592,14 @@
 > those actions (no ad-hoc `shouldEmitPathRequest` /
 > `isDiscoveryPathRequestExpired` / `isPathEntryExpired` /
 > `shouldBeginPathDiscovery` / `shouldAddPathEntry` reads beside the step).
+> **`stepIgnoreLocalAnnounceWithActions`** emits `ignore`|`proceed`;
+> **`stepDispatchAnnounceHandlersWithActions`** emits `dispatch`|`skip`;
+> **`stepReceiveAnnouncePathResponseWithActions`** emits `receive`|`skip`;
+> **`stepMatchAnnounceAspectWithActions`** emits `match`|`mismatch`; announce
+> ingress handler gates apply only from those actions (no ad-hoc
+> `shouldIgnoreLocalAnnounce` / `canDispatchAnnounceHandlers` /
+> `shouldReceiveAnnouncePathResponse` / `shouldMatchAnnounceAspect` reads
+> beside the step).
 > **`stepPacketHashDeferWithActions`** emits `defer` / `remember-now`;
 > transport ingress hash deferral applies only from those actions.
 > **`stepResourceAdvertisementRoleFlagsWithActions`** emits `use-flags`;

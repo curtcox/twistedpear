@@ -5,7 +5,12 @@
  * `planAnnounceIngressGates` reads beside the step). Hop-clone / transport
  * announce / path-response field conclusions leave via machine actions
  * (no ad-hoc `planClonePacketWithHops` / `planTransportAnnounceFields` /
- * `planPathResponseAnnounceFields` reads beside the step).
+ * `planPathResponseAnnounceFields` reads beside the step). Local-announce
+ * ignore / handler dispatch / PATH_RESPONSE receive / aspect-filter match
+ * conclusions leave via machine actions (no ad-hoc
+ * `shouldIgnoreLocalAnnounce` / `canDispatchAnnounceHandlers` /
+ * `shouldReceiveAnnouncePathResponse` / `shouldMatchAnnounceAspect` reads
+ * beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -301,14 +306,201 @@ export function shouldReceiveAnnouncePathResponse(input: {
   return input.receivePathResponses === true;
 }
 
+/**
+ * shouldReceiveAnnouncePathResponse gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldReceiveAnnouncePathResponse` reads beside the step).
+ */
+export type ReceiveAnnouncePathResponseState = Record<string, never>;
+
+export type ReceiveAnnouncePathResponseEvent =
+  | Event
+  | {
+      readonly kind: "announce/receive-path-response-gate";
+      readonly context: number;
+      readonly receivePathResponses?: boolean;
+    };
+
+export type ReceiveAnnouncePathResponseAction =
+  | { readonly kind: "receive" }
+  | { readonly kind: "skip" };
+
+export interface ReceiveAnnouncePathResponseStepResult {
+  readonly state: ReceiveAnnouncePathResponseState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ReceiveAnnouncePathResponseAction[];
+}
+
+export function initialReceiveAnnouncePathResponseState(): ReceiveAnnouncePathResponseState {
+  return {};
+}
+
+export function stepReceiveAnnouncePathResponseWithActions(
+  state: ReceiveAnnouncePathResponseState,
+  event: ReceiveAnnouncePathResponseEvent
+): ReceiveAnnouncePathResponseStepResult {
+  if (event.kind === "announce/receive-path-response-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldReceiveAnnouncePathResponse({
+            context: event.context,
+            ...(event.receivePathResponses !== undefined
+              ? { receivePathResponses: event.receivePathResponses }
+              : {})
+          })
+            ? "receive"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldReceiveAnnouncePathResponseNow(
+  actions: ReadonlyArray<ReceiveAnnouncePathResponseAction>
+): boolean {
+  return actions.some((action) => action.kind === "receive");
+}
+
+export function shouldSkipAnnouncePathResponse(
+  actions: ReadonlyArray<ReceiveAnnouncePathResponseAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Drop announces that target a local IN destination (already ours). */
 export function shouldIgnoreLocalAnnounce(hasLocalInboundDestination: boolean): boolean {
   return hasLocalInboundDestination;
 }
 
+/**
+ * shouldIgnoreLocalAnnounce gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldIgnoreLocalAnnounce`
+ * reads beside the step).
+ */
+export type IgnoreLocalAnnounceState = Record<string, never>;
+
+export type IgnoreLocalAnnounceEvent =
+  | Event
+  | {
+      readonly kind: "announce/ignore-local-gate";
+      readonly hasLocalInboundDestination: boolean;
+    };
+
+export type IgnoreLocalAnnounceAction =
+  | { readonly kind: "ignore" }
+  | { readonly kind: "proceed" };
+
+export interface IgnoreLocalAnnounceStepResult {
+  readonly state: IgnoreLocalAnnounceState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IgnoreLocalAnnounceAction[];
+}
+
+export function initialIgnoreLocalAnnounceState(): IgnoreLocalAnnounceState {
+  return {};
+}
+
+export function stepIgnoreLocalAnnounceWithActions(
+  state: IgnoreLocalAnnounceState,
+  event: IgnoreLocalAnnounceEvent
+): IgnoreLocalAnnounceStepResult {
+  if (event.kind === "announce/ignore-local-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldIgnoreLocalAnnounce(event.hasLocalInboundDestination)
+            ? "ignore"
+            : "proceed"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldIgnoreLocalAnnounceNow(
+  actions: ReadonlyArray<IgnoreLocalAnnounceAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+export function shouldProceedLocalAnnounce(
+  actions: ReadonlyArray<IgnoreLocalAnnounceAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
 /** Whether announce-handler fanout may run after Identity.recall. */
 export function canDispatchAnnounceHandlers(identityPresent: boolean): boolean {
   return identityPresent;
+}
+
+/**
+ * canDispatchAnnounceHandlers gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `canDispatchAnnounceHandlers`
+ * reads beside the step).
+ */
+export type DispatchAnnounceHandlersState = Record<string, never>;
+
+export type DispatchAnnounceHandlersEvent =
+  | Event
+  | {
+      readonly kind: "announce/dispatch-handlers-gate";
+      readonly identityPresent: boolean;
+    };
+
+export type DispatchAnnounceHandlersAction =
+  | { readonly kind: "dispatch" }
+  | { readonly kind: "skip" };
+
+export interface DispatchAnnounceHandlersStepResult {
+  readonly state: DispatchAnnounceHandlersState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DispatchAnnounceHandlersAction[];
+}
+
+export function initialDispatchAnnounceHandlersState(): DispatchAnnounceHandlersState {
+  return {};
+}
+
+export function stepDispatchAnnounceHandlersWithActions(
+  state: DispatchAnnounceHandlersState,
+  event: DispatchAnnounceHandlersEvent
+): DispatchAnnounceHandlersStepResult {
+  if (event.kind === "announce/dispatch-handlers-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: canDispatchAnnounceHandlers(event.identityPresent) ? "dispatch" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldDispatchAnnounceHandlersNow(
+  actions: ReadonlyArray<DispatchAnnounceHandlersAction>
+): boolean {
+  return actions.some((action) => action.kind === "dispatch");
+}
+
+export function shouldSkipDispatchAnnounceHandlers(
+  actions: ReadonlyArray<DispatchAnnounceHandlersAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**
@@ -324,6 +516,73 @@ export function shouldMatchAnnounceAspect(input: {
     return true;
   }
   return input.filterParsed && input.hashMatches;
+}
+
+/**
+ * shouldMatchAnnounceAspect gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldMatchAnnounceAspect`
+ * reads beside the step).
+ */
+export type MatchAnnounceAspectState = Record<string, never>;
+
+export type MatchAnnounceAspectEvent =
+  | Event
+  | {
+      readonly kind: "announce/match-aspect-gate";
+      readonly hasFilter: boolean;
+      readonly filterParsed: boolean;
+      readonly hashMatches: boolean;
+    };
+
+export type MatchAnnounceAspectAction =
+  | { readonly kind: "match" }
+  | { readonly kind: "mismatch" };
+
+export interface MatchAnnounceAspectStepResult {
+  readonly state: MatchAnnounceAspectState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly MatchAnnounceAspectAction[];
+}
+
+export function initialMatchAnnounceAspectState(): MatchAnnounceAspectState {
+  return {};
+}
+
+export function stepMatchAnnounceAspectWithActions(
+  state: MatchAnnounceAspectState,
+  event: MatchAnnounceAspectEvent
+): MatchAnnounceAspectStepResult {
+  if (event.kind === "announce/match-aspect-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldMatchAnnounceAspect({
+            hasFilter: event.hasFilter,
+            filterParsed: event.filterParsed,
+            hashMatches: event.hashMatches
+          })
+            ? "match"
+            : "mismatch"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldMatchAnnounceAspectNow(
+  actions: ReadonlyArray<MatchAnnounceAspectAction>
+): boolean {
+  return actions.some((action) => action.kind === "match");
+}
+
+export function shouldMismatchAnnounceAspect(
+  actions: ReadonlyArray<MatchAnnounceAspectAction>
+): boolean {
+  return actions.some((action) => action.kind === "mismatch");
 }
 
 export interface AnnounceIngressGates {
