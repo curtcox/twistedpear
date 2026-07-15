@@ -3,12 +3,12 @@ import {
   PACKET_SIGNATURE_SIZE,
   PacketReceiptStatus,
   RECEIPT_TIMEOUT_TIMER_ID,
-  isPacketTypeProof,
   packetProofFieldsFromActions,
   initialAcceptPacketReceiptProofState,
   initialPacketProofHashMatchState,
   initialPacketReceiptCallbackState,
   initialPacketReceiptProofAcceptState,
+  initialPacketTypeProofState,
   initialSplitPacketProofState,
   shouldAcceptPacketReceiptProofActions,
   shouldAcceptPacketReceiptProofNow,
@@ -16,12 +16,14 @@ import {
   shouldInvokePacketReceiptAction,
   shouldMatchPacketProofHash,
   shouldRejectSplitPacketProof,
+  shouldTreatPacketTypeProof,
   shouldUseSplitPacketProof,
   stepAcceptPacketReceiptProofWithActions,
   stepPacketProofHashMatchWithActions,
   stepPacketReceiptCallbackWithActions,
   stepPacketReceiptProofAcceptWithActions,
   stepPacketReceiptTimeoutWithActions,
+  stepPacketTypeProofWithActions,
   stepSplitPacketProofWithActions,
   type PacketReceiptStatusValue,
   type PacketReceiptTimeoutAction,
@@ -156,7 +158,13 @@ export class PacketReceipt {
   }
 
   validateProofPacket(proofPacket: Packet, identity: Identity): boolean {
-    if (!isPacketTypeProof(proofPacket.packetType)) {
+    /** Adapt packet-type proof via protocol actions (no ad-hoc
+     * `isPacketTypeProof` reads). */
+    const typeStepped = stepPacketTypeProofWithActions(initialPacketTypeProofState(), {
+      kind: "packet-proof/packet-type-gate",
+      packetType: proofPacket.packetType
+    });
+    if (!shouldTreatPacketTypeProof(typeStepped.actions)) {
       return false;
     }
 

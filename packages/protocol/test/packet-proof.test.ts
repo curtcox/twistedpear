@@ -8,6 +8,7 @@ import {
   initialPackPacketProofState,
   initialPacketProofHashMatchState,
   initialPacketReceiptProofAcceptState,
+  initialPacketTypeProofState,
   initialSplitPacketProofState,
   packPacketProof,
   packPacketProofRawFromActions,
@@ -22,6 +23,8 @@ import {
   shouldRejectPacketReceiptProofActions,
   shouldRejectSplitPacketProof,
   shouldSkipAcceptPacketReceiptProof,
+  shouldTreatPacketTypeOther,
+  shouldTreatPacketTypeProof,
   shouldUsePackPacketProof,
   shouldUseSplitPacketProof,
   splitPacketProof,
@@ -29,6 +32,7 @@ import {
   stepPackPacketProofWithActions,
   stepPacketProofHashMatchWithActions,
   stepPacketReceiptProofAcceptWithActions,
+  stepPacketTypeProofWithActions,
   stepSplitPacketProofWithActions
 } from "../src/packet-proof.js";
 import { PACKET_TYPE_DATA, PACKET_TYPE_PROOF } from "../src/packet-header.js";
@@ -65,6 +69,29 @@ describe("protocol packet proof framing", () => {
   it("recognizes proof packet types", () => {
     expect(isPacketTypeProof(PACKET_TYPE_PROOF)).toBe(true);
     expect(isPacketTypeProof(PACKET_TYPE_DATA)).toBe(false);
+  });
+
+  it("emits packet-type only from proof/other actions", () => {
+    const proof = stepPacketTypeProofWithActions(initialPacketTypeProofState(), {
+      kind: "packet-proof/packet-type-gate",
+      packetType: PACKET_TYPE_PROOF
+    });
+    expect(shouldTreatPacketTypeProof(proof.actions)).toBe(true);
+    expect(shouldTreatPacketTypeOther(proof.actions)).toBe(false);
+
+    const other = stepPacketTypeProofWithActions(initialPacketTypeProofState(), {
+      kind: "packet-proof/packet-type-gate",
+      packetType: PACKET_TYPE_DATA
+    });
+    expect(shouldTreatPacketTypeProof(other.actions)).toBe(false);
+    expect(shouldTreatPacketTypeOther(other.actions)).toBe(true);
+
+    const empty = stepPacketTypeProofWithActions(initialPacketTypeProofState(), {
+      kind: "timer/fired",
+      timer: { id: "x" }
+    });
+    expect(shouldTreatPacketTypeProof(empty.actions)).toBe(false);
+    expect(shouldTreatPacketTypeOther(empty.actions)).toBe(false);
   });
 
   it("emits pack framing bytes from WithActions step", () => {

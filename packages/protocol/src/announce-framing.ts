@@ -2,10 +2,11 @@
  * Pure RNS announce payload framing and signed-material assembly.
  * Signing / hashing stay at the crypto adapter edge.
  * Pack / parse / validate / build / signed-material / destination-hash
- * material and match conclusions leave via machine actions (no ad-hoc
- * `packAnnouncePayload` / `parseAnnouncePayload` / `announceSignedMaterial` /
- * `announceDestinationHashMaterial` / `announceDestinationHashMatches` /
- * `plan` string reads beside the step).
+ * material and match / packet-type conclusions leave via machine actions (no
+ * ad-hoc `packAnnouncePayload` / `parseAnnouncePayload` /
+ * `announceSignedMaterial` / `announceDestinationHashMaterial` /
+ * `announceDestinationHashMatches` / `isAnnouncePacketType` / `plan` string
+ * reads beside the step).
  * Payload / parsed-announce accept gates conclude via machine actions (no
  * ad-hoc `shouldAcceptAnnouncePayload` / `shouldAcceptParsedAnnounce` reads
  * beside the step).
@@ -632,6 +633,63 @@ export function shouldMismatchAnnounceDestinationHash(
 /** Whether a packet is an ANNOUNCE type eligible for announce parse. */
 export function isAnnouncePacketType(packetType: number): boolean {
   return packetType === PACKET_TYPE_ANNOUNCE;
+}
+
+/**
+ * Announce packet-type gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isAnnouncePacketType`
+ * reads beside the step).
+ */
+export type AnnouncePacketTypeState = Record<string, never>;
+
+export type AnnouncePacketTypeEvent =
+  | Event
+  | {
+      readonly kind: "announce/packet-type-gate";
+      readonly packetType: number;
+    };
+
+export type AnnouncePacketTypeAction =
+  | { readonly kind: "announce" }
+  | { readonly kind: "other" };
+
+export interface AnnouncePacketTypeStepResult {
+  readonly state: AnnouncePacketTypeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AnnouncePacketTypeAction[];
+}
+
+export function initialAnnouncePacketTypeState(): AnnouncePacketTypeState {
+  return {};
+}
+
+export function stepAnnouncePacketTypeWithActions(
+  state: AnnouncePacketTypeState,
+  event: AnnouncePacketTypeEvent
+): AnnouncePacketTypeStepResult {
+  if (event.kind === "announce/packet-type-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        { kind: isAnnouncePacketType(event.packetType) ? "announce" : "other" }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatAnnouncePacketType(
+  actions: ReadonlyArray<AnnouncePacketTypeAction>
+): boolean {
+  return actions.some((action) => action.kind === "announce");
+}
+
+export function shouldTreatAnnouncePacketTypeOther(
+  actions: ReadonlyArray<AnnouncePacketTypeAction>
+): boolean {
+  return actions.some((action) => action.kind === "other");
 }
 
 export type AnnounceValidatePlan =

@@ -9,13 +9,13 @@ import {
   initialAnnounceBuildState,
   initialAnnounceDestinationHashMatchState,
   initialAnnounceDestinationHashMaterialState,
+  initialAnnouncePacketTypeState,
   initialAnnounceSignedMaterialState,
   initialAnnounceValidateState,
   initialAttemptAnnounceSignatureValidateState,
   initialCheckAnnounceDestinationHashState,
   initialPackAnnouncePayloadState,
   initialParseAnnouncePayloadState,
-  isAnnouncePacketType,
   packAnnouncePayloadRawFromActions,
   shouldAcceptAnnouncePayloadNow,
   shouldAcceptAnnounceValidate,
@@ -29,6 +29,7 @@ import {
   shouldRejectAnnounceBuildNotAnnounceableDirection,
   shouldRejectAnnounceBuildNotAnnounceableType,
   shouldRejectParseAnnouncePayload,
+  shouldTreatAnnouncePacketType,
   shouldUseAnnounceDestinationHashMaterial,
   shouldUseAnnounceSignedMaterial,
   shouldUsePackAnnouncePayload,
@@ -37,6 +38,7 @@ import {
   stepAnnounceBuildWithActions,
   stepAnnounceDestinationHashMatchWithActions,
   stepAnnounceDestinationHashMaterialWithActions,
+  stepAnnouncePacketTypeWithActions,
   stepAnnounceSignedMaterialWithActions,
   stepAnnounceValidateWithActions,
   stepAttemptAnnounceSignatureValidateWithActions,
@@ -189,7 +191,13 @@ export class Announce {
   }
 
   static parse(packet: Packet): ParsedAnnounce | null {
-    if (!isAnnouncePacketType(packet.packetType)) {
+    /** Adapt announce packet-type via protocol actions (no ad-hoc
+     * `isAnnouncePacketType` reads). */
+    const typeStepped = stepAnnouncePacketTypeWithActions(initialAnnouncePacketTypeState(), {
+      kind: "announce/packet-type-gate",
+      packetType: packet.packetType
+    });
+    if (!shouldTreatAnnouncePacketType(typeStepped.actions)) {
       return null;
     }
 

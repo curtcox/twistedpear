@@ -260,11 +260,13 @@
 > **`stepAnnounceDestinationHashMaterialWithActions`** /
 > **`stepAnnounceDestinationHashMatchWithActions`**: use-raw / match|mismatch;
 > payload / parsed accept via **`stepAcceptAnnouncePayloadWithActions`** /
-> **`stepAcceptParsedAnnounceWithActions`**: accept|skip)
+> **`stepAcceptParsedAnnounceWithActions`**: accept|skip;
+> packet-type via **`stepAnnouncePacketTypeWithActions`**: announce|other)
 > and **packet proof framing**
 > (pack/split via **`stepPackPacketProofWithActions`** /
 > **`stepSplitPacketProofWithActions`**: use-raw / use-fields|reject; explicit/implicit;
-> hash-match via **`stepPacketProofHashMatchWithActions`**: match|mismatch)
+> hash-match via **`stepPacketProofHashMatchWithActions`**: match|mismatch;
+> packet-type via **`stepPacketTypeProofWithActions`**: proof|other)
 > are pure protocol leaves; `Announce` and `Packet` adapt them.
 > **Link-proof / link-request framing** (pack/split via
 > **`stepPackLinkProofDataWithActions`** / **`stepSplitLinkProofBodyWithActions`** /
@@ -657,7 +659,8 @@
 > **`shouldRecordReverseTableEntry`** (via
 > **`stepRecordReverseTableEntryWithActions`**: record|skip), and
 > **`isLocalPathRequestPacket`** live in protocol; transport relay /
-> `LeafTransport.handleData` adapt them. **`isPacketTypeProof`** lives in
+> `LeafTransport.handleData` adapt them. **`isPacketTypeProof`** (via
+> **`stepPacketTypeProofWithActions`**: proof|other) lives in
 > protocol; `PacketReceipt.validateProofPacket` adapts it. **`planLxmfDeliverableAccept`**
 > (via **`stepLxmfDeliverableAcceptWithActions`**) lives in protocol; `LXMFRouter` unpack
 > adapts it. **`canRelayLinkPacket`** (via **`stepRelayLinkPacketAllowWithActions`**:
@@ -785,7 +788,8 @@
 > **`shouldIncludeLxmfStamp`** (via **`stepIncludeLxmfStampWithActions`**:
 > include|skip) live in protocol; `LXMessage.pack` adapts them.
 > **`planAnnounceValidateOutcome`** (via **`stepAnnounceValidateWithActions`**:
-> accept / accept-signature-only / reject-*) / **`isAnnouncePacketType`** and
+> accept / accept-signature-only / reject-*) / **`isAnnouncePacketType`** (via
+> **`stepAnnouncePacketTypeWithActions`**: announce|other) and
 > **`planPacketReceiptProofAccept`** live in protocol; `Announce` and `PacketReceipt`
 > adapt them. **Local destination match gates** (`shouldMatchLocalInboundDestination`
 > via **`stepMatchLocalInboundDestinationWithActions`**: match|mismatch;
@@ -2146,19 +2150,23 @@
 > **`stepParseAnnouncePayloadWithActions`** /
 > **`stepAnnounceSignedMaterialWithActions`** /
 > **`stepAnnounceDestinationHashMaterialWithActions`** /
-> **`stepAnnounceDestinationHashMatchWithActions`** emit `use-raw` /
-> `use-fields`|`reject` / `use-raw` / `use-raw` / `match`|`mismatch`; announce
-> pack / parse / signed-material / destination-hash material / match apply only
-> from those actions (no ad-hoc `packAnnouncePayload` /
-> `parseAnnouncePayload` / `announceSignedMaterial` /
-> `announceDestinationHashMaterial` / `announceDestinationHashMatches` reads
-> beside the step).
+> **`stepAnnounceDestinationHashMatchWithActions`** /
+> **`stepAnnouncePacketTypeWithActions`** emit `use-raw` /
+> `use-fields`|`reject` / `use-raw` / `use-raw` / `match`|`mismatch` /
+> `announce`|`other`; announce pack / parse / signed-material /
+> destination-hash material / match / packet-type apply only from those
+> actions (no ad-hoc `packAnnouncePayload` / `parseAnnouncePayload` /
+> `announceSignedMaterial` / `announceDestinationHashMaterial` /
+> `announceDestinationHashMatches` / `isAnnouncePacketType` reads beside the
+> step).
 > **`stepPackPacketProofWithActions`** /
 > **`stepSplitPacketProofWithActions`** /
-> **`stepPacketProofHashMatchWithActions`** emit `use-raw` /
-> `use-fields`|`reject` / `match`|`mismatch`; packet-proof pack / split / hash-match
-> apply only from those actions (no ad-hoc `packPacketProof` / `splitPacketProof` /
-> `packetProofHashMatches` reads beside the step).
+> **`stepPacketProofHashMatchWithActions`** /
+> **`stepPacketTypeProofWithActions`** emit `use-raw` /
+> `use-fields`|`reject` / `match`|`mismatch` / `proof`|`other`; packet-proof
+> pack / split / hash-match / packet-type apply only from those actions (no
+> ad-hoc `packPacketProof` / `splitPacketProof` / `packetProofHashMatches` /
+> `isPacketTypeProof` reads beside the step).
 > **`stepEncodePacketRawWithActions`** /
 > **`stepDecodePacketRawWithActions`** emit `use-raw`|`reject` /
 > `use-fields`|`reject`; packet-header encode / decode apply only from those

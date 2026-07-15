@@ -1,10 +1,10 @@
 /**
  * Pure RNS packet proof framing (explicit hash+sig vs signature-only).
  * Signing / verification stay at the crypto adapter edge.
- * Pack / split / hash-match / packet-receipt proof-accept conclusions leave via
- * machine actions (no ad-hoc `packPacketProof` / `splitPacketProof` /
- * `packetProofHashMatches` / `planPacketReceiptProofAccept` reads beside the
- * step).
+ * Pack / split / hash-match / packet-type / packet-receipt proof-accept
+ * conclusions leave via machine actions (no ad-hoc `packPacketProof` /
+ * `splitPacketProof` / `packetProofHashMatches` / `isPacketTypeProof` /
+ * `planPacketReceiptProofAccept` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_PROOF } from "./packet-header.js";
@@ -28,6 +28,61 @@ export type PacketProofFields =
 /** Whether a packet is a PROOF type eligible for receipt validation. */
 export function isPacketTypeProof(packetType: number): boolean {
   return packetType === PACKET_TYPE_PROOF;
+}
+
+/**
+ * Packet-type proof gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isPacketTypeProof` reads
+ * beside the step).
+ */
+export type PacketTypeProofState = Record<string, never>;
+
+export type PacketTypeProofEvent =
+  | Event
+  | {
+      readonly kind: "packet-proof/packet-type-gate";
+      readonly packetType: number;
+    };
+
+export type PacketTypeProofAction =
+  | { readonly kind: "proof" }
+  | { readonly kind: "other" };
+
+export interface PacketTypeProofStepResult {
+  readonly state: PacketTypeProofState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketTypeProofAction[];
+}
+
+export function initialPacketTypeProofState(): PacketTypeProofState {
+  return {};
+}
+
+export function stepPacketTypeProofWithActions(
+  state: PacketTypeProofState,
+  event: PacketTypeProofEvent
+): PacketTypeProofStepResult {
+  if (event.kind === "packet-proof/packet-type-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: isPacketTypeProof(event.packetType) ? "proof" : "other" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatPacketTypeProof(
+  actions: ReadonlyArray<PacketTypeProofAction>
+): boolean {
+  return actions.some((action) => action.kind === "proof");
+}
+
+export function shouldTreatPacketTypeOther(
+  actions: ReadonlyArray<PacketTypeProofAction>
+): boolean {
+  return actions.some((action) => action.kind === "other");
 }
 
 function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {

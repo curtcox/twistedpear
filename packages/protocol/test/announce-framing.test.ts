@@ -16,6 +16,7 @@ import {
   initialAnnounceBuildState,
   initialAnnounceDestinationHashMatchState,
   initialAnnounceDestinationHashMaterialState,
+  initialAnnouncePacketTypeState,
   initialAnnounceSignedMaterialState,
   initialAnnounceValidateState,
   initialAttemptAnnounceSignatureValidateState,
@@ -50,6 +51,8 @@ import {
   shouldSkipAnnouncePayloadAccept,
   shouldSkipAnnounceSignatureValidate,
   shouldSkipParsedAnnounceAccept,
+  shouldTreatAnnouncePacketType,
+  shouldTreatAnnouncePacketTypeOther,
   shouldUseAnnounceDestinationHashMaterial,
   shouldUseAnnounceSignedMaterial,
   shouldUsePackAnnouncePayload,
@@ -59,6 +62,7 @@ import {
   stepAnnounceBuildWithActions,
   stepAnnounceDestinationHashMatchWithActions,
   stepAnnounceDestinationHashMaterialWithActions,
+  stepAnnouncePacketTypeWithActions,
   stepAnnounceSignedMaterialWithActions,
   stepAnnounceValidateWithActions,
   stepAttemptAnnounceSignatureValidateWithActions,
@@ -335,6 +339,29 @@ describe("protocol announce framing", () => {
     const b = stepAnnounceBuildWithActions(state, event);
     expect(a).toEqual(b);
     expect(JSON.stringify(a.actions)).toBe(JSON.stringify(b.actions));
+  });
+
+  it("emits announce packet-type only from announce/other actions", () => {
+    const announce = stepAnnouncePacketTypeWithActions(initialAnnouncePacketTypeState(), {
+      kind: "announce/packet-type-gate",
+      packetType: PACKET_TYPE_ANNOUNCE
+    });
+    expect(shouldTreatAnnouncePacketType(announce.actions)).toBe(true);
+    expect(shouldTreatAnnouncePacketTypeOther(announce.actions)).toBe(false);
+
+    const other = stepAnnouncePacketTypeWithActions(initialAnnouncePacketTypeState(), {
+      kind: "announce/packet-type-gate",
+      packetType: PACKET_TYPE_DATA
+    });
+    expect(shouldTreatAnnouncePacketType(other.actions)).toBe(false);
+    expect(shouldTreatAnnouncePacketTypeOther(other.actions)).toBe(true);
+
+    const empty = stepAnnouncePacketTypeWithActions(initialAnnouncePacketTypeState(), {
+      kind: "timer/fired",
+      timer: { id: "x" }
+    });
+    expect(shouldTreatAnnouncePacketType(empty.actions)).toBe(false);
+    expect(shouldTreatAnnouncePacketTypeOther(empty.actions)).toBe(false);
   });
 
   it("recognizes announce packet types and plans validate outcomes", () => {
