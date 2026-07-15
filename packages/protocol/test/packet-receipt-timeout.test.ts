@@ -172,8 +172,6 @@ describe("protocol packet receipt timeout", () => {
     expect(
       shouldFailAndDropOutboundReceipt({ failAndDrop: true, receiptPresent: false })
     ).toBe(false);
-    expect(shouldKeepOutboundReceipt(true)).toBe(true);
-    expect(shouldKeepOutboundReceipt(false)).toBe(false);
     expect(shouldRegisterPacketReceipt(true)).toBe(true);
     expect(shouldRegisterPacketReceipt(false)).toBe(false);
 
@@ -193,17 +191,32 @@ describe("protocol packet receipt timeout", () => {
     expect(shouldRegisterPacketReceiptNow(skipRegister.actions)).toBe(false);
     expect(shouldSkipRegisterPacketReceipt(skipRegister.actions)).toBe(true);
 
+    expect(shouldKeepOutboundReceipt({ planKeep: true, sent: true })).toBe(true);
+    expect(shouldKeepOutboundReceipt({ planKeep: true, sent: false })).toBe(false);
+    expect(shouldKeepOutboundReceipt({ planKeep: false, sent: true })).toBe(false);
+
     const keep = stepKeepOutboundReceiptWithActions(initialKeepOutboundReceiptState(), {
       kind: "receipt/keep-outbound-gate",
-      keepReceipt: true
+      planKeep: true,
+      sent: true
     });
     expect(keep.actions).toEqual([{ kind: "keep" }]);
     expect(shouldKeepOutboundReceiptNow(keep.actions)).toBe(true);
     expect(shouldSkipKeepOutboundReceipt(keep.actions)).toBe(false);
 
+    const skipKeepUnsent = stepKeepOutboundReceiptWithActions(initialKeepOutboundReceiptState(), {
+      kind: "receipt/keep-outbound-gate",
+      planKeep: true,
+      sent: false
+    });
+    expect(skipKeepUnsent.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldKeepOutboundReceiptNow(skipKeepUnsent.actions)).toBe(false);
+    expect(shouldSkipKeepOutboundReceipt(skipKeepUnsent.actions)).toBe(true);
+
     const skipKeep = stepKeepOutboundReceiptWithActions(initialKeepOutboundReceiptState(), {
       kind: "receipt/keep-outbound-gate",
-      keepReceipt: false
+      planKeep: false,
+      sent: true
     });
     expect(skipKeep.actions).toEqual([{ kind: "skip" }]);
     expect(shouldKeepOutboundReceiptNow(skipKeep.actions)).toBe(false);

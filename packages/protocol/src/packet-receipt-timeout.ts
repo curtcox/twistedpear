@@ -279,9 +279,15 @@ export function shouldSkipFailAndDropOutboundReceipt(
   return actions.some((action) => action.kind === "skip");
 }
 
-/** Whether outbound send should return a kept receipt to the caller. */
-export function shouldKeepOutboundReceipt(keepReceipt: boolean): boolean {
-  return keepReceipt;
+/**
+ * Whether outbound send should return a kept receipt after outbound-outcome
+ * actions say keep and the transmit succeeded.
+ */
+export function shouldKeepOutboundReceipt(input: {
+  readonly planKeep: boolean;
+  readonly sent: boolean;
+}): boolean {
+  return input.planKeep && input.sent;
 }
 
 /**
@@ -295,7 +301,8 @@ export type KeepOutboundReceiptEvent =
   | Event
   | {
       readonly kind: "receipt/keep-outbound-gate";
-      readonly keepReceipt: boolean;
+      readonly planKeep: boolean;
+      readonly sent: boolean;
     };
 
 export type KeepOutboundReceiptAction =
@@ -322,7 +329,12 @@ export function stepKeepOutboundReceiptWithActions(
       intents: [],
       actions: [
         {
-          kind: shouldKeepOutboundReceipt(event.keepReceipt) ? "keep" : "skip"
+          kind: shouldKeepOutboundReceipt({
+            planKeep: event.planKeep,
+            sent: event.sent
+          })
+            ? "keep"
+            : "skip"
         }
       ]
     };

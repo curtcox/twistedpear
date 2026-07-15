@@ -716,7 +716,8 @@ export class LeafTransport {
     }
     const keepStepped = stepKeepOutboundReceiptWithActions(initialKeepOutboundReceiptState(), {
       kind: "receipt/keep-outbound-gate",
-      keepReceipt: shouldOutboundKeepReceipt(outcomeStepped.actions) && sent
+      planKeep: shouldOutboundKeepReceipt(outcomeStepped.actions),
+      sent
     });
     if (!shouldKeepOutboundReceiptNow(keepStepped.actions)) {
       return null;

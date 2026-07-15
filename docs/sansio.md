@@ -51,8 +51,9 @@
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
 > **`stepRegisterPacketReceiptWithActions`**: register|skip;
-> **`stepKeepOutboundReceiptWithActions`**: keep|skip;
-> **`stepFailAndDropOutboundReceiptWithActions`**: fail-and-drop|skip),
+> **`stepKeepOutboundReceiptWithActions`**: keep|skip — planKeep×sent;
+> **`stepFailAndDropOutboundReceiptWithActions`**: fail-and-drop|skip —
+> failAndDrop×receiptPresent),
 > **packet-receipt proof commit** (via
 > **`stepAcceptPacketReceiptProofWithActions`**: accept|skip),
 > **resource assemble-payload commit** (via
@@ -916,7 +917,8 @@
 > **`planUnregisterTransportMember`**,
 > **`planUnregisterPacketReceipt`**, **`shouldRegisterPacketReceipt`** (via
 > **`stepRegisterPacketReceiptWithActions`**: register|skip),
-> **`shouldKeepOutboundReceipt`** (via **`stepKeepOutboundReceiptWithActions`**: keep|skip),
+> **`shouldKeepOutboundReceipt`** (via **`stepKeepOutboundReceiptWithActions`**:
+> keep|skip — planKeep×sent),
 > **`shouldFailAndDropOutboundReceipt`** (via
 > **`stepFailAndDropOutboundReceiptWithActions`**: fail-and-drop|skip),
 > **`shouldRegisterChannelMessageHandler`** / **`planUnregisterChannelMessageHandler`**,
@@ -1083,7 +1085,9 @@
 > **`shouldIgnoreDiscoveryPathFulfill`**,
 > **`shouldRememberPacketHashNow`** / **`shouldRememberPacketHashAfterRelay`**,
 > **`shouldDeleteExpiredReverseEntry`** / **`shouldTransmitReverseRelay`**,
-> **`shouldFailAndDropOutboundReceipt`** / **`shouldKeepOutboundReceipt`**,
+> **`shouldFailAndDropOutboundReceipt`** / **`shouldKeepOutboundReceipt`** (via
+> **`stepKeepOutboundReceiptWithActions`**: keep|skip — planKeep×sent; no ad-hoc
+> `planKeep && sent` compound beside the step),
 > **`shouldApplyLxmfReceiptSendState`**, and **`shouldHandlePropagationPeerError`** (via
 > **`stepHandlePropagationPeerErrorWithActions`**: handle|skip) /
 > **`shouldAcceptPropagationDeliveredMessage`** (via
@@ -2051,7 +2055,7 @@
 > **`stepInvokeLinkAppRequestHandlerWithActions`** emits `invoke`|`skip`;
 > **`stepSendLinkAppRequestResponseWithActions`** emits `send`|`skip`;
 > **`stepRegisterPacketReceiptWithActions`** emits `register`|`skip`;
-> **`stepKeepOutboundReceiptWithActions`** emits `keep`|`skip`;
+> **`stepKeepOutboundReceiptWithActions`** emits `keep`|`skip` (planKeep×sent);
 > **`stepFailAndDropOutboundReceiptWithActions`** emits `fail-and-drop`|`skip`;
 > **`stepRegisterLinkMemberWithActions`** emits `register`|`skip`;
 > **`stepAcceptIdentityCiphertextFrameWithActions`** emits `accept`|`skip`;
@@ -2565,7 +2569,7 @@
 > **`stepInvokeLinkAppRequestHandlerWithActions`** emits `invoke`|`skip`;
 > **`stepSendLinkAppRequestResponseWithActions`** emits `send`|`skip`;
 > **`stepRegisterPacketReceiptWithActions`** emits `register`|`skip`;
-> **`stepKeepOutboundReceiptWithActions`** emits `keep`|`skip`;
+> **`stepKeepOutboundReceiptWithActions`** emits `keep`|`skip` (planKeep×sent);
 > **`stepFailAndDropOutboundReceiptWithActions`** emits `fail-and-drop`|`skip`;
 > **`stepRegisterLinkMemberWithActions`** emits `register`|`skip`;
 > **`stepAcceptIdentityCiphertextFrameWithActions`** emits `accept`|`skip`;
