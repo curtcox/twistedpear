@@ -6,32 +6,38 @@ import {
   initialPackTokenFrameState,
   initialSplitTokenFrameState,
   initialSplitTokenKeyState,
+  initialTokenHmacMatchState,
   initialTokenIvLengthValidState,
+  initialTokenSignedMaterialState,
   initialUnpackPkcs7State,
   packTokenFrameRawFromActions,
   pkcs7PadRawFromActions,
   pkcs7UnpadRawFromActions,
   shouldAcceptTokenFrameNow,
   shouldAcceptTokenIvLength,
+  shouldMatchTokenHmac,
   shouldRejectPackTokenFrame,
   shouldRejectPkcs7Unpad,
   shouldRejectSplitTokenKey,
+  shouldRejectTokenSignedMaterial,
   shouldUsePackTokenFrame,
   shouldUsePkcs7Pad,
   shouldUsePkcs7Unpad,
   shouldUseSplitTokenFrame,
   shouldUseSplitTokenKey,
+  shouldUseTokenSignedMaterial,
   stepAcceptTokenFrameWithActions,
   stepPackTokenFrameWithActions,
   stepPkcs7PadWithActions,
   stepPkcs7UnpadWithActions,
   stepSplitTokenFrameWithActions,
   stepSplitTokenKeyWithActions,
+  stepTokenHmacMatchWithActions,
   stepTokenIvLengthValidWithActions,
+  stepTokenSignedMaterialWithActions,
   tokenFrameFieldsFromActions,
-  tokenHmacMatches,
   tokenKeyFieldsFromActions,
-  tokenSignedMaterial
+  tokenSignedMaterialRawFromActions
 } from "@twistedpear/protocol";
 import type { CryptoProvider } from "./provider.js";
 import type { Entropy } from "../runtime/runtime.js";
@@ -90,7 +96,12 @@ export class Token {
     }
 
     const expectedHmac = this.provider.hmacSha256(this.signingKey, frame!.signedMaterial);
-    return tokenHmacMatches(frame!.hmac, expectedHmac);
+    const matchStepped = stepTokenHmacMatchWithActions(initialTokenHmacMatchState(), {
+      kind: "token-framing/hmac-match-gate",
+      received: frame!.hmac,
+      expected: expectedHmac
+    });
+    return shouldMatchTokenHmac(matchStepped.actions);
   }
 
   encrypt(data: Uint8Array, options: TokenEncryptOptions = {}): Uint8Array {
@@ -127,7 +138,21 @@ export class Token {
       this.mode === "aes256"
         ? this.provider.aes256CbcEncrypt(padded, this.encryptionKey, iv)
         : this.provider.aes128CbcEncrypt(padded, this.encryptionKey, iv);
-    const signedParts = tokenSignedMaterial(iv, ciphertext);
+    const signedStepped = stepTokenSignedMaterialWithActions(initialTokenSignedMaterialState(), {
+      kind: "token-framing/signed-material-gate",
+      iv,
+      ciphertext
+    });
+    if (
+      shouldRejectTokenSignedMaterial(signedStepped.actions) ||
+      !shouldUseTokenSignedMaterial(signedStepped.actions)
+    ) {
+      throw new Error(`Token IV must be ${TOKEN_IV_SIZE} bytes`);
+    }
+    const signedParts = tokenSignedMaterialRawFromActions(signedStepped.actions);
+    if (signedParts === null) {
+      throw new Error(`Token IV must be ${TOKEN_IV_SIZE} bytes`);
+    }
     const hmac = this.provider.hmacSha256(this.signingKey, signedParts);
     const stepped = stepPackTokenFrameWithActions(initialPackTokenFrameState(), {
       kind: "token-framing/pack-gate",

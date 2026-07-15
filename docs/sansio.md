@@ -296,7 +296,9 @@
 > **`stepSplitTokenFrameWithActions`**: use-fields|reject / use-raw|reject /
 > use-fields|reject; IV-length / frame-accept via
 > **`stepTokenIvLengthValidWithActions`** /
-> **`stepAcceptTokenFrameWithActions`**: valid|invalid / accept|skip) and
+> **`stepAcceptTokenFrameWithActions`**: valid|invalid / accept|skip;
+> signed material / HMAC match via **`stepTokenSignedMaterialWithActions`** /
+> **`stepTokenHmacMatchWithActions`**: use-raw|reject / match|mismatch) and
 > **link keepalive-context** (via **`stepLinkKeepaliveContextWithActions`**:
 > keepalive|other), **channel envelope emplace** (via
 > **`stepEmplaceChannelEnvelopeWithActions`**: emplace|skip), **channel RX/TX
@@ -1690,6 +1692,7 @@
 > pack-link-response / unpack-link-request / unpack-link-response /
 > pack-token-frame / split-token-frame / split-token-key /
 > token-iv-length-valid / accept-token-frame /
+> token-signed-material / token-hmac-match /
 > link-keepalive-context / emplace-channel-envelope /
 > accept-channel-sequence / drain-channel-ring-index /
 > register-channel-message-handler / stop-channel-handler-fanout /
@@ -2252,12 +2255,16 @@
 > **`stepSplitTokenFrameWithActions`** /
 > **`stepSplitTokenKeyWithActions`** /
 > **`stepTokenIvLengthValidWithActions`** /
-> **`stepAcceptTokenFrameWithActions`** emit `use-raw`|`reject` /
+> **`stepAcceptTokenFrameWithActions`** /
+> **`stepTokenSignedMaterialWithActions`** /
+> **`stepTokenHmacMatchWithActions`** emit `use-raw`|`reject` /
 > `use-fields`|`reject` / `use-fields`|`reject` / `valid`|`invalid` /
-> `accept`|`skip`; Token frame pack / split, key-split, IV-length, and
-> frame-accept apply only from those actions (no ad-hoc `packTokenFrame` /
+> `accept`|`skip` / `use-raw`|`reject` / `match`|`mismatch`; Token frame
+> pack / split, key-split, IV-length, frame-accept, signed-material, and
+> HMAC match apply only from those actions (no ad-hoc `packTokenFrame` /
 > `splitTokenFrame` / `splitTokenKey` / `isValidTokenIvLength` /
-> `shouldAcceptTokenFrame` reads beside the step).
+> `shouldAcceptTokenFrame` / `tokenSignedMaterial` / `tokenHmacMatches`
+> reads beside the step).
 > **`stepPackIdentityCiphertextWithActions`** /
 > **`stepSplitIdentityCiphertextWithActions`** emit `use-raw`|`reject` /
 > `use-fields`|`reject`; Identity ciphertext pack / split apply only from

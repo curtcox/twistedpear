@@ -1,8 +1,10 @@
 /**
  * Pure RNS Token key split and frame layout (iv || ciphertext || hmac).
  * AES / HMAC stay at the crypto adapter edge.
- * Key-split / pack / split conclusions leave via machine actions (no ad-hoc
- * `splitTokenKey` / `packTokenFrame` / `splitTokenFrame` reads beside the step).
+ * Key-split / pack / split / signed-material / hmac-match conclusions leave via
+ * machine actions (no ad-hoc `splitTokenKey` / `packTokenFrame` /
+ * `splitTokenFrame` / `tokenSignedMaterial` / `tokenHmacMatches` reads beside
+ * the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 
@@ -75,6 +77,79 @@ export function tokenSignedMaterial(iv: Uint8Array, ciphertext: Uint8Array): Uin
   return concatBytes(iv, ciphertext);
 }
 
+/**
+ * Token signed-material assembly is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `tokenSignedMaterial` reads
+ * beside the step). Invalid IV sizes become `reject`.
+ */
+export type TokenSignedMaterialState = Record<string, never>;
+
+export type TokenSignedMaterialEvent =
+  | Event
+  | {
+      readonly kind: "token-framing/signed-material-gate";
+      readonly iv: Uint8Array;
+      readonly ciphertext: Uint8Array;
+    };
+
+export type TokenSignedMaterialAction =
+  | { readonly kind: "use-raw"; readonly raw: Uint8Array }
+  | { readonly kind: "reject" };
+
+export interface TokenSignedMaterialStepResult {
+  readonly state: TokenSignedMaterialState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TokenSignedMaterialAction[];
+}
+
+export function initialTokenSignedMaterialState(): TokenSignedMaterialState {
+  return {};
+}
+
+export function stepTokenSignedMaterialWithActions(
+  state: TokenSignedMaterialState,
+  event: TokenSignedMaterialEvent
+): TokenSignedMaterialStepResult {
+  if (event.kind === "token-framing/signed-material-gate") {
+    try {
+      return {
+        state,
+        intents: [],
+        actions: [
+          {
+            kind: "use-raw",
+            raw: tokenSignedMaterial(event.iv, event.ciphertext)
+          }
+        ]
+      };
+    } catch {
+      return { state, intents: [], actions: [{ kind: "reject" }] };
+    }
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseTokenSignedMaterial(
+  actions: ReadonlyArray<TokenSignedMaterialAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-raw");
+}
+
+export function shouldRejectTokenSignedMaterial(
+  actions: ReadonlyArray<TokenSignedMaterialAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract token signed material from step actions; null when no `use-raw`. */
+export function tokenSignedMaterialRawFromActions(
+  actions: ReadonlyArray<TokenSignedMaterialAction>
+): Uint8Array | null {
+  const action = actions.find((entry) => entry.kind === "use-raw");
+  return action?.kind === "use-raw" ? action.raw : null;
+}
+
 export function splitTokenFrame(token: Uint8Array): TokenFrameParts | null {
   if (token.length <= TOKEN_IV_SIZE + TOKEN_HMAC_SIZE) {
     return null;
@@ -100,6 +175,66 @@ export function tokenHmacMatches(received: Uint8Array, expected: Uint8Array): bo
     mismatch |= (received[index] ?? 0) ^ (expected[index] ?? 0);
   }
   return mismatch === 0;
+}
+
+/**
+ * Token HMAC match is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `tokenHmacMatches` reads
+ * beside the step).
+ */
+export type TokenHmacMatchState = Record<string, never>;
+
+export type TokenHmacMatchEvent =
+  | Event
+  | {
+      readonly kind: "token-framing/hmac-match-gate";
+      readonly received: Uint8Array;
+      readonly expected: Uint8Array;
+    };
+
+export type TokenHmacMatchAction =
+  | { readonly kind: "match" }
+  | { readonly kind: "mismatch" };
+
+export interface TokenHmacMatchStepResult {
+  readonly state: TokenHmacMatchState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TokenHmacMatchAction[];
+}
+
+export function initialTokenHmacMatchState(): TokenHmacMatchState {
+  return {};
+}
+
+export function stepTokenHmacMatchWithActions(
+  state: TokenHmacMatchState,
+  event: TokenHmacMatchEvent
+): TokenHmacMatchStepResult {
+  if (event.kind === "token-framing/hmac-match-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: tokenHmacMatches(event.received, event.expected) ? "match" : "mismatch"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldMatchTokenHmac(
+  actions: ReadonlyArray<TokenHmacMatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "match");
+}
+
+export function shouldMismatchTokenHmac(
+  actions: ReadonlyArray<TokenHmacMatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "mismatch");
 }
 
 /** Whether a Token IV matches the fixed RNS size. */
