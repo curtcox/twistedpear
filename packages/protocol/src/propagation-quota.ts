@@ -1,11 +1,11 @@
 /**
  * Pure LXMF propagation-server quota and eviction planning.
  * Persistence and hashing stay at the adapter edge.
- * Store / restore / catalog-evict / catalog-delete / evict-oldest /
+ * Store / store-plan / restore / catalog-evict / catalog-delete / evict-oldest /
  * message-too-large / select-oldest-key / store-commit / restore-apply /
  * store-apply-commit conclusions leave via machine actions (no ad-hoc
- * `plan.kind` / `plan === "accept"` / `shouldEvict*` / `shouldDelete*` /
- * `isPropagationMessageTooLarge` / `selectOldestPropagationKey` /
+ * `plan.kind` / `planPropagationStore` / `plan === "accept"` / `shouldEvict*` /
+ * `shouldDelete*` / `isPropagationMessageTooLarge` / `selectOldestPropagationKey` /
  * `shouldCommitPropagationStoreEntry` / `shouldApplyPropagationRestore` /
  * `shouldApplyPropagationStoreCommit` reads beside the step).
  */
@@ -236,6 +236,120 @@ export function planPropagationStore(input: {
   }
 
   return { kind: "accept", evictKeys };
+}
+
+/**
+ * Store-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planPropagationStore` /
+ * `plan.kind` reads beside the step). Nested under
+ * {@link stepPropagationStoreWithActions}.
+ */
+export type PropagationStorePlanState = Record<string, never>;
+
+export type PropagationStorePlanEvent =
+  | Event
+  | {
+      readonly kind: "propagation/store-plan-gate";
+      readonly quotas: PropagationQuotas;
+      readonly messageBytes: number;
+      readonly alreadyStored: boolean;
+      readonly usedBytes: number;
+      readonly entries: ReadonlyArray<PropagationCatalogEntry>;
+    };
+
+export type PropagationStorePlanAction = PropagationStorePlan;
+
+export interface PropagationStorePlanStepResult {
+  readonly state: PropagationStorePlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PropagationStorePlanAction[];
+}
+
+export function initialPropagationStorePlanState(): PropagationStorePlanState {
+  return {};
+}
+
+export function stepPropagationStorePlanWithActions(
+  state: PropagationStorePlanState,
+  event: PropagationStorePlanEvent
+): PropagationStorePlanStepResult {
+  if (event.kind === "propagation/store-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        planPropagationStore({
+          quotas: event.quotas,
+          messageBytes: event.messageBytes,
+          alreadyStored: event.alreadyStored,
+          usedBytes: event.usedBytes,
+          entries: event.entries
+        })
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRejectTooLargePropagationStorePlan(
+  actions: ReadonlyArray<PropagationStorePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-too-large");
+}
+
+export function shouldRejectCapacityPropagationStorePlan(
+  actions: ReadonlyArray<PropagationStorePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-capacity");
+}
+
+export function shouldDuplicatePropagationStorePlan(
+  actions: ReadonlyArray<PropagationStorePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "duplicate");
+}
+
+export function shouldAcceptPropagationStorePlan(
+  actions: ReadonlyArray<PropagationStorePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+/** Whether plan actions include either reject-too-large or reject-capacity. */
+export function shouldRejectPropagationStorePlan(
+  actions: ReadonlyArray<PropagationStorePlanAction>
+): boolean {
+  return (
+    shouldRejectTooLargePropagationStorePlan(actions) ||
+    shouldRejectCapacityPropagationStorePlan(actions)
+  );
+}
+
+/** Eviction keys from an accept plan action, if present. */
+export function propagationStorePlanEvictKeys(
+  actions: ReadonlyArray<PropagationStorePlanAction>
+): readonly string[] | null {
+  for (const action of actions) {
+    if (action.kind === "accept") {
+      return action.evictKeys;
+    }
+  }
+  return null;
+}
+
+/** Extract the store plan from actions; null when empty. */
+export function propagationStorePlanFromActions(
+  actions: ReadonlyArray<PropagationStorePlanAction>
+): PropagationStorePlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "reject-too-large" ||
+      entry.kind === "duplicate" ||
+      entry.kind === "reject-capacity" ||
+      entry.kind === "accept"
+  );
+  return action ?? null;
 }
 
 /** Whether store eviction may delete a catalog entry for an eviction key. */
@@ -539,6 +653,8 @@ export type PropagationStoreEvent =
 /**
  * Adapter applies reject / duplicate / accept (with eviction keys) only from
  * these actions.
+ * Plan nested via {@link stepPropagationStorePlanWithActions}
+ * (`reject-too-large`|`duplicate`|`reject-capacity`|`accept`).
  */
 export type PropagationStoreAction =
   | { readonly kind: "reject" }
@@ -605,19 +721,27 @@ function stepPropagationStoreInner(
   event: PropagationStoreEvent
 ): PropagationStoreStepResult {
   if (event.kind === "store/received") {
-    const plan = planPropagationStore({
-      quotas: event.quotas,
-      messageBytes: event.messageBytes,
-      alreadyStored: event.alreadyStored,
-      usedBytes: event.usedBytes,
-      entries: event.entries
-    });
-    if (plan.kind === "reject-too-large" || plan.kind === "reject-capacity") {
+    const planActions = stepPropagationStorePlanWithActions(
+      initialPropagationStorePlanState(),
+      {
+        kind: "propagation/store-plan-gate",
+        quotas: event.quotas,
+        messageBytes: event.messageBytes,
+        alreadyStored: event.alreadyStored,
+        usedBytes: event.usedBytes,
+        entries: event.entries
+      }
+    ).actions;
+    if (shouldRejectPropagationStorePlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject" }] };
     }
-    if (plan.kind === "duplicate") {
+    if (shouldDuplicatePropagationStorePlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "duplicate" }] };
     }
+    if (!shouldAcceptPropagationStorePlan(planActions)) {
+      return { state, intents: [], actions: [] };
+    }
+    const evictKeys = propagationStorePlanEvictKeys(planActions) ?? [];
     const commitStepped = stepCommitPropagationStoreEntryWithActions(
       initialCommitPropagationStoreEntryState(),
       {
@@ -631,7 +755,7 @@ function stepPropagationStoreInner(
     return {
       state,
       intents: [],
-      actions: [{ kind: "accept", evictKeys: plan.evictKeys }]
+      actions: [{ kind: "accept", evictKeys }]
     };
   }
 

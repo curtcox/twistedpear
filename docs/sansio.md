@@ -54,6 +54,10 @@
 > **`stepLinkResourceAdvertisementPlanWithActions`**: ignore|ask-app|accept —
 > nested under resource-adv; **`stepLinkResourceAcceptAppResultPlanWithActions`**:
 > accept|reject — nested under resource-adv),
+> **propagation store-plan** (via
+> **`stepPropagationStorePlanWithActions`**:
+> reject-too-large|duplicate|reject-capacity|accept — nested under
+> propagation-store),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -212,6 +216,9 @@
 > (nested under resource-adv) /
 > **`stepLinkResourceAcceptAppResultPlanWithActions`**: accept|reject
 > (nested under resource-adv) /
+> **`stepPropagationStorePlanWithActions`**:
+> reject-too-large|duplicate|reject-capacity|accept
+> (nested under propagation-store) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -240,7 +247,10 @@
 > acceptance gates are pure protocol leaves; `Link` adapts them. **MDU**
 > metrics and **hops-match** (via **`stepLinkHopsMatchWithActions`**:
 > match|mismatch) are pure protocol leaves; `Link` adapts them. **LXMF propagation quota / eviction
-> planning** (store via **`stepPropagationStoreWithActions`**) and **propagation /get
+> planning** (store via **`stepPropagationStoreWithActions`**: reject /
+> duplicate / accept; plan nested via
+> **`stepPropagationStorePlanWithActions`**:
+> reject-too-large|duplicate|reject-capacity|accept) and **propagation /get
 > request planning** (via **`stepPropagationGetWithActions`**: list-ids / apply
 > delete+fetch) are pure protocol leaves; `PropagationServer` and peer
 > propagation adapt them. **LXMF delivery method / representation selection**
@@ -1348,12 +1358,15 @@
 > (no ad-hoc `planLinkProofValidateOutcome` / `outcome ===` reads beside the
 > step).
 > **`stepPropagationStoreWithActions`** emits `reject` / `duplicate` /
-> `accept` (with evict keys); **`stepCommitPropagationStoreEntryWithActions`**
+> `accept` (with evict keys; plan nested via
+> **`stepPropagationStorePlanWithActions`**:
+> reject-too-large|duplicate|reject-capacity|accept);
+> **`stepCommitPropagationStoreEntryWithActions`**
 > emits `commit` / `skip`; **`stepApplyPropagationStoreCommitWithActions`**
 > emits `apply` / `skip`; `PropagationServer.storePropagationData` applies
-> eviction + commit only from those actions (no ad-hoc `plan.kind` /
-> `shouldCommitPropagationStoreEntry` / `shouldApplyPropagationStoreCommit`
-> reads beside the step).
+> eviction + commit only from those actions (no ad-hoc `planPropagationStore` /
+> `plan.kind` / `shouldCommitPropagationStoreEntry` /
+> `shouldApplyPropagationStoreCommit` reads beside the step).
 > **`stepApplyPropagationRestoreWithActions`** emits `apply` / `skip`;
 > `PropagationServer` restore applies catalog insert only from those actions
 > (no ad-hoc `shouldApplyPropagationRestore` / accept+hash reads beside the
@@ -1741,7 +1754,7 @@
 > link-resource-accept-app-result-plan, Link inbound app-request
 > invoke/response, Link LINKIDENTIFY reject/commit /
 > link-identify-outcome-plan, propagation-store
-> reject/duplicate/accept, propagation /get list-ids/apply, LXMF
+> reject/duplicate/accept / propagation-store-plan, propagation /get list-ids/apply, LXMF
 > delivery-parameter select deliver/reject, LXMF send-method
 > reject/dispatch, LXMF per-method send gates (opportunistic /
 > direct / propagated), LXMF pack gates (static pack / timestamp /
@@ -1760,7 +1773,7 @@
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
@@ -1869,6 +1882,7 @@
 > attempt-link-proof-crypto / accept-link-rtt / link-rtt-outcome-plan / teardown-link-from-rtt /
 > link-proof-validate-outcome-plan / link-identify-outcome-plan /
 > link-resource-advertisement-plan / link-resource-accept-app-result-plan /
+> propagation-store-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /

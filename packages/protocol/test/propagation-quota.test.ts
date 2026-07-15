@@ -9,6 +9,7 @@ import {
   initialEvictPropagationCatalogEntryState,
   initialPropagationMessageTooLargeState,
   initialPropagationRestoreState,
+  initialPropagationStorePlanState,
   initialPropagationStoreState,
   initialSelectOldestPropagationKeyState,
   isPropagationMessageTooLarge,
@@ -18,9 +19,12 @@ import {
   propagationDestinationHash,
   propagationEntryVisibleToRecipient,
   propagationStoreAcceptEvictKeys,
+  propagationStorePlanEvictKeys,
+  propagationStorePlanFromActions,
   selectOldestPropagationKey,
   shouldAcceptPropagationRestore,
   shouldAcceptPropagationStore,
+  shouldAcceptPropagationStorePlan,
   shouldApplyPropagationRestore,
   shouldApplyPropagationRestoreNow,
   shouldApplyPropagationStoreCommit,
@@ -30,12 +34,16 @@ import {
   shouldDeletePropagationCatalogEntry,
   shouldDeletePropagationCatalogEntryNow,
   shouldDuplicatePropagationStore,
+  shouldDuplicatePropagationStorePlan,
   shouldEvictOldestPropagationEntry,
   shouldEvictOldestPropagationEntryNow,
   shouldEvictPropagationCatalogEntry,
   shouldEvictPropagationCatalogEntryNow,
   shouldMissOldestPropagationKey,
+  shouldRejectCapacityPropagationStorePlan,
   shouldRejectPropagationStore,
+  shouldRejectPropagationStorePlan,
+  shouldRejectTooLargePropagationStorePlan,
   shouldSkipApplyPropagationRestore,
   shouldSkipApplyPropagationStoreCommit,
   shouldSkipCommitPropagationStoreEntry,
@@ -53,6 +61,7 @@ import {
   stepEvictPropagationCatalogEntryWithActions,
   stepPropagationMessageTooLargeWithActions,
   stepPropagationRestoreWithActions,
+  stepPropagationStorePlanWithActions,
   stepPropagationStoreWithActions,
   stepSelectOldestPropagationKeyWithActions,
   type PropagationQuotas
@@ -111,6 +120,76 @@ describe("protocol propagation quota", () => {
       entries: []
     });
     expect(plan.kind).toBe("reject-capacity");
+  });
+
+  it("emits store-plan actions only from propagation/store-plan-gate", () => {
+    const tooLarge = stepPropagationStorePlanWithActions(
+      initialPropagationStorePlanState(),
+      {
+        kind: "propagation/store-plan-gate",
+        quotas,
+        messageBytes: 51,
+        alreadyStored: false,
+        usedBytes: 0,
+        entries: []
+      }
+    );
+    expect(shouldRejectTooLargePropagationStorePlan(tooLarge.actions)).toBe(true);
+    expect(shouldRejectPropagationStorePlan(tooLarge.actions)).toBe(true);
+    expect(propagationStorePlanFromActions(tooLarge.actions)).toEqual({
+      kind: "reject-too-large"
+    });
+
+    const duplicate = stepPropagationStorePlanWithActions(
+      initialPropagationStorePlanState(),
+      {
+        kind: "propagation/store-plan-gate",
+        quotas,
+        messageBytes: 10,
+        alreadyStored: true,
+        usedBytes: 10,
+        entries: [{ key: "a", size: 10, storedAt: 1 }]
+      }
+    );
+    expect(shouldDuplicatePropagationStorePlan(duplicate.actions)).toBe(true);
+    expect(propagationStorePlanFromActions(duplicate.actions)).toEqual({
+      kind: "duplicate"
+    });
+
+    const accepted = stepPropagationStorePlanWithActions(
+      initialPropagationStorePlanState(),
+      {
+        kind: "propagation/store-plan-gate",
+        quotas,
+        messageBytes: 40,
+        alreadyStored: false,
+        usedBytes: 80,
+        entries: [
+          { key: "old", size: 40, storedAt: 1 },
+          { key: "new", size: 40, storedAt: 2 }
+        ]
+      }
+    );
+    expect(shouldAcceptPropagationStorePlan(accepted.actions)).toBe(true);
+    expect(propagationStorePlanEvictKeys(accepted.actions)).toEqual(["old"]);
+    expect(propagationStorePlanFromActions(accepted.actions)).toEqual({
+      kind: "accept",
+      evictKeys: ["old"]
+    });
+
+    const capacity = stepPropagationStorePlanWithActions(
+      initialPropagationStorePlanState(),
+      {
+        kind: "propagation/store-plan-gate",
+        quotas: { maxBytes: 30, maxMessages: 10, maxMessageBytes: 50 },
+        messageBytes: 40,
+        alreadyStored: false,
+        usedBytes: 0,
+        entries: []
+      }
+    );
+    expect(shouldRejectCapacityPropagationStorePlan(capacity.actions)).toBe(true);
+    expect(shouldRejectPropagationStorePlan(capacity.actions)).toBe(true);
   });
 
   it("selects oldest key and destination hash prefix", () => {
