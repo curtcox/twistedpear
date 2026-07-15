@@ -303,6 +303,71 @@ export function shouldAcceptPacketReceiptProof(input: {
 }
 
 /**
+ * Packet-receipt proof accept-after-plan gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldAcceptPacketReceiptProof` reads beside the step).
+ */
+export type AcceptPacketReceiptProofState = Record<string, never>;
+
+export type AcceptPacketReceiptProofEvent =
+  | Event
+  | {
+      readonly kind: "receipt/accept-proof-gate";
+      readonly planAccept: boolean;
+      readonly splitPresent: boolean;
+    };
+
+export type AcceptPacketReceiptProofAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptPacketReceiptProofStepResult {
+  readonly state: AcceptPacketReceiptProofState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptPacketReceiptProofAction[];
+}
+
+export function initialAcceptPacketReceiptProofState(): AcceptPacketReceiptProofState {
+  return {};
+}
+
+export function stepAcceptPacketReceiptProofWithActions(
+  state: AcceptPacketReceiptProofState,
+  event: AcceptPacketReceiptProofEvent
+): AcceptPacketReceiptProofStepResult {
+  if (event.kind === "receipt/accept-proof-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptPacketReceiptProof({
+            planAccept: event.planAccept,
+            splitPresent: event.splitPresent
+          })
+            ? "accept"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptPacketReceiptProofNow(
+  actions: ReadonlyArray<AcceptPacketReceiptProofAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAcceptPacketReceiptProof(
+  actions: ReadonlyArray<AcceptPacketReceiptProofAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
+/**
  * Packet-receipt proof accept is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  */

@@ -5,17 +5,19 @@ import {
   RECEIPT_TIMEOUT_TIMER_ID,
   isPacketTypeProof,
   packetProofFieldsFromActions,
+  initialAcceptPacketReceiptProofState,
   initialPacketProofHashMatchState,
   initialPacketReceiptCallbackState,
   initialPacketReceiptProofAcceptState,
   initialSplitPacketProofState,
-  shouldAcceptPacketReceiptProof,
   shouldAcceptPacketReceiptProofActions,
+  shouldAcceptPacketReceiptProofNow,
   shouldClearPacketReceiptCallback,
   shouldInvokePacketReceiptAction,
   shouldMatchPacketProofHash,
   shouldRejectSplitPacketProof,
   shouldUseSplitPacketProof,
+  stepAcceptPacketReceiptProofWithActions,
   stepPacketProofHashMatchWithActions,
   stepPacketReceiptCallbackWithActions,
   stepPacketReceiptProofAcceptWithActions,
@@ -131,12 +133,15 @@ export class PacketReceipt {
         signatureValid
       }
     );
-    if (
-      !shouldAcceptPacketReceiptProof({
+    const commitStepped = stepAcceptPacketReceiptProofWithActions(
+      initialAcceptPacketReceiptProofState(),
+      {
+        kind: "receipt/accept-proof-gate",
         planAccept: shouldAcceptPacketReceiptProofActions(acceptStepped.actions),
         splitPresent: split !== null
-      })
-    ) {
+      }
+    );
+    if (!shouldAcceptPacketReceiptProofNow(commitStepped.actions)) {
       return false;
     }
 

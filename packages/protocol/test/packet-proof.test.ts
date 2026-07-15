@@ -4,6 +4,7 @@ import {
   PACKET_FULL_HASH_SIZE,
   PACKET_SIGNATURE_SIZE,
   isPacketTypeProof,
+  initialAcceptPacketReceiptProofState,
   initialPackPacketProofState,
   initialPacketProofHashMatchState,
   initialPacketReceiptProofAcceptState,
@@ -15,13 +16,16 @@ import {
   planPacketReceiptProofAccept,
   shouldAcceptPacketReceiptProof,
   shouldAcceptPacketReceiptProofActions,
+  shouldAcceptPacketReceiptProofNow,
   shouldMatchPacketProofHash,
   shouldMismatchPacketProofHash,
   shouldRejectPacketReceiptProofActions,
   shouldRejectSplitPacketProof,
+  shouldSkipAcceptPacketReceiptProof,
   shouldUsePackPacketProof,
   shouldUseSplitPacketProof,
   splitPacketProof,
+  stepAcceptPacketReceiptProofWithActions,
   stepPackPacketProofWithActions,
   stepPacketProofHashMatchWithActions,
   stepPacketReceiptProofAcceptWithActions,
@@ -186,5 +190,40 @@ describe("protocol packet proof framing", () => {
     });
     expect(shouldAcceptPacketReceiptProofActions(accept.actions)).toBe(true);
     expect(shouldRejectPacketReceiptProofActions(accept.actions)).toBe(false);
+  });
+
+  it("emits accept-packet-receipt-proof actions from WithActions step", () => {
+    const accept = stepAcceptPacketReceiptProofWithActions(
+      initialAcceptPacketReceiptProofState(),
+      {
+        kind: "receipt/accept-proof-gate",
+        planAccept: true,
+        splitPresent: true
+      }
+    );
+    expect(shouldAcceptPacketReceiptProofNow(accept.actions)).toBe(true);
+    expect(shouldSkipAcceptPacketReceiptProof(accept.actions)).toBe(false);
+
+    const skipPlan = stepAcceptPacketReceiptProofWithActions(
+      initialAcceptPacketReceiptProofState(),
+      {
+        kind: "receipt/accept-proof-gate",
+        planAccept: false,
+        splitPresent: true
+      }
+    );
+    expect(shouldAcceptPacketReceiptProofNow(skipPlan.actions)).toBe(false);
+    expect(shouldSkipAcceptPacketReceiptProof(skipPlan.actions)).toBe(true);
+
+    const skipSplit = stepAcceptPacketReceiptProofWithActions(
+      initialAcceptPacketReceiptProofState(),
+      {
+        kind: "receipt/accept-proof-gate",
+        planAccept: true,
+        splitPresent: false
+      }
+    );
+    expect(shouldAcceptPacketReceiptProofNow(skipSplit.actions)).toBe(false);
+    expect(shouldSkipAcceptPacketReceiptProof(skipSplit.actions)).toBe(true);
   });
 });

@@ -65,6 +65,7 @@ import {
   initialLinkRegisterListState,
   initialLinkUnregisterMembershipState,
   initialLocalPlainDataDeliveryState,
+  initialDispatchLocalPlainDataDeliveryState,
   initialMatchAnnounceAspectState,
   initialOutboundReceiptState,
   initialPacketFilterState,
@@ -87,8 +88,8 @@ import {
   shouldAppendActiveLinkMembershipActions,
   shouldDirectPathOutbound,
   shouldDispatchLocalLinkRequestNow,
-  shouldDispatchLocalPlainDataDelivery,
   shouldDispatchLocalPlainDataDeliveryActions,
+  shouldDispatchLocalPlainDataDeliveryNow,
   shouldDispatchResourceProofToLinkNow,
   shouldDispatchTransportAnnounce,
   shouldDispatchTransportLinkData,
@@ -163,6 +164,7 @@ import {
   stepAddPathEntryWithActions,
   stepDispatchAnnounceHandlersWithActions,
   stepDispatchLocalLinkRequestWithActions,
+  stepDispatchLocalPlainDataDeliveryWithActions,
   stepDispatchResourceProofToLinkWithActions,
   stepEmitPathRequestWithActions,
   stepIgnoreLocalAnnounceWithActions,
@@ -1014,13 +1016,16 @@ export class LeafTransport {
         plaintextPresent: plaintext !== null
       }
     );
-    if (
-      !shouldDispatchLocalPlainDataDelivery({
+    const dispatchStepped = stepDispatchLocalPlainDataDeliveryWithActions(
+      initialDispatchLocalPlainDataDeliveryState(),
+      {
+        kind: "transport/dispatch-local-plain-data-gate",
         planDispatch: shouldDispatchLocalPlainDataDeliveryActions(deliveryStepped.actions),
         destinationPresent: destination !== undefined,
         plaintextPresent: plaintext !== null
-      })
-    ) {
+      }
+    );
+    if (!shouldDispatchLocalPlainDataDeliveryNow(dispatchStepped.actions)) {
       return;
     }
 

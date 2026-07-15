@@ -31,9 +31,16 @@
 > **packet-receipt register / keep / fail-and-drop** (via
 > **`stepRegisterPacketReceiptWithActions`**: register|skip;
 > **`stepKeepOutboundReceiptWithActions`**: keep|skip;
-> **`stepFailAndDropOutboundReceiptWithActions`**: fail-and-drop|skip), and
+> **`stepFailAndDropOutboundReceiptWithActions`**: fail-and-drop|skip),
+> **packet-receipt proof commit** (via
+> **`stepAcceptPacketReceiptProofWithActions`**: accept|skip),
+> **resource assemble-payload commit** (via
+> **`stepCommitResourceAssemblePayloadWithActions`**: commit|skip),
+> **local plain-data dispatch commit** (via
+> **`stepDispatchLocalPlainDataDeliveryWithActions`**: dispatch|skip), and
 > **link-member register** (via **`stepRegisterLinkMemberWithActions`**: register|skip)
-> are pure protocol leaves; `Announce`, `Link`, and `TransportNode` adapt them.
+> are pure protocol leaves; `Announce`, `Link`, `PacketReceipt`, `Resource`, and
+> `TransportNode` adapt them.
 > **Propagation catalog /get-request-data** gates (catalog
 > evict via **`stepEvictPropagationCatalogEntryWithActions`**: evict|skip;
 > catalog delete via **`stepDeletePropagationCatalogEntryWithActions`**:
@@ -1044,20 +1051,25 @@
 > PropagationServer / PropagationClient adapt them.
 > **`shouldRelayReverseOnInterface`**, **`shouldInvokeLinkAppRequestHandler`** /
 > **`shouldSendLinkAppRequestResponse`**, **`shouldRestoreIdentityRatchetRecord`**,
-> **`shouldCommitResourceAssemblePayload`**, and **`shouldRejectLxmfPackEndpoints`** /
+> **`shouldCommitResourceAssemblePayload`** (via
+> **`stepCommitResourceAssemblePayloadWithActions`**: commit|skip), and
+> **`shouldRejectLxmfPackEndpoints`** /
 > **`shouldRejectLxmfPackTimestamp`** live in protocol; LeafTransport reverse relay,
 > Link, Identity, Resource, and LXMessage adapt them.
 > **`shouldContinueLinkValidateRequest`** / **`shouldTeardownLinkFromRtt`** /
 > **`shouldRemovePendingLinkMembership`** / **`shouldAppendActiveLinkMembership`** /
 > **`shouldRemoveActiveLinkMembership`**, **`shouldUnregisterPendingLinkRequest`** /
-> **`shouldRemoveLinkResourceListIndex`**, **`shouldAcceptPacketReceiptProof`** /
+> **`shouldRemoveLinkResourceListIndex`**, **`shouldAcceptPacketReceiptProof`** (via
+> **`stepAcceptPacketReceiptProofWithActions`**: accept|skip) /
 > **`shouldUnregisterPacketReceipt`**, **`shouldAcceptLxmfWireFrame`** (via
 > **`stepAcceptLxmfWireFrameWithActions`**: accept|skip) /
 > **`shouldCommitRememberedLxmfHash`** (via
 > **`stepCommitRememberedLxmfHashWithActions`**: commit|skip) /
 > **`shouldDeliverLxmfPropagationLocalIngress`**,
 > **`shouldEvictOldestPropagationEntry`**, **`shouldUnregisterStreamReadyCallback`**,
-> **`shouldDispatchLocalPlainDataDelivery`**, and **`shouldUnregisterTransportMember`**
+> **`shouldDispatchLocalPlainDataDelivery`** (via
+> **`stepDispatchLocalPlainDataDeliveryWithActions`**: dispatch|skip), and
+> **`shouldUnregisterTransportMember`**
 > live in protocol; Link, TransportNode, PacketReceipt, LXMF, PropagationServer, Buffer,
 > and LeafTransport adapt them. **`stepResourceAdvertiseWait`** (queue until link ready
 > for a new resource; timer intents + queue actions) lives in protocol; `Resource.advertise`
@@ -1206,6 +1218,7 @@
 > **`stepChannelSendWithActions`** emits `proceed` / `link-not-ready` /
 > `too-big`; `Channel` register/pack/unpack/send apply only from those actions.
 > **`stepResourceAssembleWithActions`** emits `complete` / `corrupt`;
+> **`stepCommitResourceAssemblePayloadWithActions`** emits `commit`|`skip`;
 > **`stepResourceProofAcceptWithActions`** emits `complete` / `ignore`;
 > **`stepResourceContinueTransferWithActions`** emits `continue`|`stop`;
 > **`stepResourceReceivePartAllowWithActions`** /
@@ -1218,7 +1231,8 @@
 > from those actions (no ad-hoc
 > `planChannelMessageTypeRegistration` / `planChannelEnvelopeUnpack` /
 > `planChannelEnvelopePack` / `planChannelSend` / `planResourceAssembleOutcome` /
-> `planResourceProofAccept` / `canResourceContinueTransfer` /
+> `shouldCommitResourceAssemblePayload` / `planResourceProofAccept` /
+> `canResourceContinueTransfer` /
 > `canReceiveResourcePart` / `canRequestResourceNext` /
 > `canRunResourceWatchdog` / `canProveResource` / `shouldAdvertiseResource` /
 > `shouldAcceptIncomingResourceAdvertisement` reads beside the step).
@@ -1261,13 +1275,15 @@
 > `none`; **`stepReverseRelayOutcomeWithActions`** emits `relay` /
 > `delete-expired` / `ignore`; **`stepPacketHashRememberWithActions`** emits
 > `now` / `after-relay`; **`stepLocalPlainDataDeliveryWithActions`** emits
-> `dispatch` / `ignore`; **`stepProofIngressWithActions`** emits
+> `dispatch` / `ignore`; **`stepDispatchLocalPlainDataDeliveryWithActions`**
+> emits `dispatch`|`skip`; **`stepProofIngressWithActions`** emits
 > `lrproof` / `resource-prf` / `receipt`; `LeafTransport` / `TransportNode`
 > ingress dispatch, link-data target, reverse relay, hash remember, local
 > plain DATA, and proof ingress apply only from those actions (no ad-hoc
 > `planTransportIngressDispatch` / `planLinkDataIngressTarget` /
 > `planReverseRelayOutcome` / `planPacketHashRemember` /
-> `planLocalPlainDataDelivery` / `planProofIngressKind` reads beside the
+> `planLocalPlainDataDelivery` / `shouldDispatchLocalPlainDataDelivery` /
+> `planProofIngressKind` reads beside the
 > step).
 > **`stepOutboundReceiptWithActions`** emits `none` / `keep-receipt` /
 > `fail-and-drop-receipt`; **`stepPacketReceiptProofIngressWithActions`**
@@ -1315,6 +1331,7 @@
 > **`stepLinkResourceConcludeWithActions`**
 > emits `remove-outgoing` / `remove-incoming`;
 > **`stepPacketReceiptProofAcceptWithActions`** emits `accept` / `reject`;
+> **`stepAcceptPacketReceiptProofWithActions`** emits `accept`|`skip`;
 > `TransportNode` announce ingress/rebroadcast, transport/link/reverse-packet
 > relay, interface transmit, local destination match/dispatch, LR-proof /
 > resource-prf target, transport-member register, `Link.resourceConcluded`, and
@@ -1329,7 +1346,8 @@
 > `shouldMatchLocalTypedDestination` / `shouldDispatchLocalLinkRequest` /
 > `shouldAcceptLinkLrProofCandidate` / `shouldDispatchResourceProofToLink` /
 > `shouldRegisterTransportMember` /
-> `planLinkResourceConclude` / `planPacketReceiptProofAccept` reads beside the
+> `planLinkResourceConclude` / `planPacketReceiptProofAccept` /
+> `shouldAcceptPacketReceiptProof` reads beside the
 > step).
 > **`stepDeliverPendingLinkAppResponseWithActions`** emits `deliver`|`skip`;
 > **`stepAcceptAnnouncePayloadWithActions`** / **`stepAcceptParsedAnnounceWithActions`**
@@ -1524,7 +1542,9 @@
 > accept-link-lr-proof-candidate / dispatch-resource-proof-to-link /
 > register-transport-member /
 > link-resource-conclude /
-> packet-receipt-proof-accept / propagation-restore /
+> packet-receipt-proof-accept / accept-packet-receipt-proof /
+> commit-resource-assemble-payload / dispatch-local-plain-data-delivery /
+> propagation-restore /
 > deliver-pending-link-app-response / accept-announce-payload /
 > accept-parsed-announce / accept-identity-ciphertext-frame /
 > attempt-announce-signature-validate / check-announce-destination-hash /

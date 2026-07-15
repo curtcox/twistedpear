@@ -10,6 +10,7 @@ import {
   canValidateResourceProof,
   initialAcceptIncomingResourceAdvertisementState,
   initialAdvertiseResourceState,
+  initialCommitResourceAssemblePayloadState,
   initialProveResourceAllowState,
   initialResourceAssembleState,
   initialResourceContinueTransferState,
@@ -32,6 +33,7 @@ import {
   shouldAllowResourceRequestNext,
   shouldAllowResourceWatchdog,
   shouldCommitResourceAssemblePayload,
+  shouldCommitResourceAssemblePayloadNow,
   shouldCompleteResourceAssemble,
   shouldCompleteResourceProofAccept,
   shouldContinueResourceTransfer,
@@ -42,10 +44,12 @@ import {
   shouldDenyResourceWatchdog,
   shouldIgnoreResourceProofAccept,
   shouldSkipAdvertiseResource,
+  shouldSkipCommitResourceAssemblePayload,
   shouldSkipIncomingResourceAdvertisement,
   shouldStopResourceTransfer,
   stepAcceptIncomingResourceAdvertisementWithActions,
   stepAdvertiseResourceWithActions,
+  stepCommitResourceAssemblePayloadWithActions,
   stepProveResourceAllowWithActions,
   stepResourceAssembleWithActions,
   stepResourceContinueTransferWithActions,
@@ -173,12 +177,33 @@ describe("protocol resource status", () => {
     });
     expect(complete.actions).toEqual([{ kind: "complete" }]);
     expect(shouldCompleteResourceAssemble(complete.actions)).toBe(true);
+    const commit = stepCommitResourceAssemblePayloadWithActions(
+      initialCommitResourceAssemblePayloadState(),
+      {
+        kind: "resource/commit-assemble-payload-gate",
+        outcomeComplete: shouldCompleteResourceAssemble(complete.actions),
+        payloadPresent: true
+      }
+    );
+    expect(shouldCommitResourceAssemblePayloadNow(commit.actions)).toBe(true);
+    expect(shouldSkipCommitResourceAssemblePayload(commit.actions)).toBe(false);
     expect(
       shouldCommitResourceAssemblePayload({
         outcomeComplete: shouldCompleteResourceAssemble(complete.actions),
         payloadPresent: true
       })
     ).toBe(true);
+
+    const skipCommit = stepCommitResourceAssemblePayloadWithActions(
+      initialCommitResourceAssemblePayloadState(),
+      {
+        kind: "resource/commit-assemble-payload-gate",
+        outcomeComplete: true,
+        payloadPresent: false
+      }
+    );
+    expect(shouldCommitResourceAssemblePayloadNow(skipCommit.actions)).toBe(false);
+    expect(shouldSkipCommitResourceAssemblePayload(skipCommit.actions)).toBe(true);
 
     const corrupt = stepResourceAssembleWithActions(initialResourceAssembleState(), {
       kind: "resource/assemble-gate",

@@ -606,6 +606,71 @@ export function shouldCommitResourceAssemblePayload(input: {
   return input.outcomeComplete && input.payloadPresent;
 }
 
+/**
+ * Resource assemble payload-commit gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldCommitResourceAssemblePayload` reads beside the step).
+ */
+export type CommitResourceAssemblePayloadState = Record<string, never>;
+
+export type CommitResourceAssemblePayloadEvent =
+  | Event
+  | {
+      readonly kind: "resource/commit-assemble-payload-gate";
+      readonly outcomeComplete: boolean;
+      readonly payloadPresent: boolean;
+    };
+
+export type CommitResourceAssemblePayloadAction =
+  | { readonly kind: "commit" }
+  | { readonly kind: "skip" };
+
+export interface CommitResourceAssemblePayloadStepResult {
+  readonly state: CommitResourceAssemblePayloadState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly CommitResourceAssemblePayloadAction[];
+}
+
+export function initialCommitResourceAssemblePayloadState(): CommitResourceAssemblePayloadState {
+  return {};
+}
+
+export function stepCommitResourceAssemblePayloadWithActions(
+  state: CommitResourceAssemblePayloadState,
+  event: CommitResourceAssemblePayloadEvent
+): CommitResourceAssemblePayloadStepResult {
+  if (event.kind === "resource/commit-assemble-payload-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldCommitResourceAssemblePayload({
+            outcomeComplete: event.outcomeComplete,
+            payloadPresent: event.payloadPresent
+          })
+            ? "commit"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldCommitResourceAssemblePayloadNow(
+  actions: ReadonlyArray<CommitResourceAssemblePayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "commit");
+}
+
+export function shouldSkipCommitResourceAssemblePayload(
+  actions: ReadonlyArray<CommitResourceAssemblePayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Sender proof validation → complete vs ignore. */
 export type ResourceProofAcceptPlan = "complete" | "ignore";
 

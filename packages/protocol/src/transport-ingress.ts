@@ -1602,6 +1602,73 @@ export function shouldDispatchLocalPlainDataDelivery(input: {
   return input.planDispatch && input.destinationPresent && input.plaintextPresent;
 }
 
+/**
+ * Local plain-data dispatch-after-plan gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldDispatchLocalPlainDataDelivery` reads beside the step).
+ */
+export type DispatchLocalPlainDataDeliveryState = Record<string, never>;
+
+export type DispatchLocalPlainDataDeliveryEvent =
+  | Event
+  | {
+      readonly kind: "transport/dispatch-local-plain-data-gate";
+      readonly planDispatch: boolean;
+      readonly destinationPresent: boolean;
+      readonly plaintextPresent: boolean;
+    };
+
+export type DispatchLocalPlainDataDeliveryAction =
+  | { readonly kind: "dispatch" }
+  | { readonly kind: "skip" };
+
+export interface DispatchLocalPlainDataDeliveryStepResult {
+  readonly state: DispatchLocalPlainDataDeliveryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DispatchLocalPlainDataDeliveryAction[];
+}
+
+export function initialDispatchLocalPlainDataDeliveryState(): DispatchLocalPlainDataDeliveryState {
+  return {};
+}
+
+export function stepDispatchLocalPlainDataDeliveryWithActions(
+  state: DispatchLocalPlainDataDeliveryState,
+  event: DispatchLocalPlainDataDeliveryEvent
+): DispatchLocalPlainDataDeliveryStepResult {
+  if (event.kind === "transport/dispatch-local-plain-data-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldDispatchLocalPlainDataDelivery({
+            planDispatch: event.planDispatch,
+            destinationPresent: event.destinationPresent,
+            plaintextPresent: event.plaintextPresent
+          })
+            ? "dispatch"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldDispatchLocalPlainDataDeliveryNow(
+  actions: ReadonlyArray<DispatchLocalPlainDataDeliveryAction>
+): boolean {
+  return actions.some((action) => action.kind === "dispatch");
+}
+
+export function shouldSkipDispatchLocalPlainDataDelivery(
+  actions: ReadonlyArray<DispatchLocalPlainDataDeliveryAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 export type PacketHashRememberPlan = "now" | "after-relay";
 
 /**

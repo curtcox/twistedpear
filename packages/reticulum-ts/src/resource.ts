@@ -134,6 +134,7 @@ import {
   stepParseResourcePartRequestWithActions,
   stepResourceAdvertisementRoleFlagsWithActions,
   stepUnpackResourceAdvertisementWithActions,
+  stepCommitResourceAssemblePayloadWithActions,
   stepResourceAssembleWithActions,
   stepResourceHashmapSlotWritesWithActions,
   stepResourceHashmapUpdateAcceptWithActions,
@@ -173,7 +174,7 @@ import {
   shouldAllowResourceWatchdog,
   shouldApplyResourceFulfillPartNow,
   shouldApplyResourceReceivePartSlotNow,
-  shouldCommitResourceAssemblePayload,
+  shouldCommitResourceAssemblePayloadNow,
   shouldContinueResourceTransfer,
   shouldFulfillResourcePartRequestNow,
   shouldSendResourceHashmapUpdateNow,
@@ -194,6 +195,7 @@ import {
   initialAdvanceResourceAwaitingProofState,
   initialApplyResourceFulfillPartState,
   initialApplyResourceReceivePartSlotState,
+  initialCommitResourceAssemblePayloadState,
   initialFulfillResourcePartRequestState,
   initialSendResourceHashmapUpdateState,
   type ResourceStatusEvent,
@@ -1402,12 +1404,15 @@ export class Resource {
           calculatedHash !== null && equalBytes(calculatedHash, this.hash)
       });
 
-      if (
-        !shouldCommitResourceAssemblePayload({
+      const commitStepped = stepCommitResourceAssemblePayloadWithActions(
+        initialCommitResourceAssemblePayloadState(),
+        {
+          kind: "resource/commit-assemble-payload-gate",
           outcomeComplete: shouldCompleteResourceAssemble(actions),
           payloadPresent: payload !== null
-        })
-      ) {
+        }
+      );
+      if (!shouldCommitResourceAssemblePayloadNow(commitStepped.actions)) {
         this.applyStatus({ kind: "resource/corrupt" });
         this.cancel();
         return;

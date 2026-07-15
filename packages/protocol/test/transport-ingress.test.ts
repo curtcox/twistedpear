@@ -21,6 +21,7 @@ import {
   initialLinkDataIngressTargetState,
   initialLinkRelayTargetState,
   initialLocalPlainDataDeliveryState,
+  initialDispatchLocalPlainDataDeliveryState,
   initialPacketFilterState,
   initialPacketHashDeferState,
   initialPacketHashRememberState,
@@ -62,6 +63,7 @@ import {
   shouldDispatchLocalLinkRequest,
   shouldDispatchLocalPlainDataDelivery,
   shouldDispatchLocalPlainDataDeliveryActions,
+  shouldDispatchLocalPlainDataDeliveryNow,
   shouldDispatchResourceProofToLink,
   shouldDispatchTransportAnnounce,
   shouldDispatchTransportLinkData,
@@ -73,6 +75,7 @@ import {
   shouldHandleProofResourcePrf,
   shouldIgnoreLinkRelayTarget,
   shouldIgnoreLocalPlainDataDelivery,
+  shouldSkipDispatchLocalPlainDataDelivery,
   shouldIgnoreReverseRelayOutcome,
   shouldIgnoreTransportIngressDispatch,
   shouldIngressLinkDataActive,
@@ -101,6 +104,7 @@ import {
   transportMemberUnregisterIndex,
   stepAcceptLinkLrProofCandidateWithActions,
   stepDispatchLocalLinkRequestWithActions,
+  stepDispatchLocalPlainDataDeliveryWithActions,
   stepDispatchResourceProofToLinkWithActions,
   stepLinkDataIngressTargetWithActions,
   stepLinkRelayTargetWithActions,
@@ -935,6 +939,30 @@ describe("transport ingress", () => {
     });
     expect(localPlainDataDeliveryFromActions(dispatch.actions)).toBe("dispatch");
     expect(shouldDispatchLocalPlainDataDeliveryActions(dispatch.actions)).toBe(true);
+
+    const commit = stepDispatchLocalPlainDataDeliveryWithActions(
+      initialDispatchLocalPlainDataDeliveryState(),
+      {
+        kind: "transport/dispatch-local-plain-data-gate",
+        planDispatch: shouldDispatchLocalPlainDataDeliveryActions(dispatch.actions),
+        destinationPresent: true,
+        plaintextPresent: true
+      }
+    );
+    expect(shouldDispatchLocalPlainDataDeliveryNow(commit.actions)).toBe(true);
+    expect(shouldSkipDispatchLocalPlainDataDelivery(commit.actions)).toBe(false);
+
+    const skipNarrow = stepDispatchLocalPlainDataDeliveryWithActions(
+      initialDispatchLocalPlainDataDeliveryState(),
+      {
+        kind: "transport/dispatch-local-plain-data-gate",
+        planDispatch: true,
+        destinationPresent: true,
+        plaintextPresent: false
+      }
+    );
+    expect(shouldDispatchLocalPlainDataDeliveryNow(skipNarrow.actions)).toBe(false);
+    expect(shouldSkipDispatchLocalPlainDataDelivery(skipNarrow.actions)).toBe(true);
 
     const ignore = stepLocalPlainDataDeliveryWithActions(initialLocalPlainDataDeliveryState(), {
       kind: "transport/local-plain-data-gate",
