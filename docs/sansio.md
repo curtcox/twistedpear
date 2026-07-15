@@ -28,7 +28,12 @@
 > / pending app-request index** (via
 > **`stepIndexOfMatchingLinkIdWithActions`** /
 > **`stepIndexOfPendingLinkAppRequestWithActions`**: use-index|miss) are pure
-> protocol leaves; `TransportNode` and `Link` adapt them. **Channel envelope
+> protocol leaves; `TransportNode` and `Link` adapt them. **Stream write
+> chunk-length / read-size / chunk-take clamps** (via
+> **`stepClampStreamDataChunkLengthWithActions`** /
+> **`stepClampStreamReadSizeWithActions`** /
+> **`stepClampStreamChunkTakeWithActions`**: use-length / use-size / use-take)
+> are pure protocol leaves; Buffer adapts them. **Channel envelope
 > framing** and **RX reorder/drain** are also pure protocol leaves. **LXMF outbound
 > send-state** (enqueue → sending → sent/delivered/
 > failed + progress) is a pure protocol leaf; `LXMFRouter` adapts it. **Link proof framing**
@@ -364,12 +369,15 @@
 > **`isChannelOutletTransmitOk`** (via **`stepChannelOutletTransmitWithActions`**:
 > ok|reject) lives in protocol; `Channel.send` outlet-result gate adapts it.
 > **`isValidDestinationRequestPath`** lives in protocol; `registerRequestHandler` adapts it.
-> **`clampStreamDataChunkLength`** lives in protocol; `RawChannelWriter.write` adapts it.
+> **`clampStreamDataChunkLength`** (via **`stepClampStreamDataChunkLengthWithActions`**:
+> use-length) lives in protocol; `RawChannelWriter.write` adapts it.
 > **`shouldAppendStreamData`** lives in protocol; `RawChannelReader` append gating adapts it.
-> **`clampStreamReadSize`** lives in protocol; `RawChannelReader.read` adapts it.
+> **`clampStreamReadSize`** (via **`stepClampStreamReadSizeWithActions`**: use-size)
+> lives in protocol; `RawChannelReader.read` adapts it.
 > **`shouldDeferStreamRead`** lives in protocol; `RawChannelReader.read` empty-buffer gate adapts it.
 > **`shouldReturnStreamReadResult`** lives in protocol; `RawChannelReader.read` result gate adapts it.
-> **`clampStreamChunkTake`** lives in protocol; `RawChannelReader.read` per-chunk take adapts it.
+> **`clampStreamChunkTake`** (via **`stepClampStreamChunkTakeWithActions`**: use-take)
+> lives in protocol; `RawChannelReader.read` per-chunk take adapts it.
 > **`isValidInterfaceName`** lives in protocol; `AbstractPacketInterface` construction adapts it.
 > **`packetFitsInterfaceMtu`** lives in protocol; `AbstractPacketInterface.send` adapts it.
 > **`canInterfaceSend`** lives in protocol; `AbstractPacketInterface.send` closed/outgoing gates adapt it.
@@ -940,6 +948,8 @@
 > channel-allows-send / channel-outlet-transmit /
 > index-of-channel-tx-envelope / index-of-channel-ring-sequence /
 > index-of-matching-link-id / index-of-pending-link-app-request /
+> clamp-stream-data-chunk-length / clamp-stream-read-size /
+> clamp-stream-chunk-take /
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
@@ -1142,6 +1152,12 @@
 > **`stepIndexOfPendingLinkAppRequestWithActions`** emits `use-index`|`miss`;
 > Link RESPONSE dispatch applies only from those actions (no ad-hoc
 > `indexOfPendingLinkAppRequest` reads beside the step).
+> **`stepClampStreamDataChunkLengthWithActions`** emits `use-length`;
+> **`stepClampStreamReadSizeWithActions`** emits `use-size`;
+> **`stepClampStreamChunkTakeWithActions`** emits `use-take`;
+> `RawChannelWriter.write` / `RawChannelReader.read` apply only from those
+> actions (no ad-hoc `clampStreamDataChunkLength` / `clampStreamReadSize` /
+> `clampStreamChunkTake` reads beside the step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT measure / merge apply only from those
 > actions (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the
@@ -1167,6 +1183,8 @@
 > `channelAllowsSend` / `isChannelOutletTransmitOk` /
 > `indexOfChannelTxEnvelope` / `indexOfChannelRingSequence` /
 > `indexOfMatchingLinkId` / `indexOfPendingLinkAppRequest` /
+> `clampStreamDataChunkLength` / `clampStreamReadSize` /
+> `clampStreamChunkTake` /
 > `computeLinkRttSeconds` / `mergeLinkRtt` /
 > `computePathExpiry` / `shouldDeferPacketHash` /
 > `planResourceAdvertisementRoleFlags` /
@@ -1396,6 +1414,11 @@
 > `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the step).
 > **`stepComputeLinkMduWithActions`** emits `use-mdu`; `Link.updateMdu` applies
 > only from those actions (no ad-hoc `computeLinkMdu` reads beside the step).
+> **`stepClampStreamDataChunkLengthWithActions`** emits `use-length`;
+> **`stepClampStreamReadSizeWithActions`** emits `use-size`;
+> **`stepClampStreamChunkTakeWithActions`** emits `use-take`; Buffer write/read
+> clamps apply only from those actions (no ad-hoc `clampStreamDataChunkLength` /
+> `clampStreamReadSize` / `clampStreamChunkTake` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

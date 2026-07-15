@@ -6,6 +6,9 @@ import {
   clampStreamChunkTake,
   clampStreamDataChunkLength,
   clampStreamReadSize,
+  initialClampStreamChunkTakeState,
+  initialClampStreamDataChunkLengthState,
+  initialClampStreamReadSizeState,
   initialPackStreamDataMessageState,
   initialUnpackStreamDataMessageState,
   isStreamIdAssigned,
@@ -24,11 +27,20 @@ import {
   shouldReturnStreamReadResult,
   shouldUnregisterStreamReadyCallback,
   shouldUsePackStreamDataMessage,
+  shouldUseStreamChunkTake,
+  shouldUseStreamDataChunkLength,
+  shouldUseStreamReadSize,
   shouldUseUnpackStreamDataMessage,
   initialStreamReadyCallbackUnregisterState,
+  stepClampStreamChunkTakeWithActions,
+  stepClampStreamDataChunkLengthWithActions,
+  stepClampStreamReadSizeWithActions,
   stepPackStreamDataMessageWithActions,
   stepUnpackStreamDataMessageWithActions,
+  streamChunkTakeFromActions,
+  streamDataChunkLengthFromActions,
   streamDataMessageFieldsFromActions,
+  streamReadSizeFromActions,
   streamReadyCallbackUnregisterIndex,
   stepStreamReadyCallbackUnregisterWithActions,
   unpackStreamDataMessage
@@ -110,6 +122,27 @@ describe("protocol stream data framing", () => {
     expect(clampStreamDataChunkLength(1000, 256, 16_384)).toBe(256);
     expect(clampStreamDataChunkLength(100, 256, 16_384)).toBe(100);
     expect(clampStreamDataChunkLength(1000, 2000, 500)).toBe(500);
+
+    const capped = stepClampStreamDataChunkLengthWithActions(
+      initialClampStreamDataChunkLengthState(),
+      {
+        kind: "stream/data-chunk-length-gate",
+        length: 1000,
+        maxDataLen: 256,
+        maxChunkLen: 16_384
+      }
+    );
+    expect(shouldUseStreamDataChunkLength(capped.actions)).toBe(true);
+    expect(streamDataChunkLengthFromActions(capped.actions)).toBe(256);
+
+    const empty = stepClampStreamDataChunkLengthWithActions(
+      initialClampStreamDataChunkLengthState(),
+      {
+        kind: "noop"
+      } as never
+    );
+    expect(shouldUseStreamDataChunkLength(empty.actions)).toBe(false);
+    expect(streamDataChunkLengthFromActions(empty.actions)).toBeNull();
   });
 
   it("skips empty stream payloads for append", () => {
@@ -121,6 +154,20 @@ describe("protocol stream data framing", () => {
     expect(clampStreamReadSize(100, 40)).toBe(40);
     expect(clampStreamReadSize(10, 40)).toBe(10);
     expect(clampStreamReadSize(0, 0)).toBe(0);
+
+    const clamped = stepClampStreamReadSizeWithActions(initialClampStreamReadSizeState(), {
+      kind: "stream/read-size-gate",
+      size: 100,
+      bufferLength: 40
+    });
+    expect(shouldUseStreamReadSize(clamped.actions)).toBe(true);
+    expect(streamReadSizeFromActions(clamped.actions)).toBe(40);
+
+    const empty = stepClampStreamReadSizeWithActions(initialClampStreamReadSizeState(), {
+      kind: "noop"
+    } as never);
+    expect(shouldUseStreamReadSize(empty.actions)).toBe(false);
+    expect(streamReadSizeFromActions(empty.actions)).toBeNull();
   });
 
   it("defers read when buffer is empty before EOF", () => {
@@ -139,6 +186,20 @@ describe("protocol stream data framing", () => {
     expect(clampStreamChunkTake(100, 40)).toBe(40);
     expect(clampStreamChunkTake(10, 40)).toBe(10);
     expect(clampStreamChunkTake(0, 5)).toBe(0);
+
+    const clamped = stepClampStreamChunkTakeWithActions(initialClampStreamChunkTakeState(), {
+      kind: "stream/chunk-take-gate",
+      chunkLength: 100,
+      remaining: 40
+    });
+    expect(shouldUseStreamChunkTake(clamped.actions)).toBe(true);
+    expect(streamChunkTakeFromActions(clamped.actions)).toBe(40);
+
+    const empty = stepClampStreamChunkTakeWithActions(initialClampStreamChunkTakeState(), {
+      kind: "noop"
+    } as never);
+    expect(shouldUseStreamChunkTake(empty.actions)).toBe(false);
+    expect(streamChunkTakeFromActions(empty.actions)).toBeNull();
   });
 
   it("consumes a chunk when take equals chunk length", () => {

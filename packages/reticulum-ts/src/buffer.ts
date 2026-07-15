@@ -1,9 +1,9 @@
 import {
   STREAM_ID_MAX as PROTOCOL_STREAM_ID_MAX,
   StreamSystemMessageTypes,
-  clampStreamChunkTake,
-  clampStreamDataChunkLength,
-  clampStreamReadSize,
+  initialClampStreamChunkTakeState,
+  initialClampStreamDataChunkLengthState,
+  initialClampStreamReadSizeState,
   initialPackStreamDataMessageState,
   initialStreamReadyCallbackUnregisterState,
   initialUnpackStreamDataMessageState,
@@ -20,11 +20,20 @@ import {
   shouldRemoveStreamReadyCallback,
   shouldReturnStreamReadResult,
   shouldUsePackStreamDataMessage,
+  shouldUseStreamChunkTake,
+  shouldUseStreamDataChunkLength,
+  shouldUseStreamReadSize,
   shouldUseUnpackStreamDataMessage,
+  stepClampStreamChunkTakeWithActions,
+  stepClampStreamDataChunkLengthWithActions,
+  stepClampStreamReadSizeWithActions,
   stepPackStreamDataMessageWithActions,
   stepStreamReadyCallbackUnregisterWithActions,
   stepUnpackStreamDataMessageWithActions,
+  streamChunkTakeFromActions,
+  streamDataChunkLengthFromActions,
   streamDataMessageFieldsFromActions,
+  streamReadSizeFromActions,
   streamReadyCallbackUnregisterIndex
 } from "@twistedpear/protocol";
 import { Channel, type ChannelMessage } from "./channel.js";
@@ -167,11 +176,39 @@ export class RawChannelReader {
       return null;
     }
 
-    const output = new Uint8Array(clampStreamReadSize(size, this.bufferLength));
+    const readSizeStepped = stepClampStreamReadSizeWithActions(
+      initialClampStreamReadSizeState(),
+      {
+        kind: "stream/read-size-gate",
+        size,
+        bufferLength: this.bufferLength
+      }
+    );
+    const clampedSize = shouldUseStreamReadSize(readSizeStepped.actions)
+      ? streamReadSizeFromActions(readSizeStepped.actions)
+      : null;
+    if (clampedSize === null) {
+      throw new Error("RawChannelReader: missing use-size action");
+    }
+
+    const output = new Uint8Array(clampedSize);
     let copied = 0;
     while (copied < output.length && this.chunks.length > 0) {
       const chunk = this.chunks[0]!;
-      const take = clampStreamChunkTake(chunk.length, output.length - copied);
+      const takeStepped = stepClampStreamChunkTakeWithActions(
+        initialClampStreamChunkTakeState(),
+        {
+          kind: "stream/chunk-take-gate",
+          chunkLength: chunk.length,
+          remaining: output.length - copied
+        }
+      );
+      const take = shouldUseStreamChunkTake(takeStepped.actions)
+        ? streamChunkTakeFromActions(takeStepped.actions)
+        : null;
+      if (take === null) {
+        throw new Error("RawChannelReader: missing use-take action");
+      }
       output.set(chunk.subarray(0, take), copied);
       copied += take;
       if (shouldConsumeStreamChunk(take, chunk.length)) {
@@ -211,10 +248,22 @@ export class RawChannelWriter {
   ) {}
 
   async write(data: Uint8Array): Promise<number> {
-    const chunk = data.subarray(
-      0,
-      clampStreamDataChunkLength(data.length, StreamDataMessage.MAX_DATA_LEN, RawChannelWriter.MAX_CHUNK_LEN)
+    const lengthStepped = stepClampStreamDataChunkLengthWithActions(
+      initialClampStreamDataChunkLengthState(),
+      {
+        kind: "stream/data-chunk-length-gate",
+        length: data.length,
+        maxDataLen: StreamDataMessage.MAX_DATA_LEN,
+        maxChunkLen: RawChannelWriter.MAX_CHUNK_LEN
+      }
     );
+    const length = shouldUseStreamDataChunkLength(lengthStepped.actions)
+      ? streamDataChunkLengthFromActions(lengthStepped.actions)
+      : null;
+    if (length === null) {
+      throw new Error("RawChannelWriter: missing use-length action");
+    }
+    const chunk = data.subarray(0, length);
     const message = new StreamDataMessage({
       streamId: this.streamId,
       data: chunk,

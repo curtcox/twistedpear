@@ -5,6 +5,9 @@
  * `packStreamDataMessage` / `unpackStreamDataMessage` reads beside the step).
  * Stream ready-callback unregister conclusions leave via machine actions
  * (no ad-hoc `planUnregisterStreamReadyCallback` reads beside the step).
+ * Write chunk-length / read-size / chunk-take clamp conclusions leave via
+ * machine actions (no ad-hoc `clampStreamDataChunkLength` /
+ * `clampStreamReadSize` / `clampStreamChunkTake` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 
@@ -236,6 +239,75 @@ export function clampStreamDataChunkLength(
   return Math.min(length, maxDataLen, maxChunkLen);
 }
 
+/**
+ * Stream write chunk-length clamp is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `clampStreamDataChunkLength`
+ * reads beside the step).
+ */
+export type ClampStreamDataChunkLengthState = Record<string, never>;
+
+export type ClampStreamDataChunkLengthEvent =
+  | Event
+  | {
+      readonly kind: "stream/data-chunk-length-gate";
+      readonly length: number;
+      readonly maxDataLen: number;
+      readonly maxChunkLen: number;
+    };
+
+export type ClampStreamDataChunkLengthAction = {
+  readonly kind: "use-length";
+  readonly length: number;
+};
+
+export interface ClampStreamDataChunkLengthStepResult {
+  readonly state: ClampStreamDataChunkLengthState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ClampStreamDataChunkLengthAction[];
+}
+
+export function initialClampStreamDataChunkLengthState(): ClampStreamDataChunkLengthState {
+  return {};
+}
+
+export function stepClampStreamDataChunkLengthWithActions(
+  state: ClampStreamDataChunkLengthState,
+  event: ClampStreamDataChunkLengthEvent
+): ClampStreamDataChunkLengthStepResult {
+  if (event.kind === "stream/data-chunk-length-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-length",
+          length: clampStreamDataChunkLength(
+            event.length,
+            event.maxDataLen,
+            event.maxChunkLen
+          )
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseStreamDataChunkLength(
+  actions: ReadonlyArray<ClampStreamDataChunkLengthAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-length");
+}
+
+/** Extract clamped write chunk length from step actions; null when no `use-length`. */
+export function streamDataChunkLengthFromActions(
+  actions: ReadonlyArray<ClampStreamDataChunkLengthAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-length");
+  return action?.kind === "use-length" ? action.length : null;
+}
+
 /** Whether inbound stream payload bytes should be appended to the reader buffer. */
 export function shouldAppendStreamData(length: number): boolean {
   return length > 0;
@@ -244,6 +316,70 @@ export function shouldAppendStreamData(length: number): boolean {
 /** Clamp a reader request size to available buffered bytes. */
 export function clampStreamReadSize(size: number, bufferLength: number): number {
   return Math.min(size, bufferLength);
+}
+
+/**
+ * Stream read-size clamp is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `clampStreamReadSize`
+ * reads beside the step).
+ */
+export type ClampStreamReadSizeState = Record<string, never>;
+
+export type ClampStreamReadSizeEvent =
+  | Event
+  | {
+      readonly kind: "stream/read-size-gate";
+      readonly size: number;
+      readonly bufferLength: number;
+    };
+
+export type ClampStreamReadSizeAction = {
+  readonly kind: "use-size";
+  readonly size: number;
+};
+
+export interface ClampStreamReadSizeStepResult {
+  readonly state: ClampStreamReadSizeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ClampStreamReadSizeAction[];
+}
+
+export function initialClampStreamReadSizeState(): ClampStreamReadSizeState {
+  return {};
+}
+
+export function stepClampStreamReadSizeWithActions(
+  state: ClampStreamReadSizeState,
+  event: ClampStreamReadSizeEvent
+): ClampStreamReadSizeStepResult {
+  if (event.kind === "stream/read-size-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-size",
+          size: clampStreamReadSize(event.size, event.bufferLength)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseStreamReadSize(
+  actions: ReadonlyArray<ClampStreamReadSizeAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-size");
+}
+
+/** Extract clamped read size from step actions; null when no `use-size`. */
+export function streamReadSizeFromActions(
+  actions: ReadonlyArray<ClampStreamReadSizeAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-size");
+  return action?.kind === "use-size" ? action.size : null;
 }
 
 /** Whether a read should wait for more data (empty buffer before EOF). */
@@ -259,6 +395,70 @@ export function shouldReturnStreamReadResult(copied: number, eof: boolean): bool
 /** Bytes to take from the current chunk into the remaining read window. */
 export function clampStreamChunkTake(chunkLength: number, remaining: number): number {
   return Math.min(chunkLength, remaining);
+}
+
+/**
+ * Stream chunk-take clamp is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `clampStreamChunkTake`
+ * reads beside the step).
+ */
+export type ClampStreamChunkTakeState = Record<string, never>;
+
+export type ClampStreamChunkTakeEvent =
+  | Event
+  | {
+      readonly kind: "stream/chunk-take-gate";
+      readonly chunkLength: number;
+      readonly remaining: number;
+    };
+
+export type ClampStreamChunkTakeAction = {
+  readonly kind: "use-take";
+  readonly take: number;
+};
+
+export interface ClampStreamChunkTakeStepResult {
+  readonly state: ClampStreamChunkTakeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ClampStreamChunkTakeAction[];
+}
+
+export function initialClampStreamChunkTakeState(): ClampStreamChunkTakeState {
+  return {};
+}
+
+export function stepClampStreamChunkTakeWithActions(
+  state: ClampStreamChunkTakeState,
+  event: ClampStreamChunkTakeEvent
+): ClampStreamChunkTakeStepResult {
+  if (event.kind === "stream/chunk-take-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-take",
+          take: clampStreamChunkTake(event.chunkLength, event.remaining)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseStreamChunkTake(
+  actions: ReadonlyArray<ClampStreamChunkTakeAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-take");
+}
+
+/** Extract clamped chunk take from step actions; null when no `use-take`. */
+export function streamChunkTakeFromActions(
+  actions: ReadonlyArray<ClampStreamChunkTakeAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-take");
+  return action?.kind === "use-take" ? action.take : null;
 }
 
 /** Whether the taken bytes consume the entire front chunk (shift vs residual slice). */
