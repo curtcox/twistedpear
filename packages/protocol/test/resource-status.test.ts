@@ -12,9 +12,11 @@ import {
   initialAdvertiseResourceState,
   initialCommitResourceAssemblePayloadState,
   initialProveResourceAllowState,
+  initialResourceAssembleOutcomePlanState,
   initialResourceAssembleState,
   initialResourceCompleteState,
   initialResourceContinueTransferState,
+  initialResourceProofAcceptPlanState,
   initialResourceProofAcceptState,
   initialResourceReceivePartAllowState,
   initialResourceRequestNextAllowState,
@@ -25,6 +27,8 @@ import {
   planResourceAdvertisePhase,
   planResourceAssembleOutcome,
   planResourceProofAccept,
+  resourceAssembleOutcomePlanFromActions,
+  resourceProofAcceptPlanFromActions,
   shouldAcceptIncomingResourceAdvertisement,
   shouldAcceptIncomingResourceAdvertisementNow,
   shouldAdvertiseResource,
@@ -36,14 +40,18 @@ import {
   shouldCommitResourceAssemblePayload,
   shouldCommitResourceAssemblePayloadNow,
   shouldCompleteResourceAssemble,
+  shouldCompleteResourceAssembleOutcomePlan,
   shouldCompleteResourceProofAccept,
+  shouldCompleteResourceProofAcceptPlan,
   shouldContinueResourceTransfer,
   shouldCorruptResourceAssemble,
+  shouldCorruptResourceAssembleOutcomePlan,
   shouldDenyProveResource,
   shouldDenyResourceReceivePart,
   shouldDenyResourceRequestNext,
   shouldDenyResourceWatchdog,
   shouldIgnoreResourceProofAccept,
+  shouldIgnoreResourceProofAcceptPlan,
   shouldSkipAdvertiseResource,
   shouldSkipCommitResourceAssemblePayload,
   shouldSkipIncomingResourceAdvertisement,
@@ -54,9 +62,11 @@ import {
   stepAdvertiseResourceWithActions,
   stepCommitResourceAssemblePayloadWithActions,
   stepProveResourceAllowWithActions,
+  stepResourceAssembleOutcomePlanWithActions,
   stepResourceAssembleWithActions,
   stepResourceCompleteWithActions,
   stepResourceContinueTransferWithActions,
+  stepResourceProofAcceptPlanWithActions,
   stepResourceProofAcceptWithActions,
   stepResourceReceivePartAllowWithActions,
   stepResourceRequestNextAllowWithActions,
@@ -197,6 +207,30 @@ describe("protocol resource status", () => {
   });
 
   it("emits resource assemble/proof-accept actions from WithActions steps", () => {
+    const completePlan = stepResourceAssembleOutcomePlanWithActions(
+      initialResourceAssembleOutcomePlanState(),
+      {
+        kind: "resource/assemble-outcome-plan-gate",
+        decryptedPresent: true,
+        payloadPresent: true,
+        hashMatches: true
+      }
+    );
+    expect(shouldCompleteResourceAssembleOutcomePlan(completePlan.actions)).toBe(true);
+    expect(resourceAssembleOutcomePlanFromActions(completePlan.actions)).toBe("complete");
+
+    const corruptPlan = stepResourceAssembleOutcomePlanWithActions(
+      initialResourceAssembleOutcomePlanState(),
+      {
+        kind: "resource/assemble-outcome-plan-gate",
+        decryptedPresent: false,
+        payloadPresent: true,
+        hashMatches: true
+      }
+    );
+    expect(shouldCorruptResourceAssembleOutcomePlan(corruptPlan.actions)).toBe(true);
+    expect(resourceAssembleOutcomePlanFromActions(corruptPlan.actions)).toBe("corrupt");
+
     const complete = stepResourceAssembleWithActions(initialResourceAssembleState(), {
       kind: "resource/assemble-gate",
       decryptedPresent: true,
@@ -240,6 +274,28 @@ describe("protocol resource status", () => {
       hashMatches: true
     });
     expect(shouldCorruptResourceAssemble(corrupt.actions)).toBe(true);
+
+    const acceptPlan = stepResourceProofAcceptPlanWithActions(
+      initialResourceProofAcceptPlanState(),
+      {
+        kind: "resource/proof-accept-plan-gate",
+        status: ResourceStatus.AWAITING_PROOF,
+        proofValid: true
+      }
+    );
+    expect(shouldCompleteResourceProofAcceptPlan(acceptPlan.actions)).toBe(true);
+    expect(resourceProofAcceptPlanFromActions(acceptPlan.actions)).toBe("complete");
+
+    const ignorePlan = stepResourceProofAcceptPlanWithActions(
+      initialResourceProofAcceptPlanState(),
+      {
+        kind: "resource/proof-accept-plan-gate",
+        status: ResourceStatus.AWAITING_PROOF,
+        proofValid: false
+      }
+    );
+    expect(shouldIgnoreResourceProofAcceptPlan(ignorePlan.actions)).toBe(true);
+    expect(resourceProofAcceptPlanFromActions(ignorePlan.actions)).toBe("ignore");
 
     const accept = stepResourceProofAcceptWithActions(initialResourceProofAcceptState(), {
       kind: "resource/proof-accept-gate",

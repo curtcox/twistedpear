@@ -4,7 +4,10 @@
  * Continue-transfer / receive-part / request-next / watchdog /
  * prove / advertise / incoming-adv / assemble / proof-accept
  * conclusions leave via machine actions (no ad-hoc plan /
- * `can*` / `should*` reads beside the step).
+ * `can*` / `should*` / `plan ===` reads beside the step).
+ * Assemble and proof-accept plans nested via
+ * {@link stepResourceAssembleOutcomePlanWithActions} /
+ * {@link stepResourceProofAcceptPlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { ResourceStatus, type ResourceStatusValue } from "./resource-watchdog.js";
@@ -573,6 +576,7 @@ export function shouldSkipAdvertiseResource(
 /**
  * Assemble validation outcome from crypto-edge booleans
  * (decrypt / payload split / hash match).
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
  */
 export type ResourceAssembleOutcome = "complete" | "corrupt";
 
@@ -588,8 +592,84 @@ export function planResourceAssembleOutcome(input: {
 }
 
 /**
+ * Resource-assemble-outcome-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planResourceAssembleOutcome` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepResourceAssembleWithActions}.
+ */
+export type ResourceAssembleOutcomePlanState = Record<string, never>;
+
+export type ResourceAssembleOutcomePlanEvent =
+  | Event
+  | {
+      readonly kind: "resource/assemble-outcome-plan-gate";
+      readonly decryptedPresent: boolean;
+      readonly payloadPresent: boolean;
+      readonly hashMatches: boolean;
+    };
+
+export type ResourceAssembleOutcomePlanAction = { readonly kind: ResourceAssembleOutcome };
+
+export interface ResourceAssembleOutcomePlanStepResult {
+  readonly state: ResourceAssembleOutcomePlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceAssembleOutcomePlanAction[];
+}
+
+export function initialResourceAssembleOutcomePlanState(): ResourceAssembleOutcomePlanState {
+  return {};
+}
+
+export function stepResourceAssembleOutcomePlanWithActions(
+  state: ResourceAssembleOutcomePlanState,
+  event: ResourceAssembleOutcomePlanEvent
+): ResourceAssembleOutcomePlanStepResult {
+  if (event.kind === "resource/assemble-outcome-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planResourceAssembleOutcome({
+            decryptedPresent: event.decryptedPresent,
+            payloadPresent: event.payloadPresent,
+            hashMatches: event.hashMatches
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the assemble outcome from actions; null when empty. */
+export function resourceAssembleOutcomePlanFromActions(
+  actions: ReadonlyArray<ResourceAssembleOutcomePlanAction>
+): ResourceAssembleOutcome | null {
+  const action = actions.find(
+    (entry) => entry.kind === "complete" || entry.kind === "corrupt"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldCompleteResourceAssembleOutcomePlan(
+  actions: ReadonlyArray<ResourceAssembleOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "complete");
+}
+
+export function shouldCorruptResourceAssembleOutcomePlan(
+  actions: ReadonlyArray<ResourceAssembleOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "corrupt");
+}
+
+/**
  * Resource assemble gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepResourceAssembleOutcomePlanWithActions}
+ * (`complete`|`corrupt`).
  */
 export type ResourceAssembleState = Record<string, never>;
 
@@ -602,6 +682,11 @@ export type ResourceAssembleEvent =
       readonly hashMatches: boolean;
     };
 
+/**
+ * Adapter continues or marks corrupt only from these actions.
+ * Plan nested via {@link stepResourceAssembleOutcomePlanWithActions}
+ * (`complete`|`corrupt`).
+ */
 export type ResourceAssembleAction = { readonly kind: ResourceAssembleOutcome };
 
 export interface ResourceAssembleStepResult {
@@ -643,11 +728,19 @@ function stepResourceAssembleInner(
   event: ResourceAssembleEvent
 ): ResourceAssembleStepResult {
   if (event.kind === "resource/assemble-gate") {
-    const plan = planResourceAssembleOutcome({
-      decryptedPresent: event.decryptedPresent,
-      payloadPresent: event.payloadPresent,
-      hashMatches: event.hashMatches
-    });
+    const planActions = stepResourceAssembleOutcomePlanWithActions(
+      initialResourceAssembleOutcomePlanState(),
+      {
+        kind: "resource/assemble-outcome-plan-gate",
+        decryptedPresent: event.decryptedPresent,
+        payloadPresent: event.payloadPresent,
+        hashMatches: event.hashMatches
+      }
+    ).actions;
+    const plan = resourceAssembleOutcomePlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 
@@ -730,7 +823,10 @@ export function shouldSkipCommitResourceAssemblePayload(
   return actions.some((action) => action.kind === "skip");
 }
 
-/** Sender proof validation → complete vs ignore. */
+/**
+ * Sender proof validation → complete vs ignore.
+ * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ */
 export type ResourceProofAcceptPlan = "complete" | "ignore";
 
 export function planResourceProofAccept(input: {
@@ -744,8 +840,82 @@ export function planResourceProofAccept(input: {
 }
 
 /**
+ * Resource-proof-accept-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planResourceProofAccept` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepResourceProofAcceptWithActions}.
+ */
+export type ResourceProofAcceptPlanState = Record<string, never>;
+
+export type ResourceProofAcceptPlanEvent =
+  | Event
+  | {
+      readonly kind: "resource/proof-accept-plan-gate";
+      readonly status: ResourceStatusValue;
+      readonly proofValid: boolean;
+    };
+
+export type ResourceProofAcceptPlanAction = { readonly kind: ResourceProofAcceptPlan };
+
+export interface ResourceProofAcceptPlanStepResult {
+  readonly state: ResourceProofAcceptPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ResourceProofAcceptPlanAction[];
+}
+
+export function initialResourceProofAcceptPlanState(): ResourceProofAcceptPlanState {
+  return {};
+}
+
+export function stepResourceProofAcceptPlanWithActions(
+  state: ResourceProofAcceptPlanState,
+  event: ResourceProofAcceptPlanEvent
+): ResourceProofAcceptPlanStepResult {
+  if (event.kind === "resource/proof-accept-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planResourceProofAccept({
+            status: event.status,
+            proofValid: event.proofValid
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the proof-accept plan from actions; null when empty. */
+export function resourceProofAcceptPlanFromActions(
+  actions: ReadonlyArray<ResourceProofAcceptPlanAction>
+): ResourceProofAcceptPlan | null {
+  const action = actions.find(
+    (entry) => entry.kind === "complete" || entry.kind === "ignore"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldCompleteResourceProofAcceptPlan(
+  actions: ReadonlyArray<ResourceProofAcceptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "complete");
+}
+
+export function shouldIgnoreResourceProofAcceptPlan(
+  actions: ReadonlyArray<ResourceProofAcceptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+/**
  * Resource proof-accept gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepResourceProofAcceptPlanWithActions}
+ * (`complete`|`ignore`).
  */
 export type ResourceProofAcceptState = Record<string, never>;
 
@@ -757,6 +927,11 @@ export type ResourceProofAcceptEvent =
       readonly proofValid: boolean;
     };
 
+/**
+ * Adapter completes or ignores only from these actions.
+ * Plan nested via {@link stepResourceProofAcceptPlanWithActions}
+ * (`complete`|`ignore`).
+ */
 export type ResourceProofAcceptAction = { readonly kind: ResourceProofAcceptPlan };
 
 export interface ResourceProofAcceptStepResult {
@@ -798,10 +973,18 @@ function stepResourceProofAcceptInner(
   event: ResourceProofAcceptEvent
 ): ResourceProofAcceptStepResult {
   if (event.kind === "resource/proof-accept-gate") {
-    const plan = planResourceProofAccept({
-      status: event.status,
-      proofValid: event.proofValid
-    });
+    const planActions = stepResourceProofAcceptPlanWithActions(
+      initialResourceProofAcceptPlanState(),
+      {
+        kind: "resource/proof-accept-plan-gate",
+        status: event.status,
+        proofValid: event.proofValid
+      }
+    ).actions;
+    const plan = resourceProofAcceptPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 

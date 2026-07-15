@@ -130,6 +130,10 @@
 > **`stepChannelEnvelopePackPlanWithActions`**: ok|missing-message — nested under
 > channel-envelope-pack; **`stepChannelSendPlanWithActions`**:
 > proceed|link-not-ready|too-big — nested under channel-send),
+> **Resource assemble-outcome / proof-accept plans** (via
+> **`stepResourceAssembleOutcomePlanWithActions`**: complete|corrupt — nested
+> under resource-assemble; **`stepResourceProofAcceptPlanWithActions`**:
+> complete|ignore — nested under resource-proof-accept),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -370,6 +374,10 @@
 > (nested under channel-envelope-pack) /
 > **`stepChannelSendPlanWithActions`**: proceed|link-not-ready|too-big
 > (nested under channel-send) /
+> **`stepResourceAssembleOutcomePlanWithActions`**: complete|corrupt
+> (nested under resource-assemble) /
+> **`stepResourceProofAcceptPlanWithActions`**: complete|ignore
+> (nested under resource-proof-accept) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -730,7 +738,9 @@
 > **`stepChannelMessageTypeRegistrationPlanWithActions`** /
 > **`stepChannelSendPlanWithActions`**) are pure protocol leaves; `Channel` adapts them.
 > **Resource assemble / proof-accept** (via **`stepResourceAssembleWithActions`** /
-> **`stepResourceProofAcceptWithActions`**) are pure protocol leaves; `Resource`
+> **`stepResourceProofAcceptWithActions`**; plans nested via
+> **`stepResourceAssembleOutcomePlanWithActions`** /
+> **`stepResourceProofAcceptPlanWithActions`**) are pure protocol leaves; `Resource`
 > adapts them. **LXMF delivery sizes / MDU max-content** and
 > **peer-error code object** live in protocol; lxmf-ts re-exports aliases
 > (`DESTINATION_LENGTH`, `ENCRYPTED_PACKET_MAX_CONTENT`, `PeerError`, method/representation
@@ -1026,8 +1036,11 @@
 > keepalive / close / identify / request / response / channel / resource-* /
 > plaintext / ignore) lives in protocol; `Link.receive` DATA dispatch adapts it.
 > **`planResourceAssembleOutcome`** (via **`stepResourceAssembleWithActions`**:
-> complete / corrupt), **`planResourceProofAccept`** (via
-> **`stepResourceProofAcceptWithActions`**: complete / ignore),
+> complete / corrupt; plan nested via
+> **`stepResourceAssembleOutcomePlanWithActions`**: complete|corrupt),
+> **`planResourceProofAccept`** (via
+> **`stepResourceProofAcceptWithActions`**: complete / ignore; plan nested via
+> **`stepResourceProofAcceptPlanWithActions`**: complete|ignore),
 > **`canResourceContinueTransfer`** (via **`stepResourceContinueTransferWithActions`**:
 > continue|stop), **`isResourceComplete`** (via
 > **`stepResourceCompleteWithActions`**: complete|incomplete),
@@ -1774,12 +1787,14 @@
 > from those actions (no ad-hoc `planChannelMessageTypeRegistration` /
 > `planChannelEnvelopeUnpack` / `planChannelEnvelopePack` / `planChannelSend` /
 > `plan ===` reads beside the step).
-> **`stepResourceAssembleWithActions`** emits `complete` / `corrupt`;
+> **`stepResourceAssembleWithActions`** emits `complete` / `corrupt` (plan nested via
+> **`stepResourceAssembleOutcomePlanWithActions`**: `complete`|`corrupt`);
 > **`stepCommitResourceAssemblePayloadWithActions`** emits `commit`|`skip`;
 > **`stepResourceCompleteWithActions`** emits `complete`|`incomplete`;
 > `Resource.isComplete` applies only from those actions (no ad-hoc
 > `isResourceComplete` reads beside the step).
-> **`stepResourceProofAcceptWithActions`** emits `complete` / `ignore`;
+> **`stepResourceProofAcceptWithActions`** emits `complete` / `ignore` (plan nested via
+> **`stepResourceProofAcceptPlanWithActions`**: `complete`|`ignore`);
 > **`stepResourceContinueTransferWithActions`** emits `continue`|`stop`;
 > **`stepResourceReceivePartAllowWithActions`** /
 > **`stepResourceRequestNextAllowWithActions`** /
@@ -1791,6 +1806,7 @@
 > from those actions (no ad-hoc
 > `planResourceAssembleOutcome` /
 > `shouldCommitResourceAssemblePayload` / `planResourceProofAccept` /
+> `plan ===` /
 > `canResourceContinueTransfer` /
 > `canReceiveResourcePart` / `canRequestResourceNext` /
 > `canRunResourceWatchdog` / `canProveResource` / `shouldAdvertiseResource` /
@@ -2087,7 +2103,7 @@
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / lxmf-receipt-send-plan / lxmf-signature-outcome-plan / announce-validate-outcome-plan / announce-build-plan / identity-decrypt-outcome-plan / identity-ratchet-lookup-plan / identity-recall-plan / identity-recall-app-data-plan / destination-construction-plan / destination-decrypt-plan / destination-encrypt-plan / packet-from-fields-plan / channel-message-type-registration-plan / channel-envelope-unpack-plan / channel-envelope-pack-plan / channel-send-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / lxmf-send-method-plan / lxmf-opportunistic-send-plan / lxmf-direct-send-plan / lxmf-propagated-send-plan / lxmessage-pack-plan / lxmf-pack-timestamp-plan / lxmessage-instance-pack-plan / lxmf-propagated-pack-prep-plan / lxmf-propagation-link-ready-plan / lxmf-propagation-sync-prep-plan / lxmf-deliverable-accept-plan / lxmf-propagation-local-ingress-plan / lxmf-receipt-send-plan / lxmf-signature-outcome-plan / announce-validate-outcome-plan / announce-build-plan / identity-decrypt-outcome-plan / identity-ratchet-lookup-plan / identity-recall-plan / identity-recall-app-data-plan / destination-construction-plan / destination-decrypt-plan / destination-encrypt-plan / packet-from-fields-plan / channel-message-type-registration-plan / channel-envelope-unpack-plan / channel-envelope-pack-plan / channel-send-plan / resource-assemble-outcome-plan / resource-proof-accept-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate /
 > announce-validate-outcome-plan / announce-build / announce-build-plan /
@@ -2104,6 +2120,8 @@
 > channel-envelope-unpack / channel-envelope-unpack-plan /
 > channel-envelope-pack / channel-envelope-pack-plan /
 > channel-send / channel-send-plan /
+> resource-assemble / resource-assemble-outcome-plan /
+> resource-proof-accept / resource-proof-accept-plan /
 > emplace-channel-envelope / accept-channel-sequence /
 > drain-channel-ring-index / register-channel-message-handler /
 > stop-channel-handler-fanout / emit-channel-immediate-delivery /
@@ -2130,7 +2148,7 @@
 > resource-random-hash-length-valid / handle-propagation-peer-error /
 > accept-propagation-delivered-message / treat-propagation-list-as-empty /
 > request-propagation-haves-ack /
-> resource-assemble / resource-proof-accept / resource-continue-transfer /
+> resource-assemble / resource-assemble-outcome-plan / resource-proof-accept / resource-proof-accept-plan / resource-continue-transfer /
 > resource-complete /
 > resource-receive-part-allow / resource-request-next-allow /
 > resource-watchdog-allow / prove-resource-allow / advertise-resource /
@@ -2211,6 +2229,7 @@
 > destination-encrypt-plan / packet-from-fields-plan /
 > channel-message-type-registration-plan / channel-envelope-unpack-plan /
 > channel-envelope-pack-plan / channel-send-plan /
+> resource-assemble-outcome-plan / resource-proof-accept-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /
