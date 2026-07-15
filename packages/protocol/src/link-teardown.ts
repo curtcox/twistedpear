@@ -2,7 +2,8 @@
  * Pure link teardown gate and reason planning.
  * Packet send / decrypt stay at the adapter edge.
  * Conclusions leave via machine actions (no ad-hoc `plan.kind` /
- * `shouldAcceptLinkTeardown` / `planLinkTeardownReason` reads beside the step).
+ * `planLinkTeardown` / `shouldAcceptLinkTeardown` / `planLinkTeardownReason`
+ * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -66,6 +67,74 @@ export function planLinkTeardown(status: LinkStatusValue | number): LinkTeardown
     return { kind: "close-only" };
   }
   return { kind: "send-teardown-then-close" };
+}
+
+/**
+ * planLinkTeardown planning is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkTeardown` /
+ * `plan.kind` reads beside the step).
+ */
+export type LinkTeardownPlanState = Record<string, never>;
+
+export type LinkTeardownPlanEvent =
+  | Event
+  | {
+      readonly kind: "link/teardown-plan-gate";
+      readonly status: LinkStatusValue | number;
+    };
+
+export type LinkTeardownPlanAction =
+  | { readonly kind: "close-only" }
+  | { readonly kind: "send-teardown-then-close" };
+
+export interface LinkTeardownPlanStepResult {
+  readonly state: LinkTeardownPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkTeardownPlanAction[];
+}
+
+export function initialLinkTeardownPlanState(): LinkTeardownPlanState {
+  return {};
+}
+
+export function stepLinkTeardownPlanWithActions(
+  state: LinkTeardownPlanState,
+  event: LinkTeardownPlanEvent
+): LinkTeardownPlanStepResult {
+  if (event.kind === "link/teardown-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [planLinkTeardown(event.status)]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Whether step actions include close-only. */
+export function shouldCloseOnlyLinkTeardownPlan(
+  actions: ReadonlyArray<LinkTeardownPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "close-only");
+}
+
+/** Whether step actions include send-teardown-then-close. */
+export function shouldSendLinkTeardownThenClosePlan(
+  actions: ReadonlyArray<LinkTeardownPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "send-teardown-then-close");
+}
+
+/** Extract teardown plan from step actions; null when empty. */
+export function linkTeardownPlanFromActions(
+  actions: ReadonlyArray<LinkTeardownPlanAction>
+): LinkTeardownPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "close-only" || entry.kind === "send-teardown-then-close"
+  );
+  return action ?? null;
 }
 
 /**
@@ -288,13 +357,19 @@ function stepLinkTeardownInner(
   event: LinkTeardownEvent
 ): LinkTeardownStepResult {
   if (event.kind === "teardown/local") {
-    const plan = planLinkTeardown(state.status);
-    if (plan.kind === "close-only") {
+    const planActions = stepLinkTeardownPlanWithActions(initialLinkTeardownPlanState(), {
+      kind: "link/teardown-plan-gate",
+      status: state.status
+    }).actions;
+    if (shouldCloseOnlyLinkTeardownPlan(planActions)) {
       return {
         state: { ...state, status: LinkStatus.CLOSED },
         intents: [],
         actions: [{ kind: "close-only" }]
       };
+    }
+    if (!shouldSendLinkTeardownThenClosePlan(planActions)) {
+      return { state, intents: [], actions: [] };
     }
     const reason = linkTeardownReasonFromActions(
       stepLinkTeardownReasonWithActions(initialLinkTeardownReasonState(), {

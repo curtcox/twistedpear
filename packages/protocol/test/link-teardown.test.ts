@@ -6,8 +6,10 @@ import {
 import { PacketReceiptStatus } from "../src/packet-receipt-timeout.js";
 import {
   initialAcceptLinkTeardownState,
+  initialLinkTeardownPlanState,
   initialLinkTeardownReasonState,
   initialLinkTeardownState,
+  linkTeardownPlanFromActions,
   linkTeardownReasonFromActions,
   linkTeardownRemoteCloseAction,
   linkTeardownSendThenCloseAction,
@@ -17,11 +19,14 @@ import {
   shouldAcceptLinkTeardownNow,
   shouldAcceptRemoteLinkTeardown,
   shouldCloseOnlyLinkTeardown,
+  shouldCloseOnlyLinkTeardownPlan,
   shouldSendLinkTeardownThenClose,
+  shouldSendLinkTeardownThenClosePlan,
   shouldSkipLinkTeardownAccept,
   shouldUseLinkTeardownReason,
   stepAcceptLinkTeardownWithActions,
   stepLinkTeardown,
+  stepLinkTeardownPlanWithActions,
   stepLinkTeardownReasonWithActions,
   stepLinkTeardownWithActions
 } from "../src/link-teardown.js";
@@ -47,6 +52,27 @@ describe("link teardown planning", () => {
     expect(planLinkTeardown(LinkStatus.PENDING)).toEqual({ kind: "close-only" });
     expect(planLinkTeardown(LinkStatus.CLOSED)).toEqual({ kind: "close-only" });
     expect(planLinkTeardown(LinkStatus.ACTIVE)).toEqual({ kind: "send-teardown-then-close" });
+
+    const pending = stepLinkTeardownPlanWithActions(initialLinkTeardownPlanState(), {
+      kind: "link/teardown-plan-gate",
+      status: LinkStatus.PENDING
+    });
+    expect(pending.actions).toEqual([{ kind: "close-only" }]);
+    expect(shouldCloseOnlyLinkTeardownPlan(pending.actions)).toBe(true);
+    expect(shouldSendLinkTeardownThenClosePlan(pending.actions)).toBe(false);
+    expect(linkTeardownPlanFromActions(pending.actions)).toEqual({ kind: "close-only" });
+
+    const active = stepLinkTeardownPlanWithActions(initialLinkTeardownPlanState(), {
+      kind: "link/teardown-plan-gate",
+      status: LinkStatus.ACTIVE
+    });
+    expect(active.actions).toEqual([{ kind: "send-teardown-then-close" }]);
+    expect(shouldCloseOnlyLinkTeardownPlan(active.actions)).toBe(false);
+    expect(shouldSendLinkTeardownThenClosePlan(active.actions)).toBe(true);
+    expect(linkTeardownPlanFromActions(active.actions)).toEqual({
+      kind: "send-teardown-then-close"
+    });
+    expect(linkTeardownPlanFromActions([])).toBeNull();
   });
 
   it("plans local and remote teardown reasons", () => {
