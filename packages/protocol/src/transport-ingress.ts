@@ -4,7 +4,8 @@
  * Ingress dispatch / matching-link-id index / link-data target / reverse-relay /
  * hash-remember / packet-hash defer / local plain-data / link-relay conclusions
  * leave via machine actions (no ad-hoc plan / `indexOfMatchingLinkId` reads
- * beside the step).
+ * beside the step). Ingress-dispatch plan nested via
+ * {@link stepTransportIngressDispatchPlanWithActions}.
  * Transport-wrap relay allow, link/reverse table-record, link-packet relay allow,
  * link-table lookup, link-relay transmit, reverse-packet allow, reverse iface
  * match, reverse-entry expiry, reverse-relay transmit, interface transmit, local
@@ -1234,6 +1235,110 @@ export function planTransportIngressDispatch(input: {
   return "ignore";
 }
 
+/**
+ * Transport-ingress-dispatch plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planTransportIngressDispatch` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepTransportIngressDispatchWithActions}.
+ */
+export type TransportIngressDispatchPlanState = Record<string, never>;
+
+export type TransportIngressDispatchPlanEvent =
+  | Event
+  | {
+      readonly kind: "transport/ingress-dispatch-plan-gate";
+      readonly packetType: number;
+      readonly destinationType: number;
+    };
+
+export type TransportIngressDispatchPlanAction = {
+  readonly kind: TransportIngressDispatch;
+};
+
+export interface TransportIngressDispatchPlanStepResult {
+  readonly state: TransportIngressDispatchPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly TransportIngressDispatchPlanAction[];
+}
+
+export function initialTransportIngressDispatchPlanState(): TransportIngressDispatchPlanState {
+  return {};
+}
+
+export function stepTransportIngressDispatchPlanWithActions(
+  state: TransportIngressDispatchPlanState,
+  event: TransportIngressDispatchPlanEvent
+): TransportIngressDispatchPlanStepResult {
+  if (event.kind === "transport/ingress-dispatch-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planTransportIngressDispatch({
+            packetType: event.packetType,
+            destinationType: event.destinationType
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the transport ingress dispatch plan from actions; null when empty. */
+export function transportIngressDispatchPlanFromActions(
+  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
+): TransportIngressDispatch | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "announce" ||
+      entry.kind === "link-request" ||
+      entry.kind === "link-data" ||
+      entry.kind === "plain-data" ||
+      entry.kind === "proof" ||
+      entry.kind === "ignore"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldDispatchTransportAnnouncePlan(
+  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "announce");
+}
+
+export function shouldDispatchTransportLinkRequestPlan(
+  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "link-request");
+}
+
+export function shouldDispatchTransportLinkDataPlan(
+  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "link-data");
+}
+
+export function shouldDispatchTransportPlainDataPlan(
+  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "plain-data");
+}
+
+export function shouldDispatchTransportProofPlan(
+  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "proof");
+}
+
+export function shouldIgnoreTransportIngressDispatchPlan(
+  actions: ReadonlyArray<TransportIngressDispatchPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
 /** Pure proof-context → handler kind. */
 export type ProofIngressKind = "lrproof" | "resource-prf" | "receipt";
 
@@ -2081,6 +2186,8 @@ export function shouldRemoveTransportMember(
 /**
  * Transport ingress dispatch is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepTransportIngressDispatchPlanWithActions}
+ * (`announce`|`link-request`|`link-data`|`plain-data`|`proof`|`ignore`).
  */
 export type TransportIngressDispatchState = Record<string, never>;
 
@@ -2172,10 +2279,18 @@ function stepTransportIngressDispatchInner(
   event: TransportIngressDispatchEvent
 ): TransportIngressDispatchStepResult {
   if (event.kind === "transport/ingress-dispatch-gate") {
-    const plan = planTransportIngressDispatch({
-      packetType: event.packetType,
-      destinationType: event.destinationType
-    });
+    const planActions = stepTransportIngressDispatchPlanWithActions(
+      initialTransportIngressDispatchPlanState(),
+      {
+        kind: "transport/ingress-dispatch-plan-gate",
+        packetType: event.packetType,
+        destinationType: event.destinationType
+      }
+    ).actions;
+    const plan = transportIngressDispatchPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 

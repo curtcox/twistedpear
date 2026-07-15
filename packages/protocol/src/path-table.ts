@@ -2,7 +2,9 @@
  * Pure path-table / pathfinder decisions for announce ingress and path requests.
  * No IO — time and bytes arrive only as event/parameters.
  * Path-request ingress / discovery fulfill / outbound / entry-lookup conclusions
- * leave via machine actions (no ad-hoc plan reads beside the step).
+ * leave via machine actions (no ad-hoc plan reads beside the step). Plans nested via
+ * {@link stepPathRequestIngressPlanWithActions} /
+ * {@link stepPathOutboundPlanWithActions}.
  * Path random-blob append / expiry conclusions leave via machine actions (no
  * ad-hoc `appendPathRandomBlob` / `computePathExpiry` reads beside the step).
  * Path-request emit / discovery-expired / begin-discovery / path-entry expired /
@@ -241,8 +243,92 @@ export function planPathRequestIngress(input: {
 }
 
 /**
+ * Path-request-ingress plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planPathRequestIngress` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepPathRequestIngressWithActions}.
+ */
+export type PathRequestIngressPlanState = Record<string, never>;
+
+export type PathRequestIngressPlanEvent =
+  | Event
+  | {
+      readonly kind: "path-request/ingress-plan-gate";
+      readonly parsedOk: boolean;
+      readonly hasTag: boolean;
+      readonly tagAlreadySeen: boolean;
+      readonly hasLocalAnswerer: boolean;
+      readonly transportEnabled: boolean;
+      readonly hasPath: boolean;
+      readonly shouldAnswerPath: boolean;
+      readonly discoveryPresent: boolean;
+      readonly discoveryExpired: boolean;
+      readonly allowDiscovery?: boolean;
+    };
+
+export type PathRequestIngressPlanAction = { readonly kind: PathRequestIngressPlan };
+
+export interface PathRequestIngressPlanStepResult {
+  readonly state: PathRequestIngressPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PathRequestIngressPlanAction[];
+}
+
+export function initialPathRequestIngressPlanState(): PathRequestIngressPlanState {
+  return {};
+}
+
+export function stepPathRequestIngressPlanWithActions(
+  state: PathRequestIngressPlanState,
+  event: PathRequestIngressPlanEvent
+): PathRequestIngressPlanStepResult {
+  if (event.kind === "path-request/ingress-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planPathRequestIngress({
+            parsedOk: event.parsedOk,
+            hasTag: event.hasTag,
+            tagAlreadySeen: event.tagAlreadySeen,
+            hasLocalAnswerer: event.hasLocalAnswerer,
+            transportEnabled: event.transportEnabled,
+            hasPath: event.hasPath,
+            shouldAnswerPath: event.shouldAnswerPath,
+            discoveryPresent: event.discoveryPresent,
+            discoveryExpired: event.discoveryExpired,
+            ...(event.allowDiscovery !== undefined ? { allowDiscovery: event.allowDiscovery } : {})
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the path-request ingress plan from actions; null when empty. */
+export function pathRequestIngressPlanFromActions(
+  actions: ReadonlyArray<PathRequestIngressPlanAction>
+): PathRequestIngressPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ignore-unparsed" ||
+      entry.kind === "ignore-seen-tag" ||
+      entry.kind === "answer-local" ||
+      entry.kind === "answer-path" ||
+      entry.kind === "ignore" ||
+      entry.kind === "ignore-in-flight-discovery" ||
+      entry.kind === "start-discovery"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * Path-request ingress is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepPathRequestIngressPlanWithActions}.
  */
 export type PathRequestIngressState = Record<string, never>;
 
@@ -342,18 +428,26 @@ function stepPathRequestIngressInner(
   event: PathRequestIngressEvent
 ): PathRequestIngressStepResult {
   if (event.kind === "path-request/ingress-gate") {
-    const plan = planPathRequestIngress({
-      parsedOk: event.parsedOk,
-      hasTag: event.hasTag,
-      tagAlreadySeen: event.tagAlreadySeen,
-      hasLocalAnswerer: event.hasLocalAnswerer,
-      transportEnabled: event.transportEnabled,
-      hasPath: event.hasPath,
-      shouldAnswerPath: event.shouldAnswerPath,
-      discoveryPresent: event.discoveryPresent,
-      discoveryExpired: event.discoveryExpired,
-      ...(event.allowDiscovery !== undefined ? { allowDiscovery: event.allowDiscovery } : {})
-    });
+    const planActions = stepPathRequestIngressPlanWithActions(
+      initialPathRequestIngressPlanState(),
+      {
+        kind: "path-request/ingress-plan-gate",
+        parsedOk: event.parsedOk,
+        hasTag: event.hasTag,
+        tagAlreadySeen: event.tagAlreadySeen,
+        hasLocalAnswerer: event.hasLocalAnswerer,
+        transportEnabled: event.transportEnabled,
+        hasPath: event.hasPath,
+        shouldAnswerPath: event.shouldAnswerPath,
+        discoveryPresent: event.discoveryPresent,
+        discoveryExpired: event.discoveryExpired,
+        ...(event.allowDiscovery !== undefined ? { allowDiscovery: event.allowDiscovery } : {})
+      }
+    ).actions;
+    const plan = pathRequestIngressPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 
@@ -1040,8 +1134,94 @@ export function planPathOutbound(input: {
 }
 
 /**
+ * Path-outbound plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planPathOutbound` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepPathOutboundWithActions}.
+ */
+export type PathOutboundPlanState = Record<string, never>;
+
+export type PathOutboundPlanEvent =
+  | Event
+  | {
+      readonly kind: "path/outbound-plan-gate";
+      readonly packetType: number;
+      readonly destinationType: number;
+      readonly headerType: number;
+      readonly hasPath: boolean;
+      readonly pathHops: number;
+    };
+
+export type PathOutboundPlanAction = { readonly kind: PathOutboundKind };
+
+export interface PathOutboundPlanStepResult {
+  readonly state: PathOutboundPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PathOutboundPlanAction[];
+}
+
+export function initialPathOutboundPlanState(): PathOutboundPlanState {
+  return {};
+}
+
+export function stepPathOutboundPlanWithActions(
+  state: PathOutboundPlanState,
+  event: PathOutboundPlanEvent
+): PathOutboundPlanStepResult {
+  if (event.kind === "path/outbound-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planPathOutbound({
+            packetType: event.packetType,
+            destinationType: event.destinationType,
+            headerType: event.headerType,
+            hasPath: event.hasPath,
+            pathHops: event.pathHops
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the path-outbound plan from actions; null when empty. */
+export function pathOutboundPlanFromActions(
+  actions: ReadonlyArray<PathOutboundPlanAction>
+): PathOutboundKind | null {
+  const action = actions.find(
+    (entry) => entry.kind === "wrap" || entry.kind === "direct" || entry.kind === "flood"
+  );
+  return action?.kind ?? null;
+}
+
+export function shouldWrapPathOutboundPlan(
+  actions: ReadonlyArray<PathOutboundPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "wrap");
+}
+
+export function shouldDirectPathOutboundPlan(
+  actions: ReadonlyArray<PathOutboundPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "direct");
+}
+
+export function shouldFloodPathOutboundPlan(
+  actions: ReadonlyArray<PathOutboundPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "flood");
+}
+
+/**
  * Path outbound routing is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepPathOutboundPlanWithActions}
+ * (`wrap`|`direct`|`flood`).
  */
 export type PathOutboundState = Record<string, never>;
 
@@ -1106,13 +1286,18 @@ function stepPathOutboundInner(
   event: PathOutboundEvent
 ): PathOutboundStepResult {
   if (event.kind === "path/outbound-gate") {
-    const plan = planPathOutbound({
+    const planActions = stepPathOutboundPlanWithActions(initialPathOutboundPlanState(), {
+      kind: "path/outbound-plan-gate",
       packetType: event.packetType,
       destinationType: event.destinationType,
       headerType: event.headerType,
       hasPath: event.hasPath,
       pathHops: event.pathHops
-    });
+    }).actions;
+    const plan = pathOutboundPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
     return { state, intents: [], actions: [{ kind: plan }] };
   }
 

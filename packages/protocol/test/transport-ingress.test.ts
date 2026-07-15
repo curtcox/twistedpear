@@ -28,6 +28,7 @@ import {
   initialPacketHashRememberState,
   initialProofIngressState,
   initialReverseRelayOutcomeState,
+  initialTransportIngressDispatchPlanState,
   initialTransportIngressDispatchState,
   linkDataIngressTargetFromActions,
   linkRelayTargetFromActions,
@@ -67,10 +68,15 @@ import {
   shouldDispatchLocalPlainDataDeliveryNow,
   shouldDispatchResourceProofToLink,
   shouldDispatchTransportAnnounce,
+  shouldDispatchTransportAnnouncePlan,
   shouldDispatchTransportLinkData,
+  shouldDispatchTransportLinkDataPlan,
   shouldDispatchTransportLinkRequest,
+  shouldDispatchTransportLinkRequestPlan,
   shouldDispatchTransportPlainData,
+  shouldDispatchTransportPlainDataPlan,
   shouldDispatchTransportProof,
+  shouldDispatchTransportProofPlan,
   shouldHandleProofLrproof,
   shouldHandleProofReceipt,
   shouldHandleProofResourcePrf,
@@ -79,6 +85,7 @@ import {
   shouldSkipDispatchLocalPlainDataDelivery,
   shouldIgnoreReverseRelayOutcome,
   shouldIgnoreTransportIngressDispatch,
+  shouldIgnoreTransportIngressDispatchPlan,
   shouldIngressLinkDataActive,
   shouldIngressLinkDataNone,
   shouldIngressLinkDataPending,
@@ -129,8 +136,11 @@ import {
   stepTransmitLinkRelayWithActions,
   stepTransmitOnInterfaceWithActions,
   stepTransmitReverseRelayWithActions,
+  stepTransportIngressDispatchPlanWithActions,
   stepTransportIngressDispatchWithActions,
   stepTransportMemberUnregisterWithActions,
+  transportIngressDispatchFromActions,
+  transportIngressDispatchPlanFromActions,
   shouldAllowRelayLinkPacket,
   shouldAllowRelayReversePacket,
   shouldAllowRelayTransportPacket,
@@ -183,8 +193,7 @@ import {
   initialReverseEntryExpiredState,
   initialTransmitLinkRelayState,
   initialTransmitOnInterfaceState,
-  initialTransmitReverseRelayState,
-  transportIngressDispatchFromActions
+  initialTransmitReverseRelayState
 } from "../src/index.js";
 
 describe("transport ingress", () => {
@@ -811,6 +820,17 @@ describe("transport ingress", () => {
   });
 
   it("emits transport ingress dispatch actions from the gate step", () => {
+    const announcePlan = stepTransportIngressDispatchPlanWithActions(
+      initialTransportIngressDispatchPlanState(),
+      {
+        kind: "transport/ingress-dispatch-plan-gate",
+        packetType: PACKET_TYPE_ANNOUNCE,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
+    );
+    expect(transportIngressDispatchPlanFromActions(announcePlan.actions)).toBe("announce");
+    expect(shouldDispatchTransportAnnouncePlan(announcePlan.actions)).toBe(true);
+
     const announce = stepTransportIngressDispatchWithActions(
       initialTransportIngressDispatchState(),
       {
@@ -822,6 +842,16 @@ describe("transport ingress", () => {
     expect(transportIngressDispatchFromActions(announce.actions)).toBe("announce");
     expect(shouldDispatchTransportAnnounce(announce.actions)).toBe(true);
 
+    const linkRequestPlan = stepTransportIngressDispatchPlanWithActions(
+      initialTransportIngressDispatchPlanState(),
+      {
+        kind: "transport/ingress-dispatch-plan-gate",
+        packetType: PACKET_TYPE_LINKREQUEST,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
+    );
+    expect(shouldDispatchTransportLinkRequestPlan(linkRequestPlan.actions)).toBe(true);
+
     const linkRequest = stepTransportIngressDispatchWithActions(
       initialTransportIngressDispatchState(),
       {
@@ -831,6 +861,16 @@ describe("transport ingress", () => {
       }
     );
     expect(shouldDispatchTransportLinkRequest(linkRequest.actions)).toBe(true);
+
+    const linkDataPlan = stepTransportIngressDispatchPlanWithActions(
+      initialTransportIngressDispatchPlanState(),
+      {
+        kind: "transport/ingress-dispatch-plan-gate",
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_LINK
+      }
+    );
+    expect(shouldDispatchTransportLinkDataPlan(linkDataPlan.actions)).toBe(true);
 
     const linkData = stepTransportIngressDispatchWithActions(
       initialTransportIngressDispatchState(),
@@ -842,6 +882,16 @@ describe("transport ingress", () => {
     );
     expect(shouldDispatchTransportLinkData(linkData.actions)).toBe(true);
 
+    const plainDataPlan = stepTransportIngressDispatchPlanWithActions(
+      initialTransportIngressDispatchPlanState(),
+      {
+        kind: "transport/ingress-dispatch-plan-gate",
+        packetType: PACKET_TYPE_DATA,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
+    );
+    expect(shouldDispatchTransportPlainDataPlan(plainDataPlan.actions)).toBe(true);
+
     const plainData = stepTransportIngressDispatchWithActions(
       initialTransportIngressDispatchState(),
       {
@@ -852,12 +902,32 @@ describe("transport ingress", () => {
     );
     expect(shouldDispatchTransportPlainData(plainData.actions)).toBe(true);
 
+    const proofPlan = stepTransportIngressDispatchPlanWithActions(
+      initialTransportIngressDispatchPlanState(),
+      {
+        kind: "transport/ingress-dispatch-plan-gate",
+        packetType: PACKET_TYPE_PROOF,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
+    );
+    expect(shouldDispatchTransportProofPlan(proofPlan.actions)).toBe(true);
+
     const proof = stepTransportIngressDispatchWithActions(initialTransportIngressDispatchState(), {
       kind: "transport/ingress-dispatch-gate",
       packetType: PACKET_TYPE_PROOF,
       destinationType: PACKET_DEST_TYPE_SINGLE
     });
     expect(shouldDispatchTransportProof(proof.actions)).toBe(true);
+
+    const ignorePlan = stepTransportIngressDispatchPlanWithActions(
+      initialTransportIngressDispatchPlanState(),
+      {
+        kind: "transport/ingress-dispatch-plan-gate",
+        packetType: 0xff,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }
+    );
+    expect(shouldIgnoreTransportIngressDispatchPlan(ignorePlan.actions)).toBe(true);
 
     const ignore = stepTransportIngressDispatchWithActions(initialTransportIngressDispatchState(), {
       kind: "transport/ingress-dispatch-gate",
@@ -872,6 +942,13 @@ describe("transport ingress", () => {
         destinationType: PACKET_DEST_TYPE_SINGLE
       }).actions
     ).toEqual(announce.actions);
+    expect(
+      stepTransportIngressDispatchPlanWithActions(initialTransportIngressDispatchPlanState(), {
+        kind: "transport/ingress-dispatch-plan-gate",
+        packetType: PACKET_TYPE_ANNOUNCE,
+        destinationType: PACKET_DEST_TYPE_SINGLE
+      }).actions
+    ).toEqual(announcePlan.actions);
   });
 
   it("emits link-data ingress target actions from the gate step", () => {

@@ -29,13 +29,17 @@ import {
   initialEmitPathRequestState,
   initialPathEntryExpiredState,
   initialPathEntryLookupState,
+  initialPathOutboundPlanState,
   initialPathOutboundState,
+  initialPathRequestIngressPlanState,
   initialPathRequestIngressState,
   isDiscoveryPathRequestExpired,
   isPathEntryExpired,
   pathEntryLookupFromActions,
   pathOutboundFromActions,
+  pathOutboundPlanFromActions,
   pathRequestIngressFromActions,
+  pathRequestIngressPlanFromActions,
   planDiscoveryPathRequestFulfill,
   planPathEntryLookup,
   planPathOutbound,
@@ -63,11 +67,13 @@ import {
   shouldClearExpiredDiscoveryPathRequest,
   shouldClearExpiredDiscoveryPathRequestNow,
   shouldDirectPathOutbound,
+  shouldDirectPathOutboundPlan,
   shouldDropExpiredDiscoveryPathRequest,
   shouldEmitPathRequest,
   shouldEmitPathRequestNow,
   shouldExpirePathEntryLookup,
   shouldFloodPathOutbound,
+  shouldFloodPathOutboundPlan,
   shouldFulfillDiscoveryPendingNow,
   shouldRememberPathRequestTagNow,
   shouldSkipAddPathEntry,
@@ -115,9 +121,12 @@ import {
   shouldTouchPathEntry,
   shouldUsePathForOutbound,
   shouldWrapPathOutbound,
+  shouldWrapPathOutboundPlan,
   stepDiscoveryPathRequestFulfillWithActions,
   stepPathEntryLookupWithActions,
+  stepPathOutboundPlanWithActions,
   stepPathOutboundWithActions,
+  stepPathRequestIngressPlanWithActions,
   stepPathRequestIngressWithActions,
   stepPathTable,
   initialPathTableState,
@@ -773,6 +782,23 @@ describe("protocol path table", () => {
   });
 
   it("emits path-request ingress actions from the gate step", () => {
+    const ignoreUnparsedPlan = stepPathRequestIngressPlanWithActions(
+      initialPathRequestIngressPlanState(),
+      {
+        kind: "path-request/ingress-plan-gate",
+        parsedOk: false,
+        hasTag: false,
+        tagAlreadySeen: false,
+        hasLocalAnswerer: false,
+        transportEnabled: true,
+        hasPath: false,
+        shouldAnswerPath: false,
+        discoveryPresent: false,
+        discoveryExpired: false
+      }
+    );
+    expect(pathRequestIngressPlanFromActions(ignoreUnparsedPlan.actions)).toBe("ignore-unparsed");
+
     const ignoreUnparsed = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
       kind: "path-request/ingress-gate",
       parsedOk: false,
@@ -802,6 +828,23 @@ describe("protocol path table", () => {
     });
     expect(shouldAnswerPathRequestLocal(answerLocal.actions)).toBe(true);
 
+    const answerPathPlan = stepPathRequestIngressPlanWithActions(
+      initialPathRequestIngressPlanState(),
+      {
+        kind: "path-request/ingress-plan-gate",
+        parsedOk: true,
+        hasTag: true,
+        tagAlreadySeen: false,
+        hasLocalAnswerer: false,
+        transportEnabled: true,
+        hasPath: true,
+        shouldAnswerPath: true,
+        discoveryPresent: false,
+        discoveryExpired: false
+      }
+    );
+    expect(pathRequestIngressPlanFromActions(answerPathPlan.actions)).toBe("answer-path");
+
     const answerPath = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
       kind: "path-request/ingress-gate",
       parsedOk: true,
@@ -815,6 +858,24 @@ describe("protocol path table", () => {
       discoveryExpired: false
     });
     expect(shouldAnswerPathRequestPath(answerPath.actions)).toBe(true);
+
+    const startDiscoveryPlan = stepPathRequestIngressPlanWithActions(
+      initialPathRequestIngressPlanState(),
+      {
+        kind: "path-request/ingress-plan-gate",
+        parsedOk: true,
+        hasTag: true,
+        tagAlreadySeen: false,
+        hasLocalAnswerer: false,
+        transportEnabled: true,
+        hasPath: false,
+        shouldAnswerPath: false,
+        discoveryPresent: false,
+        discoveryExpired: false,
+        allowDiscovery: true
+      }
+    );
+    expect(pathRequestIngressPlanFromActions(startDiscoveryPlan.actions)).toBe("start-discovery");
 
     const startDiscovery = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
       kind: "path-request/ingress-gate",
@@ -848,6 +909,21 @@ describe("protocol path table", () => {
       allowDiscovery: true
     });
     expect(again.actions).toEqual(startDiscovery.actions);
+    expect(
+      stepPathRequestIngressPlanWithActions(initialPathRequestIngressPlanState(), {
+        kind: "path-request/ingress-plan-gate",
+        parsedOk: true,
+        hasTag: true,
+        tagAlreadySeen: false,
+        hasLocalAnswerer: false,
+        transportEnabled: true,
+        hasPath: false,
+        shouldAnswerPath: false,
+        discoveryPresent: false,
+        discoveryExpired: false,
+        allowDiscovery: true
+      }).actions
+    ).toEqual(startDiscoveryPlan.actions);
   });
 
   it("emits discovery fulfill actions from the gate step", () => {
@@ -879,6 +955,17 @@ describe("protocol path table", () => {
   });
 
   it("emits path outbound actions from the gate step", () => {
+    const wrapPlan = stepPathOutboundPlanWithActions(initialPathOutboundPlanState(), {
+      kind: "path/outbound-plan-gate",
+      packetType: PACKET_TYPE_DATA,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      headerType: PACKET_HEADER_1,
+      hasPath: true,
+      pathHops: 3
+    });
+    expect(pathOutboundPlanFromActions(wrapPlan.actions)).toBe("wrap");
+    expect(shouldWrapPathOutboundPlan(wrapPlan.actions)).toBe(true);
+
     const wrap = stepPathOutboundWithActions(initialPathOutboundState(), {
       kind: "path/outbound-gate",
       packetType: PACKET_TYPE_DATA,
@@ -890,6 +977,17 @@ describe("protocol path table", () => {
     expect(pathOutboundFromActions(wrap.actions)).toBe("wrap");
     expect(shouldWrapPathOutbound(wrap.actions)).toBe(true);
 
+    const directPlan = stepPathOutboundPlanWithActions(initialPathOutboundPlanState(), {
+      kind: "path/outbound-plan-gate",
+      packetType: PACKET_TYPE_DATA,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      headerType: PACKET_HEADER_1,
+      hasPath: true,
+      pathHops: 1
+    });
+    expect(shouldDirectPathOutboundPlan(directPlan.actions)).toBe(true);
+    expect(pathOutboundPlanFromActions(directPlan.actions)).toBe("direct");
+
     const direct = stepPathOutboundWithActions(initialPathOutboundState(), {
       kind: "path/outbound-gate",
       packetType: PACKET_TYPE_DATA,
@@ -899,6 +997,17 @@ describe("protocol path table", () => {
       pathHops: 1
     });
     expect(shouldDirectPathOutbound(direct.actions)).toBe(true);
+
+    const floodPlan = stepPathOutboundPlanWithActions(initialPathOutboundPlanState(), {
+      kind: "path/outbound-plan-gate",
+      packetType: PACKET_TYPE_ANNOUNCE,
+      destinationType: PACKET_DEST_TYPE_SINGLE,
+      headerType: PACKET_HEADER_1,
+      hasPath: true,
+      pathHops: 3
+    });
+    expect(shouldFloodPathOutboundPlan(floodPlan.actions)).toBe(true);
+    expect(pathOutboundPlanFromActions(floodPlan.actions)).toBe("flood");
 
     const flood = stepPathOutboundWithActions(initialPathOutboundState(), {
       kind: "path/outbound-gate",
@@ -919,6 +1028,16 @@ describe("protocol path table", () => {
         pathHops: 3
       }).actions
     ).toEqual(flood.actions);
+    expect(
+      stepPathOutboundPlanWithActions(initialPathOutboundPlanState(), {
+        kind: "path/outbound-plan-gate",
+        packetType: PACKET_TYPE_ANNOUNCE,
+        destinationType: PACKET_DEST_TYPE_SINGLE,
+        headerType: PACKET_HEADER_1,
+        hasPath: true,
+        pathHops: 3
+      }).actions
+    ).toEqual(floodPlan.actions);
   });
 
   it("emits path entry lookup actions from the gate step", () => {
