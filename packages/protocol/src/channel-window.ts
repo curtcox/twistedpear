@@ -2,10 +2,11 @@
  * Pure RNS Channel congestion window + packet timeout decisions.
  * Adapters own send/resend/timers; this owns window sizing and timeout formulas.
  * Packet-timeout-seconds / TX outstanding / send-allow / outlet-transmit /
- * TX-envelope index / TX timeout conclusions leave via machine actions (no
- * ad-hoc `channelPacketTimeoutSeconds` / `countChannelTxOutstanding` /
- * `channelAllowsSend` / `isChannelOutletTransmitOk` /
- * `indexOfChannelTxEnvelope` / `plan.kind` reads beside the step).
+ * TX-envelope index / TX timeout / extend-packet-receipt-timeout conclusions
+ * leave via machine actions (no ad-hoc `channelPacketTimeoutSeconds` /
+ * `countChannelTxOutstanding` / `channelAllowsSend` /
+ * `isChannelOutletTransmitOk` / `indexOfChannelTxEnvelope` /
+ * `shouldExtendPacketReceiptTimeout` / `plan.kind` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -527,12 +528,80 @@ export function shouldSkipArmChannelPacketReceipt(
   return actions.some((action) => action.kind === "skip");
 }
 
-/** Whether a recomputed channel packet timeout should replace the receipt's current timeout. */
+/**
+ * Whether a recomputed channel packet timeout should replace the receipt's
+ * current timeout (updated must be strictly greater than a present current).
+ */
 export function shouldExtendPacketReceiptTimeout(input: {
   readonly currentTimeout: number | null;
   readonly updatedTimeout: number;
 }): boolean {
   return input.currentTimeout !== null && input.updatedTimeout > input.currentTimeout;
+}
+
+/**
+ * Extend-packet-receipt-timeout gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldExtendPacketReceiptTimeout` reads beside the step).
+ */
+export type ExtendPacketReceiptTimeoutState = Record<string, never>;
+
+export type ExtendPacketReceiptTimeoutEvent =
+  | Event
+  | {
+      readonly kind: "channel/extend-packet-receipt-timeout-gate";
+      readonly currentTimeout: number | null;
+      readonly updatedTimeout: number;
+    };
+
+export type ExtendPacketReceiptTimeoutAction =
+  | { readonly kind: "extend" }
+  | { readonly kind: "skip" };
+
+export interface ExtendPacketReceiptTimeoutStepResult {
+  readonly state: ExtendPacketReceiptTimeoutState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ExtendPacketReceiptTimeoutAction[];
+}
+
+export function initialExtendPacketReceiptTimeoutState(): ExtendPacketReceiptTimeoutState {
+  return {};
+}
+
+export function stepExtendPacketReceiptTimeoutWithActions(
+  state: ExtendPacketReceiptTimeoutState,
+  event: ExtendPacketReceiptTimeoutEvent
+): ExtendPacketReceiptTimeoutStepResult {
+  if (event.kind === "channel/extend-packet-receipt-timeout-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldExtendPacketReceiptTimeout({
+            currentTimeout: event.currentTimeout,
+            updatedTimeout: event.updatedTimeout
+          })
+            ? "extend"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldExtendPacketReceiptTimeoutNow(
+  actions: ReadonlyArray<ExtendPacketReceiptTimeoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "extend");
+}
+
+export function shouldSkipExtendPacketReceiptTimeout(
+  actions: ReadonlyArray<ExtendPacketReceiptTimeoutAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**
@@ -1159,8 +1228,8 @@ export function channelTxTimeoutRetryAction(
 
 /**
  * Plan which TX-ring receipts need a longer timeout after a send/retry.
- * Adapter applies `setTimeout` only for returned indexes (no
- * `shouldExtend…` beside the loop).
+ * Adapter applies `setTimeout` only for returned indexes (extend decisions
+ * only from `stepExtendPacketReceiptTimeoutWithActions` actions).
  */
 export function planChannelTxReceiptTimeoutRefresh(
   entries: ReadonlyArray<{
@@ -1183,10 +1252,13 @@ export function planChannelTxReceiptTimeoutRefresh(
       txRingLength: entry.txRingLength
     });
     if (
-      shouldExtendPacketReceiptTimeout({
-        currentTimeout: entry.currentTimeout,
-        updatedTimeout
-      })
+      shouldExtendPacketReceiptTimeoutNow(
+        stepExtendPacketReceiptTimeoutWithActions(initialExtendPacketReceiptTimeoutState(), {
+          kind: "channel/extend-packet-receipt-timeout-gate",
+          currentTimeout: entry.currentTimeout,
+          updatedTimeout
+        }).actions
+      )
     ) {
       extensions.push({ index, timeoutSeconds: updatedTimeout });
     }

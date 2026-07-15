@@ -101,9 +101,10 @@
 > transmit via **`stepChannelOutletTransmitWithActions`**: ok|reject; TX-
 > envelope / RX ring-sequence index via
 > **`stepIndexOfChannelTxEnvelopeWithActions`** /
-> **`stepIndexOfChannelRingSequenceWithActions`**: use-index|miss; retry
-> exhaustion) is a pure protocol leaf; `Channel` adapts it. **Matching link-id
-> / pending app-request index** (via
+> **`stepIndexOfChannelRingSequenceWithActions`**: use-index|miss; extend-
+> packet-receipt-timeout via **`stepExtendPacketReceiptTimeoutWithActions`**:
+> extend|skip; retry exhaustion) is a pure protocol leaf; `Channel` adapts it.
+> **Matching link-id / pending app-request index** (via
 > **`stepIndexOfMatchingLinkIdWithActions`** /
 > **`stepIndexOfPendingLinkAppRequestWithActions`**: use-index|miss) and
 > **pending RESPONSE deliver** (via
@@ -346,7 +347,9 @@
 > **`stepApplyChannelPacketReceiptTimeoutWithActions`**: apply|skip; resent
 > replace via **`stepReplaceChannelResentPacketWithActions`**: replace|skip;
 > TX receipt-timeout extension via
-> **`stepApplyChannelTxReceiptTimeoutExtensionWithActions`**: apply|skip), **resource
+> **`stepApplyChannelTxReceiptTimeoutExtensionWithActions`**: apply|skip;
+> extend-packet-receipt-timeout via
+> **`stepExtendPacketReceiptTimeoutWithActions`**: extend|skip), **resource
 > fulfill-part apply** (via **`stepApplyResourceFulfillPartWithActions`**:
 > apply|skip; frame accept / part-request fulfill / receive-part slot / HMU emit /
 > awaiting-proof advance via
@@ -588,8 +591,10 @@
 > **`countChannelTxOutstanding`** (via **`stepCountChannelTxOutstandingWithActions`**:
 > use-count) and **`channelAllowsSend`** (via **`stepChannelAllowsSendWithActions`**:
 > allow|deny) live in protocol; `Channel.isReadyToSend` adapts them.
-> **`shouldExtendPacketReceiptTimeout`** lives in protocol; `Channel.updatePacketTimeouts`
-> adapts it. **`indexOfChannelTxEnvelope`** (via **`stepIndexOfChannelTxEnvelopeWithActions`**:
+> **`shouldExtendPacketReceiptTimeout`** (via
+> **`stepExtendPacketReceiptTimeoutWithActions`**: extend|skip) lives in
+> protocol; `Channel.updatePacketTimeouts` / TX receipt-timeout refresh adapt
+> it. **`indexOfChannelTxEnvelope`** (via **`stepIndexOfChannelTxEnvelopeWithActions`**:
 > use-index|miss) lives in protocol; Channel timeout/delivery TX-ring lookup
 > adapts it. **`indexOfMatchingLinkId`** (via
 > **`stepIndexOfMatchingLinkIdWithActions`**: use-index|miss) lives in protocol;
@@ -1047,6 +1052,8 @@
 > **`stepReplaceChannelResentPacketWithActions`**: replace|skip) /
 > **`shouldApplyChannelTxReceiptTimeoutExtension`** (via
 > **`stepApplyChannelTxReceiptTimeoutExtensionWithActions`**: apply|skip),
+> **`shouldExtendPacketReceiptTimeout`** (via
+> **`stepExtendPacketReceiptTimeoutWithActions`**: extend|skip),
 > **`shouldApplyResourceFulfillPart`** (via
 > **`stepApplyResourceFulfillPartWithActions`**: apply|skip) /
 > **`shouldAcceptResourceHashmapUpdateFrame`** (via
@@ -1617,7 +1624,8 @@
 > send-link-app-request-response /
 > clear-channel-envelope-packet / arm-channel-packet-receipt /
 > apply-channel-packet-receipt-timeout / replace-channel-resent-packet /
-> apply-channel-tx-receipt-timeout-extension / link-keepalive-context /
+> apply-channel-tx-receipt-timeout-extension /
+> extend-packet-receipt-timeout / link-keepalive-context /
 > apply-resource-fulfill-part / accept-resource-hashmap-update-frame /
 > fulfill-resource-part-request / apply-resource-receive-part-slot /
 > send-resource-hashmap-update / advance-resource-awaiting-proof /
@@ -1704,7 +1712,8 @@
 > handle-incoming-resource-by-hash / link-mode-enabled / expected-link-mode /
 > destination-identity-hash / channel-tx-envelope-op /
 > destination-proof / packet-filter / packet-receipt-callback /
-> channel-tx-receipt-timeout-refresh / channel-message-handler-unregister /
+> channel-tx-receipt-timeout-refresh / extend-packet-receipt-timeout /
+> channel-message-handler-unregister /
 > pending-link-request-unregister / stream-ready-callback-unregister /
 > packet-receipt-unregister / transport-member-unregister /
 > link-initiator-mtu / link-request-responder-mtu / link-hops-match /
@@ -1772,7 +1781,8 @@
 > stop-channel-handler-fanout / emit-channel-immediate-delivery /
 > clear-channel-envelope-packet / arm-channel-packet-receipt /
 > apply-channel-packet-receipt-timeout / replace-channel-resent-packet /
-> apply-channel-tx-receipt-timeout-extension / link-keepalive-context /
+> apply-channel-tx-receipt-timeout-extension /
+> extend-packet-receipt-timeout / link-keepalive-context /
 > apply-resource-fulfill-part / accept-resource-hashmap-update-frame /
 > fulfill-resource-part-request / apply-resource-receive-part-slot /
 > send-resource-hashmap-update / advance-resource-awaiting-proof /
@@ -1831,6 +1841,7 @@
 > emit-channel-immediate-delivery / clear-channel-envelope-packet /
 > arm-channel-packet-receipt / apply-channel-packet-receipt-timeout /
 > replace-channel-resent-packet / apply-channel-tx-receipt-timeout-extension /
+> extend-packet-receipt-timeout /
 > apply-resource-fulfill-part / accept-resource-hashmap-update-frame /
 > fulfill-resource-part-request / apply-resource-receive-part-slot /
 > send-resource-hashmap-update / advance-resource-awaiting-proof /
@@ -1993,6 +2004,9 @@
 > **`stepChannelPacketTimeoutSecondsWithActions`** emits `use-timeout`;
 > `Channel.getPacketTimeoutTime` applies only from those actions (no ad-hoc
 > `channelPacketTimeoutSeconds` reads beside the step).
+> **`stepExtendPacketReceiptTimeoutWithActions`** emits `extend`|`skip`;
+> Channel TX receipt-timeout refresh applies only from those actions (no
+> ad-hoc `shouldExtendPacketReceiptTimeout` reads beside the step).
 > **`stepCountChannelTxOutstandingWithActions`** emits `use-count`;
 > **`stepChannelAllowsSendWithActions`** emits `allow`|`deny`;
 > `Channel.isReadyToSend` applies only from those actions (no ad-hoc
@@ -2193,6 +2207,7 @@
 > **`stepApplyChannelPacketReceiptTimeoutWithActions`** emits `apply` / `skip`;
 > **`stepReplaceChannelResentPacketWithActions`** emits `replace` / `skip`;
 > **`stepApplyChannelTxReceiptTimeoutExtensionWithActions`** emits `apply` / `skip`;
+> **`stepExtendPacketReceiptTimeoutWithActions`** emits `extend` / `skip`;
 > **`stepApplyResourceFulfillPartWithActions`** emits `apply` / `skip`;
 > **`stepAcceptResourceHashmapUpdateFrameWithActions`** emits `accept` / `skip`;
 > **`stepFulfillResourcePartRequestWithActions`** emits `fulfill` / `skip`;
@@ -2229,6 +2244,7 @@
 > `canArmChannelPacketReceipt` / `shouldApplyChannelPacketReceiptTimeout` /
 > `shouldReplaceChannelResentPacket` /
 > `shouldApplyChannelTxReceiptTimeoutExtension` /
+> `shouldExtendPacketReceiptTimeout` /
 > `shouldApplyResourceFulfillPart` / `shouldAcceptResourceHashmapUpdateFrame` /
 > `shouldFulfillResourcePartRequest` / `shouldApplyResourceReceivePartSlot` /
 > `shouldSendResourceHashmapUpdate` / `shouldAdvanceResourceAwaitingProof` /
@@ -2518,6 +2534,9 @@
 > **`stepChannelPacketTimeoutSecondsWithActions`** emits `use-timeout`;
 > `Channel.getPacketTimeoutTime` applies only from those actions (no ad-hoc
 > `channelPacketTimeoutSeconds` reads beside the step).
+> **`stepExtendPacketReceiptTimeoutWithActions`** emits `extend`|`skip`;
+> Channel TX receipt-timeout refresh applies only from those actions (no
+> ad-hoc `shouldExtendPacketReceiptTimeout` reads beside the step).
 > **`stepCountChannelTxOutstandingWithActions`** emits `use-count`;
 > **`stepChannelAllowsSendWithActions`** emits `allow`|`deny`;
 > `Channel.isReadyToSend` applies only from those actions (no ad-hoc

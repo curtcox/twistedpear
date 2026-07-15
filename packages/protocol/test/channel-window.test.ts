@@ -26,6 +26,7 @@ import {
   initialChannelWindowState,
   initialClearChannelEnvelopePacketState,
   initialCountChannelTxOutstandingState,
+  initialExtendPacketReceiptTimeoutState,
   initialIndexOfChannelTxEnvelopeState,
   initialReplaceChannelResentPacketState,
   isChannelOutletTransmitOk,
@@ -43,6 +44,7 @@ import {
   shouldDenyChannelSend,
   shouldExtendChannelTxReceiptTimeout,
   shouldExtendPacketReceiptTimeout,
+  shouldExtendPacketReceiptTimeoutNow,
   shouldGiveUpChannelTxTimeout,
   shouldMissChannelTxEnvelopeIndex,
   shouldMissChannelTxEnvelopeOp,
@@ -59,6 +61,7 @@ import {
   shouldSkipApplyChannelTxReceiptTimeoutExtension,
   shouldSkipArmChannelPacketReceipt,
   shouldSkipClearChannelEnvelopePacket,
+  shouldSkipExtendPacketReceiptTimeout,
   shouldSkipReplaceChannelResentPacket,
   shouldUseChannelPacketTimeout,
   shouldUseChannelTxEnvelopeIndex,
@@ -80,6 +83,7 @@ import {
   stepChannelWindow,
   stepClearChannelEnvelopePacketWithActions,
   stepCountChannelTxOutstandingWithActions,
+  stepExtendPacketReceiptTimeoutWithActions,
   stepIndexOfChannelTxEnvelopeWithActions,
   stepReplaceChannelResentPacketWithActions
 } from "../src/channel-window.js";
@@ -337,6 +341,46 @@ describe("protocol channel window", () => {
     expect(
       shouldExtendPacketReceiptTimeout({ currentTimeout: 2, updatedTimeout: 3 })
     ).toBe(true);
+
+    const skipNull = stepExtendPacketReceiptTimeoutWithActions(
+      initialExtendPacketReceiptTimeoutState(),
+      {
+        kind: "channel/extend-packet-receipt-timeout-gate",
+        currentTimeout: null,
+        updatedTimeout: 1
+      }
+    );
+    expect(shouldExtendPacketReceiptTimeoutNow(skipNull.actions)).toBe(false);
+    expect(shouldSkipExtendPacketReceiptTimeout(skipNull.actions)).toBe(true);
+
+    const skipEqual = stepExtendPacketReceiptTimeoutWithActions(
+      initialExtendPacketReceiptTimeoutState(),
+      {
+        kind: "channel/extend-packet-receipt-timeout-gate",
+        currentTimeout: 2,
+        updatedTimeout: 2
+      }
+    );
+    expect(shouldExtendPacketReceiptTimeoutNow(skipEqual.actions)).toBe(false);
+    expect(shouldSkipExtendPacketReceiptTimeout(skipEqual.actions)).toBe(true);
+
+    const extend = stepExtendPacketReceiptTimeoutWithActions(
+      initialExtendPacketReceiptTimeoutState(),
+      {
+        kind: "channel/extend-packet-receipt-timeout-gate",
+        currentTimeout: 2,
+        updatedTimeout: 3
+      }
+    );
+    expect(shouldExtendPacketReceiptTimeoutNow(extend.actions)).toBe(true);
+    expect(shouldSkipExtendPacketReceiptTimeout(extend.actions)).toBe(false);
+
+    const empty = stepExtendPacketReceiptTimeoutWithActions(
+      initialExtendPacketReceiptTimeoutState(),
+      { kind: "noop" } as never
+    );
+    expect(shouldExtendPacketReceiptTimeoutNow(empty.actions)).toBe(false);
+    expect(shouldSkipExtendPacketReceiptTimeout(empty.actions)).toBe(false);
   });
 
   it("arms channel packet receipts when present", () => {
