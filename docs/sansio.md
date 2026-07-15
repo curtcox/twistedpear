@@ -27,7 +27,9 @@
 > exhaustion) is a pure protocol leaf; `Channel` adapts it. **Matching link-id
 > / pending app-request index** (via
 > **`stepIndexOfMatchingLinkIdWithActions`** /
-> **`stepIndexOfPendingLinkAppRequestWithActions`**: use-index|miss) are pure
+> **`stepIndexOfPendingLinkAppRequestWithActions`**: use-index|miss) and
+> **pending RESPONSE deliver** (via
+> **`stepDeliverPendingLinkAppResponseWithActions`**: deliver|skip) are pure
 > protocol leaves; `TransportNode` and `Link` adapt them. **Stream write
 > chunk-length / read-size / chunk-take clamps** (via
 > **`stepClampStreamDataChunkLengthWithActions`** /
@@ -154,7 +156,9 @@
 > **`stepParseAnnouncePayloadWithActions`**: use-raw / use-fields|reject; signed material via
 > **`stepAnnounceSignedMaterialWithActions`**: use-raw; destination-hash material / match via
 > **`stepAnnounceDestinationHashMaterialWithActions`** /
-> **`stepAnnounceDestinationHashMatchWithActions`**: use-raw / match|mismatch)
+> **`stepAnnounceDestinationHashMatchWithActions`**: use-raw / match|mismatch;
+> payload / parsed accept via **`stepAcceptAnnouncePayloadWithActions`** /
+> **`stepAcceptParsedAnnounceWithActions`**: accept|skip)
 > and **packet proof framing**
 > (pack/split via **`stepPackPacketProofWithActions`** /
 > **`stepSplitPacketProofWithActions`**: use-raw / use-fields|reject; explicit/implicit;
@@ -203,7 +207,9 @@
 > **Identity ciphertext** framing (pack/split via
 > **`stepPackIdentityCiphertextWithActions`** /
 > **`stepSplitIdentityCiphertextWithActions`**: use-raw|reject /
-> use-fields|reject; ephemeral public || Token), **WS binary frame**
+> use-fields|reject; ephemeral public || Token; accept gates via
+> **`stepAcceptIdentityCiphertextFrameWithActions`** /
+> **`stepAcceptIdentityDecryptPlaintextWithActions`**: accept|skip), **WS binary frame**
 > encode/decode (via **`stepEncodeWsBinaryFrameWithActions`** /
 > **`stepDecodeWsClientFrameWithActions`**: use-raw / use-fields|reject),
 > **HDLC interface framing** (encode/decode via
@@ -893,10 +899,15 @@
 > those actions (no ad-hoc `planAnnounceIngressGates` / `planLinkRelayTarget` /
 > `planLinkResourceConclude` / `planPacketReceiptProofAccept` reads beside the
 > step).
-> **`shouldDeliverPendingLinkAppResponse`**,
-> **`shouldAcceptAnnouncePayload`** / **`shouldAcceptParsedAnnounce`**,
-> **`shouldAcceptIdentityCiphertextFrame`** / **`shouldAcceptIdentityDecryptPlaintext`**
-> live in protocol; Link, Announce, TransportNode, and Identity adapt them.
+> **`stepDeliverPendingLinkAppResponseWithActions`** emits `deliver`|`skip`;
+> **`stepAcceptAnnouncePayloadWithActions`** / **`stepAcceptParsedAnnounceWithActions`**
+> emit `accept`|`skip`; **`stepAcceptIdentityCiphertextFrameWithActions`** /
+> **`stepAcceptIdentityDecryptPlaintextWithActions`** emit `accept`|`skip`;
+> Link RESPONSE deliver, Announce parse / handleAnnounce, and Identity decrypt
+> apply only from those actions (no ad-hoc `shouldDeliverPendingLinkAppResponse` /
+> `shouldAcceptAnnouncePayload` / `shouldAcceptParsedAnnounce` /
+> `shouldAcceptIdentityCiphertextFrame` /
+> `shouldAcceptIdentityDecryptPlaintext` reads beside the step).
 > **`stepPropagationRestoreWithActions`** emits `reject-too-large` / `duplicate` /
 > `reject-hash` / `accept`; `PropagationServer` restore applies catalog insert only
 > from those actions (no ad-hoc `planPropagationRestore` / `plan === "accept"`
@@ -977,6 +988,9 @@
 > link-app-request-transmit / announce-ingress-gates /
 > link-relay-target / link-resource-conclude /
 > packet-receipt-proof-accept / propagation-restore /
+> deliver-pending-link-app-response / accept-announce-payload /
+> accept-parsed-announce / accept-identity-ciphertext-frame /
+> accept-identity-decrypt-plaintext /
 > destination-identity-hash / channel-tx-envelope-op /
 > destination-proof / packet-filter / packet-receipt-callback /
 > channel-tx-receipt-timeout-refresh / channel-message-handler-unregister /
@@ -998,6 +1012,9 @@
 > interface-mtu-fit / interface-closed / interface-send-allow /
 > enqueue-raw-interface-frame / enqueue-decoded-packet /
 > deliver-queued-packet / yield-buffered-packet /
+> deliver-pending-link-app-response / accept-announce-payload /
+> accept-parsed-announce / accept-identity-ciphertext-frame /
+> accept-identity-decrypt-plaintext /
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
@@ -1233,6 +1250,16 @@
 > `canInterfaceSend` / `shouldEnqueueRawInterfaceFrame` /
 > `shouldEnqueueDecodedPacket` / `shouldDeliverQueuedPacket` /
 > `shouldYieldBufferedPacket` reads beside the step).
+> **`stepDeliverPendingLinkAppResponseWithActions`** emits `deliver`|`skip`;
+> **`stepAcceptAnnouncePayloadWithActions`** emits `accept`|`skip`;
+> **`stepAcceptParsedAnnounceWithActions`** emits `accept`|`skip`;
+> **`stepAcceptIdentityCiphertextFrameWithActions`** emits `accept`|`skip`;
+> **`stepAcceptIdentityDecryptPlaintextWithActions`** emits `accept`|`skip`;
+> Link RESPONSE / Announce parse / handleAnnounce / Identity decrypt apply only
+> from those actions (no ad-hoc `shouldDeliverPendingLinkAppResponse` /
+> `shouldAcceptAnnouncePayload` / `shouldAcceptParsedAnnounce` /
+> `shouldAcceptIdentityCiphertextFrame` /
+> `shouldAcceptIdentityDecryptPlaintext` reads beside the step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT measure / merge apply only from those
 > actions (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the
@@ -1268,6 +1295,9 @@
 > `isInterfaceClosed` / `canInterfaceSend` /
 > `shouldEnqueueRawInterfaceFrame` / `shouldEnqueueDecodedPacket` /
 > `shouldDeliverQueuedPacket` / `shouldYieldBufferedPacket` /
+> `shouldDeliverPendingLinkAppResponse` / `shouldAcceptAnnouncePayload` /
+> `shouldAcceptParsedAnnounce` / `shouldAcceptIdentityCiphertextFrame` /
+> `shouldAcceptIdentityDecryptPlaintext` /
 > `computeLinkRttSeconds` / `mergeLinkRtt` /
 > `computePathExpiry` / `shouldDeferPacketHash` /
 > `planResourceAdvertisementRoleFlags` /
@@ -1529,6 +1559,16 @@
 > `canInterfaceSend` / `shouldEnqueueRawInterfaceFrame` /
 > `shouldEnqueueDecodedPacket` / `shouldDeliverQueuedPacket` /
 > `shouldYieldBufferedPacket` reads beside the step).
+> **`stepDeliverPendingLinkAppResponseWithActions`** emits `deliver`|`skip`;
+> **`stepAcceptAnnouncePayloadWithActions`** emits `accept`|`skip`;
+> **`stepAcceptParsedAnnounceWithActions`** emits `accept`|`skip`;
+> **`stepAcceptIdentityCiphertextFrameWithActions`** emits `accept`|`skip`;
+> **`stepAcceptIdentityDecryptPlaintextWithActions`** emits `accept`|`skip`;
+> Link RESPONSE / Announce parse / handleAnnounce / Identity decrypt apply only
+> from those actions (no ad-hoc `shouldDeliverPendingLinkAppResponse` /
+> `shouldAcceptAnnouncePayload` / `shouldAcceptParsedAnnounce` /
+> `shouldAcceptIdentityCiphertextFrame` /
+> `shouldAcceptIdentityDecryptPlaintext` reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

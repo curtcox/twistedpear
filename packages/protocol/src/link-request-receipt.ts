@@ -1,8 +1,9 @@
 /**
  * Pure link request-receipt status codes and transitions (RNS Link.RequestReceipt).
- * Pending-request index / unregister conclusions leave via machine actions (no
- * ad-hoc `indexOfPendingLinkAppRequest` /
- * `planUnregisterPendingLinkRequest` reads beside the step).
+ * Pending-request index / unregister / RESPONSE-deliver conclusions leave via
+ * machine actions (no ad-hoc `indexOfPendingLinkAppRequest` /
+ * `planUnregisterPendingLinkRequest` /
+ * `shouldDeliverPendingLinkAppResponse` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -167,6 +168,65 @@ export function pendingLinkAppRequestIndexFromActions(
 /** Whether RESPONSE dispatch may deliver after {@link indexOfPendingLinkAppRequest}. */
 export function shouldDeliverPendingLinkAppResponse(indexPresent: boolean): boolean {
   return indexPresent;
+}
+
+/**
+ * Pending link-app RESPONSE deliver gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldDeliverPendingLinkAppResponse` reads beside the step).
+ */
+export type DeliverPendingLinkAppResponseState = Record<string, never>;
+
+export type DeliverPendingLinkAppResponseEvent =
+  | Event
+  | {
+      readonly kind: "link/pending-app-response-deliver-gate";
+      readonly indexPresent: boolean;
+    };
+
+export type DeliverPendingLinkAppResponseAction =
+  | { readonly kind: "deliver" }
+  | { readonly kind: "skip" };
+
+export interface DeliverPendingLinkAppResponseStepResult {
+  readonly state: DeliverPendingLinkAppResponseState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DeliverPendingLinkAppResponseAction[];
+}
+
+export function initialDeliverPendingLinkAppResponseState(): DeliverPendingLinkAppResponseState {
+  return {};
+}
+
+export function stepDeliverPendingLinkAppResponseWithActions(
+  state: DeliverPendingLinkAppResponseState,
+  event: DeliverPendingLinkAppResponseEvent
+): DeliverPendingLinkAppResponseStepResult {
+  if (event.kind === "link/pending-app-response-deliver-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldDeliverPendingLinkAppResponse(event.indexPresent) ? "deliver" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldDeliverPendingLinkAppResponseNow(
+  actions: ReadonlyArray<DeliverPendingLinkAppResponseAction>
+): boolean {
+  return actions.some((action) => action.kind === "deliver");
+}
+
+export function shouldSkipPendingLinkAppResponseDeliver(
+  actions: ReadonlyArray<DeliverPendingLinkAppResponseAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether a pending link-request receipt list should receive a new member. */

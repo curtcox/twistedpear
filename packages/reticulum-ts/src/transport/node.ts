@@ -39,6 +39,7 @@ import {
   canAnswerLocalPathRequest,
   canDispatchAnnounceHandlers,
   activeLinkUnregisterRemoveIndex,
+  initialAcceptParsedAnnounceState,
   initialAppendPathRandomBlobState,
   initialDestinationProofState,
   initialLinkActivateMembershipState,
@@ -61,7 +62,7 @@ import {
   pendingLinkUnregisterRemoveIndex,
   shouldAcceptCachedPathResponsePacket,
   shouldAcceptLinkLrProofCandidate,
-  shouldAcceptParsedAnnounce,
+  shouldAcceptParsedAnnounceNow,
   shouldAnswerPathRequestLocal,
   shouldAnswerPathRequestPath,
   shouldAnswerPathWithEntry,
@@ -125,6 +126,7 @@ import {
   shouldEmitPathRequest,
   isLocalPathRequestPacket,
   stepDestinationProofWithActions,
+  stepAcceptParsedAnnounceWithActions,
   stepIndexOfMatchingLinkIdWithActions,
   stepLinkActivateMembershipWithActions,
   stepLinkDataIngressTargetWithActions,
@@ -698,7 +700,16 @@ export class LeafTransport {
     }
 
     const parsed = Announce.parse(packet);
-    if (!shouldAcceptParsedAnnounce(parsed !== null)) {
+    /** Adapt parsed-announce accept via protocol actions (no ad-hoc
+     * `shouldAcceptParsedAnnounce` reads). */
+    const acceptStepped = stepAcceptParsedAnnounceWithActions(
+      initialAcceptParsedAnnounceState(),
+      {
+        kind: "announce/accept-parsed-gate",
+        parsedPresent: parsed !== null
+      }
+    );
+    if (!shouldAcceptParsedAnnounceNow(acceptStepped.actions)) {
       return;
     }
     const announce = parsed!;

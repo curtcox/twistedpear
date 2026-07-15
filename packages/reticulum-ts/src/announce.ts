@@ -5,6 +5,7 @@ import {
   announceDestinationHashMaterialRawFromActions,
   announcePayloadFieldsFromActions,
   announceSignedMaterialRawFromActions,
+  initialAcceptAnnouncePayloadState,
   initialAnnounceBuildState,
   initialAnnounceDestinationHashMatchState,
   initialAnnounceDestinationHashMaterialState,
@@ -14,6 +15,7 @@ import {
   initialParseAnnouncePayloadState,
   isAnnouncePacketType,
   packAnnouncePayloadRawFromActions,
+  shouldAcceptAnnouncePayloadNow,
   shouldAcceptAnnounceValidate,
   shouldAttemptAnnounceSignatureValidate,
   shouldCheckAnnounceDestinationHash,
@@ -29,6 +31,7 @@ import {
   shouldUseAnnounceSignedMaterial,
   shouldUsePackAnnouncePayload,
   shouldUseParseAnnouncePayload,
+  stepAcceptAnnouncePayloadWithActions,
   stepAnnounceBuildWithActions,
   stepAnnounceDestinationHashMatchWithActions,
   stepAnnounceDestinationHashMaterialWithActions,
@@ -198,13 +201,22 @@ export class Announce {
       return null;
     }
     const fields = announcePayloadFieldsFromActions(parseStepped.actions);
-    if (fields === null) {
+    /** Adapt announce-payload accept via protocol actions (no ad-hoc
+     * `shouldAcceptAnnouncePayload` reads). */
+    const acceptStepped = stepAcceptAnnouncePayloadWithActions(
+      initialAcceptAnnouncePayloadState(),
+      {
+        kind: "announce/accept-payload-gate",
+        fieldsPresent: fields !== null
+      }
+    );
+    if (!shouldAcceptAnnouncePayloadNow(acceptStepped.actions)) {
       return null;
     }
 
     return {
       destinationHash: packet.destinationHash,
-      ...fields
+      ...fields!
     };
   }
 

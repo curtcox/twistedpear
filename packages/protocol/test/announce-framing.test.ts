@@ -11,6 +11,8 @@ import {
   announcePayloadFieldsFromActions,
   announceSignedMaterial,
   announceSignedMaterialRawFromActions,
+  initialAcceptAnnouncePayloadState,
+  initialAcceptParsedAnnounceState,
   initialAnnounceBuildState,
   initialAnnounceDestinationHashMatchState,
   initialAnnounceDestinationHashMaterialState,
@@ -25,8 +27,10 @@ import {
   planAnnounceBuild,
   planAnnounceValidateOutcome,
   shouldAcceptAnnouncePayload,
+  shouldAcceptAnnouncePayloadNow,
   shouldAcceptAnnounceValidate,
   shouldAcceptParsedAnnounce,
+  shouldAcceptParsedAnnounceNow,
   shouldAttemptAnnounceSignatureValidate,
   shouldCheckAnnounceDestinationHash,
   shouldMatchAnnounceDestinationHash,
@@ -38,10 +42,14 @@ import {
   shouldRejectAnnounceBuildNotAnnounceableDirection,
   shouldRejectAnnounceBuildNotAnnounceableType,
   shouldRejectParseAnnouncePayload,
+  shouldSkipAnnouncePayloadAccept,
+  shouldSkipParsedAnnounceAccept,
   shouldUseAnnounceDestinationHashMaterial,
   shouldUseAnnounceSignedMaterial,
   shouldUsePackAnnouncePayload,
   shouldUseParseAnnouncePayload,
+  stepAcceptAnnouncePayloadWithActions,
+  stepAcceptParsedAnnounceWithActions,
   stepAnnounceBuildWithActions,
   stepAnnounceDestinationHashMatchWithActions,
   stepAnnounceDestinationHashMaterialWithActions,
@@ -466,6 +474,46 @@ describe("protocol announce framing", () => {
     expect(shouldAcceptAnnouncePayload(false)).toBe(false);
     expect(shouldAcceptParsedAnnounce(true)).toBe(true);
     expect(shouldAcceptParsedAnnounce(false)).toBe(false);
+
+    const acceptPayload = stepAcceptAnnouncePayloadWithActions(
+      initialAcceptAnnouncePayloadState(),
+      {
+        kind: "announce/accept-payload-gate",
+        fieldsPresent: true
+      }
+    );
+    expect(shouldAcceptAnnouncePayloadNow(acceptPayload.actions)).toBe(true);
+    expect(shouldSkipAnnouncePayloadAccept(acceptPayload.actions)).toBe(false);
+
+    const skipPayload = stepAcceptAnnouncePayloadWithActions(
+      initialAcceptAnnouncePayloadState(),
+      {
+        kind: "announce/accept-payload-gate",
+        fieldsPresent: false
+      }
+    );
+    expect(shouldAcceptAnnouncePayloadNow(skipPayload.actions)).toBe(false);
+    expect(shouldSkipAnnouncePayloadAccept(skipPayload.actions)).toBe(true);
+
+    const acceptParsed = stepAcceptParsedAnnounceWithActions(
+      initialAcceptParsedAnnounceState(),
+      {
+        kind: "announce/accept-parsed-gate",
+        parsedPresent: true
+      }
+    );
+    expect(shouldAcceptParsedAnnounceNow(acceptParsed.actions)).toBe(true);
+    expect(shouldSkipParsedAnnounceAccept(acceptParsed.actions)).toBe(false);
+
+    const skipParsed = stepAcceptParsedAnnounceWithActions(
+      initialAcceptParsedAnnounceState(),
+      {
+        kind: "announce/accept-parsed-gate",
+        parsedPresent: false
+      }
+    );
+    expect(shouldAcceptParsedAnnounceNow(skipParsed.actions)).toBe(false);
+    expect(shouldSkipParsedAnnounceAccept(skipParsed.actions)).toBe(true);
   });
 
   it("emits pack framing bytes from WithActions step", () => {

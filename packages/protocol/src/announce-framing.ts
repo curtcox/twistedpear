@@ -6,6 +6,9 @@
  * `packAnnouncePayload` / `parseAnnouncePayload` / `announceSignedMaterial` /
  * `announceDestinationHashMaterial` / `announceDestinationHashMatches` /
  * `plan` string reads beside the step).
+ * Payload / parsed-announce accept gates conclude via machine actions (no
+ * ad-hoc `shouldAcceptAnnouncePayload` / `shouldAcceptParsedAnnounce` reads
+ * beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { PACKET_TYPE_ANNOUNCE } from "./packet-header.js";
@@ -356,9 +359,127 @@ export function shouldAcceptAnnouncePayload(fieldsPresent: boolean): boolean {
   return fieldsPresent;
 }
 
+/**
+ * Announce payload accept gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldAcceptAnnouncePayload` reads beside the step).
+ */
+export type AcceptAnnouncePayloadState = Record<string, never>;
+
+export type AcceptAnnouncePayloadEvent =
+  | Event
+  | {
+      readonly kind: "announce/accept-payload-gate";
+      readonly fieldsPresent: boolean;
+    };
+
+export type AcceptAnnouncePayloadAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptAnnouncePayloadStepResult {
+  readonly state: AcceptAnnouncePayloadState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptAnnouncePayloadAction[];
+}
+
+export function initialAcceptAnnouncePayloadState(): AcceptAnnouncePayloadState {
+  return {};
+}
+
+export function stepAcceptAnnouncePayloadWithActions(
+  state: AcceptAnnouncePayloadState,
+  event: AcceptAnnouncePayloadEvent
+): AcceptAnnouncePayloadStepResult {
+  if (event.kind === "announce/accept-payload-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptAnnouncePayload(event.fieldsPresent) ? "accept" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptAnnouncePayloadNow(
+  actions: ReadonlyArray<AcceptAnnouncePayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipAnnouncePayloadAccept(
+  actions: ReadonlyArray<AcceptAnnouncePayloadAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether a validated announce parse result may enter handleAnnounce. */
 export function shouldAcceptParsedAnnounce(parsedPresent: boolean): boolean {
   return parsedPresent;
+}
+
+/**
+ * Parsed-announce accept gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldAcceptParsedAnnounce` reads beside the step).
+ */
+export type AcceptParsedAnnounceState = Record<string, never>;
+
+export type AcceptParsedAnnounceEvent =
+  | Event
+  | {
+      readonly kind: "announce/accept-parsed-gate";
+      readonly parsedPresent: boolean;
+    };
+
+export type AcceptParsedAnnounceAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptParsedAnnounceStepResult {
+  readonly state: AcceptParsedAnnounceState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptParsedAnnounceAction[];
+}
+
+export function initialAcceptParsedAnnounceState(): AcceptParsedAnnounceState {
+  return {};
+}
+
+export function stepAcceptParsedAnnounceWithActions(
+  state: AcceptParsedAnnounceState,
+  event: AcceptParsedAnnounceEvent
+): AcceptParsedAnnounceStepResult {
+  if (event.kind === "announce/accept-parsed-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptParsedAnnounce(event.parsedPresent) ? "accept" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptParsedAnnounceNow(
+  actions: ReadonlyArray<AcceptParsedAnnounceAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipParsedAnnounceAccept(
+  actions: ReadonlyArray<AcceptParsedAnnounceAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Material hashed then truncated for destination-hash check after announce validate. */

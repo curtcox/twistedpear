@@ -41,6 +41,7 @@ import {
   encodeLinkSignallingBytesRawFromActions,
   initialComputeKeepaliveState,
   initialIndexOfPendingLinkAppRequestState,
+  initialDeliverPendingLinkAppResponseState,
   initialComputeLinkEstablishmentTimeoutState,
   initialComputeLinkMduState,
   initialComputeLinkRequestTimeoutState,
@@ -200,6 +201,7 @@ import {
   stepSplitLinkRequestDataWithActions,
   stepUnpackLinkRequestWithActions,
   stepIndexOfPendingLinkAppRequestWithActions,
+  stepDeliverPendingLinkAppResponseWithActions,
   stepUnpackLinkResponseWithActions,
   stepUnpackMsgpackFloatWithActions,
   initialPendingLinkRequestUnregisterState,
@@ -222,6 +224,7 @@ import {
   shouldDispatchLinkPlaintext,
   shouldUsePendingLinkAppRequestIndex,
   pendingLinkAppRequestIndexFromActions,
+  shouldDeliverPendingLinkAppResponseNow,
   shouldEncryptLinkPayload,
   shouldEnterLinkHandshake,
   shouldFailLinkEstablish,
@@ -1960,7 +1963,16 @@ export class Link {
         target: fields.requestId
       }
     );
-    if (shouldUsePendingLinkAppRequestIndex(indexStepped.actions)) {
+    /** Adapt RESPONSE deliver via protocol actions (no ad-hoc
+     * `shouldDeliverPendingLinkAppResponse` reads). */
+    const deliverStepped = stepDeliverPendingLinkAppResponseWithActions(
+      initialDeliverPendingLinkAppResponseState(),
+      {
+        kind: "link/pending-app-response-deliver-gate",
+        indexPresent: shouldUsePendingLinkAppRequestIndex(indexStepped.actions)
+      }
+    );
+    if (shouldDeliverPendingLinkAppResponseNow(deliverStepped.actions)) {
       const index = pendingLinkAppRequestIndexFromActions(indexStepped.actions)!;
       pending[index]!.responseReceived(fields.response);
     }

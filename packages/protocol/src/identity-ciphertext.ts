@@ -4,6 +4,9 @@
  * Pack / split conclusions leave via machine actions (no ad-hoc
  * `packIdentityCiphertext` / `splitIdentityCiphertext` reads beside the step).
  * Decrypt conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Ciphertext-frame / decrypt-plaintext accept gates conclude via machine
+ * actions (no ad-hoc `shouldAcceptIdentityCiphertextFrame` /
+ * `shouldAcceptIdentityDecryptPlaintext` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -194,9 +197,127 @@ export function shouldAcceptIdentityCiphertextFrame(splitOk: boolean): boolean {
   return splitOk;
 }
 
+/**
+ * Identity ciphertext-frame accept gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldAcceptIdentityCiphertextFrame` reads beside the step).
+ */
+export type AcceptIdentityCiphertextFrameState = Record<string, never>;
+
+export type AcceptIdentityCiphertextFrameEvent =
+  | Event
+  | {
+      readonly kind: "identity-ciphertext/accept-frame-gate";
+      readonly splitOk: boolean;
+    };
+
+export type AcceptIdentityCiphertextFrameAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptIdentityCiphertextFrameStepResult {
+  readonly state: AcceptIdentityCiphertextFrameState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptIdentityCiphertextFrameAction[];
+}
+
+export function initialAcceptIdentityCiphertextFrameState(): AcceptIdentityCiphertextFrameState {
+  return {};
+}
+
+export function stepAcceptIdentityCiphertextFrameWithActions(
+  state: AcceptIdentityCiphertextFrameState,
+  event: AcceptIdentityCiphertextFrameEvent
+): AcceptIdentityCiphertextFrameStepResult {
+  if (event.kind === "identity-ciphertext/accept-frame-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptIdentityCiphertextFrame(event.splitOk) ? "accept" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptIdentityCiphertextFrameNow(
+  actions: ReadonlyArray<AcceptIdentityCiphertextFrameAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipIdentityCiphertextFrameAccept(
+  actions: ReadonlyArray<AcceptIdentityCiphertextFrameAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether identity decrypt may return accepted plaintext after plan outcome. */
 export function shouldAcceptIdentityDecryptPlaintext(planAccept: boolean): boolean {
   return planAccept;
+}
+
+/**
+ * Identity decrypt-plaintext accept gate is event-driven; no durable session
+ * fields. Conclusions leave via machine actions (no ad-hoc
+ * `shouldAcceptIdentityDecryptPlaintext` reads beside the step).
+ */
+export type AcceptIdentityDecryptPlaintextState = Record<string, never>;
+
+export type AcceptIdentityDecryptPlaintextEvent =
+  | Event
+  | {
+      readonly kind: "identity-ciphertext/accept-plaintext-gate";
+      readonly planAccept: boolean;
+    };
+
+export type AcceptIdentityDecryptPlaintextAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptIdentityDecryptPlaintextStepResult {
+  readonly state: AcceptIdentityDecryptPlaintextState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptIdentityDecryptPlaintextAction[];
+}
+
+export function initialAcceptIdentityDecryptPlaintextState(): AcceptIdentityDecryptPlaintextState {
+  return {};
+}
+
+export function stepAcceptIdentityDecryptPlaintextWithActions(
+  state: AcceptIdentityDecryptPlaintextState,
+  event: AcceptIdentityDecryptPlaintextEvent
+): AcceptIdentityDecryptPlaintextStepResult {
+  if (event.kind === "identity-ciphertext/accept-plaintext-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptIdentityDecryptPlaintext(event.planAccept) ? "accept" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptIdentityDecryptPlaintextNow(
+  actions: ReadonlyArray<AcceptIdentityDecryptPlaintextAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipIdentityDecryptPlaintextAccept(
+  actions: ReadonlyArray<AcceptIdentityDecryptPlaintextAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 export type IdentityDecryptPlan =

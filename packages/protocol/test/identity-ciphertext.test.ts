@@ -6,6 +6,8 @@ import {
   canIdentityUsePublicKey,
   canLoadIdentityKeyMaterial,
   identityCiphertextFieldsFromActions,
+  initialAcceptIdentityCiphertextFrameState,
+  initialAcceptIdentityDecryptPlaintextState,
   initialIdentityDecryptState,
   initialIdentityRecallAppDataState,
   initialIdentityRecallState,
@@ -19,7 +21,9 @@ import {
   shouldAcceptIdentityDecrypt,
   shouldAttemptIdentityRatchetDecrypt,
   shouldAcceptIdentityCiphertextFrame,
+  shouldAcceptIdentityCiphertextFrameNow,
   shouldAcceptIdentityDecryptPlaintext,
+  shouldAcceptIdentityDecryptPlaintextNow,
   shouldHitIdentityRecall,
   shouldHitIdentityRecallAppData,
   shouldMissIdentityRecall,
@@ -30,10 +34,14 @@ import {
   shouldRejectIdentityRecallKey,
   shouldRejectPackIdentityCiphertext,
   shouldRejectSplitIdentityCiphertext,
+  shouldSkipIdentityCiphertextFrameAccept,
+  shouldSkipIdentityDecryptPlaintextAccept,
   shouldTryIdentityDecrypt,
   shouldUsePackIdentityCiphertext,
   shouldUseSplitIdentityCiphertext,
   splitIdentityCiphertext,
+  stepAcceptIdentityCiphertextFrameWithActions,
+  stepAcceptIdentityDecryptPlaintextWithActions,
   stepIdentityDecryptWithActions,
   stepIdentityRecallAppDataWithActions,
   stepIdentityRecallWithActions,
@@ -58,6 +66,46 @@ describe("protocol identity ciphertext", () => {
     expect(shouldAcceptIdentityCiphertextFrame(false)).toBe(false);
     expect(shouldAcceptIdentityDecryptPlaintext(true)).toBe(true);
     expect(shouldAcceptIdentityDecryptPlaintext(false)).toBe(false);
+
+    const acceptFrame = stepAcceptIdentityCiphertextFrameWithActions(
+      initialAcceptIdentityCiphertextFrameState(),
+      {
+        kind: "identity-ciphertext/accept-frame-gate",
+        splitOk: true
+      }
+    );
+    expect(shouldAcceptIdentityCiphertextFrameNow(acceptFrame.actions)).toBe(true);
+    expect(shouldSkipIdentityCiphertextFrameAccept(acceptFrame.actions)).toBe(false);
+
+    const skipFrame = stepAcceptIdentityCiphertextFrameWithActions(
+      initialAcceptIdentityCiphertextFrameState(),
+      {
+        kind: "identity-ciphertext/accept-frame-gate",
+        splitOk: false
+      }
+    );
+    expect(shouldAcceptIdentityCiphertextFrameNow(skipFrame.actions)).toBe(false);
+    expect(shouldSkipIdentityCiphertextFrameAccept(skipFrame.actions)).toBe(true);
+
+    const acceptPlaintext = stepAcceptIdentityDecryptPlaintextWithActions(
+      initialAcceptIdentityDecryptPlaintextState(),
+      {
+        kind: "identity-ciphertext/accept-plaintext-gate",
+        planAccept: true
+      }
+    );
+    expect(shouldAcceptIdentityDecryptPlaintextNow(acceptPlaintext.actions)).toBe(true);
+    expect(shouldSkipIdentityDecryptPlaintextAccept(acceptPlaintext.actions)).toBe(false);
+
+    const skipPlaintext = stepAcceptIdentityDecryptPlaintextWithActions(
+      initialAcceptIdentityDecryptPlaintextState(),
+      {
+        kind: "identity-ciphertext/accept-plaintext-gate",
+        planAccept: false
+      }
+    );
+    expect(shouldAcceptIdentityDecryptPlaintextNow(skipPlaintext.actions)).toBe(false);
+    expect(shouldSkipIdentityDecryptPlaintextAccept(skipPlaintext.actions)).toBe(true);
   });
 
   it("emits pack raw or reject from WithActions steps", () => {

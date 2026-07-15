@@ -16,14 +16,18 @@ import { LinkResourceStrategy } from "../src/link-watchdog.js";
 import {
   LinkRequestReceiptStatus,
   indexOfPendingLinkAppRequest,
+  initialDeliverPendingLinkAppResponseState,
   initialIndexOfPendingLinkAppRequestState,
   initialLinkRequestReceiptState,
   pendingLinkAppRequestIndexFromActions,
   planUnregisterPendingLinkRequest,
   shouldDeliverPendingLinkAppResponse,
+  shouldDeliverPendingLinkAppResponseNow,
   shouldMissPendingLinkAppRequestIndex,
   shouldRegisterPendingLinkRequest,
+  shouldSkipPendingLinkAppResponseDeliver,
   shouldUsePendingLinkAppRequestIndex,
+  stepDeliverPendingLinkAppResponseWithActions,
   stepIndexOfPendingLinkAppRequestWithActions,
   stepLinkRequestReceipt
 } from "../src/link-request-receipt.js";
@@ -134,6 +138,26 @@ describe("link request receipt step", () => {
     ).toBeNull();
     expect(shouldDeliverPendingLinkAppResponse(true)).toBe(true);
     expect(shouldDeliverPendingLinkAppResponse(false)).toBe(false);
+
+    const deliver = stepDeliverPendingLinkAppResponseWithActions(
+      initialDeliverPendingLinkAppResponseState(),
+      {
+        kind: "link/pending-app-response-deliver-gate",
+        indexPresent: true
+      }
+    );
+    expect(shouldDeliverPendingLinkAppResponseNow(deliver.actions)).toBe(true);
+    expect(shouldSkipPendingLinkAppResponseDeliver(deliver.actions)).toBe(false);
+
+    const skip = stepDeliverPendingLinkAppResponseWithActions(
+      initialDeliverPendingLinkAppResponseState(),
+      {
+        kind: "link/pending-app-response-deliver-gate",
+        indexPresent: false
+      }
+    );
+    expect(shouldDeliverPendingLinkAppResponseNow(skip.actions)).toBe(false);
+    expect(shouldSkipPendingLinkAppResponseDeliver(skip.actions)).toBe(true);
   });
 
   it("emits pending link app-request index only from use-index/miss actions", () => {

@@ -18,6 +18,8 @@ import {
   identityPublicKeyFieldsFromActions,
   identityRatchetRecordFromActions,
   identityRatchetStoreKey,
+  initialAcceptIdentityCiphertextFrameState,
+  initialAcceptIdentityDecryptPlaintextState,
   initialDecodeIdentityRatchetRecordState,
   initialEncodeIdentityRatchetRecordState,
   initialIdentityDecryptState,
@@ -38,8 +40,9 @@ import {
   packIdentityPublicKeyRawFromActions,
   packPacketProofRawFromActions,
   shouldAcceptIdentityDecrypt,
+  shouldAcceptIdentityCiphertextFrameNow,
+  shouldAcceptIdentityDecryptPlaintextNow,
   shouldAttemptIdentityRatchetDecrypt,
-  shouldAcceptIdentityCiphertextFrame,
   shouldCommitRestoredIdentityRatchet,
   shouldHitIdentityRecall,
   shouldHitIdentityRecallAppData,
@@ -66,6 +69,8 @@ import {
   shouldUseSplitIdentityPublicKey,
   stepDecodeIdentityRatchetRecordWithActions,
   stepEncodeIdentityRatchetRecordWithActions,
+  stepAcceptIdentityCiphertextFrameWithActions,
+  stepAcceptIdentityDecryptPlaintextWithActions,
   stepIdentityDecryptWithActions,
   stepIdentityRatchetLookupWithActions,
   stepIdentityRecallAppDataWithActions,
@@ -517,9 +522,17 @@ export class Identity {
       }
     );
     const split = identityCiphertextFieldsFromActions(splitStepped.actions);
-    const frameOk =
-      shouldUseSplitIdentityCiphertext(splitStepped.actions) &&
-      shouldAcceptIdentityCiphertextFrame(split !== null);
+    /** Adapt ciphertext-frame accept via protocol actions (no ad-hoc
+     * `shouldAcceptIdentityCiphertextFrame` reads). */
+    const frameStepped = stepAcceptIdentityCiphertextFrameWithActions(
+      initialAcceptIdentityCiphertextFrameState(),
+      {
+        kind: "identity-ciphertext/accept-frame-gate",
+        splitOk:
+          shouldUseSplitIdentityCiphertext(splitStepped.actions) && split !== null
+      }
+    );
+    const frameOk = shouldAcceptIdentityCiphertextFrameNow(frameStepped.actions);
     let plaintext: Uint8Array | null = null;
     let ratchetId: Uint8Array | null = null;
 
@@ -559,7 +572,17 @@ export class Identity {
       return { plaintext: null, ratchetId: null };
     }
     if (shouldAcceptIdentityDecrypt(afterRatchets.actions)) {
-      return { plaintext, ratchetId };
+      const plaintextStepped = stepAcceptIdentityDecryptPlaintextWithActions(
+        initialAcceptIdentityDecryptPlaintextState(),
+        {
+          kind: "identity-ciphertext/accept-plaintext-gate",
+          planAccept: plaintext !== null
+        }
+      );
+      if (shouldAcceptIdentityDecryptPlaintextNow(plaintextStepped.actions)) {
+        return { plaintext, ratchetId };
+      }
+      return { plaintext: null, ratchetId: null };
     }
     if (!shouldTryIdentityDecrypt(afterRatchets.actions)) {
       return { plaintext: null, ratchetId: null };
@@ -587,6 +610,16 @@ export class Identity {
       identityPlaintextPresent: plaintext !== null
     });
     if (!shouldAcceptIdentityDecrypt(afterIdentity.actions)) {
+      return { plaintext: null, ratchetId: null };
+    }
+    const plaintextStepped = stepAcceptIdentityDecryptPlaintextWithActions(
+      initialAcceptIdentityDecryptPlaintextState(),
+      {
+        kind: "identity-ciphertext/accept-plaintext-gate",
+        planAccept: plaintext !== null
+      }
+    );
+    if (!shouldAcceptIdentityDecryptPlaintextNow(plaintextStepped.actions)) {
       return { plaintext: null, ratchetId: null };
     }
     return { plaintext, ratchetId };
