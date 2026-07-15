@@ -1,16 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
   initialAcceptPropagationGetRequestDataState,
+  initialPropagationGetPlanState,
   initialPropagationGetState,
   planPropagationGet,
   propagationGetApplyIds,
   propagationGetListIds,
+  propagationGetPlanApplyIds,
+  propagationGetPlanFromActions,
+  propagationGetPlanListIds,
   shouldAcceptPropagationGetRequestData,
   shouldAcceptPropagationGetRequestDataNow,
   shouldApplyPropagationGet,
+  shouldApplyPropagationGetPlan,
   shouldListPropagationGetIds,
+  shouldListPropagationGetPlanIds,
   shouldSkipAcceptPropagationGetRequestData,
   stepAcceptPropagationGetRequestDataWithActions,
+  stepPropagationGetPlanWithActions,
   stepPropagationGetWithActions
 } from "../src/propagation-get.js";
 
@@ -77,6 +84,53 @@ describe("protocol propagation get planner", () => {
       entries
     });
     expect(plan).toEqual({ kind: "apply", deleteIds: [idA], fetchIds: [] });
+  });
+
+  it("emits get-plan actions only from propagation/get-plan-gate", () => {
+    const listed = stepPropagationGetPlanWithActions(initialPropagationGetPlanState(), {
+      kind: "propagation/get-plan-gate",
+      wants: null,
+      haves: null,
+      remoteDeliveryHash: alice,
+      entries
+    });
+    expect(shouldListPropagationGetPlanIds(listed.actions)).toBe(true);
+    expect(shouldApplyPropagationGetPlan(listed.actions)).toBe(false);
+    const ids = propagationGetPlanListIds(listed.actions);
+    expect(ids).toHaveLength(2);
+    expect([...ids![0]!]).toEqual([...idA]);
+    expect([...ids![1]!]).toEqual([...idC]);
+    expect(propagationGetPlanFromActions(listed.actions)).toEqual({
+      kind: "list-ids",
+      transientIds: [idA, idC]
+    });
+
+    const applied = stepPropagationGetPlanWithActions(initialPropagationGetPlanState(), {
+      kind: "propagation/get-plan-gate",
+      wants: [idB, idA, new Uint8Array(32)],
+      haves: [idC],
+      remoteDeliveryHash: alice,
+      entries
+    });
+    expect(shouldApplyPropagationGetPlan(applied.actions)).toBe(true);
+    expect(shouldListPropagationGetPlanIds(applied.actions)).toBe(false);
+    expect(propagationGetPlanApplyIds(applied.actions)).toEqual({
+      deleteIds: [idC],
+      fetchIds: [idA]
+    });
+    expect(propagationGetPlanFromActions(applied.actions)).toEqual({
+      kind: "apply",
+      deleteIds: [idC],
+      fetchIds: [idA]
+    });
+
+    expect(
+      stepPropagationGetPlanWithActions(initialPropagationGetPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
   });
 
   it("gates /get request body presence", () => {
