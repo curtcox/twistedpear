@@ -1,8 +1,8 @@
 /**
  * Pure link MTU→MDU conversion and hop-matching decisions.
- * Initiator/responder MTU selection conclusions leave via machine actions
- * (no ad-hoc `planLinkInitiatorMtu` / `planLinkRequestResponderMtu` reads
- * beside the step).
+ * Initiator/responder MTU selection and hops-match conclusions leave via
+ * machine actions (no ad-hoc `planLinkInitiatorMtu` /
+ * `planLinkRequestResponderMtu` / `linkHopsMatch` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 
@@ -67,6 +67,73 @@ export function linkHopsMatch(input: {
     input.packetHops === input.expectedHops ||
     input.expectedHops === input.pathfinderMaxHops
   );
+}
+
+/**
+ * Link hops-match is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `linkHopsMatch` reads
+ * beside the step).
+ */
+export type LinkHopsMatchState = Record<string, never>;
+
+export type LinkHopsMatchEvent =
+  | Event
+  | {
+      readonly kind: "link/hops-match-gate";
+      readonly expectedHops: number | null;
+      readonly packetHops: number;
+      readonly pathfinderMaxHops: number;
+    };
+
+export type LinkHopsMatchAction =
+  | { readonly kind: "match" }
+  | { readonly kind: "mismatch" };
+
+export interface LinkHopsMatchStepResult {
+  readonly state: LinkHopsMatchState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkHopsMatchAction[];
+}
+
+export function initialLinkHopsMatchState(): LinkHopsMatchState {
+  return {};
+}
+
+export function stepLinkHopsMatchWithActions(
+  state: LinkHopsMatchState,
+  event: LinkHopsMatchEvent
+): LinkHopsMatchStepResult {
+  if (event.kind === "link/hops-match-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: linkHopsMatch({
+            expectedHops: event.expectedHops,
+            packetHops: event.packetHops,
+            pathfinderMaxHops: event.pathfinderMaxHops
+          })
+            ? "match"
+            : "mismatch"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldMatchLinkHops(
+  actions: ReadonlyArray<LinkHopsMatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "match");
+}
+
+export function shouldMismatchLinkHops(
+  actions: ReadonlyArray<LinkHopsMatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "mismatch");
 }
 
 /**

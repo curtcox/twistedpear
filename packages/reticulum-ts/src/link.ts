@@ -57,7 +57,6 @@ import {
   isExpectedLinkMode,
   isLinkModeEnabled,
   linkEstablishActivatedAction,
-  linkHopsMatch,
   linkIdentifySignedMaterialRawFromActions,
   linkProofSignedMaterialRawFromActions,
   linkReadyForNewResource,
@@ -89,6 +88,7 @@ import {
   initialLinkAppRequestState,
   initialLinkAppRequestTransmitState,
   initialLinkDataContextState,
+  initialLinkHopsMatchState,
   initialLinkInitiatorMtuState,
   initialLinkRequestResponderMtuState,
   initialLinkResourceConcludeState,
@@ -130,6 +130,7 @@ import {
   shouldRejectUnpackMsgpackFloat,
   shouldUseEncodeLinkMtuBytes,
   shouldUseEncodeLinkSignallingBytes,
+  shouldMatchLinkHops,
   shouldUseLinkInitiatorMtu,
   shouldUseLinkProofSignedMaterial,
   shouldUseLinkRequestHashablePart,
@@ -163,6 +164,7 @@ import {
   stepModeFromLinkRequestDataWithActions,
   stepMtuFromLinkProofDataWithActions,
   stepMtuFromLinkRequestDataWithActions,
+  stepLinkHopsMatchWithActions,
   stepLinkInitiatorMtuWithActions,
   stepLinkRequestResponderMtuWithActions,
   stepLinkIdentifySignedMaterialWithActions,
@@ -1641,11 +1643,13 @@ export class Link {
   }
 
   hopsMatch(packet: Packet): boolean {
-    return linkHopsMatch({
+    const stepped = stepLinkHopsMatchWithActions(initialLinkHopsMatchState(), {
+      kind: "link/hops-match-gate",
       expectedHops: this.expectedHops,
       packetHops: packet.hops,
       pathfinderMaxHops: PATHFINDER_MAX_HOPS
     });
+    return shouldMatchLinkHops(stepped.actions);
   }
 
   private async handleIdentifyPacket(packet: Packet): Promise<void> {

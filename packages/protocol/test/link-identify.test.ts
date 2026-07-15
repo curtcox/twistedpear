@@ -26,7 +26,15 @@ import {
   stepPackLinkIdentifyPayloadWithActions,
   stepSplitLinkIdentifyPayloadWithActions
 } from "../src/link-identify.js";
-import { computeLinkMdu, linkHopsMatch, linkPayloadFitsMdu } from "../src/link-metrics.js";
+import {
+  computeLinkMdu,
+  initialLinkHopsMatchState,
+  linkHopsMatch,
+  linkPayloadFitsMdu,
+  shouldMatchLinkHops,
+  shouldMismatchLinkHops,
+  stepLinkHopsMatchWithActions
+} from "../src/link-metrics.js";
 import { PATHFINDER_MAX_HOPS } from "../src/path-table.js";
 
 describe("protocol link identify", () => {
@@ -296,6 +304,34 @@ describe("protocol link metrics", () => {
         pathfinderMaxHops: PATHFINDER_MAX_HOPS
       })
     ).toBe(true);
+  });
+
+  it("applies hops-match only from step actions", () => {
+    const match = stepLinkHopsMatchWithActions(initialLinkHopsMatchState(), {
+      kind: "link/hops-match-gate",
+      expectedHops: 2,
+      packetHops: 2,
+      pathfinderMaxHops: PATHFINDER_MAX_HOPS
+    });
+    expect(shouldMatchLinkHops(match.actions)).toBe(true);
+    expect(shouldMismatchLinkHops(match.actions)).toBe(false);
+
+    const mismatch = stepLinkHopsMatchWithActions(initialLinkHopsMatchState(), {
+      kind: "link/hops-match-gate",
+      expectedHops: 2,
+      packetHops: 3,
+      pathfinderMaxHops: PATHFINDER_MAX_HOPS
+    });
+    expect(shouldMatchLinkHops(mismatch.actions)).toBe(false);
+    expect(shouldMismatchLinkHops(mismatch.actions)).toBe(true);
+
+    const wildcard = stepLinkHopsMatchWithActions(initialLinkHopsMatchState(), {
+      kind: "link/hops-match-gate",
+      expectedHops: PATHFINDER_MAX_HOPS,
+      packetHops: 9,
+      pathfinderMaxHops: PATHFINDER_MAX_HOPS
+    });
+    expect(shouldMatchLinkHops(wildcard.actions)).toBe(true);
   });
 
   it("gates packed payload size against MDU", () => {

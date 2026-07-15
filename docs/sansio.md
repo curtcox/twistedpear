@@ -26,8 +26,9 @@
 > **`stepPackLinkIdentifyPayloadWithActions`** /
 > **`stepSplitLinkIdentifyPayloadWithActions`**: use-raw|reject / use-fields|reject;
 > signed material via **`stepLinkIdentifySignedMaterialWithActions`**: use-raw) and
-> acceptance gates are pure protocol leaves; `Link` adapts them. **MDU /
-> hops-match** metrics are pure protocol leaves. **LXMF propagation quota / eviction
+> acceptance gates are pure protocol leaves; `Link` adapts them. **MDU**
+> metrics and **hops-match** (via **`stepLinkHopsMatchWithActions`**:
+> match|mismatch) are pure protocol leaves; `Link` adapts them. **LXMF propagation quota / eviction
 > planning** (store via **`stepPropagationStoreWithActions`**) and **propagation /get
 > request planning** (via **`stepPropagationGetWithActions`**: list-ids / apply
 > delete+fetch) are pure protocol leaves; `PropagationServer` and peer
@@ -898,7 +899,8 @@
 > channel-tx-receipt-timeout-refresh / channel-message-handler-unregister /
 > pending-link-request-unregister / stream-ready-callback-unregister /
 > packet-receipt-unregister / transport-member-unregister /
-> link-initiator-mtu / link-request-responder-mtu / packet-hash-defer /
+> link-initiator-mtu / link-request-responder-mtu / link-hops-match /
+> packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
 > decode-resource-advertisement-flags / classify-resource-advertisement /
 > resource-encrypt-material / resource-hash-material /
@@ -1061,13 +1063,17 @@
 > step).
 > **`stepLinkInitiatorMtuWithActions`** / **`stepLinkRequestResponderMtuWithActions`**
 > emit `use-mtu`; Link establish applies MTU only from those actions.
+> **`stepLinkHopsMatchWithActions`** emits `match`|`mismatch`; `Link.hopsMatch`
+> applies only from those actions (no ad-hoc `linkHopsMatch` reads beside the
+> step).
 > **`stepPacketHashDeferWithActions`** emits `defer` / `remember-now`;
 > transport ingress hash deferral applies only from those actions.
 > **`stepResourceAdvertisementRoleFlagsWithActions`** emits `use-flags`;
 > **`stepResourceHashmapSlotWritesWithActions`** emits `write` (per slot);
 > Resource advertisement + hashmap-update apply only from those actions
 > (no ad-hoc `planLinkInitiatorMtu` / `planLinkRequestResponderMtu` /
-> `shouldDeferPacketHash` / `planResourceAdvertisementRoleFlags` /
+> `linkHopsMatch` / `shouldDeferPacketHash` /
+> `planResourceAdvertisementRoleFlags` /
 > `planResourceHashmapSlotWrites` reads beside the step).
 > **`stepClonePacketWithHopsWithActions`** / **`stepTransportAnnounceFieldsWithActions`** /
 > **`stepPathResponseAnnounceFieldsWithActions`** emit `use-fields`; hop-clone,
