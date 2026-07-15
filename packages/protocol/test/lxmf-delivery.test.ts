@@ -36,21 +36,43 @@ import {
   planLxmfSignatureOutcome,
   initialLxmfDirectSendPlanState,
   initialLxmfOpportunisticSendPlanState,
+  initialLxmfPackTimestampPlanState,
+  initialLxmfPropagatedPackPrepPlanState,
   initialLxmfPropagatedSendPlanState,
   initialLxmfSendMethodPlanState,
+  initialLxMessageInstancePackPlanState,
+  initialLxMessagePackPlanState,
+  lxMessageInstancePackPlanFromActions,
+  lxMessagePackPlanFromActions,
   lxmfDirectSendPlanFromActions,
   lxmfOpportunisticSendPlanFromActions,
+  lxmfPackTimestampPlanFromActions,
+  lxmfPropagatedPackPrepPlanFromActions,
   lxmfPropagatedSendPlanFromActions,
   lxmfSendMethodPlanFromActions,
+  shouldPlanLxMessageInstancePackOk,
+  shouldPlanLxMessagePackOk,
   shouldPlanLxmfDirectSendOk,
   shouldPlanLxmfOpportunisticSendOk,
+  shouldPlanLxmfPackTimestampUseNow,
+  shouldPlanLxmfPackTimestampUseTimestamp,
+  shouldPlanLxmfPropagatedPackPrepOk,
+  shouldPlanLxmfPropagatedPackPrepSkip,
   shouldPlanLxmfPropagatedSendOk,
   shouldPlanLxmfSendMethodDirect,
   shouldPlanLxmfSendMethodOpportunistic,
   shouldPlanLxmfSendMethodPropagated,
+  shouldRejectLxMessageInstancePackPlanAlreadyPacked,
+  shouldRejectLxMessageInstancePackPlanMissingEndpoints,
+  shouldRejectLxMessageInstancePackPlanMissingTimestamp,
+  shouldRejectLxMessagePackPlanBadDestination,
+  shouldRejectLxMessagePackPlanBadSource,
   shouldRejectLxmfDirectSendPlanMissingDestination,
   shouldRejectLxmfDirectSendPlanMissingPacked,
   shouldRejectLxmfOpportunisticSendPlanMissingDestination,
+  shouldRejectLxmfPackTimestampPlan,
+  shouldRejectLxmfPropagatedPackPrepPlanMissingIdentity,
+  shouldRejectLxmfPropagatedPackPrepPlanMissingTimestamp,
   shouldRejectLxmfPropagatedSendPlanMissingNode,
   shouldRejectLxmfPropagatedSendPlanMissingPacked,
   shouldRejectLxmfPropagatedSendPlanResourceUnimplemented,
@@ -180,7 +202,9 @@ import {
   stepLxmfDirectSendWithActions,
   stepLxmfOpportunisticSendPlanWithActions,
   stepLxmfOpportunisticSendWithActions,
+  stepLxmfPackTimestampPlanWithActions,
   stepLxmfPackTimestampWithActions,
+  stepLxmfPropagatedPackPrepPlanWithActions,
   stepLxmfPropagatedPackPrepWithActions,
   stepLxmfPropagatedSendPlanWithActions,
   stepLxmfPropagatedSendWithActions,
@@ -190,7 +214,9 @@ import {
   stepLxmfSendMethodPlanWithActions,
   stepLxmfSendMethodWithActions,
   stepLxmfSignatureWithActions,
+  stepLxMessageInstancePackPlanWithActions,
   stepLxMessageInstancePackWithActions,
+  stepLxMessagePackPlanWithActions,
   stepLxMessagePackWithActions,
   stepRegisterLxmfDeliveryIdentityWithActions,
   stepRememberLxmfMessageWithActions,
@@ -430,6 +456,43 @@ describe("protocol lxmf delivery", () => {
         sourceIdentityPresent: false
       })
     ).toBe("bad-source");
+  });
+
+  it("emits LXMessage pack-plan actions only from lxmessage-pack/plan-gate", () => {
+    const ok = stepLxMessagePackPlanWithActions(initialLxMessagePackPlanState(), {
+      kind: "lxmessage-pack/plan-gate",
+      destinationDirectionOut: true,
+      sourceDirectionIn: true,
+      sourceIdentityPresent: true
+    });
+    expect(shouldPlanLxMessagePackOk(ok.actions)).toBe(true);
+    expect(lxMessagePackPlanFromActions(ok.actions)).toBe("ok");
+
+    const badDest = stepLxMessagePackPlanWithActions(initialLxMessagePackPlanState(), {
+      kind: "lxmessage-pack/plan-gate",
+      destinationDirectionOut: false,
+      sourceDirectionIn: true,
+      sourceIdentityPresent: true
+    });
+    expect(shouldRejectLxMessagePackPlanBadDestination(badDest.actions)).toBe(true);
+    expect(lxMessagePackPlanFromActions(badDest.actions)).toBe("bad-destination");
+
+    const badSource = stepLxMessagePackPlanWithActions(initialLxMessagePackPlanState(), {
+      kind: "lxmessage-pack/plan-gate",
+      destinationDirectionOut: true,
+      sourceDirectionIn: true,
+      sourceIdentityPresent: false
+    });
+    expect(shouldRejectLxMessagePackPlanBadSource(badSource.actions)).toBe(true);
+    expect(lxMessagePackPlanFromActions(badSource.actions)).toBe("bad-source");
+
+    expect(
+      stepLxMessagePackPlanWithActions(initialLxMessagePackPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
   });
 
   it("emits LXMessage pack gate actions from stepLxMessagePackWithActions", () => {
@@ -1092,6 +1155,60 @@ describe("protocol lxmf delivery", () => {
     ).toBe(false);
   });
 
+  it("emits LXMessage instance-pack-plan actions only from instance-pack/plan-gate", () => {
+    const ok = stepLxMessageInstancePackPlanWithActions(initialLxMessageInstancePackPlanState(), {
+      kind: "instance-pack/plan-gate",
+      alreadyPacked: false,
+      destinationPresent: true,
+      sourcePresent: true,
+      sourceIdentityPresent: true,
+      timestampPresent: true
+    });
+    expect(shouldPlanLxMessageInstancePackOk(ok.actions)).toBe(true);
+    expect(lxMessageInstancePackPlanFromActions(ok.actions)).toBe("ok");
+
+    const packed = stepLxMessageInstancePackPlanWithActions(initialLxMessageInstancePackPlanState(), {
+      kind: "instance-pack/plan-gate",
+      alreadyPacked: true,
+      destinationPresent: true,
+      sourcePresent: true,
+      sourceIdentityPresent: true,
+      timestampPresent: true
+    });
+    expect(shouldRejectLxMessageInstancePackPlanAlreadyPacked(packed.actions)).toBe(true);
+    expect(lxMessageInstancePackPlanFromActions(packed.actions)).toBe("already-packed");
+
+    const endpoints = stepLxMessageInstancePackPlanWithActions(initialLxMessageInstancePackPlanState(), {
+      kind: "instance-pack/plan-gate",
+      alreadyPacked: false,
+      destinationPresent: false,
+      sourcePresent: true,
+      sourceIdentityPresent: true,
+      timestampPresent: true
+    });
+    expect(shouldRejectLxMessageInstancePackPlanMissingEndpoints(endpoints.actions)).toBe(true);
+    expect(lxMessageInstancePackPlanFromActions(endpoints.actions)).toBe("missing-endpoints");
+
+    const timestamp = stepLxMessageInstancePackPlanWithActions(initialLxMessageInstancePackPlanState(), {
+      kind: "instance-pack/plan-gate",
+      alreadyPacked: false,
+      destinationPresent: true,
+      sourcePresent: true,
+      sourceIdentityPresent: true,
+      timestampPresent: false
+    });
+    expect(shouldRejectLxMessageInstancePackPlanMissingTimestamp(timestamp.actions)).toBe(true);
+    expect(lxMessageInstancePackPlanFromActions(timestamp.actions)).toBe("missing-timestamp");
+
+    expect(
+      stepLxMessageInstancePackPlanWithActions(initialLxMessageInstancePackPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
+  });
+
   it("emits LXMessage instance pack gate actions from stepLxMessageInstancePackWithActions", () => {
     const ok = stepLxMessageInstancePackWithActions(initialLxMessageInstancePackState(), {
       kind: "instance-pack/gate",
@@ -1285,6 +1402,62 @@ describe("protocol lxmf delivery", () => {
         timestampPresent: true
       })
     ).toBe("ok");
+  });
+
+  it("emits PROPAGATED pack-prep-plan actions only from propagated-pack-prep/plan-gate", () => {
+    const skip = stepLxmfPropagatedPackPrepPlanWithActions(initialLxmfPropagatedPackPrepPlanState(), {
+      kind: "propagated-pack-prep/plan-gate",
+      packedPresent: true,
+      desiredMethod: LxmfDeliveryMethod.DIRECT,
+      destinationIdentityPresent: true,
+      timestampPresent: true
+    });
+    expect(shouldPlanLxmfPropagatedPackPrepSkip(skip.actions)).toBe(true);
+    expect(lxmfPropagatedPackPrepPlanFromActions(skip.actions)).toBe("skip");
+
+    const ok = stepLxmfPropagatedPackPrepPlanWithActions(initialLxmfPropagatedPackPrepPlanState(), {
+      kind: "propagated-pack-prep/plan-gate",
+      packedPresent: true,
+      desiredMethod: LxmfDeliveryMethod.PROPAGATED,
+      destinationIdentityPresent: true,
+      timestampPresent: true
+    });
+    expect(shouldPlanLxmfPropagatedPackPrepOk(ok.actions)).toBe(true);
+    expect(lxmfPropagatedPackPrepPlanFromActions(ok.actions)).toBe("ok");
+
+    const missingIdentity = stepLxmfPropagatedPackPrepPlanWithActions(
+      initialLxmfPropagatedPackPrepPlanState(),
+      {
+        kind: "propagated-pack-prep/plan-gate",
+        packedPresent: true,
+        desiredMethod: LxmfDeliveryMethod.PROPAGATED,
+        destinationIdentityPresent: false,
+        timestampPresent: true
+      }
+    );
+    expect(shouldRejectLxmfPropagatedPackPrepPlanMissingIdentity(missingIdentity.actions)).toBe(true);
+    expect(lxmfPropagatedPackPrepPlanFromActions(missingIdentity.actions)).toBe("missing-identity");
+
+    const missingTimestamp = stepLxmfPropagatedPackPrepPlanWithActions(
+      initialLxmfPropagatedPackPrepPlanState(),
+      {
+        kind: "propagated-pack-prep/plan-gate",
+        packedPresent: true,
+        desiredMethod: LxmfDeliveryMethod.PROPAGATED,
+        destinationIdentityPresent: true,
+        timestampPresent: false
+      }
+    );
+    expect(shouldRejectLxmfPropagatedPackPrepPlanMissingTimestamp(missingTimestamp.actions)).toBe(true);
+    expect(lxmfPropagatedPackPrepPlanFromActions(missingTimestamp.actions)).toBe("missing-timestamp");
+
+    expect(
+      stepLxmfPropagatedPackPrepPlanWithActions(initialLxmfPropagatedPackPrepPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
   });
 
   it("emits PROPAGATED pack prep actions from stepLxmfPropagatedPackPrepWithActions", () => {
@@ -1750,6 +1923,40 @@ describe("protocol lxmf delivery", () => {
         }).actions
       )
     ).toBe(true);
+  });
+
+  it("emits pack-timestamp-plan actions only from pack-timestamp/plan-gate", () => {
+    const useTimestamp = stepLxmfPackTimestampPlanWithActions(initialLxmfPackTimestampPlanState(), {
+      kind: "pack-timestamp/plan-gate",
+      hasTimestamp: true,
+      hasNow: false
+    });
+    expect(shouldPlanLxmfPackTimestampUseTimestamp(useTimestamp.actions)).toBe(true);
+    expect(lxmfPackTimestampPlanFromActions(useTimestamp.actions)).toBe("use-timestamp");
+
+    const useNow = stepLxmfPackTimestampPlanWithActions(initialLxmfPackTimestampPlanState(), {
+      kind: "pack-timestamp/plan-gate",
+      hasTimestamp: false,
+      hasNow: true
+    });
+    expect(shouldPlanLxmfPackTimestampUseNow(useNow.actions)).toBe(true);
+    expect(lxmfPackTimestampPlanFromActions(useNow.actions)).toBe("use-now");
+
+    const reject = stepLxmfPackTimestampPlanWithActions(initialLxmfPackTimestampPlanState(), {
+      kind: "pack-timestamp/plan-gate",
+      hasTimestamp: false,
+      hasNow: false
+    });
+    expect(shouldRejectLxmfPackTimestampPlan(reject.actions)).toBe(true);
+    expect(lxmfPackTimestampPlanFromActions(reject.actions)).toBe("reject");
+
+    expect(
+      stepLxmfPackTimestampPlanWithActions(initialLxmfPackTimestampPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
   });
 
   it("emits pack timestamp actions from stepLxmfPackTimestampWithActions", () => {
