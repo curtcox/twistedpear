@@ -47,6 +47,9 @@
 > gates (via **`stepAttemptAnnounceSignatureValidateWithActions`**: attempt|skip;
 > **`stepCheckAnnounceDestinationHashWithActions`**: check|skip),
 > **LINKIDENTIFY accept** (via **`stepAcceptLinkIdentifyWithActions`**: accept|skip),
+> **LINKIDENTIFY outcome-plan** (via
+> **`stepLinkIdentifyOutcomePlanWithActions`**: accept|reject — nested under
+> identify),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -199,6 +202,8 @@
 > (nested under token-access) /
 > **`stepLinkProofValidateOutcomePlanWithActions`**: accept|reject
 > (nested under proof-validate) /
+> **`stepLinkIdentifyOutcomePlanWithActions`**: accept|reject
+> (nested under identify) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -873,7 +878,9 @@
 > **`stepAcceptLinkRequestOwnerWithActions`**: accept|reject) and
 > **`shouldContinueLinkValidateRequest`** (via
 > **`stepContinueLinkValidateRequestWithActions`**: continue|skip) and
-> **`planLinkIdentifyOutcome`** (via **`stepLinkIdentifyWithActions`**) and
+> **`planLinkIdentifyOutcome`** (via **`stepLinkIdentifyWithActions`**:
+> reject / commit; plan nested via
+> **`stepLinkIdentifyOutcomePlanWithActions`**: accept|reject) and
 > **`canAcceptLinkIdentify`** (via **`stepAcceptLinkIdentifyWithActions`**:
 > accept|skip) and **`shouldCommitLinkRemoteIdentity`** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip) live in
@@ -1299,12 +1306,13 @@
 > `planLinkAppRequestResponse` / `canSendLinkAppResponse` /
 > `shouldInvokeLinkAppRequestHandler` /
 > `shouldSendLinkAppRequestResponse` reads beside the step).
-> **`stepLinkIdentifyWithActions`** emits `reject` / `commit`;
+> **`stepLinkIdentifyWithActions`** emits `reject` / `commit` (plan nested via
+> **`stepLinkIdentifyOutcomePlanWithActions`**: accept|reject);
 > **`stepAcceptLinkIdentifyWithActions`** emits `accept`|`skip`;
 > **`stepCommitLinkRemoteIdentityWithActions`** emits `commit`|`skip`; `Link`
 > LINKIDENTIFY handling applies decrypt-accept / remoteIdentity + callback only from those
 > actions (no ad-hoc `canAcceptLinkIdentify` / `planLinkIdentifyOutcome` /
-> `shouldCommitLinkRemoteIdentity` reads beside the step).
+> `outcome ===` / `shouldCommitLinkRemoteIdentity` reads beside the step).
 > **`stepLinkValidateRequestWithActions`** emits `proceed` /
 > `reject-bad-request` / `reject-owner-missing-identity` /
 > `reject-mode-disabled` (owner acceptance nested via
@@ -1712,7 +1720,8 @@
 > timeout/delivery/failed, Channel TX timeout/retry/give-up, Link establish
 > handshake/activate/fail/LRRTT, Link teardown local/remote close, Link
 > RESOURCE_ADV accept/ask-app/reject, Link inbound app-request
-> invoke/response, Link LINKIDENTIFY reject/commit, propagation-store
+> invoke/response, Link LINKIDENTIFY reject/commit /
+> link-identify-outcome-plan, propagation-store
 > reject/duplicate/accept, propagation /get list-ids/apply, LXMF
 > delivery-parameter select deliver/reject, LXMF send-method
 > reject/dispatch, LXMF per-method send gates (opportunistic /
@@ -1732,7 +1741,7 @@
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / link-proof-validate-outcome-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
@@ -1839,7 +1848,7 @@
 > perform-link-handshake-allow / prove-link-allow /
 > accept-link-owner-public-key / accept-link-request-owner / validate-link-proof-allow /
 > attempt-link-proof-crypto / accept-link-rtt / link-rtt-outcome-plan / teardown-link-from-rtt /
-> link-proof-validate-outcome-plan /
+> link-proof-validate-outcome-plan / link-identify-outcome-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /

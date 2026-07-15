@@ -4,8 +4,9 @@
  * Pack / split / signed-material / acceptance conclusions leave via machine
  * actions (no ad-hoc `packLinkIdentifyPayload` / `splitLinkIdentifyPayload` /
  * `linkIdentifySignedMaterial` / `plan.kind` reads beside the step).
- * Accept-before-decrypt / commit-remote-identity gates conclude via machine
- * actions (no ad-hoc `canAcceptLinkIdentify` /
+ * Accept-before-decrypt / identify-outcome-plan / commit-remote-identity
+ * gates conclude via machine actions (no ad-hoc `canAcceptLinkIdentify` /
+ * `planLinkIdentifyOutcome` / `outcome ===` /
  * `shouldCommitLinkRemoteIdentity` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
@@ -104,6 +105,86 @@ export function planLinkIdentifyOutcome(input: {
 }
 
 /**
+ * Identify-outcome plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkIdentifyOutcome` /
+ * `outcome ===` reads beside the step). Nested under
+ * {@link stepLinkIdentifyWithActions}.
+ */
+export type LinkIdentifyOutcomePlanState = Record<string, never>;
+
+export type LinkIdentifyOutcomePlanEvent =
+  | Event
+  | {
+      readonly kind: "identify/outcome-plan-gate";
+      readonly canAccept: boolean;
+      readonly plaintextPresent: boolean;
+      readonly partsPresent: boolean;
+      readonly identityPresent: boolean;
+      readonly signatureValid: boolean;
+    };
+
+export type LinkIdentifyOutcomePlanAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "reject" };
+
+export interface LinkIdentifyOutcomePlanStepResult {
+  readonly state: LinkIdentifyOutcomePlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkIdentifyOutcomePlanAction[];
+}
+
+export function initialLinkIdentifyOutcomePlanState(): LinkIdentifyOutcomePlanState {
+  return {};
+}
+
+export function stepLinkIdentifyOutcomePlanWithActions(
+  state: LinkIdentifyOutcomePlanState,
+  event: LinkIdentifyOutcomePlanEvent
+): LinkIdentifyOutcomePlanStepResult {
+  if (event.kind === "identify/outcome-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLinkIdentifyOutcome({
+            canAccept: event.canAccept,
+            plaintextPresent: event.plaintextPresent,
+            partsPresent: event.partsPresent,
+            identityPresent: event.identityPresent,
+            signatureValid: event.signatureValid
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptLinkIdentifyOutcomePlan(
+  actions: ReadonlyArray<LinkIdentifyOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldRejectLinkIdentifyOutcomePlan(
+  actions: ReadonlyArray<LinkIdentifyOutcomePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject");
+}
+
+/** Extract the identify-outcome plan from actions; null when empty. */
+export function linkIdentifyOutcomePlanFromActions(
+  actions: ReadonlyArray<LinkIdentifyOutcomePlanAction>
+): LinkIdentifyOutcome | null {
+  const action = actions.find(
+    (entry) => entry.kind === "accept" || entry.kind === "reject"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * Whether LINKIDENTIFY may commit remoteIdentity after {@link planLinkIdentifyOutcome}
  * and the identity reference remains present for narrowing.
  */
@@ -195,6 +276,8 @@ export type LinkIdentifyEvent =
 
 /**
  * Adapter applies reject / commit only from these actions.
+ * Plan nested via {@link stepLinkIdentifyOutcomePlanWithActions}
+ * (`accept`|`reject`).
  */
 export type LinkIdentifyAction =
   | { readonly kind: "reject" }
@@ -243,18 +326,22 @@ function stepLinkIdentifyInner(
   event: LinkIdentifyEvent
 ): LinkIdentifyStepResult {
   if (event.kind === "identify/received") {
-    const outcome = planLinkIdentifyOutcome({
-      canAccept: canAcceptLinkIdentify(state.initiator),
-      plaintextPresent: event.plaintextPresent,
-      partsPresent: event.partsPresent,
-      identityPresent: event.identityPresent,
-      signatureValid: event.signatureValid
-    });
+    const planActions = stepLinkIdentifyOutcomePlanWithActions(
+      initialLinkIdentifyOutcomePlanState(),
+      {
+        kind: "identify/outcome-plan-gate",
+        canAccept: canAcceptLinkIdentify(state.initiator),
+        plaintextPresent: event.plaintextPresent,
+        partsPresent: event.partsPresent,
+        identityPresent: event.identityPresent,
+        signatureValid: event.signatureValid
+      }
+    ).actions;
     const commitStepped = stepCommitLinkRemoteIdentityWithActions(
       initialCommitLinkRemoteIdentityState(),
       {
         kind: "link-identify/commit-remote-identity-gate",
-        planAccept: outcome === "accept",
+        planAccept: shouldAcceptLinkIdentifyOutcomePlan(planActions),
         identityPresent: event.identityPresent
       }
     );

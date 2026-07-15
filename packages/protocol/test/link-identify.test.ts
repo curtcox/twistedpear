@@ -4,10 +4,12 @@ import {
   canAcceptLinkIdentify,
   initialAcceptLinkIdentifyState,
   initialCommitLinkRemoteIdentityState,
+  initialLinkIdentifyOutcomePlanState,
   initialLinkIdentifyState,
   initialLinkIdentifySignedMaterialState,
   initialPackLinkIdentifyPayloadState,
   initialSplitLinkIdentifyPayloadState,
+  linkIdentifyOutcomePlanFromActions,
   linkIdentifyPayloadFieldsFromActions,
   linkIdentifySignedMaterial,
   linkIdentifySignedMaterialRawFromActions,
@@ -15,10 +17,12 @@ import {
   packLinkIdentifyPayloadRawFromActions,
   planLinkIdentifyOutcome,
   shouldAcceptLinkIdentifyNow,
+  shouldAcceptLinkIdentifyOutcomePlan,
   shouldCommitLinkIdentify,
   shouldCommitLinkRemoteIdentity,
   shouldCommitLinkRemoteIdentityNow,
   shouldRejectLinkIdentify,
+  shouldRejectLinkIdentifyOutcomePlan,
   shouldRejectPackLinkIdentifyPayload,
   shouldRejectSplitLinkIdentifyPayload,
   shouldSkipCommitLinkRemoteIdentity,
@@ -29,6 +33,7 @@ import {
   splitLinkIdentifyPayload,
   stepAcceptLinkIdentifyWithActions,
   stepCommitLinkRemoteIdentityWithActions,
+  stepLinkIdentifyOutcomePlanWithActions,
   stepLinkIdentifyWithActions,
   stepLinkIdentifySignedMaterialWithActions,
   stepPackLinkIdentifyPayloadWithActions,
@@ -99,6 +104,35 @@ describe("protocol link identify", () => {
         signatureValid: false
       })
     ).toBe("reject");
+
+    const acceptPlan = stepLinkIdentifyOutcomePlanWithActions(
+      initialLinkIdentifyOutcomePlanState(),
+      {
+        kind: "identify/outcome-plan-gate",
+        canAccept: true,
+        plaintextPresent: true,
+        partsPresent: true,
+        identityPresent: true,
+        signatureValid: true
+      }
+    );
+    expect(shouldAcceptLinkIdentifyOutcomePlan(acceptPlan.actions)).toBe(true);
+    expect(linkIdentifyOutcomePlanFromActions(acceptPlan.actions)).toBe("accept");
+
+    const rejectPlan = stepLinkIdentifyOutcomePlanWithActions(
+      initialLinkIdentifyOutcomePlanState(),
+      {
+        kind: "identify/outcome-plan-gate",
+        canAccept: true,
+        plaintextPresent: true,
+        partsPresent: true,
+        identityPresent: true,
+        signatureValid: false
+      }
+    );
+    expect(shouldRejectLinkIdentifyOutcomePlan(rejectPlan.actions)).toBe(true);
+    expect(linkIdentifyOutcomePlanFromActions(rejectPlan.actions)).toBe("reject");
+
     expect(
       shouldCommitLinkRemoteIdentity({ planAccept: true, identityPresent: true })
     ).toBe(true);
