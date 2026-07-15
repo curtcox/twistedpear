@@ -6,6 +6,10 @@
  * Register / keep / fail-and-drop gates conclude via machine actions (no
  * ad-hoc `shouldRegisterPacketReceipt` / `shouldKeepOutboundReceipt` /
  * `shouldFailAndDropOutboundReceipt` reads beside the step).
+ * Outbound-receipt / packet-receipt-proof-ingress / packet-receipt-callback
+ * plans nested via {@link stepOutboundReceiptPlanWithActions} /
+ * {@link stepPacketReceiptProofIngressPlanWithActions} /
+ * {@link stepPacketReceiptCallbackPlanWithActions}.
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -206,6 +210,84 @@ export function planOutboundReceiptOutcome(input: {
   return "fail-and-drop-receipt";
 }
 
+/**
+ * Outbound receipt outcome plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planOutboundReceiptOutcome` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepOutboundReceiptWithActions}.
+ */
+export type OutboundReceiptPlanState = Record<string, never>;
+
+export type OutboundReceiptPlanEvent =
+  | Event
+  | {
+      readonly kind: "receipt/outbound-plan-gate";
+      readonly createReceipt: boolean;
+      readonly sent: boolean;
+    };
+
+export type OutboundReceiptPlanAction = {
+  readonly kind: OutboundReceiptOutcome;
+};
+
+export interface OutboundReceiptPlanStepResult {
+  readonly state: OutboundReceiptPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly OutboundReceiptPlanAction[];
+}
+
+export function initialOutboundReceiptPlanState(): OutboundReceiptPlanState {
+  return {};
+}
+
+export function stepOutboundReceiptPlanWithActions(
+  state: OutboundReceiptPlanState,
+  event: OutboundReceiptPlanEvent
+): OutboundReceiptPlanStepResult {
+  if (event.kind === "receipt/outbound-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planOutboundReceiptOutcome({
+            createReceipt: event.createReceipt,
+            sent: event.sent
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the outbound receipt plan from actions; null when empty. */
+export function outboundReceiptPlanFromActions(
+  actions: ReadonlyArray<OutboundReceiptPlanAction>
+): OutboundReceiptOutcome | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldOutboundReceiptNonePlan(
+  actions: ReadonlyArray<OutboundReceiptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "none");
+}
+
+export function shouldOutboundKeepReceiptPlan(
+  actions: ReadonlyArray<OutboundReceiptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "keep-receipt");
+}
+
+export function shouldOutboundFailAndDropReceiptPlan(
+  actions: ReadonlyArray<OutboundReceiptPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "fail-and-drop-receipt");
+}
+
 /** Whether outbound send should fail+drop a created receipt after transmit failure. */
 export function shouldFailAndDropOutboundReceipt(input: {
   readonly failAndDrop: boolean;
@@ -373,6 +455,80 @@ export function planPacketReceiptProofIngress(input: {
 }
 
 /**
+ * Packet-receipt proof ingress plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planPacketReceiptProofIngress` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepPacketReceiptProofIngressWithActions}.
+ */
+export type PacketReceiptProofIngressPlanState = Record<string, never>;
+
+export type PacketReceiptProofIngressPlanEvent =
+  | Event
+  | {
+      readonly kind: "receipt/proof-ingress-plan-gate";
+      readonly truncatedHashMatches: boolean;
+      readonly identityPresent: boolean;
+      readonly proofAccepted: boolean;
+    };
+
+export type PacketReceiptProofIngressPlanAction = {
+  readonly kind: PacketReceiptProofIngressPlan;
+};
+
+export interface PacketReceiptProofIngressPlanStepResult {
+  readonly state: PacketReceiptProofIngressPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketReceiptProofIngressPlanAction[];
+}
+
+export function initialPacketReceiptProofIngressPlanState(): PacketReceiptProofIngressPlanState {
+  return {};
+}
+
+export function stepPacketReceiptProofIngressPlanWithActions(
+  state: PacketReceiptProofIngressPlanState,
+  event: PacketReceiptProofIngressPlanEvent
+): PacketReceiptProofIngressPlanStepResult {
+  if (event.kind === "receipt/proof-ingress-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planPacketReceiptProofIngress({
+            truncatedHashMatches: event.truncatedHashMatches,
+            identityPresent: event.identityPresent,
+            proofAccepted: event.proofAccepted
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the packet-receipt proof ingress plan from actions; null when empty. */
+export function packetReceiptProofIngressPlanFromActions(
+  actions: ReadonlyArray<PacketReceiptProofIngressPlanAction>
+): PacketReceiptProofIngressPlan | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldRemovePacketReceiptProofIngressPlan(
+  actions: ReadonlyArray<PacketReceiptProofIngressPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "remove-receipt");
+}
+
+export function shouldContinuePacketReceiptProofIngressPlan(
+  actions: ReadonlyArray<PacketReceiptProofIngressPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "continue");
+}
+
+/**
  * Unregister a packet receipt from the transport receipt list.
  * Splice stays at the adapter.
  */
@@ -515,9 +671,74 @@ export function planPacketReceiptCallback(callbackPresent: boolean): PacketRecei
 }
 
 /**
+ * Packet-receipt callback plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planPacketReceiptCallback` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepPacketReceiptCallbackWithActions}.
+ */
+export type PacketReceiptCallbackPlanState = Record<string, never>;
+
+export type PacketReceiptCallbackPlanEvent =
+  | Event
+  | {
+      readonly kind: "receipt/callback-plan-gate";
+      readonly callbackPresent: boolean;
+    };
+
+export type PacketReceiptCallbackPlanAction = {
+  readonly kind: PacketReceiptCallbackPlan;
+};
+
+export interface PacketReceiptCallbackPlanStepResult {
+  readonly state: PacketReceiptCallbackPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PacketReceiptCallbackPlanAction[];
+}
+
+export function initialPacketReceiptCallbackPlanState(): PacketReceiptCallbackPlanState {
+  return {};
+}
+
+export function stepPacketReceiptCallbackPlanWithActions(
+  state: PacketReceiptCallbackPlanState,
+  event: PacketReceiptCallbackPlanEvent
+): PacketReceiptCallbackPlanStepResult {
+  if (event.kind === "receipt/callback-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: planPacketReceiptCallback(event.callbackPresent) }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Extract the packet-receipt callback plan from actions; null when empty. */
+export function packetReceiptCallbackPlanFromActions(
+  actions: ReadonlyArray<PacketReceiptCallbackPlanAction>
+): PacketReceiptCallbackPlan | null {
+  const action = actions[0];
+  return action?.kind ?? null;
+}
+
+export function shouldClearPacketReceiptCallbackPlan(
+  actions: ReadonlyArray<PacketReceiptCallbackPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "clear");
+}
+
+export function shouldSetPacketReceiptCallbackPlan(
+  actions: ReadonlyArray<PacketReceiptCallbackPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "set");
+}
+
+/**
  * Packet-receipt callback assignment is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc `planPacketReceiptCallback`
  * / `plan === "clear"` reads beside the step).
+ * Plan nested via {@link stepPacketReceiptCallbackPlanWithActions} (`clear`|`set`).
  */
 export type PacketReceiptCallbackState = Record<string, never>;
 
@@ -547,11 +768,18 @@ export function stepPacketReceiptCallbackWithActions(
   event: PacketReceiptCallbackEvent
 ): PacketReceiptCallbackStepResult {
   if (event.kind === "receipt/callback-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [{ kind: planPacketReceiptCallback(event.callbackPresent) }]
-    };
+    const planActions = stepPacketReceiptCallbackPlanWithActions(
+      initialPacketReceiptCallbackPlanState(),
+      {
+        kind: "receipt/callback-plan-gate",
+        callbackPresent: event.callbackPresent
+      }
+    ).actions;
+    const plan = packetReceiptCallbackPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
+    return { state, intents: [], actions: [{ kind: plan }] };
   }
 
   return { state, intents: [], actions: [] };
@@ -587,6 +815,8 @@ export function shouldInvokePacketReceiptTimeoutCallback(
 /**
  * Outbound receipt outcome is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepOutboundReceiptPlanWithActions}
+ * (`none`|`keep-receipt`|`fail-and-drop-receipt`).
  */
 export type OutboundReceiptState = Record<string, never>;
 
@@ -654,18 +884,16 @@ function stepOutboundReceiptInner(
   event: OutboundReceiptEvent
 ): OutboundReceiptStepResult {
   if (event.kind === "receipt/outbound-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: planOutboundReceiptOutcome({
-            createReceipt: event.createReceipt,
-            sent: event.sent
-          })
-        }
-      ]
-    };
+    const planActions = stepOutboundReceiptPlanWithActions(initialOutboundReceiptPlanState(), {
+      kind: "receipt/outbound-plan-gate",
+      createReceipt: event.createReceipt,
+      sent: event.sent
+    }).actions;
+    const plan = outboundReceiptPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
+    return { state, intents: [], actions: [{ kind: plan }] };
   }
 
   return { state, intents: [], actions: [] };
@@ -674,6 +902,8 @@ function stepOutboundReceiptInner(
 /**
  * Packet-receipt proof ingress is event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepPacketReceiptProofIngressPlanWithActions}
+ * (`remove-receipt`|`continue`).
  */
 export type PacketReceiptProofIngressState = Record<string, never>;
 
@@ -742,19 +972,20 @@ function stepPacketReceiptProofIngressInner(
   event: PacketReceiptProofIngressEvent
 ): PacketReceiptProofIngressStepResult {
   if (event.kind === "receipt/proof-ingress-gate") {
-    return {
-      state,
-      intents: [],
-      actions: [
-        {
-          kind: planPacketReceiptProofIngress({
-            truncatedHashMatches: event.truncatedHashMatches,
-            identityPresent: event.identityPresent,
-            proofAccepted: event.proofAccepted
-          })
-        }
-      ]
-    };
+    const planActions = stepPacketReceiptProofIngressPlanWithActions(
+      initialPacketReceiptProofIngressPlanState(),
+      {
+        kind: "receipt/proof-ingress-plan-gate",
+        truncatedHashMatches: event.truncatedHashMatches,
+        identityPresent: event.identityPresent,
+        proofAccepted: event.proofAccepted
+      }
+    ).actions;
+    const plan = packetReceiptProofIngressPlanFromActions(planActions);
+    if (plan === null) {
+      return { state, intents: [], actions: [] };
+    }
+    return { state, intents: [], actions: [{ kind: plan }] };
   }
 
   return { state, intents: [], actions: [] };

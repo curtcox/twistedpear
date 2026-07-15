@@ -143,7 +143,8 @@
 > **Path-request ingress / path-outbound / discovery-fulfill / path-entry-lookup /
 > transport-ingress-dispatch / link-data-ingress-target / link-relay-target /
 > reverse-relay-outcome / packet-hash-remember / local-plain-data-delivery /
-> proof-ingress plans** (via
+> proof-ingress / outbound-receipt / packet-receipt-proof-ingress /
+> packet-receipt-callback plans** (via
 > **`stepPathRequestIngressPlanWithActions`**: ignore-unparsed|ignore-seen-tag|
 > answer-local|answer-path|ignore|ignore-in-flight-discovery|start-discovery —
 > nested under path-request-ingress; **`stepPathOutboundPlanWithActions`**:
@@ -162,7 +163,11 @@
 > packet-hash-remember; **`stepLocalPlainDataDeliveryPlanWithActions`**:
 > dispatch|ignore — nested under local-plain-data-delivery;
 > **`stepProofIngressPlanWithActions`**: lrproof|resource-prf|receipt — nested under
-> proof-ingress),
+> proof-ingress; **`stepOutboundReceiptPlanWithActions`**:
+> none|keep-receipt|fail-and-drop-receipt — nested under outbound-receipt;
+> **`stepPacketReceiptProofIngressPlanWithActions`**: remove-receipt|continue —
+> nested under packet-receipt-proof-ingress; **`stepPacketReceiptCallbackPlanWithActions`**:
+> clear|set — nested under packet-receipt-callback),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -437,6 +442,12 @@
 > (nested under local-plain-data-delivery) /
 > **`stepProofIngressPlanWithActions`**: lrproof|resource-prf|receipt
 > (nested under proof-ingress) /
+> **`stepOutboundReceiptPlanWithActions`**: none|keep-receipt|fail-and-drop-receipt
+> (nested under outbound-receipt) /
+> **`stepPacketReceiptProofIngressPlanWithActions`**: remove-receipt|continue
+> (nested under packet-receipt-proof-ingress) /
+> **`stepPacketReceiptCallbackPlanWithActions`**: clear|set
+> (nested under packet-receipt-callback) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -1286,9 +1297,14 @@
 > missing-message; plan nested via **`stepChannelEnvelopePackPlanWithActions`**:
 > ok|missing-message) live in protocol; `Link` and `Channel` adapt them.
 > **`planOutboundReceiptOutcome`** (via **`stepOutboundReceiptWithActions`**:
-> none / keep-receipt / fail-and-drop-receipt) /
+> none / keep-receipt / fail-and-drop-receipt; plan nested via
+> **`stepOutboundReceiptPlanWithActions`**: none|keep-receipt|fail-and-drop-receipt) /
 > **`planPacketReceiptProofIngress`** (via
-> **`stepPacketReceiptProofIngressWithActions`**: remove-receipt / continue) live in
+> **`stepPacketReceiptProofIngressWithActions`**: remove-receipt / continue; plan nested via
+> **`stepPacketReceiptProofIngressPlanWithActions`**: remove-receipt|continue) /
+> **`planPacketReceiptCallback`** (via **`stepPacketReceiptCallbackWithActions`**:
+> clear / set; plan nested via **`stepPacketReceiptCallbackPlanWithActions`**:
+> clear|set) live in
 > protocol; transport sendPacket / receipt proofs adapt them. **`planLinkRegisterList`**
 > (via **`stepLinkRegisterListWithActions`**: pending / active),
 > **`indexOfMatchingLinkId`** (via
@@ -1422,7 +1438,9 @@
 > **`canArmChannelPacketReceipt`** (via
 > **`stepArmChannelPacketReceiptWithActions`**: arm|skip; nested under
 > **`planChannelTxReceiptTimeoutRefresh`** /
-> **`stepChannelTxReceiptTimeoutRefreshWithActions`**), **`planPacketReceiptCallback`**,
+> **`stepChannelTxReceiptTimeoutRefreshWithActions`**), **`planPacketReceiptCallback`**
+> (via **`stepPacketReceiptCallbackWithActions`**: clear / set; plan nested via
+> **`stepPacketReceiptCallbackPlanWithActions`**: clear|set),
 > **`canDispatchAnnounceHandlers`** (via
 > **`stepDispatchAnnounceHandlersWithActions`**: dispatch|skip), **`shouldAttemptIdentityRatchetDecrypt`**,
 > **`shouldRegisterStreamReadyCallback`** (via
@@ -1968,10 +1986,15 @@
 > `planProofIngressKind` reads beside the
 > step).
 > **`stepOutboundReceiptWithActions`** emits `none` / `keep-receipt` /
-> `fail-and-drop-receipt`; **`stepPacketReceiptProofIngressWithActions`**
-> emits `remove-receipt` / `continue`; `LeafTransport.sendPacket` /
-> `handleProof` apply only from those actions (no ad-hoc
-> `planOutboundReceiptOutcome` / `planPacketReceiptProofIngress` reads
+> `fail-and-drop-receipt` (plan nested via **`stepOutboundReceiptPlanWithActions`**:
+> none|keep-receipt|fail-and-drop-receipt); **`stepPacketReceiptProofIngressWithActions`**
+> emits `remove-receipt` / `continue` (plan nested via
+> **`stepPacketReceiptProofIngressPlanWithActions`**: remove-receipt|continue);
+> **`stepPacketReceiptCallbackWithActions`** emits `clear` / `set` (plan nested via
+> **`stepPacketReceiptCallbackPlanWithActions`**: clear|set); `LeafTransport.sendPacket` /
+> `handleProof` / `PacketReceipt` callback assignment apply only from those actions (no ad-hoc
+> `planOutboundReceiptOutcome` / `planPacketReceiptProofIngress` /
+> `planPacketReceiptCallback` reads
 > beside the step).
 > **`stepLinkDataContextWithActions`** emits `rtt` / `keepalive` / `close` /
 > `identify` / `request` / `response` / `channel` / `resource-*` /
@@ -2142,7 +2165,8 @@
 > **`stepDestinationProofWithActions`** emits `prove` / `skip`;
 > **`stepPacketFilterWithActions`** emits `accept` / `reject`; transport node
 > local plain DATA prove and packet-filter apply only from those actions.
-> **`stepPacketReceiptCallbackWithActions`** emits `clear` / `set`;
+> **`stepPacketReceiptCallbackWithActions`** emits `clear` / `set` (plan nested via
+> **`stepPacketReceiptCallbackPlanWithActions`**: clear|set);
 > `PacketReceipt` timeout/delivery callback assignment applies only from those
 > actions.
 > Residual session wait loops now schedule injected-clock timers from step
@@ -2278,7 +2302,9 @@
 > link-data-ingress-target / link-data-ingress-target-plan /
 > reverse-relay-outcome / packet-hash-remember /
 > local-plain-data-delivery / proof-ingress / outbound-receipt /
-> packet-receipt-proof-ingress / link-data-context /
+> outbound-receipt-plan / packet-receipt-proof-ingress /
+> packet-receipt-proof-ingress-plan / packet-receipt-callback /
+> packet-receipt-callback-plan / link-data-context /
 > link-register-list / link-activate-membership /
 > link-unregister-membership / link-app-request /
 > link-app-request-transmit / announce-ingress-gates /

@@ -5,14 +5,20 @@ import {
   checkPacketReceiptTimeout,
   initialFailAndDropOutboundReceiptState,
   initialKeepOutboundReceiptState,
+  initialOutboundReceiptPlanState,
   initialOutboundReceiptState,
+  initialPacketReceiptCallbackPlanState,
   initialPacketReceiptCallbackState,
+  initialPacketReceiptProofIngressPlanState,
   initialPacketReceiptProofIngressState,
   initialPacketReceiptTimeoutState,
   initialPacketReceiptUnregisterState,
   initialRegisterPacketReceiptState,
   outboundReceiptOutcomeFromActions,
+  outboundReceiptPlanFromActions,
+  packetReceiptCallbackPlanFromActions,
   packetReceiptProofIngressFromActions,
+  packetReceiptProofIngressPlanFromActions,
   packetReceiptUnregisterIndex,
   planOutboundReceiptOutcome,
   planPacketReceiptCallback,
@@ -20,7 +26,9 @@ import {
   planUnregisterPacketReceipt,
   shouldArmPacketReceiptTimeoutTimer,
   shouldClearPacketReceiptCallback,
+  shouldClearPacketReceiptCallbackPlan,
   shouldContinuePacketReceiptProofIngress,
+  shouldContinuePacketReceiptProofIngressPlan,
   shouldFailAndDropOutboundReceipt,
   shouldFailAndDropOutboundReceiptNow,
   shouldInvokePacketReceiptAction,
@@ -28,21 +36,29 @@ import {
   shouldKeepOutboundReceipt,
   shouldKeepOutboundReceiptNow,
   shouldOutboundFailAndDropReceipt,
+  shouldOutboundFailAndDropReceiptPlan,
   shouldOutboundKeepReceipt,
+  shouldOutboundKeepReceiptPlan,
   shouldOutboundReceiptNone,
+  shouldOutboundReceiptNonePlan,
   shouldRegisterPacketReceipt,
   shouldRegisterPacketReceiptNow,
   shouldRemovePacketReceipt,
   shouldRemovePacketReceiptProofIngress,
+  shouldRemovePacketReceiptProofIngressPlan,
   shouldSetPacketReceiptCallback,
+  shouldSetPacketReceiptCallbackPlan,
   shouldSkipFailAndDropOutboundReceipt,
   shouldSkipKeepOutboundReceipt,
   shouldSkipRegisterPacketReceipt,
   shouldUnregisterPacketReceipt,
   stepFailAndDropOutboundReceiptWithActions,
   stepKeepOutboundReceiptWithActions,
+  stepOutboundReceiptPlanWithActions,
   stepOutboundReceiptWithActions,
+  stepPacketReceiptCallbackPlanWithActions,
   stepPacketReceiptCallbackWithActions,
+  stepPacketReceiptProofIngressPlanWithActions,
   stepPacketReceiptProofIngressWithActions,
   stepPacketReceiptTimeout,
   stepPacketReceiptTimeoutWithActions,
@@ -285,6 +301,17 @@ describe("protocol packet receipt timeout", () => {
   });
 
   it("emits clear / set actions from receipt/callback-gate", () => {
+    const clearPlan = stepPacketReceiptCallbackPlanWithActions(
+      initialPacketReceiptCallbackPlanState(),
+      {
+        kind: "receipt/callback-plan-gate",
+        callbackPresent: false
+      }
+    );
+    expect(shouldClearPacketReceiptCallbackPlan(clearPlan.actions)).toBe(true);
+    expect(shouldSetPacketReceiptCallbackPlan(clearPlan.actions)).toBe(false);
+    expect(packetReceiptCallbackPlanFromActions(clearPlan.actions)).toBe("clear");
+
     const clear = stepPacketReceiptCallbackWithActions(initialPacketReceiptCallbackState(), {
       kind: "receipt/callback-gate",
       callbackPresent: false
@@ -292,15 +319,45 @@ describe("protocol packet receipt timeout", () => {
     expect(shouldClearPacketReceiptCallback(clear.actions)).toBe(true);
     expect(shouldSetPacketReceiptCallback(clear.actions)).toBe(false);
 
+    const setPlan = stepPacketReceiptCallbackPlanWithActions(
+      initialPacketReceiptCallbackPlanState(),
+      {
+        kind: "receipt/callback-plan-gate",
+        callbackPresent: true
+      }
+    );
+    expect(shouldSetPacketReceiptCallbackPlan(setPlan.actions)).toBe(true);
+    expect(packetReceiptCallbackPlanFromActions(setPlan.actions)).toBe("set");
+
     const set = stepPacketReceiptCallbackWithActions(initialPacketReceiptCallbackState(), {
       kind: "receipt/callback-gate",
       callbackPresent: true
     });
     expect(shouldSetPacketReceiptCallback(set.actions)).toBe(true);
     expect(shouldClearPacketReceiptCallback(set.actions)).toBe(false);
+    expect(
+      stepPacketReceiptCallbackWithActions(initialPacketReceiptCallbackState(), {
+        kind: "receipt/callback-gate",
+        callbackPresent: false
+      }).actions
+    ).toEqual(clear.actions);
+    expect(
+      stepPacketReceiptCallbackPlanWithActions(initialPacketReceiptCallbackPlanState(), {
+        kind: "receipt/callback-plan-gate",
+        callbackPresent: false
+      }).actions
+    ).toEqual(clearPlan.actions);
   });
 
   it("emits outbound receipt and proof-ingress actions from gate steps", () => {
+    const nonePlan = stepOutboundReceiptPlanWithActions(initialOutboundReceiptPlanState(), {
+      kind: "receipt/outbound-plan-gate",
+      createReceipt: false,
+      sent: true
+    });
+    expect(outboundReceiptPlanFromActions(nonePlan.actions)).toBe("none");
+    expect(shouldOutboundReceiptNonePlan(nonePlan.actions)).toBe(true);
+
     const none = stepOutboundReceiptWithActions(initialOutboundReceiptState(), {
       kind: "receipt/outbound-gate",
       createReceipt: false,
@@ -309,6 +366,14 @@ describe("protocol packet receipt timeout", () => {
     expect(outboundReceiptOutcomeFromActions(none.actions)).toBe("none");
     expect(shouldOutboundReceiptNone(none.actions)).toBe(true);
 
+    const keepPlan = stepOutboundReceiptPlanWithActions(initialOutboundReceiptPlanState(), {
+      kind: "receipt/outbound-plan-gate",
+      createReceipt: true,
+      sent: true
+    });
+    expect(shouldOutboundKeepReceiptPlan(keepPlan.actions)).toBe(true);
+    expect(outboundReceiptPlanFromActions(keepPlan.actions)).toBe("keep-receipt");
+
     const keep = stepOutboundReceiptWithActions(initialOutboundReceiptState(), {
       kind: "receipt/outbound-gate",
       createReceipt: true,
@@ -316,12 +381,32 @@ describe("protocol packet receipt timeout", () => {
     });
     expect(shouldOutboundKeepReceipt(keep.actions)).toBe(true);
 
+    const failPlan = stepOutboundReceiptPlanWithActions(initialOutboundReceiptPlanState(), {
+      kind: "receipt/outbound-plan-gate",
+      createReceipt: true,
+      sent: false
+    });
+    expect(shouldOutboundFailAndDropReceiptPlan(failPlan.actions)).toBe(true);
+    expect(outboundReceiptPlanFromActions(failPlan.actions)).toBe("fail-and-drop-receipt");
+
     const fail = stepOutboundReceiptWithActions(initialOutboundReceiptState(), {
       kind: "receipt/outbound-gate",
       createReceipt: true,
       sent: false
     });
     expect(shouldOutboundFailAndDropReceipt(fail.actions)).toBe(true);
+
+    const removePlan = stepPacketReceiptProofIngressPlanWithActions(
+      initialPacketReceiptProofIngressPlanState(),
+      {
+        kind: "receipt/proof-ingress-plan-gate",
+        truncatedHashMatches: true,
+        identityPresent: true,
+        proofAccepted: true
+      }
+    );
+    expect(packetReceiptProofIngressPlanFromActions(removePlan.actions)).toBe("remove-receipt");
+    expect(shouldRemovePacketReceiptProofIngressPlan(removePlan.actions)).toBe(true);
 
     const remove = stepPacketReceiptProofIngressWithActions(
       initialPacketReceiptProofIngressState(),
@@ -335,6 +420,18 @@ describe("protocol packet receipt timeout", () => {
     expect(packetReceiptProofIngressFromActions(remove.actions)).toBe("remove-receipt");
     expect(shouldRemovePacketReceiptProofIngress(remove.actions)).toBe(true);
 
+    const contPlan = stepPacketReceiptProofIngressPlanWithActions(
+      initialPacketReceiptProofIngressPlanState(),
+      {
+        kind: "receipt/proof-ingress-plan-gate",
+        truncatedHashMatches: true,
+        identityPresent: true,
+        proofAccepted: false
+      }
+    );
+    expect(shouldContinuePacketReceiptProofIngressPlan(contPlan.actions)).toBe(true);
+    expect(packetReceiptProofIngressPlanFromActions(contPlan.actions)).toBe("continue");
+
     const cont = stepPacketReceiptProofIngressWithActions(initialPacketReceiptProofIngressState(), {
       kind: "receipt/proof-ingress-gate",
       truncatedHashMatches: true,
@@ -342,6 +439,36 @@ describe("protocol packet receipt timeout", () => {
       proofAccepted: false
     });
     expect(shouldContinuePacketReceiptProofIngress(cont.actions)).toBe(true);
+    expect(
+      stepOutboundReceiptWithActions(initialOutboundReceiptState(), {
+        kind: "receipt/outbound-gate",
+        createReceipt: false,
+        sent: true
+      }).actions
+    ).toEqual(none.actions);
+    expect(
+      stepOutboundReceiptPlanWithActions(initialOutboundReceiptPlanState(), {
+        kind: "receipt/outbound-plan-gate",
+        createReceipt: false,
+        sent: true
+      }).actions
+    ).toEqual(nonePlan.actions);
+    expect(
+      stepPacketReceiptProofIngressWithActions(initialPacketReceiptProofIngressState(), {
+        kind: "receipt/proof-ingress-gate",
+        truncatedHashMatches: true,
+        identityPresent: true,
+        proofAccepted: true
+      }).actions
+    ).toEqual(remove.actions);
+    expect(
+      stepPacketReceiptProofIngressPlanWithActions(initialPacketReceiptProofIngressPlanState(), {
+        kind: "receipt/proof-ingress-plan-gate",
+        truncatedHashMatches: true,
+        identityPresent: true,
+        proofAccepted: true
+      }).actions
+    ).toEqual(removePlan.actions);
   });
 
   it("StepFn wrapper omits actions while WithActions preserves them", () => {
