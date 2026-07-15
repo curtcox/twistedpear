@@ -6,7 +6,9 @@ import {
 import { PacketReceiptStatus } from "../src/packet-receipt-timeout.js";
 import {
   initialAcceptLinkTeardownState,
+  initialLinkTeardownReasonState,
   initialLinkTeardownState,
+  linkTeardownReasonFromActions,
   linkTeardownRemoteCloseAction,
   linkTeardownSendThenCloseAction,
   planLinkTeardown,
@@ -17,8 +19,10 @@ import {
   shouldCloseOnlyLinkTeardown,
   shouldSendLinkTeardownThenClose,
   shouldSkipLinkTeardownAccept,
+  shouldUseLinkTeardownReason,
   stepAcceptLinkTeardownWithActions,
   stepLinkTeardown,
+  stepLinkTeardownReasonWithActions,
   stepLinkTeardownWithActions
 } from "../src/link-teardown.js";
 import { LinkStatus, LinkTeardownReason } from "../src/link-watchdog.js";
@@ -58,6 +62,29 @@ describe("link teardown planning", () => {
     expect(planLinkTeardownReason({ initiator: false, remote: true })).toBe(
       LinkTeardownReason.INITIATOR_CLOSED
     );
+
+    const localInitiator = stepLinkTeardownReasonWithActions(initialLinkTeardownReasonState(), {
+      kind: "link/teardown-reason-gate",
+      initiator: true,
+      remote: false
+    });
+    expect(localInitiator.actions).toEqual([
+      { kind: "use-reason", reason: LinkTeardownReason.INITIATOR_CLOSED }
+    ]);
+    expect(shouldUseLinkTeardownReason(localInitiator.actions)).toBe(true);
+    expect(linkTeardownReasonFromActions(localInitiator.actions)).toBe(
+      LinkTeardownReason.INITIATOR_CLOSED
+    );
+
+    const remoteInitiator = stepLinkTeardownReasonWithActions(initialLinkTeardownReasonState(), {
+      kind: "link/teardown-reason-gate",
+      initiator: true,
+      remote: true
+    });
+    expect(linkTeardownReasonFromActions(remoteInitiator.actions)).toBe(
+      LinkTeardownReason.DESTINATION_CLOSED
+    );
+    expect(linkTeardownReasonFromActions([])).toBeNull();
   });
 
   it("accepts teardown only with present matching link-id plaintext", () => {

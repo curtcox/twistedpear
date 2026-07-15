@@ -2,7 +2,7 @@
  * Pure link teardown gate and reason planning.
  * Packet send / decrypt stay at the adapter edge.
  * Conclusions leave via machine actions (no ad-hoc `plan.kind` /
- * `shouldAcceptLinkTeardown` reads beside the step).
+ * `shouldAcceptLinkTeardown` / `planLinkTeardownReason` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -84,6 +84,73 @@ export function planLinkTeardownReason(input: {
   return input.initiator
     ? LinkTeardownReason.INITIATOR_CLOSED
     : LinkTeardownReason.DESTINATION_CLOSED;
+}
+
+/**
+ * planLinkTeardownReason planning is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkTeardownReason`
+ * reads beside the step).
+ */
+export type LinkTeardownReasonState = Record<string, never>;
+
+export type LinkTeardownReasonEvent =
+  | Event
+  | {
+      readonly kind: "link/teardown-reason-gate";
+      readonly initiator: boolean;
+      readonly remote: boolean;
+    };
+
+export type LinkTeardownReasonAction = {
+  readonly kind: "use-reason";
+  readonly reason: LinkTeardownReasonValue;
+};
+
+export interface LinkTeardownReasonStepResult {
+  readonly state: LinkTeardownReasonState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkTeardownReasonAction[];
+}
+
+export function initialLinkTeardownReasonState(): LinkTeardownReasonState {
+  return {};
+}
+
+export function stepLinkTeardownReasonWithActions(
+  state: LinkTeardownReasonState,
+  event: LinkTeardownReasonEvent
+): LinkTeardownReasonStepResult {
+  if (event.kind === "link/teardown-reason-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-reason",
+          reason: planLinkTeardownReason({
+            initiator: event.initiator,
+            remote: event.remote
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseLinkTeardownReason(
+  actions: ReadonlyArray<LinkTeardownReasonAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-reason");
+}
+
+/** Extract teardown reason from step actions; null when no `use-reason`. */
+export function linkTeardownReasonFromActions(
+  actions: ReadonlyArray<LinkTeardownReasonAction>
+): LinkTeardownReasonValue | null {
+  const action = actions.find((entry) => entry.kind === "use-reason");
+  return action?.kind === "use-reason" ? action.reason : null;
 }
 
 /** Whether a decrypted LINKCLOSE payload is acceptable for this link. */
@@ -229,10 +296,16 @@ function stepLinkTeardownInner(
         actions: [{ kind: "close-only" }]
       };
     }
-    const reason = planLinkTeardownReason({
-      initiator: state.initiator,
-      remote: false
-    });
+    const reason = linkTeardownReasonFromActions(
+      stepLinkTeardownReasonWithActions(initialLinkTeardownReasonState(), {
+        kind: "link/teardown-reason-gate",
+        initiator: state.initiator,
+        remote: false
+      }).actions
+    );
+    if (reason === null) {
+      return { state, intents: [], actions: [] };
+    }
     return {
       state: { ...state, status: LinkStatus.CLOSED },
       intents: [],
@@ -252,10 +325,16 @@ function stepLinkTeardownInner(
     ) {
       return { state, intents: [], actions: [] };
     }
-    const reason = planLinkTeardownReason({
-      initiator: state.initiator,
-      remote: true
-    });
+    const reason = linkTeardownReasonFromActions(
+      stepLinkTeardownReasonWithActions(initialLinkTeardownReasonState(), {
+        kind: "link/teardown-reason-gate",
+        initiator: state.initiator,
+        remote: true
+      }).actions
+    );
+    if (reason === null) {
+      return { state, intents: [], actions: [] };
+    }
     return {
       state: { ...state, status: LinkStatus.CLOSED },
       intents: [],

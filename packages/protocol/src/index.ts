@@ -417,7 +417,9 @@ export {
 } from "./link-resource-accept.js";
 export {
   initialAcceptLinkTeardownState,
+  initialLinkTeardownReasonState,
   initialLinkTeardownState,
+  linkTeardownReasonFromActions,
   linkTeardownRemoteCloseAction,
   linkTeardownSendThenCloseAction,
   planLinkTeardown,
@@ -428,8 +430,10 @@ export {
   shouldCloseOnlyLinkTeardown,
   shouldSendLinkTeardownThenClose,
   shouldSkipLinkTeardownAccept,
+  shouldUseLinkTeardownReason,
   stepAcceptLinkTeardownWithActions,
   stepLinkTeardown,
+  stepLinkTeardownReasonWithActions,
   stepLinkTeardownWithActions,
   type AcceptLinkTeardownAction,
   type AcceptLinkTeardownEvent,
@@ -438,6 +442,10 @@ export {
   type LinkTeardownAction,
   type LinkTeardownEvent,
   type LinkTeardownPlan,
+  type LinkTeardownReasonAction,
+  type LinkTeardownReasonEvent,
+  type LinkTeardownReasonState,
+  type LinkTeardownReasonStepResult,
   type LinkTeardownState,
   type LinkTeardownStepResult
 } from "./link-teardown.js";
