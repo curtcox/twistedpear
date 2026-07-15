@@ -58,6 +58,10 @@
 > **`stepPropagationStorePlanWithActions`**:
 > reject-too-large|duplicate|reject-capacity|accept — nested under
 > propagation-store),
+> **LXMF delivery-plan** (via
+> **`stepLxmfDeliveryPlanWithActions`**:
+> deliver|reject-opportunistic-too-large|reject-unsupported-method — nested under
+> delivery),
 > **LINKIDENTIFY commit-remote-identity** (via
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip),
 > **packet-receipt register / keep / fail-and-drop** (via
@@ -220,6 +224,9 @@
 > **`stepPropagationStorePlanWithActions`**:
 > reject-too-large|duplicate|reject-capacity|accept
 > (nested under propagation-store) /
+> **`stepLxmfDeliveryPlanWithActions`**:
+> deliver|reject-opportunistic-too-large|reject-unsupported-method
+> (nested under delivery) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepLinkRttOutcomePlanWithActions`**: ignore|activate|teardown
@@ -257,8 +264,10 @@
 > list-ids|apply) are pure protocol leaves; `PropagationServer` and peer
 > propagation adapt them. **LXMF delivery method / representation selection**
 > (via **`stepLxmfDeliveryWithActions`**: deliver / reject-opportunistic-too-
-> large / reject-unsupported-method) is a pure protocol leaf; `LXMessage`
-> adapts it. **LXMF outbound send-method dispatch** (via
+> large / reject-unsupported-method; plan nested via
+> **`stepLxmfDeliveryPlanWithActions`**:
+> deliver|reject-opportunistic-too-large|reject-unsupported-method) is a pure
+> protocol leaf; `LXMessage` adapts it. **LXMF outbound send-method dispatch** (via
 > **`stepLxmfSendMethodWithActions`**: reject-unpacked / send-opportunistic /
 > send-direct / send-propagated / reject-unsupported) is a pure protocol leaf;
 > `LXMFRouter.send` adapts it. **LXMF per-method send gates** (via
@@ -376,7 +385,9 @@
 > are pure protocol leaves; `Packet` adapts them. **PKCS#7** padding (pad/unpad via
 > **`stepPkcs7PadWithActions`** / **`stepPkcs7UnpadWithActions`**: use-raw /
 > use-raw|reject) and **LXMF delivery planning**
-> (method/representation selection via **`stepLxmfDeliveryWithActions`**) are
+> (method/representation selection via **`stepLxmfDeliveryWithActions`**;
+> plan nested via **`stepLxmfDeliveryPlanWithActions`**:
+> deliver|reject-opportunistic-too-large|reject-unsupported-method) are
 > pure protocol leaves; Token and `LXMessage` adapt them. **Token framing**
 > (key split / iv||ciphertext||hmac via **`stepSplitTokenKeyWithActions`** /
 > **`stepPackTokenFrameWithActions`** /
@@ -1379,9 +1390,12 @@
 > handlers pack responses only from those actions (no ad-hoc
 > `planPropagationGet` / `plan.kind` reads beside the step).
 > **`stepLxmfDeliveryWithActions`** emits `deliver` / `reject-opportunistic-
-> too-large` / `reject-unsupported-method`; `LXMessage.selectDeliveryParameters`
-> applies method/representation or throws only from those actions (no
-> ad-hoc `planLxmfDelivery` / `plan.kind` reads beside the step).
+> too-large` / `reject-unsupported-method`; plan nested via
+> **`stepLxmfDeliveryPlanWithActions`**
+> (`deliver`|`reject-opportunistic-too-large`|`reject-unsupported-method`);
+> `LXMessage.selectDeliveryParameters` applies method/representation or throws
+> only from those actions (no ad-hoc `planLxmfDelivery` / `plan.kind` reads
+> beside the step).
 > **`stepLxmfSendMethodWithActions`** emits `reject-unpacked` /
 > `send-opportunistic` / `send-direct` / `send-propagated` /
 > `reject-unsupported`; `LXMFRouter.send` applies enqueue + method dispatch
@@ -1759,7 +1773,7 @@
 > link-identify-outcome-plan, propagation-store
 > reject/duplicate/accept / propagation-store-plan, propagation /get list-ids/apply /
 > propagation-get-plan, LXMF
-> delivery-parameter select deliver/reject, LXMF send-method
+> delivery-parameter select deliver/reject / lxmf-delivery-plan, LXMF send-method
 > reject/dispatch, LXMF per-method send gates (opportunistic /
 > direct / propagated), LXMF pack gates (static pack / timestamp /
 > instance pack / propagated pack prep), LXMF propagation link-ready /
@@ -1777,7 +1791,7 @@
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
+> proof-validate / link-proof-validate-outcome-plan / link-identify-outcome-plan / link-resource-advertisement-plan / link-resource-accept-app-result-plan / propagation-store-plan / propagation-get-plan / lxmf-delivery-plan / teardown-link-from-rtt / link-rtt-outcome-plan / accept-link-teardown /
 > link-teardown-reason / link-teardown-plan /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
@@ -1886,7 +1900,7 @@
 > attempt-link-proof-crypto / accept-link-rtt / link-rtt-outcome-plan / teardown-link-from-rtt /
 > link-proof-validate-outcome-plan / link-identify-outcome-plan /
 > link-resource-advertisement-plan / link-resource-accept-app-result-plan /
-> propagation-store-plan / propagation-get-plan /
+> propagation-store-plan / propagation-get-plan / lxmf-delivery-plan /
 > accept-link-teardown / link-teardown-reason / link-teardown-plan / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /

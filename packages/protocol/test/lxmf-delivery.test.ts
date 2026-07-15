@@ -13,10 +13,15 @@ import {
   initialAcceptLxmfPropagationLocalDeliveryState,
   initialAwaitLxmfDeliveryReceiptState,
   initialInvokeLxmfDeliveryCallbackState,
+  initialLxmfDeliveryPlanState,
   initialLxmfDeliveryState,
   initialUnpackLxmfPropagationLocalIngressState,
   lxmfDeliveryDeliverParams,
   lxmfDeliveryOpportunisticRejectSizes,
+  lxmfDeliveryPlanDeliverParams,
+  lxmfDeliveryPlanFromActions,
+  lxmfDeliveryPlanOpportunisticRejectSizes,
+  lxmfDeliveryPlanUnsupportedMethod,
   planLxMessageInstancePack,
   planLxMessagePack,
   planLxmfDeliverableAccept,
@@ -34,6 +39,7 @@ import {
   shouldCommitRememberedLxmfHash,
   shouldCommitRememberedLxmfHashNow,
   shouldDeliverLxmf,
+  shouldDeliverLxmfDeliveryPlan,
   shouldDeliverLxmfPropagationLocalIngress,
   shouldEstablishLxmfPropagationLink,
   shouldExtractLxmfOpportunisticPayloadNow,
@@ -45,6 +51,8 @@ import {
   shouldProceedLxmfPropagationSyncPrep,
   shouldRejectLxmfDirectMissingDestination,
   shouldRejectLxmfDirectMissingPacked,
+  shouldRejectLxmfDeliveryPlanOpportunisticTooLarge,
+  shouldRejectLxmfDeliveryPlanUnsupportedMethod,
   shouldRejectLxmfOpportunisticMissingDestination,
   shouldRejectLxmfOpportunisticTooLarge,
   shouldRejectLxmfPackEndpoints,
@@ -144,6 +152,7 @@ import {
   stepIncludeLxmfStampWithActions,
   stepInvokeLxmfDeliveryCallbackWithActions,
   stepLxmfDeliverableAcceptWithActions,
+  stepLxmfDeliveryPlanWithActions,
   stepLxmfDeliveryWithActions,
   stepLxmfDirectSendWithActions,
   stepLxmfOpportunisticSendWithActions,
@@ -244,6 +253,63 @@ describe("protocol lxmf delivery", () => {
         propagationPackedLength: 80
       }).representation
     ).toBe(LxmfDeliveryRepresentation.RESOURCE);
+  });
+
+  it("emits delivery-plan actions only from delivery/plan-gate", () => {
+    const delivered = stepLxmfDeliveryPlanWithActions(initialLxmfDeliveryPlanState(), {
+      kind: "delivery/plan-gate",
+      desiredMethod: LxmfDeliveryMethod.DIRECT,
+      contentSize: 80,
+      encryptedPacketMaxContent: 100,
+      linkPacketMaxContent: 50
+    });
+    expect(shouldDeliverLxmfDeliveryPlan(delivered.actions)).toBe(true);
+    expect(shouldRejectLxmfDeliveryPlanOpportunisticTooLarge(delivered.actions)).toBe(false);
+    expect(lxmfDeliveryPlanDeliverParams(delivered.actions)).toEqual({
+      method: LxmfDeliveryMethod.DIRECT,
+      representation: LxmfDeliveryRepresentation.RESOURCE
+    });
+    expect(lxmfDeliveryPlanFromActions(delivered.actions)).toEqual({
+      kind: "deliver",
+      method: LxmfDeliveryMethod.DIRECT,
+      representation: LxmfDeliveryRepresentation.RESOURCE
+    });
+
+    const rejected = stepLxmfDeliveryPlanWithActions(initialLxmfDeliveryPlanState(), {
+      kind: "delivery/plan-gate",
+      desiredMethod: LxmfDeliveryMethod.OPPORTUNISTIC,
+      contentSize: 200,
+      encryptedPacketMaxContent: 100,
+      linkPacketMaxContent: 50
+    });
+    expect(shouldRejectLxmfDeliveryPlanOpportunisticTooLarge(rejected.actions)).toBe(true);
+    expect(shouldDeliverLxmfDeliveryPlan(rejected.actions)).toBe(false);
+    expect(lxmfDeliveryPlanOpportunisticRejectSizes(rejected.actions)).toEqual({
+      contentSize: 200,
+      maxContent: 100
+    });
+
+    const unsupported = stepLxmfDeliveryPlanWithActions(initialLxmfDeliveryPlanState(), {
+      kind: "delivery/plan-gate",
+      desiredMethod: 0xff,
+      contentSize: 10,
+      encryptedPacketMaxContent: 100,
+      linkPacketMaxContent: 50
+    });
+    expect(shouldRejectLxmfDeliveryPlanUnsupportedMethod(unsupported.actions)).toBe(true);
+    expect(lxmfDeliveryPlanUnsupportedMethod(unsupported.actions)).toBe(0xff);
+    expect(lxmfDeliveryPlanFromActions(unsupported.actions)).toEqual({
+      kind: "reject-unsupported-method",
+      method: 0xff
+    });
+
+    expect(
+      stepLxmfDeliveryPlanWithActions(initialLxmfDeliveryPlanState(), {
+        kind: "timer/fired",
+        id: "x",
+        at: 0
+      }).actions
+    ).toEqual([]);
   });
 
   it("emits deliver / reject actions from delivery/select", () => {

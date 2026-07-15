@@ -2,6 +2,7 @@
  * Pure LXMF delivery method / representation planning.
  * Encryption and hashing stay at the adapter edge.
  * Conclusions leave via machine actions (no ad-hoc `plan.kind` /
+ * `planLxmfDelivery` /
  * `canAcceptLxmfPropagationLocalDelivery` /
  * `canUnpackLxmfPropagationLocalIngress` /
  * `shouldAwaitLxmfDeliveryReceipt` / `shouldInvokeLxmfDeliveryCallback`
@@ -142,6 +143,135 @@ export function planLxmfDelivery(input: {
 }
 
 /**
+ * Delivery-plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLxmfDelivery` /
+ * `plan.kind` reads beside the step). Nested under
+ * {@link stepLxmfDeliveryWithActions}.
+ */
+export type LxmfDeliveryPlanState = Record<string, never>;
+
+export type LxmfDeliveryPlanEvent =
+  | Event
+  | {
+      readonly kind: "delivery/plan-gate";
+      readonly desiredMethod: number;
+      readonly contentSize: number;
+      readonly encryptedPacketMaxContent: number;
+      readonly linkPacketMaxContent: number;
+      readonly propagationPackedLength?: number;
+    };
+
+export type LxmfDeliveryPlanAction = LxmfDeliveryPlan;
+
+export interface LxmfDeliveryPlanStepResult {
+  readonly state: LxmfDeliveryPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LxmfDeliveryPlanAction[];
+}
+
+export function initialLxmfDeliveryPlanState(): LxmfDeliveryPlanState {
+  return {};
+}
+
+export function stepLxmfDeliveryPlanWithActions(
+  state: LxmfDeliveryPlanState,
+  event: LxmfDeliveryPlanEvent
+): LxmfDeliveryPlanStepResult {
+  if (event.kind === "delivery/plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        planLxmfDelivery({
+          desiredMethod: event.desiredMethod,
+          contentSize: event.contentSize,
+          encryptedPacketMaxContent: event.encryptedPacketMaxContent,
+          linkPacketMaxContent: event.linkPacketMaxContent,
+          ...(event.propagationPackedLength !== undefined
+            ? { propagationPackedLength: event.propagationPackedLength }
+            : {})
+        })
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+/** Whether plan actions include deliver (set method + representation). */
+export function shouldDeliverLxmfDeliveryPlan(
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "deliver");
+}
+
+/** Whether plan actions reject opportunistic content as too large. */
+export function shouldRejectLxmfDeliveryPlanOpportunisticTooLarge(
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-opportunistic-too-large");
+}
+
+/** Whether plan actions reject an unsupported delivery method. */
+export function shouldRejectLxmfDeliveryPlanUnsupportedMethod(
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-unsupported-method");
+}
+
+/** Deliver method/representation from a deliver plan action, if present. */
+export function lxmfDeliveryPlanDeliverParams(
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
+): {
+  readonly method: LxmfDeliveryMethodValue;
+  readonly representation: LxmfDeliveryRepresentationValue;
+} | null {
+  for (const action of actions) {
+    if (action.kind === "deliver") {
+      return { method: action.method, representation: action.representation };
+    }
+  }
+  return null;
+}
+
+/** Size bounds from a reject-opportunistic-too-large plan action, if present. */
+export function lxmfDeliveryPlanOpportunisticRejectSizes(
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
+): { readonly contentSize: number; readonly maxContent: number } | null {
+  for (const action of actions) {
+    if (action.kind === "reject-opportunistic-too-large") {
+      return { contentSize: action.contentSize, maxContent: action.maxContent };
+    }
+  }
+  return null;
+}
+
+/** Unsupported method from a reject-unsupported-method plan action, if present. */
+export function lxmfDeliveryPlanUnsupportedMethod(
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
+): number | null {
+  for (const action of actions) {
+    if (action.kind === "reject-unsupported-method") {
+      return action.method;
+    }
+  }
+  return null;
+}
+
+/** Extract the delivery plan from actions; null when empty. */
+export function lxmfDeliveryPlanFromActions(
+  actions: ReadonlyArray<LxmfDeliveryPlanAction>
+): LxmfDeliveryPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "deliver" ||
+      entry.kind === "reject-opportunistic-too-large" ||
+      entry.kind === "reject-unsupported-method"
+  );
+  return action ?? null;
+}
+
+/**
  * Delivery planning is event-driven; no durable session fields.
  */
 export type LxmfDeliveryState = Record<string, never>;
@@ -159,6 +289,8 @@ export type LxmfDeliveryEvent =
 
 /**
  * Adapter applies deliver / reject only from these actions.
+ * Plan nested via {@link stepLxmfDeliveryPlanWithActions}
+ * (`deliver`|`reject-opportunistic-too-large`|`reject-unsupported-method`).
  */
 export type LxmfDeliveryAction =
   | {
@@ -251,7 +383,8 @@ function stepLxmfDeliveryInner(
   event: LxmfDeliveryEvent
 ): LxmfDeliveryStepResult {
   if (event.kind === "delivery/select") {
-    const plan = planLxmfDelivery({
+    const planActions = stepLxmfDeliveryPlanWithActions(initialLxmfDeliveryPlanState(), {
+      kind: "delivery/plan-gate",
       desiredMethod: event.desiredMethod,
       contentSize: event.contentSize,
       encryptedPacketMaxContent: event.encryptedPacketMaxContent,
@@ -259,35 +392,45 @@ function stepLxmfDeliveryInner(
       ...(event.propagationPackedLength !== undefined
         ? { propagationPackedLength: event.propagationPackedLength }
         : {})
-    });
-    if (plan.kind === "reject-opportunistic-too-large") {
+    }).actions;
+    if (shouldRejectLxmfDeliveryPlanOpportunisticTooLarge(planActions)) {
+      const sizes = lxmfDeliveryPlanOpportunisticRejectSizes(planActions);
       return {
         state,
         intents: [],
         actions: [
           {
             kind: "reject-opportunistic-too-large",
-            contentSize: plan.contentSize,
-            maxContent: plan.maxContent
+            contentSize: sizes?.contentSize ?? 0,
+            maxContent: sizes?.maxContent ?? 0
           }
         ]
       };
     }
-    if (plan.kind === "reject-unsupported-method") {
+    if (shouldRejectLxmfDeliveryPlanUnsupportedMethod(planActions)) {
       return {
         state,
         intents: [],
-        actions: [{ kind: "reject-unsupported-method", method: plan.method }]
+        actions: [
+          {
+            kind: "reject-unsupported-method",
+            method: lxmfDeliveryPlanUnsupportedMethod(planActions) ?? 0
+          }
+        ]
       };
     }
+    if (!shouldDeliverLxmfDeliveryPlan(planActions)) {
+      return { state, intents: [], actions: [] };
+    }
+    const params = lxmfDeliveryPlanDeliverParams(planActions);
     return {
       state,
       intents: [],
       actions: [
         {
           kind: "deliver",
-          method: plan.method,
-          representation: plan.representation
+          method: params?.method ?? LxmfDeliveryMethod.OPPORTUNISTIC,
+          representation: params?.representation ?? LxmfDeliveryRepresentation.UNKNOWN
         }
       ]
     };
