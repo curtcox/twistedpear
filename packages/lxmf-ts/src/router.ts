@@ -89,6 +89,7 @@ import {
   stepStampCostFromAppDataWithActions,
   stepTeardownLxmfPropagationLinkWithActions,
   stepUnpackLxmfPropagationLocalIngressWithActions,
+  ReceiptPollStatus,
   type LxmfSendEvent,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
@@ -101,8 +102,7 @@ import {
   bytesToHex,
   equalBytes,
   Identity,
-  PacketContext,
-  PacketReceiptStatus
+  PacketContext
 } from "@twistedpear/reticulum-ts";
 import { APP_NAME, LXMessageMethod, type LXMessageMethodValue } from "./constants.js";
 import { LXMessage, rememberMessage, type LXMessagePackOptions } from "./message.js";
@@ -366,8 +366,8 @@ export class LXMFRouter {
   private pollDeliveryReceipt(
     receipt: PacketReceipt,
     timeoutMs = DELIVERY_RECEIPT_POLL_DEFAULT_TIMEOUT_MS
-  ): Promise<void> {
-    return new Promise<void>((resolve) => {
+  ): Promise<ReceiptPollStatusValue> {
+    return new Promise<ReceiptPollStatusValue>((resolve) => {
       const armed = stepDeliveryReceiptPollWithActions(initialDeliveryReceiptPollState(), {
         kind: "poll/arm",
         at: this.reticulum.runtime.clock.now(),
@@ -377,14 +377,14 @@ export class LXMFRouter {
       let timer: { cancel(): void } | null = null;
       let concluded = false;
 
-      const finish = (): void => {
+      const finish = (status: ReceiptPollStatusValue): void => {
         if (concluded) {
           return;
         }
         concluded = true;
         timer?.cancel();
         timer = null;
-        resolve();
+        resolve(status);
       };
 
       const applyIntents = (
@@ -427,7 +427,7 @@ export class LXMFRouter {
             applyActions(probe.actions);
           }
           if (action.kind === "resolve") {
-            finish();
+            finish(action.status);
           }
         }
       };
@@ -492,13 +492,13 @@ export class LXMFRouter {
       return;
     }
 
-    await this.pollDeliveryReceipt(receipt!);
+    const pollStatus = await this.pollDeliveryReceipt(receipt!);
     const afterPoll = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
       kind: "receipt-send/map",
       mode: "opportunistic",
       phase: "after-poll",
       receiptPresent: true,
-      delivered: receipt!.status === PacketReceiptStatus.DELIVERED
+      delivered: pollStatus === ReceiptPollStatus.DELIVERED
     });
     const afterPollEvent = lxmfReceiptSendApplyEvent(afterPoll.actions);
     if (shouldApplyLxmfReceiptSend(afterPoll.actions) && afterPollEvent !== null) {
@@ -606,15 +606,16 @@ export class LXMFRouter {
         receiptPresent: result.receipt !== null
       }
     );
+    let pollStatus: ReceiptPollStatusValue | null = null;
     if (shouldAwaitLxmfDeliveryReceiptNow(awaitReceipt.actions)) {
-      await this.pollDeliveryReceipt(result.receipt!);
+      pollStatus = await this.pollDeliveryReceipt(result.receipt!);
     }
     const afterPoll = stepLxmfReceiptSendWithActions(initialLxmfReceiptSendState(), {
       kind: "receipt-send/map",
       mode: "propagated",
       phase: "after-poll",
       receiptPresent: result.receipt !== null,
-      delivered: result.receipt?.status === PacketReceiptStatus.DELIVERED
+      delivered: pollStatus === ReceiptPollStatus.DELIVERED
     });
     const afterPollEvent = lxmfReceiptSendApplyEvent(afterPoll.actions);
     if (shouldApplyLxmfReceiptSend(afterPoll.actions) && afterPollEvent !== null) {

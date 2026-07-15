@@ -2393,8 +2393,11 @@
 > **`stepResourceAdvertiseWait`** arms emit a `probe` action; continuing status
 > events emit `timer/set` (advertise-wait also emits `queue`); terminal probes
 > emit `timer/cancel` and conclude via `resolve` actions (`found` for path-await,
-> `status` for delivery-receipt). Timer callbacks only re-enter via `timer/fired`
-> → probe actions (no ad-hoc status reads beside the machine).
+> `status` for delivery-receipt). LXMF `pollDeliveryReceipt` returns
+> `resolve.status`; opportunistic / propagated after-poll receipt-send mapping
+> uses that value (no ad-hoc `receipt.status` re-reads beside the machine).
+> Timer callbacks only re-enter via `timer/fired` → probe actions (no ad-hoc
+> status reads beside the machine).
 > **`stepPropagationTransfer`** link-establish timeout (`PROPAGATION_LINK_TIMER_ID`)
 > is adapted by `PropagationClient`: `xfer/begin` emits `establish-link` and the
 > adapter applies `requestLink` only from that action (reuse skips establish IO
@@ -2413,12 +2416,14 @@
 > download / haves awaits adapt it (timeout stays on `LinkRequestReceipt`).
 > Remaining depth work: Link/LXMF orchestration shells that still hold
 > Promise/callback continuations around already-pure step cores (watchdog
-> ticks are already intent-driven). Path-await, delivery-receipt, resource
+> ticks are already intent-driven). Path-await, delivery-receipt (poll
+> returns `resolve.status`; after-poll mapping uses that value), resource
 > advertise-wait, path-response grace, interface connect, propagation link
 > establish/timeout (`establish-link` → `requestLink` from actions; no ad-hoc
 > phase reads), LXMF outbound link-await, and propagation app-request
 > awaits all conclude via machine resolve/reject actions (adapters no longer
-> finish by reading `state.concluded` / `phase` / `LINK_FAILED` beside probes). PacketReceipt
+> finish by reading `state.concluded` / `phase` / `LINK_FAILED` / post-poll
+> `receipt.status` beside probes). PacketReceipt
 > timeout/delivery/failed, Channel TX timeout/retry/give-up, Link establish
 > handshake/activate/fail/LRRTT, Link teardown local/remote close, Link
 > RESOURCE_ADV accept/ask-app/reject / link-resource-advertisement-plan /
