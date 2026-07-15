@@ -6,10 +6,19 @@ import {
   clampStreamChunkTake,
   clampStreamDataChunkLength,
   clampStreamReadSize,
+  initialAppendStreamDataState,
   initialClampStreamChunkTakeState,
   initialClampStreamDataChunkLengthState,
   initialClampStreamReadSizeState,
   initialPackStreamDataMessageState,
+  initialStreamChunkConsumeState,
+  initialStreamDataMessageHandleState,
+  initialStreamEofMarkState,
+  initialStreamIdAssignedState,
+  initialStreamReadDeferState,
+  initialStreamReadReturnState,
+  initialStreamReadyCallbackRegisterState,
+  initialStreamReadyCallbackUnregisterState,
   initialUnpackStreamDataMessageState,
   isStreamIdAssigned,
   packStreamDataMessage,
@@ -19,30 +28,53 @@ import {
   shouldConsumeStreamChunk,
   shouldDeferStreamRead,
   shouldHandleStreamDataMessage,
+  shouldHandleStreamDataMessageNow,
+  shouldIgnoreStreamDataMessage,
   shouldMarkStreamEof,
+  shouldPerformStreamAppend,
   shouldRegisterStreamReadyCallback,
+  shouldRegisterStreamReadyNow,
   shouldRejectPackStreamDataMessage,
   shouldRejectUnpackStreamDataMessage,
   shouldRemoveStreamReadyCallback,
   shouldReturnStreamReadResult,
+  shouldSkipStreamAppend,
+  shouldSkipStreamEofMark,
+  shouldSkipStreamReadYield,
+  shouldSkipStreamReadyRegister,
+  shouldStreamChunkConsume,
+  shouldStreamChunkResidual,
+  shouldStreamEofMark,
+  shouldStreamIdAssigned,
+  shouldStreamIdUnassigned,
+  shouldStreamReadDefer,
+  shouldStreamReadProceed,
   shouldUnregisterStreamReadyCallback,
   shouldUsePackStreamDataMessage,
   shouldUseStreamChunkTake,
   shouldUseStreamDataChunkLength,
   shouldUseStreamReadSize,
   shouldUseUnpackStreamDataMessage,
-  initialStreamReadyCallbackUnregisterState,
+  shouldYieldStreamRead,
+  stepAppendStreamDataWithActions,
   stepClampStreamChunkTakeWithActions,
   stepClampStreamDataChunkLengthWithActions,
   stepClampStreamReadSizeWithActions,
   stepPackStreamDataMessageWithActions,
+  stepStreamChunkConsumeWithActions,
+  stepStreamDataMessageHandleWithActions,
+  stepStreamEofMarkWithActions,
+  stepStreamIdAssignedWithActions,
+  stepStreamReadDeferWithActions,
+  stepStreamReadReturnWithActions,
+  stepStreamReadyCallbackRegisterWithActions,
+  stepStreamReadyCallbackUnregisterWithActions,
   stepUnpackStreamDataMessageWithActions,
   streamChunkTakeFromActions,
   streamDataChunkLengthFromActions,
   streamDataMessageFieldsFromActions,
   streamReadSizeFromActions,
   streamReadyCallbackUnregisterIndex,
-  stepStreamReadyCallbackUnregisterWithActions,
   unpackStreamDataMessage
 } from "../src/stream-data.js";
 
@@ -148,6 +180,20 @@ describe("protocol stream data framing", () => {
   it("skips empty stream payloads for append", () => {
     expect(shouldAppendStreamData(0)).toBe(false);
     expect(shouldAppendStreamData(1)).toBe(true);
+
+    const append = stepAppendStreamDataWithActions(initialAppendStreamDataState(), {
+      kind: "stream/append-gate",
+      length: 1
+    });
+    expect(shouldPerformStreamAppend(append.actions)).toBe(true);
+    expect(shouldSkipStreamAppend(append.actions)).toBe(false);
+
+    const skip = stepAppendStreamDataWithActions(initialAppendStreamDataState(), {
+      kind: "stream/append-gate",
+      length: 0
+    });
+    expect(shouldPerformStreamAppend(skip.actions)).toBe(false);
+    expect(shouldSkipStreamAppend(skip.actions)).toBe(true);
   });
 
   it("clamps reader size to buffered length", () => {
@@ -174,12 +220,44 @@ describe("protocol stream data framing", () => {
     expect(shouldDeferStreamRead(0, false)).toBe(true);
     expect(shouldDeferStreamRead(0, true)).toBe(false);
     expect(shouldDeferStreamRead(10, false)).toBe(false);
+
+    const defer = stepStreamReadDeferWithActions(initialStreamReadDeferState(), {
+      kind: "stream/read-defer-gate",
+      bufferLength: 0,
+      eof: false
+    });
+    expect(shouldStreamReadDefer(defer.actions)).toBe(true);
+    expect(shouldStreamReadProceed(defer.actions)).toBe(false);
+
+    const proceed = stepStreamReadDeferWithActions(initialStreamReadDeferState(), {
+      kind: "stream/read-defer-gate",
+      bufferLength: 10,
+      eof: false
+    });
+    expect(shouldStreamReadDefer(proceed.actions)).toBe(false);
+    expect(shouldStreamReadProceed(proceed.actions)).toBe(true);
   });
 
   it("returns read results when bytes copied or EOF", () => {
     expect(shouldReturnStreamReadResult(0, false)).toBe(false);
     expect(shouldReturnStreamReadResult(0, true)).toBe(true);
     expect(shouldReturnStreamReadResult(3, false)).toBe(true);
+
+    const yieldResult = stepStreamReadReturnWithActions(initialStreamReadReturnState(), {
+      kind: "stream/read-return-gate",
+      copied: 3,
+      eof: false
+    });
+    expect(shouldYieldStreamRead(yieldResult.actions)).toBe(true);
+    expect(shouldSkipStreamReadYield(yieldResult.actions)).toBe(false);
+
+    const skip = stepStreamReadReturnWithActions(initialStreamReadReturnState(), {
+      kind: "stream/read-return-gate",
+      copied: 0,
+      eof: false
+    });
+    expect(shouldYieldStreamRead(skip.actions)).toBe(false);
+    expect(shouldSkipStreamReadYield(skip.actions)).toBe(true);
   });
 
   it("clamps per-chunk take to remaining read window", () => {
@@ -205,16 +283,60 @@ describe("protocol stream data framing", () => {
   it("consumes a chunk when take equals chunk length", () => {
     expect(shouldConsumeStreamChunk(10, 10)).toBe(true);
     expect(shouldConsumeStreamChunk(5, 10)).toBe(false);
+
+    const consume = stepStreamChunkConsumeWithActions(initialStreamChunkConsumeState(), {
+      kind: "stream/chunk-consume-gate",
+      take: 10,
+      chunkLength: 10
+    });
+    expect(shouldStreamChunkConsume(consume.actions)).toBe(true);
+    expect(shouldStreamChunkResidual(consume.actions)).toBe(false);
+
+    const residual = stepStreamChunkConsumeWithActions(initialStreamChunkConsumeState(), {
+      kind: "stream/chunk-consume-gate",
+      take: 5,
+      chunkLength: 10
+    });
+    expect(shouldStreamChunkConsume(residual.actions)).toBe(false);
+    expect(shouldStreamChunkResidual(residual.actions)).toBe(true);
   });
 
   it("marks reader EOF from stream-data eof flag", () => {
     expect(shouldMarkStreamEof(true)).toBe(true);
     expect(shouldMarkStreamEof(false)).toBe(false);
+
+    const mark = stepStreamEofMarkWithActions(initialStreamEofMarkState(), {
+      kind: "stream/eof-mark-gate",
+      eof: true
+    });
+    expect(shouldStreamEofMark(mark.actions)).toBe(true);
+    expect(shouldSkipStreamEofMark(mark.actions)).toBe(false);
+
+    const skip = stepStreamEofMarkWithActions(initialStreamEofMarkState(), {
+      kind: "stream/eof-mark-gate",
+      eof: false
+    });
+    expect(shouldStreamEofMark(skip.actions)).toBe(false);
+    expect(shouldSkipStreamEofMark(skip.actions)).toBe(true);
   });
 
   it("requires an assigned stream id for packing", () => {
     expect(isStreamIdAssigned(true)).toBe(true);
     expect(isStreamIdAssigned(false)).toBe(false);
+
+    const assigned = stepStreamIdAssignedWithActions(initialStreamIdAssignedState(), {
+      kind: "stream/id-assigned-gate",
+      streamIdPresent: true
+    });
+    expect(shouldStreamIdAssigned(assigned.actions)).toBe(true);
+    expect(shouldStreamIdUnassigned(assigned.actions)).toBe(false);
+
+    const unassigned = stepStreamIdAssignedWithActions(initialStreamIdAssignedState(), {
+      kind: "stream/id-assigned-gate",
+      streamIdPresent: false
+    });
+    expect(shouldStreamIdAssigned(unassigned.actions)).toBe(false);
+    expect(shouldStreamIdUnassigned(unassigned.actions)).toBe(true);
   });
 
   it("handles stream-data messages for matching stream ids", () => {
@@ -227,6 +349,28 @@ describe("protocol stream data framing", () => {
     expect(
       shouldHandleStreamDataMessage({ messageStreamId: null, expectedStreamId: 3 })
     ).toBe(false);
+
+    const handle = stepStreamDataMessageHandleWithActions(
+      initialStreamDataMessageHandleState(),
+      {
+        kind: "stream/data-message-handle-gate",
+        messageStreamId: 3,
+        expectedStreamId: 3
+      }
+    );
+    expect(shouldHandleStreamDataMessageNow(handle.actions)).toBe(true);
+    expect(shouldIgnoreStreamDataMessage(handle.actions)).toBe(false);
+
+    const ignore = stepStreamDataMessageHandleWithActions(
+      initialStreamDataMessageHandleState(),
+      {
+        kind: "stream/data-message-handle-gate",
+        messageStreamId: null,
+        expectedStreamId: 3
+      }
+    );
+    expect(shouldHandleStreamDataMessageNow(ignore.actions)).toBe(false);
+    expect(shouldIgnoreStreamDataMessage(ignore.actions)).toBe(true);
   });
 
   it("plans stream ready-callback register and unregister", () => {
@@ -237,6 +381,20 @@ describe("protocol stream data framing", () => {
     expect(planUnregisterStreamReadyCallback(-1)).toBeNull();
     expect(shouldUnregisterStreamReadyCallback(true)).toBe(true);
     expect(shouldUnregisterStreamReadyCallback(false)).toBe(false);
+
+    const register = stepStreamReadyCallbackRegisterWithActions(
+      initialStreamReadyCallbackRegisterState(),
+      { kind: "stream/ready-callback-register-gate", callbackPresent: true }
+    );
+    expect(shouldRegisterStreamReadyNow(register.actions)).toBe(true);
+    expect(shouldSkipStreamReadyRegister(register.actions)).toBe(false);
+
+    const skipRegister = stepStreamReadyCallbackRegisterWithActions(
+      initialStreamReadyCallbackRegisterState(),
+      { kind: "stream/ready-callback-register-gate", callbackPresent: false }
+    );
+    expect(shouldRegisterStreamReadyNow(skipRegister.actions)).toBe(false);
+    expect(shouldSkipStreamReadyRegister(skipRegister.actions)).toBe(true);
 
     const remove = stepStreamReadyCallbackUnregisterWithActions(
       initialStreamReadyCallbackUnregisterState(),

@@ -33,6 +33,16 @@
 > **`stepClampStreamDataChunkLengthWithActions`** /
 > **`stepClampStreamReadSizeWithActions`** /
 > **`stepClampStreamChunkTakeWithActions`**: use-length / use-size / use-take)
+> and **stream append / read-defer / read-return / chunk-consume / eof-mark /
+> stream-id / message-handle / ready-callback-register** gates (via
+> **`stepAppendStreamDataWithActions`**: append|skip /
+> **`stepStreamReadDeferWithActions`**: defer|proceed /
+> **`stepStreamReadReturnWithActions`**: yield|skip /
+> **`stepStreamChunkConsumeWithActions`**: consume|residual /
+> **`stepStreamEofMarkWithActions`**: mark|skip /
+> **`stepStreamIdAssignedWithActions`**: assigned|unassigned /
+> **`stepStreamDataMessageHandleWithActions`**: handle|ignore /
+> **`stepStreamReadyCallbackRegisterWithActions`**: register|skip)
 > are pure protocol leaves; Buffer adapts them. **Channel envelope
 > framing** and **RX reorder/drain** are also pure protocol leaves. **LXMF outbound
 > send-state** (enqueue → sending → sent/delivered/
@@ -371,11 +381,14 @@
 > **`isValidDestinationRequestPath`** lives in protocol; `registerRequestHandler` adapts it.
 > **`clampStreamDataChunkLength`** (via **`stepClampStreamDataChunkLengthWithActions`**:
 > use-length) lives in protocol; `RawChannelWriter.write` adapts it.
-> **`shouldAppendStreamData`** lives in protocol; `RawChannelReader` append gating adapts it.
+> **`shouldAppendStreamData`** (via **`stepAppendStreamDataWithActions`**:
+> append|skip) lives in protocol; `RawChannelReader` append gating adapts it.
 > **`clampStreamReadSize`** (via **`stepClampStreamReadSizeWithActions`**: use-size)
 > lives in protocol; `RawChannelReader.read` adapts it.
-> **`shouldDeferStreamRead`** lives in protocol; `RawChannelReader.read` empty-buffer gate adapts it.
-> **`shouldReturnStreamReadResult`** lives in protocol; `RawChannelReader.read` result gate adapts it.
+> **`shouldDeferStreamRead`** (via **`stepStreamReadDeferWithActions`**:
+> defer|proceed) lives in protocol; `RawChannelReader.read` empty-buffer gate adapts it.
+> **`shouldReturnStreamReadResult`** (via **`stepStreamReadReturnWithActions`**:
+> yield|skip) lives in protocol; `RawChannelReader.read` result gate adapts it.
 > **`clampStreamChunkTake`** (via **`stepClampStreamChunkTakeWithActions`**: use-take)
 > lives in protocol; `RawChannelReader.read` per-chunk take adapts it.
 > **`isValidInterfaceName`** lives in protocol; `AbstractPacketInterface` construction adapts it.
@@ -383,16 +396,24 @@
 > **`canInterfaceSend`** lives in protocol; `AbstractPacketInterface.send` closed/outgoing gates adapt it.
 > **`isInterfaceClosed`** lives in protocol; interface close / receiveBytes early-outs adapt it.
 > **`shouldEnqueueRawInterfaceFrame`** lives in protocol; `RawPacketInterface.decodeIncoming` adapts it.
-> **`shouldConsumeStreamChunk`** lives in protocol; `RawChannelReader.read` chunk-consume branch adapts it.
+> **`shouldConsumeStreamChunk`** (via **`stepStreamChunkConsumeWithActions`**:
+> consume|residual) lives in protocol; `RawChannelReader.read` chunk-consume branch adapts it.
 > **`shouldEnqueueDecodedPacket`** lives in protocol; `AbstractPacketInterface.receiveBytes` adapts it.
 > **`shouldDeliverQueuedPacket`** lives in protocol; `AsyncPacketQueue.push` adapts it.
 > **`shouldYieldBufferedPacket`** lives in protocol; `AsyncPacketQueue` iterator `next` adapts it.
-> **`shouldMarkStreamEof`** lives in protocol; `RawChannelReader` message handler adapts it.
+> **`shouldMarkStreamEof`** (via **`stepStreamEofMarkWithActions`**: mark|skip)
+> lives in protocol; `RawChannelReader` message handler adapts it.
 > **`canAcceptDestinationLinkRequest`** lives in protocol; `RegisteredDestination.handleLinkRequest` adapts it.
 > **`canAnnounceDestination`** lives in protocol; `RegisteredDestination.announce` adapts it.
 > **`canDestinationSend`** lives in protocol; `RegisteredDestination.send` adapts it.
-> **`isStreamIdAssigned`** lives in protocol; `StreamDataMessage.pack` adapts it.
-> **`shouldHandleStreamDataMessage`** lives in protocol; `RawChannelReader` message handler adapts it.
+> **`isStreamIdAssigned`** (via **`stepStreamIdAssignedWithActions`**:
+> assigned|unassigned) lives in protocol; `StreamDataMessage.pack` adapts it.
+> **`shouldHandleStreamDataMessage`** (via
+> **`stepStreamDataMessageHandleWithActions`**: handle|ignore) lives in protocol;
+> `RawChannelReader` message handler adapts it.
+> **`shouldRegisterStreamReadyCallback`** (via
+> **`stepStreamReadyCallbackRegisterWithActions`**: register|skip) lives in
+> protocol; `Buffer.createReader` adapts it.
 > **`planDestinationDecrypt`** (via **`stepDestinationDecryptWithActions`**:
 > return-ciphertext / reject / decrypt-with-identity) lives in protocol;
 > `RegisteredDestination.decrypt` adapts it. **`planDestinationEncrypt`** (via
@@ -581,7 +602,8 @@
 > protocol; Resource and Link adapt them. **`shouldInvokeDestinationLinkEstablishedCallback`**,
 > **`canArmChannelPacketReceipt`**, **`planPacketReceiptCallback`**,
 > **`canDispatchAnnounceHandlers`**, **`shouldAttemptIdentityRatchetDecrypt`**,
-> **`shouldRegisterStreamReadyCallback`**,
+> **`shouldRegisterStreamReadyCallback`** (via
+> **`stepStreamReadyCallbackRegisterWithActions`**: register|skip),
 > **`shouldAttachLinkRequestPacketReceipt`**, **`shouldAwaitLxmfDeliveryReceipt`** /
 > **`shouldInvokeLxmfDeliveryCallback`**, and extended **`planLxmfPropagatedSend`**
 > (`missing-node`, via **`stepLxmfPropagatedSendWithActions`**) live in protocol; destination, Channel, PacketReceipt, transport
@@ -949,7 +971,10 @@
 > index-of-channel-tx-envelope / index-of-channel-ring-sequence /
 > index-of-matching-link-id / index-of-pending-link-app-request /
 > clamp-stream-data-chunk-length / clamp-stream-read-size /
-> clamp-stream-chunk-take /
+> clamp-stream-chunk-take / append-stream-data / stream-read-defer /
+> stream-read-return / stream-chunk-consume / stream-eof-mark /
+> stream-id-assigned / stream-data-message-handle /
+> stream-ready-callback-register /
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
@@ -1158,6 +1183,20 @@
 > `RawChannelWriter.write` / `RawChannelReader.read` apply only from those
 > actions (no ad-hoc `clampStreamDataChunkLength` / `clampStreamReadSize` /
 > `clampStreamChunkTake` reads beside the step).
+> **`stepAppendStreamDataWithActions`** emits `append`|`skip`;
+> **`stepStreamReadDeferWithActions`** emits `defer`|`proceed`;
+> **`stepStreamReadReturnWithActions`** emits `yield`|`skip`;
+> **`stepStreamChunkConsumeWithActions`** emits `consume`|`residual`;
+> **`stepStreamEofMarkWithActions`** emits `mark`|`skip`;
+> **`stepStreamIdAssignedWithActions`** emits `assigned`|`unassigned`;
+> **`stepStreamDataMessageHandleWithActions`** emits `handle`|`ignore`;
+> **`stepStreamReadyCallbackRegisterWithActions`** emits `register`|`skip`;
+> Buffer stream adaptors apply only from those actions (no ad-hoc
+> `shouldAppendStreamData` / `shouldDeferStreamRead` /
+> `shouldReturnStreamReadResult` / `shouldConsumeStreamChunk` /
+> `shouldMarkStreamEof` / `isStreamIdAssigned` /
+> `shouldHandleStreamDataMessage` / `shouldRegisterStreamReadyCallback`
+> reads beside the step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT measure / merge apply only from those
 > actions (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the
@@ -1184,7 +1223,11 @@
 > `indexOfChannelTxEnvelope` / `indexOfChannelRingSequence` /
 > `indexOfMatchingLinkId` / `indexOfPendingLinkAppRequest` /
 > `clampStreamDataChunkLength` / `clampStreamReadSize` /
-> `clampStreamChunkTake` /
+> `clampStreamChunkTake` / `shouldAppendStreamData` /
+> `shouldDeferStreamRead` / `shouldReturnStreamReadResult` /
+> `shouldConsumeStreamChunk` / `shouldMarkStreamEof` /
+> `isStreamIdAssigned` / `shouldHandleStreamDataMessage` /
+> `shouldRegisterStreamReadyCallback` /
 > `computeLinkRttSeconds` / `mergeLinkRtt` /
 > `computePathExpiry` / `shouldDeferPacketHash` /
 > `planResourceAdvertisementRoleFlags` /
@@ -1419,6 +1462,20 @@
 > **`stepClampStreamChunkTakeWithActions`** emits `use-take`; Buffer write/read
 > clamps apply only from those actions (no ad-hoc `clampStreamDataChunkLength` /
 > `clampStreamReadSize` / `clampStreamChunkTake` reads beside the step).
+> **`stepAppendStreamDataWithActions`** emits `append`|`skip`;
+> **`stepStreamReadDeferWithActions`** emits `defer`|`proceed`;
+> **`stepStreamReadReturnWithActions`** emits `yield`|`skip`;
+> **`stepStreamChunkConsumeWithActions`** emits `consume`|`residual`;
+> **`stepStreamEofMarkWithActions`** emits `mark`|`skip`;
+> **`stepStreamIdAssignedWithActions`** emits `assigned`|`unassigned`;
+> **`stepStreamDataMessageHandleWithActions`** emits `handle`|`ignore`;
+> **`stepStreamReadyCallbackRegisterWithActions`** emits `register`|`skip`;
+> Buffer stream adaptors apply only from those actions (no ad-hoc
+> `shouldAppendStreamData` / `shouldDeferStreamRead` /
+> `shouldReturnStreamReadResult` / `shouldConsumeStreamChunk` /
+> `shouldMarkStreamEof` / `isStreamIdAssigned` /
+> `shouldHandleStreamDataMessage` / `shouldRegisterStreamReadyCallback`
+> reads beside the step).
 
 You are refactoring the TwistedPear codebase (TypeScript, React Native + Node hosts; includes TypeScript implementations of Reticulum and LXMF) to enforce one invariant:
 

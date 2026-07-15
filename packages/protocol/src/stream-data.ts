@@ -8,6 +8,13 @@
  * Write chunk-length / read-size / chunk-take clamp conclusions leave via
  * machine actions (no ad-hoc `clampStreamDataChunkLength` /
  * `clampStreamReadSize` / `clampStreamChunkTake` reads beside the step).
+ * Append / read-defer / read-return / chunk-consume / eof-mark / stream-id /
+ * message-handle / ready-callback-register conclusions leave via machine
+ * actions (no ad-hoc `shouldAppendStreamData` / `shouldDeferStreamRead` /
+ * `shouldReturnStreamReadResult` / `shouldConsumeStreamChunk` /
+ * `shouldMarkStreamEof` / `isStreamIdAssigned` /
+ * `shouldHandleStreamDataMessage` / `shouldRegisterStreamReadyCallback`
+ * reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
 
@@ -313,6 +320,61 @@ export function shouldAppendStreamData(length: number): boolean {
   return length > 0;
 }
 
+/**
+ * Stream append gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldAppendStreamData`
+ * reads beside the step).
+ */
+export type AppendStreamDataState = Record<string, never>;
+
+export type AppendStreamDataEvent =
+  | Event
+  | {
+      readonly kind: "stream/append-gate";
+      readonly length: number;
+    };
+
+export type AppendStreamDataAction =
+  | { readonly kind: "append" }
+  | { readonly kind: "skip" };
+
+export interface AppendStreamDataStepResult {
+  readonly state: AppendStreamDataState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AppendStreamDataAction[];
+}
+
+export function initialAppendStreamDataState(): AppendStreamDataState {
+  return {};
+}
+
+export function stepAppendStreamDataWithActions(
+  state: AppendStreamDataState,
+  event: AppendStreamDataEvent
+): AppendStreamDataStepResult {
+  if (event.kind === "stream/append-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: shouldAppendStreamData(event.length) ? "append" : "skip" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldPerformStreamAppend(
+  actions: ReadonlyArray<AppendStreamDataAction>
+): boolean {
+  return actions.some((action) => action.kind === "append");
+}
+
+export function shouldSkipStreamAppend(
+  actions: ReadonlyArray<AppendStreamDataAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Clamp a reader request size to available buffered bytes. */
 export function clampStreamReadSize(size: number, bufferLength: number): number {
   return Math.min(size, bufferLength);
@@ -387,9 +449,129 @@ export function shouldDeferStreamRead(bufferLength: number, eof: boolean): boole
   return bufferLength === 0 && !eof;
 }
 
+/**
+ * Stream read-defer gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldDeferStreamRead`
+ * reads beside the step).
+ */
+export type StreamReadDeferState = Record<string, never>;
+
+export type StreamReadDeferEvent =
+  | Event
+  | {
+      readonly kind: "stream/read-defer-gate";
+      readonly bufferLength: number;
+      readonly eof: boolean;
+    };
+
+export type StreamReadDeferAction =
+  | { readonly kind: "defer" }
+  | { readonly kind: "proceed" };
+
+export interface StreamReadDeferStepResult {
+  readonly state: StreamReadDeferState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly StreamReadDeferAction[];
+}
+
+export function initialStreamReadDeferState(): StreamReadDeferState {
+  return {};
+}
+
+export function stepStreamReadDeferWithActions(
+  state: StreamReadDeferState,
+  event: StreamReadDeferEvent
+): StreamReadDeferStepResult {
+  if (event.kind === "stream/read-defer-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldDeferStreamRead(event.bufferLength, event.eof) ? "defer" : "proceed"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldStreamReadDefer(
+  actions: ReadonlyArray<StreamReadDeferAction>
+): boolean {
+  return actions.some((action) => action.kind === "defer");
+}
+
+export function shouldStreamReadProceed(
+  actions: ReadonlyArray<StreamReadDeferAction>
+): boolean {
+  return actions.some((action) => action.kind === "proceed");
+}
+
 /** Whether a read produced a returnable buffer (bytes copied or EOF empty result). */
 export function shouldReturnStreamReadResult(copied: number, eof: boolean): boolean {
   return copied > 0 || eof;
+}
+
+/**
+ * Stream read-return gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldReturnStreamReadResult`
+ * reads beside the step).
+ */
+export type StreamReadReturnState = Record<string, never>;
+
+export type StreamReadReturnEvent =
+  | Event
+  | {
+      readonly kind: "stream/read-return-gate";
+      readonly copied: number;
+      readonly eof: boolean;
+    };
+
+export type StreamReadReturnAction =
+  | { readonly kind: "yield" }
+  | { readonly kind: "skip" };
+
+export interface StreamReadReturnStepResult {
+  readonly state: StreamReadReturnState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly StreamReadReturnAction[];
+}
+
+export function initialStreamReadReturnState(): StreamReadReturnState {
+  return {};
+}
+
+export function stepStreamReadReturnWithActions(
+  state: StreamReadReturnState,
+  event: StreamReadReturnEvent
+): StreamReadReturnStepResult {
+  if (event.kind === "stream/read-return-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldReturnStreamReadResult(event.copied, event.eof) ? "yield" : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldYieldStreamRead(
+  actions: ReadonlyArray<StreamReadReturnAction>
+): boolean {
+  return actions.some((action) => action.kind === "yield");
+}
+
+export function shouldSkipStreamReadYield(
+  actions: ReadonlyArray<StreamReadReturnAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Bytes to take from the current chunk into the remaining read window. */
@@ -466,14 +648,190 @@ export function shouldConsumeStreamChunk(take: number, chunkLength: number): boo
   return take === chunkLength;
 }
 
+/**
+ * Stream chunk-consume gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldConsumeStreamChunk`
+ * reads beside the step).
+ */
+export type StreamChunkConsumeState = Record<string, never>;
+
+export type StreamChunkConsumeEvent =
+  | Event
+  | {
+      readonly kind: "stream/chunk-consume-gate";
+      readonly take: number;
+      readonly chunkLength: number;
+    };
+
+export type StreamChunkConsumeAction =
+  | { readonly kind: "consume" }
+  | { readonly kind: "residual" };
+
+export interface StreamChunkConsumeStepResult {
+  readonly state: StreamChunkConsumeState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly StreamChunkConsumeAction[];
+}
+
+export function initialStreamChunkConsumeState(): StreamChunkConsumeState {
+  return {};
+}
+
+export function stepStreamChunkConsumeWithActions(
+  state: StreamChunkConsumeState,
+  event: StreamChunkConsumeEvent
+): StreamChunkConsumeStepResult {
+  if (event.kind === "stream/chunk-consume-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldConsumeStreamChunk(event.take, event.chunkLength)
+            ? "consume"
+            : "residual"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldStreamChunkConsume(
+  actions: ReadonlyArray<StreamChunkConsumeAction>
+): boolean {
+  return actions.some((action) => action.kind === "consume");
+}
+
+export function shouldStreamChunkResidual(
+  actions: ReadonlyArray<StreamChunkConsumeAction>
+): boolean {
+  return actions.some((action) => action.kind === "residual");
+}
+
 /** Whether an inbound stream-data message should mark the reader EOF. */
 export function shouldMarkStreamEof(eof: boolean): boolean {
   return eof;
 }
 
+/**
+ * Stream EOF-mark gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldMarkStreamEof`
+ * reads beside the step).
+ */
+export type StreamEofMarkState = Record<string, never>;
+
+export type StreamEofMarkEvent =
+  | Event
+  | {
+      readonly kind: "stream/eof-mark-gate";
+      readonly eof: boolean;
+    };
+
+export type StreamEofMarkAction =
+  | { readonly kind: "mark" }
+  | { readonly kind: "skip" };
+
+export interface StreamEofMarkStepResult {
+  readonly state: StreamEofMarkState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly StreamEofMarkAction[];
+}
+
+export function initialStreamEofMarkState(): StreamEofMarkState {
+  return {};
+}
+
+export function stepStreamEofMarkWithActions(
+  state: StreamEofMarkState,
+  event: StreamEofMarkEvent
+): StreamEofMarkStepResult {
+  if (event.kind === "stream/eof-mark-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [{ kind: shouldMarkStreamEof(event.eof) ? "mark" : "skip" }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldStreamEofMark(
+  actions: ReadonlyArray<StreamEofMarkAction>
+): boolean {
+  return actions.some((action) => action.kind === "mark");
+}
+
+export function shouldSkipStreamEofMark(
+  actions: ReadonlyArray<StreamEofMarkAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** Whether a stream id has been assigned for packing. */
 export function isStreamIdAssigned(streamIdPresent: boolean): boolean {
   return streamIdPresent;
+}
+
+/**
+ * Stream-id assigned gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isStreamIdAssigned`
+ * reads beside the step).
+ */
+export type StreamIdAssignedState = Record<string, never>;
+
+export type StreamIdAssignedEvent =
+  | Event
+  | {
+      readonly kind: "stream/id-assigned-gate";
+      readonly streamIdPresent: boolean;
+    };
+
+export type StreamIdAssignedAction =
+  | { readonly kind: "assigned" }
+  | { readonly kind: "unassigned" };
+
+export interface StreamIdAssignedStepResult {
+  readonly state: StreamIdAssignedState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly StreamIdAssignedAction[];
+}
+
+export function initialStreamIdAssignedState(): StreamIdAssignedState {
+  return {};
+}
+
+export function stepStreamIdAssignedWithActions(
+  state: StreamIdAssignedState,
+  event: StreamIdAssignedEvent
+): StreamIdAssignedStepResult {
+  if (event.kind === "stream/id-assigned-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isStreamIdAssigned(event.streamIdPresent) ? "assigned" : "unassigned"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldStreamIdAssigned(
+  actions: ReadonlyArray<StreamIdAssignedAction>
+): boolean {
+  return actions.some((action) => action.kind === "assigned");
+}
+
+export function shouldStreamIdUnassigned(
+  actions: ReadonlyArray<StreamIdAssignedAction>
+): boolean {
+  return actions.some((action) => action.kind === "unassigned");
 }
 
 /** Whether an inbound stream-data message belongs to this reader. */
@@ -484,9 +842,135 @@ export function shouldHandleStreamDataMessage(input: {
   return input.messageStreamId === input.expectedStreamId;
 }
 
+/**
+ * Stream-data message handle gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldHandleStreamDataMessage`
+ * reads beside the step).
+ */
+export type StreamDataMessageHandleState = Record<string, never>;
+
+export type StreamDataMessageHandleEvent =
+  | Event
+  | {
+      readonly kind: "stream/data-message-handle-gate";
+      readonly messageStreamId: number | null;
+      readonly expectedStreamId: number;
+    };
+
+export type StreamDataMessageHandleAction =
+  | { readonly kind: "handle" }
+  | { readonly kind: "ignore" };
+
+export interface StreamDataMessageHandleStepResult {
+  readonly state: StreamDataMessageHandleState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly StreamDataMessageHandleAction[];
+}
+
+export function initialStreamDataMessageHandleState(): StreamDataMessageHandleState {
+  return {};
+}
+
+export function stepStreamDataMessageHandleWithActions(
+  state: StreamDataMessageHandleState,
+  event: StreamDataMessageHandleEvent
+): StreamDataMessageHandleStepResult {
+  if (event.kind === "stream/data-message-handle-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldHandleStreamDataMessage({
+            messageStreamId: event.messageStreamId,
+            expectedStreamId: event.expectedStreamId
+          })
+            ? "handle"
+            : "ignore"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldHandleStreamDataMessageNow(
+  actions: ReadonlyArray<StreamDataMessageHandleAction>
+): boolean {
+  return actions.some((action) => action.kind === "handle");
+}
+
+export function shouldIgnoreStreamDataMessage(
+  actions: ReadonlyArray<StreamDataMessageHandleAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
 /** Whether createReader should register an optional ready-callback. */
 export function shouldRegisterStreamReadyCallback(callbackPresent: boolean): boolean {
   return callbackPresent;
+}
+
+/**
+ * Stream ready-callback register gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `shouldRegisterStreamReadyCallback` reads beside the step).
+ */
+export type StreamReadyCallbackRegisterState = Record<string, never>;
+
+export type StreamReadyCallbackRegisterEvent =
+  | Event
+  | {
+      readonly kind: "stream/ready-callback-register-gate";
+      readonly callbackPresent: boolean;
+    };
+
+export type StreamReadyCallbackRegisterAction =
+  | { readonly kind: "register" }
+  | { readonly kind: "skip" };
+
+export interface StreamReadyCallbackRegisterStepResult {
+  readonly state: StreamReadyCallbackRegisterState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly StreamReadyCallbackRegisterAction[];
+}
+
+export function initialStreamReadyCallbackRegisterState(): StreamReadyCallbackRegisterState {
+  return {};
+}
+
+export function stepStreamReadyCallbackRegisterWithActions(
+  state: StreamReadyCallbackRegisterState,
+  event: StreamReadyCallbackRegisterEvent
+): StreamReadyCallbackRegisterStepResult {
+  if (event.kind === "stream/ready-callback-register-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldRegisterStreamReadyCallback(event.callbackPresent)
+            ? "register"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRegisterStreamReadyNow(
+  actions: ReadonlyArray<StreamReadyCallbackRegisterAction>
+): boolean {
+  return actions.some((action) => action.kind === "register");
+}
+
+export function shouldSkipStreamReadyRegister(
+  actions: ReadonlyArray<StreamReadyCallbackRegisterAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /**
