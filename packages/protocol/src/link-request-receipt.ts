@@ -1,6 +1,7 @@
 /**
  * Pure link request-receipt status codes and transitions (RNS Link.RequestReceipt).
- * Pending-request unregister conclusions leave via machine actions (no ad-hoc
+ * Pending-request index / unregister conclusions leave via machine actions (no
+ * ad-hoc `indexOfPendingLinkAppRequest` /
  * `planUnregisterPendingLinkRequest` reads beside the step).
  */
 import type { Event, Intent } from "@twistedpear/effects";
@@ -90,6 +91,77 @@ export function indexOfPendingLinkAppRequest(input: {
     }
   }
   return null;
+}
+
+/**
+ * Pending link app-request index lookup is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `indexOfPendingLinkAppRequest`
+ * reads beside the step).
+ */
+export type IndexOfPendingLinkAppRequestState = Record<string, never>;
+
+export type IndexOfPendingLinkAppRequestEvent =
+  | Event
+  | {
+      readonly kind: "link/pending-app-request-index-gate";
+      readonly requestIds: ReadonlyArray<Uint8Array>;
+      readonly target: Uint8Array;
+    };
+
+export type IndexOfPendingLinkAppRequestAction =
+  | { readonly kind: "use-index"; readonly index: number }
+  | { readonly kind: "miss" };
+
+export interface IndexOfPendingLinkAppRequestStepResult {
+  readonly state: IndexOfPendingLinkAppRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IndexOfPendingLinkAppRequestAction[];
+}
+
+export function initialIndexOfPendingLinkAppRequestState(): IndexOfPendingLinkAppRequestState {
+  return {};
+}
+
+export function stepIndexOfPendingLinkAppRequestWithActions(
+  state: IndexOfPendingLinkAppRequestState,
+  event: IndexOfPendingLinkAppRequestEvent
+): IndexOfPendingLinkAppRequestStepResult {
+  if (event.kind === "link/pending-app-request-index-gate") {
+    const index = indexOfPendingLinkAppRequest({
+      requestIds: event.requestIds,
+      target: event.target
+    });
+    return {
+      state,
+      intents: [],
+      actions:
+        index === null
+          ? [{ kind: "miss" }]
+          : [{ kind: "use-index", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUsePendingLinkAppRequestIndex(
+  actions: ReadonlyArray<IndexOfPendingLinkAppRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-index");
+}
+
+export function shouldMissPendingLinkAppRequestIndex(
+  actions: ReadonlyArray<IndexOfPendingLinkAppRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
+/** Extract pending app-request index from step actions; null when no `use-index`. */
+export function pendingLinkAppRequestIndexFromActions(
+  actions: ReadonlyArray<IndexOfPendingLinkAppRequestAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-index");
+  return action?.kind === "use-index" ? action.index : null;
 }
 
 /** Whether RESPONSE dispatch may deliver after {@link indexOfPendingLinkAppRequest}. */

@@ -39,8 +39,8 @@ import {
   deriveRnsLinkKeyRawFromActions,
   encodeLinkMtuBytesRawFromActions,
   encodeLinkSignallingBytesRawFromActions,
-  indexOfPendingLinkAppRequest,
   initialComputeKeepaliveState,
+  initialIndexOfPendingLinkAppRequestState,
   initialComputeLinkEstablishmentTimeoutState,
   initialComputeLinkMduState,
   initialComputeLinkRequestTimeoutState,
@@ -199,6 +199,7 @@ import {
   stepSplitLinkProofBodyWithActions,
   stepSplitLinkRequestDataWithActions,
   stepUnpackLinkRequestWithActions,
+  stepIndexOfPendingLinkAppRequestWithActions,
   stepUnpackLinkResponseWithActions,
   stepUnpackMsgpackFloatWithActions,
   initialPendingLinkRequestUnregisterState,
@@ -218,8 +219,9 @@ import {
   shouldProceedLinkValidateRequest,
   shouldCreateLinkChannel,
   shouldCreateLinkToken,
-  shouldDeliverPendingLinkAppResponse,
   shouldDispatchLinkPlaintext,
+  shouldUsePendingLinkAppRequestIndex,
+  pendingLinkAppRequestIndexFromActions,
   shouldEncryptLinkPayload,
   shouldEnterLinkHandshake,
   shouldFailLinkEstablish,
@@ -1948,12 +1950,19 @@ export class Link {
       return;
     }
     const pending = [...this.pendingRequests];
-    const index = indexOfPendingLinkAppRequest({
-      requestIds: pending.map((entry) => entry.requestId),
-      target: fields.requestId
-    });
-    if (shouldDeliverPendingLinkAppResponse(index !== null)) {
-      pending[index!]!.responseReceived(fields.response);
+    /** Adapt pending app-request index via protocol actions (no ad-hoc
+     * `indexOfPendingLinkAppRequest` reads). */
+    const indexStepped = stepIndexOfPendingLinkAppRequestWithActions(
+      initialIndexOfPendingLinkAppRequestState(),
+      {
+        kind: "link/pending-app-request-index-gate",
+        requestIds: pending.map((entry) => entry.requestId),
+        target: fields.requestId
+      }
+    );
+    if (shouldUsePendingLinkAppRequestIndex(indexStepped.actions)) {
+      const index = pendingLinkAppRequestIndexFromActions(indexStepped.actions)!;
+      pending[index]!.responseReceived(fields.response);
     }
   }
 

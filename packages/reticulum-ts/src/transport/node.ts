@@ -113,7 +113,9 @@ import {
   shouldUsePathForOutbound,
   shouldProveDestination,
   shouldAcceptPacketFilter,
-  indexOfMatchingLinkId,
+  shouldUseMatchingLinkIdIndex,
+  matchingLinkIdIndexFromActions,
+  initialIndexOfMatchingLinkIdState,
   initialRelayTransportPacketState,
   initialRewritePacketHopsState,
   initialStripTransportHeadersState,
@@ -123,6 +125,7 @@ import {
   shouldEmitPathRequest,
   isLocalPathRequestPacket,
   stepDestinationProofWithActions,
+  stepIndexOfMatchingLinkIdWithActions,
   stepLinkActivateMembershipWithActions,
   stepLinkDataIngressTargetWithActions,
   stepLinkRegisterListWithActions,
@@ -670,14 +673,10 @@ export class LeafTransport {
   }
 
   protected async handleLinkData(packet: Packet, iface: PacketInterface): Promise<void> {
-    const activeIndex = indexOfMatchingLinkId({
-      linkIds: this.activeLinks.map((link) => link.linkId),
-      target: packet.destinationHash
-    });
-    const pendingIndex = indexOfMatchingLinkId({
-      linkIds: this.pendingLinks.map((link) => link.linkId),
-      target: packet.destinationHash
-    });
+    /** Adapt matching-link-id indexes via protocol actions (no ad-hoc
+     * `indexOfMatchingLinkId` reads). */
+    const activeIndex = this.indexOfMatchingLink(this.activeLinks, packet.destinationHash);
+    const pendingIndex = this.indexOfMatchingLink(this.pendingLinks, packet.destinationHash);
     const stepped = stepLinkDataIngressTargetWithActions(initialLinkDataIngressTargetState(), {
       kind: "transport/link-data-ingress-gate",
       activeIndex,
@@ -907,10 +906,7 @@ export class LeafTransport {
     }
 
     if (shouldHandleProofResourcePrf(proofStepped.actions)) {
-      const activeIndex = indexOfMatchingLinkId({
-        linkIds: this.activeLinks.map((link) => link.linkId),
-        target: packet.destinationHash
-      });
+      const activeIndex = this.indexOfMatchingLink(this.activeLinks, packet.destinationHash);
       if (shouldDispatchResourceProofToLink(activeIndex !== null)) {
         await this.activeLinks[activeIndex!]!.handleResourceProof(packet);
       }
@@ -1138,6 +1134,19 @@ export class LeafTransport {
       applyIntents(armed.intents);
       void applyActions(armed.actions).catch(reject);
     });
+  }
+
+  /** Adapt matching-link-id index via protocol actions (no ad-hoc
+   * `indexOfMatchingLinkId` reads). */
+  private indexOfMatchingLink(links: readonly Link[], target: Uint8Array): number | null {
+    const stepped = stepIndexOfMatchingLinkIdWithActions(initialIndexOfMatchingLinkIdState(), {
+      kind: "transport/matching-link-id-index-gate",
+      linkIds: links.map((link) => link.linkId),
+      target
+    });
+    return shouldUseMatchingLinkIdIndex(stepped.actions)
+      ? matchingLinkIdIndexFromActions(stepped.actions)
+      : null;
   }
 
   protected packetFilter(packet: Packet): boolean {

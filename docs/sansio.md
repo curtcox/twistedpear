@@ -24,7 +24,11 @@
 > envelope / RX ring-sequence index via
 > **`stepIndexOfChannelTxEnvelopeWithActions`** /
 > **`stepIndexOfChannelRingSequenceWithActions`**: use-index|miss; retry
-> exhaustion) is a pure protocol leaf; `Channel` adapts it. **Channel envelope
+> exhaustion) is a pure protocol leaf; `Channel` adapts it. **Matching link-id
+> / pending app-request index** (via
+> **`stepIndexOfMatchingLinkIdWithActions`** /
+> **`stepIndexOfPendingLinkAppRequestWithActions`**: use-index|miss) are pure
+> protocol leaves; `TransportNode` and `Link` adapt them. **Channel envelope
 > framing** and **RX reorder/drain** are also pure protocol leaves. **LXMF outbound
 > send-state** (enqueue → sending → sent/delivered/
 > failed + progress) is a pure protocol leaf; `LXMFRouter` adapts it. **Link proof framing**
@@ -329,7 +333,13 @@
 > **`shouldExtendPacketReceiptTimeout`** lives in protocol; `Channel.updatePacketTimeouts`
 > adapts it. **`indexOfChannelTxEnvelope`** (via **`stepIndexOfChannelTxEnvelopeWithActions`**:
 > use-index|miss) lives in protocol; Channel timeout/delivery TX-ring lookup
-> adapts it. **`stepAppendResourceMapHashCollisionGuardWithActions`** lives in protocol; `Resource.send`
+> adapts it. **`indexOfMatchingLinkId`** (via
+> **`stepIndexOfMatchingLinkIdWithActions`**: use-index|miss) lives in protocol;
+> transport link-data / RESOURCE_PRF lookup adapts it.
+> **`indexOfPendingLinkAppRequest`** (via
+> **`stepIndexOfPendingLinkAppRequestWithActions`**: use-index|miss) lives in
+> protocol; Link RESPONSE dispatch adapts it.
+> **`stepAppendResourceMapHashCollisionGuardWithActions`** lives in protocol; `Resource.send`
 > adapts it. **`stepContainsResourceHashWithActions`** lives in protocol;
 > `Resource.accept` and `Link.hasIncomingResource` adapt it.
 > **`stepAssembleResourceHashmapBytesWithActions`** / **`stepReadResourceRequestHashWithActions`**
@@ -495,7 +505,9 @@
 > **`stepLocalPlainDataDeliveryWithActions`**: dispatch / ignore), and
 > **`planPacketHashRemember`** (via **`stepPacketHashRememberWithActions`**: now /
 > after-relay) live in protocol; transport node / LeafTransport adapt them.
-> **`indexOfPendingLinkAppRequest`**, **`planLinkRequestResponderMtu`**, and
+> **`indexOfPendingLinkAppRequest`** (via
+> **`stepIndexOfPendingLinkAppRequestWithActions`**: use-index|miss),
+> **`planLinkRequestResponderMtu`**, and
 > **`planChannelEnvelopePack`** (via **`stepChannelEnvelopePackWithActions`**: ok /
 > missing-message) live in protocol; `Link` and `Channel` adapt them.
 > **`planOutboundReceiptOutcome`** (via **`stepOutboundReceiptWithActions`**:
@@ -504,7 +516,9 @@
 > **`stepPacketReceiptProofIngressWithActions`**: remove-receipt / continue) live in
 > protocol; transport sendPacket / receipt proofs adapt them. **`planLinkRegisterList`**
 > (via **`stepLinkRegisterListWithActions`**: pending / active),
-> **`indexOfMatchingLinkId`** / **`planLinkDataIngressTarget`** (via
+> **`indexOfMatchingLinkId`** (via
+> **`stepIndexOfMatchingLinkIdWithActions`**: use-index|miss) /
+> **`planLinkDataIngressTarget`** (via
 > **`stepLinkDataIngressTargetWithActions`**: active / pending / none), and
 > **`planReverseRelayOutcome`** (via **`stepReverseRelayOutcomeWithActions`**:
 > relay / delete-expired / ignore) live in protocol; transport link + reverse relay adapt
@@ -925,6 +939,7 @@
 > channel-packet-timeout-seconds / count-channel-tx-outstanding /
 > channel-allows-send / channel-outlet-transmit /
 > index-of-channel-tx-envelope / index-of-channel-ring-sequence /
+> index-of-matching-link-id / index-of-pending-link-app-request /
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
@@ -1121,6 +1136,12 @@
 > **`stepIndexOfChannelRingSequenceWithActions`** emits `use-index`|`miss`;
 > Channel RX drain applies only from those actions (no ad-hoc
 > `indexOfChannelRingSequence` reads beside the step).
+> **`stepIndexOfMatchingLinkIdWithActions`** emits `use-index`|`miss`;
+> transport link-data / RESOURCE_PRF lookup applies only from those actions (no
+> ad-hoc `indexOfMatchingLinkId` reads beside the step).
+> **`stepIndexOfPendingLinkAppRequestWithActions`** emits `use-index`|`miss`;
+> Link RESPONSE dispatch applies only from those actions (no ad-hoc
+> `indexOfPendingLinkAppRequest` reads beside the step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT measure / merge apply only from those
 > actions (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the
@@ -1145,6 +1166,7 @@
 > `channelPacketTimeoutSeconds` / `countChannelTxOutstanding` /
 > `channelAllowsSend` / `isChannelOutletTransmitOk` /
 > `indexOfChannelTxEnvelope` / `indexOfChannelRingSequence` /
+> `indexOfMatchingLinkId` / `indexOfPendingLinkAppRequest` /
 > `computeLinkRttSeconds` / `mergeLinkRtt` /
 > `computePathExpiry` / `shouldDeferPacketHash` /
 > `planResourceAdvertisementRoleFlags` /

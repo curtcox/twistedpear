@@ -16,10 +16,15 @@ import { LinkResourceStrategy } from "../src/link-watchdog.js";
 import {
   LinkRequestReceiptStatus,
   indexOfPendingLinkAppRequest,
+  initialIndexOfPendingLinkAppRequestState,
   initialLinkRequestReceiptState,
+  pendingLinkAppRequestIndexFromActions,
   planUnregisterPendingLinkRequest,
   shouldDeliverPendingLinkAppResponse,
+  shouldMissPendingLinkAppRequestIndex,
   shouldRegisterPendingLinkRequest,
+  shouldUsePendingLinkAppRequestIndex,
+  stepIndexOfPendingLinkAppRequestWithActions,
   stepLinkRequestReceipt
 } from "../src/link-request-receipt.js";
 
@@ -129,6 +134,44 @@ describe("link request receipt step", () => {
     ).toBeNull();
     expect(shouldDeliverPendingLinkAppResponse(true)).toBe(true);
     expect(shouldDeliverPendingLinkAppResponse(false)).toBe(false);
+  });
+
+  it("emits pending link app-request index only from use-index/miss actions", () => {
+    const a = new Uint8Array([1, 2, 3]);
+    const b = new Uint8Array([4, 5, 6]);
+    const hit = stepIndexOfPendingLinkAppRequestWithActions(
+      initialIndexOfPendingLinkAppRequestState(),
+      {
+        kind: "link/pending-app-request-index-gate",
+        requestIds: [a, b],
+        target: new Uint8Array([4, 5, 6])
+      }
+    );
+    expect(shouldUsePendingLinkAppRequestIndex(hit.actions)).toBe(true);
+    expect(shouldMissPendingLinkAppRequestIndex(hit.actions)).toBe(false);
+    expect(pendingLinkAppRequestIndexFromActions(hit.actions)).toBe(1);
+
+    const miss = stepIndexOfPendingLinkAppRequestWithActions(
+      initialIndexOfPendingLinkAppRequestState(),
+      {
+        kind: "link/pending-app-request-index-gate",
+        requestIds: [a, b],
+        target: new Uint8Array([9, 9, 9])
+      }
+    );
+    expect(shouldUsePendingLinkAppRequestIndex(miss.actions)).toBe(false);
+    expect(shouldMissPendingLinkAppRequestIndex(miss.actions)).toBe(true);
+    expect(pendingLinkAppRequestIndexFromActions(miss.actions)).toBeNull();
+
+    const empty = stepIndexOfPendingLinkAppRequestWithActions(
+      initialIndexOfPendingLinkAppRequestState(),
+      {
+        kind: "noop"
+      } as never
+    );
+    expect(shouldUsePendingLinkAppRequestIndex(empty.actions)).toBe(false);
+    expect(shouldMissPendingLinkAppRequestIndex(empty.actions)).toBe(false);
+    expect(pendingLinkAppRequestIndexFromActions(empty.actions)).toBeNull();
   });
 
   it("plans pending link-request register and unregister", () => {

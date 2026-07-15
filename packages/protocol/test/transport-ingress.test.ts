@@ -39,6 +39,8 @@ import {
   planReverseRelayOutcome,
   planTransportIngressDispatch,
   indexOfMatchingLinkId,
+  initialIndexOfMatchingLinkIdState,
+  matchingLinkIdIndexFromActions,
   proofIngressKindFromActions,
   reverseRelayOutcomeFromActions,
   shouldAcceptLinkLrProofCandidate,
@@ -47,6 +49,9 @@ import {
   shouldDeferPacketHash,
   shouldDeferPacketHashActions,
   shouldRememberPacketHashImmediately,
+  shouldMissMatchingLinkIdIndex,
+  shouldUseMatchingLinkIdIndex,
+  stepIndexOfMatchingLinkIdWithActions,
   stepPacketHashDeferWithActions,
   shouldDeleteExpiredReverseEntry,
   shouldDeleteExpiredReverseEntryActions,
@@ -575,7 +580,7 @@ describe("transport ingress", () => {
     expect(shouldRememberPacketHashAfterRelay(false)).toBe(false);
   });
 
-  it("indexes link-ids and plans reverse-relay / link-data ingress", () => {
+  it("indexes link-ids and plans link-data ingress", () => {
     const a = new Uint8Array([1, 2, 3]);
     const b = new Uint8Array([4, 5, 6]);
     expect(indexOfMatchingLinkId({ linkIds: [a, b], target: new Uint8Array([4, 5, 6]) })).toBe(1);
@@ -585,6 +590,38 @@ describe("transport ingress", () => {
     expect(planLinkDataIngressTarget({ activeIndex: 0, pendingIndex: 1 })).toBe("active");
     expect(planLinkDataIngressTarget({ activeIndex: null, pendingIndex: 2 })).toBe("pending");
     expect(planLinkDataIngressTarget({ activeIndex: null, pendingIndex: null })).toBe("none");
+  });
+
+  it("emits matching link-id index only from use-index/miss actions", () => {
+    const a = new Uint8Array([1, 2, 3]);
+    const b = new Uint8Array([4, 5, 6]);
+    const hit = stepIndexOfMatchingLinkIdWithActions(initialIndexOfMatchingLinkIdState(), {
+      kind: "transport/matching-link-id-index-gate",
+      linkIds: [a, b],
+      target: new Uint8Array([4, 5, 6])
+    });
+    expect(shouldUseMatchingLinkIdIndex(hit.actions)).toBe(true);
+    expect(shouldMissMatchingLinkIdIndex(hit.actions)).toBe(false);
+    expect(matchingLinkIdIndexFromActions(hit.actions)).toBe(1);
+
+    const miss = stepIndexOfMatchingLinkIdWithActions(initialIndexOfMatchingLinkIdState(), {
+      kind: "transport/matching-link-id-index-gate",
+      linkIds: [a, b],
+      target: new Uint8Array([9])
+    });
+    expect(shouldUseMatchingLinkIdIndex(miss.actions)).toBe(false);
+    expect(shouldMissMatchingLinkIdIndex(miss.actions)).toBe(true);
+    expect(matchingLinkIdIndexFromActions(miss.actions)).toBeNull();
+
+    const empty = stepIndexOfMatchingLinkIdWithActions(initialIndexOfMatchingLinkIdState(), {
+      kind: "noop"
+    } as never);
+    expect(shouldUseMatchingLinkIdIndex(empty.actions)).toBe(false);
+    expect(shouldMissMatchingLinkIdIndex(empty.actions)).toBe(false);
+    expect(matchingLinkIdIndexFromActions(empty.actions)).toBeNull();
+  });
+
+  it("plans reverse-relay outcomes", () => {
     expect(
       planReverseRelayOutcome({ canRelay: false, entryExpired: true, ifaceIsOutbound: true })
     ).toBe("delete-expired");

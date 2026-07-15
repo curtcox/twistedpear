@@ -1,9 +1,10 @@
 /**
  * Pure transport ingress accept / filter / packet-hash deferral / relay decisions.
  * Hash tables and interface identity stay at the adapter edge as boolean inputs.
- * Ingress dispatch / link-data target / reverse-relay / hash-remember /
- * packet-hash defer / local plain-data / link-relay conclusions leave via
- * machine actions (no ad-hoc plan reads beside the step).
+ * Ingress dispatch / matching-link-id index / link-data target / reverse-relay /
+ * hash-remember / packet-hash defer / local plain-data / link-relay conclusions
+ * leave via machine actions (no ad-hoc plan / `indexOfMatchingLinkId` reads
+ * beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -602,6 +603,77 @@ export function indexOfMatchingLinkId(input: {
     }
   }
   return null;
+}
+
+/**
+ * Matching link-id index lookup is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `indexOfMatchingLinkId`
+ * reads beside the step).
+ */
+export type IndexOfMatchingLinkIdState = Record<string, never>;
+
+export type IndexOfMatchingLinkIdEvent =
+  | Event
+  | {
+      readonly kind: "transport/matching-link-id-index-gate";
+      readonly linkIds: ReadonlyArray<Uint8Array>;
+      readonly target: Uint8Array;
+    };
+
+export type IndexOfMatchingLinkIdAction =
+  | { readonly kind: "use-index"; readonly index: number }
+  | { readonly kind: "miss" };
+
+export interface IndexOfMatchingLinkIdStepResult {
+  readonly state: IndexOfMatchingLinkIdState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly IndexOfMatchingLinkIdAction[];
+}
+
+export function initialIndexOfMatchingLinkIdState(): IndexOfMatchingLinkIdState {
+  return {};
+}
+
+export function stepIndexOfMatchingLinkIdWithActions(
+  state: IndexOfMatchingLinkIdState,
+  event: IndexOfMatchingLinkIdEvent
+): IndexOfMatchingLinkIdStepResult {
+  if (event.kind === "transport/matching-link-id-index-gate") {
+    const index = indexOfMatchingLinkId({
+      linkIds: event.linkIds,
+      target: event.target
+    });
+    return {
+      state,
+      intents: [],
+      actions:
+        index === null
+          ? [{ kind: "miss" }]
+          : [{ kind: "use-index", index }]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseMatchingLinkIdIndex(
+  actions: ReadonlyArray<IndexOfMatchingLinkIdAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-index");
+}
+
+export function shouldMissMatchingLinkIdIndex(
+  actions: ReadonlyArray<IndexOfMatchingLinkIdAction>
+): boolean {
+  return actions.some((action) => action.kind === "miss");
+}
+
+/** Extract matching link-id index from step actions; null when no `use-index`. */
+export function matchingLinkIdIndexFromActions(
+  actions: ReadonlyArray<IndexOfMatchingLinkIdAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-index");
+  return action?.kind === "use-index" ? action.index : null;
 }
 
 export type LinkDataIngressTarget = "active" | "pending" | "none";
