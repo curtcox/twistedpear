@@ -1,7 +1,8 @@
 /**
  * Pure link teardown gate and reason planning.
  * Packet send / decrypt stay at the adapter edge.
- * Conclusions leave via machine actions (no ad-hoc `plan.kind` reads beside the step).
+ * Conclusions leave via machine actions (no ad-hoc `plan.kind` /
+ * `shouldAcceptLinkTeardown` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -93,6 +94,71 @@ export function shouldAcceptLinkTeardown(input: {
   return input.plaintextPresent && input.linkIdMatches;
 }
 
+/**
+ * shouldAcceptLinkTeardown gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldAcceptLinkTeardown`
+ * reads beside the step).
+ */
+export type AcceptLinkTeardownState = Record<string, never>;
+
+export type AcceptLinkTeardownEvent =
+  | Event
+  | {
+      readonly kind: "link/accept-teardown-gate";
+      readonly plaintextPresent: boolean;
+      readonly linkIdMatches: boolean;
+    };
+
+export type AcceptLinkTeardownAction =
+  | { readonly kind: "accept" }
+  | { readonly kind: "skip" };
+
+export interface AcceptLinkTeardownStepResult {
+  readonly state: AcceptLinkTeardownState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AcceptLinkTeardownAction[];
+}
+
+export function initialAcceptLinkTeardownState(): AcceptLinkTeardownState {
+  return {};
+}
+
+export function stepAcceptLinkTeardownWithActions(
+  state: AcceptLinkTeardownState,
+  event: AcceptLinkTeardownEvent
+): AcceptLinkTeardownStepResult {
+  if (event.kind === "link/accept-teardown-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAcceptLinkTeardown({
+            plaintextPresent: event.plaintextPresent,
+            linkIdMatches: event.linkIdMatches
+          })
+            ? "accept"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAcceptLinkTeardownNow(
+  actions: ReadonlyArray<AcceptLinkTeardownAction>
+): boolean {
+  return actions.some((action) => action.kind === "accept");
+}
+
+export function shouldSkipLinkTeardownAccept(
+  actions: ReadonlyArray<AcceptLinkTeardownAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 export const stepLinkTeardown: StepFn<LinkTeardownState> = (state, event) => {
   const result = stepLinkTeardownInner(state, event as LinkTeardownEvent);
   return { state: result.state, intents: result.intents };
@@ -176,10 +242,13 @@ function stepLinkTeardownInner(
 
   if (event.kind === "teardown/remote") {
     if (
-      !shouldAcceptLinkTeardown({
-        plaintextPresent: event.plaintextPresent,
-        linkIdMatches: event.linkIdMatches
-      })
+      !shouldAcceptLinkTeardownNow(
+        stepAcceptLinkTeardownWithActions(initialAcceptLinkTeardownState(), {
+          kind: "link/accept-teardown-gate",
+          plaintextPresent: event.plaintextPresent,
+          linkIdMatches: event.linkIdMatches
+        }).actions
+      )
     ) {
       return { state, intents: [], actions: [] };
     }

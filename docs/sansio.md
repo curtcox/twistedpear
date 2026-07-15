@@ -187,6 +187,7 @@
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepTeardownLinkFromRttWithActions`**: teardown|skip /
+> **`stepAcceptLinkTeardownWithActions`**: accept|skip /
 > **`stepIdentifyOnLinkAllowWithActions`**: allow|deny /
 > **`stepDispatchLinkPlaintextWithActions`**: dispatch|skip /
 > **`stepResendLinkPacketAllowWithActions`**: allow|deny /
@@ -520,7 +521,8 @@
 > and **ChannelExceptionType** live in protocol; LeafTransport, Link, LinkRequestReceipt,
 > and Channel adapt them. **`channelMessageStateFromPacketReceipt`** (via
 > **`stepChannelMessageStateFromPacketReceiptWithActions`**: use-state), **link teardown
-> planning**, and PacketReceipt delivery/timeout via **`stepPacketReceiptTimeoutWithActions`**
+> planning** (via **`stepLinkTeardownWithActions`**; remote accept nested via
+> **`stepAcceptLinkTeardownWithActions`**: accept|skip), and PacketReceipt delivery/timeout via **`stepPacketReceiptTimeoutWithActions`**
 > (`timeout` / `delivered` / `failed` actions) live in
 > protocol; Channel, Link, and PacketReceipt adapt them. **Announce rate** blocked /
 > record gates (via **`stepAnnounceBlockedWithActions`**: blocked|live;
@@ -804,8 +806,10 @@
 > **`canSendLinkAppResponse`** (via **`stepSendLinkAppResponseAllowWithActions`**: allow|deny), and **`planLinkTokenAccess`**
 > (via **`stepLinkTokenAccessWithActions`**: reject-no-key / create / reuse) live in
 > protocol; `Link` adapts them (`tokenInstance` via token-access actions).
-> **`shouldAcceptLinkTeardown`** lives in protocol; LINKCLOSE handling
-> adapts it. **`canValidateLinkProof`** (via **`stepValidateLinkProofAllowWithActions`**: allow|deny) also gates destination presence.
+> **`shouldAcceptLinkTeardown`** (via
+> **`stepAcceptLinkTeardownWithActions`**: accept|skip) lives in protocol;
+> LINKCLOSE handling adapts it (nested under **`stepLinkTeardownWithActions`**).
+> **`canValidateLinkProof`** (via **`stepValidateLinkProofAllowWithActions`**: allow|deny) also gates destination presence.
 > **`planLxmfDirectSend`** (via **`stepLxmfDirectSendWithActions`**: proceed /
 > reject-missing-destination / reject-missing-packed), **`planLxMessageInstancePack`**
 > (via **`stepLxMessageInstancePackWithActions`**: proceed / reject-already-packed /
@@ -1213,9 +1217,11 @@
 > handleRtt apply status and edge IO only from those actions (no ad-hoc
 > `planLinkRttOutcome` reads beside the step).
 > **`stepLinkTeardownWithActions`** emits `close-only` /
-> `send-teardown-then-close` (with reason) / `accept-remote-close`; `Link`
-> teardown and LINKCLOSE handling apply send/reason/close only from those
-> actions (no ad-hoc `plan.kind` reads).
+> `send-teardown-then-close` (with reason) / `accept-remote-close`; remote
+> accept nested via **`stepAcceptLinkTeardownWithActions`** (`accept`|`skip`);
+> `Link` teardown and LINKCLOSE handling apply send/reason/close only from those
+> actions (no ad-hoc `plan.kind` / `shouldAcceptLinkTeardown` reads beside the
+> step).
 > **`stepLinkResourceAdvertisementWithActions`** emits `ignore` / `ask-app` /
 > `accept` / `reject`; `Link` RESOURCE_ADV handling applies unpack/app-callback /
 > accept/reject only from those actions (no ad-hoc `plan.kind` reads).
@@ -1559,6 +1565,7 @@
 > **`stepAttemptLinkProofCryptoWithActions`** /
 > **`stepAcceptLinkRttWithActions`** /
 > **`stepTeardownLinkFromRttWithActions`** /
+> **`stepAcceptLinkTeardownWithActions`** /
 > **`stepIdentifyOnLinkAllowWithActions`** /
 > **`stepDispatchLinkPlaintextWithActions`** /
 > **`stepResendLinkPacketAllowWithActions`** /
@@ -1573,7 +1580,7 @@
 > `canPerformLinkHandshake` / `canProveLink` / `canAcceptLinkOwnerPublicKey` /
 > `canAcceptLinkRequestOwner` / `canValidateLinkProof` / `shouldContinueLinkValidateRequest` /
 > `shouldAttemptLinkProofCrypto` / `canAcceptLinkRtt` /
-> `shouldTeardownLinkFromRtt` /
+> `shouldTeardownLinkFromRtt` / `shouldAcceptLinkTeardown` /
 > `canIdentifyOnLink` / `shouldDispatchLinkPlaintext` / `canResendLinkPacket` /
 > `shouldRegisterLinkResource` / `shouldHandleOutgoingResourceRequest` /
 > `shouldHandleIncomingResourceByHash` / `isLinkModeEnabled` /
@@ -1634,7 +1641,7 @@
 > sync-prep gates, LXMF deliverable accept, propagation local ingress,
 > LXMF receipt → send-state mapping, Link validate-request
 > proceed/reject / continue, Link proof-validate accept/reject, and Link
-> LRRTT accept/teardown-from-rtt also conclude via
+> LRRTT accept/teardown-from-rtt / LINKCLOSE accept-link-teardown also conclude via
 > machine actions (no ad-hoc `state.timedOut` / `plan.kind` / establish-status /
 > dispatch / identify-outcome / delivery-plan / send-method / send-gate /
 > pack-gate / propagation-link-ready / sync-prep / deliverable-accept /
@@ -1643,7 +1650,7 @@
 > register-lxmf-delivery-identity / teardown-lxmf-propagation-link /
 > extract-lxmf-opportunistic-payload / select-lxmf-delivery-parameters /
 > accept-transport-packet / validate-request / continue-link-validate-request /
-> proof-validate / teardown-link-from-rtt /
+> proof-validate / teardown-link-from-rtt / accept-link-teardown /
 > signature-outcome / token-access / announce-validate / announce-build /
 > identity-decrypt / identity-ratchet-lookup / identity-recall /
 > identity-recall-app-data / identity-hash-allow / identity-use-private-key /
@@ -1749,7 +1756,7 @@
 > perform-link-handshake-allow / prove-link-allow /
 > accept-link-owner-public-key / accept-link-request-owner / validate-link-proof-allow /
 > attempt-link-proof-crypto / accept-link-rtt / teardown-link-from-rtt /
-> identify-on-link-allow /
+> accept-link-teardown / identify-on-link-allow /
 > dispatch-link-plaintext / resend-link-packet-allow /
 > register-link-resource / handle-outgoing-resource-request /
 > handle-incoming-resource-by-hash / link-mode-enabled / expected-link-mode /

@@ -5,15 +5,19 @@ import {
 } from "../src/channel-envelope.js";
 import { PacketReceiptStatus } from "../src/packet-receipt-timeout.js";
 import {
+  initialAcceptLinkTeardownState,
   initialLinkTeardownState,
   linkTeardownRemoteCloseAction,
   linkTeardownSendThenCloseAction,
   planLinkTeardown,
   planLinkTeardownReason,
   shouldAcceptLinkTeardown,
+  shouldAcceptLinkTeardownNow,
   shouldAcceptRemoteLinkTeardown,
   shouldCloseOnlyLinkTeardown,
   shouldSendLinkTeardownThenClose,
+  shouldSkipLinkTeardownAccept,
+  stepAcceptLinkTeardownWithActions,
   stepLinkTeardown,
   stepLinkTeardownWithActions
 } from "../src/link-teardown.js";
@@ -75,6 +79,24 @@ describe("link teardown planning", () => {
         linkIdMatches: false
       })
     ).toBe(false);
+
+    const accept = stepAcceptLinkTeardownWithActions(initialAcceptLinkTeardownState(), {
+      kind: "link/accept-teardown-gate",
+      plaintextPresent: true,
+      linkIdMatches: true
+    });
+    expect(accept.actions).toEqual([{ kind: "accept" }]);
+    expect(shouldAcceptLinkTeardownNow(accept.actions)).toBe(true);
+    expect(shouldSkipLinkTeardownAccept(accept.actions)).toBe(false);
+
+    const skip = stepAcceptLinkTeardownWithActions(initialAcceptLinkTeardownState(), {
+      kind: "link/accept-teardown-gate",
+      plaintextPresent: true,
+      linkIdMatches: false
+    });
+    expect(skip.actions).toEqual([{ kind: "skip" }]);
+    expect(shouldAcceptLinkTeardownNow(skip.actions)).toBe(false);
+    expect(shouldSkipLinkTeardownAccept(skip.actions)).toBe(true);
   });
 
   it("emits teardown actions for local close-only / send / remote accept", () => {
