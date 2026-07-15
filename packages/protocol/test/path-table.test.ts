@@ -22,7 +22,12 @@ import {
   stepComputePathExpiryWithActions,
   pathExpiryFromActions,
   discoveryPathRequestFulfillFromActions,
+  initialAddPathEntryState,
+  initialDiscoveryPathRequestExpiredState,
   initialDiscoveryPathRequestFulfillState,
+  initialBeginPathDiscoveryState,
+  initialEmitPathRequestState,
+  initialPathEntryExpiredState,
   initialPathEntryLookupState,
   initialPathOutboundState,
   initialPathRequestIngressState,
@@ -37,17 +42,32 @@ import {
   planPathRequestIngress,
   canAnswerLocalPathRequest,
   shouldAddPathEntry,
+  shouldAddPathEntryNow,
   shouldAnswerPathRequest,
   shouldAnswerPathRequestLocal,
   shouldAnswerPathRequestPath,
   shouldAnswerPathWithEntry,
   shouldBeginPathDiscovery,
+  shouldBeginPathDiscoveryNow,
   shouldClearExpiredDiscoveryPathRequest,
   shouldDirectPathOutbound,
   shouldDropExpiredDiscoveryPathRequest,
   shouldEmitPathRequest,
+  shouldEmitPathRequestNow,
   shouldExpirePathEntryLookup,
   shouldFloodPathOutbound,
+  shouldSkipAddPathEntry,
+  shouldSkipBeginPathDiscovery,
+  shouldSkipEmitPathRequest,
+  shouldTreatDiscoveryPathRequestExpired,
+  shouldTreatDiscoveryPathRequestLive,
+  shouldTreatPathEntryExpired,
+  shouldTreatPathEntryLive,
+  stepAddPathEntryWithActions,
+  stepBeginPathDiscoveryWithActions,
+  stepDiscoveryPathRequestExpiredWithActions,
+  stepEmitPathRequestWithActions,
+  stepPathEntryExpiredWithActions,
   shouldFulfillDiscoveryPathRequest,
   shouldFulfillDiscoveryPending,
   shouldHitPathEntryLookup,
@@ -154,18 +174,75 @@ describe("protocol path table", () => {
     expect(
       shouldEmitPathRequest({ lastRequestAt: 100, nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL })
     ).toBe(true);
+
+    expect(
+      shouldSkipEmitPathRequest(
+        stepEmitPathRequestWithActions(initialEmitPathRequestState(), {
+          kind: "path-request/emit-gate",
+          lastRequestAt: 100,
+          nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL - 1
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldEmitPathRequestNow(
+        stepEmitPathRequestWithActions(initialEmitPathRequestState(), {
+          kind: "path-request/emit-gate",
+          lastRequestAt: 100,
+          nowSeconds: 100 + PATH_REQUEST_MIN_INTERVAL
+        }).actions
+      )
+    ).toBe(true);
   });
 
   it("expires discovery path-request entries past absolute deadline", () => {
     const timeoutAt = 100 + PATH_REQUEST_TIMEOUT_SECONDS;
     expect(isDiscoveryPathRequestExpired({ timeoutAt, nowSeconds: timeoutAt })).toBe(false);
     expect(isDiscoveryPathRequestExpired({ timeoutAt, nowSeconds: timeoutAt + 1 })).toBe(true);
+
+    expect(
+      shouldTreatDiscoveryPathRequestLive(
+        stepDiscoveryPathRequestExpiredWithActions(initialDiscoveryPathRequestExpiredState(), {
+          kind: "path-request/discovery-expired-gate",
+          timeoutAt,
+          nowSeconds: timeoutAt
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldTreatDiscoveryPathRequestExpired(
+        stepDiscoveryPathRequestExpiredWithActions(initialDiscoveryPathRequestExpiredState(), {
+          kind: "path-request/discovery-expired-gate",
+          timeoutAt,
+          nowSeconds: timeoutAt + 1
+        }).actions
+      )
+    ).toBe(true);
   });
 
   it("expires path-table entries at or past expires", () => {
     expect(isPathEntryExpired({ expires: 100, nowSeconds: 99 })).toBe(false);
     expect(isPathEntryExpired({ expires: 100, nowSeconds: 100 })).toBe(true);
     expect(isPathEntryExpired({ expires: 100, nowSeconds: 101 })).toBe(true);
+
+    expect(
+      shouldTreatPathEntryLive(
+        stepPathEntryExpiredWithActions(initialPathEntryExpiredState(), {
+          kind: "path/entry-expired-gate",
+          expires: 100,
+          nowSeconds: 99
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldTreatPathEntryExpired(
+        stepPathEntryExpiredWithActions(initialPathEntryExpiredState(), {
+          kind: "path/entry-expired-gate",
+          expires: 100,
+          nowSeconds: 100
+        }).actions
+      )
+    ).toBe(true);
   });
 
   it("dedupe-appends path announce random blobs", () => {
@@ -429,6 +506,26 @@ describe("protocol path table", () => {
         destinationKeyPresent: false
       })
     ).toBe(false);
+    expect(
+      shouldBeginPathDiscoveryNow(
+        stepBeginPathDiscoveryWithActions(initialBeginPathDiscoveryState(), {
+          kind: "path-request/begin-discovery-gate",
+          parsedOk: true,
+          tagPresent: true,
+          destinationKeyPresent: true
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipBeginPathDiscovery(
+        stepBeginPathDiscoveryWithActions(initialBeginPathDiscoveryState(), {
+          kind: "path-request/begin-discovery-gate",
+          parsedOk: true,
+          tagPresent: true,
+          destinationKeyPresent: false
+        }).actions
+      )
+    ).toBe(true);
     expect(shouldClearExpiredDiscoveryPathRequest(true)).toBe(true);
     expect(shouldClearExpiredDiscoveryPathRequest(false)).toBe(false);
     expect(shouldRememberPathRequestTag(true)).toBe(true);
@@ -439,6 +536,31 @@ describe("protocol path table", () => {
     expect(shouldAnswerPathWithEntry(false)).toBe(false);
     expect(shouldTouchPathEntry(true)).toBe(true);
     expect(shouldTouchPathEntry(false)).toBe(false);
+  });
+
+  it("concludes path add-entry via actions", () => {
+    expect(
+      shouldAddPathEntryNow(
+        stepAddPathEntryWithActions(initialAddPathEntryState(), {
+          kind: "path/add-entry-gate",
+          hops: 1,
+          randomBlob: new Uint8Array(10),
+          nowSeconds: 100,
+          existing: null
+        }).actions
+      )
+    ).toBe(true);
+    expect(
+      shouldSkipAddPathEntry(
+        stepAddPathEntryWithActions(initialAddPathEntryState(), {
+          kind: "path/add-entry-gate",
+          hops: PATHFINDER_MAX_HOPS + 1,
+          randomBlob: new Uint8Array(10),
+          nowSeconds: 100,
+          existing: null
+        }).actions
+      )
+    ).toBe(true);
   });
 
   it("plans discovery path-request fulfill from announce", () => {

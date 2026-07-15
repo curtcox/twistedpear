@@ -11,7 +11,6 @@ import {
   stepPathResponseGraceWithActions,
   announceEmittedFromRandomBlob as protocolAnnounceEmittedFromRandomBlob,
   appendPathRandomBlobFieldsFromActions,
-  isPathEntryExpired,
   aspectFilterFromActions,
   initialEmitDestinationProofState,
   initialParseAspectFilterState,
@@ -118,27 +117,33 @@ import {
   shouldUseMatchingLinkIdIndex,
   matchingLinkIdIndexFromActions,
   initialAcceptLinkLrProofCandidateState,
+  initialAddPathEntryState,
   initialDispatchLocalLinkRequestState,
   initialDispatchResourceProofToLinkState,
+  initialEmitPathRequestState,
   initialIndexOfMatchingLinkIdState,
   initialMatchLocalInboundDestinationState,
   initialMatchLocalTypedDestinationState,
+  initialPathEntryExpiredState,
   initialRegisterTransportMemberState,
   initialRelayTransportPacketState,
   initialRewritePacketHopsState,
   initialStripTransportHeadersState,
   initialTransmitOnInterfaceState,
   initialWrapTransportPacketState,
-  shouldAddPathEntry,
+  shouldAddPathEntryNow,
   shouldAnswerPathRequest,
-  shouldEmitPathRequest,
+  shouldEmitPathRequestNow,
+  shouldTreatPathEntryExpired,
   isLocalPathRequestPacket,
   stepDestinationProofWithActions,
   stepEmitDestinationProofWithActions,
   stepAcceptLinkLrProofCandidateWithActions,
   stepAcceptParsedAnnounceWithActions,
+  stepAddPathEntryWithActions,
   stepDispatchLocalLinkRequestWithActions,
   stepDispatchResourceProofToLinkWithActions,
+  stepEmitPathRequestWithActions,
   stepIndexOfMatchingLinkIdWithActions,
   stepLinkActivateMembershipWithActions,
   stepLinkDataIngressTargetWithActions,
@@ -151,6 +156,7 @@ import {
   stepPacketFilterWithActions,
   stepPacketReceiptProofIngressWithActions,
   stepPacketReceiptUnregisterWithActions,
+  stepPathEntryExpiredWithActions,
   stepPathEntryLookupWithActions,
   stepPathOutboundWithActions,
   stepPathRequestIngressWithActions,
@@ -389,7 +395,13 @@ export class LeafTransport {
       entryPresent: entry !== undefined,
       expired:
         entry !== undefined &&
-        isPathEntryExpired({ expires: entry.expires, nowSeconds: this.clock.now() / 1000 })
+        shouldTreatPathEntryExpired(
+          stepPathEntryExpiredWithActions(initialPathEntryExpiredState(), {
+            kind: "path/entry-expired-gate",
+            expires: entry.expires,
+            nowSeconds: this.clock.now() / 1000
+          }).actions
+        )
     });
     if (shouldMissPathEntryLookup(stepped.actions)) {
       return undefined;
@@ -424,7 +436,15 @@ export class LeafTransport {
     const key = hashKey(destinationHash);
     const now = this.clock.now() / 1000;
     const lastRequest = this.pathRequests.get(key) ?? 0;
-    if (!shouldEmitPathRequest({ lastRequestAt: lastRequest, nowSeconds: now })) {
+    if (
+      !shouldEmitPathRequestNow(
+        stepEmitPathRequestWithActions(initialEmitPathRequestState(), {
+          kind: "path-request/emit-gate",
+          lastRequestAt: lastRequest,
+          nowSeconds: now
+        }).actions
+      )
+    ) {
       return;
     }
 
@@ -774,19 +794,22 @@ export class LeafTransport {
     const randomBlob = announce.randomHash;
     const existing = this.pathTable.get(hashKey(packet.destinationHash));
     const now = this.clock.now() / 1000;
-    const shouldAdd = shouldAddPathEntry({
-      hops: packet.hops,
-      randomBlob,
-      nowSeconds: now,
-      existing:
-        existing === undefined
-          ? null
-          : {
-              hops: existing.hops,
-              expires: existing.expires,
-              randomBlobs: existing.randomBlobs
-            }
-    });
+    const shouldAdd = shouldAddPathEntryNow(
+      stepAddPathEntryWithActions(initialAddPathEntryState(), {
+        kind: "path/add-entry-gate",
+        hops: packet.hops,
+        randomBlob,
+        nowSeconds: now,
+        existing:
+          existing === undefined
+            ? null
+            : {
+                hops: existing.hops,
+                expires: existing.expires,
+                randomBlobs: existing.randomBlobs
+              }
+      }).actions
+    );
 
     if (!shouldAdd) {
       return;

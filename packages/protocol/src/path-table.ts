@@ -5,6 +5,11 @@
  * leave via machine actions (no ad-hoc plan reads beside the step).
  * Path random-blob append / expiry conclusions leave via machine actions (no
  * ad-hoc `appendPathRandomBlob` / `computePathExpiry` reads beside the step).
+ * Path-request emit / discovery-expired / begin-discovery / path-entry expired /
+ * add-entry conclusions leave via machine actions (no ad-hoc
+ * `shouldEmitPathRequest` / `isDiscoveryPathRequestExpired` /
+ * `shouldBeginPathDiscovery` / `isPathEntryExpired` / `shouldAddPathEntry`
+ * reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { TRUNCATED_HASH_BYTES } from "./hash-truncate.js";
@@ -33,12 +38,146 @@ export function shouldEmitPathRequest(input: {
   return input.nowSeconds - input.lastRequestAt >= minInterval;
 }
 
+/**
+ * shouldEmitPathRequest gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldEmitPathRequest`
+ * reads beside the step).
+ */
+export type EmitPathRequestState = Record<string, never>;
+
+export type EmitPathRequestEvent =
+  | Event
+  | {
+      readonly kind: "path-request/emit-gate";
+      readonly lastRequestAt: number;
+      readonly nowSeconds: number;
+      readonly minIntervalSeconds?: number;
+    };
+
+export type EmitPathRequestAction =
+  | { readonly kind: "emit" }
+  | { readonly kind: "skip" };
+
+export interface EmitPathRequestStepResult {
+  readonly state: EmitPathRequestState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly EmitPathRequestAction[];
+}
+
+export function initialEmitPathRequestState(): EmitPathRequestState {
+  return {};
+}
+
+export function stepEmitPathRequestWithActions(
+  state: EmitPathRequestState,
+  event: EmitPathRequestEvent
+): EmitPathRequestStepResult {
+  if (event.kind === "path-request/emit-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldEmitPathRequest({
+            lastRequestAt: event.lastRequestAt,
+            nowSeconds: event.nowSeconds,
+            ...(event.minIntervalSeconds !== undefined
+              ? { minIntervalSeconds: event.minIntervalSeconds }
+              : {})
+          })
+            ? "emit"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldEmitPathRequestNow(
+  actions: ReadonlyArray<EmitPathRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "emit");
+}
+
+export function shouldSkipEmitPathRequest(
+  actions: ReadonlyArray<EmitPathRequestAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 /** True when a discovery path-request entry is past its absolute deadline. */
 export function isDiscoveryPathRequestExpired(input: {
   readonly timeoutAt: number;
   readonly nowSeconds: number;
 }): boolean {
   return input.nowSeconds > input.timeoutAt;
+}
+
+/**
+ * isDiscoveryPathRequestExpired gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc
+ * `isDiscoveryPathRequestExpired` reads beside the step).
+ */
+export type DiscoveryPathRequestExpiredState = Record<string, never>;
+
+export type DiscoveryPathRequestExpiredEvent =
+  | Event
+  | {
+      readonly kind: "path-request/discovery-expired-gate";
+      readonly timeoutAt: number;
+      readonly nowSeconds: number;
+    };
+
+export type DiscoveryPathRequestExpiredAction =
+  | { readonly kind: "expired" }
+  | { readonly kind: "live" };
+
+export interface DiscoveryPathRequestExpiredStepResult {
+  readonly state: DiscoveryPathRequestExpiredState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly DiscoveryPathRequestExpiredAction[];
+}
+
+export function initialDiscoveryPathRequestExpiredState(): DiscoveryPathRequestExpiredState {
+  return {};
+}
+
+export function stepDiscoveryPathRequestExpiredWithActions(
+  state: DiscoveryPathRequestExpiredState,
+  event: DiscoveryPathRequestExpiredEvent
+): DiscoveryPathRequestExpiredStepResult {
+  if (event.kind === "path-request/discovery-expired-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isDiscoveryPathRequestExpired({
+            timeoutAt: event.timeoutAt,
+            nowSeconds: event.nowSeconds
+          })
+            ? "expired"
+            : "live"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatDiscoveryPathRequestExpired(
+  actions: ReadonlyArray<DiscoveryPathRequestExpiredAction>
+): boolean {
+  return actions.some((action) => action.kind === "expired");
+}
+
+export function shouldTreatDiscoveryPathRequestLive(
+  actions: ReadonlyArray<DiscoveryPathRequestExpiredAction>
+): boolean {
+  return actions.some((action) => action.kind === "live");
 }
 
 /**
@@ -230,6 +369,73 @@ export function shouldBeginPathDiscovery(input: {
   readonly destinationKeyPresent: boolean;
 }): boolean {
   return input.parsedOk && input.tagPresent && input.destinationKeyPresent;
+}
+
+/**
+ * shouldBeginPathDiscovery gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldBeginPathDiscovery`
+ * reads beside the step).
+ */
+export type BeginPathDiscoveryState = Record<string, never>;
+
+export type BeginPathDiscoveryEvent =
+  | Event
+  | {
+      readonly kind: "path-request/begin-discovery-gate";
+      readonly parsedOk: boolean;
+      readonly tagPresent: boolean;
+      readonly destinationKeyPresent: boolean;
+    };
+
+export type BeginPathDiscoveryAction =
+  | { readonly kind: "begin" }
+  | { readonly kind: "skip" };
+
+export interface BeginPathDiscoveryStepResult {
+  readonly state: BeginPathDiscoveryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly BeginPathDiscoveryAction[];
+}
+
+export function initialBeginPathDiscoveryState(): BeginPathDiscoveryState {
+  return {};
+}
+
+export function stepBeginPathDiscoveryWithActions(
+  state: BeginPathDiscoveryState,
+  event: BeginPathDiscoveryEvent
+): BeginPathDiscoveryStepResult {
+  if (event.kind === "path-request/begin-discovery-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldBeginPathDiscovery({
+            parsedOk: event.parsedOk,
+            tagPresent: event.tagPresent,
+            destinationKeyPresent: event.destinationKeyPresent
+          })
+            ? "begin"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldBeginPathDiscoveryNow(
+  actions: ReadonlyArray<BeginPathDiscoveryAction>
+): boolean {
+  return actions.some((action) => action.kind === "begin");
+}
+
+export function shouldSkipBeginPathDiscovery(
+  actions: ReadonlyArray<BeginPathDiscoveryAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
 }
 
 /** Whether an expired discovery path-request entry should be cleared before reinsert. */
@@ -568,6 +774,75 @@ export function shouldAddPathEntry(input: PathAddDecisionInput): boolean {
   return false;
 }
 
+/**
+ * shouldAddPathEntry gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `shouldAddPathEntry` reads
+ * beside the step).
+ */
+export type AddPathEntryState = Record<string, never>;
+
+export type AddPathEntryEvent =
+  | Event
+  | {
+      readonly kind: "path/add-entry-gate";
+      readonly hops: number;
+      readonly randomBlob: Uint8Array;
+      readonly nowSeconds: number;
+      readonly existing: PathTableEntryView | null;
+    };
+
+export type AddPathEntryAction =
+  | { readonly kind: "add" }
+  | { readonly kind: "skip" };
+
+export interface AddPathEntryStepResult {
+  readonly state: AddPathEntryState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly AddPathEntryAction[];
+}
+
+export function initialAddPathEntryState(): AddPathEntryState {
+  return {};
+}
+
+export function stepAddPathEntryWithActions(
+  state: AddPathEntryState,
+  event: AddPathEntryEvent
+): AddPathEntryStepResult {
+  if (event.kind === "path/add-entry-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: shouldAddPathEntry({
+            hops: event.hops,
+            randomBlob: event.randomBlob,
+            nowSeconds: event.nowSeconds,
+            existing: event.existing
+          })
+            ? "add"
+            : "skip"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldAddPathEntryNow(
+  actions: ReadonlyArray<AddPathEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "add");
+}
+
+export function shouldSkipAddPathEntry(
+  actions: ReadonlyArray<AddPathEntryAction>
+): boolean {
+  return actions.some((action) => action.kind === "skip");
+}
+
 export function computePathExpiry(nowSeconds: number): number {
   return nowSeconds + PATHFINDER_EXPIRY_SECONDS;
 }
@@ -641,6 +916,71 @@ export function isPathEntryExpired(input: {
   readonly nowSeconds: number;
 }): boolean {
   return input.nowSeconds >= input.expires;
+}
+
+/**
+ * isPathEntryExpired gate is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `isPathEntryExpired`
+ * reads beside the step).
+ */
+export type PathEntryExpiredState = Record<string, never>;
+
+export type PathEntryExpiredEvent =
+  | Event
+  | {
+      readonly kind: "path/entry-expired-gate";
+      readonly expires: number;
+      readonly nowSeconds: number;
+    };
+
+export type PathEntryExpiredAction =
+  | { readonly kind: "expired" }
+  | { readonly kind: "live" };
+
+export interface PathEntryExpiredStepResult {
+  readonly state: PathEntryExpiredState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly PathEntryExpiredAction[];
+}
+
+export function initialPathEntryExpiredState(): PathEntryExpiredState {
+  return {};
+}
+
+export function stepPathEntryExpiredWithActions(
+  state: PathEntryExpiredState,
+  event: PathEntryExpiredEvent
+): PathEntryExpiredStepResult {
+  if (event.kind === "path/entry-expired-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: isPathEntryExpired({
+            expires: event.expires,
+            nowSeconds: event.nowSeconds
+          })
+            ? "expired"
+            : "live"
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldTreatPathEntryExpired(
+  actions: ReadonlyArray<PathEntryExpiredAction>
+): boolean {
+  return actions.some((action) => action.kind === "expired");
+}
+
+export function shouldTreatPathEntryLive(
+  actions: ReadonlyArray<PathEntryExpiredAction>
+): boolean {
+  return actions.some((action) => action.kind === "live");
 }
 
 export type PathEntryLookupPlan = "miss" | "expired" | "hit";

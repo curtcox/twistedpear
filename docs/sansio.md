@@ -382,7 +382,8 @@
 > planning**, and PacketReceipt delivery/timeout via **`stepPacketReceiptTimeoutWithActions`**
 > (`timeout` / `delivered` / `failed` actions) live in
 > protocol; Channel, Link, and PacketReceipt adapt them. **`planChannelPacketTimeout`**
-> (`CHANNEL_MAX_TRIES`), **`shouldEmitPathRequest`**, and link-watchdog **`link/inbound`**
+> (`CHANNEL_MAX_TRIES`), **`shouldEmitPathRequest`** (via
+> **`stepEmitPathRequestWithActions`**: emit|skip), and link-watchdog **`link/inbound`**
 > STALE→ACTIVE revive live in protocol; Channel, LeafTransport, and Link adapt them.
 > **`stepChannelWindow`**, **transport ingress accept/hash-defer planners** (+ rebroadcast/
 > reverse-timeout constants), and **`computeLinkRequestTimeout`** live in protocol; Channel,
@@ -413,11 +414,16 @@
 > (queue → advertise → transferring → awaiting-proof / assemble → complete/corrupt/failed +
 > gates) lives in protocol; `Resource` adapts it. **`planPacketFilter`** (foreign transport-id +
 > seen-hash allow rules) lives in protocol; `LeafTransport` adapts it.
-> **`isDiscoveryPathRequestExpired`** lives in protocol; `TransportNode` adapts it (discovery
-> path-request timeout now applied). **`isPathEntryExpired`** / **`planPathEntryLookup`**
-> (via **`stepPathEntryLookupWithActions`**: miss / expired / hit) live in protocol;
-> path-table lookups (`hasPath` / `getPathEntry` / outbound / path-request) treat expired
-> paths as missing.
+> **`isDiscoveryPathRequestExpired`** (via
+> **`stepDiscoveryPathRequestExpiredWithActions`**: expired|live) lives in protocol;
+> `TransportNode` adapts it (discovery path-request timeout now applied).
+> **`isPathEntryExpired`** (via **`stepPathEntryExpiredWithActions`**: expired|live) /
+> **`shouldAddPathEntry`** (via **`stepAddPathEntryWithActions`**: add|skip) /
+> **`shouldBeginPathDiscovery`** (via **`stepBeginPathDiscoveryWithActions`**:
+> begin|skip) / **`planPathEntryLookup`** (via **`stepPathEntryLookupWithActions`**:
+> miss / expired / hit) live in protocol; path-table lookups
+> (`hasPath` / `getPathEntry` / outbound / path-request) treat expired paths as
+> missing.
 > **`receipt/failed`** on `stepPacketReceiptTimeout` lives in protocol; `PacketReceipt.markFailed`
 > / `LeafTransport.sendPacket` adapt it. **`Link.updateKeepalive`** applies keepalive via
 > **`stepComputeKeepaliveWithActions`** (`use-keepalive`) then syncs watchdog via
@@ -764,7 +770,8 @@
 > **`shouldAcceptResourceHashmapUpdateFrame`** / **`shouldFulfillResourcePartRequest`**,
 > **`planChannelTxEnvelopeOp`** / **`shouldApplyChannelPacketReceiptTimeout`** /
 > **`shouldReplaceChannelResentPacket`**, **`canAnswerLocalPathRequest`** /
-> **`shouldBeginPathDiscovery`**, **`canAcceptLinkOwnerPublicKey`** (via **`stepAcceptLinkOwnerPublicKeyWithActions`**: accept|reject),
+> **`shouldBeginPathDiscovery`** (via **`stepBeginPathDiscoveryWithActions`**:
+> begin|skip), **`canAcceptLinkOwnerPublicKey`** (via **`stepAcceptLinkOwnerPublicKeyWithActions`**: accept|reject),
 > **`shouldInvokePacketReceiptTimeoutCallback`**, and
 > **`shouldInvokeLinkRequestReceiptAction`** live in protocol; Link, Resource, Channel,
 > transport path-request, PacketReceipt, and LinkRequestReceipt adapt them.
@@ -978,10 +985,17 @@
 > **`stepDiscoveryPathRequestFulfillWithActions`** emits `ignore` /
 > `drop-expired` / `fulfill`; **`stepPathOutboundWithActions`** emits
 > `wrap` / `direct` / `flood`; **`stepPathEntryLookupWithActions`** emits
-> `miss` / `expired` / `hit`; `LeafTransport` / `TransportNode` path-request,
-> discovery fulfill, outbound, and path-table get apply only from those actions
-> (no ad-hoc `planPathRequestIngress` / `planDiscoveryPathRequestFulfill` /
-> `planPathOutbound` / `planPathEntryLookup` reads beside the step).
+> `miss` / `expired` / `hit`; **`stepEmitPathRequestWithActions`** emits
+> `emit` / `skip`; **`stepDiscoveryPathRequestExpiredWithActions`** /
+> **`stepPathEntryExpiredWithActions`** emit `expired` / `live`;
+> **`stepBeginPathDiscoveryWithActions`** emits `begin` / `skip`;
+> **`stepAddPathEntryWithActions`** emits `add` / `skip`; `LeafTransport` /
+> `TransportNode` path-request, discovery fulfill, outbound, path-table get /
+> emit / add, and discovery/path expiry apply only from those actions (no
+> ad-hoc `planPathRequestIngress` / `planDiscoveryPathRequestFulfill` /
+> `planPathOutbound` / `planPathEntryLookup` / `shouldEmitPathRequest` /
+> `isDiscoveryPathRequestExpired` / `isPathEntryExpired` /
+> `shouldBeginPathDiscovery` / `shouldAddPathEntry` reads beside the step).
 > **`stepTransportIngressDispatchWithActions`** emits `announce` /
 > `link-request` / `link-data` / `plain-data` / `proof` / `ignore`;
 > **`stepLinkDataIngressTargetWithActions`** emits `active` / `pending` /
@@ -1277,6 +1291,8 @@
 > update-link-keepalive-allow / create-link-channel /
 > link-ready-for-new-resource /
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
+> emit-path-request / discovery-path-request-expired / begin-path-discovery /
+> path-entry-expired / add-path-entry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
 > decode-resource-advertisement-flags / classify-resource-advertisement /
@@ -1557,6 +1573,15 @@
 > **`stepComputePathExpiryWithActions`** emits `use-expiry`; path-table announce
 > update applies only from those actions (no ad-hoc `computePathExpiry` reads
 > beside the step).
+> **`stepEmitPathRequestWithActions`** emits `emit` / `skip`;
+> **`stepDiscoveryPathRequestExpiredWithActions`** /
+> **`stepPathEntryExpiredWithActions`** emit `expired` / `live`;
+> **`stepBeginPathDiscoveryWithActions`** emits `begin` / `skip`;
+> **`stepAddPathEntryWithActions`** emits `add` / `skip`; path-request emit,
+> discovery/path expiry, begin-discovery, and path-table add apply only from
+> those actions (no ad-hoc `shouldEmitPathRequest` /
+> `isDiscoveryPathRequestExpired` / `isPathEntryExpired` /
+> `shouldBeginPathDiscovery` / `shouldAddPathEntry` reads beside the step).
 > **`stepPacketHashDeferWithActions`** emits `defer` / `remember-now`;
 > transport ingress hash deferral applies only from those actions.
 > **`stepResourceAdvertisementRoleFlagsWithActions`** emits `use-flags`;

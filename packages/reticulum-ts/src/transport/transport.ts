@@ -1,8 +1,9 @@
 import {
   LOCAL_REBROADCASTS_MAX as PROTOCOL_LOCAL_REBROADCASTS_MAX,
   REVERSE_TIMEOUT_SECONDS as PROTOCOL_REVERSE_TIMEOUT_SECONDS,
-  isDiscoveryPathRequestExpired,
   initialAnnounceIngressGatesState,
+  initialBeginPathDiscoveryState,
+  initialDiscoveryPathRequestExpiredState,
   initialDiscoveryPathRequestFulfillState,
   initialLinkRelayTargetState,
   initialLookupLinkRelayEntryState,
@@ -37,7 +38,7 @@ import {
   shouldAnswerPathRequestLocal,
   shouldAnswerPathRequestPath,
   shouldAnswerPathWithEntry,
-  shouldBeginPathDiscovery,
+  shouldBeginPathDiscoveryNow,
   shouldClearExpiredDiscoveryPathRequest,
   shouldAnswerPathRequest,
   shouldDeleteExpiredReverseEntryActions,
@@ -67,8 +68,11 @@ import {
   shouldStartPathRequestDiscovery,
   shouldTouchPathEntry,
   shouldTransmitReverseRelayNow,
+  shouldTreatDiscoveryPathRequestExpired,
   shouldTreatReverseEntryExpired,
   stepAnnounceIngressGatesWithActions,
+  stepBeginPathDiscoveryWithActions,
+  stepDiscoveryPathRequestExpiredWithActions,
   stepLinkRelayTargetWithActions,
   stepLookupLinkRelayEntryWithActions,
   stepMatchLocalInboundDestinationWithActions,
@@ -284,7 +288,13 @@ export class TransportNode extends LeafTransport {
     const nowSeconds = this.clock.now() / 1000;
     const discoveryExpired =
       existingDiscovery !== undefined &&
-      isDiscoveryPathRequestExpired({ timeoutAt: existingDiscovery.timeout, nowSeconds });
+      shouldTreatDiscoveryPathRequestExpired(
+        stepDiscoveryPathRequestExpiredWithActions(initialDiscoveryPathRequestExpiredState(), {
+          kind: "path-request/discovery-expired-gate",
+          timeoutAt: existingDiscovery.timeout,
+          nowSeconds
+        }).actions
+      );
 
     const stepped = stepPathRequestIngressWithActions(initialPathRequestIngressState(), {
       kind: "path-request/ingress-gate",
@@ -342,11 +352,14 @@ export class TransportNode extends LeafTransport {
 
     // start-discovery
     if (
-      !shouldBeginPathDiscovery({
-        parsedOk: parsed !== null,
-        tagPresent: parsed !== null && parsed.tag !== null,
-        destinationKeyPresent: destinationKey !== null
-      })
+      !shouldBeginPathDiscoveryNow(
+        stepBeginPathDiscoveryWithActions(initialBeginPathDiscoveryState(), {
+          kind: "path-request/begin-discovery-gate",
+          parsedOk: parsed !== null,
+          tagPresent: parsed !== null && parsed.tag !== null,
+          destinationKeyPresent: destinationKey !== null
+        }).actions
+      )
     ) {
       return;
     }
@@ -613,7 +626,13 @@ export class TransportNode extends LeafTransport {
         hasPending: pending !== undefined,
         expired:
           pending !== undefined &&
-          isDiscoveryPathRequestExpired({ timeoutAt: pending.timeout, nowSeconds })
+          shouldTreatDiscoveryPathRequestExpired(
+            stepDiscoveryPathRequestExpiredWithActions(initialDiscoveryPathRequestExpiredState(), {
+              kind: "path-request/discovery-expired-gate",
+              timeoutAt: pending.timeout,
+              nowSeconds
+            }).actions
+          )
       }
     );
 
