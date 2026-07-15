@@ -9,13 +9,17 @@ import {
   computeKeepalive,
   computeLinkEstablishmentTimeout,
   computeLinkRequestTimeout,
+  initialComputeKeepaliveState,
   initialComputeLinkEstablishmentTimeoutState,
   initialComputeLinkRequestTimeoutState,
   initialLinkWatchdogState,
   linkEstablishmentTimeoutFromActions,
+  linkKeepaliveFromActions,
   linkRequestTimeoutFromActions,
   shouldUseLinkEstablishmentTimeout,
+  shouldUseLinkKeepalive,
   shouldUseLinkRequestTimeout,
+  stepComputeKeepaliveWithActions,
   stepComputeLinkEstablishmentTimeoutWithActions,
   stepComputeLinkRequestTimeoutWithActions,
   stepLinkWatchdogWithActions
@@ -25,6 +29,21 @@ describe("protocol link watchdog", () => {
   it("computes keepalive from rtt", () => {
     expect(computeKeepalive(0.01)).toBe(LINK_KEEPALIVE_MIN);
     expect(computeKeepalive(1.75)).toBe(360);
+  });
+
+  it("emits keepalive only from use-keepalive actions", () => {
+    const stepped = stepComputeKeepaliveWithActions(initialComputeKeepaliveState(), {
+      kind: "link/keepalive-gate",
+      rtt: 1.0
+    });
+    expect(shouldUseLinkKeepalive(stepped.actions)).toBe(true);
+    expect(linkKeepaliveFromActions(stepped.actions)).toBe(computeKeepalive(1.0));
+
+    const empty = stepComputeKeepaliveWithActions(initialComputeKeepaliveState(), {
+      kind: "noop"
+    } as never);
+    expect(shouldUseLinkKeepalive(empty.actions)).toBe(false);
+    expect(linkKeepaliveFromActions(empty.actions)).toBeNull();
   });
 
   it("computes establishment timeout from hops", () => {

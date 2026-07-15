@@ -313,8 +313,9 @@
 > path-table lookups (`hasPath` / `getPathEntry` / outbound / path-request) treat expired
 > paths as missing.
 > **`receipt/failed`** on `stepPacketReceiptTimeout` lives in protocol; `PacketReceipt.markFailed`
-> / `LeafTransport.sendPacket` adapt it. **`Link.updateKeepalive`** and keepalive outbound route
-> through `stepLinkWatchdog` `link/rtt-measured` / `link/keepalive-sent`.
+> / `LeafTransport.sendPacket` adapt it. **`Link.updateKeepalive`** applies keepalive via
+> **`stepComputeKeepaliveWithActions`** (`use-keepalive`) then syncs watchdog via
+> `link/rtt-measured`; keepalive outbound routes through `link/keepalive-sent`.
 > **`countChannelTxOutstanding`** lives in protocol; `Channel.isReadyToSend` adapts it.
 > **`shouldExtendPacketReceiptTimeout`** lives in protocol; `Channel.updatePacketTimeouts`
 > adapts it. **`indexOfChannelTxEnvelope`** lives in protocol; Channel timeout/delivery TX-ring
@@ -909,7 +910,7 @@
 > link-initiator-mtu / link-request-responder-mtu / link-hops-match /
 > compute-link-mdu / compute-link-establishment-timeout /
 > compute-link-request-timeout / compute-link-rtt-seconds / merge-link-rtt /
-> compute-resource-timeout /
+> compute-resource-timeout / compute-keepalive /
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
@@ -1087,6 +1088,9 @@
 > **`stepComputeResourceTimeoutWithActions`** emits `use-timeout`; `Resource`
 > construction applies only from those actions (no ad-hoc
 > `computeResourceTimeout` reads beside the step).
+> **`stepComputeKeepaliveWithActions`** emits `use-keepalive`; `Link.updateKeepalive`
+> applies only from those actions (no ad-hoc `computeKeepalive` reads beside the
+> step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT measure / merge apply only from those
 > actions (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the
@@ -1107,7 +1111,7 @@
 > Resource advertisement + hashmap-update apply only from those actions
 > (no ad-hoc `planLinkInitiatorMtu` / `planLinkRequestResponderMtu` /
 > `linkHopsMatch` / `computeLinkMdu` / `computeLinkEstablishmentTimeout` /
-> `computeLinkRequestTimeout` / `computeResourceTimeout` /
+> `computeLinkRequestTimeout` / `computeResourceTimeout` / `computeKeepalive` /
 > `computeLinkRttSeconds` / `mergeLinkRtt` /
 > `computePathExpiry` / `shouldDeferPacketHash` /
 > `planResourceAdvertisementRoleFlags` /
@@ -1322,6 +1326,9 @@
 > **`stepComputeResourceTimeoutWithActions`** emits `use-timeout`; Resource
 > construction applies only from those actions (no ad-hoc
 > `computeResourceTimeout` reads beside the step).
+> **`stepComputeKeepaliveWithActions`** emits `use-keepalive`; `Link.updateKeepalive`
+> applies only from those actions (no ad-hoc `computeKeepalive` reads beside the
+> step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT apply only from those actions (no ad-hoc
 > `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the step).

@@ -1,9 +1,9 @@
 /**
  * Pure link keepalive / stale / establishment-timeout watchdog.
  * Mirrors the scheduling decisions in reticulum-ts Link.watchdogTick without IO.
- * Establishment / request timeout conclusions leave via machine actions (no
- * ad-hoc `computeLinkEstablishmentTimeout` / `computeLinkRequestTimeout`
- * reads beside the step).
+ * Keepalive / establishment / request timeout conclusions leave via machine
+ * actions (no ad-hoc `computeKeepalive` / `computeLinkEstablishmentTimeout` /
+ * `computeLinkRequestTimeout` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 
@@ -121,6 +121,69 @@ export function computeKeepalive(rtt: number): number {
     Math.min(rtt * (LINK_KEEPALIVE / LINK_KEEPALIVE_MAX_RTT), LINK_KEEPALIVE),
     LINK_KEEPALIVE_MIN
   );
+}
+
+/**
+ * Link keepalive computation is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `computeKeepalive` reads
+ * beside the step).
+ */
+export type ComputeKeepaliveState = Record<string, never>;
+
+export type ComputeKeepaliveEvent =
+  | Event
+  | {
+      readonly kind: "link/keepalive-gate";
+      readonly rtt: number;
+    };
+
+export type ComputeKeepaliveAction = {
+  readonly kind: "use-keepalive";
+  readonly keepalive: number;
+};
+
+export interface ComputeKeepaliveStepResult {
+  readonly state: ComputeKeepaliveState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ComputeKeepaliveAction[];
+}
+
+export function initialComputeKeepaliveState(): ComputeKeepaliveState {
+  return {};
+}
+
+export function stepComputeKeepaliveWithActions(
+  state: ComputeKeepaliveState,
+  event: ComputeKeepaliveEvent
+): ComputeKeepaliveStepResult {
+  if (event.kind === "link/keepalive-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-keepalive",
+          keepalive: computeKeepalive(event.rtt)
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseLinkKeepalive(
+  actions: ReadonlyArray<ComputeKeepaliveAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-keepalive");
+}
+
+/** Extract keepalive from step actions; null when no `use-keepalive`. */
+export function linkKeepaliveFromActions(
+  actions: ReadonlyArray<ComputeKeepaliveAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-keepalive");
+  return action?.kind === "use-keepalive" ? action.keepalive : null;
 }
 
 /** Seconds allowed to establish a link across `hops` (minimum 1 hop). */

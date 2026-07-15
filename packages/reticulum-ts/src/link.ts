@@ -40,6 +40,7 @@ import {
   encodeLinkMtuBytesRawFromActions,
   encodeLinkSignallingBytesRawFromActions,
   indexOfPendingLinkAppRequest,
+  initialComputeKeepaliveState,
   initialComputeLinkEstablishmentTimeoutState,
   initialComputeLinkMduState,
   initialComputeLinkRequestTimeoutState,
@@ -60,6 +61,7 @@ import {
   linkEstablishActivatedAction,
   linkEstablishmentTimeoutFromActions,
   linkIdentifySignedMaterialRawFromActions,
+  linkKeepaliveFromActions,
   linkMduFromActions,
   linkProofSignedMaterialRawFromActions,
   linkReadyForNewResource,
@@ -138,6 +140,7 @@ import {
   shouldMatchLinkHops,
   shouldUseLinkEstablishmentTimeout,
   shouldUseLinkInitiatorMtu,
+  shouldUseLinkKeepalive,
   shouldUseLinkMdu,
   shouldUseLinkProofSignedMaterial,
   shouldUseLinkRequestHashablePart,
@@ -166,6 +169,7 @@ import {
   shouldUseUnpackMsgpackFloat,
   stepClassifyLinkKeepaliveWithActions,
   stepClassifyLinkProofPayloadWithActions,
+  stepComputeKeepaliveWithActions,
   stepComputeLinkEstablishmentTimeoutWithActions,
   stepComputeLinkMduWithActions,
   stepComputeLinkRequestTimeoutWithActions,
@@ -2215,6 +2219,20 @@ export class Link {
     if (!canUpdateLinkKeepalive(this.rtt !== null)) {
       return;
     }
+
+    /** Adapt keepalive via protocol actions (no ad-hoc `computeKeepalive` reads). */
+    const keepaliveStepped = stepComputeKeepaliveWithActions(initialComputeKeepaliveState(), {
+      kind: "link/keepalive-gate",
+      rtt: this.rtt!
+    });
+    const keepalive = shouldUseLinkKeepalive(keepaliveStepped.actions)
+      ? linkKeepaliveFromActions(keepaliveStepped.actions)
+      : null;
+    if (keepalive === null) {
+      throw new Error("Link.updateKeepalive: missing use-keepalive action");
+    }
+    this.keepalive = keepalive;
+    this.staleTime = keepalive * LINK_STALE_FACTOR;
 
     this.applyWatchdogResult(
       stepLinkWatchdogWithActions(this.snapshotWatchdogState(), {
