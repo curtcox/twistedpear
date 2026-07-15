@@ -1,8 +1,8 @@
 /**
  * Pure RNS Channel congestion window + packet timeout decisions.
  * Adapters own send/resend/timers; this owns window sizing and timeout formulas.
- * TX timeout conclusions leave via machine actions (no ad-hoc `plan.kind`
- * reads beside the step).
+ * Packet-timeout-seconds / TX timeout conclusions leave via machine actions
+ * (no ad-hoc `channelPacketTimeoutSeconds` / `plan.kind` reads beside the step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import { equalByteArrays } from "./path-table.js";
@@ -64,6 +64,75 @@ export function channelPacketTimeoutSeconds(input: {
     Math.max(input.rtt * 2.5, 0.025) *
     (input.txRingLength + 1.5)
   );
+}
+
+/**
+ * Channel packet-timeout-seconds computation is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `channelPacketTimeoutSeconds` reads
+ * beside the step).
+ */
+export type ChannelPacketTimeoutSecondsState = Record<string, never>;
+
+export type ChannelPacketTimeoutSecondsEvent =
+  | Event
+  | {
+      readonly kind: "channel/packet-timeout-gate";
+      readonly tries: number;
+      readonly rtt: number;
+      readonly txRingLength: number;
+    };
+
+export type ChannelPacketTimeoutSecondsAction = {
+  readonly kind: "use-timeout";
+  readonly timeout: number;
+};
+
+export interface ChannelPacketTimeoutSecondsStepResult {
+  readonly state: ChannelPacketTimeoutSecondsState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly ChannelPacketTimeoutSecondsAction[];
+}
+
+export function initialChannelPacketTimeoutSecondsState(): ChannelPacketTimeoutSecondsState {
+  return {};
+}
+
+export function stepChannelPacketTimeoutSecondsWithActions(
+  state: ChannelPacketTimeoutSecondsState,
+  event: ChannelPacketTimeoutSecondsEvent
+): ChannelPacketTimeoutSecondsStepResult {
+  if (event.kind === "channel/packet-timeout-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: "use-timeout",
+          timeout: channelPacketTimeoutSeconds({
+            tries: event.tries,
+            rtt: event.rtt,
+            txRingLength: event.txRingLength
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldUseChannelPacketTimeout(
+  actions: ReadonlyArray<ChannelPacketTimeoutSecondsAction>
+): boolean {
+  return actions.some((action) => action.kind === "use-timeout");
+}
+
+/** Extract packet timeout from step actions; null when no `use-timeout`. */
+export function channelPacketTimeoutFromActions(
+  actions: ReadonlyArray<ChannelPacketTimeoutSecondsAction>
+): number | null {
+  const action = actions.find((entry) => entry.kind === "use-timeout");
+  return action?.kind === "use-timeout" ? action.timeout : null;
 }
 
 export function channelAllowsSend(input: {

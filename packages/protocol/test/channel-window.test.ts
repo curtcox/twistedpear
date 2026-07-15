@@ -5,12 +5,14 @@ import {
   applyChannelDelivery,
   applyChannelTimeout,
   channelAllowsSend,
+  channelPacketTimeoutFromActions,
   channelPacketTimeoutSeconds,
   channelRetryExhausted,
   channelTxTimeoutRetryAction,
   channelTxReceiptTimeoutExtensions,
   countChannelTxOutstanding,
   canArmChannelPacketReceipt,
+  initialChannelPacketTimeoutSecondsState,
   initialChannelSendState,
   initialChannelTxEnvelopeOpState,
   initialChannelTxReceiptTimeoutRefreshState,
@@ -33,8 +35,10 @@ import {
   shouldReplaceChannelResentPacket,
   shouldResendChannelTimeoutPacket,
   shouldRetryChannelTxTimeout,
+  shouldUseChannelPacketTimeout,
   shouldClearChannelEnvelopePacket,
   indexOfChannelTxEnvelope,
+  stepChannelPacketTimeoutSecondsWithActions,
   stepChannelSendWithActions,
   stepChannelTxEnvelopeOpWithActions,
   stepChannelTxReceiptTimeoutRefreshWithActions,
@@ -65,6 +69,31 @@ describe("protocol channel window", () => {
     const b = channelPacketTimeoutSeconds({ tries: 2, rtt: 0.2, txRingLength: 1 });
     expect(a).toBe(b);
     expect(a).toBeGreaterThan(0);
+  });
+
+  it("emits packet timeout only from use-timeout actions", () => {
+    const stepped = stepChannelPacketTimeoutSecondsWithActions(
+      initialChannelPacketTimeoutSecondsState(),
+      {
+        kind: "channel/packet-timeout-gate",
+        tries: 2,
+        rtt: 0.2,
+        txRingLength: 1
+      }
+    );
+    expect(shouldUseChannelPacketTimeout(stepped.actions)).toBe(true);
+    expect(channelPacketTimeoutFromActions(stepped.actions)).toBe(
+      channelPacketTimeoutSeconds({ tries: 2, rtt: 0.2, txRingLength: 1 })
+    );
+
+    const empty = stepChannelPacketTimeoutSecondsWithActions(
+      initialChannelPacketTimeoutSecondsState(),
+      {
+        kind: "noop"
+      } as never
+    );
+    expect(shouldUseChannelPacketTimeout(empty.actions)).toBe(false);
+    expect(channelPacketTimeoutFromActions(empty.actions)).toBeNull();
   });
 
   it("shrinks on timeout and grows on delivery", () => {

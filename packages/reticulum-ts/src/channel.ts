@@ -11,13 +11,14 @@ import {
   channelEmplaceIndex,
   channelEnvelopeFieldsFromActions,
   channelMessageStateFromPacketReceipt,
-  channelPacketTimeoutSeconds,
+  channelPacketTimeoutFromActions,
   channelPayloadMdu,
   channelTxTimeoutRetryAction,
   countChannelTxOutstanding,
   drainContiguousChannelSequences,
   indexOfChannelRingSequence,
   indexOfChannelTxEnvelope,
+  initialChannelPacketTimeoutSecondsState,
   initialChannelWindowState,
   isChannelOutletTransmitOk,
   nextChannelSequence,
@@ -59,6 +60,7 @@ import {
   shouldReplaceChannelResentPacket,
   shouldRetryChannelTxTimeout,
   shouldStopChannelHandlerFanout,
+  shouldUseChannelPacketTimeout,
   shouldUsePackChannelEnvelope,
   shouldUseUnpackChannelEnvelope,
   channelMessageHandlerUnregisterIndex,
@@ -67,6 +69,7 @@ import {
   stepChannelEnvelopeUnpackWithActions,
   stepChannelMessageHandlerUnregisterWithActions,
   stepChannelMessageTypeRegistrationWithActions,
+  stepChannelPacketTimeoutSecondsWithActions,
   stepChannelSendWithActions,
   stepChannelTxEnvelopeOpWithActions,
   stepChannelTxReceiptTimeoutRefreshWithActions,
@@ -598,11 +601,23 @@ export class Channel {
   }
 
   private getPacketTimeoutTime(tries: number): number {
-    return channelPacketTimeoutSeconds({
-      tries,
-      rtt: this.outlet.rtt,
-      txRingLength: this.txRing.length
-    });
+    /** Adapt packet timeout via protocol actions (no ad-hoc `channelPacketTimeoutSeconds` reads). */
+    const stepped = stepChannelPacketTimeoutSecondsWithActions(
+      initialChannelPacketTimeoutSecondsState(),
+      {
+        kind: "channel/packet-timeout-gate",
+        tries,
+        rtt: this.outlet.rtt,
+        txRingLength: this.txRing.length
+      }
+    );
+    const timeout = shouldUseChannelPacketTimeout(stepped.actions)
+      ? channelPacketTimeoutFromActions(stepped.actions)
+      : null;
+    if (timeout === null) {
+      throw new Error("Channel.getPacketTimeoutTime: missing use-timeout action");
+    }
+    return timeout;
   }
 
   private updatePacketTimeouts(): void {

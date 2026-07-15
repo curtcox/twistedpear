@@ -16,8 +16,9 @@
 > **`stepSplitIdentityEntropyWithActions`**: use-fields|reject) plus **Identity**,
 > **Token**, and **Resource** RNG now prefer injected/`Runtime` entropy (transport
 > identity keygen, path-request tags, link Token IVs, destination encrypt, resource
-> random hashes). **Channel congestion** (window sizing, packet timeout formula,
-> retry exhaustion) is a pure protocol leaf; `Channel` adapts it. **Channel envelope
+> random hashes). **Channel congestion** (window sizing, packet timeout formula
+> via **`stepChannelPacketTimeoutSecondsWithActions`**: use-timeout, retry
+> exhaustion) is a pure protocol leaf; `Channel` adapts it. **Channel envelope
 > framing** and **RX reorder/drain** are also pure protocol leaves. **LXMF outbound
 > send-state** (enqueue → sending → sent/delivered/
 > failed + progress) is a pure protocol leaf; `LXMFRouter` adapts it. **Link proof framing**
@@ -911,6 +912,7 @@
 > compute-link-mdu / compute-link-establishment-timeout /
 > compute-link-request-timeout / compute-link-rtt-seconds / merge-link-rtt /
 > compute-resource-timeout / compute-keepalive /
+> channel-packet-timeout-seconds /
 > assemble-byte-arrays / append-path-random-blob / compute-path-expiry /
 > packet-hash-defer /
 > resource-advertisement-role-flags / encode-resource-advertisement-flags /
@@ -1091,6 +1093,9 @@
 > **`stepComputeKeepaliveWithActions`** emits `use-keepalive`; `Link.updateKeepalive`
 > applies only from those actions (no ad-hoc `computeKeepalive` reads beside the
 > step).
+> **`stepChannelPacketTimeoutSecondsWithActions`** emits `use-timeout`;
+> `Channel.getPacketTimeoutTime` applies only from those actions (no ad-hoc
+> `channelPacketTimeoutSeconds` reads beside the step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT measure / merge apply only from those
 > actions (no ad-hoc `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the
@@ -1112,7 +1117,7 @@
 > (no ad-hoc `planLinkInitiatorMtu` / `planLinkRequestResponderMtu` /
 > `linkHopsMatch` / `computeLinkMdu` / `computeLinkEstablishmentTimeout` /
 > `computeLinkRequestTimeout` / `computeResourceTimeout` / `computeKeepalive` /
-> `computeLinkRttSeconds` / `mergeLinkRtt` /
+> `channelPacketTimeoutSeconds` / `computeLinkRttSeconds` / `mergeLinkRtt` /
 > `computePathExpiry` / `shouldDeferPacketHash` /
 > `planResourceAdvertisementRoleFlags` /
 > `planResourceHashmapSlotWrites` reads beside the step).
@@ -1329,6 +1334,9 @@
 > **`stepComputeKeepaliveWithActions`** emits `use-keepalive`; `Link.updateKeepalive`
 > applies only from those actions (no ad-hoc `computeKeepalive` reads beside the
 > step).
+> **`stepChannelPacketTimeoutSecondsWithActions`** emits `use-timeout`;
+> `Channel.getPacketTimeoutTime` applies only from those actions (no ad-hoc
+> `channelPacketTimeoutSeconds` reads beside the step).
 > **`stepComputeLinkRttSecondsWithActions`** / **`stepMergeLinkRttWithActions`**
 > emit `use-rtt`; Link establish RTT apply only from those actions (no ad-hoc
 > `computeLinkRttSeconds` / `mergeLinkRtt` reads beside the step).

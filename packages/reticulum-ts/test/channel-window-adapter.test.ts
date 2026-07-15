@@ -3,7 +3,12 @@ import { Channel } from "../src/channel.js";
 import {
   ChannelWindowLimits,
   applyChannelDelivery,
-  initialChannelWindowState
+  channelPacketTimeoutFromActions,
+  channelPacketTimeoutSeconds,
+  initialChannelPacketTimeoutSecondsState,
+  initialChannelWindowState,
+  shouldUseChannelPacketTimeout,
+  stepChannelPacketTimeoutSecondsWithActions
 } from "@twistedpear/protocol";
 
 describe("Channel window adapter", () => {
@@ -31,5 +36,32 @@ describe("Channel window adapter", () => {
       state = applyChannelDelivery(state, 0.5);
     }
     expect(state.windowMax).toBe(Channel.WINDOW_MAX_MEDIUM);
+  });
+
+  it("matches legacy packet timeout formula via use-timeout actions", () => {
+    const cases = [
+      { tries: 1, rtt: 0.2, txRingLength: 0 },
+      { tries: 2, rtt: 0.2, txRingLength: 1 },
+      { tries: 3, rtt: 0.01, txRingLength: 4 },
+      { tries: 5, rtt: 1.0, txRingLength: 2 }
+    ];
+    for (const input of cases) {
+      const legacy =
+        Math.pow(1.5, input.tries - 1) *
+        Math.max(input.rtt * 2.5, 0.025) *
+        (input.txRingLength + 1.5);
+      const stepped = stepChannelPacketTimeoutSecondsWithActions(
+        initialChannelPacketTimeoutSecondsState(),
+        {
+          kind: "channel/packet-timeout-gate",
+          ...input
+        }
+      );
+      expect(shouldUseChannelPacketTimeout(stepped.actions)).toBe(true);
+      expect(channelPacketTimeoutFromActions(stepped.actions)).toBe(legacy);
+      expect(channelPacketTimeoutFromActions(stepped.actions)).toBe(
+        channelPacketTimeoutSeconds(input)
+      );
+    }
   });
 });
