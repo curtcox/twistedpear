@@ -188,7 +188,15 @@
 > **`stepAcceptLinkOwnerPublicKeyWithActions`**: accept|reject /
 > **`stepAcceptLinkRequestOwnerWithActions`**: accept|reject /
 > **`stepValidateLinkProofAllowWithActions`**: allow|deny /
+> **`stepLinkValidateRequestPlanWithActions`**: ok|bad-request|
+> owner-missing-identity|mode-disabled (nested under validate-request) /
 > **`stepContinueLinkValidateRequestWithActions`**: continue|skip /
+> **`stepLinkAppRequestDispatchWithActions`**: ignore|forbidden|invoke-handler
+> (nested under inbound app-request) /
+> **`stepLinkAppRequestResponsePlanWithActions`**: ignore|response-too-big|
+> send-response (nested under inbound app-request) /
+> **`stepLinkTokenAccessPlanWithActions`**: reject-no-key|create|reuse
+> (nested under token-access) /
 > **`stepAttemptLinkProofCryptoWithActions`**: attempt|skip /
 > **`stepAcceptLinkRttWithActions`**: accept|skip /
 > **`stepTeardownLinkFromRttWithActions`**: teardown|skip /
@@ -854,7 +862,9 @@
 > **`stepLxmfPropagatedPackPrepWithActions`**: skip / proceed /
 > reject-missing-identity / reject-missing-timestamp) lives in protocol;
 > `LXMessage` delivery-parameter selection adapts it. **`planLinkValidateRequest`**
-> (via **`stepLinkValidateRequestWithActions`**: proceed / reject-bad-request /
+> (via **`stepLinkValidateRequestPlanWithActions`**: ok|bad-request|
+> owner-missing-identity|mode-disabled, nested under
+> **`stepLinkValidateRequestWithActions`**: proceed / reject-bad-request /
 > reject-owner-missing-identity / reject-mode-disabled; owner acceptance nested via
 > **`stepAcceptLinkRequestOwnerWithActions`**: accept|reject) and
 > **`shouldContinueLinkValidateRequest`** (via
@@ -865,7 +875,9 @@
 > **`stepCommitLinkRemoteIdentityWithActions`**: commit|skip) live in
 > protocol; `Link.validateRequest` / `handleIdentifyPacket` adapt them.
 > **`planLinkAppRequestDispatch`** / **`planLinkAppRequestResponse`** (via
-> **`stepLinkAppRequestInboundWithActions`**; allow via
+> **`stepLinkAppRequestDispatchWithActions`**: ignore|forbidden|invoke-handler and
+> **`stepLinkAppRequestResponsePlanWithActions`**: ignore|response-too-big|
+> send-response, nested under **`stepLinkAppRequestInboundWithActions`**; allow via
 > **`stepDestinationRequestAllowWithActions`**: allow|deny; response MDU via
 > **`stepSendLinkAppResponseAllowWithActions`**: allow|deny; invoke via
 > **`stepInvokeLinkAppRequestHandlerWithActions`**: invoke|skip; send via
@@ -1262,12 +1274,16 @@
 > accept/reject only from those actions (no ad-hoc `plan.kind` reads).
 > **`stepLinkAppRequestInboundWithActions`** emits `ignore` / `forbidden` /
 > `invoke-handler` / `send-response` / `ignore-response` / `response-too-big`
-> (response MDU fit nested via **`stepSendLinkAppResponseAllowWithActions`**:
-> allow|deny);
+> (dispatch nested via **`stepLinkAppRequestDispatchWithActions`**:
+> ignore|forbidden|invoke-handler; response plan nested via
+> **`stepLinkAppRequestResponsePlanWithActions`**: ignore|response-too-big|
+> send-response; response MDU fit nested via
+> **`stepSendLinkAppResponseAllowWithActions`**: allow|deny);
 > **`stepInvokeLinkAppRequestHandlerWithActions`** emits `invoke` / `skip`;
 > **`stepSendLinkAppRequestResponseWithActions`** emits `send` / `skip`;
 > `Link.handleRequestPacket` applies responseGenerator / send only from those
-> actions (no ad-hoc dispatch/`plan.kind` / `canSendLinkAppResponse` /
+> actions (no ad-hoc dispatch/`plan.kind` / `planLinkAppRequestDispatch` /
+> `planLinkAppRequestResponse` / `canSendLinkAppResponse` /
 > `shouldInvokeLinkAppRequestHandler` /
 > `shouldSendLinkAppRequestResponse` reads beside the step).
 > **`stepLinkIdentifyWithActions`** emits `reject` / `commit`;
@@ -1279,7 +1295,9 @@
 > **`stepLinkValidateRequestWithActions`** emits `proceed` /
 > `reject-bad-request` / `reject-owner-missing-identity` /
 > `reject-mode-disabled` (owner acceptance nested via
-> **`stepAcceptLinkRequestOwnerWithActions`**: accept|reject);
+> **`stepAcceptLinkRequestOwnerWithActions`**: accept|reject; plan nested via
+> **`stepLinkValidateRequestPlanWithActions`**: ok|bad-request|
+> owner-missing-identity|mode-disabled);
 > **`stepContinueLinkValidateRequestWithActions`**
 > emits `continue`|`skip`; `Link.validateRequest` applies continue/mode
 > gates only from those actions (no ad-hoc `planLinkValidateRequest` /
@@ -1352,8 +1370,10 @@
 > unverifiedReason); `LXMessage.unpackFromBytes` applies signature status only
 > from those actions (no ad-hoc `planLxmfSignatureOutcome` reads beside the step).
 > **`stepLinkTokenAccessWithActions`** emits `reject-no-key` / `create` /
-> `reuse`; `Link.tokenInstance` constructs or reuses Token only from those
-> actions (no ad-hoc `planLinkTokenAccess` reads beside the step).
+> `reuse` (plan nested via **`stepLinkTokenAccessPlanWithActions`**:
+> reject-no-key|create|reuse); `Link.tokenInstance` constructs or reuses Token
+> only from those actions (no ad-hoc `planLinkTokenAccess` / `plan ===` reads
+> beside the step).
 > **`stepAnnounceValidateWithActions`** emits `accept` / `accept-signature-only` /
 > `reject-*`; `Announce.validate` returns true only from those actions (no
 > ad-hoc `planAnnounceValidateOutcome` reads beside the step).

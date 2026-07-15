@@ -114,25 +114,33 @@ import {
   computeLinkRttSeconds,
   initialComputeLinkRttSecondsState,
   initialLinkActivateMembershipState,
+  initialLinkAppRequestDispatchState,
   initialLinkAppRequestInboundState,
+  initialLinkAppRequestResponsePlanState,
   initialLinkAppRequestState,
   initialLinkAppRequestTransmitState,
   initialLinkEstablishState,
   initialLinkProofValidateState,
   initialLinkRegisterListState,
   initialRegisterLinkMemberState,
+  initialLinkTokenAccessPlanState,
   initialLinkTokenAccessState,
   initialLinkUnregisterMembershipState,
+  initialLinkValidateRequestPlanState,
   initialLinkValidateRequestState,
   initialContinueLinkValidateRequestState,
   initialMergeLinkRttState,
   isLinkClosed,
   isLinkInboundDataPacket,
+  linkAppRequestDispatchFromActions,
   linkAppRequestFromActions,
+  linkAppRequestResponsePlanFromActions,
   linkAppRequestTransmitFromActions,
   linkEstablishActivatedAction,
   linkRegisterListFromActions,
   linkRttSecondsFromActions,
+  linkTokenAccessPlanFromActions,
+  linkValidateRequestPlanFromActions,
   mergeLinkRtt,
   mergeLinkRttFromActions,
   pendingLinkMembershipRemoveIndex,
@@ -156,22 +164,31 @@ import {
   shouldAppendActiveLinkMembership,
   shouldAppendActiveLinkMembershipActions,
   shouldAttemptLinkProofCrypto,
+  shouldBadRequestLinkValidateRequestPlan,
   shouldContinueLinkValidateRequest,
   shouldContinueLinkValidateRequestNow,
   shouldCreateLinkChannel,
   shouldCreateLinkToken,
+  shouldCreateLinkTokenAccessPlan,
   shouldDispatchLinkPlaintext,
   shouldEncryptLinkPayload,
   shouldEnterLinkHandshake,
   shouldFailLinkEstablish,
+  shouldForbidLinkAppRequestDispatch,
   shouldForbidLinkAppRequestInbound,
+  shouldIgnoreLinkAppRequestDispatch,
   shouldIgnoreLinkAppRequestInbound,
   shouldIgnoreLinkAppRequestInboundResponse,
+  shouldIgnoreLinkAppRequestResponsePlan,
   shouldIgnoreLinkEstablishRtt,
+  shouldInvokeLinkAppRequestDispatch,
   shouldInvokeLinkAppRequestHandler,
   shouldInvokeLinkAppRequestHandlerNow,
   shouldInvokeLinkAppRequestInbound,
   shouldKeepPendingLinkAppRequestTransmit,
+  shouldModeDisabledLinkValidateRequestPlan,
+  shouldOkLinkValidateRequestPlan,
+  shouldOwnerMissingIdentityLinkValidateRequestPlan,
   shouldProceedLinkValidateRequest,
   shouldRegisterLinkActive,
   shouldRegisterLinkMember,
@@ -179,11 +196,13 @@ import {
   shouldRegisterLinkPending,
   shouldRejectLinkAppRequest,
   shouldRejectLinkAppRequestInboundTooBig,
+  shouldRejectLinkAppRequestResponseTooBigPlan,
   shouldRejectLinkProofValidate,
   shouldRejectLinkTokenNoKey,
   shouldRejectLinkValidateBadRequest,
   shouldRejectLinkValidateModeDisabled,
   shouldRejectLinkValidateOwnerMissingIdentity,
+  shouldRejectNoKeyLinkTokenAccessPlan,
   shouldRemoveActiveLinkMembership,
   shouldRemoveActiveLinkUnregisterActions,
   shouldRemovePendingLinkMembership,
@@ -191,10 +210,12 @@ import {
   shouldRemovePendingLinkUnregisterActions,
   shouldReuseActiveLink,
   shouldReuseLinkToken,
+  shouldReuseLinkTokenAccessPlan,
   shouldSendLinkAppRequest,
   shouldSendLinkAppRequestInboundResponse,
   shouldSendLinkAppRequestResponse,
   shouldSendLinkAppRequestResponseNow,
+  shouldSendLinkAppRequestResponsePlan,
   shouldSkipContinueLinkValidateRequest,
   shouldSkipInvokeLinkAppRequestHandler,
   shouldSkipRegisterLinkMember,
@@ -209,8 +230,10 @@ import {
   stepContinueLinkValidateRequestWithActions,
   stepInvokeLinkAppRequestHandlerWithActions,
   stepLinkActivateMembershipWithActions,
+  stepLinkAppRequestDispatchWithActions,
   stepLinkAppRequestInbound,
   stepLinkAppRequestInboundWithActions,
+  stepLinkAppRequestResponsePlanWithActions,
   stepLinkAppRequestTransmitWithActions,
   stepLinkAppRequestWithActions,
   stepLinkEstablish,
@@ -219,8 +242,10 @@ import {
   stepLinkRegisterListWithActions,
   stepRegisterLinkMemberWithActions,
   stepSendLinkAppRequestResponseWithActions,
+  stepLinkTokenAccessPlanWithActions,
   stepLinkTokenAccessWithActions,
   stepLinkUnregisterMembershipWithActions,
+  stepLinkValidateRequestPlanWithActions,
   stepLinkValidateRequestWithActions,
   stepMergeLinkRttWithActions
 } from "../src/link-establish.js";
@@ -329,6 +354,25 @@ describe("protocol link establish", () => {
     );
     expect(planLinkTokenAccess({ derivedKeyPresent: true, tokenPresent: false })).toBe("create");
     expect(planLinkTokenAccess({ derivedKeyPresent: true, tokenPresent: true })).toBe("reuse");
+    const rejectPlan = stepLinkTokenAccessPlanWithActions(initialLinkTokenAccessPlanState(), {
+      kind: "token/access-plan-gate",
+      derivedKeyPresent: false,
+      tokenPresent: false
+    });
+    expect(shouldRejectNoKeyLinkTokenAccessPlan(rejectPlan.actions)).toBe(true);
+    expect(linkTokenAccessPlanFromActions(rejectPlan.actions)).toBe("reject-no-key");
+    const createPlan = stepLinkTokenAccessPlanWithActions(initialLinkTokenAccessPlanState(), {
+      kind: "token/access-plan-gate",
+      derivedKeyPresent: true,
+      tokenPresent: false
+    });
+    expect(shouldCreateLinkTokenAccessPlan(createPlan.actions)).toBe(true);
+    const reusePlan = stepLinkTokenAccessPlanWithActions(initialLinkTokenAccessPlanState(), {
+      kind: "token/access-plan-gate",
+      derivedKeyPresent: true,
+      tokenPresent: true
+    });
+    expect(shouldReuseLinkTokenAccessPlan(reusePlan.actions)).toBe(true);
     const rejectToken = stepLinkTokenAccessWithActions(initialLinkTokenAccessState(), {
       kind: "token/access-gate",
       derivedKeyPresent: false,
@@ -683,7 +727,7 @@ describe("protocol link establish", () => {
     expect(shouldReuseActiveLink({ linkPresent: true, status: LinkStatus.PENDING })).toBe(false);
   });
 
-  it("plans link validate-request gates", () => {
+  it("plans link validate-request gates without ad-hoc plan === reads", () => {
     expect(
       planLinkValidateRequest({
         requestPresent: true,
@@ -712,6 +756,36 @@ describe("protocol link establish", () => {
         modeEnabled: false
       })
     ).toBe("mode-disabled");
+
+    const okPlan = stepLinkValidateRequestPlanWithActions(initialLinkValidateRequestPlanState(), {
+      kind: "validate-request/plan-gate",
+      requestPresent: true,
+      ownerIdentityAccepted: true,
+      modeEnabled: true
+    });
+    expect(shouldOkLinkValidateRequestPlan(okPlan.actions)).toBe(true);
+    expect(linkValidateRequestPlanFromActions(okPlan.actions)).toBe("ok");
+    const badPlan = stepLinkValidateRequestPlanWithActions(initialLinkValidateRequestPlanState(), {
+      kind: "validate-request/plan-gate",
+      requestPresent: false,
+      ownerIdentityAccepted: true,
+      modeEnabled: true
+    });
+    expect(shouldBadRequestLinkValidateRequestPlan(badPlan.actions)).toBe(true);
+    const ownerPlan = stepLinkValidateRequestPlanWithActions(initialLinkValidateRequestPlanState(), {
+      kind: "validate-request/plan-gate",
+      requestPresent: true,
+      ownerIdentityAccepted: false,
+      modeEnabled: true
+    });
+    expect(shouldOwnerMissingIdentityLinkValidateRequestPlan(ownerPlan.actions)).toBe(true);
+    const modePlan = stepLinkValidateRequestPlanWithActions(initialLinkValidateRequestPlanState(), {
+      kind: "validate-request/plan-gate",
+      requestPresent: true,
+      ownerIdentityAccepted: true,
+      modeEnabled: false
+    });
+    expect(shouldModeDisabledLinkValidateRequestPlan(modePlan.actions)).toBe(true);
 
     const proceed = stepLinkValidateRequestWithActions(initialLinkValidateRequestState(), {
       kind: "validate-request/gate",
@@ -991,7 +1065,7 @@ describe("protocol link establish", () => {
     ).toBe(false);
   });
 
-  it("plans app request dispatch and response gates", () => {
+  it("plans app request dispatch and response gates without ad-hoc plan === reads", () => {
     expect(
       planLinkAppRequestDispatch({
         plaintextPresent: true,
@@ -1042,6 +1116,71 @@ describe("protocol link establish", () => {
         responseFitsMdu: false
       })
     ).toBe("response-too-big");
+
+    const invokeDispatch = stepLinkAppRequestDispatchWithActions(
+      initialLinkAppRequestDispatchState(),
+      {
+        kind: "link/app-request-dispatch-gate",
+        plaintextPresent: true,
+        handlerDestinationPresent: true,
+        handlerPresent: true,
+        requestAllowed: true
+      }
+    );
+    expect(shouldInvokeLinkAppRequestDispatch(invokeDispatch.actions)).toBe(true);
+    expect(linkAppRequestDispatchFromActions(invokeDispatch.actions)).toBe("invoke-handler");
+    const ignoreDispatch = stepLinkAppRequestDispatchWithActions(
+      initialLinkAppRequestDispatchState(),
+      {
+        kind: "link/app-request-dispatch-gate",
+        plaintextPresent: false,
+        handlerDestinationPresent: true,
+        handlerPresent: true,
+        requestAllowed: true
+      }
+    );
+    expect(shouldIgnoreLinkAppRequestDispatch(ignoreDispatch.actions)).toBe(true);
+    const forbidDispatch = stepLinkAppRequestDispatchWithActions(
+      initialLinkAppRequestDispatchState(),
+      {
+        kind: "link/app-request-dispatch-gate",
+        plaintextPresent: true,
+        handlerDestinationPresent: true,
+        handlerPresent: true,
+        requestAllowed: false
+      }
+    );
+    expect(shouldForbidLinkAppRequestDispatch(forbidDispatch.actions)).toBe(true);
+
+    const sendResponsePlan = stepLinkAppRequestResponsePlanWithActions(
+      initialLinkAppRequestResponsePlanState(),
+      {
+        kind: "link/app-request-response-plan-gate",
+        responsePresent: true,
+        responseFitsMdu: true
+      }
+    );
+    expect(shouldSendLinkAppRequestResponsePlan(sendResponsePlan.actions)).toBe(true);
+    expect(linkAppRequestResponsePlanFromActions(sendResponsePlan.actions)).toBe("send-response");
+    const ignoreResponsePlan = stepLinkAppRequestResponsePlanWithActions(
+      initialLinkAppRequestResponsePlanState(),
+      {
+        kind: "link/app-request-response-plan-gate",
+        responsePresent: false,
+        responseFitsMdu: true
+      }
+    );
+    expect(shouldIgnoreLinkAppRequestResponsePlan(ignoreResponsePlan.actions)).toBe(true);
+    const tooBigPlan = stepLinkAppRequestResponsePlanWithActions(
+      initialLinkAppRequestResponsePlanState(),
+      {
+        kind: "link/app-request-response-plan-gate",
+        responsePresent: true,
+        responseFitsMdu: false
+      }
+    );
+    expect(shouldRejectLinkAppRequestResponseTooBigPlan(tooBigPlan.actions)).toBe(true);
+
     expect(
       shouldInvokeLinkAppRequestHandler({
         dispatchInvoke: true,

@@ -31,6 +31,10 @@
  * `canAcceptLinkRequestOwner` reads beside the step).
  * Send-link-app-response-allow conclusions leave via machine actions (no ad-hoc
  * `canSendLinkAppResponse` reads beside the step).
+ * Validate-request / app-request-dispatch / app-request-response / token-access
+ * plan leaves conclude via machine actions (no ad-hoc `planLinkValidateRequest` /
+ * `planLinkAppRequestDispatch` / `planLinkAppRequestResponse` /
+ * `planLinkTokenAccess` / `plan ===` reads beside the parent step).
  */
 import type { Event, Intent, StepFn } from "@twistedpear/effects";
 import {
@@ -409,8 +413,104 @@ export function planLinkValidateRequest(input: {
 }
 
 /**
+ * Validate-request plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkValidateRequest` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLinkValidateRequestWithActions}.
+ */
+export type LinkValidateRequestPlanState = Record<string, never>;
+
+export type LinkValidateRequestPlanEvent =
+  | Event
+  | {
+      readonly kind: "validate-request/plan-gate";
+      readonly requestPresent: boolean;
+      readonly ownerIdentityAccepted: boolean;
+      readonly modeEnabled: boolean;
+    };
+
+export type LinkValidateRequestPlanAction =
+  | { readonly kind: "ok" }
+  | { readonly kind: "bad-request" }
+  | { readonly kind: "owner-missing-identity" }
+  | { readonly kind: "mode-disabled" };
+
+export interface LinkValidateRequestPlanStepResult {
+  readonly state: LinkValidateRequestPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkValidateRequestPlanAction[];
+}
+
+export function initialLinkValidateRequestPlanState(): LinkValidateRequestPlanState {
+  return {};
+}
+
+export function stepLinkValidateRequestPlanWithActions(
+  state: LinkValidateRequestPlanState,
+  event: LinkValidateRequestPlanEvent
+): LinkValidateRequestPlanStepResult {
+  if (event.kind === "validate-request/plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLinkValidateRequest({
+            requestPresent: event.requestPresent,
+            ownerIdentityAccepted: event.ownerIdentityAccepted,
+            modeEnabled: event.modeEnabled
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldOkLinkValidateRequestPlan(
+  actions: ReadonlyArray<LinkValidateRequestPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ok");
+}
+
+export function shouldBadRequestLinkValidateRequestPlan(
+  actions: ReadonlyArray<LinkValidateRequestPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "bad-request");
+}
+
+export function shouldOwnerMissingIdentityLinkValidateRequestPlan(
+  actions: ReadonlyArray<LinkValidateRequestPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "owner-missing-identity");
+}
+
+export function shouldModeDisabledLinkValidateRequestPlan(
+  actions: ReadonlyArray<LinkValidateRequestPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "mode-disabled");
+}
+
+/** Extract the plan from actions; null when empty. */
+export function linkValidateRequestPlanFromActions(
+  actions: ReadonlyArray<LinkValidateRequestPlanAction>
+): LinkValidateRequestPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ok" ||
+      entry.kind === "bad-request" ||
+      entry.kind === "owner-missing-identity" ||
+      entry.kind === "mode-disabled"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * Validate-request gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLinkValidateRequestPlanWithActions}
+ * (`ok`|`bad-request`|`owner-missing-identity`|`mode-disabled`).
  */
 export type LinkValidateRequestState = Record<string, never>;
 
@@ -568,23 +668,30 @@ function stepLinkValidateRequestInner(
         identityPresent: event.ownerIdentityPresent
       }).actions
     );
-    const plan = planLinkValidateRequest({
-      requestPresent: event.requestPresent,
-      ownerIdentityAccepted,
-      modeEnabled: event.modeEnabled
-    });
-    if (plan === "bad-request") {
+    const planActions = stepLinkValidateRequestPlanWithActions(
+      initialLinkValidateRequestPlanState(),
+      {
+        kind: "validate-request/plan-gate",
+        requestPresent: event.requestPresent,
+        ownerIdentityAccepted,
+        modeEnabled: event.modeEnabled
+      }
+    ).actions;
+    if (shouldBadRequestLinkValidateRequestPlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-bad-request" }] };
     }
-    if (plan === "owner-missing-identity") {
+    if (shouldOwnerMissingIdentityLinkValidateRequestPlan(planActions)) {
       return {
         state,
         intents: [],
         actions: [{ kind: "reject-owner-missing-identity" }]
       };
     }
-    if (plan === "mode-disabled") {
+    if (shouldModeDisabledLinkValidateRequestPlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-mode-disabled" }] };
+    }
+    if (!shouldOkLinkValidateRequestPlan(planActions)) {
+      return { state, intents: [], actions: [] };
     }
     return { state, intents: [], actions: [{ kind: "proceed" }] };
   }
@@ -1211,8 +1318,94 @@ export function planLinkTokenAccess(input: {
 }
 
 /**
+ * Token-access plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkTokenAccess` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLinkTokenAccessWithActions}.
+ */
+export type LinkTokenAccessPlanState = Record<string, never>;
+
+export type LinkTokenAccessPlanEvent =
+  | Event
+  | {
+      readonly kind: "token/access-plan-gate";
+      readonly derivedKeyPresent: boolean;
+      readonly tokenPresent: boolean;
+    };
+
+export type LinkTokenAccessPlanAction =
+  | { readonly kind: "reject-no-key" }
+  | { readonly kind: "create" }
+  | { readonly kind: "reuse" };
+
+export interface LinkTokenAccessPlanStepResult {
+  readonly state: LinkTokenAccessPlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkTokenAccessPlanAction[];
+}
+
+export function initialLinkTokenAccessPlanState(): LinkTokenAccessPlanState {
+  return {};
+}
+
+export function stepLinkTokenAccessPlanWithActions(
+  state: LinkTokenAccessPlanState,
+  event: LinkTokenAccessPlanEvent
+): LinkTokenAccessPlanStepResult {
+  if (event.kind === "token/access-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLinkTokenAccess({
+            derivedKeyPresent: event.derivedKeyPresent,
+            tokenPresent: event.tokenPresent
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldRejectNoKeyLinkTokenAccessPlan(
+  actions: ReadonlyArray<LinkTokenAccessPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reject-no-key");
+}
+
+export function shouldCreateLinkTokenAccessPlan(
+  actions: ReadonlyArray<LinkTokenAccessPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "create");
+}
+
+export function shouldReuseLinkTokenAccessPlan(
+  actions: ReadonlyArray<LinkTokenAccessPlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "reuse");
+}
+
+/** Extract the token-access plan from actions; null when empty. */
+export function linkTokenAccessPlanFromActions(
+  actions: ReadonlyArray<LinkTokenAccessPlanAction>
+): LinkTokenAccessPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "reject-no-key" ||
+      entry.kind === "create" ||
+      entry.kind === "reuse"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * Token access gates are event-driven; no durable session fields.
  * Conclusions leave via machine actions (no ad-hoc plan reads beside the step).
+ * Plan nested via {@link stepLinkTokenAccessPlanWithActions}
+ * (`reject-no-key`|`create`|`reuse`).
  */
 export type LinkTokenAccessState = Record<string, never>;
 
@@ -1274,15 +1467,19 @@ function stepLinkTokenAccessInner(
   event: LinkTokenAccessEvent
 ): LinkTokenAccessStepResult {
   if (event.kind === "token/access-gate") {
-    const plan = planLinkTokenAccess({
+    const planActions = stepLinkTokenAccessPlanWithActions(initialLinkTokenAccessPlanState(), {
+      kind: "token/access-plan-gate",
       derivedKeyPresent: event.derivedKeyPresent,
       tokenPresent: event.tokenPresent
-    });
-    if (plan === "reject-no-key") {
+    }).actions;
+    if (shouldRejectNoKeyLinkTokenAccessPlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "reject-no-key" }] };
     }
-    if (plan === "create") {
+    if (shouldCreateLinkTokenAccessPlan(planActions)) {
       return { state, intents: [], actions: [{ kind: "create" }] };
+    }
+    if (!shouldReuseLinkTokenAccessPlan(planActions)) {
+      return { state, intents: [], actions: [] };
     }
     return { state, intents: [], actions: [{ kind: "reuse" }] };
   }
@@ -1409,6 +1606,94 @@ export function planLinkAppRequestDispatch(input: {
     return "forbidden";
   }
   return "invoke-handler";
+}
+
+/**
+ * App-request dispatch plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkAppRequestDispatch` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLinkAppRequestInboundWithActions}.
+ */
+export type LinkAppRequestDispatchState = Record<string, never>;
+
+export type LinkAppRequestDispatchEvent =
+  | Event
+  | {
+      readonly kind: "link/app-request-dispatch-gate";
+      readonly plaintextPresent: boolean;
+      readonly handlerDestinationPresent: boolean;
+      readonly handlerPresent: boolean;
+      readonly requestAllowed: boolean;
+    };
+
+export type LinkAppRequestDispatchAction =
+  | { readonly kind: "ignore" }
+  | { readonly kind: "forbidden" }
+  | { readonly kind: "invoke-handler" };
+
+export interface LinkAppRequestDispatchStepResult {
+  readonly state: LinkAppRequestDispatchState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkAppRequestDispatchAction[];
+}
+
+export function initialLinkAppRequestDispatchState(): LinkAppRequestDispatchState {
+  return {};
+}
+
+export function stepLinkAppRequestDispatchWithActions(
+  state: LinkAppRequestDispatchState,
+  event: LinkAppRequestDispatchEvent
+): LinkAppRequestDispatchStepResult {
+  if (event.kind === "link/app-request-dispatch-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLinkAppRequestDispatch({
+            plaintextPresent: event.plaintextPresent,
+            handlerDestinationPresent: event.handlerDestinationPresent,
+            handlerPresent: event.handlerPresent,
+            requestAllowed: event.requestAllowed
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldIgnoreLinkAppRequestDispatch(
+  actions: ReadonlyArray<LinkAppRequestDispatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+export function shouldForbidLinkAppRequestDispatch(
+  actions: ReadonlyArray<LinkAppRequestDispatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "forbidden");
+}
+
+export function shouldInvokeLinkAppRequestDispatch(
+  actions: ReadonlyArray<LinkAppRequestDispatchAction>
+): boolean {
+  return actions.some((action) => action.kind === "invoke-handler");
+}
+
+/** Extract the dispatch plan from actions; null when empty. */
+export function linkAppRequestDispatchFromActions(
+  actions: ReadonlyArray<LinkAppRequestDispatchAction>
+): LinkAppRequestDispatchPlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ignore" ||
+      entry.kind === "forbidden" ||
+      entry.kind === "invoke-handler"
+  );
+  return action?.kind ?? null;
 }
 
 export type LinkAppRequestResponsePlan = "ignore" | "response-too-big" | "send-response";
@@ -1588,12 +1873,100 @@ export function planLinkAppRequestResponse(input: {
 }
 
 /**
+ * App-request response plan leaf is event-driven; no durable session fields.
+ * Conclusions leave via machine actions (no ad-hoc `planLinkAppRequestResponse` /
+ * `plan ===` reads beside the step). Nested under
+ * {@link stepLinkAppRequestInboundWithActions}.
+ */
+export type LinkAppRequestResponsePlanState = Record<string, never>;
+
+export type LinkAppRequestResponsePlanEvent =
+  | Event
+  | {
+      readonly kind: "link/app-request-response-plan-gate";
+      readonly responsePresent: boolean;
+      readonly responseFitsMdu: boolean;
+    };
+
+export type LinkAppRequestResponsePlanAction =
+  | { readonly kind: "ignore" }
+  | { readonly kind: "response-too-big" }
+  | { readonly kind: "send-response" };
+
+export interface LinkAppRequestResponsePlanStepResult {
+  readonly state: LinkAppRequestResponsePlanState;
+  readonly intents: readonly Intent[];
+  readonly actions: readonly LinkAppRequestResponsePlanAction[];
+}
+
+export function initialLinkAppRequestResponsePlanState(): LinkAppRequestResponsePlanState {
+  return {};
+}
+
+export function stepLinkAppRequestResponsePlanWithActions(
+  state: LinkAppRequestResponsePlanState,
+  event: LinkAppRequestResponsePlanEvent
+): LinkAppRequestResponsePlanStepResult {
+  if (event.kind === "link/app-request-response-plan-gate") {
+    return {
+      state,
+      intents: [],
+      actions: [
+        {
+          kind: planLinkAppRequestResponse({
+            responsePresent: event.responsePresent,
+            responseFitsMdu: event.responseFitsMdu
+          })
+        }
+      ]
+    };
+  }
+
+  return { state, intents: [], actions: [] };
+}
+
+export function shouldIgnoreLinkAppRequestResponsePlan(
+  actions: ReadonlyArray<LinkAppRequestResponsePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "ignore");
+}
+
+export function shouldRejectLinkAppRequestResponseTooBigPlan(
+  actions: ReadonlyArray<LinkAppRequestResponsePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "response-too-big");
+}
+
+export function shouldSendLinkAppRequestResponsePlan(
+  actions: ReadonlyArray<LinkAppRequestResponsePlanAction>
+): boolean {
+  return actions.some((action) => action.kind === "send-response");
+}
+
+/** Extract the response plan from actions; null when empty. */
+export function linkAppRequestResponsePlanFromActions(
+  actions: ReadonlyArray<LinkAppRequestResponsePlanAction>
+): LinkAppRequestResponsePlan | null {
+  const action = actions.find(
+    (entry) =>
+      entry.kind === "ignore" ||
+      entry.kind === "response-too-big" ||
+      entry.kind === "send-response"
+  );
+  return action?.kind ?? null;
+}
+
+/**
  * Pure inbound link application-request dispatch (handler invoke → response send).
  * Decrypt / unpack / responseGenerator / encrypt stay at the adapter edge.
  * Conclusions leave via machine actions (no ad-hoc plan outcome /
  * `planDestinationRequestAllow` / `canSendLinkAppResponse` /
  * `shouldInvokeLinkAppRequestHandler` /
- * `shouldSendLinkAppRequestResponse` reads beside the step).
+ * `shouldSendLinkAppRequestResponse` /
+ * `planLinkAppRequestDispatch` / `planLinkAppRequestResponse` / `plan ===`
+ * reads beside the step). Dispatch nested via
+ * {@link stepLinkAppRequestDispatchWithActions}; response plan nested via
+ * {@link stepLinkAppRequestResponsePlanWithActions}.
  */
 export interface LinkAppRequestInboundState {
   readonly waitingHandler: boolean;
@@ -1717,23 +2090,27 @@ function stepLinkAppRequestInboundInner(
         remoteIdentityHash: event.remoteIdentityHash
       }).actions
     );
-    const plan = planLinkAppRequestDispatch({
-      plaintextPresent: event.plaintextPresent,
-      handlerDestinationPresent: event.handlerDestinationPresent,
-      handlerPresent: event.handlerPresent,
-      requestAllowed
-    });
-    if (plan === "ignore") {
+    const dispatchActions = stepLinkAppRequestDispatchWithActions(
+      initialLinkAppRequestDispatchState(),
+      {
+        kind: "link/app-request-dispatch-gate",
+        plaintextPresent: event.plaintextPresent,
+        handlerDestinationPresent: event.handlerDestinationPresent,
+        handlerPresent: event.handlerPresent,
+        requestAllowed
+      }
+    ).actions;
+    if (shouldIgnoreLinkAppRequestDispatch(dispatchActions)) {
       return { state, intents: [], actions: [{ kind: "ignore" }] };
     }
-    if (plan === "forbidden") {
+    if (shouldForbidLinkAppRequestDispatch(dispatchActions)) {
       return { state, intents: [], actions: [{ kind: "forbidden" }] };
     }
     const invokeStepped = stepInvokeLinkAppRequestHandlerWithActions(
       initialInvokeLinkAppRequestHandlerState(),
       {
         kind: "link/invoke-app-request-handler-gate",
-        dispatchInvoke: true,
+        dispatchInvoke: shouldInvokeLinkAppRequestDispatch(dispatchActions),
         unpackedPresent: event.unpackedPresent,
         handlerPresent: event.handlerPresent
       }
@@ -1759,22 +2136,26 @@ function stepLinkAppRequestInboundInner(
         mdu: state.mdu
       }).actions
     );
-    const plan = planLinkAppRequestResponse({
-      responsePresent: event.responsePresent,
-      responseFitsMdu
-    });
+    const responsePlanActions = stepLinkAppRequestResponsePlanWithActions(
+      initialLinkAppRequestResponsePlanState(),
+      {
+        kind: "link/app-request-response-plan-gate",
+        responsePresent: event.responsePresent,
+        responseFitsMdu
+      }
+    ).actions;
     const next = { ...state, waitingHandler: false };
-    if (plan === "ignore") {
+    if (shouldIgnoreLinkAppRequestResponsePlan(responsePlanActions)) {
       return { state: next, intents: [], actions: [{ kind: "ignore-response" }] };
     }
-    if (plan === "response-too-big") {
+    if (shouldRejectLinkAppRequestResponseTooBigPlan(responsePlanActions)) {
       return { state: next, intents: [], actions: [{ kind: "response-too-big" }] };
     }
     const sendStepped = stepSendLinkAppRequestResponseWithActions(
       initialSendLinkAppRequestResponseState(),
       {
         kind: "link/send-app-request-response-gate",
-        planSend: true,
+        planSend: shouldSendLinkAppRequestResponsePlan(responsePlanActions),
         packedPresent: event.responsePresent
       }
     );
