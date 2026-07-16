@@ -6,23 +6,27 @@ functions: kdf/2
 
 rule RegisterIdentity:
   [ Fr(~ltk) ]
-  --> [ !Identity($A, ~ltk), Out(pk(~ltk)) ]
+  --[ IdentityRegistered($A) ]->
+  [ !Identity($A, ~ltk), Out(pk(~ltk)) ]
+
+restriction unique_identity_key:
+  "All A #i #j. IdentityRegistered(A)@i & IdentityRegistered(A)@j ==> #i = #j"
 
 rule InitiatorBegin:
   [ !Identity($I, ltkI), !Identity($R, ltkR), Fr(~x), Fr(~link) ]
   --[ InitiatorBegin($I, $R, ~link, 'g'^~x) ]->
   [ InitiatorPending($I, $R, ~link, ~x),
-    Out(<$I, $R, ~link, 'g'^~x, sign(<$I, $R, ~link, 'g'^~x>, ltkI)>) ]
+    Out(<'init', $I, $R, ~link, 'g'^~x, sign(<'init', $I, $R, ~link, 'g'^~x>, ltkI)>) ]
 
 rule ResponderAccept:
   [ !Identity(I, ltkI), !Identity($R, ltkR),
-    In(<I, $R, link, X, sign(<I, $R, link, X>, ltkI)>), Fr(~y) ]
+    In(<'init', I, $R, link, X, sign(<'init', I, $R, link, X>, ltkI)>), Fr(~y) ]
   --[ ResponderBegin(I, $R, link, X), ResponderEstablished(I, $R, link, kdf(X^~y, link)), Secret(kdf(X^~y, link)) ]->
-  [ Out(<$R, I, link, 'g'^~y, sign(<$R, I, link, 'g'^~y>, ltkR)>) ]
+  [ Out(<'resp', $R, I, link, 'g'^~y, sign(<'resp', $R, I, link, 'g'^~y>, ltkR)>) ]
 
 rule InitiatorAccept:
   [ !Identity(I, ltkI), !Identity(R, ltkR), InitiatorPending(I, R, link, x),
-    In(<R, I, link, Y, sign(<R, I, link, Y>, ltkR)>) ]
+    In(<'resp', R, I, link, Y, sign(<'resp', R, I, link, Y>, ltkR)>) ]
   --[ InitiatorEstablished(I, R, link, kdf(Y^x, link)), Secret(kdf(Y^x, link)) ]->
   [ ]
 

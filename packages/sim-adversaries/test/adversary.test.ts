@@ -5,6 +5,12 @@ import { rerunHistory } from "../../effects/src/adapters/sim/shrink.js";
 import { parseHistory, type RecordedHistory } from "../../effects/src/adapters/sim/recorder.js";
 import duplicateFixture from "../../../conformance/sim-regressions/llm-duplicate-delivery.json";
 import {
+  decodeGrantRecord,
+  encodeGrantRecord,
+  InvalidGrantRecordError,
+  type GrantRecord
+} from "../../protocol/src/grants.js";
+import {
   compileAttackProposal,
   authorAttackStrategies,
   createFuzzAdversary,
@@ -109,12 +115,24 @@ describe("Dolev-Yao adversaries", () => {
   });
 
   it("provides deterministic grant-boundary mutations to the fuzz tier", () => {
-    const canonical = new TextEncoder().encode('{"appId":"a","publisherPublicKey":"p","granted":[],"updatedAt":1}');
+    const record: GrantRecord = {
+      appId: "a",
+      publisherPublicKey: "p",
+      granted: [],
+      updatedAt: 1
+    };
+    const canonical = encodeGrantRecord(record);
     const first = grantRecordMutationCorpus(canonical);
     const second = grantRecordMutationCorpus(canonical);
     expect(first.length).toBeGreaterThanOrEqual(5);
     expect(first.map((entry) => Array.from(entry))).toEqual(second.map((entry) => Array.from(entry)));
     expect(first.every((entry) => entry.some((byte, index) => byte !== canonical[index]) || entry.length !== canonical.length)).toBe(true);
+    for (const mutation of first) {
+      expect(() => decodeGrantRecord(mutation)).toThrow(InvalidGrantRecordError);
+    }
+    const decoded = decodeGrantRecord(canonical);
+    expect(decoded).toEqual(record);
+    expect(encodeGrantRecord(decoded)).toEqual(canonical);
   });
 
   it("classifies every hostile-app fixture as lifted or out of model", () => {

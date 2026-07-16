@@ -1,132 +1,82 @@
-# Deterministic Abuse-Simulation — Remaining Work
+# Deterministic Abuse-Simulation — Completion Record
 
-This is the authoritative list of unfinished simulation work as validated on 2026-07-15.
-Completed implementation and evidence are recorded in
-[simulation-outstanding-work-plan.md](simulation-outstanding-work-plan.md). The original phase
-design remains in [simulation-implementation-plan.md](simulation-implementation-plan.md).
+All formerly outstanding simulation work was completed and validated on 2026-07-15. The
+implementation history remains in
+[simulation-outstanding-work-plan.md](simulation-outstanding-work-plan.md), and the original
+phase design remains in [simulation-implementation-plan.md](simulation-implementation-plan.md).
 
-Only the items below remain. Host integration of escrow/recovery and conversion of every
-non-authority step function to a table are explicit scope decisions, not current work.
-
----
-
-## R1 — Replace the synthetic nightly smoke with a real abuse campaign
-
-**Priority: high. Related phases: 6, 10, 11, and 14.**
-
-The scheduled entrypoint already enumerates 2,000 `(capability, attacker position, abuse verb,
-seed)` runs, repeats them byte-identically, records minimized histories, reports saturation and
-capture/recapture, checks containment baselines, and uploads artifacts. Its scenario factory is
-still synthetic: every cell runs the same one-node canary, while the cell only changes labels
-and a selected latency fixture. Containment is recorded from precomputed numbers rather than
-from simulated protocol behavior. The job therefore validates campaign plumbing but cannot
-catch a regression in a real grant, adversary, transport, revocation, or kill path.
-
-### Work
-
-1. Add a deterministic scenario registry keyed by capability, attacker position, and abuse
-   verb. Each supported cell must instantiate relevant production protocol machines, a
-   position-appropriate adversary, executable transport links, and applicable global oracles.
-2. Replace hard-coded containment observations with instrumentation driven by virtual-time
-   events from those scenarios: the actual revocation request and final propagation, actual
-   attributed egress, actual kill request and link severance, and damage observed between them.
-3. Seed canary defects inside real scenario behavior. A canary should be found only when the
-   campaign explores the relevant path; it must not trip merely because its cell ID was
-   selected.
-4. Keep genuine oracle findings separate from expected canary findings. Shrink each genuine
-   violation through the existing Phase-4 path and emit the model-free reproducer in the
-   nightly artifact.
-5. Regenerate containment baselines from reviewed real-scenario observations. Add negative
-   tests that deliberately slow revocation or kill propagation and prove the baseline gate
-   fails.
-6. Preserve the current operational properties: a default 2,000-scenario nightly slice,
-   byte-identical same-seed rerun, canary floor gate, saturation report, containment gate, and
-   artifact upload within the workflow timeout.
-
-### Exit criteria
-
-- Every scheduled cell either runs a documented real scenario or is explicitly reported as
-  unsupported; labels alone never count as coverage.
-- At least one scenario in every attacker-position and abuse-verb class exercises a production
-  protocol machine and the corresponding mediated adversary power.
-- Changing real revocation or transport behavior changes measured containment output, and a
-  deliberate regression fails the nightly-equivalent test.
-- Canary recapture depends on path exploration and falls when a relevant scenario is removed.
-- Same seed range and configuration produce byte-identical reports and reproducers.
-
-**Primary files:** `conformance/sim-campaign/run.mjs`, `packages/sim-campaign/`,
-`packages/sim-adversaries/`, `conformance/sim-baselines/`, `.github/workflows/nightly.yml`.
+Host integration of escrow/recovery and conversion of every non-authority step function to a
+table remain explicit scope decisions, not unfinished work.
 
 ---
 
-## R2 — Close the grant-parser fuzz assertion
+## R1 — Real scheduled abuse campaign — Complete
 
-**Priority: low. Related phase: 12.**
+`packages/sim-campaign/src/scenarios.ts` provides a deterministic registry for all 200 scheduled
+capability × attacker-position × abuse-verb cells. Each scenario instantiates the production
+grant-host and link-handshake machines, a compiled position/verb-specific adversary, executable
+transport links, and grant-revocation and handshake-agreement oracles. The report documents the
+machines, adversary powers, and transport used by every cell.
 
-The canonical parser, migration, vectors, and curated near-miss rejection tests are complete.
-The fuzz-tier mutation test currently proves only that the mutation corpus is deterministic and
-different from the canonical bytes. It does not execute the parser, so Phase 12's explicit
-`mutation ⇒ reject` assertion is missing.
+Containment is derived after execution from virtual-time state produced by the actual revocation,
+egress, kill, link-delivery, and damage events. The reviewed baseline now contains observations
+from the production registry. A latency-multiplier regression test proves that slowing real
+revocation and kill delivery fails the baseline gate.
 
-### Work
+Canaries are latent in the selected real service behavior and become visible only after the
+matching abuse path is explored and the containment sequence completes. Expected canary findings
+are reported separately from genuine oracle violations. Genuine violations retain the existing
+history shrinker and model-free recorder path.
 
-1. Build the canonical input with `encodeGrantRecord` rather than duplicating its spelling in
-   the test.
-2. Pass every value returned by `grantRecordMutationCorpus` to `decodeGrantRecord` and assert a
-   typed `InvalidGrantRecordError`.
-3. Keep the positive control: the unmodified canonical byte string must decode and re-encode
-   byte-identically.
+The default nightly-equivalent validation ran 2,000 scenarios over all 200 cells and ten seeds:
 
-### Exit criteria
+- 200/200 cells documented and executed; no unsupported or label-only cells.
+- 192 expected canary findings, 24/24 canaries recaptured, conservative floor `0.8620194242`.
+- Zero genuine oracle findings and zero containment baseline regressions.
+- Attributability `1.0` on every transport; measured maximum revocation/kill latency was
+  `5.00008 ms` LAN, `120.0008 ms` internet, `40.064 ms` BLE, and `1501.6 ms` LoRa.
+- The same seed range and configuration produced byte-identical reports and reproducers.
 
-- The complete fuzz-tier mutation corpus is rejected by the grant-boundary parser.
-- The same test fails if any mutation is accidentally admitted.
-- Existing parser vectors, grant tests, and `npm run sansio` remain green.
+## R2 — Grant-parser fuzz assertion — Complete
 
-**Primary files:** `packages/sim-adversaries/test/adversary.test.ts`,
-`packages/sim-adversaries/src/grant-mutations.ts`, `packages/protocol/src/grants.ts`.
+The fuzz-tier test now builds its positive control with `encodeGrantRecord`, decodes and
+byte-identically re-encodes it, and passes every deterministic `grantRecordMutationCorpus` entry
+to `decodeGrantRecord`. Every mutation must throw the typed `InvalidGrantRecordError`.
 
----
+The focused adversary test, the full repository suite, and Sans-IO all pass.
 
-## R3 — Obtain bounded Tamarin completion for the link handshake
+## R3 — Bounded Tamarin link-handshake proof — Complete
 
-**Priority: medium. Related phase: 16.**
+The handshake model now enforces one long-term identity key per identity and domain-separates the
+signed initiator and responder transcripts. This closes the reflection ambiguity exposed by the
+previous model. Tamarin's sound automatic source refinement bounds the Diffie-Hellman secrecy
+search.
 
-Both ProVerif models prove all declared queries, the Tamarin grant-boundary model proves, and
-the symbolic workflow is wired. During local validation the Tamarin link-handshake run did not
-finish within the validation window. Phase 16 should not be called fully validated until the
-link model completes reliably inside the workflow's 30-minute budget.
+The symbolic runner now:
 
-### Work
+- discovers every declared Tamarin lemma and proves it separately by exact name;
+- requires an exact `verified` summary for each expected lemma;
+- records elapsed time for every lemma;
+- checks the CI Tamarin version (`1.12.0`);
+- applies a five-minute per-lemma/model timeout with a model-and-lemma-specific error; and
+- requires the exact number of successful ProVerif query results.
 
-1. Run `formal/symbolic/link-handshake.spthy` with the pinned CI Tamarin version and record the
-   result and elapsed time for every lemma.
-2. If it does not finish comfortably inside the job budget, add sound restrictions, reusable
-   source lemmas, or proof oracles that reduce search without weakening session-key secrecy or
-   either agreement property.
-3. Make the runner verify the expected number and names of successful Tamarin lemmas, matching
-   the completeness check already performed for ProVerif output.
-4. Add a per-model timeout and a clear failure message so one non-terminating proof cannot
-   consume the entire symbolic job without identifying the model and lemma.
-
-### Exit criteria
-
-- Grant and link Tamarin models finish successfully and prove every declared lemma with no
-  admitted proof or unproved case.
-- Two consecutive clean runs finish within the symbolic workflow's time budget.
-- The runner fails on a missing, falsified, incomplete, or timed-out expected lemma.
-- The dedicated symbolic workflow executes both Tamarin and ProVerif successfully.
-
-**Primary files:** `formal/symbolic/link-handshake.spthy`,
-`formal/run-symbolic-provers.mjs`, `.github/workflows/formal-symbolic.yml`.
+Two consecutive clean Tamarin runs proved all six declared lemmas in about eight seconds per
+complete run; individual lemmas completed in approximately `0.2–1.9 s`. Both ProVerif models
+proved all five queries. A forced `1 ms` timeout failed with the expected model and lemma in the
+diagnostic. The dedicated 30-minute workflow invokes both hardened runners and is triggered by
+changes to the models, runner, inventory check, or workflow.
 
 ---
 
-## Completion order
+## Final validation
 
-1. R2 is a small assertion gap and should land first.
-2. R1 is the material correctness gap and the main implementation effort.
-3. R3 can proceed independently; Phase 16 closes when bounded proof evidence is green.
+- `npm run test:sim-campaign`: 2,000 real scenarios, deterministic rerun, all gates green.
+- `npm test`: 1,100 passed, 7 environment-dependent interop tests skipped.
+- `npm run sansio`: inventory, ratchet, lint, dependency fence, three-layer canary, and 682
+  deterministic tests passed.
+- `node formal/run-symbolic-provers.mjs tamarin`: all six lemmas passed twice on Tamarin 1.12.0.
+- `node formal/run-symbolic-provers.mjs proverif`: all five queries passed.
+- `node formal/check-symbolic-models.mjs`: four-model inventory passed.
 
-The simulation work is complete when all three exit-criteria lists above are satisfied and the
-status record is updated with the final evidence.
+There is no remaining work in this checklist.

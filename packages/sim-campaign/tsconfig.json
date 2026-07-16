@@ -21,6 +21,8 @@
   "include": ["src/**/*.ts"],
   "references": [
     { "path": "../effects" },
-    { "path": "../miniapp-runtime" }
+    { "path": "../miniapp-runtime" },
+    { "path": "../protocol" },
+    { "path": "../sim-adversaries" }
   ]
 }

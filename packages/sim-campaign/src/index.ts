@@ -16,6 +16,8 @@ export {
   type CampaignFinding,
   type CampaignReport,
   type CampaignScenario,
+  type ScenarioCoverage,
+  type ScenarioDescription,
   type SaturationPoint,
   type ScenarioFactory,
   type SeedRange
@@ -34,3 +36,8 @@ export {
   injectCanaries,
   type CompletenessEstimate
 } from "./estimation.js";
+export {
+  createProductionScenarioRegistry,
+  type ProductionScenarioRegistry,
+  type ProductionScenarioRegistryOptions
+} from "./scenarios.js";

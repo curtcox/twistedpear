@@ -2,16 +2,15 @@
 
 Companion to [simulation-architecture.html](simulation-architecture.html) and
 [simulation-implementation-plan.md](simulation-implementation-plan.md). This document is the
-authoritative record of what has landed. It separates implemented machinery from the smaller
-set of exit criteria that still need closure. The remaining-work-only checklist is
+authoritative record of what has landed. All planned exit criteria are closed. The completion
+checklist and final evidence are in
 [simulation-outstanding-work.md](simulation-outstanding-work.md).
 
-> **Validated 2026-07-15.** The build, all 1,097 runnable repository tests, the Sans-IO suite,
-> the targeted simulation/formal tests, all three executable/TLA+ conformance checks, all three
-> TLC models, the 2,000-run scheduled-campaign smoke, the symbolic-model inventory, and both
-> ProVerif models passed locally. Seven environment-dependent interop tests were skipped by the
-> normal test configuration. The Tamarin grant-boundary model proved; the Tamarin link-handshake
-> run did not finish during the validation window and remains an explicit validation item.
+> **Completed and validated 2026-07-15.** The full 1,100-test repository suite, the 682-test
+> Sans-IO suite, the 2,000-run real scheduled campaign, both ProVerif models, and both Tamarin
+> models pass. Seven environment-dependent interop tests remain skipped by the normal test
+> configuration. The scheduled report covers all 200 cells, recaptures all 24 canaries, records
+> zero genuine violations, and passes deterministic-rerun and containment gates.
 
 ---
 
@@ -24,17 +23,17 @@ set of exit criteria that still need closure. The remaining-work-only checklist 
 | 3 — oracles and recorder | Complete | Global-state oracles, typed violations, replayable on-disk histories | None |
 | 4 — rerun and shrinking | Complete | Deterministic rerun and `ddmin` history reduction with causal-core tests | None |
 | 5 — grant lifecycle table | Complete | Table-driven lifecycle and generated `grant.json` vectors | None |
-| 6 — coverage frame and runner | Complete as infrastructure | Capability × position × abuse-verb cube, deterministic campaign runner, reporting and shrinking hooks | The scheduled production campaign still needs real per-cell scenarios; tracked under Phase 14 |
+| 6 — coverage frame and runner | Complete | Capability × position × abuse-verb cube, real scenario registry, deterministic campaign runner, separate genuine/canary reporting and shrinking hooks | None |
 | 7 — adversaries | Complete | Mediated Dolev–Yao powers, scripted history, seeded fuzzing, proposal compiler, model-free LLM-authored replay | None |
 | 8 — escrow and recovery | Complete for planned scope | Table-first machines, forbidding oracles, generated vectors, campaign execution | Host/product integration remains intentionally deferred |
 | 9 — TLA+ twins and conformance | Complete | Grant, escrow, and recovery models; generalized checker; added/removed-edge negative tests; CI model checking | None |
-| 10 — containment metrics | Complete as instrumentation | Revocation propagation, egress attribution, network-kill latency, baselines and regression comparison | Scheduled gates must be driven by observed scenario behavior rather than fixture constants |
-| 11 — social/economic and completeness | Complete as instrumentation | Spam economics, harassment, reputation manipulation, canary injection, capture/recapture estimate, saturation reporting | Scheduled canaries must be embedded in real scenarios rather than a universal synthetic tripwire |
-| 12 — byte-strict grant parser | Substantially complete | Token-state machine, canonical encoder/decoder, typed rejection, storage migration, transition vectors and curated near-miss tests | Assert that every fuzz-tier mutation is rejected by the parser |
+| 10 — containment metrics | Complete | Event-derived revocation propagation, egress attribution, network-kill latency, reviewed baselines and slowdown regression tests | None |
+| 11 — social/economic and completeness | Complete | Spam economics, harassment, reputation manipulation, path-dependent real-scenario canaries, capture/recapture estimate, saturation reporting | None |
+| 12 — byte-strict grant parser | Complete | Token-state machine, canonical encoder/decoder, typed mutation rejection, storage migration, transition vectors and curated near-miss tests | None |
 | 13 — escrow/recovery formal coverage | Complete | Two additional TLA+ models, model/vector/table/trace checks, deliberate-break proof, CI wiring | None |
-| 14 — scheduled campaign at scale | Partial | Nightly workflow, 2,000 deterministic runs, report/reproducer artifacts, canary floor and containment baseline plumbing | Replace the synthetic labeled smoke with genuine protocol/adversary/transport scenarios and observed metrics |
+| 14 — scheduled campaign at scale | Complete | Nightly workflow, 2,000 deterministic real scenarios, 200-cell registry, report/reproducer artifacts, canary floor and observed containment gates | None |
 | 15 — historical floor and authoring harness | Complete | At least five independent sources, expressible/out-of-model classification, provider-neutral model command, compiler admission, model-free replay | None |
-| 16 — symbolic twins | Implemented; final validation open | Tamarin and ProVerif models for the grant boundary and link handshake, inventory check, dedicated workflow | Obtain and retain a successful bounded Tamarin link-handshake run |
+| 16 — symbolic twins | Complete | Tamarin and ProVerif models for the grant boundary and role-separated link handshake, exact lemma/query checks, per-proof timeout, version gate, dedicated workflow | None |
 
 ---
 
@@ -51,6 +50,8 @@ The host-only migration adapter accepts suitable legacy JSON, rejects duplicates
 fields, and rewrites accepted records canonically. `conformance/vectors/grant-parser.json`
 covers every parser table cell and the committed near-miss corpus checks duplicate keys,
 field order, whitespace, trailing input, and non-canonical numbers.
+The fuzz-tier corpus is generated from `encodeGrantRecord`; every mutation must throw
+`InvalidGrantRecordError`, while the canonical positive control round-trips byte-identically.
 
 ### Phase 13 — connected formal twins
 
@@ -62,18 +63,17 @@ The CI formal job runs those checks and TLC over `grant.tla`, `escrow.tla`, and
 `recovery_quorum.tla`. Local validation checked the complete configured state spaces without
 an invariant or liveness failure.
 
-### Phase 14 — landed infrastructure, not yet the final campaign
+### Phase 14 — real scheduled campaign
 
 The nightly workflow invokes `npm run test:sim-campaign`, which runs 2,000 scenarios over eight
 capabilities, five attacker positions, five abuse verbs, and ten seeds. It performs a
 byte-identical rerun, writes minimized histories through the campaign runner, reports
 saturation and capture/recapture, compares containment summaries with the committed baseline,
-and uploads the report and reproducers.
-
-This proves the scheduling, determinism, artifact, and gate plumbing. It does **not** yet prove
-abuse-finding coverage: the entrypoint currently supplies the same one-node canary scenario to
-every cube cell and pre-populates containment observations from a latency fixture. The real
-campaign replacement is the main remaining implementation task.
+and uploads the report and reproducers. The registry supplies a production grant host and link
+handshake, a mediated position/verb-specific adversary, executable links, and global oracles for
+every cell. Containment is measured from virtual-time protocol events, and canaries are visible
+only after the relevant attack path executes. The validated run covered all 200 cells, recaptured
+24/24 canaries, found zero genuine violations, and passed the reviewed containment baselines.
 
 ### Phase 15 — historical and model-authored adversaries
 
@@ -93,9 +93,10 @@ the identity-bound link handshake. They cover grant authenticity, session-key se
 mutual agreement. Normal CI checks the property inventory and the path-filtered symbolic
 workflow installs and invokes both provers.
 
-Local ProVerif validation proved every declared query, and Tamarin proved the grant model. The
-Tamarin link-handshake result still needs bounded completion evidence before Phase 16 can be
-called fully validated.
+Local ProVerif validation proved all five declared queries. Two consecutive Tamarin 1.12.0 runs
+proved all six declared lemmas; the hardened runner checks every name separately with automatic
+source refinement, an exact success match, elapsed-time evidence, a version gate, and a
+five-minute per-proof timeout.
 
 ---
 
@@ -110,5 +111,4 @@ called fully validated.
   cross-checking remains at the RNS wire boundary; no artificial Python grant parser is
   required.
 
-For active work, use only
-[simulation-outstanding-work.md](simulation-outstanding-work.md).
+The completed checklist is [simulation-outstanding-work.md](simulation-outstanding-work.md).
