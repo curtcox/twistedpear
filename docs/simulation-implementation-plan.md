@@ -9,9 +9,9 @@ the reproducibility guarantee everything else rests on.
 > **Status of this plan (re-audited 2026-07-16):** The deterministic substrate, authority tables,
 > transport models, recording/shrinking, formal twins, production-backed campaign paths, historical
 > policy adapters, oracle projections, and model-authoring/replay pipeline are implemented. Required
-> pinned-Python and cross-platform replay gates are configured in CI. Guarded BLE/LoRa calibration
-> and the first external results from the new CI gates remain evidence boundaries. The phase
-> descriptions below are retained as the original design and acceptance criteria. Current status is in
+> pinned-Python and cross-platform replay gates pass in hosted CI. Guarded BLE/LoRa calibration
+> remains an external evidence boundary. The phase descriptions below are retained as the original
+> design and acceptance criteria. Current status is in
 > [simulation-outstanding-work-plan.md](simulation-outstanding-work-plan.md); the short authoritative
 > record is [simulation-outstanding-work.md](simulation-outstanding-work.md).
 

@@ -5,11 +5,10 @@ CI workflows. This is the short, authoritative status record. Detailed sequencin
 criteria are in [simulation-outstanding-work-plan.md](simulation-outstanding-work-plan.md).
 
 The deterministic simulation substrate and the repository work needed to exercise shipping
-capability and historical-policy paths are implemented. Provisioned Python interop and a local
-macOS/Linux-container fixed-corpus comparison now pass. The remaining boundary is external
-evidence: the newly required cross-runner jobs must complete in CI, and BLE/LoRa physical-layer
-calibration still requires guarded hardware or independently recorded deployment traces. Numerical
-physical-layer claims remain out of scope until that evidence exists.
+capability and historical-policy paths are implemented. Provisioned Python interop and the hosted
+macOS/Linux fixed-corpus comparison pass. The remaining evidence boundary is BLE/LoRa
+physical-layer calibration, which still requires guarded hardware or independently recorded
+deployment traces. Numerical physical-layer claims remain out of scope until that evidence exists.
 
 ---
 
@@ -88,13 +87,15 @@ real deployments or guarded hardware tests, and document the calibration data an
   finding, and two-event minimized replay are committed under `conformance/sim-author/`.
 - Required CI replays the fixture without a model or network call.
 
-## R8 — Close reproducibility and external-conformance gaps — local software evidence complete; hardware evidence open
+## R8 — Close reproducibility and external-conformance gaps — software evidence complete; hardware evidence open
 
 - Vector generation computes optional corpora before tracked replacements and preserves RNS-only
   vectors when Python RNS is unavailable. Local no-RNS generation left packet, identity, and LXMF
   vectors byte-identical.
 - CI now provisions pinned Python RNS 0.9.5/LXMF 0.7.0 peers, runs the seven interop tests, records
   exact dependency versions, and retains that record as an artifact.
+- The dedicated hosted `python-interop` job passed on Linux at commit `13b4b076`, including peer
+  provisioning, dependency capture, the link benchmark, all seven scenarios, and artifact upload.
 - The provisioned peers pass all seven scenarios locally, including 1 MiB resource integrity,
   pause/unpause resume, compressed Python resource reception, and opportunistic LXMF. Exact local
   evidence is retained in `conformance/python-interop-result.json`.
@@ -102,8 +103,8 @@ real deployments or guarded hardware tests, and document the calibration data an
   the serialized reports byte-for-byte.
 - The fixed corpus is byte-identical on the macOS host and a Linux Node 22 container with SHA-256
   `fa95084a8ca4fe5a985cbddf437262f1971604e3ec0ea2082a74b5f023ba0288`.
-- The first run of the new cross-runner CI gates is external evidence and is not claimed by this
-  local record.
+- Hosted Linux and macOS replay jobs and their dependent byte-comparison job passed at commit
+  `13b4b076`.
 - BLE/LoRa calibration remains hardware-gated. Simulator results must not be described as
   physical-layer accuracy until guarded traces and tolerances are versioned.
 
@@ -135,7 +136,18 @@ real deployments or guarded hardware tests, and document the calibration data an
 - ProVerif 2.05: all five declared queries passed.
 - `npm run lint` and the symbolic-model inventory passed.
 
-These results validate the deterministic machinery, production-backed registered paths, historical
-policy adapters, authored replay, provisioned Python interop, local macOS/Linux-container replay
-parity, and formal relations. They do not constitute a completed Linux/macOS hosted-runner CI
-comparison, BLE/LoRa calibration, or evidence of zero shipping abuse defects.
+## Hosted CI evidence on 2026-07-16
+
+- [`python-interop`](https://github.com/curtcox/twistedpear/actions/runs/29531252986/job/87731814562)
+  passed on `ubuntu-latest` at commit `13b4b076`; the job ran the seven pinned-peer scenarios and
+  uploaded the exact dependency-version record.
+- [`simulation-replay (ubuntu-latest)`](https://github.com/curtcox/twistedpear/actions/runs/29531252986/job/87731814377)
+  and [`simulation-replay (macos-15)`](https://github.com/curtcox/twistedpear/actions/runs/29531252986/job/87731814507)
+  each completed the fixed 400-scenario production-backed corpus.
+- [`simulation-replay-compare`](https://github.com/curtcox/twistedpear/actions/runs/29531252986/job/87732020778)
+  compared the two uploaded reports byte-for-byte and passed.
+
+These local and hosted results validate the deterministic machinery, production-backed registered
+paths, historical policy adapters, authored replay, provisioned Python interop, macOS/Linux replay
+parity, and formal relations. They do not constitute BLE/LoRa calibration or evidence of zero
+shipping abuse defects.

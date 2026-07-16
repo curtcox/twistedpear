@@ -6,9 +6,9 @@ Companion to [simulation-architecture.html](simulation-architecture.html),
 
 > **Re-audited 2026-07-16 after implementation.** Production-backed capability paths, independent
 > oracle projections, named historical-policy adapters, model-authored execution/replay, safe vector
-> generation, and required CI gates are implemented. Provisioned Python interop and a local
-> macOS/Linux-container comparison pass; first-run cross-runner CI evidence and guarded BLE/LoRa
-> calibration remain external boundaries. No physical-layer accuracy claim is made.
+> generation, and required CI gates are implemented. Provisioned Python interop and the hosted
+> macOS/Linux comparison pass; guarded BLE/LoRa calibration remains an external boundary. No
+> physical-layer accuracy claim is made.
 
 ---
 
@@ -31,8 +31,8 @@ Companion to [simulation-architecture.html](simulation-architecture.html),
 | 11 — social/economic and completeness | Complete as model infrastructure | Spam, graph propagation, ranking, canaries, saturation, confidence interval | Calibrate assumptions; do not present the estimate as shipping-system completeness |
 | 12 — byte-strict grant parser | Complete | Canonical parser/encoder, migration, mutation rejection, vectors | None known |
 | 13 — escrow/recovery formal coverage | Complete | TLA+ models and table/vector/trace checks | Revisit when product semantics change |
-| 14 — scheduled campaign at scale | Operational, not a release claim | 2,000 production-backed runs, artifacts, baselines, local rerun, local macOS/Linux-container parity, and Linux/macOS byte-comparison CI gate | First hosted-runner CI comparison is external evidence |
-| 15 — historical floor and authoring harness | Complete for repository scope | Production-policy fixtures, assertion-only outcomes, real-model provenance, offline replay, and provisioned local Python interop | Hosted CI result remains external evidence |
+| 14 — scheduled campaign at scale | Operational, not a release claim | 2,000 production-backed runs, artifacts, baselines, local rerun, local macOS/Linux-container parity, and a passing hosted Linux/macOS byte comparison | None for reproducibility; this is still not a release-completeness claim |
+| 15 — historical floor and authoring harness | Complete for repository scope | Production-policy fixtures, assertion-only outcomes, real-model provenance, offline replay, and passing provisioned Python interop locally and in hosted CI | None known for the stated repository scope |
 | 16 — symbolic twins | Complete for declared abstractions | Four models, six Tamarin lemmas, five ProVerif queries, version/timeout gates | Extend when concrete crypto/authentication scope changes |
 
 ---
@@ -133,7 +133,7 @@ Acceptance:
 - Linux and macOS outputs match byte-for-byte for the fixed corpus.
 - Transport calibration data is versioned; model changes require reviewed baseline updates.
 
-### P6 — Rebaseline and close only the criteria actually met — local rebaseline updated; hosted cross-runner gate pending
+### P6 — Rebaseline and close only the criteria actually met — complete for software evidence
 
 After P1–P5:
 
@@ -159,6 +159,8 @@ After P1–P5:
   scenarios locally; `conformance/python-interop-result.json` retains the exact evidence.
 - The fixed replay is byte-identical between macOS and a Linux Node 22 container at SHA-256
   `fa95084a8ca4fe5a985cbddf437262f1971604e3ec0ea2082a74b5f023ba0288`.
+- Hosted CI at commit `13b4b076` passed the dedicated pinned-Python job, both 400-scenario replay
+  jobs, and the dependent byte-for-byte Linux/macOS comparison.
 
 This baseline should remain green. A lower count or changed report requires investigation; an
 unchanged count is not by itself physical-layer calibration or evidence that no abuse defects exist.
