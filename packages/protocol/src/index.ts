@@ -1,9 +1,36 @@
 export { initialEchoState, stepEcho, type EchoState } from "./echo.js";
 export {
+  grantMachine,
+  initialGrantLifecycleState,
+  stepGrantLifecycle,
+  type GrantLifecycleEvent,
+  type GrantLifecycleState,
+  type GrantPhase
+} from "./grant-machine.js";
+export {
+  escrowMachine,
+  escrowSafetyViolation,
+  initialEscrowState,
+  stepEscrow,
+  type EscrowEvent,
+  type EscrowPhase,
+  type EscrowState
+} from "./escrow.js";
+export {
+  initialRecoveryQuorumState,
+  recoveryQuorumMachine,
+  recoveryQuorumSafetyViolation,
+  stepRecoveryQuorum,
+  type RecoveryPhase,
+  type RecoveryQuorumEvent,
+  type RecoveryQuorumState
+} from "./recovery-quorum.js";
+export {
   decodeGrantRecord,
   encodeGrantRecord,
   encodeGrantRecordRawFromActions,
   grantRecordFromActions,
+  grantHostMachine,
   grantStoreKey,
   initialDecodeGrantRecordState,
   initialEncodeGrantRecordState,

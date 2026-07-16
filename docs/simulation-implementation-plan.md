@@ -6,12 +6,14 @@ unchanged in production and in a seeded simulator. This plan is *how* we get fro
 current tree to the simulator that document describes, in an order that never sacrifices
 the reproducibility guarantee everything else rests on.
 
-> **Status of this plan:** proposal. Nothing below is scheduled yet. Phase numbering is a
-> dependency order, not a calendar.
+> **Status of this plan:** implemented. Phases 1–11 landed together with deterministic
+> tests, generated transition vectors, the grant TLA+ conformance check, and a model-free
+> regression fixture. Phase numbering remains the dependency order and a guide for future
+> extensions.
 
 ---
 
-## 0. What already exists (the starting line)
+## 0. What already existed (the historical starting line)
 
 A surprising amount of the architecture's foundation is built. The plan below is additive,
 not a rewrite.
@@ -26,7 +28,7 @@ not a rewrite.
 | Golden vectors + Python interop | `conformance/vectors/*.json`, `npm run vectors:generate`, `test:interop` against Python RNS 0.9.4 | **Done** at wire/byte level. |
 | Hostile-app fixtures | `conformance/hostile-apps/` | **Done** for sandbox/broker abuse — a precursor to adversary agents, but not kernel-level Dolev-Yao. |
 
-**What is missing** (the whole of this plan): executable transport *classes*
+**What was missing when this plan was written** (the whole of this plan): executable transport *classes*
 (only flat latency/loss exists today), oracles, an on-disk replayable history, trace
 shrinking, adversary agents, the transition-table representation for critical machines,
 Layer-2 twins, generated Layer-3 vectors, the coverage-frame campaign runner, completeness

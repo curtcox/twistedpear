@@ -38,6 +38,12 @@
       "path": "./packages/host-core"
     },
     {
+      "path": "./packages/sim-campaign"
+    },
+    {
+      "path": "./packages/sim-adversaries"
+    },
+    {
       "path": "./packages/widget-renderer-rn"
     },
     {

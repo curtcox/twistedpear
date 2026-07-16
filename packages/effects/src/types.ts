@@ -56,7 +56,25 @@ export interface StoreDelete {
   readonly key: string;
 }
 
+export type DolevYaoPower = "drop" | "delay" | "reorder" | "duplicate" | "inject";
+
+export type TransportAdversaryAction =
+  | { readonly power: "drop"; readonly source: NodeId; readonly destination: NodeId }
+  | { readonly power: "delay"; readonly source: NodeId; readonly destination: NodeId; readonly delayMs: number }
+  | { readonly power: "reorder"; readonly source: NodeId; readonly destination: NodeId }
+  | { readonly power: "duplicate"; readonly source: NodeId; readonly destination: NodeId }
+  | {
+      readonly power: "inject";
+      readonly source: NodeId;
+      readonly destination: NodeId;
+      readonly channel: string;
+      readonly payload: Uint8Array;
+      readonly delayMs?: number;
+    };
+
 export type Intent =
+  | { readonly kind: "need_entropy"; readonly nbytes: number }
+  | { readonly kind: "transport/adversary"; readonly action: TransportAdversaryAction }
   | { readonly kind: "timer/set"; readonly timer: TimerRequest }
   | { readonly kind: "timer/cancel"; readonly timer: TimerCancel }
   | { readonly kind: "transport/send"; readonly send: TransportSend }
@@ -66,6 +84,7 @@ export type Intent =
   | { readonly kind: "log"; readonly level: "debug" | "info" | "warn" | "error"; readonly message: string };
 
 export type Event =
+  | { readonly kind: "entropy"; readonly bytes: Uint8Array }
   | { readonly kind: "timer/fired"; readonly id: TimerId; readonly at: InstantMs }
   | { readonly kind: "transport/recv"; readonly channel: string; readonly source: string; readonly payload: Uint8Array; readonly at: InstantMs }
   | { readonly kind: "store/value"; readonly key: string; readonly value: Uint8Array | undefined }
@@ -78,4 +97,4 @@ export interface StepResult<S> {
   readonly intents: readonly Intent[];
 }
 
-export type StepFn<S, E extends Event = Event> = (state: S, event: E) => StepResult<S>;
+export type StepFn<S, E = Event> = (state: S, event: E) => StepResult<S>;

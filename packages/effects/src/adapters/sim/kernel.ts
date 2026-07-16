@@ -5,9 +5,15 @@ import { Xoshiro128StarStar } from "./entropy.js";
 import { SimStore } from "./store.js";
 import { SimTimers } from "./timers.js";
 import { SimTransport, type DeliveryModel } from "./transport.js";
+import type { LinkConfig } from "./transport-classes.js";
+import type { HistoryRecorder, RecordedHistory } from "./recorder.js";
+import { snapshotConfig } from "./recorder.js";
+import type { Oracle, Violation, WorldView } from "./oracles.js";
 
 export interface SimNodeConfig<S> {
   readonly id: NodeId;
+  /** Stable registry key used when replaying an on-disk history. */
+  readonly machine?: string;
   readonly initial: S;
   readonly step: StepFn<S>;
 }
@@ -17,8 +23,22 @@ export interface SimKernelConfig<S> {
   readonly startMs?: number;
   readonly nodes: readonly SimNodeConfig<S>[];
   readonly delivery?: DeliveryModel;
+  readonly links?: readonly LinkConfig[];
   /** Salt mixed into the transport RNG only — schedule fuzz without changing protocol seed. */
   readonly interleaveSalt?: number;
+  readonly oracles?: readonly Oracle<S>[];
+  readonly recorder?: HistoryRecorder<S>;
+}
+
+export class OracleViolation extends Error {
+  constructor(
+    readonly violation: Violation,
+    readonly history: RecordedHistory,
+    readonly historyPath?: string
+  ) {
+    super(violation.message);
+    this.name = "OracleViolation";
+  }
 }
 
 export class EffectWithoutIntentError extends Error {
@@ -48,15 +68,20 @@ export class SimKernel<S> {
   private readonly trace: TraceEntry[] = [];
   private readonly intentLog: Intent[] = [];
   private readonly seed: number;
+  private readonly config: SimKernelConfig<S>;
 
   constructor(config: SimKernelConfig<S>) {
+    this.config = config;
     this.seed = config.seed;
     this.clock = new SimClock(config.startMs ?? 0);
     const transportEntropy = new Xoshiro128StarStar(
       (config.seed ^ (config.interleaveSalt ?? 0)) >>> 0
     );
     const rng = (): number => transportEntropy.randomBytes(4)[0]! / 256;
-    this.transport = new SimTransport(config.delivery ?? {}, rng);
+    this.transport = new SimTransport({
+      ...(config.delivery === undefined ? {} : { delivery: config.delivery }),
+      ...(config.links === undefined ? {} : { links: config.links })
+    }, rng);
 
     for (const node of config.nodes) {
       const entropy = new Xoshiro128StarStar((config.seed ^ hashNodeId(node.id)) >>> 0);
@@ -86,6 +111,28 @@ export class SimKernel<S> {
   getNodeState(id: NodeId): S {
     const node = this.requireNode(id);
     return node.state;
+  }
+
+  getWorldView(): WorldView<S> {
+    return {
+      at: this.clock.now(),
+      nodes: new Map([...this.nodes].map(([id, node]) => [id, node.state])),
+      trace: this.trace,
+      intents: this.intentLog
+    };
+  }
+
+  getHistory(violation?: Violation): RecordedHistory<S> {
+    return {
+      version: 1,
+      config: snapshotConfig(this.config),
+      trace: [...this.trace],
+      ...(violation === undefined ? {} : { violation })
+    };
+  }
+
+  recordHistory(): string | undefined {
+    return this.config.recorder?.record(this.getHistory());
   }
 
   entropyFor(id: NodeId): Xoshiro128StarStar {
@@ -189,6 +236,20 @@ export class SimKernel<S> {
       this.recordIntent(nodeId, intent);
       this.applyIntent(node, intent);
     }
+    this.checkOracles();
+  }
+
+  private checkOracles(): void {
+    if (this.config.oracles === undefined) return;
+    const world = this.getWorldView();
+    for (const oracle of this.config.oracles) {
+      const violation = oracle.check(world);
+      if (violation !== null) {
+        const history = this.getHistory(violation);
+        const path = this.config.recorder?.record(history);
+        throw new OracleViolation(violation, history, path);
+      }
+    }
   }
 
   private recordIntent(nodeId: NodeId, intent: Intent): void {
@@ -197,6 +258,17 @@ export class SimKernel<S> {
   }
 
   private applyIntent(node: NodeRuntime<S>, intent: Intent): void {
+    if (intent.kind === "need_entropy") {
+      if (!Number.isSafeInteger(intent.nbytes) || intent.nbytes < 0) {
+        throw new EffectWithoutIntentError(`invalid entropy byte count: ${intent.nbytes}`);
+      }
+      this.dispatch(node.id, { kind: "entropy", bytes: node.entropy.randomBytes(intent.nbytes) });
+      return;
+    }
+    if (intent.kind === "transport/adversary") {
+      this.transport.applyAdversary(intent.action, node.id, this.clock.now());
+      return;
+    }
     if (intent.kind === "timer/set" || intent.kind === "timer/cancel") {
       node.timers.applyIntent(intent);
       return;

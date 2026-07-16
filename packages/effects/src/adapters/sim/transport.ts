@@ -1,10 +1,36 @@
-import type { InstantMs, Intent, NodeId } from "../../types.js";
+import type { InstantMs, Intent, NodeId, TransportAdversaryAction } from "../../types.js";
+import {
+  sampleLatency,
+  transportClass,
+  type LinkConfig,
+  type TransportClass
+} from "./transport-classes.js";
 
 export interface DeliveryModel {
   /** Extra delay in ms applied to each send. */
   readonly latencyMs?: number;
   /** Drop probability in [0, 1]. Uses injected rng. */
   readonly lossRate?: number;
+}
+
+export interface SimTransportConfig {
+  readonly delivery?: DeliveryModel;
+  readonly links?: readonly LinkConfig[];
+}
+
+export interface TransportStats {
+  readonly sent: number;
+  readonly dropped: number;
+  readonly partitioned: number;
+  readonly dutyCycleDropped: number;
+  readonly dutyCycleDelayed: number;
+}
+
+export class UnauthorizedAdversaryPowerError extends Error {
+  constructor(actor: NodeId, action: TransportAdversaryAction) {
+    super(`${actor} cannot ${action.power} link ${action.source}->${action.destination}`);
+    this.name = "UnauthorizedAdversaryPowerError";
+  }
 }
 
 export interface InFlightMessage {
@@ -21,32 +47,127 @@ export interface InFlightMessage {
  */
 export class SimTransport {
   private readonly queue: InFlightMessage[] = [];
+  private readonly occupiedUntil = new Map<string, InstantMs>();
+  private readonly burstBad = new Map<string, boolean>();
+  private sent = 0;
+  private dropped = 0;
+  private partitioned = 0;
+  private dutyCycleDropped = 0;
+  private dutyCycleDelayed = 0;
   private seq = 0;
+  private readonly config: SimTransportConfig;
 
   constructor(
-    private readonly model: DeliveryModel = {},
+    config: DeliveryModel | SimTransportConfig = {},
     private readonly rng: () => number = () => 0
-  ) {}
+  ) {
+    this.config = "latencyMs" in config || "lossRate" in config
+      ? { delivery: config }
+      : config as SimTransportConfig;
+  }
 
   applySend(intent: Intent, source: NodeId, now: InstantMs): void {
     if (intent.kind !== "transport/send") {
       return;
     }
 
-    const loss = this.model.lossRate ?? 0;
-    if (loss > 0 && this.rng() < loss) {
-      return;
+    this.sent += 1;
+    const destination = intent.send.destination as NodeId;
+    const key = `${source}\u0000${destination}`;
+    const model = this.modelFor(source, destination);
+
+    if (model !== undefined) {
+      if (model.partitions?.some((window) => now >= window.fromMs && now < window.toMs)) {
+        this.partitioned += 1;
+        this.dropped += 1;
+        return;
+      }
+      if (this.shouldDropForLoss(key, model)) {
+        this.dropped += 1;
+        return;
+      }
+    } else {
+      const loss = this.config.delivery?.lossRate ?? 0;
+      if (loss > 0 && this.rng() < loss) {
+        this.dropped += 1;
+        return;
+      }
     }
 
-    const latency = this.model.latencyMs ?? 0;
+    const latency = model === undefined
+      ? this.config.delivery?.latencyMs ?? 0
+      : sampleLatency(model.latency, this.rng);
+    const airtime = model === undefined
+      ? 0
+      : (intent.send.payload.byteLength * 8 * 1_000) / Math.max(1, model.bandwidthBps);
+    let sendAt = Math.max(now, this.occupiedUntil.get(key) ?? now);
+    if (model?.dutyCycle !== undefined && model.dutyCycle > 0 && model.dutyCycle < 1) {
+      const dutyReadyAt = this.occupiedUntil.get(`${key}\u0000duty`) ?? now;
+      if (dutyReadyAt > sendAt) {
+        if (model.dutyCyclePolicy === "drop") {
+          this.dutyCycleDropped += 1;
+          this.dropped += 1;
+          return;
+        }
+        this.dutyCycleDelayed += 1;
+        sendAt = dutyReadyAt;
+      }
+      this.occupiedUntil.set(`${key}\u0000duty`, sendAt + airtime / model.dutyCycle);
+    }
+    this.occupiedUntil.set(key, sendAt + airtime);
     this.queue.push({
-      deliverAt: now + latency,
+      deliverAt: sendAt + airtime + latency,
       channel: intent.send.channel,
       source,
-      destination: intent.send.destination as NodeId,
+      destination,
       payload: intent.send.payload.slice()
     });
     this.seq += 1;
+  }
+
+  applyAdversary(action: TransportAdversaryAction, actor: NodeId, now: InstantMs): void {
+    const link = this.config.links?.find(
+      (candidate) => candidate.source === action.source && candidate.destination === action.destination
+    );
+    if (link?.adversary !== actor || !link.powers?.includes(action.power)) {
+      throw new UnauthorizedAdversaryPowerError(actor, action);
+    }
+    const matches = (message: InFlightMessage) =>
+      message.source === action.source && message.destination === action.destination;
+    if (action.power === "drop") {
+      const kept = this.queue.filter((message) => !matches(message));
+      this.dropped += this.queue.length - kept.length;
+      this.queue.length = 0;
+      this.queue.push(...kept);
+      return;
+    }
+    if (action.power === "delay") {
+      const delay = Math.max(0, action.delayMs);
+      const delayed = this.queue.map((message) => matches(message)
+        ? { ...message, deliverAt: message.deliverAt + delay }
+        : message);
+      this.queue.length = 0;
+      this.queue.push(...delayed);
+      return;
+    }
+    if (action.power === "reorder") {
+      const indexes = this.queue.map((message, index) => matches(message) ? index : -1).filter((index) => index >= 0);
+      const reversed = indexes.map((index) => this.queue[index]!).reverse();
+      indexes.forEach((index, offset) => { this.queue[index] = reversed[offset]!; });
+      return;
+    }
+    if (action.power === "duplicate") {
+      const copies = this.queue.filter(matches).map((message) => ({ ...message, payload: message.payload.slice() }));
+      this.queue.push(...copies);
+      return;
+    }
+    this.queue.push({
+      deliverAt: now + Math.max(0, action.delayMs ?? 0),
+      channel: action.channel,
+      source: action.source,
+      destination: action.destination,
+      payload: action.payload.slice()
+    });
   }
 
   nextDeliverAt(): InstantMs | undefined {
@@ -64,7 +185,13 @@ export class SimTransport {
     const rest: InFlightMessage[] = [];
     for (const msg of this.queue) {
       if (msg.deliverAt <= at) {
-        due.push(msg);
+        const model = this.modelFor(msg.source, msg.destination);
+        if (model?.partitions?.some((window) => at >= window.fromMs && at < window.toMs)) {
+          this.partitioned += 1;
+          this.dropped += 1;
+        } else {
+          due.push(msg);
+        }
       } else {
         rest.push(msg);
       }
@@ -88,5 +215,34 @@ export class SimTransport {
 
   get sequence(): number {
     return this.seq;
+  }
+
+  getStats(): TransportStats {
+    return {
+      sent: this.sent,
+      dropped: this.dropped,
+      partitioned: this.partitioned,
+      dutyCycleDropped: this.dutyCycleDropped,
+      dutyCycleDelayed: this.dutyCycleDelayed
+    };
+  }
+
+  private modelFor(source: NodeId, destination: NodeId): TransportClass | undefined {
+    const link = this.config.links?.find(
+      (candidate) => candidate.source === source && candidate.destination === destination
+    );
+    return link === undefined ? undefined : transportClass(link.class, link.params);
+  }
+
+  private shouldDropForLoss(key: string, model: TransportClass): boolean {
+    let lossRate = model.lossRate;
+    const burst = model.burstLoss;
+    if (burst !== undefined) {
+      const bad = this.burstBad.get(key) ?? false;
+      lossRate = bad ? burst.badLossRate : burst.goodLossRate;
+      const changes = this.rng();
+      this.burstBad.set(key, bad ? changes >= burst.badToGood : changes < burst.goodToBad);
+    }
+    return lossRate > 0 && this.rng() < lossRate;
   }
 }

@@ -4,7 +4,7 @@
  * Encode / decode conclusions leave via machine actions (no ad-hoc
  * `encodeGrantRecord` / `decodeGrantRecord` reads beside the step).
  */
-import type { Event, Intent, StepFn } from "@twistedpear/effects";
+import { interpret, type Event, type EventClass, type Intent, type Machine, type StepFn } from "@twistedpear/effects";
 
 export interface GrantRecord {
   readonly appId: string;
@@ -38,32 +38,74 @@ export function initialGrantHostState(appId: string, publisherPublicKey: string)
   return { appId, publisherPublicKey, record: null, lastError: null };
 }
 
+const hostStart: EventClass<GrantEvent> = {
+  name: "start",
+  matches: (event) => event.kind === "start"
+};
+const hostStoreValue: EventClass<GrantEvent> = {
+  name: "store/value",
+  matches: (event) => event.kind === "store/value"
+};
+const hostSet: EventClass<GrantEvent> = {
+  name: "grant/set",
+  matches: (event) => event.kind === "grant/set"
+};
+const hostRevoke: EventClass<GrantEvent> = {
+  name: "grant/revoke",
+  matches: (event) => event.kind === "grant/revoke"
+};
+
+export const grantHostMachine: Machine<GrantHostState, GrantEvent> = {
+  states: ["ready"],
+  events: [hostStart, hostStoreValue, hostSet, hostRevoke],
+  initial: "ready",
+  stateOf: () => "ready",
+  withState: (state) => state,
+  table: [
+    {
+      from: "ready",
+      on: hostStart,
+      to: "ready",
+      emit: (state) => [{
+        kind: "store/read",
+        read: { key: grantStoreKey(state.appId, state.publisherPublicKey) }
+      }]
+    },
+    {
+      from: "ready",
+      on: hostStoreValue,
+      to: "ready",
+      reduce: loadGrantRecord
+    },
+    {
+      from: "ready",
+      on: hostSet,
+      to: "ready",
+      reduce: setGrantRecord,
+      emit: persistChangedGrant
+    },
+    {
+      from: "ready",
+      on: hostRevoke,
+      to: "ready",
+      reduce: revokeGrantCapability,
+      emit: persistChangedGrant
+    }
+  ]
+};
+
+const interpretedGrantHost = interpret(grantHostMachine);
 export const stepGrantHost: StepFn<GrantHostState> = (state, event) =>
-  stepGrantHostInner(state, event as GrantEvent);
+  interpretedGrantHost(state, event as GrantEvent);
 
-function stepGrantHostInner(state: GrantHostState, event: GrantEvent): {
-  state: GrantHostState;
-  intents: import("@twistedpear/effects").Intent[];
-} {
-  if (event.kind === "start") {
-    return {
-      state,
-      intents: [
-        {
-          kind: "store/read",
-          read: { key: grantStoreKey(state.appId, state.publisherPublicKey) }
-        }
-      ]
-    };
-  }
-
+function loadGrantRecord(state: GrantHostState, event: GrantEvent): GrantHostState {
   if (event.kind === "store/value") {
     const key = grantStoreKey(state.appId, state.publisherPublicKey);
     if (event.key !== key) {
-      return { state, intents: [] };
+      return state;
     }
     if (event.value === undefined) {
-      return { state, intents: [] };
+      return state;
     }
     const decodeStepped = stepDecodeGrantRecordWithActions(initialDecodeGrantRecordState(), {
       kind: "grant/decode-gate",
@@ -73,29 +115,26 @@ function stepGrantHostInner(state: GrantHostState, event: GrantEvent): {
       shouldRejectDecodeGrantRecord(decodeStepped.actions) ||
       !shouldUseDecodeGrantRecord(decodeStepped.actions)
     ) {
-      return { state: { ...state, lastError: "grant record decode failed" }, intents: [] };
+      return { ...state, lastError: "grant record decode failed" };
     }
     const record = grantRecordFromActions(decodeStepped.actions);
     if (record === null) {
-      return { state: { ...state, lastError: "grant record decode failed" }, intents: [] };
+      return { ...state, lastError: "grant record decode failed" };
     }
     if (record.appId !== state.appId || record.publisherPublicKey !== state.publisherPublicKey) {
-      return {
-        state: { ...state, lastError: "grant record identity mismatch" },
-        intents: []
-      };
+      return { ...state, lastError: "grant record identity mismatch" };
     }
-    return { state: { ...state, record, lastError: null }, intents: [] };
+    return { ...state, record, lastError: null };
   }
+  return state;
+}
 
+function setGrantRecord(state: GrantHostState, event: GrantEvent): GrantHostState {
   if (event.kind === "grant/set") {
     const declaredSet = new Set(event.declared);
     for (const capability of event.requested) {
       if (!declaredSet.has(capability)) {
-        return {
-          state: { ...state, lastError: `undeclared capability: ${capability}` },
-          intents: []
-        };
+        return { ...state, lastError: `undeclared capability: ${capability}` };
       }
     }
 
@@ -106,27 +145,15 @@ function stepGrantHostInner(state: GrantHostState, event: GrantEvent): {
       granted,
       updatedAt: event.at
     };
-    const encoded = encodeGrantRecordRawFromGate(record);
-    if (encoded === null) {
-      return { state: { ...state, lastError: "grant record encode failed" }, intents: [] };
-    }
-    return {
-      state: { ...state, record, lastError: null },
-      intents: [
-        {
-          kind: "store/write",
-          write: {
-            key: grantStoreKey(state.appId, state.publisherPublicKey),
-            value: encoded
-          }
-        }
-      ]
-    };
+    return { ...state, record, lastError: null };
   }
+  return state;
+}
 
+function revokeGrantCapability(state: GrantHostState, event: GrantEvent): GrantHostState {
   if (event.kind === "grant/revoke") {
     if (state.record === null) {
-      return { state, intents: [] };
+      return state;
     }
     const granted = state.record.granted.filter((entry) => entry !== event.capability);
     const record: GrantRecord = {
@@ -134,25 +161,25 @@ function stepGrantHostInner(state: GrantHostState, event: GrantEvent): {
       granted,
       updatedAt: event.at
     };
-    const encoded = encodeGrantRecordRawFromGate(record);
-    if (encoded === null) {
-      return { state: { ...state, lastError: "grant record encode failed" }, intents: [] };
-    }
-    return {
-      state: { ...state, record, lastError: null },
-      intents: [
-        {
-          kind: "store/write",
-          write: {
-            key: grantStoreKey(state.appId, state.publisherPublicKey),
-            value: encoded
-          }
-        }
-      ]
-    };
+    return { ...state, record, lastError: null };
   }
+  return state;
+}
 
-  return { state, intents: [] };
+function persistChangedGrant(state: GrantHostState, event: GrantEvent): readonly Intent[] {
+  if ((event.kind !== "grant/set" && event.kind !== "grant/revoke") ||
+      state.record === null || state.lastError !== null || state.record.updatedAt !== event.at) {
+    return [];
+  }
+  const encoded = encodeGrantRecordRawFromGate(state.record);
+  if (encoded === null) return [];
+  return [{
+    kind: "store/write",
+    write: {
+      key: grantStoreKey(state.appId, state.publisherPublicKey),
+      value: encoded
+    }
+  }];
 }
 
 function encodeGrantRecordRawFromGate(record: GrantRecord): Uint8Array | null {
