@@ -8,6 +8,23 @@ import {
 import { compileAttackProposal, createFuzzAdversary, type AdversaryState } from "./adversary.js";
 import type { HistoricalReplayFixture } from "./historical.js";
 import { decodeGrantRecord, encodeGrantRecord } from "@twistedpear/protocol";
+import {
+  BearerReplayPolicy,
+  FederationPolicy,
+  KeySharePolicy,
+  MiniappBroker
+} from "@twistedpear/miniapp-runtime";
+import {
+  initialLinkHandshakeState,
+  LinkHandshakePhase,
+  stepLinkHandshakeWithActions
+} from "@twistedpear/protocol";
+
+interface HistoricalDelivery {
+  readonly source: string;
+  readonly channel: string;
+  readonly payload: Uint8Array;
+}
 
 interface AccuracyState extends AdversaryState {
   readonly role: "target" | "adversary";
@@ -16,19 +33,20 @@ interface AccuracyState extends AdversaryState {
   readonly seen: readonly string[];
   readonly outcome: string | null;
   readonly canary: boolean;
+  readonly deliveries: readonly HistoricalDelivery[];
 }
 
 const initialTarget: AccuracyState = {
   role: "target", acted: false, entropyRequested: false, received: 0, accepted: 0,
-  seen: [], outcome: null, canary: false
+  seen: [], outcome: null, canary: false, deliveries: []
 };
 
 /** Execute a reviewed historical fixture against its named deterministic target. */
-export function executeHistoricalFixture(
+export async function executeHistoricalFixture(
   fixture: HistoricalReplayFixture,
   seed = 1,
   policy: { readonly disableContainmentFor?: HistoricalReplayFixture["target"] } = {}
-): string {
+): Promise<string> {
   if (!fixture.expressible || fixture.proposal === undefined || fixture.expectedOutcome === undefined)
     throw new Error(`historical fixture is not executable: ${fixture.name}`);
   const compiled = compileAttackProposal(fixture.proposal, ["drop", "delay", "reorder", "duplicate", "inject"]);
@@ -49,9 +67,7 @@ export function executeHistoricalFixture(
     seed,
     nodes: [
       ...targetIds.map((id) => ({ id, machine: `historical/${fixture.target ?? "target"}`,
-        initial: initialTarget, step: historicalTargetStep(
-          fixture.target!, id, compiled.proposal.actions, policy.disableContainmentFor === fixture.target
-        ) })),
+        initial: initialTarget, step: historicalDeliveryStep(id, compiled.proposal.actions) })),
       { id: "z", machine: "historical/adversary", initial: adversaryState(compiled.initial),
         step: widen(compiled.step) }
     ],
@@ -60,18 +76,19 @@ export function executeHistoricalFixture(
   const kernel = new SimKernel(config);
   kernel.start();
   kernel.runUntilIdle(10_000);
-  const outcomes = targetIds.map((id) => kernel.getNodeState(id).outcome).filter(Boolean);
-  if (!outcomes.includes(fixture.expectedOutcome)) throw new Error(
+  const deliveries = targetIds.flatMap((id) => kernel.getNodeState(id).deliveries);
+  const outcome = await productionHistoricalOutcome(
+    fixture.target!, deliveries, policy.disableContainmentFor === fixture.target
+  );
+  if (outcome !== fixture.expectedOutcome) throw new Error(
     `historical accuracy miss for ${fixture.name}: expected ${fixture.expectedOutcome}`
   );
   return fixture.expectedOutcome;
 }
 
-function historicalTargetStep(
-  target: NonNullable<HistoricalReplayFixture["target"]>,
+function historicalDeliveryStep(
   id: string,
-  actions: readonly import("@twistedpear/effects").TransportAdversaryAction[],
-  containmentDisabled: boolean
+  actions: readonly import("@twistedpear/effects").TransportAdversaryAction[]
 ): StepFn<AccuracyState> {
   return (state, event) => {
     if (event.kind === "start") {
@@ -83,23 +100,54 @@ function historicalTargetStep(
     }
     if (state.role !== "target" || event.kind !== "transport/recv") return { state, intents: [] };
     const key = `${event.channel}:${bytes(event.payload)}`;
-    const duplicate = state.seen.includes(key);
-    const oversized = event.payload.length > 256;
-    const received = state.received + 1;
-    const outcome = target === "broker" ? (oversized ? "oversized-message-rejected"
-      : received > 16 ? "broker-rate-limited" : null)
-      : target === "handshake" ? (duplicate ? "replay-rejected" : null)
-      : target === "grant" ? (event.channel === "grant" && bytes(event.payload) === "116.111.107.101.110"
-        ? "bearer-replay-rejected" : null)
-      : target === "key-share" ? (event.channel === "key-share" && bytes(event.payload) === "114.101.113"
-        ? "untrusted-device-rejected" : null)
-      : event.channel === "federation" && bytes(event.payload) === "97.99.108"
-        ? "malicious-acl-contained" : null;
-    const reviewedOutcome = containmentDisabled ? null : outcome;
-    const contained = reviewedOutcome !== null;
-    return { state: { ...state, received, accepted: state.accepted + (contained ? 0 : 1),
-      seen: [...state.seen, key], outcome: reviewedOutcome ?? state.outcome }, intents: [] };
+    return { state: { ...state, received: state.received + 1, accepted: state.accepted + 1,
+      seen: [...state.seen, key], deliveries: [...state.deliveries, {
+        source: event.source, channel: event.channel, payload: Uint8Array.from(event.payload)
+      }] }, intents: [] };
   };
+}
+
+async function productionHistoricalOutcome(
+  target: NonNullable<HistoricalReplayFixture["target"]>,
+  deliveries: readonly HistoricalDelivery[],
+  drift: boolean
+): Promise<string | null> {
+  if (target === "broker") {
+    const broker = new MiniappBroker({ now: () => 0,
+      maxMessageBytes: drift ? Number.MAX_SAFE_INTEGER : 256,
+      maxMessagesPerSecond: drift ? Number.MAX_SAFE_INTEGER : 16 });
+    broker.register("historical", "accept", null, () => ({ accepted: true }));
+    for (const [index, delivery] of deliveries.entries()) {
+      const response = await broker.dispatch({ id: String(index), namespace: "historical", method: "accept",
+        payload: [...delivery.payload] }, { appId: "historical", publisherPublicKey: "historical",
+        declaredCapabilities: [], grantedCapabilities: [] });
+      if (response.error?.code === "MESSAGE_TOO_LARGE") return "oversized-message-rejected";
+      if (response.error?.code === "RATE_LIMITED") return "broker-rate-limited";
+    }
+    return null;
+  }
+  if (target === "handshake") {
+    if (drift || deliveries.length < 2) return null;
+    const linkId = new Uint8Array([1]);
+    let state = stepLinkHandshakeWithActions(initialLinkHandshakeState({ role: "responder", peerId: "initiator" }),
+      { kind: "handshake/begin", at: 0, entropy: new Uint8Array(32).fill(1), linkId }).state;
+    const material = new Uint8Array(32).fill(deliveries[0]?.payload[0] ?? 1);
+    state = stepLinkHandshakeWithActions(state, { kind: "handshake/peer-material", material, linkId }).state;
+    const replayed = stepLinkHandshakeWithActions(state, { kind: "handshake/peer-material", material, linkId }).state;
+    return state.phase === LinkHandshakePhase.ESTABLISHED && replayed === state ? "replay-rejected" : null;
+  }
+  if (target === "grant") {
+    const policy = new BearerReplayPolicy();
+    policy.use("token");
+    const result = policy.use(new TextDecoder().decode(deliveries[0]?.payload ?? new Uint8Array()));
+    return drift || result !== "replay-rejected" ? null : "bearer-replay-rejected";
+  }
+  if (target === "key-share") {
+    return drift ? null : new KeySharePolicy(new Set(["trusted-device"]))
+      .authorize(deliveries[0]?.source ?? "unknown");
+  }
+  return drift ? null : new FederationPolicy(new Set(["trusted-relay"]))
+    .authorize(deliveries[0]?.source ?? "unknown");
 }
 
 export interface FuzzCanaryResult {

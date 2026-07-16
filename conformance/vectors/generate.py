@@ -13,9 +13,28 @@ import hmac
 import json
 import os
 from pathlib import Path
+import tempfile
 
 
 ROOT = Path(__file__).resolve().parent
+
+
+def write_corpus(name: str, corpus: dict) -> None:
+    """Atomically replace a vector only after the complete corpus is available."""
+    body = json.dumps(corpus, indent=2) + "\n"
+    fd, staged = tempfile.mkstemp(prefix=f".{name}.", suffix=".tmp", dir=ROOT)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(body)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(staged, ROOT / name)
+    except BaseException:
+        try:
+            os.unlink(staged)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def hkdf_sha256(ikm: bytes, salt: bytes, info: bytes, length: int) -> bytes:
@@ -382,23 +401,30 @@ def rns_identity_corpus() -> dict:
 
 
 def main() -> None:
-    (ROOT / "crypto.json").write_text(json.dumps(base_crypto_corpus(), indent=2) + "\n")
-
     try:
         identity_corpus = rns_identity_corpus()
     except ImportError:
-        (ROOT / "packet.json").write_text(json.dumps(base_packet_corpus(), indent=2) + "\n")
-        print("RNS not installed; skipping identity.json generation")
+        # packet.json contains RNS-authored announce vectors. Never replace it
+        # with the smaller base corpus when the reference implementation is absent.
+        write_corpus("crypto.json", base_crypto_corpus())
+        print("RNS not installed; preserved RNS-dependent vectors")
         return
 
-    (ROOT / "identity.json").write_text(json.dumps(identity_corpus, indent=2) + "\n")
-    (ROOT / "packet.json").write_text(json.dumps(rns_packet_corpus(), indent=2) + "\n")
+    packet_corpus = rns_packet_corpus()
+    lxmf_corpus = None
 
     try:
         lxmf_corpus = lxmf_message_corpus(identity_corpus)
-        (ROOT / "lxmf.json").write_text(json.dumps(lxmf_corpus, indent=2) + "\n")
     except ImportError:
-        print("LXMF not installed; skipping lxmf.json generation")
+        print("LXMF not installed; preserved lxmf.json")
+
+    # Compute every optional corpus before the first tracked replacement, then
+    # atomically replace each file. A failed computation is therefore non-destructive.
+    write_corpus("crypto.json", base_crypto_corpus())
+    write_corpus("identity.json", identity_corpus)
+    write_corpus("packet.json", packet_corpus)
+    if lxmf_corpus is not None:
+        write_corpus("lxmf.json", lxmf_corpus)
 
 
 def lxmf_message_corpus(identity_corpus: dict) -> dict:

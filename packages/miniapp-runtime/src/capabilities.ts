@@ -248,6 +248,11 @@ export class GrantStore {
     };
   }
 
+  /** Read persisted lifecycle authority without deriving it from the public grant record. */
+  async authority(appId: string, publisherPublicKey: string): Promise<Readonly<Record<string, GrantLifecycleState>>> {
+    return (await this.loadState(appId, publisherPublicKey)).lifecycles ?? {};
+  }
+
   async set(
     appId: string,
     publisherPublicKey: string,

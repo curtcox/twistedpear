@@ -7,5 +7,5 @@
   "types": "./dist/index.d.ts",
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
   "scripts": { "build": "tsc -b", "test": "vitest run" },
-  "dependencies": { "@twistedpear/effects": "*", "@twistedpear/protocol": "*" }
+  "dependencies": { "@twistedpear/effects": "*", "@twistedpear/protocol": "*", "@twistedpear/miniapp-runtime": "*" }
 }

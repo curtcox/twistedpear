@@ -222,6 +222,14 @@ export function stepLinkHandshakeWithActions(
     }
     const peerMaterial = Uint8Array.from(event.material.subarray(0, LINK_HANDSHAKE_KEY_SIZE));
     const linkId = state.linkId ?? Uint8Array.from(event.linkId);
+    if (
+      state.phase === LinkHandshakePhase.ESTABLISHED &&
+      state.peerMaterial !== null &&
+      bytesEqual(state.peerMaterial, peerMaterial) &&
+      state.linkId !== null && bytesEqual(state.linkId, linkId)
+    ) {
+      return { state, intents: [], actions: [] };
+    }
     const sessionKey = deriveSimSessionKey(state.localMaterial, peerMaterial, linkId);
     return {
       state: {
@@ -237,4 +245,8 @@ export function stepLinkHandshakeWithActions(
   }
 
   return { state, intents: [], actions: [] };
+}
+
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  return a.length === b.length && a.every((byte, index) => byte === b[index]);
 }

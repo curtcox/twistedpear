@@ -33,6 +33,8 @@ export interface BrokerOptions {
   readonly maxMessagesPerSecond?: number;
   readonly now: () => number;
   readonly audit?: (entry: BrokerAuditEntry) => void;
+  /** Test/negative-control switch; production callers must leave this enabled. */
+  readonly enforceCapabilities?: boolean;
 }
 
 export interface BrokerAuditEntry {
@@ -111,7 +113,7 @@ export class MiniappBroker {
         );
       }
 
-      if (capability !== null) {
+      if (capability !== null && this.options.enforceCapabilities !== false) {
         assertCapabilityAllowed({
           capability,
           declared: context.declaredCapabilities,

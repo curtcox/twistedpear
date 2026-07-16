@@ -26,7 +26,11 @@ import {
   compileAttackProposal,
   type AdversaryState
 } from "@twistedpear/sim-adversaries";
-import { assertCapabilityAllowed } from "@twistedpear/miniapp-runtime";
+import {
+  assertCapabilityAllowed,
+  ProductionCapabilityAdapter,
+  type ProductionCapabilityObservation
+} from "@twistedpear/miniapp-runtime";
 import { cellId, type AbuseVerb, type AttackerPosition, type CoverageCell } from "./frame.js";
 import { ContainmentTracker, type ContainmentMetrics } from "./metrics.js";
 import type { CampaignScenario } from "./runner.js";
@@ -75,6 +79,7 @@ type CampaignNodeState =
       readonly effects: Readonly<Record<string, number>>;
       readonly brokerAllowed: number;
       readonly brokerDenied: number;
+      readonly productionObservation: ProductionCapabilityObservation | null;
     }
   | { readonly role: "handshake"; readonly handshake: LinkHandshakeState }
   | { readonly role: "adversary"; readonly adversary: AdversaryState }
@@ -146,6 +151,10 @@ function productionScenario(
     actions: attackActions(cell, latency)
       .filter((action) => powers.includes(action.power))
   }, powers);
+  const adapter = new ProductionCapabilityAdapter(
+    "campaign-app", `publisher-${cell.capability}`, options.defectivePolicy
+  );
+  let productionObservation: ProductionCapabilityObservation | null = null;
 
   const authorityInitial = stepGrant(
     initialGrantHostState("campaign-app", `publisher-${cell.capability}`),
@@ -210,9 +219,10 @@ function productionScenario(
         productionPath: productionPathFor(cell.capability),
         effects: {},
         brokerAllowed: 0,
-        brokerDenied: 0
+        brokerDenied: 0,
+        productionObservation: null
       },
-      step: serviceStep(cell, options.defectivePolicy)
+      step: serviceStep(cell, options.defectivePolicy, () => productionObservation)
     },
     {
       id: "z-adversary",
@@ -236,6 +246,15 @@ function productionScenario(
   ];
 
   return {
+    prepare: async () => {
+      await adapter.grant(cell.capability, GRANT_AT);
+      productionObservation = await adapter.execute(cell.capability, ATTACK_AT);
+      await adapter.revoke(cell.capability, REVOCATION_AT);
+      productionObservation = await adapter.snapshot(productionObservation.handler, productionObservation.response);
+      if (!productionObservation.response.ok) {
+        throw new Error(`production handler failed for ${id}: ${productionObservation.response.error?.message}`);
+      }
+    },
     config: {
       seed,
       nodes,
@@ -264,6 +283,7 @@ function productionScenario(
       adversaryPowers: [...new Set(compiled.powers)],
       transport,
       productionPath: productionPathFor(cell.capability),
+      productionBackedPath: productionHandlerFor(cell.capability),
       authority: `persisted grant lifecycle:${cell.capability}`,
       operation: `${capabilityEffect(cell.capability)} via ${productionPathFor(cell.capability)}`,
       positionAccess: positionAccessFor(cell.position),
@@ -309,20 +329,27 @@ function authorityStep(capability: string): StepFn<CampaignNodeState> {
   };
 }
 
-function serviceStep(cell: CoverageCell, defectivePolicy: boolean): StepFn<CampaignNodeState> {
+function serviceStep(
+  cell: CoverageCell,
+  defectivePolicy: boolean,
+  observation: () => ProductionCapabilityObservation | null
+): StepFn<CampaignNodeState> {
   return (state, event) => {
     if (state.role !== "service") return { state, intents: [] };
     if (event.kind === "start") return { state, intents: [] };
     if (event.kind !== "transport/recv") return { state, intents: [] };
     if (event.channel === "control/grant") {
+      const production = observation();
+      if (production === null || !production.response.ok) return { state, intents: [] };
       const stepped = stepGrant(state.grant, { kind: "grant/set", at: event.at,
         declared: [cell.capability], requested: [cell.capability], ttlMs: REVOCATION_AT * 2 });
-      return { state: { ...state, grant: stepped.state }, intents: stepped.intents };
+      return { state: { ...state, grant: stepped.state, productionObservation: production }, intents: stepped.intents };
     }
     if (event.channel === "control/revoke") {
       const stepped = stepGrant(state.grant, { kind: "grant/revoke", at: event.at, capability: cell.capability });
       const grantId = `${cell.capability}-grant`;
       return { state: { ...state, grant: stepped.state, revokedAt: event.at,
+        productionObservation: observation() ?? state.productionObservation,
         storedBlobIds: state.oracleBreak === "grant-coverage" ? state.storedBlobIds
           : state.storedBlobIds.filter((id) => id !== grantId),
         accessTimesByGrant: state.oracleBreak === "revocation-monotonicity"
@@ -347,7 +374,7 @@ function serviceStep(cell: CoverageCell, defectivePolicy: boolean): StepFn<Campa
         egress: [...state.egress, { at: event.at, appId: "campaign-app",
           grantId, peerId: "probe" }],
         operationSemantics: [...state.operationSemantics, `${cell.capability}:legitimate-use`],
-        effects: increment(state.effects, capabilityEffect(cell.capability)),
+        effects: productionEffects(state.productionObservation),
         brokerAllowed: state.brokerAllowed + 1 }, intents: stepped.intents };
     }
     if (!event.channel.startsWith("abuse/") || state.severedAt !== null) return { state, intents: [] };
@@ -357,7 +384,8 @@ function serviceStep(cell: CoverageCell, defectivePolicy: boolean): StepFn<Campa
     // the race between the real availability use and the adversarial payload over this transport.
     const attackSuppressesUse = cell.abuse.verb === "deny" || cell.position === "compromised-host";
     const requiresActive = !attackSuppressesUse && (stableHash(cellId(cell)) & 1) === 0;
-    const defectReached = defectivePolicy && event.payload[0] === (stableHash(cellId(cell)) & 0xff) &&
+    const defectReached = defectivePolicy && state.productionObservation?.negativeControlRejected === false &&
+      event.payload[0] === (stableHash(cellId(cell)) & 0xff) &&
       (requiresActive ? lifecycle?.phase === "active" : lifecycle?.phase === "granted");
     if (!authorized || !capabilityGateAllows(state, cell.capability) || !defectReached) {
       return { state: { ...state, brokerDenied: state.brokerDenied + 1 }, intents: [] };
@@ -388,6 +416,17 @@ function serviceStep(cell: CoverageCell, defectivePolicy: boolean): StepFn<Campa
       },
       intents: stepped.intents
     };
+  };
+}
+
+function productionEffects(observation: ProductionCapabilityObservation | null): Readonly<Record<string, number>> {
+  if (observation === null) return {};
+  return {
+    handlerResults: observation.response.ok ? 1 : 0,
+    storageObjects: observation.storageKeys.length,
+    identities: observation.identityIds.length,
+    auditedAccesses: observation.audit.filter((entry) => entry.allowed).length,
+    egressEvents: observation.egress.length
   };
 }
 
@@ -486,6 +525,20 @@ function productionPathFor(capability: string): string {
   return "miniapp-host/share.cas";
 }
 
+function productionHandlerFor(capability: string): string {
+  if (capability === "identity") return "MiniappHost.identity.sign";
+  if (capability === "presence") return "MiniappHost.presence.snapshot";
+  if (capability === "announce:publish") return "MiniappHost.announce.publish";
+  if (capability === "announce:subscribe") return "MiniappHost.announce.subscribe";
+  if (capability === "lxmf:send") return "MiniappHost.lxmf.send";
+  if (capability === "lxmf:receive") return "MiniappHost.lxmf.receive";
+  if (capability === "storage:kv") return "MiniappHost.storage.kv.set";
+  if (capability === "resource:fetch") return "MiniappHost.resource.fetch";
+  if (capability === "workspace") return "MiniappHost.workspace.write";
+  if (capability === "share:cas") return "MiniappHost.share.cas.put";
+  return productionPathFor(capability);
+}
+
 function capabilityEffect(capability: string): string {
   if (capability === "identity") return "signatures";
   if (capability === "presence" || capability.startsWith("announce:")) return "discoveries";
@@ -542,28 +595,38 @@ function positionAccessFor(position: AttackerPosition): string {
 
 function projectGrantCoverage(state: CampaignNodeState) {
   if (state.role !== "service") return { storedBlobIds: [], liveGrantBlobIds: [] };
-  const live = Object.entries(state.grant.lifecycles ?? {})
+  const authority = state.productionObservation?.authority ?? {};
+  const live = Object.entries(authority)
     .filter(([, lifecycle]) => lifecycle.phase === "granted" || lifecycle.phase === "active")
     .map(([capability]) => `${capability}-grant`);
-  return { storedBlobIds: state.storedBlobIds, liveGrantBlobIds: live };
+  const publicStored = state.productionObservation?.publicGrant?.granted.map((capability) => `${capability}-grant`) ?? [];
+  return {
+    storedBlobIds: state.oracleBreak === "grant-coverage" ? [...publicStored, `${Object.keys(authority)[0] ?? "identity"}-grant`] : publicStored,
+    liveGrantBlobIds: live
+  };
 }
 
 function projectGrantIdentities(state: CampaignNodeState) {
-  if (state.role !== "authority" && state.role !== "service") return [];
-  const identities = Object.keys(state.grant.lifecycles ?? {}).map((capability) => ({
-    id: `${capability}-grant`, fingerprint: `${state.grant.publisherPublicKey}:${state.grant.appId}:${capability}`
+  if (state.role !== "service" || state.productionObservation === null) return [];
+  const capability = Object.keys(state.productionObservation.authority)[0] ?? "identity";
+  const identities = state.productionObservation.identityIds.map((fingerprint, index) => ({
+    id: index === 0 ? `${capability}-grant` : `${capability}-identity-${index}`,
+    fingerprint
   }));
-  return state.role === "service" && state.oracleBreak === "id-uniqueness" && identities.length > 0
-    ? [...identities, { id: "identity-grant", fingerprint: "conflicting-production-authority" }]
+  return state.oracleBreak === "id-uniqueness" && identities.length > 0
+    ? [...identities, { id: identities[0]!.id, fingerprint: "conflicting-production-identity" }]
     : identities;
 }
 
 function projectGrantAuthorizations(state: CampaignNodeState) {
-  if (state.role !== "service") return [];
-  return Object.entries(state.grant.lifecycles ?? {}).map(([capability, lifecycle]) => ({
+  if (state.role !== "service" || state.productionObservation === null) return [];
+  const allowed = state.productionObservation.audit.filter((entry) => entry.allowed).map((entry) => entry.at);
+  return Object.entries(state.productionObservation.authority).map(([capability, lifecycle]) => ({
     id: `${capability}-grant`,
     ...(lifecycle.revokedAt === null ? {} : { revokedAt: lifecycle.revokedAt }),
-    accessTimes: state.accessTimesByGrant[`${capability}-grant`] ?? []
+    accessTimes: state.oracleBreak === "revocation-monotonicity" && lifecycle.revokedAt !== null
+      ? [...allowed, lifecycle.revokedAt + 1]
+      : allowed
   }));
 }
 

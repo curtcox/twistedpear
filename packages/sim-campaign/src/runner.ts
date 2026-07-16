@@ -20,6 +20,8 @@ export interface SeedRange {
 
 export interface CampaignScenario<S> {
   readonly config: SimKernelConfig<S>;
+  /** Run asynchronous shipping adapters before the synchronous kernel starts. */
+  readonly prepare?: () => Promise<void>;
   readonly run?: (kernel: SimKernel<S>) => void;
   readonly containment?: ContainmentTracker;
   /** Derive containment exclusively from state produced by virtual-time events. */
@@ -45,6 +47,8 @@ export interface ScenarioDescription {
   readonly transport: string;
   /** Reviewed executable semantics for coverage-bearing production scenarios. */
   readonly productionPath?: string;
+  /** Concrete shipping handler proven to have executed for this scenario. */
+  readonly productionBackedPath?: string;
   readonly authority?: string;
   readonly operation?: string;
   readonly positionAccess?: string;
@@ -148,6 +152,7 @@ async function runOne<S>(
   readonly description?: ScenarioCoverage;
 }> {
   const scenario = factory(cell, seed);
+  await scenario.prepare?.();
   const kernel = new SimKernel({ ...scenario.config, seed });
   const description = scenario.description === undefined
     ? undefined

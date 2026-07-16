@@ -91,6 +91,9 @@ export type {
   AppsPublishResult
 } from "./services/apps.js";
 export type { CasShareBackend } from "./host.js";
+export { ProductionCapabilityAdapter } from "./simulation-adapter.js";
+export type { ProductionCapabilityObservation } from "./simulation-adapter.js";
+export { BearerReplayPolicy, FederationPolicy, KeySharePolicy } from "./security-policies.js";
 export {
   CODE_EDITOR_LANGUAGES,
   MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH,

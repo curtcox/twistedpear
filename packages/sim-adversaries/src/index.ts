@@ -25,3 +25,9 @@ export {
   type ReputationVote,
   type SpamEconomics
 } from "./social.js";
+export {
+  authoredConfig,
+  executeAuthoredStrategies,
+  type AuthoredExecutionResult,
+  type AuthoredExecutionState
+} from "./authored-execution.js";

@@ -148,19 +148,21 @@ describe("Dolev-Yao adversaries", () => {
     }
   });
 
-  it("executes every expressible historical case against its reviewed target outcome", () => {
+  it("executes every expressible historical case against its reviewed target outcome", async () => {
     const expressible = HISTORICAL_REPLAY_FIXTURES.filter((fixture) => fixture.expressible);
     expect(expressible.length).toBeGreaterThan(0);
     for (const fixture of expressible) {
       expect(fixture.target).toBeTruthy();
-      expect(executeHistoricalFixture(fixture)).toBe(fixture.expectedOutcome);
+      await expect(executeHistoricalFixture(fixture)).resolves.toBe(fixture.expectedOutcome);
     }
   });
 
-  it("fails the historical floor when a named target policy is weakened", () => {
-    const fixture = HISTORICAL_REPLAY_FIXTURES.find((entry) => entry.expressible && entry.target === "broker")!;
-    expect(() => executeHistoricalFixture(fixture, 1, { disableContainmentFor: "broker" }))
-      .toThrow(/historical accuracy miss/);
+  it("fails the historical floor when each named target policy is weakened", async () => {
+    for (const target of ["broker", "handshake", "grant", "key-share", "federation"] as const) {
+      const fixture = HISTORICAL_REPLAY_FIXTURES.find((entry) => entry.expressible && entry.target === target)!;
+      await expect(executeHistoricalFixture(fixture, 1, { disableContainmentFor: target }))
+        .rejects.toThrow(/historical accuracy miss/);
+    }
   });
 
   it("searches for and shrinks a seeded canary instead of selecting it by predicate", () => {

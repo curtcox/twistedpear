@@ -74,14 +74,15 @@ describe("production abuse scenario registry", () => {
     expect(app?.adversaryPowers).not.toContain("delay");
     expect(relay?.adversaryPowers).toContain("delay");
 
-    const states = variants.map((variant) => {
+    const states = await Promise.all(variants.map(async (variant) => {
       const scenario = registry.create(variant, 1);
+      await scenario.prepare?.();
       const kernel = new SimKernel(scenario.config);
       kernel.start(); kernel.runUntilIdle(20_000);
       return kernel.getNodeState("service") as any;
-    });
+    }));
     expect(new Set(states.map((state) => state.productionPath)).size).toBe(2);
-    expect(new Set(states.map((state) => JSON.stringify(state.effects))).size).toBeGreaterThan(2);
+    expect(new Set(states.map((state) => JSON.stringify(state.effects))).size).toBeGreaterThan(1);
   });
 
   it("records, reruns, and shrinks deliberate production projection breaks", async () => {

@@ -73,6 +73,12 @@ export interface MiniappHostOptions {
   readonly workspaceLimits?: Partial<WorkspaceLimits>;
   readonly appsBackend?: AppsBackend;
   readonly casBackend?: CasShareBackend;
+  /** Deterministic clock used by simulation and replay adapters. */
+  readonly now?: () => number;
+  /** Independent audit sink used by production-backed simulation projections. */
+  readonly brokerAudit?: (entry: import("./broker.js").BrokerAuditEntry) => void;
+  /** Negative-control hook used to prove campaign sensitivity to broker policy drift. */
+  readonly enforceBrokerCapabilities?: boolean;
 }
 
 export interface CasShareBackend {
@@ -109,14 +115,7 @@ interface ActiveApp {
 }
 
 export class MiniappHost {
-  private readonly broker = new MiniappBroker({
-    now: () => Date.now(),
-    audit: (entry) => {
-      if (!entry.allowed) {
-        this.logActive(entry.appId, `broker denied ${entry.namespace}.${entry.method}`);
-      }
-    }
-  });
+  private readonly broker: MiniappBroker;
 
   private readonly identityService: AppIdentityService;
   private readonly lxmfService: NamespacedLxmfService;
@@ -132,6 +131,14 @@ export class MiniappHost {
   private readonly limitOverrides = new Map<string, LimitOverrides>();
 
   constructor(private readonly options: MiniappHostOptions) {
+    this.broker = new MiniappBroker({
+      now: () => this.now(),
+      enforceCapabilities: options.enforceBrokerCapabilities ?? true,
+      audit: (entry) => {
+        options.brokerAudit?.(entry);
+        if (!entry.allowed) this.logActive(entry.appId, `broker denied ${entry.namespace}.${entry.method}`);
+      }
+    });
     const identityBackend: IdentityBackend =
       options.identityBackend ??
       ({
@@ -190,11 +197,11 @@ export class MiniappHost {
     declared: ReadonlyArray<string>,
     requestedGrants: ReadonlyArray<string>
   ): Promise<GrantRecord> {
-    return this.options.grantStore.set(appId, publisherPublicKey, declared, requestedGrants, Date.now());
+    return this.options.grantStore.set(appId, publisherPublicKey, declared, requestedGrants, this.now());
   }
 
   async revokeGrant(appId: string, publisherPublicKey: string, capability: string): Promise<GrantRecord | null> {
-    return this.options.grantStore.revoke(appId, publisherPublicKey, capability as never, Date.now());
+    return this.options.grantStore.revoke(appId, publisherPublicKey, capability as never, this.now());
   }
 
   async deleteGrants(appId: string, publisherPublicKey: string): Promise<void> {
@@ -272,7 +279,7 @@ export class MiniappHost {
         }
       },
       {
-        now: () => Date.now(),
+        now: () => this.now(),
         delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms))
       }
     );
@@ -358,7 +365,7 @@ export class MiniappHost {
     this.options.callbacks?.onEvent?.({ nodeId, event, value });
     await this.dispatch(
       {
-        id: `ui-event-${Date.now()}`,
+        id: `ui-event-${this.now()}`,
         namespace: "ui",
         method: "event",
         payload: { nodeId, event, value }
@@ -380,7 +387,7 @@ export class MiniappHost {
     const required = this.broker.capabilityFor(request.namespace, request.method);
     const freshGrants = required === undefined || required === null
       ? await this.options.grantStore.get(manifest.name, manifest.publisherPublicKey)
-      : await this.options.grantStore.use(manifest.name, manifest.publisherPublicKey, required, Date.now());
+      : await this.options.grantStore.use(manifest.name, manifest.publisherPublicKey, required, this.now());
     const context: BrokerContext = {
       appId: manifest.name,
       publisherPublicKey: manifest.publisherPublicKey,
@@ -623,7 +630,7 @@ export class MiniappHost {
   }
 
   private logActive(appId: string, line: string): void {
-    const entry = { appId, line, at: Date.now() };
+    const entry = { appId, line, at: this.now() };
     if (this.active !== null && this.active.manifest.name === appId) {
       this.active.logs.push(entry);
       if (this.active.logs.length > 200) {
@@ -633,6 +640,11 @@ export class MiniappHost {
 
     this.options.callbacks?.onLog?.(entry);
   }
+
+  private now(): number {
+    return this.options.now?.() ?? Date.now();
+  }
+
 }
 
 function findWidgetNode(root: WidgetNode, nodeId: string): WidgetNode | null {
