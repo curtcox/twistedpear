@@ -30,7 +30,6 @@ jobs:
       - run: npm ci
       - run: npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/protocol
       - run: npm run sansio
-      - run: npm run formal:grant
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -40,6 +39,27 @@ jobs:
             sansio-canary.json
             dependency-graph.json
           if-no-files-found: warn
+
+  formal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - run: npm ci
+      - name: Check executable/model conformance
+        run: npm run formal:grant
+      - name: Verify TLA+ tools
+        run: echo "bee4a54f3ee3d4afc347c3240ec2d9e93b075104  formal/tla2tools.jar" | sha1sum --check
+      - name: Check TLA+ safety and liveness
+        working-directory: formal
+        run: java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config grant.cfg grant.tla
 
   core-smoke:
     runs-on: ubuntu-latest
