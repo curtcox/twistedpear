@@ -19,6 +19,21 @@ export {
   type TransportClass,
   type TransportClassName
 } from "./transport-classes.js";
+export {
+  calibrateTransportTrace,
+  parseCalibrationPolicy,
+  parseCalibrationTrace,
+  type CalibratedParameters,
+  type CalibratedTransportName,
+  type CalibrationComparison,
+  type CalibrationObservation,
+  type CalibrationPolicy,
+  type CalibrationResult,
+  type CalibrationTolerance,
+  type CalibrationTrace,
+  type CalibrationTraceProvenance,
+  type TraceEvidenceKind
+} from "./calibration.js";
 export { SimStore } from "./store.js";
 export {
   SimKernel,

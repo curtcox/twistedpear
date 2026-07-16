@@ -17,7 +17,7 @@ Companion to [simulation-architecture.html](simulation-architecture.html),
 | Phase | Status | Implemented | Remaining exit criterion |
 |---|---|---|---|
 | 1 — machine tape and interpreter | Complete | Entropy tape, table interpreter, `enumerateCells`, deterministic kernel tests | None known |
-| 2 — transport classes | Complete as executable models | LAN, internet, BLE, LoRa, occupancy, loss, partitions, duty-cycle behavior | Hardware/trace calibration before physical accuracy claims |
+| 2 — transport classes | Complete as executable models | LAN, internet, BLE, LoRa, occupancy, loss, partitions, duty-cycle behavior; versioned calibration contract/fitter | Accepted hardware/deployment traces before physical accuracy claims |
 | 3 — oracles and recorder | Complete | Typed global oracles project independent runtime storage, authority, identity, and audit sources; violations record and shrink | None known |
 | 4 — rerun and shrinking | Complete | Deterministic rerun and `ddmin` used by fuzz, quorum, oracle, social, and campaign failures | None known |
 | 5 — grant lifecycle table | Complete | Persisted terminal authority, host runtime enforcement, vectors, TLA+ relation | None known |
@@ -125,13 +125,20 @@ Acceptance:
 4. External evidence boundary: add recorded BLE/LoRa traces or guarded hardware results and
    document calibration tolerances before making physical-layer claims.
 
+The repository-side calibration path is `conformance/sim-calibration/`: `policy.json` pre-registers
+sample floors and allowed drift, `trace.schema.json` defines raw evidence, and
+`npm run calibrate:sim-transport -- TRACE.json --output REPORT.json` validates provenance, fits
+parameters, hashes the raw trace, and fails when the reviewed preset is outside tolerance. No trace
+or report is accepted merely because it makes the existing preset pass.
+
 Acceptance:
 
 - Running vector generation without RNS leaves tracked vectors byte-identical or exits before any
   tracked write.
 - The provisioned interop job passes and records exact dependency versions.
 - Linux and macOS outputs match byte-for-byte for the fixed corpus.
-- Transport calibration data is versioned; model changes require reviewed baseline updates.
+- BLE and LoRa raw calibration traces and generated reports are versioned; model changes require
+  reviewed baseline updates. The tooling alone does not satisfy this criterion.
 
 ### P6 — Rebaseline and close only the criteria actually met — complete for software evidence
 
@@ -147,7 +154,7 @@ After P1–P5:
 
 ## Current reproducible baseline
 
-- 1,127 tests pass; 7 optional interop tests skip in the default environment.
+- 1,130 tests pass; 7 optional interop tests skip in the default environment.
 - 684 Sans-IO deterministic tests pass.
 - The production-backed campaign runs 2,000 scenarios over 200 registered cells, finds 142 seeded
   canaries and zero genuine findings, and reports a 0.862 conservative recapture floor.

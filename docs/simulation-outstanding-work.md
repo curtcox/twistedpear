@@ -105,15 +105,18 @@ real deployments or guarded hardware tests, and document the calibration data an
   `fa95084a8ca4fe5a985cbddf437262f1971604e3ec0ea2082a74b5f023ba0288`.
 - Hosted Linux and macOS replay jobs and their dependent byte-comparison job passed at commit
   `13b4b076`.
+- `conformance/sim-calibration/` now defines a versioned trace schema, pre-registered sample and
+  parameter-drift tolerances, a deterministic robust fitter, and a provenance-enforcing report
+  command for BLE/LoRa evidence. It rejects simulated provenance and insufficient trace coverage.
 - BLE/LoRa calibration remains hardware-gated. Simulator results must not be described as
-  physical-layer accuracy until guarded traces and tolerances are versioned.
+  physical-layer accuracy until accepted guarded traces and their generated reports are versioned.
 
 ---
 
 ## Validation reproduced locally on 2026-07-16
 
 - Environment: macOS 26.5.2 (25F84), Node 26.5.0, npm 11.17.0, Python 3.14.6.
-- `npm test`: 1,127 passed; 7 optional interop tests skipped. Localhost tests required running
+- `npm test`: 1,130 passed; 7 optional interop tests skipped. Localhost tests required running
   outside the filesystem/network sandbox; the initial sandboxed run failed only with listener EPERM.
 - `npm run sansio`: all fences and canaries passed; 684 deterministic tests passed.
 - `npm run test:sim-campaign`: 2,000 deterministic scenarios over 200 registered cells; 142 canary

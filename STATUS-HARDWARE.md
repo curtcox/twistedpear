@@ -171,6 +171,23 @@ Two RNodes, phone on one side, desktop transport on other; announce + LXMF over 
 |---|---|
 | LoRa LXMF latency | §3 |
 
+### H4-D — simulation calibration evidence
+
+Capture packet-level BLE and LoRa observations using the contract in
+`conformance/sim-calibration/trace.schema.json`, meeting the pre-registered sample floors in
+`conformance/sim-calibration/policy.json`. Record every attempted packet, including losses, with at
+least four payload sizes and complete device, firmware, RF, antenna, distance, and environment
+metadata. Then generate reviewed reports:
+
+```bash
+npm run calibrate:sim-transport -- path/to/ble-trace.json --output conformance/sim-calibration/ble-report.json
+npm run calibrate:sim-transport -- path/to/lora-trace.json --output conformance/sim-calibration/lora-report.json
+```
+
+**Pass:** raw traces and reports are committed together; trace hashes match; both meet the sample
+policy; any preset drift is either within the pre-registered tolerance or produces a reviewed model
+and baseline update. Do not claim physical-layer accuracy from the fitter or simulated fixtures.
+
 ---
 
 ## H5 — iPhone (Phase 2 only)
