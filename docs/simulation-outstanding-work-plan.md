@@ -1,186 +1,114 @@
-# Deterministic Abuse-Simulation — Outstanding Work Plan
+# Deterministic Abuse-Simulation — Implementation Status
 
-Companion to [docs/simulation-architecture.html](simulation-architecture.html) and successor
-to [docs/simulation-implementation-plan.md](simulation-implementation-plan.md). That plan's
-Phases 1–11 were validated as implemented (2026-07-15): the machine tape and table
-interpreter, executable transport classes, oracles and the on-disk recorder, deterministic
-rerun and `ddmin`, the table-driven grant lifecycle with generated vectors, the coverage-frame
-campaign runner, all three adversary tiers, design-first escrow and recovery-quorum tables,
-the grant TLA+ twin with conformance CI, response-containment metrics, and the
-social/economic adversaries with completeness estimation. All simulator test suites,
-`npm run sansio`, and `npm run formal:grant` pass; both CI jobs (`test`, `formal`) run them.
+Companion to [simulation-architecture.html](simulation-architecture.html) and
+[simulation-implementation-plan.md](simulation-implementation-plan.md). This document is the
+authoritative record of what has landed. It separates implemented machinery from the smaller
+set of exit criteria that still need closure. The remaining-work-only checklist is
+[simulation-outstanding-work.md](simulation-outstanding-work.md).
 
-What remains is everything the original plan explicitly deferred, plus the gaps the
-validation surfaced. Phase numbering continues from the original plan's dependency order.
+> **Validated 2026-07-15.** The build, all 1,097 runnable repository tests, the Sans-IO suite,
+> the targeted simulation/formal tests, all three executable/TLA+ conformance checks, all three
+> TLC models, the 2,000-run scheduled-campaign smoke, the symbolic-model inventory, and both
+> ProVerif models passed locally. Seven environment-dependent interop tests were skipped by the
+> normal test configuration. The Tamarin grant-boundary model proved; the Tamarin link-handshake
+> run did not finish during the validation window and remains an explicit validation item.
 
 ---
 
-## Validation findings that drive this plan
+## Status by phase
 
-| # | Finding | Severity | Phase below |
+| Phase | Status | What is implemented | Remaining exit criterion |
 |---|---|---|---|
-| F1 | The grant-boundary **parser** is not table-driven. D1 named four critical machines; grant lifecycle, escrow, and recovery quorum have tables, but grant records are decoded in `packages/protocol/src/grants.ts` with plain `JSON.parse` plus ad-hoc field checks — the liberal parsing that architecture §6 (byte-strict grant boundary) exists to forbid. | High | 12 |
-| F2 | Phase 9's exit criterion "prove the conformance check fails on a deliberate break" has no committed proof: nothing asserts `formal/check-grant-conformance.mjs` actually fails when the executable table gains an illegal edge. | Medium | 13 |
-| F3 | Only the grant lifecycle has a Layer-2 twin. Escrow and recovery quorum were built "twin-ready" (D4) but their TLA+ models were never written. | Medium | 13 |
-| F4 | Tamarin/ProVerif crypto/authentication twins were explicitly deferred ("later, not blocking") and remain absent. | Medium | 16 |
-| F5 | Campaigns run only as small unit tests inside `npm test`. No scheduled large-scale sweep exists, so saturation curves and canary recapture are exercised by tests but never *reported* over a real cube slice, and the Phase 10 criterion "a regression that slows revocation propagation shows up as a metric delta in CI" is not yet true — `ContainmentTracker` computes the numbers but nothing compares them to a baseline. | Medium | 14 |
-| F6 | The historical-replay corpus is thin: `HISTORICAL_REPLAY_FIXTURES` lifts the five in-tree hostile-app fixtures (two expressible, three documented as out-of-model) but the "attack sequences from comparable systems" corpus — the accuracy floor the architecture leans on — was never curated. | Medium | 15 |
-| F7 | Tier 7c has the compiler (`compileAttackProposal`, with out-of-model rejection) and one committed model-free regression (`conformance/sim-regressions/llm-duplicate-delivery.json`), but no authoring harness that actually puts a model in the loop to propose strategies. | Low | 15 |
-| F8 | `docs/simulation-architecture.html` still said "Status: specification — nothing below is built yet". Fixed alongside this plan. | Trivial | done |
-| F9 | (Noted, no action.) D3's "cross-check grant vectors against Python where they touch wire behavior" is vacuously satisfied: grant records are a TwistedPear-local format with no Python RNS counterpart; the wire-level Python cross-check remains where it always was, in the reticulum interop suites. Recorded here so nobody reads the absence as an omission. | — | — |
-
-Decision log for this plan (chosen 2026-07-15): strict table-driven parser **over the existing
-JSON format** rather than a binary migration (D5); escrow/recovery TLA+, the deliberate-break
-test, **and** Tamarin/ProVerif are all in scope (D6); a **nightly campaign CI job** is in scope
-(D7); **host integration of escrow/recovery is deferred** — the machines stay simulator-only
-until product decisions land (D8, trigger conditions in the final section).
-
----
-
-## Phase 12 — Byte-strict grant-record parser as a table (closes D1)
-
-**Goal.** Complete D1's fourth machine. Grant-record decoding becomes a table-driven,
-byte-strict parser: one canonical form, one state machine, nothing accepted that is not
-exactly well-formed — so there is no second interpretation for a parser-differential attack
-to smuggle authority through.
-
-**Decision (D5).** Keep JSON as the wire format; enforce a canonical subset rather than
-migrating to a binary encoding. The parser accepts exactly one byte sequence per logical
-record: fixed field order, no duplicate keys, no whitespace variation, no extraneous fields,
-no trailing bytes, canonical number formatting. Anything else is rejected with a typed error.
-Rationale: closes the differential-parsing risk without a storage/wire migration; a binary
-canonical format remains a possible later hardening and is easier once the strict machine
-exists.
-
-**Work.**
-1. Specify the canonical grammar as data: a `Machine` over byte/token event classes in
-   `packages/protocol/src/grant-parser-machine.ts`, following the `grant-machine.ts` idiom.
-   Control states enumerate the parse position (expect-open, expect-appId-key, …,
-   accept/reject); data-dependent guards (string contents, number syntax) are predicates per
-   the Phase 1 rule.
-2. `interpret(grantParserMachine)` replaces the `JSON.parse` path in `grants.ts` behind the
-   same exported signature. A canonical **encoder** is written alongside, and
-   `decode(encode(x)) === x` / `encode(decode(b)) === b` round-trip properties are tested so
-   host-written records always parse.
-3. Migration guard: existing stored records that are valid JSON but non-canonical are
-   re-encoded canonically on first read at the host layer (adapter concern, not core); the
-   core parser itself never accepts them.
-4. Generate Layer-3 vectors from `enumerateCells(grantParserMachine)` into
-   `conformance/vectors/grant-parser.json` via `scripts/vectors-generate-grant.mjs`, including
-   a curated corpus of near-miss rejections (duplicate key, reordered fields, added
-   whitespace, trailing byte, non-canonical number) — each asserted to land in reject.
-5. Fuzz the boundary: extend the 7b fuzz adversary payload corpus with mutated grant records
-   and assert the parser's accept set is exactly the canonical set (mutation ⇒ reject).
-
-**Exit criteria.** `grants.ts` no longer calls `JSON.parse` on grant-boundary bytes; the
-parser machine's vectors are committed and CI-checked; every mutation in the near-miss corpus
-is rejected; round-trip properties hold; all existing grant tests pass unchanged; `npm run
-sansio` stays green.
-
-**Touches.** `packages/protocol/src/{grant-parser-machine,grants}.ts`,
-`conformance/vectors/grant-parser.json`, `scripts/vectors-generate-grant.mjs`,
-`packages/sim-adversaries` (fuzz corpus).
+| 1 — machine tape and interpreter | Complete | Entropy tape, generic table interpreter, `enumerateCells`, deterministic kernel coverage | None |
+| 2 — transport classes | Complete | LAN, internet, BLE, and LoRa models; occupancy, loss, partition, and LoRa duty-cycle pressure | None |
+| 3 — oracles and recorder | Complete | Global-state oracles, typed violations, replayable on-disk histories | None |
+| 4 — rerun and shrinking | Complete | Deterministic rerun and `ddmin` history reduction with causal-core tests | None |
+| 5 — grant lifecycle table | Complete | Table-driven lifecycle and generated `grant.json` vectors | None |
+| 6 — coverage frame and runner | Complete as infrastructure | Capability × position × abuse-verb cube, deterministic campaign runner, reporting and shrinking hooks | The scheduled production campaign still needs real per-cell scenarios; tracked under Phase 14 |
+| 7 — adversaries | Complete | Mediated Dolev–Yao powers, scripted history, seeded fuzzing, proposal compiler, model-free LLM-authored replay | None |
+| 8 — escrow and recovery | Complete for planned scope | Table-first machines, forbidding oracles, generated vectors, campaign execution | Host/product integration remains intentionally deferred |
+| 9 — TLA+ twins and conformance | Complete | Grant, escrow, and recovery models; generalized checker; added/removed-edge negative tests; CI model checking | None |
+| 10 — containment metrics | Complete as instrumentation | Revocation propagation, egress attribution, network-kill latency, baselines and regression comparison | Scheduled gates must be driven by observed scenario behavior rather than fixture constants |
+| 11 — social/economic and completeness | Complete as instrumentation | Spam economics, harassment, reputation manipulation, canary injection, capture/recapture estimate, saturation reporting | Scheduled canaries must be embedded in real scenarios rather than a universal synthetic tripwire |
+| 12 — byte-strict grant parser | Substantially complete | Token-state machine, canonical encoder/decoder, typed rejection, storage migration, transition vectors and curated near-miss tests | Assert that every fuzz-tier mutation is rejected by the parser |
+| 13 — escrow/recovery formal coverage | Complete | Two additional TLA+ models, model/vector/table/trace checks, deliberate-break proof, CI wiring | None |
+| 14 — scheduled campaign at scale | Partial | Nightly workflow, 2,000 deterministic runs, report/reproducer artifacts, canary floor and containment baseline plumbing | Replace the synthetic labeled smoke with genuine protocol/adversary/transport scenarios and observed metrics |
+| 15 — historical floor and authoring harness | Complete | At least five independent sources, expressible/out-of-model classification, provider-neutral model command, compiler admission, model-free replay | None |
+| 16 — symbolic twins | Implemented; final validation open | Tamarin and ProVerif models for the grant boundary and link handshake, inventory check, dedicated workflow | Obtain and retain a successful bounded Tamarin link-handshake run |
 
 ---
 
-## Phase 13 — Formal coverage: escrow/recovery twins and the deliberate-break proof
+## Completed follow-on work
 
-**Goal.** Extend the proven grant TLA+ pattern to the other two authority-bearing machines,
-and make the conformance check's own honesty testable.
+### Phase 12 — canonical grant boundary
 
-**Work.**
-1. **Escrow twin.** `formal/escrow.tla` + `escrow.cfg` mirroring
-   `packages/protocol/src/escrow.ts`: safety (no release without quorum — the forbidden edges
-   the oracle already asserts), liveness (a funded escrow eventually releases or refunds).
-   Extend the conformance checker (generalize `check-grant-conformance.mjs` into
-   `check-machine-conformance.mjs` parameterized by machine/model/vector triple) and add
-   `npm run formal:escrow`.
-2. **Recovery-quorum twin.** `formal/recovery-quorum.tla` + config, same pattern: no
-   below-threshold recovery over all interleavings, including duplicate-share replays;
-   `npm run formal:recovery`.
-3. **Deliberate-break negative test (F2).** A vitest (or node test) that loads the checker
-   against a mutated copy of each machine table (one added illegal edge, one removed legal
-   edge) and asserts the check **fails** — the mechanical proof the Phase 9 exit criterion
-   asked for, now covering all three machines. Runs in the normal `test` job so the checker
-   itself can never silently rot.
-4. CI: extend the `formal` job to model-check all three specs with the pinned
-   `tla2tools.jar` and run all three conformance checks.
+`packages/protocol/src/grant-parser-machine.ts` now defines the parser control structure as a
+table. `decodeGrantRecord` no longer uses `JSON.parse` at the grant boundary: it performs strict
+UTF-8 decoding, tokenizes the canonical JSON subset, runs the parser machine, validates field
+types and uniqueness, and verifies that re-encoding produces exactly the input bytes.
 
-**Exit criteria.** Three TLA+ models check clean under TLC in CI; three conformance checks
-green; the negative test demonstrably fails each checker on a broken table and passes on the
-real ones; `formal/README.md` documents the pattern for the next machine.
+The host-only migration adapter accepts suitable legacy JSON, rejects duplicates and unknown
+fields, and rewrites accepted records canonically. `conformance/vectors/grant-parser.json`
+covers every parser table cell and the committed near-miss corpus checks duplicate keys,
+field order, whitespace, trailing input, and non-canonical numbers.
 
-**Touches.** `formal/` (two new specs, generalized checker, README), `package.json` scripts,
-`.github/workflows/ci.yml` (formal job), new negative test under `packages/protocol/test/`.
+### Phase 13 — connected formal twins
 
----
+`formal/check-machine-conformance.mjs` compares model, checked trace, executable table, and
+Layer-3 vector edges for grant, escrow, and recovery. `formal-conformance.test.ts` proves the
+checker rejects both an added illegal edge and a removed legal edge for every machine.
 
-## Phase 14 — Nightly campaign at scale: canaries, saturation, containment baselines
+The CI formal job runs those checks and TLC over `grant.tla`, `escrow.tla`, and
+`recovery_quorum.tla`. Local validation checked the complete configured state spaces without
+an invariant or liveness failure.
 
-**Goal.** Run the campaign machinery at the scale it was built for, on a schedule, with the
-completeness-estimation and containment numbers reported and regressions caught as deltas
-(makes F5's unmet Phase 10/11 criteria true).
+### Phase 14 — landed infrastructure, not yet the final campaign
 
-**Work.**
-1. **Headless campaign entrypoint.** `conformance/sim-campaign/run.mjs` (+
-   `npm run test:sim-campaign`) sweeps a substantial capability subset across every attacker
-   position and abuse verb over a configurable seed range. It emits a deterministic JSON
-   report and minimized on-disk reproducers.
-2. Inject a deterministic canary population on every run, report capture/recapture confidence,
-   and fail below a reviewed completeness floor.
-3. Commit per-transport containment baselines for revocation propagation, attributability,
-   and network-kill latency; fail beyond reviewed limits.
-4. Run the campaign nightly and upload its report and reproducers as artifacts.
+The nightly workflow invokes `npm run test:sim-campaign`, which runs 2,000 scenarios over eight
+capabilities, five attacker positions, five abuse verbs, and ten seeds. It performs a
+byte-identical rerun, writes minimized histories through the campaign runner, reports
+saturation and capture/recapture, compares containment summaries with the committed baseline,
+and uploads the report and reproducers.
 
-**Exit criteria.** The default nightly slice runs 2,000 scenarios; a same-seed rerun is
-byte-identical; canary completeness and containment deltas are gates, not informational logs.
+This proves the scheduling, determinism, artifact, and gate plumbing. It does **not** yet prove
+abuse-finding coverage: the entrypoint currently supplies the same one-node canary scenario to
+every cube cell and pre-populates containment observations from a latency fixture. The real
+campaign replacement is the main remaining implementation task.
 
----
+### Phase 15 — historical and model-authored adversaries
 
-## Phase 15 — Historical accuracy floor and model authoring harness
+The historical corpus includes hostile-app fixtures and independently sourced replay,
+impersonation, spoofing, disclosure, and denial cases. Each case is either compiled into the
+mediated Dolev–Yao power set or records why it is outside the simulator model.
 
-**Goal.** Strengthen the weakest adversary tier with attacks from comparable systems and make
-Tier 7c a real, optional model-in-the-loop authoring workflow without making replay depend on
-a model.
+`authorAttackStrategies` and `conformance/sim-author/run.mjs` provide a provider-neutral model
+command interface. Model output must be constrained JSON and pass `compileAttackProposal`;
+accepted strategies become ordinary deterministic adversaries, and committed findings replay
+without the model.
 
-**Work.** Curate primary-source replay, spoofing, disclosure, and denial cases from comparable
-messaging and authority systems. Each case is either lowered to Dolev–Yao actions or explicitly
-marked out of model. Add a provider-neutral command harness that sends a constrained JSON
-prompt to a user-supplied model command, validates the response, and admits only strategies
-accepted by `compileAttackProposal`.
+### Phase 16 — symbolic models and workflow
 
-**Exit criteria.** The corpus covers at least five independent sources; every expressible case
-compiles; malformed and out-of-power model proposals are rejected; accepted findings remain
-ordinary model-free replay fixtures.
+Four models are committed: Tamarin and ProVerif versions of the canonical grant boundary and
+the identity-bound link handshake. They cover grant authenticity, session-key secrecy, and
+mutual agreement. Normal CI checks the property inventory and the path-filtered symbolic
+workflow installs and invokes both provers.
+
+Local ProVerif validation proved every declared query, and Tamarin proved the grant model. The
+Tamarin link-handshake result still needs bounded completion evidence before Phase 16 can be
+called fully validated.
 
 ---
 
-## Phase 16 — Symbolic crypto/authentication twins
+## Scope decisions, not unfinished work
 
-**Goal.** Close D2's final deferral with symbolic Dolev–Yao models of the canonical grant
-boundary and identity-bound link handshake.
+- Escrow and recovery remain simulator-only until the escrow UX or recovery-contact product
+  model is settled. A committed product decision reopens host integration.
+- The roughly 100 non-authority protocol step functions remain hand-written pure machines.
+  Retrofitting all of them to tables stays rejected unless a second non-wire implementation
+  creates a real arbitration need.
+- Grant records are TwistedPear-local and have no Python RNS interpretation. Python
+  cross-checking remains at the RNS wire boundary; no artificial Python grant parser is
+  required.
 
-**Work.** Add Tamarin and ProVerif models for both boundaries. Check grant authenticity, link
-session-key secrecy, and mutual agreement; document the identity-binding abstraction. Add an
-always-on model inventory check and a path-filtered CI workflow that installs both provers and
-runs all four models.
-
-**Exit criteria.** Four symbolic models are committed without admitted proofs; normal CI checks
-their property inventory and symbolic CI executes Tamarin and ProVerif.
-
----
-
-## Explicit deferral — host integration of escrow/recovery
-
-Escrow and recovery-quorum remain simulator-only until the escrow UX and recovery-contact
-model are product-settled. A committed product decision on either reopens host integration;
-this plan does not invent broker/storage/consent behavior ahead of that decision.
-
----
-
-## Implementation status (2026-07-15)
-
-Phases 12–16 are implemented. Targeted TypeScript tests, executable/model conformance checks,
-TLC checks for escrow and recovery, the campaign smoke sweep, and the symbolic-model inventory
-pass locally. The dedicated symbolic workflow owns full Tamarin/ProVerif execution because
-those prover binaries are not part of the repository toolchain.
+For active work, use only
+[simulation-outstanding-work.md](simulation-outstanding-work.md).
