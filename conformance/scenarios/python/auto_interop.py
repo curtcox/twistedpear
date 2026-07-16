@@ -61,7 +61,7 @@ def main() -> int:
 
     def link_established(link: RNS.Link) -> None:
         def packet_handler(data: bytes, packet: RNS.Packet) -> None:
-            link.send(data)
+            RNS.Packet(link, data).send()
 
         link.set_packet_callback(packet_handler)
 

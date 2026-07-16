@@ -32,6 +32,7 @@
     "bare-dgram": "^1.0.1",
     "bare-fs": "^4.7.3",
     "bare-tcp": "^2.5.1",
+    "seek-bzip": "^2.0.0",
     "sodium-native": "^5.1.0"
   },
   "devDependencies": {

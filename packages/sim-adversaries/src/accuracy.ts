@@ -9,9 +9,7 @@ import { compileAttackProposal, createFuzzAdversary, type AdversaryState } from 
 import type { HistoricalReplayFixture } from "./historical.js";
 import { decodeGrantRecord, encodeGrantRecord } from "@twistedpear/protocol";
 import {
-  BearerReplayPolicy,
-  FederationPolicy,
-  KeySharePolicy,
+  GrantStore,
   MiniappBroker
 } from "@twistedpear/miniapp-runtime";
 import {
@@ -137,17 +135,21 @@ async function productionHistoricalOutcome(
     return state.phase === LinkHandshakePhase.ESTABLISHED && replayed === state ? "replay-rejected" : null;
   }
   if (target === "grant") {
-    const policy = new BearerReplayPolicy();
-    policy.use("token");
-    const result = policy.use(new TextDecoder().decode(deliveries[0]?.payload ?? new Uint8Array()));
-    return drift || result !== "replay-rejected" ? null : "bearer-replay-rejected";
+    const store = new GrantStore(new HistoricalGrantBackend());
+    await store.set("historical", "publisher", ["identity"], ["identity"], 0);
+    await store.use("historical", "publisher", "identity", 1);
+    if (!drift) await store.revoke("historical", "publisher", "identity", 2);
+    const replay = await store.use("historical", "publisher", "identity", 3);
+    return replay?.granted.includes("identity") === true ? null : "bearer-replay-rejected";
   }
-  if (target === "key-share") {
-    return drift ? null : new KeySharePolicy(new Set(["trusted-device"]))
-      .authorize(deliveries[0]?.source ?? "unknown");
-  }
-  return drift ? null : new FederationPolicy(new Set(["trusted-relay"]))
-    .authorize(deliveries[0]?.source ?? "unknown");
+  throw new Error(`historical target has no shipping adapter: ${target}`);
+}
+
+class HistoricalGrantBackend {
+  private readonly values = new Map<string, Uint8Array>();
+  async get(key: string): Promise<Uint8Array | null> { return this.values.get(key)?.slice() ?? null; }
+  async set(key: string, value: Uint8Array): Promise<void> { this.values.set(key, value.slice()); }
+  async delete(key: string): Promise<void> { this.values.delete(key); }
 }
 
 export interface FuzzCanaryResult {

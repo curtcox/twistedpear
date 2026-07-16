@@ -158,7 +158,7 @@ describe("Dolev-Yao adversaries", () => {
   });
 
   it("fails the historical floor when each named target policy is weakened", async () => {
-    for (const target of ["broker", "handshake", "grant", "key-share", "federation"] as const) {
+    for (const target of ["broker", "handshake", "grant"] as const) {
       const fixture = HISTORICAL_REPLAY_FIXTURES.find((entry) => entry.expressible && entry.target === target)!;
       await expect(executeHistoricalFixture(fixture, 1, { disableContainmentFor: target }))
         .rejects.toThrow(/historical accuracy miss/);
@@ -189,6 +189,13 @@ describe("Dolev-Yao adversaries", () => {
     expect(calls).toBe(1);
     expect(result.accepted.map((entry) => entry.proposal.name)).toEqual(["duplicate"]);
     expect(result.rejected).toHaveLength(1);
+  });
+
+  it("accepts a single JSON-constrained proposal object", async () => {
+    const result = await authorAttackStrategies(async () => JSON.stringify({
+      name: "duplicate", actions: [{ power: "duplicate", source: "a", destination: "b" }]
+    }), { objective: "find replay bugs", allowedPowers: ["duplicate"], nodes: ["a", "b"], channels: ["x"] });
+    expect(result.accepted.map((entry) => entry.proposal.name)).toEqual(["duplicate"]);
   });
 
   it("replays the model-authored finding without a model", () => {

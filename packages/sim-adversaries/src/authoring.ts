@@ -22,7 +22,13 @@ export async function authorAttackStrategies(model: StrategyModel, context: Atta
   const rawResponse = await model(authoringPrompt(context));
   let candidates: unknown;
   try { candidates = JSON.parse(rawResponse); } catch { throw new Error("strategy model returned invalid JSON"); }
-  if (!Array.isArray(candidates)) throw new Error("strategy model response must be an array");
+  // JSON-constrained local model runners sometimes return the single requested
+  // proposal directly. Treat that as a one-element response while preserving
+  // the same strict proposal validation and compiler power checks.
+  if (isRecord(candidates) && typeof candidates.name === "string" && Array.isArray(candidates.actions)) {
+    candidates = [candidates];
+  }
+  if (!Array.isArray(candidates)) throw new Error("strategy model response must be an array or proposal object");
   const accepted: CompiledAdversary[] = [];
   const rejected: Array<{ index: number; reason: string }> = [];
   for (const [index, candidate] of candidates.slice(0, context.maxProposals ?? 16).entries()) {

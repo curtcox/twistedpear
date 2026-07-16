@@ -120,9 +120,9 @@ describe("Resource transfer over PipeInterface", () => {
     expect(new TextDecoder().decode(data)).toBe(new TextDecoder().decode(payload));
   });
 
-  it("transfers a multi-part payload", async () => {
+  it("transfers a multi-window payload", async () => {
     const { leftLink, rightLink } = await connectPeers();
-    const payload = new TextEncoder().encode("large resource " + "y".repeat(8192));
+    const payload = new TextEncoder().encode("large resource " + "y".repeat(100_000));
 
     const received = new Promise<Uint8Array>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error("resource timeout")), 10000);

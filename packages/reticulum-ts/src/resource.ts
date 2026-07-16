@@ -208,6 +208,7 @@ import {
   type ResourceWatchdogState,
   type ResourceWatchdogStepResult
 } from "@twistedpear/protocol";
+import Bunzip from "seek-bzip";
 import type { CryptoProvider } from "./crypto/provider.js";
 import { equalBytes } from "./crypto/bytes.js";
 import { Identity } from "./identity.js";
@@ -261,6 +262,14 @@ interface ResourcePart {
   readonly mapHash: Uint8Array;
   raw: Uint8Array;
   sent: boolean;
+}
+
+const RESOURCE_PACKET_HEADER_MAX = 35;
+const RESOURCE_IFAC_MIN_SIZE = 1;
+
+/** Compression adapter for Python RNS resource payloads. */
+function decodeResourcePayload(payload: Uint8Array, compressed: boolean): Uint8Array {
+  return compressed ? Uint8Array.from(Bunzip.decode(payload)) : payload;
 }
 
 /** Mirrors RNS/Resource.py ResourceAdvertisement. */
@@ -447,7 +456,12 @@ export class ResourceAdvertisement {
     this.f = packedFlags;
   }
 
-  pack(): Uint8Array {
+  pack(segment = 0): Uint8Array {
+    const hashmapStart = segment * ResourceAdvertisement.HASHMAP_MAX_LEN * RESOURCE_MAPHASH_LEN;
+    const hashmapEnd = Math.min(
+      hashmapStart + ResourceAdvertisement.HASHMAP_MAX_LEN * RESOURCE_MAPHASH_LEN,
+      this.m.length
+    );
     const stepped = stepPackResourceAdvertisementWithActions(
       initialPackResourceAdvertisementState(),
       {
@@ -459,7 +473,7 @@ export class ResourceAdvertisement {
           h: this.h,
           r: this.r,
           o: this.o,
-          m: this.m,
+          m: this.m.subarray(hashmapStart, hashmapEnd),
           f: this.f,
           i: this.i,
           l: this.l,
@@ -586,7 +600,7 @@ export class Resource {
     this.requestId = options.requestId ?? null;
     this.isResponse = options.isResponse ?? false;
     this.callbacks = options.callbacks ?? {};
-    this.sdu = link.mdu;
+    this.sdu = link.mtu - RESOURCE_PACKET_HEADER_MAX - RESOURCE_IFAC_MIN_SIZE;
     this.timeout = options.timeout ?? resourceTimeoutForLink(link);
   }
 
@@ -629,7 +643,7 @@ export class Resource {
       throw new Error("Resource encrypt material rejected");
     }
     const encryptedPayload = link.encrypt(payload);
-    const sdu = link.mdu;
+    const sdu = link.mtu - RESOURCE_PACKET_HEADER_MAX - RESOURCE_IFAC_MIN_SIZE;
     const totalPartsStepped = stepComputeResourceTotalPartsWithActions(
       initialComputeResourceTotalPartsState(),
       {
@@ -1400,12 +1414,13 @@ export class Resource {
         !shouldUseSplitResourceDecryptedPayload(decryptedStepped.actions)
           ? null
           : resourceDecryptedPayloadFromActions(decryptedStepped.actions);
+      const decodedPayload = payload === null ? null : decodeResourcePayload(payload, this.compressed);
       const hashMaterialStepped =
-        payload === null
+        decodedPayload === null
           ? null
           : stepResourceHashMaterialWithActions(initialResourceHashMaterialState(), {
               kind: "resource-material/hash-gate",
-              data: payload,
+              data: decodedPayload,
               randomHash: this.randomHash
             });
       const hashInput =
@@ -1419,7 +1434,7 @@ export class Resource {
       const { actions } = stepResourceAssembleWithActions(initialResourceAssembleState(), {
         kind: "resource/assemble-gate",
         decryptedPresent: decrypted !== null,
-        payloadPresent: payload !== null,
+        payloadPresent: decodedPayload !== null,
         hashMatches:
           calculatedHash !== null && equalBytes(calculatedHash, this.hash)
       });
@@ -1429,7 +1444,7 @@ export class Resource {
         {
           kind: "resource/commit-assemble-payload-gate",
           outcomeComplete: shouldCompleteResourceAssemble(actions),
-          payloadPresent: payload !== null
+          payloadPresent: decodedPayload !== null
         }
       );
       if (!shouldCommitResourceAssemblePayloadNow(commitStepped.actions)) {
@@ -1438,7 +1453,7 @@ export class Resource {
         return;
       }
 
-      this.data = payload!;
+      this.data = decodedPayload!;
       this.applyStatus({ kind: "resource/complete" });
       this.progress = 1;
       await this.prove();
@@ -1620,4 +1635,3 @@ export class Resource {
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
-

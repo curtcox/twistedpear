@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc -b",
     "test": "vitest run",
-    "test:interop": "INTEROP=1 vitest run packages/reticulum-ts/test/interop.test.ts packages/lxmf-ts/test/interop.test.ts",
+    "test:interop": "INTEROP=1 vitest run --no-file-parallelism packages/reticulum-ts/test/interop.test.ts packages/lxmf-ts/test/interop.test.ts",
     "test:bare-smoke": "npm run build && node conformance/bare-smoke/run.mjs",
     "test:bare-runtime": "npm run build && node_modules/bare/bin/bare conformance/bare-runtime/run.mjs",
     "test:bare-benchmark": "npm run build && node conformance/bare-runtime/benchmark-node.mjs",
@@ -90,6 +90,7 @@
     "test:web-rnode": "npm run build && node conformance/web-rnode/run.mjs",
     "test:fuzz": "vitest run packages/reticulum-ts/test/fuzz.test.ts packages/lxmf-ts/test/fuzz.test.ts",
     "test:sim-campaign": "npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/miniapp-runtime --workspace=@twistedpear/sim-campaign && node conformance/sim-campaign/run.mjs",
+    "test:sim-fixed-replay": "npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/miniapp-runtime --workspace=@twistedpear/sim-campaign && node conformance/sim-campaign/fixed-replay.mjs",
     "sim:author": "npm run build --workspace=@twistedpear/sim-adversaries && node conformance/sim-author/run.mjs",
     "test:sim-authored-replay": "npm run build --workspace=@twistedpear/sim-adversaries && node conformance/sim-author/replay.mjs",
     "docs:reticulum-ts": "npm run docs --workspace=@twistedpear/reticulum-ts",

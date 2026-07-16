@@ -82,7 +82,24 @@ describe("production abuse scenario registry", () => {
       return kernel.getNodeState("service") as any;
     }));
     expect(new Set(states.map((state) => state.productionPath)).size).toBe(2);
-    expect(new Set(states.map((state) => JSON.stringify(state.effects))).size).toBeGreaterThan(1);
+    expect(new Set(states.map((state) => state.productionObservation.handler)).size).toBe(2);
+    expect(new Set(states.map((state) => state.productionObservation.storageKeys.length)).size).toBeGreaterThan(1);
+  });
+
+  it("detects a weakened shipping capability gate for every counted handler", async () => {
+    const capabilities = ["identity", "presence", "announce:publish", "lxmf:send",
+      "storage:kv", "resource:fetch", "workspace", "share:cas"] as const;
+    for (const capability of capabilities) {
+      const [cell] = coverageFrame({ capabilities: [capability], positions: ["malicious-app"], verbs: ["exfiltrate"] });
+      const id = `${capability}|malicious-app|exfiltrate`;
+      const broken = createProductionScenarioRegistry({ cells: [cell!], defectIds: new Set([id]) });
+      const brokenReport = await runCampaign({ cells: [cell!], seeds: { from: 1, to: 8 }, scenario: broken.create });
+      expect(brokenReport.canaryFindings.length, capability).toBeGreaterThan(0);
+
+      const shipping = createProductionScenarioRegistry({ cells: [cell!] });
+      const shippingReport = await runCampaign({ cells: [cell!], seeds: { from: 1, to: 8 }, scenario: shipping.create });
+      expect(shippingReport.canaryFindings, capability).toEqual([]);
+    }
   });
 
   it("records, reruns, and shrinks deliberate production projection breaks", async () => {

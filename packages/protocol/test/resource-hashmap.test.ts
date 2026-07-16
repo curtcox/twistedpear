@@ -140,7 +140,7 @@ import {
 
 describe("protocol resource hashmap", () => {
   it("computes hashmap max length like RNS", () => {
-    expect(resourceHashmapMaxLen()).toBe(Math.floor((383 - 134) / 4));
+    expect(resourceHashmapMaxLen()).toBe(Math.floor((431 - 134) / 4));
   });
 
   it("appends map hashes and trims the collision guard window", () => {

@@ -65,7 +65,7 @@ describe.runIf(interopReady())("docker interop — LXMF over TCP", () => {
       const reticulum = Reticulum.create({ provider, runtime });
       reticulum.start();
 
-      await reticulum.addTcpClientInterface({
+      const iface = await reticulum.addTcpClientInterface({
         name: "python-lxmf-echo",
         targetHost: "127.0.0.1",
         targetPort: LXMF_ECHO_PORT
@@ -97,6 +97,8 @@ describe.runIf(interopReady())("docker interop — LXMF over TCP", () => {
       });
 
       await expect(received).resolves.toBe("Hello Python LXMF");
+      await iface.close();
+      reticulum.stop();
     });
   }, 120_000);
 });

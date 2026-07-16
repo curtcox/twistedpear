@@ -78,7 +78,7 @@ describe.runIf(interopReady())("docker interop — leaf node over TCP", () => {
       const reticulum = Reticulum.create({ provider, runtime });
       reticulum.start();
 
-      await reticulum.addTcpClientInterface({
+      const iface = await reticulum.addTcpClientInterface({
         name: "python-leaf-echo",
         targetHost: "127.0.0.1",
         targetPort: LEAF_ECHO_PORT
@@ -128,6 +128,8 @@ describe.runIf(interopReady())("docker interop — leaf node over TCP", () => {
 
       await sleep(200);
       expect(receipt!.status).toBe(PacketReceiptStatus.DELIVERED);
+      await iface.close();
+      reticulum.stop();
     });
   }, 120_000);
 });
@@ -140,7 +142,7 @@ describe.runIf(interopReady())("docker interop — link over TCP", () => {
       const reticulum = Reticulum.create({ provider, runtime });
       reticulum.start();
 
-      await reticulum.addTcpClientInterface({
+      const iface = await reticulum.addTcpClientInterface({
         name: "python-link-echo",
         targetHost: "127.0.0.1",
         targetPort: LINK_ECHO_PORT
@@ -175,6 +177,9 @@ describe.runIf(interopReady())("docker interop — link over TCP", () => {
 
       await link.send(new TextEncoder().encode("link ping"));
       await expect(received).resolves.toBe("link ping");
+      await link.teardown();
+      await iface.close();
+      reticulum.stop();
     });
   }, 120_000);
 });
@@ -188,7 +193,7 @@ describe.runIf(interopReady())("docker interop — leaf node over UDP", () => {
       const reticulum = Reticulum.create({ provider, runtime });
       reticulum.start();
 
-      await reticulum.addUdpInterface({
+      const iface = await reticulum.addUdpInterface({
         name: "python-udp-echo",
         listenHost: "127.0.0.1",
         listenPort: UDP_TS_PORT,
@@ -235,6 +240,8 @@ describe.runIf(interopReady())("docker interop — leaf node over UDP", () => {
 
       expect(received.get("udp ping")).toBeDefined();
       expect(received.get("hello from python udp echo")).toBeDefined();
+      await iface.close();
+      reticulum.stop();
     });
   }, 120_000);
 });
@@ -254,7 +261,7 @@ describe.runIf(interopReady())("docker interop — Resource transfer over TCP", 
         const reticulum = Reticulum.create({ provider, runtime });
         reticulum.start();
 
-        await reticulum.addTcpClientInterface({
+        const iface = await reticulum.addTcpClientInterface({
           name: "python-resource-echo",
           targetHost: "127.0.0.1",
           targetPort: RESOURCE_ECHO_PORT
@@ -287,19 +294,27 @@ describe.runIf(interopReady())("docker interop — Resource transfer over TCP", 
 
         const expectedDigest = createHash("sha256").update(payload).digest("hex");
 
+        let outgoing: Resource | null = null;
         const received = new Promise<Uint8Array>((resolve, reject) => {
-          const timer = setTimeout(() => reject(new Error("resource echo timeout")), 120_000);
+          const timeoutMs = Number.parseInt(process.env.RESOURCE_ECHO_TIMEOUT_MS ?? "120000", 10);
+          const timer = setTimeout(
+            () => reject(new Error(`resource echo timeout (status=${outgoing?.status ?? "none"}, progress=${outgoing?.progress ?? 0})`)),
+            timeoutMs
+          );
           link.callbacks.resourceConcluded = (resource) => {
             clearTimeout(timer);
             resolve(resource.data ?? new Uint8Array(0));
           };
         });
 
-        Resource.send(link, payload, { advertise: true });
+        outgoing = Resource.send(link, payload, { advertise: true });
         const echoed = await received;
         const actualDigest = createHash("sha256").update(echoed).digest("hex");
         expect(echoed.length).toBe(size);
         expect(actualDigest).toBe(expectedDigest);
+        await link.teardown();
+        await iface.close();
+        reticulum.stop();
       });
     },
     180_000
@@ -317,7 +332,7 @@ describe.runIf(interopReady())("docker interop — Resource transfer resume", ()
       const reticulum = Reticulum.create({ provider, runtime });
       reticulum.start();
 
-      await reticulum.addTcpClientInterface({
+      const iface = await reticulum.addTcpClientInterface({
         name: "python-resource-echo",
         targetHost: "127.0.0.1",
         targetPort: RESOURCE_ECHO_PORT,
@@ -377,6 +392,9 @@ describe.runIf(interopReady())("docker interop — Resource transfer resume", ()
       const actualDigest = createHash("sha256").update(echoed).digest("hex");
       expect(echoed.length).toBe(flapSize);
       expect(actualDigest).toBe(expectedDigest);
+      await link.teardown();
+      await iface.close();
+      reticulum.stop();
     } finally {
       composeDown();
     }

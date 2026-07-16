@@ -54,7 +54,8 @@ def main() -> int:
     print(f"READY {inbound.hash.hex()}", flush=True)
 
     while True:
-        time.sleep(1)
+        time.sleep(2)
+        inbound.announce()
 
 
 if __name__ == "__main__":

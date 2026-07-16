@@ -4,12 +4,12 @@ Re-audited on 2026-07-16 against the source, tests, generated campaign report, f
 CI workflows. This is the short, authoritative status record. Detailed sequencing and acceptance
 criteria are in [simulation-outstanding-work-plan.md](simulation-outstanding-work-plan.md).
 
-The deterministic simulation substrate is implemented and its current checks are green. The work
-is **not complete end to end**, however: several campaign and historical scenarios still use
-simulation-specific service/target machines while describing them as production paths. Those
-models are useful for exercising transport, scheduling, recording, shrinking, and formal
-machinery, but they do not yet establish that the corresponding shipping broker and services
-behave the same way.
+The deterministic simulation substrate and the repository work needed to exercise shipping
+capability and historical-policy paths are implemented. Provisioned Python interop and a local
+macOS/Linux-container fixed-corpus comparison now pass. The remaining boundary is external
+evidence: the newly required cross-runner jobs must complete in CI, and BLE/LoRa physical-layer
+calibration still requires guarded hardware or independently recorded deployment traces. Numerical
+physical-layer claims remain out of scope until that evidence exists.
 
 ---
 
@@ -24,50 +24,29 @@ behave the same way.
 
 No remaining work is known for the stated grant-lifecycle acceptance criteria.
 
-## R2 — Run coverage cells through shipping capability behavior — open
-
-Implemented:
+## R2 — Run coverage cells through shipping capability behavior — complete
 
 - The 200-cell campaign is deterministic, records reviewed metadata, enforces modeled Dolev–Yao
   powers, varies transport behavior, and rejects explicitly unsupported cells.
 - Grant-host and link-handshake protocol machines execute in the campaign.
 - Canary discovery depends on scheduled events and transport timing.
+- `ProductionCapabilityAdapter` executes each counted operation through `MiniappHost`, its shipping
+  broker registration, `GrantStore`, and deterministic service backends.
+- Service nodes authorize from production observations rather than copied `GrantHostState` or
+  campaign-owned effect/storage counters.
+- All eight counted handlers have negative controls proving a weakened shipping capability gate is
+  detected while the unmodified handler remains clean.
 
-Remaining:
-
-- `packages/sim-campaign/src/scenarios.ts::serviceStep` is a campaign-specific state machine. Its
-  `productionPath`, `capabilityEffect`, broker counters, storage ids, and egress entries model the
-  expected shipping behavior; they do not invoke `MiniappBroker`, `MiniappHost`, or the actual
-  capability-specific service implementations.
-- Replace those modeled branches with deterministic adapters around the shipping capability gate,
-  broker registration/dispatch, and relevant service backends. A counted cell must execute the
-  named production operation, not only record its name and increment an effect counter.
-- Persist authority through a simulated implementation of the real `GrantStore` storage contract
-  instead of initializing and copying `GrantHostState` directly between campaign nodes.
-- Add per-capability negative tests proving that weakening the named shipping handler changes the
-  campaign result. Metadata-only variation must not count as behavioral coverage.
-
-## R3 — Establish the historical-replay accuracy floor — open
-
-Implemented:
+## R3 — Establish the historical-replay accuracy floor — complete for named shipping policies
 
 - Historical fixtures are classified as expressible or explicitly out of model.
 - Expected outcomes are assertions rather than inputs to the target state.
 - The fuzz tier uses replayable kernel entropy, records a typed failure, shrinks it, and has a
   committed model-free reproducer.
-
-Remaining:
-
-- Expressible historical fixtures currently execute against
-  `packages/sim-adversaries/src/accuracy.ts::historicalTargetStep`, a compact target-specific test
-  machine. It does not call the shipping broker rate limiter, link-handshake replay handling,
-  production grant enforcement, key-share policy, or federation policy.
-- Build adapters for each named production target and replay the fixtures through those adapters.
-  Keep expected outcomes assertion-only.
-- Add one policy-drift negative test per target family. The current negative check weakens only the
-  synthetic broker target.
-- Until this is done, the historical suite demonstrates replay infrastructure, not an empirical
-  accuracy floor for the shipping system.
+- Expressible fixtures now reach the shipping broker limiter, link-handshake replay transition, and
+  persisted `GrantStore` enforcement. Key-share and federation cases are explicitly out of model
+  because no corresponding shipping product path exists yet.
+- Expected outcomes remain assertion-only, and one drift negative test covers each target family.
 
 ## R4 — Make escrow/recovery adversarial schedules effective — complete for simulator scope
 
@@ -91,67 +70,72 @@ These are deliberately synthetic social/economic models, not production-fidelity
 using their numerical outputs as product thresholds, calibrate transport costs and behavior against
 real deployments or guarded hardware tests, and document the calibration data and tolerances.
 
-## R6 — Project shipping storage and authority into global oracles — open
-
-Implemented:
+## R6 — Project shipping storage and authority into global oracles — complete
 
 - Grant-coverage, id-uniqueness, and revocation-monotonicity oracles are reusable and independently
   project storage, lifecycle, identity, and access observations.
-- Deliberate campaign-state breaks trip, rerun, and shrink each oracle.
+- Deliberate adapter-boundary breaks trip, rerun, and shrink each oracle.
+- Storage objects, persisted lifecycle authority, identities, and allowed access times are projected
+  independently from the runtime storage backend, `GrantStore`, identity backend, and broker audit.
 
-Remaining:
-
-- Current projections read fields maintained by the campaign-specific `serviceStep`; they do not
-  read an adapter over the shipping grant store, storage backend, audit/egress log, or host state.
-- Introduce a world-view adapter backed by the same storage and authority interfaces used by
-  `MiniappHost`, then rerun the three clean and three deliberate-break cases through it.
-- Prove the projections cannot hide an inconsistency by deriving storage, authority, identities,
-  and access observations from independent production-backed sources.
-
-## R7 — Complete the model-authored attacker loop — open
-
-Implemented:
+## R7 — Complete the model-authored attacker loop — complete
 
 - `sim:author` can invoke an external model command, validate its JSON proposals, and reject powers
   outside the modeled position.
-- Tests with a stub model cover authoring, compilation, execution, shrinking, and model-free replay.
+- Accepted CLI strategies execute immediately; typed findings are recorded and shrunk, and the CLI
+  can emit a model-free regression fixture.
+- A real local `ollama qwen2.5-coder:7b` run, its prompt context/raw proposal, accepted lowering,
+  finding, and two-event minimized replay are committed under `conformance/sim-author/`.
+- Required CI replays the fixture without a model or network call.
 
-Remaining:
+## R8 — Close reproducibility and external-conformance gaps — local software evidence complete; hardware evidence open
 
-- The CLI currently stops after writing compiled strategies. Connect accepted strategies to the
-  campaign runner, automatically record/shrink findings, and emit a model-free regression fixture.
-- Check in provenance for at least one real model-authored run (model/tool version, prompt context,
-  accepted proposal, compiled deterministic scenario, and minimized replay). Replay must require no
-  model or network access.
-- Keep live model execution optional; deterministic regression replay belongs in required CI.
-
-## R8 — Close reproducibility and external-conformance gaps — open
-
-- Make vector generation non-destructive when Python RNS is unavailable. Currently
-  `npm run vectors:generate` warns and can rewrite `packet.json` without its RNS-generated announce
-  vectors. Generation should either preserve those sections or fail before changing tracked files.
-- Run the optional seven Python interop tests in a provisioned CI job and retain the versioned
-  result. Their skip is accurately reported below and must not be described as a fresh interop pass.
-- Add a macOS/Linux byte-identical simulation replay check; the current campaign workflow runs on
-  Ubuntu only, while local validation covered one macOS environment.
-- Calibrate BLE/LoRa models against guarded hardware or recorded traces before making physical-layer
-  accuracy claims.
+- Vector generation computes optional corpora before tracked replacements and preserves RNS-only
+  vectors when Python RNS is unavailable. Local no-RNS generation left packet, identity, and LXMF
+  vectors byte-identical.
+- CI now provisions pinned Python RNS 0.9.5/LXMF 0.7.0 peers, runs the seven interop tests, records
+  exact dependency versions, and retains that record as an artifact.
+- The provisioned peers pass all seven scenarios locally, including 1 MiB resource integrity,
+  pause/unpause resume, compressed Python resource reception, and opportunistic LXMF. Exact local
+  evidence is retained in `conformance/python-interop-result.json`.
+- A fixed 400-scenario production-backed corpus runs on Linux and macOS; a dependent CI job compares
+  the serialized reports byte-for-byte.
+- The fixed corpus is byte-identical on the macOS host and a Linux Node 22 container with SHA-256
+  `fa95084a8ca4fe5a985cbddf437262f1971604e3ec0ea2082a74b5f023ba0288`.
+- The first run of the new cross-runner CI gates is external evidence and is not claimed by this
+  local record.
+- BLE/LoRa calibration remains hardware-gated. Simulator results must not be described as
+  physical-layer accuracy until guarded traces and tolerances are versioned.
 
 ---
 
-## Validation reproduced on 2026-07-16
+## Validation reproduced locally on 2026-07-16
 
-- `npm test`: 1,125 passed; 7 optional interop tests skipped.
+- Environment: macOS 26.5.2 (25F84), Node 26.5.0, npm 11.17.0, Python 3.14.6.
+- `npm test`: 1,127 passed; 7 optional interop tests skipped. Localhost tests required running
+  outside the filesystem/network sandbox; the initial sandboxed run failed only with listener EPERM.
 - `npm run sansio`: all fences and canaries passed; 684 deterministic tests passed.
 - `npm run test:sim-campaign`: 2,000 deterministic scenarios over 200 registered cells; 142 canary
   findings; zero genuine findings; conservative canary-recapture floor 0.862; byte-identical local
   rerun; containment baselines passed.
+- `npm run test:sim-fixed-replay` twice: 400 production-backed scenarios per run; serialized outputs
+  compared byte-identically.
+- Fixed replay on macOS and Linux Node 22 container: identical SHA-256
+  `fa95084a8ca4fe5a985cbddf437262f1971604e3ec0ea2082a74b5f023ba0288`.
+- `npm run test:interop`: 7/7 passed in 55.16 s against Linux/arm64 Python 3.12.13,
+  RNS 0.9.5, and LXMF 0.7.0. The gate includes 1 KiB and 1 MiB resource round trips,
+  an interrupted 1 MiB resume, and LXMF.
+- `npm run test:sim-authored-replay`: committed two-event model-authored reproducer replayed without
+  a model or network.
+- No-RNS `conformance/vectors/generate.py`: RNS-dependent packet, identity, and LXMF vectors retained
+  their exact SHA-256 hashes.
 - `npm run formal:all`: grant, escrow, and recovery table/model/vector relations passed.
 - TLC: grant (6 states), escrow (9 states), and recovery (29 states) completed with no error.
 - Tamarin 1.12.0: all six declared lemmas passed twice.
 - ProVerif 2.05: all five declared queries passed.
 - `npm run lint` and the symbolic-model inventory passed.
 
-These results validate the deterministic machinery, registered model, and formal relations. They
-do **not** close R2, R3, R6, R7, or R8, and zero findings must not be interpreted as zero shipping
-abuse defects.
+These results validate the deterministic machinery, production-backed registered paths, historical
+policy adapters, authored replay, provisioned Python interop, local macOS/Linux-container replay
+parity, and formal relations. They do not constitute a completed Linux/macOS hosted-runner CI
+comparison, BLE/LoRa calibration, or evidence of zero shipping abuse defects.

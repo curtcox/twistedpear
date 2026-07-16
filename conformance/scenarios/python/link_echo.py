@@ -33,7 +33,7 @@ def main() -> int:
 
     def link_established(link: RNS.Link) -> None:
         def packet_handler(data: bytes, packet: RNS.Packet) -> None:
-            link.send(data)
+            RNS.Packet(link, data).send()
 
         link.set_packet_callback(packet_handler)
 
@@ -42,7 +42,8 @@ def main() -> int:
     print(f"READY {inbound.hash.hex()}", flush=True)
 
     while True:
-        time.sleep(1)
+        time.sleep(2)
+        inbound.announce()
 
 
 if __name__ == "__main__":

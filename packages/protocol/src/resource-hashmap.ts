@@ -32,7 +32,8 @@ export const RESOURCE_HASH_SIZE = 32;
 export const RESOURCE_HASHMAP_IS_NOT_EXHAUSTED = 0x00;
 export const RESOURCE_HASHMAP_IS_EXHAUSTED = 0xff;
 export const RESOURCE_ADVERTISEMENT_OVERHEAD = 134;
-export const RESOURCE_HASHMAP_MDU = 383;
+/** RNS Link.MDU used for resource advertisements (RNS 0.9.5: 431 bytes). */
+export const RESOURCE_HASHMAP_MDU = 431;
 
 export function resourceHashmapMaxLen(
   overhead: number = RESOURCE_ADVERTISEMENT_OVERHEAD,

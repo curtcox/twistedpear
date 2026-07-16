@@ -18,6 +18,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - run: npm run test:sim-authored-replay
 
   sansio:
     runs-on: ubuntu-latest
@@ -39,6 +40,40 @@ jobs:
             sansio-canary.json
             dependency-graph.json
           if-no-files-found: warn
+
+  simulation-replay:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run test:sim-fixed-replay -- conformance/sim-campaign/artifacts/fixed-replay.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sim-fixed-replay-${{ matrix.os }}
+          path: conformance/sim-campaign/artifacts/fixed-replay.json
+          if-no-files-found: error
+
+  simulation-replay-compare:
+    needs: simulation-replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sim-fixed-replay-ubuntu-latest
+          path: replay/ubuntu
+      - uses: actions/download-artifact@v4
+        with:
+          name: sim-fixed-replay-macos-15
+          path: replay/macos
+      - name: Compare Linux and macOS replay bytes
+        run: cmp replay/ubuntu/fixed-replay.json replay/macos/fixed-replay.json
 
   formal:
     runs-on: ubuntu-latest
@@ -379,6 +414,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: Provision pinned Python interop peers
+        run: docker compose -f conformance/docker/docker-compose.yml build leaf-echo lxmf-echo link-echo udp-echo resource-echo
+      - name: Record Python interop dependency versions
+        run: docker compose -f conformance/docker/docker-compose.yml run --rm --no-deps leaf-echo python -c "import importlib.metadata as m; print('rns=' + m.version('rns')); print('lxmf=' + m.version('lxmf'))" > python-interop-versions.txt
       - run: INTEROP=1 LINK_BENCHMARK_RECORD=1 npm run test:link-benchmark
       - uses: actions/upload-artifact@v4
         if: success()
@@ -386,6 +425,12 @@ jobs:
           name: link-benchmark-measured
           path: conformance/link-benchmark/measured.json
       - run: npm run test:interop
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-interop-versions
+          path: python-interop-versions.txt
+          if-no-files-found: error
       - run: INTEROP=1 npm run test:web-interop
       - run: npx playwright install chromium --with-deps
       - run: INTEROP=1 npm run test:web-interop-browser

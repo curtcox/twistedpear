@@ -65,11 +65,8 @@ export const HISTORICAL_REPLAY_FIXTURES: readonly HistoricalReplayFixture[] = [
     reference: "https://matrix.org/blog/2021/09/13/vulnerability-disclosure-key-sharing/",
     attackClass: "device impersonation and key disclosure",
     name: "impersonated-device-key-request",
-    expressible: true,
-    target: "key-share", expectedOutcome: "untrusted-device-rejected",
-    proposal: { name: "impersonated-device-key-request", actions: [
-      { power: "inject", source: "malicious-homeserver", destination: "client", channel: "key-share", payload: new Uint8Array([0x72, 0x65, 0x71]) }
-    ] }
+    expressible: false,
+    reason: "TwistedPear has no shipping device-key-share ingress policy to adapt yet"
   },
   {
     source: "Mastodon GHSA-c2r5-cfqr-c553",
@@ -84,11 +81,7 @@ export const HISTORICAL_REPLAY_FIXTURES: readonly HistoricalReplayFixture[] = [
     reference: "https://github.com/matrix-org/synapse/security/advisories/GHSA-5chr-wjw5-3gq4",
     attackClass: "malicious federation event denial of service",
     name: "malicious-server-acl-event",
-    expressible: true,
-    target: "federation", expectedOutcome: "malicious-acl-contained",
-    proposal: { name: "malicious-server-acl-event", actions: [
-      { power: "inject", source: "malicious-relay", destination: "host", channel: "federation", payload: new Uint8Array([0x61, 0x63, 0x6c]) },
-      { power: "duplicate", source: "malicious-relay", destination: "host" }
-    ] }
+    expressible: false,
+    reason: "TwistedPear has no shipping federation ACL event path to adapt yet"
   }
 ];

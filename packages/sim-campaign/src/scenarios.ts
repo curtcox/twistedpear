@@ -27,7 +27,6 @@ import {
   type AdversaryState
 } from "@twistedpear/sim-adversaries";
 import {
-  assertCapabilityAllowed,
   ProductionCapabilityAdapter,
   type ProductionCapabilityObservation
 } from "@twistedpear/miniapp-runtime";
@@ -66,19 +65,13 @@ type CampaignNodeState =
     }
   | {
       readonly role: "service";
-      readonly grant: GrantHostState;
       readonly revokedAt: number | null;
       readonly severedAt: number | null;
-      readonly accessTimesByGrant: Readonly<Record<string, readonly number[]>>;
-      readonly storedBlobIds: readonly string[];
       readonly egress: readonly EgressEvent[];
       readonly damageEvents: readonly number[];
       readonly operationSemantics: readonly string[];
       readonly oracleBreak: "grant-coverage" | "id-uniqueness" | "revocation-monotonicity" | null;
       readonly productionPath: string;
-      readonly effects: Readonly<Record<string, number>>;
-      readonly brokerAllowed: number;
-      readonly brokerDenied: number;
       readonly productionObservation: ProductionCapabilityObservation | null;
     }
   | { readonly role: "handshake"; readonly handshake: LinkHandshakeState }
@@ -154,7 +147,8 @@ function productionScenario(
   const adapter = new ProductionCapabilityAdapter(
     "campaign-app", `publisher-${cell.capability}`, options.defectivePolicy
   );
-  let productionObservation: ProductionCapabilityObservation | null = null;
+  let grantedObservation: ProductionCapabilityObservation | null = null;
+  let revokedObservation: ProductionCapabilityObservation | null = null;
 
   const authorityInitial = stepGrant(
     initialGrantHostState("campaign-app", `publisher-${cell.capability}`),
@@ -207,22 +201,16 @@ function productionScenario(
       machine: productionPathFor(cell.capability),
       initial: {
         role: "service" as const,
-        grant: initialGrantHostState("campaign-app", `publisher-${cell.capability}`),
         revokedAt: null,
         severedAt: null,
-        accessTimesByGrant: {},
-        storedBlobIds: [],
         egress: [],
         damageEvents: [],
         operationSemantics: [],
         oracleBreak: options.oracleBreak,
         productionPath: productionPathFor(cell.capability),
-        effects: {},
-        brokerAllowed: 0,
-        brokerDenied: 0,
         productionObservation: null
       },
-      step: serviceStep(cell, options.defectivePolicy, () => productionObservation)
+      step: serviceStep(cell, options.defectivePolicy, () => ({ grantedObservation, revokedObservation }))
     },
     {
       id: "z-adversary",
@@ -248,11 +236,11 @@ function productionScenario(
   return {
     prepare: async () => {
       await adapter.grant(cell.capability, GRANT_AT);
-      productionObservation = await adapter.execute(cell.capability, ATTACK_AT);
+      grantedObservation = await adapter.execute(cell.capability, ATTACK_AT);
       await adapter.revoke(cell.capability, REVOCATION_AT);
-      productionObservation = await adapter.snapshot(productionObservation.handler, productionObservation.response);
-      if (!productionObservation.response.ok) {
-        throw new Error(`production handler failed for ${id}: ${productionObservation.response.error?.message}`);
+      revokedObservation = await adapter.snapshot(grantedObservation.handler, grantedObservation.response);
+      if (!grantedObservation.response.ok) {
+        throw new Error(`production handler failed for ${id}: ${grantedObservation.response.error?.message}`);
       }
     },
     config: {
@@ -332,67 +320,47 @@ function authorityStep(capability: string): StepFn<CampaignNodeState> {
 function serviceStep(
   cell: CoverageCell,
   defectivePolicy: boolean,
-  observation: () => ProductionCapabilityObservation | null
+  observations: () => {
+    readonly grantedObservation: ProductionCapabilityObservation | null;
+    readonly revokedObservation: ProductionCapabilityObservation | null;
+  }
 ): StepFn<CampaignNodeState> {
   return (state, event) => {
     if (state.role !== "service") return { state, intents: [] };
     if (event.kind === "start") return { state, intents: [] };
     if (event.kind !== "transport/recv") return { state, intents: [] };
     if (event.channel === "control/grant") {
-      const production = observation();
+      const production = observations().grantedObservation;
       if (production === null || !production.response.ok) return { state, intents: [] };
-      const stepped = stepGrant(state.grant, { kind: "grant/set", at: event.at,
-        declared: [cell.capability], requested: [cell.capability], ttlMs: REVOCATION_AT * 2 });
-      return { state: { ...state, grant: stepped.state, productionObservation: production }, intents: stepped.intents };
+      return { state: { ...state, productionObservation: production }, intents: [] };
     }
     if (event.channel === "control/revoke") {
-      const stepped = stepGrant(state.grant, { kind: "grant/revoke", at: event.at, capability: cell.capability });
-      const grantId = `${cell.capability}-grant`;
-      return { state: { ...state, grant: stepped.state, revokedAt: event.at,
-        productionObservation: observation() ?? state.productionObservation,
-        storedBlobIds: state.oracleBreak === "grant-coverage" ? state.storedBlobIds
-          : state.storedBlobIds.filter((id) => id !== grantId),
-        accessTimesByGrant: state.oracleBreak === "revocation-monotonicity"
-          ? { ...state.accessTimesByGrant,
-              [grantId]: [...(state.accessTimesByGrant[grantId] ?? []), event.at + 1] }
-          : state.accessTimesByGrant }, intents: stepped.intents };
+      return { state: { ...state, revokedAt: event.at,
+        productionObservation: observations().revokedObservation ?? state.productionObservation }, intents: [] };
     }
     if (event.channel === "control/kill") return { state: { ...state, severedAt: event.at }, intents: [] };
     if (event.channel === "protocol/availability" && state.severedAt === null) {
-      const lifecycle = state.grant.lifecycles?.[cell.capability];
+      const lifecycle = state.productionObservation?.authority[cell.capability];
       if (lifecycle?.phase !== "granted" && lifecycle?.phase !== "active") return { state, intents: [] };
-      const brokerAllowed = capabilityGateAllows(state, cell.capability);
-      if (!brokerAllowed) return { state: { ...state, brokerDenied: state.brokerDenied + 1 }, intents: [] };
-      const stepped = lifecycle.phase === "granted"
-        ? stepGrant(state.grant, { kind: "grant/first-use", at: event.at, capability: cell.capability })
-        : { state: state.grant, intents: [] };
+      if (!state.productionObservation?.response.ok) return { state, intents: [] };
       const grantId = `${cell.capability}-grant`;
-      return { state: { ...state, grant: stepped.state,
-        accessTimesByGrant: { ...state.accessTimesByGrant,
-          [grantId]: [...(state.accessTimesByGrant[grantId] ?? []), event.at] },
-        storedBlobIds: [...new Set([...state.storedBlobIds, grantId])],
+      return { state: { ...state,
         egress: [...state.egress, { at: event.at, appId: "campaign-app",
           grantId, peerId: "probe" }],
-        operationSemantics: [...state.operationSemantics, `${cell.capability}:legitimate-use`],
-        effects: productionEffects(state.productionObservation),
-        brokerAllowed: state.brokerAllowed + 1 }, intents: stepped.intents };
+        operationSemantics: [...state.operationSemantics, `${cell.capability}:legitimate-use`] }, intents: [] };
     }
     if (!event.channel.startsWith("abuse/") || state.severedAt !== null) return { state, intents: [] };
-    const lifecycle = state.grant.lifecycles?.[cell.capability];
+    const lifecycle = state.productionObservation?.authority[cell.capability];
     const authorized = lifecycle?.phase === "granted" || lifecycle?.phase === "active";
     // Each defect variant removes one phase-specific guard. Whether it is reached depends on
     // the race between the real availability use and the adversarial payload over this transport.
     const attackSuppressesUse = cell.abuse.verb === "deny" || cell.position === "compromised-host";
     const requiresActive = !attackSuppressesUse && (stableHash(cellId(cell)) & 1) === 0;
+    const scheduledUseObserved = state.operationSemantics.includes(`${cell.capability}:legitimate-use`);
     const defectReached = defectivePolicy && state.productionObservation?.negativeControlRejected === false &&
       event.payload[0] === (stableHash(cellId(cell)) & 0xff) &&
-      (requiresActive ? lifecycle?.phase === "active" : lifecycle?.phase === "granted");
-    if (!authorized || !capabilityGateAllows(state, cell.capability) || !defectReached) {
-      return { state: { ...state, brokerDenied: state.brokerDenied + 1 }, intents: [] };
-    }
-    const stepped = lifecycle?.phase === "granted"
-      ? stepGrant(state.grant, { kind: "grant/first-use", at: event.at, capability: cell.capability })
-      : { state: state.grant, intents: [] };
+      (requiresActive ? scheduledUseObserved : !scheduledUseObserved);
+    if (!authorized || !state.productionObservation?.response.ok || !defectReached) return { state, intents: [] };
     const egress: EgressEvent = {
       at: event.at,
       appId: "campaign-app",
@@ -402,31 +370,14 @@ function serviceStep(
     return {
       state: {
         ...state,
-        grant: stepped.state,
-        accessTimesByGrant: { ...state.accessTimesByGrant,
-          [egress.grantId]: [...(state.accessTimesByGrant[egress.grantId] ?? []), event.at] },
-        storedBlobIds: [...new Set([...state.storedBlobIds, egress.grantId])],
         egress: [...state.egress, egress],
         damageEvents: [...state.damageEvents, event.at],
-        effects: increment(increment(state.effects, capabilityEffect(cell.capability)), abuseEffect(cell.abuse.verb)),
         operationSemantics: [...state.operationSemantics,
           `${cell.capability}:${cell.position}:${cell.abuse.verb}`,
-          ...(defectivePolicy ? [`defect:${cellId(cell)}`] : [])],
-        brokerAllowed: state.brokerAllowed + 1
+          ...(defectivePolicy ? [`defect:${cellId(cell)}`] : [])]
       },
-      intents: stepped.intents
+      intents: []
     };
-  };
-}
-
-function productionEffects(observation: ProductionCapabilityObservation | null): Readonly<Record<string, number>> {
-  if (observation === null) return {};
-  return {
-    handlerResults: observation.response.ok ? 1 : 0,
-    storageObjects: observation.storageKeys.length,
-    identities: observation.identityIds.length,
-    auditedAccesses: observation.audit.filter((entry) => entry.allowed).length,
-    egressEvents: observation.egress.length
   };
 }
 
@@ -557,25 +508,6 @@ function abuseEffect(verb: AbuseVerb): string {
   return "correlationLinks";
 }
 
-function increment(values: Readonly<Record<string, number>>, key: string): Readonly<Record<string, number>> {
-  return { ...values, [key]: (values[key] ?? 0) + 1 };
-}
-
-function capabilityGateAllows(
-  state: Extract<CampaignNodeState, { role: "service" }>,
-  capability: CoverageCell["capability"]
-): boolean {
-  try {
-    assertCapabilityAllowed({
-      capability,
-      declared: [capability],
-      granted: state.grant.record?.granted ?? []
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function powersForPosition(position: AttackerPosition): readonly DolevYaoPower[] {
   if (position === "malicious-app") return ["inject"];

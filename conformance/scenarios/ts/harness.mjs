@@ -125,14 +125,21 @@ export async function waitForReadyLine(service, timeoutMs = 30_000) {
 
 export async function withComposeService(service, port, run) {
   const startedCompose = tryComposeUp(service);
-  if (!startedCompose && !(await isTcpReady("127.0.0.1", port))) {
+  const udpOnly = service === "udp-echo";
+  if (!startedCompose && (udpOnly || !(await isTcpReady("127.0.0.1", port)))) {
     throw new Error(`Failed to start ${service} and no peer is listening on 127.0.0.1:${port}`);
   }
 
-  await waitForTcp("127.0.0.1", port);
+  if (udpOnly) await waitForReadyLine(service);
+  else await waitForTcp("127.0.0.1", port);
 
   try {
     return await run();
+  } catch (error) {
+    if (startedCompose) {
+      console.error(`Interop peer logs for ${service}:\n${composeLogs(service, 100)}`);
+    }
+    throw error;
   } finally {
     if (startedCompose) {
       composeDown();

@@ -1,4 +1,4 @@
-/** Shipping policy for one-use bearer authority. */
+/** Standalone one-use bearer primitive; not a MiniappHost integration. */
 export class BearerReplayPolicy {
   private readonly consumed = new Set<string>();
   use(tokenId: string): "accepted" | "replay-rejected" {
@@ -8,7 +8,7 @@ export class BearerReplayPolicy {
   }
 }
 
-/** Shipping policy for device-bound recovery/key-share requests. */
+/** Standalone key-share policy primitive; no shipping key-share ingress exists yet. */
 export class KeySharePolicy {
   constructor(private readonly trustedDeviceIds: ReadonlySet<string>) {}
   authorize(deviceId: string): "accepted" | "untrusted-device-rejected" {
@@ -16,7 +16,7 @@ export class KeySharePolicy {
   }
 }
 
-/** Shipping ingress policy for federation control events. */
+/** Standalone federation policy primitive; no shipping federation ingress exists yet. */
 export class FederationPolicy {
   constructor(private readonly trustedPeers: ReadonlySet<string>) {}
   authorize(peerId: string): "accepted" | "malicious-acl-contained" {

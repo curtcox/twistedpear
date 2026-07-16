@@ -25,26 +25,35 @@ def main() -> int:
     reticulum = RNS.Reticulum(str(CONFIG_DIR))
 
     identity = load_identity("bob")
-    router = LXMF.LXMRouter()
+    alice_identity = load_identity("alice")
+    router = LXMF.LXMRouter(storagepath="/tmp/lxmf-echo")
     delivery_destination = router.register_delivery_identity(identity)
+    alice_destination = RNS.Destination(
+        alice_identity,
+        RNS.Destination.OUT,
+        RNS.Destination.SINGLE,
+        APP_NAME,
+        DELIVERY_ASPECT,
+    )
 
     def delivery_callback(message: LXMF.LXMessage) -> None:
         reply = LXMF.LXMessage(
-            message.source,
+            alice_destination,
             delivery_destination,
             message.content,
             message.title,
             desired_method=LXMF.LXMessage.OPPORTUNISTIC,
         )
         reply.defer_stamp = True
-        reply.send()
+        router.handle_outbound(reply)
 
     router.register_delivery_callback(delivery_callback)
     delivery_destination.announce()
     print(f"READY {delivery_destination.hash.hex()}", flush=True)
 
     while True:
-        time.sleep(1)
+        time.sleep(2)
+        delivery_destination.announce()
 
 
 if __name__ == "__main__":
