@@ -7,6 +7,12 @@
 import { interpret, type Event, type EventClass, type Intent, type Machine, type StepFn } from "@twistedpear/effects";
 import { initialGrantParserState, stepGrantParser, type GrantParserToken } from "./grant-parser-machine.js";
 import { migrateLegacyGrantRecord } from "./grant-storage-migration.js";
+import {
+  initialGrantLifecycleState,
+  stepGrantLifecycle,
+  type GrantLifecycleEvent,
+  type GrantLifecycleState
+} from "./grant-machine.js";
 import { utf8Decode, utf8Encode } from "./utf8.js";
 
 export class InvalidGrantRecordError extends Error {
@@ -28,6 +34,8 @@ export interface GrantHostState {
   readonly publisherPublicKey: string;
   readonly record: GrantRecord | null;
   readonly lastError: string | null;
+  /** The formally checked lifecycle table is the authority for every capability. */
+  readonly lifecycles?: Readonly<Record<string, GrantLifecycleState>>;
 }
 
 export type GrantEvent =
@@ -37,15 +45,19 @@ export type GrantEvent =
       readonly at: number;
       readonly declared: readonly string[];
       readonly requested: readonly string[];
+      readonly ttlMs?: number;
     }
-  | { readonly kind: "grant/revoke"; readonly at: number; readonly capability: string };
+  | { readonly kind: "grant/revoke"; readonly at: number; readonly capability: string }
+  | { readonly kind: "grant/deny"; readonly at: number; readonly capability: string }
+  | { readonly kind: "grant/first-use"; readonly at: number; readonly capability: string }
+  | { readonly kind: "grant/ttl"; readonly at: number; readonly capability: string };
 
 export function grantStoreKey(appId: string, publisherPublicKey: string): string {
   return `miniapp-grants:${publisherPublicKey}:${appId}`;
 }
 
 export function initialGrantHostState(appId: string, publisherPublicKey: string): GrantHostState {
-  return { appId, publisherPublicKey, record: null, lastError: null };
+  return { appId, publisherPublicKey, record: null, lastError: null, lifecycles: {} };
 }
 
 const hostStart: EventClass<GrantEvent> = {
@@ -106,8 +118,65 @@ export const grantHostMachine: Machine<GrantHostState, GrantEvent> = {
 };
 
 const interpretedGrantHost = interpret(grantHostMachine);
-export const stepGrantHost: StepFn<GrantHostState> = (state, event) =>
-  interpretedGrantHost(state, event as GrantEvent);
+export const stepGrantHost: StepFn<GrantHostState> = (state, rawEvent) => {
+  const event = rawEvent as GrantEvent;
+  if (event.kind === "grant/set") {
+    const approved = new Map<string, GrantLifecycleState>();
+    for (const capability of event.requested) {
+      const current = state.lifecycles?.[capability] ?? initialGrantLifecycleState(event.at);
+      const next = stepGrantLifecycle(current, {
+        kind: "grant/approve", at: event.at,
+        ttlMs: event.ttlMs ?? Number.MAX_SAFE_INTEGER - event.at
+      }).state;
+      if (state.lifecycles?.[capability] !== undefined && next === current) return { state, intents: [] };
+      approved.set(capability, next);
+    }
+    const stepped = interpretedGrantHost(state, event);
+    if (stepped.state.lastError !== null) return stepped;
+    const lifecycles = { ...stepped.state.lifecycles };
+    for (const [capability, lifecycle] of approved) lifecycles[capability] = lifecycle;
+    return { ...stepped, state: { ...stepped.state, lifecycles } };
+  }
+  if (event.kind === "grant/revoke" || event.kind === "grant/deny" ||
+      event.kind === "grant/first-use" || event.kind === "grant/ttl") {
+    return stepLifecycleHostEvent(state, event);
+  }
+  return interpretedGrantHost(state, event);
+};
+
+function stepLifecycleHostEvent(
+  state: GrantHostState,
+  event: Extract<GrantEvent, { capability: string }>
+): ReturnType<StepFn<GrantHostState>> {
+  const explicit = state.lifecycles?.[event.capability];
+  const current = explicit ?? (state.record?.granted.includes(event.capability) === true
+    ? { ...initialGrantLifecycleState(state.record.updatedAt), phase: "granted" as const,
+        expiresAt: Number.MAX_SAFE_INTEGER }
+    : undefined);
+  if (current === undefined) {
+    if (event.kind !== "grant/deny") return { state, intents: [] };
+    const requested = initialGrantLifecycleState(event.at);
+    const lifecycle = stepGrantLifecycle(requested, lifecycleEvent(event)).state;
+    return { state: { ...state, lifecycles: { ...state.lifecycles, [event.capability]: lifecycle } }, intents: [] };
+  }
+  const lifecycle = stepGrantLifecycle(current, lifecycleEvent(event)).state;
+  if (lifecycle === current) return { state, intents: [] };
+  const next = { ...state, lifecycles: { ...state.lifecycles, [event.capability]: lifecycle } };
+  if (event.kind !== "grant/revoke" && event.kind !== "grant/ttl") return { state: next, intents: [] };
+  const persisted = interpretedGrantHost(next, {
+    kind: "grant/revoke", at: event.at, capability: event.capability
+  });
+  return persisted;
+}
+
+function lifecycleEvent(
+  event: Extract<GrantEvent, { capability: string }>
+): GrantLifecycleEvent {
+  if (event.kind === "grant/revoke") return { kind: "grant/revoke", at: event.at };
+  if (event.kind === "grant/deny") return { kind: "grant/deny", at: event.at };
+  if (event.kind === "grant/first-use") return { kind: "grant/first-use", at: event.at };
+  return { kind: "grant/ttl", at: event.at };
+}
 
 function loadGrantRecord(state: GrantHostState, event: GrantEvent): GrantHostState {
   if (event.kind === "store/value") {
@@ -145,7 +214,11 @@ function loadGrantRecord(state: GrantHostState, event: GrantEvent): GrantHostSta
     if (record.appId !== state.appId || record.publisherPublicKey !== state.publisherPublicKey) {
       return { ...state, lastError: "grant record identity mismatch" };
     }
-    return { ...state, record, lastError: null };
+    const lifecycles = Object.fromEntries(record.granted.map((capability) => [
+      capability,
+      { ...initialGrantLifecycleState(record.updatedAt), phase: "granted" as const, expiresAt: Number.MAX_SAFE_INTEGER }
+    ]));
+    return { ...state, record, lastError: null, lifecycles };
   }
   return state;
 }

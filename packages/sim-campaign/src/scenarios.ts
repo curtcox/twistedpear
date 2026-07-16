@@ -5,6 +5,9 @@ import type {
   TransportAdversaryAction
 } from "@twistedpear/effects";
 import {
+  grantCoverageOracle,
+  idUniquenessOracle,
+  revocationMonotonicityOracle,
   type HistoryRecorder,
   type SimKernel,
   type TransportClassName
@@ -31,7 +34,6 @@ const GRANT_AT = 0;
 const ATTACK_AT = 2_000;
 const REVOCATION_AT = 5_000;
 const KILL_AT = 8_000;
-const AUDIT_AT = 12_000;
 const BYTE = new Uint8Array([1]);
 const LINK_ID = new Uint8Array([0x54, 0x57, 0x50]);
 const stepGrant = stepGrantHost as unknown as StepFn<GrantHostState, GrantEvent>;
@@ -59,14 +61,13 @@ type CampaignNodeState =
     }
   | {
       readonly role: "service";
-      readonly grantActive: boolean;
+      readonly grant: GrantHostState;
       readonly revokedAt: number | null;
       readonly severedAt: number | null;
       readonly accessTimes: readonly number[];
       readonly egress: readonly EgressEvent[];
       readonly damageEvents: readonly number[];
-      readonly canaryEvidence: boolean;
-      readonly canaryTripped: boolean;
+      readonly operationSemantics: readonly string[];
     }
   | { readonly role: "handshake"; readonly handshake: LinkHandshakeState }
   | { readonly role: "adversary"; readonly adversary: AdversaryState }
@@ -121,11 +122,12 @@ function productionScenario(
   const transport = transportFor(id, seed);
   const latency = TRANSPORT_LATENCY[transport] * options.latencyMultiplier;
   const canaryOracle = `campaign-canary:${stableHash(id)}`;
-  const exploreAttackPath = seed % 5 !== 0;
+  const powers = powersForPosition(cell.position);
   const compiled = compileAttackProposal({
     name: `${cell.position}-${cell.abuse.verb}`,
     actions: attackActions(cell.position, cell.abuse.verb, latency)
-  }, ["drop", "delay", "reorder", "duplicate", "inject"]);
+      .filter((action) => powers.includes(action.power))
+  }, powers);
 
   const authorityInitial = stepGrant(
     initialGrantHostState("campaign-app", `publisher-${cell.capability}`),
@@ -178,14 +180,13 @@ function productionScenario(
       machine: "campaign/grant-enforcing-service",
       initial: {
         role: "service" as const,
-        grantActive: false,
+        grant: initialGrantHostState("campaign-app", `publisher-${cell.capability}`),
         revokedAt: null,
         severedAt: null,
         accessTimes: [],
         egress: [],
         damageEvents: [],
-        canaryEvidence: false,
-        canaryTripped: false
+        operationSemantics: []
       },
       step: serviceStep(cell, options.canary)
     },
@@ -193,7 +194,7 @@ function productionScenario(
       id: "z-adversary",
       machine: "sim-adversaries/compiled-proposal",
       initial: { role: "adversary" as const, adversary: compiled.initial },
-      step: adversaryStep(compiled.step, exploreAttackPath, latency)
+      step: adversaryStep(compiled.step, latency)
     }
   ];
 
@@ -202,7 +203,6 @@ function productionScenario(
     latency: { kind: "fixed" as const, ms: latency },
     burstLoss: { goodToBad: 0, badToGood: 1, goodLossRate: 0, badLossRate: 0 }
   };
-  const powers: readonly DolevYaoPower[] = ["drop", "delay", "reorder", "duplicate", "inject"];
   const links = [
     { source: "authority", destination: "service", class: transport, params: clean },
     { source: "probe", destination: "service", class: transport, params: clean, adversary: "z-adversary", powers },
@@ -219,23 +219,13 @@ function productionScenario(
       oracles: [
         {
           name: canaryOracle,
-          check: (world) => [...world.nodes.values()].some(
-            (state) => state.role === "service" && state.canaryTripped
-          ) ? { oracle: canaryOracle, message: `seeded ${cell.abuse.verb} path defect recaptured in ${id}` } : null
+          check: (world) => [...world.nodes.values()].some((state) =>
+            state.role === "service" && state.operationSemantics.includes(`defect:${id}`)
+          ) ? { oracle: canaryOracle, message: `broken production enforcement admitted ${id}` } : null
         },
-        {
-          name: "revocation-monotonicity",
-          check: (world) => {
-            const service = [...world.nodes.values()].find((state) => state.role === "service");
-            if (service?.role !== "service" || service.revokedAt === null) return null;
-            const access = service.accessTimes.find((at) => at > service.revokedAt!);
-            return access === undefined ? null : {
-              oracle: "revocation-monotonicity",
-              message: `revoked campaign grant authorized access at ${access}`,
-              nodes: ["service"]
-            };
-          }
-        },
+        grantCoverageOracle(projectGrantCoverage),
+        idUniquenessOracle(projectGrantIdentities),
+        revocationMonotonicityOracle(projectGrantAuthorizations),
         {
           name: "link-handshake-agreement",
           check: (world) => handshakeAgreementViolation(world.nodes)
@@ -245,7 +235,7 @@ function productionScenario(
     },
     expectedCanaryOracles: [canaryOracle],
     description: {
-      name: "grant-handshake-abuse-containment",
+      name: `${cell.capability}-${cell.position}-${cell.abuse.verb}`,
       protocolMachines: ["grant-host", "link-handshake"],
       adversaryPowers: [...new Set(compiled.powers)],
       transport
@@ -292,19 +282,39 @@ function authorityStep(capability: string): StepFn<CampaignNodeState> {
 function serviceStep(cell: CoverageCell, canary: boolean): StepFn<CampaignNodeState> {
   return (state, event) => {
     if (state.role !== "service") return { state, intents: [] };
-    if (event.kind === "start") return { state, intents: [timer("audit", AUDIT_AT)] };
-    if (event.kind === "timer/fired" && event.id === "audit") {
-      return { state: { ...state, canaryTripped: canary && state.canaryEvidence }, intents: [] };
-    }
+    if (event.kind === "start") return { state, intents: [] };
     if (event.kind !== "transport/recv") return { state, intents: [] };
-    if (event.channel === "control/grant") return { state: { ...state, grantActive: true }, intents: [] };
+    if (event.channel === "control/grant") {
+      const stepped = stepGrant(state.grant, { kind: "grant/set", at: event.at,
+        declared: [cell.capability], requested: [cell.capability], ttlMs: REVOCATION_AT * 2 });
+      return { state: { ...state, grant: stepped.state }, intents: stepped.intents };
+    }
     if (event.channel === "control/revoke") {
-      return { state: { ...state, grantActive: false, revokedAt: event.at }, intents: [] };
+      const stepped = stepGrant(state.grant, { kind: "grant/revoke", at: event.at, capability: cell.capability });
+      return { state: { ...state, grant: stepped.state, revokedAt: event.at }, intents: stepped.intents };
     }
     if (event.channel === "control/kill") return { state: { ...state, severedAt: event.at }, intents: [] };
+    if (event.channel === "protocol/availability" && state.severedAt === null) {
+      const lifecycle = state.grant.lifecycles?.[cell.capability];
+      if (lifecycle?.phase !== "granted" && lifecycle?.phase !== "active") return { state, intents: [] };
+      const stepped = lifecycle.phase === "granted"
+        ? stepGrant(state.grant, { kind: "grant/first-use", at: event.at, capability: cell.capability })
+        : { state: state.grant, intents: [] };
+      return { state: { ...state, grant: stepped.state, accessTimes: [...state.accessTimes, event.at],
+        egress: [...state.egress, { at: event.at, appId: "campaign-app",
+          grantId: `${cell.capability}-grant`, peerId: "probe" }],
+        operationSemantics: [...state.operationSemantics, `${cell.capability}:legitimate-use`] }, intents: stepped.intents };
+    }
     if (!event.channel.startsWith("abuse/") || state.severedAt !== null) return { state, intents: [] };
     const damageEvents = [...state.damageEvents, event.at];
-    if (!state.grantActive) return { state: { ...state, damageEvents }, intents: [] };
+    const lifecycle = state.grant.lifecycles?.[cell.capability];
+    const authorized = lifecycle?.phase === "granted" || lifecycle?.phase === "active";
+    // The shipping policy contains abuse-class operations even when the capability is live.
+    // Canary variants deliberately remove only this guard, making the defect path-dependent.
+    if (!authorized || !canary) return { state: { ...state, damageEvents }, intents: [] };
+    const stepped = lifecycle?.phase === "granted"
+      ? stepGrant(state.grant, { kind: "grant/first-use", at: event.at, capability: cell.capability })
+      : { state: state.grant, intents: [] };
     const egress: EgressEvent = {
       at: event.at,
       appId: "campaign-app",
@@ -314,12 +324,15 @@ function serviceStep(cell: CoverageCell, canary: boolean): StepFn<CampaignNodeSt
     return {
       state: {
         ...state,
+        grant: stepped.state,
         accessTimes: [...state.accessTimes, event.at],
         egress: [...state.egress, egress],
         damageEvents,
-        canaryEvidence: state.canaryEvidence || event.channel === `abuse/${cell.abuse.verb}`
+        operationSemantics: [...state.operationSemantics,
+          `${cell.capability}:${cell.position}:${cell.abuse.verb}`,
+          ...(canary ? [`defect:${cellId(cell)}`] : [])]
       },
-      intents: []
+      intents: stepped.intents
     };
   };
 }
@@ -363,7 +376,6 @@ const probeStep: StepFn<CampaignNodeState> = (state, event) => {
 
 function adversaryStep(
   compiled: StepFn<AdversaryState>,
-  explore: boolean,
   latency: number
 ): StepFn<CampaignNodeState> {
   return (state, event) => {
@@ -372,7 +384,7 @@ function adversaryStep(
       return {
         state,
         intents: [
-          ...(explore ? [timer("attack", ATTACK_AT)] : []),
+          timer("attack", ATTACK_AT),
           timer("damage", Math.max(ATTACK_AT + 1, KILL_AT - latency / 2))
         ]
       };
@@ -393,13 +405,9 @@ function attackActions(
   abuse: AbuseVerb,
   latency: number
 ): readonly TransportAdversaryAction[] {
-  const actions: TransportAdversaryAction[] = [{
-    power: "inject",
-    source: "z-adversary",
-    destination: "service",
-    channel: `abuse/${abuse}`,
-    payload: BYTE
-  }];
+  const actions: TransportAdversaryAction[] = [];
+  actions.push({ power: "inject", source: "z-adversary",
+    destination: "service", channel: `abuse/${abuse}`, payload: BYTE });
   if (abuse === "deny") actions.push({ power: "drop", source: "probe", destination: "service" });
   if (abuse === "drain") actions.push({ power: "duplicate", source: "z-adversary", destination: "service" });
   if (abuse === "correlate") actions.push({ power: "reorder", source: "z-adversary", destination: "service" });
@@ -408,6 +416,38 @@ function attackActions(
   if (position === "colluding-pair") actions.push({ power: "reorder", source: "z-adversary", destination: "service" });
   if (position === "compromised-host") actions.push({ power: "drop", source: "probe", destination: "service" });
   return actions;
+}
+
+function powersForPosition(position: AttackerPosition): readonly DolevYaoPower[] {
+  if (position === "malicious-app") return ["inject"];
+  if (position === "malicious-peer") return ["inject", "duplicate"];
+  if (position === "malicious-relay") return ["inject", "drop", "delay", "reorder", "duplicate"];
+  if (position === "colluding-pair") return ["inject", "delay", "reorder", "duplicate"];
+  return ["inject", "drop"];
+}
+
+function projectGrantCoverage(state: CampaignNodeState) {
+  if (state.role !== "service") return { storedBlobIds: [], liveGrantBlobIds: [] };
+  const live = Object.entries(state.grant.lifecycles ?? {})
+    .filter(([, lifecycle]) => lifecycle.phase === "granted" || lifecycle.phase === "active")
+    .map(([capability]) => `${capability}-grant`);
+  return { storedBlobIds: live.length === 0 ? [] : state.egress.map((entry) => entry.grantId), liveGrantBlobIds: live };
+}
+
+function projectGrantIdentities(state: CampaignNodeState) {
+  if (state.role !== "authority" && state.role !== "service") return [];
+  return Object.keys(state.grant.lifecycles ?? {}).map((capability) => ({
+    id: `${capability}-grant`, fingerprint: `${state.grant.publisherPublicKey}:${state.grant.appId}:${capability}`
+  }));
+}
+
+function projectGrantAuthorizations(state: CampaignNodeState) {
+  if (state.role !== "service") return [];
+  return Object.entries(state.grant.lifecycles ?? {}).map(([capability, lifecycle]) => ({
+    id: `${capability}-grant`,
+    ...(lifecycle.revokedAt === null ? {} : { revokedAt: lifecycle.revokedAt }),
+    accessTimes: state.accessTimes
+  }));
 }
 
 function measureContainment(

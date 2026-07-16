@@ -8,6 +8,8 @@ export interface HistoricalReplayFixture {
   readonly expressible: boolean;
   readonly reason?: string;
   readonly proposal?: AttackProposal;
+  readonly target?: "broker" | "handshake" | "grant" | "key-share" | "federation";
+  readonly expectedOutcome?: string;
 }
 
 /** Kernel-level lifts of the hostile-app corpus, with non-network cases explicit. */
@@ -16,6 +18,8 @@ export const HISTORICAL_REPLAY_FIXTURES: readonly HistoricalReplayFixture[] = [
     source: "conformance/hostile-apps",
     name: "broker-flood",
     expressible: true,
+    target: "broker",
+    expectedOutcome: "broker-rate-limited",
     proposal: {
       name: "broker-flood",
       actions: Array.from({ length: 32 }, (_, index) => ({
@@ -33,13 +37,14 @@ export const HISTORICAL_REPLAY_FIXTURES: readonly HistoricalReplayFixture[] = [
   { source: "conformance/hostile-apps", name: "oversized-broker-message", expressible: true, proposal: {
     name: "oversized-broker-message",
     actions: [{ power: "inject", source: "app", destination: "host", channel: "broker", payload: new Uint8Array(512) }]
-  } },
+  }, target: "broker", expectedOutcome: "oversized-message-rejected" },
   {
     source: "Signal X3DH security considerations",
     reference: "https://signal.org/docs/specifications/x3dh/#security-considerations",
     attackClass: "protocol replay",
     name: "replayed-initial-key-agreement-message",
     expressible: true,
+    target: "handshake", expectedOutcome: "replay-rejected",
     proposal: { name: "replayed-initial-key-agreement-message", actions: [
       { power: "duplicate", source: "initiator", destination: "recipient" }
     ] }
@@ -50,6 +55,7 @@ export const HISTORICAL_REPLAY_FIXTURES: readonly HistoricalReplayFixture[] = [
     attackClass: "stolen bearer replay",
     name: "replayed-authority-token",
     expressible: true,
+    target: "grant", expectedOutcome: "bearer-replay-rejected",
     proposal: { name: "replayed-authority-token", actions: [
       { power: "inject", source: "malicious-peer", destination: "resource-host", channel: "grant", payload: new Uint8Array([0x74, 0x6f, 0x6b, 0x65, 0x6e]) }
     ] }
@@ -60,6 +66,7 @@ export const HISTORICAL_REPLAY_FIXTURES: readonly HistoricalReplayFixture[] = [
     attackClass: "device impersonation and key disclosure",
     name: "impersonated-device-key-request",
     expressible: true,
+    target: "key-share", expectedOutcome: "untrusted-device-rejected",
     proposal: { name: "impersonated-device-key-request", actions: [
       { power: "inject", source: "malicious-homeserver", destination: "client", channel: "key-share", payload: new Uint8Array([0x72, 0x65, 0x71]) }
     ] }
@@ -78,6 +85,7 @@ export const HISTORICAL_REPLAY_FIXTURES: readonly HistoricalReplayFixture[] = [
     attackClass: "malicious federation event denial of service",
     name: "malicious-server-acl-event",
     expressible: true,
+    target: "federation", expectedOutcome: "malicious-acl-contained",
     proposal: { name: "malicious-server-acl-event", actions: [
       { power: "inject", source: "malicious-relay", destination: "host", channel: "federation", payload: new Uint8Array([0x61, 0x63, 0x6c]) },
       { power: "duplicate", source: "malicious-relay", destination: "host" }

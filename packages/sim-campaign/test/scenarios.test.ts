@@ -28,7 +28,7 @@ describe("production abuse scenario registry", () => {
     expect(report.findings).toEqual([]);
   });
 
-  it("recaptures a canary only when the seeded attack path is explored", async () => {
+  it("recaptures a behavior defect on every execution of its abuse path", async () => {
     const [cell] = coverageFrame({
       capabilities: ["identity"],
       positions: ["malicious-app"],
@@ -44,8 +44,25 @@ describe("production abuse scenario registry", () => {
       seeds: { from: 1, to: 5 },
       scenario: registry.create
     });
-    expect(report.canaryFindings.map((finding) => finding.seed)).toEqual([1, 2, 3, 4]);
+    expect(report.canaryFindings.map((finding) => finding.seed)).toEqual([1, 2, 3, 4, 5]);
     expect(report.findings).toEqual([]);
+    const repaired = createProductionScenarioRegistry({ cells: [cell!] });
+    const repairedReport = await runCampaign({ cells: [cell!], seeds: { from: 1, to: 5 }, scenario: repaired.create });
+    expect(repairedReport.canaryFindings).toEqual([]);
+  });
+
+  it("mutating any coverage axis changes executable semantics and position powers", async () => {
+    const variants = coverageFrame({ capabilities: ["identity", "network"],
+      positions: ["malicious-app", "malicious-relay"], verbs: ["exfiltrate", "deny"] });
+    const registry = createProductionScenarioRegistry({ cells: variants });
+    const report = await runCampaign({ cells: variants, seeds: { from: 1, to: 1 }, scenario: registry.create });
+    expect(new Set(report.coverage.map((entry) => entry.name)).size).toBe(variants.length);
+    const app = report.coverage.find((entry) => entry.cell.includes("malicious-app"));
+    const relay = report.coverage.find((entry) => entry.cell.includes("malicious-relay"));
+    expect(app?.adversaryPowers).toEqual(["inject"]);
+    expect(app?.adversaryPowers).not.toContain("drop");
+    expect(app?.adversaryPowers).not.toContain("delay");
+    expect(relay?.adversaryPowers).toContain("delay");
   });
 
   it("measures transport-driven containment and rejects deliberate slowdowns", async () => {

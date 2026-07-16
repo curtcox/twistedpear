@@ -41,3 +41,11 @@ export {
   type ProductionScenarioRegistry,
   type ProductionScenarioRegistryOptions
 } from "./scenarios.js";
+export {
+  createEscrowCampaignScenario,
+  createRecoveryCampaignScenario,
+  createSocialCampaignScenario,
+  type QuorumAttack,
+  type SocialCampaignState,
+  type SocialKind
+} from "./assurance-scenarios.js";

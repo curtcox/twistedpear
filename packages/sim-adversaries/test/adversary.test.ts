@@ -1,7 +1,7 @@
 import type { Event, Intent, StepFn } from "../../effects/src/types.js";
-import { doubleRunHashes, SimKernel } from "../../effects/src/adapters/sim/kernel.js";
+import { doubleRunHashes, SimKernel, OracleViolation } from "../../effects/src/adapters/sim/kernel.js";
 import { UnauthorizedAdversaryPowerError } from "../../effects/src/adapters/sim/transport.js";
-import { rerunHistory } from "../../effects/src/adapters/sim/shrink.js";
+import { rerunHistory, shrinkHistory } from "../../effects/src/adapters/sim/shrink.js";
 import { parseHistory, type RecordedHistory } from "../../effects/src/adapters/sim/recorder.js";
 import duplicateFixture from "../../../conformance/sim-regressions/llm-duplicate-delivery.json";
 import {
@@ -14,8 +14,10 @@ import {
   compileAttackProposal,
   authorAttackStrategies,
   createFuzzAdversary,
+  executeHistoricalFixture,
   grantRecordMutationCorpus,
   HISTORICAL_REPLAY_FIXTURES,
+  searchFuzzCanary,
   UnlowerableAttackProposalError,
   type AdversaryState
 } from "../src/index.js";
@@ -146,6 +148,22 @@ describe("Dolev-Yao adversaries", () => {
     }
   });
 
+  it("executes every expressible historical case against its reviewed target outcome", () => {
+    const expressible = HISTORICAL_REPLAY_FIXTURES.filter((fixture) => fixture.expressible);
+    expect(expressible.length).toBeGreaterThan(0);
+    for (const fixture of expressible) {
+      expect(fixture.target).toBeTruthy();
+      expect(executeHistoricalFixture(fixture)).toBe(fixture.expectedOutcome);
+    }
+  });
+
+  it("searches for and shrinks a seeded canary instead of selecting it by predicate", () => {
+    const found = searchFuzzCanary({ from: 1, to: 100 });
+    expect(found.seed).toBeGreaterThanOrEqual(1);
+    expect(found.history.violation?.oracle).toBe("fuzz-canary");
+    expect(found.minimized.trace.length).toBeLessThan(found.history.trace.length);
+  });
+
   it("puts a model in the authoring loop but compiles only in-model output", async () => {
     let calls = 0;
     const result = await authorAttackStrategies(async (prompt) => {
@@ -168,5 +186,33 @@ describe("Dolev-Yao adversaries", () => {
       oracles: [duplicateOracle]
     });
     expect(replay.violation.violation.oracle).toBe("duplicate-delivery");
+  });
+
+  it("authors, compiles, executes, finds, shrinks, and replays without calling the model again", async () => {
+    let modelCalls = 0;
+    const authored = await authorAttackStrategies(async () => {
+      modelCalls += 1;
+      return JSON.stringify([{ name: "duplicate", actions: [{ power: "duplicate", source: "a", destination: "b" }] }]);
+    }, { objective: "find replay", allowedPowers: ["duplicate"], nodes: ["a", "b"], channels: ["x"] });
+    const compiled = authored.accepted[0]!;
+    const zStep = widen(compiled.step);
+    const config = { seed: 44, nodes: [
+      { id: "a", machine: "authored/sender", initial, step: sender },
+      { id: "b", machine: "authored/receiver", initial, step: receiver },
+      { id: "z", machine: "authored/adversary", initial, step: zStep }
+    ], links: [cleanLink], oracles: [duplicateOracle] };
+    let violation: OracleViolation | undefined;
+    try { const kernel = new SimKernel(config); kernel.start(); kernel.runUntilIdle(100); }
+    catch (error) { if (error instanceof OracleViolation) violation = error; else throw error; }
+    expect(violation?.violation.oracle).toBe("duplicate-delivery");
+    const resolveMachine = (machine: string) => machine === "authored/sender" ? sender
+      : machine === "authored/receiver" ? receiver : zStep;
+    const minimized = shrinkHistory(violation!.history as RecordedHistory<State>, {
+      resolveMachine, oracles: [duplicateOracle]
+    });
+    expect(minimized.trace.length).toBeLessThan(violation!.history.trace.length);
+    expect(rerunHistory(minimized, { resolveMachine, oracles: [duplicateOracle] }).violation.violation.oracle)
+      .toBe("duplicate-delivery");
+    expect(modelCalls).toBe(1);
   });
 });

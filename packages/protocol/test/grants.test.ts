@@ -38,6 +38,42 @@ function grantRevoke(at: number, capability: string): Event {
 }
 
 describe("protocol grant host", () => {
+  it("uses the shipping lifecycle table for all seven legal edges", () => {
+    const approve = (ttlMs = 10) => stepGrantHost(initialGrantHostState(APP, PUBKEY), {
+      kind: "grant/set", at: 1, declared: ["read"], requested: ["read"], ttlMs
+    }).state;
+    expect(approve().lifecycles?.read?.phase).toBe("granted");
+    const denied = stepGrantHost(initialGrantHostState(APP, PUBKEY), {
+      kind: "grant/deny", at: 1, capability: "read"
+    }).state;
+    expect(denied.lifecycles?.read?.phase).toBe("denied");
+
+    const granted = approve();
+    const active = stepGrantHost(granted, { kind: "grant/first-use", at: 2, capability: "read" }).state;
+    expect(active.lifecycles?.read?.phase).toBe("active");
+    expect(stepGrantHost(approve(), { kind: "grant/ttl", at: 11, capability: "read" }).state.lifecycles?.read?.phase).toBe("expired");
+    expect(stepGrantHost(active, { kind: "grant/ttl", at: 11, capability: "read" }).state.lifecycles?.read?.phase).toBe("expired");
+    expect(stepGrantHost(approve(), { kind: "grant/revoke", at: 3, capability: "read" }).state.lifecycles?.read?.phase).toBe("revoked");
+    expect(stepGrantHost(active, { kind: "grant/revoke", at: 3, capability: "read" }).state.lifecycles?.read?.phase).toBe("revoked");
+  });
+
+  it("rejects illegal lifecycle edges through the same production step", () => {
+    const granted = stepGrantHost(initialGrantHostState(APP, PUBKEY), {
+      kind: "grant/set", at: 1, declared: ["read"], requested: ["read"], ttlMs: 10
+    }).state;
+    const active = stepGrantHost(granted, { kind: "grant/first-use", at: 2, capability: "read" }).state;
+    const revoked = stepGrantHost(active, { kind: "grant/revoke", at: 3, capability: "read" }).state;
+    const expired = stepGrantHost(granted, { kind: "grant/ttl", at: 11, capability: "read" }).state;
+    const denied = stepGrantHost(initialGrantHostState(APP, PUBKEY), { kind: "grant/deny", at: 1, capability: "read" }).state;
+    for (const terminal of [revoked, expired, denied]) {
+      expect(stepGrantHost(terminal, { kind: "grant/set", at: 20, declared: ["read"], requested: ["read"] }).state).toBe(terminal);
+      expect(stepGrantHost(terminal, { kind: "grant/first-use", at: 20, capability: "read" }).state).toBe(terminal);
+      expect(stepGrantHost(terminal, { kind: "grant/revoke", at: 20, capability: "read" }).state).toBe(terminal);
+    }
+    expect(stepGrantHost(granted, { kind: "grant/ttl", at: 5, capability: "read" }).state).toBe(granted);
+    expect(stepGrantHost(active, { kind: "grant/first-use", at: 4, capability: "read" }).state).toBe(active);
+  });
+
   it("round-trips grant records", () => {
     const record: GrantRecord = {
       appId: APP,

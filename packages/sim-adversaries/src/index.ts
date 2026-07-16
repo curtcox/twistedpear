@@ -8,6 +8,7 @@ export {
   type FuzzAdversaryOptions
 } from "./adversary.js";
 export { HISTORICAL_REPLAY_FIXTURES, type HistoricalReplayFixture } from "./historical.js";
+export { executeHistoricalFixture, searchFuzzCanary, type FuzzCanaryResult } from "./accuracy.js";
 export { grantRecordMutationCorpus } from "./grant-mutations.js";
 export {
   authorAttackStrategies,
