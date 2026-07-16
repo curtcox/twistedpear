@@ -6,16 +6,11 @@ unchanged in production and in a seeded simulator. This plan is *how* we get fro
 current tree to the simulator that document describes, in an order that never sacrifices
 the reproducibility guarantee everything else rests on.
 
-> **Status of this plan (revalidated 2026-07-16):** Phases 1, 2, 4, 9, 12, 13, and 16 are complete
-> for their stated scope. The infrastructure for Phases 3, 5–8, 10–11, 14, and 15 exists, but the
-> original end-to-end exit criteria remain open: persisted production grant authority, real global
-> projections, behavior-specific campaign cells, independent historical targets, effective quorum
-> attack schedules, and first-class social/economic simulations. The original phase descriptions
-> below are retained as design and implementation history, not as a current task list. Current
-> evidence and remaining acceptance checks are summarized in
+> **Status of this plan (revalidated 2026-07-16):** All sixteen phases are complete for their stated
+> simulator scope. The original phase descriptions below are retained as design and implementation
+> history, not as a current task list. Detailed acceptance evidence is summarized in
 > [simulation-outstanding-work-plan.md](simulation-outstanding-work-plan.md); the short,
-> authoritative list of work still open is
-> [simulation-outstanding-work.md](simulation-outstanding-work.md).
+> authoritative completion record is [simulation-outstanding-work.md](simulation-outstanding-work.md).
 
 ---
 

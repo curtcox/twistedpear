@@ -1,5 +1,5 @@
 import type { Event, Intent, StepFn, TransportAdversaryAction } from "@twistedpear/effects";
-import { type HistoryRecorder, type TransportClassName } from "@twistedpear/effects/adapters/sim";
+import { type HistoryRecorder, type SimKernel, type TransportClassName } from "@twistedpear/effects/adapters/sim";
 import {
   escrowSafetyViolation,
   initialEscrowState,
@@ -12,8 +12,9 @@ import {
 } from "@twistedpear/protocol";
 import { reputationUnderCollusion, spamEconomics } from "@twistedpear/sim-adversaries";
 import type { CampaignScenario } from "./runner.js";
+import type { ContainmentMetrics } from "./metrics.js";
 
-export type QuorumAttack = "below-threshold" | "duplicate" | "replay" | "delay" | "partition" | "expiry" | "colluding-pair";
+export type QuorumAttack = "below-threshold" | "drop" | "duplicate" | "replay" | "delay" | "partition" | "expiry" | "colluding-pair";
 type QuorumState =
   | { readonly role: "escrow"; readonly escrow: EscrowState }
   | { readonly role: "recovery"; readonly recovery: RecoveryQuorumState }
@@ -78,12 +79,15 @@ function quorumActorStep(machine: "escrow" | "recovery", attack: QuorumAttack): 
   return (state, event) => {
     if (state.role !== "actor" || event.kind !== "start") return { state, intents: [] };
     const channels = machine === "escrow"
-      ? ["escrow/deposit", "escrow/request", `escrow/authorize/${attack === "below-threshold" || attack === "expiry" ? "a" : "a,b"}`,
+      ? ["escrow/deposit", "escrow/request", `escrow/authorize/${attack === "below-threshold" || attack === "expiry"
+          ? "a" : attack === "colluding-pair" ? "colluder-a,colluder-b" : "a,b"}`,
           ...(attack === "replay" ? ["escrow/authorize/a,b"] : []),
           ...(attack === "expiry" ? ["escrow/ttl"] : [])]
       : attack === "expiry"
         ? ["recovery/start", "recovery/share/a", "recovery/ttl", "recovery/authorize"]
-        : ["recovery/start", "recovery/share/a", `recovery/share/${attack === "duplicate" || attack === "below-threshold" ? "a" : "b"}`,
+        : ["recovery/start", `recovery/share/${attack === "colluding-pair" ? "colluder-a" : "a"}`,
+            `recovery/share/${attack === "duplicate" || attack === "below-threshold" ? "a"
+              : attack === "colluding-pair" ? "colluder-b" : "b"}`,
             ...(attack === "replay" ? ["recovery/share/a"] : []),
             "recovery/authorize"];
     return { state: { ...state, sent: channels.length }, intents: channels.map(send) };
@@ -123,6 +127,7 @@ function recoveryTargetStep(broken: boolean): StepFn<QuorumState> {
 }
 
 function quorumAdversaryActions(attack: QuorumAttack, destination: "escrow" | "recovery"): readonly TransportAdversaryAction[] {
+  if (attack === "drop") return [{ power: "drop", source: "actor", destination }];
   if (attack === "delay") return [{ power: "delay", source: "actor", destination, delayMs: 2 }];
   if (attack === "duplicate") return [{ power: "duplicate", source: "actor", destination }];
   if (attack === "colluding-pair") return [{ power: "reorder", source: "actor", destination }];
@@ -145,23 +150,31 @@ export interface SocialCampaignState {
   readonly votes: readonly { from: string; to: string; value: -1 | 1 }[];
   readonly outcome: number;
   readonly ranking: readonly string[];
+  readonly containmentBreaches: number;
+  readonly deliveryTimes: readonly number[];
+  readonly blockedAt: number | null;
+  readonly severedAt: number | null;
 }
 
 export function createSocialCampaignScenario(
   kind: SocialKind,
   transport: TransportClassName,
-  options: { readonly containment?: boolean; readonly recorder?: HistoryRecorder<SocialCampaignState> } = {}
+  options: { readonly containment?: boolean; readonly defectivePolicy?: boolean;
+    readonly recorder?: HistoryRecorder<SocialCampaignState> } = {}
 ): CampaignScenario<SocialCampaignState> {
-  const initial: SocialCampaignState = { role: "sender", sent: 0, delivered: 0, blocked: false, severed: false, votes: [], outcome: 0, ranking: [] };
+  const initial: SocialCampaignState = { role: "sender", sent: 0, delivered: 0, blocked: false, severed: false,
+    votes: [], outcome: 0, ranking: [], containmentBreaches: 0, deliveryTimes: [],
+    blockedAt: null, severedAt: null };
   const service: SocialCampaignState = { ...initial, role: "service" };
   const serviceNodes = kind === "harassment" ? [
     { id: "social-service", machine: "social/harassment-discovery-gateway", initial: service,
-      step: socialService(kind, transport, ["social-peer-a", "social-peer-b"]) },
+      step: socialService(kind, transport, ["social-peer-a", "social-peer-b"], options.defectivePolicy === true) },
     { id: "social-peer-a", machine: "social/harassment-discovery-peer", initial: service,
-      step: socialService(kind, transport, ["social-peer-b"]) },
+      step: socialService(kind, transport, ["social-peer-b"], options.defectivePolicy === true) },
     { id: "social-peer-b", machine: "social/harassment-discovery-peer", initial: service,
-      step: socialService(kind, transport, []) }
-  ] : [{ id: "social-service", machine: `social/${kind}-service`, initial: service, step: socialService(kind, transport, []) }];
+      step: socialService(kind, transport, [], options.defectivePolicy === true) }
+  ] : [{ id: "social-service", machine: `social/${kind}-service`, initial: service,
+    step: socialService(kind, transport, [], options.defectivePolicy === true) }];
   const graphLinks = kind === "harassment" ? [
     { source: "social-service", destination: "social-peer-a", class: transport, params: clean(transport) },
     { source: "social-service", destination: "social-peer-b", class: transport, params: clean(transport) },
@@ -173,12 +186,17 @@ export function createSocialCampaignScenario(
         step: socialSender(kind, options.containment !== false) },
       ...serviceNodes
     ], links: [{ source: "social-adversary", destination: "social-service", class: transport, params: clean(transport) }, ...graphLinks],
-      ...(kind === "reputation" ? { oracles: [{ name: "reputation-resilience", check: (world: { nodes: ReadonlyMap<string, SocialCampaignState> }) => {
+      oracles: [{ name: "social-assurance", check: (world: { nodes: ReadonlyMap<string, SocialCampaignState> }) => {
         const state = world.nodes.get("social-service");
-        return (state?.votes.length ?? 0) >= 4 && state?.ranking[0] === "target"
+        if (kind === "spam" && state !== undefined && state.delivered > 0 && state.outcome <= 0)
+          return { oracle: "spam-executed-economics", message: "executed spam traffic has no accounted cost" };
+        if (kind === "harassment" && [...world.nodes.values()].some((node) => node.containmentBreaches > 0))
+          return { oracle: "harassment-containment", message: "harassment propagated after block or sever" };
+        return kind === "reputation" && (state?.votes.length ?? 0) >= 4 && state?.ranking[0] === "target"
           ? { oracle: "reputation-resilience", message: "colluders displaced the trusted candidate" } : null;
-      }}] } : {}), ...(options.recorder === undefined ? {} : { recorder: options.recorder }) },
-    description: { name: `social-${kind}`, protocolMachines: [`social-${kind}`], adversaryPowers: [], transport }
+      }}], ...(options.recorder === undefined ? {} : { recorder: options.recorder }) },
+    description: { name: `social-${kind}`, protocolMachines: [`social-${kind}`], adversaryPowers: [], transport },
+    measureContainment: (kernel) => measureSocialContainment(kernel, kind, transport)
   };
 }
 
@@ -194,34 +212,68 @@ function socialSender(kind: SocialKind, containment: boolean): StepFn<SocialCamp
   };
 }
 
-function socialService(kind: SocialKind, transport: TransportClassName, neighbors: readonly string[]): StepFn<SocialCampaignState> {
+function socialService(
+  kind: SocialKind,
+  transport: TransportClassName,
+  neighbors: readonly string[],
+  defectivePolicy: boolean
+): StepFn<SocialCampaignState> {
   return (state, event) => {
     if (state.role !== "service" || event.kind !== "transport/recv") return { state, intents: [] };
-    if (event.channel === "contain/block") return { state: { ...state, blocked: true }, intents: [] };
-    if (event.channel === "contain/sever") return { state: { ...state, severed: true }, intents: [] };
+    if (event.channel === "contain/block") return { state: { ...state, blocked: true, blockedAt: event.at }, intents: [] };
+    if (event.channel === "contain/sever") return { state: { ...state, severed: true, severedAt: event.at }, intents: [] };
     if (kind === "spam") {
       const delivered = state.delivered + 1;
       const economics = spamEconomics({ transport, payloadBytes: event.payload.length, messages: delivered, payoffPerDelivery: 0.01 });
-      return { state: { ...state, delivered, outcome: economics.attackerCost }, intents: [] };
+      return { state: { ...state, delivered, deliveryTimes: [...state.deliveryTimes, event.at],
+        outcome: defectivePolicy ? 0 : economics.attackerCost }, intents: [] };
     }
-    if (kind === "harassment") return state.blocked || state.severed ? { state, intents: [] }
-      : { state: { ...state, delivered: state.delivered + 1, outcome: state.outcome + 1 },
+    if (kind === "harassment") return state.blocked || state.severed
+      ? { state: defectivePolicy ? { ...state, containmentBreaches: state.containmentBreaches + 1 } : state, intents: [] }
+      : { state: { ...state, delivered: state.delivered + 1,
+          deliveryTimes: [...state.deliveryTimes, event.at], outcome: state.outcome + 1 },
           intents: neighbors.map((destination) => sendTo(event.channel, destination, event.payload)) };
     const [, from = "", to = "", raw = "-1"] = event.channel.split("/");
     const vote = { from, to, value: raw === "1" ? 1 as const : -1 as const };
     const votes = [...state.votes, vote];
-    const scores = reputationUnderCollusion(votes, new Set(["c1", "c2"]));
+    const scores = reputationUnderCollusion(votes, new Set(["c1", "c2"]), defectivePolicy ? 2 : 0.1);
     const ranking = Object.keys(scores).sort((a, b) => (scores[b] ?? 0) - (scores[a] ?? 0) || a.localeCompare(b));
-    return { state: { ...state, votes, delivered: state.delivered + 1, outcome: scores.target ?? 0, ranking }, intents: [] };
+    return { state: { ...state, votes, delivered: state.delivered + 1,
+      deliveryTimes: [...state.deliveryTimes, event.at], outcome: scores.target ?? 0, ranking }, intents: [] };
   };
 }
 
-export function executedSpamEconomics(kernel: { readonly transport: { getStats(): { sent: number; dropped: number; dutyCycleDropped: number; dutyCycleDelayed: number } }; getNodeState(id: string): SocialCampaignState }, transport: TransportClassName) {
+function measureSocialContainment(
+  kernel: SimKernel<SocialCampaignState>,
+  kind: SocialKind,
+  transport: TransportClassName
+): ContainmentMetrics {
+  if (kind !== "harassment") return { transport, revocationPropagationMs: null,
+    egressAttributability: null, networkKillLatencyMs: null, damageWindow: 0 };
+  const gateway = kernel.getNodeState("social-service");
+  const nodes = ["social-service", "social-peer-a", "social-peer-b"].map((id) => kernel.getNodeState(id));
+  const afterBlock = gateway.blockedAt === null ? [] : nodes.flatMap((state) => state.deliveryTimes)
+    .filter((at) => at > gateway.blockedAt!);
+  return {
+    transport,
+    revocationPropagationMs: gateway.blockedAt === null ? null
+      : Math.max(gateway.blockedAt, ...afterBlock) - gateway.blockedAt,
+    egressAttributability: nodes.some((state) => state.delivered > 0) ? 1 : null,
+    networkKillLatencyMs: gateway.blockedAt === null || gateway.severedAt === null
+      ? null : gateway.severedAt - gateway.blockedAt,
+    damageWindow: afterBlock.length
+  };
+}
+
+export function executedSpamEconomics(kernel: { readonly transport: { getStats(): { sent: number; dropped: number;
+  dutyCycleDropped: number; dutyCycleDelayed: number; serializedBytes: number; airtimeMs: number } };
+  getNodeState(id: string): SocialCampaignState }, transport: TransportClassName) {
   const stats = kernel.transport.getStats();
   const delivered = kernel.getNodeState("social-service").delivered;
   return spamEconomics({ transport, payloadBytes: 1, messages: stats.sent,
     deliveredMessages: delivered, lostMessages: stats.dropped,
-    serializedBytes: stats.sent, dutyCycleOutcomes: stats.dutyCycleDropped + stats.dutyCycleDelayed,
+    serializedBytes: stats.serializedBytes, executedAirtimeMs: stats.airtimeMs,
+    dutyCycleOutcomes: stats.dutyCycleDropped + stats.dutyCycleDelayed,
     payoffPerDelivery: 0.01 });
 }
 

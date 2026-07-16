@@ -27,9 +27,17 @@ describe("production abuse scenario registry", () => {
       new Set(["inject", "duplicate", "delay", "reorder", "drop"])
     );
     expect(report.findings).toEqual([]);
+    for (const entry of report.coverage) {
+      expect(entry.productionPath).toBeTruthy();
+      expect(entry.authority).toContain("persisted grant lifecycle");
+      expect(entry.operation).toBeTruthy();
+      expect(entry.positionAccess).toBeTruthy();
+      expect(entry.damageCondition).toBeTruthy();
+      expect(entry.successOracle).toMatch(/^campaign-canary:/);
+    }
   });
 
-  it("recaptures a behavior defect on every execution of its abuse path", async () => {
+  it("recaptures a behavior defect only when transport order reaches its broken guard", async () => {
     const [cell] = coverageFrame({
       capabilities: ["identity"],
       positions: ["malicious-app"],
@@ -45,7 +53,8 @@ describe("production abuse scenario registry", () => {
       seeds: { from: 1, to: 5 },
       scenario: registry.create
     });
-    expect(report.canaryFindings.map((finding) => finding.seed)).toEqual([1, 2, 3, 4, 5]);
+    expect(report.canaryFindings.length).toBeGreaterThan(0);
+    expect(report.canaryFindings.length).toBeLessThan(5);
     expect(report.findings).toEqual([]);
     const repaired = createProductionScenarioRegistry({ cells: [cell!] });
     const repairedReport = await runCampaign({ cells: [cell!], seeds: { from: 1, to: 5 }, scenario: repaired.create });
@@ -84,6 +93,7 @@ describe("production abuse scenario registry", () => {
       expect(report.findings[0]?.violation.oracle).toBe(oracleBreak);
       expect(recorder.histories.length).toBeGreaterThanOrEqual(2);
       expect(recorder.histories.at(-1)?.violation?.oracle).toBe(oracleBreak);
+      expect(recorder.histories.at(-1)!.trace.length).toBeLessThan(recorder.histories[0]!.trace.length);
     }
   });
 
@@ -108,5 +118,17 @@ describe("production abuse scenario registry", () => {
     }));
     expect(containmentRegressions(normal.containment, baseline)).toEqual([]);
     expect(containmentRegressions(slow.containment, baseline)).not.toEqual([]);
+  });
+
+  it("excludes reviewed unsupported combinations from executable coverage", () => {
+    const [cell] = cells;
+    const id = "identity|malicious-app|exfiltrate";
+    const registry = createProductionScenarioRegistry({
+      cells: [cell!],
+      reviewedUnsupported: { [id]: "requires a hardware-backed identity side channel outside this model" }
+    });
+    expect(registry.supportedCells).toEqual([]);
+    expect(registry.unsupportedCells[id]).toMatch(/outside this model/);
+    expect(() => registry.create(cell!, 1)).toThrow(/unsupported campaign scenario/);
   });
 });

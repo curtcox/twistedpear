@@ -1,5 +1,6 @@
 import type { Event, Intent } from "../src/types.js";
 import { doubleRunHashes, SimKernel } from "../src/adapters/sim/kernel.js";
+import { SimTransport } from "../src/adapters/sim/transport.js";
 import { describe, expect, it } from "vitest";
 
 interface State { readonly received: number }
@@ -88,5 +89,19 @@ describe("executable transport classes", () => {
     kernel.runUntilIdle(100);
     expect(kernel.getNodeState("b").received).toBe(0);
     expect(kernel.transport.getStats().partitioned).toBe(4);
+  });
+
+  it("reorders actual delivery slots and reports affected messages", () => {
+    const transport = new SimTransport({ links: [{ source: "a", destination: "b", class: "lan",
+      adversary: "z", powers: ["reorder"], params: { lossRate: 0,
+        latency: { kind: "fixed", ms: 1 },
+        burstLoss: { goodToBad: 0, badToGood: 1, goodLossRate: 0, badLossRate: 0 } } }] });
+    for (const channel of ["first", "second", "third"]) transport.applySend({
+      kind: "transport/send", send: { channel, destination: "b", payload: new Uint8Array([1]) }
+    }, "a", 0);
+    transport.applyAdversary({ power: "reorder", source: "a", destination: "b" }, "z", 0);
+    expect(transport.deliverDue(Number.MAX_SAFE_INTEGER).map((message) => message.channel))
+      .toEqual(["third", "second", "first"]);
+    expect(transport.getStats().adversaryReordered).toBe(3);
   });
 });

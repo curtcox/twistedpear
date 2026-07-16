@@ -26,6 +26,7 @@ import {
   compileAttackProposal,
   type AdversaryState
 } from "@twistedpear/sim-adversaries";
+import { assertCapabilityAllowed } from "@twistedpear/miniapp-runtime";
 import { cellId, type AbuseVerb, type AttackerPosition, type CoverageCell } from "./frame.js";
 import { ContainmentTracker, type ContainmentMetrics } from "./metrics.js";
 import type { CampaignScenario } from "./runner.js";
@@ -72,6 +73,8 @@ type CampaignNodeState =
       readonly oracleBreak: "grant-coverage" | "id-uniqueness" | "revocation-monotonicity" | null;
       readonly productionPath: string;
       readonly effects: Readonly<Record<string, number>>;
+      readonly brokerAllowed: number;
+      readonly brokerDenied: number;
     }
   | { readonly role: "handshake"; readonly handshake: LinkHandshakeState }
   | { readonly role: "adversary"; readonly adversary: AdversaryState }
@@ -79,6 +82,8 @@ type CampaignNodeState =
 
 export interface ProductionScenarioRegistryOptions {
   readonly cells: readonly CoverageCell[];
+  /** Reviewed exclusions are reported and cannot be executed or counted as supported coverage. */
+  readonly reviewedUnsupported?: Readonly<Record<string, string>>;
   readonly defectIds?: ReadonlySet<string>;
   readonly recorder?: HistoryRecorder<CampaignNodeState>;
   /** Test-only behavior knob: scales actual transport latency. */
@@ -89,6 +94,7 @@ export interface ProductionScenarioRegistryOptions {
 
 export interface ProductionScenarioRegistry {
   readonly supportedCells: readonly string[];
+  readonly unsupportedCells: Readonly<Record<string, string>>;
   create(cell: CoverageCell, seed: number): CampaignScenario<CampaignNodeState>;
 }
 
@@ -100,11 +106,15 @@ export function createProductionScenarioRegistry(
   options: ProductionScenarioRegistryOptions
 ): ProductionScenarioRegistry {
   const cells = new Map(options.cells.map((cell) => [cellId(cell), cell]));
-  const supportedCells = [...cells.keys()].sort();
+  const unsupportedCells = Object.fromEntries(Object.entries(options.reviewedUnsupported ?? {})
+    .filter(([id, reason]) => cells.has(id) && reason.trim().length > 0));
+  const supportedCells = [...cells.keys()].filter((id) => unsupportedCells[id] === undefined).sort();
   return {
     supportedCells,
+    unsupportedCells,
     create(cell, seed) {
       const id = cellId(cell);
+      if (unsupportedCells[id] !== undefined) throw new Error(`unsupported campaign scenario: ${id}: ${unsupportedCells[id]}`);
       if (!cells.has(id)) throw new Error(`unsupported campaign scenario: ${id}`);
       return productionScenario(cell, seed, {
         defectivePolicy: options.defectIds?.has(id) === true,
@@ -185,7 +195,7 @@ function productionScenario(
     },
     {
       id: "service",
-      machine: "campaign/grant-enforcing-service",
+      machine: productionPathFor(cell.capability),
       initial: {
         role: "service" as const,
         grant: initialGrantHostState("campaign-app", `publisher-${cell.capability}`),
@@ -198,7 +208,9 @@ function productionScenario(
         operationSemantics: [],
         oracleBreak: options.oracleBreak,
         productionPath: productionPathFor(cell.capability),
-        effects: {}
+        effects: {},
+        brokerAllowed: 0,
+        brokerDenied: 0
       },
       step: serviceStep(cell, options.defectivePolicy)
     },
@@ -250,7 +262,13 @@ function productionScenario(
       name: `${cell.capability}-${cell.position}-${cell.abuse.verb}`,
       protocolMachines: ["grant-host", "link-handshake", productionPathFor(cell.capability)],
       adversaryPowers: [...new Set(compiled.powers)],
-      transport
+      transport,
+      productionPath: productionPathFor(cell.capability),
+      authority: `persisted grant lifecycle:${cell.capability}`,
+      operation: `${capabilityEffect(cell.capability)} via ${productionPathFor(cell.capability)}`,
+      positionAccess: positionAccessFor(cell.position),
+      damageCondition: abuseEffect(cell.abuse.verb),
+      successOracle: canaryOracle
     },
     measureContainment: (kernel) => measureContainment(kernel, transport)
   };
@@ -316,6 +334,8 @@ function serviceStep(cell: CoverageCell, defectivePolicy: boolean): StepFn<Campa
     if (event.channel === "protocol/availability" && state.severedAt === null) {
       const lifecycle = state.grant.lifecycles?.[cell.capability];
       if (lifecycle?.phase !== "granted" && lifecycle?.phase !== "active") return { state, intents: [] };
+      const brokerAllowed = capabilityGateAllows(state, cell.capability);
+      if (!brokerAllowed) return { state: { ...state, brokerDenied: state.brokerDenied + 1 }, intents: [] };
       const stepped = lifecycle.phase === "granted"
         ? stepGrant(state.grant, { kind: "grant/first-use", at: event.at, capability: cell.capability })
         : { state: state.grant, intents: [] };
@@ -327,15 +347,20 @@ function serviceStep(cell: CoverageCell, defectivePolicy: boolean): StepFn<Campa
         egress: [...state.egress, { at: event.at, appId: "campaign-app",
           grantId, peerId: "probe" }],
         operationSemantics: [...state.operationSemantics, `${cell.capability}:legitimate-use`],
-        effects: increment(state.effects, capabilityEffect(cell.capability)) }, intents: stepped.intents };
+        effects: increment(state.effects, capabilityEffect(cell.capability)),
+        brokerAllowed: state.brokerAllowed + 1 }, intents: stepped.intents };
     }
     if (!event.channel.startsWith("abuse/") || state.severedAt !== null) return { state, intents: [] };
     const lifecycle = state.grant.lifecycles?.[cell.capability];
     const authorized = lifecycle?.phase === "granted" || lifecycle?.phase === "active";
-    // The shipping policy contains abuse-class operations even when the capability is live.
-    // Canary variants deliberately remove only this guard, making the defect path-dependent.
-    if (!authorized || !defectivePolicy || event.payload[0] !== (stableHash(cellId(cell)) & 0xff)) {
-      return { state, intents: [] };
+    // Each defect variant removes one phase-specific guard. Whether it is reached depends on
+    // the race between the real availability use and the adversarial payload over this transport.
+    const attackSuppressesUse = cell.abuse.verb === "deny" || cell.position === "compromised-host";
+    const requiresActive = !attackSuppressesUse && (stableHash(cellId(cell)) & 1) === 0;
+    const defectReached = defectivePolicy && event.payload[0] === (stableHash(cellId(cell)) & 0xff) &&
+      (requiresActive ? lifecycle?.phase === "active" : lifecycle?.phase === "granted");
+    if (!authorized || !capabilityGateAllows(state, cell.capability) || !defectReached) {
+      return { state: { ...state, brokerDenied: state.brokerDenied + 1 }, intents: [] };
     }
     const stepped = lifecycle?.phase === "granted"
       ? stepGrant(state.grant, { kind: "grant/first-use", at: event.at, capability: cell.capability })
@@ -358,7 +383,8 @@ function serviceStep(cell: CoverageCell, defectivePolicy: boolean): StepFn<Campa
         effects: increment(increment(state.effects, capabilityEffect(cell.capability)), abuseEffect(cell.abuse.verb)),
         operationSemantics: [...state.operationSemantics,
           `${cell.capability}:${cell.position}:${cell.abuse.verb}`,
-          ...(defectivePolicy ? [`defect:${cellId(cell)}`] : [])]
+          ...(defectivePolicy ? [`defect:${cellId(cell)}`] : [])],
+        brokerAllowed: state.brokerAllowed + 1
       },
       intents: stepped.intents
     };
@@ -437,7 +463,7 @@ function attackActions(
   const actions: TransportAdversaryAction[] = [];
   actions.push({ power: "inject", source: "z-adversary",
     destination: "service", channel: `abuse/${abuse}`,
-    payload: new Uint8Array([stableHash(cellId(cell)) & 0xff]) });
+    payload: new Uint8Array([stableHash(cellId(cell)) & 0xff]), delayMs: 100 });
   if (abuse === "deny") actions.push({ power: "drop", source: "probe", destination: "service" });
   if (abuse === "drain") actions.push({ power: "duplicate", source: "z-adversary", destination: "service" });
   if (abuse === "correlate") actions.push({ power: "reorder", source: "z-adversary", destination: "service" });
@@ -482,12 +508,36 @@ function increment(values: Readonly<Record<string, number>>, key: string): Reado
   return { ...values, [key]: (values[key] ?? 0) + 1 };
 }
 
+function capabilityGateAllows(
+  state: Extract<CampaignNodeState, { role: "service" }>,
+  capability: CoverageCell["capability"]
+): boolean {
+  try {
+    assertCapabilityAllowed({
+      capability,
+      declared: [capability],
+      granted: state.grant.record?.granted ?? []
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function powersForPosition(position: AttackerPosition): readonly DolevYaoPower[] {
   if (position === "malicious-app") return ["inject"];
   if (position === "malicious-peer") return ["inject", "duplicate"];
   if (position === "malicious-relay") return ["inject", "drop", "delay", "reorder", "duplicate"];
   if (position === "colluding-pair") return ["inject", "delay", "reorder", "duplicate"];
   return ["inject", "drop"];
+}
+
+function positionAccessFor(position: AttackerPosition): string {
+  if (position === "malicious-app") return "broker request surface only";
+  if (position === "malicious-peer") return "authenticated peer ingress and replay";
+  if (position === "malicious-relay") return "mediated link drop, delay, reorder, duplicate, and inject";
+  if (position === "colluding-pair") return "two coordinated authenticated ingress paths";
+  return "local host broker plus link suppression";
 }
 
 function projectGrantCoverage(state: CampaignNodeState) {

@@ -24,7 +24,11 @@ const initialTarget: AccuracyState = {
 };
 
 /** Execute a reviewed historical fixture against its named deterministic target. */
-export function executeHistoricalFixture(fixture: HistoricalReplayFixture, seed = 1): string {
+export function executeHistoricalFixture(
+  fixture: HistoricalReplayFixture,
+  seed = 1,
+  policy: { readonly disableContainmentFor?: HistoricalReplayFixture["target"] } = {}
+): string {
   if (!fixture.expressible || fixture.proposal === undefined || fixture.expectedOutcome === undefined)
     throw new Error(`historical fixture is not executable: ${fixture.name}`);
   const compiled = compileAttackProposal(fixture.proposal, ["drop", "delay", "reorder", "duplicate", "inject"]);
@@ -45,7 +49,9 @@ export function executeHistoricalFixture(fixture: HistoricalReplayFixture, seed 
     seed,
     nodes: [
       ...targetIds.map((id) => ({ id, machine: `historical/${fixture.target ?? "target"}`,
-        initial: initialTarget, step: historicalTargetStep(fixture.target!, id, compiled.proposal.actions) })),
+        initial: initialTarget, step: historicalTargetStep(
+          fixture.target!, id, compiled.proposal.actions, policy.disableContainmentFor === fixture.target
+        ) })),
       { id: "z", machine: "historical/adversary", initial: adversaryState(compiled.initial),
         step: widen(compiled.step) }
     ],
@@ -64,7 +70,8 @@ export function executeHistoricalFixture(fixture: HistoricalReplayFixture, seed 
 function historicalTargetStep(
   target: NonNullable<HistoricalReplayFixture["target"]>,
   id: string,
-  actions: readonly import("@twistedpear/effects").TransportAdversaryAction[]
+  actions: readonly import("@twistedpear/effects").TransportAdversaryAction[],
+  containmentDisabled: boolean
 ): StepFn<AccuracyState> {
   return (state, event) => {
     if (event.kind === "start") {
@@ -88,9 +95,10 @@ function historicalTargetStep(
         ? "untrusted-device-rejected" : null)
       : event.channel === "federation" && bytes(event.payload) === "97.99.108"
         ? "malicious-acl-contained" : null;
-    const contained = outcome !== null;
+    const reviewedOutcome = containmentDisabled ? null : outcome;
+    const contained = reviewedOutcome !== null;
     return { state: { ...state, received, accepted: state.accepted + (contained ? 0 : 1),
-      seen: [...state.seen, key], outcome: outcome ?? state.outcome }, intents: [] };
+      seen: [...state.seen, key], outcome: reviewedOutcome ?? state.outcome }, intents: [] };
   };
 }
 

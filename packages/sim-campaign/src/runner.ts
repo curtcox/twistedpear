@@ -43,6 +43,13 @@ export interface ScenarioDescription {
   readonly protocolMachines: readonly string[];
   readonly adversaryPowers: readonly string[];
   readonly transport: string;
+  /** Reviewed executable semantics for coverage-bearing production scenarios. */
+  readonly productionPath?: string;
+  readonly authority?: string;
+  readonly operation?: string;
+  readonly positionAccess?: string;
+  readonly damageCondition?: string;
+  readonly successOracle?: string;
 }
 
 export interface ScenarioCoverage extends ScenarioDescription {

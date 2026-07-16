@@ -23,13 +23,14 @@ export function spamEconomics(options: {
   readonly deliveredMessages?: number;
   readonly lostMessages?: number;
   readonly serializedBytes?: number;
+  readonly executedAirtimeMs?: number;
   readonly dutyCycleOutcomes?: number;
   readonly payoffPerDelivery: number;
 }): SpamEconomics {
   const model = transportClass(options.transport);
   const messages = Math.max(0, Math.floor(options.messages));
   const serializedBytes = options.serializedBytes ?? Math.max(0, options.payloadBytes) * messages;
-  const airtimeMs = serializedBytes * 8 * 1_000 / model.bandwidthBps;
+  const airtimeMs = options.executedAirtimeMs ?? serializedBytes * 8 * 1_000 / model.bandwidthBps;
   const dutyPenalty = options.dutyCycleOutcomes === undefined
     ? (model.dutyCycle === undefined ? 1 : 1 / model.dutyCycle)
     : 1 + options.dutyCycleOutcomes;

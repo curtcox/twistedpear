@@ -13,7 +13,7 @@ import {
 import { describe, expect, it } from "vitest";
 
 const transports: readonly TransportClassName[] = ["lan", "internet", "ble", "lora"];
-const attacks: readonly QuorumAttack[] = ["below-threshold", "duplicate", "replay", "delay", "partition", "expiry", "colluding-pair"];
+const attacks: readonly QuorumAttack[] = ["below-threshold", "drop", "duplicate", "replay", "delay", "partition", "expiry", "colluding-pair"];
 const [cell] = coverageFrame({ capabilities: ["identity"], positions: ["colluding-pair"], verbs: ["spoof"] });
 
 describe("quorum and social campaigns", () => {
@@ -41,13 +41,23 @@ describe("quorum and social campaigns", () => {
 
   it("proves each named quorum schedule affects in-flight traffic", () => {
     for (const transport of transports) for (const create of [createEscrowCampaignScenario, createRecoveryCampaignScenario]) {
-      for (const attack of ["duplicate", "delay", "partition", "colluding-pair"] as const) {
+      for (const attack of ["drop", "duplicate", "delay", "partition", "colluding-pair"] as const) {
         const scenario = create({ transport, attack });
         const kernel = new SimKernel(scenario.config);
         kernel.start(); kernel.runUntilIdle(100_000);
         const adversary = kernel.getIntentLog().filter((intent) => intent.kind === "transport/adversary");
-        if (attack === "partition") expect(kernel.transport.getStats().partitioned).toBeGreaterThan(0);
-        else expect(adversary[0]?.action.power).toBe(attack === "colluding-pair" ? "reorder" : attack);
+        const stats = kernel.transport.getStats();
+        if (attack === "partition") expect(stats.partitioned).toBeGreaterThan(0);
+        else if (attack === "drop") expect(stats.adversaryDropped).toBeGreaterThan(0);
+        else if (attack === "duplicate") expect(stats.adversaryDuplicated).toBeGreaterThan(0);
+        else if (attack === "delay") expect(stats.adversaryDelayed).toBeGreaterThan(0);
+        else expect(stats.adversaryReordered).toBeGreaterThan(0);
+        if (attack !== "partition") expect(adversary[0]?.action.power).toBe(attack === "colluding-pair" ? "reorder" : attack);
+        if (attack === "colluding-pair") {
+          const target: any = kernel.getNodeState(create === createEscrowCampaignScenario ? "escrow" : "recovery");
+          const guardians: readonly string[] = target.role === "escrow" ? target.escrow.authorizers : target.recovery.shares;
+          expect(guardians.every((guardian) => guardian.startsWith("colluder-"))).toBe(true);
+        }
       }
       for (const attack of ["replay", "expiry"] as const) {
         const scenario = create({ transport, attack });
@@ -67,6 +77,11 @@ describe("quorum and social campaigns", () => {
       expect(report.findings).toEqual([]);
       expect(report.coverage[0]?.protocolMachines).toEqual([`social-${kind}`]);
       expect(report.coverage[0]?.transport).toBe(transport);
+      if (kind === "harassment") {
+        expect(report.containment[0]?.egressAttributability).toBe(1);
+        expect(report.containment[0]?.revocationPropagationMs).not.toBeNull();
+        expect(report.containment[0]?.networkKillLatencyMs).not.toBeNull();
+      }
     }
   });
 
@@ -97,5 +112,18 @@ describe("quorum and social campaigns", () => {
     const kernel = new SimKernel(scenario.config);
     kernel.start(); kernel.runUntilIdle(1_000);
     expect(kernel.getNodeState("social-service").ranking[0]).toBe("alternative");
+  });
+
+  it("records, reruns, and shrinks defective social policies", async () => {
+    for (const kind of ["spam", "harassment", "reputation"] as const) {
+      const recorder = new MemoryHistoryRecorder<any>();
+      const report = await runCampaign({ cells: [cell!], seeds: { from: 4, to: 4 }, scenario: () =>
+        createSocialCampaignScenario(kind, "lan", { defectivePolicy: true, recorder }) });
+      expect(report.findings, kind).toHaveLength(1);
+      expect(recorder.histories.length, kind).toBeGreaterThanOrEqual(2);
+      const [full, minimized] = recorder.histories;
+      expect(minimized!.violation?.oracle, kind).toBe(full!.violation?.oracle);
+      expect(minimized!.trace.length, kind).toBeLessThan(full!.trace.length);
+    }
   });
 });

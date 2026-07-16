@@ -157,6 +157,12 @@ describe("Dolev-Yao adversaries", () => {
     }
   });
 
+  it("fails the historical floor when a named target policy is weakened", () => {
+    const fixture = HISTORICAL_REPLAY_FIXTURES.find((entry) => entry.expressible && entry.target === "broker")!;
+    expect(() => executeHistoricalFixture(fixture, 1, { disableContainmentFor: "broker" }))
+      .toThrow(/historical accuracy miss/);
+  });
+
   it("searches for and shrinks a seeded canary instead of selecting it by predicate", () => {
     const found = searchFuzzCanary({ from: 1, to: 100 });
     expect(found.seed).toBeGreaterThanOrEqual(1);

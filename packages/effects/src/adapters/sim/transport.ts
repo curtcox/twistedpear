@@ -24,6 +24,14 @@ export interface TransportStats {
   readonly partitioned: number;
   readonly dutyCycleDropped: number;
   readonly dutyCycleDelayed: number;
+  /** Messages actually changed by mediated adversary actions (not merely requested actions). */
+  readonly adversaryDropped: number;
+  readonly adversaryDelayed: number;
+  readonly adversaryReordered: number;
+  readonly adversaryDuplicated: number;
+  readonly adversaryInjected: number;
+  readonly serializedBytes: number;
+  readonly airtimeMs: number;
 }
 
 export class UnauthorizedAdversaryPowerError extends Error {
@@ -54,6 +62,13 @@ export class SimTransport {
   private partitioned = 0;
   private dutyCycleDropped = 0;
   private dutyCycleDelayed = 0;
+  private adversaryDropped = 0;
+  private adversaryDelayed = 0;
+  private adversaryReordered = 0;
+  private adversaryDuplicated = 0;
+  private adversaryInjected = 0;
+  private serializedBytes = 0;
+  private airtimeMs = 0;
   private seq = 0;
   private readonly config: SimTransportConfig;
 
@@ -72,6 +87,7 @@ export class SimTransport {
     }
 
     this.sent += 1;
+    this.serializedBytes += intent.send.payload.byteLength;
     const destination = intent.send.destination as NodeId;
     const key = `${source}\u0000${destination}`;
     const model = this.modelFor(source, destination);
@@ -114,6 +130,7 @@ export class SimTransport {
       }
       this.occupiedUntil.set(`${key}\u0000duty`, sendAt + airtime / model.dutyCycle);
     }
+    this.airtimeMs += airtime;
     this.occupiedUntil.set(key, sendAt + airtime);
     this.queue.push({
       deliverAt: sendAt + airtime + latency,
@@ -136,12 +153,15 @@ export class SimTransport {
       message.source === action.source && message.destination === action.destination;
     if (action.power === "drop") {
       const kept = this.queue.filter((message) => !matches(message));
-      this.dropped += this.queue.length - kept.length;
+      const affected = this.queue.length - kept.length;
+      this.dropped += affected;
+      this.adversaryDropped += affected;
       this.queue.length = 0;
       this.queue.push(...kept);
       return;
     }
     if (action.power === "delay") {
+      this.adversaryDelayed += this.queue.filter(matches).length;
       const delay = Math.max(0, action.delayMs);
       const delayed = this.queue.map((message) => matches(message)
         ? { ...message, deliverAt: message.deliverAt + delay }
@@ -152,15 +172,20 @@ export class SimTransport {
     }
     if (action.power === "reorder") {
       const indexes = this.queue.map((message, index) => matches(message) ? index : -1).filter((index) => index >= 0);
-      const reversed = indexes.map((index) => this.queue[index]!).reverse();
-      indexes.forEach((index, offset) => { this.queue[index] = reversed[offset]!; });
+      this.adversaryReordered += indexes.length;
+      const deliverySlots = indexes.map((index) => this.queue[index]!.deliverAt).reverse();
+      indexes.forEach((index, offset) => {
+        this.queue[index] = { ...this.queue[index]!, deliverAt: deliverySlots[offset]! };
+      });
       return;
     }
     if (action.power === "duplicate") {
       const copies = this.queue.filter(matches).map((message) => ({ ...message, payload: message.payload.slice() }));
+      this.adversaryDuplicated += copies.length;
       this.queue.push(...copies);
       return;
     }
+    this.adversaryInjected += 1;
     this.queue.push({
       deliverAt: now + Math.max(0, action.delayMs ?? 0),
       channel: action.channel,
@@ -223,7 +248,14 @@ export class SimTransport {
       dropped: this.dropped,
       partitioned: this.partitioned,
       dutyCycleDropped: this.dutyCycleDropped,
-      dutyCycleDelayed: this.dutyCycleDelayed
+      dutyCycleDelayed: this.dutyCycleDelayed,
+      adversaryDropped: this.adversaryDropped,
+      adversaryDelayed: this.adversaryDelayed,
+      adversaryReordered: this.adversaryReordered,
+      adversaryDuplicated: this.adversaryDuplicated,
+      adversaryInjected: this.adversaryInjected,
+      serializedBytes: this.serializedBytes,
+      airtimeMs: this.airtimeMs
     };
   }
 
