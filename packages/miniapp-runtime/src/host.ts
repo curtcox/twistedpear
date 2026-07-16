@@ -377,7 +377,10 @@ export class MiniappHost {
     manifest: LaunchManifest,
     granted: ReadonlyArray<string>
   ): Promise<BrokerResponse> {
-    const freshGrants = await this.options.grantStore.get(manifest.name, manifest.publisherPublicKey);
+    const required = this.broker.capabilityFor(request.namespace, request.method);
+    const freshGrants = required === undefined || required === null
+      ? await this.options.grantStore.get(manifest.name, manifest.publisherPublicKey)
+      : await this.options.grantStore.use(manifest.name, manifest.publisherPublicKey, required, Date.now());
     const context: BrokerContext = {
       appId: manifest.name,
       publisherPublicKey: manifest.publisherPublicKey,

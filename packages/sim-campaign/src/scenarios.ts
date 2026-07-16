@@ -64,10 +64,14 @@ type CampaignNodeState =
       readonly grant: GrantHostState;
       readonly revokedAt: number | null;
       readonly severedAt: number | null;
-      readonly accessTimes: readonly number[];
+      readonly accessTimesByGrant: Readonly<Record<string, readonly number[]>>;
+      readonly storedBlobIds: readonly string[];
       readonly egress: readonly EgressEvent[];
       readonly damageEvents: readonly number[];
       readonly operationSemantics: readonly string[];
+      readonly oracleBreak: "grant-coverage" | "id-uniqueness" | "revocation-monotonicity" | null;
+      readonly productionPath: string;
+      readonly effects: Readonly<Record<string, number>>;
     }
   | { readonly role: "handshake"; readonly handshake: LinkHandshakeState }
   | { readonly role: "adversary"; readonly adversary: AdversaryState }
@@ -75,10 +79,12 @@ type CampaignNodeState =
 
 export interface ProductionScenarioRegistryOptions {
   readonly cells: readonly CoverageCell[];
-  readonly canaryIds?: ReadonlySet<string>;
+  readonly defectIds?: ReadonlySet<string>;
   readonly recorder?: HistoryRecorder<CampaignNodeState>;
   /** Test-only behavior knob: scales actual transport latency. */
   readonly latencyMultiplier?: number;
+  /** Test-only production projection defect used to prove each global oracle end to end. */
+  readonly oracleBreak?: "grant-coverage" | "id-uniqueness" | "revocation-monotonicity";
 }
 
 export interface ProductionScenarioRegistry {
@@ -101,9 +107,10 @@ export function createProductionScenarioRegistry(
       const id = cellId(cell);
       if (!cells.has(id)) throw new Error(`unsupported campaign scenario: ${id}`);
       return productionScenario(cell, seed, {
-        canary: options.canaryIds?.has(id) === true,
+        defectivePolicy: options.defectIds?.has(id) === true,
         ...(options.recorder === undefined ? {} : { recorder: options.recorder }),
-        latencyMultiplier: options.latencyMultiplier ?? 1
+        latencyMultiplier: options.latencyMultiplier ?? 1,
+        oracleBreak: options.oracleBreak ?? null
       });
     }
   };
@@ -113,9 +120,10 @@ function productionScenario(
   cell: CoverageCell,
   seed: number,
   options: {
-    readonly canary: boolean;
+    readonly defectivePolicy: boolean;
     readonly recorder?: HistoryRecorder<CampaignNodeState>;
     readonly latencyMultiplier: number;
+    readonly oracleBreak: "grant-coverage" | "id-uniqueness" | "revocation-monotonicity" | null;
   }
 ): CampaignScenario<CampaignNodeState> {
   const id = cellId(cell);
@@ -125,7 +133,7 @@ function productionScenario(
   const powers = powersForPosition(cell.position);
   const compiled = compileAttackProposal({
     name: `${cell.position}-${cell.abuse.verb}`,
-    actions: attackActions(cell.position, cell.abuse.verb, latency)
+    actions: attackActions(cell, latency)
       .filter((action) => powers.includes(action.power))
   }, powers);
 
@@ -183,12 +191,16 @@ function productionScenario(
         grant: initialGrantHostState("campaign-app", `publisher-${cell.capability}`),
         revokedAt: null,
         severedAt: null,
-        accessTimes: [],
+        accessTimesByGrant: {},
+        storedBlobIds: [],
         egress: [],
         damageEvents: [],
-        operationSemantics: []
+        operationSemantics: [],
+        oracleBreak: options.oracleBreak,
+        productionPath: productionPathFor(cell.capability),
+        effects: {}
       },
-      step: serviceStep(cell, options.canary)
+      step: serviceStep(cell, options.defectivePolicy)
     },
     {
       id: "z-adversary",
@@ -236,7 +248,7 @@ function productionScenario(
     expectedCanaryOracles: [canaryOracle],
     description: {
       name: `${cell.capability}-${cell.position}-${cell.abuse.verb}`,
-      protocolMachines: ["grant-host", "link-handshake"],
+      protocolMachines: ["grant-host", "link-handshake", productionPathFor(cell.capability)],
       adversaryPowers: [...new Set(compiled.powers)],
       transport
     },
@@ -279,7 +291,7 @@ function authorityStep(capability: string): StepFn<CampaignNodeState> {
   };
 }
 
-function serviceStep(cell: CoverageCell, canary: boolean): StepFn<CampaignNodeState> {
+function serviceStep(cell: CoverageCell, defectivePolicy: boolean): StepFn<CampaignNodeState> {
   return (state, event) => {
     if (state.role !== "service") return { state, intents: [] };
     if (event.kind === "start") return { state, intents: [] };
@@ -291,7 +303,14 @@ function serviceStep(cell: CoverageCell, canary: boolean): StepFn<CampaignNodeSt
     }
     if (event.channel === "control/revoke") {
       const stepped = stepGrant(state.grant, { kind: "grant/revoke", at: event.at, capability: cell.capability });
-      return { state: { ...state, grant: stepped.state, revokedAt: event.at }, intents: stepped.intents };
+      const grantId = `${cell.capability}-grant`;
+      return { state: { ...state, grant: stepped.state, revokedAt: event.at,
+        storedBlobIds: state.oracleBreak === "grant-coverage" ? state.storedBlobIds
+          : state.storedBlobIds.filter((id) => id !== grantId),
+        accessTimesByGrant: state.oracleBreak === "revocation-monotonicity"
+          ? { ...state.accessTimesByGrant,
+              [grantId]: [...(state.accessTimesByGrant[grantId] ?? []), event.at + 1] }
+          : state.accessTimesByGrant }, intents: stepped.intents };
     }
     if (event.channel === "control/kill") return { state: { ...state, severedAt: event.at }, intents: [] };
     if (event.channel === "protocol/availability" && state.severedAt === null) {
@@ -300,18 +319,24 @@ function serviceStep(cell: CoverageCell, canary: boolean): StepFn<CampaignNodeSt
       const stepped = lifecycle.phase === "granted"
         ? stepGrant(state.grant, { kind: "grant/first-use", at: event.at, capability: cell.capability })
         : { state: state.grant, intents: [] };
-      return { state: { ...state, grant: stepped.state, accessTimes: [...state.accessTimes, event.at],
+      const grantId = `${cell.capability}-grant`;
+      return { state: { ...state, grant: stepped.state,
+        accessTimesByGrant: { ...state.accessTimesByGrant,
+          [grantId]: [...(state.accessTimesByGrant[grantId] ?? []), event.at] },
+        storedBlobIds: [...new Set([...state.storedBlobIds, grantId])],
         egress: [...state.egress, { at: event.at, appId: "campaign-app",
-          grantId: `${cell.capability}-grant`, peerId: "probe" }],
-        operationSemantics: [...state.operationSemantics, `${cell.capability}:legitimate-use`] }, intents: stepped.intents };
+          grantId, peerId: "probe" }],
+        operationSemantics: [...state.operationSemantics, `${cell.capability}:legitimate-use`],
+        effects: increment(state.effects, capabilityEffect(cell.capability)) }, intents: stepped.intents };
     }
     if (!event.channel.startsWith("abuse/") || state.severedAt !== null) return { state, intents: [] };
-    const damageEvents = [...state.damageEvents, event.at];
     const lifecycle = state.grant.lifecycles?.[cell.capability];
     const authorized = lifecycle?.phase === "granted" || lifecycle?.phase === "active";
     // The shipping policy contains abuse-class operations even when the capability is live.
     // Canary variants deliberately remove only this guard, making the defect path-dependent.
-    if (!authorized || !canary) return { state: { ...state, damageEvents }, intents: [] };
+    if (!authorized || !defectivePolicy || event.payload[0] !== (stableHash(cellId(cell)) & 0xff)) {
+      return { state, intents: [] };
+    }
     const stepped = lifecycle?.phase === "granted"
       ? stepGrant(state.grant, { kind: "grant/first-use", at: event.at, capability: cell.capability })
       : { state: state.grant, intents: [] };
@@ -325,12 +350,15 @@ function serviceStep(cell: CoverageCell, canary: boolean): StepFn<CampaignNodeSt
       state: {
         ...state,
         grant: stepped.state,
-        accessTimes: [...state.accessTimes, event.at],
+        accessTimesByGrant: { ...state.accessTimesByGrant,
+          [egress.grantId]: [...(state.accessTimesByGrant[egress.grantId] ?? []), event.at] },
+        storedBlobIds: [...new Set([...state.storedBlobIds, egress.grantId])],
         egress: [...state.egress, egress],
-        damageEvents,
+        damageEvents: [...state.damageEvents, event.at],
+        effects: increment(increment(state.effects, capabilityEffect(cell.capability)), abuseEffect(cell.abuse.verb)),
         operationSemantics: [...state.operationSemantics,
           `${cell.capability}:${cell.position}:${cell.abuse.verb}`,
-          ...(canary ? [`defect:${cellId(cell)}`] : [])]
+          ...(defectivePolicy ? [`defect:${cellId(cell)}`] : [])]
       },
       intents: stepped.intents
     };
@@ -401,13 +429,15 @@ function adversaryStep(
 }
 
 function attackActions(
-  position: AttackerPosition,
-  abuse: AbuseVerb,
+  cell: CoverageCell,
   latency: number
 ): readonly TransportAdversaryAction[] {
+  const position = cell.position;
+  const abuse = cell.abuse.verb;
   const actions: TransportAdversaryAction[] = [];
   actions.push({ power: "inject", source: "z-adversary",
-    destination: "service", channel: `abuse/${abuse}`, payload: BYTE });
+    destination: "service", channel: `abuse/${abuse}`,
+    payload: new Uint8Array([stableHash(cellId(cell)) & 0xff]) });
   if (abuse === "deny") actions.push({ power: "drop", source: "probe", destination: "service" });
   if (abuse === "drain") actions.push({ power: "duplicate", source: "z-adversary", destination: "service" });
   if (abuse === "correlate") actions.push({ power: "reorder", source: "z-adversary", destination: "service" });
@@ -416,6 +446,40 @@ function attackActions(
   if (position === "colluding-pair") actions.push({ power: "reorder", source: "z-adversary", destination: "service" });
   if (position === "compromised-host") actions.push({ power: "drop", source: "probe", destination: "service" });
   return actions;
+}
+
+function productionPathFor(capability: string): string {
+  if (capability === "identity") return "miniapp-host/identity.sign";
+  if (capability === "presence" || capability.startsWith("announce:")) return "miniapp-host/discovery";
+  if (capability.startsWith("lxmf:")) return "miniapp-host/lxmf";
+  if (capability.startsWith("storage:")) return "miniapp-host/storage";
+  if (capability === "resource:fetch") return "miniapp-host/resource.fetch";
+  if (capability === "workspace") return "miniapp-host/workspace";
+  if (capability === "ai:chat") return "miniapp-host/ai.chat";
+  if (capability.startsWith("apps:")) return "miniapp-host/apps";
+  return "miniapp-host/share.cas";
+}
+
+function capabilityEffect(capability: string): string {
+  if (capability === "identity") return "signatures";
+  if (capability === "presence" || capability.startsWith("announce:")) return "discoveries";
+  if (capability.startsWith("lxmf:")) return "messages";
+  if (capability.startsWith("storage:") || capability === "workspace" || capability === "share:cas") return "storedBytes";
+  if (capability === "resource:fetch") return "fetchedBytes";
+  if (capability === "ai:chat") return "modelTokens";
+  return "packageOperations";
+}
+
+function abuseEffect(verb: AbuseVerb): string {
+  if (verb === "exfiltrate") return "bytesDisclosed";
+  if (verb === "spoof") return "forgedOperations";
+  if (verb === "deny") return "deniedOperations";
+  if (verb === "drain") return "energyUnits";
+  return "correlationLinks";
+}
+
+function increment(values: Readonly<Record<string, number>>, key: string): Readonly<Record<string, number>> {
+  return { ...values, [key]: (values[key] ?? 0) + 1 };
 }
 
 function powersForPosition(position: AttackerPosition): readonly DolevYaoPower[] {
@@ -431,14 +495,17 @@ function projectGrantCoverage(state: CampaignNodeState) {
   const live = Object.entries(state.grant.lifecycles ?? {})
     .filter(([, lifecycle]) => lifecycle.phase === "granted" || lifecycle.phase === "active")
     .map(([capability]) => `${capability}-grant`);
-  return { storedBlobIds: live.length === 0 ? [] : state.egress.map((entry) => entry.grantId), liveGrantBlobIds: live };
+  return { storedBlobIds: state.storedBlobIds, liveGrantBlobIds: live };
 }
 
 function projectGrantIdentities(state: CampaignNodeState) {
   if (state.role !== "authority" && state.role !== "service") return [];
-  return Object.keys(state.grant.lifecycles ?? {}).map((capability) => ({
+  const identities = Object.keys(state.grant.lifecycles ?? {}).map((capability) => ({
     id: `${capability}-grant`, fingerprint: `${state.grant.publisherPublicKey}:${state.grant.appId}:${capability}`
   }));
+  return state.role === "service" && state.oracleBreak === "id-uniqueness" && identities.length > 0
+    ? [...identities, { id: "identity-grant", fingerprint: "conflicting-production-authority" }]
+    : identities;
 }
 
 function projectGrantAuthorizations(state: CampaignNodeState) {
@@ -446,7 +513,7 @@ function projectGrantAuthorizations(state: CampaignNodeState) {
   return Object.entries(state.grant.lifecycles ?? {}).map(([capability, lifecycle]) => ({
     id: `${capability}-grant`,
     ...(lifecycle.revokedAt === null ? {} : { revokedAt: lifecycle.revokedAt }),
-    accessTimes: state.accessTimes
+    accessTimes: state.accessTimesByGrant[`${capability}-grant`] ?? []
   }));
 }
 

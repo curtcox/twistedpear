@@ -87,6 +87,10 @@ export class MiniappBroker {
     this.handlers.set(`${namespace}.${method}`, { capability, handler });
   }
 
+  capabilityFor(namespace: string, method: string): MiniappCapability | null | undefined {
+    return this.handlers.get(`${namespace}.${method}`)?.capability;
+  }
+
   async dispatch(request: BrokerRequest, context: BrokerContext): Promise<BrokerResponse> {
     try {
       this.enforceMessageLimits(request, context);

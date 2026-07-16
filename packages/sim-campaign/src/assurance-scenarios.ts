@@ -49,18 +49,19 @@ function quorumScenario(
   const config = {
     seed: 1,
     nodes: [
-      { id: "0-adversary", machine: "campaign/quorum-adversary",
-        initial: { role: "adversary" as const, acted: false }, step: adversaryStep(actions) },
       { id: "actor", machine: "campaign/quorum-actor",
         initial: { role: "actor" as const, sent: 0 }, step: quorumActorStep(machine, options.attack) },
       machine === "escrow"
         ? { id: target, machine: "protocol/escrow", initial: { role: "escrow" as const, escrow: initialEscrowState(2) },
             step: escrowTargetStep(options.brokenBelowQuorum === true) }
         : { id: target, machine: "protocol/recovery-quorum", initial: { role: "recovery" as const, recovery: initialRecoveryQuorumState(2) },
-            step: recoveryTargetStep(options.brokenBelowQuorum === true) }
+            step: recoveryTargetStep(options.brokenBelowQuorum === true) },
+      { id: "z-adversary", machine: "campaign/quorum-adversary",
+        initial: { role: "adversary" as const, acted: false }, step: adversaryStep(actions) }
     ],
-    links: [{ source: "actor", destination: target, class: options.transport, adversary: "0-adversary",
-      powers, params: clean(options.transport) }],
+    links: [{ source: "actor", destination: target, class: options.transport, adversary: "z-adversary",
+      powers, params: { ...clean(options.transport), ...(options.attack === "partition"
+        ? { partitions: [{ fromMs: 0, toMs: 10_000 }] } : {}) } }],
     oracles: [{ name: `${machine}-safety`, check: (world: { nodes: ReadonlyMap<string, QuorumState> }) => {
       const state = world.nodes.get(target);
       const violation = state?.role === "escrow" ? escrowSafetyViolation(state.escrow)
@@ -78,10 +79,12 @@ function quorumActorStep(machine: "escrow" | "recovery", attack: QuorumAttack): 
     if (state.role !== "actor" || event.kind !== "start") return { state, intents: [] };
     const channels = machine === "escrow"
       ? ["escrow/deposit", "escrow/request", `escrow/authorize/${attack === "below-threshold" || attack === "expiry" ? "a" : "a,b"}`,
+          ...(attack === "replay" ? ["escrow/authorize/a,b"] : []),
           ...(attack === "expiry" ? ["escrow/ttl"] : [])]
       : attack === "expiry"
         ? ["recovery/start", "recovery/share/a", "recovery/ttl", "recovery/authorize"]
         : ["recovery/start", "recovery/share/a", `recovery/share/${attack === "duplicate" || attack === "below-threshold" ? "a" : "b"}`,
+            ...(attack === "replay" ? ["recovery/share/a"] : []),
             "recovery/authorize"];
     return { state: { ...state, sent: channels.length }, intents: channels.map(send) };
   };
@@ -121,8 +124,7 @@ function recoveryTargetStep(broken: boolean): StepFn<QuorumState> {
 
 function quorumAdversaryActions(attack: QuorumAttack, destination: "escrow" | "recovery"): readonly TransportAdversaryAction[] {
   if (attack === "delay") return [{ power: "delay", source: "actor", destination, delayMs: 2 }];
-  if (attack === "partition") return [{ power: "drop", source: "actor", destination }];
-  if (attack === "replay" || attack === "duplicate") return [{ power: "duplicate", source: "actor", destination }];
+  if (attack === "duplicate") return [{ power: "duplicate", source: "actor", destination }];
   if (attack === "colluding-pair") return [{ power: "reorder", source: "actor", destination }];
   return [];
 }
@@ -142,21 +144,40 @@ export interface SocialCampaignState {
   readonly severed: boolean;
   readonly votes: readonly { from: string; to: string; value: -1 | 1 }[];
   readonly outcome: number;
+  readonly ranking: readonly string[];
 }
 
 export function createSocialCampaignScenario(
   kind: SocialKind,
   transport: TransportClassName,
-  options: { readonly containment?: boolean } = {}
+  options: { readonly containment?: boolean; readonly recorder?: HistoryRecorder<SocialCampaignState> } = {}
 ): CampaignScenario<SocialCampaignState> {
-  const initial: SocialCampaignState = { role: "sender", sent: 0, delivered: 0, blocked: false, severed: false, votes: [], outcome: 0 };
+  const initial: SocialCampaignState = { role: "sender", sent: 0, delivered: 0, blocked: false, severed: false, votes: [], outcome: 0, ranking: [] };
   const service: SocialCampaignState = { ...initial, role: "service" };
+  const serviceNodes = kind === "harassment" ? [
+    { id: "social-service", machine: "social/harassment-discovery-gateway", initial: service,
+      step: socialService(kind, transport, ["social-peer-a", "social-peer-b"]) },
+    { id: "social-peer-a", machine: "social/harassment-discovery-peer", initial: service,
+      step: socialService(kind, transport, ["social-peer-b"]) },
+    { id: "social-peer-b", machine: "social/harassment-discovery-peer", initial: service,
+      step: socialService(kind, transport, []) }
+  ] : [{ id: "social-service", machine: `social/${kind}-service`, initial: service, step: socialService(kind, transport, []) }];
+  const graphLinks = kind === "harassment" ? [
+    { source: "social-service", destination: "social-peer-a", class: transport, params: clean(transport) },
+    { source: "social-service", destination: "social-peer-b", class: transport, params: clean(transport) },
+    { source: "social-peer-a", destination: "social-peer-b", class: transport, params: clean(transport) }
+  ] : [];
   return {
     config: { seed: 1, nodes: [
       { id: "social-adversary", machine: `social/${kind}-adversary`, initial,
         step: socialSender(kind, options.containment !== false) },
-      { id: "social-service", machine: `social/${kind}-service`, initial: service, step: socialService(kind, transport) }
-    ], links: [{ source: "social-adversary", destination: "social-service", class: transport, params: clean(transport) }] },
+      ...serviceNodes
+    ], links: [{ source: "social-adversary", destination: "social-service", class: transport, params: clean(transport) }, ...graphLinks],
+      ...(kind === "reputation" ? { oracles: [{ name: "reputation-resilience", check: (world: { nodes: ReadonlyMap<string, SocialCampaignState> }) => {
+        const state = world.nodes.get("social-service");
+        return (state?.votes.length ?? 0) >= 4 && state?.ranking[0] === "target"
+          ? { oracle: "reputation-resilience", message: "colluders displaced the trusted candidate" } : null;
+      }}] } : {}), ...(options.recorder === undefined ? {} : { recorder: options.recorder }) },
     description: { name: `social-${kind}`, protocolMachines: [`social-${kind}`], adversaryPowers: [], transport }
   };
 }
@@ -168,12 +189,12 @@ function socialSender(kind: SocialKind, containment: boolean): StepFn<SocialCamp
       : kind === "harassment" ? (containment
         ? ["harass/a", "harass/b", "contain/block", "harass/c", "contain/sever", "harass/d"]
         : ["harass/a", "harass/b", "harass/c", "harass/d"])
-      : ["vote/c1/target/1", "vote/c2/target/1", "vote/honest/target/-1"];
+      : ["vote/c1/target/1", "vote/c2/target/1", "vote/honest/target/-1", "vote/honest/alternative/1"];
     return { state: { ...state, sent: channels.length }, intents: channels.map(send) };
   };
 }
 
-function socialService(kind: SocialKind, transport: TransportClassName): StepFn<SocialCampaignState> {
+function socialService(kind: SocialKind, transport: TransportClassName, neighbors: readonly string[]): StepFn<SocialCampaignState> {
   return (state, event) => {
     if (state.role !== "service" || event.kind !== "transport/recv") return { state, intents: [] };
     if (event.channel === "contain/block") return { state: { ...state, blocked: true }, intents: [] };
@@ -184,17 +205,31 @@ function socialService(kind: SocialKind, transport: TransportClassName): StepFn<
       return { state: { ...state, delivered, outcome: economics.attackerCost }, intents: [] };
     }
     if (kind === "harassment") return state.blocked || state.severed ? { state, intents: [] }
-      : { state: { ...state, delivered: state.delivered + 1, outcome: state.outcome + 1 }, intents: [] };
+      : { state: { ...state, delivered: state.delivered + 1, outcome: state.outcome + 1 },
+          intents: neighbors.map((destination) => sendTo(event.channel, destination, event.payload)) };
     const [, from = "", to = "", raw = "-1"] = event.channel.split("/");
     const vote = { from, to, value: raw === "1" ? 1 as const : -1 as const };
     const votes = [...state.votes, vote];
     const scores = reputationUnderCollusion(votes, new Set(["c1", "c2"]));
-    return { state: { ...state, votes, delivered: state.delivered + 1, outcome: scores.target ?? 0 }, intents: [] };
+    const ranking = Object.keys(scores).sort((a, b) => (scores[b] ?? 0) - (scores[a] ?? 0) || a.localeCompare(b));
+    return { state: { ...state, votes, delivered: state.delivered + 1, outcome: scores.target ?? 0, ranking }, intents: [] };
   };
+}
+
+export function executedSpamEconomics(kernel: { readonly transport: { getStats(): { sent: number; dropped: number; dutyCycleDropped: number; dutyCycleDelayed: number } }; getNodeState(id: string): SocialCampaignState }, transport: TransportClassName) {
+  const stats = kernel.transport.getStats();
+  const delivered = kernel.getNodeState("social-service").delivered;
+  return spamEconomics({ transport, payloadBytes: 1, messages: stats.sent,
+    deliveredMessages: delivered, lostMessages: stats.dropped,
+    serializedBytes: stats.sent, dutyCycleOutcomes: stats.dutyCycleDropped + stats.dutyCycleDelayed,
+    payoffPerDelivery: 0.01 });
 }
 
 function send(channel: string): Intent { return { kind: "transport/send", send: {
   channel, destination: channel.startsWith("escrow/") ? "escrow" : channel.startsWith("recovery/") ? "recovery" : "social-service",
   payload: new Uint8Array([1]) } }; }
+function sendTo(channel: string, destination: string, payload: Uint8Array): Intent {
+  return { kind: "transport/send", send: { channel, destination, payload } };
+}
 function clean(transport: TransportClassName) { return { lossRate: 0, latency: { kind: "fixed" as const,
   ms: transport === "lora" ? 20 : 1 }, burstLoss: { goodToBad: 0, badToGood: 1, goodLossRate: 0, badLossRate: 0 } }; }

@@ -20,14 +20,23 @@ export function spamEconomics(options: {
   readonly transport: TransportClassName;
   readonly payloadBytes: number;
   readonly messages: number;
+  readonly deliveredMessages?: number;
+  readonly lostMessages?: number;
+  readonly serializedBytes?: number;
+  readonly dutyCycleOutcomes?: number;
   readonly payoffPerDelivery: number;
 }): SpamEconomics {
   const model = transportClass(options.transport);
   const messages = Math.max(0, Math.floor(options.messages));
-  const airtimeMs = (Math.max(0, options.payloadBytes) * 8 * 1_000 / model.bandwidthBps) * messages;
-  const dutyPenalty = model.dutyCycle === undefined ? 1 : 1 / model.dutyCycle;
-  const attackerCost = airtimeMs * AIRTIME_COST[options.transport] * dutyPenalty;
-  const expectedPayoff = messages * Math.max(0, 1 - model.lossRate) * options.payoffPerDelivery;
+  const serializedBytes = options.serializedBytes ?? Math.max(0, options.payloadBytes) * messages;
+  const airtimeMs = serializedBytes * 8 * 1_000 / model.bandwidthBps;
+  const dutyPenalty = options.dutyCycleOutcomes === undefined
+    ? (model.dutyCycle === undefined ? 1 : 1 / model.dutyCycle)
+    : 1 + options.dutyCycleOutcomes;
+  const lostPenalty = 1 + (options.lostMessages ?? 0) / Math.max(1, messages);
+  const attackerCost = airtimeMs * AIRTIME_COST[options.transport] * dutyPenalty * lostPenalty;
+  const delivered = options.deliveredMessages ?? messages * Math.max(0, 1 - model.lossRate);
+  const expectedPayoff = delivered * options.payoffPerDelivery;
   return { transport: options.transport, messages, airtimeMs, attackerCost, expectedPayoff, profitable: expectedPayoff > attackerCost };
 }
 

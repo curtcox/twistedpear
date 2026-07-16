@@ -17,7 +17,7 @@ const cells = coverageFrame({
 });
 const canaryIds = injectCanaries(cells.map(cellId), 24, 0x545750);
 const recorder = new FileHistoryRecorder(reproducers, (path, contents) => writeFileSync(path, `${contents}\n`));
-const registry = createProductionScenarioRegistry({ cells, canaryIds: new Set(canaryIds), recorder });
+const registry = createProductionScenarioRegistry({ cells, defectIds: new Set(canaryIds), recorder });
 if (registry.supportedCells.length !== cells.length) throw new Error("scenario registry does not cover every scheduled cell");
 
 const options = { cells, seeds: { from: seedFrom, to: seedTo }, scenario: registry.create, parallelism: 8 };

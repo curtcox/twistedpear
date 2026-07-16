@@ -8,7 +8,9 @@ import {
   shouldUseDecodeGrantRecord,
   stepDecodeGrantRecordWithActions,
   stepGrantHost,
-  type GrantEvent
+  type GrantEvent,
+  type GrantHostState,
+  type GrantLifecycleState
 } from "@twistedpear/protocol";
 
 export type MiniappCapability =
@@ -144,8 +146,79 @@ async function applyGrantStep(
   return result.state;
 }
 
+interface PersistedGrantAuthority {
+  readonly version: 1;
+  readonly appId: string;
+  readonly publisherPublicKey: string;
+  readonly lifecycles: Readonly<Record<string, GrantLifecycleState>>;
+}
+
+function authorityStoreKey(appId: string, publisherPublicKey: string): string {
+  return `${grantStoreKey(appId, publisherPublicKey)}:authority:v1`;
+}
+
+function encodeAuthority(state: GrantHostState): Uint8Array {
+  return new TextEncoder().encode(JSON.stringify({
+    version: 1,
+    appId: state.appId,
+    publisherPublicKey: state.publisherPublicKey,
+    lifecycles: state.lifecycles ?? {}
+  } satisfies PersistedGrantAuthority));
+}
+
+function decodeAuthority(
+  raw: Uint8Array | null,
+  appId: string,
+  publisherPublicKey: string
+): Readonly<Record<string, GrantLifecycleState>> {
+  if (raw === null) return {};
+  let value: unknown;
+  try {
+    value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(raw));
+  } catch {
+    throw new Error("invalid persisted grant authority");
+  }
+  if (typeof value !== "object" || value === null) throw new Error("invalid persisted grant authority");
+  const authority = value as Partial<PersistedGrantAuthority>;
+  if (authority.version !== 1 || authority.appId !== appId ||
+      authority.publisherPublicKey !== publisherPublicKey ||
+      typeof authority.lifecycles !== "object" || authority.lifecycles === null) {
+    throw new Error("invalid persisted grant authority");
+  }
+  for (const lifecycle of Object.values(authority.lifecycles)) {
+    if (typeof lifecycle !== "object" || lifecycle === null ||
+        !["requested", "granted", "active", "denied", "expired", "revoked"].includes(lifecycle.phase) ||
+        !Number.isSafeInteger(lifecycle.requestedAt) ||
+        (lifecycle.expiresAt !== null && !Number.isSafeInteger(lifecycle.expiresAt)) ||
+        (lifecycle.firstUsedAt !== null && !Number.isSafeInteger(lifecycle.firstUsedAt)) ||
+        (lifecycle.revokedAt !== null && !Number.isSafeInteger(lifecycle.revokedAt))) {
+      throw new Error("invalid persisted grant authority");
+    }
+  }
+  return authority.lifecycles;
+}
+
 export class GrantStore {
   constructor(private readonly store: GrantKeyValueStore) {}
+
+  private async loadState(appId: string, publisherPublicKey: string): Promise<GrantHostState> {
+    const key = grantStoreKey(appId, publisherPublicKey);
+    const [recordRaw, authorityRaw] = await Promise.all([
+      this.store.get(key),
+      this.store.get(authorityStoreKey(appId, publisherPublicKey))
+    ]);
+    let state = initialGrantHostState(appId, publisherPublicKey);
+    if (recordRaw !== null) {
+      state = stepGrantHost(state, { kind: "store/value", key, value: recordRaw }).state;
+      if (state.lastError !== null) throw new Error(state.lastError);
+    }
+    const persisted = decodeAuthority(authorityRaw, appId, publisherPublicKey);
+    return Object.keys(persisted).length === 0 ? state : { ...state, lifecycles: persisted };
+  }
+
+  private async persistAuthority(state: GrantHostState): Promise<void> {
+    await this.store.set(authorityStoreKey(state.appId, state.publisherPublicKey), encodeAuthority(state));
+  }
 
   async get(appId: string, publisherPublicKey: string): Promise<GrantRecord | null> {
     const raw = await this.store.get(grantStoreKey(appId, publisherPublicKey));
@@ -180,19 +253,31 @@ export class GrantStore {
     publisherPublicKey: string,
     declared: ReadonlyArray<string>,
     requestedGrants: ReadonlyArray<string>,
-    now: number
+    now: number,
+    ttlMs = Number.MAX_SAFE_INTEGER - now
   ): Promise<GrantRecord> {
     const declaredCapabilities = validateManifestCapabilities(declared);
     const requested = validateManifestCapabilities(requestedGrants);
-    const state = await applyGrantStep(this.store, initialGrantHostState(appId, publisherPublicKey), {
+    const before = await this.loadState(appId, publisherPublicKey);
+    const terminal = requested.find((capability) => {
+      const phase = before.lifecycles?.[capability]?.phase;
+      return phase === "denied" || phase === "expired" || phase === "revoked";
+    });
+    if (terminal !== undefined) {
+      throw new CapabilityError("CAPABILITY_DENIED", "Terminal grant authority cannot be revived by set.", terminal);
+    }
+    const state = await applyGrantStep(this.store, before, {
       kind: "grant/set",
       at: now,
       declared: declaredCapabilities,
-      requested
+      requested,
+      ttlMs
     } as GrantEvent);
 
+    await this.persistAuthority(state);
+
     if (state.record === null) {
-      throw new Error("grant set did not produce a record");
+      throw new CapabilityError("CAPABILITY_DENIED", "Terminal grant authority cannot be revived by set.", requested[0] ?? "unknown");
     }
 
     return {
@@ -204,30 +289,45 @@ export class GrantStore {
   }
 
   async revoke(appId: string, publisherPublicKey: string, capability: MiniappCapability, now: number): Promise<GrantRecord | null> {
-    const existing = await this.get(appId, publisherPublicKey);
-    if (existing === null) {
+    const before = await this.loadState(appId, publisherPublicKey);
+    if (before.record === null) {
       return null;
     }
 
     const state = await applyGrantStep(
       this.store,
-      {
-        ...initialGrantHostState(appId, publisherPublicKey),
-        record: {
-          appId: existing.appId,
-          publisherPublicKey: existing.publisherPublicKey,
-          granted: existing.granted,
-          updatedAt: existing.updatedAt
-        },
-        lastError: null
-      },
+      before,
       { kind: "grant/revoke", at: now, capability } as GrantEvent
     );
+    await this.persistAuthority(state);
 
     if (state.record === null) {
       return null;
     }
 
+    return {
+      appId: state.record.appId,
+      publisherPublicKey: state.record.publisherPublicKey,
+      granted: validateManifestCapabilities([...state.record.granted]),
+      updatedAt: state.record.updatedAt
+    };
+  }
+
+  async deny(appId: string, publisherPublicKey: string, capability: MiniappCapability, now: number): Promise<void> {
+    const state = await applyGrantStep(
+      this.store,
+      await this.loadState(appId, publisherPublicKey),
+      { kind: "grant/deny", at: now, capability } as GrantEvent
+    );
+    await this.persistAuthority(state);
+  }
+
+  async use(appId: string, publisherPublicKey: string, capability: MiniappCapability, now: number): Promise<GrantRecord | null> {
+    let state = await this.loadState(appId, publisherPublicKey);
+    state = await applyGrantStep(this.store, state, { kind: "grant/ttl", at: now, capability } as GrantEvent);
+    state = await applyGrantStep(this.store, state, { kind: "grant/first-use", at: now, capability } as GrantEvent);
+    await this.persistAuthority(state);
+    if (state.record === null) return null;
     return {
       appId: state.record.appId,
       publisherPublicKey: state.record.publisherPublicKey,

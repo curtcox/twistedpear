@@ -162,6 +162,10 @@ describe("Dolev-Yao adversaries", () => {
     expect(found.seed).toBeGreaterThanOrEqual(1);
     expect(found.history.violation?.oracle).toBe("fuzz-canary");
     expect(found.minimized.trace.length).toBeLessThan(found.history.trace.length);
+    expect({ seed: found.seed, oracle: found.minimized.violation?.oracle,
+      minimizedTraceLength: found.minimized.trace.length }).toEqual({
+      seed: 1, oracle: "fuzz-canary", minimizedTraceLength: 2
+    });
   });
 
   it("puts a model in the authoring loop but compiles only in-model output", async () => {

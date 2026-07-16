@@ -45,6 +45,7 @@ export {
   createEscrowCampaignScenario,
   createRecoveryCampaignScenario,
   createSocialCampaignScenario,
+  executedSpamEconomics,
   type QuorumAttack,
   type SocialCampaignState,
   type SocialKind

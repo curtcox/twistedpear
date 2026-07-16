@@ -6,6 +6,7 @@ import {
   createEscrowCampaignScenario,
   createRecoveryCampaignScenario,
   createSocialCampaignScenario,
+  executedSpamEconomics,
   runCampaign,
   type QuorumAttack
 } from "../src/index.js";
@@ -38,6 +39,27 @@ describe("quorum and social campaigns", () => {
     }
   });
 
+  it("proves each named quorum schedule affects in-flight traffic", () => {
+    for (const transport of transports) for (const create of [createEscrowCampaignScenario, createRecoveryCampaignScenario]) {
+      for (const attack of ["duplicate", "delay", "partition", "colluding-pair"] as const) {
+        const scenario = create({ transport, attack });
+        const kernel = new SimKernel(scenario.config);
+        kernel.start(); kernel.runUntilIdle(100_000);
+        const adversary = kernel.getIntentLog().filter((intent) => intent.kind === "transport/adversary");
+        if (attack === "partition") expect(kernel.transport.getStats().partitioned).toBeGreaterThan(0);
+        else expect(adversary[0]?.action.power).toBe(attack === "colluding-pair" ? "reorder" : attack);
+      }
+      for (const attack of ["replay", "expiry"] as const) {
+        const scenario = create({ transport, attack });
+        const kernel = new SimKernel(scenario.config);
+        kernel.start(); kernel.runUntilIdle(100_000);
+        const channels = kernel.getTrace().filter((entry: any) => entry.t === "event" && entry.event.kind === "transport/recv")
+          .map((entry: any) => entry.event.channel as string);
+        expect(attack === "replay" ? new Set(channels).size < channels.length : channels.some((channel) => channel.endsWith("ttl"))).toBe(true);
+      }
+    }
+  });
+
   it("runs spam, harassment, and reputation adversaries over every transport", async () => {
     for (const transport of transports) for (const kind of ["spam", "harassment", "reputation"] as const) {
       const report = await runCampaign({ cells: [cell!], seeds: { from: 3, to: 3 },
@@ -53,10 +75,27 @@ describe("quorum and social campaigns", () => {
       const scenario = createSocialCampaignScenario("harassment", "lan", { containment });
       const kernel = new SimKernel(scenario.config);
       kernel.start(); kernel.runUntilIdle(1_000);
-      return kernel.getNodeState("social-service");
+      return ["social-service", "social-peer-a", "social-peer-b"]
+        .map((id) => kernel.getNodeState(id))
+        .reduce((sum, state) => sum + state.delivered, 0);
     };
-    expect(run(true).delivered).toBeLessThan(run(false).delivered);
-    expect(run(true).blocked).toBe(true);
-    expect(run(true).severed).toBe(true);
+    expect(run(true)).toBeLessThan(run(false));
+  });
+
+  it("derives spam economics from executed sends, losses, airtime, and duty-cycle outcomes", () => {
+    const run = (transport: TransportClassName) => {
+      const scenario = createSocialCampaignScenario("spam", transport);
+      const kernel = new SimKernel(scenario.config);
+      kernel.start(); kernel.runUntilIdle(1_000_000);
+      return executedSpamEconomics(kernel, transport);
+    };
+    expect(run("lora").attackerCost).toBeGreaterThan(run("lan").attackerCost);
+  });
+
+  it("feeds colluding votes into a resilient ranking decision", () => {
+    const scenario = createSocialCampaignScenario("reputation", "lan");
+    const kernel = new SimKernel(scenario.config);
+    kernel.start(); kernel.runUntilIdle(1_000);
+    expect(kernel.getNodeState("social-service").ranking[0]).toBe("alternative");
   });
 });

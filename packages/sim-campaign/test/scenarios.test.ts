@@ -5,6 +5,7 @@ import {
   runCampaign
 } from "../src/index.js";
 import { describe, expect, it } from "vitest";
+import { SimKernel, MemoryHistoryRecorder } from "@twistedpear/effects/adapters/sim";
 
 const cells = coverageFrame({ capabilities: ["identity"] });
 
@@ -20,7 +21,7 @@ describe("production abuse scenario registry", () => {
     expect(registry.supportedCells).toHaveLength(25);
     expect(report.coverage).toHaveLength(25);
     expect(new Set(report.coverage.flatMap((entry) => entry.protocolMachines))).toEqual(
-      new Set(["grant-host", "link-handshake"])
+      new Set(["grant-host", "link-handshake", "miniapp-host/identity.sign"])
     );
     expect(new Set(report.coverage.flatMap((entry) => entry.adversaryPowers))).toEqual(
       new Set(["inject", "duplicate", "delay", "reorder", "drop"])
@@ -37,7 +38,7 @@ describe("production abuse scenario registry", () => {
     expect(cell).toBeDefined();
     const registry = createProductionScenarioRegistry({
       cells: [cell!],
-      canaryIds: new Set(["identity|malicious-app|exfiltrate"])
+      defectIds: new Set(["identity|malicious-app|exfiltrate"])
     });
     const report = await runCampaign({
       cells: [cell!],
@@ -52,7 +53,7 @@ describe("production abuse scenario registry", () => {
   });
 
   it("mutating any coverage axis changes executable semantics and position powers", async () => {
-    const variants = coverageFrame({ capabilities: ["identity", "network"],
+    const variants = coverageFrame({ capabilities: ["identity", "storage:kv"],
       positions: ["malicious-app", "malicious-relay"], verbs: ["exfiltrate", "deny"] });
     const registry = createProductionScenarioRegistry({ cells: variants });
     const report = await runCampaign({ cells: variants, seeds: { from: 1, to: 1 }, scenario: registry.create });
@@ -63,6 +64,27 @@ describe("production abuse scenario registry", () => {
     expect(app?.adversaryPowers).not.toContain("drop");
     expect(app?.adversaryPowers).not.toContain("delay");
     expect(relay?.adversaryPowers).toContain("delay");
+
+    const states = variants.map((variant) => {
+      const scenario = registry.create(variant, 1);
+      const kernel = new SimKernel(scenario.config);
+      kernel.start(); kernel.runUntilIdle(20_000);
+      return kernel.getNodeState("service") as any;
+    });
+    expect(new Set(states.map((state) => state.productionPath)).size).toBe(2);
+    expect(new Set(states.map((state) => JSON.stringify(state.effects))).size).toBeGreaterThan(2);
+  });
+
+  it("records, reruns, and shrinks deliberate production projection breaks", async () => {
+    const [identity] = coverageFrame({ capabilities: ["identity"], positions: ["malicious-app"], verbs: ["spoof"] });
+    for (const oracleBreak of ["grant-coverage", "id-uniqueness", "revocation-monotonicity"] as const) {
+      const recorder = new MemoryHistoryRecorder<any>();
+      const registry = createProductionScenarioRegistry({ cells: [identity!], recorder, oracleBreak });
+      const report = await runCampaign({ cells: [identity!], seeds: { from: 9, to: 9 }, scenario: registry.create });
+      expect(report.findings[0]?.violation.oracle).toBe(oracleBreak);
+      expect(recorder.histories.length).toBeGreaterThanOrEqual(2);
+      expect(recorder.histories.at(-1)?.violation?.oracle).toBe(oracleBreak);
+    }
   });
 
   it("measures transport-driven containment and rejects deliberate slowdowns", async () => {

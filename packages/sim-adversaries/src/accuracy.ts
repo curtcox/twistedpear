@@ -7,6 +7,7 @@ import {
 } from "@twistedpear/effects/adapters/sim";
 import { compileAttackProposal, createFuzzAdversary, type AdversaryState } from "./adversary.js";
 import type { HistoricalReplayFixture } from "./historical.js";
+import { decodeGrantRecord, encodeGrantRecord } from "@twistedpear/protocol";
 
 interface AccuracyState extends AdversaryState {
   readonly role: "target" | "adversary";
@@ -44,7 +45,7 @@ export function executeHistoricalFixture(fixture: HistoricalReplayFixture, seed 
     seed,
     nodes: [
       ...targetIds.map((id) => ({ id, machine: `historical/${fixture.target ?? "target"}`,
-        initial: initialTarget, step: historicalTargetStep(fixture.expectedOutcome!, id, compiled.proposal.actions) })),
+        initial: initialTarget, step: historicalTargetStep(fixture.target!, id, compiled.proposal.actions) })),
       { id: "z", machine: "historical/adversary", initial: adversaryState(compiled.initial),
         step: widen(compiled.step) }
     ],
@@ -61,7 +62,7 @@ export function executeHistoricalFixture(fixture: HistoricalReplayFixture, seed 
 }
 
 function historicalTargetStep(
-  expected: string,
+  target: NonNullable<HistoricalReplayFixture["target"]>,
   id: string,
   actions: readonly import("@twistedpear/effects").TransportAdversaryAction[]
 ): StepFn<AccuracyState> {
@@ -78,10 +79,18 @@ function historicalTargetStep(
     const duplicate = state.seen.includes(key);
     const oversized = event.payload.length > 256;
     const received = state.received + 1;
-    const contained = duplicate || oversized || received > 16 ||
-      event.channel === "grant" || event.channel === "key-share" || event.channel === "federation";
+    const outcome = target === "broker" ? (oversized ? "oversized-message-rejected"
+      : received > 16 ? "broker-rate-limited" : null)
+      : target === "handshake" ? (duplicate ? "replay-rejected" : null)
+      : target === "grant" ? (event.channel === "grant" && bytes(event.payload) === "116.111.107.101.110"
+        ? "bearer-replay-rejected" : null)
+      : target === "key-share" ? (event.channel === "key-share" && bytes(event.payload) === "114.101.113"
+        ? "untrusted-device-rejected" : null)
+      : event.channel === "federation" && bytes(event.payload) === "97.99.108"
+        ? "malicious-acl-contained" : null;
+    const contained = outcome !== null;
     return { state: { ...state, received, accepted: state.accepted + (contained ? 0 : 1),
-      seen: [...state.seen, key], outcome: contained ? expected : state.outcome }, intents: [] };
+      seen: [...state.seen, key], outcome: outcome ?? state.outcome }, intents: [] };
   };
 }
 
@@ -93,20 +102,26 @@ export interface FuzzCanaryResult {
 
 /** Search seeds and payloads, then delta-debug the first real target failure. */
 export function searchFuzzCanary(options: { readonly from: number; readonly to: number }): FuzzCanaryResult {
-  const payloads = [new Uint8Array([0]), new Uint8Array([0xca, 0xfe]), new Uint8Array([1, 2, 3])];
+  const valid = encodeGrantRecord({ appId: "a", publisherPublicKey: "p", granted: ["identity"], updatedAt: 1 });
+  const laxOnly = new TextEncoder().encode('{"appId":"a","publisherPublicKey":"p","granted":["identity"],"updatedAt":1,"updatedAt":2}');
+  const payloads = [new Uint8Array([0]), laxOnly, valid];
   for (let seed = options.from; seed <= options.to; seed += 1) {
     const fuzz = createFuzzAdversary({ source: "fuzzer", destination: "target", channel: "fuzz", payloads });
     const config = {
       seed,
       nodes: [
-        { id: "target", machine: "fuzz/canary-target", initial: initialTarget, step: canaryTargetStep },
+        { id: "sender", machine: "fuzz/valid-grant-sender", initial: initialTarget, step: validGrantSender(valid) },
+        { id: "target", machine: "protocol/grant-parser-defect-variant", initial: initialTarget, step: canaryTargetStep },
         { id: "z", machine: "fuzz/search", initial: adversaryState(fuzz.initial), step: widen(fuzz.step) }
       ],
-      links: [{ source: "fuzzer", destination: "target", class: "lan" as const, adversary: "z",
-        powers: ["inject" as const], params: clean }],
+      links: [
+        { source: "sender", destination: "target", class: "lan" as const, params: clean },
+        { source: "fuzzer", destination: "target", class: "lan" as const, adversary: "z",
+          powers: ["inject" as const], params: clean }
+      ],
       oracles: [{ name: "fuzz-canary", check: (world: { nodes: ReadonlyMap<string, AccuracyState> }) =>
         [...world.nodes.values()].some((state) => state.canary)
-          ? { oracle: "fuzz-canary", message: "search discovered ca-fe parser defect" } : null }]
+          ? { oracle: "fuzz-canary", message: "lax grant parser admitted a non-canonical record after canonical traffic" } : null }]
     };
     const kernel = new SimKernel(config);
     try { kernel.start(); kernel.runUntilIdle(10_000); }
@@ -119,10 +134,27 @@ export function searchFuzzCanary(options: { readonly from: number; readonly to: 
   throw new Error(`fuzz canary not found in seeds ${options.from}..${options.to}`);
 }
 
-const canaryTargetStep: StepFn<AccuracyState> = (state, event) => event.kind === "transport/recv"
-  ? { state: { ...state, received: state.received + 1,
-      canary: event.payload.length === 2 && event.payload[0] === 0xca && event.payload[1] === 0xfe }, intents: [] }
-  : { state, intents: [] };
+const canaryTargetStep: StepFn<AccuracyState> = (state, event) => {
+  if (event.kind !== "transport/recv") return { state, intents: [] };
+  let canonical = false;
+  try { decodeGrantRecord(event.payload); canonical = true; } catch { /* production rejection */ }
+  let lax = false;
+  try {
+    const parsed = JSON.parse(new TextDecoder().decode(event.payload)) as Record<string, unknown>;
+    lax = typeof parsed.appId === "string" && typeof parsed.publisherPublicKey === "string" &&
+      Array.isArray(parsed.granted) && typeof parsed.updatedAt === "number";
+  } catch { /* lax parser also rejects */ }
+  const sawCanonical = state.seen.includes("canonical") || canonical;
+  return { state: { ...state, received: state.received + 1,
+    seen: canonical ? [...state.seen, "canonical"] : state.seen,
+    canary: state.canary || (sawCanonical && lax && !canonical) }, intents: [] };
+};
+
+function validGrantSender(payload: Uint8Array): StepFn<AccuracyState> {
+  return (state, event) => event.kind === "start" ? { state, intents: [{ kind: "transport/send", send: {
+    channel: "grant", destination: "target", payload
+  }}] } : { state, intents: [] };
+}
 
 function adversaryState(state: AdversaryState): AccuracyState {
   return { ...initialTarget, ...state, role: "adversary" };
