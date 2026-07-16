@@ -227,19 +227,21 @@
     <p class="eyebrow">TwistedPear · internal engineering reference</p>
     <h1>Deterministic abuse-simulation architecture</h1>
     <p class="standfirst">Why every TwistedPear protocol behavior is written once as a pure state machine, run unchanged in production and in a seeded simulator, and used to game out abuse before the platform is ever exposed to its one viral first impression.</p>
-    <p class="meta">Status: implemented and revalidated — see <a href="simulation-outstanding-work.md">simulation-outstanding-work.md</a> for completion evidence · Revalidated: 2026-07-16 · Audience: platform engineers · Scope: the simulation, not the platform</p>
+    <p class="meta">Status: core implemented; production-fidelity work remains — see <a href="simulation-outstanding-work.md">simulation-outstanding-work.md</a> · Re-audited: 2026-07-16 · Audience: platform engineers · Scope: architecture plus current implementation gaps</p>
   </div>
 </header>
 
 <div class="wrap">
 
 <aside class="callout">
-  <strong>Implementation status.</strong> The architecture is implemented for its stated simulator
-  scope: persisted production grant authority, reviewed behavior-specific campaign cells,
-  independent historical assertions, effective in-flight quorum schedules, first-class social and
-  economic scenarios, global production projections, recording, shrinking, and formal twins. See
-  <a href="simulation-outstanding-work.md">the authoritative completion record</a> for executable
-  evidence and the explicit scope boundary.
+  <strong>Implementation status.</strong> The deterministic kernel, transport/adversary models,
+  persisted production grant lifecycle, recording, shrinking, modeled campaign, quorum schedules,
+  social/economic models, and formal twins are implemented. The current coverage service and
+  historical targets still contain simulation-specific machines, and global oracle projections
+  currently read campaign-owned state. Therefore the implementation does not yet satisfy the full
+  same-shipping-core fidelity claim below. See
+  <a href="simulation-outstanding-work.md">the authoritative status record</a> and
+  <a href="simulation-outstanding-work-plan.md">remaining implementation plan</a>.
 </aside>
 
 <p><strong>Thesis.</strong> Write every protocol behavior as a pure, deterministic, sans-IO state machine — <code>step(state, event) → (state', intents)</code> — with no sockets, no clock, and no randomness inside it. Wrap that one compiled core in real IO adapters to get the production host; wrap the <em>identical</em> core in a kernel that supplies virtual time, one seeded PRNG, and an event queue to get the simulator. Because both environments embed the same artifact, an entire multi-node run becomes a single deterministic history reproducible from <code>(seed, config)</code>, and the question "was the simulation accurate?" stops being a research question about model fidelity and becomes a build-system property: the thing being simulated <em>is</em> the thing that ships. On top of that core we run adversaries with Dolev-Yao network powers, global-state oracles, and trace shrinking, and we spend most of that budget on the social and economic abuse that actually kills apps at the viral moment — not only the cryptographic attacks that are easier to reason about.</p>
@@ -1018,14 +1020,14 @@ erDiagram
 <p>The simulator models the network's <em>behavior</em>, not its <em>physics</em>. A real LoRa link has interference, weather, antenna orientation, regulatory duty-cycle enforcement, and hardware quirks that no latency/loss distribution fully captures. A real BLE stack has OS-level pairing behavior outside our core. Where the physical layer can lie — a radio that claims delivery it didn't achieve, a clock that drifts — the simulator's clean event model is an idealization, and some abuses will live in that gap. Historical replay and, ultimately, guarded real-world testing are the only checks on it.</p>
 
 <h4>The model-fidelity gap is narrowed, not closed</h4>
-<p>Section 2 collapses the fidelity question <em>for the protocol logic</em> because that logic is literally shared. It does <em>not</em> collapse it for the environment models, which are genuine approximations. When the simulator says an attack fails, that verdict is only as good as the network/adversary model it assumed. The same-core design moves the fidelity risk entirely into the adapters and models — which is a large improvement, because those are small, inspectable, and deliberately adjustable — but "moved and shrunk" is not "eliminated."</p>
+<p>Section 2 collapses the fidelity question <em>only where the protocol or service logic is literally shared</em>. The grant lifecycle and selected protocol machines meet that bar. The current coverage service and historical targets do not yet do so: they are deterministic test doubles that model expected production effects. Environment models are also genuine approximations. When the simulator says an attack fails, that verdict is only as good as both the shipping-path provenance and the network/adversary model it exercised. The target architecture moves fidelity risk into small adapters and models; the current implementation has not completed that move for every counted path.</p>
 
 <h4>The attack set is open-ended</h4>
 <p>No coverage frame closes over an adaptive adversary's imagination; the abuse verbs are a working taxonomy, not a proof of completeness. This is exactly why <a href="#exercise">§7</a> leans so hard on response simulation and calibrated humility: we do not pretend to have enumerated every attack, we measure how fast we contain the ones we didn't, and we report saturation and canary-recapture numbers as estimates with error bars rather than as guarantees. The correct posture is a floor we can defend (known abuses caught, critical machines proven, containment measured) under a ceiling we admit (novel social attacks, physical-layer lies, model gaps).</p>
 
 <div class="callout note">
   <span class="tag">The honest summary</span>
-  <p style="margin:0">What this architecture guarantees: any abuse it finds is real, reproducible, and minimizable to a small history; the critical machines are proven, not sampled; and containment is a measured number. What it does not guarantee: that it has found everything, or that its environment models match physics. Build it for the first set of properties, and never sell the second.</p>
+  <p style="margin:0">What the current implementation guarantees: a violation in the registered model is reproducible and minimizable; the declared authority relations have checked formal twins; and modeled containment is measured. A finding is a shipping-product finding only when its scenario is backed by the named shipping component. Current campaign and historical test doubles do not yet meet that condition. It also does not guarantee that every attack has been found or that environment models match physics.</p>
 </div>
 </div>
 

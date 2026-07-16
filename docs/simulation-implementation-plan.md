@@ -6,11 +6,18 @@ unchanged in production and in a seeded simulator. This plan is *how* we get fro
 current tree to the simulator that document describes, in an order that never sacrifices
 the reproducibility guarantee everything else rests on.
 
-> **Status of this plan (revalidated 2026-07-16):** All sixteen phases are complete for their stated
-> simulator scope. The original phase descriptions below are retained as design and implementation
-> history, not as a current task list. Detailed acceptance evidence is summarized in
-> [simulation-outstanding-work-plan.md](simulation-outstanding-work-plan.md); the short,
-> authoritative completion record is [simulation-outstanding-work.md](simulation-outstanding-work.md).
+> **Status of this plan (re-audited 2026-07-16):** The deterministic substrate, authority tables,
+> transport models, recording/shrinking, formal twins, and modeled campaign are implemented. The
+> plan is not complete end to end: production-backed coverage cells, production-target historical
+> replay, production-backed oracle projections, the live model-authoring pipeline, required Python
+> interop, cross-platform replay, and transport calibration remain. The phase descriptions below
+> are retained as the original design and acceptance criteria. Current status and sequencing are in
+> [simulation-outstanding-work-plan.md](simulation-outstanding-work-plan.md); the short authoritative
+> record is [simulation-outstanding-work.md](simulation-outstanding-work.md).
+
+The key audit correction is provenance: executing a campaign-specific machine whose metadata names
+a production path is not the same as executing that shipping path. Current campaign and historical
+test doubles validate the simulation machinery, but they do not close production-fidelity criteria.
 
 ---
 
