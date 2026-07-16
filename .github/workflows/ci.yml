@@ -404,7 +404,7 @@ jobs:
       - run: npm run test:bare-benchmark-compare
       - run: npm run test:bare-benchmark-bare-compare
 
-  interop:
+  python-interop:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -431,6 +431,17 @@ jobs:
           name: python-interop-versions
           path: python-interop-versions.txt
           if-no-files-found: error
+
+  web-interop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
       - run: INTEROP=1 npm run test:web-interop
       - run: npx playwright install chromium --with-deps
       - run: INTEROP=1 npm run test:web-interop-browser
