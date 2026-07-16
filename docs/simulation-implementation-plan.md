@@ -6,10 +6,13 @@ unchanged in production and in a seeded simulator. This plan is *how* we get fro
 current tree to the simulator that document describes, in an order that never sacrifices
 the reproducibility guarantee everything else rests on.
 
-> **Status of this plan:** implemented. Phases 1–11 landed together with deterministic
-> tests, generated transition vectors, the grant TLA+ conformance check, and a model-free
-> regression fixture. Phase numbering remains the dependency order and a guide for future
-> extensions.
+> **Status of this plan:** Phases 1–11 landed together with deterministic tests, generated
+> transition vectors, the grant TLA+ conformance check, and a model-free regression fixture.
+> Phase numbering remains the dependency order and a guide for future extensions. A
+> phase-by-phase validation against the architecture's exit criteria (2026-07-15) found the
+> skeleton complete and green but four scope gaps remaining — chiefly that the grant boundary
+> is not yet byte-strict (architecture §6). Outstanding work and its plan (Phases 12–14) are
+> tracked in [docs/simulation-outstanding-work.md](simulation-outstanding-work.md).
 
 ---
 
