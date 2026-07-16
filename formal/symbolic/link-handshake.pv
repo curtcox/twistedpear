@@ -5,7 +5,6 @@ type group.
 const g: group.
 fun pk(skey): pkey.
 fun sign(bitstring, skey): bitstring.
-fun checksign(bitstring, pkey): bitstring.
 reduc forall m: bitstring, k: skey; checksign(sign(m,k),pk(k)) = m.
 fun exp(group, exponent): group.
 equation forall x:exponent, y:exponent; exp(exp(g,x),y) = exp(exp(g,y),x).
@@ -33,7 +32,7 @@ let initiator =
   in(network, (=link, gy:group, response:bitstring));
   let verified = checksign(response, pk(responder_key)) in
   if verified = pack2(link,gy) then
-    let key = session(exp(gy,x),link) in event InitiatorEstablished(key,key).
+    let key = session(exp(gy,x),link) in event InitiatorEstablished(link,key).
 
 let responder =
   in(network, (link:bitstring, gx:group, request:bitstring));

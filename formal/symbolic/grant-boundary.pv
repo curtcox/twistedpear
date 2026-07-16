@@ -2,7 +2,6 @@ type skey.
 type pkey.
 fun pk(skey): pkey.
 fun sign(bitstring, skey): bitstring.
-fun checksign(bitstring, pkey): bitstring.
 reduc forall m: bitstring, k: skey; checksign(sign(m,k),pk(k)) = m.
 
 fun canonical(bitstring, bitstring, bitstring): bitstring [data].

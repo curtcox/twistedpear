@@ -6,9 +6,8 @@ import { utf8Decode } from "./utf8.js";
 export function migrateLegacyGrantRecord(bytes: Uint8Array): Uint8Array | null {
   try {
     const text = utf8Decode(bytes);
-    for (const key of ["appId", "publisherPublicKey", "granted", "updatedAt"]) {
-      if ([...text.matchAll(new RegExp(`"${key}"\\s*:`, "g"))].length !== 1) return null;
-    }
+    const keys = topLevelObjectKeys(text);
+    if (keys === null || new Set(keys).size !== keys.length) return null;
     const value: unknown = JSON.parse(text);
     if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
     const record = value as Record<string, unknown>;
@@ -21,4 +20,47 @@ export function migrateLegacyGrantRecord(bytes: Uint8Array): Uint8Array | null {
   } catch {
     return null;
   }
+}
+
+/** Decode top-level key spellings before checking uniqueness (for example, `\u0061ppId`). */
+function topLevelObjectKeys(text: string): readonly string[] | null {
+  const keys: string[] = [];
+  let objectDepth = 0;
+  let arrayDepth = 0;
+  let previous: "open" | "comma" | "other" = "other";
+  let offset = 0;
+
+  while (offset < text.length) {
+    const character = text[offset]!;
+    if (/\s/.test(character)) { offset += 1; continue; }
+    if (character === "\"") {
+      const end = jsonStringEnd(text, offset);
+      if (end === null) return null;
+      if (objectDepth === 1 && arrayDepth === 0 && (previous === "open" || previous === "comma")) {
+        const key: unknown = JSON.parse(text.slice(offset, end));
+        if (typeof key !== "string") return null;
+        keys.push(key);
+      }
+      previous = "other";
+      offset = end;
+      continue;
+    }
+    if (character === "{") { objectDepth += 1; previous = "open"; }
+    else if (character === "}") { objectDepth -= 1; previous = "other"; }
+    else if (character === "[") { arrayDepth += 1; previous = "other"; }
+    else if (character === "]") { arrayDepth -= 1; previous = "other"; }
+    else if (character === ",") { previous = "comma"; }
+    else if (character !== ":") { previous = "other"; }
+    if (objectDepth < 0 || arrayDepth < 0) return null;
+    offset += 1;
+  }
+  return objectDepth === 0 && arrayDepth === 0 ? keys : null;
+}
+
+function jsonStringEnd(text: string, start: number): number | null {
+  for (let offset = start + 1; offset < text.length; offset += 1) {
+    if (text[offset] === "\\") { offset += 1; continue; }
+    if (text[offset] === "\"") return offset + 1;
+  }
+  return null;
 }

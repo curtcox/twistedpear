@@ -79,13 +79,17 @@ describe("protocol grant host", () => {
   });
 
   it("does not migrate ambiguous legacy duplicate keys", () => {
-    const result = stepGrantHost(initialGrantHostState(APP, PUBKEY), {
-      kind: "store/value", key: grantStoreKey(APP, PUBKEY),
-      value: utf8Encode('{"appId":"wrong","appId":"demo-app","publisherPublicKey":"publisher-pk-hex","granted":[],"updatedAt":42}')
-    });
-    expect(result.state.record).toBeNull();
-    expect(result.state.lastError).toBe("grant record decode failed");
-    expect(result.intents).toEqual([]);
+    for (const duplicate of [
+      '{"appId":"wrong","appId":"demo-app","publisherPublicKey":"publisher-pk-hex","granted":[],"updatedAt":42}',
+      '{"appId":"wrong","\\u0061ppId":"demo-app","publisherPublicKey":"publisher-pk-hex","granted":[],"updatedAt":42}'
+    ]) {
+      const result = stepGrantHost(initialGrantHostState(APP, PUBKEY), {
+        kind: "store/value", key: grantStoreKey(APP, PUBKEY), value: utf8Encode(duplicate)
+      });
+      expect(result.state.record).toBeNull();
+      expect(result.state.lastError).toBe("grant record decode failed");
+      expect(result.intents).toEqual([]);
+    }
   });
 
   it("emits encode/decode actions from WithActions steps", () => {
