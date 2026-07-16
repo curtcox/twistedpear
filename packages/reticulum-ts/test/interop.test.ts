@@ -195,7 +195,9 @@ describe.runIf(interopReady())("docker interop — leaf node over UDP", () => {
 
       const iface = await reticulum.addUdpInterface({
         name: "python-udp-echo",
-        listenHost: "127.0.0.1",
+        // On Linux the peer reaches the host through Docker's bridge gateway,
+        // rather than through the host loopback interface as it does on macOS.
+        listenHost: "0.0.0.0",
         listenPort: UDP_TS_PORT,
         forwardHost: "127.0.0.1",
         forwardPort: UDP_ECHO_PORT
