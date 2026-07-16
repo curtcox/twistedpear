@@ -140,6 +140,8 @@
   .callout.good .tag{color:var(--c-core)}
   .callout.note{border-left-color:var(--c-prod)}
   .callout.note .tag{color:var(--c-prod)}
+  .callout.warn{border-left-color:var(--c-adv)}
+  .callout.warn .tag{color:var(--c-adv)}
 
   /* Table of contents */
   nav.toc{
@@ -225,11 +227,23 @@
     <p class="eyebrow">TwistedPear · internal engineering reference</p>
     <h1>Deterministic abuse-simulation architecture</h1>
     <p class="standfirst">Why every TwistedPear protocol behavior is written once as a pure state machine, run unchanged in production and in a seeded simulator, and used to game out abuse before the platform is ever exposed to its one viral first impression.</p>
-    <p class="meta">Status: implemented architecture — remaining validation and campaign work is tracked in <a href="simulation-outstanding-work.md">simulation-outstanding-work.md</a> · Audience: platform engineers · Scope: the simulation, not the platform</p>
+    <p class="meta">Status: target architecture with implemented foundations; end-to-end campaign validation remains open — tracked in <a href="simulation-outstanding-work.md">simulation-outstanding-work.md</a> · Revalidated: 2026-07-16 · Audience: platform engineers · Scope: the simulation, not the platform</p>
   </div>
 </header>
 
 <div class="wrap">
+
+<aside class="callout warn">
+  <strong>Implementation status.</strong> The deterministic kernel, transport classes, table and
+  formal tooling, recorder/shrinker, parser, and campaign runner exist. The repository does not yet
+  satisfy this architecture end to end: persisted production grant state can lose terminal
+  lifecycle authority; several coverage cells remain generic; historical targets are not yet
+  independent production behaviors; quorum adversary actions do not yet affect queued traffic; and
+  social/economic scenarios do not yet model the claimed graph, transport, and ranking outcomes.
+  Treat this document as the target design. See
+  <a href="simulation-outstanding-work.md">the authoritative outstanding-work checklist</a> for the
+  current implementation boundary.
+</aside>
 
 <p><strong>Thesis.</strong> Write every protocol behavior as a pure, deterministic, sans-IO state machine — <code>step(state, event) → (state', intents)</code> — with no sockets, no clock, and no randomness inside it. Wrap that one compiled core in real IO adapters to get the production host; wrap the <em>identical</em> core in a kernel that supplies virtual time, one seeded PRNG, and an event queue to get the simulator. Because both environments embed the same artifact, an entire multi-node run becomes a single deterministic history reproducible from <code>(seed, config)</code>, and the question "was the simulation accurate?" stops being a research question about model fidelity and becomes a build-system property: the thing being simulated <em>is</em> the thing that ships. On top of that core we run adversaries with Dolev-Yao network powers, global-state oracles, and trace shrinking, and we spend most of that budget on the social and economic abuse that actually kills apps at the viral moment — not only the cryptographic attacks that are easier to reason about.</p>
 

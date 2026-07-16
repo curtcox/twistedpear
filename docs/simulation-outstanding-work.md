@@ -1,148 +1,167 @@
-# Deterministic Abuse-Simulation — Completion Record
+# Deterministic Abuse-Simulation — Outstanding Work
 
-Completed and validated on 2026-07-16. The simulator infrastructure, formal models, byte-strict
-grant parser, deterministic campaign runner, containment reporting, production grant lifecycle,
-behavior-specific abuse cells, accuracy/fuzz tiers, quorum campaigns, social adversaries, and
-global grant oracles are implemented and their automated checks pass.
+Revalidated on 2026-07-16 against the implementation and executable checks. The deterministic
+kernel, transport classes, table interpreter, recorder/shrinker, byte-strict grant parser,
+authority-machine vectors and formal twins, campaign infrastructure, adversary compiler, and
+symbolic models are implemented. The end-to-end completion claim is not yet justified.
 
-Host/product integration of escrow and recovery remains an explicit scope decision. The work
-below does not require that integration; it requires the simulator-level campaign coverage
-already promised by the implementation plan.
+This file is the short, authoritative checklist. Detailed sequencing and acceptance evidence live
+in [simulation-outstanding-work-plan.md](simulation-outstanding-work-plan.md). Passing infrastructure
+tests establishes that the machinery is deterministic; it does not establish that every registered
+scenario exercises the production behavior named by its coverage cell.
 
----
-
-## R1 — Connect the grant lifecycle table to production authority
-
-`packages/protocol/src/grant-machine.ts` implements and formally checks the six-state lifecycle
-(`requested / granted / active / denied / expired / revoked`). Production `stepGrantHost` now
-composes that table per capability, including compatibility reconstruction from persisted legacy
-records. The same machine remains attached to vector generation and formal conformance.
-
-Completed:
-
-- Make the lifecycle table the authority used by `stepGrantHost`, or explicitly compose it into
-  the host machine without changing the public host API.
-- Drive approval, denial, first use, TTL expiry, and pre/post-use revocation through the production
-  path.
-- Run the lifecycle illegal-edge oracles against that same production state.
-- Keep the existing Layer-3 vectors and TLA+ conformance checks attached to the machine that ships.
-
-Exit evidence: production grant-host tests exercise all seven legal lifecycle edges and rejected
-illegal edges; the scheduled campaign uses that lifecycle; the formal/table/vector checks still
-pass.
-
-## R2 — Replace synthetic campaign cells and canaries with real behavior
-
-The scheduled campaign now assigns capability/position/verb semantics, limits Dolev–Yao powers by
-position, and enforces grants through production `stepGrantHost` state. Canary cells use a broken
-policy-machine variant that removes the relevant abuse guard; every seed explores behavior and no
-seed predicate encodes recapture.
-
-Completed:
-
-- Give every scheduled cell a capability-, position-, and verb-specific executable behavior, or
-  mark it unsupported with a reviewed reason instead of counting it as covered.
-- Exercise production broker/service enforcement rather than a campaign-only `grantActive` flag.
-- Grant Dolev–Yao powers according to attacker position, including negative tests proving that a
-  malicious app cannot use relay or host powers.
-- Seed canaries as actual behavior defects or deliberately broken production-machine variants
-  discoverable only through the relevant abuse path.
-- Derive recapture and containment results from those executions; do not encode the expected
-  recapture ratio in seed selection.
-
-Exit evidence: mutation tests show that changing a capability, position, or verb changes exercised
-behavior; every claimed cell has distinct documented semantics; removing each canary defect makes
-its finding disappear; no fixed seed predicate determines recapture.
-
-## R3 — Finish the adversary accuracy and fuzz tiers
-
-Every expressible historical fixture now names a target and reviewed containment outcome and runs
-under `SimKernel`. The entropy-driven fuzzer searches seeds and payloads, discovers its parser
-canary, and delta-debugs a deterministic history. The model-authoring path is tested end to end
-through model-free replay.
-
-Completed:
-
-- Execute every expressible historical fixture under `SimKernel` against a named target behavior.
-- Record the expected oracle or containment outcome for each fixture and fail the accuracy floor
-  when it is not reproduced.
-- Add a seeded search-based fuzzer that discovers a canary through event/payload exploration and
-  shrinks the failure to a deterministic reproducer.
-- Add one integrated model-authoring test covering proposal → compilation → execution → oracle
-  finding → shrinking → replay without the model.
-
-Exit evidence: all expressible historical cases execute and meet reviewed expectations; the fuzz
-canary is found and minimized from a documented seed; the committed model-authored reproducer is
-regenerated end to end.
-
-## R4 — Run escrow and recovery under adversarial campaigns
-
-Escrow and recovery remain table-first with vectors and TLA+ twins, and now also have campaign
-factories, global safety projections, all required adversarial schedules, and deliberate
-below-quorum variants with recorded minimized histories.
-
-Completed:
-
-- Add escrow and recovery campaign scenarios with their safety projections exposed as global
-  oracles.
-- Exercise below-threshold authorization, duplicate shares, replay, delay, partition, expiry, and
-  colluding-pair schedules across all transport classes.
-- Verify that a genuine violation records and shrinks a self-contained history.
-
-Exit evidence: both machines run through `runCampaign`; deliberate below-quorum breaks trip their
-oracles and shrink; the unmodified machines pass the same campaigns.
-
-## R5 — Integrate social/economic adversaries into the simulator
-
-Spam economics, harassment propagation, and collusion-weighted reputation calculations now run as
-deterministic adversary/service nodes on every transport. Their outcomes derive from executed
-sends, containment events, and delivered ranking votes.
-
-Completed:
-
-- Turn spam, harassment, and reputation manipulation into deterministic campaign adversaries.
-- Feed spam cost from executed sends, loss, airtime, and duty-cycle outcomes rather than a static
-  calculation alone.
-- Drive harassment arrest from simulated block/revoke/sever events and a discovery graph.
-- Exercise reputation manipulation through the discovery/ranking behavior whose resilience is
-  being claimed.
-- Report social/economic outcomes alongside cryptographic cells and containment metrics.
-
-Exit evidence: social adversaries run through `runCampaign` on every transport, produce replayable
-histories, and respond to real containment changes in regression tests.
-
-## R6 — Exercise the foundational global grant oracles
-
-The reusable grant-coverage, id-uniqueness, and revocation-monotonicity helpers now project campaign
-grant state. Positive and deliberately broken multi-node tests assert typed violations, recording,
-deterministic replay, and causal shrinking for each helper.
-
-Completed:
-
-- Project production/campaign grant and storage state into all three reusable oracles.
-- Add positive and deliberately broken multi-node tests for each invariant.
-- Prove that each violation writes a self-describing history, reruns identically, and shrinks to
-  its causal events.
-
-Exit evidence: each helper is used outside its definition/export module; deliberate breaks produce
-the expected typed `OracleViolation` and minimized history.
+Host/product integration of escrow and recovery remains outside the current scope. Simulator-level
+adversarial coverage of those machines remains in scope.
 
 ---
 
-## Completion validation
+## R1 — Persist the grant lifecycle as production authority
+
+Implemented foundation:
+
+- `grantMachine` defines and formally checks the six-state lifecycle.
+- `stepGrantHost` composes the lifecycle table and direct tests cover its seven legal edges.
+- Grant vectors, TLA+ relation checks, and illegal in-memory transitions are covered.
+
+Remaining:
+
+- Persist enough lifecycle identity and terminal state that `GrantStore` does not reconstruct every
+  `set` as a fresh requested grant.
+- Prevent a revoked, denied, or expired grant from regaining authority through a later production
+  `GrantStore.set` call unless an explicit, separately identified new-grant workflow is designed.
+- Drive first use and TTL through the production runtime path, not only direct `stepGrantHost` and
+  campaign calls.
+- Test restart/load behavior for approve, deny, first use, expiry, and revocation before and after
+  use.
+
+Exit evidence required: grant → revoke/expire/deny → reload/restart → set/use cannot revive the
+same authority; production runtime tests and the table/vector/formal checks all remain green.
+
+## R2 — Replace label-driven campaign cells with reviewed behavior
+
+Implemented foundation:
+
+- The capability × attacker-position × abuse-verb frame, deterministic runner, position power
+  limits, reporting, shrinking hook, saturation, canary injection, and containment summaries exist.
+- Scheduled campaigns run 200 cells over 10 seeds reproducibly.
+
+Remaining:
+
+- Give each counted cell capability-specific authority and operation semantics, position-specific
+  access, and a verb-specific success/damage oracle. A different name or `operationSemantics`
+  string is not different executed behavior.
+- Exercise the real broker/service/protocol machine appropriate to the capability rather than the
+  single generic campaign service for all cells.
+- Replace the universal `canary` branch with deliberately defective machine/policy variants whose
+  discovery depends on event order, transport, payload, and attack path.
+- Strengthen axis-mutation tests to compare state, intents, damage, oracle, or containment outcomes;
+  unique report names and power lists are insufficient.
+- Mark unsupported combinations with reviewed reasons and exclude them from coverage counts.
+
+Exit evidence required: changing any axis changes an observable execution property; every counted
+cell names its production path and reviewed oracle; deleting a defect removes its finding; reruns
+remain byte-identical.
+
+## R3 — Make the historical and fuzz tiers accuracy evidence
+
+Implemented foundation:
+
+- Historical inventory and expressibility metadata, deterministic proposal compilation, entropy
+  selection, shrinking, a model-free replay fixture, and an end-to-end authoring harness exist.
+
+Remaining:
+
+- Replace the shared historical target that receives `expectedOutcome` as input with the actual
+  broker, handshake, grant, key-share, or federation behavior named by each fixture.
+- Derive outcomes independently from production state and oracles. Expected results belong only in
+  assertions; the target machine must not copy them into its output.
+- Expand the search fuzzer across event order as well as payload choice, and run it against a real
+  parser/protocol defect variant rather than only a purpose-built two-byte canary target.
+- Commit stable minimized reproducers for the historical/fuzz failures that form the accuracy floor.
+
+Exit evidence required: deliberately changing a target policy causes the corresponding historical
+test to fail; expected outcomes cannot be satisfied by relabeling; fuzz discovery and replay remain
+model-free and deterministic.
+
+## R4 — Make escrow/recovery adversarial schedules take effect
+
+Implemented foundation:
+
+- Escrow and recovery are table-first, have safety functions, vectors, TLA+ twins, campaign
+  factories, and deliberate below-quorum break/shrink tests.
+
+Remaining:
+
+- Schedule drop, delay, reorder, duplicate, replay, and partition actions while matching messages
+  are actually in flight, or implement explicit standing link policies.
+- Model replay separately from duplication, real partition windows separately from one-shot drop,
+  delayed authorization/expiry races, duplicate shares, and colluding guardian behavior.
+- Assert that each adversarial schedule materially changes transport statistics, event order, or
+  target state; merely running a scenario under a different label is insufficient.
+- Repeat effective schedules across LAN, internet, BLE, and LoRa and record/shrink genuine safety
+  violations from deliberately defective variants.
+
+Exit evidence required: schedule-specific tests prove messages were affected, legal tables remain
+safe, defective tables trip global oracles, and minimized histories replay independently.
+
+## R5 — Make social/economic scenarios first-class simulations
+
+Implemented foundation:
+
+- Deterministic spam-cost, harassment, and collusion-weighted reputation calculations exist and
+  simple two-node scenarios run on all transport classes.
+
+Remaining:
+
+- Compute spam economics from executed transport sends, delivered/lost messages, airtime,
+  serialization, and duty-cycle outcomes rather than only transport-class constants.
+- Propagate harassment through a multi-node discovery graph and arrest it through actual
+  block/revoke/sever events with measured reach and containment latency.
+- Feed coordinated votes into the discovery/ranking decision being protected and assert a reviewed
+  resilience property, not only a scalar score.
+- Attach social scenarios to the recorder, shrinking, containment metrics, campaign report, and
+  regression baselines.
+
+Exit evidence required: LoRa scarcity changes executed economics; containment changes graph reach;
+collusion changes a real ranking decision without violating its resilience bound; failures record
+and replay.
+
+## R6 — Project real storage and authority into global grant oracles
+
+Implemented foundation:
+
+- Reusable grant-coverage, id-uniqueness, and revocation-monotonicity oracles exist, and synthetic
+  tests demonstrate typed violation, recording, replay, and shrinking.
+- The production campaign registers all three helpers.
+
+Remaining:
+
+- Make stored-blob projection independent of live-grant projection. Stored blobs must remain visible
+  after revocation so grant coverage can detect orphaned data.
+- Track access times per grant/capability instead of assigning one service-wide access list to every
+  lifecycle.
+- Replace or supplement synthetic `GrantOracleState` break tests with multi-node production grant,
+  storage, and access state.
+- Add deliberate production-state breaks for all three invariants and prove record → identical
+  rerun → causal shrink.
+
+Exit evidence required: each production projection catches its deliberate break after the relevant
+simulated step, while unmodified production scenarios remain clean.
+
+---
+
+## Validation baseline reproduced on 2026-07-16
 
 - `npm test`: 1,114 passed; 7 environment-dependent interop tests skipped.
-- `npm run sansio`: inventory, ratchet, lint, dependency fence, three-layer canary, and 684
-  deterministic tests passed.
-- `npm run test:sim-campaign`: 2,000 deterministic behavior-specific scenarios; 240 findings from
-  deliberately broken production-machine variants; zero genuine findings; completeness floor
-  0.862; containment baselines passed.
+- `npm run sansio`: all fences and canaries passed; 684 deterministic tests passed.
+- `npm run test:sim-campaign`: 2,000 deterministic scenarios; 240 canary findings; zero reported
+  genuine findings; completeness floor 0.862; containment baselines passed.
 - `npm run formal:all`: grant, escrow, and recovery table/model/vector relations passed.
 - TLC: grant, escrow, and recovery models completed with no error.
 - Tamarin 1.12.0: all six declared lemmas passed twice.
 - ProVerif: all five declared queries passed.
-- `node formal/check-symbolic-models.mjs`: four-model inventory passed.
+- Symbolic model inventory: four models passed.
 
-The focused R1–R6 suites add 41 checks covering production lifecycle edges, cell mutation and
-attacker-power boundaries, historical execution, model-authored and entropy-driven shrinking,
-escrow/recovery campaigns, social containment, and the three typed global grant oracles.
+These results remain the regression baseline. The campaign counts and zero-finding result must not
+be described as abuse-completeness evidence until R1–R6 above are closed and the campaign is
+rebaselined from reviewed behavior-specific scenarios.
