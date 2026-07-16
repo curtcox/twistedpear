@@ -1,0 +1,12 @@
+{
+  "schema": "twistedpear.tla-traces-v1",
+  "model": "formal/escrow.tla",
+  "edges": [
+    ["pending", "deposit", "funded"],
+    ["funded", "request-release", "release-requested"],
+    ["release-requested", "quorum-authorize", "released"],
+    ["funded", "refund", "refunded"],
+    ["funded", "ttl", "expired"],
+    ["release-requested", "ttl", "expired"]
+  ]
+}

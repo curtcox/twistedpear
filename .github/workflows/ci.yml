@@ -54,12 +54,15 @@ jobs:
           java-version: "17"
       - run: npm ci
       - name: Check executable/model conformance
-        run: npm run formal:grant
+        run: npm run formal:all && npm run formal:symbolic:lint
       - name: Verify TLA+ tools
         run: echo "bee4a54f3ee3d4afc347c3240ec2d9e93b075104  formal/tla2tools.jar" | sha1sum --check
       - name: Check TLA+ safety and liveness
         working-directory: formal
-        run: java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config grant.cfg grant.tla
+        run: |
+          java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config grant.cfg grant.tla
+          java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config escrow.cfg escrow.tla
+          java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config recovery-quorum.cfg recovery_quorum.tla
 
   core-smoke:
     runs-on: ubuntu-latest

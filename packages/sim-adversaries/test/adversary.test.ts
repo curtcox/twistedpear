@@ -6,7 +6,9 @@ import { parseHistory, type RecordedHistory } from "../../effects/src/adapters/s
 import duplicateFixture from "../../../conformance/sim-regressions/llm-duplicate-delivery.json";
 import {
   compileAttackProposal,
+  authorAttackStrategies,
   createFuzzAdversary,
+  grantRecordMutationCorpus,
   HISTORICAL_REPLAY_FIXTURES,
   UnlowerableAttackProposalError,
   type AdversaryState
@@ -106,11 +108,39 @@ describe("Dolev-Yao adversaries", () => {
     expect(doubleRunHashes(config).a).toBe(doubleRunHashes(config).b);
   });
 
+  it("provides deterministic grant-boundary mutations to the fuzz tier", () => {
+    const canonical = new TextEncoder().encode('{"appId":"a","publisherPublicKey":"p","granted":[],"updatedAt":1}');
+    const first = grantRecordMutationCorpus(canonical);
+    const second = grantRecordMutationCorpus(canonical);
+    expect(first.length).toBeGreaterThanOrEqual(5);
+    expect(first.map((entry) => Array.from(entry))).toEqual(second.map((entry) => Array.from(entry)));
+    expect(first.every((entry) => entry.some((byte, index) => byte !== canonical[index]) || entry.length !== canonical.length)).toBe(true);
+  });
+
   it("classifies every hostile-app fixture as lifted or out of model", () => {
-    expect(HISTORICAL_REPLAY_FIXTURES.length).toBeGreaterThan(0);
+    expect(HISTORICAL_REPLAY_FIXTURES.length).toBeGreaterThanOrEqual(10);
+    expect(new Set(HISTORICAL_REPLAY_FIXTURES.map((fixture) => fixture.source)).size).toBeGreaterThanOrEqual(5);
     for (const fixture of HISTORICAL_REPLAY_FIXTURES) {
       expect(fixture.expressible ? fixture.proposal : fixture.reason).toBeTruthy();
+      if (fixture.proposal !== undefined) expect(() => compileAttackProposal(
+        fixture.proposal, ["drop", "delay", "reorder", "duplicate", "inject"]
+      )).not.toThrow();
     }
+  });
+
+  it("puts a model in the authoring loop but compiles only in-model output", async () => {
+    let calls = 0;
+    const result = await authorAttackStrategies(async (prompt) => {
+      calls += 1;
+      expect(prompt).toContain("allowedPowers");
+      return JSON.stringify([
+        { name: "duplicate", actions: [{ power: "duplicate", source: "a", destination: "b" }] },
+        { name: "forbidden", actions: [{ power: "inject", source: "a", destination: "b", channel: "x", payloadHex: "00" }] }
+      ]);
+    }, { objective: "find replay bugs", allowedPowers: ["duplicate"], nodes: ["a", "b"], channels: ["x"] });
+    expect(calls).toBe(1);
+    expect(result.accepted.map((entry) => entry.proposal.name)).toEqual(["duplicate"]);
+    expect(result.rejected).toHaveLength(1);
   });
 
   it("replays the model-authored finding without a model", () => {

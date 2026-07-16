@@ -1,0 +1,49 @@
+type skey.
+type pkey.
+type exponent.
+type group.
+const g: group.
+fun pk(skey): pkey.
+fun sign(bitstring, skey): bitstring.
+fun checksign(bitstring, pkey): bitstring.
+reduc forall m: bitstring, k: skey; checksign(sign(m,k),pk(k)) = m.
+fun exp(group, exponent): group.
+equation forall x:exponent, y:exponent; exp(exp(g,x),y) = exp(exp(g,y),x).
+fun pack1(bitstring, group): bitstring [data].
+fun pack2(bitstring, group): bitstring [data].
+fun session(group, bitstring): bitstring.
+
+free network: channel.
+free initiator_key: skey [private].
+free responder_key: skey [private].
+event InitiatorBegin(bitstring).
+event ResponderEstablished(bitstring, bitstring).
+event InitiatorEstablished(bitstring, bitstring).
+
+query link:bitstring, k:bitstring; event(InitiatorEstablished(link, k)) ==> event(ResponderEstablished(link, k)).
+query link:bitstring, k:bitstring; event(ResponderEstablished(link, k)) ==> event(InitiatorBegin(link)).
+query link:bitstring, k:bitstring; event(InitiatorEstablished(link, k)) && attacker(k) ==> false.
+
+let initiator =
+  new link: bitstring;
+  new x: exponent;
+  let gx = exp(g,x) in
+  event InitiatorBegin(link);
+  out(network, (link, gx, sign(pack1(link,gx), initiator_key)));
+  in(network, (=link, gy:group, response:bitstring));
+  let verified = checksign(response, pk(responder_key)) in
+  if verified = pack2(link,gy) then
+    let key = session(exp(gy,x),link) in event InitiatorEstablished(key,key).
+
+let responder =
+  in(network, (link:bitstring, gx:group, request:bitstring));
+  let verified = checksign(request, pk(initiator_key)) in
+  if verified = pack1(link,gx) then
+    new y: exponent;
+    let gy = exp(g,y) in
+    let key = session(exp(gx,y),link) in
+    event ResponderEstablished(link,key);
+    out(network, (link, gy, sign(pack2(link,gy), responder_key))).
+
+process
+  out(network, (pk(initiator_key), pk(responder_key))); (!initiator | !responder)

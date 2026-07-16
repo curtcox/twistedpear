@@ -1,5 +1,14 @@
 export { initialEchoState, stepEcho, type EchoState } from "./echo.js";
 export {
+  grantParserMachine,
+  grantParserTokenClasses,
+  initialGrantParserState,
+  stepGrantParser,
+  type GrantParserPhase,
+  type GrantParserState,
+  type GrantParserToken
+} from "./grant-parser-machine.js";
+export {
   grantMachine,
   initialGrantLifecycleState,
   stepGrantLifecycle,

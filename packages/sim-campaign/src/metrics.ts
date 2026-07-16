@@ -88,6 +88,31 @@ export interface ContainmentSummary extends ContainmentMetrics {
   readonly scenarios: number;
 }
 
+export interface ContainmentBaselineEntry {
+  readonly transport: TransportClassName | "unclassified";
+  readonly revocationPropagationMsMax: number;
+  readonly egressAttributabilityMin: number;
+  readonly networkKillLatencyMsMax: number;
+}
+
+export function containmentRegressions(
+  actual: readonly ContainmentSummary[],
+  baseline: readonly ContainmentBaselineEntry[]
+): readonly string[] {
+  const regressions: string[] = [];
+  for (const expected of baseline) {
+    const observed = actual.find((item) => item.transport === expected.transport);
+    if (observed === undefined) { regressions.push(`${expected.transport}: missing containment metrics`); continue; }
+    if (observed.revocationPropagationMs === null || observed.revocationPropagationMs > expected.revocationPropagationMsMax)
+      regressions.push(`${expected.transport}: revocation propagation ${observed.revocationPropagationMs} exceeds ${expected.revocationPropagationMsMax}`);
+    if (observed.egressAttributability === null || observed.egressAttributability < expected.egressAttributabilityMin)
+      regressions.push(`${expected.transport}: attributability ${observed.egressAttributability} is below ${expected.egressAttributabilityMin}`);
+    if (observed.networkKillLatencyMs === null || observed.networkKillLatencyMs > expected.networkKillLatencyMsMax)
+      regressions.push(`${expected.transport}: kill latency ${observed.networkKillLatencyMs} exceeds ${expected.networkKillLatencyMsMax}`);
+  }
+  return regressions;
+}
+
 export function summarizeContainment(metrics: readonly ContainmentMetrics[]): readonly ContainmentSummary[] {
   const transports = new Set(metrics.map((item) => item.transport));
   if (transports.size === 0) transports.add("unclassified");

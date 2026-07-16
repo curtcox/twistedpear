@@ -24,6 +24,7 @@ import {
   type GrantRecord
 } from "../src/grants.js";
 import { utf8Encode } from "../src/utf8.js";
+import { grantRecordMutationCorpus } from "../../sim-adversaries/src/grant-mutations.js";
 
 const APP = "demo-app";
 const PUBKEY = "publisher-pk-hex";
@@ -45,6 +46,46 @@ describe("protocol grant host", () => {
       updatedAt: 42
     };
     expect(decodeGrantRecord(encodeGrantRecord(record))).toEqual(record);
+    expect([...encodeGrantRecord(decodeGrantRecord(encodeGrantRecord(record)))])
+      .toEqual([...encodeGrantRecord(record)]);
+  });
+
+  it("rejects every non-canonical near miss", () => {
+    const canonical = encodeGrantRecord({
+      appId: APP, publisherPublicKey: PUBKEY, granted: ["read", "write"], updatedAt: 42
+    });
+    for (const mutation of grantRecordMutationCorpus(canonical)) {
+      expect(() => decodeGrantRecord(mutation)).toThrow();
+    }
+    for (const text of [
+      '{"publisherPublicKey":"publisher-pk-hex","appId":"demo-app","granted":[],"updatedAt":42}',
+      '{"appId":"demo-app","publisherPublicKey":"publisher-pk-hex","granted":["read","read"],"updatedAt":42}',
+      '{"appId":"demo-app","publisherPublicKey":"publisher-pk-hex","granted":[],"updatedAt":4e1}',
+      '{"appId":"demo-app","publisherPublicKey":"publisher-pk-hex","granted":[],"updatedAt":-0}'
+    ]) expect(() => decodeGrantRecord(utf8Encode(text))).toThrow();
+  });
+
+  it("rewrites a valid legacy record canonically on first host read", () => {
+    const key = grantStoreKey(APP, PUBKEY);
+    const legacy = utf8Encode('{ "appId": "demo-app", "publisherPublicKey": "publisher-pk-hex", "granted": ["read"], "updatedAt": 42 }');
+    const result = stepGrantHost(initialGrantHostState(APP, PUBKEY), {
+      kind: "store/value", key, value: legacy
+    });
+    expect(result.state.record?.granted).toEqual(["read"]);
+    expect(result.intents).toHaveLength(1);
+    const write = result.intents[0];
+    expect(write?.kind).toBe("store/write");
+    if (write?.kind === "store/write") expect(decodeGrantRecord(write.write.value).updatedAt).toBe(42);
+  });
+
+  it("does not migrate ambiguous legacy duplicate keys", () => {
+    const result = stepGrantHost(initialGrantHostState(APP, PUBKEY), {
+      kind: "store/value", key: grantStoreKey(APP, PUBKEY),
+      value: utf8Encode('{"appId":"wrong","appId":"demo-app","publisherPublicKey":"publisher-pk-hex","granted":[],"updatedAt":42}')
+    });
+    expect(result.state.record).toBeNull();
+    expect(result.state.lastError).toBe("grant record decode failed");
+    expect(result.intents).toEqual([]);
   });
 
   it("emits encode/decode actions from WithActions steps", () => {

@@ -1,0 +1,10 @@
+{
+  "schema": "twistedpear.containment-baseline-v1",
+  "canaryFloorMin": 0.8,
+  "containment": [
+    { "transport": "lan", "revocationPropagationMsMax": 7, "egressAttributabilityMin": 1, "networkKillLatencyMsMax": 6 },
+    { "transport": "internet", "revocationPropagationMsMax": 122, "egressAttributabilityMin": 1, "networkKillLatencyMsMax": 102 },
+    { "transport": "ble", "revocationPropagationMsMax": 42, "egressAttributabilityMin": 1, "networkKillLatencyMsMax": 32 },
+    { "transport": "lora", "revocationPropagationMsMax": 1502, "egressAttributabilityMin": 1, "networkKillLatencyMsMax": 1202 }
+  ]
+}

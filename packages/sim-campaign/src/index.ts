@@ -22,8 +22,10 @@ export {
 } from "./runner.js";
 export {
   ContainmentTracker,
+  containmentRegressions,
   summarizeContainment,
   type ContainmentMetrics,
+  type ContainmentBaselineEntry,
   type ContainmentSummary,
   type EgressAttribution
 } from "./metrics.js";

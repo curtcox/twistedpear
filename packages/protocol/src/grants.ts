@@ -5,6 +5,16 @@
  * `encodeGrantRecord` / `decodeGrantRecord` reads beside the step).
  */
 import { interpret, type Event, type EventClass, type Intent, type Machine, type StepFn } from "@twistedpear/effects";
+import { initialGrantParserState, stepGrantParser, type GrantParserToken } from "./grant-parser-machine.js";
+import { migrateLegacyGrantRecord } from "./grant-storage-migration.js";
+import { utf8Decode, utf8Encode } from "./utf8.js";
+
+export class InvalidGrantRecordError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidGrantRecordError";
+  }
+}
 
 export interface GrantRecord {
   readonly appId: string;
@@ -75,7 +85,8 @@ export const grantHostMachine: Machine<GrantHostState, GrantEvent> = {
       from: "ready",
       on: hostStoreValue,
       to: "ready",
-      reduce: loadGrantRecord
+      reduce: loadGrantRecord,
+      emit: persistMigratedGrant
     },
     {
       from: "ready",
@@ -107,10 +118,20 @@ function loadGrantRecord(state: GrantHostState, event: GrantEvent): GrantHostSta
     if (event.value === undefined) {
       return state;
     }
-    const decodeStepped = stepDecodeGrantRecordWithActions(initialDecodeGrantRecordState(), {
+    let candidate = event.value;
+    let decodeStepped = stepDecodeGrantRecordWithActions(initialDecodeGrantRecordState(), {
       kind: "grant/decode-gate",
-      bytes: event.value
+      bytes: candidate
     });
+    if (shouldRejectDecodeGrantRecord(decodeStepped.actions)) {
+      const migrated = migrateLegacyGrantRecord(event.value);
+      if (migrated !== null) {
+        candidate = migrated;
+        decodeStepped = stepDecodeGrantRecordWithActions(initialDecodeGrantRecordState(), {
+          kind: "grant/decode-gate", bytes: candidate
+        });
+      }
+    }
     if (
       shouldRejectDecodeGrantRecord(decodeStepped.actions) ||
       !shouldUseDecodeGrantRecord(decodeStepped.actions)
@@ -127,6 +148,17 @@ function loadGrantRecord(state: GrantHostState, event: GrantEvent): GrantHostSta
     return { ...state, record, lastError: null };
   }
   return state;
+}
+
+function persistMigratedGrant(state: GrantHostState, event: GrantEvent): readonly Intent[] {
+  if (event.kind !== "store/value" || event.value === undefined || state.record === null || state.lastError !== null) return [];
+  try {
+    decodeGrantRecord(event.value);
+    return [];
+  } catch {
+    const migrated = migrateLegacyGrantRecord(event.value);
+    return migrated === null ? [] : [{ kind: "store/write", write: { key: event.key, value: migrated } }];
+  }
 }
 
 function setGrantRecord(state: GrantHostState, event: GrantEvent): GrantHostState {
@@ -197,6 +229,7 @@ function encodeGrantRecordRawFromGate(record: GrantRecord): Uint8Array | null {
 }
 
 export function encodeGrantRecord(record: GrantRecord): Uint8Array {
+  validateGrantRecord(record);
   const text = JSON.stringify({
     appId: record.appId,
     publisherPublicKey: record.publisherPublicKey,
@@ -207,21 +240,86 @@ export function encodeGrantRecord(record: GrantRecord): Uint8Array {
 }
 
 export function decodeGrantRecord(bytes: Uint8Array): GrantRecord {
-  const parsed = JSON.parse(utf8Decode(bytes)) as GrantRecord;
-  if (
-    typeof parsed.appId !== "string" ||
-    typeof parsed.publisherPublicKey !== "string" ||
-    !Array.isArray(parsed.granted) ||
-    typeof parsed.updatedAt !== "number"
-  ) {
-    throw new Error("invalid grant record");
+  const text = strictUtf8Decode(bytes);
+  let state = initialGrantParserState();
+  for (const token of lexGrantRecord(text)) {
+    const result = stepGrantParser(state, token);
+    if (result.state === state) throw new InvalidGrantRecordError(`unexpected ${token.kind} in ${state.phase}`);
+    state = result.state;
   }
-  return {
-    appId: parsed.appId,
-    publisherPublicKey: parsed.publisherPublicKey,
-    granted: dedupe(parsed.granted.map(String)),
-    updatedAt: parsed.updatedAt
-  };
+  if (state.phase !== "accept" || state.appId === undefined || state.publisherPublicKey === undefined || state.updatedAt === undefined) {
+    throw new InvalidGrantRecordError("incomplete grant record");
+  }
+  const record: GrantRecord = { appId: state.appId, publisherPublicKey: state.publisherPublicKey, granted: state.granted, updatedAt: state.updatedAt };
+  validateGrantRecord(record);
+  const canonical = encodeGrantRecord(record);
+  if (!bytesEqual(bytes, canonical)) throw new InvalidGrantRecordError("grant record is not canonical");
+  return record;
+}
+
+function validateGrantRecord(record: GrantRecord): void {
+  if (typeof record.appId !== "string" || typeof record.publisherPublicKey !== "string" ||
+      !Array.isArray(record.granted) || record.granted.some((entry) => typeof entry !== "string") ||
+      new Set(record.granted).size !== record.granted.length ||
+      !Number.isSafeInteger(record.updatedAt) || record.updatedAt < 0) {
+    throw new InvalidGrantRecordError("invalid grant record fields");
+  }
+}
+
+function* lexGrantRecord(text: string): Generator<GrantParserToken> {
+  let offset = 0;
+  while (offset < text.length) {
+    const char = text[offset]!;
+    const punctuation: Record<string, GrantParserToken["kind"]> = {
+      "{": "open", "}": "close", ":": "colon", ",": "comma", "[": "array-open", "]": "array-close"
+    };
+    const kind = punctuation[char];
+    if (kind !== undefined) { yield { kind } as GrantParserToken; offset += 1; continue; }
+    if (char === "\"") {
+      const parsed = readJsonString(text, offset);
+      yield { kind: "string", value: parsed.value };
+      offset = parsed.next;
+      continue;
+    }
+    const number = /^(0|[1-9][0-9]*)/.exec(text.slice(offset));
+    if (number !== null) {
+      const value = Number(number[0]);
+      if (!Number.isSafeInteger(value)) throw new InvalidGrantRecordError("integer is outside the safe range");
+      yield { kind: "integer", value };
+      offset += number[0].length;
+      continue;
+    }
+    throw new InvalidGrantRecordError(`invalid byte at character ${offset}`);
+  }
+  yield { kind: "eof" };
+}
+
+function readJsonString(text: string, start: number): { readonly value: string; readonly next: number } {
+  let out = "";
+  for (let offset = start + 1; offset < text.length; offset += 1) {
+    const char = text[offset]!;
+    if (char === "\"") return { value: out, next: offset + 1 };
+    if (char.charCodeAt(0) < 0x20) throw new InvalidGrantRecordError("unescaped control character");
+    if (char !== "\\") { out += char; continue; }
+    const escape = text[++offset];
+    if (escape === undefined) throw new InvalidGrantRecordError("unterminated escape");
+    const simple: Record<string, string> = { "\"": "\"", "\\": "\\", "/": "/", b: "\b", f: "\f", n: "\n", r: "\r", t: "\t" };
+    if (simple[escape] !== undefined) { out += simple[escape]; continue; }
+    if (escape !== "u" || !/^[0-9a-fA-F]{4}$/.test(text.slice(offset + 1, offset + 5))) throw new InvalidGrantRecordError("invalid string escape");
+    out += String.fromCharCode(Number.parseInt(text.slice(offset + 1, offset + 5), 16));
+    offset += 4;
+  }
+  throw new InvalidGrantRecordError("unterminated string");
+}
+
+function strictUtf8Decode(bytes: Uint8Array): string {
+  const text = utf8Decode(bytes);
+  if (!bytesEqual(utf8Encode(text), bytes)) throw new InvalidGrantRecordError("invalid or non-canonical UTF-8");
+  return text;
+}
+
+function bytesEqual(left: Uint8Array, right: Uint8Array): boolean {
+  return left.length === right.length && left.every((byte, index) => byte === right[index]);
 }
 
 /**
@@ -365,43 +463,6 @@ function dedupe(values: readonly string[]): readonly string[] {
     if (!seen.has(value)) {
       seen.add(value);
       out.push(value);
-    }
-  }
-  return out;
-}
-
-function utf8Encode(text: string): Uint8Array {
-  const bytes: number[] = [];
-  for (let i = 0; i < text.length; i += 1) {
-    const code = text.charCodeAt(i);
-    if (code < 0x80) {
-      bytes.push(code);
-    } else if (code < 0x800) {
-      bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
-    } else {
-      bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
-    }
-  }
-  return new Uint8Array(bytes);
-}
-
-function utf8Decode(bytes: Uint8Array): string {
-  let out = "";
-  for (let i = 0; i < bytes.length; ) {
-    const b0 = bytes[i]!;
-    if (b0 < 0x80) {
-      out += String.fromCharCode(b0);
-      i += 1;
-    } else if ((b0 & 0xe0) === 0xc0 && i + 1 < bytes.length) {
-      out += String.fromCharCode(((b0 & 0x1f) << 6) | (bytes[i + 1]! & 0x3f));
-      i += 2;
-    } else if ((b0 & 0xf0) === 0xe0 && i + 2 < bytes.length) {
-      out += String.fromCharCode(
-        ((b0 & 0x0f) << 12) | ((bytes[i + 1]! & 0x3f) << 6) | (bytes[i + 2]! & 0x3f)
-      );
-      i += 3;
-    } else {
-      i += 1;
     }
   }
   return out;

@@ -123,4 +123,64 @@ completeness-estimation and containment numbers reported and regressions caught 
 
 **Work.**
 1. **Headless campaign entrypoint.** `conformance/sim-campaign/run.mjs` (+
-   `npm run test:sim-campaign`): takes a cube-sl
+   `npm run test:sim-campaign`) sweeps a substantial capability subset across every attacker
+   position and abuse verb over a configurable seed range. It emits a deterministic JSON
+   report and minimized on-disk reproducers.
+2. Inject a deterministic canary population on every run, report capture/recapture confidence,
+   and fail below a reviewed completeness floor.
+3. Commit per-transport containment baselines for revocation propagation, attributability,
+   and network-kill latency; fail beyond reviewed limits.
+4. Run the campaign nightly and upload its report and reproducers as artifacts.
+
+**Exit criteria.** The default nightly slice runs 2,000 scenarios; a same-seed rerun is
+byte-identical; canary completeness and containment deltas are gates, not informational logs.
+
+---
+
+## Phase 15 — Historical accuracy floor and model authoring harness
+
+**Goal.** Strengthen the weakest adversary tier with attacks from comparable systems and make
+Tier 7c a real, optional model-in-the-loop authoring workflow without making replay depend on
+a model.
+
+**Work.** Curate primary-source replay, spoofing, disclosure, and denial cases from comparable
+messaging and authority systems. Each case is either lowered to Dolev–Yao actions or explicitly
+marked out of model. Add a provider-neutral command harness that sends a constrained JSON
+prompt to a user-supplied model command, validates the response, and admits only strategies
+accepted by `compileAttackProposal`.
+
+**Exit criteria.** The corpus covers at least five independent sources; every expressible case
+compiles; malformed and out-of-power model proposals are rejected; accepted findings remain
+ordinary model-free replay fixtures.
+
+---
+
+## Phase 16 — Symbolic crypto/authentication twins
+
+**Goal.** Close D2's final deferral with symbolic Dolev–Yao models of the canonical grant
+boundary and identity-bound link handshake.
+
+**Work.** Add Tamarin and ProVerif models for both boundaries. Check grant authenticity, link
+session-key secrecy, and mutual agreement; document the identity-binding abstraction. Add an
+always-on model inventory check and a path-filtered CI workflow that installs both provers and
+runs all four models.
+
+**Exit criteria.** Four symbolic models are committed without admitted proofs; normal CI checks
+their property inventory and symbolic CI executes Tamarin and ProVerif.
+
+---
+
+## Explicit deferral — host integration of escrow/recovery
+
+Escrow and recovery-quorum remain simulator-only until the escrow UX and recovery-contact
+model are product-settled. A committed product decision on either reopens host integration;
+this plan does not invent broker/storage/consent behavior ahead of that decision.
+
+---
+
+## Implementation status (2026-07-15)
+
+Phases 12–16 are implemented. Targeted TypeScript tests, executable/model conformance checks,
+TLC checks for escrow and recovery, the campaign smoke sweep, and the symbolic-model inventory
+pass locally. The dedicated symbolic workflow owns full Tamarin/ProVerif execution because
+those prover binaries are not part of the repository toolchain.
