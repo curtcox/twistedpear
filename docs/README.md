@@ -13,10 +13,20 @@ built, but they are not the source of truth for current status.
 |---|---|
 | Understand the platform and run it locally | [Repository README](../README.md) |
 | Learn the platform interactively | [Handbook mini-app](../apps/handbook/README.md) |
-| Check implemented software | [Software status](../STATUS-SOFTWARE.md) |
+| Check implemented and verified work | [Completed-work evidence](../STATUS-COMPLETE.md) |
+| Check remaining software work | [Software backlog](../STATUS-SOFTWARE.md) |
 | Check hardware- or account-gated work | [Hardware status](../STATUS-HARDWARE.md) |
 | Review known limitations | [Limitations](../LIMITATIONS.md) |
 | Run the complete local validation suite | [Single-Mac validation](mac-validation.md) |
+
+## Status and history
+
+The status documents are intentionally disjoint: completed evidence belongs in
+[STATUS-COMPLETE.md](../STATUS-COMPLETE.md), open software work in
+[STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md), and device/account/real-network work in
+[STATUS-HARDWARE.md](../STATUS-HARDWARE.md). [PLAN.md](../PLAN.md) and documents explicitly
+marked **historical design** preserve design rationale and acceptance criteria; they do not
+override those status registers.
 
 ## Mini-app development and distribution
 
@@ -80,4 +90,3 @@ Additional focused runbooks are indexed from the
 | Architecture and scope | [Simulation architecture](simulation-architecture.html) |
 | Current status, evidence, and remaining external boundary | [Simulation status](simulation-outstanding-work.md) |
 | Original phased design | [Implementation plan](simulation-implementation-plan.md) — **historical design** |
-

@@ -1,5 +1,11 @@
 # TwistedPear — P2P App Development & Distribution System
 
+> **Historical design baseline.** This document preserves the original goals, decisions,
+> phase structure, and exit criteria. It is not the current status tracker. See
+> [STATUS-COMPLETE.md](STATUS-COMPLETE.md) for verified work,
+> [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md) for the remaining software backlog, and
+> [STATUS-HARDWARE.md](STATUS-HARDWARE.md) for device-, account-, and real-network-gated work.
+
 A plan for a peer-to-peer app platform built on **React Native** (UI), the **Pears stack**
 (Bare runtime, Hypercore/Hyperswarm/Hyperdrive), and **Reticulum** (networking).
 

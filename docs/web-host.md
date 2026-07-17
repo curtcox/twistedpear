@@ -1,13 +1,13 @@
 # Web Host: a full TwistedPear host in the browser
 
 Status: **complete (software tier)** — Phases W0–W4 landed in CI; Workstreams A–F software path closed. Remaining hardware/device work (real USB RNode LoRa E2E from Chrome) is device-gated, not blocking the Phase W software exit.
-Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase W.
+Evidence: [STATUS-COMPLETE.md](../STATUS-COMPLETE.md#phase-w--web-host-software-tier).
 
 Landed: W-S1–W-S4 spikes; W1 leaf peer (`runtime/web`, WS interfaces, identity, LXMF, `createWebLeafHost`, Expo web tab); W2 mini-app runtime (`WebSandboxBackend` / proxy relay, `widget-renderer-rn`, confirmations, `test:web-miniapp` / `test:web-examples`); W3 distribution + DevStudio (`createWebInstallService`, publisher trust, `createWebPublishService`, `test:web-distribution` / `test:web-devstudio`); W4 bulk plane + polish (PWA offline shell + install prompt + icons, `test:web-pwa`; `test:web-soak`; gateway `/dht-relay` + `/bulk-fetch` + browser Hyperdrive install via `fetchDriveVersionForWeb`; WebSerial RNode stretch + `test:web-rnode` simulated serial).
 
 The workstreams and phases below retain the implementation design and acceptance
-criteria. The completion summary above and [software status](../STATUS-SOFTWARE.md)
-are authoritative for current status.
+criteria. The completion summary above and completed-work evidence are authoritative
+for current status.
 
 The web host is a browser tab (React Native for Web via Expo web) that runs the
 **complete host stack**: a real Reticulum leaf peer (`reticulum-ts` in the page),
@@ -55,7 +55,7 @@ The codebase already has the seams a browser port needs:
 
 Roles: the web host is always a **leaf peer**. Browsers cannot accept inbound
 connections, so transport node, seeder, and propagation-server roles are
-permanently out of scope for this target (see LIMITATIONS §9).
+permanently out of scope for this target (see [LIMITATIONS.md](../LIMITATIONS.md) §8).
 
 ## Workstream A — WebSocket Reticulum interface
 
@@ -76,7 +76,7 @@ A first-class interface, not a private control channel: any in-browser
 - **Origin serving:** `tp node --serve-web` serves the built web-host bundle
   from the same machine, so the page origin and the gateway are the same
   trusted node. Public hosting of the bundle is possible but the served origin
-  must be treated as part of the TCB (LIMITATIONS §9).
+  must be treated as part of the TCB ([LIMITATIONS.md](../LIMITATIONS.md) §8).
 - **Interop:** the gateway is our own node, so Python RNS needs no changes;
   conformance runs browser ↔ gateway ↔ dockerized Python RNS. Spec draft:
   [websocket-interface.md](websocket-interface.md); publish upstream per
@@ -140,7 +140,7 @@ A first-class interface, not a private control channel: any in-browser
 - **Identity keys** live in IndexedDB encrypted under a WebCrypto AES-GCM key
   (non-extractable); optionally unlocked via passkey/PRF later. This is weaker
   than Android Keystore / Secure Enclave — documented, not hidden
-  (LIMITATIONS §9).
+  ([LIMITATIONS.md](../LIMITATIONS.md) §8).
 - **TCB includes the serving origin**: whoever serves the bundle can serve a
   malicious one. Default deployment is self-serving from the user's own node
   (`--serve-web`); anything else is a documented trust decision.

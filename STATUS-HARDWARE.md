@@ -5,7 +5,8 @@ additional hardware, a paid Apple account, or a real multi-machine LAN** — ite
 be fully closed on CI runners, docker, or simulators alone.
 
 Complete software-tier work: [STATUS-COMPLETE.md](STATUS-COMPLETE.md).  
-Software-only backlog (do first): [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md).
+Software-only backlog, including plan-duration simulator and server soaks:
+[STATUS-SOFTWARE.md](STATUS-SOFTWARE.md).
 
 Last audited: 2026-07-06.
 
@@ -382,7 +383,8 @@ Record throughput and iOS-specific limits (BLE-only, no USB).
 1. Install `host-desktop` NSIS artifact from CI
 2. TCP slice vs docker `leaf-echo`
 3. Full app loop: catalog → install → grant → launch → widget render
-4. Record multicast/Bonjour behavior → LIMITATIONS §6 (supported / degraded / dropped)
+4. Record multicast/Bonjour behavior in [docs/desktop-host.md](docs/desktop-host.md)
+   and the release evidence (supported / degraded / dropped)
 
 ---
 
@@ -426,21 +428,6 @@ Software proves desktop Bare (`npm run test:bare-hyperdrive`). On phone/emulator
 
 ---
 
-## Extended soaks (hardware or long-run server)
-
-CI uses shortened soaks. Full phase exits call for 24–72 h runs — can use any always-on machine
-(no special radio hardware) except where interface flapping needs real devices:
-
-| Soak | Command | Duration |
-|---|---|---|
-| Seeder | `SOAK_DURATION_MS=86400000 npm run test:dist-soak` | 24 h |
-| Mixed network | seeder + peers + phone/emulator | 24 h |
-| Mini-app | `SOAK_DURATION_MS=86400000 npm run test:miniapp-soak` | 24 h |
-| iOS simulator | `SOAK_DURATION_MS=86400000 IOS_LIFECYCLE_CYCLES=100 npm run test:ios-soak:required` | 24 h |
-| Desktop | `npm run test:desktop-soak` with extended env | 72 h |
-
----
-
 ## Phase exit checklists
 
 ### Phase 2
@@ -454,28 +441,28 @@ CI uses shortened soaks. Full phase exits call for 24–72 h runs — can use an
 
 - [ ] H6-A–C, H7-B, H8-A/B
 - [ ] Emulator lab E1–E3 (or device equivalent); E4–E5 recommended
-- [ ] Extended soak S1/S2 (24 h) or deferred with rationale
+- [ ] Plan-duration distribution soaks in [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md), or defer with rationale
 - [ ] LIMITATIONS §6 live measurements
 
 ### Phase 4
 
 - [ ] H9, H10, H11
 - [ ] Emulator E1–E4; E5 Bare Worker on Android
-- [ ] 24 h mini-app soak S1
+- [ ] Plan-duration mini-app soak in [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md)
 - [ ] Device-verified release tags
 
 ### Phase 5
 
 - [ ] H12 filed; H13–H15; H16 if RNode available
 - [ ] BLE visibility matrix updated
-- [ ] 24 h ios-sim or device soak
+- [ ] Plan-duration iOS simulator soak in [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md), or equivalent device evidence
 - [ ] `harness-mobile` 0.2.0 device-verified notes
 
 ### Phase 6
 
 - [ ] H17–H20
 - [ ] macOS notarization if H12 exists
-- [ ] 72 h desktop soak on always-on box
+- [ ] Plan-duration desktop soak in [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md)
 - [ ] `host-desktop` device-verified release
 
 ---

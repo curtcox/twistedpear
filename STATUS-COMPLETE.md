@@ -3,8 +3,9 @@
 Companion to [PLAN.md](PLAN.md). This document lists work that is **implemented and verified**
 by automated tests or conformance suites in CI. Each item cites the evidence to re-run or inspect.
 
-**Goal context:** finish everything in [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md) before acquiring
-hardware for [STATUS-HARDWARE.md](STATUS-HARDWARE.md).
+This is an evidence archive, not a backlog. Open software work is tracked in
+[STATUS-SOFTWARE.md](STATUS-SOFTWARE.md); device-, account-, and real-network-gated work is
+tracked in [STATUS-HARDWARE.md](STATUS-HARDWARE.md).
 
 Last audited: 2026-07-08.
 

@@ -72,8 +72,8 @@ When H12 account exists, add secrets to GitHub:
 Update `electron-pack-macos` to set `CSC_IDENTITY_AUTO_DISCOVERY=true` and
 `APPLE_NOTARIZE` credentials. Until then, notarization is manual per this document.
 
-## LIMITATIONS
+## Known limitation
 
-Record notarization outcome (success date, stapled artifact hash) in LIMITATIONS §6 when
-complete. Gatekeeper rejection on first launch without stapling is a known risk for
-unsigned CI artifacts today.
+Record the success date and stapled artifact hash with the release evidence when
+notarization is completed. Until then, unsigned CI artifacts may be rejected by
+Gatekeeper on first launch.

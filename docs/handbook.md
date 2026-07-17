@@ -1,7 +1,7 @@
 # Handbook: interactive diagnostic documentation for every host
 
 Status: **done (software tier)** — D0–D4 landed. Tracking:
-[STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md); device-gated rows in
+[STATUS-COMPLETE.md](../STATUS-COMPLETE.md#phase-d--handbook-d0d4); device-gated rows in
 [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).
 
 Verify: `npm run build:handbook` · `npm run test:handbook` ·
