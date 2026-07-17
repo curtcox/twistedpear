@@ -1,8 +1,8 @@
 # Deterministic Abuse-Simulation — Current Status and Remaining Work
 
 Re-audited on 2026-07-16 against the source, tests, generated campaign report, formal models, and
-CI workflows. This is the short, authoritative status record. Detailed sequencing and acceptance
-criteria are in [simulation-outstanding-work-plan.md](simulation-outstanding-work-plan.md).
+CI workflows. This is the authoritative status record. The original phased design is preserved in
+[simulation-implementation-plan.md](simulation-implementation-plan.md).
 
 The deterministic simulation substrate and the repository work needed to exercise shipping
 capability and historical-policy paths are implemented. Provisioned Python interop and the hosted

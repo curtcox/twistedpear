@@ -11,9 +11,8 @@ the reproducibility guarantee everything else rests on.
 > policy adapters, oracle projections, and model-authoring/replay pipeline are implemented. Required
 > pinned-Python and cross-platform replay gates pass in hosted CI. Guarded BLE/LoRa calibration
 > remains an external evidence boundary. The phase descriptions below are retained as the original
-> design and acceptance criteria. Current status is in
-> [simulation-outstanding-work-plan.md](simulation-outstanding-work-plan.md); the short authoritative
-> record is [simulation-outstanding-work.md](simulation-outstanding-work.md).
+> design and acceptance criteria. The authoritative current record is
+> [simulation-outstanding-work.md](simulation-outstanding-work.md).
 
 The key audit correction remains provenance: a counted path now carries a concrete shipping handler
 and runtime-backed observations. Physical-layer claims still require independent hardware evidence.

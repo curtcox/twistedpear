@@ -1,9 +1,13 @@
-# Web Host: a full TwistedPear host in the browser (plan)
+# Web Host: a full TwistedPear host in the browser
 
 Status: **complete (software tier)** — Phases W0–W4 landed in CI; Workstreams A–F software path closed. Remaining hardware/device work (real USB RNode LoRa E2E from Chrome) is device-gated, not blocking the Phase W software exit.
 Tracking: [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) Phase W.
 
 Landed: W-S1–W-S4 spikes; W1 leaf peer (`runtime/web`, WS interfaces, identity, LXMF, `createWebLeafHost`, Expo web tab); W2 mini-app runtime (`WebSandboxBackend` / proxy relay, `widget-renderer-rn`, confirmations, `test:web-miniapp` / `test:web-examples`); W3 distribution + DevStudio (`createWebInstallService`, publisher trust, `createWebPublishService`, `test:web-distribution` / `test:web-devstudio`); W4 bulk plane + polish (PWA offline shell + install prompt + icons, `test:web-pwa`; `test:web-soak`; gateway `/dht-relay` + `/bulk-fetch` + browser Hyperdrive install via `fetchDriveVersionForWeb`; WebSerial RNode stretch + `test:web-rnode` simulated serial).
+
+The workstreams and phases below retain the implementation design and acceptance
+criteria. The completion summary above and [software status](../STATUS-SOFTWARE.md)
+are authoritative for current status.
 
 The web host is a browser tab (React Native for Web via Expo web) that runs the
 **complete host stack**: a real Reticulum leaf peer (`reticulum-ts` in the page),

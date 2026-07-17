@@ -1,4 +1,4 @@
-# Handbook: interactive diagnostic documentation for every host (plan)
+# Handbook: interactive diagnostic documentation for every host
 
 Status: **done (software tier)** — D0–D4 landed. Tracking:
 [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md); device-gated rows in
@@ -7,6 +7,10 @@ Status: **done (software tier)** — D0–D4 landed. Tracking:
 Verify: `npm run build:handbook` · `npm run test:handbook` ·
 `npm run test:handbook-report` · `npm run test:web-handbook` ·
 `npm run test:handbook-mobile`
+
+The architecture and phase sections below retain the implementation design and
+acceptance criteria. The status links above, not future-tense wording in those sections,
+are authoritative for current completion.
 
 The Handbook is the platform's documentation delivered **as a mini-app** — the same
 posture as [DevStudio](devstudio.md): a signed, SDK-only bundle running in the standard

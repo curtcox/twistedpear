@@ -30,22 +30,8 @@ LXMF, and Pear-style local-first distribution. The repository contains:
 
 ## Documentation
 
-Start with the platform docs in [docs](docs/):
-
-- [Handbook plan](docs/handbook.md) and [apps/handbook](apps/handbook/) for the
-  interactive diagnostic docs mini-app.
-- [Mini-app runtime](docs/miniapp-runtime.md), [Mini-app SDK](docs/miniapp-sdk.md),
-  and [package format](docs/package-format.md) for app authors and host/runtime
-  changes.
-- [Desktop host](docs/desktop-host.md), [web host](docs/web-host.md), and
-  [iOS host strategy](docs/ios-host.md) for implementation-specific behavior.
-- [WebSocket interface](docs/websocket-interface.md), [BLE interface](docs/ble-interface.md),
-  and [propagation node](docs/propagation-node.md) for transport and network roles.
-- [Single-Mac validation plan](docs/mac-validation.md) for running the full
-  software-tier validation matrix locally (`npm run doctor:mac` checks the toolchain).
-- [Security review](docs/security-review.md), [CI policy](docs/ci-policy.md),
-  [Android emulator lab](docs/android-emulator-lab.md), and
-  [hardware](STATUS-HARDWARE.md) / [software](STATUS-SOFTWARE.md) status for validation status.
+Start with the [documentation index](docs/README.md). It identifies the canonical
+reference for each topic and separates current guidance from historical design plans.
 
 Package-level READMEs cover protocol development:
 
@@ -102,4 +88,4 @@ The Handbook is interactive diagnostic documentation shipped as a mini-app.
 | Node / CI | `npm run test:handbook` |
 | Develop | `npm run build:handbook` · `npm run audit:handbook` · `npm run pack:handbook-parts` then `tp pack handbook` in a temp project. |
 
-Plan and phases: [docs/handbook.md](docs/handbook.md).
+Implementation and verification: [docs/handbook.md](docs/handbook.md).

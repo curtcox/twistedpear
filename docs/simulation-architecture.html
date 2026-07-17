@@ -227,7 +227,7 @@
     <p class="eyebrow">TwistedPear · internal engineering reference</p>
     <h1>Deterministic abuse-simulation architecture</h1>
     <p class="standfirst">Why every TwistedPear protocol behavior is written once as a pure state machine, run unchanged in production and in a seeded simulator, and used to game out abuse before the platform is ever exposed to its one viral first impression.</p>
-    <p class="meta">Status: core implemented; production-fidelity work remains — see <a href="simulation-outstanding-work.md">simulation-outstanding-work.md</a> · Re-audited: 2026-07-16 · Audience: platform engineers · Scope: architecture plus current implementation gaps</p>
+    <p class="meta">Status: software evidence complete; guarded BLE/LoRa calibration remains — see <a href="simulation-outstanding-work.md">simulation-outstanding-work.md</a> · Re-audited: 2026-07-16 · Audience: platform engineers · Scope: architecture and evidence boundaries</p>
   </div>
 </header>
 
@@ -235,13 +235,11 @@
 
 <aside class="callout">
   <strong>Implementation status.</strong> The deterministic kernel, transport/adversary models,
-  persisted production grant lifecycle, recording, shrinking, modeled campaign, quorum schedules,
-  social/economic models, and formal twins are implemented. The current coverage service and
-  historical targets still contain simulation-specific machines, and global oracle projections
-  currently read campaign-owned state. Therefore the implementation does not yet satisfy the full
-  same-shipping-core fidelity claim below. See
-  <a href="simulation-outstanding-work.md">the authoritative status record</a> and
-  <a href="simulation-outstanding-work-plan.md">remaining implementation plan</a>.
+  persisted production grant lifecycle, recording, shrinking, production-backed campaign paths,
+  historical-policy adapters, independent oracle projections, quorum schedules, social/economic
+  models, and formal twins are implemented. Guarded BLE/LoRa calibration remains an external
+  evidence boundary. See
+  <a href="simulation-outstanding-work.md">the authoritative status record</a>.
 </aside>
 
 <p><strong>Thesis.</strong> Write every protocol behavior as a pure, deterministic, sans-IO state machine — <code>step(state, event) → (state', intents)</code> — with no sockets, no clock, and no randomness inside it. Wrap that one compiled core in real IO adapters to get the production host; wrap the <em>identical</em> core in a kernel that supplies virtual time, one seeded PRNG, and an event queue to get the simulator. Because both environments embed the same artifact, an entire multi-node run becomes a single deterministic history reproducible from <code>(seed, config)</code>, and the question "was the simulation accurate?" stops being a research question about model fidelity and becomes a build-system property: the thing being simulated <em>is</em> the thing that ships. On top of that core we run adversaries with Dolev-Yao network powers, global-state oracles, and trace shrinking, and we spend most of that budget on the social and economic abuse that actually kills apps at the viral moment — not only the cryptographic attacks that are easier to reason about.</p>

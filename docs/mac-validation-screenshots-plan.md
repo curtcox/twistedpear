@@ -1,8 +1,13 @@
-# Plan: Full mac-validation pass with documentation screenshots
+# Mac validation evidence log
 
-Run the full validation from [mac-validation.md](mac-validation.md)
-(`npm run validate:mac:full` — doctor + Stages 1–8) and capture screenshots
-along the way to embed in the documentation.
+This records the July 2026 full validation run, its triage, follow-up verification,
+and the screenshots embedded in the platform documentation. Use
+[mac-validation.md](mac-validation.md) for the current runbook.
+
+## Original capture plan
+
+The run used `npm run validate:mac:full` (doctor plus Stages 1–8) and captured
+terminal and host UI evidence along the way.
 
 Decisions already made:
 
