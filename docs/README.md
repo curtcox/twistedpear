@@ -90,3 +90,4 @@ Additional focused runbooks are indexed from the
 | Architecture and scope | [Simulation architecture](simulation-architecture.html) |
 | Current status, evidence, and remaining external boundary | [Simulation status](simulation-outstanding-work.md) |
 | Original phased design | [Implementation plan](simulation-implementation-plan.md) — **historical design** |
+| Ongoing find-fix loop, fidelity ramp, and difficulty ladder | [Abuse-resistance loop](abuse-resistance-loop.md) |
