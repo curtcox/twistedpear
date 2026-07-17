@@ -6,8 +6,10 @@ import {
   estimateCompleteness, injectCanaries, runCampaign, serializeCampaignReport
 } from "../../packages/sim-campaign/dist/index.js";
 
-const seedFrom = integerEnv("SIM_CAMPAIGN_SEED_FROM", 1);
-const seedTo = integerEnv("SIM_CAMPAIGN_SEED_TO", 10);
+const loopConfigPath = resolve("conformance/sim-campaign/loop-config.json");
+const loopConfig = JSON.parse(readFileSync(loopConfigPath, "utf8"));
+const seedFrom = integerEnv("SIM_CAMPAIGN_SEED_FROM", loopConfig.turn.seedFrom);
+const seedTo = integerEnv("SIM_CAMPAIGN_SEED_TO", loopConfig.turn.seedTo);
 const output = resolve(process.env.SIM_CAMPAIGN_OUTPUT ?? "conformance/sim-campaign/artifacts");
 const reproducers = resolve(output, "reproducers");
 mkdirSync(reproducers, { recursive: true });
@@ -36,7 +38,20 @@ const baseline = JSON.parse(readFileSync("conformance/sim-baselines/containment.
 const regressions = [...containmentRegressions(first.containment, baseline.containment)];
 if (completeness.floor < baseline.canaryFloorMin) regressions.push(`canary floor ${completeness.floor} is below ${baseline.canaryFloorMin}`);
 if (first.findings.length > 0) regressions.push(`${first.findings.length} genuine oracle violation(s) found`);
-const report = { ...first, completeness, baseline: { path: "conformance/sim-baselines/containment.json", regressions }, deterministicRerun: true };
+const report = {
+  ...first,
+  difficulty: {
+    heldRung: loopConfig.heldRung,
+    heldRungName: loopConfig.heldRungName,
+    increment: loopConfig.turn.increment,
+    changedDial: loopConfig.turn.changedDial,
+    fixedReplaySha256: loopConfig.fixedReplaySha256,
+    nextIncrement: loopConfig.nextIncrement
+  },
+  completeness,
+  baseline: { path: "conformance/sim-baselines/containment.json", regressions },
+  deterministicRerun: true
+};
 writeFileSync(resolve(output, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
 console.log(`simulation campaign: ${first.scenariosRun} real scenarios, ${first.canaryFindings.length} canary findings, ${first.findings.length} genuine findings, floor ${completeness.floor.toFixed(3)}`);
 if (regressions.length > 0) throw new Error(`simulation campaign regression:\n${regressions.join("\n")}`);

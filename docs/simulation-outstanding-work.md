@@ -111,6 +111,18 @@ real deployments or guarded hardware tests, and document the calibration data an
 - BLE/LoRa calibration remains hardware-gated. Simulator results must not be described as
   physical-layer accuracy until accepted guarded traces and their generated reports are versioned.
 
+## Abuse-resistance loop status
+
+- **Held rung:** L2 — authored.
+- **Turn completed 2026-07-16:** widened the campaign seed range from 1–10 to 1–20 without
+  changing transport fidelity, adversary powers, or the coverage frame. The 4,000-scenario run
+  found 310 canaries and zero genuine findings; the deterministic rerun and containment baseline
+  remained green, and the conservative completeness floor remained 0.862.
+- **Artifacts:** `npm run sim:report` regenerates the self-contained campaign dashboard and
+  reproducer gallery from `conformance/sim-campaign/artifacts/report.json`.
+- **Next queued increment:** L3 — colluding. Ratcheting L3 remains gated on shipping
+  escrow/recovery semantics; simulator-only results are not being relabeled as product evidence.
+
 ---
 
 ## Validation reproduced locally on 2026-07-16
@@ -119,7 +131,7 @@ real deployments or guarded hardware tests, and document the calibration data an
 - `npm test`: 1,130 passed; 7 optional interop tests skipped. Localhost tests required running
   outside the filesystem/network sandbox; the initial sandboxed run failed only with listener EPERM.
 - `npm run sansio`: all fences and canaries passed; 684 deterministic tests passed.
-- `npm run test:sim-campaign`: 2,000 deterministic scenarios over 200 registered cells; 142 canary
+- `npm run test:sim-campaign`: 4,000 deterministic scenarios over 200 registered cells; 310 canary
   findings; zero genuine findings; conservative canary-recapture floor 0.862; byte-identical local
   rerun; containment baselines passed.
 - `npm run test:sim-fixed-replay` twice: 400 production-backed scenarios per run; serialized outputs

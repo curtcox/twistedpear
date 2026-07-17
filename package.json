@@ -91,6 +91,8 @@
     "test:fuzz": "vitest run packages/reticulum-ts/test/fuzz.test.ts packages/lxmf-ts/test/fuzz.test.ts",
     "test:sim-campaign": "npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/miniapp-runtime --workspace=@twistedpear/sim-campaign && node conformance/sim-campaign/run.mjs",
     "test:sim-fixed-replay": "npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/miniapp-runtime --workspace=@twistedpear/sim-campaign && node conformance/sim-campaign/fixed-replay.mjs",
+    "sim:report": "node conformance/sim-campaign/report.mjs",
+    "sim:abuse-loop": "node conformance/sim-campaign/loop.mjs",
     "sim:author": "npm run build --workspace=@twistedpear/sim-adversaries && node conformance/sim-author/run.mjs",
     "test:sim-authored-replay": "npm run build --workspace=@twistedpear/sim-adversaries && node conformance/sim-author/replay.mjs",
     "calibrate:sim-transport": "npm run build --workspace=@twistedpear/effects && node conformance/sim-calibration/run.mjs",
