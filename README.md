@@ -32,6 +32,8 @@ LXMF, and Pear-style local-first distribution. The repository contains:
 
 Start with the [documentation index](docs/README.md). It identifies the canonical
 reference for each topic and separates current guidance from historical design plans.
+The path to the first release — gates, iteration loops, and sequencing — is
+[RELEASE-PLAN.md](RELEASE-PLAN.md).
 
 Package-level READMEs cover protocol development:
 
