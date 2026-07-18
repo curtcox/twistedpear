@@ -11,6 +11,7 @@ built, but they are not the source of truth for current status.
 
 | Goal | Document |
 |---|---|
+| Understand why the project exists and what success means | [Motivation](motivation.md) |
 | Understand the platform and run it locally | [Repository README](../README.md) |
 | Learn the platform interactively | [Handbook mini-app](../apps/handbook/README.md) |
 | Check implemented and verified work | [Completed-work evidence](../STATUS-COMPLETE.md) |
