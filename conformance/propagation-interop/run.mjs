@@ -201,7 +201,7 @@ async function runTsPropagationServerPythonClientSync() {
   const alice = loadIdentity(provider, "alice");
   const bob = loadIdentity(provider, "bob");
 
-  const reticulum = Reticulum.create({ provider, runtime });
+  const reticulum = Reticulum.create({ provider, runtime, transportEnabled: true });
   reticulum.start();
 
   await reticulum.addTcpServerInterface({

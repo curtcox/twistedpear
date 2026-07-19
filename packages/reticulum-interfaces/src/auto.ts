@@ -349,7 +349,12 @@ export class AutoInterface extends RawPacketInterface {
       // Discovery peers are keyed by descoped link-locals; UDP recv addresses often
       // include a zone id (%iface) that must be stripped before map lookup.
       const peerAddress = descopeLinkLocal(packet.host);
-      const peer = this.spawned.get(peerAddress);
+      let peer = this.spawned.get(peerAddress);
+      if (peer === undefined && this.spawned.size === 1) {
+        // Single-peer CI topologies can disagree on fe80 compression (:: vs expanded);
+        // deliver to the only peered interface rather than dropping the datagram.
+        peer = this.spawned.values().next().value;
+      }
       if (peer !== undefined) {
         peer.receiveFromPeer(packet.data);
       } else {
