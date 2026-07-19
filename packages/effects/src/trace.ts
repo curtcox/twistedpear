@@ -14,20 +14,46 @@ function bytesToHex(bytes: Uint8Array): string {
 }
 
 /**
- * JSON for hashing — encodes Uint8Array as {$bytes: hex}. Keys serialize in
- * insertion order (NOT sorted); deterministic here because all entries are built
- * by the same code paths. SPEC-TRACE tracks defining a sorted-key canonical form.
+ * SPEC-TRACE canonical JSON: object keys sorted by UTF-16 code units,
+ * `Uint8Array` as {"$bytes":"<lowercase hex>"}, no whitespace, numbers in
+ * ECMAScript Number::toString form. Non-finite numbers and non-JSON values
+ * are rejected so every producer serializes byte-identically.
  */
-export function serializeTrace(entries: readonly TraceEntry[]): string {
-  return JSON.stringify(entries, (_key, value: unknown) => {
-    if (value instanceof Uint8Array) {
-      return { $bytes: bytesToHex(value) };
+export function canonicalJson(value: unknown): string {
+  if (value === null) return "null";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      throw new Error(`non-finite number is not canonicalizable: ${value}`);
     }
-    return value;
-  });
+    return JSON.stringify(value);
+  }
+  if (typeof value === "string") return JSON.stringify(value);
+  if (value instanceof Uint8Array) {
+    return `{"$bytes":"${bytesToHex(value)}"}`;
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => canonicalJson(item ?? null)).join(",")}]`;
+  }
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const parts: string[] = [];
+    for (const key of Object.keys(record).sort()) {
+      const item = record[key];
+      if (item === undefined) continue;
+      parts.push(`${JSON.stringify(key)}:${canonicalJson(item)}`);
+    }
+    return `{${parts.join(",")}}`;
+  }
+  throw new Error(`value of type ${typeof value} is not canonicalizable`);
 }
 
-/** FNV-1a 64-bit as hex — pure, no crypto dependency. */
+/** Canonical serialization of a trace (SPEC-TRACE) — the hash preimage. */
+export function serializeTrace(entries: readonly TraceEntry[]): string {
+  return canonicalJson(entries);
+}
+
+/** FNV-1a 64-bit over the UTF-16 code units of the canonical form, as 16 hex digits. */
 export function hashTrace(entries: readonly TraceEntry[]): string {
   const text = serializeTrace(entries);
   let h = 0xcbf29ce484222325n;

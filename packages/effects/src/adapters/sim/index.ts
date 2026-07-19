@@ -78,6 +78,7 @@ export {
   type RerunOptions,
   type RerunViolation
 } from "./shrink.js";
+export { replayRecordedTrace, type TraceReplayResult } from "./consumer.js";
 export {
   assertReplayDeterminism,
   eventsFromTrace,

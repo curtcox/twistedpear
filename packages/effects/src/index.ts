@@ -19,7 +19,7 @@ export type {
 } from "./types.js";
 
 export { SansIOViolation, installTripwire, uninstallTripwire, isTripwireInstalled } from "./tripwire.js";
-export { hashTrace, serializeTrace } from "./trace.js";
+export { canonicalJson, hashTrace, serializeTrace } from "./trace.js";
 export {
   AmbiguousTransitionError,
   enumerateCells,

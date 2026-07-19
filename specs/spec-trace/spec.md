@@ -1,6 +1,6 @@
 # SPEC-TRACE — Replayable trace format
 
-**Group:** B (substrate) · **Status:** stub · **Migration phase:** 1
+**Group:** B (substrate) · **Status:** normative · **Migration phase:** 1
 
 ## Scope
 
@@ -28,29 +28,45 @@ kernel configuration snapshot needed to replay it
 ## Canonical form and hash
 
 - The hash is **FNV-1a 64-bit** (offset basis `0xcbf29ce484222325`, prime
-  `0x100000001b3`) over the UTF-16 code units of the serialized trace, rendered as
-  16 hex digits.
-- Serialization is JSON with `Uint8Array` values encoded as `{ "$bytes": "<hex>" }`
-  (lowercase, two digits per byte).
-- **Known canonicalization gap:** object keys are serialized in insertion order, not
-  sorted (the current doc comment in `trace.ts` claiming sorted keys is wrong). This
-  is deterministic within the TypeScript implementation because all entries are
-  constructed by the same code paths, but a cross-language producer must replicate
-  key order exactly. Defining a sorted-key canonical form (and migrating stored
-  hashes) is part of finishing this spec.
+  `0x100000001b3`) over the UTF-16 code units of the canonical serialization,
+  rendered as 16 hex digits.
+- The canonical serialization is JSON with **no whitespace**, **object keys sorted
+  by UTF-16 code units**, `Uint8Array` values encoded as `{ "$bytes": "<hex>" }`
+  (lowercase, two digits per byte), numbers rendered in ECMAScript
+  `Number::toString` form, `undefined` properties omitted, and non-finite numbers
+  rejected (`canonicalJson` in `trace.ts`).
+- The on-disk representation of a history is ordinary JSON — key order on disk is
+  **not** significant. Consumers parse, revive `$bytes`, and recompute the hash
+  over the canonical form.
+- Known-answer vectors: [vectors/trace-hash.json](vectors/trace-hash.json)
+  (pinned canonical serializations and hashes, including a scrambled-key-order
+  vector that must hash identically).
 
 ## Replay and shrinking
 
-- **Replay:** a consumer reconstructs the kernel from the recorded config snapshot,
-  re-injects the recorded external inputs, and must reproduce the trace hash exactly
-  (`assertReplayDeterminism`).
+- **Replay (cross-producer):** a consumer parses the on-disk history, resolves each
+  node's `machine` key to a step function, treats recorded events and advances as
+  external inputs, regenerates every intent by re-running the machines, and must
+  reproduce the trace hash exactly (`replayRecordedTrace` in `consumer.ts`).
+- **Replay (state):** `assertReplayDeterminism` re-injects the recorded event tape
+  into a fresh kernel and requires identical final-state hashes.
 - **Shrinking:** the campaign runner removes candidate entries and re-runs; a shrunk
   trace is valid iff it still reproduces the violation under replay.
 
 ## Normative artifacts (current locations)
 
-- Trace hashing and serialization:
+- Trace entry and recorded history schemas:
+  [schema/trace-entry.schema.json](schema/trace-entry.schema.json),
+  [schema/recorded-history.schema.json](schema/recorded-history.schema.json)
+- Canonical-form known-answer vectors:
+  [vectors/trace-hash.json](vectors/trace-hash.json)
+- Trace hashing and canonical serialization:
   [packages/effects/src/trace.ts](../../packages/effects/src/trace.ts)
+- Cross-producer consumer (`replayRecordedTrace` — machines only, no kernel):
+  [packages/effects/src/adapters/sim/consumer.ts](../../packages/effects/src/adapters/sim/consumer.ts)
+- Schema validation, vectors, and the cross-producer hash check are exercised by
+  [packages/effects/test/spec-trace.test.ts](../../packages/effects/test/spec-trace.test.ts)
+  (in the default `vitest` suite and CI).
 - Replay determinism: `assertReplayDeterminism`
   ([packages/effects/src/adapters/sim/replay.ts](../../packages/effects/src/adapters/sim/replay.ts),
   exercised in
@@ -68,6 +84,8 @@ kernel configuration snapshot needed to replay it
 
 ## To finish this spec
 
-Publish the trace and history schemas in `schema/`; resolve the canonicalization gap
-(sorted-key form); add the cross-producer conformance check (record on producer A,
-replay on consumer B, hashes must match).
+Done — the trace and history schemas are published in `schema/` and validated
+against real recorded output; the sorted-key canonical form replaced the
+insertion-order gap (no stored hashes existed, so no fixture migration was
+needed); the cross-producer check records a history, replays it through the
+kernel-free consumer entry point, and requires identical hashes.

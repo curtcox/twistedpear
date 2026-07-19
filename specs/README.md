@@ -67,7 +67,7 @@ The contracts that make a seeded simulator a *conforming host* rather than a moc
 | [SPEC-EVENTS](spec-events/spec.md) | Closed event/intent vocabulary as a language-neutral schema | stub (informative) |
 | [SPEC-KERNEL](spec-kernel/spec.md) | Virtual clock, seeded PRNG discipline, deterministic dequeue | stub |
 | [SPEC-ADAPTER](spec-adapter/spec.md) | Effect families; real/simulated observational equivalence | stub |
-| [SPEC-TRACE](spec-trace/spec.md) | Replayable trace format, hashing, shrinking | stub |
+| [SPEC-TRACE](spec-trace/spec.md) | Replayable trace format, hashing, shrinking | **normative** |
 
 ### Group C — Platform specs
 
