@@ -1,6 +1,6 @@
 # SPEC-MACHINE — Pure protocol machine contract
 
-**Group:** B (substrate) · **Status:** stub · **Migration phase:** 1
+**Group:** B (substrate) · **Status:** normative · **Migration phase:** 1
 
 ## Scope
 
@@ -59,6 +59,17 @@ never import adapters or IO-capable packages.
 
 ## Normative artifacts (current locations)
 
+- Freestanding gate: [conformance/machine/](../../conformance/machine/)
+  (`npm run test:machine-gate`, or
+  `node conformance/machine/run.mjs <module.mjs>` for a machine module outside
+  this repository). Per machine it enforces the contract above: SPEC-EVENTS
+  alphabet on tape events and produced intents, runtime tripwire on forbidden
+  effects, double-run determinism over the (event, intents, state) stream, and
+  input immutability under deep-frozen inputs. The gate is mutation-tested by
+  the canary machines in
+  [canary-machines.mjs](../../conformance/machine/canary-machines.mjs), one per
+  check ([packages/effects/test/spec-machine-gate.test.ts](../../packages/effects/test/spec-machine-gate.test.ts),
+  in the `sansio:determinism` gate).
 - Boundary declaration: [sansio-ratchet.json](../../sansio-ratchet.json) (no exceptions)
 - Canary: [sansio-canary.json](../../sansio-canary.json) — proves three independent
   layers catch a seeded `Date.now()`
@@ -84,5 +95,7 @@ npm run sansio
 
 ## To finish this spec
 
-Promote the canary + determinism gate to a freestanding conformance runner that can be
-pointed at a machine outside this repository. The contract text above is canonical.
+Done — `conformance/machine/` packages the canary + determinism gate as a
+freestanding runner that accepts any machine module (in-repo or external) in
+the documented export shape; the repo-wide `npm run sansio` boundary layers
+remain the enforcement for code living inside this repository.
