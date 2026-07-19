@@ -33,7 +33,7 @@ simulator-verified only* in LIMITATIONS §3/§6.
 ## 2. Release gates
 
 v1 is ready when every gate is green. Gates are evidence statements, not work items —
-the work lives in the loops (§3).
+the work lives in the pipeline (§4).
 
 | Gate | Statement | Evidence source |
 |---|---|---|
@@ -43,163 +43,216 @@ the work lives in the loops (§3).
 | **G4 — Trust loop verified end-to-end** | On real devices, a user can: see an app's source before running, verify author signature, review requested capabilities and reasons, grant/deny, and revoke — and an unsigned/tampered/over-reaching package is refused (hostile-app suites + H9/H11 on device) | `test:hostile-apps` + H-register logs |
 | **G5 — Packaging and provenance** | Versioned, signed artifacts for every shipped target; macOS notarized (needs H12 account); install docs match a from-scratch install on a clean machine | Release artifacts + walkthrough log |
 | **G6 — Docs tell the truth** | LIMITATIONS reflects final measured values; README/Handbook install paths verified; release notes state what is verified vs experimental | Doc review against G1–G5 evidence |
-| **G7 — Human-layer resistance** | The trust UI survives adversaries who target the user, not the system: spoofing-resistance fixtures prove a mini-app cannot imitate host chrome or grant dialogs; deception/impersonation abuse verbs sit in the campaign coverage cube with clean oracles; automated UI invariants prove "who is involved" and capability status are reachable from every mini-app screen; a11y scans gate green on trust-critical surfaces; scripted comprehension sessions with outside testers pass their pre-committed thresholds | `test:hostile-apps` + `test:ui-invariants` tiers; campaign report; usability session logs (Loop E) |
+| **G7 — Human-layer resistance** | The trust UI survives adversaries who target the user, not the system: spoofing-resistance fixtures prove a mini-app cannot imitate host chrome or grant dialogs; deception/impersonation abuse verbs sit in the campaign coverage cube with clean oracles; automated UI invariants prove "who is involved" and capability status are reachable from every mini-app screen; a11y scans gate green on trust-critical surfaces; scripted comprehension sessions with outside testers pass their pre-committed thresholds | `test:hostile-apps` + `test:ui-invariants` tiers; campaign report; tester session logs (S3, S6–S7) |
 
 G3 is the deliberate hard choice: L3 requires escrow/recovery product semantics that
 do not exist yet (today an explicit scope boundary in the simulation docs). That new
-product work is on the critical path — see Loop C. G7 exists because motivation.md's
-first claim ("users always know who is involved") is a *comprehension* claim, and
-functional flow tests cannot discharge it; its tester sessions are the plan's only
-gate that requires human perception.
+product work sits at the center of the pipeline — see S4. G7 exists because
+motivation.md's first claim ("users always know who is involved") is a
+*comprehension* claim, and functional flow tests cannot discharge it; its tester
+sessions are the plan's only gate step that requires human perception.
 
-## 3. The iteration loops
+## 3. Operating rules
 
-Claude turns the cranks; the user does only the steps marked **[user]** (hardware,
-purchases, accounts, and starting long soaks). Every loop turn ends by updating the
-canonical status registers — this plan is never the record of what passed.
+**Automation rule — automate the crank itself.** Every recurring check must exist as
+a checked-in script or test tier (`npm run …`) that a session or CI can execute
+without judgment. The pipeline is driven by a release driver built in S0, not by
+re-reading documents: `npm run release:status` computes gate status and the single
+next action from committed evidence (the status registers, campaign `report.json`,
+soak logs, CI results). A step may stay manual only if it requires hardware in hand,
+an account action, or human perception — and every such step is wrapped in scripts
+that prepare everything before the human moment and verify everything after it.
+One-off findings become fixtures; fixtures become tiers; tiers get wired into PR or
+nightly CI per [docs/ci-policy.md](docs/ci-policy.md). Any turn that touches a
+manual step must try to shrink or script it.
 
-**Automation rule.** Every recurring check in these loops must exist as a checked-in
-script or test tier (`npm run …`) that a session or CI can execute without judgment.
-A step may stay manual only if it requires hardware in hand, an account action, or
-human perception — and any turn that touches a manual step should try to shrink or
-script it. One-off findings become fixtures; fixtures become tiers; tiers get wired
-into PR or nightly CI per [docs/ci-policy.md](docs/ci-policy.md). The crank itself
-is a thing we automate.
+**Serialization rule — one active stage.** Attention is on exactly one stage at a
+time: always the lowest-numbered incomplete stage that is not blocked on an
+unattended wait. The only permitted overlap is **unattended waits** — soak
+wall-clock, hardware shipping, Apple enrollment review, the H20 two-week node run —
+which are all started at their designated stage and then consume calendar, not
+attention, monitored by the driver. When a wait finishes or fails, it preempts the
+active stage: the driver surfaces it, the failure is fixed and the wait restarted,
+then the active stage resumes. No other work runs in parallel.
 
-### Loop A — Keep-green (every session, background discipline)
+## 4. The pipeline
 
-`npm run build && npm test` plus the CI-tier conformance suites relevant to whatever
-changed. Any red is fixed before new work. This is a discipline, not a phase.
+Claude executes every stage; the user does only the steps marked **[user]**
+(hardware in hand, purchases, accounts, human perception). Every stage ends by
+updating the canonical status registers — this plan is never the record of what
+passed.
 
-### Loop B — Soak ladder (calendar time, low effort)
+### S0 — Build the automation harness
 
-1. **[user]** Start `npm run validate:mac -- --stage 8 --plan-duration` on the Mac
-   (needs it powered and awake; the 72 h transport soak is the long pole).
-2. Claude monitors logs, triages any failure to a minimal reproducer, fixes, and
-   restarts the affected soak.
-3. On completion, record evidence in STATUS-COMPLETE, strike the row from
-   STATUS-SOFTWARE, and after the 72 h transport soak, tag `reticulum-ts` 0.1.0.
+The first stage exists so every later stage is cheaper and needs no judgment calls:
 
-Start this loop **first**: it costs calendar time, not attention, and G1 cannot
-finish without it.
+1. `npm run release:status` — the release driver: reads the status registers,
+   `conformance/sim-campaign/artifacts/report.json`, soak logs, and CI state;
+   prints the G1–G7 gate table and the single next action.
+2. Soak watcher — tails `validate:mac` stage-8 logs, classifies failures, and emits
+   a minimal-reproducer stub for triage instead of requiring log spelunking.
+3. Evidence recorder — one command per H-register row and soak that appends the
+   pass log to STATUS-COMPLETE and strikes the source row, so register updates are
+   generated, not hand-edited.
+4. Wire any suite not yet in a PR/nightly tier into CI per
+   [docs/ci-policy.md](docs/ci-policy.md).
 
-### Loop C — Abuse-resistance climb to L3 (critical path)
+**Exit:** `release:status` runs green and its "next action" output is correct
+against a manual reading of the registers.
 
-Runs exactly as specified in [docs/abuse-resistance-loop.md](docs/abuse-resistance-loop.md)
-(one fidelity *or* difficulty increment per turn, six stages, ratchet). The
-release-specific sequence:
+### S1 — Keep-green baseline
 
-1. **Hold L2.** Confirm the current rung's exit criteria with a fresh campaign;
-   fix any stragglers.
-2. **Design escrow/recovery + quorum semantics.** Write the spec/ADR for the
-   authority machines the L3 oracles reference, formal twins first
-   (TLA+/Tamarin/ProVerif per the loop's rule: twin lands before the machine ships).
-3. **Implement** the machines behind the sans-IO fence, with conformance traces
-   accepted from the twins.
-4. **Extend the coverage cube with human-layer abuse verbs** (backs G7): deception
-   within granted capabilities, author impersonation and 256t look-alikes,
-   trust-bootstrapping ("behave for months, then ship the payload"), and compromised
-   author keys — each verb anchored to its STRIDE/LINDDUN mapping and landing with an
-   oracle, so G7's adversaries are campaign cells, not prose. Key-compromise cells
-   must exercise revocation propagation and report it through the existing
-   containment metrics.
-5. **Climb L3** turn by turn: colluding-pair schedules, colluding relays,
-   compromised host, calibrated transport distributions. Fix, regression-lock,
-   re-baseline until the L3 exit criterion holds.
-6. **Lock the rung** into nightly. L4/L5 continue post-release; if RNode calibration
-   traces (H4-D) arrive early, fold them in, but they do not gate v1.
+`npm run build && npm test` plus all CI-tier conformance suites green; any red fixed
+before proceeding. **Exit:** one fully green run recorded. Thereafter this is a
+standing invariant enforced by CI and checked by the driver at the start of every
+session — not a recurring stage.
 
-### Loop D — Device evidence (as hardware arrives)
+### S2 — Start every unattended wait
 
-1. **[user]** Acquire hardware in the order already prioritized in STATUS-HARDWARE
-   (§Hardware acquisition order): two used Android phones and the Apple Developer
-   account cover most of G2 and G5; RNode pair and Windows machine as they come.
-2. **[user]** Execute each H-register checklist with devices in hand (the steps are
-   already written as runbooks).
-3. Claude prepares anything missing before each session (builds, fixtures, adb
-   scripts), triages failures, fixes, and updates LIMITATIONS with measured values.
-4. Each completed row moves to STATUS-COMPLETE with its log.
+All calendar-bound waits start here, once, then run unattended under the driver's
+monitoring:
 
-Release-gating rows: H1–H3, H6–H7, H9–H11, H18, H20, H21 (+H12 for notarization,
-H17 for the Windows artifact). All others improve the release but do not gate it.
+1. **[user]** Start the plan-duration soaks: `npm run validate:mac -- --stage 8
+   --plan-duration` (Mac powered and awake; the 72 h transport soak is the long
+   pole).
+2. **[user]** Order the hardware in STATUS-HARDWARE's acquisition order — two used
+   Android phones first, plus the spare Linux box for H20.
+3. **[user]** Enroll in the Apple Developer Program (H12 — longest lead time;
+   needed by S7 for notarization).
+4. **[user]** As soon as the Linux box exists: start the H20 two-week `tp node`
+   run with its `/status` cron.
 
-### Loop E — Human-layer validation (automate everything except the humans)
+**Exit:** every wait started and visible in `release:status`. Soak or node-run
+failures from here on preempt the active stage per the serialization rule.
 
-Backs G7. Items 1–4 are pure automation and start as soon as a session picks them
-up; item 5 feeds Loop C; only item 6 needs people.
+### S3 — G7 automated tiers
 
-1. **Spoofing-resistance fixtures** in the hostile-app suite: mini-apps that attempt
-   to imitate host chrome, grant dialogs, capability badges, or the Handbook. Pass =
-   imitation is impossible by construction (widget whitelist) or unmistakably badged
-   as app content. Lands in the `test:hostile-apps` tier and runs on every PR.
-2. **UI trust invariants** as automated flows on the existing drivers (Playwright
-   for web/desktop, Maestro on the Android emulator): from any mini-app screen,
-   "who is involved" — author identity, granted capabilities, capabilities in use,
-   peers being contacted — is reachable within two interactions; every grant prompt
-   shows what is requested and the author's stated why; revocation is always
-   reachable and takes effect without restart. Lands as `test:ui-invariants`, wired
-   into CI.
-3. **Accessibility scans** (axe-core against the web/desktop DOM renderer) gate
-   green on trust-critical surfaces — a trust UI a screen-reader user cannot
-   operate fails motivation.md's "users always know," not just a checklist.
+Pure software, no dependencies; builds the automated half of G7:
+
+1. **Spoofing-resistance fixtures** in the hostile-app suite: mini-apps that
+   attempt to imitate host chrome, grant dialogs, capability badges, or the
+   Handbook. Pass = imitation is impossible by construction (widget whitelist) or
+   unmistakably badged as app content. Lands in `test:hostile-apps`, runs per PR.
+2. **`test:ui-invariants`** on the existing drivers (Playwright for web/desktop,
+   Maestro on the Android emulator): from any mini-app screen, "who is involved" —
+   author identity, granted capabilities, capabilities in use, peers being
+   contacted — is reachable within two interactions; every grant prompt shows what
+   is requested and the author's stated why; revocation is always reachable and
+   takes effect without restart.
+3. **Accessibility scans** (axe-core against the web/desktop DOM renderer) on
+   trust-critical surfaces — a trust UI a screen-reader user cannot operate fails
+   motivation.md's "users always know," not just a checklist.
 4. **Visual regression** on trust-critical surfaces (grant dialog, source viewer,
    capability badges, revocation flow), so a change that hides trust information
    shows up as a diff in review, not as an opinion.
-5. **Adversarial-UX review**: a checklist-driven pass over the trust surfaces —
+
+**Exit:** all four tiers green in CI.
+
+### S4 — Safety climb to L3
+
+Runs exactly as specified in [docs/abuse-resistance-loop.md](docs/abuse-resistance-loop.md):
+one fidelity *or* difficulty increment per turn, six stages per turn, ratchet.
+Sequence within this stage:
+
+1. **Hold L2.** Fresh campaign confirming the current rung's exit criteria; fix
+   stragglers.
+2. **Design escrow/recovery + quorum semantics** — spec/ADR for the authority
+   machines the L3 oracles reference, formal twins first (TLA+/Tamarin/ProVerif;
+   twin lands before the machine ships).
+3. **Implement** the machines behind the sans-IO fence, conformance traces accepted
+   from the twins.
+4. **Extend the coverage cube with human-layer abuse verbs** (the campaign half of
+   G7): deception within granted capabilities, author impersonation and 256t
+   look-alikes, trust-bootstrapping ("behave for months, then ship the payload"),
+   compromised author keys — each anchored to its STRIDE/LINDDUN mapping, each
+   landing with an oracle. Key-compromise cells must exercise revocation
+   propagation through the existing containment metrics.
+5. **Climb L3** turn by turn: colluding-pair schedules, colluding relays,
+   compromised host, calibrated transport distributions. Fix, regression-lock,
+   re-baseline until the L3 exit criterion holds.
+6. **Lock the rung** into nightly. L4/L5 continue post-release; if RNode
+   calibration traces (H4-D) arrive early, fold them in — they do not gate v1.
+
+**Exit:** L3 held; every genuine finding fixed with a committed reproducer.
+
+### S5 — Device evidence
+
+By now the S2 hardware has arrived. Execute the release-gating register rows
+serially, in acquisition order: H1 → H2 → H3 → H6 → H7 → H9 → H10 → H11 → H18 →
+H21, plus confirming the H20 run (started in S2) completed its two weeks. The
+steps are already written as runbooks in STATUS-HARDWARE.
+
+- Claude prepares each row before the session (builds, fixtures, adb scripts),
+  triages failures, fixes, and updates LIMITATIONS with measured values via the
+  S0 evidence recorder.
+- **[user]** executes the device-in-hand steps.
+- Non-gating rows (RNode H4/H8, iPhone H13–H16, Windows H17) run here only if the
+  hardware is already on hand; otherwise they follow the conditional rules in §1.
+
+**Exit:** all G2 rows logged; LIMITATIONS §§3, 5–7 carry measured values.
+
+### S6 — Adversarial-UX review and tester round ①
+
+1. **Adversarial-UX review**: checklist-driven pass over the trust surfaces —
    look-alike names/ids, urgency framing in app descriptions, capability-request
    social engineering, key-compromise recovery UX. Each finding becomes a fixture
-   in items 1–2 or a campaign cell in Loop C step 4; the review itself is repeated
-   only when trust surfaces change.
-6. **[user] Comprehension sessions** — the one irreducibly manual step: 3–5 testers
-   from outside the project, run twice (once when items 1–4 are green, once
-   pre-release), against scripted tasks with pass thresholds committed beforehand:
-   "find out who is involved in what this app just did," "decide whether this app
-   is safe to install and say why," "spot the impersonator among these two apps,"
-   "revoke this app's network access." Claude prepares the script, builds, and
-   scoring sheet; failures route to fixes and a re-run, not to a shrug.
+   in the S3 tiers or a campaign cell in S4's cube; the review repeats only when
+   trust surfaces change.
+2. **[user] Comprehension round ①**: 3–5 testers from outside the project against
+   scripted tasks with pass thresholds committed beforehand: "find out who is
+   involved in what this app just did," "decide whether this app is safe to
+   install and say why," "spot the impersonator among these two apps," "revoke
+   this app's network access." Claude prepares the script, builds, and scoring
+   sheet; failures route to fixes and a re-run, not to a shrug.
 
-### Loop F — Release packaging (last, short)
+**Exit:** review findings fixed or fixture-locked; round ① thresholds met.
+
+### S7 — Packaging and release candidate
 
 1. Reproducible signed builds for every shipped target; macOS notarization
-   ([docs/macos-notarization.md](docs/macos-notarization.md), needs H12).
-2. **[user]** Clean-machine install walkthrough per target following only the docs;
-   Claude fixes every gap found.
-3. Release notes: verified claims with evidence links; experimental features
+   ([docs/macos-notarization.md](docs/macos-notarization.md)) using the S2
+   enrollment.
+2. **[user]** Clean-machine install walkthrough per target following only the
+   docs; Claude fixes every gap found.
+3. **[user] Comprehension round ②** against the release candidate (same protocol
+   as round ①).
+4. Release notes: verified claims with evidence links; experimental features
    labeled; LIMITATIONS final pass (G6).
-4. Tag, publish artifacts, publish `reticulum-ts` 0.1.0.
 
-## 4. Sequencing
+**Exit:** G5 and G6 evidence complete; round ② thresholds met.
+
+### S8 — Ship
+
+Tag and publish `reticulum-ts` 0.1.0 (the 72 h transport soak from S2 must be
+complete), publish the host artifacts, and land the release commit updating
+STATUS-COMPLETE with the final evidence table. Then the post-release steady state
+begins: nightly held rungs, L4/L5 climbing, and the deferred iOS/store decisions as
+their own future plan.
+
+## 5. Sequencing
 
 ```
-now ──────────────────────────────────────────────────────► release
-Loop A  ══════════════════════════════════════════════════  (always on)
-Loop B  ▶ start soaks immediately ─ monitor ─ 0.1.0 tag
-Loop C  ▶ hold L2 ─ escrow/recovery spec+twins ─ implement ─ +deception verbs ─ climb L3
-Loop D           ▶ phones arrive ─ H1–H3,H6–H11 ─ H18,H20,H21 ─ (H17,RNode)
-Loop E  ▶ spoofing+invariants+a11y+visual tiers ─ adv-UX review ─ testers ①  ─ testers ②
-Loop F                                              ▶ package ─ walkthrough ─ ship
+attention (strictly serial):
+  S0 harness → S1 green → S2 start waits → S3 G7 tiers → S4 climb L3
+       → S5 devices → S6 adv-UX + testers① → S7 package + testers② → S8 ship
+
+unattended waits (the only overlap; started at S2, monitored by the S0 driver):
+  soaks (≤72 h each) ──────────────► consumed by G1 / the S8 tag
+  hardware shipping ───────────────► consumed by S5
+  Apple enrollment (H12) ──────────► consumed by S7 notarization
+  H20 two-week node run ───────────► consumed by S5 exit
 ```
 
-- **Start today, in parallel:** Loop B soaks (calendar-bound), the Loop C
-  escrow/recovery spec (the largest unknown), Loop E's automated tiers 1–4 (pure
-  software, CI-bound, no dependencies), and the **[user]** hardware order for the
-  first two Android phones + Apple Developer enrollment (H12 has lead time).
-- **Critical path:** Loop C — it contains genuinely new product work. Everything
-  else is execution of existing runbooks or new automation.
-- **Tester rounds** (Loop E.6) are scheduled events, not blockers on other work:
-  round ① as soon as the automated tiers are green, round ② against the release
-  candidate.
-- **H20 (2-week unattended node)** is the other long calendar item; start it as soon
-  as a spare Linux box exists.
+If a wait finishes while a later stage is active, its evidence is recorded by the
+driver and the pipeline continues; if it fails, it preempts, gets fixed and
+restarted, and the active stage resumes. Nothing else runs concurrently.
 
-## 5. Cadence and definition of done
+## 6. Cadence and definition of done
 
-- **Per session:** Loop A green; at most one deliberate increment on one other loop;
-  any manual step touched is scripted or shrunk if possible (the automation rule);
-  status registers updated before the session ends.
-- **Per week (default):** one full Loop C turn; soak/hardware progress recorded;
-  a one-paragraph status delta noted in the relevant register.
-- **Done:** all seven gates green. The release commit updates STATUS-COMPLETE with the
-  final evidence table, LIMITATIONS with final measured values, and the release
-  notes — then the post-release steady state begins: nightly held rungs, L4/L5
-  climbing, and the deferred iOS/store decisions as their own future plan.
+- **Per session:** run `release:status`; advance the active stage by one
+  increment; script or shrink any manual step touched (automation rule); registers
+  updated before the session ends.
+- **Per S4 turn (weekly default):** one deliberate difficulty or fidelity
+  increment, never two dials in one turn.
+- **Done:** all seven gates green, confirmed by `release:status`, sealed by the S8
+  release commit.
