@@ -373,7 +373,9 @@ function layoutContainer(
     place(placement.child, childX, childY, row ? placement.size.width : inner, boxes);
   }
 
-  return contentMain + 2 * padding;
+  // The container's content height: rows extend along x, so their height is
+  // the cross extent; columns stack along y, so it is the main extent.
+  return (row ? cross : contentMain) + 2 * padding;
 }
 
 function resolveWidth(value: number | `${number}%` | undefined, avail: number): number | undefined {

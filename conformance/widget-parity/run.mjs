@@ -196,3 +196,19 @@ for (const file of streamFiles) {
 }
 
 console.log("widget-parity: recorded golden streams drive schema, differ, and headless renderer");
+
+// ---------------------------------------------------------------------------
+// SPEC-PRESENT: reference layout vectors recomputed by the headless renderer.
+// ---------------------------------------------------------------------------
+const { layoutWidgetTree } = await import("../../packages/widget-renderer-headless/dist/index.js");
+const layoutVectorsPath = join(specDir, "../spec-present/vectors/layout.json");
+const layoutDoc = JSON.parse(readFileSync(layoutVectorsPath, "utf8"));
+if (layoutDoc.vectors.length < 10) {
+  throw new Error(`expected at least 10 layout vectors, found ${layoutDoc.vectors.length}`);
+}
+for (const vector of layoutDoc.vectors) {
+  validateWidgetTree(vector.tree);
+  const boxes = layoutWidgetTree(vector.tree, vector.viewport);
+  assertEqual(boxes, vector.boxes, `layout vector ${vector.name}`);
+}
+console.log(`widget-parity: ${layoutDoc.vectors.length} SPEC-PRESENT layout vectors reproduced exactly`);
