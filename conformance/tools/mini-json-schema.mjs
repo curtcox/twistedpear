@@ -7,7 +7,8 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve as resolvePath } from "node:path";
 
 /**
- * Load a schema file and return a validate function.
+ * Load a schema file and return a validate function. The path may carry a
+ * fragment ("schema.json#/$defs/event") to validate against one definition.
  * validate(value) returns an array of "path: message" error strings (empty = valid).
  */
 export function createValidator(schemaPath) {
@@ -21,7 +22,18 @@ export function createValidator(schemaPath) {
     }
     return entry;
   };
-  const rootCtx = load(schemaPath);
+  const [rootFile, rootPointer = ""] = schemaPath.split("#");
+  const rootCtx = load(rootFile);
+  let rootSchema = rootCtx.doc;
+  if (rootPointer !== "") {
+    for (const raw of rootPointer.split("/").slice(1)) {
+      const key = raw.replace(/~1/g, "/").replace(/~0/g, "~");
+      rootSchema = rootSchema?.[key];
+    }
+    if (rootSchema === undefined) {
+      throw new Error(`unresolvable fragment in ${schemaPath}`);
+    }
+  }
 
   function resolveRef(ref, ctx) {
     const [file, pointer = ""] = ref.split("#");
@@ -135,7 +147,7 @@ export function createValidator(schemaPath) {
 
   return (value) => {
     const errors = [];
-    check(value, rootCtx.doc, rootCtx, "", errors);
+    check(value, rootSchema, rootCtx, "", errors);
     return errors;
   };
 }

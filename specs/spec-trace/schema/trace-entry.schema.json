@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://twistedpear.dev/specs/spec-trace/schema/trace-entry.schema.json",
   "title": "SPEC-TRACE trace entry (serialized form)",
-  "description": "One entry of a replayable trace, in the serialized JSON form where Uint8Array values are encoded as {\"$bytes\": \"<lowercase hex>\"}. Event and intent payloads use the closed alphabet normatively owned by SPEC-EVENTS (specs/spec-events/schema/); this schema constrains only the envelope shared by every payload.",
+  "description": "One entry of a replayable trace, in the serialized JSON form where Uint8Array values are encoded as {\"$bytes\": \"<lowercase hex>\"}. Event and intent payloads use the closed alphabet normatively owned by SPEC-EVENTS, referenced from specs/spec-events/schema/events.schema.json.",
   "oneOf": [
     { "$ref": "#/$defs/eventEntry" },
     { "$ref": "#/$defs/intentEntry" },
@@ -15,7 +15,7 @@
       "properties": {
         "t": { "const": "event" },
         "node": { "type": "string" },
-        "event": { "$ref": "#/$defs/payload" }
+        "event": { "$ref": "../../spec-events/schema/events.schema.json#/$defs/event" }
       },
       "additionalProperties": false
     },
@@ -25,7 +25,7 @@
       "properties": {
         "t": { "const": "intent" },
         "node": { "type": "string" },
-        "intent": { "$ref": "#/$defs/payload" }
+        "intent": { "$ref": "../../spec-events/schema/events.schema.json#/$defs/intent" }
       },
       "additionalProperties": false
     },
@@ -37,14 +37,6 @@
         "at": { "type": "number" }
       },
       "additionalProperties": false
-    },
-    "payload": {
-      "description": "Event or intent payload envelope. Full payload validation is SPEC-EVENTS' schema; a trace consumer must reject entries whose payload kind is outside that alphabet.",
-      "type": "object",
-      "required": ["kind"],
-      "properties": {
-        "kind": { "type": "string" }
-      }
     },
     "bytes": {
       "description": "Serialized Uint8Array: lowercase hex, two digits per byte.",

@@ -1,11 +1,22 @@
-/** Virtual time instant in milliseconds since an arbitrary epoch. */
-export type InstantMs = number;
-
-/** Opaque timer identity used by protocol code when requesting/cancelling timers. */
-export type TimerId = string;
-
-/** Opaque node identity inside a multi-node simulation. */
-export type NodeId = string;
+// The event/intent alphabet is generated from the normative SPEC-EVENTS schema
+// (specs/spec-events/schema/events.schema.json) — see types.gen.ts. Only the
+// host-facing interfaces that are not part of the wire alphabet live here.
+export type {
+  DolevYaoPower,
+  Event,
+  InstantMs,
+  Intent,
+  NodeId,
+  StoreDelete,
+  StoreRead,
+  StoreWrite,
+  TimerCancel,
+  TimerId,
+  TimerRequest,
+  TransportAdversaryAction,
+  TransportSend
+} from "./types.gen.js";
+import type { Event, InstantMs, Intent } from "./types.gen.js";
 
 /**
  * Clock handed to protocol code. Returns only the virtual instant the adapter
@@ -22,75 +33,6 @@ export interface Clock {
 export interface Entropy {
   randomBytes(length: number): Uint8Array;
 }
-
-/** Timer request emitted as an intent; expiry arrives later as an event. */
-export interface TimerRequest {
-  readonly id: TimerId;
-  readonly delayMs: number;
-}
-
-export interface TimerCancel {
-  readonly id: TimerId;
-}
-
-/**
- * Narrow send surface. Adapters perform the IO; protocol only declares intent.
- * Receive paths arrive as events, never as callbacks into protocol modules.
- */
-export interface TransportSend {
-  readonly channel: string;
-  readonly destination: string;
-  readonly payload: Uint8Array;
-}
-
-export interface StoreRead {
-  readonly key: string;
-}
-
-export interface StoreWrite {
-  readonly key: string;
-  readonly value: Uint8Array;
-}
-
-export interface StoreDelete {
-  readonly key: string;
-}
-
-export type DolevYaoPower = "drop" | "delay" | "reorder" | "duplicate" | "inject";
-
-export type TransportAdversaryAction =
-  | { readonly power: "drop"; readonly source: NodeId; readonly destination: NodeId }
-  | { readonly power: "delay"; readonly source: NodeId; readonly destination: NodeId; readonly delayMs: number }
-  | { readonly power: "reorder"; readonly source: NodeId; readonly destination: NodeId }
-  | { readonly power: "duplicate"; readonly source: NodeId; readonly destination: NodeId }
-  | {
-      readonly power: "inject";
-      readonly source: NodeId;
-      readonly destination: NodeId;
-      readonly channel: string;
-      readonly payload: Uint8Array;
-      readonly delayMs?: number;
-    };
-
-export type Intent =
-  | { readonly kind: "need_entropy"; readonly nbytes: number }
-  | { readonly kind: "transport/adversary"; readonly action: TransportAdversaryAction }
-  | { readonly kind: "timer/set"; readonly timer: TimerRequest }
-  | { readonly kind: "timer/cancel"; readonly timer: TimerCancel }
-  | { readonly kind: "transport/send"; readonly send: TransportSend }
-  | { readonly kind: "store/read"; readonly read: StoreRead }
-  | { readonly kind: "store/write"; readonly write: StoreWrite }
-  | { readonly kind: "store/delete"; readonly del: StoreDelete }
-  | { readonly kind: "log"; readonly level: "debug" | "info" | "warn" | "error"; readonly message: string };
-
-export type Event =
-  | { readonly kind: "entropy"; readonly bytes: Uint8Array }
-  | { readonly kind: "timer/fired"; readonly id: TimerId; readonly at: InstantMs }
-  | { readonly kind: "transport/recv"; readonly channel: string; readonly source: string; readonly payload: Uint8Array; readonly at: InstantMs }
-  | { readonly kind: "store/value"; readonly key: string; readonly value: Uint8Array | undefined }
-  | { readonly kind: "store/done"; readonly key: string; readonly op: "write" | "delete" }
-  | { readonly kind: "tick"; readonly at: InstantMs }
-  | { readonly kind: "start"; readonly at: InstantMs };
 
 export interface StepResult<S> {
   readonly state: S;

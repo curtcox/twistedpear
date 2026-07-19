@@ -1,6 +1,6 @@
 # SPEC-EVENTS — Event and intent vocabulary
 
-**Group:** B (substrate) · **Status:** stub (informative) · **Migration phase:** 1
+**Group:** B (substrate) · **Status:** normative · **Migration phase:** 1
 
 ## Scope
 
@@ -11,8 +11,9 @@ drive identical machines.
 
 ## Vocabulary
 
-The current alphabet, as defined in
-[packages/effects/src/types.ts](../../packages/effects/src/types.ts):
+The alphabet, normatively defined in
+[schema/events.schema.json](schema/events.schema.json) (this table is
+informative prose):
 
 **Intents** (machine → host):
 
@@ -48,13 +49,26 @@ it, and production adapters are not required to implement it. It is part of the
 simulator's contract, not the normative machine alphabet. The schema will carry it in
 a separate `harness` group so generated production bindings can omit it.
 
-## Normative artifacts (target)
+## Normative artifacts (current locations)
 
-- `schema/` — JSON Schema for every event and intent shape. **Authority inversion is
-  the point of this spec:** today the vocabulary is defined by the TypeScript types
-  cited above; when this spec lands, the schema is normative and the TS types are
-  generated from it.
-- Example tapes (event/intent sequences) exercising each shape.
+- [schema/events.schema.json](schema/events.schema.json) — JSON Schema for every
+  event and intent shape. **Authority is inverted:** the schema is normative;
+  the TypeScript alphabet
+  ([packages/effects/src/types.gen.ts](../../packages/effects/src/types.gen.ts))
+  is generated from it by
+  [scripts/generate-event-types.mjs](../../scripts/generate-event-types.mjs)
+  (`npm run generate:event-types`). The `machineIntent` group is the production
+  alphabet; `harnessIntent` carries `transport/adversary` separately; `intent`
+  is their union as accepted by simulation-capable hosts.
+- Example tape exercising each shape (all events, all machine intents, every
+  log level and Dolev-Yao power): [tapes/all-shapes.json](tapes/all-shapes.json).
+- Enforcement:
+  [packages/effects/test/spec-events.test.ts](../../packages/effects/test/spec-events.test.ts)
+  (in the `sansio:determinism` gate) validates the tape against the schema,
+  checks full-alphabet coverage, rejects out-of-alphabet payloads, and fails if
+  the committed generated types drift from the schema. SPEC-TRACE's entry
+  schema references this schema for payload validation, so every recorded
+  history is also checked against the alphabet.
 
 ## Implementations
 
@@ -65,6 +79,7 @@ a separate `harness` group so generated production bindings can omit it.
 
 ## To finish this spec
 
-Extract the schema mechanically from `types.ts` (the tables above are its checklist),
-land the codegen step in one change (it touches every protocol package's build — do it
-atomically, not incrementally), then delete the hand-written types.
+Done — the schema landed with the `harness` group split out, the codegen step
+replaced the hand-written alphabet types in one atomic change
+(`types.ts` retains only the host-facing interfaces and re-exports the
+generated alphabet), and the example tape covers every shape.
