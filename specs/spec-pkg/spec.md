@@ -1,6 +1,6 @@
 # SPEC-PKG — Signed mini-app package format
 
-**Group:** C (platform) · **Status:** stub · **Migration phase:** 3
+**Group:** C (platform) · **Status:** normative · **Migration phase:** 3
 
 ## Scope
 
@@ -10,7 +10,20 @@ HTML document plus CSP declarations — the unit of content a host agrees to run
 
 ## Normative artifacts (current locations)
 
-- Canonical description: [docs/package-format.md](../../docs/package-format.md)
+- Vector suite: [vectors/packages.json](vectors/packages.json) — 2 golden
+  archives (minimal, and one exercising every manifest field) that must unpack
+  to the pinned manifest and package hash; 12 hostile archives that must be
+  rejected with the pinned `PackageError` code (bad magic and format version,
+  malformed manifest JSON, manifest/archive mismatches including a lying size
+  field with a correct hash, non-lexicographic archive order, signature over
+  the wrong payload, truncation, wrong key, downgrade, `minHostApi`); and a
+  grant-reject vector recording that unknown capability strings parse but are
+  rejected when grants are evaluated (the SPEC-CAP rule — enforced at grant
+  time, not parse time). Size budgets are advisory (warn, not reject).
+  Executed for both crypto providers by
+  [packages/app-registry/test/spec-pkg-vectors.test.ts](../../packages/app-registry/test/spec-pkg-vectors.test.ts)
+  in the default `vitest` suite.
+- Informative description: [docs/package-format.md](../../docs/package-format.md)
 - Registry/install behavior: [packages/app-registry](../../packages/app-registry/)
 - Hostile rejects: [conformance/hostile-apps](../../conformance/hostile-apps/)
 
@@ -22,13 +35,10 @@ HTML document plus CSP declarations — the unit of content a host agrees to run
 
 ## To finish this spec
 
-Golden-package vector suite: valid packages that must install, malformed/hostile
-packages that must be rejected with specified reasons. Reject classes to cover, each
-as its own vector: bad magic/version, malformed manifest JSON, manifest/archive file
-mismatch (missing, extra, hash, or size), non-lexicographic archive order, signature
-over wrong payload or wrong key, unknown capability string (the
-[SPEC-CAP](../spec-cap/spec.md) rule, enforced here at parse time), and oversize
-against the declared budgets. Golden cases: a minimal valid package and one
-exercising every manifest field. Seed hostile cases from
-[conformance/hostile-apps](../../conformance/hostile-apps/); prose in
-package-format.md becomes informative once the vectors land.
+Done — the golden + hostile vector suite landed with every reject class as
+its own vector. Two prose corrections were recorded while building it (the
+vectors win): unknown capability strings are rejected when grants are
+evaluated, not at package parse time (the taxonomy lives in SPEC-CAP's
+runtime, outside the package parser); and size budgets are advisory
+warnings, not rejects. A manifest size field that disagrees with the archive
+is now a hard reject (`MANIFEST_INVALID`), closing the reject-class list.

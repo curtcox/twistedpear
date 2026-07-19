@@ -262,6 +262,13 @@ export function unpackPackage(provider: CryptoProvider, archiveBytes: Uint8Array
     if (hash !== entry.sha256) {
       throw new PackageError("FILE_HASH_MISMATCH", `File hash mismatch for ${entry.path}`);
     }
+
+    if (entry.size !== content.length) {
+      throw new PackageError(
+        "MANIFEST_INVALID",
+        `File size mismatch for ${entry.path}: manifest ${entry.size}, archive ${content.length}`
+      );
+    }
   }
 
   if (!verifyManifestSignature(provider, manifest)) {
