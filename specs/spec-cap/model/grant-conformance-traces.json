@@ -1,6 +1,6 @@
 {
   "schema": "twistedpear.tla-traces-v1",
-  "model": "formal/grant.tla",
+  "model": "specs/spec-cap/model/grant.tla",
   "edges": [
     ["requested", "approve", "granted"],
     ["requested", "deny", "denied"],

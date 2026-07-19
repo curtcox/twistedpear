@@ -96,7 +96,7 @@ jobs:
       - name: Check TLA+ safety and liveness
         working-directory: formal
         run: |
-          java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config grant.cfg grant.tla
+          java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config ../specs/spec-cap/model/grant.cfg ../specs/spec-cap/model/grant.tla
           java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config escrow.cfg escrow.tla
           java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config recovery-quorum.cfg recovery_quorum.tla
 

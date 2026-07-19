@@ -27,6 +27,7 @@ LXMF, and Pear-style local-first distribution. The repository contains:
 | [apps/examples](apps/examples/) | Reference chat, file-drop, and board mini-apps. |
 | [apps/handbook](apps/handbook/) | Interactive platform Handbook shipped as a mini-app. |
 | [conformance](conformance/) | Scenario runners, golden vectors, interop tests, and device runbooks. |
+| [specs](specs/) | Quasi-independent specification units; vectors and formal models are normative. |
 
 ## Documentation
 

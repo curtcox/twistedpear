@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { escrowMachine, grantMachine, recoveryQuorumMachine } from "../packages/protocol/dist/index.js";
 
 const definitions = {
-  grant: { machine: grantMachine, model: "grant.tla", traces: "grant-conformance-traces.json", vector: "grant.json" },
+  grant: { machine: grantMachine, model: "../specs/spec-cap/model/grant.tla", traces: "../specs/spec-cap/model/grant-conformance-traces.json", vector: "grant.json" },
   escrow: { machine: escrowMachine, model: "escrow.tla", traces: "escrow-conformance-traces.json", vector: "escrow.json" },
   recovery: { machine: recoveryQuorumMachine, model: "recovery_quorum.tla", traces: "recovery-quorum-conformance-traces.json", vector: "recovery-quorum.json" }
 };

@@ -1,8 +1,10 @@
 # Authority-machine formal twins
 
-`grant.tla`, `escrow.tla`, and `recovery_quorum.tla` are Layer-2 twins of the
-three executable authority tables. Their `Edges` relations are mechanically
-compared with the TypeScript tables, checked trace fixtures, and Layer-3 vectors by:
+`grant.tla` (now at [specs/spec-cap/model/](../specs/spec-cap/model/), owned by
+[SPEC-CAP](../specs/spec-cap/spec.md)), `escrow.tla`, and `recovery_quorum.tla` are
+Layer-2 twins of the three executable authority tables. Their `Edges` relations are
+mechanically compared with the TypeScript tables, checked trace fixtures, and Layer-3
+vectors by:
 
 ```sh
 npm run formal:all
@@ -12,7 +14,7 @@ To model-check safety and liveness locally, install Java 17 or newer and run
 from this directory:
 
 ```sh
-java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config grant.cfg grant.tla
+java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config ../specs/spec-cap/model/grant.cfg ../specs/spec-cap/model/grant.tla
 java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config escrow.cfg escrow.tla
 java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config recovery-quorum.cfg recovery_quorum.tla
 ```
