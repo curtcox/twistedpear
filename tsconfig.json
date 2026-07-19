@@ -47,6 +47,9 @@
       "path": "./packages/widget-renderer-rn"
     },
     {
+      "path": "./packages/widget-renderer-headless"
+    },
+    {
       "path": "./apps/host-desktop"
     }
   ]

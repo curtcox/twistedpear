@@ -88,9 +88,20 @@ export function createValidator(schemaPath) {
     if (schema.enum !== undefined && !schema.enum.some((item) => deepEqual(value, item))) {
       errors.push(`${path}: not one of enum ${JSON.stringify(schema.enum)}`);
     }
-    if (schema.pattern !== undefined && typeof value === "string") {
-      if (!new RegExp(schema.pattern).test(value)) {
+    if (typeof value === "string") {
+      if (schema.pattern !== undefined && !new RegExp(schema.pattern).test(value)) {
         errors.push(`${path}: does not match pattern ${schema.pattern}`);
+      }
+      if (schema.minLength !== undefined && value.length < schema.minLength) {
+        errors.push(`${path}: shorter than minLength ${schema.minLength}`);
+      }
+      if (schema.maxLength !== undefined && value.length > schema.maxLength) {
+        errors.push(`${path}: longer than maxLength ${schema.maxLength}`);
+      }
+    }
+    if (schema.allOf !== undefined) {
+      for (const branch of schema.allOf) {
+        check(value, branch, ctx, path, errors);
       }
     }
     if (typeof value === "number") {

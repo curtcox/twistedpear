@@ -80,7 +80,7 @@ TwistedPear-authored; the app platform seen by mini-apps and renderers.
 | [SPEC-CAP](spec-cap/spec.md) | Capability taxonomy and grant lifecycle | **normative** (exemplar) |
 | [SPEC-AUTHORITY](spec-authority/spec.md) | Escrow and recovery-quorum authority machines | **normative** |
 | [SPEC-SDK](spec-sdk/spec.md) | Broker call semantics: namespaces, errors, quotas | stub |
-| [SPEC-WIDGET](spec-widget/spec.md) | Widget tree vocabulary and update/diff stream | stub |
+| [SPEC-WIDGET](spec-widget/spec.md) | Widget tree vocabulary and update/diff stream | **normative** |
 | [SPEC-PRESENT](spec-present/spec.md) | Layout and styling semantics, separate from vocabulary | stub (informative) |
 | [SPEC-BIND-LOOPBACK](spec-bind-loopback/spec.md) | In-memory message substrate binding | stub (informative) |
 | [SPEC-CHROME](spec-chrome/spec.md) | Host confirmations, grant screens, draw-over rules | stub (informative) |
