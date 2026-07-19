@@ -1,6 +1,6 @@
 # SPEC-ADAPTER — Effect adapter families and equivalence
 
-**Group:** B (substrate) · **Status:** stub · **Migration phase:** 1
+**Group:** B (substrate) · **Status:** normative · **Migration phase:** 1
 
 ## Scope
 
@@ -42,8 +42,19 @@ schedule) hashes identically.
 
 ## Normative artifacts (current locations)
 
-- Contracts: [packages/effects/src/types.ts](../../packages/effects/src/types.ts)
-  (to be superseded by the [SPEC-EVENTS](../spec-events/spec.md) schema)
+- Per-family pair suites: [conformance/adapter/suite.mjs](../../conformance/adapter/suite.mjs)
+  (`npm run test:adapter-pairs`). Each of the six families has a driver
+  interface, a fixed scenario, family invariants, and a normalized observation
+  record; a candidate adapter conforms when its observations hash identically
+  (SPEC-TRACE canonical form) to the simulated reference's. Reference real and
+  simulated factories live in
+  [adapters.mjs](../../conformance/adapter/adapters.mjs); the suites are
+  mutation-tested by one deliberately broken adapter per family
+  ([canaries.mjs](../../conformance/adapter/canaries.mjs),
+  [packages/effects/test/spec-adapter.test.ts](../../packages/effects/test/spec-adapter.test.ts)
+  in the `sansio:determinism` gate).
+- Contracts: the [SPEC-EVENTS](../spec-events/spec.md) schema
+  (generated into [packages/effects/src/types.gen.ts](../../packages/effects/src/types.gen.ts))
 - Real adapters:
   [packages/effects/src/adapters/real](../../packages/effects/src/adapters/real/)
 - Simulated adapters:
@@ -59,5 +70,6 @@ family contract.
 
 ## To finish this spec
 
-Promote the equivalence tests to per-adapter-pair conformance suites so a new adapter
-(e.g., a new storage backend) conforms by passing, not by review.
+Done — the six families each have a pair suite in `conformance/adapter/`; a
+new adapter (e.g., a new storage backend) conforms by implementing the family
+driver interface and passing its suite against the simulated reference.
