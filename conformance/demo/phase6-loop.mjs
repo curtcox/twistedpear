@@ -15,10 +15,10 @@ import {
   DestinationProofStrategy,
   DestinationType,
   Identity,
-  PacketReceiptStatus,
   hexToBytes
 } from "../../packages/reticulum-ts/dist/index.js";
 import { interopReady, sleep, withComposeService, LEAF_ECHO_PORT } from "../scenarios/ts/harness.mjs";
+import { waitForReceipt } from "../scenarios/bare/helpers.mjs";
 
 const identityVectors = JSON.parse(
   readFileSync(new URL("../vectors/identity.json", import.meta.url), "utf8")
@@ -87,10 +87,8 @@ async function runTransportSlice(session) {
     received.set(bytesToAscii(data), data);
   });
 
-  const receipt = await bobOut.send(new TextEncoder().encode("phase6-demo-ping"));
-  if (receipt.status !== PacketReceiptStatus.DELIVERED) {
-    throw new Error(`phase6 demo: echo receipt ${receipt.status}`);
-  }
+  const receipt = await bobOut.send(new TextEncoder().encode("phase6-demo-ping"), { createReceipt: true });
+  await waitForReceipt(receipt);
 
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {

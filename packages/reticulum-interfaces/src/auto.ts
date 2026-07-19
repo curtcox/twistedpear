@@ -50,6 +50,10 @@ interface PeerRecord {
   lastOutbound: number;
 }
 
+export function scopeIpv6Address(address: string, ifname: string): string {
+  return address.includes(":") && !address.includes("%") ? `${address}%${ifname}` : address;
+}
+
 class AutoInterfacePeer extends RawPacketInterface implements AutoInterfacePeerHandle {
   readonly peerAddress: string;
   private readonly provider: CryptoProvider;
@@ -149,14 +153,19 @@ export class AutoInterface extends RawPacketInterface {
 
     for (const iface of this.adopted) {
       await this.startDiscoverySockets(iface);
-      const dataSocket = await this.runtime.udp.bind(iface.linkLocalAddress, this.dataPort);
+      const dataSocket = await this.runtime.udp.bind(
+        scopeIpv6Address(iface.linkLocalAddress, iface.name),
+        this.dataPort
+      );
       this.dataSockets.set(iface.name, dataSocket);
       void this.readDataSocket(iface.name, dataSocket);
     }
 
     this.announceTimer = setInterval(() => {
       for (const iface of this.adopted) {
-        void this.peerAnnounce(iface);
+        void this.peerAnnounce(iface).catch(() => {
+          // Interfaces can disappear or lose multicast routes between enumeration and announce.
+        });
       }
     }, AUTO_ANNOUNCE_INTERVAL_MS);
 
@@ -219,7 +228,10 @@ export class AutoInterface extends RawPacketInterface {
       multicastSocket.once("error", reject);
       multicastSocket.bind(this.discoveryPort, () => {
         try {
-          multicastSocket.addMembership(this.multicastAddress, iface.linkLocalAddress);
+          multicastSocket.addMembership(
+            this.multicastAddress,
+            scopeIpv6Address(iface.linkLocalAddress, iface.name)
+          );
         } catch {
           // Some hosts cannot join multicast on all interfaces.
         }
@@ -236,10 +248,14 @@ export class AutoInterface extends RawPacketInterface {
 
     await new Promise<void>((resolve, reject) => {
       unicastSocket.once("error", reject);
-      unicastSocket.bind(this.unicastDiscoveryPort, iface.linkLocalAddress, () => {
+      unicastSocket.bind(
+        this.unicastDiscoveryPort,
+        scopeIpv6Address(iface.linkLocalAddress, iface.name),
+        () => {
         unicastSocket.off("error", reject);
         resolve();
-      });
+        }
+      );
     });
 
     this.discoverySockets.push(multicastSocket, unicastSocket);
@@ -255,19 +271,25 @@ export class AutoInterface extends RawPacketInterface {
       return;
     }
 
+    const peerAddress = descopeLinkLocal(sourceAddress);
     const receivedHash = Uint8Array.from(data.subarray(0, hashLength));
-    const expectedHash = Identity.truncatedHash(this.provider, concatBytes(this.groupIdBytes, new TextEncoder().encode(sourceAddress)));
+    const expectedHash = Identity.truncatedHash(
+      this.provider,
+      concatBytes(this.groupIdBytes, new TextEncoder().encode(peerAddress))
+    );
     if (!equalBytes(receivedHash, expectedHash)) {
       return;
     }
 
-    if (this.isLocalAddress(sourceAddress)) {
+    if (this.isLocalAddress(peerAddress)) {
       return;
     }
 
-    this.addPeer(sourceAddress, ifname);
+    this.addPeer(peerAddress, ifname);
     if (!announce) {
-      void this.reverseAnnounce(ifname, sourceAddress);
+      void this.reverseAnnounce(ifname, peerAddress).catch(() => {
+        // The peer may disappear before reverse discovery is sent.
+      });
     }
   }
 
@@ -292,7 +314,7 @@ export class AutoInterface extends RawPacketInterface {
           throw new Error(`Missing data socket for ${ifname}`);
         }
 
-        await socket.send(data, address, this.dataPort);
+        await socket.send(data, scopeIpv6Address(address, ifname), this.dataPort);
       },
       () => {
         const record = this.peers.get(address);
@@ -334,14 +356,19 @@ export class AutoInterface extends RawPacketInterface {
     await new Promise<void>((resolve, reject) => {
       const socket = createSocket({ type: "udp6" });
       socket.once("error", reject);
-      socket.send(token, this.discoveryPort, this.multicastAddress, (error) => {
+      socket.send(
+        token,
+        this.discoveryPort,
+        scopeIpv6Address(this.multicastAddress, iface.name),
+        (error) => {
         socket.close();
         if (error === undefined || error === null) {
           resolve();
         } else {
           reject(error);
         }
-      });
+        }
+      );
     });
   }
 
@@ -359,7 +386,7 @@ export class AutoInterface extends RawPacketInterface {
     await new Promise<void>((resolve, reject) => {
       const socket = createSocket({ type: "udp6" });
       socket.once("error", reject);
-      socket.send(token, this.unicastDiscoveryPort, peerAddress, (error) => {
+      socket.send(token, this.unicastDiscoveryPort, scopeIpv6Address(peerAddress, ifname), (error) => {
         socket.close();
         if (error === undefined || error === null) {
           resolve();
@@ -387,7 +414,9 @@ export class AutoInterface extends RawPacketInterface {
       }
 
       if (now > peer.lastOutbound + AUTO_REVERSE_PEERING_INTERVAL_MS) {
-        void this.reverseAnnounce(peer.ifname, address);
+        void this.reverseAnnounce(peer.ifname, address).catch(() => {
+          // A stale interface or route is handled by the peering timeout.
+        });
         this.peers.set(address, { ...peer, lastOutbound: now });
       }
     }

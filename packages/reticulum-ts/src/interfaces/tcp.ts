@@ -41,6 +41,7 @@ export type SpawnedInterfaceHandler = (iface: TcpClientInterface) => void;
 
 export class TcpClientInterface extends HdlcPacketInterface {
   private connection: DuplexConnection | null = null;
+  private lastConnectionError: Error | null = null;
   private readTask: Promise<void> | null = null;
   private reconnectTimer: Timer | null = null;
   private reconnectState: InterfaceReconnectState;
@@ -95,6 +96,10 @@ export class TcpClientInterface extends HdlcPacketInterface {
     return iface;
   }
 
+  get connectionError(): Error | null {
+    return this.lastConnectionError;
+  }
+
   async initialConnect(): Promise<void> {
     if (this.connected !== null) {
       this.attachConnection(this.connected);
@@ -130,6 +135,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
 
   private attachConnection(connection: DuplexConnection): void {
     this.connection = connection;
+    this.lastConnectionError = null;
     this.online = true;
     this.applyReconnect({ kind: "iface/connected" });
     this.readTask = this.readLoop(connection);
@@ -140,7 +146,8 @@ export class TcpClientInterface extends HdlcPacketInterface {
       const connection = await this.openConnection();
       this.attachConnection(connection);
       return true;
-    } catch {
+    } catch (error) {
+      this.lastConnectionError = error instanceof Error ? error : new Error(String(error));
       this.online = false;
       return false;
     }

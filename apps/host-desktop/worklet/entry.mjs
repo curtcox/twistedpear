@@ -412,7 +412,7 @@ async function installFromT256(t256) {
 
   const review = await requestRendererReply({
     type: "install-review",
-    token: generateConfirmationToken(),
+    token: generateConfirmationToken((length) => provider.randomBytes(length)),
     appId,
     version: verified.manifest.version,
     publisherPublicKey: verified.manifest.publisherPublicKey,

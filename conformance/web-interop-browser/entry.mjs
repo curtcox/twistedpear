@@ -50,6 +50,25 @@ async function waitForPath(reticulum, destinationHash, timeoutMs = 30_000) {
   throw new Error("Timed out waiting for path to peer");
 }
 
+async function waitForReceipt(receipt, timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (receipt.status === PacketReceiptStatus.DELIVERED) {
+      return;
+    }
+    if (
+      receipt.status === PacketReceiptStatus.FAILED ||
+      receipt.status === PacketReceiptStatus.CULLED
+    ) {
+      throw new Error(`Receipt concluded with status ${receipt.status}`);
+    }
+
+    await sleep(50);
+  }
+
+  throw new Error(`Timed out waiting for delivered receipt; last status ${receipt.status}`);
+}
+
 function bytesToAscii(bytes) {
   return Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
 }
@@ -145,10 +164,8 @@ async function runPacketEcho(wsUrl) {
   });
 
   const payload = new TextEncoder().encode("web-browser-interop-ping");
-  const receipt = await bobOut.send(payload);
-  if (receipt.status !== PacketReceiptStatus.DELIVERED) {
-    throw new Error(`Expected delivered receipt, got ${receipt.status}`);
-  }
+  const receipt = await bobOut.send(payload, { createReceipt: true });
+  await waitForReceipt(receipt);
 
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
@@ -209,7 +226,7 @@ async function runLxmfEcho(wsUrl) {
     content: "Hello Python LXMF from browser",
     desiredMethod: LXMessageMethod.OPPORTUNISTIC,
     deferStamp: true,
-    timestamp: 1_700_000_100
+    timestamp: Date.now() / 1_000
   });
 
   const echoed = await received;

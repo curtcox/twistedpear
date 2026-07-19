@@ -8,6 +8,9 @@ How TwistedPear CI tiers map to phase plan exits. Companion to
 Every PR and push to `main` runs the full Ubuntu matrix: unit tests, docker interop lanes,
 distribution conformance, mini-app hostile/examples, and desktop smoke.
 
+The base `test` job also runs `test:release-harness`, which locks the release driver's
+single-next-action rule, evidence recorder, and soak failure classifier/reproducer behavior.
+
 ### Path-filtered macOS jobs
 
 | Job | Trigger | Paths |

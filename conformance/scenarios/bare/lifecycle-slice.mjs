@@ -13,14 +13,13 @@ import { DestinationProofStrategy } from "../../../packages/reticulum-ts/dist/re
 import { Identity } from "../../../packages/reticulum-ts/dist/identity.js";
 import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
 import { Reticulum } from "../../../packages/reticulum-ts/dist/reticulum.js";
-import { PacketReceiptStatus } from "../../../packages/reticulum-ts/dist/packet-receipt.js";
 import {
   INTEROP_HOST,
   LEAF_ECHO_PORT,
-  expectReceipt,
   loadIdentityVectors,
   repoRoot,
   sleep,
+  waitForReceipt,
   waitForPath
 } from "./helpers.mjs";
 
@@ -98,8 +97,8 @@ export async function runBareLifecycleSlice(options = {}) {
 
   for (let cycle = 0; cycle < cycles; cycle += 1) {
     const payload = new TextEncoder().encode(`${label}-cycle-${cycle}`);
-    const receipt = await bobOut.send(payload);
-    expectReceipt(receipt.status, PacketReceiptStatus.DELIVERED);
+    const receipt = await bobOut.send(payload, { createReceipt: true });
+    await waitForReceipt(receipt);
 
     await iface.close();
     await waitForPathLoss(reticulum, bobOut.hash, reconnectTimeoutMs);
@@ -120,8 +119,10 @@ export async function runBareLifecycleSlice(options = {}) {
       throw new Error(`${label}: reconnect exceeded ${reconnectTimeoutMs}ms on cycle ${cycle}`);
     }
 
-    const afterResume = await bobOut.send(new TextEncoder().encode(`${label}-resume-${cycle}`));
-    expectReceipt(afterResume.status, PacketReceiptStatus.DELIVERED);
+    const afterResume = await bobOut.send(new TextEncoder().encode(`${label}-resume-${cycle}`), {
+      createReceipt: true
+    });
+    await waitForReceipt(afterResume);
   }
 
   await iface.close();

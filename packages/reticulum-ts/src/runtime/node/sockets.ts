@@ -214,7 +214,7 @@ class NodeBoundDatagramSocket implements BoundDatagramSocket {
 
 class NodeUdpFactory implements UdpFactory {
   async bind(host: string, port: number): Promise<BoundDatagramSocket> {
-    const socket = createSocket("udp4");
+    const socket = createSocket(host.includes(":") ? "udp6" : "udp4");
     await new Promise<void>((resolve, reject) => {
       socket.once("error", reject);
       socket.bind(port, host, () => {

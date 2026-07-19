@@ -14,6 +14,7 @@ export default defineWorkspace([
       include: [
         "packages/*/test/**/*.test.ts",
         "conformance/mac-validation/**/*.test.mjs",
+        "conformance/release-harness/**/*.test.mjs",
         "conformance/docs/**/*.test.mjs"
       ],
       exclude: ["packages/protocol/test/**/*.test.ts"]

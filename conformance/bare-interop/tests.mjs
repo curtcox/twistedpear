@@ -3,22 +3,25 @@
  */
 
 import identityVectors from "../vectors/identity.json" with { type: "json" };
-import { hexToBytes } from "../../packages/reticulum-ts/dist/crypto/bytes.js";
-import { PureCryptoProvider } from "../../packages/reticulum-ts/dist/crypto/pure.js";
-import { DestinationDirection, DestinationType } from "../../packages/reticulum-ts/dist/destination.js";
-import { DestinationProofStrategy } from "../../packages/reticulum-ts/dist/registered-destination.js";
-import { Identity } from "../../packages/reticulum-ts/dist/identity.js";
-import { LinkStatus } from "../../packages/reticulum-ts/dist/link.js";
-import { PacketReceiptStatus } from "../../packages/reticulum-ts/dist/packet-receipt.js";
-import { bareRuntime } from "../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
-import { Reticulum } from "../../packages/reticulum-ts/dist/reticulum.js";
+import {
+  DestinationDirection,
+  DestinationProofStrategy,
+  DestinationType,
+  Identity,
+  LinkStatus,
+  PacketReceiptStatus,
+  PureCryptoProvider,
+  Reticulum,
+  bareRuntime,
+  hexToBytes
+} from "@twistedpear/reticulum-ts";
 import { LXMessageMethod } from "../../packages/lxmf-ts/dist/constants.js";
 import { LXMFRouter } from "../../packages/lxmf-ts/dist/router.js";
 
-const INTEROP_HOST = process.env.INTEROP_HOST ?? "127.0.0.1";
-const LEAF_ECHO_PORT = Number.parseInt(process.env.LEAF_ECHO_PORT ?? "4242", 10);
-const LXMF_ECHO_PORT = Number.parseInt(process.env.LXMF_ECHO_PORT ?? "4243", 10);
-const LINK_ECHO_PORT = Number.parseInt(process.env.LINK_ECHO_PORT ?? "4244", 10);
+const INTEROP_HOST = globalThis.process?.env?.INTEROP_HOST ?? "127.0.0.1";
+const LEAF_ECHO_PORT = Number.parseInt(globalThis.process?.env?.LEAF_ECHO_PORT ?? "4242", 10);
+const LXMF_ECHO_PORT = Number.parseInt(globalThis.process?.env?.LXMF_ECHO_PORT ?? "4243", 10);
+const LINK_ECHO_PORT = Number.parseInt(globalThis.process?.env?.LINK_ECHO_PORT ?? "4244", 10);
 
 const provider = new PureCryptoProvider();
 const runtime = bareRuntime({ storePath: ".bare-interop-store" });
@@ -54,10 +57,36 @@ async function waitForPath(reticulum, destinationHash, timeoutMs = 15_000) {
   throw new Error("Timed out waiting for path to peer");
 }
 
-function expectReceipt(actual, expected) {
-  if (actual !== expected) {
-    throw new Error(`Expected receipt status ${expected}, got ${actual}`);
+async function waitForInterfaceOnline(iface, timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (iface.online) {
+      return;
+    }
+
+    await sleep(100);
   }
+
+  throw new Error(`Timed out waiting for interface ${iface.name} to connect`);
+}
+
+async function waitForReceipt(receipt, timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (receipt.status === PacketReceiptStatus.DELIVERED) {
+      return;
+    }
+    if (
+      receipt.status === PacketReceiptStatus.FAILED ||
+      receipt.status === PacketReceiptStatus.CULLED
+    ) {
+      throw new Error(`Receipt concluded with status ${receipt.status}`);
+    }
+
+    await sleep(50);
+  }
+
+  throw new Error(`Timed out waiting for delivered receipt; last status ${receipt.status}`);
 }
 
 function bytesToAscii(bytes) {
@@ -71,11 +100,12 @@ async function runLeafEcho() {
   const reticulum = Reticulum.create({ provider, runtime });
   reticulum.start();
 
-  await reticulum.addTcpClientInterface({
+  const iface = await reticulum.addTcpClientInterface({
     name: "python-leaf-echo-bare",
     targetHost: INTEROP_HOST,
     targetPort: LEAF_ECHO_PORT
   });
+  await waitForInterfaceOnline(iface);
 
   const aliceIn = reticulum.registerDestination({
     provider,
@@ -105,8 +135,8 @@ async function runLeafEcho() {
   });
 
   const payload = Uint8Array.from([98, 97, 114, 101, 45, 105, 110, 116, 101, 114, 111, 112, 45, 112, 105, 110, 103]);
-  const receipt = await bobOut.send(payload);
-  expectReceipt(receipt.status, PacketReceiptStatus.DELIVERED);
+  const receipt = await bobOut.send(payload, { createReceipt: true });
+  await waitForReceipt(receipt);
 
   const deadline = Date.now() + 10_000;
   while (!received.has("bare-interop-ping") && Date.now() < deadline) {
@@ -127,11 +157,12 @@ async function runLinkEcho() {
   const reticulum = Reticulum.create({ provider, runtime });
   reticulum.start();
 
-  await reticulum.addTcpClientInterface({
+  const iface = await reticulum.addTcpClientInterface({
     name: "python-link-echo-bare",
     targetHost: INTEROP_HOST,
     targetPort: LINK_ECHO_PORT
   });
+  await waitForInterfaceOnline(iface);
 
   const bobOut = reticulum.registerDestination({
     provider,
@@ -179,11 +210,12 @@ async function runLxmfEcho() {
   const reticulum = Reticulum.create({ provider, runtime });
   reticulum.start();
 
-  await reticulum.addTcpClientInterface({
+  const iface = await reticulum.addTcpClientInterface({
     name: "python-lxmf-echo-bare",
     targetHost: INTEROP_HOST,
     targetPort: LXMF_ECHO_PORT
   });
+  await waitForInterfaceOnline(iface);
 
   const router = new LXMFRouter({ reticulum, provider });
   const aliceDelivery = router.registerDeliveryIdentity(alice);
@@ -207,7 +239,7 @@ async function runLxmfEcho() {
     content: "Hello Python LXMF from Bare",
     desiredMethod: LXMessageMethod.OPPORTUNISTIC,
     deferStamp: true,
-    timestamp: 1_700_000_100
+    timestamp: Date.now() / 1_000
   });
 
   const echoed = await received;
@@ -259,6 +291,7 @@ async function runUdpLoopback() {
     appName: "udp",
     aspects: ["bare-interop"]
   });
+  rightIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
   await rightIn.announce();
   await sleep(100);
@@ -284,7 +317,7 @@ async function runUdpLoopback() {
   });
 
   const receipt = await leftOut.send(new TextEncoder().encode("bare-udp-ping"), { createReceipt: true });
-  expectReceipt(receipt.status, PacketReceiptStatus.DELIVERED);
+  await waitForReceipt(receipt);
   const echoed = await received;
   if (echoed !== "bare-udp-ping") {
     throw new Error(`Unexpected Bare UDP payload: ${echoed}`);

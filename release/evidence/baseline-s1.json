@@ -1,0 +1,8 @@
+{
+  "schema": "twistedpear.release-evidence-v1",
+  "id": "baseline:S1",
+  "status": "partial",
+  "at": "2026-07-19T13:40:31.000Z",
+  "log": "release/evidence-logs/2026-07-19-s1-baseline.log",
+  "note": "Build, full Vitest, release harness, desktop, Dev Studio, Phase 5, web mini-app/examples, Bare device/interop, I2P interop, core smoke, and benchmark lanes passed locally; a fully green CI run remains required"
+}

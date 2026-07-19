@@ -253,6 +253,26 @@ describe("TCP loopback interface", () => {
 });
 
 describe("UDP loopback interface", () => {
+  it("binds and exchanges IPv6 datagrams", async () => {
+    const receiver = await runtime.udp.bind("::1", 0);
+    const sender = await runtime.udp.bind("::1", 0);
+
+    try {
+      const received = receiver.packets[Symbol.asyncIterator]().next();
+      await sender.send(new TextEncoder().encode("udp6 hello"), "::1", receiver.address.port);
+      const packet = await Promise.race([
+        received,
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("udp6 timeout")), 500))
+      ]);
+
+      expect(packet.done).toBe(false);
+      expect(new TextDecoder().decode(packet.value?.data)).toBe("udp6 hello");
+    } finally {
+      await sender.close();
+      await receiver.close();
+    }
+  });
+
   it("discovers announces and exchanges data packets", async () => {
     const left = Reticulum.create({ provider, runtime });
     const right = Reticulum.create({ provider, runtime });

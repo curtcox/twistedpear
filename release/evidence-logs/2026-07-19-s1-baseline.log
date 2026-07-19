@@ -1,0 +1,9 @@
+[release] stage: S1
+[release] commands: npm run build && npm test
+[release] build: passed
+[release] tests: 149 files passed, 2 skipped; 1142 tests passed, 7 skipped
+[release] note: localhost socket tests were rerun outside the workspace sandbox after the sandbox denied bind/listen with EPERM
+[release] conformance: desktop, devstudio-loop, demo:phase5, web-miniapp, web-examples, bare-device, bare-interop, and live I2P echo/link/LXMF passed
+[release] focused gates: release harness (10/10), core smoke (98/98), IPv4/IPv6 transport (9/9), Node and Bare-provider benchmark comparisons passed
+[release] outstanding: CI must confirm the Linux AutoInterface lane and the complete PR-tier matrix before baseline:S1 and ci:baseline can be marked passed
+[release] exit: 0

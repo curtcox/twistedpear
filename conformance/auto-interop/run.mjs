@@ -12,7 +12,6 @@ import { DestinationDirection, DestinationType } from "../../packages/reticulum-
 import { DestinationProofStrategy } from "../../packages/reticulum-ts/dist/registered-destination.js";
 import { Identity } from "../../packages/reticulum-ts/dist/identity.js";
 import { LinkStatus } from "../../packages/reticulum-ts/dist/link.js";
-import { PacketReceiptStatus } from "../../packages/reticulum-ts/dist/packet-receipt.js";
 import { nodeRuntime } from "../../packages/reticulum-ts/dist/runtime/node/runtime.js";
 import { Reticulum } from "../../packages/reticulum-ts/dist/reticulum.js";
 import { AutoInterface } from "../../packages/reticulum-interfaces/dist/auto.js";
@@ -20,9 +19,9 @@ import { LXMessageMethod } from "../../packages/lxmf-ts/dist/constants.js";
 import { LXMFRouter } from "../../packages/lxmf-ts/dist/router.js";
 import {
   bytesToAscii,
-  expectReceipt,
   loadIdentityVectors,
   sleep,
+  waitForReceipt,
   waitForPath
 } from "../scenarios/bare/helpers.mjs";
 
@@ -117,8 +116,8 @@ async function runAutoEcho() {
     });
 
     const payload = new TextEncoder().encode("auto-interop-ping");
-    const receipt = await bobOut.send(payload);
-    expectReceipt(receipt.status, PacketReceiptStatus.DELIVERED);
+    const receipt = await bobOut.send(payload, { createReceipt: true });
+    await waitForReceipt(receipt);
 
     const deadline = Date.now() + 15_000;
     while (!received.has("auto-interop-ping") && Date.now() < deadline) {
@@ -216,7 +215,7 @@ async function runAutoLxmfEcho() {
       content: "Hello Python LXMF over AutoInterface",
       desiredMethod: LXMessageMethod.OPPORTUNISTIC,
       deferStamp: true,
-      timestamp: 1_700_000_200
+      timestamp: Date.now() / 1_000
     });
 
     const echoed = await received;

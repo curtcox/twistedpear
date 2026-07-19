@@ -109,7 +109,7 @@ def main() -> int:
     link_in.set_link_established_callback(link_established)
     link_in.announce()
 
-    router = LXMF.LXMRouter()
+    router = LXMF.LXMRouter(storagepath="/tmp/i2p-interop")
     delivery_destination = router.register_delivery_identity(identity)
 
     def delivery_callback(message: LXMF.LXMessage) -> None:
@@ -121,7 +121,7 @@ def main() -> int:
             desired_method=LXMF.LXMessage.OPPORTUNISTIC,
         )
         reply.defer_stamp = True
-        reply.send()
+        router.handle_outbound(reply)
 
     router.register_delivery_callback(delivery_callback)
     delivery_destination.announce()
@@ -133,16 +133,23 @@ def main() -> int:
         delivery_destination.hash.hex(),
     )
 
-    outbound = RNS.Destination(
-        alice,
-        RNS.Destination.OUT,
-        RNS.Destination.SINGLE,
-        APP_NAME,
-        ECHO_ASPECT,
-    )
-    send_packet(outbound, GREETING)
-
+    next_announce = 0.0
     while True:
+        now = time.time()
+        if now >= next_announce:
+            echo_in.announce()
+            link_in.announce()
+            delivery_destination.announce()
+            outbound = RNS.Destination(
+                alice,
+                RNS.Destination.OUT,
+                RNS.Destination.SINGLE,
+                APP_NAME,
+                ECHO_ASPECT,
+            )
+            send_packet(outbound, GREETING)
+            next_announce = now + 10
+
         time.sleep(1)
 
 

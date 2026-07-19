@@ -110,6 +110,7 @@ async function measureBusyLoopKill(backend) {
  */
 export function createWorkletMiniappHost(options) {
   const kvStore = options.kvStore;
+  const now = options.now ?? (() => Date.now());
   const grantStore = new GrantStore(kvStore);
   let developerMode = false;
   let devBadge = false;
@@ -265,7 +266,7 @@ export function createWorkletMiniappHost(options) {
     },
 
     async setGrants(appId, publisherPublicKey, declaredCapabilities, grantedCapabilities) {
-      await grantStore.set(appId, publisherPublicKey, declaredCapabilities, grantedCapabilities);
+      await grantStore.set(appId, publisherPublicKey, declaredCapabilities, grantedCapabilities, now());
       pushGrants(appId, publisherPublicKey, declaredCapabilities);
     },
 

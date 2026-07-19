@@ -1,17 +1,14 @@
 #!/usr/bin/env node
-/**
- * Bundle bare-interop entry for the Bare CLI (defers node:crypto like the harness worklet).
- */
+
 import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const interopRoot = dirname(fileURLToPath(import.meta.url));
-const entry = join(interopRoot, "entry.mjs");
-const output = join(interopRoot, "bare-interop.bundle");
-const nobleCrypto = join(interopRoot, "noble-crypto.mjs");
-const importsPath = join(interopRoot, "imports.generated.json");
+const deviceRoot = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(deviceRoot, "../..");
+const importsPath = join(deviceRoot, "imports.generated.json");
+const nobleCrypto = join(repoRoot, "conformance/bare-interop/noble-crypto.mjs");
 
 writeFileSync(
   importsPath,
@@ -19,8 +16,7 @@ writeFileSync(
     {
       "@noble/hashes/crypto": nobleCrypto,
       "@noble/ciphers/crypto": nobleCrypto,
-      "@noble/curves/crypto": nobleCrypto,
-      "@twistedpear/reticulum-ts": join(interopRoot, "../../packages/reticulum-ts/dist/worklet.js")
+      "@noble/curves/crypto": nobleCrypto
     },
     null,
     2
@@ -32,7 +28,7 @@ const result = spawnSync(
   [
     "bare-pack",
     "--base",
-    join(interopRoot, "../.."),
+    repoRoot,
     "--defer",
     "node:crypto",
     "--defer",
@@ -58,14 +54,14 @@ const result = spawnSync(
     "--imports",
     importsPath,
     "--out",
-    output,
-    entry
+    join(deviceRoot, "tcp-runner.bundle"),
+    join(deviceRoot, "tcp-runner.mjs")
   ],
-  { stdio: "inherit", cwd: interopRoot }
+  { stdio: "inherit", cwd: deviceRoot }
 );
 
 if (result.status !== 0) {
   process.exit(result.status ?? 1);
 }
 
-console.log(`bare-interop bundle written to ${output}`);
+console.log("bare-device TCP runner bundle written");

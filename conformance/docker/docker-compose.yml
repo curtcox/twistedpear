@@ -131,6 +131,12 @@ services:
       - --loglevel=info
     ports:
       - "7656:7656"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "7656"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 5s
 
   transport-leaf-bob:
     build:
@@ -173,7 +179,8 @@ services:
       context: ../..
       dockerfile: conformance/docker/Dockerfile
     depends_on:
-      - i2pd
+      i2pd:
+        condition: service_healthy
     environment:
       I2P_SAM_ADDRESS: i2pd:7656
     working_dir: /conformance/scenarios/python

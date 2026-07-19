@@ -10,7 +10,6 @@ import {
   DestinationType,
   Identity,
   NodeCryptoProvider,
-  PacketReceiptStatus,
   Reticulum,
   WebSocketClientInterface,
   hexToBytes,
@@ -18,6 +17,7 @@ import {
   registerWebSocketServerInterface
 } from "../../packages/reticulum-ts/dist/index.js";
 import { interopReady, sleep, withComposeService, LEAF_ECHO_PORT } from "../scenarios/ts/harness.mjs";
+import { waitForReceipt } from "../scenarios/bare/helpers.mjs";
 
 if (!interopReady()) {
   console.log("web-interop: skipped (set INTEROP=1 with docker)");
@@ -123,10 +123,8 @@ await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
   });
 
   const payload = new TextEncoder().encode("web-interop-ping");
-  const receipt = await bobOut.send(payload);
-  if (receipt.status !== PacketReceiptStatus.DELIVERED) {
-    throw new Error(`Expected delivered receipt, got ${receipt.status}`);
-  }
+  const receipt = await bobOut.send(payload, { createReceipt: true });
+  await waitForReceipt(receipt);
 
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {

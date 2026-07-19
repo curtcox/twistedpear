@@ -25,6 +25,7 @@ import { bytesToHex } from "../../../packages/reticulum-ts/dist/crypto/bytes.js"
  */
 export function createWorkletMiniappHost(options) {
   const kvStore = options.kvStore;
+  const now = options.now ?? (() => Date.now());
   const grantStore = new GrantStore(kvStore);
   let developerMode = false;
   let devBadge = false;
@@ -165,7 +166,7 @@ export function createWorkletMiniappHost(options) {
         await stopPreviewHost();
         const previewHost = createPreviewHost();
         const publisherKey = `dev-preview:${appId}`;
-        await previewHost.grantStore.set(manifest.name, publisherKey, manifest.capabilities, grants);
+        await previewHost.grantStore.set(manifest.name, publisherKey, manifest.capabilities, grants, now());
         await previewHost.host.launch(
           {
             name: manifest.name,
@@ -371,7 +372,7 @@ export function createWorkletMiniappHost(options) {
     },
 
     async setGrants(appId, publisherPublicKey, declaredCapabilities, grantedCapabilities) {
-      await grantStore.set(appId, publisherPublicKey, declaredCapabilities, grantedCapabilities);
+      await grantStore.set(appId, publisherPublicKey, declaredCapabilities, grantedCapabilities, now());
       pushGrants(appId, publisherPublicKey, declaredCapabilities);
     },
 
@@ -396,7 +397,7 @@ export function createWorkletMiniappHost(options) {
         const declared = validateManifestCapabilities(record.manifest.capabilities);
         const preGranted = new Set((await grantStore.get(record.appId, record.manifest.publisherPublicKey))?.granted ?? []);
         const reply = await options.requestLaunchReview({
-          token: generateConfirmationToken(),
+          token: generateConfirmationToken((length) => options.provider.randomBytes(length)),
           appId: record.appId,
           publisherPublicKey: record.manifest.publisherPublicKey,
           version: record.manifest.version,
@@ -411,7 +412,13 @@ export function createWorkletMiniappHost(options) {
         }
 
         if (Array.isArray(reply.grants)) {
-          await grantStore.set(record.appId, record.manifest.publisherPublicKey, record.manifest.capabilities, reply.grants);
+          await grantStore.set(
+            record.appId,
+            record.manifest.publisherPublicKey,
+            record.manifest.capabilities,
+            reply.grants,
+            now()
+          );
           pushGrants(record.appId, record.manifest.publisherPublicKey, record.manifest.capabilities);
         }
       }

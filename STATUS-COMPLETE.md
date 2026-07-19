@@ -9,6 +9,13 @@ tracked in [STATUS-HARDWARE.md](STATUS-HARDWARE.md).
 
 Last audited: 2026-07-08.
 
+## v1 release pipeline
+
+| Item | Evidence | Verify |
+|---|---|---|
+| S0 release automation harness | `scripts/release/`, [harness log](release/evidence-logs/2026-07-19-s0-harness.log) | `npm run test:release-harness && npm run release:status` |
+| S1 build/unit portion (PR-tier conformance still open) | [structured record](release/evidence/baseline-s1.json), [run log](release/evidence-logs/2026-07-19-s1-baseline.log) | `npm run build && npm test` |
+
 ---
 
 ## How to read this document

@@ -14,10 +14,10 @@ import {
   DestinationProofStrategy,
   DestinationType,
   Identity,
-  PacketReceiptStatus,
   hexToBytes
 } from "../../packages/reticulum-ts/dist/index.js";
 import { interopReady, sleep, withComposeService, LEAF_ECHO_PORT } from "../scenarios/ts/harness.mjs";
+import { waitForReceipt } from "../scenarios/bare/helpers.mjs";
 
 if (!interopReady()) {
   console.log("rnsd-mode: skipped (set INTEROP=1 with docker)");
@@ -124,10 +124,8 @@ try {
     });
 
     const payload = new TextEncoder().encode("rnsd-mode-ping");
-    const receipt = await bobOut.send(payload);
-    if (receipt.status !== PacketReceiptStatus.DELIVERED) {
-      throw new Error(`Expected delivered receipt, got ${receipt.status}`);
-    }
+    const receipt = await bobOut.send(payload, { createReceipt: true });
+    await waitForReceipt(receipt);
 
     const deadline = Date.now() + 10_000;
     while (Date.now() < deadline) {

@@ -5,7 +5,10 @@ import { SamClient } from "../src/i2p.js";
 describe("SAM client parsing", () => {
   it("parses SESSION CREATE responses", async () => {
     const runtime = createMockRuntime([
-      "SESSION STATUS RESULT=OK DESTINATION=abc123 PRIVATE_KEY=def456\n"
+      [
+        "HELLO REPLY RESULT=OK VERSION=3.3\n",
+        "SESSION STATUS RESULT=OK DESTINATION=abc123 PRIVATE_KEY=def456\n"
+      ]
     ]);
 
     const client = new SamClient({ runtime, host: "127.0.0.1", port: 7656, sessionName: "test" });
@@ -15,24 +18,31 @@ describe("SAM client parsing", () => {
     expect(session.privateKey).toBe("def456");
   });
 
-  it("parses STREAM CONNECT responses with port", async () => {
+  it("upgrades the SAM command socket into the connected stream", async () => {
     const runtime = createMockRuntime([
-      "SESSION STATUS RESULT=OK DESTINATION=local PRIVATE_KEY=key\n",
-      "STREAM STATUS RESULT=OK PORT=45123\n"
+      [
+        "HELLO REPLY RESULT=OK VERSION=3.3\n",
+        "SESSION STATUS RESULT=OK DESTINATION=local PRIVATE_KEY=key\n"
+      ],
+      ["HELLO REPLY RESULT=OK VERSION=3.3\n", "STREAM STATUS RESULT=OK\npayload"]
     ]);
 
     const client = new SamClient({ runtime, host: "127.0.0.1", port: 7656, sessionName: "test" });
     await client.ensureSession();
     const connection = await client.connectStream("peer-destination");
 
-    expect(connection).toBeDefined();
+    const first = await connection.readable[Symbol.asyncIterator]().next();
+    expect(new TextDecoder().decode(first.value)).toBe("payload");
     await connection.close();
   });
 
   it("reuses an existing session without reconnecting", async () => {
     let connectCount = 0;
     const runtime = createMockRuntime(
-      ["SESSION STATUS RESULT=OK DESTINATION=abc123 PRIVATE_KEY=def456\n"],
+      [[
+        "HELLO REPLY RESULT=OK VERSION=3.3\n",
+        "SESSION STATUS RESULT=OK DESTINATION=abc123 PRIVATE_KEY=def456\n"
+      ]],
       () => {
         connectCount += 1;
       }
@@ -47,7 +57,7 @@ describe("SAM client parsing", () => {
 });
 
 function createMockRuntime(
-  responses: ReadonlyArray<string>,
+  responses: ReadonlyArray<ReadonlyArray<string>>,
   onConnect?: () => void
 ): ReturnType<typeof nodeRuntime> {
   const base = nodeRuntime();
@@ -59,14 +69,16 @@ function createMockRuntime(
       ...base.tcp,
       async connect() {
         onConnect?.();
-        const response = responses[responseIndex] ?? "";
+        const response = responses[responseIndex] ?? [];
         responseIndex += 1;
 
         return {
           async write() {},
           async close() {},
           readable: (async function* () {
-            yield new TextEncoder().encode(response);
+            for (const line of response) {
+              yield new TextEncoder().encode(line);
+            }
           })()
         };
       }

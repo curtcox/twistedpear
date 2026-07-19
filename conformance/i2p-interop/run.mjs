@@ -13,7 +13,6 @@ import { DestinationDirection, DestinationType } from "../../packages/reticulum-
 import { DestinationProofStrategy } from "../../packages/reticulum-ts/dist/registered-destination.js";
 import { Identity } from "../../packages/reticulum-ts/dist/identity.js";
 import { LinkStatus } from "../../packages/reticulum-ts/dist/link.js";
-import { PacketReceiptStatus } from "../../packages/reticulum-ts/dist/packet-receipt.js";
 import { nodeRuntime } from "../../packages/reticulum-ts/dist/runtime/node/runtime.js";
 import { Reticulum } from "../../packages/reticulum-ts/dist/reticulum.js";
 import { I2PInterface } from "../../packages/reticulum-interfaces/dist/i2p.js";
@@ -21,10 +20,10 @@ import { LXMessageMethod } from "../../packages/lxmf-ts/dist/constants.js";
 import { LXMFRouter } from "../../packages/lxmf-ts/dist/router.js";
 import {
   bytesToAscii,
-  expectReceipt,
   loadIdentityVectors,
   repoRoot,
   sleep,
+  waitForReceipt,
   waitForPath
 } from "../scenarios/bare/helpers.mjs";
 
@@ -92,7 +91,9 @@ async function withI2pInterface(peerDestination, callback) {
   if (!iface.online) {
     await iface.close();
     reticulum.stop();
-    throw new Error("I2P interface did not become online");
+    throw new Error(
+      `I2P interface did not become online${iface.connectionError === null ? "" : `: ${iface.connectionError.message}`}`
+    );
   }
 
   try {
@@ -103,144 +104,139 @@ async function withI2pInterface(peerDestination, callback) {
   }
 }
 
-async function runI2pEcho(peerDestination) {
+async function runI2pEcho(reticulum) {
   const alice = loadIdentity("alice");
   const bob = loadIdentity("bob");
 
-  await withI2pInterface(peerDestination, async ({ reticulum }) => {
-    const aliceIn = reticulum.registerDestination({
-      provider,
-      identity: alice,
-      direction: DestinationDirection.IN,
-      type: DestinationType.SINGLE,
-      appName: "example",
-      aspects: ["echo"]
-    });
-    aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
+  const aliceIn = reticulum.registerDestination({
+    provider,
+    identity: alice,
+    direction: DestinationDirection.IN,
+    type: DestinationType.SINGLE,
+    appName: "example",
+    aspects: ["echo"]
+  });
+  aliceIn.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
 
-    const bobOut = reticulum.registerDestination({
-      provider,
-      identity: bob,
-      direction: DestinationDirection.OUT,
-      type: DestinationType.SINGLE,
-      appName: "example",
-      aspects: ["echo"]
-    });
+  const bobOut = reticulum.registerDestination({
+    provider,
+    identity: bob,
+    direction: DestinationDirection.OUT,
+    type: DestinationType.SINGLE,
+    appName: "example",
+    aspects: ["echo"]
+  });
 
-    await aliceIn.announce();
-    await waitForPath(reticulum, bobOut.hash, I2P_PATH_TIMEOUT_MS);
+  await aliceIn.announce();
+  await waitForPath(reticulum, bobOut.hash, I2P_PATH_TIMEOUT_MS);
 
-    const received = new Map();
-    aliceIn.setPacketCallback((data) => {
-      received.set(bytesToAscii(data), data);
-    });
+  const received = new Map();
+  aliceIn.setPacketCallback((data) => {
+    received.set(bytesToAscii(data), data);
+  });
 
-    const payload = new TextEncoder().encode("i2p-interop-ping");
-    const receipt = await bobOut.send(payload);
-    expectReceipt(receipt.status, PacketReceiptStatus.DELIVERED);
+  const payload = new TextEncoder().encode("i2p-interop-ping");
+  const receipt = await bobOut.send(payload, { createReceipt: true });
+  await waitForReceipt(receipt);
 
-    const deadline = Date.now() + 30_000;
-    while (!received.has("i2p-interop-ping") && Date.now() < deadline) {
+  const deadline = Date.now() + 30_000;
+  while (!received.has("i2p-interop-ping") && Date.now() < deadline) {
+    await sleep(100);
+  }
+
+  if (!received.has("i2p-interop-ping")) {
+    throw new Error("I2P interop echo was not received");
+  }
+
+  if (!received.has("hello from python i2p echo")) {
+    const greetingDeadline = Date.now() + 15_000;
+    while (!received.has("hello from python i2p echo") && Date.now() < greetingDeadline) {
       await sleep(100);
     }
+  }
 
-    if (!received.has("i2p-interop-ping")) {
-      throw new Error("I2P interop echo was not received");
-    }
-
-    if (!received.has("hello from python i2p echo")) {
-      const greetingDeadline = Date.now() + 15_000;
-      while (!received.has("hello from python i2p echo") && Date.now() < greetingDeadline) {
-        await sleep(100);
-      }
-    }
-
-    if (!received.has("hello from python i2p echo")) {
-      throw new Error("I2P interop greeting from Python peer was not received");
-    }
-  });
+  if (!received.has("hello from python i2p echo")) {
+    throw new Error("I2P interop greeting from Python peer was not received");
+  }
 
   console.log("i2p-interop: bidirectional echo passed");
 }
 
-async function runI2pLinkEcho(peerDestination) {
+async function runI2pLinkEcho(reticulum) {
   const bob = loadIdentity("bob");
 
-  await withI2pInterface(peerDestination, async ({ reticulum }) => {
-    const bobOut = reticulum.registerDestination({
-      provider,
-      identity: bob,
-      direction: DestinationDirection.OUT,
-      type: DestinationType.SINGLE,
-      appName: "example",
-      aspects: ["link"]
-    });
-
-    await waitForPath(reticulum, bobOut.hash, I2P_PATH_TIMEOUT_MS);
-
-    const link = bobOut.requestLink();
-    const deadline = Date.now() + 45_000;
-    while (Date.now() < deadline && link.status !== LinkStatus.ACTIVE) {
-      await sleep(100);
-    }
-
-    if (link.status !== LinkStatus.ACTIVE) {
-      throw new Error("I2P interop link did not become active");
-    }
-
-    const received = new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("I2P link echo timeout")), 30_000);
-      link.callbacks.packet = (data) => {
-        clearTimeout(timer);
-        resolve(bytesToAscii(data));
-      };
-    });
-
-    await link.send(new TextEncoder().encode("i2p link ping"));
-    const echoed = await received;
-    if (echoed !== "i2p link ping") {
-      throw new Error(`Unexpected I2P link echo payload: ${echoed}`);
-    }
+  const bobOut = reticulum.registerDestination({
+    provider,
+    identity: bob,
+    direction: DestinationDirection.OUT,
+    type: DestinationType.SINGLE,
+    appName: "example",
+    aspects: ["link"]
   });
+
+  await waitForPath(reticulum, bobOut.hash, I2P_PATH_TIMEOUT_MS);
+
+  const link = bobOut.requestLink();
+  const deadline = Date.now() + 45_000;
+  while (Date.now() < deadline && link.status !== LinkStatus.ACTIVE) {
+    await sleep(100);
+  }
+
+  if (link.status !== LinkStatus.ACTIVE) {
+    throw new Error("I2P interop link did not become active");
+  }
+
+  const received = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("I2P link echo timeout")), 30_000);
+    link.callbacks.packet = (data) => {
+      clearTimeout(timer);
+      resolve(bytesToAscii(data));
+    };
+  });
+
+  await link.send(new TextEncoder().encode("i2p link ping"));
+  const echoed = await received;
+  if (echoed !== "i2p link ping") {
+    throw new Error(`Unexpected I2P link echo payload: ${echoed}`);
+  }
+  await link.teardown();
 
   console.log("i2p-interop: link echo passed");
 }
 
-async function runI2pLxmfEcho(peerDestination) {
+async function runI2pLxmfEcho(reticulum) {
   const alice = loadIdentity("alice");
   const bob = loadIdentity("bob");
 
-  await withI2pInterface(peerDestination, async ({ reticulum }) => {
-    const router = new LXMFRouter({ reticulum, provider });
-    const aliceDelivery = router.registerDeliveryIdentity(alice);
-    const bobOut = router.createOutboundDestination(bob);
+  const router = new LXMFRouter({ reticulum, provider });
+  const aliceDelivery = router.registerDeliveryIdentity(alice);
+  const bobOut = router.createOutboundDestination(bob);
 
-    await aliceDelivery.announce();
-    await waitForPath(reticulum, bobOut.hash, I2P_PATH_TIMEOUT_MS);
+  await aliceDelivery.announce();
+  await waitForPath(reticulum, bobOut.hash, I2P_PATH_TIMEOUT_MS);
 
-    const received = new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("I2P LXMF echo timeout")), 60_000);
-      router.onDelivery((message) => {
-        clearTimeout(timer);
-        resolve(message.contentAsString());
-      });
+  const received = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("I2P LXMF echo timeout")), 60_000);
+    router.onDelivery((message) => {
+      clearTimeout(timer);
+      resolve(message.contentAsString());
     });
-
-    await router.packAndSend({
-      destination: bobOut,
-      source: aliceDelivery,
-      title: "I2P interop",
-      content: "Hello Python LXMF over I2P",
-      desiredMethod: LXMessageMethod.OPPORTUNISTIC,
-      deferStamp: true,
-      timestamp: 1_700_000_300
-    });
-
-    const echoed = await received;
-    if (echoed !== "Hello Python LXMF over I2P") {
-      throw new Error(`Unexpected I2P LXMF echo payload: ${echoed}`);
-    }
   });
+
+  await router.packAndSend({
+    destination: bobOut,
+    source: aliceDelivery,
+    title: "I2P interop",
+    content: "Hello Python LXMF over I2P",
+    desiredMethod: LXMessageMethod.OPPORTUNISTIC,
+    deferStamp: true,
+    timestamp: Date.now() / 1_000
+  });
+
+  const echoed = await received;
+  if (echoed !== "Hello Python LXMF over I2P") {
+    throw new Error(`Unexpected I2P LXMF echo payload: ${echoed}`);
+  }
 
   console.log("i2p-interop: LXMF echo passed");
 }
@@ -274,9 +270,11 @@ async function main() {
   const peerDestination = await waitForPeerDestination();
   console.log(`i2p-interop: connecting to ${peerDestination}`);
 
-  await runI2pEcho(peerDestination);
-  await runI2pLinkEcho(peerDestination);
-  await runI2pLxmfEcho(peerDestination);
+  await withI2pInterface(peerDestination, async ({ reticulum }) => {
+    await runI2pEcho(reticulum);
+    await runI2pLinkEcho(reticulum);
+    await runI2pLxmfEcho(reticulum);
+  });
 }
 
 main().catch((error) => {

@@ -194,7 +194,7 @@ export function createWebInstallService(options) {
 
       const review = await options.requestHostReply({
         type: "install-review",
-        token: generateConfirmationToken(),
+        token: generateConfirmationToken((length) => options.provider.randomBytes(length)),
         appId,
         version: verified.manifest.version,
         publisherPublicKey: verified.manifest.publisherPublicKey,

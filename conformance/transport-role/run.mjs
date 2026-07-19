@@ -14,7 +14,6 @@ import {
   DestinationProofStrategy,
   DestinationType,
   Identity,
-  PacketReceiptStatus,
   hexToBytes
 } from "../../packages/reticulum-ts/dist/index.js";
 import {
@@ -26,6 +25,7 @@ import {
   LEAF_ECHO_PORT,
   TRANSPORT_HUB_PORT
 } from "../scenarios/ts/harness.mjs";
+import { waitForReceipt } from "../scenarios/bare/helpers.mjs";
 
 if (!interopReady()) {
   console.log("transport-role: skipped (set INTEROP=1 with docker)");
@@ -113,10 +113,8 @@ async function runEchoSlice(session, pingLabel, greetingText) {
     received.set(bytesToAscii(data), data);
   });
 
-  const receipt = await bobOut.send(new TextEncoder().encode(pingLabel));
-  if (receipt.status !== PacketReceiptStatus.DELIVERED) {
-    throw new Error(`Expected delivered receipt, got ${receipt.status}`);
-  }
+  const receipt = await bobOut.send(new TextEncoder().encode(pingLabel), { createReceipt: true });
+  await waitForReceipt(receipt);
 
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {

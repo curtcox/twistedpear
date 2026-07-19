@@ -181,7 +181,7 @@ async function runLxmfOpportunisticOverTcp() {
       content: "Hello Python LXMF",
       desiredMethod: LXMessageMethod.OPPORTUNISTIC,
       deferStamp: true,
-      timestamp: 1_700_000_100
+      timestamp: Date.now() / 1_000
     });
 
     const content = await received;
@@ -235,7 +235,7 @@ async function runTsPropagationServerPythonClientSync() {
     content: "TS propagation server seed",
     desiredMethod: LXMessageMethod.PROPAGATED,
     deferStamp: true,
-    timestamp: 1_700_000_200
+    timestamp: Date.now() / 1_000
   });
   const [queuedMessage] = msgpackUnpackPropagationEnvelope(packed.propagationPacked);
   if (queuedMessage === undefined) {

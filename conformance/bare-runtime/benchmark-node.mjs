@@ -10,15 +10,27 @@ import { Identity } from "../../packages/reticulum-ts/dist/identity.js";
 import { nodeRuntime } from "../../packages/reticulum-ts/dist/runtime/node/runtime.js";
 
 const ITERATIONS = Number.parseInt(process.env.BENCHMARK_ITERATIONS ?? "200", 10);
+const MIN_DURATION_MS = Number.parseInt(process.env.BENCHMARK_MIN_DURATION_MS ?? "250", 10);
 
 function benchmark(name, fn) {
-  const started = performance.now();
-  for (let index = 0; index < ITERATIONS; index += 1) {
+  const warmupIterations = Math.min(50, ITERATIONS);
+  for (let index = 0; index < warmupIterations; index += 1) {
     fn();
   }
-  const elapsedMs = performance.now() - started;
-  const opsPerSec = Math.round((ITERATIONS / elapsedMs) * 1000);
-  return { name, elapsedMs, opsPerSec, iterations: ITERATIONS };
+
+  const started = performance.now();
+  let iterations = 0;
+  let elapsedMs = 0;
+  do {
+    for (let index = 0; index < ITERATIONS; index += 1) {
+      fn();
+    }
+    iterations += ITERATIONS;
+    elapsedMs = performance.now() - started;
+  } while (elapsedMs < MIN_DURATION_MS);
+
+  const opsPerSec = Math.round((iterations / elapsedMs) * 1000);
+  return { name, elapsedMs, opsPerSec, iterations };
 }
 
 function runCryptoBenchmarks(provider) {

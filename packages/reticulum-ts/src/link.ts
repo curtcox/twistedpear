@@ -2684,9 +2684,13 @@ export class Link {
 
     for (const action of result.actions) {
       if (action.kind === "send-keepalive") {
-        void this.sendKeepalive();
+        void this.sendKeepalive().catch(() => {
+          // The link can close between the watchdog step and this best-effort send.
+        });
       } else if (action.kind === "send-teardown") {
-        void this.sendTeardownPacket();
+        void this.sendTeardownPacket().catch(() => {
+          // A concurrent close can make the teardown packet unsendable.
+        });
       } else if (action.kind === "mark-stale") {
         this.status = LinkStatus.STALE;
       } else if (action.kind === "close") {

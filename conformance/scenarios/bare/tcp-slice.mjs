@@ -14,12 +14,12 @@ import { Reticulum } from "../../../packages/reticulum-ts/dist/reticulum.js";
 import {
   INTEROP_HOST,
   LEAF_ECHO_PORT,
-  PacketReceiptStatus,
   bytesToAscii,
-  expectReceipt,
   loadIdentityVectors,
   repoRoot,
   sleep,
+  waitForInterfaceOnline,
+  waitForReceipt,
   waitForPath
 } from "./helpers.mjs";
 
@@ -46,6 +46,7 @@ export async function runBareTcpSlice(options = {}) {
     targetHost: INTEROP_HOST,
     targetPort: LEAF_ECHO_PORT
   });
+  await waitForInterfaceOnline(iface);
 
   const aliceIdentity = Identity.fromBytes(provider, hexToBytes(aliceEntry.privateKeyHex));
   const bobIdentity = Identity.fromBytes(provider, hexToBytes(bobEntry.privateKeyHex));
@@ -81,8 +82,8 @@ export async function runBareTcpSlice(options = {}) {
   });
 
   const payload = new TextEncoder().encode(`${label}-ping`);
-  const receipt = await bobOut.send(payload);
-  expectReceipt(receipt.status, PacketReceiptStatus.DELIVERED);
+  const receipt = await bobOut.send(payload, { createReceipt: true });
+  await waitForReceipt(receipt);
 
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {

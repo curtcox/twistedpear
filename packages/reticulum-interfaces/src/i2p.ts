@@ -5,6 +5,7 @@ import { Packet, HdlcPacketInterface, type ReticulumInterfaceOptions } from "@tw
 export const I2P_DEFAULT_SAM_HOST = "127.0.0.1";
 export const I2P_DEFAULT_SAM_PORT = 7_656;
 export const I2P_RECONNECT_WAIT_MS = 5_000;
+let nextSamSessionId = 0;
 
 export interface SamSessionInfo {
   readonly destination: string;
@@ -26,6 +27,7 @@ export class SamClient {
   private readonly sessionName: string;
   private sessionId: string | null;
   private destination: string | null = null;
+  private sessionConnection: DuplexConnection | null = null;
 
   constructor(options: SamClientOptions) {
     this.host = options.host ?? I2P_DEFAULT_SAM_HOST;
@@ -44,9 +46,13 @@ export class SamClient {
       return { destination: this.destination, privateKey: this.sessionId };
     }
 
-    const response = await this.sendCommand(
-      `SESSION CREATE STYLE=STREAM ID=${this.sessionName} DESTINATION=TRANSIENT`
+    const connection = await this.openSamConnection();
+    await connection.write(
+      new TextEncoder().encode(
+        `SESSION CREATE STYLE=STREAM ID=${this.sessionName} DESTINATION=TRANSIENT\n`
+      )
     );
+    const { response } = await readSamLine(connection);
     const destination = parseSamValue(response, "DESTINATION");
     const privateKey = parseSamValue(response, "PRIVATE_KEY");
     if (destination === null) {
@@ -55,44 +61,51 @@ export class SamClient {
 
     this.destination = destination;
     this.sessionId = privateKey ?? this.sessionName;
+    this.sessionConnection = connection;
     return { destination, privateKey: this.sessionId };
   }
 
   async connectStream(destination: string): Promise<DuplexConnection> {
-    const response = await this.sendCommand(`STREAM CONNECT ID=${this.sessionName} DESTINATION=${destination} SILENT=false`);
+    const connection = await this.openSamConnection();
+    await connection.write(
+      new TextEncoder().encode(
+        `STREAM CONNECT ID=${this.sessionName} DESTINATION=${destination} SILENT=false\n`
+      )
+    );
+    const { response, remainder, iterator } = await readSamLine(connection);
     if (!response.startsWith("STREAM STATUS RESULT=OK")) {
+      await connection.close();
       throw new Error(`SAM stream connect failed: ${response}`);
     }
 
-    const port = Number.parseInt(parseSamValue(response, "PORT") ?? "", 10);
-    if (!Number.isFinite(port)) {
-      throw new Error(`SAM stream connect missing PORT: ${response}`);
-    }
-
-    return this.runtime.tcp.connect({ host: this.host, port, connectTimeoutMs: 120_000 });
+    return withBufferedReadable(connection, iterator, remainder);
   }
 
   async closeSession(): Promise<void> {
-    if (this.sessionId === null) {
-      return;
+    if (this.sessionConnection !== null) {
+      await this.sessionConnection.close();
+      this.sessionConnection = null;
     }
 
-    await this.sendCommand(`SESSION STATUS ID=${this.sessionName}`);
     this.sessionId = null;
     this.destination = null;
   }
 
-  private async sendCommand(command: string): Promise<string> {
+  private async openSamConnection(): Promise<DuplexConnection> {
     const connection = await this.runtime.tcp.connect({
       host: this.host,
       port: this.port,
       connectTimeoutMs: 10_000
     });
 
-    await connection.write(new TextEncoder().encode(`${command}\n`));
-    const response = await readSamResponse(connection);
-    await connection.close();
-    return response;
+    await connection.write(new TextEncoder().encode("HELLO VERSION MIN=3.0 MAX=3.3\n"));
+    const { response } = await readSamLine(connection);
+    if (!response.startsWith("HELLO REPLY RESULT=OK")) {
+      await connection.close();
+      throw new Error(`SAM handshake failed: ${response}`);
+    }
+
+    return connection;
   }
 }
 
@@ -103,13 +116,16 @@ export interface I2PInterfaceOptions extends ReticulumInterfaceOptions {
   readonly samPort?: number;
   readonly peerDestination: string;
   readonly reconnectWaitMs?: number;
+  readonly sessionName?: string;
 }
 
 export class I2PInterface extends HdlcPacketInterface {
   private connection: DuplexConnection | null = null;
+  private lastConnectionError: Error | null = null;
   private readTask: Promise<void> | null = null;
   private readonly sam: SamClient;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private detached = false;
 
   constructor(
     private readonly provider: CryptoProvider,
@@ -118,6 +134,7 @@ export class I2PInterface extends HdlcPacketInterface {
     super({ ...options, mtu: options.mtu ?? 1_000 }, true, options.outgoing ?? true);
     this.sam = new SamClient({
       runtime: options.runtime,
+      sessionName: options.sessionName ?? `reticulum-ts-${nextSamSessionId++}`,
       ...(options.samHost === undefined ? {} : { host: options.samHost }),
       ...(options.samPort === undefined ? {} : { port: options.samPort })
     });
@@ -127,6 +144,10 @@ export class I2PInterface extends HdlcPacketInterface {
     const iface = new I2PInterface(provider, options);
     await iface.initialConnect();
     return iface;
+  }
+
+  get connectionError(): Error | null {
+    return this.lastConnectionError;
   }
 
   protected decodePacket(frame: Uint8Array): Packet | null {
@@ -142,6 +163,7 @@ export class I2PInterface extends HdlcPacketInterface {
   }
 
   protected async closeInterface(): Promise<void> {
+    this.detached = true;
     if (this.reconnectTimer !== null) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -156,12 +178,18 @@ export class I2PInterface extends HdlcPacketInterface {
   }
 
   private async initialConnect(): Promise<void> {
+    if (this.detached) {
+      return;
+    }
+
     try {
       await this.sam.ensureSession();
       this.connection = await this.sam.connectStream(this.options.peerDestination);
+      this.lastConnectionError = null;
       this.online = true;
       this.readTask = this.readLoop();
-    } catch {
+    } catch (error) {
+      this.lastConnectionError = error instanceof Error ? error : new Error(String(error));
       this.online = false;
       this.scheduleReconnect();
     }
@@ -176,14 +204,15 @@ export class I2PInterface extends HdlcPacketInterface {
       for await (const chunk of this.connection.readable) {
         this.receiveBytes(chunk);
       }
-    } catch {
+    } catch (error) {
+      this.lastConnectionError = error instanceof Error ? error : new Error(String(error));
       this.online = false;
       this.scheduleReconnect();
     }
   }
 
   private scheduleReconnect(): void {
-    if (this.reconnectTimer !== null) {
+    if (this.detached || this.reconnectTimer !== null) {
       return;
     }
 
@@ -195,17 +224,59 @@ export class I2PInterface extends HdlcPacketInterface {
   }
 }
 
-async function readSamResponse(connection: DuplexConnection): Promise<string> {
+async function readSamLine(connection: DuplexConnection): Promise<{
+  readonly response: string;
+  readonly remainder: Uint8Array;
+  readonly iterator: AsyncIterator<Uint8Array>;
+}> {
   const chunks: Uint8Array[] = [];
-  for await (const chunk of connection.readable) {
+  const iterator = connection.readable[Symbol.asyncIterator]();
+  while (true) {
+    const next = await iterator.next();
+    if (next.done) {
+      return {
+        response: new TextDecoder().decode(concatBytes(...chunks)).trim(),
+        remainder: new Uint8Array(),
+        iterator
+      };
+    }
+
+    const chunk = next.value;
     chunks.push(chunk);
-    const text = new TextDecoder().decode(concatBytes(...chunks));
-    if (text.includes("\n")) {
-      return text.trim();
+    const merged = concatBytes(...chunks);
+    const newline = merged.indexOf(0x0a);
+    if (newline >= 0) {
+      return {
+        response: new TextDecoder().decode(merged.subarray(0, newline)).trim(),
+        remainder: merged.subarray(newline + 1),
+        iterator
+      };
     }
   }
+}
 
-  return new TextDecoder().decode(concatBytes(...chunks)).trim();
+function withBufferedReadable(
+  connection: DuplexConnection,
+  iterator: AsyncIterator<Uint8Array>,
+  remainder: Uint8Array
+): DuplexConnection {
+  return {
+    write: (data) => connection.write(data),
+    close: () => connection.close(),
+    readable: (async function* () {
+      if (remainder.length > 0) {
+        yield remainder;
+      }
+
+      while (true) {
+        const next = await iterator.next();
+        if (next.done) {
+          return;
+        }
+        yield next.value;
+      }
+    })()
+  };
 }
 
 function parseSamValue(response: string, key: string): string | null {

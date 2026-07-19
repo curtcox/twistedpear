@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Identity, PureCryptoProvider, nodeRuntime } from "@twistedpear/reticulum-ts";
-import { AutoInterface } from "../src/auto.js";
+import { AutoInterface, scopeIpv6Address } from "../src/auto.js";
 
 function deriveMulticastAddress(groupId: string): string {
   const provider = new PureCryptoProvider();
@@ -23,6 +23,13 @@ function hexPair(low: number, high: number): string {
 }
 
 describe("AutoInterface helpers", () => {
+  it("adds an interface scope to unscoped IPv6 addresses", () => {
+    expect(scopeIpv6Address("fe80::1234", "eth0")).toBe("fe80::1234%eth0");
+    expect(scopeIpv6Address("ff12::1234", "eth0")).toBe("ff12::1234%eth0");
+    expect(scopeIpv6Address("fe80::1234%eth1", "eth0")).toBe("fe80::1234%eth1");
+    expect(scopeIpv6Address("127.0.0.1", "eth0")).toBe("127.0.0.1");
+  });
+
   it("derives stable multicast addresses from group id", () => {
     const first = deriveMulticastAddress("reticulum");
     const second = deriveMulticastAddress("reticulum");

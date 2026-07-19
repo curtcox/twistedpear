@@ -11,7 +11,6 @@
 
 import { spawnSync } from "node:child_process";
 import { access } from "node:fs/promises";
-import { runBareTcpSlice } from "../scenarios/bare/tcp-slice.mjs";
 import { repoRoot } from "../scenarios/bare/helpers.mjs";
 
 async function buildWorkletBundle() {
@@ -34,17 +33,29 @@ async function buildWorkletBundle() {
   console.log("bare-device: worklet bundle built");
 }
 
-async function runTcpSlice() {
-  await runBareTcpSlice({
-    label: "bare-device",
-    storePath: `${repoRoot}/.bare-device-store`
+function runTcpSlice() {
+  const build = spawnSync("node", [`${repoRoot}/conformance/bare-device/build-tcp-runner.mjs`], {
+    cwd: repoRoot,
+    stdio: "inherit"
   });
-  console.log("bare-device: TCP slice passed on Bare runtime");
+  if (build.status !== 0) {
+    throw new Error("Failed to build Bare device TCP runner");
+  }
+
+  const result = spawnSync(
+    `${repoRoot}/node_modules/bare/bin/bare`,
+    [`${repoRoot}/conformance/bare-device/tcp-runner.bundle`],
+    { cwd: repoRoot, stdio: "inherit" }
+  );
+
+  if (result.status !== 0) {
+    throw new Error("Bare device TCP slice failed");
+  }
 }
 
 async function main() {
   await buildWorkletBundle();
-  await runTcpSlice();
+  runTcpSlice();
   console.log("bare-device: all checks passed");
 }
 

@@ -18,6 +18,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - run: npm run test:release-harness
       - run: npm run test:sim-authored-replay
 
   sansio:
@@ -108,6 +109,7 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - run: npm run build
       - run: npm test -- packages/reticulum-ts/test/golden-vectors.test.ts packages/reticulum-ts/test/interfaces.test.ts packages/reticulum-ts/test/web-runtime.test.ts packages/lxmf-ts/test/golden-vectors.test.ts
 
   bare-smoke:
@@ -189,8 +191,10 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: mkdir -p conformance/scenarios/state
-      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build i2pd i2p-interop
+      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build --wait --wait-timeout 300 i2pd i2p-interop
       - run: npm run test:i2p-interop
+      - if: always()
+        run: docker compose -f conformance/docker/docker-compose.yml logs i2pd i2p-interop
       - if: always()
         run: docker compose -f conformance/docker/docker-compose.yml down
 

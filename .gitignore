@@ -16,6 +16,8 @@ miniapp-bee-store/
 conformance/bare-interop/bare-interop.bundle
 conformance/bare-interop/bare-interop.bundle.mjs
 conformance/bare-interop/imports.generated.json
+conformance/bare-device/imports.generated.json
+conformance/bare-device/tcp-runner.bundle
 apps/harness-mobile/worklet/imports.generated.json
 apps/host-desktop/worklet/imports.generated.json
 apps/harness-mobile/modules/**/.build/
