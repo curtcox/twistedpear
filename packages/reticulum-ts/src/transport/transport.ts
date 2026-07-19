@@ -666,8 +666,12 @@ export class TransportNode extends LeafTransport {
         continue;
       }
 
-      this.packetHashes.add(hashKey(rebroadcast.hash()));
-      await this.transmit(outbound, rebroadcast.raw);
+      try {
+        await this.transmit(outbound, rebroadcast.raw);
+        this.packetHashes.add(hashKey(rebroadcast.hash()));
+      } catch {
+        // A transient failure on one interface must not stop announce fan-out.
+      }
     }
   }
 

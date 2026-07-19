@@ -182,14 +182,15 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - run: npm ci
-      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build leaf-echo
-      - run: npm run test:ios-sim:required
+      - run: python3 -m pip install "rns==0.9.5"
+      - run: bash conformance/ios-sim/ci-required.sh
         env:
           IOS_SIM_TCP_REQUIRED: "1"
           IOS_LIFECYCLE_CYCLES: "100"
-      - if: always()
-        run: docker compose -f conformance/docker/docker-compose.yml down
 
   upstream-interop:
     runs-on: ubuntu-latest

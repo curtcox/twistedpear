@@ -21,7 +21,9 @@ single-next-action rule, evidence recorder, and soak failure classifier/reproduc
 The `ios-sim` job runs `test:ios-sim:required` with `IOS_SIM_TCP_REQUIRED=1` and
 `IOS_LIFECYCLE_CYCLES=100`, exercising the full host loop (catalog → install → grant →
 launch → update → rollback) on the Bare worklet path plus simulator toolchain smoke,
-including the Handbook D3 mobile slice (`conformance/ios-sim/handbook.mjs`). Optional
+including the Handbook D3 mobile slice (`conformance/ios-sim/handbook.mjs`). Its pinned
+Python RNS peer runs directly on the macOS host because GitHub-hosted macOS runners do
+not provide a Docker daemon. Optional
 Maestro Handbook UI smoke is **not** on the PR path (native build cost); use
 `workflow_dispatch` job `ios-handbook-ui` in [emulator.yml](../.github/workflows/emulator.yml)
 or `npm run test:ios-sim-handbook-ui` locally.

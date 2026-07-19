@@ -4,8 +4,9 @@
  */
 
 import { createConnection } from "node:net";
-import { pathToFileURL } from "node:url";
-import { runBareLifecycleSlice } from "../scenarios/bare/lifecycle-slice.mjs";
+import { writeFileSync } from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { runBareLifecycleSliceProcess } from "../scenarios/bare/runner-host.mjs";
 import { INTEROP_HOST, LEAF_ECHO_PORT } from "../scenarios/bare/helpers.mjs";
 
 function waitForPeer(timeoutMs = 15_000) {
@@ -46,7 +47,23 @@ export async function runIosLifecycleSlice(options = {}) {
     return;
   }
 
-  const summary = await runBareLifecycleSlice({ label: "ios-sim", cycles });
+  const summary = runBareLifecycleSliceProcess({ label: "ios-sim", cycles });
+  const metricsPath =
+    process.env.IOS_LIFECYCLE_METRICS_PATH ??
+    fileURLToPath(new URL("./measured-lifecycle.json", import.meta.url));
+  writeFileSync(
+    metricsPath,
+    `${JSON.stringify(
+      {
+        measuredAt: new Date().toISOString(),
+        runtime: "bare-worklet-slice",
+        peer: `${INTEROP_HOST}:${LEAF_ECHO_PORT}`,
+        ...summary
+      },
+      null,
+      2
+    )}\n`
+  );
   console.log(
     `[ios-sim/lifecycle] ${cycles} quiesce/reconnect cycles passed against Python RNS peer ` +
       `(p50 reconnect ${summary.reconnectP50Ms}ms, p95 ${summary.reconnectP95Ms}ms, max ${summary.reconnectMaxMs}ms)`

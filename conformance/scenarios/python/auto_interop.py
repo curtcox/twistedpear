@@ -7,6 +7,9 @@ TypeScript can exercise the full interop matrix over LAN discovery.
 
 from __future__ import annotations
 
+import atexit
+import shutil
+import tempfile
 import time
 from pathlib import Path
 
@@ -25,6 +28,8 @@ GREETING = b"hello from python auto echo"
 
 def main() -> int:
     reticulum = RNS.Reticulum(str(CONFIG_DIR))
+    lxmf_storage = Path(tempfile.mkdtemp(prefix="twistedpear-auto-interop-lxmf-"))
+    atexit.register(shutil.rmtree, lxmf_storage, ignore_errors=True)
 
     identity = load_identity("bob")
     alice = load_identity("alice")
@@ -68,7 +73,7 @@ def main() -> int:
     link_in.set_link_established_callback(link_established)
     link_in.announce()
 
-    router = LXMF.LXMRouter()
+    router = LXMF.LXMRouter(storagepath=str(lxmf_storage))
     delivery_destination = router.register_delivery_identity(identity)
 
     def delivery_callback(message: LXMF.LXMessage) -> None:

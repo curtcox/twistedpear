@@ -75,7 +75,8 @@ def run_echo_leaf(target_host: str, target_port: int) -> int:
     print(f"READY {inbound.hash.hex()}", flush=True)
 
     while True:
-        time.sleep(1)
+        time.sleep(2)
+        inbound.announce()
 
 
 def run_alice_leaf(target_host: str, target_port: int) -> int:
@@ -83,19 +84,7 @@ def run_alice_leaf(target_host: str, target_port: int) -> int:
     write_client_config(config_dir, target_host, target_port)
 
     reticulum = RNS.Reticulum(str(config_dir))
-    identity = load_identity("alice")
     bob = load_identity("bob")
-
-    inbound = RNS.Destination(
-        identity,
-        RNS.Destination.IN,
-        RNS.Destination.SINGLE,
-        APP_NAME,
-        ECHO_ASPECT,
-    )
-    inbound.set_proof_strategy(RNS.Destination.PROVE_ALL)
-    inbound.announce()
-    print(f"READY {inbound.hash.hex()}", flush=True)
 
     outbound = RNS.Destination(
         bob,
@@ -104,16 +93,17 @@ def run_alice_leaf(target_host: str, target_port: int) -> int:
         APP_NAME,
         ECHO_ASPECT,
     )
+    print(f"READY {outbound.hash.hex()}", flush=True)
 
-    deadline = time.time() + 30
-    while time.time() < deadline:
-        if reticulum.get_path_to(outbound.hash) is not None:
-            send_packet(outbound, GREETING)
-            break
-        time.sleep(0.25)
-
+    next_request = 0.0
     while True:
-        time.sleep(1)
+        if RNS.Transport.has_path(outbound.hash):
+            send_packet(outbound, GREETING)
+            print(f"SENT {outbound.hash.hex()}", flush=True)
+        elif time.time() >= next_request:
+            RNS.Transport.request_path(outbound.hash)
+            next_request = time.time() + 2
+        time.sleep(2)
 
 
 def main() -> int:

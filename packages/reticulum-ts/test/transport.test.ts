@@ -20,6 +20,35 @@ const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
 
 describe("LeafTransport over PipeInterface", () => {
+  it("invalidates paths learned through an unregistered interface", async () => {
+    const left = Reticulum.create({ provider, runtime });
+    const right = Reticulum.create({ provider, runtime });
+    left.start();
+    right.start();
+
+    const [leftPipe, rightPipe] = PipeInterface.pair(provider);
+    left.registerInterface(leftPipe);
+    right.registerInterface(rightPipe);
+
+    const rightIn = right.registerDestination({
+      provider,
+      identity: new Identity(provider),
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "example",
+      aspects: ["interface-removal"]
+    });
+
+    await rightIn.announce();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(left.hasPath(rightIn.hash)).toBe(true);
+
+    left.unregisterInterface(leftPipe);
+
+    expect(left.hasPath(rightIn.hash)).toBe(false);
+    expect(left.pathTableCount).toBe(0);
+  });
+
   it("discovers announces and exchanges data packets with proofs", async () => {
     const left = Reticulum.create({ provider, runtime });
     const right = Reticulum.create({ provider, runtime });

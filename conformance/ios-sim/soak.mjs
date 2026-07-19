@@ -21,7 +21,7 @@ import { runInit, runPack, runPublish } from "../../packages/cli/dist/commands/i
 import { HOST_API_VERSION } from "../../packages/miniapp-runtime/dist/index.js";
 import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { createWorkletMiniappHost } from "../../apps/harness-mobile/worklet/miniapp-host.mjs";
-import { runBareLifecycleSlice } from "../scenarios/bare/lifecycle-slice.mjs";
+import { runBareLifecycleSliceProcess } from "../scenarios/bare/runner-host.mjs";
 import { INTEROP_HOST, LEAF_ECHO_PORT } from "../scenarios/bare/helpers.mjs";
 
 const chatExample = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/examples/chat");
@@ -181,7 +181,7 @@ export async function runIosSoak(options = {}) {
 
   try {
     await waitForPeer();
-    await runBareLifecycleSlice({ label: "ios-soak", cycles: LIFECYCLE_CYCLES });
+    runBareLifecycleSliceProcess({ label: "ios-soak", cycles: LIFECYCLE_CYCLES });
     console.log(`[ios-sim/soak] lifecycle churn: ${LIFECYCLE_CYCLES} quiesce/reconnect cycles`);
   } catch (error) {
     if (requirePeer) {

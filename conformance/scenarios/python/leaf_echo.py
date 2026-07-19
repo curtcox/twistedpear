@@ -7,6 +7,7 @@ optionally sends a greeting to a configured peer destination hash.
 
 from __future__ import annotations
 
+import os
 import sys
 import time
 from pathlib import Path
@@ -16,7 +17,12 @@ import RNS
 from load_identity import load_identity
 from send_packet import send_packet
 
-CONFIG_DIR = Path(__file__).resolve().parents[1] / "config" / "leaf-echo"
+CONFIG_DIR = Path(
+    os.environ.get(
+        "LEAF_ECHO_CONFIG_DIR",
+        Path(__file__).resolve().parents[1] / "config" / "leaf-echo",
+    )
+)
 APP_NAME = "example"
 ASPECT = "echo"
 GREETING = b"hello from python leaf echo"

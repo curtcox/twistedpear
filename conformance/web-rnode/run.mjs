@@ -110,6 +110,9 @@ async function runPlaywright(pageUrl) {
     page.on("pageerror", (error) => {
       console.error(`browser:pageerror: ${error.message}`);
     });
+    page.on("crash", () => {
+      console.error("browser: page crashed");
+    });
 
     await page.goto(pageUrl, { waitUntil: "load", timeout: 60_000 });
     try {
@@ -117,13 +120,20 @@ async function runPlaywright(pageUrl) {
         timeout: 60_000
       });
     } catch (error) {
-      const snapshot = await page.evaluate(() => globalThis.__WEB_RNODE__ ?? null);
+      let snapshot = null;
+      let snapshotError = null;
+      try {
+        snapshot = await page.evaluate(() => globalThis.__WEB_RNODE__ ?? null);
+      } catch (evaluateError) {
+        snapshotError = evaluateError instanceof Error ? evaluateError.message : String(evaluateError);
+      }
       throw new Error(
-        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}`
+        `${error instanceof Error ? error.message : String(error)}; snapshot=${JSON.stringify(snapshot)}` +
+          (snapshotError === null ? "" : `; snapshotError=${snapshotError}`)
       );
     }
 
-    return page.evaluate(() => globalThis.__WEB_RNODE__);
+    return await page.evaluate(() => globalThis.__WEB_RNODE__);
   } finally {
     await browser.close();
   }

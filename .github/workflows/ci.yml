@@ -601,17 +601,19 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - uses: actions/setup-python@v5
+        if: steps.changes.outputs.ios == 'true'
+        with:
+          python-version: "3.12"
       - run: npm ci
         if: steps.changes.outputs.ios == 'true'
-      - run: docker compose -f conformance/docker/docker-compose.yml up -d --build leaf-echo
+      - run: python3 -m pip install "rns==0.9.5"
         if: steps.changes.outputs.ios == 'true'
-      - run: npm run test:ios-sim:required
+      - run: bash conformance/ios-sim/ci-required.sh
         if: steps.changes.outputs.ios == 'true'
         env:
           IOS_SIM_TCP_REQUIRED: "1"
           IOS_LIFECYCLE_CYCLES: "100"
-      - if: always() && steps.changes.outputs.ios == 'true'
-        run: docker compose -f conformance/docker/docker-compose.yml down
 
   demo-phase5:
     runs-on: ubuntu-latest

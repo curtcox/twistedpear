@@ -4,7 +4,7 @@
  */
 
 import { pathToFileURL } from "node:url";
-import { runBareLifecycleSlice } from "../scenarios/bare/lifecycle-slice.mjs";
+import { runBareLifecycleSliceProcess } from "../scenarios/bare/runner-host.mjs";
 import { interopReady, LEAF_ECHO_PORT, waitForTcp } from "../scenarios/ts/harness.mjs";
 
 export async function runDesktopLifecycleSlice(options = {}) {
@@ -31,7 +31,7 @@ export async function runDesktopLifecycleSlice(options = {}) {
     return;
   }
 
-  await runBareLifecycleSlice({ label: "desktop-host", cycles });
+  runBareLifecycleSliceProcess({ label: "desktop-host", cycles });
   console.log(`desktop-lifecycle: ${cycles} quiesce/reconnect cycles passed`);
 }
 

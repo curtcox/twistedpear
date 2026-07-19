@@ -372,6 +372,11 @@ export class LeafTransport {
       this.interfaces.splice(index, 1);
     }
     this.interfaceTasks.delete(iface);
+    for (const [destinationKey, entry] of this.pathTable) {
+      if (entry.receivedInterface === iface) {
+        this.pathTable.delete(destinationKey);
+      }
+    }
   }
 
   listInterfaces(): ReadonlyArray<PacketInterface> {

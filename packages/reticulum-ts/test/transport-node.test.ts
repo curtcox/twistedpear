@@ -14,6 +14,7 @@ import {
   Reticulum,
   nodeRuntime
 } from "../src/index.js";
+import type { PacketInterface } from "../src/index.js";
 
 const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
@@ -56,6 +57,55 @@ function connectTransportTopology(): {
 }
 
 describe("TransportNode over PipeInterface", () => {
+  it("continues announce fan-out when one interface send fails", async () => {
+    const left = Reticulum.create({ provider, runtime });
+    const transport = Reticulum.create({ provider, runtime, transportEnabled: true });
+    const right = Reticulum.create({ provider, runtime });
+    left.start();
+    transport.start();
+    right.start();
+
+    const [leftPipe, transportLeftPipe] = PipeInterface.pair(provider);
+    const [transportRightPipe, rightPipe] = PipeInterface.pair(provider);
+    const failingInterface: PacketInterface = {
+      name: "failing-interface",
+      mtu: 500,
+      bitrate: null,
+      incoming: true,
+      outgoing: true,
+      online: true,
+      packets: {
+        async *[Symbol.asyncIterator]() {
+          return;
+        }
+      },
+      async send() {
+        throw new Error("simulated interface failure");
+      },
+      async close() {}
+    };
+
+    left.registerInterface(leftPipe);
+    transport.registerInterface(transportLeftPipe);
+    transport.registerInterface(failingInterface);
+    transport.registerInterface(transportRightPipe);
+    right.registerInterface(rightPipe);
+
+    const leftIn = left.registerDestination({
+      provider,
+      identity: new Identity(provider),
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "example",
+      aspects: ["fanout"]
+    });
+
+    await leftIn.announce();
+    await waitFor(() => (right.hasPath(leftIn.hash) ? true : null));
+
+    expect(right.hopsTo(leftIn.hash)).toBe(2);
+  });
+
   it("rebroadcasts announces and routes data packets between two leaf peers", async () => {
     const { left, transport, right } = connectTransportTopology();
 

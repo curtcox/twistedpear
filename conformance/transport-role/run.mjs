@@ -81,7 +81,7 @@ function bytesToAscii(bytes) {
   return Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
 }
 
-async function runEchoSlice(session, pingLabel, greetingText) {
+async function runEchoSlice(session, pingLabel, greetingText, receiveTimeoutMs = 15_000) {
   const provider = session.reticulum.provider;
   const alice = loadIdentity(provider, "alice");
   const bob = loadIdentity(provider, "bob");
@@ -105,18 +105,20 @@ async function runEchoSlice(session, pingLabel, greetingText) {
     aspects: ["echo"]
   });
 
-  await aliceIn.announce();
-  await waitForPath(session.reticulum, bobOut.hash);
-
   const received = new Map();
   aliceIn.setPacketCallback((data) => {
     received.set(bytesToAscii(data), data);
   });
 
+  await aliceIn.announce();
+  await waitForPath(session.reticulum, bobOut.hash);
+  await aliceIn.announce();
+  await sleep(500);
+
   const receipt = await bobOut.send(new TextEncoder().encode(pingLabel), { createReceipt: true });
   await waitForReceipt(receipt);
 
-  const deadline = Date.now() + 15_000;
+  const deadline = Date.now() + receiveTimeoutMs;
   while (Date.now() < deadline) {
     if (received.has(pingLabel) && received.has(greetingText)) {
       return;
@@ -174,49 +176,50 @@ async function runLeafEchoSlice() {
 
 async function runTransportHubSlice() {
   const dataDir = mkdtempSync(join(tmpdir(), "tp-transport-hub-"));
+  let session;
   try {
-    await withTransportHubLeaves(async () => {
-      const session = await createNodeHost({
-        config: resolveHostConfig({
-          dataDir,
-          overrides: {
-            interfaces: {
-              tcp: { enabled: true, mode: "server", listenPort: TRANSPORT_HUB_PORT },
-              auto: { enabled: false, multicast: false, bonjour: false },
-              i2p: { enabled: false },
-              rnode: { enabled: false }
-            },
-            roles: {
-              transport: true,
-              seeder: false,
-              propagation: false,
-              attachRnsd: null
-            }
+    session = await createNodeHost({
+      config: resolveHostConfig({
+        dataDir,
+        overrides: {
+          interfaces: {
+            tcp: { enabled: true, mode: "server", listenPort: TRANSPORT_HUB_PORT },
+            auto: { enabled: false, multicast: false, bonjour: false },
+            i2p: { enabled: false },
+            rnode: { enabled: false }
+          },
+          roles: {
+            transport: true,
+            seeder: false,
+            propagation: false,
+            attachRnsd: null
           }
-        })
-      });
+        }
+      })
+    });
 
-      if (!session.getStatus().transportEnabled) {
-        throw new Error("transport hub role not enabled");
-      }
+    if (!session.getStatus().transportEnabled) {
+      throw new Error("transport hub role not enabled");
+    }
 
+    await withTransportHubLeaves(async () => {
       await waitForReadyLine("transport-leaf-bob", 45_000);
       await waitForPeerInterfaces(session.reticulum, 2, 45_000);
 
       await runEchoSlice(
         session,
         "transport-hub-ping",
-        "hello from python transport leaf"
+        "hello from python transport leaf",
+        45_000
       );
 
       const online = session.reticulum.listInterfaces().filter((iface) => iface.online).length;
       if (online < 2) {
         throw new Error(`transport hub expected two leaf interfaces, saw ${online}`);
       }
-
-      await session.stop();
     });
   } finally {
+    await session?.stop();
     rmSync(dataDir, { recursive: true, force: true });
   }
 

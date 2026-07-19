@@ -4,8 +4,6 @@
  * Simulates iOS suspend-node (close interfaces) and resume-node (reconnect + re-announce).
  */
 
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { PureCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/pure.js";
 import { DestinationDirection, DestinationType } from "../../../packages/reticulum-ts/dist/destination.js";
@@ -19,11 +17,10 @@ import {
   loadIdentityVectors,
   repoRoot,
   sleep,
+  waitForInterfaceOnline,
   waitForReceipt,
   waitForPath
 } from "./helpers.mjs";
-
-const defaultMetricsPath = join(repoRoot, "conformance/ios-sim/measured-lifecycle.json");
 
 async function waitForPathLoss(reticulum, destinationHash, timeoutMs = 10_000) {
   const deadline = Date.now() + timeoutMs;
@@ -43,8 +40,7 @@ export async function runBareLifecycleSlice(options = {}) {
     label = "lifecycle",
     storePath = `${repoRoot}/.lifecycle-slice-store`,
     cycles = 10,
-    reconnectTimeoutMs = 10_000,
-    metricsPath = process.env.IOS_LIFECYCLE_METRICS_PATH ?? null
+    reconnectTimeoutMs = 10_000
   } = options;
 
   const cycleMetrics = [];
@@ -91,6 +87,7 @@ export async function runBareLifecycleSlice(options = {}) {
     targetHost: INTEROP_HOST,
     targetPort: LEAF_ECHO_PORT
   });
+  await waitForInterfaceOnline(iface, reconnectTimeoutMs);
 
   await aliceIn.announce();
   await waitForPath(reticulum, bobOut.hash, reconnectTimeoutMs);
@@ -100,6 +97,7 @@ export async function runBareLifecycleSlice(options = {}) {
     const receipt = await bobOut.send(payload, { createReceipt: true });
     await waitForReceipt(receipt);
 
+    reticulum.unregisterInterface(iface);
     await iface.close();
     await waitForPathLoss(reticulum, bobOut.hash, reconnectTimeoutMs);
 
@@ -109,6 +107,7 @@ export async function runBareLifecycleSlice(options = {}) {
       targetHost: INTEROP_HOST,
       targetPort: LEAF_ECHO_PORT
     });
+    await waitForInterfaceOnline(iface, reconnectTimeoutMs);
     await aliceIn.announce();
     await waitForPath(reticulum, bobOut.hash, reconnectTimeoutMs);
 
@@ -125,6 +124,7 @@ export async function runBareLifecycleSlice(options = {}) {
     await waitForReceipt(afterResume);
   }
 
+  reticulum.unregisterInterface(iface);
   await iface.close();
   reticulum.stop();
 
@@ -137,23 +137,6 @@ export async function runBareLifecycleSlice(options = {}) {
     reconnectP95Ms: percentile(reconnectMs, 95),
     reconnectMaxMs: reconnectMs.length > 0 ? Math.max(...reconnectMs) : 0
   };
-
-  const outputPath = metricsPath ?? defaultMetricsPath;
-  if (outputPath) {
-    writeFileSync(
-      outputPath,
-      `${JSON.stringify(
-        {
-          measuredAt: new Date().toISOString(),
-          runtime: "bare-worklet-slice",
-          peer: `${INTEROP_HOST}:${LEAF_ECHO_PORT}`,
-          ...summary
-        },
-        null,
-        2
-      )}\n`
-    );
-  }
 
   return summary;
 }

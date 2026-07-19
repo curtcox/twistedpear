@@ -7,3 +7,10 @@
 [release] focused gates: release harness (10/10), core smoke (98/98), IPv4/IPv6 transport (9/9), Node and Bare-provider benchmark comparisons passed
 [release] outstanding: CI must confirm the Linux AutoInterface lane and the complete PR-tier matrix before baseline:S1 and ci:baseline can be marked passed
 [release] exit: 0
+[release] follow-up: CI run 29689417513 completed with five failures: auto-interop, desktop-interop, ios-sim, web, and web-interop
+[release] repairs: pinned LXMF storage, resilient transport announce fan-out, deterministic two-leaf hub startup/routes, host-process macOS RNS peer, WebSocket route readiness/cleanup, and awaited WebSerial result capture
+[release] follow-up verification: lint passed; full Vitest passed (149 files, 1143 tests; 2 files/7 tests skipped); release harness 10/10; web runtime bundle guards passed; AutoInterface fixture healthy; transport-role, web-interop, and web-rnode passed
+[release] outstanding: push the repair set and require a fresh fully green PR-tier CI run before recording baseline:S1 and ci:baseline as passed
+[release] macOS iOS follow-up: required toolchain lane passed with a pinned host-process RNS peer; 100/100 Bare lifecycle reconnects passed (p50 1922ms, p95 1938ms, max 1960ms), followed by store-posture and TCP echo passes
+[release] lifecycle repair: shared TCP/lifecycle slices now execute in bundled Bare subprocesses; unregistering an interface invalidates paths learned through it; desktop lifecycle passed through the same runner
+[release] final local unit baseline: lint passed; 149 Vitest files passed, 2 skipped; 1144 tests passed, 7 skipped

@@ -5,7 +5,7 @@
 
 import { createConnection } from "node:net";
 import { pathToFileURL } from "node:url";
-import { runBareTcpSlice } from "../scenarios/bare/tcp-slice.mjs";
+import { runBareTcpSliceProcess } from "../scenarios/bare/runner-host.mjs";
 import { INTEROP_HOST, LEAF_ECHO_PORT } from "../scenarios/bare/helpers.mjs";
 
 function waitForPeer(timeoutMs = 15_000) {
@@ -43,7 +43,7 @@ export async function runIosTcpSlice(options = {}) {
     return;
   }
 
-  await runBareTcpSlice({ label: "ios-sim" });
+  runBareTcpSliceProcess({ label: "ios-sim" });
   console.log("[ios-sim/tcp-slice] announce/link echo passed on Bare runtime against Python RNS peer");
 }
 

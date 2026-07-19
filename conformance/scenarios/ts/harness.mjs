@@ -64,8 +64,12 @@ async function isTcpReady(host, port) {
   }
 }
 
-export function composeUp(service) {
-  execSync(`docker compose -f "${COMPOSE_FILE}" up -d --build ${service}`, {
+export function composeUp(...services) {
+  if (services.length === 0 || services.some((service) => !/^[a-z0-9-]+$/.test(service))) {
+    throw new Error("composeUp requires one or more valid service names");
+  }
+
+  execSync(`docker compose -f "${COMPOSE_FILE}" up -d --build ${services.join(" ")}`, {
     stdio: "inherit",
     cwd: REPO_ROOT
   });
@@ -151,6 +155,9 @@ export async function withTransportHubLeaves(run) {
   composeUp("transport-leaf-bob", "transport-leaf-alice");
   try {
     return await run();
+  } catch (error) {
+    console.error(`Transport leaf logs:\n${composeLogs("transport-leaf-bob", 100)}${composeLogs("transport-leaf-alice", 100)}`);
+    throw error;
   } finally {
     composeDown();
   }

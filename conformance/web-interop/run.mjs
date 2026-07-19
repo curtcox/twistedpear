@@ -65,7 +65,7 @@ await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
 
   const gateway = Reticulum.create({ provider, runtime, transportEnabled: true });
   gateway.start();
-  await gateway.addTcpClientInterface({
+  const tcpClient = await gateway.addTcpClientInterface({
     name: "python-leaf-echo",
     targetHost: "127.0.0.1",
     targetPort: LEAF_ECHO_PORT
@@ -114,13 +114,16 @@ await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
     aspects: ["echo"]
   });
 
-  await aliceIn.announce();
-  await waitForPath(leaf, bobOut.hash);
-
   const received = new Map();
   aliceIn.setPacketCallback((data) => {
     received.set(bytesToAscii(data), data);
   });
+
+  await aliceIn.announce();
+  await waitForPath(gateway, aliceIn.hash);
+  await waitForPath(leaf, bobOut.hash);
+  await aliceIn.announce();
+  await sleep(500);
 
   const payload = new TextEncoder().encode("web-interop-ping");
   const receipt = await bobOut.send(payload, { createReceipt: true });
@@ -145,8 +148,9 @@ await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
 
   await wsClient.close();
   await wsServer.close();
-  await leaf.stop();
-  await gateway.stop();
+  await tcpClient.close();
+  leaf.stop();
+  gateway.stop();
 });
 
 console.log("web-interop: passed");
