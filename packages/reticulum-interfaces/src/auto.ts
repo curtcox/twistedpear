@@ -220,7 +220,11 @@ export class AutoInterface extends RawPacketInterface {
   }
 
   private async startDiscoverySockets(iface: AdoptedInterface): Promise<void> {
-    const multicastSocket = createSocket({ type: "udp6", reuseAddr: true });
+    const multicastSocket = createSocket({
+      type: "udp6",
+      reuseAddr: true,
+      ...(process.platform === "linux" ? { reusePort: true } : {})
+    });
     multicastSocket.on("message", (data, remote) => {
       this.handleDiscoveryPacket(data, remote.address, iface.name);
     });
@@ -242,7 +246,11 @@ export class AutoInterface extends RawPacketInterface {
       });
     });
 
-    const unicastSocket = createSocket({ type: "udp6", reuseAddr: true });
+    const unicastSocket = createSocket({
+      type: "udp6",
+      reuseAddr: true,
+      ...(process.platform === "linux" ? { reusePort: true } : {})
+    });
     unicastSocket.on("message", (data, remote) => {
       this.handleDiscoveryPacket(data, remote.address, iface.name, false);
     });

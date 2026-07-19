@@ -95,14 +95,13 @@ def run_alice_leaf(target_host: str, target_port: int) -> int:
     )
     print(f"READY {outbound.hash.hex()}", flush=True)
 
-    next_request = 0.0
+    # Always attempt the greeting. Packet.send path-requests when needed, and
+    # the hub may learn bob's announce slightly after this leaf comes online.
     while True:
-        if RNS.Transport.has_path(outbound.hash):
-            send_packet(outbound, GREETING)
-            print(f"SENT {outbound.hash.hex()}", flush=True)
-        elif time.time() >= next_request:
+        if not RNS.Transport.has_path(outbound.hash):
             RNS.Transport.request_path(outbound.hash)
-            next_request = time.time() + 2
+        send_packet(outbound, GREETING)
+        print(f"SENT {outbound.hash.hex()}", flush=True)
         time.sleep(2)
 
 

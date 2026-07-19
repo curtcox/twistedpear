@@ -156,13 +156,21 @@ async function runPacketEcho(wsUrl) {
     aspects: ["echo"]
   });
 
-  await aliceIn.announce();
-  await waitForPath(leaf, bobOut.hash);
-
   const received = new Map();
   aliceIn.setPacketCallback((data) => {
     received.set(bytesToAscii(data), data);
   });
+
+  await aliceIn.announce();
+  if (typeof globalThis.__WAIT_FOR_GATEWAY_PATH__ !== "function") {
+    throw new Error("browser packet echo: gateway path verifier is unavailable");
+  }
+  await globalThis.__WAIT_FOR_GATEWAY_PATH__(bytesToHex(aliceIn.hash));
+  await waitForPath(leaf, bobOut.hash);
+  // Match the LXMF slice: the leaf can learn the Python route before the
+  // gateway has retained the browser return path needed for the echo.
+  await aliceIn.announce();
+  await sleep(3_000);
 
   const payload = new TextEncoder().encode("web-browser-interop-ping");
   const receipt = await bobOut.send(payload, { createReceipt: true });

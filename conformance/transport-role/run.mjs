@@ -21,6 +21,7 @@ import {
   sleep,
   withComposeService,
   withTransportHubLeaves,
+  waitForLogLine,
   waitForReadyLine,
   LEAF_ECHO_PORT,
   TRANSPORT_HUB_PORT
@@ -204,7 +205,9 @@ async function runTransportHubSlice() {
 
     await withTransportHubLeaves(async () => {
       await waitForReadyLine("transport-leaf-bob", 45_000);
+      await waitForReadyLine("transport-leaf-alice", 45_000);
       await waitForPeerInterfaces(session.reticulum, 2, 45_000);
+      await waitForLogLine("transport-leaf-alice", /SENT [0-9a-f]+/i, 45_000);
 
       await runEchoSlice(
         session,

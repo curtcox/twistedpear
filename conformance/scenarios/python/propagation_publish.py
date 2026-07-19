@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
-import sys
+import atexit
+import shutil
+import tempfile
 import time
 from pathlib import Path
 
@@ -72,7 +74,9 @@ def main() -> int:
     publisher = load_identity("bob")
     recipient = load_identity(args.recipient)
 
-    router = LXMF.LXMRouter()
+    lxmf_storage = Path(tempfile.mkdtemp(prefix="twistedpear-propagation-publish-lxmf-"))
+    atexit.register(shutil.rmtree, lxmf_storage, ignore_errors=True)
+    router = LXMF.LXMRouter(storagepath=str(lxmf_storage))
     delivery = router.register_delivery_identity(publisher)
     delivery.announce()
 

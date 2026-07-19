@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import atexit
 import shutil
+import socketserver
 import tempfile
 import time
 from pathlib import Path
@@ -27,6 +28,12 @@ GREETING = b"hello from python auto echo"
 
 
 def main() -> int:
+    # Permit cooperative binds when a peer deliberately shares the AutoInterface
+    # data/discovery ports (RNS data UDPServer defaults to exclusive binds).
+    socketserver.UDPServer.allow_reuse_address = True
+    if hasattr(socketserver.UDPServer, "allow_reuse_port"):
+        socketserver.UDPServer.allow_reuse_port = True
+
     reticulum = RNS.Reticulum(str(CONFIG_DIR))
     lxmf_storage = Path(tempfile.mkdtemp(prefix="twistedpear-auto-interop-lxmf-"))
     atexit.register(shutil.rmtree, lxmf_storage, ignore_errors=True)

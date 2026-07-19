@@ -20,6 +20,7 @@
     "test:bare-interop": "npm run test:bare-interop-bundle",
     "test:bare-interop-bundle": "npm run build && node conformance/bare-interop/build.mjs && node_modules/bare/bin/bare conformance/bare-interop/bare-interop.bundle",
     "test:auto-interop": "npm run build && node conformance/auto-interop/run.mjs",
+    "test:auto-interop:compose": "npm run build && node conformance/auto-interop/run-compose.mjs",
     "test:i2p-interop": "npm run build && node conformance/i2p-interop/run.mjs",
     "test:bare-device": "npm run build && node conformance/bare-device/run.mjs",
     "test:bare-hyperswarm": "npm run build && node_modules/bare/bin/bare conformance/bare-hyperswarm/run.mjs",

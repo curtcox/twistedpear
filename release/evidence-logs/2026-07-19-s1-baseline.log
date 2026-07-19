@@ -19,3 +19,6 @@
 [release] final repair verification: lint passed; 149 Vitest files passed, 2 skipped; 1145 tests passed, 7 skipped; release harness 10/10; focused transport/WebSocket lifecycle 26/26; browser WebSocket/Python packet + LXMF interop passed in Playwright; AutoInterface shared-bind regression passed locally (the full Linux host-network lane remains CI-only)
 [release] outstanding: push the repair set and require a fresh fully green CI run before recording baseline:S1 and ci:baseline as passed
 [release] branch verification: production build passed at commit 382a67eb on codex/release-plan-s1; branch is published and awaiting a pull request to trigger the PR-tier matrix
+[release] follow-up: repair CI failures from run 29694081853 (auto-interop EADDRINUSE, web packet-echo return path, transport-hub greeting, propagation LXMF storage)
+[release] repairs: dual-container AutoInterface topology (distinct fe80 binds), Linux SO_REUSEPORT for cooperative UDP, LXMF storagepath on propagation tools, browser packet-echo gateway path wait, aggressive transport-leaf greeting + SENT wait
+[release] local verification: transport-role passed; UDP shared-listener unit tests passed; auto-interop:compose requires Linux docker fe80 binds (GHA)

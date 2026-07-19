@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
-import sys
+import atexit
+import shutil
+import tempfile
 import time
 from pathlib import Path
 
@@ -69,7 +71,9 @@ def main() -> int:
     reticulum = RNS.Reticulum(str(CONFIG_DIR))
     recipient = load_identity(args.recipient)
 
-    router = LXMF.LXMRouter()
+    lxmf_storage = Path(tempfile.mkdtemp(prefix="twistedpear-propagation-sync-lxmf-"))
+    atexit.register(shutil.rmtree, lxmf_storage, ignore_errors=True)
+    router = LXMF.LXMRouter(storagepath=str(lxmf_storage))
     delivery = router.register_delivery_identity(recipient)
     delivery.announce()
 

@@ -215,9 +215,13 @@ class NodeBoundDatagramSocket implements BoundDatagramSocket {
 
 class NodeUdpFactory implements UdpFactory {
   async bind(host: string, port: number, options: UdpBindOptions = {}): Promise<BoundDatagramSocket> {
+    const reuseAddress = options.reuseAddress ?? false;
+    // Linux needs SO_REUSEPORT for cooperative UDP binds; macOS returns ENOTSUP.
+    const reusePort = reuseAddress && process.platform === "linux";
     const socket = createSocket({
       type: host.includes(":") ? "udp6" : "udp4",
-      reuseAddr: options.reuseAddress ?? false
+      reuseAddr: reuseAddress,
+      ...(reusePort ? { reusePort: true } : {})
     });
     await new Promise<void>((resolve, reject) => {
       socket.once("error", reject);
