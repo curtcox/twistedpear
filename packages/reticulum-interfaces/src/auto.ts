@@ -155,7 +155,8 @@ export class AutoInterface extends RawPacketInterface {
       await this.startDiscoverySockets(iface);
       const dataSocket = await this.runtime.udp.bind(
         scopeIpv6Address(iface.linkLocalAddress, iface.name),
-        this.dataPort
+        this.dataPort,
+        { reuseAddress: true }
       );
       this.dataSockets.set(iface.name, dataSocket);
       void this.readDataSocket(iface.name, dataSocket);

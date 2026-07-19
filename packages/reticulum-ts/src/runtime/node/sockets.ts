@@ -8,6 +8,7 @@ import type {
   TcpFactory,
   TcpListenOptions,
   TcpListener,
+  UdpBindOptions,
   UdpFactory
 } from "../runtime.js";
 
@@ -213,8 +214,11 @@ class NodeBoundDatagramSocket implements BoundDatagramSocket {
 }
 
 class NodeUdpFactory implements UdpFactory {
-  async bind(host: string, port: number): Promise<BoundDatagramSocket> {
-    const socket = createSocket(host.includes(":") ? "udp6" : "udp4");
+  async bind(host: string, port: number, options: UdpBindOptions = {}): Promise<BoundDatagramSocket> {
+    const socket = createSocket({
+      type: host.includes(":") ? "udp6" : "udp4",
+      reuseAddr: options.reuseAddress ?? false
+    });
     await new Promise<void>((resolve, reject) => {
       socket.once("error", reject);
       socket.bind(port, host, () => {

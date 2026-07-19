@@ -14,6 +14,7 @@ import {
   PureCryptoProvider,
   Reticulum,
   WebSocketClientInterface,
+  bytesToHex,
   hexToBytes,
   webRuntime
 } from "../../packages/reticulum-ts/dist/web.js";
@@ -209,7 +210,17 @@ async function runLxmfEcho(wsUrl) {
   const bobOut = router.createOutboundDestination(bob);
 
   await aliceDelivery.announce();
+  if (typeof globalThis.__WAIT_FOR_GATEWAY_PATH__ !== "function") {
+    throw new Error("browser LXMF echo: gateway path verifier is unavailable");
+  }
+  await globalThis.__WAIT_FOR_GATEWAY_PATH__(bytesToHex(aliceDelivery.hash));
   await waitForPath(leaf, bobOut.hash);
+  // The leaf can learn the Python route before the gateway has retained the
+  // browser delivery route needed for the echo response. Re-announce after
+  // route convergence and allow the Python peer's interface worker to commit
+  // the transported return path before the first opportunistic delivery.
+  await aliceDelivery.announce();
+  await sleep(3_000);
 
   const received = new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("browser LXMF echo timeout")), 30_000);
@@ -219,6 +230,7 @@ async function runLxmfEcho(wsUrl) {
     });
   });
 
+  globalThis.__WEB_INTEROP__.lxmf = "sending";
   await router.packAndSend({
     destination: bobOut,
     source: aliceDelivery,
@@ -228,6 +240,7 @@ async function runLxmfEcho(wsUrl) {
     deferStamp: true,
     timestamp: Date.now() / 1_000
   });
+  globalThis.__WEB_INTEROP__.lxmf = "awaiting-echo";
 
   const echoed = await received;
   if (echoed !== "Hello Python LXMF from browser") {
@@ -252,14 +265,14 @@ async function main() {
     lxmf: null
   };
 
+  await runLxmfEcho(wsUrl);
+  globalThis.__WEB_INTEROP__.lxmf = "ok";
+
   await runWebLeafHostSmoke(wsUrl);
   globalThis.__WEB_INTEROP__.webLeafHost = "ok";
 
   await runPacketEcho(wsUrl);
   globalThis.__WEB_INTEROP__.packet = "ok";
-
-  await runLxmfEcho(wsUrl);
-  globalThis.__WEB_INTEROP__.lxmf = "ok";
   globalThis.__WEB_INTEROP__.status = "done";
 }
 

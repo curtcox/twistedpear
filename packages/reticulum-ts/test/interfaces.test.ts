@@ -125,6 +125,9 @@ describe("WebSocket interfaces", () => {
     const spawned = new Promise<WebSocketClientInterface>((resolve) => {
       server.setSpawnHandler(resolve);
     });
+    const detached = new Promise<WebSocketClientInterface>((resolve) => {
+      server.setDetachHandler(resolve);
+    });
 
     await server.start();
     const address = server.address;
@@ -149,6 +152,11 @@ describe("WebSocket interfaces", () => {
     expect(Buffer.from(echoed.raw).toString("hex")).toBe(Buffer.from(outgoing.raw).toString("hex"));
 
     await client.close();
+    await expect(Promise.race([
+      detached,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("detach timeout")), 500))
+    ])).resolves.toBe(accepted);
+    expect(server.clients).toHaveLength(0);
     await server.close();
   });
 

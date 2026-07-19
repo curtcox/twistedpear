@@ -37,6 +37,13 @@ def main() -> int:
     )
 
     def delivery_callback(message: LXMF.LXMessage) -> None:
+        print(
+            "DELIVERED "
+            f"source={message.source_hash.hex()} "
+            f"content_bytes={len(message.content)} "
+            f"return_path={RNS.Transport.has_path(alice_destination.hash)}",
+            flush=True,
+        )
         reply = LXMF.LXMessage(
             alice_destination,
             delivery_destination,
@@ -46,6 +53,7 @@ def main() -> int:
         )
         reply.defer_stamp = True
         router.handle_outbound(reply)
+        print(f"REPLY_QUEUED destination={alice_destination.hash.hex()}", flush=True)
 
     router.register_delivery_callback(delivery_callback)
     delivery_destination.announce()

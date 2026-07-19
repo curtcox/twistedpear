@@ -12,6 +12,7 @@ import { chromium } from "playwright";
 import {
   NodeCryptoProvider,
   Reticulum,
+  hexToBytes,
   nodeRuntime,
   registerWebSocketServerInterface
 } from "../../packages/reticulum-ts/dist/index.js";
@@ -41,6 +42,17 @@ async function isTcpReady(host, port) {
   } catch {
     return false;
   }
+}
+
+async function waitForPath(reticulum, destinationHash, timeoutMs = 30_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (reticulum.hasPath(destinationHash)) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`gateway did not learn browser path ${Buffer.from(destinationHash).toString("hex")}`);
 }
 
 async function ensureInteropPeers() {
@@ -181,6 +193,7 @@ async function startGateway() {
   }
 
   return {
+    reticulum: gateway,
     wsUrl: `ws://127.0.0.1:${wsPort}`,
     async stop() {
       await wsServer.close();
@@ -189,10 +202,13 @@ async function startGateway() {
   };
 }
 
-async function runPlaywright(pageUrl) {
+async function runPlaywright(pageUrl, gatewayReticulum) {
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
+    await page.exposeFunction("__WAIT_FOR_GATEWAY_PATH__", async (destinationHex) => {
+      await waitForPath(gatewayReticulum, hexToBytes(destinationHex));
+    });
     page.on("console", (message) => {
       console.log(`browser:${message.type()}: ${message.text()}`);
     });
@@ -232,7 +248,7 @@ try {
   gateway = await startGateway();
   staticServer = await startStaticServer(interopRoot);
   const pageUrl = `http://127.0.0.1:${staticServer.port}/?ws=${encodeURIComponent(gateway.wsUrl)}`;
-  await runPlaywright(pageUrl);
+  await runPlaywright(pageUrl, gateway.reticulum);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`web-interop-browser: failed — ${message}`);

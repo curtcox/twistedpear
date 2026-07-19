@@ -92,6 +92,7 @@ export type {
   TcpFactory,
   TcpListener,
   Timer,
+  UdpBindOptions,
   UdpFactory
 } from "./runtime/runtime.js";
 export { bareRuntime } from "./runtime/bare/runtime.js";

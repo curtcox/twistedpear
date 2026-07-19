@@ -64,8 +64,13 @@ export interface BoundDatagramSocket {
   close(): Promise<void>;
 }
 
+export interface UdpBindOptions {
+  /** Permit protocol-defined shared listeners on the same local address and port. */
+  readonly reuseAddress?: boolean;
+}
+
 export interface UdpFactory {
-  bind(host: string, port: number): Promise<BoundDatagramSocket>;
+  bind(host: string, port: number, options?: UdpBindOptions): Promise<BoundDatagramSocket>;
 }
 
 export interface Runtime {

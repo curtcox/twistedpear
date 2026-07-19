@@ -35,7 +35,13 @@ export async function createWebLeafHost(options: WebLeafHostOptions): Promise<We
   assertWebLeafRoles(DEFAULT_WEB_LEAF_ROLES);
 
   const provider = options.provider ?? new PureCryptoProvider();
-  const runtime = options.runtime ?? webRuntime(options.identity);
+  const runtime = options.runtime ?? webRuntime({
+    ...(options.identity.indexedDB === undefined ? {} : { indexedDB: options.identity.indexedDB }),
+    // Identity storage and runtime state use different IndexedDB schemas.
+    // Sharing a database name lets whichever opens first permanently omit the
+    // other schema's object store at version 1.
+    storeName: `${options.identity.storeName ?? "twistedpear-web-identity"}-runtime`
+  });
   const reticulum = Rns.create({ provider, runtime });
   reticulum.start();
 

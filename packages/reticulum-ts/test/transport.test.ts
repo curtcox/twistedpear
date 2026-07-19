@@ -282,6 +282,19 @@ describe("TCP loopback interface", () => {
 });
 
 describe("UDP loopback interface", () => {
+  it("permits protocol-defined shared UDP listeners", async () => {
+    const first = await runtime.udp.bind("::1", 0, { reuseAddress: true });
+    let second;
+
+    try {
+      second = await runtime.udp.bind("::1", first.address.port, { reuseAddress: true });
+      expect(second.address).toEqual(first.address);
+    } finally {
+      await second?.close();
+      await first.close();
+    }
+  });
+
   it("binds and exchanges IPv6 datagrams", async () => {
     const receiver = await runtime.udp.bind("::1", 0);
     const sender = await runtime.udp.bind("::1", 0);

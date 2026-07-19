@@ -83,6 +83,7 @@ export {
   registerWebSocketServerInterface
 } from "./interfaces/websocket-server.js";
 export type {
+  WebSocketDetachedInterfaceHandler,
   WebSocketServerInterfaceOptions,
   WebSocketSpawnedInterfaceHandler
 } from "./interfaces/websocket-server.js";
@@ -98,6 +99,7 @@ export type {
   TcpFactory,
   TcpListener,
   Timer,
+  UdpBindOptions,
   UdpFactory
 } from "./runtime/runtime.js";
 export { nodeRuntime } from "./runtime/node/runtime.js";

@@ -41,6 +41,7 @@ export interface WebSocketServerInterfaceOptions extends ReticulumInterfaceOptio
 }
 
 export type WebSocketSpawnedInterfaceHandler = (iface: WebSocketClientInterface) => void;
+export type WebSocketDetachedInterfaceHandler = (iface: WebSocketClientInterface) => void;
 
 export class WebSocketServerInterface {
   readonly name: string;
@@ -53,6 +54,7 @@ export class WebSocketServerInterface {
   private server: Server | null = null;
   private readonly spawned: WebSocketClientInterface[] = [];
   private onSpawned: WebSocketSpawnedInterfaceHandler | null = null;
+  private onDetached: WebSocketDetachedInterfaceHandler | null = null;
   private listenAddress: { host: string; port: number } | null = null;
   private closed = false;
 
@@ -70,6 +72,10 @@ export class WebSocketServerInterface {
 
   setSpawnHandler(handler: WebSocketSpawnedInterfaceHandler): void {
     this.onSpawned = handler;
+  }
+
+  setDetachHandler(handler: WebSocketDetachedInterfaceHandler): void {
+    this.onDetached = handler;
   }
 
   get httpServer(): Server | null {
@@ -194,6 +200,20 @@ export class WebSocketServerInterface {
       connection,
       this.outgoing
     );
+    let detached = false;
+    const detach = () => {
+      if (detached) {
+        return;
+      }
+      detached = true;
+      const index = this.spawned.indexOf(client);
+      if (index >= 0) {
+        this.spawned.splice(index, 1);
+      }
+      this.onDetached?.(client);
+    };
+    connection.addEventListener("close", detach);
+    connection.addEventListener("error", detach);
     this.spawned.push(client);
     this.onSpawned?.(client);
   }
@@ -273,7 +293,7 @@ class NodeWebSocketConnection implements WebSocketLike {
       return;
     }
 
-    this.readyState = 3;
+    this.readyState = 2;
     this.socket.end();
   }
 
@@ -381,6 +401,9 @@ export async function registerWebSocketServerInterface(
   });
   server.setSpawnHandler((client) => {
     reticulum.registerInterface(client);
+  });
+  server.setDetachHandler((client) => {
+    reticulum.unregisterInterface(client);
   });
   await server.start();
   return server;
