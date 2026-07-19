@@ -75,7 +75,7 @@ TwistedPear-authored; the app platform seen by mini-apps and renderers.
 
 | Spec | Scope | Status |
 |---|---|---|
-| [SPEC-NAME](spec-name/spec.md) | 256t identifiers, resolution, CAS semantics | stub |
+| [SPEC-NAME](spec-name/spec.md) | 256t identifiers, resolution, CAS semantics | **normative** |
 | [SPEC-PKG](spec-pkg/spec.md) | Signed package structure, manifest, capability declarations | stub |
 | [SPEC-CAP](spec-cap/spec.md) | Capability taxonomy and grant lifecycle | **normative** (exemplar) |
 | [SPEC-AUTHORITY](spec-authority/spec.md) | Escrow and recovery-quorum authority machines | **normative** |

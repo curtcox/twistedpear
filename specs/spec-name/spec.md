@@ -1,6 +1,6 @@
 # SPEC-NAME — 256t identifiers and resolution
 
-**Group:** C (platform) · **Status:** stub · **Migration phase:** 3
+**Group:** C (platform) · **Status:** normative · **Migration phase:** 3
 
 ## Scope
 
@@ -23,7 +23,14 @@ returning them ("integrity-failure reject").
 
 ## Normative artifacts (current locations)
 
-- Canonical description: [docs/256t-distribution.md](../../docs/256t-distribution.md)
+- Vector suite: [vectors/identifiers.json](vectors/identifiers.json) — decode
+  vectors (`{ id, expect }` with `inline`/`hash`/`reject` outcomes covering a
+  zero-length id, a maximal inline id, hash ids, and every reject class) plus
+  resolution vectors (`{ id, content, ok }` including the integrity-failure
+  case). Executed by
+  [packages/cas-256t/test/spec-name-vectors.test.ts](../../packages/cas-256t/test/spec-name-vectors.test.ts)
+  in the default `vitest` suite.
+- Informative description: [docs/256t-distribution.md](../../docs/256t-distribution.md)
 - Implementation-pinned behavior: [packages/cas-256t](../../packages/cas-256t/) tests
 
 ## Implementations
@@ -34,10 +41,7 @@ returning them ("integrity-failure reject").
 
 ## To finish this spec
 
-Vector suite in `vectors/`: identifier → expected parse/resolution outcome. Each
-vector is `{ id, expect }` where `expect` is one of `inline` (with decoded bytes),
-`hash` (with length and hex hash), or `reject` (with one of the reject reasons
-above). Include: a maximal inline id, a zero-length id, a hash id, each reject
-class, and an integrity-failure resolution case. Seed the suite from the existing
-[packages/cas-256t](../../packages/cas-256t/) tests; prose in 256t-distribution.md
-becomes informative once the vectors land.
+Done — the vector suite landed in `vectors/identifiers.json` with all the
+required cases (maximal inline, zero-length, hash, each reject class, and the
+integrity-failure resolution case), seeded from the `cas-256t` implementation.
+The prose in 256t-distribution.md is informative; the vectors are normative.
