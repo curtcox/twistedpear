@@ -4,11 +4,58 @@
 
 ## Scope
 
-The contract every protocol behavior must satisfy:
-`step(state, event) → (state', intents)` — deterministic, effect-free, with entropy
-consumed as input. Includes the forbidden-effects table (time, randomness, scheduling,
-network, storage, environment, logging) currently defined in
-[docs/sansio.md](../../docs/sansio.md). Web analog: the ECMAScript execution model.
+The contract every protocol behavior must satisfy. This document is the canonical
+statement of the contract and the forbidden-effects table;
+[docs/sansio.md](../../docs/sansio.md) is the maintenance guide for the enforcement
+machinery and defers to this spec on what the boundary *is*. Web analog: the
+ECMAScript execution model.
+
+## The contract
+
+A protocol machine is a step function:
+
+```
+step(state, event) → (state', intents)
+```
+
+1. **Synchronous and total.** `step` returns for every `(state, event)` pair in its
+   domain; it never awaits, blocks, or calls back into a host.
+2. **Deterministic.** Identical `(state, event)` inputs produce identical
+   `(state', intents)` outputs on every platform. Anything nondeterministic — time,
+   entropy, IO results — enters only as event payloads.
+3. **Effect-free.** The only outputs are the returned state and intents. Effects are
+   *declared* as intents and executed by an adapter outside the boundary
+   ([SPEC-ADAPTER](../spec-adapter/spec.md)); their outcomes return as later events.
+4. **Entropy is input.** A machine needing randomness emits a `need_entropy` intent
+   and receives an `entropy` event. Cryptographic hashing, signing, verification, and
+   deterministic key derivation are pure and permitted; key generation and nonces must
+   consume injected entropy.
+5. **Time is input.** Machines read time only from event payloads (`at` fields, timer
+   firings). There is no ambient clock inside the boundary.
+6. **Promise-shaped IO is a continuation in state**, not an `await` inside the
+   transition.
+
+The event and intent alphabet is closed and owned by
+[SPEC-EVENTS](../spec-events/spec.md).
+
+## Forbidden effects
+
+Inside a protocol root (declared in
+[sansio-ratchet.json](../../sansio-ratchet.json)), the following direct effects are
+forbidden:
+
+| Effect | Examples |
+|---|---|
+| Current time | `Date.now`, `new Date()`, `performance.now`, `process.hrtime` |
+| Randomness | `Math.random`, platform crypto RNGs, UUID or nanoid generators |
+| Scheduling | timers, immediates, microtasks, animation frames, timer-like floating promises |
+| Network | `fetch`, WebSocket, TCP/UDP/TLS/HTTP, BLE, LoRa, or serial modules |
+| Storage | filesystem APIs, AsyncStorage, databases, keychains, or browser storage |
+| Environment | `process.env`, OS, locale, or timezone queries |
+| Direct logging | `console`; machines emit structured `log` intents instead |
+
+Adapters sit outside the boundary and may import protocol code; protocol code must
+never import adapters or IO-capable packages.
 
 ## Normative artifacts (current locations)
 
@@ -17,15 +64,25 @@ network, storage, environment, logging) currently defined in
   layers catch a seeded `Date.now()`
 - Gate: `npm run sansio` (boundary + canary + determinism)
 
+## Conformance
+
+A machine conforms if it passes the gate under any conforming host: the boundary
+checks find no forbidden effect, and double-run trace hashes
+([SPEC-TRACE](../spec-trace/spec.md)) are identical under the seeded kernel
+([SPEC-KERNEL](../spec-kernel/spec.md)).
+
+```sh
+npm run sansio
+```
+
 ## Implementations
 
 - ~100 hand-written step functions in [packages/protocol](../../packages/protocol/)
 - Table-driven machines for critical paths (grant lifecycle, parsers) — see
-  [SPEC-CAP](../spec-cap/spec.md) for the finished form
+  [SPEC-CAP](../spec-cap/spec.md) and [SPEC-AUTHORITY](../spec-authority/spec.md) for
+  the finished form
 
 ## To finish this spec
 
-State the contract and forbidden-effects table here as the canonical text (sansio.md
-then points at this spec); promote the canary + determinism gate to this spec's
-conformance suite. Any machine passing the gate under any host is a conforming
-implementation.
+Promote the canary + determinism gate to a freestanding conformance runner that can be
+pointed at a machine outside this repository. The contract text above is canonical.

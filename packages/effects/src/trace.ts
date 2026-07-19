@@ -13,7 +13,11 @@ function bytesToHex(bytes: Uint8Array): string {
   return out;
 }
 
-/** Stable JSON for hashing — sorts object keys, encodes Uint8Array as hex. */
+/**
+ * JSON for hashing — encodes Uint8Array as {$bytes: hex}. Keys serialize in
+ * insertion order (NOT sorted); deterministic here because all entries are built
+ * by the same code paths. SPEC-TRACE tracks defining a sorted-key canonical form.
+ */
 export function serializeTrace(entries: readonly TraceEntry[]): string {
   return JSON.stringify(entries, (_key, value: unknown) => {
     if (value instanceof Uint8Array) {

@@ -33,7 +33,7 @@ Signed mini-app packages for P2P distribution over Hyperdrive and Reticulum Reso
   "name": "com.example.hello",
   "version": "1.0.0",
   "entry": "bundle.js",
-  "capabilities": ["lxmf:send", "storage"],
+  "capabilities": ["lxmf:send", "storage:kv"],
   "icon": "icon.png",
   "minHostApi": "0.1.0",
   "files": [

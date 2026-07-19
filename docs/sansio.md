@@ -4,6 +4,10 @@ TwistedPear protocol behavior is deterministic: protocol modules receive effects
 events and return effects as data. They do not directly read clocks or entropy, schedule
 work, access storage, perform network IO, inspect the environment, or log.
 
+The canonical statement of the machine contract and the forbidden-effects table is
+[SPEC-MACHINE](../specs/spec-machine/spec.md); this document is the maintenance guide
+for the enforcement machinery.
+
 ## Current status
 
 The migration is complete for the configured protocol roots:

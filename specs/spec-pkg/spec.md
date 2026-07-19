@@ -23,5 +23,12 @@ HTML document plus CSP declarations — the unit of content a host agrees to run
 ## To finish this spec
 
 Golden-package vector suite: valid packages that must install, malformed/hostile
-packages that must be rejected with specified reasons. Unknown capability strings block
-install (see [SPEC-CAP](../spec-cap/spec.md)); that rule is enforced here at parse time.
+packages that must be rejected with specified reasons. Reject classes to cover, each
+as its own vector: bad magic/version, malformed manifest JSON, manifest/archive file
+mismatch (missing, extra, hash, or size), non-lexicographic archive order, signature
+over wrong payload or wrong key, unknown capability string (the
+[SPEC-CAP](../spec-cap/spec.md) rule, enforced here at parse time), and oversize
+against the declared budgets. Golden cases: a minimal valid package and one
+exercising every manifest field. Seed hostile cases from
+[conformance/hostile-apps](../../conformance/hostile-apps/); prose in
+package-format.md becomes informative once the vectors land.

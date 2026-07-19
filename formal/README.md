@@ -1,10 +1,11 @@
 # Authority-machine formal twins
 
 `grant.tla` (now at [specs/spec-cap/model/](../specs/spec-cap/model/), owned by
-[SPEC-CAP](../specs/spec-cap/spec.md)), `escrow.tla`, and `recovery_quorum.tla` are
-Layer-2 twins of the three executable authority tables. Their `Edges` relations are
-mechanically compared with the TypeScript tables, checked trace fixtures, and Layer-3
-vectors by:
+[SPEC-CAP](../specs/spec-cap/spec.md)), `escrow.tla`, and `recovery_quorum.tla`
+(both owned by [SPEC-AUTHORITY](../specs/spec-authority/spec.md), located here until
+their paths move in `check-machine-conformance.mjs`) are Layer-2 twins of the three
+executable authority tables. Their `Edges` relations are mechanically compared with
+the TypeScript tables, checked trace fixtures, and Layer-3 vectors by:
 
 ```sh
 npm run formal:all

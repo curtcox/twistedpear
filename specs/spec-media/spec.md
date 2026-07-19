@@ -26,7 +26,8 @@ constraints, and the interop evidence that pins it.
 
 ## To finish this spec
 
-One profile file per medium in this directory. Media that TwistedPear defines
-(WebSocket, BLE) get full framing specs with vectors; adopted media get subset/deviation
-profiles. BLE/LoRa physical-layer claims remain gated on hardware evidence
+One profile file per medium in this directory, using the shared template in
+[SPEC-WIRE](../spec-wire/spec.md). Media that TwistedPear defines (WebSocket, BLE) get
+full framing specs with vectors; adopted media get subset/deviation profiles. BLE/LoRa
+physical-layer claims remain gated on hardware evidence
 ([STATUS-HARDWARE.md](../../STATUS-HARDWARE.md)).

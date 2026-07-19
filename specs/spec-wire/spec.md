@@ -14,6 +14,24 @@ reference (RNS 0.9.4 pin, see [conformance/UPSTREAM.md](../../conformance/UPSTRE
 is a permanent constraint. This spec will be a **profile**: the subset TwistedPear uses,
 any extensions, and (ideally zero) deviations.
 
+## Profile template (shared by all Group A specs)
+
+A profile is one page with exactly five sections:
+
+1. **Upstream pin** — the upstream project, version, and commit the profile is
+   written against.
+2. **Subset** — the upstream features/fields/flows TwistedPear uses, as a table with
+   one row per item and a pointer to the vector or interop test that pins it.
+3. **Extensions** — anything TwistedPear adds that upstream doesn't define (ideally
+   with an upstream-publication plan, see
+   [docs/upstream-publication.md](../../docs/upstream-publication.md)).
+4. **Deviations** — anything TwistedPear does differently (target: an empty section;
+   any entry is a bug report against either this repo or upstream).
+5. **Evidence** — the conformance commands that hold the profile true in CI.
+
+A profile is *done* when every subset row cites at least one pinned vector or interop
+test.
+
 ## Normative artifacts
 
 - Golden wire vectors: [conformance/vectors/](../../conformance/vectors/)
@@ -30,6 +48,6 @@ any extensions, and (ideally zero) deviations.
 
 ## To finish this spec
 
-Write the one-page profile (subset, extensions, deviations) and move or link the vector
-suite manifest here. No new prose specification of the wire format itself — upstream owns
+Write the one-page profile using the template above and move or link the vector suite
+manifest here. No new prose specification of the wire format itself — upstream owns
 that.

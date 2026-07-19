@@ -28,5 +28,6 @@ subset used by the platform and the propagation-node behavior TwistedPear relies
 
 ## To finish this spec
 
-Write the profile page; enumerate which LXMF fields/flows the mini-app platform depends
-on (the SPEC-SDK `lxmf.*` namespace binds to exactly this subset).
+Write the profile page using the shared template in
+[SPEC-WIRE](../spec-wire/spec.md); enumerate which LXMF fields/flows the mini-app
+platform depends on (the SPEC-SDK `lxmf.*` namespace binds to exactly this subset).

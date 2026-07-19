@@ -50,7 +50,7 @@ in [docs/miniapp-sdk.md](../../docs/miniapp-sdk.md). Rules:
 |---|---|---|---|
 | requested | `approve` | granted | sets `expiresAt = at + max(0, ttlMs)` |
 | requested | `deny` | denied | — |
-| granted | `first-use/live` | active | only if `at < expiresAt` (or no TTL); records `firstUsedAt` |
+| granted | `first-use/live` | active | only if `at < expiresAt`; records `firstUsedAt` |
 | granted | `ttl/expired` | expired | only if `at >= expiresAt` |
 | active | `ttl/expired` | expired | only if `at >= expiresAt` |
 | granted | `revoke` | revoked | records `revokedAt` |
@@ -60,6 +60,12 @@ Guards are total over the event tape: an event whose guard fails, or that arrive
 phase with no matching edge, does not transition. Time enters only through event
 payloads (`at`, `ttlMs`) — the machine is pure per
 [SPEC-MACHINE](../spec-machine/spec.md).
+
+There is no "no expiry" grant: `approve` requires `ttlMs` and always sets `expiresAt`
+(a `ttlMs` of 0 expires at the approval instant). The executable table tolerates a null
+`expiresAt` defensively, but that state is unreachable through the machine and no
+vector exercises it; a grant without expiry would be a spec change, not a latent
+feature.
 
 ### Properties (model-checked)
 

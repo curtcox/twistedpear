@@ -13,6 +13,15 @@ disagrees with its vector suite or formal model, the vectors and model win and t
 is a bug. A spec without a machine-checkable artifact is marked *informative* until it
 has one.
 
+Status labels used in the index:
+
+- **normative** — the spec's own machine-checkable artifacts exist and are
+  cross-checked in CI; the spec document is finished.
+- **stub** — the spec document is a scaffold, but machine-checkable evidence for its
+  scope already exists elsewhere in the tree (cited under "current locations").
+- **stub (informative)** — a scaffold with *no* current machine-checkable artifact;
+  everything it says is informative until its first artifact lands.
+
 Upstream compatibility is a permanent constraint: byte-level interoperability with the
 Python Reticulum and LXMF reference implementations is required. The Group A specs below
 are therefore **adopted** — TwistedPear does not author them; it maintains a profile
@@ -55,7 +64,7 @@ The contracts that make a seeded simulator a *conforming host* rather than a moc
 | Spec | Scope | Status |
 |---|---|---|
 | [SPEC-MACHINE](spec-machine/spec.md) | `step(state, event) → (state', intents)` contract; forbidden effects | stub |
-| [SPEC-EVENTS](spec-events/spec.md) | Closed event/intent vocabulary as a language-neutral schema | stub |
+| [SPEC-EVENTS](spec-events/spec.md) | Closed event/intent vocabulary as a language-neutral schema | stub (informative) |
 | [SPEC-KERNEL](spec-kernel/spec.md) | Virtual clock, seeded PRNG discipline, deterministic dequeue | stub |
 | [SPEC-ADAPTER](spec-adapter/spec.md) | Effect families; real/simulated observational equivalence | stub |
 | [SPEC-TRACE](spec-trace/spec.md) | Replayable trace format, hashing, shrinking | stub |
@@ -69,10 +78,11 @@ TwistedPear-authored; the app platform seen by mini-apps and renderers.
 | [SPEC-NAME](spec-name/spec.md) | 256t identifiers, resolution, CAS semantics | stub |
 | [SPEC-PKG](spec-pkg/spec.md) | Signed package structure, manifest, capability declarations | stub |
 | [SPEC-CAP](spec-cap/spec.md) | Capability taxonomy and grant lifecycle | **normative** (exemplar) |
+| [SPEC-AUTHORITY](spec-authority/spec.md) | Escrow and recovery-quorum authority machines | **normative** |
 | [SPEC-SDK](spec-sdk/spec.md) | Broker call semantics: namespaces, errors, quotas | stub |
 | [SPEC-WIDGET](spec-widget/spec.md) | Widget tree vocabulary and update/diff stream | stub |
-| [SPEC-PRESENT](spec-present/spec.md) | Layout and styling semantics, separate from vocabulary | stub |
-| [SPEC-BIND-LOOPBACK](spec-bind-loopback/spec.md) | In-memory message substrate binding | stub |
+| [SPEC-PRESENT](spec-present/spec.md) | Layout and styling semantics, separate from vocabulary | stub (informative) |
+| [SPEC-BIND-LOOPBACK](spec-bind-loopback/spec.md) | In-memory message substrate binding | stub (informative) |
 | [SPEC-CHROME](spec-chrome/spec.md) | Host confirmations, grant screens, draw-over rules | stub (informative) |
 
 ## Exemplar
@@ -82,6 +92,8 @@ CI, checked traces, a generated Layer-3 vector, and an executable table in
 `packages/protocol` — all four representations cross-checked edge-for-edge by
 `npm run formal:grant`. New specs should converge on that shape: one formal or vector
 artifact, multiple implementations, one cross-check command.
+[SPEC-AUTHORITY](spec-authority/spec.md) is the first follower — the same four
+representations for the escrow and recovery-quorum machines.
 
 ## Migration order
 
@@ -93,6 +105,7 @@ artifact, multiple implementations, one cross-check command.
    the widget schema, record golden widget streams, build the headless-snapshot
    renderer as the second implementation and test oracle, then DOM, TUI, and Flutter
    renderers.
-3. **Phase 3 — platform codification** (SPEC-PKG, SPEC-NAME, SPEC-SDK, Group A
-   profiles): golden/hostile vectors and one-page adoption profiles over the existing
-   CI evidence.
+3. **Phase 3 — platform codification** (SPEC-PKG, SPEC-NAME, SPEC-SDK, SPEC-CHROME,
+   Group A profiles): golden/hostile vectors and one-page adoption profiles over the
+   existing CI evidence. SPEC-CHROME grows its hostile-app fixtures into a
+   requirement-keyed suite; rules that cannot be fixture-tested stay informative.
