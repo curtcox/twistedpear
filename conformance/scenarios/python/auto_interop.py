@@ -109,7 +109,11 @@ def main() -> int:
     send_packet(outbound, GREETING)
 
     while True:
-        time.sleep(1)
+        time.sleep(2)
+        echo_in.announce()
+        link_in.announce()
+        delivery_destination.announce()
+        send_packet(outbound, GREETING)
 
 
 if __name__ == "__main__":

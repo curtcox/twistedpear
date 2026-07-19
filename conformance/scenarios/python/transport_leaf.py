@@ -74,9 +74,20 @@ def run_echo_leaf(target_host: str, target_port: int) -> int:
     inbound.announce()
     print(f"READY {inbound.hash.hex()}", flush=True)
 
+    alice_out = RNS.Destination(
+        alice,
+        RNS.Destination.OUT,
+        RNS.Destination.SINGLE,
+        APP_NAME,
+        ECHO_ASPECT,
+    )
+
     while True:
         time.sleep(2)
         inbound.announce()
+        # Proactive bob→alice greeting so the hub can observe reverse traffic
+        # even before the alice pinger learns a path through the hub.
+        send_packet(alice_out, GREETING)
 
 
 def run_alice_leaf(target_host: str, target_port: int) -> int:
@@ -95,13 +106,12 @@ def run_alice_leaf(target_host: str, target_port: int) -> int:
     )
     print(f"READY {outbound.hash.hex()}", flush=True)
 
-    # Always attempt the greeting. Packet.send path-requests when needed, and
-    # the hub may learn bob's announce slightly after this leaf comes online.
     while True:
-        if not RNS.Transport.has_path(outbound.hash):
+        if RNS.Transport.has_path(outbound.hash):
+            send_packet(outbound, GREETING)
+            print(f"SENT {outbound.hash.hex()}", flush=True)
+        else:
             RNS.Transport.request_path(outbound.hash)
-        send_packet(outbound, GREETING)
-        print(f"SENT {outbound.hash.hex()}", flush=True)
         time.sleep(2)
 
 

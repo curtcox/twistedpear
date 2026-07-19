@@ -111,10 +111,23 @@ try {
     "-w",
     "/conformance/scenarios/python",
     pyName,
-    "python",
-    "auto_interop.py"
+    "sh",
+    "-c",
+    "python auto_interop.py > /tmp/auto-interop.log 2>&1"
   ]);
-  spawnSync("sleep", ["4"], { stdio: "inherit" });
+
+  const readyDeadline = Date.now() + 30_000;
+  while (Date.now() < readyDeadline) {
+    const ready = spawnSync(
+      "docker",
+      ["exec", pyName, "sh", "-c", "grep -c '^READY ' /tmp/auto-interop.log 2>/dev/null || true"],
+      { encoding: "utf8" }
+    );
+    if ((ready.stdout ?? "").trim() !== "" && Number.parseInt((ready.stdout ?? "0").trim(), 10) > 0) {
+      break;
+    }
+    spawnSync("sleep", ["1"], { stdio: "ignore" });
+  }
 
   runInherit("docker", [
     "exec",
@@ -126,17 +139,9 @@ try {
   ]);
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
-  const pyLogs = spawnSync("docker", ["logs", "--tail", "40", pyName], { encoding: "utf8" });
-  const pyExec = spawnSync(
-    "docker",
-    ["exec", pyName, "sh", "-c", "ps aux; ls -la /tmp 2>/dev/null | head"],
-    { encoding: "utf8" }
-  );
-  if (pyLogs.stdout || pyLogs.stderr) {
-    console.error(`Python container logs:\n${pyLogs.stdout ?? ""}${pyLogs.stderr ?? ""}`);
-  }
-  if (pyExec.stdout || pyExec.stderr) {
-    console.error(`Python container state:\n${pyExec.stdout ?? ""}${pyExec.stderr ?? ""}`);
+  const pyLog = spawnSync("docker", ["exec", pyName, "cat", "/tmp/auto-interop.log"], { encoding: "utf8" });
+  if (pyLog.stdout || pyLog.stderr) {
+    console.error(`Python peer log:\n${pyLog.stdout ?? ""}${pyLog.stderr ?? ""}`);
   }
   process.exitCode = 1;
 } finally {
