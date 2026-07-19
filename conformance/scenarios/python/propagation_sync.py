@@ -18,7 +18,7 @@ from load_identity import load_identity
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "config" / "propagation-client"
 
 
-def wait_for_path(destination_hash: bytes, timeout_s: float = 20.0) -> None:
+def wait_for_path(destination_hash: bytes, timeout_s: float = 45.0) -> None:
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         if RNS.Transport.has_path(destination_hash):

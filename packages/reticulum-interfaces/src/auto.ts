@@ -303,14 +303,15 @@ export class AutoInterface extends RawPacketInterface {
   }
 
   private addPeer(address: string, ifname: string): void {
-    const existing = this.peers.get(address);
+    const peerAddress = descopeLinkLocal(address);
+    const existing = this.peers.get(peerAddress);
     if (existing === undefined) {
-      this.peers.set(address, { ifname, lastHeard: Date.now(), lastOutbound: Date.now() });
-      this.spawnPeer(address, ifname);
+      this.peers.set(peerAddress, { ifname, lastHeard: Date.now(), lastOutbound: Date.now() });
+      this.spawnPeer(peerAddress, ifname);
       return;
     }
 
-    this.peers.set(address, { ...existing, lastHeard: Date.now() });
+    this.peers.set(peerAddress, { ...existing, lastHeard: Date.now() });
   }
 
   private spawnPeer(address: string, ifname: string): void {
@@ -345,12 +346,15 @@ export class AutoInterface extends RawPacketInterface {
 
   private async readDataSocket(ifname: string, socket: Awaited<ReturnType<Runtime["udp"]["bind"]>>): Promise<void> {
     for await (const packet of socket.packets) {
-      const peer = this.spawned.get(packet.host);
+      // Discovery peers are keyed by descoped link-locals; UDP recv addresses often
+      // include a zone id (%iface) that must be stripped before map lookup.
+      const peerAddress = descopeLinkLocal(packet.host);
+      const peer = this.spawned.get(peerAddress);
       if (peer !== undefined) {
         peer.receiveFromPeer(packet.data);
       } else {
-        this.addPeer(packet.host, ifname);
-        const spawned = this.spawned.get(packet.host);
+        this.addPeer(peerAddress, ifname);
+        const spawned = this.spawned.get(peerAddress);
         spawned?.receiveFromPeer(packet.data);
       }
     }

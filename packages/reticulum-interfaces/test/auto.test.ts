@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Identity, PureCryptoProvider, nodeRuntime } from "@twistedpear/reticulum-ts";
+import { descopeLinkLocal } from "../src/auto-common.js";
 import { AutoInterface, scopeIpv6Address } from "../src/auto.js";
 
 function deriveMulticastAddress(groupId: string): string {
@@ -28,6 +29,12 @@ describe("AutoInterface helpers", () => {
     expect(scopeIpv6Address("ff12::1234", "eth0")).toBe("ff12::1234%eth0");
     expect(scopeIpv6Address("fe80::1234%eth1", "eth0")).toBe("fe80::1234%eth1");
     expect(scopeIpv6Address("127.0.0.1", "eth0")).toBe("127.0.0.1");
+  });
+
+  it("strips zone ids so data-plane recv keys match discovery peers", () => {
+    expect(descopeLinkLocal("fe80::abcd%tpvethts")).toBe("fe80::abcd");
+    expect(descopeLinkLocal("fe80::abcd%eth0")).toBe("fe80::abcd");
+    expect(descopeLinkLocal("fe80::abcd")).toBe("fe80::abcd");
   });
 
   it("derives stable multicast addresses from group id", () => {

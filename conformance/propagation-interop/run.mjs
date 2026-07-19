@@ -245,24 +245,34 @@ async function runTsPropagationServerPythonClientSync() {
   server.storePropagationData(queuedMessage);
 
   const propagationHash = Buffer.from(nodePropagation.hash).toString("hex");
-  const syncOutput = composeRun(
-    "propagation-tools",
-    [
-      "propagation_sync.py",
-      "--target-host",
-      "host.docker.internal",
-      "--target-port",
-      String(PROPAGATION_TS_PORT),
-      "--propagation-hash",
-      propagationHash,
-      "--recipient",
-      "alice"
-    ],
-    {}
-  );
+  // Keep announcing while the short-lived Python client comes online and
+  // requests a path; a single announce is easy to miss on cold TCP attach.
+  const announceWhileSync = setInterval(() => {
+    void nodePropagation.announce();
+    void nodeDelivery.announce();
+  }, 1_000);
+  try {
+    const syncOutput = composeRun(
+      "propagation-tools",
+      [
+        "propagation_sync.py",
+        "--target-host",
+        "host.docker.internal",
+        "--target-port",
+        String(PROPAGATION_TS_PORT),
+        "--propagation-hash",
+        propagationHash,
+        "--recipient",
+        "alice"
+      ],
+      {}
+    );
 
-  if (!syncOutput.includes("SYNC_OK TS propagation server seed")) {
-    throw new Error(`Python propagation sync failed: ${syncOutput}`);
+    if (!syncOutput.includes("SYNC_OK TS propagation server seed")) {
+      throw new Error(`Python propagation sync failed: ${syncOutput}`);
+    }
+  } finally {
+    clearInterval(announceWhileSync);
   }
 
   await reticulum.stop();

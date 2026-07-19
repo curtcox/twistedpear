@@ -228,7 +228,9 @@ async function runLxmfEcho(wsUrl) {
   // route convergence and allow the Python peer's interface worker to commit
   // the transported return path before the first opportunistic delivery.
   await aliceDelivery.announce();
-  await sleep(3_000);
+  await sleep(5_000);
+  await aliceDelivery.announce();
+  await sleep(2_000);
 
   const received = new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("browser LXMF echo timeout")), 30_000);
