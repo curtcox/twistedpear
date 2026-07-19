@@ -1,12 +1,3 @@
-networks:
-  auto-lan:
-    driver: bridge
-    enable_ipv6: true
-    ipam:
-      config:
-        - subnet: 172.31.200.0/24
-        - subnet: fd00:7470:6175:746f::/64
-
 services:
   reference:
     build:
@@ -117,35 +108,15 @@ services:
       - "host.docker.internal:host-gateway"
     entrypoint: ["python"]
 
+  # Image used by conformance/auto-interop/run-compose.mjs (veth/netns topology).
   auto-interop:
     build:
       context: ../..
       dockerfile: conformance/docker/Dockerfile
     working_dir: /conformance/scenarios/python
     command: python auto_interop.py
-    networks:
-      - auto-lan
-    healthcheck:
-      test: ["CMD", "python", "-c", "print('auto-interop-ready')"]
-      interval: 2s
-      timeout: 2s
-      retries: 15
-      start_period: 5s
-
-  # TypeScript AutoInterface peer for CI/local Linux. Shares auto-lan with the
-  # Python peer so each side has a distinct link-local address and data bind.
-  auto-interop-ts:
-    image: node:22-bookworm
-    working_dir: /work
-    volumes:
-      - ../..:/work
-    networks:
-      - auto-lan
     profiles:
       - auto-ts
-    environment:
-      AUTO_INTEROP_IN_COMPOSE: "1"
-    command: ["node", "conformance/auto-interop/run.mjs"]
 
   i2pd:
     image: purplei2p/i2pd:latest
