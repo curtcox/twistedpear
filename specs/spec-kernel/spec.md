@@ -1,6 +1,6 @@
 # SPEC-KERNEL — Deterministic scheduler semantics
 
-**Group:** B (substrate) · **Status:** stub · **Migration phase:** 1
+**Group:** B (substrate) · **Status:** normative · **Migration phase:** 1
 
 ## Scope
 
@@ -51,6 +51,18 @@ are dispatched per node in ascending node-id order.
 
 ## Normative artifacts (current locations)
 
+- Ordering fixtures for the four dequeue rules (pinned delivery orders and
+  canonical trace hashes): [vectors/ordering.json](vectors/ordering.json)
+- Freestanding conformance runner (`runKernelConformance` — point it at any
+  kernel factory exposing `start`/`runUntilIdle`/`getTrace`):
+  [conformance/kernel/runner.mjs](../../conformance/kernel/runner.mjs), CLI
+  [conformance/kernel/run.mjs](../../conformance/kernel/run.mjs)
+  (`npm run test:kernel-conformance`)
+- Mutation tests: the deliberately mis-ordered variants in
+  [conformance/kernel/misordered.mjs](../../conformance/kernel/misordered.mjs)
+  must each fail the fixture for the rule they violate
+  ([packages/effects/test/kernel-conformance.test.ts](../../packages/effects/test/kernel-conformance.test.ts),
+  in the `sansio:determinism` gate)
 - Kernel reference implementation:
   [packages/effects/src/adapters/sim](../../packages/effects/src/adapters/sim/)
   (`kernel.ts`, `clock.ts`, `entropy.ts`, `timers.ts`, `transport.ts`)
@@ -63,10 +75,15 @@ are dispatched per node in ascending node-id order.
 ## Implementations
 
 - `SimKernel` (seeded simulation)
+- `MiniKernel`
+  ([conformance/kernel/mini-kernel.mjs](../../conformance/kernel/mini-kernel.mjs)) —
+  independent minimal implementation; must produce byte-identical traces to
+  `SimKernel` on every runner scenario, which the pinned fixture hashes enforce
 - Production event-loop host in [packages/host-core](../../packages/host-core/)
 
 ## To finish this spec
 
-Promote the double-run hash suite to a freestanding conformance runner any kernel
-implementation can be pointed at. The ordering, clock, and PRNG rules above are the
-spec text that runner enforces.
+Done — the double-run hash suite is promoted to the freestanding runner in
+`conformance/kernel/`, the four dequeue rules have pinned ordering fixtures in
+`vectors/ordering.json`, and the runner is mutation-tested: each mis-ordered
+kernel variant fails the fixture for the rule it violates.
