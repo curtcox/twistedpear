@@ -79,3 +79,13 @@ if (loopbackText !== referenceText) {
 }
 
 console.log(`bind-loopback: ${loopback.length} calls identical across loopback and reference bindings`);
+
+// SPEC-SDK vector suite over the loopback binding (the reference binding
+// replays the same vectors in conformance/sdk-interop).
+const { runSdkVectors } = await import("../sdk-interop/vectors.mjs");
+const replay = await runSdkVectors("loopback");
+if (replay.failures.length > 0) {
+  for (const failure of replay.failures) console.error(failure);
+  throw new Error(`SPEC-SDK vectors failed over the loopback binding (${replay.failures.length} failures)`);
+}
+console.log(`bind-loopback: ${replay.vectors} SPEC-SDK vectors (${replay.steps} steps) passed over the loopback binding`);

@@ -359,6 +359,16 @@ async function main() {
   rmSync(beePath, { recursive: true, force: true });
 
   console.log("sdk-interop: identity, lxmf, storage, announce, resource, presence, grants, quotas passed");
+
+  // SPEC-SDK vector suite over the reference binding (the loopback binding
+  // replays the same vectors in conformance/bind-loopback).
+  const { runSdkVectors } = await import("./vectors.mjs");
+  const replay = await runSdkVectors("reference");
+  if (replay.failures.length > 0) {
+    for (const failure of replay.failures) console.error(failure);
+    throw new Error(`SPEC-SDK vectors failed over the reference binding (${replay.failures.length} failures)`);
+  }
+  console.log(`sdk-interop: ${replay.vectors} SPEC-SDK vectors (${replay.steps} steps) passed over the reference binding`);
 }
 
 main().catch((error) => {

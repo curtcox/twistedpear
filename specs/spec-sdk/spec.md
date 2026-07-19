@@ -1,6 +1,6 @@
 # SPEC-SDK — Broker API semantics
 
-**Group:** C (platform) · **Status:** stub · **Migration phase:** 3
+**Group:** C (platform) · **Status:** normative · **Migration phase:** 3
 
 ## Scope
 
@@ -29,9 +29,33 @@ The closed set of error codes a brokered call may fail with (currently defined a
 Calls without a matching grant fail with a typed capability error; they never
 partially execute.
 
+**Service extension codes (recorded by the vectors):** a handler that throws
+an error carrying its own `code` surfaces that code verbatim — the taxonomy
+above is the broker-level set, not an exhaustive enumeration of every
+service-level code. The vectors pin the observed extensions (e.g.
+`INVALID_WIDGET` from `ui.render` payload validation; service errors such as
+`APPS_BAD_REQUEST` and `AI_BAD_REQUEST` exist on the same path). Quota
+exhaustion in the storage namespaces surfaces as `BROKER_ERROR` with a
+message containing "quota" — the storage quota errors carry no code of their
+own.
+
 ## Normative artifacts (current locations)
 
-- Canonical description: [docs/miniapp-sdk.md](../../docs/miniapp-sdk.md)
+- Vector suite: [vectors/calls.json](vectors/calls.json) — 32 vectors / 50
+  steps of `(granted capabilities, call, args) → (result | error code)`,
+  covering every namespace with at least one success and one error, all 13
+  taxonomy codes, and a quota-exhaustion case per budgeted namespace
+  (kv, hyperbee, broker rate, broker message size). Results are normalized
+  (bytes as `{$bytes}`, timing fields zeroed, message ids masked).
+  Regenerate deliberately with `npm run generate:sdk-vectors`.
+- Replayed over **both bindings** in CI: the reference binding via
+  `npm run test:sdk-interop` and the packaged loopback binding
+  ([SPEC-BIND-LOOPBACK](../spec-bind-loopback/spec.md)) via
+  `npm run test:bind-loopback` — identical observable results minus timing.
+  Shared machinery:
+  [conformance/sdk-interop/vector-hosts.mjs](../../conformance/sdk-interop/vector-hosts.mjs),
+  [conformance/sdk-interop/vectors.mjs](../../conformance/sdk-interop/vectors.mjs).
+- Informative description: [docs/miniapp-sdk.md](../../docs/miniapp-sdk.md)
 - Cross-implementation evidence: [conformance/sdk-interop](../../conformance/sdk-interop/)
   (`npm run test:sdk-interop`)
 
@@ -43,8 +67,7 @@ partially execute.
 
 ## To finish this spec
 
-Call/response vector suite in `vectors/`, derived from the sdk-interop suite. Each
-vector is `(granted capabilities, call, args) → (result | error code)`; cover at least
-one success and one error case per namespace, every code in the error taxonomy, and
-one quota-exhaustion case per budgeted namespace. The capability gating each namespace
-sits behind is specified in [SPEC-CAP](../spec-cap/spec.md), not here.
+Done — the vector suite landed with per-namespace success and error coverage,
+the full error taxonomy, quota exhaustion per budgeted namespace, and replay
+over both bindings in CI. The capability gating each namespace sits behind is
+specified in [SPEC-CAP](../spec-cap/spec.md), not here.
