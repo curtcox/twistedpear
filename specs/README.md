@@ -82,7 +82,7 @@ TwistedPear-authored; the app platform seen by mini-apps and renderers.
 | [SPEC-SDK](spec-sdk/spec.md) | Broker call semantics: namespaces, errors, quotas | stub |
 | [SPEC-WIDGET](spec-widget/spec.md) | Widget tree vocabulary and update/diff stream | **normative** |
 | [SPEC-PRESENT](spec-present/spec.md) | Layout and styling semantics, separate from vocabulary | stub |
-| [SPEC-BIND-LOOPBACK](spec-bind-loopback/spec.md) | In-memory message substrate binding | stub (informative) |
+| [SPEC-BIND-LOOPBACK](spec-bind-loopback/spec.md) | In-memory message substrate binding | **normative** |
 | [SPEC-CHROME](spec-chrome/spec.md) | Host confirmations, grant screens, draw-over rules | stub (informative) |
 
 ## Exemplar

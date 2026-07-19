@@ -61,6 +61,15 @@ export type { StorageBeeBackend, StorageBeeDescriptor, StorageBeeEntry, StorageB
 export { AppIdentityService } from "./services/identity.js";
 export type { AppScopedIdentity, IdentityBackend } from "./services/identity.js";
 export { AnnounceService } from "./services/announce.js";
+export {
+  LoopbackResourceBackend,
+  MemoryBeeBackend,
+  MemoryKvStoreBackend,
+  StaticPresenceBackend,
+  createLoopbackBinding,
+  type LoopbackBinding,
+  type LoopbackBindingOptions
+} from "./services/loopback.js";
 export type { AnnounceBackend, AnnounceEvent, AnnounceSubscription } from "./services/announce.js";
 export { NamespacedLxmfService } from "./services/lxmf.js";
 export type { LxmfBackend, LxmfDelivery, LxmfInboxMessage, LxmfSendRequest } from "./services/lxmf.js";
