@@ -263,8 +263,10 @@ async function runTsPropagationServerPythonClientSync() {
   // Keep announcing while the short-lived Python client comes online and
   // requests a path; a single announce is easy to miss on cold TCP attach.
   const announceWhileSync = setInterval(() => {
-    void nodePropagation.announce();
-    void nodeDelivery.announce();
+    // The Python client may disconnect between ticks; don't let a closed
+    // TCP child interface abort the sync attempt.
+    void Promise.resolve(nodePropagation.announce()).catch(() => {});
+    void Promise.resolve(nodeDelivery.announce()).catch(() => {});
   }, 1_000);
   try {
     const syncOutput = await composeRun(

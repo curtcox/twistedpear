@@ -82,17 +82,34 @@ def main() -> int:
 
     router = LXMF.LXMRouter(storagepath=str(lxmf_storage))
     delivery_destination = router.register_delivery_identity(identity)
+    alice_delivery = RNS.Destination(
+        alice,
+        RNS.Destination.OUT,
+        RNS.Destination.SINGLE,
+        "lxmf",
+        "delivery",
+    )
 
     def delivery_callback(message: LXMF.LXMessage) -> None:
+        print(
+            "DELIVERED "
+            f"source={message.source_hash.hex()} "
+            f"content_bytes={len(message.content)} "
+            f"return_path={RNS.Transport.has_path(alice_delivery.hash)}",
+            flush=True,
+        )
         reply = LXMF.LXMessage(
-            message.source,
+            alice_delivery,
             delivery_destination,
             message.content,
             message.title,
             desired_method=LXMF.LXMessage.OPPORTUNISTIC,
         )
         reply.defer_stamp = True
-        reply.send()
+        # Match lxmf_echo/i2p_interop: queue via the router so stamp deferral and
+        # path requests are applied. LXMessage.send() skips that path.
+        router.handle_outbound(reply)
+        print(f"REPLY_QUEUED destination={alice_delivery.hash.hex()}", flush=True)
 
     router.register_delivery_callback(delivery_callback)
     delivery_destination.announce()

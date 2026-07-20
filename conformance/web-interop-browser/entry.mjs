@@ -170,27 +170,32 @@ async function runPacketEcho(wsUrl) {
   // Match the LXMF slice: the leaf can learn the Python route before the
   // gateway has retained the browser return path needed for the echo.
   await aliceIn.announce();
-  await sleep(3_000);
+
+  // Wait for Python's unsolicited greeting before sending — that proves the
+  // browser return path is live. Otherwise the ping receipt can succeed (proof
+  // follows the inbound reverse path) while the separate echo packet is dropped.
+  const greetingDeadline = Date.now() + 20_000;
+  while (!received.has("hello from python leaf echo") && Date.now() < greetingDeadline) {
+    await sleep(100);
+  }
+  if (!received.has("hello from python leaf echo")) {
+    throw new Error("browser packet echo: Python greeting was not received before ping");
+  }
+
+  await aliceIn.announce();
+  await sleep(500);
 
   const payload = new TextEncoder().encode("web-browser-interop-ping");
   const receipt = await bobOut.send(payload, { createReceipt: true });
   await waitForReceipt(receipt);
 
-  const deadline = Date.now() + 15_000;
-  while (Date.now() < deadline) {
-    if (received.has("web-browser-interop-ping") && received.has("hello from python leaf echo")) {
-      break;
-    }
-
+  const deadline = Date.now() + 20_000;
+  while (!received.has("web-browser-interop-ping") && Date.now() < deadline) {
     await sleep(100);
   }
 
   if (!received.has("web-browser-interop-ping")) {
     throw new Error("browser packet echo: outbound echo was not received");
-  }
-
-  if (!received.has("hello from python leaf echo")) {
-    throw new Error("browser packet echo: Python greeting was not received");
   }
 
   await wsClient.close();
