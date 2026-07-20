@@ -218,9 +218,16 @@ async function runPlaywright(pageUrl, gatewayReticulum) {
     await page.goto(pageUrl, { waitUntil: "load", timeout: 30_000 });
 
     try {
-      await page.waitForFunction(() => globalThis.__WEB_INTEROP__?.status === "done", undefined, {
-        timeout: 120_000
-      });
+      await page.waitForFunction(
+        () => {
+          const status = globalThis.__WEB_INTEROP__?.status;
+          return status === "done" || status === "error";
+        },
+        undefined,
+        {
+          timeout: 120_000
+        }
+      );
     } catch (error) {
       const snapshot = await page.evaluate(() => globalThis.__WEB_INTEROP__ ?? null);
       throw new Error(
@@ -229,6 +236,9 @@ async function runPlaywright(pageUrl, gatewayReticulum) {
     }
 
     const result = await page.evaluate(() => globalThis.__WEB_INTEROP__);
+    if (result?.status === "error") {
+      throw new Error(`browser interop failed: ${JSON.stringify(result)}`);
+    }
     if (result?.webLeafHost !== "ok" || result?.packet !== "ok" || result?.lxmf !== "ok") {
       throw new Error(`browser interop incomplete: ${JSON.stringify(result)}`);
     }

@@ -71,7 +71,8 @@ export function composeUp(...services) {
 
   execSync(`docker compose -f "${COMPOSE_FILE}" up -d --build ${services.join(" ")}`, {
     stdio: "inherit",
-    cwd: REPO_ROOT
+    cwd: REPO_ROOT,
+    timeout: 180_000
   });
 }
 
