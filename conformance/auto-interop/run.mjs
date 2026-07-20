@@ -7,7 +7,7 @@
  */
 
 import { hexToBytes } from "../../packages/reticulum-ts/dist/crypto/bytes.js";
-import { PureCryptoProvider } from "../../packages/reticulum-ts/dist/crypto/pure.js";
+import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/crypto/node.js";
 import { DestinationDirection, DestinationType } from "../../packages/reticulum-ts/dist/destination.js";
 import { DestinationProofStrategy } from "../../packages/reticulum-ts/dist/registered-destination.js";
 import { Identity } from "../../packages/reticulum-ts/dist/identity.js";
@@ -25,7 +25,7 @@ import {
   waitForPath
 } from "../scenarios/bare/helpers.mjs";
 
-const provider = new PureCryptoProvider();
+const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
 
 function loadIdentity(name) {
@@ -108,6 +108,9 @@ async function runAutoEcho() {
 
     await aliceIn.announce();
     await waitForAutoPeer(auto);
+    // Peer discovery is discovery-plane only; wait a beat for data-plane announces.
+    await sleep(2_000);
+    await aliceIn.announce();
     await waitForPath(reticulum, bobOut.hash, 45_000);
 
     const received = new Map();
@@ -157,6 +160,7 @@ async function runAutoLinkEcho() {
     });
 
     await waitForAutoPeer(auto);
+    await sleep(2_000);
     await waitForPath(reticulum, bobOut.hash, 45_000);
 
     const link = bobOut.requestLink();
@@ -198,6 +202,8 @@ async function runAutoLxmfEcho() {
 
     await aliceDelivery.announce();
     await waitForAutoPeer(auto);
+    await sleep(2_000);
+    await aliceDelivery.announce();
     await waitForPath(reticulum, bobOut.hash, 45_000);
 
     const received = new Promise((resolve, reject) => {

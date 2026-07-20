@@ -182,7 +182,7 @@ export function spawnComposeService(service) {
   });
 }
 
-export function composeRun(service, args = [], env = {}) {
+export function composeRun(service, args = [], env = {}, timeoutMs = 120_000) {
   return new Promise((resolve, reject) => {
     const child = spawn(
       "docker",
@@ -205,6 +205,15 @@ export function composeRun(service, args = [], env = {}) {
     );
     let stdout = "";
     let stderr = "";
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      child.kill("SIGKILL");
+      reject(new Error(`docker compose run ${service} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
     child.stdout.on("data", (chunk) => {
@@ -213,8 +222,20 @@ export function composeRun(service, args = [], env = {}) {
     child.stderr.on("data", (chunk) => {
       stderr += chunk;
     });
-    child.on("error", reject);
+    child.on("error", (error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      reject(error);
+    });
     child.on("close", (code) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
       if (code === 0) {
         resolve(stdout);
         return;

@@ -332,7 +332,7 @@ export class AutoInterface extends RawPacketInterface {
           this.peers.set(address, { ...record, lastHeard: Date.now() });
         }
       },
-      { name: `${this.name}/${ifname}/${address}`, mtu: this.mtu, outgoing: this.outgoing }
+      { name: `${this.name}/${ifname}/${address}`, mtu: this.mtu, outgoing: true }
     );
 
     const previous = this.spawned.get(address);

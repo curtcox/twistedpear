@@ -400,10 +400,16 @@ async function runPropagationStoreRestart() {
   console.log("propagation-interop: store survives restart");
 }
 
-await runInProcessPropagationSync();
-await runHostCorePropagationBoot();
-await runPropagationStoreRestart();
-await runLxmfOpportunisticOverTcp();
-await runTsPropagationServerPythonClientSync();
-await runLxmdServerTsClientSync();
-console.log("propagation-interop: passed");
+try {
+  await runInProcessPropagationSync();
+  await runHostCorePropagationBoot();
+  await runPropagationStoreRestart();
+  await runLxmfOpportunisticOverTcp();
+  await runTsPropagationServerPythonClientSync();
+  await runLxmdServerTsClientSync();
+  console.log("propagation-interop: passed");
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`::error::propagation-interop failed: ${message.split("\n")[0]}`);
+  throw error;
+}
