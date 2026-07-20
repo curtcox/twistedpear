@@ -241,6 +241,8 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`::error::dist-soak failed: ${message.split("\n")[0]}`);
     console.error(error);
     process.exit(1);
   });

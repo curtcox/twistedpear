@@ -134,14 +134,24 @@ try {
     throw new Error("Python AutoInterface peer did not print READY within 30s");
   }
 
-  runInherit("docker", [
-    "exec",
-    "-e",
-    "AUTO_INTEROP_IN_COMPOSE=1",
-    tsName,
-    "node",
-    "conformance/auto-interop/run.mjs"
-  ]);
+  // Capture TS output so failures produce actionable Actions annotations.
+  const tsRun = spawnSync(
+    "docker",
+    ["exec", "-e", "AUTO_INTEROP_IN_COMPOSE=1", tsName, "node", "conformance/auto-interop/run.mjs"],
+    { cwd: repoRoot, encoding: "utf8" }
+  );
+  if ((tsRun.stdout ?? "").trim()) {
+    process.stdout.write(tsRun.stdout);
+  }
+  if ((tsRun.stderr ?? "").trim()) {
+    process.stderr.write(tsRun.stderr);
+  }
+  if (tsRun.status !== 0) {
+    const detail = [tsRun.stdout, tsRun.stderr].filter(Boolean).join("\n").trim();
+    throw new Error(
+      `docker exec ts auto-interop failed with status ${tsRun.status ?? 1}${detail ? `\n${detail}` : ""}`
+    );
+  }
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   // Surface the first line in GitHub Actions annotations (public via check-runs API).
@@ -153,6 +163,16 @@ try {
     console.error(`Python peer log:\n${text}`);
     const preview = text.split("\n").slice(0, 8).join(" | ");
     if (preview) console.error(`::error::auto-interop python peer: ${preview.slice(0, 200)}`);
+  }
+  const detailLines = message
+    .split("\n")
+    .slice(1)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 8)
+    .join(" | ");
+  if (detailLines) {
+    console.error(`::error::auto-interop ts detail: ${detailLines.slice(0, 300)}`);
   }
   process.exitCode = 1;
 } finally {

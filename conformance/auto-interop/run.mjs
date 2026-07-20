@@ -294,6 +294,8 @@ async function main() {
 }
 
 main().catch((error) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`::error::auto-interop: ${message.split("\n")[0]}`);
   console.error(error);
-  throw error;
+  process.exitCode = 1;
 });

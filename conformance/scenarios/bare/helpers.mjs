@@ -32,9 +32,16 @@ export async function sleep(ms) {
 
 export async function waitForPath(reticulum, destinationHash, timeoutMs = 15_000) {
   const deadline = Date.now() + timeoutMs;
+  let lastRequest = 0;
   while (Date.now() < deadline) {
     if (reticulum.hasPath(destinationHash)) {
       return;
+    }
+
+    const now = Date.now();
+    if (typeof reticulum.requestPath === "function" && now - lastRequest >= 1_000) {
+      reticulum.requestPath(destinationHash);
+      lastRequest = now;
     }
 
     await sleep(100);
