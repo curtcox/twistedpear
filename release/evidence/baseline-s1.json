@@ -1,8 +1,8 @@
 {
   "schema": "twistedpear.release-evidence-v1",
   "id": "baseline:S1",
-  "status": "partial",
-  "at": "2026-07-19T14:56:32.000Z",
-  "log": "release/evidence-logs/2026-07-19-s1-baseline.log",
-  "note": "Build, full Vitest, release harness, desktop, Dev Studio, Phase 5, web mini-app/examples, Bare device/interop, I2P interop, core smoke, benchmarks, web RNode, web interop, transport-role, desktop lifecycle, and the required macOS iOS lane passed locally; the five failures from CI run 29689417513 are repaired locally and a fresh fully green CI run remains required"
+  "status": "passed",
+  "at": "2026-07-20T20:33:04.351Z",
+  "log": "release/evidence-logs/2026-07-20-s1-baseline-green.log",
+  "note": "Full PR-tier CI green on 815a2109 (run 29775996062)"
 }

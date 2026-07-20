@@ -21,7 +21,7 @@ Last audited: 2026-07-19.
 | ID | Status | Item | Evidence | Verify |
 |---|---|---|---|---|
 | S0 | done | S0 release automation harness | `scripts/release/`, [harness log](release/evidence-logs/2026-07-19-s0-harness.log) | `npm run test:release-harness && npm run release:status` |
-| S1 | done | S1 build/unit portion (PR-tier conformance still open) | [structured record](release/evidence/baseline-s1.json), [run log](release/evidence-logs/2026-07-19-s1-baseline.log) | `npm run build && npm test` |
+| S1 | done | S1 keep-green baseline (build/unit + full PR-tier CI) | [structured record](release/evidence/baseline-s1.json), [CI record](release/evidence/ci-baseline.json), [run log](release/evidence-logs/2026-07-20-s1-baseline-green.log) | `npm run build && npm test`; CI run [29775996062](https://github.com/curtcox/twistedpear/actions/runs/29775996062) |
 
 ---
 
@@ -572,3 +572,10 @@ CI: `web` + `interop` jobs per [docs/ci-policy.md](docs/ci-policy.md).
 | LIMITATIONS §1 crypto benchmarks | [LIMITATIONS.md](LIMITATIONS.md) §1, `conformance/bare-runtime/baseline-node.json` | `npm run test:bare-benchmark-compare` |
 | iOS full-loop PR path filter | `.github/workflows/ci.yml` `ios-sim` | touch `packages/miniapp-runtime/**` etc. |
 | `mirrorFrom` polling timeout | `packages/bridge-hyper/src/drive.ts` | `npm test -- packages/bridge-hyper/test` |
+
+## Release evidence log
+
+| ID | Completed | Evidence | Note |
+|---|---|---|---|
+| baseline:S1 | 2026-07-20T20:33:04.351Z | [record](release/evidence/baseline-s1.json) · [log](release/evidence-logs/2026-07-20-s1-baseline-green.log) | Full PR-tier CI green on 815a2109 (run 29775996062) |
+| ci:baseline | 2026-07-20T20:33:04.574Z | [record](release/evidence/ci-baseline.json) · [log](release/evidence-logs/2026-07-20-ci-baseline.log) | CI run 29775996062 success on main @ 815a2109 |

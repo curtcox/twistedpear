@@ -1,0 +1,8 @@
+[release] stage: S1
+[release] commands: full PR-tier CI matrix on main
+[release] commit: 815a2109d43b94c4061faea0722b167145f14e75
+[release] ci_run: https://github.com/curtcox/twistedpear/actions/runs/29775996062
+[release] result: success (40 jobs passed, 3 path-filtered macOS jobs skipped)
+[release] key_gates: test, auto-interop, desktop-interop, web-interop, dist-soak, ios-sim, seeder all green
+[release] repairs_landed: full AutoInterface discovery hashes; LXMF handle_outbound; peer-expiry synthetic assertion; dist-soak Hyperdrive fetch retry + longer CI budget; web-interop-browser process.exit + browser flake retry
+[release] exit: 0
