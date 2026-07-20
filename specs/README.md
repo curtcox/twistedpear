@@ -53,9 +53,9 @@ Authored upstream; TwistedPear maintains profiles and interop evidence.
 
 | Spec | Scope | Status |
 |---|---|---|
-| [SPEC-WIRE](spec-wire/spec.md) | Reticulum packets, announces, links, crypto | stub |
-| [SPEC-MSG](spec-msg/spec.md) | LXMF messages, propagation, tickets | stub |
-| [SPEC-MEDIA](spec-media/spec.md) | Per-medium interface profiles (AutoInterface, WebSocket, BLE, RNode/LoRa, serial) | stub |
+| [SPEC-WIRE](spec-wire/spec.md) | Reticulum packets, announces, links, crypto | **normative** (profile) |
+| [SPEC-MSG](spec-msg/spec.md) | LXMF messages, propagation, tickets | **normative** (profile) |
+| [SPEC-MEDIA](spec-media/spec.md) | Per-medium interface profiles (AutoInterface, WebSocket, BLE, RNode/LoRa, serial) | **normative** (per-medium profiles) |
 
 ### Group B — Execution substrate specs
 
