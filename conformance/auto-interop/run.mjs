@@ -27,6 +27,9 @@ import {
 
 const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
+const IN_COMPOSE = process.env.AUTO_INTEROP_IN_COMPOSE === "1";
+// In the veth/netns harness the only usable link-local iface is the injected peer.
+const AUTO_OPTIONS = IN_COMPOSE ? { allowedDevices: ["tpvethts", "tpvethpy"] } : {};
 
 function loadIdentity(name) {
   const vectors = loadIdentityVectors();
@@ -64,6 +67,7 @@ async function withAutoInterface(callback) {
     name: "ts-auto-interop",
     provider,
     runtime,
+    ...AUTO_OPTIONS,
     onPeerSpawn: (peer) => reticulum.registerInterface(peer),
     onPeerDetach: (peer) => reticulum.unregisterInterface(peer)
   });
@@ -246,6 +250,7 @@ async function runAutoPeerExpiry() {
     name: "ts-auto-expiry",
     provider,
     runtime,
+    ...AUTO_OPTIONS,
     peeringTimeoutMs: 200,
     onPeerSpawn: (peer) => reticulum.registerInterface(peer),
     onPeerDetach: () => {
