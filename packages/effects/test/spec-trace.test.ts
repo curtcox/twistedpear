@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -130,8 +130,11 @@ describe("SPEC-TRACE schemas", () => {
   it("accept the stored regression and campaign reproducer fixtures", () => {
     const fixtures = [join(repo, "conformance", "sim-regressions", "llm-duplicate-delivery.json")];
     const reproducers = join(repo, "conformance", "sim-campaign", "artifacts", "reproducers");
-    const names = readdirSync(reproducers).filter((name) => name.endsWith(".json")).sort();
-    if (names.length > 0) fixtures.push(join(reproducers, names[0]!));
+    // Campaign artifacts are gitignored; CI checkouts have no reproducers dir.
+    if (existsSync(reproducers)) {
+      const names = readdirSync(reproducers).filter((name) => name.endsWith(".json")).sort();
+      if (names.length > 0) fixtures.push(join(reproducers, names[0]!));
+    }
     for (const fixture of fixtures) {
       const raw = JSON.parse(readFileSync(fixture, "utf8"));
       expect(historyValidator(raw), fixture).toEqual([]);
