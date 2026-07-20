@@ -18,6 +18,7 @@ import {
   deriveMulticastAddress,
   descopeLinkLocal,
   equalBytes,
+  normalizeLinkLocal,
   MULTICAST_TEMPORARY,
   SCOPE_LINK
 } from "./auto-common.js";
@@ -303,7 +304,7 @@ export class AutoInterface extends RawPacketInterface {
   }
 
   private addPeer(address: string, ifname: string): void {
-    const peerAddress = descopeLinkLocal(address);
+    const peerAddress = normalizeLinkLocal(address);
     const existing = this.peers.get(peerAddress);
     if (existing === undefined) {
       this.peers.set(peerAddress, { ifname, lastHeard: Date.now(), lastOutbound: Date.now() });
@@ -354,6 +355,16 @@ export class AutoInterface extends RawPacketInterface {
         // Single-peer CI topologies can disagree on fe80 compression (:: vs expanded);
         // deliver to the only peered interface rather than dropping the datagram.
         peer = this.spawned.values().next().value;
+      }
+      if (peer === undefined) {
+        // Try matching by normalized IPv6 (zero compression differences).
+        const normalized = normalizeLinkLocal(peerAddress);
+        for (const [address, candidate] of this.spawned.entries()) {
+          if (normalizeLinkLocal(address) === normalized) {
+            peer = candidate;
+            break;
+          }
+        }
       }
       if (peer !== undefined) {
         peer.receiveFromPeer(packet.data);
@@ -441,7 +452,10 @@ export class AutoInterface extends RawPacketInterface {
   }
 
   private isLocalAddress(address: string): boolean {
-    return this.adopted.some((iface) => iface.linkLocalAddress === descopeLinkLocal(address));
+    const normalized = normalizeLinkLocal(address);
+    return this.adopted.some(
+      (iface) => normalizeLinkLocal(iface.linkLocalAddress) === normalized
+    );
   }
 }
 

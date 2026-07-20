@@ -60,6 +60,64 @@ export function descopeLinkLocal(address: string): string {
   return address.split("%")[0]?.replace(/fe80:[0-9a-f]*::/i, "fe80::") ?? address;
 }
 
+/** Canonicalize link-local forms so `fe80::a:b` and `fe80:0:0:0:a:b` share a peer key. */
+export function normalizeLinkLocal(address: string): string {
+  const descoped = descopeLinkLocal(address).toLowerCase();
+  if (!descoped.startsWith("fe80:")) {
+    return descoped;
+  }
+
+  try {
+    // Expand then re-compress via URL hostname parsing (Node accepts scoped IPv6).
+    const expanded = descoped.includes("::")
+      ? expandIpv6(descoped)
+      : descoped;
+    return compressIpv6(expanded);
+  } catch {
+    return descoped;
+  }
+}
+
+function expandIpv6(address: string): string {
+  const [head, tail] = address.split("::");
+  const headParts = head === undefined || head === "" ? [] : head.split(":").filter(Boolean);
+  const tailParts = tail === undefined || tail === "" ? [] : tail.split(":").filter(Boolean);
+  const missing = 8 - headParts.length - tailParts.length;
+  const middle = missing > 0 ? Array.from({ length: missing }, () => "0") : [];
+  return [...headParts, ...middle, ...tailParts].map((part) => part.padStart(4, "0")).join(":");
+}
+
+function compressIpv6(expanded: string): string {
+  const parts = expanded.split(":").map((part) => part.replace(/^0+(?=\w)/, "") || "0");
+  let bestStart = -1;
+  let bestLen = 0;
+  let start = -1;
+  let len = 0;
+  for (let i = 0; i <= parts.length; i += 1) {
+    if (i < parts.length && parts[i] === "0") {
+      if (start < 0) {
+        start = i;
+        len = 1;
+      } else {
+        len += 1;
+      }
+    } else {
+      if (len > bestLen) {
+        bestStart = start;
+        bestLen = len;
+      }
+      start = -1;
+      len = 0;
+    }
+  }
+  if (bestLen < 2 || bestStart < 0) {
+    return parts.join(":");
+  }
+  const left = parts.slice(0, bestStart).join(":");
+  const right = parts.slice(bestStart + bestLen).join(":");
+  return `${left}::${right}`;
+}
+
 export function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
   const length = parts.reduce((sum, part) => sum + part.length, 0);
   const merged = new Uint8Array(length);
