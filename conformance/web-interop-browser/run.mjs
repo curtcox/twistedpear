@@ -278,3 +278,6 @@ try {
 }
 
 console.log("web-interop-browser: passed");
+// Gateway/Playwright can leave open handles (WS clients, timers) that keep the
+// process alive after success and starve the CI job timeout.
+process.exit(0);
