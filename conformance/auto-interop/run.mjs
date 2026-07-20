@@ -241,7 +241,8 @@ async function runAutoLxmfEcho() {
 }
 
 async function runAutoPeerExpiry() {
-  let detached = 0;
+  let detachedSynthetic = 0;
+  const syntheticAddress = "fe80::dead:beef";
 
   const reticulum = Reticulum.create({ provider, runtime });
   reticulum.start();
@@ -253,8 +254,10 @@ async function runAutoPeerExpiry() {
     ...AUTO_OPTIONS,
     peeringTimeoutMs: 200,
     onPeerSpawn: (peer) => reticulum.registerInterface(peer),
-    onPeerDetach: () => {
-      detached += 1;
+    onPeerDetach: (peer) => {
+      if (peer.peerAddress === syntheticAddress) {
+        detachedSynthetic += 1;
+      }
     }
   });
 
@@ -274,8 +277,9 @@ async function runAutoPeerExpiry() {
   }
 
   const addPeer = /** @type {{ addPeer: (address: string, name: string) => void }} */ (auto).addPeer.bind(auto);
-  addPeer("fe80::dead:beef", ifname);
-  if (auto.peerInterfaces.length !== 1) {
+  addPeer(syntheticAddress, ifname);
+  // Compose leaves the Python peer discoverable; only assert the synthetic entry.
+  if (!auto.peerInterfaces.some((peer) => peer.peerAddress === syntheticAddress)) {
     await auto.close();
     reticulum.stop();
     throw new Error("AutoInterface peer expiry test failed to spawn synthetic peer");
@@ -283,16 +287,16 @@ async function runAutoPeerExpiry() {
 
   await sleep(4_500);
 
-  if (auto.peerInterfaces.length !== 0) {
+  if (auto.peerInterfaces.some((peer) => peer.peerAddress === syntheticAddress)) {
     await auto.close();
     reticulum.stop();
     throw new Error("AutoInterface peer expiry test did not remove stale peer");
   }
 
-  if (detached !== 1) {
+  if (detachedSynthetic !== 1) {
     await auto.close();
     reticulum.stop();
-    throw new Error(`AutoInterface peer expiry test expected one detach, got ${detached}`);
+    throw new Error(`AutoInterface peer expiry test expected one synthetic detach, got ${detachedSynthetic}`);
   }
 
   await auto.close();
