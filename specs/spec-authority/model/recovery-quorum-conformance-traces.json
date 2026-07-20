@@ -1,6 +1,6 @@
 {
   "schema": "twistedpear.tla-traces-v1",
-  "model": "formal/recovery_quorum.tla",
+  "model": "specs/spec-authority/model/recovery_quorum.tla",
   "edges": [
     ["idle", "start", "collecting"],
     ["collecting", "share", "collecting"],

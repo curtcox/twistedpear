@@ -1,11 +1,14 @@
 # Authority-machine formal twins
 
-`grant.tla` (now at [specs/spec-cap/model/](../specs/spec-cap/model/), owned by
+`grant.tla` (at [specs/spec-cap/model/](../specs/spec-cap/model/), owned by
 [SPEC-CAP](../specs/spec-cap/spec.md)), `escrow.tla`, and `recovery_quorum.tla`
-(both owned by [SPEC-AUTHORITY](../specs/spec-authority/spec.md), located here until
-their paths move in `check-machine-conformance.mjs`) are Layer-2 twins of the three
-executable authority tables. Their `Edges` relations are mechanically compared with
-the TypeScript tables, checked trace fixtures, and Layer-3 vectors by:
+(both at [specs/spec-authority/model/](../specs/spec-authority/model/), owned by
+[SPEC-AUTHORITY](../specs/spec-authority/spec.md)) are Layer-2 twins of the three
+executable authority tables. This directory holds the checker
+(`check-machine-conformance.mjs`), the symbolic models, and the TLC toolchain;
+the models themselves live beside their owning specs. Their `Edges` relations are
+mechanically compared with the TypeScript tables, checked trace fixtures, and Layer-3
+vectors by:
 
 ```sh
 npm run formal:all
@@ -16,8 +19,8 @@ from this directory:
 
 ```sh
 java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config ../specs/spec-cap/model/grant.cfg ../specs/spec-cap/model/grant.tla
-java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config escrow.cfg escrow.tla
-java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config recovery-quorum.cfg recovery_quorum.tla
+java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config ../specs/spec-authority/model/escrow.cfg ../specs/spec-authority/model/escrow.tla
+java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config ../specs/spec-authority/model/recovery-quorum.cfg ../specs/spec-authority/model/recovery_quorum.tla
 ```
 
 `-deadlock` disables deadlock reporting because denied, expired, and revoked are

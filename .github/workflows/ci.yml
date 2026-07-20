@@ -97,8 +97,8 @@ jobs:
         working-directory: formal
         run: |
           java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config ../specs/spec-cap/model/grant.cfg ../specs/spec-cap/model/grant.tla
-          java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config escrow.cfg escrow.tla
-          java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config recovery-quorum.cfg recovery_quorum.tla
+          java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config ../specs/spec-authority/model/escrow.cfg ../specs/spec-authority/model/escrow.tla
+          java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config ../specs/spec-authority/model/recovery-quorum.cfg ../specs/spec-authority/model/recovery_quorum.tla
 
   core-smoke:
     runs-on: ubuntu-latest

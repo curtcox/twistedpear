@@ -8,10 +8,10 @@ exemplar shape: one TLA+ model checked by TLC, checked traces, an executable tab
 a generated Layer-3 vector, cross-checked edge-for-edge in CI. The prose below is
 informative; the models and vectors are normative.
 
-The models currently live in [formal/](../../formal/) rather than in a `model/`
-directory here; they will move alongside a future change to
-`check-machine-conformance.mjs` path registration. Until then, this spec is their home
-and `formal/` is their location.
+The TLA+ models, their configs, and their checked traces live in
+[model/](model/) beside this spec (following the SPEC-CAP exemplar); the checker
+`check-machine-conformance.mjs` and the TLC toolchain remain in
+[formal/](../../formal/).
 
 ## Scope
 
@@ -85,8 +85,8 @@ The executable table exposes `recoveryQuorumSafetyViolation` as the runtime orac
 
 | Representation | Escrow | Recovery quorum |
 |---|---|---|
-| TLA+ model (Layer-2 twin) | [formal/escrow.tla](../../formal/escrow.tla) + [escrow.cfg](../../formal/escrow.cfg) | [formal/recovery_quorum.tla](../../formal/recovery_quorum.tla) + [recovery-quorum.cfg](../../formal/recovery-quorum.cfg) |
-| Checked traces | [formal/escrow-conformance-traces.json](../../formal/escrow-conformance-traces.json) | [formal/recovery-quorum-conformance-traces.json](../../formal/recovery-quorum-conformance-traces.json) |
+| TLA+ model (Layer-2 twin) | [model/escrow.tla](model/escrow.tla) + [escrow.cfg](model/escrow.cfg) | [model/recovery_quorum.tla](model/recovery_quorum.tla) + [recovery-quorum.cfg](model/recovery-quorum.cfg) |
+| Checked traces | [model/escrow-conformance-traces.json](model/escrow-conformance-traces.json) | [model/recovery-quorum-conformance-traces.json](model/recovery-quorum-conformance-traces.json) |
 | Executable table | `escrowMachine` in [packages/protocol/src/escrow.ts](../../packages/protocol/src/escrow.ts) | `recoveryQuorumMachine` in [packages/protocol/src/recovery-quorum.ts](../../packages/protocol/src/recovery-quorum.ts) |
 | Layer-3 vector | [conformance/vectors/escrow.json](../../conformance/vectors/escrow.json) | [conformance/vectors/recovery-quorum.json](../../conformance/vectors/recovery-quorum.json) |
 
@@ -103,11 +103,12 @@ npm run formal:recovery   # cross-checks the four recovery representations
 npm run formal:all        # all three authority machines, including grant
 ```
 
-Model-check safety and liveness directly (Java 17+, from `formal/`):
+Model-check safety and liveness directly (Java 17+, from `formal/` where the TLC
+toolchain lives):
 
 ```sh
-java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config escrow.cfg escrow.tla
-java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config recovery-quorum.cfg recovery_quorum.tla
+java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config ../specs/spec-authority/model/escrow.cfg ../specs/spec-authority/model/escrow.tla
+java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -deadlock -config ../specs/spec-authority/model/recovery-quorum.cfg ../specs/spec-authority/model/recovery_quorum.tla
 ```
 
 `-deadlock` suppresses deadlock reporting because the terminal phases are intentional.

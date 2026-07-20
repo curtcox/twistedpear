@@ -1,6 +1,6 @@
 {
   "schema": "twistedpear.tla-traces-v1",
-  "model": "formal/escrow.tla",
+  "model": "specs/spec-authority/model/escrow.tla",
   "edges": [
     ["pending", "deposit", "funded"],
     ["funded", "request-release", "release-requested"],
