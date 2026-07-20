@@ -1,5 +1,12 @@
 # Hyperbee storage
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 `storage:hyperbee` opens a local-only ordered key/value store (Hyperbee)
 namespaced to the app. Keys stay sorted so list ranges are useful for feeds
 and indexes.

@@ -1,5 +1,12 @@
 # SPEC-PRESENT — Presentation and layout semantics
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** C (platform) · **Status:** stub · **Migration phase:** 2
 
 ## Scope

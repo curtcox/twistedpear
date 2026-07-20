@@ -1,5 +1,12 @@
 # Upstream publication
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Phase 7 checklist for publishing TwistedPear artifacts to the Reticulum community.
 Software preparation is complete; community submission is a manual step.
 

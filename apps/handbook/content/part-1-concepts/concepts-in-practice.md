@@ -1,5 +1,12 @@
 # Concepts in practice
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 The applets below run on **this** host — the same probes used in Part III and
 Part IV diagnostics, grouped for readers who want to see Reticulum building
 blocks work before diving into SDK chapters.

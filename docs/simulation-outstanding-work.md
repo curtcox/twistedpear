@@ -1,8 +1,15 @@
 # Deterministic Abuse-Simulation — Current Status and Remaining Work
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Re-audited on 2026-07-16 against the source, tests, generated campaign report, formal models, and
 CI workflows. This is the authoritative status record. The original phased design is preserved in
-[simulation-implementation-plan.md](simulation-implementation-plan.md).
+[simulation-implementation-plan.md](../archive/design/simulation-implementation-plan.md).
 
 The deterministic simulation substrate and the repository work needed to exercise shipping
 capability and historical-policy paths are implemented. Provisioned Python interop and the hosted

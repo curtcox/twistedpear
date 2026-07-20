@@ -1,6 +1,13 @@
 # TwistedPear documentation reorganization plan
 
-Audit date: 2026-07-20. Produced per `audit-prompt.md`. This document recommends
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
+Audit date: 2026-07-20. Produced per `archive/meta/audit-prompt.md`. This document recommends
 how to segregate historical prose, make done-vs-planned unambiguous, and wire
 machine-checkable guards — without having applied any moves yet.
 

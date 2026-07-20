@@ -1,5 +1,12 @@
 # iOS simulator conformance
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Headless Bare worklet slices run from `run.mjs` (`npm run test:ios-sim:required` on macOS CI).
 
 ## Handbook UI smoke (optional)

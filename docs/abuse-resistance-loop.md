@@ -1,11 +1,18 @@
 # Abuse-Resistance Simulation Loop
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 How TwistedPear keeps raising its resistance to abuse over time. This is the **operating
 manual for the repeating cycle**, not a substrate build plan — the substrate is already
 built and green.
 
 - *Why the same-core simulator is trustworthy*: [simulation-architecture.html](simulation-architecture.html).
-- *How the substrate was built (11 phases, complete)*: [simulation-implementation-plan.md](simulation-implementation-plan.md).
+- *How the substrate was built (11 phases, complete)*: [simulation-implementation-plan.md](../archive/design/simulation-implementation-plan.md).
 - *Current status and the one open evidence boundary*: [simulation-outstanding-work.md](simulation-outstanding-work.md).
 
 This document adds the missing piece: a **turn-the-crank loop** that uses that machinery to

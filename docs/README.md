@@ -1,5 +1,12 @@
 # Documentation index
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-19
+register: none
+-->
+
 Use this page to find the canonical document for a topic. The root
 [README](../README.md) covers repository setup and common commands; the interactive
 [Handbook](../apps/handbook/README.md) is the user- and app-developer-facing guide.
@@ -28,9 +35,14 @@ built, but they are not the source of truth for current status.
 The status documents are intentionally disjoint: completed evidence belongs in
 [STATUS-COMPLETE.md](../STATUS-COMPLETE.md), open software work in
 [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md), and device/account/real-network work in
-[STATUS-HARDWARE.md](../STATUS-HARDWARE.md). [PLAN.md](../PLAN.md) and documents explicitly
+[STATUS-HARDWARE.md](../STATUS-HARDWARE.md). [archive/design/plan-v0.md](../archive/design/plan-v0.md) and documents explicitly
 marked **historical design** preserve design rationale and acceptance criteria; they do not
 override those status registers.
+
+## Archive
+
+Superseded plans, one-shot handoffs, and point-in-time evidence logs are indexed in
+[archive/README.md](../archive/README.md). Do not edit archived files except to fix links.
 
 ## Mini-app development and distribution
 
@@ -81,7 +93,7 @@ Protocol implementation details live in the
 | Sandbox threat model and findings | [Security review](security-review.md) |
 | CI gates, nightly jobs, and exclusions | [CI policy](ci-policy.md) |
 | Full local validation workflow | [Single-Mac validation](mac-validation.md) |
-| Evidence from the documented Mac validation run | [Mac validation evidence log](mac-validation-screenshots-plan.md) |
+| Evidence from the documented Mac validation run | [Mac validation evidence log](../archive/evidence/mac-validation-run-log.md) |
 | Sans-IO boundary and enforcement | [Sans-IO protocol discipline](sansio.md) |
 
 Additional focused runbooks are indexed from the
@@ -93,5 +105,5 @@ Additional focused runbooks are indexed from the
 |---|---|
 | Architecture and scope | [Simulation architecture](simulation-architecture.html) |
 | Current status, evidence, and remaining external boundary | [Simulation status](simulation-outstanding-work.md) |
-| Original phased design | [Implementation plan](simulation-implementation-plan.md) — **historical design** |
+| Original phased design | [Implementation plan](../archive/design/simulation-implementation-plan.md) — **historical design** |
 | Ongoing find-fix loop, fidelity ramp, and difficulty ladder | [Abuse-resistance loop](abuse-resistance-loop.md) |

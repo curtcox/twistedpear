@@ -1,5 +1,12 @@
 # SPEC-AUTHORITY — Escrow and recovery-quorum authority machines
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** C (platform) · **Status:** normative · **Migration phase:** done
 
 The second and third of the three formally twinned authority machines

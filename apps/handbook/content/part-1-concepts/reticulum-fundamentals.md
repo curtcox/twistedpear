@@ -1,5 +1,12 @@
 # Reticulum fundamentals
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Reticulum is a cryptography-based networking stack designed for constrained and
 unreliable links. TwistedPear uses it as the only hard networking constraint.
 

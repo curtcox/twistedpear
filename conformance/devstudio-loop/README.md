@@ -1,5 +1,12 @@
 # DevStudio two-instance loop
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Automated validation for the in-platform development environment
 ([docs/devstudio.md](../../docs/devstudio.md)): a mini-app is created on one
 local host instance and transmitted to a second one — via a 94-character 256t

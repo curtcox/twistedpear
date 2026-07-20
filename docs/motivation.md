@@ -1,5 +1,12 @@
 # Motivation
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 When you use a personal device to do something, it often involves far-away
 computers that have no real logical need to be involved.
 

@@ -1,5 +1,12 @@
 # Mini-app Sandbox Security Review (Phase 7)
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Adversarial review of the Phase 4 broker chokepoint, capability grants, and sandbox
 backends. Companion to [miniapp-runtime.md](miniapp-runtime.md) and
 [LIMITATIONS.md](../LIMITATIONS.md) §7.

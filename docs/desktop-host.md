@@ -1,5 +1,12 @@
 # TwistedPear Desktop Host
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 The desktop host is the always-on peer that carries transport routing, package seeding, and optional LXMF propagation for the mobile mesh.
 
 ## Architecture

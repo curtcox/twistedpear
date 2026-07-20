@@ -1,5 +1,12 @@
 # Mac validation evidence log
 
+
+<!-- tp-doc
+lifecycle: historical
+audited: 2026-07-20
+register: none
+-->
+
 This records the July 2026 full validation run, its triage, follow-up verification,
 and the screenshots embedded in the platform documentation. Use
 [mac-validation.md](mac-validation.md) for the current runbook.

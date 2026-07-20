@@ -1,5 +1,12 @@
 # lxmf-ts
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 TypeScript LXMF client for Reticulum, targeting interoperability with Python LXMF 0.7.0
 and clients such as Sideband, MeshChat, and `lxmd`.
 

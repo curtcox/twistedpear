@@ -1,5 +1,12 @@
 # TwistedPear — v1 release plan
 
+
+<!-- tp-doc
+lifecycle: planned
+audited: 2026-07-18
+register: release
+-->
+
 How we iterate on the app and its testing until it is ready for release, and how we
 know when it is. This plan sequences existing machinery; it does not replace the
 canonical registers:
@@ -35,15 +42,15 @@ simulator-verified only* in LIMITATIONS §3/§6.
 v1 is ready when every gate is green. Gates are evidence statements, not work items —
 the work lives in the pipeline (§4).
 
-| Gate | Statement | Evidence source |
-|---|---|---|
-| **G1 — Software qualification** | Every row of the release-qualification table in STATUS-SOFTWARE is complete (plan-duration soaks; `reticulum-ts` 0.1.0 tagged) | `npm run validate:mac -- --stage 8 --plan-duration` logs; release tag |
-| **G2 — Core device evidence** | H1, H2, H3, H6, H7, H9, H10, H11, H18, H20, H21 passed and logged; LIMITATIONS §§3, 5–7 updated with measured values | STATUS-HARDWARE checklists |
-| **G3 — Safety bar: abuse ladder holds L3** | L0–L3 rungs green per [docs/abuse-resistance-loop.md](docs/abuse-resistance-loop.md): escrow/recovery + quorum oracles clean under colluding relays and compromised host; every genuine finding fixed with a committed reproducer | `conformance/sim-campaign/artifacts/report.json`; `conformance/sim-regressions/` |
-| **G4 — Trust loop verified end-to-end** | On real devices, a user can: see an app's source before running, verify author signature, review requested capabilities and reasons, grant/deny, and revoke — and an unsigned/tampered/over-reaching package is refused (hostile-app suites + H9/H11 on device) | `test:hostile-apps` + H-register logs |
-| **G5 — Packaging and provenance** | Versioned, signed artifacts for every shipped target; macOS notarized (needs H12 account); install docs match a from-scratch install on a clean machine | Release artifacts + walkthrough log |
-| **G6 — Docs tell the truth** | LIMITATIONS reflects final measured values; README/Handbook install paths verified; release notes state what is verified vs experimental | Doc review against G1–G5 evidence |
-| **G7 — Human-layer resistance** | The trust UI survives adversaries who target the user, not the system: spoofing-resistance fixtures prove a mini-app cannot imitate host chrome or grant dialogs; deception/impersonation abuse verbs sit in the campaign coverage cube with clean oracles; automated UI invariants prove "who is involved" and capability status are reachable from every mini-app screen; a11y scans gate green on trust-critical surfaces; scripted comprehension sessions with outside testers pass their pre-committed thresholds | `test:hostile-apps` + `test:ui-invariants` tiers; campaign report; tester session logs (S3, S6–S7) |
+| ID | Status | Gate | Statement | Evidence source |
+|---|---|---|---|---|
+| G1 | planned | **G1 — Software qualification** | Every row of the release-qualification table in STATUS-SOFTWARE is complete (plan-duration soaks; `reticulum-ts` 0.1.0 tagged) | `npm run validate:mac -- --stage 8 --plan-duration` logs; release tag |
+| G2 | planned | **G2 — Core device evidence** | H1, H2, H3, H6, H7, H9, H10, H11, H18, H20, H21 passed and logged; LIMITATIONS §§3, 5–7 updated with measured values | STATUS-HARDWARE checklists |
+| G3 | planned | **G3 — Safety bar: abuse ladder holds L3** | L0–L3 rungs green per [docs/abuse-resistance-loop.md](docs/abuse-resistance-loop.md): escrow/recovery + quorum oracles clean under colluding relays and compromised host; every genuine finding fixed with a committed reproducer | `conformance/sim-campaign/artifacts/report.json`; `conformance/sim-regressions/` |
+| G4 | planned | **G4 — Trust loop verified end-to-end** | On real devices, a user can: see an app's source before running, verify author signature, review requested capabilities and reasons, grant/deny, and revoke — and an unsigned/tampered/over-reaching package is refused (hostile-app suites + H9/H11 on device) | `test:hostile-apps` + H-register logs |
+| G5 | planned | **G5 — Packaging and provenance** | Versioned, signed artifacts for every shipped target; macOS notarized (needs H12 account); install docs match a from-scratch install on a clean machine | Release artifacts + walkthrough log |
+| G6 | planned | **G6 — Docs tell the truth** | LIMITATIONS reflects final measured values; README/Handbook install paths verified; release notes state what is verified vs experimental | Doc review against G1–G5 evidence |
+| G7 | planned | **G7 — Human-layer resistance** | The trust UI survives adversaries who target the user, not the system: spoofing-resistance fixtures prove a mini-app cannot imitate host chrome or grant dialogs; deception/impersonation abuse verbs sit in the campaign coverage cube with clean oracles; automated UI invariants prove "who is involved" and capability status are reachable from every mini-app screen; a11y scans gate green on trust-critical surfaces; scripted comprehension sessions with outside testers pass their pre-committed thresholds | `test:hostile-apps` + `test:ui-invariants` tiers; campaign report; tester session logs (S3, S6–S7) |
 
 G3 is the deliberate hard choice: L3 requires escrow/recovery product semantics that
 do not exist yet (today an explicit scope boundary in the simulation docs). That new

@@ -1,5 +1,12 @@
 # SPEC-BIND-LOOPBACK — In-memory substrate binding
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** C (platform) · **Status:** normative · **Migration phase:** 2
 
 ## Scope

@@ -1,5 +1,12 @@
 # Handoff — implement the spec conformance artifacts
 
+
+<!-- tp-doc
+lifecycle: historical
+audited: 2026-07-20
+register: none
+-->
+
 You are working in the TwistedPear repo. The spec tree in `specs/` was reviewed and
 gap-filled on 2026-07-19: every spec now states its semantics, artifact shapes, and
 acceptance bars, so the remaining work is **building artifacts, not deciding

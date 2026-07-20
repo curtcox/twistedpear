@@ -1,5 +1,12 @@
 # Release automation
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 The v1 pipeline in [RELEASE-PLAN.md](../RELEASE-PLAN.md) is driven by committed evidence, not
 by manually interpreting the plan.
 

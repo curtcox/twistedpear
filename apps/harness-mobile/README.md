@@ -1,5 +1,12 @@
 # TwistedPear Harness (Phase 3–4 dev shell)
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Minimal Expo dev-build app hosting the Reticulum Bare worklet with app catalog,
 install progress, package storage, and the Phase 4 mini-app runtime. Throwaway quality;
 this becomes the seed of `host-mobile`.

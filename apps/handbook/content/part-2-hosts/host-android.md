@@ -1,5 +1,12 @@
 # Android host
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 The Android host is a React Native shell around the same **Bare worklet** used on
 iOS and desktop. Reticulum, LXMF, catalog install, and the mini-app runtime all
 run in the worklet; the JVM layer supplies lifecycle, BLE, multicast bridges, and

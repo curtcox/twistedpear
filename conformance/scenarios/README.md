@@ -1,5 +1,12 @@
 # Interop Scenarios
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Live interop tests exercise `reticulum-ts` and `lxmf-ts` against pinned Python RNS/LXMF
 peers in Docker (`rns==0.9.5`, `lxmf==0.7.0`; see [UPSTREAM.md](../UPSTREAM.md)). Python
 peers use `send_packet()` (`scenarios/python/send_packet.py`) because RNS 0.9.5 removed

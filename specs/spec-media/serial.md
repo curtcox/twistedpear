@@ -1,5 +1,12 @@
 # SPEC-MEDIA / Serial profile (adopted)
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** A (adopted) · **Status:** normative (profile) for HDLC framing;
 **physical serial line gated on hardware evidence** · Medium: plain serial
 

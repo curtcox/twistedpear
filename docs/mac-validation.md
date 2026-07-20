@@ -1,5 +1,12 @@
 # Single-Mac Automated Validation Plan
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 How to validate every TwistedPear implementation that can run on one macOS
 machine with no additional hardware. Companion to
 [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) (what remains open) and
@@ -414,7 +421,7 @@ unknown*). Electron `npm run start --workspace=host-desktop` launches when
 desktop GUI screenshot is in [desktop-host.md](desktop-host.md). The Bare worklet
 child no longer hits linked `node:os` / `node:worker_threads` imports (Phase 4c);
 local darwin spawn may still fail on the linked `bare-type` native addon — see
-[mac-validation-screenshots-plan.md](mac-validation-screenshots-plan.md#phase-4c--bare-worklet-import-graph-2026-07-09).
+[mac-validation-run-log.md](../archive/evidence/mac-validation-run-log.md#phase-4c--bare-worklet-import-graph-2026-07-09).
 
 **2026-07-09 desktop Handbook/DevStudio spot-check:** the README desktop
 command launched the Electron host and built/seeded `handbook`, `devstudio`,
@@ -426,7 +433,7 @@ The passing commands were `test:handbook`, `test:devstudio-loop`, and
 linked `bare-abort` warning before the supervisor fallback path; no new product
 issue was found.
 
-See [mac-validation-screenshots-plan.md](mac-validation-screenshots-plan.md) for the per-suite table and screenshot capture notes.
+See [mac-validation-run-log.md](../archive/evidence/mac-validation-run-log.md) for the per-suite table and screenshot capture notes.
 
 Plan-duration soaks (Stage 8 opt-in) are scheduled separately and are the
 only remaining software-tier exits in STATUS-SOFTWARE once the standard pass

@@ -1,5 +1,12 @@
 # DevStudio: the in-platform development environment
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 DevStudio ([apps/devstudio](../apps/devstudio)) is a mini-app development
 environment that is **itself a mini-app**: a single SDK-only bundle running in
 the standard sandbox. Because it is packaged, signed, and distributed like any

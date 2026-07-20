@@ -1,5 +1,12 @@
 # DevStudio walkthrough
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 DevStudio is a mini-app IDE — same sandbox and
 capability model as any other app. Desktop first-boot seeds it alongside this
 Handbook.

@@ -1,5 +1,12 @@
 # Content-addressed share
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 `share:cas` stores a bounded string and returns a 94-character 256t id.
 Paste or scan that id on another device to `share.get` the same bytes —
 diagnostics reports and DevStudio hand-offs use this path.

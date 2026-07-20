@@ -1,5 +1,12 @@
 # What TwistedPear is
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 TwistedPear is a peer-to-peer app platform. A **host** on each device is a full
 Reticulum peer; **mini-apps** are sandboxed JavaScript bundles that talk to the
 host only through the SDK.

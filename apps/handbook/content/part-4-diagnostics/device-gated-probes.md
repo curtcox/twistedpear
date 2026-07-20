@@ -1,5 +1,12 @@
 # Device-gated probes
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 These applets need **real hardware or a guided manual step** on a phone. In CI and
 simulators they report `unavailable` with the procedure below — that is expected, not
 a failure.

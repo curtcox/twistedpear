@@ -1,5 +1,12 @@
 # SPEC-CHROME — Host chrome and confirmation conduct
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** C (platform) · **Status:** normative for R2/R4/R5/R6, informative for R1/R3 · **Migration phase:** 3
 
 ## Scope

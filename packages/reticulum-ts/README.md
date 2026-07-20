@@ -1,5 +1,12 @@
 # reticulum-ts
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 TypeScript implementation of the Reticulum Network Stack, targeting byte-exact
 compatibility with Python RNS 0.9.4.
 

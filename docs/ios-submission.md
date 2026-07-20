@@ -1,5 +1,12 @@
 # iOS Submission Dossier
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Status: Phase 5 deliverable; App Store/TestFlight submission is out of scope.
 
 ## App Review 3.3.2 Argument

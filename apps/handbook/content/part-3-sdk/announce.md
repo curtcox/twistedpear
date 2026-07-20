@@ -1,5 +1,12 @@
 # Announce & subscribe
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Announces are signed advertisements that a destination is reachable. Subscribe lets a
 mini-app observe announces in a namespace — useful for discovery without polling links.
 

@@ -1,5 +1,12 @@
 # Widget gallery
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 The widget protocol is the cross-platform UI seam. Allowed components:
 `view`, `text`, `image`, `button`, `text-input`, `switch`, `scroll`, `list`,
 `progress`, `divider`, `spacer`, `code-editor`, `qr-code`.

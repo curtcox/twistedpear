@@ -1,5 +1,12 @@
 # Publish, install & update
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Distribution is a three-step loop: **package** a signed `.tpkg`, **publish** its
 256t id under your publisher identity, and **install** on any host that discovers
 the announce. **Update** is the same path with a bumped semver — the host fetches

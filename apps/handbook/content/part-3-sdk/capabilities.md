@@ -1,5 +1,12 @@
 # Capability model
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Mini-apps declare every SDK surface they may use in `app.manifest.json`. At
 install the host shows the full list; the user may grant a **subset**. The
 broker enforces grants on every call — withheld capabilities are not errors in

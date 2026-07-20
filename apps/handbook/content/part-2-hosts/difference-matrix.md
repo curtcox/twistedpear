@@ -1,5 +1,12 @@
 # Live difference matrix
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Hosts share one SDK and widget protocol, but platform sandboxes and entitlements
 shape what is actually available. Per-host chapters describe architecture and
 lifecycle; `host.info()` returns the facts for **this** host — platform id, host /

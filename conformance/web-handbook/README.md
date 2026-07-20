@@ -1,5 +1,12 @@
 # Web Handbook conformance (Phase D)
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Playwright: install Handbook → TOC + every chapter → software-tier applets →
 diagnostics report export (`share.put` + QR) on the browser web host.
 

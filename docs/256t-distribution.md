@@ -1,5 +1,12 @@
 # 256t distribution
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Mini-apps (and publisher identities) can be shared as a single **94-character
 string** per the [256t specification](https://256t.org/), suitable for QR
 codes, chat messages, or reading aloud. The string is a content-addressed

@@ -1,5 +1,12 @@
 # Host configuration
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Generated from `defaultHostConfig()` defaults in `packages/host-core`.
 Desktop and `tp node` persist overrides in `<data-dir>/config.json`.
 

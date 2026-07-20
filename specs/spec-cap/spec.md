@@ -1,5 +1,12 @@
 # SPEC-CAP — Capability taxonomy and grant lifecycle
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** C (platform) · **Status:** normative · **Migration phase:** done (exemplar)
 
 This is the exemplar spec: it shows the shape every other spec in

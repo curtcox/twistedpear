@@ -1,5 +1,12 @@
 # Handbook conformance (Phase D)
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Headless install → TOC/chapter render → applet execution on
 `NodeWorkerSandboxBackend`, plus diagnostic report round-trip / diff
 (export via `share.put`, seeded cross-host status matrix).

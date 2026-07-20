@@ -1,5 +1,12 @@
 # Specifications
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 TwistedPear is decomposed into quasi-independent specifications, analogous to how the
 web is layered over TCP, HTTP, HTML, CSS, and JavaScript. Each spec is small enough to
 hold in your head, admits multiple valid implementations for different purposes

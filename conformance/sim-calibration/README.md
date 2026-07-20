@@ -1,5 +1,12 @@
 # BLE/LoRa simulation calibration
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 This directory converts guarded hardware measurements or independently recorded deployment traces
 into reviewable parameters for the deterministic transport models. It does not treat simulated,
 emulated, or hand-authored observations as physical evidence.

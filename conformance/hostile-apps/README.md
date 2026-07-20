@@ -1,5 +1,12 @@
 # Hostile Mini-app Fixtures
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Phase 4 hostile fixtures target the sandbox and broker chokepoint:
 
 - busy loop: watchdog kill

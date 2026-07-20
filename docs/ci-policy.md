@@ -1,5 +1,12 @@
 # CI Policy
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 How TwistedPear CI tiers map to phase plan exits. Companion to
 [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) and [.github/workflows/](../.github/workflows/).
 
@@ -10,6 +17,8 @@ distribution conformance, mini-app hostile/examples, and desktop smoke.
 
 The base `test` job also runs `test:release-harness`, which locks the release driver's
 single-next-action rule, evidence recorder, and soak failure classifier/reproducer behavior.
+It also runs `test:doc-audit`, which checks register evidence paths, markdown links,
+lifecycle headers, and cross-register ID consistency.
 
 ### Path-filtered macOS jobs
 

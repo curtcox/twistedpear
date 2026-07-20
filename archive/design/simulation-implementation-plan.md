@@ -1,5 +1,12 @@
 # Deterministic Abuse-Simulation — Implementation Plan
 
+
+<!-- tp-doc
+lifecycle: historical
+audited: 2026-07-20
+register: none
+-->
+
 Companion to [docs/simulation-architecture.html](simulation-architecture.html). The
 architecture doc argues *why* every protocol behavior is one pure state machine run
 unchanged in production and in a seeded simulator. This plan is *how* we get from the

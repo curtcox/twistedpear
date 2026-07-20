@@ -1,5 +1,12 @@
 # Identity & signing
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 The `identity` capability grants an app-scoped destination and brokered signing.
 Private keys never enter the sandbox — the host derives an app destination from the
 device identity plus app id and performs crypto on the broker.

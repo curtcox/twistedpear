@@ -1,5 +1,12 @@
 # iOS multicast entitlement application (Phase 2 M8)
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Submit this with the harness app bundle ID before Phase 5 iOS interface work begins.
 Apple review lead time is unpredictable; file early.
 

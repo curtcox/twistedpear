@@ -1,5 +1,12 @@
 # Pears bulk plane
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Reticulum is the **control plane** — identity, announces, links, LXMF, and
 off-grid Resource transfer. When IP connectivity exists, large package syncs
 prefer the **Pears bulk plane**: Hypercore, Hyperdrive, and Hyperswarm.

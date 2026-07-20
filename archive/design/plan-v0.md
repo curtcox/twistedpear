@@ -1,5 +1,12 @@
 # TwistedPear — P2P App Development & Distribution System
 
+
+<!-- tp-doc
+lifecycle: historical
+audited: 2026-07-20
+register: none
+-->
+
 > **Historical design baseline.** This document preserves the original goals, decisions,
 > phase structure, and exit criteria. It is not the current status tracker. See
 > [STATUS-COMPLETE.md](STATUS-COMPLETE.md) for verified work,

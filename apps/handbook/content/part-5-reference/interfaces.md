@@ -1,5 +1,12 @@
 # Network interfaces
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Reticulum peers attach through typed **PacketInterface** implementations.
 The [live difference matrix](chapter:difference-matrix) lists which types
 `host.info()` reports for **this** host.

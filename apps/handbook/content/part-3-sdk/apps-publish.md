@@ -1,5 +1,12 @@
 # Publish & install
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 `apps:publish` announces a packaged 256t id under the publisher identity.
 `apps:install` asks the host to fetch, verify, and review capabilities before
 anything runs. Both raise a confirmation dialog on every call.

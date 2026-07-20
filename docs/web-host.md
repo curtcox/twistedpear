@@ -1,5 +1,12 @@
 # Web Host: a full TwistedPear host in the browser
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Status: **complete (software tier)** — Phases W0–W4 landed in CI; Workstreams A–F software path closed. Remaining hardware/device work (real USB RNode LoRa E2E from Chrome) is device-gated, not blocking the Phase W software exit.
 Evidence: [STATUS-COMPLETE.md](../STATUS-COMPLETE.md#phase-w--web-host-software-tier).
 

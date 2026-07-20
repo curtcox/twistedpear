@@ -1,5 +1,12 @@
 # Phase 2 hardware-debt register
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Deferred device exits from Phase 2. **Full runbook:**
 [STATUS-HARDWARE.md](../../STATUS-HARDWARE.md) (register H1–H5).
 

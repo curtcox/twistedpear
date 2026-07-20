@@ -1,5 +1,12 @@
 # iOS Host Strategy
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Status: Phase 5 simulator-first baseline.
 
 ## Capability Matrix

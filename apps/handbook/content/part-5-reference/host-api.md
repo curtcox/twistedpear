@@ -1,5 +1,12 @@
 # Host API
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Current `HOST_API_VERSION`: **`0.4.0`**.
 Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 

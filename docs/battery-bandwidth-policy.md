@@ -1,5 +1,12 @@
 # Battery and Bandwidth Policy (Draft)
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Status: Phase 7 policy draft — desktop/simulator numbers below; device measurements remain
 hardware debt ([STATUS-HARDWARE.md](../STATUS-HARDWARE.md) H3, H11, H13).
 

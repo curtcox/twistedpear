@@ -1,5 +1,12 @@
 # Budgets & quotas
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Hosts enforce limits at several layers so constrained links (BLE, LoRa) and
 shared devices stay predictable. Budgets are not optional hints — exceeding them
 returns typed errors or truncated transfers.

@@ -1,5 +1,12 @@
 # AI chat
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 `ai:chat` sends prompts to the host-configured OpenRouter-compatible endpoint.
 The host clamps budgets, enforces a model allowlist, and allows one in-flight
 request per app. The API key never enters the sandbox.

@@ -15,7 +15,10 @@ export default defineWorkspace([
         "packages/*/test/**/*.test.ts",
         "conformance/mac-validation/**/*.test.mjs",
         "conformance/release-harness/**/*.test.mjs",
-        "conformance/docs/**/*.test.mjs"
+        "conformance/docs/**/*.test.mjs",
+        "conformance/doc-audit/**/*.test.mjs",
+        "conformance/device-evidence/**/*.test.mjs",
+        "conformance/ui-invariants/**/*.test.mjs"
       ],
       exclude: ["packages/protocol/test/**/*.test.ts"]
     }

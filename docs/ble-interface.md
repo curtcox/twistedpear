@@ -1,5 +1,12 @@
 # Reticulum BLE Interface Specification
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Version: 0.1.0-draft  
 Status: proposed for community review
 

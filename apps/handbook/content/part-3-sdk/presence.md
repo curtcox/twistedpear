@@ -1,5 +1,12 @@
 # Presence
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 `presence` exposes coarse peer and interface state: how many peers are visible, which
 interface is preferred, and whether the host considers itself online. It complements
 `host.info()` for the [live difference matrix](chapter:difference-matrix).

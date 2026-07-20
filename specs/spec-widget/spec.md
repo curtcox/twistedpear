@@ -1,5 +1,12 @@
 # SPEC-WIDGET — Widget tree vocabulary and update stream
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** C (platform) · **Status:** normative · **Migration phase:** 2
 
 ## Scope

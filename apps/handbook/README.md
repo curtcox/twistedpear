@@ -1,5 +1,12 @@
 # Handbook
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Interactive diagnostic documentation shipped as a mini-app.
 Plan: [docs/handbook.md](../../docs/handbook.md).
 

@@ -1,5 +1,12 @@
 # SPEC-MEDIA / AutoInterface profile (adopted)
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** A (adopted) · **Status:** normative (profile) · Medium: AutoInterface
 
 Per-medium profile using the five-section template in
@@ -11,7 +18,7 @@ Per-medium profile using the five-section template in
 |---|---|---|
 | Python RNS AutoInterface | 0.9.5 (docker peer) | Live link-local IPv6 + multicast discovery interop |
 
-Framing beneath AutoInterface is Reticulum's ([SPEC-WIRE](spec-wire/spec.md)); this
+Framing beneath AutoInterface is Reticulum's ([SPEC-WIRE](../spec-wire/spec.md)); this
 profile covers only discovery and the datagram carrier.
 
 ## 2. Subset

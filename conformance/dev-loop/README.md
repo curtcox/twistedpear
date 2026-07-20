@@ -1,5 +1,12 @@
 # Dev Loop
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 The scripted Phase 4 path is:
 
 1. `tp create hello`

@@ -1,5 +1,12 @@
 # SPEC-TRACE — Replayable trace format
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** B (substrate) · **Status:** normative · **Migration phase:** 1
 
 ## Scope

@@ -1,5 +1,12 @@
 # LXMF messaging
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 LXMF is store-and-forward messaging on top of Reticulum. Mini-apps use it for
 app-to-app mailboxes without holding private keys — the host signs and decrypts on
 behalf of the app destination.

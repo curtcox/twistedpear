@@ -1,5 +1,12 @@
 # LXMF Propagation Node
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 `@twistedpear/lxmf-ts` ships `PropagationServer` — a client-facing propagation node compatible with the reference `lxmd` sync protocol.
 
 ## Operations

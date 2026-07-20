@@ -1,5 +1,12 @@
 # Mini-app SDK
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Mini-apps import only `@twistedpear/miniapp-sdk`. Every SDK call crosses the host broker;
 private keys, sockets, filesystems, and Bare APIs are never exposed to app code.
 

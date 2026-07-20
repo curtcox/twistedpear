@@ -1,5 +1,12 @@
 # SPEC-PKG — Signed mini-app package format
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** C (platform) · **Status:** normative · **Migration phase:** 3
 
 ## Scope

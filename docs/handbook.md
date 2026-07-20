@@ -1,5 +1,12 @@
 # Handbook: interactive diagnostic documentation for every host
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Status: **done (software tier)** — D0–D4 landed. Tracking:
 [STATUS-COMPLETE.md](../STATUS-COMPLETE.md#phase-d--handbook-d0d4); device-gated rows in
 [STATUS-HARDWARE.md](../STATUS-HARDWARE.md).

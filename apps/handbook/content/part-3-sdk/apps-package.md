@@ -1,5 +1,12 @@
 # Packaging & preview
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 `apps:package` and `apps:preview` are double-gated: the capability grant plus a
 host-chrome confirmation the mini-app cannot dismiss. Package signs under the
 device publisher identity; preview runs the project in the single sandboxed

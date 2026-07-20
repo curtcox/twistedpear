@@ -1,5 +1,12 @@
 # SPEC-MEDIA / WebSocket profile (TwistedPear-defined)
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** A directory, but **TwistedPear-authored** framing · **Status:** normative
 (profile) · Medium: WebSocket
 

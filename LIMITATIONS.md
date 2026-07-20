@@ -1,6 +1,13 @@
 # Limitations, Compromises, and Restrictions
 
-Companion to [PLAN.md](PLAN.md). Reticulum compatibility is the only hard constraint;
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
+Companion to [archive/design/plan-v0.md](archive/design/plan-v0.md). Reticulum compatibility is the only hard constraint;
 everything below is a known cost of the chosen design or of the platforms involved.
 
 ## 1. Reticulum implementation

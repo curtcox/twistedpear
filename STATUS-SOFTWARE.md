@@ -1,11 +1,18 @@
 # TwistedPear — Remaining software work
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-16
+register: software
+-->
+
 This is the canonical backlog for work that can be completed without new devices,
 a paid account, or a real multi-machine network. It contains only open work.
 
 - Completed and reproducible work: [STATUS-COMPLETE.md](STATUS-COMPLETE.md)
 - Device-, account-, and real-network-gated work: [STATUS-HARDWARE.md](STATUS-HARDWARE.md)
-- Original milestone design: [PLAN.md](PLAN.md)
+- Original milestone design: [archive/design/plan-v0.md](archive/design/plan-v0.md)
 
 Short CI and nightly runs already exercise every soak path below. The open criterion is
 the full planned duration, not basic implementation.
@@ -14,17 +21,17 @@ Last consolidated: 2026-07-16.
 
 ## Release qualification
 
-| Item | Current evidence | Completion criterion |
-|---|---|---|
-| Link keepalive soak | Short and nightly tiers pass via `npm run test:link-soak` | Run 1 h with `LINK_SOAK_DURATION_MS=3600000` |
-| Transport-node soak | Short and nightly tiers pass via `npm run test:transport-node-soak` | Run 72 h with `TRANSPORT_SOAK_DURATION_MS=259200000` |
-| Interface integration soak | Short and nightly tiers pass via `npm run test:integration-soak` | Run 24 h with `SOAK_DURATION_MS=86400000` |
-| Distribution seeder soak | Short and nightly tiers pass via `npm run test:dist-soak` | Run 24 h with `SOAK_DURATION_MS=86400000` |
-| Mixed-network soak | Short and nightly tiers pass via `npm run test:mixed-network-soak` | Run 24 h with `SOAK_DURATION_MS=86400000` |
-| Mini-app runtime soak | Short and nightly tiers pass via `npm run test:miniapp-soak` | Run 24 h with `SOAK_DURATION_MS=86400000` |
-| iOS simulator soak | Short and nightly tiers pass via `npm run test:ios-soak:required` | Run 24 h with `SOAK_DURATION_MS=86400000 IOS_LIFECYCLE_CYCLES=100` |
-| Desktop host soak | Short and nightly tiers pass via `npm run test:desktop-soak` | Run 72 h with `SOAK_DURATION_MS=300000 DESKTOP_SOAK_CYCLES=864` |
-| `reticulum-ts` 0.1.0 release | Package remains at `0.0.0`; CI-tier hardening is complete | Tag and publish after the 72 h transport soak; update [LIMITATIONS.md](LIMITATIONS.md) §1 |
+| ID | Status | Item | Current evidence | Completion criterion |
+|---|---|---|---|---|
+| RQ-LINK | open | Link keepalive soak | Short and nightly tiers pass via `npm run test:link-soak` | Run 1 h with `LINK_SOAK_DURATION_MS=3600000` |
+| RQ-TRANSPORT | open | Transport-node soak | Short and nightly tiers pass via `npm run test:transport-node-soak` | Run 72 h with `TRANSPORT_SOAK_DURATION_MS=259200000` |
+| RQ-INTEGRATION | open | Interface integration soak | Short and nightly tiers pass via `npm run test:integration-soak` | Run 24 h with `SOAK_DURATION_MS=86400000` |
+| RQ-DIST | open | Distribution seeder soak | Short and nightly tiers pass via `npm run test:dist-soak` | Run 24 h with `SOAK_DURATION_MS=86400000` |
+| RQ-MIXED | open | Mixed-network soak | Short and nightly tiers pass via `npm run test:mixed-network-soak` | Run 24 h with `SOAK_DURATION_MS=86400000` |
+| RQ-MINIAPP | open | Mini-app runtime soak | Short and nightly tiers pass via `npm run test:miniapp-soak` | Run 24 h with `SOAK_DURATION_MS=86400000` |
+| RQ-IOS | open | iOS simulator soak | Short and nightly tiers pass via `npm run test:ios-soak:required` | Run 24 h with `SOAK_DURATION_MS=86400000 IOS_LIFECYCLE_CYCLES=100` |
+| RQ-DESKTOP | open | Desktop host soak | Short and nightly tiers pass via `npm run test:desktop-soak` | Run 72 h with `SOAK_DURATION_MS=300000 DESKTOP_SOAK_CYCLES=864` |
+| RQ-RETICULUM | open | `reticulum-ts` 0.1.0 release | Package remains at `0.0.0`; CI-tier hardening is complete | Tag and publish after the 72 h transport soak; update [LIMITATIONS.md](LIMITATIONS.md) §1 |
 
 Use the plan-duration Stage 8 runner rather than starting the soaks individually:
 

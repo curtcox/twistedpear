@@ -1,5 +1,12 @@
 # iOS host
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 The iOS host mirrors Android: a React Native shell supervising a **Bare worklet**
 with the same protocol stack. Platform entitlements and background rules shape
 which interfaces stay online when the app is not in the foreground.

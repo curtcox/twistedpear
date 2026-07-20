@@ -1,5 +1,12 @@
 # SDK Interop
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Exercises the Phase 4 broker namespaces against two logical app identities in one
 process:
 

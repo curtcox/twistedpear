@@ -1,5 +1,12 @@
 # Prompt: audit TwistedPear and produce a reorganization plan
 
+
+<!-- tp-doc
+lifecycle: historical
+audited: 2026-07-20
+register: none
+-->
+
 Audit this repository and produce a **plan document** at `docs/reorg-plan.md`. Do not
 move, rename, delete, or rewrite any other file, and do not add tests — this pass
 produces a plan only. The single deliverable is that one new file.

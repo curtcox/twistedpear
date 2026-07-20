@@ -1,5 +1,12 @@
 # Workspace
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 `workspace` is a private per-app project filesystem of relative paths
 (strings; 256 KiB/file, 4 MiB and 512 files per app). DevStudio and this
 Handbook use it for sources and applet seeds.

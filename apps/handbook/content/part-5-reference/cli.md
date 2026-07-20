@@ -1,5 +1,12 @@
 # CLI commands
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 The `tp` CLI scaffolds, packs, publishes, and runs headless peers. Publisher
 identity comes from `tp init` (Reticulum keypair in the project or data dir).
 

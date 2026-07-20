@@ -1,5 +1,12 @@
 # Quotas & limits
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Generated from `DEFAULT_QUOTAS` (`host-core`) and miniapp-runtime defaults.
 `host.info()` includes a quota snapshot for diagnostics.
 

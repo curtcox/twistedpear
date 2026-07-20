@@ -1,5 +1,12 @@
 # Android Emulator Lab
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Local procedures for Phase 3/4 distribution and mini-app exits before physical hardware
 arrives. CI runs headless proxies (`test:harness-install`, `test:lan-mirror`,
 `test:bare-device`); this document covers the UI path on an Android emulator.

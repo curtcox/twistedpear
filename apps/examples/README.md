@@ -1,5 +1,12 @@
 # Example mini-apps
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Phase 4 reference apps. Each exercises a different SDK surface through the real Phase 3
 pack/verify/install pipeline and the Phase 4 sandbox runtime.
 

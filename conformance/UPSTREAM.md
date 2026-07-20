@@ -1,5 +1,12 @@
 # Upstream Pins
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 The Reticulum reference implementation is the Phase 1 wire-format specification.
 
 | Component | Version | Purpose |

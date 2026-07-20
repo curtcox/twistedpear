@@ -1,5 +1,12 @@
 # Headless node & seeder
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 `tp node` and `tp seed` run **`host-core`** without a UI — the same engine as the
 desktop worklet, suitable for servers, CI, and LAN gateways.
 

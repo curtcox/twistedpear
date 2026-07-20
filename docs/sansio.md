@@ -1,5 +1,12 @@
 # Sans-IO protocol discipline
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 TwistedPear protocol behavior is deterministic: protocol modules receive effects as
 events and return effects as data. They do not directly read clocks or entropy, schedule
 work, access storage, perform network IO, inspect the environment, or log.

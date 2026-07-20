@@ -1,5 +1,12 @@
 # Capabilities
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Generated from `CAPABILITY_DEFINITIONS` in `packages/miniapp-runtime`.
 Every id below must be exercised by at least one Handbook applet (coverage gate).
 

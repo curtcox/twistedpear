@@ -1,5 +1,12 @@
 # Symbolic crypto/authentication twins
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 The grant boundary and authenticated link handshake each have a Tamarin and a
 ProVerif model. Both tools assume perfect cryptography and a Dolev–Yao attacker
 that controls the public network. The models make the identity-binding

@@ -1,5 +1,12 @@
 # Widget protocol
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Generated from `WIDGET_TYPES` / `WIDGET_PROP_KEYS` in `packages/miniapp-runtime`.
 
 Hosts render a declarative tree (`ui.render`). Unknown types, props, styles,

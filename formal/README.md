@@ -1,5 +1,12 @@
 # Authority-machine formal twins
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 `grant.tla` (at [specs/spec-cap/model/](../specs/spec-cap/model/), owned by
 [SPEC-CAP](../specs/spec-cap/spec.md)), `escrow.tla`, and `recovery_quorum.tla`
 (both at [specs/spec-authority/model/](../specs/spec-authority/model/), owned by

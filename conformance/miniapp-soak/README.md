@@ -1,5 +1,12 @@
 # Mini-app soak
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Phase 4 M8 CI-tier soak: cycles launch, suspend, resume, and stop across the three
 `apps/examples` apps under simulated interface flapping.
 

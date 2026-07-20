@@ -128,6 +128,8 @@
     "release:watch-soaks": "node scripts/release/watch-soaks.mjs",
     "release:record": "node scripts/release/record.mjs",
     "test:release-harness": "vitest run conformance/release-harness/release-harness.test.mjs",
+    "test:doc-audit": "vitest run conformance/doc-audit",
+    "test:ui-invariants": "vitest run conformance/ui-invariants/ui-invariants.test.mjs",
     "verify:doc-images": "node conformance/docs/verify-images.mjs",
     "lint": "tsc -b --pretty false",
     "sansio": "npm run build --workspace=@twistedpear/protocol && npm run sansio:inventory && npm run sansio:ratchet && npm run sansio:eslint && npm run sansio:depcruise && npm run sansio:canary && npm run sansio:determinism",

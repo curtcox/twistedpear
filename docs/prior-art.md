@@ -1,5 +1,12 @@
 # Prior art and similar projects
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 TwistedPear combines four things that each exist elsewhere but have not shipped
 together: a delay-tolerant encrypted mesh network stack, a peer-to-peer
 application runtime, a capability-gated sandbox whose consent model ordinary

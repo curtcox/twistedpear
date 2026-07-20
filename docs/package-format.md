@@ -1,5 +1,12 @@
 # TwistedPear Package Format (v1)
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Signed mini-app packages for P2P distribution over Hyperdrive and Reticulum Resources.
 
 ## 1. Trust model

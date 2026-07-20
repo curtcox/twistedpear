@@ -1,5 +1,12 @@
 # SPEC-MEDIA / RNode–LoRa profile (adopted)
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** A (adopted) · **Status:** normative (profile) for KISS framing;
 **radio/physical layer gated on hardware evidence** · Medium: RNode / LoRa
 

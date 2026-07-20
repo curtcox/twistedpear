@@ -1,5 +1,12 @@
 # SPEC-MEDIA — Physical/link media profiles (adopted per medium)
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** A (adopted) · **Status:** normative (per-medium profiles) · **Migration phase:** 3
 
 ## Scope

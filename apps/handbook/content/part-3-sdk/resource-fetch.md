@@ -1,5 +1,12 @@
 # Resource fetch
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 `resource:fetch` asks the host to pull a Resource through its budget rules.
 The mini-app never sees sockets or peer handles — only bytes (or a typed error).
 

@@ -1,5 +1,12 @@
 # Known limitations
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Platform compromises and measured constraints. Cross-linked from host chapters
 and the [live difference matrix](chapter:difference-matrix).
 

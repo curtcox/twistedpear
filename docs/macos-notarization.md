@@ -1,5 +1,12 @@
 # macOS Notarization Procedure
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Status: procedure only — requires Apple Developer account (H12 in
 [STATUS-HARDWARE.md](../STATUS-HARDWARE.md)). CI already produces an unsigned macOS dmg
 via the `electron-pack-macos` nightly job (`CSC_IDENTITY_AUTO_DISCOVERY=false`).

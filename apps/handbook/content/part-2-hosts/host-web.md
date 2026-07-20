@@ -1,5 +1,12 @@
 # Web host
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 The web host is a **browser tab** running the full mini-app stack in-page — not a
 remote UI for another node. `reticulum-ts` executes in a core Web Worker;
 per-app sandboxes use opaque-origin iframes plus workers; the host UI renders

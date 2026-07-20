@@ -26,4 +26,5 @@ packages/reticulum-ts/docs/api/
 conformance/scenarios/config/lxmd-runtime/
 conformance/scenarios/config/propagation-client/
 dependency-graph.json
+launcher.txt
 conformance/sim-campaign/artifacts/

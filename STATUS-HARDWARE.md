@@ -1,6 +1,13 @@
 # TwistedPear — Remaining hardware-gated work
 
-Companion to [PLAN.md](PLAN.md). This document consolidates all work that **requires
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-16
+register: hardware
+-->
+
+Companion to [archive/design/plan-v0.md](archive/design/plan-v0.md). This document consolidates all work that **requires
 additional hardware, a paid Apple account, or a real multi-machine LAN** — items that cannot
 be fully closed on CI runners, docker, or simulators alone.
 

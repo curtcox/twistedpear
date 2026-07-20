@@ -1,5 +1,12 @@
 # Conformance Harness
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Phase 1 starts with the harness, then grows protocol coverage behind it.
 
 ## Golden vectors

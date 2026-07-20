@@ -1,5 +1,12 @@
 # Running diagnostics
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 Each applet reports `{ appletId, status, details, timings }` with first-class
 `unavailable` and `not-granted` outcomes — teaching moments, not hard errors.
 

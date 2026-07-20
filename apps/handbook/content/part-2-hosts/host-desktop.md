@@ -1,5 +1,12 @@
 # Desktop host
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 The desktop host is the **always-on peer** in a typical mesh: transport routing,
 package seeding, optional LXMF propagation, and a gateway for browser tabs via
 the WebSocket Reticulum interface.

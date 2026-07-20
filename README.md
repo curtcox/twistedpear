@@ -1,5 +1,12 @@
 # TwistedPear
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-19
+register: none
+-->
+
 TwistedPear is a peer-to-peer application platform built around Reticulum,
 LXMF, and Pear-style local-first distribution. The repository contains:
 

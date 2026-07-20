@@ -1,5 +1,12 @@
 # SPEC-SDK — Broker API semantics
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-20
+register: none
+-->
+
 **Group:** C (platform) · **Status:** normative · **Migration phase:** 3
 
 ## Scope

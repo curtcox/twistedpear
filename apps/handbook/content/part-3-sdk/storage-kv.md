@@ -1,5 +1,12 @@
 # Key/value storage
 
+
+<!-- tp-doc
+lifecycle: live
+audited: 2026-07-10
+register: none
+-->
+
 `storage:kv` is a per-app local store with a byte quota enforced by the host. Values
 are opaque byte arrays — encode JSON or UTF-8 in the sandbox before writing.
 

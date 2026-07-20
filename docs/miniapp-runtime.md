@@ -1,5 +1,12 @@
 # Mini-app Runtime
 
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-20
+register: none
+-->
+
 Phase 4 introduces a host-rendered, brokered mini-app runtime. The host API anchor is
 `HOST_API_VERSION = 0.1.0`; package `minHostApi` checks and capability validation use
 that value.
