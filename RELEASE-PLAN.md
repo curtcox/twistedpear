@@ -238,17 +238,76 @@ their own future plan.
 
 ## 5. Sequencing
 
-```
-attention (strictly serial):
-  S0 harness → S1 green → S2 start waits → S3 G7 tiers → S4 climb L3
-       → S5 devices → S6 adv-UX + testers① → S7 package + testers② → S8 ship
+```mermaid
+flowchart LR
+  classDef stage fill:#e8eefc,stroke:#3a5a9c,color:#12233f
+  classDef wait fill:#fdf2dc,stroke:#b07d16,color:#3f2f12,stroke-dasharray:4 3
+  classDef gate fill:#e6f5ea,stroke:#2f7d4a,color:#11331f
+  classDef ship fill:#f3e8fb,stroke:#7a3fa0,color:#2c123f
 
-unattended waits (the only overlap; started at S2, monitored by the S0 driver):
-  soaks (≤72 h each) ──────────────► consumed by G1 / the S8 tag
-  hardware shipping ───────────────► consumed by S5
-  Apple enrollment (H12) ──────────► consumed by S7 notarization
-  H20 two-week node run ───────────► consumed by S5 exit
+  subgraph ATT["Attention — strictly serial, one active stage"]
+    direction LR
+    S0["S0 · automation harness<br/>release:status, watcher, recorder"]
+    S1["S1 · keep-green baseline"]
+    S2["S2 · start every wait"]
+    S3["S3 · G7 automated tiers<br/>spoofing, ui-invariants, a11y, visual"]
+    S4["S4 · safety climb to L3<br/>escrow/recovery + human-layer verbs"]
+    S5["S5 · device evidence<br/>H1→H3, H6→H11, H18, H21"]
+    S6["S6 · adversarial-UX + testers ①"]
+    S7["S7 · packaging + testers ②"]
+    S8["S8 · ship"]
+    S0 --> S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8
+  end
+
+  subgraph WAIT["Unattended waits — started at S2, consume calendar not attention"]
+    direction LR
+    WSOAK["soaks ≤72 h<br/>validate:mac --stage 8 --plan-duration"]
+    WHW["hardware shipping<br/>2 Android phones + Linux box"]
+    WAPPLE["Apple Developer enrollment (H12)"]
+    WH20["H20 · 2-week unattended tp node run"]
+  end
+
+  S2 -.-> WSOAK
+  S2 -.-> WHW
+  S2 -.-> WAPPLE
+  WHW -.-> WH20
+
+  WHW -.-> S5
+  WH20 -.-> S5
+  WAPPLE -.-> S7
+
+  WSOAK --> G1["G1 · software qualification"]
+  S8 --> G1
+  S5 --> G2["G2 · core device evidence"]
+  S4 --> G3["G3 · abuse ladder holds L3"]
+  S3 --> G4["G4 · trust loop end-to-end"]
+  S5 --> G4
+  S7 --> G5["G5 · packaging + provenance"]
+  S7 --> G6["G6 · docs tell the truth"]
+  S3 --> G7["G7 · human-layer resistance"]
+  S4 --> G7
+  S6 --> G7
+  S7 --> G7
+
+  G1 & G2 & G3 & G4 & G5 & G6 & G7 --> DONE["v1 released"]
+
+  class S0,S1,S2,S3,S4,S5,S6,S7 stage
+  class S8 ship
+  class WSOAK,WHW,WAPPLE,WH20 wait
+  class G1,G2,G3,G4,G5,G6,G7 gate
+  class DONE ship
 ```
+
+Solid arrows are blocking dependencies; dashed arrows are waits — started by a stage,
+then consumed by a later one without holding attention.
+
+**Reading it for "what is ready now."** Exactly two kinds of work are ever ready: the
+lowest-numbered incomplete stage on the serial chain, and any wait whose predecessor
+(S2, or hardware arrival for H20) has fired. `npm run release:status` computes both
+from committed evidence and prints the single next action — the diagram explains the
+shape, the driver is the authority on position. Nothing downstream of the active
+stage is ready, however tempting it looks: S3's tiers cannot start before S1 is green,
+and no device row in S5 is actionable until the S2 hardware wait lands.
 
 If a wait finishes while a later stage is active, its evidence is recorded by the
 driver and the pipeline continues; if it fails, it preempts, gets fixed and
