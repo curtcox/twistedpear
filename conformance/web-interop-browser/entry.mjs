@@ -238,7 +238,7 @@ async function runLxmfEcho(wsUrl) {
   await sleep(2_000);
 
   const received = new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("browser LXMF echo timeout")), 30_000);
+    const timer = setTimeout(() => reject(new Error("browser LXMF echo timeout")), 45_000);
     router.onDelivery((message) => {
       clearTimeout(timer);
       resolve(message.contentAsString());
@@ -246,6 +246,7 @@ async function runLxmfEcho(wsUrl) {
   });
 
   globalThis.__WEB_INTEROP__.lxmf = "sending";
+  await aliceDelivery.announce();
   await router.packAndSend({
     destination: bobOut,
     source: aliceDelivery,

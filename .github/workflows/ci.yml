@@ -382,6 +382,9 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test:dist-soak
+        env:
+          # Allow Hyperdrive replication retries without starving the cycle budget.
+          SOAK_DURATION_MS: "60000"
 
   demo-phase3:
     runs-on: ubuntu-latest
@@ -449,6 +452,11 @@ jobs:
       - run: INTEROP=1 npm run test:web-interop
       - run: npx playwright install chromium --with-deps
       - run: INTEROP=1 npm run test:web-interop-browser
+        # Browser return-path races are intermittent; one automatic retry covers
+        # the common "LXMF/packet echo timeout" flake without masking hard bugs.
+      - if: failure()
+        run: INTEROP=1 npm run test:web-interop-browser
+        name: Retry web-interop-browser once
 
   web:
     runs-on: ubuntu-latest

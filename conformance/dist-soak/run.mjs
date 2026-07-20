@@ -175,21 +175,24 @@ async function main() {
             }
           };
 
-      const fetchResult = await waitFor(async () => {
-        try {
-          return await fetchPackage(provider, {
-            entry,
-            version: entry.version,
-            interfaces,
-            driveManager: consumerDrive,
-            resourceClient,
-            ...(online ? { forcePath: "hyperdrive" } : {})
-          });
-        } catch {
-          // Hyperdrive replication to the consumer can lag the seeder publish.
-          return null;
-        }
-      });
+      const fetchResult = await waitFor(
+        async () => {
+          try {
+            return await fetchPackage(provider, {
+              entry,
+              version: entry.version,
+              interfaces,
+              driveManager: consumerDrive,
+              resourceClient,
+              ...(online ? { forcePath: "hyperdrive" } : {})
+            });
+          } catch {
+            // Hyperdrive replication to the consumer can lag the seeder publish.
+            return null;
+          }
+        },
+        10_000
+      );
       const installVerified = verifyPackage(provider, fetchResult.archiveBytes, {
         hostApiVersion: HOST_API_VERSION
       });
