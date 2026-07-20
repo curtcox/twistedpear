@@ -21,9 +21,14 @@ APP_NAME = "lxmf"
 
 def wait_for_path(destination_hash: bytes, timeout_s: float = 20.0) -> None:
     deadline = time.time() + timeout_s
+    last_request = 0.0
     while time.time() < deadline:
         if RNS.Transport.has_path(destination_hash):
             return
+        now = time.time()
+        if now - last_request >= 1.0:
+            RNS.Transport.request_path(destination_hash)
+            last_request = now
         time.sleep(0.1)
 
     raise TimeoutError(f"Timed out waiting for path to {destination_hash.hex()}")

@@ -55,11 +55,22 @@ function loadIdentity(provider, name) {
   return identity;
 }
 
-async function waitForPath(reticulum, destinationHash, timeoutMs = 15_000) {
+async function waitForPath(reticulum, destinationHash, timeoutMs = 15_000, onTick = null) {
   const deadline = Date.now() + timeoutMs;
+  let lastRequest = 0;
   while (Date.now() < deadline) {
     if (reticulum.hasPath(destinationHash)) {
       return;
+    }
+
+    const now = Date.now();
+    if (now - lastRequest >= 1_000) {
+      // Peer may have announced before this client connected; solicit actively.
+      reticulum.requestPath(destinationHash);
+      if (onTick !== null) {
+        await onTick();
+      }
+      lastRequest = now;
     }
 
     await sleep(100);
@@ -164,7 +175,11 @@ async function runLxmfOpportunisticOverTcp() {
     const bobOut = router.createOutboundDestination(bob);
 
     await aliceDelivery.announce();
-    await waitForPath(reticulum, bobOut.hash);
+    // Re-announce while discovering the peer so a mid-handshake TCP reset does
+    // not leave the Python echo without a return path to alice.
+    await waitForPath(reticulum, bobOut.hash, 15_000, () => aliceDelivery.announce());
+    await aliceDelivery.announce();
+    await sleep(300);
 
     const received = new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error("LXMF echo timeout")), 15_000);
@@ -252,7 +267,7 @@ async function runTsPropagationServerPythonClientSync() {
     void nodeDelivery.announce();
   }, 1_000);
   try {
-    const syncOutput = composeRun(
+    const syncOutput = await composeRun(
       "propagation-tools",
       [
         "propagation_sync.py",
@@ -284,7 +299,7 @@ async function runLxmdServerTsClientSync() {
     const match = await waitForLogLine("propagation-lxmd", /READY ([0-9a-f]+)/i);
     const propagationHash = match[1];
 
-    composeRun(
+    await composeRun(
       "propagation-tools",
       [
         "propagation_publish.py",

@@ -10,7 +10,10 @@ import {
   msgpackPackBin,
   msgpackPackFloat64,
   msgpackPackNil,
-  msgpackUnpack
+  msgpackPackUInt,
+  msgpackUnpack,
+  msgpackUnpackAt,
+  type MsgpackValue
 } from "./msgpack-core.js";
 
 export interface LinkRequestFields {
@@ -29,10 +32,13 @@ export function msgpackPackLinkRequest(
   pathHash: Uint8Array,
   data: Uint8Array | null
 ): Uint8Array {
+  // `data` is already a msgpack-encoded value (e.g. LXMF `[None, None]` or
+  // `msgpackPackBin(raw)` for opaque payloads). Embed it directly so Python
+  // umsgpack.unpackb yields a native object, not a bytes blob.
   return msgpackPackArray([
     msgpackPackFloat64(requestedAt),
     msgpackPackBin(pathHash),
-    data === null ? msgpackPackNil() : msgpackPackBin(data)
+    data === null ? msgpackPackNil() : data
   ]);
 }
 
@@ -40,15 +46,17 @@ export function msgpackPackLinkResponse(
   requestId: Uint8Array,
   response: Uint8Array | null
 ): Uint8Array {
+  // `response` is already a msgpack-encoded value (e.g. a packed ID list). Embed it
+  // directly so Python umsgpack.unpackb yields a native object, not a bytes blob.
   return msgpackPackArray([
     msgpackPackBin(requestId),
-    response === null ? msgpackPackNil() : msgpackPackBin(response)
+    response === null ? msgpackPackNil() : response
   ]);
 }
 
 export function msgpackUnpackLinkRequest(bytes: Uint8Array): LinkRequestFields {
-  const value = msgpackUnpack(bytes);
-  if (value.type !== "array" || value.array.length !== 3) {
+  const [value, endOffset] = msgpackUnpackAt(bytes, 0);
+  if (value.type !== "array" || value.array.length !== 3 || endOffset !== bytes.length) {
     throw new Error("Invalid request payload");
   }
 
@@ -63,17 +71,40 @@ export function msgpackUnpackLinkRequest(bytes: Uint8Array): LinkRequestFields {
     throw new Error("Invalid request payload fields");
   }
 
-  const data =
-    dataValue.type === "nil" ? null : dataValue.type === "bin" ? dataValue.bin : null;
-  if (dataValue.type !== "nil" && data === null) {
-    throw new Error("Invalid request payload fields");
+  // RNS embeds `data` as either nil, a binary frame (TS clients), or a nested
+  // msgpack value (Python clients pass lists like [None, None] directly).
+  let data: Uint8Array | null;
+  if (dataValue.type === "nil") {
+    data = null;
+  } else if (dataValue.type === "bin") {
+    data = Uint8Array.from(dataValue.bin);
+  } else {
+    data = msgpackRepackValue(dataValue);
   }
 
   return {
     requestedAt: requestedAtValue.float,
     pathHash: Uint8Array.from(pathHashValue.bin),
-    data: data === null ? null : Uint8Array.from(data)
+    data
   };
+}
+
+/** Re-encode a decoded msgpack value so nested Python payloads become byte frames. */
+function msgpackRepackValue(value: MsgpackValue): Uint8Array {
+  switch (value.type) {
+    case "nil":
+      return msgpackPackNil();
+    case "bin":
+      return msgpackPackBin(value.bin);
+    case "float":
+      return msgpackPackFloat64(value.float);
+    case "int":
+      return msgpackPackUInt(value.int);
+    case "array":
+      return msgpackPackArray(value.array.map((entry) => msgpackRepackValue(entry)));
+    default:
+      throw new Error("Unsupported link-request data msgpack type");
+  }
 }
 
 export function msgpackUnpackLinkResponse(bytes: Uint8Array): LinkResponseFields {
@@ -91,19 +122,19 @@ export function msgpackUnpackLinkResponse(bytes: Uint8Array): LinkResponseFields
     throw new Error("Invalid response payload fields");
   }
 
-  const response =
-    responseValue.type === "nil"
-      ? null
-      : responseValue.type === "bin"
-        ? responseValue.bin
-        : null;
-  if (responseValue.type !== "nil" && response === null) {
-    throw new Error("Invalid response payload fields");
+  let response: Uint8Array | null;
+  if (responseValue.type === "nil") {
+    response = null;
+  } else if (responseValue.type === "bin") {
+    // Older TS peers framed the payload as bin; keep accepting that form.
+    response = Uint8Array.from(responseValue.bin);
+  } else {
+    response = msgpackRepackValue(responseValue);
   }
 
   return {
     requestId: Uint8Array.from(requestIdValue.bin),
-    response: response === null ? null : Uint8Array.from(response)
+    response
   };
 }
 

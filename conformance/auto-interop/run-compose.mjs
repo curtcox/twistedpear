@@ -117,16 +117,21 @@ try {
   ]);
 
   const readyDeadline = Date.now() + 30_000;
+  let ready = false;
   while (Date.now() < readyDeadline) {
-    const ready = spawnSync(
+    const probe = spawnSync(
       "docker",
       ["exec", pyName, "sh", "-c", "grep -c '^READY ' /tmp/auto-interop.log 2>/dev/null || true"],
       { encoding: "utf8" }
     );
-    if ((ready.stdout ?? "").trim() !== "" && Number.parseInt((ready.stdout ?? "0").trim(), 10) > 0) {
+    if ((probe.stdout ?? "").trim() !== "" && Number.parseInt((probe.stdout ?? "0").trim(), 10) > 0) {
+      ready = true;
       break;
     }
     spawnSync("sleep", ["1"], { stdio: "ignore" });
+  }
+  if (!ready) {
+    throw new Error("Python AutoInterface peer did not print READY within 30s");
   }
 
   runInherit("docker", [
@@ -138,10 +143,16 @@ try {
     "conformance/auto-interop/run.mjs"
   ]);
 } catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
+  const message = error instanceof Error ? error.message : String(error);
+  // Surface the first line in GitHub Actions annotations (public via check-runs API).
+  console.error(`::error::auto-interop:compose failed: ${message.split("\n")[0]}`);
+  console.error(message);
   const pyLog = spawnSync("docker", ["exec", pyName, "cat", "/tmp/auto-interop.log"], { encoding: "utf8" });
   if (pyLog.stdout || pyLog.stderr) {
-    console.error(`Python peer log:\n${pyLog.stdout ?? ""}${pyLog.stderr ?? ""}`);
+    const text = `${pyLog.stdout ?? ""}${pyLog.stderr ?? ""}`.trim();
+    console.error(`Python peer log:\n${text}`);
+    const preview = text.split("\n").slice(0, 8).join(" | ");
+    if (preview) console.error(`::error::auto-interop python peer: ${preview.slice(0, 200)}`);
   }
   process.exitCode = 1;
 } finally {

@@ -11,6 +11,7 @@ import {
   Reticulum,
   nodeRuntime
 } from "../src/index.js";
+import { msgpackPackBin } from "../src/msgpack.js";
 
 const provider = new NodeCryptoProvider();
 const runtime = nodeRuntime();
@@ -113,13 +114,13 @@ describe("Link request/response", () => {
 
     rightIn.registerRequestHandler(
       "/echo",
-      (_path, data) => data,
+      (_path, data) => (data === null ? null : msgpackPackBin(data)),
       DestinationAllowPolicy.ALLOW_ALL
     );
 
     const responsePromise = new Promise<Uint8Array | null>((resolve) => {
       void leftLink
-        .request("/echo", new TextEncoder().encode("ping"), {
+        .request("/echo", msgpackPackBin(new TextEncoder().encode("ping")), {
           timeout: 2,
           response: (receipt) => resolve(receipt.response),
           failed: () => resolve(null)

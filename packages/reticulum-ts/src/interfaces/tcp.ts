@@ -20,6 +20,14 @@ export const TCP_RECONNECT_WAIT_MS = INTERFACE_RECONNECT_WAIT_MS;
 export const TCP_INITIAL_CONNECT_TIMEOUT_MS = INTERFACE_CONNECT_TIMEOUT_MS;
 export const TCP_HW_MTU = 262_144;
 
+function isTransientSocketDisconnect(error: unknown): boolean {
+  if (error === null || typeof error !== "object") {
+    return false;
+  }
+  const code = "code" in error ? error.code : undefined;
+  return code === "EPIPE" || code === "ECONNRESET" || code === "ECONNABORTED" || code === "ERR_STREAM_DESTROYED";
+}
+
 export interface TcpClientInterfaceOptions extends ReticulumInterfaceOptions {
   readonly provider: CryptoProvider;
   readonly runtime: Runtime;
@@ -121,7 +129,18 @@ export class TcpClientInterface extends HdlcPacketInterface {
       throw new Error(`TCP interface ${this.name} is not connected`);
     }
 
-    await this.connection.write(bytes);
+    try {
+      await this.connection.write(bytes);
+    } catch (error) {
+      // Peer reset during announce/path-request races must not become an
+      // unhandled rejection from fire-and-forget transmits (`void sendPacket`).
+      if (isTransientSocketDisconnect(error)) {
+        this.online = false;
+        this.lastConnectionError = error instanceof Error ? error : new Error(String(error));
+        return;
+      }
+      throw error;
+    }
   }
 
   protected async closeInterface(): Promise<void> {

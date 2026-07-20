@@ -30,7 +30,11 @@ export const LinkMode = LinkKeyMode;
 export type LinkModeValue = LinkKeyModeValue;
 
 export const LINK_MODE_DEFAULT: LinkKeyModeValue = LinkKeyMode.MODE_AES256_CBC;
-export const LINK_ENABLED_MODES: ReadonlyArray<LinkKeyModeValue> = [LinkKeyMode.MODE_AES256_CBC];
+// Accept AES-128 as well: Python RNS defaults to MODE_AES128_CBC when initiating.
+export const LINK_ENABLED_MODES: ReadonlyArray<LinkKeyModeValue> = [
+  LinkKeyMode.MODE_AES128_CBC,
+  LinkKeyMode.MODE_AES256_CBC
+];
 
 /** Whether a link mode is in the currently enabled set. */
 export function isLinkModeEnabled(mode: LinkKeyModeValue | number): boolean {

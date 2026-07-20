@@ -4,6 +4,9 @@
 from __future__ import annotations
 
 import os
+import socket
+import subprocess
+import time
 from pathlib import Path
 
 import RNS
@@ -17,6 +20,7 @@ LXMD_CONFIG = LXMD_CONFIG_DIR / "config"
 IDENTITY_PATH = LXMD_CONFIG_DIR / "identity"
 STORAGE_DIR = LXMD_CONFIG_DIR / "storage"
 LXMD_TEMPLATE = ROOT / "config" / "lxmd" / "config"
+LISTEN_PORT = 4242
 
 
 def ensure_lxmd_layout() -> None:
@@ -34,22 +38,26 @@ def ensure_lxmd_layout() -> None:
 
 def propagation_hash() -> str:
     identity = load_identity("bob")
-    destination = RNS.Destination(
-        identity,
-        RNS.Destination.IN,
-        RNS.Destination.SINGLE,
-        "lxmf",
-        "propagation",
-    )
-    return destination.hash.hex()
+    # Compute the hash without constructing a Destination — that requires an
+    # initialized Reticulum Transport.owner, which lxmd provides after start.
+    return RNS.Destination.hash(identity, "lxmf", "propagation").hex()
+
+
+def wait_for_listen(port: int, timeout_s: float = 30.0) -> None:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=1.0):
+                return
+        except OSError:
+            time.sleep(0.2)
+    raise TimeoutError(f"lxmd did not listen on {port} within {timeout_s}s")
 
 
 def main() -> int:
     ensure_lxmd_layout()
-    print(f"READY {propagation_hash()}", flush=True)
-
-    os.execvp(
-        "lxmd",
+    hash_hex = propagation_hash()
+    child = subprocess.Popen(
         [
             "lxmd",
             "--config",
@@ -59,8 +67,19 @@ def main() -> int:
             "--propagation-node",
             "-q",
         ],
+        env=os.environ.copy(),
     )
-    return 0
+    try:
+        wait_for_listen(LISTEN_PORT)
+        print(f"READY {hash_hex}", flush=True)
+        return child.wait()
+    except BaseException:
+        child.terminate()
+        try:
+            child.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            child.kill()
+        raise
 
 
 if __name__ == "__main__":

@@ -58,9 +58,12 @@ describe("protocol RNS HKDF / link key derive", () => {
   it("aliases LinkMode and default enabled modes", () => {
     expect(LinkMode).toBe(LinkKeyMode);
     expect(LINK_MODE_DEFAULT).toBe(LinkKeyMode.MODE_AES256_CBC);
-    expect(LINK_ENABLED_MODES).toEqual([LinkKeyMode.MODE_AES256_CBC]);
+    expect(LINK_ENABLED_MODES).toEqual([
+      LinkKeyMode.MODE_AES128_CBC,
+      LinkKeyMode.MODE_AES256_CBC
+    ]);
     expect(isLinkModeEnabled(LinkKeyMode.MODE_AES256_CBC)).toBe(true);
-    expect(isLinkModeEnabled(LinkKeyMode.MODE_AES128_CBC)).toBe(false);
+    expect(isLinkModeEnabled(LinkKeyMode.MODE_AES128_CBC)).toBe(true);
     expect(isLinkModeEnabled(LinkKeyMode.MODE_AES256_GCM)).toBe(false);
     expect(
       isExpectedLinkMode({
@@ -80,11 +83,16 @@ describe("protocol RNS HKDF / link key derive", () => {
       mode: LinkKeyMode.MODE_AES256_CBC
     });
     expect(shouldTreatLinkModeEnabled(enabled.actions)).toBe(true);
-    const disabled = stepLinkModeEnabledWithActions(initialLinkModeEnabledState(), {
+    const aes128 = stepLinkModeEnabledWithActions(initialLinkModeEnabledState(), {
       kind: "link/mode-enabled-gate",
       mode: LinkKeyMode.MODE_AES128_CBC
     });
-    expect(shouldTreatLinkModeDisabled(disabled.actions)).toBe(true);
+    expect(shouldTreatLinkModeEnabled(aes128.actions)).toBe(true);
+    const gcm = stepLinkModeEnabledWithActions(initialLinkModeEnabledState(), {
+      kind: "link/mode-enabled-gate",
+      mode: LinkKeyMode.MODE_AES256_GCM
+    });
+    expect(shouldTreatLinkModeDisabled(gcm.actions)).toBe(true);
 
     const match = stepExpectedLinkModeWithActions(initialExpectedLinkModeState(), {
       kind: "link/expected-mode-gate",

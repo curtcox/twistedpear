@@ -134,8 +134,20 @@ export async function withComposeService(service, port, run) {
     throw new Error(`Failed to start ${service} and no peer is listening on 127.0.0.1:${port}`);
   }
 
-  if (udpOnly) await waitForReadyLine(service);
-  else await waitForTcp("127.0.0.1", port);
+  // Prefer READY over bare TCP accept: peers often bind before RNS/LXMF is live,
+  // and a premature client connect can reset mid-announce.
+  if (
+    udpOnly ||
+    service === "lxmf-echo" ||
+    service === "leaf-echo" ||
+    service === "link-echo" ||
+    service === "propagation-lxmd"
+  ) {
+    await waitForReadyLine(service);
+  }
+  if (!udpOnly) {
+    await waitForTcp("127.0.0.1", port);
+  }
 
   try {
     return await run();
@@ -171,14 +183,50 @@ export function spawnComposeService(service) {
 }
 
 export function composeRun(service, args = [], env = {}) {
-  return execSync(
-    `docker compose -f "${COMPOSE_FILE}" --profile tools run --rm ${service} ${args.map((arg) => JSON.stringify(arg)).join(" ")}`,
-    {
-      encoding: "utf8",
-      cwd: REPO_ROOT,
-      env: { ...process.env, ...env }
-    }
-  );
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      "docker",
+      [
+        "compose",
+        "-f",
+        COMPOSE_FILE,
+        "--profile",
+        "tools",
+        "run",
+        "--rm",
+        service,
+        ...args
+      ],
+      {
+        cwd: REPO_ROOT,
+        env: { ...process.env, ...env },
+        stdio: ["ignore", "pipe", "pipe"]
+      }
+    );
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve(stdout);
+        return;
+      }
+      const detail = [stdout, stderr].filter(Boolean).join("\n").trim();
+      reject(
+        new Error(
+          `docker compose run ${service} failed with status ${code ?? 1}${detail ? `\n${detail}` : ""}`
+        )
+      );
+    });
+  });
 }
 
 export async function waitForLogLine(service, pattern, timeoutMs = 30_000) {
