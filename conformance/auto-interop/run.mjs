@@ -107,7 +107,10 @@ async function runAutoEcho() {
     });
 
     await aliceIn.announce();
-    await waitForAutoPeer(auto);
+    const peer = await waitForAutoPeer(auto);
+    console.log(
+      `auto-interop: discovered peer ${peer.name} address=${"peerAddress" in peer ? peer.peerAddress : "?"}`
+    );
     // Peer discovery is discovery-plane only; wait a beat for data-plane announces.
     await sleep(2_000);
     await aliceIn.announce();

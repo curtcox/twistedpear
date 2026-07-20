@@ -408,8 +408,10 @@ try {
   await runTsPropagationServerPythonClientSync();
   await runLxmdServerTsClientSync();
   console.log("propagation-interop: passed");
+  process.exit(0);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`::error::propagation-interop failed: ${message.split("\n")[0]}`);
-  throw error;
+  console.error(error);
+  process.exit(1);
 }

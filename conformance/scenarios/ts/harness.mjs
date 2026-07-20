@@ -84,8 +84,24 @@ export function tryComposeUp(service) {
   }
 }
 
-export function composeDown() {
-  execSync(`docker compose -f "${COMPOSE_FILE}" down`, {
+export function composeDown(...services) {
+  if (services.length === 0) {
+    execSync(`docker compose -f "${COMPOSE_FILE}" down`, {
+      stdio: "inherit",
+      cwd: REPO_ROOT
+    });
+    return;
+  }
+
+  if (services.some((service) => !/^[a-z0-9-]+$/.test(service))) {
+    throw new Error("composeDown requires valid service names");
+  }
+
+  execSync(`docker compose -f "${COMPOSE_FILE}" stop ${services.join(" ")}`, {
+    stdio: "inherit",
+    cwd: REPO_ROOT
+  });
+  execSync(`docker compose -f "${COMPOSE_FILE}" rm -f ${services.join(" ")}`, {
     stdio: "inherit",
     cwd: REPO_ROOT
   });
@@ -114,17 +130,30 @@ export function composeLogs(service, tail = 50) {
 
 export async function waitForReadyLine(service, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;
+  let lastError = null;
   while (Date.now() < deadline) {
-    const logs = composeLogs(service, 20);
-    const match = logs.match(/READY ([0-9a-f]+)/i);
-    if (match?.[1] !== undefined) {
-      return match[1];
+    try {
+      const logs = composeLogs(service, 20);
+      const match = logs.match(/READY ([0-9a-f]+)/i);
+      if (match?.[1] !== undefined) {
+        return match[1];
+      }
+      lastError = null;
+    } catch (error) {
+      lastError = error;
     }
 
     await sleep(500);
   }
 
-  throw new Error(`Timed out waiting for READY line from ${service}. Logs:\n${composeLogs(service, 100)}`);
+  let logs = "";
+  try {
+    logs = composeLogs(service, 100);
+  } catch (error) {
+    logs = `(compose logs unavailable: ${error instanceof Error ? error.message : String(error)})`;
+  }
+  const suffix = lastError instanceof Error ? `\nLast poll error: ${lastError.message}` : "";
+  throw new Error(`Timed out waiting for READY line from ${service}. Logs:\n${logs}${suffix}`);
 }
 
 export async function withComposeService(service, port, run) {
@@ -158,7 +187,7 @@ export async function withComposeService(service, port, run) {
     throw error;
   } finally {
     if (startedCompose) {
-      composeDown();
+      composeDown(service);
     }
   }
 }
@@ -171,7 +200,7 @@ export async function withTransportHubLeaves(run) {
     console.error(`Transport leaf logs:\n${composeLogs("transport-leaf-bob", 100)}${composeLogs("transport-leaf-alice", 100)}`);
     throw error;
   } finally {
-    composeDown();
+    composeDown("transport-leaf-bob", "transport-leaf-alice");
   }
 }
 
