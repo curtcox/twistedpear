@@ -1,5 +1,5 @@
 import type { CryptoProvider, PacketInterface } from "@twistedpear/reticulum-ts";
-import { Identity, Packet, RawPacketInterface, TRUNCATED_HASH_LENGTH, type ReticulumInterfaceOptions } from "@twistedpear/reticulum-ts";
+import { Identity, Packet, RawPacketInterface, type ReticulumInterfaceOptions } from "@twistedpear/reticulum-ts";
 import {
   AUTO_ANNOUNCE_INTERVAL_MS,
   AUTO_BITRATE_GUESS,
@@ -259,13 +259,16 @@ export class AutoInterfaceBridge extends RawPacketInterface {
       return;
     }
 
-    const hashLength = TRUNCATED_HASH_LENGTH / 8;
-    if (data.length < hashLength) {
+    // RNS AutoInterface uses Identity.full_hash (32 bytes), not the truncated hash.
+    const expectedHash = Identity.fullHash(
+      this.provider,
+      concatBytes(this.groupIdBytes, new TextEncoder().encode(sourceAddress))
+    );
+    if (data.length < expectedHash.length) {
       return;
     }
 
-    const receivedHash = Uint8Array.from(data.subarray(0, hashLength));
-    const expectedHash = Identity.truncatedHash(this.provider, concatBytes(this.groupIdBytes, new TextEncoder().encode(sourceAddress)));
+    const receivedHash = Uint8Array.from(data.subarray(0, expectedHash.length));
     if (!equalBytes(receivedHash, expectedHash)) {
       return;
     }
@@ -317,7 +320,8 @@ export class AutoInterfaceBridge extends RawPacketInterface {
   }
 
   private async peerAnnounce(iface: AdoptedInterface): Promise<void> {
-    const token = Identity.truncatedHash(
+    // Must match RNS AutoInterface.peer_announce: full_hash, not truncated.
+    const token = Identity.fullHash(
       this.provider,
       concatBytes(this.groupIdBytes, new TextEncoder().encode(iface.linkLocalAddress))
     );
@@ -331,7 +335,7 @@ export class AutoInterfaceBridge extends RawPacketInterface {
       return;
     }
 
-    const token = Identity.truncatedHash(
+    const token = Identity.fullHash(
       this.provider,
       concatBytes(this.groupIdBytes, new TextEncoder().encode(adopted.linkLocalAddress))
     );

@@ -37,6 +37,28 @@ describe("AutoInterface helpers", () => {
     expect(descopeLinkLocal("fe80::abcd")).toBe("fe80::abcd");
   });
 
+  it("uses full discovery hashes matching Python RNS AutoInterface", () => {
+    const provider = new PureCryptoProvider();
+    const groupId = new TextEncoder().encode("reticulum");
+    const address = new TextEncoder().encode("fe80::dead:beef");
+    const material = new Uint8Array(groupId.length + address.length);
+    material.set(groupId, 0);
+    material.set(address, groupId.length);
+    const full = Identity.fullHash(provider, material);
+    const truncated = Identity.truncatedHash(provider, material);
+    // RNS peer_announce sends full_hash (32 bytes); truncated tokens are rejected by Python.
+    expect(full.length).toBe(32);
+    expect(truncated.length).toBe(16);
+    expect(full.subarray(0, 16)).toEqual(truncated);
+  });
+
+  it("canonicalizes link-local zero compression for peer keys", async () => {
+    const { normalizeLinkLocal } = await import("../src/auto-common.js");
+    expect(normalizeLinkLocal("fe80:0:0:0:d8c4:13ff:fede:9ac0")).toBe("fe80::d8c4:13ff:fede:9ac0");
+    expect(normalizeLinkLocal("fe80::d8c4:13ff:fede:9ac0%tpvethts")).toBe("fe80::d8c4:13ff:fede:9ac0");
+    expect(normalizeLinkLocal("FE80::D8C4:13FF:FEDE:9AC0")).toBe("fe80::d8c4:13ff:fede:9ac0");
+  });
+
   it("derives stable multicast addresses from group id", () => {
     const first = deriveMulticastAddress("reticulum");
     const second = deriveMulticastAddress("reticulum");

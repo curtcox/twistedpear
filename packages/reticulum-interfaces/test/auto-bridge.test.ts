@@ -83,7 +83,7 @@ describe("AutoInterfaceBridge", () => {
     });
 
     const remoteAddress = "fe80::dead:beef";
-    const token = Identity.truncatedHash(
+    const token = Identity.fullHash(
       provider,
       concatBytes(new TextEncoder().encode(AUTO_DEFAULT_GROUP_ID), new TextEncoder().encode(remoteAddress))
     );
