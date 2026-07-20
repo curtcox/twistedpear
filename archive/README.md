@@ -1,5 +1,12 @@
 # Archive index
 
+
+<!-- tp-doc
+lifecycle: historical
+audited: 2026-07-20
+register: none
+-->
+
 Historical documents live here. Do not edit except to fix broken links. Each entry
 lists what replaced it and when it was archived.
 
