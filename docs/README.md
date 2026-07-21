@@ -40,6 +40,13 @@ The status documents are intentionally disjoint: completed evidence belongs in
 marked **historical design** preserve design rationale and acceptance criteria; they do not
 override those status registers.
 
+[Reader-guide remaining work](reader-guide-remaining-work.md) is a work order derived from the
+feature-status appendices of the [User Guide](../guide/appendix-feature-status.md),
+[App Authoring Guide](../authors/appendix-feature-status.md), and
+[Cookbook](../cookbook/appendix-feature-status.md): it sorts every incomplete feature those
+guides admit to into work this repository can do and work gated on hardware, accounts, or
+deliberate v1 scope.
+
 ## Archive
 
 Superseded plans, one-shot handoffs, and point-in-time evidence logs are indexed in
