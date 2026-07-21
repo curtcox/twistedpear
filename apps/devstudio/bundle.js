@@ -32,6 +32,7 @@ let files = [];
 let openFile = null;
 let aiPrompt = "";
 let aiProposal = null;
+let aiProposalStreaming = false;
 let lastPackage = null;
 let lastPublish = null;
 let installInput = "";
@@ -108,10 +109,14 @@ async function render() {
       children.push({
         id: "ai-proposal",
         type: "text",
-        props: { value: `AI proposal (${aiProposal.length} chars):\n${aiProposal.slice(0, 400)}${aiProposal.length > 400 ? "…" : ""}` }
+        props: {
+          value: `${aiProposalStreaming ? "AI proposal streaming" : "AI proposal"} (${aiProposal.length} chars):\n${aiProposal.slice(0, 400)}${aiProposal.length > 400 ? "…" : ""}`
+        }
       });
-      children.push(widgetButton("ai-apply", "Apply AI edit", "ds.aiapply"));
-      children.push(widgetButton("ai-reject", "Reject AI edit", "ds.aireject"));
+      if (!aiProposalStreaming) {
+        children.push(widgetButton("ai-apply", "Apply AI edit", "ds.aiapply"));
+        children.push(widgetButton("ai-reject", "Reject AI edit", "ds.aireject"));
+      }
     }
   }
 
@@ -237,18 +242,34 @@ async function handleEvent({ nodeId, event, value }) {
       return;
     }
 
-    await setStatus("Asking the AI…");
+    aiProposal = "";
+    aiProposalStreaming = true;
+    await setStatus("AI edit is streaming…");
     try {
       const current = await workspace.read(openFile);
-      const response = await ai.chat({
+      let model = "host model";
+      let lastRenderedLength = 0;
+      for await (const response of ai.chatStream({
         messages: [
           { role: "system", content: AI_SYSTEM_PROMPT },
           { role: "user", content: `File: ${openFile}\n\nCurrent content:\n${current}\n\nRequested change: ${aiPrompt}` }
         ]
-      });
-      aiProposal = response.message.content;
-      await setStatus(`AI proposed an edit using ${response.model}. Review and apply or reject.`);
+      })) {
+        if (response.type === "delta") {
+          aiProposal += response.delta;
+          if (aiProposal.length - lastRenderedLength >= 128) {
+            lastRenderedLength = aiProposal.length;
+            await render();
+          }
+        } else {
+          model = response.response.model;
+        }
+      }
+      aiProposalStreaming = false;
+      await setStatus(`AI streamed an edit using ${model}. Review and apply or reject.`);
     } catch (error) {
+      aiProposalStreaming = false;
+      aiProposal = null;
       await setStatus(`AI request failed: ${error.message}`);
     }
     return;

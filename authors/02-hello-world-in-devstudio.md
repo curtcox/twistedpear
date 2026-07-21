@@ -124,7 +124,7 @@ await render();
 ## AI-assisted editing
 
 Describe a change in plain language and DevStudio sends the current file plus your request to
-`ai.chat`. The host holds the endpoint URL, the API key, and the model allowlist — desktop
+`ai.chatStream`. The host holds the endpoint URL, the API key, and the model allowlist — desktop
 **Settings → AI**, or `HostConfig.ai` for a headless node. **The key never enters any
 sandbox**, including DevStudio's.
 
@@ -136,9 +136,9 @@ diff: the current `bundle.js` on the left, the proposal on the right with four a
 highlighted green. Beneath the diff, the model name and a token count. Buttons: **Apply**,
 **Reject**. A grey note reads "Whole-file replacement — review before applying."
 
-> **⚠️ Works, with limits — AI editing is non-streaming, whole-file replacement.** You get
-> one complete proposed file back and choose **Apply** or **Reject**; there is no streaming,
-> no partial patch, and no multi-file edit. One request may be in flight per app, at most 64
+> **⚠️ Works, with limits — AI editing streams a whole-file replacement.** You can watch the
+> proposed file arrive, but **Apply** stays disabled until the stream completes. There is no
+> partial patch or multi-file edit. One request may be in flight per app, at most 64
 > messages, with `maxTokens` clamped to 8,192 by the host. See
 > [LIMITATIONS.md §7](../LIMITATIONS.md).
 

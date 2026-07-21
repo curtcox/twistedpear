@@ -179,7 +179,17 @@ function startMockOpenRouter() {
     let body = "";
     request.on("data", (chunk) => (body += chunk));
     request.on("end", () => {
-      requests.push({ url: request.url, auth: request.headers.authorization, body: JSON.parse(body || "{}") });
+      const parsed = JSON.parse(body || "{}");
+      requests.push({ url: request.url, auth: request.headers.authorization, body: parsed });
+      if (parsed.stream === true) {
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        const midpoint = Math.floor(MOCK_AI_BUNDLE.length / 2);
+        for (const content of [MOCK_AI_BUNDLE.slice(0, midpoint), MOCK_AI_BUNDLE.slice(midpoint)]) {
+          response.write(`data: ${JSON.stringify({ model: "mock/model", choices: [{ delta: { content } }] })}\n\n`);
+        }
+        response.end(`data: ${JSON.stringify({ model: "mock/model", choices: [{ delta: {} }], usage: { prompt_tokens: 10, completion_tokens: 20 } })}\n\ndata: [DONE]\n\n`);
+        return;
+      }
       response.writeHead(200, { "content-type": "application/json" });
       response.end(
         JSON.stringify({
@@ -569,6 +579,9 @@ export async function runDevstudioLoop() {
     );
     if (mockAi.requests.length !== 1 || mockAi.requests[0].auth !== "Bearer test-key") {
       throw new Error("mock AI endpoint saw an unexpected request");
+    }
+    if (mockAi.requests[0].body.stream !== true) {
+      throw new Error("DevStudio AI edit did not request a streaming response");
     }
     if (JSON.stringify(mockAi.requests[0].body).includes("test-key")) {
       throw new Error("API key leaked into the request body");

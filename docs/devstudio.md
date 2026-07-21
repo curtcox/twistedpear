@@ -76,8 +76,8 @@ force-quits. See [conformance/devstudio-loop](../conformance/devstudio-loop/READ
 
 - Projects are single-file bundles (no in-host bundler; `import` only from
   `@twistedpear/miniapp-sdk`).
-- DevStudio deliberately uses whole-response `ai.chat` for whole-file replacements; other
-  mini-apps can use streamed `ai.chatStream` output.
+- DevStudio consumes `ai.chatStream` incrementally and shows the growing whole-file proposal.
+  Apply remains disabled until the final event, so partial output cannot overwrite a file.
 - One preview slot; previewing again replaces the previous preview.
 - Desktop accepts pasted 256t strings (renders QR for others to scan); camera
   scanning lands with the mobile host.
