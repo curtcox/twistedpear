@@ -19,7 +19,9 @@ import {
   AiServiceError,
   type AiChatBackend,
   type AiChatRequest,
-  type AiChatStreamEvent
+  type AiChatStreamEvent,
+  type AiEmbedRequest,
+  type AiVectorSearchRequest
 } from "./services/ai.js";
 import { AppsService, AppsServiceError, type AppsBackend } from "./services/apps.js";
 import { WorkspaceService, type WorkspaceLimits } from "./services/workspace.js";
@@ -599,6 +601,20 @@ export class MiniappHost {
       this.aiStreams.delete(streamId);
       await session.iterator.return?.();
       return { cancelled: true };
+    });
+
+    this.broker.register("ai", "embed", "ai:embed", async (request, context) => {
+      if (this.aiService === null) {
+        throw new AiServiceError("AI_UNCONFIGURED", "AI is not configured on this host");
+      }
+      return this.aiService.embed(context.appId, request.payload as AiEmbedRequest);
+    });
+
+    this.broker.register("ai", "search", "ai:embed", async (request, context) => {
+      if (this.aiService === null) {
+        throw new AiServiceError("AI_UNCONFIGURED", "AI is not configured on this host");
+      }
+      return this.aiService.search(context.appId, request.payload as AiVectorSearchRequest);
     });
 
     const appsService = () => {

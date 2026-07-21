@@ -1,8 +1,8 @@
 import { ai, workspace, ui } from "@twistedpear/miniapp-sdk";
 
-// Retrieval, at the scale a mini-app can actually afford. There is no vector store and
-// no embedding call — just a keyword scan over local files and a hard cap on how much
-// text goes into the prompt. maxTokens is clamped to 8,192 host-side regardless.
+// Retrieval stays bounded: the host embeds at most 64 inputs per request and ranks the
+// app-supplied documents with cosine similarity. Keyword scoring remains the offline or
+// withheld-grant fallback. maxTokens is clamped to 8,192 host-side regardless.
 
 const DIR = "docs";
 const CONTEXT_CHAR_BUDGET = 6000;
@@ -34,26 +34,40 @@ async function gatherContext() {
     .toLowerCase()
     .split(/\W+/)
     .filter((word) => word.length > 3);
-  if (terms.length === 0) return { context: "", used: [] };
+  if (terms.length === 0) return { context: "", used: [], retrieval: "keyword fallback" };
 
-  const scored = [];
-  for (const name of files) {
+  const documents = [];
+  for (const name of files.slice(0, 63)) {
     const path = name.includes("/") ? name : `${DIR}/${name}`;
     const text = await workspace.read(path);
-    scored.push({ path, text, score: score(text, terms) });
+    documents.push({ path, text: text.slice(0, 16_384) });
+  }
+  let scored;
+  let retrieval = "semantic";
+  try {
+    const result = await ai.search({
+      query: question,
+      documents: documents.map((document) => ({ id: document.path, text: document.text })),
+      limit: 5
+    });
+    const scores = new Map(result.matches.map((match) => [match.id, match.score]));
+    scored = documents.map((document) => ({ ...document, score: scores.get(document.path) ?? -1 }));
+  } catch {
+    retrieval = "keyword fallback";
+    scored = documents.map((document) => ({ ...document, score: score(document.text, terms) }));
   }
   scored.sort((a, b) => b.score - a.score);
 
   let context = "";
   const used = [];
   for (const file of scored) {
-    if (file.score === 0) break;
+    if (file.score <= 0) break;
     const remaining = CONTEXT_CHAR_BUDGET - context.length;
     if (remaining <= 0) break;
     context += `\n\n# ${file.path}\n${file.text.slice(0, remaining)}`;
     used.push(file.path);
   }
-  return { context, used };
+  return { context, used, retrieval };
 }
 
 async function ask() {
@@ -62,7 +76,7 @@ async function ask() {
   status = "Reading local files…";
   await render();
 
-  const { context, used } = await gatherContext();
+  const { context, used, retrieval } = await gatherContext();
   usedFiles = used;
   if (context.length === 0) {
     answer = "";
@@ -89,12 +103,12 @@ async function ask() {
     })) {
       if (event.type === "delta") {
         answer += event.delta;
-        status = `Answering from ${used.length} file(s)…`;
+        status = `Answering from ${used.length} file(s) · ${retrieval}`;
         await render();
       }
     }
     answer = answer.trim();
-    status = `Answered from ${used.length} file(s)`;
+    status = `Answered from ${used.length} file(s) · ${retrieval}`;
   } catch (error) {
     status = "Model unavailable";
   } finally {

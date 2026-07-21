@@ -34,6 +34,7 @@ const settingDeveloper = document.querySelector("#setting-developer");
 const settingAiUrl = document.querySelector("#setting-ai-url");
 const settingAiKey = document.querySelector("#setting-ai-key");
 const settingAiModel = document.querySelector("#setting-ai-model");
+const settingAiEmbeddingModel = document.querySelector("#setting-ai-embedding-model");
 const settingPropagation = document.querySelector("#setting-propagation");
 const settingTcp = document.querySelector("#setting-tcp");
 const settingAuto = document.querySelector("#setting-auto");
@@ -529,9 +530,10 @@ if (!host) {
     const config = {
       baseUrl: settingAiUrl?.value.trim() ?? "",
       apiKey: settingAiKey?.value.trim() ?? "",
-      model: settingAiModel?.value.trim() ?? ""
+      model: settingAiModel?.value.trim() ?? "",
+      embeddingModel: settingAiEmbeddingModel?.value.trim() ?? ""
     };
-    localStorage.setItem("tp-ai-config", JSON.stringify({ baseUrl: config.baseUrl, model: config.model }));
+    localStorage.setItem("tp-ai-config", JSON.stringify({ baseUrl: config.baseUrl, model: config.model, embeddingModel: config.embeddingModel }));
     host.send({ type: "set-ai-config", config: config.baseUrl && config.apiKey ? config : null });
   };
 
@@ -543,11 +545,14 @@ if (!host) {
     if (settingAiModel && savedAi.model) {
       settingAiModel.value = savedAi.model;
     }
+    if (settingAiEmbeddingModel && savedAi.embeddingModel) {
+      settingAiEmbeddingModel.value = savedAi.embeddingModel;
+    }
   } catch {
     // ignore malformed saved settings
   }
 
-  for (const element of [settingAiUrl, settingAiKey, settingAiModel]) {
+  for (const element of [settingAiUrl, settingAiKey, settingAiModel, settingAiEmbeddingModel]) {
     element?.addEventListener("change", applyAiSettings);
   }
 

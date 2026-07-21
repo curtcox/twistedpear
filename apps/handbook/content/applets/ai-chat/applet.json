@@ -2,7 +2,7 @@
   "id": "ai-chat",
   "group": "runtime",
   "title": "AI chat (host-mediated)",
-  "capabilities": ["ai:chat"],
+  "capabilities": ["ai:chat", "ai:embed"],
   "surfaces": ["ai.chat"],
   "expectations": {
     "android": "pass",

@@ -202,6 +202,34 @@ await ui.render({ root: { id: "root", type: "text", props: { value: text } } });
     await host.stop();
   });
 
+  it("embeds and ranks documents through the separately granted broker surface", async () => {
+    const store = new MemoryStore();
+    const grants = new GrantStore(store);
+    const aiManifest = { ...manifest, name: "search-app", capabilities: ["ai:embed"] };
+    await grants.set("search-app", "publisher", ["ai:embed"], ["ai:embed"], 1);
+    const bundle = new TextEncoder().encode(`import { ai, ui } from "@twistedpear/miniapp-sdk";
+const result = await ai.search({ query: "pear", documents: [{ id: "a", text: "apple" }, { id: "b", text: "pear" }], limit: 1 });
+await ui.render({ root: { id: "root", type: "text", props: { value: result.matches[0].id } } });
+`);
+    const host = new MiniappHost({
+      backend: new NodeWorkerSandboxBackend(),
+      grantStore: grants,
+      kvBackend: store,
+      aiBackend: {
+        chat: async () => ({ message: { role: "assistant", content: "" }, model: "m", usage: null }),
+        embed: async (_appId, request) => ({
+          vectors: request.inputs.map((input) => input === "apple" ? [0, 1] : [1, 0]),
+          model: "embed/model",
+          usage: null
+        })
+      }
+    });
+    await host.launch(aiManifest, bundle);
+    await waitUntil(() => host.snapshot().widgetTree?.root.props?.value === "b");
+    expect(host.snapshot().widgetTree?.root.props?.value).toBe("b");
+    await host.stop();
+  });
+
   it("fails broker calls after grant revocation on the next dispatch", async () => {
     const store = new MemoryStore();
     const grants = new GrantStore(store);

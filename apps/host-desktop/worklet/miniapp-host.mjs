@@ -57,6 +57,18 @@ export function createWorkletMiniappHost(options) {
           }
 
           return createOpenRouterBackend(aiConfig).chat(appId, request);
+        },
+        stream: async function* (appId, request) {
+          if (aiConfig === null || !aiConfig.baseUrl || !aiConfig.apiKey) {
+            throw new Error("AI is not configured on this host (set it in Settings)");
+          }
+          yield* createOpenRouterBackend(aiConfig).stream(appId, request);
+        },
+        embed: async (appId, request) => {
+          if (aiConfig === null || !aiConfig.baseUrl || !aiConfig.apiKey || !aiConfig.embeddingModel) {
+            throw new Error("Embeddings are not configured on this host (set an embedding model in Settings)");
+          }
+          return createOpenRouterBackend(aiConfig).embed(appId, request);
         }
       },
     beeBackend: {

@@ -158,6 +158,12 @@ everything below is a known cost of the chosen design or of the platforms involv
 
 ## 7. Mini-app model
 
+- **Embeddings are request-scoped, not a vector database:** `ai.embed` and `ai.search`
+  require a separate grant and host-configured embedding model, share the per-app AI
+  in-flight slot, cap each input at 16,384 characters, cap batches at 64 inputs and vectors
+  at 4,096 dimensions, and persist no index. `ai.search` accepts at most 63 documents because
+  the query occupies the remaining batch slot.
+
 - Mini-apps are **not native apps**: no arbitrary native modules, no background autonomy,
   capabilities only via the host SDK. Some app categories (games needing native perf,
   apps needing exotic hardware) won't fit; the tiered-APK channel was deliberately deferred.

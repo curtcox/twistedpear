@@ -59,3 +59,35 @@ export async function *chatStream(request: AiChatRequest): AsyncGenerator<AiChat
     }
   }
 }
+
+export interface AiEmbedRequest {
+  readonly inputs: ReadonlyArray<string>;
+  readonly model?: string;
+}
+
+export interface AiEmbedResponse {
+  readonly vectors: ReadonlyArray<ReadonlyArray<number>>;
+  readonly model: string;
+  readonly usage: { readonly promptTokens: number } | null;
+}
+
+export interface AiVectorSearchRequest {
+  readonly query: string;
+  readonly documents: ReadonlyArray<{ readonly id: string; readonly text: string }>;
+  readonly limit?: number;
+  readonly model?: string;
+}
+
+export interface AiVectorSearchResponse {
+  readonly matches: ReadonlyArray<{ readonly id: string; readonly score: number }>;
+  readonly model: string;
+  readonly usage: { readonly promptTokens: number } | null;
+}
+
+export async function embed(request: AiEmbedRequest): Promise<AiEmbedResponse> {
+  return (await callHost("ai", "embed", request, "ai:embed")) as AiEmbedResponse;
+}
+
+export async function search(request: AiVectorSearchRequest): Promise<AiVectorSearchResponse> {
+  return (await callHost("ai", "search", request, "ai:embed")) as AiVectorSearchResponse;
+}

@@ -359,14 +359,27 @@ function generateLimitationsChapter(refDir) {
   }
   const body = transformLimitationsMarkdown(readFileSync(limitationsPath, "utf8"));
   const limitationsMd = [
-    "# Known limitations",
-    "",
+    ...referenceHeader("Known limitations"),
     "Platform compromises and measured constraints. Cross-linked from host chapters",
     "and the [live difference matrix](chapter:difference-matrix).",
     "",
     body.trim()
   ].join("\n");
   writeText(join(refDir, "limitations.md"), `${limitationsMd}\n`);
+}
+
+function referenceHeader(title) {
+  return [
+    `# ${title}`,
+    "",
+    "",
+    "<!-- tp-doc",
+    "lifecycle: live",
+    "audited: 2026-07-21",
+    "register: none",
+    "-->",
+    ""
+  ];
 }
 
 function resetSeeds() {
@@ -434,6 +447,7 @@ async function generateReferenceChapters() {
       { id: "resource:fetch", description: "Fetch package resources through host budget rules." },
       { id: "workspace", description: "Read and write project source files in this app's private workspace." },
       { id: "ai:chat", description: "Send prompts to the host-configured AI service." },
+      { id: "ai:embed", description: "Send bounded text to the host-configured embedding model and rank vectors locally." },
       { id: "apps:package", description: "Package and sign apps under this device's publisher identity." },
       { id: "apps:publish", description: "Publish signed apps so other users can find and install them." },
       { id: "apps:install", description: "Ask the host to install apps from a 256t id." },
@@ -459,8 +473,7 @@ async function generateReferenceChapters() {
   }
 
   const capabilitiesMd = [
-    "# Capabilities",
-    "",
+    ...referenceHeader("Capabilities"),
     "Generated from `CAPABILITY_DEFINITIONS` in `packages/miniapp-runtime`.",
     "Every id below must be exercised by at least one Handbook applet (coverage gate).",
     "",
@@ -482,8 +495,7 @@ async function generateReferenceChapters() {
   }
 
   const widgetsMd = [
-    "# Widget protocol",
-    "",
+    ...referenceHeader("Widget protocol"),
     "Generated from `WIDGET_TYPES` / `WIDGET_PROP_KEYS` in `packages/miniapp-runtime`.",
     "",
     "Hosts render a declarative tree (`ui.render`). Unknown types, props, styles,",
@@ -513,8 +525,7 @@ async function generateReferenceChapters() {
   );
 
   const hostApiMd = [
-    "# Host API",
-    "",
+    ...referenceHeader("Host API"),
     `Current \`HOST_API_VERSION\`: **\`${hostApiVersion}\`**.`,
     "Manifests pin \`minHostApi\`; hosts reject packages that require a newer API.",
     "",
@@ -535,8 +546,7 @@ async function generateReferenceChapters() {
   ].join("\n");
 
   const packagesMd = [
-    "# Package format",
-    "",
+    ...referenceHeader("Package format"),
     "Mini-apps ship as deterministic **\`.tpkg\`** archives:",
     "",
     "- Signed manifest (name, version, entry, capabilities, publisher key, `minHostApi`)",
@@ -548,8 +558,7 @@ async function generateReferenceChapters() {
   ].join("\n");
 
   const interfacesMd = [
-    "# Network interfaces",
-    "",
+    ...referenceHeader("Network interfaces"),
     "Reticulum peers attach through typed **PacketInterface** implementations.",
     "The [live difference matrix](chapter:difference-matrix) lists which types",
     "`host.info()` reports for **this** host.",
@@ -585,8 +594,7 @@ async function generateReferenceChapters() {
   ].join("\n");
 
   const quotasMd = [
-    "# Quotas & limits",
-    "",
+    ...referenceHeader("Quotas & limits"),
     "Generated from `DEFAULT_QUOTAS` (`host-core`) and miniapp-runtime defaults.",
     "`host.info()` includes a quota snapshot for diagnostics.",
     "",
@@ -618,8 +626,7 @@ async function generateReferenceChapters() {
   ].join("\n");
 
   const cliMd = [
-    "# CLI commands",
-    "",
+    ...referenceHeader("CLI commands"),
     "The `tp` CLI scaffolds, packs, publishes, and runs headless peers. Publisher",
     "identity comes from `tp init` (Reticulum keypair in the project or data dir).",
     "",
@@ -647,8 +654,7 @@ async function generateReferenceChapters() {
   ].join("\n");
 
   const hostConfigMd = [
-    "# Host configuration",
-    "",
+    ...referenceHeader("Host configuration"),
     "Generated from `defaultHostConfig()` defaults in `packages/host-core`.",
     "Desktop and `tp node` persist overrides in `<data-dir>/config.json`.",
     "",
@@ -690,8 +696,9 @@ async function generateReferenceChapters() {
     "",
     "## AI endpoint",
     "",
-    "`ai` is `null` until configured (desktop **Settings → AI** or `config.json`).",
-    "Mini-apps use `ai:chat` through the host proxy — see [AI chat](chapter:sdk-ai-chat).",
+    "`ai` is `null` until configured (desktop **Settings → AI** or `config.json`). Chat and",
+    "embedding models are configured separately. Mini-apps use `ai:chat` and `ai:embed` through",
+    "the host proxy — see [AI chat](chapter:sdk-ai-chat).",
     "",
     "## Status endpoint",
     "",
@@ -866,6 +873,7 @@ async function build() {
       "resource:fetch",
       "workspace",
       "ai:chat",
+      "ai:embed",
       "apps:package",
       "apps:publish",
       "apps:install",

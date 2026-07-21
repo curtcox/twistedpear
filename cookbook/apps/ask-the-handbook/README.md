@@ -13,13 +13,15 @@ Recipe and screenshots: [7. Apps that use a model](../../07-apps-that-use-a-mode
 
 ## What it shows
 
-Stuffing a bounded amount of local context into the message list without exceeding the clamp.
+Ranking a bounded document set with host-proxied embeddings, falling back to keyword scoring,
+then stuffing only the selected context into the chat message list.
 
 ## Capabilities
 
 | Capability | Note |
 |---|---|
 | `ai:chat` | Streaming or whole-response; one in-flight request per app, `maxTokens` clamped to 8,192. |
+| `ai:embed` | At most 63 documents plus one query per search; no persistent vector index. |
 | `workspace` | 256 KiB per file, 4 MiB and 512 files per app. |
 
 ## Files
@@ -39,6 +41,4 @@ tp dev install <packed>.tpkg      # host must be in developer mode
 Or paste `bundle.js` into a DevStudio project and press **Preview**. See
 [Chapter 1](../../01-how-to-use-this-cookbook.md) for both loops in full.
 
-> **⏳ Cookbook samples are not exercised by CI.** These apps are written against the
-> published SDK surface but are not built, packed, or run by any suite in this repository.
-> Treat them as reference source, not as tested artifacts.
+The cookbook conformance suite validates, packs, launches, and renders this sample in CI.

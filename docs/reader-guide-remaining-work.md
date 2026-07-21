@@ -98,6 +98,14 @@ deliberate product decisions and implementing them would be a regression against
    ship a screenshot of a real handset — that is H-tier hardware debt. Report which
    filenames remain unobtainable and why.
 
+7. **Embeddings and vector search.** Cookbook chapter 7 uses keyword scoring because the
+   SDK cannot request embeddings or rank semantic matches. Add a separately granted,
+   host-proxied embedding API backed by the existing OpenRouter-compatible configuration,
+   plus bounded cosine search over app-supplied documents. Keep credentials and model
+   allowlists host-side, cap input count/size and vector dimensions, share the per-app AI
+   in-flight limit, and update Ask the handbook to use semantic retrieval with a clear
+   unavailable fallback.
+
 ## Definition of done for every item
 
 - Tests first or alongside, in the existing suites; `npm test` green, and the PR-tier CI

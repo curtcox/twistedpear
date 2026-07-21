@@ -14,6 +14,7 @@
     "resource:fetch",
     "workspace",
     "ai:chat",
+    "ai:embed",
     "share:cas",
     "apps:preview",
     "apps:package",
@@ -21,5 +22,5 @@
     "apps:install"
   ],
   "icon": null,
-  "minHostApi": "0.4.0"
+  "minHostApi": "0.6.0"
 }

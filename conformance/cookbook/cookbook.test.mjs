@@ -41,6 +41,8 @@ const API_CAPABILITIES = new Map([
   ["workspace.", "workspace"],
   ["ai.chat", "ai:chat"],
   ["ai.chatStream", "ai:chat"],
+  ["ai.embed", "ai:embed"],
+  ["ai.search", "ai:embed"],
   ["apps.preview", "apps:preview"],
   ["apps.stopPreview", "apps:preview"],
   ["apps.packageProject", "apps:package"],

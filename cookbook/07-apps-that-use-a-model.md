@@ -147,10 +147,11 @@ Full source: [apps/pocket-translator/bundle.js](apps/pocket-translator/bundle.js
 
 ## Ask the handbook
 
-> **Capabilities:** `ai:chat`, `workspace`
+> **Capabilities:** `ai:chat`, `ai:embed`, `workspace`
 
-Answers questions about documents you have stored locally. Retrieval at the scale a mini-app
-can actually afford — no vector store, no embeddings, no index.
+Answers questions about documents you have stored locally. The host embeds the query and a
+bounded set of app-supplied documents, ranks them with cosine similarity, and returns ids and
+scores; the app keeps keyword scoring as its unavailable-grant/offline fallback.
 
 ![Ask the handbook with a cited answer](/cookbook/images/07-ask-the-handbook.png)
 
@@ -161,7 +162,8 @@ status line reading "Answered from 2 file(s) · 11 local files".
 
 ### The interesting part
 
-The retrieval is a keyword count and a hard character budget. That is all.
+The retrieval asks the host to rank bounded document text, then still enforces a hard context
+character budget:
 
 ```javascript
 const CONTEXT_CHAR_BUDGET = 6000;
@@ -176,9 +178,10 @@ for (const file of scored) {
 }
 ```
 
-There is no embedding call available in the SDK, so the sophisticated version of this is not
-on the table. What is on the table works better than it has any right to when the corpus is
-a dozen files somebody deliberately put there.
+`ai.search()` is intentionally not a persistent vector database: it embeds the query and
+documents for this call, returns only ids and cosine scores, and shares the app's one in-flight
+AI slot. If the host has no embedding model or the `ai:embed` grant is withheld, the sample
+falls back to its original keyword count.
 
 The budget is not optional. `maxTokens` is clamped to 8,192 host-side, and the message list
 is capped at 64 — so an unbounded context is not a slow app, it is a rejected call. Bound it

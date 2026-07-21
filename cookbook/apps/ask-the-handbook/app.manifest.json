@@ -4,8 +4,9 @@
   "entry": "bundle.js",
   "capabilities": [
     "ai:chat",
+    "ai:embed",
     "workspace"
   ],
   "icon": null,
-  "minHostApi": "0.5.0"
+  "minHostApi": "0.6.0"
 }

@@ -177,6 +177,24 @@ describe("ai service", () => {
     expect(cancelled).toBe(true);
   });
 
+  it("embeds bounded inputs and ranks cosine matches", async () => {
+    const service = new AiService({
+      chat: async () => ({ message: { role: "assistant", content: "" }, model: "m", usage: null }),
+      embed: async (_appId, request) => ({
+        vectors: request.inputs.map((input) => input.includes("pear") ? [1, 0] : [0, 1]),
+        model: "embed/model",
+        usage: { promptTokens: request.inputs.length }
+      })
+    });
+    await expect(service.embed("app", { inputs: ["pear"] })).resolves.toMatchObject({ vectors: [[1, 0]] });
+    await expect(service.search("app", {
+      query: "pear",
+      documents: [{ id: "other", text: "apple" }, { id: "match", text: "pear guide" }],
+      limit: 1
+    })).resolves.toMatchObject({ matches: [{ id: "match", score: 1 }] });
+    await expect(service.embed("app", { inputs: [] })).rejects.toMatchObject({ code: "AI_BAD_REQUEST" });
+  });
+
   it("openrouter backend enforces the model allowlist and translates the wire shape", async () => {
     const calls: Array<{ url: string; body: Record<string, unknown>; auth: string | undefined }> = [];
     const fetchImpl = (async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -242,6 +260,31 @@ describe("ai service", () => {
     ]);
     expect(requestBody?.stream).toBe(true);
     expect(requestBody?.stream_options).toEqual({ include_usage: true });
+  });
+
+  it("uses the OpenRouter-compatible embeddings endpoint", async () => {
+    let seenUrl = "";
+    let seenBody: Record<string, unknown> = {};
+    const backend = createOpenRouterBackend({
+      baseUrl: "https://example.test/api/v1",
+      apiKey: "secret",
+      model: "chat/model",
+      embeddingModel: "embed/model",
+      fetchImpl: (async (url: RequestInfo | URL, init?: RequestInit) => {
+        seenUrl = String(url);
+        seenBody = JSON.parse(String(init?.body));
+        return new Response(JSON.stringify({
+          model: "embed/model",
+          data: [{ index: 1, embedding: [0, 1] }, { index: 0, embedding: [1, 0] }],
+          usage: { prompt_tokens: 4 }
+        }), { status: 200 });
+      }) as typeof fetch
+    });
+    await expect(backend.embed!("app", { inputs: ["a", "b"] })).resolves.toEqual({
+      vectors: [[1, 0], [0, 1]], model: "embed/model", usage: { promptTokens: 4 }
+    });
+    expect(seenUrl).toBe("https://example.test/api/v1/embeddings");
+    expect(seenBody).toEqual({ model: "embed/model", input: ["a", "b"] });
   });
 
   it("exposes a typed error", () => {

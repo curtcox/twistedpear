@@ -3,12 +3,12 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-20
+audited: 2026-07-21
 register: none
 -->
 
 Phase 4 introduces a host-rendered, brokered mini-app runtime. The host API anchor is
-`HOST_API_VERSION = 0.1.0`; package `minHostApi` checks and capability validation use
+`HOST_API_VERSION = 0.6.0`; package `minHostApi` checks and capability validation use
 that value.
 
 ## Isolation ADR
@@ -59,6 +59,8 @@ Known v1 capabilities are:
 Host API `0.2.0` adds the dev-environment capabilities `workspace`, `ai:chat`,
 `apps:package`, `apps:publish`, `apps:install`, `apps:preview`, and `share:cas`
 (see [miniapp-sdk.md](miniapp-sdk.md) for wording).
+Host API `0.6.0` adds the separately granted `ai:embed` embedding and bounded vector-search
+surface.
 
 Unknown strings block install with guidance to update `minHostApi`. Grants are keyed by
 `appId + publisherPublicKey`, survive updates signed by the same publisher, and are

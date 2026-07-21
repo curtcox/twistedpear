@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-07-21
 register: none
 -->
 
@@ -12,7 +12,14 @@ and the [live difference matrix](chapter:difference-matrix).
 
 # Limitations, Compromises, and Restrictions
 
-Companion to PLAN.md. Reticulum compatibility is the only hard constraint;
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-21
+register: none
+-->
+
+Companion to archive/design/plan-v0.md. Reticulum compatibility is the only hard constraint;
 everything below is a known cost of the chosen design or of the platforms involved.
 
 ## 1. Reticulum implementation
@@ -163,6 +170,12 @@ everything below is a known cost of the chosen design or of the platforms involv
 
 ## 7. Mini-app model
 
+- **Embeddings are request-scoped, not a vector database:** `ai.embed` and `ai.search`
+  require a separate grant and host-configured embedding model, share the per-app AI
+  in-flight slot, cap each input at 16,384 characters, cap batches at 64 inputs and vectors
+  at 4,096 dimensions, and persist no index. `ai.search` accepts at most 63 documents because
+  the query occupies the remaining batch slot.
+
 - Mini-apps are **not native apps**: no arbitrary native modules, no background autonomy,
   capabilities only via the host SDK. Some app categories (games needing native perf,
   apps needing exotic hardware) won't fit; the tiered-APK channel was deliberately deferred.
@@ -179,7 +192,16 @@ everything below is a known cost of the chosen design or of the platforms involv
   localhost/adb-only, off by default, and badged **DEV** in the UI.
 - No central registry means **no central moderation**: discovery is by announce/registry
   subscription, and malicious-app defense rests on signatures, capability grants, and
-  user/community trust — an explicit design stance, but a restriction worth stating.
+  user/community trust. LXMF block/mute lists and report records are local; exporting a report
+  does not submit it or cause a network-wide ban.
+- Multipart propagation is a TwistedPear framing convention over ordinary signed LXMF
+  messages, not an LXMF attachment standard. It defaults to 64 KiB, hard-stops at 1,000,000
+  bytes, and uses 32-byte content frames with 16-byte titles to remain on the packet
+  propagation path. It is resumable but airtime-expensive; use Resources or
+  content-addressed sharing for bulk data.
+- `ai.chatStream` coalesces provider events before crossing the broker; deltas are not token
+  boundaries. Streaming and whole-response chat share one in-flight request per app, and
+  stopping iteration cancels the host-side stream.
 - **Dev environment (DevStudio) v1 limits:** projects are single-file bundles (no
   in-host bundler); workspace files are capped at 256 KiB (the `code-editor` widget has
   no delta protocol yet); AI editing is non-streaming whole-file replacement through an
@@ -199,7 +221,8 @@ everything below is a known cost of the chosen design or of the platforms involv
   GATT stream), and there is no multicast/AutoInterface. RNode over WebSerial
   (Chromium-only) is implemented as a stretch path with simulated-serial CI
   (`test:web-rnode`); real USB LoRa E2E remains device-gated.
-- **Weaker key custody:** identity keys sit in IndexedDB encrypted under a WebCrypto key —
+- **Weaker key custody:** identity keys sit in IndexedDB encrypted under a WebCrypto key;
+  the portable `.tpidentity` and recovery-word settings flow is not yet exposed by the web host —
   no hardware keystore equivalent. The serving origin is part of the TCB: whoever serves
   the page bytes can substitute them. Default posture is self-serving from the user's own
   node (`tp node --serve-web`).
@@ -216,6 +239,15 @@ everything below is a known cost of the chosen design or of the platforms involv
 
 ## 9. General
 
+- **Reader-guide image coverage:** 25 of 103 referenced images are reproducible captures
+  from the actual desktop renderer or built web host. The other 78 remain placeholders where
+  the exact caption needs hardware, a multi-peer or populated-app fixture, a clean terminal
+  session, DevStudio interaction state, or editorial composition. The three `images/README.md`
+  files name every remainder; startup-only or invented UI is not substituted.
+- **Identity recovery UI coverage:** encrypted vaults, portable backup import/export, and
+  two-part BIP-39 recovery are implemented in `tp` and the desktop host. Mobile and browser
+  host settings do not yet expose those operations. Recovery does not rotate or revoke a key,
+  and simultaneous use of a restored identity on two hosts remains unsupported.
 - **Anonymity/privacy caveats:** BLE MAC addresses, WiFi multicast presence, and always-on
   radios are locally observable even though Reticulum payloads are encrypted and packets
   carry no source address. Physical-layer observability is out of scope for the stack.

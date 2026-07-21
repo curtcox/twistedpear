@@ -28,6 +28,7 @@ grant screen renders the descriptions below (from `CAPABILITY_DEFINITIONS` in th
 | `resource:fetch` | Fetch package resources through host budget rules. |
 | `workspace` | Read and write project source files in this app's private workspace. |
 | `ai:chat` | Send prompts to the host-configured AI service; prompts may include workspace content. |
+| `ai:embed` | Send bounded text to the host-configured embedding model and rank vectors locally. |
 | `apps:package` | Package and sign apps under this device's publisher identity (asks each time). |
 | `apps:publish` | Publish signed apps so other users can find and install them (asks each time). |
 | `apps:install` | Ask the host to install apps from a 256t id (asks each time, with capability review). |
@@ -36,7 +37,7 @@ grant screen renders the descriptions below (from `CAPABILITY_DEFINITIONS` in th
 
 Unknown capability strings block install. Adding a capability bumps `HOST_API_VERSION` minor
 (the dev-environment capabilities above shipped in `0.2.0`; `host.info()` shipped in `0.3.0`).
-`ai.chatStream()` requires host API `0.5.0`.
+`ai.chatStream()` requires host API `0.5.0`; `ai.embed()` and `ai.search()` require `0.6.0`.
 
 The `apps:*` capabilities are double-gated: beyond the grant, every package,
 publish, install, and preview call raises a host-chrome confirmation dialog the
@@ -69,6 +70,12 @@ mini-app cannot draw over or acknowledge (see
   Provider events are coalesced to protect the broker rate budget; breaking iteration
   cancels the host request. Both forms share one in-flight slot, budget clamps, and the
   model allowlist; the API key never enters the sandbox.
+- `ai.embed({ inputs, model? })` — embed 1–64 non-empty strings (16,384 characters
+  each; vectors capped at 4,096 dimensions) through the host endpoint.
+- `ai.search({ query, documents, limit?, model? })` — embed one query plus at most
+  63 `{ id, text }` documents and return ids ranked by cosine score. This is a bounded
+  request, not a persistent vector database. Both calls use the separate `ai:embed` grant,
+  the embedding-model allowlist, and the same one-in-flight AI slot as chat.
 - `apps.packageProject(projectPrefix, manifest)` — pack + sign a workspace
   project via the host (user confirmation); returns `{ packageHash, size, t256 }`.
 - `apps.publish(t256)` / `apps.install(t256)` — publish or install by

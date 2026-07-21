@@ -25,6 +25,7 @@ export type MiniappCapability =
   | "resource:fetch"
   | "workspace"
   | "ai:chat"
+  | "ai:embed"
   | "apps:package"
   | "apps:publish"
   | "apps:install"
@@ -48,6 +49,7 @@ export const CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
   { id: "resource:fetch", description: "Fetch package resources through host budget rules." },
   { id: "workspace", description: "Read and write project source files in this app's private workspace." },
   { id: "ai:chat", description: "Send prompts to the host-configured AI service; prompts may include workspace content." },
+  { id: "ai:embed", description: "Send bounded text to the host-configured embedding model and rank vectors locally." },
   { id: "apps:package", description: "Package and sign apps under this device's publisher identity (asks each time)." },
   { id: "apps:publish", description: "Publish signed apps so other users can find and install them (asks each time)." },
   { id: "apps:install", description: "Ask the host to install apps from a 256t id (asks each time, with capability review)." },

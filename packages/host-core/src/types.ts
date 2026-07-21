@@ -74,6 +74,8 @@ export interface HostAiConfig {
   readonly apiKey: string;
   readonly model: string;
   readonly allowedModels?: ReadonlyArray<string>;
+  readonly embeddingModel?: string;
+  readonly allowedEmbeddingModels?: ReadonlyArray<string>;
 }
 
 export interface HostConfig {

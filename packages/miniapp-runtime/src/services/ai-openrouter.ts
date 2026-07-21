@@ -4,7 +4,9 @@ import {
   type AiChatBackendChunk,
   type AiChatRequest,
   type AiChatResponse,
-  type AiChatUsage
+  type AiChatUsage,
+  type AiEmbedRequest,
+  type AiEmbedResponse
 } from "./ai.js";
 
 export interface OpenRouterBackendOptions {
@@ -12,6 +14,8 @@ export interface OpenRouterBackendOptions {
   readonly apiKey: string;
   readonly model: string;
   readonly allowedModels?: ReadonlyArray<string>;
+  readonly embeddingModel?: string;
+  readonly allowedEmbeddingModels?: ReadonlyArray<string>;
   readonly fetchImpl?: typeof fetch;
   readonly timeoutMs?: number;
 }
@@ -27,6 +31,13 @@ interface OpenRouterChatChunk {
   readonly model?: string;
   readonly choices?: ReadonlyArray<{ readonly delta?: { readonly content?: string } }>;
   readonly usage?: { readonly prompt_tokens?: number; readonly completion_tokens?: number } | null;
+  readonly error?: { readonly message?: string };
+}
+
+interface OpenRouterEmbeddingResponse {
+  readonly model?: string;
+  readonly data?: ReadonlyArray<{ readonly index?: number; readonly embedding?: ReadonlyArray<number> }>;
+  readonly usage?: { readonly prompt_tokens?: number; readonly total_tokens?: number };
   readonly error?: { readonly message?: string };
 }
 
@@ -162,6 +173,39 @@ export function createOpenRouterBackend(options: OpenRouterBackendOptions): AiCh
         }
         if (timer !== null) clearTimeout(timer);
       }
+    },
+
+    async embed(_appId: string, request: AiEmbedRequest): Promise<AiEmbedResponse> {
+      if (fetchImpl === undefined || !options.embeddingModel) {
+        throw new AiServiceError("AI_UNCONFIGURED", "No embedding model is configured on this host.");
+      }
+      const model = resolveEmbeddingModel(options, request.model);
+      const controller = typeof AbortController === "undefined" ? null : new AbortController();
+      const timer = controller === null ? null : setTimeout(() => controller.abort(), options.timeoutMs ?? 120_000);
+      try {
+        const response = await fetchImpl(`${baseUrl}/embeddings`, {
+          method: "POST",
+          headers: { "content-type": "application/json", authorization: `Bearer ${options.apiKey}` },
+          body: JSON.stringify({ model, input: request.inputs }),
+          ...(controller === null ? {} : { signal: controller.signal })
+        });
+        const body = (await response.json().catch(() => ({}))) as OpenRouterEmbeddingResponse;
+        if (!response.ok) {
+          throw new AiServiceError("AI_BACKEND_ERROR", body.error?.message ?? `AI endpoint returned HTTP ${response.status}`);
+        }
+        const ordered = [...(body.data ?? [])].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+        const vectors = ordered.map((entry) => entry.embedding);
+        if (vectors.length !== request.inputs.length || vectors.some((vector) => !Array.isArray(vector))) {
+          throw new AiServiceError("AI_BACKEND_ERROR", "AI endpoint returned invalid embeddings.");
+        }
+        return {
+          vectors: vectors as ReadonlyArray<ReadonlyArray<number>>,
+          model: body.model ?? model,
+          usage: body.usage === undefined ? null : { promptTokens: body.usage.prompt_tokens ?? body.usage.total_tokens ?? 0 }
+        };
+      } finally {
+        if (timer !== null) clearTimeout(timer);
+      }
     }
   };
 }
@@ -213,5 +257,17 @@ function resolveModel(options: OpenRouterBackendOptions, requested: string | und
     throw new AiServiceError("AI_BAD_REQUEST", `Model "${requested}" is not on the host allowlist.`);
   }
 
+  return requested;
+}
+
+function resolveEmbeddingModel(options: OpenRouterBackendOptions, requested: string | undefined): string {
+  const configured = options.embeddingModel;
+  if (configured === undefined) {
+    throw new AiServiceError("AI_UNCONFIGURED", "No embedding model is configured on this host.");
+  }
+  if (requested === undefined || requested === configured) return configured;
+  if (!(options.allowedEmbeddingModels ?? []).includes(requested)) {
+    throw new AiServiceError("AI_BAD_REQUEST", `Embedding model "${requested}" is not on the host allowlist.`);
+  }
   return requested;
 }

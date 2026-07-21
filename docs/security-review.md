@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-20
+audited: 2026-07-21
 register: none
 -->
 
@@ -89,7 +89,7 @@ message ceiling. `hostile-apps` exercises both.
 
 ### F8 — Dev-environment surface (host API 0.2.0, reviewed at design time)
 
-The `workspace`, `ai:chat`, `apps:*`, and `share:cas` capabilities widen what a granted
+The `workspace`, `ai:chat`, `ai:embed`, `apps:*`, and `share:cas` capabilities widen what a granted
 mini-app can ask the host to do. Posture:
 
 - **Consent double-gate.** `apps:package/publish/install/preview` and trust imports
@@ -101,8 +101,9 @@ mini-app can ask the host to do. Posture:
   only ever execute inside a sandbox after an explicit preview/package + capability
   review, so the existing hostile-bytecode posture covers AI-authored code. The API
   key lives host-side; sandboxes see only sanitized request/response. Prompt content
-  necessarily flows to the configured endpoint — reflected in the `ai:chat` grant
-  wording.
+  necessarily flows to the configured endpoint — reflected in the `ai:chat` and `ai:embed`
+  grant wording. Embedding input count, characters, and returned dimensions are bounded;
+  vector ranking is host-local and creates no shared index.
 - **Preview is not an escalation.** Preview grants must be a subset of the previewed
   manifest's declared capabilities (validated before the confirmation), and the
   preview app runs in its own `MiniappHost` with an isolated grant store.

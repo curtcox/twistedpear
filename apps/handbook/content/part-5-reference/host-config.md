@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-07-21
 register: none
 -->
 
@@ -48,8 +48,9 @@ Seed storage, propagation store, message count, and bandwidth caps match
 
 ## AI endpoint
 
-`ai` is `null` until configured (desktop **Settings → AI** or `config.json`).
-Mini-apps use `ai:chat` through the host proxy — see [AI chat](chapter:sdk-ai-chat).
+`ai` is `null` until configured (desktop **Settings → AI** or `config.json`). Chat and
+embedding models are configured separately. Mini-apps use `ai:chat` and `ai:embed` through
+the host proxy — see [AI chat](chapter:sdk-ai-chat).
 
 ## Status endpoint
 

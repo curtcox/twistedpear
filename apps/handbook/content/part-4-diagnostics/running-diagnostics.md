@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-07-21
 register: none
 -->
 
@@ -38,7 +38,7 @@ Open an SDK chapter and tap **Run applet** for a single probe.
 - Package + preview — `apps:package`, `apps:preview`
 - Publish + install — `apps:publish`, `apps:install`
 - OTA update — republish with bumped semver
-- AI chat — `ai:chat`
+- AI chat / embedding configuration — `ai:chat`, `ai:embed`
 - Widget gallery — widget protocol
 
 Device-gated probes (BLE peer, RNode, multicast, camera QR) live in

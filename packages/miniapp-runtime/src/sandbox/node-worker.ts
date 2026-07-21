@@ -42,7 +42,12 @@ const sdk = {
   presence: { snapshot: () => callHost("presence", "snapshot", undefined, "presence") },
   host: { info: () => callHost("host", "info", undefined, "presence") },
   workspace: { list: (prefix) => callHost("workspace", "list", { prefix }, "workspace"), read: (path) => callHost("workspace", "read", { path }, "workspace").then((r) => r.content), write: (path, content) => callHost("workspace", "write", { path, content }, "workspace"), remove: (path) => callHost("workspace", "delete", { path }, "workspace") },
-  ai: { chat: (request) => callHost("ai", "chat", request, "ai:chat"), chatStream },
+  ai: {
+    chat: (request) => callHost("ai", "chat", request, "ai:chat"),
+    chatStream,
+    embed: (request) => callHost("ai", "embed", request, "ai:embed"),
+    search: (request) => callHost("ai", "search", request, "ai:embed")
+  },
   apps: { packageProject: (projectPrefix, manifest) => callHost("apps", "package", { projectPrefix, manifest }, "apps:package"), publish: (t256) => callHost("apps", "publish", { t256 }, "apps:publish"), install: (t256) => callHost("apps", "install", { t256 }, "apps:install"), preview: (projectPrefix, manifest, grants) => callHost("apps", "preview", { projectPrefix, manifest, grants }, "apps:preview"), stopPreview: () => callHost("apps", "stopPreview", undefined, "apps:preview") },
   share: { put: (content) => callHost("share.cas", "put", { content }, "share:cas"), get: (t256) => callHost("share.cas", "get", { t256 }, "share:cas").then((r) => r.content) }
 };

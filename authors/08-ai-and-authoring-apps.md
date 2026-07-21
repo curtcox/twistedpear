@@ -58,10 +58,16 @@ Requires `ai:chat`.
 > boundaries. Streaming and `ai.chat` share the one-request-per-app slot; breaking iteration
 > cancels the host request. See [docs/miniapp-sdk.md](../docs/miniapp-sdk.md).
 
+For retrieval, `ai.embed({ inputs })` returns bounded vectors and
+`ai.search({ query, documents, limit })` ranks app-supplied document ids with cosine
+similarity. These use a separate `ai:embed` grant and embedding-model allowlist, accept at
+most 64 total inputs (63 documents plus the query), cap each input at 16,384 characters and
+vectors at 4,096 dimensions, create no persistent index, and share the same in-flight slot.
+
 ### The disclosure you owe the user
 
-The grant screen for `ai:chat` says *"prompts may include workspace content."* That wording is
-there because it is usually true, and users decide based on it.
+The grant screens for `ai:chat` and `ai:embed` say that supplied content leaves the sandbox.
+That wording is there because it is usually true, and users decide based on it.
 
 - **Do not send more than the task needs.** One file, not the whole workspace.
 - **Say what you are sending, before you send it.** DevStudio shows the file it is about to

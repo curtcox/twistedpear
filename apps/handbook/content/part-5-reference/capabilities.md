@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-07-21
 register: none
 -->
 
@@ -21,6 +21,7 @@ Every id below must be exercised by at least one Handbook applet (coverage gate)
 - **`resource:fetch`** — Fetch package resources through host budget rules.
 - **`workspace`** — Read and write project source files in this app's private workspace.
 - **`ai:chat`** — Send prompts to the host-configured AI service; prompts may include workspace content.
+- **`ai:embed`** — Send bounded text to the host-configured embedding model and rank vectors locally.
 - **`apps:package`** — Package and sign apps under this device's publisher identity (asks each time).
 - **`apps:publish`** — Publish signed apps so other users can find and install them (asks each time).
 - **`apps:install`** — Ask the host to install apps from a 256t id (asks each time, with capability review).

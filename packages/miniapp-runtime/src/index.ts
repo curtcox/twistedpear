@@ -85,7 +85,7 @@ export type {
 } from "./services/host-info.js";
 export { ResourceService } from "./services/resource.js";
 export type { ResourceFetchBackend, ResourceFetchProgress, ResourceFetchRequest } from "./services/resource.js";
-export { AiService, AiServiceError, DEFAULT_AI_SERVICE_LIMITS } from "./services/ai.js";
+export { AiService, AiServiceError, DEFAULT_AI_SERVICE_LIMITS, cosineSimilarity } from "./services/ai.js";
 export type {
   AiChatBackend,
   AiChatBackendChunk,
@@ -95,6 +95,10 @@ export type {
   AiChatRole,
   AiChatStreamEvent,
   AiChatUsage,
+  AiEmbedRequest,
+  AiEmbedResponse,
+  AiVectorSearchRequest,
+  AiVectorSearchResponse,
   AiServiceLimits
 } from "./services/ai.js";
 export { createOpenRouterBackend } from "./services/ai-openrouter.js";

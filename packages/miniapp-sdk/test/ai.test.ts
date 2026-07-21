@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chat, chatStream } from "../src/ai.js";
+import { chat, chatStream, embed, search } from "../src/ai.js";
 import { setMiniappHostTransport } from "../src/rpc.js";
 import type { BrokerRequest, BrokerResponse } from "@twistedpear/miniapp-runtime";
 
@@ -69,5 +69,27 @@ describe("AI SDK", () => {
 
     for await (const _event of chatStream(request)) break;
     expect(methods).toEqual(["chatStreamStart", "chatStreamNext", "chatStreamCancel"]);
+  });
+
+  it("forwards embedding and vector-search requests with the separate grant", async () => {
+    const seen: Array<{ method: string; capability: string }> = [];
+    setMiniappHostTransport({
+      async request(brokerRequest): Promise<BrokerResponse> {
+        seen.push({ method: brokerRequest.method, capability: brokerRequest.capability });
+        return {
+          id: brokerRequest.id,
+          ok: true,
+          result: brokerRequest.method === "embed"
+            ? { vectors: [[1, 0]], model: "e", usage: null }
+            : { matches: [{ id: "a", score: 1 }], model: "e", usage: null }
+        };
+      }
+    });
+    await embed({ inputs: ["pear"] });
+    await search({ query: "pear", documents: [{ id: "a", text: "pear" }] });
+    expect(seen).toEqual([
+      { method: "embed", capability: "ai:embed" },
+      { method: "search", capability: "ai:embed" }
+    ]);
   });
 });
