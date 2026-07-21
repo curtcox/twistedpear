@@ -42,19 +42,17 @@ phone's camera.
 ![Installing from a pasted 256t identifier](/guide/images/05-install-from-256t.png)
 
 **Screenshot 5.2 — Install from an identifier.** A dialog with a wide monospace text
-field containing a 94-character string, a **Scan QR** button beside it (greyed out on
-desktop), and a **Resolve** button. Below, a resolved preview showing the app name,
+field containing a 94-character string, a **Scan QR** button beside it, and a **Resolve**
+button. Below, a resolved preview showing the app name,
 version, publisher, and size before anything is installed.
 
 The identifier is a fingerprint of the app's contents, not a location. Whoever you got it
 from cannot use it to give you a different app than the one it names — if the bytes do not
 match, your host refuses the install.
 
-> **⚠️ Works, with limits — the app must already have been announced.** Your host can only
-> resolve an identifier if it has already heard an announce telling it where those bytes
-> live. If you paste an identifier for an app nobody near you has announced, it will not
-> resolve, and the host cannot go and ask for it. Wait until you are connected to a peer
-> that carries it. See [LIMITATIONS.md §7](../LIMITATIONS.md).
+Your host first checks its local content store and remembered locators. If neither has the
+app, it announces a request for that identifier; a connected peer that remembers the signed
+locator can re-announce it. Resolution still fails when no reachable peer knows the app.
 
 ## The capability review
 

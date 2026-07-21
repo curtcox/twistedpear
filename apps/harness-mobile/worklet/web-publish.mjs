@@ -1,6 +1,7 @@
 import { buildAppAnnounceSummary, encodeAppAnnounceData, unpackPackage } from "../../../packages/app-registry/dist/index.js";
 import {
   casAnnounceAspects,
+  decodeCasLocatorRequest,
   encodeCasLocator,
   signCasLocator
 } from "../../../packages/cas-256t/dist/index.js";
@@ -21,12 +22,30 @@ export function createWebPublishService(options = {}) {
   const publishedByApp = new Map();
   /** @type {Map<string, import("@twistedpear/reticulum-ts").RegisteredDestination>} */
   const appDestinations = new Map();
+  const locators = new Map();
+  const casDestinations = new Map();
 
   function appKey(publisherPublicKeyHex, appName) {
     return `${publisherPublicKeyHex}:${appName}`;
   }
 
   return {
+    async respondToLocatorRequest(session, appData) {
+      let t256;
+      try {
+        t256 = decodeCasLocatorRequest(appData);
+      } catch {
+        return false;
+      }
+      const locator = locators.get(t256);
+      const destination = casDestinations.get(t256);
+      if (locator === undefined || destination === undefined || session === null) {
+        return false;
+      }
+      await destination.announce({ appData: encodeCasLocator(locator) });
+      options.log?.(`Re-announced CAS locator for ${t256.slice(0, 16)}…`);
+      return true;
+    },
     async publish(session, { t256, archive }) {
       if (session === null) {
         throw new Error("Gateway link is offline — enable WS gateway before publishing");
@@ -112,6 +131,8 @@ export function createWebPublishService(options = {}) {
         appName: "tp",
         aspects: casAnnounceAspects(t256)
       });
+      locators.set(t256, locator);
+      casDestinations.set(t256, casDestination);
       await casDestination.announce({ appData: encodeCasLocator(locator) });
 
       options.onCasLocator?.(locator);

@@ -31,8 +31,11 @@ import {
 } from "../../packages/app-registry/dist/index.js";
 import {
   casAnnounceAspects,
+  casRequestAspects,
   decode256t,
+  decodeCasLocatorRequest,
   decodeCasLocator,
+  encodeCasLocatorRequest,
   encodeCasLocator,
   signCasLocator,
   toCatalogEntryLike,
@@ -244,6 +247,27 @@ export async function runDevstudioLoop() {
 
   const identityA = new Identity(provider);
   const identityB = new Identity(provider);
+  const aLocators = new Map();
+  const aCasDestinations = new Map();
+  let locatorRequestsSeen = 0;
+
+  nodeA.registerAnnounceHandler({
+    receivedAnnounce(info) {
+      if (info.appData === null) return;
+      let requested;
+      try {
+        requested = decodeCasLocatorRequest(info.appData);
+      } catch {
+        return;
+      }
+      locatorRequestsSeen += 1;
+      const locator = aLocators.get(requested);
+      const destination = aCasDestinations.get(requested);
+      if (locator !== undefined && destination !== undefined) {
+        void destination.announce({ appData: encodeCasLocator(locator) });
+      }
+    }
+  });
 
   // --- Instance B: locator collection + trust store ---
   const bLocators = new Map();
@@ -336,13 +360,28 @@ export async function runDevstudioLoop() {
       appName: "tp",
       aspects: casAnnounceAspects(t256)
     });
+    aLocators.set(t256, locator);
+    aCasDestinations.set(t256, casDestination);
     await casDestination.announce({ appData: encodeCasLocator(locator) });
 
     return { t256, driveKey: "0".repeat(64), version: unpacked.manifest.version };
   }
 
   async function installFromT256B(t256) {
-    const locator = await waitFor(() => bLocators.get(t256) ?? null, 20_000, "cas locator announce on B");
+    // Simulate a late joiner that missed the publisher's one-shot locator.
+    bLocators.delete(t256);
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
+    const requestDestination = nodeB.registerDestination({
+      provider,
+      identity: identityB,
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "tp",
+      aspects: casRequestAspects(t256)
+    });
+    await requestDestination.announce({ appData: encodeCasLocatorRequest(t256) });
+    await waitFor(() => (locatorRequestsSeen > 0 ? true : null), 20_000, "locator request on A");
+    const locator = await waitFor(() => bLocators.get(t256) ?? null, 20_000, "cas locator re-announce on B");
 
     const resourceClient = new PackageResourceClient({
       provider,

@@ -25,8 +25,10 @@ export interface CasLocator {
 }
 
 export const CAS_LOCATOR_MAGIC = new Uint8Array([0x54, 0x50, 0x43, 0x4c, 0x01]); // TPCL\x01
+export const CAS_LOCATOR_REQUEST_MAGIC = new Uint8Array([0x54, 0x50, 0x43, 0x52, 0x01]); // TPCR\x01
 export const MAX_CAS_LOCATOR_BYTES = 383;
 export const CAS_ANNOUNCE_ASPECT = "cas";
+export const CAS_REQUEST_ASPECT = "cas-request";
 
 export function casAnnounceAspects(t256: string): [string, string] {
   const decoded = decode256t(t256);
@@ -40,6 +42,11 @@ export function casAnnounceAspects(t256: string): [string, string] {
 export function casDestinationName(t256: string): string {
   const [aspect, hash] = casAnnounceAspects(t256);
   return `tp.${aspect}.${hash}`;
+}
+
+export function casRequestAspects(t256: string): [string, string] {
+  const [, hash] = casAnnounceAspects(t256);
+  return [CAS_REQUEST_ASPECT, hash];
 }
 
 function writeString(value: string): Uint8Array {
@@ -69,6 +76,31 @@ function concatBytes(...parts: ReadonlyArray<Uint8Array>): Uint8Array {
     offset += part.length;
   }
   return out;
+}
+
+/** Compact app_data asking peers to re-announce the locator for one 256t id. */
+export function encodeCasLocatorRequest(t256: string): Uint8Array {
+  const decoded = decode256t(t256);
+  if (decoded.sha512 === null) {
+    throw new T256Error("INVALID_ID", "Inline 256t content needs no locator request");
+  }
+  return concatBytes(CAS_LOCATOR_REQUEST_MAGIC, new TextEncoder().encode(t256));
+}
+
+export function decodeCasLocatorRequest(bytes: Uint8Array): string {
+  if (
+    bytes.length !== CAS_LOCATOR_REQUEST_MAGIC.length + T256_ID_LENGTH ||
+    !equalBytes(bytes.subarray(0, CAS_LOCATOR_REQUEST_MAGIC.length), CAS_LOCATOR_REQUEST_MAGIC)
+  ) {
+    throw new T256Error("INVALID_ID", "CAS locator request is invalid");
+  }
+
+  const t256 = new TextDecoder().decode(bytes.subarray(CAS_LOCATOR_REQUEST_MAGIC.length));
+  const decoded = decode256t(t256);
+  if (decoded.sha512 === null) {
+    throw new T256Error("INVALID_ID", "Inline 256t content needs no locator request");
+  }
+  return t256;
 }
 
 function locatorSigningPayload(locator: Omit<CasLocator, "signature">): Uint8Array {

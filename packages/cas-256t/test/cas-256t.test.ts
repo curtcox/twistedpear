@@ -6,10 +6,13 @@ import {
   T256Error,
   T256_ID_LENGTH,
   casAnnounceAspects,
+  casRequestAspects,
   decode256t,
   decodeCasLocator,
+  decodeCasLocatorRequest,
   encode256t,
   encodeCasLocator,
+  encodeCasLocatorRequest,
   signCasLocator,
   toCatalogEntryLike,
   verify256t,
@@ -175,5 +178,15 @@ describe("cas locator", () => {
 
     const inlineId = encode256t(new Uint8Array(10), sha512);
     expect(() => casAnnounceAspects(inlineId)).toThrow(T256Error);
+  });
+
+  it("round-trips an on-demand locator request on a distinct aspect", () => {
+    const encoded = encodeCasLocatorRequest(t256);
+    expect(decodeCasLocatorRequest(encoded)).toBe(t256);
+    expect(casRequestAspects(t256)).toEqual(["cas-request", casAnnounceAspects(t256)[1]]);
+
+    const tampered = Uint8Array.from(encoded);
+    tampered[0] ^= 0xff;
+    expect(() => decodeCasLocatorRequest(tampered)).toThrow(T256Error);
   });
 });

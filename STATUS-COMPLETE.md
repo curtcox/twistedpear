@@ -29,6 +29,7 @@ Last audited: 2026-07-21.
 | PD-AI | done | DevStudio streams whole-file AI proposals and prevents applying partial output | `apps/devstudio/bundle.js`, `conformance/devstudio-loop/run.mjs` | `npm run test:devstudio-loop` |
 | PD-WORKSPACE | done | Conflict-safe workspace text patches and delta-valued code-editor events | `packages/miniapp-runtime/test/workspace-ai.test.ts`, `conformance/devstudio-loop/run.mjs` | `npx vitest run packages/miniapp-runtime/test/workspace-ai.test.ts && npm run test:devstudio-loop` |
 | PD-QR | done | Host-owned desktop QR scanning for app and publisher 256t identifiers | `conformance/ui-invariants/desktop-qr.test.mjs`, desktop renderer camera modal | `npx vitest run conformance/ui-invariants/desktop-qr.test.mjs && npm run build --workspace=host-desktop` |
+| PD-LOCATOR | done | On-demand 256t locator requests and holder re-announces, including late-joiner conformance | `packages/cas-256t/src/locator.ts`, `conformance/devstudio-loop/run.mjs` | `npx vitest run packages/cas-256t/test/cas-256t.test.ts && npm run test:devstudio-loop` |
 | RG7 | done | Separately granted embeddings and bounded cosine vector search | `packages/miniapp-sdk/test/ai.test.ts`, `packages/miniapp-runtime/test/workspace-ai.test.ts`, `cookbook/apps/ask-the-handbook/` | `npx vitest run packages/miniapp-sdk/test/ai.test.ts packages/miniapp-runtime/test/workspace-ai.test.ts conformance/cookbook/cookbook.test.mjs` |
 
 ---

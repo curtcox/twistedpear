@@ -6,6 +6,8 @@ import { createWebLeafHost } from "../../../packages/host-core/dist/web.js";
 import { createWebPackageStorage } from "../../../packages/host-core/dist/web.js";
 import {
   Identity,
+  DestinationDirection,
+  DestinationType,
   PureCryptoProvider,
   Reticulum,
   bytesToHex,
@@ -25,7 +27,11 @@ import {
   encodePublisherIdentity256t,
   unpackPackage
 } from "../../../packages/app-registry/dist/index.js";
-import { encodeCasLocator } from "../../../packages/cas-256t/dist/index.js";
+import {
+  casRequestAspects,
+  encodeCasLocator,
+  encodeCasLocatorRequest
+} from "../../../packages/cas-256t/dist/index.js";
 import { HOST_API_VERSION } from "../../../packages/miniapp-runtime/dist/host-api.js";
 import { reviveJsonWireValue } from "../../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 
@@ -110,6 +116,7 @@ let miniappHost = null;
 let installService = null;
 /** @type {ReturnType<typeof createWebPublishService> | null} */
 let publishService = null;
+const locatorRequestDestinations = new Map();
 /** @type {ReturnType<typeof createWebSerialPipe> | null} */
 let serialBridge = null;
 /** @type {import("../../../packages/reticulum-interfaces/dist/rnode/interface.js").RNodeInterface | null} */
@@ -473,6 +480,26 @@ function ensureInstallService() {
       provider: cryptoProvider,
       kvStore: ensureMiniappKvStore(),
       getHostSession: () => hostSession,
+      requestCasLocator: async (t256) => {
+        const session = hostSession;
+        if (session === null) {
+          throw new Error("Gateway link is offline — cannot request locator");
+        }
+        let destination = locatorRequestDestinations.get(t256);
+        if (destination === undefined) {
+          destination = session.reticulum.registerDestination({
+            provider: cryptoProvider,
+            identity: session.identity,
+            direction: DestinationDirection.IN,
+            type: DestinationType.SINGLE,
+            appName: "tp",
+            aspects: casRequestAspects(t256)
+          });
+          locatorRequestDestinations.set(t256, destination);
+        }
+        await destination.announce({ appData: encodeCasLocatorRequest(t256) });
+        log(`Requested CAS locator for ${t256.slice(0, 16)}…`);
+      },
       ensurePackageStorage,
       miniappHost: () => ensureMiniappHost(),
       send,
@@ -611,6 +638,9 @@ async function startHostSession() {
       });
       if (info.appData !== null) {
         ensureInstallService().ingestCasLocatorAppData(bytesToHex(info.appData));
+        void ensurePublishService().respondToLocatorRequest(hostSession, info.appData).catch((error) => {
+          log(`CAS locator response failed: ${error instanceof Error ? error.message : String(error)}`);
+        });
       }
     }
   });

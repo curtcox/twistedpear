@@ -38,6 +38,7 @@ export function createWebInstallService(options) {
   function waitForCasLocator(t256, timeoutMs = 30_000) {
     return new Promise((resolve, reject) => {
       const startedAt = Date.now();
+      let lastRequestedAt = startedAt;
       const poll = () => {
         const locator = casLocators.get(t256);
         if (locator !== undefined) {
@@ -48,6 +49,13 @@ export function createWebInstallService(options) {
         if (Date.now() - startedAt > timeoutMs) {
           reject(new Error("No locator announce received for that 256t id"));
           return;
+        }
+
+        if (Date.now() - lastRequestedAt >= 5_000) {
+          lastRequestedAt = Date.now();
+          void options.requestCasLocator?.(t256).catch((error) => {
+            options.log?.(`CAS locator re-request failed: ${error instanceof Error ? error.message : String(error)}`);
+          });
         }
 
         setTimeout(poll, 500);
@@ -77,6 +85,9 @@ export function createWebInstallService(options) {
       throw new Error("Gateway link is offline — enable WS gateway before installing");
     }
 
+    if (!casLocators.has(t256)) {
+      await options.requestCasLocator?.(t256);
+    }
     const locator = await waitForCasLocator(t256);
 
     if (options.tryHyperdriveFetch !== undefined) {

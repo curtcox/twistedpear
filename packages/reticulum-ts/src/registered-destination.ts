@@ -6,7 +6,7 @@ import {
   type DestinationOptions
 } from "./destination.js";
 import type { PacketInterface } from "./interfaces/interface.js";
-import { Announce } from "./announce.js";
+import { ANNOUNCE_RANDOM_HASH_SIZE, Announce } from "./announce.js";
 import { bytesToHex } from "./crypto/bytes.js";
 import { Identity } from "./identity.js";
 import { Link, type LinkCallbacks } from "./link.js";
@@ -321,11 +321,20 @@ export class RegisteredDestination extends Destination {
       throw new Error("Announce destination must hold an identity");
     }
 
+    let randomHash = options.randomHash;
+    if (randomHash === undefined) {
+      randomHash = this.transport!.entropy.randomBytes(ANNOUNCE_RANDOM_HASH_SIZE);
+      let emittedAt = Math.floor(this.transport!.clock.now() / 1_000);
+      for (let index = ANNOUNCE_RANDOM_HASH_SIZE - 1; index >= 5; index -= 1) {
+        randomHash[index] = emittedAt % 256;
+        emittedAt = Math.floor(emittedAt / 256);
+      }
+    }
+
     const packet = Announce.buildPacket(this.cryptoProvider, this, {
-      entropy: this.transport!.entropy,
+      randomHash,
       ...(options.appData === undefined ? {} : { appData: options.appData }),
       ...(options.pathResponse === true ? { pathResponse: true } : {}),
-      ...(options.randomHash === undefined ? {} : { randomHash: options.randomHash })
     });
     await this.transport!.sendPacket(packet, {
       attachedInterface: options.attachedInterface ?? null

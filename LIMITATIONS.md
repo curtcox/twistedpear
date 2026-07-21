@@ -196,8 +196,8 @@ everything below is a known cost of the chosen design or of the platforms involv
   OpenRouter-compatible endpoint configured host-side; one dev-preview slot; desktop
   QR support renders codes and scans through host-owned camera UI on mobile and desktop
   (paste remains available); memory-limit changes apply at the next launch, while rate
-  and storage-quota changes apply live; 256t locator announces must have been received
-  before an install can resolve (no locator re-request yet).
+  and storage-quota changes apply live; missing 256t locators are requested on demand,
+  but resolution still requires a reachable peer that holds the signed locator.
 
 ## 8. Web platform (see [docs/web-host.md](docs/web-host.md))
 

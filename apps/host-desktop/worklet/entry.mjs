@@ -26,7 +26,10 @@ import {
 import {
   CasStore,
   casAnnounceAspects,
+  casRequestAspects,
+  decodeCasLocatorRequest,
   decodeCasLocator,
+  encodeCasLocatorRequest,
   encodeCasLocator,
   signCasLocator,
   toCatalogEntryLike,
@@ -275,6 +278,8 @@ let trustStore = null;
 
 /** @type {Map<string, import("../../../packages/cas-256t/dist/index.js").CasLocator>} */
 const casLocators = new Map();
+const casRequestDestinations = new Map();
+const casResponseDestinations = new Map();
 /** @type {CasStore | null} */
 let entryCasStore = null;
 const runtimeStoreKeys = new Set();
@@ -299,9 +304,66 @@ function ingestCasLocator(appData) {
   }
 }
 
-function waitForCasLocator(t256, timeoutMs = 30_000) {
+async function announceCasLocatorRequest(t256) {
+  const node = await ensureReticulum();
+  const identity = await resolveIdentity();
+  if (identity === null) {
+    throw new Error("No host identity available for locator request");
+  }
+  let destination = casRequestDestinations.get(t256);
+  if (destination === undefined) {
+    destination = node.registerDestination({
+      provider,
+      identity,
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "tp",
+      aspects: casRequestAspects(t256)
+    });
+    casRequestDestinations.set(t256, destination);
+  }
+  await destination.announce({ appData: encodeCasLocatorRequest(t256) });
+  log(`Requested CAS locator for ${t256.slice(0, 16)}…`);
+}
+
+async function respondToCasLocatorRequest(appData) {
+  let t256;
+  try {
+    t256 = decodeCasLocatorRequest(appData);
+  } catch {
+    return;
+  }
+  const locator = casLocators.get(t256);
+  if (locator === undefined || reticulum === null) {
+    return;
+  }
+  const identity = await resolveIdentity();
+  if (identity === null) {
+    return;
+  }
+  let destination = casResponseDestinations.get(t256);
+  if (destination === undefined) {
+    destination = reticulum.registerDestination({
+      provider,
+      identity,
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "tp",
+      aspects: casAnnounceAspects(t256)
+    });
+    casResponseDestinations.set(t256, destination);
+  }
+  await destination.announce({ appData: encodeCasLocator(locator) });
+  log(`Re-announced CAS locator for ${t256.slice(0, 16)}…`);
+}
+
+async function waitForCasLocator(t256, timeoutMs = 30_000) {
+  if (!casLocators.has(t256)) {
+    await announceCasLocatorRequest(t256);
+  }
   return new Promise((resolve, reject) => {
     const startedAt = Date.now();
+    let lastRequestedAt = startedAt;
     const poll = () => {
       const locator = casLocators.get(t256);
       if (locator !== undefined) {
@@ -312,6 +374,13 @@ function waitForCasLocator(t256, timeoutMs = 30_000) {
       if (Date.now() - startedAt > timeoutMs) {
         reject(new Error("No locator announce received for that 256t id"));
         return;
+      }
+
+      if (Date.now() - lastRequestedAt >= 5_000) {
+        lastRequestedAt = Date.now();
+        void announceCasLocatorRequest(t256).catch((error) => {
+          log(`CAS locator re-request failed: ${error instanceof Error ? error.message : String(error)}`);
+        });
       }
 
       setTimeout(poll, 500);
@@ -385,6 +454,7 @@ async function publishArchiveAsIdentity(identity, { t256, archive }) {
     appName: "tp",
     aspects: casAnnounceAspects(t256)
   });
+  casResponseDestinations.set(t256, casDestination);
   await casDestination.announce({ appData: encodeCasLocator(locator) });
   casLocators.set(t256, locator);
 
@@ -1103,6 +1173,9 @@ function registerAnnounceHandler() {
 
       if (info.appData !== null) {
         ingestCasLocator(info.appData);
+        void respondToCasLocatorRequest(info.appData).catch((error) => {
+          log(`CAS locator response failed: ${error instanceof Error ? error.message : String(error)}`);
+        });
         const { catalogStore: catalog } = ensureCatalog();
         const ingested = catalog.ingest({
           destinationHash: bytesToHex(info.destinationHash),

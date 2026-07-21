@@ -58,7 +58,11 @@ the receiving host:
    publisherPublicKey (raw bytes), ed25519 signature}` and maps directly onto a
    `CatalogEntry`, so the **existing fetch chain is reused unchanged**:
    Hyperdrive → LAN mirror → Reticulum Resource.
-3. After fetch, the host verifies **both** the SHA-512 of the archive against
+3. **On-demand lookup** — if the locator is not remembered, the installer announces a
+   compact `TPCR\x01` request on `tp.cas-request.<same-hash-prefix>`. A peer holding the
+   record re-announces the original signed locator; requests do not grant trust or carry
+   mutable package metadata.
+4. After fetch, the host verifies **both** the SHA-512 of the archive against
    the 256t id and the SHA-256 `packageHash` from the signed locator, then
    runs the normal `verifyPackage` signature/downgrade/host-API checks and the
    capability review before install.
