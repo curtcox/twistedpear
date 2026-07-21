@@ -34,8 +34,12 @@ jobs:
         run: echo "bee4a54f3ee3d4afc347c3240ec2d9e93b075104  formal/tla2tools.jar" | sha1sum --check
       - name: Run checks and capture reports
         run: npm run site:reports
+      - name: Report pending user-guide screenshots
+        run: npm run site:guide-images:report
       - name: Build documentation site
         run: npm run site:build
+      - name: Verify the user guide was published
+        run: node scripts/site/verify-guide.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site/.vitepress/dist

@@ -168,6 +168,19 @@ function rewriteMarkdownLinks(text, siteRel) {
       return `${open}${link}${hashSuffix}${close}`;
     }
 
+    // guide/… → /guide/…
+    if (repoPath.startsWith("guide/")) {
+      let rest = repoPath.slice("guide/".length);
+      if (/\.(png|jpg|jpeg|gif|svg|webp)$/i.test(rest)) {
+        return `${open}/guide/${rest}${hashSuffix}${close}`;
+      }
+      rest = stripMd(rest);
+      if (rest === "README" || rest === "" || rest === "index") {
+        return `${open}/guide/${hashSuffix}${close}`;
+      }
+      return `${open}/guide/${rest}${hashSuffix}${close}`;
+    }
+
     // docs/… → /docs/…
     if (repoPath.startsWith("docs/")) {
       let rest = repoPath.slice("docs/".length);
@@ -260,6 +273,9 @@ hero:
   tagline: Documentation, specifications, and quality reports from the latest main build.
   actions:
     - theme: brand
+      text: User guide
+      link: /guide/
+    - theme: alt
       text: Documentation
       link: /docs/
     - theme: alt
@@ -269,6 +285,9 @@ hero:
       text: Quality results
       link: /results/
 features:
+  - title: User guide
+    details: Install a host, join a network, and run mini-apps. Written for people using TwistedPear, not building it.
+    link: /guide/
   - title: Documentation
     details: Canonical guides for hosts, runtime, distribution, networking, and release operations.
     link: /docs/
@@ -321,6 +340,27 @@ function stageDocs() {
   walk(docsDir, "docs");
 }
 
+/**
+ * Stage the end-user guide. Screenshots are referenced by absolute site path and are
+ * published separately by guide-images.mjs, so only markdown is staged here.
+ */
+function stageGuide() {
+  const guideDir = path.join(ROOT, "guide");
+  if (!fs.existsSync(guideDir)) return;
+  function walk(dir, relBase) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, entry.name);
+      const rel = path.posix.join(relBase, entry.name);
+      if (entry.isDirectory()) {
+        walk(abs, rel);
+      } else if (entry.name.endsWith(".md")) {
+        stageMarkdownFile(abs, path.join(SITE_SRC, rel), rel);
+      }
+    }
+  }
+  walk(guideDir, "guide");
+}
+
 function stageSpecs() {
   const specsDir = path.join(ROOT, "specs");
   function walk(dir, relBase) {
@@ -370,6 +410,7 @@ function main() {
   ensureDir(SITE_SRC);
   writeLanding();
   stageRootDocs();
+  stageGuide();
   stageDocs();
   stageSpecs();
   stageApiPlaceholder();

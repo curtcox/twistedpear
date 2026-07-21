@@ -10,6 +10,7 @@ function loadSidebar() {
   const p = path.join(SRC, ".sidebar.json");
   if (!fs.existsSync(p)) {
     return {
+      guide: [],
       docs: [],
       specs: [],
       reference: [],
@@ -41,6 +42,7 @@ export default defineConfig({
   ],
   themeConfig: {
     nav: [
+      { text: "Guide", link: "/guide/" },
       { text: "Docs", link: "/docs/" },
       { text: "Specs", link: "/specs/" },
       { text: "Results", link: "/results/" },
@@ -52,6 +54,7 @@ export default defineConfig({
       }
     ],
     sidebar: {
+      "/guide/": sidebar.guide,
       "/docs/": sidebar.docs,
       "/specs/": sidebar.specs,
       "/reference/": sidebar.reference,

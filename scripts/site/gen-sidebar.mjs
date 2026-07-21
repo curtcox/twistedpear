@@ -36,6 +36,40 @@ function listMarkdown(dir, baseUrl) {
   return items;
 }
 
+/** First markdown H1, used as the sidebar label. */
+function headingOf(file, fallback) {
+  const match = fs.readFileSync(file, "utf8").match(/^#\s+(.+)$/m);
+  return match ? match[1].trim() : fallback;
+}
+
+/**
+ * The user guide is a sequence, not an alphabetical set: numbered chapters first in
+ * filename order, then the unnumbered back matter.
+ */
+function guideSidebar() {
+  const guideDir = path.join(SITE_SRC, "guide");
+  if (!fs.existsSync(guideDir)) return [{ text: "User guide", items: [] }];
+
+  const files = fs
+    .readdirSync(guideDir, { withFileTypes: true })
+    .filter((e) => e.isFile() && e.name.endsWith(".md") && e.name !== "index.md")
+    .map((e) => e.name)
+    .sort((a, b) => {
+      const numbered = (n) => /^\d/.test(n);
+      if (numbered(a) !== numbered(b)) return numbered(a) ? -1 : 1;
+      return a.localeCompare(b);
+    });
+
+  const items = [
+    { text: headingOf(path.join(guideDir, "index.md"), "User guide"), link: "/guide/" }
+  ];
+  for (const name of files) {
+    const stem = name.replace(/\.md$/, "");
+    items.push({ text: headingOf(path.join(guideDir, name), stem), link: `/guide/${stem}` });
+  }
+  return [{ text: "User guide", items }];
+}
+
 function docsSidebar() {
   const docsDir = path.join(SITE_SRC, "docs");
   const items = listMarkdown(docsDir, "/docs").filter(
@@ -115,6 +149,7 @@ function resultsSidebar() {
 function main() {
   const out = path.join(SITE_SRC, ".sidebar.json");
   const data = {
+    guide: guideSidebar(),
     docs: docsSidebar(),
     specs: specsSidebar(),
     reference: referenceSidebar(),

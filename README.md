@@ -38,8 +38,12 @@ LXMF, and Pear-style local-first distribution. The repository contains:
 
 ## Documentation
 
+If you want to *use* TwistedPear rather than work on it, start with the
+[User Guide](guide/README.md).
+
 Published site: [curtcox.github.io/twistedpear](https://curtcox.github.io/twistedpear/)
-([docs](https://curtcox.github.io/twistedpear/docs/),
+([user guide](https://curtcox.github.io/twistedpear/guide/),
+[docs](https://curtcox.github.io/twistedpear/docs/),
 [specs](https://curtcox.github.io/twistedpear/specs/),
 [quality results](https://curtcox.github.io/twistedpear/results/)).
 
