@@ -49,7 +49,7 @@ visibly on a host whose interface list shows no IP connectivity.
 | Recipe | Capabilities | Directory |
 |---|---|---|
 | [Pocket translator](#pocket-translator) | `ai:chat`, `storage:kv` | [apps/pocket-translator](apps/pocket-translator/README.md) |
-| [Ask the handbook](#ask-the-handbook) | `ai:chat`, `workspace` | [apps/ask-the-handbook](apps/ask-the-handbook/README.md) |
+| [Ask the handbook](#ask-the-handbook) | `ai:chat`, `ai:embed`, `workspace` | [apps/ask-the-handbook](apps/ask-the-handbook/README.md) |
 | [Triage notes](#triage-notes) | `ai:chat`, `storage:hyperbee` | [apps/triage-notes](apps/triage-notes/README.md) |
 
 ---
