@@ -28,7 +28,6 @@ You cannot use these today.
 | React binding for the UI | [1](01-what-you-are-building.md) | A custom reconciler is designed but unbuilt, and explicitly non-blocking for v1. | [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) — optional backlog |
 | Hyperbee replication between devices | [6](06-storage-and-files.md) | v1 Hyperbee is local-only; cross-device sync topics are future work. | [docs/miniapp-sdk.md](../docs/miniapp-sdk.md) |
 | Mini-app IPC and shared storage | [1](01-what-you-are-building.md), [5](05-capabilities.md) | Deliberately deferred, not missing. Do not design a suite of cooperating apps. | [LIMITATIONS.md §7](../LIMITATIONS.md) |
-| Large messages via propagation | [7](07-identity-messaging-and-peers.md) | Multi-part propagated transfer is not implemented. | [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) |
 | Group messaging, attachments, history sync | [7](07-identity-messaging-and-peers.md) | Not in v1 scope. | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | Physical-device performance and battery figures | [12](12-limits-and-budgets.md) | Spawn/kill/memory/battery on real handsets is hardware debt; published battery numbers are design targets. | H3, H11, H13 |
 | Screenshots in this guide | everywhere | Supplied in a separate pass. | [images/README.md](images/README.md) |
@@ -40,6 +39,7 @@ You can build on these, but not the way the surrounding text might suggest.
 | Feature | Limit | Where it appears | Tracked as |
 |---|---|---|---|
 | Publisher-identity backup | `tp` encrypts new identities and supports backup import/export, two-part BIP-39 recovery, and passphrase changes; it does not rotate or revoke a publisher. | [3](03-hello-world-with-the-cli.md) | [docs/identity-backup.md](../docs/identity-backup.md) |
+| Multipart propagation | `lxmf-ts` host integrations can resume and reassemble bounded payloads; 64 KiB default, 1,000,000-byte hard maximum, and 32-byte content frames. Not a mini-app attachment API. | [7](07-identity-messaging-and-peers.md) | [docs/multipart-propagation.md](../docs/multipart-propagation.md) |
 | DevStudio projects | Single-file bundles only. No in-host bundler, so `import` works only for the SDK. | [2](02-hello-world-in-devstudio.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | AI-assisted editing | Non-streaming, whole-file replacement; one in-flight request; ≤ 64 messages; `maxTokens` clamped to 8,192. | [2](02-hello-world-in-devstudio.md), [8](08-ai-and-authoring-apps.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | Dev preview slot | One slot. Previewing again replaces the previous preview. | [2](02-hello-world-in-devstudio.md), [11](11-testing-and-debugging.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |

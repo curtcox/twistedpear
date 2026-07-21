@@ -266,6 +266,38 @@ Full source: [apps/recipe-box/bundle.js](apps/recipe-box/bundle.js).
 
 ---
 
+## Host recipe: leave a bounded payload for an offline peer
+
+This recipe belongs in host integration code, not a mini-app sandbox. Use it when the bytes
+must wait at an LXMF propagation node and a content identifier is not enough:
+
+```typescript
+import { sendMultipartPropagation } from "@twistedpear/lxmf-ts";
+
+const sent = await sendMultipartPropagation({
+  router,
+  destination: peerDelivery,
+  source: localDelivery,
+  title: "zine/issue",
+  content: new TextEncoder().encode(issue),
+  budgetBytes: 64 * 1024
+});
+
+await saveTransfer(sent.transferId, sent.sentChunks);
+```
+
+If the process stops, decode the stored transfer id and pass it back as `transferId`, with the
+confirmed indexes in `completedChunks`. Only the missing parts are sent. On the receiving
+host, point `MultipartPropagationReceiver` at a `FileMultipartCheckpointStore`; it accepts
+parts in any order and emits bytes only after the advertised length and hash match.
+
+The 64 KiB default is intentional. Multipart propagation uses 32-byte content frames so each
+part remains a normal signed propagated packet. That is a lot of envelopes and airtime. For
+a book, photo, or app package, publish the bytes and send its content identifier instead.
+See [the complete multipart contract](../docs/multipart-propagation.md).
+
+---
+
 ## What this chapter was actually about
 
 Bytes cost. On IP they cost nothing you will notice; on BLE and LoRa they cost seconds of a

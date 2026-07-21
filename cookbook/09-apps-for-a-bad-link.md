@@ -272,8 +272,10 @@ Full source: [apps/net-ledger/bundle.js](apps/net-ledger/bundle.js).
 
 ### Make it yours
 
-- **Batch the roster.** Send in chunks under a byte ceiling, numbered, so a partial delivery is
-  still useful.
+- **File a larger roster through a host.** The tested
+  [multipart propagation recipe](06-apps-that-move-files.md#host-recipe-leave-a-bounded-payload-for-an-offline-peer)
+  numbers, resumes, and verifies the parts. Keep independently useful batches when partial
+  delivery is more valuable than all-or-nothing reassembly.
 - **Auto-drain on launch and on interface change.** Best-effort, reported honestly.
 - **Receive check-ins over the air.** `lxmf:receive` is already granted — remote stations could
   check themselves in.

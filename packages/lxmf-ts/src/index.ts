@@ -35,6 +35,18 @@ export type { LXMessagePackOptions, LXMessageUnpackOptions } from "./message.js"
 export { LXMFRouter, stampCostFromAppData } from "./router.js";
 export type { DeliveryCallback, DeliveryContext, LXMFRouterOptions } from "./router.js";
 export {
+  DEFAULT_MULTIPART_BUDGET_BYTES,
+  MAX_MULTIPART_BYTES,
+  MULTIPART_CHUNK_BYTES,
+  MULTIPART_TITLE_BYTES,
+  MemoryMultipartCheckpointStore,
+  MultipartPropagationReceiver,
+  sendMultipartPropagation,
+  type MultipartCheckpoint,
+  type MultipartCheckpointStore,
+  type MultipartReceiveResult
+} from "./multipart.js";
+export {
   PropagationClient,
   PropagationNodeStore,
   createPropagationDestination,

@@ -69,9 +69,11 @@ messages" and a current-usage bar.
 > See [docs/propagation-node.md](../docs/propagation-node.md) and
 > [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md).
 
-> **⏳ Not yet available — large messages via propagation.** Messages held for an offline
-> peer must be small. A large message (one that would need a multi-part transfer) can only
-> be sent while the recipient is actually reachable.
+> **⚠️ Works, with limits — multipart propagation.** A host can split a bounded payload into
+> independently held messages and resume/reassemble them after reconnecting. The default
+> ceiling is 64 KiB, parts are deliberately tiny, and radio airtime rises quickly. This is
+> for reports and other bounded payloads, not attachments or bulk files. See
+> [multipart propagation](../docs/multipart-propagation.md).
 
 ## Spam and unwanted messages
 

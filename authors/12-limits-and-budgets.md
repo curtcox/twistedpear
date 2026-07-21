@@ -23,6 +23,7 @@ everybody feels: how long your app takes to reach someone over a radio.
 | Workspace | 256 KiB/file, 4 MiB total, 512 files |
 | AI chat | 1 in-flight request/app; ≤ 64 messages; `maxTokens` clamped to 8,192 |
 | Host confirmation timeout | 60 s, then denied |
+| Multipart LXMF propagation | 64 KiB default; 1,000,000 B hard maximum; 32 B content/frame; 16 B title |
 
 These are defaults. Hosts can configure them, and the desktop Runtime controls panel lets a
 user tighten message rate, KV quota, and memory limits **on a running app**. So treat the

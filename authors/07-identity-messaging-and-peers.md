@@ -70,10 +70,12 @@ So:
 - **Poll `receive()` at a human rate.** Once a second is generous; you have a 60-call/sec
   budget for *everything* ([Chapter 12](12-limits-and-budgets.md)).
 
-> **⏳ Not yet available — large messages via propagation.** Multi-part propagated transfer is
-> not implemented. A large message to an offline peer does not queue and forward. Keep
-> messages small enough to fit a single transfer. See
-> [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md).
+> **⚠️ Works, with limits — multipart propagation.** Host integrations can use
+> `sendMultipartPropagation` and `MultipartPropagationReceiver` for ordered, resumable
+> store-and-forward payloads. The default budget is 64 KiB and the framing is intentionally
+> expensive, so mini-app messages should still be small. This is transport plumbing, not an
+> attachment API. See [multipart propagation](../docs/multipart-propagation.md) and
+> [Chapter 12](12-limits-and-budgets.md).
 
 > **⏳ Not yet available — group messaging, attachments, and history sync.** Not in v1 scope.
 > If your app needs a group, you are building it yourself out of point-to-point messages and

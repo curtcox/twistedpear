@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-20
+audited: 2026-07-21
 register: none
 -->
 
@@ -14,7 +14,11 @@ and clients such as Sideband, MeshChat, and `lxmd`.
 
 - **M7** — LXMessage encode/decode/sign/verify, opportunistic, direct, and propagated
   delivery via `LXMFRouter`, propagation-node client sync (list/download/delete),
-  propagation-node ingress for tests; docker interop with Python LXMF echo peer
+  propagation-node ingress for tests; budgeted resumable multipart propagation; docker
+  interop with Python LXMF echo peer
+
+Multipart framing, budgets, checkpoints, and resume behavior are documented in
+[docs/multipart-propagation.md](../../docs/multipart-propagation.md).
 
 ## Development
 

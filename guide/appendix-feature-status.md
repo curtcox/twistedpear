@@ -29,7 +29,6 @@ You cannot use these today.
 | Linked devices / multi-device identity | [3](03-first-run-and-identity.md) | No design shipped for sharing one identity across hosts. | — |
 | App search and discovery | [5](05-finding-and-installing-apps.md) | No central registry by design; your catalog is only what peers announce. | [LIMITATIONS §7](../LIMITATIONS.md) |
 | Multiple apps at once; background apps | [6](06-using-apps.md) | v1 runs one foreground mini-app, by design. | [LIMITATIONS §7](../LIMITATIONS.md) |
-| Large messages via propagation | [7](07-messaging.md) | Multi-part propagated transfer is not implemented. | [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) |
 | Group chat, attachments, history sync | [7](07-messaging.md) | Not in v1 scope. | — |
 | Screenshots in this guide | everywhere | Supplied in a separate pass. | [images/README.md](images/README.md) |
 
@@ -41,6 +40,7 @@ You can use these, but not the way the surrounding text might suggest.
 |---|---|---|---|
 | Identity backup and recovery | Encrypted export/import, recovery words, and passphrase changes are available in `tp` and the desktop host; mobile and browser host UI is not yet wired. | [3](03-first-run-and-identity.md) | [docs/identity-backup.md](../docs/identity-backup.md) |
 | Blocking, muting, and local reports | LXMF enforcement and desktop Safety settings are implemented; reports are local records/exports, not submissions to a central authority. Mobile and browser settings are not yet wired. | [7](07-messaging.md) | [docs/local-moderation.md](../docs/local-moderation.md) |
+| Multipart propagation | Ordered, resumable payloads default to 64 KiB and use airtime-expensive 32-byte content frames; this is not an attachment or bulk-file transport. | [7](07-messaging.md) | [docs/multipart-propagation.md](../docs/multipart-propagation.md) |
 | Windows desktop host | Built in CI, never installed or exercised on Windows. | [2](02-installing-a-host.md) | H17 |
 | Android host | It is the `harness-mobile` developer build, not a consumer app. | [2](02-installing-a-host.md) | — |
 | Local network discovery | Verified in containers and emulators; never on a real multi-machine LAN. | [4](04-joining-a-network.md) | H15, H18 |

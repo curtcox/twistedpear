@@ -14,7 +14,9 @@ import {
   PropagationClient,
   PropagationNodeStore,
   PropagationTransferState,
-  createPropagationDestination
+  MultipartPropagationReceiver,
+  createPropagationDestination,
+  sendMultipartPropagation
 } from "../src/index.js";
 import { msgpackUnpackPropagationEnvelope } from "../src/msgpack.js";
 
@@ -144,7 +146,7 @@ describe("LXMFRouter delivery", () => {
     await expect(context).resolves.toEqual({ disposition: "mute", notify: false });
   });
 
-  it("delivers propagated messages via a propagation node over PipeInterface", async () => {
+  it("reassembles out-of-order-safe multipart messages from propagation", async () => {
     const nodeIdentity = new Identity(provider);
     const alice = loadIdentity(ALICE_KEY);
     const bob = loadIdentity(BOB_KEY);
@@ -182,30 +184,38 @@ describe("LXMFRouter delivery", () => {
 
     aliceRouter.setOutboundPropagationNode(nodePropagation.hash);
 
-    const received = new Promise<string>((resolve) => {
-      bobRouter.onDelivery((message) => resolve(message.contentAsString()));
-    });
-
     const bobOut = aliceRouter.createOutboundDestination(bob);
-    await aliceRouter.packAndSend({
+    const largeContent = new TextEncoder().encode("multipart ".repeat(8));
+    const transfer = await sendMultipartPropagation({
+      router: aliceRouter,
       destination: bobOut,
       source: aliceDelivery,
       title: "Offline",
-      content: "Propagated hello",
-      desiredMethod: LXMessageMethod.PROPAGATED,
-      deferStamp: true,
-      timestamp: 1700000004
+      content: largeContent,
+      now: () => 1700000004
     });
+    expect(transfer.chunkCount).toBeGreaterThan(1);
 
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    const client = new PropagationClient({ router: bobRouter, provider });
-    client.setPropagationNode(nodePropagation.hash);
+    const messages: LXMessage[] = [];
+    for (let index = 0; index < transfer.chunkCount; index += 1) {
+      const client = new PropagationClient({ router: bobRouter, provider });
+      client.setPropagationNode(nodePropagation.hash);
+      const result = await client.syncMessages(1);
+      expect(result.state).toBe(PropagationTransferState.COMPLETE);
+      messages.push(...result.messages);
+    }
+    expect(messages).toHaveLength(transfer.chunkCount);
 
-    const result = await client.syncMessages();
-    expect(result.state).toBe(PropagationTransferState.COMPLETE);
-    await expect(received).resolves.toBe("Propagated hello");
-  });
+    const receiver = new MultipartPropagationReceiver(provider);
+    const received = messages
+      .slice()
+      .reverse()
+      .map((message) => receiver.ingest(message))
+      .find((part) => part.complete);
+    expect(received?.content).toEqual(largeContent);
+  }, 20_000);
 
   it("discovers propagation nodes from lxmf.propagation announces", async () => {
     const nodeIdentity = new Identity(provider);

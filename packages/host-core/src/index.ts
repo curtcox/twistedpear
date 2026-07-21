@@ -1,4 +1,7 @@
 export {
+  FileMultipartCheckpointStore
+} from "./multipart-checkpoint-store.js";
+export {
   FileModerationStore,
   type LocalReportReason,
   type LocalReportRecord,
