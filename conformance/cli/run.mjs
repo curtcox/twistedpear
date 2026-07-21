@@ -28,11 +28,13 @@ import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
 const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
 const tpBin = resolve(dirname(fileURLToPath(import.meta.url)), "../../packages/cli/dist/bin/tp.js");
+const identityPassphrase = "conformance identity passphrase";
 
 function runTp(cwd, argv) {
   return spawnSync(process.execPath, [tpBin, ...argv], {
     cwd,
-    encoding: "utf8"
+    encoding: "utf8",
+    env: { ...process.env, TP_IDENTITY_PASSPHRASE: identityPassphrase }
   });
 }
 
@@ -124,17 +126,21 @@ async function testPublishConsumerFlow() {
     const fixtureApp = stageExampleApp(publisherDir, fixtureAppSource);
     assertExit(runTp(publisherDir, ["init"]), 0, "tp init");
 
-    const packCode = await runPack({ cwd: publisherDir, args: [fixtureApp, "--out", "packed.tpkg"] });
+    const packCode = await runPack({
+      cwd: publisherDir,
+      args: [fixtureApp, "--out", "packed.tpkg"],
+      identityPassphrase
+    });
     if (packCode !== 0) {
       throw new Error("runPack failed");
     }
 
-    const signCode = await runSign({ cwd: publisherDir, args: ["packed.tpkg"] });
+    const signCode = await runSign({ cwd: publisherDir, args: ["packed.tpkg"], identityPassphrase });
     if (signCode !== 0) {
       throw new Error("runSign failed");
     }
 
-    const publishCode = await runPublish({ cwd: publisherDir, args: [fixtureApp] });
+    const publishCode = await runPublish({ cwd: publisherDir, args: [fixtureApp], identityPassphrase });
     if (publishCode !== 0) {
       throw new Error("runPublish failed");
     }
@@ -162,7 +168,11 @@ async function testPublishConsumerFlow() {
       throw new Error("consumer v1 hash mismatch");
     }
 
-    const updateCode = await runUpdate({ cwd: publisherDir, args: [fixtureApp, "--version", "2.0.0"] });
+    const updateCode = await runUpdate({
+      cwd: publisherDir,
+      args: [fixtureApp, "--version", "2.0.0"],
+      identityPassphrase
+    });
     if (updateCode !== 0) {
       throw new Error("runUpdate failed");
     }

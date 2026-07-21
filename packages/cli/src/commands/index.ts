@@ -56,6 +56,7 @@ export interface CommandContext {
   readonly identityPassphrase?: string;
   readonly identityPassphraseConfirmation?: string;
   readonly readSecret?: (prompt: string) => Promise<string>;
+  readonly interactive?: boolean;
 }
 
 const sessionPassphrases = new Map<string, string>();
@@ -142,13 +143,26 @@ function requiredPassphrase(ctx: CommandContext): string {
   return passphrase;
 }
 
-function loadIdentity(provider: NodeCryptoProvider, path: string, ctx: CommandContext): Identity {
+function loadIdentity(
+  provider: NodeCryptoProvider,
+  path: string,
+  ctx: CommandContext,
+  migrateLegacy = true
+): Identity {
   const bytes = readBytes(path);
-  const identity = isEncryptedIdentityBackup(bytes)
-    ? decryptIdentityBackup(provider, bytes, requiredPassphrase(ctx))
+  const encrypted = isEncryptedIdentityBackup(bytes);
+  const passphrase = requiredPassphrase(ctx);
+  const identity = encrypted
+    ? decryptIdentityBackup(provider, bytes, passphrase)
     : Identity.fromBytes(provider, bytes);
   if (identity === null) {
     throw new Error(`Invalid identity at ${path}`);
+  }
+
+  if (!encrypted && migrateLegacy) {
+    validateNewIdentityPassphrase(passphrase, ctx.identityPassphraseConfirmation ?? passphrase);
+    persistEncryptedIdentity(provider, path, identity, passphrase);
+    sessionPassphrases.set(ctx.cwd, passphrase);
   }
 
   return identity;
@@ -297,6 +311,7 @@ export async function runInit(ctx: CommandContext): Promise<number> {
   const identityPath = resolveFromCwd(ctx.cwd, config.identityPath);
 
   if (existsSync(identityPath) && !hasFlag(ctx.args, "--force")) {
+    loadIdentity(provider, identityPath, ctx);
     console.log(`Identity already exists at ${identityPath}`);
     return 0;
   }
@@ -317,6 +332,23 @@ async function readRequiredSecret(ctx: CommandContext, prompt: string): Promise<
   const value = await ctx.readSecret(prompt);
   if (value.length === 0) throw new Error("Cancelled");
   return value;
+}
+
+async function confirmIdentityReplacement(
+  ctx: CommandContext,
+  current: Identity,
+  candidate: Identity
+): Promise<void> {
+  if (ctx.interactive !== true) return;
+  const currentHash = identityHashHex(current).slice(0, 12);
+  const candidateHash = identityHashHex(candidate).slice(0, 12);
+  const confirmation = await readRequiredSecret(
+    ctx,
+    `Replace identity ${currentHash} with ${candidateHash}? Type ${candidateHash}`
+  );
+  if (confirmation.trim().toLowerCase() !== candidateHash) {
+    throw new Error("Identity replacement cancelled");
+  }
 }
 
 export async function runIdentity(ctx: CommandContext): Promise<number> {
@@ -345,11 +377,14 @@ export async function runIdentity(ctx: CommandContext): Promise<number> {
   if (operation === "import") {
     const input = ctx.args[1];
     if (input === undefined || input.startsWith("--")) throw new Error("tp identity import requires a .tpidentity file");
-    if (existsSync(identityPath) && !hasFlag(ctx.args, "--force")) {
-      throw new Error("An identity already exists; inspect the candidate and repeat with --force to replace it");
-    }
     const backupPassphrase = await readRequiredSecret(ctx, "Backup passphrase");
     const candidate = decryptIdentityBackup(provider, readBytes(resolveFromCwd(ctx.cwd, input)), backupPassphrase);
+    if (existsSync(identityPath)) {
+      if (!hasFlag(ctx.args, "--force")) {
+        throw new Error("An identity already exists; inspect the candidate and repeat with --force to replace it");
+      }
+      await confirmIdentityReplacement(ctx, loadIdentity(provider, identityPath, ctx, false), candidate);
+    }
     const vaultPassphrase = requiredPassphrase(ctx);
     validateNewIdentityPassphrase(vaultPassphrase, vaultPassphrase);
     persistEncryptedIdentity(provider, identityPath, candidate, vaultPassphrase);
@@ -367,12 +402,15 @@ export async function runIdentity(ctx: CommandContext): Promise<number> {
   }
 
   if (operation === "recovery" && suboperation === "import") {
-    if (existsSync(identityPath) && !hasFlag(ctx.args, "--force")) {
-      throw new Error("An identity already exists; repeat with --force to replace it");
-    }
     const first = await readRequiredSecret(ctx, "TwistedPear identity 1/2");
     const second = await readRequiredSecret(ctx, "TwistedPear identity 2/2");
     const candidate = identityFromRecoveryWords(provider, { first, second });
+    if (existsSync(identityPath)) {
+      if (!hasFlag(ctx.args, "--force")) {
+        throw new Error("An identity already exists; repeat with --force to replace it");
+      }
+      await confirmIdentityReplacement(ctx, loadIdentity(provider, identityPath, ctx, false), candidate);
+    }
     const vaultPassphrase = requiredPassphrase(ctx);
     validateNewIdentityPassphrase(vaultPassphrase, vaultPassphrase);
     persistEncryptedIdentity(provider, identityPath, candidate, vaultPassphrase);

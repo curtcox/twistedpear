@@ -90,4 +90,15 @@ describe("identity backup", () => {
     expect(() => validateNewIdentityPassphrase("long enough pass", "different passphrase")).toThrow("does not match");
     expect(() => validateNewIdentityPassphrase("long enough pass", "long enough pass")).not.toThrow();
   });
+
+  it("round-trips randomly generated identities with fresh container entropy", () => {
+    for (const passphrase of ["random passphrase alpha", "random passphrase beta"]) {
+      const identity = new Identity(provider);
+      const first = encryptIdentityBackup(provider, identity, passphrase);
+      const second = encryptIdentityBackup(provider, identity, passphrase);
+      expect(first).not.toEqual(second);
+      expect(decryptIdentityBackup(provider, first, passphrase).getPrivateKey()).toEqual(identity.getPrivateKey());
+      expect(decryptIdentityBackup(provider, second, passphrase).getPrivateKey()).toEqual(identity.getPrivateKey());
+    }
+  });
 });

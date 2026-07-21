@@ -16,7 +16,8 @@ import {
   unpackPackage,
   verifyPackage
 } from "../../packages/app-registry/dist/index.js";
-import { Identity, NodeCryptoProvider, nodeRuntime } from "../../packages/reticulum-ts/dist/index.js";
+import { NodeCryptoProvider, nodeRuntime } from "../../packages/reticulum-ts/dist/index.js";
+import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
 import { runInit, runPack, runPublish, runUpdate } from "../../packages/cli/dist/commands/index.js";
 import { HOST_API_VERSION, validateManifestCapabilities } from "../../packages/miniapp-runtime/dist/index.js";
 import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
@@ -167,7 +168,8 @@ export async function runDesktopFullLoop() {
 
   try {
     process.chdir(cwd);
-    const initCode = await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
+    const identityPassphrase = "conformance identity passphrase";
+    const initCode = await runInit({ cwd, identityPassphrase, args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed");
     }
@@ -182,11 +184,11 @@ export async function runDesktopFullLoop() {
       throw new Error("tp publish failed");
     }
 
-    const privateKey = new Uint8Array(readFileSync(join(cwd, ".tp/identity")));
-    const identity = Identity.fromBytes(provider, privateKey);
-    if (identity === null) {
-      throw new Error("invalid publisher identity");
-    }
+    const identity = decryptIdentityBackup(
+      provider,
+      new Uint8Array(readFileSync(join(cwd, ".tp/identity"))),
+      identityPassphrase
+    );
 
     const v1Archive = new Uint8Array(readFileSync(join(cwd, ".tp/last.tpkg")));
     const v1Unpacked = unpackPackage(provider, v1Archive);

@@ -50,6 +50,7 @@ handler({
   args,
   ...(identityPassphrase === undefined ? {} : { identityPassphrase }),
   ...(identityPassphraseConfirmation === undefined ? {} : { identityPassphraseConfirmation }),
+  interactive: process.stdin.isTTY === true && process.stdout.isTTY === true,
   readSecret: readHiddenSecret
 })
   .then((code) => process.exit(code))

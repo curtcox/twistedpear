@@ -1528,14 +1528,15 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "identity-export" || message.type === "identity-recovery-show" ||
-      message.type === "identity-import" || message.type === "identity-recovery-import" ||
+      message.type === "identity-import-inspect" || message.type === "identity-import" ||
+      message.type === "identity-recovery-import-inspect" || message.type === "identity-recovery-import" ||
       message.type === "identity-change-passphrase") {
     try {
       const stored = await runtime.store.get(IDENTITY_STORE_KEY);
       if (stored === undefined) throw new Error("No identity exists");
       if (message.type === "identity-export") {
         const identity = decryptIdentityBackup(provider, stored, message.currentPassphrase);
-        validateNewIdentityPassphrase(message.backupPassphrase, message.backupPassphrase);
+        validateNewIdentityPassphrase(message.backupPassphrase, message.backupPassphraseConfirmation);
         const backup = encryptIdentityBackup(provider, identity, message.backupPassphrase);
         send({ type: "identity-operation", operation: "export", ok: true, identityHash: bytesToHex(identity.hash), backupHex: bytesToHex(backup) });
         backup.fill(0);
@@ -1543,19 +1544,29 @@ async function handleHostMessage(raw) {
         const identity = decryptIdentityBackup(provider, stored, message.currentPassphrase);
         const recovery = identityToRecoveryWords(identity);
         send({ type: "identity-operation", operation: "recovery-show", ok: true, identityHash: bytesToHex(identity.hash), ...recovery });
+      } else if (message.type === "identity-import-inspect") {
+        const identity = decryptIdentityBackup(provider, hexToBytes(message.backupHex), message.backupPassphrase);
+        send({ type: "identity-operation", operation: "import-inspect", ok: true, candidateIdentityHash: bytesToHex(identity.hash) });
       } else if (message.type === "identity-import") {
         const identity = decryptIdentityBackup(provider, hexToBytes(message.backupHex), message.backupPassphrase);
-        validateNewIdentityPassphrase(message.vaultPassphrase, message.vaultPassphrase);
+        const candidateIdentityHash = bytesToHex(identity.hash);
+        if (message.confirmedCandidateHash !== candidateIdentityHash) throw new Error("Identity replacement was not confirmed");
+        validateNewIdentityPassphrase(message.vaultPassphrase, message.vaultPassphraseConfirmation);
         await persistIdentity(identity, message.vaultPassphrase);
         send({ type: "identity-operation", operation: "import", ok: true, identityHash: bytesToHex(identity.hash) });
+      } else if (message.type === "identity-recovery-import-inspect") {
+        const identity = identityFromRecoveryWords(provider, { first: message.first, second: message.second });
+        send({ type: "identity-operation", operation: "recovery-import-inspect", ok: true, candidateIdentityHash: bytesToHex(identity.hash) });
       } else if (message.type === "identity-recovery-import") {
         const identity = identityFromRecoveryWords(provider, { first: message.first, second: message.second });
-        validateNewIdentityPassphrase(message.vaultPassphrase, message.vaultPassphrase);
+        const candidateIdentityHash = bytesToHex(identity.hash);
+        if (message.confirmedCandidateHash !== candidateIdentityHash) throw new Error("Identity replacement was not confirmed");
+        validateNewIdentityPassphrase(message.vaultPassphrase, message.vaultPassphraseConfirmation);
         await persistIdentity(identity, message.vaultPassphrase);
         send({ type: "identity-operation", operation: "recovery-import", ok: true, identityHash: bytesToHex(identity.hash) });
       } else {
         const identity = decryptIdentityBackup(provider, stored, message.currentPassphrase);
-        validateNewIdentityPassphrase(message.nextPassphrase, message.nextPassphrase);
+        validateNewIdentityPassphrase(message.nextPassphrase, message.nextPassphraseConfirmation);
         await persistIdentity(identity, message.nextPassphrase);
         send({ type: "identity-operation", operation: "change-passphrase", ok: true, identityHash: bytesToHex(identity.hash) });
       }

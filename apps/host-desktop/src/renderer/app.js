@@ -78,6 +78,8 @@ let installedPackages = [];
 let selectedAppId = null;
 /** @type {string | null} */
 let runningAppId = null;
+let pendingIdentityImport = null;
+let pendingIdentityRecovery = null;
 /** @type {Map<string, {resolve: (content: string) => void, reject: (error: Error) => void}>} */
 const pendingWorkspaceReads = new Map();
 let workspaceReadCounter = 0;
@@ -811,6 +813,23 @@ if (!host) {
         identityWordsFirst.value = message.first;
         identityWordsSecond.value = message.second;
       }
+      if (message.ok && message.operation === "recovery-import") {
+        void host.setIdentityContentProtection(false);
+      }
+      if (message.ok && message.operation === "import-inspect" && pendingIdentityImport !== null) {
+        const candidate = message.candidateIdentityHash;
+        if (window.confirm(`Replace this host identity with ${candidate.slice(0, 12)}? The host will restart.`)) {
+          host.send({ type: "identity-import", ...pendingIdentityImport, confirmedCandidateHash: candidate });
+        }
+        pendingIdentityImport = null;
+      }
+      if (message.ok && message.operation === "recovery-import-inspect" && pendingIdentityRecovery !== null) {
+        const candidate = message.candidateIdentityHash;
+        if (window.confirm(`Replace this host identity with ${candidate.slice(0, 12)}? The host will restart.`)) {
+          host.send({ type: "identity-recovery-import", ...pendingIdentityRecovery, confirmedCandidateHash: candidate });
+        }
+        pendingIdentityRecovery = null;
+      }
     }
     if (message.type === "moderation-state") renderModerationState(message);
     if (message.type === "moderation-report-export") void host.saveModerationReport(message.json);
@@ -847,24 +866,27 @@ if (!host) {
   });
   document.querySelector("#identity-export")?.addEventListener("click", () => {
     if (identityNext.value !== identityConfirm.value) return appendLog("Backup passphrases do not match");
-    host.send({ type: "identity-export", currentPassphrase: identityCurrent.value, backupPassphrase: identityNext.value });
+    host.send({ type: "identity-export", currentPassphrase: identityCurrent.value, backupPassphrase: identityNext.value, backupPassphraseConfirmation: identityConfirm.value });
   });
   document.querySelector("#identity-import")?.addEventListener("click", async () => {
     if (identityNext.value !== identityConfirm.value) return appendLog("Vault passphrases do not match");
     const backupHex = await host.openIdentityBackup();
-    if (backupHex) host.send({ type: "identity-import", backupHex, backupPassphrase: identityCurrent.value, vaultPassphrase: identityNext.value });
+    if (backupHex) {
+      pendingIdentityImport = { backupHex, backupPassphrase: identityCurrent.value, vaultPassphrase: identityNext.value, vaultPassphraseConfirmation: identityConfirm.value };
+      host.send({ type: "identity-import-inspect", backupHex, backupPassphrase: identityCurrent.value });
+    }
   });
   document.querySelector("#identity-recovery-show")?.addEventListener("click", () => {
     host.send({ type: "identity-recovery-show", currentPassphrase: identityCurrent.value });
   });
   document.querySelector("#identity-recovery-import")?.addEventListener("click", () => {
     if (identityNext.value !== identityConfirm.value) return appendLog("Vault passphrases do not match");
-    host.send({ type: "identity-recovery-import", first: identityWordsFirst.value.trim(), second: identityWordsSecond.value.trim(), vaultPassphrase: identityNext.value });
-    void host.setIdentityContentProtection(false);
+    pendingIdentityRecovery = { first: identityWordsFirst.value.trim(), second: identityWordsSecond.value.trim(), vaultPassphrase: identityNext.value, vaultPassphraseConfirmation: identityConfirm.value };
+    host.send({ type: "identity-recovery-import-inspect", first: pendingIdentityRecovery.first, second: pendingIdentityRecovery.second });
   });
   document.querySelector("#identity-change")?.addEventListener("click", () => {
     if (identityNext.value !== identityConfirm.value) return appendLog("New passphrases do not match");
-    host.send({ type: "identity-change-passphrase", currentPassphrase: identityCurrent.value, nextPassphrase: identityNext.value });
+    host.send({ type: "identity-change-passphrase", currentPassphrase: identityCurrent.value, nextPassphrase: identityNext.value, nextPassphraseConfirmation: identityConfirm.value });
   });
 
   const sendModeration = (type) => {

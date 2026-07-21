@@ -11,6 +11,9 @@ register: none
 Approved and implemented for `host-core`, `tp`, and the desktop host. Mobile and browser
 hosts retain their existing identity stores until the same host-owned settings flow is wired;
 the portable container and recovery representation are shared implementation, not a proposal.
+The host UI requirements below therefore describe the shipped desktop flow; mobile and web
+remain an explicitly documented surface-coverage limit rather than an incomplete cryptographic
+format.
 
 ## Goals
 
@@ -137,7 +140,8 @@ the executable’s prompt rules.
 
 ## Host UI
 
-Settings gains an **Identity backup** panel on desktop, mobile, and web:
+Desktop Settings includes an **Identity backup** panel. Mobile and web should reuse these
+operations when their host-owned settings panels are wired:
 
 1. **Export encrypted backup** — current passphrase, new backup passphrase twice, then native
    save/share UI for a `.tpidentity` file.
@@ -162,7 +166,8 @@ disabled while a replacement or passphrase change is in progress.
 - Filesystem tests for mode `0600`, atomic replacement, legacy migration, and failure safety.
 - CLI conformance for every command, cancellation, overwrite protection, TTY/environment
   secret sources, and preservation of the identity hash.
-- Desktop, mobile-worklet, and web-host tests for export/import/recovery IPC and restart.
+- Desktop source/UI invariants for export/import/recovery IPC, candidate-hash confirmation,
+  and restart messaging. Mobile-worklet and web-host coverage remains open with those UIs.
 - Documentation tests proving the incomplete rows are removed consistently.
 
 The acceptance invariant is: exporting by either representation and importing into an empty
