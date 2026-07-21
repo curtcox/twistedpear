@@ -45,6 +45,7 @@ screenshots are still missing.
 | `03-create-identity.png` | 3 | First launch, before an identity |
 | `03-identity-created.png` | 3 | Status panel after creation |
 | `03-show-my-identity.png` | 3 | Address and QR code |
+| `03-recovery-words.png` | 3 | Encrypted backup and recovery-word flow |
 | `03-reset-confirmation.png` | 3 | Reset identity confirmation |
 | `04-interfaces-settings.png` | 4 | Settings → Interfaces |
 | `04-tcp-connected.png` | 4 | A connected TCP interface |
@@ -68,6 +69,7 @@ screenshots are still missing.
 | `07-chat-send.png` | 7 | Sending a message |
 | `07-delivery-states.png` | 7 | Four delivery states |
 | `07-propagation-role.png` | 7 | Enabling the propagation role |
+| `07-local-safety.png` | 7 | Block, mute, and local-report controls |
 | `08-sandbox-boundary.png` | 8 | Diagram: what an app can reach |
 | `08-untrusted-publisher.png` | 8 | Untrusted publisher install |
 | `09-storage.png` | 9 | Settings → Storage |
@@ -80,7 +82,7 @@ screenshots are still missing.
 
 ## Current capture status
 
-The deterministic desktop/browser pass supplies **17 of 42** files. Re-run it with
+The deterministic desktop/browser pass supplies **19 of 44** files. Re-run it with
 `npm run capture:reader-guide-ui`. It uses the real desktop renderer and built web host,
 with throwaway documentation identities and no credentials.
 

@@ -45,8 +45,10 @@ you install can do anything the capabilities you granted allow it to do. Withhol
 capability is the enforcement mechanism, and it is a real one — but the judgement is
 yours.
 
-**Your identity file is unencrypted on disk.** Anyone with access to your computer's user
-account has your identity. See [Chapter 3](03-first-run-and-identity.md).
+**Desktop identity vaults are passphrase-encrypted at rest.** Exported `.tpidentity` backups
+use the same authenticated format, and the two recovery-word groups are an unencrypted copy
+of the key material. Mobile and browser hosts do not yet expose the portable backup flow;
+browser custody also depends on the serving origin. See [Chapter 3](03-first-run-and-identity.md).
 
 **In a browser, whoever serves the page controls everything.** The web host is only as
 trustworthy as the origin that served it, because that origin supplies the code that
@@ -76,8 +78,9 @@ publisher" with the full publisher address, above the normal capability list. Th
 
 Knowing what is *not* normal is a useful defence:
 
-- The host never asks for a password, a recovery phrase, or a payment method. It has none
-  of those concepts.
+- The host asks for an identity passphrase or recovery words only inside an identity action
+  you initiated. A mini-app never receives those values, and TwistedPear never asks for a
+  payment method.
 - An app can never show you a system-looking permission prompt. Confirmation dialogs are
   drawn by the host, outside the app's surface — that is why the visual separation in
   [Chapter 6](06-using-apps.md) matters.

@@ -93,6 +93,11 @@ timestamp locally. **Export reports** writes a JSON file you may choose to share
 contact a company or silently transmit anything. See
 [Local blocking, muting, and reports](../docs/local-moderation.md).
 
+![The desktop Safety panel with a blocked sender and local report](/guide/images/07-local-safety.png)
+
+**Screenshot 7.4 — Local safety controls.** A disposable authenticated source hash is blocked
+and recorded as a local spam report. The summary makes the local-only scope visible.
+
 > **⚠️ Works, with limits — local policy only.** There is no takedown, account ban, or
 > network-wide report destination. The desktop settings UI is implemented; mobile and browser
 > hosts do not expose these controls yet.

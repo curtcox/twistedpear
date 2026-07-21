@@ -39,7 +39,7 @@ You can build these, but not the way the surrounding text might suggest.
 
 | Feature | Limit | Where it appears | Tracked as |
 |---|---|---|---|
-| Cookbook screenshots | 3 of 40 are real host-chrome captures; 37 populated app, multi-peer, radio, AI, file, and composite states remain. Startup-only renders are not passed off as the captioned state. | everywhere | [images/README.md](images/README.md) |
+| Cookbook screenshots | 8 of 40 are real host/runtime captures; 32 multi-peer, radio, file, DevStudio, and composite states remain. Startup-only renders are not passed off as the captioned state. | everywhere | [images/README.md](images/README.md) |
 | Publisher-identity backup | Host-owned `tp` and desktop settings flows support encrypted backup and recovery words; mini-apps never receive the private identity material. | [8](08-apps-that-build-apps.md) | [docs/identity-backup.md](../docs/identity-backup.md) |
 | Multipart propagation | Host-side recipes can resume/reassemble bounded payloads; the default ceiling is 64 KiB and 32-byte frames are costly on radio. Mini-apps still have no attachment API. | [6](06-apps-that-move-files.md), [9](09-apps-for-a-bad-link.md) | [docs/multipart-propagation.md](../docs/multipart-propagation.md) |
 | Single-file bundles | No in-host bundler, so `import` resolves the SDK and nothing else. Every sample is one file because it has to be. | [1](01-how-to-use-this-cookbook.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |

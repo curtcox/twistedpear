@@ -37,7 +37,7 @@ You can use these, but not the way the surrounding text might suggest.
 
 | Feature | Limit | Where it appears | Tracked as |
 |---|---|---|---|
-| Guide screenshots | 17 of 42 are real captures from the desktop and browser hosts; 25 remain gated by hardware, missing exact-state fixtures, terminal capture, or editorial composition. | everywhere | [images/README.md](images/README.md) |
+| Guide screenshots | 19 of 44 are real captures from the desktop and browser hosts; 25 remain gated by hardware, missing exact-state fixtures, terminal capture, or editorial composition. | everywhere | [images/README.md](images/README.md) |
 | Identity backup and recovery | Encrypted export/import, recovery words, and passphrase changes are available in `tp` and the desktop host; mobile and browser host UI is not yet wired. | [3](03-first-run-and-identity.md) | [docs/identity-backup.md](../docs/identity-backup.md) |
 | Blocking, muting, and local reports | LXMF enforcement and desktop Safety settings are implemented; reports are local records/exports, not submissions to a central authority. Mobile and browser settings are not yet wired. | [7](07-messaging.md) | [docs/local-moderation.md](../docs/local-moderation.md) |
 | Multipart propagation | Ordered, resumable payloads default to 64 KiB and use airtime-expensive 32-byte content frames; this is not an attachment or bulk-file transport. | [7](07-messaging.md) | [docs/multipart-propagation.md](../docs/multipart-propagation.md) |

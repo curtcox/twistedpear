@@ -100,17 +100,26 @@ function renderNode(node, onEvent, options = {}) {
       return element;
     }
     case "progress": {
-      const element = document.createElement("p");
-      element.textContent = `Progress ${String(node.props?.value ?? 0)}%`;
+      const element = document.createElement("progress");
+      element.className = "widget-progress";
+      element.max = 1;
+      const value = Number(node.props?.value ?? 0);
+      element.value = Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
+      element.setAttribute("aria-label", `Progress ${Math.round(element.value * 100)}%`);
+      applyStyle(element, style);
       return element;
     }
     case "list": {
       const element = document.createElement("div");
+      applyStyle(element, style);
       for (const item of Array.isArray(node.props?.items) ? node.props.items : []) {
         const row = document.createElement("p");
         row.className = "widget-muted";
         row.textContent = typeof item === "string" ? item : JSON.stringify(item);
         element.appendChild(row);
+      }
+      for (const child of node.children ?? []) {
+        element.appendChild(renderNode(child, onEvent, options));
       }
       return element;
     }

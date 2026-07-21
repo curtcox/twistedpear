@@ -64,6 +64,12 @@ The encrypted vault and exported backup use the portable format described in
 [Identity backup and recovery](../docs/identity-backup.md). Legacy raw identity files are
 migrated without changing the identity hash after you set a passphrase.
 
+![Identity backup settings with both recovery-word groups revealed](/guide/images/03-recovery-words.png)
+
+**Screenshot 3.4 — Recovery words.** The desktop host's real Identity backup panel after
+the explicit reveal action. Both labelled 24-word groups are required; the documentation
+identity shown here is disposable.
+
 Default identity locations are:
 
 | Platform | Data directory |
@@ -92,7 +98,7 @@ you. The host asks for confirmation, and the confirmation is worth reading.
 
 ![The reset identity confirmation](/guide/images/03-reset-confirmation.png)
 
-**Screenshot 3.4 — Reset confirmation dialog.** A modal with the heading "Reset
+**Screenshot 3.5 — Reset confirmation dialog.** A modal with the heading "Reset
 identity?", body text stating that the current address will be unreachable forever and
 that installed apps' data will be orphaned, a greyed-out **Reset** button that becomes
 active only after the checkbox "I have a backup or do not need this identity" is ticked,

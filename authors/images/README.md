@@ -52,6 +52,7 @@ for authoring shots.
 | `02-package-256t.png` | 2 | The packaged app's QR code and 256t string |
 | `02-installed-on-phone.png` | 2 | The published app running on a phone |
 | `03-tp-init.png` | 3 | `tp init` printing a publisher public key |
+| `03-publisher-recovery.png` | 3 | Host-owned publisher backup and recovery words |
 | `03-dev-sideload.png` | 3 | `tp dev` terminal beside a host showing the **DEV** badge |
 | `04-component-gallery.png` | 4 | One widget tree rendered on desktop, Android, and web |
 | `04-render-rejection.png` | 4 | A rejected widget tree; previous tree retained |
@@ -67,7 +68,7 @@ for authoring shots.
 
 ## Current capture status
 
-The deterministic host-chrome pass supplies **5 of 21** files. Re-run it with
+The deterministic host-chrome pass supplies **6 of 22** files. Re-run it with
 `npm run capture:reader-guide-ui`.
 
 The remaining **16** filenames need surfaces or exact states that the current capture

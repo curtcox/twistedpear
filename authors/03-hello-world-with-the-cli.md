@@ -59,6 +59,15 @@ Back it up with `tp identity export --out publisher.tpidentity` or record the tw
 `tp identity recovery import`; `tp identity change-passphrase` re-encrypts the same key.
 Passphrases are prompted without echo and are never accepted as command-line arguments.
 
+The desktop host can manage the same portable identity format when a publisher prefers a
+visual backup flow:
+
+![Desktop identity backup with publisher recovery words](/authors/images/03-publisher-recovery.png)
+
+**Screenshot 3.2 — Publisher recovery.** The host-owned backup surface with both labelled
+24-word groups revealed for a disposable documentation identity. Mini-apps never receive
+this material.
+
 ## Scaffold
 
 ```sh
@@ -102,7 +111,7 @@ side-loads; edit and it reloads.
 
 ![A host in developer mode with a side-loaded app badged DEV](/authors/images/03-dev-sideload.png)
 
-**Screenshot 3.2 — Dev side-load.** Split image. Left: a terminal showing `tp dev my-app` and
+**Screenshot 3.3 — Dev side-load.** Split image. Left: a terminal showing `tp dev my-app` and
 its output — `Dev side-load ready for hello-miniapp (0.1.0)`, `Connect harness developer mode
 to http://127.0.0.1:34987`, `Press Ctrl+C to stop.` Right: the desktop host running the app,
 with a prominent orange **DEV** badge in the host chrome beside the app name and a tooltip

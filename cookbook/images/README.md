@@ -98,25 +98,26 @@ these apps do not look alike.
 
 ## Current capture status
 
-The deterministic host-chrome pass supplies **3 of 40** files:
-`01-dev-install.png`, `01-capability-review.png`, and `08-host-confirmation.png`.
+The deterministic host/runtime pass supplies **8 of 40** files:
+`01-dev-install.png`, `01-capability-review.png`, `02-unit-converter.png`,
+`02-breath-pacer.png`, `07-pocket-translator.png`, `07-ask-the-handbook.png`,
+`07-triage-notes.png`, and `08-host-confirmation.png`.
 Re-run it with `npm run capture:reader-guide-ui`.
 
-The remaining **37** files are deliberately still placeholders. The cookbook apps start and
+The remaining **32** files are deliberately still placeholders. The cookbook apps start and
 render under conformance, but the screenshot captions require populated interaction state,
 multi-peer traffic, AI responses, files, or composites; the startup proof is not substituted
 for those states. Pending files are:
 
-`00-hero-cookbook.png`, `01-devstudio-paste.png`, `02-breath-pacer.png`,
-`02-chapter-opener.png`, `02-dice-table.png`, `02-unit-converter.png`,
+`00-hero-cookbook.png`, `01-devstudio-paste.png`,
+`02-chapter-opener.png`, `02-dice-table.png`,
 `03-chapter-opener.png`, `03-field-log.png`, `03-pocket-notes.png`,
 `03-revoked-grant.png`, `03-split-the-bill.png`, `03-streak-tracker.png`,
 `04-chapter-opener.png`, `04-dead-drop.png`, `04-roll-call.png`,
 `04-signal-check.png`, `05-chapter-opener.png`, `05-link-weather.png`,
 `05-neighborhood-board.png`, `05-swap-shelf.png`, `06-chapter-opener.png`,
 `06-photo-drop-scan.png`, `06-photo-drop.png`, `06-recipe-box.png`,
-`06-zine-reader.png`, `07-ask-the-handbook.png`, `07-chapter-opener.png`,
-`07-pocket-translator.png`, `07-triage-notes.png`, `08-app-relay.png`,
+`06-zine-reader.png`, `07-chapter-opener.png`, `08-app-relay.png`,
 `08-chapter-opener.png`, `08-form-forge.png`, `08-sticker-mill.png`,
 `09-beacon-lite.png`, `09-chapter-opener.png`, `09-net-ledger.png`,
 `09-nine-line.png`.
