@@ -21,6 +21,8 @@ export interface CasLocator {
   readonly packageHash: string;
   readonly packageSize: number;
   readonly publisherPublicKey: string;
+  /** Device identity serving the Resource destination; v1 implied publisherPublicKey. */
+  readonly servingPublicKey: string;
   readonly signature: string;
 }
 
@@ -132,7 +134,8 @@ function locatorSigningPayload(locator: Omit<CasLocator, "signature">): Uint8Arr
     size,
     hexToBytes(locator.packageHash),
     hexToBytes(locator.driveKey),
-    writeBytes(hexToBytes(locator.publisherPublicKey))
+    writeBytes(hexToBytes(locator.publisherPublicKey)),
+    ...(locator.formatVersion >= 2 ? [writeBytes(hexToBytes(locator.servingPublicKey))] : [])
   );
 }
 
@@ -156,19 +159,22 @@ function readBytes(bytes: Uint8Array, offset: number): { value: Uint8Array; offs
 
 export function signCasLocator(
   identity: Identity,
-  locator: Omit<CasLocator, "signature" | "publisherPublicKey" | "formatVersion">
+  locator: Omit<CasLocator, "signature" | "publisherPublicKey" | "servingPublicKey" | "formatVersion"> & {
+    readonly servingPublicKey?: string;
+  }
 ): CasLocator {
   const unsigned = {
     ...locator,
-    formatVersion: 1,
-    publisherPublicKey: bytesToHex(identity.getPublicKey())
+    formatVersion: 2,
+    publisherPublicKey: bytesToHex(identity.getPublicKey()),
+    servingPublicKey: locator.servingPublicKey ?? bytesToHex(identity.getPublicKey())
   };
   const signature = bytesToHex(identity.sign(locatorSigningPayload(unsigned)));
   return { ...unsigned, signature };
 }
 
 export function verifyCasLocator(provider: CryptoProvider, locator: CasLocator): boolean {
-  if (locator.formatVersion !== 1 || locator.t256.length !== T256_ID_LENGTH) {
+  if ((locator.formatVersion !== 1 && locator.formatVersion !== 2) || locator.t256.length !== T256_ID_LENGTH) {
     return false;
   }
 
@@ -235,6 +241,9 @@ export function decodeCasLocator(bytes: Uint8Array): CasLocator {
   const publisherPublicKey = readBytes(bytes, offset);
   offset = publisherPublicKey.offset;
 
+  const servingPublicKey = formatVersion >= 2 ? readBytes(bytes, offset) : publisherPublicKey;
+  if (formatVersion >= 2) offset = servingPublicKey.offset;
+
   const signature = bytesToHex(bytes.subarray(offset, offset + 64));
 
   return {
@@ -246,6 +255,7 @@ export function decodeCasLocator(bytes: Uint8Array): CasLocator {
     packageHash,
     packageSize,
     publisherPublicKey: bytesToHex(publisherPublicKey.value),
+    servingPublicKey: bytesToHex(servingPublicKey.value),
     signature
   };
 }
@@ -259,6 +269,7 @@ export function toCatalogEntryLike(locator: CasLocator): {
   readonly packageHash: string;
   readonly driveKey: string;
   readonly publisherPublicKey: string;
+  readonly servingPublicKey: string;
 } {
   return {
     appId: locator.appId,
@@ -267,6 +278,7 @@ export function toCatalogEntryLike(locator: CasLocator): {
     packageSize: locator.packageSize,
     packageHash: locator.packageHash,
     driveKey: locator.driveKey,
-    publisherPublicKey: locator.publisherPublicKey
+    publisherPublicKey: locator.publisherPublicKey,
+    servingPublicKey: locator.servingPublicKey
   };
 }

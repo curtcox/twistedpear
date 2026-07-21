@@ -29,3 +29,13 @@ export {
   type CommunityNetworkProfile,
   type CommunityTcpEndpoint
 } from "./community-network.js";
+export {
+  createLinkedDeviceId,
+  decodeLinkedDeviceCertificate,
+  deriveLinkedDeviceIdentity,
+  encodeLinkedDeviceCertificate,
+  linkedDeviceAnnounceAspects,
+  signLinkedDeviceCertificate,
+  verifyLinkedDeviceCertificate,
+  type LinkedDeviceCertificate
+} from "./linked-device.js";

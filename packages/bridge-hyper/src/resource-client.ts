@@ -19,6 +19,7 @@ export interface PackageResourceClientOptions {
   readonly provider: CryptoProvider;
   readonly runtime: Runtime;
   readonly publisherPublicKeyHex: string;
+  readonly servingPublicKeyHex?: string;
   readonly appName: string;
   readonly identity: Identity;
 }
@@ -76,10 +77,10 @@ export class PackageResourceClient {
   }
 
   private async openLink() {
-    const publisherKey = hexToBytes(this.options.publisherPublicKeyHex);
+    const publisherKey = hexToBytes(this.options.servingPublicKeyHex ?? this.options.publisherPublicKeyHex);
     const publisherIdentity = Identity.fromPublicKey(this.options.provider, publisherKey);
     if (publisherIdentity === null) {
-      throw new Error("Invalid publisher public key");
+      throw new Error("Invalid serving public key");
     }
 
     const destinationName = appDestinationName(

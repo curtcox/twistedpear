@@ -98,10 +98,10 @@ async function openPublisherLink(
   reticulum: Reticulum,
   entry: CatalogEntry
 ): Promise<Link> {
-  const publisherKey = hexToBytes(entry.publisherPublicKey);
+  const publisherKey = hexToBytes(entry.servingPublicKey ?? entry.publisherPublicKey);
   const publisherIdentity = Identity.fromPublicKey(provider, publisherKey);
   if (publisherIdentity === null) {
-    throw new Error("Invalid publisher public key");
+    throw new Error("Invalid serving public key");
   }
 
   const destinationName = appDestinationName(provider, entry.publisherPublicKey, entry.name);

@@ -484,6 +484,7 @@ async function installFromT256(t256) {
       provider,
       runtime,
       publisherPublicKeyHex: locator.publisherPublicKey,
+      servingPublicKeyHex: locator.servingPublicKey,
       appName: locator.appId,
       identity
     });

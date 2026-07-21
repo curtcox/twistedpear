@@ -68,6 +68,20 @@ export {
   type CommunityNetworkProfile,
   type CommunityTcpEndpoint
 } from "./community-network.js";
+export {
+  LINKED_DEVICE_ID_BYTES,
+  LINKED_DEVICE_MAGIC,
+  LINKED_DEVICE_MAX_CERTIFICATE_BYTES,
+  LINKED_DEVICE_MAX_LABEL_BYTES,
+  createLinkedDeviceId,
+  decodeLinkedDeviceCertificate,
+  deriveLinkedDeviceIdentity,
+  encodeLinkedDeviceCertificate,
+  linkedDeviceAnnounceAspects,
+  signLinkedDeviceCertificate,
+  verifyLinkedDeviceCertificate,
+  type LinkedDeviceCertificate
+} from "./linked-device.js";
 export type { FetchPath, FetchPlane, FetchPlaneRequest, FetchPlaneResult, FetchProgress } from "./fetch-plane.js";
 export { createBridgeHyperFetchPlane } from "./fetch-plane-bridge-hyper.js";
 export type { BridgeHyperFetchPlaneOptions } from "./fetch-plane-bridge-hyper.js";

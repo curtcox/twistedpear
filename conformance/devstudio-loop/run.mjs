@@ -387,6 +387,7 @@ export async function runDevstudioLoop() {
       provider,
       runtime,
       publisherPublicKeyHex: locator.publisherPublicKey,
+      servingPublicKeyHex: locator.servingPublicKey,
       appName: locator.appId,
       identity: identityB
     });

@@ -12,6 +12,7 @@ export const DEFAULT_CATALOG_ENTRY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export interface CatalogEntry {
   readonly appId: string;
   readonly publisherPublicKey: string;
+  readonly servingPublicKey?: string;
   readonly name: string;
   readonly version: string;
   readonly packageSize: number;
