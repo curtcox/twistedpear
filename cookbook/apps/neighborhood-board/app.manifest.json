@@ -1,0 +1,12 @@
+{
+  "name": "neighborhood-board",
+  "version": "1.0.0",
+  "entry": "bundle.js",
+  "capabilities": [
+    "announce:publish",
+    "announce:subscribe",
+    "storage:hyperbee"
+  ],
+  "icon": null,
+  "minHostApi": "0.1.0"
+}

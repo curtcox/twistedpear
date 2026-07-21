@@ -1,0 +1,12 @@
+{
+  "name": "swap-shelf",
+  "version": "1.0.0",
+  "entry": "bundle.js",
+  "capabilities": [
+    "announce:publish",
+    "announce:subscribe",
+    "storage:kv"
+  ],
+  "icon": null,
+  "minHostApi": "0.1.0"
+}

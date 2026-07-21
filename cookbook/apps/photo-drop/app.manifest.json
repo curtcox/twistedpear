@@ -1,0 +1,12 @@
+{
+  "name": "photo-drop",
+  "version": "1.0.0",
+  "entry": "bundle.js",
+  "capabilities": [
+    "share:cas",
+    "resource:fetch",
+    "storage:kv"
+  ],
+  "icon": null,
+  "minHostApi": "0.1.0"
+}

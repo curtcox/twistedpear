@@ -19,8 +19,8 @@ image, and the guide renders with placeholder graphics until the real files land
    `npm run site:build` picks the file up automatically and stops generating a placeholder
    for it.
 
-Run `node scripts/site/guide-images.mjs --report` at any time to list which screenshots
-are still missing.
+Run `node scripts/site/section-images.mjs --report --section=guide` at any time to list which
+screenshots are still missing.
 
 ## Conventions
 

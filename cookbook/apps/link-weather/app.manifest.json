@@ -1,0 +1,10 @@
+{
+  "name": "link-weather",
+  "version": "1.0.0",
+  "entry": "bundle.js",
+  "capabilities": [
+    "presence"
+  ],
+  "icon": null,
+  "minHostApi": "0.1.0"
+}

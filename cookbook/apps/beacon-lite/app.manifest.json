@@ -1,0 +1,11 @@
+{
+  "name": "beacon-lite",
+  "version": "1.0.0",
+  "entry": "bundle.js",
+  "capabilities": [
+    "announce:publish",
+    "presence"
+  ],
+  "icon": null,
+  "minHostApi": "0.1.0"
+}

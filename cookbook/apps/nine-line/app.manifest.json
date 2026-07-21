@@ -1,0 +1,11 @@
+{
+  "name": "nine-line",
+  "version": "1.0.0",
+  "entry": "bundle.js",
+  "capabilities": [
+    "lxmf:send",
+    "storage:kv"
+  ],
+  "icon": null,
+  "minHostApi": "0.1.0"
+}

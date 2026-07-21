@@ -1,0 +1,8 @@
+{
+  "name": "unit-converter",
+  "version": "1.0.0",
+  "entry": "bundle.js",
+  "capabilities": [],
+  "icon": null,
+  "minHostApi": "0.3.0"
+}

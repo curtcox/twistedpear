@@ -1,0 +1,11 @@
+{
+  "name": "triage-notes",
+  "version": "1.0.0",
+  "entry": "bundle.js",
+  "capabilities": [
+    "ai:chat",
+    "storage:hyperbee"
+  ],
+  "icon": null,
+  "minHostApi": "0.1.0"
+}

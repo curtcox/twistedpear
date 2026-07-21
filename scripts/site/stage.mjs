@@ -168,17 +168,28 @@ function rewriteMarkdownLinks(text, siteRel) {
       return `${open}${link}${hashSuffix}${close}`;
     }
 
-    // guide/… → /guide/…
-    if (repoPath.startsWith("guide/")) {
-      let rest = repoPath.slice("guide/".length);
+    // guide/… → /guide/…, authors/… → /authors/…, cookbook/… → /cookbook/…
+    for (const section of ["guide", "authors", "cookbook"]) {
+      const prefix = `${section}/`;
+      if (!repoPath.startsWith(prefix)) continue;
+      let rest = repoPath.slice(prefix.length);
       if (/\.(png|jpg|jpeg|gif|svg|webp)$/i.test(rest)) {
-        return `${open}/guide/${rest}${hashSuffix}${close}`;
+        return `${open}/${section}/${rest}${hashSuffix}${close}`;
+      }
+      // Sample-app sources live in the section tree but are not staged as pages. Only
+      // markdown becomes a site route; everything else has to resolve on GitHub, as does
+      // a directory with no README.md to render as its index.
+      const isDirLink = rest.endsWith("/");
+      const hasIndex =
+        isDirLink && fs.existsSync(path.join(ROOT, repoPath.replace(/\/$/, ""), "README.md"));
+      if (!rest.endsWith(".md") && (!isDirLink || !hasIndex)) {
+        return `${open}${githubBlob(repoPath)}${hashSuffix}${close}`;
       }
       rest = stripMd(rest);
       if (rest === "README" || rest === "" || rest === "index") {
-        return `${open}/guide/${hashSuffix}${close}`;
+        return `${open}/${section}/${hashSuffix}${close}`;
       }
-      return `${open}/guide/${rest}${hashSuffix}${close}`;
+      return `${open}/${section}/${rest}${hashSuffix}${close}`;
     }
 
     // docs/… → /docs/…
@@ -275,6 +286,12 @@ hero:
     - theme: brand
       text: User guide
       link: /guide/
+    - theme: brand
+      text: Build an app
+      link: /authors/
+    - theme: alt
+      text: Cookbook
+      link: /cookbook/
     - theme: alt
       text: Documentation
       link: /docs/
@@ -288,6 +305,12 @@ features:
   - title: User guide
     details: Install a host, join a network, and run mini-apps. Written for people using TwistedPear, not building it.
     link: /guide/
+  - title: App authoring guide
+    details: Write, preview, package, sign, and publish a mini-app — in DevStudio or with the tp CLI.
+    link: /authors/
+  - title: Cookbook
+    details: Twenty-five complete sample mini-apps, from a no-capability calculator to an app that publishes other apps.
+    link: /cookbook/
   - title: Documentation
     details: Canonical guides for hosts, runtime, distribution, networking, and release operations.
     link: /docs/
@@ -341,12 +364,15 @@ function stageDocs() {
 }
 
 /**
- * Stage the end-user guide. Screenshots are referenced by absolute site path and are
- * published separately by guide-images.mjs, so only markdown is staged here.
+ * Stage a reader-facing guide section (the end-user guide, the app authoring guide).
+ * Screenshots are referenced by absolute site path and are published separately by
+ * section-images.mjs, so only markdown is staged here.
+ *
+ * @param {string} section directory name at the repository root, also the site route
  */
-function stageGuide() {
-  const guideDir = path.join(ROOT, "guide");
-  if (!fs.existsSync(guideDir)) return;
+function stageSection(section) {
+  const sectionDir = path.join(ROOT, section);
+  if (!fs.existsSync(sectionDir)) return;
   function walk(dir, relBase) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const abs = path.join(dir, entry.name);
@@ -358,7 +384,7 @@ function stageGuide() {
       }
     }
   }
-  walk(guideDir, "guide");
+  walk(sectionDir, section);
 }
 
 function stageSpecs() {
@@ -410,7 +436,9 @@ function main() {
   ensureDir(SITE_SRC);
   writeLanding();
   stageRootDocs();
-  stageGuide();
+  stageSection("guide");
+  stageSection("authors");
+  stageSection("cookbook");
   stageDocs();
   stageSpecs();
   stageApiPlaceholder();

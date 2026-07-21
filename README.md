@@ -33,16 +33,21 @@ LXMF, and Pear-style local-first distribution. The repository contains:
 | [apps/host-desktop](apps/host-desktop/) | Electron desktop host. |
 | [apps/examples](apps/examples/) | Reference chat, file-drop, and board mini-apps. |
 | [apps/handbook](apps/handbook/) | Interactive platform Handbook shipped as a mini-app. |
+| [cookbook/apps](cookbook/apps/) | Twenty-five cookbook sample mini-apps. Reference source; not built or tested by CI. |
 | [conformance](conformance/) | Scenario runners, golden vectors, interop tests, and device runbooks. |
 | [specs](specs/) | Quasi-independent specification units; vectors and formal models are normative. |
 
 ## Documentation
 
 If you want to *use* TwistedPear rather than work on it, start with the
-[User Guide](guide/README.md).
+[User Guide](guide/README.md). If you want to *write a mini-app* for it, start with the
+[App Authoring Guide](authors/README.md). For twenty-five complete sample apps showing what
+the platform can carry, see the [Cookbook](cookbook/README.md).
 
 Published site: [curtcox.github.io/twistedpear](https://curtcox.github.io/twistedpear/)
 ([user guide](https://curtcox.github.io/twistedpear/guide/),
+[app authoring guide](https://curtcox.github.io/twistedpear/authors/),
+[cookbook](https://curtcox.github.io/twistedpear/cookbook/),
 [docs](https://curtcox.github.io/twistedpear/docs/),
 [specs](https://curtcox.github.io/twistedpear/specs/),
 [quality results](https://curtcox.github.io/twistedpear/results/)).

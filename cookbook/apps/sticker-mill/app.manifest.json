@@ -1,0 +1,13 @@
+{
+  "name": "sticker-mill",
+  "version": "1.0.0",
+  "entry": "bundle.js",
+  "capabilities": [
+    "workspace",
+    "apps:package",
+    "apps:preview",
+    "apps:publish"
+  ],
+  "icon": null,
+  "minHostApi": "0.2.0"
+}

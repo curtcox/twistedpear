@@ -1,0 +1,46 @@
+# Form forge
+
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-21
+register: none
+-->
+
+Describe a form in a sentence; get a working, packaged mini-app that collects it.
+
+Recipe and screenshots: [8. Apps that build apps](../../08-apps-that-build-apps.md). Sample-app index:
+[Appendix: app index](../../appendix-app-index.md).
+
+## What it shows
+
+Combining `ai:chat` with `apps:package`, and why the host confirmation cannot be automated away.
+
+## Capabilities
+
+| Capability | Note |
+|---|---|
+| `workspace` | 256 KiB per file, 4 MiB and 512 files per app. |
+| `apps:package` | Host-confirmed on every call. |
+| `apps:preview` | One preview slot per host; previewing again replaces the last preview. |
+| `ai:chat` | Non-streaming, one in-flight request per app, `maxTokens` clamped to 8,192. |
+
+## Files
+
+| File | Purpose |
+|---|---|
+| [app.manifest.json](app.manifest.json) | Name, version, entry point, and the declared capability set. |
+| [bundle.js](bundle.js) | The whole app. Single file, SDK import only, no bundler. |
+
+## Run it
+
+```sh
+tp pack cookbook/apps/form-forge
+tp dev install <packed>.tpkg      # host must be in developer mode
+```
+
+Or paste `bundle.js` into a DevStudio project and press **Preview**. See
+[Chapter 1](../../01-how-to-use-this-cookbook.md) for both loops in full.
+
+> **⏳ Cookbook samples are not exercised by CI.** These apps are written against the
+> published SDK surface but are not built, packed, or run by any suite in this repository.
+> Treat them as reference source, not as tested artifacts.

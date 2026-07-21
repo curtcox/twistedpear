@@ -90,8 +90,9 @@ function main() {
     copyTree(imagesSrc, path.join(publicDir, "docs", "images"));
   }
 
-  // User-guide screenshots: real captures where supplied, placeholders otherwise
-  run("node", ["scripts/site/guide-images.mjs"]);
+  // Guide screenshots (user guide, authoring guide): real captures where supplied,
+  // placeholders otherwise
+  run("node", ["scripts/site/section-images.mjs"]);
 
   // 5. VitePress build
   run("npx", ["vitepress", "build", "site"]);

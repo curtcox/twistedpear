@@ -11,6 +11,8 @@ function loadSidebar() {
   if (!fs.existsSync(p)) {
     return {
       guide: [],
+      authors: [],
+      cookbook: [],
       docs: [],
       specs: [],
       reference: [],
@@ -43,6 +45,8 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: "Guide", link: "/guide/" },
+      { text: "Build an app", link: "/authors/" },
+      { text: "Cookbook", link: "/cookbook/" },
       { text: "Docs", link: "/docs/" },
       { text: "Specs", link: "/specs/" },
       { text: "Results", link: "/results/" },
@@ -55,6 +59,8 @@ export default defineConfig({
     ],
     sidebar: {
       "/guide/": sidebar.guide,
+      "/authors/": sidebar.authors,
+      "/cookbook/": sidebar.cookbook,
       "/docs/": sidebar.docs,
       "/specs/": sidebar.specs,
       "/reference/": sidebar.reference,

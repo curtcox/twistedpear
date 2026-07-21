@@ -43,15 +43,18 @@ function headingOf(file, fallback) {
 }
 
 /**
- * The user guide is a sequence, not an alphabetical set: numbered chapters first in
+ * A guide section is a sequence, not an alphabetical set: numbered chapters first in
  * filename order, then the unnumbered back matter.
+ *
+ * @param {string} section directory name under site/src, also the site route
+ * @param {string} label sidebar group heading
  */
-function guideSidebar() {
-  const guideDir = path.join(SITE_SRC, "guide");
-  if (!fs.existsSync(guideDir)) return [{ text: "User guide", items: [] }];
+function sectionSidebar(section, label) {
+  const dir = path.join(SITE_SRC, section);
+  if (!fs.existsSync(dir)) return [{ text: label, items: [] }];
 
   const files = fs
-    .readdirSync(guideDir, { withFileTypes: true })
+    .readdirSync(dir, { withFileTypes: true })
     .filter((e) => e.isFile() && e.name.endsWith(".md") && e.name !== "index.md")
     .map((e) => e.name)
     .sort((a, b) => {
@@ -60,14 +63,12 @@ function guideSidebar() {
       return a.localeCompare(b);
     });
 
-  const items = [
-    { text: headingOf(path.join(guideDir, "index.md"), "User guide"), link: "/guide/" }
-  ];
+  const items = [{ text: headingOf(path.join(dir, "index.md"), label), link: `/${section}/` }];
   for (const name of files) {
     const stem = name.replace(/\.md$/, "");
-    items.push({ text: headingOf(path.join(guideDir, name), stem), link: `/guide/${stem}` });
+    items.push({ text: headingOf(path.join(dir, name), stem), link: `/${section}/${stem}` });
   }
-  return [{ text: "User guide", items }];
+  return [{ text: label, items }];
 }
 
 function docsSidebar() {
@@ -149,7 +150,9 @@ function resultsSidebar() {
 function main() {
   const out = path.join(SITE_SRC, ".sidebar.json");
   const data = {
-    guide: guideSidebar(),
+    guide: sectionSidebar("guide", "User guide"),
+    authors: sectionSidebar("authors", "App authoring guide"),
+    cookbook: sectionSidebar("cookbook", "Cookbook"),
     docs: docsSidebar(),
     specs: specsSidebar(),
     reference: referenceSidebar(),
