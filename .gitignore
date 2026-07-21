@@ -28,3 +28,8 @@ conformance/scenarios/config/propagation-client/
 dependency-graph.json
 launcher.txt
 conformance/sim-campaign/artifacts/
+site/src/
+site/public/
+site/.vitepress/dist/
+site/.vitepress/cache/
+site-results/

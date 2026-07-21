@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-19
+audited: 2026-07-20
 register: none
 -->
 
@@ -37,6 +37,11 @@ LXMF, and Pear-style local-first distribution. The repository contains:
 | [specs](specs/) | Quasi-independent specification units; vectors and formal models are normative. |
 
 ## Documentation
+
+Published site: [curtcox.github.io/twistedpear](https://curtcox.github.io/twistedpear/)
+([docs](https://curtcox.github.io/twistedpear/docs/),
+[specs](https://curtcox.github.io/twistedpear/specs/),
+[quality results](https://curtcox.github.io/twistedpear/results/)).
 
 Start with the [documentation index](docs/README.md). It identifies the canonical
 reference for each topic and separates current guidance from historical design plans.

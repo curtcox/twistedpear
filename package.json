@@ -103,6 +103,14 @@
     "test:sim-authored-replay": "npm run build --workspace=@twistedpear/sim-adversaries && node conformance/sim-author/replay.mjs",
     "calibrate:sim-transport": "npm run build --workspace=@twistedpear/effects && node conformance/sim-calibration/run.mjs",
     "docs:reticulum-ts": "npm run docs --workspace=@twistedpear/reticulum-ts",
+    "site:stage": "node scripts/site/stage.mjs",
+    "site:reports": "node scripts/site/run-reports.mjs",
+    "site:render-reports": "node scripts/site/render-reports.mjs",
+    "site:sidebar": "node scripts/site/gen-sidebar.mjs",
+    "site:validate": "node scripts/site/validate-links.mjs",
+    "site:build": "node scripts/site/build.mjs",
+    "site:check": "node scripts/site/check-aggregate.mjs",
+    "site:dev": "npm run site:stage && npm run site:render-reports && npm run site:sidebar && vitepress dev site",
     "test:transport-role": "npm run build && node conformance/transport-role/run.mjs",
     "test:rnsd-mode": "npm run build && node conformance/rnsd-mode/run.mjs",
     "demo:phase3": "npm run build && node conformance/demo/publish-install.mjs",
@@ -172,6 +180,7 @@
     "playwright": "^1.49.1",
     "sodium-javascript": "^0.8.0",
     "typescript": "^5.7.2",
+    "vitepress": "^1.6.3",
     "vitest": "^2.1.8"
   }
 }

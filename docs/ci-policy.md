@@ -125,6 +125,18 @@ Full E1–E4 Android UI path locally: [android-emulator-lab.md](android-emulator
 
 iOS Handbook UI locally: `npm run test:ios-sim-handbook-ui` (see [conformance/ios-sim/README.md](../conformance/ios-sim/README.md)).
 
+## GitHub Pages (pages.yml)
+
+Pushes to `main` (and `workflow_dispatch`) build and deploy
+[curtcox.github.io/twistedpear](https://curtcox.github.io/twistedpear/):
+
+- Docs and specs rendered to HTML (VitePress)
+- TypeDoc for `@twistedpear/reticulum-ts`
+- Unit tests, TypeScript, Sans-IO gates, formal/model conformance, symbolic lint, and TLC results
+
+Reports are published even when a reported check fails; the workflow’s aggregate job then
+fails so the run stays red. Enable **Settings → Pages → GitHub Actions** once per repository.
+
 ## What CI does not cover (hardware or account)
 
 | Gap | Tracker |
