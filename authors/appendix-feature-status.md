@@ -30,7 +30,6 @@ You cannot use these today.
 | Mini-app IPC and shared storage | [1](01-what-you-are-building.md), [5](05-capabilities.md) | Deliberately deferred, not missing. Do not design a suite of cooperating apps. | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | Group messaging, attachments, history sync | [7](07-identity-messaging-and-peers.md) | Not in v1 scope. | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | Physical-device performance and battery figures | [12](12-limits-and-budgets.md) | Spawn/kill/memory/battery on real handsets is hardware debt; published battery numbers are design targets. | H3, H11, H13 |
-| Screenshots in this guide | everywhere | Supplied in a separate pass. | [images/README.md](images/README.md) |
 
 ## ⚠️ Works, with limits
 
@@ -38,6 +37,7 @@ You can build on these, but not the way the surrounding text might suggest.
 
 | Feature | Limit | Where it appears | Tracked as |
 |---|---|---|---|
+| Author-guide screenshots | 5 of 21 are real desktop-host captures; 16 still need DevStudio states, a handset, peer/radio fixtures, CLI capture, or editorial composition. | everywhere | [images/README.md](images/README.md) |
 | Publisher-identity backup | `tp` encrypts new identities and supports backup import/export, two-part BIP-39 recovery, and passphrase changes; it does not rotate or revoke a publisher. | [3](03-hello-world-with-the-cli.md) | [docs/identity-backup.md](../docs/identity-backup.md) |
 | Multipart propagation | `lxmf-ts` host integrations can resume and reassemble bounded payloads; 64 KiB default, 1,000,000-byte hard maximum, and 32-byte content frames. Not a mini-app attachment API. | [7](07-identity-messaging-and-peers.md) | [docs/multipart-propagation.md](../docs/multipart-propagation.md) |
 | DevStudio projects | Single-file bundles only. No in-host bundler, so `import` works only for the SDK. | [2](02-hello-world-in-devstudio.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |

@@ -221,6 +221,11 @@ everything below is a known cost of the chosen design or of the platforms involv
 
 ## 9. General
 
+- **Reader-guide image coverage:** 25 of 103 referenced images are reproducible captures
+  from the actual desktop renderer or built web host. The other 78 remain placeholders where
+  the exact caption needs hardware, a multi-peer or populated-app fixture, a clean terminal
+  session, DevStudio interaction state, or editorial composition. The three `images/README.md`
+  files name every remainder; startup-only or invented UI is not substituted.
 - **Identity recovery UI coverage:** encrypted vaults, portable backup import/export, and
   two-part BIP-39 recovery are implemented in `tp` and the desktop host. Mobile and browser
   host settings do not yet expose those operations. Recovery does not rotate or revoke a key,

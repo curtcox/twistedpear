@@ -7,7 +7,7 @@ register: none
 -->
 
 This directory holds the screenshots referenced by the
-[TwistedPear User Guide](../README.md). **It is currently empty of images.** Each
+[TwistedPear User Guide](../README.md). Each
 screenshot is described in place in the guide, in a bold caption directly beneath its
 image, and the guide renders with placeholder graphics until the real files land.
 
@@ -77,3 +77,26 @@ screenshots are still missing.
 | `10-status-annotated.png` | 10 | Node status, annotated |
 | `10-stalled-transfer.png` | 10 | A stalled transfer |
 | `10-diagnostics.png` | 10 | Handbook diagnostics report |
+
+## Current capture status
+
+The deterministic desktop/browser pass supplies **17 of 42** files. Re-run it with
+`npm run capture:reader-guide-ui`. It uses the real desktop renderer and built web host,
+with throwaway documentation identities and no credentials.
+
+The remaining **25** filenames are not replaced with invented screens:
+
+- Editorial diagrams, composites, or annotations still need assembly from real captures:
+  `01-mental-model.png`, `02-host-lineup.png`, `06-example-apps.png`,
+  `07-delivery-states.png`, `08-sandbox-boundary.png`, `10-status-annotated.png`.
+- Physical mobile/radio state is hardware-gated: `02-android-home.png`,
+  `02-ios-suspended.png`, `04-ble-link.png`, `04-rnode.png`,
+  `09-android-notification.png`.
+- The exact captioned state is not exposed by a currently runnable documentation fixture:
+  `03-reset-confirmation.png`, `04-announce-browser.png`, `04-local-discovery.png`,
+  `04-tcp-connected.png`, `04-web-gateway.png`, `05-slow-install-warning.png`,
+  `06-app-running.png`, `06-handbook-probe.png`, `06-update-available.png`,
+  `07-chat-send.png`, `09-storage.png`, `10-diagnostics.png`,
+  `10-stalled-transfer.png`.
+- `09-tp-node.png` needs a clean terminal-session capture; it is intentionally not rendered
+  as a fake terminal panel.
