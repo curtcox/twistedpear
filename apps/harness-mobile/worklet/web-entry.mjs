@@ -40,6 +40,7 @@ const PACKAGE_STORE_NAME = "twistedpear-harness-web-packages";
 const MINIAPP_KV_STORE_NAME = "twistedpear-harness-web-miniapp-kv";
 const DEFAULT_PASSPHRASE = "harness-web-dev";
 const KV_OBJECT_STORE = "kv";
+const HOST_BANDWIDTH_BYTES_PER_SECOND = 512 * 1024;
 
 const helloDevBundle = new TextEncoder().encode(`import { ui } from "@twistedpear/miniapp-sdk";
 
@@ -259,7 +260,8 @@ async function ensureReticulumForInterfaces() {
   if (standaloneReticulum === null) {
     standaloneReticulum = Reticulum.create({
       provider: cryptoProvider,
-      runtime: webRuntime(identityOptions())
+      runtime: webRuntime(identityOptions()),
+      bandwidthBytesPerSecond: HOST_BANDWIDTH_BYTES_PER_SECOND
     });
     standaloneReticulum.start();
     status.running = true;

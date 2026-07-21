@@ -14,12 +14,22 @@ describe("gateway bulk fetch", () => {
   });
 
   it("serves archives from the gateway bulk fetch route", async () => {
-    const archive = new Uint8Array([1, 2, 3, 4]);
-    const handler = createGatewayBulkFetchHttpHandler(async (driveKeyHex, version) => {
-      expect(driveKeyHex).toBe("feed".repeat(16));
-      expect(version).toBe("0.2.0");
-      return archive;
-    });
+    const archive = new Uint8Array(32_770).map((_, index) => index % 251);
+    const limitedChunks: number[] = [];
+    const handler = createGatewayBulkFetchHttpHandler(
+      async (driveKeyHex, version) => {
+        expect(driveKeyHex).toBe("feed".repeat(16));
+        expect(version).toBe("0.2.0");
+        return archive;
+      },
+      {
+        outboundBandwidthLimiter: {
+          async consume(bytes) {
+            limitedChunks.push(bytes);
+          }
+        }
+      }
+    );
 
     const server = createServer((request, response) => {
       void handler(request, response);
@@ -38,6 +48,7 @@ describe("gateway bulk fetch", () => {
     const response = await fetch(url);
     expect(response.status).toBe(200);
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(archive);
+    expect(limitedChunks).toEqual([16_384, 16_384, 2]);
 
     await new Promise<void>((resolve, reject) => {
       server.close((error) => (error ? reject(error) : resolve()));

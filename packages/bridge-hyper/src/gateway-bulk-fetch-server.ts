@@ -1,4 +1,5 @@
 import type { IncomingMessage, Server as HttpServer, ServerResponse } from "node:http";
+import type { ByteRateLimiter } from "@twistedpear/reticulum-ts";
 
 export const DEFAULT_BULK_FETCH_PATH = "/bulk-fetch";
 
@@ -6,6 +7,7 @@ export type GatewayBulkFetcher = (driveKeyHex: string, version: string) => Promi
 
 export interface GatewayBulkFetchServerOptions {
   readonly path?: string;
+  readonly outboundBandwidthLimiter?: ByteRateLimiter;
 }
 
 export interface GatewayBulkFetchServerSession {
@@ -51,7 +53,18 @@ export function createGatewayBulkFetchHttpHandler(
         return;
       }
 
-      response.end(archive);
+      const limiter = options.outboundBandwidthLimiter;
+      if (limiter === undefined) {
+        response.end(archive);
+        return;
+      }
+      const chunkBytes = 16 * 1024;
+      for (let offset = 0; offset < archive.length; offset += chunkBytes) {
+        const chunk = archive.subarray(offset, Math.min(offset + chunkBytes, archive.length));
+        await limiter.consume(chunk.length);
+        response.write(chunk);
+      }
+      response.end();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       response.writeHead(502, { "content-type": "text/plain; charset=utf-8" });

@@ -20,6 +20,7 @@ export interface WebLeafHostOptions {
   readonly provider?: CryptoProvider;
   readonly runtime?: Runtime;
   readonly fetchPlane?: FetchPlane;
+  readonly bandwidthBytesPerSecond?: number;
 }
 
 export interface WebLeafHostSession {
@@ -42,7 +43,11 @@ export async function createWebLeafHost(options: WebLeafHostOptions): Promise<We
     // other schema's object store at version 1.
     storeName: `${options.identity.storeName ?? "twistedpear-web-identity"}-runtime`
   });
-  const reticulum = Rns.create({ provider, runtime });
+  const reticulum = Rns.create({
+    provider,
+    runtime,
+    bandwidthBytesPerSecond: options.bandwidthBytesPerSecond ?? 512 * 1024
+  });
   reticulum.start();
 
   const identity = await loadOrCreateWebIdentity(provider, options.identity);

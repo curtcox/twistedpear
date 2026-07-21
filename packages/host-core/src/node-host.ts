@@ -4,6 +4,7 @@ import type { CryptoProvider, Identity, Reticulum, TcpClientInterface, TcpServer
 import { createFilePropagationPersistence } from "./propagation-persistence.js";
 import {
   NodeCryptoProvider,
+  BandwidthLimiter,
   Reticulum as Rns,
   bytesToHex,
   nodeRuntime,
@@ -49,9 +50,13 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
   const moderation = new FileModerationStore(join(config.dataDir, "moderation.json"));
 
   const transportEnabled = config.roles.transport && config.roles.attachRnsd === null;
+  const inboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, config.quotas.bandwidthBytesPerSecond);
+  const outboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, config.quotas.bandwidthBytesPerSecond);
   const reticulum = Rns.create({
     provider,
     runtime,
+    inboundBandwidthLimiter,
+    outboundBandwidthLimiter,
     ...(transportEnabled ? { transportEnabled: true } : {})
   });
   reticulum.start();
@@ -90,7 +95,9 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
       identity,
       stateDir: join(config.dataDir, "seeder"),
       bootstrap: config.bootstrap,
-      quotas: config.quotas
+      quotas: config.quotas,
+      inboundBandwidthLimiter,
+      outboundBandwidthLimiter
     });
   }
 
@@ -159,8 +166,14 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
 
   if (config.interfaces.websocket.enabled) {
     const bridgeHyper = await import("@twistedpear/bridge-hyper");
-    const bulkFetchHandler = bridgeHyper.createGatewayBulkFetchHttpHandler((driveKeyHex, version) =>
-      bridgeHyper.fetchDriveVersionViaHyperswarm({ driveKeyHex, version })
+    const bulkFetchHandler = bridgeHyper.createGatewayBulkFetchHttpHandler(
+      (driveKeyHex, version) => bridgeHyper.fetchDriveVersionViaHyperswarm({
+        driveKeyHex,
+        version,
+        inboundBandwidthLimiter,
+        outboundBandwidthLimiter
+      }),
+      { outboundBandwidthLimiter }
     );
 
     wsServer = await registerWebSocketServerInterface(reticulum, {

@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-20
+audited: 2026-07-21
 register: none
 -->
 
@@ -76,6 +76,7 @@ Config file: `<data-dir>/config.json` — roles, interfaces, quotas.
 
 - Seed storage: 2 GiB
 - Propagation store: 256 MiB / 10k messages
-- Bandwidth cap: 512 KiB/s (surfaced in status; enforcement expands in soak tuning)
+- Bandwidth cap: 512 KiB/s per direction (hard, shared by Reticulum, forwarding,
+  Hyperdrive replication, and gateway bulk fetches)
 
 See [LIMITATIONS.md](../LIMITATIONS.md) for Windows build-only status (H17) and hardware register rows H18–H20.

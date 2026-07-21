@@ -186,6 +186,8 @@ export type { ParsedPathRequest } from "./transport/path.js";
 export { TransportNode, LOCAL_REBROADCASTS_MAX } from "./transport/transport.js";
 export type { TransportNodeOptions } from "./transport/transport.js";
 export { buildPathResponseAnnounce } from "./transport/node.js";
+export { BandwidthLimiter } from "./transport/bandwidth.js";
+export type { ByteRateLimiter } from "./transport/bandwidth.js";
 export { PacketReceipt, PacketReceiptStatus, EXPLICIT_PROOF_LENGTH, IMPLICIT_PROOF_LENGTH } from "./packet-receipt.js";
 export type { NowSeconds, PacketReceiptCallbacks, PacketReceiptOptions, PacketReceiptStatusValue } from "./packet-receipt.js";
 export { Reticulum, RETICULUM_MTU } from "./reticulum.js";

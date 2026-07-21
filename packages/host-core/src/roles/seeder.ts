@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, unwatchFile, watchFile, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { CryptoProvider, Identity, Reticulum } from "@twistedpear/reticulum-ts";
+import type { ByteRateLimiter, CryptoProvider, Identity, Reticulum } from "@twistedpear/reticulum-ts";
 import {
   DestinationDirection,
   DestinationType
@@ -22,6 +22,8 @@ export interface SeederRoleOptions {
   readonly stateDir: string;
   readonly bootstrap: ReadonlyArray<string>;
   readonly quotas: HostQuotas;
+  readonly inboundBandwidthLimiter: ByteRateLimiter;
+  readonly outboundBandwidthLimiter: ByteRateLimiter;
 }
 
 export interface SeederRoleSession {
@@ -32,7 +34,11 @@ export interface SeederRoleSession {
 export async function startSeederRole(options: SeederRoleOptions): Promise<SeederRoleSession> {
   const statePath = join(options.stateDir, "state.json");
   let state = loadSeederState(options.stateDir);
-  const swarm = createSwarm({ bootstrap: options.bootstrap });
+  const swarm = createSwarm({
+    bootstrap: options.bootstrap,
+    inboundBandwidthLimiter: options.inboundBandwidthLimiter,
+    outboundBandwidthLimiter: options.outboundBandwidthLimiter
+  });
   const driveManager = new DriveManager({
     storagePath: join(options.stateDir, "drives"),
     swarm

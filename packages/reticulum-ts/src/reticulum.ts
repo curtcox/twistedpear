@@ -13,6 +13,7 @@ import {
 } from "./transport/node.js";
 import { TransportNode } from "./transport/transport.js";
 import { PATH_REQUEST_TIMEOUT_SECONDS } from "./transport/path.js";
+import type { ByteRateLimiter } from "./transport/bandwidth.js";
 
 /** Mirrors RNS/Reticulum.py MTU default. */
 export const RETICULUM_MTU = 500;
@@ -23,6 +24,9 @@ export interface ReticulumOptions {
   readonly transportIdentity?: Identity;
   readonly useImplicitProof?: boolean;
   readonly transportEnabled?: boolean;
+  readonly bandwidthBytesPerSecond?: number;
+  readonly inboundBandwidthLimiter?: ByteRateLimiter;
+  readonly outboundBandwidthLimiter?: ByteRateLimiter;
 }
 
 export class Reticulum {
@@ -43,6 +47,15 @@ export class Reticulum {
       transportIdentity: this.transportIdentity,
       clock: options.runtime.clock,
       entropy: options.runtime.entropy,
+      ...(options.bandwidthBytesPerSecond === undefined
+        ? {}
+        : { bandwidthBytesPerSecond: options.bandwidthBytesPerSecond }),
+      ...(options.inboundBandwidthLimiter === undefined
+        ? {}
+        : { inboundBandwidthLimiter: options.inboundBandwidthLimiter }),
+      ...(options.outboundBandwidthLimiter === undefined
+        ? {}
+        : { outboundBandwidthLimiter: options.outboundBandwidthLimiter }),
       ...(options.useImplicitProof === undefined ? {} : { useImplicitProof: options.useImplicitProof })
     };
     this.transport =

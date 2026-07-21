@@ -34,11 +34,10 @@ Default caps, changeable in settings:
 | Held messages | 256 MiB, or 10,000 messages |
 | Bandwidth | 512 KiB/s |
 
-> **⚠️ Works, with limits — bandwidth capping is partly advisory.** The bandwidth number
-> is reported and used by the transfer budget rules, but is not yet enforced as a hard
-> ceiling across every path. Long-duration soak testing is what will tighten it; see
-> [docs/desktop-host.md](../docs/desktop-host.md) and
-> [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md).
+The bandwidth cap is a hard, zero-burst ceiling in each direction. Reticulum interfaces,
+forwarded packets, Hyperdrive replication, and gateway bulk fetches share the host's
+allowance. Transfer budget rules can reject an unsuitable path before this rate limiter is
+needed. Long-duration battery and quota soaks remain separate evidence work.
 
 ## Roles: what your host does for others
 

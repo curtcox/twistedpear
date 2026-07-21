@@ -3,11 +3,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DriveManager } from "./drive.js";
 import { createSwarm } from "./swarm.js";
+import type { ByteRateLimiter } from "@twistedpear/reticulum-ts";
 
 export interface GatewayHyperswarmFetchOptions {
   readonly driveKeyHex: string;
   readonly version: string;
   readonly timeoutMs?: number;
+  readonly inboundBandwidthLimiter?: ByteRateLimiter;
+  readonly outboundBandwidthLimiter?: ByteRateLimiter;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -19,7 +22,14 @@ export async function fetchDriveVersionViaHyperswarm(
 ): Promise<Uint8Array> {
   const timeoutMs = options.timeoutMs ?? 60_000;
   const storagePath = mkdtempSync(join(tmpdir(), "tp-gateway-fetch-"));
-  const swarm = createSwarm();
+  const swarm = createSwarm({
+    ...(options.inboundBandwidthLimiter === undefined
+      ? {}
+      : { inboundBandwidthLimiter: options.inboundBandwidthLimiter }),
+    ...(options.outboundBandwidthLimiter === undefined
+      ? {}
+      : { outboundBandwidthLimiter: options.outboundBandwidthLimiter })
+  });
   const driveManager = new DriveManager({ storagePath, swarm });
 
   try {

@@ -231,6 +231,7 @@ import {
   type PacketFields
 } from "../packet.js";
 import type { Clock, Entropy, Timer } from "../runtime/runtime.js";
+import { BandwidthLimiter, type ByteRateLimiter } from "./bandwidth.js";
 import {
   buildPathRequestData,
   parsePathRequestData,
@@ -291,6 +292,10 @@ export interface LeafTransportOptions {
   readonly entropy: Entropy;
   readonly useImplicitProof?: boolean;
   readonly transportEnabled?: boolean;
+  /** Hard aggregate byte rate applied independently to ingress and egress. */
+  readonly bandwidthBytesPerSecond?: number;
+  readonly inboundBandwidthLimiter?: ByteRateLimiter;
+  readonly outboundBandwidthLimiter?: ByteRateLimiter;
 }
 
 /** Leaf-mode transport: path table, announce ingestion, and packet routing. Mirrors RNS/Transport.py subset. */
@@ -311,11 +316,23 @@ export class LeafTransport {
   protected readonly discoveryPrTags = new Set<string>();
   private bytesIn = 0;
   private bytesOut = 0;
+  private readonly inboundBandwidth: ByteRateLimiter | null;
+  private readonly outboundBandwidth: ByteRateLimiter | null;
 
   constructor(protected readonly options: LeafTransportOptions) {
     this.useImplicitProof = options.useImplicitProof ?? true;
     this.transportEnabled = options.transportEnabled ?? false;
     this.pathRequestHash = pathRequestDestinationHash(options.provider);
+    this.inboundBandwidth = options.inboundBandwidthLimiter ?? (
+      options.bandwidthBytesPerSecond === undefined
+        ? null
+        : new BandwidthLimiter(options.clock, options.bandwidthBytesPerSecond)
+    );
+    this.outboundBandwidth = options.outboundBandwidthLimiter ?? (
+      options.bandwidthBytesPerSecond === undefined
+        ? null
+        : new BandwidthLimiter(options.clock, options.bandwidthBytesPerSecond)
+    );
   }
 
   get clock(): Clock {
@@ -352,6 +369,7 @@ export class LeafTransport {
       (async () => {
         try {
           for await (const packet of iface.packets) {
+            await this.inboundBandwidth?.consume(packet.raw.length);
             this.bytesIn += packet.raw.length;
             await this.inbound(packet, iface);
           }
@@ -657,12 +675,13 @@ export class LeafTransport {
   }
 
   async transmit(iface: PacketInterface, raw: Uint8Array): Promise<void> {
-    this.bytesOut += raw.length;
     const packet = Packet.decode(this.options.provider, raw);
     if (packet === null) {
       throw new Error("Cannot transmit invalid packet bytes");
     }
 
+    await this.outboundBandwidth?.consume(raw.length);
+    this.bytesOut += raw.length;
     await iface.send(packet);
   }
 

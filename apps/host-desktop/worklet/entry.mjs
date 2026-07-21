@@ -8,6 +8,7 @@ import { Identity } from "../../../packages/reticulum-ts/dist/identity.js";
 import { DestinationDirection, DestinationType } from "../../../packages/reticulum-ts/dist/destination.js";
 import { DestinationProofStrategy } from "../../../packages/reticulum-ts/dist/registered-destination.js";
 import { Reticulum } from "../../../packages/reticulum-ts/dist/reticulum.js";
+import { BandwidthLimiter } from "../../../packages/reticulum-ts/dist/transport/bandwidth.js";
 import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/runtime.js";
 import { AutoInterfaceBridge } from "../../../packages/reticulum-interfaces/dist/auto-bridge.js";
 import { AUTO_DEFAULT_DATA_PORT } from "../../../packages/reticulum-interfaces/dist/auto-common.js";
@@ -46,6 +47,8 @@ import {
 import { createWorkletMiniappHost } from "./miniapp-host.mjs";
 import { createDevChannelClient } from "./dev-channel.mjs";
 import { IPC } from "./ipc-stdio.mjs";
+
+const HOST_BANDWIDTH_BYTES_PER_SECOND = 512 * 1024;
 import {
   decryptIdentityBackup,
   encryptIdentityBackup,
@@ -116,6 +119,8 @@ async function createProvider() {
 
 const provider = await createProvider();
 const runtime = bareRuntime({ storePath: hostDataPath("host-desktop-store") });
+const inboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, HOST_BANDWIDTH_BYTES_PER_SECOND);
+const outboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, HOST_BANDWIDTH_BYTES_PER_SECOND);
 const IDENTITY_STORE_KEY = "host-identity";
 const MODERATION_STORE_KEY = "host-moderation-v1";
 let moderationState = { version: 1, blocked: [], muted: [], reports: [] };
@@ -785,7 +790,7 @@ async function seedBundledCatalogIfNeeded() {
 async function ensurePackageDriveManager() {
   if (packageDriveManager === null) {
     const { createSwarm, DriveManager } = await import("../../../packages/bridge-hyper/dist/worklet-hyper.js");
-    packageSwarm = createSwarm();
+    packageSwarm = createSwarm({ inboundBandwidthLimiter, outboundBandwidthLimiter });
     packageDriveManager = new DriveManager({
       storagePath: hostDataPath("hyper-storage"),
       swarm: packageSwarm
@@ -1204,6 +1209,8 @@ async function ensureReticulum() {
   reticulum = Reticulum.create({
     provider,
     runtime,
+    inboundBandwidthLimiter,
+    outboundBandwidthLimiter,
     ...(IS_DESKTOP_HOST ? { transportEnabled: true } : {})
   });
   reticulum.start();

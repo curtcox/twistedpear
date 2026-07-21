@@ -15,7 +15,8 @@ Generated from `DEFAULT_QUOTAS` (`host-core`) and miniapp-runtime defaults.
 - Seed storage: 2147483648 bytes
 - Propagation store: 268435456 bytes
 - Propagation messages: 10000
-- Bandwidth cap: 524288 bytes/s
+- Bandwidth cap: 524288 bytes/s independently for ingress and egress
+- Zero-burst hard ceiling shared by Reticulum interfaces and forwarding, Hyperdrive replication, and gateway bulk fetches
 
 Override in `<data-dir>/config.json` — see [Host configuration](chapter:ref-host-config).
 

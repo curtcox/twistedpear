@@ -45,13 +45,12 @@ You can use these, but not the way the surrounding text might suggest.
 | Android host | It is the `harness-mobile` developer build, not a consumer app. | [2](02-installing-a-host.md) | — |
 | Local network discovery | Verified in containers and emulators; never on a real multi-machine LAN. | [4](04-joining-a-network.md) | H15, H18 |
 | QR scanning | Mobile and desktop host chrome can scan; desktop requires Chromium `BarcodeDetector` support and camera permission. Paste remains the fallback. | [3](03-first-run-and-identity.md) | [LIMITATIONS §7](../LIMITATIONS.md) |
-| Installing from an identifier | Resolves only if an announce for those bytes was already received. | [5](05-finding-and-installing-apps.md) | [LIMITATIONS §7](../LIMITATIONS.md) |
+| Installing from an identifier | Missing locators are requested on demand, but resolution still requires a reachable peer that holds the signed locator. | [5](05-finding-and-installing-apps.md) | [docs/256t-distribution.md](../docs/256t-distribution.md) |
 | Runaway-app watchdog | Untuned on low-end hardware; may stop merely slow apps. | [6](06-using-apps.md) | H11 |
 | Propagation servers | Sync with clients, but do not peer with each other. Use `lxmd` for meshed stores. | [7](07-messaging.md) | [docs/propagation-node.md](../docs/propagation-node.md) |
 | Sandbox hardening on phones | Hostile-app suite passes on desktop and emulators, not on real Android hardware. | [8](08-trust-privacy-safety.md) | H11 |
 | Browser sandbox | Rests on browser isolation rather than OS processes — a weaker boundary. | [8](08-trust-privacy-safety.md) | [LIMITATIONS §8](../LIMITATIONS.md) |
 | Browser identity and storage | IndexedDB, no hardware keystore, evictable by the browser. | [3](03-first-run-and-identity.md), [8](08-trust-privacy-safety.md) | [LIMITATIONS §8](../LIMITATIONS.md) |
-| Bandwidth cap | Reported and used by transfer budgets; not a hard ceiling everywhere. | [9](09-managing-your-device.md) | [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) |
 | Battery figures | Design targets, not device measurements. | [9](09-managing-your-device.md) | H3, H11, H13 |
 | Long unattended runs | Full-duration soaks are open; the longest proven run is hours, not weeks. | [9](09-managing-your-device.md) | H20, `RQ-*` rows |
 

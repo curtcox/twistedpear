@@ -3,12 +3,12 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-20
+audited: 2026-07-21
 register: none
 -->
 
-Status: Phase 7 policy draft — desktop/simulator numbers below; device measurements remain
-hardware debt ([STATUS-HARDWARE.md](../STATUS-HARDWARE.md) H3, H11, H13).
+Status: enforced software policy — device energy measurements remain hardware debt
+([STATUS-HARDWARE.md](../STATUS-HARDWARE.md) H3, H11, H13).
 
 ## Principles
 
@@ -29,7 +29,11 @@ hardware debt ([STATUS-HARDWARE.md](../STATUS-HARDWARE.md) H3, H11, H13).
 | BLE phone pipe | tens of kbps | tiny packages only | user-enabled, foreground |
 | RNode LoRa | hundreds of bps | LXMF + tiny Resource | user-enabled, budget gate |
 
-Enforcement: `packages/bridge-hyper` fetch strategy and `test:budgets` conformance.
+Enforcement: each host uses one zero-burst limiter per direction. Reticulum ingress,
+egress, and forwarded traffic share it across all registered interfaces; Hyperdrive
+replication and the gateway bulk-fetch response use the same host limiter. Package-path
+selection still applies the stricter transfer budgets before a fetch begins. The default
+is 524,288 bytes/s independently for ingress and egress.
 
 ## Battery budgets (targets — verify on device)
 
