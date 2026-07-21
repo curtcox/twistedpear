@@ -79,5 +79,5 @@ force-quits. See [conformance/devstudio-loop](../conformance/devstudio-loop/READ
 - DevStudio consumes `ai.chatStream` incrementally and shows the growing whole-file proposal.
   Apply remains disabled until the final event, so partial output cannot overwrite a file.
 - One preview slot; previewing again replaces the previous preview.
-- Desktop accepts pasted 256t strings (renders QR for others to scan); camera
-  scanning lands with the mobile host.
+- Desktop accepts pasted 256t strings and host-owned camera scans when Chromium
+  `BarcodeDetector` is available.

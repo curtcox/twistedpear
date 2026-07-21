@@ -44,7 +44,7 @@ You can use these, but not the way the surrounding text might suggest.
 | Windows desktop host | Built in CI, never installed or exercised on Windows. | [2](02-installing-a-host.md) | H17 |
 | Android host | It is the `harness-mobile` developer build, not a consumer app. | [2](02-installing-a-host.md) | — |
 | Local network discovery | Verified in containers and emulators; never on a real multi-machine LAN. | [4](04-joining-a-network.md) | H15, H18 |
-| QR scanning | Mobile only; desktop displays codes but accepts pasted strings. | [3](03-first-run-and-identity.md) | [LIMITATIONS §7](../LIMITATIONS.md) |
+| QR scanning | Mobile and desktop host chrome can scan; desktop requires Chromium `BarcodeDetector` support and camera permission. Paste remains the fallback. | [3](03-first-run-and-identity.md) | [LIMITATIONS §7](../LIMITATIONS.md) |
 | Installing from an identifier | Resolves only if an announce for those bytes was already received. | [5](05-finding-and-installing-apps.md) | [LIMITATIONS §7](../LIMITATIONS.md) |
 | Runaway-app watchdog | Untuned on low-end hardware; may stop merely slow apps. | [6](06-using-apps.md) | H11 |
 | Propagation servers | Sync with clients, but do not peer with each other. Use `lxmd` for meshed stores. | [7](07-messaging.md) | [docs/propagation-node.md](../docs/propagation-node.md) |

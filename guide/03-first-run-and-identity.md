@@ -41,11 +41,12 @@ containing a large QR code, the full hex address below it in monospace, and a **
 button. This is the shot people will screenshot and send to each other, so it must be
 legible at phone size.
 
-On phones you can scan someone else's QR code with the camera to add them. On desktop,
-QR codes are displayed but not scanned — paste the hex string instead.
+On phones and desktop you can scan someone else's QR code with the camera to add them.
+Pasting the string remains available everywhere.
 
-> **⚠️ Works, with limits — QR scanning is mobile-only.** The desktop host renders QR
-> codes but accepts pasted addresses only; camera scanning is a mobile-host feature. See
+> **⚠️ Works, with limits — desktop scanning is host-owned.** The desktop host uses
+> Chromium's `BarcodeDetector` and requests camera access only from host chrome. If either
+> is unavailable, paste the 256t string instead. See
 > [LIMITATIONS.md §7](../LIMITATIONS.md).
 
 ## Back up your identity now

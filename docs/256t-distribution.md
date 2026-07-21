@@ -69,8 +69,7 @@ the receiving host:
   as `t256`) and emits the CAS locator announce.
 - The DevStudio mini-app shows the string as a scannable `qr-code` widget
   after **Package & sign**, and accepts pasted strings for install.
-- The desktop host accepts pasted strings in **Catalog → Install from 256t
-  string** (camera scan is future work; the QR is rendered for the *other*
-  device to scan).
+- The desktop host accepts pasted strings or host-owned camera scans in **Catalog → Install
+  from 256t string**. Scanning depends on Chromium `BarcodeDetector`; paste is the fallback.
 - Mini-apps with the `share:cas` capability can `share.put`/`share.get`
   bounded content by 256t id.

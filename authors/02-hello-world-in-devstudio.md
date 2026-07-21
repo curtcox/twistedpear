@@ -211,9 +211,9 @@ host connected with two interfaces online.
 > install cannot proceed and the host cannot go looking. See
 > [LIMITATIONS.md §7](../LIMITATIONS.md).
 
-> **⚠️ Works, with limits — QR scanning is mobile-only.** The desktop host renders QR codes
-> for others to scan but accepts only pasted strings itself. Camera scanning is a mobile-host
-> feature. See [LIMITATIONS.md §7](../LIMITATIONS.md).
+> **⚠️ Works, with limits — desktop scanning depends on Chromium.** Desktop host chrome can
+> scan with `BarcodeDetector` after camera permission; paste remains the fallback when the
+> API or camera is unavailable. See [LIMITATIONS.md §7](../LIMITATIONS.md).
 
 ## What the loop is validated against
 

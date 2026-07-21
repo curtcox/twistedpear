@@ -250,6 +250,13 @@ pre {
   gap: 0.75rem;
 }
 
+.qr-scanner-video {
+  width: 100%;
+  max-height: 22rem;
+  background: #05080c;
+  border-radius: 8px;
+}
+
 .modal h3 {
   margin: 0;
 }

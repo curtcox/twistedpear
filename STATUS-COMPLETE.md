@@ -28,6 +28,7 @@ Last audited: 2026-07-21.
 | RG5 | done | Streaming `ai.chat` SDK and broker sessions with cancellation and non-streaming compatibility | `packages/miniapp-sdk/test/ai.test.ts`, `packages/miniapp-runtime/test/workspace-ai.test.ts`, `packages/miniapp-runtime/test/host.test.ts` | `npx vitest run packages/miniapp-sdk/test/ai.test.ts packages/miniapp-runtime/test/workspace-ai.test.ts packages/miniapp-runtime/test/host.test.ts` |
 | PD-AI | done | DevStudio streams whole-file AI proposals and prevents applying partial output | `apps/devstudio/bundle.js`, `conformance/devstudio-loop/run.mjs` | `npm run test:devstudio-loop` |
 | PD-WORKSPACE | done | Conflict-safe workspace text patches and delta-valued code-editor events | `packages/miniapp-runtime/test/workspace-ai.test.ts`, `conformance/devstudio-loop/run.mjs` | `npx vitest run packages/miniapp-runtime/test/workspace-ai.test.ts && npm run test:devstudio-loop` |
+| PD-QR | done | Host-owned desktop QR scanning for app and publisher 256t identifiers | `conformance/ui-invariants/desktop-qr.test.mjs`, desktop renderer camera modal | `npx vitest run conformance/ui-invariants/desktop-qr.test.mjs && npm run build --workspace=host-desktop` |
 | RG7 | done | Separately granted embeddings and bounded cosine vector search | `packages/miniapp-sdk/test/ai.test.ts`, `packages/miniapp-runtime/test/workspace-ai.test.ts`, `cookbook/apps/ask-the-handbook/` | `npx vitest run packages/miniapp-sdk/test/ai.test.ts packages/miniapp-runtime/test/workspace-ai.test.ts conformance/cookbook/cookbook.test.mjs` |
 
 ---

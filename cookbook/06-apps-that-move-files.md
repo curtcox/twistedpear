@@ -114,9 +114,9 @@ a two-second correction and a forty-second one.
 
 The QR code is the intended transport for the identifier itself.
 
-> **⚠️ Works, with limits — QR scanning is mobile-only.** Desktop hosts render QR codes but
-> cannot scan them; on desktop you paste the string. Design the flow so pasting works and
-> scanning is the shortcut, not the other way round.
+> **⚠️ Works, with limits — desktop scanning depends on Chromium.** Desktop host chrome
+> scans with `BarcodeDetector` after camera permission. Pasting remains the fallback, so
+> design it as a first-class path rather than assuming every camera is available.
 
 Full source: [apps/photo-drop/bundle.js](apps/photo-drop/bundle.js).
 

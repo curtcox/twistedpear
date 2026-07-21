@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, powerMonitor, Tray, Menu, nativeImage } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, powerMonitor, Tray, Menu, nativeImage, session } from "electron";
 import { readFile, writeFile } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
 import { join, dirname } from "node:path";
@@ -114,6 +114,15 @@ function ensureSupervisor(): WorkletSupervisor {
 }
 
 app.whenReady().then(() => {
+  session.defaultSession.setPermissionCheckHandler((_webContents, permission, requestingOrigin, details) =>
+    permission === "media" && details.mediaType === "video" && requestingOrigin.startsWith("file://")
+  );
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
+    const fromHostWindow = webContents === mainWindow?.webContents && details.requestingUrl.startsWith("file://");
+    const cameraOnly = "mediaTypes" in details && details.mediaTypes?.includes("video") === true &&
+      details.mediaTypes.includes("audio") === false;
+    callback(permission === "media" && fromHostWindow && cameraOnly);
+  });
   if (process.platform === "darwin" || process.platform === "win32") {
     app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
   }

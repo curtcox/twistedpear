@@ -1,4 +1,5 @@
 import { renderWidgetTree } from "./widgets.js";
+import { normalizeScannedT256, supportsQrDetection } from "./qr-scanner.js";
 
 const statusGrid = document.querySelector("#status-grid");
 const catalogList = document.querySelector("#catalog-list");
@@ -12,6 +13,7 @@ const previewRoot = document.querySelector("#preview-root");
 const stopPreview = document.querySelector("#stop-preview");
 const install256tInput = document.querySelector("#install-256t-input");
 const install256t = document.querySelector("#install-256t");
+const install256tScan = document.querySelector("#install-256t-scan");
 
 const modalOverlay = document.querySelector("#host-modal-overlay");
 const modalEl = document.querySelector("#host-modal");
@@ -28,6 +30,7 @@ const trustIdentityInput = document.querySelector("#trust-identity-input");
 const trustLabelInput = document.querySelector("#trust-label-input");
 const trustAdd = document.querySelector("#trust-add");
 const trustShow = document.querySelector("#trust-show");
+const trustScan = document.querySelector("#trust-scan");
 const trustIdentityView = document.querySelector("#trust-identity-view");
 
 const settingDeveloper = document.querySelector("#setting-developer");
@@ -132,6 +135,72 @@ function closeHostModal() {
     modalOverlay.hidden = true;
   }
   modalEl?.replaceChildren();
+}
+
+async function showQrScanner(target, purpose) {
+  if (!modalOverlay || !modalEl || !target) return;
+  if (!(await supportsQrDetection())) {
+    appendLog("QR scanning is unavailable in this Electron/Chromium build; paste the 256t string instead.");
+    return;
+  }
+
+  modalEl.replaceChildren();
+  const title = document.createElement("h3");
+  title.textContent = `Scan ${purpose} QR`;
+  const video = document.createElement("video");
+  video.className = "qr-scanner-video";
+  video.autoplay = true;
+  video.muted = true;
+  video.playsInline = true;
+  const status = document.createElement("p");
+  status.className = "muted";
+  status.textContent = "Requesting camera access…";
+  const cancel = document.createElement("button");
+  cancel.textContent = "Cancel";
+  modalEl.append(title, video, status, cancel);
+  modalOverlay.hidden = false;
+
+  let active = true;
+  let stream = null;
+  const stop = () => {
+    active = false;
+    stream?.getTracks().forEach((track) => track.stop());
+    closeHostModal();
+  };
+  cancel.addEventListener("click", stop, { once: true });
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
+    });
+    if (!active) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    video.srcObject = stream;
+    await video.play();
+    status.textContent = "Hold a TwistedPear 256t QR code inside the camera view.";
+    const detector = new globalThis.BarcodeDetector({ formats: ["qr_code"] });
+    const detect = async () => {
+      if (!active) return;
+      try {
+        const codes = await detector.detect(video);
+        const rawValue = codes.find((code) => typeof code.rawValue === "string")?.rawValue;
+        if (rawValue !== undefined) {
+          target.value = normalizeScannedT256(rawValue);
+          stop();
+          target.dispatchEvent(new Event("input", { bubbles: true }));
+          return;
+        }
+      } catch (error) {
+        status.textContent = error instanceof Error ? error.message : String(error);
+      }
+      requestAnimationFrame(() => { void detect(); });
+    };
+    void detect();
+  } catch (error) {
+    status.textContent = `Camera unavailable: ${error instanceof Error ? error.message : String(error)}`;
+  }
 }
 
 /**
@@ -763,6 +832,9 @@ if (!host) {
   trustShow?.addEventListener("click", () => {
     host.send({ type: "trust-show" });
   });
+  trustScan?.addEventListener("click", () => {
+    void showQrScanner(trustIdentityInput, "publisher identity");
+  });
 
   document.querySelector("#identity-unlock")?.addEventListener("click", () => {
     host.send({ type: "identity-unlock", passphrase: identityCurrent.value, confirmation: identityConfirm.value });
@@ -840,6 +912,9 @@ if (!host) {
 
     host.send({ type: "install-from-256t", t256 });
     appendLog("Resolving 256t id…");
+  });
+  install256tScan?.addEventListener("click", () => {
+    void showQrScanner(install256tInput, "app");
   });
 
   host.onWorkletExit((detail) => {
