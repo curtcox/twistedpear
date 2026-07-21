@@ -14,7 +14,8 @@ import {
   GrantStore,
   KvStorageBeeBackend,
   MiniappHost,
-  NodeWorkerSandboxBackend
+  NodeWorkerSandboxBackend,
+  AnnounceService
 } from "../../packages/miniapp-runtime/dist/index.js";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -22,6 +23,8 @@ const rendererHtml = join(repoRoot, "apps/host-desktop/src/renderer/index.html")
 
 const fakeIdentity = "TPDEMO7LQ2X9C4M6K8R3V5N1B7D9F2H4J6L8P3S5W7Y9A2C4E6G8K1M3Q5T7V9X2Z4B6D8F1H3J5L7N9P2R4T6";
 const fakeHash = "7f3a1c9e42b68d05a7c31e9f42b68d05";
+const fakeT256 = "D".repeat(94);
+const captureSection = process.env.CAPTURE_READER_GUIDE_SECTION ?? "all";
 
 class MemoryStore {
   values = new Map();
@@ -64,9 +67,10 @@ async function waitForTree(host, expected = "") {
   throw new Error(`Timed out waiting for mini-app text: ${expected}`);
 }
 
-async function launchCookbookApp(name, configure = async () => {}) {
+async function launchCookbookApp(name, configure = async () => {}, seed = async () => {}) {
   const store = new MemoryStore();
   const encoder = new TextEncoder();
+  await seed(store);
   if (name === "ask-the-handbook") {
     await store.set(
       `miniapp-workspace:${name}:docs/identity.md`,
@@ -80,6 +84,7 @@ async function launchCookbookApp(name, configure = async () => {}) {
 
   const answers = {
     "ask-the-handbook": "Export an encrypted .tpidentity backup and keep its passphrase separately. The two recovery-word groups restore the same identity.",
+    "form-forge": '[{"label":"Trail name","type":"text"},{"label":"Party size","type":"number"},{"label":"Checked out","type":"switch"}]',
     "pocket-translator": "Buenos días",
     "triage-notes": '{"subject":"Water pump inspection","location":"North shelter","severity":"high","action":"Send maintenance crew"}'
   };
@@ -108,13 +113,42 @@ async function launchCookbookApp(name, configure = async () => {}) {
       usage: null
     })
   };
+  const announceService = new AnnounceService();
+  if (name === "app-relay") {
+    await announceService.publish(
+      "publisher-alpha",
+      encoder.encode(JSON.stringify({ name: "Trail map", t256: fakeT256 })),
+      "app-relay"
+    );
+    await announceService.publish(
+      "publisher-bravo",
+      encoder.encode(JSON.stringify({ name: "Water points", t256: `E${fakeT256.slice(1)}` })),
+      "app-relay"
+    );
+  }
   const host = new MiniappHost({
     backend: new NodeWorkerSandboxBackend(),
     grantStore: new GrantStore(store),
     kvBackend: store,
     beeBackend: new KvStorageBeeBackend(store),
+    announceService,
     presenceBackend: { snapshot: async () => ({ onlineInterfaces: 1, preferredInterface: "tcp", peers: 3 }) },
-    aiBackend
+    aiBackend,
+    resourceBackend: { fetch: async () => encoder.encode("documentation resource payload") },
+    casBackend: {
+      put: async (_appId, content) => ({ t256: fakeT256, size: content.length }),
+      get: async (_appId, t256) => t256 === fakeT256
+        ? encoder.encode("Field notes cover\n---\nWater and shelter\n---\nRadio plan and contacts")
+        : null
+    },
+    confirmationChannel: { confirm: async () => ({ approved: true }) },
+    appsBackend: {
+      package: async () => ({ packageHash: "docs-package-hash", size: 3_712, t256: fakeT256 }),
+      publish: async (_appId, request) => ({ t256: request.t256, driveKey: "docs-drive-key", version: "1.0.0" }),
+      install: async () => ({ appId: "docs-installed-app", version: "1.0.0", trusted: true }),
+      preview: async () => ({ launched: true }),
+      stopPreview: async () => undefined
+    }
   });
   const manifest = JSON.parse(readFileSync(join(repoRoot, "cookbook/apps", name, "app.manifest.json"), "utf8"));
   const launchManifest = { ...manifest, publisherPublicKey: "docs-publisher" };
@@ -182,7 +216,7 @@ const scenes = [
 
 const browser = await chromium.launch();
 try {
-  for (const scene of scenes) {
+  for (const scene of captureSection === "all" ? scenes : []) {
     const output = join(repoRoot, scene.file);
     mkdirSync(dirname(output), { recursive: true });
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
@@ -334,20 +368,22 @@ try {
     console.log(`reader-guide capture written to ${output}`);
   }
 
-  const webHostRoot = join(repoRoot, "dist/web-host");
-  const webHostOutput = join(repoRoot, "guide/images/02-web-host-tab.png");
-  mkdirSync(dirname(webHostOutput), { recursive: true });
-  const staticServer = await startStaticServer(webHostRoot);
-  const webPage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-  try {
-    await webPage.goto(staticServer.url, { waitUntil: "load" });
-    await webPage.getByText("Web leaf host").first().waitFor({ timeout: 15_000 });
-    await webPage.screenshot({ path: webHostOutput, fullPage: false });
-  } finally {
-    await webPage.close();
-    await staticServer.close();
+  if (captureSection === "all") {
+    const webHostRoot = join(repoRoot, "dist/web-host");
+    const webHostOutput = join(repoRoot, "guide/images/02-web-host-tab.png");
+    mkdirSync(dirname(webHostOutput), { recursive: true });
+    const staticServer = await startStaticServer(webHostRoot);
+    const webPage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    try {
+      await webPage.goto(staticServer.url, { waitUntil: "load" });
+      await webPage.getByText("Web leaf host").first().waitFor({ timeout: 15_000 });
+      await webPage.screenshot({ path: webHostOutput, fullPage: false });
+    } finally {
+      await webPage.close();
+      await staticServer.close();
+    }
+    console.log(`reader-guide capture written to ${webHostOutput}`);
   }
-  console.log(`reader-guide capture written to ${webHostOutput}`);
 
   const cookbookScenes = [
     {
@@ -401,12 +437,184 @@ try {
         await waitForTree(host, "water pump");
         await host.handleUiEvent("structure", "tn.structure");
       }
+    },
+    {
+      file: "cookbook/images/02-dice-table.png",
+      app: "dice-table",
+      expected: "d20:",
+      assertion: { selector: ".widget-scroll p", minimum: 10 },
+      configure: async (host) => {
+        for (let index = 0; index < 13; index += 1) {
+          await host.handleUiEvent("d20", "dice.roll.20");
+        }
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+    },
+    {
+      file: "cookbook/images/03-pocket-notes.png",
+      app: "pocket-notes",
+      expected: "Unsaved changes",
+      assertion: { text: "Unsaved changes" },
+      configure: async (host) => host.handleUiEvent(
+        "editor",
+        "note.change",
+        "Check the north cache inventory before Friday. Bring replacement labels."
+      )
+    },
+    {
+      file: "cookbook/images/03-field-log.png",
+      app: "field-log",
+      expected: "3 entries held locally",
+      assertion: { text: "Creek level" },
+      configure: async (host) => {
+        for (const entry of ["Creek level below the red marker", "South gate latch repaired", "Three deer tracks near camp"]) {
+          await host.handleUiEvent("draft", "log.draft", entry);
+          await host.handleUiEvent("add", "log.add");
+          await new Promise((resolve) => setTimeout(resolve, 2));
+        }
+      }
+    },
+    {
+      file: "cookbook/images/03-split-the-bill.png",
+      app: "split-the-bill",
+      expected: "3 people",
+      assertion: { text: "is owed" },
+      configure: async (host) => {
+        for (const [who, what, amount] of [["Ari", "Fuel", "42.00"], ["Bea", "Food", "27.00"], ["Cal", "Permits", "15.00"]]) {
+          await host.handleUiEvent("who", "bill.who", who);
+          await host.handleUiEvent("what", "bill.what", what);
+          await host.handleUiEvent("amount", "bill.amount", amount);
+          await host.handleUiEvent("add", "bill.add");
+        }
+      }
+    },
+    {
+      file: "cookbook/images/03-streak-tracker.png",
+      app: "streak-tracker",
+      expected: "9 day streak",
+      assertion: { text: "9 day streak" },
+      configure: async () => {},
+      seed: async (store) => {
+        const days = [];
+        const today = new Date();
+        for (let offset = 8; offset >= 0; offset -= 1) {
+          const day = new Date(today);
+          day.setUTCDate(day.getUTCDate() - offset);
+          days.push(day.toISOString().slice(0, 10));
+        }
+        await store.set("miniapp-kv:streak-tracker:streak-state", new TextEncoder().encode(JSON.stringify({ days })));
+      }
+    },
+    {
+      file: "cookbook/images/06-photo-drop.png",
+      app: "photo-drop",
+      expected: fakeT256,
+      assertion: { selector: ".widget-qr", minimum: 1 },
+      configure: async (host) => host.handleUiEvent("put", "pd.put")
+    },
+    {
+      file: "cookbook/images/06-recipe-box.png",
+      app: "recipe-box",
+      expected: "recipes/Trail-bread.md",
+      assertion: { text: "2/512 files" },
+      configure: async (host) => {
+        await host.handleUiEvent("newname", "rb.name", "Trail bread");
+        await host.handleUiEvent("create", "rb.create");
+        await host.handleUiEvent("editor", "rb.text", "# Trail bread\n\n## Ingredients\nFlour, salt, water\n\n## Method\nBake in a covered pan.");
+        await host.handleUiEvent("save", "rb.save");
+        await host.handleUiEvent("newname", "rb.name", "Camp stew");
+        await host.handleUiEvent("create", "rb.create");
+      }
+    },
+    {
+      file: "cookbook/images/06-zine-reader.png",
+      app: "zine-reader",
+      expected: "3 / 3",
+      assertion: { text: "Radio plan and contacts" },
+      configure: async (host) => {
+        await host.handleUiEvent("id", "zr.id", fakeT256);
+        await host.handleUiEvent("open", "zr.open");
+        await waitForTree(host, "1 / 3");
+        await host.handleUiEvent("next", "zr.next");
+        await waitForTree(host, "2 / 3");
+        await host.handleUiEvent("next", "zr.next");
+      }
+    },
+    {
+      file: "cookbook/images/09-nine-line.png",
+      app: "nine-line",
+      expected: "over the 220-byte ceiling",
+      assertion: { text: "over the 220-byte ceiling" },
+      configure: async (host) => {
+        await host.handleUiEvent("recipient", "nl.to", "rescue-control");
+        await host.handleUiEvent("line-0", "nl.field.0", "Ridge north of checkpoint seven ".repeat(10));
+        await host.handleUiEvent("send", "nl.send");
+      }
+    },
+    {
+      file: "cookbook/images/05-neighborhood-board.png",
+      app: "neighborhood-board",
+      expected: "Water available at the school entrance",
+      assertion: { text: "publisher-c" },
+      configure: async () => {},
+      seed: async (store) => {
+        const posts = [
+          ["0001", "publisher-a", "Water available at the school entrance", "2026-07-21T14:00:00.000Z"],
+          ["0002", "publisher-b", "Bridge inspection starts at 16:00", "2026-07-21T14:15:00.000Z"],
+          ["0003", "publisher-c", "Spare batteries at the north shelter", "2026-07-21T14:30:00.000Z"]
+        ];
+        for (const [key, from, text, at] of posts) {
+          await store.set(`miniapp-bee:neighborhood-board:p/${key}`, new TextEncoder().encode(JSON.stringify({ from, text, at })));
+        }
+      }
+    },
+    {
+      file: "cookbook/images/05-swap-shelf.png",
+      app: "swap-shelf",
+      expected: "Offered",
+      assertion: { text: "Hand-crank radio" },
+      configure: async (host) => {
+        await host.handleUiEvent("draft", "ss.draft", "Hand-crank radio, working, trade for batteries");
+        await host.handleUiEvent("offer", "ss.offer");
+      }
+    },
+    {
+      file: "cookbook/images/08-form-forge.png",
+      app: "form-forge",
+      expected: "Designed 3 fields",
+      assertion: { text: "Party size (number)" },
+      configure: async (host) => {
+        await host.handleUiEvent("brief", "ff.brief", "A trailhead sign-in sheet");
+        await host.handleUiEvent("design", "ff.design");
+      }
+    },
+    {
+      file: "cookbook/images/08-sticker-mill.png",
+      app: "sticker-mill",
+      expected: "Packaged 3712 bytes",
+      assertion: { selector: ".widget-qr", minimum: 1 },
+      configure: async (host) => {
+        await host.handleUiEvent("label", "sm.label", "CHECKED");
+        await host.handleUiEvent("colour", "sm.colour", "#26734d");
+        await host.handleUiEvent("package", "sm.package");
+      }
+    },
+    {
+      file: "cookbook/images/08-app-relay.png",
+      app: "app-relay",
+      expected: "Trusting 1 publisher(s)",
+      assertion: { text: "Trail map" },
+      configure: async (host) => {
+        await waitForTree(host, "Water points");
+        await host.handleUiEvent("draft", "ar.draft", "publisher-alpha");
+        await host.handleUiEvent("trust", "ar.trust");
+      }
     }
   ];
   const rendererServer = await startStaticServer(dirname(rendererHtml));
   try {
-    for (const scene of cookbookScenes) {
-      const host = await launchCookbookApp(scene.app, scene.configure);
+    for (const scene of captureSection === "all" || captureSection === "cookbook" ? cookbookScenes : []) {
+      const host = await launchCookbookApp(scene.app, scene.configure, scene.seed);
       try {
         const tree = await waitForTree(host, scene.expected);
         const output = join(repoRoot, scene.file);

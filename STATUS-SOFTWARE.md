@@ -52,7 +52,7 @@ These items are explicitly outside the release exit criteria.
 | Node-to-node propagation peering | Use `lxmd` for meshed stores; the built-in node supports client sync | [Propagation node](docs/propagation-node.md) |
 | React reconciler renderer | The declarative widget renderer is the supported v1 UI | [Mini-app runtime](docs/miniapp-runtime.md) |
 | BLE and WebSocket spec community review | Drafts and publication checklist are ready; submission is a manual community step | [Upstream publication](docs/upstream-publication.md) |
-| Reader-guide capture completion | 33 of 106 images are real desktop/browser host/runtime captures; exact remaining filenames and blockers are recorded per guide | [User guide](guide/images/README.md), [author guide](authors/images/README.md), [cookbook](cookbook/images/README.md) |
+| Reader-guide capture completion | 47 of 106 images are real desktop/browser host/runtime captures; exact remaining filenames and blockers are recorded per guide | [User guide](guide/images/README.md), [author guide](authors/images/README.md), [cookbook](cookbook/images/README.md) |
 
 Hardware measurements, Apple entitlement/notarization work, real-LAN checks, Windows
 verification, and device-specific soak criteria belong only in
