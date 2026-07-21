@@ -337,6 +337,14 @@ export function createWorkletMiniappHost(options) {
       await host.handleUiEvent(nodeId, event, value);
     },
 
+    async readWorkspaceFile(documentId) {
+      const snapshot = host.snapshot();
+      if (snapshot.appId === null) {
+        throw new Error("No mini-app is running");
+      }
+      return host.workspace.read(snapshot.appId, documentId);
+    },
+
     async devSideLoad(manifest, bundleBytes) {
       if (!developerMode) {
         throw new Error("Developer mode is disabled");

@@ -41,7 +41,7 @@ const sdk = {
   resource: { fetch: (request) => callHost("resource", "fetch", request, "resource:fetch") },
   presence: { snapshot: () => callHost("presence", "snapshot", undefined, "presence") },
   host: { info: () => callHost("host", "info", undefined, "presence") },
-  workspace: { list: (prefix) => callHost("workspace", "list", { prefix }, "workspace"), read: (path) => callHost("workspace", "read", { path }, "workspace").then((r) => r.content), write: (path, content) => callHost("workspace", "write", { path, content }, "workspace"), remove: (path) => callHost("workspace", "delete", { path }, "workspace") },
+  workspace: { list: (prefix) => callHost("workspace", "list", { prefix }, "workspace"), read: (path) => callHost("workspace", "read", { path }, "workspace").then((r) => r.content), write: (path, content) => callHost("workspace", "write", { path, content }, "workspace"), patch: (path, baseLength, edits) => callHost("workspace", "patch", { path, baseLength, edits }, "workspace"), remove: (path) => callHost("workspace", "delete", { path }, "workspace") },
   ai: {
     chat: (request) => callHost("ai", "chat", request, "ai:chat"),
     chatStream,

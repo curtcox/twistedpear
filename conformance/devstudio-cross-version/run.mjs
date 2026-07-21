@@ -438,13 +438,19 @@ async function createAndPublishHello(peer) {
     throw new Error(`${peer.name} hello template was not created`);
   }
 
+  const manifestBefore = await peer.host.readWorkspaceFile("hello-app/app.json");
   await peer.host.handleUiEvent("editor", "ds.edit", {
     documentId: "hello-app/app.json",
-    text: JSON.stringify(
-      { name: "hello-app", version: "0.1.0", entry: "bundle.js", capabilities: ["storage:kv"] },
-      null,
-      2
-    )
+    baseLength: manifestBefore.length,
+    edits: [{
+      start: 0,
+      end: manifestBefore.length,
+      text: JSON.stringify(
+        { name: "hello-app", version: "0.1.0", entry: "bundle.js", capabilities: ["storage:kv"] },
+        null,
+        2
+      )
+    }]
   });
 
   await peer.host.handleUiEvent("package", "ds.package");

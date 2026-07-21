@@ -137,6 +137,7 @@ function renderNode(node, onEvent, options = {}) {
       const documentId = String(node.props?.documentId ?? "");
       element.dataset.documentId = documentId;
       applyStyle(element, style);
+      let baseline = "";
 
       // Content-by-reference: the tree carries only a documentId; the host
       // resolves file content itself, so app state stays in the workspace.
@@ -145,6 +146,7 @@ function renderNode(node, onEvent, options = {}) {
           (content) => {
             if (typeof content === "string" && document.activeElement !== element) {
               element.value = content;
+              baseline = content;
             }
           },
           () => {
@@ -165,7 +167,12 @@ function renderNode(node, onEvent, options = {}) {
         }
         debounce = setTimeout(() => {
           debounce = null;
-          onEvent?.(node.id, event, { documentId, text: element.value });
+          const next = element.value;
+          const edit = minimalTextEdit(baseline, next);
+          if (edit !== null) {
+            onEvent?.(node.id, event, { documentId, baseLength: baseline.length, edits: [edit] });
+            baseline = next;
+          }
         }, 300);
       });
       return element;
@@ -214,6 +221,19 @@ function renderNode(node, onEvent, options = {}) {
       return element;
     }
   }
+}
+
+function minimalTextEdit(before, after) {
+  if (before === after) return null;
+  let start = 0;
+  while (start < before.length && start < after.length && before[start] === after[start]) start += 1;
+  let beforeEnd = before.length;
+  let afterEnd = after.length;
+  while (beforeEnd > start && afterEnd > start && before[beforeEnd - 1] === after[afterEnd - 1]) {
+    beforeEnd -= 1;
+    afterEnd -= 1;
+  }
+  return { start, end: beforeEnd, text: after.slice(start, afterEnd) };
 }
 
 function applyStyle(element, style) {

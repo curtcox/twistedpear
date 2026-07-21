@@ -552,6 +552,15 @@ export class MiniappHost {
       return this.workspace.write(context.appId, path, content);
     });
 
+    this.broker.register("workspace", "patch", "workspace", async (request, context) => {
+      const { path, baseLength, edits } = request.payload as {
+        path: string;
+        baseLength: number;
+        edits: ReadonlyArray<{ start: number; end: number; text: string }>;
+      };
+      return this.workspace.patch(context.appId, path, baseLength, edits);
+    });
+
     this.broker.register("workspace", "delete", "workspace", async (request, context) => {
       const path = (request.payload as { path: string }).path;
       await this.workspace.delete(context.appId, path);

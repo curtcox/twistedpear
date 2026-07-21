@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import type { WidgetNode, WidgetStyle, WidgetTree } from "@twistedpear/miniapp-runtime/ui";
 
@@ -6,26 +6,30 @@ import type { WidgetNode, WidgetStyle, WidgetTree } from "@twistedpear/miniapp-r
 
 export function MiniappWidgetTree({
   tree,
-  onEvent
+  onEvent,
+  readDocument
 }: {
   readonly tree: WidgetTree | null;
   readonly onEvent?: (nodeId: string, event: string, value?: unknown) => void;
+  readonly readDocument?: (documentId: string) => Promise<string>;
 }) {
   if (tree === null) {
     return <Text style={styles.muted}>No widget tree</Text>;
   }
 
-  return <WidgetNodeView node={tree.root} {...(onEvent === undefined ? {} : { onEvent })} />;
+  return <WidgetNodeView node={tree.root} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />;
 }
 
 function ScrollWidget({
   node,
   style,
-  onEvent
+  onEvent,
+  readDocument
 }: {
   readonly node: WidgetNode;
   readonly style: ReturnType<typeof widgetStyle>;
   readonly onEvent?: (nodeId: string, event: string, value?: unknown) => void;
+  readonly readDocument?: (documentId: string) => Promise<string>;
 }) {
   const scrollRef = useRef<ScrollView>(null);
   const offset = typeof node.props?.scrollOffset === "number" ? node.props.scrollOffset : 0;
@@ -50,18 +54,76 @@ function ScrollWidget({
       scrollEventThrottle={100}
     >
       {node.children?.map((child) => (
-        <WidgetNodeView key={child.id} node={child} {...(onEvent === undefined ? {} : { onEvent })} />
+        <WidgetNodeView key={child.id} node={child} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />
       ))}
     </ScrollView>
   );
 }
 
+function CodeEditorWidget({
+  node,
+  style,
+  onEvent,
+  readDocument
+}: {
+  readonly node: WidgetNode;
+  readonly style: ReturnType<typeof widgetStyle>;
+  readonly onEvent?: (nodeId: string, event: string, value?: unknown) => void;
+  readonly readDocument?: (documentId: string) => Promise<string>;
+}) {
+  const baseline = useRef("");
+  const [content, setContent] = useState("");
+  const documentId = String(node.props?.documentId ?? "");
+  useEffect(() => {
+    let active = true;
+    if (readDocument !== undefined && documentId.length > 0) {
+      void readDocument(documentId).then((next) => {
+        if (active) {
+          baseline.current = next;
+          setContent(next);
+        }
+      });
+    }
+    return () => { active = false; };
+  }, [documentId, readDocument]);
+  return (
+    <TextInput
+      testID={node.id}
+      style={[styles.input, styles.codeEditor, style]}
+      multiline
+      autoCapitalize="none"
+      autoCorrect={false}
+      editable={!node.props?.readOnly}
+      placeholder={documentId}
+      value={content}
+      onChangeText={(text) => {
+        setContent(text);
+        const event = node.props?.event;
+        if (typeof event === "string") {
+          const before = baseline.current;
+          const edit = minimalTextEdit(before, text);
+          if (edit !== null) {
+            onEvent?.(node.id, event, {
+              documentId,
+              baseLength: before.length,
+              edits: [edit]
+            });
+            baseline.current = text;
+          }
+        }
+      }}
+    />
+  );
+}
+
 function WidgetNodeView({
   node,
-  onEvent
+  onEvent,
+  readDocument
 }: {
   readonly node: WidgetNode;
   readonly onEvent?: (nodeId: string, event: string, value?: unknown) => void;
+  readonly readDocument?: (documentId: string) => Promise<string>;
 }) {
   const style = widgetStyle(node.style);
 
@@ -70,7 +132,7 @@ function WidgetNodeView({
       return (
         <View style={style} testID={node.id}>
           {node.children?.map((child) => (
-            <WidgetNodeView key={child.id} node={child} {...(onEvent === undefined ? {} : { onEvent })} />
+            <WidgetNodeView key={child.id} node={child} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />
           ))}
         </View>
       );
@@ -124,7 +186,7 @@ function WidgetNodeView({
         />
       );
     case "scroll":
-      return <ScrollWidget node={node} style={style} {...(onEvent === undefined ? {} : { onEvent })} />;
+      return <ScrollWidget node={node} style={style} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />;
     case "divider":
       return <View testID={node.id} style={[styles.divider, style]} />;
     case "spacer":
@@ -152,23 +214,7 @@ function WidgetNodeView({
         </Text>
       );
     case "code-editor":
-      return (
-        <TextInput
-          testID={node.id}
-          style={[styles.input, styles.codeEditor, style]}
-          multiline
-          autoCapitalize="none"
-          autoCorrect={false}
-          editable={!node.props?.readOnly}
-          placeholder={String(node.props?.documentId ?? "")}
-          onChangeText={(text) => {
-            const event = node.props?.event;
-            if (typeof event === "string") {
-              onEvent?.(node.id, event, { documentId: String(node.props?.documentId ?? ""), text });
-            }
-          }}
-        />
-      );
+      return <CodeEditorWidget node={node} style={style} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />;
     case "qr-code":
       return (
         <View testID={node.id} style={style}>
@@ -183,6 +229,19 @@ function WidgetNodeView({
     default:
       return null;
   }
+}
+
+function minimalTextEdit(before: string, after: string) {
+  if (before === after) return null;
+  let start = 0;
+  while (start < before.length && start < after.length && before[start] === after[start]) start += 1;
+  let beforeEnd = before.length;
+  let afterEnd = after.length;
+  while (beforeEnd > start && afterEnd > start && before[beforeEnd - 1] === after[afterEnd - 1]) {
+    beforeEnd -= 1;
+    afterEnd -= 1;
+  }
+  return { start, end: beforeEnd, text: after.slice(start, afterEnd) };
 }
 
 function widgetStyle(style?: WidgetStyle) {

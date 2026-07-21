@@ -74,6 +74,22 @@ describe("workspace service", () => {
     await service.write("app", "b.js", "x".repeat(12));
     await expect(service.write("app", "c.js", "x")).rejects.toMatchObject({ code: "WORKSPACE_FULL" });
   });
+
+  it("applies bounded non-overlapping text patches and rejects stale bases", async () => {
+    const service = new WorkspaceService(new MemoryStore());
+    await service.write("app", "bundle.js", "hello world");
+    await service.patch("app", "bundle.js", 11, [
+      { start: 0, end: 5, text: "goodbye" },
+      { start: 6, end: 11, text: "mesh" }
+    ]);
+    expect(await service.read("app", "bundle.js")).toBe("goodbye mesh");
+    await expect(service.patch("app", "bundle.js", 11, [{ start: 0, end: 1, text: "x" }]))
+      .rejects.toMatchObject({ code: "PATCH_CONFLICT" });
+    await expect(service.patch("app", "bundle.js", 12, [
+      { start: 2, end: 4, text: "x" },
+      { start: 3, end: 5, text: "y" }
+    ])).rejects.toMatchObject({ code: "INVALID_PATCH" });
+  });
 });
 
 describe("ai service", () => {

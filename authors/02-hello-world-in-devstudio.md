@@ -76,11 +76,11 @@ await ui.render({
 The editor is the `code-editor` widget. It is **content-by-reference**: the widget tree
 DevStudio submits carries only a `documentId`, not your file's text. The host resolves the
 content from the workspace, your keystrokes come back as events, and DevStudio persists them
-with `workspace.write`.
+with conflict-checked `workspace.patch` calls.
 
-You will only notice this design in one place: **files are capped at 256 KiB**, because
-there is no delta protocol for the editor yet and a whole file has to fit inside the widget
-message budget.
+Files remain capped at **256 KiB** as a host safety quota, but editor events carry only the
+changed UTF-16 range plus its expected base length. A concurrent change fails instead of
+being silently overwritten.
 
 > **⚠️ Works, with limits — one file, no bundler.** DevStudio projects are single-file
 > bundles. There is no in-host bundler, so `import` works only for

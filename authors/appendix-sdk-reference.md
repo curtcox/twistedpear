@@ -83,9 +83,11 @@ every broker call.
 | `workspace.list(path)` | `workspace` | |
 | `workspace.read(path)` | `workspace` | Strings, not bytes |
 | `workspace.write(path, text)` | `workspace` | |
+| `workspace.patch(path, baseLength, edits)` | `workspace` | Rejects stale bases and overlapping edits |
 | `workspace.remove(path)` | `workspace` | |
 
-Strictly relative paths. 256 KiB per file, 4 MiB and 512 files per app.
+Strictly relative paths. 256 KiB per file, 4 MiB and 512 files per app. Editor changes use
+patches; the per-file limit is a host safety quota rather than a broker-message requirement.
 
 ## ai
 

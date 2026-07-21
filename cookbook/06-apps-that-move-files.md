@@ -181,8 +181,8 @@ if (text.length > 256 * 1024) {
 ```
 
 > **⚠️ Works, with limits — the workspace ceiling.** 256 KiB per file, 4 MiB and 512 files
-> per app. The per-file limit exists because the `code-editor` widget has no delta protocol
-> yet, so anything held in a workspace file has to be transferred whole.
+> per app. `code-editor` changes use bounded, conflict-checked deltas; the remaining per-file
+> limit is a host safety quota.
 
 Full source: [apps/zine-reader/bundle.js](apps/zine-reader/bundle.js).
 

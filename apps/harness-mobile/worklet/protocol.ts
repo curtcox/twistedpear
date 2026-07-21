@@ -217,6 +217,7 @@ export type HostToWorkletMessage =
   | { readonly type: "suspend-miniapp" }
   | { readonly type: "resume-miniapp" }
   | { readonly type: "miniapp-ui-event"; readonly nodeId: string; readonly event: string; readonly value?: unknown }
+  | { readonly type: "workspace-read"; readonly token: string; readonly documentId: string }
   | { readonly type: "dev-side-load"; readonly manifest: Record<string, unknown>; readonly bundleHex: string }
   | { readonly type: "dev-side-load-hello" }
   | { readonly type: "connect-dev-channel"; readonly host: string; readonly port: number }
@@ -259,6 +260,7 @@ export type WorkletToHostMessage =
   | { readonly type: "miniapp-runtime"; readonly slot?: "main" | "preview"; readonly runtime: MiniappRuntimeView | null }
   | { readonly type: "miniapp-benchmark"; readonly result: MiniappBenchmarkResult }
   | { readonly type: "miniapp-log"; readonly appId: string; readonly line: string }
+  | { readonly type: "workspace-file"; readonly token: string; readonly documentId: string; readonly content?: string; readonly error?: string }
   | {
       readonly type: "confirm-request";
       readonly token: string;

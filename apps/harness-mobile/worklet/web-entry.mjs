@@ -1002,6 +1002,21 @@ async function handleHostMessage(raw) {
     return;
   }
 
+  if (message.type === "workspace-read") {
+    try {
+      const content = await ensureMiniappHost().readWorkspaceFile(message.documentId);
+      send({ type: "workspace-file", token: message.token, documentId: message.documentId, content });
+    } catch (error) {
+      send({
+        type: "workspace-file",
+        token: message.token,
+        documentId: message.documentId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+    return;
+  }
+
   if (message.type === "dev-side-load") {
     try {
       await ensureMiniappHost().devSideLoad(message.manifest, hexToBytes(message.bundleHex));

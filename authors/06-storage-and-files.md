@@ -78,9 +78,9 @@ await workspace.remove("hello-app/old.js");
 Content is **strings**, not bytes — this is a source-file store, not a blob store. Paths are
 strictly relative: no leading slash, no `..`, no escaping your own tree.
 
-Limits: **256 KiB per file, 4 MiB total, 512 files per app.** The per-file cap is not
-arbitrary — the `code-editor` widget has no delta protocol yet, so a file has to fit inside
-the widget message budget on every load.
+Limits: **256 KiB per file, 4 MiB total, 512 files per app.** `code-editor` emits bounded
+text edits and DevStudio applies them with `workspace.patch`; stale base lengths fail rather
+than overwriting a concurrent change. The per-file ceiling remains a host safety quota.
 
 ## Quotas, and what happens when you hit one
 

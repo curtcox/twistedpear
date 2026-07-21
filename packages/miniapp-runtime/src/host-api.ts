@@ -1,4 +1,4 @@
-export const HOST_API_VERSION = "0.6.0";
+export const HOST_API_VERSION = "0.7.0";
 
 export interface HostApiChangelogEntry {
   readonly version: string;
@@ -27,7 +27,11 @@ export const HOST_API_CHANGELOG: ReadonlyArray<HostApiChangelogEntry> = [
     note: "ai.chatStream() adds cancellable, coalesced streaming while preserving ai.chat()."
   },
   {
-    version: HOST_API_VERSION,
+    version: "0.6.0",
     note: "ai.embed() and ai.search() add host-proxied embeddings and bounded cosine vector search."
+  },
+  {
+    version: HOST_API_VERSION,
+    note: "workspace.patch() and delta code-editor events add conflict-safe incremental editing."
   }
 ];

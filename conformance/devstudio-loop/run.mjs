@@ -558,7 +558,12 @@ export async function runDevstudioLoop() {
     // ---- 3. Direct edit through the editor event ----
     await hostA.handleUiEvent("editor", "ds.edit", {
       documentId: "hello-app/bundle.js",
-      text: templateContent.replace("Hello from DevStudio", "Hello (edited)")
+      baseLength: templateContent.length,
+      edits: [{
+        start: templateContent.indexOf("Hello from DevStudio"),
+        end: templateContent.indexOf("Hello from DevStudio") + "Hello from DevStudio".length,
+        text: "Hello (edited)"
+      }]
     });
     await waitFor(
       async () => ((await hostA.readWorkspaceFile("hello-app/bundle.js")).includes("Hello (edited)") ? true : null),
@@ -597,11 +602,16 @@ export async function runDevstudioLoop() {
     // ---- 5. Declare capabilities in the project manifest via the editor ----
     await hostA.handleUiEvent("editor", "ds.edit", {
       documentId: "hello-app/app.json",
-      text: JSON.stringify(
-        { name: "hello-app", version: "0.1.0", entry: "bundle.js", capabilities: ["storage:kv", "lxmf:send"] },
-        null,
-        2
-      )
+      baseLength: (await hostA.readWorkspaceFile("hello-app/app.json")).length,
+      edits: [{
+        start: 0,
+        end: (await hostA.readWorkspaceFile("hello-app/app.json")).length,
+        text: JSON.stringify(
+          { name: "hello-app", version: "0.1.0", entry: "bundle.js", capabilities: ["storage:kv", "lxmf:send"] },
+          null,
+          2
+        )
+      }]
     });
     await sleep(200);
 

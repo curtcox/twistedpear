@@ -203,8 +203,8 @@ everything below is a known cost of the chosen design or of the platforms involv
   boundaries. Streaming and whole-response chat share one in-flight request per app, and
   stopping iteration cancels the host-side stream.
 - **Dev environment (DevStudio) v1 limits:** projects are single-file bundles (no
-  in-host bundler); workspace files are capped at 256 KiB (the `code-editor` widget has
-  no delta protocol yet); AI editing is non-streaming whole-file replacement through an
+  in-host bundler); workspace files are capped at 256 KiB as a host safety quota, while
+  `code-editor` changes use conflict-checked deltas; AI editing streams a whole-file proposal through an
   OpenRouter-compatible endpoint configured host-side; one dev-preview slot; desktop
   QR support renders codes but accepts pasted 256t strings only (camera scan is a
   mobile-host follow-up); memory-limit changes apply at the next launch, while rate

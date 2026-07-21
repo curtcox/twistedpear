@@ -151,6 +151,12 @@ export default function App() {
   );
 
   const bridgeRef = useRef<ReturnType<typeof createWebCoreBridge> | null>(null);
+  const workspaceReadCounterRef = useRef(0);
+  const pendingWorkspaceReadsRef = useRef(new Map<string, {
+    readonly resolve: (content: string) => void;
+    readonly reject: (error: Error) => void;
+    readonly timer: ReturnType<typeof setTimeout>;
+  }>());
 
   const appendLog = useCallback((line: string) => {
     setLogLines((current) => [...current.slice(-200), line]);
@@ -159,6 +165,16 @@ export default function App() {
   const sendToWorker = useCallback((message: HostToWorkletMessage) => {
     bridgeRef.current?.send(message);
   }, []);
+
+  const readWorkspaceDocument = useCallback((documentId: string) => new Promise<string>((resolve, reject) => {
+    const token = `ws-${workspaceReadCounterRef.current++}`;
+    const timer = setTimeout(() => {
+      pendingWorkspaceReadsRef.current.delete(token);
+      reject(new Error("Workspace read timed out"));
+    }, 10_000);
+    pendingWorkspaceReadsRef.current.set(token, { resolve, reject, timer });
+    sendToWorker({ type: "workspace-read", token, documentId });
+  }), [sendToWorker]);
 
   const handleWorkerMessage = useCallback(
     (message: WorkletToHostMessage) => {
@@ -199,6 +215,17 @@ export default function App() {
 
       if (message.type === "miniapp-log") {
         appendLog(`[miniapp] ${message.line}`);
+        return;
+      }
+
+      if (message.type === "workspace-file") {
+        const pending = pendingWorkspaceReadsRef.current.get(message.token);
+        pendingWorkspaceReadsRef.current.delete(message.token);
+        if (pending !== undefined) {
+          clearTimeout(pending.timer);
+          if (message.error !== undefined) pending.reject(new Error(message.error));
+          else pending.resolve(message.content ?? "");
+        }
         return;
       }
 
@@ -603,6 +630,7 @@ export default function App() {
           <View testID="miniapp-live-tree">
             <MiniappWidgetTree
               tree={miniappRuntime.widgetTree as WidgetTree}
+              readDocument={readWorkspaceDocument}
               onEvent={(nodeId, event, value) => {
                 sendToWorker({
                   type: "miniapp-ui-event",

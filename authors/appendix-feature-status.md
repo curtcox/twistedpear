@@ -46,7 +46,7 @@ You can build on these, but not the way the surrounding text might suggest.
 | Dev side-loading | Localhost/adb only, off by default, always badged **DEV**. | [3](03-hello-world-with-the-cli.md), [11](11-testing-and-debugging.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | Resolving a 256t identifier | Resolves only if a locator announce for those bytes was already received; there is no re-request. | [2](02-hello-world-in-devstudio.md), [9](09-packaging-and-publishing.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | QR scanning | Mobile only. Desktop renders codes but accepts pasted strings. | [2](02-hello-world-in-devstudio.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |
-| Workspace files | 256 KiB per file, because the `code-editor` widget has no delta protocol yet. | [6](06-storage-and-files.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |
+| Workspace files | 256 KiB per file, 4 MiB and 512 files per app. Editor changes are delta-based; the remaining ceiling is a host safety quota. | [6](06-storage-and-files.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | Sandbox isolation | Broker chokepoint, deny-by-default grants, and hostile-input conformance pass on desktop and emulators; Bare Worker hostile parity on physical hardware is unmeasured. | [1](01-what-you-are-building.md), [11](11-testing-and-debugging.md) | H11, [docs/security-review.md](../docs/security-review.md) |
 | Runaway-app watchdog | Thresholds untuned on low-end hardware; may stop a merely slow app. | [11](11-testing-and-debugging.md) | H11 |
 | Browser storage | OPFS/IndexedDB under browser quota; evictable by the user agent. | [6](06-storage-and-files.md) | [LIMITATIONS.md §8](../LIMITATIONS.md) |

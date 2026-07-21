@@ -17,9 +17,15 @@ export interface WorkspaceFileInfo {
   readonly size: number;
 }
 
+export interface WorkspaceTextEdit {
+  readonly start: number;
+  readonly end: number;
+  readonly text: string;
+}
+
 export class WorkspaceError extends Error {
   constructor(
-    readonly code: "INVALID_PATH" | "FILE_TOO_LARGE" | "WORKSPACE_FULL" | "NOT_FOUND",
+    readonly code: "INVALID_PATH" | "INVALID_PATCH" | "PATCH_CONFLICT" | "FILE_TOO_LARGE" | "WORKSPACE_FULL" | "NOT_FOUND",
     message: string
   ) {
     super(message);
@@ -114,6 +120,36 @@ export class WorkspaceService {
 
     await this.backend.set(key, bytes);
     return { path, size: bytes.length };
+  }
+
+  async patch(
+    appId: string,
+    path: string,
+    baseLength: number,
+    edits: ReadonlyArray<WorkspaceTextEdit>
+  ): Promise<WorkspaceFileInfo> {
+    if (!Number.isSafeInteger(baseLength) || baseLength < 0 || !Array.isArray(edits) || edits.length === 0 || edits.length > 1024) {
+      throw new WorkspaceError("INVALID_PATCH", "Workspace patch needs 1-1024 edits and a valid base length");
+    }
+    const current = await this.read(appId, path);
+    if (current.length !== baseLength) {
+      throw new WorkspaceError("PATCH_CONFLICT", `Workspace file changed before patch: ${path}`);
+    }
+    let previousEnd = 0;
+    for (const edit of edits) {
+      if (!Number.isSafeInteger(edit?.start) || !Number.isSafeInteger(edit?.end) ||
+          edit.start < previousEnd || edit.end < edit.start || edit.end > current.length ||
+          typeof edit.text !== "string") {
+        throw new WorkspaceError("INVALID_PATCH", `Invalid or overlapping workspace edit: ${path}`);
+      }
+      previousEnd = edit.end;
+    }
+    let content = current;
+    for (let index = edits.length - 1; index >= 0; index -= 1) {
+      const edit = edits[index]!;
+      content = `${content.slice(0, edit.start)}${edit.text}${content.slice(edit.end)}`;
+    }
+    return this.write(appId, path, content);
   }
 
   async delete(appId: string, path: string): Promise<void> {

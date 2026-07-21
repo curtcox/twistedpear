@@ -7,7 +7,7 @@ audited: 2026-07-21
 register: none
 -->
 
-Current `HOST_API_VERSION`: **`0.6.0`**.
+Current `HOST_API_VERSION`: **`0.7.0`**.
 Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 
 ## Changelog
@@ -18,6 +18,7 @@ Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 - **`0.4.0`** — host.info() includes grantedCapabilities for the calling mini-app (Handbook grant intro and diagnostics).
 - **`0.5.0`** — ai.chatStream() adds cancellable, coalesced streaming while preserving ai.chat().
 - **`0.6.0`** — ai.embed() and ai.search() add host-proxied embeddings and bounded cosine vector search.
+- **`0.7.0`** — workspace.patch() and delta code-editor events add conflict-safe incremental editing.
 
 ## host.info()
 

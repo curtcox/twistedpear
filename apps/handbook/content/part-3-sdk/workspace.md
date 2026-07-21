@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-07-21
 register: none
 -->
 
@@ -24,11 +24,13 @@ import { workspace } from "@twistedpear/miniapp-sdk";
 
 await workspace.write("src/main.js", source);
 const text = await workspace.read("src/main.js");
+await workspace.patch("src/main.js", text.length, [{ start: 0, end: 0, text: "// edited\n" }]);
 const files = await workspace.list("src/");
 await workspace.remove("src/main.js");
 ```
 
-Paths are relative; traversal outside the app root is rejected.
+Paths are relative; traversal outside the app root is rejected. Patch offsets are UTF-16
+string indexes. Edits must be ordered and non-overlapping; a stale base length is rejected.
 
 ## Outcomes
 

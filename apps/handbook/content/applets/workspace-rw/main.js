@@ -1,5 +1,5 @@
 /**
- * Handbook applet: workspace write → read → list → remove.
+ * Handbook applet: workspace write → patch → read → list → remove.
  */
 export async function run(sdk, report) {
   const started = Date.now();
@@ -7,8 +7,9 @@ export async function run(sdk, report) {
   const body = `workspace-probe-${started}`;
   try {
     await sdk.workspace.write(path, body);
+    await sdk.workspace.patch(path, body.length, [{ start: body.length, end: body.length, text: "-patched" }]);
     const read = await sdk.workspace.read(path);
-    if (read !== body) {
+    if (read !== `${body}-patched`) {
       report({
         status: "fail",
         details: `Workspace read mismatch: ${String(read)}`,
@@ -33,7 +34,7 @@ export async function run(sdk, report) {
     await sdk.workspace.remove(path);
     report({
       status: "pass",
-      details: `Workspace write → read → list → remove for ${path}`,
+      details: `Workspace write → patch → read → list → remove for ${path}`,
       timings: { ms: Date.now() - started }
     });
   } catch (error) {

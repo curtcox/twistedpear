@@ -225,8 +225,8 @@ async function handleEvent({ nodeId, event, value }) {
     return;
   }
 
-  if (event === "ds.edit" && value && typeof value.text === "string") {
-    await workspace.write(value.documentId, value.text);
+  if (event === "ds.edit" && value && Number.isSafeInteger(value.baseLength) && Array.isArray(value.edits)) {
+    await workspace.patch(value.documentId, value.baseLength, value.edits);
     await refreshFiles();
     return;
   }
