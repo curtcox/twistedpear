@@ -111,6 +111,13 @@ export type HostToWorkletMessage =
   | { readonly type: "identity-import"; readonly backupHex: string; readonly backupPassphrase: string; readonly vaultPassphrase: string }
   | { readonly type: "identity-recovery-import"; readonly first: string; readonly second: string; readonly vaultPassphrase: string }
   | { readonly type: "identity-change-passphrase"; readonly currentPassphrase: string; readonly nextPassphrase: string }
+  | { readonly type: "moderation-list" }
+  | { readonly type: "moderation-block"; readonly sourceHash: string; readonly label?: string }
+  | { readonly type: "moderation-unblock"; readonly sourceHash: string }
+  | { readonly type: "moderation-mute"; readonly sourceHash: string; readonly label?: string }
+  | { readonly type: "moderation-unmute"; readonly sourceHash: string }
+  | { readonly type: "moderation-report"; readonly sourceHash: string; readonly reason: string; readonly note?: string; readonly messageHash?: string }
+  | { readonly type: "moderation-export-reports" }
   | {
       readonly type: "set-interfaces";
       readonly tcp: boolean;
@@ -157,6 +164,8 @@ export type WorkletToHostMessage =
   | { readonly type: "log"; readonly line: string }
   | { readonly type: "identity-locked"; readonly legacy: boolean; readonly creating: boolean }
   | { readonly type: "identity-operation"; readonly operation: string; readonly ok: boolean; readonly identityHash?: string; readonly backupHex?: string; readonly first?: string; readonly second?: string; readonly error?: string }
+  | { readonly type: "moderation-state"; readonly blocked: ReadonlyArray<{ sourceHash: string; label: string | null; createdAt: number }>; readonly muted: ReadonlyArray<{ sourceHash: string; label: string | null; createdAt: number }>; readonly reports: ReadonlyArray<{ id: string; sourceHash: string; reason: string; note: string; messageHash: string | null; createdAt: number }> }
+  | { readonly type: "moderation-report-export"; readonly json: string }
   | { readonly type: "announce"; readonly entry: AnnounceEntry }
   | { readonly type: "catalog"; readonly entries: ReadonlyArray<CatalogEntryView> }
   | { readonly type: "installed"; readonly packages: ReadonlyArray<InstalledPackageView> }

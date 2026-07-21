@@ -44,6 +44,26 @@ const identityConfirm = document.querySelector("#identity-confirm");
 const identityWordsFirst = document.querySelector("#identity-words-first");
 const identityWordsSecond = document.querySelector("#identity-words-second");
 const identityResult = document.querySelector("#identity-result");
+const moderationSource = document.querySelector("#moderation-source");
+const moderationLabel = document.querySelector("#moderation-label");
+const moderationReason = document.querySelector("#moderation-reason");
+const moderationNote = document.querySelector("#moderation-note");
+const moderationBlocked = document.querySelector("#moderation-blocked");
+const moderationMuted = document.querySelector("#moderation-muted");
+const moderationSummary = document.querySelector("#moderation-summary");
+
+function renderModerationState(message) {
+  const renderEntries = (root, entries) => {
+    root?.replaceChildren(...entries.map((entry) => {
+      const item = document.createElement("li");
+      item.textContent = `${entry.label ? `${entry.label} — ` : ""}${entry.sourceHash}`;
+      return item;
+    }));
+  };
+  renderEntries(moderationBlocked, message.blocked);
+  renderEntries(moderationMuted, message.muted);
+  if (moderationSummary) moderationSummary.textContent = `${message.blocked.length} blocked · ${message.muted.length} muted · ${message.reports.length} local reports`;
+}
 
 /** @type {import("@twistedpear/host-core/protocol").CatalogEntryView[]} */
 let catalogEntries = [];
@@ -712,6 +732,8 @@ if (!host) {
         identityWordsSecond.value = message.second;
       }
     }
+    if (message.type === "moderation-state") renderModerationState(message);
+    if (message.type === "moderation-report-export") void host.saveModerationReport(message.json);
   });
 
   host.send({ type: "trust-list" });
@@ -761,6 +783,19 @@ if (!host) {
     if (identityNext.value !== identityConfirm.value) return appendLog("New passphrases do not match");
     host.send({ type: "identity-change-passphrase", currentPassphrase: identityCurrent.value, nextPassphrase: identityNext.value });
   });
+
+  const sendModeration = (type) => {
+    host.send({ type, sourceHash: moderationSource.value.trim(), label: moderationLabel.value.trim() });
+  };
+  document.querySelector("#moderation-block")?.addEventListener("click", () => sendModeration("moderation-block"));
+  document.querySelector("#moderation-unblock")?.addEventListener("click", () => sendModeration("moderation-unblock"));
+  document.querySelector("#moderation-mute")?.addEventListener("click", () => sendModeration("moderation-mute"));
+  document.querySelector("#moderation-unmute")?.addEventListener("click", () => sendModeration("moderation-unmute"));
+  document.querySelector("#moderation-report")?.addEventListener("click", () => {
+    host.send({ type: "moderation-report", sourceHash: moderationSource.value.trim(), reason: moderationReason.value, note: moderationNote.value });
+  });
+  document.querySelector("#moderation-export")?.addEventListener("click", () => host.send({ type: "moderation-export-reports" }));
+  host.send({ type: "moderation-list" });
 
   limitsApply?.addEventListener("click", () => {
     const appId = runningAppId ?? selectedAppId;

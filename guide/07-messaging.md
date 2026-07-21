@@ -80,13 +80,20 @@ There is no company to report someone to. Defence is structural instead:
 - **Cost to send.** A peer can require senders to do a small amount of computation before
   a message is accepted, which is free for a person sending a few messages and expensive
   for someone sending a hundred thousand.
-- **Your own list.** You decide whose addresses you keep and whose you ignore.
+- **Your own lists.** Blocked senders are rejected before inbox delivery. Muted senders remain
+  in history but do not trigger notifications.
 - **No enumeration.** Addresses are not sequential and there is no directory, so there is
   nobody to bulk-mail.
 
-> **⏳ Not yet available — blocking in the interface.** There is no block list, mute, or
-> report control in the host UI today. The mechanisms above exist in the protocol; the
-> screens for managing them do not.
+The desktop host's **Settings → Safety** panel manages block and mute lists by authenticated
+LXMF source hash. **Record report** saves the source, reason, optional message hash, note, and
+timestamp locally. **Export reports** writes a JSON file you may choose to share; it does not
+contact a company or silently transmit anything. See
+[Local blocking, muting, and reports](../docs/local-moderation.md).
+
+> **⚠️ Works, with limits — local policy only.** There is no takedown, account ban, or
+> network-wide report destination. The desktop settings UI is implemented; mobile and browser
+> hosts do not expose these controls yet.
 
 ## What messaging does not do yet
 

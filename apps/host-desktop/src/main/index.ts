@@ -200,3 +200,12 @@ ipcMain.handle("host:open-identity-backup", async () => {
 ipcMain.handle("host:set-identity-content-protection", (_event, enabled: boolean) => {
   mainWindow?.setContentProtection(enabled);
 });
+ipcMain.handle("host:save-moderation-report", async (_event, json: string) => {
+  const selected = await dialog.showSaveDialog(mainWindow!, {
+    defaultPath: "twistedpear-local-reports.json",
+    filters: [{ name: "JSON", extensions: ["json"] }]
+  });
+  if (selected.canceled || selected.filePath === "") return false;
+  await writeFile(selected.filePath, json, { encoding: "utf8", mode: 0o600 });
+  return true;
+});

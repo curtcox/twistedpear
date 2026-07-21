@@ -114,6 +114,33 @@ async function createProvider() {
 const provider = await createProvider();
 const runtime = bareRuntime({ storePath: hostDataPath("host-desktop-store") });
 const IDENTITY_STORE_KEY = "host-identity";
+const MODERATION_STORE_KEY = "host-moderation-v1";
+let moderationState = { version: 1, blocked: [], muted: [], reports: [] };
+
+function normalizedSourceHash(value) {
+  const normalized = String(value).trim().toLowerCase();
+  if (!/^[0-9a-f]{32}$/.test(normalized)) throw new Error("LXMF source hash must be 32 hexadecimal characters");
+  return normalized;
+}
+
+async function persistModerationState() {
+  await runtime.store.set(MODERATION_STORE_KEY, new TextEncoder().encode(JSON.stringify(moderationState)));
+}
+
+function pushModerationState() {
+  send({ type: "moderation-state", blocked: moderationState.blocked, muted: moderationState.muted, reports: moderationState.reports });
+}
+
+async function loadModerationState() {
+  const stored = await runtime.store.get(MODERATION_STORE_KEY);
+  if (stored !== undefined) {
+    const parsed = JSON.parse(new TextDecoder().decode(stored));
+    if (parsed.version === 1 && Array.isArray(parsed.blocked) && Array.isArray(parsed.muted) && Array.isArray(parsed.reports)) {
+      moderationState = parsed;
+    }
+  }
+  pushModerationState();
+}
 const NODE_FALLBACK = globalThis.process?.env?.TWISTEDPEAR_WORKLET_NODE_FALLBACK === "1";
 const NodeWorkerSandboxBackend = NODE_FALLBACK
   ? (await import("../../../packages/miniapp-runtime/dist/sandbox/node-worker.js")).NodeWorkerSandboxBackend
@@ -1439,6 +1466,49 @@ async function handleHostMessage(raw) {
     return;
   }
 
+  if (message.type === "moderation-list") {
+    pushModerationState();
+    return;
+  }
+
+  if (message.type.startsWith("moderation-")) {
+    try {
+      if (message.type === "moderation-export-reports") {
+        send({ type: "moderation-report-export", json: `${JSON.stringify({ format: "twistedpear-local-reports-v1", exportedAt: Date.now(), reports: moderationState.reports }, null, 2)}\n` });
+        return;
+      }
+      const sourceHash = normalizedSourceHash(message.sourceHash);
+      if (message.type === "moderation-block") {
+        const existing = moderationState.blocked.find((entry) => entry.sourceHash === sourceHash);
+        moderationState.blocked = [...moderationState.blocked.filter((entry) => entry.sourceHash !== sourceHash), { sourceHash, label: message.label?.trim() || null, createdAt: existing?.createdAt ?? Date.now() }];
+        moderationState.muted = moderationState.muted.filter((entry) => entry.sourceHash !== sourceHash);
+      } else if (message.type === "moderation-unblock") {
+        moderationState.blocked = moderationState.blocked.filter((entry) => entry.sourceHash !== sourceHash);
+      } else if (message.type === "moderation-mute") {
+        if (!moderationState.blocked.some((entry) => entry.sourceHash === sourceHash)) {
+          const existing = moderationState.muted.find((entry) => entry.sourceHash === sourceHash);
+          moderationState.muted = [...moderationState.muted.filter((entry) => entry.sourceHash !== sourceHash), { sourceHash, label: message.label?.trim() || null, createdAt: existing?.createdAt ?? Date.now() }];
+        }
+      } else if (message.type === "moderation-unmute") {
+        moderationState.muted = moderationState.muted.filter((entry) => entry.sourceHash !== sourceHash);
+      } else if (message.type === "moderation-report") {
+        moderationState.reports = [...moderationState.reports, {
+          id: `${Date.now().toString(36)}-${moderationState.reports.length.toString(36)}`,
+          sourceHash,
+          reason: message.reason,
+          note: String(message.note ?? "").slice(0, 4096),
+          messageHash: message.messageHash?.trim().toLowerCase() || null,
+          createdAt: Date.now()
+        }];
+      }
+      await persistModerationState();
+      pushModerationState();
+    } catch (error) {
+      log(`Moderation update failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
   if (message.type === "reset-identity") {
     await resetIdentity();
     return;
@@ -1917,6 +1987,7 @@ async function handleHostMessage(raw) {
 void loadPersistedIdentity().then(() =>
   loadCatalogState().then(() => seedBundledCatalogIfNeeded()).then(pushCatalog)
 );
+void loadModerationState();
 pushStatus();
 log(`Desktop host worklet ready (crypto: ${provider.name})`);
 

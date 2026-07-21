@@ -108,6 +108,42 @@ describe("LXMFRouter delivery", () => {
     await expect(received).resolves.toBe("Direct hello");
   });
 
+  it("enforces block policy before invoking the receive callback", async () => {
+    const { aliceRouter, bobRouter, aliceDelivery, bob } = await connectLxmfPeers();
+    let delivered = false;
+    bobRouter.setInboundModeration(() => "block");
+    bobRouter.onDelivery(() => { delivered = true; });
+
+    await aliceRouter.packAndSend({
+      destination: bobRouter.createOutboundDestination(bob),
+      source: aliceDelivery,
+      content: "blocked",
+      desiredMethod: LXMessageMethod.OPPORTUNISTIC,
+      deferStamp: true,
+      timestamp: 1700000003
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(delivered).toBe(false);
+  });
+
+  it("delivers muted messages with notifications suppressed", async () => {
+    const { aliceRouter, bobRouter, aliceDelivery, bob } = await connectLxmfPeers();
+    bobRouter.setInboundModeration(() => "mute");
+    const context = new Promise<{ disposition: string; notify: boolean }>((resolve) => {
+      bobRouter.onDelivery((_message, delivery) => resolve(delivery));
+    });
+
+    await aliceRouter.packAndSend({
+      destination: bobRouter.createOutboundDestination(bob),
+      source: aliceDelivery,
+      content: "quiet",
+      desiredMethod: LXMessageMethod.OPPORTUNISTIC,
+      deferStamp: true,
+      timestamp: 1700000004
+    });
+    await expect(context).resolves.toEqual({ disposition: "mute", notify: false });
+  });
+
   it("delivers propagated messages via a propagation node over PipeInterface", async () => {
     const nodeIdentity = new Identity(provider);
     const alice = loadIdentity(ALICE_KEY);

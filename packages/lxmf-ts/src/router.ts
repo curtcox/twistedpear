@@ -90,7 +90,9 @@ import {
   stepTeardownLxmfPropagationLinkWithActions,
   stepUnpackLxmfPropagationLocalIngressWithActions,
   ReceiptPollStatus,
+  decideLxmfModeration,
   type LxmfSendEvent,
+  type LxmfModerationDisposition,
   type ReceiptPollStatusValue
 } from "@twistedpear/protocol";
 import type { CryptoProvider, Link, Packet, PacketReceipt, RegisteredDestination, Reticulum } from "@twistedpear/reticulum-ts";
@@ -110,9 +112,15 @@ import { LXMessage, rememberMessage, type LXMessagePackOptions } from "./message
 export interface LXMFRouterOptions {
   readonly reticulum: Reticulum;
   readonly provider: CryptoProvider;
+  readonly inboundModeration?: (sourceHashHex: string, message: LXMessage) => LxmfModerationDisposition;
 }
 
-export type DeliveryCallback = (message: LXMessage) => void;
+export interface DeliveryContext {
+  readonly disposition: "allow" | "mute";
+  readonly notify: boolean;
+}
+
+export type DeliveryCallback = (message: LXMessage, context: DeliveryContext) => void;
 
 export class LXMFRouter {
   readonly reticulum: Reticulum;
@@ -123,10 +131,12 @@ export class LXMFRouter {
   private readonly seenMessages = new Set<string>();
   private outboundPropagationNode: Uint8Array | null = null;
   private outboundPropagationLink: Link | null = null;
+  private inboundModeration: (sourceHashHex: string, message: LXMessage) => LxmfModerationDisposition;
 
   constructor(options: LXMFRouterOptions) {
     this.reticulum = options.reticulum;
     this.provider = options.provider;
+    this.inboundModeration = options.inboundModeration ?? (() => "allow");
   }
 
   registerDeliveryIdentity(identity: Identity): RegisteredDestination {
@@ -176,6 +186,10 @@ export class LXMFRouter {
 
   onDelivery(callback: DeliveryCallback): void {
     this.deliveryCallback = callback;
+  }
+
+  setInboundModeration(policy: (sourceHashHex: string, message: LXMessage) => LxmfModerationDisposition): void {
+    this.inboundModeration = policy;
   }
 
   setOutboundPropagationNode(destinationHash: Uint8Array): void {
@@ -712,7 +726,9 @@ export class LXMFRouter {
       return false;
     }
 
-    this.deliveryCallback?.(message!);
+    const context = this.moderate(message!);
+    if (context === null) return false;
+    this.deliveryCallback?.(message!, context);
     return true;
   }
 
@@ -801,7 +817,9 @@ export class LXMFRouter {
       }
     );
     if (shouldInvokeLxmfDeliveryCallbackNow(invoke.actions)) {
-      this.deliveryCallback?.(message!);
+      const context = this.moderate(message!);
+      if (context === null) return null;
+      this.deliveryCallback?.(message!, context);
     }
 
     return message;
@@ -810,6 +828,18 @@ export class LXMFRouter {
   trackDirectLink(destinationHash: Uint8Array, link: Link): void {
     this.directLinks.set(bytesToHex(destinationHash), link);
     this.handleDeliveryLink(link);
+  }
+
+  private moderate(message: LXMessage): DeliveryContext | null {
+    const sourceHashHex = bytesToHex(message.sourceHash);
+    const disposition = this.inboundModeration(sourceHashHex, message);
+    const decision = decideLxmfModeration({
+      blocked: disposition === "block" ? new Set([sourceHashHex]) : new Set(),
+      muted: disposition === "mute" ? new Set([sourceHashHex]) : new Set()
+    }, sourceHashHex);
+    return decision.deliver
+      ? { disposition: decision.disposition as "allow" | "mute", notify: decision.notify }
+      : null;
   }
 
   private unpackDeliverable(lxmfData: Uint8Array, method: LXMessageMethodValue): LXMessage | null {
@@ -858,4 +888,3 @@ export function stampCostFromAppData(appData: Uint8Array | null): number | null 
   });
   return stampCostFromActions(stepped.actions);
 }
-

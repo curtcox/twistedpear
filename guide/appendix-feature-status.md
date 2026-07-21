@@ -30,7 +30,6 @@ You cannot use these today.
 | App search and discovery | [5](05-finding-and-installing-apps.md) | No central registry by design; your catalog is only what peers announce. | [LIMITATIONS §7](../LIMITATIONS.md) |
 | Multiple apps at once; background apps | [6](06-using-apps.md) | v1 runs one foreground mini-app, by design. | [LIMITATIONS §7](../LIMITATIONS.md) |
 | Large messages via propagation | [7](07-messaging.md) | Multi-part propagated transfer is not implemented. | [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) |
-| Blocking, muting, reporting | [7](07-messaging.md) | Protocol mechanisms exist; no UI. | — |
 | Group chat, attachments, history sync | [7](07-messaging.md) | Not in v1 scope. | — |
 | Screenshots in this guide | everywhere | Supplied in a separate pass. | [images/README.md](images/README.md) |
 
@@ -41,6 +40,7 @@ You can use these, but not the way the surrounding text might suggest.
 | Feature | Limit | Where it appears | Tracked as |
 |---|---|---|---|
 | Identity backup and recovery | Encrypted export/import, recovery words, and passphrase changes are available in `tp` and the desktop host; mobile and browser host UI is not yet wired. | [3](03-first-run-and-identity.md) | [docs/identity-backup.md](../docs/identity-backup.md) |
+| Blocking, muting, and local reports | LXMF enforcement and desktop Safety settings are implemented; reports are local records/exports, not submissions to a central authority. Mobile and browser settings are not yet wired. | [7](07-messaging.md) | [docs/local-moderation.md](../docs/local-moderation.md) |
 | Windows desktop host | Built in CI, never installed or exercised on Windows. | [2](02-installing-a-host.md) | H17 |
 | Android host | It is the `harness-mobile` developer build, not a consumer app. | [2](02-installing-a-host.md) | — |
 | Local network discovery | Verified in containers and emulators; never on a real multi-machine LAN. | [4](04-joining-a-network.md) | H15, H18 |
@@ -61,7 +61,8 @@ These are not going to change; they follow from the design. They are documented 
 [LIMITATIONS.md](../LIMITATIONS.md).
 
 - **No anonymity.** Contents are encrypted; your local radio presence is observable.
-- **No moderation.** No review, no takedown, no central authority. Capability grants and
+- **No central moderation.** No review, no takedown, no central authority. Local block/mute
+  policy and capability grants are
   publisher trust are the defence.
 - **Radio links are slow.** Bluetooth is tens of kilobits per second; LoRa is hundreds of
   bits. Messages fit; large downloads do not.

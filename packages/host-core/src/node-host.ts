@@ -23,6 +23,7 @@ import { selectPreferredInterface } from "@twistedpear/reticulum-interfaces";
 import { ensureDir } from "./config.js";
 import { identityHashHex, loadOrCreateIdentity } from "./identity.js";
 import { startSeederRole } from "./roles/seeder.js";
+import { FileModerationStore } from "./moderation-store.js";
 import type { HostConfig, HostStatus } from "./types.js";
 
 export interface NodeHostOptions {
@@ -35,6 +36,7 @@ export interface NodeHostOptions {
 export interface NodeHostSession {
   readonly reticulum: Reticulum;
   readonly identity: Identity;
+  readonly moderation: FileModerationStore;
   readonly getStatus: () => HostStatus;
   readonly stop: () => Promise<void>;
 }
@@ -44,6 +46,7 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
   const runtime = options.runtime ?? nodeRuntime();
   const config = options.config;
   ensureDir(config.dataDir);
+  const moderation = new FileModerationStore(join(config.dataDir, "moderation.json"));
 
   const transportEnabled = config.roles.transport && config.roles.attachRnsd === null;
   const reticulum = Rns.create({
@@ -92,7 +95,11 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
   }
 
   if (config.roles.propagation) {
-    lxmfRouter = new LXMFRouter({ reticulum, provider });
+    lxmfRouter = new LXMFRouter({
+      reticulum,
+      provider,
+      inboundModeration: (sourceHash) => moderation.disposition(sourceHash)
+    });
     propagationServer = new PropagationServer(
       provider,
       {
@@ -234,6 +241,7 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
   return {
     reticulum,
     identity,
+    moderation,
     getStatus: buildStatus,
     async stop() {
       if (statusServer !== null) {

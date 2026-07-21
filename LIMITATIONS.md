@@ -174,7 +174,8 @@ everything below is a known cost of the chosen design or of the platforms involv
   localhost/adb-only, off by default, and badged **DEV** in the UI.
 - No central registry means **no central moderation**: discovery is by announce/registry
   subscription, and malicious-app defense rests on signatures, capability grants, and
-  user/community trust — an explicit design stance, but a restriction worth stating.
+  user/community trust. LXMF block/mute lists and report records are local; exporting a report
+  does not submit it or cause a network-wide ban.
 - **Dev environment (DevStudio) v1 limits:** projects are single-file bundles (no
   in-host bundler); workspace files are capped at 256 KiB (the `code-editor` widget has
   no delta protocol yet); AI editing is non-streaming whole-file replacement through an

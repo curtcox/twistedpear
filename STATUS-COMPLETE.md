@@ -23,6 +23,7 @@ Last audited: 2026-07-21.
 | S0 | done | S0 release automation harness | `scripts/release/`, [harness log](release/evidence-logs/2026-07-19-s0-harness.log) | `npm run test:release-harness && npm run release:status` |
 | S1 | done | S1 keep-green baseline (build/unit + full PR-tier CI) | [structured record](release/evidence/baseline-s1.json), [CI record](release/evidence/ci-baseline.json), [run log](release/evidence-logs/2026-07-20-s1-baseline-green.log) | `npm run build && npm test`; CI run [29775996062](https://github.com/curtcox/twistedpear/actions/runs/29775996062) |
 | RG2 | done | Encrypted identity backup and recovery (`host-core`, `tp`, desktop settings) | `packages/host-core/test/identity-backup.test.ts`, `packages/cli/test/identity.test.ts`, [format design](docs/identity-backup.md) | `npx vitest run packages/host-core/test/identity-backup.test.ts packages/cli/test/identity.test.ts && npm run build --workspace=host-desktop` |
+| RG3 | done | Persisted LXMF blocking, muting, and local report export | `packages/protocol/test/lxmf-moderation.test.ts`, `packages/lxmf-ts/test/router.test.ts`, `packages/host-core/test/moderation-store.test.ts`, desktop **Safety** settings | `npx vitest run packages/protocol/test/lxmf-moderation.test.ts packages/lxmf-ts/test/router.test.ts packages/host-core/test/moderation-store.test.ts` |
 
 ---
 

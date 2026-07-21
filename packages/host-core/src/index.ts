@@ -1,4 +1,11 @@
 export {
+  FileModerationStore,
+  type LocalReportReason,
+  type LocalReportRecord,
+  type ModerationEntry,
+  type ModerationSnapshot
+} from "./moderation-store.js";
+export {
   defaultHostConfig,
   defaultHostDataDir,
   defaultWebLeafConfig,

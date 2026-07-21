@@ -33,7 +33,7 @@ export {
 } from "./message.js";
 export type { LXMessagePackOptions, LXMessageUnpackOptions } from "./message.js";
 export { LXMFRouter, stampCostFromAppData } from "./router.js";
-export type { DeliveryCallback, LXMFRouterOptions } from "./router.js";
+export type { DeliveryCallback, DeliveryContext, LXMFRouterOptions } from "./router.js";
 export {
   PropagationClient,
   PropagationNodeStore,

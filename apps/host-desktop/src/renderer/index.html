@@ -105,6 +105,26 @@
           <p id="identity-result" class="muted"></p>
         </div>
       </section>
+      <section class="panel">
+        <h2>Safety</h2>
+        <p class="muted">Blocking drops future LXMF deliveries. Muting keeps messages but suppresses notifications. Reports stay on this device unless you export them.</p>
+        <div class="settings-grid">
+          <label>Sender destination hash <input type="text" id="moderation-source" class="setting-input" maxlength="32" placeholder="32 hexadecimal characters" /></label>
+          <label>Label <input type="text" id="moderation-label" class="setting-input" maxlength="160" /></label>
+          <label>Report reason
+            <select id="moderation-reason" class="setting-input"><option value="spam">Spam</option><option value="harassment">Harassment</option><option value="impersonation">Impersonation</option><option value="unsafe-content">Unsafe content</option><option value="other">Other</option></select>
+          </label>
+          <label>Local report note <textarea id="moderation-note" class="setting-input" rows="3" maxlength="4096"></textarea></label>
+          <div class="item-row">
+            <button id="moderation-block">Block</button><button id="moderation-unblock">Unblock</button>
+            <button id="moderation-mute">Mute</button><button id="moderation-unmute">Unmute</button>
+            <button id="moderation-report">Record report</button><button id="moderation-export">Export reports</button>
+          </div>
+          <div><strong>Blocked</strong><ul id="moderation-blocked" class="item-list"></ul></div>
+          <div><strong>Muted</strong><ul id="moderation-muted" class="item-list"></ul></div>
+          <p id="moderation-summary" class="muted"></p>
+        </div>
+      </section>
       <section class="panel miniapp-panel" id="miniapp-panel">
         <div class="miniapp-toolbar">
           <div>

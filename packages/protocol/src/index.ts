@@ -1,5 +1,11 @@
 export { initialEchoState, stepEcho, type EchoState } from "./echo.js";
 export {
+  decideLxmfModeration,
+  type LxmfModerationDecision,
+  type LxmfModerationDisposition,
+  type LxmfModerationState
+} from "./lxmf-moderation.js";
+export {
   grantParserMachine,
   grantParserTokenClasses,
   initialGrantParserState,
