@@ -45,7 +45,7 @@ async function main() {
   let exampleBytes;
   const examplePackages = [];
   try {
-    await runInit({ cwd, args: [] });
+    await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
     const packCode = await runPack({
       cwd,
       args: [resolve(fixtureDir, "example-app"), "--out", "example.tpkg"]
@@ -62,7 +62,7 @@ async function main() {
       cpSync(join(examplesDir, name), appDir, { recursive: true });
 
       try {
-        const initCode = await runInit({ cwd: exampleCwd, args: [] });
+        const initCode = await runInit({ cwd: exampleCwd, identityPassphrase: "conformance identity passphrase", args: [] });
         if (initCode !== 0) {
           throw new Error(`tp init failed for ${name}`);
         }
@@ -98,7 +98,7 @@ async function main() {
     cpSync(join(handbookDir, "app.manifest.json"), join(handbookAppDir, "app.manifest.json"));
     cpSync(join(handbookDir, "bundle.js"), join(handbookAppDir, "bundle.js"));
     try {
-      const initCode = await runInit({ cwd: handbookCwd, args: [] });
+      const initCode = await runInit({ cwd: handbookCwd, identityPassphrase: "conformance identity passphrase", args: [] });
       if (initCode !== 0) {
         throw new Error("tp init failed for handbook");
       }
@@ -129,7 +129,7 @@ async function main() {
           cpSync(join(partDir, "app.manifest.json"), join(partAppDir, "app.manifest.json"));
           cpSync(join(partDir, "bundle.js"), join(partAppDir, "bundle.js"));
           try {
-            const partInit = await runInit({ cwd: partCwd, args: [] });
+            const partInit = await runInit({ cwd: partCwd, identityPassphrase: "conformance identity passphrase", args: [] });
             if (partInit !== 0) {
               throw new Error(`tp init failed for ${manifest.name}`);
             }

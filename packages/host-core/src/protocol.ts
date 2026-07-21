@@ -105,6 +105,12 @@ export type HostToWorkletMessage =
   | { readonly type: "network-change" }
   | { readonly type: "create-identity" }
   | { readonly type: "reset-identity" }
+  | { readonly type: "identity-unlock"; readonly passphrase: string; readonly confirmation?: string }
+  | { readonly type: "identity-export"; readonly currentPassphrase: string; readonly backupPassphrase: string }
+  | { readonly type: "identity-recovery-show"; readonly currentPassphrase: string }
+  | { readonly type: "identity-import"; readonly backupHex: string; readonly backupPassphrase: string; readonly vaultPassphrase: string }
+  | { readonly type: "identity-recovery-import"; readonly first: string; readonly second: string; readonly vaultPassphrase: string }
+  | { readonly type: "identity-change-passphrase"; readonly currentPassphrase: string; readonly nextPassphrase: string }
   | {
       readonly type: "set-interfaces";
       readonly tcp: boolean;
@@ -149,6 +155,8 @@ export type HostToWorkletMessage =
 export type WorkletToHostMessage =
   | { readonly type: "status"; readonly status: WorkletStatus }
   | { readonly type: "log"; readonly line: string }
+  | { readonly type: "identity-locked"; readonly legacy: boolean; readonly creating: boolean }
+  | { readonly type: "identity-operation"; readonly operation: string; readonly ok: boolean; readonly identityHash?: string; readonly backupHex?: string; readonly first?: string; readonly second?: string; readonly error?: string }
   | { readonly type: "announce"; readonly entry: AnnounceEntry }
   | { readonly type: "catalog"; readonly entries: ReadonlyArray<CatalogEntryView> }
   | { readonly type: "installed"; readonly packages: ReadonlyArray<InstalledPackageView> }

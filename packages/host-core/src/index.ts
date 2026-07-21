@@ -29,7 +29,28 @@ export {
   resolveHostConfig,
   saveHostConfigFile
 } from "./config.js";
-export { identityHashHex, loadOrCreateIdentity, persistIdentity } from "./identity.js";
+export {
+  atomicWritePrivateFile,
+  identityHashHex,
+  loadOrCreateIdentity,
+  persistEncryptedIdentity,
+  persistIdentity,
+  type IdentityVaultOptions
+} from "./identity.js";
+export {
+  decryptIdentityBackup,
+  encryptIdentityBackup,
+  identityFromRecoveryWords,
+  identityToRecoveryWords,
+  isEncryptedIdentityBackup,
+  validateNewIdentityPassphrase,
+  IDENTITY_BACKUP_ERROR,
+  IDENTITY_BACKUP_EXTENSION,
+  IDENTITY_PASSPHRASE_MIN_CODE_POINTS,
+  IDENTITY_SCRYPT_PARAMS,
+  type IdentityBackupEntropy,
+  type IdentityRecoveryWords
+} from "./identity-backup.js";
 export { createNodeHost, runNodeHost, type NodeHostOptions, type NodeHostSession } from "./node-host.js";
 export { startSeederRole, type SeederRoleOptions, type SeederRoleSession } from "./roles/seeder.js";
 export type { FetchPath, FetchPlane, FetchPlaneRequest, FetchPlaneResult, FetchProgress } from "./fetch-plane.js";

@@ -46,8 +46,8 @@ your app's design needs the confirmation to go away, your app's design is wrong.
 
 > **⏳ Not yet available — key rotation, revocation, and multi-maintainer apps.** Your
 > publisher key is forever. Lose it and the app can never be updated; leak it and there is no
-> revocation path. There is also no guided backup — the key file is unencrypted and there is
-> no export flow or recovery phrase. See
+> revocation path. Use `tp identity export` or `tp identity recovery show` before publishing;
+> backup and recovery preserve the key but do not rotate or revoke it. See
 > [docs/package-format.md](../docs/package-format.md) §1 and
 > [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md).
 

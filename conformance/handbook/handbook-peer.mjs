@@ -72,7 +72,7 @@ async function main() {
   cpSync(join(handbookDir, "app.manifest.json"), join(appDir, "app.manifest.json"));
   cpSync(join(handbookDir, "bundle.js"), join(appDir, "bundle.js"));
 
-  const initCode = await runInit({ cwd: publisherDir, args: [] });
+  const initCode = await runInit({ cwd: publisherDir, identityPassphrase: "conformance identity passphrase", args: [] });
   if (initCode !== 0) {
     throw new Error("tp init failed");
   }

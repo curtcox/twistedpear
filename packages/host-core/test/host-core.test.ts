@@ -69,6 +69,7 @@ describe("host-core status endpoint", () => {
     const dataDir = mkdtempSync(join(tmpdir(), "tp-host-test-"));
     try {
       const session = await createNodeHost({
+        identityPassphrase: "conformance identity passphrase",
         config: defaultHostConfig({
           dataDir,
           roles: { transport: false, seeder: false, propagation: false, attachRnsd: null },
@@ -99,6 +100,7 @@ describe("host-core websocket gateway", () => {
     const dataDir = mkdtempSync(join(tmpdir(), "tp-host-ws-"));
     try {
       const session = await createNodeHost({
+        identityPassphrase: "conformance identity passphrase",
         config: defaultHostConfig({
           dataDir,
           roles: { transport: false, seeder: false, propagation: false, attachRnsd: null },

@@ -64,6 +64,7 @@ const dataDir = mkdtempSync(join(tmpdir(), "tp-rnsd-"));
 try {
   await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
     const session = await createNodeHost({
+        identityPassphrase: "conformance identity passphrase",
       config: resolveHostConfig({
         dataDir,
         overrides: {

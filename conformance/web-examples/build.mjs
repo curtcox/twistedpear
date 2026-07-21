@@ -29,7 +29,7 @@ async function packExample(name) {
   cpSync(join(appsExamplesDir, name), appDir, { recursive: true });
 
   try {
-    const initCode = await runInit({ cwd, args: [] });
+    const initCode = await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
     if (initCode !== 0) {
       throw new Error(`tp init failed for ${name}`);
     }

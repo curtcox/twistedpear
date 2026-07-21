@@ -31,7 +31,6 @@ You cannot build these recipes as written today.
 | Mini-app IPC and shared storage | [4](04-apps-that-talk-to-one-peer.md), [6](06-apps-that-move-files.md) | Deliberately deferred. No recipe can share code or state with another; each carries its own copy of the messaging plumbing. | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | Large messages via propagation | [6](06-apps-that-move-files.md), [9](09-apps-for-a-bad-link.md) | Multi-part propagated transfer is not implemented, which is part of why the chunking suggestions are exercises rather than recipes. | [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) |
 | Key rotation, revocation, multi-maintainer apps | [4](04-apps-that-talk-to-one-peer.md#dead-drop), [8](08-apps-that-build-apps.md) | Out of scope for v1. Lose the publisher key and the app can never be updated; a signature you accept is accepted forever. | [docs/package-format.md](../docs/package-format.md) §1 |
-| Guided publisher-identity backup | [8](08-apps-that-build-apps.md) | No export flow, no recovery phrase, no passphrase; the key file is unencrypted. | [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) |
 | Streaming model output | [7](07-apps-that-use-a-model.md) | `ai.chat` returns one whole reply. Token-by-token UI is not possible, so every model recipe shows a "working" state instead. | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | Embeddings or any vector search | [7](07-apps-that-use-a-model.md#ask-the-handbook) | Not in the SDK. Ask the handbook uses keyword scoring because it is the only retrieval available. | [docs/miniapp-sdk.md](../docs/miniapp-sdk.md) |
 | A published `tp` binary | [1](01-how-to-use-this-cookbook.md) | Nothing is published or notarized; `tp pack` requires a build from source. | H17, [release plan](../RELEASE-PLAN.md) |
@@ -44,6 +43,7 @@ You can build these, but not the way the surrounding text might suggest.
 
 | Feature | Limit | Where it appears | Tracked as |
 |---|---|---|---|
+| Publisher-identity backup | Host-owned `tp` and desktop settings flows support encrypted backup and recovery words; mini-apps never receive the private identity material. | [8](08-apps-that-build-apps.md) | [docs/identity-backup.md](../docs/identity-backup.md) |
 | Single-file bundles | No in-host bundler, so `import` resolves the SDK and nothing else. Every sample is one file because it has to be. | [1](01-how-to-use-this-cookbook.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | Dev side-loading | Localhost/`adb` only, off by default, always badged **DEV**. You cannot side-load to a phone across a network. | [1](01-how-to-use-this-cookbook.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | Dev preview slot | One slot per host. Previewing again replaces the previous preview, so generated apps cannot be compared side by side. | [1](01-how-to-use-this-cookbook.md), [8](08-apps-that-build-apps.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |

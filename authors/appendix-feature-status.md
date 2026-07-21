@@ -25,7 +25,6 @@ You cannot use these today.
 |---|---|---|---|
 | A published `tp` package or signed binary | [3](03-hello-world-with-the-cli.md) | Nothing is published or notarized; every install is built from source. | H17, [release plan](../RELEASE-PLAN.md) |
 | Key rotation, revocation, multi-maintainer apps | [3](03-hello-world-with-the-cli.md), [10](10-updates-and-trust.md) | Out of scope for v1. Lose the key and the app can never be updated. | [docs/package-format.md](../docs/package-format.md) §1 |
-| Guided publisher-identity backup | [3](03-hello-world-with-the-cli.md) | No export flow, no recovery phrase, no passphrase; the key file is unencrypted. | [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) |
 | React binding for the UI | [1](01-what-you-are-building.md) | A custom reconciler is designed but unbuilt, and explicitly non-blocking for v1. | [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) — optional backlog |
 | Hyperbee replication between devices | [6](06-storage-and-files.md) | v1 Hyperbee is local-only; cross-device sync topics are future work. | [docs/miniapp-sdk.md](../docs/miniapp-sdk.md) |
 | Mini-app IPC and shared storage | [1](01-what-you-are-building.md), [5](05-capabilities.md) | Deliberately deferred, not missing. Do not design a suite of cooperating apps. | [LIMITATIONS.md §7](../LIMITATIONS.md) |
@@ -40,6 +39,7 @@ You can build on these, but not the way the surrounding text might suggest.
 
 | Feature | Limit | Where it appears | Tracked as |
 |---|---|---|---|
+| Publisher-identity backup | `tp` encrypts new identities and supports backup import/export, two-part BIP-39 recovery, and passphrase changes; it does not rotate or revoke a publisher. | [3](03-hello-world-with-the-cli.md) | [docs/identity-backup.md](../docs/identity-backup.md) |
 | DevStudio projects | Single-file bundles only. No in-host bundler, so `import` works only for the SDK. | [2](02-hello-world-in-devstudio.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | AI-assisted editing | Non-streaming, whole-file replacement; one in-flight request; ≤ 64 messages; `maxTokens` clamped to 8,192. | [2](02-hello-world-in-devstudio.md), [8](08-ai-and-authoring-apps.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | Dev preview slot | One slot. Previewing again replaces the previous preview. | [2](02-hello-world-in-devstudio.md), [11](11-testing-and-debugging.md) | [LIMITATIONS.md §7](../LIMITATIONS.md) |

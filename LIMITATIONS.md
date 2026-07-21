@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-20
+audited: 2026-07-21
 register: none
 -->
 
@@ -194,7 +194,8 @@ everything below is a known cost of the chosen design or of the platforms involv
   GATT stream), and there is no multicast/AutoInterface. RNode over WebSerial
   (Chromium-only) is implemented as a stretch path with simulated-serial CI
   (`test:web-rnode`); real USB LoRa E2E remains device-gated.
-- **Weaker key custody:** identity keys sit in IndexedDB encrypted under a WebCrypto key —
+- **Weaker key custody:** identity keys sit in IndexedDB encrypted under a WebCrypto key;
+  the portable `.tpidentity` and recovery-word settings flow is not yet exposed by the web host —
   no hardware keystore equivalent. The serving origin is part of the TCB: whoever serves
   the page bytes can substitute them. Default posture is self-serving from the user's own
   node (`tp node --serve-web`).
@@ -211,6 +212,10 @@ everything below is a known cost of the chosen design or of the platforms involv
 
 ## 9. General
 
+- **Identity recovery UI coverage:** encrypted vaults, portable backup import/export, and
+  two-part BIP-39 recovery are implemented in `tp` and the desktop host. Mobile and browser
+  host settings do not yet expose those operations. Recovery does not rotate or revoke a key,
+  and simultaneous use of a restored identity on two hosts remains unsupported.
 - **Anonymity/privacy caveats:** BLE MAC addresses, WiFi multicast presence, and always-on
   radios are locally observable even though Reticulum payloads are encrypted and packets
   carry no source address. Physical-layer observability is out of scope for the stack.

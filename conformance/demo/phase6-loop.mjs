@@ -124,6 +124,7 @@ async function assertStatusEndpoint(expected) {
 
 async function runFullRolesBoot(dataDir, options = {}) {
   const session = await createNodeHost({
+        identityPassphrase: "conformance identity passphrase",
     config: resolveHostConfig({
       dataDir,
       overrides: {

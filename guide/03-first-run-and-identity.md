@@ -19,8 +19,8 @@ the guide.
 **Create identity** button sits below. Everything else on screen is dimmed or empty,
 making it obvious this is the one action available.
 
-Press **Create identity**. The host generates an Ed25519/X25519 keypair, writes it to
-disk, and derives your address from it. This takes well under a second.
+Enter and confirm a passphrase of at least 12 characters, then press **Unlock / create**.
+The host generates an Ed25519/X25519 keypair, encrypts it at rest, and derives your address.
 
 ![Node status after identity creation](/guide/images/03-identity-created.png)
 
@@ -55,13 +55,16 @@ you lose your address, your message history's continuity, and any apps published
 it — permanently and with no recourse. Nobody, including the people who wrote
 TwistedPear, can restore it.
 
-> **⏳ Not yet available — guided backup.** There is no export-to-recovery-phrase flow, no
-> "back up my identity" button, and no passphrase protection. Backing up today means
-> copying a file yourself, and that file is an unencrypted private key. Treat it exactly
-> as you would treat a house key. Tracked in
-> [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md).
+In desktop **Settings → Identity backup**, choose **Export encrypted backup** to save a
+`.tpidentity` file, or **Show recovery words** to reveal the two labelled 24-word groups.
+The CLI provides the same operations with `tp identity export` and
+`tp identity recovery show`. Anyone with either complete backup representation is you.
 
-Copy the file called `identity` from your host's data directory:
+The encrypted vault and exported backup use the portable format described in
+[Identity backup and recovery](../docs/identity-backup.md). Legacy raw identity files are
+migrated without changing the identity hash after you set a passphrase.
+
+Default identity locations are:
 
 | Platform | Data directory |
 |---|---|
@@ -71,11 +74,11 @@ Copy the file called `identity` from your host's data directory:
 | Android / iOS | Private app storage — not reachable without a device backup |
 | Browser | Stored in the browser's own database — see the warning below |
 
-Put the copy somewhere encrypted: a password manager's secure file store, an encrypted
-disk image, or a hardware backup. To restore, stop the host, put the file back at the
-same path, and start it again.
+Store the `.tpidentity` file and its passphrase separately, or record both recovery-word
+groups offline. Restore with desktop **Import backup** / **Recover from words**, or with
+`tp identity import` / `tp identity recovery import`.
 
-> **⚠️ Works, with limits — phone and browser identities cannot be exported.** On Android
+> **⚠️ Works, with limits — phone and browser identities cannot yet be exported in-host.** On Android
 > and iOS the identity lives in private app storage; clearing the app's data destroys it.
 > In a browser it lives in IndexedDB and your browser can evict it — clearing site data
 > destroys it. If either identity matters to you, keep the desktop host as your primary

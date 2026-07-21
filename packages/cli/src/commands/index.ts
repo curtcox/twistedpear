@@ -36,17 +36,34 @@ import {
 } from "@twistedpear/reticulum-ts";
 import { ensureDir, loadConfig, readBytes, resolveFromCwd, saveConfig, writeBytes } from "../config.js";
 import { isSeederStateDir, registerDriveWithSeederQuota } from "../seed/register.js";
-import { DEFAULT_QUOTAS } from "@twistedpear/host-core";
+import {
+  DEFAULT_QUOTAS,
+  atomicWritePrivateFile,
+  decryptIdentityBackup,
+  encryptIdentityBackup,
+  identityFromRecoveryWords,
+  identityHashHex,
+  identityToRecoveryWords,
+  isEncryptedIdentityBackup,
+  persistEncryptedIdentity,
+  validateNewIdentityPassphrase
+} from "@twistedpear/host-core";
 import { startDevServer } from "../dev/server.js";
 
 export interface CommandContext {
   readonly cwd: string;
   readonly args: ReadonlyArray<string>;
+  readonly identityPassphrase?: string;
+  readonly identityPassphraseConfirmation?: string;
+  readonly readSecret?: (prompt: string) => Promise<string>;
 }
+
+const sessionPassphrases = new Map<string, string>();
 
 export function printHelp(command: string): void {
   const help: Record<string, string> = {
     init: "tp init [--force]  Create/load publisher Reticulum identity",
+    identity: "tp identity <export|import|recovery show|recovery import|change-passphrase>",
     create: "tp create <hello|chat-min> [app-dir]  Scaffold a mini-app template",
     dev: "tp dev <app-dir> [--host 127.0.0.1:34987]  Build and side-load to a dev-mode host",
     pack: "tp pack <app-dir> [--out <file.tpkg>]  Build unsigned package archive",
@@ -117,9 +134,19 @@ function hasFlag(args: ReadonlyArray<string>, flag: string): boolean {
   return args.includes(flag);
 }
 
-function loadIdentity(provider: NodeCryptoProvider, path: string): Identity {
+function requiredPassphrase(ctx: CommandContext): string {
+  const passphrase = ctx.identityPassphrase ?? sessionPassphrases.get(ctx.cwd);
+  if (passphrase === undefined || passphrase.length === 0) {
+    throw new Error("Identity passphrase required (set TP_IDENTITY_PASSPHRASE or use an interactive terminal)");
+  }
+  return passphrase;
+}
+
+function loadIdentity(provider: NodeCryptoProvider, path: string, ctx: CommandContext): Identity {
   const bytes = readBytes(path);
-  const identity = Identity.fromBytes(provider, bytes);
+  const identity = isEncryptedIdentityBackup(bytes)
+    ? decryptIdentityBackup(provider, bytes, requiredPassphrase(ctx))
+    : Identity.fromBytes(provider, bytes);
   if (identity === null) {
     throw new Error(`Invalid identity at ${path}`);
   }
@@ -276,10 +303,95 @@ export async function runInit(ctx: CommandContext): Promise<number> {
 
   ensureDir(resolveFromCwd(ctx.cwd, ".tp"));
   const identity = new Identity(provider);
-  writeBytes(identityPath, identity.getPrivateKey());
+  const passphrase = requiredPassphrase(ctx);
+  validateNewIdentityPassphrase(passphrase, ctx.identityPassphraseConfirmation ?? passphrase);
+  persistEncryptedIdentity(provider, identityPath, identity, passphrase);
+  sessionPassphrases.set(ctx.cwd, passphrase);
   saveConfig(ctx.cwd, config);
   console.log(`Publisher identity: ${bytesToHex(identity.getPublicKey())}`);
   return 0;
+}
+
+async function readRequiredSecret(ctx: CommandContext, prompt: string): Promise<string> {
+  if (ctx.readSecret === undefined) throw new Error(`${prompt} requires an interactive terminal`);
+  const value = await ctx.readSecret(prompt);
+  if (value.length === 0) throw new Error("Cancelled");
+  return value;
+}
+
+export async function runIdentity(ctx: CommandContext): Promise<number> {
+  const provider = new NodeCryptoProvider();
+  const config = loadConfig(ctx.cwd);
+  const identityPath = resolveFromCwd(ctx.cwd, config.identityPath);
+  const [operation, suboperation] = ctx.args;
+
+  if (operation === "export") {
+    const identity = loadIdentity(provider, identityPath, ctx);
+    const backupPassphrase = await readRequiredSecret(ctx, "Backup passphrase");
+    const confirmation = await readRequiredSecret(ctx, "Confirm backup passphrase");
+    validateNewIdentityPassphrase(backupPassphrase, confirmation);
+    const outputPath = resolveFromCwd(ctx.cwd, parseFlag(ctx.args, "--out") ?? "identity.tpidentity");
+    if (existsSync(outputPath) && !hasFlag(ctx.args, "--force")) throw new Error(`Refusing to overwrite ${outputPath}`);
+    const backup = encryptIdentityBackup(provider, identity, backupPassphrase);
+    try {
+      atomicWritePrivateFile(outputPath, backup);
+    } finally {
+      backup.fill(0);
+    }
+    console.log(`Exported encrypted identity ${identityHashHex(identity).slice(0, 12)} to ${outputPath}`);
+    return 0;
+  }
+
+  if (operation === "import") {
+    const input = ctx.args[1];
+    if (input === undefined || input.startsWith("--")) throw new Error("tp identity import requires a .tpidentity file");
+    if (existsSync(identityPath) && !hasFlag(ctx.args, "--force")) {
+      throw new Error("An identity already exists; inspect the candidate and repeat with --force to replace it");
+    }
+    const backupPassphrase = await readRequiredSecret(ctx, "Backup passphrase");
+    const candidate = decryptIdentityBackup(provider, readBytes(resolveFromCwd(ctx.cwd, input)), backupPassphrase);
+    const vaultPassphrase = requiredPassphrase(ctx);
+    validateNewIdentityPassphrase(vaultPassphrase, vaultPassphrase);
+    persistEncryptedIdentity(provider, identityPath, candidate, vaultPassphrase);
+    console.log(`Imported identity ${identityHashHex(candidate).slice(0, 12)}; restart the host`);
+    return 0;
+  }
+
+  if (operation === "recovery" && suboperation === "show") {
+    const identity = loadIdentity(provider, identityPath, ctx);
+    const words = identityToRecoveryWords(identity);
+    console.log("Anyone with these words is you. Store them offline. TwistedPear cannot reset or revoke them.");
+    console.log(`TwistedPear identity 1/2: ${words.first}`);
+    console.log(`TwistedPear identity 2/2: ${words.second}`);
+    return 0;
+  }
+
+  if (operation === "recovery" && suboperation === "import") {
+    if (existsSync(identityPath) && !hasFlag(ctx.args, "--force")) {
+      throw new Error("An identity already exists; repeat with --force to replace it");
+    }
+    const first = await readRequiredSecret(ctx, "TwistedPear identity 1/2");
+    const second = await readRequiredSecret(ctx, "TwistedPear identity 2/2");
+    const candidate = identityFromRecoveryWords(provider, { first, second });
+    const vaultPassphrase = requiredPassphrase(ctx);
+    validateNewIdentityPassphrase(vaultPassphrase, vaultPassphrase);
+    persistEncryptedIdentity(provider, identityPath, candidate, vaultPassphrase);
+    console.log(`Recovered identity ${identityHashHex(candidate).slice(0, 12)}; restart the host`);
+    return 0;
+  }
+
+  if (operation === "change-passphrase") {
+    const identity = loadIdentity(provider, identityPath, ctx);
+    const next = await readRequiredSecret(ctx, "New identity passphrase");
+    const confirmation = await readRequiredSecret(ctx, "Confirm new identity passphrase");
+    validateNewIdentityPassphrase(next, confirmation);
+    persistEncryptedIdentity(provider, identityPath, identity, next);
+    console.log(`Changed passphrase for identity ${identityHashHex(identity).slice(0, 12)}`);
+    return 0;
+  }
+
+  printHelp("identity");
+  return 1;
 }
 
 export async function runCreate(ctx: CommandContext): Promise<number> {
@@ -311,7 +423,7 @@ export async function runDev(ctx: CommandContext): Promise<number> {
   const provider = new NodeCryptoProvider();
   const identityPath = resolveFromCwd(ctx.cwd, config.identityPath);
   const publisherPublicKey = existsSync(identityPath)
-    ? bytesToHex(loadIdentity(provider, identityPath).getPublicKey())
+    ? bytesToHex(loadIdentity(provider, identityPath, ctx).getPublicKey())
     : "dev";
 
   const server = await startDevServer({
@@ -352,7 +464,7 @@ export async function runPack(ctx: CommandContext): Promise<number> {
   validateManifestCapabilities(app.capabilities ?? []);
   const provider = new NodeCryptoProvider();
   const config = loadConfig(ctx.cwd);
-  const identity = loadIdentity(provider, resolveFromCwd(ctx.cwd, config.identityPath));
+  const identity = loadIdentity(provider, resolveFromCwd(ctx.cwd, config.identityPath), ctx);
   const files = collectAppFiles(resolveFromCwd(ctx.cwd, appDir));
 
   const driveKey = existsSync(resolveFromCwd(ctx.cwd, ".tp/publish.json"))
@@ -396,7 +508,7 @@ export async function runSign(ctx: CommandContext): Promise<number> {
 
   const provider = new NodeCryptoProvider();
   const config = loadConfig(ctx.cwd);
-  const identity = loadIdentity(provider, resolveFromCwd(ctx.cwd, config.identityPath));
+  const identity = loadIdentity(provider, resolveFromCwd(ctx.cwd, config.identityPath), ctx);
   const archive = readBytes(resolveFromCwd(ctx.cwd, archivePath));
   const unpacked = unpackPackage(provider, archive);
   const { signature: _old, ...unsigned } = unpacked.manifest;
@@ -415,14 +527,19 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
     return 1;
   }
 
-  const packCode = await runPack({ cwd: ctx.cwd, args: [appDir, "--out", ".tp/last.tpkg"] });
+  const packCode = await runPack({
+    cwd: ctx.cwd,
+    args: [appDir, "--out", ".tp/last.tpkg"],
+    ...(ctx.identityPassphrase === undefined ? {} : { identityPassphrase: ctx.identityPassphrase }),
+    ...(ctx.readSecret === undefined ? {} : { readSecret: ctx.readSecret })
+  });
   if (packCode !== 0) {
     return packCode;
   }
 
   const provider = new NodeCryptoProvider();
   const config = loadConfig(ctx.cwd);
-  const identity = loadIdentity(provider, resolveFromCwd(ctx.cwd, config.identityPath));
+  const identity = loadIdentity(provider, resolveFromCwd(ctx.cwd, config.identityPath), ctx);
   const archive = readBytes(resolveFromCwd(ctx.cwd, ".tp/last.tpkg"));
   const unpacked = unpackPackage(provider, archive);
 
@@ -510,7 +627,12 @@ export async function runUpdate(ctx: CommandContext): Promise<number> {
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { version: string };
   manifest.version = version;
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  return runPublish({ cwd: ctx.cwd, args: [appDir] });
+  return runPublish({
+    cwd: ctx.cwd,
+    args: [appDir],
+    ...(ctx.identityPassphrase === undefined ? {} : { identityPassphrase: ctx.identityPassphrase }),
+    ...(ctx.readSecret === undefined ? {} : { readSecret: ctx.readSecret })
+  });
 }
 
 export async function runSeed(ctx: CommandContext): Promise<number> {
@@ -525,7 +647,8 @@ export async function runSeed(ctx: CommandContext): Promise<number> {
     transport,
     propagation,
     attachRnsd,
-    statusEndpoint: hasFlag(ctx.args, "--status-endpoint")
+    statusEndpoint: hasFlag(ctx.args, "--status-endpoint"),
+    identityPassphrase: requiredPassphrase(ctx)
   });
   return 0;
 }
@@ -580,7 +703,7 @@ export async function runTrust(ctx: CommandContext): Promise<number> {
   if (subcommand === "show") {
     const provider = new NodeCryptoProvider();
     const config = loadConfig(ctx.cwd);
-    const identity = loadIdentity(provider, resolveFromCwd(ctx.cwd, config.identityPath));
+    const identity = loadIdentity(provider, resolveFromCwd(ctx.cwd, config.identityPath), ctx);
     console.log(encodePublisherIdentity256t(identity.getPublicKey()));
     return 0;
   }
@@ -661,7 +784,7 @@ export async function runNode(ctx: CommandContext): Promise<number> {
     }
   });
 
-  await runNodeHost({ config });
+  await runNodeHost({ config, identityPassphrase: requiredPassphrase(ctx) });
   return 0;
 }
 

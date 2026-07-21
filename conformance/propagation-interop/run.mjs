@@ -127,6 +127,7 @@ async function runHostCorePropagationBoot() {
   const dataDir = mkdtempSync(join(tmpdir(), "tp-prop-host-"));
   try {
     const session = await createNodeHost({
+        identityPassphrase: "conformance identity passphrase",
       config: resolveHostConfig({
         dataDir,
         overrides: {

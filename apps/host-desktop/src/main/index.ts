@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, powerMonitor, Tray, Menu, nativeImage } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, powerMonitor, Tray, Menu, nativeImage } from "electron";
+import { readFile, writeFile } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -178,4 +179,24 @@ if (process.platform === "darwin") {
 ipcMain.handle("host:get-status", () => latestStatus);
 ipcMain.handle("host:send", (_event, message) => {
   ensureSupervisor().send(message);
+});
+ipcMain.handle("host:save-identity-backup", async (_event, backupHex: string) => {
+  const selected = await dialog.showSaveDialog(mainWindow!, {
+    defaultPath: "identity.tpidentity",
+    filters: [{ name: "TwistedPear identity", extensions: ["tpidentity"] }]
+  });
+  if (selected.canceled || selected.filePath === "") return false;
+  await writeFile(selected.filePath, Buffer.from(backupHex, "hex"), { mode: 0o600 });
+  return true;
+});
+ipcMain.handle("host:open-identity-backup", async () => {
+  const selected = await dialog.showOpenDialog(mainWindow!, {
+    properties: ["openFile"],
+    filters: [{ name: "TwistedPear identity", extensions: ["tpidentity"] }]
+  });
+  const path = selected.filePaths[0];
+  return selected.canceled || path === undefined ? null : (await readFile(path)).toString("hex");
+});
+ipcMain.handle("host:set-identity-content-protection", (_event, enabled: boolean) => {
+  mainWindow?.setContentProtection(enabled);
 });

@@ -38,6 +38,12 @@ const settingPropagation = document.querySelector("#setting-propagation");
 const settingTcp = document.querySelector("#setting-tcp");
 const settingAuto = document.querySelector("#setting-auto");
 const settingRnodePort = document.querySelector("#setting-rnode-port");
+const identityCurrent = document.querySelector("#identity-current");
+const identityNext = document.querySelector("#identity-next");
+const identityConfirm = document.querySelector("#identity-confirm");
+const identityWordsFirst = document.querySelector("#identity-words-first");
+const identityWordsSecond = document.querySelector("#identity-words-second");
+const identityResult = document.querySelector("#identity-result");
 
 /** @type {import("@twistedpear/host-core/protocol").CatalogEntryView[]} */
 let catalogEntries = [];
@@ -688,6 +694,24 @@ if (!host) {
     if (message.type === "trust-identity") {
       renderOwnIdentity(message.identity256t);
     }
+
+    if (message.type === "identity-locked") {
+      if (identityResult) identityResult.textContent = message.creating
+        ? "Create a passphrase of at least 12 characters to start."
+        : message.legacy ? "Set a passphrase to encrypt and migrate this legacy identity." : "Identity locked.";
+    }
+
+    if (message.type === "identity-operation") {
+      if (identityResult) identityResult.textContent = message.ok
+        ? `${message.operation} complete${message.identityHash ? ` (${message.identityHash.slice(0, 12)})` : ""}`
+        : message.error ?? `${message.operation} failed`;
+      if (message.ok && message.backupHex) void host.saveIdentityBackup(message.backupHex);
+      if (message.ok && message.first && message.second) {
+        void host.setIdentityContentProtection(true);
+        identityWordsFirst.value = message.first;
+        identityWordsSecond.value = message.second;
+      }
+    }
   });
 
   host.send({ type: "trust-list" });
@@ -711,6 +735,31 @@ if (!host) {
 
   trustShow?.addEventListener("click", () => {
     host.send({ type: "trust-show" });
+  });
+
+  document.querySelector("#identity-unlock")?.addEventListener("click", () => {
+    host.send({ type: "identity-unlock", passphrase: identityCurrent.value, confirmation: identityConfirm.value });
+  });
+  document.querySelector("#identity-export")?.addEventListener("click", () => {
+    if (identityNext.value !== identityConfirm.value) return appendLog("Backup passphrases do not match");
+    host.send({ type: "identity-export", currentPassphrase: identityCurrent.value, backupPassphrase: identityNext.value });
+  });
+  document.querySelector("#identity-import")?.addEventListener("click", async () => {
+    if (identityNext.value !== identityConfirm.value) return appendLog("Vault passphrases do not match");
+    const backupHex = await host.openIdentityBackup();
+    if (backupHex) host.send({ type: "identity-import", backupHex, backupPassphrase: identityCurrent.value, vaultPassphrase: identityNext.value });
+  });
+  document.querySelector("#identity-recovery-show")?.addEventListener("click", () => {
+    host.send({ type: "identity-recovery-show", currentPassphrase: identityCurrent.value });
+  });
+  document.querySelector("#identity-recovery-import")?.addEventListener("click", () => {
+    if (identityNext.value !== identityConfirm.value) return appendLog("Vault passphrases do not match");
+    host.send({ type: "identity-recovery-import", first: identityWordsFirst.value.trim(), second: identityWordsSecond.value.trim(), vaultPassphrase: identityNext.value });
+    void host.setIdentityContentProtection(false);
+  });
+  document.querySelector("#identity-change")?.addEventListener("click", () => {
+    if (identityNext.value !== identityConfirm.value) return appendLog("New passphrases do not match");
+    host.send({ type: "identity-change-passphrase", currentPassphrase: identityCurrent.value, nextPassphrase: identityNext.value });
   });
 
   limitsApply?.addEventListener("click", () => {

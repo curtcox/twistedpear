@@ -160,7 +160,7 @@ async function packApp(name) {
 
   const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
   try {
-    expect(await runInit({ cwd: temporaryRoot, args: [] })).toBe(0);
+    expect(await runInit({ cwd: temporaryRoot, identityPassphrase: "conformance identity passphrase", args: [] })).toBe(0);
     expect(await runPack({ cwd: temporaryRoot, args: [name, "--out", `${name}.tpkg`] })).toBe(0);
   } finally {
     consoleLog.mockRestore();

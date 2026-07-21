@@ -90,7 +90,7 @@ async function main() {
       `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`
     );
 
-    await runInit({ cwd: publisherDir, args: [] });
+    await runInit({ cwd: publisherDir, identityPassphrase: "conformance identity passphrase", args: [] });
     const fixtureApp = stageExampleApp(publisherDir, fixtureAppSource);
 
     const publishCode = await runPublish({ cwd: publisherDir, args: [fixtureApp] });

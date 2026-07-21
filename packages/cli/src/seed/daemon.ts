@@ -7,6 +7,7 @@ export interface SeederOptions {
   readonly propagation?: boolean;
   readonly attachRnsd?: string | null;
   readonly statusEndpoint?: boolean;
+  readonly identityPassphrase: string;
 }
 
 export async function runSeeder(options: SeederOptions): Promise<void> {
@@ -50,5 +51,5 @@ export async function runSeeder(options: SeederOptions): Promise<void> {
     }
   });
 
-  await runNodeHost({ config });
+  await runNodeHost({ config, identityPassphrase: options.identityPassphrase });
 }

@@ -37,7 +37,8 @@ npm run build
 tp init
 ```
 
-This creates or loads the Reticulum identity that signs everything you publish. It prints the
+This asks for an identity passphrase (or reads `TP_IDENTITY_PASSPHRASE`), creates an encrypted
+Reticulum identity that signs everything you publish, and prints the
 public key. **This key is your identity as a publisher**, and it is the sole trust root for
 your apps: hosts pin it the first time they see one of your packages, and they will refuse an
 update signed by anything else.
@@ -53,9 +54,10 @@ two lines. Below, the shell prompt again. Nothing else — the command is delibe
 > compromised one. Multi-maintainer apps are likewise out of scope for v1. Back the identity
 > file up yourself. See [docs/package-format.md](../docs/package-format.md) §1.
 
-> **⏳ Not yet available — guided identity backup.** There is no export flow, no recovery
-> phrase, and no passphrase; the key file on disk is unencrypted. See
-> [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md).
+Back it up with `tp identity export --out publisher.tpidentity` or record the two labelled
+24-word groups from `tp identity recovery show`. Restore with `tp identity import` or
+`tp identity recovery import`; `tp identity change-passphrase` re-encrypts the same key.
+Passphrases are prompted without echo and are never accepted as command-line arguments.
 
 ## Scaffold
 

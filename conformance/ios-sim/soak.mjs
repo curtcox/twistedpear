@@ -100,7 +100,7 @@ async function miniappChurn(durationMs) {
 
   try {
     process.chdir(cwd);
-    if ((await runInit({ cwd, args: [] })) !== 0) {
+    if ((await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] })) !== 0) {
       throw new Error("tp init failed");
     }
 

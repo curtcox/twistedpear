@@ -29,6 +29,7 @@ export interface NodeHostOptions {
   readonly config: HostConfig;
   readonly provider?: CryptoProvider;
   readonly runtime?: Runtime;
+  readonly identityPassphrase?: string;
 }
 
 export interface NodeHostSession {
@@ -52,7 +53,13 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
   });
   reticulum.start();
 
-  const identity = await loadOrCreateIdentity(provider, config.identityPath);
+  const identity = await loadOrCreateIdentity(
+    provider,
+    config.identityPath,
+    options.identityPassphrase === undefined
+      ? undefined
+      : { passphrase: options.identityPassphrase, migrateLegacy: true }
+  );
   const startedAt = Date.now();
   let announcesSeen = 0;
 

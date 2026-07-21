@@ -70,7 +70,7 @@ async function packPartDir(partId) {
   cpSync(join(sourceDir, "bundle.js"), join(appDir, "bundle.js"));
 
   try {
-    const initCode = await runInit({ cwd, args: [] });
+    const initCode = await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
     if (initCode !== 0) {
       throw new Error(`tp init failed for ${partId}`);
     }

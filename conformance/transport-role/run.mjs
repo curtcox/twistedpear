@@ -141,6 +141,7 @@ async function runLeafEchoSlice() {
   try {
     await withComposeService("leaf-echo", LEAF_ECHO_PORT, async () => {
       const session = await createNodeHost({
+        identityPassphrase: "conformance identity passphrase",
         config: resolveHostConfig({
           dataDir,
           overrides: {
@@ -179,6 +180,7 @@ async function runTransportHubSlice() {
   let session;
   try {
     session = await createNodeHost({
+        identityPassphrase: "conformance identity passphrase",
       config: resolveHostConfig({
         dataDir,
         overrides: {

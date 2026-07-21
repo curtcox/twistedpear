@@ -43,6 +43,14 @@ import {
 import { createWorkletMiniappHost } from "./miniapp-host.mjs";
 import { createDevChannelClient } from "./dev-channel.mjs";
 import { IPC } from "./ipc-stdio.mjs";
+import {
+  decryptIdentityBackup,
+  encryptIdentityBackup,
+  identityFromRecoveryWords,
+  identityToRecoveryWords,
+  isEncryptedIdentityBackup,
+  validateNewIdentityPassphrase
+} from "../../../packages/host-core/dist/identity-backup.js";
 
 let bundledCatalogModule = null;
 try {
@@ -178,6 +186,7 @@ let pendingRnodeBaudRate = 115_200;
 let statusTimer = null;
 /** @type {Identity | null} */
 let activeIdentity = null;
+let legacyIdentity = null;
 /** @type {{ targetHost: string; targetPort: number } | null} */
 let pendingTarget = null;
 
@@ -904,6 +913,11 @@ async function loadPersistedIdentity() {
     return null;
   }
 
+  if (isEncryptedIdentityBackup(stored)) {
+    send({ type: "identity-locked", legacy: false, creating: false });
+    return null;
+  }
+
   const identity = Identity.fromBytes(provider, stored);
   if (identity === null) {
     await runtime.store.delete(IDENTITY_STORE_KEY);
@@ -913,18 +927,21 @@ async function loadPersistedIdentity() {
     return null;
   }
 
-  updateIdentityStatus(identity);
-  return identity;
+  legacyIdentity = identity;
+  send({ type: "identity-locked", legacy: true, creating: false });
+  return null;
 }
 
-async function persistIdentity(identity) {
-  await runtime.store.set(IDENTITY_STORE_KEY, identity.getPrivateKey());
+async function persistIdentity(identity, passphrase) {
+  const encrypted = encryptIdentityBackup(provider, identity, passphrase);
+  await runtime.store.set(IDENTITY_STORE_KEY, encrypted);
+  encrypted.fill(0);
   updateIdentityStatus(identity);
 }
 
-async function createIdentity() {
+async function createIdentity(passphrase) {
   const identity = new Identity(provider);
-  await persistIdentity(identity);
+  await persistIdentity(identity, passphrase);
   log(`Created harness identity ${status.identityHash}`);
 }
 
@@ -1034,8 +1051,8 @@ async function resolveIdentity() {
     return loaded;
   }
 
-  await createIdentity();
-  return activeIdentity;
+  send({ type: "identity-locked", legacy: false, creating: true });
+  return null;
 }
 
 function registerAnnounceHandler() {
@@ -1358,7 +1375,67 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "create-identity") {
-    await createIdentity();
+    send({ type: "identity-locked", legacy: false, creating: true });
+    return;
+  }
+
+  if (message.type === "identity-unlock") {
+    try {
+      const stored = await runtime.store.get(IDENTITY_STORE_KEY);
+      if (stored === undefined) {
+        validateNewIdentityPassphrase(message.passphrase, message.confirmation ?? "");
+        await createIdentity(message.passphrase);
+      } else if (legacyIdentity !== null) {
+        validateNewIdentityPassphrase(message.passphrase, message.confirmation ?? "");
+        await persistIdentity(legacyIdentity, message.passphrase);
+        activeIdentity = legacyIdentity;
+        legacyIdentity = null;
+      } else {
+        updateIdentityStatus(decryptIdentityBackup(provider, stored, message.passphrase));
+      }
+      send({ type: "identity-operation", operation: "unlock", ok: true, identityHash: status.identityHash });
+      if (pendingTarget !== null) await applyInterfaceConfig();
+    } catch (error) {
+      send({ type: "identity-operation", operation: "unlock", ok: false, error: error instanceof Error ? error.message : String(error) });
+    }
+    return;
+  }
+
+  if (message.type === "identity-export" || message.type === "identity-recovery-show" ||
+      message.type === "identity-import" || message.type === "identity-recovery-import" ||
+      message.type === "identity-change-passphrase") {
+    try {
+      const stored = await runtime.store.get(IDENTITY_STORE_KEY);
+      if (stored === undefined) throw new Error("No identity exists");
+      if (message.type === "identity-export") {
+        const identity = decryptIdentityBackup(provider, stored, message.currentPassphrase);
+        validateNewIdentityPassphrase(message.backupPassphrase, message.backupPassphrase);
+        const backup = encryptIdentityBackup(provider, identity, message.backupPassphrase);
+        send({ type: "identity-operation", operation: "export", ok: true, identityHash: bytesToHex(identity.hash), backupHex: bytesToHex(backup) });
+        backup.fill(0);
+      } else if (message.type === "identity-recovery-show") {
+        const identity = decryptIdentityBackup(provider, stored, message.currentPassphrase);
+        const recovery = identityToRecoveryWords(identity);
+        send({ type: "identity-operation", operation: "recovery-show", ok: true, identityHash: bytesToHex(identity.hash), ...recovery });
+      } else if (message.type === "identity-import") {
+        const identity = decryptIdentityBackup(provider, hexToBytes(message.backupHex), message.backupPassphrase);
+        validateNewIdentityPassphrase(message.vaultPassphrase, message.vaultPassphrase);
+        await persistIdentity(identity, message.vaultPassphrase);
+        send({ type: "identity-operation", operation: "import", ok: true, identityHash: bytesToHex(identity.hash) });
+      } else if (message.type === "identity-recovery-import") {
+        const identity = identityFromRecoveryWords(provider, { first: message.first, second: message.second });
+        validateNewIdentityPassphrase(message.vaultPassphrase, message.vaultPassphrase);
+        await persistIdentity(identity, message.vaultPassphrase);
+        send({ type: "identity-operation", operation: "recovery-import", ok: true, identityHash: bytesToHex(identity.hash) });
+      } else {
+        const identity = decryptIdentityBackup(provider, stored, message.currentPassphrase);
+        validateNewIdentityPassphrase(message.nextPassphrase, message.nextPassphrase);
+        await persistIdentity(identity, message.nextPassphrase);
+        send({ type: "identity-operation", operation: "change-passphrase", ok: true, identityHash: bytesToHex(identity.hash) });
+      }
+    } catch (error) {
+      send({ type: "identity-operation", operation: message.type, ok: false, error: error instanceof Error ? error.message : String(error) });
+    }
     return;
   }
 

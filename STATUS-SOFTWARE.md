@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-16
+audited: 2026-07-21
 register: software
 -->
 
@@ -17,7 +17,7 @@ a paid account, or a real multi-machine network. It contains only open work.
 Short CI and nightly runs already exercise every soak path below. The open criterion is
 the full planned duration, not basic implementation.
 
-Last consolidated: 2026-07-16.
+Last consolidated: 2026-07-21.
 
 ## Release qualification
 

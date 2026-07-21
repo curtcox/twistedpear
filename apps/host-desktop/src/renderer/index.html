@@ -85,6 +85,26 @@
           </label>
         </div>
       </section>
+      <section class="panel">
+        <h2>Identity backup</h2>
+        <p class="muted">Anyone with your recovery words is you. Store them offline; TwistedPear cannot reset or revoke them.</p>
+        <div class="settings-grid">
+          <label>Current passphrase <input type="password" id="identity-current" class="setting-input" autocomplete="current-password" /></label>
+          <label>New or backup passphrase <input type="password" id="identity-next" class="setting-input" autocomplete="new-password" /></label>
+          <label>Confirm new passphrase <input type="password" id="identity-confirm" class="setting-input" autocomplete="new-password" /></label>
+          <div class="item-row">
+            <button id="identity-unlock">Unlock / create</button>
+            <button id="identity-export">Export encrypted backup</button>
+            <button id="identity-import">Import backup</button>
+            <button id="identity-recovery-show">Show recovery words</button>
+            <button id="identity-recovery-import">Recover from words</button>
+            <button id="identity-change">Change passphrase</button>
+          </div>
+          <label>TwistedPear identity 1/2 <textarea id="identity-words-first" class="setting-input" rows="3" autocomplete="off"></textarea></label>
+          <label>TwistedPear identity 2/2 <textarea id="identity-words-second" class="setting-input" rows="3" autocomplete="off"></textarea></label>
+          <p id="identity-result" class="muted"></p>
+        </div>
+      </section>
       <section class="panel miniapp-panel" id="miniapp-panel">
         <div class="miniapp-toolbar">
           <div>

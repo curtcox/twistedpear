@@ -85,6 +85,7 @@ async function main() {
   try {
     await withTransportHubLeaves(async () => {
       const session = await createNodeHost({
+        identityPassphrase: "conformance identity passphrase",
         config: resolveHostConfig({
           dataDir,
           overrides: {

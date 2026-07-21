@@ -26,7 +26,6 @@ You cannot use these today.
 | A public network to join | [4](04-joining-a-network.md) | No bundled peer list, no bootstrap node, no public network exists. | — |
 | Bluetooth verified between real phones | [4](04-joining-a-network.md) | Never run on two physical handsets; throughput and background behaviour unmeasured. | H2, H7, H9, H14 |
 | LoRa verified on real radios | [4](04-joining-a-network.md) | Implemented against simulated serial only. | H4, H8, H16, H19 |
-| Guided identity backup | [3](03-first-run-and-identity.md) | No export flow, no recovery phrase, no passphrase; the key file is unencrypted. | [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md) |
 | Linked devices / multi-device identity | [3](03-first-run-and-identity.md) | No design shipped for sharing one identity across hosts. | — |
 | App search and discovery | [5](05-finding-and-installing-apps.md) | No central registry by design; your catalog is only what peers announce. | [LIMITATIONS §7](../LIMITATIONS.md) |
 | Multiple apps at once; background apps | [6](06-using-apps.md) | v1 runs one foreground mini-app, by design. | [LIMITATIONS §7](../LIMITATIONS.md) |
@@ -41,6 +40,7 @@ You can use these, but not the way the surrounding text might suggest.
 
 | Feature | Limit | Where it appears | Tracked as |
 |---|---|---|---|
+| Identity backup and recovery | Encrypted export/import, recovery words, and passphrase changes are available in `tp` and the desktop host; mobile and browser host UI is not yet wired. | [3](03-first-run-and-identity.md) | [docs/identity-backup.md](../docs/identity-backup.md) |
 | Windows desktop host | Built in CI, never installed or exercised on Windows. | [2](02-installing-a-host.md) | H17 |
 | Android host | It is the `harness-mobile` developer build, not a consumer app. | [2](02-installing-a-host.md) | — |
 | Local network discovery | Verified in containers and emulators; never on a real multi-machine LAN. | [4](04-joining-a-network.md) | H15, H18 |

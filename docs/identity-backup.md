@@ -1,15 +1,16 @@
 # Identity backup and recovery
 
 <!-- tp-doc
-lifecycle: design
+lifecycle: live
 audited: 2026-07-21
 register: none
 -->
 
 ## Status
 
-Proposed for the reader-guide remaining-work item. This document must be reviewed before
-implementation because identity backup previously had no agreed format or recovery model.
+Approved and implemented for `host-core`, `tp`, and the desktop host. Mobile and browser
+hosts retain their existing identity stores until the same host-owned settings flow is wired;
+the portable container and recovery representation are shared implementation, not a proposal.
 
 ## Goals
 

@@ -37,6 +37,7 @@ async function testNodeHostBoot() {
   const dataDir = mkdtempSync(join(tmpdir(), "tp-host-"));
   try {
     const session = await createNodeHost({
+        identityPassphrase: "conformance identity passphrase",
       config: defaultHostConfig({
         dataDir,
         roles: { transport: false, seeder: false, propagation: false, attachRnsd: null },
@@ -62,6 +63,7 @@ async function testStatusEndpointLocalhostOnly() {
   const dataDir = mkdtempSync(join(tmpdir(), "tp-host-status-"));
   try {
     const session = await createNodeHost({
+        identityPassphrase: "conformance identity passphrase",
       config: defaultHostConfig({
         dataDir,
         roles: { transport: false, seeder: false, propagation: false, attachRnsd: null },
