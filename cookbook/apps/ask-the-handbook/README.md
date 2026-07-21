@@ -19,7 +19,7 @@ Stuffing a bounded amount of local context into the message list without exceedi
 
 | Capability | Note |
 |---|---|
-| `ai:chat` | Non-streaming, one in-flight request per app, `maxTokens` clamped to 8,192. |
+| `ai:chat` | Streaming or whole-response; one in-flight request per app, `maxTokens` clamped to 8,192. |
 | `workspace` | 256 KiB per file, 4 MiB and 512 files per app. |
 
 ## Files

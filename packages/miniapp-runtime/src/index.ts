@@ -86,7 +86,17 @@ export type {
 export { ResourceService } from "./services/resource.js";
 export type { ResourceFetchBackend, ResourceFetchProgress, ResourceFetchRequest } from "./services/resource.js";
 export { AiService, AiServiceError, DEFAULT_AI_SERVICE_LIMITS } from "./services/ai.js";
-export type { AiChatBackend, AiChatMessage, AiChatRequest, AiChatResponse, AiChatRole, AiChatUsage, AiServiceLimits } from "./services/ai.js";
+export type {
+  AiChatBackend,
+  AiChatBackendChunk,
+  AiChatMessage,
+  AiChatRequest,
+  AiChatResponse,
+  AiChatRole,
+  AiChatStreamEvent,
+  AiChatUsage,
+  AiServiceLimits
+} from "./services/ai.js";
 export { createOpenRouterBackend } from "./services/ai-openrouter.js";
 export type { OpenRouterBackendOptions } from "./services/ai-openrouter.js";
 export { DEFAULT_WORKSPACE_LIMITS, WorkspaceError, WorkspaceService, validateWorkspacePath } from "./services/workspace.js";

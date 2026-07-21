@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-20
+audited: 2026-07-21
 register: none
 -->
 
@@ -36,6 +36,7 @@ grant screen renders the descriptions below (from `CAPABILITY_DEFINITIONS` in th
 
 Unknown capability strings block install. Adding a capability bumps `HOST_API_VERSION` minor
 (the dev-environment capabilities above shipped in `0.2.0`; `host.info()` shipped in `0.3.0`).
+`ai.chatStream()` requires host API `0.5.0`.
 
 The `apps:*` capabilities are double-gated: beyond the grant, every package,
 publish, install, and preview call raises a host-chrome confirmation dialog the
@@ -61,10 +62,13 @@ mini-app cannot draw over or acknowledge (see
 - `ui.onEvent(handler)` — subscribe to host UI events (tap, input change, etc.).
 - `workspace.list/read/write/remove(path)` — per-app project source files
   (strings; 256 KiB/file, 4 MiB and 512 files per app; strict relative paths).
-- `ai.chat({ messages, model?, maxTokens?, temperature? })` — host-mediated
-  chat completion against the host's OpenRouter-compatible endpoint. The host
-  clamps budgets, enforces a model allowlist, and allows one in-flight request
-  per app; the API key never enters the sandbox. Non-streaming in v1.
+- `ai.chat({ messages, model?, maxTokens?, temperature? })` — host-mediated,
+  whole-response chat completion against the host's OpenRouter-compatible endpoint.
+- `ai.chatStream({ messages, model?, maxTokens?, temperature? })` — async iterable
+  yielding `{ type: "delta", delta }` events followed by `{ type: "done", response }`.
+  Provider events are coalesced to protect the broker rate budget; breaking iteration
+  cancels the host request. Both forms share one in-flight slot, budget clamps, and the
+  model allowlist; the API key never enters the sandbox.
 - `apps.packageProject(projectPrefix, manifest)` — pack + sign a workspace
   project via the host (user confirmation); returns `{ packageHash, size, t256 }`.
 - `apps.publish(t256)` / `apps.install(t256)` — publish or install by

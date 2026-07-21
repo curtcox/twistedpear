@@ -3,11 +3,11 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-07-21
 register: none
 -->
 
-Current `HOST_API_VERSION`: **`0.4.0`**.
+Current `HOST_API_VERSION`: **`0.5.0`**.
 Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 
 ## Changelog
@@ -16,6 +16,7 @@ Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 - **`0.2.0`** — Dev-environment capabilities (workspace, ai:chat, apps:*, share:cas), host confirmation channel, dynamic resource limits, pre-launch capability review, code-editor and qr-code widgets.
 - **`0.3.0`** — host.info() — platform id, host version, HOST_API_VERSION, enabled roles, interface types, and quota snapshot for Handbook diagnostics.
 - **`0.4.0`** — host.info() includes grantedCapabilities for the calling mini-app (Handbook grant intro and diagnostics).
+- **`0.5.0`** — ai.chatStream() adds cancellable, coalesced streaming while preserving ai.chat().
 
 ## host.info()
 

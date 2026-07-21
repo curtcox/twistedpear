@@ -6,25 +6,31 @@ audited: 2026-07-21
 register: none
 -->
 
-`ai.chat` is one call. You pass messages, you get one reply, and the host handles the API key
-— which never enters the sandbox, which is the only reason this capability can exist at all.
+The AI surface has two shapes. `ai.chat` returns one complete reply; `ai.chatStream` yields
+coalesced deltas and a final response event. In both cases the host handles the API key — it
+never enters the sandbox, which is the only reason this capability can exist at all.
 
 ```javascript
 const reply = await ai.chat({ messages, model, maxTokens, temperature });
+
+let text = "";
+for await (const event of ai.chatStream({ messages, model, maxTokens, temperature })) {
+  if (event.type === "delta") text += event.delta;
+}
 ```
 
 Four constraints shape every app in this chapter, and they are not incidental:
 
 | Constraint | Consequence for your design |
 |---|---|
-| **Non-streaming** | No token-by-token output. You get one reply or an error. Show a "working" state. |
+| **Coalesced streaming** | Deltas are grouped to protect the broker rate budget; do not assume token boundaries. |
 | **One in-flight request per app** | A second concurrent call is rejected. Disable the button. |
 | **≤ 64 messages, `maxTokens` clamped to 8,192** | Long conversations must be summarised or truncated by you. |
 | **Model allowlisted host-side** | You cannot pick an arbitrary model, and the list can differ per host. |
 
-> **⚠️ Works, with limits — `ai.chat` in v1.** Non-streaming, whole-reply only, one in-flight
-> request, at most 64 messages, `maxTokens` clamped to 8,192, model allowlisted by the host.
-> See [LIMITATIONS.md §7](../LIMITATIONS.md).
+> **⚠️ Works, with limits — AI chat.** Streaming and whole-reply calls share one in-flight
+> slot, at most 64 messages, a host-clamped 8,192 `maxTokens`, and the host model allowlist.
+> Breaking out of a stream cancels it. See [LIMITATIONS.md §7](../LIMITATIONS.md).
 
 And one constraint that is not in the table because it dominates everything else: **the model
 is remote.** On a device with no route to it — which is most of the interesting devices this
@@ -95,8 +101,22 @@ if (source.trim().length === 0 || inFlight) return;
 ```
 
 The `disabled` prop stops most double-taps; the `inFlight` guard stops the rest, including
-events that arrive while a render is in progress. Do both. A second concurrent `ai.chat` is
-rejected outright, and a rejection the user caused by tapping twice looks exactly like a bug.
+  events that arrive while a render is in progress. Do both. A second concurrent AI call is
+  rejected outright, and a rejection the user caused by tapping twice looks exactly like a bug.
+
+The translation itself paints while the stream arrives:
+
+```javascript
+result = "";
+for await (const event of ai.chatStream(request)) {
+  if (event.type !== "delta") continue;
+  result += event.delta;
+  await render();
+}
+```
+
+The host coalesces provider events into sensible deltas, so this does not render once per
+token. Treat each delta as arbitrary text: it may be half a word or several sentences.
 
 And the failure path leaves the app useful:
 

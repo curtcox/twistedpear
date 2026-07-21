@@ -10,6 +10,7 @@ import { verifyPackage } from "../../packages/app-registry/dist/index.js";
 import { runInit, runPack } from "../../packages/cli/dist/commands/index.js";
 import {
   GrantStore,
+  HOST_API_VERSION,
   KvStorageBeeBackend,
   MiniappHost,
   NodeWorkerSandboxBackend,
@@ -39,6 +40,7 @@ const API_CAPABILITIES = new Map([
   ["resource.fetch", "resource:fetch"],
   ["workspace.", "workspace"],
   ["ai.chat", "ai:chat"],
+  ["ai.chatStream", "ai:chat"],
   ["apps.preview", "apps:preview"],
   ["apps.stopPreview", "apps:preview"],
   ["apps.packageProject", "apps:package"],
@@ -168,7 +170,7 @@ async function packApp(name) {
 
   const archive = new Uint8Array(readFileSync(join(temporaryRoot, `${name}.tpkg`)));
   expect(archive.length, `${name} BLE install budget`).toBeLessThanOrEqual(180 * 1024);
-  return verifyPackage(new NodeCryptoProvider(), archive, { hostApiVersion: "0.4.0" });
+  return verifyPackage(new NodeCryptoProvider(), archive, { hostApiVersion: HOST_API_VERSION });
 }
 
 function createHost() {

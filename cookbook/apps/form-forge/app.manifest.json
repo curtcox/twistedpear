@@ -9,5 +9,5 @@
     "ai:chat"
   ],
   "icon": null,
-  "minHostApi": "0.2.0"
+  "minHostApi": "0.5.0"
 }

@@ -1,12 +1,17 @@
 /**
- * Handbook applet: ai.chat against the host-configured endpoint.
+ * Handbook applet: ai.chatStream against the host-configured endpoint.
  */
 export async function run(sdk, report) {
   const started = Date.now();
   try {
-    const response = await sdk.ai.chat({
+    let content = "";
+    let response = null;
+    for await (const event of sdk.ai.chatStream({
       messages: [{ role: "user", content: "Reply with the single word: handbook" }]
-    });
+    })) {
+      if (event.type === "delta") content += event.delta;
+      if (event.type === "done") response = event.response;
+    }
     if (response === null || typeof response !== "object" || response.message === undefined) {
       report({
         status: "fail",
@@ -16,8 +21,7 @@ export async function run(sdk, report) {
       return;
     }
 
-    const content = response.message?.content;
-    if (typeof content !== "string" || content.length === 0) {
+    if (content.length === 0 || response.message?.content !== content) {
       report({
         status: "fail",
         details: "AI response message.content was empty",

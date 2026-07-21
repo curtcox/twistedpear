@@ -55,9 +55,10 @@ than ignoring the string. So a typo does not degrade your app; it makes it unins
 
 `minHostApi` is how you say which host versions can run you. The dev-environment
 capabilities (`workspace`, `ai:chat`, `apps:*`, `share:cas`) arrived in `0.2.0`; `host.info()`
-in `0.3.0`. If you use them, raise `minHostApi` accordingly — otherwise an older host will
-install your app and then fail your calls at runtime, which is a much worse experience than
-refusing the install.
+in `0.3.0`, `host.info().grantedCapabilities` in `0.4.0`, and `ai.chatStream()` in `0.5.0`.
+If you use them, raise `minHostApi` accordingly — otherwise an older host will install your
+app and then fail your calls at runtime, which is a much worse experience than refusing the
+install.
 
 **Ask for the minimum.** Every capability you declare is a line on a screen where a cautious
 user is deciding whether to trust you, and a capability you never call is pure cost.

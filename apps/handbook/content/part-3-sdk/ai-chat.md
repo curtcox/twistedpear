@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-10
+audited: 2026-07-21
 register: none
 -->
 
@@ -24,9 +24,18 @@ import { ai } from "@twistedpear/miniapp-sdk";
 const response = await ai.chat({
   messages: [{ role: "user", content: "hello" }]
 });
+
+let text = "";
+for await (const event of ai.chatStream({
+  messages: [{ role: "user", content: "hello" }]
+})) {
+  if (event.type === "delta") text += event.delta;
+}
 ```
 
-Responses include model id and usage counters when the host provides them.
+Whole responses and final stream events include model id and usage counters when the host
+provides them. Stream deltas are coalesced and are not token boundaries. Both calls share one
+in-flight slot per app; breaking out of iteration cancels the stream.
 
 ## Outcomes
 

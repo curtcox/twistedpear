@@ -1,4 +1,4 @@
-export const HOST_API_VERSION = "0.4.0";
+export const HOST_API_VERSION = "0.5.0";
 
 export interface HostApiChangelogEntry {
   readonly version: string;
@@ -19,7 +19,11 @@ export const HOST_API_CHANGELOG: ReadonlyArray<HostApiChangelogEntry> = [
     note: "host.info() — platform id, host version, HOST_API_VERSION, enabled roles, interface types, and quota snapshot for Handbook diagnostics."
   },
   {
-    version: HOST_API_VERSION,
+    version: "0.4.0",
     note: "host.info() includes grantedCapabilities for the calling mini-app (Handbook grant intro and diagnostics)."
+  },
+  {
+    version: HOST_API_VERSION,
+    note: "ai.chatStream() adds cancellable, coalesced streaming while preserving ai.chat()."
   }
 ];

@@ -17,6 +17,19 @@ function callHost(namespace, method, payload, capability) {
     self.postMessage({ type: 'broker-request', id, namespace, method, payload, capability, sentAt: Date.now() });
   });
 }
+async function* chatStream(request) {
+  const started = await callHost('ai', 'chatStreamStart', request, 'ai:chat');
+  let completed = false;
+  try {
+    while (true) {
+      const next = await callHost('ai', 'chatStreamNext', { streamId: started.streamId }, 'ai:chat');
+      if (next.done === true) { completed = true; return; }
+      yield next.value;
+    }
+  } finally {
+    if (!completed) await callHost('ai', 'chatStreamCancel', { streamId: started.streamId }, 'ai:chat');
+  }
+}
 
 const sdk = {
   ui: {
@@ -32,7 +45,7 @@ const sdk = {
   presence: { snapshot: () => callHost('presence', 'snapshot', undefined, 'presence') },
   host: { info: () => callHost('host', 'info', undefined, 'presence') },
   workspace: { list: (prefix) => callHost('workspace', 'list', { prefix }, 'workspace'), read: (path) => callHost('workspace', 'read', { path }, 'workspace').then((r) => r.content), write: (path, content) => callHost('workspace', 'write', { path, content }, 'workspace'), remove: (path) => callHost('workspace', 'delete', { path }, 'workspace') },
-  ai: { chat: (request) => callHost('ai', 'chat', request, 'ai:chat') },
+  ai: { chat: (request) => callHost('ai', 'chat', request, 'ai:chat'), chatStream },
   apps: { packageProject: (projectPrefix, manifest) => callHost('apps', 'package', { projectPrefix, manifest }, 'apps:package'), publish: (t256) => callHost('apps', 'publish', { t256 }, 'apps:publish'), install: (t256) => callHost('apps', 'install', { t256 }, 'apps:install'), preview: (projectPrefix, manifest, grants) => callHost('apps', 'preview', { projectPrefix, manifest, grants }, 'apps:preview'), stopPreview: () => callHost('apps', 'stopPreview', undefined, 'apps:preview') },
   share: { put: (content) => callHost('share.cas', 'put', { content }, 'share:cas'), get: (t256) => callHost('share.cas', 'get', { t256 }, 'share:cas').then((r) => r.content) }
 };

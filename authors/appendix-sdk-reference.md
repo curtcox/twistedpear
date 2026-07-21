@@ -91,10 +91,11 @@ Strictly relative paths. 256 KiB per file, 4 MiB and 512 files per app.
 
 | Call | Capability | Notes |
 |---|---|---|
-| `ai.chat({ messages, model?, maxTokens?, temperature? })` | `ai:chat` | Non-streaming in v1; API key never enters the sandbox |
+| `ai.chat({ messages, model?, maxTokens?, temperature? })` | `ai:chat` | Whole response; API key never enters the sandbox |
+| `ai.chatStream({ messages, model?, maxTokens?, temperature? })` | `ai:chat` | Async iterable of coalesced `delta` events and one final `done` event |
 
 One in-flight request per app, ≤ 64 messages, `maxTokens` clamped to 8,192, model allowlisted
-host-side.
+host-side. `ai.chatStream` requires host API `0.5.0`.
 
 ## apps
 

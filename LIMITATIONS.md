@@ -181,6 +181,9 @@ everything below is a known cost of the chosen design or of the platforms involv
   bytes, and uses 32-byte content frames with 16-byte titles to remain on the packet
   propagation path. It is resumable but airtime-expensive; use Resources or
   content-addressed sharing for bulk data.
+- `ai.chatStream` coalesces provider events before crossing the broker; deltas are not token
+  boundaries. Streaming and whole-response chat share one in-flight request per app, and
+  stopping iteration cancels the host-side stream.
 - **Dev environment (DevStudio) v1 limits:** projects are single-file bundles (no
   in-host bundler); workspace files are capped at 256 KiB (the `code-editor` widget has
   no delta protocol yet); AI editing is non-streaming whole-file replacement through an

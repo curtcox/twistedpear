@@ -59,7 +59,8 @@ have anywhere to put them.
 
 `minHostApi` states the oldest host API your app can run against. Adding a capability to the
 platform bumps `HOST_API_VERSION` by a minor version — the dev-environment capabilities
-shipped in `0.2.0`, `host.info()` in `0.3.0`.
+shipped in `0.2.0`, `host.info()` in `0.3.0`, its `grantedCapabilities` field in `0.4.0`,
+and `ai.chatStream()` in `0.5.0`.
 
 Raise `minHostApi` when you start using newer surface. An unknown capability string blocks
 install with guidance to update, which is a good failure; a too-low `minHostApi` lets an old

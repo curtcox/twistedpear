@@ -171,6 +171,37 @@ describe("mini-app host", () => {
     });
   });
 
+  it("streams AI deltas through the broker into the sandbox", async () => {
+    const store = new MemoryStore();
+    const grants = new GrantStore(store);
+    const aiManifest = { ...manifest, name: "stream-app", capabilities: ["ai:chat"] };
+    await grants.set("stream-app", "publisher", ["ai:chat"], ["ai:chat"], 1);
+    const bundle = new TextEncoder().encode(`import { ai, ui } from "@twistedpear/miniapp-sdk";
+let text = "";
+for await (const event of ai.chatStream({ messages: [{ role: "user", content: "hi" }] })) {
+  if (event.type === "delta") text += event.delta;
+}
+await ui.render({ root: { id: "root", type: "text", props: { value: text } } });
+`);
+    const host = new MiniappHost({
+      backend: new NodeWorkerSandboxBackend(),
+      grantStore: grants,
+      kvBackend: store,
+      aiBackend: {
+        chat: async () => ({ message: { role: "assistant", content: "hello" }, model: "m", usage: null }),
+        stream: async function* () {
+          yield { delta: "hel", model: "m" };
+          yield { delta: "lo" };
+        }
+      }
+    });
+
+    await host.launch(aiManifest, bundle);
+    await waitUntil(() => host.snapshot().widgetTree?.root.props?.value === "hello");
+    expect(host.snapshot().widgetTree?.root.props?.value).toBe("hello");
+    await host.stop();
+  });
+
   it("fails broker calls after grant revocation on the next dispatch", async () => {
     const store = new MemoryStore();
     const grants = new GrantStore(store);

@@ -121,6 +121,62 @@ describe("ai service", () => {
     await expect(second).resolves.toBeDefined();
   });
 
+  it("streams deltas, returns a final response, and releases the in-flight slot", async () => {
+    const service = new AiService({
+      chat: async () => ({ message: { role: "assistant", content: "fallback" }, model: "m", usage: null }),
+      stream: async function* () {
+        yield { delta: "hel", model: "stream/model" };
+        yield { delta: "lo", usage: { promptTokens: 2, completionTokens: 1 } };
+      }
+    });
+
+    const iterator = service.stream("app", request);
+    await expect(service.chat("app", request)).rejects.toMatchObject({ code: "AI_BUSY" });
+    expect(await iterator.next()).toEqual({ done: false, value: { type: "delta", delta: "hello" } });
+    expect(await iterator.next()).toEqual({
+      done: false,
+      value: {
+        type: "done",
+        response: {
+          message: { role: "assistant", content: "hello" },
+          model: "stream/model",
+          usage: { promptTokens: 2, completionTokens: 1 }
+        }
+      }
+    });
+    expect((await iterator.next()).done).toBe(true);
+    await expect(service.chat("app", request)).resolves.toBeDefined();
+  });
+
+  it("adapts a non-streaming backend and releases the slot when cancelled", async () => {
+    const service = new AiService({
+      chat: async () => ({ message: { role: "assistant", content: "whole" }, model: "m", usage: null })
+    });
+    const fallback = service.stream("app", request);
+    expect(await fallback.next()).toEqual({ done: false, value: { type: "delta", delta: "whole" } });
+    await fallback.return?.();
+    await expect(service.chat("app", request)).resolves.toBeDefined();
+  });
+
+  it("propagates cancellation into a streaming backend", async () => {
+    let cancelled = false;
+    const service = new AiService({
+      chat: async () => ({ message: { role: "assistant", content: "whole" }, model: "m", usage: null }),
+      stream: async function* () {
+        try {
+          yield { delta: "x".repeat(32), model: "m" };
+          await new Promise(() => undefined);
+        } finally {
+          cancelled = true;
+        }
+      }
+    });
+    const iterator = service.stream("app", request);
+    await iterator.next();
+    await iterator.return?.();
+    expect(cancelled).toBe(true);
+  });
+
   it("openrouter backend enforces the model allowlist and translates the wire shape", async () => {
     const calls: Array<{ url: string; body: Record<string, unknown>; auth: string | undefined }> = [];
     const fetchImpl = (async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -156,6 +212,36 @@ describe("ai service", () => {
     await expect(backend.chat("app", { ...request, model: "other/model" })).rejects.toMatchObject({
       code: "AI_BAD_REQUEST"
     });
+  });
+
+  it("parses OpenRouter-compatible SSE streams", async () => {
+    let requestBody: Record<string, unknown> | null = null;
+    const fetchImpl = (async (_url: RequestInfo | URL, init?: RequestInit) => {
+      requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return new Response([
+        'data: {"model":"test/model","choices":[{"delta":{"content":"hel"}}]}',
+        'data: {"choices":[{"delta":{"content":"lo"}}]}',
+        'data: {"choices":[],"usage":{"prompt_tokens":3,"completion_tokens":2}}',
+        "data: [DONE]",
+        ""
+      ].join("\n\n"), { status: 200, headers: { "content-type": "text/event-stream" } });
+    }) as typeof fetch;
+    const backend = createOpenRouterBackend({
+      baseUrl: "https://example.test/api/v1",
+      apiKey: "secret",
+      model: "test/model",
+      fetchImpl
+    });
+
+    const chunks = [];
+    for await (const chunk of backend.stream!("app", request)) chunks.push(chunk);
+    expect(chunks).toEqual([
+      { delta: "hel", model: "test/model" },
+      { delta: "lo" },
+      { delta: "", usage: { promptTokens: 3, completionTokens: 2 } }
+    ]);
+    expect(requestBody?.stream).toBe(true);
+    expect(requestBody?.stream_options).toEqual({ include_usage: true });
   });
 
   it("exposes a typed error", () => {

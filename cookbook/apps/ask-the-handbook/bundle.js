@@ -73,9 +73,10 @@ async function ask() {
   }
 
   status = "Asking the model…";
+  answer = "";
   await render();
   try {
-    const reply = await ai.chat({
+    for await (const event of ai.chatStream({
       messages: [
         {
           role: "system",
@@ -85,8 +86,14 @@ async function ask() {
         { role: "user", content: `Documents:${context}\n\nQuestion: ${question}` }
       ],
       maxTokens: 1024
-    });
-    answer = reply.message.content.trim();
+    })) {
+      if (event.type === "delta") {
+        answer += event.delta;
+        status = `Answering from ${used.length} file(s)…`;
+        await render();
+      }
+    }
+    answer = answer.trim();
     status = `Answered from ${used.length} file(s)`;
   } catch (error) {
     status = "Model unavailable";

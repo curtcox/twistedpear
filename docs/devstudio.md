@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-20
+audited: 2026-07-21
 register: none
 -->
 
@@ -76,7 +76,8 @@ force-quits. See [conformance/devstudio-loop](../conformance/devstudio-loop/READ
 
 - Projects are single-file bundles (no in-host bundler; `import` only from
   `@twistedpear/miniapp-sdk`).
-- AI responses are non-streaming, whole-file replacements.
+- DevStudio deliberately uses whole-response `ai.chat` for whole-file replacements; other
+  mini-apps can use streamed `ai.chatStream` output.
 - One preview slot; previewing again replaces the previous preview.
 - Desktop accepts pasted 256t strings (renders QR for others to scan); camera
   scanning lands with the mobile host.

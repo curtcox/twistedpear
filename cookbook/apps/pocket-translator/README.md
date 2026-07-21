@@ -13,13 +13,13 @@ Recipe and screenshots: [7. Apps that use a model](../../07-apps-that-use-a-mode
 
 ## What it shows
 
-A single `ai.chat` call, a cache that makes the second ask free, and behaviour when the model is unreachable.
+A streamed `ai.chatStream` call, a cache that makes the second ask free, and behaviour when the model is unreachable.
 
 ## Capabilities
 
 | Capability | Note |
 |---|---|
-| `ai:chat` | Non-streaming, one in-flight request per app, `maxTokens` clamped to 8,192. |
+| `ai:chat` | Streaming or whole-response; one in-flight request per app, `maxTokens` clamped to 8,192. |
 | `storage:kv` | Standing grant; revocable at any time from the host. |
 
 ## Files

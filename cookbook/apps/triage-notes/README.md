@@ -19,7 +19,7 @@ Asking a model for parseable output and validating it before it reaches your sto
 
 | Capability | Note |
 |---|---|
-| `ai:chat` | Non-streaming, one in-flight request per app, `maxTokens` clamped to 8,192. |
+| `ai:chat` | Streaming or whole-response; one in-flight request per app, `maxTokens` clamped to 8,192. |
 | `storage:hyperbee` | Local-only in v1; there is no replication between devices. |
 
 ## Files

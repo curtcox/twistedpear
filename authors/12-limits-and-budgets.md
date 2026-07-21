@@ -21,7 +21,7 @@ everybody feels: how long your app takes to reach someone over a radio.
 | KV quota per app | Host-configured |
 | Hyperbee quota per app | Shares the KV pool; history counts |
 | Workspace | 256 KiB/file, 4 MiB total, 512 files |
-| AI chat | 1 in-flight request/app; ≤ 64 messages; `maxTokens` clamped to 8,192 |
+| AI chat | 1 in-flight request/app across whole/streaming calls; ≤ 64 messages; `maxTokens` clamped to 8,192 |
 | Host confirmation timeout | 60 s, then denied |
 | Multipart LXMF propagation | 64 KiB default; 1,000,000 B hard maximum; 32 B content/frame; 16 B title |
 

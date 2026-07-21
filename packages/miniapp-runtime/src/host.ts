@@ -14,7 +14,13 @@ import {
 } from "./services/host-info.js";
 import { ResourceService, type ResourceFetchBackend } from "./services/resource.js";
 import { HOST_API_VERSION } from "./host-api.js";
-import { AiService, AiServiceError, type AiChatBackend, type AiChatRequest } from "./services/ai.js";
+import {
+  AiService,
+  AiServiceError,
+  type AiChatBackend,
+  type AiChatRequest,
+  type AiChatStreamEvent
+} from "./services/ai.js";
 import { AppsService, AppsServiceError, type AppsBackend } from "./services/apps.js";
 import { WorkspaceService, type WorkspaceLimits } from "./services/workspace.js";
 import type { StorageBeeBackend } from "./services/storage-bee.js";
@@ -114,6 +120,11 @@ interface ActiveApp {
   readonly logs: MiniappHostLogEntry[];
 }
 
+interface AiStreamSession {
+  readonly appId: string;
+  readonly iterator: AsyncIterator<AiChatStreamEvent>;
+}
+
 export class MiniappHost {
   private readonly broker: MiniappBroker;
 
@@ -129,6 +140,8 @@ export class MiniappHost {
 
   private active: ActiveApp | null = null;
   private readonly limitOverrides = new Map<string, LimitOverrides>();
+  private readonly aiStreams = new Map<string, AiStreamSession>();
+  private nextAiStreamId = 0;
 
   constructor(private readonly options: MiniappHostOptions) {
     this.broker = new MiniappBroker({
@@ -330,6 +343,7 @@ export class MiniappHost {
     }
 
     const appId = this.active.manifest.name;
+    await this.cancelAiStreams(appId);
     const snapshot = await this.active.lifecycle.stop(reason);
     this.logActive(appId, `stopped (${reason})`);
     this.options.callbacks?.onLifecycle?.(snapshot);
@@ -344,6 +358,7 @@ export class MiniappHost {
 
     const snapshot = await this.active.lifecycle.watchdogPing();
     if (snapshot.state === "crashed") {
+      await this.cancelAiStreams(snapshot.appId);
       this.logActive(snapshot.appId, `crashed (${snapshot.reason ?? "watchdog"})`);
       this.active = null;
       this.options.callbacks?.onLifecycle?.(snapshot);
@@ -549,6 +564,43 @@ export class MiniappHost {
       return this.aiService.chat(context.appId, request.payload as AiChatRequest);
     });
 
+    this.broker.register("ai", "chatStreamStart", "ai:chat", (request, context) => {
+      if (this.aiService === null) {
+        throw new AiServiceError("AI_UNCONFIGURED", "AI is not configured on this host");
+      }
+      const streamId = `ai-stream-${this.nextAiStreamId++}`;
+      this.aiStreams.set(streamId, {
+        appId: context.appId,
+        iterator: this.aiService.stream(context.appId, request.payload as AiChatRequest)
+      });
+      return { streamId };
+    });
+
+    this.broker.register("ai", "chatStreamNext", "ai:chat", async (request, context) => {
+      const streamId = this.aiStreamId(request.payload);
+      const session = this.aiStreams.get(streamId);
+      if (session === undefined || session.appId !== context.appId) {
+        throw new AiServiceError("AI_BAD_REQUEST", "Unknown AI stream session.");
+      }
+      try {
+        const result = await session.iterator.next();
+        if (result.done === true) this.aiStreams.delete(streamId);
+        return result;
+      } catch (error) {
+        this.aiStreams.delete(streamId);
+        throw error;
+      }
+    });
+
+    this.broker.register("ai", "chatStreamCancel", "ai:chat", async (request, context) => {
+      const streamId = this.aiStreamId(request.payload);
+      const session = this.aiStreams.get(streamId);
+      if (session === undefined || session.appId !== context.appId) return { cancelled: false };
+      this.aiStreams.delete(streamId);
+      await session.iterator.return?.();
+      return { cancelled: true };
+    });
+
     const appsService = () => {
       if (this.appsService === null) {
         throw new AppsServiceError("APPS_UNCONFIGURED", "App packaging is not configured on this host");
@@ -623,6 +675,22 @@ export class MiniappHost {
         grantedCapabilities: [...context.grantedCapabilities]
       };
     });
+  }
+
+  private aiStreamId(payload: unknown): string {
+    const streamId = (payload as { streamId?: unknown } | null)?.streamId;
+    if (typeof streamId !== "string" || streamId.length === 0) {
+      throw new AiServiceError("AI_BAD_REQUEST", "AI stream id is required.");
+    }
+    return streamId;
+  }
+
+  private async cancelAiStreams(appId: string): Promise<void> {
+    const sessions = [...this.aiStreams.entries()].filter(([, session]) => session.appId === appId);
+    for (const [streamId, session] of sessions) {
+      this.aiStreams.delete(streamId);
+      await session.iterator.return?.();
+    }
   }
 
   private kvQuotaFor(appId: string): number | undefined {

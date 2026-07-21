@@ -22,7 +22,7 @@ Combining `ai:chat` with `apps:package`, and why the host confirmation cannot be
 | `workspace` | 256 KiB per file, 4 MiB and 512 files per app. |
 | `apps:package` | Host-confirmed on every call. |
 | `apps:preview` | One preview slot per host; previewing again replaces the last preview. |
-| `ai:chat` | Non-streaming, one in-flight request per app, `maxTokens` clamped to 8,192. |
+| `ai:chat` | Streaming or whole-response; one in-flight request per app, `maxTokens` clamped to 8,192. |
 
 ## Files
 

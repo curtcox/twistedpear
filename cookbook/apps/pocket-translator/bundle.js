@@ -1,8 +1,7 @@
 import { ai, storage, ui } from "@twistedpear/miniapp-sdk";
 
-// ai.chat is non-streaming and allows one in-flight request per app. Both facts show
-// up in the UI: there is a visible "thinking" state, and the button is disabled while
-// a request is out, because a second call would simply be rejected.
+// ai.chatStream yields host-coalesced deltas and still allows one in-flight request per app.
+// The result paints as it arrives; the button remains disabled until the stream closes.
 
 const CACHE_PREFIX = "phrase/";
 const decoder = new TextDecoder();
@@ -32,9 +31,10 @@ async function translate() {
 
   inFlight = true;
   status = "Asking the model…";
+  result = "";
   await render();
   try {
-    const reply = await ai.chat({
+    for await (const event of ai.chatStream({
       messages: [
         {
           role: "system",
@@ -43,8 +43,14 @@ async function translate() {
         { role: "user", content: `Into ${target}: ${source.trim()}` }
       ],
       maxTokens: 256
-    });
-    result = reply.message.content.trim();
+    })) {
+      if (event.type === "delta") {
+        result += event.delta;
+        status = "Receiving translation…";
+        await render();
+      }
+    }
+    result = result.trim();
     await storage.kv.set(cacheKey(), encoder.encode(result));
     status = "Translated and saved to the phrasebook";
   } catch (error) {

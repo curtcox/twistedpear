@@ -15,7 +15,7 @@ tool. If you want a different development environment — a tutorial that builds
 read it, a template gallery, a domain-specific generator — you have the same surface DevStudio
 does.
 
-## `ai.chat`
+## `ai.chat` and `ai.chatStream`
 
 ```javascript
 import { ai } from "@twistedpear/miniapp-sdk";
@@ -29,6 +29,12 @@ const reply = await ai.chat({
   maxTokens: 4096,      // optional; clamped by the host
   temperature: 0.2      // optional
 });
+
+let proposal = "";
+for await (const event of ai.chatStream({ messages })) {
+  if (event.type === "delta") proposal += event.delta;
+  if (event.type === "done") usage = event.response.usage;
+}
 ```
 
 The host holds the endpoint URL, the API key, and the model allowlist. Desktop configures
@@ -47,9 +53,10 @@ Constraints the host enforces, not you:
 
 Requires `ai:chat`.
 
-> **⚠️ Works, with limits — non-streaming only in v1.** You get one complete response. There
-> is no token streaming, so a long generation is a long silence: render a `progress` widget
-> and make the wait legible. See [docs/miniapp-sdk.md](../docs/miniapp-sdk.md).
+> **⚠️ Works, with limits — coalesced streaming.** `ai.chatStream` yields text deltas plus a
+> final response event. Deltas are grouped to stay below broker rate limits and are not token
+> boundaries. Streaming and `ai.chat` share the one-request-per-app slot; breaking iteration
+> cancels the host request. See [docs/miniapp-sdk.md](../docs/miniapp-sdk.md).
 
 ### The disclosure you owe the user
 

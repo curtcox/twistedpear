@@ -35,7 +35,8 @@ async function design() {
   status = "Designing the form…";
   await render();
   try {
-    const reply = await ai.chat({
+    let streamed = "";
+    for await (const event of ai.chatStream({
       messages: [
         {
           role: "system",
@@ -47,10 +48,16 @@ async function design() {
       ],
       maxTokens: 512,
       temperature: 0
-    });
+    })) {
+      if (event.type === "delta") {
+        streamed += event.delta;
+        status = `Receiving form design… ${streamed.length} characters`;
+        await render();
+      }
+    }
     let candidate = null;
     try {
-      candidate = JSON.parse(reply.message.content.trim().replace(/^```(json)?|```$/g, ""));
+      candidate = JSON.parse(streamed.trim().replace(/^```(json)?|```$/g, ""));
     } catch (error) {
       candidate = null;
     }

@@ -16,7 +16,8 @@ small, and every item on it corresponds to something that has actually gone wron
 - [ ] `version` is higher than anything you have published. You cannot go down.
 - [ ] `capabilities` lists everything you call, and **nothing you do not**.
 - [ ] `minHostApi` matches the newest surface you use — `0.2.0` for `workspace`, `ai:chat`,
-      `apps:*`, or `share:cas`; `0.3.0` for `host.info()`.
+      `apps:*`, or `share:cas`; `0.3.0` for `host.info()`; `0.4.0` for
+      `host.info().grantedCapabilities`; `0.5.0` for `ai.chatStream()`.
 - [ ] No typos in capability strings. An unknown string blocks install entirely.
 
 ## Behaviour
