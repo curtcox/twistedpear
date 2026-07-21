@@ -47,8 +47,8 @@ async function render() {
         {
           id: "editor",
           type: "text-input",
-          props: { value: text, placeholder: "Write anything", event: "note.change", multiline: true },
-          style: { minHeight: 240 }
+          props: { value: text, placeholder: "Write anything", event: "note.change" },
+          style: { height: 240 }
         },
         {
           id: "actions",

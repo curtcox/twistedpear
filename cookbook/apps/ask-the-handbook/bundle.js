@@ -17,7 +17,7 @@ let status = "";
 
 async function refresh() {
   try {
-    files = await workspace.list(DIR);
+    files = (await workspace.list(DIR)).map((file) => file.path);
   } catch (error) {
     files = [];
     status = `Put text files in the workspace under ${DIR}/ first`;
@@ -86,7 +86,7 @@ async function ask() {
       ],
       maxTokens: 1024
     });
-    answer = reply.content.trim();
+    answer = reply.message.content.trim();
     status = `Answered from ${used.length} file(s)`;
   } catch (error) {
     status = "Model unavailable";
@@ -116,7 +116,7 @@ async function render() {
         {
           id: "ask",
           type: "button",
-          props: { label: inFlight ? "Working…" : "Ask", event: "ah.ask", disabled: inFlight }
+          props: { label: inFlight ? "Working…" : "Ask", event: "ah.ask"}
         },
         { id: "divider", type: "divider" },
         {
@@ -128,7 +128,7 @@ async function render() {
           id: "sources",
           type: "text",
           props: { value: usedFiles.length === 0 ? "" : `Sources: ${usedFiles.join(", ")}` },
-          style: { fontSize: 11 }
+          style: { fontSize: 12 }
         },
         {
           id: "status",

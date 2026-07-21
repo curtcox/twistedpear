@@ -73,9 +73,14 @@ async function render() {
           style: { fontSize: 32, fontWeight: "bold" }
         },
         {
+          id: "today-label",
+          type: "text",
+          props: { value: `Done today (${today()})` }
+        },
+        {
           id: "today",
           type: "switch",
-          props: { value: done, label: `Done today (${today()})`, event: "streak.toggle" }
+          props: { value: done, event: "streak.toggle" }
         },
         { id: "divider", type: "divider" },
         {
@@ -89,7 +94,7 @@ async function render() {
               id: `day-${day}`,
               type: "text",
               props: { value: `✓ ${day}` },
-              style: { fontSize: 13 }
+              style: { fontSize: 14 }
             }))
         },
         { id: "status", type: "text", props: { value: status }, style: { fontSize: 12 } }

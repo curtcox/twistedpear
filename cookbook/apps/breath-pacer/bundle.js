@@ -37,7 +37,7 @@ async function render() {
           id: "phase",
           type: "text",
           props: { value: running ? phase().name : "Ready" },
-          style: { fontSize: 28, fontWeight: "bold" }
+          style: { fontSize: 32, fontWeight: "bold" }
         },
         {
           id: "bar",

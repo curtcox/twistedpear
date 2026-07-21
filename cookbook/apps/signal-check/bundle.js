@@ -60,7 +60,7 @@ async function render() {
           props: { value: "Signal check" },
           style: { fontSize: 20, fontWeight: "bold" }
         },
-        { id: "me", type: "text", props: { value: `This app: ${me}` }, style: { fontSize: 11 } },
+        { id: "me", type: "text", props: { value: `This app: ${me}` }, style: { fontSize: 12 } },
         {
           id: "peer",
           type: "text-input",
@@ -95,7 +95,7 @@ async function render() {
           props: {
             value: "Round trip includes however long the app sat closed. There is no background delivery."
           },
-          style: { fontSize: 11 }
+          style: { fontSize: 12 }
         }
       ]
     }

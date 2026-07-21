@@ -6,6 +6,7 @@ import { announce, apps, storage, ui } from "@twistedpear/miniapp-sdk";
 // confirmation and a full capability review every single time.
 
 const TRUSTED_KEY = "trusted";
+const ANNOUNCE_NAMESPACE = "app-relay";
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
@@ -30,12 +31,12 @@ async function saveTrusted() {
   await storage.kv.set(TRUSTED_KEY, encoder.encode(JSON.stringify(trusted)));
 }
 
-announce.subscribe().then(async (stream) => {
-  for await (const event of stream) {
-    const data = event.appData ?? {};
+announce.subscribe(ANNOUNCE_NAMESPACE).then(async (events) => {
+  for (const event of events) {
+    const data = JSON.parse(decoder.decode(event.appData));
     if (typeof data.t256 !== "string" || data.t256.length !== 94) continue;
     heard = [
-      { from: event.from ?? "unknown", name: String(data.name ?? "unnamed"), t256: data.t256, at: Date.now() },
+      { from: event.destination, name: String(data.name ?? "unnamed"), t256: data.t256, at: Date.now() },
       ...heard.filter((row) => row.t256 !== data.t256)
     ].slice(0, 50);
     await render();
@@ -91,7 +92,7 @@ async function render() {
                 ? "Trusting nobody — showing everything heard. This is not a safe default."
                 : `Trusting ${trusted.length} publisher(s)`
           },
-          style: { fontSize: 11 }
+          style: { fontSize: 12 }
         },
         { id: "divider", type: "divider" },
         {
@@ -108,7 +109,7 @@ async function render() {
                 id: `from-${index}`,
                 type: "text",
                 props: { value: `from ${row.from.slice(0, 16)}… · ${row.t256.slice(0, 16)}…` },
-                style: { fontSize: 11 }
+                style: { fontSize: 12 }
               },
               {
                 id: `install-${index}`,

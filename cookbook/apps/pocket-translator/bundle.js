@@ -44,7 +44,7 @@ async function translate() {
       ],
       maxTokens: 256
     });
-    result = reply.content.trim();
+    result = reply.message.content.trim();
     await storage.kv.set(cacheKey(), encoder.encode(result));
     status = "Translated and saved to the phrasebook";
   } catch (error) {
@@ -77,7 +77,7 @@ async function render() {
         {
           id: "langs",
           type: "view",
-          style: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+          style: { flexDirection: "row", gap: 6 },
           children: LANGUAGES.map((lang) => ({
             id: `lang-${lang}`,
             type: "button",
@@ -87,7 +87,7 @@ async function render() {
         {
           id: "go",
           type: "button",
-          props: { label: inFlight ? "Working…" : "Translate", event: "pt.go", disabled: inFlight }
+          props: { label: inFlight ? "Working…" : "Translate", event: "pt.go"}
         },
         { id: "divider", type: "divider" },
         {

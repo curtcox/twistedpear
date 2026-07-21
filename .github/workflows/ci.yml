@@ -323,6 +323,7 @@ jobs:
       - run: npm run test:sdk-interop
       - run: npm run test:dev-loop
       - run: npm run test:examples
+      - run: npm run test:cookbook
       - run: npm run test:handbook
       - run: npm run test:handbook-mobile
 

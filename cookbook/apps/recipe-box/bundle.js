@@ -22,7 +22,7 @@ function pathFor(name) {
 
 async function refresh() {
   try {
-    files = await workspace.list(DIR);
+    files = (await workspace.list(DIR)).map((file) => file.path);
   } catch (error) {
     files = [];
   }
@@ -109,8 +109,8 @@ async function render() {
         {
           id: "editor",
           type: "text-input",
-          props: { value: text, placeholder: "Select a recipe", event: "rb.text", multiline: true },
-          style: { minHeight: 200 }
+          props: { value: text, placeholder: "Select a recipe", event: "rb.text" },
+          style: { height: 200 }
         },
         {
           id: "actions",

@@ -52,6 +52,7 @@ async function writeProject() {
 }
 
 async function preview() {
+  if (busy) return;
   busy = true;
   status = "Waiting for host confirmation…";
   await render();
@@ -68,6 +69,7 @@ async function preview() {
 }
 
 async function packageIt() {
+  if (busy) return;
   busy = true;
   status = "Waiting for host confirmation…";
   await render();
@@ -83,6 +85,7 @@ async function packageIt() {
 }
 
 async function publish() {
+  if (busy) return;
   if (lastPackage === null) {
     status = "Package it first";
     return;
@@ -126,7 +129,7 @@ async function render() {
         {
           id: "swatch",
           type: "view",
-          style: { backgroundColor: colour, minHeight: 60, alignItems: "center", justifyContent: "center" },
+          style: { backgroundColor: colour, height: 60, alignItems: "center", justifyContent: "center" },
           children: [
             {
               id: "swatch-text",
@@ -141,9 +144,9 @@ async function render() {
           type: "view",
           style: { flexDirection: "row", gap: 8 },
           children: [
-            { id: "preview", type: "button", props: { label: "Preview", event: "sm.preview", disabled: busy } },
-            { id: "package", type: "button", props: { label: "Package", event: "sm.package", disabled: busy } },
-            { id: "publish", type: "button", props: { label: "Publish", event: "sm.publish", disabled: busy } }
+            { id: "preview", type: "button", props: { label: "Preview", event: "sm.preview"} },
+            { id: "package", type: "button", props: { label: "Package", event: "sm.package"} },
+            { id: "publish", type: "button", props: { label: "Publish", event: "sm.publish"} }
           ]
         },
         { id: "divider", type: "divider" },
@@ -154,7 +157,7 @@ async function render() {
           id: "t256-text",
           type: "text",
           props: { value: lastPackage === null ? "" : lastPackage.t256 },
-          style: { fontSize: 11 }
+          style: { fontSize: 12 }
         },
         { id: "status", type: "text", props: { value: status }, style: { fontSize: 12 } }
       ]

@@ -132,13 +132,14 @@ Every sample is a complete app in the sense that it runs, does the thing its nam
 handles the failures the platform will actually hand it: a missing grant, an absent link, a
 model that will not answer, a store that is empty on first launch.
 
-No sample is complete in the sense of being production software. There is no test suite, no
-error telemetry, no accessibility pass, and no localisation. Several of them cut corners
-that a shipped app should not — where they do, there is a comment saying so.
+No sample is complete in the sense of being production software. There is no error telemetry,
+accessibility pass, or localisation. Several of them cut corners that a shipped app should
+not — where they do, there is a comment saying so.
 
-> **⏳ Cookbook samples are not exercised by CI.** They parse as ES modules and are written
-> against the published SDK surface, but nothing in this repository builds, packs, or runs
-> them. When the SDK changes, these will drift before anything catches it.
+Every sample is exercised by `npm run test:cookbook`. CI parses and type/lint-checks each
+bundle against the published SDK, validates its manifest and capability declarations, packs
+it through `tp pack`, verifies the signed archive and BLE size budget, then starts it in the
+real sandbox runtime and waits for a valid widget tree. SDK drift now fails the PR gate.
 
 ## When a recipe stops working
 

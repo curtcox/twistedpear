@@ -19,6 +19,7 @@ async function refresh() {
   }
 }
 
+/** @returns {import("@twistedpear/miniapp-runtime").WidgetNode} */
 function row(id, label, value) {
   return {
     id,
@@ -33,7 +34,7 @@ function row(id, label, value) {
 
 async function render() {
   const interfaces = info?.interfaceTypes ?? [];
-  const quota = info?.quota ?? {};
+  const quotas = info?.quotas;
   await ui.render({
     root: {
       id: "root",
@@ -51,10 +52,19 @@ async function render() {
         row("platform", "Platform", info?.platform ?? "unknown"),
         row("version", "Host", info?.hostVersion ?? "unknown"),
         row("api", "Host API", info?.hostApiVersion ?? "unknown"),
-        row("roles", "Roles", (info?.roles ?? []).join(", ") || "none"),
+        row(
+          "roles",
+          "Roles",
+          info === null
+            ? "none"
+            : Object.entries(info.roles)
+                .filter(([, enabled]) => enabled)
+                .map(([role]) => role)
+                .join(", ") || "none"
+        ),
         row("ifaces", "Interfaces", interfaces.join(", ") || "none"),
-        row("peers", "Peers seen", String(snapshot?.peerCount ?? 0)),
-        row("kv", "KV used", `${quota.kvBytesUsed ?? 0} / ${quota.kvBytesLimit ?? "?"}`),
+        row("peers", "Peers seen", String(snapshot?.peers ?? 0)),
+        row("kv", "KV quota", String(quotas?.kvQuotaBytes ?? "host default")),
         row("grants", "Granted", (info?.grantedCapabilities ?? []).join(", ") || "none"),
         { id: "divider2", type: "divider" },
         {

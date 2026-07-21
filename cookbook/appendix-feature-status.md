@@ -24,7 +24,6 @@ You cannot build these recipes as written today.
 
 | Feature | Where it appears | Blocker | Tracked as |
 |---|---|---|---|
-| Cookbook samples exercised by CI | [1](01-how-to-use-this-cookbook.md), [app index](appendix-app-index.md) | No suite builds, packs, or runs `cookbook/apps/*`. The sources parse and follow the published SDK surface, but nothing verifies them and they will drift when the SDK changes. | This cookbook |
 | Screenshots | everywhere | Supplied in a separate pass; every image is a generated placeholder. | [images/README.md](images/README.md) |
 | Background execution, timers, notifications | [2](02-apps-with-no-capabilities.md#breath-pacer), [4](04-apps-that-talk-to-one-peer.md), [9](09-apps-for-a-bad-link.md) | Apps run only in the foreground. Nothing is delivered, queued, drained, or timed while an app is closed. Every recipe that needs "later" makes the user reopen it. | [LIMITATIONS.md §7](../LIMITATIONS.md) |
 | Group messaging, attachments, history sync | [4](04-apps-that-talk-to-one-peer.md#roll-call) | Not in v1 scope. Fan-out is N unicast sends, which is why Roll call is written as a sequential loop. | [LIMITATIONS.md §7](../LIMITATIONS.md) |

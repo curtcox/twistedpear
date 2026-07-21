@@ -14,7 +14,7 @@ let status = "";
 
 async function refreshCache() {
   try {
-    cached = await workspace.list(CACHE_DIR);
+    cached = (await workspace.list(CACHE_DIR)).map((file) => file.path);
   } catch (error) {
     cached = [];
   }
@@ -35,8 +35,11 @@ async function open(t256) {
 
   status = "Fetching…";
   await render();
-  const bytes = await share.get(t256);
-  const text = new TextDecoder().decode(bytes);
+  const text = await share.get(t256);
+  if (text === null) {
+    status = "Not found — no locator announce was heard";
+    return;
+  }
   // 256 KiB per workspace file. A zine that does not fit is a zine that needs splitting.
   if (text.length > 256 * 1024) {
     status = "Too large for one workspace file (256 KiB limit)";

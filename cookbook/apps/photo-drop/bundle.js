@@ -36,11 +36,11 @@ async function remember(t256) {
 async function putSample() {
   // A real app would take these bytes from a picker. The cookbook keeps the sample
   // self-contained, so it shares a small generated payload instead.
-  const payload = encoder.encode(`photo-drop sample ${new Date().toISOString()}`);
-  const t256 = await share.put(payload);
-  identifier = t256;
-  await remember(t256);
-  status = `Shared ${payload.length} bytes as ${t256.slice(0, 12)}…`;
+  const payload = `photo-drop sample ${new Date().toISOString()}`;
+  const shared = await share.put(payload);
+  identifier = shared.t256;
+  await remember(shared.t256);
+  status = `Shared ${shared.size} bytes as ${shared.t256.slice(0, 12)}…`;
 }
 
 async function fetchIt() {

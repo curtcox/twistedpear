@@ -1,4 +1,9 @@
 import { callHost } from "./rpc.js";
+import type {
+  StorageBeeDescriptor,
+  StorageBeeEntry,
+  StorageBeeListOptions
+} from "@twistedpear/miniapp-runtime";
 
 export const kv = {
   async get(key: string): Promise<Uint8Array | null> {
@@ -13,8 +18,8 @@ export const kv = {
 };
 
 export const bee = {
-  async open(): Promise<unknown> {
-    return callHost("storage.bee", "open", undefined, "storage:hyperbee");
+  async open(): Promise<StorageBeeDescriptor> {
+    return (await callHost("storage.bee", "open", undefined, "storage:hyperbee")) as StorageBeeDescriptor;
   },
   async get(key: string): Promise<Uint8Array | null> {
     return (await callHost("storage.bee", "get", { key }, "storage:hyperbee")) as Uint8Array | null;
@@ -25,7 +30,12 @@ export const bee = {
   async del(key: string): Promise<void> {
     await callHost("storage.bee", "del", { key }, "storage:hyperbee");
   },
-  async list(options?: { gte?: string; lt?: string; limit?: number }): Promise<unknown> {
-    return callHost("storage.bee", "list", options ?? {}, "storage:hyperbee");
+  async list(options?: StorageBeeListOptions): Promise<ReadonlyArray<StorageBeeEntry>> {
+    return (await callHost(
+      "storage.bee",
+      "list",
+      options ?? {},
+      "storage:hyperbee"
+    )) as ReadonlyArray<StorageBeeEntry>;
   }
 };

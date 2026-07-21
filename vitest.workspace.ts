@@ -18,6 +18,7 @@ export default defineWorkspace([
         "conformance/docs/**/*.test.mjs",
         "conformance/doc-audit/**/*.test.mjs",
         "conformance/device-evidence/**/*.test.mjs",
+        "conformance/cookbook/**/*.test.mjs",
         "conformance/ui-invariants/**/*.test.mjs"
       ],
       exclude: ["packages/protocol/test/**/*.test.ts"]

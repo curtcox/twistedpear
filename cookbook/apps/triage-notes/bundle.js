@@ -4,8 +4,8 @@ import { ai, storage, ui } from "@twistedpear/miniapp-sdk";
 // parsed, validated field by field, and only then written to the store. An app that
 // JSON.parses a model reply straight into its database has a data-integrity bug waiting.
 
-const BEE = "records";
-let bee = null;
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 const FIELDS = ["subject", "location", "severity", "action"];
 const SEVERITIES = ["low", "medium", "high"];
@@ -19,8 +19,8 @@ let inFlight = false;
 let status = "";
 
 async function refresh() {
-  const rows = await storage.bee.list(bee, { gte: "r/", lt: "r0", limit: 50 });
-  records = rows.map((row) => ({ key: row.key, record: row.value }));
+  const rows = await storage.bee.list({ gte: "r/", lt: "r0", limit: 50 });
+  records = rows.map((row) => ({ key: row.key, record: JSON.parse(decoder.decode(row.value)) }));
 }
 
 function validate(candidate) {
@@ -59,7 +59,7 @@ async function structure() {
 
     let candidate = null;
     try {
-      candidate = JSON.parse(reply.content.trim().replace(/^```(json)?|```$/g, ""));
+      candidate = JSON.parse(reply.message.content.trim().replace(/^```(json)?|```$/g, ""));
     } catch (error) {
       candidate = null;
     }
@@ -76,7 +76,10 @@ async function structure() {
 async function file() {
   if (parsed === null) return;
   const reverse = 10_000_000_000_000 - Date.now();
-  await storage.bee.put(bee, `r/${String(reverse).padStart(14, "0")}`, parsed);
+  await storage.bee.put(
+    `r/${String(reverse).padStart(14, "0")}`,
+    encoder.encode(JSON.stringify(parsed))
+  );
   parsed = null;
   dictation = "";
   await refresh();
@@ -99,13 +102,13 @@ async function render() {
         {
           id: "dictation",
           type: "text-input",
-          props: { value: dictation, placeholder: "Type it how you'd say it", event: "tn.text", multiline: true },
-          style: { minHeight: 100 }
+          props: { value: dictation, placeholder: "Type it how you'd say it", event: "tn.text" },
+          style: { height: 100 }
         },
         {
           id: "structure",
           type: "button",
-          props: { label: inFlight ? "Working…" : "Structure", event: "tn.structure", disabled: inFlight }
+          props: { label: inFlight ? "Working…" : "Structure", event: "tn.structure"}
         },
         { id: "divider", type: "divider" },
         {
@@ -124,7 +127,7 @@ async function render() {
         {
           id: "file",
           type: "button",
-          props: { label: "File it", event: "tn.file", disabled: parsed === null }
+          props: { label: "File it", event: "tn.file"}
         },
         { id: "divider2", type: "divider" },
         {
@@ -135,7 +138,7 @@ async function render() {
             id: `rec-${row.key}`,
             type: "text",
             props: { value: `[${row.record.severity}] ${row.record.subject} — ${row.record.location}` },
-            style: { fontSize: 13 }
+            style: { fontSize: 14 }
           }))
         },
         { id: "status", type: "text", props: { value: status }, style: { fontSize: 12 } }
@@ -152,6 +155,6 @@ ui.onEvent(async ({ event, value }) => {
   await render();
 });
 
-bee = await storage.bee.open(BEE);
+await storage.bee.open();
 await refresh();
 await render();

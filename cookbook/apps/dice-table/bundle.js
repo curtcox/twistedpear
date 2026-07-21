@@ -33,7 +33,7 @@ async function render() {
         {
           id: "dice-row",
           type: "view",
-          style: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+          style: { flexDirection: "row", gap: 8 },
           children: DICE.map((sides) => ({
             id: `d${sides}`,
             type: "button",
@@ -69,7 +69,7 @@ async function render() {
                 id: `history-${index}`,
                 type: "text",
                 props: { value: `${entry.label}: ${entry.result}` },
-                style: { fontSize: 13 }
+                style: { fontSize: 14 }
               }))
             }
           ]

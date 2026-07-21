@@ -61,7 +61,7 @@ async function render() {
           props: { value: "Dead drop" },
           style: { fontSize: 20, fontWeight: "bold" }
         },
-        { id: "me", type: "text", props: { value: `Signing as ${me}` }, style: { fontSize: 11 } },
+        { id: "me", type: "text", props: { value: `Signing as ${me}` }, style: { fontSize: 12 } },
         {
           id: "peer",
           type: "text-input",
@@ -70,8 +70,8 @@ async function render() {
         {
           id: "note",
           type: "text-input",
-          props: { value: note, placeholder: "Short note", event: "dd.note", multiline: true },
-          style: { minHeight: 96 }
+          props: { value: note, placeholder: "Short note", event: "dd.note" },
+          style: { height: 96 }
         },
         {
           id: "actions",
@@ -97,7 +97,7 @@ async function render() {
                 id: `sig-${index}`,
                 type: "text",
                 props: { value: `signed ${item.signature.slice(0, 16)}… by ${item.from.slice(0, 16)}…` },
-                style: { fontSize: 11 }
+                style: { fontSize: 12 }
               }
             ]
           }))

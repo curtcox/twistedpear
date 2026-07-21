@@ -50,7 +50,7 @@ async function design() {
     });
     let candidate = null;
     try {
-      candidate = JSON.parse(reply.content.trim().replace(/^```(json)?|```$/g, ""));
+      candidate = JSON.parse(reply.message.content.trim().replace(/^```(json)?|```$/g, ""));
     } catch (error) {
       candidate = null;
     }
@@ -89,7 +89,15 @@ async function render() {
       style: { padding: 16, gap: 10 },
       children: FIELDS.map((field) =>
         field.type === "switch"
-          ? { id: field.name, type: "switch", props: { value: values[field.name] === true, label: field.label, event: field.name } }
+          ? {
+              id: "row-" + field.name,
+              type: "view",
+              style: { flexDirection: "row", gap: 8 },
+              children: [
+                { id: "label-" + field.name, type: "text", props: { value: field.label } },
+                { id: field.name, type: "switch", props: { value: values[field.name] === true, event: field.name } }
+              ]
+            }
           : { id: field.name, type: "text-input", props: { value: values[field.name] ?? "", placeholder: field.label, event: field.name } }
       )
     }
@@ -167,7 +175,7 @@ async function render() {
         {
           id: "design",
           type: "button",
-          props: { label: inFlight ? "Working…" : "Design it", event: "ff.design", disabled: inFlight }
+          props: { label: inFlight ? "Working…" : "Design it", event: "ff.design"}
         },
         { id: "divider", type: "divider" },
         {
@@ -193,7 +201,7 @@ async function render() {
           id: "t256",
           type: "text",
           props: { value: lastPackage === null ? "" : lastPackage.t256 },
-          style: { fontSize: 11 }
+          style: { fontSize: 12 }
         },
         { id: "status", type: "text", props: { value: status }, style: { fontSize: 12 } }
       ]

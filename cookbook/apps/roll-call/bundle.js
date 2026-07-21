@@ -66,7 +66,7 @@ async function render() {
           props: { value: "Roll call" },
           style: { fontSize: 20, fontWeight: "bold" }
         },
-        { id: "me", type: "text", props: { value: `This app: ${me}` }, style: { fontSize: 11 } },
+        { id: "me", type: "text", props: { value: `This app: ${me}` }, style: { fontSize: 12 } },
         {
           id: "add-row",
           type: "view",

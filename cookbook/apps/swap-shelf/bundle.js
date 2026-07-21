@@ -9,6 +9,7 @@ const LISTINGS_KEY = "listings";
 const STALE_MS = 7 * 24 * 60 * 60 * 1000;
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
+const ANNOUNCE_NAMESPACE = "swap-shelf";
 
 /** @type {{ from: string; item: string; at: number }[]} */
 let listings = [];
@@ -46,18 +47,18 @@ async function offer() {
     status = `Too long — keep the whole payload under ${MAX_PAYLOAD_BYTES} bytes`;
     return;
   }
-  await announce.publish(payload);
+  await announce.publish(encoder.encode(JSON.stringify(payload)), ANNOUNCE_NAMESPACE);
   listings = [...listings, { from: "me", item, at: Date.now() }];
   draft = "";
   await persist();
   status = "Offered";
 }
 
-announce.subscribe().then(async (stream) => {
-  for await (const event of stream) {
-    const item = event.appData?.i;
+announce.subscribe(ANNOUNCE_NAMESPACE).then(async (events) => {
+  for (const event of events) {
+    const item = JSON.parse(decoder.decode(event.appData)).i;
     if (typeof item !== "string") continue;
-    listings = [...listings, { from: event.from ?? "peer", item, at: Date.now() }];
+    listings = [...listings, { from: event.destination, item, at: Date.now() }];
     await persist();
     await render();
   }
@@ -86,7 +87,7 @@ async function render() {
           id: "budget",
           type: "text",
           props: { value: `${remaining} bytes left in the payload budget` },
-          style: { fontSize: 11 }
+          style: { fontSize: 12 }
         },
         { id: "offer", type: "button", props: { label: "Offer it", event: "ss.offer" } },
         { id: "divider", type: "divider" },

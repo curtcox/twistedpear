@@ -56,7 +56,7 @@ async function render() {
           id: "result",
           type: "text",
           props: { value: converted() },
-          style: { fontSize: 28, fontWeight: "bold" }
+          style: { fontSize: 32, fontWeight: "bold" }
         },
         {
           id: "footnote",

@@ -139,7 +139,7 @@ async function render() {
             {
               id: "flush",
               type: "button",
-              props: { label: `Flush queue (${queue.length})`, event: "nl.flush", disabled: queue.length === 0 }
+              props: { label: `Flush queue (${queue.length})`, event: "nl.flush"}
             }
           ]
         },

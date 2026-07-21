@@ -136,7 +136,7 @@ async function render() {
                   props: {
                     value: `${new Date(row.at).toLocaleTimeString()} ${row.call} ${row.note}`
                   },
-                  style: { fontSize: 13 }
+                  style: { fontSize: 14 }
                 }))
             }
           ]
@@ -150,7 +150,7 @@ async function render() {
             {
               id: "drain",
               type: "button",
-              props: { label: `Outbox (${outbox.length})`, event: "nl.drain", disabled: outbox.length === 0 }
+              props: { label: `Outbox (${outbox.length})`, event: "nl.drain"}
             }
           ]
         },

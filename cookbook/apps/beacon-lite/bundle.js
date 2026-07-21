@@ -32,7 +32,7 @@ async function beacon(manual) {
     status = "Too soon. Give the channel a rest.";
     return;
   }
-  await announce.publish(payload());
+  await announce.publish(new TextEncoder().encode(JSON.stringify(payload())), "beacon-lite");
   lastSentAt = Date.now();
   status = `Beaconed ${payloadBytes()} bytes at ${new Date().toLocaleTimeString()}`;
   await render();
@@ -40,7 +40,7 @@ async function beacon(manual) {
 
 async function render() {
   try {
-    peers = (await presence.snapshot()).peerCount ?? 0;
+    peers = (await presence.snapshot()).peers;
   } catch (error) {
     peers = 0;
   }
@@ -75,12 +75,17 @@ async function render() {
           id: "size",
           type: "text",
           props: { value: `${payloadBytes()} bytes per beacon · ${peers} peers in range` },
-          style: { fontSize: 11 }
+          style: { fontSize: 12 }
+        },
+        {
+          id: "auto-label",
+          type: "text",
+          props: { value: `Repeat every ${MIN_INTERVAL_MS / 60000} minutes` }
         },
         {
           id: "auto",
           type: "switch",
-          props: { value: auto, label: `Repeat every ${MIN_INTERVAL_MS / 60000} minutes`, event: "bl.auto" }
+          props: { value: auto, event: "bl.auto" }
         },
         { id: "send", type: "button", props: { label: "Beacon now", event: "bl.send" } },
         { id: "status", type: "text", props: { value: status }, style: { fontSize: 12 } },
@@ -90,7 +95,7 @@ async function render() {
           props: {
             value: "Closing the app stops the beacon. Nothing runs in the background."
           },
-          style: { fontSize: 11 }
+          style: { fontSize: 12 }
         }
       ]
     }

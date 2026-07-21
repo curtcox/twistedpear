@@ -39,6 +39,7 @@
     "test:bind-loopback": "npm run build && node conformance/bind-loopback/run.mjs",
     "test:sdk-interop": "npm run build && node conformance/sdk-interop/run.mjs",
     "test:examples": "npm run build && node conformance/examples/run.mjs",
+    "test:cookbook": "npm run build && vitest run conformance/cookbook/cookbook.test.mjs",
     "test:handbook": "npm run build && node conformance/handbook/run.mjs",
     "test:handbook-report": "npm run build && node conformance/handbook/report.mjs",
     "test:handbook-mobile": "npm run build && node conformance/handbook/mobile-slice.mjs && node conformance/handbook/mobile-slice.mjs --android",

@@ -4,8 +4,8 @@ import { storage, ui } from "@twistedpear/miniapp-sdk";
 // newest-first ordering for free. This is the whole trick: choose the key so the
 // listing you want is a range scan and not a sort in app memory.
 
-const BEE = "observations";
-let bee = null;
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 /** @type {{ key: string; at: string; text: string }[]} */
 let entries = [];
@@ -19,18 +19,20 @@ function keyFor(date) {
 }
 
 async function refresh() {
-  const listed = await storage.bee.list(bee, { gte: "obs/", lt: "obs0", limit: 50 });
+  const listed = await storage.bee.list({ gte: "obs/", lt: "obs0", limit: 50 });
   entries = listed.map((row) => ({
     key: row.key,
-    at: row.value.at,
-    text: row.value.text
+    ...JSON.parse(decoder.decode(row.value))
   }));
 }
 
 async function add() {
   if (draft.trim().length === 0) return;
   const now = new Date();
-  await storage.bee.put(bee, keyFor(now), { at: now.toISOString(), text: draft.trim() });
+  await storage.bee.put(
+    keyFor(now),
+    encoder.encode(JSON.stringify({ at: now.toISOString(), text: draft.trim() }))
+  );
   draft = "";
   status = "Logged";
   await refresh();
@@ -73,7 +75,7 @@ async function render() {
                     id: `when-${entry.key}`,
                     type: "text",
                     props: { value: entry.at.replace("T", " ").slice(0, 19) },
-                    style: { fontSize: 11 }
+                    style: { fontSize: 12 }
                   },
                   { id: `what-${entry.key}`, type: "text", props: { value: entry.text } }
                 ]
@@ -103,6 +105,6 @@ ui.onEvent(async ({ event, value }) => {
   await render();
 });
 
-bee = await storage.bee.open(BEE);
+await storage.bee.open();
 await refresh();
 await render();

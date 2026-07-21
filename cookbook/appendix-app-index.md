@@ -13,8 +13,10 @@ The **size** column is the approximate packaged `.tpkg` size. All twenty-five ar
 the 180 KiB BLE install budget, and the four largest are still under a minute of BLE transfer
 — but see [Chapter 9](09-apps-for-a-bad-link.md) for what any of them cost over LoRa.
 
-> **⏳ Cookbook samples are not exercised by CI.** Sizes are estimates from the source, not
-> measurements from a build. Nothing in this repository packs these apps.
+> **Verified by CI.** `npm run test:cookbook` packs every sample through `tp pack`, verifies
+> its manifest, signature, capabilities, and BLE size budget, then launches it in the sandbox
+> runtime and waits for a valid render. The rounded sizes below remain reading aids rather
+> than release artifacts.
 
 ## By chapter
 

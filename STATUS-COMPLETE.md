@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-19
+audited: 2026-07-21
 register: complete
 -->
 
@@ -14,7 +14,7 @@ This is an evidence archive, not a backlog. Open software work is tracked in
 [STATUS-SOFTWARE.md](STATUS-SOFTWARE.md); device-, account-, and real-network-gated work is
 tracked in [STATUS-HARDWARE.md](STATUS-HARDWARE.md).
 
-Last audited: 2026-07-19.
+Last audited: 2026-07-21.
 
 ## v1 release pipeline
 
@@ -349,6 +349,7 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 | Item | Evidence | Verify |
 |---|---|---|
 | chat, file-drop, board examples | `apps/examples/` | `npm run test:examples` |
+| 25 cookbook apps: SDK type/lint, manifest/capabilities, pack, verify, launch, render | `cookbook/apps/`, `conformance/cookbook/` | `npm run test:cookbook` (CI: `miniapp-conformance`) |
 | BLE install budget sizes recorded | `conformance/budgets/measured.json` | `npm run test:budgets` |
 
 ### M8 — Integration (short soak)

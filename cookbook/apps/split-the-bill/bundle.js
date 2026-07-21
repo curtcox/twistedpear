@@ -4,8 +4,8 @@ import { storage, ui } from "@twistedpear/miniapp-sdk";
 // which is the only shape that survives an app being killed mid-write. It also means
 // the Hyperbee history grows forever — and history counts against the byte quota.
 
-const BEE = "ledger";
-let bee = null;
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 /** @type {{ key: string; who: string; what: string; cents: number }[]} */
 let entries = [];
@@ -15,8 +15,8 @@ let amount = "";
 let status = "";
 
 async function refresh() {
-  const rows = await storage.bee.list(bee, { gte: "e/", lt: "e0", limit: 200 });
-  entries = rows.map((row) => ({ key: row.key, ...row.value }));
+  const rows = await storage.bee.list({ gte: "e/", lt: "e0", limit: 200 });
+  entries = rows.map((row) => ({ key: row.key, ...JSON.parse(decoder.decode(row.value)) }));
 }
 
 function totals() {
@@ -42,7 +42,7 @@ async function add() {
     return;
   }
   const key = `e/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  await storage.bee.put(bee, key, { who: who.trim(), what: what.trim(), cents });
+  await storage.bee.put(key, encoder.encode(JSON.stringify({ who: who.trim(), what: what.trim(), cents })));
   what = "";
   amount = "";
   status = "Added";
@@ -115,6 +115,6 @@ ui.onEvent(async ({ event, value }) => {
   await render();
 });
 
-bee = await storage.bee.open(BEE);
+await storage.bee.open();
 await refresh();
 await render();
