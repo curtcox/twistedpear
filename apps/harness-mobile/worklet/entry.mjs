@@ -29,6 +29,7 @@ import { HOST_API_VERSION, validateManifestCapabilities } from "../../../package
 import { createWorkletMiniappHost } from "./miniapp-host.mjs";
 import { createDevChannelClient } from "./dev-channel.mjs";
 import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
+import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
 
 const { IPC } = BareKit;
 const HOST_BANDWIDTH_BYTES_PER_SECOND = 512 * 1024;
@@ -333,7 +334,7 @@ function pushStatus() {
 
 function startStatusTimer() {
   if (statusTimer !== null) {
-    return;
+    return tcpIface.online;
   }
 
   statusTimer = setInterval(pushStatus, 1_000);
@@ -589,7 +590,7 @@ async function startTcpInterface(targetHost, targetPort) {
   if (tcpIface !== null) {
     status.linkOnline = tcpIface.online;
     pushStatus();
-    return;
+    return tcpIface.online;
   }
 
   log(`Starting TCP client to ${targetHost}:${targetPort}`);
@@ -605,13 +606,30 @@ async function startTcpInterface(targetHost, targetPort) {
     pushStatus();
     if (tcpIface.online) {
       log("TCP interface online");
-      return;
+      return true;
     }
 
     await sleep(250);
   }
 
   log("Timed out waiting for TCP interface (peer may be unreachable)");
+  return false;
+}
+
+async function joinCommunityNetwork() {
+  status.tcpEnabled = true;
+  pushStatus();
+  log(RETICULUM_COMMUNITY_NETWORK.privacyNotice);
+  for (const endpoint of RETICULUM_COMMUNITY_NETWORK.endpoints) {
+    await stopTcpInterface();
+    pendingTarget = { targetHost: endpoint.host, targetPort: endpoint.port };
+    log(`Trying ${endpoint.label}`);
+    if (await startTcpInterface(endpoint.host, endpoint.port)) {
+      log(`Joined ${RETICULUM_COMMUNITY_NETWORK.label} through ${endpoint.label}`);
+      return;
+    }
+  }
+  log("Community bootstrap unavailable; try again later or configure your own TCP peer");
 }
 
 async function startAutoInterface() {
@@ -1178,6 +1196,11 @@ async function handleHostMessage(raw) {
 
   if (message.type === "disconnect-dev-channel") {
     await ensureDevChannel().disconnect();
+    return;
+  }
+
+  if (message.type === "join-community-network") {
+    await joinCommunityNetwork();
     return;
   }
 

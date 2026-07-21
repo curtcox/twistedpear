@@ -32,11 +32,11 @@ network — including everyone else connected to it.
 filled in, a green "connected" pill, and a line reading "Link up · 41 announces seen".
 Below, the *Announce browser* has populated with several peer entries.
 
-> **⏳ Not yet available — a public network to join.** There is no bundled list of
-> community nodes, no bootstrap peer, and no public TwistedPear network. Out of the box
-> the host connects to nothing over TCP; the default configuration has an empty peer
-> list. Until a public network exists, you are joining a network you or someone you know
-> operates.
+To start without operating a node, choose **Join community network**. The host tries the
+bundled, redundant profile of community-operated Reticulum TCP transports. Joining is
+opt-in: the operator can observe your IP address and traffic timing, availability is not
+guaranteed, and TwistedPear does not treat the operator as a package or identity trust root.
+See [Community network bootstrap](../docs/community-network.md).
 
 ## On the same Wi-Fi: automatic discovery
 

@@ -42,6 +42,7 @@ const settingPropagation = document.querySelector("#setting-propagation");
 const settingTcp = document.querySelector("#setting-tcp");
 const settingAuto = document.querySelector("#setting-auto");
 const settingRnodePort = document.querySelector("#setting-rnode-port");
+const joinCommunityNetwork = document.querySelector("#join-community-network");
 const identityCurrent = document.querySelector("#identity-current");
 const identityNext = document.querySelector("#identity-next");
 const identityConfirm = document.querySelector("#identity-confirm");
@@ -589,6 +590,11 @@ if (!host) {
 
   settingPropagation?.addEventListener("change", () => {
     host.send({ type: "set-propagation", enabled: settingPropagation.checked });
+  });
+
+  joinCommunityNetwork?.addEventListener("click", () => {
+    if (settingTcp) settingTcp.checked = true;
+    host.send({ type: "join-community-network" });
   });
 
   for (const element of [settingTcp, settingAuto, settingRnodePort]) {

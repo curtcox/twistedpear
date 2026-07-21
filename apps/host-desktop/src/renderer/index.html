@@ -67,8 +67,12 @@
         <div class="settings-grid">
           <label><input type="checkbox" id="setting-propagation" /> Propagation node</label>
           <label><input type="checkbox" id="setting-developer" /> Developer mode</label>
-          <label><input type="checkbox" id="setting-tcp" checked /> TCP client</label>
+          <label><input type="checkbox" id="setting-tcp" /> TCP client</label>
           <label><input type="checkbox" id="setting-auto" checked /> Auto (LAN)</label>
+          <div class="setting-group">
+            <button id="join-community-network">Join community network</button>
+            <small>Opt-in public Reticulum transport. The operator can observe your IP address and timing.</small>
+          </div>
           <label>
             RNode port
             <input type="text" id="setting-rnode-port" placeholder="/dev/ttyUSB0" class="setting-input" />

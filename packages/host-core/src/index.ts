@@ -63,6 +63,11 @@ export {
 } from "./identity-backup.js";
 export { createNodeHost, runNodeHost, type NodeHostOptions, type NodeHostSession } from "./node-host.js";
 export { startSeederRole, type SeederRoleOptions, type SeederRoleSession } from "./roles/seeder.js";
+export {
+  RETICULUM_COMMUNITY_NETWORK,
+  type CommunityNetworkProfile,
+  type CommunityTcpEndpoint
+} from "./community-network.js";
 export type { FetchPath, FetchPlane, FetchPlaneRequest, FetchPlaneResult, FetchProgress } from "./fetch-plane.js";
 export { createBridgeHyperFetchPlane } from "./fetch-plane-bridge-hyper.js";
 export type { BridgeHyperFetchPlaneOptions } from "./fetch-plane-bridge-hyper.js";

@@ -23,7 +23,6 @@ You cannot use these today.
 | Google Play listing | [2](02-installing-a-host.md) | Not submitted. Play policy on downloaded code makes direct APK and F-Droid the planned channels. | [LIMITATIONS §5](../LIMITATIONS.md) |
 | App Store listing | [2](02-installing-a-host.md) | No submission attempted; App Review 3.3.2 exposure is unresolved. | [docs/ios-submission.md](../docs/ios-submission.md) |
 | iPhone local-network discovery | [2](02-installing-a-host.md), [4](04-joining-a-network.md) | Apple multicast entitlement not filed; needs a paid developer account. | H12, [docs/ios-multicast-entitlement.md](../docs/ios-multicast-entitlement.md) |
-| A public network to join | [4](04-joining-a-network.md) | No bundled peer list, no bootstrap node, no public network exists. | — |
 | Bluetooth verified between real phones | [4](04-joining-a-network.md) | Never run on two physical handsets; throughput and background behaviour unmeasured. | H2, H7, H9, H14 |
 | LoRa verified on real radios | [4](04-joining-a-network.md) | Implemented against simulated serial only. | H4, H8, H16, H19 |
 | Linked devices / multi-device identity | [3](03-first-run-and-identity.md) | No design shipped for sharing one identity across hosts. | — |
@@ -38,6 +37,7 @@ You can use these, but not the way the surrounding text might suggest.
 | Feature | Limit | Where it appears | Tracked as |
 |---|---|---|---|
 | Guide screenshots | 19 of 44 are real captures from the desktop and browser hosts; 25 remain gated by hardware, missing exact-state fixtures, terminal capture, or editorial composition. | everywhere | [images/README.md](images/README.md) |
+| Community network bootstrap | Opt-in profile uses independently operated public TCP transports with no availability guarantee; operators see IP address and timing. Browsers still need a chosen WebSocket gateway. | [4](04-joining-a-network.md) | [docs/community-network.md](../docs/community-network.md) |
 | Identity backup and recovery | Encrypted export/import, recovery words, and passphrase changes are available in `tp` and the desktop host; mobile and browser host UI is not yet wired. | [3](03-first-run-and-identity.md) | [docs/identity-backup.md](../docs/identity-backup.md) |
 | Blocking, muting, and local reports | LXMF enforcement and desktop Safety settings are implemented; reports are local records/exports, not submissions to a central authority. Mobile and browser settings are not yet wired. | [7](07-messaging.md) | [docs/local-moderation.md](../docs/local-moderation.md) |
 | Multipart propagation | Ordered, resumable payloads default to 64 KiB and use airtime-expensive 32-byte content frames; this is not an attachment or bulk-file transport. | [7](07-messaging.md) | [docs/multipart-propagation.md](../docs/multipart-propagation.md) |

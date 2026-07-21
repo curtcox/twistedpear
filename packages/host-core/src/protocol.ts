@@ -103,6 +103,7 @@ export type HostToWorkletMessage =
   | { readonly type: "suspend-node" }
   | { readonly type: "resume-node" }
   | { readonly type: "network-change" }
+  | { readonly type: "join-community-network" }
   | { readonly type: "create-identity" }
   | { readonly type: "reset-identity" }
   | { readonly type: "identity-unlock"; readonly passphrase: string; readonly confirmation?: string }

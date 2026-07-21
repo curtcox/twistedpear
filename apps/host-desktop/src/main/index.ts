@@ -104,7 +104,7 @@ function ensureSupervisor(): WorkletSupervisor {
   });
   supervisor.send({
     type: "set-interfaces",
-    tcp: true,
+    tcp: false,
     auto: true,
     ble: false,
     rnode: false

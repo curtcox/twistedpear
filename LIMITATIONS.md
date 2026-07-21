@@ -239,6 +239,10 @@ everything below is a known cost of the chosen design or of the platforms involv
 - **Anonymity/privacy caveats:** BLE MAC addresses, WiFi multicast presence, and always-on
   radios are locally observable even though Reticulum payloads are encrypted and packets
   carry no source address. Physical-layer observability is out of scope for the stack.
+- **Community bootstrap is external:** the opt-in starter profile points at independently
+  operated public Reticulum TCP transports. They provide no availability guarantee and can
+  observe client IP addresses and traffic timing; they are connectivity aids, not package
+  trust roots. Web hosts still require an operator-selected WebSocket gateway.
 - **Time-to-usefulness:** a mesh platform is only as useful as its peer density; early
   deployments depend on desktop transport nodes and TCP testnet links, not pure phone
   meshes. Phase 6 adds always-on desktop peers (`tp node`, `host-desktop`) with transport +

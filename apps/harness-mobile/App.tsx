@@ -100,7 +100,7 @@ export default function App() {
   const [serviceRunning, setServiceRunning] = useState(false);
   const [lifecycleState, setLifecycleState] = useState<NodeLifecycleState>("unsupported");
   const [logLines, setLogLines] = useState<ReadonlyArray<string>>([
-    "Harness UI ready. Create an identity, then toggle TCP to start the worklet."
+    "Host ready. Create an identity, then join a nearby or community network."
   ]);
   const [tcpEnabled, setTcpEnabled] = useState(false);
   const [autoEnabled, setAutoEnabled] = useState(false);
@@ -487,6 +487,24 @@ export default function App() {
           />
         </View>
         <Row testID="tcp-client-switch" label="TCP client" value={tcpEnabled} onChange={setTcpEnabled} />
+        <View style={styles.buttonRow}>
+          <ActionButton
+            testID="join-community-network"
+            label="Join community network"
+            onPress={() => {
+              setTcpEnabled(true);
+              if (workletRef.current === null) {
+                startWorklet();
+                setTimeout(() => sendToWorklet({ type: "join-community-network" }), 250);
+                return;
+              }
+              sendToWorklet({ type: "join-community-network" });
+            }}
+          />
+        </View>
+        <Text style={styles.muted}>
+          Public transport operators can observe your IP address and traffic timing. Message contents remain encrypted.
+        </Text>
         <Row testID="auto-interface-switch" label="AutoInterface" value={autoEnabled} onChange={setAutoEnabled} />
         <Row testID="ble-interface-switch" label="BLE interface" value={bleEnabled} onChange={setBleEnabled} />
         <Row

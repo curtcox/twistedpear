@@ -47,6 +47,7 @@ import {
 import { createWorkletMiniappHost } from "./miniapp-host.mjs";
 import { createDevChannelClient } from "./dev-channel.mjs";
 import { IPC } from "./ipc-stdio.mjs";
+import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
 
 const HOST_BANDWIDTH_BYTES_PER_SECOND = 512 * 1024;
 import {
@@ -1239,7 +1240,7 @@ async function startTcpInterface(targetHost, targetPort) {
   if (tcpIface !== null) {
     status.linkOnline = tcpIface.online;
     pushStatus();
-    return;
+    return tcpIface.online;
   }
 
   log(`Starting TCP client to ${targetHost}:${targetPort}`);
@@ -1255,13 +1256,30 @@ async function startTcpInterface(targetHost, targetPort) {
     pushStatus();
     if (tcpIface.online) {
       log("TCP interface online");
-      return;
+      return true;
     }
 
     await sleep(250);
   }
 
   log("Timed out waiting for TCP interface (peer may be unreachable)");
+  return false;
+}
+
+async function joinCommunityNetwork() {
+  status.tcpEnabled = true;
+  pushStatus();
+  log(RETICULUM_COMMUNITY_NETWORK.privacyNotice);
+  for (const endpoint of RETICULUM_COMMUNITY_NETWORK.endpoints) {
+    await stopTcpInterface();
+    pendingTarget = { targetHost: endpoint.host, targetPort: endpoint.port };
+    log(`Trying ${endpoint.label}`);
+    if (await startTcpInterface(endpoint.host, endpoint.port)) {
+      log(`Joined ${RETICULUM_COMMUNITY_NETWORK.label} through ${endpoint.label}`);
+      return;
+    }
+  }
+  log("Community bootstrap unavailable; try again later or configure your own TCP peer");
 }
 
 async function startAutoInterface() {
@@ -2007,6 +2025,11 @@ async function handleHostMessage(raw) {
       });
       log(`Dev channel connect failed: ${error instanceof Error ? error.message : String(error)}`);
     }
+    return;
+  }
+
+  if (message.type === "join-community-network") {
+    await joinCommunityNetwork();
     return;
   }
 

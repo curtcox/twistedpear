@@ -171,6 +171,7 @@ export type HostToWorkletMessage =
   | { readonly type: "stop" }
   | { readonly type: "suspend-node" }
   | { readonly type: "resume-node" }
+  | { readonly type: "join-community-network" }
   | { readonly type: "create-identity" }
   | { readonly type: "import-identity"; readonly privateKeyHex: string }
   | { readonly type: "reset-identity" }

@@ -24,3 +24,8 @@ export type {
   WebStorageManager,
   WebStorageQuotaInfo
 } from "./web-package-storage.js";
+export {
+  RETICULUM_COMMUNITY_NETWORK,
+  type CommunityNetworkProfile,
+  type CommunityTcpEndpoint
+} from "./community-network.js";
