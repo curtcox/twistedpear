@@ -138,7 +138,7 @@ function WidgetNodeView({
       );
     case "text":
       return (
-        <Text style={style} testID={node.id}>
+        <Text style={[styles.text, style]} testID={node.id}>
           {String(node.props?.value ?? "")}
         </Text>
       );
@@ -193,7 +193,7 @@ function WidgetNodeView({
       return <View testID={node.id} style={[{ height: 8 }, style]} />;
     case "progress":
       return (
-        <Text testID={node.id} style={style}>
+        <Text testID={node.id} style={[styles.text, style]}>
           Progress {String(node.props?.value ?? 0)}%
         </Text>
       );
@@ -209,7 +209,7 @@ function WidgetNodeView({
       );
     case "image":
       return (
-        <Text testID={node.id} style={style}>
+        <Text testID={node.id} style={[styles.text, style]}>
           image:{String(node.props?.asset ?? "")}
         </Text>
       );
@@ -260,13 +260,17 @@ function widgetStyle(style?: WidgetStyle) {
     width: typeof style.width === "number" ? style.width : style.width,
     height: typeof style.height === "number" ? style.height : style.height,
     backgroundColor: style.backgroundColor,
-    color: style.color,
+    ...(style.color !== undefined ? { color: style.color } : {}),
     fontSize: style.fontSize,
     fontWeight: style.fontWeight === "bold" ? "700" : style.fontWeight === "medium" ? "500" : "400"
   } as const;
 }
 
 const styles = StyleSheet.create({
+  // Default for unset text colors on dark host chrome (RNW otherwise paints black).
+  text: {
+    color: "#e7ecf3"
+  },
   muted: {
     color: "#9aa7b8",
     fontSize: 13
