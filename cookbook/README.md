@@ -97,13 +97,14 @@ The authoritative registers are [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md),
 [STATUS-HARDWARE.md](../STATUS-HARDWARE.md), and [LIMITATIONS.md](../LIMITATIONS.md); where
 they disagree with this cookbook, they win.
 
-> **⏳ The sample apps are not exercised by CI.** They are written against the published SDK
-> surface, and every one of them parses, but no suite in this repository builds, packs, or
-> runs them. Treat them as reference source rather than as tested artifacts.
+> **Verified by CI.** Every sample is type/lint-checked, packed, verified, launched, rendered,
+> and driven through its documented primary workflow by `npm run test:cookbook`. The React
+> Native Web surface is also exercised by `npm run test:web-cookbook`.
 
-> **⏳ Screenshots are pending.** Every image here is a placeholder. Each carries a numbered
-> caption describing exactly what the final capture must show; the images themselves are
-> supplied in a separate pass. The full shot list is in [images/README.md](images/README.md).
+> **Screenshot status.** The deterministic capture pass supplies 37 of the 40 specified
+> images. The remaining captures—including three that require real radio hardware—stay as
+> explicit placeholders until their required evidence exists. The live inventory is in
+> [images/README.md](images/README.md).
 
 ## Four things every recipe assumes
 

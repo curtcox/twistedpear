@@ -200,6 +200,14 @@ function WidgetNodeView({
     case "list":
       return (
         <View testID={node.id} style={style}>
+          {node.children?.map((child) => (
+            <WidgetNodeView
+              key={child.id}
+              node={child}
+              {...(onEvent === undefined ? {} : { onEvent })}
+              {...(readDocument === undefined ? {} : { readDocument })}
+            />
+          ))}
           {(Array.isArray(node.props?.items) ? node.props.items : []).map((item, index) => (
             <Text key={`${node.id}-${index}`} style={styles.muted}>
               {typeof item === "string" ? item : JSON.stringify(item)}

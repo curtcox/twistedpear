@@ -41,4 +41,5 @@ tp dev install <packed>.tpkg      # host must be in developer mode
 Or paste `bundle.js` into a DevStudio project and press **Preview**. See
 [Chapter 1](../../01-how-to-use-this-cookbook.md) for both loops in full.
 
-The cookbook conformance suite validates, packs, launches, and renders this sample in CI.
+The cookbook conformance suite validates, packs, launches, renders, and exercises this
+sample's documented primary workflow in CI.

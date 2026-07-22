@@ -84,6 +84,13 @@ async function testApp(browser, pageUrl, app) {
     if (href !== expectedHref) {
       throw new Error(`cookbook link href ${JSON.stringify(href)} instead of ${JSON.stringify(expectedHref)}`);
     }
+    if (app === "unit-converter") {
+      await page.locator('[data-testid="input"]').fill("1");
+      await page.locator('[data-testid="unit-m-ft"]').click();
+      await page.locator('[data-testid="result"]').getByText("3.281 ft", { exact: true }).waitFor({
+        timeout: 10_000
+      });
+    }
     if (pageErrors.length > 0) {
       throw new Error(`uncaught browser error: ${pageErrors.join("; ")}`);
     }

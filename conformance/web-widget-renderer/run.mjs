@@ -134,6 +134,8 @@ async function runPlaywright(pageUrl) {
     await page.getByText("Send hello").waitFor({ state: "visible" });
     await page.getByPlaceholder("Peer app id").waitFor({ state: "visible" });
     await page.getByText("No messages yet").waitFor({ state: "visible" });
+    await page.getByText("List child", { exact: true }).waitFor({ state: "visible" });
+    await page.getByText("List action", { exact: true }).waitFor({ state: "visible" });
   } finally {
     await browser.close();
   }

@@ -239,8 +239,9 @@ everything below is a known cost of the chosen design or of the platforms involv
 
 ## 9. General
 
-- **Reader-guide image coverage:** 47 of 106 referenced images are reproducible captures
-  from the actual desktop renderer, mini-app runtime, or built web host. The other 59 remain placeholders where
+- **Reader-guide image coverage:** 62 of 106 referenced images are reproducible captures
+  from the actual desktop renderer, mini-app runtime, built web host, or documented
+  multi-capture compositions. The other 44 remain placeholders where
   the exact caption needs hardware, a multi-peer or populated-app fixture, a clean terminal
   session, DevStudio interaction state, or editorial composition. The three `images/README.md`
   files name every remainder; startup-only or invented UI is not substituted.

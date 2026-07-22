@@ -72,7 +72,7 @@ Three conventions specific to this section:
 | `05-chapter-opener.png` | 5 | The three discovery apps, plus the host's announce browser |
 | `05-neighborhood-board.png` | 5 | Neighborhood board with posts from three addresses |
 | `05-swap-shelf.png` | 5 | Swap shelf showing the live payload byte budget |
-| `05-link-weather.png` | 5 | Link weather's device readout on a radio-equipped host |
+| `05-link-weather.png` | 5 | Link weather's device readout in the deterministic web demo |
 | `06-chapter-opener.png` | 6 | The three file apps, plus a host transfer rate readout |
 | `06-photo-drop.png` | 6 | Photo drop with a 256t identifier as a QR code |
 | `06-photo-drop-scan.png` | 6 | The same identifier being scanned by a phone host |
@@ -89,7 +89,7 @@ Three conventions specific to this section:
 | `08-app-relay.png` | 8 | App relay with heard app announces and a trust list |
 | `09-chapter-opener.png` | 9 | The three constrained apps on an RNode-only host |
 | `09-nine-line.png` | 9 | Nine line with its byte counter over budget, in red |
-| `09-beacon-lite.png` | 9 | Beacon lite showing its per-beacon payload size |
+| `09-beacon-lite.png` | 9 | Beacon lite showing its payload size and deterministic demo peers |
 | `09-net-ledger.png` | 9 | Net ledger with a check-in roster and a held outbox |
 
 Forty shots. The chapter openers are the most work — five of them are composites — and the
@@ -98,41 +98,34 @@ these apps do not look alike.
 
 ## Current capture status
 
-The deterministic host/runtime pass supplies **22 of 40** files:
-`01-dev-install.png`, `01-capability-review.png`, `02-unit-converter.png`,
+The deterministic host/runtime pass supplies **37 of 40** files:
+`00-hero-cookbook.png`, `01-dev-install.png`, `01-devstudio-paste.png`,
+`01-capability-review.png`, `02-chapter-opener.png`,
+`02-unit-converter.png`,
 `02-breath-pacer.png`, `02-dice-table.png`, `03-pocket-notes.png`,
-`03-field-log.png`, `03-split-the-bill.png`, `03-streak-tracker.png`,
-`05-neighborhood-board.png`, `05-swap-shelf.png`,
-`06-photo-drop.png`, `06-recipe-box.png`, `06-zine-reader.png`,
+`03-chapter-opener.png`, `03-field-log.png`, `03-revoked-grant.png`,
+`03-split-the-bill.png`, `03-streak-tracker.png`, `04-chapter-opener.png`,
+`04-dead-drop.png`, `04-roll-call.png`, `04-signal-check.png`,
+`05-chapter-opener.png`, `05-neighborhood-board.png`, `05-swap-shelf.png`,
+`05-link-weather.png`, `06-chapter-opener.png`, `06-photo-drop.png`,
+`06-recipe-box.png`, `06-zine-reader.png`,
 `07-pocket-translator.png`, `07-ask-the-handbook.png`, `07-triage-notes.png`,
-`08-app-relay.png`, `08-form-forge.png`, `08-host-confirmation.png`,
-`08-sticker-mill.png`, and `09-nine-line.png`.
+`08-chapter-opener.png`, `08-app-relay.png`, `08-form-forge.png`, `08-host-confirmation.png`,
+`08-sticker-mill.png`, `09-nine-line.png`, `09-beacon-lite.png`, and `09-net-ledger.png`.
 Re-run it with `npm run capture:reader-guide-ui`.
 
-The remaining **18** files are deliberately still placeholders. The cookbook apps start and
-render under conformance, but the screenshot captions require populated interaction state,
-multi-peer traffic, AI responses, files, or composites; the startup proof is not substituted
-for those states. Pending files are:
-
-`00-hero-cookbook.png`, `01-devstudio-paste.png`,
-`02-chapter-opener.png`,
-`03-chapter-opener.png`, `03-revoked-grant.png`,
-`04-chapter-opener.png`, `04-dead-drop.png`, `04-roll-call.png`,
-`04-signal-check.png`, `05-chapter-opener.png`, `05-link-weather.png`,
-`06-chapter-opener.png`, `06-photo-drop-scan.png`, `07-chapter-opener.png`,
-`08-chapter-opener.png`,
-`09-beacon-lite.png`, `09-chapter-opener.png`, `09-net-ledger.png`.
+The remaining **3** files are deliberately still placeholders because their captions require
+real radio or multi-device evidence that the deterministic capture pass must not fabricate:
+`06-photo-drop-scan.png`, `07-chapter-opener.png`, and `09-chapter-opener.png`.
 
 ## Shots that need a real radio
 
-Five captions ask for a host with no IP connectivity and a real RNode or BLE link. These are
+Three captions ask for a host with no IP connectivity and a real RNode or BLE link. These are
 device-gated in the same way the conformance suites are; see
 [STATUS-HARDWARE.md](../../STATUS-HARDWARE.md).
 
-- `05-link-weather.png` — needs `rnode` or `ble` in the interface list
 - `07-chapter-opener.png` — the offline panel needs a host with no IP route
 - `09-chapter-opener.png` — needs an RNode-only interface list
-- `09-beacon-lite.png` — needs a real peer count over radio
 - `06-photo-drop-scan.png` — needs two devices, one of them a phone
 
 Do not substitute a plausible simulated radio state for these captions. Leave the placeholder

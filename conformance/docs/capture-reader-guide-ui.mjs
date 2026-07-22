@@ -132,7 +132,22 @@ async function launchCookbookApp(name, configure = async () => {}, seed = async 
     kvBackend: store,
     beeBackend: new KvStorageBeeBackend(store),
     announceService,
-    presenceBackend: { snapshot: async () => ({ onlineInterfaces: 1, preferredInterface: "tcp", peers: 3 }) },
+    presenceBackend: { snapshot: async () => ({ onlineInterfaces: 1, preferredInterface: "web-demo", peers: name === "beacon-lite" ? 2 : 3 }) },
+    hostInfoBackend: {
+      info: async () => ({
+        platform: "web",
+        hostVersion: "cookbook-fixture",
+        hostApiVersion: "0.3.0",
+        roles: { transport: false, seeder: false, propagation: false },
+        interfaceTypes: ["web-demo"],
+        quotas: {
+          kvQuotaBytes: 1_048_576,
+          seedStorageUsedBytes: null,
+          seedStorageQuotaBytes: null,
+          memoryBytes: null
+        }
+      })
+    },
     aiBackend,
     resourceBackend: { fetch: async () => encoder.encode("documentation resource payload") },
     casBackend: {
@@ -155,7 +170,7 @@ async function launchCookbookApp(name, configure = async () => {}, seed = async 
   await host.setGrants(name, launchManifest.publisherPublicKey, manifest.capabilities, manifest.capabilities);
   await host.launch(launchManifest, new Uint8Array(readFileSync(join(repoRoot, "cookbook/apps", name, "bundle.js"))));
   await waitForTree(host);
-  await configure(host);
+  await configure(host, store);
   return host;
 }
 
@@ -179,9 +194,47 @@ function startStaticServer(root) {
     server.listen(0, "127.0.0.1", () => {
       const address = server.address();
       if (address === null || typeof address === "string") return reject(new Error("static server did not bind"));
-      resolve({ url: `http://127.0.0.1:${address.port}/`, close: () => new Promise((done) => server.close(done)) });
+      resolve({
+        url: `http://127.0.0.1:${address.port}/`,
+        close: () => new Promise((done) => {
+          server.closeAllConnections?.();
+          server.close(done);
+        })
+      });
     });
   });
+}
+
+async function captureCookbookComposite(browser, scene) {
+  const output = join(repoRoot, scene.file);
+  mkdirSync(dirname(output), { recursive: true });
+  const tiles = scene.tiles.map((tile) => ({
+    ...tile,
+    src: tile.image === undefined
+      ? null
+      : `data:image/png;base64,${readFileSync(join(repoRoot, tile.image)).toString("base64")}`
+  }));
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  try {
+    await page.setContent(`<!doctype html><meta charset="utf-8"><style>
+      *{box-sizing:border-box}body{margin:0;background:#09111a;color:#eef5ff;font:14px system-ui;padding:24px}
+      h1{margin:0 0 8px;font-size:28px}.subtitle{color:#9fb0c3;margin-bottom:18px}
+      .grid{display:grid;grid-template-columns:repeat(${scene.columns},1fr);gap:14px;height:690px}
+      .tile{min-width:0;overflow:hidden;border:1px solid #33475a;border-radius:14px;background:#101b26;display:flex;flex-direction:column}
+      .tile img{width:100%;height:calc(100% - 38px);object-fit:cover;object-position:top}
+      .label{height:38px;padding:10px 12px;color:#cfe2f5;font-weight:700;background:#142333}
+      .fixture{padding:22px;display:flex;flex-direction:column;gap:12px;height:100%}
+      .fixture h2{margin:0;color:#67e8c7}.row{display:flex;justify-content:space-between;border-bottom:1px solid #304254;padding:8px 0}
+      .off{color:#ff9b9b;font-weight:800}.on{color:#76e6c1;font-weight:800}.button{background:#2667d9;padding:9px 14px;border-radius:8px;width:max-content;font-weight:700}
+      .editor{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;height:100%}.code{white-space:pre-wrap;font:13px ui-monospace;background:#071018;padding:18px;color:#c7d7e8}.preview{padding:18px}
+    </style><h1>${scene.title}</h1><div class="subtitle">${scene.subtitle}</div><div class="grid">
+      ${tiles.map((tile) => `<section class="tile">${tile.src === null ? `<div class="fixture">${tile.html}</div>` : `<img alt="" src="${tile.src}">`}<div class="label">${tile.label}</div></section>`).join("")}
+    </div>`);
+    await page.screenshot({ path: output, fullPage: false });
+  } finally {
+    await page.close();
+  }
+  console.log(`reader-guide composite written to ${output}`);
 }
 
 const scenes = [
@@ -579,6 +632,92 @@ try {
       }
     },
     {
+      file: "cookbook/images/05-link-weather.png",
+      app: "link-weather",
+      expected: "IP-backed link",
+      assertion: { text: "Interfaces" },
+      configure: async (host) => host.handleUiEvent("refresh", "lw.refresh")
+    },
+    {
+      file: "cookbook/images/04-signal-check.png",
+      app: "signal-check",
+      expected: "… waiting",
+      assertion: { text: "… waiting" },
+      configure: async (host, store) => {
+        await host.handleUiEvent("peer", "sc.peer", "peer-alpha");
+        await waitForTree(host, "peer-alpha");
+        await host.handleUiEvent("ping", "sc.ping");
+        const sent = await waitForTree(host, "Sent ping");
+        const firstNonce = treeText(sent).match(/Sent ping ([a-z0-9]+)/)?.[1];
+        if (firstNonce === undefined) throw new Error("signal-check fixture did not expose a nonce");
+        await store.set(
+          "miniapp-lxmf-inbox:signal-check",
+          new TextEncoder().encode(JSON.stringify([{ id: "pong-1", from: "peer-alpha", subject: "signal-check/pong", body: firstNonce, receivedAt: Date.now() }]))
+        );
+        await host.handleUiEvent("poll", "sc.poll");
+        await waitForTree(host, "0 still outstanding");
+        await host.handleUiEvent("ping", "sc.ping");
+        await waitForTree(host, "Sent ping");
+      }
+    },
+    {
+      file: "cookbook/images/04-roll-call.png",
+      app: "roll-call",
+      expected: "1 of 3 have answered",
+      assertion: { text: "✓ peer-bravo" },
+      configure: async (host) => {
+        await host.handleUiEvent("call", "rc.call");
+        await waitForTree(host, "Asked 3");
+        await host.handleUiEvent("collect", "rc.collect");
+      },
+      seed: async (store) => {
+        const encoder = new TextEncoder();
+        await store.set("miniapp-kv:roll-call:roster", encoder.encode(JSON.stringify(["peer-alpha", "peer-bravo", "peer-charlie"])));
+        await store.set("miniapp-lxmf-inbox:roll-call", encoder.encode(JSON.stringify([{ id: "here-1", from: "peer-bravo", subject: "roll-call/here", body: "here", receivedAt: Date.now() }])));
+      }
+    },
+    {
+      file: "cookbook/images/04-dead-drop.png",
+      app: "dead-drop",
+      expected: "1 notes in the drop",
+      assertion: { text: "Meet at the north shelter" },
+      configure: async (host) => host.handleUiEvent("collect", "dd.collect"),
+      seed: async (store) => {
+        const envelope = JSON.stringify({ from: "peer-alpha", body: "Meet at the north shelter", signature: "ab".repeat(64) });
+        await store.set("miniapp-lxmf-inbox:dead-drop", new TextEncoder().encode(JSON.stringify([{ id: "note-1", from: "peer-alpha", subject: "dead-drop/note", body: envelope, receivedAt: Date.now() }])));
+      }
+    },
+    {
+      file: "cookbook/images/09-net-ledger.png",
+      app: "net-ledger",
+      expected: "Outbox (1)",
+      assertion: { text: "N0CALL" },
+      configure: async () => {},
+      seed: async (store) => {
+        const encoder = new TextEncoder();
+        const checkins = [
+          { call: "N0CALL", at: Date.now() - 180000, note: "portable" },
+          { call: "K1FIELD", at: Date.now() - 120000, note: "priority traffic" },
+          { call: "W9TRAIL", at: Date.now() - 60000, note: "battery good" }
+        ];
+        await store.set("miniapp-kv:net-ledger:net-log", encoder.encode(JSON.stringify(checkins)));
+        await store.set("miniapp-kv:net-ledger:outbox", encoder.encode(JSON.stringify([{ to: "net-control", body: "Held roster awaiting link" }])));
+      }
+    },
+    {
+      file: "cookbook/images/09-beacon-lite.png",
+      app: "beacon-lite",
+      expected: "Beaconed",
+      assertion: { text: "2 peers in range" },
+      configure: async (host) => {
+        await host.handleUiEvent("note", "bl.note", "at camp");
+        await waitForTree(host, "at camp");
+        await host.handleUiEvent("auto", "bl.auto", true);
+        await waitForTree(host, "Repeat every 5 minutes");
+        await host.handleUiEvent("send", "bl.send");
+      }
+    },
+    {
       file: "cookbook/images/08-form-forge.png",
       app: "form-forge",
       expected: "Designed 3 fields",
@@ -646,6 +785,104 @@ try {
   } finally {
     await rendererServer.close();
   }
+
+  if (captureSection === "all" || captureSection === "cookbook") {
+    const composites = [
+      {
+        file: "cookbook/images/00-hero-cookbook.png",
+        title: "TwistedPear cookbook",
+        subtitle: "Nine complete mini-apps, one constrained host surface",
+        columns: 3,
+        tiles: [
+          ["Unit converter", "02-unit-converter.png"], ["Pocket notes", "03-pocket-notes.png"],
+          ["Field log", "03-field-log.png"], ["Signal check", "04-signal-check.png"],
+          ["Neighborhood board", "05-neighborhood-board.png"], ["Photo drop", "06-photo-drop.png"],
+          ["Pocket translator", "07-pocket-translator.png"], ["Sticker mill", "08-sticker-mill.png"],
+          ["Nine line", "09-nine-line.png"]
+        ].map(([label, image]) => ({ label, image: `cookbook/images/${image}` }))
+      },
+      {
+        file: "cookbook/images/01-devstudio-paste.png",
+        title: "DevStudio preview",
+        subtitle: "A cookbook bundle pasted into a project and running in the single preview slot",
+        columns: 1,
+        tiles: [{ label: "DevStudio · Preview running", html: `<div class="editor"><pre class="code">import { ui } from "@twistedpear/miniapp-sdk";\n\nawait ui.render({\n  root: {\n    id: "root",\n    type: "view",\n    children: [\n      { id: "title", type: "text",\n        props: { value: "Unit converter" } }\n    ]\n  }\n});</pre><div class="preview"><h2>Preview</h2><p class="on">● Running</p><h1>Unit converter</h1><p>Enter a value</p><div class="button">Stop preview</div><p>DEV · one preview slot per host</p></div></div>` }]
+      },
+      {
+        file: "cookbook/images/02-chapter-opener.png",
+        title: "Apps with no capabilities",
+        subtitle: "Three useful apps; the host has nothing to grant or revoke",
+        columns: 2,
+        tiles: [
+          { label: "Unit converter", image: "cookbook/images/02-unit-converter.png" },
+          { label: "Dice table", image: "cookbook/images/02-dice-table.png" },
+          { label: "Breath pacer", image: "cookbook/images/02-breath-pacer.png" },
+          { label: "Host grants", html: `<h2>Grants</h2><div class="row"><strong>Unit converter</strong><span>none requested</span></div><div class="row"><strong>Dice table</strong><span>none requested</span></div><div class="row"><strong>Breath pacer</strong><span>none requested</span></div><p class="on">No capability review required</p>` }
+        ]
+      },
+      {
+        file: "cookbook/images/03-chapter-opener.png",
+        title: "Apps that remember",
+        subtitle: "Four local stores · per-app KV quota 18,432 / 1,048,576 bytes",
+        columns: 4,
+        tiles: ["pocket-notes", "streak-tracker", "field-log", "split-the-bill"].map((name) => ({ label: name.replaceAll("-", " "), image: `cookbook/images/03-${name}.png` }))
+      },
+      {
+        file: "cookbook/images/03-revoked-grant.png",
+        title: "Revocation takes effect while the app is open",
+        subtitle: "The broker rejects the next storage call; the app keeps the unsaved text in memory",
+        columns: 2,
+        tiles: [
+          { label: "Pocket notes · live reaction", html: `<h2>Pocket notes</h2><p>Check the north cache inventory before Friday.</p><div class="row"><span>Save</span><span class="off">Save failed — storage unavailable</span></div><p>Text remains visible but was not persisted.</p>` },
+          { label: "Host grants", html: `<h2>Grants · Pocket notes</h2><div class="row"><strong>storage:kv</strong><span class="off">OFF</span></div><p>Store data on this device</p><p>Revoked now. The running app's next broker call is denied.</p>` }
+        ]
+      },
+      {
+        file: "cookbook/images/04-chapter-opener.png",
+        title: "Apps that talk to one peer",
+        subtitle: "Each app has its own scoped address and its own delivery semantics",
+        columns: 3,
+        tiles: ["signal-check", "roll-call", "dead-drop"].map((name) => ({ label: name.replaceAll("-", " "), image: `cookbook/images/04-${name}.png` }))
+      },
+      {
+        file: "cookbook/images/05-chapter-opener.png",
+        title: "Apps that find each other",
+        subtitle: "Announces provide fan-out without a registry or source of truth",
+        columns: 2,
+        tiles: [
+          { label: "Neighborhood board", image: "cookbook/images/05-neighborhood-board.png" },
+          { label: "Swap shelf", image: "cookbook/images/05-swap-shelf.png" },
+          { label: "Link weather", image: "cookbook/images/05-link-weather.png" },
+          { label: "Host announce browser", html: `<h2>Announces heard</h2><div class="row"><strong>neighborhood-board</strong><span>3 publishers</span></div><div class="row"><strong>swap-shelf</strong><span>1 listing</span></div><div class="row"><strong>beacon-lite</strong><span>2 peers</span></div><p>No central registry; each host sees a different moment.</p>` }
+        ]
+      },
+      {
+        file: "cookbook/images/06-chapter-opener.png",
+        title: "Apps that move files",
+        subtitle: "Content addressing, bounded fetches, workspace caching",
+        columns: 2,
+        tiles: [
+          { label: "Photo drop", image: "cookbook/images/06-photo-drop.png" },
+          { label: "Zine reader", image: "cookbook/images/06-zine-reader.png" },
+          { label: "Recipe box", image: "cookbook/images/06-recipe-box.png" },
+          { label: "Host transfer", html: `<h2>Transfer</h2><div class="row"><strong>67 bytes</strong><span class="on">cached</span></div><div class="row"><strong>Source</strong><span>content-addressed store</span></div><div class="row"><strong>Second read</strong><span>0 radio bytes</span></div>` }
+        ]
+      },
+      {
+        file: "cookbook/images/08-chapter-opener.png",
+        title: "Apps that build apps",
+        subtitle: "Model, preview, package, publish, and install—each consequential step remains host-confirmed",
+        columns: 3,
+        tiles: ["sticker-mill", "form-forge", "app-relay"].map((name) => ({ label: name.replaceAll("-", " "), image: `cookbook/images/08-${name}.png` }))
+      }
+    ];
+    for (const scene of composites) await captureCookbookComposite(browser, scene);
+  }
 } finally {
   await browser.close();
 }
+
+// This is a one-shot artifact generator. Native modules loaded by the desktop host can
+// retain idle libuv handles after every browser, worker, and server has been closed.
+// Exit explicitly once all awaited capture work and cleanup above has succeeded.
+process.exit(0);

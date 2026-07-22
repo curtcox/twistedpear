@@ -37,6 +37,14 @@ const chatTree = validateWidgetTree({
         id: "inbox-scroll",
         type: "scroll",
         children: [{ id: "inbox", type: "text", props: { value: "No messages yet" } }]
+      },
+      {
+        id: "actions",
+        type: "list",
+        children: [
+          { id: "list-label", type: "text", props: { value: "List child" } },
+          { id: "list-action", type: "button", props: { label: "List action", event: "chat.list" } }
+        ]
       }
     ]
   }
@@ -84,6 +92,9 @@ async function main() {
   const chatText = chatRoot.textContent ?? "";
   if (!chatText.includes("Chat") || !chatText.includes("Send hello") || !chatText.includes("No messages yet")) {
     throw new Error(`chat tree render failed: ${JSON.stringify(chatText)}`);
+  }
+  if (!chatText.includes("List child") || !chatText.includes("List action")) {
+    throw new Error(`list children render failed: ${JSON.stringify(chatText)}`);
   }
 
   const peerInput = chatRoot.querySelector("input");

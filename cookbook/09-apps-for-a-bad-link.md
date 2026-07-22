@@ -143,11 +143,11 @@ which on a shared channel matters as much as size.
 
 ![Beacon lite showing its payload size](/cookbook/images/09-beacon-lite.png)
 
-**Screenshot 9.3 — Beacon lite.** The mini-app surface: a row of four state buttons with "●
-ok" selected, a short note input containing "at camp", a small grey line reading "38 bytes per
-beacon · 2 peers in range", a switch labelled "Repeat every 5 minutes" in the on position, a
-**Beacon now** button, a status line reading "Beaconed 38 bytes at 14:22:07", and a footnote
-reading "Closing the app stops the beacon. Nothing runs in the background."
+**Screenshot 9.3 — Beacon lite.** The deployed web sample running against its labelled
+deterministic adapter: a row of four state buttons with "● ok" selected, a short note input
+containing "at camp", the live payload size and two fixture peers, the five-minute repeat
+switch on, a completed **Beacon now** action, and the reminder that closing the app stops the
+beacon. Radio peer counts are intentionally not claimed by this web capture.
 
 ### The interesting part
 

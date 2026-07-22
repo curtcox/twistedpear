@@ -138,8 +138,10 @@ not — where they do, there is a comment saying so.
 
 Every sample is exercised by `npm run test:cookbook`. CI parses and type/lint-checks each
 bundle against the published SDK, validates its manifest and capability declarations, packs
-it through `tp pack`, verifies the signed archive and BLE size budget, then starts it in the
-real sandbox runtime and waits for a valid widget tree. SDK drift now fails the PR gate.
+it through `tp pack`, verifies the signed archive and BLE size budget, starts it in the real
+sandbox runtime, waits for a valid widget tree, and drives its documented primary workflow
+against deterministic host-service adapters. SDK drift and workflow regressions fail the PR
+gate.
 
 ## When a recipe stops working
 

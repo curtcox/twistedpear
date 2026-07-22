@@ -177,10 +177,11 @@ something is not working.
 
 ![Link weather showing a device readout](/cookbook/images/05-link-weather.png)
 
-**Screenshot 5.4 — Link weather.** The mini-app surface as a label/value table: Platform
-`android`, Host `1.0.0`, Host API `0.3.0`, Roles `node, seeder`, Interfaces `ble, rnode`,
-Peers seen `3`, KV used `18432 / 1048576`, Granted `presence`. A divider, then a bold advisory
-line reading "Slow link present. Budget every byte you send."
+**Screenshot 5.4 — Link weather.** The deployed web sample running against its labelled
+deterministic adapter. The mini-app surface shows Platform `web`, Host `cookbook-fixture`,
+Host API `0.3.0`, Interfaces `web-demo`, three peers, the KV quota, and the advisory that an
+IP-backed link makes bulk transfer plausible. Real device and radio values replace these
+fixture values when the same app runs in a host.
 
 ### The interesting part
 
