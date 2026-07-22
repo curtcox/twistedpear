@@ -116,7 +116,7 @@ export async function sendMultipartPropagation(options: {
       content: encodeFrame({ transferId, index, count: chunkCount, totalBytes: options.content.length, contentHash, chunk }),
       desiredMethod: LXMessageMethod.PROPAGATED,
       deferStamp: true,
-      now: options.now ?? (() => Date.now() / 1000)
+      ...(options.now === undefined ? {} : { now: options.now })
     });
     sentChunks.push(index);
   }

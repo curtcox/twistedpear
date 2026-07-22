@@ -16,7 +16,8 @@ import {
   unpackPackage,
   verifyPackage
 } from "../../packages/app-registry/dist/index.js";
-import { Identity, NodeCryptoProvider, nodeRuntime } from "../../packages/reticulum-ts/dist/index.js";
+import { NodeCryptoProvider, nodeRuntime } from "../../packages/reticulum-ts/dist/index.js";
+import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
 import { runInit, runPack, runPublish } from "../../packages/cli/dist/commands/index.js";
 import { HOST_API_VERSION } from "../../packages/miniapp-runtime/dist/index.js";
 import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
@@ -27,6 +28,7 @@ import { INTEROP_HOST, LEAF_ECHO_PORT } from "../scenarios/bare/helpers.mjs";
 const chatExample = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/examples/chat");
 const SOAK_DURATION_MS = Number(process.env.SOAK_DURATION_MS ?? "15000");
 const LIFECYCLE_CYCLES = Number.parseInt(process.env.IOS_LIFECYCLE_CYCLES ?? "5", 10);
+const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 class MemoryStore {
   values = new Map();
@@ -100,7 +102,7 @@ async function miniappChurn(durationMs) {
 
   try {
     process.chdir(cwd);
-    if ((await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] })) !== 0) {
+    if ((await runInit({ cwd, identityPassphrase: IDENTITY_PASSPHRASE, args: [] })) !== 0) {
       throw new Error("tp init failed");
     }
 
@@ -112,11 +114,11 @@ async function miniappChurn(durationMs) {
       throw new Error("tp publish failed");
     }
 
-    const privateKey = new Uint8Array(readFileSync(join(cwd, ".tp/identity")));
-    const identity = Identity.fromBytes(provider, privateKey);
-    if (identity === null) {
-      throw new Error("invalid publisher identity");
-    }
+    const identity = decryptIdentityBackup(
+      provider,
+      new Uint8Array(readFileSync(join(cwd, ".tp/identity"))),
+      IDENTITY_PASSPHRASE
+    );
 
     const archive = new Uint8Array(readFileSync(join(cwd, ".tp/last.tpkg")));
     const unpacked = unpackPackage(provider, archive);

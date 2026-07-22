@@ -16,13 +16,15 @@ import {
   unpackPackage,
   verifyPackage
 } from "../../packages/app-registry/dist/index.js";
-import { Identity, NodeCryptoProvider, nodeRuntime } from "../../packages/reticulum-ts/dist/index.js";
+import { NodeCryptoProvider, nodeRuntime } from "../../packages/reticulum-ts/dist/index.js";
+import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
 import { runInit, runPack, runPublish, runUpdate } from "../../packages/cli/dist/commands/index.js";
 import { HOST_API_VERSION, validateManifestCapabilities } from "../../packages/miniapp-runtime/dist/index.js";
 import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { createWorkletMiniappHost } from "../../apps/harness-mobile/worklet/miniapp-host.mjs";
 
 const chatExample = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/examples/chat");
+const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 class MemoryStore {
   values = new Map();
@@ -166,7 +168,7 @@ export async function runIosFullLoop() {
 
   try {
     process.chdir(cwd);
-    const initCode = await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
+    const initCode = await runInit({ cwd, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed");
     }
@@ -181,11 +183,11 @@ export async function runIosFullLoop() {
       throw new Error("tp publish failed");
     }
 
-    const privateKey = new Uint8Array(readFileSync(join(cwd, ".tp/identity")));
-    const identity = Identity.fromBytes(provider, privateKey);
-    if (identity === null) {
-      throw new Error("invalid publisher identity");
-    }
+    const identity = decryptIdentityBackup(
+      provider,
+      new Uint8Array(readFileSync(join(cwd, ".tp/identity"))),
+      IDENTITY_PASSPHRASE
+    );
 
     const v1Archive = new Uint8Array(readFileSync(join(cwd, ".tp/last.tpkg")));
     const v1Unpacked = unpackPackage(provider, v1Archive);

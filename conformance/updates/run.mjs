@@ -30,11 +30,13 @@ import {
 } from "../../packages/reticulum-ts/dist/index.js";
 import { attachPackageResourceServer } from "../../packages/bridge-hyper/dist/index.js";
 import { parseListResponse, sendPackageResourceRequest } from "../../packages/bridge-hyper/dist/resource-server.js";
+import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
 import { runInit, runPublish, runUpdate } from "../../packages/cli/dist/commands/index.js";
 import { listSeederArchives, loadSeederState, readSeederArchive } from "../../packages/cli/dist/seed/register.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
 const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
+const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 async function sleep(ms) {
   await new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
@@ -89,7 +91,7 @@ async function main() {
     );
 
     const fixtureApp = stageExampleApp(cwd, fixtureAppSource);
-    const initCode = await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
+    const initCode = await runInit({ cwd, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed");
     }
@@ -102,10 +104,11 @@ async function main() {
     const provider = new NodeCryptoProvider();
     const v1Archive = new Uint8Array(readFileSync(join(cwd, ".tp/last.tpkg")));
     const v1 = unpackPackage(provider, v1Archive);
-    const identity = Identity.fromBytes(provider, new Uint8Array(readFileSync(join(cwd, ".tp/identity"))));
-    if (identity === null) {
-      throw new Error("invalid publisher identity");
-    }
+    const identity = decryptIdentityBackup(
+      provider,
+      new Uint8Array(readFileSync(join(cwd, ".tp/identity"))),
+      IDENTITY_PASSPHRASE
+    );
 
     const catalog = new CatalogStore(provider);
     const v1Summary = buildAppAnnounceSummary(provider, identity, {

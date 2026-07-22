@@ -37,12 +37,14 @@ import {
   hexToBytes,
   nodeRuntime
 } from "../../packages/reticulum-ts/dist/index.js";
+import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
 import { runInit, runPublish } from "../../packages/cli/dist/commands/index.js";
 import { repoRoot } from "../scenarios/bare/helpers.mjs";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
 const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
 const HOST_API_VERSION = "0.1.0";
+const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 async function sleep(ms) {
   await new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
@@ -154,7 +156,7 @@ async function main() {
     );
 
     const fixtureApp = stageExampleApp(publisherDir, fixtureAppSource);
-    const initCode = await runInit({ cwd: publisherDir, identityPassphrase: "conformance identity passphrase", args: [] });
+    const initCode = await runInit({ cwd: publisherDir, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed");
     }
@@ -168,13 +170,11 @@ async function main() {
     const meta = JSON.parse(readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"));
     const archive = new Uint8Array(readFileSync(join(publisherDir, ".tp/last.tpkg")));
     const unpacked = unpackPackage(provider, archive);
-    const publisherIdentity = Identity.fromBytes(
+    const publisherIdentity = decryptIdentityBackup(
       provider,
-      new Uint8Array(readFileSync(join(publisherDir, ".tp/identity")))
+      new Uint8Array(readFileSync(join(publisherDir, ".tp/identity"))),
+      IDENTITY_PASSPHRASE
     );
-    if (publisherIdentity === null) {
-      throw new Error("invalid publisher identity");
-    }
 
     const catalog = new CatalogStore(provider);
     const entry = catalog.ingest({

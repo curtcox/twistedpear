@@ -18,7 +18,6 @@ import {
 import {
   DestinationDirection,
   DestinationType,
-  Identity,
   NodeCryptoProvider,
   Reticulum,
   bytesToHex,
@@ -29,6 +28,7 @@ import {
   attachPackageResourceServer,
   createSwarm
 } from "../../packages/bridge-hyper/dist/index.js";
+import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
 import { runInit, runPack, runPublish } from "../../packages/cli/dist/commands/index.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -38,6 +38,7 @@ const metaPath =
   join(dirname(fileURLToPath(import.meta.url)), "handbook-fixture-meta.json");
 
 const LEAF_HOST = process.env.LEAF_ECHO_HOST ?? "127.0.0.1";
+const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 const LEAF_PORT = Number.parseInt(process.env.LEAF_ECHO_PORT ?? "4242", 10);
 const ANNOUNCE_MS = Number.parseInt(process.env.HANDBOOK_PEER_ANNOUNCE_MS ?? "5000", 10);
 const LOG_PREFIX = process.env.HANDBOOK_PEER_LOG_PREFIX ?? "handbook-peer";
@@ -72,7 +73,7 @@ async function main() {
   cpSync(join(handbookDir, "app.manifest.json"), join(appDir, "app.manifest.json"));
   cpSync(join(handbookDir, "bundle.js"), join(appDir, "bundle.js"));
 
-  const initCode = await runInit({ cwd: publisherDir, identityPassphrase: "conformance identity passphrase", args: [] });
+  const initCode = await runInit({ cwd: publisherDir, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
   if (initCode !== 0) {
     throw new Error("tp init failed");
   }
@@ -91,13 +92,11 @@ async function main() {
   const meta = JSON.parse(readFileSync(join(publisherDir, ".tp/publish.json"), "utf8"));
   const archive = new Uint8Array(readFileSync(join(publisherDir, ".tp/last.tpkg")));
   const unpacked = unpackPackage(provider, archive);
-  const publisherIdentity = Identity.fromBytes(
+  const publisherIdentity = decryptIdentityBackup(
     provider,
-    new Uint8Array(readFileSync(join(publisherDir, ".tp/identity")))
+    new Uint8Array(readFileSync(join(publisherDir, ".tp/identity"))),
+    IDENTITY_PASSPHRASE
   );
-  if (publisherIdentity === null) {
-    throw new Error("invalid publisher identity");
-  }
 
   const summary = buildAppAnnounceSummary(provider, publisherIdentity, {
     manifest: unpacked.manifest,

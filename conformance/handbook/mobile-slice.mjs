@@ -312,6 +312,10 @@ export async function runHandbookMobileSlice(options) {
 
   const manifest = launchManifest(packed.app, packed.publisherPublicKey);
   await host.setGrants(manifest.name, packed.publisherPublicKey, manifest.capabilities, manifest.capabilities);
+  // Run-all + export issue many broker calls in one second (chatStream, grants, CAS).
+  // Android adds an extra rnode host.info/presence round-trip; default 128/s drops the
+  // post-export ui.render with RATE_LIMITED and diag-export-qr never appears.
+  host.setResourceLimits(manifest.name, { maxMessagesPerSecond: 2_000 });
   await host.launch(manifest, packed.bundle);
 
   await waitForTreeText(host, "TwistedPear Handbook", 25_000);
@@ -352,9 +356,8 @@ export async function runHandbookMobileSlice(options) {
       return null;
     }
     const texts = collectTextValues(tree.root);
-    const identityRow = texts.find((value) => /\bidentity-hash:\s*PASS\b/i.test(value));
-    if (identityRow !== undefined && identityRow.toUpperCase().includes("PASS")) {
-      return identityRow;
+    if (texts.some((value) => /All diagnostics finished/i.test(value))) {
+      return tree;
     }
     return null;
   }, 180_000);
@@ -366,7 +369,6 @@ export async function runHandbookMobileSlice(options) {
       ? ""
       : collectTextValues(tree.root).find((value) => new RegExp(`\\b${applet.id}:`).test(value)) ?? "";
     const status = rowText.split(":").pop()?.trim().toLowerCase() ?? "missing";
-    const platform = effectiveLabel === "android" ? "android" : "ios";
     assertAppletStatusMatchesExpectation(applet, status, platform);
   }
   console.log(`handbook-mobile/${effectiveLabel}: software-tier applets passed`);

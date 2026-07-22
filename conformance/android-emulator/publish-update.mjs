@@ -14,19 +14,20 @@ import {
 import {
   DestinationDirection,
   DestinationType,
-  Identity,
   NodeCryptoProvider,
   Reticulum,
   bytesToHex,
   nodeRuntime
 } from "../../packages/reticulum-ts/dist/index.js";
 import { attachPackageResourceServer } from "../../packages/bridge-hyper/dist/index.js";
+import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
 import { runUpdate } from "../../packages/cli/dist/commands/index.js";
 
 const labDir = dirname(fileURLToPath(import.meta.url));
 const meta = JSON.parse(readFileSync(join(labDir, "fixture-meta.json"), "utf8"));
 const LEAF_HOST = process.env.LEAF_ECHO_HOST ?? "127.0.0.1";
 const LEAF_PORT = Number.parseInt(process.env.LEAF_ECHO_PORT ?? "4242", 10);
+const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 async function sleep(ms) {
   await new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
@@ -35,6 +36,7 @@ async function sleep(ms) {
 async function main() {
   const updateCode = await runUpdate({
     cwd: meta.publisherDir,
+    identityPassphrase: IDENTITY_PASSPHRASE,
     args: [meta.fixtureApp, "--version", "1.0.1"]
   });
   if (updateCode !== 0) {
@@ -45,13 +47,11 @@ async function main() {
   const publishMeta = JSON.parse(readFileSync(join(meta.publisherDir, ".tp/publish.json"), "utf8"));
   const archive = new Uint8Array(readFileSync(join(meta.publisherDir, ".tp/last.tpkg")));
   const unpacked = unpackPackage(provider, archive);
-  const publisherIdentity = Identity.fromBytes(
+  const publisherIdentity = decryptIdentityBackup(
     provider,
-    new Uint8Array(readFileSync(join(meta.publisherDir, ".tp/identity")))
+    new Uint8Array(readFileSync(join(meta.publisherDir, ".tp/identity"))),
+    IDENTITY_PASSPHRASE
   );
-  if (publisherIdentity === null) {
-    throw new Error("invalid publisher identity");
-  }
 
   const summary = buildAppAnnounceSummary(provider, publisherIdentity, {
     manifest: unpacked.manifest,

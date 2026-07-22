@@ -163,11 +163,16 @@ export function signCasLocator(
     readonly servingPublicKey?: string;
   }
 ): CasLocator {
+  const publisherPublicKey = bytesToHex(identity.getPublicKey());
+  const servingPublicKey = locator.servingPublicKey ?? publisherPublicKey;
+  // Keep the common same-device case on v1 so announce packets stay under the
+  // default 500-byte interface MTU; only emit v2 when serving diverges.
+  const formatVersion = servingPublicKey === publisherPublicKey ? 1 : 2;
   const unsigned = {
     ...locator,
-    formatVersion: 2,
-    publisherPublicKey: bytesToHex(identity.getPublicKey()),
-    servingPublicKey: locator.servingPublicKey ?? bytesToHex(identity.getPublicKey())
+    formatVersion,
+    publisherPublicKey,
+    servingPublicKey
   };
   const signature = bytesToHex(identity.sign(locatorSigningPayload(unsigned)));
   return { ...unsigned, signature };

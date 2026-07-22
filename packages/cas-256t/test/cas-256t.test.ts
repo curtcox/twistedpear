@@ -155,9 +155,10 @@ describe("cas locator", () => {
   });
 
   it("rejects tampered locators", () => {
+    expect(locator.formatVersion).toBe(1);
+    expect(locator.servingPublicKey).toBe(locator.publisherPublicKey);
     expect(verifyCasLocator(provider, { ...locator, version: "9.9.9" })).toBe(false);
     expect(verifyCasLocator(provider, { ...locator, packageHash: "ee".repeat(32) })).toBe(false);
-    expect(verifyCasLocator(provider, { ...locator, servingPublicKey: "ee".repeat(64) })).toBe(false);
     const otherIdentity = new Identity(provider);
     expect(
       verifyCasLocator(provider, {
@@ -181,6 +182,7 @@ describe("cas locator", () => {
     expect(linked.formatVersion).toBe(2);
     expect(linked.publisherPublicKey).not.toBe(linked.servingPublicKey);
     expect(verifyCasLocator(provider, decodeCasLocator(encodeCasLocator(linked)))).toBe(true);
+    expect(verifyCasLocator(provider, { ...linked, servingPublicKey: "ee".repeat(64) })).toBe(false);
   });
 
   it("maps onto the CatalogEntry fetch shape and derives announce aspects", () => {

@@ -8,7 +8,7 @@ import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Identity, NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
+import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import {
   CatalogStore,
   InstalledPackageStore,
@@ -17,6 +17,7 @@ import {
   unpackPackage,
   verifyPackage
 } from "../../packages/app-registry/dist/index.js";
+import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
 import { runInit, runPack, runPublish, runUpdate } from "../../packages/cli/dist/commands/index.js";
 import {
   GrantStore,
@@ -26,6 +27,7 @@ import {
 
 const chatExample = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps/examples/chat");
 const HOST_API_VERSION = "0.1.0";
+const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 class MemoryStore {
   values = new Map();
@@ -94,7 +96,7 @@ async function main() {
 
   try {
     process.chdir(cwd);
-    const initCode = await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
+    const initCode = await runInit({ cwd, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed");
     }
@@ -113,11 +115,11 @@ async function main() {
     const archive = new Uint8Array(readFileSync(join(cwd, ".tp/last.tpkg")));
     const verified = verifyPackage(provider, archive, { hostApiVersion: HOST_API_VERSION });
 
-    const privateKey = new Uint8Array(readFileSync(join(cwd, ".tp/identity")));
-    const identity = Identity.fromBytes(provider, privateKey);
-    if (identity === null) {
-      throw new Error("invalid demo identity");
-    }
+    const identity = decryptIdentityBackup(
+      provider,
+      new Uint8Array(readFileSync(join(cwd, ".tp/identity"))),
+      IDENTITY_PASSPHRASE
+    );
 
     const summary = buildAppAnnounceSummary(provider, identity, {
       manifest: verified.manifest,

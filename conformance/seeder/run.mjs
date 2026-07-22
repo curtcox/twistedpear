@@ -11,7 +11,6 @@ import { fileURLToPath } from "node:url";
 import {
   DestinationDirection,
   DestinationType,
-  Identity,
   LinkResourceStrategy,
   LinkStatus,
   NodeCryptoProvider,
@@ -26,11 +25,13 @@ import {
   createSwarm
 } from "../../packages/bridge-hyper/dist/index.js";
 import { parseListResponse, sendPackageResourceRequest } from "../../packages/bridge-hyper/dist/resource-server.js";
+import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
 import { runInit, runPublish } from "../../packages/cli/dist/commands/index.js";
 import { listSeederArchives, loadSeederState, readSeederArchive } from "../../packages/cli/dist/seed/register.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
 const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
+const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 async function sleep(ms) {
   await new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
@@ -90,7 +91,7 @@ async function main() {
       `${JSON.stringify({ seederAddress: seederStateDir }, null, 2)}\n`
     );
 
-    await runInit({ cwd: publisherDir, identityPassphrase: "conformance identity passphrase", args: [] });
+    await runInit({ cwd: publisherDir, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
     const fixtureApp = stageExampleApp(publisherDir, fixtureAppSource);
 
     const publishCode = await runPublish({ cwd: publisherDir, args: [fixtureApp] });
@@ -165,13 +166,11 @@ async function main() {
     await restartedSeedSwarm.destroy();
 
     const { left, right } = await connectPeers(provider, nodeRuntime());
-    const seederIdentity = Identity.fromBytes(
+    const seederIdentity = decryptIdentityBackup(
       provider,
-      new Uint8Array(readFileSync(join(publisherDir, ".tp/identity")))
+      new Uint8Array(readFileSync(join(publisherDir, ".tp/identity"))),
+      IDENTITY_PASSPHRASE
     );
-    if (seederIdentity === null) {
-      throw new Error("invalid seeder identity");
-    }
 
     const seederDestination = right.registerDestination({
       provider,

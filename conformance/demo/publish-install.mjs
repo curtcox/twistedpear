@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Identity, NodeCryptoProvider, bytesToHex } from "../../packages/reticulum-ts/dist/index.js";
+import { NodeCryptoProvider, bytesToHex } from "../../packages/reticulum-ts/dist/index.js";
 import {
   CatalogStore,
   InstalledPackageStore,
@@ -18,11 +18,13 @@ import {
   verifyPackage
 } from "../../packages/app-registry/dist/index.js";
 import { DriveManager, createSwarm } from "../../packages/bridge-hyper/dist/index.js";
+import { decryptIdentityBackup } from "../../packages/host-core/dist/index.js";
 import { runInit, runPack, runPublish, runUpdate } from "../../packages/cli/dist/commands/index.js";
 import { stageExampleApp } from "../tools/stage-fixture-app.mjs";
 
 const fixtureAppSource = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/packages/example-app");
 const HOST_API_VERSION = "0.1.0";
+const IDENTITY_PASSPHRASE = "conformance identity passphrase";
 
 async function sleep(ms) {
   await new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
@@ -58,7 +60,7 @@ async function main() {
   try {
     process.chdir(cwd);
     const fixtureApp = stageExampleApp(cwd, fixtureAppSource);
-    const initCode = await runInit({ cwd, identityPassphrase: "conformance identity passphrase", args: [] });
+    const initCode = await runInit({ cwd, identityPassphrase: IDENTITY_PASSPHRASE, args: [] });
     if (initCode !== 0) {
       throw new Error("tp init failed");
     }
@@ -76,11 +78,11 @@ async function main() {
     const provider = new NodeCryptoProvider();
     const archive = new Uint8Array(readFileSync(join(cwd, ".tp/last.tpkg")));
     const unpacked = unpackPackage(provider, archive);
-    const privateKey = new Uint8Array(readFileSync(join(cwd, ".tp/identity")));
-    const identity = Identity.fromBytes(provider, privateKey);
-    if (identity === null) {
-      throw new Error("invalid demo identity");
-    }
+    const identity = decryptIdentityBackup(
+      provider,
+      new Uint8Array(readFileSync(join(cwd, ".tp/identity"))),
+      IDENTITY_PASSPHRASE
+    );
 
     const summary = buildAppAnnounceSummary(provider, identity, {
       manifest: unpacked.manifest,
