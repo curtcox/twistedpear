@@ -474,6 +474,7 @@ jobs:
       - run: npm run test:web-storage
       - run: npm run test:web-miniapp
       - run: npm run test:web-examples
+      - run: npm run test:web-cookbook
       - run: npm run test:web-distribution
       - run: npm run test:web-devstudio
       - run: npm run test:web-handbook

@@ -85,6 +85,7 @@
     "test:web-storage": "npm run build && node conformance/web-storage/run.mjs",
     "test:web-miniapp": "npm run build && node conformance/web-miniapp/run.mjs",
     "test:web-examples": "npm run build && node conformance/web-examples/run.mjs",
+    "test:web-cookbook": "npm run build && node conformance/web-cookbook/run.mjs",
     "test:web-distribution": "npm run build && node conformance/web-distribution/run.mjs",
     "test:web-devstudio": "npm run build && node conformance/web-devstudio/run.mjs",
     "test:web-handbook": "npm run build && node conformance/web-handbook/run.mjs",

@@ -33,7 +33,7 @@ LXMF, and Pear-style local-first distribution. The repository contains:
 | [apps/host-desktop](apps/host-desktop/) | Electron desktop host. |
 | [apps/examples](apps/examples/) | Reference chat, file-drop, and board mini-apps. |
 | [apps/handbook](apps/handbook/) | Interactive platform Handbook shipped as a mini-app. |
-| [cookbook/apps](cookbook/apps/) | Twenty-five cookbook sample mini-apps. Reference source; not built or tested by CI. |
+| [cookbook/apps](cookbook/apps/) | Twenty-five cookbook sample mini-apps. CI validates their packages, runtime rendering, and React Native Web pages. |
 | [conformance](conformance/) | Scenario runners, golden vectors, interop tests, and device runbooks. |
 | [specs](specs/) | Quasi-independent specification units; vectors and formal models are normative. |
 

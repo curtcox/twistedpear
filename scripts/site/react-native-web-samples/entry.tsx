@@ -197,11 +197,13 @@ function App() {
           ))}
         </View>
         <View style={styles.demo}>
-          <Text style={styles.demoTitle}>{selected.title}</Text>
+          <Text testID="cookbook-sample-title" style={styles.demoTitle}>{selected.title}</Text>
           <Text style={styles.capabilities}>
             {selected.capabilities.length === 0 ? "No capabilities" : selected.capabilities.join(" · ")}
           </Text>
-          <View style={styles.status}><Text style={styles.statusText}>{status}</Text></View>
+          <View style={styles.status}>
+            <Text testID="cookbook-sample-status" style={styles.statusText}>{status}</Text>
+          </View>
           <View style={styles.device}>
             {tree === null ? (
               <Text style={styles.loading}>Waiting for the first render…</Text>
