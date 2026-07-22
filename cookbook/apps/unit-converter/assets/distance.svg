@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Distance">
+  <path d="M5 16h22M5 16l5-5M5 16l5 5M27 16l-5-5M27 16l-5 5" fill="none" stroke="#3b82f6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M5 9v14M27 9v14" stroke="#3b82f6" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

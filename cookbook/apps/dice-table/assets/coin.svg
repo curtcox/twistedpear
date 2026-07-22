@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Coin">
+  <circle cx="24" cy="24" r="19" fill="#f5c542" stroke="#c99a12" stroke-width="2"/>
+  <circle cx="24" cy="24" r="14" fill="none" stroke="#c99a12" stroke-width="1.5" opacity="0.7"/>
+  <text x="24" y="30" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="16" fill="#7a5c05">H</text>
+</svg>

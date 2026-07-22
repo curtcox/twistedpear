@@ -1,23 +1,34 @@
-import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { Image, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import type { WidgetNode, WidgetStyle, WidgetTree } from "@twistedpear/miniapp-runtime/ui";
 
 // Keep component/prop mapping aligned with describeWidgetTree() in miniapp-runtime (ui-golden tests).
 
+// An app references bitmap/vector art by name (the image widget's `asset` prop); the host
+// supplies the actual bytes. Passing the map through context keeps it out of every recursive
+// WidgetNodeView call, which only ever threads onEvent/readDocument.
+const AssetContext = createContext<Readonly<Record<string, string>>>({});
+
 export function MiniappWidgetTree({
   tree,
   onEvent,
-  readDocument
+  readDocument,
+  assets
 }: {
   readonly tree: WidgetTree | null;
   readonly onEvent?: (nodeId: string, event: string, value?: unknown) => void;
   readonly readDocument?: (documentId: string) => Promise<string>;
+  readonly assets?: Readonly<Record<string, string>>;
 }) {
   if (tree === null) {
     return <Text style={styles.muted}>No widget tree</Text>;
   }
 
-  return <WidgetNodeView node={tree.root} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />;
+  return (
+    <AssetContext.Provider value={assets ?? {}}>
+      <WidgetNodeView node={tree.root} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />
+    </AssetContext.Provider>
+  );
 }
 
 function ScrollWidget({
@@ -126,6 +137,7 @@ function WidgetNodeView({
   readonly readDocument?: (documentId: string) => Promise<string>;
 }) {
   const style = widgetStyle(node.style);
+  const assets = useContext(AssetContext);
 
   switch (node.type) {
     case "view":
@@ -215,12 +227,33 @@ function WidgetNodeView({
           ))}
         </View>
       );
-    case "image":
+    case "image": {
+      const assetName = String(node.props?.asset ?? "");
+      const svg = assets[assetName];
+      const alt = typeof node.props?.alt === "string" ? node.props.alt : assetName;
+      if (svg !== undefined) {
+        const width = typeof node.style?.width === "number" ? node.style.width : 40;
+        const height = typeof node.style?.height === "number" ? node.style.height : 40;
+        return (
+          <Image
+            testID={node.id}
+            accessibilityLabel={alt}
+            resizeMode="contain"
+            // Pre-encode into a bare `data:image/svg+xml,` URI. react-native-web only
+            // re-encodes URIs carrying its `;utf8,` marker, and that path truncates
+            // multi-line SVGs (its regex stops at the first newline), so we avoid it.
+            source={{ uri: `data:image/svg+xml,${encodeURIComponent(svg)}` }}
+            style={[{ width, height }, style]}
+          />
+        );
+      }
+      // No asset supplied for this name: keep the readable placeholder the golden tests expect.
       return (
         <Text testID={node.id} style={[styles.text, style]}>
-          image:{String(node.props?.asset ?? "")}
+          image:{assetName}
         </Text>
       );
+    }
     case "code-editor":
       return <CodeEditorWidget node={node} style={style} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />;
     case "qr-code":

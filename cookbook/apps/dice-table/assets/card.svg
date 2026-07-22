@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Playing card">
+  <rect x="11" y="5" width="26" height="38" rx="4" fill="#fbfdff" stroke="#94a3b8" stroke-width="2"/>
+  <path d="M24 34c-5-3.6-9-6.7-9-11a4.6 4.6 0 0 1 9-1.6A4.6 4.6 0 0 1 33 23c0 4.3-4 7.4-9 11z" fill="#e5484d"/>
+  <text x="15.5" y="15" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="8" fill="#e5484d">A</text>
+</svg>

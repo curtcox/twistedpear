@@ -218,6 +218,7 @@ function App() {
             ) : (
               <MiniappWidgetTree
                 tree={tree}
+                assets={selected.assets}
                 onEvent={(nodeId, event, value) => void hostRef.current?.handleUiEvent(nodeId, event, value)}
                 readDocument={(documentId) => hostRef.current?.workspace.read(selected.name, documentId) ?? Promise.resolve("")}
               />

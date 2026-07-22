@@ -17,6 +17,37 @@ function record(label, result) {
   history = [{ label, result }, ...history].slice(0, HISTORY_LIMIT);
 }
 
+// An `image` widget names its art by `asset`; the host resolves the name to a file
+// under this app's assets/ directory. Keeping the SVGs out of this bundle is why the
+// die/coin/card faces do not bloat the source. Each history label doubles as an asset
+// name (d4…d20, coin, card), so the latest roll can show its own icon.
+
+/** @typedef {import("@twistedpear/miniapp-runtime").WidgetTree["root"]} WidgetNode */
+
+/**
+ * A square icon that renders `assets/<asset>.svg` at the given side length.
+ * @returns {WidgetNode}
+ */
+function icon(id, asset, side) {
+  return { id, type: "image", props: { asset, alt: asset }, style: { width: side, height: side } };
+}
+
+/**
+ * A labelled button with its die/coin face stacked above it.
+ * @returns {WidgetNode}
+ */
+function iconButton(id, asset, label, event) {
+  return {
+    id: `${id}-col`,
+    type: "view",
+    style: { alignItems: "center", gap: 4 },
+    children: [
+      icon(`${id}-icon`, asset, 32),
+      { id, type: "button", props: { label, event } }
+    ]
+  };
+}
+
 async function render() {
   await ui.render({
     root: {
@@ -34,28 +65,32 @@ async function render() {
           id: "dice-row",
           type: "view",
           style: { flexDirection: "row", gap: 8 },
-          children: DICE.map((sides) => ({
-            id: `d${sides}`,
-            type: "button",
-            props: { label: `d${sides}`, event: `dice.roll.${sides}` }
-          }))
+          children: DICE.map((sides) => iconButton(`d${sides}`, `d${sides}`, `d${sides}`, `dice.roll.${sides}`))
         },
         {
           id: "extras",
           type: "view",
-          style: { flexDirection: "row", gap: 8 },
+          style: { flexDirection: "row", alignItems: "center", gap: 8 },
           children: [
-            { id: "coin", type: "button", props: { label: "Coin", event: "dice.coin" } },
-            { id: "card", type: "button", props: { label: "Card", event: "dice.card" } },
+            iconButton("coin", "coin", "Coin", "dice.coin"),
+            iconButton("card", "card", "Card", "dice.card"),
             { id: "clear", type: "button", props: { label: "Clear", event: "dice.clear" } }
           ]
         },
         { id: "divider", type: "divider" },
         {
-          id: "latest",
-          type: "text",
-          props: { value: history.length === 0 ? "—" : history[0].result },
-          style: { fontSize: 32, fontWeight: "bold" }
+          id: "latest-row",
+          type: "view",
+          style: { flexDirection: "row", alignItems: "center", gap: 12 },
+          children: [
+            ...(history.length === 0 ? [] : [icon("latest-icon", history[0].label, 44)]),
+            {
+              id: "latest",
+              type: "text",
+              props: { value: history.length === 0 ? "—" : history[0].result },
+              style: { fontSize: 32, fontWeight: "bold" }
+            }
+          ]
         },
         {
           id: "history",

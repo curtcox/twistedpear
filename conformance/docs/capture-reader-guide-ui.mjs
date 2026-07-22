@@ -5,7 +5,7 @@
  * The host normally fills these panels over Electron IPC. Documentation captures use
  * deterministic throwaway values so they contain no operator identity or credentials.
  */
-import { createReadStream, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -172,6 +172,17 @@ async function launchCookbookApp(name, configure = async () => {}, seed = async 
   await waitForTree(host);
   await configure(host, store);
   return host;
+}
+
+/** Read a cookbook app's `assets/*.svg` into the { name: svg } map the renderer resolves. */
+function readAppAssets(name) {
+  const assetsDir = join(repoRoot, "cookbook/apps", name, "assets");
+  if (!existsSync(assetsDir)) return {};
+  const assets = {};
+  for (const file of readdirSync(assetsDir)) {
+    if (file.endsWith(".svg")) assets[file.slice(0, -".svg".length)] = readFileSync(join(assetsDir, file), "utf8");
+  }
+  return assets;
 }
 
 function startStaticServer(root) {
@@ -761,14 +772,14 @@ try {
         mkdirSync(dirname(output), { recursive: true });
         const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
         await page.goto(rendererServer.url, { waitUntil: "load" });
-        await page.evaluate(async ({ app, tree }) => {
+        await page.evaluate(async ({ app, tree, assets }) => {
           document.body.classList.add("miniapp-running");
           document.querySelector("header h1").textContent = "TwistedPear Host";
           document.querySelector("#subtitle").textContent = "Desktop always-on peer · Cookbook fixture";
           document.querySelector("#miniapp-title").textContent = app;
           const { renderWidgetTree } = await import("./widgets.js");
-          renderWidgetTree(tree, document.querySelector("#widget-root"));
-        }, { app: scene.app, tree });
+          renderWidgetTree(tree, document.querySelector("#widget-root"), undefined, { assets });
+        }, { app: scene.app, tree, assets: readAppAssets(scene.app) });
         const assertionPassed = await page.evaluate((assertion) => {
           if (assertion.selector !== undefined) {
             return document.querySelectorAll(assertion.selector).length >= assertion.minimum;

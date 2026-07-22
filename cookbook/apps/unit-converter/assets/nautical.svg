@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Nautical">
+  <circle cx="16" cy="7" r="3" fill="none" stroke="#0ea5e9" stroke-width="2.4"/>
+  <path d="M16 10v18" stroke="#0ea5e9" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M9 15h14" stroke="#0ea5e9" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M6 20a10 10 0 0 0 20 0" fill="none" stroke="#0ea5e9" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

@@ -34,6 +34,18 @@ function cookbookSectionHrefs() {
   return hrefs;
 }
 
+/** Read an app's `assets/*.svg` into a { name: svgSource } map the widget renderer resolves. */
+function readAssets(dir) {
+  const assetsDir = path.join(dir, "assets");
+  if (!fs.existsSync(assetsDir)) return {};
+  const assets = {};
+  for (const file of fs.readdirSync(assetsDir)) {
+    if (!file.endsWith(".svg")) continue;
+    assets[file.slice(0, -".svg".length)] = fs.readFileSync(path.join(assetsDir, file), "utf8");
+  }
+  return assets;
+}
+
 function fixtures() {
   const sections = cookbookSectionHrefs();
   const list = fs.readdirSync(appsDir, { withFileTypes: true })
@@ -55,7 +67,8 @@ function fixtures() {
         capabilities: manifest.capabilities ?? [],
         publisherPublicKey: manifest.publisherPublicKey || "cookbook-pages-demo",
         cookbookHref,
-        bundle: fs.readFileSync(path.join(dir, manifest.entry), "utf8")
+        bundle: fs.readFileSync(path.join(dir, manifest.entry), "utf8"),
+        assets: readAssets(dir)
       };
     })
     .sort((left, right) => left.title.localeCompare(right.title));

@@ -4,11 +4,14 @@ import { ui } from "@twistedpear/miniapp-sdk";
 // second per app; this app renders four times a second, which is deliberate. Anything
 // approaching the ceiling will be throttled and the animation will stutter.
 
+// Each phase names an `assets/<icon>.svg` the host draws above the phase label, so the
+// current step reads at a glance without waiting to parse the words. The SVGs live in
+// separate files to keep this bundle readable.
 const PHASES = [
-  { name: "Breathe in", seconds: 4 },
-  { name: "Hold", seconds: 4 },
-  { name: "Breathe out", seconds: 4 },
-  { name: "Hold", seconds: 4 }
+  { name: "Breathe in", seconds: 4, icon: "inhale" },
+  { name: "Hold", seconds: 4, icon: "hold" },
+  { name: "Breathe out", seconds: 4, icon: "exhale" },
+  { name: "Hold", seconds: 4, icon: "hold" }
 ];
 const TICK_MS = 250;
 
@@ -33,6 +36,15 @@ async function render() {
       type: "view",
       style: { padding: 24, gap: 16, alignItems: "center" },
       children: [
+        {
+          id: "phase-icon",
+          type: "image",
+          props: {
+            asset: running ? phase().icon : "ready",
+            alt: running ? phase().name : "Ready"
+          },
+          style: { width: 72, height: 72 }
+        },
         {
           id: "phase",
           type: "text",

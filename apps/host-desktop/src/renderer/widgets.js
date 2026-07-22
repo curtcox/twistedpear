@@ -124,9 +124,21 @@ function renderNode(node, onEvent, options = {}) {
       return element;
     }
     case "image": {
+      const assetName = String(node.props?.asset ?? "");
+      const svg = options.assets?.[assetName];
+      const alt = typeof node.props?.alt === "string" ? node.props.alt : assetName;
+      if (typeof svg === "string") {
+        const element = document.createElement("img");
+        element.className = "widget-image";
+        element.alt = alt;
+        element.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+        applyStyle(element, style);
+        return element;
+      }
+      // No asset supplied for this name: fall back to a readable placeholder.
       const element = document.createElement("p");
       element.className = "widget-muted";
-      element.textContent = `Image: ${String(node.props?.asset ?? "")}`;
+      element.textContent = `Image: ${assetName}`;
       return element;
     }
     case "code-editor": {
