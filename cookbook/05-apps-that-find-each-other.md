@@ -71,6 +71,13 @@ This chapter teaches the third layer's intended app contract. Until the adapter 
 it to develop and test payload handling locally; do not use it as evidence that two devices
 can find each other.
 
+The implementation path is specified in the
+[local peer discovery and connection plan](../docs/local-peer-discovery-plan.md). It puts
+automatic Reticulum discovery, QR/camera, manual exchange, audio, native Bluetooth, ntfy
+rendezvous, and any future browser Local Peer-to-Peer API behind one host-owned pairing
+service. Mini-apps request a peer; the platform owns permissions, offer/answer exchange,
+authentication, mechanism fallback, and connection setup.
+
 Two SDK calls do all of it, and no others are involved:
 
 - **`announce.publish(appData, namespace)`** writes one small beacon into `namespace`. The

@@ -84,6 +84,7 @@ The package-level READMEs for
 
 | Topic | Document |
 |---|---|
+| Unified local peer discovery, invitation exchange, and connection | [Local peer discovery and connection plan](local-peer-discovery-plan.md) |
 | BLE roles, framing, and conformance | [BLE interface](ble-interface.md) |
 | WebSocket framing, lifecycle, and gateway endpoints | [WebSocket interface](websocket-interface.md) |
 | LXMF propagation-node operation | [Propagation node](propagation-node.md) |
