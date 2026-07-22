@@ -114,18 +114,13 @@ function main() {
   /** @type {ReturnType<typeof runJob>[]} */
   const jobs = [];
 
-  // Build protocol/effects first so formal + sansio have dist output.
+  // Full build first so package exports resolve to dist/ for unit tests,
+  // formal tools, and sansio (matches CI: lint/tsc before npm test).
   jobs.push(
     runJob({
-      id: "build-protocol-effects",
-      title: "Build protocol + effects",
-      command: [
-        "npm",
-        "run",
-        "build",
-        "--workspace=@twistedpear/effects",
-        "--workspace=@twistedpear/protocol"
-      ]
+      id: "typescript",
+      title: "TypeScript (tsc -b)",
+      command: ["npm", "run", "lint"]
     })
   );
 
@@ -144,14 +139,6 @@ function main() {
         "--reporter=json",
         `--outputFile.json=${vitestJson}`
       ]
-    })
-  );
-
-  jobs.push(
-    runJob({
-      id: "typescript",
-      title: "TypeScript (tsc -b)",
-      command: ["npm", "run", "lint"]
     })
   );
 
