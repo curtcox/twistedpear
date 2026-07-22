@@ -4,15 +4,17 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { startStaticServer } from "../../scripts/static-server.mjs";
+import { PAGES_BASE } from "../../scripts/site/paths.mjs";
 
 const conformanceRoot = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(conformanceRoot, "../..");
-const appsRoot = join(repoRoot, "cookbook/apps");
+const cookbookRoot = join(repoRoot, "cookbook");
+const appsRoot = join(cookbookRoot, "apps");
 const pageRoot = join(repoRoot, "site/public/react-native-web");
 const expectedStatus = "Running the real cookbook bundle in the web sandbox";
 
@@ -21,6 +23,24 @@ function appNames() {
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
+}
+
+function headingSlug(title) {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function expectedCookbookHref(app) {
+  const base = PAGES_BASE.endsWith("/") ? PAGES_BASE.slice(0, -1) : PAGES_BASE;
+  for (const name of readdirSync(cookbookRoot)) {
+    if (!/^\d{2}-.+\.md$/.test(name)) continue;
+    const text = readFileSync(join(cookbookRoot, name), "utf8");
+    for (const match of text.matchAll(/^## ([^\n]+)$/gm)) {
+      if (headingSlug(match[1]) !== app) continue;
+      if (!existsSync(join(appsRoot, app, "app.manifest.json"))) continue;
+      return `${base}/cookbook/${name.replace(/\.md$/, "")}#${app}`;
+    }
+  }
+  throw new Error(`no cookbook chapter section found for ${app}`);
 }
 
 function runBuild() {
@@ -56,6 +76,13 @@ async function testApp(browser, pageUrl, app) {
     );
     if (selectedTitle !== expectedTitle) {
       throw new Error(`selected ${JSON.stringify(selectedTitle)} instead of ${JSON.stringify(expectedTitle)}`);
+    }
+
+    const recipeLink = page.locator('[data-testid="cookbook-sample-recipe-link"]');
+    const href = await recipeLink.getAttribute("href");
+    const expectedHref = expectedCookbookHref(app);
+    if (href !== expectedHref) {
+      throw new Error(`cookbook link href ${JSON.stringify(href)} instead of ${JSON.stringify(expectedHref)}`);
     }
     if (pageErrors.length > 0) {
       throw new Error(`uncaught browser error: ${pageErrors.join("; ")}`);

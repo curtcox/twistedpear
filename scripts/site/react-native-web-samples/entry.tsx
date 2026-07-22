@@ -201,6 +201,14 @@ function App() {
           <Text style={styles.capabilities}>
             {selected.capabilities.length === 0 ? "No capabilities" : selected.capabilities.join(" · ")}
           </Text>
+          <Text
+            accessibilityRole="link"
+            href={selected.cookbookHref}
+            testID="cookbook-sample-recipe-link"
+            style={styles.cookbookLink}
+          >
+            Read the cookbook recipe →
+          </Text>
           <View style={styles.status}>
             <Text testID="cookbook-sample-status" style={styles.statusText}>{status}</Text>
           </View>
@@ -235,6 +243,7 @@ const styles = StyleSheet.create({
   demo: { flex: 1, minWidth: 0 },
   demoTitle: { color: "#f7fbff", fontSize: 27, fontWeight: "700" },
   capabilities: { color: "#67e8c7", fontSize: 12, marginTop: 6 },
+  cookbookLink: { color: "#8ecbff", fontSize: 14, marginTop: 10, textDecorationLine: "underline" },
   status: { backgroundColor: "#102334", borderRadius: 8, padding: 9, marginVertical: 12 },
   statusText: { color: "#a9c1d5", fontSize: 12 },
   device: { backgroundColor: "#111b26", borderColor: "#2b3d4f", borderWidth: 1, borderRadius: 20, minHeight: 560, padding: 18, overflow: "hidden" },
