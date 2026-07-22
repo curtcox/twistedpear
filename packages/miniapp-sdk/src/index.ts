@@ -1,4 +1,4 @@
-export { setMiniappHostTransport } from "./rpc.js";
+export { MiniappHostError, setMiniappHostTransport } from "./rpc.js";
 export type { MiniappHostTransport } from "./rpc.js";
 export * as ui from "./ui.js";
 export * as lxmf from "./lxmf.js";
@@ -12,3 +12,4 @@ export * as workspace from "./workspace.js";
 export * as ai from "./ai.js";
 export * as apps from "./apps.js";
 export * as share from "./share.js";
+export * as peers from "./peers.js";

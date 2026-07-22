@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AppState,
+  Image,
   PermissionsAndroid,
   Platform,
   Pressable,
@@ -11,7 +12,11 @@ import {
   TextInput,
   View
 } from "react-native";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { StatusBar } from "expo-status-bar";
+import qrcodeModule from "qrcode-generator";
+import { decodePeerAudioFskStream, encodePeerAudioFsk } from "@twistedpear/protocol";
+import { nativePeerAudioSupported, playNativePeerPcm, recordNativePeerPcm, requestNativePeerAudioPermission } from "@twistedpear/peer-audio";
 import { Worklet } from "react-native-bare-kit";
 import b4a from "b4a";
 import bundle from "../worklet/worklet.bundle.mjs";
@@ -27,6 +32,7 @@ import {
   requestUsbSerialPermission,
   type UsbSerialDeviceInfo
 } from "@twistedpear/usb-serial";
+
 import {
   decodeMessages,
   encodeMessage,
@@ -43,6 +49,13 @@ import {
 } from "./worklet/protocol";
 import { MiniappWidgetTree } from "./host/miniapp-renderer";
 import type { WidgetTree } from "@twistedpear/miniapp-runtime";
+
+const peerAudioHex = (bytes: Uint8Array) => [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+const peerAudioUnhex = (text: string) => Uint8Array.from(text.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16));
+function floatToPcm16(pcm: Float32Array): Uint8Array { const bytes = new Uint8Array(pcm.length * 2); const view = new DataView(bytes.buffer); for (let index = 0; index < pcm.length; index += 1) view.setInt16(index * 2, Math.round(Math.max(-1, Math.min(1, pcm[index] ?? 0)) * 32767), true); return bytes; }
+function pcm16ToFloat(bytes: Uint8Array): Float32Array { const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength); const pcm = new Float32Array(Math.floor(bytes.length / 2)); for (let index = 0; index < pcm.length; index += 1) pcm[index] = view.getInt16(index * 2, true) / 32768; return pcm; }
+async function playNativePeerFrames(framesHex: ReadonlyArray<string>, sampleRate = 44_100): Promise<void> { for (const frame of framesHex) await playNativePeerPcm(floatToPcm16(encodePeerAudioFsk(peerAudioUnhex(frame), { sampleRate })), sampleRate); }
+async function recordNativePeerFrames(sampleRate = 44_100): Promise<ReadonlyArray<string>> { const pcm = pcm16ToFloat(await recordNativePeerPcm(15_000, sampleRate)); const frames = decodePeerAudioFskStream(pcm, { sampleRate }); if (frames.length === 0) throw new Error("No valid peer audio frames were detected"); return frames.map(peerAudioHex); }
 
 const DEFAULT_DOCKER_PORT = 4_242;
 const ANDROID_EMULATOR_HOST = "10.0.2.2";
@@ -118,6 +131,23 @@ export default function App() {
   const [devChannelDetail, setDevChannelDetail] = useState<string | null>(null);
   const [devHost, setDevHost] = useState(Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST);
   const [devPort, setDevPort] = useState(String(DEFAULT_DEV_PORT));
+  const [ntfyUrl, setNtfyUrl] = useState("");
+  const [ntfyToken, setNtfyToken] = useState("");
+  const [peerModal, setPeerModal] = useState<
+    | { readonly kind: "exchange"; readonly request: Extract<WorkletToHostMessage, { type: "peer-manual-present" | "peer-manual-enter" | "peer-qr-present" | "peer-qr-scan" | "peer-ntfy-present" | "peer-ntfy-enter" | "peer-audio-transmit" | "peer-audio-receive" }>; readonly input: string }
+    | { readonly kind: "confirm"; readonly request: Extract<WorkletToHostMessage, { type: "peer-confirm-request" }> }
+    | null
+  >(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [peerCameraActive, setPeerCameraActive] = useState(false);
+  const [peerQrFrame, setPeerQrFrame] = useState(0);
+
+  useEffect(() => {
+    if (peerModal?.kind !== "exchange" || peerModal.request.type !== "peer-qr-present" || peerModal.request.codes.length < 2) return undefined;
+    const codes = peerModal.request.codes;
+    const timer = setInterval(() => setPeerQrFrame((current) => (current + 1) % codes.length), 750);
+    return () => clearInterval(timer);
+  }, [peerModal]);
 
   const workletRef = useRef<Worklet | null>(null);
   const ipcBufferRef = useRef("");
@@ -231,6 +261,64 @@ export default function App() {
       return;
     }
 
+    if (message.type === "peer-manual-present" || message.type === "peer-manual-enter") {
+      setPeerModal({ kind: "exchange", request: message, input: "" });
+      return;
+    }
+
+    if (message.type === "peer-qr-availability") {
+      sendToWorklet({ type: "peer-chrome-response", token: message.token, availability: cameraPermission?.granted === true ? { state: "available", reason: "Native QR camera permission is granted" } : { state: "permission-required", reason: "Camera starts only after Start camera" } });
+      return;
+    }
+
+    if (message.type === "peer-qr-present" || message.type === "peer-qr-scan") {
+      setPeerQrFrame(0); setPeerCameraActive(false); setPeerModal({ kind: "exchange", request: message, input: "" });
+      return;
+    }
+
+    if (message.type === "peer-audio-availability") {
+      sendToWorklet({ type: "peer-chrome-response", token: message.token, availability: nativePeerAudioSupported() ? { state: "permission-required", reason: "Microphone permission is requested only after starting the audible exchange" } : { state: "unsupported", reason: "Native PCM playback/capture module is unavailable" } });
+      return;
+    }
+
+    if (message.type === "peer-audio-transmit" || message.type === "peer-audio-receive") {
+      setPeerModal({ kind: "exchange", request: message, input: "" });
+      return;
+    }
+
+    if (message.type === "peer-ntfy-present" || message.type === "peer-ntfy-enter") {
+      setPeerModal({ kind: "exchange", request: message, input: "" });
+      return;
+    }
+
+    if (message.type === "peer-ntfy-http") {
+      void (async () => {
+        try {
+          const configured = new URL(ntfyUrl.trim().endsWith("/") ? ntfyUrl.trim() : `${ntfyUrl.trim()}/`);
+          const requested = new URL(message.request.url);
+          const localHttp = configured.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(configured.hostname);
+          const basePath = configured.pathname.endsWith("/") ? configured.pathname : `${configured.pathname}/`;
+          if ((configured.protocol !== "https:" && !localHttp) || requested.origin !== configured.origin || !requested.pathname.startsWith(basePath) || requested.username !== "" || requested.password !== "" || requested.hash !== "" || !["GET", "POST"].includes(message.request.method) || (message.request.body?.length ?? 0) > 40_000) throw new Error("ntfy request is outside the configured host policy");
+          const headers = new Headers(message.request.headers); headers.delete("authorization"); if (ntfyToken.trim() !== "") headers.set("Authorization", `Bearer ${ntfyToken.trim()}`);
+          const response = await fetch(requested.toString(), { method: message.request.method, headers, ...(message.request.body === undefined ? {} : { body: message.request.body }), redirect: "error" });
+          const declared = Number(response.headers.get("content-length") ?? "0"); if (Number.isFinite(declared) && declared > 256_000) throw new Error("ntfy response exceeds host budget");
+          const body = await response.text(); if (body.length > 256_000) throw new Error("ntfy response exceeds host budget");
+          sendToWorklet({ type: "peer-chrome-response", token: message.token, http: { status: response.status, body, contentLength: response.headers.get("content-length") } });
+        } catch (error) { sendToWorklet({ type: "peer-chrome-response", token: message.token, error: error instanceof Error ? error.message : String(error) }); }
+      })();
+      return;
+    }
+
+    if (message.type === "peer-confirm-request") {
+      setPeerModal({ kind: "confirm", request: message });
+      return;
+    }
+
+    if (message.type === "peer-chrome-cancel") {
+      setPeerCameraActive(false); setPeerModal(null);
+      return;
+    }
+
     if (message.type === "workspace-file") {
       const pending = pendingWorkspaceReadsRef.current.get(message.token);
       pendingWorkspaceReadsRef.current.delete(message.token);
@@ -246,6 +334,19 @@ export default function App() {
       setDevChannelDetail(message.detail ?? message.state);
       appendLog(`[dev] ${message.state}${message.detail ? `: ${message.detail}` : ""}`);
     }
+  }, [appendLog, cameraPermission?.granted, ntfyToken, ntfyUrl, sendToWorklet]);
+
+  const performPeerAudio = useCallback(async (request: Extract<WorkletToHostMessage, { type: "peer-audio-transmit" | "peer-audio-receive" }>) => {
+    try {
+      const granted = Platform.OS === "android"
+        ? await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO) === PermissionsAndroid.RESULTS.GRANTED
+        : await requestNativePeerAudioPermission();
+      if (!granted) throw new Error("Microphone permission was denied");
+      appendLog(request.type === "peer-audio-transmit" ? "Playing audible peer frames…" : "Listening for audible peer frames…");
+      if (request.type === "peer-audio-transmit") { await playNativePeerFrames(request.framesHex); const framesHex = request.expectsResponse ? await recordNativePeerFrames() : []; sendToWorklet({ type: "peer-chrome-response", token: request.token, accepted: true, framesHex }); }
+      else sendToWorklet({ type: "peer-chrome-response", token: request.token, accepted: true, sessionId: request.sessionId, framesHex: await recordNativePeerFrames() });
+      appendLog("Audible peer exchange completed.");
+    } catch (error) { const detail = error instanceof Error ? error.message : String(error); appendLog(`Audible peer exchange failed: ${detail}`); sendToWorklet({ type: "peer-chrome-response", token: request.token, accepted: false, error: detail }); }
   }, [appendLog, sendToWorklet]);
 
   useEffect(() => {
@@ -329,6 +430,7 @@ export default function App() {
       targetPort: DEFAULT_DOCKER_PORT,
       multicastEntitled: Platform.OS !== "ios",
       bonjourEnabled: true
+      , ...(ntfyUrl.trim() === "" ? {} : { ntfyUrl: ntfyUrl.trim() })
     });
     pushInterfaceConfig({
       tcp: tcpEnabled,
@@ -338,7 +440,7 @@ export default function App() {
       rnodeDeviceId: selectedUsbDeviceId
     });
     appendLog(`Worklet started (target ${targetHost}:${DEFAULT_DOCKER_PORT})`);
-  }, [appendLog, autoEnabled, bleEnabled, rnodeEnabled, selectedUsbDeviceId, handleWorkletMessage, pushInterfaceConfig, sendToWorklet, tcpEnabled]);
+  }, [appendLog, autoEnabled, bleEnabled, rnodeEnabled, selectedUsbDeviceId, handleWorkletMessage, ntfyUrl, pushInterfaceConfig, sendToWorklet, tcpEnabled]);
 
   useEffect(() => {
     const shouldRun = tcpEnabled || autoEnabled || bleEnabled || rnodeEnabled;
@@ -431,9 +533,45 @@ export default function App() {
     }
   }, [stopWorklet]);
 
+  let peerQrUri: string | null = null;
+  if (peerModal?.kind === "exchange" && peerModal.request.type === "peer-qr-present") {
+    const value = peerModal.request.codes[peerQrFrame % peerModal.request.codes.length];
+    if (value !== undefined) { const image = qrcodeModule(0, "M"); image.addData(value); image.make(); peerQrUri = image.createDataURL(4, 8); }
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
+      {peerModal !== null ? (
+        <View testID="peer-host-modal" style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.sectionTitle}>{peerModal.kind === "confirm" ? "Confirm peer connection" : peerModal.request.type === "peer-audio-transmit" ? "Play an audible peer invitation" : peerModal.request.type === "peer-audio-receive" ? "Listen for an audible peer invitation" : peerModal.request.type === "peer-ntfy-present" ? "Share private ntfy lookup code" : peerModal.request.type === "peer-ntfy-enter" ? "Enter private ntfy lookup code" : peerModal.request.type === "peer-qr-present" ? "Show peer QR" : peerModal.request.type === "peer-qr-scan" ? "Scan peer QR" : peerModal.request.type === "peer-manual-present" ? "Share peer invitation" : "Enter peer invitation"}</Text>
+            <Text style={styles.muted}>{peerModal.kind === "exchange" && (peerModal.request.type === "peer-audio-transmit" || peerModal.request.type === "peer-audio-receive") ? "Trusted host chrome · audible FSK tones and microphone PCM stay inside the native host." : peerModal.kind === "exchange" && (peerModal.request.type === "peer-ntfy-present" || peerModal.request.type === "peer-ntfy-enter") ? `Trusted host chrome · ${peerModal.request.server} observes a random topic, timing, and IP metadata; invitation contents are end-to-end encrypted.` : "Trusted host chrome · full serverless code"}</Text>
+            {peerModal.kind === "confirm" ? (
+              <>
+                <Text style={styles.rowLabel}>Purpose: {peerModal.request.purpose}</Text>
+                <Text style={styles.rowLabel}>Peer label (untrusted claim): {peerModal.request.peer.displayLabel}</Text>
+                <Text style={styles.rowLabel}>Fingerprint: {peerModal.request.peer.fingerprint}</Text>
+                <Text style={styles.rowLabel}>Matching words: {peerModal.request.peer.matchingWords.join(" · ")}</Text>
+                <Text style={styles.rowLabel}>Data path: {peerModal.request.peer.dataPlane}</Text>
+              </>
+            ) : (
+              <>
+                {peerModal.request.type === "peer-manual-present" ? <TextInput multiline editable={false} value={peerModal.request.code} style={styles.input} /> : null}
+                {peerModal.request.type === "peer-ntfy-present" ? <TextInput multiline editable={false} value={peerModal.request.code} style={styles.input} /> : null}
+                {peerQrUri !== null ? <Image accessibilityLabel="Peer invitation QR" source={{ uri: peerQrUri }} style={{ width: 260, height: 260 }} /> : null}
+                {peerCameraActive ? <CameraView style={{ width: 280, height: 280 }} facing="back" barcodeScannerSettings={{ barcodeTypes: ["qr"] }} onBarcodeScanned={({ data }) => { setPeerCameraActive(false); setPeerModal((current) => current?.kind === "exchange" ? { ...current, input: data } : current); }} /> : null}
+                {peerModal.request.type === "peer-manual-enter" || peerModal.request.type === "peer-qr-scan" || peerModal.request.type === "peer-ntfy-enter" || peerModal.request.type === "peer-manual-present" && peerModal.request.expectsResponse || peerModal.request.type === "peer-qr-present" && peerModal.request.expectsResponse ? <TextInput multiline value={peerModal.input} onChangeText={(input) => setPeerModal({ ...peerModal, input })} placeholder={peerModal.request.type === "peer-ntfy-enter" ? "Paste the TPN1 lookup code" : peerModal.request.type === "peer-qr-scan" ? "Scan or paste the peer QR payload" : "Paste the peer's full code"} placeholderTextColor="#718096" style={styles.input} /> : null}
+                {(peerModal.request.type === "peer-qr-scan" || (peerModal.request.type === "peer-qr-present" && peerModal.request.expectsResponse)) && !peerCameraActive ? <ActionButton label="Start camera" onPress={() => { void requestCameraPermission().then((permission) => { if (permission.granted) setPeerCameraActive(true); else appendLog("Camera permission denied; paste the QR payload instead."); }); }} /> : null}
+              </>
+            )}
+            <View style={styles.buttonRow}>
+              <ActionButton label="Cancel" onPress={() => { sendToWorklet({ type: "peer-chrome-response", token: peerModal.request.token, accepted: false, approved: false }); setPeerCameraActive(false); setPeerModal(null); }} />
+              <ActionButton label={peerModal.kind === "confirm" ? "Connect" : peerModal.request.type === "peer-audio-transmit" ? peerModal.request.expectsResponse ? "Play and listen" : "Play answer" : peerModal.request.type === "peer-audio-receive" ? "Start listening" : "Continue"} onPress={() => { if (peerModal.kind === "confirm") sendToWorklet({ type: "peer-chrome-response", token: peerModal.request.token, approved: true }); else if (peerModal.request.type === "peer-audio-transmit" || peerModal.request.type === "peer-audio-receive") void performPeerAudio(peerModal.request); else sendToWorklet({ type: "peer-chrome-response", token: peerModal.request.token, accepted: true, ...(peerModal.input.trim() ? { code: peerModal.input.trim() } : {}) }); setPeerCameraActive(false); setPeerModal(null); }} />
+            </View>
+          </View>
+        </View>
+      ) : null}
       <Text style={styles.title}>TwistedPear Harness</Text>
       <Text style={styles.subtitle}>Reticulum node + mini-app runtime (Phase 5 iOS host)</Text>
 
@@ -505,6 +643,11 @@ export default function App() {
         <Text style={styles.muted}>
           Public transport operators can observe your IP address and traffic timing. Message contents remain encrypted.
         </Text>
+        <Text style={styles.sectionTitle}>Optional ntfy rendezvous</Text>
+        <Text style={styles.muted}>Invitation contents are end-to-end encrypted. The server still observes random topics, timing, and IP metadata.</Text>
+        <TextInput style={styles.input} value={ntfyUrl} onChangeText={setNtfyUrl} autoCapitalize="none" placeholder="https://ntfy.example/" placeholderTextColor="#718096" />
+        <TextInput style={styles.input} value={ntfyToken} onChangeText={setNtfyToken} autoCapitalize="none" secureTextEntry placeholder="Bearer token (optional)" placeholderTextColor="#718096" />
+        <ActionButton label="Apply ntfy" onPress={() => { if (workletRef.current === null) startWorklet(); else sendToWorklet({ type: "start", targetHost: Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST, targetPort: DEFAULT_DOCKER_PORT, multicastEntitled: Platform.OS !== "ios", bonjourEnabled: true, ...(ntfyUrl.trim() === "" ? {} : { ntfyUrl: ntfyUrl.trim() }) }); }} />
         <Row testID="auto-interface-switch" label="AutoInterface" value={autoEnabled} onChange={setAutoEnabled} />
         <Row testID="ble-interface-switch" label="BLE interface" value={bleEnabled} onChange={setBleEnabled} />
         <Row
@@ -970,6 +1113,19 @@ const styles = StyleSheet.create({
   buttonLabel: {
     color: "#f4f7fb",
     fontSize: 13
+  },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    justifyContent: "center",
+    padding: 20
+  },
+  modalCard: {
+    backgroundColor: "#1a212b",
+    borderRadius: 12,
+    padding: 16,
+    gap: 10
   },
   deviceRow: {
     borderRadius: 8,

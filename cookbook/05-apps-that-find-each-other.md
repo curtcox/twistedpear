@@ -12,15 +12,13 @@ list, history, or retry.
 
 ### Current host status
 
-> **The cookbook examples do not discover another device.** The SDK
-> and broker calls work, but the desktop, mobile, and web host wrappers currently leave them
-> on the runtime's in-memory `AnnounceService`; that service is not connected to the host's
-> Reticulum transport. `publish()` therefore adds to one host-runtime buffer and
-> `subscribe()` reads that same buffer. A second host has a different buffer and sees
-> nothing. The cookbook conformance tests inject peer events into one shared service, so
-> passing those tests proves the app's decode/store/render path, not radio or LAN delivery.
-> `presence.snapshot()` reporting peers does not change this. Cross-device discovery needs a
-> transport-backed announce adapter in each host before these recipes work end to end.
+> **Transport support is host-specific.** The desktop host now maps these calls onto signed
+> Reticulum destinations and exact aspect handlers. Conformance also launches the unchanged
+> Neighborhood Board bundle in two distinct runtimes with distinct announce services joined
+> by a transport, so the receive path is no longer proven by injecting into the receiver's
+> own buffer. Native-mobile and static-web announce rollout is still tracked separately, and
+> a simulated two-host transport is not radio or hardware evidence. Check host diagnostics
+> and interface reachability before treating an announce as cross-device delivery.
 
 That last clause is the whole chapter. An announce heard by nobody is simply gone. There is
 no inbox it lands in, no queue it waits in, and no way to ask for it later. Two hosts
@@ -63,8 +61,8 @@ There are three different layers that are easy to collapse into the word "discov
    [`Destination.announce()` API](https://reticulum.network/manual/reference.html#RNS.Destination.announce)
    define this underlying mechanism.
 3. **The mini-app broker maps SDK calls onto that destination and handler.** The grant-gated
-   API exists, but the shipped host wrappers do not yet provide this transport adapter. The
-   default implementation is the process-local buffer in
+   API uses a Reticulum-backed adapter on desktop and a process-local default when a host has
+   not supplied transport effects. The fallback implementation is
    [`packages/miniapp-runtime/src/services/announce.ts`](../packages/miniapp-runtime/src/services/announce.ts).
 
 This chapter teaches the third layer's intended app contract. Until the adapter lands, use
@@ -184,9 +182,9 @@ The subscription is a one-shot read, so this board shows the posts the host had 
 when it opened. To keep hearing posts announced later, call `announce.subscribe` again on a
 timer — there is no event to await.
 
-Today, "the host had already heard" means "the host-local `AnnounceService` was seeded in
-this runtime." It does not mean the Reticulum node received the event from another device;
-see [Current host status](#current-host-status) above.
+In conformance, "the host had already heard" includes events carried between distinct host
+services. On desktop it can mean a Reticulum announce; on hosts still using the fallback it
+means only the host-local buffer. See [Current host status](#current-host-status) above.
 
 Your own posts go into the same store by the same path:
 

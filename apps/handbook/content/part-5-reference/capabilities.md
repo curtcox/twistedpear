@@ -27,6 +27,7 @@ Every id below must be exercised by at least one Handbook applet (coverage gate)
 - **`apps:install`** — Ask the host to install apps from a 256t id (asks each time, with capability review).
 - **`apps:preview`** — Run a built app in the host's sandboxed dev-preview slot.
 - **`share:cas`** — Store and retrieve bounded content-addressed data shared by 256t id.
+- **`peer:connect`** — Ask trusted host chrome to find, confirm, and connect an app-scoped peer.
 
 Manifests declare the full list; users may grant a subset at install.
 Withholding a capability turns matching probes into `not-granted` cards.

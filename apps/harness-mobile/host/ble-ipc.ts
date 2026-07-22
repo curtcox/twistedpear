@@ -11,6 +11,11 @@ function hexToBytes(hex: string): Uint8Array {
   return b4a.from(hex, "hex");
 }
 
+const PEER_INVITATION_PREFIX = Uint8Array.of(0x54, 0x50, 0x42, 0x31);
+function isPeerInvitationFrame(data: Uint8Array): boolean {
+  return data.length > PEER_INVITATION_PREFIX.length && PEER_INVITATION_PREFIX.every((byte, index) => data[index] === byte);
+}
+
 /** Host-side glue: native BlePipe ↔ worklet IPC. */
 export class HostBleIpc {
   private pipe: BlePipe | null = null;
@@ -26,7 +31,8 @@ export class HostBleIpc {
     const pipe = createNativeBlePipe(identityHash);
     pipe.setEvents({
       onData: (data: Uint8Array) => {
-        this.sendToWorklet({ type: "ble-data", dataHex: bytesToHex(data) });
+        if (isPeerInvitationFrame(data)) this.sendToWorklet({ type: "peer-bluetooth-frame", frameHex: bytesToHex(data.subarray(PEER_INVITATION_PREFIX.length)) });
+        else this.sendToWorklet({ type: "ble-data", dataHex: bytesToHex(data) });
       },
       onConnect: () => {
         this.sendToWorklet({ type: "ble-connect", mtu: pipe.mtu });
@@ -69,10 +75,22 @@ export class HostBleIpc {
 
     if (message.type === "ble-write") {
       await this.pipe?.write(hexToBytes(message.dataHex));
+      return;
+    }
+
+    if (message.type === "peer-bluetooth-send") {
+      if (this.pipe === null || !this.pipe.connected) throw new Error("BLE invitation channel is not connected");
+      for (const frameHex of message.framesHex) {
+        const frame = hexToBytes(frameHex);
+        const packet = new Uint8Array(PEER_INVITATION_PREFIX.length + frame.length);
+        packet.set(PEER_INVITATION_PREFIX); packet.set(frame, PEER_INVITATION_PREFIX.length);
+        if (packet.length > this.pipe.mtu - 3) throw new Error(`BLE invitation frame exceeds negotiated MTU (${packet.length} > ${this.pipe.mtu - 3})`);
+        await this.pipe.write(packet);
+      }
     }
   }
 
   isBleMessage(message: WorkletToHostMessage): boolean {
-    return message.type.startsWith("ble-");
+    return message.type.startsWith("ble-") || message.type === "peer-bluetooth-send";
   }
 }

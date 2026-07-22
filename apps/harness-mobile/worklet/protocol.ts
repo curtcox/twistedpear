@@ -161,6 +161,8 @@ export type HostToWorkletMessage =
       readonly gatewayUrl?: string;
       readonly sharedToken?: string;
       readonly identityPassphrase?: string;
+      readonly ntfyUrl?: string;
+      readonly ntfyToken?: string;
       readonly multicastEntitled?: boolean;
       readonly bonjourEnabled?: boolean;
       /** Playwright/Handbook only: stub ai.chat without a real endpoint. */
@@ -195,6 +197,7 @@ export type HostToWorkletMessage =
   | { readonly type: "confirm-response"; readonly token: string; readonly approved: boolean; readonly detail?: unknown }
   | { readonly type: "launch-confirm"; readonly token: string; readonly accept: boolean; readonly grants?: ReadonlyArray<string> }
   | { readonly type: "install-confirm"; readonly token: string; readonly accept: boolean; readonly grants?: ReadonlyArray<string> }
+  | { readonly type: "peer-chrome-response"; readonly token: string; readonly accepted?: boolean; readonly approved?: boolean; readonly code?: string; readonly signal?: string; readonly opened?: boolean; readonly sessionId?: string; readonly framesHex?: ReadonlyArray<string>; readonly error?: string; readonly http?: { readonly status: number; readonly body: string; readonly contentLength: string | null }; readonly availability?: { readonly state: "available" | "permission-required" | "unsupported" | "offline" | "policy-disabled"; readonly reason?: string } }
   | { readonly type: "install-from-256t"; readonly t256: string }
   | { readonly type: "trust-list" }
   | {
@@ -231,6 +234,7 @@ export type HostToWorkletMessage =
   | { readonly type: "ble-connect"; readonly mtu: number }
   | { readonly type: "ble-disconnect" }
   | { readonly type: "ble-error"; readonly message: string }
+  | { readonly type: "peer-bluetooth-frame"; readonly frameHex: string }
   | { readonly type: "serial-data"; readonly dataHex: string }
   | { readonly type: "serial-connect"; readonly deviceName: string }
   | { readonly type: "serial-disconnect" }
@@ -292,6 +296,22 @@ export type WorkletToHostMessage =
   | { readonly type: "trust"; readonly entries: ReadonlyArray<TrustedPublisherView> }
   | { readonly type: "trust-identity"; readonly identity256t: string | null }
   | { readonly type: "dev-channel"; readonly state: "connected" | "disconnected" | "loaded" | "error"; readonly detail?: string }
+  | { readonly type: "peer-manual-present"; readonly token: string; readonly sessionId: string; readonly code: string; readonly expectsResponse: boolean }
+  | { readonly type: "peer-manual-enter"; readonly token: string; readonly sessionId: string; readonly service: string }
+  | { readonly type: "peer-confirm-request"; readonly token: string; readonly appId: string; readonly service: string; readonly purpose: string; readonly peer: { readonly displayLabel: string; readonly fingerprint: string; readonly matchingWords: ReadonlyArray<string>; readonly dataPlane: string } }
+  | { readonly type: "peer-qr-availability"; readonly token: string }
+  | { readonly type: "peer-qr-present"; readonly token: string; readonly sessionId: string; readonly codes: ReadonlyArray<string>; readonly expectsResponse: boolean }
+  | { readonly type: "peer-qr-scan"; readonly token: string; readonly sessionId: string; readonly service: string }
+  | { readonly type: "peer-ntfy-present"; readonly token: string; readonly sessionId: string; readonly code: string; readonly server: string }
+  | { readonly type: "peer-ntfy-enter"; readonly token: string; readonly sessionId: string; readonly service: string; readonly server: string }
+  | { readonly type: "peer-ntfy-http"; readonly token: string; readonly request: { readonly url: string; readonly method: string; readonly headers: Readonly<Record<string, string>>; readonly body?: string } }
+  | { readonly type: "peer-audio-availability"; readonly token: string }
+  | { readonly type: "peer-audio-transmit"; readonly token: string; readonly sessionId: string; readonly framesHex: ReadonlyArray<string>; readonly expectsResponse: boolean }
+  | { readonly type: "peer-audio-receive"; readonly token: string; readonly sessionId: string; readonly service: string }
+  | { readonly type: "peer-webrtc-signal"; readonly token: string; readonly sessionId: string; readonly role: "offer" | "answer"; readonly remoteSignal?: string }
+  | { readonly type: "peer-webrtc-establish"; readonly token: string; readonly sessionId: string; readonly remoteSignal?: string }
+  | { readonly type: "peer-webrtc-close"; readonly sessionId: string }
+  | { readonly type: "peer-chrome-cancel"; readonly sessionId: string }
   | { readonly type: "multicast-start" }
   | { readonly type: "multicast-stop" }
   | { readonly type: "multicast-join"; readonly ifname: string; readonly groupAddress: string; readonly port: number }
@@ -304,6 +324,7 @@ export type WorkletToHostMessage =
   | { readonly type: "ble-start"; readonly identityHashHex: string }
   | { readonly type: "ble-stop" }
   | { readonly type: "ble-write"; readonly dataHex: string }
+  | { readonly type: "peer-bluetooth-send"; readonly framesHex: ReadonlyArray<string> }
   | { readonly type: "serial-start"; readonly deviceId: number; readonly baudRate: number }
   | { readonly type: "serial-web-start"; readonly baudRate: number }
   | { readonly type: "serial-stop" }

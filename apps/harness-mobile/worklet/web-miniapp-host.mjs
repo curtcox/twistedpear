@@ -85,6 +85,7 @@ export function createWebWorkletMiniappHost(options) {
     backend: sandboxController.backend,
     grantStore,
     kvBackend: kvStore,
+    peerSessionManager: options.peerSessionManager,
     beeBackend,
     confirmationChannel:
       options.requestHostReply === undefined

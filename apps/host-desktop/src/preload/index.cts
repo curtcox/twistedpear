@@ -3,11 +3,13 @@ import type { HostToWorkletMessage } from "@twistedpear/host-core/protocol";
 
 const { contextBridge, ipcRenderer } = require("electron") as typeof import("electron");
 
-const FROZEN_HOST_API = ["getStatus", "send", "saveIdentityBackup", "openIdentityBackup", "setIdentityContentProtection", "saveModerationReport", "onWorkletMessage", "onWorkletExit"] as const;
+const FROZEN_HOST_API = ["getStatus", "send", "getNtfyStatus", "ntfyRequest", "saveIdentityBackup", "openIdentityBackup", "setIdentityContentProtection", "saveModerationReport", "onWorkletMessage", "onWorkletExit"] as const;
 
 contextBridge.exposeInMainWorld("twistedPearHost", {
   getStatus: () => ipcRenderer.invoke("host:get-status"),
   send: (message: HostToWorkletMessage) => ipcRenderer.invoke("host:send", message),
+  getNtfyStatus: () => ipcRenderer.invoke("host:ntfy-status"),
+  ntfyRequest: (request: { readonly url: string; readonly method: string; readonly headers?: Record<string, string>; readonly body?: string }) => ipcRenderer.invoke("host:ntfy-request", request),
   saveIdentityBackup: (backupHex: string) => ipcRenderer.invoke("host:save-identity-backup", backupHex),
   openIdentityBackup: () => ipcRenderer.invoke("host:open-identity-backup"),
   setIdentityContentProtection: (enabled: boolean) => ipcRenderer.invoke("host:set-identity-content-protection", enabled),

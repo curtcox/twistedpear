@@ -34,11 +34,13 @@ grant screen renders the descriptions below (from `CAPABILITY_DEFINITIONS` in th
 | `apps:install` | Ask the host to install apps from a 256t id (asks each time, with capability review). |
 | `apps:preview` | Run a built app in the host's sandboxed dev-preview slot. |
 | `share:cas` | Store and retrieve bounded content-addressed data shared by 256t id. |
+| `peer:connect` | Ask trusted host chrome to find, confirm, and connect an app-scoped peer. |
 
 Unknown capability strings block install. Adding a capability bumps `HOST_API_VERSION` minor
 (the dev-environment capabilities above shipped in `0.2.0`; `host.info()` shipped in `0.3.0`).
 `ai.chatStream()` requires host API `0.5.0`; `ai.embed()` and `ai.search()` require `0.6.0`;
 `workspace.patch()` and delta editor events require `0.7.0`.
+The `peers` namespace and `peer:connect` require host API `0.8.0`.
 
 The `apps:*` capabilities are double-gated: beyond the grant, every package,
 publish, install, and preview call raises a host-chrome confirmation dialog the
@@ -86,12 +88,20 @@ mini-app cannot draw over or acknowledge (see
   the project in the host's sandboxed dev-preview slot (user confirmation;
   grants must be a subset of the manifest's declared capabilities).
 - `share.put(content)` / `share.get(t256)` — bounded content-addressed sharing.
+- `peers.request(options)` / `peers.listen(options)` — ask trusted host chrome to pair an
+  app-scoped service. The host chooses from `mechanisms` (or `"any"`), handles permissions,
+  authentication, matching words, confirmation, and data-plane setup.
+- `peers.info(handle)` / `peers.close(handle)` — inspect coarse confirmed-peer state or
+  disconnect. Handles are opaque and limited to the calling app runtime; discovery bytes,
+  addresses, SDP, credentials, and radio APIs never enter the sandbox.
+- `peers.diagnostics()` — report adapter availability and actionable host reasons without
+  prompting for camera, microphone, Bluetooth, or network permission.
 
 All calls without a matching grant fail with a typed `CapabilityError`.
 
-The two announce calls currently terminate in the runtime's in-memory service in the shipped
-desktop, mobile, and web hosts. No host adapter maps them onto Reticulum destinations and
-announce handlers yet, so separate hosts do not exchange mini-app SDK announces. The API and
+The desktop host maps announce calls onto signed Reticulum destinations and exact aspect
+handlers. The runtime also includes a transport-backed service exercised by a real two-host
+conformance tier; mobile/web transport rollout remains separately tracked. The API and
 receive path can be exercised locally by injecting a shared service; that is not a
 cross-device transport test. Reticulum's underlying destination announce mechanism is
 documented in its [concept guide](https://reticulum.network/manual/understanding.html#public-key-announcements),
@@ -155,6 +165,7 @@ See `apps/examples/`:
 - **chat** — identity + LXMF send/receive
 - **file-drop** — resource fetch + KV storage
 - **board** — announce + Hyperbee local store
+- **Peer Link** (`apps/peer-link`) — reference pairing UI using only `peers` and `ui`
 
 And `apps/devstudio` — the self-hosting development environment
 ([docs/devstudio.md](devstudio.md)) exercising the workspace, AI, apps, and

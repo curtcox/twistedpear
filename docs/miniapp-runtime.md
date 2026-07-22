@@ -64,6 +64,10 @@ surface.
 Host API `0.7.0` adds `workspace.patch()` and delta-valued `code-editor` events. Patches
 carry UTF-16 offsets against an expected base length; stale or overlapping edits fail
 before storage changes.
+Host API `0.8.0` adds `peer:connect`. A host-provided peer session manager owns mechanism
+selection, permissions, invitation authentication, confirmation, and route setup. The broker
+derives the default service from the app id, rejects cross-app service names, and returns
+runtime-scoped opaque handles. Stopping the runtime or revoking the grant closes its handles.
 
 Unknown strings block install with guidance to update `minHostApi`. Grants are keyed by
 `appId + publisherPublicKey`, survive updates signed by the same publisher, and are

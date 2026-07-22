@@ -114,6 +114,10 @@ export type {
   AppsPublishResult
 } from "./services/apps.js";
 export type { CasShareBackend } from "./host.js";
+export { PeerBrokerService, PeerServiceError, DEFAULT_PEER_TIMEOUT_MS, MAX_PEER_TIMEOUT_MS, MAX_PEER_PURPOSE_LENGTH } from "./services/peers.js";
+export { MemoryAnnounceTransport, TransportBackedAnnounceService } from "./services/transport-announce.js";
+export type { AnnounceTransport } from "./services/transport-announce.js";
+export type { PeerRequestPayload } from "./services/peers.js";
 export { ProductionCapabilityAdapter } from "./simulation-adapter.js";
 export type { ProductionCapabilityObservation } from "./simulation-adapter.js";
 export { BearerReplayPolicy, FederationPolicy, KeySharePolicy } from "./security-policies.js";

@@ -59,3 +59,9 @@ the applet — it reports `not-granted` instead of throwing into your UI.
 Double-gated capabilities (`apps:package`, `apps:publish`, `apps:install`,
 `apps:preview`) also require a host-chrome confirmation the sandbox cannot
 dismiss. See [Packaging & preview](chapter:sdk-apps-package).
+
+`peer:connect` is confirmation-bound as well. Peer handles are opaque and scoped to the
+calling app runtime; this safe probe passes only when a fabricated handle is rejected and
+never starts discovery or prompts for camera, microphone, Bluetooth, or network access.
+
+{{applet:peer-handle-isolation}}

@@ -1,4 +1,4 @@
-export const HOST_API_VERSION = "0.7.0";
+export const HOST_API_VERSION = "0.8.0";
 
 export interface HostApiChangelogEntry {
   readonly version: string;
@@ -31,7 +31,11 @@ export const HOST_API_CHANGELOG: ReadonlyArray<HostApiChangelogEntry> = [
     note: "ai.embed() and ai.search() add host-proxied embeddings and bounded cosine vector search."
   },
   {
-    version: HOST_API_VERSION,
+    version: "0.7.0",
     note: "workspace.patch() and delta code-editor events add conflict-safe incremental editing."
+  },
+  {
+    version: HOST_API_VERSION,
+    note: "peer:connect and the peers SDK add host-owned, app-scoped peer pairing and opaque handles."
   }
 ];

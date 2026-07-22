@@ -62,6 +62,7 @@ const APPLET_CHAPTER = {
   "resource-fetch": "sdk-resource-fetch",
   "workspace-rw": "sdk-workspace",
   "share-cas": "sdk-share-cas",
+  "peer-handle-isolation": "sdk-capabilities",
   "apps-package-preview": "sdk-apps-package",
   "apps-publish-install": "sdk-apps-publish",
   "apps-update": "sdk-apps-update",

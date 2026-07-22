@@ -39,12 +39,27 @@ import {
 } from "../../../packages/cas-256t/dist/index.js";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { HOST_API_VERSION, generateConfirmationToken, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
+import { decodePeerInvitation } from "../../../packages/protocol/dist/index.js";
 import {
   PropagationServer,
   createPropagationDestination,
   DEFAULT_PROPAGATION_QUOTAS
 } from "../../../packages/lxmf-ts/dist/index.js";
 import { createWorkletMiniappHost } from "./miniapp-host.mjs";
+import { createDesktopPeerChrome } from "./peer-chrome.mjs";
+import {
+  AudioPeerDiscoveryAdapter,
+  CryptoPeerPairingBackend,
+  InvitationPairingDriver,
+  ManualPeerDiscoveryAdapter,
+  NtfyPeerDiscoveryAdapter,
+  NtfyRendezvousClient,
+  PeerDiscoveryRegistry,
+  PeerSessionManager,
+  QrPeerDiscoveryAdapter,
+  ReticulumPeerDiscoveryAdapter,
+  UnavailablePeerDiscoveryAdapter
+} from "../../../packages/peer-discovery/dist/index.js";
 import { createDevChannelClient } from "./dev-channel.mjs";
 import { IPC } from "./ipc-stdio.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
@@ -244,6 +259,20 @@ let propagationDestination = null;
 
 /** @type {ReturnType<typeof createWorkletMiniappHost> | null} */
 let miniappHost = null;
+/** @type {PeerSessionManager | null} */
+let peerSessionManager = null;
+const peerLinkDestinations = new Map();
+const peerLinks = new Map();
+const automaticDiscoveryDestinations = new Map();
+const automaticDiscoveryHandlers = new Set();
+const automaticInboundBuckets = new Map();
+const automaticInboundWaiters = new Map();
+const automaticInboundRoutes = new Map();
+const automaticAnswerWaiters = new Map();
+const automaticOfferKeys = new Map();
+const miniappAnnounceBuckets = new Map();
+const miniappAnnounceDestinations = new Map();
+const miniappAnnounceHandlers = new Set();
 /** @type {ReturnType<typeof createDevChannelClient> | null} */
 let devChannel = null;
 
@@ -594,6 +623,295 @@ function requestRendererReply(message, timeoutMs = 120_000) {
   });
 }
 
+const peerChrome = createDesktopPeerChrome({
+  requestReply: requestRendererReply,
+  send,
+  createToken: () => generateConfirmationToken((length) => provider.randomBytes(length)),
+  ntfyServer: envValue("TWISTEDPEAR_NTFY_URL")
+});
+
+function ntfyHostFetch(input, init = {}) {
+  const token = generateConfirmationToken((length) => provider.randomBytes(length));
+  const headers = {};
+  new Headers(init.headers).forEach((value, name) => { headers[name] = value; });
+  return requestRendererReply({
+    type: "peer-ntfy-http",
+    token,
+    request: {
+      url: String(input),
+      method: init.method ?? "GET",
+      headers,
+      ...(typeof init.body === "string" ? { body: init.body } : {})
+    }
+  }, 30_000).then((reply) => {
+    if (reply === null || reply.error !== undefined || reply.http === undefined) throw new Error(reply?.error ?? "ntfy host request timed out");
+    const result = reply.http;
+    return {
+      ok: result.status >= 200 && result.status < 300,
+      status: result.status,
+      headers: { get(name) { return name.toLowerCase() === "content-length" ? result.contentLength : null; } },
+      async text() { return result.body; }
+    };
+  });
+}
+
+function peerServiceAspect(service) {
+  return bytesToHex(provider.sha256(new TextEncoder().encode(service)).subarray(0, 16));
+}
+
+function receiveAutomaticAnswer(data) {
+  try {
+    const invitation = decodePeerInvitation(data, Date.now());
+    if (invitation.role !== "answer") return;
+    const key = bytesToHex(invitation.sessionId);
+    const waiter = automaticAnswerWaiters.get(key);
+    if (waiter === undefined) return;
+    automaticAnswerWaiters.delete(key);
+    automaticOfferKeys.delete(waiter.adapterSessionId);
+    waiter.resolve(data);
+  } catch {
+    // Ignore unauthenticated or malformed link payloads. The pairing backend verifies again.
+  }
+}
+
+async function ensurePeerLinkDestination(identity, service) {
+  const node = await ensureReticulum();
+  const aspect = peerServiceAspect(service);
+  let destination = peerLinkDestinations.get(aspect);
+  if (destination === undefined) {
+    destination = node.registerDestination({ provider, identity, direction: DestinationDirection.IN, type: DestinationType.SINGLE, appName: "tp", aspects: ["peer", aspect] });
+    destination.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
+    destination.setLinkEstablishedCallback((link) => {
+      const existing = link.callbacks.packet;
+      link.callbacks.packet = (data, packet) => { receiveAutomaticAnswer(data); existing?.(data, packet); };
+    });
+    peerLinkDestinations.set(aspect, destination);
+  }
+  return destination;
+}
+
+async function ensureAutomaticDiscoveryListener(service, identity) {
+  const node = await ensureReticulum();
+  const aspect = peerServiceAspect(service);
+  if (automaticDiscoveryHandlers.has(aspect)) return aspect;
+  node.registerAnnounceHandler({
+    aspectFilter: `tp.peer-discovery.${aspect}`,
+    receivedAnnounce(info) {
+      if (info.appData === null || bytesToHex(info.announcedIdentity.hash) === bytesToHex(identity.hash)) return;
+      try {
+        const offer = decodePeerInvitation(info.appData, Date.now());
+        if (offer.role !== "offer" || offer.service !== service) return;
+        const session = { id: `auto:${bytesToHex(offer.sessionId)}`, kind: "reticulum" };
+        const inbound = { session, envelope: info.appData };
+        automaticInboundRoutes.set(session.id, offer);
+        const waiters = automaticInboundWaiters.get(aspect) ?? [];
+        const waiter = waiters.shift();
+        if (waiter !== undefined) waiter(inbound);
+        else {
+          const bucket = automaticInboundBuckets.get(aspect) ?? [];
+          bucket.push(inbound);
+          automaticInboundBuckets.set(aspect, bucket.slice(-32));
+        }
+        automaticInboundWaiters.set(aspect, waiters);
+      } catch {
+        // Hostile announce data is discarded before it reaches the pairing coordinator.
+      }
+    }
+  });
+  automaticDiscoveryHandlers.add(aspect);
+  return aspect;
+}
+
+function automaticReticulumChannel(identity) {
+  return {
+    async availability() {
+      return reticulum !== null && status.onlineInterfaces > 0
+        ? { state: "available", reason: "Reticulum announce and Link signaling are online" }
+        : { state: "offline", reason: "No online Reticulum interface is available for automatic discovery" };
+    },
+    async *offer(session, envelope) {
+      const node = await ensureReticulum();
+      const invitation = decodePeerInvitation(envelope, Date.now());
+      const key = bytesToHex(invitation.sessionId);
+      automaticOfferKeys.set(session.id, key);
+      const answer = new Promise((resolve, reject) => automaticAnswerWaiters.set(key, { resolve, reject, adapterSessionId: session.id }));
+      const aspect = peerServiceAspect(invitation.service);
+      let destination = automaticDiscoveryDestinations.get(aspect);
+      if (destination === undefined) {
+        destination = node.registerDestination({ provider, identity, direction: DestinationDirection.IN, type: DestinationType.SINGLE, appName: "tp", aspects: ["peer-discovery", aspect] });
+        automaticDiscoveryDestinations.set(aspect, destination);
+      }
+      await destination.announce({ appData: envelope });
+      yield await answer;
+    },
+    async *listen(options) {
+      const aspect = await ensureAutomaticDiscoveryListener(options.service, identity);
+      const bucket = automaticInboundBuckets.get(aspect) ?? [];
+      const immediate = bucket.shift();
+      automaticInboundBuckets.set(aspect, bucket);
+      if (immediate !== undefined) { yield immediate; return; }
+      yield await new Promise((resolve) => {
+        const waiters = automaticInboundWaiters.get(aspect) ?? [];
+        waiters.push(resolve);
+        automaticInboundWaiters.set(aspect, waiters);
+      });
+    },
+    async answer(session, envelope) {
+      const offer = automaticInboundRoutes.get(session.id);
+      automaticInboundRoutes.delete(session.id);
+      const candidate = offer?.candidates.find((entry) => entry.kind === "reticulum");
+      const remoteIdentity = offer?.identityProof === undefined ? null : Identity.fromPublicKey(provider, offer.identityProof);
+      if (offer === undefined || candidate === undefined || remoteIdentity === null) throw new Error("Automatic Reticulum offer has no authenticated return destination");
+      const node = await ensureReticulum();
+      const outbound = node.registerDestination({ provider, identity: remoteIdentity, direction: DestinationDirection.OUT, type: DestinationType.SINGLE, appName: "tp", aspects: ["peer", peerServiceAspect(offer.service)] });
+      if (bytesToHex(outbound.hash) !== bytesToHex(candidate.value)) throw new Error("Automatic Reticulum return destination does not match the signed offer");
+      if (!node.hasPath(outbound.hash)) { node.requestPath(outbound.hash); if (!await node.awaitPath(outbound.hash, 15)) throw new Error("No Reticulum path for automatic discovery answer"); }
+      const link = await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("Automatic Reticulum answer link timed out")), 30_000);
+        outbound.requestLink({ linkEstablished(established) { clearTimeout(timer); resolve(established); }, linkClosed() { clearTimeout(timer); reject(new Error("Automatic Reticulum answer link closed")); } });
+      });
+      await link.send(envelope);
+      setTimeout(() => { void link.teardown(); }, 1_000);
+    },
+    async cancel(sessionId) {
+      automaticInboundRoutes.delete(sessionId);
+      const key = automaticOfferKeys.get(sessionId);
+      if (key !== undefined) {
+        automaticOfferKeys.delete(sessionId);
+        const waiter = automaticAnswerWaiters.get(key);
+        automaticAnswerWaiters.delete(key);
+        waiter?.reject(new Error("Automatic Reticulum discovery cancelled"));
+      }
+    }
+  };
+}
+
+async function ensurePeerSessionManager() {
+  if (peerSessionManager !== null) return peerSessionManager;
+  const identity = await resolveIdentity();
+  if (identity === null) throw new Error("Unlock the host identity before connecting to a peer");
+  const registry = new PeerDiscoveryRegistry();
+  const createSessionId = () => generateConfirmationToken((length) => provider.randomBytes(length));
+  registry.register(new ManualPeerDiscoveryAdapter({ channel: peerChrome.manual, createSessionId }));
+  registry.register(new QrPeerDiscoveryAdapter({ channel: peerChrome.qr, createSessionId }));
+  registry.register(new ReticulumPeerDiscoveryAdapter({ channel: automaticReticulumChannel(identity), createSessionId }));
+  registry.register(new AudioPeerDiscoveryAdapter({ channel: peerChrome.audio, createSessionId }));
+  registry.register(new UnavailablePeerDiscoveryAdapter("bluetooth", { state: "policy-disabled", reason: "Native invitation GATT is not enabled; the BLE Reticulum interface remains available as a data path" }));
+  const ntfyUrl = envValue("TWISTEDPEAR_NTFY_URL");
+  if (ntfyUrl === null) {
+    registry.register(new UnavailablePeerDiscoveryAdapter("ntfy", { state: "offline", reason: "No ntfy rendezvous server is configured" }));
+  } else {
+    registry.register(new NtfyPeerDiscoveryAdapter({
+      client: new NtfyRendezvousClient({ baseUrl: ntfyUrl, fetch: ntfyHostFetch, entropy: async (length) => provider.randomBytes(length) }),
+      channel: peerChrome.ntfy,
+      createSessionId
+    }));
+  }
+  registry.register(new UnavailablePeerDiscoveryAdapter("local-peer-to-peer", { state: "unsupported", reason: "This runtime does not implement LP2PRequest/LP2PReceiver" }));
+  const backend = new CryptoPeerPairingBackend({
+    identity: {
+      publicKey: identity.getPublicKey(),
+      async sign(payload) { return identity.sign(payload); },
+      async verify(publicKey, payload, signature) {
+        const remote = Identity.fromPublicKey(provider, publicKey);
+        return remote !== null && remote.validate(signature, payload);
+      }
+    },
+    displayLabel: `TwistedPear ${bytesToHex(identity.hash).slice(0, 8)}`,
+    capabilities: ["reticulum"],
+    entropy: async (length) => provider.randomBytes(length),
+    candidates: async (request) => {
+      const destination = await ensurePeerLinkDestination(identity, request.service);
+      await destination.announce();
+      return [{ kind: "reticulum", value: destination.hash }];
+    },
+    confirm: (peer, request) => peerChrome.confirm(peer, request),
+    async establish(context, peer, adapter) {
+      const node = await ensureReticulum();
+      const candidate = context.remoteInvitation.candidates.find((entry) => entry.kind === "reticulum");
+      const remoteIdentity = Identity.fromPublicKey(provider, context.remoteInvitation.identityProof);
+      if (candidate === undefined || remoteIdentity === null) throw new Error("Authenticated Reticulum candidate is missing");
+      const aspect = bytesToHex(provider.sha256(new TextEncoder().encode(context.remoteInvitation.service)).subarray(0, 16));
+      const outbound = node.registerDestination({ provider, identity: remoteIdentity, direction: DestinationDirection.OUT, type: DestinationType.SINGLE, appName: "tp", aspects: ["peer", aspect] });
+      if (bytesToHex(outbound.hash) !== bytesToHex(candidate.value)) throw new Error("Reticulum candidate does not match the signed peer identity and service");
+      if (!node.hasPath(outbound.hash)) { node.requestPath(outbound.hash); if (!await node.awaitPath(outbound.hash, 15)) throw new Error("No Reticulum path to the confirmed peer"); }
+      const link = await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("Reticulum peer link timed out")), 30_000);
+        outbound.requestLink({ linkEstablished(established) { clearTimeout(timer); resolve(established); }, linkClosed() { clearTimeout(timer); reject(new Error("Reticulum peer link closed during establishment")); } });
+      });
+      peerLinks.set(peer.fingerprint, link);
+      return {
+        authenticated: true,
+        confirmed: true,
+        fingerprint: peer.fingerprint,
+        displayLabel: peer.displayLabel,
+        rendezvous: adapter.kind,
+        dataPlane: peer.dataPlane,
+        route: { async send(payload) { await link.send(payload); } },
+        async close() { peerLinks.delete(peer.fingerprint); await link.teardown(); }
+      };
+    }
+  });
+  peerSessionManager = new PeerSessionManager(registry, new InvitationPairingDriver({ backend }));
+  return peerSessionManager;
+}
+
+const peerSessionManagerProxy = {
+  async request(appId, runtimeId, request) { return (await ensurePeerSessionManager()).request(appId, runtimeId, request); },
+  async listen(appId, runtimeId, request) { return (await ensurePeerSessionManager()).listen(appId, runtimeId, request); },
+  async diagnostics() { return (await ensurePeerSessionManager()).diagnostics(); },
+  info(appId, runtimeId, handle) {
+    if (peerSessionManager === null) throw new Error("Unknown peer handle");
+    return peerSessionManager.info(appId, runtimeId, handle);
+  },
+  async close(appId, runtimeId, handle) {
+    if (peerSessionManager !== null) await peerSessionManager.close(appId, runtimeId, handle);
+  },
+  async closeRuntime(appId, runtimeId) {
+    if (peerSessionManager !== null) await peerSessionManager.closeRuntime(appId, runtimeId);
+  }
+};
+
+function miniappAnnounceAspect(appId, namespace) {
+  const scope = namespace ?? `miniapp-announce:${appId}`;
+  return bytesToHex(provider.sha256(new TextEncoder().encode(scope)).subarray(0, 16));
+}
+
+const transportAnnounceService = {
+  async publish(appId, appData, namespace) {
+    const node = await ensureReticulum();
+    const identity = await resolveIdentity();
+    if (identity === null) throw new Error("Unlock the host identity before publishing announces");
+    const aspect = miniappAnnounceAspect(appId, namespace);
+    let destination = miniappAnnounceDestinations.get(aspect);
+    if (destination === undefined) {
+      destination = node.registerDestination({ provider, identity, direction: DestinationDirection.IN, type: DestinationType.SINGLE, appName: "tp", aspects: ["miniapp", aspect] });
+      miniappAnnounceDestinations.set(aspect, destination);
+    }
+    const payload = appData ?? new Uint8Array();
+    await destination.announce({ appData: payload });
+    const bucket = miniappAnnounceBuckets.get(aspect) ?? [];
+    bucket.push({ destination: bytesToHex(destination.hash), appData: payload, receivedAt: Date.now() });
+    miniappAnnounceBuckets.set(aspect, bucket.slice(-256));
+  },
+  async subscribe(appId, namespace) {
+    const node = await ensureReticulum();
+    const aspect = miniappAnnounceAspect(appId, namespace);
+    if (!miniappAnnounceHandlers.has(aspect)) {
+      node.registerAnnounceHandler({
+        aspectFilter: `tp.miniapp.${aspect}`,
+        receivedAnnounce(info) {
+          const bucket = miniappAnnounceBuckets.get(aspect) ?? [];
+          bucket.push({ destination: bytesToHex(info.destinationHash), appData: info.appData ?? new Uint8Array(), receivedAt: Date.now() });
+          miniappAnnounceBuckets.set(aspect, bucket.slice(-256));
+        }
+      });
+      miniappAnnounceHandlers.add(aspect);
+    }
+    return [...(miniappAnnounceBuckets.get(aspect) ?? [])];
+  }
+};
+
 function ensureMiniappHost() {
   if (miniappHost === null) {
     miniappHost = createWorkletMiniappHost({
@@ -603,7 +921,7 @@ function ensureMiniappHost() {
       ...(NodeWorkerSandboxBackend === null
         ? {}
         : { createSandboxBackend: () => new NodeWorkerSandboxBackend(), sandboxBackend: "node-worker" }),
-      getPresenceSnapshot: () => status,
+      getPresenceSnapshot: () => ({ ...status, autoPeers: status.autoPeers + (peerSessionManager?.routes.list().length ?? 0) }),
       getHostInfoSnapshot: () => {
         const interfaceTypes = [];
         if (status.tcpEnabled) interfaceTypes.push("tcp");
@@ -628,6 +946,8 @@ function ensureMiniappHost() {
         };
       },
       send,
+      peerSessionManager: peerSessionManagerProxy,
+      announceService: transportAnnounceService,
       getPublisherIdentity: () => resolveIdentity(),
       publishArchive: publishArchiveFromWorklet,
       installFromT256,
@@ -1883,7 +2203,7 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm") {
+  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response") {
     pendingRendererReplies.get(message.token)?.(message);
     return;
   }

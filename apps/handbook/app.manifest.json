@@ -15,6 +15,7 @@
     "workspace",
     "ai:chat",
     "ai:embed",
+    "peer:connect",
     "share:cas",
     "apps:preview",
     "apps:package",
@@ -22,5 +23,5 @@
     "apps:install"
   ],
   "icon": null,
-  "minHostApi": "0.7.0"
+  "minHostApi": "0.8.0"
 }

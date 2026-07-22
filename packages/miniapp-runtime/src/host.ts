@@ -2,7 +2,7 @@ import { GrantStore } from "./capabilities.js";
 import { MiniappBroker, type BrokerContext, type BrokerRequest, type BrokerResponse } from "./broker.js";
 import type { HostConfirmationChannel } from "./confirm.js";
 import { MiniappLifecycle } from "./lifecycle.js";
-import { AnnounceService } from "./services/announce.js";
+import { AnnounceService, type AnnounceBackend } from "./services/announce.js";
 import { AppIdentityService, type IdentityBackend } from "./services/identity.js";
 import { NamespacedLxmfService } from "./services/lxmf.js";
 import { PresenceService, type PresenceBackend } from "./services/presence.js";
@@ -32,6 +32,8 @@ import type { SandboxBackend } from "./sandbox/backend.js";
 import type { WidgetNode, WidgetTree } from "./ui/schema.js";
 import { diffWidgetTrees, type WidgetPatch } from "./ui/diff.js";
 import { validateWidgetTree } from "./ui/validate.js";
+import { PeerBrokerService, PeerServiceError, type PeerRequestPayload } from "./services/peers.js";
+import type { PeerHandle, PeerSessionManager } from "@twistedpear/peer-discovery";
 
 export interface LaunchManifest {
   readonly name: string;
@@ -69,7 +71,7 @@ export interface MiniappHostOptions {
   readonly beeBackend?: StorageBeeBackend;
   readonly identityBackend?: IdentityBackend;
   readonly lxmfBackend?: MiniappKvStoreBackend;
-  readonly announceService?: AnnounceService;
+  readonly announceService?: AnnounceBackend;
   readonly resourceBackend?: ResourceFetchBackend;
   readonly presenceBackend?: PresenceBackend;
   readonly hostInfoBackend?: HostInfoBackend;
@@ -81,6 +83,8 @@ export interface MiniappHostOptions {
   readonly workspaceLimits?: Partial<WorkspaceLimits>;
   readonly appsBackend?: AppsBackend;
   readonly casBackend?: CasShareBackend;
+  /** Host-owned discovery, confirmation, and authenticated route service. */
+  readonly peerSessionManager?: PeerSessionManager;
   /** Deterministic clock used by simulation and replay adapters. */
   readonly now?: () => number;
   /** Independent audit sink used by production-backed simulation projections. */
@@ -114,6 +118,7 @@ interface LimitOverrides {
 }
 
 interface ActiveApp {
+  readonly runtimeId: string;
   readonly manifest: LaunchManifest;
   readonly grants: GrantRecord;
   readonly lifecycle: MiniappLifecycle;
@@ -132,18 +137,20 @@ export class MiniappHost {
 
   private readonly identityService: AppIdentityService;
   private readonly lxmfService: NamespacedLxmfService;
-  private readonly announceService: AnnounceService;
+  private readonly announceService: AnnounceBackend;
   private readonly resourceService: ResourceService | null;
   private readonly presenceService: PresenceService | null;
   private readonly hostInfoService: HostInfoService;
   private readonly aiService: AiService | null;
   private readonly appsService: AppsService | null;
+  private readonly peerService: PeerBrokerService | null;
   readonly workspace: WorkspaceService;
 
   private active: ActiveApp | null = null;
   private readonly limitOverrides = new Map<string, LimitOverrides>();
   private readonly aiStreams = new Map<string, AiStreamSession>();
   private nextAiStreamId = 0;
+  private nextRuntimeId = 0;
 
   constructor(private readonly options: MiniappHostOptions) {
     this.broker = new MiniappBroker({
@@ -183,6 +190,7 @@ export class MiniappHost {
     this.aiService = options.aiBackend === undefined ? null : new AiService(options.aiBackend);
     this.appsService =
       options.appsBackend === undefined ? null : new AppsService(options.appsBackend, options.confirmationChannel);
+    this.peerService = options.peerSessionManager === undefined ? null : new PeerBrokerService(options.peerSessionManager);
     this.workspace = new WorkspaceService(options.kvBackend, options.workspaceLimits);
     this.registerHandlers();
   }
@@ -216,6 +224,9 @@ export class MiniappHost {
   }
 
   async revokeGrant(appId: string, publisherPublicKey: string, capability: string): Promise<GrantRecord | null> {
+    if (capability === "peer:connect" && this.active?.manifest.name === appId && this.active.manifest.publisherPublicKey === publisherPublicKey) {
+      await this.peerService?.closeRuntime(appId, this.active.runtimeId);
+    }
     return this.options.grantStore.revoke(appId, publisherPublicKey, capability as never, this.now());
   }
 
@@ -300,6 +311,7 @@ export class MiniappHost {
     );
 
     this.active = {
+      runtimeId: `runtime-${this.nextRuntimeId++}`,
       manifest,
       grants: grants ?? {
         appId: manifest.name,
@@ -345,6 +357,7 @@ export class MiniappHost {
     }
 
     const appId = this.active.manifest.name;
+    await this.peerService?.closeRuntime(appId, this.active.runtimeId);
     await this.cancelAiStreams(appId);
     const snapshot = await this.active.lifecycle.stop(reason);
     this.logActive(appId, `stopped (${reason})`);
@@ -361,6 +374,7 @@ export class MiniappHost {
     const snapshot = await this.active.lifecycle.watchdogPing();
     if (snapshot.state === "crashed") {
       await this.cancelAiStreams(snapshot.appId);
+      await this.peerService?.closeRuntime(snapshot.appId, this.active.runtimeId);
       this.logActive(snapshot.appId, `crashed (${snapshot.reason ?? "watchdog"})`);
       this.active = null;
       this.options.callbacks?.onLifecycle?.(snapshot);
@@ -678,6 +692,23 @@ export class MiniappHost {
       const t256 = (request.payload as { t256: string }).t256;
       const bytes = await casBackend.get(context.appId, t256);
       return { content: bytes === null ? null : new TextDecoder().decode(bytes) };
+    });
+
+    const peers = () => {
+      if (this.peerService === null) throw new PeerServiceError("PEERS_UNCONFIGURED", "Peer discovery is not configured on this host");
+      return this.peerService;
+    };
+    const runtimeId = (appId: string) => this.active?.manifest.name === appId ? this.active.runtimeId : `external:${appId}`;
+    this.broker.register("peers", "request", "peer:connect", async (request, context) =>
+      peers().request(context.appId, runtimeId(context.appId), request.payload as PeerRequestPayload));
+    this.broker.register("peers", "listen", "peer:connect", async (request, context) =>
+      peers().listen(context.appId, runtimeId(context.appId), request.payload as PeerRequestPayload));
+    this.broker.register("peers", "diagnostics", "peer:connect", async () => peers().diagnostics());
+    this.broker.register("peers", "info", "peer:connect", (request, context) =>
+      peers().info(context.appId, runtimeId(context.appId), (request.payload as { handle: PeerHandle }).handle));
+    this.broker.register("peers", "close", "peer:connect", async (request, context) => {
+      await peers().close(context.appId, runtimeId(context.appId), (request.payload as { handle: PeerHandle }).handle);
+      return { closed: true };
     });
 
     this.broker.register("presence", "snapshot", "presence", async () => {

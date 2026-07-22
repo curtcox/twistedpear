@@ -30,7 +30,8 @@ export type MiniappCapability =
   | "apps:publish"
   | "apps:install"
   | "apps:preview"
-  | "share:cas";
+  | "share:cas"
+  | "peer:connect";
 
 export interface CapabilityDefinition {
   readonly id: MiniappCapability;
@@ -54,7 +55,8 @@ export const CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
   { id: "apps:publish", description: "Publish signed apps so other users can find and install them (asks each time)." },
   { id: "apps:install", description: "Ask the host to install apps from a 256t id (asks each time, with capability review)." },
   { id: "apps:preview", description: "Run a built app in the host's sandboxed dev-preview slot." },
-  { id: "share:cas", description: "Store and retrieve bounded content-addressed data shared by 256t id." }
+  { id: "share:cas", description: "Store and retrieve bounded content-addressed data shared by 256t id." },
+  { id: "peer:connect", description: "Ask trusted host chrome to find, confirm, and connect an app-scoped peer." }
 ];
 
 const CAPABILITY_IDS = new Set<string>(CAPABILITY_DEFINITIONS.map((definition) => definition.id));

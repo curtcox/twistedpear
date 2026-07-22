@@ -8,6 +8,9 @@
       "path": "./packages/protocol"
     },
     {
+      "path": "./packages/peer-discovery"
+    },
+    {
       "path": "./packages/reticulum-ts"
     },
     {

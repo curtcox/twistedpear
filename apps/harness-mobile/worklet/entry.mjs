@@ -26,10 +26,12 @@ import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPacka
 import { PackageResourceClient, assessFetchBudget, fetchPackage } from "../../../packages/bridge-hyper/dist/worklet.js";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { HOST_API_VERSION, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
+import { decodePeerAudioFrame, decodePeerInvitation, framePeerAudioPayload, initialPeerAudioAssemblyState, stepPeerAudioAssembly } from "../../../packages/protocol/dist/index.js";
 import { createWorkletMiniappHost } from "./miniapp-host.mjs";
 import { createDevChannelClient } from "./dev-channel.mjs";
 import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
+import { AudioPeerDiscoveryAdapter, BluetoothPeerDiscoveryAdapter, CryptoPeerPairingBackend, InvitationPairingDriver, ManualPeerDiscoveryAdapter, NtfyPeerDiscoveryAdapter, NtfyRendezvousClient, PeerDiscoveryRegistry, PeerSessionManager, QrPeerDiscoveryAdapter, ReticulumPeerDiscoveryAdapter, UnavailablePeerDiscoveryAdapter } from "../../../packages/peer-discovery/dist/index.js";
 
 const { IPC } = BareKit;
 const HOST_BANDWIDTH_BYTES_PER_SECOND = 512 * 1024;
@@ -75,6 +77,26 @@ const status = {
 
 /** @type {Reticulum | null} */
 let reticulum = null;
+let peerSessionManager = null;
+let ntfyUrl = null;
+const pendingHostReplies = new Map();
+const peerLinkDestinations = new Map();
+const peerLinks = new Map();
+const automaticDiscoveryDestinations = new Map();
+const automaticDiscoveryHandlers = new Set();
+const automaticInboundBuckets = new Map();
+const automaticInboundWaiters = new Map();
+const automaticInboundRoutes = new Map();
+const automaticAnswerWaiters = new Map();
+const automaticOfferKeys = new Map();
+const miniappAnnounceBuckets = new Map();
+const miniappAnnounceDestinations = new Map();
+const miniappAnnounceHandlers = new Set();
+const bluetoothAssemblies = new Map();
+const bluetoothOfferQueue = [];
+const bluetoothOfferWaiters = [];
+const bluetoothAnswerWaiters = new Map();
+const bluetoothOfferKeys = new Map();
 /** @type {import("@twistedpear/reticulum-ts").TcpClientInterface | null} */
 let tcpIface = null;
 /** @type {AutoInterfaceBridge | null} */
@@ -158,7 +180,9 @@ function ensureMiniappHost() {
       provider,
       kvStore: runtimeKeyValueStore(),
       beeStoragePath: "miniapp-bee-store",
-      getPresenceSnapshot: () => status,
+      getPresenceSnapshot: () => ({ ...status, autoPeers: status.autoPeers + (peerSessionManager?.routes.list().length ?? 0) }),
+      peerSessionManager: peerSessionManagerProxy,
+      announceService: transportAnnounceService,
       getHostInfoSnapshot: () => {
         const barePlatform =
           typeof Bare !== "undefined" && Bare !== null && typeof Bare.platform === "string"
@@ -206,6 +230,42 @@ function ensureMiniappHost() {
 
   return miniappHost;
 }
+
+function miniappAnnounceAspect(appId, namespace) {
+  const scope = namespace ?? `miniapp-announce:${appId}`;
+  return bytesToHex(provider.sha256(new TextEncoder().encode(scope)).subarray(0, 16));
+}
+
+const transportAnnounceService = {
+  async publish(appId, appData, namespace) {
+    const node = await ensureReticulum();
+    const identity = await resolveIdentity();
+    const aspect = miniappAnnounceAspect(appId, namespace);
+    let destination = miniappAnnounceDestinations.get(aspect);
+    if (destination === undefined) {
+      destination = node.registerDestination({ provider, identity, direction: DestinationDirection.IN, type: DestinationType.SINGLE, appName: "tp", aspects: ["miniapp", aspect] });
+      miniappAnnounceDestinations.set(aspect, destination);
+    }
+    const payload = appData ?? new Uint8Array();
+    await destination.announce({ appData: payload });
+    const bucket = miniappAnnounceBuckets.get(aspect) ?? [];
+    bucket.push({ destination: bytesToHex(destination.hash), appData: payload.slice(), receivedAt: Date.now() });
+    miniappAnnounceBuckets.set(aspect, bucket.slice(-256));
+  },
+  async subscribe(appId, namespace) {
+    const node = await ensureReticulum();
+    const aspect = miniappAnnounceAspect(appId, namespace);
+    if (!miniappAnnounceHandlers.has(aspect)) {
+      node.registerAnnounceHandler({ aspectFilter: `tp.miniapp.${aspect}`, receivedAnnounce(info) {
+        const bucket = miniappAnnounceBuckets.get(aspect) ?? [];
+        bucket.push({ destination: bytesToHex(info.destinationHash), appData: (info.appData ?? new Uint8Array()).slice(), receivedAt: Date.now() });
+        miniappAnnounceBuckets.set(aspect, bucket.slice(-256));
+      } });
+      miniappAnnounceHandlers.add(aspect);
+    }
+    return [...(miniappAnnounceBuckets.get(aspect) ?? [])];
+  }
+};
 
 function runtimeKeyValueStore() {
   return {
@@ -309,6 +369,172 @@ function pushCatalog() {
 function send(message) {
   IPC.write(Buffer.from(`${JSON.stringify(message)}\n`));
 }
+
+function requestHostReply(message, timeoutMs = 120_000) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => { pendingHostReplies.delete(message.token); resolve(null); }, timeoutMs);
+    pendingHostReplies.set(message.token, (reply) => { clearTimeout(timer); pendingHostReplies.delete(message.token); resolve(reply); });
+    send(message);
+  });
+}
+
+function peerToken() { return bytesToHex(provider.randomBytes(16)); }
+const peerChrome = {
+  manual: {
+    async *offer(session, code, options) { const reply = await requestHostReply({ type: "peer-manual-present", token: peerToken(), sessionId: session.id, code, expectsResponse: true }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield reply.code; },
+    async *accept(options) { const session = { id: peerToken(), kind: "manual" }; const reply = await requestHostReply({ type: "peer-manual-enter", token: peerToken(), sessionId: session.id, service: options.service }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield { session, code: reply.code }; },
+    async answer(session, code) { await requestHostReply({ type: "peer-manual-present", token: peerToken(), sessionId: session.id, code, expectsResponse: false }); },
+    async cancel(sessionId) { send({ type: "peer-chrome-cancel", sessionId }); }
+  },
+  qr: {
+    async availability() { const reply = await requestHostReply({ type: "peer-qr-availability", token: peerToken() }, 5_000); return reply?.availability ?? { state: "unsupported", reason: "Native QR support could not be detected" }; },
+    async *present(session, codes, options) { const reply = await requestHostReply({ type: "peer-qr-present", token: peerToken(), sessionId: session.id, codes, expectsResponse: true }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield reply.code; },
+    async *scan(options) { const session = { id: peerToken(), kind: "qr" }; const reply = await requestHostReply({ type: "peer-qr-scan", token: peerToken(), sessionId: session.id, service: options.service }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield { session, code: reply.code }; },
+    async answer(session, codes) { await requestHostReply({ type: "peer-qr-present", token: peerToken(), sessionId: session.id, codes, expectsResponse: false }); },
+    async cancel(sessionId) { send({ type: "peer-chrome-cancel", sessionId }); }
+  },
+  audio: {
+    async availability() { const reply = await requestHostReply({ type: "peer-audio-availability", token: peerToken() }, 5_000); return reply?.availability ?? { state: "unsupported", reason: "Native PCM support could not be detected" }; },
+    async *transmit(session, frames, options) { const reply = await requestHostReply({ type: "peer-audio-transmit", token: peerToken(), sessionId: session.id, framesHex: frames.map(bytesToHex), expectsResponse: true }, options.timeoutMs); if (reply?.error !== undefined) throw new Error(reply.error); for (const frame of reply?.framesHex ?? []) yield hexToBytes(frame); },
+    async *receive(options) { const session = { id: peerToken(), kind: "audio" }; const reply = await requestHostReply({ type: "peer-audio-receive", token: peerToken(), sessionId: session.id, service: options.service }, options.timeoutMs); if (reply?.error !== undefined) throw new Error(reply.error); for (const frame of reply?.framesHex ?? []) yield { session, frame: hexToBytes(frame) }; },
+    async answer(session, frames) { const reply = await requestHostReply({ type: "peer-audio-transmit", token: peerToken(), sessionId: session.id, framesHex: frames.map(bytesToHex), expectsResponse: false }, 120_000); if (reply?.accepted !== true) throw new Error(reply?.error ?? "Audio answer playback was cancelled"); },
+    async cancel(sessionId) { send({ type: "peer-chrome-cancel", sessionId }); }
+  },
+  ntfy: {
+    async availability() { return ntfyUrl === null ? { state: "offline", reason: "No ntfy rendezvous server is configured" } : { state: "available", reason: `Encrypted rendezvous through ${ntfyUrl}` }; },
+    async presentCode(session, code, options) { const reply = await requestHostReply({ type: "peer-ntfy-present", token: peerToken(), sessionId: session.id, code, server: ntfyUrl }, options.timeoutMs); if (reply?.accepted !== true) throw new Error("ntfy rendezvous was cancelled"); },
+    async requestCode(options) { const session = { id: peerToken(), kind: "ntfy" }; const reply = await requestHostReply({ type: "peer-ntfy-enter", token: peerToken(), sessionId: session.id, service: options.service, server: ntfyUrl }, options.timeoutMs); if (reply?.accepted !== true || typeof reply.code !== "string") throw new Error("ntfy rendezvous was cancelled"); return { session, code: reply.code }; },
+    async cancel(sessionId) { send({ type: "peer-chrome-cancel", sessionId }); }
+  },
+  async confirm(peer, request) { const reply = await requestHostReply({ type: "peer-confirm-request", token: peerToken(), appId: request.service, service: request.service, purpose: request.purpose, peer }); return reply?.approved === true; }
+};
+
+function ntfyHostFetch(input, init = {}) {
+  const headers = {}; new Headers(init.headers).forEach((value, name) => { headers[name] = value; });
+  return requestHostReply({ type: "peer-ntfy-http", token: peerToken(), request: { url: String(input), method: init.method ?? "GET", headers, ...(typeof init.body === "string" ? { body: init.body } : {}) } }, 30_000).then((reply) => {
+    if (reply === null || reply.error !== undefined || reply.http === undefined) throw new Error(reply?.error ?? "ntfy host request timed out");
+    const result = reply.http; return { ok: result.status >= 200 && result.status < 300, status: result.status, headers: { get(name) { return name.toLowerCase() === "content-length" ? result.contentLength : null; } }, async text() { return result.body; } };
+  });
+}
+
+function sendBluetoothInvitation(envelope) {
+  const invitation = decodePeerInvitation(envelope, Date.now());
+  send({ type: "peer-bluetooth-send", framesHex: framePeerAudioPayload(invitation.sessionId, envelope, 192).map(bytesToHex) });
+}
+
+function receiveBluetoothFrame(frameBytes) {
+  const frame = decodePeerAudioFrame(frameBytes); const key = bytesToHex(frame.sessionId); const current = bluetoothAssemblies.get(key) ?? initialPeerAudioAssemblyState(Date.now() + 120_000); const result = stepPeerAudioAssembly(current, frameBytes, Date.now());
+  if (result.payload === null) { bluetoothAssemblies.set(key, result.state); return; }
+  bluetoothAssemblies.delete(key); const invitation = decodePeerInvitation(result.payload, Date.now());
+  if (invitation.role === "answer") { const waiter = bluetoothAnswerWaiters.get(key); if (waiter !== undefined) { bluetoothAnswerWaiters.delete(key); bluetoothOfferKeys.delete(waiter.adapterSessionId); waiter.resolve(result.payload); } return; }
+  const inbound = { session: { id: `ble:${key}`, kind: "bluetooth" }, envelope: result.payload }; const waiter = bluetoothOfferWaiters.shift(); if (waiter !== undefined) waiter(inbound); else { bluetoothOfferQueue.push(inbound); if (bluetoothOfferQueue.length > 16) bluetoothOfferQueue.shift(); }
+}
+
+const bluetoothDiscoveryChannel = {
+  async availability() { return status.bleConnected ? { state: "available", reason: "Native BLE invitation GATT multiplex is connected" } : status.bleEnabled ? { state: "offline", reason: "BLE is enabled but no peer GATT pipe is connected" } : { state: "permission-required", reason: "Enable BLE in trusted host settings to grant scan/advertise permission" }; },
+  async *advertise(session, envelope) { const invitation = decodePeerInvitation(envelope, Date.now()); const key = bytesToHex(invitation.sessionId); bluetoothOfferKeys.set(session.id, key); const answer = new Promise((resolve, reject) => bluetoothAnswerWaiters.set(key, { resolve, reject, adapterSessionId: session.id })); sendBluetoothInvitation(envelope); yield await answer; },
+  async *scan() { const immediate = bluetoothOfferQueue.shift(); if (immediate !== undefined) { yield immediate; return; } yield await new Promise((resolve) => bluetoothOfferWaiters.push(resolve)); },
+  async answer(_session, envelope) { sendBluetoothInvitation(envelope); },
+  async cancel(sessionId) { const key = bluetoothOfferKeys.get(sessionId); if (key !== undefined) { bluetoothOfferKeys.delete(sessionId); const waiter = bluetoothAnswerWaiters.get(key); bluetoothAnswerWaiters.delete(key); waiter?.reject(new Error("Bluetooth invitation exchange cancelled")); } }
+};
+
+function peerServiceAspect(service) { return bytesToHex(provider.sha256(new TextEncoder().encode(service)).subarray(0, 16)); }
+function receiveAutomaticAnswer(data) {
+  try {
+    const invitation = decodePeerInvitation(data, Date.now()); if (invitation.role !== "answer") return;
+    const key = bytesToHex(invitation.sessionId); const waiter = automaticAnswerWaiters.get(key); if (waiter === undefined) return;
+    automaticAnswerWaiters.delete(key); automaticOfferKeys.delete(waiter.adapterSessionId); waiter.resolve(data);
+  } catch { /* Drop hostile signaling payloads. */ }
+}
+async function ensurePeerLinkDestination(identity, service) {
+  const node = await ensureReticulum(); const aspect = peerServiceAspect(service); let destination = peerLinkDestinations.get(aspect);
+  if (destination === undefined) {
+    destination = node.registerDestination({ provider, identity, direction: DestinationDirection.IN, type: DestinationType.SINGLE, appName: "tp", aspects: ["peer", aspect] });
+    destination.setProofStrategy(DestinationProofStrategy.PROVE_ALL);
+    destination.setLinkEstablishedCallback((link) => { const existing = link.callbacks.packet; link.callbacks.packet = (data, packet) => { receiveAutomaticAnswer(data); existing?.(data, packet); }; });
+    peerLinkDestinations.set(aspect, destination);
+  }
+  return destination;
+}
+async function ensureAutomaticDiscoveryListener(service, identity) {
+  const node = await ensureReticulum(); const aspect = peerServiceAspect(service); if (automaticDiscoveryHandlers.has(aspect)) return aspect;
+  node.registerAnnounceHandler({ aspectFilter: `tp.peer-discovery.${aspect}`, receivedAnnounce(info) {
+    if (info.appData === null || bytesToHex(info.announcedIdentity.hash) === bytesToHex(identity.hash)) return;
+    try {
+      const offer = decodePeerInvitation(info.appData, Date.now()); if (offer.role !== "offer" || offer.service !== service) return;
+      const session = { id: `auto:${bytesToHex(offer.sessionId)}`, kind: "reticulum" }; const inbound = { session, envelope: info.appData }; automaticInboundRoutes.set(session.id, offer);
+      const waiters = automaticInboundWaiters.get(aspect) ?? []; const waiter = waiters.shift();
+      if (waiter !== undefined) waiter(inbound); else { const bucket = automaticInboundBuckets.get(aspect) ?? []; bucket.push(inbound); automaticInboundBuckets.set(aspect, bucket.slice(-32)); }
+      automaticInboundWaiters.set(aspect, waiters);
+    } catch { /* Drop malformed announce data. */ }
+  } });
+  automaticDiscoveryHandlers.add(aspect); return aspect;
+}
+function automaticReticulumChannel(identity) {
+  return {
+    async availability() { return reticulum !== null && status.onlineInterfaces > 0 ? { state: "available", reason: "Reticulum announce and Link signaling are online" } : { state: "offline", reason: "No online Reticulum interface is available for automatic discovery" }; },
+    async *offer(session, envelope) {
+      const node = await ensureReticulum(); const invitation = decodePeerInvitation(envelope, Date.now()); const key = bytesToHex(invitation.sessionId); automaticOfferKeys.set(session.id, key);
+      const answer = new Promise((resolve, reject) => automaticAnswerWaiters.set(key, { resolve, reject, adapterSessionId: session.id })); const aspect = peerServiceAspect(invitation.service); let destination = automaticDiscoveryDestinations.get(aspect);
+      if (destination === undefined) { destination = node.registerDestination({ provider, identity, direction: DestinationDirection.IN, type: DestinationType.SINGLE, appName: "tp", aspects: ["peer-discovery", aspect] }); automaticDiscoveryDestinations.set(aspect, destination); }
+      await destination.announce({ appData: envelope }); yield await answer;
+    },
+    async *listen(options) {
+      const aspect = await ensureAutomaticDiscoveryListener(options.service, identity); const bucket = automaticInboundBuckets.get(aspect) ?? []; const immediate = bucket.shift(); automaticInboundBuckets.set(aspect, bucket);
+      if (immediate !== undefined) { yield immediate; return; }
+      yield await new Promise((resolve) => { const waiters = automaticInboundWaiters.get(aspect) ?? []; waiters.push(resolve); automaticInboundWaiters.set(aspect, waiters); });
+    },
+    async answer(session, envelope) {
+      const offer = automaticInboundRoutes.get(session.id); automaticInboundRoutes.delete(session.id); const candidate = offer?.candidates.find((entry) => entry.kind === "reticulum"); const remoteIdentity = offer?.identityProof === undefined ? null : Identity.fromPublicKey(provider, offer.identityProof);
+      if (offer === undefined || candidate === undefined || remoteIdentity === null) throw new Error("Automatic Reticulum offer has no authenticated return destination");
+      const node = await ensureReticulum(); const outbound = node.registerDestination({ provider, identity: remoteIdentity, direction: DestinationDirection.OUT, type: DestinationType.SINGLE, appName: "tp", aspects: ["peer", peerServiceAspect(offer.service)] });
+      if (bytesToHex(outbound.hash) !== bytesToHex(candidate.value)) throw new Error("Automatic Reticulum return destination does not match the signed offer");
+      if (!node.hasPath(outbound.hash)) { node.requestPath(outbound.hash); if (!await node.awaitPath(outbound.hash, 15)) throw new Error("No Reticulum path for automatic discovery answer"); }
+      const link = await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error("Automatic Reticulum answer link timed out")), 30_000); outbound.requestLink({ linkEstablished(established) { clearTimeout(timer); resolve(established); }, linkClosed() { clearTimeout(timer); reject(new Error("Automatic Reticulum answer link closed")); } }); });
+      await link.send(envelope); setTimeout(() => { void link.teardown(); }, 1_000);
+    },
+    async cancel(sessionId) { automaticInboundRoutes.delete(sessionId); const key = automaticOfferKeys.get(sessionId); if (key !== undefined) { automaticOfferKeys.delete(sessionId); const waiter = automaticAnswerWaiters.get(key); automaticAnswerWaiters.delete(key); waiter?.reject(new Error("Automatic Reticulum discovery cancelled")); } }
+  };
+}
+
+async function ensurePeerSessionManager() {
+  if (peerSessionManager !== null) return peerSessionManager;
+  const identity = await resolveIdentity(); const registry = new PeerDiscoveryRegistry();
+  registry.register(new ManualPeerDiscoveryAdapter({ channel: peerChrome.manual, createSessionId: peerToken }));
+  registry.register(new QrPeerDiscoveryAdapter({ channel: peerChrome.qr, createSessionId: peerToken }));
+  registry.register(new ReticulumPeerDiscoveryAdapter({ channel: automaticReticulumChannel(identity), createSessionId: peerToken }));
+  registry.register(new AudioPeerDiscoveryAdapter({ channel: peerChrome.audio, createSessionId: peerToken }));
+  registry.register(new BluetoothPeerDiscoveryAdapter({ channel: bluetoothDiscoveryChannel, createSessionId: peerToken }));
+  if (ntfyUrl === null) registry.register(new UnavailablePeerDiscoveryAdapter("ntfy", { state: "offline", reason: "No ntfy rendezvous server is configured" }));
+  else {
+    try { registry.register(new NtfyPeerDiscoveryAdapter({ client: new NtfyRendezvousClient({ baseUrl: ntfyUrl, fetch: ntfyHostFetch, entropy: async (length) => provider.randomBytes(length) }), channel: peerChrome.ntfy, createSessionId: peerToken })); }
+    catch (error) { registry.register(new UnavailablePeerDiscoveryAdapter("ntfy", { state: "policy-disabled", reason: error instanceof Error ? error.message : String(error) })); }
+  }
+  registry.register(new UnavailablePeerDiscoveryAdapter("local-peer-to-peer", { state: "unsupported", reason: "LP2PRequest/LP2PReceiver is a browser proposal" }));
+  const backend = new CryptoPeerPairingBackend({
+    identity: { publicKey: identity.getPublicKey(), async sign(payload) { return identity.sign(payload); }, async verify(publicKey, payload, signature) { const remote = Identity.fromPublicKey(provider, publicKey); return remote !== null && remote.validate(signature, payload); } },
+    displayLabel: `TwistedPear ${bytesToHex(identity.hash).slice(0, 8)}`, capabilities: ["reticulum"], entropy: async (length) => provider.randomBytes(length), candidates: async (request) => { const destination = await ensurePeerLinkDestination(identity, request.service); await destination.announce(); return [{ kind: "reticulum", value: destination.hash }]; }, confirm: (peer, request) => peerChrome.confirm(peer, request),
+    async establish(context, peer, adapter) {
+      const node = await ensureReticulum(); const candidate = context.remoteInvitation.candidates.find((entry) => entry.kind === "reticulum"); const remoteIdentity = context.remoteInvitation.identityProof === undefined ? null : Identity.fromPublicKey(provider, context.remoteInvitation.identityProof);
+      if (candidate === undefined || remoteIdentity === null) throw new Error("Authenticated Reticulum candidate is missing");
+      const outbound = node.registerDestination({ provider, identity: remoteIdentity, direction: DestinationDirection.OUT, type: DestinationType.SINGLE, appName: "tp", aspects: ["peer", peerServiceAspect(context.remoteInvitation.service)] });
+      if (bytesToHex(outbound.hash) !== bytesToHex(candidate.value)) throw new Error("Reticulum candidate does not match the signed peer identity and service");
+      if (!node.hasPath(outbound.hash)) { node.requestPath(outbound.hash); if (!await node.awaitPath(outbound.hash, 15)) throw new Error("No Reticulum path to the confirmed peer"); }
+      const link = await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error("Reticulum peer link timed out")), 30_000); outbound.requestLink({ linkEstablished(established) { clearTimeout(timer); resolve(established); }, linkClosed() { clearTimeout(timer); reject(new Error("Reticulum peer link closed during establishment")); } }); });
+      peerLinks.set(peer.fingerprint, link); return { authenticated: true, confirmed: true, fingerprint: peer.fingerprint, displayLabel: peer.displayLabel, rendezvous: adapter.kind, dataPlane: peer.dataPlane, route: { async send(payload) { await link.send(payload); } }, async close() { peerLinks.delete(peer.fingerprint); await link.teardown(); } };
+    }
+  });
+  peerSessionManager = new PeerSessionManager(registry, new InvitationPairingDriver({ backend })); return peerSessionManager;
+}
+
+const peerSessionManagerProxy = {
+  async request(appId, runtimeId, request) { return (await ensurePeerSessionManager()).request(appId, runtimeId, request); },
+  async listen(appId, runtimeId, request) { return (await ensurePeerSessionManager()).listen(appId, runtimeId, request); },
+  async diagnostics() { return (await ensurePeerSessionManager()).diagnostics(); },
+  info(appId, runtimeId, handle) { if (peerSessionManager === null) throw new Error("Unknown peer handle"); return peerSessionManager.info(appId, runtimeId, handle); },
+  async close(appId, runtimeId, handle) { if (peerSessionManager !== null) await peerSessionManager.close(appId, runtimeId, handle); },
+  async closeRuntime(appId, runtimeId) { if (peerSessionManager !== null) await peerSessionManager.closeRuntime(appId, runtimeId); }
+};
 
 function log(line) {
   send({ type: "log", line });
@@ -822,6 +1048,8 @@ async function handleHostMessage(raw) {
 
   if (message.type === "start") {
     pendingTarget = { targetHost: message.targetHost, targetPort: message.targetPort };
+    const nextNtfyUrl = typeof message.ntfyUrl === "string" && message.ntfyUrl.trim() !== "" ? message.ntfyUrl.trim() : null;
+    if (nextNtfyUrl !== ntfyUrl) { ntfyUrl = nextNtfyUrl; peerSessionManager = null; }
     multicastEntitled = message.multicastEntitled !== false;
     bonjourDiscoveryEnabled = message.bonjourEnabled !== false;
     if (status.tcpEnabled) {
@@ -829,6 +1057,11 @@ async function handleHostMessage(raw) {
     } else {
       log(`Target set to ${message.targetHost}:${message.targetPort} (enable TCP to connect)`);
     }
+    return;
+  }
+
+  if (message.type === "peer-chrome-response") {
+    pendingHostReplies.get(message.token)?.(message);
     return;
   }
 
@@ -1231,6 +1464,12 @@ async function handleHostMessage(raw) {
 
   if (bonjourBridge !== null && message.type === "bonjour-interfaces") {
     bonjourBridge.handleHostMessage(message);
+    return;
+  }
+
+  if (message.type === "peer-bluetooth-frame") {
+    try { receiveBluetoothFrame(hexToBytes(message.frameHex)); }
+    catch (error) { log(`Rejected BLE invitation frame: ${error instanceof Error ? error.message : String(error)}`); }
     return;
   }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build signed platform bundles (Handbook, DevStudio, chat example) for desktop
+ * Build signed platform bundles (Handbook, DevStudio, Peer Link, chat example) for desktop
  * first-boot seeding. Uses the deterministic TwistedPear platform publisher
  * identity from conformance/vectors/identity.json (identity_a).
  */
@@ -119,6 +119,15 @@ bundled.push(
     identity,
     sourceDir: join(repoRoot, "apps/handbook"),
     folderName: "handbook",
+    hostApiVersion: HOST_API_VERSION
+  })
+);
+bundled.push(
+  await packFromSource({
+    provider,
+    identity,
+    sourceDir: join(repoRoot, "apps/peer-link"),
+    folderName: "peer-link",
     hostApiVersion: HOST_API_VERSION
   })
 );

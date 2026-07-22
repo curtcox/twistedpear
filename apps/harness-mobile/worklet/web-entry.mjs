@@ -34,6 +34,18 @@ import {
 } from "../../../packages/cas-256t/dist/index.js";
 import { HOST_API_VERSION } from "../../../packages/miniapp-runtime/dist/host-api.js";
 import { reviveJsonWireValue } from "../../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
+import {
+  AudioPeerDiscoveryAdapter,
+  CryptoPeerPairingBackend,
+  InvitationPairingDriver,
+  ManualPeerDiscoveryAdapter,
+  NtfyPeerDiscoveryAdapter,
+  NtfyRendezvousClient,
+  PeerDiscoveryRegistry,
+  PeerSessionManager,
+  QrPeerDiscoveryAdapter,
+  UnavailablePeerDiscoveryAdapter
+} from "../../../packages/peer-discovery/dist/index.js";
 
 const IDENTITY_STORE_NAME = "twistedpear-harness-web-identity";
 const PACKAGE_STORE_NAME = "twistedpear-harness-web-packages";
@@ -99,7 +111,7 @@ const status = {
   gatewayUrl: null
 };
 
-/** @type {{ gatewayUrl: string; sharedToken?: string; identityPassphrase: string }} */
+/** @type {{ gatewayUrl: string; sharedToken?: string; identityPassphrase: string; ntfyUrl?: string; ntfyToken?: string }} */
 let webConfig = {
   gatewayUrl: "",
   identityPassphrase: DEFAULT_PASSPHRASE
@@ -132,6 +144,10 @@ const cryptoProvider = new PureCryptoProvider();
 let statusTimer = null;
 /** @type {ReturnType<typeof createMiniappKvStore> | null} */
 let miniappKvStore = null;
+let peerSessionManager = null;
+const miniappAnnounceBuckets = new Map();
+const miniappAnnounceDestinations = new Map();
+const miniappAnnounceHandlers = new Set();
 
 /** @type {Map<string, (reply: unknown) => void>} */
 const pendingHostReplies = new Map();
@@ -150,6 +166,83 @@ function requestHostReply(message, timeoutMs = 120_000) {
     send(message);
   });
 }
+
+function peerToken() { return bytesToHex(cryptoProvider.randomBytes(16)); }
+const peerChrome = {
+  manual: {
+    async *offer(session, code, options) { const reply = await requestHostReply({ type: "peer-manual-present", token: peerToken(), sessionId: session.id, code, expectsResponse: true }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield reply.code; },
+    async *accept(options) { const session = { id: peerToken(), kind: "manual" }; const reply = await requestHostReply({ type: "peer-manual-enter", token: peerToken(), sessionId: session.id, service: options.service }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield { session, code: reply.code }; },
+    async answer(session, code) { await requestHostReply({ type: "peer-manual-present", token: peerToken(), sessionId: session.id, code, expectsResponse: false }); },
+    async cancel(sessionId) { send({ type: "peer-chrome-cancel", sessionId }); }
+  },
+  qr: {
+    async availability() { const reply = await requestHostReply({ type: "peer-qr-availability", token: peerToken() }, 5_000); return reply?.availability ?? { state: "unsupported", reason: "QR support could not be detected" }; },
+    async *present(session, codes, options) { const reply = await requestHostReply({ type: "peer-qr-present", token: peerToken(), sessionId: session.id, codes, expectsResponse: true }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield reply.code; },
+    async *scan(options) { const session = { id: peerToken(), kind: "qr" }; const reply = await requestHostReply({ type: "peer-qr-scan", token: peerToken(), sessionId: session.id, service: options.service }, options.timeoutMs); if (reply?.accepted === true && typeof reply.code === "string") yield { session, code: reply.code }; },
+    async answer(session, codes) { await requestHostReply({ type: "peer-qr-present", token: peerToken(), sessionId: session.id, codes, expectsResponse: false }); },
+    async cancel(sessionId) { send({ type: "peer-chrome-cancel", sessionId }); }
+  },
+  audio: {
+    async availability() { const reply = await requestHostReply({ type: "peer-audio-availability", token: peerToken() }, 5_000); return reply?.availability ?? { state: "unsupported", reason: "Web Audio support could not be detected" }; },
+    async *transmit(session, frames, options) { const reply = await requestHostReply({ type: "peer-audio-transmit", token: peerToken(), sessionId: session.id, framesHex: frames.map(bytesToHex), expectsResponse: true }, options.timeoutMs); if (reply?.error !== undefined) throw new Error(reply.error); for (const frame of reply?.framesHex ?? []) yield hexToBytes(frame); },
+    async *receive(options) { const session = { id: peerToken(), kind: "audio" }; const reply = await requestHostReply({ type: "peer-audio-receive", token: peerToken(), sessionId: session.id, service: options.service }, options.timeoutMs); if (reply?.error !== undefined) throw new Error(reply.error); for (const frame of reply?.framesHex ?? []) yield { session, frame: hexToBytes(frame) }; },
+    async answer(session, frames) { const reply = await requestHostReply({ type: "peer-audio-transmit", token: peerToken(), sessionId: session.id, framesHex: frames.map(bytesToHex), expectsResponse: false }, 120_000); if (reply?.accepted !== true) throw new Error("Audio answer playback was cancelled"); },
+    async cancel(sessionId) { send({ type: "peer-chrome-cancel", sessionId }); }
+  },
+  ntfy: {
+    async availability() { return webConfig.ntfyUrl === undefined ? { state: "offline", reason: "No ntfy rendezvous server is configured" } : { state: "available", reason: `Encrypted rendezvous through ${webConfig.ntfyUrl}` }; },
+    async presentCode(session, code, options) { const reply = await requestHostReply({ type: "peer-ntfy-present", token: peerToken(), sessionId: session.id, code, server: webConfig.ntfyUrl }, options.timeoutMs); if (reply?.accepted !== true) throw new Error("ntfy rendezvous was cancelled"); },
+    async requestCode(options) { const session = { id: peerToken(), kind: "ntfy" }; const reply = await requestHostReply({ type: "peer-ntfy-enter", token: peerToken(), sessionId: session.id, service: options.service, server: webConfig.ntfyUrl }, options.timeoutMs); if (reply?.accepted !== true || typeof reply.code !== "string") throw new Error("ntfy rendezvous was cancelled"); return { session, code: reply.code }; },
+    async cancel(sessionId) { send({ type: "peer-chrome-cancel", sessionId }); }
+  },
+  async confirm(peer, request) { const reply = await requestHostReply({ type: "peer-confirm-request", token: peerToken(), appId: request.service, service: request.service, purpose: request.purpose, peer }); return reply?.approved === true; }
+};
+
+async function ensurePeerSessionManager() {
+  if (peerSessionManager !== null) return peerSessionManager;
+  if (!(await hasWebIdentity(identityOptions()))) throw new Error("Create or import a host identity before connecting to a peer");
+  const identity = await loadOrCreateWebIdentity(cryptoProvider, identityOptions());
+  const registry = new PeerDiscoveryRegistry(); registry.register(new ManualPeerDiscoveryAdapter({ channel: peerChrome.manual, createSessionId: peerToken })); registry.register(new QrPeerDiscoveryAdapter({ channel: peerChrome.qr, createSessionId: peerToken }));
+  registry.register(new UnavailablePeerDiscoveryAdapter("reticulum", { state: "offline", reason: "Automatic Reticulum rendezvous requires a connected gateway or RNode; use QR/manual for signaling" }));
+  registry.register(new AudioPeerDiscoveryAdapter({ channel: peerChrome.audio, createSessionId: peerToken }));
+  registry.register(new UnavailablePeerDiscoveryAdapter("bluetooth", { state: "unsupported", reason: "Ordinary web pages cannot advertise as BLE peripherals" }));
+  if (webConfig.ntfyUrl === undefined) registry.register(new UnavailablePeerDiscoveryAdapter("ntfy", { state: "offline", reason: "No ntfy rendezvous server is configured" }));
+  else {
+    try {
+      const client = new NtfyRendezvousClient({ baseUrl: webConfig.ntfyUrl, ...(webConfig.ntfyToken === undefined ? {} : { bearerToken: webConfig.ntfyToken }), entropy: async (length) => cryptoProvider.randomBytes(length) });
+      registry.register(new NtfyPeerDiscoveryAdapter({ client, channel: peerChrome.ntfy, createSessionId: peerToken }));
+    } catch (error) {
+      registry.register(new UnavailablePeerDiscoveryAdapter("ntfy", { state: "policy-disabled", reason: error instanceof Error ? error.message : String(error) }));
+    }
+  }
+  registry.register(new UnavailablePeerDiscoveryAdapter("local-peer-to-peer", { state: "unsupported", reason: "This browser does not implement LP2PRequest/LP2PReceiver" }));
+  const backend = new CryptoPeerPairingBackend({
+    identity: { publicKey: identity.getPublicKey(), async sign(payload) { return identity.sign(payload); }, async verify(publicKey, payload, signature) { const remote = Identity.fromPublicKey(cryptoProvider, publicKey); return remote !== null && remote.validate(signature, payload); } },
+    displayLabel: `TwistedPear Web ${bytesToHex(identity.hash).slice(0, 8)}`,
+    capabilities: ["webrtc", "gateway", "reticulum"], entropy: async (length) => cryptoProvider.randomBytes(length),
+    candidates: async (_request, context) => {
+      const remote = context.remoteInvitation?.candidates.find((entry) => entry.kind === "webrtc");
+      const reply = await requestHostReply({ type: "peer-webrtc-signal", token: peerToken(), sessionId: bytesToHex(context.sessionId), role: context.role, ...(remote === undefined ? {} : { remoteSignal: new TextDecoder().decode(remote.value) }) }, 15_000);
+      const candidates = typeof reply?.signal === "string" ? [{ kind: "webrtc", value: new TextEncoder().encode(reply.signal) }] : [];
+      if (hostSession !== null) candidates.push({ kind: "gateway", value: new TextEncoder().encode(webConfig.gatewayUrl) }); else if (status.rnodeConnected) candidates.push({ kind: "reticulum", value: identity.hash });
+      return candidates;
+    },
+    confirm: (peer, request) => peerChrome.confirm(peer, request),
+    async establish(context, peer, adapter) {
+      if (peer.dataPlane === "webrtc") { const remote = context.remoteInvitation.candidates.find((entry) => entry.kind === "webrtc"); const sessionId = bytesToHex(context.remoteInvitation.sessionId); const reply = await requestHostReply({ type: "peer-webrtc-establish", token: peerToken(), sessionId, ...(remote === undefined ? {} : { remoteSignal: new TextDecoder().decode(remote.value) }) }, 30_000); if (reply?.opened !== true) throw new Error("WebRTC data channel did not open"); return { authenticated: true, confirmed: true, fingerprint: peer.fingerprint, displayLabel: peer.displayLabel, rendezvous: adapter.kind, dataPlane: "webrtc", async close() { send({ type: "peer-webrtc-close", sessionId }); } }; }
+      return { authenticated: true, confirmed: true, fingerprint: peer.fingerprint, displayLabel: peer.displayLabel, rendezvous: adapter.kind, dataPlane: peer.dataPlane };
+    }
+  });
+  peerSessionManager = new PeerSessionManager(registry, new InvitationPairingDriver({ backend })); return peerSessionManager;
+}
+const peerSessionManagerProxy = {
+  async request(appId, runtimeId, request) { return (await ensurePeerSessionManager()).request(appId, runtimeId, request); },
+  async listen(appId, runtimeId, request) { return (await ensurePeerSessionManager()).listen(appId, runtimeId, request); },
+  async diagnostics() { return (await ensurePeerSessionManager()).diagnostics(); },
+  info(appId, runtimeId, handle) { if (peerSessionManager === null) throw new Error("Unknown peer handle"); return peerSessionManager.info(appId, runtimeId, handle); },
+  async close(appId, runtimeId, handle) { if (peerSessionManager !== null) await peerSessionManager.close(appId, runtimeId, handle); },
+  async closeRuntime(appId, runtimeId) { if (peerSessionManager !== null) await peerSessionManager.closeRuntime(appId, runtimeId); }
+};
 
 function identityOptions() {
   return {
@@ -399,7 +492,7 @@ function ensureMiniappHost() {
     miniappHost = createWebWorkletMiniappHost({
       provider: cryptoProvider,
       kvStore: ensureMiniappKvStore(),
-      getPresenceSnapshot: () => status,
+      getPresenceSnapshot: () => ({ ...status, autoPeers: status.autoPeers + (peerSessionManager?.routes.list().length ?? 0) }),
       getHostInfoSnapshot: () => {
         const interfaceTypes = [];
         if (status.wsEnabled) interfaceTypes.push("websocket");
@@ -423,6 +516,8 @@ function ensureMiniappHost() {
       },
       send,
       requestHostReply,
+      peerSessionManager: peerSessionManagerProxy,
+      announceService: transportAnnounceService,
       getPublisherIdentity: async () => {
         if (!(await hasWebIdentity(identityOptions()))) {
           return null;
@@ -475,6 +570,42 @@ function ensureMiniappHost() {
 
   return miniappHost;
 }
+
+function miniappAnnounceAspect(appId, namespace) {
+  const scope = namespace ?? `miniapp-announce:${appId}`;
+  return bytesToHex(cryptoProvider.sha256(new TextEncoder().encode(scope)).subarray(0, 16));
+}
+
+const transportAnnounceService = {
+  async publish(appId, appData, namespace) {
+    const node = await ensureReticulumForInterfaces();
+    const identity = await loadOrCreateWebIdentity(cryptoProvider, identityOptions());
+    const aspect = miniappAnnounceAspect(appId, namespace);
+    let destination = miniappAnnounceDestinations.get(aspect);
+    if (destination === undefined) {
+      destination = node.registerDestination({ provider: cryptoProvider, identity, direction: DestinationDirection.IN, type: DestinationType.SINGLE, appName: "tp", aspects: ["miniapp", aspect] });
+      miniappAnnounceDestinations.set(aspect, destination);
+    }
+    const payload = appData ?? new Uint8Array();
+    await destination.announce({ appData: payload });
+    const bucket = miniappAnnounceBuckets.get(aspect) ?? [];
+    bucket.push({ destination: bytesToHex(destination.hash), appData: payload.slice(), receivedAt: Date.now() });
+    miniappAnnounceBuckets.set(aspect, bucket.slice(-256));
+  },
+  async subscribe(appId, namespace) {
+    const node = await ensureReticulumForInterfaces();
+    const aspect = miniappAnnounceAspect(appId, namespace);
+    if (!miniappAnnounceHandlers.has(aspect)) {
+      node.registerAnnounceHandler({ aspectFilter: `tp.miniapp.${aspect}`, receivedAnnounce(info) {
+        const bucket = miniappAnnounceBuckets.get(aspect) ?? [];
+        bucket.push({ destination: bytesToHex(info.destinationHash), appData: (info.appData ?? new Uint8Array()).slice(), receivedAt: Date.now() });
+        miniappAnnounceBuckets.set(aspect, bucket.slice(-256));
+      } });
+      miniappAnnounceHandlers.add(aspect);
+    }
+    return [...(miniappAnnounceBuckets.get(aspect) ?? [])];
+  }
+};
 
 function ensureInstallService() {
   if (installService === null) {
@@ -773,7 +904,9 @@ async function handleHostMessage(raw) {
       webConfig = {
         gatewayUrl: message.gatewayUrl,
         identityPassphrase: message.identityPassphrase ?? DEFAULT_PASSPHRASE,
-        ...(message.sharedToken === undefined ? {} : { sharedToken: message.sharedToken })
+        ...(message.sharedToken === undefined ? {} : { sharedToken: message.sharedToken }),
+        ...(message.ntfyUrl === undefined || message.ntfyUrl.trim() === "" ? {} : { ntfyUrl: message.ntfyUrl.trim() }),
+        ...(message.ntfyToken === undefined || message.ntfyToken.trim() === "" ? {} : { ntfyToken: message.ntfyToken.trim() })
       };
       status.gatewayUrl = message.gatewayUrl;
     }
@@ -831,7 +964,7 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm") {
+  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response") {
     pendingHostReplies.get(message.token)?.(message);
     return;
   }

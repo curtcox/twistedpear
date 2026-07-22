@@ -15,6 +15,8 @@ import {
   MiniappHost,
   NodeWorkerSandboxBackend,
   AnnounceService,
+  MemoryAnnounceTransport,
+  TransportBackedAnnounceService,
   validateManifestCapabilities
 } from "../../packages/miniapp-runtime/dist/index.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
@@ -153,9 +155,10 @@ function validateDocumentation() {
     join(repositoryRoot, "cookbook/05-apps-that-find-each-other.md"),
     "utf8"
   );
-  expect(discoveryChapter, "chapter 5 discloses the host-local announce backend").toContain(
-    "The cookbook examples do not discover another device"
+  expect(discoveryChapter, "chapter 5 discloses host-specific transport status").toContain(
+    "Transport support is host-specific"
   );
+  expect(discoveryChapter, "chapter 5 records the distinct-service two-host tier").toContain("two distinct runtimes");
   expect(discoveryChapter, "chapter 5 links the underlying Reticulum announce model").toContain(
     "https://reticulum.network/manual/understanding.html#public-key-announcements"
   );
@@ -247,7 +250,7 @@ async function settle() {
   await new Promise((resolveWait) => setTimeout(resolveWait, 30));
 }
 
-async function createHost(name = "") {
+async function createHost(name = "", hostOptions = {}) {
   const store = new MemoryStore();
   const encoder = new TextEncoder();
   const bee = new KvStorageBeeBackend(store);
@@ -263,7 +266,7 @@ async function createHost(name = "") {
     "pocket-translator": "Buenos días",
     "triage-notes": '{"subject":"Water pump inspection","location":"North shelter","severity":"high","action":"Send maintenance crew"}'
   };
-  const announceService = new AnnounceService();
+  const announceService = hostOptions.announceService ?? new AnnounceService();
   if (name === "app-relay") {
     await announceService.publish(
       "publisher-alpha",
@@ -603,6 +606,24 @@ describe("cookbook chapter 5 — hearing another host's announce", () => {
       expect(text, "byline is the announcing destination, not the payload or \"me\"").toContain("peer-9c31f7a");
     } finally {
       await host.stop();
+    }
+  }, 20_000);
+
+  it("runs the unchanged neighborhood-board bundle across two distinct host services", async () => {
+    const transport = new MemoryAnnounceTransport();
+    const senderService = new TransportBackedAnnounceService("host-a-destination", transport);
+    const receiverService = new TransportBackedAnnounceService("host-b-destination", transport);
+    const { host: sender } = await createHost("neighborhood-board", { announceService: senderService });
+    const { host: receiver } = await createHost("neighborhood-board", { announceService: receiverService });
+    try {
+      await launchApp(sender, "neighborhood-board");
+      await sender.handleUiEvent("draft", "nb.draft", "Message from a separate host");
+      await sender.handleUiEvent("post", "nb.post");
+      await launchApp(receiver, "neighborhood-board");
+      const text = await waitForText(receiver, "Message from a separate host");
+      expect(text).toContain("host-a-desti");
+    } finally {
+      await sender.stop(); await receiver.stop();
     }
   }, 20_000);
 

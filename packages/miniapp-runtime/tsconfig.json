@@ -19,5 +19,5 @@
     "verbatimModuleSyntax": true
   },
   "include": ["src/**/*.ts"],
-  "references": [{ "path": "../protocol" }]
+  "references": [{ "path": "../protocol" }, { "path": "../peer-discovery" }]
 }

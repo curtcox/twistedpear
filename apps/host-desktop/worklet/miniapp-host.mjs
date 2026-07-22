@@ -85,6 +85,7 @@ export function createWorkletMiniappHost(options) {
         preferredInterface: options.getPresenceSnapshot?.().preferredInterface ?? null
       })
     },
+    announceService: options.announceService,
     hostInfoBackend: {
       info: async () => {
         const snap = options.getHostInfoSnapshot?.() ?? {};
@@ -204,6 +205,7 @@ export function createWorkletMiniappHost(options) {
       },
       get: async (_appId, t256) => casStore.get(t256)
     },
+    peerSessionManager: options.peerSessionManager,
     callbacks: {
       onWidgetTree: () => pushRuntime(),
       onLog: (entry) => options.send({ type: "miniapp-log", appId: entry.appId, line: entry.line }),

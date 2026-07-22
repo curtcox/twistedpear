@@ -18,6 +18,19 @@ let isQuitting = false;
 let networkSnapshot = JSON.stringify(networkInterfaces());
 let networkPollTimer: ReturnType<typeof setInterval> | null = null;
 
+function ntfyConfiguration(): { readonly baseUrl: URL; readonly token: string | null } | null {
+  const raw = process.env.TWISTEDPEAR_NTFY_URL?.trim();
+  if (!raw) return null;
+  try {
+    const baseUrl = new URL(raw.endsWith("/") ? raw : `${raw}/`);
+    const localHttp = baseUrl.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(baseUrl.hostname);
+    if (baseUrl.protocol !== "https:" && !localHttp) return null;
+    return { baseUrl, token: process.env.TWISTEDPEAR_NTFY_TOKEN?.trim() || null };
+  } catch {
+    return null;
+  }
+}
+
 function requestedMiniapp(): string | null {
   const argument = process.argv.find((value) => value.startsWith("--app="));
   const requested = argument?.slice("--app=".length) ?? process.env.TP_DESKTOP_APP ?? "";
@@ -115,13 +128,13 @@ function ensureSupervisor(): WorkletSupervisor {
 
 app.whenReady().then(() => {
   session.defaultSession.setPermissionCheckHandler((_webContents, permission, requestingOrigin, details) =>
-    permission === "media" && details.mediaType === "video" && requestingOrigin.startsWith("file://")
+    permission === "media" && (details.mediaType === "video" || details.mediaType === "audio") && requestingOrigin.startsWith("file://")
   );
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
     const fromHostWindow = webContents === mainWindow?.webContents && details.requestingUrl.startsWith("file://");
-    const cameraOnly = "mediaTypes" in details && details.mediaTypes?.includes("video") === true &&
-      details.mediaTypes.includes("audio") === false;
-    callback(permission === "media" && fromHostWindow && cameraOnly);
+    const trustedMediaOnly = "mediaTypes" in details && (details.mediaTypes?.length ?? 0) > 0 &&
+      details.mediaTypes?.every((mediaType) => mediaType === "video" || mediaType === "audio") === true;
+    callback(permission === "media" && fromHostWindow && trustedMediaOnly);
   });
   if (process.platform === "darwin" || process.platform === "win32") {
     app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
@@ -188,6 +201,36 @@ if (process.platform === "darwin") {
 ipcMain.handle("host:get-status", () => latestStatus);
 ipcMain.handle("host:send", (_event, message) => {
   ensureSupervisor().send(message);
+});
+ipcMain.handle("host:ntfy-status", () => {
+  const config = ntfyConfiguration();
+  return config === null
+    ? { configured: false }
+    : { configured: true, server: `${config.baseUrl.origin}${config.baseUrl.pathname}` };
+});
+ipcMain.handle("host:ntfy-request", async (_event, request: { readonly url: string; readonly method: string; readonly headers?: Record<string, string>; readonly body?: string }) => {
+  const config = ntfyConfiguration();
+  if (config === null) throw new Error("ntfy is not configured");
+  const requested = new URL(request.url);
+  const basePath = config.baseUrl.pathname.endsWith("/") ? config.baseUrl.pathname : `${config.baseUrl.pathname}/`;
+  if (
+    requested.origin !== config.baseUrl.origin ||
+    !requested.pathname.startsWith(basePath) ||
+    requested.username !== "" || requested.password !== "" || requested.hash !== "" ||
+    !["GET", "POST"].includes(request.method) ||
+    new TextEncoder().encode(request.body ?? "").length > 40_000
+  ) {
+    throw new Error("ntfy request is outside the configured host policy");
+  }
+  const headers = new Headers(request.headers);
+  headers.delete("authorization");
+  if (config.token !== null) headers.set("Authorization", `Bearer ${config.token}`);
+  const response = await fetch(requested, { method: request.method, headers, ...(request.body === undefined ? {} : { body: request.body }), redirect: "error" });
+  const declaredLength = Number(response.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > 256_000) throw new Error("ntfy response exceeds host budget");
+  const body = await response.text();
+  if (new TextEncoder().encode(body).length > 256_000) throw new Error("ntfy response exceeds host budget");
+  return { status: response.status, body, contentLength: response.headers.get("content-length") };
 });
 ipcMain.handle("host:save-identity-backup", async (_event, backupHex: string) => {
   const selected = await dialog.showSaveDialog(mainWindow!, {

@@ -8,11 +8,18 @@
     "plugins": [
       "expo-dev-client",
       "expo-bare-kit",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow TwistedPear to scan peer invitation QR codes."
+        }
+      ],
       "./modules/multicast/app.plugin.js",
       "./modules/bonjour/app.plugin.js",
       "./modules/ble-bridge/app.plugin.js",
       "./modules/usb-serial/app.plugin.js",
       "./modules/node-service/app.plugin.js"
+      , "./modules/peer-audio/app.plugin.js"
     ],
     "android": {
       "package": "network.twistedpear.harness",

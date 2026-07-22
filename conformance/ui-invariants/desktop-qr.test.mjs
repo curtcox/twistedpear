@@ -18,14 +18,14 @@ describe("desktop QR scanner", () => {
     await expect(supportsQrDetection(undefined)).resolves.toBe(false);
   });
 
-  it("keeps camera permission and scan controls in host chrome", () => {
+  it("keeps camera/microphone permission and capture controls in host chrome", () => {
     const html = readFileSync("apps/host-desktop/src/renderer/index.html", "utf8");
     const main = readFileSync("apps/host-desktop/src/main/index.ts", "utf8");
     expect(html).toContain('id="install-256t-scan"');
     expect(html).toContain('id="trust-scan"');
     expect(main).toContain('permission === "media"');
     expect(main).toContain('details.mediaType === "video"');
-    expect(main).toContain('details.mediaTypes.includes("audio") === false');
+    expect(main).toContain('details.mediaTypes?.every((mediaType) => mediaType === "video" || mediaType === "audio") === true');
     expect(main).toContain('requestingOrigin.startsWith("file://")');
   });
 });

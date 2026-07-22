@@ -122,6 +122,7 @@ export function createWorkletMiniappHost(options) {
     backend: createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
     grantStore,
     kvBackend: kvStore,
+    peerSessionManager: options.peerSessionManager,
     beeBackend: {
       descriptor: (appId) => beeBackend.descriptor(appId),
       get: (appId, key) => beeBackend.get(appId, key),

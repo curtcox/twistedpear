@@ -1,5 +1,5 @@
 import { renderWidgetTree } from "./widgets.js";
-import { normalizeScannedT256, supportsQrDetection } from "./qr-scanner.js";
+import { decodeQrVideoFrame, normalizeScannedT256, supportsQrDetection } from "./qr-scanner.js";
 
 const statusGrid = document.querySelector("#status-grid");
 const catalogList = document.querySelector("#catalog-list");
@@ -86,6 +86,9 @@ let workspaceReadCounter = 0;
 const requestedAppId = new URLSearchParams(window.location.search).get("app");
 let requestedAppLaunchStarted = false;
 let requestedAppLaunchTimer = null;
+let activePeerChromeToken = null;
+let activePeerQrTimer = null;
+let activePeerCameraStream = null;
 
 function resetRequestedAppLaunch() {
   if (requestedAppLaunchTimer !== null) {
@@ -134,10 +137,175 @@ function readWorkspaceDocument(documentId) {
 }
 
 function closeHostModal() {
+  if (activePeerQrTimer !== null) {
+    clearInterval(activePeerQrTimer);
+    activePeerQrTimer = null;
+  }
+  activePeerCameraStream?.getTracks().forEach((track) => track.stop());
+  activePeerCameraStream = null;
+  activePeerChromeToken = null;
   if (modalOverlay) {
     modalOverlay.hidden = true;
   }
   modalEl?.replaceChildren();
+}
+
+function renderPeerQr(root, value) {
+  root.replaceChildren();
+  const qrFactory = globalThis.qrcode;
+  if (typeof qrFactory === "function") {
+    try {
+      const qr = qrFactory(0, "M");
+      qr.addData(value);
+      qr.make();
+      const holder = document.createElement("div");
+      holder.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
+      const svg = holder.firstElementChild;
+      if (svg !== null) {
+        svg.setAttribute("width", "240");
+        svg.setAttribute("height", "240");
+        svg.classList.add("widget-qr-svg");
+        root.appendChild(svg);
+      }
+    } catch {
+      // The copyable text remains available below.
+    }
+  }
+  const text = document.createElement("p");
+  text.className = "widget-qr-value";
+  text.textContent = value;
+  root.appendChild(text);
+}
+
+function sendPeerChromeResponse(token, response) {
+  host?.send({ type: "peer-chrome-response", token, ...response });
+}
+
+function audioUnhex(text) { return Uint8Array.from(text.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16)); }
+function audioHex(bytes) { return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join(""); }
+async function playPeerAudio(framesHex) {
+  const AudioContextClass = globalThis.AudioContext ?? globalThis.webkitAudioContext;
+  const modem = globalThis.TwistedPearPeerAudio;
+  if (AudioContextClass === undefined || modem?.encodePeerAudioFsk === undefined) throw new Error("Web Audio playback is unavailable");
+  const context = new AudioContextClass(); await context.resume(); let at = context.currentTime + 0.1;
+  for (const frameHex of framesHex) { const pcm = modem.encodePeerAudioFsk(audioUnhex(frameHex), { sampleRate: context.sampleRate }); const buffer = context.createBuffer(1, pcm.length, context.sampleRate); buffer.copyToChannel(pcm, 0); const source = context.createBufferSource(); source.buffer = buffer; source.connect(context.destination); source.start(at); at += pcm.length / context.sampleRate + 0.2; }
+  await new Promise((resolve) => setTimeout(resolve, Math.ceil(Math.max(0, at - context.currentTime) * 1_000))); await context.close();
+}
+async function recordPeerAudio(durationMs = 15_000) {
+  const AudioContextClass = globalThis.AudioContext ?? globalThis.webkitAudioContext;
+  const modem = globalThis.TwistedPearPeerAudio;
+  if (AudioContextClass === undefined || modem?.decodePeerAudioFskStream === undefined || navigator.mediaDevices?.getUserMedia === undefined) throw new Error("Microphone recording is unavailable");
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false });
+  const context = new AudioContextClass(); await context.resume(); const chunks = []; const source = context.createMediaStreamSource(stream); const processor = context.createScriptProcessor(4_096, 1, 1); const mute = context.createGain(); mute.gain.value = 0;
+  processor.onaudioprocess = (event) => chunks.push(new Float32Array(event.inputBuffer.getChannelData(0))); source.connect(processor); processor.connect(mute); mute.connect(context.destination);
+  await new Promise((resolve) => setTimeout(resolve, durationMs)); stream.getTracks().forEach((track) => track.stop()); source.disconnect(); processor.disconnect(); mute.disconnect();
+  const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0); const pcm = new Float32Array(total); let offset = 0; for (const chunk of chunks) { pcm.set(chunk, offset); offset += chunk.length; }
+  const frames = modem.decodePeerAudioFskStream(pcm, { sampleRate: context.sampleRate }); await context.close(); if (frames.length === 0) throw new Error("No valid peer audio frames were detected"); return frames.map(audioHex);
+}
+async function performPeerAudio(message) {
+  try {
+    if (message.type === "peer-audio-transmit") { await playPeerAudio(message.framesHex); const framesHex = message.expectsResponse ? await recordPeerAudio() : []; sendPeerChromeResponse(message.token, { accepted: true, framesHex }); }
+    else sendPeerChromeResponse(message.token, { accepted: true, framesHex: await recordPeerAudio(), sessionId: message.sessionId });
+  } catch (error) { sendPeerChromeResponse(message.token, { accepted: false, error: error instanceof Error ? error.message : String(error) }); }
+}
+
+function showPeerConfirmation(message) {
+  const words = Array.isArray(message.peer?.matchingWords) ? message.peer.matchingWords.join(" · ") : "—";
+  activePeerChromeToken = message.token;
+  showHostModal({
+    title: "Confirm peer connection",
+    fingerprint: null,
+    rows: [
+      ["Requested by", message.appId], ["Purpose", message.purpose], ["Service", message.service],
+      ["Peer label (untrusted claim)", message.peer?.displayLabel ?? "Unknown"],
+      ["Identity fingerprint", message.peer?.fingerprint ?? "Unknown"], ["Matching words", words],
+      ["Data path", message.peer?.dataPlane ?? "Unknown"]
+    ],
+    confirmLabel: "Connect",
+    onDone: (approved) => sendPeerChromeResponse(message.token, { approved })
+  });
+}
+
+function showPeerCodeExchange(message) {
+  if (!modalOverlay || !modalEl) {
+    sendPeerChromeResponse(message.token, { accepted: false });
+    return;
+  }
+  activePeerChromeToken = message.token;
+  modalEl.replaceChildren();
+  const heading = document.createElement("h3");
+  heading.textContent = message.type === "peer-manual-enter"
+    ? "Enter a peer invitation"
+    : message.type === "peer-qr-scan"
+      ? "Scan a peer invitation"
+      : message.type === "peer-qr-present"
+        ? "Show peer QR"
+        : message.type === "peer-audio-transmit"
+          ? "Play an audible peer invitation"
+          : message.type === "peer-audio-receive"
+            ? "Listen for an audible peer invitation"
+        : message.type === "peer-ntfy-enter"
+          ? "Enter a private ntfy lookup code"
+          : message.type === "peer-ntfy-present"
+            ? "Share a private ntfy lookup code"
+            : "Share peer invitation";
+  const disclosure = document.createElement("p");
+  disclosure.className = "muted";
+  const isNtfy = message.type === "peer-ntfy-enter" || message.type === "peer-ntfy-present";
+  const isAudio = message.type === "peer-audio-transmit" || message.type === "peer-audio-receive";
+  disclosure.textContent = isAudio
+    ? "This trusted host action emits audible FSK tones or requests microphone access after you continue. PCM never crosses into the mini-app."
+    : isNtfy
+    ? `This trusted host action uses ${message.server ?? "the configured ntfy server"}. The server can observe a random topic, timing, and IP metadata, but invitation contents are end-to-end encrypted. Verify matching words before connecting.`
+    : "This is trusted host chrome. Verify matching words before connecting. Full manual and QR codes do not use a rendezvous server.";
+  modalEl.append(heading, disclosure);
+
+  const codes = Array.isArray(message.codes) ? message.codes : typeof message.code === "string" ? [message.code] : [];
+  if (codes.length > 0) {
+    const display = document.createElement("div");
+    if (message.type === "peer-qr-present") {
+      let frame = 0;
+      renderPeerQr(display, codes[0]);
+      if (codes.length > 1) activePeerQrTimer = setInterval(() => { frame = (frame + 1) % codes.length; renderPeerQr(display, codes[frame]); }, 750);
+    } else {
+      const code = document.createElement("textarea"); code.className = "setting-input"; code.rows = 6; code.readOnly = true; code.value = codes[0]; display.appendChild(code);
+    }
+    modalEl.appendChild(display);
+  }
+
+  const needsInput = message.expectsResponse === true || message.type === "peer-manual-enter" || message.type === "peer-qr-scan" || message.type === "peer-ntfy-enter";
+  const input = document.createElement("textarea");
+  if (needsInput) {
+    input.className = "setting-input";
+    input.rows = 5;
+    input.placeholder = message.type === "peer-qr-scan"
+      ? "Scan or paste the peer QR payload"
+      : message.type === "peer-ntfy-enter"
+        ? "Paste the TPN1 lookup code"
+        : "Paste the peer's full response code";
+    modalEl.appendChild(input);
+  }
+
+  const cameraStatus = document.createElement("p"); cameraStatus.className = "muted";
+  if (message.type === "peer-qr-scan" || (message.type === "peer-qr-present" && message.expectsResponse === true)) {
+    const startCamera = document.createElement("button"); startCamera.textContent = "Start camera";
+    startCamera.addEventListener("click", async () => {
+      if (!(await supportsQrDetection())) { cameraStatus.textContent = "Camera QR decoding is unsupported in this build; paste the payload instead."; return; }
+      try {
+        activePeerCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+        const video = document.createElement("video"); video.className = "qr-scanner-video"; video.autoplay = true; video.muted = true; video.playsInline = true; video.srcObject = activePeerCameraStream; modalEl.insertBefore(video, cameraStatus); await video.play();
+        const detect = async () => { if (activePeerChromeToken !== message.token || activePeerCameraStream === null) return; const raw = await decodeQrVideoFrame(video); if (raw !== null) { input.value = raw; activePeerCameraStream.getTracks().forEach((track) => track.stop()); activePeerCameraStream = null; cameraStatus.textContent = "QR payload captured."; return; } requestAnimationFrame(() => { void detect(); }); };
+        cameraStatus.textContent = "Camera active. Hold the peer QR inside the frame."; void detect();
+      } catch (error) { cameraStatus.textContent = `Camera unavailable: ${error instanceof Error ? error.message : String(error)}`; }
+    });
+    modalEl.append(startCamera, cameraStatus);
+  }
+
+  const actions = document.createElement("div"); actions.className = "modal-actions";
+  const cancel = document.createElement("button"); cancel.textContent = "Cancel"; cancel.addEventListener("click", () => { closeHostModal(); sendPeerChromeResponse(message.token, { accepted: false }); });
+  const approve = document.createElement("button"); approve.className = "primary"; approve.textContent = needsInput ? "Continue" : "Done";
+  approve.addEventListener("click", () => { const code = needsInput ? input.value.trim() : undefined; if (needsInput && !code) return; closeHostModal(); if (isAudio) void performPeerAudio(message); else sendPeerChromeResponse(message.token, { accepted: true, ...(code ? { code } : {}) }); });
+  actions.append(cancel, approve); modalEl.appendChild(actions); modalOverlay.hidden = false;
 }
 
 async function showQrScanner(target, purpose) {
@@ -183,13 +351,11 @@ async function showQrScanner(target, purpose) {
     video.srcObject = stream;
     await video.play();
     status.textContent = "Hold a TwistedPear 256t QR code inside the camera view.";
-    const detector = new globalThis.BarcodeDetector({ formats: ["qr_code"] });
     const detect = async () => {
       if (!active) return;
       try {
-        const codes = await detector.detect(video);
-        const rawValue = codes.find((code) => typeof code.rawValue === "string")?.rawValue;
-        if (rawValue !== undefined) {
+        const rawValue = await decodeQrVideoFrame(video);
+        if (rawValue !== null) {
           target.value = normalizeScannedT256(rawValue);
           stop();
           target.dispatchEvent(new Event("input", { bubbles: true }));
@@ -634,6 +800,63 @@ if (!host) {
   }
 
   host.onWorkletMessage((message) => {
+    if (message.type === "peer-audio-availability") {
+      const supported = (globalThis.AudioContext !== undefined || globalThis.webkitAudioContext !== undefined) && typeof navigator.mediaDevices?.getUserMedia === "function" && globalThis.TwistedPearPeerAudio !== undefined;
+      sendPeerChromeResponse(message.token, { availability: supported ? { state: "permission-required", reason: "Microphone permission is requested only after starting the audible exchange" } : { state: "unsupported", reason: "Desktop audio recording/playback is unavailable" } });
+      return;
+    }
+
+    if (message.type === "peer-ntfy-availability") {
+      void host.getNtfyStatus().then((status) => {
+        const availability = status?.configured === true
+          ? { state: "available", reason: `Encrypted rendezvous is configured through ${status.server}` }
+          : { state: "offline", reason: "No ntfy rendezvous server is configured" };
+        sendPeerChromeResponse(message.token, { availability });
+      }).catch((error) => {
+        sendPeerChromeResponse(message.token, { availability: { state: "offline", reason: error instanceof Error ? error.message : String(error) } });
+      });
+      return;
+    }
+
+    if (message.type === "peer-ntfy-http") {
+      void host.ntfyRequest(message.request).then((http) => {
+        sendPeerChromeResponse(message.token, { http });
+      }).catch((error) => {
+        sendPeerChromeResponse(message.token, { error: error instanceof Error ? error.message : String(error) });
+      });
+      return;
+    }
+
+    if (message.type === "peer-qr-availability") {
+      const hasDisplay = typeof globalThis.qrcode === "function";
+      const hasCamera = typeof navigator.mediaDevices?.getUserMedia === "function";
+      const hasDecoder = typeof globalThis.BarcodeDetector === "function" || typeof globalThis.jsQR === "function";
+      const availability = !hasDisplay
+        ? { state: "unsupported", reason: "QR generation is unavailable in this build" }
+        : !hasCamera
+          ? { state: "unsupported", reason: "Camera capture is unavailable; use full manual copy/paste" }
+          : !hasDecoder
+            ? { state: "unsupported", reason: "QR decoding is unavailable; use full manual copy/paste" }
+            : { state: "permission-required", reason: "Camera permission is requested only after Start camera" };
+      sendPeerChromeResponse(message.token, { availability });
+      return;
+    }
+
+    if (message.type === "peer-confirm-request") {
+      showPeerConfirmation(message);
+      return;
+    }
+
+    if (["peer-manual-present", "peer-manual-enter", "peer-qr-present", "peer-qr-scan", "peer-ntfy-present", "peer-ntfy-enter", "peer-audio-transmit", "peer-audio-receive"].includes(message.type)) {
+      showPeerCodeExchange(message);
+      return;
+    }
+
+    if (message.type === "peer-chrome-cancel") {
+      if (message.token === activePeerChromeToken) closeHostModal();
+      return;
+    }
+
     if (message.type === "status") {
       renderStatus(message.status);
       if (settingDeveloper) {
