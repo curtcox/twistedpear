@@ -111,6 +111,7 @@
     "site:sidebar": "node scripts/site/gen-sidebar.mjs",
     "site:section-images": "node scripts/site/section-images.mjs",
     "site:section-images:report": "node scripts/site/section-images.mjs --report",
+    "site:react-native-web": "node scripts/site/build-react-native-web-samples.mjs",
     "site:validate": "node scripts/site/validate-links.mjs",
     "site:build": "node scripts/site/build.mjs",
     "site:check": "node scripts/site/check-aggregate.mjs",

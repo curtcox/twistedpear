@@ -94,6 +94,9 @@ function main() {
   // placeholders otherwise
   run("node", ["scripts/site/section-images.mjs"]);
 
+  // Standalone React Native Web implementations linked from every cookbook recipe.
+  run("node", ["scripts/site/build-react-native-web-samples.mjs"]);
+
   // 5. VitePress build
   run("npx", ["vitepress", "build", "site"]);
 

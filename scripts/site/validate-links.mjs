@@ -23,7 +23,9 @@ function collectFiles(dir, acc = []) {
 
 function existsTarget(fromAbs, href) {
   const hashIdx = href.indexOf("#");
-  const raw = hashIdx === -1 ? href : href.slice(0, hashIdx);
+  const withoutHash = hashIdx === -1 ? href : href.slice(0, hashIdx);
+  const queryIdx = withoutHash.indexOf("?");
+  const raw = queryIdx === -1 ? withoutHash : withoutHash.slice(0, queryIdx);
   if (!raw) return true;
 
   // Absolute site paths like /docs/foo

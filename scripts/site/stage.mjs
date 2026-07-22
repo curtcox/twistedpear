@@ -270,7 +270,23 @@ function stageMarkdownFile(srcAbs, destAbs, siteRel) {
     dest = path.join(path.dirname(destAbs), "index.md");
     rel = path.posix.join(path.posix.dirname(rel), "index.md");
   }
-  const text = rewriteMarkdownLinks(fs.readFileSync(srcAbs, "utf8"), siteRel);
+  let source = fs.readFileSync(srcAbs, "utf8");
+  const samplePage = siteRel.match(/^cookbook\/apps\/([^/]+)\/README\.md$/);
+  if (samplePage !== null) {
+    const slug = samplePage[1];
+    source = source.replace(
+      /^(# [^\n]+)$/m,
+      `$1\n\n> **Run it in a browser:** [Open the React Native Web implementation](/react-native-web/?app=${slug}).`
+    );
+  }
+  if (/^cookbook\/\d{2}-/.test(siteRel)) {
+    source = source.replace(/^## ([^\n]+)$/gm, (heading, title) => {
+      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      if (!fs.existsSync(path.join(ROOT, "cookbook", "apps", slug, "app.manifest.json"))) return heading;
+      return `${heading}\n\n> **Run it in a browser:** [Open the React Native Web implementation](/react-native-web/?app=${slug}).`;
+    });
+  }
+  const text = rewriteMarkdownLinks(source, siteRel);
   ensureDir(path.dirname(dest));
   fs.writeFileSync(dest, text);
 }
