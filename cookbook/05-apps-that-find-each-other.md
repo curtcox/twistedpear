@@ -6,9 +6,21 @@ audited: 2026-07-21
 register: none
 -->
 
-An **announce** is a small payload published into your app's namespace, heard by every host
-in reach that is running the same app and listening at that moment. There is no server, no
-subscription list, no history, and no retry.
+An **announce** is intended to be a small payload published into your app's namespace and
+heard by hosts in reach that are running the same app. There is no server, subscription
+list, history, or retry.
+
+### Current host status
+
+> **The cookbook examples do not discover another device.** The SDK
+> and broker calls work, but the desktop, mobile, and web host wrappers currently leave them
+> on the runtime's in-memory `AnnounceService`; that service is not connected to the host's
+> Reticulum transport. `publish()` therefore adds to one host-runtime buffer and
+> `subscribe()` reads that same buffer. A second host has a different buffer and sees
+> nothing. The cookbook conformance tests inject peer events into one shared service, so
+> passing those tests proves the app's decode/store/render path, not radio or LAN delivery.
+> `presence.snapshot()` reporting peers does not change this. Cross-device discovery needs a
+> transport-backed announce adapter in each host before these recipes work end to end.
 
 That last clause is the whole chapter. An announce heard by nobody is simply gone. There is
 no inbox it lands in, no queue it waits in, and no way to ask for it later. Two hosts
@@ -38,18 +50,39 @@ app.
 
 ## How discovery works
 
+There are three different layers that are easy to collapse into the word "discovery":
+
+1. **An interface finds a neighbouring Reticulum node.** AutoInterface multicast, TCP,
+   BLE, or an RNode gives the host a path to another node. This is what Link weather's
+   coarse `presence.snapshot()` can help diagnose; it does not discover mini-apps.
+2. **Reticulum announces a destination.** The sender creates an incoming destination from
+   an identity plus an application name/aspects, then broadcasts a signed announce with
+   optional `app_data`. Receivers register an announce handler with an exact aspect filter.
+   Reticulum's [conceptual explanation](https://reticulum.network/manual/understanding.html#public-key-announcements),
+   [Announce example](https://reticulum.network/manual/examples.html#announce), and
+   [`Destination.announce()` API](https://reticulum.network/manual/reference.html#RNS.Destination.announce)
+   define this underlying mechanism.
+3. **The mini-app broker maps SDK calls onto that destination and handler.** The grant-gated
+   API exists, but the shipped host wrappers do not yet provide this transport adapter. The
+   default implementation is the process-local buffer in
+   [`packages/miniapp-runtime/src/services/announce.ts`](../packages/miniapp-runtime/src/services/announce.ts).
+
+This chapter teaches the third layer's intended app contract. Until the adapter lands, use
+it to develop and test payload handling locally; do not use it as evidence that two devices
+can find each other.
+
 Two SDK calls do all of it, and no others are involved:
 
-- **`announce.publish(appData, namespace)`** writes one small beacon into `namespace`. It
-  resolves as soon as the host has queued it for transmission — it does not, and cannot, tell
-  you who (if anyone) heard it.
+- **`announce.publish(appData, namespace)`** writes one small beacon into `namespace`. The
+  current local backend resolves after buffering it. A transport-backed backend should
+  resolve after queueing it for transmission; neither result can tell you who heard it.
 - **`announce.subscribe(namespace)`** resolves **once** with an array of the announces the host
   has buffered for that namespace *at the instant you call it*. Each entry is
   `{ destination, appData, receivedAt }`: `destination` is the peer that announced, `appData`
   is the raw bytes they sent (you decode and parse them yourself — they are as trustworthy as
   a query string), and `receivedAt` is when this host heard it.
 
-Two things trip people up:
+Four things trip people up:
 
 1. **It is a snapshot, not a stream.** `subscribe` does not stay open and push later announces
    at you; the promise resolves with whatever is already buffered and never resolves again. So
@@ -57,9 +90,19 @@ Two things trip people up:
    finding peers who announce afterwards, call `subscribe` again on a timer — poll, exactly the
    way [Link weather](#link-weather) polls `presence.snapshot()`, and for the same reason:
    there is no event to await.
-2. **You only hear your own namespace.** An announce in `neighborhood-board` is invisible to
-   `swap-shelf`. There is no global feed and no cross-app discovery, and nothing is delivered,
-   queued, or retried while your app is closed.
+2. **Both sides must use the exact same namespace.** These samples pass the same explicit
+   string to both calls. If both calls omit it, the runtime uses the calling app's default
+   `miniapp-announce:<appId>` namespace. Omitting it on only one call cannot match an explicit
+   short name such as `neighborhood-board`. An announce in the `neighborhood-board` namespace
+   is invisible to a subscriber reading `swap-shelf`; there is no global feed.
+3. **"Apps" here means instances of the same mini-app.** Neighborhood board does not search
+   for Swap shelf. Separate mini-apps have separate identities and intended app namespaces;
+   this API is not general app-to-app IPC. See the SDK's explicit
+   [mini-app IPC non-promise](../docs/miniapp-sdk.md#future-work).
+4. **A visible peer is necessary but not sufficient.** Check Link weather first. A peer count
+   of zero means the transport cannot work; a non-zero count only proves interface-level
+   reachability, not that the mini-app announce adapter exists or that the remote device is
+   running the same app with matching grants and namespace.
 
 The underlying docs, in order of authority:
 
@@ -68,6 +111,9 @@ The underlying docs, in order of authority:
   it wins.
 - [`docs/miniapp-runtime.md`](../docs/miniapp-runtime.md) — the broker that gates every
   announce call behind a grant, and the sandbox it crosses.
+- [`docs/desktop-host.md`](../docs/desktop-host.md) and
+  [`docs/web-host.md`](../docs/web-host.md) — host architecture and the transport/runtime
+  boundary where a Reticulum-backed adapter must be wired.
 - [Authoring guide §7 — Announces](../authors/07-identity-messaging-and-peers.md#announces) and
   the [SDK reference — announce](../authors/appendix-sdk-reference.md#announce) — the same
   mechanism taught one call at a time.
@@ -130,6 +176,10 @@ the payload is a claim, the destination is who the host actually heard it from.
 The subscription is a one-shot read, so this board shows the posts the host had already heard
 when it opened. To keep hearing posts announced later, call `announce.subscribe` again on a
 timer — there is no event to await.
+
+Today, "the host had already heard" means "the host-local `AnnounceService` was seeded in
+this runtime." It does not mean the Reticulum node received the event from another device;
+see [Current host status](#current-host-status) above.
 
 Your own posts go into the same store by the same path:
 

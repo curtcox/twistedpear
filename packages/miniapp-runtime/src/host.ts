@@ -523,7 +523,7 @@ export class MiniappHost {
       return { published: true };
     });
     this.broker.register("announce", "subscribe", "announce:subscribe", async (request, context) => {
-      const namespace = (request.payload as { namespace: string }).namespace;
+      const namespace = (request.payload as { namespace?: string } | undefined)?.namespace;
       return this.announceService.subscribe(context.appId, namespace);
     });
     this.broker.register("resource", "fetch", "resource:fetch", async (request, context) => {

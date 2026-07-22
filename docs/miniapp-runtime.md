@@ -166,6 +166,9 @@ the same rate/size enforcement as every broker call.
 - Watchdog thresholds may false-positive on low-end devices (H11).
 - Dev side-loading is localhost/adb-only, off by default, badged **DEV**.
 - One foreground mini-app at a time; no background execution.
+- The default announce service is an in-memory broker fixture. Shipped host wrappers do not
+  yet replace it with a Reticulum-backed adapter, so mini-app SDK announces do not cross
+  host boundaries.
 
 ## Non-promises Before Phase 7
 

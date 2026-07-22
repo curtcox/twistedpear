@@ -5,7 +5,7 @@ export async function publish(appData?: Uint8Array, namespace?: string): Promise
   await callHost("announce", "publish", { appData, namespace }, "announce:publish");
 }
 
-export async function subscribe(namespace: string): Promise<ReadonlyArray<AnnounceEvent>> {
+export async function subscribe(namespace?: string): Promise<ReadonlyArray<AnnounceEvent>> {
   return (await callHost(
     "announce",
     "subscribe",

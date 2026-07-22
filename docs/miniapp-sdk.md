@@ -89,6 +89,15 @@ mini-app cannot draw over or acknowledge (see
 
 All calls without a matching grant fail with a typed `CapabilityError`.
 
+The two announce calls currently terminate in the runtime's in-memory service in the shipped
+desktop, mobile, and web hosts. No host adapter maps them onto Reticulum destinations and
+announce handlers yet, so separate hosts do not exchange mini-app SDK announces. The API and
+receive path can be exercised locally by injecting a shared service; that is not a
+cross-device transport test. Reticulum's underlying destination announce mechanism is
+documented in its [concept guide](https://reticulum.network/manual/understanding.html#public-key-announcements),
+[example](https://reticulum.network/manual/examples.html#announce), and
+[`Destination.announce()` reference](https://reticulum.network/manual/reference.html#RNS.Destination.announce).
+
 ## Widget Protocol
 
 Allowed components: `view`, `text`, `image`, `button`, `text-input`, `switch`,
@@ -162,3 +171,5 @@ Run the CI exercises: `npm run test:examples`, `npm run test:handbook`, and
 - **React binding:** custom reconciler emitting the same widget-tree protocol (stretch; non-blocking).
 - **Hyperbee replication:** cross-device sync topics; v1 is local-only.
 - **Mini-app IPC:** shared storage and app-to-app messaging are intentionally deferred.
+- **Transport-backed mini-app announces:** connect the broker's announce service to host
+  Reticulum destinations/handlers; the current default is process-local.

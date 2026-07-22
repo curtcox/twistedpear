@@ -10,7 +10,7 @@ export interface AnnounceEvent {
 
 export interface AnnounceBackend {
   publish(appId: string, appData?: Uint8Array, namespace?: string): Promise<void>;
-  subscribe(appId: string, namespace: string): Promise<ReadonlyArray<AnnounceEvent>>;
+  subscribe(appId: string, namespace?: string): Promise<ReadonlyArray<AnnounceEvent>>;
 }
 
 export class AnnounceService implements AnnounceBackend {
@@ -27,8 +27,9 @@ export class AnnounceService implements AnnounceBackend {
     this.events.set(key, bucket);
   }
 
-  async subscribe(_appId: string, namespace: string): Promise<ReadonlyArray<AnnounceEvent>> {
-    return [...(this.events.get(namespace) ?? [])];
+  async subscribe(appId: string, namespace?: string): Promise<ReadonlyArray<AnnounceEvent>> {
+    const key = namespace ?? this.namespaceFor(appId);
+    return [...(this.events.get(key) ?? [])];
   }
 
   private namespaceFor(appId: string): string {

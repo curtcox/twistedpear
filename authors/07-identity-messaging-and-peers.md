@@ -110,6 +110,12 @@ it and fetch the substance separately.
 
 Requires `announce:publish` / `announce:subscribe`.
 
+> **Current host limitation.** The SDK and broker contract are implemented, but the shipped
+> desktop, mobile, and web hosts still use the process-local announce service rather than a
+> Reticulum-backed adapter. Two devices therefore do not discover each other through these
+> calls yet. See [Cookbook chapter 5](../cookbook/05-apps-that-find-each-other.md#current-host-status)
+> for the boundary, diagnostics, and underlying Reticulum references.
+
 ![An app showing peers it has discovered through announces](/authors/images/07-announce-peers.png)
 
 **Screenshot 7.1 — Peers discovered by announce.** The `board` example running on the desktop

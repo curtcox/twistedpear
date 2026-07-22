@@ -178,6 +178,10 @@ everything below is a known cost of the chosen design or of the platforms involv
   (`npm run test:miniapp-benchmark`; record with `MINIAPP_BENCHMARK_RECORD=1`).
 - One foreground mini-app at a time in v1; no background execution. Dev side-loading is
   localhost/adb-only, off by default, and badged **DEV** in the UI.
+- Mini-app `announce.publish` / `announce.subscribe` currently use the runtime's in-memory
+  service in the desktop, mobile, and web hosts. The broker contract and app receive paths
+  are tested, but no host adapter carries those SDK announces over Reticulum yet; separate
+  hosts therefore do not discover one another through this API.
 - No central registry means **no central moderation**: discovery is by announce/registry
   subscription, and malicious-app defense rests on signatures, capability grants, and
   user/community trust. LXMF block/mute lists and report records are local; exporting a report

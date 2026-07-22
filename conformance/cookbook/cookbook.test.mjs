@@ -149,6 +149,20 @@ function validateDocumentation() {
   const staleWarning = "Cookbook samples are not exercised by CI";
   expect(readFileSync(join(repositoryRoot, "cookbook/README.md"), "utf8")).not.toContain(staleWarning);
 
+  const discoveryChapter = readFileSync(
+    join(repositoryRoot, "cookbook/05-apps-that-find-each-other.md"),
+    "utf8"
+  );
+  expect(discoveryChapter, "chapter 5 discloses the host-local announce backend").toContain(
+    "The cookbook examples do not discover another device"
+  );
+  expect(discoveryChapter, "chapter 5 links the underlying Reticulum announce model").toContain(
+    "https://reticulum.network/manual/understanding.html#public-key-announcements"
+  );
+  expect(discoveryChapter, "chapter 5 distinguishes interface peers from mini-app discovery").toContain(
+    "A visible peer is necessary but not sufficient"
+  );
+
   for (const name of appNames) {
     const readmePath = join(appsRoot, name, "README.md");
     expect(existsSync(readmePath), `${name} README`).toBe(true);
