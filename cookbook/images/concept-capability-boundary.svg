@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 460" role="img" aria-labelledby="title desc">
+  <title id="title">The capability boundary</title>
+  <desc id="desc">One mini-app runs in the foreground inside host chrome it cannot draw over. Each SDK call crosses a capability boundary. Granted capabilities pass; an ungranted call is blocked and throws CapabilityError. The Grants panel is host chrome, and a grant can be revoked mid-run, so a call that worked starts failing.</desc>
+  <style>
+    :root{
+      --bg:#f6f8fa;--panel:#ffffff;--surface:#f0f3f6;--ink:#1f2328;--muted:#656d76;--border:#d0d7de;
+      --blue:#0969da;--green:#1a7f37;--red:#cf222e;--green-soft:#dafbe1;--red-soft:#ffebe9;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#0d1117;--panel:#161b22;--surface:#1c222b;--ink:#e6edf3;--muted:#8b949e;--border:#30363d;
+        --blue:#4493f8;--green:#3fb950;--red:#f85149;--green-soft:#12261a;--red-soft:#2d1416;
+      }
+    }
+    .bg{fill:var(--bg);stroke:var(--border);}
+    .panel{fill:var(--panel);stroke:var(--border);stroke-width:1.5;}
+    .surface{fill:var(--surface);stroke:var(--border);stroke-width:1.5;}
+    .ink{fill:var(--ink);}
+    .muted{fill:var(--muted);}
+    .t{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;}
+    .h{font-size:21px;font-weight:700;}
+    .sub{font-size:13.5px;}
+    .lbl{font-size:14.5px;font-weight:600;}
+    .sm{font-size:12px;}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;}
+  </style>
+  <defs>
+    <marker id="cbGreen" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="var(--green)"/></marker>
+    <marker id="cbRed" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="var(--red)"/></marker>
+  </defs>
+  <rect class="bg" x="1" y="1" width="758" height="458" rx="12"/>
+
+  <text class="t h ink" x="28" y="40">The grant is the defence — not the signature</text>
+  <text class="t sub muted" x="28" y="62">Deny by default. One app, in the foreground, behind a boundary it cannot cross.</text>
+
+  <!-- Host frame -->
+  <rect class="panel" x="28" y="86" width="704" height="308" rx="11"/>
+  <rect x="28" y="86" width="704" height="30" rx="11" fill="var(--surface)"/>
+  <rect x="28" y="104" width="704" height="12" fill="var(--surface)"/>
+  <circle cx="46" cy="101" r="4" fill="var(--muted)"/><circle cx="60" cy="101" r="4" fill="var(--muted)"/><circle cx="74" cy="101" r="4" fill="var(--muted)"/>
+  <text class="t sm muted" x="90" y="105">Host chrome — the app cannot draw over it</text>
+
+  <!-- Mini-app surface -->
+  <rect class="surface" x="48" y="146" width="196" height="210" rx="8"/>
+  <text class="t lbl ink" x="146" y="176" text-anchor="middle">Mini-app</text>
+  <text class="t sm muted" x="146" y="198" text-anchor="middle">one at a time</text>
+  <text class="t sm muted" x="146" y="216" text-anchor="middle">foreground only</text>
+  <text class="t sm muted" x="146" y="234" text-anchor="middle">sandboxed</text>
+  <text class="t sm muted" x="146" y="336" text-anchor="middle">it makes calls ▸</text>
+
+  <!-- capability boundary -->
+  <line x1="430" y1="150" x2="430" y2="352" stroke="var(--muted)" stroke-width="1.6" stroke-dasharray="6 5"/>
+  <text class="t sm muted" x="430" y="140" text-anchor="middle">capability boundary</text>
+
+  <!-- calls -->
+  <g class="t mono ink">
+    <line x1="252" y1="196" x2="426" y2="196" stroke="var(--green)" stroke-width="2.2" marker-end="url(#cbGreen)"/>
+    <text x="256" y="190">storage.get()</text>
+    <text x="392" y="190" text-anchor="middle" fill="var(--green)">✓</text>
+
+    <line x1="252" y1="248" x2="426" y2="248" stroke="var(--green)" stroke-width="2.2" marker-end="url(#cbGreen)"/>
+    <text x="256" y="242">lxmf.send()</text>
+    <text x="392" y="242" text-anchor="middle" fill="var(--green)">✓</text>
+
+    <line x1="252" y1="300" x2="422" y2="300" stroke="var(--red)" stroke-width="2.2" marker-end="url(#cbRed)"/>
+    <text x="256" y="294">ai.chat()</text>
+    <text x="392" y="294" text-anchor="middle" fill="var(--red)">✕</text>
+  </g>
+
+  <!-- Grants panel -->
+  <rect class="panel" x="470" y="150" width="242" height="202" rx="8"/>
+  <text class="t lbl ink" x="486" y="176">Grants panel</text>
+  <text class="t sm muted" x="486" y="194">host chrome · revocable mid-run</text>
+
+  <g class="t mono">
+    <rect x="486" y="206" width="210" height="30" rx="6" fill="var(--green-soft)"/>
+    <text class="ink" x="496" y="225">storage:kv</text>
+    <rect x="644" y="212" width="40" height="18" rx="9" fill="var(--green)"/><circle cx="675" cy="221" r="7" fill="#fff"/>
+
+    <rect x="486" y="242" width="210" height="30" rx="6" fill="var(--green-soft)"/>
+    <text class="ink" x="496" y="261">lxmf:send</text>
+    <rect x="644" y="248" width="40" height="18" rx="9" fill="var(--green)"/><circle cx="675" cy="257" r="7" fill="#fff"/>
+
+    <rect x="486" y="278" width="210" height="30" rx="6" fill="var(--red-soft)"/>
+    <text class="ink" x="496" y="297">ai.chat</text>
+    <rect x="644" y="284" width="40" height="18" rx="9" fill="var(--border)"/><circle cx="653" cy="293" r="7" fill="#fff"/>
+  </g>
+  <text class="t sm" x="486" y="332" fill="var(--red)">ai.chat is off → the call throws CapabilityError</text>
+
+  <text class="t sm muted" x="28" y="428">Toggle a grant off while the app runs and its next matching call starts throwing — capabilities are deny-by-default and revocable.</text>
+</svg>

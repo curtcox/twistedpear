@@ -20,6 +20,13 @@ the bytes were never stored anywhere.
 Design for that and announce-based apps are pleasant. Design against it and you will spend
 your time building a sync protocol that the platform cannot support.
 
+![How an announce reaches only the hosts listening right now, and why two stores diverge](/cookbook/images/concept-announce.svg)
+
+**Diagram 5.0 — Announce fan-out.** An announce reaches only the hosts in radio range that
+are running the same app and listening at that instant. A host that was closed never hears it
+and never will. Each host's store is a record of what *that* host heard, so no two are
+guaranteed to agree.
+
 ![The three discovery apps and a host's announce browser](/cookbook/images/05-chapter-opener.png)
 
 **Screenshot 5.1 — Chapter opener.** Three host captures in a row: Neighborhood board with

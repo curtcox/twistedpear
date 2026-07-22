@@ -32,6 +32,13 @@ outside the mini-app surface, that the app cannot render over, dismiss, style, o
 acknowledge. It is auto-denied after 60 seconds of no answer. `apps.install` additionally
 raises a full capability review for the app being installed.
 
+![Package, publish, and install as a chain of apps:* calls, each gated by a host confirmation](/cookbook/images/concept-apps-build-loop.svg)
+
+**Diagram 8.0 — The `apps:*` build loop.** Packaging, publishing, and installing are separate
+`apps:*` calls, and each one stops for a host confirmation drawn outside the app's frame that
+the app cannot dismiss, style, or make silent — auto-denied after 60 seconds. Installing
+additionally raises a full capability review for the app being installed.
+
 ![A host confirmation for a packaging request](/cookbook/images/08-host-confirmation.png)
 
 **Screenshot 8.1 — A confirmation the app cannot touch.** The desktop host at 1280×800 with

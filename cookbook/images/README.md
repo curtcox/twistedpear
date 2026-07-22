@@ -11,6 +11,10 @@ Each screenshot is described in place in the cookbook, in
 a bold caption directly beneath its image, and the cookbook renders with placeholder graphics
 until the real files land.
 
+It also holds a small set of hand-authored **concept diagrams** (`concept-*.svg`). Those are
+not screenshots and are not part of the capture pass — see [Concept diagrams](#concept-diagrams)
+below.
+
 ## How to supply a screenshot
 
 1. Capture the shot described in the cookbook's caption for that filename. The caption is the
@@ -117,6 +121,31 @@ Re-run it with `npm run capture:reader-guide-ui`.
 The remaining **3** files are deliberately still placeholders because their captions require
 real radio or multi-device evidence that the deterministic capture pass must not fabricate:
 `06-photo-drop-scan.png`, `07-chapter-opener.png`, and `09-chapter-opener.png`.
+
+## Concept diagrams
+
+Six chapters lead with a mental model that no screenshot can show — announce as broadcast,
+LXMF's missing guarantees, the capability boundary, the `apps:*` confirmation chain, content
+addressing, and the byte budget. Those are hand-authored SVGs, committed directly, referenced
+from the chapter with a bold **Diagram N.0** caption exactly like a screenshot.
+
+Unlike screenshots, they are supplied files from the start, so the capture pass and the
+placeholder generator ignore them; the conformance image checks only inspect `.png`. They are
+theme-aware (light and dark via `prefers-color-scheme`) and use the GitHub colour palette so
+they read natively on GitHub and the VitePress site.
+
+| File | Chapter | Concept |
+|---|---|---|
+| `concept-capability-boundary.svg` | 1 | One foreground app behind a deny-by-default, revocable capability boundary |
+| `concept-lxmf-oneshot.svg` | 4 | A one-way send, a reply that may never come, and the five guarantees LXMF omits |
+| `concept-announce.svg` | 5 | An announce reaches only who is listening now; each store diverges |
+| `concept-cas-fetch.svg` | 6 | A 256t identifier resolves only if its locator announce was heard |
+| `concept-apps-build-loop.svg` | 8 | Package → publish → install, each gated by a host confirmation |
+| `concept-byte-budget.svg` | 9 | Seconds on wifi versus hours on LoRa, and the habits that follow |
+
+To edit one, change the SVG and re-run `npm run site:build` (or
+`node scripts/site/section-images.mjs --section=cookbook`) to republish it into
+`site/public/cookbook/images`. No caption or markdown change is needed unless the concept moves.
 
 ## Shots that need a real radio
 

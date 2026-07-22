@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" role="img" aria-labelledby="title desc">
+  <title id="title">The apps:* build loop</title>
+  <desc id="desc">An app turns workspace files into a signed package, publishes it, and installs packages by identifier. Every apps:* call raises a host confirmation drawn outside the mini-app surface that the app cannot dismiss or style, auto-denied after 60 seconds. Installing additionally raises a full capability review.</desc>
+  <style>
+    :root{
+      --bg:#f6f8fa;--panel:#ffffff;--surface:#f0f3f6;--ink:#1f2328;--muted:#656d76;--border:#d0d7de;
+      --blue:#0969da;--amber:#9a6700;--red:#cf222e;--amber-soft:#fff8c5;--blue-soft:#ddf4ff;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#0d1117;--panel:#161b22;--surface:#1c222b;--ink:#e6edf3;--muted:#8b949e;--border:#30363d;
+        --blue:#4493f8;--amber:#d29922;--red:#f85149;--amber-soft:#2b2411;--blue-soft:#11243e;
+      }
+    }
+    .bg{fill:var(--bg);stroke:var(--border);}
+    .panel{fill:var(--panel);stroke:var(--border);stroke-width:1.5;}
+    .surface{fill:var(--surface);stroke:var(--border);stroke-width:1.5;}
+    .ink{fill:var(--ink);}
+    .muted{fill:var(--muted);}
+    .t{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;}
+    .h{font-size:21px;font-weight:700;}
+    .sub{font-size:13.5px;}
+    .lbl{font-size:14px;font-weight:600;}
+    .sm{font-size:11.5px;}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;font-weight:600;}
+  </style>
+  <defs>
+    <marker id="alArr" markerWidth="9" markerHeight="9" refX="6.5" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="var(--muted)"/></marker>
+  </defs>
+  <rect class="bg" x="1" y="1" width="758" height="418" rx="12"/>
+
+  <text class="t h ink" x="28" y="40">Building an app is a chain of host confirmations</text>
+  <text class="t sub muted" x="28" y="62">Every apps:* call stops for a modal the app cannot draw over, dismiss, or style — auto-denied after 60s.</text>
+
+  <!-- arrows underneath -->
+  <line x1="180" y1="200" x2="214" y2="200" stroke="var(--muted)" stroke-width="2" marker-end="url(#alArr)"/>
+  <line x1="360" y1="200" x2="394" y2="200" stroke="var(--muted)" stroke-width="2" marker-end="url(#alArr)"/>
+  <line x1="540" y1="200" x2="574" y2="200" stroke="var(--muted)" stroke-width="2" marker-end="url(#alArr)"/>
+
+  <!-- Stage 1: workspace (no confirmation) -->
+  <rect class="surface" x="30" y="150" width="150" height="130" rx="9"/>
+  <text class="t lbl ink" x="105" y="180" text-anchor="middle">Workspace</text>
+  <text class="t sm muted" x="105" y="204" text-anchor="middle">files you wrote</text>
+  <text class="t sm muted" x="105" y="222" text-anchor="middle">bundle.js + manifest</text>
+
+  <!-- Stage 2: package -->
+  <g>
+    <rect class="panel" x="214" y="150" width="146" height="130" rx="9"/>
+    <text class="t mono" x="287" y="176" text-anchor="middle" fill="var(--blue)">apps:package</text>
+    <text class="t sm ink" x="287" y="198" text-anchor="middle">sign a .tpkg with</text>
+    <text class="t sm ink" x="287" y="214" text-anchor="middle">this publisher key</text>
+    <rect x="228" y="232" width="118" height="34" rx="7" fill="var(--amber-soft)" stroke="var(--amber)" stroke-width="1"/>
+    <text class="t sm" x="287" y="248" text-anchor="middle" fill="var(--amber)">🔒 host confirm</text>
+    <text class="t sm" x="287" y="262" text-anchor="middle" fill="var(--amber)">Allow once · 60s</text>
+  </g>
+
+  <!-- Stage 3: publish -->
+  <g>
+    <rect class="panel" x="394" y="150" width="146" height="130" rx="9"/>
+    <text class="t mono" x="467" y="176" text-anchor="middle" fill="var(--blue)">apps:publish</text>
+    <text class="t sm ink" x="467" y="198" text-anchor="middle">announce it so</text>
+    <text class="t sm ink" x="467" y="214" text-anchor="middle">others can install</text>
+    <rect x="408" y="232" width="118" height="34" rx="7" fill="var(--amber-soft)" stroke="var(--amber)" stroke-width="1"/>
+    <text class="t sm" x="467" y="248" text-anchor="middle" fill="var(--amber)">🔒 host confirm</text>
+    <text class="t sm" x="467" y="262" text-anchor="middle" fill="var(--amber)">Allow once · 60s</text>
+  </g>
+
+  <!-- Stage 4: install -->
+  <g>
+    <rect class="panel" x="574" y="150" width="156" height="130" rx="9"/>
+    <text class="t mono" x="652" y="176" text-anchor="middle" fill="var(--blue)">apps:install</text>
+    <text class="t sm ink" x="652" y="198" text-anchor="middle">install a package</text>
+    <text class="t sm ink" x="652" y="214" text-anchor="middle">by identifier</text>
+    <rect x="588" y="232" width="128" height="34" rx="7" fill="var(--amber-soft)" stroke="var(--amber)" stroke-width="1"/>
+    <text class="t sm" x="652" y="248" text-anchor="middle" fill="var(--amber)">🔒 confirm + full</text>
+    <text class="t sm" x="652" y="262" text-anchor="middle" fill="var(--amber)">capability review</text>
+  </g>
+
+  <text class="t sm" x="28" y="318" fill="var(--amber)">🔒 Each modal is host chrome — outside the app's frame, un-dismissable by the app, and it cannot be made silent.</text>
+  <text class="t sm muted" x="28" y="342">apps:package puts <tspan fill="var(--ink)">your publisher signature</tspan> on bytes the user may never have read — which is why it is the one to grant most carefully.</text>
+  <text class="t sm muted" x="28" y="366">There is no standing grant and no "remember this choice". (apps:preview runs a project in the dev-preview slot, also gated.)</text>
+</svg>

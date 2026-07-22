@@ -20,6 +20,13 @@ every mistake in this chapter comes from assuming one of these exists:
 An app built on those five facts is robust. An app that quietly assumes any one of them is
 false works perfectly on a desk with two hosts on the same LAN and falls apart in a field.
 
+![What LXMF gives an app: a one-way send, a reply that may never come, and five guarantees it does not make](/cookbook/images/concept-lxmf-oneshot.svg)
+
+**Diagram 4.0 — One-peer messaging.** `lxmf.send` delivers a message from your app's own
+address to a peer; a reply may never come, and nothing correlates the two. A successful send
+means the host accepted it, not that anyone received it — and a signature proves which app
+sent it, not who is holding the device.
+
 ## Addresses, and whose they are
 
 Every app gets its **own** destination, derived from the host identity and the app id.

@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" role="img" aria-labelledby="title desc">
+  <title id="title">Content-addressed sharing</title>
+  <desc id="desc">share.put turns bytes into a 256t identifier that is the hash of the content, not a location. share.get resolves that identifier only if a locator announce for those bytes was already heard on this host; then it fetches under a byte budget into the workspace, and a repeat fetch is served from cache with no airtime. If the announce was never heard, the identifier is just a string.</desc>
+  <style>
+    :root{
+      --bg:#f6f8fa;--panel:#ffffff;--surface:#f0f3f6;--ink:#1f2328;--muted:#656d76;--border:#d0d7de;
+      --blue:#0969da;--green:#1a7f37;--red:#cf222e;--amber:#9a6700;--green-soft:#dafbe1;--red-soft:#ffebe9;--blue-soft:#ddf4ff;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#0d1117;--panel:#161b22;--surface:#1c222b;--ink:#e6edf3;--muted:#8b949e;--border:#30363d;
+        --blue:#4493f8;--green:#3fb950;--red:#f85149;--amber:#d29922;--green-soft:#12261a;--red-soft:#2d1416;--blue-soft:#11243e;
+      }
+    }
+    .bg{fill:var(--bg);stroke:var(--border);}
+    .panel{fill:var(--panel);stroke:var(--border);stroke-width:1.5;}
+    .surface{fill:var(--surface);stroke:var(--border);stroke-width:1.5;}
+    .ink{fill:var(--ink);}
+    .muted{fill:var(--muted);}
+    .t{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;}
+    .h{font-size:21px;font-weight:700;}
+    .sub{font-size:13.5px;}
+    .lbl{font-size:14px;font-weight:600;}
+    .sm{font-size:11.5px;}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;}
+  </style>
+  <defs>
+    <marker id="caArr" markerWidth="9" markerHeight="9" refX="6.5" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="var(--muted)"/></marker>
+  </defs>
+  <rect class="bg" x="1" y="1" width="758" height="438" rx="12"/>
+
+  <text class="t h ink" x="28" y="40">share.get is not a URL — it is handing over a copy</text>
+  <text class="t sub muted" x="28" y="62">A 256t identifier names the bytes by their hash. It resolves only if a locator announce was already heard here.</text>
+
+  <!-- content addressing row -->
+  <rect class="surface" x="28" y="86" width="120" height="52" rx="8"/>
+  <text class="t sm ink" x="88" y="108" text-anchor="middle">your bytes</text>
+  <text class="t sm muted" x="88" y="126" text-anchor="middle">a photo</text>
+
+  <line x1="150" y1="112" x2="196" y2="112" stroke="var(--muted)" stroke-width="2" marker-end="url(#caArr)"/>
+  <text class="t mono" x="173" y="104" text-anchor="middle" fill="var(--blue)">put</text>
+
+  <rect class="panel" x="200" y="86" width="300" height="52" rx="8"/>
+  <text class="t mono ink" x="214" y="110">256t id  a1B2c3…94 chars</text>
+  <text class="t sm muted" x="214" y="128">= hash( the bytes )</text>
+
+  <text class="t sm ink" x="516" y="106">names the content, not a location.</text>
+  <text class="t sm muted" x="516" y="124">Same bytes → same id, always.</text>
+
+  <!-- lane A: heard -->
+  <rect class="panel" x="28" y="164" width="352" height="208" rx="9"/>
+  <rect x="28" y="164" width="352" height="30" rx="9" fill="var(--green-soft)"/>
+  <rect x="28" y="182" width="352" height="12" fill="var(--green-soft)"/>
+  <text class="t lbl" x="44" y="185" fill="var(--green)">✓ Locator announce was heard</text>
+
+  <text class="t mono ink" x="44" y="222">share.get(id)</text>
+  <text class="t sm muted" x="44" y="242">budgeted fetch — the host caps the rate:</text>
+  <rect x="44" y="250" width="292" height="14" rx="7" fill="var(--surface)" stroke="var(--border)"/>
+  <rect x="44" y="250" width="150" height="14" rx="7" fill="var(--green)"/>
+  <text class="t sm muted" x="44" y="284">▾ lands in the workspace (private, this device)</text>
+  <rect x="44" y="292" width="292" height="26" rx="5" fill="var(--surface)"/>
+  <text class="t mono ink" x="54" y="309">workspace ▸ photo.jpg</text>
+  <text class="t sm" x="44" y="344" fill="var(--green)">get it again → served from cache, 0 airtime</text>
+  <text class="t sm muted" x="44" y="362">caching is courtesy on a shared channel</text>
+
+  <!-- lane B: not heard -->
+  <rect class="panel" x="400" y="164" width="332" height="208" rx="9"/>
+  <rect x="400" y="164" width="332" height="30" rx="9" fill="var(--red-soft)"/>
+  <rect x="400" y="182" width="332" height="12" fill="var(--red-soft)"/>
+  <text class="t lbl" x="416" y="185" fill="var(--red)">✕ Never heard the announce</text>
+
+  <rect x="416" y="212" width="300" height="26" rx="5" fill="var(--surface)"/>
+  <text class="t mono muted" x="426" y="229">a1B2c3…94 chars</text>
+  <text class="t sm ink" x="416" y="264">The same valid identifier is</text>
+  <text class="t lbl ink" x="416" y="286">just a string.</text>
+  <text class="t sm muted" x="416" y="318">No re-request. No DHT walk.</text>
+  <text class="t sm muted" x="416" y="336">No "go and find it".</text>
+
+  <text class="t sm muted" x="28" y="410">A two-step social act: someone publishes the bytes, and you must have been present to hear the locator.</text>
+</svg>

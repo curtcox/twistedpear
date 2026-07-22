@@ -37,6 +37,13 @@ and nobody else can use while you have it.
 6. **Branch on the interface.** `host.info()` tells you which world you are in; behave
    differently in each.
 
+![The same package taking seconds on wifi and hours on LoRa, and the two habits that follow](/cookbook/images/concept-byte-budget.svg)
+
+**Diagram 9.0 — Designing for a slow link.** The same package that arrives in under a second
+over wifi takes hours over LoRa, where every byte is airtime on a channel everyone in range
+shares. Two habits follow: show the user a live byte budget, and drop JSON keys for a
+positional wire format that runs 30–50% smaller.
+
 ![The three constrained apps on a radio-equipped host](/cookbook/images/09-chapter-opener.png)
 
 **Screenshot 9.1 — Chapter opener.** Three captures from a host whose interface list shows

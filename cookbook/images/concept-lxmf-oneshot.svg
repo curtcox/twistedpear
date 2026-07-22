@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" role="img" aria-labelledby="title desc">
+  <title id="title">One-peer messaging with LXMF</title>
+  <desc id="desc">An app sends a message from its own app-scoped address to a peer app. A successful send means only that the host accepted it. A reply may never arrive. There are no sessions, no delivery guarantee, no ordering, no push, and no groups. A signature proves which app sent a message, not the person.</desc>
+  <style>
+    :root{
+      --bg:#f6f8fa;--panel:#ffffff;--ink:#1f2328;--muted:#656d76;--border:#d0d7de;
+      --blue:#0969da;--green:#1a7f37;--red:#cf222e;--amber:#9a6700;--blue-soft:#ddf4ff;--amber-soft:#fff8c5;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#0d1117;--panel:#161b22;--ink:#e6edf3;--muted:#8b949e;--border:#30363d;
+        --blue:#4493f8;--green:#3fb950;--red:#f85149;--amber:#d29922;--blue-soft:#11243e;--amber-soft:#2b2411;
+      }
+    }
+    .bg{fill:var(--bg);stroke:var(--border);}
+    .panel{fill:var(--panel);stroke:var(--border);stroke-width:1.5;}
+    .ink{fill:var(--ink);}
+    .muted{fill:var(--muted);}
+    .t{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;}
+    .h{font-size:21px;font-weight:700;}
+    .sub{font-size:13.5px;}
+    .lbl{font-size:14.5px;font-weight:600;}
+    .sm{font-size:12px;}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;}
+  </style>
+  <defs>
+    <marker id="arrBlue" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="var(--blue)"/></marker>
+    <marker id="arrMuted" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="var(--muted)"/></marker>
+  </defs>
+  <rect class="bg" x="1" y="1" width="758" height="438" rx="12"/>
+
+  <text class="t h ink" x="28" y="40">Send to an address. That is the whole surface.</text>
+  <text class="t sub muted" x="28" y="62">A successful send means the host accepted it — not that anyone received it.</text>
+
+  <!-- Your app -->
+  <rect class="panel" x="28" y="98" width="232" height="104" rx="9"/>
+  <text class="t lbl ink" x="44" y="126">Your app</text>
+  <rect x="44" y="140" width="200" height="24" rx="5" fill="var(--blue-soft)"/>
+  <text class="t mono ink" x="54" y="157">a7f2c1e9b0…  (this app)</text>
+  <text class="t sm muted" x="44" y="188">app-scoped address — not the person</text>
+
+  <!-- Peer app -->
+  <rect class="panel" x="500" y="98" width="232" height="104" rx="9"/>
+  <text class="t lbl ink" x="516" y="126">Peer app</text>
+  <rect x="516" y="140" width="200" height="24" rx="5" fill="var(--blue-soft)"/>
+  <text class="t mono ink" x="526" y="157">3d9e0f14c2…  (same app)</text>
+  <text class="t sm muted" x="516" y="188">receives nothing while closed</text>
+
+  <!-- send arrow -->
+  <line x1="262" y1="132" x2="497" y2="132" stroke="var(--blue)" stroke-width="2.5" marker-end="url(#arrBlue)"/>
+  <rect x="318" y="112" width="122" height="20" rx="10" fill="var(--amber-soft)" stroke="var(--amber)" stroke-width="1"/>
+  <text class="t sm" x="379" y="126" text-anchor="middle" fill="var(--amber)">signed ✎</text>
+  <text class="t mono ink" x="379" y="150" text-anchor="middle">lxmf.send({ to, content })</text>
+
+  <!-- reply arrow -->
+  <line x1="497" y1="176" x2="262" y2="176" stroke="var(--muted)" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrMuted)"/>
+  <text class="t sm muted" x="379" y="170" text-anchor="middle">reply — may never come</text>
+
+  <!-- five facts -->
+  <rect class="panel" x="28" y="232" width="704" height="122" rx="9"/>
+  <text class="t lbl ink" x="44" y="258">Five things LXMF does not give you — assume each is missing:</text>
+  <g class="t sm">
+    <text x="60" y="292" fill="var(--ink)">● No sessions — you match replies yourself.</text>
+    <text x="60" y="316" fill="var(--ink)">● No delivery guarantee, no failure notice.</text>
+    <text x="60" y="340" fill="var(--ink)">● No ordering.</text>
+    <text x="416" y="292" fill="var(--ink)">● No push — a closed app gets nothing.</text>
+    <text x="416" y="316" fill="var(--ink)">● No groups — "everyone" is N sends.</text>
+  </g>
+
+  <text class="t sm muted" x="28" y="392" text-anchor="start">A signature proves <tspan fill="var(--ink)">which app</tspan> sent a message — never <tspan fill="var(--ink)">who</tspan> is holding the device.</text>
+</svg>

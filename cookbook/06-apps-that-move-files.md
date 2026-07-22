@@ -33,6 +33,14 @@ In practice this means content sharing on TwistedPear is a two-step social act: 
 publishes, somebody else has to have been present. It is closer to handing over a physical
 copy than to opening a URL.
 
+![A 256t identifier resolves only if its locator announce was heard; otherwise it is just a string](/cookbook/images/concept-cas-fetch.svg)
+
+**Diagram 6.0 — Content-addressed sharing.** `share.put` names bytes by their hash, not their
+location. `share.get` resolves that identifier only if a locator announce for the bytes was
+already heard here; then it fetches under a host-capped budget into the workspace, and a
+repeat fetch costs no airtime. Never having heard the announce leaves the same valid
+identifier a plain string.
+
 ![The three file apps and a transfer in progress](/cookbook/images/06-chapter-opener.png)
 
 **Screenshot 6.1 — Chapter opener.** Three host captures in a row: Photo drop with a QR code

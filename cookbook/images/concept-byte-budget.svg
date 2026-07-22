@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" role="img" aria-labelledby="title desc">
+  <title id="title">Designing for a slow link</title>
+  <desc id="desc">The same 180 KiB package takes under a second on wifi, a minute or two on Bluetooth LE, and hours on LoRa. Because every byte is shared airtime, apps show the user a live byte budget and use positional wire formats instead of JSON keys, which are 30 to 50 percent smaller on small records.</desc>
+  <style>
+    :root{
+      --bg:#f6f8fa;--panel:#ffffff;--surface:#f0f3f6;--ink:#1f2328;--muted:#656d76;--border:#d0d7de;
+      --blue:#0969da;--green:#1a7f37;--red:#cf222e;--amber:#9a6700;--green-soft:#dafbe1;--red-soft:#ffebe9;--amber-soft:#fff8c5;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#0d1117;--panel:#161b22;--surface:#1c222b;--ink:#e6edf3;--muted:#8b949e;--border:#30363d;
+        --blue:#4493f8;--green:#3fb950;--red:#f85149;--amber:#d29922;--green-soft:#12261a;--red-soft:#2d1416;--amber-soft:#2b2411;
+      }
+    }
+    .bg{fill:var(--bg);stroke:var(--border);}
+    .panel{fill:var(--panel);stroke:var(--border);stroke-width:1.5;}
+    .surface{fill:var(--surface);stroke:var(--border);stroke-width:1.5;}
+    .ink{fill:var(--ink);}
+    .muted{fill:var(--muted);}
+    .t{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;}
+    .h{font-size:21px;font-weight:700;}
+    .sub{font-size:13.5px;}
+    .lbl{font-size:14px;font-weight:600;}
+    .sm{font-size:11.5px;}
+    .big{font-size:24px;font-weight:700;}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;}
+  </style>
+  <rect class="bg" x="1" y="1" width="758" height="438" rx="12"/>
+
+  <text class="t h ink" x="28" y="40">Design backwards from hundreds of bits per second</text>
+  <text class="t sub muted" x="28" y="62">On LoRa, 1 KiB is ~half a minute of a channel everyone in range shares — and no one else can use it meanwhile.</text>
+
+  <!-- interface comparison -->
+  <text class="t lbl ink" x="28" y="98">The same 180 KiB package, three links:</text>
+
+  <g>
+    <text class="t sm ink" x="28" y="123">TCP / wifi</text>
+    <rect x="150" y="112" width="16" height="16" rx="3" fill="var(--green)"/>
+    <text class="t sm" x="176" y="124" fill="var(--green)">≈ under a second</text>
+
+    <text class="t sm ink" x="28" y="151">Bluetooth LE</text>
+    <rect x="150" y="140" width="150" height="16" rx="3" fill="var(--amber)"/>
+    <text class="t sm" x="310" y="152" fill="var(--amber)">≈ a minute or two</text>
+
+    <text class="t sm ink" x="28" y="179">LoRa / RNode</text>
+    <rect x="150" y="168" width="470" height="16" rx="3" fill="var(--red)"/>
+    <text class="t sm" x="630" y="180" fill="var(--red)">≈ hours</text>
+  </g>
+
+  <line x1="28" y1="204" x2="732" y2="204" stroke="var(--border)" stroke-width="1"/>
+
+  <!-- budget panel -->
+  <rect class="panel" x="28" y="224" width="322" height="176" rx="9"/>
+  <text class="t lbl ink" x="44" y="250">Show the budget to the user</text>
+  <text class="t big" x="44" y="292" fill="var(--red)">231 / 220 bytes</text>
+  <rect x="44" y="306" width="290" height="16" rx="8" fill="var(--surface)" stroke="var(--border)"/>
+  <rect x="44" y="306" width="290" height="16" rx="8" fill="var(--red)"/>
+  <line x1="320" y1="300" x2="320" y2="328" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <text class="t sm muted" x="292" y="342">limit</text>
+  <text class="t sm muted" x="44" y="366">Over budget, in red, while they are still</text>
+  <text class="t sm muted" x="44" y="384">typing — like a character counter.</text>
+
+  <!-- wire format panel -->
+  <rect class="panel" x="366" y="224" width="366" height="176" rx="9"/>
+  <text class="t lbl ink" x="382" y="250">Drop the keys — positional beats JSON</text>
+
+  <rect x="382" y="264" width="334" height="30" rx="6" fill="var(--red-soft)"/>
+  <text class="t mono ink" x="392" y="284">{"cs":"K4X","p":2}</text>
+  <text class="t sm" x="704" y="284" text-anchor="end" fill="var(--red)">20 B</text>
+
+  <rect x="382" y="302" width="334" height="30" rx="6" fill="var(--green-soft)"/>
+  <text class="t mono ink" x="392" y="322">K4X|2</text>
+  <text class="t sm" x="704" y="322" text-anchor="end" fill="var(--green)">5 B</text>
+
+  <text class="t sm muted" x="382" y="356">Same record. Positional formats run</text>
+  <text class="t sm muted" x="382" y="374">30–50% smaller — design the bytes first.</text>
+
+  <text class="t sm muted" x="28" y="424">Every byte you send is airtime. Queue what fails, pace yourself, and branch on host.info() for the link you are actually on.</text>
+</svg>

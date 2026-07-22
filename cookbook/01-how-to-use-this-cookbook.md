@@ -112,6 +112,13 @@ words, and it is the only thing standing between the app and the user's device. 
 tells you who wrote the app. It tells you nothing about what the app does — the grant is the
 actual defence.
 
+![One foreground app behind a deny-by-default capability boundary, with grants revocable mid-run](/cookbook/images/concept-capability-boundary.svg)
+
+**Diagram 1.0 — The capability boundary.** One app runs in the foreground inside host chrome
+it cannot draw over. Every SDK call crosses a boundary that is deny-by-default: a granted
+capability passes, an ungranted one throws `CapabilityError`. The Grants panel is host chrome,
+and a grant revoked while the app is running makes a call that worked start failing.
+
 ![The capability review dialog for a cookbook sample](/cookbook/images/01-capability-review.png)
 
 **Screenshot 1.3 — A capability review.** The host's install-time review modal, clearly
