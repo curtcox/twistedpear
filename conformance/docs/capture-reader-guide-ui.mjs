@@ -221,7 +221,8 @@ async function captureCookbookComposite(browser, scene) {
       h1{margin:0 0 8px;font-size:28px}.subtitle{color:#9fb0c3;margin-bottom:18px}
       .grid{display:grid;grid-template-columns:repeat(${scene.columns},1fr);gap:14px;height:690px}
       .tile{min-width:0;overflow:hidden;border:1px solid #33475a;border-radius:14px;background:#101b26;display:flex;flex-direction:column}
-      .tile img{width:100%;height:calc(100% - 38px);object-fit:cover;object-position:top}
+      /* Host chrome shots are left-heavy; pin to the left so multi-column crops keep the app UI. */
+      .tile img{width:100%;height:calc(100% - 38px);object-fit:cover;object-position:left top}
       .label{height:38px;padding:10px 12px;color:#cfe2f5;font-weight:700;background:#142333}
       .fixture{padding:22px;display:flex;flex-direction:column;gap:12px;height:100%}
       .fixture h2{margin:0;color:#67e8c7}.row{display:flex;justify-content:space-between;border-bottom:1px solid #304254;padding:8px 0}
@@ -786,7 +787,7 @@ try {
     await rendererServer.close();
   }
 
-  if (captureSection === "all" || captureSection === "cookbook") {
+  if (captureSection === "all" || captureSection === "cookbook" || captureSection === "cookbook-composites") {
     const composites = [
       {
         file: "cookbook/images/00-hero-cookbook.png",
@@ -824,7 +825,8 @@ try {
         file: "cookbook/images/03-chapter-opener.png",
         title: "Apps that remember",
         subtitle: "Four local stores · per-app KV quota 18,432 / 1,048,576 bytes",
-        columns: 4,
+        // Caption 3.1 asks for a 2×2 grid; a 1×4 row crops each left-aligned host shot to empty chrome.
+        columns: 2,
         tiles: ["pocket-notes", "streak-tracker", "field-log", "split-the-bill"].map((name) => ({ label: name.replaceAll("-", " "), image: `cookbook/images/03-${name}.png` }))
       },
       {
