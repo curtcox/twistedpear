@@ -37,10 +37,18 @@ async function post() {
   status = "Published. Only hosts within radio reach right now will have heard it.";
 }
 
+// subscribe resolves once with a snapshot of the announces this host has already
+// buffered for our namespace. It is not a live push stream, so re-poll (call it again)
+// if you want to keep hearing peers who announce after launch — see the chapter.
 announce.subscribe(ANNOUNCE_NAMESPACE).then(async (events) => {
   for (const event of events) {
-    const data = JSON.parse(decoder.decode(event.appData));
-    if (typeof data.text !== "string") continue;
+    let data;
+    try {
+      data = JSON.parse(decoder.decode(event.appData));
+    } catch (error) {
+      continue; // a peer can send arbitrary bytes; skip anything that is not our JSON
+    }
+    if (data === null || typeof data !== "object" || typeof data.text !== "string") continue;
     await store(event.destination, data.text, data.at ?? new Date().toISOString());
     await render();
   }

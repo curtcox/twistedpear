@@ -54,9 +54,17 @@ async function offer() {
   status = "Offered";
 }
 
+// subscribe resolves once with a snapshot of the announces already buffered for this
+// namespace — not a live stream. Re-poll if you want to keep hearing new offers.
 announce.subscribe(ANNOUNCE_NAMESPACE).then(async (events) => {
   for (const event of events) {
-    const item = JSON.parse(decoder.decode(event.appData)).i;
+    let payload;
+    try {
+      payload = JSON.parse(decoder.decode(event.appData));
+    } catch (error) {
+      continue; // untrusted bytes from a stranger's code; skip anything unparseable
+    }
+    const item = payload?.i;
     if (typeof item !== "string") continue;
     listings = [...listings, { from: event.destination, item, at: Date.now() }];
     await persist();

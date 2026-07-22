@@ -299,7 +299,21 @@ async function createHost(name = "") {
       stopPreview: async () => undefined
     }
   });
-  return { host, store };
+  return { host, store, announceService };
+}
+
+async function launchApp(host, name) {
+  const manifest = JSON.parse(readFileSync(join(appsRoot, name, "app.manifest.json"), "utf8"));
+  const bundle = new Uint8Array(readFileSync(join(appsRoot, name, manifest.entry)));
+  const launchManifest = { ...manifest, publisherPublicKey: manifest.publisherPublicKey ?? "cookbook-test-publisher" };
+  await host.setGrants(
+    launchManifest.name,
+    launchManifest.publisherPublicKey,
+    launchManifest.capabilities,
+    launchManifest.capabilities
+  );
+  await host.launch(launchManifest, bundle);
+  await waitForRender(host);
 }
 
 async function waitForRender(host) {
@@ -549,6 +563,101 @@ describe.each(appNames)("cookbook app %s", (name) => {
       await waitForRender(host);
       const expected = await behaviorScenarios[name](host);
       await waitForText(host, expected);
+    } finally {
+      await host.stop();
+    }
+  }, 20_000);
+});
+
+// Chapter 5 is about apps finding *each other*. The per-app scenarios above only exercise the
+// publish half — an app announcing its own post. These cover the receive half: an announce that
+// arrived from another host is decoded, stored, and rendered. Without them a bug in the
+// subscribe→decode→store→render branch (the thing that makes discovery work) passes CI unseen.
+describe("cookbook chapter 5 — hearing another host's announce", () => {
+  const encoder = new TextEncoder();
+
+  it("neighborhood-board stores and renders a post announced by a peer", async () => {
+    const { host, announceService } = await createHost("neighborhood-board");
+    try {
+      await announceService.publish(
+        "peer-9c31f7a2e4b0",
+        encoder.encode(JSON.stringify({ text: "Water at the school entrance", at: "2026-07-21T09:14:00.000Z" })),
+        "neighborhood-board"
+      );
+      await launchApp(host, "neighborhood-board");
+      const text = await waitForText(host, "Water at the school entrance");
+      expect(text, "byline is the announcing destination, not the payload or \"me\"").toContain("peer-9c31f7a");
+    } finally {
+      await host.stop();
+    }
+  }, 20_000);
+
+  it("neighborhood-board drops unparseable and wrong-typed announces without crashing", async () => {
+    const { host, announceService } = await createHost("neighborhood-board");
+    try {
+      // A peer runs arbitrary code and can send anything. None of these may take down the
+      // subscription loop or reach the board, but a valid post published alongside them must.
+      await announceService.publish("peer-garbage", new Uint8Array([0xff, 0x00, 0x10]), "neighborhood-board");
+      await announceService.publish("peer-wrongtype", encoder.encode(JSON.stringify({ text: 42 })), "neighborhood-board");
+      await announceService.publish("peer-nullpayload", encoder.encode("null"), "neighborhood-board");
+      await announceService.publish(
+        "peer-9c31f7a2e4b0",
+        encoder.encode(JSON.stringify({ text: "Real post", at: "2026-07-21T09:14:00.000Z" })),
+        "neighborhood-board"
+      );
+      await launchApp(host, "neighborhood-board");
+      const text = await waitForText(host, "Real post");
+      expect(text, "malformed announces are silently dropped").not.toContain("42");
+    } finally {
+      await host.stop();
+    }
+  }, 20_000);
+
+  it("swap-shelf stores and renders a listing announced by a peer", async () => {
+    const { host, announceService } = await createHost("swap-shelf");
+    try {
+      await announceService.publish(
+        "peer-3f0a5b1c9d22",
+        encoder.encode(JSON.stringify({ i: "Camping stove, works, free" })),
+        "swap-shelf"
+      );
+      await launchApp(host, "swap-shelf");
+      const text = await waitForText(host, "Camping stove, works, free");
+      expect(text, "listing shows the announcing peer's address prefix").toContain("peer-3f0a5b1");
+    } finally {
+      await host.stop();
+    }
+  }, 20_000);
+
+  it("swap-shelf drops an unparseable announce without crashing", async () => {
+    const { host, announceService } = await createHost("swap-shelf");
+    try {
+      await announceService.publish("peer-garbage", new Uint8Array([0xff, 0x00, 0x10]), "swap-shelf");
+      await announceService.publish(
+        "peer-3f0a5b1c9d22",
+        encoder.encode(JSON.stringify({ i: "Hand-crank radio" })),
+        "swap-shelf"
+      );
+      await launchApp(host, "swap-shelf");
+      await waitForText(host, "Hand-crank radio");
+    } finally {
+      await host.stop();
+    }
+  }, 20_000);
+
+  it("an announce in one namespace is invisible to a different app", async () => {
+    const { host, announceService } = await createHost("swap-shelf");
+    try {
+      // A neighborhood-board post must never surface in swap-shelf: namespaces do not cross.
+      await announceService.publish(
+        "peer-9c31f7a2e4b0",
+        encoder.encode(JSON.stringify({ text: "Water at the school entrance", at: "2026-07-21T09:14:00.000Z" })),
+        "neighborhood-board"
+      );
+      await launchApp(host, "swap-shelf");
+      await settle();
+      const text = treeText(host.snapshot().widgetTree);
+      expect(text, "cross-namespace announce must not leak into swap-shelf").not.toContain("Water at the school entrance");
     } finally {
       await host.stop();
     }

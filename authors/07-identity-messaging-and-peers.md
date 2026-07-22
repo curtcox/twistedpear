@@ -84,17 +84,25 @@ So:
 ## Announces
 
 An announce is how your app becomes findable. `announce.publish` makes your app's destination
-visible in your app's namespace; `announce.subscribe` receives what other instances publish.
+visible in your app's namespace; `announce.subscribe` returns the announces the host has
+already buffered for that namespace.
 
 ```javascript
 import { announce } from "@twistedpear/miniapp-sdk";
 
-await announce.publish(appData);              // make this instance findable
+await announce.publish(appData, "my-app");    // make this instance findable
 
-for await (const item of announce.subscribe()) {
-  // another instance of this app, announced by a peer
+const events = await announce.subscribe("my-app");
+for (const event of events) {
+  // event.destination — the peer that announced
+  // event.appData     — the raw bytes it sent; decode and parse them yourself
 }
 ```
+
+`subscribe` resolves **once** with a snapshot array; it is not a live stream and does not push
+later announces at you. To keep discovering peers who announce after you start, call it again
+on a timer — the same polling pattern `presence.snapshot()` needs, and for the same reason:
+there is no event to await.
 
 Announces are namespaced to your app, so you hear from other instances of *your* app, not
 from the whole network. `appData` is small — it is a beacon, not a payload; put a pointer in

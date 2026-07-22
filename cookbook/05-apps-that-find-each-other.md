@@ -36,6 +36,44 @@ panel showing raw announce traffic, with several rows attributed to the board an
 app namespaces — establishing that these payloads are visible to the host, not just to the
 app.
 
+## How discovery works
+
+Two SDK calls do all of it, and no others are involved:
+
+- **`announce.publish(appData, namespace)`** writes one small beacon into `namespace`. It
+  resolves as soon as the host has queued it for transmission — it does not, and cannot, tell
+  you who (if anyone) heard it.
+- **`announce.subscribe(namespace)`** resolves **once** with an array of the announces the host
+  has buffered for that namespace *at the instant you call it*. Each entry is
+  `{ destination, appData, receivedAt }`: `destination` is the peer that announced, `appData`
+  is the raw bytes they sent (you decode and parse them yourself — they are as trustworthy as
+  a query string), and `receivedAt` is when this host heard it.
+
+Two things trip people up:
+
+1. **It is a snapshot, not a stream.** `subscribe` does not stay open and push later announces
+   at you; the promise resolves with whatever is already buffered and never resolves again. So
+   an app that subscribes once at launch shows what the host had *already* heard. To keep
+   finding peers who announce afterwards, call `subscribe` again on a timer — poll, exactly the
+   way [Link weather](#link-weather) polls `presence.snapshot()`, and for the same reason:
+   there is no event to await.
+2. **You only hear your own namespace.** An announce in `neighborhood-board` is invisible to
+   `swap-shelf`. There is no global feed and no cross-app discovery, and nothing is delivered,
+   queued, or retried while your app is closed.
+
+The underlying docs, in order of authority:
+
+- [`docs/miniapp-sdk.md`](../docs/miniapp-sdk.md) — the `announce` namespace and the
+  `announce:publish` / `announce:subscribe` capabilities. When it and this cookbook disagree,
+  it wins.
+- [`docs/miniapp-runtime.md`](../docs/miniapp-runtime.md) — the broker that gates every
+  announce call behind a grant, and the sandbox it crosses.
+- [Authoring guide §7 — Announces](../authors/07-identity-messaging-and-peers.md#announces) and
+  the [SDK reference — announce](../authors/appendix-sdk-reference.md#announce) — the same
+  mechanism taught one call at a time.
+- [Appendix: feature status](appendix-feature-status.md) — the snapshot/poll limit, recorded
+  next to the matching `presence.snapshot()` one.
+
 | Recipe | Capabilities | Directory |
 |---|---|---|
 | [Neighborhood board](#neighborhood-board) | `announce:publish`, `announce:subscribe`, `storage:hyperbee` | [apps/neighborhood-board](apps/neighborhood-board/README.md) |
@@ -61,24 +99,37 @@ Posts from three visibly different addresses are interleaved. The status line re
 
 ### The interesting part
 
-The subscription is a stream you consume forever, and every heard event is written straight
-to the local store:
+`announce.subscribe` hands you a snapshot of what this host has already heard in the namespace
+— an array, not a live stream (see [How discovery works](#how-discovery-works)) — and every
+heard event is written straight to the local store:
 
 ```javascript
-announce.subscribe().then(async (stream) => {
-  for await (const event of stream) {
-    const data = event.appData ?? {};
-    if (typeof data.text !== "string") continue;     // untrusted: validate before storing
-    await store(event.from ?? "unknown", data.text, data.at ?? new Date().toISOString());
+announce.subscribe(ANNOUNCE_NAMESPACE).then(async (events) => {
+  for (const event of events) {
+    let data;
+    try {
+      data = JSON.parse(decoder.decode(event.appData));   // raw bytes from a stranger
+    } catch (error) {
+      continue;                                            // not our JSON — drop it
+    }
+    if (data === null || typeof data !== "object" || typeof data.text !== "string") continue;
+    await store(event.destination, data.text, data.at ?? new Date().toISOString());
     await render();
   }
 });
 ```
 
-Every field is checked. An announce payload arrives from an arbitrary host running arbitrary
-code claiming to be your app, and it is exactly as trustworthy as a query string. `data.text`
-is type-checked, and `data.at` has a fallback — because a peer that sends `at: null`, or `at`
-as an object, must not be able to break your key generation.
+`event.appData` is bytes, not an object — you decode and parse it yourself, and you assume it
+is hostile while you do. An announce arrives from an arbitrary host running arbitrary code
+claiming to be your app, and it is exactly as trustworthy as a query string. So the `JSON.parse`
+is wrapped, because a peer can send bytes that are not JSON at all; `data.text` is type-checked;
+and `data.at` has a fallback — because a peer that sends `at: null`, or `at` as an object, must
+not be able to break your key generation. `event.destination`, not the payload, is the byline:
+the payload is a claim, the destination is who the host actually heard it from.
+
+The subscription is a one-shot read, so this board shows the posts the host had already heard
+when it opened. To keep hearing posts announced later, call `announce.subscribe` again on a
+timer — there is no event to await.
 
 Your own posts go into the same store by the same path:
 
@@ -98,6 +149,10 @@ Full source: [apps/neighborhood-board/bundle.js](apps/neighborhood-board/bundle.
 
 ### Make it yours
 
+- **Keep discovering.** Subscribing once shows only what the host had already heard. Call
+  `announce.subscribe` again on a timer to pick up posts announced after you opened — see
+  [How discovery works](#how-discovery-works). Re-hearing an announce here is harmless: its key
+  is derived from the post's timestamp, so a repeat overwrites rather than duplicates.
 - **De-duplicate.** Two hosts can relay the same post. Key on a content hash instead of a
   timestamp and the duplicate collapses into one entry for free.
 - **Add a "heard from" count.** Store how many distinct peers relayed each post — a cheap and
