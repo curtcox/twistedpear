@@ -7,9 +7,17 @@
     "packages/*",
     "apps/*"
   ],
+  "engines": {
+    "node": ">=22 <23",
+    "npm": ">=10"
+  },
   "scripts": {
     "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
+    "test:watch": "vitest",
+    "check:fast": "npm run typecheck && npm test",
+    "check:ci-base": "npm run lint && npm test && npm run test:release-harness && npm run test:doc-audit && npm run test:sim-authored-replay",
     "test:interop": "INTEROP=1 vitest run --no-file-parallelism packages/reticulum-ts/test/interop.test.ts packages/lxmf-ts/test/interop.test.ts",
     "test:bare-smoke": "npm run build && node conformance/bare-smoke/run.mjs",
     "test:bare-runtime": "npm run build && node_modules/bare/bin/bare conformance/bare-runtime/run.mjs",
@@ -145,7 +153,7 @@
     "test:doc-audit": "vitest run conformance/doc-audit",
     "test:ui-invariants": "vitest run conformance/ui-invariants/ui-invariants.test.mjs",
     "verify:doc-images": "node conformance/docs/verify-images.mjs",
-    "lint": "tsc -b --pretty false",
+    "lint": "npm run typecheck && npm run sansio:eslint",
     "sansio": "npm run build --workspace=@twistedpear/protocol && npm run sansio:inventory && npm run sansio:ratchet && npm run sansio:eslint && npm run sansio:depcruise && npm run sansio:canary && npm run sansio:determinism",
     "sansio:inventory": "node scripts/sansio-inventory.mjs",
     "sansio:ratchet": "node scripts/sansio-ratchet.mjs",

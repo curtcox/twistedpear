@@ -1,5 +1,11 @@
 # Local peer discovery threat model
 
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-23
+register: none
+-->
+
 The security boundary is the host. Mini-apps receive an app/runtime-scoped opaque handle;
 they never receive invitation bytes, radio access, addresses, SDP, ICE, relay credentials,
 or permission APIs. Discovery proposes a peer, authentication confirms it, and a data-plane

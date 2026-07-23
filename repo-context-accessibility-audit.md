@@ -1,5 +1,11 @@
 # Repo Context Accessibility Audit for AI Coding Agents
 
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-23
+register: none
+-->
+
 Audited 2026-07-23 from the repository contents. This audit is intentionally limited to
 context, tooling, naming, and safety rails that reduce time-to-first-correct-edit.
 

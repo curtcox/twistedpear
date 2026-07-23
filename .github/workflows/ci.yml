@@ -16,11 +16,7 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm test
-      - run: npm run test:release-harness
-      - run: npm run test:doc-audit
-      - run: npm run test:sim-authored-replay
+      - run: npm run check:ci-base
 
   sansio:
     runs-on: ubuntu-latest
