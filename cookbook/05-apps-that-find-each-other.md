@@ -129,7 +129,7 @@ The underlying docs, in order of authority:
 |---|---|---|
 | [Neighborhood board](#neighborhood-board) | `announce:publish`, `announce:subscribe`, `storage:hyperbee` | [apps/neighborhood-board](apps/neighborhood-board/README.md) |
 | [Swap shelf](#swap-shelf) | `announce:publish`, `announce:subscribe`, `storage:kv` | [apps/swap-shelf](apps/swap-shelf/README.md) |
-| [Link weather](#link-weather) | `presence` | [apps/link-weather](apps/link-weather/README.md) |
+| [Link weather](#link-weather) | `presence`, `peer:connect` | [apps/link-weather](apps/link-weather/README.md) |
 
 ---
 
@@ -286,19 +286,18 @@ Full source: [apps/swap-shelf/bundle.js](apps/swap-shelf/bundle.js).
 
 ## Link weather
 
-> **Capabilities:** `presence`
+> **Capabilities:** `presence`, `peer:connect`
 
-A dashboard of your interfaces, peers, and quota headroom. The only app in the cookbook that
-tells you the truth about the device it is running on, and the one to open first when
-something is not working.
+A dashboard of your interfaces, peers, rendezvous mechanisms, authenticated connections,
+and quota headroom. The only app in the cookbook that tells you the truth about the device
+it is running on, and the one to open first when something is not working.
 
 ![Link weather showing a device readout](/cookbook/images/05-link-weather.png)
 
-**Screenshot 5.4 — Link weather.** The deployed web sample running against its labelled
-deterministic adapter. The mini-app surface shows Platform `web`, Host `cookbook-fixture`,
-Host API `0.3.0`, Interfaces `web-demo`, three peers, the KV quota, and the advisory that an
-IP-backed link makes bulk transfer plausible. Real device and radio values replace these
-fixture values when the same app runs in a host.
+**Screenshot 5.4 — Link weather.** The deployed sample running against its labelled
+deterministic adapter. The mini-app surface shows host and interface facts, followed by the
+peer mechanisms this host reports. Real devices replace the fixture values and availability
+reasons with their own camera, audio, Bluetooth, network, and policy state.
 
 ### The interesting part
 
@@ -307,6 +306,7 @@ Everything on the screen is read, not assumed.
 ```javascript
 snapshot = await presence.snapshot();
 info = await host.info();
+diagnostics = await peers.diagnostics();
 ```
 
 An app that assumes it has a TCP interface is wrong on a phone in a field. An app that
@@ -323,12 +323,36 @@ interfaces.includes("rnode") || interfaces.includes("ble")
 Any non-trivial app should branch on this. Fetching a two-megabyte file is reasonable over
 IP and antisocial over LoRa, and the only way to know which you are on is to ask.
 
+The pairing section follows the same rule. It does not infer that a web host has Bluetooth
+or that a phone has usable Internet. `peers.diagnostics()` reports every adapter registered
+by the host as `available`, `permission-required`, `unsupported`, `offline`, or
+`policy-disabled`. Link Weather keeps all seven standard mechanism names visible so a host
+configuration gap is distinguishable from a permission prompt.
+
+Invite and join are the two directions of the same host-owned operation:
+
+```javascript
+const handle = await peers.request({
+  purpose: "Inspect and establish a Link Weather peer connection",
+  mechanisms: ["qr"]
+});
+const summary = await peers.info(handle);
+```
+
+Changing `request` to `listen` joins an incoming invitation. Changing the explicit array to
+`"any"` lets the host rank the usable choices. The same calls cover Reticulum, QR, manual,
+audio, Bluetooth, ntfy, and Local Peer-to-Peer; the mini-app never receives camera frames,
+microphone samples, BLE packets, invitation codes, signaling credentials, or raw sockets.
+Trusted host chrome performs permissions, offer/answer exchange, authentication, matching-
+word confirmation, and route setup before returning the opaque handle. `peers.close(handle)`
+disconnects it.
+
 The failure path matters too:
 
 ```javascript
 } catch (error) {
-  // host.info needs host API 0.3.0. An older host answers presence.snapshot only.
-  status = "Partial read — this host may predate host API 0.3.0";
+  // One missing diagnostic surface should not hide the readings that did succeed.
+  status = "Partial read — unavailable: …";
 }
 ```
 
@@ -341,6 +365,11 @@ Degrade rather than die.
 > here supports a real link-quality graph, and the numbers do not update on their own — this
 > app polls because there is no event to subscribe to.
 
+> **Peer mechanisms are rendezvous, not necessarily data planes.** A QR-created connection
+> may use WebRTC; an ntfy-created connection may use a Reticulum gateway. The connected-peer
+> row deliberately shows both `rendezvous` and `dataPlane` rather than calling them the same
+> thing.
+
 Full source: [apps/link-weather/bundle.js](apps/link-weather/bundle.js).
 
 ### Make it yours
@@ -351,6 +380,9 @@ Full source: [apps/link-weather/bundle.js](apps/link-weather/bundle.js).
 - **Turn it into a preflight check.** Have your *other* app call `host.info()` on launch and
   refuse to attempt a large transfer over a radio interface. That is the actual lesson of this
   recipe.
+- **Filter by your real requirement.** Pass only mechanisms acceptable for the task, or use
+  `"any"` when host policy should choose. Do not start several radios concurrently in app
+  code.
 
 ---
 

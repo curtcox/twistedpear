@@ -2,24 +2,28 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-21
+audited: 2026-07-22
 register: none
 -->
 
-A dashboard of your interfaces, peers, and quota headroom, refreshed on demand.
+A dashboard of interfaces, rendezvous mechanisms, authenticated connections, and quota headroom.
 
 Recipe and screenshots: [5. Apps that find each other](../../05-apps-that-find-each-other.md). Sample-app index:
 [Appendix: app index](../../appendix-app-index.md).
 
 ## What it shows
 
-`presence.snapshot` and `host.info` as the only honest source of what this device can do.
+`presence.snapshot`, `host.info`, and `peers.diagnostics` as the only honest source of what
+this device can do. Every host-reported mechanism can be used to invite or join a peer;
+unsupported mechanisms remain visible with the host's reason. Established peers are shown
+using only their opaque handle and coarse authenticated summary, and can be disconnected.
 
 ## Capabilities
 
 | Capability | Note |
 |---|---|
 | `presence` | Standing grant; revocable at any time from the host. |
+| `peer:connect` | Lets trusted host chrome detect, confirm, connect, and disconnect app-scoped peers. |
 
 ## Files
 

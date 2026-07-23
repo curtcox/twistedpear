@@ -20,6 +20,7 @@ import {
   validateManifestCapabilities
 } from "../../packages/miniapp-runtime/dist/index.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
+import { PeerDiscoveryRegistry, PeerSessionManager } from "../../packages/peer-discovery/dist/index.js";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const appsRoot = join(repositoryRoot, "cookbook/apps");
@@ -51,7 +52,8 @@ const API_CAPABILITIES = new Map([
   ["apps.packageProject", "apps:package"],
   ["apps.publish", "apps:publish"],
   ["apps.install", "apps:install"],
-  ["share.", "share:cas"]
+  ["share.", "share:cas"],
+  ["peers.", "peer:connect"]
 ]);
 
 class MemoryStore {
@@ -267,6 +269,32 @@ async function createHost(name = "", hostOptions = {}) {
     "triage-notes": '{"subject":"Water pump inspection","location":"North shelter","severity":"high","action":"Send maintenance crew"}'
   };
   const announceService = hostOptions.announceService ?? new AnnounceService();
+  let peerSessionManager = hostOptions.peerSessionManager;
+  if (name === "link-weather" && peerSessionManager === undefined) {
+    const registry = new PeerDiscoveryRegistry();
+    for (const kind of ["reticulum", "qr", "manual", "audio", "bluetooth", "ntfy", "local-peer-to-peer"]) {
+      registry.register({
+        kind,
+        async availability() { return { state: "available" }; },
+        async *offer() {},
+        async *accept() {},
+        async answer() {},
+        async cancel() {}
+      });
+    }
+    const connected = (adapter, direction) => ({
+      authenticated: true,
+      confirmed: true,
+      fingerprint: `fixture-${direction}-${adapter.kind}`,
+      displayLabel: `Fixture peer (${direction})`,
+      rendezvous: adapter.kind,
+      dataPlane: adapter.kind === "bluetooth" ? "bluetooth" : adapter.kind === "reticulum" ? "reticulum" : "webrtc"
+    });
+    peerSessionManager = new PeerSessionManager(registry, {
+      async request(adapter) { return connected(adapter, "invite"); },
+      async listen(adapter) { return connected(adapter, "join"); }
+    });
+  }
   if (name === "app-relay") {
     await announceService.publish(
       "publisher-alpha",
@@ -308,6 +336,7 @@ async function createHost(name = "", hostOptions = {}) {
         : null
     },
     confirmationChannel: { confirm: async () => ({ approved: true }) },
+    peerSessionManager,
     appsBackend: {
       package: async () => ({ packageHash: "cookbook-package", size: 3_712, t256: fakeT256 }),
       publish: async (_appId, request) => ({ t256: request.t256, driveKey: "cookbook-drive", version: "1.0.0" }),
@@ -410,7 +439,15 @@ const behaviorScenarios = {
   },
   "link-weather": async (host) => {
     await host.handleUiEvent("refresh", "lw.refresh");
-    return "Read at";
+    await settle();
+    await waitForText(host, "Local peer-to-peer");
+    expect(findNode(host.snapshot().widgetTree, "invite-manual"), treeText(host.snapshot().widgetTree)).toBeDefined();
+    await host.handleUiEvent("invite-manual", "lw.invite.manual");
+    await waitForText(host, "Connected to Fixture peer (invite) via manual");
+    await host.handleUiEvent("disconnect-0", "lw.disconnect.0");
+    await waitForText(host, "Disconnected Fixture peer (invite) (manual)");
+    await host.handleUiEvent("join-qr", "lw.join.qr");
+    return "Connected to Fixture peer (join) via qr";
   },
   "neighborhood-board": async (host) => {
     await host.handleUiEvent("draft", "nb.draft", "Water at the school entrance");

@@ -49,7 +49,8 @@ const sdk = {
     search: (request) => callHost("ai", "search", request, "ai:embed")
   },
   apps: { packageProject: (projectPrefix, manifest) => callHost("apps", "package", { projectPrefix, manifest }, "apps:package"), publish: (t256) => callHost("apps", "publish", { t256 }, "apps:publish"), install: (t256) => callHost("apps", "install", { t256 }, "apps:install"), preview: (projectPrefix, manifest, grants) => callHost("apps", "preview", { projectPrefix, manifest, grants }, "apps:preview"), stopPreview: () => callHost("apps", "stopPreview", undefined, "apps:preview") },
-  share: { put: (content) => callHost("share.cas", "put", { content }, "share:cas"), get: (t256) => callHost("share.cas", "get", { t256 }, "share:cas").then((r) => r.content) }
+  share: { put: (content) => callHost("share.cas", "put", { content }, "share:cas"), get: (t256) => callHost("share.cas", "get", { t256 }, "share:cas").then((r) => r.content) },
+  peers: { request: (options) => callHost("peers", "request", options, "peer:connect"), listen: (options) => callHost("peers", "listen", options, "peer:connect"), diagnostics: () => callHost("peers", "diagnostics", {}, "peer:connect"), info: (handle) => callHost("peers", "info", { handle }, "peer:connect"), close: (handle) => callHost("peers", "close", { handle }, "peer:connect").then(() => undefined) }
 };
 parentPort.on("message", (message) => {
   if (!alive) return;
