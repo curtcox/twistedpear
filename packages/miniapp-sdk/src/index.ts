@@ -14,3 +14,4 @@ export * as apps from "./apps.js";
 export * as share from "./share.js";
 export * as peers from "./peers.js";
 export * as relay from "./relay.js";
+export * as device from "./device.js";

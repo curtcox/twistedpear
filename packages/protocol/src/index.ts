@@ -28,6 +28,35 @@ export {
   type GrantPhase
 } from "./grant-machine.js";
 export {
+  DEVICE_CLASS_REGISTRY,
+  DEVICE_REGISTRY_HOST_API,
+  defaultTierForClass,
+  deviceCapabilityId,
+  deviceClassById,
+  type DeviceBandwidthProfile,
+  type DeviceClassDefaults,
+  type DeviceClassEntry,
+  type DeviceConsentClass,
+  type DeviceRole,
+  type DeviceTierDefinition
+} from "./device-registry.gen.js";
+export {
+  deviceSessionMachine,
+  initialDeviceSessionState,
+  isDeviceSessionLive,
+  stepDeviceSession,
+  type DeviceSessionEvent,
+  type DeviceSessionPhase,
+  type DeviceSessionState
+} from "./device-session.js";
+export {
+  quantizeAmbientLux,
+  quantizeLocationCoarse,
+  type AmbientLuxBucket,
+  type CoarseLocationFix,
+  type PreciseLocationFix
+} from "./device-quantize.js";
+export {
   escrowMachine,
   escrowSafetyViolation,
   initialEscrowState,

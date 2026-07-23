@@ -35,6 +35,13 @@ import { validateWidgetTree } from "./ui/validate.js";
 import { PeerBrokerService, PeerServiceError, type PeerRequestPayload } from "./services/peers.js";
 import type { PeerHandle, PeerSessionManager } from "@twistedpear/peer-discovery";
 import { RelayBrokerService, RelayBrokerServiceError, type RelayService } from "./services/relay.js";
+import {
+  DeviceBrokerService,
+  DeviceBrokerServiceError,
+  type DeviceOpenRequest,
+  type DeviceSessionHandle
+} from "./services/device.js";
+import type { DeviceManager } from "./device-manager.js";
 
 export interface LaunchManifest {
   readonly name: string;
@@ -88,6 +95,8 @@ export interface MiniappHostOptions {
   readonly peerSessionManager?: PeerSessionManager;
   /** Host-owned relay/interface configuration service. */
   readonly relayService?: RelayService;
+  /** Host-owned device manager (inventory, sessions, drivers). */
+  readonly deviceManager?: DeviceManager;
   /** Deterministic clock used by simulation and replay adapters. */
   readonly now?: () => number;
   /** Independent audit sink used by production-backed simulation projections. */
@@ -148,6 +157,7 @@ export class MiniappHost {
   private readonly appsService: AppsService | null;
   private readonly peerService: PeerBrokerService | null;
   private readonly relayService: RelayBrokerService | null;
+  private readonly deviceService: DeviceBrokerService | null;
   readonly workspace: WorkspaceService;
 
   private active: ActiveApp | null = null;
@@ -196,6 +206,7 @@ export class MiniappHost {
       options.appsBackend === undefined ? null : new AppsService(options.appsBackend, options.confirmationChannel);
     this.peerService = options.peerSessionManager === undefined ? null : new PeerBrokerService(options.peerSessionManager);
     this.relayService = options.relayService === undefined ? null : new RelayBrokerService(options.relayService);
+    this.deviceService = options.deviceManager === undefined ? null : new DeviceBrokerService(options.deviceManager);
     this.workspace = new WorkspaceService(options.kvBackend, options.workspaceLimits);
     this.registerHandlers();
   }
@@ -231,6 +242,9 @@ export class MiniappHost {
   async revokeGrant(appId: string, publisherPublicKey: string, capability: string): Promise<GrantRecord | null> {
     if (capability === "peer:connect" && this.active?.manifest.name === appId && this.active.manifest.publisherPublicKey === publisherPublicKey) {
       await this.peerService?.closeRuntime(appId, this.active.runtimeId);
+    }
+    if (capability.startsWith("device:") && this.active?.manifest.name === appId) {
+      this.deviceService?.closeApp(appId);
     }
     return this.options.grantStore.revoke(appId, publisherPublicKey, capability as never, this.now());
   }
@@ -341,6 +355,7 @@ export class MiniappHost {
       return this.snapshot();
     }
 
+    this.deviceService?.closeApp(this.active.manifest.name);
     const snapshot = await this.active.lifecycle.suspend(reason);
     this.options.callbacks?.onLifecycle?.(snapshot);
     return this.snapshot();
@@ -363,6 +378,7 @@ export class MiniappHost {
 
     const appId = this.active.manifest.name;
     await this.peerService?.closeRuntime(appId, this.active.runtimeId);
+    this.deviceService?.closeApp(appId);
     await this.cancelAiStreams(appId);
     const snapshot = await this.active.lifecycle.stop(reason);
     this.logActive(appId, `stopped (${reason})`);
@@ -380,6 +396,7 @@ export class MiniappHost {
     if (snapshot.state === "crashed") {
       await this.cancelAiStreams(snapshot.appId);
       await this.peerService?.closeRuntime(snapshot.appId, this.active.runtimeId);
+      this.deviceService?.closeApp(snapshot.appId);
       this.logActive(snapshot.appId, `crashed (${snapshot.reason ?? "watchdog"})`);
       this.active = null;
       this.options.callbacks?.onLifecycle?.(snapshot);
@@ -736,6 +753,28 @@ export class MiniappHost {
     this.broker.register("relay", "status", "relay:read", async (_request, context) => relay().status(context.appId));
     this.broker.register("relay", "diagnostics", "relay:read", async (_request, context) => relay().diagnostics(context.appId));
 
+    const device = () => {
+      if (this.deviceService === null) {
+        throw new DeviceBrokerServiceError("DEVICE_UNCONFIGURED", "Device I/O is not configured on this host");
+      }
+      return this.deviceService;
+    };
+    // inventory/diagnostics: no capability. open/close/read: capability checked inside DeviceManager.
+    this.broker.register("device", "inventory", null, async (_request, context) => device().inventory(context.appId));
+    this.broker.register("device", "diagnostics", null, async (_request, context) => device().diagnostics(context.appId));
+    this.broker.register("device", "open", null, async (request, context) =>
+      device().open(
+        context.appId,
+        context.publisherPublicKey,
+        context.declaredCapabilities,
+        context.grantedCapabilities,
+        request.payload as DeviceOpenRequest
+      ));
+    this.broker.register("device", "close", null, async (request, context) =>
+      device().close(context.appId, request.payload as { handle: DeviceSessionHandle }));
+    this.broker.register("device", "read", null, async (request, context) =>
+      device().read(context.appId, request.payload as { handle: DeviceSessionHandle }));
+
     this.broker.register("presence", "snapshot", "presence", async () => {
       if (this.presenceService === null) {
         return {
@@ -750,10 +789,20 @@ export class MiniappHost {
 
     this.broker.register("host", "info", "presence", async (_request, context): Promise<HostInfo> => {
       const info = await this.hostInfoService.info();
+      const devices =
+        info.devices ??
+        (this.deviceService === null
+          ? undefined
+          : (await this.deviceService.inventory(context.appId)).map((entry) => ({
+              class: entry.class,
+              availability: entry.availability,
+              tiers: entry.tiers
+            })));
       return {
         ...info,
         hostApiVersion: info.hostApiVersion || HOST_API_VERSION,
-        grantedCapabilities: [...context.grantedCapabilities]
+        grantedCapabilities: [...context.grantedCapabilities],
+        ...(devices !== undefined ? { devices } : {})
       };
     });
   }

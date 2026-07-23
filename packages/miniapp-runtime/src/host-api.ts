@@ -1,4 +1,4 @@
-export const HOST_API_VERSION = "0.9.0";
+export const HOST_API_VERSION = "0.10.0";
 
 export interface HostApiChangelogEntry {
   readonly version: string;
@@ -39,7 +39,11 @@ export const HOST_API_CHANGELOG: ReadonlyArray<HostApiChangelogEntry> = [
     note: "peer:connect and the peers SDK add host-owned, app-scoped peer pairing and opaque handles."
   },
   {
-    version: HOST_API_VERSION,
+    version: "0.9.0",
     note: "relay:configure and relay:read add host-owned control of relay mode, interface direction, and per-interface telemetry."
+  },
+  {
+    version: HOST_API_VERSION,
+    note: "device:* capabilities, device inventory/diagnostics/open/close/read, and host.info() device inventory (location:coarse and ambient-light end-to-end)."
   }
 ];

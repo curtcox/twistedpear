@@ -12,6 +12,10 @@ import {
   type GrantHostState,
   type GrantLifecycleState
 } from "@twistedpear/protocol";
+import {
+  DEVICE_CAPABILITY_DEFINITIONS,
+  type DeviceCapability
+} from "./device-capabilities.gen.js";
 
 export type MiniappCapability =
   | "identity"
@@ -33,14 +37,15 @@ export type MiniappCapability =
   | "share:cas"
   | "peer:connect"
   | "relay:configure"
-  | "relay:read";
+  | "relay:read"
+  | DeviceCapability;
 
 export interface CapabilityDefinition {
   readonly id: MiniappCapability;
   readonly description: string;
 }
 
-export const CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
+const CORE_CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
   { id: "identity", description: "Use an app-scoped identity for signing and addressing." },
   { id: "presence", description: "Read coarse peer/interface presence and host info." },
   { id: "announce:subscribe", description: "Receive announces in the app namespace." },
@@ -61,6 +66,14 @@ export const CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
   { id: "peer:connect", description: "Ask trusted host chrome to find, confirm, and connect an app-scoped peer." },
   { id: "relay:configure", description: "Enable, disable, or reconfigure host relay interfaces and relay mode (ask each time)." },
   { id: "relay:read", description: "Read host relay mode, interface status, and diagnostics." }
+];
+
+export const CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
+  ...CORE_CAPABILITY_DEFINITIONS,
+  ...DEVICE_CAPABILITY_DEFINITIONS.map((entry) => ({
+    id: entry.id as MiniappCapability,
+    description: entry.description
+  }))
 ];
 
 const CAPABILITY_IDS = new Set<string>(CAPABILITY_DEFINITIONS.map((definition) => definition.id));

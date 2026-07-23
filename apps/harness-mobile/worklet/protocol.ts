@@ -46,7 +46,7 @@ export interface CapabilityGrantView {
   readonly granted: boolean;
 }
 
-export type ConfirmationKind = "package" | "publish" | "install" | "preview" | "trust-import";
+export type ConfirmationKind = "package" | "publish" | "install" | "preview" | "trust-import" | "device-session" | "device-stream" | "device-remote-grant";
 
 export interface HostConfirmationRequestView {
   readonly token: string;

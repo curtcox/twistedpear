@@ -91,6 +91,7 @@ TwistedPear-authored; the app platform seen by mini-apps and renderers.
 | [SPEC-PRESENT](spec-present/spec.md) | Layout and styling semantics, separate from vocabulary | stub |
 | [SPEC-BIND-LOOPBACK](spec-bind-loopback/spec.md) | In-memory message substrate binding | **normative** |
 | [SPEC-CHROME](spec-chrome/spec.md) | Host confirmations, grant screens, draw-over rules | **normative** (R2/R4/R5/R6; R1/R3 informative) |
+| [SPEC-DEVICE](spec-device/spec.md) | Device-class registry, tiers, session lifecycle | stub |
 
 ## Exemplar
 

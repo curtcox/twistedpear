@@ -22,6 +22,12 @@ export interface HostInfo {
   readonly quotas: HostQuotaSnapshot;
   /** Capabilities granted to the calling app at install (HOST_API 0.4.0+). */
   readonly grantedCapabilities?: ReadonlyArray<string>;
+  /** Device-class inventory for this host (HOST_API 0.10.0+). */
+  readonly devices?: ReadonlyArray<{
+    readonly class: string;
+    readonly availability: string;
+    readonly tiers: ReadonlyArray<string>;
+  }>;
 }
 
 export interface HostInfoBackend {

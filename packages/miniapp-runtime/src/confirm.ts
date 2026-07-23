@@ -1,4 +1,12 @@
-export type ConfirmationKind = "package" | "publish" | "install" | "preview" | "trust-import";
+export type ConfirmationKind =
+  | "package"
+  | "publish"
+  | "install"
+  | "preview"
+  | "trust-import"
+  | "device-session"
+  | "device-stream"
+  | "device-remote-grant";
 
 export interface ConfirmationRequest {
   readonly token: string;

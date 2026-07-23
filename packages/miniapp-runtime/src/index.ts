@@ -118,6 +118,32 @@ export { PeerBrokerService, PeerServiceError, DEFAULT_PEER_TIMEOUT_MS, MAX_PEER_
 export { MemoryAnnounceTransport, TransportBackedAnnounceService } from "./services/transport-announce.js";
 export type { AnnounceTransport } from "./services/transport-announce.js";
 export type { PeerRequestPayload } from "./services/peers.js";
+export {
+  DeviceBrokerService,
+  DeviceBrokerServiceError,
+  DeviceError,
+  DeviceManager
+} from "./services/device.js";
+export type {
+  DeviceDescriptor,
+  DeviceDiagnostic,
+  DeviceOpenRequest,
+  DeviceSample,
+  DeviceSession,
+  DeviceSessionHandle
+} from "./services/device.js";
+export {
+  assertDeviceCapabilityAllowed,
+  createSimulatedAmbientLightDriver,
+  createSimulatedLocationDriver
+} from "./device-manager.js";
+export type {
+  DeviceAvailability,
+  DeviceDriver,
+  DeviceManagerOptions
+} from "./device-manager.js";
+export { DEVICE_CAPABILITY_DEFINITIONS } from "./device-capabilities.gen.js";
+export type { DeviceCapability, DeviceCapabilityDefinition } from "./device-capabilities.gen.js";
 export { ProductionCapabilityAdapter } from "./simulation-adapter.js";
 export type { ProductionCapabilityObservation } from "./simulation-adapter.js";
 export { BearerReplayPolicy, FederationPolicy, KeySharePolicy } from "./security-policies.js";

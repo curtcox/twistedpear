@@ -54,7 +54,7 @@ These items are explicitly outside the release exit criteria.
 | BLE and WebSocket spec community review | Drafts and publication checklist are ready; submission is a manual community step | [Upstream publication](docs/upstream-publication.md) |
 | Reader-guide capture completion | 47 of 106 images are real desktop/browser host/runtime captures; exact remaining filenames and blockers are recorded per guide | [User guide](guide/images/README.md), [author guide](authors/images/README.md), [cookbook](cookbook/images/README.md) |
 | Unified peer discovery and connection | Host announces are still process-local; apps have no platform-owned QR, manual, audio, Bluetooth, ntfy, WebRTC-signaling, or future LP2P pairing service | [Local peer discovery and connection plan](docs/local-peer-discovery-plan.md) |
-| Device I/O and sensors for mini-apps | No capability, registry, or SDK surface exists; tiered access plan is complete | [Device I/O plan](docs/device-io-plan.md) |
+| Device I/O and sensors for mini-apps | Phase 1 foundation landed: registry, Device Manager, `device` SDK (`inventory`/`diagnostics`/`open`/`close`/`read`), `HOST_API` 0.10.0; `location:coarse` and `ambient-light` end-to-end via simulated drivers. Remaining phases (derived sensors, actuators, raw sidecar, streaming, remote) are planned | [Device I/O plan](docs/device-io-plan.md), [SPEC-DEVICE](specs/spec-device/spec.md) |
 
 Hardware measurements, Apple entitlement/notarization work, real-LAN checks, Windows
 verification, and device-specific soak criteria belong only in
