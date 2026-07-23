@@ -103,6 +103,10 @@ export async function setPolicy(policy: RelayPolicyMatrix): Promise<void> {
   await relayCall("setPolicy", { policy }, "relay:configure");
 }
 
+export async function list(): Promise<ReadonlyArray<InterfaceStatus>> {
+  return relayCall("list", {}, "relay:read");
+}
+
 export async function status(): Promise<RelayStatus> {
   return relayCall("status", {}, "relay:read");
 }

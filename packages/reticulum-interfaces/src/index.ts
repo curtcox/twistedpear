@@ -106,6 +106,30 @@ export {
 } from "./i2p.js";
 
 export {
+  OPTICAL_CHUNK_PAYLOAD_BYTES,
+  OPTICAL_DEFAULT_BITRATE,
+  OPTICAL_INTERFACE_MTU,
+  OpticalInterface,
+  createOpticalReassemblyState,
+  reassembleOpticalChunk,
+  sliceForDisplay,
+  type OpticalChannel,
+  type OpticalInterfaceOptions,
+  type OpticalReassemblyState
+} from "./optical/interface.js";
+export { SimulatedOpticalChannel, type SimulatedOpticalChannelOptions } from "./optical/sim.js";
+
+export {
+  ACOUSTIC_DEFAULT_BITRATE,
+  ACOUSTIC_INTERFACE_MTU,
+  AcousticInterface,
+  type AcousticBand,
+  type AcousticChannel,
+  type AcousticInterfaceOptions
+} from "./acoustic/interface.js";
+export { SimulatedAcousticChannel, type SimulatedAcousticChannelOptions } from "./acoustic/sim.js";
+
+export {
   DEFAULT_INTERFACE_BITRATES,
   DEFAULT_INTERFACE_PRIORITY,
   InterfaceKind,

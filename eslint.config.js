@@ -40,6 +40,10 @@ const adapterIgnores = [
   "packages/reticulum-interfaces/src/i2p.ts",
   "packages/reticulum-interfaces/src/ble/interface.ts",
   "packages/reticulum-interfaces/src/ble/sim.ts",
+  "packages/reticulum-interfaces/src/optical/interface.ts",
+  "packages/reticulum-interfaces/src/optical/sim.ts",
+  "packages/reticulum-interfaces/src/acoustic/interface.ts",
+  "packages/reticulum-interfaces/src/acoustic/sim.ts",
   "packages/reticulum-interfaces/src/rnode/interface.ts",
   "**/dist/**",
   "**/node_modules/**"

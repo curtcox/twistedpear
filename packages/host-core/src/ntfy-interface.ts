@@ -115,6 +115,8 @@ export class NtfyPacketInterface extends RawPacketInterface {
         await this.pollOnce();
       } catch (error) {
         if (this.isClosed) return;
+      }
+      if (!this.isClosed) {
         await this.sleep(this.pollIntervalMs);
       }
     }
@@ -176,6 +178,12 @@ export class NtfyPacketInterface extends RawPacketInterface {
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => {
+      const timer = setTimeout(resolve, ms);
+      this.abortController?.signal.addEventListener("abort", () => {
+        clearTimeout(timer);
+        resolve();
+      }, { once: true });
+    });
   }
 }

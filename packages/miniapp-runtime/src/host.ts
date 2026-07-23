@@ -732,6 +732,7 @@ export class MiniappHost {
       relay().configure(context.appId, request.payload as { kind: import("./services/relay.js").RelayInterfaceKind; patch: Record<string, unknown> }));
     this.broker.register("relay", "setPolicy", "relay:configure", async (request, context) =>
       relay().setPolicy(context.appId, request.payload as { policy: import("./services/relay.js").RelayPolicyMatrix }));
+    this.broker.register("relay", "list", "relay:read", async (_request, context) => relay().list(context.appId));
     this.broker.register("relay", "status", "relay:read", async (_request, context) => relay().status(context.appId));
     this.broker.register("relay", "diagnostics", "relay:read", async (_request, context) => relay().diagnostics(context.appId));
 

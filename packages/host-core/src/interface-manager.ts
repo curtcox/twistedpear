@@ -11,9 +11,12 @@ import {
   AutoInterface,
   BonjourDiscoveryProvider,
   BleInterface,
+  OpticalInterface,
+  AcousticInterface,
   DEFAULT_INTERFACE_BITRATES,
   inferInterfaceKind
 } from "@twistedpear/reticulum-interfaces";
+import type { OpticalChannel, AcousticChannel } from "@twistedpear/reticulum-interfaces";
 import { createMdnsBonjourBridge } from "@twistedpear/reticulum-interfaces/bonjour-mdns";
 import type { BlePipe } from "@twistedpear/reticulum-interfaces";
 import type {
@@ -44,17 +47,7 @@ export interface InterfaceEffectFactories {
 
 const EFFECT_KINDS: ReadonlyArray<RelayInterfaceKind> = ["bluetooth", "optical", "acoustic"];
 
-export interface OpticalChannel {
-  readonly display: (frames: ReadonlyArray<Uint8Array>) => Promise<void>;
-  readonly scan: () => AsyncIterable<Uint8Array>;
-  readonly close: () => Promise<void>;
-}
-
-export interface AcousticChannel {
-  readonly transmit: (frames: ReadonlyArray<Uint8Array>) => Promise<void>;
-  readonly receive: () => AsyncIterable<Uint8Array>;
-  readonly close: () => Promise<void>;
-}
+export type { OpticalChannel, AcousticChannel } from "@twistedpear/reticulum-interfaces";
 
 export interface InterfaceManagerOptions {
   readonly reticulum: Reticulum;
@@ -517,21 +510,40 @@ export class InterfaceManager {
   }
 
   private async createOpticalInterface(
-    _config: OpticalInterfaceConfig,
-    _incoming: boolean,
-    _outgoing: boolean
+    config: OpticalInterfaceConfig,
+    incoming: boolean,
+    outgoing: boolean
   ): Promise<PacketInterface | null> {
-    // TODO: implement optical packet interface with QR/color code framing
-    return null;
+    if (this.effects.optical === undefined) return null;
+    const channel = await this.effects.optical.createChannel(config);
+    return OpticalInterface.open(this.provider, {
+      name: "host-optical",
+      provider: this.provider,
+      channel,
+      ...(config.frameRate === undefined ? {} : { frameRate: config.frameRate }),
+      ...(config.colorCodes === undefined ? {} : { colorCodes: config.colorCodes }),
+      ...(config.bitrateHint === undefined ? {} : { bitrate: config.bitrateHint }),
+      incoming,
+      outgoing
+    });
   }
 
   private async createAcousticInterface(
-    _config: AcousticInterfaceConfig,
-    _incoming: boolean,
-    _outgoing: boolean
+    config: AcousticInterfaceConfig,
+    incoming: boolean,
+    outgoing: boolean
   ): Promise<PacketInterface | null> {
-    // TODO: implement acoustic packet interface with audio modem
-    return null;
+    if (this.effects.acoustic === undefined) return null;
+    const channel = await this.effects.acoustic.createChannel(config);
+    return AcousticInterface.open(this.provider, {
+      name: "host-acoustic",
+      provider: this.provider,
+      channel,
+      ...(config.band === undefined ? {} : { band: config.band }),
+      ...(config.bitrateHint === undefined ? {} : { bitrate: config.bitrateHint }),
+      incoming,
+      outgoing
+    });
   }
 
   private async createNtfyInterface(

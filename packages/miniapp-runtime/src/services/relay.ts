@@ -57,6 +57,7 @@ export interface RelayService {
   setDirection(kind: RelayInterfaceKind, direction: InterfaceDirection): Promise<void>;
   configure(kind: RelayInterfaceKind, patch: Record<string, unknown>): Promise<void>;
   setPolicy(policy: RelayPolicyMatrix): Promise<void>;
+  list(): ReadonlyArray<InterfaceStatus>;
   status(): RelayStatus;
   diagnostics(): Promise<ReadonlyArray<InterfaceDiagnostic>>;
 }
@@ -140,6 +141,10 @@ export class RelayBrokerService {
       throw new RelayBrokerServiceError("RELAY_BAD_REQUEST", "Policy must be an object");
     }
     return this.service.setPolicy(payload.policy);
+  }
+
+  list(_appId: string): ReadonlyArray<InterfaceStatus> {
+    return this.service.list();
   }
 
   status(_appId: string): RelayStatus {
