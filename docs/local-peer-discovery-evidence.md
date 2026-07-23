@@ -1,9 +1,9 @@
 # Local peer discovery evidence register
 
 <!-- tp-doc
-lifecycle: active
+lifecycle: live
 audited: 2026-07-22
-register: verification
+register: none
 -->
 
 This register separates reproducible software evidence from trials that require physical

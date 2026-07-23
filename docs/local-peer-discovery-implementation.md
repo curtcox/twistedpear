@@ -1,7 +1,7 @@
 # Local peer discovery implementation status
 
 <!-- tp-doc
-lifecycle: active
+lifecycle: live
 audited: 2026-07-22
 register: software
 -->

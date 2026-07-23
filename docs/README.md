@@ -96,6 +96,12 @@ Protocol implementation details live in the
 [reticulum-ts](../packages/reticulum-ts/README.md) and
 [lxmf-ts](../packages/lxmf-ts/README.md) package READMEs.
 
+## Device I/O and sensors
+
+| Topic | Document |
+|---|---|
+| Expose device sensors and actuators to mini-apps | [Device I/O plan](device-io-plan.md) |
+
 ## Security, quality, and validation
 
 | Topic | Document |
