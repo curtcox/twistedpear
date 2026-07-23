@@ -30,8 +30,27 @@ export {
   type RnsdAttachConfig,
   type TcpInterfaceConfig,
   type WebLeafHostStatus,
-  type WebSocketInterfaceConfig
+  type WebSocketInterfaceConfig,
+  type AcousticInterfaceConfig,
+  type BluetoothInterfaceConfig,
+  type HostRelayConfig,
+  type InterfaceDirection,
+  type InterfaceStatus,
+  type NtfyInterfaceConfig,
+  type OpticalInterfaceConfig,
+  type RelayInterfaceKind,
+  type RelayMode,
+  type RelayPolicyMatrix
 } from "./types.js";
+export {
+  InterfaceManager,
+  type InterfaceDiagnostic,
+  type InterfaceDiagnosticState,
+  type InterfaceEffectFactories,
+  type InterfaceManagerOptions,
+  type ManagedInterface
+} from "./interface-manager.js";
+export { NtfyPacketInterface, type NtfyPacketInterfaceOptions } from "./ntfy-interface.js";
 export {
   ensureDir,
   loadHostConfigFile,

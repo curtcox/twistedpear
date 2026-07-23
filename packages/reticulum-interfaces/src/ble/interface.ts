@@ -20,7 +20,7 @@ export class BleInterface extends RawPacketInterface {
     private readonly provider: CryptoProvider,
     private readonly options: BleInterfaceOptions
   ) {
-    super({ ...options, mtu: options.mtu ?? BLE_INTERFACE_MTU }, true, options.outgoing ?? true);
+    super({ ...options, mtu: options.mtu ?? BLE_INTERFACE_MTU }, options.incoming ?? true, options.outgoing ?? true);
     this.bindPipeEvents();
   }
 

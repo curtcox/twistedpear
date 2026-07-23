@@ -60,11 +60,7 @@ export class TcpClientInterface extends HdlcPacketInterface {
     private readonly options: TcpClientInterfaceOptions,
     private readonly connected: DuplexConnection | null = null
   ) {
-    super(
-      options,
-      true,
-      options.outgoing ?? (connected === null ? options.outgoing ?? true : options.outgoing ?? true)
-    );
+    super(options, options.incoming ?? true, options.outgoing ?? true);
     this.reconnectState = initialInterfaceReconnectState({
       maxTries: options.maxReconnectTries ?? null,
       waitMs: options.reconnectWaitMs ?? TCP_RECONNECT_WAIT_MS,

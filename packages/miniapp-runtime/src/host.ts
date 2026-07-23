@@ -34,6 +34,7 @@ import { diffWidgetTrees, type WidgetPatch } from "./ui/diff.js";
 import { validateWidgetTree } from "./ui/validate.js";
 import { PeerBrokerService, PeerServiceError, type PeerRequestPayload } from "./services/peers.js";
 import type { PeerHandle, PeerSessionManager } from "@twistedpear/peer-discovery";
+import { RelayBrokerService, RelayBrokerServiceError, type RelayService } from "./services/relay.js";
 
 export interface LaunchManifest {
   readonly name: string;
@@ -85,6 +86,8 @@ export interface MiniappHostOptions {
   readonly casBackend?: CasShareBackend;
   /** Host-owned discovery, confirmation, and authenticated route service. */
   readonly peerSessionManager?: PeerSessionManager;
+  /** Host-owned relay/interface configuration service. */
+  readonly relayService?: RelayService;
   /** Deterministic clock used by simulation and replay adapters. */
   readonly now?: () => number;
   /** Independent audit sink used by production-backed simulation projections. */
@@ -144,6 +147,7 @@ export class MiniappHost {
   private readonly aiService: AiService | null;
   private readonly appsService: AppsService | null;
   private readonly peerService: PeerBrokerService | null;
+  private readonly relayService: RelayBrokerService | null;
   readonly workspace: WorkspaceService;
 
   private active: ActiveApp | null = null;
@@ -191,6 +195,7 @@ export class MiniappHost {
     this.appsService =
       options.appsBackend === undefined ? null : new AppsService(options.appsBackend, options.confirmationChannel);
     this.peerService = options.peerSessionManager === undefined ? null : new PeerBrokerService(options.peerSessionManager);
+    this.relayService = options.relayService === undefined ? null : new RelayBrokerService(options.relayService);
     this.workspace = new WorkspaceService(options.kvBackend, options.workspaceLimits);
     this.registerHandlers();
   }
@@ -710,6 +715,25 @@ export class MiniappHost {
       await peers().close(context.appId, runtimeId(context.appId), (request.payload as { handle: PeerHandle }).handle);
       return { closed: true };
     });
+
+    const relay = () => {
+      if (this.relayService === null) throw new RelayBrokerServiceError("RELAY_UNCONFIGURED", "Relay/interface management is not configured on this host");
+      return this.relayService;
+    };
+    this.broker.register("relay", "setMode", "relay:configure", async (request, context) =>
+      relay().setMode(context.appId, request.payload as { mode: "off" | "bridge" | "transport-node" }));
+    this.broker.register("relay", "enable", "relay:configure", async (request, context) =>
+      relay().enable(context.appId, request.payload as { kind: import("./services/relay.js").RelayInterfaceKind; options?: Record<string, unknown> }));
+    this.broker.register("relay", "disable", "relay:configure", async (request, context) =>
+      relay().disable(context.appId, request.payload as { kind: import("./services/relay.js").RelayInterfaceKind }));
+    this.broker.register("relay", "setDirection", "relay:configure", async (request, context) =>
+      relay().setDirection(context.appId, request.payload as { kind: import("./services/relay.js").RelayInterfaceKind; direction: import("./services/relay.js").InterfaceDirection }));
+    this.broker.register("relay", "configure", "relay:configure", async (request, context) =>
+      relay().configure(context.appId, request.payload as { kind: import("./services/relay.js").RelayInterfaceKind; patch: Record<string, unknown> }));
+    this.broker.register("relay", "setPolicy", "relay:configure", async (request, context) =>
+      relay().setPolicy(context.appId, request.payload as { policy: import("./services/relay.js").RelayPolicyMatrix }));
+    this.broker.register("relay", "status", "relay:read", async (_request, context) => relay().status(context.appId));
+    this.broker.register("relay", "diagnostics", "relay:read", async (_request, context) => relay().diagnostics(context.appId));
 
     this.broker.register("presence", "snapshot", "presence", async () => {
       if (this.presenceService === null) {

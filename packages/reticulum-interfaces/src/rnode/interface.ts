@@ -44,7 +44,7 @@ export class RNodeInterface extends RawPacketInterface {
     private readonly provider: CryptoProvider,
     private readonly options: RNodeInterfaceOptions
   ) {
-    super({ ...options, mtu: options.mtu ?? RNODE_INTERFACE_MTU, bitrate: options.bitrate ?? 5_000 }, true, options.outgoing ?? true);
+    super({ ...options, mtu: options.mtu ?? RNODE_INTERFACE_MTU, bitrate: options.bitrate ?? 5_000 }, options.incoming ?? true, options.outgoing ?? true);
     this.bindPipeEvents();
   }
 

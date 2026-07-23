@@ -31,7 +31,9 @@ export type MiniappCapability =
   | "apps:install"
   | "apps:preview"
   | "share:cas"
-  | "peer:connect";
+  | "peer:connect"
+  | "relay:configure"
+  | "relay:read";
 
 export interface CapabilityDefinition {
   readonly id: MiniappCapability;
@@ -56,7 +58,9 @@ export const CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
   { id: "apps:install", description: "Ask the host to install apps from a 256t id (asks each time, with capability review)." },
   { id: "apps:preview", description: "Run a built app in the host's sandboxed dev-preview slot." },
   { id: "share:cas", description: "Store and retrieve bounded content-addressed data shared by 256t id." },
-  { id: "peer:connect", description: "Ask trusted host chrome to find, confirm, and connect an app-scoped peer." }
+  { id: "peer:connect", description: "Ask trusted host chrome to find, confirm, and connect an app-scoped peer." },
+  { id: "relay:configure", description: "Enable, disable, or reconfigure host relay interfaces and relay mode (ask each time)." },
+  { id: "relay:read", description: "Read host relay mode, interface status, and diagnostics." }
 ];
 
 const CAPABILITY_IDS = new Set<string>(CAPABILITY_DEFINITIONS.map((definition) => definition.id));

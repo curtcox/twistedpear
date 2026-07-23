@@ -24,7 +24,7 @@ export class UdpInterface extends RawPacketInterface {
     private readonly runtime: Runtime,
     private readonly options: UdpInterfaceOptions
   ) {
-    super({ ...options, mtu: options.mtu ?? UDP_HW_MTU }, true, options.outgoing ?? true);
+    super({ ...options, mtu: options.mtu ?? UDP_HW_MTU }, options.incoming ?? true, options.outgoing ?? true);
   }
 
   static async open(

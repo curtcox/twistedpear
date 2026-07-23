@@ -131,7 +131,7 @@ export class I2PInterface extends HdlcPacketInterface {
     private readonly provider: CryptoProvider,
     private readonly options: I2PInterfaceOptions
   ) {
-    super({ ...options, mtu: options.mtu ?? 1_000 }, true, options.outgoing ?? true);
+    super({ ...options, mtu: options.mtu ?? 1_000 }, options.incoming ?? true, options.outgoing ?? true);
     this.sam = new SamClient({
       runtime: options.runtime,
       sessionName: options.sessionName ?? `reticulum-ts-${nextSamSessionId++}`,

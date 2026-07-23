@@ -43,6 +43,8 @@ export interface ReticulumInterfaceOptions {
   readonly bitrate?: number | null;
   /** Whether this interface may send outbound packets. Mirrors RNS interface `outgoing` config. */
   readonly outgoing?: boolean;
+  /** Whether this interface may receive inbound packets. Defaults to true for backward compatibility. */
+  readonly incoming?: boolean;
 }
 
 export interface PacketInterface {
@@ -68,7 +70,7 @@ export abstract class AbstractPacketInterface implements PacketInterface {
   private readonly queue = new AsyncPacketQueue();
   private closed = false;
 
-  protected constructor(options: ReticulumInterfaceOptions, incoming = true, outgoing = options.outgoing ?? true) {
+  protected constructor(options: ReticulumInterfaceOptions, incoming = options.incoming ?? true, outgoing = options.outgoing ?? true) {
     const nameStepped = stepInterfaceNameValidWithActions(initialInterfaceNameValidState(), {
       kind: "iface/name-valid-gate",
       name: options.name
@@ -138,6 +140,10 @@ export abstract class AbstractPacketInterface implements PacketInterface {
       closed: this.closed
     });
     if (shouldInterfaceClosedNow(closedStepped.actions)) {
+      return;
+    }
+
+    if (!this.incoming) {
       return;
     }
 

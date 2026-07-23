@@ -6,8 +6,12 @@ export const InterfaceKind = {
   TCP: "tcp",
   UDP: "udp",
   BLE: "ble",
+  BLUETOOTH: "bluetooth",
   RNODE: "rnode",
   I2P: "i2p",
+  OPTICAL: "optical",
+  ACOUSTIC: "acoustic",
+  NTFY: "ntfy",
   UNKNOWN: "unknown"
 } as const;
 
@@ -19,8 +23,12 @@ export const DEFAULT_INTERFACE_PRIORITY: ReadonlyArray<InterfaceKindValue> = [
   InterfaceKind.TCP,
   InterfaceKind.UDP,
   InterfaceKind.BLE,
+  InterfaceKind.BLUETOOTH,
   InterfaceKind.RNODE,
   InterfaceKind.I2P,
+  InterfaceKind.OPTICAL,
+  InterfaceKind.ACOUSTIC,
+  InterfaceKind.NTFY,
   InterfaceKind.UNKNOWN
 ];
 
@@ -30,8 +38,12 @@ export const DEFAULT_INTERFACE_BITRATES: Readonly<Partial<Record<InterfaceKindVa
   [InterfaceKind.TCP]: 1_000_000,
   [InterfaceKind.UDP]: 1_000_000,
   [InterfaceKind.BLE]: 20_000,
+  [InterfaceKind.BLUETOOTH]: 20_000,
   [InterfaceKind.RNODE]: 5_000,
-  [InterfaceKind.I2P]: 100_000
+  [InterfaceKind.I2P]: 100_000,
+  [InterfaceKind.OPTICAL]: 1_000,
+  [InterfaceKind.ACOUSTIC]: 500,
+  [InterfaceKind.NTFY]: 10_000
 };
 
 export interface InterfacePolicyOptions {
@@ -63,7 +75,7 @@ export function inferInterfaceKind(name: string): InterfaceKindValue {
   }
 
   if (normalized.includes("ble") || normalized.includes("bluetooth")) {
-    return InterfaceKind.BLE;
+    return normalized.includes("bluetooth") ? InterfaceKind.BLUETOOTH : InterfaceKind.BLE;
   }
 
   if (normalized.includes("rnode") || normalized.includes("kiss") || normalized.includes("lora")) {
@@ -72,6 +84,18 @@ export function inferInterfaceKind(name: string): InterfaceKindValue {
 
   if (normalized.includes("i2p") || normalized.includes("sam")) {
     return InterfaceKind.I2P;
+  }
+
+  if (normalized.includes("optical") || normalized.includes("qr") || normalized.includes("camera") || normalized.includes("screen")) {
+    return InterfaceKind.OPTICAL;
+  }
+
+  if (normalized.includes("acoustic") || normalized.includes("audio") || normalized.includes("speaker") || normalized.includes("microphone") || normalized.includes("mic")) {
+    return InterfaceKind.ACOUSTIC;
+  }
+
+  if (normalized.includes("ntfy")) {
+    return InterfaceKind.NTFY;
   }
 
   return InterfaceKind.UNKNOWN;

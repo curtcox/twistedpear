@@ -61,7 +61,7 @@ export class WebSocketClientInterface extends RawPacketInterface {
     private readonly options: WebSocketClientInterfaceOptions,
     connected: WebSocketLike | null = null
   ) {
-    super({ ...options, mtu: options.mtu ?? WEBSOCKET_HW_MTU }, true, options.outgoing ?? true);
+    super({ ...options, mtu: options.mtu ?? WEBSOCKET_HW_MTU }, options.incoming ?? true, options.outgoing ?? true);
     this.reconnectState = initialInterfaceReconnectState({
       maxTries: options.maxReconnectTries ?? null,
       waitMs: options.reconnectWaitMs ?? WEBSOCKET_RECONNECT_WAIT_MS,

@@ -69,7 +69,7 @@ class AutoInterfacePeer extends RawPacketInterface implements AutoInterfacePeerH
     onHeard: () => void,
     options: ReticulumInterfaceOptions
   ) {
-    super({ ...options, mtu: options.mtu ?? AUTO_HW_MTU }, true, options.outgoing ?? true);
+    super({ ...options, mtu: options.mtu ?? AUTO_HW_MTU }, options.incoming ?? true, options.outgoing ?? true);
     this.provider = provider;
     this.peerAddress = peerAddress;
     this.sendPacket = sendPacket;
@@ -126,7 +126,7 @@ export class AutoInterface extends RawPacketInterface {
     private readonly runtime: Runtime,
     private readonly options: AutoInterfaceOptions
   ) {
-    super({ ...options, mtu: options.mtu ?? AUTO_HW_MTU, bitrate: options.bitrate ?? AUTO_BITRATE_GUESS }, true, options.outgoing ?? false);
+    super({ ...options, mtu: options.mtu ?? AUTO_HW_MTU, bitrate: options.bitrate ?? AUTO_BITRATE_GUESS }, options.incoming ?? true, options.outgoing ?? false);
     const groupId = options.groupId ?? AUTO_DEFAULT_GROUP_ID;
     this.groupIdBytes = new TextEncoder().encode(groupId);
     this.discoveryPort = options.discoveryPort ?? AUTO_DEFAULT_DISCOVERY_PORT;
