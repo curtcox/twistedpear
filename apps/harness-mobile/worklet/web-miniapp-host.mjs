@@ -18,6 +18,7 @@ import { MiniappHost } from "../../../packages/miniapp-runtime/dist/host.js";
 import { createWebSandboxProxyBackend } from "../../../packages/miniapp-runtime/dist/sandbox/web-proxy.js";
 import { encodeJsonWireValue } from "../../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 import { KvStorageBeeBackend } from "../../../packages/miniapp-runtime/dist/services/storage-bee-kv.js";
+import { createSimulatedDeviceManager } from "../../../packages/miniapp-runtime/dist/device-manager.js";
 import { bytesToHex } from "../../../packages/reticulum-ts/dist/web.js";
 
 function hexToBytes(hex) {
@@ -86,6 +87,28 @@ export function createWebWorkletMiniappHost(options) {
     grantStore,
     kvBackend: kvStore,
     peerSessionManager: options.peerSessionManager,
+    relayService: options.relayService,
+    deviceManager:
+      options.deviceManager ??
+      createSimulatedDeviceManager({
+        now,
+        confirmationChannel:
+          options.requestHostReply === undefined
+            ? undefined
+            : {
+                confirm: async (request) => {
+                  const reply = await options.requestHostReply({
+                    type: "confirm-request",
+                    token: request.token,
+                    kind: request.kind,
+                    appId: request.appId,
+                    publisherPublicKey: request.publisherPublicKey,
+                    summary: request.summary
+                  });
+                  return { approved: reply?.approved === true, detail: reply?.detail };
+                }
+              }
+      }),
     beeBackend,
     confirmationChannel:
       options.requestHostReply === undefined

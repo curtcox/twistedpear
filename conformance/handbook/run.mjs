@@ -19,7 +19,8 @@ import {
   HOST_API_VERSION,
   KvStorageBeeBackend,
   MiniappHost,
-  NodeWorkerSandboxBackend
+  NodeWorkerSandboxBackend,
+  createSimulatedDeviceManager
 } from "../../packages/miniapp-runtime/dist/index.js";
 import {
   assertAppletStatusMatchesExpectation,
@@ -308,6 +309,7 @@ async function main() {
     grantStore: new GrantStore(store),
     kvBackend: store,
     beeBackend: new KvStorageBeeBackend(store),
+    deviceManager: createSimulatedDeviceManager({ now: () => Date.now() }),
     presenceBackend: {
       snapshot: async () => ({ onlineInterfaces: 0, preferredInterface: null, peers: 0 })
     },
@@ -564,6 +566,7 @@ async function main() {
       grantStore: new GrantStore(store),
       kvBackend: store,
       beeBackend: new KvStorageBeeBackend(store),
+      deviceManager: createSimulatedDeviceManager({ now: () => Date.now() }),
       casBackend,
       confirmationChannel: { confirm: async () => ({ approved: true }) },
       aiBackend: {

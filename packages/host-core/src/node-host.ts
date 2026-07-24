@@ -35,6 +35,8 @@ export interface NodeHostSession {
   readonly reticulum: Reticulum;
   readonly identity: Identity;
   readonly moderation: FileModerationStore;
+  /** Owns interface lifecycle and relay policy; implements the mini-app `RelayService` surface. */
+  readonly interfaceManager: InterfaceManager;
   readonly getStatus: () => HostStatus;
   readonly stop: () => Promise<void>;
 }
@@ -75,7 +77,6 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
     }
   });
 
-  let interfaceManager: InterfaceManager | null = null;
   let seederSession: Awaited<ReturnType<typeof startSeederRole>> | null = null;
   let propagationServer: PropagationServer | null = null;
   let statusServer: HttpServer | null = null;
@@ -121,7 +122,7 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
     await propagationDestination.announce();
   }
 
-  interfaceManager = new InterfaceManager({
+  const interfaceManager = new InterfaceManager({
     reticulum,
     provider,
     runtime,
@@ -134,8 +135,8 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
     const interfaces = reticulum.listInterfaces();
     const preferred = selectPreferredInterface(interfaces);
     const linkOnline = interfaces.some((iface) => iface.online);
-    const managerStatus = interfaceManager?.status();
-    const autoIface = managerStatus?.interfaces.find((i: InterfaceStatus) => i.kind === "auto");
+    const managerStatus = interfaceManager.status();
+    const autoIface = managerStatus.interfaces.find((i: InterfaceStatus) => i.kind === "auto");
     return {
       running: true,
       uptimeMs: Date.now() - startedAt,
@@ -148,15 +149,15 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
       linkOnline,
       announcesSeen,
       autoPeers: autoIface && "peerInterfaces" in autoIface ? (autoIface as { peerInterfaces: { length: number } }).peerInterfaces.length : 0,
-      onlineInterfaces: managerStatus?.onlineCount ?? interfaces.filter((iface) => iface.online).length,
+      onlineInterfaces: managerStatus.onlineCount ?? interfaces.filter((iface) => iface.online).length,
       preferredInterface: preferred?.name ?? null,
-      interfaces: managerStatus?.interfaces ?? [],
+      interfaces: managerStatus.interfaces ?? [],
       seedStorageUsedBytes: seederSession?.usedBytes() ?? 0,
       seedStorageQuotaBytes: config.quotas.seedStorageBytes,
       propagationStoreBytes: propagationServer?.stats.usedBytes ?? 0,
       propagationMessageCount: propagationServer?.stats.messageCount ?? 0,
       propagationEvictions: propagationServer?.stats.evictions ?? 0,
-      websocketGatewayPort: interfaceManager?.websocketGatewayPort() ?? null,
+      websocketGatewayPort: interfaceManager.websocketGatewayPort() ?? null,
       pathTableCount: reticulum.pathTableCount,
       activeLinkCount: reticulum.activeLinkCount,
       bandwidthBytesOut: reticulum.bandwidthBytesOut,
@@ -191,6 +192,7 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
     reticulum,
     identity,
     moderation,
+    interfaceManager,
     getStatus: buildStatus,
     async stop() {
       if (statusServer !== null) {
@@ -203,9 +205,7 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
         await seederSession.stop();
       }
 
-      if (interfaceManager !== null) {
-        await interfaceManager.stop();
-      }
+      await interfaceManager.stop();
 
       if (lxmfRouter !== null) {
         // Router shares reticulum lifecycle; no explicit teardown required.

@@ -123,6 +123,38 @@ describe("host-core websocket gateway", () => {
   });
 });
 
+describe("host-core interface manager exposure", () => {
+  it("exposes InterfaceManager with the RelayService method surface", async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), "tp-host-relay-"));
+    try {
+      const session = await createNodeHost({
+        identityPassphrase: "conformance identity passphrase",
+        config: defaultHostConfig({
+          dataDir,
+          roles: { transport: false, seeder: false, propagation: false, attachRnsd: null },
+          relay: { mode: "off" },
+          interfaces: {
+            tcp: { enabled: false, mode: "client" },
+            auto: { enabled: false, multicast: false, bonjour: false },
+            i2p: { enabled: false },
+            rnode: { enabled: false }
+          }
+        })
+      });
+
+      expect(session.interfaceManager).toBeDefined();
+      expect(session.interfaceManager.status().mode).toBe("off");
+      await session.interfaceManager.setMode("transport-node");
+      expect(session.interfaceManager.status().mode).toBe("transport-node");
+      expect(Array.isArray(session.interfaceManager.list())).toBe(true);
+      await expect(session.interfaceManager.diagnostics()).resolves.toEqual(expect.any(Array));
+      await session.stop();
+    } finally {
+      rmSync(dataDir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("host-core propagation persistence", () => {
   it("writes propagation store to disk and reloads it", async () => {
     const dataDir = mkdtempSync(join(tmpdir(), "tp-prop-persist-"));

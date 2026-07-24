@@ -49,3 +49,23 @@ export type {
 export { KvStorageBeeBackend } from "./services/storage-bee-kv.js";
 export { createOpenRouterBackend } from "./services/ai-openrouter.js";
 export type { OpenRouterBackendOptions } from "./services/ai-openrouter.js";
+export {
+  DeviceBrokerService,
+  DeviceBrokerServiceError,
+  DeviceError,
+  DeviceManager
+} from "./services/device.js";
+export type {
+  DeviceDescriptor,
+  DeviceDiagnostic,
+  DeviceOpenRequest,
+  DeviceSample,
+  DeviceSession,
+  DeviceSessionHandle
+} from "./services/device.js";
+export {
+  createSimulatedDeviceDrivers,
+  createSimulatedDeviceManager
+} from "./device-manager.js";
+export type { DeviceManagerOptions } from "./device-manager.js";
+export type { RelayService } from "./services/relay.js";

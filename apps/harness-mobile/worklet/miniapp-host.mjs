@@ -5,6 +5,7 @@ import {
   HOST_API_VERSION,
   MiniappHost,
   MiniappLifecycle,
+  createSimulatedDeviceManager,
   describeCapability,
   isMiniappCapability,
   validateManifestCapabilities
@@ -123,6 +124,16 @@ export function createWorkletMiniappHost(options) {
     grantStore,
     kvBackend: kvStore,
     peerSessionManager: options.peerSessionManager,
+    relayService: options.relayService,
+    deviceManager:
+      options.deviceManager ??
+      createSimulatedDeviceManager({
+        now,
+        confirmationChannel:
+          options.requestUserConfirmation === undefined
+            ? undefined
+            : { confirm: (request) => options.requestUserConfirmation(request) }
+      }),
     beeBackend: {
       descriptor: (appId) => beeBackend.descriptor(appId),
       get: (appId, key) => beeBackend.get(appId, key),

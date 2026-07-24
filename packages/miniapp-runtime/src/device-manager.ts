@@ -1532,3 +1532,40 @@ export function createSimulatedScalarDriver(
     sense: async () => reading
   };
 }
+
+/**
+ * Full simulated driver set for host injection / CI. Real OS drivers replace these
+ * per class when available; shipping hosts may pass this into `DeviceManager` so
+ * the broker path is configured (inventory + capability-gated open/read/write).
+ */
+export function createSimulatedDeviceDrivers(): DeviceDriver[] {
+  return [
+    createSimulatedLocationDriver(),
+    createSimulatedAmbientLightDriver(),
+    createSimulatedCameraDriver(),
+    createSimulatedMicrophoneDriver(),
+    createSimulatedMotionDriver(),
+    createSimulatedTorchDriver(),
+    createSimulatedSpeakerDriver(),
+    createSimulatedTtsDriver(),
+    createSimulatedHapticsDriver(),
+    createSimulatedNfcDriver(),
+    createSimulatedScreenCaptureDriver(),
+    createSimulatedBiometricDriver(),
+    createSimulatedScalarDriver("proximity", { near: false }),
+    createSimulatedScalarDriver("barometer", { hPa: 1013.25 }),
+    createSimulatedScalarDriver("thermometer", { celsius: 22 }),
+    createSimulatedScalarDriver("hygrometer", { relativeHumidity: 45 }),
+    createSimulatedScalarDriver("thermal", { bucket: "nominal" }),
+    createSimulatedScalarDriver("battery", { bucket: "nominal" })
+  ];
+}
+
+export function createSimulatedDeviceManager(
+  options: Omit<DeviceManagerOptions, "drivers"> & { readonly drivers?: ReadonlyArray<DeviceDriver> } = {}
+): DeviceManager {
+  return new DeviceManager({
+    ...options,
+    drivers: options.drivers ?? createSimulatedDeviceDrivers()
+  });
+}

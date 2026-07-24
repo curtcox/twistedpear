@@ -67,13 +67,15 @@ Every cell is **implementation · testing · validation**.
 
 Cross-cutting wiring gaps (affect many rows below):
 
-- Shipping desktop / android / ios / web worklets inject `peerSessionManager` but **do not**
-  pass `relayService` or `deviceManager` into `MiniappHost` → `relay:*` and `device:*` are
-  `stub`/`planned` on those hosts even though the runtime taxonomy is closed.
-- `InterfaceManager` in `host-core` covers relay control for the node engine, but is not yet
-  exposed through the mini-app broker on shipping hosts.
-- Device I/O software (phases 1–7) is unit-tested with **simulated** drivers; no OS sensor
-  drivers are injected in apps yet ([STATUS-SOFTWARE](../STATUS-SOFTWARE.md) Device I/O row).
+- Shipping desktop / android / ios / web worklets inject `peerSessionManager` and a
+  **simulated** `deviceManager`, but do **not** yet pass a live `relayService`
+  (`InterfaceManager`) into `MiniappHost` → `relay:*` remains `stub` on those hosts.
+- `InterfaceManager` is exposed on `NodeHostSession` and is wired through the mini-app
+  broker on node (see CLI wiring test); shipping hosts still hand-wire interfaces
+  outside the manager.
+- Device I/O software (phases 1–7) is unit-tested with **simulated** drivers; shipping
+  hosts inject those sims so the broker path is configured. Real OS sensor drivers and
+  Devices UI remain open ([STATUS-SOFTWARE](../STATUS-SOFTWARE.md) Device I/O row).
 
 ## Core capabilities
 
@@ -97,8 +99,8 @@ Cross-cutting wiring gaps (affect many rows below):
 | `apps:preview` | done · conf · soft | partial · none · pending | partial · none · pending | done · conf · soft | done · conf · soft |
 | `share:cas` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
 | `peer:connect` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · unit · soft |
-| `relay:configure` | stub · unit · pending | stub · unit · pending | stub · unit · pending | n/a · n/a · n/a | partial · unit · soft |
-| `relay:read` | stub · unit · pending | stub · unit · pending | stub · unit · pending | n/a · n/a · n/a | partial · unit · soft |
+| `relay:configure` | stub · unit · pending | stub · unit · pending | stub · unit · pending | n/a · n/a · n/a | done · unit · soft |
+| `relay:read` | stub · unit · pending | stub · unit · pending | stub · unit · pending | n/a · n/a · n/a | done · unit · soft |
 
 ### Core notes
 
@@ -116,45 +118,46 @@ Cross-cutting wiring gaps (affect many rows below):
   [local-peer-discovery-evidence.md](local-peer-discovery-evidence.md). Browser LP2P is
   intentionally unsupported.
 - **`relay:*` on web**: full transport-node relay is out of scope for browser leaves
-  ([LIMITATIONS §8](../LIMITATIONS.md)); cells are `n/a`. On `node`, `InterfaceManager`
-  exists in host-core but is not yet the mini-app broker path → `partial`.
+  ([LIMITATIONS §8](../LIMITATIONS.md)); cells are `n/a`. On `node`, `InterfaceManager` is
+  exposed on `NodeHostSession` and is proven through the mini-app broker
+  (`packages/cli/test/host-relay-device-wiring.test.ts`).
 
 ## Device capabilities
 
 Device ids are generated from [`specs/spec-device/registry/device-classes.json`](../specs/spec-device/registry/device-classes.json).
-Runtime + simulated drivers are unit-tested; shipping hosts do not yet inject
-`deviceManager`.
+Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
+`deviceManager` (broker path configured). Real OS drivers and Devices UI remain open.
 
 | Capability | desktop | android | ios | web | node |
 |---|---|---|---|---|---|
-| `device:location` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:location:precise` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:ambient-light` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:camera` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:camera:frames` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:microphone` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:microphone:pcm` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:motion` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:motion:samples` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:torch` | planned · unit · pending | planned · unit · pending | planned · unit · pending | n/a · n/a · n/a | planned · unit · soft |
-| `device:speaker` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:speaker:pcm` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:tts` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
+| `device:location` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:location:precise` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:ambient-light` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:camera` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:camera:frames` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:microphone` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:microphone:pcm` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:motion` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:motion:samples` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:torch` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
+| `device:speaker` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:speaker:pcm` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:tts` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
 | `device:stt` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:haptics` | planned · unit · pending | planned · unit · pending | planned · unit · pending | n/a · n/a · n/a | planned · unit · soft |
-| `device:battery` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:screen-capture` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:screen-capture:frames` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:nfc` | planned · unit · pending | planned · unit · pending | planned · unit · pending | n/a · n/a · n/a | planned · unit · soft |
-| `device:nfc:apdu` | planned · unit · pending | planned · unit · pending | planned · unit · pending | n/a · n/a · n/a | planned · unit · soft |
-| `device:biometric` | planned · unit · pending | planned · unit · pending | planned · unit · pending | n/a · n/a · n/a | planned · unit · soft |
-| `device:proximity` | planned · unit · pending | planned · unit · pending | planned · unit · pending | n/a · n/a · n/a | planned · unit · soft |
-| `device:barometer` | planned · unit · pending | planned · unit · pending | planned · unit · pending | n/a · n/a · n/a | planned · unit · soft |
-| `device:thermometer` | planned · unit · pending | planned · unit · pending | planned · unit · pending | n/a · n/a · n/a | planned · unit · soft |
-| `device:hygrometer` | planned · unit · pending | planned · unit · pending | planned · unit · pending | n/a · n/a · n/a | planned · unit · soft |
-| `device:thermal` | planned · unit · pending | planned · unit · pending | planned · unit · pending | n/a · n/a · n/a | planned · unit · soft |
-| `device:stream` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
-| `device:remote` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
+| `device:haptics` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
+| `device:battery` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:screen-capture` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:screen-capture:frames` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:nfc` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
+| `device:nfc:apdu` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
+| `device:biometric` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
+| `device:proximity` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
+| `device:barometer` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
+| `device:thermometer` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
+| `device:hygrometer` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
+| `device:thermal` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
+| `device:stream` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:remote` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
 
 ### Device notes
 
@@ -162,8 +165,10 @@ Runtime + simulated drivers are unit-tested; shipping hosts do not yet inject
   the device capability matrix.
 - Peer-discovery audio / camera effects similarly do not satisfy `device:microphone` /
   `device:camera`.
-- No `device:*` id is hardware-validated yet; remaining work is host Devices UI, real drivers,
-  formal SPEC-DEVICE vectors, and hardware evidence ([device-io-plan.md](device-io-plan.md)).
+- `partial` cells mean the broker + simulated drivers are injected; OS drivers, Devices UI,
+  formal SPEC-DEVICE vectors, and hardware evidence remain open
+  ([device-io-plan.md](device-io-plan.md)). `device:stt` has no simulated driver yet.
+- No `device:*` id is hardware-validated yet.
 
 ## Evidence commands
 

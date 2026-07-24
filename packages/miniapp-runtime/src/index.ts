@@ -136,6 +136,8 @@ export {
   assertDeviceCapabilityAllowed,
   createSimulatedAmbientLightDriver,
   createSimulatedCameraDriver,
+  createSimulatedDeviceDrivers,
+  createSimulatedDeviceManager,
   createSimulatedHapticsDriver,
   createSimulatedLocationDriver,
   createSimulatedMicrophoneDriver,

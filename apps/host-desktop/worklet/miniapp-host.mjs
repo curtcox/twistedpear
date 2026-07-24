@@ -4,6 +4,7 @@ import {
   GrantStore,
   HOST_API_VERSION,
   MiniappHost,
+  createSimulatedDeviceManager,
   describeCapability,
   generateConfirmationToken,
   isMiniappCapability,
@@ -206,6 +207,16 @@ export function createWorkletMiniappHost(options) {
       get: async (_appId, t256) => casStore.get(t256)
     },
     peerSessionManager: options.peerSessionManager,
+    relayService: options.relayService,
+    deviceManager:
+      options.deviceManager ??
+      createSimulatedDeviceManager({
+        now,
+        confirmationChannel:
+          options.requestUserConfirmation === undefined
+            ? undefined
+            : { confirm: (request) => options.requestUserConfirmation(request) }
+      }),
     callbacks: {
       onWidgetTree: () => pushRuntime(),
       onLog: (entry) => options.send({ type: "miniapp-log", appId: entry.appId, line: entry.line }),

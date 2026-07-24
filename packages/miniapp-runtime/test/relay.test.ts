@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { CAPABILITY_DEFINITIONS, assertCapabilityAllowed } from "../src/index.js";
+import { CAPABILITY_DEFINITIONS, assertCapabilityAllowed, GrantStore, MemoryKvStoreBackend, MiniappHost } from "../src/index.js";
 import { RelayBrokerService, RelayBrokerServiceError } from "../src/services/relay.js";
-import type { RelayService, RelayStatus, InterfaceDiagnostic } from "../src/services/relay.js";
+import type { RelayService, RelayStatus, InterfaceDiagnostic, InterfaceStatus } from "../src/services/relay.js";
 
 class MockRelayService implements RelayService {
   mode: "off" | "bridge" | "transport-node" = "off";
@@ -25,6 +25,9 @@ class MockRelayService implements RelayService {
   async configure() {}
   async setPolicy(policy: unknown) {
     this.policies.push(policy);
+  }
+  list(): ReadonlyArray<InterfaceStatus> {
+    return [];
   }
   status(): RelayStatus {
     return { mode: this.mode, interfaces: [], onlineCount: 0 };
@@ -87,5 +90,63 @@ describe("RelayBrokerService", () => {
     await expect(broker.setDirection("app", { kind: "ntfy", direction: "sideways" as never })).rejects.toThrow(
       RelayBrokerServiceError
     );
+  });
+});
+
+describe("MiniappHost relay broker path", () => {
+  const unusedBackend = { name: "unused", async spawn() { throw new Error("not used"); } };
+  const manifest = {
+    name: "relay-app",
+    version: "1",
+    entry: "bundle.js",
+    publisherPublicKey: "publisher",
+    capabilities: ["relay:configure", "relay:read"]
+  };
+
+  it("returns RELAY_UNCONFIGURED when relayService is not injected", async () => {
+    const store = new MemoryKvStoreBackend();
+    const host = new MiniappHost({ backend: unusedBackend, grantStore: new GrantStore(store), kvBackend: store });
+    await host.setGrants("relay-app", "publisher", ["relay:read"], ["relay:read"]);
+    const response = await host.dispatchRaw(
+      { id: "1", namespace: "relay", method: "status", payload: {} },
+      manifest,
+      ["relay:read"]
+    );
+    expect(response.error?.code).toBe("RELAY_UNCONFIGURED");
+  });
+
+  it("enforces relay capabilities and forwards to the injected service", async () => {
+    const store = new MemoryKvStoreBackend();
+    const mock = new MockRelayService();
+    const host = new MiniappHost({
+      backend: unusedBackend,
+      grantStore: new GrantStore(store),
+      kvBackend: store,
+      relayService: mock
+    });
+
+    const denied = await host.dispatchRaw(
+      { id: "denied", namespace: "relay", method: "status", payload: {} },
+      manifest,
+      []
+    );
+    expect(denied.error?.code).toBe("CAPABILITY_DENIED");
+
+    await host.setGrants("relay-app", "publisher", ["relay:read", "relay:configure"], ["relay:read", "relay:configure"]);
+    const status = await host.dispatchRaw(
+      { id: "status", namespace: "relay", method: "status", payload: {} },
+      manifest,
+      ["relay:read"]
+    );
+    expect(status.ok).toBe(true);
+    expect(status.result).toMatchObject({ mode: "off", onlineCount: 0 });
+
+    const setMode = await host.dispatchRaw(
+      { id: "mode", namespace: "relay", method: "setMode", payload: { mode: "bridge" } },
+      manifest,
+      ["relay:configure"]
+    );
+    expect(setMode.ok).toBe(true);
+    expect(mock.mode).toBe("bridge");
   });
 });
