@@ -69,3 +69,10 @@ export {
 } from "./device-manager.js";
 export type { DeviceManagerOptions } from "./device-manager.js";
 export type { RelayService } from "./services/relay.js";
+export {
+  createWorkletFlagRelayService
+} from "./services/worklet-flag-relay.js";
+export type {
+  WorkletFlagRelayController,
+  WorkletFlagRelaySnapshot
+} from "./services/worklet-flag-relay.js";

@@ -233,6 +233,14 @@ export type DeviceSample =
       readonly tier: "coarse";
       readonly at: number;
       readonly bucket: "cold" | "nominal" | "warm" | "hot" | "critical" | "unknown";
+    }
+  | {
+      readonly kind: "stt";
+      readonly tier: "transcript";
+      readonly at: number;
+      readonly text: string;
+      readonly isFinal: boolean;
+      readonly confidence?: number;
     };
 
 export interface DeviceActiveIndicator {
@@ -1159,6 +1167,20 @@ export class DeviceManager {
       };
     }
 
+    if (classId === "stt") {
+      const text = String((raw as { text?: string })?.text ?? "");
+      const isFinal = (raw as { isFinal?: boolean })?.isFinal !== false;
+      const confidence = (raw as { confidence?: number })?.confidence;
+      return {
+        kind: "stt",
+        tier: "transcript",
+        at,
+        text,
+        isFinal,
+        ...(typeof confidence === "number" && Number.isFinite(confidence) ? { confidence } : {})
+      };
+    }
+
     throw new DeviceError(
       "DEVICE_UNSUPPORTED",
       `Reading samples for "${classId}" is not implemented in this host API phase.`
@@ -1522,6 +1544,20 @@ export function createSimulatedBiometricDriver(passed = true): DeviceDriver {
   };
 }
 
+export function createSimulatedSttDriver(
+  transcript: { text?: string; isFinal?: boolean; confidence?: number } = {
+    text: "hello twistedpear",
+    isFinal: true,
+    confidence: 0.9
+  }
+): DeviceDriver {
+  return {
+    classId: "stt",
+    availability: () => "available",
+    sense: async () => transcript
+  };
+}
+
 export function createSimulatedScalarDriver(
   classId: "proximity" | "barometer" | "thermometer" | "hygrometer" | "thermal" | "battery",
   reading: unknown
@@ -1552,6 +1588,7 @@ export function createSimulatedDeviceDrivers(): DeviceDriver[] {
     createSimulatedNfcDriver(),
     createSimulatedScreenCaptureDriver(),
     createSimulatedBiometricDriver(),
+    createSimulatedSttDriver(),
     createSimulatedScalarDriver("proximity", { near: false }),
     createSimulatedScalarDriver("barometer", { hPa: 1013.25 }),
     createSimulatedScalarDriver("thermometer", { celsius: 22 }),

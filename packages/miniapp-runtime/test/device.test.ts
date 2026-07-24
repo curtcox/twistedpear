@@ -20,6 +20,7 @@ import {
   createSimulatedRawMotionDriver,
   createSimulatedScreenCaptureDriver,
   createSimulatedSpeakerDriver,
+  createSimulatedSttDriver,
   createSimulatedTorchDriver,
   createSimulatedTtsDriver,
   DeviceStreamSidecar
@@ -698,6 +699,26 @@ describe("DeviceManager Phase 7 hardening", () => {
     const sample = await manager.read("app", session.handle);
     expect(sample).toEqual({ kind: "biometric", tier: "assertion", at: 51_000, passed: true });
     expect(JSON.stringify(sample)).not.toMatch(/template|enroll/i);
+  });
+
+  it("reads simulated STT transcripts", async () => {
+    const manager = new DeviceManager({
+      drivers: [createSimulatedSttDriver({ text: "pairing code one two", isFinal: true, confidence: 0.95 })],
+      now: () => 52_000
+    });
+    const session = await manager.open("app", "pub", ["device:stt"], ["device:stt"], {
+      class: "stt",
+      purpose: "Dictate a message"
+    });
+    const sample = await manager.read("app", session.handle);
+    expect(sample).toEqual({
+      kind: "stt",
+      tier: "transcript",
+      at: 52_000,
+      text: "pairing code one two",
+      isFinal: true,
+      confidence: 0.95
+    });
   });
 
   it("reads scalar sensors added only via the registry path", async () => {

@@ -115,6 +115,13 @@ export type {
 } from "./services/apps.js";
 export type { CasShareBackend } from "./host.js";
 export { PeerBrokerService, PeerServiceError, DEFAULT_PEER_TIMEOUT_MS, MAX_PEER_TIMEOUT_MS, MAX_PEER_PURPOSE_LENGTH } from "./services/peers.js";
+export {
+  createWorkletFlagRelayService
+} from "./services/worklet-flag-relay.js";
+export type {
+  WorkletFlagRelayController,
+  WorkletFlagRelaySnapshot
+} from "./services/worklet-flag-relay.js";
 export { MemoryAnnounceTransport, TransportBackedAnnounceService } from "./services/transport-announce.js";
 export type { AnnounceTransport } from "./services/transport-announce.js";
 export type { PeerRequestPayload } from "./services/peers.js";
@@ -150,6 +157,7 @@ export {
   createSimulatedBiometricDriver,
   createSimulatedScalarDriver,
   createSimulatedSpeakerDriver,
+  createSimulatedSttDriver,
   createSimulatedTorchDriver,
   createSimulatedTtsDriver
 } from "./device-manager.js";

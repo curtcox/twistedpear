@@ -17,7 +17,7 @@ completed evidence stays in [STATUS-COMPLETE.md](../STATUS-COMPLETE.md).
 | Peer implementation types | `HostPlatformId` in [`packages/miniapp-runtime/src/services/host-info.ts`](../packages/miniapp-runtime/src/services/host-info.ts) |
 | Live probe on a running host | Handbook [difference matrix](../apps/handbook/content/part-2-hosts/difference-matrix.md) via `host.info()` |
 
-Current closed set: **20 core + 27 device = 47** capability ids. Current
+Current closed set: **20 core + 28 device = 48** capability ids. Current
 `HOST_API_VERSION` is **0.10.0**.
 
 ## Peer implementation types
@@ -67,15 +67,14 @@ Every cell is **implementation · testing · validation**.
 
 Cross-cutting wiring gaps (affect many rows below):
 
-- Shipping desktop / android / ios / web worklets inject `peerSessionManager` and a
-  **simulated** `deviceManager`, but do **not** yet pass a live `relayService`
-  (`InterfaceManager`) into `MiniappHost` → `relay:*` remains `stub` on those hosts.
-- `InterfaceManager` is exposed on `NodeHostSession` and is wired through the mini-app
-  broker on node (see CLI wiring test); shipping hosts still hand-wire interfaces
-  outside the manager.
-- Device I/O software (phases 1–7) is unit-tested with **simulated** drivers; shipping
-  hosts inject those sims so the broker path is configured. Real OS sensor drivers and
-  Devices UI remain open ([STATUS-SOFTWARE](../STATUS-SOFTWARE.md) Device I/O row).
+- Shipping desktop / android / ios worklets inject `peerSessionManager`, a **simulated**
+  `deviceManager`, and a **flag-plane** `relayService` (`createWorkletFlagRelayService`) that
+  drives the same `applyInterfaceConfig` path as Settings. Full `InterfaceManager` /
+  bridge-mode ownership is still node-only.
+- Web worklets inject simulated `deviceManager` but keep `relay:*` as `n/a` (browser leaves).
+- Device I/O software (phases 1–7) is unit-tested with **simulated** drivers; shipping hosts
+  inject those sims so the broker path is configured. Real OS sensor drivers and Devices UI
+  remain open ([STATUS-SOFTWARE](../STATUS-SOFTWARE.md) Device I/O row).
 
 ## Core capabilities
 
@@ -99,8 +98,8 @@ Cross-cutting wiring gaps (affect many rows below):
 | `apps:preview` | done · conf · soft | partial · none · pending | partial · none · pending | done · conf · soft | done · conf · soft |
 | `share:cas` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
 | `peer:connect` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · unit · soft |
-| `relay:configure` | stub · unit · pending | stub · unit · pending | stub · unit · pending | n/a · n/a · n/a | done · unit · soft |
-| `relay:read` | stub · unit · pending | stub · unit · pending | stub · unit · pending | n/a · n/a · n/a | done · unit · soft |
+| `relay:configure` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | done · unit · soft |
+| `relay:read` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | done · unit · soft |
 
 ### Core notes
 
@@ -119,8 +118,10 @@ Cross-cutting wiring gaps (affect many rows below):
   intentionally unsupported.
 - **`relay:*` on web**: full transport-node relay is out of scope for browser leaves
   ([LIMITATIONS §8](../LIMITATIONS.md)); cells are `n/a`. On `node`, `InterfaceManager` is
-  exposed on `NodeHostSession` and is proven through the mini-app broker
-  (`packages/cli/test/host-relay-device-wiring.test.ts`).
+  exposed on `NodeHostSession` and a focused wiring test proves the mini-app broker path
+  (`packages/cli/test/host-relay-device-wiring.test.ts`). On desktop/android/ios, worklets
+  inject `createWorkletFlagRelayService` over Settings `applyInterfaceConfig` → `partial`
+  (bridge mode / InterfaceManager ownership still open).
 
 ## Device capabilities
 
@@ -143,7 +144,7 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
 | `device:speaker` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
 | `device:speaker:pcm` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
 | `device:tts` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
-| `device:stt` | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · pending | planned · unit · soft |
+| `device:stt` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
 | `device:haptics` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
 | `device:battery` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
 | `device:screen-capture` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
@@ -165,9 +166,9 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
   the device capability matrix.
 - Peer-discovery audio / camera effects similarly do not satisfy `device:microphone` /
   `device:camera`.
-- `partial` cells mean the broker + simulated drivers are injected; OS drivers, Devices UI,
-  formal SPEC-DEVICE vectors, and hardware evidence remain open
-  ([device-io-plan.md](device-io-plan.md)). `device:stt` has no simulated driver yet.
+- `partial` cells mean the broker + simulated drivers are injected (including `stt`); OS
+  drivers, Devices UI, formal SPEC-DEVICE vectors, and hardware evidence remain open
+  ([device-io-plan.md](device-io-plan.md)).
 - No `device:*` id is hardware-validated yet.
 
 ## Evidence commands
@@ -181,6 +182,8 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
 | ios | `npm run test:ios-sim:required`; `npm run test:ios-sim` |
 | Device/runtime (sim) | `npm test -- packages/miniapp-runtime/test/device.test.ts` |
 | Relay taxonomy | `npm test -- packages/miniapp-runtime/test/relay.test.ts` |
+| Worklet flag-plane relay | `npm test -- packages/miniapp-runtime/test/worklet-flag-relay.test.ts` |
+| Node relay/device wiring | `npm test -- packages/cli/test/host-relay-device-wiring.test.ts` |
 | Peer connect | see [local-peer-discovery-implementation.md](local-peer-discovery-implementation.md) |
 
 ## Related documents

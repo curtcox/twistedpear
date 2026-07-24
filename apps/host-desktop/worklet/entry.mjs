@@ -38,7 +38,7 @@ import {
   verifyCasLocator
 } from "../../../packages/cas-256t/dist/index.js";
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
-import { HOST_API_VERSION, generateConfirmationToken, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
+import { HOST_API_VERSION, createWorkletFlagRelayService, generateConfirmationToken, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
 import { decodePeerInvitation } from "../../../packages/protocol/dist/index.js";
 import {
   PropagationServer,
@@ -914,6 +914,34 @@ const transportAnnounceService = {
 
 function ensureMiniappHost() {
   if (miniappHost === null) {
+    const relayService = createWorkletFlagRelayService({
+      initialMode: status.transportEnabled ? "transport-node" : "off",
+      getFlags: () => ({
+        tcpEnabled: status.tcpEnabled,
+        autoEnabled: status.autoEnabled,
+        bleEnabled: status.bleEnabled,
+        rnodeEnabled: status.rnodeEnabled,
+        tcpOnline: tcpIface?.online === true,
+        autoOnline: autoIface?.online === true || status.autoPeers > 0,
+        bleOnline: status.bleConnected === true,
+        rnodeOnline: status.rnodeConnected === true
+      }),
+      setFlags(patch) {
+        if (patch.tcpEnabled !== undefined) status.tcpEnabled = patch.tcpEnabled;
+        if (patch.autoEnabled !== undefined) status.autoEnabled = patch.autoEnabled;
+        if (patch.bleEnabled !== undefined) status.bleEnabled = patch.bleEnabled;
+        if (patch.rnodeEnabled !== undefined) status.rnodeEnabled = patch.rnodeEnabled;
+      },
+      applyInterfaceConfig,
+      setTcpTarget(host, port) {
+        pendingTarget = { targetHost: host, targetPort: port };
+      },
+      setRnodeOptions(options) {
+        if (typeof options.deviceId === "string") pendingRnodeDeviceId = options.deviceId;
+        if (typeof options.portPath === "string") pendingRnodePortPath = options.portPath;
+        if (typeof options.baudRate === "number") pendingRnodeBaudRate = options.baudRate;
+      }
+    });
     miniappHost = createWorkletMiniappHost({
       provider,
       kvStore: runtimeKeyValueStore(),
@@ -947,6 +975,7 @@ function ensureMiniappHost() {
       },
       send,
       peerSessionManager: peerSessionManagerProxy,
+      relayService,
       announceService: transportAnnounceService,
       getPublisherIdentity: () => resolveIdentity(),
       publishArchive: publishArchiveFromWorklet,
