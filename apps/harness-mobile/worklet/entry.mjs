@@ -1330,6 +1330,42 @@ async function handleHostMessage(raw) {
     return;
   }
 
+  if (message.type === "device-list") {
+    try {
+      await ensureMiniappHost().pushDeviceState();
+    } catch (error) {
+      log(`Device list failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "device-set-class-disabled") {
+    try {
+      await ensureMiniappHost().setDeviceClassDisabled(message.classId, message.disabled === true);
+    } catch (error) {
+      log(`Device policy update failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "device-set-remote") {
+    try {
+      await ensureMiniappHost().setRemoteAcquisitionEnabled(message.enabled === true);
+    } catch (error) {
+      log(`Remote acquisition update failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "device-kill-session") {
+    try {
+      await ensureMiniappHost().forceCloseDeviceSession(message.handle);
+    } catch (error) {
+      log(`Device session kill failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
   if (message.type === "set-developer-mode") {
     if (shouldRefuseDeveloperMode(message.enabled)) {
       log("Developer mode refused in store posture variant");

@@ -18,7 +18,7 @@ import { MiniappHost } from "../../../packages/miniapp-runtime/dist/host.js";
 import { createWebSandboxProxyBackend } from "../../../packages/miniapp-runtime/dist/sandbox/web-proxy.js";
 import { encodeJsonWireValue } from "../../../packages/miniapp-runtime/dist/sandbox/json-wire.js";
 import { KvStorageBeeBackend } from "../../../packages/miniapp-runtime/dist/services/storage-bee-kv.js";
-import { createSimulatedDeviceManager } from "../../../packages/miniapp-runtime/dist/device-manager.js";
+import { createHybridDeviceDrivers, createSimulatedDeviceManager } from "../../../packages/miniapp-runtime/dist/device-manager.js";
 import { bytesToHex } from "../../../packages/reticulum-ts/dist/web.js";
 
 function hexToBytes(hex) {
@@ -82,33 +82,100 @@ export function createWebWorkletMiniappHost(options) {
 
   const sandboxController = createProxySandboxController(options.send);
 
+  const confirmationChannel =
+    options.requestHostReply === undefined
+      ? undefined
+      : {
+          confirm: async (request) => {
+            const reply = await options.requestHostReply({
+              type: "confirm-request",
+              token: request.token,
+              kind: request.kind,
+              appId: request.appId,
+              publisherPublicKey: request.publisherPublicKey,
+              summary: request.summary
+            });
+            return { approved: reply?.approved === true, detail: reply?.detail };
+          }
+        };
+  /** @type {import("../../../packages/miniapp-runtime/dist/device-manager.js").DeviceManager} */
+  const deviceManager =
+    options.deviceManager ??
+    createSimulatedDeviceManager({
+      now,
+      confirmationChannel,
+      confirmationEffects:
+        options.requestHostReply === undefined
+          ? undefined
+          : {
+              randomBytes: (length) => {
+                const bytes = new Uint8Array(length);
+                if (typeof globalThis.crypto?.getRandomValues === "function") {
+                  globalThis.crypto.getRandomValues(bytes);
+                } else {
+                  for (let i = 0; i < length; i += 1) bytes[i] = (Math.random() * 256) | 0;
+                }
+                return bytes;
+              },
+              delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+            },
+      onChromeChange: () => {
+        void pushDeviceChromeState();
+      },
+      drivers:
+        options.requestHostReply === undefined
+          ? undefined
+          : createHybridDeviceDrivers(["location", "camera", "microphone"], {
+              availability: async (classId) => {
+                const token = generateConfirmationToken((length) => {
+                  const bytes = new Uint8Array(length);
+                  if (typeof globalThis.crypto?.getRandomValues === "function") {
+                    globalThis.crypto.getRandomValues(bytes);
+                  } else {
+                    for (let i = 0; i < length; i += 1) bytes[i] = (Math.random() * 256) | 0;
+                  }
+                  return bytes;
+                });
+                const reply = await options.requestHostReply(
+                  { type: "device-bridge-request", token, op: "availability", classId },
+                  5_000
+                );
+                return reply?.result ?? "unsupported";
+              },
+              sense: async (classId, senseOptions) => {
+                const token = generateConfirmationToken((length) => {
+                  const bytes = new Uint8Array(length);
+                  if (typeof globalThis.crypto?.getRandomValues === "function") {
+                    globalThis.crypto.getRandomValues(bytes);
+                  } else {
+                    for (let i = 0; i < length; i += 1) bytes[i] = (Math.random() * 256) | 0;
+                  }
+                  return bytes;
+                });
+                const reply = await options.requestHostReply(
+                  {
+                    type: "device-bridge-request",
+                    token,
+                    op: "sense",
+                    classId,
+                    options: senseOptions ?? {}
+                  },
+                  30_000
+                );
+                if (reply === null) throw new Error("Device bridge request timed out");
+                if (reply.error) throw new Error(String(reply.error));
+                return reply.result;
+              }
+            })
+    });
+
   const host = new MiniappHost({
     backend: sandboxController.backend,
     grantStore,
     kvBackend: kvStore,
     peerSessionManager: options.peerSessionManager,
     relayService: options.relayService,
-    deviceManager:
-      options.deviceManager ??
-      createSimulatedDeviceManager({
-        now,
-        confirmationChannel:
-          options.requestHostReply === undefined
-            ? undefined
-            : {
-                confirm: async (request) => {
-                  const reply = await options.requestHostReply({
-                    type: "confirm-request",
-                    token: request.token,
-                    kind: request.kind,
-                    appId: request.appId,
-                    publisherPublicKey: request.publisherPublicKey,
-                    summary: request.summary
-                  });
-                  return { approved: reply?.approved === true, detail: reply?.detail };
-                }
-              }
-      }),
+    deviceManager,
     beeBackend,
     confirmationChannel:
       options.requestHostReply === undefined
@@ -382,6 +449,22 @@ export function createWebWorkletMiniappHost(options) {
     });
   }
 
+  async function pushDeviceChromeState() {
+    const [inventory, diagnostics] = await Promise.all([
+      deviceManager.inventory(),
+      deviceManager.diagnostics()
+    ]);
+    options.send({
+      type: "device-state",
+      inventory,
+      diagnostics,
+      sessions: deviceManager.chromeSessions(),
+      indicators: deviceManager.activeIndicators(),
+      disabledClasses: deviceManager.disabledClasses(),
+      remoteAcquisitionEnabled: deviceManager.isRemoteAcquisitionEnabled()
+    });
+  }
+
   function pushGrants(appId, publisherPublicKey, declaredCapabilities) {
     const declared = new Set(validateManifestCapabilities(declaredCapabilities));
     options.send({
@@ -562,6 +645,25 @@ export function createWebWorkletMiniappHost(options) {
 
     async handleUiEvent(nodeId, event, value) {
       await host.handleUiEvent(nodeId, event, value);
+    },
+
+    async pushDeviceState() {
+      await pushDeviceChromeState();
+    },
+
+    async setDeviceClassDisabled(classId, disabled) {
+      deviceManager.setClassDisabled(classId, disabled === true);
+      await pushDeviceChromeState();
+    },
+
+    async setRemoteAcquisitionEnabled(enabled) {
+      deviceManager.setRemoteAcquisitionEnabled(enabled === true);
+      await pushDeviceChromeState();
+    },
+
+    async forceCloseDeviceSession(handle) {
+      await deviceManager.forceClose(handle);
+      await pushDeviceChromeState();
     },
 
     async handlePreviewUiEvent(nodeId, event, value) {

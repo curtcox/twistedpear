@@ -15,6 +15,7 @@
       <h1>TwistedPear Host</h1>
       <p id="subtitle">Desktop always-on peer</p>
     </header>
+    <aside id="device-active-banner" class="device-active-banner" hidden aria-live="polite"></aside>
     <main>
       <section class="panel">
         <h2>Node status</h2>
@@ -60,6 +61,15 @@
             <button id="trust-show">Show my identity</button>
           </div>
           <div id="trust-identity-view"></div>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Devices &amp; Sensors</h2>
+        <p class="muted">Host policy over device classes. Simulated drivers are injected until real OS drivers land; killing a session stops it immediately.</p>
+        <div class="settings-grid">
+          <label><input type="checkbox" id="device-remote-enabled" /> Allow remote peers to request devices on this host</label>
+          <div id="device-sessions" class="device-sessions"></div>
+          <div id="device-inventory" class="device-inventory"></div>
         </div>
       </section>
       <section class="panel">

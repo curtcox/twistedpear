@@ -159,11 +159,13 @@ export {
   createSimulatedSpeakerDriver,
   createSimulatedSttDriver,
   createSimulatedTorchDriver,
-  createSimulatedTtsDriver
+  createSimulatedTtsDriver,
+  createHybridDeviceDrivers
 } from "./device-manager.js";
 export type {
   DeviceActiveIndicator,
   DeviceAvailability,
+  DeviceChromeSession,
   DeviceCommand,
   DeviceDriver,
   DeviceManagerOptions,
@@ -171,6 +173,15 @@ export type {
   DeviceStreamSession,
   SimulatedActuatorLog
 } from "./device-manager.js";
+export {
+  createHostBridgedDriver,
+  createHostBridgedDrivers
+} from "./drivers/host-bridge.js";
+export type { DeviceHostBridge } from "./drivers/host-bridge.js";
+export {
+  browserDeviceAvailability,
+  browserDeviceSense
+} from "./drivers/browser-effects.js";
 export { DeviceStreamSidecar, DEVICE_STREAM_KIND } from "./device-sidecar.js";
 export type {
   DeviceSidecarDelivery,

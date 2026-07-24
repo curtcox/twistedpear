@@ -63,6 +63,10 @@ body.miniapp-running > main > .panel:not(.miniapp-panel) {
   display: none;
 }
 
+body.miniapp-running > .device-active-banner:not([hidden]) {
+  display: block;
+}
+
 body.miniapp-running > main {
   display: block;
   padding: 0;
@@ -337,3 +341,63 @@ button.danger {
   border-color: #a03442 !important;
   color: white;
 }
+
+.device-active-banner {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: 0.65rem 1.5rem;
+  background: #3a2410;
+  border-bottom: 1px solid #8a5a20;
+  color: #f4e2c4;
+  font-size: 0.9rem;
+}
+
+.device-active-banner ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.device-active-banner .item-row {
+  margin-top: 0.35rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.device-inventory,
+.device-sessions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.device-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) minmax(6rem, auto) auto;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #2a3441;
+  border-radius: 6px;
+  background: #0b1016;
+}
+
+.device-row .device-meta {
+  color: #9aa7b8;
+  font-size: 0.8rem;
+}
+
+.device-availability-available {
+  color: #8fdb9a;
+}
+
+.device-availability-policy-disabled,
+.device-availability-unsupported,
+.device-availability-offline {
+  color: #9aa7b8;
+}
+
+.device-availability-busy,
+.device-availability-permission-required {
+  color: #e0b35a;
+}
+

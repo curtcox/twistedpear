@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-23
+audited: 2026-07-24
 register: none
 -->
 
@@ -68,13 +68,17 @@ Every cell is **implementation · testing · validation**.
 Cross-cutting wiring gaps (affect many rows below):
 
 - Shipping desktop / android / ios worklets inject `peerSessionManager`, a **simulated**
-  `deviceManager`, and a **flag-plane** `relayService` (`createWorkletFlagRelayService`) that
-  drives the same `applyInterfaceConfig` path as Settings. Full `InterfaceManager` /
-  bridge-mode ownership is still node-only.
-- Web worklets inject simulated `deviceManager` but keep `relay:*` as `n/a` (browser leaves).
-- Device I/O software (phases 1–7) is unit-tested with **simulated** drivers; shipping hosts
-  inject those sims so the broker path is configured. Real OS sensor drivers and Devices UI
-  remain open ([STATUS-SOFTWARE](../STATUS-SOFTWARE.md) Device I/O row).
+  `deviceManager` (with host Devices chrome), and a **flag-plane** `relayService`
+  (`createWorkletFlagRelayService`) that drives the same `applyInterfaceConfig` path as
+  Settings. Full `InterfaceManager` / bridge-mode ownership is still node-only.
+- Desktop and web replace simulated `location` / `camera` / `microphone` drivers with
+  **host-bridged** Chromium/browser effects (`getCurrentPosition` / `getUserMedia`); other
+  device classes remain simulated. Native mobile still uses the full simulated set.
+- Web worklets keep `relay:*` as `n/a` (browser leaves).
+- Device I/O software (phases 1–7) is unit-tested with simulated drivers; Devices UI is
+  wired on all shipping hosts. Remaining: more real OS/Expo drivers, preview surfaces,
+  formal SPEC-DEVICE vectors, and hardware evidence
+  ([STATUS-SOFTWARE](../STATUS-SOFTWARE.md) Device I/O row).
 
 ## Core capabilities
 
@@ -169,9 +173,13 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
   the device capability matrix.
 - Peer-discovery audio / camera effects similarly do not satisfy `device:microphone` /
   `device:camera`.
-- `partial` cells mean the broker + simulated drivers are injected (including `stt`); OS
-  drivers, Devices UI, formal SPEC-DEVICE vectors, and hardware evidence remain open
-  ([device-io-plan.md](device-io-plan.md)).
+- Devices & Sensors host chrome (inventory, policy disable, session kill, remote-acquisition
+  toggle, active-use banner, device confirm titles) is wired on desktop / android / ios / web.
+- Desktop and web bridge `location` / `camera` / `microphone` to real browser/Chromium APIs;
+  other classes (and all classes on native mobile / node) still use simulated drivers.
+- `partial` cells mean the broker path is configured and chrome can manage sessions; remaining
+  OS/Expo drivers, Devices preview surfaces, formal SPEC-DEVICE vectors, and hardware evidence
+  are open ([device-io-plan.md](device-io-plan.md)).
 - No `device:*` id is hardware-validated yet.
 
 ## Evidence commands

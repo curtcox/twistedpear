@@ -4,6 +4,7 @@ import {
   GrantStore,
   HOST_API_VERSION,
   MiniappHost,
+  createHybridDeviceDrivers,
   createSimulatedDeviceManager,
   describeCapability,
   generateConfirmationToken,
@@ -37,6 +38,45 @@ export function createWorkletMiniappHost(options) {
   /** @type {{host: import("../../../packages/miniapp-runtime/dist/worklet.js").MiniappHost, appId: string} | null} */
   let preview = null;
   const beeBackend = new KvStorageBeeBackend(kvStore);
+  const confirmationChannel =
+    options.requestUserConfirmation === undefined
+      ? undefined
+      : { confirm: (request) => options.requestUserConfirmation(request) };
+  const confirmationEffects =
+    options.requestUserConfirmation === undefined
+      ? undefined
+      : {
+          randomBytes: (length) => {
+            const bytes = new Uint8Array(length);
+            if (typeof globalThis.crypto?.getRandomValues === "function") {
+              globalThis.crypto.getRandomValues(bytes);
+            } else {
+              for (let i = 0; i < length; i += 1) bytes[i] = (Math.random() * 256) | 0;
+            }
+            return bytes;
+          },
+          delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+        };
+  const browserDeviceClasses = ["location", "camera", "microphone"];
+  /** @type {import("../../../packages/miniapp-runtime/dist/worklet.js").DeviceManager} */
+  const deviceManager =
+    options.deviceManager ??
+    createSimulatedDeviceManager({
+      now,
+      confirmationChannel,
+      confirmationEffects,
+      onChromeChange: () => {
+        void pushDeviceChromeState();
+      },
+      drivers:
+        typeof options.requestDeviceBridge === "function"
+          ? createHybridDeviceDrivers(browserDeviceClasses, {
+              availability: (classId) => options.requestDeviceBridge({ op: "availability", classId }),
+              sense: (classId, senseOptions) =>
+                options.requestDeviceBridge({ op: "sense", classId, options: senseOptions ?? {} })
+            })
+          : undefined
+    });
 
   const createSandboxBackend = options.createSandboxBackend ?? createBareWorkletSandboxBackend;
   const host = new MiniappHost({
@@ -208,15 +248,7 @@ export function createWorkletMiniappHost(options) {
     },
     peerSessionManager: options.peerSessionManager,
     relayService: options.relayService,
-    deviceManager:
-      options.deviceManager ??
-      createSimulatedDeviceManager({
-        now,
-        confirmationChannel:
-          options.requestUserConfirmation === undefined
-            ? undefined
-            : { confirm: (request) => options.requestUserConfirmation(request) }
-      }),
+    deviceManager,
     callbacks: {
       onWidgetTree: () => pushRuntime(),
       onLog: (entry) => options.send({ type: "miniapp-log", appId: entry.appId, line: entry.line }),
@@ -325,6 +357,22 @@ export function createWorkletMiniappHost(options) {
         widgetTree: snapshot.widgetTree,
         devBadge
       }
+    });
+  }
+
+  async function pushDeviceChromeState() {
+    const [inventory, diagnostics] = await Promise.all([
+      deviceManager.inventory(),
+      deviceManager.diagnostics()
+    ]);
+    options.send({
+      type: "device-state",
+      inventory,
+      diagnostics,
+      sessions: deviceManager.chromeSessions(),
+      indicators: deviceManager.activeIndicators(),
+      disabledClasses: deviceManager.disabledClasses(),
+      remoteAcquisitionEnabled: deviceManager.isRemoteAcquisitionEnabled()
     });
   }
 
@@ -535,6 +583,25 @@ export function createWorkletMiniappHost(options) {
 
     async handleUiEvent(nodeId, event, value) {
       await host.handleUiEvent(nodeId, event, value);
+    },
+
+    async pushDeviceState() {
+      await pushDeviceChromeState();
+    },
+
+    async setDeviceClassDisabled(classId, disabled) {
+      deviceManager.setClassDisabled(classId, disabled === true);
+      await pushDeviceChromeState();
+    },
+
+    async setRemoteAcquisitionEnabled(enabled) {
+      deviceManager.setRemoteAcquisitionEnabled(enabled === true);
+      await pushDeviceChromeState();
+    },
+
+    async forceCloseDeviceSession(handle) {
+      await deviceManager.forceClose(handle);
+      await pushDeviceChromeState();
     },
 
     async devSideLoad(manifest, bundleBytes) {

@@ -8,6 +8,8 @@ import {
   assertDeviceCapabilityAllowed,
   createSimulatedAmbientLightDriver,
   createSimulatedCameraDriver,
+  createSimulatedDeviceManager,
+  createHybridDeviceDrivers,
   createSimulatedHapticsDriver,
   createSimulatedLocationDriver,
   createSimulatedMicrophoneDriver,
@@ -741,5 +743,91 @@ describe("DeviceManager Phase 7 hardening", () => {
       expect(sample.kind).toBe(classId);
       await manager.close("app", session.handle);
     }
+  });
+});
+
+describe("DeviceManager host chrome", () => {
+  it("disables classes, kills sessions, and exposes chrome handles", async () => {
+    let chromeTicks = 0;
+    const manager = createSimulatedDeviceManager({
+      now: () => 60_000,
+      onChromeChange: () => {
+        chromeTicks += 1;
+      }
+    });
+    const session = await manager.open("app", "pub", ["device:location"], ["device:location"], {
+      class: "location",
+      purpose: "navigate"
+    });
+    expect(manager.chromeSessions()).toEqual([
+      expect.objectContaining({
+        handle: session.handle,
+        classId: "location",
+        appId: "app",
+        purpose: "navigate",
+        destination: "local"
+      })
+    ]);
+    expect(chromeTicks).toBeGreaterThan(0);
+
+    manager.setClassDisabled("location", true);
+    expect(manager.disabledClasses()).toEqual(["location"]);
+    expect(manager.chromeSessions()).toEqual([]);
+    const inventory = await manager.inventory();
+    expect(inventory.find((entry) => entry.class === "location")?.availability).toBe("policy-disabled");
+
+    await expect(
+      manager.open("app", "pub", ["device:location"], ["device:location"], {
+        class: "location",
+        purpose: "navigate again"
+      })
+    ).rejects.toMatchObject({ code: "DEVICE_DENIED" });
+
+    manager.setClassDisabled("location", false);
+    const reopened = await manager.open("app", "pub", ["device:camera"], ["device:camera"], {
+      class: "camera",
+      purpose: "scan"
+    });
+    await manager.forceClose(reopened.handle);
+    expect(manager.chromeSessions()).toEqual([]);
+    expect(manager.activeIndicators()).toEqual([]);
+  });
+
+  it("toggles remote acquisition from host chrome", () => {
+    const manager = createSimulatedDeviceManager({ now: () => 61_000 });
+    expect(manager.isRemoteAcquisitionEnabled()).toBe(false);
+    manager.setRemoteAcquisitionEnabled(true);
+    expect(manager.isRemoteAcquisitionEnabled()).toBe(true);
+    manager.setRemoteAcquisitionEnabled(false);
+    expect(manager.isRemoteAcquisitionEnabled()).toBe(false);
+  });
+
+  it("replaces selected simulated drivers with host-bridged ones", async () => {
+    const senses: string[] = [];
+    const manager = createSimulatedDeviceManager({
+      now: () => 62_000,
+      drivers: createHybridDeviceDrivers(["location"], {
+        availability: () => "available",
+        sense: async (classId) => {
+          senses.push(classId);
+          return { latitude: 1, longitude: 2, accuracyM: 3 };
+        }
+      })
+    });
+    const session = await manager.open("app", "pub", ["device:location:precise"], ["device:location:precise"], {
+      class: "location",
+      tier: "precise",
+      purpose: "bridge"
+    });
+    expect(await manager.read("app", session.handle)).toMatchObject({
+      kind: "location",
+      tier: "precise",
+      latitude: 1,
+      longitude: 2
+    });
+    expect(senses).toEqual(["location"]);
+    expect((await manager.inventory()).find((entry) => entry.class === "camera")?.availability).toBe(
+      "available"
+    );
   });
 });

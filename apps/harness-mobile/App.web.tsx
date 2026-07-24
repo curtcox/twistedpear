@@ -53,7 +53,8 @@ import type {
   TrustedPublisherView,
   WebStorageQuotaView,
   WorkletStatus,
-  WorkletToHostMessage
+  WorkletToHostMessage,
+  type DeviceStateView
 } from "./worklet/protocol";
 
 const DEFAULT_PASSPHRASE = "harness-web-dev";
@@ -173,6 +174,7 @@ export default function App() {
   const [trustIdentityInput, setTrustIdentityInput] = useState("");
   const [trustLabelInput, setTrustLabelInput] = useState("");
   const [hostIdentity256t, setHostIdentity256t] = useState<string | null>(null);
+  const [deviceState, setDeviceState] = useState<DeviceStateView | null>(null);
   const [pwaInstallAvailability, setPwaInstallAvailability] = useState<PwaInstallAvailability>("unavailable");
   const pwaInstallRef = useRef<ReturnType<typeof createPwaInstallController> | null>(null);
   const peerRtcRef = useRef(new Map<string, { pc: any; channel: any; role: "offer" | "answer" }>());
@@ -412,8 +414,42 @@ export default function App() {
         setHostIdentity256t(message.identity256t);
         return;
       }
+
+      if (message.type === "device-state") {
+        setDeviceState({
+          inventory: message.inventory,
+          diagnostics: message.diagnostics,
+          sessions: message.sessions,
+          indicators: message.indicators,
+          disabledClasses: message.disabledClasses,
+          remoteAcquisitionEnabled: message.remoteAcquisitionEnabled
+        });
+        return;
+      }
+
+      if (message.type === "device-bridge-request") {
+        void (async () => {
+          try {
+            const { browserDeviceAvailability, browserDeviceSense } = await import(
+              "../../packages/miniapp-runtime/dist/drivers/browser-effects.js"
+            );
+            const result =
+              message.op === "availability"
+                ? await browserDeviceAvailability(message.classId)
+                : await browserDeviceSense(message.classId, message.options ?? {});
+            sendToWorker({ type: "device-bridge-response", token: message.token, result });
+          } catch (error) {
+            sendToWorker({
+              type: "device-bridge-response",
+              token: message.token,
+              error: error instanceof Error ? error.message : String(error)
+            });
+          }
+        })();
+        return;
+      }
     },
-    [appendLog]
+    [appendLog, sendToWorker]
   );
 
   const ensureBridge = useCallback(() => {
@@ -452,6 +488,7 @@ export default function App() {
     sendToWorker({ type: "refresh-storage" });
     sendToWorker({ type: "list-installed" });
     sendToWorker({ type: "trust-list" });
+    sendToWorker({ type: "device-list" });
   }, [ensureBridge, sendToWorker]);
 
   const performPeerAudio = useCallback(async (request: Extract<WorkletToHostMessage, { type: "peer-audio-transmit" | "peer-audio-receive" }>) => {
@@ -604,6 +641,27 @@ export default function App() {
           }}
         />
       ) : null}
+      {deviceState !== null && deviceState.indicators.length > 0 ? (
+        <View
+          testID="device-active-banner"
+          style={[styles.deviceActiveBanner, status.miniappRunning ? styles.deviceActiveBannerPinned : null]}
+        >
+          <Text style={styles.deviceActiveBannerTitle}>Active device use</Text>
+          {deviceState.indicators.map((indicator) => (
+            <View key={indicator.handle} style={styles.deviceActiveBannerRow}>
+              <Text style={styles.deviceActiveBannerText}>
+                {indicator.appId} · {indicator.class}:{indicator.tier} · {indicator.destination} — {indicator.purpose}
+              </Text>
+              <Pressable
+                style={styles.dangerButton}
+                onPress={() => sendToWorker({ type: "device-kill-session", handle: indicator.handle })}
+              >
+                <Text style={styles.buttonLabel}>Stop</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      ) : null}
       <Text style={styles.title}>TwistedPear Web Host</Text>
       <Text style={styles.subtitle}>Reticulum leaf peer in the browser (Phase W — leaf host)</Text>
 
@@ -750,6 +808,62 @@ export default function App() {
         <Text style={styles.muted}>
           Identity keys are encrypted in IndexedDB under passphrase `{DEFAULT_PASSPHRASE}` (dev harness only).
         </Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Devices &amp; Sensors</Text>
+        <Row
+          testID="device-remote-enabled"
+          label="Allow remote device acquisition"
+          value={deviceState?.remoteAcquisitionEnabled === true}
+          onChange={(enabled) => sendToWorker({ type: "device-set-remote", enabled })}
+        />
+        {deviceState === null || deviceState.inventory.length === 0 ? (
+          <Text style={styles.muted}>No device classes reported yet.</Text>
+        ) : (
+          deviceState.inventory.map((entry) => {
+            const disabled = new Set(deviceState.disabledClasses);
+            return (
+              <View key={entry.class} style={styles.deviceRow}>
+                <Text style={styles.deviceLabel}>{entry.class}</Text>
+                <Text style={styles.deviceMeta}>{entry.availability}</Text>
+                <Row
+                  label="Allowed"
+                  value={!disabled.has(entry.class)}
+                  onChange={(allowed) =>
+                    sendToWorker({
+                      type: "device-set-class-disabled",
+                      classId: entry.class,
+                      disabled: !allowed
+                    })
+                  }
+                />
+              </View>
+            );
+          })
+        )}
+        <Text style={styles.sectionTitle}>Live sessions</Text>
+        {deviceState === null || deviceState.sessions.length === 0 ? (
+          <Text style={styles.muted}>No live device sessions.</Text>
+        ) : (
+          deviceState.sessions.map((session) => (
+            <View key={session.handle} style={styles.deviceRow}>
+              <Text style={styles.deviceLabel}>
+                {session.classId}:{session.tierId}
+              </Text>
+              <Text style={styles.deviceMeta}>
+                {session.appId} · {session.destination}
+              </Text>
+              <Pressable
+                style={styles.dangerButton}
+                onPress={() => sendToWorker({ type: "device-kill-session", handle: session.handle })}
+              >
+                <Text style={styles.buttonLabel}>Kill</Text>
+              </Pressable>
+            </View>
+          ))
+        )}
+        <ActionButton label="Refresh devices" onPress={() => sendToWorker({ type: "device-list" })} />
       </View>
 
       <View style={styles.card}>
@@ -1098,7 +1212,10 @@ const CONFIRM_KIND_TITLES: Readonly<Record<ConfirmationKind, string>> = {
   publish: "Publish an app to other users?",
   install: "Install an app?",
   preview: "Preview an app in the host sandbox?",
-  "trust-import": "Trust a new publisher?"
+  "trust-import": "Trust a new publisher?",
+  "device-session": "Allow a device session?",
+  "device-stream": "Stream a device to a peer?",
+  "device-remote-grant": "Let a remote peer use a device on this host?"
 };
 
 function PeerChromeModal({ modal, onInput, onCancel, onContinue }: {
@@ -1357,6 +1474,54 @@ const styles = StyleSheet.create({
   buttonLabel: {
     color: "#f4f7fb",
     fontSize: 13
+  },
+  deviceRow: {
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: "#141a22",
+    marginBottom: 6,
+    gap: 4
+  },
+  deviceLabel: {
+    color: "#f4f7fb",
+    fontSize: 13
+  },
+  deviceMeta: {
+    color: "#9aa7b8",
+    fontSize: 11
+  },
+  deviceActiveBanner: {
+    backgroundColor: "#3a2410",
+    borderBottomWidth: 1,
+    borderBottomColor: "#8a5a20",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    gap: 6
+  },
+  deviceActiveBannerPinned: {
+    zIndex: 50
+  },
+  deviceActiveBannerTitle: {
+    color: "#f4e2c4",
+    fontWeight: "600",
+    fontSize: 13
+  },
+  deviceActiveBannerText: {
+    color: "#f4e2c4",
+    fontSize: 12,
+    flex: 1
+  },
+  deviceActiveBannerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  dangerButton: {
+    backgroundColor: "#7a2430",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6
   },
   packageRow: {
     flexDirection: "row",

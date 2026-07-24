@@ -1,5 +1,6 @@
 import { renderWidgetTree } from "./widgets.js";
 import { decodeQrVideoFrame, normalizeScannedT256, supportsQrDetection } from "./qr-scanner.js";
+import { handleDeviceBridgeRequest } from "./device-bridge.js";
 
 const statusGrid = document.querySelector("#status-grid");
 const catalogList = document.querySelector("#catalog-list");
@@ -56,6 +57,10 @@ const moderationNote = document.querySelector("#moderation-note");
 const moderationBlocked = document.querySelector("#moderation-blocked");
 const moderationMuted = document.querySelector("#moderation-muted");
 const moderationSummary = document.querySelector("#moderation-summary");
+const deviceActiveBanner = document.querySelector("#device-active-banner");
+const deviceInventory = document.querySelector("#device-inventory");
+const deviceSessions = document.querySelector("#device-sessions");
+const deviceRemoteEnabled = document.querySelector("#device-remote-enabled");
 
 function renderModerationState(message) {
   const renderEntries = (root, entries) => {
@@ -68,6 +73,103 @@ function renderModerationState(message) {
   renderEntries(moderationBlocked, message.blocked);
   renderEntries(moderationMuted, message.muted);
   if (moderationSummary) moderationSummary.textContent = `${message.blocked.length} blocked · ${message.muted.length} muted · ${message.reports.length} local reports`;
+}
+
+function renderDeviceState(message) {
+  const disabled = new Set(message.disabledClasses ?? []);
+  if (deviceRemoteEnabled) {
+    deviceRemoteEnabled.checked = message.remoteAcquisitionEnabled === true;
+  }
+
+  if (deviceActiveBanner) {
+    const indicators = message.indicators ?? [];
+    if (indicators.length === 0) {
+      deviceActiveBanner.hidden = true;
+      deviceActiveBanner.replaceChildren();
+    } else {
+      deviceActiveBanner.hidden = false;
+      const title = document.createElement("strong");
+      title.textContent = "Active device use";
+      const list = document.createElement("div");
+      list.className = "settings-grid";
+      for (const indicator of indicators) {
+        const row = document.createElement("div");
+        row.className = "item-row";
+        const text = document.createElement("span");
+        text.textContent = `${indicator.appId} · ${indicator.class}:${indicator.tier} · ${indicator.destination} — ${indicator.purpose}`;
+        const kill = document.createElement("button");
+        kill.type = "button";
+        kill.className = "danger";
+        kill.textContent = "Stop";
+        kill.addEventListener("click", () => {
+          host.send({ type: "device-kill-session", handle: indicator.handle });
+        });
+        row.append(text, kill);
+        list.append(row);
+      }
+      deviceActiveBanner.replaceChildren(title, list);
+    }
+  }
+
+  if (deviceSessions) {
+    const sessions = message.sessions ?? [];
+    if (sessions.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "muted";
+      empty.textContent = "No live device sessions.";
+      deviceSessions.replaceChildren(empty);
+    } else {
+      deviceSessions.replaceChildren(
+        ...sessions.map((session) => {
+          const row = document.createElement("div");
+          row.className = "device-row";
+          const name = document.createElement("div");
+          name.textContent = `${session.classId}:${session.tierId}`;
+          const meta = document.createElement("div");
+          meta.className = "device-meta";
+          meta.textContent = `${session.appId} · ${session.destination}`;
+          const kill = document.createElement("button");
+          kill.type = "button";
+          kill.className = "danger";
+          kill.textContent = "Kill";
+          kill.addEventListener("click", () => {
+            host.send({ type: "device-kill-session", handle: session.handle });
+          });
+          row.append(name, meta, kill);
+          return row;
+        })
+      );
+    }
+  }
+
+  if (deviceInventory) {
+    const inventory = message.inventory ?? [];
+    deviceInventory.replaceChildren(
+      ...inventory.map((entry) => {
+        const row = document.createElement("div");
+        row.className = "device-row";
+        const name = document.createElement("div");
+        name.textContent = entry.class;
+        const availability = document.createElement("div");
+        availability.className = `device-meta device-availability-${entry.availability}`;
+        availability.textContent = entry.availability;
+        const toggle = document.createElement("label");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = !disabled.has(entry.class);
+        checkbox.addEventListener("change", () => {
+          host.send({
+            type: "device-set-class-disabled",
+            classId: entry.class,
+            disabled: !checkbox.checked
+          });
+        });
+        toggle.append(checkbox, document.createTextNode(" Allowed"));
+        row.append(name, availability, toggle);
+        return row;
+      })
+    );
+  }
 }
 
 /** @type {import("@twistedpear/host-core/protocol").CatalogEntryView[]} */
@@ -972,7 +1074,10 @@ if (!host) {
         package: "Package and sign an app?",
         publish: "Publish an app to other users?",
         install: "Install an app?",
-        "trust-import": "Trust a new publisher?"
+        "trust-import": "Trust a new publisher?",
+        "device-session": "Allow a device session?",
+        "device-stream": "Stream a device to a peer?",
+        "device-remote-grant": "Let a remote peer use a device on this host?"
       };
       showHostModal({
         title: kindTitles[message.kind] ?? `Confirm ${message.kind}?`,
@@ -1056,6 +1161,10 @@ if (!host) {
     }
     if (message.type === "moderation-state") renderModerationState(message);
     if (message.type === "moderation-report-export") void host.saveModerationReport(message.json);
+    if (message.type === "device-state") renderDeviceState(message);
+    if (message.type === "device-bridge-request") {
+      void handleDeviceBridgeRequest(message, (reply) => host.send(reply));
+    }
   });
 
   host.send({ type: "trust-list" });
@@ -1124,6 +1233,10 @@ if (!host) {
   });
   document.querySelector("#moderation-export")?.addEventListener("click", () => host.send({ type: "moderation-export-reports" }));
   host.send({ type: "moderation-list" });
+  deviceRemoteEnabled?.addEventListener("change", () => {
+    host.send({ type: "device-set-remote", enabled: deviceRemoteEnabled.checked });
+  });
+  host.send({ type: "device-list" });
 
   limitsApply?.addEventListener("click", () => {
     const appId = runningAppId ?? selectedAppId;

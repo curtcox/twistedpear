@@ -125,6 +125,31 @@ export function createWorkletMiniappHost(options) {
     options.requestUserConfirmation === undefined
       ? undefined
       : { confirm: (request) => options.requestUserConfirmation(request) };
+  /** @type {import("../../../packages/miniapp-runtime/dist/worklet.js").DeviceManager} */
+  const deviceManager =
+    options.deviceManager ??
+    createSimulatedDeviceManager({
+      now,
+      confirmationChannel,
+      confirmationEffects:
+        options.requestUserConfirmation === undefined
+          ? undefined
+          : {
+              randomBytes: (length) => {
+                const bytes = new Uint8Array(length);
+                if (typeof globalThis.crypto?.getRandomValues === "function") {
+                  globalThis.crypto.getRandomValues(bytes);
+                } else {
+                  for (let i = 0; i < length; i += 1) bytes[i] = (Math.random() * 256) | 0;
+                }
+                return bytes;
+              },
+              delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+            },
+      onChromeChange: () => {
+        void pushDeviceChromeState();
+      }
+    });
   const host = new MiniappHost({
     backend: createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
     grantStore,
@@ -132,12 +157,7 @@ export function createWorkletMiniappHost(options) {
     confirmationChannel,
     peerSessionManager: options.peerSessionManager,
     relayService: options.relayService,
-    deviceManager:
-      options.deviceManager ??
-      createSimulatedDeviceManager({
-        now,
-        confirmationChannel
-      }),
+    deviceManager,
     beeBackend: {
       descriptor: (appId) => beeBackend.descriptor(appId),
       get: (appId, key) => beeBackend.get(appId, key),
@@ -325,6 +345,22 @@ export function createWorkletMiniappHost(options) {
     });
   }
 
+  async function pushDeviceChromeState() {
+    const [inventory, diagnostics] = await Promise.all([
+      deviceManager.inventory(),
+      deviceManager.diagnostics()
+    ]);
+    options.send({
+      type: "device-state",
+      inventory,
+      diagnostics,
+      sessions: deviceManager.chromeSessions(),
+      indicators: deviceManager.activeIndicators(),
+      disabledClasses: deviceManager.disabledClasses(),
+      remoteAcquisitionEnabled: deviceManager.isRemoteAcquisitionEnabled()
+    });
+  }
+
   function pushGrants(appId, publisherPublicKey, declaredCapabilities) {
     const declared = new Set(validateManifestCapabilities(declaredCapabilities));
     options.send({
@@ -476,6 +512,25 @@ export function createWorkletMiniappHost(options) {
 
     async handleUiEvent(nodeId, event, value) {
       await host.handleUiEvent(nodeId, event, value);
+    },
+
+    async pushDeviceState() {
+      await pushDeviceChromeState();
+    },
+
+    async setDeviceClassDisabled(classId, disabled) {
+      deviceManager.setClassDisabled(classId, disabled === true);
+      await pushDeviceChromeState();
+    },
+
+    async setRemoteAcquisitionEnabled(enabled) {
+      deviceManager.setRemoteAcquisitionEnabled(enabled === true);
+      await pushDeviceChromeState();
+    },
+
+    async forceCloseDeviceSession(handle) {
+      await deviceManager.forceClose(handle);
+      await pushDeviceChromeState();
     },
 
     async readWorkspaceFile(documentId) {

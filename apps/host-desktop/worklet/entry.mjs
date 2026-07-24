@@ -991,6 +991,23 @@ function ensureMiniappHost() {
         });
         return { approved: reply?.approved === true, detail: reply?.detail };
       },
+      async requestDeviceBridge(request) {
+        const token = generateConfirmationToken((length) => provider.randomBytes(length));
+        const reply = await requestRendererReply({
+          type: "device-bridge-request",
+          token,
+          op: request.op,
+          classId: request.classId,
+          options: request.options ?? {}
+        }, 30_000);
+        if (reply === null) {
+          throw new Error("Device bridge request timed out");
+        }
+        if (reply.error) {
+          throw new Error(String(reply.error));
+        }
+        return reply.result;
+      },
       async requestLaunchReview(review) {
         return requestRendererReply({
           type: "launch-review",
@@ -1930,6 +1947,42 @@ async function handleHostMessage(raw) {
     return;
   }
 
+  if (message.type === "device-list") {
+    try {
+      await ensureMiniappHost().pushDeviceState();
+    } catch (error) {
+      log(`Device list failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "device-set-class-disabled") {
+    try {
+      await ensureMiniappHost().setDeviceClassDisabled(message.classId, message.disabled === true);
+    } catch (error) {
+      log(`Device policy update failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "device-set-remote") {
+    try {
+      await ensureMiniappHost().setRemoteAcquisitionEnabled(message.enabled === true);
+    } catch (error) {
+      log(`Remote acquisition update failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "device-kill-session") {
+    try {
+      await ensureMiniappHost().forceCloseDeviceSession(message.handle);
+    } catch (error) {
+      log(`Device session kill failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
   if (message.type.startsWith("moderation-")) {
     try {
       if (message.type === "moderation-export-reports") {
@@ -2232,7 +2285,7 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response") {
+  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response") {
     pendingRendererReplies.get(message.token)?.(message);
     return;
   }
