@@ -21,6 +21,10 @@ asserting differences in stale prose.
 
 {{applet:host-info}}
 
+{{applet:device-inventory}}
+
+{{applet:relay-status}}
+
 ## How to read differences
 
 | Signal | Typical cause | See also |

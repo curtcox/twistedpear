@@ -1,28 +1,8 @@
 {
-  "name": "handbook",
-  "version": "0.2.0",
-  "entry": "bundle.js",
+  "id": "device-inventory",
+  "group": "runtime",
+  "title": "Device inventory probe",
   "capabilities": [
-    "identity",
-    "presence",
-    "announce:publish",
-    "announce:subscribe",
-    "lxmf:send",
-    "lxmf:receive",
-    "storage:kv",
-    "storage:hyperbee",
-    "resource:fetch",
-    "workspace",
-    "ai:chat",
-    "ai:embed",
-    "peer:connect",
-    "relay:configure",
-    "relay:read",
-    "share:cas",
-    "apps:preview",
-    "apps:package",
-    "apps:publish",
-    "apps:install",
     "device:location",
     "device:location:precise",
     "device:ambient-light",
@@ -52,6 +32,12 @@
     "device:stream",
     "device:remote"
   ],
-  "icon": null,
-  "minHostApi": "0.10.0"
+  "surfaces": ["device.inventory", "device.diagnostics"],
+  "expectations": {
+    "android": "pass",
+    "ios": "pass",
+    "desktop": "pass",
+    "web": "pass",
+    "node": "pass"
+  }
 }
