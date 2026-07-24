@@ -107,6 +107,19 @@ function renderNode(node: WidgetNode): RenderedWidgetNode {
           ...(typeof node.props?.caption === "string" ? { caption: node.props.caption } : {})
         }
       };
+    case "camera-preview":
+    case "audio-meter":
+    case "waveform":
+    case "map-preview":
+    case "remote-video":
+      return {
+        ...base,
+        component: "DevicePreview",
+        props: {
+          surface: node.type,
+          session: asString(node.props?.session, "")
+        }
+      };
     default:
       return { ...base, component: "Unknown" };
   }
@@ -404,6 +417,13 @@ function intrinsicWidth(node: WidgetNode, avail: number): number {
       return INTRINSIC.imageSize;
     case "qr-code":
       return typeof node.props?.size === "number" ? node.props.size : INTRINSIC.qrSize;
+    case "camera-preview":
+    case "map-preview":
+    case "remote-video":
+      return Math.min(avail, 320);
+    case "audio-meter":
+    case "waveform":
+      return Math.min(avail, 240);
     default:
       return avail; // stretch components fill the available width
   }
@@ -434,6 +454,14 @@ function intrinsicHeight(node: WidgetNode, fontSize: number): number {
     }
     case "code-editor":
       return INTRINSIC.codeEditorHeight;
+    case "camera-preview":
+    case "map-preview":
+    case "remote-video":
+      return 180;
+    case "audio-meter":
+      return 24;
+    case "waveform":
+      return 64;
     default:
       return 0;
   }

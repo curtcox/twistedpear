@@ -324,6 +324,28 @@ describe("new widgets", () => {
     ).not.toThrow();
   });
 
+  it("accepts preview surfaces bound to opaque device sessions", () => {
+    expect(() =>
+      validateWidgetTree({
+        root: {
+          id: "root",
+          type: "view",
+          children: [
+            { id: "cam", type: "camera-preview", props: { session: "dev-1", aspectRatio: "4:3" } },
+            { id: "meter", type: "audio-meter", props: { session: "dev-2" } },
+            { id: "map", type: "map-preview", props: { session: "dev-3", zoom: 12 } }
+          ]
+        }
+      })
+    ).not.toThrow();
+  });
+
+  it("rejects preview surfaces without a session handle", () => {
+    expect(() =>
+      validateWidgetTree({ root: { id: "cam", type: "camera-preview", props: {} } })
+    ).toThrow(/session/);
+  });
+
   it("rejects invalid code-editor and qr-code props", () => {
     expect(() =>
       validateWidgetTree({ root: { id: "e", type: "code-editor", props: { documentId: "" } } })

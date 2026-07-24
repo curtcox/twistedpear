@@ -267,6 +267,18 @@ function WidgetNodeView({
           ) : null}
         </View>
       );
+    case "camera-preview":
+    case "audio-meter":
+    case "waveform":
+    case "map-preview":
+    case "remote-video":
+      return (
+        <View testID={node.id} style={[styles.previewSurface, style]}>
+          <Text style={styles.muted}>
+            {node.type}:{String(node.props?.session ?? "")}
+          </Text>
+        </View>
+      );
     default:
       return null;
   }
@@ -315,6 +327,14 @@ const styles = StyleSheet.create({
   muted: {
     color: "#9aa7b8",
     fontSize: 13
+  },
+  previewSurface: {
+    backgroundColor: "#0f141b",
+    borderRadius: 8,
+    minHeight: 48,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    justifyContent: "center"
   },
   button: {
     backgroundColor: "#2b3645",

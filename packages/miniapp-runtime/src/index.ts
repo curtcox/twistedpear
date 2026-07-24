@@ -135,12 +135,23 @@ export type {
 export {
   assertDeviceCapabilityAllowed,
   createSimulatedAmbientLightDriver,
-  createSimulatedLocationDriver
+  createSimulatedCameraDriver,
+  createSimulatedHapticsDriver,
+  createSimulatedLocationDriver,
+  createSimulatedMicrophoneDriver,
+  createSimulatedMotionDriver,
+  createSimulatedNfcDriver,
+  createSimulatedSpeakerDriver,
+  createSimulatedTorchDriver,
+  createSimulatedTtsDriver
 } from "./device-manager.js";
 export type {
+  DeviceActiveIndicator,
   DeviceAvailability,
+  DeviceCommand,
   DeviceDriver,
-  DeviceManagerOptions
+  DeviceManagerOptions,
+  SimulatedActuatorLog
 } from "./device-manager.js";
 export { DEVICE_CAPABILITY_DEFINITIONS } from "./device-capabilities.gen.js";
 export type { DeviceCapability, DeviceCapabilityDefinition } from "./device-capabilities.gen.js";
@@ -150,7 +161,9 @@ export { BearerReplayPolicy, FederationPolicy, KeySharePolicy } from "./security
 export {
   CODE_EDITOR_LANGUAGES,
   MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH,
+  MAX_DEVICE_SESSION_PROP_LENGTH,
   MAX_QR_CODE_VALUE_LENGTH,
+  PREVIEW_SURFACE_TYPES,
   WIDGET_PROP_KEYS,
   WIDGET_STYLE_KEYS,
   WIDGET_TYPES

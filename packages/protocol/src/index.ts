@@ -57,6 +57,34 @@ export {
   type PreciseLocationFix
 } from "./device-quantize.js";
 export {
+  deriveCameraSample,
+  deriveMicrophoneSample,
+  deriveMotionSample,
+  type CameraDerivedInput,
+  type CameraDerivedSample,
+  type MicrophoneDerivedInput,
+  type MicrophoneDerivedSample,
+  type MotionDerivedSample,
+  type RawMotionSample
+} from "./device-processors.js";
+export {
+  ActuatorSafetyError,
+  HAPTICS_MAX_DUTY_CYCLE,
+  HAPTICS_MAX_PATTERN_MS,
+  NFC_MAX_NDEF_BYTES,
+  SPEAKER_MAX_VOLUME,
+  SPEAKER_PLAY_MAX_HZ,
+  TORCH_MAX_DUTY_CYCLE,
+  TORCH_MIN_STROBE_INTERVAL_MS,
+  TTS_MAX_RATE,
+  TTS_MAX_TEXT_LENGTH,
+  TTS_MIN_RATE,
+  validateActuatorCommand,
+  type ActuatorCommandResult,
+  type ActuatorSafetyCode,
+  type DeviceCommand
+} from "./device-actuator-safety.js";
+export {
   escrowMachine,
   escrowSafetyViolation,
   initialEscrowState,

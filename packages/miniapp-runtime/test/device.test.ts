@@ -7,7 +7,15 @@ import {
   assertCapabilityAllowed,
   assertDeviceCapabilityAllowed,
   createSimulatedAmbientLightDriver,
-  createSimulatedLocationDriver
+  createSimulatedCameraDriver,
+  createSimulatedHapticsDriver,
+  createSimulatedLocationDriver,
+  createSimulatedMicrophoneDriver,
+  createSimulatedMotionDriver,
+  createSimulatedNfcDriver,
+  createSimulatedSpeakerDriver,
+  createSimulatedTorchDriver,
+  createSimulatedTtsDriver
 } from "../src/index.js";
 
 describe("device capabilities", () => {
@@ -139,5 +147,197 @@ describe("DeviceManager Phase 1", () => {
 describe("host API version", () => {
   it("bumps to 0.10.0 for device I/O foundation", () => {
     expect(HOST_API_VERSION).toBe("0.10.0");
+  });
+});
+
+describe("DeviceManager Phase 2 derived sensors", () => {
+  it("opens precise location and derived camera/mic/motion sessions", async () => {
+    const manager = new DeviceManager({
+      drivers: [
+        createSimulatedLocationDriver({
+          latitude: 37.7749,
+          longitude: -122.4194,
+          accuracyM: 5,
+          altitudeM: 10,
+          speedMps: 0.5,
+          headingDeg: 45
+        }),
+        createSimulatedCameraDriver(),
+        createSimulatedMicrophoneDriver({ level: 0.25 }),
+        createSimulatedMotionDriver({ accel: [3.1, 0, 0.2], gyro: [0, 0, 0] })
+      ],
+      now: () => 10_000
+    });
+
+    const precise = await manager.open(
+      "app",
+      "pub",
+      ["device:location:precise"],
+      ["device:location:precise"],
+      { class: "location", tier: "precise", purpose: "navigate" }
+    );
+    const fix = await manager.read("app", precise.handle);
+    expect(fix).toMatchObject({
+      kind: "location",
+      tier: "precise",
+      latitude: 37.7749,
+      longitude: -122.4194,
+      altitudeM: 10
+    });
+    expect(manager.activeIndicators()).toEqual([
+      expect.objectContaining({
+        class: "location",
+        tier: "precise",
+        consentClass: "elevated",
+        destination: "local"
+      })
+    ]);
+    await manager.close("app", precise.handle);
+
+    const camera = await manager.open("app", "pub", ["device:camera"], ["device:camera"], {
+      class: "camera",
+      purpose: "scan qr"
+    });
+    expect(await manager.read("app", camera.handle)).toMatchObject({
+      kind: "camera",
+      tier: "derived",
+      barcodes: [{ format: "qr", value: "TPI1:example" }]
+    });
+    await manager.close("app", camera.handle);
+
+    const mic = await manager.open("app", "pub", ["device:microphone"], ["device:microphone"], {
+      class: "microphone",
+      purpose: "level meter"
+    });
+    expect(await manager.read("app", mic.handle)).toMatchObject({
+      kind: "microphone",
+      tier: "derived",
+      level: 0.25,
+      voiceActive: true
+    });
+    await manager.close("app", mic.handle);
+
+    const motion = await manager.open("app", "pub", ["device:motion"], ["device:motion"], {
+      class: "motion",
+      purpose: "shake detect"
+    });
+    const motionSample = await manager.read("app", motion.handle);
+    expect(motionSample.kind).toBe("motion");
+    if (motionSample.kind === "motion") {
+      expect(motionSample.events).toContain("shake");
+    }
+  });
+
+  it("refuses raw camera frames at derived-only phase", async () => {
+    const manager = new DeviceManager({
+      drivers: [createSimulatedCameraDriver()],
+      now: () => 1
+    });
+    await expect(
+      manager.open("app", "pub", ["device:camera:frames"], ["device:camera:frames"], {
+        class: "camera",
+        tier: "frames",
+        purpose: "record"
+      })
+    ).rejects.toMatchObject({ code: "DEVICE_TIER_REQUIRED" });
+  });
+});
+
+describe("DeviceManager Phase 3 actuators", () => {
+  it("writes torch/speaker/tts/haptics with safety caps and stops on close", async () => {
+    let clock = 1_000;
+    const torchLog = { commands: [], stopped: 0 };
+    const speakerLog = { commands: [], stopped: 0 };
+    const ttsLog = { commands: [], stopped: 0 };
+    const hapticsLog = { commands: [], stopped: 0 };
+    const manager = new DeviceManager({
+      drivers: [
+        createSimulatedTorchDriver(torchLog),
+        createSimulatedSpeakerDriver(speakerLog),
+        createSimulatedTtsDriver(ttsLog),
+        createSimulatedHapticsDriver(hapticsLog)
+      ],
+      now: () => clock
+    });
+
+    const torch = await manager.open("app", "pub", ["device:torch"], ["device:torch"], {
+      class: "torch",
+      purpose: "flashlight"
+    });
+    await manager.write("app", "pub", torch.handle, { kind: "torch", on: true });
+    await expect(
+      manager.write("app", "pub", torch.handle, { kind: "torch", on: true, strobeIntervalMs: 50 })
+    ).rejects.toMatchObject({ code: "DEVICE_BAD_REQUEST" });
+    clock += 1_000;
+    await manager.write("app", "pub", torch.handle, {
+      kind: "torch",
+      on: true,
+      strobeIntervalMs: 400
+    });
+    await manager.close("app", torch.handle);
+    expect(torchLog.stopped).toBe(1);
+
+    const speaker = await manager.open("app", "pub", ["device:speaker"], ["device:speaker"], {
+      class: "speaker",
+      purpose: "play chime"
+    });
+    await manager.write("app", "pub", speaker.handle, { kind: "speaker", assetId: "chime" });
+    await expect(
+      manager.write("app", "pub", speaker.handle, { kind: "speaker", frequencyHz: 25_000 })
+    ).rejects.toMatchObject({ code: "DEVICE_BAD_REQUEST" });
+    await manager.close("app", speaker.handle);
+
+    clock += 1_000;
+    const tts = await manager.open("app", "pub", ["device:tts"], ["device:tts"], {
+      class: "tts",
+      purpose: "announce"
+    });
+    await manager.write("app", "pub", tts.handle, { kind: "tts", text: "hello" });
+    await manager.close("app", tts.handle);
+
+    clock += 1_000;
+    const haptics = await manager.open("app", "pub", ["device:haptics"], ["device:haptics"], {
+      class: "haptics",
+      purpose: "nudge"
+    });
+    await manager.write("app", "pub", haptics.handle, { kind: "haptics", patternMs: [40, 200] });
+    await manager.close("app", haptics.handle);
+
+    expect(torchLog.commands).toHaveLength(2);
+    expect(speakerLog.commands[0]).toMatchObject({ kind: "speaker", assetId: "chime" });
+    expect(ttsLog.commands[0]).toMatchObject({ kind: "tts", text: "hello" });
+    expect(hapticsLog.commands[0]).toMatchObject({ kind: "haptics" });
+  });
+
+  it("confirms NFC writes when a confirmation channel is configured", async () => {
+    const nfcLog = { commands: [], stopped: 0 };
+    const confirmations: string[] = [];
+    const manager = new DeviceManager({
+      drivers: [createSimulatedNfcDriver(nfcLog)],
+      now: () => 5_000,
+      confirmationChannel: {
+        confirm: async (request) => {
+          confirmations.push(request.summary.payload ?? "");
+          return { approved: true };
+        }
+      },
+      confirmationEffects: {
+        randomBytes: (length) => new Uint8Array(length),
+        delay: async () => undefined
+      }
+    });
+    const session = await manager.open("app", "pub", ["device:nfc"], ["device:nfc"], {
+      class: "nfc",
+      purpose: "tag write"
+    });
+    // open is elevated → one confirmation; write is an extra NFC confirmation
+    expect(confirmations.length).toBeGreaterThanOrEqual(1);
+    await manager.write("app", "pub", session.handle, {
+      kind: "nfc",
+      action: "write",
+      ndef: "hello-tag"
+    });
+    expect(confirmations).toContain("hello-tag");
+    expect(nfcLog.commands).toHaveLength(1);
   });
 });

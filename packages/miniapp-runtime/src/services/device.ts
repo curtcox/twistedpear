@@ -55,6 +55,20 @@ export class DeviceBrokerService {
     return this.manager.read(appId, payload.handle);
   }
 
+  write(
+    appId: string,
+    publisherPublicKey: string,
+    payload: { handle: DeviceSessionHandle; command: import("@twistedpear/protocol").DeviceCommand }
+  ): Promise<void> {
+    if (typeof payload?.handle !== "string" || payload.handle.length === 0) {
+      throw new DeviceBrokerServiceError("DEVICE_BAD_REQUEST", "Device session handle is required.");
+    }
+    if (typeof payload.command !== "object" || payload.command === null) {
+      throw new DeviceBrokerServiceError("DEVICE_BAD_REQUEST", "Device command is required.");
+    }
+    return this.manager.write(appId, publisherPublicKey, payload.handle, payload.command);
+  }
+
   closeApp(appId: string): void {
     this.manager.closeApp(appId);
   }

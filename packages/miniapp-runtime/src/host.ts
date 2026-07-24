@@ -774,6 +774,17 @@ export class MiniappHost {
       device().close(context.appId, request.payload as { handle: DeviceSessionHandle }));
     this.broker.register("device", "read", null, async (request, context) =>
       device().read(context.appId, request.payload as { handle: DeviceSessionHandle }));
+    this.broker.register("device", "write", null, async (request, context) => {
+      await device().write(
+        context.appId,
+        context.publisherPublicKey,
+        request.payload as {
+          handle: DeviceSessionHandle;
+          command: import("@twistedpear/protocol").DeviceCommand;
+        }
+      );
+      return { written: true };
+    });
 
     this.broker.register("presence", "snapshot", "presence", async () => {
       if (this.presenceService === null) {

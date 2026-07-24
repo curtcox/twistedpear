@@ -1,7 +1,9 @@
 import {
   CODE_EDITOR_LANGUAGES,
   MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH,
+  MAX_DEVICE_SESSION_PROP_LENGTH,
   MAX_QR_CODE_VALUE_LENGTH,
+  PREVIEW_SURFACE_TYPES,
   WIDGET_PROP_KEYS,
   WIDGET_STYLE_KEYS,
   WIDGET_TYPES,
@@ -76,6 +78,25 @@ export function validateWidgetTree(tree: WidgetTree, options: WidgetValidationOp
       const value = node.props?.value;
       if (typeof value !== "string" || value.length === 0 || value.length > MAX_QR_CODE_VALUE_LENGTH) {
         throw new WidgetValidationError("INVALID_WIDGET", "qr-code requires a value of 1-512 characters");
+      }
+    }
+
+    if (PREVIEW_SURFACE_TYPES.has(node.type)) {
+      const session = node.props?.session;
+      if (
+        typeof session !== "string" ||
+        session.length === 0 ||
+        session.length > MAX_DEVICE_SESSION_PROP_LENGTH
+      ) {
+        throw new WidgetValidationError(
+          "INVALID_WIDGET",
+          `${node.type} requires a host-issued device session handle`
+        );
+      }
+      // Preview surfaces must not accept sample/pixel props — only opaque handles.
+      for (const prop of Object.keys(node.props ?? {})) {
+        if (prop === "session" || prop === "aspectRatio" || prop === "zoom" || prop === "peer") continue;
+        throw new WidgetValidationError("INVALID_WIDGET", `${node.type} cannot carry media payload prop: ${prop}`);
       }
     }
 

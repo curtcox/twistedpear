@@ -57,6 +57,35 @@ export type DeviceSample =
       readonly tier: "quantized";
       readonly at: number;
       readonly luxBucket: "dark" | "dim" | "indoor" | "bright" | "sunlit";
+    }
+  | {
+      readonly kind: "camera";
+      readonly tier: "derived";
+      readonly at: number;
+      readonly barcodes: ReadonlyArray<{ readonly format: string; readonly value: string }>;
+      readonly motionDetected: boolean;
+      readonly faceCount: number;
+      readonly objectCount: number;
+    }
+  | {
+      readonly kind: "microphone";
+      readonly tier: "derived";
+      readonly at: number;
+      readonly level: number;
+      readonly voiceActive: boolean;
+      readonly tones: ReadonlyArray<string>;
+    }
+  | {
+      readonly kind: "motion";
+      readonly tier: "derived";
+      readonly at: number;
+      readonly orientation: {
+        readonly x: number;
+        readonly y: number;
+        readonly z: number;
+        readonly w: number;
+      };
+      readonly events: ReadonlyArray<"step" | "shake" | "tilt">;
     };
 
 export class DeviceError extends Error {
@@ -99,4 +128,28 @@ export async function close(session: DeviceSession | string): Promise<void> {
 export async function read(session: DeviceSession | string): Promise<DeviceSample> {
   const handle = typeof session === "string" ? session : session.handle;
   return deviceCall("read", { handle });
+}
+
+export type DeviceCommand =
+  | { readonly kind: "torch"; readonly on: boolean; readonly strobeIntervalMs?: number }
+  | {
+      readonly kind: "speaker";
+      readonly assetId?: string;
+      readonly volume?: number;
+      readonly frequencyHz?: number;
+    }
+  | { readonly kind: "tts"; readonly text: string; readonly rate?: number }
+  | {
+      readonly kind: "haptics";
+      readonly patternMs: ReadonlyArray<number>;
+      readonly intensity?: number;
+    }
+  | { readonly kind: "nfc"; readonly action: "write"; readonly ndef: string };
+
+export async function write(
+  session: DeviceSession | string,
+  command: DeviceCommand
+): Promise<void> {
+  const handle = typeof session === "string" ? session : session.handle;
+  await deviceCall("write", { handle, command });
 }

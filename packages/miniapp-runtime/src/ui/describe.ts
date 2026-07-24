@@ -128,6 +128,22 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
           ...(typeof node.props?.caption === "string" ? { caption: node.props.caption } : {})
         }
       };
+    case "camera-preview":
+    case "audio-meter":
+    case "waveform":
+    case "map-preview":
+    case "remote-video":
+      return {
+        ...base,
+        component: "DevicePreview",
+        props: {
+          surface: node.type,
+          session: String(node.props?.session ?? ""),
+          ...(typeof node.props?.aspectRatio === "string" ? { aspectRatio: node.props.aspectRatio } : {}),
+          ...(typeof node.props?.zoom === "number" ? { zoom: node.props.zoom } : {}),
+          ...(typeof node.props?.peer === "string" ? { peer: node.props.peer } : {})
+        }
+      };
     default:
       return {
         ...base,

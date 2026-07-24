@@ -36,6 +36,8 @@ npm run generate:device-registry
 
 ## Status
 
-**stub** — Phase 1 foundation: registry + session machine + Device Manager inventory /
-open / close / read for `location:coarse` and `ambient-light`. Remaining classes are
-registry entries awaiting drivers. TLA+ model and Layer-3 vectors are planned.
+**stub** — Phase 1–2: registry + session machine + Device Manager for
+`location` (coarse/precise), `ambient-light`, and derived `camera` /
+`microphone` / `motion`, plus preview surface widget kinds and recorded
+processor tapes. Remaining classes are registry entries awaiting drivers.
+TLA+ model and Layer-3 vectors are planned.

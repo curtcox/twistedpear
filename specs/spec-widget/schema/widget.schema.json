@@ -17,19 +17,24 @@
         },
         "type": {
           "enum": [
+            "audio-meter",
             "button",
+            "camera-preview",
             "code-editor",
             "divider",
             "image",
             "list",
+            "map-preview",
             "progress",
             "qr-code",
+            "remote-video",
             "scroll",
             "spacer",
             "switch",
             "text",
             "text-input",
-            "view"
+            "view",
+            "waveform"
           ]
         },
         "props": {
@@ -53,6 +58,21 @@
               "type": "object",
               "properties": {
                 "type": {
+                  "const": "audio-meter"
+                },
+                "props": {
+                  "type": "object",
+                  "properties": {
+                    "session": true
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
                   "const": "button"
                 },
                 "props": {
@@ -60,6 +80,22 @@
                   "properties": {
                     "event": true,
                     "label": true
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "camera-preview"
+                },
+                "props": {
+                  "type": "object",
+                  "properties": {
+                    "aspectRatio": true,
+                    "session": true
                   },
                   "additionalProperties": false
                 }
@@ -147,6 +183,22 @@
               "type": "object",
               "properties": {
                 "type": {
+                  "const": "map-preview"
+                },
+                "props": {
+                  "type": "object",
+                  "properties": {
+                    "session": true,
+                    "zoom": true
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
                   "const": "progress"
                 },
                 "props": {
@@ -185,6 +237,22 @@
               "required": [
                 "props"
               ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "remote-video"
+                },
+                "props": {
+                  "type": "object",
+                  "properties": {
+                    "peer": true,
+                    "session": true
+                  },
+                  "additionalProperties": false
+                }
+              }
             },
             {
               "type": "object",
@@ -275,6 +343,21 @@
                   "type": "object",
                   "properties": {
                     "accessibilityLabel": true
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "waveform"
+                },
+                "props": {
+                  "type": "object",
+                  "properties": {
+                    "session": true
                   },
                   "additionalProperties": false
                 }

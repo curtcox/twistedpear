@@ -1,6 +1,10 @@
 import {
   DEVICE_CLASS_REGISTRY,
+  ActuatorSafetyError,
   defaultTierForClass,
+  deriveCameraSample,
+  deriveMicrophoneSample,
+  deriveMotionSample,
   deviceCapabilityId,
   deviceClassById,
   initialDeviceSessionState,
@@ -8,10 +12,15 @@ import {
   quantizeAmbientLux,
   quantizeLocationCoarse,
   stepDeviceSession,
+  validateActuatorCommand,
+  type CameraDerivedInput,
   type DeviceClassEntry,
+  type DeviceCommand,
   type DeviceConsentClass,
   type DeviceSessionState,
-  type PreciseLocationFix
+  type MicrophoneDerivedInput,
+  type PreciseLocationFix,
+  type RawMotionSample
 } from "@twistedpear/protocol";
 import { assertCapabilityAllowed, CapabilityError } from "./capabilities.js";
 import {
@@ -79,14 +88,59 @@ export type DeviceSample =
       readonly tier: "quantized";
       readonly at: number;
       readonly luxBucket: "dark" | "dim" | "indoor" | "bright" | "sunlit";
+    }
+  | {
+      readonly kind: "camera";
+      readonly tier: "derived";
+      readonly at: number;
+      readonly barcodes: ReadonlyArray<{ readonly format: string; readonly value: string }>;
+      readonly motionDetected: boolean;
+      readonly faceCount: number;
+      readonly objectCount: number;
+    }
+  | {
+      readonly kind: "microphone";
+      readonly tier: "derived";
+      readonly at: number;
+      readonly level: number;
+      readonly voiceActive: boolean;
+      readonly tones: ReadonlyArray<string>;
+    }
+  | {
+      readonly kind: "motion";
+      readonly tier: "derived";
+      readonly at: number;
+      readonly orientation: {
+        readonly x: number;
+        readonly y: number;
+        readonly z: number;
+        readonly w: number;
+      };
+      readonly events: ReadonlyArray<"step" | "shake" | "tilt">;
     };
+
+export interface DeviceActiveIndicator {
+  readonly handle: DeviceSessionHandle;
+  readonly appId: string;
+  readonly class: string;
+  readonly tier: string;
+  readonly consentClass: DeviceConsentClass;
+  readonly purpose: string;
+  readonly destination: "local";
+}
 
 export interface DeviceDriver {
   readonly classId: string;
   availability(): Promise<DeviceAvailability> | DeviceAvailability;
   /** Precise/raw reading before host-side derived processing. */
-  sense(options?: Readonly<Record<string, unknown>>): Promise<unknown>;
+  sense?(options?: Readonly<Record<string, unknown>>): Promise<unknown>;
+  /** Actuator write after safety validation. */
+  actuate?(command: DeviceCommand): Promise<void>;
+  /** Stop any ongoing actuator output (session end / suspend). */
+  stop?(): Promise<void>;
 }
+
+export type { DeviceCommand };
 
 export class DeviceError extends Error {
   constructor(
@@ -123,6 +177,7 @@ interface LiveSession {
   readonly state: DeviceSessionState;
   readonly rateHz: number;
   readonly purpose: string;
+  readonly consentClass: DeviceConsentClass;
   lastReadAt: number | null;
 }
 
@@ -201,6 +256,19 @@ export class DeviceManager {
     }
 
     const tier = this.resolveTier(entry, request.tier);
+    if (
+      (entry.id === "camera" && tier.id === "frames") ||
+      (entry.id === "microphone" && tier.id === "pcm") ||
+      (entry.id === "motion" && tier.id === "samples") ||
+      (entry.id === "speaker" && tier.id === "pcm") ||
+      (entry.id === "screen-capture" && tier.id === "frames") ||
+      (entry.id === "nfc" && tier.id === "apdu")
+    ) {
+      throw new DeviceError(
+        "DEVICE_TIER_REQUIRED",
+        `Tier "${tier.id}" for ${entry.id} requires the raw-tier / sidecar host API phase.`
+      );
+    }
     const capability = deviceCapabilityId(entry.id, tier.id);
     try {
       assertDeviceCapabilityAllowed({ capability, declared, granted });
@@ -270,6 +338,7 @@ export class DeviceManager {
       state,
       rateHz,
       purpose: request.purpose,
+      consentClass,
       lastReadAt: null
     });
 
@@ -283,6 +352,7 @@ export class DeviceManager {
 
   async close(appId: string, handle: DeviceSessionHandle): Promise<void> {
     const session = this.requireLiveSession(appId, handle);
+    await this.stopDriver(session.state.classId);
     const at = this.now();
     const next = stepDeviceSession(session.state, { kind: "device/close", at }).state;
     this.sessions.set(handle, { ...session, state: next });
@@ -294,6 +364,7 @@ export class DeviceManager {
   closeApp(appId: string): void {
     for (const [handle, session] of this.sessions) {
       if (session.state.appId !== appId || !isDeviceSessionLive(session.state.phase)) continue;
+      void this.stopDriver(session.state.classId);
       const at = this.now();
       const next = stepDeviceSession(session.state, { kind: "device/close", at }).state;
       this.sessions.set(handle, { ...session, state: next });
@@ -318,8 +389,8 @@ export class DeviceManager {
     }
 
     const driver = this.drivers.get(live.state.classId);
-    if (driver === undefined) {
-      throw new DeviceError("DEVICE_UNSUPPORTED", `No driver for ${live.state.classId}.`);
+    if (driver?.sense === undefined) {
+      throw new DeviceError("DEVICE_UNSUPPORTED", `No sense driver for ${live.state.classId}.`);
     }
 
     const raw = await driver.sense();
@@ -328,10 +399,77 @@ export class DeviceManager {
     return sample;
   }
 
+  async write(
+    appId: string,
+    publisherPublicKey: string,
+    handle: DeviceSessionHandle,
+    command: DeviceCommand
+  ): Promise<void> {
+    const session = this.requireLiveSession(appId, handle);
+    this.enforceTtl(session);
+    const live = this.sessions.get(handle);
+    if (live === undefined || !isDeviceSessionLive(live.state.phase)) {
+      throw new DeviceError("DEVICE_SESSION_EXPIRED", "Device session is no longer active.");
+    }
+
+    this.assertCommandMatchesSession(live.state.classId, command);
+
+    let normalized: DeviceCommand;
+    try {
+      normalized = validateActuatorCommand(command).normalized;
+    } catch (error) {
+      if (error instanceof ActuatorSafetyError) {
+        throw new DeviceError("DEVICE_BAD_REQUEST", error.message);
+      }
+      throw error;
+    }
+
+    if (normalized.kind === "nfc") {
+      await this.confirmNfcWrite({
+        appId,
+        publisherPublicKey,
+        purpose: live.purpose,
+        ndef: normalized.ndef
+      });
+    }
+
+    const minIntervalMs = 1000 / live.rateHz;
+    const at = this.now();
+    if (live.lastReadAt !== null && at - live.lastReadAt < minIntervalMs - 1) {
+      throw new DeviceError("DEVICE_RATE_EXCEEDED", `Device write rate exceeded (${live.rateHz} Hz).`);
+    }
+
+    const driver = this.drivers.get(live.state.classId);
+    if (driver?.actuate === undefined) {
+      throw new DeviceError("DEVICE_UNSUPPORTED", `No actuate driver for ${live.state.classId}.`);
+    }
+    await driver.actuate(normalized);
+    live.lastReadAt = at;
+  }
+
   activeSessions(): ReadonlyArray<DeviceSessionState> {
     return [...this.sessions.values()]
       .filter((session) => isDeviceSessionLive(session.state.phase))
       .map((session) => session.state);
+  }
+
+  /** Host-chrome active-use indicators for elevated/sensitive sessions. */
+  activeIndicators(): ReadonlyArray<DeviceActiveIndicator> {
+    return [...this.sessions.values()]
+      .filter(
+        (session) =>
+          isDeviceSessionLive(session.state.phase) &&
+          (session.consentClass === "elevated" || session.consentClass === "sensitive")
+      )
+      .map((session) => ({
+        handle: session.handle,
+        appId: session.state.appId,
+        class: session.state.classId,
+        tier: session.state.tierId,
+        consentClass: session.consentClass,
+        purpose: session.purpose,
+        destination: "local" as const
+      }));
   }
 
   private materializeSample(
@@ -380,6 +518,39 @@ export class DeviceManager {
         at,
         luxBucket: quantizeAmbientLux(lux)
       };
+    }
+
+    if (classId === "camera") {
+      if (tierId !== "derived") {
+        throw new DeviceError("DEVICE_TIER_REQUIRED", "Raw camera frames require a later host API phase.");
+      }
+      const derived = deriveCameraSample((raw ?? {}) as CameraDerivedInput);
+      return { kind: "camera", tier: "derived", at, ...derived };
+    }
+
+    if (classId === "microphone") {
+      if (tierId !== "derived") {
+        throw new DeviceError("DEVICE_TIER_REQUIRED", "Raw microphone PCM requires a later host API phase.");
+      }
+      const derived = deriveMicrophoneSample((raw ?? {}) as MicrophoneDerivedInput);
+      return { kind: "microphone", tier: "derived", at, ...derived };
+    }
+
+    if (classId === "motion") {
+      if (tierId !== "derived") {
+        throw new DeviceError("DEVICE_TIER_REQUIRED", "Raw motion samples require a later host API phase.");
+      }
+      const sample = raw as RawMotionSample;
+      if (
+        !Array.isArray(sample?.accel) ||
+        sample.accel.length !== 3 ||
+        !Array.isArray(sample?.gyro) ||
+        sample.gyro.length !== 3
+      ) {
+        throw new DeviceError("DEVICE_BAD_REQUEST", "Motion driver returned an invalid IMU sample.");
+      }
+      const derived = deriveMotionSample(sample);
+      return { kind: "motion", tier: "derived", at, ...derived };
     }
 
     throw new DeviceError(
@@ -479,6 +650,49 @@ export class DeviceManager {
       effects
     );
   }
+
+  private assertCommandMatchesSession(classId: string, command: DeviceCommand): void {
+    if (command.kind !== classId) {
+      throw new DeviceError(
+        "DEVICE_BAD_REQUEST",
+        `Command kind "${command.kind}" does not match session class "${classId}".`
+      );
+    }
+  }
+
+  private async confirmNfcWrite(options: {
+    readonly appId: string;
+    readonly publisherPublicKey: string;
+    readonly purpose: string;
+    readonly ndef: string;
+  }): Promise<void> {
+    const effects = this.options.confirmationEffects;
+    if (effects === undefined) {
+      if (this.options.confirmationChannel === undefined) return;
+      throw new DeviceError("DEVICE_DENIED", "Confirmation effects are required for NFC writes.");
+    }
+    await requestHostConfirmation(
+      this.options.confirmationChannel,
+      {
+        kind: "device-session",
+        appId: options.appId,
+        publisherPublicKey: options.publisherPublicKey,
+        summary: {
+          device: "nfc",
+          tier: "ndef",
+          purpose: options.purpose,
+          destination: "local",
+          payload: options.ndef.slice(0, 256)
+        }
+      },
+      effects
+    );
+  }
+
+  private async stopDriver(classId: string): Promise<void> {
+    const driver = this.drivers.get(classId);
+    await driver?.stop?.();
+  }
 }
 
 /** Elevated tier grants imply the default-tier capability for the same class. */
@@ -511,7 +725,7 @@ function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 }
 
-/** Simulated drivers for Phase 1 end-to-end coverage without hardware. */
+/** Simulated drivers for Phase 1–2 end-to-end coverage without hardware. */
 export function createSimulatedLocationDriver(fix: PreciseLocationFix = {
   latitude: 37.7749,
   longitude: -122.4194,
@@ -530,4 +744,77 @@ export function createSimulatedAmbientLightDriver(lux = 320): DeviceDriver {
     availability: () => "available",
     sense: async () => lux
   };
+}
+
+export function createSimulatedCameraDriver(
+  input: CameraDerivedInput = {
+    barcodes: [{ format: "qr", value: "TPI1:example" }],
+    motionDetected: false,
+    faceCount: 0,
+    objectCount: 1
+  }
+): DeviceDriver {
+  return {
+    classId: "camera",
+    availability: () => "available",
+    sense: async () => input
+  };
+}
+
+export function createSimulatedMicrophoneDriver(
+  input: MicrophoneDerivedInput = { level: 0.2, tones: [] }
+): DeviceDriver {
+  return {
+    classId: "microphone",
+    availability: () => "available",
+    sense: async () => input
+  };
+}
+
+export function createSimulatedMotionDriver(
+  sample: RawMotionSample = { accel: [0.1, 0.2, 1.0], gyro: [0, 0, 0] }
+): DeviceDriver {
+  return {
+    classId: "motion",
+    availability: () => "available",
+    sense: async () => sample
+  };
+}
+
+export interface SimulatedActuatorLog {
+  commands: DeviceCommand[];
+  stopped: number;
+}
+
+function createActuatorDriver(classId: string, log: SimulatedActuatorLog): DeviceDriver {
+  return {
+    classId,
+    availability: () => "available",
+    actuate: async (command) => {
+      log.commands.push(command);
+    },
+    stop: async () => {
+      log.stopped += 1;
+    }
+  };
+}
+
+export function createSimulatedTorchDriver(log: SimulatedActuatorLog = { commands: [], stopped: 0 }): DeviceDriver {
+  return createActuatorDriver("torch", log);
+}
+
+export function createSimulatedSpeakerDriver(log: SimulatedActuatorLog = { commands: [], stopped: 0 }): DeviceDriver {
+  return createActuatorDriver("speaker", log);
+}
+
+export function createSimulatedTtsDriver(log: SimulatedActuatorLog = { commands: [], stopped: 0 }): DeviceDriver {
+  return createActuatorDriver("tts", log);
+}
+
+export function createSimulatedHapticsDriver(log: SimulatedActuatorLog = { commands: [], stopped: 0 }): DeviceDriver {
+  return createActuatorDriver("haptics", log);
+}
+
+export function createSimulatedNfcDriver(log: SimulatedActuatorLog = { commands: [], stopped: 0 }): DeviceDriver {
+  return createActuatorDriver("nfc", log);
 }
