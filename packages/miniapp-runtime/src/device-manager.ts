@@ -327,7 +327,7 @@ export class DeviceManager {
     }
     this.sidecar = options.sidecar ?? new DeviceStreamSidecar();
     this.maxRemoteSessions = options.maxRemoteSessions ?? 2;
-    this.now = options.now ?? (() => Date.now());
+    this.now = options.now ?? (() => 0);
     this.randomBytes =
       options.randomBytes ??
       ((length) => {

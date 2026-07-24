@@ -2,7 +2,7 @@
 
 
 <!-- tp-doc
-lifecycle: stub
+lifecycle: live
 audited: 2026-07-23
 register: software
 -->
@@ -36,7 +36,7 @@ npm run generate:device-registry
 
 ## Status
 
-**stub** — Phases 1–7 of the Device I/O plan are implemented in executable form
+**live** — Phases 1–7 of the Device I/O plan are implemented in executable form
 (registry through remote acquisition and Phase 7 hardening). Remaining formal work:
 TLA+ session model, Layer-3 vectors, and SPEC-STREAM / SPEC-CHROME / SPEC-WIDGET
 extensions. Hardware-gated conformance stays in STATUS-HARDWARE.
