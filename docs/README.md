@@ -28,6 +28,7 @@ built, but they are not the source of truth for current status.
 | Check implemented and verified work | [Completed-work evidence](../STATUS-COMPLETE.md) |
 | Check remaining software work | [Software backlog](../STATUS-SOFTWARE.md) |
 | Check hardware- or account-gated work | [Hardware status](../STATUS-HARDWARE.md) |
+| Check capability × host implementation / testing / validation | [Platform capabilities status](platform-capabilities-status.md) |
 | Review known limitations | [Limitations](../LIMITATIONS.md) |
 | Run the complete local validation suite | [Single-Mac validation](mac-validation.md) |
 
@@ -58,6 +59,7 @@ Superseded plans, one-shot handoffs, and point-in-time evidence logs are indexed
 |---|---|
 | Runtime isolation, capabilities, lifecycle, and UI | [Mini-app runtime](miniapp-runtime.md) |
 | SDK namespaces and widget protocol | [Mini-app SDK](miniapp-sdk.md) |
+| Capability × peer-type implementation matrix | [Platform capabilities status](platform-capabilities-status.md) |
 | Signed package structure and fetch paths | [Package format](package-format.md) |
 | 256t identifiers and package resolution | [256t distribution](256t-distribution.md) |
 | In-platform development environment | [DevStudio](devstudio.md) |
@@ -101,6 +103,7 @@ Protocol implementation details live in the
 | Topic | Document |
 |---|---|
 | Expose device sensors and actuators to mini-apps | [Device I/O plan](device-io-plan.md), [add a device class](device-class-runbook.md) |
+| Per-capability status including `device:*` | [Platform capabilities status](platform-capabilities-status.md) |
 
 ## Security, quality, and validation
 
