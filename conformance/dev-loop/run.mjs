@@ -28,7 +28,7 @@ function readDevPayload(socket) {
   });
 }
 
-import { createDevChannelClient } from "../../apps/harness-mobile/worklet/dev-channel.mjs";
+import { createDevChannelClient } from "../../packages/worklet-core/src/dev-channel.mjs";
 
 async function main() {
   const workDir = mkdtempSync(join(tmpdir(), "tp-dev-loop-"));

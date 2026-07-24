@@ -13,6 +13,7 @@ import type {
   WidgetPatch,
   WidgetTree
 } from "@twistedpear/miniapp-runtime";
+import { visitWidget } from "@twistedpear/miniapp-runtime";
 
 // ---------------------------------------------------------------------------
 // Interpretation (SPEC-WIDGET): tree -> rendered model
@@ -31,98 +32,87 @@ function renderNode(node: WidgetNode): RenderedWidgetNode {
   const children = (node.children ?? []).map(renderNode);
   const withChildren = children.length === 0 ? {} : { children };
 
-  switch (node.type) {
-    case "view":
-      return { ...base, component: "View", ...withChildren };
-    case "scroll":
-      return { ...base, component: "ScrollView", ...withChildren };
-    case "text":
-      return { ...base, component: "Text", props: { value: asString(node.props?.value, "") } };
-    case "button":
-      return {
-        ...base,
-        component: "Button",
-        props: {
-          label: asString(node.props?.label, "Button"),
-          ...(typeof node.props?.event === "string" ? { event: node.props.event } : {})
-        }
-      };
-    case "text-input":
-      return {
-        ...base,
-        component: "TextInput",
-        props: {
-          value: asString(node.props?.value, ""),
-          placeholder: asString(node.props?.placeholder, ""),
-          ...(typeof node.props?.event === "string" ? { event: node.props.event } : {})
-        }
-      };
-    case "switch":
-      return {
-        ...base,
-        component: "Switch",
-        props: {
-          value: Boolean(node.props?.value),
-          ...(typeof node.props?.event === "string" ? { event: node.props.event } : {})
-        }
-      };
-    case "divider":
-      return { ...base, component: "Divider" };
-    case "spacer":
-      return { ...base, component: "Spacer", props: { height: 8 } };
-    case "progress":
-      return { ...base, component: "Progress", props: { value: node.props?.value ?? 0 } };
-    case "list":
-      return {
-        ...base,
-        component: "List",
-        children: (Array.isArray(node.props?.items) ? node.props.items : []).map(
-          (item, index) => ({
-            component: "ListItem",
-            id: `${node.id}-item-${index}`,
-            props: { value: typeof item === "string" ? item : JSON.stringify(item) }
-          })
-        )
-      };
-    case "image":
-      return { ...base, component: "Image", props: { asset: asString(node.props?.asset, "") } };
-    case "code-editor":
-      return {
-        ...base,
-        component: "CodeEditor",
-        props: {
-          documentId: asString(node.props?.documentId, ""),
-          language: typeof node.props?.language === "string" ? node.props.language : "text",
-          readOnly: Boolean(node.props?.readOnly),
-          ...(typeof node.props?.event === "string" ? { event: node.props.event } : {})
-        }
-      };
-    case "qr-code":
-      return {
-        ...base,
-        component: "QrCode",
-        props: {
-          value: asString(node.props?.value, ""),
-          ...(typeof node.props?.size === "number" ? { size: node.props.size } : {}),
-          ...(typeof node.props?.caption === "string" ? { caption: node.props.caption } : {})
-        }
-      };
-    case "camera-preview":
-    case "audio-meter":
-    case "waveform":
-    case "map-preview":
-    case "remote-video":
-      return {
-        ...base,
-        component: "DevicePreview",
-        props: {
-          surface: node.type,
-          session: asString(node.props?.session, "")
-        }
-      };
-    default:
-      return { ...base, component: "Unknown" };
-  }
+  return visitWidget(node, {
+    view: () => ({ ...base, component: "View", ...withChildren }),
+    scroll: () => ({ ...base, component: "ScrollView", ...withChildren }),
+    text: (n) => ({ ...base, component: "Text", props: { value: asString(n.props?.value, "") } }),
+    button: (n) => ({
+      ...base,
+      component: "Button",
+      props: {
+        label: asString(n.props?.label, "Button"),
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
+      }
+    }),
+    "text-input": (n) => ({
+      ...base,
+      component: "TextInput",
+      props: {
+        value: asString(n.props?.value, ""),
+        placeholder: asString(n.props?.placeholder, ""),
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
+      }
+    }),
+    switch: (n) => ({
+      ...base,
+      component: "Switch",
+      props: {
+        value: Boolean(n.props?.value),
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
+      }
+    }),
+    divider: () => ({ ...base, component: "Divider" }),
+    spacer: () => ({ ...base, component: "Spacer", props: { height: 8 } }),
+    progress: (n) => ({ ...base, component: "Progress", props: { value: n.props?.value ?? 0 } }),
+    list: (n) => ({
+      ...base,
+      component: "List",
+      children: (Array.isArray(n.props?.items) ? n.props.items : []).map((item, index) => ({
+        component: "ListItem",
+        id: `${n.id}-item-${index}`,
+        props: { value: typeof item === "string" ? item : JSON.stringify(item) }
+      }))
+    }),
+    image: (n) => ({ ...base, component: "Image", props: { asset: asString(n.props?.asset, "") } }),
+    "code-editor": (n) => ({
+      ...base,
+      component: "CodeEditor",
+      props: {
+        documentId: asString(n.props?.documentId, ""),
+        language: typeof n.props?.language === "string" ? n.props.language : "text",
+        readOnly: Boolean(n.props?.readOnly),
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
+      }
+    }),
+    "qr-code": (n) => ({
+      ...base,
+      component: "QrCode",
+      props: {
+        value: asString(n.props?.value, ""),
+        ...(typeof n.props?.size === "number" ? { size: n.props.size } : {}),
+        ...(typeof n.props?.caption === "string" ? { caption: n.props.caption } : {})
+      }
+    }),
+    "camera-preview": (n) => previewSurface(base, n),
+    "audio-meter": (n) => previewSurface(base, n),
+    waveform: (n) => previewSurface(base, n),
+    "map-preview": (n) => previewSurface(base, n),
+    "remote-video": (n) => previewSurface(base, n)
+  });
+}
+
+function previewSurface(
+  base: { readonly id: string; readonly style?: Readonly<Record<string, unknown>> },
+  node: WidgetNode
+): RenderedWidgetNode {
+  return {
+    ...base,
+    component: "DevicePreview",
+    props: {
+      surface: node.type,
+      session: asString(node.props?.session, "")
+    }
+  };
 }
 
 function asString(value: unknown, fallback: string): string {

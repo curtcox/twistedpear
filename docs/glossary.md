@@ -161,10 +161,14 @@ in [SPEC-MEDIA](../specs/spec-media/spec.md).
 the PRNG discipline and dequeue ordering.
 [SPEC-KERNEL](../specs/spec-kernel/spec.md).
 
-**Layer-2 twin / Layer-3 vector** — of a twinned machine's four cross-checked
-representations, the TLA+ model is the Layer-2 twin and the generated
-conformance vector is the Layer-3 vector (the other two are the executable
-table and the checked traces).
+**Layer-1 / Layer-2 / Layer-3 (twinned machine)** — three numbered layers of the
+state-machine discipline, plus an unnumbered fourth representation. Of a
+twinned machine's four cross-checked representations: the **Layer-1 executable
+table** is the TypeScript `step` machine in `packages/protocol`; the
+**Layer-2 twin** is the TLA+ model; the **Layer-3 vector** is the generated
+conformance vector; **checked traces** are model-checker fixtures replayed
+against Layer-1. Prefer representation names in prose; use Layer-* when citing
+the three-layer discipline. See [specs/README.md](../specs/README.md#exemplar).
 
 **Leaf** — a peer that uses the network but does not relay for others. Browser
 hosts are always leaves. **Leaf roles** are the per-host toggles

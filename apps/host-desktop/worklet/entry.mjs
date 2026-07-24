@@ -13,9 +13,9 @@ import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/ru
 import { AutoInterfaceBridge } from "../../../packages/reticulum-interfaces/dist/auto-bridge.js";
 import { AUTO_DEFAULT_DATA_PORT } from "../../../packages/reticulum-interfaces/dist/auto-common.js";
 import { selectDiscoveryProviders } from "../../../packages/reticulum-interfaces/dist/auto-discovery.js";
-import { createIpcMulticastBridge } from "./ipc-multicast-bridge.mjs";
-import { createIpcBonjourBridge } from "./ipc-bonjour-bridge.mjs";
-import { createIpcSerialBridge } from "./ipc-serial-bridge.mjs";
+import { createIpcMulticastBridge } from "../../../packages/worklet-core/src/ipc-multicast-bridge.mjs";
+import { createIpcBonjourBridge } from "../../../packages/worklet-core/src/ipc-bonjour-bridge.mjs";
+import { createIpcSerialBridge } from "../../../packages/worklet-core/src/ipc-serial-bridge.mjs";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import { CatalogStore, InstalledPackageStore, TrustStore, decodeAppAnnounceData, decodePublisherIdentity256t, encodePublisherIdentity256t, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
@@ -60,7 +60,7 @@ import {
   ReticulumPeerDiscoveryAdapter,
   UnavailablePeerDiscoveryAdapter
 } from "../../../packages/peer-discovery/dist/index.js";
-import { createDevChannelClient } from "./dev-channel.mjs";
+import { createDevChannelClient } from "../../../packages/worklet-core/src/dev-channel.mjs";
 import { IPC } from "./ipc-stdio.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
 
@@ -1728,7 +1728,10 @@ async function startRnodeInterface() {
   }
 
   log(`Starting RNode interface over ${pendingRnodePortPath}`);
-  serialBridge = createIpcSerialBridge(pendingRnodePortPath, pendingRnodeBaudRate);
+  serialBridge = createIpcSerialBridge({
+    portPath: pendingRnodePortPath,
+    baudRate: pendingRnodeBaudRate
+  });
   rnodeIface = await RNodeInterface.open(provider, {
     name: "host-rnode",
     provider,

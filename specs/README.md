@@ -95,13 +95,27 @@ TwistedPear-authored; the app platform seen by mini-apps and renderers.
 
 ## Exemplar
 
-[SPEC-CAP](spec-cap/spec.md) is the finished template: a TLA+ model checked by TLC in
-CI, checked traces, a generated Layer-3 vector, and an executable table in
-`packages/protocol` — all four representations cross-checked edge-for-edge by
-`npm run formal:grant`. New specs should converge on that shape: one formal or vector
-artifact, multiple implementations, one cross-check command.
+[SPEC-CAP](spec-cap/spec.md) is the finished template. A **twinned machine** has
+four cross-checked representations of the same transition relation:
+
+| Layer | Representation | Where it lives |
+|---|---|---|
+| **Layer-1** | Executable table — the TypeScript `step(state, event)` machine | `packages/protocol` |
+| **Layer-2** | Formal twin — the TLA+ model checked by TLC in CI | `specs/<spec>/model/` |
+| — | Checked traces — model-checker fixtures replayed against Layer-1 | `specs/<spec>/model/` / conformance |
+| **Layer-3** | Generated vector — `(state, event) → (state', intents)` cases emitted from the table/model | `conformance/vectors/` |
+
+All four are cross-checked edge-for-edge by `npm run formal:grant`. New specs
+should converge on that shape: one formal or vector artifact, multiple
+implementations, one cross-check command.
 [SPEC-AUTHORITY](spec-authority/spec.md) is the first follower — the same four
 representations for the escrow and recovery-quorum machines.
+
+Prefer the representation names (**executable table**, **formal twin**,
+**checked traces**, **generated vector**) in prose; keep the Layer-* numbers
+when referring to the three-layer state-machine discipline from the simulation
+architecture (Layer-1 executable, Layer-2 twin, Layer-3 vector). Checked traces
+are the fourth representation and are not numbered.
 
 ## Migration order
 

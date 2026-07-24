@@ -13,7 +13,7 @@ import { startDevServer } from "../../packages/cli/dist/dev/server.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import { createSandboxBackend } from "../../packages/miniapp-runtime/dist/sandbox/factory.js";
 import { createWorkletMiniappHost } from "../../apps/host-desktop/worklet/miniapp-host.mjs";
-import { createDevChannelClient } from "../../apps/host-desktop/worklet/dev-channel.mjs";
+import { createDevChannelClient } from "../../packages/worklet-core/src/dev-channel.mjs";
 
 const BUDGET_MS = 5_000;
 

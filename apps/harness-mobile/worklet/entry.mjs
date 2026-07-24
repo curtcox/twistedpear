@@ -16,10 +16,10 @@ import { AutoInterfaceBridge } from "../../../packages/reticulum-interfaces/dist
 import { AUTO_DEFAULT_DATA_PORT } from "../../../packages/reticulum-interfaces/dist/auto-common.js";
 import { selectDiscoveryProviders } from "../../../packages/reticulum-interfaces/dist/auto-discovery.js";
 import { BleInterface } from "../../../packages/reticulum-interfaces/dist/ble/interface.js";
-import { createIpcMulticastBridge } from "./ipc-multicast-bridge.mjs";
-import { createIpcBonjourBridge } from "./ipc-bonjour-bridge.mjs";
+import { createIpcMulticastBridge } from "../../../packages/worklet-core/src/ipc-multicast-bridge.mjs";
+import { createIpcBonjourBridge } from "../../../packages/worklet-core/src/ipc-bonjour-bridge.mjs";
 import { createIpcBleBridge } from "./ipc-ble-bridge.mjs";
-import { createIpcSerialBridge } from "./ipc-serial-bridge.mjs";
+import { createIpcSerialBridge } from "../../../packages/worklet-core/src/ipc-serial-bridge.mjs";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
@@ -28,7 +28,7 @@ import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js"
 import { HOST_API_VERSION, createWorkletFlagRelayService, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
 import { decodePeerAudioFrame, decodePeerInvitation, framePeerAudioPayload, initialPeerAudioAssemblyState, stepPeerAudioAssembly } from "../../../packages/protocol/dist/index.js";
 import { createWorkletMiniappHost } from "./miniapp-host.mjs";
-import { createDevChannelClient } from "./dev-channel.mjs";
+import { createDevChannelClient } from "../../../packages/worklet-core/src/dev-channel.mjs";
 import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
 import { AudioPeerDiscoveryAdapter, BluetoothPeerDiscoveryAdapter, CryptoPeerPairingBackend, InvitationPairingDriver, ManualPeerDiscoveryAdapter, NtfyPeerDiscoveryAdapter, NtfyRendezvousClient, PeerDiscoveryRegistry, PeerSessionManager, QrPeerDiscoveryAdapter, ReticulumPeerDiscoveryAdapter, UnavailablePeerDiscoveryAdapter } from "../../../packages/peer-discovery/dist/index.js";
@@ -207,6 +207,9 @@ function ensureMiniappHost() {
       provider,
       kvStore: runtimeKeyValueStore(),
       beeStoragePath: "miniapp-bee-store",
+      defaultPlatform: "android",
+      browserDeviceClasses: ["location", "camera", "haptics"],
+      enableBenchmark: true,
       getPresenceSnapshot: () => ({ ...status, autoPeers: status.autoPeers + (peerSessionManager?.routes.list().length ?? 0) }),
       peerSessionManager: peerSessionManagerProxy,
       relayService,
@@ -1022,7 +1025,10 @@ async function startRnodeInterface() {
   }
 
   log(`Starting RNode interface over USB device ${pendingRnodeDeviceId}`);
-  serialBridge = createIpcSerialBridge(pendingRnodeDeviceId, pendingRnodeBaudRate);
+  serialBridge = createIpcSerialBridge({
+    deviceId: pendingRnodeDeviceId,
+    baudRate: pendingRnodeBaudRate
+  });
   rnodeIface = await RNodeInterface.open(provider, {
     name: "harness-rnode",
     provider,

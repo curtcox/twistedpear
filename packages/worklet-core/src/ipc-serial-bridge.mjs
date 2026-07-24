@@ -1,6 +1,6 @@
 /**
- * SerialPipe for the Bare worklet — USB-serial lives in the RN host native module;
- * this adapter forwards byte I/O over bare-kit IPC.
+ * SerialPipe for the Bare worklet — USB serial lives in the host native layer
+ * (Electron main or RN native module); this adapter forwards byte I/O over BareKit IPC.
  */
 
 const DEFAULT_BAUD_RATE = 115_200;
@@ -23,10 +23,14 @@ function emit(message) {
 }
 
 /**
- * @param {number} deviceId Android USB device id from the host
- * @param {number} [baudRate]
+ * @param {{ portPath?: string, deviceId?: number, baudRate?: number }} options
+ *   Platform pipe identity: desktop passes `portPath`, mobile passes `deviceId`.
  */
-export function createIpcSerialBridge(deviceId, baudRate = DEFAULT_BAUD_RATE) {
+export function createIpcSerialBridge(options) {
+  const baudRate = options.baudRate ?? DEFAULT_BAUD_RATE;
+  const portPath = options.portPath;
+  const deviceId = options.deviceId;
+
   /** @type {import("@twistedpear/reticulum-interfaces").SerialPipeEvents} */
   let events = {};
   let openState = false;
@@ -52,7 +56,15 @@ export function createIpcSerialBridge(deviceId, baudRate = DEFAULT_BAUD_RATE) {
         return;
       }
 
-      emit({ type: "serial-start", deviceId, baudRate });
+      /** @type {{ type: "serial-start", baudRate: number, portPath?: string, deviceId?: number }} */
+      const start = { type: "serial-start", baudRate };
+      if (portPath != null) {
+        start.portPath = portPath;
+      }
+      if (deviceId != null) {
+        start.deviceId = deviceId;
+      }
+      emit(start);
       openState = true;
     },
 

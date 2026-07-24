@@ -6,6 +6,15 @@ audited: 2026-07-24
 register: none
 -->
 
+Progress (2026-07-24):
+- **Phase 1 done** — `packages/worklet-core` holds `dev-channel`, bonjour/multicast/serial IPC bridges.
+- **Phase 2 done** — `FetchPath`/`FetchProgress` live in `bridge-hyper`; `host-core` re-exports.
+- **Phase 3 partial** — shared `createWorkletMiniappHost` in worklet-core (desktop+mobile); web factory and entry composers still per-host.
+- **Phase 4 done** — schema value tables + `WidgetVisitor` / `visitWidget` in runtime; renderers + describe use it.
+- **Phase 6 seeded** — `conformance/lib/` + adoption rule; desktop runner converted.
+- **Phase 7.1 done** — Layer-1/2/3 + checked traces named in specs/README and glossary.
+- Remaining: Phase 3 entry composers + web factory, Phase 5 bridge-hyper split, Phase 7.3 rename, more runner adoption.
+
 This plan removes the duplication and naming debt identified by the 2026-07-24
 terminology and abstraction audit. The durable terminology output of that audit
 is the [developer glossary](glossary.md); this document is the work order for
