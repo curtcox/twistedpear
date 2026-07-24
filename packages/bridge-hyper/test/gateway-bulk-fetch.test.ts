@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { describe, expect, it } from "vitest";
-import { createGatewayBulkFetchHttpHandler } from "../src/gateway-bulk-fetch-server.js";
-import { bulkFetchUrlFromGateway } from "../src/web-hyper-fetch-gateway.js";
+import { createGatewayBulkFetchHttpHandler } from "../src/server/gateway-bulk-fetch-server.js";
+import { bulkFetchUrlFromGateway } from "../src/client/web-gateway-hyper-fetch.js";
 
 describe("gateway bulk fetch", () => {
   it("builds same-origin bulk fetch URLs from gateway websocket URLs", () => {

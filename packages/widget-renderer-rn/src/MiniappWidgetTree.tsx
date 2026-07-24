@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactElement } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
-import type { WidgetNode, WidgetStyle, WidgetTree } from "@twistedpear/miniapp-runtime/ui";
+import { visitWidget, type WidgetNode, type WidgetStyle, type WidgetTree } from "@twistedpear/miniapp-runtime/ui";
 
 // Keep component/prop mapping aligned with describeWidgetTree() in miniapp-runtime (ui-golden tests).
 
@@ -13,12 +13,19 @@ export function MiniappWidgetTree({
   tree,
   onEvent,
   readDocument,
-  assets
+  assets,
+  deviceSessions
 }: {
   readonly tree: WidgetTree | null;
   readonly onEvent?: (nodeId: string, event: string, value?: unknown) => void;
   readonly readDocument?: (documentId: string) => Promise<string>;
   readonly assets?: Readonly<Record<string, string>>;
+  readonly deviceSessions?: ReadonlyArray<{
+    readonly handle: string;
+    readonly classId: string;
+    readonly tierId: string;
+    readonly appId: string;
+  }>;
 }) {
   if (tree === null) {
     return <Text style={styles.muted}>No widget tree</Text>;
@@ -26,10 +33,21 @@ export function MiniappWidgetTree({
 
   return (
     <AssetContext.Provider value={assets ?? {}}>
-      <WidgetNodeView node={tree.root} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />
+      <DeviceSessionContext.Provider value={deviceSessions ?? []}>
+        <WidgetNodeView node={tree.root} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />
+      </DeviceSessionContext.Provider>
     </AssetContext.Provider>
   );
 }
+
+const DeviceSessionContext = createContext<
+  ReadonlyArray<{
+    readonly handle: string;
+    readonly classId: string;
+    readonly tierId: string;
+    readonly appId: string;
+  }>
+>([]);
 
 function ScrollWidget({
   node,
@@ -138,105 +156,94 @@ function WidgetNodeView({
 }) {
   const style = widgetStyle(node.style);
   const assets = useContext(AssetContext);
+  const childProps = {
+    ...(onEvent === undefined ? {} : { onEvent }),
+    ...(readDocument === undefined ? {} : { readDocument })
+  };
 
-  switch (node.type) {
-    case "view":
-      return (
-        <View style={style} testID={node.id}>
-          {node.children?.map((child) => (
-            <WidgetNodeView key={child.id} node={child} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />
-          ))}
-        </View>
-      );
-    case "text":
-      return (
-        <Text style={[styles.text, style]} testID={node.id}>
-          {String(node.props?.value ?? "")}
-        </Text>
-      );
-    case "button":
-      return (
-        <Pressable
-          testID={node.id}
-          style={[styles.button, style]}
-          onPress={() => {
-            const event = node.props?.event;
-            if (typeof event === "string") {
-              onEvent?.(node.id, event);
-            }
-          }}
-        >
-          <Text style={styles.buttonLabel}>{String(node.props?.label ?? "Button")}</Text>
-        </Pressable>
-      );
-    case "text-input":
-      return (
-        <TextInput
-          testID={node.id}
-          style={[styles.input, style]}
-          defaultValue={String(node.props?.value ?? "")}
-          placeholder={String(node.props?.placeholder ?? "")}
-          onChangeText={(value) => {
-            const event = node.props?.event;
-            if (typeof event === "string") {
-              onEvent?.(node.id, event, value);
-            }
-          }}
-        />
-      );
-    case "switch":
-      return (
-        <Switch
-          testID={node.id}
-          value={Boolean(node.props?.value)}
-          onValueChange={(value) => {
-            const event = node.props?.event;
-            if (typeof event === "string") {
-              onEvent?.(node.id, event, value);
-            }
-          }}
-        />
-      );
-    case "scroll":
-      return <ScrollWidget node={node} style={style} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />;
-    case "divider":
-      return <View testID={node.id} style={[styles.divider, style]} />;
-    case "spacer":
-      return <View testID={node.id} style={[{ height: 8 }, style]} />;
-    case "progress":
-      return (
-        <Text testID={node.id} style={[styles.text, style]}>
-          Progress {String(node.props?.value ?? 0)}%
-        </Text>
-      );
-    case "list":
-      return (
-        <View testID={node.id} style={style}>
-          {node.children?.map((child) => (
-            <WidgetNodeView
-              key={child.id}
-              node={child}
-              {...(onEvent === undefined ? {} : { onEvent })}
-              {...(readDocument === undefined ? {} : { readDocument })}
-            />
-          ))}
-          {(Array.isArray(node.props?.items) ? node.props.items : []).map((item, index) => (
-            <Text key={`${node.id}-${index}`} style={styles.muted}>
-              {typeof item === "string" ? item : JSON.stringify(item)}
-            </Text>
-          ))}
-        </View>
-      );
-    case "image": {
-      const assetName = String(node.props?.asset ?? "");
+  return visitWidget(node, {
+    view: (n) => (
+      <View style={style} testID={n.id}>
+        {n.children?.map((child) => (
+          <WidgetNodeView key={child.id} node={child} {...childProps} />
+        ))}
+      </View>
+    ),
+    text: (n) => (
+      <Text style={[styles.text, style]} testID={n.id}>
+        {String(n.props?.value ?? "")}
+      </Text>
+    ),
+    button: (n) => (
+      <Pressable
+        testID={n.id}
+        style={[styles.button, style]}
+        onPress={() => {
+          const event = n.props?.event;
+          if (typeof event === "string") {
+            onEvent?.(n.id, event);
+          }
+        }}
+      >
+        <Text style={styles.buttonLabel}>{String(n.props?.label ?? "Button")}</Text>
+      </Pressable>
+    ),
+    "text-input": (n) => (
+      <TextInput
+        testID={n.id}
+        style={[styles.input, style]}
+        defaultValue={String(n.props?.value ?? "")}
+        placeholder={String(n.props?.placeholder ?? "")}
+        onChangeText={(value) => {
+          const event = n.props?.event;
+          if (typeof event === "string") {
+            onEvent?.(n.id, event, value);
+          }
+        }}
+      />
+    ),
+    switch: (n) => (
+      <Switch
+        testID={n.id}
+        value={Boolean(n.props?.value)}
+        onValueChange={(value) => {
+          const event = n.props?.event;
+          if (typeof event === "string") {
+            onEvent?.(n.id, event, value);
+          }
+        }}
+      />
+    ),
+    scroll: (n) => <ScrollWidget node={n} style={style} {...childProps} />,
+    divider: (n) => <View testID={n.id} style={[styles.divider, style]} />,
+    spacer: (n) => <View testID={n.id} style={[{ height: 8 }, style]} />,
+    progress: (n) => (
+      <Text testID={n.id} style={[styles.text, style]}>
+        Progress {String(n.props?.value ?? 0)}%
+      </Text>
+    ),
+    list: (n) => (
+      <View testID={n.id} style={style}>
+        {n.children?.map((child) => (
+          <WidgetNodeView key={child.id} node={child} {...childProps} />
+        ))}
+        {(Array.isArray(n.props?.items) ? n.props.items : []).map((item, index) => (
+          <Text key={`${n.id}-${index}`} style={styles.muted}>
+            {typeof item === "string" ? item : JSON.stringify(item)}
+          </Text>
+        ))}
+      </View>
+    ),
+    image: (n) => {
+      const assetName = String(n.props?.asset ?? "");
       const svg = assets[assetName];
-      const alt = typeof node.props?.alt === "string" ? node.props.alt : assetName;
+      const alt = typeof n.props?.alt === "string" ? n.props.alt : assetName;
       if (svg !== undefined) {
-        const width = typeof node.style?.width === "number" ? node.style.width : 40;
-        const height = typeof node.style?.height === "number" ? node.style.height : 40;
+        const width = typeof n.style?.width === "number" ? n.style.width : 40;
+        const height = typeof n.style?.height === "number" ? n.style.height : 40;
         return (
           <Image
-            testID={node.id}
+            testID={n.id}
             accessibilityLabel={alt}
             resizeMode="contain"
             // Pre-encode into a bare `data:image/svg+xml,` URI. react-native-web only
@@ -249,39 +256,62 @@ function WidgetNodeView({
       }
       // No asset supplied for this name: keep the readable placeholder the golden tests expect.
       return (
-        <Text testID={node.id} style={[styles.text, style]}>
+        <Text testID={n.id} style={[styles.text, style]}>
           image:{assetName}
         </Text>
       );
-    }
-    case "code-editor":
-      return <CodeEditorWidget node={node} style={style} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />;
-    case "qr-code":
-      return (
-        <View testID={node.id} style={style}>
-          <Text selectable style={styles.muted}>
-            {String(node.props?.value ?? "")}
-          </Text>
-          {typeof node.props?.caption === "string" ? (
-            <Text style={styles.muted}>{node.props.caption}</Text>
-          ) : null}
-        </View>
-      );
-    case "camera-preview":
-    case "audio-meter":
-    case "waveform":
-    case "map-preview":
-    case "remote-video":
-      return (
-        <View testID={node.id} style={[styles.previewSurface, style]}>
-          <Text style={styles.muted}>
-            {node.type}:{String(node.props?.session ?? "")}
-          </Text>
-        </View>
-      );
-    default:
-      return null;
-  }
+    },
+    "code-editor": (n) => <CodeEditorWidget node={n} style={style} {...childProps} />,
+    "qr-code": (n) => (
+      <View testID={n.id} style={style}>
+        <Text selectable style={styles.muted}>
+          {String(n.props?.value ?? "")}
+        </Text>
+        {typeof n.props?.caption === "string" ? (
+          <Text style={styles.muted}>{n.props.caption}</Text>
+        ) : null}
+      </View>
+    ),
+    "camera-preview": (n) => <PreviewSurface node={n} style={style} />,
+    "audio-meter": (n) => <PreviewSurface node={n} style={style} />,
+    waveform: (n) => <PreviewSurface node={n} style={style} />,
+    "map-preview": (n) => <PreviewSurface node={n} style={style} />,
+    "remote-video": (n) => <PreviewSurface node={n} style={style} />
+  }) as ReactElement;
+}
+function PreviewSurface({
+  node,
+  style
+}: {
+  readonly node: WidgetNode;
+  readonly style: ReturnType<typeof widgetStyle>;
+}) {
+  const sessions = useContext(DeviceSessionContext);
+  const session = String(node.props?.session ?? "");
+  const live = sessions.find((entry) => entry.handle === session);
+  const label = live
+    ? `${node.type} · ${live.classId}:${live.tierId} · ${live.appId}`
+    : `${node.type} · waiting for session`;
+
+  return (
+    <View testID={node.id} style={[styles.previewSurface, style]}>
+      <Text style={styles.muted}>{label}</Text>
+      {node.type === "camera-preview" && live?.classId === "camera" ? (
+        <Text style={styles.muted}>Host camera preview (pixels stay in chrome)</Text>
+      ) : null}
+      {node.type === "map-preview" && live?.classId === "location" ? (
+        <Text style={styles.muted}>
+          Host map preview · zoom {String(node.props?.zoom ?? 12)}
+        </Text>
+      ) : null}
+      {node.type === "audio-meter" || node.type === "waveform" ? (
+        <View style={styles.previewMeter} />
+      ) : null}
+      {node.type === "remote-video" ? (
+        <Text style={styles.muted}>Remote video shell · peer={String(node.props?.peer ?? "—")}</Text>
+      ) : null}
+    </View>
+  );
 }
 
 function minimalTextEdit(before: string, after: string) {
@@ -334,7 +364,13 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    justifyContent: "center"
+    justifyContent: "center",
+    gap: 6
+  },
+  previewMeter: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "#2a5a3a"
   },
   button: {
     backgroundColor: "#2b3645",

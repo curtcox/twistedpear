@@ -1,20 +1,15 @@
 // SPEC-WIDGET schema generation. The vocabulary authority is the host-side
-// constant tables in packages/miniapp-runtime/src/ui/schema.ts (WIDGET_TYPES,
-// WIDGET_PROP_KEYS, WIDGET_STYLE_KEYS and the code-editor/qr-code limits) —
-// NOT the RN renderer. This script reads those constants from the compiled
-// runtime and emits specs/spec-widget/schema/widget.schema.json, which also
-// carries the update-stream (diff) operations from ui/diff.ts.
-//
-// Style *value* constraints mirror the WidgetStyle type in the same
-// ui/schema.ts file; they are maintained here as data because the constant
-// tables only enumerate keys. Regenerate with: npm run generate:widget-schema
+// constant tables in packages/miniapp-runtime/src/ui/schema.ts — NOT the RN
+// renderer. This script serializes those tables into
+// specs/spec-widget/schema/widget.schema.json (including update-stream ops
+// from ui/diff.ts). Regenerate with: npm run generate:widget-schema
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  CODE_EDITOR_LANGUAGES,
-  MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH,
-  MAX_QR_CODE_VALUE_LENGTH,
+  EXTRA_PROP_SCHEMAS,
+  EXTRA_REQUIRED,
+  STYLE_VALUE_SCHEMAS,
   WIDGET_PROP_KEYS,
   WIDGET_STYLE_KEYS,
   WIDGET_TYPES
@@ -23,49 +18,12 @@ import {
 const here = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_PATH = join(here, "..", "specs", "spec-widget", "schema", "widget.schema.json");
 
-// Mirrors the WidgetStyle type in packages/miniapp-runtime/src/ui/schema.ts.
-const STYLE_VALUE_SCHEMAS = {
-  display: { enum: ["flex", "none"] },
-  flexDirection: { enum: ["row", "column"] },
-  alignItems: { enum: ["stretch", "flex-start", "center", "flex-end"] },
-  justifyContent: { enum: ["flex-start", "center", "flex-end", "space-between"] },
-  gap: { type: "number" },
-  padding: { type: "number" },
-  margin: { type: "number" },
-  width: { oneOf: [{ type: "number" }, { type: "string", pattern: "^[0-9]+(\\.[0-9]+)?%$" }] },
-  height: { oneOf: [{ type: "number" }, { type: "string", pattern: "^[0-9]+(\\.[0-9]+)?%$" }] },
-  backgroundColor: { type: "string" },
-  color: { type: "string" },
-  fontSize: { enum: [12, 14, 16, 20, 24, 32] },
-  fontWeight: { enum: ["regular", "medium", "bold"] }
-};
-
-// Per-type extra constraints enforced by ui/validate.ts beyond key membership.
-const EXTRA_PROP_SCHEMAS = {
-  "code-editor": {
-    documentId: {
-      type: "string",
-      minLength: 1,
-      maxLength: MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH
-    },
-    language: { enum: [...CODE_EDITOR_LANGUAGES].sort() }
-  },
-  "qr-code": {
-    value: { type: "string", minLength: 1, maxLength: MAX_QR_CODE_VALUE_LENGTH }
-  }
-};
-
-const EXTRA_REQUIRED = {
-  "code-editor": ["documentId"],
-  "qr-code": ["value"]
-};
-
 export function generateWidgetSchema() {
   const styleProperties = {};
   for (const key of [...WIDGET_STYLE_KEYS].sort()) {
     const value = STYLE_VALUE_SCHEMAS[key];
     if (value === undefined) {
-      throw new Error(`WIDGET_STYLE_KEYS has key "${key}" with no value schema — update generate-widget-schema.mjs`);
+      throw new Error(`WIDGET_STYLE_KEYS has key "${key}" with no value schema — update ui/schema.ts`);
     }
     styleProperties[key] = value;
   }

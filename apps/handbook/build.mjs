@@ -43,7 +43,10 @@ const SDK_NAMESPACES = [
   "share",
   "apps",
   "ai",
-  "ui"
+  "ui",
+  "peers",
+  "relay",
+  "device"
 ];
 const MIN_CHAPTER_WORDS = {
   "part-1-concepts": 80,

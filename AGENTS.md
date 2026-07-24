@@ -14,7 +14,7 @@ capability broker on desktop, mobile, web, and headless hosts.
 
 - Human/project overview: `README.md`
 - Canonical documentation index: `docs/README.md`
-- Domain terms: `guide/glossary.md`
+- Domain terms: `docs/glossary.md` (developer) and `guide/glossary.md` (user-facing)
 - Current work: `STATUS-SOFTWARE.md`
 - Hardware/account-gated work: `STATUS-HARDWARE.md`
 - Known limitations: `LIMITATIONS.md`
@@ -56,6 +56,7 @@ conformance suite for the area changed; see `conformance/AGENTS.md`.
 - `packages/peer-discovery`: peer discovery helpers
 - `packages/miniapp-runtime`, `packages/miniapp-sdk`: sandbox broker and app API
 - `packages/host-core`: runtime-neutral host orchestration
+- `packages/worklet-core`: shared Bare worklet adapters (IPC bridges, dev channel)
 - `packages/widget-renderer-rn`, `packages/widget-renderer-headless`: host-side renderers
 - `apps/host-desktop`: Electron host
 - `apps/harness-mobile`: Expo iOS/Android/web host

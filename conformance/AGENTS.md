@@ -48,6 +48,13 @@ detailed phase-by-phase reference; `docs/ci-policy.md` records CI and nightly co
   simulators, or local data stores. Verify cleanup on failure.
 - Soak and release runners are operational workflows, not ordinary tests.
 
+## Runner toolkit (`conformance/lib/`)
+
+New and touched `run.mjs` runners should import shared helpers from
+`conformance/lib/` (`assert`, `section`/`step`, `spawnChecked`, `withTempDir`,
+`runMain`) instead of hand-rolling them. Convert a runner when it is next
+touched for any other reason — do not rewrite the whole tree.
+
 ## Useful entry points
 
 - Full local Mac matrix and durations: `docs/mac-validation.md`

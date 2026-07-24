@@ -1,4 +1,4 @@
-import { DEFAULT_BULK_FETCH_PATH } from "./gateway-bulk-fetch-server.js";
+import { DEFAULT_BULK_FETCH_PATH } from "../server/gateway-bulk-fetch-server.js";
 
 export interface WebGatewayHyperFetchOptions {
   readonly gatewayUrl: string;

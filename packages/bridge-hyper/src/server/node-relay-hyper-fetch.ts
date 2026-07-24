@@ -5,13 +5,24 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import WebSocket from "ws";
-import { fetchDriveVersionViaRelayedDht, type RelayedDht } from "./relay-hyper-fetch.js";
+import { fetchDriveVersionViaRelayedDht, type RelayedDht } from "../core/relay-hyper-fetch.js";
+import type { DriveFetcher } from "../core/fetch.js";
 
 export interface NodeRelayHyperFetchOptions {
   readonly relayUrl: string;
   readonly driveKeyHex: string;
   readonly version: string;
   readonly timeoutMs?: number;
+}
+
+export function createNodeRelayDriveFetcher(
+  options: Omit<NodeRelayHyperFetchOptions, "driveKeyHex" | "version">
+): DriveFetcher {
+  return {
+    fetchDriveVersion(driveKeyHex, version) {
+      return fetchDriveVersionViaNodeRelay({ ...options, driveKeyHex, version });
+    }
+  };
 }
 
 function openRelaySocket(relayUrl: string, timeoutMs: number): Promise<WebSocket> {

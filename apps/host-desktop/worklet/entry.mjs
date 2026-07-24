@@ -13,9 +13,9 @@ import { bareRuntime } from "../../../packages/reticulum-ts/dist/runtime/bare/ru
 import { AutoInterfaceBridge } from "../../../packages/reticulum-interfaces/dist/auto-bridge.js";
 import { AUTO_DEFAULT_DATA_PORT } from "../../../packages/reticulum-interfaces/dist/auto-common.js";
 import { selectDiscoveryProviders } from "../../../packages/reticulum-interfaces/dist/auto-discovery.js";
-import { createIpcMulticastBridge } from "./ipc-multicast-bridge.mjs";
-import { createIpcBonjourBridge } from "./ipc-bonjour-bridge.mjs";
-import { createIpcSerialBridge } from "./ipc-serial-bridge.mjs";
+import { createIpcMulticastBridge } from "../../../packages/worklet-core/src/ipc-multicast-bridge.mjs";
+import { createIpcBonjourBridge } from "../../../packages/worklet-core/src/ipc-bonjour-bridge.mjs";
+import { createIpcSerialBridge } from "../../../packages/worklet-core/src/ipc-serial-bridge.mjs";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import { CatalogStore, InstalledPackageStore, TrustStore, decodeAppAnnounceData, decodePublisherIdentity256t, encodePublisherIdentity256t, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
@@ -45,7 +45,6 @@ import {
   createPropagationDestination,
   DEFAULT_PROPAGATION_QUOTAS
 } from "../../../packages/lxmf-ts/dist/index.js";
-import { createWorkletMiniappHost } from "./miniapp-host.mjs";
 import { createDesktopPeerChrome } from "./peer-chrome.mjs";
 import {
   AudioPeerDiscoveryAdapter,
@@ -60,7 +59,13 @@ import {
   ReticulumPeerDiscoveryAdapter,
   UnavailablePeerDiscoveryAdapter
 } from "../../../packages/peer-discovery/dist/index.js";
-import { createDevChannelClient } from "./dev-channel.mjs";
+import {
+  createDevChannelClient,
+  createHostReplyChannel,
+  createMiniappAnnounceService,
+  createStatusTimer,
+  createWorkletMiniappHost
+} from "../../../packages/worklet-core/src/index.mjs";
 import { IPC } from "./ipc-stdio.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
 
@@ -233,8 +238,6 @@ let pendingRnodeDeviceId = null;
 let pendingRnodePortPath = null;
 /** @type {number} */
 let pendingRnodeBaudRate = 115_200;
-/** @type {ReturnType<typeof setInterval> | null} */
-let statusTimer = null;
 /** @type {Identity | null} */
 let activeIdentity = null;
 let legacyIdentity = null;
@@ -270,9 +273,6 @@ const automaticInboundWaiters = new Map();
 const automaticInboundRoutes = new Map();
 const automaticAnswerWaiters = new Map();
 const automaticOfferKeys = new Map();
-const miniappAnnounceBuckets = new Map();
-const miniappAnnounceDestinations = new Map();
-const miniappAnnounceHandlers = new Set();
 /** @type {ReturnType<typeof createDevChannelClient> | null} */
 let devChannel = null;
 
@@ -304,9 +304,6 @@ function ensureDevChannel() {
 
   return devChannel;
 }
-
-/** @type {Map<string, (reply: any) => void>} */
-const pendingRendererReplies = new Map();
 
 /** @type {TrustStore | null} */
 let trustStore = null;
@@ -608,20 +605,8 @@ async function pushTrustList() {
   send({ type: "trust", entries });
 }
 
-function requestRendererReply(message, timeoutMs = 120_000) {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      pendingRendererReplies.delete(message.token);
-      resolve(null);
-    }, timeoutMs);
-    pendingRendererReplies.set(message.token, (reply) => {
-      clearTimeout(timer);
-      pendingRendererReplies.delete(message.token);
-      resolve(reply);
-    });
-    send(message);
-  });
-}
+const hostReplyChannel = createHostReplyChannel({ send });
+const requestRendererReply = hostReplyChannel.requestReply;
 
 const peerChrome = createDesktopPeerChrome({
   requestReply: requestRendererReply,
@@ -872,45 +857,16 @@ const peerSessionManagerProxy = {
   }
 };
 
-function miniappAnnounceAspect(appId, namespace) {
-  const scope = namespace ?? `miniapp-announce:${appId}`;
-  return bytesToHex(provider.sha256(new TextEncoder().encode(scope)).subarray(0, 16));
-}
-
-const transportAnnounceService = {
-  async publish(appId, appData, namespace) {
-    const node = await ensureReticulum();
-    const identity = await resolveIdentity();
-    if (identity === null) throw new Error("Unlock the host identity before publishing announces");
-    const aspect = miniappAnnounceAspect(appId, namespace);
-    let destination = miniappAnnounceDestinations.get(aspect);
-    if (destination === undefined) {
-      destination = node.registerDestination({ provider, identity, direction: DestinationDirection.IN, type: DestinationType.SINGLE, appName: "tp", aspects: ["miniapp", aspect] });
-      miniappAnnounceDestinations.set(aspect, destination);
-    }
-    const payload = appData ?? new Uint8Array();
-    await destination.announce({ appData: payload });
-    const bucket = miniappAnnounceBuckets.get(aspect) ?? [];
-    bucket.push({ destination: bytesToHex(destination.hash), appData: payload, receivedAt: Date.now() });
-    miniappAnnounceBuckets.set(aspect, bucket.slice(-256));
-  },
-  async subscribe(appId, namespace) {
-    const node = await ensureReticulum();
-    const aspect = miniappAnnounceAspect(appId, namespace);
-    if (!miniappAnnounceHandlers.has(aspect)) {
-      node.registerAnnounceHandler({
-        aspectFilter: `tp.miniapp.${aspect}`,
-        receivedAnnounce(info) {
-          const bucket = miniappAnnounceBuckets.get(aspect) ?? [];
-          bucket.push({ destination: bytesToHex(info.destinationHash), appData: info.appData ?? new Uint8Array(), receivedAt: Date.now() });
-          miniappAnnounceBuckets.set(aspect, bucket.slice(-256));
-        }
-      });
-      miniappAnnounceHandlers.add(aspect);
-    }
-    return [...(miniappAnnounceBuckets.get(aspect) ?? [])];
-  }
-};
+const transportAnnounceService = createMiniappAnnounceService({
+  provider,
+  bytesToHex,
+  DestinationDirection,
+  DestinationType,
+  getNode: () => ensureReticulum(),
+  getIdentity: () => resolveIdentity(),
+  requireIdentity: true,
+  copyAppData: false
+});
 
 function ensureMiniappHost() {
   if (miniappHost === null) {
@@ -990,6 +946,23 @@ function ensureMiniappHost() {
           summary: request.summary
         });
         return { approved: reply?.approved === true, detail: reply?.detail };
+      },
+      async requestDeviceBridge(request) {
+        const token = generateConfirmationToken((length) => provider.randomBytes(length));
+        const reply = await requestRendererReply({
+          type: "device-bridge-request",
+          token,
+          op: request.op,
+          classId: request.classId,
+          options: request.options ?? {}
+        }, 30_000);
+        if (reply === null) {
+          throw new Error("Device bridge request timed out");
+        }
+        if (reply.error) {
+          throw new Error(String(reply.error));
+        }
+        return reply.result;
       },
       async requestLaunchReview(review) {
         return requestRendererReply({
@@ -1333,22 +1306,9 @@ function pushStatus() {
   send({ type: "status", status: { ...status } });
 }
 
-function startStatusTimer() {
-  if (statusTimer !== null) {
-    return;
-  }
-
-  statusTimer = setInterval(pushStatus, 1_000);
-}
-
-function stopStatusTimer() {
-  if (statusTimer === null) {
-    return;
-  }
-
-  clearInterval(statusTimer);
-  statusTimer = null;
-}
+const statusTimer = createStatusTimer({ onTick: () => pushStatus() });
+const startStatusTimer = statusTimer.start;
+const stopStatusTimer = statusTimer.stop;
 
 function updateIdentityStatus(identity) {
   activeIdentity = identity;
@@ -1711,7 +1671,10 @@ async function startRnodeInterface() {
   }
 
   log(`Starting RNode interface over ${pendingRnodePortPath}`);
-  serialBridge = createIpcSerialBridge(pendingRnodePortPath, pendingRnodeBaudRate);
+  serialBridge = createIpcSerialBridge({
+    portPath: pendingRnodePortPath,
+    baudRate: pendingRnodeBaudRate
+  });
   rnodeIface = await RNodeInterface.open(provider, {
     name: "host-rnode",
     provider,
@@ -1927,6 +1890,42 @@ async function handleHostMessage(raw) {
 
   if (message.type === "moderation-list") {
     pushModerationState();
+    return;
+  }
+
+  if (message.type === "device-list") {
+    try {
+      await ensureMiniappHost().pushDeviceState();
+    } catch (error) {
+      log(`Device list failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "device-set-class-disabled") {
+    try {
+      await ensureMiniappHost().setDeviceClassDisabled(message.classId, message.disabled === true);
+    } catch (error) {
+      log(`Device policy update failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "device-set-remote") {
+    try {
+      await ensureMiniappHost().setRemoteAcquisitionEnabled(message.enabled === true);
+    } catch (error) {
+      log(`Remote acquisition update failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "device-kill-session") {
+    try {
+      await ensureMiniappHost().forceCloseDeviceSession(message.handle);
+    } catch (error) {
+      log(`Device session kill failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
     return;
   }
 
@@ -2232,8 +2231,8 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response") {
-    pendingRendererReplies.get(message.token)?.(message);
+  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response") {
+    hostReplyChannel.resolveReply(message);
     return;
   }
 

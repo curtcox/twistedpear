@@ -1,7 +1,7 @@
 import type { CatalogEntry } from "@twistedpear/app-registry";
 import type { CryptoProvider } from "@twistedpear/reticulum-ts";
 import { unpackPackage } from "@twistedpear/app-registry";
-import { fetchDriveVersionViaGateway } from "./web-hyper-fetch-gateway.js";
+import { fetchDriveVersionViaGateway } from "./web-gateway-hyper-fetch.js";
 
 export type WebFetchPath = "hyperdrive" | "resource";
 

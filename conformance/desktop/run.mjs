@@ -4,24 +4,16 @@
  */
 
 import { readFileSync } from "node:fs";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
 import { createNodeHost } from "../../packages/host-core/dist/node-host.js";
 import { decodeMessages, encodeMessage } from "../../packages/host-core/dist/protocol.js";
 import { defaultHostConfig } from "../../packages/host-core/dist/types.js";
+import { assert, runMain, spawnChecked, withTempDir } from "../lib/index.mjs";
 import { runDesktopFullLoop } from "./full-loop.mjs";
 import { runDesktopHostileSmoke } from "./hostile-smoke.mjs";
 import { runDesktopDevLoop } from "./dev-loop.mjs";
 import { runDesktopCrashRestart } from "./crash-restart.mjs";
-
-function assert(condition, message) {
-  if (!condition) {
-    throw new Error(message);
-  }
-}
 
 function testProtocolFraming() {
   const encoded = encodeMessage({ type: "status", status: { running: true } });
@@ -34,12 +26,12 @@ function testProtocolFraming() {
 }
 
 async function testNodeHostBoot() {
-  const dataDir = mkdtempSync(join(tmpdir(), "tp-host-"));
+  const temp = withTempDir("tp-host-");
   try {
     const session = await createNodeHost({
-        identityPassphrase: "conformance identity passphrase",
+      identityPassphrase: "conformance identity passphrase",
       config: defaultHostConfig({
-        dataDir,
+        dataDir: temp.path,
         roles: { transport: false, seeder: false, propagation: false, attachRnsd: null },
         interfaces: {
           tcp: { enabled: false, mode: "client" },
@@ -55,17 +47,17 @@ async function testNodeHostBoot() {
     assert(status.identityHash !== null, "host created identity");
     await session.stop();
   } finally {
-    rmSync(dataDir, { recursive: true, force: true });
+    temp.dispose();
   }
 }
 
 async function testStatusEndpointLocalhostOnly() {
-  const dataDir = mkdtempSync(join(tmpdir(), "tp-host-status-"));
+  const temp = withTempDir("tp-host-status-");
   try {
     const session = await createNodeHost({
-        identityPassphrase: "conformance identity passphrase",
+      identityPassphrase: "conformance identity passphrase",
       config: defaultHostConfig({
-        dataDir,
+        dataDir: temp.path,
         roles: { transport: false, seeder: false, propagation: false, attachRnsd: null },
         interfaces: {
           tcp: { enabled: false, mode: "client" },
@@ -88,20 +80,19 @@ async function testStatusEndpointLocalhostOnly() {
     assert(typeof body.bandwidthBytesOut === "number", "status schema includes bandwidthBytesOut");
     await session.stop();
   } finally {
-    rmSync(dataDir, { recursive: true, force: true });
+    temp.dispose();
   }
 }
 
 function testWorkletBundleBuild() {
-  const result = spawnSync("node", ["scripts/build-worklet.mjs"], {
-    cwd: new URL("../../apps/host-desktop", import.meta.url),
-    stdio: "pipe",
-    encoding: "utf8"
+  spawnChecked("node", ["scripts/build-worklet.mjs"], {
+    cwd: fileURLToPath(new URL("../../apps/host-desktop", import.meta.url))
   });
 
-  assert(result.status === 0, `worklet bundle build failed\n${result.stdout}\n${result.stderr}`);
-
-  const bundlePath = join(dirname(fileURLToPath(import.meta.url)), "../../apps/host-desktop/worklet/worklet.bundle");
+  const bundlePath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "../../apps/host-desktop/worklet/worklet.bundle"
+  );
   const bundle = readFileSync(bundlePath);
   assert(bundle.length > 1024, "worklet bundle is non-empty");
 }
@@ -118,12 +109,14 @@ function testElectronSecurityPosture() {
 }
 
 async function testSerialportOptionalLoad() {
-  const { serialportAvailable } = await import("../../packages/reticulum-interfaces/dist/serial-node.js");
+  const { serialportAvailable } = await import(
+    "../../packages/reticulum-interfaces/dist/serial-node.js"
+  );
   const available = await serialportAvailable();
   assert(typeof available === "boolean", "serialportAvailable returns boolean");
 }
 
-async function main() {
+await runMain(async () => {
   testProtocolFraming();
   await testNodeHostBoot();
   await testStatusEndpointLocalhostOnly();
@@ -135,9 +128,4 @@ async function main() {
   await runDesktopDevLoop();
   await runDesktopCrashRestart();
   console.log("desktop-smoke: all checks passed");
-}
-
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
 });

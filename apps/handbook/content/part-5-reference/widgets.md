@@ -14,19 +14,24 @@ duplicate ids, or oversized trees are rejected.
 
 ## Components
 
+- **`audio-meter`** — props: `session`
 - **`button`** — props: `event`, `label`
+- **`camera-preview`** — props: `aspectRatio`, `session`
 - **`code-editor`** — props: `documentId`, `event`, `language`, `readOnly`
 - **`divider`** — props: none
 - **`image`** — props: `alt`, `asset`
 - **`list`** — props: `event`, `items`
+- **`map-preview`** — props: `session`, `zoom`
 - **`progress`** — props: `max`, `value`
 - **`qr-code`** — props: `caption`, `size`, `value`
+- **`remote-video`** — props: `peer`, `session`
 - **`scroll`** — props: `event`, `scrollOffset`
 - **`spacer`** — props: `size`
 - **`switch`** — props: `event`, `value`
 - **`text`** — props: `value`
 - **`text-input`** — props: `event`, `placeholder`, `value`
 - **`view`** — props: `accessibilityLabel`
+- **`waveform`** — props: `session`
 
 ## Styles
 

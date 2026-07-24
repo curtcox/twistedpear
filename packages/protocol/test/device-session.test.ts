@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { enumerateCells } from "@twistedpear/effects";
 import {
   deviceSessionMachine,
   initialDeviceSessionState,
@@ -9,6 +10,7 @@ import {
   DEVICE_REGISTRY_HOST_API,
   deviceCapabilityId
 } from "../src/index.js";
+import vectors from "../../../conformance/vectors/device-session.json";
 
 describe("device session machine", () => {
   it("opens, degrades, restores, and closes", () => {
@@ -62,6 +64,12 @@ describe("device session machine", () => {
       "active:revoke->revoked",
       "degraded:revoke->revoked"
     ]);
+  });
+
+  it("checks in a Layer-3 vector for every table cell", () => {
+    expect(vectors.cells).toHaveLength(enumerateCells(deviceSessionMachine).length);
+    expect(vectors.cells).toHaveLength(deviceSessionMachine.states.length * deviceSessionMachine.events.length);
+    expect(vectors.cells.filter((cell) => cell.legal)).toHaveLength(deviceSessionMachine.table.length);
   });
 });
 

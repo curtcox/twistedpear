@@ -1,4 +1,4 @@
-import type { WidgetNode, WidgetStyle, WidgetTree } from "./schema.js";
+import { visitWidget, type WidgetNode, type WidgetStyle, type WidgetTree } from "./schema.js";
 
 /**
  * Canonical host render model for widget trees. Golden tests compare this structure
@@ -23,133 +23,123 @@ function describeWidgetNode(node: WidgetNode): RenderedWidgetNode {
     ...(style === undefined ? {} : { style })
   };
 
-  switch (node.type) {
-    case "view": {
-      const children = describeChildren(node);
+  return visitWidget(node, {
+    view: (n) => {
+      const children = describeChildren(n);
       return {
         ...base,
         component: "View",
         ...(children === undefined ? {} : { children })
       };
-    }
-    case "text":
-      return {
-        ...base,
-        component: "Text",
-        props: { value: String(node.props?.value ?? "") }
-      };
-    case "button":
-      return {
-        ...base,
-        component: "Button",
-        props: {
-          label: String(node.props?.label ?? "Button"),
-          ...(typeof node.props?.event === "string" ? { event: node.props.event } : {})
-        }
-      };
-    case "text-input":
-      return {
-        ...base,
-        component: "TextInput",
-        props: {
-          value: String(node.props?.value ?? ""),
-          placeholder: String(node.props?.placeholder ?? ""),
-          ...(typeof node.props?.event === "string" ? { event: node.props.event } : {})
-        }
-      };
-    case "switch":
-      return {
-        ...base,
-        component: "Switch",
-        props: {
-          value: Boolean(node.props?.value),
-          ...(typeof node.props?.event === "string" ? { event: node.props.event } : {})
-        }
-      };
-    case "scroll": {
-      const children = describeChildren(node);
+    },
+    text: (n) => ({
+      ...base,
+      component: "Text",
+      props: { value: String(n.props?.value ?? "") }
+    }),
+    button: (n) => ({
+      ...base,
+      component: "Button",
+      props: {
+        label: String(n.props?.label ?? "Button"),
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
+      }
+    }),
+    "text-input": (n) => ({
+      ...base,
+      component: "TextInput",
+      props: {
+        value: String(n.props?.value ?? ""),
+        placeholder: String(n.props?.placeholder ?? ""),
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
+      }
+    }),
+    switch: (n) => ({
+      ...base,
+      component: "Switch",
+      props: {
+        value: Boolean(n.props?.value),
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
+      }
+    }),
+    scroll: (n) => {
+      const children = describeChildren(n);
       return {
         ...base,
         component: "ScrollView",
         ...(children === undefined ? {} : { children })
       };
+    },
+    divider: () => ({
+      ...base,
+      component: "Divider"
+    }),
+    spacer: () => ({
+      ...base,
+      component: "Spacer",
+      props: { height: 8 }
+    }),
+    progress: (n) => ({
+      ...base,
+      component: "Progress",
+      props: { value: n.props?.value ?? 0 }
+    }),
+    list: (n) => ({
+      ...base,
+      component: "List",
+      children: (Array.isArray(n.props?.items) ? n.props.items : []).map((item, index) => ({
+        component: "ListItem",
+        id: `${n.id}-item-${index}`,
+        props: { value: typeof item === "string" ? item : JSON.stringify(item) }
+      }))
+    }),
+    image: (n) => ({
+      ...base,
+      component: "Image",
+      props: { asset: String(n.props?.asset ?? "") }
+    }),
+    "code-editor": (n) => ({
+      ...base,
+      component: "CodeEditor",
+      props: {
+        documentId: String(n.props?.documentId ?? ""),
+        language: typeof n.props?.language === "string" ? n.props.language : "text",
+        readOnly: Boolean(n.props?.readOnly),
+        ...(typeof n.props?.event === "string" ? { event: n.props.event } : {})
+      }
+    }),
+    "qr-code": (n) => ({
+      ...base,
+      component: "QrCode",
+      props: {
+        value: String(n.props?.value ?? ""),
+        ...(typeof n.props?.size === "number" ? { size: n.props.size } : {}),
+        ...(typeof n.props?.caption === "string" ? { caption: n.props.caption } : {})
+      }
+    }),
+    "camera-preview": (n) => describePreview(base, n),
+    "audio-meter": (n) => describePreview(base, n),
+    waveform: (n) => describePreview(base, n),
+    "map-preview": (n) => describePreview(base, n),
+    "remote-video": (n) => describePreview(base, n)
+  });
+}
+
+function describePreview(
+  base: { readonly id: string; readonly style?: Readonly<Record<string, unknown>> },
+  node: WidgetNode
+): RenderedWidgetNode {
+  return {
+    ...base,
+    component: "DevicePreview",
+    props: {
+      surface: node.type,
+      session: String(node.props?.session ?? ""),
+      ...(typeof node.props?.aspectRatio === "string" ? { aspectRatio: node.props.aspectRatio } : {}),
+      ...(typeof node.props?.zoom === "number" ? { zoom: node.props.zoom } : {}),
+      ...(typeof node.props?.peer === "string" ? { peer: node.props.peer } : {})
     }
-    case "divider":
-      return {
-        ...base,
-        component: "Divider"
-      };
-    case "spacer":
-      return {
-        ...base,
-        component: "Spacer",
-        props: { height: 8 }
-      };
-    case "progress":
-      return {
-        ...base,
-        component: "Progress",
-        props: { value: node.props?.value ?? 0 }
-      };
-    case "list":
-      return {
-        ...base,
-        component: "List",
-        children: (Array.isArray(node.props?.items) ? node.props.items : []).map((item, index) => ({
-          component: "ListItem",
-          id: `${node.id}-item-${index}`,
-          props: { value: typeof item === "string" ? item : JSON.stringify(item) }
-        }))
-      };
-    case "image":
-      return {
-        ...base,
-        component: "Image",
-        props: { asset: String(node.props?.asset ?? "") }
-      };
-    case "code-editor":
-      return {
-        ...base,
-        component: "CodeEditor",
-        props: {
-          documentId: String(node.props?.documentId ?? ""),
-          language: typeof node.props?.language === "string" ? node.props.language : "text",
-          readOnly: Boolean(node.props?.readOnly),
-          ...(typeof node.props?.event === "string" ? { event: node.props.event } : {})
-        }
-      };
-    case "qr-code":
-      return {
-        ...base,
-        component: "QrCode",
-        props: {
-          value: String(node.props?.value ?? ""),
-          ...(typeof node.props?.size === "number" ? { size: node.props.size } : {}),
-          ...(typeof node.props?.caption === "string" ? { caption: node.props.caption } : {})
-        }
-      };
-    case "camera-preview":
-    case "audio-meter":
-    case "waveform":
-    case "map-preview":
-    case "remote-video":
-      return {
-        ...base,
-        component: "DevicePreview",
-        props: {
-          surface: node.type,
-          session: String(node.props?.session ?? ""),
-          ...(typeof node.props?.aspectRatio === "string" ? { aspectRatio: node.props.aspectRatio } : {}),
-          ...(typeof node.props?.zoom === "number" ? { zoom: node.props.zoom } : {}),
-          ...(typeof node.props?.peer === "string" ? { peer: node.props.peer } : {})
-        }
-      };
-    default:
-      return {
-        ...base,
-        component: "Unknown"
-      };
-  }
+  };
 }
 
 function describeChildren(node: WidgetNode): ReadonlyArray<RenderedWidgetNode> | undefined {

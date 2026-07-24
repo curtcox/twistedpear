@@ -6,6 +6,9 @@ audited: 2026-07-21
 register: none
 -->
 
+This glossary defines terms as a user meets them. Contributors working on the
+code should also see the [developer glossary](../docs/glossary.md).
+
 **256t identifier** — A 94-character string that names a specific piece of content, such
 as a mini-app or a publisher's key. It is a fingerprint, not an address: if the bytes you
 receive do not match it, your host refuses them.

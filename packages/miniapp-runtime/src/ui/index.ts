@@ -1,4 +1,5 @@
-export type { WidgetNode, WidgetStyle, WidgetTree, WidgetType } from "./schema.js";
+export type { WidgetNode, WidgetStyle, WidgetTree, WidgetType, WidgetVisitor } from "./schema.js";
+export { visitWidget } from "./schema.js";
 export { WidgetValidationError, validateWidgetTree } from "./validate.js";
 export type { WidgetValidationOptions } from "./validate.js";
 export { diffWidgetTrees } from "./diff.js";

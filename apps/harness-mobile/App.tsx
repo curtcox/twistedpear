@@ -46,7 +46,9 @@ import {
   type MiniappBenchmarkResult,
   type WorkletStatus,
   type HostConfirmationRequestView,
-  type WorkletToHostMessage
+  type WorkletToHostMessage,
+  type DeviceStateView,
+  type ConfirmationKind
 } from "./worklet/protocol";
 import { MiniappWidgetTree } from "./host/miniapp-renderer";
 import type { WidgetTree } from "@twistedpear/miniapp-runtime";
@@ -63,6 +65,17 @@ const ANDROID_EMULATOR_HOST = "10.0.2.2";
 const LOCAL_HOST = "127.0.0.1";
 const DEFAULT_DEV_PORT = 34_987;
 const MAX_ANNOUNCES = 50;
+
+const CONFIRM_KIND_TITLES: Readonly<Record<ConfirmationKind, string>> = {
+  package: "Package and sign an app?",
+  publish: "Publish an app to other users?",
+  install: "Install an app?",
+  preview: "Preview an app in the host sandbox?",
+  "trust-import": "Trust a new publisher?",
+  "device-session": "Allow a device session?",
+  "device-stream": "Stream a device to a peer?",
+  "device-remote-grant": "Let a remote peer use a device on this host?"
+};
 
 async function requestBlePermissions(): Promise<void> {
   if (Platform.OS !== "android") {
@@ -140,6 +153,7 @@ export default function App() {
     | null
   >(null);
   const [hostConfirm, setHostConfirm] = useState<HostConfirmationRequestView | null>(null);
+  const [deviceState, setDeviceState] = useState<DeviceStateView | null>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [peerCameraActive, setPeerCameraActive] = useState(false);
   const [peerQrFrame, setPeerQrFrame] = useState(0);
@@ -327,6 +341,44 @@ export default function App() {
       return;
     }
 
+    if (message.type === "device-state") {
+      setDeviceState({
+        inventory: message.inventory,
+        diagnostics: message.diagnostics,
+        sessions: message.sessions,
+        indicators: message.indicators,
+        disabledClasses: message.disabledClasses,
+        remoteAcquisitionEnabled: message.remoteAcquisitionEnabled
+      });
+      return;
+    }
+
+    if (message.type === "device-bridge-request") {
+      void (async () => {
+        try {
+          const {
+            nativeDeviceAvailability,
+            nativeDeviceSense,
+            nativeDeviceActuate
+          } = await import("./host/native-device-bridge.js");
+          const result =
+            message.op === "availability"
+              ? await nativeDeviceAvailability(message.classId)
+              : message.op === "actuate"
+                ? await nativeDeviceActuate(message.classId, message.command ?? {})
+                : await nativeDeviceSense(message.classId, message.options ?? {});
+          sendToWorklet({ type: "device-bridge-response", token: message.token, result });
+        } catch (error) {
+          sendToWorklet({
+            type: "device-bridge-response",
+            token: message.token,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      })();
+      return;
+    }
+
     if (message.type === "peer-chrome-cancel") {
       setPeerCameraActive(false); setPeerModal(null);
       return;
@@ -452,6 +504,7 @@ export default function App() {
       rnode: rnodeEnabled,
       rnodeDeviceId: selectedUsbDeviceId
     });
+    sendToWorklet({ type: "device-list" });
     appendLog(`Worklet started (target ${targetHost}:${DEFAULT_DOCKER_PORT})`);
   }, [appendLog, autoEnabled, bleEnabled, rnodeEnabled, selectedUsbDeviceId, handleWorkletMessage, ntfyUrl, pushInterfaceConfig, sendToWorklet, tcpEnabled]);
 
@@ -558,7 +611,9 @@ export default function App() {
       {hostConfirm !== null ? (
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.sectionTitle}>Confirm app action</Text>
+            <Text style={styles.sectionTitle}>
+              {CONFIRM_KIND_TITLES[hostConfirm.kind] ?? `Confirm ${hostConfirm.kind}?`}
+            </Text>
             <Text style={styles.muted}>Trusted host chrome · capability confirmation</Text>
             <Text style={styles.rowLabel}>Kind: {hostConfirm.kind}</Text>
             <Text style={styles.rowLabel}>App: {hostConfirm.appId}</Text>
@@ -613,6 +668,27 @@ export default function App() {
               <ActionButton label={peerModal.kind === "confirm" ? "Connect" : peerModal.request.type === "peer-audio-transmit" ? peerModal.request.expectsResponse ? "Play and listen" : "Play answer" : peerModal.request.type === "peer-audio-receive" ? "Start listening" : "Continue"} onPress={() => { if (peerModal.kind === "confirm") sendToWorklet({ type: "peer-chrome-response", token: peerModal.request.token, approved: true }); else if (peerModal.request.type === "peer-audio-transmit" || peerModal.request.type === "peer-audio-receive") void performPeerAudio(peerModal.request); else sendToWorklet({ type: "peer-chrome-response", token: peerModal.request.token, accepted: true, ...(peerModal.input.trim() ? { code: peerModal.input.trim() } : {}) }); setPeerCameraActive(false); setPeerModal(null); }} />
             </View>
           </View>
+        </View>
+      ) : null}
+      {deviceState !== null && deviceState.indicators.length > 0 ? (
+        <View
+          testID="device-active-banner"
+          style={[styles.deviceActiveBanner, status.miniappRunning ? styles.deviceActiveBannerPinned : null]}
+        >
+          <Text style={styles.deviceActiveBannerTitle}>Active device use</Text>
+          {deviceState.indicators.map((indicator) => (
+            <View key={indicator.handle} style={styles.deviceActiveBannerRow}>
+              <Text style={styles.deviceActiveBannerText}>
+                {indicator.appId} · {indicator.class}:{indicator.tier} · {indicator.destination} — {indicator.purpose}
+              </Text>
+              <Pressable
+                style={styles.dangerButton}
+                onPress={() => sendToWorklet({ type: "device-kill-session", handle: indicator.handle })}
+              >
+                <Text style={styles.buttonLabel}>Stop</Text>
+              </Pressable>
+            </View>
+          ))}
         </View>
       ) : null}
       <Text style={styles.title}>TwistedPear Harness</Text>
@@ -771,6 +847,7 @@ export default function App() {
         <MiniappWidgetTree
           tree={(miniappRuntime?.widgetTree as WidgetTree | null) ?? null}
           readDocument={readWorkspaceDocument}
+          deviceSessions={deviceState?.sessions ?? []}
           onEvent={(nodeId, event, value) =>
             sendToWorklet({ type: "miniapp-ui-event", nodeId, event, value })
           }
@@ -799,6 +876,62 @@ export default function App() {
         {miniappLogs.length > 0 ? (
           <Text style={styles.muted}>{miniappLogs[miniappLogs.length - 1]}</Text>
         ) : null}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Devices &amp; Sensors</Text>
+        <Row
+          testID="device-remote-enabled"
+          label="Allow remote device acquisition"
+          value={deviceState?.remoteAcquisitionEnabled === true}
+          onChange={(enabled) => sendToWorklet({ type: "device-set-remote", enabled })}
+        />
+        {deviceState === null || deviceState.inventory.length === 0 ? (
+          <Text style={styles.muted}>No device classes reported yet.</Text>
+        ) : (
+          deviceState.inventory.map((entry) => {
+            const disabled = new Set(deviceState.disabledClasses);
+            return (
+              <View key={entry.class} style={styles.deviceRow}>
+                <Text style={styles.deviceLabel}>{entry.class}</Text>
+                <Text style={styles.deviceMeta}>{entry.availability}</Text>
+                <Row
+                  label="Allowed"
+                  value={!disabled.has(entry.class)}
+                  onChange={(allowed) =>
+                    sendToWorklet({
+                      type: "device-set-class-disabled",
+                      classId: entry.class,
+                      disabled: !allowed
+                    })
+                  }
+                />
+              </View>
+            );
+          })
+        )}
+        <Text style={styles.sectionTitle}>Live sessions</Text>
+        {deviceState === null || deviceState.sessions.length === 0 ? (
+          <Text style={styles.muted}>No live device sessions.</Text>
+        ) : (
+          deviceState.sessions.map((session) => (
+            <View key={session.handle} style={styles.deviceRow}>
+              <Text style={styles.deviceLabel}>
+                {session.classId}:{session.tierId}
+              </Text>
+              <Text style={styles.deviceMeta}>
+                {session.appId} · {session.destination}
+              </Text>
+              <Pressable
+                style={styles.dangerButton}
+                onPress={() => sendToWorklet({ type: "device-kill-session", handle: session.handle })}
+              >
+                <Text style={styles.buttonLabel}>Kill</Text>
+              </Pressable>
+            </View>
+          ))
+        )}
+        <ActionButton label="Refresh devices" onPress={() => sendToWorklet({ type: "device-list" })} />
       </View>
 
       {getUsbSerialCapability().supported ? (
@@ -1188,6 +1321,39 @@ const styles = StyleSheet.create({
     color: "#9aa7b8",
     fontSize: 11,
     marginTop: 2
+  },
+  deviceActiveBanner: {
+    backgroundColor: "#3a2410",
+    borderBottomWidth: 1,
+    borderBottomColor: "#8a5a20",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    gap: 6
+  },
+  deviceActiveBannerPinned: {
+    zIndex: 50
+  },
+  deviceActiveBannerTitle: {
+    color: "#f4e2c4",
+    fontWeight: "600",
+    fontSize: 13
+  },
+  deviceActiveBannerText: {
+    color: "#f4e2c4",
+    fontSize: 12,
+    flex: 1
+  },
+  deviceActiveBannerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  dangerButton: {
+    backgroundColor: "#7a2430",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6
   },
   catalogRow: {
     flexDirection: "row",

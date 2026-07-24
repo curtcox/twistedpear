@@ -159,11 +159,13 @@ export {
   createSimulatedSpeakerDriver,
   createSimulatedSttDriver,
   createSimulatedTorchDriver,
-  createSimulatedTtsDriver
+  createSimulatedTtsDriver,
+  createHybridDeviceDrivers
 } from "./device-manager.js";
 export type {
   DeviceActiveIndicator,
   DeviceAvailability,
+  DeviceChromeSession,
   DeviceCommand,
   DeviceDriver,
   DeviceManagerOptions,
@@ -171,6 +173,16 @@ export type {
   DeviceStreamSession,
   SimulatedActuatorLog
 } from "./device-manager.js";
+export {
+  createHostBridgedDriver,
+  createHostBridgedDrivers
+} from "./drivers/host-bridge.js";
+export type { DeviceHostBridge } from "./drivers/host-bridge.js";
+export {
+  browserDeviceAvailability,
+  browserDeviceSense,
+  browserDeviceActuate
+} from "./drivers/browser-effects.js";
 export { DeviceStreamSidecar, DEVICE_STREAM_KIND } from "./device-sidecar.js";
 export type {
   DeviceSidecarDelivery,
@@ -184,15 +196,19 @@ export type { ProductionCapabilityObservation } from "./simulation-adapter.js";
 export { BearerReplayPolicy, FederationPolicy, KeySharePolicy } from "./security-policies.js";
 export {
   CODE_EDITOR_LANGUAGES,
+  EXTRA_PROP_SCHEMAS,
+  EXTRA_REQUIRED,
   MAX_CODE_EDITOR_DOCUMENT_ID_LENGTH,
   MAX_DEVICE_SESSION_PROP_LENGTH,
   MAX_QR_CODE_VALUE_LENGTH,
   PREVIEW_SURFACE_TYPES,
+  STYLE_VALUE_SCHEMAS,
+  visitWidget,
   WIDGET_PROP_KEYS,
   WIDGET_STYLE_KEYS,
   WIDGET_TYPES
 } from "./ui/schema.js";
-export type { WidgetNode, WidgetStyle, WidgetTree, WidgetType } from "./ui/schema.js";
+export type { WidgetNode, WidgetStyle, WidgetTree, WidgetType, WidgetVisitor } from "./ui/schema.js";
 export { WidgetValidationError, validateWidgetTree } from "./ui/validate.js";
 export type { WidgetValidationOptions } from "./ui/validate.js";
 export { diffWidgetTrees } from "./ui/diff.js";

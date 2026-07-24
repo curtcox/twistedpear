@@ -113,6 +113,55 @@ export interface MiniappBenchmarkResult {
   readonly busyLoopKilled: boolean;
 }
 
+export interface DeviceDescriptorView {
+  readonly class: string;
+  readonly tiers: ReadonlyArray<string>;
+  readonly availability: string;
+  readonly maxRateHz: number;
+  readonly streamable: boolean;
+  readonly remoteEligible: boolean;
+}
+
+export interface DeviceDiagnosticView {
+  readonly class: string;
+  readonly availability: string;
+  readonly reason?: string;
+  readonly holder?: string;
+}
+
+export interface DeviceChromeSessionView {
+  readonly handle: string;
+  readonly phase: string;
+  readonly classId: string;
+  readonly tierId: string;
+  readonly appId: string;
+  readonly purpose: string;
+  readonly consentClass: string;
+  readonly openedAt: number;
+  readonly expiresAt: number | null;
+  readonly destination: string;
+  readonly remotePeerId: string | null;
+}
+
+export interface DeviceActiveIndicatorView {
+  readonly handle: string;
+  readonly appId: string;
+  readonly class: string;
+  readonly tier: string;
+  readonly consentClass: string;
+  readonly purpose: string;
+  readonly destination: string;
+}
+
+export interface DeviceStateView {
+  readonly inventory: ReadonlyArray<DeviceDescriptorView>;
+  readonly diagnostics: ReadonlyArray<DeviceDiagnosticView>;
+  readonly sessions: ReadonlyArray<DeviceChromeSessionView>;
+  readonly indicators: ReadonlyArray<DeviceActiveIndicatorView>;
+  readonly disabledClasses: ReadonlyArray<string>;
+  readonly remoteAcquisitionEnabled: boolean;
+}
+
 export interface WebStorageQuotaView {
   readonly usageBytes: number | null;
   readonly quotaBytes: number | null;
@@ -215,6 +264,16 @@ export type HostToWorkletMessage =
   | { readonly type: "get-grants"; readonly appId: string; readonly publisherPublicKey: string; readonly declaredCapabilities: ReadonlyArray<string> }
   | { readonly type: "set-grants"; readonly appId: string; readonly publisherPublicKey: string; readonly declaredCapabilities: ReadonlyArray<string>; readonly grantedCapabilities: ReadonlyArray<string> }
   | { readonly type: "revoke-grant"; readonly appId: string; readonly publisherPublicKey: string; readonly capability: string; readonly declaredCapabilities: ReadonlyArray<string> }
+  | { readonly type: "device-list" }
+  | { readonly type: "device-set-class-disabled"; readonly classId: string; readonly disabled: boolean }
+  | { readonly type: "device-set-remote"; readonly enabled: boolean }
+  | { readonly type: "device-kill-session"; readonly handle: string }
+  | {
+      readonly type: "device-bridge-response";
+      readonly token: string;
+      readonly result?: unknown;
+      readonly error?: string;
+    }
   | { readonly type: "launch-miniapp"; readonly appId: string }
   | { readonly type: "benchmark-miniapp" }
   | { readonly type: "stop-miniapp" }
@@ -262,6 +321,23 @@ export type WorkletToHostMessage =
   | { readonly type: "sandbox-broker-response"; readonly requestId: string; readonly response: unknown }
   | { readonly type: "install-progress"; readonly progress: InstallProgress }
   | { readonly type: "grants"; readonly appId: string; readonly capabilities: ReadonlyArray<CapabilityGrantView> }
+  | {
+      readonly type: "device-state";
+      readonly inventory: ReadonlyArray<DeviceDescriptorView>;
+      readonly diagnostics: ReadonlyArray<DeviceDiagnosticView>;
+      readonly sessions: ReadonlyArray<DeviceChromeSessionView>;
+      readonly indicators: ReadonlyArray<DeviceActiveIndicatorView>;
+      readonly disabledClasses: ReadonlyArray<string>;
+      readonly remoteAcquisitionEnabled: boolean;
+    }
+  | {
+      readonly type: "device-bridge-request";
+      readonly token: string;
+      readonly op: "availability" | "sense" | "actuate";
+      readonly classId: string;
+      readonly options?: Readonly<Record<string, unknown>>;
+      readonly command?: Readonly<Record<string, unknown>>;
+    }
   | { readonly type: "miniapp-runtime"; readonly slot?: "main" | "preview"; readonly runtime: MiniappRuntimeView | null }
   | { readonly type: "miniapp-benchmark"; readonly result: MiniappBenchmarkResult }
   | { readonly type: "miniapp-log"; readonly appId: string; readonly line: string }

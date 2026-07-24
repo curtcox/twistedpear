@@ -65,9 +65,15 @@ export type {
 } from "./services/device.js";
 export {
   createSimulatedDeviceDrivers,
-  createSimulatedDeviceManager
+  createSimulatedDeviceManager,
+  createHybridDeviceDrivers
 } from "./device-manager.js";
-export type { DeviceManagerOptions } from "./device-manager.js";
+export type { DeviceChromeSession, DeviceManagerOptions } from "./device-manager.js";
+export {
+  createHostBridgedDriver,
+  createHostBridgedDrivers
+} from "./drivers/host-bridge.js";
+export type { DeviceHostBridge } from "./drivers/host-bridge.js";
 export type { RelayService } from "./services/relay.js";
 export {
   createWorkletFlagRelayService

@@ -1,12 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
-import { escrowMachine, grantMachine, recoveryQuorumMachine } from "../packages/protocol/dist/index.js";
+import { escrowMachine, grantMachine, recoveryQuorumMachine, deviceSessionMachine } from "../packages/protocol/dist/index.js";
 
 const definitions = {
   grant: { machine: grantMachine, model: "../specs/spec-cap/model/grant.tla", traces: "../specs/spec-cap/model/grant-conformance-traces.json", vector: "grant.json" },
   escrow: { machine: escrowMachine, model: "../specs/spec-authority/model/escrow.tla", traces: "../specs/spec-authority/model/escrow-conformance-traces.json", vector: "escrow.json" },
-  recovery: { machine: recoveryQuorumMachine, model: "../specs/spec-authority/model/recovery_quorum.tla", traces: "../specs/spec-authority/model/recovery-quorum-conformance-traces.json", vector: "recovery-quorum.json" }
+  recovery: { machine: recoveryQuorumMachine, model: "../specs/spec-authority/model/recovery_quorum.tla", traces: "../specs/spec-authority/model/recovery-quorum-conformance-traces.json", vector: "recovery-quorum.json" },
+  "device-session": { machine: deviceSessionMachine, model: "../specs/spec-device/model/device_session.tla", traces: "../specs/spec-device/model/device-session-conformance-traces.json", vector: "device-session.json" }
 };
 
 export function edgesFromTla(tla) {

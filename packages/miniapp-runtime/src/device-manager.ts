@@ -46,6 +46,10 @@ import {
   type HostConfirmationChannel
 } from "./confirm.js";
 import { DeviceStreamSidecar, type DeviceSidecarDelivery } from "./device-sidecar.js";
+import {
+  createHostBridgedDrivers,
+  type DeviceHostBridge
+} from "./drivers/host-bridge.js";
 
 export type DeviceAvailability =
   | "available"
@@ -298,6 +302,23 @@ export interface DeviceManagerOptions {
   readonly sidecar?: DeviceStreamSidecar;
   /** Max concurrent remote sessions host-wide (serving side). */
   readonly maxRemoteSessions?: number;
+  /** Host chrome: notified when sessions/indicators/policy change. */
+  readonly onChromeChange?: () => void;
+}
+
+/** Host-chrome view of a live device session (includes opaque handle for kill). */
+export interface DeviceChromeSession {
+  readonly handle: DeviceSessionHandle;
+  readonly phase: DeviceSessionState["phase"];
+  readonly classId: string;
+  readonly tierId: string;
+  readonly appId: string;
+  readonly purpose: string;
+  readonly consentClass: DeviceConsentClass;
+  readonly openedAt: number;
+  readonly expiresAt: number | null;
+  readonly destination: "local" | string;
+  readonly remotePeerId: string | null;
 }
 
 interface LiveSession {
@@ -321,6 +342,7 @@ export class DeviceManager {
   private readonly streams = new Map<DeviceStreamHandle, DeviceStreamSession>();
   private readonly locks = new Map<string, string>();
   private readonly sidecar: DeviceStreamSidecar;
+  private readonly policyDisabled: Set<string>;
   private remoteEnabled = false;
   private remoteGrants = initialRemoteGrantStore();
   private nextHandle = 0;
@@ -334,6 +356,7 @@ export class DeviceManager {
       this.drivers.set(driver.classId, driver);
     }
     this.sidecar = options.sidecar ?? new DeviceStreamSidecar();
+    this.policyDisabled = new Set(options.policyDisabled ?? []);
     this.maxRemoteSessions = options.maxRemoteSessions ?? 2;
     this.now = options.now ?? (() => 0);
     this.randomBytes =
@@ -481,6 +504,7 @@ export class DeviceManager {
       remotePeerId: null,
       lastReadAt: null
     });
+    this.notifyChrome();
 
     return {
       handle,
@@ -500,12 +524,17 @@ export class DeviceManager {
     if (this.locks.get(session.state.classId) === session.state.holder) {
       this.locks.delete(session.state.classId);
     }
+    this.notifyChrome();
   }
 
   closeApp(appId: string): void {
+    let changed = false;
     for (const [handle, stream] of this.streams) {
       const session = this.sessions.get(stream.session);
-      if (session?.state.appId === appId) this.streams.delete(handle);
+      if (session?.state.appId === appId) {
+        this.streams.delete(handle);
+        changed = true;
+      }
     }
     for (const [handle, session] of this.sessions) {
       if (session.state.appId !== appId || !isDeviceSessionLive(session.state.phase)) continue;
@@ -517,7 +546,9 @@ export class DeviceManager {
       if (this.locks.get(session.state.classId) === session.state.holder) {
         this.locks.delete(session.state.classId);
       }
+      changed = true;
     }
+    if (changed) this.notifyChrome();
   }
 
   async read(appId: string, handle: DeviceSessionHandle): Promise<DeviceSample> {
@@ -711,6 +742,7 @@ export class DeviceManager {
         }
       }
     }
+    this.notifyChrome();
   }
 
   isRemoteAcquisitionEnabled(): boolean {
@@ -911,6 +943,7 @@ export class DeviceManager {
       remotePeerId: request.peerId,
       lastReadAt: null
     });
+    this.notifyChrome();
     return {
       handle,
       class: entry.id,
@@ -951,6 +984,31 @@ export class DeviceManager {
       .map((session) => session.state);
   }
 
+  /** Host-chrome session list with opaque handles for kill switches. */
+  chromeSessions(): ReadonlyArray<DeviceChromeSession> {
+    return [...this.sessions.values()]
+      .filter((session) => isDeviceSessionLive(session.state.phase))
+      .map((session) => {
+        const stream = [...this.streams.values()].find((entry) => entry.session === session.handle);
+        return {
+          handle: session.handle,
+          phase: session.state.phase,
+          classId: session.state.classId,
+          tierId: session.state.tierId,
+          appId: session.state.appId,
+          purpose: session.purpose,
+          consentClass: session.consentClass,
+          openedAt: session.state.openedAt,
+          expiresAt: session.state.expiresAt,
+          destination:
+            session.remotePeerId !== null
+              ? `remote:${session.remotePeerId}`
+              : stream?.peer ?? ("local" as const),
+          remotePeerId: session.remotePeerId
+        };
+      });
+  }
+
   /** Host-chrome active-use indicators for elevated/sensitive sessions. */
   activeIndicators(): ReadonlyArray<DeviceActiveIndicator> {
     return [...this.sessions.values()]
@@ -974,6 +1032,62 @@ export class DeviceManager {
               : stream?.peer ?? ("local" as const)
         };
       });
+  }
+
+  /** Host chrome: disable/enable a device class. Disabling kills live sessions of that class. */
+  setClassDisabled(classId: string, disabled: boolean): void {
+    if (deviceClassById(classId) === undefined) {
+      throw new DeviceError("DEVICE_UNSUPPORTED", `Unknown device class "${classId}".`);
+    }
+    const wasDisabled = this.policyDisabled.has(classId);
+    if (disabled) {
+      this.policyDisabled.add(classId);
+      for (const [handle, session] of this.sessions) {
+        if (session.state.classId !== classId || !isDeviceSessionLive(session.state.phase)) continue;
+        void this.stopDriver(session.state.classId);
+        this.sidecar.close(handle);
+        const at = this.now();
+        const next = stepDeviceSession(session.state, { kind: "device/revoke", at }).state;
+        this.sessions.set(handle, { ...session, state: next });
+        if (this.locks.get(session.state.classId) === session.state.holder) {
+          this.locks.delete(session.state.classId);
+        }
+      }
+    } else {
+      this.policyDisabled.delete(classId);
+    }
+    if (wasDisabled !== disabled) this.notifyChrome();
+  }
+
+  disabledClasses(): ReadonlyArray<string> {
+    return [...this.policyDisabled].sort();
+  }
+
+  isClassDisabled(classId: string): boolean {
+    return this.policyDisabled.has(classId);
+  }
+
+  /**
+   * Host chrome kill switch — closes by opaque handle without an app-scoped check.
+   * Mini-apps must continue to use {@link close}.
+   */
+  async forceClose(handle: DeviceSessionHandle): Promise<void> {
+    const session = this.sessions.get(handle);
+    if (session === undefined || !isDeviceSessionLive(session.state.phase)) {
+      throw new DeviceError("DEVICE_SESSION_EXPIRED", `Unknown or inactive device session "${handle}".`);
+    }
+    await this.stopDriver(session.state.classId);
+    this.sidecar.close(handle);
+    const at = this.now();
+    const next = stepDeviceSession(session.state, { kind: "device/revoke", at }).state;
+    this.sessions.set(handle, { ...session, state: next });
+    if (this.locks.get(session.state.classId) === session.state.holder) {
+      this.locks.delete(session.state.classId);
+    }
+    for (const [streamHandle, stream] of this.streams) {
+      if (stream.session === handle) this.streams.delete(streamHandle);
+    }
+    this.notifyChrome();
   }
 
   private materializeSample(
@@ -1224,12 +1338,16 @@ export class DeviceManager {
   }
 
   private async availabilityFor(classId: string): Promise<DeviceAvailability> {
-    if (this.options.policyDisabled?.has(classId)) return "policy-disabled";
+    if (this.policyDisabled.has(classId)) return "policy-disabled";
     const external = this.options.externalHolders?.().get(classId);
     if (external !== undefined || this.locks.has(classId)) return "busy";
     const driver = this.drivers.get(classId);
     if (driver === undefined) return "unsupported";
     return driver.availability();
+  }
+
+  private notifyChrome(): void {
+    this.options.onChromeChange?.();
   }
 
   private validatePurpose(purpose: string): void {
@@ -1605,4 +1723,19 @@ export function createSimulatedDeviceManager(
     ...options,
     drivers: options.drivers ?? createSimulatedDeviceDrivers()
   });
+}
+
+/**
+ * Simulated drivers for every class, with selected classes replaced by host-bridged
+ * OS/browser drivers. Used by shipping hosts that can answer sense/actuate on chrome.
+ */
+export function createHybridDeviceDrivers(
+  bridgedClassIds: ReadonlyArray<string>,
+  bridge: DeviceHostBridge
+): ReadonlyArray<DeviceDriver> {
+  const bridged = new Set(bridgedClassIds);
+  return [
+    ...createSimulatedDeviceDrivers().filter((driver) => !bridged.has(driver.classId)),
+    ...createHostBridgedDrivers(bridgedClassIds, bridge)
+  ];
 }

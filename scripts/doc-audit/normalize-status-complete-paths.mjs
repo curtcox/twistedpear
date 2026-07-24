@@ -40,14 +40,14 @@ const replacements = [
     "`packages/reticulum-interfaces/test/policy.test.ts`, `packages/reticulum-interfaces/test/integration-soak.test.ts`"
   ],
   ["`package.test.ts`", "`packages/app-registry/test/package.test.ts`"],
-  ["`swarm.ts`", "`packages/bridge-hyper/src/swarm.ts`"],
+  ["`swarm.ts`", "`packages/bridge-hyper/src/core/swarm.ts`"],
   [
     "`packages/app-registry/src/{announce,catalog}.ts`",
     "`packages/app-registry/src/announce.ts`, `packages/app-registry/src/catalog.ts`"
   ],
   [
     "`packages/bridge-hyper/src/resource-{server,client}.ts`",
-    "`packages/bridge-hyper/src/resource-server.ts`, `packages/bridge-hyper/src/resource-client.ts`"
+    "`packages/bridge-hyper/src/server/resource-server.ts`, `packages/bridge-hyper/src/client/resource-client.ts`"
   ],
   ["`policy.ts`", "`packages/bridge-hyper/src/policy.ts`"],
   ["`bridge-hyper/`", "`packages/bridge-hyper/`"],
@@ -118,8 +118,8 @@ const replacements = [
     "`apps/harness-mobile/modules/node-service/ios/`"
   ],
   [
-    "`packages/bridge-hyper/src/fetch.ts`, `policy.ts`",
-    "`packages/bridge-hyper/src/fetch.ts`, `packages/reticulum-interfaces/src/policy.ts`"
+    "`packages/bridge-hyper/src/core/fetch.ts`, `policy.ts`",
+    "`packages/bridge-hyper/src/core/fetch.ts`, `packages/reticulum-interfaces/src/policy.ts`"
   ],
   [
     "`storage-bee.ts`, `storage-bee-corestore.ts`",

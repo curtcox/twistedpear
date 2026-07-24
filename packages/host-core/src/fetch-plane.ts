@@ -1,14 +1,8 @@
 import type { CatalogEntry } from "@twistedpear/app-registry";
 import type { CryptoProvider, PacketInterface } from "@twistedpear/reticulum-ts";
+import type { FetchPath, FetchProgress } from "@twistedpear/bridge-hyper";
 
-export type FetchPath = "hyperdrive" | "lan-mirror" | "resource";
-
-export interface FetchProgress {
-  readonly path: FetchPath;
-  readonly bytesReceived: number;
-  readonly totalBytes: number;
-  readonly phase: "starting" | "downloading" | "verifying" | "complete" | "failed";
-}
+export type { FetchPath, FetchProgress } from "@twistedpear/bridge-hyper";
 
 export interface FetchPlaneRequest {
   readonly entry: CatalogEntry;

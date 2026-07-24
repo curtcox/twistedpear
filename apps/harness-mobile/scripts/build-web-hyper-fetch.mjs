@@ -12,7 +12,7 @@ import { buildSync } from "esbuild";
 
 const harnessRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(harnessRoot, "../..");
-const entry = join(repoRoot, "packages/bridge-hyper/src/web-hyper-fetch-gateway.ts");
+const entry = join(repoRoot, "packages/bridge-hyper/src/client/web-gateway-hyper-fetch.ts");
 const publicDir = join(harnessRoot, "public");
 const output = join(publicDir, "web-hyper-fetch.js");
 const nodeEmptyStub = join(harnessRoot, "stubs/node-empty.web.js");

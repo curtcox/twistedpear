@@ -7,7 +7,7 @@ audited: 2026-07-21
 register: none
 -->
 
-Current `HOST_API_VERSION`: **`0.8.0`**.
+Current `HOST_API_VERSION`: **`0.10.0`**.
 Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 
 ## Changelog
@@ -20,6 +20,8 @@ Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 - **`0.6.0`** — ai.embed() and ai.search() add host-proxied embeddings and bounded cosine vector search.
 - **`0.7.0`** — workspace.patch() and delta code-editor events add conflict-safe incremental editing.
 - **`0.8.0`** — peer:connect and the peers SDK add host-owned, app-scoped peer pairing and opaque handles.
+- **`0.9.0`** — relay:configure and relay:read add host-owned control of relay mode, interface direction, and per-interface telemetry.
+- **`0.10.0`** — device:* capabilities, device inventory/diagnostics/open/close/read, and host.info() device inventory (location:coarse and ambient-light end-to-end).
 
 ## host.info()
 

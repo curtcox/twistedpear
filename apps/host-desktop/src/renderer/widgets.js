@@ -226,6 +226,13 @@ function renderNode(node, onEvent, options = {}) {
       }
       return element;
     }
+    case "camera-preview":
+    case "audio-meter":
+    case "waveform":
+    case "map-preview":
+    case "remote-video": {
+      return renderPreviewSurface(node, options);
+    }
     default: {
       const element = document.createElement("p");
       element.className = "widget-muted";
@@ -233,6 +240,67 @@ function renderNode(node, onEvent, options = {}) {
       return element;
     }
   }
+}
+
+/**
+ * Host-owned preview surfaces. The sandbox never receives pixels/samples —
+ * only an opaque session handle for layout.
+ */
+function renderPreviewSurface(node, options = {}) {
+  const session = String(node.props?.session ?? "");
+  const sessions = Array.isArray(options.deviceSessions) ? options.deviceSessions : [];
+  const live = sessions.find((entry) => entry.handle === session);
+  const shell = document.createElement("div");
+  shell.className = "widget-preview-surface";
+  shell.dataset.testid = node.id;
+  applyStyle(shell, node.style ?? {});
+
+  const title = document.createElement("p");
+  title.className = "widget-muted";
+  title.textContent = live
+    ? `${node.type} · ${live.classId}:${live.tierId} · ${live.appId}`
+    : `${node.type} · waiting for session`;
+  shell.appendChild(title);
+
+  if (node.type === "camera-preview" && live?.classId === "camera") {
+    const video = document.createElement("video");
+    video.className = "widget-preview-media";
+    video.muted = true;
+    video.playsInline = true;
+    video.autoplay = true;
+    shell.appendChild(video);
+    if (typeof navigator?.mediaDevices?.getUserMedia === "function") {
+      void navigator.mediaDevices
+        .getUserMedia({ video: true, audio: false })
+        .then((stream) => {
+          video.srcObject = stream;
+          video.dataset.previewStream = "1";
+        })
+        .catch(() => {
+          const note = document.createElement("p");
+          note.className = "widget-muted";
+          note.textContent = "Camera preview unavailable";
+          shell.appendChild(note);
+        });
+    }
+  } else if (node.type === "audio-meter" || node.type === "waveform") {
+    const meter = document.createElement("div");
+    meter.className = "widget-preview-meter";
+    meter.setAttribute("aria-hidden", "true");
+    shell.appendChild(meter);
+  } else if (node.type === "map-preview" && live?.classId === "location") {
+    const map = document.createElement("p");
+    map.className = "widget-muted";
+    map.textContent = `Host map preview (zoom ${String(node.props?.zoom ?? 12)}) — coordinates stay in host chrome`;
+    shell.appendChild(map);
+  } else if (node.type === "remote-video") {
+    const remote = document.createElement("p");
+    remote.className = "widget-muted";
+    remote.textContent = `Remote video shell · peer=${String(node.props?.peer ?? "—")}`;
+    shell.appendChild(remote);
+  }
+
+  return shell;
 }
 
 function minimalTextEdit(before, after) {
