@@ -66,7 +66,7 @@ solutions, implement them, repeat.
 ```
 
 **Invariant carried through every stage** (from the architecture doc's cross-cutting rules):
-the sans-IO fence stays up, determinism is asserted not assumed, and *a finding that cannot
+the Sans-IO fence stays up, determinism is asserted not assumed, and *a finding that cannot
 be replayed without its author (LLM included) does not count.*
 
 ---
@@ -219,7 +219,7 @@ symptom — many scenarios usually collapse onto one root cause. For each cluste
 **Solution strategies (⑤), preferred order.** Design out > contain > detect:
 
 1. **Design out** — make the illegal transition unrepresentable (absent from the transition
-   table, caught by the sans-IO fence, or impossible by capability construction). This is the
+   table, caught by the Sans-IO fence, or impossible by capability construction). This is the
    strongest and the default for authority machines.
 2. **Contain** — if it cannot be designed out, shrink the blast radius so the containment
    metrics (§7) improve: faster revocation, better egress attributability, lower network-kill

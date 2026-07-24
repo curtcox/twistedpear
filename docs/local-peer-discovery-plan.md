@@ -82,7 +82,7 @@ decompressed-size and work limits.
 
 ### 2. One discovery adapter contract
 
-Add a platform package, provisionally `@twistedpear/peer-discovery`, around a sans-IO
+Add a platform package, provisionally `@twistedpear/peer-discovery`, around a Sans-IO
 invitation/pairing machine. Effect adapters implement this contract:
 
 ```typescript

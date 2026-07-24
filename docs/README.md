@@ -24,6 +24,8 @@ built, but they are not the source of truth for current status.
 | See the path and gates to the v1 release | [Release plan](../RELEASE-PLAN.md) |
 | Understand the platform and run it locally | [Repository README](../README.md) |
 | See the specification decomposition and per-spec conformance | [Specifications index](../specs/README.md) |
+| Look up a term used in the code, specs, or docs | [Developer glossary](glossary.md) |
+| Review naming findings and proposed shared abstractions | [Terminology and abstraction audit](audit-terminology-and-abstractions.md) |
 | Learn the platform interactively | [Handbook mini-app](../apps/handbook/README.md) |
 | Check implemented and verified work | [Completed-work evidence](../STATUS-COMPLETE.md) |
 | Check remaining software work | [Software backlog](../STATUS-SOFTWARE.md) |

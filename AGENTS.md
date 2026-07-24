@@ -14,7 +14,7 @@ capability broker on desktop, mobile, web, and headless hosts.
 
 - Human/project overview: `README.md`
 - Canonical documentation index: `docs/README.md`
-- Domain terms: `guide/glossary.md`
+- Domain terms: `docs/glossary.md` (developer) and `guide/glossary.md` (user-facing)
 - Current work: `STATUS-SOFTWARE.md`
 - Hardware/account-gated work: `STATUS-HARDWARE.md`
 - Known limitations: `LIMITATIONS.md`
