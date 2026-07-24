@@ -417,6 +417,111 @@
       "consentClass": "elevated",
       "degradationLadder": ["assertion"],
       "description": "Biometric assertion only. Templates never leave the OS enclave; there is no raw tier."
+    },
+    {
+      "id": "proximity",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "near-far",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/ProximitySample",
+      "defaults": { "maxRateHz": 5, "maxSessionMs": 3600000 },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": { "near-far": { "minBps": 1, "targetBps": 8, "burstBytes": 16 } },
+      "consentClass": "low",
+      "degradationLadder": ["near-far"],
+      "description": "Near/far proximity scalar, rate-capped."
+    },
+    {
+      "id": "barometer",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "pressure",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/BarometerSample",
+      "defaults": { "maxRateHz": 1, "maxSessionMs": 3600000 },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": { "pressure": { "minBps": 4, "targetBps": 16, "burstBytes": 32 } },
+      "consentClass": "low",
+      "degradationLadder": ["pressure"],
+      "description": "Atmospheric pressure scalar in hPa, rate-capped."
+    },
+    {
+      "id": "thermometer",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "celsius",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/ThermometerSample",
+      "defaults": { "maxRateHz": 0.2, "maxSessionMs": 3600000 },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": { "celsius": { "minBps": 2, "targetBps": 8, "burstBytes": 16 } },
+      "consentClass": "low",
+      "degradationLadder": ["celsius"],
+      "description": "Ambient temperature scalar in °C, rate-capped."
+    },
+    {
+      "id": "hygrometer",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "humidity",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/HygrometerSample",
+      "defaults": { "maxRateHz": 0.2, "maxSessionMs": 3600000 },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": { "humidity": { "minBps": 2, "targetBps": 8, "burstBytes": 16 } },
+      "consentClass": "low",
+      "degradationLadder": ["humidity"],
+      "description": "Relative humidity percent scalar, rate-capped."
+    },
+    {
+      "id": "thermal",
+      "role": "sensor",
+      "addedInHostApi": "0.10.0",
+      "tiers": [
+        {
+          "id": "coarse",
+          "default": true,
+          "consentClass": "low",
+          "capabilitySuffix": null
+        }
+      ],
+      "sampleSchema": "#/$defs/ThermalSample",
+      "defaults": { "maxRateHz": 0.1, "maxSessionMs": 86400000 },
+      "streamable": false,
+      "remoteEligible": false,
+      "bandwidth": { "coarse": { "minBps": 1, "targetBps": 4, "burstBytes": 16 } },
+      "consentClass": "low",
+      "degradationLadder": ["coarse"],
+      "description": "Coarse device thermal buckets only — precise curves are a fingerprinting vector."
     }
   ],
   "crossCutting": [

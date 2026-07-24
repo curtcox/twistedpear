@@ -2,6 +2,7 @@ import {
   DEVICE_CLASS_REGISTRY,
   DEVICE_STREAM_KIND,
   ActuatorSafetyError,
+  assertAidAllowed,
   decideStreamAdmission,
   defaultTierForClass,
   deriveCameraSample,
@@ -196,6 +197,42 @@ export type DeviceSample =
       readonly format: "rgba8" | "yuv420" | "jpeg";
       readonly byteLength: number;
       readonly sidecar?: DeviceSidecarDelivery;
+    }
+  | {
+      readonly kind: "biometric";
+      readonly tier: "assertion";
+      readonly at: number;
+      readonly passed: boolean;
+    }
+  | {
+      readonly kind: "proximity";
+      readonly tier: "near-far";
+      readonly at: number;
+      readonly near: boolean;
+    }
+  | {
+      readonly kind: "barometer";
+      readonly tier: "pressure";
+      readonly at: number;
+      readonly hPa: number;
+    }
+  | {
+      readonly kind: "thermometer";
+      readonly tier: "celsius";
+      readonly at: number;
+      readonly celsius: number;
+    }
+  | {
+      readonly kind: "hygrometer";
+      readonly tier: "humidity";
+      readonly at: number;
+      readonly relativeHumidity: number;
+    }
+  | {
+      readonly kind: "thermal" | "battery";
+      readonly tier: "coarse";
+      readonly at: number;
+      readonly bucket: "cold" | "nominal" | "warm" | "hot" | "critical" | "unknown";
     };
 
 export interface DeviceActiveIndicator {
@@ -350,7 +387,7 @@ export class DeviceManager {
     }
 
     const tier = this.resolveTier(entry, request.tier);
-    if ((entry.id === "speaker" && tier.id === "pcm") || (entry.id === "nfc" && tier.id === "apdu")) {
+    if (entry.id === "speaker" && tier.id === "pcm") {
       throw new DeviceError(
         "DEVICE_TIER_REQUIRED",
         `Tier "${tier.id}" for ${entry.id} requires a later host API phase.`
@@ -525,12 +562,23 @@ export class DeviceManager {
       throw error;
     }
 
-    if (normalized.kind === "nfc") {
+    if (normalized.kind === "nfc" && normalized.action === "write") {
       await this.confirmNfcWrite({
         appId,
         publisherPublicKey,
         purpose: live.purpose,
         ndef: normalized.ndef
+      });
+    }
+    if (normalized.kind === "nfc" && normalized.action === "apdu") {
+      if (live.state.tierId !== "apdu") {
+        throw new DeviceError("DEVICE_TIER_REQUIRED", "APDU exchange requires an nfc:apdu session.");
+      }
+      await this.confirmNfcWrite({
+        appId,
+        publisherPublicKey,
+        purpose: live.purpose,
+        ndef: `APDU aid=${normalized.aid}`
       });
     }
 
@@ -1060,6 +1108,57 @@ export class DeviceManager {
       };
     }
 
+    if (classId === "biometric") {
+      const passed = Boolean((raw as { passed?: boolean })?.passed);
+      return {
+        kind: "biometric",
+        tier: "assertion",
+        at,
+        passed,
+        // Explicitly never include templates.
+      };
+    }
+
+    if (classId === "proximity") {
+      const near = Boolean((raw as { near?: boolean })?.near);
+      return { kind: "proximity", tier: "near-far", at, near };
+    }
+    if (classId === "barometer") {
+      const hPa = Number((raw as { hPa?: number })?.hPa);
+      if (!Number.isFinite(hPa)) {
+        throw new DeviceError("DEVICE_BAD_REQUEST", "Barometer driver returned an invalid reading.");
+      }
+      return { kind: "barometer", tier: "pressure", at, hPa: Math.round(hPa * 10) / 10 };
+    }
+    if (classId === "thermometer") {
+      const celsius = Number((raw as { celsius?: number })?.celsius);
+      if (!Number.isFinite(celsius)) {
+        throw new DeviceError("DEVICE_BAD_REQUEST", "Thermometer driver returned an invalid reading.");
+      }
+      return { kind: "thermometer", tier: "celsius", at, celsius: Math.round(celsius * 10) / 10 };
+    }
+    if (classId === "hygrometer") {
+      const relativeHumidity = Number((raw as { relativeHumidity?: number })?.relativeHumidity);
+      if (!Number.isFinite(relativeHumidity)) {
+        throw new DeviceError("DEVICE_BAD_REQUEST", "Hygrometer driver returned an invalid reading.");
+      }
+      return {
+        kind: "hygrometer",
+        tier: "humidity",
+        at,
+        relativeHumidity: Math.max(0, Math.min(100, Math.round(relativeHumidity)))
+      };
+    }
+    if (classId === "thermal" || classId === "battery") {
+      const bucket = String((raw as { bucket?: string })?.bucket ?? "nominal");
+      return {
+        kind: classId,
+        tier: "coarse",
+        at,
+        bucket: bucket as "cold" | "nominal" | "warm" | "hot" | "critical" | "unknown"
+      };
+    }
+
     throw new DeviceError(
       "DEVICE_UNSUPPORTED",
       `Reading samples for "${classId}" is not implemented in this host API phase.`
@@ -1412,5 +1511,24 @@ export function createSimulatedScreenCaptureDriver(
     classId: "screen-capture",
     availability: () => "available",
     sense: async () => input
+  };
+}
+
+export function createSimulatedBiometricDriver(passed = true): DeviceDriver {
+  return {
+    classId: "biometric",
+    availability: () => "available",
+    sense: async () => ({ passed })
+  };
+}
+
+export function createSimulatedScalarDriver(
+  classId: "proximity" | "barometer" | "thermometer" | "hygrometer" | "thermal" | "battery",
+  reading: unknown
+): DeviceDriver {
+  return {
+    classId,
+    availability: () => "available",
+    sense: async () => reading
   };
 }

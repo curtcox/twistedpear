@@ -3,7 +3,7 @@
 // Source: specs/spec-device/registry/device-classes.json
 
 export interface DeviceCapabilityDefinition {
-  readonly id: "device:location" | "device:location:precise" | "device:ambient-light" | "device:camera" | "device:camera:frames" | "device:microphone" | "device:microphone:pcm" | "device:motion" | "device:motion:samples" | "device:torch" | "device:speaker" | "device:speaker:pcm" | "device:tts" | "device:stt" | "device:haptics" | "device:battery" | "device:screen-capture" | "device:screen-capture:frames" | "device:nfc" | "device:nfc:apdu" | "device:biometric" | "device:stream" | "device:remote";
+  readonly id: "device:location" | "device:location:precise" | "device:ambient-light" | "device:camera" | "device:camera:frames" | "device:microphone" | "device:microphone:pcm" | "device:motion" | "device:motion:samples" | "device:torch" | "device:speaker" | "device:speaker:pcm" | "device:tts" | "device:stt" | "device:haptics" | "device:battery" | "device:screen-capture" | "device:screen-capture:frames" | "device:nfc" | "device:nfc:apdu" | "device:biometric" | "device:proximity" | "device:barometer" | "device:thermometer" | "device:hygrometer" | "device:thermal" | "device:stream" | "device:remote";
   readonly description: string;
   readonly classId: string | null;
   readonly tierId: string | null;
@@ -178,6 +178,46 @@ export const DEVICE_CAPABILITY_DEFINITIONS = [
     "classId": "biometric",
     "tierId": "assertion",
     "consentClass": "elevated",
+    "isDefaultTier": true
+  },
+  {
+    "id": "device:proximity",
+    "description": "Near/far proximity scalar, rate-capped. (default tier; consent: low).",
+    "classId": "proximity",
+    "tierId": "near-far",
+    "consentClass": "low",
+    "isDefaultTier": true
+  },
+  {
+    "id": "device:barometer",
+    "description": "Atmospheric pressure scalar in hPa, rate-capped. (default tier; consent: low).",
+    "classId": "barometer",
+    "tierId": "pressure",
+    "consentClass": "low",
+    "isDefaultTier": true
+  },
+  {
+    "id": "device:thermometer",
+    "description": "Ambient temperature scalar in °C, rate-capped. (default tier; consent: low).",
+    "classId": "thermometer",
+    "tierId": "celsius",
+    "consentClass": "low",
+    "isDefaultTier": true
+  },
+  {
+    "id": "device:hygrometer",
+    "description": "Relative humidity percent scalar, rate-capped. (default tier; consent: low).",
+    "classId": "hygrometer",
+    "tierId": "humidity",
+    "consentClass": "low",
+    "isDefaultTier": true
+  },
+  {
+    "id": "device:thermal",
+    "description": "Coarse device thermal buckets only — precise curves are a fingerprinting vector. (default tier; consent: low).",
+    "classId": "thermal",
+    "tierId": "coarse",
+    "consentClass": "low",
     "isDefaultTier": true
   },
   {

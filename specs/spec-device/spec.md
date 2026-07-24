@@ -14,8 +14,8 @@ rule (`device:<class>` / `device:<class>:<tier>`), consent classes, and the Sans
 device-session lifecycle machine used by the Device Manager.
 
 Companion: [Device I/O plan](../../docs/device-io-plan.md). Cross-cutting streaming
-admission lives in SPEC-STREAM (planned). Capability consent policy extensions live in
-SPEC-CAP.
+admission lives in protocol `device-admission` (SPEC-STREAM planned). Capability consent
+policy extensions live in SPEC-CAP. Growth path: [add a device class runbook](../../docs/device-class-runbook.md).
 
 ## Normative artifacts
 
@@ -26,7 +26,7 @@ SPEC-CAP.
 | Generated TypeScript table | [`packages/protocol/src/device-registry.gen.ts`](../../packages/protocol/src/device-registry.gen.ts) |
 | Generated capability ids | [`packages/miniapp-runtime/src/device-capabilities.gen.ts`](../../packages/miniapp-runtime/src/device-capabilities.gen.ts) |
 | Session machine | [`packages/protocol/src/device-session.ts`](../../packages/protocol/src/device-session.ts) |
-| Quantization helpers | [`packages/protocol/src/device-quantize.ts`](../../packages/protocol/src/device-quantize.ts) |
+| Quantization / processors / admission / remote grants / NFC AID blocklist | `packages/protocol/src/device-*.ts` |
 
 Regenerate generated tables with:
 
@@ -36,8 +36,7 @@ npm run generate:device-registry
 
 ## Status
 
-**stub** — Phase 1–2: registry + session machine + Device Manager for
-`location` (coarse/precise), `ambient-light`, and derived `camera` /
-`microphone` / `motion`, plus preview surface widget kinds and recorded
-processor tapes. Remaining classes are registry entries awaiting drivers.
-TLA+ model and Layer-3 vectors are planned.
+**stub** — Phases 1–7 of the Device I/O plan are implemented in executable form
+(registry through remote acquisition and Phase 7 hardening). Remaining formal work:
+TLA+ session model, Layer-3 vectors, and SPEC-STREAM / SPEC-CHROME / SPEC-WIDGET
+extensions. Hardware-gated conformance stays in STATUS-HARDWARE.

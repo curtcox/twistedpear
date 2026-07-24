@@ -145,6 +145,8 @@ export {
   createSimulatedRawMicrophoneDriver,
   createSimulatedRawMotionDriver,
   createSimulatedScreenCaptureDriver,
+  createSimulatedBiometricDriver,
+  createSimulatedScalarDriver,
   createSimulatedSpeakerDriver,
   createSimulatedTorchDriver,
   createSimulatedTtsDriver

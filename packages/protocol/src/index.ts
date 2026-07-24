@@ -133,6 +133,15 @@ export {
   type RemoteGrantPhase
 } from "./device-remote.js";
 export {
+  PAYMENT_AID_BLOCKLIST,
+  NfcPaymentAidError,
+  assertAidAllowed,
+  isPaymentAidBlocked,
+  normalizeAid,
+  validateNfcApduCommand,
+  type NfcApduCommand
+} from "./device-nfc-apdu.js";
+export {
   escrowMachine,
   escrowSafetyViolation,
   initialEscrowState,

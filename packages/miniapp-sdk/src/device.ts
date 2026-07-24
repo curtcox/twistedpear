@@ -144,7 +144,8 @@ export type DeviceCommand =
       readonly patternMs: ReadonlyArray<number>;
       readonly intensity?: number;
     }
-  | { readonly kind: "nfc"; readonly action: "write"; readonly ndef: string };
+  | { readonly kind: "nfc"; readonly action: "write"; readonly ndef: string }
+  | { readonly kind: "nfc"; readonly action: "apdu"; readonly aid: string; readonly apdu: string };
 
 export async function write(
   session: DeviceSession | string,

@@ -13,6 +13,8 @@ import {
   createSimulatedMicrophoneDriver,
   createSimulatedMotionDriver,
   createSimulatedNfcDriver,
+  createSimulatedBiometricDriver,
+  createSimulatedScalarDriver,
   createSimulatedRawCameraDriver,
   createSimulatedRawMicrophoneDriver,
   createSimulatedRawMotionDriver,
@@ -652,5 +654,71 @@ describe("DeviceManager Phase 6 remote acquisition", () => {
 
     serving.clearRemoteGrantsForRestart();
     expect(serving.listRemoteGrants()).toHaveLength(0);
+  });
+});
+
+describe("DeviceManager Phase 7 hardening", () => {
+  it("blocks payment AIDs on nfc:apdu writes", async () => {
+    const log = { commands: [], stopped: 0 };
+    const manager = new DeviceManager({
+      drivers: [createSimulatedNfcDriver(log)],
+      now: () => 50_000
+    });
+    const session = await manager.open("app", "pub", ["device:nfc:apdu"], ["device:nfc:apdu"], {
+      class: "nfc",
+      tier: "apdu",
+      purpose: "transit card"
+    });
+    await expect(
+      manager.write("app", "pub", session.handle, {
+        kind: "nfc",
+        action: "apdu",
+        aid: "A0000000031010",
+        apdu: "00A4040000"
+      })
+    ).rejects.toMatchObject({ code: "DEVICE_BAD_REQUEST" });
+    await manager.write("app", "pub", session.handle, {
+      kind: "nfc",
+      action: "apdu",
+      aid: "F001020304",
+      apdu: "00A4040000"
+    });
+    expect(log.commands).toHaveLength(1);
+  });
+
+  it("returns biometric assertions without templates", async () => {
+    const manager = new DeviceManager({
+      drivers: [createSimulatedBiometricDriver(true)],
+      now: () => 51_000
+    });
+    const session = await manager.open("app", "pub", ["device:biometric"], ["device:biometric"], {
+      class: "biometric",
+      purpose: "unlock"
+    });
+    const sample = await manager.read("app", session.handle);
+    expect(sample).toEqual({ kind: "biometric", tier: "assertion", at: 51_000, passed: true });
+    expect(JSON.stringify(sample)).not.toMatch(/template|enroll/i);
+  });
+
+  it("reads scalar sensors added only via the registry path", async () => {
+    const manager = new DeviceManager({
+      drivers: [
+        createSimulatedScalarDriver("proximity", { near: true }),
+        createSimulatedScalarDriver("barometer", { hPa: 1013.25 }),
+        createSimulatedScalarDriver("thermometer", { celsius: 22.4 }),
+        createSimulatedScalarDriver("hygrometer", { relativeHumidity: 45.2 }),
+        createSimulatedScalarDriver("thermal", { bucket: "warm" })
+      ],
+      now: () => 52_000
+    });
+    for (const classId of ["proximity", "barometer", "thermometer", "hygrometer", "thermal"] as const) {
+      const session = await manager.open("app", "pub", [`device:${classId}`], [`device:${classId}`], {
+        class: classId,
+        purpose: "sense"
+      });
+      const sample = await manager.read("app", session.handle);
+      expect(sample.kind).toBe(classId);
+      await manager.close("app", session.handle);
+    }
   });
 });

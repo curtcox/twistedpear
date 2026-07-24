@@ -3,6 +3,8 @@
  * any hardware write so apps cannot reach unsafe strobe/duty/volume settings.
  */
 
+import { assertAidAllowed, NfcPaymentAidError } from "./device-nfc-apdu.js";
+
 /** Photosensitive-epilepsy guidance: forbid controllable flashing in 3–60 Hz. */
 export const TORCH_MIN_STROBE_INTERVAL_MS = 334; // < 3 Hz
 export const TORCH_MAX_DUTY_CYCLE = 0.5;
@@ -52,7 +54,8 @@ export type DeviceCommand =
       readonly patternMs: ReadonlyArray<number>;
       readonly intensity?: number;
     }
-  | { readonly kind: "nfc"; readonly action: "write"; readonly ndef: string };
+  | { readonly kind: "nfc"; readonly action: "write"; readonly ndef: string }
+  | { readonly kind: "nfc"; readonly action: "apdu"; readonly aid: string; readonly apdu: string };
 
 export interface ActuatorCommandResult {
   readonly kind: DeviceCommand["kind"];
@@ -204,8 +207,22 @@ function validateHaptics(
 function validateNfc(
   command: Extract<DeviceCommand, { kind: "nfc" }>
 ): Extract<DeviceCommand, { kind: "nfc" }> {
+  if (command.action === "apdu") {
+    try {
+      const aid = assertAidAllowed(command.aid);
+      if (typeof command.apdu !== "string" || command.apdu.length < 2 || command.apdu.length > 1024) {
+        throw new ActuatorSafetyError("NFC_PAYLOAD", "nfc.apdu payload length is invalid.");
+      }
+      return { kind: "nfc", action: "apdu", aid, apdu: command.apdu };
+    } catch (error) {
+      if (error instanceof NfcPaymentAidError) {
+        throw new ActuatorSafetyError("NFC_PAYLOAD", error.message);
+      }
+      throw error;
+    }
+  }
   if (command.action !== "write") {
-    throw new ActuatorSafetyError("COMMAND_INVALID", "nfc action must be write.");
+    throw new ActuatorSafetyError("COMMAND_INVALID", "nfc action must be write or apdu.");
   }
   if (typeof command.ndef !== "string" || command.ndef.length < 1) {
     throw new ActuatorSafetyError("NFC_PAYLOAD", "nfc.ndef payload is required.");

@@ -100,7 +100,7 @@ Protocol implementation details live in the
 
 | Topic | Document |
 |---|---|
-| Expose device sensors and actuators to mini-apps | [Device I/O plan](device-io-plan.md) |
+| Expose device sensors and actuators to mini-apps | [Device I/O plan](device-io-plan.md), [add a device class](device-class-runbook.md) |
 
 ## Security, quality, and validation
 
