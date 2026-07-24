@@ -1,4 +1,4 @@
-export { createWebCompositeFetchPlane } from "./fetch-plane-web.js";
+export { createWebCompositeFetchPlane } from "./client/fetch-plane-web.js";
 export type {
   WebCompositeFetchPlaneOptions,
   WebFetchPath,
@@ -6,11 +6,11 @@ export type {
   WebFetchPlaneRequest,
   WebFetchPlaneResult,
   WebFetchProgress
-} from "./fetch-plane-web.js";
+} from "./client/fetch-plane-web.js";
 export {
   bulkFetchUrlFromGateway,
   dhtRelayUrlFromGateway,
   fetchDriveVersionForWeb,
   fetchDriveVersionViaGateway
-} from "./web-hyper-fetch-gateway.js";
-export type { WebCompositeHyperFetchOptions, WebGatewayHyperFetchOptions } from "./web-hyper-fetch-gateway.js";
+} from "./client/web-gateway-hyper-fetch.js";
+export type { WebCompositeHyperFetchOptions, WebGatewayHyperFetchOptions } from "./client/web-gateway-hyper-fetch.js";

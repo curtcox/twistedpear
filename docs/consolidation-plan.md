@@ -9,11 +9,14 @@ register: none
 Progress (2026-07-24):
 - **Phase 1 done** — `packages/worklet-core` holds `dev-channel`, bonjour/multicast/serial IPC bridges.
 - **Phase 2 done** — `FetchPath`/`FetchProgress` live in `bridge-hyper`; `host-core` re-exports.
-- **Phase 3 partial** — shared `createWorkletMiniappHost` in worklet-core (desktop+mobile); web factory and entry composers still per-host.
+- **Phase 3 done (factories + composers)** — `createWorkletMiniappHost` / `createWebWorkletMiniappHost`, `createHostReplyChannel`, `createStatusTimer`, `createMiniappAnnounceService` in worklet-core. Host `entry.mjs` files still carry platform IPC, `pushStatus`, and interface stacks (further shrink is opportunistic, not blocking).
 - **Phase 4 done** — schema value tables + `WidgetVisitor` / `visitWidget` in runtime; renderers + describe use it.
-- **Phase 6 seeded** — `conformance/lib/` + adoption rule; desktop runner converted.
+- **Phase 5 done** — `bridge-hyper` split into `client/` / `server/` / `core/`; renames `web-gateway-hyper-fetch` / `gateway-hyperswarm-drive-fetch`; `DriveFetcher` interface + fetch-plane wiring.
+- **Phase 6 seeded** — `conformance/lib/` + adoption rule; desktop runner converted (adopt more when touching runners).
 - **Phase 7.1 done** — Layer-1/2/3 + checked traces named in specs/README and glossary.
-- Remaining: Phase 3 entry composers + web factory, Phase 5 bridge-hyper split, Phase 7.3 rename, more runner adoption.
+- **Deferred** — Phase 7.3 `apps/harness-mobile` → `apps/host-mobile` (quiet-window rename; do not land casually).
+
+Plan exit criteria largely met for Phases 1–6 and 7.1. Loop stopped.
 
 This plan removes the duplication and naming debt identified by the 2026-07-24
 terminology and abstraction audit. The durable terminology output of that audit
@@ -33,7 +36,7 @@ Motivating measurements (tree state at audit time):
 - `FetchPath` / `FetchProgress` and the fetch request/result shapes are defined
   twice, structurally identically, in
   [`packages/host-core/src/fetch-plane.ts`](../packages/host-core/src/fetch-plane.ts)
-  and [`packages/bridge-hyper/src/fetch.ts`](../packages/bridge-hyper/src/fetch.ts).
+  and [`packages/bridge-hyper/src/core/fetch.ts`](../packages/bridge-hyper/src/core/fetch.ts).
 - 68 conformance `run.mjs` runners; ≥13 hand-rolled `assert` helpers, ~32
   ad-hoc `spawn`/`execFile` wrappers, repeated log-file plumbing.
 - Both widget renderers hand-write per-type `switch` dispatch over the closed

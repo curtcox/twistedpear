@@ -1,9 +1,9 @@
 /**
- * Hyperdrive / Hyperswarm surface for Bare worklets.
- * Kept out of worklet.ts so corestore and its native addons load only on demand.
+ * Lazy-loaded Hyperdrive/Hyperswarm surface for Bare worklets.
+ * Separated so corestore native addons are not pulled into the default worklet graph.
  */
-export { createSwarm, driveTopic } from "./swarm.js";
-export type { SwarmOptions, SwarmSession } from "./swarm.js";
+export { createSwarm, driveTopic } from "./core/swarm.js";
+export type { SwarmOptions, SwarmSession } from "./core/swarm.js";
 
-export { DriveManager } from "./drive.js";
-export type { DriveManagerOptions, PublishedVersion } from "./drive.js";
+export { DriveManager } from "./core/drive.js";
+export type { DriveManagerOptions, PublishedVersion } from "./core/drive.js";

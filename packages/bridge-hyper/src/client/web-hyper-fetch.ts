@@ -8,8 +8,8 @@ import {
   gatewayHttpUrlFromWebSocket,
   type WebCompositeHyperFetchOptions,
   type WebGatewayHyperFetchOptions
-} from "./web-hyper-fetch-gateway.js";
-import { fetchDriveVersionViaRelayedDht } from "./relay-hyper-fetch.js";
+} from "./web-gateway-hyper-fetch.js";
+import { fetchDriveVersionViaRelayedDht } from "../core/relay-hyper-fetch.js";
 
 export type { WebCompositeHyperFetchOptions, WebGatewayHyperFetchOptions };
 export { bulkFetchUrlFromGateway, fetchDriveVersionViaGateway, gatewayHttpUrlFromWebSocket };
@@ -60,7 +60,7 @@ export async function fetchDriveVersionViaRelay(options: WebHyperFetchOptions): 
         await destroy();
         socket.close();
       };
-      return dht as import("./relay-hyper-fetch.js").RelayedDht;
+      return dht as import("../core/relay-hyper-fetch.js").RelayedDht;
     }
   });
 }

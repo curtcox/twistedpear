@@ -1,8 +1,9 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DriveManager } from "./drive.js";
-import { createSwarm } from "./swarm.js";
+import { DriveManager } from "../core/drive.js";
+import { createSwarm } from "../core/swarm.js";
+import type { DriveFetcher } from "../core/fetch.js";
 import type { ByteRateLimiter } from "@twistedpear/reticulum-ts";
 
 export interface GatewayHyperswarmFetchOptions {
@@ -11,6 +12,16 @@ export interface GatewayHyperswarmFetchOptions {
   readonly timeoutMs?: number;
   readonly inboundBandwidthLimiter?: ByteRateLimiter;
   readonly outboundBandwidthLimiter?: ByteRateLimiter;
+}
+
+export function createGatewayHyperswarmDriveFetcher(
+  options: Omit<GatewayHyperswarmFetchOptions, "driveKeyHex" | "version"> = {}
+): DriveFetcher {
+  return {
+    fetchDriveVersion(driveKeyHex, version) {
+      return fetchDriveVersionViaHyperswarm({ ...options, driveKeyHex, version });
+    }
+  };
 }
 
 function sleep(ms: number): Promise<void> {

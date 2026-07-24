@@ -18,6 +18,11 @@ import {
   webRuntime
 } from "../../../packages/reticulum-ts/dist/web.js";
 import { createWebWorkletMiniappHost, hexToBytes } from "./web-miniapp-host.mjs";
+import {
+  createHostReplyChannel,
+  createMiniappAnnounceService,
+  createStatusTimer
+} from "../../../packages/worklet-core/src/index.mjs";
 import { createWebInstallService } from "./web-install.mjs";
 import { createWebPublishService } from "./web-publish.mjs";
 import { createWebSerialPipe } from "./web-serial-pipe.mjs";
@@ -140,32 +145,15 @@ let pendingRnodeBaudRate = 115_200;
 let hyperFetchModule = null;
 /** @type {PureCryptoProvider} */
 const cryptoProvider = new PureCryptoProvider();
-/** @type {ReturnType<typeof setInterval> | null} */
-let statusTimer = null;
 /** @type {ReturnType<typeof createMiniappKvStore> | null} */
 let miniappKvStore = null;
 let peerSessionManager = null;
-const miniappAnnounceBuckets = new Map();
-const miniappAnnounceDestinations = new Map();
-const miniappAnnounceHandlers = new Set();
 
-/** @type {Map<string, (reply: unknown) => void>} */
-const pendingHostReplies = new Map();
-
-function requestHostReply(message, timeoutMs = 120_000) {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      pendingHostReplies.delete(message.token);
-      resolve(null);
-    }, timeoutMs);
-    pendingHostReplies.set(message.token, (reply) => {
-      clearTimeout(timer);
-      pendingHostReplies.delete(message.token);
-      resolve(reply);
-    });
-    send(message);
-  });
-}
+const hostReplyChannel = createHostReplyChannel({ send });
+const requestHostReply = hostReplyChannel.requestReply;
+const statusTimer = createStatusTimer({ onTick: () => pushStatus() });
+const startStatusTimer = statusTimer.start;
+const stopStatusTimer = statusTimer.stop;
 
 function peerToken() { return bytesToHex(cryptoProvider.randomBytes(16)); }
 const peerChrome = {
@@ -571,41 +559,15 @@ function ensureMiniappHost() {
   return miniappHost;
 }
 
-function miniappAnnounceAspect(appId, namespace) {
-  const scope = namespace ?? `miniapp-announce:${appId}`;
-  return bytesToHex(cryptoProvider.sha256(new TextEncoder().encode(scope)).subarray(0, 16));
-}
-
-const transportAnnounceService = {
-  async publish(appId, appData, namespace) {
-    const node = await ensureReticulumForInterfaces();
-    const identity = await loadOrCreateWebIdentity(cryptoProvider, identityOptions());
-    const aspect = miniappAnnounceAspect(appId, namespace);
-    let destination = miniappAnnounceDestinations.get(aspect);
-    if (destination === undefined) {
-      destination = node.registerDestination({ provider: cryptoProvider, identity, direction: DestinationDirection.IN, type: DestinationType.SINGLE, appName: "tp", aspects: ["miniapp", aspect] });
-      miniappAnnounceDestinations.set(aspect, destination);
-    }
-    const payload = appData ?? new Uint8Array();
-    await destination.announce({ appData: payload });
-    const bucket = miniappAnnounceBuckets.get(aspect) ?? [];
-    bucket.push({ destination: bytesToHex(destination.hash), appData: payload.slice(), receivedAt: Date.now() });
-    miniappAnnounceBuckets.set(aspect, bucket.slice(-256));
-  },
-  async subscribe(appId, namespace) {
-    const node = await ensureReticulumForInterfaces();
-    const aspect = miniappAnnounceAspect(appId, namespace);
-    if (!miniappAnnounceHandlers.has(aspect)) {
-      node.registerAnnounceHandler({ aspectFilter: `tp.miniapp.${aspect}`, receivedAnnounce(info) {
-        const bucket = miniappAnnounceBuckets.get(aspect) ?? [];
-        bucket.push({ destination: bytesToHex(info.destinationHash), appData: (info.appData ?? new Uint8Array()).slice(), receivedAt: Date.now() });
-        miniappAnnounceBuckets.set(aspect, bucket.slice(-256));
-      } });
-      miniappAnnounceHandlers.add(aspect);
-    }
-    return [...(miniappAnnounceBuckets.get(aspect) ?? [])];
-  }
-};
+const transportAnnounceService = createMiniappAnnounceService({
+  provider: cryptoProvider,
+  bytesToHex,
+  DestinationDirection,
+  DestinationType,
+  getNode: () => ensureReticulumForInterfaces(),
+  getIdentity: () => loadOrCreateWebIdentity(cryptoProvider, identityOptions()),
+  copyAppData: true
+});
 
 function ensureInstallService() {
   if (installService === null) {
@@ -703,23 +665,6 @@ async function refreshStorageStatus() {
   status.storageUsedBytes = quota.packageUsedBytes;
   pushStatus();
   return quota;
-}
-
-function startStatusTimer() {
-  if (statusTimer !== null) {
-    return;
-  }
-
-  statusTimer = setInterval(pushStatus, 1_000);
-}
-
-function stopStatusTimer() {
-  if (statusTimer === null) {
-    return;
-  }
-
-  clearInterval(statusTimer);
-  statusTimer = null;
 }
 
 async function stopHostSession() {
@@ -965,7 +910,7 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response") {
-    pendingHostReplies.get(message.token)?.(message);
+    hostReplyChannel.resolveReply(message);
     return;
   }
 

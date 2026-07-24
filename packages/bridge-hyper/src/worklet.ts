@@ -8,11 +8,11 @@ export {
   attachPackageResourceServer,
   sendPackageResourceRequest,
   parseListResponse
-} from "./resource-server.js";
-export type { PackageResourceRequest, PackageVersionInfo, PackageResourceServerOptions } from "./resource-server.js";
+} from "./server/resource-server.js";
+export type { PackageResourceRequest, PackageVersionInfo, PackageResourceServerOptions } from "./server/resource-server.js";
 
-export { PackageResourceClient } from "./resource-client.js";
-export type { PackageResourceClientOptions } from "./resource-client.js";
+export { PackageResourceClient } from "./client/resource-client.js";
+export type { PackageResourceClientOptions } from "./client/resource-client.js";
 
 export {
   SIZE_WARNING_BLE_BYTES,
@@ -21,11 +21,12 @@ export {
   assessFetchBudget,
   fetchPackage,
   estimateTransferSeconds
-} from "./fetch.js";
+} from "./core/fetch.js";
 export type {
+  DriveFetcher,
   FetchPath,
   FetchProgress,
   FetchPackageOptions,
   FetchPackageResult,
   FetchBudgetAssessment
-} from "./fetch.js";
+} from "./core/fetch.js";

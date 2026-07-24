@@ -1,10 +1,10 @@
-import type { PackageResourceClient } from "@twistedpear/bridge-hyper";
+import type { PackageResourceClient, DriveFetcher, DriveManager } from "@twistedpear/bridge-hyper";
 import { fetchPackage as bridgeFetchPackage } from "@twistedpear/bridge-hyper";
-import type { DriveManager } from "@twistedpear/bridge-hyper";
 import type { FetchPlane } from "./fetch-plane.js";
 
 export interface BridgeHyperFetchPlaneOptions {
   readonly driveManager?: DriveManager;
+  readonly driveFetcher?: DriveFetcher;
   readonly resourceClient?: PackageResourceClient;
   readonly lanMirrorKeyHex?: string;
 }
@@ -17,6 +17,7 @@ export function createBridgeHyperFetchPlane(options: BridgeHyperFetchPlaneOption
         version: request.version,
         interfaces: request.interfaces,
         ...(options.driveManager === undefined ? {} : { driveManager: options.driveManager }),
+        ...(options.driveFetcher === undefined ? {} : { driveFetcher: options.driveFetcher }),
         ...(options.resourceClient === undefined ? {} : { resourceClient: options.resourceClient }),
         ...(options.lanMirrorKeyHex === undefined ? {} : { lanMirrorKeyHex: options.lanMirrorKeyHex }),
         ...(request.onProgress === undefined ? {} : { onProgress: request.onProgress }),

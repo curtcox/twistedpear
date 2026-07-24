@@ -30,7 +30,7 @@ Last audited: 2026-07-21.
 | PD-WORKSPACE | done | Conflict-safe workspace text patches and delta-valued code-editor events | `packages/miniapp-runtime/test/workspace-ai.test.ts`, `conformance/devstudio-loop/run.mjs` | `npx vitest run packages/miniapp-runtime/test/workspace-ai.test.ts && npm run test:devstudio-loop` |
 | PD-QR | done | Host-owned desktop QR scanning for app and publisher 256t identifiers | `conformance/ui-invariants/desktop-qr.test.mjs`, desktop renderer camera modal | `npx vitest run conformance/ui-invariants/desktop-qr.test.mjs && npm run build --workspace=host-desktop` |
 | PD-LOCATOR | done | On-demand 256t locator requests and holder re-announces, including late-joiner conformance | `packages/cas-256t/src/locator.ts`, `conformance/devstudio-loop/run.mjs` | `npx vitest run packages/cas-256t/test/cas-256t.test.ts && npm run test:devstudio-loop` |
-| PD-BANDWIDTH | done | Shared zero-burst ingress/egress caps across Reticulum, forwarding, Hyperdrive, and gateway bulk fetch | `packages/reticulum-ts/src/transport/bandwidth.ts`, `packages/bridge-hyper/src/swarm.ts` | `npx vitest run packages/reticulum-ts/test/bandwidth-limiter.test.ts packages/bridge-hyper/test/gateway-bulk-fetch.test.ts` |
+| PD-BANDWIDTH | done | Shared zero-burst ingress/egress caps across Reticulum, forwarding, Hyperdrive, and gateway bulk fetch | `packages/reticulum-ts/src/transport/bandwidth.ts`, `packages/bridge-hyper/src/core/swarm.ts` | `npx vitest run packages/reticulum-ts/test/bandwidth-limiter.test.ts packages/bridge-hyper/test/gateway-bulk-fetch.test.ts` |
 | PD-BOOTSTRAP | done | Opt-in, redundant community Reticulum TCP profile with explicit privacy notice on desktop and Android | `packages/host-core/src/community-network.ts`, `docs/community-network.md` | `npx vitest run packages/host-core/test/community-network.test.ts conformance/ui-invariants/community-network.test.mjs` |
 | RG7 | done | Separately granted embeddings and bounded cosine vector search | `packages/miniapp-sdk/test/ai.test.ts`, `packages/miniapp-runtime/test/workspace-ai.test.ts`, `cookbook/apps/ask-the-handbook/` | `npx vitest run packages/miniapp-sdk/test/ai.test.ts packages/miniapp-runtime/test/workspace-ai.test.ts conformance/cookbook/cookbook.test.mjs` |
 
@@ -245,7 +245,7 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 
 | Item | Evidence | Verify |
 |---|---|---|
-| Drive publish/mirror/consume | `packages/bridge-hyper/src/drive.ts`, `packages/bridge-hyper/src/swarm.ts` | `test:dist-interop` |
+| Drive publish/mirror/consume | `packages/bridge-hyper/src/core/drive.ts`, `packages/bridge-hyper/src/core/swarm.ts` | `test:dist-interop` |
 | Bare consumer (Corestore on bare-fs) | `conformance/bare-hyperdrive/run.mjs` | `npm run test:bare-hyperdrive` (CI: `bare-hyperdrive`) |
 
 ### M2 — Discovery + catalog
@@ -258,13 +258,13 @@ CI job names refer to [.github/workflows/ci.yml](.github/workflows/ci.yml) unles
 
 | Item | Evidence | Verify |
 |---|---|---|
-| Resource server/client protocol | `packages/bridge-hyper/src/resource-server.ts`, `packages/bridge-hyper/src/resource-client.ts` | `test:dist-interop` (incl. simulated BLE pipe) |
+| Resource server/client protocol | `packages/bridge-hyper/src/server/resource-server.ts`, `packages/bridge-hyper/src/client/resource-client.ts` | `test:dist-interop` (incl. simulated BLE pipe) |
 
 ### M4 — Fetch strategy engine
 
 | Item | Evidence | Verify |
 |---|---|---|
-| Path selection + budget rules | `packages/bridge-hyper/src/fetch.ts`, `packages/reticulum-interfaces/src/policy.ts` | `packages/bridge-hyper/test/fetch.test.ts`, `test:budgets` |
+| Path selection + budget rules | `packages/bridge-hyper/src/core/fetch.ts`, `packages/reticulum-interfaces/src/policy.ts` | `packages/bridge-hyper/test/fetch.test.ts`, `test:budgets` |
 
 ### M5 — CLI publish side
 
@@ -583,7 +583,7 @@ CI: `web` + `interop` jobs per [docs/ci-policy.md](docs/ci-policy.md).
 | iOS lifecycle reconnect metrics | `conformance/ios-sim/measured-lifecycle.json`, `conformance/ios-sim/lifecycle.mjs` | `node conformance/ios-sim/lifecycle.mjs --require-peer` |
 | LIMITATIONS §1 crypto benchmarks | [LIMITATIONS.md](LIMITATIONS.md) §1, `conformance/bare-runtime/baseline-node.json` | `npm run test:bare-benchmark-compare` |
 | iOS full-loop PR path filter | `.github/workflows/ci.yml` `ios-sim` | touch `packages/miniapp-runtime/**` etc. |
-| `mirrorFrom` polling timeout | `packages/bridge-hyper/src/drive.ts` | `npm test -- packages/bridge-hyper/test` |
+| `mirrorFrom` polling timeout | `packages/bridge-hyper/src/core/drive.ts` | `npm test -- packages/bridge-hyper/test` |
 
 ## Release evidence log
 

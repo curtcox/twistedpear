@@ -94,7 +94,7 @@ function knownFullPath(token) {
     "propagation-interop/run.mjs": "conformance/propagation-interop/run.mjs",
     "harness.mjs": "conformance/scenarios/ts/harness.mjs",
     "record-benchmark.mjs": "conformance/bare-runtime/record-benchmark.mjs",
-    "swarm.ts": "packages/bridge-hyper/src/swarm.ts",
+    "swarm.ts": "packages/bridge-hyper/src/core/swarm.ts",
     "policy.ts": "packages/bridge-hyper/src/policy.ts",
     "ble-bridge/ios/": "apps/harness-mobile/modules/ble-bridge/ios/",
     "propagation_lxmd.py": "conformance/scenarios/python/propagation_lxmd.py",

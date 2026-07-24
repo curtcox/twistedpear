@@ -20,6 +20,13 @@ import { createIpcMulticastBridge } from "../../../packages/worklet-core/src/ipc
 import { createIpcBonjourBridge } from "../../../packages/worklet-core/src/ipc-bonjour-bridge.mjs";
 import { createIpcBleBridge } from "./ipc-ble-bridge.mjs";
 import { createIpcSerialBridge } from "../../../packages/worklet-core/src/ipc-serial-bridge.mjs";
+import {
+  createDevChannelClient,
+  createHostReplyChannel,
+  createMiniappAnnounceService,
+  createStatusTimer,
+  createWorkletMiniappHost
+} from "../../../packages/worklet-core/src/index.mjs";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
@@ -27,8 +34,6 @@ import { PackageResourceClient, assessFetchBudget, fetchPackage } from "../../..
 import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { HOST_API_VERSION, createWorkletFlagRelayService, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
 import { decodePeerAudioFrame, decodePeerInvitation, framePeerAudioPayload, initialPeerAudioAssemblyState, stepPeerAudioAssembly } from "../../../packages/protocol/dist/index.js";
-import { createWorkletMiniappHost } from "./miniapp-host.mjs";
-import { createDevChannelClient } from "../../../packages/worklet-core/src/dev-channel.mjs";
 import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
 import { AudioPeerDiscoveryAdapter, BluetoothPeerDiscoveryAdapter, CryptoPeerPairingBackend, InvitationPairingDriver, ManualPeerDiscoveryAdapter, NtfyPeerDiscoveryAdapter, NtfyRendezvousClient, PeerDiscoveryRegistry, PeerSessionManager, QrPeerDiscoveryAdapter, ReticulumPeerDiscoveryAdapter, UnavailablePeerDiscoveryAdapter } from "../../../packages/peer-discovery/dist/index.js";
@@ -79,7 +84,6 @@ const status = {
 let reticulum = null;
 let peerSessionManager = null;
 let ntfyUrl = null;
-const pendingHostReplies = new Map();
 const peerLinkDestinations = new Map();
 const peerLinks = new Map();
 const automaticDiscoveryDestinations = new Map();
@@ -89,9 +93,6 @@ const automaticInboundWaiters = new Map();
 const automaticInboundRoutes = new Map();
 const automaticAnswerWaiters = new Map();
 const automaticOfferKeys = new Map();
-const miniappAnnounceBuckets = new Map();
-const miniappAnnounceDestinations = new Map();
-const miniappAnnounceHandlers = new Set();
 const bluetoothAssemblies = new Map();
 const bluetoothOfferQueue = [];
 const bluetoothOfferWaiters = [];
@@ -123,8 +124,6 @@ let rnodeIface = null;
 let pendingRnodeDeviceId = null;
 /** @type {number} */
 let pendingRnodeBaudRate = 115_200;
-/** @type {ReturnType<typeof setInterval> | null} */
-let statusTimer = null;
 /** @type {Identity | null} */
 let activeIdentity = null;
 /** @type {{ targetHost: string; targetPort: number } | null} */
@@ -290,41 +289,15 @@ function ensureMiniappHost() {
   return miniappHost;
 }
 
-function miniappAnnounceAspect(appId, namespace) {
-  const scope = namespace ?? `miniapp-announce:${appId}`;
-  return bytesToHex(provider.sha256(new TextEncoder().encode(scope)).subarray(0, 16));
-}
-
-const transportAnnounceService = {
-  async publish(appId, appData, namespace) {
-    const node = await ensureReticulum();
-    const identity = await resolveIdentity();
-    const aspect = miniappAnnounceAspect(appId, namespace);
-    let destination = miniappAnnounceDestinations.get(aspect);
-    if (destination === undefined) {
-      destination = node.registerDestination({ provider, identity, direction: DestinationDirection.IN, type: DestinationType.SINGLE, appName: "tp", aspects: ["miniapp", aspect] });
-      miniappAnnounceDestinations.set(aspect, destination);
-    }
-    const payload = appData ?? new Uint8Array();
-    await destination.announce({ appData: payload });
-    const bucket = miniappAnnounceBuckets.get(aspect) ?? [];
-    bucket.push({ destination: bytesToHex(destination.hash), appData: payload.slice(), receivedAt: Date.now() });
-    miniappAnnounceBuckets.set(aspect, bucket.slice(-256));
-  },
-  async subscribe(appId, namespace) {
-    const node = await ensureReticulum();
-    const aspect = miniappAnnounceAspect(appId, namespace);
-    if (!miniappAnnounceHandlers.has(aspect)) {
-      node.registerAnnounceHandler({ aspectFilter: `tp.miniapp.${aspect}`, receivedAnnounce(info) {
-        const bucket = miniappAnnounceBuckets.get(aspect) ?? [];
-        bucket.push({ destination: bytesToHex(info.destinationHash), appData: (info.appData ?? new Uint8Array()).slice(), receivedAt: Date.now() });
-        miniappAnnounceBuckets.set(aspect, bucket.slice(-256));
-      } });
-      miniappAnnounceHandlers.add(aspect);
-    }
-    return [...(miniappAnnounceBuckets.get(aspect) ?? [])];
-  }
-};
+const transportAnnounceService = createMiniappAnnounceService({
+  provider,
+  bytesToHex,
+  DestinationDirection,
+  DestinationType,
+  getNode: () => ensureReticulum(),
+  getIdentity: () => resolveIdentity(),
+  copyAppData: true
+});
 
 function runtimeKeyValueStore() {
   return {
@@ -429,13 +402,8 @@ function send(message) {
   IPC.write(Buffer.from(`${JSON.stringify(message)}\n`));
 }
 
-function requestHostReply(message, timeoutMs = 120_000) {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => { pendingHostReplies.delete(message.token); resolve(null); }, timeoutMs);
-    pendingHostReplies.set(message.token, (reply) => { clearTimeout(timer); pendingHostReplies.delete(message.token); resolve(reply); });
-    send(message);
-  });
-}
+const hostReplyChannel = createHostReplyChannel({ send });
+const requestHostReply = hostReplyChannel.requestReply;
 
 function peerToken() { return bytesToHex(provider.randomBytes(16)); }
 const peerChrome = {
@@ -617,22 +585,9 @@ function pushStatus() {
   send({ type: "status", status: { ...status } });
 }
 
-function startStatusTimer() {
-  if (statusTimer !== null) {
-    return tcpIface.online;
-  }
-
-  statusTimer = setInterval(pushStatus, 1_000);
-}
-
-function stopStatusTimer() {
-  if (statusTimer === null) {
-    return;
-  }
-
-  clearInterval(statusTimer);
-  statusTimer = null;
-}
+const statusTimer = createStatusTimer({ onTick: () => pushStatus() });
+const startStatusTimer = statusTimer.start;
+const stopStatusTimer = statusTimer.stop;
 
 function updateIdentityStatus(identity) {
   activeIdentity = identity;
@@ -1123,7 +1078,7 @@ async function handleHostMessage(raw) {
   }
 
   if (message.type === "peer-chrome-response" || message.type === "confirm-response" || message.type === "device-bridge-response") {
-    pendingHostReplies.get(message.token)?.(message);
+    hostReplyChannel.resolveReply(message);
     return;
   }
 
