@@ -1,5 +1,6 @@
 import {
   DEVICE_CLASS_REGISTRY,
+  DEVICE_STREAM_KIND,
   ActuatorSafetyError,
   defaultTierForClass,
   deriveCameraSample,
@@ -11,6 +12,9 @@ import {
   isDeviceSessionLive,
   quantizeAmbientLux,
   quantizeLocationCoarse,
+  sanitizeCameraFrame,
+  sanitizeMotionSamples,
+  sanitizePcmSample,
   stepDeviceSession,
   validateActuatorCommand,
   type CameraDerivedInput,
@@ -20,7 +24,10 @@ import {
   type DeviceSessionState,
   type MicrophoneDerivedInput,
   type PreciseLocationFix,
-  type RawMotionSample
+  type RawCameraFrameInput,
+  type RawMotionInput,
+  type RawMotionSample,
+  type RawPcmInput
 } from "@twistedpear/protocol";
 import { assertCapabilityAllowed, CapabilityError } from "./capabilities.js";
 import {
@@ -28,6 +35,7 @@ import {
   type ConfirmationEffects,
   type HostConfirmationChannel
 } from "./confirm.js";
+import { DeviceStreamSidecar, type DeviceSidecarDelivery } from "./device-sidecar.js";
 
 export type DeviceAvailability =
   | "available"
@@ -117,6 +125,44 @@ export type DeviceSample =
         readonly w: number;
       };
       readonly events: ReadonlyArray<"step" | "shake" | "tilt">;
+    }
+  | {
+      readonly kind: "camera";
+      readonly tier: "frames";
+      readonly at: number;
+      readonly width: number;
+      readonly height: number;
+      readonly format: "rgba8" | "yuv420" | "jpeg";
+      readonly byteLength: number;
+      readonly sidecar?: DeviceSidecarDelivery;
+    }
+  | {
+      readonly kind: "microphone";
+      readonly tier: "pcm";
+      readonly at: number;
+      readonly sampleRate: number;
+      readonly channels: 1 | 2;
+      readonly sampleCount: number;
+      readonly sidecar?: DeviceSidecarDelivery;
+    }
+  | {
+      readonly kind: "motion";
+      readonly tier: "samples";
+      readonly at: number;
+      readonly accel: readonly [number, number, number];
+      readonly gyro: readonly [number, number, number];
+      readonly mag?: readonly [number, number, number];
+      readonly sidecar?: DeviceSidecarDelivery;
+    }
+  | {
+      readonly kind: "screen-capture";
+      readonly tier: "frames";
+      readonly at: number;
+      readonly width: number;
+      readonly height: number;
+      readonly format: "rgba8" | "yuv420" | "jpeg";
+      readonly byteLength: number;
+      readonly sidecar?: DeviceSidecarDelivery;
     };
 
 export interface DeviceActiveIndicator {
@@ -170,6 +216,7 @@ export interface DeviceManagerOptions {
   /** When set, named holders (e.g. relay interfaces) occupy the arbitration lock. */
   readonly externalHolders?: () => ReadonlyMap<string, string>;
   readonly policyDisabled?: ReadonlySet<string>;
+  readonly sidecar?: DeviceStreamSidecar;
 }
 
 interface LiveSession {
@@ -178,6 +225,7 @@ interface LiveSession {
   readonly rateHz: number;
   readonly purpose: string;
   readonly consentClass: DeviceConsentClass;
+  readonly sidecarToken: number | null;
   lastReadAt: number | null;
 }
 
@@ -188,6 +236,7 @@ export class DeviceManager {
   private readonly drivers = new Map<string, DeviceDriver>();
   private readonly sessions = new Map<DeviceSessionHandle, LiveSession>();
   private readonly locks = new Map<string, string>();
+  private readonly sidecar: DeviceStreamSidecar;
   private nextHandle = 0;
   private readonly now: () => number;
   private readonly randomBytes: (length: number) => Uint8Array;
@@ -196,6 +245,7 @@ export class DeviceManager {
     for (const driver of options.drivers ?? []) {
       this.drivers.set(driver.classId, driver);
     }
+    this.sidecar = options.sidecar ?? new DeviceStreamSidecar();
     this.now = options.now ?? (() => Date.now());
     this.randomBytes =
       options.randomBytes ??
@@ -256,17 +306,10 @@ export class DeviceManager {
     }
 
     const tier = this.resolveTier(entry, request.tier);
-    if (
-      (entry.id === "camera" && tier.id === "frames") ||
-      (entry.id === "microphone" && tier.id === "pcm") ||
-      (entry.id === "motion" && tier.id === "samples") ||
-      (entry.id === "speaker" && tier.id === "pcm") ||
-      (entry.id === "screen-capture" && tier.id === "frames") ||
-      (entry.id === "nfc" && tier.id === "apdu")
-    ) {
+    if ((entry.id === "speaker" && tier.id === "pcm") || (entry.id === "nfc" && tier.id === "apdu")) {
       throw new DeviceError(
         "DEVICE_TIER_REQUIRED",
-        `Tier "${tier.id}" for ${entry.id} requires the raw-tier / sidecar host API phase.`
+        `Tier "${tier.id}" for ${entry.id} requires a later host API phase.`
       );
     }
     const capability = deviceCapabilityId(entry.id, tier.id);
@@ -333,12 +376,19 @@ export class DeviceManager {
     });
     state = stepDeviceSession(state, { kind: "device/open", at, ttlMs }).state;
     const handle = `dev-${this.nextHandle++}-${bytesToHex(this.randomBytes(4))}`;
+    const needsSidecar =
+      (entry.id === "camera" && tier.id === "frames") ||
+      (entry.id === "microphone" && tier.id === "pcm") ||
+      (entry.id === "motion" && tier.id === "samples") ||
+      (entry.id === "screen-capture" && tier.id === "frames");
+    const sidecarToken = needsSidecar ? this.sidecar.open(handle) : null;
     this.sessions.set(handle, {
       handle,
       state,
       rateHz,
       purpose: request.purpose,
       consentClass,
+      sidecarToken,
       lastReadAt: null
     });
 
@@ -353,6 +403,7 @@ export class DeviceManager {
   async close(appId: string, handle: DeviceSessionHandle): Promise<void> {
     const session = this.requireLiveSession(appId, handle);
     await this.stopDriver(session.state.classId);
+    this.sidecar.close(handle);
     const at = this.now();
     const next = stepDeviceSession(session.state, { kind: "device/close", at }).state;
     this.sessions.set(handle, { ...session, state: next });
@@ -365,6 +416,7 @@ export class DeviceManager {
     for (const [handle, session] of this.sessions) {
       if (session.state.appId !== appId || !isDeviceSessionLive(session.state.phase)) continue;
       void this.stopDriver(session.state.classId);
+      this.sidecar.close(handle);
       const at = this.now();
       const next = stepDeviceSession(session.state, { kind: "device/close", at }).state;
       this.sessions.set(handle, { ...session, state: next });
@@ -394,7 +446,7 @@ export class DeviceManager {
     }
 
     const raw = await driver.sense();
-    const sample = this.materializeSample(live.state.classId, live.state.tierId, at, raw);
+    const sample = this.materializeSample(live, at, raw);
     live.lastReadAt = at;
     return sample;
   }
@@ -473,11 +525,12 @@ export class DeviceManager {
   }
 
   private materializeSample(
-    classId: string,
-    tierId: string,
+    sessionMeta: LiveSession,
     at: number,
     raw: unknown
   ): DeviceSample {
+    const classId = sessionMeta.state.classId;
+    const tierId = sessionMeta.state.tierId;
     if (classId === "location") {
       const fix = raw as PreciseLocationFix;
       if (typeof fix?.latitude !== "number" || typeof fix?.longitude !== "number") {
@@ -521,36 +574,94 @@ export class DeviceManager {
     }
 
     if (classId === "camera") {
-      if (tierId !== "derived") {
-        throw new DeviceError("DEVICE_TIER_REQUIRED", "Raw camera frames require a later host API phase.");
+      if (tierId === "derived") {
+        const derived = deriveCameraSample((raw ?? {}) as CameraDerivedInput);
+        return { kind: "camera", tier: "derived", at, ...derived };
       }
-      const derived = deriveCameraSample((raw ?? {}) as CameraDerivedInput);
-      return { kind: "camera", tier: "derived", at, ...derived };
+      if (tierId === "frames") {
+        const frame = sanitizeCameraFrame(raw as RawCameraFrameInput);
+        const sidecar = this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.cameraFrame, frame.bytes);
+        return {
+          kind: "camera",
+          tier: "frames",
+          at,
+          width: frame.width,
+          height: frame.height,
+          format: frame.format,
+          byteLength: frame.bytes.length,
+          ...(sidecar !== undefined ? { sidecar } : {})
+        };
+      }
+      throw new DeviceError("DEVICE_TIER_REQUIRED", `Unsupported camera tier "${tierId}".`);
     }
 
     if (classId === "microphone") {
-      if (tierId !== "derived") {
-        throw new DeviceError("DEVICE_TIER_REQUIRED", "Raw microphone PCM requires a later host API phase.");
+      if (tierId === "derived") {
+        const derived = deriveMicrophoneSample((raw ?? {}) as MicrophoneDerivedInput);
+        return { kind: "microphone", tier: "derived", at, ...derived };
       }
-      const derived = deriveMicrophoneSample((raw ?? {}) as MicrophoneDerivedInput);
-      return { kind: "microphone", tier: "derived", at, ...derived };
+      if (tierId === "pcm") {
+        const pcm = sanitizePcmSample(raw as RawPcmInput);
+        const payload = floatSamplesToBytes(pcm.samples);
+        const sidecar = this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.pcm, payload);
+        return {
+          kind: "microphone",
+          tier: "pcm",
+          at,
+          sampleRate: pcm.sampleRate,
+          channels: pcm.channels,
+          sampleCount: pcm.samples.length,
+          ...(sidecar !== undefined ? { sidecar } : {})
+        };
+      }
+      throw new DeviceError("DEVICE_TIER_REQUIRED", `Unsupported microphone tier "${tierId}".`);
     }
 
     if (classId === "motion") {
-      if (tierId !== "derived") {
-        throw new DeviceError("DEVICE_TIER_REQUIRED", "Raw motion samples require a later host API phase.");
+      if (tierId === "derived") {
+        const sample = raw as RawMotionSample;
+        if (
+          !Array.isArray(sample?.accel) ||
+          sample.accel.length !== 3 ||
+          !Array.isArray(sample?.gyro) ||
+          sample.gyro.length !== 3
+        ) {
+          throw new DeviceError("DEVICE_BAD_REQUEST", "Motion driver returned an invalid IMU sample.");
+        }
+        const derived = deriveMotionSample(sample);
+        return { kind: "motion", tier: "derived", at, ...derived };
       }
-      const sample = raw as RawMotionSample;
-      if (
-        !Array.isArray(sample?.accel) ||
-        sample.accel.length !== 3 ||
-        !Array.isArray(sample?.gyro) ||
-        sample.gyro.length !== 3
-      ) {
-        throw new DeviceError("DEVICE_BAD_REQUEST", "Motion driver returned an invalid IMU sample.");
+      if (tierId === "samples") {
+        const sanitized = sanitizeMotionSamples(raw as RawMotionInput);
+        const payload = new TextEncoder().encode(JSON.stringify(sanitized));
+        const sidecar = this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.motionSamples, payload);
+        return {
+          kind: "motion",
+          tier: "samples",
+          at,
+          ...sanitized,
+          ...(sidecar !== undefined ? { sidecar } : {})
+        };
       }
-      const derived = deriveMotionSample(sample);
-      return { kind: "motion", tier: "derived", at, ...derived };
+      throw new DeviceError("DEVICE_TIER_REQUIRED", `Unsupported motion tier "${tierId}".`);
+    }
+
+    if (classId === "screen-capture") {
+      if (tierId !== "frames") {
+        throw new DeviceError("DEVICE_TIER_REQUIRED", "screen-capture derived tier is not implemented yet.");
+      }
+      const frame = sanitizeCameraFrame(raw as RawCameraFrameInput);
+      const sidecar = this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.screenFrame, frame.bytes);
+      return {
+        kind: "screen-capture",
+        tier: "frames",
+        at,
+        width: frame.width,
+        height: frame.height,
+        format: frame.format,
+        byteLength: frame.bytes.length,
+        ...(sidecar !== undefined ? { sidecar } : {})
+      };
     }
 
     throw new DeviceError(
@@ -651,6 +762,21 @@ export class DeviceManager {
     );
   }
 
+  private pushSidecar(
+    session: LiveSession,
+    sampleKind: (typeof DEVICE_STREAM_KIND)[keyof typeof DEVICE_STREAM_KIND],
+    payload: Uint8Array
+  ): DeviceSidecarDelivery | undefined {
+    if (session.sidecarToken === null) return undefined;
+    return this.sidecar.push({
+      sessionHandle: session.handle,
+      sessionToken: session.sidecarToken,
+      sampleKind,
+      sequence: Math.floor(this.now()),
+      payload
+    });
+  }
+
   private assertCommandMatchesSession(classId: string, command: DeviceCommand): void {
     if (command.kind !== classId) {
       throw new DeviceError(
@@ -723,6 +849,15 @@ function expandDeviceCapabilities(capabilities: ReadonlyArray<string>): string[]
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+function floatSamplesToBytes(samples: ReadonlyArray<number>): Uint8Array {
+  const bytes = new Uint8Array(samples.length * 4);
+  const view = new DataView(bytes.buffer);
+  for (let i = 0; i < samples.length; i += 1) {
+    view.setFloat32(i * 4, samples[i] ?? 0, true);
+  }
+  return bytes;
 }
 
 /** Simulated drivers for Phase 1–2 end-to-end coverage without hardware. */
@@ -817,4 +952,66 @@ export function createSimulatedHapticsDriver(log: SimulatedActuatorLog = { comma
 
 export function createSimulatedNfcDriver(log: SimulatedActuatorLog = { commands: [], stopped: 0 }): DeviceDriver {
   return createActuatorDriver("nfc", log);
+}
+
+export function createSimulatedRawCameraDriver(
+  input: RawCameraFrameInput = {
+    width: 16,
+    height: 16,
+    format: "rgba8",
+    bytes: new Uint8Array(16 * 16 * 4),
+    deviceModel: "secret-phone",
+    sensorCalibration: { fx: 1 }
+  }
+): DeviceDriver {
+  return {
+    classId: "camera",
+    availability: () => "available",
+    sense: async () => input
+  };
+}
+
+export function createSimulatedRawMicrophoneDriver(
+  input: RawPcmInput = {
+    sampleRate: 16_000,
+    channels: 1,
+    samples: [0.1, -0.1, 0.2],
+    deviceId: "mic-fingerprint"
+  }
+): DeviceDriver {
+  return {
+    classId: "microphone",
+    availability: () => "available",
+    sense: async () => input
+  };
+}
+
+export function createSimulatedRawMotionDriver(
+  input: RawMotionInput = {
+    accel: [0.1234, 0.5678, 0.9012],
+    gyro: [0.01, -0.02, 0.03],
+    calibrationBias: { ax: 0.001 },
+    deviceSerial: "imu-serial"
+  }
+): DeviceDriver {
+  return {
+    classId: "motion",
+    availability: () => "available",
+    sense: async () => input
+  };
+}
+
+export function createSimulatedScreenCaptureDriver(
+  input: RawCameraFrameInput = {
+    width: 8,
+    height: 8,
+    format: "rgba8",
+    bytes: new Uint8Array(8 * 8 * 4)
+  }
+): DeviceDriver {
+  return {
+    classId: "screen-capture",
+    availability: () => "available",
+    sense: async () => input
+  };
 }

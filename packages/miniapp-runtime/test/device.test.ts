@@ -13,10 +13,20 @@ import {
   createSimulatedMicrophoneDriver,
   createSimulatedMotionDriver,
   createSimulatedNfcDriver,
+  createSimulatedRawCameraDriver,
+  createSimulatedRawMicrophoneDriver,
+  createSimulatedRawMotionDriver,
+  createSimulatedScreenCaptureDriver,
   createSimulatedSpeakerDriver,
   createSimulatedTorchDriver,
-  createSimulatedTtsDriver
+  createSimulatedTtsDriver,
+  DeviceStreamSidecar
 } from "../src/index.js";
+import {
+  DeviceStreamFrameError,
+  decodeDeviceStreamFrame,
+  encodeDeviceStreamFrame
+} from "@twistedpear/protocol";
 
 describe("device capabilities", () => {
   it("includes generated device:* ids in the closed set", () => {
@@ -228,16 +238,16 @@ describe("DeviceManager Phase 2 derived sensors", () => {
     }
   });
 
-  it("refuses raw camera frames at derived-only phase", async () => {
+  it("refuses speaker:pcm until a later phase", async () => {
     const manager = new DeviceManager({
-      drivers: [createSimulatedCameraDriver()],
+      drivers: [createSimulatedSpeakerDriver()],
       now: () => 1
     });
     await expect(
-      manager.open("app", "pub", ["device:camera:frames"], ["device:camera:frames"], {
-        class: "camera",
-        tier: "frames",
-        purpose: "record"
+      manager.open("app", "pub", ["device:speaker:pcm"], ["device:speaker:pcm"], {
+        class: "speaker",
+        tier: "pcm",
+        purpose: "ultrasonic"
       })
     ).rejects.toMatchObject({ code: "DEVICE_TIER_REQUIRED" });
   });
@@ -339,5 +349,119 @@ describe("DeviceManager Phase 3 actuators", () => {
     });
     expect(confirmations).toContain("hello-tag");
     expect(nfcLog.commands).toHaveLength(1);
+  });
+});
+
+describe("DeviceManager Phase 4 raw tiers + sidecar", () => {
+  it("delivers sanitized camera frames over the sidecar", async () => {
+    const manager = new DeviceManager({
+      drivers: [createSimulatedRawCameraDriver()],
+      now: () => 20_000
+    });
+    const session = await manager.open(
+      "app",
+      "pub",
+      ["device:camera:frames"],
+      ["device:camera:frames"],
+      { class: "camera", tier: "frames", purpose: "record" }
+    );
+    const sample = await manager.read("app", session.handle);
+    expect(sample.kind).toBe("camera");
+    if (sample.kind === "camera" && sample.tier === "frames") {
+      expect(sample.width).toBe(16);
+      expect(sample.byteLength).toBe(16 * 16 * 4);
+      expect(sample.sidecar?.frames.length).toBe(1);
+      expect(JSON.stringify(sample)).not.toContain("secret-phone");
+      expect(JSON.stringify(sample)).not.toContain("sensorCalibration");
+      const frame = decodeDeviceStreamFrame(sample.sidecar!.frames[0]!);
+      expect(frame.sampleKind).toBe(1);
+    }
+  });
+
+  it("never emits raw fields from a derived camera session", async () => {
+    const manager = new DeviceManager({
+      drivers: [createSimulatedCameraDriver()],
+      now: () => 21_000
+    });
+    const session = await manager.open("app", "pub", ["device:camera"], ["device:camera"], {
+      class: "camera",
+      purpose: "scan"
+    });
+    const sample = await manager.read("app", session.handle);
+    expect(sample).toMatchObject({ kind: "camera", tier: "derived" });
+    expect(sample).not.toHaveProperty("byteLength");
+    expect(sample).not.toHaveProperty("sidecar");
+  });
+
+  it("denies frames when only derived is granted", async () => {
+    const manager = new DeviceManager({
+      drivers: [createSimulatedRawCameraDriver()],
+      now: () => 22_000
+    });
+    await expect(
+      manager.open("app", "pub", ["device:camera"], ["device:camera"], {
+        class: "camera",
+        tier: "frames",
+        purpose: "escalate"
+      })
+    ).rejects.toMatchObject({ code: "DEVICE_DENIED" });
+  });
+
+  it("sanitizes pcm and motion samples and supports screen-capture frames", async () => {
+    const manager = new DeviceManager({
+      drivers: [
+        createSimulatedRawMicrophoneDriver(),
+        createSimulatedRawMotionDriver(),
+        createSimulatedScreenCaptureDriver()
+      ],
+      now: () => 23_000
+    });
+
+    const mic = await manager.open("app", "pub", ["device:microphone:pcm"], ["device:microphone:pcm"], {
+      class: "microphone",
+      tier: "pcm",
+      purpose: "record audio"
+    });
+    const pcm = await manager.read("app", mic.handle);
+    expect(pcm).toMatchObject({ kind: "microphone", tier: "pcm", sampleRate: 16_000, sampleCount: 3 });
+    expect(JSON.stringify(pcm)).not.toContain("mic-fingerprint");
+    await manager.close("app", mic.handle);
+
+    const motion = await manager.open("app", "pub", ["device:motion:samples"], ["device:motion:samples"], {
+      class: "motion",
+      tier: "samples",
+      purpose: "imu"
+    });
+    const samples = await manager.read("app", motion.handle);
+    expect(samples).toMatchObject({ kind: "motion", tier: "samples" });
+    if (samples.kind === "motion" && samples.tier === "samples") {
+      expect(samples.accel[0]).toBe(0.123);
+    }
+    expect(JSON.stringify(samples)).not.toContain("imu-serial");
+    await manager.close("app", motion.handle);
+
+    const screen = await manager.open(
+      "app",
+      "pub",
+      ["device:screen-capture:frames"],
+      ["device:screen-capture:frames"],
+      { class: "screen-capture", tier: "frames", purpose: "share region" }
+    );
+    const frame = await manager.read("app", screen.handle);
+    expect(frame).toMatchObject({ kind: "screen-capture", tier: "frames", width: 8, height: 8 });
+  });
+
+  it("refuses control messages on the sidecar", () => {
+    const sidecar = new DeviceStreamSidecar();
+    expect(() => sidecar.rejectControlFrame(1, new Uint8Array([1, 2, 3]))).toThrow(DeviceStreamFrameError);
+    expect(() =>
+      encodeDeviceStreamFrame({
+        version: 1,
+        sampleKind: 0 as never,
+        sessionToken: 1,
+        sequence: 0,
+        payload: new Uint8Array([1])
+      })
+    ).toThrow(/control/i);
   });
 });

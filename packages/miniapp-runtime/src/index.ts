@@ -141,6 +141,10 @@ export {
   createSimulatedMicrophoneDriver,
   createSimulatedMotionDriver,
   createSimulatedNfcDriver,
+  createSimulatedRawCameraDriver,
+  createSimulatedRawMicrophoneDriver,
+  createSimulatedRawMotionDriver,
+  createSimulatedScreenCaptureDriver,
   createSimulatedSpeakerDriver,
   createSimulatedTorchDriver,
   createSimulatedTtsDriver
@@ -153,6 +157,12 @@ export type {
   DeviceManagerOptions,
   SimulatedActuatorLog
 } from "./device-manager.js";
+export { DeviceStreamSidecar, DEVICE_STREAM_KIND } from "./device-sidecar.js";
+export type {
+  DeviceSidecarDelivery,
+  DeviceSidecarPush,
+  DeviceSidecarTransport
+} from "./device-sidecar.js";
 export { DEVICE_CAPABILITY_DEFINITIONS } from "./device-capabilities.gen.js";
 export type { DeviceCapability, DeviceCapabilityDefinition } from "./device-capabilities.gen.js";
 export { ProductionCapabilityAdapter } from "./simulation-adapter.js";

@@ -85,6 +85,28 @@ export {
   type DeviceCommand
 } from "./device-actuator-safety.js";
 export {
+  DEVICE_STREAM_KIND,
+  MAX_DEVICE_STREAM_CHUNK_BYTES,
+  MAX_DEVICE_STREAM_PAYLOAD_BYTES,
+  DeviceStreamFrameError,
+  decodeDeviceStreamFrame,
+  encodeDeviceStreamFrame,
+  frameDeviceStreamPayload,
+  type DeviceStreamFrame,
+  type DeviceStreamSampleKind
+} from "./device-stream-framing.js";
+export {
+  sanitizeCameraFrame,
+  sanitizeMotionSamples,
+  sanitizePcmSample,
+  type RawCameraFrame,
+  type RawCameraFrameInput,
+  type RawMotionInput,
+  type RawMotionSampleOut,
+  type RawPcmInput,
+  type RawPcmSample
+} from "./device-fingerprint.js";
+export {
   escrowMachine,
   escrowSafetyViolation,
   initialEscrowState,
