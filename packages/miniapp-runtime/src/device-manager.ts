@@ -10,13 +10,17 @@ import {
   deviceCapabilityId,
   deviceClassById,
   initialDeviceSessionState,
+  initialRemoteGrantStore,
   isDeviceSessionLive,
+  isRemoteGrantLive,
   quantizeAmbientLux,
   quantizeLocationCoarse,
+  remoteGrantKey,
   sanitizeCameraFrame,
   sanitizeMotionSamples,
   sanitizePcmSample,
   stepDeviceSession,
+  stepRemoteGrantStore,
   validateActuatorCommand,
   type AdmissionDecision,
   type CameraDerivedInput,
@@ -31,6 +35,7 @@ import {
   type RawMotionInput,
   type RawMotionSample,
   type RawPcmInput,
+  type RemoteDeviceGrant,
   type StreamPlane
 } from "@twistedpear/protocol";
 import { assertCapabilityAllowed, CapabilityError } from "./capabilities.js";
@@ -96,6 +101,15 @@ export interface DeviceStreamSession {
   readonly session: DeviceSessionHandle;
   readonly peer: DevicePeerHandle;
   readonly admission: AdmissionDecision;
+}
+
+export interface RemoteOpenRequest {
+  readonly peerId: string;
+  readonly class: string;
+  readonly tier?: string;
+  readonly purpose: string;
+  readonly rateHz?: number;
+  readonly maxDurationMs?: number;
 }
 
 export type DeviceSample =
@@ -237,6 +251,8 @@ export interface DeviceManagerOptions {
   readonly externalHolders?: () => ReadonlyMap<string, string>;
   readonly policyDisabled?: ReadonlySet<string>;
   readonly sidecar?: DeviceStreamSidecar;
+  /** Max concurrent remote sessions host-wide (serving side). */
+  readonly maxRemoteSessions?: number;
 }
 
 interface LiveSession {
@@ -246,6 +262,8 @@ interface LiveSession {
   readonly purpose: string;
   readonly consentClass: DeviceConsentClass;
   readonly sidecarToken: number | null;
+  /** Set when a remote peer acquired this session on the serving host. */
+  readonly remotePeerId: string | null;
   lastReadAt: number | null;
 }
 
@@ -258,16 +276,20 @@ export class DeviceManager {
   private readonly streams = new Map<DeviceStreamHandle, DeviceStreamSession>();
   private readonly locks = new Map<string, string>();
   private readonly sidecar: DeviceStreamSidecar;
+  private remoteEnabled = false;
+  private remoteGrants = initialRemoteGrantStore();
   private nextHandle = 0;
   private nextStreamHandle = 0;
   private readonly now: () => number;
   private readonly randomBytes: (length: number) => Uint8Array;
+  private readonly maxRemoteSessions: number;
 
   constructor(private readonly options: DeviceManagerOptions = {}) {
     for (const driver of options.drivers ?? []) {
       this.drivers.set(driver.classId, driver);
     }
     this.sidecar = options.sidecar ?? new DeviceStreamSidecar();
+    this.maxRemoteSessions = options.maxRemoteSessions ?? 2;
     this.now = options.now ?? (() => Date.now());
     this.randomBytes =
       options.randomBytes ??
@@ -411,6 +433,7 @@ export class DeviceManager {
       purpose: request.purpose,
       consentClass,
       sidecarToken,
+      remotePeerId: null,
       lastReadAt: null
     });
 
@@ -551,6 +574,12 @@ export class DeviceManager {
     }
 
     const live = this.requireLiveSession(appId, sessionHandle);
+    if (live.remotePeerId !== null && live.remotePeerId !== peer) {
+      throw new DeviceError(
+        "DEVICE_DENIED",
+        "Remote-acquired devices cannot be re-served to a third peer."
+      );
+    }
     const entry = deviceClassById(live.state.classId);
     if (entry === undefined || !entry.streamable) {
       throw new DeviceError("DEVICE_UNSUPPORTED", `Device class "${live.state.classId}" is not streamable.`);
@@ -606,6 +635,260 @@ export class DeviceManager {
     return [...this.streams.values()];
   }
 
+  /** Host chrome: remote acquisition is off until the user enables it. */
+  setRemoteAcquisitionEnabled(enabled: boolean): void {
+    this.remoteEnabled = enabled;
+    if (!enabled) {
+      this.remoteGrants = stepRemoteGrantStore(this.remoteGrants, {
+        kind: "remote/clear-all",
+        at: this.now()
+      });
+      for (const [handle, session] of this.sessions) {
+        if (session.remotePeerId === null || !isDeviceSessionLive(session.state.phase)) continue;
+        void this.stopDriver(session.state.classId);
+        this.sidecar.close(handle);
+        const at = this.now();
+        const next = stepDeviceSession(session.state, { kind: "device/revoke", at }).state;
+        this.sessions.set(handle, { ...session, state: next });
+        if (this.locks.get(session.state.classId) === session.state.holder) {
+          this.locks.delete(session.state.classId);
+        }
+      }
+    }
+  }
+
+  isRemoteAcquisitionEnabled(): boolean {
+    return this.remoteEnabled;
+  }
+
+  /** Host chrome: per-peer, per-class, per-tier grant. Does not survive restart. */
+  grantRemotePeer(options: {
+    readonly peerId: string;
+    readonly classId: string;
+    readonly tierId: string;
+    readonly ttlMs: number;
+    readonly maxConcurrent?: number;
+    readonly maxSessionMs?: number;
+  }): RemoteDeviceGrant {
+    if (!this.remoteEnabled) {
+      throw new DeviceError("DEVICE_DENIED", "Remote device acquisition is disabled on this host.");
+    }
+    const entry = deviceClassById(options.classId);
+    if (entry === undefined || !entry.remoteEligible) {
+      throw new DeviceError(
+        "DEVICE_UNSUPPORTED",
+        `Device class "${options.classId}" is not remote-eligible.`
+      );
+    }
+    if (entry.tiers.every((tier) => tier.id !== options.tierId)) {
+      throw new DeviceError("DEVICE_TIER_REQUIRED", `Unknown tier "${options.tierId}".`);
+    }
+    this.remoteGrants = stepRemoteGrantStore(this.remoteGrants, {
+      kind: "remote/grant",
+      at: this.now(),
+      peerId: options.peerId,
+      classId: options.classId,
+      tierId: options.tierId,
+      ttlMs: options.ttlMs,
+      ...(options.maxConcurrent !== undefined ? { maxConcurrent: options.maxConcurrent } : {}),
+      ...(options.maxSessionMs !== undefined ? { maxSessionMs: options.maxSessionMs } : {})
+    });
+    const grant = this.remoteGrants.get(
+      remoteGrantKey(options.peerId, options.classId, options.tierId)
+    );
+    if (grant === undefined) {
+      throw new DeviceError("DEVICE_BAD_REQUEST", "Failed to record remote grant.");
+    }
+    return grant;
+  }
+
+  revokeRemotePeer(peerId: string, classId: string, tierId: string): void {
+    this.remoteGrants = stepRemoteGrantStore(this.remoteGrants, {
+      kind: "remote/revoke",
+      at: this.now(),
+      peerId,
+      classId,
+      tierId
+    });
+    for (const [handle, session] of this.sessions) {
+      if (
+        session.remotePeerId !== peerId ||
+        session.state.classId !== classId ||
+        session.state.tierId !== tierId ||
+        !isDeviceSessionLive(session.state.phase)
+      ) {
+        continue;
+      }
+      void this.stopDriver(session.state.classId);
+      this.sidecar.close(handle);
+      const at = this.now();
+      const next = stepDeviceSession(session.state, { kind: "device/revoke", at }).state;
+      this.sessions.set(handle, { ...session, state: next });
+      if (this.locks.get(session.state.classId) === session.state.holder) {
+        this.locks.delete(session.state.classId);
+      }
+    }
+  }
+
+  /** Simulate host restart — remote grants never survive. */
+  clearRemoteGrantsForRestart(): void {
+    this.remoteGrants = stepRemoteGrantStore(this.remoteGrants, {
+      kind: "remote/clear-all",
+      at: this.now()
+    });
+  }
+
+  listRemoteGrants(): ReadonlyArray<RemoteDeviceGrant> {
+    const at = this.now();
+    return [...this.remoteGrants.values()].filter((grant) => isRemoteGrantLive(grant, at));
+  }
+
+  /**
+   * Serving host: open a device for a remote peer under a host-owned grant.
+   * Requesting-side `device:remote` is checked separately by the requester's host.
+   */
+  async openForRemotePeer(
+    request: RemoteOpenRequest,
+    publisherPublicKey = "remote-host"
+  ): Promise<DeviceSession> {
+    if (!this.remoteEnabled) {
+      throw new DeviceError("DEVICE_DENIED", "Remote device acquisition is disabled on this host.");
+    }
+    this.validatePurpose(request.purpose);
+    if (typeof request.peerId !== "string" || request.peerId.length < 1) {
+      throw new DeviceError("DEVICE_BAD_REQUEST", "Remote peer id is required.");
+    }
+
+    const entry = deviceClassById(request.class);
+    if (entry === undefined || !entry.remoteEligible) {
+      throw new DeviceError("DEVICE_UNSUPPORTED", `Device class "${request.class}" is not remote-eligible.`);
+    }
+    const tier = this.resolveTier(entry, request.tier);
+    const at = this.now();
+    this.remoteGrants = stepRemoteGrantStore(this.remoteGrants, {
+      kind: "remote/ttl",
+      at,
+      peerId: request.peerId,
+      classId: entry.id,
+      tierId: tier.id
+    });
+    const grant = this.remoteGrants.get(remoteGrantKey(request.peerId, entry.id, tier.id));
+    if (!isRemoteGrantLive(grant, at)) {
+      throw new DeviceError("DEVICE_DENIED", "No live remote grant for this peer/class/tier.");
+    }
+
+    const remoteLive = [...this.sessions.values()].filter(
+      (session) =>
+        session.remotePeerId !== null && isDeviceSessionLive(session.state.phase)
+    );
+    if (remoteLive.length >= this.maxRemoteSessions) {
+      throw new DeviceError("DEVICE_DENIED", "Host remote session concurrency cap reached.");
+    }
+    const peerConcurrent = remoteLive.filter(
+      (session) =>
+        session.remotePeerId === request.peerId &&
+        session.state.classId === entry.id &&
+        session.state.tierId === tier.id
+    ).length;
+    if (peerConcurrent >= (grant?.maxConcurrent ?? 1)) {
+      throw new DeviceError("DEVICE_DENIED", "Per-peer remote concurrency cap reached.");
+    }
+
+    await this.maybeConfirmSession({
+      appId: `remote:${request.peerId}`,
+      publisherPublicKey,
+      entry,
+      tierId: tier.id,
+      consentClass: tier.consentClass === "low" ? "elevated" : tier.consentClass,
+      purpose: request.purpose,
+      kind: "device-remote-grant",
+      peerId: request.peerId
+    });
+
+    const appId = `remote:${request.peerId}`;
+    const rateHz = request.rateHz ?? Math.min(1, entry.defaults.maxRateHz);
+    if (!Number.isFinite(rateHz) || rateHz <= 0 || rateHz > entry.defaults.maxRateHz) {
+      throw new DeviceError(
+        "DEVICE_RATE_EXCEEDED",
+        `Requested rate ${rateHz} Hz exceeds max ${entry.defaults.maxRateHz} Hz for ${entry.id}.`
+      );
+    }
+
+    const availability = await this.availabilityFor(entry.id);
+    if (availability !== "available") {
+      throw new DeviceError(
+        availability === "busy" ? "DEVICE_BUSY" : "DEVICE_UNSUPPORTED",
+        `Device class "${entry.id}" is ${availability}.`
+      );
+    }
+
+    const ttlMs = Math.min(
+      request.maxDurationMs ?? grant!.maxSessionMs,
+      grant!.maxSessionMs,
+      entry.defaults.maxSessionMs,
+      SENSITIVE_DEFAULT_TTL_MS
+    );
+    const holder = `remote:${request.peerId}`;
+    this.locks.set(entry.id, holder);
+    let state = initialDeviceSessionState({
+      classId: entry.id,
+      tierId: tier.id,
+      appId,
+      holder,
+      openedAt: at
+    });
+    state = stepDeviceSession(state, { kind: "device/open", at, ttlMs }).state;
+    const handle = `dev-${this.nextHandle++}-${bytesToHex(this.randomBytes(4))}`;
+    const needsSidecar =
+      (entry.id === "camera" && tier.id === "frames") ||
+      (entry.id === "microphone" && tier.id === "pcm") ||
+      (entry.id === "motion" && tier.id === "samples") ||
+      (entry.id === "screen-capture" && tier.id === "frames");
+    const sidecarToken = needsSidecar ? this.sidecar.open(handle) : null;
+    this.sessions.set(handle, {
+      handle,
+      state,
+      rateHz,
+      purpose: request.purpose,
+      consentClass: tier.consentClass,
+      sidecarToken,
+      remotePeerId: request.peerId,
+      lastReadAt: null
+    });
+    return {
+      handle,
+      class: entry.id,
+      tier: tier.id,
+      expiresAt: state.expiresAt
+    };
+  }
+
+  /**
+   * Requesting host: assert `device:remote`, then ask a serving manager to open.
+   * Models the two-host path without wire protocol.
+   */
+  async requestRemoteDevice(
+    appId: string,
+    declared: ReadonlyArray<string>,
+    granted: ReadonlyArray<string>,
+    serving: DeviceManager,
+    request: RemoteOpenRequest
+  ): Promise<DeviceSession> {
+    try {
+      assertDeviceCapabilityAllowed({
+        capability: "device:remote",
+        declared,
+        granted
+      });
+    } catch (error) {
+      if (error instanceof CapabilityError) {
+        throw new DeviceError("DEVICE_DENIED", error.message);
+      }
+      throw error;
+    }
+    return serving.openForRemotePeer(request);
+  }
+
   activeSessions(): ReadonlyArray<DeviceSessionState> {
     return [...this.sessions.values()]
       .filter((session) => isDeviceSessionLive(session.state.phase))
@@ -629,7 +912,10 @@ export class DeviceManager {
           tier: session.state.tierId,
           consentClass: session.consentClass,
           purpose: session.purpose,
-          destination: stream?.peer ?? ("local" as const)
+          destination:
+            session.remotePeerId !== null
+              ? `remote:${session.remotePeerId}`
+              : stream?.peer ?? ("local" as const)
         };
       });
   }
@@ -846,15 +1132,17 @@ export class DeviceManager {
     readonly tierId: string;
     readonly consentClass: DeviceConsentClass;
     readonly purpose: string;
+    readonly kind?: "device-session" | "device-stream" | "device-remote-grant";
+    readonly peerId?: string;
   }): Promise<void> {
-    if (options.consentClass === "low") return;
+    if (options.consentClass === "low" && options.kind !== "device-remote-grant") return;
     const effects = this.options.confirmationEffects;
     if (effects === undefined) {
       // Simulation / unit hosts may omit chrome; elevated still requires an explicit channel when provided.
       if (this.options.confirmationChannel === undefined) return;
       throw new DeviceError("DEVICE_DENIED", "Confirmation effects are required for elevated device sessions.");
     }
-    const kind = options.consentClass === "sensitive" ? "device-session" : "device-session";
+    const kind = options.kind ?? "device-session";
     await requestHostConfirmation(
       this.options.confirmationChannel,
       {
@@ -865,7 +1153,8 @@ export class DeviceManager {
           device: options.entry.id,
           tier: options.tierId,
           purpose: options.purpose,
-          destination: "local"
+          destination: options.peerId ?? "local",
+          ...(options.peerId !== undefined ? { peer: options.peerId } : {})
         }
       },
       effects

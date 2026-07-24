@@ -124,6 +124,15 @@ export {
   type StreamPlane
 } from "./device-admission.js";
 export {
+  initialRemoteGrantStore,
+  isRemoteGrantLive,
+  remoteGrantKey,
+  stepRemoteGrantStore,
+  type RemoteDeviceGrant,
+  type RemoteGrantEvent,
+  type RemoteGrantPhase
+} from "./device-remote.js";
+export {
   escrowMachine,
   escrowSafetyViolation,
   initialEscrowState,

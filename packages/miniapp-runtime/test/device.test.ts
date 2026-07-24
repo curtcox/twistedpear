@@ -520,3 +520,137 @@ describe("DeviceManager Phase 5 streaming", () => {
     ).rejects.toMatchObject({ code: "DEVICE_BANDWIDTH_INSUFFICIENT" });
   });
 });
+
+describe("DeviceManager Phase 6 remote acquisition", () => {
+  it("is off by default and requires host enable + per-peer grant", async () => {
+    const serving = new DeviceManager({
+      drivers: [createSimulatedCameraDriver()],
+      now: () => 40_000
+    });
+    await expect(
+      serving.openForRemotePeer({
+        peerId: "peer-a",
+        class: "camera",
+        purpose: "see kitchen"
+      })
+    ).rejects.toMatchObject({ code: "DEVICE_DENIED" });
+
+    serving.setRemoteAcquisitionEnabled(true);
+    await expect(
+      serving.openForRemotePeer({
+        peerId: "peer-a",
+        class: "camera",
+        purpose: "see kitchen"
+      })
+    ).rejects.toMatchObject({ code: "DEVICE_DENIED" });
+
+    serving.grantRemotePeer({
+      peerId: "peer-a",
+      classId: "camera",
+      tierId: "derived",
+      ttlMs: 60_000
+    });
+    const session = await serving.openForRemotePeer({
+      peerId: "peer-a",
+      class: "camera",
+      purpose: "see kitchen"
+    });
+    expect(session.tier).toBe("derived");
+    expect(serving.activeIndicators()[0]?.destination).toBe("remote:peer-a");
+  });
+
+  it("two-host path: requester needs device:remote; serving enforces grant", async () => {
+    const requester = new DeviceManager({ now: () => 41_000 });
+    const serving = new DeviceManager({
+      drivers: [createSimulatedLocationDriver()],
+      now: () => 41_000
+    });
+    serving.setRemoteAcquisitionEnabled(true);
+    serving.grantRemotePeer({
+      peerId: "peer-req",
+      classId: "location",
+      tierId: "coarse",
+      ttlMs: 30_000
+    });
+
+    await expect(
+      requester.requestRemoteDevice(
+        "app",
+        ["device:location"],
+        ["device:location"],
+        serving,
+        { peerId: "peer-req", class: "location", purpose: "nav" }
+      )
+    ).rejects.toMatchObject({ code: "DEVICE_DENIED" });
+
+    const session = await requester.requestRemoteDevice(
+      "app",
+      ["device:remote"],
+      ["device:remote"],
+      serving,
+      { peerId: "peer-req", class: "location", purpose: "nav" }
+    );
+    const sample = await serving.read(`remote:peer-req`, session.handle);
+    expect(sample.kind).toBe("location");
+  });
+
+  it("refuses re-serving a remote session to a third peer", async () => {
+    const serving = new DeviceManager({
+      drivers: [createSimulatedCameraDriver()],
+      now: () => 42_000
+    });
+    serving.setRemoteAcquisitionEnabled(true);
+    serving.grantRemotePeer({
+      peerId: "peer-a",
+      classId: "camera",
+      tierId: "derived",
+      ttlMs: 60_000
+    });
+    const session = await serving.openForRemotePeer({
+      peerId: "peer-a",
+      class: "camera",
+      purpose: "watch"
+    });
+    await expect(
+      serving.stream(
+        `remote:peer-a`,
+        ["device:stream"],
+        ["device:stream"],
+        session.handle,
+        "peer-c",
+        { candidates: [{ plane: "webrtc", effectiveBps: 1_000_000, headroomBps: 524_288 }] }
+      )
+    ).rejects.toMatchObject({ code: "DEVICE_DENIED" });
+  });
+
+  it("drops grants on simulated restart and enforces concurrency", async () => {
+    const serving = new DeviceManager({
+      drivers: [createSimulatedCameraDriver()],
+      now: () => 43_000,
+      maxRemoteSessions: 1
+    });
+    serving.setRemoteAcquisitionEnabled(true);
+    serving.grantRemotePeer({
+      peerId: "peer-a",
+      classId: "camera",
+      tierId: "derived",
+      ttlMs: 60_000,
+      maxConcurrent: 1
+    });
+    await serving.openForRemotePeer({
+      peerId: "peer-a",
+      class: "camera",
+      purpose: "one"
+    });
+    await expect(
+      serving.openForRemotePeer({
+        peerId: "peer-a",
+        class: "camera",
+        purpose: "two"
+      })
+    ).rejects.toMatchObject({ code: "DEVICE_DENIED" });
+
+    serving.clearRemoteGrantsForRestart();
+    expect(serving.listRemoteGrants()).toHaveLength(0);
+  });
+});

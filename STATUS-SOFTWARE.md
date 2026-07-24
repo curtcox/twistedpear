@@ -54,7 +54,7 @@ These items are explicitly outside the release exit criteria.
 | BLE and WebSocket spec community review | Drafts and publication checklist are ready; submission is a manual community step | [Upstream publication](docs/upstream-publication.md) |
 | Reader-guide capture completion | 47 of 106 images are real desktop/browser host/runtime captures; exact remaining filenames and blockers are recorded per guide | [User guide](guide/images/README.md), [author guide](authors/images/README.md), [cookbook](cookbook/images/README.md) |
 | Unified peer discovery and connection | Host announces are still process-local; apps have no platform-owned QR, manual, audio, Bluetooth, ntfy, WebRTC-signaling, or future LP2P pairing service | [Local peer discovery and connection plan](docs/local-peer-discovery-plan.md) |
-| Device I/O and sensors for mini-apps | Phases 1–5 in progress: local device I/O through raw sidecar, plus `device.stream` with Sans-IO admission/degradation/plane selection (metered/battery aware). Remaining: remote acquisition, host Devices UI, hardware-gated conformance | [Device I/O plan](docs/device-io-plan.md), [SPEC-DEVICE](specs/spec-device/spec.md) |
+| Device I/O and sensors for mini-apps | Phases 1–6 in progress: local I/O through streaming, plus remote acquisition (off-by-default host policy, per-peer grants, confirmation, caps, non-delegation, restart drops grants). Remaining: Phase 7 hardening (nfc:apdu blocklist, biometric, host Devices UI, hardware-gated) | [Device I/O plan](docs/device-io-plan.md), [SPEC-DEVICE](specs/spec-device/spec.md) |
 
 Hardware measurements, Apple entitlement/notarization work, real-LAN checks, Windows
 verification, and device-specific soak criteria belong only in
