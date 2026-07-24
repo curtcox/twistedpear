@@ -785,6 +785,19 @@ export class MiniappHost {
       );
       return { written: true };
     });
+    this.broker.register("device", "stream", null, async (request, context) =>
+      device().stream(
+        context.appId,
+        context.declaredCapabilities,
+        context.grantedCapabilities,
+        request.payload as {
+          handle: DeviceSessionHandle;
+          peer: string;
+          constraints?: import("./device-manager.js").DeviceStreamConstraints;
+        }
+      ));
+    this.broker.register("device", "closeStream", null, async (request, context) =>
+      device().closeStream(context.appId, request.payload as { handle: string }));
 
     this.broker.register("presence", "snapshot", "presence", async () => {
       if (this.presenceService === null) {

@@ -107,6 +107,23 @@ export {
   type RawPcmSample
 } from "./device-fingerprint.js";
 export {
+  adaptStreamAdmission,
+  admittedWithinHeadroom,
+  allDeviceClassIds,
+  bandwidthProfileFor,
+  decideStreamAdmission,
+  degradationLadderFor,
+  demandBps,
+  selectPlane,
+  supplyBps,
+  type AdmissionDecision,
+  type AdmissionDecisionKind,
+  type AdaptationInput,
+  type LinkSupply,
+  type StreamDemand,
+  type StreamPlane
+} from "./device-admission.js";
+export {
   escrowMachine,
   escrowSafetyViolation,
   initialEscrowState,

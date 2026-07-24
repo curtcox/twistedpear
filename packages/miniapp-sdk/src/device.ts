@@ -153,3 +153,45 @@ export async function write(
   const handle = typeof session === "string" ? session : session.handle;
   await deviceCall("write", { handle, command });
 }
+
+export interface DeviceStreamConstraints {
+  readonly candidates?: ReadonlyArray<{
+    readonly plane: "webrtc" | "pears-bulk" | "reticulum" | "lxmf" | "cas";
+    readonly effectiveBps: number;
+    readonly headroomBps: number;
+    readonly measuredGoodputBps?: number;
+    readonly queueDepthBytes?: number;
+    readonly metered?: boolean;
+    readonly lowBattery?: boolean;
+  }>;
+  readonly preferredPlane?: "webrtc" | "pears-bulk" | "reticulum" | "lxmf" | "cas";
+}
+
+export interface DeviceStreamSession {
+  readonly handle: string;
+  readonly session: string;
+  readonly peer: string;
+  readonly admission: {
+    readonly kind: "accept" | "degrade" | "defer" | "reject";
+    readonly plane: string;
+    readonly rung: string;
+    readonly rungIndex: number;
+    readonly demandBps: number;
+    readonly supplyBps: number;
+    readonly reason: string;
+  };
+}
+
+export async function stream(
+  session: DeviceSession | string,
+  peer: string,
+  constraints?: DeviceStreamConstraints
+): Promise<DeviceStreamSession> {
+  const handle = typeof session === "string" ? session : session.handle;
+  return deviceCall("stream", { handle, peer, constraints });
+}
+
+export async function closeStream(streamHandle: string | DeviceStreamSession): Promise<void> {
+  const handle = typeof streamHandle === "string" ? streamHandle : streamHandle.handle;
+  await deviceCall("closeStream", { handle });
+}

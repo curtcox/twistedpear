@@ -465,3 +465,58 @@ describe("DeviceManager Phase 4 raw tiers + sidecar", () => {
     ).toThrow(/control/i);
   });
 });
+
+describe("DeviceManager Phase 5 streaming", () => {
+  it("requires device:stream and admits with degradation on thin links", async () => {
+    const manager = new DeviceManager({
+      drivers: [createSimulatedCameraDriver()],
+      now: () => 30_000
+    });
+    const session = await manager.open("app", "pub", ["device:camera"], ["device:camera"], {
+      class: "camera",
+      purpose: "watch"
+    });
+
+    await expect(
+      manager.stream("app", ["device:camera"], ["device:camera"], session.handle, "peer-1", {
+        candidates: [{ plane: "reticulum", effectiveBps: 400, headroomBps: 524_288 }]
+      })
+    ).rejects.toMatchObject({ code: "DEVICE_DENIED" });
+
+    const stream = await manager.stream(
+      "app",
+      ["device:camera", "device:stream"],
+      ["device:camera", "device:stream"],
+      session.handle,
+      "peer-1",
+      {
+        candidates: [{ plane: "reticulum", effectiveBps: 400, headroomBps: 524_288 }]
+      }
+    );
+    expect(stream.admission.kind).toMatch(/accept|degrade|defer/);
+    expect(stream.peer).toBe("peer-1");
+    expect(manager.activeIndicators()[0]?.destination).toBe("peer-1");
+    await manager.closeStream("app", stream.handle);
+  });
+
+  it("rejects when no bandwidth remains", async () => {
+    const manager = new DeviceManager({
+      drivers: [createSimulatedLocationDriver()],
+      now: () => 31_000
+    });
+    const session = await manager.open("app", "pub", ["device:location"], ["device:location"], {
+      class: "location",
+      purpose: "share fix"
+    });
+    await expect(
+      manager.stream(
+        "app",
+        ["device:location", "device:stream"],
+        ["device:location", "device:stream"],
+        session.handle,
+        "peer-2",
+        { candidates: [{ plane: "lxmf", effectiveBps: 0, headroomBps: 0 }] }
+      )
+    ).rejects.toMatchObject({ code: "DEVICE_BANDWIDTH_INSUFFICIENT" });
+  });
+});

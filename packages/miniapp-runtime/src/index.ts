@@ -155,6 +155,8 @@ export type {
   DeviceCommand,
   DeviceDriver,
   DeviceManagerOptions,
+  DeviceStreamConstraints,
+  DeviceStreamSession,
   SimulatedActuatorLog
 } from "./device-manager.js";
 export { DeviceStreamSidecar, DEVICE_STREAM_KIND } from "./device-sidecar.js";

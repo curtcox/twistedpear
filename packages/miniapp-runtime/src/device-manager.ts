@@ -2,6 +2,7 @@ import {
   DEVICE_CLASS_REGISTRY,
   DEVICE_STREAM_KIND,
   ActuatorSafetyError,
+  decideStreamAdmission,
   defaultTierForClass,
   deriveCameraSample,
   deriveMicrophoneSample,
@@ -17,17 +18,20 @@ import {
   sanitizePcmSample,
   stepDeviceSession,
   validateActuatorCommand,
+  type AdmissionDecision,
   type CameraDerivedInput,
   type DeviceClassEntry,
   type DeviceCommand,
   type DeviceConsentClass,
   type DeviceSessionState,
+  type LinkSupply,
   type MicrophoneDerivedInput,
   type PreciseLocationFix,
   type RawCameraFrameInput,
   type RawMotionInput,
   type RawMotionSample,
-  type RawPcmInput
+  type RawPcmInput,
+  type StreamPlane
 } from "@twistedpear/protocol";
 import { assertCapabilityAllowed, CapabilityError } from "./capabilities.js";
 import {
@@ -77,6 +81,21 @@ export interface DeviceSession {
   readonly class: string;
   readonly tier: string;
   readonly expiresAt: number | null;
+}
+
+export type DevicePeerHandle = string;
+export type DeviceStreamHandle = string;
+
+export interface DeviceStreamConstraints {
+  readonly candidates?: ReadonlyArray<LinkSupply>;
+  readonly preferredPlane?: StreamPlane;
+}
+
+export interface DeviceStreamSession {
+  readonly handle: DeviceStreamHandle;
+  readonly session: DeviceSessionHandle;
+  readonly peer: DevicePeerHandle;
+  readonly admission: AdmissionDecision;
 }
 
 export type DeviceSample =
@@ -172,7 +191,7 @@ export interface DeviceActiveIndicator {
   readonly tier: string;
   readonly consentClass: DeviceConsentClass;
   readonly purpose: string;
-  readonly destination: "local";
+  readonly destination: "local" | string;
 }
 
 export interface DeviceDriver {
@@ -199,7 +218,8 @@ export class DeviceError extends Error {
       | "DEVICE_BANDWIDTH_INSUFFICIENT"
       | "DEVICE_SESSION_EXPIRED"
       | "DEVICE_BAD_REQUEST"
-      | "DEVICE_UNCONFIGURED",
+      | "DEVICE_UNCONFIGURED"
+      | "DEVICE_BANDWIDTH_INSUFFICIENT",
     message: string
   ) {
     super(message);
@@ -235,9 +255,11 @@ const SENSITIVE_DEFAULT_TTL_MS = 15 * 60_000;
 export class DeviceManager {
   private readonly drivers = new Map<string, DeviceDriver>();
   private readonly sessions = new Map<DeviceSessionHandle, LiveSession>();
+  private readonly streams = new Map<DeviceStreamHandle, DeviceStreamSession>();
   private readonly locks = new Map<string, string>();
   private readonly sidecar: DeviceStreamSidecar;
   private nextHandle = 0;
+  private nextStreamHandle = 0;
   private readonly now: () => number;
   private readonly randomBytes: (length: number) => Uint8Array;
 
@@ -413,6 +435,10 @@ export class DeviceManager {
   }
 
   closeApp(appId: string): void {
+    for (const [handle, stream] of this.streams) {
+      const session = this.sessions.get(stream.session);
+      if (session?.state.appId === appId) this.streams.delete(handle);
+    }
     for (const [handle, session] of this.sessions) {
       if (session.state.appId !== appId || !isDeviceSessionLive(session.state.phase)) continue;
       void this.stopDriver(session.state.classId);
@@ -499,6 +525,87 @@ export class DeviceManager {
     live.lastReadAt = at;
   }
 
+  async stream(
+    appId: string,
+    declared: ReadonlyArray<string>,
+    granted: ReadonlyArray<string>,
+    sessionHandle: DeviceSessionHandle,
+    peer: DevicePeerHandle,
+    constraints: DeviceStreamConstraints = {}
+  ): Promise<DeviceStreamSession> {
+    try {
+      assertDeviceCapabilityAllowed({
+        capability: "device:stream",
+        declared,
+        granted
+      });
+    } catch (error) {
+      if (error instanceof CapabilityError) {
+        throw new DeviceError("DEVICE_DENIED", error.message);
+      }
+      throw error;
+    }
+
+    if (typeof peer !== "string" || peer.length < 1 || peer.length > 128) {
+      throw new DeviceError("DEVICE_BAD_REQUEST", "A peer handle is required to stream.");
+    }
+
+    const live = this.requireLiveSession(appId, sessionHandle);
+    const entry = deviceClassById(live.state.classId);
+    if (entry === undefined || !entry.streamable) {
+      throw new DeviceError("DEVICE_UNSUPPORTED", `Device class "${live.state.classId}" is not streamable.`);
+    }
+
+    const candidates =
+      constraints.candidates ??
+      ([
+        {
+          plane: constraints.preferredPlane ?? "reticulum",
+          effectiveBps: 64_000,
+          headroomBps: 524_288
+        }
+      ] satisfies ReadonlyArray<LinkSupply>);
+
+    const admission = decideStreamAdmission(
+      {
+        classId: live.state.classId,
+        tierId: live.state.tierId,
+        rateHz: live.rateHz
+      },
+      candidates
+    );
+
+    if (admission.kind === "reject") {
+      throw new DeviceError("DEVICE_BANDWIDTH_INSUFFICIENT", admission.reason);
+    }
+
+    const handle = `stream-${this.nextStreamHandle++}-${bytesToHex(this.randomBytes(3))}`;
+    const stream: DeviceStreamSession = {
+      handle,
+      session: sessionHandle,
+      peer,
+      admission
+    };
+    this.streams.set(handle, stream);
+    return stream;
+  }
+
+  async closeStream(appId: string, streamHandle: DeviceStreamHandle): Promise<void> {
+    const stream = this.streams.get(streamHandle);
+    if (stream === undefined) {
+      throw new DeviceError("DEVICE_SESSION_EXPIRED", `Unknown stream "${streamHandle}".`);
+    }
+    const session = this.sessions.get(stream.session);
+    if (session !== undefined && session.state.appId !== appId) {
+      throw new DeviceError("DEVICE_DENIED", "Stream is not scoped to this app.");
+    }
+    this.streams.delete(streamHandle);
+  }
+
+  activeStreams(): ReadonlyArray<DeviceStreamSession> {
+    return [...this.streams.values()];
+  }
+
   activeSessions(): ReadonlyArray<DeviceSessionState> {
     return [...this.sessions.values()]
       .filter((session) => isDeviceSessionLive(session.state.phase))
@@ -513,15 +620,18 @@ export class DeviceManager {
           isDeviceSessionLive(session.state.phase) &&
           (session.consentClass === "elevated" || session.consentClass === "sensitive")
       )
-      .map((session) => ({
-        handle: session.handle,
-        appId: session.state.appId,
-        class: session.state.classId,
-        tier: session.state.tierId,
-        consentClass: session.consentClass,
-        purpose: session.purpose,
-        destination: "local" as const
-      }));
+      .map((session) => {
+        const stream = [...this.streams.values()].find((entry) => entry.session === session.handle);
+        return {
+          handle: session.handle,
+          appId: session.state.appId,
+          class: session.state.classId,
+          tier: session.state.tierId,
+          consentClass: session.consentClass,
+          purpose: session.purpose,
+          destination: stream?.peer ?? ("local" as const)
+        };
+      });
   }
 
   private materializeSample(
