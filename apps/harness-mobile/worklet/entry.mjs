@@ -211,6 +211,17 @@ function ensureMiniappHost() {
       peerSessionManager: peerSessionManagerProxy,
       relayService,
       announceService: transportAnnounceService,
+      async requestUserConfirmation(request) {
+        const reply = await requestHostReply({
+          type: "confirm-request",
+          token: request.token,
+          kind: request.kind,
+          appId: request.appId,
+          publisherPublicKey: request.publisherPublicKey,
+          summary: request.summary
+        });
+        return { approved: reply?.approved === true, detail: reply?.detail };
+      },
       getHostInfoSnapshot: () => {
         const barePlatform =
           typeof Bare !== "undefined" && Bare !== null && typeof Bare.platform === "string"
@@ -1088,7 +1099,7 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  if (message.type === "peer-chrome-response") {
+  if (message.type === "peer-chrome-response" || message.type === "confirm-response") {
     pendingHostReplies.get(message.token)?.(message);
     return;
   }

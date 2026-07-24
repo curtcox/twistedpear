@@ -95,7 +95,7 @@ Cross-cutting wiring gaps (affect many rows below):
 | `apps:package` | done · conf · soft | partial · conf · emu | partial · conf · emu | partial · conf · soft | done · conf · soft |
 | `apps:publish` | done · conf · soft | partial · conf · emu | partial · conf · emu | partial · conf · soft | done · conf · soft |
 | `apps:install` | done · conf · soft | partial · conf · emu | partial · conf · emu | partial · conf · soft | done · conf · soft |
-| `apps:preview` | done · conf · soft | partial · none · pending | partial · none · pending | done · conf · soft | done · conf · soft |
+| `apps:preview` | done · conf · soft | partial · unit · soft | partial · unit · soft | done · conf · soft | done · conf · soft |
 | `share:cas` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
 | `peer:connect` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · unit · soft |
 | `relay:configure` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | done · unit · soft |
@@ -112,6 +112,9 @@ Cross-cutting wiring gaps (affect many rows below):
   guaranteed network provider.
 - **`apps:*` on mobile** are limited by store-posture / review builds; on **web**, leaf hosts
   cannot seed. Double-gated confirmations still apply where the capability is granted.
+  `apps:preview` on android/ios is wired in the native worklet (dev-preview slot) and covered by
+  unit tests (`apps-preview-mobile.test.ts`); handbook mobile-slice also exercises the preview
+  applet path. Packaging/publishing on mobile remain partial.
 - **`peer:connect`**: trusted chrome + adapters are wired on desktop/native/web; remaining
   physical/browser/service trials are in
   [local-peer-discovery-evidence.md](local-peer-discovery-evidence.md). Browser LP2P is

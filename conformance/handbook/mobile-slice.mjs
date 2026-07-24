@@ -31,6 +31,7 @@ import {
   findNodeById,
   returnToToc,
   tap,
+  treeContainsText,
   waitFor,
   waitForTreeText
 } from "./ui-helpers.mjs";
@@ -173,6 +174,7 @@ function makeCasBackend() {
 
 function makeAppsBackend() {
   const packages = new Map();
+  let previewActive = false;
   return {
     async package(_appId, request) {
       const payload = new TextEncoder().encode(
@@ -204,9 +206,15 @@ function makeAppsBackend() {
       return { appId: known.name, version: known.version, trusted: true };
     },
     async preview() {
+      previewActive = true;
       return { launched: true };
     },
-    async stopPreview() {}
+    async stopPreview() {
+      previewActive = false;
+    },
+    get previewActive() {
+      return previewActive;
+    }
   };
 }
 
@@ -225,9 +233,11 @@ function resolveSandboxBackend(preferred) {
 function createHandbookHost(store, options) {
   const { platform, sandboxBackend, interfaceTypes = [] } = options;
   const casBackend = makeCasBackend();
+  const appsBackend = makeAppsBackend();
   const backend = resolveSandboxBackend(sandboxBackend);
 
   return {
+    appsBackend,
     host: new MiniappHost({
       backend,
       grantStore: new GrantStore(store),
@@ -264,7 +274,7 @@ function createHandbookHost(store, options) {
         }
       },
       casBackend,
-      appsBackend: makeAppsBackend(),
+      appsBackend,
       confirmationChannel: {
         confirm: async () => ({ approved: true })
       },
@@ -282,6 +292,29 @@ function createHandbookHost(store, options) {
     casBackend,
     sandboxBackend: backend.name
   };
+}
+
+async function assertPreviewSlot(host, appsBackend, logPrefix) {
+  const tree = host.snapshot().widgetTree;
+  if (tree === null || !treeContainsText(tree, "Contents")) {
+    await tap(host, "back-toc", "hb.toc");
+    await waitForTreeText(host, "Contents");
+  }
+
+  await tap(host, "ch-sdk-apps-package", "hb.openchapter");
+  await waitForTreeText(host, "Run as real app");
+  await tap(host, "applet-preview-apps-package-preview", "hb.runpreview");
+  await waitForTreeText(host, "PASS");
+  if (!appsBackend.previewActive) {
+    throw new Error("preview slot did not activate apps backend");
+  }
+  await waitForTreeText(host, "Preview is running in the host dev-preview slot");
+  await tap(host, "applet-stoppreview-apps-package-preview", "hb.stoppreview");
+  await waitForTreeText(host, "Preview stopped");
+  if (appsBackend.previewActive) {
+    throw new Error("preview slot did not deactivate after stop");
+  }
+  console.log(`${logPrefix}: preview slot passed`);
 }
 
 /**
@@ -302,7 +335,7 @@ export async function runHandbookMobileSlice(options) {
     new TextEncoder().encode("handbook-resource-probe-payload")
   );
 
-  const { host, casBackend, sandboxBackend: resolvedBackend } = createHandbookHost(store, {
+  const { host, casBackend, appsBackend, sandboxBackend: resolvedBackend } = createHandbookHost(store, {
     platform,
     sandboxBackend,
     interfaceTypes: platform === "android" ? ["tcp", "ble", "auto", "rnode"] : ["tcp", "ble", "auto"]
@@ -322,6 +355,10 @@ export async function runHandbookMobileSlice(options) {
   await dismissGrantIntroIfNeeded(host, "handbook-mobile");
   await waitForTreeText(host, "Contents", 25_000);
   console.log(`handbook-mobile/${effectiveLabel}: TOC rendered`);
+
+  await assertPreviewSlot(host, appsBackend, `handbook-mobile/${effectiveLabel}`);
+  await returnToToc(host);
+  await waitForTreeText(host, "Contents", 25_000);
 
   for (const chapterId of MOBILE_SAMPLE_CHAPTERS) {
     const chapter = catalog.chapters.find((entry) => entry.id === chapterId);

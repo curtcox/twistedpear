@@ -116,23 +116,27 @@ export function createWorkletMiniappHost(options) {
   let developerMode = false;
   let devBadge = false;
   let watchdogTimer = null;
+  /** @type {{ host: import("../../../packages/miniapp-runtime/dist/worklet.js").MiniappHost, appId: string } | null} */
+  let preview = null;
   const beeBackend = new KvStorageBeeBackend(kvStore);
 
   const createSandboxBackend = options.createSandboxBackend ?? createBareWorkletSandboxBackend;
+  const confirmationChannel =
+    options.requestUserConfirmation === undefined
+      ? undefined
+      : { confirm: (request) => options.requestUserConfirmation(request) };
   const host = new MiniappHost({
     backend: createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
     grantStore,
     kvBackend: kvStore,
+    confirmationChannel,
     peerSessionManager: options.peerSessionManager,
     relayService: options.relayService,
     deviceManager:
       options.deviceManager ??
       createSimulatedDeviceManager({
         now,
-        confirmationChannel:
-          options.requestUserConfirmation === undefined
-            ? undefined
-            : { confirm: (request) => options.requestUserConfirmation(request) }
+        confirmationChannel
       }),
     beeBackend: {
       descriptor: (appId) => beeBackend.descriptor(appId),
@@ -185,6 +189,45 @@ export function createWorkletMiniappHost(options) {
         return bytes;
       }
     },
+    appsBackend: {
+      package: async () => {
+        throw new Error("Packaging is not configured on this mobile host");
+      },
+      publish: async () => {
+        throw new Error("Publishing is not configured on this mobile host");
+      },
+      install: async () => {
+        throw new Error("Installing from 256t ids is not configured on this mobile host");
+      },
+      preview: async (appId, { projectPrefix, manifest, grants }) => {
+        const files = await collectWorkspaceFiles(appId, projectPrefix);
+        const entryFile = files.find((file) => file.path === manifest.entry);
+        if (entryFile === undefined) {
+          throw new Error(`Entry file "${manifest.entry}" not found under ${projectPrefix}/`);
+        }
+
+        await stopPreviewHost();
+        const previewHost = createPreviewHost();
+        const publisherKey = `dev-preview:${appId}`;
+        await previewHost.grantStore.set(manifest.name, publisherKey, manifest.capabilities, grants, now());
+        await previewHost.host.launch(
+          {
+            name: manifest.name,
+            version: manifest.version,
+            entry: manifest.entry,
+            capabilities: manifest.capabilities,
+            publisherPublicKey: publisherKey
+          },
+          entryFile.content
+        );
+        preview = { host: previewHost.host, appId: manifest.name };
+        pushPreviewRuntime();
+        return { launched: true };
+      },
+      stopPreview: async () => {
+        await stopPreviewHost();
+      }
+    },
     callbacks: {
       onWidgetTree: () => pushRuntime(),
       onLog: (entry) => options.send({ type: "miniapp-log", appId: entry.appId, line: entry.line }),
@@ -194,6 +237,79 @@ export function createWorkletMiniappHost(options) {
       }
     }
   });
+
+  async function collectWorkspaceFiles(appId, projectPrefix) {
+    const infos = await host.workspace.list(appId, `${projectPrefix}/`);
+    const files = [];
+    for (const info of infos) {
+      const content = await host.workspace.read(appId, info.path);
+      files.push({
+        path: info.path.slice(projectPrefix.length + 1),
+        content: new TextEncoder().encode(content)
+      });
+    }
+
+    return files.sort((left, right) => left.path.localeCompare(right.path));
+  }
+
+  function createPreviewHost() {
+    const memory = new Map();
+    const memoryStore = {
+      async get(key) {
+        return memory.get(key) ?? null;
+      },
+      async set(key, value) {
+        memory.set(key, value);
+      },
+      async delete(key) {
+        memory.delete(key);
+      },
+      async list(prefix) {
+        return [...memory.keys()].filter((key) => key.startsWith(prefix));
+      }
+    };
+    const grantStoreForPreview = new GrantStore(memoryStore);
+    const previewHost = new MiniappHost({
+      backend: createSandboxBackend(options.sandboxBackend ?? "bare-worker"),
+      grantStore: grantStoreForPreview,
+      kvBackend: memoryStore,
+      callbacks: {
+        onWidgetTree: () => pushPreviewRuntime(),
+        onLog: (entry) =>
+          options.send({ type: "miniapp-log", appId: `preview:${entry.appId}`, line: entry.line }),
+        onLifecycle: () => pushPreviewRuntime()
+      }
+    });
+    return { host: previewHost, grantStore: grantStoreForPreview };
+  }
+
+  async function stopPreviewHost() {
+    if (preview !== null) {
+      const stopped = preview;
+      preview = null;
+      await stopped.host.stop("preview-stopped");
+      options.send({ type: "miniapp-runtime", slot: "preview", runtime: null });
+    }
+  }
+
+  function pushPreviewRuntime() {
+    if (preview === null) {
+      return;
+    }
+
+    const snapshot = preview.host.snapshot();
+    options.send({
+      type: "miniapp-runtime",
+      slot: "preview",
+      runtime: {
+        appId: snapshot.appId,
+        version: snapshot.version,
+        state: snapshot.state,
+        widgetTree: snapshot.widgetTree,
+        devBadge: true
+      }
+    });
+  }
 
   function pushRuntime() {
     const snapshot = host.snapshot();
@@ -331,8 +447,21 @@ export function createWorkletMiniappHost(options) {
       }
 
       devBadge = false;
+      await stopPreviewHost();
       await host.stop();
       pushRuntime();
+    },
+
+    async handlePreviewUiEvent(nodeId, event, value) {
+      if (preview === null) {
+        throw new Error("No preview app is running");
+      }
+
+      await preview.host.handleUiEvent(nodeId, event, value);
+    },
+
+    async stopPreview() {
+      await stopPreviewHost();
     },
 
     async suspend(reason = "host-suspended") {

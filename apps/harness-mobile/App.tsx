@@ -45,6 +45,7 @@ import {
   type MiniappRuntimeView,
   type MiniappBenchmarkResult,
   type WorkletStatus,
+  type HostConfirmationRequestView,
   type WorkletToHostMessage
 } from "./worklet/protocol";
 import { MiniappWidgetTree } from "./host/miniapp-renderer";
@@ -138,6 +139,7 @@ export default function App() {
     | { readonly kind: "confirm"; readonly request: Extract<WorkletToHostMessage, { type: "peer-confirm-request" }> }
     | null
   >(null);
+  const [hostConfirm, setHostConfirm] = useState<HostConfirmationRequestView | null>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [peerCameraActive, setPeerCameraActive] = useState(false);
   const [peerQrFrame, setPeerQrFrame] = useState(0);
@@ -311,6 +313,17 @@ export default function App() {
 
     if (message.type === "peer-confirm-request") {
       setPeerModal({ kind: "confirm", request: message });
+      return;
+    }
+
+    if (message.type === "confirm-request") {
+      setHostConfirm({
+        token: message.token,
+        kind: message.kind,
+        appId: message.appId,
+        publisherPublicKey: message.publisherPublicKey,
+        summary: message.summary
+      });
       return;
     }
 
@@ -542,6 +555,36 @@ export default function App() {
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
+      {hostConfirm !== null ? (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.sectionTitle}>Confirm app action</Text>
+            <Text style={styles.muted}>Trusted host chrome · capability confirmation</Text>
+            <Text style={styles.rowLabel}>Kind: {hostConfirm.kind}</Text>
+            <Text style={styles.rowLabel}>App: {hostConfirm.appId}</Text>
+            <Text style={styles.rowLabel}>Publisher: {hostConfirm.publisherPublicKey}</Text>
+            {Object.entries(hostConfirm.summary).map(([key, value]) => (
+              <Text key={key} style={styles.rowLabel}>{key}: {value}</Text>
+            ))}
+            <View style={styles.row}>
+              <ActionButton
+                label="Deny"
+                onPress={() => {
+                  sendToWorklet({ type: "confirm-response", token: hostConfirm.token, approved: false });
+                  setHostConfirm(null);
+                }}
+              />
+              <ActionButton
+                label="Approve"
+                onPress={() => {
+                  sendToWorklet({ type: "confirm-response", token: hostConfirm.token, approved: true });
+                  setHostConfirm(null);
+                }}
+              />
+            </View>
+          </View>
+        </View>
+      ) : null}
       {peerModal !== null ? (
         <View testID="peer-host-modal" style={styles.modalOverlay}>
           <View style={styles.modalCard}>
