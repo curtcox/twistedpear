@@ -57,7 +57,7 @@ export function createWorkletMiniappHost(options) {
           },
           delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms))
         };
-  const browserDeviceClasses = ["location", "camera", "microphone"];
+  const browserDeviceClasses = ["location", "camera", "microphone", "battery", "tts", "haptics"];
   /** @type {import("../../../packages/miniapp-runtime/dist/worklet.js").DeviceManager} */
   const deviceManager =
     options.deviceManager ??
@@ -73,7 +73,9 @@ export function createWorkletMiniappHost(options) {
           ? createHybridDeviceDrivers(browserDeviceClasses, {
               availability: (classId) => options.requestDeviceBridge({ op: "availability", classId }),
               sense: (classId, senseOptions) =>
-                options.requestDeviceBridge({ op: "sense", classId, options: senseOptions ?? {} })
+                options.requestDeviceBridge({ op: "sense", classId, options: senseOptions ?? {} }),
+              actuate: (classId, command) =>
+                options.requestDeviceBridge({ op: "actuate", classId, command })
             })
           : undefined
     });

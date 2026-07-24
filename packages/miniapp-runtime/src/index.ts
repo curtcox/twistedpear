@@ -180,7 +180,8 @@ export {
 export type { DeviceHostBridge } from "./drivers/host-bridge.js";
 export {
   browserDeviceAvailability,
-  browserDeviceSense
+  browserDeviceSense,
+  browserDeviceActuate
 } from "./drivers/browser-effects.js";
 export { DeviceStreamSidecar, DEVICE_STREAM_KIND } from "./device-sidecar.js";
 export type {

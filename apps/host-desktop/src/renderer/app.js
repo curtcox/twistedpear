@@ -76,6 +76,7 @@ function renderModerationState(message) {
 }
 
 function renderDeviceState(message) {
+  lastDeviceState = message;
   const disabled = new Set(message.disabledClasses ?? []);
   if (deviceRemoteEnabled) {
     deviceRemoteEnabled.checked = message.remoteAcquisitionEnabled === true;
@@ -180,6 +181,8 @@ let installedPackages = [];
 let selectedAppId = null;
 /** @type {string | null} */
 let runningAppId = null;
+/** @type {{ sessions?: ReadonlyArray<{ handle: string; classId: string; tierId: string; appId: string }> } | null} */
+let lastDeviceState = null;
 let pendingIdentityImport = null;
 let pendingIdentityRecovery = null;
 /** @type {Map<string, {resolve: (content: string) => void, reject: (error: Error) => void}>} */
@@ -1006,7 +1009,7 @@ if (!host) {
         if (previewRoot) {
           renderWidgetTree(message.runtime?.widgetTree ?? null, previewRoot, (nodeId, event, value) => {
             host.send({ type: "miniapp-ui-event", slot: "preview", nodeId, event, value });
-          });
+          }, { deviceSessions: lastDeviceState?.sessions ?? [] });
         }
       } else {
         runningAppId = message.runtime.appId;
@@ -1026,7 +1029,7 @@ if (!host) {
           (nodeId, event, value) => {
             host.send({ type: "miniapp-ui-event", nodeId, event, value });
           },
-          { readDocument: readWorkspaceDocument }
+          { readDocument: readWorkspaceDocument, deviceSessions: lastDeviceState?.sessions ?? [] }
         );
       }
     }

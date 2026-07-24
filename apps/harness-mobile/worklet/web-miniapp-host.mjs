@@ -125,7 +125,7 @@ export function createWebWorkletMiniappHost(options) {
       drivers:
         options.requestHostReply === undefined
           ? undefined
-          : createHybridDeviceDrivers(["location", "camera", "microphone"], {
+          : createHybridDeviceDrivers(["location", "camera", "microphone", "battery", "tts", "haptics"], {
               availability: async (classId) => {
                 const token = generateConfirmationToken((length) => {
                   const bytes = new Uint8Array(length);
@@ -165,6 +165,29 @@ export function createWebWorkletMiniappHost(options) {
                 if (reply === null) throw new Error("Device bridge request timed out");
                 if (reply.error) throw new Error(String(reply.error));
                 return reply.result;
+              },
+              actuate: async (classId, command) => {
+                const token = generateConfirmationToken((length) => {
+                  const bytes = new Uint8Array(length);
+                  if (typeof globalThis.crypto?.getRandomValues === "function") {
+                    globalThis.crypto.getRandomValues(bytes);
+                  } else {
+                    for (let i = 0; i < length; i += 1) bytes[i] = (Math.random() * 256) | 0;
+                  }
+                  return bytes;
+                });
+                const reply = await options.requestHostReply(
+                  {
+                    type: "device-bridge-request",
+                    token,
+                    op: "actuate",
+                    classId,
+                    command
+                  },
+                  30_000
+                );
+                if (reply === null) throw new Error("Device bridge request timed out");
+                if (reply.error) throw new Error(String(reply.error));
               }
             })
     });

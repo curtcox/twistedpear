@@ -5,6 +5,7 @@ import {
   HOST_API_VERSION,
   MiniappHost,
   MiniappLifecycle,
+  createHybridDeviceDrivers,
   createSimulatedDeviceManager,
   describeCapability,
   isMiniappCapability,
@@ -148,7 +149,15 @@ export function createWorkletMiniappHost(options) {
             },
       onChromeChange: () => {
         void pushDeviceChromeState();
-      }
+      },
+      drivers:
+        typeof options.requestDeviceBridge === "function"
+          ? createHybridDeviceDrivers(["location", "camera"], {
+              availability: (classId) => options.requestDeviceBridge({ op: "availability", classId }),
+              sense: (classId, senseOptions) =>
+                options.requestDeviceBridge({ op: "sense", classId, options: senseOptions ?? {} })
+            })
+          : undefined
     });
   const host = new MiniappHost({
     backend: createSandboxBackend(options.sandboxBackend ?? "bare-worker"),

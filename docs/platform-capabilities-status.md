@@ -175,8 +175,11 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
   `device:camera`.
 - Devices & Sensors host chrome (inventory, policy disable, session kill, remote-acquisition
   toggle, active-use banner, device confirm titles) is wired on desktop / android / ios / web.
-- Desktop and web bridge `location` / `camera` / `microphone` to real browser/Chromium APIs;
-  other classes (and all classes on native mobile / node) still use simulated drivers.
+- Desktop and web bridge `location` / `camera` / `microphone` (plus browser `battery` /
+  `tts` / `haptics` where APIs exist) to real Chromium/browser effects; native mobile
+  bridges `location` / `camera` via geolocation + expo-camera. Other classes remain
+  simulated. Preview surfaces (`camera-preview`, `audio-meter`, `waveform`, `map-preview`,
+  `remote-video`) render host-owned chrome that never round-trips pixels into the sandbox.
 - `partial` cells mean the broker path is configured and chrome can manage sessions; remaining
   OS/Expo drivers, Devices preview surfaces, formal SPEC-DEVICE vectors, and hardware evidence
   are open ([device-io-plan.md](device-io-plan.md)).

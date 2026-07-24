@@ -54,7 +54,7 @@ import type {
   WebStorageQuotaView,
   WorkletStatus,
   WorkletToHostMessage,
-  type DeviceStateView
+  DeviceStateView
 } from "./worklet/protocol";
 
 const DEFAULT_PASSPHRASE = "harness-web-dev";
@@ -430,13 +430,17 @@ export default function App() {
       if (message.type === "device-bridge-request") {
         void (async () => {
           try {
-            const { browserDeviceAvailability, browserDeviceSense } = await import(
-              "../../packages/miniapp-runtime/dist/drivers/browser-effects.js"
-            );
+            const {
+              browserDeviceAvailability,
+              browserDeviceSense,
+              browserDeviceActuate
+            } = await import("../../packages/miniapp-runtime/dist/drivers/browser-effects.js");
             const result =
               message.op === "availability"
                 ? await browserDeviceAvailability(message.classId)
-                : await browserDeviceSense(message.classId, message.options ?? {});
+                : message.op === "actuate"
+                  ? await browserDeviceActuate(message.classId, message.command ?? {})
+                  : await browserDeviceSense(message.classId, message.options ?? {});
             sendToWorker({ type: "device-bridge-response", token: message.token, result });
           } catch (error) {
             sendToWorker({
@@ -897,6 +901,7 @@ export default function App() {
             <MiniappWidgetTree
               tree={miniappRuntime.widgetTree as WidgetTree}
               readDocument={readWorkspaceDocument}
+              deviceSessions={deviceState?.sessions ?? []}
               onEvent={(nodeId, event, value) => {
                 sendToWorker({
                   type: "miniapp-ui-event",

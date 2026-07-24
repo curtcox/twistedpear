@@ -353,6 +353,26 @@ export default function App() {
       return;
     }
 
+    if (message.type === "device-bridge-request") {
+      void (async () => {
+        try {
+          const { nativeDeviceAvailability, nativeDeviceSense } = await import("./host/native-device-bridge.js");
+          const result =
+            message.op === "availability"
+              ? await nativeDeviceAvailability(message.classId)
+              : await nativeDeviceSense(message.classId, message.options ?? {});
+          sendToWorklet({ type: "device-bridge-response", token: message.token, result });
+        } catch (error) {
+          sendToWorklet({
+            type: "device-bridge-response",
+            token: message.token,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      })();
+      return;
+    }
+
     if (message.type === "peer-chrome-cancel") {
       setPeerCameraActive(false); setPeerModal(null);
       return;
@@ -821,6 +841,7 @@ export default function App() {
         <MiniappWidgetTree
           tree={(miniappRuntime?.widgetTree as WidgetTree | null) ?? null}
           readDocument={readWorkspaceDocument}
+          deviceSessions={deviceState?.sessions ?? []}
           onEvent={(nodeId, event, value) =>
             sendToWorklet({ type: "miniapp-ui-event", nodeId, event, value })
           }

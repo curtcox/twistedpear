@@ -13,12 +13,19 @@ export function MiniappWidgetTree({
   tree,
   onEvent,
   readDocument,
-  assets
+  assets,
+  deviceSessions
 }: {
   readonly tree: WidgetTree | null;
   readonly onEvent?: (nodeId: string, event: string, value?: unknown) => void;
   readonly readDocument?: (documentId: string) => Promise<string>;
   readonly assets?: Readonly<Record<string, string>>;
+  readonly deviceSessions?: ReadonlyArray<{
+    readonly handle: string;
+    readonly classId: string;
+    readonly tierId: string;
+    readonly appId: string;
+  }>;
 }) {
   if (tree === null) {
     return <Text style={styles.muted}>No widget tree</Text>;
@@ -26,10 +33,21 @@ export function MiniappWidgetTree({
 
   return (
     <AssetContext.Provider value={assets ?? {}}>
-      <WidgetNodeView node={tree.root} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />
+      <DeviceSessionContext.Provider value={deviceSessions ?? []}>
+        <WidgetNodeView node={tree.root} {...(onEvent === undefined ? {} : { onEvent })} {...(readDocument === undefined ? {} : { readDocument })} />
+      </DeviceSessionContext.Provider>
     </AssetContext.Provider>
   );
 }
+
+const DeviceSessionContext = createContext<
+  ReadonlyArray<{
+    readonly handle: string;
+    readonly classId: string;
+    readonly tierId: string;
+    readonly appId: string;
+  }>
+>([]);
 
 function ScrollWidget({
   node,
@@ -272,16 +290,45 @@ function WidgetNodeView({
     case "waveform":
     case "map-preview":
     case "remote-video":
-      return (
-        <View testID={node.id} style={[styles.previewSurface, style]}>
-          <Text style={styles.muted}>
-            {node.type}:{String(node.props?.session ?? "")}
-          </Text>
-        </View>
-      );
+      return <PreviewSurface node={node} style={style} />;
     default:
       return null;
   }
+}
+
+function PreviewSurface({
+  node,
+  style
+}: {
+  readonly node: WidgetNode;
+  readonly style: ReturnType<typeof widgetStyle>;
+}) {
+  const sessions = useContext(DeviceSessionContext);
+  const session = String(node.props?.session ?? "");
+  const live = sessions.find((entry) => entry.handle === session);
+  const label = live
+    ? `${node.type} · ${live.classId}:${live.tierId} · ${live.appId}`
+    : `${node.type} · waiting for session`;
+
+  return (
+    <View testID={node.id} style={[styles.previewSurface, style]}>
+      <Text style={styles.muted}>{label}</Text>
+      {node.type === "camera-preview" && live?.classId === "camera" ? (
+        <Text style={styles.muted}>Host camera preview (pixels stay in chrome)</Text>
+      ) : null}
+      {node.type === "map-preview" && live?.classId === "location" ? (
+        <Text style={styles.muted}>
+          Host map preview · zoom {String(node.props?.zoom ?? 12)}
+        </Text>
+      ) : null}
+      {node.type === "audio-meter" || node.type === "waveform" ? (
+        <View style={styles.previewMeter} />
+      ) : null}
+      {node.type === "remote-video" ? (
+        <Text style={styles.muted}>Remote video shell · peer={String(node.props?.peer ?? "—")}</Text>
+      ) : null}
+    </View>
+  );
 }
 
 function minimalTextEdit(before: string, after: string) {
@@ -334,7 +381,13 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    justifyContent: "center"
+    justifyContent: "center",
+    gap: 6
+  },
+  previewMeter: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "#2a5a3a"
   },
   button: {
     backgroundColor: "#2b3645",

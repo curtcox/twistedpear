@@ -222,6 +222,23 @@ function ensureMiniappHost() {
         });
         return { approved: reply?.approved === true, detail: reply?.detail };
       },
+      async requestDeviceBridge(request) {
+        const token = peerToken();
+        const reply = await requestHostReply(
+          {
+            type: "device-bridge-request",
+            token,
+            op: request.op,
+            classId: request.classId,
+            options: request.options ?? {},
+            ...(request.command !== undefined ? { command: request.command } : {})
+          },
+          30_000
+        );
+        if (reply === null) throw new Error("Device bridge request timed out");
+        if (reply.error) throw new Error(String(reply.error));
+        return reply.result;
+      },
       getHostInfoSnapshot: () => {
         const barePlatform =
           typeof Bare !== "undefined" && Bare !== null && typeof Bare.platform === "string"
@@ -1099,7 +1116,7 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  if (message.type === "peer-chrome-response" || message.type === "confirm-response") {
+  if (message.type === "peer-chrome-response" || message.type === "confirm-response" || message.type === "device-bridge-response") {
     pendingHostReplies.get(message.token)?.(message);
     return;
   }

@@ -1,6 +1,6 @@
 /**
  * Desktop renderer bridge for DeviceManager host-bridged drivers.
- * Uses Chromium geolocation / getUserMedia — same APIs as the web host.
+ * Uses Chromium geolocation / getUserMedia / Battery / speechSynthesis / vibrate.
  */
 
 export async function handleDeviceBridgeRequest(message, send) {
@@ -8,7 +8,9 @@ export async function handleDeviceBridgeRequest(message, send) {
     const result =
       message.op === "availability"
         ? await deviceAvailability(message.classId)
-        : await deviceSense(message.classId, message.options ?? {});
+        : message.op === "actuate"
+          ? await deviceActuate(message.classId, message.command ?? {})
+          : await deviceSense(message.classId, message.options ?? {});
     send({ type: "device-bridge-response", token: message.token, result });
   } catch (error) {
     send({
@@ -35,6 +37,15 @@ async function deviceAvailability(classId) {
     if (typeof navigator?.mediaDevices?.getUserMedia !== "function") return "unsupported";
     return "permission-required";
   }
+  if (classId === "battery") {
+    return typeof navigator?.getBattery === "function" ? "available" : "unsupported";
+  }
+  if (classId === "tts") {
+    return typeof speechSynthesis !== "undefined" ? "available" : "unsupported";
+  }
+  if (classId === "haptics") {
+    return typeof navigator?.vibrate === "function" ? "available" : "unsupported";
+  }
   return "unsupported";
 }
 
@@ -48,7 +59,23 @@ async function deviceSense(classId, options) {
   if (classId === "microphone") {
     return senseMicrophone();
   }
+  if (classId === "battery") {
+    return senseBattery();
+  }
   throw new Error(`No desktop bridge for device class "${classId}".`);
+}
+
+async function deviceActuate(classId, command) {
+  if (classId === "tts" && command.kind === "tts") {
+    await speak(String(command.text ?? ""), typeof command.rate === "number" ? command.rate : 1);
+    return null;
+  }
+  if (classId === "haptics" && command.kind === "haptics") {
+    if (typeof navigator?.vibrate !== "function") throw new Error("Vibration is unavailable.");
+    navigator.vibrate(Array.isArray(command.patternMs) ? command.patternMs : [40]);
+    return null;
+  }
+  throw new Error(`No desktop actuate bridge for "${classId}".`);
 }
 
 function senseLocation(enableHighAccuracy) {
@@ -149,4 +176,30 @@ async function senseMicrophone() {
     for (const track of stream.getTracks()) track.stop();
     await context.close();
   }
+}
+
+async function senseBattery() {
+  if (typeof navigator?.getBattery !== "function") {
+    throw new Error("Battery Status API is unavailable.");
+  }
+  const battery = await navigator.getBattery();
+  const level = battery.level;
+  if (!Number.isFinite(level)) return { bucket: "unknown" };
+  if (level <= 0.1) return { bucket: "critical" };
+  if (level <= 0.25) return { bucket: "low" };
+  return { bucket: "nominal" };
+}
+
+function speak(text, rate) {
+  return new Promise((resolve, reject) => {
+    if (typeof speechSynthesis === "undefined" || typeof SpeechSynthesisUtterance === "undefined") {
+      reject(new Error("Speech synthesis is unavailable."));
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = Math.max(0.5, Math.min(2, rate));
+    utterance.onend = () => resolve();
+    utterance.onerror = () => reject(new Error("Speech synthesis failed."));
+    speechSynthesis.speak(utterance);
+  });
 }

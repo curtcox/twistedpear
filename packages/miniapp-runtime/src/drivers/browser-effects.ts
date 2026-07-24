@@ -58,6 +58,20 @@ export async function browserDeviceAvailability(classId: string): Promise<Browse
     if (typeof nav?.mediaDevices?.getUserMedia !== "function") return "unsupported";
     return "permission-required";
   }
+  if (classId === "battery") {
+    const getBattery = (nav as { getBattery?: () => Promise<{ level: number; charging: boolean }> })?.getBattery;
+    if (typeof getBattery !== "function") return "unsupported";
+    return "available";
+  }
+  if (classId === "tts") {
+    const speech = (globalThis as { speechSynthesis?: SpeechSynthesis }).speechSynthesis;
+    return speech === undefined ? "unsupported" : "available";
+  }
+  if (classId === "haptics") {
+    return typeof (nav as { vibrate?: (pattern: number | number[]) => boolean })?.vibrate === "function"
+      ? "available"
+      : "unsupported";
+  }
   return "unsupported";
 }
 
@@ -74,7 +88,63 @@ export async function browserDeviceSense(
   if (classId === "microphone") {
     return senseBrowserMicrophone();
   }
-  throw new Error(`No browser effect for device class "${classId}".`);
+  if (classId === "battery") {
+    return senseBrowserBattery();
+  }
+  throw new Error(`No browser sense effect for device class "${classId}".`);
+}
+
+export async function browserDeviceActuate(
+  classId: string,
+  command: Readonly<Record<string, unknown>>
+): Promise<void> {
+  if (classId === "tts" && command.kind === "tts") {
+    await actuateBrowserTts(String(command.text ?? ""), typeof command.rate === "number" ? command.rate : 1);
+    return;
+  }
+  if (classId === "haptics" && command.kind === "haptics") {
+    actuateBrowserHaptics(Array.isArray(command.patternMs) ? (command.patternMs as number[]) : [40]);
+    return;
+  }
+  throw new Error(`No browser actuate effect for device class "${classId}".`);
+}
+
+async function senseBrowserBattery(): Promise<{ bucket: "nominal" | "low" | "critical" | "unknown" }> {
+  const nav = browserNavigator() as { getBattery?: () => Promise<{ level: number; charging: boolean }> };
+  if (typeof nav?.getBattery !== "function") {
+    throw new Error("Battery Status API is unavailable in this browser.");
+  }
+  const battery = await nav.getBattery();
+  const level = battery.level;
+  if (!Number.isFinite(level)) return { bucket: "unknown" };
+  if (level <= 0.1) return { bucket: "critical" };
+  if (level <= 0.25) return { bucket: "low" };
+  return { bucket: "nominal" };
+}
+
+function actuateBrowserTts(text: string, rate: number): Promise<void> {
+  const speech = (globalThis as { speechSynthesis?: SpeechSynthesis; SpeechSynthesisUtterance?: typeof SpeechSynthesisUtterance })
+    .speechSynthesis;
+  const Utterance = (globalThis as { SpeechSynthesisUtterance?: typeof SpeechSynthesisUtterance })
+    .SpeechSynthesisUtterance;
+  if (speech === undefined || Utterance === undefined) {
+    return Promise.reject(new Error("Speech synthesis is unavailable in this browser."));
+  }
+  return new Promise((resolve, reject) => {
+    const utterance = new Utterance(text);
+    utterance.rate = Math.max(0.5, Math.min(2, rate));
+    utterance.onend = () => resolve();
+    utterance.onerror = () => reject(new Error("Speech synthesis failed."));
+    speech.speak(utterance);
+  });
+}
+
+function actuateBrowserHaptics(patternMs: ReadonlyArray<number>): void {
+  const vibrate = (browserNavigator() as { vibrate?: (pattern: number | number[]) => boolean })?.vibrate;
+  if (typeof vibrate !== "function") {
+    throw new Error("Vibration is unavailable in this browser.");
+  }
+  vibrate([...patternMs]);
 }
 
 function senseBrowserLocation(enableHighAccuracy: boolean): Promise<{

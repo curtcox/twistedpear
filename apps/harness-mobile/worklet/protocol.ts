@@ -333,9 +333,10 @@ export type WorkletToHostMessage =
   | {
       readonly type: "device-bridge-request";
       readonly token: string;
-      readonly op: "availability" | "sense";
+      readonly op: "availability" | "sense" | "actuate";
       readonly classId: string;
       readonly options?: Readonly<Record<string, unknown>>;
+      readonly command?: Readonly<Record<string, unknown>>;
     }
   | { readonly type: "miniapp-runtime"; readonly slot?: "main" | "preview"; readonly runtime: MiniappRuntimeView | null }
   | { readonly type: "miniapp-benchmark"; readonly result: MiniappBenchmarkResult }
