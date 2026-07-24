@@ -356,11 +356,17 @@ export default function App() {
     if (message.type === "device-bridge-request") {
       void (async () => {
         try {
-          const { nativeDeviceAvailability, nativeDeviceSense } = await import("./host/native-device-bridge.js");
+          const {
+            nativeDeviceAvailability,
+            nativeDeviceSense,
+            nativeDeviceActuate
+          } = await import("./host/native-device-bridge.js");
           const result =
             message.op === "availability"
               ? await nativeDeviceAvailability(message.classId)
-              : await nativeDeviceSense(message.classId, message.options ?? {});
+              : message.op === "actuate"
+                ? await nativeDeviceActuate(message.classId, message.command ?? {})
+                : await nativeDeviceSense(message.classId, message.options ?? {});
           sendToWorklet({ type: "device-bridge-response", token: message.token, result });
         } catch (error) {
           sendToWorklet({

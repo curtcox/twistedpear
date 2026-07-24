@@ -1,0 +1,16 @@
+{
+  "schema": "twistedpear.tla-traces-v1",
+  "model": "specs/spec-device/model/device_session.tla",
+  "edges": [
+    ["requested", "open", "active"],
+    ["active", "degrade", "degraded"],
+    ["degraded", "restore", "active"],
+    ["degraded", "degrade", "degraded"],
+    ["active", "close", "closed"],
+    ["degraded", "close", "closed"],
+    ["active", "ttl/expired", "expired"],
+    ["degraded", "ttl/expired", "expired"],
+    ["active", "revoke", "revoked"],
+    ["degraded", "revoke", "revoked"]
+  ]
+}

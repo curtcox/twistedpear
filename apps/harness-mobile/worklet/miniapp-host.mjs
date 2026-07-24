@@ -152,10 +152,12 @@ export function createWorkletMiniappHost(options) {
       },
       drivers:
         typeof options.requestDeviceBridge === "function"
-          ? createHybridDeviceDrivers(["location", "camera"], {
+          ? createHybridDeviceDrivers(["location", "camera", "haptics"], {
               availability: (classId) => options.requestDeviceBridge({ op: "availability", classId }),
               sense: (classId, senseOptions) =>
-                options.requestDeviceBridge({ op: "sense", classId, options: senseOptions ?? {} })
+                options.requestDeviceBridge({ op: "sense", classId, options: senseOptions ?? {} }),
+              actuate: (classId, command) =>
+                options.requestDeviceBridge({ op: "actuate", classId, command })
             })
           : undefined
     });

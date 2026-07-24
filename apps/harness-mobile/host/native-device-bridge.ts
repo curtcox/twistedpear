@@ -1,9 +1,10 @@
 /**
  * Native (Expo) device bridge for DeviceManager host-bridged drivers.
- * Uses navigator.geolocation + expo-camera permissions when available.
+ * Uses navigator.geolocation, expo-camera permissions, and RN Vibration.
  */
 
 import { Camera } from "expo-camera";
+import { Vibration } from "react-native";
 
 export type NativeDeviceAvailability =
   | "available"
@@ -29,6 +30,9 @@ export async function nativeDeviceAvailability(classId: string): Promise<NativeD
       return "unsupported";
     }
   }
+  if (classId === "haptics") {
+    return typeof Vibration?.vibrate === "function" ? "available" : "unsupported";
+  }
   return "unsupported";
 }
 
@@ -43,6 +47,30 @@ export async function nativeDeviceSense(
     return senseNativeCamera();
   }
   throw new Error(`No native sense effect for device class "${classId}".`);
+}
+
+export async function nativeDeviceActuate(
+  classId: string,
+  command: Readonly<Record<string, unknown>>
+): Promise<void> {
+  if (classId === "haptics" && command.kind === "haptics") {
+    actuateNativeHaptics(Array.isArray(command.patternMs) ? (command.patternMs as number[]) : [40]);
+    return;
+  }
+  throw new Error(`No native actuate effect for device class "${classId}".`);
+}
+
+function actuateNativeHaptics(patternMs: ReadonlyArray<number>): void {
+  if (typeof Vibration?.vibrate !== "function") {
+    throw new Error("Vibration is unavailable on this host.");
+  }
+  const pattern = patternMs.length > 0 ? [...patternMs] : [40];
+  // iOS ignores multi-element patterns; Android accepts the full duty pattern.
+  if (pattern.length === 1) {
+    Vibration.vibrate(pattern[0]!);
+  } else {
+    Vibration.vibrate(pattern);
+  }
 }
 
 function senseNativeLocation(enableHighAccuracy: boolean): Promise<{

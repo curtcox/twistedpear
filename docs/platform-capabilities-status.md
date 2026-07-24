@@ -71,14 +71,15 @@ Cross-cutting wiring gaps (affect many rows below):
   `deviceManager` (with host Devices chrome), and a **flag-plane** `relayService`
   (`createWorkletFlagRelayService`) that drives the same `applyInterfaceConfig` path as
   Settings. Full `InterfaceManager` / bridge-mode ownership is still node-only.
-- Desktop and web replace simulated `location` / `camera` / `microphone` drivers with
-  **host-bridged** Chromium/browser effects (`getCurrentPosition` / `getUserMedia`); other
-  device classes remain simulated. Native mobile still uses the full simulated set.
+- Desktop and web replace simulated `location` / `camera` / `microphone` / `battery` /
+  `tts` / `haptics` drivers with **host-bridged** Chromium/browser effects where APIs
+  exist; other device classes remain simulated. Native mobile bridges `location` /
+  `camera` / `haptics` (geolocation, expo-camera, RN Vibration).
 - Web worklets keep `relay:*` as `n/a` (browser leaves).
-- Device I/O software (phases 1–7) is unit-tested with simulated drivers; Devices UI is
-  wired on all shipping hosts. Remaining: more real OS/Expo drivers, preview surfaces,
-  formal SPEC-DEVICE vectors, and hardware evidence
-  ([STATUS-SOFTWARE](../STATUS-SOFTWARE.md) Device I/O row).
+- Device I/O software (phases 1–7) is unit-tested with simulated drivers; Devices UI and
+  preview surfaces are wired on all shipping hosts. SPEC-DEVICE session formal vectors
+  pass (`npm run formal:device-session`). Remaining: more Expo drivers (motion/battery)
+  and hardware evidence ([STATUS-SOFTWARE](../STATUS-SOFTWARE.md) Device I/O row).
 
 ## Core capabilities
 
@@ -177,12 +178,14 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
   toggle, active-use banner, device confirm titles) is wired on desktop / android / ios / web.
 - Desktop and web bridge `location` / `camera` / `microphone` (plus browser `battery` /
   `tts` / `haptics` where APIs exist) to real Chromium/browser effects; native mobile
-  bridges `location` / `camera` via geolocation + expo-camera. Other classes remain
-  simulated. Preview surfaces (`camera-preview`, `audio-meter`, `waveform`, `map-preview`,
-  `remote-video`) render host-owned chrome that never round-trips pixels into the sandbox.
-- `partial` cells mean the broker path is configured and chrome can manage sessions; remaining
-  OS/Expo drivers, Devices preview surfaces, formal SPEC-DEVICE vectors, and hardware evidence
-  are open ([device-io-plan.md](device-io-plan.md)).
+  bridges `location` / `camera` / `haptics` via geolocation, expo-camera, and RN
+  Vibration. Other classes remain simulated. Preview surfaces (`camera-preview`,
+  `audio-meter`, `waveform`, `map-preview`, `remote-video`) render host-owned chrome
+  that never round-trips pixels into the sandbox.
+- `partial` cells mean the broker path is configured and chrome can manage sessions;
+  remaining Expo drivers (motion/battery) and hardware evidence are open
+  ([device-io-plan.md](device-io-plan.md)). Session formal coverage:
+  `npm run formal:device-session`.
 - No `device:*` id is hardware-validated yet.
 
 ## Evidence commands
@@ -195,6 +198,7 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
 | android | `npm run test:android-emulator`; handbook mobile slices |
 | ios | `npm run test:ios-sim:required`; `npm run test:ios-sim` |
 | Device/runtime (sim) | `npm test -- packages/miniapp-runtime/test/device.test.ts` |
+| Device session formal | `npm run formal:device-session` |
 | Relay taxonomy | `npm test -- packages/miniapp-runtime/test/relay.test.ts` |
 | Worklet flag-plane relay | `npm test -- packages/miniapp-runtime/test/worklet-flag-relay.test.ts` |
 | Node relay/device wiring | `npm test -- packages/cli/test/host-relay-device-wiring.test.ts` |
