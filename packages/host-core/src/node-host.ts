@@ -15,6 +15,7 @@ import {
 import { selectPreferredInterface } from "@twistedpear/reticulum-interfaces";
 import {
   FreenetClient,
+  FreenetClientContractBackend,
   FreenetPropagationStore
 } from "@twistedpear/bridge-freenet";
 import { InterfaceManager } from "./interface-manager.js";
@@ -30,6 +31,20 @@ import { startSeederRole } from "./roles/seeder.js";
 import { FileModerationStore } from "./moderation-store.js";
 import type { HostConfig, HostStatus, InterfaceStatus } from "./types.js";
 
+function freenetClientOptions(config: HostConfig): {
+  url: string;
+  authToken?: string;
+} | null {
+  const freenet = config.interfaces.freenet;
+  if (freenet.url === undefined || freenet.url.length === 0) {
+    return null;
+  }
+  return {
+    url: freenet.url,
+    ...(freenet.authToken === undefined ? {} : { authToken: freenet.authToken })
+  };
+}
+
 function loadPropagationSetWasm(): Uint8Array {
   const require = createRequire(import.meta.url);
   const packageJson = require.resolve("@twistedpear/bridge-freenet/package.json");
@@ -44,24 +59,45 @@ function loadPropagationSetWasm(): Uint8Array {
 }
 
 function createFreenetPropagationMirror(
-  config: HostConfig
+  config: HostConfig,
+  sharedClient: FreenetClient | null
 ): FreenetPropagationStore | null {
   const freenet = config.interfaces.freenet;
-  if (!freenet.enabled || freenet.url === undefined || freenet.url.length === 0) {
+  if (!freenet.enabled) {
+    return null;
+  }
+  const options = freenetClientOptions(config);
+  if (options === null) {
     return null;
   }
   if (freenet.propagationMirror === false) {
     return null;
   }
   const wasm = loadPropagationSetWasm();
-  const client = new FreenetClient({
-    url: freenet.url,
-    ...(freenet.authToken === undefined ? {} : { authToken: freenet.authToken })
-  });
+  const client = sharedClient ?? new FreenetClient(options);
   return new FreenetPropagationStore({
     client,
     wasm,
     updateOptions: { codeField: wasm }
+  });
+}
+
+/**
+ * Contract broker backend when a Freenet WebSocket URL is configured.
+ * Independent of `interfaces.freenet.enabled` (that flag opens the HDLC
+ * packet-log interface); apps can use `freenet:contract` against a remote
+ * node without carrying Freenet as a Reticulum hop.
+ */
+function createFreenetContractBackend(
+  config: HostConfig,
+  sharedClient: FreenetClient | null
+): FreenetClientContractBackend | null {
+  const options = freenetClientOptions(config);
+  if (options === null) {
+    return null;
+  }
+  return new FreenetClientContractBackend({
+    client: sharedClient ?? new FreenetClient(options)
   });
 }
 
@@ -78,6 +114,12 @@ export interface NodeHostSession {
   readonly moderation: FileModerationStore;
   /** Owns interface lifecycle and relay policy; implements the mini-app `RelayService` surface. */
   readonly interfaceManager: InterfaceManager;
+  /**
+   * Hex-facing Freenet adapter for `freenet:contract` when
+   * `interfaces.freenet.url` is set; otherwise null. Independent of the
+   * Freenet HDLC interface `enabled` flag.
+   */
+  readonly freenetBackend: FreenetClientContractBackend | null;
   readonly getStatus: () => HostStatus;
   readonly stop: () => Promise<void>;
 }
@@ -122,6 +164,10 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
   let propagationServer: PropagationServer | null = null;
   let statusServer: HttpServer | null = null;
   let lxmfRouter: LXMFRouter | null = null;
+  const freenetOptions = freenetClientOptions(config);
+  const sharedFreenetClient =
+    freenetOptions === null ? null : new FreenetClient(freenetOptions);
+  const freenetBackend = createFreenetContractBackend(config, sharedFreenetClient);
 
   if (config.roles.seeder) {
     seederSession = await startSeederRole({
@@ -142,7 +188,7 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
       provider,
       inboundModeration: (sourceHash) => moderation.disposition(sourceHash)
     });
-    const freenetMirror = createFreenetPropagationMirror(config);
+    const freenetMirror = createFreenetPropagationMirror(config, sharedFreenetClient);
     propagationServer = new PropagationServer(
       provider,
       {
@@ -241,6 +287,7 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
     identity,
     moderation,
     interfaceManager,
+    freenetBackend,
     getStatus: buildStatus,
     async stop() {
       if (statusServer !== null) {
@@ -257,6 +304,13 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
 
       if (lxmfRouter !== null) {
         // Router shares reticulum lifecycle; no explicit teardown required.
+      }
+
+      if (freenetBackend !== null) {
+        await freenetBackend.close();
+      }
+      if (sharedFreenetClient !== null) {
+        await sharedFreenetClient.close();
       }
 
       await reticulum.stop();

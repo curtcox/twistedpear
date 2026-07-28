@@ -26,8 +26,8 @@ passed.
 | F2 packet interface | wired + announce/LXMF (sim) + relay policy | SPEC-FREENET packet-log WASM; `FreenetInterface`; host `freenet` at 90 kbps; HDLC live proof; simulated announce+LXMF; BridgeForwarder freenet source/dest policy. Live multi-Freenet-node confirmation optional |
 | F3 propagation backing | WASM + store proof + host mirror | SPEC-FREENET propagation-set WASM; `FreenetPropagationStore`; isolated offline-A/retrieve-B; `createNodeHost` attaches remote mirror when freenet URL + propagation role enabled |
 | F4 provisioning | blocked by S5 | no daemon bundle, supervisor, platform artifact matrix or signing result |
-| F5 capability/UI | not implemented | depends on an honestly supportable node/provisioning surface; no capability grant has been weakened or predeclared |
-| F6 app-execution ADR | blocked by S4 and S7 | Option A has read evidence only; Option B lacks device/browser support; the decision remains deliberately unresolved |
+| F5 capability/UI | capability + desktop chrome | `freenet:contract` + HOST_API 0.11.0 get/put/update with irreversible confirmation; desktop Settings enable/URL/token → `set-freenet-config`; status rows for Freenet; mobile/web off per S8 |
+| F6 app-execution ADR | Option A accepted | [adr-freenet-app-execution.md](../../docs/adr-freenet-app-execution.md); B/C deferred on S4/platform-shape |
 
 ## External evidence still required
 

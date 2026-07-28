@@ -93,6 +93,7 @@ The package-level READMEs for
 | BLE roles, framing, and conformance | [BLE interface](ble-interface.md) |
 | WebSocket framing, lifecycle, and gateway endpoints | [WebSocket interface](websocket-interface.md) |
 | Freenet as a transport and app substrate | [Freenet integration plan](freenet-integration-plan.md) |
+| Freenet app-execution decision (Option A) | [ADR: Freenet app execution](adr-freenet-app-execution.md) |
 | LXMF propagation-node operation | [Propagation node](propagation-node.md) |
 | Bounded multipart LXMF store-and-forward | [Multipart propagation](multipart-propagation.md) |
 | Battery and link-budget guidance | [Battery and bandwidth policy](battery-bandwidth-policy.md) |

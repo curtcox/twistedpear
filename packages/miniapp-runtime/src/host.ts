@@ -36,6 +36,11 @@ import { PeerBrokerService, PeerServiceError, type PeerRequestPayload } from "./
 import type { PeerHandle, PeerSessionManager } from "@twistedpear/peer-discovery";
 import { RelayBrokerService, RelayBrokerServiceError, type RelayService } from "./services/relay.js";
 import {
+  FreenetBrokerService,
+  FreenetBrokerServiceError,
+  type FreenetContractBackend
+} from "./services/freenet.js";
+import {
   DeviceBrokerService,
   DeviceBrokerServiceError,
   type DeviceOpenRequest,
@@ -95,6 +100,8 @@ export interface MiniappHostOptions {
   readonly peerSessionManager?: PeerSessionManager;
   /** Host-owned relay/interface configuration service. */
   readonly relayService?: RelayService;
+  /** Optional Freenet contract-state backend (desktop/headless when a node is configured). */
+  readonly freenetBackend?: FreenetContractBackend;
   /** Host-owned device manager (inventory, sessions, drivers). */
   readonly deviceManager?: DeviceManager;
   /** Deterministic clock used by simulation and replay adapters. */
@@ -157,6 +164,7 @@ export class MiniappHost {
   private readonly appsService: AppsService | null;
   private readonly peerService: PeerBrokerService | null;
   private readonly relayService: RelayBrokerService | null;
+  private readonly freenetService: FreenetBrokerService | null;
   private readonly deviceService: DeviceBrokerService | null;
   readonly workspace: WorkspaceService;
 
@@ -206,6 +214,10 @@ export class MiniappHost {
       options.appsBackend === undefined ? null : new AppsService(options.appsBackend, options.confirmationChannel);
     this.peerService = options.peerSessionManager === undefined ? null : new PeerBrokerService(options.peerSessionManager);
     this.relayService = options.relayService === undefined ? null : new RelayBrokerService(options.relayService);
+    this.freenetService =
+      options.freenetBackend === undefined
+        ? null
+        : new FreenetBrokerService(options.freenetBackend, options.confirmationChannel);
     this.deviceService = options.deviceManager === undefined ? null : new DeviceBrokerService(options.deviceManager);
     this.workspace = new WorkspaceService(options.kvBackend, options.workspaceLimits);
     this.registerHandlers();
@@ -752,6 +764,33 @@ export class MiniappHost {
     this.broker.register("relay", "list", "relay:read", async (_request, context) => relay().list(context.appId));
     this.broker.register("relay", "status", "relay:read", async (_request, context) => relay().status(context.appId));
     this.broker.register("relay", "diagnostics", "relay:read", async (_request, context) => relay().diagnostics(context.appId));
+
+    const freenet = () => {
+      if (this.freenetService === null) {
+        throw new FreenetBrokerServiceError(
+          "FREENET_UNCONFIGURED",
+          "Freenet contract access is not configured on this host"
+        );
+      }
+      return this.freenetService;
+    };
+    this.broker.register("freenet", "get", "freenet:contract", async (request) =>
+      freenet().get(request.payload as { keyHex: unknown })
+    );
+    this.broker.register("freenet", "put", "freenet:contract", async (request, context) =>
+      freenet().put(context, request.payload as {
+        wasmHex: unknown;
+        parametersHex: unknown;
+        stateHex: unknown;
+      })
+    );
+    this.broker.register("freenet", "update", "freenet:contract", async (request, context) =>
+      freenet().update(context, request.payload as {
+        keyHex: unknown;
+        codeHashHex: unknown;
+        stateHex: unknown;
+      })
+    );
 
     const device = () => {
       if (this.deviceService === null) {

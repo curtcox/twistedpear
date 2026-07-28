@@ -87,6 +87,16 @@
             RNode port
             <input type="text" id="setting-rnode-port" placeholder="/dev/ttyUSB0" class="setting-input" />
           </label>
+          <label><input type="checkbox" id="setting-freenet" /> Freenet contracts</label>
+          <label>
+            Freenet node WebSocket
+            <input type="text" id="setting-freenet-url" placeholder="ws://127.0.0.1:50509/v1/contract/command" class="setting-input" />
+          </label>
+          <label>
+            Freenet auth token (optional)
+            <input type="password" id="setting-freenet-token" class="setting-input" autocomplete="off" />
+          </label>
+          <small class="setting-note">Off by default. Enables <code>freenet:contract</code> for granted mini-apps against a local or remote Freenet node. Updates published there cannot be recalled.</small>
           <label>
             AI endpoint (OpenRouter-compatible)
             <input type="text" id="setting-ai-url" placeholder="https://openrouter.ai/api/v1" class="setting-input" />

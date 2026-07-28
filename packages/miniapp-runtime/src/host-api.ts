@@ -1,4 +1,4 @@
-export const HOST_API_VERSION = "0.10.0";
+export const HOST_API_VERSION = "0.11.0";
 
 export interface HostApiChangelogEntry {
   readonly version: string;
@@ -43,7 +43,11 @@ export const HOST_API_CHANGELOG: ReadonlyArray<HostApiChangelogEntry> = [
     note: "relay:configure and relay:read add host-owned control of relay mode, interface direction, and per-interface telemetry."
   },
   {
-    version: HOST_API_VERSION,
+    version: "0.10.0",
     note: "device:* capabilities, device inventory/diagnostics/open/close/read, and host.info() device inventory (location:coarse and ambient-light end-to-end)."
+  },
+  {
+    version: HOST_API_VERSION,
+    note: "freenet:contract adds brokered Freenet get/put/update with irreversible-update confirmation for put/update."
   }
 ];

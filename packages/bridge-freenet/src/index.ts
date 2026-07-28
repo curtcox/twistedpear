@@ -66,3 +66,11 @@ export {
 export type {
   FreenetPacketLogBackendOptions
 } from "./client/freenet-packet-log-backend.js";
+export {
+  FreenetClientContractBackend,
+  createFreenetContractBackend
+} from "./client/freenet-contract-backend.js";
+export type {
+  FreenetClientContractBackendOptions,
+  FreenetContractBackendPort
+} from "./client/freenet-contract-backend.js";

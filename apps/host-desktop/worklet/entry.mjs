@@ -21,6 +21,9 @@ import { selectPreferredInterface } from "../../../packages/reticulum-interfaces
 import { CatalogStore, InstalledPackageStore, TrustStore, decodeAppAnnounceData, decodePublisherIdentity256t, encodePublisherIdentity256t, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
 import { PackageResourceClient, assessFetchBudget, attachPackageResourceServer, fetchPackage } from "../../../packages/bridge-hyper/dist/worklet.js";
 import {
+  FreenetClientContractBackend
+} from "../../../packages/bridge-freenet/dist/index.js";
+import {
   buildAppAnnounceSummary,
   encodeAppAnnounceData
 } from "../../../packages/app-registry/dist/index.js";
@@ -199,6 +202,9 @@ const status = {
   bandwidthBytesOut: 0,
   transportEnabled: IS_DESKTOP_HOST,
   propagationEnabled: false,
+  freenetEnabled: false,
+  freenetUrl: null,
+  freenetConfigured: false,
   propagationStoreBytes: 0,
   propagationMessageCount: 0,
   catalogEntries: 0,
@@ -262,6 +268,28 @@ let propagationDestination = null;
 
 /** @type {ReturnType<typeof createWorkletMiniappHost> | null} */
 let miniappHost = null;
+/** @type {FreenetClientContractBackend | null} */
+let freenetBackendImpl = null;
+const freenetBackendProxy = {
+  async get(keyHex) {
+    if (freenetBackendImpl === null) {
+      throw new Error("Freenet is not configured on this host (enable it in Settings)");
+    }
+    return freenetBackendImpl.get(keyHex);
+  },
+  async put(options) {
+    if (freenetBackendImpl === null) {
+      throw new Error("Freenet is not configured on this host (enable it in Settings)");
+    }
+    return freenetBackendImpl.put(options);
+  },
+  async update(options) {
+    if (freenetBackendImpl === null) {
+      throw new Error("Freenet is not configured on this host (enable it in Settings)");
+    }
+    return freenetBackendImpl.update(options);
+  }
+};
 /** @type {PeerSessionManager | null} */
 let peerSessionManager = null;
 const peerLinkDestinations = new Map();
@@ -912,6 +940,7 @@ function ensureMiniappHost() {
         if (status.autoEnabled) interfaceTypes.push("auto");
         if (status.bleEnabled) interfaceTypes.push("ble");
         if (status.rnodeEnabled) interfaceTypes.push("rnode");
+        if (status.freenetEnabled && status.freenetConfigured) interfaceTypes.push("freenet");
         return {
           platform: "desktop",
           hostVersion: HOST_API_VERSION,
@@ -932,6 +961,7 @@ function ensureMiniappHost() {
       send,
       peerSessionManager: peerSessionManagerProxy,
       relayService,
+      freenetBackend: freenetBackendProxy,
       announceService: transportAnnounceService,
       getPublisherIdentity: () => resolveIdentity(),
       publishArchive: publishArchiveFromWorklet,
@@ -2290,6 +2320,34 @@ async function handleHostMessage(raw) {
   if (message.type === "set-ai-config") {
     ensureMiniappHost().setAiConfig(message.config ?? null);
     log("AI configuration updated");
+    return;
+  }
+
+  if (message.type === "set-freenet-config") {
+    const enabled = message.enabled === true;
+    const url = typeof message.url === "string" && message.url.length > 0 ? message.url : null;
+    const authToken =
+      typeof message.authToken === "string" && message.authToken.length > 0
+        ? message.authToken
+        : undefined;
+    status.freenetEnabled = enabled;
+    status.freenetUrl = enabled ? url : null;
+    if (freenetBackendImpl !== null) {
+      await freenetBackendImpl.close().catch(() => {});
+      freenetBackendImpl = null;
+    }
+    if (enabled && url !== null) {
+      freenetBackendImpl = new FreenetClientContractBackend({
+        clientOptions: {
+          url,
+          ...(authToken === undefined ? {} : { authToken })
+        }
+      });
+      status.freenetConfigured = true;
+    } else {
+      status.freenetConfigured = false;
+    }
+    pushStatus();
     return;
   }
 

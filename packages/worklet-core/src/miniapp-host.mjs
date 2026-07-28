@@ -363,6 +363,7 @@ export function createWorkletMiniappHost(options) {
     },
     peerSessionManager: options.peerSessionManager,
     relayService: options.relayService,
+    ...(options.freenetBackend === undefined ? {} : { freenetBackend: options.freenetBackend }),
     deviceManager,
     callbacks: {
       onWidgetTree: () => pushRuntime(),

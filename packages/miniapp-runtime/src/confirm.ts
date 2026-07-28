@@ -6,7 +6,8 @@ export type ConfirmationKind =
   | "trust-import"
   | "device-session"
   | "device-stream"
-  | "device-remote-grant";
+  | "device-remote-grant"
+  | "freenet-update";
 
 export interface ConfirmationRequest {
   readonly token: string;

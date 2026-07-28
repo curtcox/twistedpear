@@ -43,6 +43,9 @@ const settingPropagation = document.querySelector("#setting-propagation");
 const settingTcp = document.querySelector("#setting-tcp");
 const settingAuto = document.querySelector("#setting-auto");
 const settingRnodePort = document.querySelector("#setting-rnode-port");
+const settingFreenet = document.querySelector("#setting-freenet");
+const settingFreenetUrl = document.querySelector("#setting-freenet-url");
+const settingFreenetToken = document.querySelector("#setting-freenet-token");
 const joinCommunityNetwork = document.querySelector("#join-community-network");
 const identityCurrent = document.querySelector("#identity-current");
 const identityNext = document.querySelector("#identity-next");
@@ -676,6 +679,9 @@ function renderStatus(status) {
     ["TCP", String(status.tcpEnabled)],
     ["Auto", String(status.autoEnabled)],
     ["RNode", String(status.rnodeEnabled)],
+    ["Freenet", String(status.freenetEnabled ?? false)],
+    ["Freenet configured", String(status.freenetConfigured ?? false)],
+    ["Freenet URL", status.freenetUrl ?? "—"],
     ["Propagation", String(status.propagationEnabled ?? false)],
     ["Link online", String(status.linkOnline)],
     ["Auto peers", String(status.autoPeers)],
@@ -902,6 +908,43 @@ if (!host) {
 
   for (const element of [settingAiUrl, settingAiKey, settingAiModel, settingAiEmbeddingModel]) {
     element?.addEventListener("change", applyAiSettings);
+  }
+
+  const applyFreenetSettings = () => {
+    const enabled = settingFreenet?.checked === true;
+    const url = settingFreenetUrl?.value.trim() ?? "";
+    const authToken = settingFreenetToken?.value.trim() ?? "";
+    localStorage.setItem(
+      "tp-freenet-config",
+      JSON.stringify({ enabled, url: url.length > 0 ? url : undefined })
+    );
+    host.send({
+      type: "set-freenet-config",
+      enabled,
+      url: url.length > 0 ? url : null,
+      ...(authToken.length > 0 ? { authToken } : {})
+    });
+  };
+
+  try {
+    const savedFreenet = JSON.parse(localStorage.getItem("tp-freenet-config") ?? "{}");
+    if (settingFreenet && typeof savedFreenet.enabled === "boolean") {
+      settingFreenet.checked = savedFreenet.enabled;
+    }
+    if (settingFreenetUrl && typeof savedFreenet.url === "string") {
+      settingFreenetUrl.value = savedFreenet.url;
+    }
+  } catch {
+    // ignore malformed saved settings
+  }
+
+  for (const element of [settingFreenet, settingFreenetUrl, settingFreenetToken]) {
+    element?.addEventListener("change", applyFreenetSettings);
+  }
+
+  // Restore Freenet backend after worklet restart if Settings were previously on.
+  if (settingFreenet?.checked === true) {
+    applyFreenetSettings();
   }
 
   host.onWorkletMessage((message) => {

@@ -38,6 +38,7 @@ export type MiniappCapability =
   | "peer:connect"
   | "relay:configure"
   | "relay:read"
+  | "freenet:contract"
   | DeviceCapability;
 
 export interface CapabilityDefinition {
@@ -65,7 +66,12 @@ const CORE_CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
   { id: "share:cas", description: "Store and retrieve bounded content-addressed data shared by 256t id." },
   { id: "peer:connect", description: "Ask trusted host chrome to find, confirm, and connect an app-scoped peer." },
   { id: "relay:configure", description: "Enable, disable, or reconfigure host relay interfaces and relay mode (ask each time)." },
-  { id: "relay:read", description: "Read host relay mode, interface status, and diagnostics." }
+  { id: "relay:read", description: "Read host relay mode, interface status, and diagnostics." },
+  {
+    id: "freenet:contract",
+    description:
+      "Read and publish Freenet contract state. Updates are published to a global network and cannot be recalled (asks each time for put/update)."
+  }
 ];
 
 export const CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [

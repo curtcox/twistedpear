@@ -17,8 +17,8 @@ completed evidence stays in [STATUS-COMPLETE.md](../STATUS-COMPLETE.md).
 | Peer implementation types | `HostPlatformId` in [`packages/miniapp-runtime/src/services/host-info.ts`](../packages/miniapp-runtime/src/services/host-info.ts) |
 | Live probe on a running host | Handbook [difference matrix](../apps/handbook/content/part-2-hosts/difference-matrix.md) via `host.info()` |
 
-Current closed set: **20 core + 28 device = 48** capability ids. Current
-`HOST_API_VERSION` is **0.10.0**.
+Current closed set: **21 core + 28 device = 49** capability ids. Current
+`HOST_API_VERSION` is **0.11.0**.
 
 ## Peer implementation types
 
@@ -105,6 +105,7 @@ Cross-cutting wiring gaps (affect many rows below):
 | `peer:connect` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · unit · soft |
 | `relay:configure` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | done · unit · soft |
 | `relay:read` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | done · unit · soft |
+| `freenet:contract` | partial · unit · soft | n/a · n/a · n/a | n/a · n/a · n/a | n/a · n/a · n/a | partial · unit · soft |
 
 ### Core notes
 
@@ -130,6 +131,12 @@ Cross-cutting wiring gaps (affect many rows below):
   (`packages/cli/test/host-relay-device-wiring.test.ts`). On desktop/android/ios, worklets
   inject `createWorkletFlagRelayService` over Settings `applyInterfaceConfig` → `partial`
   (bridge mode / InterfaceManager ownership still open).
+- **`freenet:contract`**: brokered in HOST_API 0.11.0 with irreversible-update
+  confirmation on put/update. `createNodeHost` exposes `freenetBackend` when
+  `interfaces.freenet.url` is set; desktop Settings drive a worklet proxy via
+  `set-freenet-config` and show Freenet status rows. Mobile/web stay `n/a`
+  until remote-node grant UX (S8) is honest. Decision:
+  [ADR](adr-freenet-app-execution.md) Option A.
 
 ## Device capabilities
 

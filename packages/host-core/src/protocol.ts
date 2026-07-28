@@ -77,6 +77,10 @@ export interface WorkletStatus {
   readonly bandwidthBytesOut?: number;
   readonly transportEnabled: boolean;
   readonly propagationEnabled: boolean;
+  /** Desktop Freenet contract client; independent of HDLC Freenet interface. */
+  readonly freenetEnabled?: boolean;
+  readonly freenetConfigured?: boolean;
+  readonly freenetUrl?: string | null;
   readonly propagationStoreBytes: number;
   readonly propagationMessageCount: number;
   readonly catalogEntries: number;
@@ -131,6 +135,21 @@ export type HostToWorkletMessage =
     }
   | { readonly type: "set-developer-mode"; readonly enabled: boolean }
   | { readonly type: "set-propagation"; readonly enabled: boolean }
+  | {
+      readonly type: "set-ai-config";
+      readonly config: {
+        readonly baseUrl: string;
+        readonly apiKey: string;
+        readonly model: string;
+        readonly embeddingModel?: string;
+      } | null;
+    }
+  | {
+      readonly type: "set-freenet-config";
+      readonly enabled: boolean;
+      readonly url?: string | null;
+      readonly authToken?: string;
+    }
   | { readonly type: "list-catalog" }
   | { readonly type: "list-installed" }
   | { readonly type: "install-app"; readonly appId: string; readonly forcePath?: "hyperdrive" | "lan-mirror" | "freenet" | "resource"; readonly archiveHex?: string }

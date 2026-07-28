@@ -116,6 +116,11 @@ export type {
 export type { CasShareBackend } from "./host.js";
 export { PeerBrokerService, PeerServiceError, DEFAULT_PEER_TIMEOUT_MS, MAX_PEER_TIMEOUT_MS, MAX_PEER_PURPOSE_LENGTH } from "./services/peers.js";
 export {
+  FreenetBrokerService,
+  FreenetBrokerServiceError
+} from "./services/freenet.js";
+export type { FreenetContractBackend } from "./services/freenet.js";
+export {
   createWorkletFlagRelayService
 } from "./services/worklet-flag-relay.js";
 export type {

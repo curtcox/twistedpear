@@ -369,9 +369,20 @@ The gate is being enforced rather than treated as prose:
   store proof. When `roles.propagation` and `interfaces.freenet` are enabled
   with a URL, `createNodeHost` attaches the Freenet store as the remote mirror
   and pulls on startup.
+- **F5 capability surface landed (software):** `freenet:contract` is in
+  `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0
+  brokers `get` / `put` / `update` with confirmation on put/update.
+  `createNodeHost` exposes `freenetBackend` when `interfaces.freenet.url` is
+  set (independent of the HDLC `enabled` flag); desktop injects a lazy proxy
+  driven by `set-freenet-config`. Desktop Settings expose enable / URL / optional
+  auth token, and Node status shows Freenet rows. Mobile/web remain off per S8.
+- **F6 Option A ADR recorded:** [adr-freenet-app-execution.md](adr-freenet-app-execution.md)
+  accepts mini-apps as Freenet clients (not hosts), based on S7 read evidence
+  and S4/S8 blockers for B/C.
 - **Gate partially open:** S2 local latency, S6, and S8 satisfy the F0 proceed
   criteria for roles 1 and 3, and make role 2 viable on the measured path.
-  F2/F3 software wiring is largely landed; F4–F6 remain open (S5/S4/S7).
+  F2/F3/F5 software wiring and the F6 Option A ADR are landed; F4 remains
+  blocked on S5; live S2/S7 write need authorization.
   Current machine-readable status is
   [conformance/freenet-spike/evidence-status.json](../conformance/freenet-spike/evidence-status.json)
   and

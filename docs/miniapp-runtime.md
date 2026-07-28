@@ -64,10 +64,11 @@ surface.
 Host API `0.7.0` adds `workspace.patch()` and delta-valued `code-editor` events. Patches
 carry UTF-16 offsets against an expected base length; stale or overlapping edits fail
 before storage changes.
-Host API `0.8.0` adds `peer:connect`. A host-provided peer session manager owns mechanism
-selection, permissions, invitation authentication, confirmation, and route setup. The broker
-derives the default service from the app id, rejects cross-app service names, and returns
-runtime-scoped opaque handles. Stopping the runtime or revoking the grant closes its handles.
+Host API `0.9.0` adds `relay:configure` / `relay:read`.
+Host API `0.11.0` adds `freenet:contract` for brokered Freenet contract
+`get` / `put` / `update`. Put and update ask each time; grant wording states that
+updates are published to a global network and cannot be recalled. See
+[ADR: Freenet app execution](adr-freenet-app-execution.md).
 
 Unknown strings block install with guidance to update `minHostApi`. Grants are keyed by
 `appId + publisherPublicKey`, survive updates signed by the same publisher, and are
