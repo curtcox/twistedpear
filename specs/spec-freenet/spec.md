@@ -6,7 +6,7 @@ audited: 2026-07-28
 register: none
 -->
 
-**Group:** A (adopted binding) · **Status:** stub · **Migration phase:** F1–F2 codecs
+**Group:** A (adopted binding) · **Status:** stub · **Migration phase:** F1–F3 codecs
 
 ## Scope
 
@@ -18,10 +18,10 @@ existing signed manifest, per-file hashes, signed 256t locator, and archive hash
 The implemented slices are the immutable locator/package state used by the
 optional `freenet` package fetch path, the convergent packet-log state
 encoding that F2 will carry over Freenet, and the LXMF propagation-set
-encoding for F3. Local S2 update→notify latency evidence is recorded in
+encoding plus WASM contract for F3. Local S2 update→notify latency evidence is
+recorded in
 [measured-roundtrip.json](../../conformance/freenet-spike/measured-roundtrip.json);
-a wired `FreenetInterface` and Freenet-backed propagation adapter are still
-gated and must not land as stubs.
+a wired `FreenetInterface` is still gated and must not land as a stub.
 
 The S3 ordered-log spike and measurements under
 [conformance/freenet-spike](../../conformance/freenet-spike/s3-report.md)
@@ -36,12 +36,13 @@ match the adopted packet-log codec below.
   packet-log encoding and merge behavior. It is exercised by
   [packet-log.test.ts](../../packages/bridge-freenet/test/packet-log.test.ts).
 - [vectors/propagation-set-state.json](vectors/propagation-set-state.json) pins
-  the F3 per-destination LXMF ciphertext set encoding. It is exercised by
+  the F3 per-destination LXMF ciphertext set encoding and the generated
+  propagation-set WASM identity. It is exercised by
   [propagation-set.test.ts](../../packages/bridge-freenet/test/propagation-set.test.ts).
 - The signed locator nested inside the state is governed by
   [SPEC-NAME](../spec-name/spec.md); this spec does not redefine its signature.
 - The pinned upstream SDK is `@freenetorg/freenet-stdlib` 0.3.0. The Rust
-  contract pins freenet-stdlib commit
+  contracts pin freenet-stdlib commit
   `f4636e502876b0e11f2f6d59032348cfd6518bbc`.
 
 ## Locator state encoding
@@ -100,20 +101,23 @@ before publish; this encoding does not replace `PropagationServer` quotas.
 
 - TypeScript client, encoder, publisher, and fetcher:
   [packages/bridge-freenet](../../packages/bridge-freenet/)
-- Freenet WASM contract source:
-  [contract/locator](../../packages/bridge-freenet/contract/locator/)
+- Freenet WASM contract sources:
+  [contract/locator](../../packages/bridge-freenet/contract/locator/) and
+  [contract/propagation-set](../../packages/bridge-freenet/contract/propagation-set/)
 - Packet-log codec:
   [packet-log.ts](../../packages/bridge-freenet/src/core/packet-log.ts)
-- Propagation-set codec:
-  [propagation-set.ts](../../packages/bridge-freenet/src/core/propagation-set.ts)
+- Propagation-set codec and store:
+  [propagation-set.ts](../../packages/bridge-freenet/src/core/propagation-set.ts),
+  [freenet-propagation-store.ts](../../packages/bridge-freenet/src/server/freenet-propagation-store.ts)
 - Fetch path integration:
   [bridge-hyper fetch](../../packages/bridge-hyper/src/core/fetch.ts)
 
 ## Remaining gates
 
 Live S2 confirmation, cross-node notify under locator reordering, S4, S5, S7,
-a wired (non-stub) F2 interface, and a Freenet-backed propagation adapter with
-the node-A-offline/node-B retrieval proof remain open; S1, S3, S6, S8, and
-local S2 are recorded as complete or partial-complete. No bitrate, latency,
-mobile support, bundled-binary support, or app execution claim is normative
-until the corresponding evidence gate passes.
+and a wired (non-stub) F2 interface remain open. The F3 WASM contract is
+pinned; the isolated offline-A/retrieve-B store proof is exercised by
+`npm run test:freenet-propagation`. Host wiring of `PropagationRemoteMirror`
+into shipping nodes remains gated. No bitrate, latency, mobile support,
+bundled-binary support, or app execution claim is normative until the
+corresponding evidence gate passes.

@@ -86,6 +86,15 @@ It runs the native convergence tests, builds the pinned Freenet WASM contract,
 and regenerates [s3-measurements.json](s3-measurements.json). The conclusion
 and limits are in [s3-report.md](s3-report.md).
 
+F3's isolated offline-A/retrieve-B store proof:
+
+```sh
+npm run test:freenet-propagation
+```
+
+Evidence is in [f3-propagation-proof.json](f3-propagation-proof.json) and
+[f3-report.md](f3-report.md).
+
 S4 reuses the hardened sandbox benchmarks. Node and Chromium results plus the
 pending BareKit device row are recorded in
 [s4-support-matrix.json](s4-support-matrix.json) and interpreted in

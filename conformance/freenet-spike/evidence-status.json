@@ -72,7 +72,19 @@
   },
   "gate": {
     "status": "partially-open",
-    "reason": "local S2 latency evidence is sufficient for role viability; live S2 confirmation and remaining S4/S5/S7 items still gate later phases",
-    "completionAudit": "completion-audit.md"
+    "reason": "local S2 latency evidence is sufficient for role viability; live S2 confirmation and remaining S4/S5/S7 items still gate later phases; F3 WASM + local store proof are recorded",
+    "completionAudit": "completion-audit.md",
+    "f3": {
+      "status": "partial",
+      "artifact": "f3-propagation-proof.json",
+      "supportingArtifacts": [
+        "f3-report.md",
+        "prove-f3-propagation.mjs",
+        "run-local-f3.mjs",
+        "../../packages/bridge-freenet/contract/propagation-set/propagation-set-contract.wasm"
+      ],
+      "conclusion": "propagation-set WASM is pinned and an isolated offline-A/retrieve-B store proof passes; shipping host mirror wiring remains open",
+      "remaining": "wire PropagationRemoteMirror into operator-facing hosts; optional multi-Freenet-node retrieval evidence"
+    }
   }
 }

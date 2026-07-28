@@ -24,15 +24,21 @@ npm run build:freenet-contract
 npm run test:freenet-spike
 ```
 
-The Rust contract build uses the toolchain and `wasm32-unknown-unknown` target
-pinned in `contract/locator/rust-toolchain.toml`. The generated
-`locator-contract.wasm` is not hand-authored and must be regenerated from
-`contract/locator`; its size and hashes are pinned by SPEC-FREENET.
+The Rust contract builds use the toolchain and `wasm32-unknown-unknown` target
+pinned in each contract's `rust-toolchain.toml`. Generated WASM artifacts are
+not hand-authored:
+
+- `contract/locator/locator-contract.wasm` — F1 locator/package state
+- `contract/propagation-set/propagation-set-contract.wasm` — F3 LXMF set
+
+Rebuild with `npm run build:freenet-contract` (or pass `locator` /
+`propagation-set` to build one). Size and hashes are pinned by SPEC-FREENET.
 
 ## Status
 
 The integration is optional and off by default. Package publication is exposed
 through `tp publish --freenet` when a node and built contract are available.
-Packet tunneling, LXMF propagation backing, node binary bundling, mobile
-support, and app execution remain behind the evidence gates in the
-[Freenet integration plan](../../docs/freenet-integration-plan.md).
+The F3 propagation-set WASM and local offline-A/retrieve-B proof harness are
+in place; a wired host propagation path, packet tunneling, node binary
+bundling, mobile support, and app execution remain behind the evidence gates
+in the [Freenet integration plan](../../docs/freenet-integration-plan.md).

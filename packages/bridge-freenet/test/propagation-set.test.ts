@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { hexToBytes } from "@twistedpear/reticulum-ts";
+import { hexToBytes, NodeCryptoProvider } from "@twistedpear/reticulum-ts";
 import {
+  FreenetClient,
   decodePropagationSetParameters,
   decodePropagationSetState,
   encodePropagationSetParameters,
@@ -18,6 +19,16 @@ const vector = JSON.parse(
     "utf8"
   )
 ) as {
+  contractArtifact: {
+    bytes: number;
+    sha256Hex: string;
+    codeHashHex: string;
+  };
+  keyDerivation: {
+    parametersHex: string;
+    codeHashHex: string;
+    instanceIdHex: string;
+  };
   parametersHex: string;
   cases: Array<{
     name: string;
@@ -29,6 +40,8 @@ const vector = JSON.parse(
 };
 
 describe("Freenet propagation-set state", () => {
+  const provider = new NodeCryptoProvider();
+
   it("encodes destination-hash parameters", () => {
     const encoded = encodePropagationSetParameters({
       destinationHash: hexToBytes(vector.parametersHex)
@@ -37,6 +50,47 @@ describe("Freenet propagation-set state", () => {
     expect(decodePropagationSetParameters(encoded).destinationHash).toEqual(
       hexToBytes(vector.parametersHex)
     );
+  });
+
+  it("pins Freenet's contract-key derivation for the propagation artifact", () => {
+    const wasm = Uint8Array.from(
+      readFileSync(
+        new URL(
+          "../contract/propagation-set/propagation-set-contract.wasm",
+          import.meta.url
+        )
+      )
+    );
+    const derived = FreenetClient.deriveKey({
+      wasm,
+      parameters: hexToBytes(vector.keyDerivation.parametersHex)
+    });
+    expect(Buffer.from(derived.codeHash).toString("hex")).toBe(
+      vector.keyDerivation.codeHashHex
+    );
+    expect(Buffer.from(derived.key).toString("hex")).toBe(
+      vector.keyDerivation.instanceIdHex
+    );
+  });
+
+  it("pins the generated propagation-set contract artifact", () => {
+    const wasm = Uint8Array.from(
+      readFileSync(
+        new URL(
+          "../contract/propagation-set/propagation-set-contract.wasm",
+          import.meta.url
+        )
+      )
+    );
+    expect(wasm).toHaveLength(vector.contractArtifact.bytes);
+    expect(Buffer.from(provider.sha256(wasm)).toString("hex")).toBe(
+      vector.contractArtifact.sha256Hex
+    );
+    expect(
+      Buffer.from(
+        FreenetClient.deriveKey({ wasm, parameters: new Uint8Array() }).codeHash
+      ).toString("hex")
+    ).toBe(vector.contractArtifact.codeHashHex);
   });
 
   for (const testCase of vector.cases) {
