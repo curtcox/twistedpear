@@ -21,8 +21,10 @@ import { selectPreferredInterface } from "../../../packages/reticulum-interfaces
 import { CatalogStore, InstalledPackageStore, TrustStore, decodeAppAnnounceData, decodePublisherIdentity256t, encodePublisherIdentity256t, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
 import { PackageResourceClient, assessFetchBudget, attachPackageResourceServer, fetchPackage } from "../../../packages/bridge-hyper/dist/worklet.js";
 import {
-  FreenetClientContractBackend
+  FreenetClientContractBackend,
+  FreenetContractPacketLogBackend
 } from "../../../packages/bridge-freenet/dist/index.js";
+import { FreenetInterface } from "../../../packages/reticulum-interfaces/dist/freenet.js";
 import {
   buildAppAnnounceSummary,
   encodeAppAnnounceData
@@ -205,6 +207,9 @@ const status = {
   freenetEnabled: false,
   freenetUrl: null,
   freenetConfigured: false,
+  freenetInterfaceEnabled: false,
+  freenetInterfaceOnline: false,
+  freenetRendezvousHex: null,
   propagationStoreBytes: 0,
   propagationMessageCount: 0,
   catalogEntries: 0,
@@ -266,6 +271,14 @@ let propagationServer = null;
 /** @type {import("@twistedpear/lxmf-ts").RegisteredDestination | null} */
 let propagationDestination = null;
 
+/** @type {import("../../../packages/reticulum-interfaces/dist/freenet.js").FreenetInterface | null} */
+let freenetIface = null;
+/** @type {string | null} */
+let pendingFreenetAuthToken = null;
+/** @type {0 | 1} */
+let pendingFreenetLocalDirection = 0;
+/** @type {Uint8Array | null} */
+let packetLogWasmCache = null;
 /** @type {ReturnType<typeof createWorkletMiniappHost> | null} */
 let miniappHost = null;
 /** @type {FreenetClientContractBackend | null} */
@@ -940,7 +953,12 @@ function ensureMiniappHost() {
         if (status.autoEnabled) interfaceTypes.push("auto");
         if (status.bleEnabled) interfaceTypes.push("ble");
         if (status.rnodeEnabled) interfaceTypes.push("rnode");
-        if (status.freenetEnabled && status.freenetConfigured) interfaceTypes.push("freenet");
+        if (
+          (status.freenetEnabled && status.freenetConfigured) ||
+          status.freenetInterfaceEnabled
+        ) {
+          interfaceTypes.push("freenet");
+        }
         return {
           platform: "desktop",
           hostVersion: HOST_API_VERSION,
@@ -1420,6 +1438,88 @@ async function stopRnodeInterface() {
   status.rnodeDeviceName = null;
 }
 
+async function stopFreenetInterface() {
+  if (freenetIface !== null) {
+    if (reticulum !== null) {
+      reticulum.unregisterInterface(freenetIface);
+    }
+    await freenetIface.close().catch(() => {});
+    freenetIface = null;
+  }
+  status.freenetInterfaceOnline = false;
+}
+
+async function loadPacketLogWasm() {
+  if (packetLogWasmCache !== null) {
+    return packetLogWasmCache;
+  }
+  const { readFileSync } = await import("node:fs");
+  const { dirname, join } = await import("node:path");
+  const { createRequire } = await import("node:module");
+  const require = createRequire(import.meta.url);
+  const packageJson = require.resolve("@twistedpear/bridge-freenet/package.json");
+  packetLogWasmCache = Uint8Array.from(
+    readFileSync(join(dirname(packageJson), "contract/packet-log/packet-log-contract.wasm"))
+  );
+  return packetLogWasmCache;
+}
+
+async function startFreenetInterface() {
+  const url = status.freenetUrl;
+  const rendezvousHex = status.freenetRendezvousHex;
+  if (url === null || url.length === 0) {
+    log("Freenet HDLC interface requires a WebSocket URL");
+    status.freenetInterfaceEnabled = false;
+    pushStatus();
+    return;
+  }
+  if (typeof rendezvousHex !== "string" || !/^[0-9a-fA-F]{64}$/.test(rendezvousHex)) {
+    log("Freenet HDLC interface requires a 64-character hex rendezvous");
+    status.freenetInterfaceEnabled = false;
+    pushStatus();
+    return;
+  }
+
+  const node = await ensureReticulum();
+  if (freenetIface !== null) {
+    status.freenetInterfaceOnline = freenetIface.online === true;
+    pushStatus();
+    return;
+  }
+
+  try {
+    const wasm = await loadPacketLogWasm();
+    const backend = new FreenetContractPacketLogBackend({
+      clientOptions: {
+        url,
+        ...(pendingFreenetAuthToken === null ? {} : { authToken: pendingFreenetAuthToken })
+      },
+      wasm,
+      rendezvous: hexToBytes(rendezvousHex),
+      localDirection: pendingFreenetLocalDirection,
+      updateOptions: { codeField: wasm }
+    });
+    freenetIface = await FreenetInterface.open(provider, {
+      name: "host-freenet",
+      provider,
+      backend
+    });
+    node.registerInterface(freenetIface);
+    status.freenetInterfaceOnline = freenetIface.online === true;
+    log(
+      status.freenetInterfaceOnline
+        ? "Freenet HDLC interface online"
+        : "Freenet HDLC interface started; waiting for Freenet node"
+    );
+  } catch (error) {
+    freenetIface = null;
+    status.freenetInterfaceOnline = false;
+    status.freenetInterfaceEnabled = false;
+    log(`Freenet HDLC interface failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  pushStatus();
+}
+
 async function stopAutoInterface() {
   if (autoIface !== null) {
     await autoIface.close();
@@ -1459,6 +1559,7 @@ async function stopNode() {
   await stopAutoInterface();
   await stopBleInterface();
   await stopRnodeInterface();
+  await stopFreenetInterface();
 
   if (reticulum !== null) {
     reticulum.stop();
@@ -1472,6 +1573,7 @@ async function quiesceInterfaces() {
   await stopAutoInterface();
   await stopBleInterface();
   await stopRnodeInterface();
+  await stopFreenetInterface();
   pushStatus();
 }
 
@@ -1729,7 +1831,13 @@ async function applyInterfaceConfig() {
     return;
   }
 
-  if (!status.tcpEnabled && !status.autoEnabled && !status.bleEnabled && !status.rnodeEnabled) {
+  if (
+    !status.tcpEnabled &&
+    !status.autoEnabled &&
+    !status.bleEnabled &&
+    !status.rnodeEnabled &&
+    !status.freenetInterfaceEnabled
+  ) {
     await stopNode();
     log("All interfaces disabled; node stopped");
     return;
@@ -1751,6 +1859,12 @@ async function applyInterfaceConfig() {
     await startRnodeInterface();
   } else {
     await stopRnodeInterface();
+  }
+
+  if (status.freenetInterfaceEnabled) {
+    await startFreenetInterface();
+  } else {
+    await stopFreenetInterface();
   }
 
   if (status.tcpEnabled) {
@@ -2325,13 +2439,23 @@ async function handleHostMessage(raw) {
 
   if (message.type === "set-freenet-config") {
     const enabled = message.enabled === true;
+    const interfaceEnabled = message.interfaceEnabled === true;
     const url = typeof message.url === "string" && message.url.length > 0 ? message.url : null;
     const authToken =
       typeof message.authToken === "string" && message.authToken.length > 0
         ? message.authToken
         : undefined;
+    const rendezvousHex =
+      typeof message.rendezvousHex === "string" && message.rendezvousHex.length > 0
+        ? message.rendezvousHex
+        : null;
+    const localDirection = message.localDirection === 1 ? 1 : 0;
     status.freenetEnabled = enabled;
-    status.freenetUrl = enabled ? url : null;
+    status.freenetInterfaceEnabled = interfaceEnabled;
+    status.freenetUrl = url;
+    status.freenetRendezvousHex = rendezvousHex;
+    pendingFreenetAuthToken = authToken ?? null;
+    pendingFreenetLocalDirection = localDirection;
     if (freenetBackendImpl !== null) {
       await freenetBackendImpl.close().catch(() => {});
       freenetBackendImpl = null;
@@ -2348,6 +2472,7 @@ async function handleHostMessage(raw) {
       status.freenetConfigured = false;
     }
     pushStatus();
+    await applyInterfaceConfig();
     return;
   }
 

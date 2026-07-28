@@ -81,6 +81,9 @@ export interface WorkletStatus {
   readonly freenetEnabled?: boolean;
   readonly freenetConfigured?: boolean;
   readonly freenetUrl?: string | null;
+  readonly freenetInterfaceEnabled?: boolean;
+  readonly freenetInterfaceOnline?: boolean;
+  readonly freenetRendezvousHex?: string | null;
   readonly propagationStoreBytes: number;
   readonly propagationMessageCount: number;
   readonly catalogEntries: number;
@@ -147,8 +150,11 @@ export type HostToWorkletMessage =
   | {
       readonly type: "set-freenet-config";
       readonly enabled: boolean;
+      readonly interfaceEnabled?: boolean;
       readonly url?: string | null;
       readonly authToken?: string;
+      readonly rendezvousHex?: string;
+      readonly localDirection?: 0 | 1;
     }
   | { readonly type: "list-catalog" }
   | { readonly type: "list-installed" }

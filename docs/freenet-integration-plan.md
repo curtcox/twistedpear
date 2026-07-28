@@ -336,9 +336,11 @@ The gate is being enforced rather than treated as prose:
   compilation, and the faithful BareKit device probe is still pending. Option B
   is not open.
 - **S5 is partial:** the installed 0.2.112 macOS universal binary adds roughly
-  93 MiB, but strict verification of that installed copy fails. Cross-platform
-  size measurements and a signed/notarized TwistedPear embedding remain open,
-  so F4 is not open.
+  93 MiB, but strict verification of that installed copy fails. Linux/Windows
+  compressed release-archive sizes are recorded in `s5-bundling-matrix.json`
+  (~15–18 MiB archives; Windows `freenet.exe` ~46 MiB). Fresh-signature
+  verification and a signed/notarized TwistedPear embedding remain open, so F4
+  is not open.
 - **S7 read interop passed:** the TypeScript adapter read the live Atlas CBOR
   index through the localhost node. The write half remains pending explicit
   approval because even a rejected/idempotent update exposes public operation
@@ -374,8 +376,9 @@ The gate is being enforced rather than treated as prose:
   brokers `get` / `put` / `update` with confirmation on put/update.
   `createNodeHost` exposes `freenetBackend` when `interfaces.freenet.url` is
   set (independent of the HDLC `enabled` flag); desktop injects a lazy proxy
-  driven by `set-freenet-config`. Desktop Settings expose enable / URL / optional
-  auth token, and Node status shows Freenet rows. Mobile/web remain off per S8.
+  driven by `set-freenet-config`. Desktop Settings expose contracts enable / URL /
+  optional auth token, plus an HDLC Freenet interface toggle with peer rendezvous;
+  Node status shows Freenet rows. Mobile/web remain off per S8.
 - **F6 Option A ADR recorded:** [adr-freenet-app-execution.md](adr-freenet-app-execution.md)
   accepts mini-apps as Freenet clients (not hosts), based on S7 read evidence
   and S4/S8 blockers for B/C.

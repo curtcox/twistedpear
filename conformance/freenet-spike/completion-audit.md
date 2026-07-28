@@ -17,7 +17,7 @@ passed.
 | S2 update-to-notify | partial | `measured-roundtrip.json`: local 3-node, 100 samples/size, p95 ~89 ms (≤64 KiB) / ~256 ms (1 MiB) on local-executor notify; live series and cross-node notify still open |
 | S3 convergent log | complete | `s3-report.md`, Rust contract, native convergence tests and committed measurements; the current machine cannot rebuild WASM because its Rust installation lacks the pinned WASM target |
 | S4 sandboxed WASM | partial | Node passes; browser CSP blocks compilation; physical BareKit device run is pending |
-| S5 bundled node | partial | installed macOS binary size measured; fresh artifact verification, Linux/Windows, embedding, signing and notarization remain |
+| S5 bundled node | partial | installed macOS size + signature inspection; Linux/Windows compressed release archive sizes in `s5-bundling-matrix.json`; fresh verify + TP embedding/signing remain |
 | S6 API churn | complete | `churn-report.md` and exact SDK/core/stdlib pins |
 | S7 live-app interop | partial | Atlas read passes; a public update requires explicit authorization and an app signing/curator path |
 | S8 privacy posture | complete for F1 | `docs/security-review.md`; mobile and expanded roles retain explicit warnings |
@@ -26,7 +26,7 @@ passed.
 | F2 packet interface | wired + announce/LXMF (sim) + relay policy | SPEC-FREENET packet-log WASM; `FreenetInterface`; host `freenet` at 90 kbps; HDLC live proof; simulated announce+LXMF; BridgeForwarder freenet source/dest policy. Live multi-Freenet-node confirmation optional |
 | F3 propagation backing | WASM + store proof + host mirror | SPEC-FREENET propagation-set WASM; `FreenetPropagationStore`; isolated offline-A/retrieve-B; `createNodeHost` attaches remote mirror when freenet URL + propagation role enabled |
 | F4 provisioning | blocked by S5 | no daemon bundle, supervisor, platform artifact matrix or signing result |
-| F5 capability/UI | capability + desktop chrome | `freenet:contract` + HOST_API 0.11.0 get/put/update with irreversible confirmation; desktop Settings enable/URL/token → `set-freenet-config`; status rows for Freenet; mobile/web off per S8 |
+| F5 capability/UI | capability + desktop chrome | `freenet:contract` + HOST_API 0.11.0; desktop Settings for contracts and HDLC Freenet interface (URL/rendezvous); status rows; mobile/web off per S8 |
 | F6 app-execution ADR | Option A accepted | [adr-freenet-app-execution.md](../../docs/adr-freenet-app-execution.md); B/C deferred on S4/platform-shape |
 
 ## External evidence still required

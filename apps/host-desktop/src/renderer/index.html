@@ -96,7 +96,12 @@
             Freenet auth token (optional)
             <input type="password" id="setting-freenet-token" class="setting-input" autocomplete="off" />
           </label>
-          <small class="setting-note">Off by default. Enables <code>freenet:contract</code> for granted mini-apps against a local or remote Freenet node. Updates published there cannot be recalled.</small>
+          <label><input type="checkbox" id="setting-freenet-interface" /> Freenet as Reticulum interface (HDLC)</label>
+          <label>
+            Freenet peer rendezvous (64 hex chars)
+            <input type="text" id="setting-freenet-rendezvous" placeholder="32-byte shared hex" class="setting-input" autocomplete="off" spellcheck="false" />
+          </label>
+          <small class="setting-note">Contracts enable <code>freenet:contract</code> for granted mini-apps. The HDLC interface carries Reticulum frames over a Freenet packet-log contract and needs a shared rendezvous with the peer. Off by default; mobile/web do not expose this. Updates published to Freenet cannot be recalled.</small>
           <label>
             AI endpoint (OpenRouter-compatible)
             <input type="text" id="setting-ai-url" placeholder="https://openrouter.ai/api/v1" class="setting-input" />

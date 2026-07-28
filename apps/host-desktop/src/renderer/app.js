@@ -46,6 +46,8 @@ const settingRnodePort = document.querySelector("#setting-rnode-port");
 const settingFreenet = document.querySelector("#setting-freenet");
 const settingFreenetUrl = document.querySelector("#setting-freenet-url");
 const settingFreenetToken = document.querySelector("#setting-freenet-token");
+const settingFreenetInterface = document.querySelector("#setting-freenet-interface");
+const settingFreenetRendezvous = document.querySelector("#setting-freenet-rendezvous");
 const joinCommunityNetwork = document.querySelector("#join-community-network");
 const identityCurrent = document.querySelector("#identity-current");
 const identityNext = document.querySelector("#identity-next");
@@ -682,6 +684,8 @@ function renderStatus(status) {
     ["Freenet", String(status.freenetEnabled ?? false)],
     ["Freenet configured", String(status.freenetConfigured ?? false)],
     ["Freenet URL", status.freenetUrl ?? "—"],
+    ["Freenet HDLC", String(status.freenetInterfaceEnabled ?? false)],
+    ["Freenet HDLC online", String(status.freenetInterfaceOnline ?? false)],
     ["Propagation", String(status.propagationEnabled ?? false)],
     ["Link online", String(status.linkOnline)],
     ["Auto peers", String(status.autoPeers)],
@@ -912,17 +916,26 @@ if (!host) {
 
   const applyFreenetSettings = () => {
     const enabled = settingFreenet?.checked === true;
+    const interfaceEnabled = settingFreenetInterface?.checked === true;
     const url = settingFreenetUrl?.value.trim() ?? "";
     const authToken = settingFreenetToken?.value.trim() ?? "";
+    const rendezvousHex = settingFreenetRendezvous?.value.trim() ?? "";
     localStorage.setItem(
       "tp-freenet-config",
-      JSON.stringify({ enabled, url: url.length > 0 ? url : undefined })
+      JSON.stringify({
+        enabled,
+        interfaceEnabled,
+        url: url.length > 0 ? url : undefined,
+        rendezvousHex: rendezvousHex.length > 0 ? rendezvousHex : undefined
+      })
     );
     host.send({
       type: "set-freenet-config",
       enabled,
+      interfaceEnabled,
       url: url.length > 0 ? url : null,
-      ...(authToken.length > 0 ? { authToken } : {})
+      ...(authToken.length > 0 ? { authToken } : {}),
+      ...(rendezvousHex.length > 0 ? { rendezvousHex } : {})
     });
   };
 
@@ -931,19 +944,31 @@ if (!host) {
     if (settingFreenet && typeof savedFreenet.enabled === "boolean") {
       settingFreenet.checked = savedFreenet.enabled;
     }
+    if (settingFreenetInterface && typeof savedFreenet.interfaceEnabled === "boolean") {
+      settingFreenetInterface.checked = savedFreenet.interfaceEnabled;
+    }
     if (settingFreenetUrl && typeof savedFreenet.url === "string") {
       settingFreenetUrl.value = savedFreenet.url;
+    }
+    if (settingFreenetRendezvous && typeof savedFreenet.rendezvousHex === "string") {
+      settingFreenetRendezvous.value = savedFreenet.rendezvousHex;
     }
   } catch {
     // ignore malformed saved settings
   }
 
-  for (const element of [settingFreenet, settingFreenetUrl, settingFreenetToken]) {
+  for (const element of [
+    settingFreenet,
+    settingFreenetUrl,
+    settingFreenetToken,
+    settingFreenetInterface,
+    settingFreenetRendezvous
+  ]) {
     element?.addEventListener("change", applyFreenetSettings);
   }
 
   // Restore Freenet backend after worklet restart if Settings were previously on.
-  if (settingFreenet?.checked === true) {
+  if (settingFreenet?.checked === true || settingFreenetInterface?.checked === true) {
     applyFreenetSettings();
   }
 
