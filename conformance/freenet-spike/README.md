@@ -95,6 +95,15 @@ npm run test:freenet-propagation
 Evidence is in [f3-propagation-proof.json](f3-propagation-proof.json) and
 [f3-report.md](f3-report.md).
 
+F2's isolated FreenetInterface HDLC exchange:
+
+```sh
+npm run test:freenet-interface
+```
+
+Evidence is in [f2-interface-proof.json](f2-interface-proof.json) and
+[f2-report.md](f2-report.md).
+
 S4 reuses the hardened sandbox benchmarks. Node and Chromium results plus the
 pending BareKit device row are recorded in
 [s4-support-matrix.json](s4-support-matrix.json) and interpreted in

@@ -60,3 +60,9 @@ export type {
   FreenetPropagationEntry,
   FreenetPropagationStoreOptions
 } from "./server/freenet-propagation-store.js";
+export {
+  FreenetContractPacketLogBackend
+} from "./client/freenet-packet-log-backend.js";
+export type {
+  FreenetPacketLogBackendOptions
+} from "./client/freenet-packet-log-backend.js";

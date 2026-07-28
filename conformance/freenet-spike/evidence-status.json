@@ -74,6 +74,18 @@
     "status": "partially-open",
     "reason": "local S2 latency evidence is sufficient for role viability; live S2 confirmation and remaining S4/S5/S7 items still gate later phases; F3 WASM + local store proof are recorded",
     "completionAudit": "completion-audit.md",
+    "f2": {
+      "status": "partial",
+      "artifact": "f2-interface-proof.json",
+      "supportingArtifacts": [
+        "f2-report.md",
+        "prove-f2-interface.mjs",
+        "run-local-f2.mjs",
+        "../../packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm"
+      ],
+      "conclusion": "FreenetInterface exchanges HDLC frames over the pinned packet-log contract at the S2-derived 90 kbps policy bitrate; announce+LXMF exit remains open",
+      "remaining": "two-host announce + LXMF round trip; relay-policy matrix coverage for freenet as source and destination"
+    },
     "f3": {
       "status": "partial",
       "artifact": "f3-propagation-proof.json",

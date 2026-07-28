@@ -30,6 +30,7 @@ describe("interface prioritization policy", () => {
     expect(inferInterfaceKind("docker-peer")).toBe(InterfaceKind.UNKNOWN);
     expect(inferInterfaceKind("harness-ble")).toBe(InterfaceKind.BLE);
     expect(inferInterfaceKind("rnode-usb")).toBe(InterfaceKind.RNODE);
+    expect(inferInterfaceKind("host-freenet")).toBe(InterfaceKind.FREENET);
   });
 
   it("ranks AutoInterface above TCP above BLE", () => {

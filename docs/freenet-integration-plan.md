@@ -350,9 +350,11 @@ The gate is being enforced rather than treated as prose:
   artifact. Live-network confirmation still needs explicit authorization;
   per §12, live runs are evidence rather than gates. Cross-node notify under
   locator min-merge reordering remains an open measurement, not fabricated.
-- **F2 codec foundation landed (no interface stub):** SPEC-FREENET packet-log
-  vectors and `bridge-freenet` encode/decode/merge match the S3 ordered-log
-  spike. A wired `FreenetInterface` is still absent by design.
+- **F2 interface wired:** SPEC-FREENET packet-log WASM + vectors,
+  `FreenetInterface` / `FreenetContractPacketLogBackend`, host-core `freenet`
+  kind at the S2-derived 90 kbps policy bitrate, and
+  `npm run test:freenet-interface` HDLC packet exchange. Announce + LXMF
+  two-host exit and relay-policy matrix coverage remain open.
 - **F3 codec foundation landed (no store adapter):** SPEC-FREENET
   propagation-set vectors and `bridge-freenet` encode/decode/merge cover
   per-destination LXMF ciphertext sets. A Freenet-backed
@@ -365,8 +367,8 @@ The gate is being enforced rather than treated as prose:
   store proof. Operator-facing host mirror wiring remains open.
 - **Gate partially open:** S2 local latency, S6, and S8 satisfy the F0 proceed
   criteria for roles 1 and 3, and make role 2 viable on the measured path.
-  F2 still must not land as a stub; F4–F6 remain unshipped pending their
-  own exits. Current machine-readable status is
+  F2 interface wiring is landed; announce/LXMF exit and F4–F6 remain open.
+  Current machine-readable status is
   [conformance/freenet-spike/evidence-status.json](../conformance/freenet-spike/evidence-status.json)
   and
   [measured-roundtrip.json](../conformance/freenet-spike/measured-roundtrip.json).

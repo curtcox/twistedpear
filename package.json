@@ -36,6 +36,7 @@
     "test:freenet-local-network": "npm run build --workspace=@twistedpear/bridge-freenet && node conformance/freenet-spike/run-local-s2.mjs",
     "test:freenet-ordered-log": "node conformance/freenet-spike/run-s3.mjs",
     "test:freenet-propagation": "npm run build --workspace=@twistedpear/bridge-freenet && node conformance/freenet-spike/run-local-f3.mjs",
+    "test:freenet-interface": "npm run build --workspace=@twistedpear/reticulum-interfaces --workspace=@twistedpear/bridge-freenet && node conformance/freenet-spike/run-local-f2.mjs",
     "test:freenet-atlas-read": "npm run build --workspace=@twistedpear/bridge-freenet && node conformance/freenet-spike/probe-atlas.mjs",
     "test:bare-device": "npm run build && node conformance/bare-device/run.mjs",
     "test:bare-hyperswarm": "npm run build && node_modules/bare/bin/bare conformance/bare-hyperswarm/run.mjs",

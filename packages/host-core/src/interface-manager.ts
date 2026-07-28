@@ -13,15 +13,22 @@ import {
   BleInterface,
   OpticalInterface,
   AcousticInterface,
+  FreenetInterface,
+  FREENET_DEFAULT_BITRATE,
   DEFAULT_INTERFACE_BITRATES,
   inferInterfaceKind
 } from "@twistedpear/reticulum-interfaces";
 import type { OpticalChannel, AcousticChannel } from "@twistedpear/reticulum-interfaces";
 import { createMdnsBonjourBridge } from "@twistedpear/reticulum-interfaces/bonjour-mdns";
 import type { BlePipe } from "@twistedpear/reticulum-interfaces";
+import { FreenetContractPacketLogBackend } from "@twistedpear/bridge-freenet";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { createRequire } from "node:module";
 import type {
   AcousticInterfaceConfig,
   BluetoothInterfaceConfig,
+  FreenetInterfaceConfig,
   HostConfig,
   HostRelayConfig,
   InterfaceDirection,
@@ -46,6 +53,31 @@ export interface InterfaceEffectFactories {
 }
 
 const EFFECT_KINDS: ReadonlyArray<RelayInterfaceKind> = ["bluetooth", "optical", "acoustic"];
+
+let packetLogWasmCache: Uint8Array | null = null;
+
+function loadPacketLogWasm(): Uint8Array {
+  if (packetLogWasmCache !== null) return packetLogWasmCache;
+  const require = createRequire(import.meta.url);
+  const packageJson = require.resolve("@twistedpear/bridge-freenet/package.json");
+  const wasmPath = join(
+    dirname(packageJson),
+    "contract/packet-log/packet-log-contract.wasm"
+  );
+  packetLogWasmCache = Uint8Array.from(readFileSync(wasmPath));
+  return packetLogWasmCache;
+}
+
+function hexToBytesLocal(hex: string): Uint8Array {
+  if (!/^[0-9a-fA-F]*$/.test(hex) || hex.length % 2 !== 0) {
+    throw new Error("Freenet rendezvousHex must be even-length hex");
+  }
+  const out = new Uint8Array(hex.length / 2);
+  for (let index = 0; index < out.length; index += 1) {
+    out[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+  }
+  return out;
+}
 
 export type { OpticalChannel, AcousticChannel } from "@twistedpear/reticulum-interfaces";
 
@@ -164,7 +196,8 @@ export class InterfaceManager {
       "bluetooth",
       "optical",
       "acoustic",
-      "ntfy"
+      "ntfy",
+      "freenet"
     ];
     for (const kind of kinds) {
       const oldConfig = previous === null ? null : this.kindConfig(previous, kind);
@@ -239,7 +272,8 @@ export class InterfaceManager {
       "bluetooth",
       "optical",
       "acoustic",
-      "ntfy"
+      "ntfy",
+      "freenet"
     ];
     return kinds.map((kind) => {
       const managed = this.interfaces.get(kind);
@@ -374,6 +408,8 @@ export class InterfaceManager {
         return this.createAcousticInterface(config as AcousticInterfaceConfig, incoming, outgoing);
       case "ntfy":
         return this.createNtfyInterface(config as NtfyInterfaceConfig, incoming, outgoing);
+      case "freenet":
+        return this.createFreenetInterface(config as FreenetInterfaceConfig, incoming, outgoing);
       default:
         return null;
     }
@@ -567,6 +603,46 @@ export class InterfaceManager {
     });
     await iface.start();
     return iface;
+  }
+
+  private async createFreenetInterface(
+    config: FreenetInterfaceConfig,
+    incoming: boolean,
+    outgoing: boolean
+  ): Promise<PacketInterface | null> {
+    const url = config.url;
+    if (url === undefined || url.length === 0) {
+      throw new Error("Freenet interface requires interfaces.freenet.url");
+    }
+    const rendezvous =
+      config.rendezvousHex === undefined
+        ? this.provider.randomBytes(32)
+        : hexToBytesLocal(config.rendezvousHex);
+    if (rendezvous.length !== 32) {
+      throw new Error("Freenet rendezvous must be 32 bytes");
+    }
+    const wasm = loadPacketLogWasm();
+    const backend = new FreenetContractPacketLogBackend({
+      clientOptions: {
+        url,
+        ...(config.authToken === undefined ? {} : { authToken: config.authToken })
+      },
+      wasm,
+      rendezvous,
+      localDirection: config.localDirection ?? 0,
+      ...(config.retentionPerDirection === undefined
+        ? {}
+        : { retentionPerDirection: config.retentionPerDirection }),
+      updateOptions: { codeField: wasm }
+    });
+    return FreenetInterface.open(this.provider, {
+      name: "host-freenet",
+      provider: this.provider,
+      backend,
+      incoming,
+      outgoing,
+      bitrate: config.bitrateHint ?? FREENET_DEFAULT_BITRATE
+    });
   }
 
   private kindConfig(config: HostConfig, kind: RelayInterfaceKind): unknown {

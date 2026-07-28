@@ -10,6 +10,8 @@ export interface PacketLogEntry {
 
 export interface PacketLogParameters {
   readonly retentionPerDirection: number;
+  /** Optional 32-byte peer-pair rendezvous so tunnels do not share one contract key. */
+  readonly rendezvous?: Uint8Array;
 }
 
 function equalPrefix(bytes: Uint8Array, prefix: Uint8Array): boolean {
@@ -21,6 +23,14 @@ function assertRetention(retention: number): number {
     throw new Error("packet-log retention must be an integer in 1..65535");
   }
   return retention;
+}
+
+function assertRendezvous(rendezvous: Uint8Array | undefined): Uint8Array | undefined {
+  if (rendezvous === undefined) return undefined;
+  if (rendezvous.length !== 32) {
+    throw new Error("packet-log rendezvous must be 32 bytes");
+  }
+  return rendezvous;
 }
 
 function entryKey(entry: PacketLogEntry): string {
@@ -40,24 +50,33 @@ export function encodePacketLogParameters(
   value: PacketLogParameters
 ): Uint8Array {
   const retention = assertRetention(value.retentionPerDirection);
-  const out = new Uint8Array(2);
+  const rendezvous = assertRendezvous(value.rendezvous);
+  const out = new Uint8Array(rendezvous === undefined ? 2 : 34);
   new DataView(out.buffer).setUint16(0, retention, false);
+  if (rendezvous !== undefined) {
+    out.set(rendezvous, 2);
+  }
   return out;
 }
 
 export function decodePacketLogParameters(
   bytes: Uint8Array
 ): PacketLogParameters {
-  if (bytes.length < 2) {
+  if (bytes.length !== 2 && bytes.length !== 34) {
     throw new Error("invalid packet-log parameters");
   }
-  return {
-    retentionPerDirection: assertRetention(
-      new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint16(
-        0,
-        false
-      )
+  const retentionPerDirection = assertRetention(
+    new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint16(
+      0,
+      false
     )
+  );
+  if (bytes.length === 2) {
+    return { retentionPerDirection };
+  }
+  return {
+    retentionPerDirection,
+    rendezvous: Uint8Array.from(bytes.subarray(2))
   };
 }
 

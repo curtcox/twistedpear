@@ -10,7 +10,8 @@ export type RelayInterfaceKind =
   | "bluetooth"
   | "optical"
   | "acoustic"
-  | "ntfy";
+  | "ntfy"
+  | "freenet";
 export type InterfaceDirection = "tx" | "rx" | "both";
 
 export interface InterfaceStatus {

@@ -73,13 +73,16 @@ All integers are unsigned big-endian. Entries are sorted by
 | entry count | 4 | number of following entries |
 | entry… | variable | direction (1) + index (8) + payload length (2) + payload |
 
-Contract parameters are a 2-byte retention limit per direction. Merge unions by
-`(direction, index)`, keeps the lexicographically smaller payload on conflict,
-and retains only the highest `retention` indexes per direction.
+Contract parameters are a big-endian retention limit (2 bytes) optionally
+followed by a 32-byte peer-pair rendezvous so distinct tunnels do not share a
+contract key. Merge unions by `(direction, index)`, keeps the
+lexicographically smaller payload on conflict, and retains only the highest
+`retention` indexes per direction.
 
-This encoding is the F2 wire format foundation. Shipping a Reticulum
-`FreenetInterface` still requires a complete host wiring (no stub) plus policy
-numbers derived from S2 measurements.
+Policy bitrate for `freenet` is **90_000 bps**, derived from the local S2
+1 KiB p95 (~89 ms). `FreenetInterface` is wired through
+`packages/reticulum-interfaces/src/freenet.ts` and host-core; it must not land
+as a `return null` stub when enabled.
 
 ## Propagation-set state encoding
 
@@ -102,10 +105,14 @@ before publish; this encoding does not replace `PropagationServer` quotas.
 - TypeScript client, encoder, publisher, and fetcher:
   [packages/bridge-freenet](../../packages/bridge-freenet/)
 - Freenet WASM contract sources:
-  [contract/locator](../../packages/bridge-freenet/contract/locator/) and
+  [contract/locator](../../packages/bridge-freenet/contract/locator/),
+  [contract/packet-log](../../packages/bridge-freenet/contract/packet-log/), and
   [contract/propagation-set](../../packages/bridge-freenet/contract/propagation-set/)
-- Packet-log codec:
-  [packet-log.ts](../../packages/bridge-freenet/src/core/packet-log.ts)
+- Packet-log codec and backend:
+  [packet-log.ts](../../packages/bridge-freenet/src/core/packet-log.ts),
+  [freenet-packet-log-backend.ts](../../packages/bridge-freenet/src/client/freenet-packet-log-backend.ts)
+- Packet interface:
+  [freenet.ts](../../packages/reticulum-interfaces/src/freenet.ts)
 - Propagation-set codec and store:
   [propagation-set.ts](../../packages/bridge-freenet/src/core/propagation-set.ts),
   [freenet-propagation-store.ts](../../packages/bridge-freenet/src/server/freenet-propagation-store.ts)
@@ -115,9 +122,8 @@ before publish; this encoding does not replace `PropagationServer` quotas.
 ## Remaining gates
 
 Live S2 confirmation, cross-node notify under locator reordering, S4, S5, S7,
-and a wired (non-stub) F2 interface remain open. The F3 WASM contract is
-pinned; the isolated offline-A/retrieve-B store proof is exercised by
-`npm run test:freenet-propagation`. Host wiring of `PropagationRemoteMirror`
-into shipping nodes remains gated. No bitrate, latency, mobile support,
-bundled-binary support, or app execution claim is normative until the
-corresponding evidence gate passes.
+and the two-host Freenet-only announce + LXMF conformance proof remain open
+for calling F2 “exit complete”. The F3 WASM contract and isolated store proof
+are recorded; operator-facing host mirror wiring remains gated. No live-network
+bitrate, mobile support, bundled-binary support, or app execution claim is
+normative until the corresponding evidence gate passes.

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { hexToBytes } from "@twistedpear/reticulum-ts";
+import { hexToBytes, NodeCryptoProvider } from "@twistedpear/reticulum-ts";
 import {
+  FreenetClient,
   decodePacketLogParameters,
   decodePacketLogState,
   encodePacketLogParameters,
@@ -18,7 +19,18 @@ const vector = JSON.parse(
     "utf8"
   )
 ) as {
+  contractArtifact: {
+    bytes: number;
+    sha256Hex: string;
+    codeHashHex: string;
+  };
+  keyDerivation: {
+    parametersHex: string;
+    codeHashHex: string;
+    instanceIdHex: string;
+  };
   parametersHex: string;
+  rendezvousParametersHex: string;
   cases: Array<{
     name: string;
     retentionPerDirection: number;
@@ -30,12 +42,54 @@ const vector = JSON.parse(
 };
 
 describe("Freenet packet-log state", () => {
+  const provider = new NodeCryptoProvider();
+
   it("encodes retention parameters", () => {
     const encoded = encodePacketLogParameters({ retentionPerDirection: 8 });
     expect(Buffer.from(encoded).toString("hex")).toBe(vector.parametersHex);
     expect(decodePacketLogParameters(encoded)).toEqual({
       retentionPerDirection: 8
     });
+  });
+
+  it("encodes retention plus rendezvous parameters", () => {
+    const rendezvous = hexToBytes(vector.rendezvousParametersHex.slice(4));
+    const encoded = encodePacketLogParameters({
+      retentionPerDirection: 8,
+      rendezvous
+    });
+    expect(Buffer.from(encoded).toString("hex")).toBe(
+      vector.rendezvousParametersHex
+    );
+    expect(decodePacketLogParameters(encoded)).toEqual({
+      retentionPerDirection: 8,
+      rendezvous
+    });
+  });
+
+  it("pins the generated packet-log contract artifact", () => {
+    const wasm = Uint8Array.from(
+      readFileSync(
+        new URL(
+          "../contract/packet-log/packet-log-contract.wasm",
+          import.meta.url
+        )
+      )
+    );
+    expect(wasm).toHaveLength(vector.contractArtifact.bytes);
+    expect(Buffer.from(provider.sha256(wasm)).toString("hex")).toBe(
+      vector.contractArtifact.sha256Hex
+    );
+    const derived = FreenetClient.deriveKey({
+      wasm,
+      parameters: hexToBytes(vector.keyDerivation.parametersHex)
+    });
+    expect(Buffer.from(derived.codeHash).toString("hex")).toBe(
+      vector.keyDerivation.codeHashHex
+    );
+    expect(Buffer.from(derived.key).toString("hex")).toBe(
+      vector.keyDerivation.instanceIdHex
+    );
   });
 
   for (const testCase of vector.cases) {

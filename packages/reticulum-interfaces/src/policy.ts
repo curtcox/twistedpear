@@ -9,6 +9,7 @@ export const InterfaceKind = {
   BLUETOOTH: "bluetooth",
   RNODE: "rnode",
   I2P: "i2p",
+  FREENET: "freenet",
   OPTICAL: "optical",
   ACOUSTIC: "acoustic",
   NTFY: "ntfy",
@@ -26,6 +27,7 @@ export const DEFAULT_INTERFACE_PRIORITY: ReadonlyArray<InterfaceKindValue> = [
   InterfaceKind.BLUETOOTH,
   InterfaceKind.RNODE,
   InterfaceKind.I2P,
+  InterfaceKind.FREENET,
   InterfaceKind.OPTICAL,
   InterfaceKind.ACOUSTIC,
   InterfaceKind.NTFY,
@@ -41,6 +43,8 @@ export const DEFAULT_INTERFACE_BITRATES: Readonly<Partial<Record<InterfaceKindVa
   [InterfaceKind.BLUETOOTH]: 20_000,
   [InterfaceKind.RNODE]: 5_000,
   [InterfaceKind.I2P]: 100_000,
+  // S2 local 1 KiB p95 ≈ 89 ms → ~92 kbps; rounded down for policy.
+  [InterfaceKind.FREENET]: 90_000,
   [InterfaceKind.OPTICAL]: 1_000,
   [InterfaceKind.ACOUSTIC]: 500,
   [InterfaceKind.NTFY]: 10_000
@@ -84,6 +88,10 @@ export function inferInterfaceKind(name: string): InterfaceKindValue {
 
   if (normalized.includes("i2p") || normalized.includes("sam")) {
     return InterfaceKind.I2P;
+  }
+
+  if (normalized.includes("freenet") || normalized.includes("tplg")) {
+    return InterfaceKind.FREENET;
   }
 
   if (normalized.includes("optical") || normalized.includes("qr") || normalized.includes("camera") || normalized.includes("screen")) {

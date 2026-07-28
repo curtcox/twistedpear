@@ -8,7 +8,8 @@ export type RelayInterfaceKind =
   | "bluetooth"
   | "optical"
   | "acoustic"
-  | "ntfy";
+  | "ntfy"
+  | "freenet";
 export type InterfaceDirection = "tx" | "rx" | "both";
 
 export interface InterfaceStatus {
@@ -83,7 +84,8 @@ const VALID_KINDS: ReadonlyArray<RelayInterfaceKind> = [
   "bluetooth",
   "optical",
   "acoustic",
-  "ntfy"
+  "ntfy",
+  "freenet"
 ];
 
 export class RelayBrokerService {

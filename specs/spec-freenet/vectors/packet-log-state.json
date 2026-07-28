@@ -1,7 +1,19 @@
 {
   "version": 1,
   "description": "F2 Freenet packet-log state encoding (adopted from S3 ordered-log spike)",
+  "contractArtifact": {
+    "rustToolchain": "1.97.1",
+    "bytes": 144425,
+    "sha256Hex": "f10ac09de41baed61b7c16351759adda1bc184cc7d041030daf27d47d2984ed2",
+    "codeHashHex": "f42e0397da0b87ebd88d80b6c556a72437eb99859f910f689d3ae267ee2b1f35"
+  },
+  "keyDerivation": {
+    "parametersHex": "0008abababababababababababababababababababababababababababababababab",
+    "codeHashHex": "f42e0397da0b87ebd88d80b6c556a72437eb99859f910f689d3ae267ee2b1f35",
+    "instanceIdHex": "1c06a1b4e0f153eed9dc9a26de1cdc1abd021381b76fecd19668af54448da41b"
+  },
   "parametersHex": "0008",
+  "rendezvousParametersHex": "0008abababababababababababababababababababababababababababababababab",
   "cases": [
     {
       "name": "concurrent-writers-converge",

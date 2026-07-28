@@ -130,6 +130,14 @@ export {
 export { SimulatedAcousticChannel, type SimulatedAcousticChannelOptions } from "./acoustic/sim.js";
 
 export {
+  FREENET_DEFAULT_BITRATE,
+  FREENET_INTERFACE_MTU,
+  FreenetInterface,
+  type FreenetInterfaceOptions,
+  type FreenetPacketLogBackend
+} from "./freenet.js";
+
+export {
   DEFAULT_INTERFACE_BITRATES,
   DEFAULT_INTERFACE_PRIORITY,
   InterfaceKind,

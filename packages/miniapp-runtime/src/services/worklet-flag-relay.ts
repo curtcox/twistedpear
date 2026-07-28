@@ -178,7 +178,7 @@ export function createWorkletFlagRelayService(controller: WorkletFlagRelayContro
           ...(enabled && !online ? { reason: "interface enabled but not online" } : {})
         };
       });
-      const unsupported: RelayInterfaceKind[] = ["websocket", "i2p", "optical", "acoustic", "ntfy"];
+      const unsupported: RelayInterfaceKind[] = ["websocket", "i2p", "optical", "acoustic", "ntfy", "freenet"];
       return [
         ...managed,
         ...unsupported.map((kind) => ({

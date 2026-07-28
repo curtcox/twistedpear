@@ -30,6 +30,18 @@ const contracts = [
       root,
       "packages/bridge-freenet/contract/propagation-set/propagation-set-contract.wasm"
     )
+  },
+  {
+    name: "packet-log",
+    manifest: resolve(
+      root,
+      "packages/bridge-freenet/contract/packet-log/Cargo.toml"
+    ),
+    artifact: "twistedpear_freenet_packet_log_contract.wasm",
+    destination: resolve(
+      root,
+      "packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm"
+    )
   }
 ];
 

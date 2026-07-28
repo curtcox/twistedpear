@@ -91,6 +91,18 @@ export interface NtfyInterfaceConfig extends RelayInterfaceCommon {
   readonly pollIntervalMs?: number;
 }
 
+export interface FreenetInterfaceConfig extends RelayInterfaceCommon {
+  /** Freenet WebSocket URL (`ws://host:port/v1/contract/command`). */
+  readonly url?: string;
+  readonly authToken?: string;
+  /** Retention window per direction (default 64). */
+  readonly retentionPerDirection?: number;
+  /** Hex-encoded 32-byte rendezvous; generated when omitted. */
+  readonly rendezvousHex?: string;
+  /** Local write direction 0|1; peer uses the other. Default 0. */
+  readonly localDirection?: 0 | 1;
+}
+
 export interface BluetoothInterfaceConfig extends RelayInterfaceCommon {
   readonly pipeMtu?: number;
 }
@@ -105,11 +117,12 @@ export interface HostInterfaceConfig {
   readonly optical: OpticalInterfaceConfig;
   readonly acoustic: AcousticInterfaceConfig;
   readonly ntfy: NtfyInterfaceConfig;
+  readonly freenet: FreenetInterfaceConfig;
 }
 
 export type RelayMode = "off" | "bridge" | "transport-node";
 
-export type RelayInterfaceKind = "tcp" | "websocket" | "auto" | "i2p" | "rnode" | "bluetooth" | "optical" | "acoustic" | "ntfy";
+export type RelayInterfaceKind = "tcp" | "websocket" | "auto" | "i2p" | "rnode" | "bluetooth" | "optical" | "acoustic" | "ntfy" | "freenet";
 
 export interface RelayPolicyEntry {
   readonly from: RelayInterfaceKind;
@@ -162,6 +175,7 @@ export type HostInterfaceOverrides = {
   readonly optical?: Partial<OpticalInterfaceConfig>;
   readonly acoustic?: Partial<AcousticInterfaceConfig>;
   readonly ntfy?: Partial<NtfyInterfaceConfig>;
+  readonly freenet?: Partial<FreenetInterfaceConfig>;
 };
 
 export type HostConfigOverrides = {
@@ -203,7 +217,8 @@ export const DEFAULT_INTERFACE_CONFIG: HostInterfaceConfig = {
   bluetooth: { enabled: false, direction: "both", relay: true },
   optical: { enabled: false, direction: "both", relay: true },
   acoustic: { enabled: false, direction: "both", relay: true },
-  ntfy: { enabled: false, direction: "both", relay: true }
+  ntfy: { enabled: false, direction: "both", relay: true },
+  freenet: { enabled: false, direction: "both", relay: true }
 };
 
 export function defaultHostDataDir(platform: NodeJS.Platform = process.platform): string {
@@ -235,7 +250,8 @@ export function defaultHostConfig(overrides: HostConfigOverrides = {}): HostConf
       bluetooth: { ...baseInterfaces.bluetooth, ...overrides.interfaces?.bluetooth },
       optical: { ...baseInterfaces.optical, ...overrides.interfaces?.optical },
       acoustic: { ...baseInterfaces.acoustic, ...overrides.interfaces?.acoustic },
-      ntfy: { ...baseInterfaces.ntfy, ...overrides.interfaces?.ntfy }
+      ntfy: { ...baseInterfaces.ntfy, ...overrides.interfaces?.ntfy },
+      freenet: { ...baseInterfaces.freenet, ...overrides.interfaces?.freenet }
     },
     quotas: { ...DEFAULT_QUOTAS, ...overrides.quotas },
     statusEndpoint: overrides.statusEndpoint ?? false,
@@ -257,7 +273,8 @@ export function defaultWebLeafConfig(overrides: HostConfigOverrides = {}): HostC
       bluetooth: { enabled: false, ...overrides.interfaces?.bluetooth },
       optical: { enabled: false, ...overrides.interfaces?.optical },
       acoustic: { enabled: false, ...overrides.interfaces?.acoustic },
-      ntfy: { enabled: false, ...overrides.interfaces?.ntfy }
+      ntfy: { enabled: false, ...overrides.interfaces?.ntfy },
+      freenet: { enabled: false, ...overrides.interfaces?.freenet }
     }
   });
 }

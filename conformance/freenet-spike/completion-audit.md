@@ -23,7 +23,7 @@ passed.
 | S8 privacy posture | complete for F1 | `docs/security-review.md`; mobile and expanded roles retain explicit warnings |
 | F0 gate | partially open | S2 local + S6 + S8 satisfy proceed criteria for roles 1/3; role 2 viable on measured path; live S2 is evidence-only per plan §12 |
 | F1 package/CAS | implemented, exit incomplete | bridge, locator vector, verified fetch ranking and `tp publish --freenet` exist; `tp node --freenet` was intentionally not added before provisioning, and a real two-host publish/install requires an irreversible live write |
-| F2 packet interface | codec landed, interface absent | SPEC-FREENET packet-log vectors + `bridge-freenet` merge codec; no bitrate/policy row or host stub |
+| F2 packet interface | wired; announce/LXMF exit open | SPEC-FREENET packet-log WASM + vectors; `FreenetInterface` + backend; host `freenet` kind at 90 kbps; `npm run test:freenet-interface` HDLC exchange. Announce + LXMF two-host exit and relay matrix coverage remain |
 | F3 propagation backing | WASM + local store proof; host wiring open | SPEC-FREENET propagation-set (16-byte dest hash), pinned WASM, `FreenetPropagationStore`, `PropagationRemoteMirror`, and `npm run test:freenet-propagation` offline-A/retrieve-B proof; shipping host mirror wire-up remains |
 | F4 provisioning | blocked by S5 | no daemon bundle, supervisor, platform artifact matrix or signing result |
 | F5 capability/UI | not implemented | depends on an honestly supportable node/provisioning surface; no capability grant has been weakened or predeclared |

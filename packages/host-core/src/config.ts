@@ -61,6 +61,11 @@ export function resolveHostConfig(options: {
         ...defaultHostConfig().interfaces.rnode,
         ...fromFile.interfaces?.rnode,
         ...options.overrides?.interfaces?.rnode
+      },
+      freenet: {
+        ...defaultHostConfig().interfaces.freenet,
+        ...fromFile.interfaces?.freenet,
+        ...options.overrides?.interfaces?.freenet
       }
     },
     quotas: { ...defaultHostConfig().quotas, ...fromFile.quotas, ...options.overrides?.quotas }

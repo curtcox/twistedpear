@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "audited": "2026-07-28",
+  "label": "local-isolated",
+  "runner": "npm run test:freenet-interface",
+  "method": [
+    "Start an isolated Freenet gateway",
+    "Open two FreenetInterface peers with opposite localDirection on a shared rendezvous",
+    "Send one HDLC-framed Reticulum DATA packet left → right",
+    "Assert payload round-trip"
+  ],
+  "policyBitrateBps": 90000,
+  "result": "pass",
+  "notes": "Interface + packet-log WASM + host wiring landed. Full announce + LXMF host exit and relay-policy matrix coverage remain open."
+}
