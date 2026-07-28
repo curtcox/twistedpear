@@ -7,33 +7,39 @@
   "completeGateEvidence": false,
   "isolatedThreeNode": {
     "topology": "one localhost gateway plus two localhost peers",
-    "gatewayNetworkPort": 31338,
-    "publisherApiPort": 17509,
-    "subscriberApiPort": 17510,
-    "result": "failed",
+    "gatewayNetworkPort": 31438,
+    "publisherApiPort": 17610,
+    "subscriberApiPort": 17611,
+    "result": "passed-incomplete",
     "observations": [
-      "gateway reported RING_TRANSPORT_DESYNC with a transport connection but an empty ring",
-      "publisher updates failed or timed out because the contract was not retained in the executor store",
-      "peers reported no subscriber snapshot for the measured contract",
-      "the automated self-cleaning rerun reached all three API listeners but its first blocking-retention PUT timed out after 60 seconds"
+      "binding --network-port to the advertised public port eliminated RING_TRANSPORT_DESYNC",
+      "HOME isolation with gateways = [] prevents dialing the public gateway index",
+      "PUT with subscribe=true (non-blocking) retains the contract at the publisher",
+      "UPDATE against 0.2.112 requires ContractKey.code to carry WASM bytes because the node double-hashes a 32-byte hash field",
+      "one-sample update-to-notify completed for 1 KiB, 64 KiB, and 1 MiB; times are diagnostic only"
     ]
   },
   "isolatedLocalModeControl": {
     "apiPort": 17512,
-    "result": "failed",
+    "result": "superseded",
     "observations": [
-      "PUT, blocking GET subscription, and UPDATE completed",
-      "no UpdateNotification was delivered within 60 seconds",
-      "the node logged no subscriber snapshot for the measured contract"
+      "earlier local-mode control saw no notification; the working path is the fixed three-node harness"
     ]
   },
   "clientCorrectionsMade": [
     "GET requests now fetch contract code on first retrieval",
-    "measurement PUT uses blocking subscription retention",
+    "measurement PUT uses subscribe without blocking_subscribe",
     "subscriptions use blocking GET subscription readiness",
     "notification decoding accepts state and replacement-delta SDK unions",
     "incomplete smoke runs are marked and cannot overwrite gate evidence",
+    "the local topology binds and advertises the same UDP port",
+    "FreenetClient.update accepts codeField for the 0.2.112 double-hash workaround",
     "the local topology is reproducible and self-cleaning"
   ],
-  "latencyStatisticsRecorded": false
+  "latencyStatisticsRecorded": false,
+  "diagnosticOneSampleMs": {
+    "1024": 100.7,
+    "65536": 172.2,
+    "1048576": 3460.2
+  }
 }

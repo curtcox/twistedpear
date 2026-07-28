@@ -6,41 +6,51 @@ audited: 2026-07-28
 register: none
 -->
 
-Status: **negative diagnostic evidence, not gate measurements**.
+Status: **positive one-sample diagnostic; 100-sample gate evidence still
+required**.
 
-An isolated Freenet 0.2.112 network was started with one localhost gateway and
-two localhost peers. The first experiment was manual; the same topology is now
-reproducible with the self-cleaning `run-local-s2.mjs` harness. A one-sample
-run was attempted before any 100-sample run. This is deliberately recorded as
-incomplete and no latency percentile is inferred from it.
+An isolated Freenet 0.2.112 network is started with one localhost gateway and
+two localhost peers by the self-cleaning `run-local-s2.mjs` harness. Incomplete
+one-sample runs are deliberately marked and cannot overwrite
+`measured-roundtrip.json`.
 
-The smoke found and corrected four client/runner defects:
+## Defects found and corrected
 
-- first retrieval now asks the node for contract code as well as state;
-- the measurement PUT requests blocking subscription retention at the
-  publisher;
-- subscriber readiness uses GET with both `subscribe` and
-  `blocking_subscribe`, matching the node's race-free wire path;
-- notification decoding accepts state, delta, and state-plus-delta union
-  shapes because TwistedPear contracts use replacement-state deltas.
+Harness / topology:
 
-After those corrections, the installed node still did not produce a measurable
-notification path. The three-node gateway reported a transport connection with
-an empty ring (`RING_TRANSPORT_DESYNC`), updates were not consistently backed by
-a retained executor contract, and peers reported no subscriber snapshot. As a
-control, isolated local mode completed PUT, blocking subscription, and UPDATE
-but emitted no notification within 60 seconds and logged the same missing
-subscriber-snapshot condition.
+- `--public-network-port` was advertised without a matching `--network-port`
+  bind, so every process listened on the default `31337` while peers dialed
+  the advertised ports (`RING_TRANSPORT_DESYNC`). Both flags now share the
+  same UDP port, with `--network-address 127.0.0.1`.
+- `HOME` is isolated with `gateways = []` so the installed node does not dial
+  the public gateway index.
+- The harness waits for the gateway dashboard to show peer rows before
+  measuring.
 
-The automated rerun started all three API listeners and reached the
-measurement, then the first blocking-retention PUT timed out after 60 seconds.
-The harness stopped the three child processes and removed its temporary state.
-This independently confirms that the blocker precedes latency sampling.
+Client / measurement:
 
-The machine-readable observation is `s2-smoke-observation.json`. Temporary
-node state was kept outside the repository and removed after shutdown.
+- PUT retains the contract with `subscribe=true` but does not use
+  `blocking_subscribe` (that path hung under the broken topology).
+- Subscriber readiness still uses GET with `fetch_contract`, `subscribe`, and
+  `blocking_subscribe`.
+- Notification decoding accepts state, delta, and state-plus-delta unions.
+- Freenet 0.2.112's FlatBuffers UPDATE path runs `CodeHash::from_code` on
+  `ContractKey.code`, which double-hashes a 32-byte hash and fails with
+  "Contract not in store and no code provided". The measurement (and
+  `FreenetClient.update({ codeField })`) sends the WASM bytes in that field
+  so `from_code(wasm)` matches the stored blob. Fixed stdlib builds expect
+  the 32-byte hash and must omit `codeField`.
 
-S2 therefore remains pending. A future run must first reproduce successful
-update-to-notify behavior on a Freenet version/topology known to pass upstream's
-blocking-subscription integration tests; only then should the 100-sample local
-and live measurements be recorded.
+## One-sample local result
+
+After the corrections above, `run-local-s2.mjs --smoke` completed PUT,
+cross-node subscribe, UPDATE, and notify for 1 KiB, 64 KiB, and 1 MiB. The
+raw incomplete artifact is under `.tmp/` (gitignored). Approximate
+update→notify times from that single sample were on the order of 100 ms
+(1 KiB), 170 ms (64 KiB), and 3.5 s (1 MiB). Those figures are diagnostic
+only; the gate still requires 100 samples per size locally and on an
+authorized live network, combined into `measured-roundtrip.json`.
+
+The prior negative observation (desync, missing subscriber snapshot, PUT
+timeout) is superseded by this positive path. Machine-readable status remains
+in `evidence-status.json` until the 100-sample artifacts land.

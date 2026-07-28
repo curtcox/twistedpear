@@ -43,11 +43,18 @@ npm run test:freenet-local-network
 ```
 
 That command starts an isolated gateway and two peers, waits for their WebSocket
-ports, runs the measurement with distinct publisher and subscriber nodes, and
-then stops the nodes and removes their temporary state. Set `FREENET_BINARY` to
-override the executable, `FREENET_KEEP_LOCAL_STATE=1` to retain diagnostic
-state, or the documented port environment variables in
+ports and gateway peer rows, runs the measurement with distinct publisher and
+subscriber nodes, and then stops the nodes and removes their temporary state.
+Set `FREENET_BINARY` to override the executable, `FREENET_KEEP_LOCAL_STATE=1`
+to retain diagnostic state, or the documented port environment variables in
 `run-local-s2.mjs` when the defaults conflict.
+
+The harness binds each node's `--network-port` to the same value as
+`--public-network-port`. Advertising a public port without binding it left
+every process on the default `31337` and produced `RING_TRANSPORT_DESYNC`.
+Against Freenet 0.2.112, UPDATE also requires the measurement client's
+`codeField` WASM workaround: that release double-hashes a 32-byte
+`ContractKey.code` and otherwise fails with "Contract not in store".
 
 For a separately managed topology, set `FREENET_MEASUREMENT_LABEL`,
 `FREENET_NODE_URL`, and `FREENET_SUBSCRIBER_NODE_URL`, then run
@@ -61,9 +68,13 @@ with `FREENET_ALLOW_INCOMPLETE=1`. Such a run is explicitly marked incomplete
 and written to a different filename, so it cannot replace gate evidence.
 `node conformance/freenet-spike/run-local-s2.mjs --smoke` selects those settings
 automatically for the isolated topology.
-The first isolated 0.2.112 attempt produced no notification and is recorded,
-without invented timing values, in
-[s2-smoke-report.md](s2-smoke-report.md).
+The first isolated 0.2.112 attempts produced no notification and are recorded
+in [s2-smoke-report.md](s2-smoke-report.md). After the topology bind fix and
+the UPDATE `codeField` workaround, the local 100-sample gate artifact is
+committed as [measured-roundtrip.json](measured-roundtrip.json) (local-executor
+notify path on a three-node mesh). Live confirmation still requires explicit
+authorization; set `FREENET_FORCE_CROSS_NODE=1` for a distinct subscriber node
+when measuring cross-node notify separately.
 
 S3 is reproducible with:
 

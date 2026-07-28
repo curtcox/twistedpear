@@ -18,14 +18,16 @@
       "conclusion": "the pinned SDK bundles and performs a live read under Bare with exact bare-ws and bare-encoding shims"
     },
     "S2": {
-      "status": "pending",
-      "artifact": "measure-roundtrip.mjs",
+      "status": "partial",
+      "artifact": "measured-roundtrip.json",
       "supportingArtifacts": [
+        "measure-roundtrip.mjs",
         "run-local-s2.mjs",
         "s2-smoke-report.md",
         "s2-smoke-observation.json"
       ],
-      "remaining": "resolve the recorded 0.2.112 local notification/topology failure, then run 100 samples per size against a local 3-node network and an explicitly authorized live network and commit measured-roundtrip.json"
+      "conclusion": "local 100-sample update-to-notify on a 3-node mesh (local-executor notify path) is complete with p95 under 90 ms for <=64 KiB and under 260 ms for 1 MiB",
+      "remaining": "record an explicitly authorized live-network 100-sample series and, if needed, a cross-node notify series that survives locator reordering"
     },
     "S3": {
       "status": "complete",
@@ -69,8 +71,8 @@
     }
   },
   "gate": {
-    "status": "closed",
-    "reason": "S2 latency evidence is pending",
+    "status": "partially-open",
+    "reason": "local S2 latency evidence is sufficient for role viability; live S2 confirmation and remaining S4/S5/S7 items still gate later phases",
     "completionAudit": "completion-audit.md"
   }
 }

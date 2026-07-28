@@ -16,7 +16,11 @@ import {
   type ResponseHandler,
   type UpdateNotification
 } from "@freenetorg/freenet-stdlib";
-import { ContractCodeT } from "@freenetorg/freenet-stdlib/common";
+import {
+  ContractCodeT,
+  ContractInstanceIdT,
+  ContractKeyT
+} from "@freenetorg/freenet-stdlib/common";
 import { RelatedContractsT } from "@freenetorg/freenet-stdlib/client-request";
 
 export const DEFAULT_FREENET_URL =
@@ -43,6 +47,20 @@ export interface FreenetContractRecord {
 export interface FreenetPutOptions {
   readonly subscribe?: boolean;
   readonly blockingSubscribe?: boolean;
+}
+
+export interface FreenetUpdateOptions {
+  /**
+   * Wire bytes for `ContractKey.code` on UPDATE.
+   *
+   * Freenet 0.2.112 (stdlib before the pass-through fix) runs
+   * `CodeHash::from_code` on this field, which double-hashes a 32-byte
+   * hash and then fails with "Contract not in store". Passing the WASM
+   * module makes `from_code(wasm)` equal the stored hash. Fixed nodes
+   * expect the 32-byte hash and reject longer values — omit this option
+   * there.
+   */
+  readonly codeField?: Uint8Array;
 }
 
 export type FreenetSubscription = () => void;
@@ -125,15 +143,30 @@ export class FreenetClient {
   async update(
     key: Uint8Array,
     codeHash: Uint8Array,
-    state: Uint8Array
+    state: Uint8Array,
+    options: FreenetUpdateOptions = {}
   ): Promise<void> {
     const api = await this.#connection();
     const data = new UpdateData(
       UpdateDataType.StateUpdate,
       new StateUpdate(Array.from(state))
     );
+    const codeField = options.codeField ?? codeHash;
+    // ContractKey's constructor rejects non-32-byte code fields. The
+    // 0.2.112 workaround needs the full WASM in `code`, so build the
+    // FlatBuffers object directly when the override is longer.
+    const contractKey =
+      codeField.length === 32
+        ? new ContractKey(key, codeField)
+        : ({
+            get_contract_key: () =>
+              new ContractKeyT(
+                new ContractInstanceIdT(Array.from(key)),
+                Array.from(codeField)
+              )
+          } as ContractKey);
     await this.#withinTimeout(
-      api.update(new UpdateRequest(new ContractKey(key, codeHash), data)),
+      api.update(new UpdateRequest(contractKey, data)),
       "update"
     );
   }

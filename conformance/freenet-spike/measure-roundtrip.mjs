@@ -7,6 +7,10 @@ import { FreenetClient } from "../../packages/bridge-freenet/dist/index.js";
 const root = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(root, "../..");
 const publisherUrl = process.env.FREENET_NODE_URL;
+// Default both clients onto the publisher node. Local executor notifications
+// avoid the cross-node reordering hazard of the locator contract's
+// lexicographic-min merge. Set FREENET_SUBSCRIBER_NODE_URL to force a
+// distinct subscriber when measuring cross-node propagation deliberately.
 const subscriberUrl = process.env.FREENET_SUBSCRIBER_NODE_URL ?? publisherUrl;
 const label = process.env.FREENET_MEASUREMENT_LABEL;
 const allowedLabels = new Set(["local-3-node", "live"]);
@@ -104,6 +108,7 @@ async function stage(name, promise) {
 }
 
 const measurements = [];
+const sameNode = publisherUrl === subscriberUrl;
 try {
   for (const payloadBytes of payloadSizes) {
     const parameterText = [
@@ -116,15 +121,14 @@ try {
       parameterText.padEnd(94, "x").slice(0, 94)
     );
     const source = { wasm, parameters };
+    // Count down from a high initial counter so each applied update is
+    // lexicographically smaller under the locator contract's min-merge.
     const initialState = state(payloadBytes, 0xffff_ffff);
-    // Retain the new contract at the publisher so it can execute the measured
-    // updates. A network PUT without subscribe is allowed to route the value
-    // onward without keeping a local executor snapshot.
     const key = await stage(
       `put ${payloadBytes} bytes`,
       publisher.put(source, initialState, {
         subscribe: true,
-        blockingSubscribe: true
+        blockingSubscribe: false
       })
     );
     const { codeHash } = FreenetClient.deriveKey(source);
@@ -153,7 +157,9 @@ try {
           await stage(
             `update/notify ${payloadBytes} bytes sample ${index + 1}`,
             Promise.all([
-              publisher.update(key, codeHash, state(payloadBytes, counter)),
+              publisher.update(key, codeHash, state(payloadBytes, counter), {
+                codeField: wasm
+              }),
               notified
             ])
           );
@@ -181,8 +187,11 @@ const result = {
   recordedAt: new Date().toISOString(),
   publisherUrl,
   subscriberUrl,
+  sameNode,
+  notifyPath: sameNode ? "local-executor" : "cross-node",
   sampleCount,
   complete: sampleCount === 100,
+  contract: "locator",
   measurements
 };
 const output = join(

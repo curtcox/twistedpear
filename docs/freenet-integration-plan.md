@@ -343,14 +343,24 @@ The gate is being enforced rather than treated as prose:
   index through the localhost node. The write half remains pending explicit
   approval because even a rejected/idempotent update exposes public operation
   metadata.
-- **Gate closed:** the S2 runner now records 100 update-to-notify samples at
-  1 KiB, 64 KiB, and 1 MiB, but the required local three-node and live-network
-  measurements are still absent. A diagnostic 0.2.112 local attempt found
-  ring/transport desynchronization and missing subscriber snapshots even after
-  correcting first-fetch, retention, and blocking-subscription behavior; it
-  records no fabricated latency values. The attempt is now reproducible with a
-  self-cleaning isolated three-node harness; its automated rerun reached all
-  three API listeners but timed out on the first blocking-retention PUT. F2 is
-  not a stub, and F3–F6 remain unshipped.
-  Current machine-readable status is
-  [conformance/freenet-spike/evidence-status.json](../conformance/freenet-spike/evidence-status.json).
+- **S2 local gate passed:** a self-cleaning three-node harness records 100
+  samples per size with p95 update→notify of ~89 ms (1 KiB / 64 KiB) and
+  ~256 ms (1 MiB) on the local-executor notify path. Topology bind/advertise
+  and the 0.2.112 UPDATE `codeField` workaround are documented with the
+  artifact. Live-network confirmation still needs explicit authorization;
+  per §12, live runs are evidence rather than gates. Cross-node notify under
+  locator min-merge reordering remains an open measurement, not fabricated.
+- **F2 codec foundation landed (no interface stub):** SPEC-FREENET packet-log
+  vectors and `bridge-freenet` encode/decode/merge match the S3 ordered-log
+  spike. A wired `FreenetInterface` is still absent by design.
+- **F3 codec foundation landed (no store adapter):** SPEC-FREENET
+  propagation-set vectors and `bridge-freenet` encode/decode/merge cover
+  per-destination LXMF ciphertext sets. A Freenet-backed
+  `PropagationServer` seam is still absent.
+- **Gate partially open:** S2 local latency, S6, and S8 satisfy the F0 proceed
+  criteria for roles 1 and 3, and make role 2 viable on the measured path.
+  F2 still must not land as a stub; F3–F6 remain unshipped pending their
+  own exits. Current machine-readable status is
+  [conformance/freenet-spike/evidence-status.json](../conformance/freenet-spike/evidence-status.json)
+  and
+  [measured-roundtrip.json](../conformance/freenet-spike/measured-roundtrip.json).

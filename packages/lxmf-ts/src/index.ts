@@ -62,6 +62,7 @@ export {
   type PropagationServerOptions,
   type PropagationServerTimer,
   type PropagationPersistence,
+  type PropagationRemoteMirror,
   type PropagationStoredEntry
 } from "./propagation-server.js";
 export {

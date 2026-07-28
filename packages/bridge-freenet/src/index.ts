@@ -18,6 +18,29 @@ export type {
   FreenetLocatorState
 } from "./core/locator-contract.js";
 export {
+  decodePacketLogParameters,
+  decodePacketLogState,
+  encodePacketLogParameters,
+  encodePacketLogState,
+  mergePacketLogStates
+} from "./core/packet-log.js";
+export type {
+  PacketLogEntry,
+  PacketLogParameters
+} from "./core/packet-log.js";
+export {
+  decodePropagationSetParameters,
+  decodePropagationSetState,
+  encodePropagationSetParameters,
+  encodePropagationSetState,
+  mergePropagationSetStates,
+  propagationSetEntryEquals
+} from "./core/propagation-set.js";
+export type {
+  PropagationSetEntry,
+  PropagationSetParameters
+} from "./core/propagation-set.js";
+export {
   FreenetPackageFetcher
 } from "./client/freenet-package-fetch.js";
 export type {

@@ -118,12 +118,27 @@ export interface PropagationPersistence {
   save(entries: ReadonlyArray<PropagationStoredEntry>): void;
 }
 
+/**
+ * Optional async network mirror for meshed stores (e.g. Freenet).
+ *
+ * Local quotas and the sync `PropagationPersistence` snapshot remain authoritative
+ * for the in-process catalog. The mirror receives the same debounced snapshot and
+ * may also supply remote entries at startup via `pull`.
+ */
+export interface PropagationRemoteMirror {
+  publish(entries: ReadonlyArray<PropagationStoredEntry>): void | Promise<void>;
+  pull?():
+    | ReadonlyArray<PropagationStoredEntry>
+    | Promise<ReadonlyArray<PropagationStoredEntry>>;
+}
+
 export interface PropagationServerTimer {
   cancel(): void;
 }
 
 export interface PropagationServerOptions {
   readonly persistence?: PropagationPersistence;
+  readonly remoteMirror?: PropagationRemoteMirror;
   /** Injected wall-clock in ms — protocol code never reads OS time. */
   readonly now: () => number;
   /** Injected scheduler — adapters supply real timers. */
@@ -137,6 +152,7 @@ export class PropagationServer {
   private evictions = 0;
   private clientRateState: ClientRateLimitState;
   private readonly persistence: PropagationPersistence | null;
+  private readonly remoteMirror: PropagationRemoteMirror | null;
   private readonly now: () => number;
   private readonly schedule: (ms: number, callback: () => void) => PropagationServerTimer;
   private persistTimer: PropagationServerTimer | null = null;
@@ -149,6 +165,7 @@ export class PropagationServer {
   ) {
     this.clientRateState = initialClientRateLimitState(quotas.perClientRequestsPerMinute);
     this.persistence = options.persistence ?? null;
+    this.remoteMirror = options.remoteMirror ?? null;
     this.now = options.now;
     this.schedule = options.schedule;
     if (this.persistence !== null) {
@@ -329,7 +346,7 @@ export class PropagationServer {
   }
 
   private schedulePersist(): void {
-    if (this.persistence === null) {
+    if (this.persistence === null && this.remoteMirror === null) {
       return;
     }
 
@@ -351,11 +368,38 @@ export class PropagationServer {
           });
           this.persistDebounceState = fired.state;
           if (fired.actions.some((action) => action.kind === "flush")) {
-            this.persistence?.save(this.snapshotEntries());
+            this.flushCatalog();
           }
         });
       }
     }
+  }
+
+  private flushCatalog(): void {
+    const snapshot = this.snapshotEntries();
+    this.persistence?.save(snapshot);
+    if (this.remoteMirror === null) {
+      return;
+    }
+    void Promise.resolve(this.remoteMirror.publish(snapshot)).catch(() => {
+      // Mirror failures must not break the local store; hosts observe offline separately.
+    });
+  }
+
+  /**
+   * Pull remote mirrored entries into the local catalog (idempotent restore).
+   * Returns the number of newly accepted entries.
+   */
+  async pullRemoteMirror(): Promise<number> {
+    if (this.remoteMirror?.pull === undefined) {
+      return 0;
+    }
+    const before = this.entries.size;
+    const entries = await this.remoteMirror.pull();
+    for (const entry of entries) {
+      this.restoreEntry(entry);
+    }
+    return this.entries.size - before;
   }
 
   private snapshotEntries(): ReadonlyArray<PropagationStoredEntry> {

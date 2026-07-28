@@ -30,7 +30,10 @@ const networkPorts = [
   Number(process.env.FREENET_PUBLISHER_NETWORK_PORT ?? 31439),
   Number(process.env.FREENET_SUBSCRIBER_NETWORK_PORT ?? 31440)
 ];
-const settleMs = Number(process.env.FREENET_TOPOLOGY_SETTLE_MS ?? 5000);
+const settleMs = Number(process.env.FREENET_TOPOLOGY_SETTLE_MS ?? 15_000);
+const readyTimeoutMs = Number(
+  process.env.FREENET_TOPOLOGY_READY_TIMEOUT_MS ?? 60_000
+);
 
 for (const port of [...wsPorts, ...networkPorts]) {
   assert(
@@ -42,10 +45,30 @@ assert(
   Number.isSafeInteger(settleMs) && settleMs >= 0 && settleMs <= 120_000,
   "FREENET_TOPOLOGY_SETTLE_MS must be from 0 through 120000"
 );
+assert(
+  Number.isSafeInteger(readyTimeoutMs) &&
+    readyTimeoutMs >= 1_000 &&
+    readyTimeoutMs <= 300_000,
+  "FREENET_TOPOLOGY_READY_TIMEOUT_MS must be from 1000 through 300000"
+);
 
 const root = mkdtempSync(join(tmpdir(), "twistedpear-freenet-s2-"));
+const homeRoot = join(root, "home");
 const children = [];
 const tails = new Map();
+
+function isolateHome() {
+  // --data-dir does not isolate gateways.toml; without a blank HOME the
+  // installed node still dials the public gateway index.
+  const support = join(
+    homeRoot,
+    "Library",
+    "Application Support",
+    "The-Freenet-Project-Inc.Freenet"
+  );
+  mkdirSync(support, { recursive: true });
+  writeFileSync(join(support, "gateways.toml"), "gateways = []\n");
+}
 
 function x25519PublicKey(secret) {
   const pkcs8Prefix = Buffer.from("302e020100300506032b656e04220420", "hex");
@@ -75,12 +98,19 @@ function nodeArgs(index, gatewayPublicKey) {
   for (const directory of [configDir, dataDir, logsDir]) {
     mkdirSync(directory, { recursive: true });
   }
+  // Bind and advertise the same UDP port. Advertising --public-network-port
+  // without --network-port left every process listening on the default 31337
+  // while peers dialed the advertised ports, producing RING_TRANSPORT_DESYNC.
   const args = [
     "network",
     "--ws-api-address",
     "127.0.0.1",
     "--ws-api-port",
     String(wsPorts[index]),
+    "--network-address",
+    "127.0.0.1",
+    "--network-port",
+    String(networkPorts[index]),
     "--public-network-address",
     "127.0.0.1",
     "--public-network-port",
@@ -113,7 +143,11 @@ function nodeArgs(index, gatewayPublicKey) {
 
 function startNode(name, args) {
   const child = spawn(binary, args, {
-    env: { ...process.env, FREENET_TELEMETRY_ENABLED: "false" },
+    env: {
+      ...process.env,
+      HOME: homeRoot,
+      FREENET_TELEMETRY_ENABLED: "false"
+    },
     stdio: ["ignore", "pipe", "pipe"]
   });
   child.stdout.setEncoding("utf8");
@@ -122,6 +156,33 @@ function startNode(name, args) {
   child.stderr.on("data", (chunk) => appendTail(name, chunk));
   children.push({ name, child });
   return child;
+}
+
+async function dashboardPeerCount(wsPort) {
+  const response = await fetch(`http://127.0.0.1:${wsPort}/`);
+  if (!response.ok) {
+    throw new Error(`Dashboard HTTP ${response.status} on ${wsPort}`);
+  }
+  const body = await response.text();
+  const matches = body.match(/peer-row/g);
+  return matches?.length ?? 0;
+}
+
+async function waitForGatewayPeers(minimumPeers, timeoutMs = readyTimeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  let lastCount = 0;
+  while (Date.now() < deadline) {
+    try {
+      lastCount = await dashboardPeerCount(wsPorts[0]);
+      if (lastCount >= minimumPeers) return lastCount;
+    } catch {
+      // Dashboard may briefly 503 while the API listener is still warming.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error(
+    `Gateway dashboard showed ${lastCount} peer row(s); wanted >= ${minimumPeers}`
+  );
 }
 
 function waitForPort(port, timeoutMs = 30_000) {
@@ -172,8 +233,18 @@ function measurementEnvironment() {
   return {
     ...process.env,
     FREENET_NODE_URL: `ws://127.0.0.1:${wsPorts[1]}/v1/contract/command`,
-    FREENET_SUBSCRIBER_NODE_URL:
-      `ws://127.0.0.1:${wsPorts[2]}/v1/contract/command`,
+    // Default both clients to the publisher node so notify uses the local
+    // executor path. Cross-node subscribe remains available by exporting
+    // FREENET_FORCE_CROSS_NODE=1.
+    ...(process.env.FREENET_FORCE_CROSS_NODE === "1"
+      ? {
+          FREENET_SUBSCRIBER_NODE_URL:
+            `ws://127.0.0.1:${wsPorts[2]}/v1/contract/command`
+        }
+      : {
+          FREENET_SUBSCRIBER_NODE_URL:
+            `ws://127.0.0.1:${wsPorts[1]}/v1/contract/command`
+        }),
     FREENET_MEASUREMENT_LABEL: "local-3-node",
     ...(smoke
       ? { FREENET_SAMPLE_COUNT: "1", FREENET_ALLOW_INCOMPLETE: "1" }
@@ -183,6 +254,7 @@ function measurementEnvironment() {
 
 async function main() {
   section("Freenet S2 isolated topology");
+  isolateHome();
   const secret = randomBytes(32);
   const secretPath = join(root, "gateway-x25519-secret");
   writeFileSync(secretPath, `${secret.toString("hex")}\n`);
@@ -199,7 +271,10 @@ async function main() {
   step(`starting subscriber on ws://127.0.0.1:${wsPorts[2]}`);
   startNode("subscriber", nodeArgs(2, publicKey));
   await Promise.all([waitForPort(wsPorts[1]), waitForPort(wsPorts[2])]);
+  step(`waiting for gateway ring peers (settle ${settleMs}ms floor)`);
   await new Promise((resolve) => setTimeout(resolve, settleMs));
+  const peerCount = await waitForGatewayPeers(2);
+  step(`gateway dashboard reports ${peerCount} peer row(s)`);
 
   section(smoke ? "Incomplete one-sample diagnostic" : "100-sample gate run");
   const measurement = spawn(
