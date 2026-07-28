@@ -91,6 +91,22 @@ async function testApp(browser, pageUrl, app) {
         timeout: 10_000
       });
     }
+    if (app === "link-weather") {
+      await page.getByText("Peer connection mechanisms").waitFor({ timeout: 10_000 });
+      const body = await page.locator('[data-testid="root"]').innerText();
+      if (body.includes("This host did not register the mechanism")) {
+        throw new Error("link-weather still shows unregistered peer-mechanism fallback");
+      }
+      if (!body.includes("Ordinary web pages cannot advertise as BLE peripherals")) {
+        throw new Error("link-weather missing Bluetooth unsupported reason from the Pages peer registry");
+      }
+      if (!body.includes("This browser does not implement LP2PRequest/LP2PReceiver")) {
+        throw new Error("link-weather missing Local peer-to-peer unsupported reason from the Pages peer registry");
+      }
+      if (!/Manual code[\s\S]*available/.test(body)) {
+        throw new Error("link-weather missing available Manual code mechanism");
+      }
+    }
     if (pageErrors.length > 0) {
       throw new Error(`uncaught browser error: ${pageErrors.join("; ")}`);
     }

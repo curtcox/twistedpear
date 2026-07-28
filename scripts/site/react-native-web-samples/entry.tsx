@@ -1,13 +1,17 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { GrantStore } from "../../../packages/miniapp-runtime/src/capabilities";
+import { HOST_API_VERSION } from "../../../packages/miniapp-runtime/src/host-api";
 import { MiniappHost } from "../../../packages/miniapp-runtime/src/host";
 import { WebSandboxBackend } from "../../../packages/miniapp-runtime/src/sandbox/web";
 import { KvStorageBeeBackend } from "../../../packages/miniapp-runtime/src/services/storage-bee-kv";
 import type { WidgetTree } from "@twistedpear/miniapp-runtime/ui";
 import { MiniappWidgetTree } from "@twistedpear/widget-renderer-rn";
 import { COOKBOOK_FIXTURES } from "virtual:cookbook-fixtures";
+import { PagesPeerChrome } from "./peer-chrome.ts";
+import { PeerChromePanel } from "./peer-chrome-ui.tsx";
+import { createPagesPeerSessionManager } from "./peer-session.ts";
 
 type Fixture = (typeof COOKBOOK_FIXTURES)[number];
 
@@ -57,7 +61,10 @@ function demoModelReply(messages: ReadonlyArray<{ readonly content: string }>) {
   return "This is a deterministic browser-demo response from the local sample adapter.";
 }
 
-function createDemoHost(onTree: (tree: WidgetTree | null) => void) {
+function createDemoHost(
+  onTree: (tree: WidgetTree | null) => void,
+  peerChrome: PagesPeerChrome
+) {
   const bee = new KvStorageBeeBackend(store);
   return new MiniappHost({
     backend: new WebSandboxBackend(),
@@ -71,7 +78,7 @@ function createDemoHost(onTree: (tree: WidgetTree | null) => void) {
       info: async () => ({
         platform: "web",
         hostVersion: "pages-demo",
-        hostApiVersion: "0.1.0",
+        hostApiVersion: HOST_API_VERSION,
         roles: { transport: false, seeder: false, propagation: false },
         interfaceTypes: ["web-demo"],
         quotas: {
@@ -109,6 +116,7 @@ function createDemoHost(onTree: (tree: WidgetTree | null) => void) {
       get: async (_appId, t256) => cas.get(t256)?.slice() ?? null
     },
     confirmationChannel: { confirm: async () => ({ approved: true }) },
+    peerSessionManager: createPagesPeerSessionManager(peerChrome),
     appsBackend: {
       package: async (_appId, request) => {
         const size = encoder.encode(JSON.stringify(request.manifest)).length;
@@ -136,6 +144,7 @@ function App() {
   const [tree, setTree] = useState<WidgetTree | null>(null);
   const [status, setStatus] = useState("Starting…");
   const hostRef = useRef<MiniappHost | null>(null);
+  const peerChrome = useMemo(() => new PagesPeerChrome(), []);
 
   useEffect(() => {
     let active = true;
@@ -148,7 +157,7 @@ function App() {
           setTree(next);
           setStatus("Running the real cookbook bundle in the web sandbox");
         }
-      });
+      }, peerChrome);
       hostRef.current = host;
       await host.setGrants(selected.name, selected.publisherPublicKey, selected.capabilities, selected.capabilities);
       await host.launch(
@@ -166,7 +175,7 @@ function App() {
     return () => {
       active = false;
     };
-  }, [selected]);
+  }, [selected, peerChrome]);
 
   const choose = (fixture: Fixture) => {
     window.history.replaceState({}, "", `?app=${encodeURIComponent(fixture.slug)}`);
@@ -181,6 +190,8 @@ function App() {
         <Text style={styles.intro}>
           These pages run each sample's real bundle and render its widget tree with React Native Web.
           Network, model, package, and device services use a deterministic in-browser demo adapter.
+          Peer connection uses the static-web registry (Manual/QR/Audio + WebRTC; BLE, LP2P, and automatic
+          Reticulum remain unavailable on ordinary pages).
         </Text>
       </View>
       <View style={styles.layout}>
@@ -223,6 +234,7 @@ function App() {
                 readDocument={(documentId) => hostRef.current?.workspace.read(selected.name, documentId) ?? Promise.resolve("")}
               />
             )}
+            <PeerChromePanel chrome={peerChrome} />
           </View>
         </View>
       </View>
@@ -247,7 +259,7 @@ const styles = StyleSheet.create({
   cookbookLink: { color: "#8ecbff", fontSize: 14, marginTop: 10, textDecorationLine: "underline" },
   status: { backgroundColor: "#102334", borderRadius: 8, padding: 9, marginVertical: 12 },
   statusText: { color: "#a9c1d5", fontSize: 12 },
-  device: { backgroundColor: "#111b26", borderColor: "#2b3d4f", borderWidth: 1, borderRadius: 20, minHeight: 560, padding: 18, overflow: "hidden" },
+  device: { position: "relative", backgroundColor: "#111b26", borderColor: "#2b3d4f", borderWidth: 1, borderRadius: 20, minHeight: 560, padding: 18, overflow: "hidden" },
   loading: { color: "#9aa7b8" }
 });
 
