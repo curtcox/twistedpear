@@ -10,6 +10,7 @@ export interface FetchPlaneRequest {
   readonly version: string;
   readonly interfaces: ReadonlyArray<PacketInterface>;
   readonly freenetLocator?: CasLocator;
+  readonly forcePath?: FetchPath;
   readonly onProgress?: (progress: FetchProgress) => void;
   readonly signal?: AbortSignal;
 }

@@ -637,6 +637,7 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
     });
     try {
       const result = await publishPackageToFreenet({
+        provider,
         client,
         locatorContractWasm: readBytes(contractPath),
         locator: casLocator,

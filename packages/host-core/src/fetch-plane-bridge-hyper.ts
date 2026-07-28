@@ -28,6 +28,7 @@ export function createBridgeHyperFetchPlane(options: BridgeHyperFetchPlaneOption
         ...(options.lanMirrorKeyHex === undefined ? {} : { lanMirrorKeyHex: options.lanMirrorKeyHex }),
         ...(options.freenetFetcher === undefined ? {} : { freenetFetcher: options.freenetFetcher }),
         ...(request.freenetLocator === undefined ? {} : { freenetLocator: request.freenetLocator }),
+        ...(request.forcePath === undefined ? {} : { forcePath: request.forcePath }),
         ...(request.onProgress === undefined ? {} : { onProgress: request.onProgress }),
         ...(request.signal === undefined ? {} : { signal: request.signal })
       });

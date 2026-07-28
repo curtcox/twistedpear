@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   Identity,
@@ -14,7 +14,8 @@ import {
   encodeFreenetLocatorState,
   FreenetClient,
   FreenetPackageFetcher,
-  locatorContractParameters
+  locatorContractParameters,
+  publishPackageToFreenet
 } from "../src/index.js";
 
 const PRIVATE_KEY =
@@ -145,5 +146,35 @@ describe("Freenet locator contract state", () => {
         locatorContractWasm: new Uint8Array([0, 97, 115, 109])
       }).fetchLocator(locator)
     ).rejects.toThrow("256t");
+  });
+
+  it("validates locator integrity before publishing irreversible state", async () => {
+    const put = vi.fn(async () => new Uint8Array(32).fill(0x42));
+    const client = { put } as unknown as FreenetClient;
+    await expect(
+      publishPackageToFreenet({
+        provider,
+        client,
+        locatorContractWasm: new Uint8Array([0, 97, 115, 109]),
+        locator,
+        archiveBytes
+      })
+    ).resolves.toMatchObject({
+      contractKey: new Uint8Array(32).fill(0x42)
+    });
+    expect(put).toHaveBeenCalledOnce();
+
+    const wrongArchive = Uint8Array.from(archiveBytes);
+    wrongArchive[0] ^= 1;
+    await expect(
+      publishPackageToFreenet({
+        provider,
+        client,
+        locatorContractWasm: new Uint8Array([0, 97, 115, 109]),
+        locator,
+        archiveBytes: wrongArchive
+      })
+    ).rejects.toThrow("256t");
+    expect(put).toHaveBeenCalledOnce();
   });
 });
