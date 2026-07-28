@@ -48,7 +48,7 @@
       "status": "partial",
       "artifact": "s5-report.md",
       "supportingArtifacts": ["s5-bundling-matrix.json"],
-      "remaining": "measure Linux and Windows, verify a fresh macOS artifact, then sign and notarize an actual TwistedPear bundle"
+      "remaining": "verify a fresh macOS artifact, then sign and notarize an actual TwistedPear bundle; Linux/Windows compressed release sizes are recorded"
     },
     "S6": {
       "status": "complete",

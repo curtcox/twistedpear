@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-21
+audited: 2026-07-28
 register: none
 -->
 
@@ -31,6 +31,9 @@ tp node --data-dir ~/.local/share/twistedpear/host
 tp seed --transport --state-dir .tp/seeder
 tp node --attach-rnsd 127.0.0.1:4242 --no-transport
 tp node --propagation --status-endpoint
+# External Freenet node (not bundled): contracts/propagation URL, optional HDLC interface
+tp node --freenet --propagation
+tp node --freenet-interface --freenet-node ws://127.0.0.1:50509/v1/contract/command
 ```
 
 Localhost status JSON (opt-in): `http://127.0.0.1:9473/status`

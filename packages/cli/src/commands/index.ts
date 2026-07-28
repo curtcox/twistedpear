@@ -73,7 +73,7 @@ export function printHelp(command: string): void {
     publish: "tp publish <app-dir> [--freenet] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-contract <wasm>]  Pack, sign, publish to Hyperdrive and optionally Freenet",
     update: "tp update <app-dir> --version <semver>  Bump version and republish",
     seed: "tp seed [--state-dir <path>] [--transport] [--propagation] [--attach-rnsd host:port]  Run headless seeder",
-    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--ws-listen [host:]port] [--ws-token <token>] [--serve-web [dir]] [--status-endpoint]  Run desktop-class host node",
+    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--ws-listen [host:]port] [--ws-token <token>] [--serve-web [dir]] [--status-endpoint] [--freenet] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-interface] [--freenet-rendezvous <64hex>]  Run desktop-class host node",
     trust: "tp trust <list|show|add <256t> --label <name>|remove <key-or-256t>>  Manage trusted publishers"
   };
 
@@ -830,6 +830,12 @@ export async function runNode(ctx: CommandContext): Promise<number> {
   const wsListen = parseOptionalFlag(ctx.args, "--ws-listen");
   const wsToken = parseFlag(ctx.args, "--ws-token");
   const serveWeb = parseOptionalFlag(ctx.args, "--serve-web");
+  const freenet = resolveFreenetNodeFlags(ctx.args);
+  if (freenet.logLines.length > 0) {
+    for (const line of freenet.logLines) {
+      console.log(line);
+    }
+  }
   const config = resolveHostConfig({
     ...(dataDir === null ? {} : { dataDir: resolveFromCwd(ctx.cwd, dataDir) }),
     overrides: {
@@ -861,7 +867,8 @@ export async function runNode(ctx: CommandContext): Promise<number> {
                   ? {}
                   : { staticRoot: serveWeb === "" ? resolveFromCwd(ctx.cwd, "dist/web-host") : resolveFromCwd(ctx.cwd, serveWeb) })
               }
-            })
+            }),
+        ...(freenet.config === null ? {} : { freenet: freenet.config })
       },
       statusEndpoint: hasFlag(ctx.args, "--status-endpoint")
     }
@@ -869,6 +876,67 @@ export async function runNode(ctx: CommandContext): Promise<number> {
 
   await runNodeHost({ config, identityPassphrase: requiredPassphrase(ctx) });
   return 0;
+}
+
+/**
+ * External Freenet node config for `tp node` (does not bundle or supervise freenet-core).
+ * `--freenet` / `--freenet-node` set the WebSocket URL for contracts and optional
+ * propagation mirroring; `--freenet-interface` opens the HDLC packet-log interface.
+ */
+export function resolveFreenetNodeFlags(args: ReadonlyArray<string>): {
+  readonly config: {
+    readonly enabled: boolean;
+    readonly url: string;
+    readonly authToken?: string;
+    readonly rendezvousHex?: string;
+    readonly localDirection?: 0 | 1;
+  } | null;
+  readonly logLines: ReadonlyArray<string>;
+} {
+  const wantFreenet =
+    hasFlag(args, "--freenet") ||
+    hasFlag(args, "--freenet-interface") ||
+    parseFlag(args, "--freenet-node") !== null;
+  if (!wantFreenet) {
+    return { config: null, logLines: [] };
+  }
+
+  const url = parseFlag(args, "--freenet-node") ?? "ws://127.0.0.1:50509/v1/contract/command";
+  const authToken = parseFlag(args, "--freenet-token") ?? undefined;
+  const interfaceEnabled = hasFlag(args, "--freenet-interface");
+  let rendezvousHex = parseFlag(args, "--freenet-rendezvous") ?? undefined;
+  const logLines: string[] = [];
+
+  if (interfaceEnabled) {
+    if (rendezvousHex === undefined) {
+      const bytes = new Uint8Array(32);
+      globalThis.crypto.getRandomValues(bytes);
+      rendezvousHex = bytesToHex(bytes);
+      logLines.push(
+        `Freenet HDLC rendezvous (share with peer): ${rendezvousHex}`
+      );
+    } else if (!/^[0-9a-fA-F]{64}$/.test(rendezvousHex)) {
+      throw new Error("--freenet-rendezvous must be 64 hex characters (32 bytes)");
+    }
+  } else if (rendezvousHex !== undefined && !/^[0-9a-fA-F]{64}$/.test(rendezvousHex)) {
+    throw new Error("--freenet-rendezvous must be 64 hex characters (32 bytes)");
+  }
+
+  logLines.push(
+    interfaceEnabled
+      ? `Freenet HDLC interface enabled against ${url} (external node; not bundled)`
+      : `Freenet URL configured for contracts/propagation mirror: ${url} (external node; not bundled)`
+  );
+
+  return {
+    config: {
+      enabled: interfaceEnabled,
+      url,
+      ...(authToken === undefined ? {} : { authToken }),
+      ...(rendezvousHex === undefined ? {} : { rendezvousHex })
+    },
+    logLines
+  };
 }
 
 function parseOptionalFlag(args: ReadonlyArray<string>, name: string): string | null {

@@ -22,7 +22,7 @@ passed.
 | S7 live-app interop | partial | Atlas read passes; a public update requires explicit authorization and an app signing/curator path |
 | S8 privacy posture | complete for F1 | `docs/security-review.md`; mobile and expanded roles retain explicit warnings |
 | F0 gate | partially open | S2 local + S6 + S8 satisfy proceed criteria for roles 1/3; role 2 viable on measured path; live S2 is evidence-only per plan §12 |
-| F1 package/CAS | implemented, exit incomplete | bridge, locator vector, verified fetch ranking and `tp publish --freenet` exist; `tp node --freenet` was intentionally not added before provisioning, and a real two-host publish/install requires an irreversible live write |
+| F1 package/CAS | implemented, exit incomplete | bridge, locator vector, verified fetch ranking and `tp publish --freenet` exist; `tp node --freenet` / `--freenet-interface` configure an **external** Freenet node (no bundled daemon); a real two-host publish/install still needs an irreversible live write |
 | F2 packet interface | wired + announce/LXMF (sim) + relay policy | SPEC-FREENET packet-log WASM; `FreenetInterface`; host `freenet` at 90 kbps; HDLC live proof; simulated announce+LXMF; BridgeForwarder freenet source/dest policy. Live multi-Freenet-node confirmation optional |
 | F3 propagation backing | WASM + store proof + host mirror | SPEC-FREENET propagation-set WASM; `FreenetPropagationStore`; isolated offline-A/retrieve-B; `createNodeHost` attaches remote mirror when freenet URL + propagation role enabled |
 | F4 provisioning | blocked by S5 | no daemon bundle, supervisor, platform artifact matrix or signing result |

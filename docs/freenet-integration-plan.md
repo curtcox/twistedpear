@@ -124,7 +124,8 @@ distribution onto a content-addressed network.
   node is available — Freenet is slower than a direct drive but cheaper than pushing bulk
   bytes over a Reticulum Resource on a constrained link.
 - `assessFetchBudget` treats Freenet as an IP-bulk path, subject to the same size warnings.
-- The CLI gains `tp publish --freenet` and `tp node --freenet`.
+- The CLI gains `tp publish --freenet` and `tp node --freenet` (external node
+  URL / optional `--freenet-interface`; bundling remains F4/S5).
 
 **Why this is worth doing on its own:** it gives package distribution a fourth independent
 path that survives when Hyperswarm is blocked and no Reticulum peer holds the archive, and it
