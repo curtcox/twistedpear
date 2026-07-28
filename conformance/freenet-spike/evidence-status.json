@@ -81,10 +81,11 @@
         "f2-report.md",
         "prove-f2-interface.mjs",
         "run-local-f2.mjs",
-        "../../packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm"
+        "../../packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm",
+        "../../packages/reticulum-interfaces/test/freenet-announce-lxmf.test.ts"
       ],
-      "conclusion": "FreenetInterface exchanges HDLC frames over the pinned packet-log contract at the S2-derived 90 kbps policy bitrate; announce+LXMF exit remains open",
-      "remaining": "two-host announce + LXMF round trip; relay-policy matrix coverage for freenet as source and destination"
+      "conclusion": "FreenetInterface exchanges HDLC frames live and announce+LXMF over simulated backends; relay policy covers freenet as source and destination",
+      "remaining": "optional live multi-node Freenet announce+LXMF confirmation"
     },
     "f3": {
       "status": "partial",
@@ -93,10 +94,11 @@
         "f3-report.md",
         "prove-f3-propagation.mjs",
         "run-local-f3.mjs",
-        "../../packages/bridge-freenet/contract/propagation-set/propagation-set-contract.wasm"
+        "../../packages/bridge-freenet/contract/propagation-set/propagation-set-contract.wasm",
+        "../../packages/host-core/src/node-host.ts"
       ],
-      "conclusion": "propagation-set WASM is pinned and an isolated offline-A/retrieve-B store proof passes; shipping host mirror wiring remains open",
-      "remaining": "wire PropagationRemoteMirror into operator-facing hosts; optional multi-Freenet-node retrieval evidence"
+      "conclusion": "propagation-set WASM is pinned, isolated offline-A/retrieve-B store proof passes, and createNodeHost attaches FreenetPropagationStore when freenet+propagation are enabled",
+      "remaining": "optional multi-Freenet-node retrieval evidence"
     }
   }
 }

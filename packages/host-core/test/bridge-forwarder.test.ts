@@ -152,4 +152,67 @@ describe("BridgeForwarder", () => {
     forwarder.stop();
     await Promise.all([bridgeA.close(), bridgeB.close(), netA.close(), netB.close()]);
   });
+
+  it("allows freenet as both relay source and destination by default", async () => {
+    const [netFreenet, bridgeFreenet] = makeBridgePair("a-freenet");
+    const [netTcp, bridgeTcp] = makeBridgePair("b-tcp");
+
+    const forwarder = new BridgeForwarder({
+      provider,
+      getInterfaces: () => [bridgeFreenet, bridgeTcp],
+      getPolicy: () => ({})
+    });
+    forwarder.start();
+
+    await netFreenet.send(packet());
+    const fromFreenet = await nextPacket(netTcp.packets);
+    expect(Array.from(fromFreenet.data)).toEqual([1, 2, 3]);
+
+    await netTcp.send(packet(3, new Uint8Array([9, 8, 7])));
+    const toFreenet = await nextPacket(netFreenet.packets);
+    expect(Array.from(toFreenet.data)).toEqual([9, 8, 7]);
+
+    forwarder.stop();
+    await Promise.all([
+      bridgeFreenet.close(),
+      bridgeTcp.close(),
+      netFreenet.close(),
+      netTcp.close()
+    ]);
+  });
+
+  it("can deny freenet as a relay source via policy", async () => {
+    const [netFreenet, bridgeFreenet] = makeBridgePair("src-freenet");
+    const [netAuto, bridgeAuto] = makeBridgePair("dst-auto");
+
+    const forwarder = new BridgeForwarder({
+      provider,
+      getInterfaces: () => [bridgeFreenet, bridgeAuto],
+      getPolicy: () => ({
+        allow: {
+          freenet: { auto: false }
+        }
+      })
+    });
+    forwarder.start();
+
+    await netFreenet.send(packet());
+    const iterator = netAuto.packets[Symbol.asyncIterator]();
+    await expect(
+      Promise.race([
+        iterator.next(),
+        new Promise<IteratorResult<Packet, undefined>>((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), 100)
+        )
+      ])
+    ).rejects.toThrow("timeout");
+
+    forwarder.stop();
+    await Promise.all([
+      bridgeFreenet.close(),
+      bridgeAuto.close(),
+      netFreenet.close(),
+      netAuto.close()
+    ]);
+  });
 });

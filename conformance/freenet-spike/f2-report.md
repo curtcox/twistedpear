@@ -14,5 +14,7 @@ npm run test:freenet-interface
 ```
 
 Evidence: [f2-interface-proof.json](f2-interface-proof.json). Policy bitrate is
-90 kbps from local S2 1 KiB p95. Full announce + LXMF round-trip between two
-hosts remains an open exit criterion.
+90 kbps from local S2 1 KiB p95. Simulated announce + LXMF over
+FreenetInterface-only peers is covered by
+`packages/reticulum-interfaces/test/freenet-announce-lxmf.test.ts`. Live
+multi-node Freenet confirmation remains optional.

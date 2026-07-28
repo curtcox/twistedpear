@@ -352,9 +352,11 @@ The gate is being enforced rather than treated as prose:
   locator min-merge reordering remains an open measurement, not fabricated.
 - **F2 interface wired:** SPEC-FREENET packet-log WASM + vectors,
   `FreenetInterface` / `FreenetContractPacketLogBackend`, host-core `freenet`
-  kind at the S2-derived 90 kbps policy bitrate, and
-  `npm run test:freenet-interface` HDLC packet exchange. Announce + LXMF
-  two-host exit and relay-policy matrix coverage remain open.
+  kind at the S2-derived 90 kbps policy bitrate,
+  `npm run test:freenet-interface` HDLC exchange, simulated announce+LXMF over
+  FreenetInterface-only peers, and BridgeForwarder relay-policy coverage with
+  freenet as source and destination. Live two-host Freenet-node announce+LXMF
+  remains optional confirmation.
 - **F3 codec foundation landed (no store adapter):** SPEC-FREENET
   propagation-set vectors and `bridge-freenet` encode/decode/merge cover
   per-destination LXMF ciphertext sets. A Freenet-backed
@@ -364,10 +366,12 @@ The gate is being enforced rather than treated as prose:
   `FreenetPropagationStore` groups by 16-byte destination hash and PUT/UPDATE
   merges. The propagation-set WASM contract is pinned in SPEC-FREENET, and
   `npm run test:freenet-propagation` records an isolated offline-A/retrieve-B
-  store proof. Operator-facing host mirror wiring remains open.
+  store proof. When `roles.propagation` and `interfaces.freenet` are enabled
+  with a URL, `createNodeHost` attaches the Freenet store as the remote mirror
+  and pulls on startup.
 - **Gate partially open:** S2 local latency, S6, and S8 satisfy the F0 proceed
   criteria for roles 1 and 3, and make role 2 viable on the measured path.
-  F2 interface wiring is landed; announce/LXMF exit and F4–F6 remain open.
+  F2/F3 software wiring is largely landed; F4–F6 remain open (S5/S4/S7).
   Current machine-readable status is
   [conformance/freenet-spike/evidence-status.json](../conformance/freenet-spike/evidence-status.json)
   and

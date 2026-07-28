@@ -101,6 +101,11 @@ export interface FreenetInterfaceConfig extends RelayInterfaceCommon {
   readonly rendezvousHex?: string;
   /** Local write direction 0|1; peer uses the other. Default 0. */
   readonly localDirection?: 0 | 1;
+  /**
+   * When true (default if omitted while enabled+url), attach
+   * FreenetPropagationStore as the PropagationServer remote mirror.
+   */
+  readonly propagationMirror?: boolean;
 }
 
 export interface BluetoothInterfaceConfig extends RelayInterfaceCommon {

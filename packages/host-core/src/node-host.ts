@@ -1,5 +1,7 @@
 import { createServer, type Server as HttpServer } from "node:http";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { createRequire } from "node:module";
 import type { CryptoProvider, Identity, Reticulum } from "@twistedpear/reticulum-ts";
 import { createFilePropagationPersistence } from "./propagation-persistence.js";
 import {
@@ -11,6 +13,10 @@ import {
   type Runtime
 } from "@twistedpear/reticulum-ts";
 import { selectPreferredInterface } from "@twistedpear/reticulum-interfaces";
+import {
+  FreenetClient,
+  FreenetPropagationStore
+} from "@twistedpear/bridge-freenet";
 import { InterfaceManager } from "./interface-manager.js";
 import {
   LXMFRouter,
@@ -23,6 +29,41 @@ import { identityHashHex, loadOrCreateIdentity } from "./identity.js";
 import { startSeederRole } from "./roles/seeder.js";
 import { FileModerationStore } from "./moderation-store.js";
 import type { HostConfig, HostStatus, InterfaceStatus } from "./types.js";
+
+function loadPropagationSetWasm(): Uint8Array {
+  const require = createRequire(import.meta.url);
+  const packageJson = require.resolve("@twistedpear/bridge-freenet/package.json");
+  return Uint8Array.from(
+    readFileSync(
+      join(
+        dirname(packageJson),
+        "contract/propagation-set/propagation-set-contract.wasm"
+      )
+    )
+  );
+}
+
+function createFreenetPropagationMirror(
+  config: HostConfig
+): FreenetPropagationStore | null {
+  const freenet = config.interfaces.freenet;
+  if (!freenet.enabled || freenet.url === undefined || freenet.url.length === 0) {
+    return null;
+  }
+  if (freenet.propagationMirror === false) {
+    return null;
+  }
+  const wasm = loadPropagationSetWasm();
+  const client = new FreenetClient({
+    url: freenet.url,
+    ...(freenet.authToken === undefined ? {} : { authToken: freenet.authToken })
+  });
+  return new FreenetPropagationStore({
+    client,
+    wasm,
+    updateOptions: { codeField: wasm }
+  });
+}
 
 export interface NodeHostOptions {
   readonly config: HostConfig;
@@ -101,6 +142,7 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
       provider,
       inboundModeration: (sourceHash) => moderation.disposition(sourceHash)
     });
+    const freenetMirror = createFreenetPropagationMirror(config);
     propagationServer = new PropagationServer(
       provider,
       {
@@ -114,9 +156,15 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
           const handle = setTimeout(callback, ms);
           return { cancel: () => clearTimeout(handle) };
         },
-        persistence: createFilePropagationPersistence(join(config.dataDir, "propagation", "store.json"))
+        persistence: createFilePropagationPersistence(join(config.dataDir, "propagation", "store.json")),
+        ...(freenetMirror === null ? {} : { remoteMirror: freenetMirror })
       }
     );
+    if (freenetMirror !== null) {
+      await propagationServer.pullRemoteMirror().catch(() => {
+        // Offline Freenet must not block host startup.
+      });
+    }
     const propagationDestination = createPropagationDestination(provider, reticulum, identity);
     propagationServer.registerHandlers(propagationDestination);
     await propagationDestination.announce();
