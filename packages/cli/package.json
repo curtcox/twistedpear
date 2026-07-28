@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@twistedpear/app-registry": "0.1.0",
+    "@twistedpear/bridge-freenet": "0.1.0",
     "@twistedpear/bridge-hyper": "0.1.0",
     "@twistedpear/host-core": "0.1.0",
     "@twistedpear/miniapp-runtime": "0.1.0",

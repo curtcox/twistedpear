@@ -6,6 +6,7 @@ import {
 } from "@twistedpear/reticulum-interfaces/policy";
 import type { CryptoProvider, PacketInterface } from "@twistedpear/reticulum-ts";
 import { unpackPackage, type CatalogEntry } from "@twistedpear/app-registry";
+import type { CasLocator } from "@twistedpear/cas-256t";
 import type { DriveManager } from "./drive.js";
 import type { PackageResourceClient } from "../client/resource-client.js";
 
@@ -13,7 +14,7 @@ export const SIZE_WARNING_BLE_BYTES = 256 * 1024;
 export const SIZE_WARNING_RNODE_BYTES = 32 * 1024;
 export const BULK_BLOCK_RNODE_BYTES = 64 * 1024;
 
-export type FetchPath = "hyperdrive" | "lan-mirror" | "resource";
+export type FetchPath = "hyperdrive" | "lan-mirror" | "freenet" | "resource";
 
 /**
  * Single drive-byte fetcher used by gateway, node-relay, and web leaf paths.
@@ -21,6 +22,11 @@ export type FetchPath = "hyperdrive" | "lan-mirror" | "resource";
  */
 export interface DriveFetcher {
   fetchDriveVersion(driveKeyHex: string, version: string): Promise<Uint8Array>;
+}
+
+/** Structural seam implemented by bridge-freenet without creating a package cycle. */
+export interface FreenetFetcher {
+  fetchLocator(locator: CasLocator): Promise<Uint8Array>;
 }
 
 export interface FetchProgress {
@@ -38,6 +44,8 @@ export interface FetchPackageOptions {
   /** Alternate hyperdrive path when a DriveManager is not wired (gateway/leaf fetchers). */
   readonly driveFetcher?: DriveFetcher;
   readonly lanMirrorKeyHex?: string;
+  readonly freenetFetcher?: FreenetFetcher;
+  readonly freenetLocator?: CasLocator;
   readonly resourceClient?: PackageResourceClient;
   readonly forcePath?: FetchPath;
   readonly onProgress?: (progress: FetchProgress) => void;
@@ -58,14 +66,15 @@ export interface FetchBudgetAssessment {
 
 export function assessFetchBudget(
   entry: CatalogEntry,
-  interfaces: ReadonlyArray<PacketInterface>
+  interfaces: ReadonlyArray<PacketInterface>,
+  freenetNodeAvailable = false
 ): FetchBudgetAssessment {
   const kinds = new Set(interfaces.filter((iface) => iface.online).map((iface) => inferInterfaceKind(iface.name)));
   const onlyRnode =
     kinds.size > 0 &&
     [...kinds].every((kind) => kind === InterfaceKind.RNODE || kind === InterfaceKind.I2P);
 
-  if (onlyRnode && entry.packageSize > BULK_BLOCK_RNODE_BYTES) {
+  if (!freenetNodeAvailable && onlyRnode && entry.packageSize > BULK_BLOCK_RNODE_BYTES) {
     return {
       allowed: false,
       warning: null,
@@ -105,6 +114,7 @@ function ipPathsAvailable(interfaces: ReadonlyArray<PacketInterface>): boolean {
 
 function orderedPaths(
   interfaces: ReadonlyArray<PacketInterface>,
+  freenetAvailable: boolean,
   forcePath?: FetchPath
 ): FetchPath[] {
   if (forcePath !== undefined) {
@@ -112,22 +122,34 @@ function orderedPaths(
   }
 
   if (ipPathsAvailable(interfaces)) {
-    return ["hyperdrive", "lan-mirror", "resource"];
+    return freenetAvailable
+      ? ["hyperdrive", "lan-mirror", "freenet", "resource"]
+      : ["hyperdrive", "lan-mirror", "resource"];
   }
 
-  return ["resource"];
+  return freenetAvailable ? ["freenet", "resource"] : ["resource"];
 }
 
 export async function fetchPackage(
   provider: CryptoProvider,
   options: FetchPackageOptions
 ): Promise<FetchPackageResult> {
-  const budget = assessFetchBudget(options.entry, options.interfaces);
+  const freenetNodeAvailable =
+    options.freenetFetcher !== undefined && options.freenetLocator !== undefined;
+  const budget = assessFetchBudget(
+    options.entry,
+    options.interfaces,
+    freenetNodeAvailable || options.forcePath === "freenet"
+  );
   if (!budget.allowed) {
     throw new Error(budget.blockedReason ?? "fetch blocked by budget rules");
   }
 
-  const paths = orderedPaths(options.interfaces, options.forcePath);
+  const paths = orderedPaths(
+    options.interfaces,
+    freenetNodeAvailable,
+    options.forcePath
+  );
   let lastError: Error | null = null;
 
   for (const path of paths) {
@@ -203,6 +225,13 @@ async function fetchByPath(path: FetchPath, options: FetchPackageOptions): Promi
 
       await options.driveManager.mirrorFrom(options.lanMirrorKeyHex);
       return options.driveManager.fetchVersion(options.version);
+    }
+
+    case "freenet": {
+      if (options.freenetFetcher === undefined || options.freenetLocator === undefined) {
+        throw new Error("freenet path unavailable");
+      }
+      return options.freenetFetcher.fetchLocator(options.freenetLocator);
     }
 
     case "resource": {

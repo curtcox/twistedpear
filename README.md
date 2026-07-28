@@ -27,6 +27,7 @@ LXMF, and Pear-style local-first distribution. The repository contains:
 | [packages/lxmf-ts](packages/lxmf-ts/) | LXMF client and router implementation. |
 | [packages/miniapp-runtime](packages/miniapp-runtime/) | Broker, sandbox, lifecycle, grants, and widget model. |
 | [packages/miniapp-sdk](packages/miniapp-sdk/) | SDK surface available to mini-app code. |
+| [packages/bridge-freenet](packages/bridge-freenet/) | Optional Freenet contract-state adapter and verified package fetch path. |
 | [packages/host-core](packages/host-core/) | Runtime-neutral host engine shared by desktop, web, mobile, and headless modes. |
 | [packages/cli](packages/cli/) | `tp` CLI for packaging, publishing, seeding, and node roles. |
 | [apps/harness-mobile](apps/harness-mobile/) | Expo dev-build mobile host and web-host target. |
@@ -61,6 +62,7 @@ Package-level READMEs cover protocol development:
 
 - [reticulum-ts](packages/reticulum-ts/README.md)
 - [lxmf-ts](packages/lxmf-ts/README.md)
+- [bridge-freenet](packages/bridge-freenet/README.md)
 - [example mini-apps](apps/examples/README.md)
 - [mobile harness](apps/harness-mobile/README.md)
 - [conformance harness](conformance/README.md)

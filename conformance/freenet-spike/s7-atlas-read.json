@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-07-28T14:56:18.887Z",
+  "app": "Atlas",
+  "nodeUrl": "ws://127.0.0.1:7509/v1/contract/command",
+  "contractInstanceId": "CJUR37WSMxV7C1yhrr3xSgjnrJT5yuvQGFNcgvSnsvg",
+  "upstreamSourceCommit": "488870810f610edacf12ac0cf281537c9fd91832",
+  "stateEncoding": "CBOR IndexState",
+  "stateBytes": 13989,
+  "stateSha256Hex": "a4c5caafcb650bb725cab179d40958fac098a1243721b0238be2acce79bed86a",
+  "keyRoundTripMatches": true,
+  "updateAttempted": false,
+  "updateReason": "live writes require explicit approval; Atlas also requires an authorized signing key for a material record"
+}

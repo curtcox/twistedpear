@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { HOST_API_VERSION, validateManifestCapabilities } from "@twistedpear/miniapp-runtime";
 import {
   TrustStore,
@@ -69,7 +70,7 @@ export function printHelp(command: string): void {
     dev: "tp dev <app-dir> [--host 127.0.0.1:34987]  Build and side-load to a dev-mode host",
     pack: "tp pack <app-dir> [--out <file.tpkg>]  Build unsigned package archive",
     sign: "tp sign <file.tpkg>  Re-sign an existing package archive",
-    publish: "tp publish <app-dir>  Pack, sign, publish to Hyperdrive",
+    publish: "tp publish <app-dir> [--freenet] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-contract <wasm>]  Pack, sign, publish to Hyperdrive and optionally Freenet",
     update: "tp update <app-dir> --version <semver>  Bump version and republish",
     seed: "tp seed [--state-dir <path>] [--transport] [--propagation] [--attach-rnsd host:port]  Run headless seeder",
     node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--ws-listen [host:]port] [--ws-token <token>] [--serve-web [dir]] [--status-endpoint]  Run desktop-class host node",
@@ -239,6 +240,7 @@ function writePublishMetadata(
     destinationName?: string;
     appDataHex?: string;
     t256?: string;
+    freenetContractKey?: string;
   }
 ) {
   ensureDir(resolveFromCwd(cwd, ".tp"));
@@ -608,6 +610,47 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
     packageSize: archive.length
   });
 
+  let freenetContractKey: string | undefined;
+  if (hasFlag(ctx.args, "--freenet")) {
+    const {
+      DEFAULT_FREENET_URL,
+      FreenetClient,
+      publishPackageToFreenet
+    } = await import("@twistedpear/bridge-freenet");
+    const defaultContractPath = fileURLToPath(
+      new URL(
+        "../../../bridge-freenet/contract/locator/locator-contract.wasm",
+        import.meta.url
+      )
+    );
+    const contractPath =
+      parseFlag(ctx.args, "--freenet-contract") ?? defaultContractPath;
+    if (!existsSync(contractPath)) {
+      throw new Error(
+        `Freenet locator contract not found at ${contractPath}; run npm run build:freenet-contract or pass --freenet-contract`
+      );
+    }
+    const authToken = parseFlag(ctx.args, "--freenet-token");
+    const client = new FreenetClient({
+      url: parseFlag(ctx.args, "--freenet-node") ?? DEFAULT_FREENET_URL,
+      ...(authToken === null ? {} : { authToken })
+    });
+    try {
+      const result = await publishPackageToFreenet({
+        client,
+        locatorContractWasm: readBytes(contractPath),
+        locator: casLocator,
+        archiveBytes: archive
+      });
+      freenetContractKey = bytesToHex(result.contractKey);
+      console.log(
+        `Published ${result.stateBytes} bytes to Freenet contract ${freenetContractKey}`
+      );
+    } finally {
+      await client.close();
+    }
+  }
+
   const announce = await announcePublishedApp({
     identity,
     manifest: unpacked.manifest,
@@ -637,7 +680,8 @@ export async function runPublish(ctx: CommandContext): Promise<number> {
     packageHash: published.packageHash,
     destinationName: announce.destinationName,
     appDataHex: announce.appDataHex,
-    t256
+    t256,
+    ...(freenetContractKey === undefined ? {} : { freenetContractKey })
   });
 
   console.log(`Published ${published.version} to drive ${keyHex}`);

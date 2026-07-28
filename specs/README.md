@@ -63,6 +63,7 @@ Authored upstream; TwistedPear maintains profiles and interop evidence.
 | [SPEC-WIRE](spec-wire/spec.md) | Reticulum packets, announces, links, crypto | **normative** (profile) |
 | [SPEC-MSG](spec-msg/spec.md) | LXMF messages, propagation, tickets | **normative** (profile) |
 | [SPEC-MEDIA](spec-media/spec.md) | Per-medium interface profiles (AutoInterface, WebSocket, BLE, RNode/LoRa, serial) | **normative** (per-medium profiles) |
+| [SPEC-FREENET](spec-freenet/spec.md) | Optional Freenet contract-state binding for package distribution, packet logs, and propagation | **stub** |
 
 ### Group B — Execution substrate specs
 

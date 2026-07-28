@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-07-28T15:06:09Z",
+  "runtime": "bare@1.30.3",
+  "typescriptSdk": "@freenetorg/freenet-stdlib@0.3.0",
+  "shims": [
+    "bare-ws@2.0.4",
+    "bare-encoding@1.0.3"
+  ],
+  "node": "freenet@0.2.112",
+  "nodeUrl": "ws://127.0.0.1:7509/v1/contract/command",
+  "operation": "read-only get",
+  "contractInstanceId": "CJUR37WSMxV7C1yhrr3xSgjnrJT5yuvQGFNcgvSnsvg",
+  "stateBytes": 13989,
+  "keyRoundTripMatches": true
+}

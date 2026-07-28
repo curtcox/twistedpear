@@ -36,7 +36,15 @@ await ui.render({
 });
 `);
 
-const busyLoopBundle = new TextEncoder().encode("while (true) {}");
+const busyLoopBundle = new TextEncoder().encode(`
+const wasm = Uint8Array.from([
+  0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0,
+  7, 7, 1, 3, 114, 117, 110, 0, 0, 10, 4, 1, 2, 0, 11
+]);
+const { instance } = await WebAssembly.instantiate(wasm);
+instance.exports.run();
+while (true) {}
+`);
 
 async function measureSpawnKill(backend, bundle) {
   const spawnLatencies = [];
@@ -137,7 +145,7 @@ async function main() {
   const busyLoop = await measureBusyLoopKill(backend);
 
   if (!busyLoop.killed) {
-    throw new Error("busy-loop app was not killed by watchdog");
+    throw new Error("WASM busy-loop app was not killed by watchdog");
   }
 
   const summary = {
@@ -145,6 +153,7 @@ async function main() {
     platform: "desktop-node",
     backend: backend.name,
     runtime: "node",
+    wasmExecuted: true,
     iterations: ITERATIONS,
     spawnMs: spawnKill.spawnMs,
     killMs: spawnKill.killMs,

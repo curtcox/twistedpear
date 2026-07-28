@@ -35,6 +35,9 @@
       "path": "./packages/bridge-hyper"
     },
     {
+      "path": "./packages/bridge-freenet"
+    },
+    {
       "path": "./packages/cli"
     },
     {

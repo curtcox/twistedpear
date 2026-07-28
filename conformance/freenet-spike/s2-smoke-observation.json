@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-07-28",
+  "node": "freenet@0.2.112",
+  "runner": "run-local-s2.mjs -> measure-roundtrip.mjs",
+  "requestedSamplesPerSize": 1,
+  "completeGateEvidence": false,
+  "isolatedThreeNode": {
+    "topology": "one localhost gateway plus two localhost peers",
+    "gatewayNetworkPort": 31338,
+    "publisherApiPort": 17509,
+    "subscriberApiPort": 17510,
+    "result": "failed",
+    "observations": [
+      "gateway reported RING_TRANSPORT_DESYNC with a transport connection but an empty ring",
+      "publisher updates failed or timed out because the contract was not retained in the executor store",
+      "peers reported no subscriber snapshot for the measured contract",
+      "the automated self-cleaning rerun reached all three API listeners but its first blocking-retention PUT timed out after 60 seconds"
+    ]
+  },
+  "isolatedLocalModeControl": {
+    "apiPort": 17512,
+    "result": "failed",
+    "observations": [
+      "PUT, blocking GET subscription, and UPDATE completed",
+      "no UpdateNotification was delivered within 60 seconds",
+      "the node logged no subscriber snapshot for the measured contract"
+    ]
+  },
+  "clientCorrectionsMade": [
+    "GET requests now fetch contract code on first retrieval",
+    "measurement PUT uses blocking subscription retention",
+    "subscriptions use blocking GET subscription readiness",
+    "notification decoding accepts state and replacement-delta SDK unions",
+    "incomplete smoke runs are marked and cannot overwrite gate evidence",
+    "the local topology is reproducible and self-cleaning"
+  ],
+  "latencyStatisticsRecorded": false
+}

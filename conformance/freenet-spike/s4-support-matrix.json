@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "audited": "2026-07-28",
+  "probe": "instantiate and execute a trivial WASM export before the hostile busy loop",
+  "backends": {
+    "desktop-node-worker": {
+      "status": "pass",
+      "wasmExecuted": true,
+      "busyLoopKilled": true,
+      "busyLoopKillMs": 301,
+      "command": "npm run test:miniapp-benchmark"
+    },
+    "browser-worker": {
+      "status": "blocked",
+      "wasmExecuted": false,
+      "ordinaryBusyLoopKilled": true,
+      "ordinaryBusyLoopKillMs": 313,
+      "reason": "current opaque-origin worker CSP omits unsafe-eval/wasm-unsafe-eval, so Chromium rejects WebAssembly.instantiate",
+      "command": "npm run test:web-sandbox"
+    },
+    "bare-worker-device": {
+      "status": "pending",
+      "wasmExecuted": null,
+      "busyLoopKilled": null,
+      "busyLoopKillMs": null,
+      "reason": "desktop Bare has WebAssembly but no Worker global; the faithful BareKit Worker probe must run on the mobile host",
+      "command": "run the in-host benchmark-miniapp action after rebuilding the worklet"
+    }
+  },
+  "decisionImpact": "Option B cannot be selected cross-host: browser policy currently blocks WASM and the BareKit device result is absent."
+}

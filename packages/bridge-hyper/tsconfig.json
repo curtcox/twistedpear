@@ -22,6 +22,7 @@
   "references": [
     { "path": "../reticulum-ts" },
     { "path": "../reticulum-interfaces" },
-    { "path": "../app-registry" }
+    { "path": "../app-registry" },
+    { "path": "../cas-256t" }
   ]
 }

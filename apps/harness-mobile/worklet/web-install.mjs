@@ -140,6 +140,7 @@ export function createWebInstallService(options) {
     const result = await hostSession.fetchPlane.fetchPackage(options.provider, {
       entry: toCatalogEntryLike(locator),
       version: locator.version,
+      freenetLocator: locator,
       onProgress: (progress) => {
         sendProgress?.({
           phase: progress.phase,

@@ -33,6 +33,7 @@ function createProbeLifecycle(bundle, appId = "probe") {
     { now: () => Date.now(), delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) });
 
   return {
+    backend,
     lifecycle,
     getProbes: () => capturedProbes
   };
@@ -100,6 +101,23 @@ self.postMessage({
   namespace: "__probe__",
   method: "report",
   payload: { probes },
+  sentAt: Date.now()
+});
+`);
+
+const wasmProbeBundle = new TextEncoder().encode(`
+const wasm = Uint8Array.from([
+  0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0,
+  7, 7, 1, 3, 114, 117, 110, 0, 0, 10, 4, 1, 2, 0, 11
+]);
+const { instance } = await WebAssembly.instantiate(wasm);
+instance.exports.run();
+self.postMessage({
+  type: "broker-request",
+  id: "probe-wasm",
+  namespace: "__probe__",
+  method: "report",
+  payload: { probes: ["wasm-ok"] },
   sentAt: Date.now()
 });
 `);
@@ -174,6 +192,24 @@ async function runEscapeProbe() {
   await lifecycle.stop("cleanup");
 }
 
+async function runWasmProbe() {
+  const { backend, lifecycle, getProbes } = createProbeLifecycle(
+    wasmProbeBundle,
+    "wasm"
+  );
+  await lifecycle.launch();
+  const probes = await waitForProbes(getProbes);
+  const diagnostics = backend.lastSpawnDiagnostics;
+  await lifecycle.stop("cleanup");
+  return {
+    supported: probes?.includes("wasm-ok") === true,
+    error:
+      probes?.includes("wasm-ok") === true
+        ? null
+        : diagnostics?.detail ?? diagnostics?.reason ?? "probe did not complete"
+  };
+}
+
 async function runBusyLoopKill() {
   const backend = new WebSandboxBackend();
   const lifecycle = new MiniappLifecycle(backend,
@@ -221,6 +257,7 @@ async function main() {
     smoke: null,
     isolation: null,
     escape: null,
+    wasm: null,
     busyLoopKillMs: null
   };
 
@@ -233,6 +270,8 @@ async function main() {
   await runEscapeProbe();
   globalThis.__WEB_SANDBOX__.escape = "ok";
 
+  globalThis.__WEB_SANDBOX__.wasm = await runWasmProbe();
+
   const killMs = await runBusyLoopKill();
   globalThis.__WEB_SANDBOX__.busyLoopKillMs = killMs;
   globalThis.__WEB_SANDBOX__.status = "done";
@@ -244,6 +283,7 @@ main().catch((error) => {
     smoke: globalThis.__WEB_SANDBOX__?.smoke ?? null,
     isolation: globalThis.__WEB_SANDBOX__?.isolation ?? null,
     escape: globalThis.__WEB_SANDBOX__?.escape ?? null,
+    wasm: globalThis.__WEB_SANDBOX__?.wasm ?? null,
     busyLoopKillMs: globalThis.__WEB_SANDBOX__?.busyLoopKillMs ?? null,
     message: error instanceof Error ? error.message : String(error)
   };

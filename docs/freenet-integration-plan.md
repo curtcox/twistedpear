@@ -28,7 +28,7 @@ not verifiable from public docs is listed in §4 as a spike, not asserted here.
 | Property | Value | Consequence for this plan |
 |---|---|---|
 | Implementation | Rust; `cargo install --path crates/core`, plus `fdev` tooling | No TypeScript node exists. Integration is client-side or binary-bundling. |
-| Latest release | 0.2.110, 2026-07-26 | Pre-1.0, ~227 open issues, fast-moving. Version pinning is mandatory. |
+| Latest release | 0.2.112, 2026-07-27 | Pre-1.0 and fast-moving. Version pinning is mandatory. |
 | Client API | WebSocket, default port **50509**, path `/v1/contract/command`, optional auth token | This is the entire integration surface. Same shape as I2P's SAM bridge. |
 | Client SDK | `@freenetorg/freenet-stdlib` (TypeScript) | Usable directly from Node, Electron, and browsers; Bare is a spike (§4, S1). |
 | Client operations | `put`, `get`, `update`, `subscribe`, `disconnect`, `DelegateRequest` | **There is no client-visible stream or direct-peer-message primitive.** |
@@ -307,3 +307,50 @@ F0 (spikes, ~all parallel)
 
 F1 and F4 are the shortest path to something a user can actually use. F2 is the most likely to
 be killed by evidence, and that is a successful outcome for F0, not a failure.
+
+## 14. Implementation status (2026-07-28)
+
+The gate is being enforced rather than treated as prose:
+
+- **Landed:** pinned TypeScript SDK adapter; F1 locator/package state encoder;
+  signed-locator and 256t verification; Rust locator contract source pinned to an
+  exact upstream commit; SPEC-FREENET locator vector; `freenet` fetch-path
+  ranking and IP-bulk budget behavior; opt-in `tp publish --freenet`; S1 Bare
+  packaging and live-read probe; S8 threat model.
+- **S1 passed with exact shims:** the SDK bundles and reads the live Atlas index
+  under Bare using `bare-ws@2.0.4` behind a narrow compatibility adapter and
+  `bare-encoding@1.0.3` for FlatBuffers text globals. This proves Bare client
+  viability; mobile lifecycle and remote-node trust remain separate gates.
+- **Contract build passed:** the locator contract passes native Rust tests and
+  builds with the pinned Rust 1.97.1 `wasm32-unknown-unknown` toolchain. The
+  committed WASM size and hashes are pinned in the SPEC-FREENET vector. This is
+  contract evidence only; S5 node-binary bundling remains open.
+- **S6 passed with pins:** ten consecutive core releases kept the contract
+  operations and key derivation stable, despite a very fast release cadence.
+- **S3 passed conditionally:** the pinned Rust ordered-log spike converges
+  under concurrent/reordered inputs with a bounded per-direction retention
+  window. Its growth and native merge-cost curve is recorded, but S2 still
+  determines whether using it as a packet interface is viable.
+- **S4 is partially negative:** Node workers execute WASM and retain the
+  watchdog kill guarantee; the current browser sandbox CSP blocks WASM
+  compilation, and the faithful BareKit device probe is still pending. Option B
+  is not open.
+- **S5 is partial:** the installed 0.2.112 macOS universal binary adds roughly
+  93 MiB, but strict verification of that installed copy fails. Cross-platform
+  size measurements and a signed/notarized TwistedPear embedding remain open,
+  so F4 is not open.
+- **S7 read interop passed:** the TypeScript adapter read the live Atlas CBOR
+  index through the localhost node. The write half remains pending explicit
+  approval because even a rejected/idempotent update exposes public operation
+  metadata.
+- **Gate closed:** the S2 runner now records 100 update-to-notify samples at
+  1 KiB, 64 KiB, and 1 MiB, but the required local three-node and live-network
+  measurements are still absent. A diagnostic 0.2.112 local attempt found
+  ring/transport desynchronization and missing subscriber snapshots even after
+  correcting first-fetch, retention, and blocking-subscription behavior; it
+  records no fabricated latency values. The attempt is now reproducible with a
+  self-cleaning isolated three-node harness; its automated rerun reached all
+  three API listeners but timed out on the first blocking-retention PUT. F2 is
+  not a stub, and F3–F6 remain unshipped.
+  Current machine-readable status is
+  [conformance/freenet-spike/evidence-status.json](../conformance/freenet-spike/evidence-status.json).

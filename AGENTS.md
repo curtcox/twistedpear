@@ -54,6 +54,7 @@ conformance suite for the area changed; see `conformance/AGENTS.md`.
 - `packages/reticulum-ts`, `packages/lxmf-ts`: wire-compatible protocol stacks
 - `packages/reticulum-interfaces`: concrete network/device interfaces
 - `packages/peer-discovery`: peer discovery helpers
+- `packages/bridge-hyper`, `packages/bridge-freenet`: optional distribution adapters
 - `packages/miniapp-runtime`, `packages/miniapp-sdk`: sandbox broker and app API
 - `packages/host-core`: runtime-neutral host orchestration
 - `packages/worklet-core`: shared Bare worklet adapters (IPC bridges, dev channel)

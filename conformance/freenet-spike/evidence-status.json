@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "audited": "2026-07-28",
+  "pinned": {
+    "typescriptSdk": "@freenetorg/freenet-stdlib@0.3.0",
+    "rustStdlibCommit": "f4636e502876b0e11f2f6d59032348cfd6518bbc",
+    "freenetCoreRelease": "v0.2.112"
+  },
+  "spikes": {
+    "S1": {
+      "status": "complete",
+      "artifact": "s1-report.md",
+      "supportingArtifacts": [
+        "bare-entry.mjs",
+        "bare-websocket-shim.mjs",
+        "s1-live-read.json"
+      ],
+      "conclusion": "the pinned SDK bundles and performs a live read under Bare with exact bare-ws and bare-encoding shims"
+    },
+    "S2": {
+      "status": "pending",
+      "artifact": "measure-roundtrip.mjs",
+      "supportingArtifacts": [
+        "run-local-s2.mjs",
+        "s2-smoke-report.md",
+        "s2-smoke-observation.json"
+      ],
+      "remaining": "resolve the recorded 0.2.112 local notification/topology failure, then run 100 samples per size against a local 3-node network and an explicitly authorized live network and commit measured-roundtrip.json"
+    },
+    "S3": {
+      "status": "complete",
+      "artifact": "s3-report.md",
+      "supportingArtifacts": [
+        "ordered-log-contract/src/lib.rs",
+        "s3-measurements.json"
+      ],
+      "conclusion": "bounded pairwise append-log encoding converges and orders deterministically; F2 viability remains gated on S2 network measurements"
+    },
+    "S4": {
+      "status": "partial",
+      "artifact": "s4-report.md",
+      "supportingArtifacts": ["s4-support-matrix.json"],
+      "remaining": "decide whether browser CSP may permit WASM, then run the prepared BareKit worker probe on a mobile host"
+    },
+    "S5": {
+      "status": "partial",
+      "artifact": "s5-report.md",
+      "supportingArtifacts": ["s5-bundling-matrix.json"],
+      "remaining": "measure Linux and Windows, verify a fresh macOS artifact, then sign and notarize an actual TwistedPear bundle"
+    },
+    "S6": {
+      "status": "complete",
+      "artifact": "churn-report.md",
+      "conclusion": "pass with exact pins and vector recheck on every bump"
+    },
+    "S7": {
+      "status": "partial",
+      "artifact": "s7-report.md",
+      "supportingArtifacts": [
+        "probe-atlas.mjs",
+        "s7-atlas-read.json"
+      ],
+      "remaining": "with explicit live-write approval, attempt and record a well-formed Atlas update"
+    },
+    "S8": {
+      "status": "complete",
+      "artifact": "../../docs/security-review.md#f9--freenet-boundary-threat-model-f0-s8",
+      "conclusion": "desktop/headless F1 has no show-stopper; mobile and later roles remain gated"
+    }
+  },
+  "gate": {
+    "status": "closed",
+    "reason": "S2 latency evidence is pending",
+    "completionAudit": "completion-audit.md"
+  }
+}

@@ -37,7 +37,15 @@ await ui.render({
 });
 `);
 
-const busyLoopBenchmarkBundle = new TextEncoder().encode("while (true) {}");
+const busyLoopBenchmarkBundle = new TextEncoder().encode(`
+const wasm = Uint8Array.from([
+  0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0,
+  7, 7, 1, 3, 114, 117, 110, 0, 0, 10, 4, 1, 2, 0, 11
+]);
+const { instance } = await WebAssembly.instantiate(wasm);
+instance.exports.run();
+while (true) {}
+`);
 
 function benchmarkNowMs() {
   return performance.now();
@@ -665,12 +673,13 @@ export function createWorkletMiniappHost(options) {
             const busyLoop = await measureBusyLoopKill(backend);
 
             if (!busyLoop.busyLoopKilled) {
-              throw new Error("busy-loop app was not killed by watchdog");
+              throw new Error("WASM busy-loop app was not killed by watchdog");
             }
 
             return {
               backend: backend.name,
               runtime: "bare",
+              wasmExecuted: true,
               iterations: BENCHMARK_ITERATIONS,
               spawnMs: spawnKill.spawnMs,
               killMs: spawnKill.killMs,

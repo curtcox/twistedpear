@@ -43,6 +43,7 @@ export {
 } from "./core/fetch.js";
 export type {
   DriveFetcher,
+  FreenetFetcher,
   FetchPath,
   FetchProgress,
   FetchPackageOptions,

@@ -1,5 +1,6 @@
 node_modules/
 dist/
+target/
 coverage/
 .tmp/
 *.tsbuildinfo
@@ -15,6 +16,7 @@ __pycache__/
 miniapp-bee-store/
 conformance/bare-interop/bare-interop.bundle
 conformance/bare-interop/bare-interop.bundle.mjs
+conformance/freenet-spike/bare-freenet.bundle
 conformance/bare-interop/imports.generated.json
 conformance/bare-device/imports.generated.json
 conformance/bare-device/tcp-runner.bundle

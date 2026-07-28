@@ -114,6 +114,51 @@ mini-app can ask the host to do. Posture:
 Exercised end-to-end by `npm run test:devstudio-loop` (two-instance loop, including a
 confirmation-count audit and a subset-grant denial check).
 
+### F9 — Freenet boundary threat model (F0 S8)
+
+Freenet is an optional, untrusted replicated-state transport. This review does
+not treat a contract key, a gateway, or a Freenet node as an authority and does
+not claim that using Freenet makes Reticulum traffic anonymous.
+
+**What is observable:**
+
+- The Freenet node serving TwistedPear's WebSocket client observes every contract
+  key read, put, updated, or subscribed through it, plus timing, byte sizes, and the
+  client's network address when the node is remote.
+- Peers storing or synchronizing the F1 locator contract can read the signed
+  locator and `.tpkg` bytes. Package distribution is intentionally public.
+- A future propagation contract would carry encrypted LXMF message bytes, but its
+  per-destination contract key, update timing, ciphertext size, and retention
+  pattern are metadata. End-to-end encryption does not hide those facts.
+- An operator or observer present on both Reticulum and Freenet can correlate
+  announces/messages with contract operations by timing and size. TwistedPear
+  has no defensible unlinkability claim across that boundary.
+- Contract updates may replicate beyond the publishing node. Disconnecting,
+  revoking a capability, deleting local state, or uninstalling an app cannot
+  recall an update already accepted by the network.
+
+**Controls required before later phases may ship:**
+
+- Freenet remains off by default, optional, and outside every existing critical
+  path. Offline disables only the Freenet path.
+- F1 fetches pass through the unchanged signed-locator, 256t, package-hash,
+  manifest-signature, and per-file verification pipeline.
+- Remote-node configuration must be an explicit capability-style grant naming
+  the node URL/operator and the observable data above. Secrets, identity private
+  keys, and unencrypted message bodies must never enter locator or propagation
+  contract state.
+- The `freenet:contract` grant, if F5 opens, must say: “Updates are published to
+  a global network and cannot be recalled.” A generic network-access row is not
+  sufficient.
+- Mobile support is rejected unless host chrome can present that remote-node
+  disclosure outside app-controlled pixels. A preconfigured third-party gateway
+  with silent ambient access is a show-stopper.
+
+**S8 conclusion:** no show-stopper blocks desktop/headless F1 public package
+distribution under these controls. This conclusion does not open mobile,
+propagation, packet-tunnel, or mini-app contract access; each still needs its
+own gate and UI evidence.
+
 ## Recommendations (future)
 
 1. **Bare Worker parity:** run `hostile-apps` against `BareWorkerSandboxBackend` on

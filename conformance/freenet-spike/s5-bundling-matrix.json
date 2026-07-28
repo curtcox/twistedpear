@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "audited": "2026-07-28",
+  "upstreamVersion": "0.2.112",
+  "platforms": {
+    "macos-universal": {
+      "status": "partial",
+      "source": "/Applications/Freenet.app",
+      "architectures": ["x86_64", "arm64"],
+      "binaryBytes": 97085632,
+      "installedBundleKiB": 95032,
+      "binarySha256Hex": "af68f6a1b921f5217b95621212f5de1a064ebd04e8ac94694b913c5b6c244f52",
+      "declaredMinimumMacOS": "11.0",
+      "signatureInspection": {
+        "hardenedRuntimeFlag": true,
+        "teamIdentifier": "R55ZESJCXG",
+        "stapledNotarizationTicket": true,
+        "strictVerification": "failed: invalid signature (code or signature have been modified)",
+        "gatekeeperAssessment": "failed: internal error in Code Signing subsystem"
+      }
+    },
+    "linux": {
+      "status": "pending"
+    },
+    "windows": {
+      "status": "pending"
+    }
+  },
+  "twistedPearEmbedding": {
+    "status": "pending",
+    "reason": "no signed TwistedPear package embedding this executable has been built or notarized"
+  }
+}

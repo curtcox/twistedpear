@@ -126,7 +126,12 @@ async function runPlaywright(pageUrl) {
     }
 
     const result = await page.evaluate(() => globalThis.__WEB_SANDBOX__);
-    if (result?.isolation !== "ok" || result?.escape !== "ok" || typeof result?.busyLoopKillMs !== "number") {
+    if (
+      result?.isolation !== "ok" ||
+      result?.escape !== "ok" ||
+      typeof result?.wasm?.supported !== "boolean" ||
+      typeof result?.busyLoopKillMs !== "number"
+    ) {
       throw new Error(`web sandbox spike incomplete: ${JSON.stringify(result)}`);
     }
 
@@ -158,6 +163,8 @@ try {
     platform: "browser-playwright",
     backend: "web-iframe-worker",
     runtime: "chromium",
+    wasmSupported: result.wasm.supported,
+    wasmError: result.wasm.error,
     busyLoopKillMs: result.busyLoopKillMs
   };
 

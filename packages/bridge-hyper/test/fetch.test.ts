@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { PacketInterface } from "@twistedpear/reticulum-ts";
 import { Identity, PureCryptoProvider, bytesToHex } from "@twistedpear/reticulum-ts";
+import { encode256t, signCasLocator } from "@twistedpear/cas-256t";
 import {
   buildUnsignedManifest,
   packPackage,
@@ -68,9 +69,106 @@ describe("fetch budget rules", () => {
     expect(assessment.allowed).toBe(true);
     expect(assessment.warning).toContain("BLE");
   });
+
+  it("treats an available Freenet node as an IP bulk path", () => {
+    const assessment = assessFetchBudget(
+      {
+        appId: "a",
+        publisherPublicKey: "b",
+        name: "app",
+        version: "1.0.0",
+        packageSize: BULK_BLOCK_RNODE_BYTES + 1,
+        packageHash: "hash",
+        driveKey: "d".repeat(64),
+        resourceAvailable: true,
+        destinationHash: "dest",
+        receivedAt: 0,
+        expiresAt: 0,
+        manifest: null
+      },
+      [mockIface("rnode", true)],
+      true
+    );
+
+    expect(assessment.allowed).toBe(true);
+  });
 });
 
 describe("fetchPackage path selection", () => {
+  it("ranks an available Freenet node after direct IP paths and before Resource", async () => {
+    const provider = new PureCryptoProvider();
+    const identity = new Identity(provider);
+    const files = [{ path: "bundle.js", content: new TextEncoder().encode("freenet-fetch-test") }];
+    const unsigned = buildUnsignedManifest(
+      {
+        name: "fetch.freenet",
+        version: "1.0.0",
+        entry: "bundle.js",
+        driveKey: "e".repeat(64),
+        publisherPublicKey: bytesToHex(identity.getPublicKey()),
+        files
+      },
+      provider
+    );
+    const manifest = signManifest(provider, identity, unsigned);
+    const packed = packPackage(provider, { ...manifest, signature: manifest.signature, files });
+    const t256 = encode256t(packed.archiveBytes, (bytes) => provider.sha512(bytes));
+    const locator = signCasLocator(identity, {
+      t256,
+      appId: manifest.name,
+      version: manifest.version,
+      driveKey: manifest.driveKey,
+      packageHash: packed.packageHash,
+      packageSize: packed.archiveBytes.length
+    });
+    const driveManager = {
+      activeDrive: null,
+      openDrive: vi.fn(async () => {}),
+      fetchVersion: vi.fn(async () => {
+        throw new Error("hyperswarm unavailable");
+      }),
+      mirrorFrom: vi.fn(async () => {
+        throw new Error("lan mirror unavailable");
+      })
+    } as unknown as DriveManager;
+    const freenetFetcher = {
+      fetchLocator: vi.fn(async () => packed.archiveBytes)
+    };
+    const resourceClient = {
+      fetchVersion: vi.fn(async () => {
+        throw new Error("resource should not be used");
+      })
+    };
+
+    const result = await fetchPackage(provider, {
+      entry: {
+        appId: "pub:fetch.freenet",
+        publisherPublicKey: manifest.publisherPublicKey,
+        name: manifest.name,
+        version: manifest.version,
+        packageSize: packed.archiveBytes.length,
+        packageHash: packed.packageHash,
+        driveKey: manifest.driveKey,
+        resourceAvailable: true,
+        destinationHash: "dest",
+        receivedAt: 0,
+        expiresAt: 0,
+        manifest: packed.manifest
+      },
+      version: manifest.version,
+      interfaces: [mockIface("tcp", true)],
+      driveManager,
+      lanMirrorKeyHex: "f".repeat(64),
+      freenetFetcher,
+      freenetLocator: locator,
+      resourceClient: resourceClient as never
+    });
+
+    expect(result.path).toBe("freenet");
+    expect(freenetFetcher.fetchLocator).toHaveBeenCalledWith(locator);
+    expect(resourceClient.fetchVersion).not.toHaveBeenCalled();
+  });
+
   it("falls through from hyperdrive to resource", async () => {
     const provider = new PureCryptoProvider();
     const identity = new Identity(provider);
