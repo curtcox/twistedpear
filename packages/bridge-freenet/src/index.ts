@@ -53,3 +53,10 @@ export type {
   FreenetPublishOptions,
   FreenetPublishResult
 } from "./server/freenet-publish.js";
+export {
+  FreenetPropagationStore
+} from "./server/freenet-propagation-store.js";
+export type {
+  FreenetPropagationEntry,
+  FreenetPropagationStoreOptions
+} from "./server/freenet-propagation-store.js";

@@ -357,6 +357,11 @@ The gate is being enforced rather than treated as prose:
   propagation-set vectors and `bridge-freenet` encode/decode/merge cover
   per-destination LXMF ciphertext sets. A Freenet-backed
   `PropagationServer` seam is still absent.
+- **F3 mirror seam landed:** `PropagationRemoteMirror` lets
+  `PropagationServer` publish debounced snapshots asynchronously;
+  `FreenetPropagationStore` groups by 16-byte destination hash and PUT/UPDATE
+  merges. A propagation-set WASM contract and the offline-A/retrieve-B proof
+  remain open.
 - **Gate partially open:** S2 local latency, S6, and S8 satisfy the F0 proceed
   criteria for roles 1 and 3, and make role 2 viable on the measured path.
   F2 still must not land as a stub; F3–F6 remain unshipped pending their

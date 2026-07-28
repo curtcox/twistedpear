@@ -24,7 +24,7 @@ passed.
 | F0 gate | partially open | S2 local + S6 + S8 satisfy proceed criteria for roles 1/3; role 2 viable on measured path; live S2 is evidence-only per plan §12 |
 | F1 package/CAS | implemented, exit incomplete | bridge, locator vector, verified fetch ranking and `tp publish --freenet` exist; `tp node --freenet` was intentionally not added before provisioning, and a real two-host publish/install requires an irreversible live write |
 | F2 packet interface | codec landed, interface absent | SPEC-FREENET packet-log vectors + `bridge-freenet` merge codec; no bitrate/policy row or host stub |
-| F3 propagation backing | codec landed, adapter absent | SPEC-FREENET propagation-set vectors + `bridge-freenet` merge codec; `PropagationPersistence` is still sync-snapshot only, so no Freenet adapter is wired yet |
+| F3 propagation backing | codec + mirror seam; exit incomplete | SPEC-FREENET propagation-set (16-byte dest hash), `FreenetPropagationStore`, and `PropagationRemoteMirror` on `PropagationServer`; WASM contract + node-A-offline/node-B proof still open |
 | F4 provisioning | blocked by S5 | no daemon bundle, supervisor, platform artifact matrix or signing result |
 | F5 capability/UI | not implemented | depends on an honestly supportable node/provisioning surface; no capability grant has been weakened or predeclared |
 | F6 app-execution ADR | blocked by S4 and S7 | Option A has read evidence only; Option B lacks device/browser support; the decision remains deliberately unresolved |
