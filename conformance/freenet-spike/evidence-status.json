@@ -73,6 +73,10 @@
   "gate": {
     "status": "partially-open",
     "reason": "local S2 latency evidence is sufficient for role viability; live S2 confirmation and remaining S4/S5/S7 items still gate later phases; F3 WASM + local store proof are recorded",
+    "softwarePause": {
+      "since": "2026-07-28",
+      "reason": "F1–F3/F5 software and F6 Option A ADR are landed; remaining work needs signing credentials, live-write authorization, or BareKit hardware"
+    },
     "completionAudit": "completion-audit.md",
     "f2": {
       "status": "partial",

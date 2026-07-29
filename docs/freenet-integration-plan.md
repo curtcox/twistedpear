@@ -387,6 +387,10 @@ The gate is being enforced rather than treated as prose:
   criteria for roles 1 and 3, and make role 2 viable on the measured path.
   F2/F3/F5 software wiring and the F6 Option A ADR are landed; F4 remains
   blocked on S5; live S2/S7 write need authorization.
+  **Software pause (2026-07-28):** no further agent loop work until signing/
+  embedding credentials (F4/S5), live-write authorization (S2/S7/F1 exit), or
+  a physical BareKit run (S4) is available. Optional live multi-node Freenet
+  announce+LXMF remains evidence-only.
   Current machine-readable status is
   [conformance/freenet-spike/evidence-status.json](../conformance/freenet-spike/evidence-status.json)
   and

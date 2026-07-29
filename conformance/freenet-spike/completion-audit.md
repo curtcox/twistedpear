@@ -41,3 +41,10 @@ passed.
 - Atlas write authority or a supported non-curator live interop target.
 
 These are not represented as zeroes, skips, or successful software tests.
+
+## Software pause
+
+As of 2026-07-28, F1–F3/F5 software paths and the F6 Option A ADR are landed.
+Further progress is gated on external inputs listed above (signing credentials,
+live-write authorization, BareKit hardware). Resume the integration loop only
+when one of those inputs is available.
