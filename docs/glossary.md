@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-24
+audited: 2026-07-29
 register: none
 -->
 
@@ -37,6 +37,11 @@ discovery, presence, and the app catalog.
 **Authority machine** — one of the three formally twinned lifecycle machines
 guarding user authority: grant ([SPEC-CAP](../specs/spec-cap/spec.md)), escrow
 and recovery quorum ([SPEC-AUTHORITY](../specs/spec-authority/spec.md)).
+
+**BareKit** — the mobile embedding layer (`react-native-bare-kit`) that starts
+TwistedPear's packaged Bare worklet and provides the IPC channel between it and
+the React Native host. Inside the worklet, `BareKit.IPC` is the global used to
+exchange messages with the host. [apps/harness-mobile](../apps/harness-mobile/).
 
 **Bee storage** — the append-only, sequence-numbered key/value surface behind
 the `storage` SDK namespace (`StorageBeeBackend`): Corestore/Hyperbee in
