@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: planned
-audited: 2026-07-28
+audited: 2026-07-29
 register: software
 -->
 
@@ -283,6 +283,10 @@ what TwistedPear is.
 - **Simulation.** A simulated Freenet adapter in `packages/effects` so campaign and adversary
   runs can exercise Freenet paths deterministically without a live network.
 
+§16 records which of these are actually wired into GitHub Actions today, which are
+merely runnable by hand, and what remains. The "offline-by-default" rule above binds
+the *suites*; per §16 a CI job may run a pinned, hash-verified node.
+
 ## 12. Risks and kill criteria
 
 | Risk | Kill criterion |
@@ -309,9 +313,55 @@ F0 (spikes, ~all parallel)
 F1 and F4 are the shortest path to something a user can actually use. F2 is the most likely to
 be killed by evidence, and that is a successful outcome for F0, not a failure.
 
-## 14. Implementation status (2026-07-28)
+## 14. Implementation status (2026-07-29)
 
-The gate is being enforced rather than treated as prose:
+This section is the authoritative done/remaining ledger. Every "done" row below is
+backed by a committed artifact; nothing here is claimed from intent. The
+machine-readable mirror is
+[conformance/freenet-spike/evidence-status.json](../conformance/freenet-spike/evidence-status.json),
+and the per-exit-criterion mapping is
+[completion-audit.md](../conformance/freenet-spike/completion-audit.md).
+
+### 14.1 F0 spikes
+
+| Spike | Status | Done | Remaining |
+|---|---|---|---|
+| S1 Bare SDK | **done** | Pinned SDK bundles and reads live Atlas under Bare with exact shims (`bare-ws@2.0.4`, `bare-encoding@1.0.3`); `s1-report.md`, `s1-live-read.json` | — (mobile lifecycle is F4/S8, not S1) |
+| S2 update→notify latency | **partial** | Local 3-node harness, 100 samples/size, p95 ~89 ms (≤64 KiB) / ~256 ms (1 MiB) on the local-executor notify path; `measured-roundtrip.json` | Authorized live-network 100-sample series; cross-node notify series that survives locator min-merge reordering |
+| S3 convergent log | **done** | Pinned Rust ordered-log contract, native convergence tests, growth/merge curve; `s3-report.md`, `s3-measurements.json` | — |
+| S4 sandboxed WASM | **partial (negative so far)** | Node workers execute WASM and keep the watchdog kill guarantee; `s4-support-matrix.json` | Browser-CSP decision (currently blocks WASM compilation); physical BareKit device run. **Option B stays closed until both land.** |
+| S5 bundled node | **partial** | Installed macOS universal binary ≈93 MiB; Linux/Windows compressed archive sizes and SHA-256s in `s5-bundling-matrix.json` | Fresh macOS artifact whose signature verifies strictly; signed + notarized TwistedPear bundle embedding the binary. **F4 stays blocked.** |
+| S6 API churn | **done** | Ten consecutive core releases kept contract ops and key derivation stable; `churn-report.md` plus exact SDK/core/stdlib pins | — (recheck on every pin bump) |
+| S7 live-app interop | **partial** | Read half passed: the TS adapter read the live Atlas CBOR index through a localhost node; `s7-atlas-read.json` | Write half needs explicit authorization — even a rejected update publishes public operation metadata |
+| S8 privacy posture | **done for F1** | Threat model in [security review](security-review.md) §F9 | Re-run for mobile remote-node and for any expanded role |
+
+**Gate verdict: partially open.** S2 (local), S6, and S8 satisfy the proceed criteria
+for roles 1 and 3 and make role 2 viable on the measured path. Live S2 is evidence,
+not a gate, per §12.
+
+### 14.2 Phases
+
+| Phase | Status | Done | Remaining |
+|---|---|---|---|
+| F1 package/CAS | **implemented; exit criterion not met** | `bridge-freenet` with pinned SDK client, locator/package state encoder, signed-locator + 256t verification, Rust locator contract pinned to an exact upstream commit, SPEC-FREENET locator vector, `freenet` fetch-path ranking, IP-bulk budget behavior, `tp publish --freenet`, `tp node --freenet` (external node URL) | The stated exit criterion — publish from host A, install on host B with `--force-path freenet` — requires an irreversible live write and is unmet |
+| F2 packet interface | **wired; live confirmation optional** | SPEC-FREENET packet-log WASM + vectors, `FreenetInterface` / `FreenetContractPacketLogBackend`, host-core `freenet` kind at the S2-derived 90 kbps, `test:freenet-interface` HDLC exchange against a real node, simulated announce+LXMF over FreenetInterface-only peers, BridgeForwarder relay policy as source and destination | Live two-host announce+LXMF across distinct Freenet nodes (evidence, not a gate) |
+| F3 propagation backing | **wired** | SPEC-FREENET propagation-set WASM + vectors, encode/decode/merge, `PropagationRemoteMirror` seam, `FreenetPropagationStore` (16-byte destination grouping, PUT/UPDATE merge), isolated offline-A/retrieve-B proof, `createNodeHost` attaches the mirror when `roles.propagation` + `interfaces.freenet` URL are set | Multi-Freenet-node retrieval evidence (evidence, not a gate) |
+| F4 node provisioning | **not started — blocked by S5** | Nothing. `tp node --freenet` points at an *external* node; there is no bundled daemon | Daemon bundle, child-process supervisor with ephemeral port + generated token, per-platform artifact matrix, codesign/notarization result — all gated on signing credentials |
+| F5 capability + chrome | **landed (software)** | `freenet:contract` in `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0 brokers `get`/`put`/`update` with confirmation on put/update; `createNodeHost` exposes `freenetBackend` when a URL is set; desktop Settings for contracts enable / URL / auth token plus an HDLC interface toggle with peer rendezvous; Node status rows | Mobile and web stay off per S8; a `freenet` row in [platform capabilities status](platform-capabilities-status.md) still needs to reflect this table |
+| F6 app-execution ADR | **decided** | [Option A accepted](adr-freenet-app-execution.md): mini-apps are Freenet clients, not hosts, on S7 read evidence and S4/S8 blockers for B/C | B reopens only if S4 clears; C remains a separate proposal |
+
+### 14.3 What a user can actually do today
+
+With an external Freenet node running and `interfaces.freenet.url` set: publish a
+`.tpkg` locator (`tp publish --freenet`), fetch a package over the `freenet` path,
+run a Reticulum link over `FreenetInterface`, back LXMF propagation with a Freenet
+store, and grant a mini-app `freenet:contract` on desktop. Not available: any
+bundled node, any mobile or web Freenet support, and any contract or delegate
+execution on a TP node.
+
+**The documentation for that path does not yet exist** — see §15.
+
+### 14.4 Detail
 
 - **Landed:** pinned TypeScript SDK adapter; F1 locator/package state encoder;
   signed-locator and 256t verification; Rust locator contract source pinned to an
@@ -387,11 +437,144 @@ The gate is being enforced rather than treated as prose:
   criteria for roles 1 and 3, and make role 2 viable on the measured path.
   F2/F3/F5 software wiring and the F6 Option A ADR are landed; F4 remains
   blocked on S5; live S2/S7 write need authorization.
-  **Software pause (2026-07-28):** no further agent loop work until signing/
-  embedding credentials (F4/S5), live-write authorization (S2/S7/F1 exit), or
-  a physical BareKit run (S4) is available. Optional live multi-node Freenet
-  announce+LXMF remains evidence-only.
   Current machine-readable status is
   [conformance/freenet-spike/evidence-status.json](../conformance/freenet-spike/evidence-status.json)
   and
   [measured-roundtrip.json](../conformance/freenet-spike/measured-roundtrip.json).
+
+### 14.5 The protocol pause, re-scoped (2026-07-29)
+
+The pause recorded on 2026-07-28 said "no further agent loop work" until signing
+credentials, live-write authorization, or BareKit hardware became available. Its
+*rationale* is sound and unchanged: F1–F3/F5 protocol work genuinely cannot advance
+without those external inputs, and inventing evidence for them would be worse than
+waiting. Its *scope* was too broad. The two largest remaining deficits in this
+integration — §15 documentation and §16 CI verification — need none of those three
+inputs.
+
+**The pause therefore applies to protocol and evidence work only.** Documentation,
+examples, and CI wiring are outside it and should proceed. Resume protocol work only
+when one of the three external inputs is available.
+
+Two corrections while re-validating:
+
+- `completion-audit.md` states that the current machine "cannot rebuild WASM because
+  its Rust installation lacks the pinned WASM target." That is imprecise:
+  `wasm32-unknown-unknown` *is* installed. The mismatch is the toolchain version —
+  Homebrew `rustc` 1.96.1 against the 1.97.1 pinned in each contract's
+  `rust-toolchain.toml`. This matters because it means the reproducible-contract
+  check in §16 is a `rustup` install away, not blocked.
+- `packages/bridge-freenet/README.md` lists only the locator and propagation-set
+  WASM artifacts; `contract/packet-log/packet-log-contract.wasm` shipped with F2 and
+  is missing from that list.
+
+## 15. Remaining: documentation and examples
+
+**Status: not started.** Freenet currently appears only in design documents
+(`docs/`), a 47-line package README, and a spec. There is no `guide/` chapter, no
+`cookbook/` recipe, and no end-to-end walkthrough. A new user has no path from
+"I have no Freenet node" to "I verified the integration works." This is the single
+largest gap between the plan and its own goal, and none of it is blocked by §14.5.
+
+Required before this plan can be called complete:
+
+1. **A user-facing walkthrough** (a `guide/` chapter, or a section of
+   [desktop host](desktop-host.md) if a full chapter is too much for an optional
+   feature). It must cover, in order: obtaining and running an external Freenet
+   node; the pinned version and why pinning is mandatory (S6); `tp node --freenet
+   <url>` and `--freenet-interface`; `tp publish --freenet`; installing with
+   `--force-path freenet`; the desktop Settings surface (contracts enable, URL,
+   optional auth token, HDLC interface toggle, peer rendezvous) and the Node status
+   rows; and — not as a footnote — that Freenet is off by default, that a contract
+   update is irreversible and globally published, and that mobile and web are
+   deliberately unsupported per S8.
+2. **A verification recipe.** Exact commands with expected output, so a user can
+   confirm the integration on their own machine rather than trusting this document:
+   the offline suites from §16 tier 1–2, then the real-node suites from tier 3.
+   State plainly which steps need a node and which do not.
+3. **A worked mini-app example** exercising `freenet:contract` through the broker —
+   `get`, then a `put`/`update` with the confirmation prompt. Option A is the
+   accepted ADR but has no example a user can read or run; a `cookbook/` recipe
+   alongside the existing capability recipes is the natural home.
+4. **Feature-status rows.** `guide/appendix-feature-status.md`,
+   `cookbook/appendix-feature-status.md`, and
+   [platform capabilities status](platform-capabilities-status.md) have no Freenet
+   row. Each should carry per-host support matching §14.2: desktop conditional on an
+   external node, mobile and web off.
+5. **Fix the two documentation errors** named in §14.5.
+
+## 16. Remaining: CI verification
+
+**Policy decision (2026-07-29):** CI may download a pinned, hash-verified Freenet
+release archive and run a real node. This supersedes the "offline-by-default"
+reading of §11 for CI *jobs* — the suites themselves must still skip cleanly without
+a node, because developers run them locally.
+
+The goal is simple and currently unmet: **everything that can be verified without
+signing credentials, live-network writes, or physical hardware must be verified by
+GitHub Actions on every push.** Today `.github/workflows/` contains no reference to
+Freenet at all.
+
+### Tier 1 — offline, already verified in CI
+
+These ride `npm test` inside `check:ci-base` today. They are real coverage and
+include the strongest single check in the integration: the committed WASM artifacts
+are hash- and length-checked against the SPEC-FREENET vectors, so a tampered or
+stale contract binary fails the build.
+
+- `packages/bridge-freenet/test/` — six files: locator contract, packet log, packet
+  log backend, contract backend, propagation set, propagation store.
+- `packages/effects/test/freenet-sim.test.ts` — the deterministic simulated adapter.
+- `packages/reticulum-interfaces/test/freenet-announce-lxmf.test.ts` — simulated
+  announce + LXMF over FreenetInterface-only peers.
+
+*Remaining:* nothing functional; consider naming them in a dedicated job so a
+Freenet regression is legible in the CI summary instead of buried in `npm test`.
+
+### Tier 2 — offline, verifiable in CI, not yet wired
+
+| Check | Command | Needs | Proves |
+|---|---|---|---|
+| S1 Bare bundle | `npm run test:freenet-spike` | Node only | The pinned SDK still bundles under Bare with the exact shims. Verified 2026-07-29 to pass offline in seconds and to skip the live portion cleanly. |
+| S3 ordered log | `npm run test:freenet-ordered-log` | `rustup` + `wasm32-unknown-unknown` | Convergence under concurrent/reordered writers, and the growth curve, still hold. |
+| **Reproducible contracts** | `npm run build:freenet-contract` then assert `git diff --exit-code` on the three `.wasm` files | Pinned toolchain from each `rust-toolchain.toml` | That the committed WASM actually corresponds to the pinned Rust source. **Nothing verifies this today** — tier 1 checks the bytes against the vector, and the vector against the bytes, but never either against the source. This is the most valuable missing check in the integration. |
+
+### Tier 3 — real node in CI (newly authorized)
+
+Fetch `freenet-x86_64-unknown-linux-musl.tar.gz` for the pinned `v0.2.112`,
+verifying SHA-256 `b5b6bdf975c1563a98507e94c8edc1091278306e16f25ef216aacea1570a5571`
+against
+[s5-bundling-matrix.json](../conformance/freenet-spike/s5-bundling-matrix.json), and
+pass the extracted path as `FREENET_BINARY`. A `freenet` service in
+`conformance/docker/docker-compose.yml` is the alternative shape, matching the
+existing `i2pd` job; the raw download is lighter at ~19 MiB.
+
+- `npm run test:freenet-interface` — F2 HDLC exchange over a real node. Belongs in
+  `ci.yml`; it is the only thing that turns "F2 is wired" from a local claim into a
+  verified one.
+- `npm run test:freenet-propagation` — F3 offline-A/retrieve-B store proof. Also
+  `ci.yml`.
+- `npm run test:freenet-local-network` — the S2 100-sample series. Too slow for
+  per-push; belongs in `nightly.yml` beside the other soak suites, with
+  `measured-roundtrip.json` uploaded as an artifact.
+
+Upload `f2-interface-proof.json`, `f3-propagation-proof.json`, and
+`measured-roundtrip.json` as artifacts, following the `sansio` and
+`simulation-replay` jobs.
+
+### Tier 4 — cannot be done in CI, and must not be faked
+
+Recorded here so no future pass mistakes these for gaps in tier 3: the live-network
+write (S7 write half, live S2, the F1 exit criterion), macOS signing and
+notarization (S5, F4), the physical BareKit run and the browser-CSP decision (S4),
+and live two-host announce + LXMF across distinct Freenet nodes (F2/F3 optional
+evidence). These stay manual and explicitly authorized. A CI job must never report
+them as passing, skipped-as-green, or zero.
+
+### Plan/evidence drift guard
+
+Add `conformance/doc-audit/freenet-plan.test.mjs`, following the existing
+`peer-discovery-plan.test.mjs` and `device-io-plan.test.mjs` pattern, asserting that
+§14's status claims stay consistent with `evidence-status.json` and
+`completion-audit.md`. Three documents currently track this integration's status by
+hand and can silently diverge.

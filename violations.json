@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-24T02:02:11.899Z",
+  "generatedAt": "2026-07-28T20:26:13.189Z",
   "roots": [
     "packages/protocol/src",
     "packages/reticulum-ts/src",
@@ -7,9 +7,28 @@
     "packages/miniapp-runtime/src",
     "packages/reticulum-interfaces/src"
   ],
-  "scannedFileCount": 153,
-  "violationCount": 0,
-  "filesWithViolations": [],
-  "summaryByApi": {},
-  "violations": []
+  "scannedFileCount": 155,
+  "violationCount": 2,
+  "filesWithViolations": [
+    "packages/miniapp-runtime/src/drivers/browser-effects.ts"
+  ],
+  "summaryByApi": {
+    "setTimeout": 2
+  },
+  "violations": [
+    {
+      "file": "packages/miniapp-runtime/src/drivers/browser-effects.ts",
+      "line": 228,
+      "api": "setTimeout",
+      "match": "await new Promise((resolve) => setTimeout(resolve, 250));",
+      "suggestedEffect": "Timers"
+    },
+    {
+      "file": "packages/miniapp-runtime/src/drivers/browser-effects.ts",
+      "line": 267,
+      "api": "setTimeout",
+      "match": "await new Promise((resolve) => setTimeout(resolve, 120));",
+      "suggestedEffect": "Timers"
+    }
+  ]
 }
