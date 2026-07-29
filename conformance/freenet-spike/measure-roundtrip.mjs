@@ -158,7 +158,7 @@ try {
             `update/notify ${payloadBytes} bytes sample ${index + 1}`,
             Promise.all([
               publisher.update(key, codeHash, state(payloadBytes, counter), {
-                codeField: wasm
+                fallbackCodeField: wasm
               }),
               notified
             ])

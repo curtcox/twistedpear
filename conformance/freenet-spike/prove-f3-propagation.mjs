@@ -44,7 +44,7 @@ const publisher = new FreenetClient({
 const storeA = new FreenetPropagationStore({
   client: publisher,
   wasm,
-  updateOptions: { codeField: wasm }
+  updateOptions: { fallbackCodeField: wasm }
 });
 
 console.log("F3 proof: publishing ciphertext set from node A");
@@ -67,7 +67,7 @@ const storeB = new FreenetPropagationStore({
   client: retriever,
   wasm,
   watchDestinationHashes: [destinationHash],
-  updateOptions: { codeField: wasm }
+  updateOptions: { fallbackCodeField: wasm }
 });
 
 console.log("F3 proof: pulling from node B while A is offline");

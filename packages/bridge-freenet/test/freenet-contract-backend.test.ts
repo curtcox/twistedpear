@@ -8,7 +8,10 @@ import {
 describe("FreenetClientContractBackend", () => {
   it("round-trips hex get/put/update against a FreenetClient stand-in", async () => {
     const states = new Map<string, Uint8Array>();
-    const updates: Array<{ codeField?: Uint8Array }> = [];
+    const updates: Array<{
+      codeField?: Uint8Array;
+      fallbackCodeField?: Uint8Array;
+    }> = [];
     const client = {
       async put(source: { wasm: Uint8Array; parameters: Uint8Array }, state: Uint8Array) {
         const { key } = FreenetClient.deriveKey(source);
@@ -25,7 +28,10 @@ describe("FreenetClientContractBackend", () => {
         key: Uint8Array,
         _codeHash: Uint8Array,
         state: Uint8Array,
-        options: { codeField?: Uint8Array } = {}
+        options: {
+          codeField?: Uint8Array;
+          fallbackCodeField?: Uint8Array;
+        } = {}
       ) {
         updates.push(options);
         states.set(bytesToHex(key), Uint8Array.from(state));
@@ -53,7 +59,10 @@ describe("FreenetClientContractBackend", () => {
       keyHex: put.keyHex,
       stateHex: "bb"
     });
-    expect(updates[0]?.codeField).toEqual(Uint8Array.from([0, 97, 115, 109]));
+    expect(updates[0]?.codeField).toBeUndefined();
+    expect(updates[0]?.fallbackCodeField).toEqual(
+      Uint8Array.from([0, 97, 115, 109])
+    );
 
     expect(await backend.get("ff".repeat(32))).toBeNull();
     await backend.close();

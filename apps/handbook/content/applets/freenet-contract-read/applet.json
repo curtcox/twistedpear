@@ -1,0 +1,14 @@
+{
+  "id": "freenet-contract-read",
+  "group": "interfaces",
+  "title": "Freenet contract read",
+  "capabilities": ["freenet:contract"],
+  "surfaces": ["freenet.get"],
+  "expectations": {
+    "android": "unavailable",
+    "ios": "unavailable",
+    "desktop": "unavailable",
+    "web": "unavailable",
+    "node": "pass"
+  }
+}

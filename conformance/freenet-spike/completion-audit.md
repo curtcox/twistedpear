@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-28
+audited: 2026-07-29
 register: none
 -->
 
@@ -15,7 +15,7 @@ passed.
 |---|---|---|
 | S1 Bare SDK | complete | `s1-report.md`, exact shims, offline bundle and live Atlas read |
 | S2 update-to-notify | partial | `measured-roundtrip.json`: local 3-node, 100 samples/size, p95 ~89 ms (≤64 KiB) / ~256 ms (1 MiB) on local-executor notify; live series and cross-node notify still open |
-| S3 convergent log | complete | `s3-report.md`, Rust contract, native convergence tests and committed measurements; the current machine cannot rebuild WASM because its Rust installation lacks the pinned WASM target |
+| S3 convergent log | complete | `s3-report.md`, Rust contract, native convergence tests and committed measurements; rebuilding requires the pinned Rust 1.97.1 toolchain and its `wasm32-unknown-unknown` target |
 | S4 sandboxed WASM | partial | Node passes; browser CSP blocks compilation; physical BareKit device run is pending |
 | S5 bundled node | partial | installed macOS size + signature inspection; Linux/Windows compressed release archive sizes in `s5-bundling-matrix.json`; fresh verify + TP embedding/signing remain |
 | S6 API churn | complete | `churn-report.md` and exact SDK/core/stdlib pins |
@@ -44,7 +44,8 @@ These are not represented as zeroes, skips, or successful software tests.
 
 ## Software pause
 
-As of 2026-07-28, F1–F3/F5 software paths and the F6 Option A ADR are landed.
-Further progress is gated on external inputs listed above (signing credentials,
-live-write authorization, BareKit hardware). Resume the integration loop only
-when one of those inputs is available.
+As of 2026-07-29, F1–F3/F5 software paths, the F6 Option A ADR, user
+documentation/example, and tiered CI wiring are landed. Further protocol or
+external-evidence progress is gated on inputs listed above (signing credentials,
+live-write authorization, BareKit hardware). Resume that work only when one of
+those inputs is available.

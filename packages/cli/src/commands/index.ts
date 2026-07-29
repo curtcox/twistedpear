@@ -73,7 +73,7 @@ export function printHelp(command: string): void {
     publish: "tp publish <app-dir> [--freenet] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-contract <wasm>]  Pack, sign, publish to Hyperdrive and optionally Freenet",
     update: "tp update <app-dir> --version <semver>  Bump version and republish",
     seed: "tp seed [--state-dir <path>] [--transport] [--propagation] [--attach-rnsd host:port]  Run headless seeder",
-    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--ws-listen [host:]port] [--ws-token <token>] [--serve-web [dir]] [--status-endpoint] [--freenet] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-interface] [--freenet-rendezvous <64hex>]  Run desktop-class host node",
+    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--ws-listen [host:]port] [--ws-token <token>] [--serve-web [dir]] [--status-endpoint] [--freenet [ws-url]] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-interface] [--freenet-rendezvous <64hex>] [--freenet-direction <0|1>]  Run desktop-class host node",
     trust: "tp trust <list|show|add <256t> --label <name>|remove <key-or-256t>>  Manage trusted publishers"
   };
 
@@ -134,6 +134,15 @@ function parseFlag(args: ReadonlyArray<string>, flag: string): string | null {
 
 function hasFlag(args: ReadonlyArray<string>, flag: string): boolean {
   return args.includes(flag);
+}
+
+function parseOptionalFlagValue(
+  args: ReadonlyArray<string>,
+  flag: string
+): string | null {
+  const index = args.indexOf(flag);
+  const candidate = index < 0 ? undefined : args[index + 1];
+  return candidate === undefined || candidate.startsWith("--") ? null : candidate;
 }
 
 function requiredPassphrase(ctx: CommandContext): string {
@@ -901,11 +910,25 @@ export function resolveFreenetNodeFlags(args: ReadonlyArray<string>): {
     return { config: null, logLines: [] };
   }
 
-  const url = parseFlag(args, "--freenet-node") ?? "ws://127.0.0.1:50509/v1/contract/command";
+  const url =
+    parseFlag(args, "--freenet-node") ??
+    parseOptionalFlagValue(args, "--freenet") ??
+    "ws://127.0.0.1:50509/v1/contract/command";
   const authToken = parseFlag(args, "--freenet-token") ?? undefined;
   const interfaceEnabled = hasFlag(args, "--freenet-interface");
   let rendezvousHex = parseFlag(args, "--freenet-rendezvous") ?? undefined;
+  const directionFlag = parseFlag(args, "--freenet-direction");
+  const localDirection =
+    directionFlag === null ? undefined : Number(directionFlag);
   const logLines: string[] = [];
+
+  if (
+    localDirection !== undefined &&
+    localDirection !== 0 &&
+    localDirection !== 1
+  ) {
+    throw new Error("--freenet-direction must be 0 or 1");
+  }
 
   if (interfaceEnabled) {
     if (rendezvousHex === undefined) {
@@ -933,7 +956,10 @@ export function resolveFreenetNodeFlags(args: ReadonlyArray<string>): {
       enabled: interfaceEnabled,
       url,
       ...(authToken === undefined ? {} : { authToken }),
-      ...(rendezvousHex === undefined ? {} : { rendezvousHex })
+      ...(rendezvousHex === undefined ? {} : { rendezvousHex }),
+      ...(localDirection === undefined
+        ? {}
+        : { localDirection: localDirection as 0 | 1 })
     },
     logLines
   };

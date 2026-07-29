@@ -16,6 +16,7 @@
     "ai:chat",
     "ai:embed",
     "peer:connect",
+    "freenet:contract",
     "relay:configure",
     "relay:read",
     "share:cas",
@@ -53,5 +54,5 @@
     "device:remote"
   ],
   "icon": null,
-  "minHostApi": "0.10.0"
+  "minHostApi": "0.11.0"
 }

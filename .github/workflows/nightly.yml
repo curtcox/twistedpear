@@ -339,3 +339,32 @@ jobs:
       - run: npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/protocol
       - run: npm run sansio:determinism
       - run: npm run sansio:canary
+
+  freenet-local-network:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Download pinned Freenet node
+        run: |
+          mkdir -p .tmp/freenet-ci
+          curl -L -o .tmp/freenet-ci/freenet.tar.gz \
+            https://github.com/freenet/freenet-core/releases/download/v0.2.112/freenet-x86_64-unknown-linux-musl.tar.gz
+          echo "b5b6bdf975c1563a98507e94c8edc1091278306e16f25ef216aacea1570a5571  .tmp/freenet-ci/freenet.tar.gz" | sha256sum --check
+          tar -xzf .tmp/freenet-ci/freenet.tar.gz -C .tmp/freenet-ci
+          chmod +x .tmp/freenet-ci/freenet
+      - name: Record 100-sample local update-to-notify measurements
+        run: npm run test:freenet-local-network
+        env:
+          FREENET_BINARY: ${{ github.workspace }}/.tmp/freenet-ci/freenet
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: freenet-measured-roundtrip
+          path: .tmp/freenet-roundtrip-local-3-node.json
+          if-no-files-found: error

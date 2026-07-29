@@ -30,9 +30,11 @@ not hand-authored:
 
 - `contract/locator/locator-contract.wasm` — F1 locator/package state
 - `contract/propagation-set/propagation-set-contract.wasm` — F3 LXMF set
+- `contract/packet-log/packet-log-contract.wasm` — F2 Reticulum packet log
 
 Rebuild with `npm run build:freenet-contract` (or pass `locator` /
-`propagation-set` to build one). Size and hashes are pinned by SPEC-FREENET.
+`propagation-set` / `packet-log` to build one). Size and hashes are pinned by
+SPEC-FREENET.
 
 ## Status
 

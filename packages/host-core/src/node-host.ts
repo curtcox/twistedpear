@@ -78,7 +78,7 @@ function createFreenetPropagationMirror(
   return new FreenetPropagationStore({
     client,
     wasm,
-    updateOptions: { codeField: wasm }
+    updateOptions: { fallbackCodeField: wasm }
   });
 }
 

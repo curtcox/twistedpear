@@ -11,7 +11,7 @@ aid; the authoritative registers are [STATUS-SOFTWARE.md](../STATUS-SOFTWARE.md)
 [STATUS-HARDWARE.md](../STATUS-HARDWARE.md), and [LIMITATIONS.md](../LIMITATIONS.md). Where
 those disagree with this page, they win.
 
-Last reviewed against the registers: **2026-07-21**.
+Last reviewed against the registers: **2026-07-29**.
 
 Two sibling lists cover the other reader-facing guides:
 [guide/appendix-feature-status.md](../guide/appendix-feature-status.md) for people *using*
@@ -39,6 +39,7 @@ You can build these, but not the way the surrounding text might suggest.
 
 | Feature | Limit | Where it appears | Tracked as |
 |---|---|---|---|
+| `freenet:contract` | Available on desktop/headless only when an external v0.2.112 node is configured. It is off by default; mobile/web are unsupported; every `put` and `update` requires a host confirmation because publication is global and irreversible. | [10](10-apps-that-use-freenet.md) | [integration plan](../docs/freenet-integration-plan.md), [app-execution ADR](../docs/adr-freenet-app-execution.md) |
 | Cookbook screenshots | 37 of 40 are reproducible host/runtime or documented composite captures, including an app-specific screenshot for every sample. Three hardware-gated multi-device/radio captures remain; simulated radio evidence is not substituted. | everywhere | [images/README.md](images/README.md) |
 | Publisher-identity backup | Host-owned `tp` and desktop settings flows support encrypted backup and recovery words; mini-apps never receive the private identity material. | [8](08-apps-that-build-apps.md) | [docs/identity-backup.md](../docs/identity-backup.md) |
 | Multipart propagation | Host-side recipes can resume/reassemble bounded payloads; the default ceiling is 64 KiB and 32-byte frames are costly on radio. Mini-apps still have no attachment API. | [6](06-apps-that-move-files.md), [9](09-apps-for-a-bad-link.md) | [docs/multipart-propagation.md](../docs/multipart-propagation.md) |

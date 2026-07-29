@@ -78,6 +78,11 @@ surface is thin enough that a dedicated recipe would repeat one already here. Th
 capability strings is in the
 [SDK reference appendix](../authors/appendix-sdk-reference.md).
 
+The optional [Contract notebook](examples/contract-notebook/README.md) is kept
+outside the twenty-five general-purpose samples because it requires a configured
+external Freenet node. It demonstrates `freenet:contract` `get`, `put`, and
+`update`, including the host's per-write confirmation.
+
 ## By what you are trying to build
 
 | If you want to build… | Start from |

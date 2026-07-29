@@ -51,6 +51,7 @@ these on your own host.
 | 7 | [Apps that use a model](07-apps-that-use-a-model.md) | 3 | One in-flight `ai.chat`, treating output as untrusted, and working when it is gone. |
 | 8 | [Apps that build apps](08-apps-that-build-apps.md) | 3 | The `apps:*` loop, and why every step of it stops for a host confirmation. |
 | 9 | [Apps for a bad link](09-apps-for-a-bad-link.md) | 3 | Designing backwards from hundreds of bits per second. |
+| 10 | [Apps that use Freenet](10-apps-that-use-freenet.md) | integration example | Brokered contract reads and irreversible, host-confirmed writes through an external node. |
 | — | [Appendix: app index](appendix-app-index.md) | 25 | Every sample, its capabilities, and its size, in one table. |
 | — | [Appendix: feature status](appendix-feature-status.md) | — | Everything this cookbook marks incomplete, with its blocker. |
 

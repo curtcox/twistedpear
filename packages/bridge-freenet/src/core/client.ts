@@ -61,6 +61,12 @@ export interface FreenetUpdateOptions {
    * there.
    */
   readonly codeField?: Uint8Array;
+  /**
+   * Retry bytes for observed 0.2.112 paths that reject the normal 32-byte code
+   * hash with "Contract not in store". Other observed paths reject the longer
+   * field, so this is deliberately fallback-only.
+   */
+  readonly fallbackCodeField?: Uint8Array;
 }
 
 export type FreenetSubscription = () => void;
@@ -152,23 +158,38 @@ export class FreenetClient {
       new StateUpdate(Array.from(state))
     );
     const codeField = options.codeField ?? codeHash;
-    // ContractKey's constructor rejects non-32-byte code fields. The
-    // 0.2.112 workaround needs the full WASM in `code`, so build the
-    // FlatBuffers object directly when the override is longer.
-    const contractKey =
-      codeField.length === 32
-        ? new ContractKey(key, codeField)
-        : ({
-            get_contract_key: () =>
-              new ContractKeyT(
-                new ContractInstanceIdT(Array.from(key)),
-                Array.from(codeField)
-              )
-          } as ContractKey);
-    await this.#withinTimeout(
-      api.update(new UpdateRequest(contractKey, data)),
-      "update"
-    );
+    // Observed 0.2.112 paths disagree about whether this field is a 32-byte
+    // hash or full WASM. Prefer the protocol-sized hash and keep the longer
+    // field as a missing-contract compatibility retry.
+    const request = (field: Uint8Array): Promise<unknown> => {
+      const contractKey =
+        field.length === 32
+          ? new ContractKey(key, field)
+          : ({
+              get_contract_key: () =>
+                new ContractKeyT(
+                  new ContractInstanceIdT(Array.from(key)),
+                  Array.from(field)
+                )
+            } as ContractKey);
+      return api.update(new UpdateRequest(contractKey, data));
+    };
+    try {
+      await this.#withinTimeout(request(codeField), "update");
+    } catch (error) {
+      const message = errorFromUnknown(error).message;
+      if (
+        options.codeField !== undefined ||
+        options.fallbackCodeField === undefined ||
+        !/Contract not in store|no code provided/i.test(message)
+      ) {
+        throw error;
+      }
+      await this.#withinTimeout(
+        request(options.fallbackCodeField),
+        "update compatibility retry"
+      );
+    }
   }
 
   async subscribe(

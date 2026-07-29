@@ -160,8 +160,8 @@ describe("DeviceManager Phase 1", () => {
 });
 
 describe("host API version", () => {
-  it("bumps to 0.10.0 for device I/O foundation", () => {
-    expect(HOST_API_VERSION).toBe("0.10.0");
+  it("includes device I/O and Freenet contract access in 0.11.0", () => {
+    expect(HOST_API_VERSION).toBe("0.11.0");
   });
 });
 

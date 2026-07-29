@@ -18,6 +18,65 @@ jobs:
       - run: npm ci
       - run: npm run check:ci-base
 
+  freenet-offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Verify Bare SDK compatibility
+        run: npm run test:freenet-spike
+      - name: Install pinned Rust contract toolchain
+        run: rustup toolchain install 1.97.1 --profile minimal --target wasm32-unknown-unknown
+      - name: Verify ordered-log convergence
+        run: npm run test:freenet-ordered-log
+      - name: Rebuild committed Freenet contracts
+        run: npm run build:freenet-contract
+      - name: Verify reproducible contract artifacts
+        run: |
+          git diff --exit-code -- \
+            packages/bridge-freenet/contract/locator/locator-contract.wasm \
+            packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm \
+            packages/bridge-freenet/contract/propagation-set/propagation-set-contract.wasm
+
+  freenet-real-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Download pinned Freenet node
+        run: |
+          mkdir -p .tmp/freenet-ci
+          curl -L -o .tmp/freenet-ci/freenet.tar.gz \
+            https://github.com/freenet/freenet-core/releases/download/v0.2.112/freenet-x86_64-unknown-linux-musl.tar.gz
+          echo "b5b6bdf975c1563a98507e94c8edc1091278306e16f25ef216aacea1570a5571  .tmp/freenet-ci/freenet.tar.gz" | sha256sum --check
+          tar -xzf .tmp/freenet-ci/freenet.tar.gz -C .tmp/freenet-ci
+          chmod +x .tmp/freenet-ci/freenet
+      - name: Verify Freenet Reticulum interface
+        run: npm run test:freenet-interface
+        env:
+          FREENET_BINARY: ${{ github.workspace }}/.tmp/freenet-ci/freenet
+      - name: Verify Freenet LXMF propagation mirror
+        run: npm run test:freenet-propagation
+        env:
+          FREENET_BINARY: ${{ github.workspace }}/.tmp/freenet-ci/freenet
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: freenet-real-node-proofs
+          path: |
+            .tmp/f2-interface-proof-local-isolated.json
+            .tmp/f3-propagation-proof-local-isolated.json
+          if-no-files-found: error
+
   sansio:
     runs-on: ubuntu-latest
     steps:

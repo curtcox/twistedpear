@@ -40,7 +40,7 @@ const leftBackend = new FreenetContractPacketLogBackend({
   rendezvous,
   localDirection: 0,
   retentionPerDirection: 32,
-  updateOptions: { codeField: wasm }
+  updateOptions: { fallbackCodeField: wasm }
 });
 const rightBackend = new FreenetContractPacketLogBackend({
   clientOptions: { url: nodeUrl, authToken: process.env.FREENET_NODE_TOKEN },
@@ -48,7 +48,7 @@ const rightBackend = new FreenetContractPacketLogBackend({
   rendezvous,
   localDirection: 1,
   retentionPerDirection: 32,
-  updateOptions: { codeField: wasm }
+  updateOptions: { fallbackCodeField: wasm }
 });
 
 const left = await FreenetInterface.open(provider, {

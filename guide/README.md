@@ -35,6 +35,7 @@ Where a term matters, it is explained the first time it appears.
 | 8 | [Trust, privacy, and safety](08-trust-privacy-safety.md) | What is encrypted, what is observable, and who you are trusting. |
 | 9 | [Managing your device](09-managing-your-device.md) | Storage, bandwidth, battery, quotas, and running an always-on peer. |
 | 10 | [Troubleshooting](10-troubleshooting.md) | Symptom-first fixes for the problems people actually hit. |
+| 11 | [Using Freenet](11-using-freenet.md) | Optional desktop/headless package distribution, packet transport, propagation, and contract access through an external node. |
 | — | [Appendix: feature status](appendix-feature-status.md) | Every incomplete feature named in this guide, with its blocker. |
 | — | [Glossary](glossary.md) | Every term this guide uses, defined once. |
 

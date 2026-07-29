@@ -34,12 +34,12 @@ Client / measurement:
 - Subscriber readiness still uses GET with `fetch_contract`, `subscribe`, and
   `blocking_subscribe`.
 - Notification decoding accepts state, delta, and state-plus-delta unions.
-- Freenet 0.2.112's FlatBuffers UPDATE path runs `CodeHash::from_code` on
-  `ContractKey.code`, which double-hashes a 32-byte hash and fails with
-  "Contract not in store and no code provided". The measurement (and
-  `FreenetClient.update({ codeField })`) sends the WASM bytes in that field
-  so `from_code(wasm)` matches the stored blob. Fixed stdlib builds expect
-  the 32-byte hash and must omit `codeField`.
+- The recorded 0.2.112 path's FlatBuffers UPDATE handling runs
+  `CodeHash::from_code` on `ContractKey.code`, which double-hashes a 32-byte
+  hash and fails with "Contract not in store and no code provided"; another
+  observed local path rejects full WASM in that field. The client now sends the
+  protocol-sized hash first and retries with WASM only for the missing-contract
+  error.
 
 ## One-sample local result
 

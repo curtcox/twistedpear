@@ -26,11 +26,7 @@ export interface FreenetContractBackendPort {
 export interface FreenetClientContractBackendOptions {
   readonly client?: FreenetClient;
   readonly clientOptions?: FreenetClientOptions;
-  /**
-   * Extra UPDATE options (for example `codeField: wasm` on Freenet 0.2.112).
-   * When omitted, UPDATE uses the 32-byte code hash unless a prior PUT on this
-   * backend cached the WASM for that key.
-   */
+  /** Extra UPDATE options for explicitly identified node compatibility modes. */
   readonly updateOptions?: FreenetUpdateOptions;
 }
 
@@ -89,9 +85,11 @@ export class FreenetClientContractBackend implements FreenetContractBackendPort 
     const cachedWasm = this.#wasmByKey.get(options.keyHex.toLowerCase());
     const updateOptions: FreenetUpdateOptions = {
       ...this.#updateOptions,
-      ...(cachedWasm !== undefined && this.#updateOptions?.codeField === undefined
-        ? { codeField: cachedWasm }
-        : {})
+      ...(cachedWasm === undefined ||
+      this.#updateOptions?.codeField !== undefined ||
+      this.#updateOptions?.fallbackCodeField !== undefined
+        ? {}
+        : { fallbackCodeField: cachedWasm })
     };
     await this.#client.update(key, codeHash, state, updateOptions);
   }

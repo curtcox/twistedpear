@@ -46,7 +46,8 @@ const TRANSPORT_LATENCY: Readonly<Record<TransportClassName, number>> = {
   lan: 5,
   internet: 120,
   ble: 40,
-  lora: 1_500
+  lora: 1_500,
+  freenet: 89
 };
 
 interface EgressEvent {
@@ -605,7 +606,13 @@ function timer(id: string, delayMs: number): Intent {
 }
 
 function transportFor(id: string, seed: number): TransportClassName {
-  const transports: readonly TransportClassName[] = ["lan", "internet", "ble", "lora"];
+  const transports: readonly TransportClassName[] = [
+    "lan",
+    "internet",
+    "ble",
+    "lora",
+    "freenet"
+  ];
   return transports[stableHash(`${id}|${seed}`) % transports.length]!;
 }
 

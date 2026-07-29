@@ -2,6 +2,9 @@
  * Desktop host Bare worklet entry (stdio IPC, transport role enabled by default).
  */
 import "../../../conformance/bare-interop/bare-globals.mjs";
+import "bare-encoding/global";
+import { installBareWebSocketGlobal } from "../../../conformance/freenet-spike/bare-websocket-shim.mjs";
+import { PACKET_LOG_WASM_BASE64 } from "./packet-log-wasm.generated.mjs";
 import { bytesToHex } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { PureCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/pure.js";
 import { Identity } from "../../../packages/reticulum-ts/dist/identity.js";
@@ -73,6 +76,8 @@ import {
 } from "../../../packages/worklet-core/src/index.mjs";
 import { IPC } from "./ipc-stdio.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
+
+installBareWebSocketGlobal();
 
 const HOST_BANDWIDTH_BYTES_PER_SECOND = 512 * 1024;
 import {
@@ -1453,14 +1458,7 @@ async function loadPacketLogWasm() {
   if (packetLogWasmCache !== null) {
     return packetLogWasmCache;
   }
-  const { readFileSync } = await import("node:fs");
-  const { dirname, join } = await import("node:path");
-  const { createRequire } = await import("node:module");
-  const require = createRequire(import.meta.url);
-  const packageJson = require.resolve("@twistedpear/bridge-freenet/package.json");
-  packetLogWasmCache = Uint8Array.from(
-    readFileSync(join(dirname(packageJson), "contract/packet-log/packet-log-contract.wasm"))
-  );
+  packetLogWasmCache = Uint8Array.from(Buffer.from(PACKET_LOG_WASM_BASE64, "base64"));
   return packetLogWasmCache;
 }
 
@@ -1497,7 +1495,7 @@ async function startFreenetInterface() {
       wasm,
       rendezvous: hexToBytes(rendezvousHex),
       localDirection: pendingFreenetLocalDirection,
-      updateOptions: { codeField: wasm }
+      updateOptions: { fallbackCodeField: wasm }
     });
     freenetIface = await FreenetInterface.open(provider, {
       name: "host-freenet",

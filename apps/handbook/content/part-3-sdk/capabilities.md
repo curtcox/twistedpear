@@ -65,3 +65,10 @@ calling app runtime; this safe probe passes only when a fabricated handle is rej
 never starts discovery or prompts for camera, microphone, Bluetooth, or network access.
 
 {{applet:peer-handle-isolation}}
+
+`freenet:contract` reads and writes contract state through an explicitly configured
+external Freenet node. Reads do not prompt. `put` and `update` require trusted host
+confirmation because accepted updates cannot be recalled. The read-only probe below
+uses a deliberately unknown key and never publishes data.
+
+{{applet:freenet-contract-read}}

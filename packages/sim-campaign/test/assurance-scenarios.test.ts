@@ -12,7 +12,13 @@ import {
 } from "../src/index.js";
 import { describe, expect, it } from "vitest";
 
-const transports: readonly TransportClassName[] = ["lan", "internet", "ble", "lora"];
+const transports: readonly TransportClassName[] = [
+  "lan",
+  "internet",
+  "ble",
+  "lora",
+  "freenet"
+];
 const attacks: readonly QuorumAttack[] = ["below-threshold", "drop", "duplicate", "replay", "delay", "partition", "expiry", "colluding-pair"];
 const [cell] = coverageFrame({ capabilities: ["identity"], positions: ["colluding-pair"], verbs: ["spoof"] });
 

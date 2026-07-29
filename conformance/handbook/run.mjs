@@ -64,6 +64,7 @@ const APPLET_CHAPTER = {
   "workspace-rw": "sdk-workspace",
   "share-cas": "sdk-share-cas",
   "peer-handle-isolation": "sdk-capabilities",
+  "freenet-contract-read": "sdk-capabilities",
   "apps-package-preview": "sdk-apps-package",
   "apps-publish-install": "sdk-apps-publish",
   "apps-update": "sdk-apps-update",
@@ -338,6 +339,15 @@ async function main() {
           throw new Error(`Resource exceeds budget (${bytes.length} > ${request.budgetBytes})`);
         }
         return bytes;
+      }
+    },
+    freenetBackend: {
+      get: async () => null,
+      put: async () => {
+        throw new Error("Handbook conformance backend is read-only");
+      },
+      update: async () => {
+        throw new Error("Handbook conformance backend is read-only");
       }
     },
     casBackend,

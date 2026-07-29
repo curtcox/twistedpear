@@ -48,6 +48,7 @@ const settingFreenetUrl = document.querySelector("#setting-freenet-url");
 const settingFreenetToken = document.querySelector("#setting-freenet-token");
 const settingFreenetInterface = document.querySelector("#setting-freenet-interface");
 const settingFreenetRendezvous = document.querySelector("#setting-freenet-rendezvous");
+const settingFreenetDirection = document.querySelector("#setting-freenet-direction");
 const joinCommunityNetwork = document.querySelector("#join-community-network");
 const identityCurrent = document.querySelector("#identity-current");
 const identityNext = document.querySelector("#identity-next");
@@ -920,13 +921,15 @@ if (!host) {
     const url = settingFreenetUrl?.value.trim() ?? "";
     const authToken = settingFreenetToken?.value.trim() ?? "";
     const rendezvousHex = settingFreenetRendezvous?.value.trim() ?? "";
+    const localDirection = settingFreenetDirection?.value === "1" ? 1 : 0;
     localStorage.setItem(
       "tp-freenet-config",
       JSON.stringify({
         enabled,
         interfaceEnabled,
         url: url.length > 0 ? url : undefined,
-        rendezvousHex: rendezvousHex.length > 0 ? rendezvousHex : undefined
+        rendezvousHex: rendezvousHex.length > 0 ? rendezvousHex : undefined,
+        localDirection
       })
     );
     host.send({
@@ -935,7 +938,8 @@ if (!host) {
       interfaceEnabled,
       url: url.length > 0 ? url : null,
       ...(authToken.length > 0 ? { authToken } : {}),
-      ...(rendezvousHex.length > 0 ? { rendezvousHex } : {})
+      ...(rendezvousHex.length > 0 ? { rendezvousHex } : {}),
+      localDirection
     });
   };
 
@@ -953,6 +957,9 @@ if (!host) {
     if (settingFreenetRendezvous && typeof savedFreenet.rendezvousHex === "string") {
       settingFreenetRendezvous.value = savedFreenet.rendezvousHex;
     }
+    if (settingFreenetDirection) {
+      settingFreenetDirection.value = savedFreenet.localDirection === 1 ? "1" : "0";
+    }
   } catch {
     // ignore malformed saved settings
   }
@@ -962,7 +969,8 @@ if (!host) {
     settingFreenetUrl,
     settingFreenetToken,
     settingFreenetInterface,
-    settingFreenetRendezvous
+    settingFreenetRendezvous,
+    settingFreenetDirection
   ]) {
     element?.addEventListener("change", applyFreenetSettings);
   }

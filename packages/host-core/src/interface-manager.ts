@@ -633,7 +633,7 @@ export class InterfaceManager {
       ...(config.retentionPerDirection === undefined
         ? {}
         : { retentionPerDirection: config.retentionPerDirection }),
-      updateOptions: { codeField: wasm }
+      updateOptions: { fallbackCodeField: wasm }
     });
     return FreenetInterface.open(this.provider, {
       name: "host-freenet",

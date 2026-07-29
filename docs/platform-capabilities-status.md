@@ -134,8 +134,9 @@ Cross-cutting wiring gaps (affect many rows below):
 - **`freenet:contract`**: brokered in HOST_API 0.11.0 with irreversible-update
   confirmation on put/update. `createNodeHost` exposes `freenetBackend` when
   `interfaces.freenet.url` is set; desktop Settings drive a worklet proxy via
-  `set-freenet-config` and show Freenet status rows. Mobile/web stay `n/a`
-  until remote-node grant UX (S8) is honest. Decision:
+  `set-freenet-config` and show Freenet status rows. Desktop and node support is
+  conditional on an external pinned node and remains off by default. Mobile/web
+  stay `n/a` until remote-node grant UX (S8) is honest. Decision:
   [ADR](adr-freenet-app-execution.md) Option A.
 
 ## Device capabilities

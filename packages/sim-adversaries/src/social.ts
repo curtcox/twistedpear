@@ -13,7 +13,9 @@ const AIRTIME_COST: Readonly<Record<TransportClassName, number>> = {
   lan: 0.00001,
   internet: 0.0001,
   ble: 0.001,
-  lora: 0.02
+  lora: 0.02,
+  // Freenet uses IP bulk and the S2/F2 measured 90 kbit/s policy class.
+  freenet: 0.0001
 };
 
 export function spamEconomics(options: {

@@ -30,6 +30,7 @@ Every id below must be exercised by at least one Handbook applet (coverage gate)
 - **`peer:connect`** — Ask trusted host chrome to find, confirm, and connect an app-scoped peer.
 - **`relay:configure`** — Enable, disable, or reconfigure host relay interfaces and relay mode (ask each time).
 - **`relay:read`** — Read host relay mode, interface status, and diagnostics.
+- **`freenet:contract`** — Read and publish Freenet contract state. Updates are published to a global network and cannot be recalled (asks each time for put/update).
 - **`device:location`** — Host-mediated geolocation. Default tier is quantized coarse (~1 km); precise is a separate elevated grant. (default tier; consent: low).
 - **`device:location:precise`** — Host-mediated geolocation. Default tier is quantized coarse (~1 km); precise is a separate elevated grant. (precise tier; consent: elevated).
 - **`device:ambient-light`** — Quantized ambient illuminance in lux, rate-capped at 1 Hz. (default tier; consent: low).

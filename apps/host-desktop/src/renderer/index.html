@@ -101,6 +101,13 @@
             Freenet peer rendezvous (64 hex chars)
             <input type="text" id="setting-freenet-rendezvous" placeholder="32-byte shared hex" class="setting-input" autocomplete="off" spellcheck="false" />
           </label>
+          <label>
+            Freenet packet-log side
+            <select id="setting-freenet-direction" class="setting-input">
+              <option value="0">Side 0</option>
+              <option value="1">Side 1</option>
+            </select>
+          </label>
           <small class="setting-note">Contracts enable <code>freenet:contract</code> for granted mini-apps. The HDLC interface carries Reticulum frames over a Freenet packet-log contract and needs a shared rendezvous with the peer. Off by default; mobile/web do not expose this. Updates published to Freenet cannot be recalled.</small>
           <label>
             AI endpoint (OpenRouter-compatible)

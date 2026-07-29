@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { existsSync, lstatSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,6 +11,7 @@ const output = join(hostRoot, "worklet/worklet.bundle");
 const nobleCrypto = join(repoRoot, "conformance/bare-interop/noble-crypto.mjs");
 const nodeCryptoStub = join(repoRoot, "conformance/bare-interop/node-crypto-stub.mjs");
 const importsPath = join(hostRoot, "worklet/imports.generated.json");
+const packetLogWasmModule = join(hostRoot, "worklet/packet-log-wasm.generated.mjs");
 const packagesLink = join(hostRoot, "packages");
 const packagesTarget = join(repoRoot, "packages");
 const nodeModulesLink = join(hostRoot, "node_modules");
@@ -43,6 +44,14 @@ function ensureNodeModulesLink() {
 ensurePackagesLink();
 ensureNodeModulesLink();
 
+const packetLogWasmBase64 = readFileSync(
+  join(repoRoot, "packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm")
+).toString("base64");
+writeFileSync(
+  packetLogWasmModule,
+  `export const PACKET_LOG_WASM_BASE64 = ${JSON.stringify(packetLogWasmBase64)};\n`
+);
+
 writeFileSync(
   importsPath,
   `${JSON.stringify(
@@ -51,6 +60,7 @@ writeFileSync(
       "@noble/ciphers/crypto": nobleCrypto,
       "@noble/curves/crypto": nobleCrypto,
       "node:crypto": nodeCryptoStub,
+      ws: join(repoRoot, "conformance/freenet-spike/bare-websocket-shim.mjs"),
       "@twistedpear/reticulum-ts": join(repoRoot, "packages/reticulum-ts/dist/worklet.js"),
       "@twistedpear/bridge-hyper": join(repoRoot, "packages/bridge-hyper/dist/worklet.js"),
       "@twistedpear/miniapp-runtime": join(repoRoot, "packages/miniapp-runtime/dist/worklet.js")

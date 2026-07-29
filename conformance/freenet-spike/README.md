@@ -52,9 +52,13 @@ to retain diagnostic state, or the documented port environment variables in
 The harness binds each node's `--network-port` to the same value as
 `--public-network-port`. Advertising a public port without binding it left
 every process on the default `31337` and produced `RING_TRANSPORT_DESYNC`.
-Against Freenet 0.2.112, UPDATE also requires the measurement client's
-`codeField` WASM workaround: that release double-hashes a 32-byte
-`ContractKey.code` and otherwise fails with "Contract not in store".
+Observed 0.2.112 paths disagree about UPDATE encoding. The recorded S2 path
+required a full-WASM `codeField` because it double-hashed a 32-byte
+`ContractKey.code` and otherwise failed with "Contract not in store"; another
+local path rejected the longer field. `FreenetClient.update` therefore sends
+the protocol-sized hash first and retries with WASM only for the observed
+missing-contract error. CI exercises this behavior against the hash-pinned
+release archive.
 
 For a separately managed topology, set `FREENET_MEASUREMENT_LABEL`,
 `FREENET_NODE_URL`, and `FREENET_SUBSCRIBER_NODE_URL`, then run
@@ -70,7 +74,7 @@ and written to a different filename, so it cannot replace gate evidence.
 automatically for the isolated topology.
 The first isolated 0.2.112 attempts produced no notification and are recorded
 in [s2-smoke-report.md](s2-smoke-report.md). After the topology bind fix and
-the UPDATE `codeField` workaround, the local 100-sample gate artifact is
+the automatic UPDATE compatibility retry, the local 100-sample gate artifact is
 committed as [measured-roundtrip.json](measured-roundtrip.json) (local-executor
 notify path on a three-node mesh). Live confirmation still requires explicit
 authorization; set `FREENET_FORCE_CROSS_NODE=1` for a distinct subscriber node
