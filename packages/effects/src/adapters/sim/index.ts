@@ -36,6 +36,19 @@ export {
 } from "./calibration.js";
 export { SimStore } from "./store.js";
 export {
+  SimFreenetClient,
+  SimFreenetContractHub,
+  SIM_FREENET_DEFAULT_BANDWIDTH_BPS,
+  SIM_FREENET_DEFAULT_NOTIFY_LATENCY_MS,
+  simFreenetDeriveKey,
+  simFreenetTransportClass,
+  type SimFreenetClientOptions,
+  type SimFreenetContractHubOptions,
+  type SimFreenetContractRecord,
+  type SimFreenetContractSource,
+  type SimFreenetNotifyModel
+} from "./freenet.js";
+export {
   SimKernel,
   doubleRunHashes,
   EffectWithoutIntentError,

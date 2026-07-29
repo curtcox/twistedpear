@@ -1,6 +1,6 @@
 import type { DolevYaoPower, InstantMs, NodeId } from "../../types.js";
 
-export type TransportClassName = "lan" | "internet" | "ble" | "lora";
+export type TransportClassName = "lan" | "internet" | "ble" | "lora" | "freenet";
 
 export type LatencyDistribution =
   | { readonly kind: "fixed"; readonly ms: number }
@@ -70,6 +70,14 @@ const PRESETS: Readonly<Record<TransportClassName, TransportClass>> = {
     burstLoss: { goodToBad: 0.02, badToGood: 0.15, goodLossRate: 0.01, badLossRate: 0.55 },
     dutyCycle: 0.01,
     dutyCyclePolicy: "delay"
+  },
+  // S2 local 1 KiB p50/p95 update→notify and F2 policy bitrate (~90 kbps).
+  freenet: {
+    name: "freenet",
+    bandwidthBps: 90_000,
+    latency: { kind: "uniform", minMs: 63, maxMs: 89 },
+    lossRate: 0.002,
+    burstLoss: { goodToBad: 0.004, badToGood: 0.4, goodLossRate: 0.001, badLossRate: 0.25 }
   }
 };
 
