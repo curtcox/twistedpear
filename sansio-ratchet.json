@@ -22,6 +22,7 @@
     "packages/reticulum-ts/src/worklet.ts",
     "packages/miniapp-runtime/src/sandbox/**",
     "packages/miniapp-runtime/src/services/**",
+    "packages/miniapp-runtime/src/drivers/**",
     "packages/miniapp-runtime/src/host.ts",
     "packages/miniapp-runtime/src/worklet.ts",
     "packages/reticulum-interfaces/src/auto.ts",
