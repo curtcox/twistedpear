@@ -25,19 +25,36 @@ async function sleep(ms) {
 }
 
 function parseBenchmarkResults(text) {
-  const match = text.match(/spawn ([\d.]+)ms · kill ([\d.]+)ms · busy-loop ([\d.]+)ms \(([^)]+)\)/);
+  const match = text.match(
+    /spawn ([\d.]+)ms · kill ([\d.]+)ms · busy-loop ([\d.]+)ms · wasm (yes|no)(?: · kill failed)? \(([^)]+)\)/
+  );
   if (match === null) {
     throw new Error(`Could not parse benchmark results from UI dump`);
   }
 
+  const wasmExecuted = match[4] === "yes";
+  const busyLoopKilled = !text.includes("kill failed");
   return {
-    backend: match[4],
+    backend: match[5],
     runtime: "bare",
     spawnMs: Number.parseFloat(match[1]),
     killMs: Number.parseFloat(match[2]),
     busyLoopKillMs: Number.parseFloat(match[3]),
-    busyLoopKilled: true
+    wasmExecuted,
+    busyLoopKilled
   };
+}
+
+function assertE5Evidence(result) {
+  if (result.wasmExecuted !== true) {
+    throw new Error("E5 failed: WASM did not execute inside the BareKit worker");
+  }
+  if (result.busyLoopKilled !== true) {
+    throw new Error("E5 failed: watchdog did not kill the WASM-before-busy-loop worker");
+  }
+  if (!(result.spawnMs >= 0) || !(result.killMs >= 0) || !(result.busyLoopKillMs >= 0)) {
+    throw new Error("E5 failed: missing spawn/kill/watchdog latency measurements");
+  }
 }
 
 function readBenchmarkFromUi() {
@@ -62,10 +79,12 @@ async function main() {
 
   const uiDump = readBenchmarkFromUi();
   const parsed = parseBenchmarkResults(uiDump);
+  assertE5Evidence(parsed);
   const meta = JSON.parse(readFileSync(join(labDir, "fixture-meta.json"), "utf8"));
   const result = {
     measuredAt: new Date().toISOString().slice(0, 10),
     platform: "android-emulator",
+    environment: "android-emulator",
     hyperdrivePath: "verified-by-e1",
     appId: meta.appId,
     ...parsed
@@ -78,7 +97,7 @@ async function main() {
 
   console.log(
     `android-emulator/e5-worker: spawn ${result.spawnMs}ms, kill ${result.killMs}ms, ` +
-      `busy-loop ${result.busyLoopKillMs}ms (${result.backend})`
+      `busy-loop ${result.busyLoopKillMs}ms, wasm=${result.wasmExecuted} (${result.backend})`
   );
 }
 

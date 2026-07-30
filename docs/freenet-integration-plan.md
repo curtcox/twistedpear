@@ -329,7 +329,7 @@ and the per-exit-criterion mapping is
 | S1 Bare SDK | **done** | Pinned SDK bundles and reads live Atlas under Bare with exact shims (`bare-ws@2.0.4`, `bare-encoding@1.0.3`); `s1-report.md`, `s1-live-read.json` | — (mobile lifecycle is F4/S8, not S1) |
 | S2 update→notify latency | **partial** | Local 3-node harness, 100 samples/size, p95 ~89 ms (≤64 KiB) / ~256 ms (1 MiB) on the local-executor notify path; `measured-roundtrip.json` | Authorized live-network 100-sample series; cross-node notify series that survives locator min-merge reordering |
 | S3 convergent log | **done** | Pinned Rust ordered-log contract, native convergence tests, growth/merge curve; `s3-report.md`, `s3-measurements.json` | — |
-| S4 sandboxed WASM | **partial (negative so far)** | Node workers execute WASM and keep the watchdog kill guarantee; `s4-support-matrix.json` | Browser-CSP decision (currently blocks WASM compilation); physical BareKit device run. **Option B stays closed until both land.** |
+| S4 sandboxed WASM | **partial** | Node workers execute WASM and keep the watchdog kill guarantee; browser CSP deliberately keeps web unsupported (Option A); Android/iOS simulator BareKit probes require explicit `wasmExecuted`; `s4-support-matrix.json` | Physical BareKit release confirmation. **Option B stays closed.** |
 | S5 bundled node | **partial** | Installed macOS universal binary ≈93 MiB; Linux/Windows compressed archive sizes and SHA-256s in `s5-bundling-matrix.json` | Fresh macOS artifact whose signature verifies strictly; signed + notarized TwistedPear bundle embedding the binary. **F4 stays blocked.** |
 | S6 API churn | **done** | Ten consecutive core releases kept contract ops and key derivation stable; `churn-report.md` plus exact SDK/core/stdlib pins | — (recheck on every pin bump) |
 | S7 live-app interop | **partial** | Read half passed: the TS adapter read the live Atlas CBOR index through a localhost node; `s7-atlas-read.json` | Write half needs explicit authorization — even a rejected update publishes public operation metadata |
@@ -346,7 +346,7 @@ not a gate, per §12.
 | F1 package/CAS | **implemented; exit criterion not met** | `bridge-freenet` with pinned SDK client, locator/package state encoder, signed-locator + 256t verification, Rust locator contract pinned to an exact upstream commit, SPEC-FREENET locator vector, `freenet` fetch-path ranking, IP-bulk budget behavior, `tp publish --freenet`, `tp node --freenet` (external node URL) | The stated exit criterion — publish from host A, install on host B with `--force-path freenet` — requires an irreversible live write and is unmet |
 | F2 packet interface | **wired; live confirmation optional** | SPEC-FREENET packet-log WASM + vectors, `FreenetInterface` / `FreenetContractPacketLogBackend`, host-core `freenet` kind at the S2-derived 90 kbps, `test:freenet-interface` HDLC exchange against a real node, simulated announce+LXMF over FreenetInterface-only peers, BridgeForwarder relay policy as source and destination | Live two-host announce+LXMF across distinct Freenet nodes (evidence, not a gate) |
 | F3 propagation backing | **wired** | SPEC-FREENET propagation-set WASM + vectors, encode/decode/merge, `PropagationRemoteMirror` seam, `FreenetPropagationStore` (16-byte destination grouping, PUT/UPDATE merge), isolated offline-A/retrieve-B proof, `createNodeHost` attaches the mirror when `roles.propagation` + `interfaces.freenet` URL are set | Multi-Freenet-node retrieval evidence (evidence, not a gate) |
-| F4 node provisioning | **not started — blocked by S5** | Nothing. `tp node --freenet` points at an *external* node; there is no bundled daemon | Daemon bundle, child-process supervisor with ephemeral port + generated token, per-platform artifact matrix, codesign/notarization result — all gated on signing credentials |
+| F4 node provisioning | **software supervision started; redistribution gated** | `FreenetSupervisor` in host-core (ephemeral port, generated token kept out of URLs/logs, readiness, bounded restart, host data-dir isolation, starting/online/degraded/failed); `tp node --freenet-binary` / `--freenet-binary-sha256` | Signed/notarized redistribution and embedded packaging remain S5/signing gates |
 | F5 capability + chrome | **landed (software)** | `freenet:contract` in `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0 brokers `get`/`put`/`update` with confirmation on put/update; `createNodeHost` exposes `freenetBackend` when a URL is set; desktop Settings for contracts enable / URL / auth token plus an HDLC interface toggle with peer rendezvous and explicit side 0/1 selection; Node status and [platform capability](platform-capabilities-status.md) rows | Mobile and web stay off per S8 |
 | F6 app-execution ADR | **decided** | [Option A accepted](adr-freenet-app-execution.md): mini-apps are Freenet clients, not hosts, on S7 read evidence and S4/S8 blockers for B/C | B reopens only if S4 clears; C remains a separate proposal |
 
@@ -382,10 +382,11 @@ execution on a TP node.
   under concurrent/reordered inputs with a bounded per-direction retention
   window. Its growth and native merge-cost curve is recorded, but S2 still
   determines whether using it as a packet interface is viable.
-- **S4 is partially negative:** Node workers execute WASM and retain the
-  watchdog kill guarantee; the current browser sandbox CSP blocks WASM
-  compilation, and the faithful BareKit device probe is still pending. Option B
-  is not open.
+- **S4 is partial under Option A:** Node workers execute WASM and retain the
+  watchdog kill guarantee; the browser sandbox CSP deliberately omits
+  `wasm-unsafe-eval`, so embedded Freenet WASM on web is unsupported; Android
+  and iOS simulator BareKit probes require explicit `wasmExecuted`. Physical
+  BareKit confirmation is a release gate. Option B is not open.
 - **S5 is partial:** the installed 0.2.112 macOS universal binary adds roughly
   93 MiB, but strict verification of that installed copy fails. Linux/Windows
   compressed release-archive sizes are recorded in `s5-bundling-matrix.json`

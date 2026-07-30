@@ -73,7 +73,7 @@ export function printHelp(command: string): void {
     publish: "tp publish <app-dir> [--freenet] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-contract <wasm>]  Pack, sign, publish to Hyperdrive and optionally Freenet",
     update: "tp update <app-dir> --version <semver>  Bump version and republish",
     seed: "tp seed [--state-dir <path>] [--transport] [--propagation] [--attach-rnsd host:port]  Run headless seeder",
-    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--ws-listen [host:]port] [--ws-token <token>] [--serve-web [dir]] [--status-endpoint] [--freenet [ws-url]] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-interface] [--freenet-rendezvous <64hex>] [--freenet-direction <0|1>]  Run desktop-class host node",
+    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--ws-listen [host:]port] [--ws-token <token>] [--serve-web [dir]] [--status-endpoint] [--freenet [ws-url]] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-binary <path>] [--freenet-binary-sha256 <hex>] [--freenet-interface] [--freenet-rendezvous <64hex>] [--freenet-direction <0|1>]  Run desktop-class host node",
     trust: "tp trust <list|show|add <256t> --label <name>|remove <key-or-256t>>  Manage trusted publishers"
   };
 
@@ -832,7 +832,7 @@ export async function runTrust(ctx: CommandContext): Promise<number> {
 }
 
 export async function runNode(ctx: CommandContext): Promise<number> {
-  const { resolveHostConfig } = await import("@twistedpear/host-core");
+  const { resolveHostConfig, FreenetSupervisor } = await import("@twistedpear/host-core");
   const { runNodeHost } = await import("@twistedpear/host-core");
   const dataDir = parseFlag(ctx.args, "--data-dir");
   const attachRnsd = parseFlag(ctx.args, "--attach-rnsd");
@@ -845,6 +845,45 @@ export async function runNode(ctx: CommandContext): Promise<number> {
       console.log(line);
     }
   }
+
+  let supervisor: InstanceType<typeof FreenetSupervisor> | null = null;
+  let freenetConfig = freenet.config;
+  if (freenet.supervise !== null) {
+    const resolvedDataDir =
+      dataDir === null
+        ? resolveHostConfig({}).dataDir
+        : resolveFromCwd(ctx.cwd, dataDir);
+    supervisor = new FreenetSupervisor({
+      binaryPath: freenet.supervise.binaryPath,
+      ...(freenet.supervise.expectedSha256 === undefined
+        ? {}
+        : { expectedSha256: freenet.supervise.expectedSha256 }),
+      dataDir: resolvedDataDir,
+      onStatus: (status, detail) => {
+        const suffix = detail === undefined ? "" : `: ${detail}`;
+        console.log(`Freenet supervisor ${status}${suffix}`);
+      }
+    });
+    const snapshot = await supervisor.start();
+    if (snapshot.wsUrl === null) {
+      throw new Error("Freenet supervisor started without a WebSocket URL");
+    }
+    freenetConfig = {
+      enabled: freenet.config?.enabled ?? false,
+      url: snapshot.wsUrl,
+      ...(snapshot.authToken === null ? {} : { authToken: snapshot.authToken }),
+      ...(freenet.config?.rendezvousHex === undefined
+        ? {}
+        : { rendezvousHex: freenet.config.rendezvousHex }),
+      ...(freenet.config?.localDirection === undefined
+        ? {}
+        : { localDirection: freenet.config.localDirection })
+    };
+    console.log(
+      `Freenet supervised node online at ${snapshot.wsUrl} (user-supplied binary; not redistributed)`
+    );
+  }
+
   const config = resolveHostConfig({
     ...(dataDir === null ? {} : { dataDir: resolveFromCwd(ctx.cwd, dataDir) }),
     overrides: {
@@ -877,20 +916,38 @@ export async function runNode(ctx: CommandContext): Promise<number> {
                   : { staticRoot: serveWeb === "" ? resolveFromCwd(ctx.cwd, "dist/web-host") : resolveFromCwd(ctx.cwd, serveWeb) })
               }
             }),
-        ...(freenet.config === null ? {} : { freenet: freenet.config })
+        ...(freenetConfig === null ? {} : { freenet: freenetConfig })
       },
       statusEndpoint: hasFlag(ctx.args, "--status-endpoint")
     }
   });
 
-  await runNodeHost({ config, identityPassphrase: requiredPassphrase(ctx) });
-  return 0;
+  const stopSupervisor = async () => {
+    if (supervisor !== null) {
+      await supervisor.stop();
+      supervisor = null;
+    }
+  };
+  process.once("SIGINT", () => {
+    void stopSupervisor();
+  });
+  process.once("SIGTERM", () => {
+    void stopSupervisor();
+  });
+
+  try {
+    await runNodeHost({ config, identityPassphrase: requiredPassphrase(ctx) });
+    return 0;
+  } finally {
+    await stopSupervisor();
+  }
 }
 
 /**
- * External Freenet node config for `tp node` (does not bundle or supervise freenet-core).
- * `--freenet` / `--freenet-node` set the WebSocket URL for contracts and optional
- * propagation mirroring; `--freenet-interface` opens the HDLC packet-log interface.
+ * Freenet node config for `tp node`.
+ * `--freenet` / `--freenet-node` point at an external WebSocket URL.
+ * `--freenet-binary` supervises a user-supplied, optionally hash-verified
+ * executable (ephemeral port + generated token; not redistributed by TP).
  */
 export function resolveFreenetNodeFlags(args: ReadonlyArray<string>): {
   readonly config: {
@@ -900,14 +957,29 @@ export function resolveFreenetNodeFlags(args: ReadonlyArray<string>): {
     readonly rendezvousHex?: string;
     readonly localDirection?: 0 | 1;
   } | null;
+  readonly supervise: {
+    readonly binaryPath: string;
+    readonly expectedSha256?: string;
+  } | null;
   readonly logLines: ReadonlyArray<string>;
 } {
+  const binaryPath = parseFlag(args, "--freenet-binary");
+  const expectedSha256 = parseFlag(args, "--freenet-binary-sha256") ?? undefined;
+  const wantSupervise = binaryPath !== null || hasFlag(args, "--freenet-supervise");
   const wantFreenet =
     hasFlag(args, "--freenet") ||
     hasFlag(args, "--freenet-interface") ||
-    parseFlag(args, "--freenet-node") !== null;
+    parseFlag(args, "--freenet-node") !== null ||
+    wantSupervise;
   if (!wantFreenet) {
-    return { config: null, logLines: [] };
+    return { config: null, supervise: null, logLines: [] };
+  }
+
+  if (wantSupervise && binaryPath === null) {
+    throw new Error("--freenet-supervise requires --freenet-binary <path>");
+  }
+  if (expectedSha256 !== undefined && !/^[0-9a-fA-F]{64}$/.test(expectedSha256)) {
+    throw new Error("--freenet-binary-sha256 must be 64 hex characters");
   }
 
   const url =
@@ -945,22 +1017,44 @@ export function resolveFreenetNodeFlags(args: ReadonlyArray<string>): {
     throw new Error("--freenet-rendezvous must be 64 hex characters (32 bytes)");
   }
 
-  logLines.push(
-    interfaceEnabled
-      ? `Freenet HDLC interface enabled against ${url} (external node; not bundled)`
-      : `Freenet URL configured for contracts/propagation mirror: ${url} (external node; not bundled)`
-  );
+  if (wantSupervise) {
+    logLines.push(
+      `Freenet supervision enabled for user-supplied binary ${binaryPath} (hash-verified when --freenet-binary-sha256 is set)`
+    );
+  } else {
+    logLines.push(
+      interfaceEnabled
+        ? `Freenet HDLC interface enabled against ${url} (external node; not bundled)`
+        : `Freenet URL configured for contracts/propagation mirror: ${url} (external node; not bundled)`
+    );
+  }
 
   return {
-    config: {
-      enabled: interfaceEnabled,
-      url,
-      ...(authToken === undefined ? {} : { authToken }),
-      ...(rendezvousHex === undefined ? {} : { rendezvousHex }),
-      ...(localDirection === undefined
-        ? {}
-        : { localDirection: localDirection as 0 | 1 })
-    },
+    config: wantSupervise
+      ? {
+          enabled: interfaceEnabled,
+          url: "ws://127.0.0.1:0/v1/contract/command",
+          ...(rendezvousHex === undefined ? {} : { rendezvousHex }),
+          ...(localDirection === undefined
+            ? {}
+            : { localDirection: localDirection as 0 | 1 })
+        }
+      : {
+          enabled: interfaceEnabled,
+          url,
+          ...(authToken === undefined ? {} : { authToken }),
+          ...(rendezvousHex === undefined ? {} : { rendezvousHex }),
+          ...(localDirection === undefined
+            ? {}
+            : { localDirection: localDirection as 0 | 1 })
+        },
+    supervise:
+      binaryPath === null
+        ? null
+        : {
+            binaryPath,
+            ...(expectedSha256 === undefined ? {} : { expectedSha256 })
+          },
     logLines
   };
 }

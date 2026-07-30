@@ -22,9 +22,9 @@ host Freenet WASM contracts or Freenet web UIs inside the mini-app sandbox.
 |---|---|---|
 | S7 Atlas read | Live CBOR index read via `@freenetorg/freenet-stdlib` succeeded | Option A read path is proven |
 | S7 write | Deferred pending explicit approval (irreversible public metadata) | Writes stay confirmation-gated |
-| S4 WASM in sandbox | Node ok; browser CSP blocks; Bare device pending | Option B is not open |
-| S8 threat model | Desktop F1 ok; mobile remote-node trust is a show-stopper without honest grant UI | Option A on desktop/headless only until mobile grant UX exists |
-| S5 bundling | Partial; F4 not open | Bundled node does not yet shrink Option B's value proposition |
+| S4 WASM in sandbox | Node ok; browser deliberately unsupported; BareKit simulator probes wired | Option B is not open |
+| S8 threat model | Desktop F1 ok; mobile remote-node grant chrome landed | Option A on desktop/headless; mobile labeled simulator-verified once emulator/sim probes record |
+| S5 bundling | Partial; user-supplied supervisor landed | Redistributed/embedded binary still gated on signing |
 
 ## Consequences
 

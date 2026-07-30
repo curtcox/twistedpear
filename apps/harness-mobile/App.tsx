@@ -32,6 +32,14 @@ import {
   requestUsbSerialPermission,
   type UsbSerialDeviceInfo
 } from "@twistedpear/usb-serial";
+import {
+  acceptFreenetRemoteGrant,
+  defaultFreenetRemoteGrant,
+  FREENET_REMOTE_DISCLOSURE,
+  freenetGrantLogSafe,
+  revokeFreenetRemoteGrant,
+  type FreenetRemoteGrant
+} from "./src/freenet-remote-grant";
 
 import {
   decodeMessages,
@@ -147,6 +155,9 @@ export default function App() {
   const [devPort, setDevPort] = useState(String(DEFAULT_DEV_PORT));
   const [ntfyUrl, setNtfyUrl] = useState("");
   const [ntfyToken, setNtfyToken] = useState("");
+  const [freenetGrant, setFreenetGrant] = useState<FreenetRemoteGrant>(() => defaultFreenetRemoteGrant());
+  const [freenetDisclosureAccepted, setFreenetDisclosureAccepted] = useState(false);
+  const [freenetGrantError, setFreenetGrantError] = useState<string | null>(null);
   const [peerModal, setPeerModal] = useState<
     | { readonly kind: "exchange"; readonly request: Extract<WorkletToHostMessage, { type: "peer-manual-present" | "peer-manual-enter" | "peer-qr-present" | "peer-qr-scan" | "peer-ntfy-present" | "peer-ntfy-enter" | "peer-audio-transmit" | "peer-audio-receive" }>; readonly input: string }
     | { readonly kind: "confirm"; readonly request: Extract<WorkletToHostMessage, { type: "peer-confirm-request" }> }
@@ -767,6 +778,137 @@ export default function App() {
         <TextInput style={styles.input} value={ntfyUrl} onChangeText={setNtfyUrl} autoCapitalize="none" placeholder="https://ntfy.example/" placeholderTextColor="#718096" />
         <TextInput style={styles.input} value={ntfyToken} onChangeText={setNtfyToken} autoCapitalize="none" secureTextEntry placeholder="Bearer token (optional)" placeholderTextColor="#718096" />
         <ActionButton label="Apply ntfy" onPress={() => { if (workletRef.current === null) startWorklet(); else sendToWorklet({ type: "start", targetHost: Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST, targetPort: DEFAULT_DOCKER_PORT, multicastEntitled: Platform.OS !== "ios", bonjourEnabled: true, ...(ntfyUrl.trim() === "" ? {} : { ntfyUrl: ntfyUrl.trim() }) }); }} />
+
+        <Text style={styles.sectionTitle} testID="freenet-remote-section">Freenet remote node</Text>
+        <Text style={styles.muted}>
+          Off by default. Point only at a companion node you control. No third-party gateway is preconfigured.
+        </Text>
+        {FREENET_REMOTE_DISCLOSURE.map((line) => (
+          <Text key={line} style={styles.muted}>• {line}</Text>
+        ))}
+        <Row
+          testID="freenet-disclosure-accepted"
+          label="I understand the disclosure above"
+          value={freenetDisclosureAccepted}
+          onChange={setFreenetDisclosureAccepted}
+        />
+        <TextInput
+          testID="freenet-node-url"
+          style={styles.input}
+          value={freenetGrant.nodeUrl}
+          onChangeText={(nodeUrl) => setFreenetGrant((current) => ({ ...current, nodeUrl }))}
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholder="ws://127.0.0.1:50509/v1/contract/command"
+          placeholderTextColor="#718096"
+        />
+        <TextInput
+          testID="freenet-operator-label"
+          style={styles.input}
+          value={freenetGrant.operatorLabel}
+          onChangeText={(operatorLabel) => setFreenetGrant((current) => ({ ...current, operatorLabel }))}
+          placeholder="Operator label (e.g. home companion)"
+          placeholderTextColor="#718096"
+        />
+        <TextInput
+          testID="freenet-auth-token"
+          style={styles.input}
+          value={freenetGrant.authToken ?? ""}
+          onChangeText={(authToken) =>
+            setFreenetGrant((current) => ({
+              ...current,
+              authToken: authToken.length === 0 ? undefined : authToken
+            }))
+          }
+          autoCapitalize="none"
+          secureTextEntry
+          placeholder="Auth token (optional; never logged)"
+          placeholderTextColor="#718096"
+        />
+        <Row
+          testID="freenet-cap-reads"
+          label="Contract reads"
+          value={freenetGrant.capabilities.contractReads}
+          onChange={(contractReads) =>
+            setFreenetGrant((current) => ({
+              ...current,
+              capabilities: { ...current.capabilities, contractReads }
+            }))
+          }
+        />
+        <Row
+          testID="freenet-cap-writes"
+          label="Contract writes"
+          value={freenetGrant.capabilities.contractWrites}
+          onChange={(contractWrites) =>
+            setFreenetGrant((current) => ({
+              ...current,
+              capabilities: { ...current.capabilities, contractWrites }
+            }))
+          }
+        />
+        <Row
+          testID="freenet-cap-packet"
+          label="Packet tunnel"
+          value={freenetGrant.capabilities.packetTunnel}
+          onChange={(packetTunnel) =>
+            setFreenetGrant((current) => ({
+              ...current,
+              capabilities: { ...current.capabilities, packetTunnel }
+            }))
+          }
+        />
+        <Row
+          testID="freenet-cap-propagation"
+          label="Propagation"
+          value={freenetGrant.capabilities.propagation}
+          onChange={(propagation) =>
+            setFreenetGrant((current) => ({
+              ...current,
+              capabilities: { ...current.capabilities, propagation }
+            }))
+          }
+        />
+        {freenetGrantError !== null ? <Text testID="freenet-grant-error" style={styles.muted}>{freenetGrantError}</Text> : null}
+        <Text testID="freenet-grant-status" style={styles.muted}>
+          {freenetGrant.enabled
+            ? `Enabled for ${freenetGrant.operatorLabel} · reads=${freenetGrant.capabilities.contractReads ? "on" : "off"}`
+            : "Disabled"}
+        </Text>
+        <ActionButton
+          testID="freenet-grant-enable"
+          label="Enable Freenet remote node"
+          onPress={() => {
+            try {
+              const enabled = acceptFreenetRemoteGrant(
+                {
+                  nodeUrl: freenetGrant.nodeUrl,
+                  operatorLabel: freenetGrant.operatorLabel,
+                  authToken: freenetGrant.authToken,
+                  capabilities: freenetGrant.capabilities
+                },
+                { acceptedDisclosure: freenetDisclosureAccepted }
+              );
+              setFreenetGrant(enabled);
+              setFreenetGrantError(null);
+              appendLog(`Freenet remote grant enabled: ${JSON.stringify(freenetGrantLogSafe(enabled))}`);
+            } catch (error) {
+              setFreenetGrantError(error instanceof Error ? error.message : String(error));
+            }
+          }}
+        />
+        <ActionButton
+          testID="freenet-grant-revoke"
+          label="Revoke Freenet remote node"
+          onPress={() => {
+            const revoked = revokeFreenetRemoteGrant(freenetGrant);
+            setFreenetGrant(revoked);
+            setFreenetDisclosureAccepted(false);
+            setFreenetGrantError(null);
+            appendLog(`Freenet remote grant revoked: ${JSON.stringify(freenetGrantLogSafe(revoked))}`);
+          }}
+        />
+
         <Row testID="auto-interface-switch" label="AutoInterface" value={autoEnabled} onChange={setAutoEnabled} />
         <Row testID="ble-interface-switch" label="BLE interface" value={bleEnabled} onChange={setBleEnabled} />
         <Row
@@ -870,7 +1012,9 @@ export default function App() {
         {miniappBenchmark !== null ? (
           <Text testID="benchmark-results" style={styles.muted}>
             spawn {miniappBenchmark.spawnMs}ms · kill {miniappBenchmark.killMs}ms · busy-loop{" "}
-            {miniappBenchmark.busyLoopKillMs}ms ({miniappBenchmark.backend})
+            {miniappBenchmark.busyLoopKillMs}ms · wasm{" "}
+            {miniappBenchmark.wasmExecuted ? "yes" : "no"}
+            {miniappBenchmark.busyLoopKilled ? "" : " · kill failed"} ({miniappBenchmark.backend})
           </Text>
         ) : null}
         {miniappLogs.length > 0 ? (

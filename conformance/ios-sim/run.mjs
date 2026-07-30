@@ -13,6 +13,7 @@ import { runIosHandbookSlice } from "./handbook.mjs";
 import { runIosInterfacePolicy } from "./interface-policy.mjs";
 import { runIosCryptoBenchmark } from "./crypto-benchmark.mjs";
 import { runBonjourInterop } from "../bonjour-interop/run.mjs";
+import { runIosWasmBenchmark } from "./wasm-benchmark.mjs";
 
 const requireXcode = process.argv.includes("--require-xcode") || process.env.IOS_SIM_REQUIRED === "1";
 const requirePeer = process.argv.includes("--require-peer") || process.env.IOS_SIM_TCP_REQUIRED === "1";
@@ -117,6 +118,12 @@ try {
 }
 
 try {
+  await runIosWasmBenchmark();
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
+}
+
+try {
   await runIosHostileSmoke();
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
@@ -158,4 +165,4 @@ try {
   fail(error instanceof Error ? error.message : String(error));
 }
 
-console.log("[ios-sim] toolchain smoke passed: simctl available, dev/store worklets bundle, usb probe, bonjour interop, crypto decision, interface policy, hostile smoke, handbook slice, dev loop, full loop, discovery policy, BLE spec tests, store-posture refusal" + (requirePeer ? ", tcp slice, lifecycle quiesce" : " (tcp/lifecycle skipped without leaf-echo peer)"));
+console.log("[ios-sim] toolchain smoke passed: simctl available, dev/store worklets bundle, usb probe, bonjour interop, crypto decision, interface policy, wasm/BareKit probe (or skip), hostile smoke, handbook slice, dev loop, full loop, discovery policy, BLE spec tests, store-posture refusal" + (requirePeer ? ", tcp slice, lifecycle quiesce" : " (tcp/lifecycle skipped without leaf-echo peer)"));

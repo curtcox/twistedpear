@@ -1,7 +1,7 @@
 # Freenet simulator-first remaining-work plan
 
 <!-- tp-doc
-lifecycle: planned
+lifecycle: live
 audited: 2026-07-29
 register: software
 -->

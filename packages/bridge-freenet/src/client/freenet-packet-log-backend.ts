@@ -40,8 +40,10 @@ function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
 }
 
 /**
- * Freenet-backed packet log: each HDLC frame is an indexed append; the peer
- * direction is delivered in order via subscribe/get merge.
+ * Freenet-backed packet log: each HDLC frame is an indexed append; peer
+ * notifications are treated as hints to fetch authoritative state, then
+ * contiguous peer indices are delivered upward (gaps recovered via refetch,
+ * duplicates ignored).
  */
 export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendPort {
   readonly #client: FreenetClient;
@@ -58,7 +60,10 @@ export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendP
   #state = encodePacketLogState([]);
   #nextLocalIndex = 0n;
   #lastPeerIndex = -1n;
+  #pendingPeer = new Map<bigint, Uint8Array>();
   #publishQueue: Promise<void> = Promise.resolve();
+  #contractKey: Uint8Array | null = null;
+  #reconcileQueue: Promise<void> = Promise.resolve();
 
   constructor(options: FreenetPacketLogBackendOptions) {
     if (options.rendezvous.length !== 32) {
@@ -88,14 +93,16 @@ export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendP
   async start(): Promise<void> {
     const source = { wasm: this.#wasm, parameters: this.#parameters };
     const { key } = FreenetClient.deriveKey(source);
+    this.#contractKey = key;
     const existing = await this.#client.get(key).catch(() => null);
     if (existing !== null) {
-      this.#applyState(existing.state, false);
+      this.#ingestState(existing.state, false);
     } else {
       await this.#client.put(source, this.#state);
     }
-    this.#unsubscribe = await this.#client.subscribe(key, (state) => {
-      this.#applyState(state, true);
+    this.#unsubscribe = await this.#client.subscribe(key, () => {
+      // Notifications are hints only; authoritative state comes from get().
+      this.#enqueueReconcile();
     });
     this.#active = true;
   }
@@ -104,6 +111,7 @@ export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendP
     this.#active = false;
     this.#unsubscribe?.();
     this.#unsubscribe = null;
+    this.#pendingPeer.clear();
     if (this.#ownsClient) {
       await this.#client.close();
     }
@@ -143,10 +151,27 @@ export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendP
     this.#state = merged;
   }
 
-  #applyState(state: Uint8Array, deliver: boolean): void {
+  #enqueueReconcile(): void {
+    this.#reconcileQueue = this.#reconcileQueue
+      .then(() => this.#reconcileFromAuthoritative())
+      .catch(() => {
+        // Transient get failures leave pending indices buffered for the next hint.
+      });
+  }
+
+  async #reconcileFromAuthoritative(): Promise<void> {
+    if (!this.#active || this.#contractKey === null) {
+      return;
+    }
+    const record = await this.#client.get(this.#contractKey);
+    this.#ingestState(record.state, true);
+  }
+
+  #ingestState(state: Uint8Array, deliver: boolean): void {
     const merged = mergePacketLogStates(this.#retention, this.#state, state);
     this.#state = merged;
     const entries = decodePacketLogState(merged, this.#retention);
+
     for (const entry of entries) {
       if (entry.direction === this.#localDirection) {
         if (entry.index >= this.#nextLocalIndex) {
@@ -156,10 +181,33 @@ export class FreenetContractPacketLogBackend implements FreenetPacketLogBackendP
       }
       if (entry.direction !== this.#peerDirection) continue;
       if (entry.index <= this.#lastPeerIndex) continue;
-      this.#lastPeerIndex = entry.index;
-      if (deliver) {
-        this.#receiver?.(Uint8Array.from(entry.payload));
+      if (!this.#pendingPeer.has(entry.index)) {
+        this.#pendingPeer.set(entry.index, Uint8Array.from(entry.payload));
       }
+    }
+
+    if (!deliver) {
+      // Catch-up on start: advance the watermark without replaying history.
+      let maxPeer = this.#lastPeerIndex;
+      for (const index of this.#pendingPeer.keys()) {
+        if (index > maxPeer) maxPeer = index;
+      }
+      this.#lastPeerIndex = maxPeer;
+      this.#pendingPeer.clear();
+      return;
+    }
+
+    this.#deliverContiguous();
+  }
+
+  #deliverContiguous(): void {
+    let next = this.#lastPeerIndex + 1n;
+    while (this.#pendingPeer.has(next)) {
+      const payload = this.#pendingPeer.get(next)!;
+      this.#pendingPeer.delete(next);
+      this.#lastPeerIndex = next;
+      this.#receiver?.(payload);
+      next += 1n;
     }
   }
 }

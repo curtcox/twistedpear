@@ -81,6 +81,16 @@ export {
   type IdentityRecoveryWords
 } from "./identity-backup.js";
 export { createNodeHost, runNodeHost, type NodeHostOptions, type NodeHostSession } from "./node-host.js";
+export {
+  FreenetSupervisor,
+  redactFreenetAuthToken,
+  readOptionalSha256File,
+  type FreenetSupervisorOptions,
+  type FreenetSupervisorSnapshot,
+  type FreenetSupervisorSpawnResult,
+  type FreenetSupervisorSpawner,
+  type FreenetSupervisorStatus
+} from "./freenet-supervisor.js";
 export { startSeederRole, type SeederRoleOptions, type SeederRoleSession } from "./roles/seeder.js";
 export {
   RETICULUM_COMMUNITY_NETWORK,

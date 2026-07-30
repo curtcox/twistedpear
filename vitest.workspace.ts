@@ -13,6 +13,7 @@ export default defineWorkspace([
       name: "default",
       include: [
         "packages/*/test/**/*.test.ts",
+        "apps/harness-mobile/test/**/*.test.ts",
         "conformance/mac-validation/**/*.test.mjs",
         "conformance/release-harness/**/*.test.mjs",
         "conformance/docs/**/*.test.mjs",

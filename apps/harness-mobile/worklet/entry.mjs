@@ -1400,7 +1400,7 @@ async function handleHostMessage(raw) {
       send({ type: "miniapp-benchmark", result });
       log(
         `Bare worker benchmark: spawn ${result.spawnMs}ms, kill ${result.killMs}ms, ` +
-          `busy-loop ${result.busyLoopKillMs}ms`
+          `busy-loop ${result.busyLoopKillMs}ms, wasm=${result.wasmExecuted}`
       );
     } catch (error) {
       log(`Benchmark failed: ${error instanceof Error ? error.message : String(error)}`);

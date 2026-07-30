@@ -9,6 +9,17 @@ register: none
 
 Headless Bare worklet slices run from `run.mjs` (`npm run test:ios-sim:required` on macOS CI).
 
+## BareKit WASM worker probe
+
+Maestro flow `.maestro/e5-benchmark.yaml` taps the in-host Bare worker benchmark
+and asserts `wasm yes`. Wired into `test:ios-sim:required` (skips without an
+installed harness). Hard-gate with:
+
+```bash
+IOS_SIM_WASM_BUILD=1 IOS_SIM_WASM_REQUIRED=1 npm run test:ios-sim:wasm
+IOS_BENCHMARK_RECORD=1 npm run test:ios-sim:wasm
+```
+
 ## Handbook UI smoke (optional)
 
 Same Maestro flow as Android (`.maestro/handbook-smoke.yaml`), using shared

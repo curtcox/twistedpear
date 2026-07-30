@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "audited": "2026-07-28",
+  "audited": "2026-07-29",
   "probe": "instantiate and execute a trivial WASM export before the hostile busy loop",
   "backends": {
     "desktop-node-worker": {
@@ -11,21 +11,41 @@
       "command": "npm run test:miniapp-benchmark"
     },
     "browser-worker": {
-      "status": "blocked",
+      "status": "unsupported",
       "wasmExecuted": false,
       "ordinaryBusyLoopKilled": true,
       "ordinaryBusyLoopKillMs": 313,
+      "policy": "Option A retained: hardened opaque-origin worker CSP omits unsafe-eval/wasm-unsafe-eval; embedded Freenet WASM execution is deliberately unsupported on web",
       "reason": "current opaque-origin worker CSP omits unsafe-eval/wasm-unsafe-eval, so Chromium rejects WebAssembly.instantiate",
       "command": "npm run test:web-sandbox"
+    },
+    "bare-worker-android-emulator": {
+      "status": "probe-ready",
+      "wasmExecuted": null,
+      "busyLoopKilled": null,
+      "busyLoopKillMs": null,
+      "environment": "android-emulator",
+      "reason": "E5 harness now requires explicit wasmExecuted + watchdog kill; record with ANDROID_BENCHMARK_RECORD=1 npm run test:android-emulator:e5",
+      "command": "npm run test:android-emulator:e5"
+    },
+    "bare-worker-ios-simulator": {
+      "status": "probe-ready",
+      "wasmExecuted": null,
+      "busyLoopKilled": null,
+      "busyLoopKillMs": null,
+      "environment": "ios-simulator",
+      "reason": "Maestro BareKit probe wired into test:ios-sim:required (skips without installed harness); record with IOS_BENCHMARK_RECORD=1 npm run test:ios-sim:wasm",
+      "command": "npm run test:ios-sim:wasm"
     },
     "bare-worker-device": {
       "status": "pending",
       "wasmExecuted": null,
       "busyLoopKilled": null,
       "busyLoopKillMs": null,
-      "reason": "desktop Bare has WebAssembly but no Worker global; the faithful BareKit Worker probe must run on the mobile host",
-      "command": "run the in-host benchmark-miniapp action after rebuilding the worklet"
+      "environment": "physical-device",
+      "reason": "physical BareKit confirmation remains a release gate, not a software prerequisite",
+      "command": "run the in-host benchmark-miniapp action on a physical device"
     }
   },
-  "decisionImpact": "Option B cannot be selected cross-host: browser policy currently blocks WASM and the BareKit device result is absent."
+  "decisionImpact": "Option A remains the accepted client model. Browser WASM stays deliberately unsupported. Option B stays closed until physical BareKit evidence (optional relative to simulator software readiness) and a concrete value case versus a supervised Freenet node."
 }

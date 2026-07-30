@@ -5,6 +5,7 @@ describe("resolveFreenetNodeFlags", () => {
   it("returns null when Freenet flags are absent", () => {
     expect(resolveFreenetNodeFlags(["--propagation"])).toEqual({
       config: null,
+      supervise: null,
       logLines: []
     });
   });
@@ -15,6 +16,7 @@ describe("resolveFreenetNodeFlags", () => {
       enabled: false,
       url: "ws://127.0.0.1:50509/v1/contract/command"
     });
+    expect(result.supervise).toBeNull();
     expect(result.logLines.some((line) => line.includes("not bundled"))).toBe(true);
   });
 
@@ -43,6 +45,28 @@ describe("resolveFreenetNodeFlags", () => {
     expect(result.config?.rendezvousHex).toMatch(/^[0-9a-f]{64}$/);
     expect(result.config?.localDirection).toBe(1);
     expect(result.logLines.some((line) => line.includes("rendezvous"))).toBe(true);
+  });
+
+  it("configures supervision for a user-supplied binary", () => {
+    const result = resolveFreenetNodeFlags([
+      "--freenet-binary",
+      "/opt/freenet/freenet",
+      "--freenet-binary-sha256",
+      "a".repeat(64),
+      "--freenet-interface"
+    ]);
+    expect(result.supervise).toEqual({
+      binaryPath: "/opt/freenet/freenet",
+      expectedSha256: "a".repeat(64)
+    });
+    expect(result.config?.enabled).toBe(true);
+    expect(result.logLines.some((line) => line.includes("supervision"))).toBe(true);
+  });
+
+  it("rejects --freenet-supervise without a binary path", () => {
+    expect(() => resolveFreenetNodeFlags(["--freenet-supervise"])).toThrow(
+      /requires --freenet-binary/
+    );
   });
 
   it("rejects a malformed rendezvous", () => {

@@ -42,7 +42,7 @@
       "status": "partial",
       "artifact": "s4-report.md",
       "supportingArtifacts": ["s4-support-matrix.json"],
-      "remaining": "decide whether browser CSP may permit WASM, then run the prepared BareKit worker probe on a mobile host"
+      "remaining": "record Android emulator and iOS simulator BareKit measurements; physical device confirmation for release claims. Browser WASM remains deliberately unsupported under Option A."
     },
     "S5": {
       "status": "partial",
