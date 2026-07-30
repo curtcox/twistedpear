@@ -15,6 +15,10 @@ export interface FreenetRemoteGrantDraft {
   readonly operatorLabel: string;
   readonly capabilities: FreenetRemoteGrantCapabilities;
   readonly authToken?: string;
+  /** 32-byte peer rendezvous as 64 hex chars; required when packetTunnel is enabled. */
+  readonly rendezvousHex?: string;
+  /** Packet-log local direction (0 or 1); peer uses the opposite. */
+  readonly localDirection?: 0 | 1;
 }
 
 export interface FreenetRemoteGrant extends FreenetRemoteGrantDraft {
@@ -46,6 +50,8 @@ export function defaultFreenetRemoteGrant(): FreenetRemoteGrant {
     nodeUrl: "",
     operatorLabel: "",
     authToken: undefined,
+    rendezvousHex: undefined,
+    localDirection: 0,
     acceptedAt: null,
     capabilities: {
       contractReads: false,
@@ -54,6 +60,38 @@ export function defaultFreenetRemoteGrant(): FreenetRemoteGrant {
       propagation: false
     }
   };
+}
+
+/** Cryptographically random 32-byte Freenet packet-log rendezvous as hex. */
+export function generateFreenetRendezvousHex(
+  randomBytes: (size: number) => Uint8Array = (size) => {
+    const out = new Uint8Array(size);
+    crypto.getRandomValues(out);
+    return out;
+  }
+): string {
+  const bytes = randomBytes(32);
+  let hex = "";
+  for (const value of bytes) {
+    hex += value.toString(16).padStart(2, "0");
+  }
+  return hex;
+}
+
+export function validateFreenetRendezvousHex(
+  hex: string | undefined
+): FreenetRemoteGrantValidation {
+  if (hex === undefined || hex.trim().length === 0) {
+    return { ok: false, errors: ["Packet tunnel requires a 64-character hex rendezvous"] };
+  }
+  const trimmed = hex.trim();
+  if (!/^[0-9a-fA-F]{64}$/.test(trimmed)) {
+    return {
+      ok: false,
+      errors: ["Packet-tunnel rendezvous must be exactly 64 hex characters (32 bytes)"]
+    };
+  }
+  return { ok: true, errors: [] };
 }
 
 export function validateFreenetNodeUrl(urlText: string): FreenetRemoteGrantValidation {
@@ -111,6 +149,13 @@ export function validateFreenetRemoteGrant(
     errors.push("Contract writes require contract reads to be enabled");
   }
 
+  if (caps.packetTunnel) {
+    errors.push(...validateFreenetRendezvousHex(draft.rendezvousHex).errors);
+    if (draft.localDirection !== undefined && draft.localDirection !== 0 && draft.localDirection !== 1) {
+      errors.push("Packet-tunnel local direction must be 0 or 1");
+    }
+  }
+
   return { ok: errors.length === 0, errors };
 }
 
@@ -130,6 +175,10 @@ export function acceptFreenetRemoteGrant(
     ...draft,
     nodeUrl: draft.nodeUrl.trim(),
     operatorLabel: draft.operatorLabel.trim(),
+    ...(draft.rendezvousHex === undefined
+      ? {}
+      : { rendezvousHex: draft.rendezvousHex.trim().toLowerCase() }),
+    localDirection: draft.localDirection === 1 ? 1 : 0,
     enabled: true,
     acceptedAt: options.now ?? Date.now()
   };
@@ -153,6 +202,8 @@ export function freenetGrantLogSafe(
     nodeUrl: grant.nodeUrl,
     operatorLabel: grant.operatorLabel,
     capabilities: grant.capabilities,
+    rendezvousHex: grant.rendezvousHex ?? null,
+    localDirection: grant.localDirection ?? 0,
     acceptedAt: grant.acceptedAt,
     authTokenPresent: Boolean(grant.authToken && grant.authToken.length > 0)
   };

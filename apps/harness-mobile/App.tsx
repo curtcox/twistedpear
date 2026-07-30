@@ -37,6 +37,7 @@ import {
   defaultFreenetRemoteGrant,
   FREENET_REMOTE_DISCLOSURE,
   freenetGrantLogSafe,
+  generateFreenetRendezvousHex,
   revokeFreenetRemoteGrant,
   type FreenetRemoteGrant
 } from "./src/freenet-remote-grant";
@@ -227,6 +228,10 @@ export default function App() {
         ...(grant.authToken !== undefined && grant.authToken.length > 0
           ? { authToken: grant.authToken }
           : {}),
+        ...(grant.rendezvousHex !== undefined && grant.rendezvousHex.length > 0
+          ? { rendezvousHex: grant.rendezvousHex }
+          : {}),
+        localDirection: grant.localDirection === 1 ? 1 : 0,
         capabilities: grant.capabilities
       });
     },
@@ -910,6 +915,48 @@ export default function App() {
             }))
           }
         />
+        {freenetGrant.capabilities.packetTunnel ? (
+          <>
+            <TextInput
+              testID="freenet-rendezvous-hex"
+              style={styles.input}
+              value={freenetGrant.rendezvousHex ?? ""}
+              onChangeText={(rendezvousHex) =>
+                setFreenetGrant((current) => ({
+                  ...current,
+                  rendezvousHex: rendezvousHex.length === 0 ? undefined : rendezvousHex
+                }))
+              }
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="Packet-tunnel rendezvous (64 hex chars)"
+              placeholderTextColor="#718096"
+            />
+            <View style={styles.buttonRow}>
+              <ActionButton
+                testID="freenet-rendezvous-generate"
+                label="Generate rendezvous"
+                onPress={() =>
+                  setFreenetGrant((current) => ({
+                    ...current,
+                    rendezvousHex: generateFreenetRendezvousHex()
+                  }))
+                }
+              />
+            </View>
+            <Row
+              testID="freenet-local-direction"
+              label="Packet-tunnel side 1 (peer uses 0)"
+              value={freenetGrant.localDirection === 1}
+              onChange={(sideOne) =>
+                setFreenetGrant((current) => ({
+                  ...current,
+                  localDirection: sideOne ? 1 : 0
+                }))
+              }
+            />
+          </>
+        ) : null}
         <Row
           testID="freenet-cap-propagation"
           label="Propagation"
@@ -924,7 +971,7 @@ export default function App() {
         {freenetGrantError !== null ? <Text testID="freenet-grant-error" style={styles.muted}>{freenetGrantError}</Text> : null}
         <Text testID="freenet-grant-status" style={styles.muted}>
           {freenetGrant.enabled
-            ? `Enabled for ${freenetGrant.operatorLabel} · reads=${freenetGrant.capabilities.contractReads ? "on" : "off"}`
+            ? `Enabled for ${freenetGrant.operatorLabel} · reads=${freenetGrant.capabilities.contractReads ? "on" : "off"} · packet=${freenetGrant.capabilities.packetTunnel ? "on" : "off"} · propagation=${freenetGrant.capabilities.propagation ? "on" : "off"}`
             : "Disabled"}
         </Text>
         <Text testID="freenet-session-status" style={styles.muted}>
@@ -981,6 +1028,8 @@ export default function App() {
                     nodeUrl: freenetGrant.nodeUrl,
                     operatorLabel: freenetGrant.operatorLabel,
                     authToken: freenetGrant.authToken,
+                    rendezvousHex: freenetGrant.rendezvousHex,
+                    localDirection: freenetGrant.localDirection === 1 ? 1 : 0,
                     capabilities: freenetGrant.capabilities
                   },
                   { acceptedDisclosure: freenetDisclosureAccepted }

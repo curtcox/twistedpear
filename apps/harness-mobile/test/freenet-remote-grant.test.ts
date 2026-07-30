@@ -5,6 +5,7 @@ import {
   defaultFreenetRemoteGrant,
   freenetGrantLogSafe,
   FREENET_REMOTE_DISCLOSURE,
+  generateFreenetRendezvousHex,
   revokeFreenetRemoteGrant,
   validateFreenetNodeUrl,
   validateFreenetRemoteGrant
@@ -70,6 +71,57 @@ describe("freenet remote-node grant", () => {
     });
     expect(result.ok).toBe(false);
     expect(result.errors.some((line) => line.includes("reads"))).toBe(true);
+  });
+
+  it("requires a 64-hex rendezvous when packet tunnel is enabled", () => {
+    const missing = validateFreenetRemoteGrant({
+      nodeUrl: "ws://127.0.0.1:50509/v1/contract/command",
+      operatorLabel: "lab",
+      capabilities: {
+        contractReads: false,
+        contractWrites: false,
+        packetTunnel: true,
+        propagation: false
+      }
+    });
+    expect(missing.ok).toBe(false);
+    expect(missing.errors.some((line) => line.includes("rendezvous"))).toBe(true);
+
+    const rendezvousHex = generateFreenetRendezvousHex(() => new Uint8Array(32).fill(7));
+    expect(rendezvousHex).toHaveLength(64);
+    const ok = validateFreenetRemoteGrant({
+      nodeUrl: "ws://127.0.0.1:50509/v1/contract/command",
+      operatorLabel: "lab",
+      rendezvousHex,
+      localDirection: 1,
+      capabilities: {
+        contractReads: false,
+        contractWrites: false,
+        packetTunnel: true,
+        propagation: false
+      }
+    });
+    expect(ok.ok).toBe(true);
+
+    const enabled = acceptFreenetRemoteGrant(
+      {
+        nodeUrl: "ws://127.0.0.1:50509/v1/contract/command",
+        operatorLabel: "lab",
+        rendezvousHex,
+        localDirection: 1,
+        capabilities: {
+          contractReads: false,
+          contractWrites: false,
+          packetTunnel: true,
+          propagation: true
+        }
+      },
+      { acceptedDisclosure: true, now: 99 }
+    );
+    expect(enabled.capabilities.packetTunnel).toBe(true);
+    expect(enabled.capabilities.propagation).toBe(true);
+    expect(enabled.rendezvousHex).toBe(rendezvousHex);
+    expect(enabled.localDirection).toBe(1);
   });
 
   it("revokes back to disabled without clearing the operator label", () => {

@@ -39,6 +39,13 @@ appId: network.twistedpear.harness
 - extendedWaitUntil:
     visible: "Enabled for home companion"
     timeout: 10000
+# Packet-tunnel chrome requires rendezvous when that capability is selected.
+- tapOn:
+    id: "freenet-cap-packet"
+- assertVisible:
+    id: "freenet-rendezvous-hex"
+- assertVisible:
+    id: "freenet-rendezvous-generate"
 # Revoke returns to disabled; disclosure must be re-accepted.
 - tapOn:
     id: "freenet-grant-revoke"

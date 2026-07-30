@@ -139,6 +139,15 @@ describe("Freenet integration plan status", () => {
     expect(read("apps/harness-mobile/worklet/entry.mjs")).toContain(
       "FreenetClientContractBackend"
     );
+    expect(read("apps/harness-mobile/worklet/entry.mjs")).toContain(
+      "FreenetInterface"
+    );
+    expect(read("apps/harness-mobile/worklet/entry.mjs")).toContain(
+      "FreenetPropagationStore"
+    );
+    expect(read("apps/harness-mobile/src/freenet-remote-grant.ts")).toContain(
+      "rendezvousHex"
+    );
     expect(read("conformance/android-emulator/ci.sh")).toContain(
       "freenet-grant.mjs"
     );

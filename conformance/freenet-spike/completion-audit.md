@@ -20,13 +20,13 @@ passed.
 | S5 bundled node | partial | installed macOS size + signature inspection; Linux/Windows compressed release archive sizes in `s5-bundling-matrix.json`; fresh verify + TP embedding/signing remain |
 | S6 API churn | complete | `churn-report.md` and exact SDK/core/stdlib pins |
 | S7 live-app interop | partial | Atlas read passes; a public update requires explicit authorization and an app signing/curator path |
-| S8 privacy posture | complete for F1 | `docs/security-review.md`; mobile remote-node grant chrome + session state (auth/unavailable/reconnect/write-confirm) + Maestro probes (simulator software path) |
+| S8 privacy posture | complete for F1 | `docs/security-review.md`; mobile remote-node grant chrome + contract/packet-tunnel/propagation Bare worklet backends + Maestro probes (simulator software path) |
 | F0 gate | partially open | S2 local + S6 + S8 satisfy proceed criteria for roles 1/3; role 2 viable on measured path; live S2 is evidence-only per plan §12 |
 | F1 package/CAS | implemented, exit incomplete | bridge, locator vector, verified fetch ranking and `tp publish --freenet` exist; `tp node --freenet` configures an external node; `--freenet-binary` supervises a user-supplied hash-verified executable; a real two-host publish/install still needs an irreversible live write |
 | F2 packet interface | wired + state-reconciling notify; distinct-node runner | SPEC-FREENET packet-log WASM; notifications treated as hints with gap recovery/dedup; HDLC live proof; `test:freenet-distinct-nodes` for cross-node F2/restart (CI smoke); simulated announce+LXMF. Live multi-host announce/LXMF optional |
 | F3 propagation backing | WASM + store proof + host mirror + distinct-node runner | SPEC-FREENET propagation-set WASM; `FreenetPropagationStore`; isolated offline-A/retrieve-B; distinct publish-A/stop-A/retrieve-B; `createNodeHost` attaches remote mirror when freenet URL + propagation role enabled |
 | F4 provisioning | supervision software-complete; redistribute gated | `FreenetSupervisor` + CLI `--freenet-binary` + `test:freenet-supervisor` (CI with hash-verified release archive); signed redistributed daemon still gated on S5 |
-| F5 capability/UI | capability + desktop + mobile grant chrome | `freenet:contract` + HOST_API 0.11.0; desktop Settings; mobile remote-node disclosure/refusal/revoke/session + Bare worklet `set-freenet-config` contract backend (Maestro); web off per Option A; S4 BareKit measurements still probe-ready |
+| F5 capability/UI | capability + desktop + mobile grant chrome | `freenet:contract` + HOST_API 0.11.0; desktop Settings; mobile remote-node disclosure/refusal/revoke/session + Bare worklet contract, packet-tunnel (`FreenetInterface`), and propagation-mirror backends (Maestro); web off per Option A; S4 BareKit measurements still probe-ready |
 | F6 app-execution ADR | Option A accepted | [adr-freenet-app-execution.md](../../docs/adr-freenet-app-execution.md); B/C deferred on S4/platform-shape |
 
 ## External evidence still required
@@ -44,9 +44,10 @@ These are not represented as zeroes, skips, or successful software tests.
 
 As of 2026-07-29, simulator-first software for S4 policy, F2 reconciliation,
 distinct-node F2/F3 runners (CI smoke), user-supplied-binary supervision (CI),
-mobile remote-node grant/session chrome (including Bare worklet contract backend
-wiring and Maestro probes), and a reviewed paced local-cross-node 100-sample
-notify series are landed alongside the earlier F1–F3/F5 paths. Android/iOS
-BareKit `wasmExecuted` measurements remain probe-ready until an emulator or
-simulator record run. Remaining gates need signing credentials, live-write
-authorization, or physical-device confirmation.
+mobile remote-node grant/session chrome (including Bare worklet contract,
+packet-tunnel, and propagation-mirror backends plus Maestro probes), and a
+reviewed paced local-cross-node 100-sample notify series are landed alongside
+the earlier F1–F3/F5 paths. Android/iOS BareKit `wasmExecuted` measurements
+remain probe-ready until an emulator or simulator record run. Remaining gates
+need signing credentials, live-write authorization, or physical-device
+confirmation.

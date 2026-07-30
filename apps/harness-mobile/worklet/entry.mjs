@@ -5,8 +5,16 @@
 import "../../../conformance/bare-interop/bare-globals.mjs";
 import "bare-encoding/global";
 import { installBareWebSocketGlobal } from "../../../conformance/freenet-spike/bare-websocket-shim.mjs";
-import { FreenetClientContractBackend } from "../../../packages/bridge-freenet/dist/index.js";
-import { bytesToHex } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
+import {
+  FreenetClient,
+  FreenetClientContractBackend,
+  FreenetContractPacketLogBackend,
+  FreenetPropagationStore
+} from "../../../packages/bridge-freenet/dist/index.js";
+import { FreenetInterface } from "../../../packages/reticulum-interfaces/dist/freenet.js";
+import { PACKET_LOG_WASM_BASE64 } from "./packet-log-wasm.generated.mjs";
+import { PROPAGATION_SET_WASM_BASE64 } from "./propagation-set-wasm.generated.mjs";
+import { bytesToHex, hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { BareCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/bare.js";
 import { PureCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/pure.js";
 import { Identity } from "../../../packages/reticulum-ts/dist/identity.js";
@@ -34,7 +42,6 @@ import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnod
 import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
 import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
 import { PackageResourceClient, assessFetchBudget, fetchPackage } from "../../../packages/bridge-hyper/dist/worklet.js";
-import { hexToBytes } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { HOST_API_VERSION, createWorkletFlagRelayService, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
 import { decodePeerAudioFrame, decodePeerInvitation, framePeerAudioPayload, initialPeerAudioAssemblyState, stepPeerAudioAssembly } from "../../../packages/protocol/dist/index.js";
 import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
@@ -88,11 +95,28 @@ const status = {
   freenetContractReads: false,
   freenetContractWrites: false,
   freenetPacketTunnel: false,
-  freenetPropagation: false
+  freenetPropagation: false,
+  freenetInterfaceOnline: false,
+  freenetPropagationAttached: false,
+  freenetRendezvousHex: null
 };
 
+/** @type {FreenetClient | null} */
+let freenetSharedClient = null;
 /** @type {FreenetClientContractBackend | null} */
 let freenetBackendImpl = null;
+/** @type {import("../../../packages/reticulum-interfaces/dist/freenet.js").FreenetInterface | null} */
+let freenetIface = null;
+/** @type {FreenetPropagationStore | null} */
+let freenetPropagationStore = null;
+/** @type {string | null} */
+let pendingFreenetAuthToken = null;
+/** @type {0 | 1} */
+let pendingFreenetLocalDirection = 0;
+/** @type {Uint8Array | null} */
+let packetLogWasmCache = null;
+/** @type {Uint8Array | null} */
+let propagationSetWasmCache = null;
 /** @type {{ contractReads: boolean, contractWrites: boolean, packetTunnel: boolean, propagation: boolean }} */
 let freenetCapabilities = {
   contractReads: false,
@@ -745,6 +769,180 @@ async function stopTcpInterface() {
   status.linkOnline = false;
 }
 
+function loadPacketLogWasm() {
+  if (packetLogWasmCache !== null) {
+    return packetLogWasmCache;
+  }
+  packetLogWasmCache = Uint8Array.from(Buffer.from(PACKET_LOG_WASM_BASE64, "base64"));
+  return packetLogWasmCache;
+}
+
+function loadPropagationSetWasm() {
+  if (propagationSetWasmCache !== null) {
+    return propagationSetWasmCache;
+  }
+  propagationSetWasmCache = Uint8Array.from(
+    Buffer.from(PROPAGATION_SET_WASM_BASE64, "base64")
+  );
+  return propagationSetWasmCache;
+}
+
+async function stopFreenetInterface() {
+  if (freenetIface !== null) {
+    if (reticulum !== null) {
+      reticulum.unregisterInterface(freenetIface);
+    }
+    await freenetIface.close().catch(() => {});
+    freenetIface = null;
+  }
+  status.freenetInterfaceOnline = false;
+}
+
+async function startFreenetInterface() {
+  const url = status.freenetUrl;
+  const rendezvousHex = status.freenetRendezvousHex;
+  if (url === null || url.length === 0) {
+    log("Freenet packet tunnel requires a WebSocket URL");
+    status.freenetInterfaceOnline = false;
+    pushStatus();
+    return;
+  }
+  if (typeof rendezvousHex !== "string" || !/^[0-9a-fA-F]{64}$/.test(rendezvousHex)) {
+    log("Freenet packet tunnel requires a 64-character hex rendezvous");
+    status.freenetInterfaceOnline = false;
+    pushStatus();
+    return;
+  }
+  if (freenetSharedClient === null) {
+    log("Freenet packet tunnel requires an attached Freenet client");
+    status.freenetInterfaceOnline = false;
+    pushStatus();
+    return;
+  }
+
+  const node = await ensureReticulum();
+  if (freenetIface !== null) {
+    status.freenetInterfaceOnline = freenetIface.online === true;
+    pushStatus();
+    return;
+  }
+
+  try {
+    const wasm = loadPacketLogWasm();
+    const backend = new FreenetContractPacketLogBackend({
+      client: freenetSharedClient,
+      wasm,
+      rendezvous: hexToBytes(rendezvousHex),
+      localDirection: pendingFreenetLocalDirection,
+      updateOptions: { fallbackCodeField: wasm }
+    });
+    freenetIface = await FreenetInterface.open(provider, {
+      name: "host-freenet",
+      provider,
+      backend
+    });
+    node.registerInterface(freenetIface);
+    status.freenetInterfaceOnline = freenetIface.online === true;
+    log(
+      status.freenetInterfaceOnline
+        ? "Freenet packet tunnel online"
+        : "Freenet packet tunnel started; waiting for Freenet node"
+    );
+  } catch (error) {
+    freenetIface = null;
+    status.freenetInterfaceOnline = false;
+    log(
+      `Freenet packet tunnel failed: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+  pushStatus();
+}
+
+async function detachFreenetBackends() {
+  await stopFreenetInterface();
+  freenetPropagationStore = null;
+  status.freenetPropagationAttached = false;
+  if (freenetBackendImpl !== null) {
+    await freenetBackendImpl.close().catch(() => {});
+    freenetBackendImpl = null;
+  }
+  if (freenetSharedClient !== null) {
+    await freenetSharedClient.close().catch(() => {});
+    freenetSharedClient = null;
+  }
+  status.freenetConfigured = false;
+}
+
+async function attachFreenetBackends() {
+  await detachFreenetBackends();
+
+  const enabled = status.freenetEnabled === true;
+  const url = status.freenetUrl;
+  if (!enabled || url === null || url.length === 0) {
+    if (enabled) {
+      log("Freenet remote grant enabled without a URL; backends not attached");
+    } else {
+      log("Freenet remote node revoked");
+    }
+    pushStatus();
+    return;
+  }
+
+  const clientOptions = {
+    url,
+    ...(pendingFreenetAuthToken === null ? {} : { authToken: pendingFreenetAuthToken })
+  };
+  freenetSharedClient = new FreenetClient(clientOptions);
+
+  if (freenetCapabilities.contractReads) {
+    freenetBackendImpl = new FreenetClientContractBackend({
+      client: freenetSharedClient
+    });
+    status.freenetConfigured = true;
+    log(
+      `Freenet contract backend attached (reads=${freenetCapabilities.contractReads} writes=${freenetCapabilities.contractWrites})`
+    );
+  } else {
+    status.freenetConfigured = false;
+    log("Freenet grant has no contract reads; contract backend not attached");
+  }
+
+  if (freenetCapabilities.propagation) {
+    try {
+      const wasm = loadPropagationSetWasm();
+      freenetPropagationStore = new FreenetPropagationStore({
+        client: freenetSharedClient,
+        wasm,
+        updateOptions: { fallbackCodeField: wasm }
+      });
+      status.freenetPropagationAttached = true;
+      log("Freenet propagation mirror attached");
+    } catch (error) {
+      freenetPropagationStore = null;
+      status.freenetPropagationAttached = false;
+      log(
+        `Freenet propagation attach failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  if (freenetCapabilities.packetTunnel) {
+    await startFreenetInterface();
+  }
+
+  pushStatus();
+}
+
+function anyRelayOrFreenetEnabled() {
+  return (
+    status.tcpEnabled === true ||
+    status.autoEnabled === true ||
+    status.bleEnabled === true ||
+    status.rnodeEnabled === true ||
+    (status.freenetEnabled === true && freenetCapabilities.packetTunnel === true)
+  );
+}
+
 async function stopNode() {
   stopStatusTimer();
   status.running = false;
@@ -756,6 +954,7 @@ async function stopNode() {
   await stopAutoInterface();
   await stopBleInterface();
   await stopRnodeInterface();
+  await stopFreenetInterface();
 
   if (reticulum !== null) {
     reticulum.stop();
@@ -769,6 +968,7 @@ async function quiesceInterfaces() {
   await stopAutoInterface();
   await stopBleInterface();
   await stopRnodeInterface();
+  await stopFreenetInterface();
   pushStatus();
 }
 
@@ -1050,7 +1250,7 @@ async function applyInterfaceConfig() {
     return;
   }
 
-  if (!status.tcpEnabled && !status.autoEnabled && !status.bleEnabled && !status.rnodeEnabled) {
+  if (!anyRelayOrFreenetEnabled()) {
     await stopNode();
     log("All interfaces disabled; node stopped");
     return;
@@ -1072,6 +1272,12 @@ async function applyInterfaceConfig() {
     await startRnodeInterface();
   } else {
     await stopRnodeInterface();
+  }
+
+  if (status.freenetEnabled && freenetCapabilities.packetTunnel) {
+    await startFreenetInterface();
+  } else {
+    await stopFreenetInterface();
   }
 
   if (status.tcpEnabled) {
@@ -1552,6 +1758,11 @@ async function handleHostMessage(raw) {
       typeof message.authToken === "string" && message.authToken.length > 0
         ? message.authToken
         : undefined;
+    const rendezvousHex =
+      typeof message.rendezvousHex === "string" && message.rendezvousHex.length > 0
+        ? message.rendezvousHex
+        : null;
+    const localDirection = message.localDirection === 1 ? 1 : 0;
     const caps = message.capabilities ?? {
       contractReads: false,
       contractWrites: false,
@@ -1566,39 +1777,14 @@ async function handleHostMessage(raw) {
     };
     status.freenetEnabled = enabled;
     status.freenetUrl = url;
+    status.freenetRendezvousHex = rendezvousHex;
     status.freenetContractReads = freenetCapabilities.contractReads;
     status.freenetContractWrites = freenetCapabilities.contractWrites;
     status.freenetPacketTunnel = freenetCapabilities.packetTunnel;
     status.freenetPropagation = freenetCapabilities.propagation;
-    if (freenetBackendImpl !== null) {
-      await freenetBackendImpl.close().catch(() => {});
-      freenetBackendImpl = null;
-    }
-    if (enabled && url !== null && freenetCapabilities.contractReads) {
-      freenetBackendImpl = new FreenetClientContractBackend({
-        clientOptions: {
-          url,
-          ...(authToken === undefined ? {} : { authToken })
-        }
-      });
-      status.freenetConfigured = true;
-      log(
-        `Freenet remote node configured (reads=${freenetCapabilities.contractReads} writes=${freenetCapabilities.contractWrites})`
-      );
-    } else {
-      status.freenetConfigured = false;
-      if (enabled) {
-        log("Freenet remote grant enabled without contract reads; contract backend not attached");
-      } else {
-        log("Freenet remote node revoked");
-      }
-    }
-    if (freenetCapabilities.packetTunnel || freenetCapabilities.propagation) {
-      log(
-        "Freenet packet-tunnel/propagation grants are recorded; attach those backends when the mobile HDLC/propagation path is enabled"
-      );
-    }
-    pushStatus();
+    pendingFreenetAuthToken = authToken ?? null;
+    pendingFreenetLocalDirection = localDirection;
+    await attachFreenetBackends();
     return;
   }
 

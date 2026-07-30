@@ -4,7 +4,7 @@
  * Requires `npm run build` at the repo root first.
  */
 import { spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,6 +15,27 @@ const output = join(harnessRoot, "worklet/worklet.bundle.mjs");
 const nobleCrypto = join(repoRoot, "conformance/bare-interop/noble-crypto.mjs");
 const importsPath = join(harnessRoot, "worklet/imports.generated.json");
 const posturePath = join(harnessRoot, "worklet/store-posture.generated.mjs");
+const packetLogWasmModule = join(harnessRoot, "worklet/packet-log-wasm.generated.mjs");
+const propagationSetWasmModule = join(
+  harnessRoot,
+  "worklet/propagation-set-wasm.generated.mjs"
+);
+
+function writeWasmBase64Module(wasmRelativePath, modulePath, exportName) {
+  const base64 = readFileSync(join(repoRoot, wasmRelativePath)).toString("base64");
+  writeFileSync(modulePath, `export const ${exportName} = ${JSON.stringify(base64)};\n`);
+}
+
+writeWasmBase64Module(
+  "packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm",
+  packetLogWasmModule,
+  "PACKET_LOG_WASM_BASE64"
+);
+writeWasmBase64Module(
+  "packages/bridge-freenet/contract/propagation-set/propagation-set-contract.wasm",
+  propagationSetWasmModule,
+  "PROPAGATION_SET_WASM_BASE64"
+);
 
 writeFileSync(
   importsPath,

@@ -212,6 +212,9 @@ export interface WorkletStatus {
   readonly freenetContractWrites?: boolean;
   readonly freenetPacketTunnel?: boolean;
   readonly freenetPropagation?: boolean;
+  readonly freenetInterfaceOnline?: boolean;
+  readonly freenetPropagationAttached?: boolean;
+  readonly freenetRendezvousHex?: string | null;
 }
 
 export interface MulticastNetworkInfo {
@@ -257,6 +260,8 @@ export type HostToWorkletMessage =
       readonly enabled: boolean;
       readonly url?: string | null;
       readonly authToken?: string;
+      readonly rendezvousHex?: string | null;
+      readonly localDirection?: 0 | 1;
       readonly capabilities?: {
         readonly contractReads: boolean;
         readonly contractWrites: boolean;
