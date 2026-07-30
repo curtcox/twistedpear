@@ -122,13 +122,28 @@ describe("Freenet integration plan status", () => {
       "prove-f2-interface.mjs"
     );
     expect(read("conformance/freenet-spike/run-distinct-nodes.mjs")).toContain(
+      "prove-f2-announce-lxmf.mjs"
+    );
+    expect(read("conformance/freenet-spike/run-distinct-nodes.mjs")).toContain(
       "prove-f3-propagation.mjs"
+    );
+    expect(read("conformance/freenet-spike/run-local-f2.mjs")).toContain(
+      "prove-f2-announce-lxmf.mjs"
     );
     expect(read(".maestro/freenet-remote-grant.yaml")).toContain(
       "freenet-grant-revoke"
     );
     expect(read(".maestro/freenet-remote-grant.yaml")).toContain(
       "freenet-session-status"
+    );
+    expect(read(".maestro/freenet-remote-grant.yaml")).toContain(
+      "freenet-write-confirm"
+    );
+    expect(read(".maestro/freenet-remote-grant.yaml")).toContain(
+      "freenet-grant-reconnect"
+    );
+    expect(read(".maestro/freenet-remote-grant.yaml")).toContain(
+      "Node unavailable"
     );
     expect(read("apps/harness-mobile/src/freenet-remote-session.ts")).toContain(
       "auth-failed"

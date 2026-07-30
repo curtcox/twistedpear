@@ -178,29 +178,35 @@ async function main() {
   startGateway(secretPath);
   await waitForPort(wsPort);
 
-  section("FreenetInterface HDLC packet exchange");
-  const proof = spawn(
-    process.execPath,
-    [join(import.meta.dirname, "prove-f2-interface.mjs")],
-    {
+  const nodeUrl = `ws://127.0.0.1:${wsPort}/v1/contract/command`;
+
+  async function runProof(script, label) {
+    step(label);
+    const proof = spawn(process.execPath, [join(import.meta.dirname, script)], {
       env: {
         ...process.env,
-        FREENET_NODE_URL: `ws://127.0.0.1:${wsPort}/v1/contract/command`,
+        FREENET_NODE_URL: nodeUrl,
         FREENET_F2_LABEL: "local-isolated"
       },
       stdio: "inherit"
-    }
-  );
-  const exitCode = await new Promise((resolve, reject) => {
-    proof.once("error", reject);
-    proof.once("exit", (code, signal) => {
-      if (signal !== null) reject(new Error(`F2 proof exited via ${signal}`));
-      else resolve(code ?? 1);
     });
-  });
-  if (exitCode !== 0) {
-    throw new Error(`F2 proof exited with status ${exitCode}`);
+    const exitCode = await new Promise((resolve, reject) => {
+      proof.once("error", reject);
+      proof.once("exit", (code, signal) => {
+        if (signal !== null) reject(new Error(`${label} exited via ${signal}`));
+        else resolve(code ?? 1);
+      });
+    });
+    if (exitCode !== 0) {
+      throw new Error(`${label} exited with status ${exitCode}`);
+    }
   }
+
+  section("FreenetInterface HDLC packet exchange");
+  await runProof("prove-f2-interface.mjs", "F2 HDLC proof");
+
+  section("FreenetInterface announce + LXMF");
+  await runProof("prove-f2-announce-lxmf.mjs", "F2 announce+LXMF proof");
 }
 
 await runMain(async () => {

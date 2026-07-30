@@ -162,8 +162,9 @@ operator label, irreversible global-replication wording, per-role enablement
 revocation, and session handling for auth failure, unavailable node,
 reconnection, and write confirmation. Propagation grants start an LXMF
 `PropagationServer` with `FreenetPropagationStore` as `remoteMirror`. Maestro
-probes cover disclosure, refusal, revoke, propagation-role status, and
-malformed/unsafe URLs on Android emulator and iOS simulator; tokens must stay
+probes cover disclosure, refusal, revoke, write confirmation, unavailable
+node, reconnect, propagation-role status, malformed/unsafe URLs, and
+token-not-in-UI on Android emulator and iOS simulator; tokens must stay
 out of logs and UI dumps. Physical-device confirmation remains a mobile release
 gate. Mini-app contract access still needs role-specific UI evidence when those
 roles ship beyond the current desktop/headless and mobile-grant surfaces.

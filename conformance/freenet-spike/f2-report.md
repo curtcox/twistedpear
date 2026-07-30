@@ -23,5 +23,7 @@ npm run test:freenet-distinct-nodes -- --smoke
 Evidence: [f2-interface-proof.json](f2-interface-proof.json). Policy bitrate is
 90 kbps from local S2 1 KiB p95. Simulated announce + LXMF over
 FreenetInterface-only peers is covered by
-`packages/reticulum-interfaces/test/freenet-announce-lxmf.test.ts`. Live
-multi-host announce/LXMF confirmation remains optional.
+`packages/reticulum-interfaces/test/freenet-announce-lxmf.test.ts`. Real-node
+announce + LXMF runs in `test:freenet-interface` (same gateway) and
+`test:freenet-distinct-nodes` (distinct WebSocket endpoints) via
+`prove-f2-announce-lxmf.mjs`. Public multi-host confirmation remains optional.

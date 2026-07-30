@@ -121,9 +121,11 @@ before publish; this encoding does not replace `PropagationServer` quotas.
 
 ## Remaining gates
 
-Live S2 confirmation, cross-node notify under locator reordering, S4, S5, S7,
-and the two-host Freenet-only announce + LXMF conformance proof remain open
-for calling F2 “exit complete”. The F3 WASM contract and isolated store proof
-are recorded; operator-facing host mirror wiring remains gated. No live-network
-bitrate, mobile support, bundled-binary support, or app execution claim is
-normative until the corresponding evidence gate passes.
+Live S2 confirmation, S4 BareKit recorded measurements, S5, S7, and public
+multi-host Freenet announce + LXMF confirmation remain open for calling F2
+“exit complete”. Isolated same-node and distinct-node announce + LXMF proofs
+are recorded via `prove-f2-announce-lxmf.mjs`. The F3 WASM contract and
+isolated store proof are recorded; public multi-Freenet-node retrieval remains
+optional. No live-network bitrate, mobile physical confirmation, bundled-binary
+support, or app execution claim is normative until the corresponding evidence
+gate passes.

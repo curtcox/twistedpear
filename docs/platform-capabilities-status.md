@@ -137,9 +137,10 @@ Cross-cutting wiring gaps (affect many rows below):
   `set-freenet-config` and show Freenet status rows. Desktop and node support is
   conditional on an external or user-supervised pinned node and remains off by
   default. Android/iOS expose simulator-verified remote-node grant chrome
-  (disclosure, refusal, revoke, session probe for auth/unavailable/reconnect;
-  Bare worklet attaches contract, packet-tunnel, and/or Freenet-backed LXMF
-  `PropagationServer` role; Maestro `.maestro/freenet-remote-grant.yaml`) — still off by
+  (disclosure, refusal, revoke, write confirmation, session probe for
+  auth/unavailable/reconnect, token-not-in-UI; Bare worklet attaches contract,
+  packet-tunnel, and/or Freenet-backed LXMF `PropagationServer` role; Maestro
+  `.maestro/freenet-remote-grant.yaml`) — still off by
   default, no third-party gateway. Web stays `n/a` under Option A. Decision:
   [ADR](adr-freenet-app-execution.md) Option A.
 

@@ -160,6 +160,12 @@ F3 proof:
 These isolated scenarios are the primary regression gates. A public-network
 multi-node run remains optional confirmation.
 
+**Status (2026-07-29):** `test:freenet-distinct-nodes` runs cross-node notify,
+HDLC F2, announce+LXMF F2 (`prove-f2-announce-lxmf.mjs`), subscriber restart
+re-proof, and F3 publish-A/stop-A/retrieve-B. `test:freenet-interface` also
+covers announce+LXMF on a single isolated gateway. CI keeps the distinct-node
+suite on `--smoke`.
+
 ## 4. Workstream C — F4 supervision before distribution
 
 Implement and test a child-process supervisor around a user-supplied,
@@ -220,8 +226,9 @@ mobile `PropagationServer` / LXMF role with that store as `remoteMirror`
 
 **Status (2026-07-29):** contract, packet-tunnel, and Freenet-backed
 propagation LXMF role attach from the mobile grant path; Maestro covers
-disclosure / refusal / revoke / propagation-role chrome. Recorded BareKit
-`wasmExecuted` timings remain probe-ready.
+disclosure / refusal / revoke / malformed URL / write confirmation /
+unavailable+reconnect / token-not-in-UI / propagation-role chrome. Recorded
+BareKit `wasmExecuted` timings remain probe-ready.
 
 **Exit:** mobile remote-node support is software-ready and labeled
 simulator-verified. Physical confirmation gates only the corresponding mobile

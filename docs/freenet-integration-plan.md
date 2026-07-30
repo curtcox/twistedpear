@@ -344,10 +344,10 @@ not a gate, per §12.
 | Phase | Status | Done | Remaining |
 |---|---|---|---|
 | F1 package/CAS | **implemented; exit criterion not met** | `bridge-freenet` with pinned SDK client, locator/package state encoder, signed-locator + 256t verification, Rust locator contract pinned to an exact upstream commit, SPEC-FREENET locator vector, `freenet` fetch-path ranking, IP-bulk budget behavior, `tp publish --freenet`, `tp node --freenet` (external node URL) | The stated exit criterion — publish from host A, install on host B with `--force-path freenet` — requires an irreversible live write and is unmet |
-| F2 packet interface | **wired; distinct-node runner ready** | SPEC-FREENET packet-log WASM + vectors, `FreenetInterface` / `FreenetContractPacketLogBackend` with notify reconciliation, host-core `freenet` kind at the S2-derived 90 kbps, `test:freenet-interface` HDLC exchange against a real node, `test:freenet-distinct-nodes` for cross-node F2/F3/restart, paced local-cross-node S2 100-sample series in `measured-roundtrip.json`, simulated announce+LXMF over FreenetInterface-only peers, BridgeForwarder relay policy as source and destination | Live two-host announce+LXMF across distinct Freenet nodes remains optional confirmation |
+| F2 packet interface | **wired; distinct-node announce+LXMF** | SPEC-FREENET packet-log WASM + vectors, `FreenetInterface` / `FreenetContractPacketLogBackend` with notify reconciliation, host-core `freenet` kind at the S2-derived 90 kbps, `test:freenet-interface` HDLC + announce/LXMF against a real node, `test:freenet-distinct-nodes` for cross-node F2 (HDLC + announce/LXMF)/F3/restart, paced local-cross-node S2 100-sample series in `measured-roundtrip.json`, simulated announce+LXMF over FreenetInterface-only peers, BridgeForwarder relay policy as source and destination | Public two-host Freenet-node announce+LXMF remains optional confirmation |
 | F3 propagation backing | **wired** | SPEC-FREENET propagation-set WASM + vectors, encode/decode/merge, `PropagationRemoteMirror` seam, `FreenetPropagationStore` (16-byte destination grouping, PUT/UPDATE merge), isolated offline-A/retrieve-B proof, distinct-node publish-A/stop-A/retrieve-B via `test:freenet-distinct-nodes`, `createNodeHost` attaches the mirror when `roles.propagation` + `interfaces.freenet` URL are set | Public multi-Freenet-node retrieval remains optional confirmation |
 | F4 node provisioning | **software supervision started; redistribution gated** | `FreenetSupervisor` in host-core (ephemeral port, generated token kept out of URLs/logs, readiness, bounded restart, host data-dir isolation, starting/online/degraded/failed); `tp node --freenet-binary` / `--freenet-binary-sha256`; `test:freenet-supervisor` in CI against the hash-verified release archive | Signed/notarized redistribution and embedded packaging remain S5/signing gates |
-| F5 capability + chrome | **landed (software)** | `freenet:contract` in `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0 brokers `get`/`put`/`update` with confirmation on put/update; `createNodeHost` exposes `freenetBackend` when a URL is set; desktop Settings for contracts enable / URL / auth token plus an HDLC interface toggle with peer rendezvous and explicit side 0/1 selection; mobile remote-node grant chrome pushes `set-freenet-config` into the Bare worklet for contract, packet-tunnel (`FreenetInterface`), and Freenet-backed LXMF `PropagationServer` (Maestro); Node status and [platform capability](platform-capabilities-status.md) rows | Web stays off per Option A; recorded Android/iOS BareKit measurements and physical mobile confirmation for release claims |
+| F5 capability + chrome | **landed (software)** | `freenet:contract` in `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0 brokers `get`/`put`/`update` with confirmation on put/update; `createNodeHost` exposes `freenetBackend` when a URL is set; desktop Settings for contracts enable / URL / auth token plus an HDLC interface toggle with peer rendezvous and explicit side 0/1 selection; mobile remote-node grant chrome pushes `set-freenet-config` into the Bare worklet for contract, packet-tunnel (`FreenetInterface`), and Freenet-backed LXMF `PropagationServer` (Maestro covers disclosure/refusal/revoke/write-confirm/unavailable/reconnect/token-safe/propagation-role); Node status and [platform capability](platform-capabilities-status.md) rows | Web stays off per Option A; recorded Android/iOS BareKit measurements and physical mobile confirmation for release claims |
 | F6 app-execution ADR | **decided** | [Option A accepted](adr-freenet-app-execution.md): mini-apps are Freenet clients, not hosts, on S7 read evidence and S4/S8 blockers for B/C | B reopens only if S4 clears; C remains a separate proposal |
 
 ### 14.3 What a user can actually do today
@@ -415,10 +415,11 @@ execution on a TP node.
 - **F2 interface wired:** SPEC-FREENET packet-log WASM + vectors,
   `FreenetInterface` / `FreenetContractPacketLogBackend`, host-core `freenet`
   kind at the S2-derived 90 kbps policy bitrate,
-  `npm run test:freenet-interface` HDLC exchange, simulated announce+LXMF over
-  FreenetInterface-only peers, and BridgeForwarder relay-policy coverage with
-  freenet as source and destination. Live two-host Freenet-node announce+LXMF
-  remains optional confirmation.
+  `npm run test:freenet-interface` HDLC exchange plus announce+LXMF,
+  simulated announce+LXMF over FreenetInterface-only peers, distinct-node
+  announce+LXMF via `prove-f2-announce-lxmf.mjs`, and BridgeForwarder
+  relay-policy coverage with freenet as source and destination. Public
+  multi-host Freenet-node announce+LXMF remains optional confirmation.
 - **F3 codec foundation landed:** SPEC-FREENET
   propagation-set vectors and `bridge-freenet` encode/decode/merge cover
   per-destination LXMF ciphertext sets.
@@ -577,8 +578,8 @@ pass the extracted path as `FREENET_BINARY`. A `freenet` service in
 `conformance/docker/docker-compose.yml` is the alternative shape, matching the
 existing `i2pd` job; the raw download is lighter at ~19 MiB.
 
-- `npm run test:freenet-interface` — F2 HDLC exchange over a real node. It runs
-  in `ci.yml` and turns "F2 is wired" from a local claim into a
+- `npm run test:freenet-interface` — F2 HDLC exchange plus announce+LXMF over a
+  real node. It runs in `ci.yml` and turns "F2 is wired" from a local claim into a
   verified one.
 - `npm run test:freenet-propagation` — F3 offline-A/retrieve-B store proof. It
   also runs in `ci.yml`.
@@ -586,8 +587,9 @@ existing `i2pd` job; the raw download is lighter at ~19 MiB.
   (ephemeral port, generated token kept out of URLs/logs, online→stop). Runs in
   `ci.yml` against the same hash-verified archive.
 - `npm run test:freenet-distinct-nodes -- --smoke` — cross-node notify sample plus
-  distinct-endpoint F2/F3 (including restart and offline-A retrieve-B). Smoke
-  only in `ci.yml`; never promote incomplete notify series to gate artifacts.
+  distinct-endpoint F2 (HDLC + announce/LXMF)/F3 (including restart and offline-A
+  retrieve-B). Smoke only in `ci.yml`; never promote incomplete notify series to
+  gate artifacts.
 - `npm run test:freenet-local-network` — the S2 100-sample series. It is too slow
   for per-push and runs in `nightly.yml` beside the other soak suites, with
   `measured-roundtrip.json` uploaded as an artifact. Set
@@ -602,9 +604,9 @@ Upload `f2-interface-proof.json`, `f3-propagation-proof.json`, and
 Recorded here so no future pass mistakes these for gaps in tier 3: the live-network
 write (S7 write half, live S2, the F1 exit criterion), macOS signing and
 notarization (S5, F4), the physical BareKit run and the browser-CSP decision (S4),
-and live two-host announce + LXMF across distinct Freenet nodes (F2/F3 optional
-evidence). These stay manual and explicitly authorized. A CI job must never report
-them as passing, skipped-as-green, or zero.
+and public multi-host announce + LXMF confirmation beyond the isolated
+distinct-node proofs (F2/F3 optional evidence). These stay manual and explicitly
+authorized. A CI job must never report them as passing, skipped-as-green, or zero.
 
 ### Plan/evidence drift guard
 

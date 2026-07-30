@@ -67,7 +67,7 @@
     "S8": {
       "status": "complete",
       "artifact": "../../docs/security-review.md#f9--freenet-boundary-threat-model-f0-s8",
-      "conclusion": "desktop/headless F1 has no show-stopper; mobile remote-node grant chrome wires Bare worklet contract, packet-tunnel, and Freenet-backed LXMF PropagationServer role and is Maestro-covered; physical mobile confirmation and recorded BareKit timings remain release/software evidence gates"
+      "conclusion": "desktop/headless F1 has no show-stopper; mobile remote-node grant chrome wires Bare worklet contract, packet-tunnel, and Freenet-backed LXMF PropagationServer role and is Maestro-covered (disclosure/refusal/revoke/write-confirm/unavailable/reconnect/token-safe); physical mobile confirmation and recorded BareKit timings remain release/software evidence gates"
     }
   },
   "gate": {
@@ -75,7 +75,7 @@
     "reason": "local S2 latency evidence is sufficient for role viability; live S2 confirmation and remaining S4/S5/S7 items still gate later phases; F3 WASM + local store proof are recorded",
     "softwarePause": {
       "since": "2026-07-28",
-      "reason": "F1–F3/F5 software, F6 Option A, user documentation/example, tiered CI (including supervisor + distinct-node smoke + named offline unit suites), mobile remote-node worklet contract/packet-tunnel/Freenet-backed LXMF propagation role, and a reviewed local-cross-node 100-sample series are landed; remaining protocol/evidence work needs recorded BareKit simulator measurements, signing credentials, live-write authorization, or BareKit hardware"
+      "reason": "F1–F3/F5 software, F6 Option A, user documentation/example, tiered CI (including supervisor + distinct-node smoke with announce+LXMF + named offline unit suites), mobile remote-node worklet contract/packet-tunnel/Freenet-backed LXMF propagation role with Maestro write-confirm/unavailable/reconnect probes, and a reviewed local-cross-node 100-sample series are landed; remaining protocol/evidence work needs recorded BareKit simulator measurements, signing credentials, live-write authorization, or BareKit hardware"
     },
     "completionAudit": "completion-audit.md",
     "f2": {
@@ -84,12 +84,14 @@
       "supportingArtifacts": [
         "f2-report.md",
         "prove-f2-interface.mjs",
+        "prove-f2-announce-lxmf.mjs",
         "run-local-f2.mjs",
+        "run-distinct-nodes.mjs",
         "../../packages/bridge-freenet/contract/packet-log/packet-log-contract.wasm",
         "../../packages/reticulum-interfaces/test/freenet-announce-lxmf.test.ts"
       ],
-      "conclusion": "FreenetInterface exchanges HDLC frames live and announce+LXMF over simulated backends; relay policy covers freenet as source and destination",
-      "remaining": "optional live multi-node Freenet announce+LXMF confirmation"
+      "conclusion": "FreenetInterface exchanges HDLC frames and announce+LXMF live (same-node and distinct-node isolated topologies); relay policy covers freenet as source and destination",
+      "remaining": "optional public multi-host Freenet announce+LXMF confirmation"
     },
     "f3": {
       "status": "partial",

@@ -64,9 +64,11 @@ appId: network.twistedpear.harness
     id: "freenet-disclosure-accepted"
 - tapOn:
     id: "freenet-node-url"
+- eraseText
 - inputText: "http://example.com"
 - tapOn:
     id: "freenet-operator-label"
+- eraseText
 - inputText: "bad url"
 - tapOn:
     id: "freenet-cap-reads"
@@ -75,4 +77,67 @@ appId: network.twistedpear.harness
 - extendedWaitUntil:
     visible:
       id: "freenet-grant-error"
+    timeout: 10000
+# Per-write confirmation is required before attaching write backends.
+# Contract reads remains on from the previous failed enable attempt.
+- tapOn:
+    id: "freenet-disclosure-accepted"
+- tapOn:
+    id: "freenet-node-url"
+- eraseText
+- inputText: "ws://127.0.0.1:1/v1/contract/command"
+- tapOn:
+    id: "freenet-operator-label"
+- eraseText
+- inputText: "write confirm"
+- tapOn:
+    id: "freenet-cap-writes"
+- tapOn:
+    id: "freenet-grant-enable"
+- extendedWaitUntil:
+    visible:
+      id: "freenet-write-confirm"
+    timeout: 10000
+- assertVisible:
+    id: "freenet-write-confirm-yes"
+- tapOn:
+    id: "freenet-write-confirm-no"
+- extendedWaitUntil:
+    visible: "Disabled"
+    timeout: 10000
+# Unavailable-node degradation + reconnect chrome (closed local port).
+- tapOn:
+    id: "freenet-disclosure-accepted"
+- tapOn:
+    id: "freenet-node-url"
+- eraseText
+- inputText: "ws://127.0.0.1:1/v1/contract/command"
+- tapOn:
+    id: "freenet-operator-label"
+- eraseText
+- inputText: "unreachable"
+- tapOn:
+    id: "freenet-auth-token"
+- inputText: "secret-token-must-not-leak"
+- tapOn:
+    id: "freenet-cap-reads"
+- tapOn:
+    id: "freenet-grant-enable"
+- extendedWaitUntil:
+    visible: "Enabled for unreachable"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "Node unavailable"
+    timeout: 15000
+- assertNotVisible: "secret-token-must-not-leak"
+- tapOn:
+    id: "freenet-grant-reconnect"
+- extendedWaitUntil:
+    visible: "Degraded"
+    timeout: 15000
+- assertNotVisible: "secret-token-must-not-leak"
+- tapOn:
+    id: "freenet-grant-revoke"
+- extendedWaitUntil:
+    visible: "Disabled"
     timeout: 10000

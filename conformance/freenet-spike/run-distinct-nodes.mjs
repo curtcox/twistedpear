@@ -5,8 +5,9 @@
  * Starts an isolated 3-node mesh, then proves:
  * 1. Cross-node notify (publisher ≠ subscriber Freenet WebSocket)
  * 2. F2 HDLC across distinct endpoints (opposite packet-log sides)
- * 3. F2 recovery after the subscriber Freenet node restarts
- * 4. F3 publish on node A / retrieve on node B after stopping A's Freenet process
+ * 3. F2 announce + LXMF across those same distinct endpoints
+ * 4. F2 recovery after the subscriber Freenet node restarts
+ * 5. F3 publish on node A / retrieve on node B after stopping A's Freenet process
  *
  * Use `--smoke` for a one-sample notify diagnostic. Never copy incomplete
  * notify series over the committed S2 gate artifact (`measured-roundtrip.json`).
@@ -346,7 +347,18 @@ await runMain(async () => {
         FREENET_RIGHT_NODE_URL: subscriberUrl(),
         FREENET_F2_LABEL: "local-distinct-nodes"
       },
-      "distinct-node F2"
+      "distinct-node F2 HDLC"
+    );
+
+    step("F2 announce + LXMF across distinct Freenet WebSocket endpoints");
+    await runNodeScriptWithRetry(
+      "prove-f2-announce-lxmf.mjs",
+      {
+        FREENET_LEFT_NODE_URL: publisherUrl(),
+        FREENET_RIGHT_NODE_URL: subscriberUrl(),
+        FREENET_F2_LABEL: "local-distinct-nodes"
+      },
+      "distinct-node F2 announce+LXMF"
     );
 
     step("restart subscriber Freenet node and re-prove F2");
