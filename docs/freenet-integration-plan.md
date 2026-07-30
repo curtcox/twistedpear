@@ -456,6 +456,14 @@ inputs.
 examples, and CI wiring were outside it and are now implemented in §§15–16. Resume
 protocol work only when one of the three external inputs is available.
 
+The remaining work is sequenced in the
+[simulator-first companion plan](freenet-simulator-first-work-plan.md). That
+plan treats Android emulator and iOS simulator evidence as the primary mobile
+software gates, reserves physical devices for claims that simulators cannot
+make, and leaves public writes and signing as explicit approval gates. This
+does not upgrade simulator results into physical-device evidence or change the
+status ledger in §14.
+
 Two corrections found while re-validating, now fixed:
 
 - `completion-audit.md` had stated that the current machine "cannot rebuild WASM

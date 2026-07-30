@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const read = (path) => readFileSync(join(repositoryRoot, path), "utf8");
 const plan = read("docs/freenet-integration-plan.md");
+const simulatorPlan = read("docs/freenet-simulator-first-work-plan.md");
 const audit = read("conformance/freenet-spike/completion-audit.md");
 const evidence = JSON.parse(
   read("conformance/freenet-spike/evidence-status.json")
@@ -39,6 +40,23 @@ describe("Freenet integration plan status", () => {
     expect(evidence.spikes.S5.remaining).toMatch(/sign and notarize/);
     expect(evidence.spikes.S7.remaining).toMatch(/explicit live-write approval/);
     expect(plan).toContain("Tier 4 — cannot be done in CI");
+  });
+
+  it("keeps simulator-first remaining work linked without weakening evidence gates", () => {
+    expect(plan).toContain("freenet-simulator-first-work-plan.md");
+    expect(read("docs/README.md")).toContain(
+      "Freenet simulator-first work plan"
+    );
+    expect(simulatorPlan).toContain("FREENET_FORCE_CROSS_NODE=1");
+    expect(simulatorPlan).toMatch(
+      /Public Freenet\s+writes, signing\/notarization, and hardware runs remain explicit approval gates/
+    );
+    expect(simulatorPlan).toMatch(
+      /Simulator evidence may close software\s+readiness/
+    );
+    expect(simulatorPlan).toMatch(
+      /must not be relabeled as physical-device evidence/
+    );
   });
 
   it("keeps the shipped contract artifacts and user surfaces documented", () => {
