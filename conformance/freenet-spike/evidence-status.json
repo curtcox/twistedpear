@@ -27,7 +27,7 @@
         "s2-smoke-observation.json"
       ],
       "conclusion": "local 100-sample update-to-notify on a 3-node mesh (local-executor notify path) is complete with p95 under 90 ms for <=64 KiB and under 260 ms for 1 MiB",
-      "remaining": "record an explicitly authorized live-network 100-sample series and, if needed, a cross-node notify series that survives locator reordering"
+      "remaining": "record an explicitly authorized live-network 100-sample series; promote a reviewed cross-node notify series from test:freenet-distinct-nodes only after a complete reliable run"
     },
     "S3": {
       "status": "complete",

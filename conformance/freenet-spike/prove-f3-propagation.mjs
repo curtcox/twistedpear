@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,11 +10,22 @@ import {
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(root, "../..");
-const nodeUrl = process.env.FREENET_NODE_URL;
+const sharedUrl = process.env.FREENET_NODE_URL;
+const publisherUrl =
+  process.env.FREENET_PUBLISHER_NODE_URL ?? sharedUrl;
+const subscriberUrl =
+  process.env.FREENET_SUBSCRIBER_NODE_URL ?? sharedUrl;
 const label = process.env.FREENET_F3_LABEL ?? "local-isolated";
+const publisherToken =
+  process.env.FREENET_PUBLISHER_NODE_TOKEN ?? process.env.FREENET_NODE_TOKEN;
+const subscriberToken =
+  process.env.FREENET_SUBSCRIBER_NODE_TOKEN ?? process.env.FREENET_NODE_TOKEN;
+const afterPublishHook = process.env.FREENET_F3_AFTER_PUBLISH_HOOK;
 
-if (nodeUrl === undefined) {
-  throw new Error("FREENET_NODE_URL is required for the F3 propagation proof");
+if (publisherUrl === undefined || subscriberUrl === undefined) {
+  throw new Error(
+    "FREENET_NODE_URL (or FREENET_PUBLISHER_NODE_URL / FREENET_SUBSCRIBER_NODE_URL) is required for the F3 propagation proof"
+  );
 }
 
 const wasm = Uint8Array.from(
@@ -34,10 +46,11 @@ const lxmfData = new Uint8Array(destinationHash.length + payload.length);
 lxmfData.set(destinationHash);
 lxmfData.set(payload, destinationHash.length);
 const storedAt = Date.now();
+const distinct = publisherUrl !== subscriberUrl;
 
 const publisher = new FreenetClient({
-  url: nodeUrl,
-  authToken: process.env.FREENET_NODE_TOKEN,
+  url: publisherUrl,
+  authToken: publisherToken,
   requestTimeoutMs: 60_000
 });
 
@@ -47,7 +60,10 @@ const storeA = new FreenetPropagationStore({
   updateOptions: { fallbackCodeField: wasm }
 });
 
-console.log("F3 proof: publishing ciphertext set from node A");
+console.log(
+  "F3 proof: publishing ciphertext set from node A" +
+    (distinct ? ` via ${publisherUrl}` : "")
+);
 await storeA.publish([
   {
     transientId,
@@ -58,9 +74,25 @@ await storeA.publish([
 await publisher.close();
 console.log("F3 proof: node A client closed (publisher offline)");
 
+if (afterPublishHook !== undefined && afterPublishHook.length > 0) {
+  console.log(`F3 proof: running after-publish hook: ${afterPublishHook}`);
+  const hook = spawnSync(afterPublishHook, {
+    shell: true,
+    encoding: "utf8",
+    env: process.env
+  });
+  if (hook.stdout) process.stdout.write(hook.stdout);
+  if (hook.stderr) process.stderr.write(hook.stderr);
+  if (hook.status !== 0) {
+    throw new Error(
+      `F3 after-publish hook failed with status ${hook.status ?? "null"}`
+    );
+  }
+}
+
 const retriever = new FreenetClient({
-  url: nodeUrl,
-  authToken: process.env.FREENET_NODE_TOKEN,
+  url: subscriberUrl,
+  authToken: subscriberToken,
   requestTimeoutMs: 60_000
 });
 const storeB = new FreenetPropagationStore({
@@ -70,7 +102,10 @@ const storeB = new FreenetPropagationStore({
   updateOptions: { fallbackCodeField: wasm }
 });
 
-console.log("F3 proof: pulling from node B while A is offline");
+console.log(
+  "F3 proof: pulling from node B while A is offline" +
+    (distinct ? ` via ${subscriberUrl}` : "")
+);
 const pulled = await storeB.pull();
 await retriever.close();
 
@@ -89,7 +124,10 @@ const artifact = {
   schemaVersion: 1,
   audited: new Date().toISOString().slice(0, 10),
   label,
-  nodeUrl,
+  nodeUrl: publisherUrl,
+  subscriberNodeUrl: subscriberUrl,
+  distinctNodes: distinct,
+  stoppedPublisherNode: Boolean(afterPublishHook),
   destinationHashHex: destinationHash.toString("hex"),
   transientIdHex: transientId.toString("hex"),
   storedAt,

@@ -6,21 +6,25 @@ audited: 2026-07-29
 register: none
 -->
 
-Freenet is an optional way for a desktop or headless TwistedPear host to publish
-and fetch app packages, carry Reticulum packets, mirror LXMF propagation state,
-and let a granted mini-app read or publish Freenet contract state. It is off by
-default and no existing TwistedPear feature depends on it.
+Freenet is an optional way for a desktop, headless, or (simulator-verified)
+mobile TwistedPear host to publish and fetch app packages, carry Reticulum
+packets, mirror LXMF propagation state, and let a granted mini-app read or
+publish Freenet contract state. It is off by default and no existing TwistedPear
+feature depends on it.
 
-TwistedPear currently connects to a Freenet node that you run separately. It
-does not bundle, download, or supervise that node. Android, iPhone, and browser
-hosts deliberately do not expose Freenet: a remote node can observe every
-contract you read and write, and the mobile/web grant experience does not yet
-make that delegation legible enough.
+TwistedPear connects to a Freenet node that you supply. You can point at an
+external node URL, or pass `--freenet-binary` so the host supervises a
+hash-verified executable you already installed. It does not download or
+redistribute Freenet binaries. Browser hosts deliberately do not expose Freenet
+(Option A). Mobile hosts show a remote-node grant screen first: the exact URL,
+operator label, irreversible-update disclosure, and per-role toggles — still off
+by default, with no third-party gateway preconfigured.
 
 > **An update is public and irreversible.** A Freenet contract update is
 > published to a global replicated network. It cannot be recalled. The desktop
 > host asks again before every mini-app `put` or `update`, even after you grant
-> `freenet:contract`.
+> `freenet:contract`. On mobile, contract writes stay behind the same disclosure
+> and capability toggles.
 
 ## 1. Run the pinned external node
 
@@ -57,6 +61,14 @@ The short form accepts the endpoint directly:
 
 ```sh
 tp node --freenet ws://127.0.0.1:50509/v1/contract/command
+```
+
+To supervise a user-supplied binary instead (ephemeral port; generated token kept
+out of URLs and logs):
+
+```sh
+tp node --freenet-binary /absolute/path/to/freenet \
+  --freenet-binary-sha256 <64-hex-sha256-of-that-binary>
 ```
 
 The equivalent explicit form, including an optional token, is:
@@ -183,20 +195,24 @@ not on `PATH`:
 FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-interface
 FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-propagation
 FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-local-network
+FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-distinct-nodes -- --smoke
 ```
 
 Expected result: the first records an HDLC exchange in
 `.tmp/f2-interface-proof-local-isolated.json`; the second records the
 offline-A/retrieve-B proof in
-`.tmp/f3-propagation-proof-local-isolated.json`; the last records 100 samples
-per payload size in `.tmp/freenet-roundtrip-local-3-node.json`. The last check
-is slow enough that CI runs it nightly. Reviewed evidence is copied into
+`.tmp/f3-propagation-proof-local-isolated.json`; the third records 100 samples
+per payload size in `.tmp/freenet-roundtrip-local-3-node.json`; the fourth runs
+cross-node notify plus distinct-endpoint F2/F3 (and a Freenet-node restart) on
+an isolated mesh. The 100-sample S2 check is slow enough that CI runs it
+nightly. Reviewed evidence is copied into
 `conformance/freenet-spike/` deliberately; a test run never overwrites the
 committed evidence ledger.
 
 None of these isolated checks proves a live public-network write, macOS
-notarization, mobile support, or two distinct remote Freenet nodes. Those remain
-explicit evidence gates rather than skipped-as-green tests.
+notarization, physical-device BareKit confirmation, or a promoted cross-node
+100-sample notify series. Those remain explicit evidence gates rather than
+skipped-as-green tests.
 
 ## 6. Mini-app contract access
 

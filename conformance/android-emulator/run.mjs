@@ -120,7 +120,24 @@ async function main() {
       throw new Error("e5-worker failed");
     }
 
-    console.log("android-emulator: E1–E5 UI flows + handbook smoke passed");
+    const freenetGrant = spawnSync(
+      "node",
+      ["conformance/android-emulator/freenet-grant.mjs"],
+      {
+        cwd: repoRoot,
+        stdio: "inherit",
+        env: {
+          ...process.env,
+          ANDROID_SERIAL: deviceSerial,
+          FREENET_GRANT_REQUIRED: "1"
+        }
+      }
+    );
+    if (freenetGrant.status !== 0) {
+      throw new Error("freenet-grant failed");
+    }
+
+    console.log("android-emulator: E1–E5 UI flows + Freenet grant + handbook smoke passed");
   } finally {
     hostPeer.kill("SIGTERM");
     handbookPeer.kill("SIGTERM");

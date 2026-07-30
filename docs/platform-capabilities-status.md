@@ -105,7 +105,7 @@ Cross-cutting wiring gaps (affect many rows below):
 | `peer:connect` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · unit · soft |
 | `relay:configure` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | done · unit · soft |
 | `relay:read` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | done · unit · soft |
-| `freenet:contract` | partial · unit · soft | n/a · n/a · n/a | n/a · n/a · n/a | n/a · n/a · n/a | partial · unit · soft |
+| `freenet:contract` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · unit · soft |
 
 ### Core notes
 
@@ -135,8 +135,11 @@ Cross-cutting wiring gaps (affect many rows below):
   confirmation on put/update. `createNodeHost` exposes `freenetBackend` when
   `interfaces.freenet.url` is set; desktop Settings drive a worklet proxy via
   `set-freenet-config` and show Freenet status rows. Desktop and node support is
-  conditional on an external pinned node and remains off by default. Mobile/web
-  stay `n/a` until remote-node grant UX (S8) is honest. Decision:
+  conditional on an external or user-supervised pinned node and remains off by
+  default. Android/iOS expose simulator-verified remote-node grant chrome
+  (disclosure, refusal, revoke; Maestro
+  `.maestro/freenet-remote-grant.yaml`) — still off by default, no third-party
+  gateway. Web stays `n/a` under Option A. Decision:
   [ADR](adr-freenet-app-execution.md) Option A.
 
 ## Device capabilities

@@ -20,6 +20,16 @@ IOS_SIM_WASM_BUILD=1 IOS_SIM_WASM_REQUIRED=1 npm run test:ios-sim:wasm
 IOS_BENCHMARK_RECORD=1 npm run test:ios-sim:wasm
 ```
 
+## Freenet remote-node grant probe
+
+Maestro flow `.maestro/freenet-remote-grant.yaml` exercises disclosure refusal,
+read-only enablement, and revoke. Wired into `test:ios-sim:required` (skips
+without an installed harness):
+
+```bash
+IOS_SIM_FREENET_GRANT_BUILD=1 IOS_SIM_FREENET_GRANT_REQUIRED=1 npm run test:ios-sim:freenet-grant
+```
+
 ## Handbook UI smoke (optional)
 
 Same Maestro flow as Android (`.maestro/handbook-smoke.yaml`), using shared

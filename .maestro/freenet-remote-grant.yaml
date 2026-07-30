@@ -1,0 +1,46 @@
+appId: network.twistedpear.harness
+---
+# Simulator-first workstream D: remote-node grant disclosure / refusal / revoke.
+# Does not exercise a live Freenet connection; validates trusted-chrome UX only.
+- launchApp
+- scrollUntilVisible:
+    element:
+      id: "freenet-remote-section"
+    direction: DOWN
+    timeout: 60000
+- assertVisible:
+    id: "freenet-remote-section"
+- assertVisible: "Off by default"
+- assertVisible: "cannot be recalled"
+# Refusal: enable without disclosure or URL must surface an error.
+- tapOn:
+    id: "freenet-grant-enable"
+- extendedWaitUntil:
+    visible:
+      id: "freenet-grant-error"
+    timeout: 10000
+- assertVisible:
+    id: "freenet-grant-status"
+- assertVisible: "Disabled"
+# Accept disclosure, fill safe fields, enable read-only grant.
+- tapOn:
+    id: "freenet-disclosure-accepted"
+- tapOn:
+    id: "freenet-node-url"
+- inputText: "ws://127.0.0.1:50509/v1/contract/command"
+- tapOn:
+    id: "freenet-operator-label"
+- inputText: "home companion"
+- tapOn:
+    id: "freenet-cap-reads"
+- tapOn:
+    id: "freenet-grant-enable"
+- extendedWaitUntil:
+    visible: "Enabled for home companion"
+    timeout: 10000
+# Revoke returns to disabled; disclosure must be re-accepted.
+- tapOn:
+    id: "freenet-grant-revoke"
+- extendedWaitUntil:
+    visible: "Disabled"
+    timeout: 10000

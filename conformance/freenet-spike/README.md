@@ -105,6 +105,13 @@ F2's isolated FreenetInterface HDLC exchange:
 npm run test:freenet-interface
 ```
 
+Distinct-node F2/F3 (cross-node notify sample, opposite packet-log sides,
+subscriber restart, publish-A/stop-A/retrieve-B):
+
+```sh
+npm run test:freenet-distinct-nodes -- --smoke
+```
+
 Evidence is in [f2-interface-proof.json](f2-interface-proof.json) and
 [f2-report.md](f2-report.md).
 

@@ -16,11 +16,25 @@ import { FreenetContractPacketLogBackend } from "../../packages/bridge-freenet/d
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(root, "../..");
-const nodeUrl = process.env.FREENET_NODE_URL;
+const sharedUrl = process.env.FREENET_NODE_URL;
+const leftUrl =
+  process.env.FREENET_LEFT_NODE_URL ??
+  process.env.FREENET_PUBLISHER_NODE_URL ??
+  sharedUrl;
+const rightUrl =
+  process.env.FREENET_RIGHT_NODE_URL ??
+  process.env.FREENET_SUBSCRIBER_NODE_URL ??
+  sharedUrl;
 const label = process.env.FREENET_F2_LABEL ?? "local-isolated";
+const leftToken =
+  process.env.FREENET_LEFT_NODE_TOKEN ?? process.env.FREENET_NODE_TOKEN;
+const rightToken =
+  process.env.FREENET_RIGHT_NODE_TOKEN ?? process.env.FREENET_NODE_TOKEN;
 
-if (nodeUrl === undefined) {
-  throw new Error("FREENET_NODE_URL is required for the F2 interface proof");
+if (leftUrl === undefined || rightUrl === undefined) {
+  throw new Error(
+    "FREENET_NODE_URL (or FREENET_LEFT_NODE_URL / FREENET_RIGHT_NODE_URL) is required for the F2 interface proof"
+  );
 }
 
 const wasm = Uint8Array.from(
@@ -35,7 +49,7 @@ const rendezvous = randomBytes(32);
 const provider = new NodeCryptoProvider();
 
 const leftBackend = new FreenetContractPacketLogBackend({
-  clientOptions: { url: nodeUrl, authToken: process.env.FREENET_NODE_TOKEN },
+  clientOptions: { url: leftUrl, authToken: leftToken },
   wasm,
   rendezvous,
   localDirection: 0,
@@ -43,7 +57,7 @@ const leftBackend = new FreenetContractPacketLogBackend({
   updateOptions: { fallbackCodeField: wasm }
 });
 const rightBackend = new FreenetContractPacketLogBackend({
-  clientOptions: { url: nodeUrl, authToken: process.env.FREENET_NODE_TOKEN },
+  clientOptions: { url: rightUrl, authToken: rightToken },
   wasm,
   rendezvous,
   localDirection: 1,
@@ -73,7 +87,11 @@ const packet = Packet.fromFields(provider, {
   data: payload
 });
 
-console.log("F2 proof: sending HDLC packet left → right over Freenet packet-log");
+const distinct = leftUrl !== rightUrl;
+console.log(
+  `F2 proof: sending HDLC packet left → right over Freenet packet-log` +
+    (distinct ? ` (distinct nodes)` : "")
+);
 const received = Promise.race([
   (async () => {
     for await (const next of right.packets) {
@@ -99,12 +117,15 @@ const artifact = {
   schemaVersion: 1,
   audited: new Date().toISOString().slice(0, 10),
   label,
-  nodeUrl,
+  nodeUrl: leftUrl,
+  rightNodeUrl: rightUrl,
+  distinctNodes: distinct,
   rendezvousHex: rendezvous.toString("hex"),
   bitrate: left.bitrate,
   result: "pass",
-  notes:
-    "Same Freenet node, two FreenetInterface peers with opposite localDirection. Announce+LXMF host exit remains separate."
+  notes: distinct
+    ? "Distinct Freenet WebSocket endpoints, opposite localDirection; state-reconciling notify path."
+    : "Same Freenet node, two FreenetInterface peers with opposite localDirection. Announce+LXMF host exit remains separate."
 };
 
 const outDir = join(repoRoot, ".tmp");

@@ -344,21 +344,23 @@ not a gate, per §12.
 | Phase | Status | Done | Remaining |
 |---|---|---|---|
 | F1 package/CAS | **implemented; exit criterion not met** | `bridge-freenet` with pinned SDK client, locator/package state encoder, signed-locator + 256t verification, Rust locator contract pinned to an exact upstream commit, SPEC-FREENET locator vector, `freenet` fetch-path ranking, IP-bulk budget behavior, `tp publish --freenet`, `tp node --freenet` (external node URL) | The stated exit criterion — publish from host A, install on host B with `--force-path freenet` — requires an irreversible live write and is unmet |
-| F2 packet interface | **wired; live confirmation optional** | SPEC-FREENET packet-log WASM + vectors, `FreenetInterface` / `FreenetContractPacketLogBackend`, host-core `freenet` kind at the S2-derived 90 kbps, `test:freenet-interface` HDLC exchange against a real node, simulated announce+LXMF over FreenetInterface-only peers, BridgeForwarder relay policy as source and destination | Live two-host announce+LXMF across distinct Freenet nodes (evidence, not a gate) |
-| F3 propagation backing | **wired** | SPEC-FREENET propagation-set WASM + vectors, encode/decode/merge, `PropagationRemoteMirror` seam, `FreenetPropagationStore` (16-byte destination grouping, PUT/UPDATE merge), isolated offline-A/retrieve-B proof, `createNodeHost` attaches the mirror when `roles.propagation` + `interfaces.freenet` URL are set | Multi-Freenet-node retrieval evidence (evidence, not a gate) |
+| F2 packet interface | **wired; distinct-node runner ready** | SPEC-FREENET packet-log WASM + vectors, `FreenetInterface` / `FreenetContractPacketLogBackend` with notify reconciliation, host-core `freenet` kind at the S2-derived 90 kbps, `test:freenet-interface` HDLC exchange against a real node, `test:freenet-distinct-nodes` for cross-node F2/F3/restart, simulated announce+LXMF over FreenetInterface-only peers, BridgeForwarder relay policy as source and destination | Live two-host announce+LXMF across distinct Freenet nodes remains optional confirmation; promote a reviewed cross-node notify series only after a complete run |
+| F3 propagation backing | **wired** | SPEC-FREENET propagation-set WASM + vectors, encode/decode/merge, `PropagationRemoteMirror` seam, `FreenetPropagationStore` (16-byte destination grouping, PUT/UPDATE merge), isolated offline-A/retrieve-B proof, distinct-node publish-A/stop-A/retrieve-B via `test:freenet-distinct-nodes`, `createNodeHost` attaches the mirror when `roles.propagation` + `interfaces.freenet` URL are set | Public multi-Freenet-node retrieval remains optional confirmation |
 | F4 node provisioning | **software supervision started; redistribution gated** | `FreenetSupervisor` in host-core (ephemeral port, generated token kept out of URLs/logs, readiness, bounded restart, host data-dir isolation, starting/online/degraded/failed); `tp node --freenet-binary` / `--freenet-binary-sha256` | Signed/notarized redistribution and embedded packaging remain S5/signing gates |
-| F5 capability + chrome | **landed (software)** | `freenet:contract` in `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0 brokers `get`/`put`/`update` with confirmation on put/update; `createNodeHost` exposes `freenetBackend` when a URL is set; desktop Settings for contracts enable / URL / auth token plus an HDLC interface toggle with peer rendezvous and explicit side 0/1 selection; Node status and [platform capability](platform-capabilities-status.md) rows | Mobile and web stay off per S8 |
+| F5 capability + chrome | **landed (software)** | `freenet:contract` in `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0 brokers `get`/`put`/`update` with confirmation on put/update; `createNodeHost` exposes `freenetBackend` when a URL is set; desktop Settings for contracts enable / URL / auth token plus an HDLC interface toggle with peer rendezvous and explicit side 0/1 selection; mobile remote-node grant chrome (disclosure/refusal/revoke) with Maestro simulator probes; Node status and [platform capability](platform-capabilities-status.md) rows | Web stays off per Option A; physical mobile confirmation for release claims |
 | F6 app-execution ADR | **decided** | [Option A accepted](adr-freenet-app-execution.md): mini-apps are Freenet clients, not hosts, on S7 read evidence and S4/S8 blockers for B/C | B reopens only if S4 clears; C remains a separate proposal |
 
 ### 14.3 What a user can actually do today
 
-With an external Freenet node running and `interfaces.freenet.url` set: publish a
-`.tpkg` locator (`tp publish --freenet`), fetch a package over the `freenet` path,
-run a Reticulum link over `FreenetInterface`, back LXMF propagation with a Freenet
-store, and grant a mini-app `freenet:contract` on desktop. The user path is
+With an external Freenet node running and `interfaces.freenet.url` set (or a
+user-supplied binary via `--freenet-binary`): publish a `.tpkg` locator
+(`tp publish --freenet`), fetch a package over the `freenet` path, run a
+Reticulum link over `FreenetInterface`, back LXMF propagation with a Freenet
+store, and grant a mini-app `freenet:contract` on desktop. Mobile hosts can
+accept a simulator-verified remote-node grant (off by default). The user path is
 documented in [Using Freenet](../guide/11-using-freenet.md), with a worked
 [mini-app recipe](../cookbook/10-apps-that-use-freenet.md). Not available: any
-bundled node, any mobile or web Freenet support, and any contract or delegate
+bundled/redistributed node, browser Freenet support, or any contract or delegate
 execution on a TP node.
 
 ### 14.4 Detail
@@ -430,14 +432,16 @@ execution on a TP node.
   set (independent of the HDLC `enabled` flag); desktop injects a lazy proxy
   driven by `set-freenet-config`. Desktop Settings expose contracts enable / URL /
   optional auth token, plus an HDLC Freenet interface toggle with peer rendezvous;
-  Node status shows Freenet rows. Mobile/web remain off per S8.
+  Node status shows Freenet rows. Mobile remote-node grant chrome is
+  simulator-verified and off by default; web remains off under Option A.
 - **F6 Option A ADR recorded:** [adr-freenet-app-execution.md](adr-freenet-app-execution.md)
   accepts mini-apps as Freenet clients (not hosts), based on S7 read evidence
   and S4/S8 blockers for B/C.
 - **Gate partially open:** S2 local latency, S6, and S8 satisfy the F0 proceed
   criteria for roles 1 and 3, and make role 2 viable on the measured path.
-  F2/F3/F5 software wiring and the F6 Option A ADR are landed; F4 remains
-  blocked on S5; live S2/S7 write need authorization.
+  F2/F3/F5 software wiring, user-supplied-binary supervision, and the F6 Option A
+  ADR are landed; signed redistribution remains gated on S5; live S2/S7 write need
+  authorization.
   Current machine-readable status is
   [conformance/freenet-spike/evidence-status.json](../conformance/freenet-spike/evidence-status.json)
   and
@@ -497,8 +501,8 @@ Delivered:
    `--force-path freenet`; the desktop Settings surface (contracts enable, URL,
    optional auth token, HDLC interface toggle, peer rendezvous) and the Node status
    rows; and — not as a footnote — that Freenet is off by default, that a contract
-   update is irreversible and globally published, and that mobile and web are
-   deliberately unsupported per S8.
+   update is irreversible and globally published, that mobile remote-node grants
+   require explicit disclosure, and that web stays unsupported under Option A.
 2. **A verification recipe.** Exact commands with expected output let a user
    confirm the integration on their own machine rather than trusting this document:
    the offline suites from §16 tier 1–2, then the real-node suites from tier 3.
@@ -508,8 +512,8 @@ Delivered:
 4. **Feature-status rows.** `guide/appendix-feature-status.md`,
    `cookbook/appendix-feature-status.md`, and
    [platform capabilities status](platform-capabilities-status.md) carry per-host
-   support matching §14.2: desktop conditional on an
-   external node, mobile and web off.
+   support matching §14.2: desktop/node conditional on an external or
+   user-supervised node, mobile grant chrome simulator-verified, web off.
 5. **The two documentation errors** named in §14.5 are fixed.
 
 ## 16. CI verification

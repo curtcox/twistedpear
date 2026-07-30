@@ -35,8 +35,12 @@ describe("Freenet integration plan status", () => {
   });
 
   it("does not claim externally gated evidence as complete", () => {
-    expect(plan).toContain("F4 node provisioning | **not started — blocked by S5**");
-    expect(audit).toContain("F4 provisioning | blocked by S5");
+    expect(plan).toContain(
+      "F4 node provisioning | **software supervision started; redistribution gated**"
+    );
+    expect(audit).toContain(
+      "F4 provisioning | supervision software-complete; redistribute gated"
+    );
     expect(evidence.spikes.S5.remaining).toMatch(/sign and notarize/);
     expect(evidence.spikes.S7.remaining).toMatch(/explicit live-write approval/);
     expect(plan).toContain("Tier 4 — cannot be done in CI");
@@ -92,13 +96,36 @@ describe("Freenet integration plan status", () => {
   it("keeps per-host support rows honest", () => {
     const platform = read("docs/platform-capabilities-status.md");
     expect(platform).toContain(
-      "| `freenet:contract` | partial · unit · soft | n/a · n/a · n/a | n/a · n/a · n/a | n/a · n/a · n/a | partial · unit · soft |"
+      "| `freenet:contract` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · unit · soft |"
     );
+    expect(platform).toMatch(/simulator-verified remote-node grant/i);
     expect(read("guide/appendix-feature-status.md")).toContain(
       "| Freenet integration |"
     );
     expect(read("cookbook/appendix-feature-status.md")).toContain(
       "| `freenet:contract` |"
+    );
+  });
+
+  it("keeps distinct-node B3 and grant simulator probes wired", () => {
+    const pkg = JSON.parse(read("package.json"));
+    expect(pkg.scripts["test:freenet-distinct-nodes"]).toMatch(
+      /run-distinct-nodes\.mjs/
+    );
+    expect(pkg.scripts["test:android-emulator:freenet-grant"]).toMatch(
+      /freenet-grant\.mjs/
+    );
+    expect(pkg.scripts["test:ios-sim:freenet-grant"]).toMatch(
+      /freenet-grant\.mjs/
+    );
+    expect(read("conformance/freenet-spike/run-distinct-nodes.mjs")).toContain(
+      "prove-f2-interface.mjs"
+    );
+    expect(read("conformance/freenet-spike/run-distinct-nodes.mjs")).toContain(
+      "prove-f3-propagation.mjs"
+    );
+    expect(read(".maestro/freenet-remote-grant.yaml")).toContain(
+      "freenet-grant-revoke"
     );
   });
 
