@@ -145,8 +145,17 @@ describe("Freenet integration plan status", () => {
     expect(read("apps/harness-mobile/worklet/entry.mjs")).toContain(
       "FreenetPropagationStore"
     );
+    expect(read("apps/harness-mobile/worklet/entry.mjs")).toContain(
+      "PropagationServer"
+    );
+    expect(read("apps/harness-mobile/worklet/entry.mjs")).toContain(
+      "pullRemoteMirror"
+    );
     expect(read("apps/harness-mobile/src/freenet-remote-grant.ts")).toContain(
       "rendezvousHex"
+    );
+    expect(read(".maestro/freenet-remote-grant.yaml")).toContain(
+      "freenet-propagation-role-status"
     );
     expect(read("conformance/android-emulator/ci.sh")).toContain(
       "freenet-grant.mjs"

@@ -333,7 +333,7 @@ and the per-exit-criterion mapping is
 | S5 bundled node | **partial** | Installed macOS universal binary ≈93 MiB; Linux/Windows compressed archive sizes and SHA-256s in `s5-bundling-matrix.json` | Fresh macOS artifact whose signature verifies strictly; signed + notarized TwistedPear bundle embedding the binary. **F4 stays blocked.** |
 | S6 API churn | **done** | Ten consecutive core releases kept contract ops and key derivation stable; `churn-report.md` plus exact SDK/core/stdlib pins | — (recheck on every pin bump) |
 | S7 live-app interop | **partial** | Read half passed: the TS adapter read the live Atlas CBOR index through a localhost node; `s7-atlas-read.json` | Write half needs explicit authorization — even a rejected update publishes public operation metadata |
-| S8 privacy posture | **done for F1** | Threat model in [security review](security-review.md) §F9 | Re-run for mobile remote-node and for any expanded role |
+| S8 privacy posture | **done for F1** | Threat model in [security review](security-review.md) §F9; mobile remote-node grant/role path recorded | Physical mobile confirmation for release claims |
 
 **Gate verdict: partially open.** S2 (local), S6, and S8 satisfy the proceed criteria
 for roles 1 and 3 and make role 2 viable on the measured path. Live S2 is evidence,
@@ -347,7 +347,7 @@ not a gate, per §12.
 | F2 packet interface | **wired; distinct-node runner ready** | SPEC-FREENET packet-log WASM + vectors, `FreenetInterface` / `FreenetContractPacketLogBackend` with notify reconciliation, host-core `freenet` kind at the S2-derived 90 kbps, `test:freenet-interface` HDLC exchange against a real node, `test:freenet-distinct-nodes` for cross-node F2/F3/restart, paced local-cross-node S2 100-sample series in `measured-roundtrip.json`, simulated announce+LXMF over FreenetInterface-only peers, BridgeForwarder relay policy as source and destination | Live two-host announce+LXMF across distinct Freenet nodes remains optional confirmation |
 | F3 propagation backing | **wired** | SPEC-FREENET propagation-set WASM + vectors, encode/decode/merge, `PropagationRemoteMirror` seam, `FreenetPropagationStore` (16-byte destination grouping, PUT/UPDATE merge), isolated offline-A/retrieve-B proof, distinct-node publish-A/stop-A/retrieve-B via `test:freenet-distinct-nodes`, `createNodeHost` attaches the mirror when `roles.propagation` + `interfaces.freenet` URL are set | Public multi-Freenet-node retrieval remains optional confirmation |
 | F4 node provisioning | **software supervision started; redistribution gated** | `FreenetSupervisor` in host-core (ephemeral port, generated token kept out of URLs/logs, readiness, bounded restart, host data-dir isolation, starting/online/degraded/failed); `tp node --freenet-binary` / `--freenet-binary-sha256`; `test:freenet-supervisor` in CI against the hash-verified release archive | Signed/notarized redistribution and embedded packaging remain S5/signing gates |
-| F5 capability + chrome | **landed (software)** | `freenet:contract` in `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0 brokers `get`/`put`/`update` with confirmation on put/update; `createNodeHost` exposes `freenetBackend` when a URL is set; desktop Settings for contracts enable / URL / auth token plus an HDLC interface toggle with peer rendezvous and explicit side 0/1 selection; mobile remote-node grant chrome pushes `set-freenet-config` into the Bare worklet for contract, packet-tunnel (`FreenetInterface`), and propagation-mirror backends (Maestro); Node status and [platform capability](platform-capabilities-status.md) rows | Web stays off per Option A; recorded Android/iOS BareKit measurements and physical mobile confirmation for release claims |
+| F5 capability + chrome | **landed (software)** | `freenet:contract` in `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0 brokers `get`/`put`/`update` with confirmation on put/update; `createNodeHost` exposes `freenetBackend` when a URL is set; desktop Settings for contracts enable / URL / auth token plus an HDLC interface toggle with peer rendezvous and explicit side 0/1 selection; mobile remote-node grant chrome pushes `set-freenet-config` into the Bare worklet for contract, packet-tunnel (`FreenetInterface`), and Freenet-backed LXMF `PropagationServer` (Maestro); Node status and [platform capability](platform-capabilities-status.md) rows | Web stays off per Option A; recorded Android/iOS BareKit measurements and physical mobile confirmation for release claims |
 | F6 app-execution ADR | **decided** | [Option A accepted](adr-freenet-app-execution.md): mini-apps are Freenet clients, not hosts, on S7 read evidence and S4/S8 blockers for B/C | B reopens only if S4 clears; C remains a separate proposal |
 
 ### 14.3 What a user can actually do today
@@ -358,7 +358,7 @@ user-supplied binary via `--freenet-binary`): publish a `.tpkg` locator
 Reticulum link over `FreenetInterface`, back LXMF propagation with a Freenet
 store, and grant a mini-app `freenet:contract` on desktop. Mobile hosts can
 accept a simulator-verified remote-node grant (off by default) that attaches
-contract, packet-tunnel, and/or propagation-mirror backends in the Bare
+contract, packet-tunnel, and/or Freenet-backed LXMF propagation role in the Bare
 worklet. The user path is
 documented in [Using Freenet](../guide/11-using-freenet.md), with a worked
 [mini-app recipe](../cookbook/10-apps-that-use-freenet.md). Not available: any
@@ -438,7 +438,9 @@ execution on a TP node.
   driven by `set-freenet-config`. Desktop Settings expose contracts enable / URL /
   optional auth token, plus an HDLC Freenet interface toggle with peer rendezvous;
   Node status shows Freenet rows. Mobile remote-node grant chrome is
-  simulator-verified and off by default; web remains off under Option A.
+  simulator-verified and off by default; accepted grants attach contract,
+  packet-tunnel, and Freenet-backed LXMF `PropagationServer` backends in the
+  Bare worklet. Web remains off under Option A.
 - **F6 Option A ADR recorded:** [adr-freenet-app-execution.md](adr-freenet-app-execution.md)
   accepts mini-apps as Freenet clients (not hosts), based on S7 read evidence
   and S4/S8 blockers for B/C.

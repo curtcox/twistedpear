@@ -214,12 +214,14 @@ Accepted grants push `set-freenet-config` into the Bare worklet so
 an extra chrome confirmation before the backend is attached). Packet-tunnel
 grants attach `FreenetInterface` with the embedded packet-log WASM (rendezvous
 + local direction required in chrome). Propagation grants attach
-`FreenetPropagationStore` with the embedded propagation-set WASM. Wiring that
-mirror into a mobile `PropagationServer` / LXMF role remains optional follow-on.
+`FreenetPropagationStore` with the embedded propagation-set WASM and start a
+mobile `PropagationServer` / LXMF role with that store as `remoteMirror`
+(local persistence + `pullRemoteMirror` on attach).
 
-**Status (2026-07-29):** contract, packet-tunnel, and propagation Freenet
-backends attach from the mobile grant path; Maestro covers disclosure / refusal
-/ revoke chrome. Recorded BareKit `wasmExecuted` timings remain probe-ready.
+**Status (2026-07-29):** contract, packet-tunnel, and Freenet-backed
+propagation LXMF role attach from the mobile grant path; Maestro covers
+disclosure / refusal / revoke / propagation-role chrome. Recorded BareKit
+`wasmExecuted` timings remain probe-ready.
 
 **Exit:** mobile remote-node support is software-ready and labeled
 simulator-verified. Physical confirmation gates only the corresponding mobile

@@ -160,12 +160,13 @@ on the simulator path: trusted-host grant chrome presents the exact node URL and
 operator label, irreversible global-replication wording, per-role enablement
 (contract reads/writes, packet tunnel, propagation), off-by-default plus
 revocation, and session handling for auth failure, unavailable node,
-reconnection, and write confirmation. Maestro probes cover disclosure, refusal,
-revoke, and malformed/unsafe URLs on Android emulator and iOS simulator; tokens
-must stay out of logs and UI dumps. Physical-device confirmation remains a
-mobile release gate. Propagation, packet-tunnel, and mini-app contract access
-each still need their own role-specific UI evidence when those roles ship beyond
-the current desktop/headless and mobile-grant surfaces.
+reconnection, and write confirmation. Propagation grants start an LXMF
+`PropagationServer` with `FreenetPropagationStore` as `remoteMirror`. Maestro
+probes cover disclosure, refusal, revoke, propagation-role status, and
+malformed/unsafe URLs on Android emulator and iOS simulator; tokens must stay
+out of logs and UI dumps. Physical-device confirmation remains a mobile release
+gate. Mini-app contract access still needs role-specific UI evidence when those
+roles ship beyond the current desktop/headless and mobile-grant surfaces.
 
 ## Recommendations (future)
 

@@ -67,7 +67,7 @@
     "S8": {
       "status": "complete",
       "artifact": "../../docs/security-review.md#f9--freenet-boundary-threat-model-f0-s8",
-      "conclusion": "desktop/headless F1 has no show-stopper; mobile remote-node grant chrome wires Bare worklet contract, packet-tunnel, and propagation-mirror backends and is Maestro-covered; physical mobile confirmation and recorded BareKit timings remain release/software evidence gates"
+      "conclusion": "desktop/headless F1 has no show-stopper; mobile remote-node grant chrome wires Bare worklet contract, packet-tunnel, and Freenet-backed LXMF PropagationServer role and is Maestro-covered; physical mobile confirmation and recorded BareKit timings remain release/software evidence gates"
     }
   },
   "gate": {
@@ -75,7 +75,7 @@
     "reason": "local S2 latency evidence is sufficient for role viability; live S2 confirmation and remaining S4/S5/S7 items still gate later phases; F3 WASM + local store proof are recorded",
     "softwarePause": {
       "since": "2026-07-28",
-      "reason": "F1–F3/F5 software, F6 Option A, user documentation/example, tiered CI (including supervisor + distinct-node smoke + named offline unit suites), mobile remote-node worklet contract/packet-tunnel/propagation backends, and a reviewed local-cross-node 100-sample series are landed; remaining protocol/evidence work needs recorded BareKit simulator measurements, signing credentials, live-write authorization, or BareKit hardware"
+      "reason": "F1–F3/F5 software, F6 Option A, user documentation/example, tiered CI (including supervisor + distinct-node smoke + named offline unit suites), mobile remote-node worklet contract/packet-tunnel/Freenet-backed LXMF propagation role, and a reviewed local-cross-node 100-sample series are landed; remaining protocol/evidence work needs recorded BareKit simulator measurements, signing credentials, live-write authorization, or BareKit hardware"
     },
     "completionAudit": "completion-audit.md",
     "f2": {

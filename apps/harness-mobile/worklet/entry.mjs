@@ -43,6 +43,11 @@ import { selectPreferredInterface } from "../../../packages/reticulum-interfaces
 import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
 import { PackageResourceClient, assessFetchBudget, fetchPackage } from "../../../packages/bridge-hyper/dist/worklet.js";
 import { HOST_API_VERSION, createWorkletFlagRelayService, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
+import {
+  PropagationServer,
+  createPropagationDestination,
+  DEFAULT_PROPAGATION_QUOTAS
+} from "../../../packages/lxmf-ts/dist/index.js";
 import { decodePeerAudioFrame, decodePeerInvitation, framePeerAudioPayload, initialPeerAudioAssemblyState, stepPeerAudioAssembly } from "../../../packages/protocol/dist/index.js";
 import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
@@ -98,7 +103,11 @@ const status = {
   freenetPropagation: false,
   freenetInterfaceOnline: false,
   freenetPropagationAttached: false,
-  freenetRendezvousHex: null
+  freenetPropagationRole: false,
+  freenetRendezvousHex: null,
+  propagationEnabled: false,
+  propagationStoreBytes: 0,
+  propagationMessageCount: 0
 };
 
 /** @type {FreenetClient | null} */
@@ -109,6 +118,13 @@ let freenetBackendImpl = null;
 let freenetIface = null;
 /** @type {FreenetPropagationStore | null} */
 let freenetPropagationStore = null;
+/** @type {PropagationServer | null} */
+let propagationServer = null;
+/** @type {ReturnType<typeof createPropagationDestination> | null} */
+let propagationDestination = null;
+const PROPAGATION_STORE_KEY = "harness-propagation-store";
+/** @type {{ entries: ReadonlyArray<{ transientIdHex: string; lxmfDataHex: string; storedAt: number }> } | null} */
+let propagationStoreCache = null;
 /** @type {string | null} */
 let pendingFreenetAuthToken = null;
 /** @type {0 | 1} */
@@ -329,7 +345,7 @@ function ensureMiniappHost() {
           roles: {
             transport: false,
             seeder: false,
-            propagation: false
+            propagation: propagationServer !== null
           },
           interfaceTypes,
           quotas: {
@@ -648,6 +664,18 @@ function pushStatus() {
     status.onlineInterfaces = 0;
   }
 
+  if (propagationServer !== null) {
+    status.propagationStoreBytes = propagationServer.stats.usedBytes;
+    status.propagationMessageCount = propagationServer.stats.messageCount;
+    status.propagationEnabled = true;
+    status.freenetPropagationRole = true;
+  } else {
+    status.propagationEnabled = false;
+    status.freenetPropagationRole = false;
+    status.propagationStoreBytes = 0;
+    status.propagationMessageCount = 0;
+  }
+
   send({ type: "status", status: { ...status } });
 }
 
@@ -858,7 +886,90 @@ async function startFreenetInterface() {
   pushStatus();
 }
 
+async function loadPropagationCache() {
+  const raw = await runtime.store.get(PROPAGATION_STORE_KEY);
+  if (raw === undefined) {
+    propagationStoreCache = { entries: [] };
+    return;
+  }
+  try {
+    propagationStoreCache = JSON.parse(new TextDecoder().decode(raw));
+  } catch {
+    propagationStoreCache = { entries: [] };
+  }
+}
+
+function createWorkletPropagationPersistence() {
+  return {
+    load() {
+      return (propagationStoreCache?.entries ?? []).map((entry) => ({
+        transientId: hexToBytes(entry.transientIdHex),
+        lxmfData: hexToBytes(entry.lxmfDataHex),
+        storedAt: entry.storedAt
+      }));
+    },
+    save(entries) {
+      propagationStoreCache = {
+        entries: entries.map((entry) => ({
+          transientIdHex: bytesToHex(entry.transientId),
+          lxmfDataHex: bytesToHex(entry.lxmfData),
+          storedAt: entry.storedAt
+        }))
+      };
+      void runtime.store.set(
+        PROPAGATION_STORE_KEY,
+        new TextEncoder().encode(JSON.stringify(propagationStoreCache))
+      );
+    }
+  };
+}
+
+async function stopFreenetPropagationRole() {
+  propagationServer = null;
+  propagationDestination = null;
+  status.propagationEnabled = false;
+  status.freenetPropagationRole = false;
+  status.propagationStoreBytes = 0;
+  status.propagationMessageCount = 0;
+}
+
+async function startFreenetPropagationRole(mirror) {
+  await stopFreenetPropagationRole();
+  await loadPropagationCache();
+  await ensureReticulum();
+  const identity = await resolveIdentity();
+  if (identity === null) {
+    throw new Error("Propagation role requires a host identity");
+  }
+  const node = reticulum;
+  if (node === null) {
+    throw new Error("Propagation role requires a running Reticulum node");
+  }
+
+  propagationServer = new PropagationServer(provider, DEFAULT_PROPAGATION_QUOTAS, {
+    now: () => Date.now(),
+    schedule: (ms, callback) => {
+      const handle = setTimeout(callback, ms);
+      return { cancel: () => clearTimeout(handle) };
+    },
+    persistence: createWorkletPropagationPersistence(),
+    remoteMirror: mirror
+  });
+  propagationDestination = createPropagationDestination(provider, node, identity);
+  propagationServer.registerHandlers(propagationDestination);
+  await propagationDestination.announce();
+  await propagationServer.pullRemoteMirror().catch(() => {
+    // Offline Freenet must not block grant activation.
+  });
+  status.propagationEnabled = true;
+  status.freenetPropagationRole = true;
+  status.propagationStoreBytes = propagationServer.stats.usedBytes;
+  status.propagationMessageCount = propagationServer.stats.messageCount;
+  log("Freenet-backed LXMF propagation role started");
+}
+
 async function detachFreenetBackends() {
+  await stopFreenetPropagationRole();
   await stopFreenetInterface();
   freenetPropagationStore = null;
   status.freenetPropagationAttached = false;
@@ -917,9 +1028,11 @@ async function attachFreenetBackends() {
       });
       status.freenetPropagationAttached = true;
       log("Freenet propagation mirror attached");
+      await startFreenetPropagationRole(freenetPropagationStore);
     } catch (error) {
       freenetPropagationStore = null;
       status.freenetPropagationAttached = false;
+      await stopFreenetPropagationRole();
       log(
         `Freenet propagation attach failed: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -950,6 +1063,7 @@ async function stopNode() {
   nodeSuspended = false;
   pushStatus();
 
+  await stopFreenetPropagationRole();
   await stopTcpInterface();
   await stopAutoInterface();
   await stopBleInterface();

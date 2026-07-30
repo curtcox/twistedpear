@@ -214,7 +214,12 @@ export interface WorkletStatus {
   readonly freenetPropagation?: boolean;
   readonly freenetInterfaceOnline?: boolean;
   readonly freenetPropagationAttached?: boolean;
+  /** True when LXMF PropagationServer is running with the Freenet remote mirror. */
+  readonly freenetPropagationRole?: boolean;
   readonly freenetRendezvousHex?: string | null;
+  readonly propagationEnabled?: boolean;
+  readonly propagationStoreBytes?: number;
+  readonly propagationMessageCount?: number;
 }
 
 export interface MulticastNetworkInfo {

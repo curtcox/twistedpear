@@ -49,6 +49,7 @@ import {
   freenetRemoteSessionLogSafe,
   type FreenetRemoteSession
 } from "./src/freenet-remote-session";
+import { freenetPropagationRoleLabel } from "./src/freenet-propagation-role";
 
 import {
   decodeMessages,
@@ -977,6 +978,9 @@ export default function App() {
         <Text testID="freenet-session-status" style={styles.muted}>
           Session: {freenetRemoteSessionStatusLabel(freenetSession)}
           {freenetSession.lastError !== null ? ` · ${freenetSession.lastError}` : ""}
+        </Text>
+        <Text testID="freenet-propagation-role-status" style={styles.muted}>
+          {freenetPropagationRoleLabel(status)}
         </Text>
         {freenetSession.pendingWriteConfirmation ? (
           <View>

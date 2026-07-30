@@ -46,6 +46,10 @@ appId: network.twistedpear.harness
     id: "freenet-rendezvous-hex"
 - assertVisible:
     id: "freenet-rendezvous-generate"
+- assertVisible:
+    id: "freenet-cap-propagation"
+- assertVisible:
+    id: "freenet-propagation-role-status"
 # Revoke returns to disabled; disclosure must be re-accepted.
 - tapOn:
     id: "freenet-grant-revoke"
