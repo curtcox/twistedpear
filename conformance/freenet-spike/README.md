@@ -53,12 +53,12 @@ The harness binds each node's `--network-port` to the same value as
 `--public-network-port`. Advertising a public port without binding it left
 every process on the default `31337` and produced `RING_TRANSPORT_DESYNC`.
 Observed 0.2.112 paths disagree about UPDATE encoding. The recorded S2 path
-required a full-WASM `codeField` because it double-hashed a 32-byte
-`ContractKey.code` and otherwise failed with "Contract not in store"; another
-local path rejected the longer field. `FreenetClient.update` therefore sends
-the protocol-sized hash first and retries with WASM only for the observed
-missing-contract error. CI exercises this behavior against the hash-pinned
-release archive.
+requires a full-WASM `ContractKey.code` because a 32-byte hash is double-hashed
+and otherwise fails with "Contract not in store"; the synthesized client error
+is not always delivered before the SDK times out. `FreenetClient.update`
+therefore prefers the WASM `fallbackCodeField` first and keeps the
+protocol-sized hash as a secondary retry. CI exercises this behavior against
+the hash-pinned release archive.
 
 For a separately managed topology, set `FREENET_MEASUREMENT_LABEL`,
 `FREENET_NODE_URL`, and `FREENET_SUBSCRIBER_NODE_URL`, then run
@@ -78,7 +78,10 @@ the automatic UPDATE compatibility retry, the local 100-sample gate artifact is
 committed as [measured-roundtrip.json](measured-roundtrip.json) (local-executor
 notify path on a three-node mesh). Live confirmation still requires explicit
 authorization; set `FREENET_FORCE_CROSS_NODE=1` for a distinct subscriber node
-when measuring cross-node notify separately.
+when measuring cross-node notify separately. Cross-node runs pace samples and,
+on missing notifies, GET-reconcile authoritative state (B2 hint model) so a
+complete series can finish without assuming every intermediate notification
+arrives.
 
 S3 is reproducible with:
 

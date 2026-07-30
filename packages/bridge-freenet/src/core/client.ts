@@ -62,11 +62,37 @@ export interface FreenetUpdateOptions {
    */
   readonly codeField?: Uint8Array;
   /**
-   * Retry bytes for observed 0.2.112 paths that reject the normal 32-byte code
-   * hash with "Contract not in store". Other observed paths reject the longer
-   * field, so this is deliberately fallback-only.
+   * Preferred `ContractKey.code` bytes for pinned Freenet 0.2.112.
+   *
+   * When set (and `codeField` is omitted), UPDATE sends these bytes first —
+   * typically the WASM module — because a bare 32-byte hash is double-hashed
+   * and the node's synthesized missing-contract error is not always delivered
+   * to the TypeScript SDK before the request times out. The protocol-sized
+   * hash remains the secondary attempt if the longer field is rejected.
    */
   readonly fallbackCodeField?: Uint8Array;
+}
+
+/** Resolve primary/secondary UPDATE `ContractKey.code` bytes for a node pin. */
+export function resolveUpdateCodeFields(
+  codeHash: Uint8Array,
+  options: FreenetUpdateOptions = {}
+): { primary: Uint8Array; secondary?: Uint8Array } {
+  if (options.codeField !== undefined) {
+    return { primary: options.codeField };
+  }
+  if (options.fallbackCodeField !== undefined) {
+    return { primary: options.fallbackCodeField, secondary: codeHash };
+  }
+  return { primary: codeHash };
+}
+
+function isUpdateCodeRetryable(message: string): boolean {
+  return (
+    /Contract not in store|no code provided|missing contract/i.test(message) ||
+    /Request timeout|timed out/i.test(message) ||
+    /invalid (code|hash)|code (too |field )/i.test(message)
+  );
 }
 
 export type FreenetSubscription = () => void;
@@ -157,10 +183,11 @@ export class FreenetClient {
       UpdateDataType.StateUpdate,
       new StateUpdate(Array.from(state))
     );
-    const codeField = options.codeField ?? codeHash;
     // Observed 0.2.112 paths disagree about whether this field is a 32-byte
-    // hash or full WASM. Prefer the protocol-sized hash and keep the longer
-    // field as a missing-contract compatibility retry.
+    // hash or full WASM. Prefer WASM when supplied as fallbackCodeField: the
+    // hash-only UPDATE is double-hashed, and the synthesized missing-contract
+    // error is not always delivered before the SDK request timeout.
+    const { primary, secondary } = resolveUpdateCodeFields(codeHash, options);
     const request = (field: Uint8Array): Promise<unknown> => {
       const contractKey =
         field.length === 32
@@ -175,20 +202,13 @@ export class FreenetClient {
       return api.update(new UpdateRequest(contractKey, data));
     };
     try {
-      await this.#withinTimeout(request(codeField), "update");
+      await this.#withinTimeout(request(primary), "update");
     } catch (error) {
       const message = errorFromUnknown(error).message;
-      if (
-        options.codeField !== undefined ||
-        options.fallbackCodeField === undefined ||
-        !/Contract not in store|no code provided/i.test(message)
-      ) {
+      if (secondary === undefined || !isUpdateCodeRetryable(message)) {
         throw error;
       }
-      await this.#withinTimeout(
-        request(options.fallbackCodeField),
-        "update compatibility retry"
-      );
+      await this.#withinTimeout(request(secondary), "update compatibility retry");
     }
   }
 

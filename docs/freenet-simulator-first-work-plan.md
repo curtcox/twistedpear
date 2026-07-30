@@ -110,6 +110,12 @@ Use an incomplete smoke series for diagnosis. Record a full 100-sample series
 only after delivery is reliable; never copy an incomplete run over the gate
 artifact.
 
+**Status (2026-07-29):** a paced `local-cross-node` 100-sample series is
+committed in `measured-roundtrip.json` (300 WebSocket notifies, 0 GET
+reconciles; p95 ~111 ms / ~2.5 s for ≤64 KiB / 1 MiB). Unpaced blasts still
+drop Freenet 0.2.112 subscription snapshots; the harness defaults a 50 ms
+sample gap and can GET-reconcile on missing notifies.
+
 ### B2. Make F2 state-reconciling
 
 If locator minimum-merge reordering still loses notifications:
@@ -230,6 +236,12 @@ After the supervisor passes, choose one distribution posture:
 2. user-supplied supervised binary;
 3. opt-in download on first use with a pinned SHA-256;
 4. binary embedded in the TwistedPear package.
+
+**Interim decision (2026-07-29):** ship software posture **2** (and keep 1 as
+the documented external-node path). `FreenetSupervisor` + `tp node
+--freenet-binary` / `--freenet-binary-sha256` are the supported way to run a
+local node without TwistedPear redistributing Freenet. Options 3 and 4 stay
+blocked on signing credentials and fresh upstream-artifact verification.
 
 Options 3 and 4 require fresh upstream-artifact verification, platform package
 size measurements, upgrade/rollback rules, and clean-host execution tests.

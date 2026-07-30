@@ -37,9 +37,10 @@ Client / measurement:
 - The recorded 0.2.112 path's FlatBuffers UPDATE handling runs
   `CodeHash::from_code` on `ContractKey.code`, which double-hashes a 32-byte
   hash and fails with "Contract not in store and no code provided"; another
-  observed local path rejects full WASM in that field. The client now sends the
-  protocol-sized hash first and retries with WASM only for the missing-contract
-  error.
+  observed local path rejects full WASM in that field. The client prefers the
+  WASM `fallbackCodeField` first for the pinned 0.2.112 node (the synthesized
+  missing-contract error is not always delivered before the SDK times out) and
+  keeps the protocol-sized hash as a secondary retry.
 
 ## One-sample local result
 

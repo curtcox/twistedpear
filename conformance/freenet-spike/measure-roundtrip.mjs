@@ -111,8 +111,52 @@ async function stage(name, promise) {
   }
 }
 
+const sampleGapMs = Number.parseInt(process.env.FREENET_SAMPLE_GAP_MS ?? "0", 10);
+const notifyTimeoutMs = Number.parseInt(
+  process.env.FREENET_NOTIFY_TIMEOUT_MS ?? "15000",
+  10
+);
+const reconcilePollMs = Number.parseInt(
+  process.env.FREENET_RECONCILE_POLL_MS ?? "250",
+  10
+);
+
+if (!Number.isSafeInteger(sampleGapMs) || sampleGapMs < 0 || sampleGapMs > 60_000) {
+  throw new Error("FREENET_SAMPLE_GAP_MS must be from 0 through 60000");
+}
+if (
+  !Number.isSafeInteger(notifyTimeoutMs) ||
+  notifyTimeoutMs < 1_000 ||
+  notifyTimeoutMs > 120_000
+) {
+  throw new Error("FREENET_NOTIFY_TIMEOUT_MS must be from 1000 through 120000");
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForCounter(key, counter, deadlineMs) {
+  while (Date.now() < deadlineMs) {
+    const record = await subscriber.get(key).catch(() => null);
+    if (record !== null && counterFromState(record.state) === counter) {
+      return;
+    }
+    await sleep(reconcilePollMs);
+  }
+  throw new Error(`reconcile timed out waiting for counter ${counter}`);
+}
+
 const measurements = [];
 const sameNode = publisherUrl === subscriberUrl;
+// Cross-node Freenet notify is a hint under locator min-merge / subscription
+// snapshot loss. Allow GET reconciliation there so a complete series can still
+// measure update→visible-state; local-executor stays notify-strict.
+const allowReconcile =
+  process.env.FREENET_ALLOW_RECONCILE === "1" ||
+  (!sameNode && process.env.FREENET_ALLOW_RECONCILE !== "0");
+let notifyDeliveries = 0;
+let reconciledDeliveries = 0;
 try {
   for (const payloadBytes of payloadSizes) {
     const parameterText = [
@@ -141,32 +185,53 @@ try {
       `subscribe ${payloadBytes} bytes`,
       subscriber.subscribe(key, (nextState) => {
         const counter = counterFromState(nextState);
-        pending.get(counter)?.();
+        pending.get(counter)?.("notify");
       })
     );
     const samples = [];
     try {
       for (let index = 0; index < sampleCount; index += 1) {
+        if (sampleGapMs > 0 && index > 0) await sleep(sampleGapMs);
         const counter = sampleCount - index;
         let timer;
         const notified = new Promise((resolve, reject) => {
           pending.set(counter, resolve);
           timer = setTimeout(
             () => reject(new Error(`notify timed out for ${payloadBytes} bytes`)),
-            60_000
+            notifyTimeoutMs
           );
         });
         const startedAt = performance.now();
         try {
-          await stage(
-            `update/notify ${payloadBytes} bytes sample ${index + 1}`,
-            Promise.all([
-              publisher.update(key, codeHash, state(payloadBytes, counter), {
-                fallbackCodeField: wasm
-              }),
-              notified
-            ])
+          const updatePromise = publisher.update(
+            key,
+            codeHash,
+            state(payloadBytes, counter),
+            { fallbackCodeField: wasm }
           );
+          try {
+            await stage(
+              `update/notify ${payloadBytes} bytes sample ${index + 1}`,
+              Promise.all([updatePromise, notified])
+            );
+            notifyDeliveries += 1;
+          } catch (error) {
+            try {
+              await updatePromise;
+            } catch (updateError) {
+              throw updateError;
+            }
+            const message =
+              error instanceof Error ? error.message : String(error);
+            if (!allowReconcile || !/notify timed out/i.test(message)) {
+              throw error;
+            }
+            await stage(
+              `update/reconcile ${payloadBytes} bytes sample ${index + 1}`,
+              waitForCounter(key, counter, Date.now() + 60_000)
+            );
+            reconciledDeliveries += 1;
+          }
           samples.push(performance.now() - startedAt);
         } finally {
           clearTimeout(timer);
@@ -185,6 +250,11 @@ try {
   await Promise.allSettled([publisher.close(), subscriber.close()]);
 }
 
+const notifyPath = sameNode
+  ? "local-executor"
+  : reconciledDeliveries > 0
+    ? "cross-node-reconciled"
+    : "cross-node";
 const result = {
   schemaVersion: 1,
   label,
@@ -192,10 +262,15 @@ const result = {
   publisherUrl,
   subscriberUrl,
   sameNode,
-  notifyPath: sameNode ? "local-executor" : "cross-node",
+  notifyPath,
   sampleCount,
   complete: sampleCount === 100,
   contract: "locator",
+  delivery: {
+    notify: notifyDeliveries,
+    reconciled: reconciledDeliveries,
+    allowReconcile
+  },
   measurements
 };
 const output = join(
@@ -208,3 +283,8 @@ const output = join(
 mkdirSync(dirname(output), { recursive: true });
 writeFileSync(output, `${JSON.stringify(result, null, 2)}\n`);
 console.log(`Freenet S2 measurements written to ${output}`);
+if (reconciledDeliveries > 0) {
+  console.log(
+    `Freenet S2 delivery: ${notifyDeliveries} notify, ${reconciledDeliveries} GET-reconciled`
+  );
+}

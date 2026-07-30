@@ -3,6 +3,8 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
+  readFileSync,
   rmSync,
   writeFileSync
 } from "node:fs";
@@ -230,17 +232,21 @@ async function stopNodes() {
 }
 
 function measurementEnvironment() {
+  const crossNode = process.env.FREENET_FORCE_CROSS_NODE === "1";
   return {
     ...process.env,
     FREENET_NODE_URL: `ws://127.0.0.1:${wsPorts[1]}/v1/contract/command`,
     // Default both clients to the publisher node so notify uses the local
     // executor path. Cross-node subscribe remains available by exporting
     // FREENET_FORCE_CROSS_NODE=1 (writes a separate local-cross-node artifact).
-    ...(process.env.FREENET_FORCE_CROSS_NODE === "1"
+    ...(crossNode
       ? {
           FREENET_SUBSCRIBER_NODE_URL:
             `ws://127.0.0.1:${wsPorts[2]}/v1/contract/command`,
-          FREENET_MEASUREMENT_LABEL: "local-cross-node"
+          FREENET_MEASUREMENT_LABEL: "local-cross-node",
+          // Pace cross-node samples; Freenet 0.2.112 drops subscription
+          // snapshots under a sustained update blast.
+          FREENET_SAMPLE_GAP_MS: process.env.FREENET_SAMPLE_GAP_MS ?? "50"
         }
       : {
           FREENET_SUBSCRIBER_NODE_URL:
@@ -295,12 +301,33 @@ async function main() {
   }
 }
 
+function nodeLogTail(name, maxLines = 40) {
+  const logsDir = join(root, name, "logs");
+  if (!existsSync(logsDir)) return "(no log dir)";
+  try {
+    const files = readdirSync(logsDir)
+      .filter((file) => file.includes("error") || file.endsWith(".log"))
+      .sort();
+    if (files.length === 0) return "(no log files)";
+    const chunks = [];
+    for (const file of files.slice(-2)) {
+      const text = readFileSync(join(logsDir, file), "utf8");
+      const lines = text.trimEnd().split("\n");
+      chunks.push(`# ${file}\n${lines.slice(-maxLines).join("\n")}`);
+    }
+    return chunks.join("\n\n");
+  } catch (error) {
+    return `(failed to read logs: ${error instanceof Error ? error.message : error})`;
+  }
+}
+
 await runMain(async () => {
   try {
     await main();
   } catch (error) {
     for (const { name } of children) {
-      console.error(`\n--- ${name} tail ---\n${tails.get(name) ?? "(no output)"}`);
+      console.error(`\n--- ${name} stdout/stderr ---\n${tails.get(name) ?? "(no output)"}`);
+      console.error(`\n--- ${name} log files ---\n${nodeLogTail(name)}`);
     }
     throw error;
   } finally {

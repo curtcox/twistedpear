@@ -273,6 +273,25 @@ async function runNodeScript(script, env, label) {
   assert(exitCode === 0, `${label} failed with status ${exitCode}`);
 }
 
+async function runNodeScriptWithRetry(script, env, label, attempts = 2) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await runNodeScript(script, env, label);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= attempts) break;
+      console.error(
+        `[freenet-distinct-nodes] ${label} attempt ${attempt} failed; retrying after settle`
+      );
+      await new Promise((resolve) => setTimeout(resolve, 8_000));
+      await waitForGatewayPeers(2, 30_000).catch(() => {});
+    }
+  }
+  throw lastError;
+}
+
 async function startTopology() {
   isolateHome();
   const secret = randomBytes(32);
@@ -334,8 +353,9 @@ await runMain(async () => {
     await stopNamed("subscriber");
     startNode("subscriber", nodeArgs(2));
     await waitForPort(wsPorts[2]);
-    await new Promise((resolve) => setTimeout(resolve, 3_000));
-    await runNodeScript(
+    await new Promise((resolve) => setTimeout(resolve, 8_000));
+    await waitForGatewayPeers(2, 30_000);
+    await runNodeScriptWithRetry(
       "prove-f2-interface.mjs",
       {
         FREENET_LEFT_NODE_URL: publisherUrl(),
@@ -348,6 +368,9 @@ await runMain(async () => {
     step(
       "F3 publish on publisher / retrieve on subscriber after stopping publisher Freenet node"
     );
+    // Let the ring settle after the F2 restart path before a fresh PUT.
+    await new Promise((resolve) => setTimeout(resolve, 8_000));
+    await waitForGatewayPeers(2, 30_000);
     const publisher = findChild("publisher");
     assert(publisher !== undefined, "publisher Freenet node missing before F3");
     const stopPublisherHook = join(root, "stop-publisher.sh");
@@ -356,7 +379,7 @@ await runMain(async () => {
       `#!/bin/sh\nkill -INT ${publisher.child.pid} 2>/dev/null || true\nsleep 2\n`,
       { mode: 0o755 }
     );
-    await runNodeScript(
+    await runNodeScriptWithRetry(
       "prove-f3-propagation.mjs",
       {
         FREENET_PUBLISHER_NODE_URL: publisherUrl(),

@@ -1,13 +1,15 @@
 export {
   DEFAULT_FREENET_REQUEST_TIMEOUT_MS,
   DEFAULT_FREENET_URL,
-  FreenetClient
+  FreenetClient,
+  resolveUpdateCodeFields
 } from "./core/client.js";
 export type {
   FreenetClientOptions,
   FreenetContractRecord,
   FreenetContractSource,
-  FreenetSubscription
+  FreenetSubscription,
+  FreenetUpdateOptions
 } from "./core/client.js";
 export {
   decodeFreenetLocatorState,

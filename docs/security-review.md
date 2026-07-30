@@ -155,9 +155,17 @@ not claim that using Freenet makes Reticulum traffic anonymous.
   with silent ambient access is a show-stopper.
 
 **S8 conclusion:** no show-stopper blocks desktop/headless F1 public package
-distribution under these controls. This conclusion does not open mobile,
-propagation, packet-tunnel, or mini-app contract access; each still needs its
-own gate and UI evidence.
+distribution under these controls. Mobile remote-node support is software-ready
+on the simulator path: trusted-host grant chrome presents the exact node URL and
+operator label, irreversible global-replication wording, per-role enablement
+(contract reads/writes, packet tunnel, propagation), off-by-default plus
+revocation, and session handling for auth failure, unavailable node,
+reconnection, and write confirmation. Maestro probes cover disclosure, refusal,
+revoke, and malformed/unsafe URLs on Android emulator and iOS simulator; tokens
+must stay out of logs and UI dumps. Physical-device confirmation remains a
+mobile release gate. Propagation, packet-tunnel, and mini-app contract access
+each still need their own role-specific UI evidence when those roles ship beyond
+the current desktop/headless and mobile-grant surfaces.
 
 ## Recommendations (future)
 

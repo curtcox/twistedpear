@@ -327,7 +327,7 @@ and the per-exit-criterion mapping is
 | Spike | Status | Done | Remaining |
 |---|---|---|---|
 | S1 Bare SDK | **done** | Pinned SDK bundles and reads live Atlas under Bare with exact shims (`bare-ws@2.0.4`, `bare-encoding@1.0.3`); `s1-report.md`, `s1-live-read.json` | — (mobile lifecycle is F4/S8, not S1) |
-| S2 update→notify latency | **partial** | Local 3-node harness, 100 samples/size, p95 ~89 ms (≤64 KiB) / ~256 ms (1 MiB) on the local-executor notify path; `measured-roundtrip.json` | Authorized live-network 100-sample series; cross-node notify series that survives locator min-merge reordering |
+| S2 update→notify latency | **partial** | Local 3-node harness, 100 samples/size: local-executor p95 ~89 ms (≤64 KiB) / ~256 ms (1 MiB); paced cross-node notify p95 ~111 ms (≤64 KiB) / ~2.5 s (1 MiB); `measured-roundtrip.json` | Authorized live-network 100-sample series |
 | S3 convergent log | **done** | Pinned Rust ordered-log contract, native convergence tests, growth/merge curve; `s3-report.md`, `s3-measurements.json` | — |
 | S4 sandboxed WASM | **partial** | Node workers execute WASM and keep the watchdog kill guarantee; browser CSP deliberately keeps web unsupported (Option A); Android/iOS simulator BareKit probes require explicit `wasmExecuted`; `s4-support-matrix.json` | Physical BareKit release confirmation. **Option B stays closed.** |
 | S5 bundled node | **partial** | Installed macOS universal binary ≈93 MiB; Linux/Windows compressed archive sizes and SHA-256s in `s5-bundling-matrix.json` | Fresh macOS artifact whose signature verifies strictly; signed + notarized TwistedPear bundle embedding the binary. **F4 stays blocked.** |
@@ -344,7 +344,7 @@ not a gate, per §12.
 | Phase | Status | Done | Remaining |
 |---|---|---|---|
 | F1 package/CAS | **implemented; exit criterion not met** | `bridge-freenet` with pinned SDK client, locator/package state encoder, signed-locator + 256t verification, Rust locator contract pinned to an exact upstream commit, SPEC-FREENET locator vector, `freenet` fetch-path ranking, IP-bulk budget behavior, `tp publish --freenet`, `tp node --freenet` (external node URL) | The stated exit criterion — publish from host A, install on host B with `--force-path freenet` — requires an irreversible live write and is unmet |
-| F2 packet interface | **wired; distinct-node runner ready** | SPEC-FREENET packet-log WASM + vectors, `FreenetInterface` / `FreenetContractPacketLogBackend` with notify reconciliation, host-core `freenet` kind at the S2-derived 90 kbps, `test:freenet-interface` HDLC exchange against a real node, `test:freenet-distinct-nodes` for cross-node F2/F3/restart, simulated announce+LXMF over FreenetInterface-only peers, BridgeForwarder relay policy as source and destination | Live two-host announce+LXMF across distinct Freenet nodes remains optional confirmation; promote a reviewed cross-node notify series only after a complete run |
+| F2 packet interface | **wired; distinct-node runner ready** | SPEC-FREENET packet-log WASM + vectors, `FreenetInterface` / `FreenetContractPacketLogBackend` with notify reconciliation, host-core `freenet` kind at the S2-derived 90 kbps, `test:freenet-interface` HDLC exchange against a real node, `test:freenet-distinct-nodes` for cross-node F2/F3/restart, paced local-cross-node S2 100-sample series in `measured-roundtrip.json`, simulated announce+LXMF over FreenetInterface-only peers, BridgeForwarder relay policy as source and destination | Live two-host announce+LXMF across distinct Freenet nodes remains optional confirmation |
 | F3 propagation backing | **wired** | SPEC-FREENET propagation-set WASM + vectors, encode/decode/merge, `PropagationRemoteMirror` seam, `FreenetPropagationStore` (16-byte destination grouping, PUT/UPDATE merge), isolated offline-A/retrieve-B proof, distinct-node publish-A/stop-A/retrieve-B via `test:freenet-distinct-nodes`, `createNodeHost` attaches the mirror when `roles.propagation` + `interfaces.freenet` URL are set | Public multi-Freenet-node retrieval remains optional confirmation |
 | F4 node provisioning | **software supervision started; redistribution gated** | `FreenetSupervisor` in host-core (ephemeral port, generated token kept out of URLs/logs, readiness, bounded restart, host data-dir isolation, starting/online/degraded/failed); `tp node --freenet-binary` / `--freenet-binary-sha256`; `test:freenet-supervisor` in CI against the hash-verified release archive | Signed/notarized redistribution and embedded packaging remain S5/signing gates |
 | F5 capability + chrome | **landed (software)** | `freenet:contract` in `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0 brokers `get`/`put`/`update` with confirmation on put/update; `createNodeHost` exposes `freenetBackend` when a URL is set; desktop Settings for contracts enable / URL / auth token plus an HDLC interface toggle with peer rendezvous and explicit side 0/1 selection; mobile remote-node grant chrome (disclosure/refusal/revoke/session probe) with Maestro simulator probes; Node status and [platform capability](platform-capabilities-status.md) rows | Web stays off per Option A; physical mobile confirmation for release claims |
@@ -405,8 +405,11 @@ execution on a TP node.
   and the divergent 0.2.112 UPDATE encodings are handled by a hash-first,
   full-WASM-on-missing-contract compatibility retry. Live-network confirmation
   still needs explicit authorization;
-  per §12, live runs are evidence rather than gates. Cross-node notify under
-  locator min-merge reordering remains an open measurement, not fabricated.
+  per §12, live runs are evidence rather than gates. A paced local-cross-node
+  100-sample notify series is recorded in `measured-roundtrip.json`
+  (`FREENET_FORCE_CROSS_NODE=1`); unpaced blasts can drop Freenet 0.2.112
+  subscription snapshots, so the harness paces samples and can GET-reconcile
+  when notifies are missing.
 - **F2 interface wired:** SPEC-FREENET packet-log WASM + vectors,
   `FreenetInterface` / `FreenetContractPacketLogBackend`, host-core `freenet`
   kind at the S2-derived 90 kbps policy bitrate,

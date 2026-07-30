@@ -14,7 +14,7 @@ passed.
 | Item | Status | Evidence or remaining work |
 |---|---|---|
 | S1 Bare SDK | complete | `s1-report.md`, exact shims, offline bundle and live Atlas read |
-| S2 update-to-notify | partial | `measured-roundtrip.json`: local 3-node, 100 samples/size, p95 ~89 ms (≤64 KiB) / ~256 ms (1 MiB) on local-executor notify; live series and cross-node notify still open |
+| S2 update-to-notify | partial | `measured-roundtrip.json`: local-executor and paced cross-node 100-sample series; p95 ~89/256 ms local-executor and ~111 ms / ~2.5 s cross-node (≤64 KiB / 1 MiB); live series still open |
 | S3 convergent log | complete | `s3-report.md`, Rust contract, native convergence tests and committed measurements; rebuilding requires the pinned Rust 1.97.1 toolchain and its `wasm32-unknown-unknown` target |
 | S4 sandboxed WASM | partial | Node passes; browser deliberately unsupported (hardened CSP / Option A); Android/iOS simulator BareKit probes require explicit `wasmExecuted`; physical device confirmation pending |
 | S5 bundled node | partial | installed macOS size + signature inspection; Linux/Windows compressed release archive sizes in `s5-bundling-matrix.json`; fresh verify + TP embedding/signing remain |
@@ -33,8 +33,6 @@ passed.
 
 - Explicit authorization before any live-network contract update. Freenet
   publication is irreversible and exposes operation metadata.
-- A recorded cross-node notify series after B2 reconciliation (use
-  `FREENET_FORCE_CROSS_NODE=1`; do not overwrite gate artifacts from smoke runs).
 - A physical BareKit mobile confirmation for release claims.
 - Linux and Windows artifact hosts plus a fresh macOS artifact and signing /
   notarization credentials.
@@ -46,7 +44,7 @@ These are not represented as zeroes, skips, or successful software tests.
 
 As of 2026-07-29, simulator-first software for S4 policy, F2 reconciliation,
 distinct-node F2/F3 runners (CI smoke), user-supplied-binary supervision (CI),
-and mobile remote-node grant/session chrome (including Maestro probes) is landed
-alongside the earlier F1–F3/F5 paths. Remaining gates need signing credentials,
-live-write authorization, a reviewed cross-node 100-sample notify series, or
-physical-device confirmation.
+mobile remote-node grant/session chrome (including Maestro probes), and a
+reviewed paced local-cross-node 100-sample notify series are landed alongside
+the earlier F1–F3/F5 paths. Remaining gates need signing credentials,
+live-write authorization, or physical-device confirmation.
