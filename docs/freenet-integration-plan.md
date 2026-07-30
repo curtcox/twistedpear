@@ -504,12 +504,12 @@ Delivered:
 
 1. **A user-facing walkthrough** in the guide. It covers, in order: obtaining
    and running an external Freenet
-   node; the pinned version and why pinning is mandatory (S6); `tp node --freenet
-   <url>` and `--freenet-interface`; `tp publish --freenet`; installing with
-   `--force-path freenet`; the desktop Settings surface (contracts enable, URL,
-   optional auth token, HDLC interface toggle, peer rendezvous) and the Node status
-   rows; and — not as a footnote — that Freenet is off by default, that a contract
-   update is irreversible and globally published, that mobile remote-node grants
+   node; the pinned version and why pinning is mandatory (S6);
+   `tp node --freenet <url>` and `--freenet-interface`; `tp publish --freenet`;
+   installing with `--force-path freenet`; the desktop Settings surface (contracts
+   enable, URL, optional auth token, HDLC interface toggle, peer rendezvous) and
+   the Node status rows; and — not as a footnote — that Freenet is off by default,
+   that a contract update is irreversible and globally published, that mobile remote-node grants
    require explicit disclosure, and that web stays unsupported under Option A.
 2. **A verification recipe.** Exact commands with expected output let a user
    confirm the integration on their own machine rather than trusting this document:
