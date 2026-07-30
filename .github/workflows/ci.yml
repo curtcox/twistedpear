@@ -44,7 +44,7 @@ jobs:
 
   freenet-real-node:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -68,6 +68,15 @@ jobs:
         run: npm run test:freenet-propagation
         env:
           FREENET_BINARY: ${{ github.workspace }}/.tmp/freenet-ci/freenet
+      - name: Verify FreenetSupervisor with user-supplied binary
+        run: npm run test:freenet-supervisor
+        env:
+          FREENET_BINARY: ${{ github.workspace }}/.tmp/freenet-ci/freenet
+          FREENET_SUPERVISOR_LABEL: ci-linux-musl
+      - name: Verify distinct-node F2/F3 smoke
+        run: npm run test:freenet-distinct-nodes -- --smoke
+        env:
+          FREENET_BINARY: ${{ github.workspace }}/.tmp/freenet-ci/freenet
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -75,6 +84,7 @@ jobs:
           path: |
             .tmp/f2-interface-proof-local-isolated.json
             .tmp/f3-propagation-proof-local-isolated.json
+            .tmp/freenet-supervisor-proof-ci-linux-musl.json
           if-no-files-found: error
 
   sansio:

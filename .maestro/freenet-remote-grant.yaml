@@ -44,3 +44,23 @@ appId: network.twistedpear.harness
 - extendedWaitUntil:
     visible: "Disabled"
     timeout: 10000
+- assertVisible:
+    id: "freenet-session-status"
+- assertVisible: "Session: Idle"
+# Malformed URL refusal after disclosure.
+- tapOn:
+    id: "freenet-disclosure-accepted"
+- tapOn:
+    id: "freenet-node-url"
+- inputText: "http://example.com"
+- tapOn:
+    id: "freenet-operator-label"
+- inputText: "bad url"
+- tapOn:
+    id: "freenet-cap-reads"
+- tapOn:
+    id: "freenet-grant-enable"
+- extendedWaitUntil:
+    visible:
+      id: "freenet-grant-error"
+    timeout: 10000

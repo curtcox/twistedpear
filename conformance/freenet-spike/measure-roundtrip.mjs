@@ -13,30 +13,34 @@ const publisherUrl = process.env.FREENET_NODE_URL;
 // distinct subscriber when measuring cross-node propagation deliberately.
 const subscriberUrl = process.env.FREENET_SUBSCRIBER_NODE_URL ?? publisherUrl;
 const label = process.env.FREENET_MEASUREMENT_LABEL;
-const allowedLabels = new Set(["local-3-node", "live"]);
+/** Complete 100-sample series labels (still never auto-overwrite measured-roundtrip.json). */
+const gateLabels = new Set(["local-3-node", "live", "local-cross-node"]);
 const sampleCount = Number.parseInt(
   process.env.FREENET_SAMPLE_COUNT ?? "100",
   10
 );
 const payloadSizes = [1024, 64 * 1024, 1024 * 1024];
+const allowIncomplete = process.env.FREENET_ALLOW_INCOMPLETE === "1";
 
 if (publisherUrl === undefined) {
   throw new Error("FREENET_NODE_URL is required for the S2 measurement");
 }
-if (label === undefined || !allowedLabels.has(label)) {
+if (label === undefined || !/^[a-z0-9-]+$/.test(label)) {
   throw new Error(
-    "FREENET_MEASUREMENT_LABEL must be local-3-node or live"
+    "FREENET_MEASUREMENT_LABEL must be a lowercase kebab-case id"
   );
 }
 if (!Number.isSafeInteger(sampleCount) || sampleCount < 1 || sampleCount > 100) {
   throw new Error("FREENET_SAMPLE_COUNT must be an integer from 1 through 100");
 }
-if (
-  sampleCount !== 100 &&
-  process.env.FREENET_ALLOW_INCOMPLETE !== "1"
-) {
+if (sampleCount !== 100 && !allowIncomplete) {
   throw new Error(
     "Non-gate smoke runs require FREENET_ALLOW_INCOMPLETE=1"
+  );
+}
+if (sampleCount === 100 && !gateLabels.has(label)) {
+  throw new Error(
+    "Complete 100-sample series require label local-3-node, live, or local-cross-node"
   );
 }
 

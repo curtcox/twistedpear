@@ -35,6 +35,7 @@
     "test:freenet-roundtrip": "npm run build --workspace=@twistedpear/bridge-freenet && node conformance/freenet-spike/measure-roundtrip.mjs",
     "test:freenet-local-network": "npm run build --workspace=@twistedpear/bridge-freenet && node conformance/freenet-spike/run-local-s2.mjs",
     "test:freenet-distinct-nodes": "npm run build --workspace=@twistedpear/bridge-freenet && node conformance/freenet-spike/run-distinct-nodes.mjs",
+    "test:freenet-supervisor": "npm run build --workspace=@twistedpear/host-core && node conformance/freenet-spike/prove-supervisor.mjs",
     "test:freenet-ordered-log": "node conformance/freenet-spike/run-s3.mjs",
     "test:freenet-propagation": "npm run build --workspace=@twistedpear/bridge-freenet && node conformance/freenet-spike/run-local-f3.mjs",
     "test:freenet-interface": "npm run build --workspace=@twistedpear/reticulum-interfaces --workspace=@twistedpear/bridge-freenet && node conformance/freenet-spike/run-local-f2.mjs",

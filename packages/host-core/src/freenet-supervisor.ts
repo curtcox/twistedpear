@@ -1,10 +1,17 @@
-import { createHash, randomBytes } from "node:crypto";
+import {
+  createHash,
+  createPrivateKey,
+  createPublicKey,
+  randomBytes
+} from "node:crypto";
 import { createServer } from "node:net";
 import {
+  chmodSync,
   createReadStream,
   existsSync,
   mkdirSync,
-  readFileSync
+  readFileSync,
+  writeFileSync
 } from "node:fs";
 import { join } from "node:path";
 import {
@@ -105,6 +112,22 @@ async function sha256File(path: string): Promise<string> {
   return hash.digest("hex");
 }
 
+function writeGatewayTransportKey(path: string): void {
+  const secret = randomBytes(32);
+  writeFileSync(path, `${Buffer.from(secret).toString("hex")}\n`, {
+    mode: 0o600
+  });
+  // Validate the secret is a usable X25519 key before handing it to Freenet.
+  const pkcs8Prefix = Buffer.from("302e020100300506032b656e04220420", "hex");
+  const privateKey = createPrivateKey({
+    key: Buffer.concat([pkcs8Prefix, Buffer.from(secret)]),
+    format: "der",
+    type: "pkcs8"
+  });
+  createPublicKey(privateKey);
+  chmodSync(path, 0o600);
+}
+
 function defaultSpawner(
   command: string,
   args: ReadonlyArray<string>,
@@ -137,9 +160,11 @@ async function defaultReadyCheck(port: number, _token: string): Promise<boolean>
 export class FreenetSupervisor {
   readonly #options: FreenetSupervisorOptions;
   readonly #stateDir: string;
+  readonly #homeDir: string;
   #status: FreenetSupervisorStatus = "stopped";
   #child: FreenetSupervisorSpawnResult | null = null;
   #port: number | null = null;
+  #networkPort: number | null = null;
   #authToken: string | null = null;
   #restartAttempts = 0;
   #stopping = false;
@@ -149,6 +174,7 @@ export class FreenetSupervisor {
   constructor(options: FreenetSupervisorOptions) {
     this.#options = options;
     this.#stateDir = join(options.dataDir, "freenet-node");
+    this.#homeDir = join(this.#stateDir, "home");
   }
 
   get status(): FreenetSupervisorStatus {
@@ -190,6 +216,16 @@ export class FreenetSupervisor {
     mkdirSync(join(this.#stateDir, "config"), { recursive: true });
     mkdirSync(join(this.#stateDir, "data"), { recursive: true });
     mkdirSync(join(this.#stateDir, "logs"), { recursive: true });
+    // Isolate Freenet app-support paths so a supervised node cannot pick up a
+    // host-wide gateways.toml or collide with a concurrent Freenet.app install.
+    const support = join(
+      this.#homeDir,
+      "Library",
+      "Application Support",
+      "The-Freenet-Project-Inc.Freenet"
+    );
+    mkdirSync(support, { recursive: true });
+    writeFileSync(join(support, "gateways.toml"), "gateways = []\n");
     await this.#launch(false);
     return this.snapshot();
   }
@@ -209,6 +245,7 @@ export class FreenetSupervisor {
     }
     this.#setStatus("stopped");
     this.#port = null;
+    this.#networkPort = null;
     this.#authToken = null;
   }
 
@@ -237,14 +274,29 @@ export class FreenetSupervisor {
     const host = this.#options.host ?? "127.0.0.1";
 
     this.#port = await allocatePort();
+    this.#networkPort = await allocatePort();
     this.#authToken = createToken();
 
+    const transportKeyPath = join(this.#stateDir, "gateway-x25519-secret");
+    writeGatewayTransportKey(transportKeyPath);
+
+    // Freenet 0.2.112 refuses a bare network node without gateways. Supervise
+    // a loopback-only gateway so a user-supplied binary can serve the local
+    // WS API without joining the public network.
     const args = [
       "network",
       "--ws-api-address",
       host,
       "--ws-api-port",
       String(this.#port),
+      "--network-address",
+      host,
+      "--network-port",
+      String(this.#networkPort),
+      "--public-network-address",
+      host,
+      "--public-network-port",
+      String(this.#networkPort),
       "--config-dir",
       join(this.#stateDir, "config"),
       "--data-dir",
@@ -252,6 +304,13 @@ export class FreenetSupervisor {
       "--log-dir",
       join(this.#stateDir, "logs"),
       "--skip-load-from-network",
+      "--is-gateway",
+      "--transport-keypair",
+      transportKeyPath,
+      "--min-number-of-connections",
+      "0",
+      "--max-number-of-connections",
+      "4",
       "--disable-auto-update"
     ];
 
@@ -261,6 +320,7 @@ export class FreenetSupervisor {
     const child = spawner(this.#options.binaryPath, args, {
       env: {
         ...process.env,
+        HOME: this.#homeDir,
         FREENET_TELEMETRY_ENABLED: "false"
       }
     });

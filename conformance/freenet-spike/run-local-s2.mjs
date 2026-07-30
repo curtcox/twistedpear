@@ -235,17 +235,18 @@ function measurementEnvironment() {
     FREENET_NODE_URL: `ws://127.0.0.1:${wsPorts[1]}/v1/contract/command`,
     // Default both clients to the publisher node so notify uses the local
     // executor path. Cross-node subscribe remains available by exporting
-    // FREENET_FORCE_CROSS_NODE=1.
+    // FREENET_FORCE_CROSS_NODE=1 (writes a separate local-cross-node artifact).
     ...(process.env.FREENET_FORCE_CROSS_NODE === "1"
       ? {
           FREENET_SUBSCRIBER_NODE_URL:
-            `ws://127.0.0.1:${wsPorts[2]}/v1/contract/command`
+            `ws://127.0.0.1:${wsPorts[2]}/v1/contract/command`,
+          FREENET_MEASUREMENT_LABEL: "local-cross-node"
         }
       : {
           FREENET_SUBSCRIBER_NODE_URL:
-            `ws://127.0.0.1:${wsPorts[1]}/v1/contract/command`
+            `ws://127.0.0.1:${wsPorts[1]}/v1/contract/command`,
+          FREENET_MEASUREMENT_LABEL: "local-3-node"
         }),
-    FREENET_MEASUREMENT_LABEL: "local-3-node",
     ...(smoke
       ? { FREENET_SAMPLE_COUNT: "1", FREENET_ALLOW_INCOMPLETE: "1" }
       : {})

@@ -127,6 +127,15 @@ describe("Freenet integration plan status", () => {
     expect(read(".maestro/freenet-remote-grant.yaml")).toContain(
       "freenet-grant-revoke"
     );
+    expect(read(".maestro/freenet-remote-grant.yaml")).toContain(
+      "freenet-session-status"
+    );
+    expect(read("apps/harness-mobile/src/freenet-remote-session.ts")).toContain(
+      "auth-failed"
+    );
+    expect(JSON.parse(read("package.json")).scripts["test:freenet-supervisor"]).toMatch(
+      /prove-supervisor\.mjs/
+    );
   });
 
   it("keeps pinned Freenet verification in per-push and nightly CI", () => {
@@ -139,6 +148,8 @@ describe("Freenet integration plan status", () => {
     expect(ci).toContain("npm run build:freenet-contract");
     expect(ci).toContain("npm run test:freenet-interface");
     expect(ci).toContain("npm run test:freenet-propagation");
+    expect(ci).toContain("npm run test:freenet-supervisor");
+    expect(ci).toContain("npm run test:freenet-distinct-nodes -- --smoke");
     expect(ci).toContain(hash);
     expect(nightly).toContain("npm run test:freenet-local-network");
     expect(nightly).toContain(hash);

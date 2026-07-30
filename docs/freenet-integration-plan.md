@@ -346,8 +346,8 @@ not a gate, per §12.
 | F1 package/CAS | **implemented; exit criterion not met** | `bridge-freenet` with pinned SDK client, locator/package state encoder, signed-locator + 256t verification, Rust locator contract pinned to an exact upstream commit, SPEC-FREENET locator vector, `freenet` fetch-path ranking, IP-bulk budget behavior, `tp publish --freenet`, `tp node --freenet` (external node URL) | The stated exit criterion — publish from host A, install on host B with `--force-path freenet` — requires an irreversible live write and is unmet |
 | F2 packet interface | **wired; distinct-node runner ready** | SPEC-FREENET packet-log WASM + vectors, `FreenetInterface` / `FreenetContractPacketLogBackend` with notify reconciliation, host-core `freenet` kind at the S2-derived 90 kbps, `test:freenet-interface` HDLC exchange against a real node, `test:freenet-distinct-nodes` for cross-node F2/F3/restart, simulated announce+LXMF over FreenetInterface-only peers, BridgeForwarder relay policy as source and destination | Live two-host announce+LXMF across distinct Freenet nodes remains optional confirmation; promote a reviewed cross-node notify series only after a complete run |
 | F3 propagation backing | **wired** | SPEC-FREENET propagation-set WASM + vectors, encode/decode/merge, `PropagationRemoteMirror` seam, `FreenetPropagationStore` (16-byte destination grouping, PUT/UPDATE merge), isolated offline-A/retrieve-B proof, distinct-node publish-A/stop-A/retrieve-B via `test:freenet-distinct-nodes`, `createNodeHost` attaches the mirror when `roles.propagation` + `interfaces.freenet` URL are set | Public multi-Freenet-node retrieval remains optional confirmation |
-| F4 node provisioning | **software supervision started; redistribution gated** | `FreenetSupervisor` in host-core (ephemeral port, generated token kept out of URLs/logs, readiness, bounded restart, host data-dir isolation, starting/online/degraded/failed); `tp node --freenet-binary` / `--freenet-binary-sha256` | Signed/notarized redistribution and embedded packaging remain S5/signing gates |
-| F5 capability + chrome | **landed (software)** | `freenet:contract` in `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0 brokers `get`/`put`/`update` with confirmation on put/update; `createNodeHost` exposes `freenetBackend` when a URL is set; desktop Settings for contracts enable / URL / auth token plus an HDLC interface toggle with peer rendezvous and explicit side 0/1 selection; mobile remote-node grant chrome (disclosure/refusal/revoke) with Maestro simulator probes; Node status and [platform capability](platform-capabilities-status.md) rows | Web stays off per Option A; physical mobile confirmation for release claims |
+| F4 node provisioning | **software supervision started; redistribution gated** | `FreenetSupervisor` in host-core (ephemeral port, generated token kept out of URLs/logs, readiness, bounded restart, host data-dir isolation, starting/online/degraded/failed); `tp node --freenet-binary` / `--freenet-binary-sha256`; `test:freenet-supervisor` in CI against the hash-verified release archive | Signed/notarized redistribution and embedded packaging remain S5/signing gates |
+| F5 capability + chrome | **landed (software)** | `freenet:contract` in `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0 brokers `get`/`put`/`update` with confirmation on put/update; `createNodeHost` exposes `freenetBackend` when a URL is set; desktop Settings for contracts enable / URL / auth token plus an HDLC interface toggle with peer rendezvous and explicit side 0/1 selection; mobile remote-node grant chrome (disclosure/refusal/revoke/session probe) with Maestro simulator probes; Node status and [platform capability](platform-capabilities-status.md) rows | Web stays off per Option A; physical mobile confirmation for release claims |
 | F6 app-execution ADR | **decided** | [Option A accepted](adr-freenet-app-execution.md): mini-apps are Freenet clients, not hosts, on S7 read evidence and S4/S8 blockers for B/C | B reopens only if S4 clears; C remains a separate proposal |
 
 ### 14.3 What a user can actually do today
@@ -572,9 +572,16 @@ existing `i2pd` job; the raw download is lighter at ~19 MiB.
   verified one.
 - `npm run test:freenet-propagation` — F3 offline-A/retrieve-B store proof. It
   also runs in `ci.yml`.
+- `npm run test:freenet-supervisor` — user-supplied-binary supervisor smoke
+  (ephemeral port, generated token kept out of URLs/logs, online→stop). Runs in
+  `ci.yml` against the same hash-verified archive.
+- `npm run test:freenet-distinct-nodes -- --smoke` — cross-node notify sample plus
+  distinct-endpoint F2/F3 (including restart and offline-A retrieve-B). Smoke
+  only in `ci.yml`; never promote incomplete notify series to gate artifacts.
 - `npm run test:freenet-local-network` — the S2 100-sample series. It is too slow
   for per-push and runs in `nightly.yml` beside the other soak suites, with
-  `measured-roundtrip.json` uploaded as an artifact.
+  `measured-roundtrip.json` uploaded as an artifact. Set
+  `FREENET_FORCE_CROSS_NODE=1` for a separate `local-cross-node` series.
 
 Upload `f2-interface-proof.json`, `f3-propagation-proof.json`, and
 `measured-roundtrip.json` as artifacts, following the `sansio` and

@@ -71,6 +71,8 @@ describe("FreenetSupervisor", () => {
       sleep: async () => {},
       spawner: (_command, args) => {
         expect(args).toContain("--ws-api-port");
+        expect(args).toContain("--is-gateway");
+        expect(args).toContain("--transport-keypair");
         expect(args.join(" ")).not.toContain("test-token-value-do-not-log");
         const child = new FakeChild();
         children.push(child);

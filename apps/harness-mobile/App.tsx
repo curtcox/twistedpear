@@ -40,6 +40,14 @@ import {
   revokeFreenetRemoteGrant,
   type FreenetRemoteGrant
 } from "./src/freenet-remote-grant";
+import {
+  freenetRemoteSessionStatusLabel,
+  idleFreenetRemoteSession,
+  probeFreenetRemoteNode,
+  reduceFreenetRemoteSession,
+  freenetRemoteSessionLogSafe,
+  type FreenetRemoteSession
+} from "./src/freenet-remote-session";
 
 import {
   decodeMessages,
@@ -158,6 +166,9 @@ export default function App() {
   const [freenetGrant, setFreenetGrant] = useState<FreenetRemoteGrant>(() => defaultFreenetRemoteGrant());
   const [freenetDisclosureAccepted, setFreenetDisclosureAccepted] = useState(false);
   const [freenetGrantError, setFreenetGrantError] = useState<string | null>(null);
+  const [freenetSession, setFreenetSession] = useState<FreenetRemoteSession>(() =>
+    idleFreenetRemoteSession()
+  );
   const [peerModal, setPeerModal] = useState<
     | { readonly kind: "exchange"; readonly request: Extract<WorkletToHostMessage, { type: "peer-manual-present" | "peer-manual-enter" | "peer-qr-present" | "peer-qr-scan" | "peer-ntfy-present" | "peer-ntfy-enter" | "peer-audio-transmit" | "peer-audio-receive" }>; readonly input: string }
     | { readonly kind: "confirm"; readonly request: Extract<WorkletToHostMessage, { type: "peer-confirm-request" }> }
@@ -875,26 +886,87 @@ export default function App() {
             ? `Enabled for ${freenetGrant.operatorLabel} · reads=${freenetGrant.capabilities.contractReads ? "on" : "off"}`
             : "Disabled"}
         </Text>
+        <Text testID="freenet-session-status" style={styles.muted}>
+          Session: {freenetRemoteSessionStatusLabel(freenetSession)}
+          {freenetSession.lastError !== null ? ` · ${freenetSession.lastError}` : ""}
+        </Text>
+        {freenetSession.pendingWriteConfirmation ? (
+          <View>
+            <Text testID="freenet-write-confirm" style={styles.muted}>
+              Confirm irreversible Freenet contract write?
+            </Text>
+            <ActionButton
+              testID="freenet-write-confirm-yes"
+              label="Confirm write"
+              onPress={() =>
+                setFreenetSession((current) =>
+                  reduceFreenetRemoteSession(current, { type: "confirm-write" })
+                )
+              }
+            />
+            <ActionButton
+              testID="freenet-write-confirm-no"
+              label="Cancel write"
+              onPress={() =>
+                setFreenetSession((current) =>
+                  reduceFreenetRemoteSession(current, { type: "cancel-write" })
+                )
+              }
+            />
+          </View>
+        ) : null}
         <ActionButton
           testID="freenet-grant-enable"
           label="Enable Freenet remote node"
           onPress={() => {
-            try {
-              const enabled = acceptFreenetRemoteGrant(
-                {
-                  nodeUrl: freenetGrant.nodeUrl,
-                  operatorLabel: freenetGrant.operatorLabel,
-                  authToken: freenetGrant.authToken,
-                  capabilities: freenetGrant.capabilities
-                },
-                { acceptedDisclosure: freenetDisclosureAccepted }
-              );
-              setFreenetGrant(enabled);
-              setFreenetGrantError(null);
-              appendLog(`Freenet remote grant enabled: ${JSON.stringify(freenetGrantLogSafe(enabled))}`);
-            } catch (error) {
-              setFreenetGrantError(error instanceof Error ? error.message : String(error));
-            }
+            void (async () => {
+              try {
+                const enabled = acceptFreenetRemoteGrant(
+                  {
+                    nodeUrl: freenetGrant.nodeUrl,
+                    operatorLabel: freenetGrant.operatorLabel,
+                    authToken: freenetGrant.authToken,
+                    capabilities: freenetGrant.capabilities
+                  },
+                  { acceptedDisclosure: freenetDisclosureAccepted }
+                );
+                setFreenetGrant(enabled);
+                setFreenetGrantError(null);
+                let next = reduceFreenetRemoteSession(idleFreenetRemoteSession(), {
+                  type: "enable",
+                  grant: enabled
+                });
+                setFreenetSession(next);
+                appendLog(
+                  `Freenet remote grant enabled: ${JSON.stringify(freenetGrantLogSafe(enabled))}`
+                );
+                const probe = await probeFreenetRemoteNode(enabled);
+                next = reduceFreenetRemoteSession(next, {
+                  type: "probe-result",
+                  result: probe
+                });
+                setFreenetSession(next);
+                appendLog(
+                  `Freenet remote session: ${JSON.stringify(freenetRemoteSessionLogSafe(next))}`
+                );
+              } catch (error) {
+                setFreenetGrantError(error instanceof Error ? error.message : String(error));
+              }
+            })();
+          }}
+        />
+        <ActionButton
+          testID="freenet-grant-reconnect"
+          label="Reconnect Freenet remote node"
+          onPress={() => {
+            void (async () => {
+              if (freenetSession.grant === null) return;
+              let next = reduceFreenetRemoteSession(freenetSession, { type: "reconnect" });
+              setFreenetSession(next);
+              const probe = await probeFreenetRemoteNode(freenetSession.grant);
+              next = reduceFreenetRemoteSession(next, { type: "probe-result", result: probe });
+              setFreenetSession(next);
+            })();
           }}
         />
         <ActionButton
@@ -905,6 +977,7 @@ export default function App() {
             setFreenetGrant(revoked);
             setFreenetDisclosureAccepted(false);
             setFreenetGrantError(null);
+            setFreenetSession(reduceFreenetRemoteSession(freenetSession, { type: "revoke" }));
             appendLog(`Freenet remote grant revoked: ${JSON.stringify(freenetGrantLogSafe(revoked))}`);
           }}
         />

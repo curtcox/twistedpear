@@ -112,6 +112,20 @@ subscriber restart, publish-A/stop-A/retrieve-B):
 npm run test:freenet-distinct-nodes -- --smoke
 ```
 
+User-supplied Freenet binary supervision:
+
+```sh
+FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-supervisor
+```
+
+Cross-node S2 notify (incomplete diagnostic by default via `--smoke`; full
+100-sample uses label `local-cross-node` and must not overwrite
+`measured-roundtrip.json`):
+
+```sh
+FREENET_FORCE_CROSS_NODE=1 npm run test:freenet-local-network -- --smoke
+```
+
 Evidence is in [f2-interface-proof.json](f2-interface-proof.json) and
 [f2-report.md](f2-report.md).
 

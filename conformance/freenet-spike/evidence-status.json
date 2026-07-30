@@ -27,7 +27,7 @@
         "s2-smoke-observation.json"
       ],
       "conclusion": "local 100-sample update-to-notify on a 3-node mesh (local-executor notify path) is complete with p95 under 90 ms for <=64 KiB and under 260 ms for 1 MiB",
-      "remaining": "record an explicitly authorized live-network 100-sample series; promote a reviewed cross-node notify series from test:freenet-distinct-nodes only after a complete reliable run"
+      "remaining": "record an explicitly authorized live-network 100-sample series; promote a reviewed local-cross-node 100-sample series (FREENET_FORCE_CROSS_NODE=1) only after a complete reliable run — never from smoke"
     },
     "S3": {
       "status": "complete",
@@ -42,7 +42,7 @@
       "status": "partial",
       "artifact": "s4-report.md",
       "supportingArtifacts": ["s4-support-matrix.json"],
-      "remaining": "record Android emulator and iOS simulator BareKit measurements; physical device confirmation for release claims. Browser WASM remains deliberately unsupported under Option A."
+      "remaining": "record Android emulator and iOS simulator BareKit measurements via ANDROID_BENCHMARK_RECORD=1 / IOS_BENCHMARK_RECORD=1; physical device confirmation for release claims. Browser WASM remains deliberately unsupported under Option A."
     },
     "S5": {
       "status": "partial",
@@ -75,7 +75,7 @@
     "reason": "local S2 latency evidence is sufficient for role viability; live S2 confirmation and remaining S4/S5/S7 items still gate later phases; F3 WASM + local store proof are recorded",
     "softwarePause": {
       "since": "2026-07-28",
-      "reason": "F1–F3/F5 software, F6 Option A, user documentation/example, and tiered CI wiring are landed; remaining protocol/evidence work needs signing credentials, live-write authorization, or BareKit hardware"
+      "reason": "F1–F3/F5 software, F6 Option A, user documentation/example, tiered CI (including supervisor + distinct-node smoke), and mobile remote-node session helpers are landed; remaining protocol/evidence work needs signing credentials, live-write authorization, a reviewed cross-node 100-sample series, or BareKit hardware"
     },
     "completionAudit": "completion-audit.md",
     "f2": {

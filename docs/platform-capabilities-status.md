@@ -137,6 +137,7 @@ Cross-cutting wiring gaps (affect many rows below):
   `set-freenet-config` and show Freenet status rows. Desktop and node support is
   conditional on an external or user-supervised pinned node and remains off by
   default. Android/iOS expose simulator-verified remote-node grant chrome
+  (disclosure, refusal, revoke, session probe for auth/unavailable/reconnect)
   (disclosure, refusal, revoke; Maestro
   `.maestro/freenet-remote-grant.yaml`) — still off by default, no third-party
   gateway. Web stays `n/a` under Option A. Decision:

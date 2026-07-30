@@ -192,10 +192,13 @@ These checks start isolated local nodes. Set `FREENET_BINARY` if `freenet` is
 not on `PATH`:
 
 ```sh
-FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-interface
-FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-propagation
-FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-local-network
-FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-distinct-nodes -- --smoke
+  FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-interface
+  FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-propagation
+  FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-supervisor
+  FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-local-network
+  FREENET_FORCE_CROSS_NODE=1 FREENET_BINARY=/absolute/path/to/freenet \
+    npm run test:freenet-local-network -- --smoke
+  FREENET_BINARY=/absolute/path/to/freenet npm run test:freenet-distinct-nodes -- --smoke
 ```
 
 Expected result: the first records an HDLC exchange in
