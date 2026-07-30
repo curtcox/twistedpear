@@ -12,6 +12,7 @@ appId: network.twistedpear.harness
     id: "freenet-remote-section"
 - assertVisible: "Off by default"
 - assertVisible: "cannot be recalled"
+- assertVisible: "Timing, payload size"
 # Refusal: enable without disclosure or URL must surface an error.
 - tapOn:
     id: "freenet-grant-enable"

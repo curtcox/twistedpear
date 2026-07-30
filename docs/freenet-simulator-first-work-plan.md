@@ -64,6 +64,10 @@ npm run test:android-emulator:e5
 watchdog evidence rather than inferring WASM execution from the benchmark
 implementation.
 
+**Status (2026-07-29):** harness requires `wasmExecuted` + kill + timings;
+`ANDROID_BENCHMARK_RECORD=1` writes `measured-worker.json` and updates
+`s4-support-matrix.json`. Committed measurements remain pending an emulator run.
+
 ### A2. Add the equivalent iOS simulator probe
 
 Add an iOS simulator step that invokes the same in-host benchmark through the
@@ -76,6 +80,10 @@ installed harness, not through desktop Bare. Record:
 
 Wire the required form into `npm run test:ios-sim:required`; keep reviewed
 simulator evidence separate from any later physical-device result.
+
+**Status (2026-07-29):** `test:ios-sim:wasm` parses Maestro hierarchy for
+numeric timings (no hardcoded pass); `IOS_BENCHMARK_RECORD=1` updates the S4
+matrix. Committed measurements remain pending a simulator run.
 
 **Exit:** Android emulator and iOS simulator both exercise the shipping
 BareKit Worker integration and retain the hostile-app kill guarantee.
@@ -129,6 +137,9 @@ If locator minimum-merge reordering still loses notifications:
 
 **Exit:** F2 reconstructs the same ordered HDLC stream without assuming that
 every intermediate notification arrives exactly once.
+
+**Status (2026-07-29):** notify reconciliation is implemented and covered by
+`packages/bridge-freenet/test/packet-log-backend.test.ts`.
 
 ### B3. Exercise full scenarios across isolated nodes
 
@@ -197,6 +208,12 @@ not ship a preconfigured third-party gateway.
 Simulator tests cover first-use disclosure, refusal, revocation, authentication
 failure, malformed/unsafe URLs, unavailable-node degradation, reconnection,
 per-write confirmation, and absence of tokens from logs and UI dumps.
+
+Accepted grants push `set-freenet-config` into the Bare worklet so
+`freenet:contract` reads/writes use the granted companion node (writes require
+an extra chrome confirmation before the backend is attached). Packet-tunnel and
+propagation toggles are recorded in status; attaching those backends on mobile
+remains follow-on work.
 
 **Exit:** mobile remote-node support is software-ready and labeled
 simulator-verified. Physical confirmation gates only the corresponding mobile

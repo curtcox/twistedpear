@@ -63,6 +63,19 @@ describe("freenet remote-node session", () => {
     );
   });
 
+  it("passes the auth token to the open helper without logging it", async () => {
+    const grant = enabledGrant();
+    let seen: { url?: string; authToken?: string } = {};
+    await probeFreenetRemoteNode(grant, {
+      open: async (url, options) => {
+        seen = { url, authToken: options?.authToken };
+        return { ok: true };
+      }
+    });
+    expect(seen.url).toBe(grant.nodeUrl);
+    expect(seen.authToken).toBe("secret-token-value");
+  });
+
   it("degrades on unavailable probe during reconnect", async () => {
     let session = idleFreenetRemoteSession();
     const grant = enabledGrant();

@@ -15,6 +15,7 @@ import {
   requireDevice,
   waitForBootComplete
 } from "./helpers.mjs";
+import { updateS4SupportMatrix } from "../freenet-spike/update-s4-matrix.mjs";
 
 const labDir = dirname(fileURLToPath(import.meta.url));
 const measuredPath = join(labDir, "measured-worker.json");
@@ -92,7 +93,9 @@ async function main() {
 
   if (record) {
     writeFileSync(measuredPath, `${JSON.stringify(result, null, 2)}\n`);
+    const matrixPath = updateS4SupportMatrix("bare-worker-android-emulator", result);
     console.log(`android-emulator/e5-worker: recorded ${measuredPath}`);
+    console.log(`android-emulator/e5-worker: updated ${matrixPath}`);
   }
 
   console.log(

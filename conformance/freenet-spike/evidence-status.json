@@ -42,7 +42,7 @@
       "status": "partial",
       "artifact": "s4-report.md",
       "supportingArtifacts": ["s4-support-matrix.json"],
-      "remaining": "record Android emulator and iOS simulator BareKit measurements via ANDROID_BENCHMARK_RECORD=1 / IOS_BENCHMARK_RECORD=1; physical device confirmation for release claims. Browser WASM remains deliberately unsupported under Option A."
+      "remaining": "record Android emulator and iOS simulator BareKit measurements via ANDROID_BENCHMARK_RECORD=1 / IOS_BENCHMARK_RECORD=1 (recorders now update s4-support-matrix.json); physical device confirmation for release claims. Browser WASM remains deliberately unsupported under Option A."
     },
     "S5": {
       "status": "partial",
@@ -67,7 +67,7 @@
     "S8": {
       "status": "complete",
       "artifact": "../../docs/security-review.md#f9--freenet-boundary-threat-model-f0-s8",
-      "conclusion": "desktop/headless F1 has no show-stopper; mobile remote-node grant chrome is simulator-verified software-ready; physical mobile confirmation remains a release gate"
+      "conclusion": "desktop/headless F1 has no show-stopper; mobile remote-node grant chrome wires the Bare worklet contract backend and is Maestro-covered; physical mobile confirmation and recorded BareKit timings remain release/software evidence gates"
     }
   },
   "gate": {
@@ -75,7 +75,7 @@
     "reason": "local S2 latency evidence is sufficient for role viability; live S2 confirmation and remaining S4/S5/S7 items still gate later phases; F3 WASM + local store proof are recorded",
     "softwarePause": {
       "since": "2026-07-28",
-      "reason": "F1–F3/F5 software, F6 Option A, user documentation/example, tiered CI (including supervisor + distinct-node smoke), mobile remote-node session helpers, and a reviewed local-cross-node 100-sample series are landed; remaining protocol/evidence work needs signing credentials, live-write authorization, or BareKit hardware"
+      "reason": "F1–F3/F5 software, F6 Option A, user documentation/example, tiered CI (including supervisor + distinct-node smoke + named offline unit suites), mobile remote-node worklet wiring, and a reviewed local-cross-node 100-sample series are landed; remaining protocol/evidence work needs recorded BareKit simulator measurements, signing credentials, live-write authorization, or BareKit hardware"
     },
     "completionAudit": "completion-audit.md",
     "f2": {

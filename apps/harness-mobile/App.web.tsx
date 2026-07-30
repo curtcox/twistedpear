@@ -1220,7 +1220,8 @@ const CONFIRM_KIND_TITLES: Readonly<Record<ConfirmationKind, string>> = {
   "trust-import": "Trust a new publisher?",
   "device-session": "Allow a device session?",
   "device-stream": "Stream a device to a peer?",
-  "device-remote-grant": "Let a remote peer use a device on this host?"
+  "device-remote-grant": "Let a remote peer use a device on this host?",
+  "freenet-update": "Publish an irreversible Freenet contract update?"
 };
 
 function PeerChromeModal({ modal, onInput, onCancel, onContinue }: {

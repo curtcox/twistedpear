@@ -23,6 +23,7 @@ writeFileSync(
       "@noble/hashes/crypto": nobleCrypto,
       "@noble/ciphers/crypto": nobleCrypto,
       "@noble/curves/crypto": nobleCrypto,
+      ws: join(repoRoot, "conformance/freenet-spike/bare-websocket-shim.mjs"),
       "@twistedpear/reticulum-ts": join(repoRoot, "packages/reticulum-ts/dist/worklet.js"),
       "@twistedpear/bridge-hyper": join(repoRoot, "packages/bridge-hyper/dist/worklet.js"),
       "@twistedpear/miniapp-runtime": join(repoRoot, "packages/miniapp-runtime/dist/worklet.js")

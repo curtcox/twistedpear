@@ -347,7 +347,7 @@ not a gate, per §12.
 | F2 packet interface | **wired; distinct-node runner ready** | SPEC-FREENET packet-log WASM + vectors, `FreenetInterface` / `FreenetContractPacketLogBackend` with notify reconciliation, host-core `freenet` kind at the S2-derived 90 kbps, `test:freenet-interface` HDLC exchange against a real node, `test:freenet-distinct-nodes` for cross-node F2/F3/restart, paced local-cross-node S2 100-sample series in `measured-roundtrip.json`, simulated announce+LXMF over FreenetInterface-only peers, BridgeForwarder relay policy as source and destination | Live two-host announce+LXMF across distinct Freenet nodes remains optional confirmation |
 | F3 propagation backing | **wired** | SPEC-FREENET propagation-set WASM + vectors, encode/decode/merge, `PropagationRemoteMirror` seam, `FreenetPropagationStore` (16-byte destination grouping, PUT/UPDATE merge), isolated offline-A/retrieve-B proof, distinct-node publish-A/stop-A/retrieve-B via `test:freenet-distinct-nodes`, `createNodeHost` attaches the mirror when `roles.propagation` + `interfaces.freenet` URL are set | Public multi-Freenet-node retrieval remains optional confirmation |
 | F4 node provisioning | **software supervision started; redistribution gated** | `FreenetSupervisor` in host-core (ephemeral port, generated token kept out of URLs/logs, readiness, bounded restart, host data-dir isolation, starting/online/degraded/failed); `tp node --freenet-binary` / `--freenet-binary-sha256`; `test:freenet-supervisor` in CI against the hash-verified release archive | Signed/notarized redistribution and embedded packaging remain S5/signing gates |
-| F5 capability + chrome | **landed (software)** | `freenet:contract` in `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0 brokers `get`/`put`/`update` with confirmation on put/update; `createNodeHost` exposes `freenetBackend` when a URL is set; desktop Settings for contracts enable / URL / auth token plus an HDLC interface toggle with peer rendezvous and explicit side 0/1 selection; mobile remote-node grant chrome (disclosure/refusal/revoke/session probe) with Maestro simulator probes; Node status and [platform capability](platform-capabilities-status.md) rows | Web stays off per Option A; physical mobile confirmation for release claims |
+| F5 capability + chrome | **landed (software)** | `freenet:contract` in `CAPABILITY_DEFINITIONS` with irreversible-update wording; HOST_API 0.11.0 brokers `get`/`put`/`update` with confirmation on put/update; `createNodeHost` exposes `freenetBackend` when a URL is set; desktop Settings for contracts enable / URL / auth token plus an HDLC interface toggle with peer rendezvous and explicit side 0/1 selection; mobile remote-node grant chrome pushes `set-freenet-config` into the Bare worklet contract backend (Maestro); Node status and [platform capability](platform-capabilities-status.md) rows | Web stays off per Option A; recorded Android/iOS BareKit measurements and physical mobile confirmation for release claims |
 | F6 app-execution ADR | **decided** | [Option A accepted](adr-freenet-app-execution.md): mini-apps are Freenet clients, not hosts, on S7 read evidence and S4/S8 blockers for B/C | B reopens only if S4 clears; C remains a separate proposal |
 
 ### 14.3 What a user can actually do today
@@ -543,14 +543,17 @@ include the strongest single check in the integration: the committed WASM artifa
 are hash- and length-checked against the SPEC-FREENET vectors, so a tampered or
 stale contract binary fails the build.
 
-- `packages/bridge-freenet/test/` — six files: locator contract, packet log, packet
-  log backend, contract backend, propagation set, propagation store.
+- `packages/bridge-freenet/test/` — locator contract, packet log, packet
+  log backend, contract backend, propagation set, propagation store, update
+  code fields.
 - `packages/effects/test/freenet-sim.test.ts` — the deterministic simulated adapter.
 - `packages/reticulum-interfaces/test/freenet-announce-lxmf.test.ts` — simulated
   announce + LXMF over FreenetInterface-only peers.
+- `apps/harness-mobile/test/freenet-remote-*.test.ts` — remote-node grant and
+  session helpers.
 
-*Remaining:* nothing functional; consider naming them in a dedicated job so a
-Freenet regression is legible in the CI summary instead of buried in `npm test`.
+These are named explicitly in the `freenet-offline` CI job (in addition to
+riding `npm test` inside `check:ci-base`).
 
 ### Tier 2 — offline, wired in CI
 

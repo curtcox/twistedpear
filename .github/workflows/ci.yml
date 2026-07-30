@@ -27,6 +27,14 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - name: Freenet unit suites (bridge, simulated adapter, announce+LXMF)
+        run: |
+          npm test -- \
+            packages/bridge-freenet/test \
+            packages/effects/test/freenet-sim.test.ts \
+            packages/reticulum-interfaces/test/freenet-announce-lxmf.test.ts \
+            apps/harness-mobile/test/freenet-remote-grant.test.ts \
+            apps/harness-mobile/test/freenet-remote-session.test.ts
       - name: Verify Bare SDK compatibility
         run: npm run test:freenet-spike
       - name: Install pinned Rust contract toolchain

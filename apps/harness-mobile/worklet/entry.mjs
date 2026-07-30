@@ -3,6 +3,9 @@
  * Runs reticulum-ts with the Bare runtime adapter and reports status over IPC.
  */
 import "../../../conformance/bare-interop/bare-globals.mjs";
+import "bare-encoding/global";
+import { installBareWebSocketGlobal } from "../../../conformance/freenet-spike/bare-websocket-shim.mjs";
+import { FreenetClientContractBackend } from "../../../packages/bridge-freenet/dist/index.js";
 import { bytesToHex } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { BareCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/bare.js";
 import { PureCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/pure.js";
@@ -40,6 +43,7 @@ import { AudioPeerDiscoveryAdapter, BluetoothPeerDiscoveryAdapter, CryptoPeerPai
 
 const { IPC } = BareKit;
 const HOST_BANDWIDTH_BYTES_PER_SECOND = 512 * 1024;
+installBareWebSocketGlobal();
 
 function createProvider() {
   try {
@@ -77,7 +81,44 @@ const status = {
   installedPackages: 0,
   storageUsedBytes: 0,
   developerMode: false,
-  miniappRunning: false
+  miniappRunning: false,
+  freenetEnabled: false,
+  freenetConfigured: false,
+  freenetUrl: null,
+  freenetContractReads: false,
+  freenetContractWrites: false,
+  freenetPacketTunnel: false,
+  freenetPropagation: false
+};
+
+/** @type {FreenetClientContractBackend | null} */
+let freenetBackendImpl = null;
+/** @type {{ contractReads: boolean, contractWrites: boolean, packetTunnel: boolean, propagation: boolean }} */
+let freenetCapabilities = {
+  contractReads: false,
+  contractWrites: false,
+  packetTunnel: false,
+  propagation: false
+};
+const freenetBackendProxy = {
+  async get(keyHex) {
+    if (freenetBackendImpl === null || !freenetCapabilities.contractReads) {
+      throw new Error("Freenet contract reads are not granted on this host");
+    }
+    return freenetBackendImpl.get(keyHex);
+  },
+  async put(options) {
+    if (freenetBackendImpl === null || !freenetCapabilities.contractWrites) {
+      throw new Error("Freenet contract writes are not granted on this host");
+    }
+    return freenetBackendImpl.put(options);
+  },
+  async update(options) {
+    if (freenetBackendImpl === null || !freenetCapabilities.contractWrites) {
+      throw new Error("Freenet contract writes are not granted on this host");
+    }
+    return freenetBackendImpl.update(options);
+  }
 };
 
 /** @type {Reticulum | null} */
@@ -212,6 +253,7 @@ function ensureMiniappHost() {
       getPresenceSnapshot: () => ({ ...status, autoPeers: status.autoPeers + (peerSessionManager?.routes.list().length ?? 0) }),
       peerSessionManager: peerSessionManagerProxy,
       relayService,
+      freenetBackend: freenetBackendProxy,
       announceService: transportAnnounceService,
       async requestUserConfirmation(request) {
         const reply = await requestHostReply({
@@ -1499,6 +1541,64 @@ async function handleHostMessage(raw) {
     pendingRnodeBaudRate = message.rnodeBaudRate ?? 115_200;
     pushStatus();
     await applyInterfaceConfig();
+    return;
+  }
+
+  if (message.type === "set-freenet-config") {
+    const enabled = message.enabled === true;
+    const url =
+      typeof message.url === "string" && message.url.length > 0 ? message.url : null;
+    const authToken =
+      typeof message.authToken === "string" && message.authToken.length > 0
+        ? message.authToken
+        : undefined;
+    const caps = message.capabilities ?? {
+      contractReads: false,
+      contractWrites: false,
+      packetTunnel: false,
+      propagation: false
+    };
+    freenetCapabilities = {
+      contractReads: caps.contractReads === true,
+      contractWrites: caps.contractWrites === true,
+      packetTunnel: caps.packetTunnel === true,
+      propagation: caps.propagation === true
+    };
+    status.freenetEnabled = enabled;
+    status.freenetUrl = url;
+    status.freenetContractReads = freenetCapabilities.contractReads;
+    status.freenetContractWrites = freenetCapabilities.contractWrites;
+    status.freenetPacketTunnel = freenetCapabilities.packetTunnel;
+    status.freenetPropagation = freenetCapabilities.propagation;
+    if (freenetBackendImpl !== null) {
+      await freenetBackendImpl.close().catch(() => {});
+      freenetBackendImpl = null;
+    }
+    if (enabled && url !== null && freenetCapabilities.contractReads) {
+      freenetBackendImpl = new FreenetClientContractBackend({
+        clientOptions: {
+          url,
+          ...(authToken === undefined ? {} : { authToken })
+        }
+      });
+      status.freenetConfigured = true;
+      log(
+        `Freenet remote node configured (reads=${freenetCapabilities.contractReads} writes=${freenetCapabilities.contractWrites})`
+      );
+    } else {
+      status.freenetConfigured = false;
+      if (enabled) {
+        log("Freenet remote grant enabled without contract reads; contract backend not attached");
+      } else {
+        log("Freenet remote node revoked");
+      }
+    }
+    if (freenetCapabilities.packetTunnel || freenetCapabilities.propagation) {
+      log(
+        "Freenet packet-tunnel/propagation grants are recorded; attach those backends when the mobile HDLC/propagation path is enabled"
+      );
+    }
+    pushStatus();
     return;
   }
 

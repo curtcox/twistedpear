@@ -126,11 +126,15 @@ export function reduceFreenetRemoteSession(
 /**
  * Probe a granted remote node without putting tokens in URLs or status text.
  * Injectable for unit tests; default uses a short WebSocket open attempt.
+ * Auth tokens are applied the same way as FreenetWsApi (query + never logged).
  */
 export async function probeFreenetRemoteNode(
   grant: FreenetRemoteGrant,
   options?: {
-    readonly open?: (url: string, protocols?: string[]) => Promise<FreenetRemoteProbeResult>;
+    readonly open?: (
+      url: string,
+      options?: { readonly authToken?: string }
+    ) => Promise<FreenetRemoteProbeResult>;
     readonly timeoutMs?: number;
   }
 ): Promise<FreenetRemoteProbeResult> {
@@ -140,11 +144,17 @@ export async function probeFreenetRemoteNode(
   }
 
   const open = options?.open ?? defaultOpenWebSocket;
-  const result = await open(grant.nodeUrl.trim(), undefined);
-  if (grant.authToken) {
-    assertNoTokenInText(JSON.stringify(freenetGrantLogSafe(grant)), grant.authToken);
+  const authToken =
+    grant.authToken !== undefined && grant.authToken.length > 0
+      ? grant.authToken
+      : undefined;
+  const result = await open(grant.nodeUrl.trim(), {
+    ...(authToken === undefined ? {} : { authToken })
+  });
+  if (authToken !== undefined) {
+    assertNoTokenInText(JSON.stringify(freenetGrantLogSafe(grant)), authToken);
     if (result.ok === false && result.detail !== undefined) {
-      assertNoTokenInText(result.detail, grant.authToken);
+      assertNoTokenInText(result.detail, authToken);
     }
   }
   return result;
@@ -152,7 +162,7 @@ export async function probeFreenetRemoteNode(
 
 function defaultOpenWebSocket(
   url: string,
-  _protocols?: string[]
+  options?: { readonly authToken?: string }
 ): Promise<FreenetRemoteProbeResult> {
   return new Promise((resolve) => {
     let settled = false;
@@ -162,9 +172,17 @@ function defaultOpenWebSocket(
       resolve(result);
     };
 
+    let probeUrl = url;
+    if (options?.authToken !== undefined) {
+      // FreenetWsApi appends authToken as a query param; keep it out of logs/UI.
+      const parsed = new URL(url);
+      parsed.searchParams.set("authToken", options.authToken);
+      probeUrl = parsed.toString();
+    }
+
     let socket: WebSocket;
     try {
-      socket = new WebSocket(url);
+      socket = new WebSocket(probeUrl);
     } catch (error) {
       finish({
         ok: false,

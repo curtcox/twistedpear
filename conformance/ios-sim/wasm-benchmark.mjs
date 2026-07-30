@@ -15,9 +15,9 @@ import {
   ensureBootedSimulator,
   harnessInstalledOnBootedSim,
   isDarwin,
-  simctl,
   simctlAvailable
 } from "./helpers.mjs";
+import { updateS4SupportMatrix } from "../freenet-spike/update-s4-matrix.mjs";
 
 const labDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(labDir, "../..");
@@ -44,7 +44,7 @@ function parseBenchmarkResults(text) {
     /spawn ([\d.]+)ms · kill ([\d.]+)ms · busy-loop ([\d.]+)ms · wasm (yes|no)(?: · kill failed)? \(([^)]+)\)/
   );
   if (match === null) {
-    throw new Error("Could not parse benchmark results from accessibility dump");
+    return null;
   }
 
   return {
@@ -65,6 +65,13 @@ function assertEvidence(result) {
   if (result.busyLoopKilled !== true) {
     fail("watchdog did not kill the WASM-before-busy-loop worker");
   }
+  if (
+    !(typeof result.spawnMs === "number" && result.spawnMs >= 0) ||
+    !(typeof result.killMs === "number" && result.killMs >= 0) ||
+    !(typeof result.busyLoopKillMs === "number" && result.busyLoopKillMs >= 0)
+  ) {
+    fail("missing spawn/kill/watchdog latency measurements");
+  }
 }
 
 function maestroE5() {
@@ -77,22 +84,36 @@ function maestroE5() {
   }
 }
 
-function readAccessibilityDump() {
-  // Prefer XCTest-style dump via simctl when available; fall back to Maestro
-  // assert-only evidence already enforced by the flow.
-  try {
-    const booted = simctl(["list", "devices", "booted"]);
-    const match = booted.match(/\(([0-9A-F-]{36})\)\s+\(Booted\)/i);
-    if (match === null) return null;
+/**
+ * Capture the on-screen benchmark line after Maestro asserts visibility.
+ * Prefers `maestro hierarchy` text; falls back to simctl accessibility dump.
+ */
+function readBenchmarkDump() {
+  const hierarchy = spawnSync("maestro", ["hierarchy"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    maxBuffer: 8 * 1024 * 1024
+  });
+  if (hierarchy.status === 0 && typeof hierarchy.stdout === "string") {
+    const parsed = parseBenchmarkResults(hierarchy.stdout);
+    if (parsed !== null) return parsed;
+  }
+
+  const booted = spawnSync("xcrun", ["simctl", "list", "devices", "booted"], {
+    encoding: "utf8"
+  });
+  const match = typeof booted.stdout === "string"
+    ? booted.stdout.match(/\(([0-9A-F-]{36})\)\s+\(Booted\)/i)
+    : null;
+  if (match !== null) {
     const dump = spawnSync(
       "xcrun",
       ["simctl", "ui", match[1], "appearance"],
       { encoding: "utf8" }
     );
     void dump;
-  } catch {
-    // optional
   }
+
   return null;
 }
 
@@ -107,6 +128,24 @@ function harnessBuildIdentity() {
     };
   } catch {
     return { name: "harness-mobile", version: "unknown" };
+  }
+}
+
+function iosRuntimeIdentity() {
+  try {
+    const runtimes = spawnSync("xcrun", ["simctl", "list", "runtimes"], {
+      encoding: "utf8"
+    });
+    if (runtimes.status !== 0 || typeof runtimes.stdout !== "string") {
+      return null;
+    }
+    const line = runtimes.stdout
+      .split("\n")
+      .map((entry) => entry.trim())
+      .find((entry) => entry.startsWith("iOS ") && entry.includes("(available)"));
+    return line ?? null;
+  } catch {
+    return null;
   }
 }
 
@@ -141,23 +180,11 @@ export async function runIosWasmBenchmark(options = {}) {
   console.log("[ios-sim/wasm-benchmark] running Maestro BareKit worker benchmark");
   maestroE5();
 
-  const dump = readAccessibilityDump();
-  let parsed;
-  if (dump !== null) {
-    parsed = parseBenchmarkResults(dump);
-  } else {
-    // Maestro asserted "wasm yes" + busy-loop visibility; timings are recorded
-    // as present when the flow passes.
-    parsed = {
-      backend: "bare-worker",
-      runtime: "bare",
-      spawnMs: null,
-      killMs: null,
-      busyLoopKillMs: null,
-      wasmExecuted: true,
-      busyLoopKilled: true,
-      timingsNote: "Maestro asserted wasm yes + busy-loop; numeric timings require UI dump"
-    };
+  const parsed = readBenchmarkDump();
+  if (parsed === null) {
+    fail(
+      "could not parse spawn/kill/busy-loop/wasm timings from Maestro hierarchy after e5 flow"
+    );
   }
   assertEvidence(parsed);
 
@@ -166,16 +193,20 @@ export async function runIosWasmBenchmark(options = {}) {
     platform: "ios-simulator",
     environment: "ios-simulator",
     harness: harnessBuildIdentity(),
+    iosRuntime: iosRuntimeIdentity(),
     ...parsed
   };
 
   if (record) {
     writeFileSync(measuredPath, `${JSON.stringify(result, null, 2)}\n`);
+    const matrixPath = updateS4SupportMatrix("bare-worker-ios-simulator", result);
     console.log(`[ios-sim/wasm-benchmark] recorded ${measuredPath}`);
+    console.log(`[ios-sim/wasm-benchmark] updated ${matrixPath}`);
   }
 
   console.log(
-    `[ios-sim/wasm-benchmark] wasm=${result.wasmExecuted} busyLoopKilled=${result.busyLoopKilled} (${result.backend})`
+    `[ios-sim/wasm-benchmark] wasm=${result.wasmExecuted} busyLoopKilled=${result.busyLoopKilled} ` +
+      `spawn=${result.spawnMs}ms kill=${result.killMs}ms busy-loop=${result.busyLoopKillMs}ms (${result.backend})`
   );
   return result;
 }

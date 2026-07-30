@@ -90,7 +90,8 @@ const CONFIRM_KIND_TITLES: Readonly<Record<ConfirmationKind, string>> = {
   "trust-import": "Trust a new publisher?",
   "device-session": "Allow a device session?",
   "device-stream": "Stream a device to a peer?",
-  "device-remote-grant": "Let a remote peer use a device on this host?"
+  "device-remote-grant": "Let a remote peer use a device on this host?",
+  "freenet-update": "Publish an irreversible Freenet contract update?"
 };
 
 async function requestBlePermissions(): Promise<void> {
@@ -212,6 +213,46 @@ export default function App() {
 
     worklet.IPC.write(b4a.from(encodeMessage(message)));
   }, []);
+
+  const applyFreenetGrantToWorklet = useCallback(
+    (grant: FreenetRemoteGrant | null) => {
+      if (grant === null || !grant.enabled) {
+        sendToWorklet({ type: "set-freenet-config", enabled: false });
+        return;
+      }
+      sendToWorklet({
+        type: "set-freenet-config",
+        enabled: true,
+        url: grant.nodeUrl,
+        ...(grant.authToken !== undefined && grant.authToken.length > 0
+          ? { authToken: grant.authToken }
+          : {}),
+        capabilities: grant.capabilities
+      });
+    },
+    [sendToWorklet]
+  );
+
+  const activateFreenetGrant = useCallback(
+    async (enabled: FreenetRemoteGrant) => {
+      applyFreenetGrantToWorklet(enabled);
+      let next = reduceFreenetRemoteSession(idleFreenetRemoteSession(), {
+        type: "enable",
+        grant: enabled
+      });
+      setFreenetSession(next);
+      const probe = await probeFreenetRemoteNode(enabled);
+      next = reduceFreenetRemoteSession(next, {
+        type: "probe-result",
+        result: probe
+      });
+      setFreenetSession(next);
+      appendLog(
+        `Freenet remote session: ${JSON.stringify(freenetRemoteSessionLogSafe(next))}`
+      );
+    },
+    [appendLog, applyFreenetGrantToWorklet]
+  );
 
   const readWorkspaceDocument = useCallback((documentId: string) => new Promise<string>((resolve, reject) => {
     const token = `ws-${workspaceReadCounterRef.current++}`;
@@ -898,20 +939,34 @@ export default function App() {
             <ActionButton
               testID="freenet-write-confirm-yes"
               label="Confirm write"
-              onPress={() =>
-                setFreenetSession((current) =>
-                  reduceFreenetRemoteSession(current, { type: "confirm-write" })
-                )
-              }
+              onPress={() => {
+                void (async () => {
+                  if (freenetGrant.enabled !== true) return;
+                  setFreenetSession((current) =>
+                    reduceFreenetRemoteSession(current, { type: "confirm-write" })
+                  );
+                  try {
+                    await activateFreenetGrant(freenetGrant);
+                  } catch (error) {
+                    setFreenetGrantError(error instanceof Error ? error.message : String(error));
+                  }
+                })();
+              }}
             />
             <ActionButton
               testID="freenet-write-confirm-no"
               label="Cancel write"
-              onPress={() =>
-                setFreenetSession((current) =>
-                  reduceFreenetRemoteSession(current, { type: "cancel-write" })
-                )
-              }
+              onPress={() => {
+                const revoked = revokeFreenetRemoteGrant(freenetGrant);
+                setFreenetGrant(revoked);
+                setFreenetDisclosureAccepted(false);
+                setFreenetGrantError(null);
+                applyFreenetGrantToWorklet(null);
+                setFreenetSession(idleFreenetRemoteSession());
+                appendLog(
+                  `Freenet write confirmation cancelled: ${JSON.stringify(freenetGrantLogSafe(revoked))}`
+                );
+              }}
             />
           </View>
         ) : null}
@@ -932,23 +987,21 @@ export default function App() {
                 );
                 setFreenetGrant(enabled);
                 setFreenetGrantError(null);
-                let next = reduceFreenetRemoteSession(idleFreenetRemoteSession(), {
-                  type: "enable",
-                  grant: enabled
-                });
-                setFreenetSession(next);
                 appendLog(
                   `Freenet remote grant enabled: ${JSON.stringify(freenetGrantLogSafe(enabled))}`
                 );
-                const probe = await probeFreenetRemoteNode(enabled);
-                next = reduceFreenetRemoteSession(next, {
-                  type: "probe-result",
-                  result: probe
-                });
-                setFreenetSession(next);
-                appendLog(
-                  `Freenet remote session: ${JSON.stringify(freenetRemoteSessionLogSafe(next))}`
-                );
+                if (enabled.capabilities.contractWrites) {
+                  let next = reduceFreenetRemoteSession(idleFreenetRemoteSession(), {
+                    type: "enable",
+                    grant: enabled
+                  });
+                  next = reduceFreenetRemoteSession(next, {
+                    type: "request-write-confirmation"
+                  });
+                  setFreenetSession(next);
+                  return;
+                }
+                await activateFreenetGrant(enabled);
               } catch (error) {
                 setFreenetGrantError(error instanceof Error ? error.message : String(error));
               }
@@ -963,6 +1016,7 @@ export default function App() {
               if (freenetSession.grant === null) return;
               let next = reduceFreenetRemoteSession(freenetSession, { type: "reconnect" });
               setFreenetSession(next);
+              applyFreenetGrantToWorklet(freenetSession.grant);
               const probe = await probeFreenetRemoteNode(freenetSession.grant);
               next = reduceFreenetRemoteSession(next, { type: "probe-result", result: probe });
               setFreenetSession(next);
@@ -977,6 +1031,7 @@ export default function App() {
             setFreenetGrant(revoked);
             setFreenetDisclosureAccepted(false);
             setFreenetGrantError(null);
+            applyFreenetGrantToWorklet(null);
             setFreenetSession(reduceFreenetRemoteSession(freenetSession, { type: "revoke" }));
             appendLog(`Freenet remote grant revoked: ${JSON.stringify(freenetGrantLogSafe(revoked))}`);
           }}

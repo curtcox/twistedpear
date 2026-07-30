@@ -133,6 +133,15 @@ describe("Freenet integration plan status", () => {
     expect(read("apps/harness-mobile/src/freenet-remote-session.ts")).toContain(
       "auth-failed"
     );
+    expect(read("apps/harness-mobile/worklet/protocol.ts")).toContain(
+      "set-freenet-config"
+    );
+    expect(read("apps/harness-mobile/worklet/entry.mjs")).toContain(
+      "FreenetClientContractBackend"
+    );
+    expect(read("conformance/android-emulator/ci.sh")).toContain(
+      "freenet-grant.mjs"
+    );
     expect(JSON.parse(read("package.json")).scripts["test:freenet-supervisor"]).toMatch(
       /prove-supervisor\.mjs/
     );
@@ -143,6 +152,7 @@ describe("Freenet integration plan status", () => {
     const nightly = read(".github/workflows/nightly.yml");
     const hash =
       "b5b6bdf975c1563a98507e94c8edc1091278306e16f25ef216aacea1570a5571";
+    expect(ci).toContain("packages/bridge-freenet/test");
     expect(ci).toContain("npm run test:freenet-spike");
     expect(ci).toContain("npm run test:freenet-ordered-log");
     expect(ci).toContain("npm run build:freenet-contract");

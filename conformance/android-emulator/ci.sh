@@ -65,4 +65,7 @@ node conformance/android-emulator/e3-foreground.mjs
 echo "[android-emulator/ci] run E5 Bare worker benchmark"
 ANDROID_BENCHMARK_RECORD=1 node conformance/android-emulator/e5-worker.mjs
 
+echo "[android-emulator/ci] run Freenet remote-node grant chrome"
+node conformance/android-emulator/freenet-grant.mjs
+
 echo "[android-emulator/ci] emulator UI lab passed"

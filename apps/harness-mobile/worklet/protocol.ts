@@ -46,7 +46,16 @@ export interface CapabilityGrantView {
   readonly granted: boolean;
 }
 
-export type ConfirmationKind = "package" | "publish" | "install" | "preview" | "trust-import" | "device-session" | "device-stream" | "device-remote-grant";
+export type ConfirmationKind =
+  | "package"
+  | "publish"
+  | "install"
+  | "preview"
+  | "trust-import"
+  | "device-session"
+  | "device-stream"
+  | "device-remote-grant"
+  | "freenet-update";
 
 export interface HostConfirmationRequestView {
   readonly token: string;
@@ -196,6 +205,13 @@ export interface WorkletStatus {
   readonly miniappRunning?: boolean;
   readonly wsEnabled?: boolean;
   readonly gatewayUrl?: string | null;
+  readonly freenetEnabled?: boolean;
+  readonly freenetConfigured?: boolean;
+  readonly freenetUrl?: string | null;
+  readonly freenetContractReads?: boolean;
+  readonly freenetContractWrites?: boolean;
+  readonly freenetPacketTunnel?: boolean;
+  readonly freenetPropagation?: boolean;
 }
 
 export interface MulticastNetworkInfo {
@@ -235,6 +251,18 @@ export type HostToWorkletMessage =
       readonly rnode: boolean;
       readonly rnodeDeviceId?: number | null;
       readonly rnodeBaudRate?: number;
+    }
+  | {
+      readonly type: "set-freenet-config";
+      readonly enabled: boolean;
+      readonly url?: string | null;
+      readonly authToken?: string;
+      readonly capabilities?: {
+        readonly contractReads: boolean;
+        readonly contractWrites: boolean;
+        readonly packetTunnel: boolean;
+        readonly propagation: boolean;
+      };
     }
   | { readonly type: "set-developer-mode"; readonly enabled: boolean }
   | { readonly type: "list-catalog" }
