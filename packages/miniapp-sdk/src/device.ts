@@ -1,4 +1,5 @@
 import { callHost, MiniappHostError } from "./rpc.js";
+import type { InboundStream, ShareOffer, StreamOffer, StreamOfferBatch, StreamSink } from "@twistedpear/miniapp-runtime";
 
 export type DeviceAvailability =
   | "available"
@@ -29,7 +30,7 @@ export interface DeviceOpenRequest {
   readonly tier?: string;
   readonly purpose: string;
   readonly rateHz?: number;
-  readonly options?: Readonly<Record<string, unknown>>;
+  readonly options?: Readonly<Record<string, unknown>> & { readonly voiceDuplex?: boolean };
   readonly maxDurationMs?: number;
 }
 
@@ -95,9 +96,9 @@ export class DeviceError extends Error {
   }
 }
 
-async function deviceCall<T>(method: string, payload?: unknown): Promise<T> {
+async function deviceCall<T>(method: string, payload?: unknown, capability?: string): Promise<T> {
   try {
-    return (await callHost("device", method, payload)) as T;
+    return (await callHost("device", method, payload, capability)) as T;
   } catch (error) {
     if (error instanceof MiniappHostError) {
       throw new DeviceError(error.code, error.message);
@@ -156,6 +157,7 @@ export async function write(
 }
 
 export interface DeviceStreamConstraints {
+  /** Advisory ceilings only; the host's measured supply is authoritative. */
   readonly candidates?: ReadonlyArray<{
     readonly plane: "webrtc" | "pears-bulk" | "reticulum" | "lxmf" | "cas";
     readonly effectiveBps: number;
@@ -166,6 +168,8 @@ export interface DeviceStreamConstraints {
     readonly lowBattery?: boolean;
   }>;
   readonly preferredPlane?: "webrtc" | "pears-bulk" | "reticulum" | "lxmf" | "cas";
+  readonly encoding?: string;
+  readonly codec?: "vp8" | "vp9" | "h264" | "opus" | "pcm" | "jpeg";
 }
 
 export interface DeviceStreamSession {
@@ -178,6 +182,7 @@ export interface DeviceStreamSession {
     readonly rung: string;
     readonly rungIndex: number;
     readonly demandBps: number;
+    readonly admittedDemandBps: number;
     readonly supplyBps: number;
     readonly reason: string;
   };
@@ -196,3 +201,44 @@ export async function closeStream(streamHandle: string | DeviceStreamSession): P
   const handle = typeof streamHandle === "string" ? streamHandle : streamHandle.handle;
   await deviceCall("closeStream", { handle });
 }
+
+/** Current app-owned streams, including live host adaptation rung changes. */
+export async function streams(): Promise<ReadonlyArray<DeviceStreamSession>> {
+  return deviceCall("streams", {}, "device:stream");
+}
+
+export async function shareOffers(): Promise<ReadonlyArray<ShareOffer>> {
+  return deviceCall("shareOffers", {}, "device:share-policy:read");
+}
+
+/** Opens trusted host chrome; the app supplies only untrusted purpose text. */
+export async function requestShareOffer(purpose: string): Promise<ShareOffer | null> {
+  return deviceCall("requestShareOffer", { purpose }, "device:stream");
+}
+
+/** Requests revocation in host chrome; apps cannot mutate the store directly. */
+export async function revokeShareOffer(id: string): Promise<boolean> {
+  const result = await deviceCall<{ revoked: boolean }>("revokeShareOffer", { id }, "device:stream");
+  return result.revoked;
+}
+
+export type { ShareOffer };
+
+export async function *incoming(): AsyncIterable<StreamOffer> {
+  let cursor: string | undefined;
+  while (true) {
+    const batch = await deviceCall<StreamOfferBatch>("incoming", { cursor }, "device:stream");
+    cursor = batch.cursor;
+    for (const offer of batch.offers) yield offer;
+  }
+}
+
+export function accept(offer: StreamOffer | string, sink: StreamSink): Promise<InboundStream> {
+  return deviceCall("accept", { offerId: typeof offer === "string" ? offer : offer.id, sink }, "device:stream");
+}
+
+export async function decline(offer: StreamOffer | string, reason?: string): Promise<void> {
+  await deviceCall("decline", { offerId: typeof offer === "string" ? offer : offer.id, reason }, "device:stream");
+}
+
+export type { InboundStream, StreamOffer, StreamSink };

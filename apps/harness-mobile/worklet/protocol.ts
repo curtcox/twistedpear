@@ -55,6 +55,9 @@ export type ConfirmationKind =
   | "device-session"
   | "device-stream"
   | "device-remote-grant"
+  | "device-share-offer"
+  | "device-share-revoke"
+  | "link-probe"
   | "freenet-update";
 
 export interface HostConfirmationRequestView {
@@ -170,6 +173,15 @@ export interface DeviceStateView {
   readonly indicators: ReadonlyArray<DeviceActiveIndicatorView>;
   readonly disabledClasses: ReadonlyArray<string>;
   readonly remoteAcquisitionEnabled: boolean;
+  readonly shareOffers: ReadonlyArray<{
+    readonly id: string;
+    readonly appId: string;
+    readonly displayLabel: string;
+    readonly classId: string;
+    readonly tierId: string;
+    readonly maxRung: string;
+    readonly expiresAt: number;
+  }>;
 }
 
 export interface WebStorageQuotaView {
@@ -308,6 +320,8 @@ export type HostToWorkletMessage =
   | { readonly type: "device-set-class-disabled"; readonly classId: string; readonly disabled: boolean }
   | { readonly type: "device-set-remote"; readonly enabled: boolean }
   | { readonly type: "device-kill-session"; readonly handle: string }
+  | { readonly type: "device-revoke-share"; readonly appId: string; readonly id: string }
+  | { readonly type: "peer-webrtc-data"; readonly sessionId: string; readonly dataHex: string }
   | {
       readonly type: "device-bridge-response";
       readonly token: string;
@@ -377,6 +391,7 @@ export type WorkletToHostMessage =
       readonly indicators: ReadonlyArray<DeviceActiveIndicatorView>;
       readonly disabledClasses: ReadonlyArray<string>;
       readonly remoteAcquisitionEnabled: boolean;
+      readonly shareOffers: DeviceStateView["shareOffers"];
     }
   | {
       readonly type: "device-bridge-request";
@@ -436,6 +451,8 @@ export type WorkletToHostMessage =
   | { readonly type: "peer-webrtc-signal"; readonly token: string; readonly sessionId: string; readonly role: "offer" | "answer"; readonly remoteSignal?: string }
   | { readonly type: "peer-webrtc-establish"; readonly token: string; readonly sessionId: string; readonly remoteSignal?: string }
   | { readonly type: "peer-webrtc-close"; readonly sessionId: string }
+  | { readonly type: "peer-webrtc-data-send"; readonly token: string; readonly sessionId: string; readonly dataHex: string }
+  | { readonly type: "inbound-media-frame"; readonly appId: string; readonly handle: string; readonly sink: { readonly kind: string; readonly widgetId?: string }; readonly encoding: string; readonly dataHex: string }
   | { readonly type: "peer-chrome-cancel"; readonly sessionId: string }
   | { readonly type: "multicast-start" }
   | { readonly type: "multicast-stop" }

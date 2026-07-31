@@ -43,6 +43,13 @@ in [docs/miniapp-sdk.md](../../docs/miniapp-sdk.md). Rules:
   draw over or acknowledge ([SPEC-CHROME](../spec-chrome/spec.md)).
 - A grant is scoped to one (app, capability) pair; nothing in this spec aggregates
   grants.
+- `link:observe` exposes only app-scoped peer summaries; `link:probe` is a separate,
+  rate-limited traffic-generation authority.
+- `device:share-policy:read` is read-only. Outbound share offers are authored and
+  revoked in trusted host chrome, never by the app.
+- `device:stream:raw-inbound` is separate from `device:stream`; without it, accepted
+  media terminates in host-rendered video/speaker sinks and raw frames do not enter the
+  sandbox.
 
 ## Grant lifecycle
 

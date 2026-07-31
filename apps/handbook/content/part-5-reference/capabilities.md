@@ -28,6 +28,8 @@ Every id below must be exercised by at least one Handbook applet (coverage gate)
 - **`apps:preview`** — Run a built app in the host's sandboxed dev-preview slot.
 - **`share:cas`** — Store and retrieve bounded content-addressed data shared by 256t id.
 - **`peer:connect`** — Ask trusted host chrome to find, confirm, and connect an app-scoped peer.
+- **`link:observe`** — See which peers are reachable and how good the connection to each is.
+- **`link:probe`** — Send a small test transmission to measure a connection (uses airtime and battery).
 - **`relay:configure`** — Enable, disable, or reconfigure host relay interfaces and relay mode (ask each time).
 - **`relay:read`** — Read host relay mode, interface status, and diagnostics.
 - **`freenet:contract`** — Read and publish Freenet contract state. Updates are published to a global network and cannot be recalled (asks each time for put/update).
@@ -59,6 +61,8 @@ Every id below must be exercised by at least one Handbook applet (coverage gate)
 - **`device:thermal`** — Coarse device thermal buckets only — precise curves are a fingerprinting vector. (default tier; consent: low).
 - **`device:stream`** — Stream any already-held device data to a peer. Never implied by a device grant alone.
 - **`device:remote`** — Request a device on a peer's host. Confers nothing on the serving host.
+- **`device:share-policy:read`** — See which peers this app is currently sharing your camera or microphone with.
+- **`device:stream:raw-inbound`** — Receive raw camera frames or audio from a peer into the app itself.
 
 Manifests declare the full list; users may grant a subset at install.
 Withholding a capability turns matching probes into `not-granted` cards.

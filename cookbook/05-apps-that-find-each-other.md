@@ -360,10 +360,19 @@ The failure path matters too:
 a call that arrived in a point release will still throw on hosts between those versions.
 Degrade rather than die.
 
-> **⚠️ Works, with limits — what `presence` actually tells you.** The snapshot is coarse:
-> peer and interface state, not signal strength, not per-link throughput, not battery. Nothing
-> here supports a real link-quality graph, and the numbers do not update on their own — this
-> app polls because there is no event to subscribe to.
+> **`presence` remains coarse.** For a capability-gated, app-scoped per-peer roster, use
+> `links.peers()` and `links.watch()`. Exact remote bandwidth is never exposed: Line Check
+> combines host-observed quality with the peer's coarse, TTL-bounded readiness bucket.
+
+### Line check: two-sided realtime truth
+
+![Line Check reachability matrix](/cookbook/images/05-line-check.png)
+
+Line Check labels low-confidence declared paths as “probably,” spends airtime only when the
+user chooses **Measure now**, and reads a host-owned share policy that the app cannot widen.
+On a LoRa path, “events only” is a successful and honest result.
+
+Full source: [apps/line-check/bundle.js](apps/line-check/bundle.js).
 
 > **Peer mechanisms are rendezvous, not necessarily data planes.** A QR-created connection
 > may use WebRTC; an ntfy-created connection may use a Reticulum gateway. The connected-peer

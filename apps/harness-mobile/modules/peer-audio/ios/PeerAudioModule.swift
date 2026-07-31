@@ -20,13 +20,21 @@ public final class TwistedPearPeerAudioModule: Module {
     }
 
     AsyncFunction("recordPcm16") { (durationMs: Int, sampleRate: Int) -> Data in
+      return try self.record(durationMs: durationMs, sampleRate: sampleRate, voiceDuplex: false)
+    }
+
+    AsyncFunction("recordVoicePcm16") { (durationMs: Int, sampleRate: Int) -> Data in
+      return try self.record(durationMs: durationMs, sampleRate: sampleRate, voiceDuplex: true)
+    }
+  }
+
+  private func record(durationMs: Int, sampleRate: Int, voiceDuplex: Bool) throws -> Data {
       guard durationMs >= 100 && durationMs <= 30_000 else { throw Exception(name: "PCM_BOUNDS", description: "Native peer recording is outside the host budget") }
       try self.validate(sampleRate: sampleRate, samples: 1)
-      let session = AVAudioSession.sharedInstance(); try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker]); try session.setPreferredSampleRate(Double(sampleRate)); try session.setActive(true)
+      let session = AVAudioSession.sharedInstance(); try session.setCategory(.playAndRecord, mode: voiceDuplex ? .voiceChat : .measurement, options: [.defaultToSpeaker, .allowBluetooth]); try session.setPreferredSampleRate(Double(sampleRate)); try session.setActive(true)
       let engine = AVAudioEngine(); let input = engine.inputNode; let lock = NSLock(); var output = Data(); let maximum = Int(Double(durationMs) * Double(sampleRate) * 2.0 / 1000.0)
       input.installTap(onBus: 0, bufferSize: 4096, format: input.outputFormat(forBus: 0)) { buffer, _ in guard let channel = buffer.floatChannelData?[0] else { return }; var bytes = Data(capacity: Int(buffer.frameLength) * 2); for index in 0..<Int(buffer.frameLength) { var sample = Int16(max(-1, min(1, channel[index])) * Float(Int16.max)).littleEndian; withUnsafeBytes(of: &sample) { bytes.append(contentsOf: $0) } }; lock.lock(); if output.count < maximum { output.append(bytes.prefix(maximum - output.count)) }; lock.unlock() }
       engine.prepare(); try engine.start(); Thread.sleep(forTimeInterval: Double(durationMs) / 1000.0); engine.stop(); input.removeTap(onBus: 0); try session.setActive(false); lock.lock(); let result = output; lock.unlock(); return result
-    }
   }
 
   private func validate(sampleRate: Int, samples: Int) throws {

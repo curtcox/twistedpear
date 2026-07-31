@@ -80,6 +80,7 @@ function floatToPcm16(pcm: Float32Array): Uint8Array { const bytes = new Uint8Ar
 function pcm16ToFloat(bytes: Uint8Array): Float32Array { const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength); const pcm = new Float32Array(Math.floor(bytes.length / 2)); for (let index = 0; index < pcm.length; index += 1) pcm[index] = view.getInt16(index * 2, true) / 32768; return pcm; }
 async function playNativePeerFrames(framesHex: ReadonlyArray<string>, sampleRate = 44_100): Promise<void> { for (const frame of framesHex) await playNativePeerPcm(floatToPcm16(encodePeerAudioFsk(peerAudioUnhex(frame), { sampleRate })), sampleRate); }
 async function recordNativePeerFrames(sampleRate = 44_100): Promise<ReadonlyArray<string>> { const pcm = pcm16ToFloat(await recordNativePeerPcm(15_000, sampleRate)); const frames = decodePeerAudioFskStream(pcm, { sampleRate }); if (frames.length === 0) throw new Error("No valid peer audio frames were detected"); return frames.map(peerAudioHex); }
+async function playInboundNativeMedia(dataHex: string, encoding: string): Promise<void> { const frame = peerAudioUnhex(dataHex); if (frame.length < 36 || new TextDecoder().decode(frame.subarray(0, 4)) !== "TPD2" || frame[5] !== 2) throw new Error("Inbound audio frame is malformed"); const payloadLength = new DataView(frame.buffer, frame.byteOffset, frame.byteLength).getUint32(16, false); if (payloadLength !== frame.length - 36 || encoding.includes("opus") || encoding.includes("narrowband")) throw new Error("Native host received an unsupported media encoding"); const samples = new Float32Array(frame.slice(36).buffer); await playNativePeerPcm(floatToPcm16(samples), encoding.includes("48k") ? 48_000 : encoding.includes("8k") ? 8_000 : 16_000); }
 
 const DEFAULT_DOCKER_PORT = 4_242;
 const ANDROID_EMULATOR_HOST = "10.0.2.2";
@@ -98,6 +99,9 @@ const CONFIRM_KIND_TITLES: Readonly<Record<ConfirmationKind, string>> = {
   "device-session": "Allow a device session?",
   "device-stream": "Stream a device to a peer?",
   "device-remote-grant": "Let a remote peer use a device on this host?",
+  "device-share-offer": "Share a device with this peer?",
+  "device-share-revoke": "Stop sharing this device?",
+  "link-probe": "Measure this peer link?",
   "freenet-update": "Publish an irreversible Freenet contract update?"
 };
 
@@ -465,7 +469,8 @@ export default function App() {
         sessions: message.sessions,
         indicators: message.indicators,
         disabledClasses: message.disabledClasses,
-        remoteAcquisitionEnabled: message.remoteAcquisitionEnabled
+        remoteAcquisitionEnabled: message.remoteAcquisitionEnabled,
+        shareOffers: message.shareOffers
       });
       return;
     }
@@ -493,6 +498,13 @@ export default function App() {
           });
         }
       })();
+      return;
+    }
+
+    if (message.type === "inbound-media-frame") {
+      if (message.sink.kind === "speaker" && peerAudioUnhex(message.dataHex)[5] === 5) appendLog(`Inbound derived event received (${message.encoding})`);
+      else if (message.sink.kind === "speaker") void playInboundNativeMedia(message.dataHex, message.encoding).then(() => appendLog(`Inbound ${message.encoding} media → speaker (${message.dataHex.length / 2} bytes)`)).catch((error) => appendLog(`Inbound media failed: ${error instanceof Error ? error.message : String(error)}`));
+      else appendLog(`Inbound ${message.encoding} media → ${message.sink.kind} (${message.dataHex.length / 2} bytes)`);
       return;
     }
 
@@ -853,7 +865,7 @@ export default function App() {
           </View>
         </View>
       ) : null}
-      {deviceState !== null && deviceState.indicators.length > 0 ? (
+      {deviceState !== null && (deviceState.indicators.length > 0 || deviceState.shareOffers.length > 0) ? (
         <View
           testID="device-active-banner"
           style={[styles.deviceActiveBanner, status.miniappRunning ? styles.deviceActiveBannerPinned : null]}
@@ -869,6 +881,16 @@ export default function App() {
                 onPress={() => sendToWorklet({ type: "device-kill-session", handle: indicator.handle })}
               >
                 <Text style={styles.buttonLabel}>Stop</Text>
+              </Pressable>
+            </View>
+          ))}
+          {deviceState.shareOffers.map((offer) => (
+            <View key={offer.id} style={styles.deviceActiveBannerRow}>
+              <Text style={styles.deviceActiveBannerText}>
+                {offer.appId} · sharing {offer.classId}:{offer.tierId} with {offer.displayLabel}
+              </Text>
+              <Pressable style={styles.dangerButton} onPress={() => sendToWorklet({ type: "device-revoke-share", appId: offer.appId, id: offer.id })}>
+                <Text style={styles.buttonLabel}>Stop sharing</Text>
               </Pressable>
             </View>
           ))}

@@ -20,6 +20,13 @@ When you complete a procedure on real hardware, register the run in the repo’s
 - Keep the host app in the **foreground** during discovery windows.
 - Export a diagnostic report on each device and use **Compare report** to diff results.
 
+The inventory probe is non-invasive: it verifies that link observation/probing and
+device sharing surfaces are declared by this host without opening media hardware or
+spending probe airtime. Active probing, inbound raw media, and share-offer changes
+remain confirmation-bound host actions.
+
+{{applet:device-inventory}}
+
 ## BLE peer
 
 Requires two phones with BLE enabled and the BLE interface turned on in host settings.

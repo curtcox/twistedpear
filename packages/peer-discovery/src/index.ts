@@ -42,6 +42,7 @@ export interface EstablishedPeer { readonly authenticated: true; readonly confir
 export interface PeerPairingDriver { request(adapter: PeerDiscoveryAdapter, request: PeerConnectRequest): Promise<EstablishedPeer>; listen(adapter: PeerDiscoveryAdapter, request: PeerConnectRequest): Promise<EstablishedPeer>; }
 export interface PeerHandle { readonly id: string; }
 export interface PeerSummary { readonly fingerprint: string; readonly displayLabel: string; readonly state: "connected" | "closed"; readonly rendezvous: PeerDiscoveryKind; readonly dataPlane: EstablishedPeer["dataPlane"]; }
+export interface AppPeerSummary extends PeerSummary { readonly handle: PeerHandle; readonly connectedAt: number; }
 interface HandleEntry { readonly appId: string; readonly runtimeId: string; readonly peer: EstablishedPeer; closed: boolean; }
 export class PeerSessionManager {
   private readonly handles = new Map<string, HandleEntry>(); private nextHandle = 0;
@@ -49,6 +50,27 @@ export class PeerSessionManager {
   request(appId: string, runtimeId: string, request: PeerConnectRequest): Promise<PeerHandle> { return this.open("request", appId, runtimeId, request); }
   listen(appId: string, runtimeId: string, request: PeerConnectRequest): Promise<PeerHandle> { return this.open("listen", appId, runtimeId, request); }
   diagnostics(): Promise<ReadonlyArray<{ readonly kind: PeerDiscoveryKind; readonly availability: DiscoveryAvailability }>> { return this.registry.diagnostics(); }
+  /** App-scoped authenticated routes. Never exposes another app's handles. */
+  list(appId: string): ReadonlyArray<AppPeerSummary> {
+    const routes = new Map(this.routes.list().map((route) => [route.ownerId, route]));
+    return [...this.handles.entries()]
+      .filter(([, entry]) => entry.appId === appId && !entry.closed)
+      .map(([id, entry]) => ({
+        handle: { id },
+        fingerprint: entry.peer.fingerprint,
+        displayLabel: entry.peer.displayLabel,
+        state: "connected",
+        rendezvous: entry.peer.rendezvous,
+        dataPlane: entry.peer.dataPlane,
+        connectedAt: routes.get(id)?.connectedAt ?? 0
+      }));
+  }
+  /** Host-only route resolution after app ownership has been checked. */
+  route(appId: string, handle: PeerHandle): import("./route-registry.js").ConfirmedPeerRoute | undefined {
+    const entry = this.handles.get(handle.id);
+    if (entry === undefined || entry.appId !== appId || entry.closed) return undefined;
+    return this.routes.list().find((route) => route.ownerId === handle.id);
+  }
   private async open(mode: "request" | "listen", appId: string, runtimeId: string, request: PeerConnectRequest): Promise<PeerHandle> { const count = [...this.handles.values()].filter((x) => x.appId === appId && x.runtimeId === runtimeId && !x.closed).length; if (count >= this.maxHandlesPerRuntime) throw new PeerDiscoveryError("QUOTA_EXCEEDED", "Peer handle quota exceeded"); const adapter = await this.registry.select(request.mechanisms); const peer = await this.driver[mode](adapter, request); if (peer.authenticated !== true || peer.confirmed !== true) throw new PeerDiscoveryError("POLICY_DENIED", "Pairing driver returned an unconfirmed peer"); const id = `peer-${runtimeId}-${this.nextHandle++}`; this.handles.set(id, { appId, runtimeId, peer, closed: false }); this.routes.attach(id, request.service, peer); return { id }; }
   info(appId: string, runtimeId: string, handle: PeerHandle): PeerSummary { const entry = this.owned(appId, runtimeId, handle); return { fingerprint: entry.peer.fingerprint, displayLabel: entry.peer.displayLabel, state: entry.closed ? "closed" : "connected", rendezvous: entry.peer.rendezvous, dataPlane: entry.peer.dataPlane }; }
   async close(appId: string, runtimeId: string, handle: PeerHandle): Promise<void> { const entry = this.owned(appId, runtimeId, handle); if (!entry.closed) { entry.closed = true; this.routes.detach(handle.id); await entry.peer.close?.(); } }

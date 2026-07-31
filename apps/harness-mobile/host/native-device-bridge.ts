@@ -5,6 +5,7 @@
 
 import { Camera } from "expo-camera";
 import { Vibration } from "react-native";
+import { nativePeerAudioSupported, recordNativePeerPcm, requestNativePeerAudioPermission } from "@twistedpear/peer-audio";
 
 export type NativeDeviceAvailability =
   | "available"
@@ -30,6 +31,9 @@ export async function nativeDeviceAvailability(classId: string): Promise<NativeD
       return "unsupported";
     }
   }
+  if (classId === "microphone") {
+    return nativePeerAudioSupported() ? "permission-required" : "unsupported";
+  }
   if (classId === "haptics") {
     return typeof Vibration?.vibrate === "function" ? "available" : "unsupported";
   }
@@ -46,7 +50,23 @@ export async function nativeDeviceSense(
   if (classId === "camera") {
     return senseNativeCamera();
   }
+  if (classId === "microphone") {
+    if (!(await requestNativePeerAudioPermission())) throw new Error("Microphone permission was denied.");
+    const sampleRate = options.tier === "pcm" ? 48_000 : 8_000;
+    const pcm = await recordNativePeerPcm(120, sampleRate, options.voiceDuplex === true);
+    const samples = pcm16ToFloat(pcm);
+    return options.tier === "pcm"
+      ? { sampleRate, channels: 1, samples }
+      : { pcm: samples, tones: [] };
+  }
   throw new Error(`No native sense effect for device class "${classId}".`);
+}
+
+function pcm16ToFloat(bytes: Uint8Array): number[] {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const samples = new Array<number>(Math.floor(bytes.byteLength / 2));
+  for (let index = 0; index < samples.length; index += 1) samples[index] = view.getInt16(index * 2, true) / 32_768;
+  return samples;
 }
 
 export async function nativeDeviceActuate(

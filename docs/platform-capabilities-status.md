@@ -2,7 +2,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-24
+audited: 2026-07-31
 register: none
 -->
 
@@ -17,8 +17,8 @@ completed evidence stays in [STATUS-COMPLETE.md](../STATUS-COMPLETE.md).
 | Peer implementation types | `HostPlatformId` in [`packages/miniapp-runtime/src/services/host-info.ts`](../packages/miniapp-runtime/src/services/host-info.ts) |
 | Live probe on a running host | Handbook [difference matrix](../apps/handbook/content/part-2-hosts/difference-matrix.md) via `host.info()` |
 
-Current closed set: **21 core + 28 device = 49** capability ids. Current
-`HOST_API_VERSION` is **0.11.0**.
+Current closed set: **23 core + 30 device = 53** capability ids. Current
+`HOST_API_VERSION` is **0.12.0**.
 
 ## Peer implementation types
 
@@ -103,6 +103,8 @@ Cross-cutting wiring gaps (affect many rows below):
 | `apps:preview` | done · conf · soft | partial · unit · soft | partial · unit · soft | done · conf · soft | done · conf · soft |
 | `share:cas` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · conf · soft |
 | `peer:connect` | done · conf · soft | done · conf · emu | done · conf · emu | done · conf · soft | done · unit · soft |
+| `link:observe` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | done · conf · soft |
+| `link:probe` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | done · conf · soft |
 | `relay:configure` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | done · unit · soft |
 | `relay:read` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | done · unit · soft |
 | `freenet:contract` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · unit · soft |
@@ -125,6 +127,10 @@ Cross-cutting wiring gaps (affect many rows below):
   physical/browser/service trials are in
   [local-peer-discovery-evidence.md](local-peer-discovery-evidence.md). Browser LP2P is
   intentionally unsupported.
+- **`link:*`**: the SDK/broker, estimator, two-sided readiness types, probe budgets, and
+  Line Check conformance path are complete. Shipping hosts still need their observed
+  transport telemetry wired into `LinkObservatoryBackend`; until then those cells remain
+  `partial` rather than claiming live link measurements.
 - **`relay:*` on web**: full transport-node relay is out of scope for browser leaves
   ([LIMITATIONS §8](../LIMITATIONS.md)); cells are `n/a`. On `node`, `InterfaceManager` is
   exposed on `NodeHostSession` and a focused wiring test proves the mini-app broker path
@@ -180,6 +186,8 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
 | `device:thermal` | partial · unit · soft | partial · unit · soft | partial · unit · soft | n/a · n/a · n/a | partial · conf · soft |
 | `device:stream` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
 | `device:remote` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · conf · soft |
+| `device:share-policy:read` | partial · unit · soft | partial · unit · soft | partial · unit · soft | partial · unit · soft | done · conf · soft |
+| `device:stream:raw-inbound` | stub · unit · soft | stub · unit · soft | stub · unit · soft | stub · unit · soft | stub · unit · soft |
 
 ### Device notes
 
@@ -199,6 +207,11 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
   remaining Expo drivers (motion/battery) and hardware evidence are open
   ([device-io-plan.md](device-io-plan.md)). Session formal coverage:
   `npm run formal:device-session`.
+- Outbound media now fails closed without a live host-authored share offer and a configured
+  plane egress. The generic WebRTC/Pears/Reticulum/LXMF/CAS binder, receive-side
+  host-sink router, `TPD2` timing, jitter/clock estimators, and codec effect contract are
+  software-tested. Real platform codec/transport openers and trusted share chrome remain
+  host integration work, so the shipping rows stay `partial`/`stub`.
 - No `device:*` id is hardware-validated yet.
 
 ## Evidence commands
@@ -212,6 +225,7 @@ Runtime + simulated drivers are unit-tested; shipping hosts inject a simulated
 | ios | `npm run test:ios-sim:required`; `npm run test:ios-sim` |
 | Device/runtime (sim) | `npm test -- packages/miniapp-runtime/test/device.test.ts` |
 | Device session formal | `npm run formal:device-session` |
+| Realtime stream formal | `npm run formal:stream` |
 | Relay taxonomy | `npm test -- packages/miniapp-runtime/test/relay.test.ts` |
 | Worklet flag-plane relay | `npm test -- packages/miniapp-runtime/test/worklet-flag-relay.test.ts` |
 | Node relay/device wiring | `npm test -- packages/cli/test/host-relay-device-wiring.test.ts` |

@@ -192,6 +192,8 @@ export async function startControlServer(options = {}) {
     status: (label) => request(label, { cmd: "status" }).then((frame) => frame.status),
     announce: (label) => request(label, { cmd: "announce" }),
     send: (label, toLxmfAddress, nonce) => request(label, { cmd: "send", toLxmfAddress, nonce }),
+    realtimeInbox: (label) => request(label, { cmd: "realtime-inbox" }).then((frame) => frame.inbox ?? []),
+    sendRealtime: (label, toLxmfAddress, nonce, payloadHex) => request(label, { cmd: "send-realtime", toLxmfAddress, nonce, payloadHex }),
     command: (label, cmd, payload = {}, timeoutMs) =>
       request(label, { cmd, ...payload }, timeoutMs),
     async close() {

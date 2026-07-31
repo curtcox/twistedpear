@@ -34,6 +34,7 @@ export {
   deviceCapabilityId,
   deviceClassById,
   type DeviceBandwidthProfile,
+  type DeviceEncodingBandwidthProfile,
   type DeviceClassDefaults,
   type DeviceClassEntry,
   type DeviceConsentClass,
@@ -124,6 +125,42 @@ export {
   type StreamPlane
 } from "./device-admission.js";
 export {
+  initialLinkQuality,
+  updateLinkQuality,
+  type DeclaredLinkMeasurement,
+  type DeliveredLinkMeasurement,
+  type LinkMeasurement,
+  type LinkQuality,
+  type LinkQualityConfidence,
+  type LinkQualitySource
+} from "./link-quality.js";
+export {
+  decideMediaCapability,
+  initialMediaReadinessState,
+  minimumBandwidthBucket,
+  negotiateMediaEncoding,
+  normalizeMediaReadiness,
+  stepMediaReadiness,
+  type BandwidthBucket,
+  type MediaCapability,
+  type MediaClassId,
+  type MediaReadinessClass,
+  type MediaReadinessEvent,
+  type MediaReadinessPhase,
+  type MediaReadinessState,
+  type PeerMediaReadiness
+} from "./media-readiness.js";
+export {
+  drainJitterBuffer,
+  initialJitterBuffer,
+  pushJitterFrame,
+  updateClockOffset,
+  type ClockOffsetEstimate,
+  type ClockOffsetSample,
+  type JitterBufferState,
+  type TimedMediaFrame
+} from "./media-timing.js";
+export {
   initialRemoteGrantStore,
   isRemoteGrantLive,
   remoteGrantKey,
@@ -132,6 +169,24 @@ export {
   type RemoteGrantEvent,
   type RemoteGrantPhase
 } from "./device-remote.js";
+export {
+  initialStreamState,
+  stepStream,
+  streamMachine,
+  type StreamEvent,
+  type StreamPhase,
+  type StreamState
+} from "./stream-machine.js";
+export {
+  initialShareOfferStore,
+  isShareOfferLive,
+  shareOfferPermits,
+  stepShareOfferStore,
+  type ShareOffer,
+  type ShareOfferEvent,
+  type ShareOfferPhase,
+  type ShareTargetKind
+} from "./device-share.js";
 export {
   PAYMENT_AID_BLOCKLIST,
   NfcPaymentAidError,

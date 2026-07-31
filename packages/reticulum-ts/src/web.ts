@@ -19,6 +19,7 @@ export type {
 } from "./interfaces/websocket-client.js";
 export { Reticulum, RETICULUM_MTU } from "./reticulum.js";
 export { BandwidthLimiter } from "./transport/bandwidth.js";
+export type { BandwidthReservation, BandwidthReservationClass } from "./transport/bandwidth.js";
 export type { ByteRateLimiter } from "./transport/bandwidth.js";
 export type { ReticulumOptions } from "./reticulum.js";
 export { Identity } from "./identity.js";

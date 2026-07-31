@@ -2,7 +2,7 @@
 // Source: specs/spec-device/registry/device-classes.json
 
 export interface DeviceCapabilityDefinition {
-  readonly id: "device:location" | "device:location:precise" | "device:ambient-light" | "device:camera" | "device:camera:frames" | "device:microphone" | "device:microphone:pcm" | "device:motion" | "device:motion:samples" | "device:torch" | "device:speaker" | "device:speaker:pcm" | "device:tts" | "device:stt" | "device:haptics" | "device:battery" | "device:screen-capture" | "device:screen-capture:frames" | "device:nfc" | "device:nfc:apdu" | "device:biometric" | "device:proximity" | "device:barometer" | "device:thermometer" | "device:hygrometer" | "device:thermal" | "device:stream" | "device:remote";
+  readonly id: "device:location" | "device:location:precise" | "device:ambient-light" | "device:camera" | "device:camera:frames" | "device:microphone" | "device:microphone:pcm" | "device:motion" | "device:motion:samples" | "device:torch" | "device:speaker" | "device:speaker:pcm" | "device:tts" | "device:stt" | "device:haptics" | "device:battery" | "device:screen-capture" | "device:screen-capture:frames" | "device:nfc" | "device:nfc:apdu" | "device:biometric" | "device:proximity" | "device:barometer" | "device:thermometer" | "device:hygrometer" | "device:thermal" | "device:stream" | "device:remote" | "device:share-policy:read" | "device:stream:raw-inbound";
   readonly description: string;
   readonly classId: string | null;
   readonly tierId: string | null;
@@ -230,6 +230,22 @@ export const DEVICE_CAPABILITY_DEFINITIONS = [
   {
     "id": "device:remote",
     "description": "Request a device on a peer's host. Confers nothing on the serving host.",
+    "classId": null,
+    "tierId": null,
+    "consentClass": "sensitive",
+    "isDefaultTier": false
+  },
+  {
+    "id": "device:share-policy:read",
+    "description": "See which peers this app is currently sharing your camera or microphone with.",
+    "classId": null,
+    "tierId": null,
+    "consentClass": "low",
+    "isDefaultTier": false
+  },
+  {
+    "id": "device:stream:raw-inbound",
+    "description": "Receive raw camera frames or audio from a peer into the app itself.",
     "classId": null,
     "tierId": null,
     "consentClass": "sensitive",

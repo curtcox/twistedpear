@@ -11,6 +11,8 @@ describe("peer discovery registry and handles", () => {
     const manager = new PeerSessionManager(registry, { async request(selected) { return { authenticated: true, confirmed: true, fingerprint: "fp", displayLabel: "Peer", rendezvous: selected.kind, dataPlane: "reticulum" }; }, async listen(selected) { return { authenticated: true, confirmed: true, fingerprint: "fp2", displayLabel: "Peer 2", rendezvous: selected.kind, dataPlane: "gateway" }; } });
     const handle = await manager.request("chat", "run-a", { service: "chat", purpose: "test", mechanisms: "any", timeoutMs: 1000 });
     expect(manager.info("chat", "run-a", handle).rendezvous).toBe("manual");
+    expect(manager.list("chat")).toEqual([expect.objectContaining({ handle, displayLabel: "Peer" })]);
+    expect(manager.list("other-app")).toEqual([]);
     expect(() => manager.info("chat", "run-b", handle)).toThrow(/Unknown peer handle/);
     await manager.closeRuntime("chat", "run-a");
     expect(manager.info("chat", "run-a", handle).state).toBe("closed");

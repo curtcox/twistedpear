@@ -7,7 +7,7 @@ audited: 2026-07-21
 register: none
 -->
 
-Current `HOST_API_VERSION`: **`0.11.0`**.
+Current `HOST_API_VERSION`: **`0.12.0`**.
 Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 
 ## Changelog
@@ -23,6 +23,7 @@ Manifests pin `minHostApi`; hosts reject packages that require a newer API.
 - **`0.9.0`** — relay:configure and relay:read add host-owned control of relay mode, interface direction, and per-interface telemetry.
 - **`0.10.0`** — device:* capabilities, device inventory/diagnostics/open/close/read, and host.info() device inventory (location:coarse and ambient-light end-to-end).
 - **`0.11.0`** — freenet:contract adds brokered Freenet get/put/update with irreversible-update confirmation for put/update.
+- **`0.12.0`** — Per-peer link observation and budgeted probes, media-readiness types, outbound share-policy visibility, and raw-inbound stream gating.
 
 ## host.info()
 

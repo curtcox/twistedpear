@@ -83,10 +83,10 @@ export async function browserDeviceSense(
     return senseBrowserLocation(options.enableHighAccuracy === true);
   }
   if (classId === "camera") {
-    return senseBrowserCamera();
+    return senseBrowserCamera(options);
   }
   if (classId === "microphone") {
-    return senseBrowserMicrophone();
+    return senseBrowserMicrophone(options);
   }
   if (classId === "battery") {
     return senseBrowserBattery();
@@ -178,22 +178,24 @@ function senseBrowserLocation(enableHighAccuracy: boolean): Promise<{
   });
 }
 
-async function senseBrowserCamera(): Promise<{
+async function senseBrowserCamera(options: Readonly<Record<string, unknown>>): Promise<{
   barcodes: ReadonlyArray<{ format: string; value: string }>;
   motionDetected: boolean;
   faceCount: number;
   objectCount: number;
   thumbnail?: { width: number; height: number; format: "rgba8"; bytes: Uint8Array };
-}> {
+} | { width: number; height: number; format: "rgba8"; bytes: Uint8Array }> {
   const nav = browserNavigator();
   if (typeof nav?.mediaDevices?.getUserMedia !== "function") {
     throw new Error("Camera capture is unavailable in this browser.");
   }
+  const rawFrames = options.tier === "frames";
   const stream = await nav.mediaDevices.getUserMedia({
     video: { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } },
     audio: false
   });
   try {
+    if (rawFrames) return captureBrowserCameraFrame(stream);
     const barcodes = await detectBarcodesFromStream(stream);
     return {
       barcodes,
@@ -204,6 +206,17 @@ async function senseBrowserCamera(): Promise<{
   } finally {
     for (const track of stream.getTracks()) track.stop();
   }
+}
+
+async function captureBrowserCameraFrame(stream: MediaStream): Promise<{ width: number; height: number; format: "rgba8"; bytes: Uint8Array }> {
+  const doc = (globalThis as { document?: Document }).document;
+  if (doc === undefined) throw new Error("Camera frame capture requires a host document.");
+  const video = doc.createElement("video"); video.muted = true; video.playsInline = true; video.srcObject = stream; await video.play(); await new Promise((resolve) => setTimeout(resolve, 120));
+  try {
+    const width = Math.max(1, Math.min(512, video.videoWidth || 512)); const height = Math.max(1, Math.min(384, video.videoHeight || 384));
+    const canvas = doc.createElement("canvas"); canvas.width = width; canvas.height = height; const context = canvas.getContext("2d", { willReadFrequently: true }); if (context === null) throw new Error("Camera canvas is unavailable.");
+    context.drawImage(video, 0, 0, width, height); return { width, height, format: "rgba8", bytes: new Uint8Array(context.getImageData(0, 0, width, height).data) };
+  } finally { video.pause(); video.srcObject = null; }
 }
 
 async function detectBarcodesFromStream(
@@ -241,11 +254,11 @@ async function detectBarcodesFromStream(
   }
 }
 
-async function senseBrowserMicrophone(): Promise<{
+async function senseBrowserMicrophone(options: Readonly<Record<string, unknown>>): Promise<{
   level: number;
   voiceActive: boolean;
   tones: ReadonlyArray<string>;
-}> {
+} | { sampleRate: number; channels: number; samples: Float32Array }> {
   const nav = browserNavigator();
   const AudioContextCtor =
     (globalThis as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
@@ -254,8 +267,9 @@ async function senseBrowserMicrophone(): Promise<{
   if (typeof nav?.mediaDevices?.getUserMedia !== "function" || AudioContextCtor === undefined) {
     throw new Error("Microphone capture is unavailable in this browser.");
   }
+  const voiceDuplex = options.voiceDuplex === true;
   const stream = await nav.mediaDevices.getUserMedia({
-    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+    audio: { echoCancellation: voiceDuplex, noiseSuppression: voiceDuplex, autoGainControl: voiceDuplex, channelCount: 1 },
     video: false
   });
   const context = new AudioContextCtor();
@@ -265,14 +279,12 @@ async function senseBrowserMicrophone(): Promise<{
     analyser.fftSize = 2048;
     source.connect(analyser);
     await new Promise((resolve) => setTimeout(resolve, 120));
-    const data = new Uint8Array(analyser.fftSize);
-    analyser.getByteTimeDomainData(data);
+    const floatData = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(floatData);
+    if (options.tier === "pcm") return { sampleRate: context.sampleRate, channels: 1, samples: floatData };
     let sumSquares = 0;
-    for (const sample of data) {
-      const centered = (sample - 128) / 128;
-      sumSquares += centered * centered;
-    }
-    const rms = Math.sqrt(sumSquares / data.length);
+    for (const sample of floatData) sumSquares += sample * sample;
+    const rms = Math.sqrt(sumSquares / floatData.length);
     const level = Math.min(1, Math.max(0, rms * 4));
     return {
       level,

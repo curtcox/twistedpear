@@ -30,6 +30,7 @@ describe("BandwidthLimiter", () => {
     const limiter = new BandwidthLimiter(clock, 100);
     let completed = false;
     const pending = limiter.consume(100).then(() => { completed = true; });
+    expect(limiter.queueDepthBytes()).toBe(100);
 
     clock.advance(999);
     await Promise.resolve();
@@ -37,6 +38,7 @@ describe("BandwidthLimiter", () => {
     clock.advance(1);
     await pending;
     expect(completed).toBe(true);
+    expect(limiter.queueDepthBytes()).toBe(0);
   });
 
   it("serializes concurrent reservations through one aggregate allowance", async () => {
@@ -60,5 +62,23 @@ describe("BandwidthLimiter", () => {
     const clock = new ManualClock();
     expect(() => new BandwidthLimiter(clock, 0)).toThrow(/positive safe integer/);
     expect(() => new BandwidthLimiter(clock, 1.5)).toThrow(/positive safe integer/);
+  });
+
+  it("caps realtime reservations and releases them", () => {
+    const limiter = new BandwidthLimiter(new ManualClock(), 100);
+    const realtime = limiter.reserve("realtime", 60);
+    expect(realtime).not.toBeNull();
+    expect(limiter.reserve("realtime", 1)).toBeNull();
+    expect(limiter.reservationSnapshot()).toMatchObject([{ class: "realtime", bytesPerSecond: 60 }]);
+    realtime?.release();
+    expect(limiter.reserve("realtime", 60)).not.toBeNull();
+  });
+
+  it("keeps all reservation classes within the aggregate limit", () => {
+    const limiter = new BandwidthLimiter(new ManualClock(), 100);
+    expect(limiter.reserve("control", 20)).not.toBeNull();
+    expect(limiter.reserve("bulk", 30)).not.toBeNull();
+    expect(limiter.reserve("realtime", 50)).not.toBeNull();
+    expect(limiter.reserve("bulk", 1)).toBeNull();
   });
 });

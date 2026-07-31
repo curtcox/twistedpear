@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-21
+audited: 2026-07-31
 register: none
 -->
 
@@ -178,6 +178,14 @@ everything below is a known cost of the chosen design or of the platforms involv
   (`npm run test:miniapp-benchmark`; record with `MINIAPP_BENCHMARK_RECORD=1`).
 - One foreground mini-app at a time in v1; no background execution. Dev side-loading is
   localhost/adb-only, off by default, and badged **DEV** in the UI.
+- **Realtime peer media is core-complete but not shipping-host-complete.** The broker/SDK,
+  app-scoped link model, readiness/share policy, fail-closed stream and reservation
+  abstractions, TPD2 timing, receive sinks, simulated codec, Line Check app, and
+  SPEC-STREAM conformance are implemented. Desktop/mobile/web hosts do not yet inject
+  live transport telemetry, trusted share/invite chrome, concrete five-plane media
+  openers, or platform codec/AEC drivers. Consequently, declared paths remain labelled
+  “probably,” and `device.stream()` rejects when no host egress is configured. No
+  real-device or multi-machine audio/video claim is made.
 - Mini-app `announce.publish` / `announce.subscribe` currently use the runtime's in-memory
   service in the desktop, mobile, and web hosts. The broker contract and app receive paths
   are tested, but no host adapter carries those SDK announces over Reticulum yet; separate

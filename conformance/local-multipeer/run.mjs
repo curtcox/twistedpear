@@ -25,6 +25,7 @@ import { join } from "node:path";
 import { assert, runMain, section, step } from "../lib/index.mjs";
 import { startControlServer } from "../../scripts/peers/control-server.mjs";
 import { GUI_PEER_IDS, adapterFor } from "../../scripts/peers/registry.mjs";
+import { encodeDeviceStreamFrame } from "../../packages/protocol/dist/device-stream-framing.js";
 import {
   CONTROL_PORT,
   forgetPeer,
@@ -166,7 +167,7 @@ await runMain(async () => {
     );
 
     const startedAt = Date.now();
-    const results = { discovery: [], messaging: [] };
+    const results = { discovery: [], messaging: [], realtime: [] };
 
     section("Attach");
     // Wait concurrently: one unavailable GUI peer should cost one attach
@@ -262,6 +263,30 @@ await runMain(async () => {
       }
     }
 
+    section("Realtime control and media carrier");
+    for (const from of attached) {
+      for (const to of attached) {
+        if (from === to) continue;
+        const suffix = `${from}-${to}-${Date.now().toString(36)}`;
+        const payloads = [
+          { kind: "readiness", bytes: encodeLinkEnvelope({ hostApi: "0.12.0", accepts: [{ classId: "microphone", maxRung: "16k-opus", encodings: ["16k-opus"] }], offers: [], downlinkBucket: "audio", constrained: ["foreground-only"], consentPosture: "ask", expiresAt: Date.now() + 60_000 }) },
+          { kind: "derived", bytes: encodeMediaFrame(`media-derived-${suffix}`, encodeDeviceStreamFrame({ version: 2, sampleKind: 5, sessionToken: 1, sequence: 0, captureAtUs: Date.now() * 1_000, clockId: 1, payload: new TextEncoder().encode('{"kind":"microphone","tier":"derived","voiceActive":true}') })) },
+          { kind: "pcm", bytes: encodeMediaFrame(`media-pcm-${suffix}`, encodeDeviceStreamFrame({ version: 2, sampleKind: 2, sessionToken: 2, sequence: 0, captureAtUs: Date.now() * 1_000, clockId: 2, payload: new Uint8Array(new Float32Array(320).buffer) })) }
+        ];
+        for (const payload of payloads) {
+          const nonce = `${payload.kind}-${suffix}`;
+          const payloadHex = bytesHex(payload.bytes);
+          const at = Date.now();
+          await control.sendRealtime(from, addresses.get(to), nonce, payloadHex);
+          await waitUntil(`${to} never received ${payload.kind} realtime payload from ${from}`, async () => (await control.realtimeInbox(to)).some((entry) => entry.nonce === nonce && entry.kind === "payload" && entry.payloadHex === payloadHex), MESSAGE_TIMEOUT_MS);
+          await waitUntil(`${from} never received ${to}'s ${payload.kind} realtime echo`, async () => (await control.realtimeInbox(from)).some((entry) => entry.nonce === nonce && entry.kind === "echo" && entry.payloadHex === payloadHex), MESSAGE_TIMEOUT_MS);
+          const elapsedMs = Date.now() - at;
+          step(`${from} → ${to} → ${from} ${payload.kind} carrier (${payload.bytes.length} bytes, ${elapsedMs}ms)`);
+          results.realtime.push({ from, to, kind: payload.kind, bytes: payload.bytes.length, elapsedMs });
+        }
+      }
+    }
+
     const proof = {
       generatedAt: new Date().toISOString(),
       mode: attach ? "attach" : "managed",
@@ -282,7 +307,7 @@ await runMain(async () => {
     writeFileSync(proofPath, `${JSON.stringify(proof, null, 2)}\n`);
 
     section("Result");
-    step(`${attached.length} peers, ${results.discovery.length} discovery pairs, ${results.messaging.length} round-trips`);
+    step(`${attached.length} peers, ${results.discovery.length} discovery pairs, ${results.messaging.length} message round-trips, ${results.realtime.length} realtime carrier round-trips`);
     step(`proof: ${proofPath}`);
   } finally {
     await control?.close();
@@ -292,3 +317,22 @@ await runMain(async () => {
     }
   }
 });
+
+function encodeLinkEnvelope(readiness) {
+  const id = new TextEncoder().encode("readiness");
+  const payload = new TextEncoder().encode(JSON.stringify(readiness));
+  const out = new Uint8Array(8 + id.length + payload.length);
+  out.set([0x54, 0x50, 0x4c, 0x31]); out[4] = 1; out[5] = id.length; new DataView(out.buffer).setUint16(6, payload.length, false); out.set(id, 8); out.set(payload, 8 + id.length);
+  return out;
+}
+
+function encodeMediaFrame(idText, frame) {
+  const id = new TextEncoder().encode(idText);
+  const chunk = new Uint8Array(8 + frame.length);
+  new DataView(chunk.buffer).setUint32(0, 0, false); new DataView(chunk.buffer).setUint16(4, 0, false); new DataView(chunk.buffer).setUint16(6, 1, false); chunk.set(frame, 8);
+  const out = new Uint8Array(8 + id.length + chunk.length);
+  out.set([0x54, 0x50, 0x4d, 0x31]); out[4] = 2; out[5] = id.length; new DataView(out.buffer).setUint16(6, chunk.length, false); out.set(id, 8); out.set(chunk, 8 + id.length);
+  return out;
+}
+
+function bytesHex(bytes) { return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(""); }

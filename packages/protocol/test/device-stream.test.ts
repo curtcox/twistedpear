@@ -34,6 +34,25 @@ describe("device stream framing", () => {
     const frames = frameDeviceStreamPayload(1, DEVICE_STREAM_KIND.cameraFrame, payload, 64);
     expect(frames.length).toBe(4);
     expect(decodeDeviceStreamFrame(frames[0]!).payload.length).toBe(64);
+    expect(decodeDeviceStreamFrame(frames[0]!)).toMatchObject({ version: 2, captureAtUs: 0, clockId: 0 });
+  });
+
+  it("emits timed TPD2 frames while retaining TPD1 decode compatibility", () => {
+    const encoded = encodeDeviceStreamFrame({
+      version: 2,
+      sampleKind: DEVICE_STREAM_KIND.cameraFrame,
+      sessionToken: 7,
+      sequence: 9,
+      captureAtUs: 12_345_678,
+      clockId: 42,
+      payload: new Uint8Array([1, 2])
+    });
+    expect(new TextDecoder().decode(encoded.subarray(0, 4))).toBe("TPD2");
+    expect(decodeDeviceStreamFrame(encoded)).toMatchObject({
+      version: 2,
+      captureAtUs: 12_345_678,
+      clockId: 42
+    });
   });
 
   it("refuses control kinds", () => {

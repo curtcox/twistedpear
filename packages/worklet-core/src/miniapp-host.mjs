@@ -5,6 +5,11 @@ import {
   HOST_API_VERSION,
   MiniappHost,
   MiniappLifecycle,
+  PeerRouteStreamEgressFactory,
+  PeerRouteMediaBridge,
+  CodecStreamEgressFactory,
+  ReservedStreamEgressFactory,
+  createPeerRouteLinkSupply,
   createHybridDeviceDrivers,
   createSimulatedDeviceManager,
   describeCapability,
@@ -171,6 +176,9 @@ export function createWorkletMiniappHost(options) {
     "haptics"
   ];
   const defaultPlatform = options.defaultPlatform ?? "desktop";
+  const peerRouteMediaBridge = options.peerRouteMediaBridge ?? (typeof options.peerSessionManager?.route === "function" && typeof options.peerSessionManager?.list === "function" ? new PeerRouteMediaBridge(options.peerSessionManager, { now, onFrame: options.onInboundMediaFrame }) : undefined);
+  const peerRouteMediaEgress = peerRouteMediaBridge === undefined ? undefined : new CodecStreamEgressFactory(peerRouteMediaBridge, options.openMediaCodec ?? (async () => { throw new Error("A platform media codec is not configured on this host."); }));
+  const reservedMediaEgress = peerRouteMediaEgress === undefined || options.realtimeReservations === undefined ? peerRouteMediaEgress : new ReservedStreamEgressFactory(peerRouteMediaEgress, options.realtimeReservations);
   /** @type {import("../../miniapp-runtime/dist/worklet.js").DeviceManager} */
   const deviceManager =
     options.deviceManager ??
@@ -181,6 +189,11 @@ export function createWorkletMiniappHost(options) {
       onChromeChange: () => {
         void pushDeviceChromeState();
       },
+      requestShareOffer: options.requestShareOffer,
+      confirmShareOfferRevoke: options.confirmShareOfferRevoke,
+      shareOfferTargetsPeer: options.shareOfferTargetsPeer,
+      linkSupply: options.linkSupply ?? (typeof options.peerSessionManager?.route === "function" ? createPeerRouteLinkSupply(options.peerSessionManager) : undefined),
+      streamEgressFactory: options.streamEgressFactory ?? reservedMediaEgress ?? (typeof options.peerSessionManager?.route === "function" ? new PeerRouteStreamEgressFactory(options.peerSessionManager) : undefined),
       drivers:
         typeof options.requestDeviceBridge === "function"
           ? createHybridDeviceDrivers(browserDeviceClasses, {
@@ -362,6 +375,10 @@ export function createWorkletMiniappHost(options) {
       get: async (_appId, t256) => casStore.get(t256)
     },
     peerSessionManager: options.peerSessionManager,
+    localMediaReadiness: options.localMediaReadiness ?? (() => ({ hostApi: HOST_API_VERSION, accepts: [{ classId: "microphone", maxRung: "16k-opus", encodings: ["16k-opus", "8k-narrowband"] }, { classId: "camera", maxRung: "thumbnails-1fps", encodings: ["thumbnails-1fps"] }], offers: [], downlinkBucket: "audio", constrained: ["foreground-only"], consentPosture: "ask", expiresAt: now() + 60_000 })),
+    confirmCostlyLinkProbe: options.confirmCostlyLinkProbe,
+    controlReservations: options.controlReservations,
+    inboundMediaBackend: options.inboundMediaBackend ?? peerRouteMediaBridge,
     relayService: options.relayService,
     ...(options.freenetBackend === undefined ? {} : { freenetBackend: options.freenetBackend }),
     deviceManager,
@@ -481,6 +498,7 @@ export function createWorkletMiniappHost(options) {
       deviceManager.inventory(),
       deviceManager.diagnostics()
     ]);
+    const appId = host.snapshot().appId;
     options.send({
       type: "device-state",
       inventory,
@@ -488,7 +506,8 @@ export function createWorkletMiniappHost(options) {
       sessions: deviceManager.chromeSessions(),
       indicators: deviceManager.activeIndicators(),
       disabledClasses: deviceManager.disabledClasses(),
-      remoteAcquisitionEnabled: deviceManager.isRemoteAcquisitionEnabled()
+      remoteAcquisitionEnabled: deviceManager.isRemoteAcquisitionEnabled(),
+      shareOffers: appId === null ? [] : deviceManager.listShareOffers(appId)
     });
   }
 
@@ -751,6 +770,12 @@ export function createWorkletMiniappHost(options) {
     async forceCloseDeviceSession(handle) {
       await deviceManager.forceClose(handle);
       await pushDeviceChromeState();
+    },
+
+    async revokeShareOffer(appId, id) {
+      const revoked = deviceManager.revokeShareOfferFromChrome(appId, id);
+      await pushDeviceChromeState();
+      return revoked;
     },
 
     async devSideLoad(manifest, bundleBytes) {

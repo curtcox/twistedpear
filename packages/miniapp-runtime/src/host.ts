@@ -7,6 +7,14 @@ import { AppIdentityService, type IdentityBackend } from "./services/identity.js
 import { NamespacedLxmfService } from "./services/lxmf.js";
 import { PresenceService, type PresenceBackend } from "./services/presence.js";
 import {
+  LinkQualityService,
+  LinkServiceError,
+  PeerRouteLinkObservatory,
+  type LinkObservatoryBackend,
+  type LinkProbeOptions,
+  type LinkQualityServiceOptions
+} from "./services/links.js";
+import {
   HostInfoService,
   defaultHostInfo,
   type HostInfo,
@@ -34,6 +42,7 @@ import { diffWidgetTrees, type WidgetPatch } from "./ui/diff.js";
 import { validateWidgetTree } from "./ui/validate.js";
 import { PeerBrokerService, PeerServiceError, type PeerRequestPayload } from "./services/peers.js";
 import type { PeerHandle, PeerSessionManager } from "@twistedpear/peer-discovery";
+import type { PeerMediaReadiness } from "@twistedpear/protocol";
 import { RelayBrokerService, RelayBrokerServiceError, type RelayService } from "./services/relay.js";
 import {
   FreenetBrokerService,
@@ -47,6 +56,7 @@ import {
   type DeviceSessionHandle
 } from "./services/device.js";
 import type { DeviceManager } from "./device-manager.js";
+import { InboundMediaRouter, type InboundMediaBackend, type StreamSink } from "./media-stream.js";
 
 export interface LaunchManifest {
   readonly name: string;
@@ -87,6 +97,11 @@ export interface MiniappHostOptions {
   readonly announceService?: AnnounceBackend;
   readonly resourceBackend?: ResourceFetchBackend;
   readonly presenceBackend?: PresenceBackend;
+  /** Host-owned, app-scoped peer roster and link measurement backend. */
+  readonly linkObservatoryBackend?: LinkObservatoryBackend;
+  readonly confirmCostlyLinkProbe?: LinkQualityServiceOptions["confirmCostlyProbe"];
+  readonly localMediaReadiness?: (appId: string, peer: PeerHandle) => PeerMediaReadiness | null;
+  readonly controlReservations?: import("./services/links.js").PeerRouteLinkObservatoryOptions["controlReservations"];
   readonly hostInfoBackend?: HostInfoBackend;
   readonly callbacks?: MiniappHostCallbacks;
   readonly deriveDestinationHash?: (appId: string, publisherPublicKey: string) => Promise<string>;
@@ -104,6 +119,7 @@ export interface MiniappHostOptions {
   readonly freenetBackend?: FreenetContractBackend;
   /** Host-owned device manager (inventory, sessions, drivers). */
   readonly deviceManager?: DeviceManager;
+  readonly inboundMediaBackend?: InboundMediaBackend;
   /** Deterministic clock used by simulation and replay adapters. */
   readonly now?: () => number;
   /** Independent audit sink used by production-backed simulation projections. */
@@ -159,6 +175,7 @@ export class MiniappHost {
   private readonly announceService: AnnounceBackend;
   private readonly resourceService: ResourceService | null;
   private readonly presenceService: PresenceService | null;
+  private readonly linkService: LinkQualityService | null;
   private readonly hostInfoService: HostInfoService;
   private readonly aiService: AiService | null;
   private readonly appsService: AppsService | null;
@@ -166,6 +183,7 @@ export class MiniappHost {
   private readonly relayService: RelayBrokerService | null;
   private readonly freenetService: FreenetBrokerService | null;
   private readonly deviceService: DeviceBrokerService | null;
+  private readonly inboundMedia: InboundMediaRouter | null;
   readonly workspace: WorkspaceService;
 
   private active: ActiveApp | null = null;
@@ -200,6 +218,17 @@ export class MiniappHost {
     this.resourceService = options.resourceBackend === undefined ? null : new ResourceService(options.resourceBackend);
     this.presenceService =
       options.presenceBackend === undefined ? null : new PresenceService(options.presenceBackend);
+    const linkBackend = options.linkObservatoryBackend ?? (options.peerSessionManager === undefined
+      ? undefined
+      : new PeerRouteLinkObservatory(options.peerSessionManager, { now: () => this.now(), ...(options.localMediaReadiness === undefined ? {} : { localReadiness: options.localMediaReadiness }), ...(options.controlReservations === undefined ? {} : { controlReservations: options.controlReservations }) }));
+    this.linkService = linkBackend === undefined
+      ? null
+      : new LinkQualityService(linkBackend, {
+          now: () => this.now(),
+          ...(options.confirmCostlyLinkProbe === undefined
+            ? {}
+            : { confirmCostlyProbe: options.confirmCostlyLinkProbe })
+        });
     this.hostInfoService = new HostInfoService(
       options.hostInfoBackend ?? {
         info: async () =>
@@ -219,6 +248,9 @@ export class MiniappHost {
         ? null
         : new FreenetBrokerService(options.freenetBackend, options.confirmationChannel);
     this.deviceService = options.deviceManager === undefined ? null : new DeviceBrokerService(options.deviceManager);
+    this.inboundMedia = options.inboundMediaBackend === undefined
+      ? null
+      : new InboundMediaRouter(options.inboundMediaBackend, () => this.now());
     this.workspace = new WorkspaceService(options.kvBackend, options.workspaceLimits);
     this.registerHandlers();
   }
@@ -257,6 +289,7 @@ export class MiniappHost {
     }
     if (capability.startsWith("device:") && this.active?.manifest.name === appId) {
       this.deviceService?.closeApp(appId);
+      await this.inboundMedia?.closeApp(appId);
     }
     return this.options.grantStore.revoke(appId, publisherPublicKey, capability as never, this.now());
   }
@@ -368,6 +401,7 @@ export class MiniappHost {
     }
 
     this.deviceService?.closeApp(this.active.manifest.name);
+    await this.inboundMedia?.closeApp(this.active.manifest.name);
     const snapshot = await this.active.lifecycle.suspend(reason);
     this.options.callbacks?.onLifecycle?.(snapshot);
     return this.snapshot();
@@ -391,6 +425,7 @@ export class MiniappHost {
     const appId = this.active.manifest.name;
     await this.peerService?.closeRuntime(appId, this.active.runtimeId);
     this.deviceService?.closeApp(appId);
+    await this.inboundMedia?.closeApp(appId);
     await this.cancelAiStreams(appId);
     const snapshot = await this.active.lifecycle.stop(reason);
     this.logActive(appId, `stopped (${reason})`);
@@ -409,6 +444,7 @@ export class MiniappHost {
       await this.cancelAiStreams(snapshot.appId);
       await this.peerService?.closeRuntime(snapshot.appId, this.active.runtimeId);
       this.deviceService?.closeApp(snapshot.appId);
+      await this.inboundMedia?.closeApp(snapshot.appId);
       this.logActive(snapshot.appId, `crashed (${snapshot.reason ?? "watchdog"})`);
       this.active = null;
       this.options.callbacks?.onLifecycle?.(snapshot);
@@ -745,6 +781,24 @@ export class MiniappHost {
       return { closed: true };
     });
 
+    const links = () => {
+      if (this.linkService === null) {
+        throw new LinkServiceError("LINK_UNCONFIGURED", "Link observation is not configured on this host");
+      }
+      return this.linkService;
+    };
+    this.broker.register("links", "peers", "link:observe", async (_request, context) =>
+      links().peers(context.appId));
+    this.broker.register("links", "watch", "link:observe", async (request, context) =>
+      links().watch(context.appId, (request.payload as { cursor?: string } | undefined)?.cursor));
+    this.broker.register("links", "probe", "link:probe", async (request, context) => {
+      const payload = request.payload as {
+        peer: PeerHandle;
+        options?: LinkProbeOptions;
+      };
+      return links().probe(context.appId, payload.peer, payload.options);
+    });
+
     const relay = () => {
       if (this.relayService === null) throw new RelayBrokerServiceError("RELAY_UNCONFIGURED", "Relay/interface management is not configured on this host");
       return this.relayService;
@@ -837,6 +891,29 @@ export class MiniappHost {
       ));
     this.broker.register("device", "closeStream", null, async (request, context) =>
       device().closeStream(context.appId, request.payload as { handle: string }));
+    this.broker.register("device", "streams", "device:stream", async (_request, context) =>
+      device().streams(context.appId));
+    this.broker.register("device", "shareOffers", "device:share-policy:read", async (_request, context) =>
+      device().shareOffers(context.appId));
+    this.broker.register("device", "requestShareOffer", "device:stream", async (request, context) =>
+      device().requestShareOffer(context.appId, request.payload as { purpose: string }));
+    this.broker.register("device", "revokeShareOffer", "device:stream", async (request, context) =>
+      device().revokeShareOffer(context.appId, request.payload as { id: string }));
+    const inbound = () => {
+      if (this.inboundMedia === null) throw new DeviceBrokerServiceError("DEVICE_UNCONFIGURED", "Inbound media is not configured");
+      return this.inboundMedia;
+    };
+    this.broker.register("device", "incoming", "device:stream", async (request, context) =>
+      inbound().pollOffers(context.appId, (request.payload as { cursor?: string } | undefined)?.cursor));
+    this.broker.register("device", "accept", "device:stream", async (request, context) => {
+      const payload = request.payload as { offerId: string; sink: StreamSink };
+      return inbound().accept(context.appId, payload.offerId, payload.sink);
+    });
+    this.broker.register("device", "decline", "device:stream", async (request, context) => {
+      const payload = request.payload as { offerId: string; reason?: string };
+      await inbound().decline(context.appId, payload.offerId, payload.reason);
+      return { declined: true };
+    });
 
     this.broker.register("presence", "snapshot", "presence", async () => {
       if (this.presenceService === null) {

@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: live
-audited: 2026-07-21
+audited: 2026-07-31
 register: software
 -->
 
@@ -17,7 +17,7 @@ a paid account, or a real multi-machine network. It contains only open work.
 Short CI and nightly runs already exercise every soak path below. The open criterion is
 the full planned duration, not basic implementation.
 
-Last consolidated: 2026-07-21.
+Last consolidated: 2026-07-31.
 
 ## Release qualification
 
@@ -55,7 +55,7 @@ These items are explicitly outside the release exit criteria.
 | Reader-guide capture completion | 47 of 106 images are real desktop/browser host/runtime captures; exact remaining filenames and blockers are recorded per guide | [User guide](guide/images/README.md), [author guide](authors/images/README.md), [cookbook](cookbook/images/README.md) |
 | Unified peer discovery and connection | Software landed: invitation/pairing, `peer:connect` SDK/broker, and desktop/native/web trusted chrome adapters (manual, QR, audio, ntfy, WebRTC/Reticulum, BLE). Remaining: physical/browser/service evidence gates and browser LP2P | [Implementation status](docs/local-peer-discovery-implementation.md), [evidence register](docs/local-peer-discovery-evidence.md), [plan](docs/local-peer-discovery-plan.md), [platform capabilities status](docs/platform-capabilities-status.md) |
 | Device I/O and sensors for mini-apps | Plan phases 1–7 landed in software: registry, Device Manager, SDK (`inventory`/`diagnostics`/`open`/`close`/`read`/`write`/`stream`), derived+raw sensors, actuators, sidecar, admission, remote acquisition, NFC payment AID blocklist, biometric assertions, scalar sensors, [device-class runbook](docs/device-class-runbook.md). Host Devices & Sensors chrome is wired on desktop/android/ios/web. Desktop/web bridge location/camera/microphone plus browser battery/tts/haptics; native mobile bridges location/camera/haptics. Preview surfaces are host-rendered without sandbox pixel round-trip. SPEC-DEVICE session machine has TLA+ + Layer-3 vectors (`npm run formal:device-session`). Remaining: more Expo drivers (motion/battery), hardware-gated evidence, full InterfaceManager ownership on shipping hosts | [Device I/O plan](docs/device-io-plan.md), [SPEC-DEVICE](specs/spec-device/spec.md), [platform capabilities status](docs/platform-capabilities-status.md) |
-| Realtime peer media (`line-check`) | Planned, no code. Evaluation found the control surface largely present (capabilities, grants, device sessions, admission function, sidecar codec, preview surfaces, remote grants) and the media path essentially absent: no peer roster, no link measurement, no peer readiness exchange, no transport binding for `device.stream()`, no receive side, no codecs, no frame timestamps, no outbound share-policy store. Three admission defects found in passing (rate scaling double-counts media bitrate, `admittedWithinHeadroom` is vacuous, app-supplied supply is trusted). Phases 1–3 (measurement, two-sided readiness, sharing policy) are independently useful | [Realtime peer media plan](docs/realtime-media-plan.md), [Device I/O plan](docs/device-io-plan.md) |
+| Realtime peer media (`line-check`) | Core software landed: app-scoped link observation and bounded probes; expiring two-sided readiness; host-authored outbound share offers; fail-closed five-plane egress binding and receive-side host sinks; corrected admission plus backpressure adaptation; `TPD2` timestamps, clock/jitter primitives, encoding profiles and codec Effects boundary; foreground-only signed invite routing; Line Check cookbook app; SPEC-STREAM executable/TLA+/trace/vector cross-check (`npm run formal:stream`). Remaining software is shipping-host integration: live transport telemetry, trusted share/invite chrome, concrete WebRTC/Pears/Reticulum/LXMF/CAS openers, real platform codec drivers, and end-to-end multi-host media conformance. Hardware/network evidence remains in STATUS-HARDWARE | [Realtime peer media plan](docs/realtime-media-plan.md), [SPEC-STREAM](specs/spec-stream/spec.md), [platform capabilities](docs/platform-capabilities-status.md) |
 | Freenet integration | F1–F5 software advanced on the [simulator-first plan](docs/freenet-simulator-first-work-plan.md): S4 browser unsupported by policy; Android/iOS BareKit probes require recorded `wasmExecuted` (still probe-ready until emulator/sim record); paced local-cross-node S2 100-sample series; F2 notify reconciliation + distinct-node F2 (HDLC + announce/LXMF)/F3 runner (CI smoke); user-supplied-binary supervisor (CI); mobile remote-node grant chrome wires Bare worklet contract, packet-tunnel, and Freenet-backed LXMF `PropagationServer` role with Maestro probes (disclosure/refusal/revoke/write-confirm/unavailable/reconnect); packaging posture = user-supplied supervised binary. Remaining: live S2/S7 write auth, signing/embedding, recorded simulator BareKit evidence, physical BareKit confirmation. | [Integration plan](docs/freenet-integration-plan.md), [simulator-first plan](docs/freenet-simulator-first-work-plan.md), [Option A ADR](docs/adr-freenet-app-execution.md), [F0 evidence](conformance/freenet-spike/evidence-status.json) |
 
 Hardware measurements, Apple entitlement/notarization work, real-LAN checks, Windows

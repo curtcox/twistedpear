@@ -27,7 +27,7 @@ describe("freenet:contract capability", () => {
     const entry = CAPABILITY_DEFINITIONS.find((item) => item.id === "freenet:contract");
     expect(entry).toBeDefined();
     expect(entry?.description).toContain("cannot be recalled");
-    expect(HOST_API_VERSION).toBe("0.11.0");
+    expect(HOST_API_VERSION).toBe("0.12.0");
   });
 
   it("returns FREENET_UNCONFIGURED when freenetBackend is not injected", async () => {

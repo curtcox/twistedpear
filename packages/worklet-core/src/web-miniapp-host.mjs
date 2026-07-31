@@ -19,6 +19,8 @@ import { createWebSandboxProxyBackend } from "../../miniapp-runtime/dist/sandbox
 import { encodeJsonWireValue } from "../../miniapp-runtime/dist/sandbox/json-wire.js";
 import { KvStorageBeeBackend } from "../../miniapp-runtime/dist/services/storage-bee-kv.js";
 import { createHybridDeviceDrivers, createSimulatedDeviceManager } from "../../miniapp-runtime/dist/device-manager.js";
+import { CodecStreamEgressFactory, ReservedStreamEgressFactory, PeerRouteMediaBridge, PeerRouteStreamEgressFactory, createPeerRouteLinkSupply } from "../../miniapp-runtime/dist/media-stream.js";
+import { WebCodecsMediaCodecDriver } from "../../effects/dist/media-codec.js";
 import { bytesToHex } from "../../reticulum-ts/dist/web.js";
 
 function hexToBytes(hex) {
@@ -98,6 +100,9 @@ export function createWebWorkletMiniappHost(options) {
             return { approved: reply?.approved === true, detail: reply?.detail };
           }
         };
+  const peerRouteMediaBridge = options.peerRouteMediaBridge ?? (typeof options.peerSessionManager?.route === "function" && typeof options.peerSessionManager?.list === "function" ? new PeerRouteMediaBridge(options.peerSessionManager, { now, onFrame: options.onInboundMediaFrame }) : undefined);
+  const peerRouteMediaEgress = peerRouteMediaBridge === undefined ? undefined : new CodecStreamEgressFactory(peerRouteMediaBridge, options.openMediaCodec ?? (async () => new WebCodecsMediaCodecDriver()));
+  const reservedMediaEgress = peerRouteMediaEgress === undefined || options.realtimeReservations === undefined ? peerRouteMediaEgress : new ReservedStreamEgressFactory(peerRouteMediaEgress, options.realtimeReservations);
   /** @type {import("../../miniapp-runtime/dist/device-manager.js").DeviceManager} */
   const deviceManager =
     options.deviceManager ??
@@ -122,6 +127,11 @@ export function createWebWorkletMiniappHost(options) {
       onChromeChange: () => {
         void pushDeviceChromeState();
       },
+      requestShareOffer: options.requestShareOffer,
+      confirmShareOfferRevoke: options.confirmShareOfferRevoke,
+      shareOfferTargetsPeer: options.shareOfferTargetsPeer,
+      linkSupply: options.linkSupply ?? (typeof options.peerSessionManager?.route === "function" ? createPeerRouteLinkSupply(options.peerSessionManager) : undefined),
+      streamEgressFactory: options.streamEgressFactory ?? reservedMediaEgress ?? (typeof options.peerSessionManager?.route === "function" ? new PeerRouteStreamEgressFactory(options.peerSessionManager) : undefined),
       drivers:
         options.requestHostReply === undefined
           ? undefined
@@ -197,6 +207,10 @@ export function createWebWorkletMiniappHost(options) {
     grantStore,
     kvBackend: kvStore,
     peerSessionManager: options.peerSessionManager,
+    localMediaReadiness: options.localMediaReadiness ?? (() => ({ hostApi: HOST_API_VERSION, accepts: [{ classId: "microphone", maxRung: "16k-opus", encodings: ["16k-opus", "8k-narrowband"] }, { classId: "camera", maxRung: "thumbnails-1fps", encodings: ["thumbnails-1fps"] }], offers: [], downlinkBucket: "audio", constrained: ["foreground-only"], consentPosture: "ask", expiresAt: now() + 60_000 })),
+    confirmCostlyLinkProbe: options.confirmCostlyLinkProbe,
+    controlReservations: options.controlReservations,
+    inboundMediaBackend: options.inboundMediaBackend ?? peerRouteMediaBridge,
     relayService: options.relayService,
     deviceManager,
     beeBackend,
@@ -477,6 +491,7 @@ export function createWebWorkletMiniappHost(options) {
       deviceManager.inventory(),
       deviceManager.diagnostics()
     ]);
+    const appId = host.snapshot().appId;
     options.send({
       type: "device-state",
       inventory,
@@ -484,7 +499,8 @@ export function createWebWorkletMiniappHost(options) {
       sessions: deviceManager.chromeSessions(),
       indicators: deviceManager.activeIndicators(),
       disabledClasses: deviceManager.disabledClasses(),
-      remoteAcquisitionEnabled: deviceManager.isRemoteAcquisitionEnabled()
+      remoteAcquisitionEnabled: deviceManager.isRemoteAcquisitionEnabled(),
+      shareOffers: appId === null ? [] : deviceManager.listShareOffers(appId)
     });
   }
 
@@ -695,6 +711,12 @@ export function createWebWorkletMiniappHost(options) {
     async forceCloseDeviceSession(handle) {
       await deviceManager.forceClose(handle);
       await pushDeviceChromeState();
+    },
+
+    async revokeShareOffer(appId, id) {
+      const revoked = deviceManager.revokeShareOfferFromChrome(appId, id);
+      await pushDeviceChromeState();
+      return revoked;
     },
 
     async handlePreviewUiEvent(nodeId, event, value) {

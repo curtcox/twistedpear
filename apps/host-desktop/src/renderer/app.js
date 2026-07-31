@@ -1,6 +1,7 @@
 import { renderWidgetTree } from "./widgets.js";
 import { decodeQrVideoFrame, normalizeScannedT256, supportsQrDetection } from "./qr-scanner.js";
 import { handleDeviceBridgeRequest } from "./device-bridge.js";
+import { handleMediaCodecRequest, playInboundMediaFrame } from "./media-codec-bridge.js";
 
 const statusGrid = document.querySelector("#status-grid");
 const catalogList = document.querySelector("#catalog-list");
@@ -90,7 +91,8 @@ function renderDeviceState(message) {
 
   if (deviceActiveBanner) {
     const indicators = message.indicators ?? [];
-    if (indicators.length === 0) {
+    const shareOffers = message.shareOffers ?? [];
+    if (indicators.length === 0 && shareOffers.length === 0) {
       deviceActiveBanner.hidden = true;
       deviceActiveBanner.replaceChildren();
     } else {
@@ -113,6 +115,13 @@ function renderDeviceState(message) {
         });
         row.append(text, kill);
         list.append(row);
+      }
+      for (const offer of shareOffers) {
+        const row = document.createElement("div"); row.className = "item-row";
+        const text = document.createElement("span"); text.textContent = `${offer.appId} · sharing ${offer.classId}:${offer.tierId} with ${offer.displayLabel} until ${new Date(offer.expiresAt).toLocaleTimeString()}`;
+        const kill = document.createElement("button"); kill.type = "button"; kill.className = "danger"; kill.textContent = "Stop sharing";
+        kill.addEventListener("click", () => host.send({ type: "device-revoke-share", appId: offer.appId, id: offer.id }));
+        row.append(text, kill); list.append(row);
       }
       deviceActiveBanner.replaceChildren(title, list);
     }
@@ -1156,7 +1165,10 @@ if (!host) {
         "trust-import": "Trust a new publisher?",
         "device-session": "Allow a device session?",
         "device-stream": "Stream a device to a peer?",
-        "device-remote-grant": "Let a remote peer use a device on this host?"
+        "device-remote-grant": "Let a remote peer use a device on this host?",
+        "device-share-offer": "Share a device with this peer?",
+        "device-share-revoke": "Stop sharing this device?",
+        "link-probe": "Measure this peer link?"
       };
       showHostModal({
         title: kindTitles[message.kind] ?? `Confirm ${message.kind}?`,
@@ -1243,6 +1255,12 @@ if (!host) {
     if (message.type === "device-state") renderDeviceState(message);
     if (message.type === "device-bridge-request") {
       void handleDeviceBridgeRequest(message, (reply) => host.send(reply));
+    }
+    if (message.type === "media-codec-request") {
+      void handleMediaCodecRequest(message, (reply) => host.send(reply));
+    }
+    if (message.type === "inbound-media-frame") {
+      void playInboundMediaFrame(message).then((played) => appendLog(`Inbound ${message.encoding} media → ${played ? "speaker" : message.sink.kind} (${message.dataHex.length / 2} bytes)`)).catch((error) => appendLog(`Inbound media failed: ${error instanceof Error ? error.message : String(error)}`));
     }
   });
 

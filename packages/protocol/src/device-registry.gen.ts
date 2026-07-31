@@ -8,6 +8,13 @@ export interface DeviceBandwidthProfile {
   readonly minBps: number;
   readonly targetBps: number;
   readonly burstBytes: number;
+  readonly encodings?: Readonly<Record<string, DeviceEncodingBandwidthProfile>>;
+}
+
+export interface DeviceEncodingBandwidthProfile {
+  readonly minBps: number;
+  readonly targetBps: number;
+  readonly burstBytes: number;
 }
 
 export interface DeviceTierDefinition {
@@ -38,7 +45,7 @@ export interface DeviceClassEntry {
   readonly description: string;
 }
 
-export const DEVICE_REGISTRY_HOST_API = "0.10.0" as const;
+export const DEVICE_REGISTRY_HOST_API = "0.12.0" as const;
 
 export const DEVICE_CLASS_REGISTRY: ReadonlyArray<DeviceClassEntry> = [
   {
@@ -154,7 +161,29 @@ export const DEVICE_CLASS_REGISTRY: ReadonlyArray<DeviceClassEntry> = [
       "frames": {
         "minBps": 50000,
         "targetBps": 2000000,
-        "burstBytes": 1048576
+        "burstBytes": 1048576,
+        "encodings": {
+          "720p30": {
+            "minBps": 1000000,
+            "targetBps": 2000000,
+            "burstBytes": 1048576
+          },
+          "480p15": {
+            "minBps": 350000,
+            "targetBps": 750000,
+            "burstBytes": 524288
+          },
+          "240p10": {
+            "minBps": 100000,
+            "targetBps": 250000,
+            "burstBytes": 262144
+          },
+          "thumbnails-1fps": {
+            "minBps": 20000,
+            "targetBps": 50000,
+            "burstBytes": 65536
+          }
+        }
       }
     },
     "consentClass": "elevated",
@@ -200,9 +229,26 @@ export const DEVICE_CLASS_REGISTRY: ReadonlyArray<DeviceClassEntry> = [
         "burstBytes": 1024
       },
       "pcm": {
-        "minBps": 16000,
+        "minBps": 12000,
         "targetBps": 768000,
-        "burstBytes": 65536
+        "burstBytes": 65536,
+        "encodings": {
+          "48k-pcm": {
+            "minBps": 384000,
+            "targetBps": 768000,
+            "burstBytes": 65536
+          },
+          "16k-opus": {
+            "minBps": 16000,
+            "targetBps": 24000,
+            "burstBytes": 8192
+          },
+          "8k-narrowband": {
+            "minBps": 8000,
+            "targetBps": 12000,
+            "burstBytes": 4096
+          }
+        }
       }
     },
     "consentClass": "elevated",
@@ -501,13 +547,33 @@ export const DEVICE_CLASS_REGISTRY: ReadonlyArray<DeviceClassEntry> = [
       "frames": {
         "minBps": 50000,
         "targetBps": 2000000,
-        "burstBytes": 1048576
+        "burstBytes": 1048576,
+        "encodings": {
+          "720p30": {
+            "minBps": 1000000,
+            "targetBps": 2000000,
+            "burstBytes": 1048576
+          },
+          "480p15": {
+            "minBps": 350000,
+            "targetBps": 750000,
+            "burstBytes": 524288
+          },
+          "thumbnails-1fps": {
+            "minBps": 20000,
+            "targetBps": 50000,
+            "burstBytes": 65536
+          }
+        }
       }
     },
     "consentClass": "sensitive",
     "degradationLadder": [
-      "derived",
-      "frames"
+      "720p30",
+      "480p15",
+      "thumbnails-1fps",
+      "derived-events",
+      "cas-snapshot"
     ],
     "description": "Screen capture. Always requires an explicit per-session region picker in host chrome."
   },

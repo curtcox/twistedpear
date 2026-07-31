@@ -128,6 +128,30 @@ function defaultGatewayUrl(): string {
   return `${protocol}//${location.host}`;
 }
 
+function webHexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let index = 0; index < bytes.length; index += 1) bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+  return bytes;
+}
+
+function webBytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+async function playInboundAudioFrame(dataHex: string, encoding: string): Promise<void> {
+  const frame = webHexToBytes(dataHex);
+  if (frame.length < 36 || String.fromCharCode(...frame.subarray(0, 4)) !== "TPD2" || frame[5] !== 2) throw new Error("Inbound audio frame is malformed.");
+  const view = new DataView(frame.buffer, frame.byteOffset, frame.byteLength); const payloadLength = view.getUint32(16, false); if (payloadLength !== frame.length - 36) throw new Error("Inbound audio frame length mismatch.");
+  const payload = frame.slice(36); const sampleRate = encoding.includes("48k") ? 48_000 : encoding.includes("8k") ? 8_000 : 16_000;
+  const AudioContextCtor = (globalThis as any).AudioContext ?? (globalThis as any).webkitAudioContext; if (AudioContextCtor === undefined) throw new Error("Web Audio is unavailable.");
+  const context = new AudioContextCtor({ sampleRate });
+  const play = (samples: Float32Array) => { const buffer = context.createBuffer(1, samples.length, sampleRate); buffer.copyToChannel(samples, 0); const source = context.createBufferSource(); source.buffer = buffer; source.connect(context.destination); source.onended = () => { void context.close(); }; source.start(); };
+  if (!encoding.includes("opus")) { const copy = payload.slice(); play(new Float32Array(copy.buffer)); return; }
+  const Decoder = (globalThis as any).AudioDecoder; const Chunk = (globalThis as any).EncodedAudioChunk; if (Decoder === undefined || Chunk === undefined) throw new Error("WebCodecs Opus decode is unavailable.");
+  const decoder = new Decoder({ output(audio: any) { const samples = new Float32Array(audio.numberOfFrames); audio.copyTo(samples, { planeIndex: 0, format: "f32-planar" }); audio.close(); decoder.close(); play(samples); }, error(error: unknown) { decoder.close(); void context.close(); throw error; } });
+  decoder.configure({ codec: "opus", sampleRate, numberOfChannels: 1 }); decoder.decode(new Chunk({ type: "key", timestamp: Number(view.getBigUint64(24, false)), data: payload })); await decoder.flush();
+}
+
 export default function App() {
   const [status, setStatus] = useState<WorkletStatus>(initialStatus);
   const [announces, setAnnounces] = useState<ReadonlyArray<AnnounceEntry>>([]);
@@ -330,9 +354,17 @@ export default function App() {
             if (state.role === "offer") { if (message.remoteSignal === undefined) throw new Error("WebRTC answer is missing"); await state.pc.setRemoteDescription(JSON.parse(message.remoteSignal)); }
             const deadline = Date.now() + 30_000; while (Date.now() < deadline && state.channel?.readyState !== "open") { if (state.pc.connectionState === "failed" || state.pc.connectionState === "closed") break; await new Promise((resolve) => setTimeout(resolve, 25)); }
             if (state.channel?.readyState !== "open") throw new Error(state.pc.iceConnectionState === "failed" ? "ICE failed; this network may require TURN" : "Data channel timed out");
+            state.channel.addEventListener("message", (event: MessageEvent) => { void (async () => { const buffer = event.data instanceof Blob ? await event.data.arrayBuffer() : event.data; if (buffer instanceof ArrayBuffer) sendToWorker({ type: "peer-webrtc-data", sessionId: message.sessionId, dataHex: webBytesToHex(new Uint8Array(buffer)) }); })(); });
             sendToWorker({ type: "peer-chrome-response", token: message.token, opened: true });
           } catch (error) { state?.pc.close(); peerRtcRef.current.delete(message.sessionId); appendLog(`WebRTC route unavailable: ${error instanceof Error ? error.message : String(error)}`); sendToWorker({ type: "peer-chrome-response", token: message.token, opened: false }); }
         })();
+        return;
+      }
+
+      if (message.type === "peer-webrtc-data-send") {
+        const state = peerRtcRef.current.get(message.sessionId);
+        if (state?.channel?.readyState === "open") { state.channel.send(webHexToBytes(message.dataHex)); sendToWorker({ type: "peer-chrome-response", token: message.token, sent: true }); }
+        else sendToWorker({ type: "peer-chrome-response", token: message.token, sent: false });
         return;
       }
 
@@ -439,7 +471,8 @@ export default function App() {
           sessions: message.sessions,
           indicators: message.indicators,
           disabledClasses: message.disabledClasses,
-          remoteAcquisitionEnabled: message.remoteAcquisitionEnabled
+          remoteAcquisitionEnabled: message.remoteAcquisitionEnabled,
+          shareOffers: message.shareOffers
         });
         return;
       }
@@ -467,6 +500,13 @@ export default function App() {
             });
           }
         })();
+        return;
+      }
+
+      if (message.type === "inbound-media-frame") {
+        if (message.sink.kind === "speaker" && webHexToBytes(message.dataHex)[5] === 5) appendLog(`Inbound derived event received (${message.encoding})`);
+        else if (message.sink.kind === "speaker") void playInboundAudioFrame(message.dataHex, message.encoding).catch((error) => appendLog(`Inbound audio failed: ${error instanceof Error ? error.message : String(error)}`));
+        else appendLog(`Inbound ${message.encoding} video frame received for ${message.sink.widgetId ?? "remote-video"}`);
         return;
       }
     },
@@ -693,7 +733,7 @@ export default function App() {
           }}
         />
       ) : null}
-      {deviceState !== null && deviceState.indicators.length > 0 ? (
+      {deviceState !== null && (deviceState.indicators.length > 0 || deviceState.shareOffers.length > 0) ? (
         <View
           testID="device-active-banner"
           style={[styles.deviceActiveBanner, status.miniappRunning ? styles.deviceActiveBannerPinned : null]}
@@ -709,6 +749,16 @@ export default function App() {
                 onPress={() => sendToWorker({ type: "device-kill-session", handle: indicator.handle })}
               >
                 <Text style={styles.buttonLabel}>Stop</Text>
+              </Pressable>
+            </View>
+          ))}
+          {deviceState.shareOffers.map((offer) => (
+            <View key={offer.id} style={styles.deviceActiveBannerRow}>
+              <Text style={styles.deviceActiveBannerText}>
+                {offer.appId} · sharing {offer.classId}:{offer.tierId} with {offer.displayLabel}
+              </Text>
+              <Pressable style={styles.dangerButton} onPress={() => sendToWorklet({ type: "device-revoke-share", appId: offer.appId, id: offer.id })}>
+                <Text style={styles.buttonLabel}>Stop sharing</Text>
               </Pressable>
             </View>
           ))}
@@ -1269,6 +1319,9 @@ const CONFIRM_KIND_TITLES: Readonly<Record<ConfirmationKind, string>> = {
   "device-session": "Allow a device session?",
   "device-stream": "Stream a device to a peer?",
   "device-remote-grant": "Let a remote peer use a device on this host?",
+  "device-share-offer": "Share a device with this peer?",
+  "device-share-revoke": "Stop sharing this device?",
+  "link-probe": "Measure this peer link?",
   "freenet-update": "Publish an irreversible Freenet contract update?"
 };
 

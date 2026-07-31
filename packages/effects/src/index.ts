@@ -29,3 +29,12 @@ export {
   type MachineCell,
   type MachineRow
 } from "./machine.js";
+export type {
+  EncodedMediaSample,
+  MediaCodecConfiguration,
+  MediaCodecDriver,
+  MediaCodecKind,
+  MediaSampleKind,
+  RawMediaSample
+} from "./media-codec.js";
+export { SimulatedMediaCodecDriver, WebCodecsMediaCodecDriver } from "./media-codec.js";

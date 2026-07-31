@@ -3,7 +3,9 @@ import {
   DEVICE_STREAM_KIND,
   ActuatorSafetyError,
   assertAidAllowed,
+  adaptStreamAdmission,
   decideStreamAdmission,
+  degradationLadderFor,
   defaultTierForClass,
   deriveCameraSample,
   deriveMicrophoneSample,
@@ -12,8 +14,10 @@ import {
   deviceClassById,
   initialDeviceSessionState,
   initialRemoteGrantStore,
+  initialShareOfferStore,
   isDeviceSessionLive,
   isRemoteGrantLive,
+  isShareOfferLive,
   quantizeAmbientLux,
   quantizeLocationCoarse,
   remoteGrantKey,
@@ -22,6 +26,7 @@ import {
   sanitizePcmSample,
   stepDeviceSession,
   stepRemoteGrantStore,
+  stepShareOfferStore,
   validateActuatorCommand,
   type AdmissionDecision,
   type CameraDerivedInput,
@@ -37,6 +42,8 @@ import {
   type RawMotionSample,
   type RawPcmInput,
   type RemoteDeviceGrant,
+  type ShareOffer,
+  type StreamDemand,
   type StreamPlane
 } from "@twistedpear/protocol";
 import { assertCapabilityAllowed, CapabilityError } from "./capabilities.js";
@@ -46,6 +53,7 @@ import {
   type HostConfirmationChannel
 } from "./confirm.js";
 import { DeviceStreamSidecar, type DeviceSidecarDelivery } from "./device-sidecar.js";
+import type { StreamEgress, StreamEgressFactory } from "./media-stream.js";
 import {
   createHostBridgedDrivers,
   type DeviceHostBridge
@@ -82,7 +90,7 @@ export interface DeviceOpenRequest {
   readonly tier?: string;
   readonly purpose: string;
   readonly rateHz?: number;
-  readonly options?: Readonly<Record<string, unknown>>;
+  readonly options?: Readonly<Record<string, unknown>> & { readonly voiceDuplex?: boolean };
   readonly maxDurationMs?: number;
 }
 
@@ -97,8 +105,12 @@ export type DevicePeerHandle = string;
 export type DeviceStreamHandle = string;
 
 export interface DeviceStreamConstraints {
+  /** App-authored upper bounds. They can reduce, never increase, host supply. */
   readonly candidates?: ReadonlyArray<LinkSupply>;
   readonly preferredPlane?: StreamPlane;
+  /** Requested codec/profile; the host egress must support it and admission prices it. */
+  readonly encoding?: string;
+  readonly codec?: "vp8" | "vp9" | "h264" | "opus" | "pcm" | "jpeg";
 }
 
 export interface DeviceStreamSession {
@@ -281,8 +293,7 @@ export class DeviceError extends Error {
       | "DEVICE_BANDWIDTH_INSUFFICIENT"
       | "DEVICE_SESSION_EXPIRED"
       | "DEVICE_BAD_REQUEST"
-      | "DEVICE_UNCONFIGURED"
-      | "DEVICE_BANDWIDTH_INSUFFICIENT",
+      | "DEVICE_UNCONFIGURED",
     message: string
   ) {
     super(message);
@@ -300,10 +311,30 @@ export interface DeviceManagerOptions {
   readonly externalHolders?: () => ReadonlyMap<string, string>;
   readonly policyDisabled?: ReadonlySet<string>;
   readonly sidecar?: DeviceStreamSidecar;
+  /** Host-owned link measurements used for admission. */
+  readonly linkSupply?: (appId: string, peer: DevicePeerHandle) => Promise<ReadonlyArray<LinkSupply>>;
+  /** Host-owned binding for WebRTC, Pears, Reticulum, LXMF, or CAS egress. */
+  readonly streamEgressFactory?: StreamEgressFactory;
   /** Max concurrent remote sessions host-wide (serving side). */
   readonly maxRemoteSessions?: number;
   /** Host chrome: notified when sessions/indicators/policy change. */
   readonly onChromeChange?: () => void;
+  /** Host chrome authors every field except the app's untrusted purpose text. */
+  readonly requestShareOffer?: (input: {
+    readonly appId: string;
+    readonly purpose: string;
+  }) => Promise<null | {
+    readonly targetKind: "peer" | "group";
+    readonly targetId: string;
+    readonly displayLabel: string;
+    readonly classId: "camera" | "microphone" | "screen-capture";
+    readonly tierId: string;
+    readonly maxRung: string;
+    readonly ttlMs: number;
+  }>;
+  readonly confirmShareOfferRevoke?: (offer: ShareOffer) => Promise<boolean>;
+  /** Host-owned group membership resolver; apps never enumerate group members. */
+  readonly shareOfferTargetsPeer?: (offer: ShareOffer, peer: DevicePeerHandle) => boolean;
 }
 
 /** Host-chrome view of a live device session (includes opaque handle for kill). */
@@ -330,6 +361,7 @@ interface LiveSession {
   readonly sidecarToken: number | null;
   /** Set when a remote peer acquired this session on the serving host. */
   readonly remotePeerId: string | null;
+  readonly options: Readonly<Record<string, unknown>>;
   lastReadAt: number | null;
 }
 
@@ -340,11 +372,15 @@ export class DeviceManager {
   private readonly drivers = new Map<string, DeviceDriver>();
   private readonly sessions = new Map<DeviceSessionHandle, LiveSession>();
   private readonly streams = new Map<DeviceStreamHandle, DeviceStreamSession>();
+  private readonly egresses = new Map<DeviceStreamHandle, StreamEgress>();
+  private readonly streamShareOfferIds = new Map<DeviceStreamHandle, string>();
+  private readonly streamAdaptation = new Map<DeviceStreamHandle, { appId: string; peer: string; demand: StreamDemand; deficitStreak: number; surplusStreak: number }>();
   private readonly locks = new Map<string, string>();
   private readonly sidecar: DeviceStreamSidecar;
   private readonly policyDisabled: Set<string>;
   private remoteEnabled = false;
   private remoteGrants = initialRemoteGrantStore();
+  private shareOffers = initialShareOfferStore();
   private nextHandle = 0;
   private nextStreamHandle = 0;
   private readonly now: () => number;
@@ -418,11 +454,11 @@ export class DeviceManager {
     }
 
     const tier = this.resolveTier(entry, request.tier);
-    if (entry.id === "speaker" && tier.id === "pcm") {
-      throw new DeviceError(
-        "DEVICE_TIER_REQUIRED",
-        `Tier "${tier.id}" for ${entry.id} requires a later host API phase.`
-      );
+    if (request.options?.voiceDuplex !== undefined && typeof request.options.voiceDuplex !== "boolean") {
+      throw new DeviceError("DEVICE_BAD_REQUEST", "voiceDuplex must be a boolean.");
+    }
+    if (request.options?.voiceDuplex === true && entry.id !== "microphone" && entry.id !== "speaker") {
+      throw new DeviceError("DEVICE_BAD_REQUEST", "voiceDuplex is only valid for microphone or speaker sessions.");
     }
     const capability = deviceCapabilityId(entry.id, tier.id);
     try {
@@ -488,11 +524,7 @@ export class DeviceManager {
     });
     state = stepDeviceSession(state, { kind: "device/open", at, ttlMs }).state;
     const handle = `dev-${this.nextHandle++}-${bytesToHex(this.randomBytes(4))}`;
-    const needsSidecar =
-      (entry.id === "camera" && tier.id === "frames") ||
-      (entry.id === "microphone" && tier.id === "pcm") ||
-      (entry.id === "motion" && tier.id === "samples") ||
-      (entry.id === "screen-capture" && tier.id === "frames");
+    const needsSidecar = ["camera", "microphone", "motion", "screen-capture"].includes(entry.id);
     const sidecarToken = needsSidecar ? this.sidecar.open(handle) : null;
     this.sessions.set(handle, {
       handle,
@@ -502,6 +534,7 @@ export class DeviceManager {
       consentClass,
       sidecarToken,
       remotePeerId: null,
+      options: { ...(request.options ?? {}), tier: tier.id },
       lastReadAt: null
     });
     this.notifyChrome();
@@ -524,6 +557,15 @@ export class DeviceManager {
     if (this.locks.get(session.state.classId) === session.state.holder) {
       this.locks.delete(session.state.classId);
     }
+    for (const [streamHandle, stream] of this.streams) {
+      if (stream.session !== handle) continue;
+      this.streams.delete(streamHandle);
+      this.streamShareOfferIds.delete(streamHandle);
+      this.streamAdaptation.delete(streamHandle);
+      const egress = this.egresses.get(streamHandle);
+      this.egresses.delete(streamHandle);
+      await egress?.close();
+    }
     this.notifyChrome();
   }
 
@@ -533,6 +575,11 @@ export class DeviceManager {
       const session = this.sessions.get(stream.session);
       if (session?.state.appId === appId) {
         this.streams.delete(handle);
+        this.streamShareOfferIds.delete(handle);
+        this.streamAdaptation.delete(handle);
+        const egress = this.egresses.get(handle);
+        this.egresses.delete(handle);
+        void egress?.close();
         changed = true;
       }
     }
@@ -570,7 +617,7 @@ export class DeviceManager {
       throw new DeviceError("DEVICE_UNSUPPORTED", `No sense driver for ${live.state.classId}.`);
     }
 
-    const raw = await driver.sense();
+    const raw = await driver.sense(live.options);
     const sample = this.materializeSample(live, at, raw);
     live.lastReadAt = at;
     return sample;
@@ -671,28 +718,65 @@ export class DeviceManager {
     if (entry === undefined || !entry.streamable) {
       throw new DeviceError("DEVICE_UNSUPPORTED", `Device class "${live.state.classId}" is not streamable.`);
     }
-
-    const candidates =
-      constraints.candidates ??
-      ([
-        {
-          plane: constraints.preferredPlane ?? "reticulum",
-          effectiveBps: 64_000,
-          headroomBps: 524_288
-        }
-      ] satisfies ReadonlyArray<LinkSupply>);
-
-    const admission = decideStreamAdmission(
-      {
-        classId: live.state.classId,
-        tierId: live.state.tierId,
-        rateHz: live.rateHz
-      },
-      candidates
+    const shareOffer = [...this.shareOffers.values()].find((offer) =>
+      offer.appId === appId &&
+      ((offer.targetKind === "peer" && offer.targetId === peer) ||
+        (offer.targetKind === "group" && this.options.shareOfferTargetsPeer?.(offer, peer) === true)) &&
+      offer.classId === live.state.classId &&
+      offer.tierId === live.state.tierId &&
+      isShareOfferLive(offer, this.now())
     );
+    if (shareOffer === undefined) {
+      throw new DeviceError("DEVICE_DENIED", "Host share policy does not permit this stream.");
+    }
+
+    if (this.options.linkSupply === undefined) {
+      throw new DeviceError("DEVICE_UNCONFIGURED", "No host-owned link measurement is configured for streaming.");
+    }
+    const hostCandidates = await this.options.linkSupply(appId, peer);
+    const preferred = constraints.preferredPlane === undefined
+      ? hostCandidates
+      : hostCandidates.filter((candidate) => candidate.plane === constraints.preferredPlane);
+    const candidates = applyAdvisoryCandidateCeilings(preferred, constraints.candidates);
+
+    const bandwidthProfile = entry.bandwidth[live.state.tierId];
+    if (constraints.encoding !== undefined && bandwidthProfile?.encodings?.[constraints.encoding] === undefined) {
+      throw new DeviceError("DEVICE_BAD_REQUEST", "Requested media encoding profile is unsupported.");
+    }
+    if (constraints.codec !== undefined && !codecMatchesTier(live.state.classId, live.state.tierId, constraints.codec)) {
+      throw new DeviceError("DEVICE_BAD_REQUEST", "Requested media codec is unsupported for this device tier.");
+    }
+
+    const demand = {
+      classId: live.state.classId,
+      tierId: live.state.tierId,
+      rateHz: live.rateHz,
+      ...(constraints.encoding === undefined ? {} : { encoding: constraints.encoding }),
+      ...(constraints.codec === undefined ? {} : { codec: constraints.codec })
+    };
+    let admission = decideStreamAdmission(demand, candidates);
 
     if (admission.kind === "reject") {
       throw new DeviceError("DEVICE_BANDWIDTH_INSUFFICIENT", admission.reason);
+    }
+    const ladder = degradationLadderFor(live.state.classId);
+    const maximumRungIndex = ladder.indexOf(shareOffer.maxRung);
+    if (maximumRungIndex < 0) {
+      throw new DeviceError("DEVICE_DENIED", "Host share policy contains an invalid quality ceiling.");
+    }
+    if (admission.rungIndex < maximumRungIndex) {
+      const rungDelta = maximumRungIndex - admission.rungIndex;
+      admission = {
+        ...admission,
+        kind: "degrade",
+        rung: ladder[maximumRungIndex] ?? shareOffer.maxRung,
+        rungIndex: maximumRungIndex,
+        admittedDemandBps: admission.admittedDemandBps / 2 ** rungDelta,
+        reason: `limited by host share policy to ${shareOffer.maxRung}`
+      };
+    }
+    if (this.options.streamEgressFactory === undefined) {
+      throw new DeviceError("DEVICE_UNCONFIGURED", "No host media egress is configured for this plane.");
     }
 
     const handle = `stream-${this.nextStreamHandle++}-${bytesToHex(this.randomBytes(3))}`;
@@ -702,7 +786,28 @@ export class DeviceManager {
       peer,
       admission
     };
+    let egress: StreamEgress;
+    try {
+      egress = await this.options.streamEgressFactory.create({
+        appId,
+        peer,
+        demand,
+        admission
+      });
+    } catch (error) {
+      throw new DeviceError(
+        "DEVICE_UNCONFIGURED",
+        error instanceof Error ? error.message : "Host media egress could not be opened."
+      );
+    }
+    if (egress.plane !== admission.plane) {
+      await egress.close();
+      throw new DeviceError("DEVICE_UNCONFIGURED", "Host media egress returned the wrong plane.");
+    }
     this.streams.set(handle, stream);
+    this.egresses.set(handle, egress);
+    this.streamShareOfferIds.set(handle, shareOffer.id);
+    this.streamAdaptation.set(handle, { appId, peer, demand, deficitStreak: 0, surplusStreak: 0 });
     return stream;
   }
 
@@ -716,10 +821,19 @@ export class DeviceManager {
       throw new DeviceError("DEVICE_DENIED", "Stream is not scoped to this app.");
     }
     this.streams.delete(streamHandle);
+    this.streamShareOfferIds.delete(streamHandle);
+    this.streamAdaptation.delete(streamHandle);
+    const egress = this.egresses.get(streamHandle);
+    this.egresses.delete(streamHandle);
+    await egress?.close();
   }
 
   activeStreams(): ReadonlyArray<DeviceStreamSession> {
     return [...this.streams.values()];
+  }
+
+  activeStreamsForApp(appId: string): ReadonlyArray<DeviceStreamSession> {
+    return [...this.streams.values()].filter((stream) => this.sessions.get(stream.session)?.state.appId === appId);
   }
 
   /** Host chrome: remote acquisition is off until the user enables it. */
@@ -831,6 +945,85 @@ export class DeviceManager {
     return [...this.remoteGrants.values()].filter((grant) => isRemoteGrantLive(grant, at));
   }
 
+  /** Host chrome only: author an outbound share offer. */
+  grantShareOffer(options: {
+    readonly appId: string;
+    readonly targetKind: "peer" | "group";
+    readonly targetId: string;
+    readonly displayLabel: string;
+    readonly classId: "camera" | "microphone" | "screen-capture";
+    readonly tierId: string;
+    readonly maxRung: string;
+    readonly ttlMs: number;
+  }): ShareOffer {
+    if (options.ttlMs <= 0 || options.ttlMs > 24 * 60 * 60_000) {
+      throw new DeviceError("DEVICE_BAD_REQUEST", "Share offer TTL must be between 1 ms and 24 hours.");
+    }
+    const entry = deviceClassById(options.classId);
+    if (entry === undefined || !entry.tiers.some((tier) => tier.id === options.tierId)) {
+      throw new DeviceError("DEVICE_BAD_REQUEST", "Share offer class/tier is invalid.");
+    }
+    if (!entry.degradationLadder.includes(options.maxRung)) {
+      throw new DeviceError("DEVICE_BAD_REQUEST", "Share offer quality ceiling is invalid.");
+    }
+    const grantedAt = this.now();
+    const id = `share-${this.nextStreamHandle++}-${bytesToHex(this.randomBytes(3))}`;
+    const { ttlMs, ...authored } = options;
+    this.shareOffers = stepShareOfferStore(this.shareOffers, {
+      kind: "share/grant",
+      offer: { id, grantedAt, ...authored },
+      ttlMs
+    });
+    const offer = this.shareOffers.get(id);
+    if (offer === undefined) throw new DeviceError("DEVICE_BAD_REQUEST", "Share offer was not created.");
+    this.notifyChrome();
+    return offer;
+  }
+
+  async requestShareOfferFromChrome(appId: string, purpose: string): Promise<ShareOffer | null> {
+    this.validatePurpose(purpose);
+    const authored = await this.options.requestShareOffer?.({ appId, purpose }) ?? null;
+    return authored === null ? null : this.grantShareOffer({ appId, ...authored });
+  }
+
+  listShareOffers(appId: string): ReadonlyArray<ShareOffer> {
+    const at = this.now();
+    for (const offer of this.shareOffers.values()) {
+      if (offer.phase === "active" && at >= offer.expiresAt) {
+        this.shareOffers = stepShareOfferStore(this.shareOffers, { kind: "share/ttl", id: offer.id, at });
+        this.closeStreamsForShareOffer(offer.id);
+      }
+    }
+    return [...this.shareOffers.values()].filter((offer) => offer.appId === appId && isShareOfferLive(offer, at));
+  }
+
+  async requestShareOfferRevoke(appId: string, id: string): Promise<boolean> {
+    const offer = this.shareOffers.get(id);
+    if (offer === undefined || offer.appId !== appId || !isShareOfferLive(offer, this.now())) return false;
+    const approved = await this.options.confirmShareOfferRevoke?.(offer) ?? false;
+    if (!approved) return false;
+    this.shareOffers = stepShareOfferStore(this.shareOffers, { kind: "share/revoke", id, at: this.now() });
+    this.closeStreamsForShareOffer(id);
+    this.notifyChrome();
+    return true;
+  }
+
+  /** Trusted host chrome kill switch; the click itself is the authorization. */
+  revokeShareOfferFromChrome(appId: string, id: string): boolean {
+    const offer = this.shareOffers.get(id);
+    if (offer === undefined || offer.appId !== appId || !isShareOfferLive(offer, this.now())) return false;
+    this.shareOffers = stepShareOfferStore(this.shareOffers, { kind: "share/revoke", id, at: this.now() });
+    this.closeStreamsForShareOffer(id);
+    this.notifyChrome();
+    return true;
+  }
+
+  clearShareOffersForRestart(): void {
+    for (const id of this.streamShareOfferIds.values()) this.closeStreamsForShareOffer(id);
+    this.shareOffers = stepShareOfferStore(this.shareOffers, { kind: "share/clear-sensitive", at: this.now() });
+    this.notifyChrome();
+  }
+
   /**
    * Serving host: open a device for a remote peer under a host-owned grant.
    * Requesting-side `device:remote` is checked separately by the requester's host.
@@ -927,11 +1120,7 @@ export class DeviceManager {
     });
     state = stepDeviceSession(state, { kind: "device/open", at, ttlMs }).state;
     const handle = `dev-${this.nextHandle++}-${bytesToHex(this.randomBytes(4))}`;
-    const needsSidecar =
-      (entry.id === "camera" && tier.id === "frames") ||
-      (entry.id === "microphone" && tier.id === "pcm") ||
-      (entry.id === "motion" && tier.id === "samples") ||
-      (entry.id === "screen-capture" && tier.id === "frames");
+    const needsSidecar = ["camera", "microphone", "motion", "screen-capture"].includes(entry.id);
     const sidecarToken = needsSidecar ? this.sidecar.open(handle) : null;
     this.sessions.set(handle, {
       handle,
@@ -941,6 +1130,7 @@ export class DeviceManager {
       consentClass: tier.consentClass,
       sidecarToken,
       remotePeerId: request.peerId,
+      options: {},
       lastReadAt: null
     });
     this.notifyChrome();
@@ -1085,7 +1275,14 @@ export class DeviceManager {
       this.locks.delete(session.state.classId);
     }
     for (const [streamHandle, stream] of this.streams) {
-      if (stream.session === handle) this.streams.delete(streamHandle);
+      if (stream.session === handle) {
+        this.streams.delete(streamHandle);
+        this.streamShareOfferIds.delete(streamHandle);
+        this.streamAdaptation.delete(streamHandle);
+        const egress = this.egresses.get(streamHandle);
+        this.egresses.delete(streamHandle);
+        void egress?.close();
+      }
     }
     this.notifyChrome();
   }
@@ -1142,7 +1339,9 @@ export class DeviceManager {
     if (classId === "camera") {
       if (tierId === "derived") {
         const derived = deriveCameraSample((raw ?? {}) as CameraDerivedInput);
-        return { kind: "camera", tier: "derived", at, ...derived };
+        const sample = { kind: "camera" as const, tier: "derived" as const, at, ...derived };
+        this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.derivedEvent, encodeDerivedEvent(sample));
+        return sample;
       }
       if (tierId === "frames") {
         const frame = sanitizeCameraFrame(raw as RawCameraFrameInput);
@@ -1164,7 +1363,9 @@ export class DeviceManager {
     if (classId === "microphone") {
       if (tierId === "derived") {
         const derived = deriveMicrophoneSample((raw ?? {}) as MicrophoneDerivedInput);
-        return { kind: "microphone", tier: "derived", at, ...derived };
+        const sample = { kind: "microphone" as const, tier: "derived" as const, at, ...derived };
+        this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.derivedEvent, encodeDerivedEvent(sample));
+        return sample;
       }
       if (tierId === "pcm") {
         const pcm = sanitizePcmSample(raw as RawPcmInput);
@@ -1195,7 +1396,9 @@ export class DeviceManager {
           throw new DeviceError("DEVICE_BAD_REQUEST", "Motion driver returned an invalid IMU sample.");
         }
         const derived = deriveMotionSample(sample);
-        return { kind: "motion", tier: "derived", at, ...derived };
+        const derivedSample = { kind: "motion" as const, tier: "derived" as const, at, ...derived };
+        this.pushSidecar(sessionMeta, DEVICE_STREAM_KIND.derivedEvent, encodeDerivedEvent(derivedSample));
+        return derivedSample;
       }
       if (tierId === "samples") {
         const sanitized = sanitizeMotionSamples(raw as RawMotionInput);
@@ -1406,13 +1609,97 @@ export class DeviceManager {
     payload: Uint8Array
   ): DeviceSidecarDelivery | undefined {
     if (session.sidecarToken === null) return undefined;
-    return this.sidecar.push({
+    const delivery = this.sidecar.push({
       sessionHandle: session.handle,
       sessionToken: session.sidecarToken,
       sampleKind,
       sequence: Math.floor(this.now()),
+      captureAtUs: Math.floor(this.now() * 1_000),
+      clockId: session.sidecarToken,
       payload
     });
+    for (const [streamHandle, stream] of this.streams) {
+      if (stream.session !== session.handle) continue;
+      const egress = this.egresses.get(streamHandle);
+      if (egress !== undefined) void this.sendFramesToEgress(streamHandle, egress, delivery.frames);
+    }
+    return delivery;
+  }
+
+  private async sendFramesToEgress(
+    streamHandle: DeviceStreamHandle,
+    egress: StreamEgress,
+    frames: ReadonlyArray<Uint8Array>
+  ): Promise<void> {
+    const offerId = this.streamShareOfferIds.get(streamHandle);
+    if (!isShareOfferLive(offerId === undefined ? undefined : this.shareOffers.get(offerId), this.now())) {
+      this.closeStreamsForShareOffer(offerId);
+      return;
+    }
+    try {
+      let droppedOldest = 0;
+      let queuedBytes = 0;
+      for (const frame of frames) {
+        const result = await egress.send(frame);
+        droppedOldest += result.droppedOldest;
+        queuedBytes = Math.max(queuedBytes, result.queuedBytes);
+      }
+      const stream = this.streams.get(streamHandle);
+      const context = this.streamAdaptation.get(streamHandle);
+      if (stream !== undefined && context !== undefined) {
+        const quality = egress.quality();
+        const effectiveBps = droppedOldest > 0 || queuedBytes > 0
+          ? Math.min(quality.goodputBps, stream.admission.admittedDemandBps / 2)
+          : quality.goodputBps;
+        const deficit = effectiveBps < stream.admission.admittedDemandBps;
+        const surplus = effectiveBps >= Math.min(stream.admission.demandBps, stream.admission.admittedDemandBps * 2);
+        const deficitStreak = droppedOldest > 0 ? 2 : deficit ? context.deficitStreak + 1 : 0;
+        const surplusStreak = surplus ? context.surplusStreak + 1 : 0;
+        const admission = adaptStreamAdmission({
+          previous: stream.admission,
+          supply: {
+            plane: egress.plane,
+            effectiveBps,
+            headroomBps: effectiveBps,
+            measuredGoodputBps: effectiveBps,
+            queueDepthBytes: queuedBytes
+          },
+          ladder: degradationLadderFor(this.sessions.get(stream.session)?.state.classId ?? ""),
+          deficitStreak,
+          surplusStreak
+        });
+        this.streamAdaptation.set(streamHandle, { ...context, deficitStreak, surplusStreak });
+        if (admission.rungIndex !== stream.admission.rungIndex) {
+          await egress.close();
+          const replacement = await this.options.streamEgressFactory!.create({ appId: context.appId, peer: context.peer, demand: context.demand, admission });
+          if (replacement.plane !== admission.plane) { await replacement.close(); throw new Error("Adapted media egress returned the wrong plane."); }
+          this.egresses.set(streamHandle, replacement);
+          this.streams.set(streamHandle, { ...stream, admission });
+          this.streamAdaptation.set(streamHandle, { ...context, deficitStreak: 0, surplusStreak: 0 });
+          this.notifyChrome();
+        }
+      }
+    } catch {
+      this.streams.delete(streamHandle);
+      this.streamShareOfferIds.delete(streamHandle);
+      this.streamAdaptation.delete(streamHandle);
+      this.egresses.delete(streamHandle);
+      await egress.close();
+      this.notifyChrome();
+    }
+  }
+
+  private closeStreamsForShareOffer(offerId: string | undefined): void {
+    if (offerId === undefined) return;
+    for (const [streamHandle, candidateOfferId] of this.streamShareOfferIds) {
+      if (candidateOfferId !== offerId) continue;
+      this.streams.delete(streamHandle);
+      this.streamShareOfferIds.delete(streamHandle);
+      this.streamAdaptation.delete(streamHandle);
+      const egress = this.egresses.get(streamHandle);
+      this.egresses.delete(streamHandle);
+      void egress?.close();
+    }
   }
 
   private assertCommandMatchesSession(classId: string, command: DeviceCommand): void {
@@ -1459,6 +1746,40 @@ export class DeviceManager {
   }
 }
 
+function applyAdvisoryCandidateCeilings(
+  hostCandidates: ReadonlyArray<LinkSupply>,
+  advisory: ReadonlyArray<LinkSupply> | undefined
+): ReadonlyArray<LinkSupply> {
+  if (advisory === undefined) return hostCandidates;
+  const capped: LinkSupply[] = [];
+  for (const host of hostCandidates) {
+    const ceiling = advisory.find((candidate) => candidate.plane === host.plane);
+    if (ceiling === undefined) continue;
+    const hostMeasured = host.measuredGoodputBps ?? host.effectiveBps;
+    const advisoryMeasured = ceiling.measuredGoodputBps ?? ceiling.effectiveBps;
+    capped.push({
+      ...host,
+      effectiveBps: Math.min(host.effectiveBps, ceiling.effectiveBps),
+      headroomBps: Math.min(host.headroomBps, ceiling.headroomBps),
+      measuredGoodputBps: Math.min(hostMeasured, advisoryMeasured),
+      queueDepthBytes: Math.max(host.queueDepthBytes ?? 0, ceiling.queueDepthBytes ?? 0),
+      metered: host.metered === true || ceiling.metered === true,
+      lowBattery: host.lowBattery === true || ceiling.lowBattery === true
+    });
+  }
+  return capped;
+}
+
+function codecMatchesTier(classId: string, tierId: string, codec: string): boolean {
+  if ((classId === "microphone" || classId === "speaker") && tierId === "pcm") {
+    return codec === "opus" || codec === "pcm";
+  }
+  if ((classId === "camera" || classId === "screen-capture") && tierId === "frames") {
+    return codec === "vp8" || codec === "vp9" || codec === "h264" || codec === "jpeg";
+  }
+  return false;
+}
+
 /** Elevated tier grants imply the default-tier capability for the same class. */
 export function assertDeviceCapabilityAllowed(options: {
   readonly capability: string;
@@ -1478,7 +1799,7 @@ function expandDeviceCapabilities(capabilities: ReadonlyArray<string>): string[]
     if (!capability.startsWith("device:")) continue;
     const parts = capability.split(":");
     // device:<class>:<tier> also satisfies device:<class>
-    if (parts.length === 3) {
+    if (parts.length === 3 && deviceClassById(parts[1] ?? "") !== undefined) {
       expanded.add(`device:${parts[1]}`);
     }
   }
@@ -1496,6 +1817,10 @@ function floatSamplesToBytes(samples: ReadonlyArray<number>): Uint8Array {
     view.setFloat32(i * 4, samples[i] ?? 0, true);
   }
   return bytes;
+}
+
+function encodeDerivedEvent(sample: DeviceSample): Uint8Array {
+  return new TextEncoder().encode(JSON.stringify(sample));
 }
 
 /** Simulated drivers for Phase 1–2 end-to-end coverage without hardware. */

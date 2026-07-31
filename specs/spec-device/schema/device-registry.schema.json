@@ -38,6 +38,20 @@
       "properties": {
         "minBps": { "type": "number", "minimum": 0 },
         "targetBps": { "type": "number", "minimum": 0 },
+        "burstBytes": { "type": "number", "minimum": 0 },
+        "encodings": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/EncodingBandwidthProfile" }
+        }
+      }
+    },
+    "EncodingBandwidthProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minBps", "targetBps", "burstBytes"],
+      "properties": {
+        "minBps": { "type": "number", "minimum": 0 },
+        "targetBps": { "type": "number", "minimum": 0 },
         "burstBytes": { "type": "number", "minimum": 0 }
       }
     },
@@ -118,13 +132,14 @@
     "CrossCuttingCapability": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "description"],
+      "required": ["id", "description", "consentClass"],
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^device:[a-z][a-z0-9-]*$"
+          "pattern": "^device:[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)*$"
         },
-        "description": { "type": "string", "minLength": 1 }
+        "description": { "type": "string", "minLength": 1 },
+        "consentClass": { "$ref": "#/$defs/ConsentClass" }
       }
     },
     "LocationSample": {

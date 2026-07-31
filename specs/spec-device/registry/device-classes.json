@@ -1,6 +1,6 @@
 {
   "$schema": "../schema/device-registry.schema.json",
-  "hostApiVersion": "0.10.0",
+  "hostApiVersion": "0.12.0",
   "classes": [
     {
       "id": "location",
@@ -88,7 +88,17 @@
       "remoteEligible": true,
       "bandwidth": {
         "derived": { "minBps": 64, "targetBps": 1024, "burstBytes": 4096 },
-        "frames": { "minBps": 50000, "targetBps": 2000000, "burstBytes": 1048576 }
+        "frames": {
+          "minBps": 50000,
+          "targetBps": 2000000,
+          "burstBytes": 1048576,
+          "encodings": {
+            "720p30": { "minBps": 1000000, "targetBps": 2000000, "burstBytes": 1048576 },
+            "480p15": { "minBps": 350000, "targetBps": 750000, "burstBytes": 524288 },
+            "240p10": { "minBps": 100000, "targetBps": 250000, "burstBytes": 262144 },
+            "thumbnails-1fps": { "minBps": 20000, "targetBps": 50000, "burstBytes": 65536 }
+          }
+        }
       },
       "consentClass": "elevated",
       "degradationLadder": ["720p30", "480p15", "240p10", "thumbnails-1fps", "derived-events", "cas-snapshot"],
@@ -121,7 +131,16 @@
       "remoteEligible": true,
       "bandwidth": {
         "derived": { "minBps": 32, "targetBps": 256, "burstBytes": 1024 },
-        "pcm": { "minBps": 16000, "targetBps": 768000, "burstBytes": 65536 }
+        "pcm": {
+          "minBps": 12000,
+          "targetBps": 768000,
+          "burstBytes": 65536,
+          "encodings": {
+            "48k-pcm": { "minBps": 384000, "targetBps": 768000, "burstBytes": 65536 },
+            "16k-opus": { "minBps": 16000, "targetBps": 24000, "burstBytes": 8192 },
+            "8k-narrowband": { "minBps": 8000, "targetBps": 12000, "burstBytes": 4096 }
+          }
+        }
       },
       "consentClass": "elevated",
       "degradationLadder": ["48k-pcm", "16k-opus", "8k-narrowband", "vad-transcript", "transcript-only"],
@@ -353,10 +372,19 @@
       "remoteEligible": false,
       "bandwidth": {
         "derived": { "minBps": 64, "targetBps": 1024, "burstBytes": 4096 },
-        "frames": { "minBps": 50000, "targetBps": 2000000, "burstBytes": 1048576 }
+        "frames": {
+          "minBps": 50000,
+          "targetBps": 2000000,
+          "burstBytes": 1048576,
+          "encodings": {
+            "720p30": { "minBps": 1000000, "targetBps": 2000000, "burstBytes": 1048576 },
+            "480p15": { "minBps": 350000, "targetBps": 750000, "burstBytes": 524288 },
+            "thumbnails-1fps": { "minBps": 20000, "targetBps": 50000, "burstBytes": 65536 }
+          }
+        }
       },
       "consentClass": "sensitive",
-      "degradationLadder": ["derived", "frames"],
+      "degradationLadder": ["720p30", "480p15", "thumbnails-1fps", "derived-events", "cas-snapshot"],
       "description": "Screen capture. Always requires an explicit per-session region picker in host chrome."
     },
     {
@@ -527,11 +555,23 @@
   "crossCutting": [
     {
       "id": "device:stream",
-      "description": "Stream any already-held device data to a peer. Never implied by a device grant alone."
+      "description": "Stream any already-held device data to a peer. Never implied by a device grant alone.",
+      "consentClass": "sensitive"
     },
     {
       "id": "device:remote",
-      "description": "Request a device on a peer's host. Confers nothing on the serving host."
+      "description": "Request a device on a peer's host. Confers nothing on the serving host.",
+      "consentClass": "sensitive"
+    },
+    {
+      "id": "device:share-policy:read",
+      "description": "See which peers this app is currently sharing your camera or microphone with.",
+      "consentClass": "low"
+    },
+    {
+      "id": "device:stream:raw-inbound",
+      "description": "Receive raw camera frames or audio from a peer into the app itself.",
+      "consentClass": "sensitive"
     }
   ]
 }

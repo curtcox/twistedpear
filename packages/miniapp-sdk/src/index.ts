@@ -13,6 +13,7 @@ export * as ai from "./ai.js";
 export * as apps from "./apps.js";
 export * as share from "./share.js";
 export * as peers from "./peers.js";
+export * as links from "./links.js";
 export * as relay from "./relay.js";
 export * as freenet from "./freenet.js";
 export * as device from "./device.js";

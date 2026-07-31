@@ -13,15 +13,16 @@ Defines the versioned device-class registry, tier semantics, capability id gener
 rule (`device:<class>` / `device:<class>:<tier>`), consent classes, and the Sans-IO
 device-session lifecycle machine used by the Device Manager.
 
-Companion: [Device I/O plan](../../docs/device-io-plan.md). Cross-cutting streaming
-admission lives in protocol `device-admission` (SPEC-STREAM planned). Capability consent
-policy extensions live in SPEC-CAP. Growth path: [add a device class runbook](../../docs/device-class-runbook.md).
+Companion: [Device I/O plan](../../docs/device-io-plan.md). Cross-cutting streaming,
+readiness, timing, admission, and adaptation are normative in
+[SPEC-STREAM](../spec-stream/spec.md). Capability consent policy extensions live in
+SPEC-CAP. Growth path: [add a device class runbook](../../docs/device-class-runbook.md).
 
 ## Normative artifacts
 
 | Artifact | Path |
 |---|---|
-| Registry schema | [`schema/device-registry.schema.json`](schema/device-registry.schema.json) |
+| Registry schema | [`schema/device-registry.schema.json`](schema/device-registry.schema.json) — bandwidth profiles may be keyed by tier and encoding |
 | Registry data | [`registry/device-classes.json`](registry/device-classes.json) |
 | Generated TypeScript table | [`packages/protocol/src/device-registry.gen.ts`](../../packages/protocol/src/device-registry.gen.ts) |
 | Generated capability ids | [`packages/miniapp-runtime/src/device-capabilities.gen.ts`](../../packages/miniapp-runtime/src/device-capabilities.gen.ts) |
@@ -41,5 +42,7 @@ npm run generate:device-registry
 **live** — Phases 1–7 of the Device I/O plan are implemented in executable form
 (registry through remote acquisition and Phase 7 hardening). Session lifecycle has a
 TLA+ model and Layer-3 vectors cross-checked by `npm run formal:device-session`.
-Remaining formal work: SPEC-STREAM / SPEC-CHROME / SPEC-WIDGET extensions.
+Media sessions may request the `voiceDuplex` option only for microphone/speaker classes;
+codec execution stays behind the Effects `MediaCodecDriver` boundary. Remaining formal
+work is limited to SPEC-CHROME / SPEC-WIDGET extensions.
 Hardware-gated conformance stays in STATUS-HARDWARE.

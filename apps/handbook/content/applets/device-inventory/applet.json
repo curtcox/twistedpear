@@ -3,6 +3,8 @@
   "group": "runtime",
   "title": "Device inventory probe",
   "capabilities": [
+    "link:observe",
+    "link:probe",
     "device:location",
     "device:location:precise",
     "device:ambient-light",
@@ -30,9 +32,11 @@
     "device:hygrometer",
     "device:thermal",
     "device:stream",
-    "device:remote"
+    "device:remote",
+    "device:share-policy:read",
+    "device:stream:raw-inbound"
   ],
-  "surfaces": ["device.inventory", "device.diagnostics"],
+  "surfaces": ["links.peers", "links.probe", "device.inventory", "device.diagnostics", "device.shareOffers", "device.acceptInboundStream"],
   "expectations": {
     "android": "pass",
     "ios": "pass",

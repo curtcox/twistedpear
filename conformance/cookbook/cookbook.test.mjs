@@ -17,8 +17,12 @@ import {
   AnnounceService,
   MemoryAnnounceTransport,
   TransportBackedAnnounceService,
+  DeviceManager,
+  CodecStreamEgressFactory,
+  createSimulatedRawMicrophoneDriver,
   validateManifestCapabilities
 } from "../../packages/miniapp-runtime/dist/index.js";
+import { SimulatedMediaCodecDriver } from "../../packages/effects/dist/index.js";
 import { NodeCryptoProvider } from "../../packages/reticulum-ts/dist/index.js";
 import { PeerDiscoveryRegistry, PeerSessionManager } from "../../packages/peer-discovery/dist/index.js";
 
@@ -53,7 +57,10 @@ const API_CAPABILITIES = new Map([
   ["apps.publish", "apps:publish"],
   ["apps.install", "apps:install"],
   ["share.", "share:cas"],
-  ["peers.", "peer:connect"]
+  ["peers.", "peer:connect"],
+  ["links.peers", "link:observe"],
+  ["links.watch", "link:observe"],
+  ["links.probe", "link:probe"]
 ]);
 
 class MemoryStore {
@@ -337,6 +344,43 @@ async function createHost(name = "", hostOptions = {}) {
     },
     confirmationChannel: { confirm: async () => ({ approved: true }) },
     peerSessionManager,
+    ...(name === "line-check" ? {
+      linkObservatoryBackend: {
+        async peers() {
+          return [{
+            peer: { id: "peer-ana" },
+            displayLabel: "Ana · verified",
+            plane: "webrtc",
+            reachability: "direct",
+            quality: { goodputBps: 1_000_000, rttMs: 42, jitterMs: 4, lossRatio: 0.01, mtu: 1200, source: "observed", samples: 8, confidence: "high" },
+            readiness: { hostApi: "0.12.0", accepts: [{ classId: "camera", maxRung: "480p15", encodings: ["vp9"] }, { classId: "microphone", maxRung: "16k-opus", encodings: ["opus"] }], offers: [], downlinkBucket: "sd-video", constrained: [], consentPosture: "ask", expiresAt: Number.MAX_SAFE_INTEGER },
+            observedAt: Date.now(),
+            freshness: "live"
+          }];
+        },
+        async probe(_appId, _peer, request) {
+          if (request.reservationClass !== "control" || request.abortOnQueueGrowth !== true) throw new Error("unsafe probe request");
+          return { goodputBps: 1_200_000, rttMs: 38, jitterMs: 3, lossRatio: 0, mtu: 1200, source: "probed", samples: 1, confidence: "medium" };
+        }
+      },
+      deviceManager: new DeviceManager({
+        drivers: [createSimulatedRawMicrophoneDriver()],
+        linkSupply: async () => [{ plane: "webrtc", effectiveBps: 1_000_000, headroomBps: 1_000_000 }],
+        streamEgressFactory: new CodecStreamEgressFactory({
+          async create({ admission }) {
+            return {
+              plane: admission.plane,
+              async send() { return { queuedBytes: 0, droppedOldest: 0 }; },
+              quality() { return { goodputBps: 1_000_000, rttMs: 38, jitterMs: 3, lossRatio: 0, mtu: 1200, source: "observed", samples: 8, confidence: "high" }; },
+              async close() {}
+            };
+          }
+        }, async () => new SimulatedMediaCodecDriver()),
+        requestShareOffer: async () => ({ targetKind: "peer", targetId: "peer-ana", displayLabel: "Ana · verified", classId: "microphone", tierId: "pcm", maxRung: "16k-opus", ttlMs: 60_000 }),
+        confirmShareOfferRevoke: async () => true,
+        now: () => Date.now()
+      })
+    } : {}),
     appsBackend: {
       package: async () => ({ packageHash: "cookbook-package", size: 3_712, t256: fakeT256 }),
       publish: async (_appId, request) => ({ t256: request.t256, driveKey: "cookbook-drive", version: "1.0.0" }),
@@ -449,6 +493,13 @@ const behaviorScenarios = {
     await host.handleUiEvent("join-qr", "lw.join.qr");
     return "Connected to Fixture peer (join) via qr";
   },
+  "line-check": async (host) => {
+    await waitForText(host, "Ana · verified");
+    await host.handleUiEvent("measure-0", "lc.measure.0");
+    await waitForText(host, "Measured Ana · verified");
+    await host.handleUiEvent("request-share", "lc.share");
+    return "Streaming microphone to Ana · verified";
+  },
   "neighborhood-board": async (host) => {
     await host.handleUiEvent("draft", "nb.draft", "Water at the school entrance");
     await host.handleUiEvent("post", "nb.post");
@@ -555,7 +606,7 @@ const behaviorScenarios = {
 };
 
 beforeAll(async () => {
-  expect(appNames).toHaveLength(25);
+  expect(appNames).toHaveLength(26);
   expect(Object.keys(behaviorScenarios).sort()).toEqual(appNames);
   validateDocumentation();
   await validateSources();

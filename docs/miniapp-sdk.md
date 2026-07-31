@@ -3,7 +3,7 @@
 
 <!-- tp-doc
 lifecycle: reference
-audited: 2026-07-21
+audited: 2026-07-31
 register: none
 -->
 
@@ -35,12 +35,17 @@ grant screen renders the descriptions below (from `CAPABILITY_DEFINITIONS` in th
 | `apps:preview` | Run a built app in the host's sandboxed dev-preview slot. |
 | `share:cas` | Store and retrieve bounded content-addressed data shared by 256t id. |
 | `peer:connect` | Ask trusted host chrome to find, confirm, and connect an app-scoped peer. |
+| `link:observe` | Read app-scoped peer link quality and two-sided media readiness. |
+| `link:probe` | Request a bounded active measurement for one app-scoped peer. |
+| `device:share-policy:read` | Read this app's live host-authored outbound media offers. |
+| `device:stream:raw-inbound` | Receive raw inbound media instead of a host-rendered sink. |
 
 Unknown capability strings block install. Adding a capability bumps `HOST_API_VERSION` minor
 (the dev-environment capabilities above shipped in `0.2.0`; `host.info()` shipped in `0.3.0`).
 `ai.chatStream()` requires host API `0.5.0`; `ai.embed()` and `ai.search()` require `0.6.0`;
 `workspace.patch()` and delta editor events require `0.7.0`.
 The `peers` namespace and `peer:connect` require host API `0.8.0`.
+The `links` namespace and realtime-media extensions require host API `0.12.0`.
 
 The `apps:*` capabilities are double-gated: beyond the grant, every package,
 publish, install, and preview call raises a host-chrome confirmation dialog the
@@ -96,6 +101,21 @@ mini-app cannot draw over or acknowledge (see
   addresses, SDP, credentials, and radio APIs never enter the sandbox.
 - `peers.diagnostics()` — report adapter availability and actionable host reasons without
   prompting for camera, microphone, Bluetooth, or network permission.
+- `links.peers()` — app-scoped peer summaries with passive/probed link quality and
+  expiring two-sided media readiness. A declared low-confidence estimate is not a
+  measurement.
+- `links.watch()` — async iterable of app-scoped link-summary changes.
+- `links.probe(peer, { budgetBytes? })` — explicit active measurement, capped by the host
+  at 8 KiB and one call per app/peer/minute; costly paths may ask in trusted chrome.
+- `device.shareOffers()` / `device.requestShareOffer(purpose)` /
+  `device.revokeShareOffer(id)` — inspect or request changes to outbound policy. The app
+  supplies only purpose text; peer, media tier, quality ceiling, and TTL are host-authored.
+- `device.stream(session, peer, constraints?)` — begins host-owned egress only when the
+  device session, capability, share offer, admission result, reservation, and plane binder
+  all permit it. Candidate supplies from the app are ceilings, never measurements.
+- `device.incoming()` / `device.accept(offer, sink)` / `device.decline(offer)` — receive
+  offers and bind accepted media to a `remote-video` or speaker host sink. Raw inbound
+  delivery requires the separate sensitive capability.
 
 All calls without a matching grant fail with a typed `CapabilityError`.
 
@@ -110,8 +130,10 @@ documented in its [concept guide](https://reticulum.network/manual/understanding
 
 ## Widget Protocol
 
-Allowed components: `view`, `text`, `image`, `button`, `text-input`, `switch`,
-`scroll`, `list`, `progress`, `divider`, `spacer`, `code-editor`, `qr-code`.
+Allowed components include `view`, `text`, `image`, `button`, `text-input`, `switch`,
+`scroll`, `list`, `progress`, `divider`, `spacer`, `code-editor`, `qr-code`, and the
+host-rendered device/media surfaces (`camera-preview`, `audio-meter`, `waveform`,
+`map-preview`, `remote-video`).
 
 `code-editor` is **content-by-reference**: it carries a workspace `documentId`
 (plus `language`, `readOnly`, `event`) instead of file text, so sources cannot

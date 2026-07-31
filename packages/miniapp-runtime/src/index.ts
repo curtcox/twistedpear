@@ -196,6 +196,57 @@ export type {
 } from "./device-sidecar.js";
 export { DEVICE_CAPABILITY_DEFINITIONS } from "./device-capabilities.gen.js";
 export type { DeviceCapability, DeviceCapabilityDefinition } from "./device-capabilities.gen.js";
+export {
+  DEFAULT_LINK_PROBE_BUDGET_BYTES,
+  LINK_PROBE_INTERVAL_MS,
+  LinkQualityService,
+  LinkServiceError,
+  PeerRouteLinkObservatory
+} from "./services/links.js";
+export type { LinkQuality, PeerMediaReadiness } from "@twistedpear/protocol";
+export type { ShareOffer } from "@twistedpear/protocol";
+export {
+  InboundMediaRouter,
+  CodecStreamEgressFactory,
+  createPeerRouteLinkSupply,
+  PeerRouteStreamEgressFactory,
+  PeerRouteMediaBridge,
+  PlaneStreamEgressFactory,
+  ReservedStreamEgressFactory
+} from "./media-stream.js";
+export { SessionInviteService } from "./session-invite.js";
+export type { SessionInvite, SessionInviteChrome } from "./session-invite.js";
+export type {
+  InboundMediaBackend,
+  InboundStream,
+  MediaCodecDriverOpener,
+  PlaneMediaTransport,
+  PlaneMediaTransportOpener,
+  AppPeerMediaRouteDirectory,
+  PeerRouteMediaBridgeOptions,
+  PeerRouteMediaDirectory,
+  RealtimeBandwidthReservation,
+  RealtimeBandwidthReservationProvider,
+  StreamEgress,
+  StreamEgressFactory,
+  StreamEgressSendResult,
+  StreamOffer,
+  StreamOfferBatch,
+  StreamSink
+} from "./media-stream.js";
+export type {
+  LinkFreshness,
+  HostLinkProbeRequest,
+  LinkObservatoryBackend,
+  LinkProbeOptions,
+  LinkQualityServiceOptions,
+  AppPeerDirectory,
+  PeerRouteLinkObservatoryOptions,
+  LinkReachability,
+  LinkWatchBatch,
+  PeerLinkEvent,
+  PeerLinkSummary
+} from "./services/links.js";
 export { ProductionCapabilityAdapter } from "./simulation-adapter.js";
 export type { ProductionCapabilityObservation } from "./simulation-adapter.js";
 export { BearerReplayPolicy, FederationPolicy, KeySharePolicy } from "./security-policies.js";

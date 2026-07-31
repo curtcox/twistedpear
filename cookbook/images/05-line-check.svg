@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1220"/><stop offset="1" stop-color="#111d31"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-opacity=".28"/></filter>
+  </defs>
+  <rect width="1440" height="900" fill="url(#bg)"/>
+  <text x="100" y="105" fill="#f8fafc" font-family="Arial, sans-serif" font-size="48" font-weight="700">Line Check</text>
+  <text x="100" y="150" fill="#9fb0c9" font-family="Arial, sans-serif" font-size="22">Honest link readiness before you call</text>
+  <rect x="100" y="198" width="1240" height="556" rx="24" fill="#17243a" filter="url(#shadow)"/>
+  <text x="142" y="250" fill="#dbe6f6" font-family="Arial, sans-serif" font-size="19" font-weight="700">NEARBY PEERS</text>
+  <text x="725" y="250" fill="#94a8c5" font-family="Arial, sans-serif" font-size="17">AUDIO</text>
+  <text x="885" y="250" fill="#94a8c5" font-family="Arial, sans-serif" font-size="17">VIDEO</text>
+  <line x1="142" y1="277" x2="1298" y2="277" stroke="#2c3e59" stroke-width="2"/>
+
+  <circle cx="173" cy="344" r="27" fill="#38bdf8"/><text x="164" y="353" fill="#082f49" font-family="Arial" font-size="24" font-weight="700">A</text>
+  <text x="220" y="337" fill="#f8fafc" font-family="Arial" font-size="25" font-weight="700">Ana’s phone</text>
+  <text x="220" y="369" fill="#9fb0c9" font-family="Arial" font-size="17">last measured 12s ago · Wi-Fi Direct</text>
+  <rect x="694" y="315" width="126" height="48" rx="24" fill="#123f35"/><circle cx="720" cy="339" r="8" fill="#4ade80"/><text x="740" y="346" fill="#bbf7d0" font-family="Arial" font-size="18">ready</text>
+  <rect x="855" y="315" width="180" height="48" rx="24" fill="#3c3219"/><circle cx="881" cy="339" r="8" fill="#facc15"/><text x="901" y="346" fill="#fef08a" font-family="Arial" font-size="18">probably ready</text>
+  <rect x="1100" y="313" width="164" height="52" rx="12" fill="#2563eb"/><text x="1131" y="346" fill="white" font-family="Arial" font-size="18" font-weight="700">Measure</text>
+  <line x1="142" y1="406" x2="1298" y2="406" stroke="#2c3e59"/>
+
+  <circle cx="173" cy="474" r="27" fill="#c084fc"/><text x="164" y="483" fill="#3b0764" font-family="Arial" font-size="24" font-weight="700">M</text>
+  <text x="220" y="467" fill="#f8fafc" font-family="Arial" font-size="25" font-weight="700">Mika</text>
+  <text x="220" y="499" fill="#9fb0c9" font-family="Arial" font-size="17">not measured · Reticulum</text>
+  <rect x="694" y="445" width="174" height="48" rx="24" fill="#29364a"/><circle cx="720" cy="469" r="8" fill="#94a3b8"/><text x="740" y="476" fill="#cbd5e1" font-family="Arial" font-size="18">not measured</text>
+  <rect x="885" y="445" width="174" height="48" rx="24" fill="#29364a"/><circle cx="911" cy="469" r="8" fill="#94a3b8"/><text x="931" y="476" fill="#cbd5e1" font-family="Arial" font-size="18">not measured</text>
+  <rect x="1100" y="443" width="164" height="52" rx="12" fill="#2563eb"/><text x="1131" y="476" fill="white" font-family="Arial" font-size="18" font-weight="700">Measure</text>
+  <line x1="142" y1="536" x2="1298" y2="536" stroke="#2c3e59"/>
+
+  <circle cx="173" cy="604" r="27" fill="#fb7185"/><text x="164" y="613" fill="#4c0519" font-family="Arial" font-size="24" font-weight="700">R</text>
+  <text x="220" y="597" fill="#f8fafc" font-family="Arial" font-size="25" font-weight="700">Riley’s tablet</text>
+  <text x="220" y="629" fill="#9fb0c9" font-family="Arial" font-size="17">measured 1m ago · LXMF</text>
+  <rect x="694" y="575" width="146" height="48" rx="24" fill="#41242b"/><circle cx="720" cy="599" r="8" fill="#fb7185"/><text x="740" y="606" fill="#fecdd3" font-family="Arial" font-size="18">unlikely</text>
+  <rect x="885" y="575" width="146" height="48" rx="24" fill="#41242b"/><circle cx="911" cy="599" r="8" fill="#fb7185"/><text x="931" y="606" fill="#fecdd3" font-family="Arial" font-size="18">unlikely</text>
+  <rect x="1100" y="573" width="164" height="52" rx="12" fill="#334155"/><text x="1131" y="606" fill="#dbe6f6" font-family="Arial" font-size="18" font-weight="700">Measure</text>
+
+  <rect x="142" y="672" width="1156" height="48" rx="10" fill="#0f1a2d"/>
+  <text x="166" y="703" fill="#93c5fd" font-family="Arial" font-size="17">Estimates expire. “Probably ready” is not a connection guarantee.</text>
+  <circle cx="120" cy="813" r="7" fill="#4ade80"/><text x="141" y="820" fill="#a9bad0" font-family="Arial" font-size="18">Measurements are peer-specific, bounded, and host controlled.</text>
+</svg>

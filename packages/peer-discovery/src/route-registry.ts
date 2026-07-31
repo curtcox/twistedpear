@@ -6,6 +6,9 @@ const MAX_ROUTE_PAYLOAD_BYTES = 64 * 1024;
 /** Host-owned authenticated transport. This object must never cross the mini-app broker. */
 export interface HostPeerRoute {
   send(payload: Uint8Array): void | Promise<void>;
+  subscribe?(listener: (payload: Uint8Array) => void): () => void;
+  /** Host-only live route telemetry; never exposed as an app-provided value. */
+  quality?(): { readonly goodputBps: number; readonly rttMs: number; readonly mtu: number; readonly queueDepthBytes?: number };
 }
 
 export interface ConfirmedPeerRoute {

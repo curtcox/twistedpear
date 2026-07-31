@@ -61,7 +61,7 @@ export function generateDeviceRegistry(registryPath = REGISTRY_PATH) {
       description: cross.description,
       classId: null,
       tierId: null,
-      consentClass: "sensitive",
+      consentClass: cross.consentClass,
       isDefaultTier: false
     });
   }
@@ -79,6 +79,13 @@ export type DeviceConsentClass = "low" | "elevated" | "sensitive";
 export type DeviceRole = "sensor" | "actuator" | "transducer" | "service";
 
 export interface DeviceBandwidthProfile {
+  readonly minBps: number;
+  readonly targetBps: number;
+  readonly burstBytes: number;
+  readonly encodings?: Readonly<Record<string, DeviceEncodingBandwidthProfile>>;
+}
+
+export interface DeviceEncodingBandwidthProfile {
   readonly minBps: number;
   readonly targetBps: number;
   readonly burstBytes: number;

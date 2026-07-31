@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   CAPABILITY_DEFINITIONS,
   DEVICE_CAPABILITY_DEFINITIONS,
@@ -33,6 +33,19 @@ import {
   encodeDeviceStreamFrame
 } from "@twistedpear/protocol";
 
+function testEgressFactory(sent: Uint8Array[] = []) {
+  return {
+    async create(input: { admission: { plane: "webrtc" | "pears-bulk" | "reticulum" | "lxmf" | "cas" } }) {
+      return {
+        plane: input.admission.plane,
+        async send(frame: Uint8Array) { sent.push(frame); return { queuedBytes: 0, droppedOldest: 0 }; },
+        quality() { return { goodputBps: 64_000, rttMs: 10, jitterMs: 1, lossRatio: 0, mtu: 1_200, source: "declared" as const, samples: 0, confidence: "low" as const }; },
+        async close() {}
+      };
+    }
+  };
+}
+
 describe("device capabilities", () => {
   it("includes generated device:* ids in the closed set", () => {
     const ids = CAPABILITY_DEFINITIONS.map((entry) => entry.id);
@@ -52,6 +65,14 @@ describe("device capabilities", () => {
         granted: ["device:location:precise"]
       })
     ).not.toThrow();
+  });
+
+  it("does not reinterpret cross-cutting capability segments as device classes", () => {
+    expect(() => assertDeviceCapabilityAllowed({
+      capability: "device:microphone:pcm",
+      declared: ["device:microphone:pcm", "device:share-policy:read"],
+      granted: ["device:microphone:pcm", "device:share-policy:read"]
+    })).not.toThrow();
   });
 
   it("does not let default grants satisfy precise", () => {
@@ -160,8 +181,8 @@ describe("DeviceManager Phase 1", () => {
 });
 
 describe("host API version", () => {
-  it("includes device I/O and Freenet contract access in 0.11.0", () => {
-    expect(HOST_API_VERSION).toBe("0.11.0");
+  it("includes device I/O, Freenet, and media link observation in 0.12.0", () => {
+    expect(HOST_API_VERSION).toBe("0.12.0");
   });
 });
 
@@ -243,18 +264,17 @@ describe("DeviceManager Phase 2 derived sensors", () => {
     }
   });
 
-  it("refuses speaker:pcm until a later phase", async () => {
+  it("opens speaker:pcm with platform voice-duplex options", async () => {
     const manager = new DeviceManager({
       drivers: [createSimulatedSpeakerDriver()],
       now: () => 1
     });
-    await expect(
-      manager.open("app", "pub", ["device:speaker:pcm"], ["device:speaker:pcm"], {
+    await expect(manager.open("app", "pub", ["device:speaker:pcm"], ["device:speaker:pcm"], {
         class: "speaker",
         tier: "pcm",
-        purpose: "ultrasonic"
-      })
-    ).rejects.toMatchObject({ code: "DEVICE_TIER_REQUIRED" });
+        purpose: "voice call",
+        options: { voiceDuplex: true }
+      })).resolves.toMatchObject({ class: "speaker", tier: "pcm" });
   });
 });
 
@@ -472,10 +492,137 @@ describe("DeviceManager Phase 4 raw tiers + sidecar", () => {
 });
 
 describe("DeviceManager Phase 5 streaming", () => {
-  it("requires device:stream and admits with degradation on thin links", async () => {
+  it("lets host chrome author, list, revoke, and restart-clear share offers", async () => {
+    let now = 28_000;
+    const manager = new DeviceManager({
+      now: () => now,
+      requestShareOffer: async ({ appId, purpose }) => {
+        expect(appId).toBe("line-check");
+        expect(purpose).toBe("Call Ana");
+        return {
+          targetKind: "peer",
+          targetId: "peer-a",
+          displayLabel: "Ana",
+          classId: "microphone",
+          tierId: "pcm",
+          maxRung: "16k-opus",
+          ttlMs: 1_000
+        };
+      },
+      confirmShareOfferRevoke: async () => true
+    });
+    const offer = await manager.requestShareOfferFromChrome("line-check", "Call Ana");
+    expect(offer?.displayLabel).toBe("Ana");
+    expect(manager.listShareOffers("other")).toEqual([]);
+    expect(manager.listShareOffers("line-check")).toHaveLength(1);
+    expect(await manager.requestShareOfferRevoke("line-check", offer!.id)).toBe(true);
+    expect(manager.listShareOffers("line-check")).toEqual([]);
+
+    manager.grantShareOffer({
+      appId: "line-check",
+      targetKind: "peer",
+      targetId: "peer-a",
+      displayLabel: "Ana",
+      classId: "camera",
+      tierId: "derived",
+      maxRung: "derived-events",
+      ttlMs: 1_000
+    });
+    now += 500;
+    manager.clearShareOffersForRestart();
+    expect(manager.listShareOffers("line-check")).toEqual([]);
+  });
+
+  it("uses host link supply and treats app candidates only as ceilings", async () => {
     const manager = new DeviceManager({
       drivers: [createSimulatedCameraDriver()],
-      now: () => 30_000
+      now: () => 29_000,
+      linkSupply: async () => [{
+        plane: "reticulum",
+        effectiveBps: 1_000,
+        measuredGoodputBps: 1_000,
+        headroomBps: 524_288
+      }]
+    });
+    const session = await manager.open("app", "pub", ["device:camera:frames"], ["device:camera:frames"], {
+      class: "camera",
+      tier: "frames",
+      purpose: "watch"
+    });
+    manager.grantShareOffer({
+      appId: "app",
+      targetKind: "peer",
+      targetId: "peer-1",
+      displayLabel: "Peer 1",
+      classId: "camera",
+      tierId: "frames",
+      maxRung: "720p30",
+      ttlMs: 60_000
+    });
+    await expect(manager.stream(
+      "app",
+      ["device:camera:frames", "device:stream"],
+      ["device:camera:frames", "device:stream"],
+      session.handle,
+      "peer-1",
+      { candidates: [{ plane: "reticulum", effectiveBps: 100_000_000, headroomBps: 100_000_000 }] }
+    )).rejects.toMatchObject({ code: "DEVICE_BANDWIDTH_INSUFFICIENT" });
+  });
+
+  it("enforces the host-authored maximum quality rung", async () => {
+    let now = 29_500;
+    const manager = new DeviceManager({
+      drivers: [createSimulatedRawCameraDriver()],
+      now: () => now,
+      linkSupply: async () => [{ plane: "webrtc", effectiveBps: 4_000_000, headroomBps: 4_000_000 }],
+      streamEgressFactory: testEgressFactory()
+    });
+    const session = await manager.open("app", "pub", ["device:camera:frames"], ["device:camera:frames"], {
+      class: "camera",
+      tier: "frames",
+      purpose: "call"
+    });
+    manager.grantShareOffer({
+      appId: "app",
+      targetKind: "peer",
+      targetId: "peer-1",
+      displayLabel: "Peer 1",
+      classId: "camera",
+      tierId: "frames",
+      maxRung: "480p15",
+      ttlMs: 60_000
+    });
+    const stream = await manager.stream(
+      "app",
+      ["device:camera:frames", "device:stream"],
+      ["device:camera:frames", "device:stream"],
+      session.handle,
+      "peer-1"
+    );
+    expect(stream.admission.rung).toBe("480p15");
+    expect(stream.admission.kind).toBe("degrade");
+    expect(() => manager.grantShareOffer({
+      appId: "app",
+      targetKind: "peer",
+      targetId: "peer-1",
+      displayLabel: "Peer 1",
+      classId: "camera",
+      tierId: "frames",
+      maxRung: "app-invented-ultra",
+      ttlMs: 60_000
+    })).toThrow(/quality ceiling/);
+    now += 60_000;
+    expect(manager.listShareOffers("app")).toEqual([]);
+    expect(manager.activeStreams()).toEqual([]);
+  });
+
+  it("requires device:stream and admits with degradation on thin links", async () => {
+    const sent: Uint8Array[] = [];
+    const manager = new DeviceManager({
+      drivers: [createSimulatedCameraDriver()],
+      now: () => 30_000,
+      linkSupply: async () => [{ plane: "reticulum", effectiveBps: 64_000, headroomBps: 64_000 }],
+      streamEgressFactory: testEgressFactory(sent)
     });
     const session = await manager.open("app", "pub", ["device:camera"], ["device:camera"], {
       class: "camera",
@@ -487,6 +634,17 @@ describe("DeviceManager Phase 5 streaming", () => {
         candidates: [{ plane: "reticulum", effectiveBps: 400, headroomBps: 524_288 }]
       })
     ).rejects.toMatchObject({ code: "DEVICE_DENIED" });
+
+    manager.grantShareOffer({
+      appId: "app",
+      targetKind: "peer",
+      targetId: "peer-1",
+      displayLabel: "Peer 1",
+      classId: "camera",
+      tierId: "derived",
+      maxRung: "derived-events",
+      ttlMs: 60_000
+    });
 
     const stream = await manager.stream(
       "app",
@@ -501,23 +659,80 @@ describe("DeviceManager Phase 5 streaming", () => {
     expect(stream.admission.kind).toMatch(/accept|degrade|defer/);
     expect(stream.peer).toBe("peer-1");
     expect(manager.activeIndicators()[0]?.destination).toBe("peer-1");
+    await manager.read("app", session.handle);
+    expect(sent).toHaveLength(1);
+    const derivedFrame = decodeDeviceStreamFrame(sent[0]!);
+    expect(derivedFrame.sampleKind).toBe(5);
+    expect(JSON.parse(new TextDecoder().decode(derivedFrame.payload))).toMatchObject({
+      kind: "camera",
+      tier: "derived",
+      motionDetected: false
+    });
+    await manager.closeStream("app", stream.handle);
+  });
+
+  it("reopens the codec/transport at a lower rung after sustained collapse and recovers only after hysteresis", async () => {
+    let now = 30_500;
+    let goodputBps = 1_000_000;
+    const opened: string[] = [];
+    const closed: string[] = [];
+    const manager = new DeviceManager({
+      drivers: [createSimulatedRawMicrophoneDriver({ sampleRate: 48_000, channels: 1, samples: [0.1, -0.1] })],
+      now: () => now,
+      linkSupply: async () => [{ plane: "reticulum", effectiveBps: 1_000_000, headroomBps: 1_000_000 }],
+      streamEgressFactory: {
+        async create({ admission }) {
+          opened.push(admission.rung);
+          return {
+            plane: admission.plane,
+            async send() { return { queuedBytes: 0, droppedOldest: 0 }; },
+            quality: () => ({ goodputBps, rttMs: 20, jitterMs: 1, lossRatio: 0, mtu: 1_200, source: "observed" as const, samples: 4, confidence: "medium" as const }),
+            async close() { closed.push(admission.rung); }
+          };
+        }
+      }
+    });
+    const session = await manager.open("app", "pub", ["device:microphone:pcm"], ["device:microphone:pcm"], { class: "microphone", tier: "pcm", purpose: "call" });
+    manager.grantShareOffer({ appId: "app", targetKind: "peer", targetId: "peer-1", displayLabel: "Peer 1", classId: "microphone", tierId: "pcm", maxRung: "48k-pcm", ttlMs: 60_000 });
+    const stream = await manager.stream("app", ["device:microphone:pcm", "device:stream"], ["device:microphone:pcm", "device:stream"], session.handle, "peer-1");
+    expect(opened).toEqual(["48k-pcm"]);
+    goodputBps = 10_000;
+    now += 1_000; await manager.read("app", session.handle); now += 1_000; await manager.read("app", session.handle);
+    await vi.waitFor(() => expect(opened).toContain("16k-opus"));
+    expect(manager.activeStreams()[0]?.admission.rung).toBe("16k-opus");
+    goodputBps = 1_000_000;
+    for (let index = 0; index < 4; index += 1) { now += 1_000; await manager.read("app", session.handle); }
+    await vi.waitFor(() => expect(opened.filter((rung) => rung === "48k-pcm")).toHaveLength(2));
+    expect(manager.activeStreams()[0]?.admission.rung).toBe("48k-pcm");
+    expect(closed).toContain("16k-opus");
     await manager.closeStream("app", stream.handle);
   });
 
   it("rejects when no bandwidth remains", async () => {
     const manager = new DeviceManager({
-      drivers: [createSimulatedLocationDriver()],
-      now: () => 31_000
+      drivers: [createSimulatedCameraDriver()],
+      now: () => 31_000,
+      linkSupply: async () => [{ plane: "lxmf", effectiveBps: 0, headroomBps: 0 }]
     });
-    const session = await manager.open("app", "pub", ["device:location"], ["device:location"], {
-      class: "location",
-      purpose: "share fix"
+    const session = await manager.open("app", "pub", ["device:camera"], ["device:camera"], {
+      class: "camera",
+      purpose: "share view"
+    });
+    manager.grantShareOffer({
+      appId: "app",
+      targetKind: "peer",
+      targetId: "peer-2",
+      displayLabel: "Peer 2",
+      classId: "camera",
+      tierId: "derived",
+      maxRung: "derived-events",
+      ttlMs: 60_000
     });
     await expect(
       manager.stream(
         "app",
-        ["device:location", "device:stream"],
-        ["device:location", "device:stream"],
+        ["device:camera", "device:stream"],
+        ["device:camera", "device:stream"],
         session.handle,
         "peer-2",
         { candidates: [{ plane: "lxmf", effectiveBps: 0, headroomBps: 0 }] }

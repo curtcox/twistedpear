@@ -35,6 +35,14 @@ replication and the gateway bulk-fetch response use the same host limiter. Packa
 selection still applies the stricter transfer budgets before a fetch begins. The default
 is 524,288 bytes/s independently for ingress and egress.
 
+Realtime media uses named `realtime`, `bulk`, and `control` reservations on that same
+limiter. Realtime reservations are admitted only when free, are capped at 60% of host
+capacity in aggregate, and are released when a stream closes. Active link probes are
+explicit user actions, limited to 8 KiB and one probe per app/peer/minute; costly links
+may require host confirmation, and the host aborts rather than growing the shared queue.
+These rules do not relax principle 3: signaling can wake trusted host chrome, but it does
+not start a mini-app in the background.
+
 ## Battery budgets (targets — verify on device)
 
 | Mode | Android target | iOS target |

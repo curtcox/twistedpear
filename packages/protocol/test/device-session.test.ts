@@ -96,8 +96,8 @@ describe("device quantize", () => {
 });
 
 describe("device registry", () => {
-  it("pins host API 0.10.0 and includes Phase 1 classes", () => {
-    expect(DEVICE_REGISTRY_HOST_API).toBe("0.10.0");
+  it("pins host API 0.12.0 and includes device classes", () => {
+    expect(DEVICE_REGISTRY_HOST_API).toBe("0.12.0");
     const ids = DEVICE_CLASS_REGISTRY.map((entry) => entry.id);
     expect(ids).toContain("location");
     expect(ids).toContain("ambient-light");

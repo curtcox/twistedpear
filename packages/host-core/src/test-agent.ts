@@ -25,8 +25,11 @@ import { LXMFRouter, LXMessageMethod } from "@twistedpear/lxmf-ts";
 
 /** Probe messages carry this title so agents never echo unrelated LXMF traffic. */
 export const TEST_AGENT_PROBE_TITLE = "tp-probe";
+export const TEST_AGENT_REALTIME_TITLE = "tp-realtime";
 const PROBE_PREFIX = "tp-probe:";
 const ECHO_PREFIX = "tp-probe-echo:";
+const REALTIME_PREFIX = "tp-realtime:";
+const REALTIME_ECHO_PREFIX = "tp-realtime-echo:";
 const LXMF_DELIVERY_ASPECT = "lxmf.delivery";
 
 export interface TestAgentPeerRecord {
@@ -47,6 +50,14 @@ export interface TestAgentInboxEntry {
   readonly receivedAt: number;
 }
 
+export interface TestAgentRealtimeEntry {
+  readonly nonce: string;
+  readonly kind: "payload" | "echo";
+  readonly fromDestinationHash: string;
+  readonly payloadHex: string;
+  readonly receivedAt: number;
+}
+
 export interface TestAgentInfo {
   readonly label: string;
   readonly platform: string;
@@ -60,6 +71,7 @@ export interface TestAgentStatus extends TestAgentInfo {
   readonly announcesSeen: number;
   readonly peerCount: number;
   readonly inboxCount: number;
+  readonly realtimeInboxCount: number;
   readonly pathTableCount: number;
 }
 
@@ -98,6 +110,7 @@ interface ControlRequest {
   readonly cmd: string;
   readonly toLxmfAddress?: string;
   readonly nonce?: string;
+  readonly payloadHex?: string;
   readonly [key: string]: unknown;
 }
 
@@ -123,6 +136,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
 
   const peers = new Map<string, TestAgentPeerRecord>();
   const inboxEntries: TestAgentInboxEntry[] = [];
+  const realtimeEntries: TestAgentRealtimeEntry[] = [];
   let announcesSeen = 0;
   let stopped = false;
   let connection: DuplexConnection | null = null;
@@ -160,15 +174,20 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     return router.createOutboundDestination(recipient);
   };
 
-  const sendProbe = async (toLxmfAddress: string, content: string): Promise<void> => {
+  const sendMessage = async (toLxmfAddress: string, title: string, content: string): Promise<void> => {
     await router.packAndSend({
       destination: outboundFor(toLxmfAddress),
       source: delivery,
-      title: TEST_AGENT_PROBE_TITLE,
+      title,
       content,
       desiredMethod: LXMessageMethod.OPPORTUNISTIC,
       deferStamp: true
     });
+  };
+  const sendProbe = (toLxmfAddress: string, content: string) => sendMessage(toLxmfAddress, TEST_AGENT_PROBE_TITLE, content);
+  const sendRealtime = (toLxmfAddress: string, prefix: string, nonce: string, payloadHex: string) => {
+    if (!/^[0-9a-f]*$/i.test(payloadHex) || payloadHex.length > 262_144 || nonce.length < 1 || nonce.length > 160 || nonce.includes(":")) throw new Error("realtime test payload is malformed");
+    return sendMessage(toLxmfAddress, TEST_AGENT_REALTIME_TITLE, `${prefix}${nonce}:${payloadHex}`);
   };
 
   router.onDelivery((message) => {
@@ -179,6 +198,19 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       return;
     }
     const from = bytesToHex(message.sourceHash);
+    if (message.titleAsString() === TEST_AGENT_REALTIME_TITLE) {
+      const echo = content.startsWith(REALTIME_ECHO_PREFIX);
+      const prefix = echo ? REALTIME_ECHO_PREFIX : REALTIME_PREFIX;
+      if (!content.startsWith(prefix)) return;
+      const separator = content.indexOf(":", prefix.length);
+      if (separator < 0) return;
+      const nonce = content.slice(prefix.length, separator);
+      const payloadHex = content.slice(separator + 1);
+      if (!/^[0-9a-f]*$/i.test(payloadHex) || payloadHex.length > 262_144 || nonce.length < 1 || nonce.length > 160) return;
+      realtimeEntries.push({ nonce, kind: echo ? "echo" : "payload", fromDestinationHash: from, payloadHex, receivedAt: Date.now() });
+      if (!echo) void sendRealtime(from, REALTIME_ECHO_PREFIX, nonce, payloadHex).catch((error: unknown) => log(`test-agent realtime echo failed: ${error instanceof Error ? error.message : String(error)}`));
+      return;
+    }
     const echoNonce = nonceFrom(content, ECHO_PREFIX);
     if (echoNonce !== null) {
       recordInbox({ nonce: echoNonce, kind: "echo", fromDestinationHash: from, receivedAt: Date.now() });
@@ -206,6 +238,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       announcesSeen,
       peerCount: peers.size,
       inboxCount: inboxEntries.length,
+      realtimeInboxCount: realtimeEntries.length,
       pathTableCount: reticulum.pathTableCount
     };
   };
@@ -218,6 +251,8 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
         return { peers: [...peers.values()] };
       case "inbox":
         return { inbox: [...inboxEntries] };
+      case "realtime-inbox":
+        return { inbox: [...realtimeEntries] };
       case "status":
         return { status: buildStatus() };
       case "announce":
@@ -228,6 +263,11 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
           throw new Error("send requires toLxmfAddress and nonce");
         }
         await sendProbe(request.toLxmfAddress, `${PROBE_PREFIX}${request.nonce}`);
+        return {};
+      }
+      case "send-realtime": {
+        if (request.toLxmfAddress === undefined || request.nonce === undefined || request.payloadHex === undefined) throw new Error("send-realtime requires toLxmfAddress, nonce, and payloadHex");
+        await sendRealtime(request.toLxmfAddress, REALTIME_PREFIX, request.nonce, request.payloadHex);
         return {};
       }
       default:

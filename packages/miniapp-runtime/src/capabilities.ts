@@ -36,6 +36,8 @@ export type MiniappCapability =
   | "apps:preview"
   | "share:cas"
   | "peer:connect"
+  | "link:observe"
+  | "link:probe"
   | "relay:configure"
   | "relay:read"
   | "freenet:contract"
@@ -65,6 +67,8 @@ const CORE_CAPABILITY_DEFINITIONS: ReadonlyArray<CapabilityDefinition> = [
   { id: "apps:preview", description: "Run a built app in the host's sandboxed dev-preview slot." },
   { id: "share:cas", description: "Store and retrieve bounded content-addressed data shared by 256t id." },
   { id: "peer:connect", description: "Ask trusted host chrome to find, confirm, and connect an app-scoped peer." },
+  { id: "link:observe", description: "See which peers are reachable and how good the connection to each is." },
+  { id: "link:probe", description: "Send a small test transmission to measure a connection (uses airtime and battery)." },
   { id: "relay:configure", description: "Enable, disable, or reconfigure host relay interfaces and relay mode (ask each time)." },
   { id: "relay:read", description: "Read host relay mode, interface status, and diagnostics." },
   {

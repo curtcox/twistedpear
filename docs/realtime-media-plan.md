@@ -1,7 +1,7 @@
 # Realtime peer media plan — who can I call, and what am I sharing
 
 <!-- tp-doc
-lifecycle: planned
+lifecycle: live
 audited: 2026-07-31
 register: software
 -->
@@ -12,18 +12,27 @@ usually "not at that quality":
 1. **Which peers currently have a link good enough for realtime audio and/or video?**
 2. **Which of my camera and microphone am I sharing, with whom, and for how long?**
 
-The app is `line-check`. This document evaluates whether the platform can carry it,
-names the capabilities that are missing, proposes them, and sequences the work.
+The app is `line-check`. This document records the design, implementation sequence, and
+remaining shipping-host integration work.
 
 Companion plans: [Device I/O plan](device-io-plan.md) exposes the hardware;
 [Local peer discovery and connection plan](local-peer-discovery-plan.md) supplies the peer
 handles; [Relay and configurable interfaces](relay-interfaces-plan.md) owns the same
-hardware in the *packet transport* plane and must never hold it at the same time.
+hardware in the *packet transport* plane and must never hold it at the same time. Current
+requirement-level proof and missing exits are tracked in the
+[implementation evidence register](realtime-media-implementation.md).
 
 ## Executive finding
 
-The platform is roughly **70% of the way to the control surface and 10% of the way to the
-media path**.
+As of 2026-07-31, the reusable core is implemented: link observation/probes, readiness,
+share policy, fail-closed stream admission, a host-only five-plane binding, receive sinks,
+encoding/timing primitives, signaling, Line Check, and the SPEC-STREAM formal artifacts.
+The remaining work is integration rather than protocol shape: shipping hosts must provide
+live telemetry, trusted share/invite chrome, concrete plane openers and codec drivers, and
+multi-host conformance evidence. Until those adapters are present, the UI must continue to
+say “probably” for declared low-confidence paths and hosts must reject unconfigured streams.
+
+The evaluation below is retained as the design baseline that motivated the implementation.
 
 What already exists is substantial and correctly shaped: a closed capability taxonomy with
 `device:camera:frames`, `device:microphone:pcm`, `device:stream`, and `device:remote`; a

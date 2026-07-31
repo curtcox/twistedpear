@@ -6,6 +6,7 @@ import { createWebLeafHost } from "../../../packages/host-core/dist/web.js";
 import { createWebPackageStorage } from "../../../packages/host-core/dist/web.js";
 import {
   Identity,
+  BandwidthLimiter,
   DestinationDirection,
   DestinationType,
   PureCryptoProvider,
@@ -60,6 +61,7 @@ const MINIAPP_KV_STORE_NAME = "twistedpear-harness-web-miniapp-kv";
 const DEFAULT_PASSPHRASE = "harness-web-dev";
 const KV_OBJECT_STORE = "kv";
 const HOST_BANDWIDTH_BYTES_PER_SECOND = 512 * 1024;
+const webOutboundBandwidthLimiter = new BandwidthLimiter(webRuntime().clock, HOST_BANDWIDTH_BYTES_PER_SECOND);
 
 const helloDevBundle = new TextEncoder().encode(`import { ui } from "@twistedpear/miniapp-sdk";
 
@@ -150,6 +152,8 @@ const cryptoProvider = new PureCryptoProvider();
 /** @type {ReturnType<typeof createMiniappKvStore> | null} */
 let miniappKvStore = null;
 let peerSessionManager = null;
+const webRtcRouteListeners = new Map();
+const webRtcRoutePending = new Map();
 let crossDeviceTestDriver = null;
 
 function ensureCrossDeviceTestDriver() {
@@ -261,7 +265,7 @@ async function ensurePeerSessionManager() {
     },
     confirm: (peer, request) => peerChrome.confirm(peer, request),
     async establish(context, peer, adapter) {
-      if (peer.dataPlane === "webrtc") { const remote = context.remoteInvitation.candidates.find((entry) => entry.kind === "webrtc"); const sessionId = bytesToHex(context.remoteInvitation.sessionId); const reply = await requestHostReply({ type: "peer-webrtc-establish", token: peerToken(), sessionId, ...(remote === undefined ? {} : { remoteSignal: new TextDecoder().decode(remote.value) }) }, 30_000); if (reply?.opened !== true) throw new Error("WebRTC data channel did not open"); return { authenticated: true, confirmed: true, fingerprint: peer.fingerprint, displayLabel: peer.displayLabel, rendezvous: adapter.kind, dataPlane: "webrtc", async close() { send({ type: "peer-webrtc-close", sessionId }); } }; }
+      if (peer.dataPlane === "webrtc") { const remote = context.remoteInvitation.candidates.find((entry) => entry.kind === "webrtc"); const sessionId = bytesToHex(context.remoteInvitation.sessionId); const reply = await requestHostReply({ type: "peer-webrtc-establish", token: peerToken(), sessionId, ...(remote === undefined ? {} : { remoteSignal: new TextDecoder().decode(remote.value) }) }, 30_000); if (reply?.opened !== true) throw new Error("WebRTC data channel did not open"); const listeners = new Set(); webRtcRouteListeners.set(sessionId, listeners); if (!webRtcRoutePending.has(sessionId)) webRtcRoutePending.set(sessionId, []); return { authenticated: true, confirmed: true, fingerprint: peer.fingerprint, displayLabel: peer.displayLabel, rendezvous: adapter.kind, dataPlane: "webrtc", route: { async send(payload) { const sent = await requestHostReply({ type: "peer-webrtc-data-send", token: peerToken(), sessionId, dataHex: bytesToHex(payload) }, 10_000); if (sent?.sent !== true) throw new Error("WebRTC data channel send failed"); }, subscribe(listener) { listeners.add(listener); for (const pending of webRtcRoutePending.get(sessionId)?.splice(0) ?? []) listener(pending); return () => listeners.delete(listener); }, quality() { return { goodputBps: 2_000_000, rttMs: 50, mtu: 1_200, queueDepthBytes: webOutboundBandwidthLimiter.queueDepthBytes() }; } }, async close() { webRtcRouteListeners.delete(sessionId); webRtcRoutePending.delete(sessionId); send({ type: "peer-webrtc-close", sessionId }); } }; }
       return { authenticated: true, confirmed: true, fingerprint: peer.fingerprint, displayLabel: peer.displayLabel, rendezvous: adapter.kind, dataPlane: peer.dataPlane };
     }
   });
@@ -271,6 +275,8 @@ const peerSessionManagerProxy = {
   async request(appId, runtimeId, request) { return (await ensurePeerSessionManager()).request(appId, runtimeId, request); },
   async listen(appId, runtimeId, request) { return (await ensurePeerSessionManager()).listen(appId, runtimeId, request); },
   async diagnostics() { return (await ensurePeerSessionManager()).diagnostics(); },
+  list(appId) { return peerSessionManager?.list(appId) ?? []; },
+  route(appId, handle) { return peerSessionManager?.route(appId, handle); },
   info(appId, runtimeId, handle) { if (peerSessionManager === null) throw new Error("Unknown peer handle"); return peerSessionManager.info(appId, runtimeId, handle); },
   async close(appId, runtimeId, handle) { if (peerSessionManager !== null) await peerSessionManager.close(appId, runtimeId, handle); },
   async closeRuntime(appId, runtimeId) { if (peerSessionManager !== null) await peerSessionManager.closeRuntime(appId, runtimeId); }
@@ -549,6 +555,16 @@ function ensureMiniappHost() {
       send,
       requestHostReply,
       peerSessionManager: peerSessionManagerProxy,
+      realtimeReservations: { reserveRealtime: (bytesPerSecond) => webOutboundBandwidthLimiter.reserve("realtime", bytesPerSecond) },
+      controlReservations: { reserveControl: (bytesPerSecond) => webOutboundBandwidthLimiter.reserve("control", bytesPerSecond) },
+      onInboundMediaFrame(appId, stream, frame, offer) { send({ type: "inbound-media-frame", appId, handle: stream.handle, sink: stream.sink, encoding: offer.encoding, dataHex: bytesToHex(frame) }); },
+      async requestShareOffer({ appId, purpose }) {
+        const peer = peerSessionManagerProxy.list(appId)[0]; if (peer === undefined) return null;
+        const reply = await requestHostReply({ type: "confirm-request", token: peerToken(), kind: "device-share-offer", appId, publisherPublicKey: "host-authenticated-peer", summary: { purpose, peer: peer.displayLabel, class: "microphone", tier: "pcm", quality: "16k-opus", duration: "15 minutes" } });
+        return reply?.approved === true ? { targetKind: "peer", targetId: peer.handle.id, displayLabel: peer.displayLabel, classId: "microphone", tierId: "pcm", maxRung: "16k-opus", ttlMs: 15 * 60_000 } : null;
+      },
+      async confirmShareOfferRevoke(offer) { const reply = await requestHostReply({ type: "confirm-request", token: peerToken(), kind: "device-share-revoke", appId: offer.appId, publisherPublicKey: "host-authenticated-peer", summary: { peer: offer.displayLabel, class: offer.classId } }); return reply?.approved === true; },
+      async confirmCostlyLinkProbe({ appId, peer, budgetBytes }) { const reply = await requestHostReply({ type: "confirm-request", token: peerToken(), kind: "link-probe", appId, publisherPublicKey: "host-authenticated-peer", summary: { peer: peer.displayLabel, budgetBytes } }); return reply?.approved === true; },
       announceService: transportAnnounceService,
       getPublisherIdentity: async () => {
         if (!(await hasWebIdentity(identityOptions()))) {
@@ -958,6 +974,20 @@ async function handleHostMessage(raw) {
     return;
   }
 
+  if (message.type === "peer-webrtc-data") {
+    const payload = hexToBytes(message.dataHex);
+    const listeners = webRtcRouteListeners.get(message.sessionId);
+    if (listeners === undefined || listeners.size === 0) {
+      const pending = webRtcRoutePending.get(message.sessionId) ?? [];
+      pending.push(payload.slice());
+      if (pending.length > 16) pending.shift();
+      webRtcRoutePending.set(message.sessionId, pending);
+    } else {
+      for (const listener of listeners) listener(payload.slice());
+    }
+    return;
+  }
+
   if (message.type === "install-from-256t") {
     try {
       const result = await ensureInstallService().installFromT256(message.t256);
@@ -1135,6 +1165,11 @@ async function handleHostMessage(raw) {
     } catch (error) {
       log(`Device session kill failed: ${error instanceof Error ? error.message : String(error)}`);
     }
+    return;
+  }
+
+  if (message.type === "device-revoke-share") {
+    await ensureMiniappHost().revokeShareOffer(message.appId, message.id);
     return;
   }
 

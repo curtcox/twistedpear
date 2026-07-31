@@ -7,9 +7,9 @@ audited: 2026-07-21
 register: none
 -->
 
-Phase 4 introduces a host-rendered, brokered mini-app runtime. The host API anchor is
-`HOST_API_VERSION = 0.7.0`; package `minHostApi` checks and capability validation use
-that value.
+Phase 4 introduces a host-rendered, brokered mini-app runtime. The current host API
+anchor is `HOST_API_VERSION = 0.12.0`; package `minHostApi` checks and capability
+validation use that value.
 
 ## Isolation ADR
 
@@ -69,6 +69,10 @@ Host API `0.11.0` adds `freenet:contract` for brokered Freenet contract
 `get` / `put` / `update`. Put and update ask each time; grant wording states that
 updates are published to a global network and cannot be recalled. See
 [ADR: Freenet app execution](adr-freenet-app-execution.md).
+Host API `0.12.0` adds app-scoped link observation and budgeted probes, outbound
+share-policy visibility, inbound media routing to host-rendered sinks, and the separate
+raw-inbound gate. The sandbox receives opaque handles and coarse quality/readiness data;
+transport credentials and media plane objects remain host-owned.
 
 Unknown strings block install with guidance to update `minHostApi`. Grants are keyed by
 `appId + publisherPublicKey`, survive updates signed by the same publisher, and are

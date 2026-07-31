@@ -16,6 +16,8 @@
     "ai:chat",
     "ai:embed",
     "peer:connect",
+    "link:observe",
+    "link:probe",
     "freenet:contract",
     "relay:configure",
     "relay:read",
@@ -51,8 +53,10 @@
     "device:hygrometer",
     "device:thermal",
     "device:stream",
-    "device:remote"
+    "device:remote",
+    "device:share-policy:read",
+    "device:stream:raw-inbound"
   ],
   "icon": null,
-  "minHostApi": "0.11.0"
+  "minHostApi": "0.12.0"
 }

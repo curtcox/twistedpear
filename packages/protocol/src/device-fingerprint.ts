@@ -7,7 +7,7 @@ export interface RawCameraFrameInput {
   readonly width: number;
   readonly height: number;
   readonly format: "rgba8" | "yuv420" | "jpeg";
-  readonly bytes: Uint8Array;
+  readonly bytes: Uint8Array | ReadonlyArray<number>;
   /** Stripped — never forwarded to apps. */
   readonly deviceModel?: string;
   readonly sensorCalibration?: unknown;
@@ -63,7 +63,7 @@ export function sanitizeCameraFrame(input: RawCameraFrameInput): RawCameraFrame 
     width: Math.floor(input.width),
     height: Math.floor(input.height),
     format: input.format,
-    bytes: input.bytes.slice()
+    bytes: Uint8Array.from(input.bytes, (value) => Number.isFinite(value) ? Math.max(0, Math.min(255, Math.floor(value))) : 0)
   };
 }
 

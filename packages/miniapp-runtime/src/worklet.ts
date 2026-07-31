@@ -69,6 +69,7 @@ export {
   createHybridDeviceDrivers
 } from "./device-manager.js";
 export type { DeviceChromeSession, DeviceManagerOptions } from "./device-manager.js";
+export { CodecStreamEgressFactory, ReservedStreamEgressFactory, PeerRouteStreamEgressFactory, PeerRouteMediaBridge, createPeerRouteLinkSupply } from "./media-stream.js";
 export {
   createHostBridgedDriver,
   createHostBridgedDrivers

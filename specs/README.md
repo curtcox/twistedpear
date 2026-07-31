@@ -93,6 +93,7 @@ TwistedPear-authored; the app platform seen by mini-apps and renderers.
 | [SPEC-BIND-LOOPBACK](spec-bind-loopback/spec.md) | In-memory message substrate binding | **normative** |
 | [SPEC-CHROME](spec-chrome/spec.md) | Host confirmations, grant screens, draw-over rules | **normative** (R2/R4/R5/R6; R1/R3 informative) |
 | [SPEC-DEVICE](spec-device/spec.md) | Device-class registry, tiers, session lifecycle | stub |
+| [SPEC-STREAM](spec-stream/spec.md) | Peer-media readiness, admission, adaptation, framing, and stream lifecycle | **normative** |
 
 ## Exemplar
 

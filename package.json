@@ -193,6 +193,7 @@
     "formal:escrow": "npm run build --workspace=@twistedpear/protocol && node formal/check-machine-conformance.mjs escrow",
     "formal:recovery": "npm run build --workspace=@twistedpear/protocol && node formal/check-machine-conformance.mjs recovery",
     "formal:device-session": "npm run build --workspace=@twistedpear/protocol && node formal/check-machine-conformance.mjs device-session",
+    "formal:stream": "npm run build --workspace=@twistedpear/protocol && node formal/check-machine-conformance.mjs stream",
     "formal:all": "npm run build --workspace=@twistedpear/protocol && node formal/check-machine-conformance.mjs --all",
     "formal:symbolic:lint": "node formal/check-symbolic-models.mjs",
     "formal:tamarin": "node formal/run-symbolic-provers.mjs tamarin",

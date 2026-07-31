@@ -100,8 +100,24 @@ export class DeviceBrokerService {
     return { closed: true };
   }
 
+  streams(appId: string): ReadonlyArray<import("../device-manager.js").DeviceStreamSession> {
+    return this.manager.activeStreamsForApp(appId);
+  }
+
   closeApp(appId: string): void {
     this.manager.closeApp(appId);
+  }
+
+  shareOffers(appId: string): ReadonlyArray<import("@twistedpear/protocol").ShareOffer> {
+    return this.manager.listShareOffers(appId);
+  }
+
+  requestShareOffer(appId: string, payload: { purpose: string }): Promise<import("@twistedpear/protocol").ShareOffer | null> {
+    return this.manager.requestShareOfferFromChrome(appId, payload.purpose);
+  }
+
+  async revokeShareOffer(appId: string, payload: { id: string }): Promise<{ revoked: boolean }> {
+    return { revoked: await this.manager.requestShareOfferRevoke(appId, payload.id) };
   }
 }
 

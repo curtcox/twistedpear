@@ -1,0 +1,22 @@
+{
+  "name": "line-check",
+  "version": "1.0.0",
+  "entry": "bundle.js",
+  "capabilities": [
+    "presence",
+    "announce:subscribe",
+    "announce:publish",
+    "peer:connect",
+    "link:observe",
+    "link:probe",
+    "device:camera",
+    "device:microphone",
+    "device:camera:frames",
+    "device:microphone:pcm",
+    "device:stream",
+    "device:share-policy:read",
+    "storage:kv"
+  ],
+  "icon": null,
+  "minHostApi": "0.12.0"
+}

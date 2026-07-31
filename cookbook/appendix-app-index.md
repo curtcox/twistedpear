@@ -6,7 +6,7 @@ audited: 2026-07-21
 register: none
 -->
 
-All twenty-five cookbook samples in one table, sorted by chapter. Every directory holds a
+All twenty-six cookbook samples in one table, sorted by chapter. Every directory holds a
 `README.md`, an `app.manifest.json`, and a single `bundle.js`.
 
 The **size** column is the approximate packaged `.tpkg` size. All twenty-five are far inside
@@ -35,6 +35,7 @@ the 180 KiB BLE install budget, and the four largest are still under a minute of
 | **Neighborhood board** | [05](05-apps-that-find-each-other.md) | `announce:publish`, `announce:subscribe`, `storage:hyperbee` | ~15 KiB | [neighborhood-board](apps/neighborhood-board/README.md) |
 | **Swap shelf** | [05](05-apps-that-find-each-other.md) | `announce:publish`, `announce:subscribe`, `storage:kv` | ~12 KiB | [swap-shelf](apps/swap-shelf/README.md) |
 | **Link weather** | [05](05-apps-that-find-each-other.md) | `presence`, `peer:connect` | ~15 KiB | [link-weather](apps/link-weather/README.md) |
+| **Line check** | [05](05-apps-that-find-each-other.md) | `link:observe`, `link:probe`, `device:*` | ~18 KiB | [line-check](apps/line-check/README.md) |
 | **Photo drop** | [06](06-apps-that-move-files.md) | `share:cas`, `resource:fetch`, `storage:kv` | ~16 KiB | [photo-drop](apps/photo-drop/README.md) |
 | **Zine reader** | [06](06-apps-that-move-files.md) | `share:cas`, `workspace` | ~14 KiB | [zine-reader](apps/zine-reader/README.md) |
 | **Recipe box** | [06](06-apps-that-move-files.md) | `workspace` | ~12 KiB | [recipe-box](apps/recipe-box/README.md) |
@@ -57,6 +58,8 @@ Which samples to read when you want to see a particular capability used well.
 | `identity` | [Signal check](apps/signal-check/README.md), [Roll call](apps/roll-call/README.md), [Dead drop](apps/dead-drop/README.md) |
 | `presence` | [Link weather](apps/link-weather/README.md), [Beacon lite](apps/beacon-lite/README.md) |
 | `peer:connect` | [Link weather](apps/link-weather/README.md) |
+| `link:observe` | [Line check](apps/line-check/README.md) |
+| `link:probe` | [Line check](apps/line-check/README.md) |
 | `announce:publish` | [Neighborhood board](apps/neighborhood-board/README.md), [Swap shelf](apps/swap-shelf/README.md), [Beacon lite](apps/beacon-lite/README.md) |
 | `announce:subscribe` | [Neighborhood board](apps/neighborhood-board/README.md), [Swap shelf](apps/swap-shelf/README.md), [App relay](apps/app-relay/README.md) |
 | `lxmf:send` | [Signal check](apps/signal-check/README.md), [Roll call](apps/roll-call/README.md), [Dead drop](apps/dead-drop/README.md), [Nine line](apps/nine-line/README.md), [Net ledger](apps/net-ledger/README.md) |

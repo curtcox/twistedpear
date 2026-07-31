@@ -948,6 +948,18 @@ async function ensurePeerSessionManager() {
         outbound.requestLink({ linkEstablished(established) { clearTimeout(timer); resolve(established); }, linkClosed() { clearTimeout(timer); reject(new Error("Reticulum peer link closed during establishment")); } });
       });
       peerLinks.set(peer.fingerprint, link);
+      const routeListeners = new Set();
+      const routePending = [];
+      const existingPacket = link.callbacks.packet;
+      link.callbacks.packet = (data, packet) => {
+        if (routeListeners.size === 0) {
+          routePending.push(data.slice());
+          if (routePending.length > 16) routePending.shift();
+        } else {
+          for (const listener of routeListeners) listener(data.slice());
+        }
+        existingPacket?.(data, packet);
+      };
       return {
         authenticated: true,
         confirmed: true,
@@ -955,7 +967,7 @@ async function ensurePeerSessionManager() {
         displayLabel: peer.displayLabel,
         rendezvous: adapter.kind,
         dataPlane: peer.dataPlane,
-        route: { async send(payload) { await link.send(payload); } },
+        route: { async send(payload) { await link.send(payload); }, subscribe(listener) { routeListeners.add(listener); for (const pending of routePending.splice(0)) listener(pending); return () => routeListeners.delete(listener); }, quality() { return { goodputBps: link.attachedInterface?.bitrate ?? 2_000_000, rttMs: (link.rtt ?? 0) * 1_000, mtu: link.mtu, queueDepthBytes: outboundBandwidthLimiter.queueDepthBytes() }; } },
         async close() { peerLinks.delete(peer.fingerprint); await link.teardown(); }
       };
     }
@@ -968,6 +980,8 @@ const peerSessionManagerProxy = {
   async request(appId, runtimeId, request) { return (await ensurePeerSessionManager()).request(appId, runtimeId, request); },
   async listen(appId, runtimeId, request) { return (await ensurePeerSessionManager()).listen(appId, runtimeId, request); },
   async diagnostics() { return (await ensurePeerSessionManager()).diagnostics(); },
+  list(appId) { return peerSessionManager?.list(appId) ?? []; },
+  route(appId, handle) { return peerSessionManager?.route(appId, handle); },
   info(appId, runtimeId, handle) {
     if (peerSessionManager === null) throw new Error("Unknown peer handle");
     return peerSessionManager.info(appId, runtimeId, handle);
@@ -1060,6 +1074,35 @@ function ensureMiniappHost() {
       },
       send,
       peerSessionManager: peerSessionManagerProxy,
+      realtimeReservations: { reserveRealtime: (bytesPerSecond) => outboundBandwidthLimiter.reserve("realtime", bytesPerSecond) },
+      controlReservations: { reserveControl: (bytesPerSecond) => outboundBandwidthLimiter.reserve("control", bytesPerSecond) },
+      onInboundMediaFrame(appId, stream, frame, offer) { send({ type: "inbound-media-frame", appId, handle: stream.handle, sink: stream.sink, encoding: offer.encoding, dataHex: bytesToHex(frame) }); },
+      async openMediaCodec(configuration) {
+        const transact = async (op, sample) => {
+          const token = generateConfirmationToken((length) => provider.randomBytes(length));
+          const reply = await requestRendererReply({ type: "media-codec-request", token, op, configuration, captureAtUs: sample.captureAtUs, dataHex: bytesToHex(sample.bytes) }, 15_000);
+          if (reply?.error !== undefined || typeof reply?.dataHex !== "string") throw new Error(reply?.error ?? "Desktop media codec request timed out.");
+          return { captureAtUs: sample.captureAtUs, bytes: hexToBytes(reply.dataHex), ...(op === "encode" ? { codec: configuration.codec } : {}) };
+        };
+        return { implementation: "webcodecs", supports(candidate) { return candidate.sampleKind === "audio" && (candidate.codec === "opus" || candidate.codec === "pcm"); }, encode(_candidate, sample) { return transact("encode", sample); }, decode(_candidate, sample) { return transact("decode", sample); }, async close() {} };
+      },
+      async requestShareOffer({ appId, purpose }) {
+        const peer = peerSessionManagerProxy.list(appId)[0];
+        if (peer === undefined) return null;
+        const token = generateConfirmationToken((length) => provider.randomBytes(length));
+        const reply = await requestRendererReply({ type: "confirm-request", token, kind: "device-share-offer", appId, publisherPublicKey: "host-authenticated-peer", summary: { purpose, peer: peer.displayLabel, class: "microphone", tier: "pcm", quality: "16k-opus", duration: "15 minutes" } });
+        return reply?.approved === true ? { targetKind: "peer", targetId: peer.handle.id, displayLabel: peer.displayLabel, classId: "microphone", tierId: "pcm", maxRung: "16k-opus", ttlMs: 15 * 60_000 } : null;
+      },
+      async confirmShareOfferRevoke(offer) {
+        const token = generateConfirmationToken((length) => provider.randomBytes(length));
+        const reply = await requestRendererReply({ type: "confirm-request", token, kind: "device-share-revoke", appId: offer.appId, publisherPublicKey: "host-authenticated-peer", summary: { peer: offer.displayLabel, class: offer.classId } });
+        return reply?.approved === true;
+      },
+      async confirmCostlyLinkProbe({ appId, peer, budgetBytes }) {
+        const token = generateConfirmationToken((length) => provider.randomBytes(length));
+        const reply = await requestRendererReply({ type: "confirm-request", token, kind: "link-probe", appId, publisherPublicKey: "host-authenticated-peer", summary: { peer: peer.displayLabel, budgetBytes } });
+        return reply?.approved === true;
+      },
       relayService,
       freenetBackend: freenetBackendProxy,
       announceService: transportAnnounceService,
@@ -2189,6 +2232,11 @@ async function handleHostMessage(raw) {
     return;
   }
 
+  if (message.type === "device-revoke-share") {
+    await ensureMiniappHost().revokeShareOffer(message.appId, message.id);
+    return;
+  }
+
   if (message.type.startsWith("moderation-")) {
     try {
       if (message.type === "moderation-export-reports") {
@@ -2491,7 +2539,7 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response") {
+  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response" || message.type === "media-codec-response") {
     hostReplyChannel.resolveReply(message);
     return;
   }

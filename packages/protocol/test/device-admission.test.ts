@@ -24,11 +24,37 @@ describe("device stream admission", () => {
   it("degrades camera on a LoRa-like reticulum path", () => {
     const decision = decideStreamAdmission(
       { classId: "camera", tierId: "frames", rateHz: 30 },
-      [{ plane: "reticulum", effectiveBps: 500, headroomBps: 524_288 }]
+      [{ plane: "reticulum", effectiveBps: 50_000, headroomBps: 524_288 }]
     );
     expect(decision.kind).toBe("degrade");
     expect(decision.rungIndex).toBeGreaterThan(0);
     expect(decision.rung).toBe(degradationLadderFor("camera")[decision.rungIndex]);
+  });
+
+  it("treats raw media targetBps as a bitrate rather than multiplying by frame rate", () => {
+    expect(demandBps({ classId: "camera", tierId: "frames", rateHz: 30 })).toBe(2_000_000);
+    expect(demandBps({ classId: "microphone", tierId: "pcm", rateHz: 50 })).toBe(524_288);
+  });
+
+  it("uses encoding-specific bandwidth profiles", () => {
+    expect(demandBps({ classId: "microphone", tierId: "pcm", encoding: "16k-opus", rateHz: 50 })).toBe(24_000);
+    expect(demandBps({ classId: "camera", tierId: "frames", encoding: "480p15", rateHz: 15 })).toBe(750_000);
+    const admitted = decideStreamAdmission(
+      { classId: "microphone", tierId: "pcm", encoding: "16k-opus" },
+      [{ plane: "webrtc", effectiveBps: 100_000, headroomBps: 100_000 }]
+    );
+    expect(admitted).toMatchObject({ kind: "accept", rung: "16k-opus", admittedDemandBps: 24_000 });
+  });
+
+  it("checks admitted rung demand rather than clamped supply", () => {
+    const decision = decideStreamAdmission(
+      { classId: "camera", tierId: "frames", rateHz: 30 },
+      [{ plane: "reticulum", effectiveBps: 50_000, headroomBps: 50_000 }]
+    );
+    expect(decision.kind).toBe("degrade");
+    expect(decision.admittedDemandBps).toBeLessThanOrEqual(50_000);
+    expect(admittedWithinHeadroom(decision, 50_000)).toBe(true);
+    expect(admittedWithinHeadroom({ ...decision, admittedDemandBps: 50_001 }, 50_000)).toBe(false);
   });
 
   it("starts lower on metered or low-battery links", () => {
@@ -61,6 +87,14 @@ describe("device stream admission", () => {
     expect(selected?.plane).toBe("webrtc");
   });
 
+  it("skips a higher-priority plane with no usable supply", () => {
+    const selected = selectPlane([
+      { plane: "webrtc", effectiveBps: 0, headroomBps: 0 },
+      { plane: "reticulum", effectiveBps: 10_000, headroomBps: 10_000 }
+    ]);
+    expect(selected?.plane).toBe("reticulum");
+  });
+
   it("downshifts on sustained deficit and upshifts only after hysteresis", () => {
     const ladder = degradationLadderFor("camera");
     const previous: AdmissionDecision = {
@@ -69,6 +103,7 @@ describe("device stream admission", () => {
       rung: ladder[0]!,
       rungIndex: 0,
       demandBps: 100_000,
+      admittedDemandBps: 100_000,
       supplyBps: 100_000,
       reason: "accepted"
     };
@@ -87,6 +122,27 @@ describe("device stream admission", () => {
       surplusStreak: 4
     });
     expect(up.rungIndex).toBe(0);
+  });
+
+  it("holds a degraded rung when supply covers its admitted demand", () => {
+    const ladder = degradationLadderFor("camera");
+    const previous: AdmissionDecision = {
+      kind: "degrade",
+      plane: "reticulum",
+      rung: ladder[2]!,
+      rungIndex: 2,
+      demandBps: 2_000_000,
+      admittedDemandBps: 500_000,
+      supplyBps: 600_000,
+      reason: "degraded"
+    };
+    const held = adaptStreamAdmission({
+      previous,
+      supply: { plane: "reticulum", effectiveBps: 600_000, headroomBps: 600_000 },
+      ladder,
+      deficitStreak: 10
+    });
+    expect(held.rungIndex).toBe(2);
   });
 
   it("keeps admitted supply within host headroom for registry classes", () => {

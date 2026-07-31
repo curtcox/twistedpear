@@ -14,6 +14,8 @@ export interface DeviceSidecarPush {
   readonly sessionToken: number;
   readonly sampleKind: DeviceStreamSampleKind;
   readonly sequence: number;
+  readonly captureAtUs: number;
+  readonly clockId: number;
   readonly payload: Uint8Array;
 }
 
@@ -60,10 +62,12 @@ export class DeviceStreamSidecar {
     }
 
     const encoded = encodeDeviceStreamFrame({
-      version: 1,
+      version: 2,
       sampleKind: push.sampleKind,
       sessionToken: push.sessionToken,
       sequence: push.sequence,
+      captureAtUs: push.captureAtUs,
+      clockId: push.clockId,
       payload: push.payload
     });
 
@@ -119,7 +123,8 @@ function assertSampleOnly(frame: DeviceStreamFrame): void {
     frame.sampleKind !== DEVICE_STREAM_KIND.cameraFrame &&
     frame.sampleKind !== DEVICE_STREAM_KIND.pcm &&
     frame.sampleKind !== DEVICE_STREAM_KIND.motionSamples &&
-    frame.sampleKind !== DEVICE_STREAM_KIND.screenFrame
+    frame.sampleKind !== DEVICE_STREAM_KIND.screenFrame &&
+    frame.sampleKind !== DEVICE_STREAM_KIND.derivedEvent
   ) {
     throw new DeviceStreamFrameError(
       "CONTROL_FORBIDDEN",
