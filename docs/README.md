@@ -111,6 +111,7 @@ Protocol implementation details live in the
 | Topic | Document |
 |---|---|
 | Expose device sensors and actuators to mini-apps | [Device I/O plan](device-io-plan.md), [add a device class](device-class-runbook.md) |
+| Per-peer link quality and realtime audio/video between peers | [Realtime peer media plan](realtime-media-plan.md) |
 | Per-capability status including `device:*` | [Platform capabilities status](platform-capabilities-status.md) |
 
 ## Security, quality, and validation
