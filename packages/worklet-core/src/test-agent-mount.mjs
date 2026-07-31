@@ -18,6 +18,7 @@ import { mountTestAgent } from "../../host-core/dist/test-agent.js";
  *   host: string,
  *   port: number,
  *   log?: (line: string) => void
+ *   handleCommand?: (request: Record<string, unknown>) => Promise<Record<string, unknown>>
  * }} options
  */
 export function connectTestAgent(options) {
@@ -29,6 +30,7 @@ export function connectTestAgent(options) {
     platform: options.platform,
     controlHost: options.host,
     controlPort: options.port,
+    ...(options.handleCommand === undefined ? {} : { handleCommand: options.handleCommand }),
     ...(options.log === undefined ? {} : { log: options.log })
   });
 }

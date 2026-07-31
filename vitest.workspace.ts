@@ -21,6 +21,7 @@ export default defineWorkspace([
         "conformance/device-evidence/**/*.test.mjs",
         "conformance/cookbook/**/*.test.mjs",
         "conformance/local-multipeer/**/*.test.mjs",
+        "conformance/cross-device-dev/**/*.test.mjs",
         "conformance/ui-invariants/**/*.test.mjs"
       ],
       exclude: ["packages/protocol/test/**/*.test.ts"]

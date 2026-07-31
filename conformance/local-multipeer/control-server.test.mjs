@@ -48,6 +48,16 @@ describe("local multi-peer control server", () => {
     });
 
     await expect(control.peers("node2")).resolves.toEqual([]);
+    socket.removeAllListeners("data");
+    let commandBuffer = "";
+    socket.on("data", (chunk) => {
+      commandBuffer += chunk;
+      const newline = commandBuffer.indexOf("\n");
+      if (newline < 0) return;
+      const request = JSON.parse(commandBuffer.slice(0, newline));
+      socket.write(`${JSON.stringify({ id: request.id, ok: true, command: request.cmd })}\n`);
+    });
+    await expect(control.command("node2", "project.create", { name: "hello" })).resolves.toMatchObject({ command: "project.create" });
   });
 
   it("rejects a pending command as soon as its agent disconnects", async () => {

@@ -8,3 +8,4 @@ export { createHostReplyChannel } from "./host-reply-channel.mjs";
 export { createStatusTimer } from "./status-timer.mjs";
 export { createMiniappAnnounceService } from "./miniapp-announce-service.mjs";
 export { connectTestAgent } from "./test-agent-mount.mjs";
+export { createCrossDeviceTestDriver } from "./cross-device-test-driver.mjs";

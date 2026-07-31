@@ -123,11 +123,18 @@ unit tests, optional KVM Maestro UI lab, and optional macOS iOS Handbook Maestro
 | `android-native` | `npm run test:android-native` |
 | `emulator-ui` | KVM API 34 — Maestro E1–E5 + E3 adb (`conformance/android-emulator/ci.sh`) |
 | `ios-handbook-ui` | macOS 15 — Handbook Maestro smoke (`conformance/ios-sim/ci-handbook.sh`) |
+| `cross-device-dev` | macOS self-hosted/emulator lab — S1–S4 covering set (`npm run test:cross-device-dev`) |
+| `cross-device-dev-matrix` | Nightly macOS self-hosted lab — all 12 ordered pairs plus non-scoring S5 hub fallback (`npm run test:cross-device-dev:matrix`) |
 
 Full E1–E4 Android UI path locally: [android-emulator-lab.md](android-emulator-lab.md),
 `npm run test:android-emulator`.
 
 iOS Handbook UI locally: `npm run test:ios-sim-handbook-ui` (see [conformance/ios-sim/README.md](../conformance/ios-sim/README.md)).
+
+The cross-device jobs are intentionally excluded from PR CI: they require one
+Electron process, an iOS Simulator, an Android API 34 emulator, Chromium, and
+Maestro at the same time. Their required output is `coverage.json` with an
+empty `empty` array; `CROSS_DEVICE_ALLOW_SKIP=1` is diagnostic only.
 
 ## GitHub Pages (pages.yml)
 

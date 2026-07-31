@@ -211,6 +211,19 @@ rollback), lifecycle reconnect metrics recorded, store-posture build refuses
 non-store interfaces. First run pays the `expo run:ios` native build (~15
 min); subsequent runs ~20 min.
 
+After Stage 7 has warmed both simulators/emulators, run the four-surface
+develop-and-run covering set:
+
+```sh
+npm run test:cross-device-dev
+```
+
+It boots one standing `desktop`/`ios`/`android`/`web` peer environment, runs
+S1–S4, and requires all sixteen `(variant, role)` ledger cells. Artifacts are
+written beneath `.tmp/cross-device-dev/`. Use
+`npm run test:cross-device-dev:matrix` for the 12 ordered pairs plus the
+non-scoring S5 hub fallback.
+
 ## Stage 7 — Android emulator lab
 
 This is the largest CI-only surface being brought local. Requires JDK 17,

@@ -1,9 +1,9 @@
 var __filename='';var __dirname='';var process={env:{}};
 
-// ../../packages/bridge-hyper/src/gateway-bulk-fetch-server.ts
+// ../../packages/bridge-hyper/src/server/gateway-bulk-fetch-server.ts
 var DEFAULT_BULK_FETCH_PATH = "/bulk-fetch";
 
-// ../../packages/bridge-hyper/src/web-hyper-fetch-gateway.ts
+// ../../packages/bridge-hyper/src/client/web-gateway-hyper-fetch.ts
 function gatewayHttpUrlFromWebSocket(gatewayUrl) {
   const url = new URL(gatewayUrl);
   url.protocol = url.protocol === "wss:" ? "https:" : "http:";

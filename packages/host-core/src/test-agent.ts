@@ -77,6 +77,10 @@ export interface TestAgentOptions {
   readonly announceIntervalMs?: number;
   readonly reconnectWaitMs?: number;
   readonly log?: (line: string) => void;
+  /** Optional host-specific commands used by deeper conformance harnesses. */
+  readonly handleCommand?: (
+    request: Readonly<Record<string, unknown>>
+  ) => Promise<Readonly<Record<string, unknown>>>;
 }
 
 export interface TestAgentSession extends TestAgentInfo {
@@ -94,6 +98,7 @@ interface ControlRequest {
   readonly cmd: string;
   readonly toLxmfAddress?: string;
   readonly nonce?: string;
+  readonly [key: string]: unknown;
 }
 
 function nonceFrom(content: string, prefix: string): string | null {
@@ -226,6 +231,9 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
         return {};
       }
       default:
+        if (options.handleCommand !== undefined) {
+          return { ...(await options.handleCommand(request)) };
+        }
         throw new Error(`Unknown test-agent command: ${request.cmd}`);
     }
   };

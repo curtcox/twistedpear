@@ -20,6 +20,7 @@ import {
 import { createWebWorkletMiniappHost, hexToBytes } from "./web-miniapp-host.mjs";
 import {
   createHostReplyChannel,
+  createCrossDeviceTestDriver,
   createMiniappAnnounceService,
   createStatusTimer
 } from "../../../packages/worklet-core/src/index.mjs";
@@ -33,6 +34,7 @@ import {
   unpackPackage
 } from "../../../packages/app-registry/dist/index.js";
 import {
+  CasStore,
   casRequestAspects,
   encodeCasLocator,
   encodeCasLocatorRequest
@@ -148,6 +150,48 @@ const cryptoProvider = new PureCryptoProvider();
 /** @type {ReturnType<typeof createMiniappKvStore> | null} */
 let miniappKvStore = null;
 let peerSessionManager = null;
+let crossDeviceTestDriver = null;
+
+function ensureCrossDeviceTestDriver() {
+  if (crossDeviceTestDriver === null) {
+    crossDeviceTestDriver = createCrossDeviceTestDriver({
+      miniappHost: () => ensureMiniappHost(),
+      installFromT256: (t256) => ensureInstallService().installFromT256(t256),
+      async importTrust(identity256t, label) {
+        const publisherPublicKey = decodePublisherIdentity256t(identity256t);
+        const reply = await requestHostReply({
+          type: "confirm-request",
+          token: bytesToHex(cryptoProvider.randomBytes(16)),
+          kind: "trust-import",
+          appId: "host",
+          publisherPublicKey,
+          summary: { label, source: "paste" }
+        });
+        if (reply?.approved !== true) throw new Error("Publisher trust import denied");
+        await ensureInstallService().trustStore.add({
+          publisherPublicKey,
+          label,
+          addedAt: Date.now(),
+          source: "paste"
+        });
+      },
+      async runApp(appId) {
+        await ensureMiniappHost().launch(await ensurePackageStorage(), appId);
+      },
+      casStore: () => new CasStore(ensureMiniappKvStore(), (data) => cryptoProvider.sha512(data)),
+      sha512: (bytes) => cryptoProvider.sha512(bytes),
+      async casHas(t256) {
+        const cas = new CasStore(ensureMiniappKvStore(), (data) => cryptoProvider.sha512(data));
+        return cas.has(t256);
+      },
+      async publisherIdentity256t() {
+        const identity = await loadOrCreateWebIdentity(cryptoProvider, identityOptions());
+        return encodePublisherIdentity256t(identity.getPublicKey());
+      }
+    });
+  }
+  return crossDeviceTestDriver;
+}
 
 const hostReplyChannel = createHostReplyChannel({ send });
 const requestHostReply = hostReplyChannel.requestReply;
@@ -923,6 +967,21 @@ async function handleHostMessage(raw) {
       const detail = error instanceof Error ? error.message : String(error);
       send({ type: "install-256t-result", ok: false, error: detail });
       log(`Install from 256t failed: ${detail}`);
+    }
+    return;
+  }
+
+  if (message.type === "cross-device-command") {
+    try {
+      const result = await ensureCrossDeviceTestDriver()(message.command);
+      send({ type: "cross-device-result", token: message.token, ok: true, result });
+    } catch (error) {
+      send({
+        type: "cross-device-result",
+        token: message.token,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
     return;
   }

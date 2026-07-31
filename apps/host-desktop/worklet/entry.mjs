@@ -3,7 +3,6 @@
  */
 import "../../../conformance/bare-interop/bare-globals.mjs";
 import "bare-encoding/global";
-import { installBareWebSocketGlobal } from "../../../conformance/freenet-spike/bare-websocket-shim.mjs";
 import { PACKET_LOG_WASM_BASE64 } from "./packet-log-wasm.generated.mjs";
 import { bytesToHex } from "../../../packages/reticulum-ts/dist/crypto/bytes.js";
 import { PureCryptoProvider } from "../../../packages/reticulum-ts/dist/crypto/pure.js";
@@ -69,6 +68,7 @@ import {
 } from "../../../packages/peer-discovery/dist/index.js";
 import {
   connectTestAgent,
+  createCrossDeviceTestDriver,
   createDevChannelClient,
   createHostReplyChannel,
   createMiniappAnnounceService,
@@ -78,7 +78,11 @@ import {
 import { IPC } from "./ipc-stdio.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
 
-installBareWebSocketGlobal();
+const NODE_FALLBACK = globalThis.process?.env?.TWISTEDPEAR_WORKLET_NODE_FALLBACK === "1";
+if (!NODE_FALLBACK) {
+  const { installBareWebSocketGlobal } = await import("../../../conformance/freenet-spike/bare-websocket-shim.mjs");
+  installBareWebSocketGlobal();
+}
 
 const HOST_BANDWIDTH_BYTES_PER_SECOND = 512 * 1024;
 import {
@@ -105,6 +109,8 @@ function envValue(name) {
 }
 
 function defaultDesktopDataDir() {
+  const configured = envValue("TWISTEDPEAR_HOST_DATA_DIR");
+  if (configured !== null) return configured;
   const platform = globalThis.process?.platform ?? "";
 
   if (platform === "win32") {
@@ -150,7 +156,9 @@ async function createProvider() {
 }
 
 const provider = await createProvider();
-const runtime = bareRuntime({ storePath: hostDataPath("host-desktop-store") });
+const runtime = NODE_FALLBACK
+  ? (await import("../../../packages/reticulum-ts/dist/runtime/node/runtime.js")).nodeRuntime()
+  : bareRuntime({ storePath: hostDataPath("host-desktop-store") });
 const inboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, HOST_BANDWIDTH_BYTES_PER_SECOND);
 const outboundBandwidthLimiter = new BandwidthLimiter(runtime.clock, HOST_BANDWIDTH_BYTES_PER_SECOND);
 const IDENTITY_STORE_KEY = "host-identity";
@@ -181,7 +189,6 @@ async function loadModerationState() {
   }
   pushModerationState();
 }
-const NODE_FALLBACK = globalThis.process?.env?.TWISTEDPEAR_WORKLET_NODE_FALLBACK === "1";
 const NodeWorkerSandboxBackend = NODE_FALLBACK
   ? (await import("../../../packages/miniapp-runtime/dist/sandbox/node-worker.js")).NodeWorkerSandboxBackend
   : null;
@@ -229,6 +236,46 @@ const status = {
 let reticulum = null;
 /** Test-only peer control agent; mounted only by `connect-test-agent`. */
 let testAgent = null;
+let crossDeviceTestDriver = null;
+
+async function importTrustedPublisherForTest(identityString, label) {
+  const publisherPublicKey = decodePublisherIdentity256t(identityString);
+  const confirmation = await requestRendererReply({
+    type: "confirm-request",
+    token: generateConfirmationToken((length) => provider.randomBytes(length)),
+    kind: "trust-import",
+    appId: "host",
+    publisherPublicKey,
+    summary: { label, source: "paste" }
+  });
+  if (confirmation?.approved !== true) throw new Error("Publisher trust import denied");
+  await ensureTrustStore().add({
+    publisherPublicKey,
+    label,
+    addedAt: Date.now(),
+    source: "paste"
+  });
+}
+
+function ensureCrossDeviceTestDriver() {
+  if (crossDeviceTestDriver === null) {
+    crossDeviceTestDriver = createCrossDeviceTestDriver({
+      miniappHost: () => ensureMiniappHost(),
+      installedStore: () => ensureCatalog().installedStore,
+      runtime,
+      installFromT256,
+      importTrust: importTrustedPublisherForTest,
+      casStore: () => ensureEntryCasStore(),
+      sha512: (bytes) => provider.sha512(bytes),
+      async publisherIdentity256t() {
+        const identity = await resolveIdentity();
+        if (identity === null) throw new Error("Host identity is unavailable");
+        return encodePublisherIdentity256t(identity.getPublicKey());
+      }
+    });
+  }
+  return crossDeviceTestDriver;
+}
 /** @type {import("@twistedpear/reticulum-ts").TcpClientInterface | null} */
 let tcpIface = null;
 /** @type {AutoInterfaceBridge | null} */
@@ -481,16 +528,25 @@ async function publishArchiveFromWorklet({ t256, archive }) {
 
 async function publishArchiveAsIdentity(identity, { t256, archive }) {
   const unpacked = unpackPackage(provider, archive);
-  const driveManager = await ensurePackageDriveManager();
   let keyHex = unpacked.manifest.driveKey;
-  if (keyHex === "0".repeat(64)) {
-    const created = await driveManager.createDrive();
-    keyHex = created.keyHex;
+  let driveManager = null;
+  if (NODE_FALLBACK) {
+    if (keyHex === "0".repeat(64)) {
+      keyHex = bytesToHex(provider.sha256(archive));
+    }
   } else {
-    await driveManager.openDrive(keyHex);
+    driveManager = await ensurePackageDriveManager();
+    if (keyHex === "0".repeat(64)) {
+      const created = await driveManager.createDrive();
+      keyHex = created.keyHex;
+    } else {
+      await driveManager.openDrive(keyHex);
+    }
   }
 
-  const published = await driveManager.publishVersion(unpacked.manifest.version, archive, unpacked.packageHash);
+  const published = driveManager === null
+    ? { version: unpacked.manifest.version }
+    : await driveManager.publishVersion(unpacked.manifest.version, archive, unpacked.packageHash);
   const node = await ensureReticulum();
 
   const publisherHash = bytesToHex(provider.sha256(identity.getPublicKey()).slice(0, 8));
@@ -505,9 +561,13 @@ async function publishArchiveAsIdentity(identity, { t256, archive }) {
   });
   attachPackageResourceServer(appDestination, {
     async listVersions() {
-      return driveManager.listVersions();
+      return driveManager === null ? [published.version] : driveManager.listVersions();
     },
     async fetchArchive(version) {
+      if (driveManager === null) {
+        if (version !== published.version) throw new Error(`Version not found: ${version}`);
+        return archive;
+      }
       return driveManager.fetchVersion(version);
     }
   });
@@ -546,22 +606,27 @@ async function publishArchiveAsIdentity(identity, { t256, archive }) {
 async function installFromT256(t256) {
   const cas = ensureEntryCasStore();
   let archive = await cas.get(t256).catch(() => null);
+  let fetchedFrom = "local-cas";
+  let resolvedLocator = null;
 
   if (archive === null) {
     const locator = await waitForCasLocator(t256);
+    resolvedLocator = locator;
     const identity = await resolveIdentity();
     if (identity === null) {
       throw new Error("No host identity available for fetch");
     }
+    const node = await ensureReticulum();
 
-    const driveManager = await ensurePackageDriveManager();
+    const driveManager = NODE_FALLBACK ? undefined : await ensurePackageDriveManager();
     const resourceClient = new PackageResourceClient({
       provider,
       runtime,
       publisherPublicKeyHex: locator.publisherPublicKey,
       servingPublicKeyHex: locator.servingPublicKey,
       appName: locator.appId,
-      identity
+      identity,
+      reticulum: node
     });
     await resourceClient.start();
     try {
@@ -570,9 +635,11 @@ async function installFromT256(t256) {
         version: locator.version,
         interfaces: reticulum?.listInterfaces() ?? [],
         driveManager,
-        resourceClient
+        resourceClient,
+        ...(NODE_FALLBACK ? { forcePath: "resource" } : {})
       });
       archive = result.archiveBytes;
+      fetchedFrom = result.path ?? "resource";
     } finally {
       await resourceClient.stop();
     }
@@ -637,8 +704,15 @@ async function installFromT256(t256) {
     );
   }
 
-  log(`Installed ${appId} v${verified.manifest.version} from 256t (trusted: ${trusted})`);
-  return { appId, version: verified.manifest.version, trusted };
+  log(`Installed ${appId} v${verified.manifest.version} from 256t via ${fetchedFrom} (trusted: ${trusted})`);
+  return {
+    appId,
+    version: verified.manifest.version,
+    trusted,
+    source: fetchedFrom,
+    publisherPublicKey: verified.manifest.publisherPublicKey,
+    servingPublicKey: resolvedLocator?.servingPublicKey ?? null
+  };
 }
 
 function ensureTrustStore() {
@@ -1680,18 +1754,14 @@ async function ensureReticulum() {
 
 async function startTcpInterface(targetHost, targetPort) {
   const node = await ensureReticulum();
-  if (tcpIface !== null) {
-    status.linkOnline = tcpIface.online;
-    pushStatus();
-    return tcpIface.online;
+  if (tcpIface === null) {
+    log(`Starting TCP client to ${targetHost}:${targetPort}`);
+    tcpIface = await node.addTcpClientInterface({
+      name: "harness-tcp",
+      targetHost,
+      targetPort
+    });
   }
-
-  log(`Starting TCP client to ${targetHost}:${targetPort}`);
-  tcpIface = await node.addTcpClientInterface({
-    name: "harness-tcp",
-    targetHost,
-    targetPort
-  });
 
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
@@ -1927,10 +1997,26 @@ async function handleHostMessage(raw) {
       return;
     }
     try {
-      const node = await ensureReticulum();
-      const identity = await resolveIdentity();
+      let identity = await resolveIdentity();
+      // The Electron main process sends the isolated test identity unlock and
+      // agent mount back-to-back. Host messages are handled concurrently, so
+      // allow the unlock operation to finish without granting normal launches
+      // any implicit identity access.
+      for (let attempt = 0; identity === null && attempt < 100; attempt += 1) {
+        await sleep(100);
+        identity = await resolveIdentity();
+      }
       if (identity === null) {
         throw new Error("identity unavailable");
+      }
+      const node = await ensureReticulum();
+      // The test-agent attachment is also the readiness boundary used by the
+      // multi-peer harness. Interface messages arrive concurrently over IPC,
+      // so make the requested hub connection explicit here before advertising
+      // this peer as ready.
+      if (pendingTarget !== null) {
+        status.tcpEnabled = true;
+        await startTcpInterface(pendingTarget.targetHost, pendingTarget.targetPort);
       }
       testAgent = await connectTestAgent({
         reticulum: node,
@@ -1940,7 +2026,8 @@ async function handleHostMessage(raw) {
         platform: "desktop",
         host: message.host,
         port: message.port,
-        log
+        log,
+        handleCommand: (request) => ensureCrossDeviceTestDriver()(request)
       });
       log(`Test agent mounted as ${message.label} (lxmf ${testAgent.lxmfAddress})`);
     } catch (error) {
@@ -2667,14 +2754,17 @@ pushStatus();
 log(`Desktop host worklet ready (crypto: ${provider.name})`);
 
 let hostMessageBuffer = "";
+let hostMessageQueue = Promise.resolve();
 IPC.on("data", (data) => {
   hostMessageBuffer += data.toString();
   const lines = hostMessageBuffer.split("\n");
   hostMessageBuffer = lines.pop() ?? "";
   for (const line of lines) {
-    handleHostMessage(line).catch((error) => {
-      log(`Worklet error: ${error instanceof Error ? error.message : String(error)}`);
-      pushStatus();
-    });
+    hostMessageQueue = hostMessageQueue
+      .then(() => handleHostMessage(line))
+      .catch((error) => {
+        log(`Worklet error: ${error instanceof Error ? error.message : String(error)}`);
+        pushStatus();
+      });
   }
 });

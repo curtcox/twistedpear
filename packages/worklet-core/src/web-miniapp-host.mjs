@@ -545,6 +545,14 @@ export function createWebWorkletMiniappHost(options) {
   return {
     sandboxController,
 
+    snapshot() {
+      return host.snapshot();
+    },
+
+    previewSnapshot() {
+      return preview?.host.snapshot() ?? null;
+    },
+
     isDeveloperMode() {
       return developerMode;
     },

@@ -22,24 +22,28 @@ export interface PackageResourceClientOptions {
   readonly servingPublicKeyHex?: string;
   readonly appName: string;
   readonly identity: Identity;
+  /** Reuse a host node so links travel over its already-configured interfaces. */
+  readonly reticulum?: Reticulum;
 }
 
 export class PackageResourceClient {
   private readonly reticulum: Reticulum;
+  private readonly ownsReticulum: boolean;
 
   constructor(private readonly options: PackageResourceClientOptions) {
-    this.reticulum = Reticulum.create({
+    this.ownsReticulum = options.reticulum === undefined;
+    this.reticulum = options.reticulum ?? Reticulum.create({
       provider: options.provider,
       runtime: options.runtime
     });
   }
 
   async start(): Promise<void> {
-    this.reticulum.start();
+    if (this.ownsReticulum) this.reticulum.start();
   }
 
   async stop(): Promise<void> {
-    await this.reticulum.stop();
+    if (this.ownsReticulum) await this.reticulum.stop();
   }
 
   get node(): Reticulum {

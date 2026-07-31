@@ -151,7 +151,8 @@ describe("peer test agent", () => {
       platform: "test",
       controlHost: "127.0.0.1",
       controlPort: control.port,
-      announceIntervalMs: ANNOUNCE_INTERVAL_MS
+      announceIntervalMs: ANNOUNCE_INTERVAL_MS,
+      handleCommand: async (request) => ({ echoedCommand: request.cmd, value: request.value })
     });
     const rightAgent = await mountTestAgent({
       reticulum: right,
@@ -209,6 +210,9 @@ describe("peer test agent", () => {
     const info = await control.request("right", { cmd: "info" });
     expect(info.ok).toBe(true);
     expect(info.lxmfAddress).toBe(rightAgent.lxmfAddress);
+
+    const extended = await control.request("left", { cmd: "project.create", value: 7 });
+    expect(extended).toMatchObject({ ok: true, echoedCommand: "project.create", value: 7 });
 
     const sent = await control.request("left", {
       cmd: "send",

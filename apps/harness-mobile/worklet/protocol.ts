@@ -296,6 +296,7 @@ export type HostToWorkletMessage =
     }
   | { readonly type: "trust-remove"; readonly publisherPublicKey: string }
   | { readonly type: "trust-show" }
+  | { readonly type: "cross-device-command"; readonly token: string; readonly command: Readonly<Record<string, unknown>> }
   | { readonly type: "install-app"; readonly appId: string; readonly forcePath?: "hyperdrive" | "lan-mirror" | "freenet" | "resource"; readonly archiveHex?: string }
   | { readonly type: "seed-miniapp-kv"; readonly key: string; readonly valueHex: string }
   | { readonly type: "delete-package"; readonly appId: string; readonly version: string }
@@ -418,6 +419,7 @@ export type WorkletToHostMessage =
   | { readonly type: "install-256t-result"; readonly ok: boolean; readonly appId?: string; readonly version?: string; readonly trusted?: boolean; readonly error?: string }
   | { readonly type: "trust"; readonly entries: ReadonlyArray<TrustedPublisherView> }
   | { readonly type: "trust-identity"; readonly identity256t: string | null }
+  | { readonly type: "cross-device-result"; readonly token: string; readonly ok: boolean; readonly result?: Readonly<Record<string, unknown>>; readonly error?: string }
   | { readonly type: "dev-channel"; readonly state: "connected" | "disconnected" | "loaded" | "error"; readonly detail?: string }
   | { readonly type: "peer-manual-present"; readonly token: string; readonly sessionId: string; readonly code: string; readonly expectsResponse: boolean }
   | { readonly type: "peer-manual-enter"; readonly token: string; readonly sessionId: string; readonly service: string }

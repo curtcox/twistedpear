@@ -18,6 +18,11 @@ const statePath = join(stateRoot, "state.json");
 export const CONTROL_PORT = 34990;
 /** TCP hub port every peer connects to; matches the mobile harness default. */
 export const HUB_PORT = 4242;
+/** Same-origin WebSocket gateway and static web-host listener. */
+export const WEB_GATEWAY_PORT = 9480;
+/** Playwright CDP endpoint used by the cross-device web driver. */
+export const WEB_CDP_PORT = 34992;
+export const DESKTOP_CDP_PORT = 34991;
 
 export function ensureStateDirs() {
   mkdirSync(logDir, { recursive: true });

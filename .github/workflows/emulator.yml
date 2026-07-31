@@ -99,3 +99,24 @@ jobs:
           name: local-multipeer-ios-proof
           path: .tmp/local-peers/multipeer-proof.json
           if-no-files-found: warn
+
+  cross-device-dev:
+    # Dedicated Mac lab: Xcode Simulator + API 34 emulator + Electron + Chromium.
+    # The runner image keeps both native harness builds installed and warm.
+    runs-on: [self-hosted, macOS, twistedpear-emulator-lab]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: npm run test:cross-device-dev -- --build
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cross-device-dev-proof
+          path: .tmp/cross-device-dev
+          if-no-files-found: error

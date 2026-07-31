@@ -58,7 +58,7 @@ none of them needs a listening socket or an entitlement.
 |---|---|---|
 | `hub` | `tp node` with the TCP server interface | Node, `npm run build` |
 | `node2`…`node9` | additional headless `tp node` peers | Node, `npm run build` |
-| `desktop` | Electron desktop host | a working Bare runtime |
+| `desktop` | Electron desktop host | Electron; test-agent launches use the supported Node-worklet fallback when linked Bare addon frameworks are unavailable |
 | `ios` | iOS simulator harness | Xcode, Maestro |
 | `android` | Android emulator harness | a running emulator with the harness installed, adb, Maestro |
 

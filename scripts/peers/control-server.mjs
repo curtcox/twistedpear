@@ -192,6 +192,8 @@ export async function startControlServer(options = {}) {
     status: (label) => request(label, { cmd: "status" }).then((frame) => frame.status),
     announce: (label) => request(label, { cmd: "announce" }),
     send: (label, toLxmfAddress, nonce) => request(label, { cmd: "send", toLxmfAddress, nonce }),
+    command: (label, cmd, payload = {}, timeoutMs) =>
+      request(label, { cmd, ...payload }, timeoutMs),
     async close() {
       if (closed) {
         return;

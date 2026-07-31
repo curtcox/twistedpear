@@ -7,6 +7,12 @@ import type { WorkletStatus, WorkletToHostMessage } from "@twistedpear/host-core
 import { HostDesktopBridges } from "./bridges.js";
 import { WorkletSupervisor } from "./supervisor.js";
 
+const testCdpPort = process.env.TP_CDP_PORT;
+if (testCdpPort !== undefined && /^\d+$/.test(testCdpPort)) {
+  app.commandLine.appendSwitch("remote-debugging-port", testCdpPort);
+  app.commandLine.appendSwitch("remote-debugging-address", "127.0.0.1");
+}
+
 const hostRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -99,6 +105,9 @@ function ensureSupervisor(): WorkletSupervisor {
       if (message.type === "status") {
         latestStatus = message.status;
       }
+      if (process.env.TP_TEST_AGENT !== undefined && message.type === "log") {
+        console.log(`[worklet] ${message.line}`);
+      }
 
       broadcast("worklet-message", message);
     },
@@ -107,7 +116,12 @@ function ensureSupervisor(): WorkletSupervisor {
     }
   });
 
-  supervisor.start();
+  const testAgent = parseTestAgentEnv(process.env.TP_TEST_AGENT);
+  // Local multi-peer/conformance launches must also work from an unpackaged
+  // checkout where Bare linked addon frameworks (notably bare-dns) are absent.
+  // TP_TEST_AGENT is test-only, so default and shipped launches still prefer
+  // the linked Bare worklet.
+  supervisor.start(testAgent !== null);
   supervisor.send({
     type: "start",
     targetHost: "127.0.0.1",
@@ -127,8 +141,11 @@ function ensureSupervisor(): WorkletSupervisor {
   // multi-peer environment: TCP to the local hub plus the test control agent.
   // Set only by `scripts/peers/adapters/desktop.mjs`; never in a shipped build,
   // and it overrides the opt-in TCP default above rather than replacing it.
-  const testAgent = parseTestAgentEnv(process.env.TP_TEST_AGENT);
   if (testAgent !== null) {
+    const passphrase = process.env.TP_IDENTITY_PASSPHRASE;
+    if (passphrase !== undefined) {
+      supervisor.send({ type: "identity-unlock", passphrase, confirmation: passphrase });
+    }
     supervisor.send({ type: "set-interfaces", tcp: true, auto: true, ble: false, rnode: false });
     supervisor.send({ type: "connect-test-agent", ...testAgent });
   }

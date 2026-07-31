@@ -11,6 +11,7 @@ import { join } from "node:path";
 import {
   CONTROL_PORT,
   HUB_PORT,
+  WEB_GATEWAY_PORT,
   dataDirFor,
   logPath,
   processAlive,
@@ -77,7 +78,10 @@ export function makeNodeAdapter({ id, isHub, statusPort }) {
           "--status-endpoint",
           String(statusPort),
           "--test-agent",
-          `127.0.0.1:${CONTROL_PORT}:${id}`
+          `127.0.0.1:${CONTROL_PORT}:${id}`,
+          ...(isHub
+            ? ["--ws-listen", `127.0.0.1:${WEB_GATEWAY_PORT}`, "--serve-web"]
+            : [])
         ],
         {
           cwd: repoRoot,
@@ -94,7 +98,7 @@ export function makeNodeAdapter({ id, isHub, statusPort }) {
         pid: child.pid,
         dataDir,
         statusPort,
-        ...(isHub ? { hubPort: HUB_PORT } : {})
+        ...(isHub ? { hubPort: HUB_PORT, webGatewayPort: WEB_GATEWAY_PORT } : {})
       };
     },
 

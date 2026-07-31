@@ -13,7 +13,8 @@ const EXTRA_NODE_PATTERN = /^node([2-9])$/;
 const LAZY_ADAPTERS = {
   desktop: async () => (await import("./adapters/desktop.mjs")).desktopAdapter,
   ios: async () => (await import("./adapters/mobile.mjs")).iosAdapter,
-  android: async () => (await import("./adapters/mobile.mjs")).androidAdapter
+  android: async () => (await import("./adapters/mobile.mjs")).androidAdapter,
+  web: async () => (await import("./adapters/web.mjs")).webAdapter
 };
 
 export async function adapterFor(id) {
@@ -33,8 +34,9 @@ export const KNOWN_PEER_IDS = [
   ...Array.from({ length: 8 }, (_, index) => `node${index + 2}`),
   "desktop",
   "ios",
-  "android"
+  "android",
+  "web"
 ];
 
 /** Peers that need a GUI runtime, and so may legitimately be unavailable. */
-export const GUI_PEER_IDS = ["desktop", "ios", "android"];
+export const GUI_PEER_IDS = ["desktop", "ios", "android", "web"];

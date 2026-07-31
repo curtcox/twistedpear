@@ -49,7 +49,7 @@ scenario:
 
 A single-hop scenario `A → B` credits developer+source to `A` and target+runner
 to `B`. Multi-hop scenarios exist to prove source and target are genuinely
-separable from developer and runner (see [S5](#s5--mirror-chain-role-independence)).
+separable from developer and runner (see [S5](#s5--hub-carried-fallback-role-independence-spike)).
 
 ## Coverage model
 
@@ -69,24 +69,30 @@ The requirement is not asserted by reading this table — the runner emits a
 coverage ledger and a test fails if any cell is empty. See
 [The coverage ledger](#the-coverage-ledger).
 
-### S5 — mirror chain (role independence)
+### S5 — hub-carried fallback (role independence spike)
 
-One extra scenario proves a device can be a transfer source for a package it did
-not author, and a transfer target for a device that is not the developer:
+The P2 spike found that a host cannot safely become a product-level mirror for a
+package it did not author. A v2 CAS locator binds `servingPublicKey` inside the
+publisher-signed payload; changing the serving identity would invalidate the
+signature. Re-announcing the unchanged locator still points Resource fetches at
+the author's serving destination and therefore does not prove the intermediary
+was the transfer source.
+
+The nightly runner consequently uses P2's defined infrastructure fallback:
 
 ```
-desktop (author) → android (install + re-serve) → ios (install + re-serve) → web (install + run)
+desktop (author/source) → hub (transport) → web (target/run)
 ```
 
-Credits: developer `desktop`; source `desktop, android, ios`; target
-`android, ios, web`; runner `web`. Every intermediate hop re-announces the
-**original signed locator** — the manifest signature stays the author's, only
-the CAS locator announce is local. S5 is a nightly scenario, not a gate, because
-it depends on the mirror path landing (see [Prerequisite spikes](#prerequisite-spikes)).
+S5 is emitted as a non-scoring proof row with `transportVia: ["hub"]`; it proves
+source/target separation at the infrastructure level without falsely crediting
+the hub or another product surface as a package source. Product-role coverage
+continues to come from S1–S4 and the ordered-pair matrix.
 
 ### Nightly full matrix
 
-`--matrix` runs all 12 ordered single-hop pairs over the four variants, plus S5.
+`--matrix` runs all 12 ordered single-hop pairs over the four variants, plus the
+non-scoring S5 fallback.
 This is the redundancy layer: it catches a broken pair that the covering set
 happens not to include.
 
@@ -99,12 +105,12 @@ real Reticulum leaf on the same mesh rather than a special case:
 
 ```
                      tp node "hub"
-      TCP 0.0.0.0:4242 · WS :4243 · --serve-web · transport on
+      TCP 0.0.0.0:4242 · WS :9480 · --serve-web · transport on
                             |
    +-----------+------------+------------+-------------+
    |           |                         |             |
  desktop     iOS sim               Android emu       web tab
-(Electron) 127.0.0.1:4242         10.0.2.2:4242    ws://127.0.0.1:4243
+(Electron) 127.0.0.1:4242         10.0.2.2:4242    ws://127.0.0.1:9480
 ```
 
 Every peer also dials out to the harness control port (34990) as it does today.
@@ -195,7 +201,10 @@ probe before committing to the build; each has a defined fallback.
 | P2 | Can a host re-serve a package it installed but did not sign? | S5 (mirror chain) only | Drop S5 to a two-hop variant where the middle peer is the hub, and note that source/target independence is proven at the infrastructure level only |
 | P3 | Can the browser host mount the test agent and join the control channel? | the whole `web` column | Drive `web` entirely through Playwright with an in-page evaluation shim instead of the control agent |
 
-P1 is the schedule risk. Run it first.
+Spike outcomes: P1 landed as native/web publish and direct-install host wiring;
+P2 uses the S5 hub fallback described above; P3 uses the explicit opt-in
+Playwright evaluation shim (`?cross-device-control=1`) rather than exposing a
+browser control socket on the default path.
 
 ## Build items
 
@@ -203,11 +212,11 @@ P1 is the schedule risk. Run it first.
 |---|---|---|---|
 | B1 | `web` peer adapter | `scripts/peers/adapters/web.mjs`, registered in [scripts/peers/registry.mjs](../scripts/peers/registry.mjs) and `GUI_PEER_IDS` | launches Chromium against the hub's `--serve-web` origin, waits for the WS link, mounts the test agent |
 | B2 | Hub gains `--ws-listen` + `--serve-web` | `scripts/peers/adapters/node.mjs` | flags already exist in the CLI; the adapter just has to pass them |
-| B3 | Web test-agent mount | [apps/harness-mobile/worklet/web-entry.mjs](../apps/harness-mobile/worklet/web-entry.mjs) | opt-in only, from an explicit control endpoint — same posture as the mobile **Connect test agent** button; never on a default path |
-| B4 | Distribution verbs on the test agent | [packages/host-core/src/test-agent.ts](../packages/host-core/src/test-agent.ts) | `project.create`, `project.write`, `preview`, `package`, `publish`, `trust.import`, `install`, `run`, `state`, `cas.has`. Requests only — confirmations stay in chrome |
-| B5 | Maestro flows | `.maestro/devstudio-author.yaml`, `.maestro/devstudio-install.yaml` | tap the `package` / `publish` / trust / install-review modals, assert publisher fingerprint and capability list, grant the subset |
-| B6 | Playwright driver | `conformance/cross-device-dev/drivers/web.mjs` | same modal assertions in the web host chrome |
-| B7 | Electron driver | reuse [conformance/desktop](../conformance/desktop) helpers | |
+| B3 | Web test-control shim | [apps/harness-mobile/worklet/web-entry.mjs](../apps/harness-mobile/worklet/web-entry.mjs), [apps/harness-mobile/App.web.tsx](../apps/harness-mobile/App.web.tsx) | opt-in only through `?cross-device-control=1`; Playwright evaluates the in-page request bridge, never a default-path control socket |
+| B4 | Distribution verbs on the test agent | [packages/host-core/src/test-agent.ts](../packages/host-core/src/test-agent.ts), [packages/worklet-core/src/cross-device-test-driver.mjs](../packages/worklet-core/src/cross-device-test-driver.mjs) | `project.create`, `project.write`, `preview`, `package`, `publish`, `trust.import`, `install`, `run`, `ui.event`, `state`, `cas.has`, `cas.read`, `negative.verify`. Requests only — confirmations stay in chrome |
+| B5 | Maestro flows | `.maestro/devstudio-author.yaml`, `.maestro/devstudio-install.yaml`, `.maestro/devstudio-run.yaml` | tap the `package` / `publish` / trust / install-review / run-review modals, assert publisher fingerprint and capability list, grant the subset |
+| B6 | Playwright driver | `conformance/cross-device-dev/drivers/browser.mjs` | same modal assertions in the web host chrome |
+| B7 | Electron driver | `conformance/cross-device-dev/drivers/browser.mjs` | attaches to the Electron CDP endpoint and asserts its host-chrome modal |
 | B8 | Scenario runner + ledger | `conformance/cross-device-dev/run.mjs` | `--attach`, `--scenarios=S1,S3`, `--matrix`, `--allow-skip`; writes `proof.json` + `coverage.json` |
 | B9 | Ledger gate test | `conformance/cross-device-dev/coverage.test.mjs` | fails on any empty cell |
 | B10 | Scripts + wiring | [package.json](../package.json), [docs/mac-validation.md](mac-validation.md), [docs/ci-policy.md](ci-policy.md) | `test:cross-device-dev`, `test:cross-device-dev:matrix` |
@@ -230,6 +239,7 @@ Without `--attach` the runner brings the peers up and tears them down itself.
 npm run test:cross-device-dev                      # S1–S4, gate
 npm run test:cross-device-dev -- --scenarios=S3    # one scenario
 npm run test:cross-device-dev -- --matrix          # 12 pairs + S5, nightly
+npm run test:cross-device-dev -- --build           # rebuild/install native harnesses first
 ```
 
 ## Expected wall time

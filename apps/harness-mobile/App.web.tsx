@@ -190,6 +190,12 @@ export default function App() {
 
   const bridgeRef = useRef<ReturnType<typeof createWebCoreBridge> | null>(null);
   const workspaceReadCounterRef = useRef(0);
+  const crossDeviceCounterRef = useRef(0);
+  const pendingCrossDeviceRef = useRef(new Map<string, {
+    readonly resolve: (result: Readonly<Record<string, unknown>>) => void;
+    readonly reject: (error: Error) => void;
+    readonly timer: ReturnType<typeof setTimeout>;
+  }>());
   const pendingWorkspaceReadsRef = useRef(new Map<string, {
     readonly resolve: (content: string) => void;
     readonly reject: (error: Error) => void;
@@ -216,6 +222,17 @@ export default function App() {
 
   const handleWorkerMessage = useCallback(
     (message: WorkletToHostMessage) => {
+      if (message.type === "cross-device-result") {
+        const pending = pendingCrossDeviceRef.current.get(message.token);
+        pendingCrossDeviceRef.current.delete(message.token);
+        if (pending !== undefined) {
+          clearTimeout(pending.timer);
+          if (message.ok) pending.resolve(message.result ?? {});
+          else pending.reject(new Error(message.error ?? "Cross-device command failed"));
+        }
+        return;
+      }
+
       if (message.type === "status") {
         setStatus(message.status);
         return;
@@ -486,6 +503,37 @@ export default function App() {
     ensureBridge();
     pushGatewayConfig();
   }, [ensureBridge, pushGatewayConfig]);
+
+  useEffect(() => {
+    const location = globalThis.location;
+    if (new URLSearchParams(location.search).get("cross-device-control") !== "1") return undefined;
+    const target = globalThis as unknown as {
+      __TP_CROSS_DEVICE__?: {
+        command(command: string, payload?: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
+      };
+    };
+    target.__TP_CROSS_DEVICE__ = {
+      command(command, payload = {}) {
+        ensureBridge();
+        return new Promise((resolve, reject) => {
+          const token = `cross-device-${crossDeviceCounterRef.current++}`;
+          const timer = setTimeout(() => {
+            pendingCrossDeviceRef.current.delete(token);
+            reject(new Error(`Cross-device command timed out: ${command}`));
+          }, 120_000);
+          pendingCrossDeviceRef.current.set(token, { resolve, reject, timer });
+          sendToWorker({
+            type: "cross-device-command",
+            token,
+            command: { cmd: command, ...payload }
+          });
+        });
+      }
+    };
+    return () => {
+      delete target.__TP_CROSS_DEVICE__;
+    };
+  }, [ensureBridge, sendToWorker]);
 
   useEffect(() => {
     ensureBridge();

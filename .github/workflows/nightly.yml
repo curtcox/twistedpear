@@ -23,6 +23,25 @@ on:
         default: "300000"
 
 jobs:
+  cross-device-dev-matrix:
+    runs-on: [self-hosted, macOS, twistedpear-emulator-lab]
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: npm run test:cross-device-dev:matrix -- --build
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cross-device-dev-matrix-proof
+          path: .tmp/cross-device-dev
+          if-no-files-found: error
+
   simulation-campaign:
     runs-on: ubuntu-latest
     timeout-minutes: 30

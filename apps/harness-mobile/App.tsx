@@ -64,6 +64,9 @@ import {
   type MiniappBenchmarkResult,
   type WorkletStatus,
   type HostConfirmationRequestView,
+  type InstallReviewRequestView,
+  type LaunchReviewRequestView,
+  type TrustedPublisherView,
   type WorkletToHostMessage,
   type DeviceStateView,
   type ConfirmationKind
@@ -180,6 +183,16 @@ export default function App() {
     | null
   >(null);
   const [hostConfirm, setHostConfirm] = useState<HostConfirmationRequestView | null>(null);
+  const [hostReview, setHostReview] = useState<
+    | { readonly kind: "install"; readonly review: InstallReviewRequestView; readonly grants: ReadonlyArray<string> }
+    | { readonly kind: "launch"; readonly review: LaunchReviewRequestView; readonly grants: ReadonlyArray<string> }
+    | null
+  >(null);
+  const [install256tInput, setInstall256tInput] = useState("");
+  const [trustIdentityInput, setTrustIdentityInput] = useState("");
+  const [trustLabelInput, setTrustLabelInput] = useState("");
+  const [trustedPublishers, setTrustedPublishers] = useState<ReadonlyArray<TrustedPublisherView>>([]);
+  const [hostIdentity256t, setHostIdentity256t] = useState<string | null>(null);
   const [deviceState, setDeviceState] = useState<DeviceStateView | null>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [peerCameraActive, setPeerCameraActive] = useState(false);
@@ -409,6 +422,39 @@ export default function App() {
         publisherPublicKey: message.publisherPublicKey,
         summary: message.summary
       });
+      return;
+    }
+
+    if (message.type === "launch-review") {
+      setHostReview({
+        kind: "launch",
+        review: message,
+        grants: message.capabilities.filter((capability) => capability.granted).map((capability) => capability.id)
+      });
+      return;
+    }
+
+    if (message.type === "install-review") {
+      setHostReview({ kind: "install", review: message, grants: [] });
+      return;
+    }
+
+    if (message.type === "install-256t-result") {
+      appendLog(
+        message.ok
+          ? `Installed ${message.appId} v${message.version} (trusted: ${message.trusted ? "yes" : "no"})`
+          : `256t install failed: ${message.error ?? "unknown error"}`
+      );
+      return;
+    }
+
+    if (message.type === "trust") {
+      setTrustedPublishers(message.entries);
+      return;
+    }
+
+    if (message.type === "trust-identity") {
+      setHostIdentity256t(message.identity256t);
       return;
     }
 
@@ -679,8 +725,72 @@ export default function App() {
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
+      {hostReview !== null ? (
+        <View testID="host-confirmation-modal" style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.sectionTitle}>
+              {hostReview.kind === "install"
+                ? `Install ${hostReview.review.appId} v${hostReview.review.version}?`
+                : `Run ${hostReview.review.appId} v${hostReview.review.version}?`}
+            </Text>
+            <Text style={styles.muted}>
+              {hostReview.kind === "install"
+                ? hostReview.review.trusted
+                  ? `Trusted publisher: ${hostReview.review.trustedLabel ?? "trusted"}`
+                  : "UNTRUSTED publisher"
+                : "Capability review"}
+            </Text>
+            <Text style={styles.rowLabel}>Publisher: {hostReview.review.publisherPublicKey}</Text>
+            {hostReview.review.capabilities.map((capability) => (
+              <View key={capability.id} style={styles.row}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowLabel}>{capability.id}</Text>
+                  <Text style={styles.muted}>{capability.description}</Text>
+                </View>
+                <Switch
+                  testID={`${hostReview.kind}-grant-${capability.id.replace(/:/g, "-")}`}
+                  value={hostReview.grants.includes(capability.id)}
+                  onValueChange={(granted) => {
+                    const grants = granted
+                      ? [...hostReview.grants, capability.id]
+                      : hostReview.grants.filter((id) => id !== capability.id);
+                    setHostReview({ ...hostReview, grants });
+                  }}
+                />
+              </View>
+            ))}
+            <View style={styles.row}>
+              <ActionButton
+                testID={hostReview.kind === "install" ? "host-install-cancel" : "host-launch-cancel"}
+                label="Cancel"
+                onPress={() => {
+                  sendToWorklet({
+                    type: hostReview.kind === "install" ? "install-confirm" : "launch-confirm",
+                    token: hostReview.review.token,
+                    accept: false
+                  });
+                  setHostReview(null);
+                }}
+              />
+              <ActionButton
+                testID={hostReview.kind === "install" ? "host-install-approve" : "host-launch-run"}
+                label={hostReview.kind === "install" ? "Install" : "Run"}
+                onPress={() => {
+                  sendToWorklet({
+                    type: hostReview.kind === "install" ? "install-confirm" : "launch-confirm",
+                    token: hostReview.review.token,
+                    accept: true,
+                    grants: hostReview.grants
+                  });
+                  setHostReview(null);
+                }}
+              />
+            </View>
+          </View>
+        </View>
+      ) : null}
       {hostConfirm !== null ? (
-        <View style={styles.modalOverlay}>
+        <View testID="host-confirmation-modal" style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.sectionTitle}>
               {CONFIRM_KIND_TITLES[hostConfirm.kind] ?? `Confirm ${hostConfirm.kind}?`}
@@ -694,6 +804,7 @@ export default function App() {
             ))}
             <View style={styles.row}>
               <ActionButton
+                testID="host-confirm-deny"
                 label="Deny"
                 onPress={() => {
                   sendToWorklet({ type: "confirm-response", token: hostConfirm.token, approved: false });
@@ -701,6 +812,7 @@ export default function App() {
                 }}
               />
               <ActionButton
+                testID="host-confirm-approve"
                 label="Approve"
                 onPress={() => {
                   sendToWorklet({ type: "confirm-response", token: hostConfirm.token, approved: true });
@@ -1321,6 +1433,66 @@ export default function App() {
           <Text style={styles.muted}>USB serial is unsupported on iOS. RNode paths use BLE.</Text>
         </View>
       ) : null}
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Install from 256t</Text>
+        <TextInput
+          testID="install-256t-input"
+          style={styles.input}
+          value={install256tInput}
+          onChangeText={setInstall256tInput}
+          autoCapitalize="none"
+          placeholder="94-character package 256t"
+        />
+        <ActionButton
+          testID="install-256t"
+          label="Resolve and install"
+          onPress={() => {
+            const t256 = install256tInput.trim();
+            if (t256.length > 0) sendToWorklet({ type: "install-from-256t", t256 });
+          }}
+        />
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Publisher trust</Text>
+        <TextInput
+          testID="trust-identity-input"
+          style={styles.input}
+          value={trustIdentityInput}
+          onChangeText={setTrustIdentityInput}
+          autoCapitalize="none"
+          placeholder="Publisher identity 256t"
+        />
+        <TextInput
+          testID="trust-label-input"
+          style={styles.input}
+          value={trustLabelInput}
+          onChangeText={setTrustLabelInput}
+          placeholder="Publisher label"
+        />
+        <View style={styles.row}>
+          <ActionButton
+            testID="trust-add"
+            label="Trust publisher"
+            onPress={() => {
+              const identityString = trustIdentityInput.trim();
+              if (identityString.length === 0) return;
+              sendToWorklet({
+                type: "trust-add",
+                identityString,
+                label: trustLabelInput.trim() || "Unnamed publisher",
+                source: "paste"
+              });
+            }}
+          />
+          <ActionButton testID="trust-show" label="Show my identity" onPress={() => sendToWorklet({ type: "trust-show" })} />
+        </View>
+        {hostIdentity256t !== null ? <Text testID="trust-identity-view" style={styles.muted}>{hostIdentity256t}</Text> : null}
+        {trustedPublishers.map((entry) => (
+          <Text key={entry.publisherPublicKey} style={styles.muted}>{entry.label} · {entry.publisherPublicKey.slice(0, 16)}…</Text>
+        ))}
+      </View>
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>App catalog</Text>

@@ -113,7 +113,7 @@ export function createWebInstallService(options) {
             path: "hyperdrive",
             verified: true
           });
-          return { archive: hyperArchive, fetchPath: "hyperdrive" };
+          return { archive: hyperArchive, fetchPath: "hyperdrive", locator };
         }
       } catch (error) {
         options.log?.(
@@ -157,7 +157,7 @@ export function createWebInstallService(options) {
       throw new Error("Fetched archive does not match its 256t id");
     }
 
-    return { archive, fetchPath: result.path ?? "resource" };
+    return { archive, fetchPath: result.path ?? "resource", locator };
   }
 
   async function installFromT256(t256) {
@@ -177,7 +177,7 @@ export function createWebInstallService(options) {
     };
 
     try {
-      const { archive, fetchPath } = await resolveArchiveBytes(normalized, sendProgress);
+      const { archive, fetchPath, locator = null } = await resolveArchiveBytes(normalized, sendProgress);
       appId = unpackPackage(options.provider, archive).manifest.name;
       sendProgress({
         phase: "verifying",
@@ -246,7 +246,14 @@ export function createWebInstallService(options) {
 
       options.pushInstalled?.();
       options.log?.(`Installed ${installed.appId} v${installed.version} from 256t via ${fetchPath} (trusted: ${trusted})`);
-      return { appId: installed.appId, version: installed.version, trusted, fetchPath };
+      return {
+        appId: installed.appId,
+        version: installed.version,
+        trusted,
+        fetchPath,
+        publisherPublicKey: verified.manifest.publisherPublicKey,
+        servingPublicKey: locator?.servingPublicKey ?? null
+      };
     } catch (error) {
       sendProgress({
         phase: "failed",

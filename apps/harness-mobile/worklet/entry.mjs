@@ -33,6 +33,7 @@ import { createIpcBleBridge } from "./ipc-ble-bridge.mjs";
 import { createIpcSerialBridge } from "../../../packages/worklet-core/src/ipc-serial-bridge.mjs";
 import {
   connectTestAgent,
+  createCrossDeviceTestDriver,
   createDevChannelClient,
   createHostReplyChannel,
   createMiniappAnnounceService,
@@ -41,9 +42,43 @@ import {
 } from "../../../packages/worklet-core/src/index.mjs";
 import { RNodeInterface } from "../../../packages/reticulum-interfaces/dist/rnode/interface.js";
 import { selectPreferredInterface } from "../../../packages/reticulum-interfaces/dist/policy.js";
-import { CatalogStore, InstalledPackageStore, decodeAppAnnounceData, unpackPackage, verifyPackage } from "../../../packages/app-registry/dist/index.js";
-import { PackageResourceClient, assessFetchBudget, fetchPackage } from "../../../packages/bridge-hyper/dist/worklet.js";
-import { HOST_API_VERSION, createWorkletFlagRelayService, validateManifestCapabilities } from "../../../packages/miniapp-runtime/dist/worklet.js";
+import {
+  CatalogStore,
+  InstalledPackageStore,
+  TrustStore,
+  buildAppAnnounceSummary,
+  decodeAppAnnounceData,
+  decodePublisherIdentity256t,
+  encodeAppAnnounceData,
+  encodePublisherIdentity256t,
+  unpackPackage,
+  verifyPackage
+} from "../../../packages/app-registry/dist/index.js";
+import {
+  PackageResourceClient,
+  assessFetchBudget,
+  attachPackageResourceServer,
+  fetchPackage
+} from "../../../packages/bridge-hyper/dist/worklet.js";
+import {
+  CasStore,
+  casAnnounceAspects,
+  casRequestAspects,
+  decodeCasLocator,
+  decodeCasLocatorRequest,
+  encodeCasLocator,
+  encodeCasLocatorRequest,
+  signCasLocator,
+  toCatalogEntryLike,
+  verify256t,
+  verifyCasLocator
+} from "../../../packages/cas-256t/dist/index.js";
+import {
+  HOST_API_VERSION,
+  createWorkletFlagRelayService,
+  generateConfirmationToken,
+  validateManifestCapabilities
+} from "../../../packages/miniapp-runtime/dist/worklet.js";
 import {
   PropagationServer,
   createPropagationDestination,
@@ -221,12 +256,57 @@ let packageDriveManager = null;
 let packageSwarm = null;
 const PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
 
+/** @type {TrustStore | null} */
+let trustStore = null;
+/** @type {Map<string, import("../../../packages/cas-256t/dist/index.js").CasLocator>} */
+const casLocators = new Map();
+const casRequestDestinations = new Map();
+const casResponseDestinations = new Map();
+/** @type {CasStore | null} */
+let entryCasStore = null;
+const runtimeStoreKeys = new Set();
+
 /** @type {ReturnType<typeof createWorkletMiniappHost> | null} */
 let miniappHost = null;
 /** @type {ReturnType<typeof createDevChannelClient> | null} */
 let devChannel = null;
 /** Test-only peer control agent; mounted only by `connect-test-agent`. */
 let testAgent = null;
+let crossDeviceTestDriver = null;
+
+async function importTrustedPublisher(identityString, label, source = "paste") {
+  const publisherPublicKey = decodePublisherIdentity256t(identityString);
+  const confirmation = await requestHostReply({
+    type: "confirm-request",
+    token: generateConfirmationToken((length) => provider.randomBytes(length)),
+    kind: "trust-import",
+    appId: "host",
+    publisherPublicKey,
+    summary: { label, source }
+  });
+  if (confirmation?.approved !== true) throw new Error("Publisher trust import denied");
+  await ensureTrustStore().add({ publisherPublicKey, label, addedAt: Date.now(), source });
+}
+
+function ensureCrossDeviceTestDriver() {
+  if (crossDeviceTestDriver === null) {
+    crossDeviceTestDriver = createCrossDeviceTestDriver({
+      miniappHost: () => ensureMiniappHost(),
+      installedStore: () => ensureCatalog().installedStore,
+      runtime,
+      installFromT256,
+      importTrust: (identity256t, label) => importTrustedPublisher(identity256t, label),
+      casStore: () => ensureEntryCasStore(),
+      sha512: (bytes) => provider.sha512(bytes),
+      async publisherIdentity256t() {
+        const identity = await resolveIdentity();
+        if (identity === null) throw new Error("Host identity is unavailable");
+        return encodePublisherIdentity256t(identity.getPublicKey());
+      }
+    });
+  }
+  return crossDeviceTestDriver;
+}
 
 function ensureDevChannel() {
   if (devChannel === null) {
@@ -298,6 +378,9 @@ function ensureMiniappHost() {
       relayService,
       freenetBackend: freenetBackendProxy,
       announceService: transportAnnounceService,
+      getPublisherIdentity: () => resolveIdentity(),
+      publishArchive: publishArchiveFromWorklet,
+      installFromT256,
       async requestUserConfirmation(request) {
         const reply = await requestHostReply({
           type: "confirm-request",
@@ -325,6 +408,16 @@ function ensureMiniappHost() {
         if (reply === null) throw new Error("Device bridge request timed out");
         if (reply.error) throw new Error(String(reply.error));
         return reply.result;
+      },
+      async requestLaunchReview(review) {
+        return requestHostReply({
+          type: "launch-review",
+          token: review.token,
+          appId: review.appId,
+          publisherPublicKey: review.publisherPublicKey,
+          version: review.version,
+          capabilities: review.capabilities
+        });
       },
       getHostInfoSnapshot: () => {
         const barePlatform =
@@ -391,15 +484,118 @@ function runtimeKeyValueStore() {
       return value === undefined ? null : value;
     },
     async set(key, value) {
+      runtimeStoreKeys.add(key);
       await runtime.store.set(key, value);
     },
     async delete(key) {
+      runtimeStoreKeys.delete(key);
       await runtime.store.delete(key);
     },
-    async list() {
-      return [];
+    async list(prefix = "") {
+      return [...runtimeStoreKeys].filter((key) => key.startsWith(prefix));
     }
   };
+}
+
+function ensureEntryCasStore() {
+  if (entryCasStore === null) {
+    entryCasStore = new CasStore(runtimeKeyValueStore(), (data) => provider.sha512(data));
+  }
+  return entryCasStore;
+}
+
+function ensureTrustStore() {
+  if (trustStore === null) {
+    trustStore = new TrustStore(runtimeKeyValueStore());
+  }
+  return trustStore;
+}
+
+async function pushTrustList() {
+  send({ type: "trust", entries: await ensureTrustStore().list() });
+}
+
+function ingestCasLocator(appData) {
+  try {
+    const locator = decodeCasLocator(appData);
+    if (verifyCasLocator(provider, locator)) {
+      casLocators.set(locator.t256, locator);
+      log(`CAS locator: ${locator.appId} v${locator.version}`);
+    }
+  } catch {
+    // Not a TPCL locator payload.
+  }
+}
+
+async function announceCasLocatorRequest(t256) {
+  const node = await ensureReticulum();
+  const identity = await resolveIdentity();
+  if (identity === null) throw new Error("No host identity available for locator request");
+  let destination = casRequestDestinations.get(t256);
+  if (destination === undefined) {
+    destination = node.registerDestination({
+      provider,
+      identity,
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "tp",
+      aspects: casRequestAspects(t256)
+    });
+    casRequestDestinations.set(t256, destination);
+  }
+  await destination.announce({ appData: encodeCasLocatorRequest(t256) });
+  log(`Requested CAS locator for ${t256.slice(0, 16)}…`);
+}
+
+async function respondToCasLocatorRequest(appData) {
+  let t256;
+  try {
+    t256 = decodeCasLocatorRequest(appData);
+  } catch {
+    return;
+  }
+  const locator = casLocators.get(t256);
+  if (locator === undefined || reticulum === null) return;
+  const identity = await resolveIdentity();
+  if (identity === null) return;
+  let destination = casResponseDestinations.get(t256);
+  if (destination === undefined) {
+    destination = reticulum.registerDestination({
+      provider,
+      identity,
+      direction: DestinationDirection.IN,
+      type: DestinationType.SINGLE,
+      appName: "tp",
+      aspects: casAnnounceAspects(t256)
+    });
+    casResponseDestinations.set(t256, destination);
+  }
+  await destination.announce({ appData: encodeCasLocator(locator) });
+}
+
+async function waitForCasLocator(t256, timeoutMs = 30_000) {
+  if (!casLocators.has(t256)) await announceCasLocatorRequest(t256);
+  return new Promise((resolve, reject) => {
+    const startedAt = Date.now();
+    let lastRequestedAt = startedAt;
+    const poll = () => {
+      const locator = casLocators.get(t256);
+      if (locator !== undefined) {
+        resolve(locator);
+        return;
+      }
+      if (Date.now() - startedAt > timeoutMs) {
+        reject(new Error("No locator announce received for that 256t id"));
+        return;
+      }
+      if (Date.now() - lastRequestedAt >= 5_000) {
+        lastRequestedAt = Date.now();
+        void announceCasLocatorRequest(t256).catch(() => {});
+      }
+      setTimeout(poll, 500);
+    };
+    poll();
+  });
 }
 
 async function persistCatalogState() {
@@ -428,6 +624,171 @@ async function ensurePackageDriveManager() {
   }
 
   return packageDriveManager;
+}
+
+async function publishArchiveFromWorklet({ t256, archive }) {
+  const identity = await resolveIdentity();
+  if (identity === null) throw new Error("No publisher identity available");
+  const unpacked = unpackPackage(provider, archive);
+  const driveManager = await ensurePackageDriveManager();
+  let keyHex = unpacked.manifest.driveKey;
+  if (keyHex === "0".repeat(64)) {
+    keyHex = (await driveManager.createDrive()).keyHex;
+  } else {
+    await driveManager.openDrive(keyHex);
+  }
+  const published = await driveManager.publishVersion(
+    unpacked.manifest.version,
+    archive,
+    unpacked.packageHash
+  );
+  const node = await ensureReticulum();
+  const publisherHash = bytesToHex(provider.sha256(identity.getPublicKey()).slice(0, 8));
+  const nameHash = bytesToHex(
+    provider.sha256(new TextEncoder().encode(unpacked.manifest.name)).slice(0, 8)
+  );
+  const appDestination = node.registerDestination({
+    provider,
+    identity,
+    direction: DestinationDirection.IN,
+    type: DestinationType.SINGLE,
+    appName: "tp",
+    aspects: ["app", publisherHash, nameHash]
+  });
+  attachPackageResourceServer(appDestination, {
+    listVersions: () => driveManager.listVersions(),
+    fetchArchive: (version) => driveManager.fetchVersion(version)
+  });
+  const summary = buildAppAnnounceSummary(provider, identity, {
+    manifest: unpacked.manifest,
+    packageSize: archive.length,
+    packageHash: unpacked.packageHash,
+    resourceAvailable: true
+  });
+  await appDestination.announce({ appData: encodeAppAnnounceData(summary) });
+
+  const locator = signCasLocator(identity, {
+    t256,
+    appId: unpacked.manifest.name,
+    version: unpacked.manifest.version,
+    driveKey: keyHex,
+    packageHash: unpacked.packageHash,
+    packageSize: archive.length
+  });
+  const casDestination = node.registerDestination({
+    provider,
+    identity,
+    direction: DestinationDirection.IN,
+    type: DestinationType.SINGLE,
+    appName: "tp",
+    aspects: casAnnounceAspects(t256)
+  });
+  casResponseDestinations.set(t256, casDestination);
+  casLocators.set(t256, locator);
+  await casDestination.announce({ appData: encodeCasLocator(locator) });
+  log(`Published ${unpacked.manifest.name} v${published.version}; 256t ${t256.slice(0, 16)}…`);
+  return { t256, driveKey: keyHex, version: published.version };
+}
+
+async function installFromT256(t256) {
+  const cas = ensureEntryCasStore();
+  let archive = await cas.get(t256).catch(() => null);
+  let fetchedFrom = "local-cas";
+  let resolvedLocator = null;
+  if (archive === null) {
+    const locator = await waitForCasLocator(t256);
+    resolvedLocator = locator;
+    const identity = await resolveIdentity();
+    if (identity === null) throw new Error("No host identity available for fetch");
+    const node = await ensureReticulum();
+    const resourceClient = new PackageResourceClient({
+      provider,
+      runtime,
+      publisherPublicKeyHex: locator.publisherPublicKey,
+      servingPublicKeyHex: locator.servingPublicKey,
+      appName: locator.appId,
+      identity,
+      reticulum: node
+    });
+    await resourceClient.start();
+    try {
+      const result = await fetchPackage(provider, {
+        entry: toCatalogEntryLike(locator),
+        version: locator.version,
+        interfaces: reticulum?.listInterfaces() ?? [],
+        driveManager: await ensurePackageDriveManager(),
+        resourceClient
+      });
+      archive = result.archiveBytes;
+      fetchedFrom = result.path;
+    } finally {
+      await resourceClient.stop();
+    }
+    if (!verify256t(t256, archive, (data) => provider.sha512(data))) {
+      throw new Error("Fetched archive does not match its 256t id");
+    }
+    await cas.put(archive);
+  }
+
+  const { installedStore: installed } = ensureCatalog();
+  const appId = unpackPackage(provider, archive).manifest.name;
+  const verified = verifyPackage(provider, archive, {
+    hostApiVersion: HOST_API_VERSION,
+    minVersion: installed.latestVersion(appId) ?? undefined
+  });
+  const declared = validateManifestCapabilities(verified.manifest.capabilities);
+  const trusted = await ensureTrustStore().isTrusted(verified.manifest.publisherPublicKey);
+  const trustedEntry = trusted
+    ? (await ensureTrustStore().list()).find(
+        (entry) => entry.publisherPublicKey === verified.manifest.publisherPublicKey
+      )
+    : undefined;
+  const review = await requestHostReply({
+    type: "install-review",
+    token: generateConfirmationToken((length) => provider.randomBytes(length)),
+    appId,
+    version: verified.manifest.version,
+    publisherPublicKey: verified.manifest.publisherPublicKey,
+    trusted,
+    trustedLabel: trustedEntry?.label ?? null,
+    capabilities: declared.map((id) => ({ id, description: id, granted: false }))
+  });
+  if (review === null || review.accept !== true) {
+    throw new Error("Install cancelled at capability review");
+  }
+
+  const archivePath = `packages/${appId}/${verified.manifest.version}.tpkg`;
+  await runtime.store.set(archivePath, archive);
+  installed.install(
+    {
+      appId,
+      version: verified.manifest.version,
+      packageHash: verified.packageHash,
+      installedAt: Date.now(),
+      manifest: verified.manifest,
+      archivePath
+    },
+    archive.length
+  );
+  await persistCatalogState();
+  if (Array.isArray(review.grants) && review.grants.length > 0) {
+    await ensureMiniappHost().setGrants(
+      appId,
+      verified.manifest.publisherPublicKey,
+      verified.manifest.capabilities,
+      review.grants
+    );
+  }
+  pushCatalog();
+  log(`Installed ${appId} v${verified.manifest.version} from 256t via ${fetchedFrom}`);
+  return {
+    appId,
+    version: verified.manifest.version,
+    trusted,
+    source: fetchedFrom,
+    publisherPublicKey: verified.manifest.publisherPublicKey,
+    servingPublicKey: resolvedLocator?.servingPublicKey ?? null
+  };
 }
 
 function ensureCatalog() {
@@ -1132,6 +1493,10 @@ function registerAnnounceHandler() {
       });
 
       if (info.appData !== null) {
+        ingestCasLocator(info.appData);
+        void respondToCasLocatorRequest(info.appData).catch((error) => {
+          log(`CAS locator response failed: ${error instanceof Error ? error.message : String(error)}`);
+        });
         const { catalogStore: catalog } = ensureCatalog();
         const ingested = catalog.ingest({
           destinationHash: bytesToHex(info.destinationHash),
@@ -1442,7 +1807,13 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  if (message.type === "peer-chrome-response" || message.type === "confirm-response" || message.type === "device-bridge-response") {
+  if (
+    message.type === "peer-chrome-response" ||
+    message.type === "confirm-response" ||
+    message.type === "launch-confirm" ||
+    message.type === "install-confirm" ||
+    message.type === "device-bridge-response"
+  ) {
     hostReplyChannel.resolveReply(message);
     return;
   }
@@ -1480,6 +1851,53 @@ async function handleHostMessage(raw) {
 
   if (message.type === "reset-identity") {
     await resetIdentity();
+    return;
+  }
+
+  if (message.type === "install-from-256t") {
+    try {
+      const result = await installFromT256(message.t256.trim());
+      send({ type: "install-256t-result", ok: true, ...result });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      log(`Install from 256t failed: ${detail}`);
+      send({ type: "install-256t-result", ok: false, error: detail });
+    }
+    return;
+  }
+
+  if (message.type === "trust-list") {
+    await pushTrustList();
+    return;
+  }
+
+  if (message.type === "trust-add") {
+    try {
+      await importTrustedPublisher(
+        message.identityString,
+        message.label ?? "Unnamed publisher",
+        message.source ?? "paste"
+      );
+      log(`Trusted publisher ${message.label ?? "Unnamed publisher"}`);
+    } catch (error) {
+      log(`Trust add failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    await pushTrustList();
+    return;
+  }
+
+  if (message.type === "trust-remove") {
+    await ensureTrustStore().remove(message.publisherPublicKey);
+    await pushTrustList();
+    return;
+  }
+
+  if (message.type === "trust-show") {
+    const identity = await resolveIdentity();
+    send({
+      type: "trust-identity",
+      identity256t: identity === null ? null : encodePublisherIdentity256t(identity.getPublicKey())
+    });
     return;
   }
 
@@ -1871,7 +2289,8 @@ async function handleHostMessage(raw) {
         platform: message.platform ?? "mobile",
         host: message.host,
         port: message.port,
-        log
+        log,
+        handleCommand: (request) => ensureCrossDeviceTestDriver()(request)
       });
       log(`Test agent mounted as ${message.label} (lxmf ${testAgent.lxmfAddress})`);
     } catch (error) {

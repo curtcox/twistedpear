@@ -11,7 +11,8 @@
  * rather than a pid check.
  */
 import { spawnSync } from "node:child_process";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import { logPath, repoRoot } from "../state.mjs";
 import {
   bootedSimulatorUdid,
@@ -34,13 +35,29 @@ import {
 const HARNESS_BUNDLE_ID = "network.twistedpear.harness";
 const FLOW = `${repoRoot}/.maestro/local-peer-up.yaml`;
 
-function runFlow(id, log) {
+function runFlow(id, device, log) {
   log(`${id}: running ${FLOW}`);
-  const result = spawnSync("maestro", ["test", FLOW], { cwd: repoRoot, encoding: "utf8" });
+  const result = spawnSync("maestro", ["--device", device, "test", FLOW], { cwd: repoRoot, encoding: "utf8" });
   appendFileSync(logPath(id), `${result.stdout ?? ""}${result.stderr ?? ""}`);
   if (result.status !== 0) {
     throw new Error(`maestro test ${FLOW} failed (see ${logPath(id)})`);
   }
+}
+
+function buildAndInstallAndroidHarness() {
+  const harnessDir = join(repoRoot, "apps", "harness-mobile");
+  const androidDir = join(harnessDir, "android");
+  const prebuild = spawnSync("npx", ["expo", "prebuild", "--platform", "android", "--no-install"], {
+    cwd: harnessDir,
+    stdio: "inherit",
+    env: { ...process.env, EXPO_NO_INTERACTIVE: "1" }
+  });
+  if (prebuild.status !== 0) throw new Error("expo prebuild --platform android failed");
+  const assembled = spawnSync("./gradlew", ["assembleDebug"], { cwd: androidDir, stdio: "inherit" });
+  if (assembled.status !== 0) throw new Error("Android debug harness build failed");
+  const apk = join(androidDir, "app", "build", "outputs", "apk", "debug", "app-debug.apk");
+  if (!existsSync(apk)) throw new Error(`Android debug APK is missing: ${apk}`);
+  adb(["install", "-r", apk]);
 }
 
 export const iosAdapter = {
@@ -63,7 +80,7 @@ export const iosAdapter = {
       buildAndInstallHarness(repoRoot);
     }
     try {
-      runFlow("ios", log);
+      runFlow("ios", udid, log);
     } catch (error) {
       spawnSync("xcrun", ["simctl", "terminate", udid, HARNESS_BUNDLE_ID], {
         encoding: "utf8"
@@ -112,15 +129,20 @@ export const androidAdapter = {
       throw new Error("maestro is not installed (https://maestro.mobile.dev)");
     }
 
-    const installed = adb(["shell", "pm", "list", "packages", PACKAGE_ID]);
-    if (build || !installed.includes(PACKAGE_ID)) {
+    let installed = adb(["shell", "pm", "list", "packages", PACKAGE_ID]);
+    if (build) {
+      log("android: rebuilding and installing the harness");
+      buildAndInstallAndroidHarness();
+      installed = adb(["shell", "pm", "list", "packages", PACKAGE_ID]);
+    }
+    if (!installed.includes(PACKAGE_ID)) {
       throw new Error(
         `${PACKAGE_ID} is not installed on the emulator — build and install it with \`npx expo run:android\` in apps/harness-mobile`
       );
     }
     launchHarness();
     try {
-      runFlow("android", log);
+      runFlow("android", adb(["get-serialno"]).trim(), log);
     } catch (error) {
       try {
         adb(["shell", "am", "force-stop", PACKAGE_ID]);

@@ -547,6 +547,14 @@ export function createWorkletMiniappHost(options) {
   }
 
   return {
+    snapshot() {
+      return host.snapshot();
+    },
+
+    previewSnapshot() {
+      return preview?.host.snapshot() ?? null;
+    },
+
     isDeveloperMode() {
       return developerMode;
     },
