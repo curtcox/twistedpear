@@ -81,6 +81,7 @@ The package-level READMEs for
 | iOS behavior and simulator notes | [iOS host](ios-host.md) |
 | Android emulator workflows | [Android emulator lab](android-emulator-lab.md) |
 | Several peers on one Mac | [Single-machine multi-peer environment](local-multipeer.md) |
+| Author on one implementation, run on another | [Cross-device develop-and-run matrix](cross-device-dev-matrix.md) |
 | iOS multicast entitlement | [iOS multicast entitlement](ios-multicast-entitlement.md) |
 | iOS review, privacy, and export notes | [iOS submission dossier](ios-submission.md) |
 | macOS signing and notarization | [macOS notarization](macos-notarization.md) |
