@@ -20,6 +20,7 @@ export async function startControlServer(options = {}) {
   const waiters = new Map();
   const pending = new Map();
   let nextId = 1;
+  let closed = false;
 
   const resolveWaiters = (label) => {
     const list = waiters.get(label);
@@ -27,8 +28,9 @@ export async function startControlServer(options = {}) {
       return;
     }
     waiters.delete(label);
-    for (const resolve of list) {
-      resolve(agents.get(label));
+    for (const waiter of list) {
+      clearTimeout(waiter.timer);
+      waiter.resolve(agents.get(label));
     }
   };
 
@@ -72,10 +74,12 @@ export async function startControlServer(options = {}) {
           continue;
         }
         if (typeof frame.id === "number") {
-          const settle = pending.get(frame.id);
-          if (settle !== undefined) {
+          const request = pending.get(frame.id);
+          // A stale/replaced connection must not be able to settle a request
+          // issued to the current connection for the same label.
+          if (request !== undefined && request.socket === socket) {
             pending.delete(frame.id);
-            settle(frame);
+            request.settle(frame);
           }
         }
       }
@@ -84,6 +88,13 @@ export async function startControlServer(options = {}) {
     const drop = () => {
       if (label !== null && agents.get(label)?.socket === socket) {
         agents.delete(label);
+      }
+      for (const [id, request] of pending) {
+        if (request.socket !== socket) {
+          continue;
+        }
+        pending.delete(id);
+        request.reject(new Error(`peer ${request.label} disconnected while answering ${request.cmd}`));
       }
     };
     socket.on("close", drop);
@@ -97,8 +108,14 @@ export async function startControlServer(options = {}) {
       resolve();
     });
   });
+  const address = server.address();
+  const boundPort =
+    address !== null && typeof address !== "string" ? address.port : port;
 
   const request = (label, payload, timeoutMs = 20_000) => {
+    if (closed) {
+      return Promise.reject(new Error("control server is closed"));
+    }
     const agent = agents.get(label);
     if (agent === undefined) {
       return Promise.reject(new Error(`peer ${label} is not attached`));
@@ -109,25 +126,46 @@ export async function startControlServer(options = {}) {
         pending.delete(id);
         reject(new Error(`peer ${label} did not answer ${payload.cmd} within ${timeoutMs}ms`));
       }, timeoutMs);
-      pending.set(id, (frame) => {
-        clearTimeout(timer);
-        if (frame.ok === false) {
-          reject(new Error(`peer ${label} rejected ${payload.cmd}: ${frame.error}`));
+      pending.set(id, {
+        label,
+        cmd: payload.cmd,
+        socket: agent.socket,
+        reject(error) {
+          clearTimeout(timer);
+          reject(error);
+        },
+        settle(frame) {
+          clearTimeout(timer);
+          if (frame.ok === false) {
+            reject(new Error(`peer ${label} rejected ${payload.cmd}: ${frame.error}`));
+            return;
+          }
+          resolve(frame);
+        }
+      });
+      agent.socket.write(`${JSON.stringify({ id, ...payload })}\n`, (error) => {
+        if (error === null || error === undefined) {
           return;
         }
-        resolve(frame);
+        const active = pending.get(id);
+        if (active !== undefined) {
+          pending.delete(id);
+          active.reject(error);
+        }
       });
-      agent.socket.write(`${JSON.stringify({ id, ...payload })}\n`);
     });
   };
 
   return {
-    port,
+    port: boundPort,
     labels: () => [...agents.keys()],
     agent: (label) => agents.get(label) ?? null,
     agents: () => [...agents.values()].map(({ socket, ...rest }) => rest),
     /** Resolves once `label` has checked in, or rejects on timeout. */
     waitForAgent(label, timeoutMs = 60_000) {
+      if (closed) {
+        return Promise.reject(new Error("control server is closed"));
+      }
       const existing = agents.get(label);
       if (existing !== undefined) {
         return Promise.resolve(existing);
@@ -135,17 +173,16 @@ export async function startControlServer(options = {}) {
       return new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
           const list = waiters.get(label) ?? [];
-          waiters.set(
-            label,
-            list.filter((entry) => entry !== wrapped)
-          );
+          const remaining = list.filter((entry) => entry !== waiter);
+          if (remaining.length === 0) {
+            waiters.delete(label);
+          } else {
+            waiters.set(label, remaining);
+          }
           reject(new Error(`peer ${label} never attached to the control server`));
         }, timeoutMs);
-        const wrapped = (agent) => {
-          clearTimeout(timer);
-          resolve(agent);
-        };
-        waiters.set(label, [...(waiters.get(label) ?? []), wrapped]);
+        const waiter = { resolve, reject, timer };
+        waiters.set(label, [...(waiters.get(label) ?? []), waiter]);
       });
     },
     request,
@@ -156,6 +193,21 @@ export async function startControlServer(options = {}) {
     announce: (label) => request(label, { cmd: "announce" }),
     send: (label, toLxmfAddress, nonce) => request(label, { cmd: "send", toLxmfAddress, nonce }),
     async close() {
+      if (closed) {
+        return;
+      }
+      closed = true;
+      for (const list of waiters.values()) {
+        for (const waiter of list) {
+          clearTimeout(waiter.timer);
+          waiter.reject(new Error("control server closed before peer attached"));
+        }
+      }
+      waiters.clear();
+      for (const [id, request] of pending) {
+        pending.delete(id);
+        request.reject(new Error("control server closed before peer answered"));
+      }
       for (const agent of agents.values()) {
         agent.socket.destroy();
       }

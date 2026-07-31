@@ -39,14 +39,20 @@ const attach = args.includes("--attach");
 const smoke = args.includes("--smoke");
 const required = process.env.LOCAL_MULTIPEER_REQUIRED === "1";
 
-const ATTACH_TIMEOUT_MS = Number.parseInt(process.env.LOCAL_MULTIPEER_ATTACH_MS ?? "90000", 10);
-const DISCOVERY_TIMEOUT_MS = Number.parseInt(process.env.LOCAL_MULTIPEER_DISCOVERY_MS ?? "90000", 10);
-const MESSAGE_TIMEOUT_MS = Number.parseInt(process.env.LOCAL_MULTIPEER_MESSAGE_MS ?? "45000", 10);
+function timeoutFromEnv(name, fallback) {
+  const value = Number.parseInt(process.env[name] ?? String(fallback), 10);
+  assert(Number.isFinite(value) && value > 0, `${name} must be a positive integer`);
+  return value;
+}
+
+const ATTACH_TIMEOUT_MS = timeoutFromEnv("LOCAL_MULTIPEER_ATTACH_MS", 90_000);
+const DISCOVERY_TIMEOUT_MS = timeoutFromEnv("LOCAL_MULTIPEER_DISCOVERY_MS", 90_000);
+const MESSAGE_TIMEOUT_MS = timeoutFromEnv("LOCAL_MULTIPEER_MESSAGE_MS", 45_000);
 
 function requestedPeers() {
   const flag = args.find((arg) => arg.startsWith("--peers="));
   if (flag !== undefined) {
-    return flag.slice("--peers=".length).split(",").filter(Boolean);
+    return [...new Set(flag.slice("--peers=".length).split(",").filter(Boolean))];
   }
   if (smoke) {
     return ["hub", "node2"];
@@ -139,6 +145,14 @@ await runMain(async () => {
   let control = null;
 
   try {
+    try {
+      control = await startControlServer();
+    } catch (error) {
+      throw new Error(
+        `could not bind the control port ${CONTROL_PORT} — another run or \`peers status\` holds it: ${error.message}`
+      );
+    }
+
     if (!attach) {
       const result = await bringUp(wanted);
       owned = result.started;
@@ -151,31 +165,35 @@ await runMain(async () => {
       `only ${expected.length} peer(s) available after skips: ${expected.join(", ")}`
     );
 
-    try {
-      control = await startControlServer();
-    } catch (error) {
-      throw new Error(
-        `could not bind the control port ${CONTROL_PORT} — another run or \`peers status\` holds it: ${error.message}`
-      );
-    }
-
     const startedAt = Date.now();
     const results = { discovery: [], messaging: [] };
 
     section("Attach");
-    const attached = [];
-    for (const id of expected) {
-      try {
-        const agent = await control.waitForAgent(id, ATTACH_TIMEOUT_MS);
-        step(`${id} attached (${agent.platform}, lxmf ${agent.lxmfAddress.slice(0, 12)}…)`);
-        attached.push(id);
-      } catch (error) {
-        if (GUI_PEER_IDS.includes(id) && !required) {
-          step(`${id} never attached; skipping: ${error.message}`);
-          continue;
+    // Wait concurrently: one unavailable GUI peer should cost one attach
+    // timeout, not one timeout for every unavailable peer in the request.
+    const attachResults = await Promise.all(
+      expected.map(async (id) => {
+        try {
+          return { id, agent: await control.waitForAgent(id, ATTACH_TIMEOUT_MS) };
+        } catch (error) {
+          if (GUI_PEER_IDS.includes(id) && !required) {
+            return { id, error };
+          }
+          throw error;
         }
-        throw error;
+      })
+    );
+    const attached = [];
+    for (const result of attachResults) {
+      if ("error" in result) {
+        const message = result.error instanceof Error ? result.error.message : String(result.error);
+        step(`${result.id} never attached; skipping: ${message}`);
+        skipped.push(result.id);
+        continue;
       }
+      const { id, agent } = result;
+      step(`${id} attached (${agent.platform}, lxmf ${agent.lxmfAddress.slice(0, 12)}…)`);
+      attached.push(id);
     }
     assert(attached.length >= 2, `only ${attached.length} peer(s) attached: ${attached.join(", ")}`);
 

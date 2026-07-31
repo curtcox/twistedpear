@@ -174,7 +174,7 @@ async function commandStatus(flags) {
     });
   }
 
-  const agents = await liveAgents();
+  const agents = rows.length === 0 ? [] : await liveAgents();
 
   if (flags.has("--json")) {
     console.log(JSON.stringify({ peers: rows, agents }, null, 2));

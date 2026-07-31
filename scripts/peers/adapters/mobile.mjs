@@ -62,7 +62,14 @@ export const iosAdapter = {
       log("ios: building and installing the harness (this takes several minutes)");
       buildAndInstallHarness(repoRoot);
     }
-    runFlow("ios", log);
+    try {
+      runFlow("ios", log);
+    } catch (error) {
+      spawnSync("xcrun", ["simctl", "terminate", udid, HARNESS_BUNDLE_ID], {
+        encoding: "utf8"
+      });
+      throw error;
+    }
     return { kind: "ios", udid };
   },
 
@@ -112,7 +119,16 @@ export const androidAdapter = {
       );
     }
     launchHarness();
-    runFlow("android", log);
+    try {
+      runFlow("android", log);
+    } catch (error) {
+      try {
+        adb(["shell", "am", "force-stop", PACKAGE_ID]);
+      } catch {
+        // Preserve the setup failure; cleanup is best-effort.
+      }
+      throw error;
+    }
     return { kind: "android" };
   },
 
