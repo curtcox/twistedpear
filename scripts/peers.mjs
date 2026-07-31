@@ -103,7 +103,7 @@ async function commandUp(ids, flags) {
     log(`\nStarted without: ${failures.join(", ")}`);
   }
   log(`\nPeers up. Control port ${CONTROL_PORT}. Run: npm run test:local-multipeer -- --attach`);
-  return failures.length > 0 ? 1 : 0;
+  return 0;
 }
 
 async function commandDown(ids) {

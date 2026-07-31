@@ -85,28 +85,33 @@ async function bringUp(ids) {
   const started = [];
   const skipped = [];
   const ordered = [...ids].sort((a, b) => (a === "hub" ? -1 : b === "hub" ? 1 : 0));
-  for (const id of ordered) {
-    const adapter = await adapterFor(id);
-    assert(adapter !== null, `unknown peer: ${id}`);
-    const existing = peerEntry(id);
-    if (existing !== null && adapter.running(existing)) {
-      step(`${id} already running`);
-      continue;
-    }
-    forgetPeer(id);
-    try {
-      recordPeer(id, await adapter.up({ log: (line) => step(line), build: false }));
-      started.push(id);
-      step(`${id} started`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (GUI_PEER_IDS.includes(id) && !required) {
-        step(`${id} skipped: ${message}`);
-        skipped.push(id);
+  try {
+    for (const id of ordered) {
+      const adapter = await adapterFor(id);
+      assert(adapter !== null, `unknown peer: ${id}`);
+      const existing = peerEntry(id);
+      if (existing !== null && adapter.running(existing)) {
+        step(`${id} already running`);
         continue;
       }
-      throw error;
+      forgetPeer(id);
+      try {
+        recordPeer(id, await adapter.up({ log: (line) => step(line), build: false }));
+        started.push(id);
+        step(`${id} started`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (GUI_PEER_IDS.includes(id) && !required) {
+          step(`${id} skipped: ${message}`);
+          skipped.push(id);
+          continue;
+        }
+        throw error;
+      }
     }
+  } catch (error) {
+    await tearDown(started);
+    throw error;
   }
   return { started, skipped };
 }
@@ -131,31 +136,32 @@ await runMain(async () => {
 
   let owned = [];
   let skipped = [];
-  if (!attach) {
-    const result = await bringUp(wanted);
-    owned = result.started;
-    skipped = result.skipped;
-  }
+  let control = null;
 
-  const expected = wanted.filter((id) => !skipped.includes(id));
-  assert(
-    expected.length >= 2,
-    `only ${expected.length} peer(s) available after skips: ${expected.join(", ")}`
-  );
-
-  let control;
   try {
-    control = await startControlServer();
-  } catch (error) {
-    throw new Error(
-      `could not bind the control port ${CONTROL_PORT} — another run or \`peers status\` holds it: ${error.message}`
+    if (!attach) {
+      const result = await bringUp(wanted);
+      owned = result.started;
+      skipped = result.skipped;
+    }
+
+    const expected = wanted.filter((id) => !skipped.includes(id));
+    assert(
+      expected.length >= 2,
+      `only ${expected.length} peer(s) available after skips: ${expected.join(", ")}`
     );
-  }
 
-  const startedAt = Date.now();
-  const results = { discovery: [], messaging: [] };
+    try {
+      control = await startControlServer();
+    } catch (error) {
+      throw new Error(
+        `could not bind the control port ${CONTROL_PORT} — another run or \`peers status\` holds it: ${error.message}`
+      );
+    }
 
-  try {
+    const startedAt = Date.now();
+    const results = { discovery: [], messaging: [] };
+
     section("Attach");
     const attached = [];
     for (const id of expected) {
@@ -261,7 +267,7 @@ await runMain(async () => {
     step(`${attached.length} peers, ${results.discovery.length} discovery pairs, ${results.messaging.length} round-trips`);
     step(`proof: ${proofPath}`);
   } finally {
-    await control.close();
+    await control?.close();
     if (owned.length > 0) {
       section("Teardown");
       await tearDown(owned);

@@ -1,5 +1,11 @@
 # Single-machine multi-peer environment
 
+<!-- tp-doc
+lifecycle: reference
+audited: 2026-07-30
+register: none
+-->
+
 Start and stop any combination of peer implementations on one Mac, then run an
 automated matrix that proves they discover each other and can exchange
 messages. No extra hardware, no second machine.
