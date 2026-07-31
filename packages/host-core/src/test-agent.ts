@@ -22,15 +22,38 @@ import {
   type Reticulum
 } from "@twistedpear/reticulum-ts";
 import { LXMFRouter, LXMessageMethod } from "@twistedpear/lxmf-ts";
+import {
+  decodeLinkControl,
+  encodeLinkControl,
+  encodeReadinessEnvelope,
+  parseMediaReadiness,
+  READINESS_REQUEST_ID,
+  READINESS_RESPONSE_ID,
+  type PeerMediaReadiness
+} from "@twistedpear/protocol";
 
 /** Probe messages carry this title so agents never echo unrelated LXMF traffic. */
 export const TEST_AGENT_PROBE_TITLE = "tp-probe";
 export const TEST_AGENT_REALTIME_TITLE = "tp-realtime";
+/** Readiness exchange and active link probes ride this title as `TPL1` bytes. */
+export const TEST_AGENT_LINK_TITLE = "tp-link";
 const PROBE_PREFIX = "tp-probe:";
 const ECHO_PREFIX = "tp-probe-echo:";
 const REALTIME_PREFIX = "tp-realtime:";
 const REALTIME_ECHO_PREFIX = "tp-realtime-echo:";
+const LINK_PREFIX = "tp-link:";
 const LXMF_DELIVERY_ASPECT = "lxmf.delivery";
+/** Matches the host default: one probe per peer per minute, 8 KiB ceiling. */
+const LINK_PROBE_MAX_BUDGET_BYTES = 8 * 1024;
+const LINK_READINESS_TTL_MS = 60_000;
+/** `LXMF_ENCRYPTED_PACKET_MAX_CONTENT`: the opportunistic single-packet budget. */
+const LXMF_OPPORTUNISTIC_MAX_CONTENT = 295;
+/** `:<index>:<count>:` with four-digit fields. */
+const CHUNK_HEADER_SLACK = 12;
+/** LXMF measures the packed title plus content, so leave msgpack room. */
+const CHUNK_MSGPACK_SLACK = 16;
+const MAX_CHUNKS = 512;
+const MAX_CHUNKED_PAYLOAD_HEX = 262_144;
 
 export interface TestAgentPeerRecord {
   /** Delivery destination hash of the announcing peer, hex. */
@@ -58,6 +81,22 @@ export interface TestAgentRealtimeEntry {
   readonly receivedAt: number;
 }
 
+export interface TestAgentReadinessEntry {
+  readonly fromDestinationHash: string;
+  /** `request` opened the exchange; `response` answered ours. */
+  readonly kind: "request" | "response";
+  readonly readiness: PeerMediaReadiness;
+  readonly receivedAt: number;
+}
+
+export interface TestAgentProbeEntry {
+  readonly id: string;
+  readonly toDestinationHash: string;
+  readonly budgetBytes: number;
+  readonly sentAt: number;
+  readonly rttMs: number | null;
+}
+
 export interface TestAgentInfo {
   readonly label: string;
   readonly platform: string;
@@ -72,6 +111,8 @@ export interface TestAgentStatus extends TestAgentInfo {
   readonly peerCount: number;
   readonly inboxCount: number;
   readonly realtimeInboxCount: number;
+  readonly readinessCount: number;
+  readonly probeCount: number;
   readonly pathTableCount: number;
 }
 
@@ -88,6 +129,8 @@ export interface TestAgentOptions {
   /** Re-announce cadence. 0 disables the periodic announce. */
   readonly announceIntervalMs?: number;
   readonly reconnectWaitMs?: number;
+  /** Readiness this peer advertises. Defaults to a narrow, TTL-bounded posture. */
+  readonly mediaReadiness?: () => PeerMediaReadiness;
   readonly log?: (line: string) => void;
   /** Optional host-specific commands used by deeper conformance harnesses. */
   readonly handleCommand?: (
@@ -137,6 +180,11 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
   const peers = new Map<string, TestAgentPeerRecord>();
   const inboxEntries: TestAgentInboxEntry[] = [];
   const realtimeEntries: TestAgentRealtimeEntry[] = [];
+  const readinessEntries: TestAgentReadinessEntry[] = [];
+  const probeEntries = new Map<string, TestAgentProbeEntry>();
+  /** In-flight chunk series, keyed by sender + prefix + nonce. */
+  const partials = new Map<string, { parts: Array<string | null> }>();
+  let nextProbe = 0;
   let announcesSeen = 0;
   let stopped = false;
   let connection: DuplexConnection | null = null;
@@ -185,9 +233,100 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     });
   };
   const sendProbe = (toLxmfAddress: string, content: string) => sendMessage(toLxmfAddress, TEST_AGENT_PROBE_TITLE, content);
-  const sendRealtime = (toLxmfAddress: string, prefix: string, nonce: string, payloadHex: string) => {
-    if (!/^[0-9a-f]*$/i.test(payloadHex) || payloadHex.length > 262_144 || nonce.length < 1 || nonce.length > 160 || nonce.includes(":")) throw new Error("realtime test payload is malformed");
-    return sendMessage(toLxmfAddress, TEST_AGENT_REALTIME_TITLE, `${prefix}${nonce}:${payloadHex}`);
+
+  /**
+   * A readiness body or a media frame does not fit one opportunistic LXMF
+   * packet, so hex payloads ride a `<prefix><nonce>:<index>:<count>:<hex>`
+   * chunk series sized to `LXMF_OPPORTUNISTIC_MAX_CONTENT`. Both ends run this
+   * file, and the reassembled payload is what the harness observes.
+   */
+  const sendChunkedHex = async (
+    toLxmfAddress: string,
+    title: string,
+    prefix: string,
+    nonce: string,
+    payloadHex: string
+  ): Promise<number> => {
+    if (!/^[0-9a-f]*$/i.test(payloadHex) || payloadHex.length > MAX_CHUNKED_PAYLOAD_HEX) {
+      throw new Error("chunked test payload is malformed");
+    }
+    if (nonce.length < 1 || nonce.length > 160 || nonce.includes(":")) {
+      throw new Error("chunked test payload is malformed");
+    }
+    const room =
+      LXMF_OPPORTUNISTIC_MAX_CONTENT -
+      title.length -
+      CHUNK_MSGPACK_SLACK -
+      prefix.length -
+      nonce.length -
+      CHUNK_HEADER_SLACK;
+    const perChunk = room - (room % 2);
+    if (perChunk < 32) {
+      throw new Error("chunked test payload nonce leaves no room for content");
+    }
+    const count = Math.max(1, Math.ceil(payloadHex.length / perChunk));
+    if (count > MAX_CHUNKS) {
+      throw new Error("chunked test payload exceeds the chunk ceiling");
+    }
+    for (let index = 0; index < count; index += 1) {
+      const chunk = payloadHex.slice(index * perChunk, (index + 1) * perChunk);
+      await sendMessage(toLxmfAddress, title, `${prefix}${nonce}:${index}:${count}:${chunk}`);
+    }
+    return count;
+  };
+
+  /** Returns the reassembled hex once the final chunk of a series lands. */
+  const receiveChunkedHex = (
+    from: string,
+    prefix: string,
+    nonce: string,
+    index: number,
+    count: number,
+    chunk: string
+  ): string | null => {
+    if (count < 1 || count > MAX_CHUNKS || index < 0 || index >= count) return null;
+    const key = `${from} ${prefix} ${nonce}`;
+    const pending = partials.get(key);
+    const parts = pending?.parts.length === count ? pending.parts : new Array<string | null>(count).fill(null);
+    parts[index] = chunk;
+    if (parts.some((part) => part === null)) {
+      partials.set(key, { parts });
+      return null;
+    }
+    partials.delete(key);
+    const payloadHex = parts.join("");
+    return payloadHex.length > MAX_CHUNKED_PAYLOAD_HEX ? null : payloadHex;
+  };
+
+  /** Splits `<nonce>:<index>:<count>:<hex>` without letting a nonce hide colons. */
+  const parseChunkedBody = (
+    body: string
+  ): { nonce: string; index: number; count: number; chunk: string } | null => {
+    const parts = body.split(":");
+    if (parts.length !== 4) return null;
+    const [nonce = "", rawIndex = "", rawCount = "", chunk = ""] = parts;
+    if (nonce.length < 1 || nonce.length > 160) return null;
+    if (!/^\d{1,4}$/.test(rawIndex) || !/^\d{1,4}$/.test(rawCount)) return null;
+    if (!/^[0-9a-f]*$/i.test(chunk) || chunk.length % 2 !== 0) return null;
+    return { nonce, index: Number(rawIndex), count: Number(rawCount), chunk };
+  };
+
+  const localReadiness = options.mediaReadiness ?? ((): PeerMediaReadiness => ({
+    hostApi: "0.12.0",
+    accepts: [{ classId: "microphone", maxRung: "16k-opus", encodings: ["16k-opus"] }],
+    offers: [{ classId: "microphone", maxRung: "16k-opus", encodings: ["16k-opus"] }],
+    downlinkBucket: "audio",
+    constrained: ["foreground-only"],
+    consentPosture: "ask",
+    expiresAt: Date.now() + LINK_READINESS_TTL_MS
+  }));
+
+  const sendLinkControl = async (toLxmfAddress: string, id: string, envelope: Uint8Array): Promise<void> => {
+    await sendChunkedHex(toLxmfAddress, TEST_AGENT_LINK_TITLE, LINK_PREFIX, id, bytesToHex(envelope));
+  };
+
+  const sendRealtime = async (toLxmfAddress: string, prefix: string, nonce: string, payloadHex: string): Promise<void> => {
+    await sendChunkedHex(toLxmfAddress, TEST_AGENT_REALTIME_TITLE, prefix, nonce, payloadHex);
   };
 
   router.onDelivery((message) => {
@@ -198,17 +337,59 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       return;
     }
     const from = bytesToHex(message.sourceHash);
+    if (message.titleAsString() === TEST_AGENT_LINK_TITLE) {
+      // Undecodable bytes are dropped in silence: this path answers the
+      // readiness and probe protocols, it is never a generic echo service.
+      if (!content.startsWith(LINK_PREFIX)) return;
+      const framed = parseChunkedBody(content.slice(LINK_PREFIX.length));
+      if (framed === null) return;
+      const payloadHex = receiveChunkedHex(from, LINK_PREFIX, framed.nonce, framed.index, framed.count, framed.chunk);
+      if (payloadHex === null || payloadHex.length > 2 * (8 + 64 + 8192)) return;
+      const envelope = decodeLinkControl(hexToBytes(payloadHex));
+      if (envelope === null) return;
+      if (envelope.type === 1) {
+        const readiness = parseMediaReadiness(envelope.payload);
+        if (readiness === null || readiness.consentPosture === "closed" || readiness.expiresAt <= Date.now()) return;
+        readinessEntries.push({
+          fromDestinationHash: from,
+          kind: envelope.id === READINESS_REQUEST_ID ? "request" : "response",
+          readiness,
+          receivedAt: Date.now()
+        });
+        if (envelope.id === READINESS_REQUEST_ID) {
+          void sendLinkControl(
+            from,
+            READINESS_RESPONSE_ID,
+            encodeReadinessEnvelope(READINESS_RESPONSE_ID, localReadiness())
+          ).catch((error: unknown) =>
+            log(`test-agent readiness reply failed: ${error instanceof Error ? error.message : String(error)}`)
+          );
+        }
+        return;
+      }
+      if (envelope.type === 2) {
+        void sendLinkControl(from, envelope.id, encodeLinkControl({ type: 3, id: envelope.id, payload: envelope.payload })).catch(
+          (error: unknown) => log(`test-agent probe reply failed: ${error instanceof Error ? error.message : String(error)}`)
+        );
+        return;
+      }
+      const pending = probeEntries.get(envelope.id);
+      // Only a reply that matches the bytes we sent closes the measurement.
+      if (pending === undefined || pending.rttMs !== null) return;
+      if (envelope.payload.length + 8 + envelope.id.length !== pending.budgetBytes) return;
+      probeEntries.set(envelope.id, { ...pending, rttMs: Math.max(1, Date.now() - pending.sentAt) });
+      return;
+    }
     if (message.titleAsString() === TEST_AGENT_REALTIME_TITLE) {
       const echo = content.startsWith(REALTIME_ECHO_PREFIX);
       const prefix = echo ? REALTIME_ECHO_PREFIX : REALTIME_PREFIX;
       if (!content.startsWith(prefix)) return;
-      const separator = content.indexOf(":", prefix.length);
-      if (separator < 0) return;
-      const nonce = content.slice(prefix.length, separator);
-      const payloadHex = content.slice(separator + 1);
-      if (!/^[0-9a-f]*$/i.test(payloadHex) || payloadHex.length > 262_144 || nonce.length < 1 || nonce.length > 160) return;
-      realtimeEntries.push({ nonce, kind: echo ? "echo" : "payload", fromDestinationHash: from, payloadHex, receivedAt: Date.now() });
-      if (!echo) void sendRealtime(from, REALTIME_ECHO_PREFIX, nonce, payloadHex).catch((error: unknown) => log(`test-agent realtime echo failed: ${error instanceof Error ? error.message : String(error)}`));
+      const framed = parseChunkedBody(content.slice(prefix.length));
+      if (framed === null) return;
+      const payloadHex = receiveChunkedHex(from, prefix, framed.nonce, framed.index, framed.count, framed.chunk);
+      if (payloadHex === null) return;
+      realtimeEntries.push({ nonce: framed.nonce, kind: echo ? "echo" : "payload", fromDestinationHash: from, payloadHex, receivedAt: Date.now() });
+      if (!echo) void sendRealtime(from, REALTIME_ECHO_PREFIX, framed.nonce, payloadHex).catch((error: unknown) => log(`test-agent realtime echo failed: ${error instanceof Error ? error.message : String(error)}`));
       return;
     }
     const echoNonce = nonceFrom(content, ECHO_PREFIX);
@@ -239,6 +420,8 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       peerCount: peers.size,
       inboxCount: inboxEntries.length,
       realtimeInboxCount: realtimeEntries.length,
+      readinessCount: readinessEntries.length,
+      probeCount: probeEntries.size,
       pathTableCount: reticulum.pathTableCount
     };
   };
@@ -269,6 +452,36 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
         if (request.toLxmfAddress === undefined || request.nonce === undefined || request.payloadHex === undefined) throw new Error("send-realtime requires toLxmfAddress, nonce, and payloadHex");
         await sendRealtime(request.toLxmfAddress, REALTIME_PREFIX, request.nonce, request.payloadHex);
         return {};
+      }
+      case "link-state":
+        return { readiness: [...readinessEntries], probes: [...probeEntries.values()] };
+      case "request-readiness": {
+        if (request.toLxmfAddress === undefined) throw new Error("request-readiness requires toLxmfAddress");
+        await sendLinkControl(
+          request.toLxmfAddress,
+          READINESS_REQUEST_ID,
+          encodeReadinessEnvelope(READINESS_REQUEST_ID, localReadiness())
+        );
+        return {};
+      }
+      case "link-probe": {
+        if (request.toLxmfAddress === undefined) throw new Error("link-probe requires toLxmfAddress");
+        const budgetBytes = typeof request.budgetBytes === "number" ? request.budgetBytes : LINK_PROBE_MAX_BUDGET_BYTES;
+        if (!Number.isInteger(budgetBytes) || budgetBytes < 256 || budgetBytes > LINK_PROBE_MAX_BUDGET_BYTES) {
+          throw new Error(`link-probe budget must be 256-${LINK_PROBE_MAX_BUDGET_BYTES} bytes`);
+        }
+        const id = `probe-${label}-${nextProbe++}`;
+        const envelope = encodeLinkControl({ type: 2, id, payload: new Uint8Array(Math.max(0, budgetBytes - 8 - id.length)) });
+        probeEntries.set(id, {
+          id,
+          toDestinationHash: request.toLxmfAddress,
+          budgetBytes: envelope.length,
+          sentAt: Date.now(),
+          rttMs: null
+        });
+        await sendLinkControl(request.toLxmfAddress, id, envelope);
+        // `id` is the control frame's correlation key; never shadow it here.
+        return { probeId: id, budgetBytes: envelope.length };
       }
       default:
         if (options.handleCommand !== undefined) {

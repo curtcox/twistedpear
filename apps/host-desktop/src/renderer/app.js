@@ -65,6 +65,7 @@ const moderationBlocked = document.querySelector("#moderation-blocked");
 const moderationMuted = document.querySelector("#moderation-muted");
 const moderationSummary = document.querySelector("#moderation-summary");
 const deviceActiveBanner = document.querySelector("#device-active-banner");
+const sessionInviteBanner = document.querySelector("#session-invite-banner");
 const deviceInventory = document.querySelector("#device-inventory");
 const deviceSessions = document.querySelector("#device-sessions");
 const deviceRemoteEnabled = document.querySelector("#device-remote-enabled");
@@ -80,6 +81,45 @@ function renderModerationState(message) {
   renderEntries(moderationBlocked, message.blocked);
   renderEntries(moderationMuted, message.muted);
   if (moderationSummary) moderationSummary.textContent = `${message.blocked.length} blocked · ${message.muted.length} muted · ${message.reports.length} local reports`;
+}
+
+/**
+ * Host-delivered call invitations. The app is not running while one is
+ * pending; accepting is what brings it to the foreground.
+ */
+function renderSessionInvites(invites) {
+  if (!sessionInviteBanner) return;
+  const pending = (invites ?? []).filter((invite) => invite.phase === "pending");
+  if (pending.length === 0) {
+    sessionInviteBanner.hidden = true;
+    sessionInviteBanner.replaceChildren();
+    return;
+  }
+  sessionInviteBanner.hidden = false;
+  const title = document.createElement("strong");
+  title.textContent = "Incoming call invitation";
+  const list = document.createElement("div");
+  list.className = "settings-grid";
+  for (const invite of pending) {
+    const row = document.createElement("div");
+    row.className = "item-row";
+    const text = document.createElement("span");
+    text.textContent = `${invite.verifiedPeerLabel} wants to start ${invite.requestedClasses.join(" + ")} in ${invite.appId}`;
+    const accept = document.createElement("button");
+    accept.type = "button";
+    accept.id = `session-invite-accept-${invite.id}`;
+    accept.textContent = "Accept";
+    accept.addEventListener("click", () => host.send({ type: "session-invite-accept", id: invite.id }));
+    const decline = document.createElement("button");
+    decline.type = "button";
+    decline.className = "danger";
+    decline.id = `session-invite-decline-${invite.id}`;
+    decline.textContent = "Decline";
+    decline.addEventListener("click", () => host.send({ type: "session-invite-decline", id: invite.id }));
+    row.append(text, accept, decline);
+    list.append(row);
+  }
+  sessionInviteBanner.replaceChildren(title, list);
 }
 
 function renderDeviceState(message) {
@@ -1253,6 +1293,7 @@ if (!host) {
     if (message.type === "moderation-state") renderModerationState(message);
     if (message.type === "moderation-report-export") void host.saveModerationReport(message.json);
     if (message.type === "device-state") renderDeviceState(message);
+    if (message.type === "session-invites") renderSessionInvites(message.invites);
     if (message.type === "device-bridge-request") {
       void handleDeviceBridgeRequest(message, (reply) => host.send(reply));
     }

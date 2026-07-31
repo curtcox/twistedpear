@@ -9,6 +9,7 @@ import {
   PeerRouteMediaBridge,
   CodecStreamEgressFactory,
   ReservedStreamEgressFactory,
+  SessionInviteService,
   createPeerRouteLinkSupply,
   createHybridDeviceDrivers,
   createSimulatedDeviceManager,
@@ -176,7 +177,27 @@ export function createWorkletMiniappHost(options) {
     "haptics"
   ];
   const defaultPlatform = options.defaultPlatform ?? "desktop";
-  const peerRouteMediaBridge = options.peerRouteMediaBridge ?? (typeof options.peerSessionManager?.route === "function" && typeof options.peerSessionManager?.list === "function" ? new PeerRouteMediaBridge(options.peerSessionManager, { now, onFrame: options.onInboundMediaFrame }) : undefined);
+  /**
+   * G9: the invitation is delivered and shown by the host. No mini-app code
+   * runs until trusted chrome accepts and the app is brought to the
+   * foreground, so this is not a background-execution loophole.
+   */
+  const sessionInvites = new SessionInviteService(
+    {
+      async notify(invite) {
+        options.send({ type: "session-invite", invite });
+        pushSessionInvites();
+      },
+      async launchForeground(appId) {
+        if (typeof options.launchInstalledApp !== "function") {
+          throw new Error("This host cannot bring a mini-app to the foreground.");
+        }
+        await options.launchInstalledApp(appId);
+      }
+    },
+    now
+  );
+  const peerRouteMediaBridge = options.peerRouteMediaBridge ?? (typeof options.peerSessionManager?.route === "function" && typeof options.peerSessionManager?.list === "function" ? new PeerRouteMediaBridge(options.peerSessionManager, { now, randomBytes: hostRandomBytes, onFrame: options.onInboundMediaFrame }) : undefined);
   const peerRouteMediaEgress = peerRouteMediaBridge === undefined ? undefined : new CodecStreamEgressFactory(peerRouteMediaBridge, options.openMediaCodec ?? (async () => { throw new Error("A platform media codec is not configured on this host."); }));
   const reservedMediaEgress = peerRouteMediaEgress === undefined || options.realtimeReservations === undefined ? peerRouteMediaEgress : new ReservedStreamEgressFactory(peerRouteMediaEgress, options.realtimeReservations);
   /** @type {import("../../miniapp-runtime/dist/worklet.js").DeviceManager} */
@@ -511,6 +532,10 @@ export function createWorkletMiniappHost(options) {
     });
   }
 
+  function pushSessionInvites() {
+    options.send({ type: "session-invites", invites: sessionInvites.list() });
+  }
+
   function pushGrants(appId, publisherPublicKey, declaredCapabilities) {
     const declared = new Set(validateManifestCapabilities(declaredCapabilities));
     options.send({
@@ -778,6 +803,29 @@ export function createWorkletMiniappHost(options) {
       return revoked;
     },
 
+    /** Called by the host delivery path for a verified inbound invitation. */
+    async receiveSessionInvite(invite) {
+      await sessionInvites.receive(invite);
+    },
+
+    async acceptSessionInvite(id) {
+      await sessionInvites.accept(id);
+      pushSessionInvites();
+    },
+
+    declineSessionInvite(id) {
+      sessionInvites.decline(id);
+      pushSessionInvites();
+    },
+
+    listSessionInvites() {
+      return sessionInvites.list();
+    },
+
+    pushSessionInviteState() {
+      pushSessionInvites();
+    },
+
     async devSideLoad(manifest, bundleBytes) {
       if (!developerMode) {
         throw new Error("Developer mode is disabled");
@@ -798,4 +846,15 @@ export function createWorkletMiniappHost(options) {
       pushRuntime();
     }
   };
+}
+
+/** Host-side entropy for media session ids; the bridge itself stays Sans-IO. */
+function hostRandomBytes(length) {
+  const bytes = new Uint8Array(length);
+  if (typeof globalThis.crypto?.getRandomValues === "function") {
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    for (let index = 0; index < length; index += 1) bytes[index] = (Math.random() * 256) | 0;
+  }
+  return bytes;
 }

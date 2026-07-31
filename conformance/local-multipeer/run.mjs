@@ -27,6 +27,12 @@ import { startControlServer } from "../../scripts/peers/control-server.mjs";
 import { GUI_PEER_IDS, adapterFor } from "../../scripts/peers/registry.mjs";
 import { encodeDeviceStreamFrame } from "../../packages/protocol/dist/device-stream-framing.js";
 import {
+  decodeLinkControl,
+  encodeReadinessEnvelope,
+  parseMediaReadiness,
+  READINESS_REQUEST_ID
+} from "../../packages/protocol/dist/link-control.js";
+import {
   CONTROL_PORT,
   forgetPeer,
   peerEntry,
@@ -49,6 +55,8 @@ function timeoutFromEnv(name, fallback) {
 const ATTACH_TIMEOUT_MS = timeoutFromEnv("LOCAL_MULTIPEER_ATTACH_MS", 90_000);
 const DISCOVERY_TIMEOUT_MS = timeoutFromEnv("LOCAL_MULTIPEER_DISCOVERY_MS", 90_000);
 const MESSAGE_TIMEOUT_MS = timeoutFromEnv("LOCAL_MULTIPEER_MESSAGE_MS", 45_000);
+/** Well inside the host's 8 KiB per-peer probe ceiling. */
+const PROBE_BUDGET_BYTES = 1024;
 
 function requestedPeers() {
   const flag = args.find((arg) => arg.startsWith("--peers="));
@@ -167,7 +175,7 @@ await runMain(async () => {
     );
 
     const startedAt = Date.now();
-    const results = { discovery: [], messaging: [], realtime: [] };
+    const results = { discovery: [], messaging: [], readiness: [], probes: [], realtime: [] };
 
     section("Attach");
     // Wait concurrently: one unavailable GUI peer should cost one attach
@@ -263,13 +271,74 @@ await runMain(async () => {
       }
     }
 
-    section("Realtime control and media carrier");
+    // The readiness exchange and the active probe are the real `TPL1` protocol
+    // decoded by the far peer, not a byte echo: the answer must parse as
+    // readiness, and the probe reply must close a measurement on the sender.
+    section("Peer media readiness exchange");
+    for (const from of attached) {
+      for (const to of attached) {
+        if (from === to) continue;
+        const at = Date.now();
+        await control.requestReadiness(from, addresses.get(to));
+        await waitUntil(
+          `${to} never recorded a readiness request from ${from}`,
+          async () => (await control.linkState(to)).readiness.some((entry) => entry.kind === "request"),
+          MESSAGE_TIMEOUT_MS
+        );
+        await waitUntil(
+          `${from} never received ${to}'s readiness answer`,
+          async () => (await control.linkState(from)).readiness.some((entry) => entry.kind === "response"),
+          MESSAGE_TIMEOUT_MS
+        );
+        const answer = (await control.linkState(from)).readiness.findLast((entry) => entry.kind === "response");
+        assert(answer !== undefined, `${from} lost ${to}'s readiness answer`);
+        // Re-encoding through the shared codec proves the peer sent a real
+        // readiness body rather than bytes that merely survived the round trip.
+        const reparsed = parseMediaReadiness(
+          decodeLinkControl(encodeReadinessEnvelope(READINESS_REQUEST_ID, answer.readiness)).payload
+        );
+        assert(reparsed !== null, `${to} answered with a readiness body that does not validate`);
+        assert(
+          answer.readiness.consentPosture !== "closed" && answer.readiness.expiresAt > Date.now(),
+          `${to} answered with an expired or closed readiness posture`
+        );
+        const elapsedMs = Date.now() - at;
+        step(`${from} → ${to} readiness ${answer.readiness.downlinkBucket}/${answer.readiness.consentPosture} (${elapsedMs}ms)`);
+        results.readiness.push({
+          from,
+          to,
+          downlinkBucket: answer.readiness.downlinkBucket,
+          consentPosture: answer.readiness.consentPosture,
+          accepts: answer.readiness.accepts.map((entry) => entry.classId),
+          elapsedMs
+        });
+      }
+    }
+
+    section("Active link probe");
+    for (const from of attached) {
+      for (const to of attached) {
+        if (from === to) continue;
+        const { probeId, budgetBytes } = await control.linkProbe(from, addresses.get(to), PROBE_BUDGET_BYTES);
+        assert(typeof probeId === "string" && budgetBytes === PROBE_BUDGET_BYTES, `${from} did not accept the probe budget`);
+        await waitUntil(
+          `${from} never measured a probe reply from ${to}`,
+          async () => (await control.linkState(from)).probes.some((entry) => entry.id === probeId && entry.rttMs !== null),
+          MESSAGE_TIMEOUT_MS
+        );
+        const measured = (await control.linkState(from)).probes.find((entry) => entry.id === probeId);
+        assert(measured.rttMs > 0, `${from} recorded a non-positive probe RTT to ${to}`);
+        step(`${from} → ${to} probe ${budgetBytes} bytes, rtt ${measured.rttMs}ms`);
+        results.probes.push({ from, to, id: probeId, budgetBytes, rttMs: measured.rttMs });
+      }
+    }
+
+    section("Realtime media carrier");
     for (const from of attached) {
       for (const to of attached) {
         if (from === to) continue;
         const suffix = `${from}-${to}-${Date.now().toString(36)}`;
         const payloads = [
-          { kind: "readiness", bytes: encodeLinkEnvelope({ hostApi: "0.12.0", accepts: [{ classId: "microphone", maxRung: "16k-opus", encodings: ["16k-opus"] }], offers: [], downlinkBucket: "audio", constrained: ["foreground-only"], consentPosture: "ask", expiresAt: Date.now() + 60_000 }) },
           { kind: "derived", bytes: encodeMediaFrame(`media-derived-${suffix}`, encodeDeviceStreamFrame({ version: 2, sampleKind: 5, sessionToken: 1, sequence: 0, captureAtUs: Date.now() * 1_000, clockId: 1, payload: new TextEncoder().encode('{"kind":"microphone","tier":"derived","voiceActive":true}') })) },
           { kind: "pcm", bytes: encodeMediaFrame(`media-pcm-${suffix}`, encodeDeviceStreamFrame({ version: 2, sampleKind: 2, sessionToken: 2, sequence: 0, captureAtUs: Date.now() * 1_000, clockId: 2, payload: new Uint8Array(new Float32Array(320).buffer) })) }
         ];
@@ -307,7 +376,7 @@ await runMain(async () => {
     writeFileSync(proofPath, `${JSON.stringify(proof, null, 2)}\n`);
 
     section("Result");
-    step(`${attached.length} peers, ${results.discovery.length} discovery pairs, ${results.messaging.length} message round-trips, ${results.realtime.length} realtime carrier round-trips`);
+    step(`${attached.length} peers, ${results.discovery.length} discovery pairs, ${results.messaging.length} message round-trips, ${results.readiness.length} readiness exchanges, ${results.probes.length} measured probes, ${results.realtime.length} realtime carrier round-trips`);
     step(`proof: ${proofPath}`);
   } finally {
     await control?.close();
@@ -317,14 +386,6 @@ await runMain(async () => {
     }
   }
 });
-
-function encodeLinkEnvelope(readiness) {
-  const id = new TextEncoder().encode("readiness");
-  const payload = new TextEncoder().encode(JSON.stringify(readiness));
-  const out = new Uint8Array(8 + id.length + payload.length);
-  out.set([0x54, 0x50, 0x4c, 0x31]); out[4] = 1; out[5] = id.length; new DataView(out.buffer).setUint16(6, payload.length, false); out.set(id, 8); out.set(payload, 8 + id.length);
-  return out;
-}
 
 function encodeMediaFrame(idText, frame) {
   const id = new TextEncoder().encode(idText);

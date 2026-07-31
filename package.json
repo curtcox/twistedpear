@@ -125,6 +125,8 @@
     "test:adapter-pairs": "npm run build --workspace=@twistedpear/effects && node conformance/adapter/run.mjs",
     "test:machine-gate": "npm run build --workspace=@twistedpear/protocol && node conformance/machine/run.mjs",
     "test:kernel-conformance": "npm run build --workspace=@twistedpear/effects && node conformance/kernel/run.mjs",
+    "test:share-policy": "node conformance/share-policy/run.mjs",
+    "test:sim-media-ladder": "npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/miniapp-runtime --workspace=@twistedpear/sim-campaign && node conformance/sim-campaign/media-ladder.mjs",
     "test:sim-fixed-replay": "npm run build --workspace=@twistedpear/effects --workspace=@twistedpear/miniapp-runtime --workspace=@twistedpear/sim-campaign && node conformance/sim-campaign/fixed-replay.mjs",
     "sim:report": "node conformance/sim-campaign/report.mjs",
     "sim:abuse-loop": "node conformance/sim-campaign/loop.mjs",

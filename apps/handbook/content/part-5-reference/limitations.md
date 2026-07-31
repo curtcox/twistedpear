@@ -193,10 +193,15 @@ everything below is a known cost of the chosen design or of the platforms involv
 - **Realtime peer media is core-complete but not shipping-host-complete.** The broker/SDK,
   app-scoped link model, readiness/share policy, fail-closed stream and reservation
   abstractions, TPD2 timing, receive sinks, simulated codec, Line Check app, and
-  SPEC-STREAM conformance are implemented. Desktop/mobile/web hosts do not yet inject
-  live transport telemetry, trusted share/invite chrome, concrete five-plane media
-  openers, or platform codec/AEC drivers. Consequently, declared paths remain labelled
-  “probably,” and `device.stream()` rejects when no host egress is configured. No
+  SPEC-STREAM conformance are implemented. Two headless peers complete a readiness
+  exchange, a measured probe, and a TPD2 media round trip on one Mac
+  (`test:local-multipeer`), the ladder collapses and recovers under adversarial profiles
+  (`test:sim-media-ladder`), and share/invite chrome is driven through the desktop
+  renderer (`test:share-policy`). Desktop/mobile/web hosts do not yet inject live
+  transport telemetry, deliver an inbound `session-invite` from the network, open concrete
+  WebRTC/Pears/CAS media planes, or provide platform codec/AEC drivers, and no device-run
+  Maestro flow covers the mobile share indicator. Consequently, declared paths remain
+  labelled “probably,” and `device.stream()` rejects when no host egress is configured. No
   real-device or multi-machine audio/video claim is made.
 - Mini-app `announce.publish` / `announce.subscribe` currently use the runtime's in-memory
   service in the desktop, mobile, and web hosts. The broker contract and app receive paths

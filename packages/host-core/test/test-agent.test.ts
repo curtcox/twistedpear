@@ -114,6 +114,19 @@ function waitFor(predicate: () => boolean, timeoutMs = 5_000): Promise<void> {
   });
 }
 
+async function waitForAsync(predicate: () => Promise<boolean>, timeoutMs = 5_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    if (await predicate()) {
+      return;
+    }
+    if (Date.now() > deadline) {
+      throw new Error("timed out waiting for condition");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+}
+
 describe("peer test agent", () => {
   const cleanups: Array<() => Promise<void> | void> = [];
 
@@ -236,6 +249,67 @@ describe("peer test agent", () => {
     expect(status.status.label).toBe("left");
     expect(status.status.peerCount).toBeGreaterThan(0);
   }, CONVERGE_TIMEOUT_MS + 10_000);
+
+  it("exchanges media readiness and answers an active probe", async () => {
+    const control = await startControlServer();
+    cleanups.push(() => control.close());
+    const [leftAgent, rightAgent] = await twoAgents(control);
+    await control.hello("left");
+    await control.hello("right");
+    await waitFor(
+      () => leftAgent.peers().some((peer) => peer.destinationHash === rightAgent.lxmfAddress),
+      CONVERGE_TIMEOUT_MS
+    );
+    await waitFor(
+      () => rightAgent.peers().some((peer) => peer.destinationHash === leftAgent.lxmfAddress),
+      CONVERGE_TIMEOUT_MS
+    );
+
+    const linkState = async (label: string) =>
+      (await control.request(label, { cmd: "link-state" })) as {
+        readiness: Array<{ kind: string; readiness: { downlinkBucket: string; consentPosture: string } }>;
+        probes: Array<{ id: string; rttMs: number | null; budgetBytes: number }>;
+      };
+
+    const requested = await control.request("left", {
+      cmd: "request-readiness",
+      toLxmfAddress: rightAgent.lxmfAddress
+    });
+    expect(requested).toMatchObject({ ok: true });
+
+    // The far side records the request; our side records only its answer.
+    await waitForAsync(async () => (await linkState("right")).readiness.some((entry) => entry.kind === "request"));
+    await waitForAsync(async () => (await linkState("left")).readiness.some((entry) => entry.kind === "response"));
+    const answered = (await linkState("left")).readiness.find((entry) => entry.kind === "response");
+    expect(answered?.readiness.downlinkBucket).toBe("audio");
+    expect(answered?.readiness.consentPosture).toBe("ask");
+
+    const probe = (await control.request("left", {
+      cmd: "link-probe",
+      toLxmfAddress: rightAgent.lxmfAddress,
+      budgetBytes: 1024
+    })) as { ok: boolean; probeId: string; budgetBytes: number };
+    expect(probe).toMatchObject({ ok: true, budgetBytes: 1024 });
+
+    await waitForAsync(async () => (await linkState("left")).probes.some((entry) => entry.rttMs !== null));
+    const measured = (await linkState("left")).probes.find((entry) => entry.id === probe.probeId);
+    expect(measured?.rttMs).toBeGreaterThan(0);
+  }, CONVERGE_TIMEOUT_MS * 3);
+
+  it("rejects an out-of-budget probe request", async () => {
+    const control = await startControlServer();
+    cleanups.push(() => control.close());
+    const [, rightAgent] = await twoAgents(control);
+    await control.hello("left");
+
+    const response = await control.request("left", {
+      cmd: "link-probe",
+      toLxmfAddress: rightAgent.lxmfAddress,
+      budgetBytes: 65_536
+    });
+    expect(response.ok).toBe(false);
+    expect(String(response.error)).toContain("budget must be");
+  });
 
   it("reports an error for an undiscovered target", async () => {
     const control = await startControlServer();

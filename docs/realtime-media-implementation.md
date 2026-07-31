@@ -13,12 +13,12 @@ claim.
 
 | Phase | Current implementation evidence | Exit evidence | State |
 |---|---|---|---|
-| 1 · Measurement | Pure estimator, app-scoped authenticated-route roster, long-polled watch, bounded confirmed probe service, encoding-aware host-only admission | `npm test`, `npm run sansio`, SPEC-STREAM admission checks | Core complete; active shipping probes still need transport request/reply measurement |
-| 2 · Two-sided truth | Readiness validation/bucketing and named limiter reservations | Protocol tests prove refusal collapse; no `test:local-multipeer` readiness exchange yet | Incomplete |
-| 3 · Sharing policy | TTL/restart-safe `ShareOffer` store; desktop, native-mobile, and web confirmation callbacks; persistent one-click stop-sharing chrome | Store tests exist; Maestro/Playwright grant/revoke/expiry/restart probes do not | Incomplete |
-| 4 · Media path | Authenticated Reticulum/WebRTC route subscriptions, bounded `TPM1` offer/frame envelopes, TPD2 timing, receive router and two-host in-memory timed-frame loopback | `npm run formal:stream`; unit loopback exists, but the local-multipeer runner does not yet carry media | Incomplete |
-| 5 · Codecs and duplex | Encoding-aware demand, codec effect boundary, browser/desktop raw RGBA/PCM capture, WebCodecs mono Opus, browser voice-processing constraints | Simulated and fake-WebCodecs tests exist; real desktop↔desktop and desktop↔simulator calls are not recorded | Incomplete |
-| 6 · Signaling and app | Verified/replay-bounded invite service; Line Check sends and accepts offers, renders the matrix, and binds inbound host sinks | Cookbook pack/start/render passes; shipping invite delivery and recorded invite→degrade→revoke flow are absent | Incomplete |
+| 1 · Measurement | Pure estimator, app-scoped authenticated-route roster, long-polled watch, bounded confirmed probe service, encoding-aware host-only admission; shared `TPL1` codec in `packages/protocol` | `npm test`, `npm run sansio`, SPEC-STREAM admission checks; `npm run test:local-multipeer` measures a real probe RTT per ordered pair | Complete for two headless peers; shipping hosts still supply declared, not observed, transport telemetry |
+| 2 · Two-sided truth | Readiness validation/bucketing and named limiter reservations | Protocol tests prove refusal collapse; `npm run test:local-multipeer` records a decoded, re-validated readiness answer per ordered pair | Complete for two headless peers; GUI peers in the matrix are unrecorded |
+| 3 · Sharing policy | TTL/restart-safe `ShareOffer` store; desktop, native-mobile, and web confirmation callbacks; persistent one-click stop-sharing chrome | `npm run test:share-policy` drives the desktop renderer for grant, revoke, expiry, restart, and indicator; `conformance/ui-invariants` holds mobile and web to the same contract | Incomplete: no device-run Maestro flow (the mobile banner needs a live share offer from a running app) |
+| 4 · Media path | Authenticated Reticulum/WebRTC route subscriptions, bounded `TPM1` offer/frame envelopes, TPD2 timing, receive router and two-host in-memory timed-frame loopback | `npm run formal:stream`; `npm run test:local-multipeer` carries derived and PCM `TPD2` frames between peers and echoes them back | Complete for the LXMF carrier; concrete WebRTC/Pears/CAS plane openers are still absent |
+| 5 · Codecs and duplex | Encoding-aware demand, codec effect boundary, browser/desktop raw RGBA/PCM capture, WebCodecs mono Opus, browser voice-processing constraints | `npm run test:sim-media-ladder` proves collapse, recovery, settling, and hysteresis across four link profiles and four transport classes | Incomplete: real desktop↔desktop and desktop↔simulator audio calls are not recorded |
+| 6 · Signaling and app | Verified/replay-bounded invite service wired into the desktop, mobile, and web worklet hosts with host-chrome banners and accept-only foreground launch; Line Check sends and accepts offers, renders the matrix, and binds inbound host sinks | Cookbook pack/start/render passes; `npm run test:share-policy` and `conformance/ui-invariants` cover the invite chrome | Incomplete: nothing yet delivers an inbound `session-invite` from the network into `receiveSessionInvite` |
 | 7 · Hardware | No claim | LAN/BLE/RNode calls plus battery and airtime entries in `STATUS-HARDWARE.md` | Hardware-gated |
 
 ## Security invariants already enforced
@@ -31,15 +31,31 @@ claim.
   clear on restart.
 - Inbound payloads are bounded before parsing; TPD2 size, kind, and CRC checks precede
   codec handling.
+- The `TPL1` link-control decoder is bounded and total: a malformed or refused readiness
+  body is `null`, indistinguishable from a peer that cannot answer.
+- A session invite raises host chrome only; no mini-app code runs until trusted chrome
+  accepts, and only the host performs the foreground launch.
 
 ## Next authoritative exits
 
-1. Carry readiness and probe request/reply messages on authenticated peer routes and add
-   them to `npm run test:local-multipeer` proof output.
-2. Add desktop Playwright and mobile Maestro coverage for share grant, revoke, expiry,
-   restart clearing, and the persistent indicator.
-3. Record WebRTC/Reticulum audio loopback with ladder collapse and recovery in
-   `sim-campaign`, then run desktop↔desktop and desktop↔simulator.
-4. Route verified `session-invite` messages into shipping host notifications and foreground
-   launch.
+1. Add a device-run Maestro flow for share grant, revoke, expiry, restart clearing, and
+   the persistent indicator once the harness can bring up a sharing app on a simulator.
+2. Deliver a verified inbound `session-invite` from the network into
+   `receiveSessionInvite` on desktop, mobile, and web, and record the
+   invite → accept → call → degrade → revoke flow.
+3. Inject live transport telemetry so `PeerLinkSummary.quality` reports `observed` rather
+   than `declared` on shipping hosts, and carry GUI peers through
+   `npm run test:local-multipeer`.
+4. Bind concrete WebRTC, Pears-bulk, and CAS plane openers, then run desktop↔desktop and
+   desktop↔simulator audio calls.
 5. Run the hardware matrix and update `STATUS-HARDWARE.md` only from captured evidence.
+
+## Commands that produce this evidence
+
+```sh
+npm run check:fast
+npm run test:local-multipeer
+npm run test:share-policy
+npm run test:sim-media-ladder
+npm run formal:stream
+```

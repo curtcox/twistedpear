@@ -170,7 +170,12 @@ export class PeerRouteMediaBridge implements StreamEgressFactory, InboundMediaBa
   }
 }
 
-function defaultMediaRandom(length: number, seed: number): Uint8Array { const bytes = new Uint8Array(length); const crypto = (globalThis as { crypto?: { getRandomValues?(target: Uint8Array): Uint8Array } }).crypto; if (typeof crypto?.getRandomValues === "function") return crypto.getRandomValues(bytes); for (let index = 0; index < length; index += 1) bytes[index] = (seed * 31 + index * 17 + 3) & 0xff; return bytes; }
+/**
+ * Deterministic id salt. Entropy is an effect: a host that wants unguessable
+ * media ids injects `randomBytes`. Reading `globalThis.crypto` here would put
+ * an environment read inside a Sans-IO root.
+ */
+function defaultMediaRandom(length: number, seed: number): Uint8Array { const bytes = new Uint8Array(length); for (let index = 0; index < length; index += 1) bytes[index] = (seed * 31 + index * 17 + 3) & 0xff; return bytes; }
 
 function encodeMediaEnvelope(envelope: MediaEnvelope): Uint8Array {
   const id = new TextEncoder().encode(envelope.id); if (id.length > 128 || envelope.payload.length > 0xffff) throw new Error("Peer media envelope exceeds bounds.");

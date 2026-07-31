@@ -184,6 +184,18 @@ export interface DeviceStateView {
   }>;
 }
 
+/** Host-delivered call invitation; no mini-app code runs while it is pending. */
+export interface SessionInviteView {
+  readonly id: string;
+  readonly appId: string;
+  readonly peer: { readonly id: string };
+  readonly verifiedPeerLabel: string;
+  readonly requestedClasses: ReadonlyArray<"camera" | "microphone" | "screen-capture">;
+  readonly receivedAt: number;
+  readonly expiresAt: number;
+  readonly phase: "pending" | "accepted" | "declined" | "expired";
+}
+
 export interface WebStorageQuotaView {
   readonly usageBytes: number | null;
   readonly quotaBytes: number | null;
@@ -321,6 +333,8 @@ export type HostToWorkletMessage =
   | { readonly type: "device-set-remote"; readonly enabled: boolean }
   | { readonly type: "device-kill-session"; readonly handle: string }
   | { readonly type: "device-revoke-share"; readonly appId: string; readonly id: string }
+  | { readonly type: "session-invite-accept"; readonly id: string }
+  | { readonly type: "session-invite-decline"; readonly id: string }
   | { readonly type: "peer-webrtc-data"; readonly sessionId: string; readonly dataHex: string }
   | {
       readonly type: "device-bridge-response";
@@ -393,6 +407,8 @@ export type WorkletToHostMessage =
       readonly remoteAcquisitionEnabled: boolean;
       readonly shareOffers: DeviceStateView["shareOffers"];
     }
+  | { readonly type: "session-invite"; readonly invite: SessionInviteView }
+  | { readonly type: "session-invites"; readonly invites: ReadonlyArray<SessionInviteView> }
   | {
       readonly type: "device-bridge-request";
       readonly token: string;

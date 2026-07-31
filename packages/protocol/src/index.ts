@@ -135,6 +135,21 @@ export {
   type LinkQualitySource
 } from "./link-quality.js";
 export {
+  decodeLinkControl,
+  encodeLinkControl,
+  encodeReadinessEnvelope,
+  isMediaReadiness,
+  parseMediaReadiness,
+  LINK_CONTROL_HEADER_BYTES,
+  LINK_CONTROL_MAGIC,
+  LINK_CONTROL_MAX_ID_BYTES,
+  LINK_CONTROL_MAX_PAYLOAD_BYTES,
+  READINESS_REQUEST_ID,
+  READINESS_RESPONSE_ID,
+  type LinkControlEnvelope,
+  type LinkControlType
+} from "./link-control.js";
+export {
   decideMediaCapability,
   initialMediaReadinessState,
   minimumBandwidthBucket,

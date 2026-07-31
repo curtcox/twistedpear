@@ -20,6 +20,7 @@ import { encodeJsonWireValue } from "../../miniapp-runtime/dist/sandbox/json-wir
 import { KvStorageBeeBackend } from "../../miniapp-runtime/dist/services/storage-bee-kv.js";
 import { createHybridDeviceDrivers, createSimulatedDeviceManager } from "../../miniapp-runtime/dist/device-manager.js";
 import { CodecStreamEgressFactory, ReservedStreamEgressFactory, PeerRouteMediaBridge, PeerRouteStreamEgressFactory, createPeerRouteLinkSupply } from "../../miniapp-runtime/dist/media-stream.js";
+import { SessionInviteService } from "../../miniapp-runtime/dist/session-invite.js";
 import { WebCodecsMediaCodecDriver } from "../../effects/dist/media-codec.js";
 import { bytesToHex } from "../../reticulum-ts/dist/web.js";
 
@@ -74,6 +75,29 @@ export function createWebWorkletMiniappHost(options) {
   const provider = options.provider;
   const now = options.now ?? (() => Date.now());
   const grantStore = new GrantStore(kvStore);
+  /**
+   * G9: the invitation is delivered and shown by the host. No mini-app code
+   * runs until trusted chrome accepts and the app is brought to the
+   * foreground, so this is not a background-execution loophole.
+   */
+  const sessionInvites = new SessionInviteService(
+    {
+      async notify(invite) {
+        options.send({ type: "session-invite", invite });
+        pushSessionInvites();
+      },
+      async launchForeground(appId) {
+        if (typeof options.launchInstalledApp !== "function") {
+          throw new Error("This host cannot bring a mini-app to the foreground.");
+        }
+        await options.launchInstalledApp(appId);
+      }
+    },
+    now
+  );
+  function pushSessionInvites() {
+    options.send({ type: "session-invites", invites: sessionInvites.list() });
+  }
   let developerMode = false;
   let devBadge = false;
   let watchdogTimer = null;
@@ -100,7 +124,7 @@ export function createWebWorkletMiniappHost(options) {
             return { approved: reply?.approved === true, detail: reply?.detail };
           }
         };
-  const peerRouteMediaBridge = options.peerRouteMediaBridge ?? (typeof options.peerSessionManager?.route === "function" && typeof options.peerSessionManager?.list === "function" ? new PeerRouteMediaBridge(options.peerSessionManager, { now, onFrame: options.onInboundMediaFrame }) : undefined);
+  const peerRouteMediaBridge = options.peerRouteMediaBridge ?? (typeof options.peerSessionManager?.route === "function" && typeof options.peerSessionManager?.list === "function" ? new PeerRouteMediaBridge(options.peerSessionManager, { now, randomBytes: hostRandomBytes, onFrame: options.onInboundMediaFrame }) : undefined);
   const peerRouteMediaEgress = peerRouteMediaBridge === undefined ? undefined : new CodecStreamEgressFactory(peerRouteMediaBridge, options.openMediaCodec ?? (async () => new WebCodecsMediaCodecDriver()));
   const reservedMediaEgress = peerRouteMediaEgress === undefined || options.realtimeReservations === undefined ? peerRouteMediaEgress : new ReservedStreamEgressFactory(peerRouteMediaEgress, options.realtimeReservations);
   /** @type {import("../../miniapp-runtime/dist/device-manager.js").DeviceManager} */
@@ -719,6 +743,29 @@ export function createWebWorkletMiniappHost(options) {
       return revoked;
     },
 
+    /** Called by the host delivery path for a verified inbound invitation. */
+    async receiveSessionInvite(invite) {
+      await sessionInvites.receive(invite);
+    },
+
+    async acceptSessionInvite(id) {
+      await sessionInvites.accept(id);
+      pushSessionInvites();
+    },
+
+    declineSessionInvite(id) {
+      sessionInvites.decline(id);
+      pushSessionInvites();
+    },
+
+    listSessionInvites() {
+      return sessionInvites.list();
+    },
+
+    pushSessionInviteState() {
+      pushSessionInvites();
+    },
+
     async handlePreviewUiEvent(nodeId, event, value) {
       if (preview === null) {
         throw new Error("No preview app is running");
@@ -754,3 +801,14 @@ export function createWebWorkletMiniappHost(options) {
 }
 
 export { hexToBytes };
+
+/** Host-side entropy for media session ids; the bridge itself stays Sans-IO. */
+function hostRandomBytes(length) {
+  const bytes = new Uint8Array(length);
+  if (typeof globalThis.crypto?.getRandomValues === "function") {
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    for (let index = 0; index < length; index += 1) bytes[index] = (Math.random() * 256) | 0;
+  }
+  return bytes;
+}

@@ -24,6 +24,7 @@
     { "path": "../reticulum-ts" },
     { "path": "../reticulum-interfaces" },
     { "path": "../lxmf-ts" },
+    { "path": "../protocol" },
     { "path": "../bridge-hyper" },
     { "path": "../app-registry" }
   ]

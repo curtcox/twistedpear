@@ -54,7 +54,8 @@ import type {
   WebStorageQuotaView,
   WorkletStatus,
   WorkletToHostMessage,
-  DeviceStateView
+  DeviceStateView,
+  SessionInviteView
 } from "./worklet/protocol";
 
 const DEFAULT_PASSPHRASE = "harness-web-dev";
@@ -199,6 +200,7 @@ export default function App() {
   const [trustLabelInput, setTrustLabelInput] = useState("");
   const [hostIdentity256t, setHostIdentity256t] = useState<string | null>(null);
   const [deviceState, setDeviceState] = useState<DeviceStateView | null>(null);
+  const [sessionInvites, setSessionInvites] = useState<ReadonlyArray<SessionInviteView>>([]);
   const [pwaInstallAvailability, setPwaInstallAvailability] = useState<PwaInstallAvailability>("unavailable");
   const pwaInstallRef = useRef<ReturnType<typeof createPwaInstallController> | null>(null);
   const peerRtcRef = useRef(new Map<string, { pc: any; channel: any; role: "offer" | "answer" }>());
@@ -461,6 +463,16 @@ export default function App() {
 
       if (message.type === "trust-identity") {
         setHostIdentity256t(message.identity256t);
+        return;
+      }
+
+      if (message.type === "session-invites") {
+        setSessionInvites(message.invites);
+        return;
+      }
+
+      if (message.type === "session-invite") {
+        appendLog(`Call invitation from ${message.invite.verifiedPeerLabel} for ${message.invite.appId}`);
         return;
       }
 
@@ -733,6 +745,34 @@ export default function App() {
           }}
         />
       ) : null}
+      {sessionInvites.some((invite) => invite.phase === "pending") ? (
+        <View testID="session-invite-banner" style={styles.deviceActiveBanner}>
+          <Text style={styles.deviceActiveBannerTitle}>Incoming call invitation</Text>
+          {sessionInvites
+            .filter((invite) => invite.phase === "pending")
+            .map((invite) => (
+              <View key={invite.id} style={styles.deviceActiveBannerRow}>
+                <Text style={styles.deviceActiveBannerText}>
+                  {invite.verifiedPeerLabel} wants to start {invite.requestedClasses.join(" + ")} in {invite.appId}
+                </Text>
+                <Pressable
+                  testID={`session-invite-accept-${invite.id}`}
+                  style={styles.dangerButton}
+                  onPress={() => sendToWorker({ type: "session-invite-accept", id: invite.id })}
+                >
+                  <Text style={styles.buttonLabel}>Accept</Text>
+                </Pressable>
+                <Pressable
+                  testID={`session-invite-decline-${invite.id}`}
+                  style={styles.dangerButton}
+                  onPress={() => sendToWorker({ type: "session-invite-decline", id: invite.id })}
+                >
+                  <Text style={styles.buttonLabel}>Decline</Text>
+                </Pressable>
+              </View>
+            ))}
+        </View>
+      ) : null}
       {deviceState !== null && (deviceState.indicators.length > 0 || deviceState.shareOffers.length > 0) ? (
         <View
           testID="device-active-banner"
@@ -757,7 +797,7 @@ export default function App() {
               <Text style={styles.deviceActiveBannerText}>
                 {offer.appId} · sharing {offer.classId}:{offer.tierId} with {offer.displayLabel}
               </Text>
-              <Pressable style={styles.dangerButton} onPress={() => sendToWorklet({ type: "device-revoke-share", appId: offer.appId, id: offer.id })}>
+              <Pressable style={styles.dangerButton} onPress={() => sendToWorker({ type: "device-revoke-share", appId: offer.appId, id: offer.id })}>
                 <Text style={styles.buttonLabel}>Stop sharing</Text>
               </Pressable>
             </View>

@@ -27,10 +27,15 @@ requirement-level proof and missing exits are tracked in the
 As of 2026-07-31, the reusable core is implemented: link observation/probes, readiness,
 share policy, fail-closed stream admission, a host-only five-plane binding, receive sinks,
 encoding/timing primitives, signaling, Line Check, and the SPEC-STREAM formal artifacts.
-The remaining work is integration rather than protocol shape: shipping hosts must provide
-live telemetry, trusted share/invite chrome, concrete plane openers and codec drivers, and
-multi-host conformance evidence. Until those adapters are present, the UI must continue to
-say “probably” for declared low-confidence paths and hosts must reject unconfigured streams.
+Two peers now complete a real readiness exchange, a measured active probe, and a `TPD2`
+media round trip in `npm run test:local-multipeer`; the ladder collapses and recovers under
+adversarial link profiles in `npm run test:sim-media-ladder`; and the share-policy and
+invitation chrome is driven end to end in `npm run test:share-policy`. The remaining work is
+integration rather than protocol shape: shipping hosts must provide live telemetry, inbound
+`session-invite` delivery, concrete plane openers and codec drivers, device-run mobile chrome
+probes, and multi-host conformance evidence. Until those adapters are present, the UI must
+continue to say “probably” for declared low-confidence paths and hosts must reject
+unconfigured streams.
 
 The evaluation below is retained as the design baseline that motivated the implementation.
 
@@ -592,7 +597,12 @@ No hardware in CI, matching existing practice:
   adaptation against adversarial profiles — bandwidth collapse mid-call, asymmetric links,
   bufferbloat, flapping paths — and asserts ladder monotonicity and no-oscillation.
 - **Local multipeer.** `npm run test:local-multipeer` already stands up several peers on one
-  Mac; the readiness exchange and loopback call ride it.
+  Mac; the readiness exchange, the active probe, and the `TPD2` carrier ride it and land in
+  `multipeer-proof.json`.
+- **Trusted chrome.** `npm run test:share-policy` drives the shipping desktop renderer for
+  grant, revoke, expiry, restart, indicator presence, and the invitation accept/decline path.
+- **Ladder behavior.** `npm run test:sim-media-ladder` runs admission and adaptation against
+  the collapse/recovery, asymmetric, bufferbloat, and flapping profiles.
 - **Formal.** `npm run formal:stream` cross-checks the four SPEC-STREAM representations, the
   same bar as `formal:grant` and `formal:device-session`.
 - **Chrome probes.** Maestro on mobile, Playwright on web, for grant, revoke, expiry,

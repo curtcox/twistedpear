@@ -530,6 +530,9 @@ function ensureMiniappHost() {
     miniappHost = createWebWorkletMiniappHost({
       provider: cryptoProvider,
       kvStore: ensureMiniappKvStore(),
+      async launchInstalledApp(appId) {
+        await ensureMiniappHost().launch(await ensurePackageStorage(), appId);
+      },
       getPresenceSnapshot: () => ({ ...status, autoPeers: status.autoPeers + (peerSessionManager?.routes.list().length ?? 0) }),
       getHostInfoSnapshot: () => {
         const interfaceTypes = [];
@@ -1170,6 +1173,26 @@ async function handleHostMessage(raw) {
 
   if (message.type === "device-revoke-share") {
     await ensureMiniappHost().revokeShareOffer(message.appId, message.id);
+    return;
+  }
+
+  if (message.type === "session-invite-accept") {
+    try {
+      await ensureMiniappHost().acceptSessionInvite(message.id);
+      log(`Accepted session invite ${message.id}`);
+    } catch (error) {
+      log(`Session invite accept failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "session-invite-decline") {
+    try {
+      ensureMiniappHost().declineSessionInvite(message.id);
+      log(`Declined session invite ${message.id}`);
+    } catch (error) {
+      log(`Session invite decline failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
     return;
   }
 

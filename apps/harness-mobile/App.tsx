@@ -69,6 +69,7 @@ import {
   type TrustedPublisherView,
   type WorkletToHostMessage,
   type DeviceStateView,
+  type SessionInviteView,
   type ConfirmationKind
 } from "./worklet/protocol";
 import { MiniappWidgetTree } from "./host/miniapp-renderer";
@@ -198,6 +199,7 @@ export default function App() {
   const [trustedPublishers, setTrustedPublishers] = useState<ReadonlyArray<TrustedPublisherView>>([]);
   const [hostIdentity256t, setHostIdentity256t] = useState<string | null>(null);
   const [deviceState, setDeviceState] = useState<DeviceStateView | null>(null);
+  const [sessionInvites, setSessionInvites] = useState<ReadonlyArray<SessionInviteView>>([]);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [peerCameraActive, setPeerCameraActive] = useState(false);
   const [peerQrFrame, setPeerQrFrame] = useState(0);
@@ -459,6 +461,16 @@ export default function App() {
 
     if (message.type === "trust-identity") {
       setHostIdentity256t(message.identity256t);
+      return;
+    }
+
+    if (message.type === "session-invites") {
+      setSessionInvites(message.invites);
+      return;
+    }
+
+    if (message.type === "session-invite") {
+      appendLog(`Call invitation from ${message.invite.verifiedPeerLabel} for ${message.invite.appId}`);
       return;
     }
 
@@ -863,6 +875,34 @@ export default function App() {
               <ActionButton label={peerModal.kind === "confirm" ? "Connect" : peerModal.request.type === "peer-audio-transmit" ? peerModal.request.expectsResponse ? "Play and listen" : "Play answer" : peerModal.request.type === "peer-audio-receive" ? "Start listening" : "Continue"} onPress={() => { if (peerModal.kind === "confirm") sendToWorklet({ type: "peer-chrome-response", token: peerModal.request.token, approved: true }); else if (peerModal.request.type === "peer-audio-transmit" || peerModal.request.type === "peer-audio-receive") void performPeerAudio(peerModal.request); else sendToWorklet({ type: "peer-chrome-response", token: peerModal.request.token, accepted: true, ...(peerModal.input.trim() ? { code: peerModal.input.trim() } : {}) }); setPeerCameraActive(false); setPeerModal(null); }} />
             </View>
           </View>
+        </View>
+      ) : null}
+      {sessionInvites.some((invite) => invite.phase === "pending") ? (
+        <View testID="session-invite-banner" style={styles.deviceActiveBanner}>
+          <Text style={styles.deviceActiveBannerTitle}>Incoming call invitation</Text>
+          {sessionInvites
+            .filter((invite) => invite.phase === "pending")
+            .map((invite) => (
+              <View key={invite.id} style={styles.deviceActiveBannerRow}>
+                <Text style={styles.deviceActiveBannerText}>
+                  {invite.verifiedPeerLabel} wants to start {invite.requestedClasses.join(" + ")} in {invite.appId}
+                </Text>
+                <Pressable
+                  testID={`session-invite-accept-${invite.id}`}
+                  style={styles.dangerButton}
+                  onPress={() => sendToWorklet({ type: "session-invite-accept", id: invite.id })}
+                >
+                  <Text style={styles.buttonLabel}>Accept</Text>
+                </Pressable>
+                <Pressable
+                  testID={`session-invite-decline-${invite.id}`}
+                  style={styles.dangerButton}
+                  onPress={() => sendToWorklet({ type: "session-invite-decline", id: invite.id })}
+                >
+                  <Text style={styles.buttonLabel}>Decline</Text>
+                </Pressable>
+              </View>
+            ))}
         </View>
       ) : null}
       {deviceState !== null && (deviceState.indicators.length > 0 || deviceState.shareOffers.length > 0) ? (

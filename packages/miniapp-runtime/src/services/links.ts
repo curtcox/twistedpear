@@ -3,7 +3,14 @@ import type {
   PeerMediaReadiness,
   StreamPlane
 } from "@twistedpear/protocol";
-import { normalizeMediaReadiness } from "@twistedpear/protocol";
+import {
+  decodeLinkControl,
+  encodeLinkControl,
+  encodeReadinessEnvelope,
+  parseMediaReadiness,
+  READINESS_REQUEST_ID,
+  READINESS_RESPONSE_ID
+} from "@twistedpear/protocol";
 import type { PeerHandle } from "@twistedpear/peer-discovery";
 
 export type LinkReachability = "direct" | "mesh" | "store-and-forward" | "unreachable";
@@ -191,15 +198,16 @@ export class PeerRouteLinkObservatory implements LinkObservatoryBackend {
       const route = directory.route(appId, peer.handle); if (route?.transport?.subscribe === undefined) continue;
       this.subscriptions.set(key, route.transport.subscribe((payload) => { void this.receiveRouteMessage(appId, peer.handle, route.transport!, payload); }));
       const local = this.options.localReadiness?.(appId, peer.handle) ?? null;
-      if (local !== null && local.consentPosture !== "closed") void Promise.resolve(route.transport.send(encodeLinkEnvelope(1, "readiness", new TextEncoder().encode(JSON.stringify(local))))).catch(() => {});
+      if (local !== null && local.consentPosture !== "closed") void Promise.resolve(route.transport.send(encodeReadinessEnvelope(READINESS_REQUEST_ID, local))).catch(() => {});
     }
   }
 
   private async receiveRouteMessage(appId: string, peer: PeerHandle, transport: { send(payload: Uint8Array): void | Promise<void>; quality?(): { readonly queueDepthBytes?: number } }, payload: Uint8Array): Promise<void> {
-    const envelope = decodeLinkEnvelope(payload); if (envelope === null) return;
+    const envelope = decodeLinkControl(payload); if (envelope === null) return;
     if (envelope.type === 1) {
-      try { const value = JSON.parse(new TextDecoder().decode(envelope.payload)) as PeerMediaReadiness; if (!validReadiness(value) || value.consentPosture === "closed" || value.expiresAt <= this.now()) { this.recordReadiness(appId, peer, null); return; } this.recordReadiness(appId, peer, normalizeMediaReadiness(value)); } catch { this.recordReadiness(appId, peer, null); }
-      if (envelope.id === "readiness") { const local = this.options.localReadiness?.(appId, peer) ?? null; if (local !== null && local.consentPosture !== "closed") await transport.send(encodeLinkEnvelope(1, "readiness-response", new TextEncoder().encode(JSON.stringify(local)))); }
+      const value = parseMediaReadiness(envelope.payload);
+      this.recordReadiness(appId, peer, value === null || value.consentPosture === "closed" || value.expiresAt <= this.now() ? null : value);
+      if (envelope.id === READINESS_REQUEST_ID) { const local = this.options.localReadiness?.(appId, peer) ?? null; if (local !== null && local.consentPosture !== "closed") await transport.send(encodeReadinessEnvelope(READINESS_RESPONSE_ID, local)); }
       return;
     }
     if (envelope.type === 2) { const initialQueueBytes = transport.quality?.().queueDepthBytes ?? 0; const reservation = this.options.controlReservations?.reserveControl(Math.max(1, Math.ceil(payload.byteLength / 5))) ?? undefined; if (this.options.controlReservations !== undefined && reservation === undefined) return; try { await reservation?.consume(payload.byteLength); if ((transport.quality?.().queueDepthBytes ?? 0) > initialQueueBytes) return; await transport.send(encodeLinkEnvelope(3, envelope.id, envelope.payload)); } finally { reservation?.release(); } return; }
@@ -207,10 +215,9 @@ export class PeerRouteLinkObservatory implements LinkObservatoryBackend {
   }
 }
 
-const LINK_MAGIC = new Uint8Array([0x54, 0x50, 0x4c, 0x31]);
-function encodeLinkEnvelope(type: 1 | 2 | 3, id: string, payload: Uint8Array): Uint8Array { const name = new TextEncoder().encode(id); if (name.length > 64 || payload.length > 8192) throw new Error("Link control envelope exceeds bounds."); const out = new Uint8Array(8 + name.length + payload.length); out.set(LINK_MAGIC); out[4] = type; out[5] = name.length; new DataView(out.buffer).setUint16(6, payload.length, false); out.set(name, 8); out.set(payload, 8 + name.length); return out; }
-function decodeLinkEnvelope(bytes: Uint8Array): { type: 1 | 2 | 3; id: string; payload: Uint8Array } | null { if (bytes.length < 8 || !LINK_MAGIC.every((value, index) => bytes[index] === value)) return null; const type = bytes[4]; const idLength = bytes[5] ?? 0; const payloadLength = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint16(6, false); if ((type !== 1 && type !== 2 && type !== 3) || idLength < 1 || idLength > 64 || bytes.length !== 8 + idLength + payloadLength) return null; return { type, id: new TextDecoder().decode(bytes.subarray(8, 8 + idLength)), payload: bytes.slice(8 + idLength) }; }
-function validReadiness(value: PeerMediaReadiness): boolean { return typeof value === "object" && value !== null && typeof value.hostApi === "string" && Array.isArray(value.accepts) && Array.isArray(value.offers) && ["none", "derived", "narrowband", "audio", "sd-video", "hd-video"].includes(value.downlinkBucket) && Array.isArray(value.constrained) && ["open", "ask", "closed"].includes(value.consentPosture) && Number.isFinite(value.expiresAt); }
+function encodeLinkEnvelope(type: 1 | 2 | 3, id: string, payload: Uint8Array): Uint8Array {
+  return encodeLinkControl({ type, id, payload });
+}
 
 function sameRoster(
   left: ReadonlyMap<string, PeerLinkSummary> | undefined,

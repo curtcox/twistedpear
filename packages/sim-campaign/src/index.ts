@@ -50,3 +50,13 @@ export {
   type SocialCampaignState,
   type SocialKind
 } from "./assurance-scenarios.js";
+export {
+  createMediaLadderScenario,
+  mediaLadderHistory,
+  mediaLinkGoodputBps,
+  mediaLinkQueueDepthBytes,
+  type MediaLadderSample,
+  type MediaLadderScenarioOptions,
+  type MediaLadderState,
+  type MediaLinkProfile
+} from "./media-scenarios.js";

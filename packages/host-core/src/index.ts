@@ -83,11 +83,16 @@ export {
 export { createNodeHost, runNodeHost, type NodeHostOptions, type NodeHostSession } from "./node-host.js";
 export {
   mountTestAgent,
+  TEST_AGENT_LINK_TITLE,
   TEST_AGENT_PROBE_TITLE,
+  TEST_AGENT_REALTIME_TITLE,
   type TestAgentInboxEntry,
   type TestAgentInfo,
   type TestAgentOptions,
   type TestAgentPeerRecord,
+  type TestAgentProbeEntry,
+  type TestAgentReadinessEntry,
+  type TestAgentRealtimeEntry,
   type TestAgentSession,
   type TestAgentStatus
 } from "./test-agent.js";

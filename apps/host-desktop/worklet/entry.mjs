@@ -1073,6 +1073,10 @@ function ensureMiniappHost() {
         };
       },
       send,
+      async launchInstalledApp(appId) {
+        const { installedStore: installed } = ensureCatalog();
+        await ensureMiniappHost().launch(installed, runtime, appId);
+      },
       peerSessionManager: peerSessionManagerProxy,
       realtimeReservations: { reserveRealtime: (bytesPerSecond) => outboundBandwidthLimiter.reserve("realtime", bytesPerSecond) },
       controlReservations: { reserveControl: (bytesPerSecond) => outboundBandwidthLimiter.reserve("control", bytesPerSecond) },
@@ -2234,6 +2238,26 @@ async function handleHostMessage(raw) {
 
   if (message.type === "device-revoke-share") {
     await ensureMiniappHost().revokeShareOffer(message.appId, message.id);
+    return;
+  }
+
+  if (message.type === "session-invite-accept") {
+    try {
+      await ensureMiniappHost().acceptSessionInvite(message.id);
+      log(`Accepted session invite ${message.id}`);
+    } catch (error) {
+      log(`Session invite accept failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return;
+  }
+
+  if (message.type === "session-invite-decline") {
+    try {
+      ensureMiniappHost().declineSessionInvite(message.id);
+      log(`Declined session invite ${message.id}`);
+    } catch (error) {
+      log(`Session invite decline failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
     return;
   }
 

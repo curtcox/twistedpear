@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-31T16:03:13.791Z",
+  "generatedAt": "2026-07-31T19:05:25.367Z",
   "canary": "temporary Date.now() call in a protocol source file",
   "fixture": "packages/protocol/src/__sansio_canary__.ts",
   "minimumIndependentLayers": 3,
