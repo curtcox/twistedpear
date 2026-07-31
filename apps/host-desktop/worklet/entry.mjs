@@ -68,6 +68,7 @@ import {
   UnavailablePeerDiscoveryAdapter
 } from "../../../packages/peer-discovery/dist/index.js";
 import {
+  connectTestAgent,
   createDevChannelClient,
   createHostReplyChannel,
   createMiniappAnnounceService,
@@ -226,6 +227,8 @@ const status = {
 
 /** @type {Reticulum | null} */
 let reticulum = null;
+/** Test-only peer control agent; mounted only by `connect-test-agent`. */
+let testAgent = null;
 /** @type {import("@twistedpear/reticulum-ts").TcpClientInterface | null} */
 let tcpIface = null;
 /** @type {AutoInterfaceBridge | null} */
@@ -1914,6 +1917,34 @@ async function handleHostMessage(raw) {
       await applyInterfaceConfig();
     } else {
       log(`Target set to ${message.targetHost}:${message.targetPort} (enable TCP to connect)`);
+    }
+    return;
+  }
+
+  if (message.type === "connect-test-agent") {
+    if (testAgent !== null) {
+      log("Test agent already mounted");
+      return;
+    }
+    try {
+      const node = await ensureReticulum();
+      const identity = await resolveIdentity();
+      if (identity === null) {
+        throw new Error("identity unavailable");
+      }
+      testAgent = await connectTestAgent({
+        reticulum: node,
+        provider,
+        identity,
+        label: message.label,
+        platform: "desktop",
+        host: message.host,
+        port: message.port,
+        log
+      });
+      log(`Test agent mounted as ${message.label} (lxmf ${testAgent.lxmfAddress})`);
+    } catch (error) {
+      log(`Test agent mount failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     return;
   }

@@ -123,7 +123,32 @@ function ensureSupervisor(): WorkletSupervisor {
     rnode: false
   });
 
+  // `TP_TEST_AGENT=host:port:label` puts this host into the single-machine
+  // multi-peer environment: TCP to the local hub plus the test control agent.
+  // Set only by `scripts/peers/adapters/desktop.mjs`; never in a shipped build,
+  // and it overrides the opt-in TCP default above rather than replacing it.
+  const testAgent = parseTestAgentEnv(process.env.TP_TEST_AGENT);
+  if (testAgent !== null) {
+    supervisor.send({ type: "set-interfaces", tcp: true, auto: true, ble: false, rnode: false });
+    supervisor.send({ type: "connect-test-agent", ...testAgent });
+  }
+
   return supervisor;
+}
+
+function parseTestAgentEnv(
+  value: string | undefined
+): { host: string; port: number; label: string } | null {
+  if (value === undefined || value === "") {
+    return null;
+  }
+  const [host, portText, label] = value.split(":");
+  const port = Number.parseInt(portText ?? "", 10);
+  if (host === undefined || host === "" || !Number.isFinite(port)) {
+    console.error(`Ignoring malformed TP_TEST_AGENT: ${value}`);
+    return null;
+  }
+  return { host, port, label: label === undefined || label === "" ? "desktop" : label };
 }
 
 app.whenReady().then(() => {

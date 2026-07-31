@@ -116,6 +116,26 @@ jobs:
             dependency-graph.json
           if-no-files-found: warn
 
+  local-multipeer:
+    # Headless tier only: two `tp node` peers over the local TCP hub. The GUI
+    # peers (desktop, iOS, Android) run in emulator.yml on manual dispatch.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:local-multipeer:smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: local-multipeer-proof
+          path: .tmp/local-peers/multipeer-proof.json
+          if-no-files-found: warn
+
   simulation-replay:
     strategy:
       matrix:

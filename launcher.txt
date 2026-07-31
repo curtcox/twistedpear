@@ -55,3 +55,23 @@ description: Hot-reload dev server for Handbook sources. Connect from a host in 
 name: DevStudio dev side-load
 command: npm run build && npx tp dev apps/devstudio
 description: Hot-reload dev server for DevStudio sources. Connect from a host in developer mode (mobile harness or desktop).
+
+name: Local peers (headless)
+command: npm run peers -- up hub node2
+description: Starts the local TCP hub plus a second headless tp node. No simulator or emulator needed — the fastest way to have a working local mesh.
+
+name: Local peers (everything)
+command: npm run peers -- up hub desktop ios android
+description: Starts every peer implementation this Mac can run: TCP hub, Electron desktop host, iOS simulator, and Android emulator. Peers that are unavailable are reported and skipped.
+
+name: Local peers status
+command: npm run peers:status
+description: Shows which local peers are running, whether each has attached to the control channel, and how many other peers each has discovered.
+
+name: Local peers stop
+command: npm run peers:down
+description: Stops every local peer started by the peers CLI.
+
+name: Multi-peer test
+command: npm run test:local-multipeer -- --attach
+description: Runs the discovery and LXMF round-trip matrix across whatever local peers are currently running. Writes .tmp/local-peers/multipeer-proof.json.

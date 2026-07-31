@@ -32,6 +32,7 @@ import { createIpcBonjourBridge } from "../../../packages/worklet-core/src/ipc-b
 import { createIpcBleBridge } from "./ipc-ble-bridge.mjs";
 import { createIpcSerialBridge } from "../../../packages/worklet-core/src/ipc-serial-bridge.mjs";
 import {
+  connectTestAgent,
   createDevChannelClient,
   createHostReplyChannel,
   createMiniappAnnounceService,
@@ -224,6 +225,8 @@ const PACKAGE_QUOTA_BYTES = 64 * 1024 * 1024;
 let miniappHost = null;
 /** @type {ReturnType<typeof createDevChannelClient> | null} */
 let devChannel = null;
+/** Test-only peer control agent; mounted only by `connect-test-agent`. */
+let testAgent = null;
 
 function ensureDevChannel() {
   if (devChannel === null) {
@@ -1844,6 +1847,36 @@ async function handleHostMessage(raw) {
 
   if (message.type === "disconnect-dev-channel") {
     await ensureDevChannel().disconnect();
+    return;
+  }
+
+  if (message.type === "connect-test-agent") {
+    if (testAgent !== null) {
+      log("Test agent already mounted");
+      return;
+    }
+
+    try {
+      const node = await ensureReticulum();
+      const identity = await resolveIdentity();
+      if (identity === null) {
+        throw new Error("identity unavailable");
+      }
+
+      testAgent = await connectTestAgent({
+        reticulum: node,
+        provider,
+        identity,
+        label: message.label,
+        platform: message.platform ?? "mobile",
+        host: message.host,
+        port: message.port,
+        log
+      });
+      log(`Test agent mounted as ${message.label} (lxmf ${testAgent.lxmfAddress})`);
+    } catch (error) {
+      log(`Test agent mount failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
     return;
   }
 

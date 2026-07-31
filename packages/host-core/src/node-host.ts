@@ -29,6 +29,7 @@ import { ensureDir } from "./config.js";
 import { identityHashHex, loadOrCreateIdentity } from "./identity.js";
 import { startSeederRole } from "./roles/seeder.js";
 import { FileModerationStore } from "./moderation-store.js";
+import { mountTestAgent, type TestAgentSession } from "./test-agent.js";
 import type { HostConfig, HostStatus, InterfaceStatus } from "./types.js";
 
 function freenetClientOptions(config: HostConfig): {
@@ -278,8 +279,23 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
       response.end(JSON.stringify(buildStatus()));
     });
     await new Promise<void>((resolve) => {
-      statusServer?.listen(9473, "127.0.0.1", () => resolve());
+      statusServer?.listen(config.statusEndpointPort, "127.0.0.1", () => resolve());
     });
+  }
+
+  let testAgent: TestAgentSession | null = null;
+  if (config.testAgent !== null) {
+    testAgent = await mountTestAgent({
+      reticulum,
+      provider,
+      identity,
+      label: config.testAgent.label,
+      platform: "tp-node",
+      controlHost: config.testAgent.host,
+      controlPort: config.testAgent.port,
+      log: (line) => console.log(`[test-agent] ${line}`)
+    });
+    console.log(`[test-agent] ${config.testAgent.label} lxmf=${testAgent.lxmfAddress}`);
   }
 
   return {
@@ -290,6 +306,9 @@ export async function createNodeHost(options: NodeHostOptions): Promise<NodeHost
     freenetBackend,
     getStatus: buildStatus,
     async stop() {
+      if (testAgent !== null) {
+        await testAgent.stop();
+      }
       if (statusServer !== null) {
         await new Promise<void>((resolve, reject) => {
           statusServer?.close((error) => (error ? reject(error) : resolve()));

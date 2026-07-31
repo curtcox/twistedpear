@@ -74,3 +74,28 @@ jobs:
           node-version: "22"
           cache: npm
       - run: chmod +x conformance/ios-sim/ci-handbook.sh && conformance/ios-sim/ci-handbook.sh
+
+  local-multipeer-ios:
+    # Full GUI matrix on a macOS runner: TCP hub, a second headless node, and
+    # the iOS simulator harness. See docs/local-multipeer.md.
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: curl -Ls "https://get.maestro.mobile.dev" | bash
+      - run: echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - run: npm run test:local-multipeer -- --peers=hub,node2,ios
+        env:
+          LOCAL_MULTIPEER_REQUIRED: "1"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: local-multipeer-ios-proof
+          path: .tmp/local-peers/multipeer-proof.json
+          if-no-files-found: warn

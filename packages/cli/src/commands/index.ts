@@ -73,7 +73,7 @@ export function printHelp(command: string): void {
     publish: "tp publish <app-dir> [--freenet] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-contract <wasm>]  Pack, sign, publish to Hyperdrive and optionally Freenet",
     update: "tp update <app-dir> --version <semver>  Bump version and republish",
     seed: "tp seed [--state-dir <path>] [--transport] [--propagation] [--attach-rnsd host:port]  Run headless seeder",
-    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--ws-listen [host:]port] [--ws-token <token>] [--serve-web [dir]] [--status-endpoint] [--freenet [ws-url]] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-binary <path>] [--freenet-binary-sha256 <hex>] [--freenet-interface] [--freenet-rendezvous <64hex>] [--freenet-direction <0|1>]  Run desktop-class host node",
+    node: "tp node [--data-dir <path>] [--no-transport] [--no-seeder] [--propagation] [--attach-rnsd host:port] [--ws-listen [host:]port] [--ws-token <token>] [--serve-web [dir]] [--status-endpoint [port]] [--test-agent host:port[:label]] [--freenet [ws-url]] [--freenet-node <ws-url>] [--freenet-token <token>] [--freenet-binary <path>] [--freenet-binary-sha256 <hex>] [--freenet-interface] [--freenet-rendezvous <64hex>] [--freenet-direction <0|1>]  Run desktop-class host node",
     trust: "tp trust <list|show|add <256t> --label <name>|remove <key-or-256t>>  Manage trusted publishers"
   };
 
@@ -884,6 +884,9 @@ export async function runNode(ctx: CommandContext): Promise<number> {
     );
   }
 
+  const statusEndpointPort = parseStatusEndpointPort(ctx.args);
+  const testAgent = parseTestAgentArg(parseOptionalFlagValue(ctx.args, "--test-agent"));
+
   const config = resolveHostConfig({
     ...(dataDir === null ? {} : { dataDir: resolveFromCwd(ctx.cwd, dataDir) }),
     overrides: {
@@ -918,7 +921,9 @@ export async function runNode(ctx: CommandContext): Promise<number> {
             }),
         ...(freenetConfig === null ? {} : { freenet: freenetConfig })
       },
-      statusEndpoint: hasFlag(ctx.args, "--status-endpoint")
+      statusEndpoint: hasFlag(ctx.args, "--status-endpoint"),
+      ...(statusEndpointPort === null ? {} : { statusEndpointPort }),
+      ...(testAgent === null ? {} : { testAgent })
     }
   });
 
@@ -928,12 +933,15 @@ export async function runNode(ctx: CommandContext): Promise<number> {
       supervisor = null;
     }
   };
-  process.once("SIGINT", () => {
-    void stopSupervisor();
-  });
-  process.once("SIGTERM", () => {
-    void stopSupervisor();
-  });
+  // Registering a signal listener suppresses the default termination, so the
+  // handler has to exit itself once the supervised node is down.
+  const shutdown = (signal: NodeJS.Signals) => {
+    void stopSupervisor().finally(() => {
+      process.exit(signal === "SIGINT" ? 130 : 143);
+    });
+  };
+  process.once("SIGINT", () => shutdown("SIGINT"));
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
 
   try {
     await runNodeHost({ config, identityPassphrase: requiredPassphrase(ctx) });
@@ -1071,6 +1079,40 @@ function parseOptionalFlag(args: ReadonlyArray<string>, name: string): string | 
   }
 
   return next;
+}
+
+/** `--status-endpoint [port]`; omitted or bare keeps the default loopback port. */
+function parseStatusEndpointPort(args: ReadonlyArray<string>): number | null {
+  const value = parseOptionalFlagValue(args, "--status-endpoint");
+  if (value === null) {
+    return null;
+  }
+  const port = Number.parseInt(value, 10);
+  if (!Number.isFinite(port) || port <= 0 || port > 65_535) {
+    throw new Error(`Invalid --status-endpoint port: ${value}`);
+  }
+  return port;
+}
+
+/**
+ * `--test-agent host:port[:label]` mounts the test-only peer control agent used
+ * by `conformance/local-multipeer`. Never set on a default code path.
+ */
+function parseTestAgentArg(
+  value: string | null
+): { host: string; port: number; label: string } | null {
+  if (value === null) {
+    return null;
+  }
+  const [host, portText, label] = value.split(":");
+  if (host === undefined || host === "" || portText === undefined) {
+    throw new Error(`Invalid --test-agent value: ${value} (expected host:port[:label])`);
+  }
+  const port = Number.parseInt(portText, 10);
+  if (!Number.isFinite(port) || port <= 0 || port > 65_535) {
+    throw new Error(`Invalid --test-agent port: ${value}`);
+  }
+  return { host, port, label: label === undefined || label === "" ? "tp-node" : label };
 }
 
 function parseWsListenArg(value: string): { listenHost: string; listenPort: number } {

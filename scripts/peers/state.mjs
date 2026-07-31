@@ -1,0 +1,83 @@
+/**
+ * Persistent state for the single-machine multi-peer environment.
+ *
+ * `npm run peers -- up` records one entry per running peer so a later `down`,
+ * `status`, or `logs` in a different shell can find it. Everything lives under
+ * `.tmp/local-peers/` so a stale tree can be removed wholesale.
+ */
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+export const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+export const stateRoot = join(repoRoot, ".tmp", "local-peers");
+export const logDir = join(stateRoot, "logs");
+const statePath = join(stateRoot, "state.json");
+
+/** Port the peer test agents dial. Hardcoded in the mobile harness UI too. */
+export const CONTROL_PORT = 34990;
+/** TCP hub port every peer connects to; matches the mobile harness default. */
+export const HUB_PORT = 4242;
+
+export function ensureStateDirs() {
+  mkdirSync(logDir, { recursive: true });
+}
+
+export function readState() {
+  if (!existsSync(statePath)) {
+    return { peers: {} };
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(statePath, "utf8"));
+    return { peers: parsed.peers ?? {} };
+  } catch {
+    return { peers: {} };
+  }
+}
+
+export function writeState(state) {
+  ensureStateDirs();
+  writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
+}
+
+export function recordPeer(id, entry) {
+  const state = readState();
+  state.peers[id] = { id, startedAt: Date.now(), ...entry };
+  writeState(state);
+  return state.peers[id];
+}
+
+export function forgetPeer(id) {
+  const state = readState();
+  delete state.peers[id];
+  writeState(state);
+}
+
+export function peerEntry(id) {
+  return readState().peers[id] ?? null;
+}
+
+export function logPath(id) {
+  return join(logDir, `${id}.log`);
+}
+
+export function dataDirFor(id) {
+  return join(stateRoot, "data", id);
+}
+
+/** Best-effort liveness check for a detached child we started earlier. */
+export function processAlive(pid) {
+  if (typeof pid !== "number") {
+    return false;
+  }
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearState() {
+  rmSync(statePath, { force: true });
+}

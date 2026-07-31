@@ -1,0 +1,19 @@
+appId: network.twistedpear.harness
+---
+# Brings the mobile harness up as a peer in the single-machine multi-peer
+# environment: create an identity, connect TCP to the local hub, then mount the
+# test control agent that `conformance/local-multipeer` drives.
+# Started by `scripts/peers/adapters/mobile.mjs`.
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "create-identity"
+- tapOn:
+    id: "tcp-client-switch"
+- extendedWaitUntil:
+    visible: "Link: online"
+    timeout: 60000
+# The mount itself is asserted by the harness, which waits for this peer to
+# check in on the control channel — see conformance/local-multipeer/run.mjs.
+- tapOn:
+    id: "connect-test-agent"

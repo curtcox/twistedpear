@@ -82,6 +82,16 @@ export {
 } from "./identity-backup.js";
 export { createNodeHost, runNodeHost, type NodeHostOptions, type NodeHostSession } from "./node-host.js";
 export {
+  mountTestAgent,
+  TEST_AGENT_PROBE_TITLE,
+  type TestAgentInboxEntry,
+  type TestAgentInfo,
+  type TestAgentOptions,
+  type TestAgentPeerRecord,
+  type TestAgentSession,
+  type TestAgentStatus
+} from "./test-agent.js";
+export {
   FreenetSupervisor,
   redactFreenetAuthToken,
   readOptionalSha256File,

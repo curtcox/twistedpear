@@ -172,6 +172,8 @@ export type HostToWorkletMessage =
   | { readonly type: "dev-side-load"; readonly manifest: Record<string, unknown>; readonly bundleHex: string }
   | { readonly type: "connect-dev-channel"; readonly host: string; readonly port: number }
   | { readonly type: "disconnect-dev-channel" }
+  /** Test-only: mounts the peer control agent for `conformance/local-multipeer`. */
+  | { readonly type: "connect-test-agent"; readonly host: string; readonly port: number; readonly label: string }
   | { readonly type: "multicast-packet"; readonly ifname: string; readonly dataHex: string; readonly sourceAddress: string; readonly port: number }
   | { readonly type: "multicast-interfaces"; readonly interfaces: ReadonlyArray<MulticastNetworkInfo> }
   | { readonly type: "bonjour-peer"; readonly ifname: string; readonly address: string; readonly port: number }

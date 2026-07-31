@@ -94,6 +94,7 @@ npm test
 | Web host | `npm run run:web` | Builds the web worker bundle and starts Expo web for local development. See [docs/web-host.md](docs/web-host.md). |
 | Desktop host | `npm run run:desktop` | Builds and starts the Electron desktop host. See [docs/desktop-host.md](docs/desktop-host.md). |
 | Headless node/seeder | `tp node --data-dir ~/.local/share/twistedpear/host`<br>`tp seed --transport --state-dir .tp/seeder` | Available after the workspace is built. See [docs/desktop-host.md](docs/desktop-host.md). |
+| Multiple peers on one Mac | `npm run peers -- up hub node2`<br>`npm run test:local-multipeer -- --attach`<br>`npm run peers -- down` | Starts any combination of local peers (hub, extra `tp node`s, desktop, iOS simulator, Android emulator) and runs the discovery + LXMF matrix across them. See [docs/local-multipeer.md](docs/local-multipeer.md). |
 | Mini-app runtime conformance | `npm run test:hostile-apps`<br>`npm run test:sdk-interop`<br>`npm run test:dev-loop`<br>`npm run test:miniapp-soak` | Runtime, SDK, dev side-load, and soak coverage. See [conformance](conformance/README.md). |
 | Web conformance | `npm run test:web-runtime`<br>`npm run test:web-miniapp`<br>`npm run test:web-examples`<br>`npm run test:web-pwa` | Browser/runtime slices for the web implementation. See [docs/web-host.md](docs/web-host.md). |
 | Desktop conformance | `npm run test:desktop`<br>`npm run test:desktop-lifecycle`<br>`npm run test:desktop-soak` | Desktop host smoke, lifecycle, and soak coverage. |

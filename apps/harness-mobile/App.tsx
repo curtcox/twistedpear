@@ -80,6 +80,8 @@ async function recordNativePeerFrames(sampleRate = 44_100): Promise<ReadonlyArra
 
 const DEFAULT_DOCKER_PORT = 4_242;
 const ANDROID_EMULATOR_HOST = "10.0.2.2";
+/** Control port for the single-machine multi-peer environment (scripts/peers). */
+const TEST_AGENT_PORT = 34_990;
 const LOCAL_HOST = "127.0.0.1";
 const DEFAULT_DEV_PORT = 34_987;
 const MAX_ANNOUNCES = 50;
@@ -813,6 +815,22 @@ export default function App() {
           />
         </View>
         <Row testID="tcp-client-switch" label="TCP client" value={tcpEnabled} onChange={setTcpEnabled} />
+        <View style={styles.buttonRow}>
+          <ActionButton
+            testID="connect-test-agent"
+            label="Connect test agent"
+            onPress={() => {
+              sendToWorklet({
+                type: "connect-test-agent",
+                host: Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST,
+                port: TEST_AGENT_PORT,
+                label: Platform.OS === "android" ? "android" : "ios",
+                platform: Platform.OS
+              });
+              appendLog(`Test agent requested on port ${TEST_AGENT_PORT}`);
+            }}
+          />
+        </View>
         <View style={styles.buttonRow}>
           <ActionButton
             testID="join-community-network"

@@ -1,0 +1,270 @@
+#!/usr/bin/env node
+/**
+ * Single-machine multi-peer discovery and communication matrix.
+ *
+ * Brings up (or attaches to) a combination of local peer implementations —
+ * `tp node` hub, extra headless nodes, the Electron desktop host, the iOS
+ * simulator, the Android emulator — and proves, for every ordered pair:
+ *
+ *   1. discovery    A has seen B's LXMF announce
+ *   2. communication A's probe reaches B and B's echo comes back to A
+ *
+ * Peers are driven through the test agent control channel
+ * (`packages/host-core/src/test-agent.ts`); the CLI that starts and stops them
+ * is `scripts/peers.mjs`.
+ *
+ *   node conformance/local-multipeer/run.mjs --attach
+ *   node conformance/local-multipeer/run.mjs --peers=hub,node2
+ *   node conformance/local-multipeer/run.mjs --smoke
+ *
+ * GUI peers that cannot start (no Xcode, no emulator, no Electron build) are
+ * skipped unless LOCAL_MULTIPEER_REQUIRED=1.
+ */
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { assert, runMain, section, step } from "../lib/index.mjs";
+import { startControlServer } from "../../scripts/peers/control-server.mjs";
+import { GUI_PEER_IDS, adapterFor } from "../../scripts/peers/registry.mjs";
+import {
+  CONTROL_PORT,
+  forgetPeer,
+  peerEntry,
+  readState,
+  recordPeer,
+  stateRoot
+} from "../../scripts/peers/state.mjs";
+
+const args = process.argv.slice(2);
+const attach = args.includes("--attach");
+const smoke = args.includes("--smoke");
+const required = process.env.LOCAL_MULTIPEER_REQUIRED === "1";
+
+const ATTACH_TIMEOUT_MS = Number.parseInt(process.env.LOCAL_MULTIPEER_ATTACH_MS ?? "90000", 10);
+const DISCOVERY_TIMEOUT_MS = Number.parseInt(process.env.LOCAL_MULTIPEER_DISCOVERY_MS ?? "90000", 10);
+const MESSAGE_TIMEOUT_MS = Number.parseInt(process.env.LOCAL_MULTIPEER_MESSAGE_MS ?? "45000", 10);
+
+function requestedPeers() {
+  const flag = args.find((arg) => arg.startsWith("--peers="));
+  if (flag !== undefined) {
+    return flag.slice("--peers=".length).split(",").filter(Boolean);
+  }
+  if (smoke) {
+    return ["hub", "node2"];
+  }
+  if (attach) {
+    const recorded = Object.keys(readState().peers);
+    assert(recorded.length > 0, "no peers are running; start some with `npm run peers -- up ...`");
+    return recorded;
+  }
+  return ["hub", "node2"];
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function waitUntil(label, predicate, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = null;
+  while (Date.now() < deadline) {
+    try {
+      if (await predicate()) {
+        return;
+      }
+      lastError = null;
+    } catch (error) {
+      lastError = error;
+    }
+    await sleep(500);
+  }
+  throw new Error(
+    `${label} (waited ${timeoutMs}ms)${lastError === null ? "" : `: ${lastError.message ?? lastError}`}`
+  );
+}
+
+/** Starts peers this run owns, returning the ids it must stop again. */
+async function bringUp(ids) {
+  const started = [];
+  const skipped = [];
+  const ordered = [...ids].sort((a, b) => (a === "hub" ? -1 : b === "hub" ? 1 : 0));
+  for (const id of ordered) {
+    const adapter = await adapterFor(id);
+    assert(adapter !== null, `unknown peer: ${id}`);
+    const existing = peerEntry(id);
+    if (existing !== null && adapter.running(existing)) {
+      step(`${id} already running`);
+      continue;
+    }
+    forgetPeer(id);
+    try {
+      recordPeer(id, await adapter.up({ log: (line) => step(line), build: false }));
+      started.push(id);
+      step(`${id} started`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (GUI_PEER_IDS.includes(id) && !required) {
+        step(`${id} skipped: ${message}`);
+        skipped.push(id);
+        continue;
+      }
+      throw error;
+    }
+  }
+  return { started, skipped };
+}
+
+async function tearDown(ids) {
+  for (const id of [...ids].reverse()) {
+    const adapter = await adapterFor(id);
+    const entry = peerEntry(id);
+    if (adapter === null || entry === null) {
+      continue;
+    }
+    await adapter.down(entry, { log: (line) => step(line) }).catch(() => {});
+    forgetPeer(id);
+  }
+}
+
+await runMain(async () => {
+  const wanted = requestedPeers();
+  assert(wanted.length >= 2, `need at least two peers, got: ${wanted.join(", ") || "none"}`);
+
+  section(`Local multi-peer matrix: ${wanted.join(", ")}`);
+
+  let owned = [];
+  let skipped = [];
+  if (!attach) {
+    const result = await bringUp(wanted);
+    owned = result.started;
+    skipped = result.skipped;
+  }
+
+  const expected = wanted.filter((id) => !skipped.includes(id));
+  assert(
+    expected.length >= 2,
+    `only ${expected.length} peer(s) available after skips: ${expected.join(", ")}`
+  );
+
+  let control;
+  try {
+    control = await startControlServer();
+  } catch (error) {
+    throw new Error(
+      `could not bind the control port ${CONTROL_PORT} — another run or \`peers status\` holds it: ${error.message}`
+    );
+  }
+
+  const startedAt = Date.now();
+  const results = { discovery: [], messaging: [] };
+
+  try {
+    section("Attach");
+    const attached = [];
+    for (const id of expected) {
+      try {
+        const agent = await control.waitForAgent(id, ATTACH_TIMEOUT_MS);
+        step(`${id} attached (${agent.platform}, lxmf ${agent.lxmfAddress.slice(0, 12)}…)`);
+        attached.push(id);
+      } catch (error) {
+        if (GUI_PEER_IDS.includes(id) && !required) {
+          step(`${id} never attached; skipping: ${error.message}`);
+          continue;
+        }
+        throw error;
+      }
+    }
+    assert(attached.length >= 2, `only ${attached.length} peer(s) attached: ${attached.join(", ")}`);
+
+    const addresses = new Map();
+    for (const id of attached) {
+      addresses.set(id, control.agent(id).lxmfAddress);
+    }
+
+    section("Discovery");
+    // Nudge every peer to announce so discovery does not wait a full periodic
+    // round. Announce ingress is rate limited, so a nudge may be dropped —
+    // that is fine, the periodic announce is the backstop.
+    for (const id of attached) {
+      await control.announce(id).catch(() => {});
+    }
+
+    for (const from of attached) {
+      for (const to of attached) {
+        if (from === to) {
+          continue;
+        }
+        const target = addresses.get(to);
+        const at = Date.now();
+        await waitUntil(
+          `${from} never saw an announce from ${to}`,
+          async () => {
+            const seen = await control.peers(from);
+            return seen.some((peer) => peer.destinationHash === target);
+          },
+          DISCOVERY_TIMEOUT_MS
+        );
+        const elapsedMs = Date.now() - at;
+        step(`${from} → discovered ${to} (${elapsedMs}ms)`);
+        results.discovery.push({ from, to, elapsedMs });
+      }
+    }
+
+    section("Communication");
+    for (const from of attached) {
+      for (const to of attached) {
+        if (from === to) {
+          continue;
+        }
+        const nonce = `${from}-${to}-${Date.now().toString(36)}`;
+        const at = Date.now();
+        await control.send(from, addresses.get(to), nonce);
+        await waitUntil(
+          `${to} never received the probe from ${from}`,
+          async () => {
+            const inbox = await control.inbox(to);
+            return inbox.some((entry) => entry.nonce === nonce && entry.kind === "probe");
+          },
+          MESSAGE_TIMEOUT_MS
+        );
+        await waitUntil(
+          `${from} never received ${to}'s echo`,
+          async () => {
+            const inbox = await control.inbox(from);
+            return inbox.some((entry) => entry.nonce === nonce && entry.kind === "echo");
+          },
+          MESSAGE_TIMEOUT_MS
+        );
+        const elapsedMs = Date.now() - at;
+        step(`${from} → ${to} → ${from} round-trip (${elapsedMs}ms)`);
+        results.messaging.push({ from, to, nonce, elapsedMs });
+      }
+    }
+
+    const proof = {
+      generatedAt: new Date().toISOString(),
+      mode: attach ? "attach" : "managed",
+      requested: wanted,
+      attached,
+      skipped,
+      durationMs: Date.now() - startedAt,
+      peers: attached.map((id) => ({
+        id,
+        platform: control.agent(id).platform,
+        identityHash: control.agent(id).identityHash,
+        lxmfAddress: control.agent(id).lxmfAddress
+      })),
+      ...results
+    };
+    mkdirSync(stateRoot, { recursive: true });
+    const proofPath = join(stateRoot, "multipeer-proof.json");
+    writeFileSync(proofPath, `${JSON.stringify(proof, null, 2)}\n`);
+
+    section("Result");
+    step(`${attached.length} peers, ${results.discovery.length} discovery pairs, ${results.messaging.length} round-trips`);
+    step(`proof: ${proofPath}`);
+  } finally {
+    await control.close();
+    if (owned.length > 0) {
+      section("Teardown");
+      await tearDown(owned);
+    }
+  }
+});

@@ -158,6 +158,18 @@ export interface HostAiConfig {
   readonly allowedEmbeddingModels?: ReadonlyArray<string>;
 }
 
+/**
+ * Test-only control endpoint for the single-machine multi-peer environment.
+ * When set, the host mounts the peer test agent and dials this address.
+ * See `test-agent.ts` and `conformance/local-multipeer`.
+ */
+export interface TestAgentConfig {
+  readonly host: string;
+  readonly port: number;
+  /** Peer id the harness knows this host by, e.g. `hub` or `node2`. */
+  readonly label: string;
+}
+
 export interface HostConfig {
   readonly dataDir: string;
   readonly identityPath: string;
@@ -167,6 +179,8 @@ export interface HostConfig {
   readonly interfaces: HostInterfaceConfig;
   readonly quotas: HostQuotas;
   readonly statusEndpoint: boolean;
+  readonly statusEndpointPort: number;
+  readonly testAgent: TestAgentConfig | null;
   readonly ai: HostAiConfig | null;
 }
 
@@ -192,8 +206,13 @@ export type HostConfigOverrides = {
   readonly interfaces?: HostInterfaceOverrides;
   readonly quotas?: Partial<HostQuotas>;
   readonly statusEndpoint?: boolean;
+  readonly statusEndpointPort?: number;
+  readonly testAgent?: TestAgentConfig | null;
   readonly ai?: HostAiConfig | null;
 };
+
+/** Loopback port the status endpoint binds when no port is configured. */
+export const DEFAULT_STATUS_ENDPOINT_PORT = 9473;
 
 export const DEFAULT_QUOTAS: HostQuotas = {
   seedStorageBytes: 2 * 1024 * 1024 * 1024,
@@ -260,6 +279,8 @@ export function defaultHostConfig(overrides: HostConfigOverrides = {}): HostConf
     },
     quotas: { ...DEFAULT_QUOTAS, ...overrides.quotas },
     statusEndpoint: overrides.statusEndpoint ?? false,
+    statusEndpointPort: overrides.statusEndpointPort ?? DEFAULT_STATUS_ENDPOINT_PORT,
+    testAgent: overrides.testAgent ?? null,
     ai: overrides.ai ?? null
   };
 }
