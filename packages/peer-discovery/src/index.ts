@@ -152,6 +152,8 @@ export { WebRtcRouteController } from "./webrtc-route.js";
 export type { WebRtcRoute, WebRtcRouteControllerOptions } from "./webrtc-route.js";
 export { ReticulumPeerDiscoveryAdapter } from "./reticulum.js";
 export type { ReticulumDiscoveryAdapterOptions, ReticulumDiscoveryChannel, ReticulumInboundInvitation } from "./reticulum.js";
+export { meterHostPeerRoute } from "./route-quality.js";
+export type { MeteredHostPeerRouteOptions } from "./route-quality.js";
 export { ConfirmedPeerRouteRegistry } from "./route-registry.js";
 export type { ConfirmedPeerRoute, ConfirmedPeerRouteListener, HostPeerRoute } from "./route-registry.js";
 export { UnavailablePeerDiscoveryAdapter } from "./unavailable.js";

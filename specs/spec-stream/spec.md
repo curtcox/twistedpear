@@ -24,6 +24,14 @@ their negotiation and safety boundaries are normative here.
   hysteresis and is forbidden while metered or low-battery policy holds.
 - Readiness is TTL-bounded and uses only the six coarse bandwidth buckets. A refusal,
   closed posture, expired response, and unreachable peer are app-indistinguishable.
+- Reported link quality names its own source. A number taken from an interface's declared
+  bitrate is `declared`/`low`; only a host-side measurement of delivered bytes or a probe
+  reply may be labelled `observed` or `probed`. A declared seed never blends into a
+  measured estimate, and idle time is not evidence of a slow link.
+- An inbound session invite is accepted only when its sender's signature validates, its
+  app is one the host will ring, and the host — not the sender — supplies the peer label
+  shown in chrome. Invite rate is bounded per verified sender, and expired, malformed,
+  or out-of-taxonomy invites raise no chrome at all.
 - Sending requires a live host-authored `ShareOffer` matching app, peer, class, and tier.
 - Inbound decoded media terminates at a host `remote-video` or `speaker` sink unless the
   separately sensitive `device:stream:raw-inbound` capability is granted.
@@ -43,9 +51,11 @@ their negotiation and safety boundaries are normative here.
 | Executable table | `streamMachine` in [`packages/protocol`](../../packages/protocol/src/stream-machine.ts) |
 | Layer-3 vector | [`conformance/vectors/stream.json`](../../conformance/vectors/stream.json) |
 
-Admission arithmetic is executable in `device-admission.ts`; readiness is executable in
-`media-readiness.ts`; TPD2 and timing are executable in `device-stream-framing.ts` and
-`media-timing.ts`. The transition representations are cross-checked with:
+Admission arithmetic is executable in `device-admission.ts`; readiness, the active probe,
+and the session invite share the `TPL1` envelope in `link-control.ts`; link-quality
+sourcing is executable in `link-quality.ts`; TPD2 and timing are executable in
+`device-stream-framing.ts` and `media-timing.ts`. The transition representations are
+cross-checked with:
 
 ```sh
 npm run formal:stream

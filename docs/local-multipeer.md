@@ -92,6 +92,16 @@ peers are attached:
 2. **Communication** — for every ordered pair, that A's probe message arrives at
    B *and* that B's echo arrives back at A. Both legs are real LXMF messages over
    real Reticulum links, routed through the hub.
+3. **Peer media readiness** — that B decodes A's `TPL1` readiness request and
+   answers with a body that re-validates through the shared codec.
+4. **Active link probe** — that A's bounded probe reply closes a measurement
+   with a positive RTT.
+5. **Inbound session invite** — that A's signed `TPL1` type-4 invite is verified
+   by B and raised as an invitation whose peer label B named itself. This runs
+   the shipping carrier (`createSessionInviteReceiver`), so what it proves is
+   the host path, not a harness-only echo.
+6. **Realtime media carrier** — that derived and PCM `TPD2` frames survive a
+   round trip byte for byte.
 
 Results are written to `.tmp/local-peers/multipeer-proof.json`.
 
@@ -115,7 +125,8 @@ control agent — `packages/host-core/src/test-agent.ts`, mounted through
 `packages/worklet-core/src/test-agent-mount.mjs` in the worklet hosts. The agent
 registers its own LXMF delivery destination, records the announces it sees,
 auto-echoes probe messages, and answers `info` / `peers` / `inbox` / `status` /
-`send` / `announce` over the control channel.
+`send` / `announce` / `link-state` / `request-readiness` / `link-probe` /
+`invite-state` / `send-invite` over the control channel.
 
 It is never on a default code path. It activates only when a host is handed an
 explicit control endpoint:

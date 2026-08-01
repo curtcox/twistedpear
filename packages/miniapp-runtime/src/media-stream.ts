@@ -5,10 +5,12 @@ import {
   type AdmissionDecision,
   type LinkQuality,
   type LinkSupply,
+  type RouteQualityReport,
   type StreamDemand,
   type StreamPlane
 } from "@twistedpear/protocol";
 import type { PeerHandle } from "@twistedpear/peer-discovery";
+import { qualityForPeerRoute as routeQuality } from "./route-quality.js";
 
 export interface StreamEgressSendResult { readonly queuedBytes: number; readonly droppedOldest: number; }
 export interface StreamEgress {
@@ -27,7 +29,7 @@ export interface AppPeerMediaRouteDirectory {
     readonly transport?: {
       send(payload: Uint8Array): void | Promise<void>;
       subscribe?(listener: (payload: Uint8Array) => void): () => void;
-      quality?(): { readonly goodputBps: number; readonly rttMs: number; readonly mtu: number; readonly queueDepthBytes?: number };
+      quality?(): RouteQualityReport;
     };
   };
 }
@@ -188,23 +190,6 @@ function decodeMediaEnvelope(bytes: Uint8Array): MediaEnvelope | null {
   if ((type !== 1 && type !== 2 && type !== 3) || idLength < 1 || idLength > 128 || bytes.length !== 8 + idLength + payloadLength) return null;
   const id = new TextDecoder().decode(bytes.subarray(8, 8 + idLength)); if (!/^media-[A-Za-z0-9_-]+$/.test(id)) return null;
   return { type, id, payload: bytes.slice(8 + idLength) };
-}
-
-function routeQuality(dataPlane: "reticulum" | "webrtc" | "gateway" | "bluetooth", transport?: { quality?(): { readonly goodputBps: number; readonly rttMs: number; readonly mtu: number } }): LinkQuality {
-  const measured = transport?.quality?.();
-  if (measured !== undefined) {
-    return { goodputBps: Math.max(0, Math.floor(measured.goodputBps)), rttMs: Math.max(0, measured.rttMs), jitterMs: 0, lossRatio: 0, mtu: Math.max(64, Math.floor(measured.mtu)), source: "observed", samples: 1, confidence: "medium" };
-  }
-  return {
-    goodputBps: dataPlane === "webrtc" || dataPlane === "gateway" ? 2_000_000 : dataPlane === "bluetooth" ? 128_000 : 64_000,
-    rttMs: 0,
-    jitterMs: 0,
-    lossRatio: 0,
-    mtu: dataPlane === "bluetooth" ? 185 : 1200,
-    source: "declared",
-    samples: 0,
-    confidence: "low"
-  };
 }
 
 export interface RealtimeBandwidthReservation {

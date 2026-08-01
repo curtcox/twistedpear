@@ -126,28 +126,40 @@ export {
 } from "./device-admission.js";
 export {
   initialLinkQuality,
+  linkQualityFromRoute,
+  observeLinkDelivery,
+  openLinkObservation,
   updateLinkQuality,
+  LINK_OBSERVATION_MAX_WINDOW_MS,
+  LINK_OBSERVATION_MIN_SAMPLE_BYTES,
   type DeclaredLinkMeasurement,
   type DeliveredLinkMeasurement,
+  type LinkDeliveryObservation,
   type LinkMeasurement,
+  type LinkObservationWindow,
   type LinkQuality,
   type LinkQualityConfidence,
-  type LinkQualitySource
+  type LinkQualitySource,
+  type RouteQualityReport
 } from "./link-quality.js";
 export {
   decodeLinkControl,
   encodeLinkControl,
   encodeReadinessEnvelope,
+  encodeSessionInviteEnvelope,
   isMediaReadiness,
   parseMediaReadiness,
+  parseSessionInvite,
   LINK_CONTROL_HEADER_BYTES,
   LINK_CONTROL_MAGIC,
   LINK_CONTROL_MAX_ID_BYTES,
   LINK_CONTROL_MAX_PAYLOAD_BYTES,
   READINESS_REQUEST_ID,
   READINESS_RESPONSE_ID,
+  SESSION_INVITE_MAX_BODY_BYTES,
   type LinkControlEnvelope,
-  type LinkControlType
+  type LinkControlType,
+  type SessionInviteRequest
 } from "./link-control.js";
 export {
   decideMediaCapability,

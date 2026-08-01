@@ -19,6 +19,7 @@ import { mountTestAgent } from "../../host-core/dist/test-agent.js";
  *   port: number,
  *   log?: (line: string) => void
  *   handleCommand?: (request: Record<string, unknown>) => Promise<Record<string, unknown>>
+ *   receiveSessionInvite?: (invite: Record<string, unknown>) => Promise<void>
  * }} options
  */
 export function connectTestAgent(options) {
@@ -31,6 +32,9 @@ export function connectTestAgent(options) {
     controlHost: options.host,
     controlPort: options.port,
     ...(options.handleCommand === undefined ? {} : { handleCommand: options.handleCommand }),
+    // A host with a mini-app runtime routes the verified invite into its own
+    // chrome; the agent only records that it did.
+    ...(options.receiveSessionInvite === undefined ? {} : { receiveSessionInvite: options.receiveSessionInvite }),
     ...(options.log === undefined ? {} : { log: options.log })
   });
 }

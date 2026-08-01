@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-31T19:05:19.950Z",
+  "generatedAt": "2026-07-31T23:11:18.005Z",
   "roots": [
     "packages/protocol/src",
     "packages/reticulum-ts/src",
@@ -7,7 +7,7 @@
     "packages/miniapp-runtime/src",
     "packages/reticulum-interfaces/src"
   ],
-  "scannedFileCount": 161,
+  "scannedFileCount": 162,
   "violationCount": 0,
   "filesWithViolations": [],
   "summaryByApi": {},

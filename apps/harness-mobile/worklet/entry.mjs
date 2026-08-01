@@ -87,7 +87,7 @@ import {
 import { decodePeerAudioFrame, decodePeerInvitation, framePeerAudioPayload, initialPeerAudioAssemblyState, stepPeerAudioAssembly } from "../../../packages/protocol/dist/index.js";
 import { refuseStorePosture, shouldRefuseDeveloperMode } from "./store-posture-policy.mjs";
 import { RETICULUM_COMMUNITY_NETWORK } from "../../../packages/host-core/dist/community-network.js";
-import { AudioPeerDiscoveryAdapter, BluetoothPeerDiscoveryAdapter, CryptoPeerPairingBackend, InvitationPairingDriver, ManualPeerDiscoveryAdapter, NtfyPeerDiscoveryAdapter, NtfyRendezvousClient, PeerDiscoveryRegistry, PeerSessionManager, QrPeerDiscoveryAdapter, ReticulumPeerDiscoveryAdapter, UnavailablePeerDiscoveryAdapter } from "../../../packages/peer-discovery/dist/index.js";
+import { AudioPeerDiscoveryAdapter, BluetoothPeerDiscoveryAdapter, CryptoPeerPairingBackend, InvitationPairingDriver, ManualPeerDiscoveryAdapter, meterHostPeerRoute, NtfyPeerDiscoveryAdapter, NtfyRendezvousClient, PeerDiscoveryRegistry, PeerSessionManager, QrPeerDiscoveryAdapter, ReticulumPeerDiscoveryAdapter, UnavailablePeerDiscoveryAdapter } from "../../../packages/peer-discovery/dist/index.js";
 
 const { IPC } = BareKit;
 const HOST_BANDWIDTH_BYTES_PER_SECOND = 512 * 1024;
@@ -1011,7 +1011,7 @@ async function ensurePeerSessionManager() {
       if (bytesToHex(outbound.hash) !== bytesToHex(candidate.value)) throw new Error("Reticulum candidate does not match the signed peer identity and service");
       if (!node.hasPath(outbound.hash)) { node.requestPath(outbound.hash); if (!await node.awaitPath(outbound.hash, 15)) throw new Error("No Reticulum path to the confirmed peer"); }
       const link = await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error("Reticulum peer link timed out")), 30_000); outbound.requestLink({ linkEstablished(established) { clearTimeout(timer); resolve(established); }, linkClosed() { clearTimeout(timer); reject(new Error("Reticulum peer link closed during establishment")); } }); });
-      peerLinks.set(peer.fingerprint, link); const routeListeners = new Set(); const routePending = []; const existingPacket = link.callbacks.packet; link.callbacks.packet = (data, packet) => { if (routeListeners.size === 0) { routePending.push(data.slice()); if (routePending.length > 16) routePending.shift(); } else { for (const listener of routeListeners) listener(data.slice()); } existingPacket?.(data, packet); }; return { authenticated: true, confirmed: true, fingerprint: peer.fingerprint, displayLabel: peer.displayLabel, rendezvous: adapter.kind, dataPlane: peer.dataPlane, route: { async send(payload) { await link.send(payload); }, subscribe(listener) { routeListeners.add(listener); for (const pending of routePending.splice(0)) listener(pending); return () => routeListeners.delete(listener); }, quality() { return { goodputBps: link.attachedInterface?.bitrate ?? 2_000_000, rttMs: (link.rtt ?? 0) * 1_000, mtu: link.mtu, queueDepthBytes: outboundBandwidthLimiter.queueDepthBytes() }; } }, async close() { peerLinks.delete(peer.fingerprint); await link.teardown(); } };
+      peerLinks.set(peer.fingerprint, link); const routeListeners = new Set(); const routePending = []; const existingPacket = link.callbacks.packet; link.callbacks.packet = (data, packet) => { if (routeListeners.size === 0) { routePending.push(data.slice()); if (routePending.length > 16) routePending.shift(); } else { for (const listener of routeListeners) listener(data.slice()); } existingPacket?.(data, packet); }; return { authenticated: true, confirmed: true, fingerprint: peer.fingerprint, displayLabel: peer.displayLabel, rendezvous: adapter.kind, dataPlane: peer.dataPlane, route: meterHostPeerRoute({ async send(payload) { await link.send(payload); }, subscribe(listener) { routeListeners.add(listener); for (const pending of routePending.splice(0)) listener(pending); return () => routeListeners.delete(listener); }, quality() { return { goodputBps: link.attachedInterface?.bitrate ?? 2_000_000, rttMs: (link.rtt ?? 0) * 1_000, mtu: link.mtu, queueDepthBytes: outboundBandwidthLimiter.queueDepthBytes() }; } }, { now: () => Date.now(), declaredBps: link.attachedInterface?.bitrate ?? 2_000_000, declaredMtu: link.mtu }), async close() { peerLinks.delete(peer.fingerprint); await link.teardown(); } };
     }
   });
   peerSessionManager = new PeerSessionManager(registry, new InvitationPairingDriver({ backend })); return peerSessionManager;
@@ -2334,7 +2334,10 @@ async function handleHostMessage(raw) {
         host: message.host,
         port: message.port,
         log,
-        handleCommand: (request) => ensureCrossDeviceTestDriver()(request)
+        handleCommand: (request) => ensureCrossDeviceTestDriver()(request),
+        // A verified invite from the network reaches host chrome here; no
+        // mini-app code runs until the user accepts in that chrome.
+        receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite)
       });
       log(`Test agent mounted as ${message.label} (lxmf ${testAgent.lxmfAddress})`);
     } catch (error) {

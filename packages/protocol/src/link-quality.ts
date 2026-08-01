@@ -65,16 +65,157 @@ export function updateLinkQuality(
   const sampleLoss = packetTotal === 0 ? 0 : lostPackets / packetTotal;
   const samples = (previous?.samples ?? 0) + 1;
   const alpha = measurement.kind === "probed" ? 0.5 : 0.25;
+  // A declared seed is an interface nameplate, not a prior measurement. The
+  // first real sample replaces it outright; blending would carry the guess
+  // into every number that follows.
+  const prior = previous === null || previous.source === "declared" ? undefined : previous;
 
   return {
-    goodputBps: ewma(previous?.goodputBps, sampleGoodput, alpha),
-    rttMs: ewma(previous?.rttMs, finiteNonNegative(measurement.rttMs), alpha),
-    jitterMs: ewma(previous?.jitterMs, finiteNonNegative(measurement.jitterMs ?? 0), alpha),
-    lossRatio: clamp(ewma(previous?.lossRatio, sampleLoss, alpha), 0, 1),
+    goodputBps: ewma(prior?.goodputBps, sampleGoodput, alpha),
+    rttMs: ewma(prior?.rttMs, finiteNonNegative(measurement.rttMs), alpha),
+    jitterMs: ewma(prior?.jitterMs, finiteNonNegative(measurement.jitterMs ?? 0), alpha),
+    lossRatio: clamp(ewma(prior?.lossRatio, sampleLoss, alpha), 0, 1),
     mtu: positiveInteger(measurement.mtu),
     source: measurement.kind,
     samples,
     confidence: confidenceFor(measurement.kind, samples)
+  };
+}
+
+/**
+ * Live telemetry a host transport reports about one route. A transport that
+ * does not say how it knows a number is treated as `declared`: an interface's
+ * nameplate bitrate is not a measurement and must not be presented as one.
+ */
+export interface RouteQualityReport {
+  readonly goodputBps: number;
+  readonly rttMs: number;
+  readonly mtu: number;
+  readonly queueDepthBytes?: number;
+  readonly jitterMs?: number;
+  readonly lossRatio?: number;
+  readonly source?: LinkQualitySource;
+  readonly samples?: number;
+  readonly confidence?: LinkQualityConfidence;
+}
+
+/** Folds host route telemetry into a `LinkQuality` without inflating its source. */
+export function linkQualityFromRoute(
+  declared: DeclaredLinkMeasurement,
+  reported?: RouteQualityReport
+): LinkQuality {
+  const base = initialLinkQuality(declared);
+  if (reported === undefined) return base;
+  const source = reported.source ?? "declared";
+  const samples = Math.max(0, Math.floor(finiteNonNegative(reported.samples ?? 0)));
+  return {
+    goodputBps: finiteNonNegative(reported.goodputBps),
+    rttMs: finiteNonNegative(reported.rttMs),
+    jitterMs: finiteNonNegative(reported.jitterMs ?? 0),
+    lossRatio: clamp(finiteNonNegative(reported.lossRatio ?? 0), 0, 1),
+    mtu: positiveInteger(reported.mtu),
+    source,
+    samples,
+    confidence: reported.confidence ?? (source === "declared" ? "low" : confidenceFor(source, samples))
+  };
+}
+
+/** Default bytes a window must carry before it is a credible goodput sample. */
+export const LINK_OBSERVATION_MIN_SAMPLE_BYTES = 2_048;
+/** Default age after which an under-filled window is discarded, not reported. */
+export const LINK_OBSERVATION_MAX_WINDOW_MS = 30_000;
+
+/**
+ * Accumulated passive traffic on one route.
+ *
+ * Idleness is not evidence of a slow link, so a window that never reaches
+ * `minSampleBytes` is discarded rather than reported: the estimate stays at
+ * whatever was last known instead of decaying towards zero while nobody is
+ * talking. A closed window measures its span from the first to the last
+ * observed byte, which makes the reported goodput a floor on the link's
+ * capacity rather than a claim about its ceiling.
+ */
+export interface LinkObservationWindow {
+  readonly quality: LinkQuality;
+  readonly windowStartMs: number;
+  readonly windowBytes: number;
+  readonly windowPackets: number;
+  readonly lostPackets: number;
+  readonly rttMs: number;
+  readonly mtu: number;
+}
+
+export interface LinkDeliveryObservation {
+  readonly bytes: number;
+  readonly atMs: number;
+  readonly rttMs?: number;
+  readonly mtu?: number;
+  readonly lostPackets?: number;
+  readonly minSampleBytes?: number;
+  readonly maxWindowMs?: number;
+}
+
+export function openLinkObservation(
+  declared: DeclaredLinkMeasurement,
+  atMs: number
+): LinkObservationWindow {
+  return {
+    quality: initialLinkQuality(declared),
+    windowStartMs: finiteNonNegative(atMs),
+    windowBytes: 0,
+    windowPackets: 0,
+    lostPackets: 0,
+    rttMs: 0,
+    mtu: positiveInteger(declared.mtu)
+  };
+}
+
+export function observeLinkDelivery(
+  window: LinkObservationWindow,
+  observation: LinkDeliveryObservation
+): LinkObservationWindow {
+  const atMs = finiteNonNegative(observation.atMs);
+  const minSampleBytes = positiveInteger(observation.minSampleBytes ?? LINK_OBSERVATION_MIN_SAMPLE_BYTES);
+  const maxWindowMs = positiveInteger(observation.maxWindowMs ?? LINK_OBSERVATION_MAX_WINDOW_MS);
+  const rttMs = observation.rttMs === undefined ? window.rttMs : finiteNonNegative(observation.rttMs);
+  const mtu = observation.mtu === undefined ? window.mtu : positiveInteger(observation.mtu);
+
+  // A clock that jumped backwards restarts the window rather than producing a
+  // negative span and an absurd goodput.
+  const started = atMs < window.windowStartMs ? atMs : window.windowStartMs;
+  const windowBytes = window.windowBytes + finiteNonNegative(observation.bytes);
+  const windowPackets = window.windowPackets + 1;
+  const lostPackets = window.lostPackets + finiteNonNegative(observation.lostPackets ?? 0);
+
+  if (windowBytes < minSampleBytes) {
+    const stale = atMs - started >= maxWindowMs;
+    return {
+      quality: window.quality,
+      windowStartMs: stale ? atMs : started,
+      windowBytes: stale ? 0 : windowBytes,
+      windowPackets: stale ? 0 : windowPackets,
+      lostPackets: stale ? 0 : lostPackets,
+      rttMs,
+      mtu
+    };
+  }
+
+  return {
+    quality: updateLinkQuality(window.quality, {
+      kind: "observed",
+      deliveredBytes: windowBytes,
+      durationMs: Math.max(1, atMs - started),
+      rttMs,
+      deliveredPackets: windowPackets,
+      lostPackets,
+      mtu
+    }),
+    windowStartMs: atMs,
+    windowBytes: 0,
+    windowPackets: 0,
+    lostPackets: 0,
+    rttMs,
+    mtu
   };
 }
 

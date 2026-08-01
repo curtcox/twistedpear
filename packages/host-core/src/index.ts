@@ -82,12 +82,22 @@ export {
 } from "./identity-backup.js";
 export { createNodeHost, runNodeHost, type NodeHostOptions, type NodeHostSession } from "./node-host.js";
 export {
+  createSessionInviteReceiver,
+  sessionInviteContent,
+  SESSION_INVITE_PREFIX,
+  SESSION_INVITE_TITLE,
+  type DeliveredSessionInvite,
+  type SessionInviteCarrierMessage,
+  type SessionInviteReceiverOptions
+} from "./session-invite-carrier.js";
+export {
   mountTestAgent,
   TEST_AGENT_LINK_TITLE,
   TEST_AGENT_PROBE_TITLE,
   TEST_AGENT_REALTIME_TITLE,
   type TestAgentInboxEntry,
   type TestAgentInfo,
+  type TestAgentInviteEntry,
   type TestAgentOptions,
   type TestAgentPeerRecord,
   type TestAgentProbeEntry,

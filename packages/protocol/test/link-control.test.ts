@@ -3,7 +3,10 @@ import {
   decodeLinkControl,
   encodeLinkControl,
   encodeReadinessEnvelope,
+  encodeSessionInviteEnvelope,
   parseMediaReadiness,
+  parseSessionInvite,
+  SESSION_INVITE_MAX_BODY_BYTES,
   LINK_CONTROL_MAX_PAYLOAD_BYTES,
   READINESS_REQUEST_ID,
   READINESS_RESPONSE_ID,
@@ -75,5 +78,47 @@ describe("link control envelope", () => {
       parseMediaReadiness(utf8(JSON.stringify({ ...readiness, accepts: [{ classId: "keyboard", maxRung: "x", encodings: ["x"] }] })))
     ).toBeNull();
     expect(parseMediaReadiness(new Uint8Array(LINK_CONTROL_MAX_PAYLOAD_BYTES + 1))).toBeNull();
+  });
+});
+
+describe("session invite envelope", () => {
+  const invite = {
+    id: "invite-1",
+    appId: "line-check",
+    requestedClasses: ["microphone" as const, "camera" as const],
+    expiresAt: 90_000
+  };
+
+  it("round-trips a bounded invite over the same TPL1 carrier", () => {
+    const decoded = decodeLinkControl(encodeSessionInviteEnvelope(invite));
+    expect(decoded?.type).toBe(4);
+    expect(parseSessionInvite(decoded!)).toEqual(invite);
+  });
+
+  it("fits an opportunistic LXMF packet", () => {
+    expect(encodeSessionInviteEnvelope(invite).length).toBeLessThanOrEqual(
+      SESSION_INVITE_MAX_BODY_BYTES
+    );
+  });
+
+  it("refuses ids and app ids that are not printable and bounded", () => {
+    expect(() => encodeSessionInviteEnvelope({ ...invite, id: "" })).toThrow(/invalid/);
+    expect(() => encodeSessionInviteEnvelope({ ...invite, id: "a b" })).toThrow(/invalid/);
+    expect(() => encodeSessionInviteEnvelope({ ...invite, appId: "../etc" })).toThrow(/invalid/);
+  });
+
+  it("returns null for anything outside the closed class taxonomy", () => {
+    const body = (value: unknown) =>
+      parseSessionInvite({ type: 4, id: "invite-1", payload: utf8(JSON.stringify(value)) });
+    expect(body({ ...invite, requestedClasses: ["keyboard"] })).toBeNull();
+    expect(body({ ...invite, requestedClasses: [] })).toBeNull();
+    expect(body({ ...invite, requestedClasses: ["camera", "camera"] })).toBeNull();
+    expect(body({ ...invite, expiresAt: "soon" })).toBeNull();
+    expect(body({ ...invite, appId: 7 })).toBeNull();
+    expect(parseSessionInvite({ type: 4, id: "invite-1", payload: utf8("not json") })).toBeNull();
+    expect(parseSessionInvite({ type: 1, id: "invite-1", payload: utf8("{}") })).toBeNull();
+    expect(
+      parseSessionInvite({ type: 4, id: "invite-1", payload: new Uint8Array(SESSION_INVITE_MAX_BODY_BYTES + 1) })
+    ).toBeNull();
   });
 });

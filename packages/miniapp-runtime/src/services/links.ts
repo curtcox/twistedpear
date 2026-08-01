@@ -1,6 +1,7 @@
 import type {
   LinkQuality,
   PeerMediaReadiness,
+  RouteQualityReport,
   StreamPlane
 } from "@twistedpear/protocol";
 import {
@@ -12,6 +13,7 @@ import {
   READINESS_RESPONSE_ID
 } from "@twistedpear/protocol";
 import type { PeerHandle } from "@twistedpear/peer-discovery";
+import { qualityForPeerRoute as qualityForRoute } from "../route-quality.js";
 
 export type LinkReachability = "direct" | "mesh" | "store-and-forward" | "unreachable";
 export type LinkFreshness = "live" | "recent" | "stale";
@@ -82,7 +84,7 @@ export interface PeerRouteLinkObservatoryOptions {
 }
 
 interface AppPeerRouteDirectory extends AppPeerDirectory {
-  route(appId: string, peer: PeerHandle): undefined | { readonly transport?: { send(payload: Uint8Array): void | Promise<void>; subscribe?(listener: (payload: Uint8Array) => void): () => void; quality?(): { readonly goodputBps: number; readonly rttMs: number; readonly mtu: number; readonly queueDepthBytes?: number } } };
+  route(appId: string, peer: PeerHandle): undefined | { readonly transport?: { send(payload: Uint8Array): void | Promise<void>; subscribe?(listener: (payload: Uint8Array) => void): () => void; quality?(): RouteQualityReport } };
 }
 
 /** App-scoped adapter over authenticated peer routes. */
@@ -234,35 +236,6 @@ function planeForDataPlane(dataPlane: "reticulum" | "webrtc" | "gateway" | "blue
   if (dataPlane === "webrtc") return "webrtc";
   if (dataPlane === "gateway") return "pears-bulk";
   return "reticulum";
-}
-
-function declaredQuality(dataPlane: "reticulum" | "webrtc" | "gateway" | "bluetooth"): LinkQuality {
-  const goodputBps = dataPlane === "webrtc" || dataPlane === "gateway" ? 2_000_000 : dataPlane === "bluetooth" ? 128_000 : 64_000;
-  return {
-    goodputBps,
-    rttMs: 0,
-    jitterMs: 0,
-    lossRatio: 0,
-    mtu: dataPlane === "bluetooth" ? 185 : 1200,
-    source: "declared",
-    samples: 0,
-    confidence: "low"
-  };
-}
-
-function qualityForRoute(dataPlane: "reticulum" | "webrtc" | "gateway" | "bluetooth", transport?: { quality?(): { readonly goodputBps: number; readonly rttMs: number; readonly mtu: number } }): LinkQuality {
-  const measured = transport?.quality?.();
-  if (measured === undefined) return declaredQuality(dataPlane);
-  return {
-    goodputBps: Math.max(0, Math.floor(measured.goodputBps)),
-    rttMs: Math.max(0, measured.rttMs),
-    jitterMs: 0,
-    lossRatio: 0,
-    mtu: Math.max(64, Math.floor(measured.mtu)),
-    source: "observed",
-    samples: 1,
-    confidence: "medium"
-  };
 }
 
 export class LinkServiceError extends Error {

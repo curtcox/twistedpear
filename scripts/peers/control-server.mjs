@@ -197,6 +197,9 @@ export async function startControlServer(options = {}) {
     linkState: (label) => request(label, { cmd: "link-state" }).then((frame) => ({ readiness: frame.readiness ?? [], probes: frame.probes ?? [] })),
     requestReadiness: (label, toLxmfAddress) => request(label, { cmd: "request-readiness", toLxmfAddress }),
     linkProbe: (label, toLxmfAddress, budgetBytes) => request(label, { cmd: "link-probe", toLxmfAddress, budgetBytes }),
+    inviteState: (label) => request(label, { cmd: "invite-state" }).then((frame) => frame.invites ?? []),
+    sendInvite: (label, toLxmfAddress, appId, requestedClasses) =>
+      request(label, { cmd: "send-invite", toLxmfAddress, appId, requestedClasses }),
     command: (label, cmd, payload = {}, timeoutMs) =>
       request(label, { cmd, ...payload }, timeoutMs),
     async close() {

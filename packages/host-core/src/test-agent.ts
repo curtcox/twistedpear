@@ -26,11 +26,18 @@ import {
   decodeLinkControl,
   encodeLinkControl,
   encodeReadinessEnvelope,
+  encodeSessionInviteEnvelope,
   parseMediaReadiness,
   READINESS_REQUEST_ID,
   READINESS_RESPONSE_ID,
   type PeerMediaReadiness
 } from "@twistedpear/protocol";
+import {
+  createSessionInviteReceiver,
+  sessionInviteContent,
+  SESSION_INVITE_TITLE,
+  type DeliveredSessionInvite
+} from "./session-invite-carrier.js";
 
 /** Probe messages carry this title so agents never echo unrelated LXMF traffic. */
 export const TEST_AGENT_PROBE_TITLE = "tp-probe";
@@ -46,6 +53,8 @@ const LXMF_DELIVERY_ASPECT = "lxmf.delivery";
 /** Matches the host default: one probe per peer per minute, 8 KiB ceiling. */
 const LINK_PROBE_MAX_BUDGET_BYTES = 8 * 1024;
 const LINK_READINESS_TTL_MS = 60_000;
+/** Invitations are short-lived: a call the user never saw must not linger. */
+const SESSION_INVITE_TTL_MS = 120_000;
 /** `LXMF_ENCRYPTED_PACKET_MAX_CONTENT`: the opportunistic single-packet budget. */
 const LXMF_OPPORTUNISTIC_MAX_CONTENT = 295;
 /** `:<index>:<count>:` with four-digit fields. */
@@ -89,6 +98,16 @@ export interface TestAgentReadinessEntry {
   readonly receivedAt: number;
 }
 
+export interface TestAgentInviteEntry {
+  readonly kind: "sent" | "raised";
+  readonly id: string;
+  readonly appId: string;
+  readonly peerLabel: string;
+  readonly requestedClasses: ReadonlyArray<"camera" | "microphone" | "screen-capture">;
+  readonly expiresAt: number;
+  readonly at: number;
+}
+
 export interface TestAgentProbeEntry {
   readonly id: string;
   readonly toDestinationHash: string;
@@ -113,6 +132,7 @@ export interface TestAgentStatus extends TestAgentInfo {
   readonly realtimeInboxCount: number;
   readonly readinessCount: number;
   readonly probeCount: number;
+  readonly inviteCount: number;
   readonly pathTableCount: number;
 }
 
@@ -131,6 +151,14 @@ export interface TestAgentOptions {
   readonly reconnectWaitMs?: number;
   /** Readiness this peer advertises. Defaults to a narrow, TTL-bounded posture. */
   readonly mediaReadiness?: () => PeerMediaReadiness;
+  /**
+   * Where a verified inbound `session-invite` goes on this host. A host with a
+   * mini-app runtime passes `receiveSessionInvite`; a headless peer omits it
+   * and the agent only records that chrome would have been raised.
+   */
+  readonly receiveSessionInvite?: (invite: DeliveredSessionInvite) => Promise<void>;
+  /** Apps this host will ring. Defaults to the realtime-media cookbook app. */
+  readonly invitableApps?: ReadonlyArray<string>;
   readonly log?: (line: string) => void;
   /** Optional host-specific commands used by deeper conformance harnesses. */
   readonly handleCommand?: (
@@ -181,10 +209,12 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
   const inboxEntries: TestAgentInboxEntry[] = [];
   const realtimeEntries: TestAgentRealtimeEntry[] = [];
   const readinessEntries: TestAgentReadinessEntry[] = [];
+  const inviteEntries: TestAgentInviteEntry[] = [];
   const probeEntries = new Map<string, TestAgentProbeEntry>();
   /** In-flight chunk series, keyed by sender + prefix + nonce. */
   const partials = new Map<string, { parts: Array<string | null> }>();
   let nextProbe = 0;
+  let nextInvite = 0;
   let announcesSeen = 0;
   let stopped = false;
   let connection: DuplexConnection | null = null;
@@ -329,6 +359,38 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
     await sendChunkedHex(toLxmfAddress, TEST_AGENT_REALTIME_TITLE, prefix, nonce, payloadHex);
   };
 
+  const invitableApps = new Set(options.invitableApps ?? ["line-check"]);
+  /**
+   * The shipping carrier, verbatim. What this proves over a real network is
+   * the host path: a signed invite decodes, the peer is named locally, and the
+   * result reaches `receiveSessionInvite`. A headless peer has no chrome to
+   * raise, so it records the invite it would have raised instead.
+   */
+  const receiveInvite = createSessionInviteReceiver({
+    deliver: async (invite) => {
+      inviteEntries.push({
+        kind: "raised",
+        id: invite.id,
+        appId: invite.appId,
+        peerLabel: invite.verifiedPeerLabel,
+        requestedClasses: invite.requestedClasses,
+        expiresAt: invite.expiresAt,
+        at: Date.now()
+      });
+      await options.receiveSessionInvite?.(invite);
+    },
+    isInvitableApp: (appId) => invitableApps.has(appId),
+    resolvePeer: (sourceHashHex) => {
+      // Only a peer whose announce this host has verified can ring it.
+      const peer = peers.get(sourceHashHex);
+      return peer === undefined
+        ? null
+        : { handleId: `invite-peer-${peer.identityHash.slice(0, 12)}`, displayLabel: `peer ${peer.identityHash.slice(0, 8)}` };
+    },
+    now: () => Date.now(),
+    log
+  });
+
   router.onDelivery((message) => {
     let content: string;
     try {
@@ -337,6 +399,10 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       return;
     }
     const from = bytesToHex(message.sourceHash);
+    if (message.titleAsString() === SESSION_INVITE_TITLE) {
+      receiveInvite(message);
+      return;
+    }
     if (message.titleAsString() === TEST_AGENT_LINK_TITLE) {
       // Undecodable bytes are dropped in silence: this path answers the
       // readiness and probe protocols, it is never a generic echo service.
@@ -422,6 +488,7 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       realtimeInboxCount: realtimeEntries.length,
       readinessCount: readinessEntries.length,
       probeCount: probeEntries.size,
+      inviteCount: inviteEntries.length,
       pathTableCount: reticulum.pathTableCount
     };
   };
@@ -455,6 +522,29 @@ export async function mountTestAgent(options: TestAgentOptions): Promise<TestAge
       }
       case "link-state":
         return { readiness: [...readinessEntries], probes: [...probeEntries.values()] };
+      case "invite-state":
+        return { invites: [...inviteEntries] };
+      case "send-invite": {
+        if (request.toLxmfAddress === undefined) throw new Error("send-invite requires toLxmfAddress");
+        const appId = typeof request.appId === "string" ? request.appId : "line-check";
+        const requestedClasses = Array.isArray(request.requestedClasses)
+          ? (request.requestedClasses as ReadonlyArray<"camera" | "microphone" | "screen-capture">)
+          : (["microphone"] as const);
+        const id = `invite-${label}-${nextInvite++}`;
+        const expiresAt = Date.now() + SESSION_INVITE_TTL_MS;
+        const envelope = encodeSessionInviteEnvelope({ id, appId, requestedClasses, expiresAt });
+        await sendMessage(request.toLxmfAddress, SESSION_INVITE_TITLE, sessionInviteContent(envelope));
+        inviteEntries.push({
+          kind: "sent",
+          id,
+          appId,
+          peerLabel: request.toLxmfAddress.slice(0, 12),
+          requestedClasses,
+          expiresAt,
+          at: Date.now()
+        });
+        return { inviteId: id, appId, expiresAt, bytes: envelope.length };
+      }
       case "request-readiness": {
         if (request.toLxmfAddress === undefined) throw new Error("request-readiness requires toLxmfAddress");
         await sendLinkControl(

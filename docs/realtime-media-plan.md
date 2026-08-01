@@ -27,14 +27,17 @@ requirement-level proof and missing exits are tracked in the
 As of 2026-07-31, the reusable core is implemented: link observation/probes, readiness,
 share policy, fail-closed stream admission, a host-only five-plane binding, receive sinks,
 encoding/timing primitives, signaling, Line Check, and the SPEC-STREAM formal artifacts.
-Two peers now complete a real readiness exchange, a measured active probe, and a `TPD2`
-media round trip in `npm run test:local-multipeer`; the ladder collapses and recovers under
-adversarial link profiles in `npm run test:sim-media-ladder`; and the share-policy and
-invitation chrome is driven end to end in `npm run test:share-policy`. The remaining work is
-integration rather than protocol shape: shipping hosts must provide live telemetry, inbound
-`session-invite` delivery, concrete plane openers and codec drivers, device-run mobile chrome
-probes, and multi-host conformance evidence. Until those adapters are present, the UI must
-continue to say “probably” for declared low-confidence paths and hosts must reject
+Two peers now complete a real readiness exchange, a measured active probe, a delivered
+`session-invite`, and a `TPD2` media round trip in `npm run test:local-multipeer`; the
+ladder collapses and recovers under adversarial link profiles in
+`npm run test:sim-media-ladder`; and the share-policy and invitation chrome is driven end
+to end in `npm run test:share-policy`. Desktop, mobile, and web peer routes now meter the
+bytes that actually move, so a summary says `observed` only once something was measured
+and `declared` otherwise — Line Check keeps saying “probably” for the rest. The remaining
+work is host integration rather than protocol shape: a persistent host LXMF delivery
+destination so invitations arrive without a mounted agent, concrete plane openers and
+codec drivers, device-run mobile chrome probes, GUI peers in the multipeer matrix, and
+hardware evidence. Until those adapters are present, hosts must keep rejecting
 unconfigured streams.
 
 The evaluation below is retained as the design baseline that motivated the implementation.

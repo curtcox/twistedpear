@@ -194,15 +194,17 @@ everything below is a known cost of the chosen design or of the platforms involv
   app-scoped link model, readiness/share policy, fail-closed stream and reservation
   abstractions, TPD2 timing, receive sinks, simulated codec, Line Check app, and
   SPEC-STREAM conformance are implemented. Two headless peers complete a readiness
-  exchange, a measured probe, and a TPD2 media round trip on one Mac
-  (`test:local-multipeer`), the ladder collapses and recovers under adversarial profiles
-  (`test:sim-media-ladder`), and share/invite chrome is driven through the desktop
-  renderer (`test:share-policy`). Desktop/mobile/web hosts do not yet inject live
-  transport telemetry, deliver an inbound `session-invite` from the network, open concrete
-  WebRTC/Pears/CAS media planes, or provide platform codec/AEC drivers, and no device-run
-  Maestro flow covers the mobile share indicator. Consequently, declared paths remain
-  labelled “probably,” and `device.stream()` rejects when no host egress is configured. No
-  real-device or multi-machine audio/video claim is made.
+  exchange, a measured probe, a signature-verified inbound `session-invite`, and a TPD2
+  media round trip on one Mac (`test:local-multipeer`), the ladder collapses and recovers
+  under adversarial profiles (`test:sim-media-ladder`), and share/invite chrome is driven
+  through the desktop renderer (`test:share-policy`). Desktop/mobile/web peer routes now
+  meter delivered bytes, so a link summary is `observed` only when something was measured.
+  Those hosts still have no persistent LXMF delivery destination of their own, so an
+  invitation arrives only while a test agent's router is mounted; they do not open
+  concrete WebRTC/Pears/CAS media planes or provide platform codec/AEC drivers, and no
+  device-run Maestro flow covers the mobile share indicator. Consequently, unmeasured
+  paths remain labelled “probably,” and `device.stream()` rejects when no host egress is
+  configured. No real-device or multi-machine audio/video claim is made.
 - Mini-app `announce.publish` / `announce.subscribe` currently use the runtime's in-memory
   service in the desktop, mobile, and web hosts. The broker contract and app receive paths
   are tested, but no host adapter carries those SDK announces over Reticulum yet; separate

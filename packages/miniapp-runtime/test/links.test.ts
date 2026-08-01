@@ -94,7 +94,7 @@ describe("link capabilities and service", () => {
     const aListeners = new Set<(payload: Uint8Array) => void>(); const bListeners = new Set<(payload: Uint8Array) => void>(); let now = 1_000;
     const directory = (remote: string, outbound: Set<(payload: Uint8Array) => void>, inbound: Set<(payload: Uint8Array) => void>) => ({
       list: () => [{ handle: { id: remote }, displayLabel: remote, dataPlane: "webrtc" as const, connectedAt: 900 }],
-      route: (_appId: string, handle: { id: string }) => handle.id === remote ? { transport: { send: async (payload: Uint8Array) => { now += 5; for (const listener of outbound) listener(payload.slice()); }, subscribe: (listener: (payload: Uint8Array) => void) => { inbound.add(listener); return () => inbound.delete(listener); }, quality: () => ({ goodputBps: 900_000, rttMs: 12, mtu: 900 }) } } : undefined
+      route: (_appId: string, handle: { id: string }) => handle.id === remote ? { transport: { send: async (payload: Uint8Array) => { now += 5; for (const listener of outbound) listener(payload.slice()); }, subscribe: (listener: (payload: Uint8Array) => void) => { inbound.add(listener); return () => inbound.delete(listener); }, quality: () => ({ goodputBps: 900_000, rttMs: 12, mtu: 900, source: "observed" as const, samples: 4, confidence: "medium" as const }) } } : undefined
     });
     const readiness = () => ({ hostApi: "0.12.0", accepts: [{ classId: "microphone" as const, maxRung: "16k-opus", encodings: ["16k-opus"] }], offers: [], downlinkBucket: "audio" as const, constrained: ["foreground-only" as const], consentPosture: "ask" as const, expiresAt: 10_000 });
     const a = new PeerRouteLinkObservatory(directory("b", bListeners, aListeners), { now: () => now, localReadiness: readiness });

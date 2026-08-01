@@ -175,7 +175,7 @@ await runMain(async () => {
     );
 
     const startedAt = Date.now();
-    const results = { discovery: [], messaging: [], readiness: [], probes: [], realtime: [] };
+    const results = { discovery: [], messaging: [], readiness: [], probes: [], realtime: [], invites: [] };
 
     section("Attach");
     // Wait concurrently: one unavailable GUI peer should cost one attach
@@ -333,6 +333,36 @@ await runMain(async () => {
       }
     }
 
+    // A call has to be able to arrive at a host whose app is not running. The
+    // invite crosses the network as a signed LXMF message, and the receiving
+    // host — not the sender — decides whether it is real and who it is from.
+    section("Inbound session invite");
+    for (const from of attached) {
+      for (const to of attached) {
+        if (from === to) continue;
+        const at = Date.now();
+        const sent = await control.sendInvite(from, addresses.get(to), "line-check", ["microphone"]);
+        assert(typeof sent.inviteId === "string", `${from} did not accept the invite request`);
+        await waitUntil(
+          `${to} never raised ${from}'s session invite`,
+          async () => (await control.inviteState(to)).some((entry) => entry.kind === "raised" && entry.id.endsWith(sent.inviteId)),
+          MESSAGE_TIMEOUT_MS
+        );
+        const raised = (await control.inviteState(to)).findLast((entry) => entry.kind === "raised" && entry.id.endsWith(sent.inviteId));
+        // The label chrome would show is named locally from the verified
+        // sender; nothing the sender wrote reaches it.
+        assert(
+          raised.peerLabel.length > 0 && !raised.peerLabel.includes(sent.inviteId),
+          `${to} took the invited peer's label from the sender`
+        );
+        assert(raised.appId === "line-check", `${to} raised an invite for the wrong app`);
+        assert(raised.expiresAt > Date.now(), `${to} raised an already-expired invite`);
+        const elapsedMs = Date.now() - at;
+        step(`${from} → ${to} invite ${raised.requestedClasses.join("+")} as "${raised.peerLabel}" (${elapsedMs}ms)`);
+        results.invites.push({ from, to, id: raised.id, appId: raised.appId, requestedClasses: raised.requestedClasses, elapsedMs });
+      }
+    }
+
     section("Realtime media carrier");
     for (const from of attached) {
       for (const to of attached) {
@@ -376,7 +406,7 @@ await runMain(async () => {
     writeFileSync(proofPath, `${JSON.stringify(proof, null, 2)}\n`);
 
     section("Result");
-    step(`${attached.length} peers, ${results.discovery.length} discovery pairs, ${results.messaging.length} message round-trips, ${results.readiness.length} readiness exchanges, ${results.probes.length} measured probes, ${results.realtime.length} realtime carrier round-trips`);
+    step(`${attached.length} peers, ${results.discovery.length} discovery pairs, ${results.messaging.length} message round-trips, ${results.readiness.length} readiness exchanges, ${results.probes.length} measured probes, ${results.invites.length} delivered session invites, ${results.realtime.length} realtime carrier round-trips`);
     step(`proof: ${proofPath}`);
   } finally {
     await control?.close();

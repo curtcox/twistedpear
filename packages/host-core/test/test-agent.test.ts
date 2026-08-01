@@ -296,6 +296,49 @@ describe("peer test agent", () => {
     expect(measured?.rttMs).toBeGreaterThan(0);
   }, CONVERGE_TIMEOUT_MS * 3);
 
+  it("delivers a verified session invite from the network into host chrome", async () => {
+    const control = await startControlServer();
+    cleanups.push(() => control.close());
+    const [leftAgent, rightAgent] = await twoAgents(control);
+    await control.hello("left");
+    await control.hello("right");
+    await waitFor(
+      () => rightAgent.peers().some((peer) => peer.destinationHash === leftAgent.lxmfAddress),
+      CONVERGE_TIMEOUT_MS
+    );
+
+    const invites = async (label: string) =>
+      ((await control.request(label, { cmd: "invite-state" })) as {
+        invites: Array<{ kind: string; id: string; appId: string; peerLabel: string; requestedClasses: string[] }>;
+      }).invites;
+
+    const sent = (await control.request("left", {
+      cmd: "send-invite",
+      toLxmfAddress: rightAgent.lxmfAddress,
+      appId: "line-check",
+      requestedClasses: ["microphone"]
+    })) as { ok: boolean; inviteId: string };
+    expect(sent).toMatchObject({ ok: true });
+
+    await waitForAsync(async () => (await invites("right")).some((entry) => entry.kind === "raised"));
+    const raised = (await invites("right")).find((entry) => entry.kind === "raised");
+    expect(raised?.appId).toBe("line-check");
+    expect(raised?.requestedClasses).toEqual(["microphone"]);
+    // The id is namespaced by the verified sender, and the label is named here.
+    expect(raised?.id.endsWith(sent.inviteId)).toBe(true);
+    expect(raised?.peerLabel).toContain("peer ");
+
+    // An invite for an app this host will not ring never reaches chrome.
+    await control.request("left", {
+      cmd: "send-invite",
+      toLxmfAddress: rightAgent.lxmfAddress,
+      appId: "some-other-app",
+      requestedClasses: ["camera"]
+    });
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect((await invites("right")).filter((entry) => entry.kind === "raised")).toHaveLength(1);
+  }, CONVERGE_TIMEOUT_MS * 3);
+
   it("rejects an out-of-budget probe request", async () => {
     const control = await startControlServer();
     cleanups.push(() => control.close());

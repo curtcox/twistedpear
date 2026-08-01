@@ -58,6 +58,7 @@ import {
   CryptoPeerPairingBackend,
   InvitationPairingDriver,
   ManualPeerDiscoveryAdapter,
+  meterHostPeerRoute,
   NtfyPeerDiscoveryAdapter,
   NtfyRendezvousClient,
   PeerDiscoveryRegistry,
@@ -967,7 +968,10 @@ async function ensurePeerSessionManager() {
         displayLabel: peer.displayLabel,
         rendezvous: adapter.kind,
         dataPlane: peer.dataPlane,
-        route: { async send(payload) { await link.send(payload); }, subscribe(listener) { routeListeners.add(listener); for (const pending of routePending.splice(0)) listener(pending); return () => routeListeners.delete(listener); }, quality() { return { goodputBps: link.attachedInterface?.bitrate ?? 2_000_000, rttMs: (link.rtt ?? 0) * 1_000, mtu: link.mtu, queueDepthBytes: outboundBandwidthLimiter.queueDepthBytes() }; } },
+        // The link reports its interface's nameplate bitrate, which is a
+        // declaration; the meter turns the bytes that actually move into the
+        // observed half of the hybrid measurement.
+        route: meterHostPeerRoute({ async send(payload) { await link.send(payload); }, subscribe(listener) { routeListeners.add(listener); for (const pending of routePending.splice(0)) listener(pending); return () => routeListeners.delete(listener); }, quality() { return { goodputBps: link.attachedInterface?.bitrate ?? 2_000_000, rttMs: (link.rtt ?? 0) * 1_000, mtu: link.mtu, queueDepthBytes: outboundBandwidthLimiter.queueDepthBytes() }; } }, { now: () => Date.now(), declaredBps: link.attachedInterface?.bitrate ?? 2_000_000, declaredMtu: link.mtu }),
         async close() { peerLinks.delete(peer.fingerprint); await link.teardown(); }
       };
     }
@@ -2074,7 +2078,10 @@ async function handleHostMessage(raw) {
         host: message.host,
         port: message.port,
         log,
-        handleCommand: (request) => ensureCrossDeviceTestDriver()(request)
+        handleCommand: (request) => ensureCrossDeviceTestDriver()(request),
+        // A verified invite from the network reaches host chrome here; no
+        // mini-app code runs until the user accepts in that chrome.
+        receiveSessionInvite: (invite) => ensureMiniappHost().receiveSessionInvite(invite)
       });
       log(`Test agent mounted as ${message.label} (lxmf ${testAgent.lxmfAddress})`);
     } catch (error) {
