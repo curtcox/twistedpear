@@ -1354,7 +1354,7 @@ async function handleHostMessage(raw) {
     return;
   }
 
-  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response" || message.type === "media-opus-play-response" || message.type === "media-codec-response") {
+  if (message.type === "confirm-response" || message.type === "launch-confirm" || message.type === "install-confirm" || message.type === "peer-chrome-response" || message.type === "device-bridge-response" || message.type === "media-opus-play-response" || message.type === "media-opus-duplex-response" || message.type === "media-codec-response") {
     hostReplyChannel.resolveReply(message);
     return;
   }

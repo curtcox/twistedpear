@@ -478,9 +478,10 @@ async function handleNativeMediaOpusCommand(request) {
     return { played: true, encoding, bytes: Math.floor(request.dataHex.length / 2) };
   }
 
-  const duplex = await requestHostReply({ type: "media-opus-duplex-request", token: peerToken() }, 30_000);
+  // First Hermes asm.js Opus load can take tens of seconds; keep above the host encode budget.
+  const duplex = await requestHostReply({ type: "media-opus-duplex-request", token: peerToken() }, 90_000);
   if (duplex?.error !== undefined || duplex?.ok !== true) {
-    throw new Error(duplex?.error ?? "Opus duplex failed on host");
+    throw new Error(duplex?.error ?? (duplex === null ? "Opus duplex timed out waiting for host" : "Opus duplex failed on host"));
   }
   return {
     ok: true,
@@ -2228,7 +2229,10 @@ async function handleHostMessage(raw) {
     message.type === "confirm-response" ||
     message.type === "launch-confirm" ||
     message.type === "install-confirm" ||
-    message.type === "device-bridge-response"
+    message.type === "device-bridge-response" ||
+    message.type === "media-opus-duplex-response" ||
+    message.type === "media-opus-play-response" ||
+    message.type === "media-codec-response"
   ) {
     hostReplyChannel.resolveReply(message);
     return;
@@ -2909,7 +2913,8 @@ const HOST_REPLY_TYPES = new Set([
   "peer-chrome-response",
   "device-bridge-response",
   "media-codec-response",
-  "media-opus-play-response"
+  "media-opus-play-response",
+  "media-opus-duplex-response"
 ]);
 
 IPC.on("data", (data) => {

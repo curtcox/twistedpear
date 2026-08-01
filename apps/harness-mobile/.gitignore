@@ -1,6 +1,13 @@
 # Expo Continuous Native Generation — regenerate with `npx expo prebuild`.
 android/
 ios/
+# Keep local Expo module native sources and podspecs tracked.
+!modules/
+!modules/*/
+!modules/*/android/
+!modules/*/android/**
+!modules/*/ios/
+!modules/*/ios/**
 
 # Local Expo CLI state (machine-specific). Keep the explanatory README tracked.
 .expo/*

@@ -121,14 +121,16 @@ await runMain(async () => {
     let callsOpusDuplex = null;
     if (opusDuplex) {
       section("Opus duplex encode/decode/speaker");
-      const leftDuplex = await control.command(leftId, "media-opus-duplex", {}, 30_000);
+      // Mobile Hermes may need a long first-load for asm.js Opus; desktop is fast.
+      const duplexTimeoutMs = rightId === "ios" || rightId === "android" || leftId === "ios" || leftId === "android" ? 120_000 : 30_000;
+      const leftDuplex = await control.command(leftId, "media-opus-duplex", {}, duplexTimeoutMs);
       assert(leftDuplex.ok === true, `${leftId} Opus duplex failed`);
       assert(leftDuplex.voiceDuplex === true, `${leftId} Opus duplex missing voiceDuplex`);
       assert(typeof leftDuplex.opusBytes === "number" && leftDuplex.opusBytes > 0, `${leftId} Opus encode empty`);
       assert(leftDuplex.played === true, `${leftId} local Opus play failed`);
       step(`${leftId} Opus ${leftDuplex.pcmBytes}→${leftDuplex.opusBytes}→${leftDuplex.decodedBytes} bytes, played (${leftDuplex.implementation})`);
 
-      const rightDuplex = await control.command(rightId, "media-opus-duplex", {}, 30_000);
+      const rightDuplex = await control.command(rightId, "media-opus-duplex", {}, duplexTimeoutMs);
       assert(rightDuplex.ok === true, `${rightId} Opus duplex failed`);
       assert(rightDuplex.played === true, `${rightId} local Opus play failed`);
       step(`${rightId} Opus duplex local play ok (${rightDuplex.implementation})`);
@@ -140,7 +142,7 @@ await runMain(async () => {
         rightId,
         "media-opus-play",
         { dataHex: leftDuplex.frameHex, encoding: "16k-opus" },
-        30_000
+        duplexTimeoutMs
       );
       assert(played.played === true, `${rightId} did not play peer Opus frame`);
       const crossElapsedMs = Date.now() - crossAt;

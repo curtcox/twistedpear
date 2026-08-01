@@ -261,6 +261,10 @@ function int16PcmToFloat32(bytes: Uint8Array): Uint8Array {
 }
 
 function opusScriptOptions(): { wasm: boolean } {
+  // Hermes advertises WebAssembly, but Emscripten Opus WASM can hang indefinitely
+  // there. Prefer asm.js on Hermes; it needs the utf-16le TextDecoder patch below.
+  const hermes = typeof (globalThis as { HermesInternal?: unknown }).HermesInternal !== "undefined";
+  if (hermes) return { wasm: false };
   return { wasm: typeof (globalThis as { WebAssembly?: unknown }).WebAssembly !== "undefined" };
 }
 
