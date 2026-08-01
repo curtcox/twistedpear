@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const harnessRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(harnessRoot, "../..");
-const entry = join(harnessRoot, "worklet/entry.mjs");
+const entry = join(harnessRoot, "worklet/prelude.mjs");
 const output = join(harnessRoot, "worklet/worklet.bundle.mjs");
 const nobleCrypto = join(repoRoot, "conformance/bare-interop/noble-crypto.mjs");
 const importsPath = join(harnessRoot, "worklet/imports.generated.json");
@@ -37,6 +37,16 @@ writeWasmBase64Module(
   "PROPAGATION_SET_WASM_BASE64"
 );
 
+const freenetStdlibEsm = join(repoRoot, "conformance/freenet-spike/freenet-stdlib-esm.mjs");
+const freenetStdlibCommonEsm = join(
+  repoRoot,
+  "conformance/freenet-spike/freenet-stdlib-common-esm.mjs"
+);
+const freenetStdlibClientRequestEsm = join(
+  repoRoot,
+  "conformance/freenet-spike/freenet-stdlib-client-request-esm.mjs"
+);
+
 writeFileSync(
   importsPath,
   `${JSON.stringify(
@@ -45,6 +55,9 @@ writeFileSync(
       "@noble/ciphers/crypto": nobleCrypto,
       "@noble/curves/crypto": nobleCrypto,
       ws: join(repoRoot, "conformance/freenet-spike/bare-websocket-shim.mjs"),
+      "@freenetorg/freenet-stdlib": freenetStdlibEsm,
+      "@freenetorg/freenet-stdlib/common": freenetStdlibCommonEsm,
+      "@freenetorg/freenet-stdlib/client-request": freenetStdlibClientRequestEsm,
       "@twistedpear/reticulum-ts": join(repoRoot, "packages/reticulum-ts/dist/worklet.js"),
       "@twistedpear/bridge-hyper": join(repoRoot, "packages/bridge-hyper/dist/worklet.js"),
       "@twistedpear/miniapp-runtime": join(repoRoot, "packages/miniapp-runtime/dist/worklet.js")
@@ -79,6 +92,32 @@ const result = spawnSync(
     "node:os",
     "--defer",
     "node:worker_threads",
+    "--defer",
+    "node:dns",
+    "--defer",
+    "node:http",
+    "--defer",
+    "node:https",
+    "--defer",
+    "node:tls",
+    "--defer",
+    "node:stream",
+    "--defer",
+    "node:url",
+    "--defer",
+    "node:zlib",
+    "--defer",
+    "node:buffer",
+    "--defer",
+    "node:events",
+    "--defer",
+    "bare-crypto",
+    "--defer",
+    "bare-dns",
+    "--defer",
+    "bare-tcp",
+    "--defer",
+    "bare-tls",
     "--imports",
     importsPath,
     "--target",

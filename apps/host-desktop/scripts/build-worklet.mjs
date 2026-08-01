@@ -61,6 +61,15 @@ writeFileSync(
       "@noble/curves/crypto": nobleCrypto,
       "node:crypto": nodeCryptoStub,
       ws: join(repoRoot, "conformance/freenet-spike/bare-websocket-shim.mjs"),
+      "@freenetorg/freenet-stdlib": join(repoRoot, "conformance/freenet-spike/freenet-stdlib-esm.mjs"),
+      "@freenetorg/freenet-stdlib/common": join(
+        repoRoot,
+        "conformance/freenet-spike/freenet-stdlib-common-esm.mjs"
+      ),
+      "@freenetorg/freenet-stdlib/client-request": join(
+        repoRoot,
+        "conformance/freenet-spike/freenet-stdlib-client-request-esm.mjs"
+      ),
       "@twistedpear/reticulum-ts": join(repoRoot, "packages/reticulum-ts/dist/worklet.js"),
       "@twistedpear/bridge-hyper": join(repoRoot, "packages/bridge-hyper/dist/worklet.js"),
       "@twistedpear/miniapp-runtime": join(repoRoot, "packages/miniapp-runtime/dist/worklet.js")

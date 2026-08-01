@@ -4,7 +4,6 @@
  */
 import "../../../conformance/bare-interop/bare-globals.mjs";
 import "bare-encoding/global";
-import { installBareWebSocketGlobal } from "../../../conformance/freenet-spike/bare-websocket-shim.mjs";
 import {
   FreenetClient,
   FreenetClientContractBackend,
@@ -92,11 +91,29 @@ import { AudioPeerDiscoveryAdapter, BluetoothPeerDiscoveryAdapter, CryptoPeerPai
 
 const { IPC } = BareKit;
 const HOST_BANDWIDTH_BYTES_PER_SECOND = 512 * 1024;
-installBareWebSocketGlobal();
+
+let bareWebSocketReady = null;
+async function ensureBareWebSocket() {
+  if (bareWebSocketReady === null) {
+    bareWebSocketReady = import("../../../conformance/freenet-spike/bare-websocket-shim.mjs").then(
+      ({ installBareWebSocketGlobal }) => {
+        installBareWebSocketGlobal();
+      }
+    );
+  }
+  await bareWebSocketReady;
+}
 
 function createProvider() {
   try {
-    return new BareCryptoProvider();
+    // Mobile BareKit ESM worklets do not provide CommonJS `require`; sodium-native
+    // loading in BareCryptoProvider needs it. Probe before claiming the bare path.
+    if (typeof require !== "function") {
+      return new PureCryptoProvider();
+    }
+    const candidate = new BareCryptoProvider();
+    candidate.ed25519PublicFromPrivate(candidate.randomBytes(32));
+    return candidate;
   } catch {
     return new PureCryptoProvider();
   }
@@ -1389,6 +1406,7 @@ async function detachFreenetBackends() {
 
 async function attachFreenetBackends() {
   await detachFreenetBackends();
+  await ensureBareWebSocket();
 
   const enabled = status.freenetEnabled === true;
   const url = status.freenetUrl;
@@ -2556,11 +2574,49 @@ async function handleHostMessage(raw) {
   }
 }
 
+let hostMessageBuffer = "";
+let hostMessageQueue = Promise.resolve();
+const HOST_REPLY_TYPES = new Set([
+  "confirm-response",
+  "launch-confirm",
+  "install-confirm",
+  "peer-chrome-response",
+  "device-bridge-response",
+  "media-codec-response",
+  "media-opus-play-response"
+]);
+
 IPC.on("data", (data) => {
-  handleHostMessage(data).catch((error) => {
-    log(`Worklet error: ${error instanceof Error ? error.message : String(error)}`);
-    pushStatus();
-  });
+  hostMessageBuffer += data.toString();
+  const lines = hostMessageBuffer.split("\n");
+  hostMessageBuffer = lines.pop() ?? "";
+  for (const line of lines) {
+    if (line.trim().length === 0) {
+      continue;
+    }
+    // Replies must not wait behind other host-message handlers: those handlers
+    // often await requestHostReply, which would deadlock if the matching
+    // device-bridge-response / peer-chrome-response sat on this queue.
+    try {
+      const parsed = JSON.parse(line);
+      if (parsed && HOST_REPLY_TYPES.has(parsed.type)) {
+        if (!hostReplyChannel.resolveReply(parsed)) {
+          log(
+            `Orphan host reply ${parsed.type} token=${typeof parsed.token === "string" ? parsed.token.slice(0, 12) : "?"}`
+          );
+        }
+        continue;
+      }
+    } catch {
+      // Fall through to the ordered handler for malformed lines.
+    }
+    hostMessageQueue = hostMessageQueue
+      .then(() => handleHostMessage(line))
+      .catch((error) => {
+        log(`Worklet error: ${error instanceof Error ? error.message : String(error)}`);
+        pushStatus();
+      });
+  }
 });
 
 void loadPersistedIdentity().then(() => loadCatalogState().then(pushCatalog));

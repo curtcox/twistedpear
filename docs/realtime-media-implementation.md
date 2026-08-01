@@ -50,9 +50,10 @@ claim.
    recorded via `SHARE_POLICY_REQUIRED=1 npm run test:ios-sim:share-policy` (2026-08-01).
 2. Carry iOS/Android simulator peers through `npm run test:local-multipeer` with
    `LOCAL_MULTIPEER_REQUIRED=1` (desktop is covered by `npm run test:local-multipeer:desktop`;
-   web↔web WebRTC track bytes are covered by `npm run test:webrtc-gui-call:web`). Fix the
-   mobile Bare worklet `unhandledRejection` SIGABRT that currently aborts the host when
-   starting the worklet.
+   web↔web WebRTC track bytes are covered by `npm run test:webrtc-gui-call:web`). Mobile Bare
+   worklet start/create-identity no longer SIGABRT on iOS sim (prelude absorbers + Freenet
+   ESM facades + PureCrypto fallback when `require` is unavailable; 2026-08-01 Maestro
+   `Persisted: yes` smoke). Remaining: wire those peers into local-multipeer.
 3. Native mobile Opus codec + `openWebRtcMediaPlane` parity (desktop Opus duplex is recorded
    by `test:webrtc-gui-call` `callsOpusDuplex`; Android peer-audio now has voice-duplex
    AEC/NS/AGC recording beside iOS).

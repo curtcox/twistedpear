@@ -25,6 +25,11 @@ import { HostBonjourIpc } from "./host/bonjour-ipc";
 import { HostBleIpc } from "./host/ble-ipc";
 import { HostUsbIpc } from "./host/usb-ipc";
 import {
+  nativeDeviceActuate,
+  nativeDeviceAvailability,
+  nativeDeviceSense
+} from "./host/native-device-bridge";
+import {
   hasUsbSerialPermission,
   getUsbSerialCapability,
   listUsbSerialDevices,
@@ -558,11 +563,6 @@ export default function App() {
     if (message.type === "device-bridge-request") {
       void (async () => {
         try {
-          const {
-            nativeDeviceAvailability,
-            nativeDeviceSense,
-            nativeDeviceActuate
-          } = await import("./host/native-device-bridge.js");
           const result =
             message.op === "availability"
               ? await nativeDeviceAvailability(message.classId)
@@ -660,6 +660,8 @@ export default function App() {
     sendToWorklet({ type: "set-interfaces", ...next, rnode: Platform.OS === "ios" ? false : next.rnode });
   }, [sendToWorklet]);
 
+  const workletReadyRef = useRef<Promise<boolean> | null>(null);
+
   const stopWorklet = useCallback(() => {
     sendToWorklet({ type: "stop" });
     void multicastIpcRef.current?.stop();
@@ -667,6 +669,7 @@ export default function App() {
     void usbIpcRef.current?.stop();
     workletRef.current?.terminate();
     workletRef.current = null;
+    workletReadyRef.current = null;
     setStatus((current) => ({
       ...current,
       running: false,
@@ -674,9 +677,13 @@ export default function App() {
     }));
   }, [sendToWorklet]);
 
-  const startWorklet = useCallback(() => {
+  const startWorklet = useCallback((): Promise<boolean> => {
+    if (workletReadyRef.current !== null) {
+      return workletReadyRef.current;
+    }
+
     if (workletRef.current !== null) {
-      return;
+      return Promise.resolve(true);
     }
 
     const worklet = new Worklet();
@@ -698,18 +705,19 @@ export default function App() {
     workletRef.current = worklet;
     const targetHost = Platform.OS === "android" ? ANDROID_EMULATOR_HOST : LOCAL_HOST;
 
-    void (async () => {
+    workletReadyRef.current = (async () => {
       try {
         await worklet.start("/app.bundle", bundle);
       } catch (error) {
         workletRef.current = null;
+        workletReadyRef.current = null;
         appendLog(`Worklet start failed: ${error instanceof Error ? error.message : String(error)}`);
         setStatus((current) => ({ ...current, running: false, linkOnline: false }));
-        return;
+        return false;
       }
 
       if (workletRef.current !== worklet) {
-        return;
+        return false;
       }
 
       sendToWorklet({
@@ -729,7 +737,10 @@ export default function App() {
       });
       sendToWorklet({ type: "device-list" });
       appendLog(`Worklet started (target ${targetHost}:${DEFAULT_DOCKER_PORT})`);
+      return true;
     })();
+
+    return workletReadyRef.current;
   }, [appendLog, autoEnabled, bleEnabled, rnodeEnabled, selectedUsbDeviceId, handleWorkletMessage, ntfyUrl, pushInterfaceConfig, sendToWorklet, tcpEnabled]);
 
   const interfacesWantedWorkletRef = useRef(false);
@@ -1069,13 +1080,13 @@ export default function App() {
             testID="create-identity"
             label="Create identity"
             onPress={() => {
-              if (workletRef.current === null) {
-                startWorklet();
-                setTimeout(() => sendToWorklet({ type: "create-identity" }), 250);
-                return;
-              }
-
-              sendToWorklet({ type: "create-identity" });
+              void (async () => {
+                const ready = await startWorklet();
+                if (!ready) {
+                  return;
+                }
+                sendToWorklet({ type: "create-identity" });
+              })();
             }}
           />
           <ActionButton
@@ -1132,12 +1143,13 @@ export default function App() {
             label="Join community network"
             onPress={() => {
               setTcpEnabled(true);
-              if (workletRef.current === null) {
-                startWorklet();
-                setTimeout(() => sendToWorklet({ type: "join-community-network" }), 250);
-                return;
-              }
-              sendToWorklet({ type: "join-community-network" });
+              void (async () => {
+                const ready = await startWorklet();
+                if (!ready) {
+                  return;
+                }
+                sendToWorklet({ type: "join-community-network" });
+              })();
             }}
           />
         </View>
